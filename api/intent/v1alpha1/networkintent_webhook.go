@@ -46,7 +46,7 @@ func (r *NetworkIntent) Default(ctx context.Context, obj runtime.Object) error {
 	if !ok {
 		return fmt.Errorf("expected *NetworkIntent, got %T", obj)
 	}
-	
+
 	networkintentlog.Info("default", "name", ni.Name)
 
 	// Set default source if not provided
@@ -58,7 +58,7 @@ func (r *NetworkIntent) Default(ctx context.Context, obj runtime.Object) error {
 	if ni.Spec.IntentType == "" {
 		ni.Spec.IntentType = "scaling"
 	}
-	
+
 	return nil
 }
 
@@ -72,7 +72,7 @@ func (r *NetworkIntent) ValidateCreate(ctx context.Context, obj runtime.Object) 
 	if !ok {
 		return nil, fmt.Errorf("expected *NetworkIntent, got %T", obj)
 	}
-	
+
 	networkintentlog.Info("validate create", "name", ni.Name)
 	return ni.validateNetworkIntent()
 }
@@ -83,7 +83,7 @@ func (r *NetworkIntent) ValidateUpdate(ctx context.Context, oldObj, newObj runti
 	if !ok {
 		return nil, fmt.Errorf("expected *NetworkIntent, got %T", newObj)
 	}
-	
+
 	networkintentlog.Info("validate update", "name", ni.Name)
 	return ni.validateNetworkIntent()
 }
@@ -94,7 +94,7 @@ func (r *NetworkIntent) ValidateDelete(ctx context.Context, obj runtime.Object) 
 	if !ok {
 		return nil, fmt.Errorf("expected *NetworkIntent, got %T", obj)
 	}
-	
+
 	networkintentlog.Info("validate delete", "name", ni.Name)
 
 	// No validation needed for deletion

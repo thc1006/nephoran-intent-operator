@@ -47,7 +47,6 @@ type TrafficController struct {
 // TrafficControllerConfig defines configuration for global traffic management.
 
 type TrafficControllerConfig struct {
-
 	// Global routing strategy.
 
 	RoutingStrategy string `json:"routing_strategy"` // latency, capacity, cost, hybrid
@@ -85,7 +84,6 @@ type TrafficControllerConfig struct {
 	CostWeight float64 `json:"cost_weight"` // 0.3 (30% weight)
 
 	PerformanceWeight float64 `json:"performance_weight"` // 0.7 (70% weight)
-
 }
 
 // RegionInfo contains information about a specific region.
@@ -207,7 +205,6 @@ type WeightedRegion struct {
 // NewTrafficController creates a new global traffic controller.
 
 func NewTrafficController(
-
 	client client.Client,
 
 	kubeClient kubernetes.Interface,
@@ -217,11 +214,8 @@ func NewTrafficController(
 	config *TrafficControllerConfig,
 
 	logger logr.Logger,
-
 ) *TrafficController {
-
 	return &TrafficController{
-
 		client: client,
 
 		kubeClient: kubeClient,
@@ -238,21 +232,17 @@ func NewTrafficController(
 
 		healthChecks: make(map[string]*RegionHealth),
 	}
-
 }
 
 // Start begins the traffic controller operations.
 
 func (tc *TrafficController) Start(ctx context.Context) error {
-
 	tc.logger.Info("Starting Global Traffic Controller")
 
 	// Initialize regions from configuration.
 
 	if err := tc.loadRegionConfiguration(ctx); err != nil {
-
 		return fmt.Errorf("failed to load region configuration: %w", err)
-
 	}
 
 	// Start health checking goroutine.
@@ -274,22 +264,17 @@ func (tc *TrafficController) Start(ctx context.Context) error {
 	tc.logger.Info("Global Traffic Controller started successfully")
 
 	return nil
-
 }
 
 // loadRegionConfiguration loads region information from ConfigMap.
 
 func (tc *TrafficController) loadRegionConfiguration(ctx context.Context) error {
-
 	configMap, err := tc.kubeClient.CoreV1().ConfigMaps("nephoran-global").Get(
 
 		ctx, "nephoran-global-config", metav1.GetOptions{},
 	)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to get global config: %w", err)
-
 	}
 
 	var config struct {
@@ -297,9 +282,7 @@ func (tc *TrafficController) loadRegionConfiguration(ctx context.Context) error 
 	}
 
 	if err := json.Unmarshal([]byte(configMap.Data["regions.yaml"]), &config); err != nil {
-
 		return fmt.Errorf("failed to parse regions config: %w", err)
-
 	}
 
 	tc.mutex.Lock()
@@ -311,19 +294,16 @@ func (tc *TrafficController) loadRegionConfiguration(ctx context.Context) error 
 	tc.logger.Info("Loaded region configuration", "regions", len(config.Regions))
 
 	return nil
-
 }
 
 // runHealthChecks performs periodic health checks for all regions.
 
 func (tc *TrafficController) runHealthChecks(ctx context.Context) {
-
 	ticker := time.NewTicker(tc.config.HealthCheckInterval)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -335,23 +315,18 @@ func (tc *TrafficController) runHealthChecks(ctx context.Context) {
 			tc.performHealthChecks(ctx)
 
 		}
-
 	}
-
 }
 
 // performHealthChecks checks health status of all regions.
 
 func (tc *TrafficController) performHealthChecks(ctx context.Context) {
-
 	tc.mutex.RLock()
 
 	regions := make(map[string]*RegionInfo)
 
 	for k, v := range tc.regions {
-
 		regions[k] = v
-
 	}
 
 	tc.mutex.RUnlock()
@@ -363,7 +338,6 @@ func (tc *TrafficController) performHealthChecks(ctx context.Context) {
 		wg.Add(1)
 
 		go func(name string, r *RegionInfo) {
-
 			defer wg.Done()
 
 			health := tc.checkRegionHealth(ctx, name, r)
@@ -373,7 +347,6 @@ func (tc *TrafficController) performHealthChecks(ctx context.Context) {
 			tc.healthChecks[name] = health
 
 			tc.mutex.Unlock()
-
 		}(regionName, region)
 
 	}
@@ -381,15 +354,12 @@ func (tc *TrafficController) performHealthChecks(ctx context.Context) {
 	wg.Wait()
 
 	tc.logger.V(1).Info("Completed health checks for all regions")
-
 }
 
 // checkRegionHealth performs health check for a specific region.
 
 func (tc *TrafficController) checkRegionHealth(ctx context.Context, regionName string, region *RegionInfo) *RegionHealth {
-
 	health := &RegionHealth{
-
 		Region: regionName,
 
 		LastHealthCheck: time.Now(),
@@ -426,7 +396,7 @@ func (tc *TrafficController) checkRegionHealth(ctx context.Context, regionName s
 		return health
 	}
 	// Security fix (bodyclose): Always close response body
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != 200 {
 		health.IsHealthy = false
@@ -443,7 +413,6 @@ func (tc *TrafficController) checkRegionHealth(ctx context.Context, regionName s
 	// Query metrics from Prometheus.
 
 	successRate, err := tc.querySuccessRate(ctx, regionName)
-
 	if err != nil {
 
 		tc.logger.Error(err, "Failed to query success rate", "region", regionName)
@@ -453,7 +422,6 @@ func (tc *TrafficController) checkRegionHealth(ctx context.Context, regionName s
 	}
 
 	avgLatency, err := tc.queryAverageLatency(ctx, regionName)
-
 	if err != nil {
 
 		tc.logger.Error(err, "Failed to query average latency", "region", regionName)
@@ -463,7 +431,6 @@ func (tc *TrafficController) checkRegionHealth(ctx context.Context, regionName s
 	}
 
 	p95Latency, err := tc.queryP95Latency(ctx, regionName)
-
 	if err != nil {
 
 		tc.logger.Error(err, "Failed to query P95 latency", "region", regionName)
@@ -489,13 +456,11 @@ func (tc *TrafficController) checkRegionHealth(ctx context.Context, regionName s
 	health.AvailabilityScore = tc.calculateAvailabilityScore(health)
 
 	return health
-
 }
 
 // querySuccessRate queries success rate from Prometheus.
 
 func (tc *TrafficController) querySuccessRate(ctx context.Context, region string) (float64, error) {
-
 	query := fmt.Sprintf(
 
 		`rate(nephoran_requests_total{region="%s",status="success"}[5m]) / rate(nephoran_requests_total{region="%s"}[5m])`,
@@ -504,27 +469,20 @@ func (tc *TrafficController) querySuccessRate(ctx context.Context, region string
 	)
 
 	result, _, err := tc.prometheusAPI.Query(ctx, query, time.Now())
-
 	if err != nil {
-
 		return 0, err
-
 	}
 
 	if vector, ok := result.(model.Vector); ok && len(vector) > 0 {
-
 		return float64(vector[0].Value), nil
-
 	}
 
 	return 1.0, nil // Default to 100% if no data
-
 }
 
 // queryAverageLatency queries average latency from Prometheus.
 
 func (tc *TrafficController) queryAverageLatency(ctx context.Context, region string) (time.Duration, error) {
-
 	query := fmt.Sprintf(
 
 		`rate(nephoran_request_duration_seconds_sum{region="%s"}[5m]) / rate(nephoran_request_duration_seconds_count{region="%s"}[5m])`,
@@ -533,27 +491,20 @@ func (tc *TrafficController) queryAverageLatency(ctx context.Context, region str
 	)
 
 	result, _, err := tc.prometheusAPI.Query(ctx, query, time.Now())
-
 	if err != nil {
-
 		return 0, err
-
 	}
 
 	if vector, ok := result.(model.Vector); ok && len(vector) > 0 {
-
 		return time.Duration(float64(vector[0].Value) * float64(time.Second)), nil
-
 	}
 
 	return 100 * time.Millisecond, nil
-
 }
 
 // queryP95Latency queries P95 latency from Prometheus.
 
 func (tc *TrafficController) queryP95Latency(ctx context.Context, region string) (time.Duration, error) {
-
 	query := fmt.Sprintf(
 
 		`histogram_quantile(0.95, rate(nephoran_request_duration_seconds_bucket{region="%s"}[5m]))`,
@@ -562,27 +513,20 @@ func (tc *TrafficController) queryP95Latency(ctx context.Context, region string)
 	)
 
 	result, _, err := tc.prometheusAPI.Query(ctx, query, time.Now())
-
 	if err != nil {
-
 		return 0, err
-
 	}
 
 	if vector, ok := result.(model.Vector); ok && len(vector) > 0 {
-
 		return time.Duration(float64(vector[0].Value) * float64(time.Second)), nil
-
 	}
 
 	return 500 * time.Millisecond, nil
-
 }
 
 // calculateAvailabilityScore calculates an overall availability score.
 
 func (tc *TrafficController) calculateAvailabilityScore(health *RegionHealth) float64 {
-
 	// Weighted score based on multiple factors.
 
 	successWeight := 0.5
@@ -596,9 +540,7 @@ func (tc *TrafficController) calculateAvailabilityScore(health *RegionHealth) fl
 	latencyScore := 1.0 - (float64(health.AverageLatency.Milliseconds()) / 1000.0)
 
 	if latencyScore < 0 {
-
 		latencyScore = 0
-
 	}
 
 	errorScore := 1.0 - health.ErrorRate
@@ -608,19 +550,16 @@ func (tc *TrafficController) calculateAvailabilityScore(health *RegionHealth) fl
 		(latencyScore * latencyWeight) +
 
 		(errorScore * errorWeight)
-
 }
 
 // runRoutingEngine runs the intelligent routing decision engine.
 
 func (tc *TrafficController) runRoutingEngine(ctx context.Context) {
-
 	ticker := time.NewTicker(tc.config.RoutingDecisionInterval)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -632,7 +571,6 @@ func (tc *TrafficController) runRoutingEngine(ctx context.Context) {
 			decision := tc.makeRoutingDecision(ctx)
 
 			if decision != nil {
-
 				select {
 
 				case tc.routingDecisions <- decision:
@@ -642,43 +580,33 @@ func (tc *TrafficController) runRoutingEngine(ctx context.Context) {
 					tc.logger.V(1).Info("Routing decision channel full, dropping decision")
 
 				}
-
 			}
 
 		}
-
 	}
-
 }
 
 // makeRoutingDecision creates an intelligent routing decision.
 
 func (tc *TrafficController) makeRoutingDecision(ctx context.Context) *RoutingDecision {
-
 	tc.mutex.RLock()
 
 	healthChecks := make(map[string]*RegionHealth)
 
 	for k, v := range tc.healthChecks {
-
 		healthChecks[k] = v
-
 	}
 
 	regions := make(map[string]*RegionInfo)
 
 	for k, v := range tc.regions {
-
 		regions[k] = v
-
 	}
 
 	tc.mutex.RUnlock()
 
 	if len(healthChecks) == 0 {
-
 		return nil
-
 	}
 
 	// Filter healthy regions.
@@ -686,13 +614,9 @@ func (tc *TrafficController) makeRoutingDecision(ctx context.Context) *RoutingDe
 	healthyRegions := make(map[string]*RegionHealth)
 
 	for name, health := range healthChecks {
-
 		if health.IsHealthy {
-
 			healthyRegions[name] = health
-
 		}
-
 	}
 
 	if len(healthyRegions) == 0 {
@@ -708,7 +632,6 @@ func (tc *TrafficController) makeRoutingDecision(ctx context.Context) *RoutingDe
 	weightedRegions := tc.calculateRoutingWeights(healthyRegions, regions)
 
 	decision := &RoutingDecision{
-
 		Timestamp: time.Now(),
 
 		TargetRegions: weightedRegions,
@@ -725,19 +648,15 @@ func (tc *TrafficController) makeRoutingDecision(ctx context.Context) *RoutingDe
 	decision.ExpectedCost = tc.calculateExpectedCost(regions, weightedRegions)
 
 	return decision
-
 }
 
 // calculateRoutingWeights calculates traffic weights based on configured strategy.
 
 func (tc *TrafficController) calculateRoutingWeights(
-
 	healthyRegions map[string]*RegionHealth,
 
 	regions map[string]*RegionInfo,
-
 ) []WeightedRegion {
-
 	var weightedRegions []WeightedRegion
 
 	totalWeight := 0
@@ -757,20 +676,15 @@ func (tc *TrafficController) calculateRoutingWeights(
 		var regionLatencies []regionLatency
 
 		for name, health := range healthyRegions {
-
 			regionLatencies = append(regionLatencies, regionLatency{
-
 				region: name,
 
 				latency: health.AverageLatency,
 			})
-
 		}
 
 		sort.Slice(regionLatencies, func(i, j int) bool {
-
 			return regionLatencies[i].latency < regionLatencies[j].latency
-
 		})
 
 		// Assign weights inversely proportional to latency.
@@ -780,7 +694,6 @@ func (tc *TrafficController) calculateRoutingWeights(
 			weight := len(regionLatencies) - i
 
 			weightedRegions = append(weightedRegions, WeightedRegion{
-
 				Region: rl.region,
 
 				Weight: weight * 20, // Scale up
@@ -797,9 +710,7 @@ func (tc *TrafficController) calculateRoutingWeights(
 		// Route based on available capacity.
 
 		for name, region := range regions {
-
 			if _, ok := healthyRegions[name]; ok {
-
 				if region.CurrentCapacity != nil {
 
 					utilizationScore := 1.0 - (float64(region.CurrentCapacity.CPUUtilization) / 100.0)
@@ -809,7 +720,6 @@ func (tc *TrafficController) calculateRoutingWeights(
 					if weight > 0 {
 
 						weightedRegions = append(weightedRegions, WeightedRegion{
-
 							Region: name,
 
 							Weight: weight,
@@ -822,9 +732,7 @@ func (tc *TrafficController) calculateRoutingWeights(
 					}
 
 				}
-
 			}
-
 		}
 
 	default: // hybrid and any other strategy
@@ -840,9 +748,7 @@ func (tc *TrafficController) calculateRoutingWeights(
 			latencyScore := 1.0 - (float64(health.AverageLatency.Milliseconds()) / 1000.0)
 
 			if latencyScore < 0 {
-
 				latencyScore = 0
-
 			}
 
 			// Capacity score.
@@ -850,9 +756,7 @@ func (tc *TrafficController) calculateRoutingWeights(
 			capacityScore := 1.0
 
 			if region.CurrentCapacity != nil {
-
 				capacityScore = 1.0 - (region.CurrentCapacity.CPUUtilization / 100.0)
-
 			}
 
 			// Combined score.
@@ -868,7 +772,6 @@ func (tc *TrafficController) calculateRoutingWeights(
 			if weight > 0 {
 
 				weightedRegions = append(weightedRegions, WeightedRegion{
-
 					Region: name,
 
 					Weight: weight,
@@ -887,35 +790,25 @@ func (tc *TrafficController) calculateRoutingWeights(
 	// Normalize weights to sum to 100.
 
 	if totalWeight > 0 {
-
 		for i := range weightedRegions {
-
 			weightedRegions[i].Weight = (weightedRegions[i].Weight * 100) / totalWeight
-
 		}
-
 	}
 
 	return weightedRegions
-
 }
 
 // calculateConfidenceScore calculates confidence in the routing decision.
 
 func (tc *TrafficController) calculateConfidenceScore(healthyRegions map[string]*RegionHealth) float64 {
-
 	if len(healthyRegions) == 0 {
-
 		return 0.0
-
 	}
 
 	totalScore := 0.0
 
 	for _, health := range healthyRegions {
-
 		totalScore += health.AvailabilityScore
-
 	}
 
 	avgScore := totalScore / float64(len(healthyRegions))
@@ -925,31 +818,24 @@ func (tc *TrafficController) calculateConfidenceScore(healthyRegions map[string]
 	confidence := avgScore + diversityBonus
 
 	if confidence > 1.0 {
-
 		confidence = 1.0
-
 	}
 
 	return confidence
-
 }
 
 // calculateExpectedLatency calculates expected latency for the routing decision.
 
 func (tc *TrafficController) calculateExpectedLatency(
-
 	healthyRegions map[string]*RegionHealth,
 
 	weightedRegions []WeightedRegion,
-
 ) time.Duration {
-
 	totalWeightedLatency := float64(0)
 
 	totalWeight := 0
 
 	for _, wr := range weightedRegions {
-
 		if health, ok := healthyRegions[wr.Region]; ok {
 
 			totalWeightedLatency += float64(health.AverageLatency.Nanoseconds()) * float64(wr.Weight)
@@ -957,37 +843,29 @@ func (tc *TrafficController) calculateExpectedLatency(
 			totalWeight += wr.Weight
 
 		}
-
 	}
 
 	if totalWeight == 0 {
-
 		return time.Second
-
 	}
 
 	avgLatency := totalWeightedLatency / float64(totalWeight)
 
 	return time.Duration(avgLatency)
-
 }
 
 // calculateExpectedCost calculates expected cost for the routing decision.
 
 func (tc *TrafficController) calculateExpectedCost(
-
 	regions map[string]*RegionInfo,
 
 	weightedRegions []WeightedRegion,
-
 ) float64 {
-
 	totalWeightedCost := 0.0
 
 	totalWeight := 0
 
 	for _, wr := range weightedRegions {
-
 		if region, ok := regions[wr.Region]; ok && region.CostProfile != nil {
 
 			totalWeightedCost += region.CostProfile.LLMCostPerRequest * float64(wr.Weight)
@@ -995,29 +873,23 @@ func (tc *TrafficController) calculateExpectedCost(
 			totalWeight += wr.Weight
 
 		}
-
 	}
 
 	if totalWeight == 0 {
-
 		return 0.01 // Default cost
-
 	}
 
 	return totalWeightedCost / float64(totalWeight)
-
 }
 
 // collectRegionalMetrics collects metrics from all regions.
 
 func (tc *TrafficController) collectRegionalMetrics(ctx context.Context) {
-
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1029,23 +901,18 @@ func (tc *TrafficController) collectRegionalMetrics(ctx context.Context) {
 			tc.updateRegionalCapacity(ctx)
 
 		}
-
 	}
-
 }
 
 // updateRegionalCapacity updates capacity information for all regions.
 
 func (tc *TrafficController) updateRegionalCapacity(ctx context.Context) {
-
 	tc.mutex.RLock()
 
 	regions := make(map[string]*RegionInfo)
 
 	for k, v := range tc.regions {
-
 		regions[k] = v
-
 	}
 
 	tc.mutex.RUnlock()
@@ -1053,7 +920,6 @@ func (tc *TrafficController) updateRegionalCapacity(ctx context.Context) {
 	for regionName := range regions {
 
 		capacity, err := tc.queryRegionalCapacity(ctx, regionName)
-
 		if err != nil {
 
 			tc.logger.Error(err, "Failed to query regional capacity", "region", regionName)
@@ -1065,21 +931,17 @@ func (tc *TrafficController) updateRegionalCapacity(ctx context.Context) {
 		tc.mutex.Lock()
 
 		if tc.regions[regionName] != nil {
-
 			tc.regions[regionName].CurrentCapacity = capacity
-
 		}
 
 		tc.mutex.Unlock()
 
 	}
-
 }
 
 // queryRegionalCapacity queries capacity metrics for a specific region.
 
 func (tc *TrafficController) queryRegionalCapacity(ctx context.Context, region string) (*RegionCapacity, error) {
-
 	capacity := &RegionCapacity{}
 
 	// Query current intent processing rate.
@@ -1089,13 +951,9 @@ func (tc *TrafficController) queryRegionalCapacity(ctx context.Context, region s
 	result, _, err := tc.prometheusAPI.Query(ctx, query, time.Now())
 
 	if err == nil {
-
 		if vector, ok := result.(model.Vector); ok && len(vector) > 0 {
-
 			capacity.CurrentIntentsPerMinute = int(vector[0].Value)
-
 		}
-
 	}
 
 	// Query CPU utilization.
@@ -1105,13 +963,9 @@ func (tc *TrafficController) queryRegionalCapacity(ctx context.Context, region s
 	result, _, err = tc.prometheusAPI.Query(ctx, query, time.Now())
 
 	if err == nil {
-
 		if vector, ok := result.(model.Vector); ok && len(vector) > 0 {
-
 			capacity.CPUUtilization = float64(vector[0].Value)
-
 		}
-
 	}
 
 	// Query memory utilization.
@@ -1121,25 +975,18 @@ func (tc *TrafficController) queryRegionalCapacity(ctx context.Context, region s
 	result, _, err = tc.prometheusAPI.Query(ctx, query, time.Now())
 
 	if err == nil {
-
 		if vector, ok := result.(model.Vector); ok && len(vector) > 0 {
-
 			capacity.MemoryUtilization = float64(vector[0].Value)
-
 		}
-
 	}
 
 	return capacity, nil
-
 }
 
 // processRoutingDecisions processes routing decisions and applies them.
 
 func (tc *TrafficController) processRoutingDecisions(ctx context.Context) {
-
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1149,21 +996,16 @@ func (tc *TrafficController) processRoutingDecisions(ctx context.Context) {
 		case decision := <-tc.routingDecisions:
 
 			if err := tc.applyRoutingDecision(ctx, decision); err != nil {
-
 				tc.logger.Error(err, "Failed to apply routing decision")
-
 			}
 
 		}
-
 	}
-
 }
 
 // applyRoutingDecision applies a routing decision by updating Istio configuration.
 
 func (tc *TrafficController) applyRoutingDecision(ctx context.Context, decision *RoutingDecision) error {
-
 	tc.logger.Info("Applying routing decision",
 
 		"regions", len(decision.TargetRegions),
@@ -1189,13 +1031,11 @@ func (tc *TrafficController) applyRoutingDecision(ctx context.Context, decision 
 		"expected_cost", decision.ExpectedCost)
 
 	return nil
-
 }
 
 // generateVirtualServiceManifest generates Istio VirtualService YAML for routing decision.
 
 func (tc *TrafficController) generateVirtualServiceManifest(decision *RoutingDecision) string {
-
 	// This would generate the actual Istio VirtualService YAML.
 
 	// based on the routing decision.
@@ -1207,21 +1047,17 @@ func (tc *TrafficController) generateVirtualServiceManifest(decision *RoutingDec
 	manifest += "spec:\n  http:\n  - route:\n"
 
 	for _, region := range decision.TargetRegions {
-
 		manifest += fmt.Sprintf("    - destination:\n        host: %s.nephoran.local\n      weight: %d\n",
 
 			region.Region, region.Weight)
-
 	}
 
 	return manifest
-
 }
 
 // GetHealthStatus returns current health status of all regions.
 
 func (tc *TrafficController) GetHealthStatus() map[string]*RegionHealth {
-
 	tc.mutex.RLock()
 
 	defer tc.mutex.RUnlock()
@@ -1229,23 +1065,18 @@ func (tc *TrafficController) GetHealthStatus() map[string]*RegionHealth {
 	result := make(map[string]*RegionHealth)
 
 	for k, v := range tc.healthChecks {
-
 		result[k] = v
-
 	}
 
 	return result
-
 }
 
 // GetLatestRoutingDecision returns the most recent routing decision.
 
 func (tc *TrafficController) GetLatestRoutingDecision() *RoutingDecision {
-
 	// In a real implementation, you'd store the latest decision.
 
 	// For now, return nil.
 
 	return nil
-
 }

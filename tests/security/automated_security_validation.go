@@ -34,18 +34,18 @@ type AutomatedSecurityValidator struct {
 
 // SecurityValidationResults stores comprehensive validation results
 type SecurityValidationResults struct {
-	ValidationID         string                      `json:"validation_id"`
-	Timestamp            time.Time                   `json:"timestamp"`
-	Duration             time.Duration               `json:"duration"`
-	TotalControls        int                         `json:"total_controls"`
-	PassedControls       int                         `json:"passed_controls"`
-	FailedControls       int                         `json:"failed_controls"`
-	SkippedControls      int                         `json:"skipped_controls"`
-	ComplianceScore      float64                     `json:"compliance_score"`
-	SecurityControls     []SecurityControlResult     `json:"security_controls"`
-	ComplianceFrameworks map[string]ComplianceResult `json:"compliance_frameworks"`
-	Recommendations      []SecurityRecommendation    `json:"recommendations"`
-	DetailedFindings     map[string]interface{}      `json:"detailed_findings"`
+	ValidationID         string                             `json:"validation_id"`
+	Timestamp            time.Time                          `json:"timestamp"`
+	Duration             time.Duration                      `json:"duration"`
+	TotalControls        int                                `json:"total_controls"`
+	PassedControls       int                                `json:"passed_controls"`
+	FailedControls       int                                `json:"failed_controls"`
+	SkippedControls      int                                `json:"skipped_controls"`
+	ComplianceScore      float64                            `json:"compliance_score"`
+	SecurityControls     []SecurityControlResult            `json:"security_controls"`
+	ComplianceFrameworks map[string]AutoSecComplianceResult `json:"compliance_frameworks"`
+	Recommendations      []SecurityRecommendation           `json:"recommendations"`
+	DetailedFindings     json.RawMessage             `json:"detailed_findings"`
 }
 
 // SecurityControlResult represents the result of a security control validation
@@ -59,11 +59,11 @@ type SecurityControlResult struct {
 	Evidence      []string               `json:"evidence"`
 	Remediation   string                 `json:"remediation"`
 	ExecutionTime time.Duration          `json:"execution_time"`
-	Details       map[string]interface{} `json:"details"`
+	Details       json.RawMessage `json:"details"`
 }
 
-// ComplianceResult represents compliance framework validation results
-type ComplianceResult struct {
+// AutoSecComplianceResult represents compliance framework validation results
+type AutoSecComplianceResult struct {
 	Framework      string   `json:"framework"`
 	Version        string   `json:"version"`
 	Score          float64  `json:"score"`
@@ -97,9 +97,9 @@ func NewAutomatedSecurityValidator(client client.Client, k8sClient kubernetes.In
 			ValidationID:         fmt.Sprintf("sec-val-%d", time.Now().Unix()),
 			Timestamp:            time.Now(),
 			SecurityControls:     make([]SecurityControlResult, 0),
-			ComplianceFrameworks: make(map[string]ComplianceResult),
+			ComplianceFrameworks: make(map[string]AutoSecComplianceResult),
 			Recommendations:      make([]SecurityRecommendation, 0),
-			DetailedFindings:     make(map[string]interface{}),
+			DetailedFindings:     json.RawMessage(`{}`),
 		},
 	}
 }
@@ -272,7 +272,7 @@ func (v *AutomatedSecurityValidator) validateNonRootUsers(ctx context.Context) S
 		Severity:    "HIGH",
 		Description: "Validate that containers run as non-root users",
 		Evidence:    make([]string, 0),
-		Details:     make(map[string]interface{}),
+		Details:     json.RawMessage(`{}`),
 	}
 
 	// Get all pods in the namespace
@@ -280,7 +280,10 @@ func (v *AutomatedSecurityValidator) validateNonRootUsers(ctx context.Context) S
 	err := v.client.List(ctx, pods, client.InNamespace(v.namespace))
 	if err != nil {
 		result.Status = "error"
-		result.Details["error"] = err.Error()
+		detailsMap := map[string]interface{}{"error": err.Error()}
+		if detailsJSON, err := json.Marshal(detailsMap); err == nil {
+			result.Details = detailsJSON
+		}
 		result.ExecutionTime = time.Since(start)
 		v.addSecurityControlResult(result)
 		return result
@@ -310,8 +313,13 @@ func (v *AutomatedSecurityValidator) validateNonRootUsers(ctx context.Context) S
 		}
 	}
 
-	result.Details["total_containers"] = totalContainers
-	result.Details["violations"] = violations
+	detailsMap := map[string]interface{}{
+		"total_containers": totalContainers,
+		"violations": violations,
+	}
+	if detailsJSON, err := json.Marshal(detailsMap); err == nil {
+		result.Details = detailsJSON
+	}
 
 	if violations == 0 {
 		result.Status = "passed"
@@ -335,14 +343,17 @@ func (v *AutomatedSecurityValidator) validateReadOnlyRootFS(ctx context.Context)
 		Severity:    "MEDIUM",
 		Description: "Validate that containers use read-only root filesystems",
 		Evidence:    make([]string, 0),
-		Details:     make(map[string]interface{}),
+		Details:     json.RawMessage(`{}`),
 	}
 
 	pods := &corev1.PodList{}
 	err := v.client.List(ctx, pods, client.InNamespace(v.namespace))
 	if err != nil {
 		result.Status = "error"
-		result.Details["error"] = err.Error()
+		detailsMap := map[string]interface{}{"error": err.Error()}
+		if detailsJSON, err := json.Marshal(detailsMap); err == nil {
+			result.Details = detailsJSON
+		}
 		result.ExecutionTime = time.Since(start)
 		v.addSecurityControlResult(result)
 		return result
@@ -366,8 +377,13 @@ func (v *AutomatedSecurityValidator) validateReadOnlyRootFS(ctx context.Context)
 		}
 	}
 
-	result.Details["total_containers"] = totalContainers
-	result.Details["violations"] = violations
+	detailsMap := map[string]interface{}{
+		"total_containers": totalContainers,
+		"violations": violations,
+	}
+	if detailsJSON, err := json.Marshal(detailsMap); err == nil {
+		result.Details = detailsJSON
+	}
 
 	if violations == 0 {
 		result.Status = "passed"
@@ -391,14 +407,17 @@ func (v *AutomatedSecurityValidator) validateCapabilityDropping(ctx context.Cont
 		Severity:    "HIGH",
 		Description: "Validate that containers drop unnecessary capabilities",
 		Evidence:    make([]string, 0),
-		Details:     make(map[string]interface{}),
+		Details:     json.RawMessage(`{}`),
 	}
 
 	pods := &corev1.PodList{}
 	err := v.client.List(ctx, pods, client.InNamespace(v.namespace))
 	if err != nil {
 		result.Status = "error"
-		result.Details["error"] = err.Error()
+		detailsMap := map[string]interface{}{"error": err.Error()}
+		if detailsJSON, err := json.Marshal(detailsMap); err == nil {
+			result.Details = detailsJSON
+		}
 		result.ExecutionTime = time.Since(start)
 		v.addSecurityControlResult(result)
 		return result
@@ -436,8 +455,13 @@ func (v *AutomatedSecurityValidator) validateCapabilityDropping(ctx context.Cont
 		}
 	}
 
-	result.Details["total_containers"] = totalContainers
-	result.Details["violations"] = violations
+	detailsMap := map[string]interface{}{
+		"total_containers": totalContainers,
+		"violations": violations,
+	}
+	if detailsJSON, err := json.Marshal(detailsMap); err == nil {
+		result.Details = detailsJSON
+	}
 
 	if violations == 0 {
 		result.Status = "passed"
@@ -461,14 +485,17 @@ func (v *AutomatedSecurityValidator) validateSecurityContexts(ctx context.Contex
 		Severity:    "HIGH",
 		Description: "Validate comprehensive security context configurations",
 		Evidence:    make([]string, 0),
-		Details:     make(map[string]interface{}),
+		Details:     json.RawMessage(`{}`),
 	}
 
 	pods := &corev1.PodList{}
 	err := v.client.List(ctx, pods, client.InNamespace(v.namespace))
 	if err != nil {
 		result.Status = "error"
-		result.Details["error"] = err.Error()
+		detailsMap := map[string]interface{}{"error": err.Error()}
+		if detailsJSON, err := json.Marshal(detailsMap); err == nil {
+			result.Details = detailsJSON
+		}
 		result.ExecutionTime = time.Since(start)
 		v.addSecurityControlResult(result)
 		return result
@@ -506,8 +533,13 @@ func (v *AutomatedSecurityValidator) validateSecurityContexts(ctx context.Contex
 		}
 	}
 
-	result.Details["total_containers"] = totalContainers
-	result.Details["violations"] = violations
+	detailsMap := map[string]interface{}{
+		"total_containers": totalContainers,
+		"violations": violations,
+	}
+	if detailsJSON, err := json.Marshal(detailsMap); err == nil {
+		result.Details = detailsJSON
+	}
 
 	if violations == 0 {
 		result.Status = "passed"
@@ -531,14 +563,17 @@ func (v *AutomatedSecurityValidator) validateResourceLimits(ctx context.Context)
 		Severity:    "MEDIUM",
 		Description: "Validate that containers have resource limits configured",
 		Evidence:    make([]string, 0),
-		Details:     make(map[string]interface{}),
+		Details:     json.RawMessage(`{}`),
 	}
 
 	pods := &corev1.PodList{}
 	err := v.client.List(ctx, pods, client.InNamespace(v.namespace))
 	if err != nil {
 		result.Status = "error"
-		result.Details["error"] = err.Error()
+		detailsMap := map[string]interface{}{"error": err.Error()}
+		if detailsJSON, err := json.Marshal(detailsMap); err == nil {
+			result.Details = detailsJSON
+		}
 		result.ExecutionTime = time.Since(start)
 		v.addSecurityControlResult(result)
 		return result
@@ -572,8 +607,13 @@ func (v *AutomatedSecurityValidator) validateResourceLimits(ctx context.Context)
 		}
 	}
 
-	result.Details["total_containers"] = totalContainers
-	result.Details["violations"] = violations
+	detailsMap := map[string]interface{}{
+		"total_containers": totalContainers,
+		"violations": violations,
+	}
+	if detailsJSON, err := json.Marshal(detailsMap); err == nil {
+		result.Details = detailsJSON
+	}
 
 	if violations == 0 {
 		result.Status = "passed"
@@ -599,14 +639,17 @@ func (v *AutomatedSecurityValidator) validateDefaultDenyPolicies(ctx context.Con
 		Severity:    "HIGH",
 		Description: "Validate that default deny network policies are in place",
 		Evidence:    make([]string, 0),
-		Details:     make(map[string]interface{}),
+		Details:     json.RawMessage(`{}`),
 	}
 
 	policies := &networkingv1.NetworkPolicyList{}
 	err := v.client.List(ctx, policies, client.InNamespace(v.namespace))
 	if err != nil {
 		result.Status = "error"
-		result.Details["error"] = err.Error()
+		detailsMap := map[string]interface{}{"error": err.Error()}
+		if detailsJSON, err := json.Marshal(detailsMap); err == nil {
+			result.Details = detailsJSON
+		}
 		result.ExecutionTime = time.Since(start)
 		v.addSecurityControlResult(result)
 		return result
@@ -625,8 +668,13 @@ func (v *AutomatedSecurityValidator) validateDefaultDenyPolicies(ctx context.Con
 		}
 	}
 
-	result.Details["total_policies"] = len(policies.Items)
-	result.Details["has_default_deny"] = hasDefaultDeny
+	detailsMap := map[string]interface{}{
+		"total_policies":    len(policies.Items),
+		"has_default_deny":  hasDefaultDeny,
+	}
+	if detailsJSON, err := json.Marshal(detailsMap); err == nil {
+		result.Details = detailsJSON
+	}
 
 	if hasDefaultDeny {
 		result.Status = "passed"
@@ -650,7 +698,7 @@ func (v *AutomatedSecurityValidator) validateServiceCommunicationPolicies(ctx co
 		Severity:    "MEDIUM",
 		Description: "Validate service-to-service communication policies",
 		Evidence:    make([]string, 0),
-		Details:     make(map[string]interface{}),
+		Details:     json.RawMessage(`{}`),
 	}
 
 	// Implementation would validate specific service communication rules
@@ -679,7 +727,7 @@ func (v *AutomatedSecurityValidator) validateTLSCertificates(ctx context.Context
 		Severity:    "HIGH",
 		Description: "Validate TLS certificate management and configuration",
 		Evidence:    make([]string, 0),
-		Details:     make(map[string]interface{}),
+		Details:     json.RawMessage(`{}`),
 	}
 
 	// Get all secrets with TLS certificates
@@ -687,7 +735,10 @@ func (v *AutomatedSecurityValidator) validateTLSCertificates(ctx context.Context
 	err := v.client.List(ctx, secrets, client.InNamespace(v.namespace))
 	if err != nil {
 		result.Status = "error"
-		result.Details["error"] = err.Error()
+		detailsMap := map[string]interface{}{"error": err.Error()}
+		if detailsJSON, err := json.Marshal(detailsMap); err == nil {
+			result.Details = detailsJSON
+		}
 		result.ExecutionTime = time.Since(start)
 		v.addSecurityControlResult(result)
 		return result
@@ -731,9 +782,14 @@ func (v *AutomatedSecurityValidator) validateTLSCertificates(ctx context.Context
 		}
 	}
 
-	result.Details["tls_certificates"] = tlsCerts
-	result.Details["expired_certificates"] = expiredCerts
-	result.Details["weak_certificates"] = weakCerts
+	detailsMap := map[string]interface{}{
+		"tls_certificates":     tlsCerts,
+		"expired_certificates": expiredCerts,
+		"weak_certificates":    weakCerts,
+	}
+	if detailsJSON, err := json.Marshal(detailsMap); err == nil {
+		result.Details = detailsJSON
+	}
 
 	if expiredCerts == 0 && weakCerts == 0 {
 		result.Status = "passed"
@@ -766,7 +822,7 @@ func (v *AutomatedSecurityValidator) validateLeastPrivilege(ctx context.Context)
 		Severity:    "HIGH",
 		Description: "Validate principle of least privilege implementation",
 		Evidence:    make([]string, 0),
-		Details:     make(map[string]interface{}),
+		Details:     json.RawMessage(`{}`),
 	}
 
 	// Get all cluster roles and roles
@@ -785,7 +841,12 @@ func (v *AutomatedSecurityValidator) validateLeastPrivilege(ctx context.Context)
 				}
 			}
 		}
-		result.Details["over_privileged_cluster_roles"] = overPrivilegedRoles
+		detailsMap := map[string]interface{}{
+			"over_privileged_cluster_roles": overPrivilegedRoles,
+		}
+		if detailsJSON, err := json.Marshal(detailsMap); err == nil {
+			result.Details = detailsJSON
+		}
 	}
 
 	if len(result.Evidence) == 0 {
@@ -900,8 +961,8 @@ func (v *AutomatedSecurityValidator) generateSecurityValidationReport() {
 	// Save report to file
 	reportData, _ := json.MarshalIndent(v.results, "", "  ")
 	reportFile := fmt.Sprintf("test-results/security/security-validation-report-%s.json", v.results.ValidationID)
-	os.MkdirAll("test-results/security", 0755)
-	os.WriteFile(reportFile, reportData, 0644)
+	os.MkdirAll("test-results/security", 0o755)
+	os.WriteFile(reportFile, reportData, 0o644)
 
 	// Generate HTML report
 	v.generateHTMLValidationReport()
@@ -909,7 +970,7 @@ func (v *AutomatedSecurityValidator) generateSecurityValidationReport() {
 
 func (v *AutomatedSecurityValidator) generateComplianceFrameworkResults() {
 	// NIST Cybersecurity Framework compliance
-	v.results.ComplianceFrameworks["NIST-CSF"] = ComplianceResult{
+	v.results.ComplianceFrameworks["NIST-CSF"] = AutoSecComplianceResult{
 		Framework:      "NIST Cybersecurity Framework",
 		Version:        "1.1",
 		Score:          v.results.ComplianceScore,
@@ -920,7 +981,7 @@ func (v *AutomatedSecurityValidator) generateComplianceFrameworkResults() {
 	}
 
 	// CIS Kubernetes Benchmark compliance
-	v.results.ComplianceFrameworks["CIS-K8S"] = ComplianceResult{
+	v.results.ComplianceFrameworks["CIS-K8S"] = AutoSecComplianceResult{
 		Framework:      "CIS Kubernetes Benchmark",
 		Version:        "1.6.1",
 		Score:          v.results.ComplianceScore,
@@ -1043,5 +1104,5 @@ func (v *AutomatedSecurityValidator) generateHTMLValidationReport() {
 	)
 
 	htmlFile := fmt.Sprintf("test-results/security/security-validation-report-%s.html", v.results.ValidationID)
-	os.WriteFile(htmlFile, []byte(htmlContent), 0644)
+	os.WriteFile(htmlFile, []byte(htmlContent), 0o644)
 }

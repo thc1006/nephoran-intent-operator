@@ -86,7 +86,6 @@ type PerformanceAnalysisEngine struct {
 // AnalysisConfig defines configuration for performance analysis.
 
 type AnalysisConfig struct {
-
 	// Analysis intervals.
 
 	RealTimeAnalysisInterval time.Duration `json:"realTimeAnalysisInterval"`
@@ -614,7 +613,6 @@ type CostAnalysis struct {
 // TelecomPerformanceAnalysis contains telecom-specific performance metrics.
 
 type TelecomPerformanceAnalysis struct {
-
 	// 5G Core metrics.
 
 	CoreNetworkLatency float64 `json:"coreNetworkLatency"`
@@ -694,9 +692,7 @@ const (
 // NewPerformanceAnalysisEngine creates a new performance analysis engine.
 
 func NewPerformanceAnalysisEngine(config *AnalysisConfig, prometheusClient v1.API, logger logr.Logger) *PerformanceAnalysisEngine {
-
 	engine := &PerformanceAnalysisEngine{
-
 		logger: logger.WithName("performance-analysis-engine"),
 
 		prometheusClient: prometheusClient,
@@ -716,18 +712,16 @@ func NewPerformanceAnalysisEngine(config *AnalysisConfig, prometheusClient v1.AP
 
 	engine.bottleneckPredictor = NewBottleneckPredictor(config.PredictionHorizon)
 
-	engine.performanceForecaster = NewPerformanceForecaster(config.PredictionHorizon)
+	engine.performanceForecaster = NewPerformanceForecaster(config, logger.WithName("performance-forecaster"))
 
-	engine.optimizationRanker = NewOptimizationRanker()
+	engine.optimizationRanker = NewOptimizationRanker(config, logger.WithName("optimization-ranker"))
 
 	return engine
-
 }
 
 // AnalyzePerformance performs comprehensive performance analysis.
 
 func (engine *PerformanceAnalysisEngine) AnalyzePerformance(ctx context.Context) (*PerformanceAnalysisResult, error) {
-
 	engine.mutex.Lock()
 
 	defer engine.mutex.Unlock()
@@ -739,7 +733,6 @@ func (engine *PerformanceAnalysisEngine) AnalyzePerformance(ctx context.Context)
 	analysisID := fmt.Sprintf("analysis_%d", start.Unix())
 
 	result := &PerformanceAnalysisResult{
-
 		Timestamp: start,
 
 		AnalysisID: analysisID,
@@ -750,9 +743,7 @@ func (engine *PerformanceAnalysisEngine) AnalyzePerformance(ctx context.Context)
 	// Collect current metrics.
 
 	if err := engine.collectCurrentMetrics(ctx); err != nil {
-
 		return nil, fmt.Errorf("failed to collect metrics: %w", err)
-
 	}
 
 	// Analyze each component.
@@ -760,7 +751,6 @@ func (engine *PerformanceAnalysisEngine) AnalyzePerformance(ctx context.Context)
 	for _, componentConfig := range engine.config.Components {
 
 		componentAnalysis, err := engine.analyzeComponent(ctx, componentConfig)
-
 		if err != nil {
 
 			engine.logger.Error(err, "Failed to analyze component", "component", componentConfig.Name)
@@ -829,13 +819,11 @@ func (engine *PerformanceAnalysisEngine) AnalyzePerformance(ctx context.Context)
 	)
 
 	return result, nil
-
 }
 
 // GetPerformanceBaseline establishes or returns the current performance baseline.
 
 func (engine *PerformanceAnalysisEngine) GetPerformanceBaseline(ctx context.Context) (*PerformanceBaseline, error) {
-
 	engine.mutex.RLock()
 
 	if engine.currentBaseline != nil && time.Since(engine.currentBaseline.Timestamp) < 24*time.Hour {
@@ -853,15 +841,12 @@ func (engine *PerformanceAnalysisEngine) GetPerformanceBaseline(ctx context.Cont
 	// Need to establish new baseline.
 
 	return engine.establishBaseline(ctx)
-
 }
 
 // Component analysis implementation.
 
 func (engine *PerformanceAnalysisEngine) analyzeComponent(ctx context.Context, componentConfig ComponentAnalysisConfig) (*ComponentAnalysis, error) {
-
 	analysis := &ComponentAnalysis{
-
 		ComponentType: componentConfig.Type,
 
 		MetricAnalyses: make(map[string]*MetricAnalysis),
@@ -878,7 +863,6 @@ func (engine *PerformanceAnalysisEngine) analyzeComponent(ctx context.Context, c
 	for _, metricConfig := range componentConfig.Metrics {
 
 		metricAnalysis, err := engine.analyzeMetric(ctx, metricConfig, componentConfig.Type)
-
 		if err != nil {
 
 			engine.logger.Error(err, "Failed to analyze metric", "metric", metricConfig.Name, "component", componentConfig.Type)
@@ -916,35 +900,27 @@ func (engine *PerformanceAnalysisEngine) analyzeComponent(ctx context.Context, c
 	analysis.PerformanceMetrics = engine.calculateComponentPerformanceMetrics(ctx, analysis)
 
 	return analysis, nil
-
 }
 
 // Metric analysis implementation.
 
 func (engine *PerformanceAnalysisEngine) analyzeMetric(ctx context.Context, metricConfig MetricConfig, componentType shared.ComponentType) (*MetricAnalysis, error) {
-
 	// Query current metric value from Prometheus.
 
 	query := metricConfig.PrometheusQuery
 
 	result, _, err := engine.prometheusClient.Query(ctx, query, time.Now())
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to query metric %s: %w", metricConfig.Name, err)
-
 	}
 
 	var currentValue float64
 
 	if vector, ok := result.(model.Vector); ok && len(vector) > 0 {
-
 		currentValue = float64(vector[0].Value)
-
 	}
 
 	analysis := &MetricAnalysis{
-
 		MetricName: metricConfig.Name,
 
 		CurrentValue: currentValue,
@@ -957,7 +933,6 @@ func (engine *PerformanceAnalysisEngine) analyzeMetric(ctx context.Context, metr
 	// Get historical data for analysis.
 
 	historicalData, err := engine.getHistoricalMetricData(ctx, metricConfig.PrometheusQuery, engine.config.TrendAnalysisWindow)
-
 	if err != nil {
 
 		engine.logger.Error(err, "Failed to get historical data for metric", "metric", metricConfig.Name)
@@ -987,13 +962,11 @@ func (engine *PerformanceAnalysisEngine) analyzeMetric(ctx context.Context, metr
 	analysis.Forecast = engine.forecastMetric(historicalData, engine.config.PredictionHorizon)
 
 	return analysis, nil
-
 }
 
 // Helper methods for performance analysis.
 
 func (engine *PerformanceAnalysisEngine) collectCurrentMetrics(ctx context.Context) error {
-
 	// Implementation would collect current metrics from Prometheus.
 
 	// This is a simplified version.
@@ -1001,11 +974,9 @@ func (engine *PerformanceAnalysisEngine) collectCurrentMetrics(ctx context.Conte
 	engine.logger.V(1).Info("Collecting current metrics")
 
 	return nil
-
 }
 
 func (engine *PerformanceAnalysisEngine) calculateComponentHealth(metricAnalyses map[string]*MetricAnalysis, thresholds map[string]float64) (SystemHealthStatus, float64) {
-
 	totalScore := 0.0
 
 	healthyMetrics := 0
@@ -1051,29 +1022,19 @@ func (engine *PerformanceAnalysisEngine) calculateComponentHealth(metricAnalyses
 	var healthStatus SystemHealthStatus
 
 	if criticalMetrics > 0 || avgScore < 50.0 {
-
 		healthStatus = HealthStatusCritical
-
 	} else if warningMetrics > 0 || avgScore < 80.0 {
-
 		healthStatus = HealthStatusWarning
-
 	} else {
-
 		healthStatus = HealthStatusHealthy
-
 	}
 
 	return healthStatus, avgScore
-
 }
 
 func (engine *PerformanceAnalysisEngine) calculateOverallHealth(componentAnalyses map[shared.ComponentType]*ComponentAnalysis) (SystemHealthStatus, float64) {
-
 	if len(componentAnalyses) == 0 {
-
 		return HealthStatusUnknown, 0.0
-
 	}
 
 	totalScore := 0.0
@@ -1113,31 +1074,21 @@ func (engine *PerformanceAnalysisEngine) calculateOverallHealth(componentAnalyse
 	var overallHealth SystemHealthStatus
 
 	if criticalComponents > 0 {
-
 		overallHealth = HealthStatusCritical
-
 	} else if warningComponents > 0 {
-
 		overallHealth = HealthStatusWarning
-
 	} else if healthyComponents == len(componentAnalyses) {
-
 		overallHealth = HealthStatusHealthy
-
 	} else {
-
 		overallHealth = HealthStatusUnknown
-
 	}
 
 	return overallHealth, overallScore
-
 }
 
 // detectCurrentBottlenecks detects current performance bottlenecks.
 
 func (engine *PerformanceAnalysisEngine) detectCurrentBottlenecks(ctx context.Context, componentAnalyses map[shared.ComponentType]*ComponentAnalysis) []*PerformanceBottleneck {
-
 	var bottlenecks []*PerformanceBottleneck
 
 	for componentType, analysis := range componentAnalyses {
@@ -1145,11 +1096,8 @@ func (engine *PerformanceAnalysisEngine) detectCurrentBottlenecks(ctx context.Co
 		// Check for CPU bottleneck.
 
 		if cpuMetric, exists := analysis.MetricAnalyses["cpu_usage"]; exists {
-
 			if cpuMetric.CurrentValue > engine.config.CPUBottleneckThreshold {
-
 				bottlenecks = append(bottlenecks, &PerformanceBottleneck{
-
 					ID: fmt.Sprintf("bottleneck_cpu_%s_%d", componentType, time.Now().Unix()),
 
 					Name: fmt.Sprintf("High CPU usage in %s", componentType),
@@ -1167,7 +1115,6 @@ func (engine *PerformanceAnalysisEngine) detectCurrentBottlenecks(ctx context.Co
 					AffectedMetrics: []string{"response_time", "throughput"},
 
 					RecommendedActions: []string{
-
 						"Scale horizontally",
 
 						"Optimize CPU-intensive operations",
@@ -1175,19 +1122,14 @@ func (engine *PerformanceAnalysisEngine) detectCurrentBottlenecks(ctx context.Co
 						"Review and optimize algorithms",
 					},
 				})
-
 			}
-
 		}
 
 		// Check for memory bottleneck.
 
 		if memMetric, exists := analysis.MetricAnalyses["memory_usage"]; exists {
-
 			if memMetric.CurrentValue > engine.config.MemoryBottleneckThreshold {
-
 				bottlenecks = append(bottlenecks, &PerformanceBottleneck{
-
 					ID: fmt.Sprintf("bottleneck_mem_%s_%d", componentType, time.Now().Unix()),
 
 					Name: fmt.Sprintf("High memory usage in %s", componentType),
@@ -1205,7 +1147,6 @@ func (engine *PerformanceAnalysisEngine) detectCurrentBottlenecks(ctx context.Co
 					AffectedMetrics: []string{"gc_pause_time", "swap_usage"},
 
 					RecommendedActions: []string{
-
 						"Increase memory allocation",
 
 						"Optimize memory usage patterns",
@@ -1213,9 +1154,7 @@ func (engine *PerformanceAnalysisEngine) detectCurrentBottlenecks(ctx context.Co
 						"Implement caching strategies",
 					},
 				})
-
 			}
-
 		}
 
 		// Check for latency bottleneck.
@@ -1225,9 +1164,7 @@ func (engine *PerformanceAnalysisEngine) detectCurrentBottlenecks(ctx context.Co
 			thresholdSeconds := engine.config.LatencyBottleneckThreshold.Seconds()
 
 			if latencyMetric.CurrentValue > thresholdSeconds {
-
 				bottlenecks = append(bottlenecks, &PerformanceBottleneck{
-
 					ID: fmt.Sprintf("bottleneck_latency_%s_%d", componentType, time.Now().Unix()),
 
 					Name: fmt.Sprintf("High latency in %s", componentType),
@@ -1245,7 +1182,6 @@ func (engine *PerformanceAnalysisEngine) detectCurrentBottlenecks(ctx context.Co
 					AffectedMetrics: []string{"user_experience", "timeout_rate"},
 
 					RecommendedActions: []string{
-
 						"Optimize database queries",
 
 						"Implement caching",
@@ -1253,7 +1189,6 @@ func (engine *PerformanceAnalysisEngine) detectCurrentBottlenecks(ctx context.Co
 						"Review network configuration",
 					},
 				})
-
 			}
 
 		}
@@ -1261,21 +1196,16 @@ func (engine *PerformanceAnalysisEngine) detectCurrentBottlenecks(ctx context.Co
 	}
 
 	return bottlenecks
-
 }
 
 // predictFutureBottlenecks predicts future performance bottlenecks.
 
 func (engine *PerformanceAnalysisEngine) predictFutureBottlenecks(ctx context.Context, componentAnalyses map[shared.ComponentType]*ComponentAnalysis) []*PredictedBottleneck {
-
 	var predictedBottlenecks []*PredictedBottleneck
 
 	for componentType, analysis := range componentAnalyses {
-
 		for metricName, metricAnalysis := range analysis.MetricAnalyses {
-
 			if metricAnalysis.Forecast != nil && len(metricAnalysis.Forecast.PredictedValues) > 0 {
-
 				// Check if any forecasted values exceed thresholds.
 
 				for _, point := range metricAnalysis.Forecast.PredictedValues {
@@ -1315,7 +1245,6 @@ func (engine *PerformanceAnalysisEngine) predictFutureBottlenecks(ctx context.Co
 						severityLevel = engine.calculateSeverity(point.PredictedValue, threshold)
 
 						predictedBottlenecks = append(predictedBottlenecks, &PredictedBottleneck{
-
 							ComponentType: componentType,
 
 							MetricName: metricName,
@@ -1327,7 +1256,6 @@ func (engine *PerformanceAnalysisEngine) predictFutureBottlenecks(ctx context.Co
 							ExpectedSeverity: severityLevel,
 
 							MitigationActions: []string{
-
 								fmt.Sprintf("Proactively scale %s", componentType),
 
 								fmt.Sprintf("Optimize %s before %s", metricName, point.Timestamp.Format("15:04")),
@@ -1341,27 +1269,21 @@ func (engine *PerformanceAnalysisEngine) predictFutureBottlenecks(ctx context.Co
 					}
 
 				}
-
 			}
-
 		}
-
 	}
 
 	return predictedBottlenecks
-
 }
 
 // detectPatterns detects performance patterns.
 
 func (engine *PerformanceAnalysisEngine) detectPatterns(ctx context.Context) []*PerformancePattern {
-
 	var patterns []*PerformancePattern
 
 	// Example pattern detection logic.
 
 	patterns = append(patterns, &PerformancePattern{
-
 		PatternType: PatternTypeCyclical,
 
 		Description: "Daily traffic pattern detected with peaks during business hours",
@@ -1373,7 +1295,6 @@ func (engine *PerformanceAnalysisEngine) detectPatterns(ctx context.Context) []*
 		Impact: ImpactMedium,
 
 		RecommendedActions: []string{
-
 			"Implement auto-scaling based on time of day",
 
 			"Pre-warm caches before peak hours",
@@ -1383,23 +1304,17 @@ func (engine *PerformanceAnalysisEngine) detectPatterns(ctx context.Context) []*
 	})
 
 	return patterns
-
 }
 
 // detectAnomalies detects anomalies in performance metrics.
 
 func (engine *PerformanceAnalysisEngine) detectAnomalies(ctx context.Context, componentAnalyses map[shared.ComponentType]*ComponentAnalysis) []*MetricAnomaly {
-
 	var anomalies []*MetricAnomaly
 
 	for componentType, analysis := range componentAnalyses {
-
 		for metricName, metricAnalysis := range analysis.MetricAnalyses {
-
 			if metricAnalysis.IsAnomalous {
-
 				anomalies = append(anomalies, &MetricAnomaly{
-
 					MetricName: metricName,
 
 					ComponentType: componentType,
@@ -1418,31 +1333,22 @@ func (engine *PerformanceAnalysisEngine) detectAnomalies(ctx context.Context, co
 
 					AnomalyScore: metricAnalysis.AnomalyScore,
 				})
-
 			}
-
 		}
-
 	}
 
 	return anomalies
-
 }
 
 // analyzeTrends analyzes performance trends.
 
 func (engine *PerformanceAnalysisEngine) analyzeTrends(ctx context.Context, componentAnalyses map[shared.ComponentType]*ComponentAnalysis) []*PerformanceTrend {
-
 	var trends []*PerformanceTrend
 
 	for componentType, analysis := range componentAnalyses {
-
 		for metricName, metricAnalysis := range analysis.MetricAnalyses {
-
 			if metricAnalysis.Trend != nil {
-
 				trends = append(trends, &PerformanceTrend{
-
 					MetricName: metricName,
 
 					ComponentType: componentType,
@@ -1462,77 +1368,52 @@ func (engine *PerformanceAnalysisEngine) analyzeTrends(ctx context.Context, comp
 					DataPoints: 100, // Example data points count
 
 				})
-
 			}
-
 		}
-
 	}
 
 	return trends
-
 }
 
 // Helper methods for severity calculation.
 
 func (engine *PerformanceAnalysisEngine) calculateSeverity(value, threshold float64) SeverityLevel {
-
 	ratio := value / threshold
 
 	if ratio > 1.5 {
-
 		return SeverityCritical
-
 	} else if ratio > 1.3 {
-
 		return SeverityHigh
-
 	} else if ratio > 1.1 {
-
 		return SeverityMedium
-
 	}
 
 	return SeverityLow
-
 }
 
 func (engine *PerformanceAnalysisEngine) calculateAnomalySeverity(anomalyScore float64) SeverityLevel {
-
 	if anomalyScore > 0.9 {
-
 		return SeverityCritical
-
 	} else if anomalyScore > 0.7 {
-
 		return SeverityHigh
-
 	} else if anomalyScore > 0.5 {
-
 		return SeverityMedium
-
 	}
 
 	return SeverityLow
-
 }
 
 // predictCapacity predicts capacity requirements.
 
 func (engine *PerformanceAnalysisEngine) predictCapacity(ctx context.Context, componentAnalyses map[shared.ComponentType]*ComponentAnalysis) []*CapacityPrediction {
-
 	var predictions []*CapacityPrediction
 
 	for componentType, analysis := range componentAnalyses {
-
 		if analysis.ResourceUtilization != nil {
-
 			// Example capacity prediction logic.
 
 			if analysis.ResourceUtilization.CPUUtilization != nil {
-
 				predictions = append(predictions, &CapacityPrediction{
-
 					ResourceType: "cpu",
 
 					ComponentType: componentType,
@@ -1546,7 +1427,6 @@ func (engine *PerformanceAnalysisEngine) predictCapacity(ctx context.Context, co
 					CapacityThreshold: 85.0,
 
 					RecommendedActions: []string{
-
 						"Plan capacity expansion",
 
 						"Optimize resource usage",
@@ -1554,23 +1434,17 @@ func (engine *PerformanceAnalysisEngine) predictCapacity(ctx context.Context, co
 						"Implement auto-scaling",
 					},
 				})
-
 			}
-
 		}
-
 	}
 
 	return predictions
-
 }
 
 // analyzeResourceEfficiency analyzes resource efficiency.
 
 func (engine *PerformanceAnalysisEngine) analyzeResourceEfficiency(ctx context.Context, componentAnalyses map[shared.ComponentType]*ComponentAnalysis) *ResourceEfficiencyAnalysis {
-
 	efficiency := &ResourceEfficiencyAnalysis{
-
 		ComponentEfficiencies: make(map[shared.ComponentType]float64),
 
 		InefficientResources: make([]InefficientResource, 0),
@@ -1581,7 +1455,6 @@ func (engine *PerformanceAnalysisEngine) analyzeResourceEfficiency(ctx context.C
 	count := 0
 
 	for componentType, analysis := range componentAnalyses {
-
 		if analysis.ResourceUtilization != nil {
 
 			componentEff := analysis.ResourceUtilization.EfficiencyScore
@@ -1595,9 +1468,7 @@ func (engine *PerformanceAnalysisEngine) analyzeResourceEfficiency(ctx context.C
 			// Identify inefficient resources.
 
 			if componentEff < 70.0 {
-
 				efficiency.InefficientResources = append(efficiency.InefficientResources, InefficientResource{
-
 					ResourceName: string(componentType),
 
 					ComponentType: componentType,
@@ -1611,11 +1482,9 @@ func (engine *PerformanceAnalysisEngine) analyzeResourceEfficiency(ctx context.C
 					CostImpact: (85.0 - componentEff) * 100, // Simplified cost calculation
 
 				})
-
 			}
 
 		}
-
 	}
 
 	if count > 0 {
@@ -1627,24 +1496,19 @@ func (engine *PerformanceAnalysisEngine) analyzeResourceEfficiency(ctx context.C
 	}
 
 	return efficiency
-
 }
 
 // analyzeResourceWaste analyzes resource waste.
 
 func (engine *PerformanceAnalysisEngine) analyzeResourceWaste(ctx context.Context, componentAnalyses map[shared.ComponentType]*ComponentAnalysis) *ResourceWasteAnalysis {
-
 	waste := &ResourceWasteAnalysis{
-
 		WasteByCategory: make(map[string]float64),
 
 		TopWastedResources: make([]WastedResource, 0),
 	}
 
 	for componentType, analysis := range componentAnalyses {
-
 		if analysis.ResourceUtilization != nil {
-
 			// Calculate waste based on low utilization.
 
 			if analysis.ResourceUtilization.EfficiencyScore < 50.0 {
@@ -1652,7 +1516,6 @@ func (engine *PerformanceAnalysisEngine) analyzeResourceWaste(ctx context.Contex
 				wastedAmount := 100.0 - analysis.ResourceUtilization.EfficiencyScore
 
 				waste.TopWastedResources = append(waste.TopWastedResources, WastedResource{
-
 					ResourceName: string(componentType),
 
 					WasteAmount: wastedAmount,
@@ -1667,21 +1530,16 @@ func (engine *PerformanceAnalysisEngine) analyzeResourceWaste(ctx context.Contex
 				waste.TotalWaste += wastedAmount
 
 			}
-
 		}
-
 	}
 
 	return waste
-
 }
 
 // analyzeCosts analyzes performance-related costs.
 
 func (engine *PerformanceAnalysisEngine) analyzeCosts(ctx context.Context, componentAnalyses map[shared.ComponentType]*ComponentAnalysis, efficiency *ResourceEfficiencyAnalysis) *CostAnalysis {
-
 	cost := &CostAnalysis{
-
 		CostBreakdown: make(map[string]float64),
 	}
 
@@ -1714,15 +1572,12 @@ func (engine *PerformanceAnalysisEngine) analyzeCosts(ctx context.Context, compo
 	cost.CostBreakdown["network"] = cost.CurrentCost * 0.2
 
 	return cost
-
 }
 
 // analyzeTelecomMetrics analyzes telecom-specific metrics.
 
 func (engine *PerformanceAnalysisEngine) analyzeTelecomMetrics(ctx context.Context, componentAnalyses map[shared.ComponentType]*ComponentAnalysis) *TelecomPerformanceAnalysis {
-
 	telecom := &TelecomPerformanceAnalysis{
-
 		XAppPerformance: make(map[string]float64),
 
 		SliceLatency: make(map[string]float64),
@@ -1775,19 +1630,15 @@ func (engine *PerformanceAnalysisEngine) analyzeTelecomMetrics(ctx context.Conte
 	telecom.SliceThroughput["mmtc"] = 15.0
 
 	return telecom
-
 }
 
 // generateRecommendationsSummary generates summary of recommendations.
 
 func (engine *PerformanceAnalysisEngine) generateRecommendationsSummary(ctx context.Context, result *PerformanceAnalysisResult) *RecommendationsSummary {
-
 	summary := &RecommendationsSummary{
-
 		RecommendationsByCategory: make(map[string]int),
 
 		ExpectedImpact: &ExpectedImpact{
-
 			LatencyReduction: 15.0, // 15% reduction
 
 			ThroughputIncrease: 25.0, // 25% increase
@@ -1820,26 +1671,22 @@ func (engine *PerformanceAnalysisEngine) generateRecommendationsSummary(ctx cont
 	summary.RecommendationsByCategory["reliability"] = 2
 
 	return summary
-
 }
 
 // establishBaseline establishes a performance baseline.
 
 func (engine *PerformanceAnalysisEngine) establishBaseline(ctx context.Context) (*PerformanceBaseline, error) {
-
 	engine.mutex.Lock()
 
 	defer engine.mutex.Unlock()
 
 	baseline := &PerformanceBaseline{
-
 		Timestamp: time.Now(),
 
 		Metrics: make(map[string]float64),
 
-		SystemConfiguration: make(map[string]interface{}),
+		EnvironmentInfo: make(map[string]string),
 
-		ValidityPeriod: 24 * time.Hour,
 	}
 
 	// Collect baseline metrics - simplified implementation.
@@ -1854,30 +1701,26 @@ func (engine *PerformanceAnalysisEngine) establishBaseline(ctx context.Context) 
 
 	baseline.Metrics["error_rate"] = 0.002
 
-	baseline.SystemConfiguration["version"] = "v1.0.0"
+	baseline.EnvironmentInfo["version"] = "v1.0.0"
 
-	baseline.SystemConfiguration["deployment_type"] = "kubernetes"
+	baseline.EnvironmentInfo["deployment_type"] = "kubernetes"
 
-	baseline.SystemConfiguration["replicas"] = 3
+	baseline.EnvironmentInfo["replicas"] = "3"
 
 	engine.currentBaseline = baseline
 
 	return baseline, nil
-
 }
 
 // identifyComponentIssues identifies issues in a component.
 
 func (engine *PerformanceAnalysisEngine) identifyComponentIssues(ctx context.Context, analysis *ComponentAnalysis, config ComponentAnalysisConfig) []*PerformanceIssue {
-
 	issues := make([]*PerformanceIssue, 0)
 
 	for metricName, metricAnalysis := range analysis.MetricAnalyses {
-
 		if metricAnalysis.IsAnomalous || metricAnalysis.Deviation > 20.0 {
 
 			issue := &PerformanceIssue{
-
 				ID: fmt.Sprintf("issue_%s_%s_%d", config.Type, metricName, time.Now().Unix()),
 
 				Name: fmt.Sprintf("Performance issue in %s", metricName),
@@ -1910,27 +1753,22 @@ func (engine *PerformanceAnalysisEngine) identifyComponentIssues(ctx context.Con
 			issues = append(issues, issue)
 
 		}
-
 	}
 
 	return issues
-
 }
 
 // identifyResourceConstraints identifies resource constraints.
 
 func (engine *PerformanceAnalysisEngine) identifyResourceConstraints(ctx context.Context, analysis *ComponentAnalysis, config ComponentAnalysisConfig) []*ResourceConstraint {
-
 	constraints := make([]*ResourceConstraint, 0)
 
 	if analysis.ResourceUtilization != nil {
-
 		// Check CPU constraint.
 
 		if analysis.ResourceUtilization.CPUUtilization != nil && analysis.ResourceUtilization.CPUUtilization.Current > 80.0 {
 
 			constraint := &ResourceConstraint{
-
 				ID: fmt.Sprintf("constraint_cpu_%s_%d", config.Type, time.Now().Unix()),
 
 				Name: "CPU resource constraint",
@@ -1952,7 +1790,6 @@ func (engine *PerformanceAnalysisEngine) identifyResourceConstraints(ctx context
 				ProjectedGrowth: 15.0, // 15% growth expected
 
 				Impact: ConstraintImpact{
-
 					PerformanceDegradation: 25.0,
 
 					AffectedServices: []string{"api-gateway", "processing-engine"},
@@ -1965,7 +1802,6 @@ func (engine *PerformanceAnalysisEngine) identifyResourceConstraints(ctx context
 				},
 
 				Recommendations: []string{
-
 					"Scale CPU resources",
 
 					"Optimize CPU-intensive operations",
@@ -1981,23 +1817,19 @@ func (engine *PerformanceAnalysisEngine) identifyResourceConstraints(ctx context
 			constraints = append(constraints, constraint)
 
 		}
-
 	}
 
 	return constraints
-
 }
 
 // identifyOptimizationOpportunities identifies optimization opportunities.
 
 func (engine *PerformanceAnalysisEngine) identifyOptimizationOpportunities(ctx context.Context, analysis *ComponentAnalysis, config ComponentAnalysisConfig) []*OptimizationOpportunity {
-
 	opportunities := make([]*OptimizationOpportunity, 0)
 
 	if analysis.ResourceUtilization != nil && analysis.ResourceUtilization.EfficiencyScore < 70.0 {
 
 		opportunity := &OptimizationOpportunity{
-
 			ID: fmt.Sprintf("opp_%s_%d", config.Type, time.Now().Unix()),
 
 			Name: "Resource efficiency optimization",
@@ -2011,7 +1843,6 @@ func (engine *PerformanceAnalysisEngine) identifyOptimizationOpportunities(ctx c
 			Priority: OpportunityPriorityMedium,
 
 			EstimatedImprovement: &EstimatedImprovement{
-
 				PerformanceGain: 20.0,
 
 				CostSaving: 15.0,
@@ -2024,14 +1855,12 @@ func (engine *PerformanceAnalysisEngine) identifyOptimizationOpportunities(ctx c
 			},
 
 			RiskAssessment: &OpportunityRiskAssessment{
-
 				OverallRisk: RiskLevelLow,
 
 				RiskFactors: make([]OpportunityRiskFactor, 0),
 			},
 
 			ROIAnalysis: &ROIAnalysis{
-
 				InitialInvestment: 1000.0,
 
 				ExpectedSavings: 1500.0,
@@ -2065,13 +1894,11 @@ func (engine *PerformanceAnalysisEngine) identifyOptimizationOpportunities(ctx c
 	}
 
 	return opportunities
-
 }
 
 // Helper methods.
 
 func (engine *PerformanceAnalysisEngine) categorizeMetric(metricName string) IssueCategory {
-
 	switch metricName {
 
 	case "request_duration", "response_time":
@@ -2103,7 +1930,6 @@ func (engine *PerformanceAnalysisEngine) categorizeMetric(metricName string) Iss
 		return IssueCategoryLatency // Default category
 
 	}
-
 }
 
 // Additional analysis methods would be implemented here...
@@ -2115,9 +1941,7 @@ func (engine *PerformanceAnalysisEngine) categorizeMetric(metricName string) Iss
 // calculateResourceUtilization calculates resource utilization for a component.
 
 func (engine *PerformanceAnalysisEngine) calculateResourceUtilization(ctx context.Context, analysis *ComponentAnalysis, componentType shared.ComponentType) *ResourceUtilization {
-
 	utilization := &ResourceUtilization{
-
 		ComponentType: componentType,
 
 		TimePeriod: TimePeriod{Start: time.Now().Add(-time.Hour), End: time.Now(), Duration: time.Hour},
@@ -2134,7 +1958,6 @@ func (engine *PerformanceAnalysisEngine) calculateResourceUtilization(ctx contex
 	// Create default resource metrics.
 
 	utilization.CPUUtilization = &ResourceMetric{
-
 		Current: 65.5,
 
 		Average: 62.3,
@@ -2149,7 +1972,6 @@ func (engine *PerformanceAnalysisEngine) calculateResourceUtilization(ctx contex
 	}
 
 	utilization.MemoryUtilization = &ResourceMetric{
-
 		Current: 72.1,
 
 		Average: 68.9,
@@ -2164,7 +1986,6 @@ func (engine *PerformanceAnalysisEngine) calculateResourceUtilization(ctx contex
 	}
 
 	utilization.StorageUtilization = &ResourceMetric{
-
 		Current: 45.8,
 
 		Average: 43.2,
@@ -2179,7 +2000,6 @@ func (engine *PerformanceAnalysisEngine) calculateResourceUtilization(ctx contex
 	}
 
 	utilization.NetworkUtilization = &ResourceMetric{
-
 		Current: 38.2,
 
 		Average: 35.7,
@@ -2194,17 +2014,13 @@ func (engine *PerformanceAnalysisEngine) calculateResourceUtilization(ctx contex
 	}
 
 	return utilization
-
 }
 
 // calculateComponentPerformanceMetrics calculates performance metrics for a component.
 
 func (engine *PerformanceAnalysisEngine) calculateComponentPerformanceMetrics(ctx context.Context, analysis *ComponentAnalysis) *ComponentPerformanceMetrics {
-
 	metrics := &ComponentPerformanceMetrics{
-
 		ResponseTime: &PerformanceMetric{
-
 			Value: 125.5,
 
 			Unit: "ms",
@@ -2213,7 +2029,6 @@ func (engine *PerformanceAnalysisEngine) calculateComponentPerformanceMetrics(ct
 		},
 
 		Throughput: &PerformanceMetric{
-
 			Value: 1250.0,
 
 			Unit: "req/sec",
@@ -2222,7 +2037,6 @@ func (engine *PerformanceAnalysisEngine) calculateComponentPerformanceMetrics(ct
 		},
 
 		ErrorRate: &PerformanceMetric{
-
 			Value: 0.002,
 
 			Unit: "percent",
@@ -2234,13 +2048,11 @@ func (engine *PerformanceAnalysisEngine) calculateComponentPerformanceMetrics(ct
 	}
 
 	return metrics
-
 }
 
 // getHistoricalMetricData gets historical data for a metric.
 
 func (engine *PerformanceAnalysisEngine) getHistoricalMetricData(ctx context.Context, query string, window time.Duration) ([]DataPoint, error) {
-
 	// Simplified implementation - in reality, this would query Prometheus.
 
 	var dataPoints []DataPoint
@@ -2254,7 +2066,6 @@ func (engine *PerformanceAnalysisEngine) getHistoricalMetricData(ctx context.Con
 		value := 50.0 + 20.0*math.Sin(float64(i)*0.1) + 5.0*math.Sin(float64(i)*0.3)
 
 		dataPoints = append(dataPoints, DataPoint{
-
 			Timestamp: timestamp,
 
 			Value: value,
@@ -2263,31 +2074,24 @@ func (engine *PerformanceAnalysisEngine) getHistoricalMetricData(ctx context.Con
 	}
 
 	return dataPoints, nil
-
 }
 
 // calculateMetricStatistics calculates statistical metrics.
 
 func (engine *PerformanceAnalysisEngine) calculateMetricStatistics(data []DataPoint) *MetricStatistics {
-
 	if len(data) == 0 {
-
 		return &MetricStatistics{}
-
 	}
 
 	values := make([]float64, len(data))
 
 	for i, dp := range data {
-
 		values[i] = dp.Value
-
 	}
 
 	sort.Float64s(values)
 
 	stats := &MetricStatistics{
-
 		Min: values[0],
 
 		Max: values[len(values)-1],
@@ -2300,9 +2104,7 @@ func (engine *PerformanceAnalysisEngine) calculateMetricStatistics(data []DataPo
 	sum := 0.0
 
 	for _, v := range values {
-
 		sum += v
-
 	}
 
 	stats.Mean = sum / float64(len(values))
@@ -2310,13 +2112,9 @@ func (engine *PerformanceAnalysisEngine) calculateMetricStatistics(data []DataPo
 	// Calculate median.
 
 	if len(values)%2 == 0 {
-
 		stats.Median = (values[len(values)/2-1] + values[len(values)/2]) / 2
-
 	} else {
-
 		stats.Median = values[len(values)/2]
-
 	}
 
 	// Calculate variance and standard deviation.
@@ -2324,9 +2122,7 @@ func (engine *PerformanceAnalysisEngine) calculateMetricStatistics(data []DataPo
 	variance := 0.0
 
 	for _, v := range values {
-
 		variance += math.Pow(v-stats.Mean, 2)
-
 	}
 
 	stats.Variance = variance / float64(len(values))
@@ -2348,17 +2144,13 @@ func (engine *PerformanceAnalysisEngine) calculateMetricStatistics(data []DataPo
 	stats.Percentiles[99] = values[99*len(values)/100]
 
 	return stats
-
 }
 
 // analyzeTrend analyzes trend in data.
 
 func (engine *PerformanceAnalysisEngine) analyzeTrend(data []DataPoint) *TrendAnalysis {
-
 	if len(data) < 2 {
-
 		return &TrendAnalysis{Direction: TrendDirectionStable, Confidence: 0.0}
-
 	}
 
 	// Simple linear regression to calculate slope.
@@ -2412,7 +2204,6 @@ func (engine *PerformanceAnalysisEngine) analyzeTrend(data []DataPoint) *TrendAn
 	}
 
 	return &TrendAnalysis{
-
 		Direction: direction,
 
 		Slope: slope,
@@ -2423,25 +2214,19 @@ func (engine *PerformanceAnalysisEngine) analyzeTrend(data []DataPoint) *TrendAn
 
 		ChangePoints: make([]time.Time, 0),
 	}
-
 }
 
 // detectMetricAnomaly detects anomalies in metric data.
 
 func (engine *PerformanceAnalysisEngine) detectMetricAnomaly(currentValue float64, historicalData []DataPoint, stats *MetricStatistics) (float64, bool) {
-
 	if stats == nil || len(historicalData) < 10 {
-
 		return 0.0, false
-
 	}
 
 	// Simple z-score based anomaly detection.
 
 	if stats.StandardDeviation == 0 {
-
 		return 0.0, false
-
 	}
 
 	zScore := math.Abs(currentValue-stats.Mean) / stats.StandardDeviation
@@ -2453,21 +2238,17 @@ func (engine *PerformanceAnalysisEngine) detectMetricAnomaly(currentValue float6
 	isAnomalous := zScore > 2.0
 
 	return anomalyScore, isAnomalous
-
 }
 
 // findMetricCorrelations finds correlations with other metrics.
 
 func (engine *PerformanceAnalysisEngine) findMetricCorrelations(ctx context.Context, metricConfig MetricConfig, componentType shared.ComponentType) []*MetricCorrelation {
-
 	correlations := make([]*MetricCorrelation, 0)
 
 	// Example correlations - in reality, this would analyze actual metric relationships.
 
 	if metricConfig.Name == "cpu_usage" {
-
 		correlations = append(correlations, &MetricCorrelation{
-
 			MetricName: "response_time",
 
 			CorrelationCoefficient: 0.78,
@@ -2478,13 +2259,10 @@ func (engine *PerformanceAnalysisEngine) findMetricCorrelations(ctx context.Cont
 
 			LagTime: 30 * time.Second,
 		})
-
 	}
 
 	if metricConfig.Name == "memory_usage" {
-
 		correlations = append(correlations, &MetricCorrelation{
-
 			MetricName: "gc_pause_time",
 
 			CorrelationCoefficient: 0.65,
@@ -2495,25 +2273,19 @@ func (engine *PerformanceAnalysisEngine) findMetricCorrelations(ctx context.Cont
 
 			LagTime: 15 * time.Second,
 		})
-
 	}
 
 	return correlations
-
 }
 
 // forecastMetric forecasts metric values.
 
 func (engine *PerformanceAnalysisEngine) forecastMetric(data []DataPoint, horizon time.Duration) *MetricForecast {
-
 	if len(data) < 10 {
-
 		return nil
-
 	}
 
 	forecast := &MetricForecast{
-
 		ForecastHorizon: horizon,
 
 		PredictedValues: make([]ForecastPoint, 0),
@@ -2532,9 +2304,7 @@ func (engine *PerformanceAnalysisEngine) forecastMetric(data []DataPoint, horizo
 	trend := 0.0
 
 	if len(data) > 1 {
-
 		trend = (data[len(data)-1].Value - data[0].Value) / float64(len(data)-1)
-
 	}
 
 	steps := int(horizon.Minutes() / 5) // 5-minute intervals
@@ -2546,7 +2316,6 @@ func (engine *PerformanceAnalysisEngine) forecastMetric(data []DataPoint, horizo
 		predictedValue := lastValue + trend*float64(i+1)
 
 		forecast.PredictedValues = append(forecast.PredictedValues, ForecastPoint{
-
 			Timestamp: timestamp,
 
 			PredictedValue: predictedValue,
@@ -2557,7 +2326,6 @@ func (engine *PerformanceAnalysisEngine) forecastMetric(data []DataPoint, horizo
 		errorMargin := predictedValue * 0.1 // 10% error margin
 
 		forecast.ConfidenceIntervals = append(forecast.ConfidenceIntervals, ConfidenceInterval{
-
 			Timestamp: timestamp,
 
 			LowerBound: predictedValue - errorMargin,
@@ -2570,15 +2338,12 @@ func (engine *PerformanceAnalysisEngine) forecastMetric(data []DataPoint, horizo
 	}
 
 	return forecast
-
 }
 
 // GetDefaultAnalysisConfig returns default configuration for performance analysis.
 
 func GetDefaultAnalysisConfig() *AnalysisConfig {
-
 	return &AnalysisConfig{
-
 		RealTimeAnalysisInterval: 30 * time.Second,
 
 		HistoricalAnalysisInterval: 5 * time.Minute,
@@ -2606,17 +2371,13 @@ func GetDefaultAnalysisConfig() *AnalysisConfig {
 		FeatureImportanceThreshold: 0.1,
 
 		Components: []ComponentAnalysisConfig{
-
 			{
-
 				Name: "llm-processor",
 
 				Type: shared.ComponentTypeLLMProcessor,
 
 				Metrics: []MetricConfig{
-
 					{
-
 						Name: "request_duration",
 
 						PrometheusQuery: "histogram_quantile(0.95, llm_request_duration_seconds_bucket)",
@@ -2629,7 +2390,6 @@ func GetDefaultAnalysisConfig() *AnalysisConfig {
 					},
 
 					{
-
 						Name: "throughput",
 
 						PrometheusQuery: "rate(llm_requests_total[5m])",
@@ -2642,7 +2402,6 @@ func GetDefaultAnalysisConfig() *AnalysisConfig {
 					},
 
 					{
-
 						Name: "error_rate",
 
 						PrometheusQuery: "rate(llm_errors_total[5m]) / rate(llm_requests_total[5m])",
@@ -2662,5 +2421,4 @@ func GetDefaultAnalysisConfig() *AnalysisConfig {
 
 		},
 	}
-
 }

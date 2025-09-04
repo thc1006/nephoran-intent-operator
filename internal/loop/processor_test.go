@@ -47,8 +47,8 @@ func TestProcessorBasic(t *testing.T) {
 	errorDir := filepath.Join(tempDir, "errors")
 
 	// Create directories
-	os.MkdirAll(handoffDir, 0755)
-	os.MkdirAll(errorDir, 0755)
+	os.MkdirAll(handoffDir, 0o755)
+	os.MkdirAll(errorDir, 0o755)
 
 	// Create test configuration
 	config := &ProcessorConfig{
@@ -94,7 +94,7 @@ func TestProcessorBasic(t *testing.T) {
 	// Write test file
 	intentData, _ := json.Marshal(validIntent)
 	testFile := filepath.Join(handoffDir, "intent-test1.json")
-	if err := os.WriteFile(testFile, intentData, 0644); err != nil {
+	if err := os.WriteFile(testFile, intentData, 0o644); err != nil {
 		t.Fatalf("Failed to write test file: %v", err)
 	}
 
@@ -138,8 +138,8 @@ func TestProcessorValidationError(t *testing.T) {
 	errorDir := filepath.Join(tempDir, "errors")
 
 	// Create directories
-	os.MkdirAll(handoffDir, 0755)
-	os.MkdirAll(errorDir, 0755)
+	os.MkdirAll(handoffDir, 0o755)
+	os.MkdirAll(errorDir, 0o755)
 
 	// Create test configuration
 	config := &ProcessorConfig{
@@ -179,7 +179,7 @@ func TestProcessorValidationError(t *testing.T) {
 
 	// Write invalid test file
 	testFile := filepath.Join(handoffDir, "intent-invalid.json")
-	if err := os.WriteFile(testFile, []byte(`{"invalid": "data"}`), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte(`{"invalid": "data"}`), 0o644); err != nil {
 		t.Fatalf("Failed to write test file: %v", err)
 	}
 
@@ -216,8 +216,8 @@ func TestProcessorPorchError(t *testing.T) {
 	errorDir := filepath.Join(tempDir, "errors")
 
 	// Create directories
-	os.MkdirAll(handoffDir, 0755)
-	os.MkdirAll(errorDir, 0755)
+	os.MkdirAll(handoffDir, 0o755)
+	os.MkdirAll(errorDir, 0o755)
 
 	// Create test configuration
 	config := &ProcessorConfig{
@@ -263,7 +263,7 @@ func TestProcessorPorchError(t *testing.T) {
 	// Write test file
 	intentData, _ := json.Marshal(validIntent)
 	testFile := filepath.Join(handoffDir, "intent-porch-fail.json")
-	if err := os.WriteFile(testFile, intentData, 0644); err != nil {
+	if err := os.WriteFile(testFile, intentData, 0o644); err != nil {
 		t.Fatalf("Failed to write test file: %v", err)
 	}
 
@@ -300,8 +300,8 @@ func TestProcessorBatching(t *testing.T) {
 	errorDir := filepath.Join(tempDir, "errors")
 
 	// Create directories
-	os.MkdirAll(handoffDir, 0755)
-	os.MkdirAll(errorDir, 0755)
+	os.MkdirAll(handoffDir, 0o755)
+	os.MkdirAll(errorDir, 0o755)
 
 	// Create test configuration
 	config := &ProcessorConfig{
@@ -318,8 +318,8 @@ func TestProcessorBatching(t *testing.T) {
 
 	// Track batch submissions with atomic counters and proper synchronization
 	var totalProcessed int64
-	var firstBatchDone = make(chan struct{})
-	var allDone = make(chan struct{})
+	firstBatchDone := make(chan struct{})
+	allDone := make(chan struct{})
 	var firstBatchOnce sync.Once
 	var allDoneOnce sync.Once
 
@@ -362,7 +362,7 @@ func TestProcessorBatching(t *testing.T) {
 
 		intentData, _ := json.Marshal(intent)
 		testFile := filepath.Join(handoffDir, fmt.Sprintf("intent-%d.json", i))
-		if err := os.WriteFile(testFile, intentData, 0644); err != nil {
+		if err := os.WriteFile(testFile, intentData, 0o644); err != nil {
 			t.Fatalf("Failed to write test file %d: %v", i, err)
 		}
 

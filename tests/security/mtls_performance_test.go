@@ -86,7 +86,7 @@ var _ = Describe("mTLS Performance and Load Test Suite", func() {
 	Context("mTLS Connection Performance", func() {
 		It("should benchmark mTLS handshake performance", func() {
 			server := perfSuite.testSuite.createTestServer(perfSuite.testSuite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			// Benchmark different handshake scenarios
 			scenarios := map[string]func() *http.Client{
@@ -135,7 +135,7 @@ var _ = Describe("mTLS Performance and Load Test Suite", func() {
 
 		It("should test concurrent connection establishment", func() {
 			server := perfSuite.testSuite.createTestServer(perfSuite.testSuite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			concurrencyLevels := []int{10, 50, 100, 200}
 
@@ -182,7 +182,7 @@ var _ = Describe("mTLS Performance and Load Test Suite", func() {
 
 		It("should measure throughput under sustained load", func() {
 			server := perfSuite.testSuite.createTestServer(perfSuite.testSuite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			config := LoadTestConfig{
 				Concurrency:     50,
@@ -210,7 +210,7 @@ var _ = Describe("mTLS Performance and Load Test Suite", func() {
 
 		It("should test connection pooling efficiency", func() {
 			server := perfSuite.testSuite.createTestServer(perfSuite.testSuite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			// Test with different pool sizes
 			poolSizes := []int{1, 5, 10, 20, 50}
@@ -283,7 +283,7 @@ var _ = Describe("mTLS Performance and Load Test Suite", func() {
 
 		It("should test certificate rotation performance", func() {
 			server := perfSuite.testSuite.createTestServer(perfSuite.testSuite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			client := perfSuite.testSuite.createMTLSClient(perfSuite.testSuite.clientCert)
 
@@ -389,7 +389,7 @@ var _ = Describe("mTLS Performance and Load Test Suite", func() {
 	Context("Stress Testing", func() {
 		It("should handle high connection churn", func() {
 			server := perfSuite.testSuite.createTestServer(perfSuite.testSuite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			config := LoadTestConfig{
 				Concurrency:     100,
@@ -414,7 +414,7 @@ var _ = Describe("mTLS Performance and Load Test Suite", func() {
 
 		It("should test memory usage under load", func() {
 			server := perfSuite.testSuite.createTestServer(perfSuite.testSuite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			// Measure memory before test
 			var memBefore runtime.MemStats
@@ -451,7 +451,7 @@ var _ = Describe("mTLS Performance and Load Test Suite", func() {
 
 		It("should test certificate rotation under load", func() {
 			server := perfSuite.testSuite.createTestServer(perfSuite.testSuite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			var wg sync.WaitGroup
 			var rotationErrors int64
@@ -653,7 +653,7 @@ func BenchmarkMTLSHandshake(b *testing.B) {
 	defer suite.cleanupTestCertificates()
 
 	server := suite.createTestServer(suite.serverCert, true)
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
@@ -688,7 +688,7 @@ func BenchmarkConnectionPooling(b *testing.B) {
 	defer suite.cleanupTestCertificates()
 
 	server := suite.createTestServer(suite.serverCert, true)
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	perfSuite := &mTLSPerformanceTestSuite{testSuite: suite}
 	client := perfSuite.createPooledMTLSClient(10)

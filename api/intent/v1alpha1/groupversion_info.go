@@ -1,4 +1,6 @@
+// Package v1alpha1 contains API Schema definitions for the intent v1alpha1 API group
 // +kubebuilder:object:generate=true
+// +groupName=intent.nephio.org
 package v1alpha1
 
 import (
@@ -7,12 +9,12 @@ import (
 )
 
 var (
-	// GroupVersion 定義此 API 群組/版本.
-	GroupVersion = schema.GroupVersion{Group: "intent.nephoran.io", Version: "v1alpha1"}
+	// GroupVersion is group version used to register these objects
+	GroupVersion = schema.GroupVersion{Group: "intent.nephio.org", Version: "v1alpha1"}
 
-	// SchemeBuilder 用來把型別註冊到 Scheme.
+	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
 	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}
 
-	// AddToScheme 供 main.go 呼叫註冊.
+	// AddToScheme adds the types in this group-version to the given scheme.
 	AddToScheme = SchemeBuilder.AddToScheme
 )

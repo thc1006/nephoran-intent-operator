@@ -1,0 +1,484 @@
+# =============================================================================
+# Security Scan Configuration - Performance Tuning
+# =============================================================================
+# This file contains configuration options for the optimized security scan
+# workflow. Adjust these settings based on your project's specific needs.
+# =============================================================================
+
+# Performance Profiles
+# Define different performance profiles for various scenarios
+profiles:
+  # Ultra-fast profile for quick feedback (< 10 minutes)
+  ultrafast:
+    name: "Ultra Fast"
+    description: "Minimal scanning for quick feedback on PRs"
+    settings:
+      parallel_shards: 8
+      scan_depth: "incremental-minimal"
+      skip_on_cache_hit: true
+      timeout_minutes: 10
+      severity_threshold: "high"
+      confidence_threshold: "high"
+      max_file_size_mb: 10
+      excluded_paths:
+        - vendor
+        - .git
+        - testdata
+        - examples
+        - docs
+      tools:
+        gosec: true
+        vulncheck: false
+        nancy: false
+        licenses: false
+        owasp: false
+
+  # Balanced profile for regular CI/CD (15-20 minutes)
+  balanced:
+    name: "Balanced"
+    description: "Standard scanning with good coverage and performance"
+    settings:
+      parallel_shards: 4
+      scan_depth: "incremental-standard"
+      skip_on_cache_hit: true
+      timeout_minutes: 20
+      severity_threshold: "medium"
+      confidence_threshold: "medium"
+      max_file_size_mb: 50
+      excluded_paths:
+        - vendor
+        - .git
+        - testdata
+      tools:
+        gosec: true
+        vulncheck: true
+        nancy: true
+        licenses: false
+        owasp: false
+
+  # Comprehensive profile for nightly/scheduled scans (30-45 minutes)
+  comprehensive:
+    name: "Comprehensive"
+    description: "Full security analysis with all tools"
+    settings:
+      parallel_shards: 4
+      scan_depth: "comprehensive"
+      skip_on_cache_hit: false
+      timeout_minutes: 45
+      severity_threshold: "low"
+      confidence_threshold: "low"
+      max_file_size_mb: 100
+      excluded_paths:
+        - vendor
+        - .git
+      tools:
+        gosec: true
+        vulncheck: true
+        nancy: true
+        licenses: true
+        owasp: true
+
+  # Production profile for release branches (45-60 minutes)
+  production:
+    name: "Production"
+    description: "Maximum security validation for production releases"
+    settings:
+      parallel_shards: 2  # Less parallel for thoroughness
+      scan_depth: "comprehensive"
+      skip_on_cache_hit: false
+      timeout_minutes: 60
+      severity_threshold: "low"
+      confidence_threshold: "low"
+      max_file_size_mb: 200
+      excluded_paths:
+        - .git
+      tools:
+        gosec: true
+        vulncheck: true
+        nancy: true
+        licenses: true
+        owasp: true
+      additional_checks:
+        - SBOM generation
+        - Dependency graph
+        - License compliance
+        - CVE database cross-reference
+
+# Sharding Strategy
+# Configure how the codebase is divided for parallel scanning
+sharding:
+  strategies:
+    # Component-based sharding (default)
+    component:
+      shards:
+        - name: "API & Commands"
+          paths:
+            - "./cmd/..."
+            - "./api/..."
+          weight: 1.0
+        
+        - name: "Controllers & Webhooks"
+          paths:
+            - "./controllers/..."
+            - "./webhooks/..."
+          weight: 1.5
+        
+        - name: "Core Packages"
+          paths:
+            - "./pkg/nephio/..."
+            - "./pkg/porch/..."
+          weight: 2.0
+        
+        - name: "Simulation & Planner"
+          paths:
+            - "./sim/..."
+            - "./planner/..."
+          weight: 1.2
+        
+        - name: "Internal & Utils"
+          paths:
+            - "./internal/..."
+            - "./utils/..."
+          weight: 0.8
+    
+    # Size-based sharding (alternative)
+    size:
+      method: "file_count"
+      target_files_per_shard: 250
+      max_shards: 8
+      min_shards: 2
+    
+    # Module-based sharding (for monorepos)
+    module:
+      auto_detect: true
+      max_shards: 6
+      balance_by: "complexity"
+
+# Caching Configuration
+caching:
+  # Cache versioning strategy
+  version_strategy: "semantic"  # semantic, date, hash
+  
+  # Cache retention policies
+  retention:
+    go_modules:
+      days: 7
+      size_limit_gb: 10
+    
+    build_cache:
+      days: 3
+      size_limit_gb: 5
+    
+    scan_results:
+      days: 30
+      size_limit_gb: 2
+    
+    vulnerability_db:
+      days: 7
+      update_schedule: "weekly"
+  
+  # Cache warming strategy
+  warming:
+    enabled: true
+    schedule: "0 0 * * MON"  # Weekly on Monday
+    branches:
+      - main
+      - develop
+      - release/*
+
+# Performance Monitoring
+monitoring:
+  # Metrics collection
+  metrics:
+    enabled: true
+    collectors:
+      - duration
+      - cache_hit_rate
+      - issues_found
+      - memory_usage
+      - cpu_usage
+    
+    # Performance regression thresholds
+    regression_thresholds:
+      duration_increase_percent: 20
+      cache_hit_decrease_percent: 30
+      memory_increase_percent: 50
+  
+  # Alerting
+  alerts:
+    enabled: true
+    channels:
+      - type: "pr_comment"
+        enabled: true
+        template: "performance_report"
+      
+      - type: "slack"
+        enabled: false
+        webhook_url: "${SLACK_WEBHOOK_URL}"
+        threshold: "regression"
+      
+      - type: "email"
+        enabled: false
+        recipients: ["security@example.com"]
+        threshold: "critical"
+  
+  # Dashboards
+  dashboards:
+    grafana:
+      enabled: false
+      url: "https://grafana.example.com"
+      dashboard_id: "security-scan-performance"
+    
+    datadog:
+      enabled: false
+      api_key: "${DATADOG_API_KEY}"
+      metrics_prefix: "ci.security_scan"
+
+# Tool-Specific Settings
+tools:
+  gosec:
+    version: "v2.19.0"
+    settings:
+      exclude_rules:
+        - G104  # Unhandled errors
+        - G304  # File path provided as taint
+      custom_config: ".gosec.json"
+      nosec_tag: "nosec"
+    
+  govulncheck:
+    version: "latest"
+    settings:
+      mode: "binary"  # binary, source, module
+      database_url: "https://vuln.go.dev"
+      show_traces: false
+      json_output: true
+    
+  nancy:
+    version: "v1.0.46"
+    settings:
+      quiet: false
+      exclude_vulnerabilities: []
+      cvss_score_threshold: 7.0
+    
+  golangci_lint:
+    version: "v1.55.2"
+    enabled: false
+    settings:
+      config: ".golangci.yml"
+      timeout: "10m"
+      parallel: 4
+
+# Incremental Scanning Rules
+incremental:
+  # File change thresholds
+  thresholds:
+    minimal: 5      # files
+    standard: 20    # files
+    full: 50        # files
+  
+  # Path-based rules
+  path_rules:
+    - pattern: "go.mod|go.sum"
+      action: "full_scan"
+      reason: "Dependency changes require full scan"
+    
+    - pattern: ".github/workflows/*"
+      action: "skip"
+      reason: "Workflow changes don't affect code security"
+    
+    - pattern: "*.md|*.txt|*.yaml"
+      action: "skip"
+      reason: "Documentation changes don't require scanning"
+    
+    - pattern: "*_test.go"
+      action: "minimal"
+      reason: "Test files need minimal scanning"
+  
+  # Smart detection
+  smart_detection:
+    enabled: true
+    analyze_imports: true
+    track_dependencies: true
+    cross_package_impact: true
+
+# Resource Limits
+resources:
+  # Runner specifications
+  runners:
+    type: "ubuntu-latest"
+    size: "large"  # large runners for better performance
+    max_parallel: 6
+  
+  # Memory limits
+  memory:
+    gosec: "4G"
+    vulncheck: "2G"
+    default: "1G"
+  
+  # CPU limits
+  cpu:
+    max_procs: 8
+    gc_procs: 2
+  
+  # Timeout settings (minutes)
+  timeouts:
+    global: 60
+    gosec: 15
+    vulncheck: 20
+    nancy: 5
+    licenses: 3
+    cleanup: 2
+
+# Artifact Management
+artifacts:
+    # Compression settings
+    compression:
+      level: 9  # 0-9, higher = better compression
+      algorithm: "gzip"  # gzip, zstd, xz
+    
+    # Retention policies
+    retention:
+      success:
+        days: 7
+        max_size_mb: 100
+      
+      failure:
+        days: 30
+        max_size_mb: 500
+      
+      security_reports:
+        days: 90
+        max_size_mb: 1000
+    
+    # Deduplication
+    deduplication:
+      enabled: true
+      strategy: "content_hash"
+      storage_backend: "s3"  # s3, azure, gcs
+
+# Optimization Flags
+optimizations:
+  # Experimental optimizations (use with caution)
+  experimental:
+    speculative_caching: false
+    predictive_sharding: false
+    ml_based_targeting: false
+    distributed_scanning: false
+  
+  # Safe optimizations (recommended)
+  safe:
+    skip_unchanged_vendored: true
+    cache_compiled_packages: true
+    reuse_ast_cache: true
+    parallel_dependency_resolution: true
+    incremental_sarif_merging: true
+  
+  # Aggressive optimizations (may miss some issues)
+  aggressive:
+    skip_low_risk_packages: false
+    sample_large_files: false
+    timeout_slow_packages: false
+    exclude_generated_code: true
+
+# Integration Settings
+integrations:
+  # GitHub Security
+  github_security:
+    upload_sarif: true
+    create_issues: false
+    update_pr_status: true
+    code_scanning_alerts: true
+  
+  # Third-party integrations
+  sonarqube:
+    enabled: false
+    url: "https://sonar.example.com"
+    token: "${SONAR_TOKEN}"
+  
+  snyk:
+    enabled: false
+    token: "${SNYK_TOKEN}"
+    monitor: true
+  
+  dependabot:
+    enabled: true
+    auto_merge_patches: true
+    grouped_updates: true
+
+# Custom Rules
+custom_rules:
+  # Add custom security rules
+  gosec_rules:
+    - id: "CUSTOM001"
+      pattern: "regexp:password.*=.*[\"']"
+      message: "Hardcoded password detected"
+      severity: "HIGH"
+    
+    - id: "CUSTOM002"
+      pattern: "regexp:http://"
+      message: "Unencrypted HTTP connection"
+      severity: "MEDIUM"
+  
+  # Custom file filters
+  file_filters:
+    - name: "Large Files"
+      condition: "size > 10MB"
+      action: "skip"
+    
+    - name: "Binary Files"
+      condition: "binary"
+      action: "skip"
+    
+    - name: "Sensitive Paths"
+      condition: "path contains '.env'"
+      action: "alert"
+
+# Fallback Configuration
+fallback:
+  # What to do when optimizations fail
+  on_timeout:
+    action: "use_cached_results"  # use_cached_results, fail, skip
+    notify: true
+  
+  on_cache_miss:
+    action: "full_scan"  # full_scan, minimal_scan, skip
+    notify: false
+  
+  on_tool_failure:
+    action: "continue"  # continue, fail, retry
+    max_retries: 2
+    notify: true
+
+# Scheduling
+scheduling:
+  # Different schedules for different scan types
+  schedules:
+    - name: "Quick Daily"
+      cron: "0 6 * * *"
+      profile: "balanced"
+      branches: ["main", "develop"]
+    
+    - name: "Weekly Comprehensive"
+      cron: "0 2 * * SUN"
+      profile: "comprehensive"
+      branches: ["main"]
+    
+    - name: "Release Validation"
+      trigger: "tag"
+      pattern: "v*"
+      profile: "production"
+
+# Environment-specific overrides
+environments:
+  development:
+    profile: "ultrafast"
+    skip_on_draft_pr: true
+    
+  staging:
+    profile: "balanced"
+    require_approval: false
+  
+  production:
+    profile: "production"
+    require_approval: true
+    mandatory_tools: ["gosec", "vulncheck", "licenses"]

@@ -1,7 +1,9 @@
 package o2
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"net/http"
 	"net/url"
 	"time"
@@ -9,8 +11,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
 )
 
 // O2IMSConfig holds the configuration for O2 IMS.
@@ -48,7 +48,7 @@ type O2IMSConfig struct {
 
 	TokenExpiry time.Duration `json:"tokenExpiry"`
 
-	AuthenticationConfig *BasicAuthConfig `json:"authenticationConfig,omitempty"`
+	AuthenticationConfig *AuthenticationConfig `json:"authenticationConfig,omitempty"`
 
 	// Database.
 
@@ -56,7 +56,7 @@ type O2IMSConfig struct {
 
 	DatabaseType string `json:"databaseType"`
 
-	DatabaseConfig map[string]interface{} `json:"databaseConfig,omitempty"`
+	DatabaseConfig json.RawMessage `json:"databaseConfig,omitempty"`
 
 	ConnectionPool int `json:"connectionPool"`
 
@@ -68,7 +68,7 @@ type O2IMSConfig struct {
 
 	// Security.
 
-	SecurityConfig *APISecurityConfig `json:"securityConfig,omitempty"`
+	SecurityConfig *SecurityConfig `json:"securityConfig,omitempty"`
 
 	// Additional Configuration Fields.
 
@@ -76,9 +76,23 @@ type O2IMSConfig struct {
 
 	Host string `json:"host,omitempty"`
 
-	CloudProviders map[string]*CloudProviderConfig `json:"cloudProviders,omitempty"`
+	// Service configuration from DefaultO2IMSConfig
+	ServiceName    string            `json:"serviceName"`
+	ServiceVersion string            `json:"serviceVersion"`
+	ListenAddress  string            `json:"listenAddress"`
+	ListenPort     int               `json:"listenPort"`
+	MetricsPort    int               `json:"metricsPort"`
+	HealthPort     int               `json:"healthPort"`
+	LogLevel       string            `json:"logLevel"`
+	RedisURL       string            `json:"redisUrl"`
+	CloudProviders []string          `json:"cloudProviders"`
+	Features       map[string]bool   `json:"features"`
+	Timeouts       map[string]string `json:"timeouts"`
+	Limits         map[string]int    `json:"limits"`
 
-	HealthCheckConfig *APIHealthCheckConfig `json:"healthCheckConfig,omitempty"`
+	CloudProviderConfigs map[string]*CloudProviderConfig `json:"cloudProviderConfigs,omitempty"`
+
+	HealthCheckConfig *HealthCheckConfigForAPI `json:"healthCheckConfig,omitempty"`
 
 	MetricsConfig *MetricsConfig `json:"metricsConfig,omitempty"`
 
@@ -96,13 +110,12 @@ type O2IMSConfig struct {
 
 	SpecificationVersion string `json:"specificationVersion,omitempty"`
 
-	ProviderConfigs map[string]interface{} `json:"providerConfigs,omitempty"`
+	ProviderConfigs json.RawMessage `json:"providerConfigs,omitempty"`
 }
 
 // O2IMSService defines the interface for O2 IMS core service.
 
 type O2IMSService interface {
-
 	// Resource Management.
 
 	ListResources(ctx context.Context, filter ResourceFilter) ([]Resource, error)
@@ -217,7 +230,6 @@ type O2IMSService interface {
 // ResourceManager handles resource lifecycle operations.
 
 type ResourceManager interface {
-
 	// Resource Operations.
 
 	AllocateResource(ctx context.Context, request *AllocationRequest) (*AllocationResponse, error)
@@ -258,7 +270,6 @@ type ResourceManager interface {
 // InventoryService manages the inventory of resources.
 
 type InventoryService interface {
-
 	// Inventory Management.
 
 	SyncInventory(ctx context.Context) error
@@ -291,7 +302,6 @@ type InventoryService interface {
 // MonitoringService provides monitoring and alerting capabilities.
 
 type MonitoringService interface {
-
 	// Metrics.
 
 	CollectMetrics(ctx context.Context, resourceID string) (*ResourceMetrics, error)
@@ -328,7 +338,7 @@ type HealthCheck struct {
 
 	Uptime time.Duration `json:"uptime"`
 
-	Components map[string]interface{} `json:"components"`
+	Components map[string]interface{} `json:"components"` 
 
 	Services []HealthServiceStatus `json:"services"`
 
@@ -350,7 +360,6 @@ type CheckResult struct {
 // CNFLifecycleManager manages CNF lifecycle operations.
 
 type CNFLifecycleManager interface {
-
 	// CNF Operations.
 
 	InstantiateCNF(ctx context.Context, request *CNFInstantiationRequest) (*CNFInstance, error)
@@ -381,70 +390,54 @@ type CNFLifecycleManagerImpl struct {
 // NewCNFLifecycleManager creates a new CNF lifecycle manager.
 
 func NewCNFLifecycleManager(config *CNFLifecycleConfig, k8sClient client.Client, logger *logging.StructuredLogger) *CNFLifecycleManagerImpl {
-
 	return &CNFLifecycleManagerImpl{
-
 		config: config,
 
 		k8sClient: k8sClient,
 
 		logger: logger,
 	}
-
 }
 
 // Implement CNFLifecycleManager methods (placeholders).
 
 func (clm *CNFLifecycleManagerImpl) InstantiateCNF(ctx context.Context, request *CNFInstantiationRequest) (*CNFInstance, error) {
-
 	return nil, nil
-
 }
 
 // TerminateCNF performs terminatecnf operation.
 
 func (clm *CNFLifecycleManagerImpl) TerminateCNF(ctx context.Context, instanceID string) error {
-
 	return nil
-
 }
 
 // ScaleCNF performs scalecnf operation.
 
 func (clm *CNFLifecycleManagerImpl) ScaleCNF(ctx context.Context, instanceID string, scaleRequest *CNFScaleRequest) error {
-
 	return nil
-
 }
 
 // UpdateCNF performs updatecnf operation.
 
 func (clm *CNFLifecycleManagerImpl) UpdateCNF(ctx context.Context, instanceID string, updateRequest *CNFUpdateRequest) error {
-
 	return nil
-
 }
 
 // GetCNFStatus performs getcnfstatus operation.
 
 func (clm *CNFLifecycleManagerImpl) GetCNFStatus(ctx context.Context, instanceID string) (*CNFStatus, error) {
-
 	return nil, nil
-
 }
 
 // ListCNFInstances performs listcnfinstances operation.
 
 func (clm *CNFLifecycleManagerImpl) ListCNFInstances(ctx context.Context, filter CNFFilter) ([]CNFInstance, error) {
-
 	return nil, nil
-
 }
 
 // HelmManager manages Helm chart operations.
 
 type HelmManager interface {
-
 	// Lifecycle.
 
 	Initialize() error
@@ -489,102 +482,77 @@ type HelmManagerImpl struct {
 // NewHelmManager creates a new Helm manager.
 
 func NewHelmManager(config *HelmConfig, logger *logging.StructuredLogger) *HelmManagerImpl {
-
 	return &HelmManagerImpl{
-
 		config: config,
 
 		logger: logger,
 	}
-
 }
 
 // Implement HelmManager methods (placeholders).
 
 func (hm *HelmManagerImpl) Initialize() error {
-
 	return nil
-
 }
 
 // InstallChart performs installchart operation.
 
 func (hm *HelmManagerImpl) InstallChart(ctx context.Context, request *HelmInstallRequest) (*HelmRelease, error) {
-
 	return nil, nil
-
 }
 
 // UpgradeChart performs upgradechart operation.
 
 func (hm *HelmManagerImpl) UpgradeChart(ctx context.Context, releaseName string, request *HelmUpgradeRequest) (*HelmRelease, error) {
-
 	return nil, nil
-
 }
 
 // UninstallChart performs uninstallchart operation.
 
 func (hm *HelmManagerImpl) UninstallChart(ctx context.Context, releaseName string) error {
-
 	return nil
-
 }
 
 // Deploy performs deploy operation.
 
 func (hm *HelmManagerImpl) Deploy(ctx context.Context, request *HelmDeployRequest) (*HelmRelease, error) {
-
 	return nil, nil
-
 }
 
 // Upgrade performs upgrade operation.
 
 func (hm *HelmManagerImpl) Upgrade(ctx context.Context, request *HelmUpgradeRequest) (*HelmRelease, error) {
-
 	return nil, nil
-
 }
 
 // Uninstall performs uninstall operation.
 
 func (hm *HelmManagerImpl) Uninstall(ctx context.Context, releaseName, namespace string) error {
-
 	return nil
-
 }
 
 // GetReleaseStatus performs getreleasestatus operation.
 
 func (hm *HelmManagerImpl) GetReleaseStatus(ctx context.Context, releaseName string) (*HelmReleaseStatus, error) {
-
 	return nil, nil
-
 }
 
 // ListReleases performs listreleases operation.
 
 func (hm *HelmManagerImpl) ListReleases(ctx context.Context, namespace string) ([]HelmRelease, error) {
-
 	return nil, nil
-
 }
 
 // AddRepository performs addrepository operation.
 
 func (hm *HelmManagerImpl) AddRepository(ctx context.Context, repo *HelmRepository) error {
-
 	return nil
-
 }
 
 // UpdateRepository performs updaterepository operation.
 
 func (hm *HelmManagerImpl) UpdateRepository(ctx context.Context, repoName string) error {
-
 	return nil
-
 }
 
 // NetworkPolicyRule defines network policy rules.
@@ -613,18 +581,6 @@ type NetworkPolicyRule struct {
 
 // Additional supporting types.
 
-type ResourceFilter struct {
-	ResourceType string `json:"resourceType,omitempty"`
-
-	Status string `json:"status,omitempty"`
-
-	Labels map[string]string `json:"labels,omitempty"`
-
-	Limit int `json:"limit,omitempty"`
-
-	Offset int `json:"offset,omitempty"`
-}
-
 // Resource represents a resource.
 
 type Resource struct {
@@ -640,7 +596,7 @@ type Resource struct {
 
 	Status ResourceStatus `json:"status"`
 
-	Properties map[string]interface{} `json:"properties,omitempty"`
+	Properties json.RawMessage `json:"properties,omitempty"`
 
 	Metadata map[string]string `json:"metadata,omitempty"`
 
@@ -702,7 +658,7 @@ type DeploymentManager struct {
 
 	Capabilities []string `json:"capabilities"`
 
-	Properties map[string]interface{} `json:"properties,omitempty"`
+	Properties json.RawMessage `json:"properties,omitempty"`
 
 	CreatedAt time.Time `json:"createdAt"`
 
@@ -736,7 +692,7 @@ type VersionInfo struct {
 type AllocationRequest struct {
 	ResourceType string `json:"resourceType"`
 
-	Requirements map[string]interface{} `json:"requirements"`
+	Requirements json.RawMessage `json:"requirements"`
 
 	Duration *time.Duration `json:"duration,omitempty"`
 
@@ -754,7 +710,7 @@ type AllocationResponse struct {
 
 	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
 
-	Properties map[string]interface{} `json:"properties,omitempty"`
+	Properties json.RawMessage `json:"properties,omitempty"`
 }
 
 // Manager implementations are defined in cnf_management.go.
@@ -844,11 +800,26 @@ type (
 
 	// EventFilter represents a eventfilter.
 
-	EventFilter struct{}
+	EventFilter struct {
+		ResourceIDs []string  `json:"resourceIds,omitempty"`
+		EventTypes  []string  `json:"eventTypes,omitempty"`
+		States      []string  `json:"states,omitempty"`
+		Sources     []string  `json:"sources,omitempty"`
+		After       time.Time `json:"after,omitempty"`
+		Before      time.Time `json:"before,omitempty"`
+	}
 
 	// ResourceEvent represents a resourceevent.
 
-	ResourceEvent struct{}
+	ResourceEvent struct {
+		EventID   string                 `json:"eventId"`
+		Type      string                 `json:"type"`
+		Reason    string                 `json:"reason"`
+		Message   string                 `json:"message"`
+		Source    string                 `json:"source"`
+		Timestamp time.Time              `json:"timestamp"`
+		Metadata  json.RawMessage `json:"metadata,omitempty"`
+	}
 
 	// InventoryStatus represents a inventorystatus.
 
@@ -871,7 +842,7 @@ type (
 
 		Model string `json:"model,omitempty"`
 
-		Properties map[string]interface{} `json:"properties,omitempty"`
+		Properties json.RawMessage `json:"properties,omitempty"`
 
 		Metadata map[string]string `json:"metadata,omitempty"`
 
@@ -927,7 +898,28 @@ type (
 
 // Additional stub types for missing dependencies.
 
-type InfrastructureHealthChecker struct{}
+type InfrastructureHealthChecker interface {
+	// Health checking
+	CheckHealth(ctx context.Context, resourceID string) (*HealthStatus, error)
+	CheckAllResources(ctx context.Context) (map[string]*HealthStatus, error)
+
+	// Health monitoring
+	StartHealthMonitoring(ctx context.Context, resourceID string, interval time.Duration) error
+	StopHealthMonitoring(ctx context.Context, resourceID string) error
+
+	// Health policies
+	SetHealthPolicy(ctx context.Context, resourceID string, policy interface{}) error
+	GetHealthPolicy(ctx context.Context, resourceID string) (interface{}, error)
+
+	// Health history and trends
+	GetHealthHistory(ctx context.Context, resourceID string, duration time.Duration) ([]interface{}, error)
+	GetHealthTrends(ctx context.Context, resourceID string, duration time.Duration) (interface{}, error)
+
+	// Health events and callbacks
+	RegisterHealthEventCallback(ctx context.Context, resourceID string, callback func(interface{}) error) error
+	UnregisterHealthEventCallback(ctx context.Context, resourceID string) error
+	EmitHealthEvent(ctx context.Context, event interface{}) error
+}
 
 // Note: ResourceStatus, AlarmFilter, Alarm, ComponentCheck are defined in other files.
 
@@ -940,45 +932,6 @@ type (
 )
 
 // O2IMSStorage interface defines storage operations for O2 IMS.
-
-type O2IMSStorage interface {
-
-	// Resource Pools.
-
-	ListResourcePools(ctx context.Context, filter *models.ResourcePoolFilter) ([]*models.ResourcePool, error)
-
-	GetResourcePool(ctx context.Context, resourcePoolID string) (*models.ResourcePool, error)
-
-	StoreResourcePool(ctx context.Context, pool *models.ResourcePool) error
-
-	UpdateResourcePool(ctx context.Context, resourcePoolID string, updates map[string]interface{}) error
-
-	DeleteResourcePool(ctx context.Context, resourcePoolID string) error
-
-	// Resource Types.
-
-	ListResourceTypes(ctx context.Context, filter *models.ResourceTypeFilter) ([]*models.ResourceType, error)
-
-	GetResourceType(ctx context.Context, resourceTypeID string) (*models.ResourceType, error)
-
-	StoreResourceType(ctx context.Context, resourceType *models.ResourceType) error
-
-	UpdateResourceType(ctx context.Context, resourceTypeID string, resourceType *models.ResourceType) error
-
-	DeleteResourceType(ctx context.Context, resourceTypeID string) error
-
-	// Resources.
-
-	ListResources(ctx context.Context, filter *models.ResourceFilter) ([]*models.Resource, error)
-
-	GetResource(ctx context.Context, resourceID string) (*models.Resource, error)
-
-	StoreResource(ctx context.Context, resource *models.Resource) error
-
-	UpdateResource(ctx context.Context, resourceID string, updates map[string]interface{}) error
-
-	DeleteResource(ctx context.Context, resourceID string) error
-}
 
 // Removed - defined below.
 
@@ -1024,48 +977,6 @@ type (
 
 // CloudProviderConfig defines cloud provider configuration.
 
-type CloudProviderConfig struct {
-
-	// Core fields.
-
-	ProviderID string `json:"providerId"` // Unique identifier for the provider
-
-	Name string `json:"name"` // Human-readable name
-
-	Type string `json:"type"` // Provider type (kubernetes, openstack, aws, etc.)
-
-	Description string `json:"description,omitempty"` // Optional description
-
-	Endpoint string `json:"endpoint,omitempty"` // Provider endpoint URL
-
-	Enabled bool `json:"enabled"` // Whether provider is enabled
-
-	Status string `json:"status"` // Current status (ACTIVE, INACTIVE, ERROR)
-
-	// Extended fields used in service implementations.
-
-	ID string `json:"id,omitempty"` // Alternative ID field
-
-	Version string `json:"version,omitempty"` // Provider version
-
-	Region string `json:"region,omitempty"` // Cloud region
-
-	Zone string `json:"zone,omitempty"` // Cloud zone/availability zone
-
-	// Configuration and metadata.
-
-	Properties map[string]interface{} `json:"properties,omitempty"` // Provider-specific configuration
-
-	Tags map[string]string `json:"tags,omitempty"` // Metadata tags
-
-	// Timestamps.
-
-	CreatedAt time.Time `json:"createdAt"` // Creation timestamp
-
-	UpdatedAt time.Time `json:"updatedAt"` // Last update timestamp
-
-}
-
 // CNF and Helm related stub types are defined in cnf_management.go.
 
 type RequestContext struct {
@@ -1105,34 +1016,6 @@ type ResourceHealthSummary struct {
 type ResourceState struct {
 	ResourceID string `json:"resourceId"`
 }
-
-// ResourceLifecycleEvent represents a resourcelifecycleevent.
-
-type (
-	ResourceLifecycleEvent struct{}
-
-	// ResourceEventBus represents a resourceeventbus.
-
-	ResourceEventBus struct{}
-
-	// EventSubscriber represents a eventsubscriber.
-
-	EventSubscriber struct{}
-)
-
-// ResourceLifecycleMetrics represents a resourcelifecyclemetrics.
-
-type ResourceLifecycleMetrics struct {
-	OperationsFailure map[string]int
-
-	OperationsSuccess map[string]int
-
-	OperationsDuration map[string]time.Duration
-}
-
-// ResourcePolicies represents a resourcepolicies.
-
-type ResourcePolicies struct{}
 
 // Operation type constants.
 
@@ -1199,99 +1082,11 @@ type ResourceConfig struct {
 	AutoDiscoveryEnabled bool `json:"autoDiscoveryEnabled"`
 }
 
-// Status constants.
-
-const (
-
-	// StatusOK holds statusok value.
-
-	StatusOK = 200
-
-	// StatusCreated holds statuscreated value.
-
-	StatusCreated = 201
-
-	// StatusAccepted holds statusaccepted value.
-
-	StatusAccepted = 202
-
-	// StatusNoContent holds statusnocontent value.
-
-	StatusNoContent = 204
-
-	// StatusBadRequest holds statusbadrequest value.
-
-	StatusBadRequest = 400
-
-	// StatusNotFound holds statusnotfound value.
-
-	StatusNotFound = 404
-
-	// StatusInternalServerError holds statusinternalservererror value.
-
-	StatusInternalServerError = 500
-
-	// StatusServiceUnavailable holds statusserviceunavailable value.
-
-	StatusServiceUnavailable = 503
-)
-
-// Content Type constants.
-
-const (
-
-	// ContentTypeJSON holds contenttypejson value.
-
-	ContentTypeJSON = "application/json"
-
-	// ContentTypeProblemJSON holds contenttypeproblemjson value.
-
-	ContentTypeProblemJSON = "application/problem+json"
-)
-
-// CloudProvider constants.
-
-const (
-
-	// CloudProviderKubernetes holds cloudproviderkubernetes value.
-
-	CloudProviderKubernetes = "kubernetes"
-
-	// CloudProviderOpenStack holds cloudprovideropenstack value.
-
-	CloudProviderOpenStack = "openstack"
-
-	// CloudProviderAWS holds cloudprovideraws value.
-
-	CloudProviderAWS = "aws"
-
-	// CloudProviderAzure holds cloudproviderazure value.
-
-	CloudProviderAzure = "azure"
-
-	// CloudProviderGCP holds cloudprovidergcp value.
-
-	CloudProviderGCP = "gcp"
-
-	// CloudProviderVMware holds cloudprovidervmware value.
-
-	CloudProviderVMware = "vmware"
-
-	// CloudProviderEdge holds cloudprovideredge value.
-
-	CloudProviderEdge = "edge"
-)
-
-// CloudProvider type alias.
-
-type CloudProvider = providers.CloudProvider
-
 // Security Configuration Types.
 
 // APISecurityConfig defines security configuration for the API server.
 
 type APISecurityConfig struct {
-
 	// CORS Configuration.
 
 	CORSEnabled bool `json:"corsEnabled"`
@@ -1319,28 +1114,7 @@ type APISecurityConfig struct {
 
 // RateLimitConfig defines rate limiting configuration.
 
-type RateLimitConfig struct {
-	Enabled bool `json:"enabled"`
-
-	RequestsPerMin int `json:"requestsPerMin"`
-
-	BurstSize int `json:"burstSize"`
-
-	KeyFunc string `json:"keyFunc"` // ip, user, token
-
-}
-
 // InputValidationConfig defines input validation configuration.
-
-type InputValidationConfig struct {
-	StrictValidation bool `json:"strictValidation"`
-
-	EnableSchemaValidation bool `json:"enableSchemaValidation"`
-
-	MaxRequestSize int `json:"maxRequestSize"`
-
-	SanitizeInput bool `json:"sanitizeInput"`
-}
 
 // BasicAuthConfig defines basic authentication configuration.
 
@@ -1354,8 +1128,6 @@ type BasicAuthConfig struct {
 
 // AuthenticationConfig alias for compatibility.
 
-type AuthenticationConfig = BasicAuthConfig
-
 // APIHealthCheckConfig defines health check configuration for API server.
 
 type APIHealthCheckConfig struct {
@@ -1367,16 +1139,6 @@ type APIHealthCheckConfig struct {
 }
 
 // MetricsConfig defines metrics configuration.
-
-type MetricsConfig struct {
-	Enabled bool `json:"enabled"`
-
-	Path string `json:"path"`
-
-	Port int `json:"port"`
-
-	CollectionInterval time.Duration `json:"collectionInterval"`
-}
 
 // APIHealthCheckerConfig defines health check configuration for the API server health checker.
 
@@ -1395,137 +1157,3 @@ type APIHealthCheckerConfig struct {
 }
 
 // DefaultO2IMSConfig returns a default configuration for O2 IMS.
-
-func DefaultO2IMSConfig() *O2IMSConfig {
-
-	return &O2IMSConfig{
-
-		ServerAddress: "0.0.0.0",
-
-		Port: 8080,
-
-		TLSEnabled: false,
-
-		ReadTimeout: 30 * time.Second,
-
-		WriteTimeout: 30 * time.Second,
-
-		IdleTimeout: 60 * time.Second,
-
-		MaxHeaderBytes: 1 << 20, // 1MB
-
-		CloudID: "default-ocloud",
-
-		CloudDescription: "Default O-Cloud",
-
-		AuthEnabled: false,
-
-		TokenExpiry: 24 * time.Hour,
-
-		DatabaseURL: "sqlite:///tmp/o2ims.db",
-
-		ConnectionPool: 10,
-
-		MetricsEnabled: true,
-
-		TracingEnabled: false,
-
-		Host: "localhost",
-
-		CloudProviders: map[string]*CloudProviderConfig{
-
-			"kubernetes": {
-
-				ProviderID: "kubernetes",
-
-				Name: "Default Kubernetes Provider",
-
-				Type: CloudProviderKubernetes,
-
-				Description: "Default Kubernetes provider",
-
-				Endpoint: "",
-
-				Enabled: true,
-
-				Status: "ACTIVE",
-
-				Properties: map[string]interface{}{
-
-					"in_cluster": true,
-				},
-
-				Tags: map[string]string{
-
-					"environment": "development",
-
-					"default": "true",
-				},
-
-				CreatedAt: time.Now(),
-
-				UpdatedAt: time.Now(),
-			},
-		},
-
-		SecurityConfig: &APISecurityConfig{
-
-			CORSEnabled: true,
-
-			CORSAllowedOrigins: []string{"*"},
-
-			CORSAllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-
-			CORSAllowedHeaders: []string{"Content-Type", "Authorization"},
-
-			RateLimitConfig: &RateLimitConfig{
-
-				Enabled: false,
-
-				RequestsPerMin: 1000,
-
-				BurstSize: 100,
-
-				KeyFunc: "ip",
-			},
-
-			InputValidation: &InputValidationConfig{
-
-				StrictValidation: false,
-
-				EnableSchemaValidation: false,
-
-				MaxRequestSize: 10 * 1024 * 1024, // 10MB
-
-				SanitizeInput: true,
-			},
-
-			EnableCSRF: false,
-
-			AuditLogging: false,
-		},
-
-		HealthCheckConfig: &APIHealthCheckConfig{
-
-			Enabled: true,
-
-			Interval: 30 * time.Second,
-		},
-
-		MetricsConfig: &MetricsConfig{
-
-			Enabled: true,
-
-			Path: "/metrics",
-
-			Port: 9090,
-
-			CollectionInterval: 30 * time.Second,
-		},
-
-		CertFile: "",
-
-		KeyFile: "",
-	}
-
-}

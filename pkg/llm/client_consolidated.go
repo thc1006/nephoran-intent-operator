@@ -46,7 +46,6 @@ type ClientMetrics struct {
 // Client is the unified LLM client with all performance optimizations built-in.
 
 type Client struct {
-
 	// HTTP client with optimization.
 
 	httpClient *http.Client
@@ -165,17 +164,13 @@ type RetryConfig struct {
 // NewClientMetrics creates new client metrics.
 
 func NewClientMetrics() *ClientMetrics {
-
 	return &ClientMetrics{}
-
 }
 
 // NewClient creates a new unified LLM client.
 
 func NewClient(url string) *Client {
-
 	return NewClientWithConfig(url, ClientConfig{
-
 		ModelName: "gpt-4o-mini",
 
 		MaxTokens: 2048,
@@ -200,23 +195,19 @@ func NewClient(url string) *Client {
 
 		CacheMaxSize: 1000,
 	})
-
 }
 
 // NewClientWithConfig creates a client with specific configuration.
 
 func NewClientWithConfig(url string, config ClientConfig) *Client {
-
 	logger := slog.Default().With("component", "llm-client")
 
 	// Create optimized TLS configuration.
 
 	tlsConfig := &tls.Config{
-
 		MinVersion: tls.VersionTLS12,
 
 		CipherSuites: []uint16{
-
 			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 
 			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
@@ -250,9 +241,7 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 	// Create optimized HTTP transport.
 
 	transport := &http.Transport{
-
 		DialContext: (&net.Dialer{
-
 			Timeout: 10 * time.Second,
 
 			KeepAlive: config.KeepAliveTimeout,
@@ -280,7 +269,6 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 	}
 
 	httpClient := &http.Client{
-
 		Timeout: config.Timeout,
 
 		Transport: transport,
@@ -291,15 +279,12 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 	cbConfig := config.CircuitBreakerConfig
 
 	if cbConfig == nil {
-
 		cbConfig = getDefaultCircuitBreakerConfig()
-
 	}
 
 	circuitBreaker := NewCircuitBreaker("llm-client", cbConfig)
 
 	client := &Client{
-
 		httpClient: httpClient,
 
 		transport: transport,
@@ -323,7 +308,6 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 		circuitBreaker: circuitBreaker,
 
 		retryConfig: RetryConfig{
-
 			MaxRetries: 3,
 
 			BaseDelay: time.Second,
@@ -347,41 +331,31 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 	// Initialize smart endpoints for RAG backend.
 
 	if config.BackendType == "rag" {
-
 		client.initializeRAGEndpoints()
-
 	}
 
 	return client
-
 }
 
 // initializeRAGEndpoints initializes smart endpoints for RAG backend.
 
 func (c *Client) initializeRAGEndpoints() {
-
 	baseURL := strings.TrimSuffix(c.url, "/")
 
 	// Determine process endpoint based on URL pattern.
 
 	if strings.HasSuffix(c.url, "/process_intent") {
-
 		// Legacy pattern - use as configured.
 
 		c.processEndpoint = c.url
-
 	} else if strings.HasSuffix(c.url, "/process") {
-
 		// New pattern - use as configured.
 
 		c.processEndpoint = c.url
-
 	} else {
-
 		// Base URL pattern - default to /process for new installations.
 
 		c.processEndpoint = baseURL + "/process"
-
 	}
 
 	// Health endpoint.
@@ -389,13 +363,9 @@ func (c *Client) initializeRAGEndpoints() {
 	processBase := baseURL
 
 	if strings.HasSuffix(c.processEndpoint, "/process_intent") {
-
 		processBase = strings.TrimSuffix(c.processEndpoint, "/process_intent")
-
 	} else if strings.HasSuffix(c.processEndpoint, "/process") {
-
 		processBase = strings.TrimSuffix(c.processEndpoint, "/process")
-
 	}
 
 	c.healthEndpoint = processBase + "/health"
@@ -406,13 +376,11 @@ func (c *Client) initializeRAGEndpoints() {
 
 		slog.String("health_endpoint", c.healthEndpoint),
 	)
-
 }
 
 // ProcessIntent processes an intent with all optimizations.
 
 func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, error) {
-
 	start := time.Now()
 
 	var success bool
@@ -424,7 +392,6 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 	var processingError error
 
 	defer func() {
-
 		c.updateMetrics(success, time.Since(start), cacheHit, retryCount)
 
 		// Record specific error types for Prometheus metrics.
@@ -436,7 +403,6 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 			c.metricsIntegrator.prometheusMetrics.RecordError(c.modelName, errorType)
 
 		}
-
 	}()
 
 	c.logger.Debug("Processing intent", slog.String("intent", intent))
@@ -458,11 +424,8 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 	// Process with circuit breaker protection.
 
 	result, err := c.circuitBreaker.Execute(ctx, func(ctx context.Context) (interface{}, error) {
-
 		return c.processWithRetry(ctx, intent, &retryCount)
-
 	})
-
 	if err != nil {
 
 		processingError = err
@@ -470,9 +433,7 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 		// Check if this is a circuit breaker error.
 
 		if strings.Contains(err.Error(), "circuit breaker is open") && c.metricsIntegrator != nil {
-
 			c.metricsIntegrator.RecordCircuitBreakerEvent("llm-client", "rejected", c.modelName)
-
 		}
 
 		return "", err
@@ -488,13 +449,11 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 	success = true
 
 	return response, nil
-
 }
 
 // processWithRetry handles retry logic.
 
 func (c *Client) processWithRetry(ctx context.Context, intent string, retryCount *int) (string, error) {
-
 	var lastErr error
 
 	delay := c.retryConfig.BaseDelay
@@ -502,7 +461,6 @@ func (c *Client) processWithRetry(ctx context.Context, intent string, retryCount
 	for attempt := 0; attempt <= c.retryConfig.MaxRetries; attempt++ {
 
 		if attempt > 0 {
-
 			select {
 
 			case <-ctx.Done():
@@ -524,13 +482,10 @@ func (c *Client) processWithRetry(ctx context.Context, intent string, retryCount
 				}
 
 				if delay > c.retryConfig.MaxDelay {
-
 					delay = c.retryConfig.MaxDelay
-
 				}
 
 			}
-
 		}
 
 		*retryCount = attempt
@@ -538,29 +493,23 @@ func (c *Client) processWithRetry(ctx context.Context, intent string, retryCount
 		result, err := c.processWithBackend(ctx, intent)
 
 		if err == nil {
-
 			return result, nil
-
 		}
 
 		lastErr = err
 
 		if !c.isRetryableError(err) {
-
 			return "", err
-
 		}
 
 	}
 
 	return "", fmt.Errorf("operation failed after %d retries: %w", c.retryConfig.MaxRetries, lastErr)
-
 }
 
 // processWithBackend handles different LLM backends.
 
 func (c *Client) processWithBackend(ctx context.Context, intent string) (string, error) {
-
 	switch c.backendType {
 
 	case "openai", "mistral":
@@ -576,45 +525,28 @@ func (c *Client) processWithBackend(ctx context.Context, intent string) (string,
 		return c.processWithChatCompletion(ctx, intent)
 
 	}
-
 }
 
 // processWithChatCompletion handles OpenAI/Mistral-style APIs.
 
 func (c *Client) processWithChatCompletion(ctx context.Context, intent string) (string, error) {
-
 	requestBody := map[string]interface{}{
-
-		"model": c.modelName,
-
 		"messages": []map[string]string{
-
-			{"role": "system", "content": "You are a telecommunications network expert."},
-
 			{"role": "user", "content": intent},
 		},
-
-		"max_tokens": c.maxTokens,
-
-		"temperature": 0.0,
-
+		"max_tokens":      c.maxTokens,
+		"temperature":     0.0,
 		"response_format": map[string]string{"type": "json_object"},
 	}
 
 	reqBody, err := json.Marshal(requestBody)
-
 	if err != nil {
-
 		return "", fmt.Errorf("failed to marshal request: %w", err)
-
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", c.url, bytes.NewBuffer(reqBody))
-
 	if err != nil {
-
 		return "", fmt.Errorf("failed to create request: %w", err)
-
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -622,33 +554,23 @@ func (c *Client) processWithChatCompletion(ctx context.Context, intent string) (
 	req.Header.Set("User-Agent", "nephoran-intent-operator/v1.0.0")
 
 	if c.apiKey != "" {
-
 		req.Header.Set("Authorization", "Bearer "+c.apiKey)
-
 	}
 
 	resp, err := c.httpClient.Do(req)
-
 	if err != nil {
-
 		return "", fmt.Errorf("failed to send request: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	respBody, err := io.ReadAll(resp.Body)
-
 	if err != nil {
-
 		return "", fmt.Errorf("failed to read response: %w", err)
-
 	}
 
 	if resp.StatusCode != http.StatusOK {
-
 		return "", fmt.Errorf("LLM API returned status %d: %s", resp.StatusCode, string(respBody))
-
 	}
 
 	// Parse response.
@@ -666,15 +588,11 @@ func (c *Client) processWithChatCompletion(ctx context.Context, intent string) (
 	}
 
 	if err := json.Unmarshal(respBody, &chatResp); err != nil {
-
 		return "", fmt.Errorf("failed to decode response: %w", err)
-
 	}
 
 	if len(chatResp.Choices) == 0 {
-
 		return "", fmt.Errorf("no choices in response")
-
 	}
 
 	// Track token usage.
@@ -682,27 +600,18 @@ func (c *Client) processWithChatCompletion(ctx context.Context, intent string) (
 	c.tokenTracker.RecordUsage(chatResp.Usage.TotalTokens)
 
 	return chatResp.Choices[0].Message.Content, nil
-
 }
 
 // processWithRAGAPI handles RAG API requests.
 
 func (c *Client) processWithRAGAPI(ctx context.Context, intent string) (string, error) {
-
 	req := map[string]interface{}{
-
-		"spec": map[string]string{
-
-			"intent": intent,
-		},
+		"query": intent,
 	}
 
 	reqBody, err := json.Marshal(req)
-
 	if err != nil {
-
 		return "", fmt.Errorf("failed to marshal request: %w", err)
-
 	}
 
 	// Use smart endpoint if available, otherwise fall back to URL construction.
@@ -710,17 +619,12 @@ func (c *Client) processWithRAGAPI(ctx context.Context, intent string) (string, 
 	endpointURL := c.url + "/process" // Default fallback
 
 	if c.processEndpoint != "" {
-
 		endpointURL = c.processEndpoint
-
 	}
 
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", endpointURL, bytes.NewBuffer(reqBody))
-
 	if err != nil {
-
 		return "", fmt.Errorf("failed to create request: %w", err)
-
 	}
 
 	httpReq.Header.Set("Content-Type", "application/json")
@@ -728,76 +632,55 @@ func (c *Client) processWithRAGAPI(ctx context.Context, intent string) (string, 
 	httpReq.Header.Set("User-Agent", "nephoran-intent-operator/v1.0.0")
 
 	resp, err := c.httpClient.Do(httpReq)
-
 	if err != nil {
-
 		return "", fmt.Errorf("failed to send request: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	respBody, err := io.ReadAll(resp.Body)
-
 	if err != nil {
-
 		return "", fmt.Errorf("failed to read response: %w", err)
-
 	}
 
 	if resp.StatusCode != http.StatusOK {
-
 		return "", fmt.Errorf("RAG API returned status %d: %s", resp.StatusCode, string(respBody))
-
 	}
 
 	return string(respBody), nil
-
 }
 
 // Helper methods.
 
 func (c *Client) generateCacheKey(intent string) string {
-
 	return fmt.Sprintf("%s:%s:%s", c.backendType, c.modelName, intent)
-
 }
 
 func (c *Client) isRetryableError(err error) bool {
-
 	errorStr := strings.ToLower(err.Error())
 
 	retryablePatterns := []string{
-
 		"connection refused", "timeout", "temporary failure",
 
 		"service unavailable", "internal server error", "bad gateway",
 	}
 
 	for _, pattern := range retryablePatterns {
-
 		if strings.Contains(errorStr, pattern) {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 func allowInsecureClient() bool {
-
 	return os.Getenv("ALLOW_INSECURE_CLIENT") == "true"
-
 }
 
 // GetMetrics returns current client metrics.
 
 func (c *Client) GetMetrics() ClientMetrics {
-
 	c.metrics.mutex.RLock()
 
 	defer c.metrics.mutex.RUnlock()
@@ -805,7 +688,6 @@ func (c *Client) GetMetrics() ClientMetrics {
 	// Return a copy without the mutex to avoid copying lock values.
 
 	return ClientMetrics{
-
 		RequestsTotal: c.metrics.RequestsTotal,
 
 		RequestsSuccess: c.metrics.RequestsSuccess,
@@ -822,51 +704,39 @@ func (c *Client) GetMetrics() ClientMetrics {
 
 		FallbackAttempts: c.metrics.FallbackAttempts,
 	}
-
 }
 
 // SetFallbackURLs configures fallback URLs.
 
 func (c *Client) SetFallbackURLs(urls []string) {
-
 	c.mutex.Lock()
 
 	defer c.mutex.Unlock()
 
 	c.fallbackURLs = urls
-
 }
 
 // Shutdown gracefully shuts down the client.
 
 func (c *Client) Shutdown() {
-
 	c.mutex.Lock()
 
 	defer c.mutex.Unlock()
 
 	if c.cache != nil {
-
 		c.cache.Stop()
-
 	}
 
 	if c.transport != nil {
-
 		c.transport.CloseIdleConnections()
-
 	}
-
 }
 
 // categorizeError categorizes errors for better Prometheus metrics.
 
 func (c *Client) categorizeError(err error) string {
-
 	if err == nil {
-
 		return "none"
-
 	}
 
 	errMsg := err.Error()
@@ -926,13 +796,11 @@ func (c *Client) categorizeError(err error) string {
 		return "unknown_error"
 
 	}
-
 }
 
 // updateMetrics updates client metrics.
 
 func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit bool, retryCount int) {
-
 	c.metrics.mutex.Lock()
 
 	defer c.metrics.mutex.Unlock()
@@ -940,25 +808,17 @@ func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit boo
 	c.metrics.RequestsTotal++
 
 	if success {
-
 		c.metrics.RequestsSuccess++
-
 	} else {
-
 		c.metrics.RequestsFailure++
-
 	}
 
 	c.metrics.TotalLatency += latency
 
 	if cacheHit {
-
 		c.metrics.CacheHits++
-
 	} else {
-
 		c.metrics.CacheMisses++
-
 	}
 
 	c.metrics.RetryAttempts += int64(retryCount)
@@ -970,9 +830,7 @@ func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit boo
 		status := "success"
 
 		if !success {
-
 			status = "error"
-
 		}
 
 		// Get current token stats for this request.
@@ -1001,13 +859,10 @@ func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit boo
 		// Record retry attempts if any occurred.
 
 		for range retryCount {
-
 			c.metricsIntegrator.RecordRetryAttempt(c.modelName)
-
 		}
 
 	}
-
 }
 
 // Missing interface methods for shared.ClientInterface.
@@ -1015,15 +870,11 @@ func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit boo
 // ProcessIntentStream processes intent with streaming.
 
 func (c *Client) ProcessIntentStream(ctx context.Context, prompt string, chunks chan<- *shared.StreamingChunk) error {
-
 	// For now, simulate streaming by processing normally and chunking the response.
 
 	response, err := c.ProcessIntent(ctx, prompt)
-
 	if err != nil {
-
 		return err
-
 	}
 
 	// Split response into chunks and send.
@@ -1037,13 +888,10 @@ func (c *Client) ProcessIntentStream(ctx context.Context, prompt string, chunks 
 		end := i + chunkSize
 
 		if end > len(words) {
-
 			end = len(words)
-
 		}
 
 		chunk := &shared.StreamingChunk{
-
 			Content: strings.Join(words[i:end], " "),
 
 			IsLast: end >= len(words),
@@ -1070,27 +918,22 @@ func (c *Client) ProcessIntentStream(ctx context.Context, prompt string, chunks 
 	close(chunks)
 
 	return nil
-
 }
 
 // GetSupportedModels returns supported models.
 
 func (c *Client) GetSupportedModels() []string {
-
 	return []string{c.modelName, "gpt-4o-mini", "gpt-3.5-turbo"}
-
 }
 
 // GetModelCapabilities returns model capabilities.
 
 func (c *Client) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
-
 	switch modelName {
 
 	case "gpt-4o-mini":
 
 		return &shared.ModelCapabilities{
-
 			MaxTokens: 128000,
 
 			SupportsChat: true,
@@ -1105,7 +948,6 @@ func (c *Client) GetModelCapabilities(modelName string) (*shared.ModelCapabiliti
 	case "gpt-3.5-turbo":
 
 		return &shared.ModelCapabilities{
-
 			MaxTokens: 4096,
 
 			SupportsChat: true,
@@ -1120,7 +962,6 @@ func (c *Client) GetModelCapabilities(modelName string) (*shared.ModelCapabiliti
 	default:
 
 		return &shared.ModelCapabilities{
-
 			MaxTokens: c.maxTokens,
 
 			SupportsChat: true,
@@ -1133,61 +974,50 @@ func (c *Client) GetModelCapabilities(modelName string) (*shared.ModelCapabiliti
 		}, nil
 
 	}
-
 }
 
 // ValidateModel validates if model is supported.
 
 func (c *Client) ValidateModel(modelName string) error {
-
 	supported := c.GetSupportedModels()
 
 	for _, m := range supported {
-
 		if m == modelName {
-
 			return nil
-
 		}
-
 	}
 
 	return fmt.Errorf("model %s not supported", modelName)
-
 }
 
 // EstimateTokens estimates token count for text.
 
 func (c *Client) EstimateTokens(text string) int {
-
 	// Simple estimation: ~4 characters per token.
 
 	return len(text) / 4
-
 }
 
 // GetMaxTokens returns maximum tokens for model.
 
 func (c *Client) GetMaxTokens(modelName string) int {
-
 	caps, err := c.GetModelCapabilities(modelName)
-
 	if err != nil {
-
 		return c.maxTokens
-
 	}
 
 	return caps.MaxTokens
-
 }
 
 // Close closes the client and cleans up resources.
 
 func (c *Client) Close() error {
-
 	c.Shutdown()
 
 	return nil
+}
 
+// GetEndpoint returns the client's endpoint URL
+func (c *Client) GetEndpoint() string {
+	return c.url
 }

@@ -4,8 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"math/rand"
+	"math/rand/v2"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -41,7 +40,7 @@ func TestChaosTestSuite(t *testing.T) {
 
 func (suite *ChaosTestSuite) SetupSuite() {
 	var err error
-	suite.tempDir, err = ioutil.TempDir("", "chaos_test")
+	suite.tempDir, err = os.MkdirTemp("", "chaos_test")
 	suite.Require().NoError(err)
 
 	// Setup chaos server that randomly fails
@@ -115,7 +114,7 @@ func (suite *ChaosTestSuite) TestBackendFailureScenarios() {
 		}
 		auditSystem.backends = []backends.Backend{chaosBackend}
 
-		err = auditSystem.Start(context.Background())
+		err = auditSystem.Start()
 		suite.Require().NoError(err)
 		defer auditSystem.Stop()
 
@@ -162,7 +161,7 @@ func (suite *ChaosTestSuite) TestBackendFailureScenarios() {
 		}
 		auditSystem.backends = []backends.Backend{failingBackend}
 
-		err = auditSystem.Start(context.Background())
+		err = auditSystem.Start()
 		suite.Require().NoError(err)
 		defer auditSystem.Stop()
 
@@ -198,7 +197,7 @@ func (suite *ChaosTestSuite) TestBackendFailureScenarios() {
 		}
 		auditSystem.backends = []backends.Backend{flakyBackend}
 
-		err = auditSystem.Start(context.Background())
+		err = auditSystem.Start()
 		suite.Require().NoError(err)
 		defer auditSystem.Stop()
 
@@ -257,7 +256,7 @@ func (suite *ChaosTestSuite) TestDiskFailureScenarios() {
 		}
 		auditSystem.backends = []backends.Backend{diskFullBackend}
 
-		err = auditSystem.Start(context.Background())
+		err = auditSystem.Start()
 		suite.Require().NoError(err)
 		defer auditSystem.Stop()
 
@@ -296,7 +295,7 @@ func (suite *ChaosTestSuite) TestDiskFailureScenarios() {
 		}
 		auditSystem.backends = []backends.Backend{ioErrorBackend}
 
-		err = auditSystem.Start(context.Background())
+		err = auditSystem.Start()
 		suite.Require().NoError(err)
 		defer auditSystem.Stop()
 
@@ -332,7 +331,7 @@ func (suite *ChaosTestSuite) TestNetworkPartitions() {
 		partitionBackend := NewNetworkPartitionBackend(suite.chaosServer.URL)
 		auditSystem.backends = []backends.Backend{partitionBackend}
 
-		err = auditSystem.Start(context.Background())
+		err = auditSystem.Start()
 		suite.Require().NoError(err)
 		defer auditSystem.Stop()
 
@@ -395,7 +394,7 @@ func (suite *ChaosTestSuite) TestNetworkPartitions() {
 		}
 		auditSystem.backends = []backends.Backend{dnsFailBackend}
 
-		err = auditSystem.Start(context.Background())
+		err = auditSystem.Start()
 		suite.Require().NoError(err)
 		defer auditSystem.Stop()
 
@@ -431,7 +430,7 @@ func (suite *ChaosTestSuite) TestResourceExhaustion() {
 		}
 		auditSystem.backends = []backends.Backend{slowBackend}
 
-		err = auditSystem.Start(context.Background())
+		err = auditSystem.Start()
 		suite.Require().NoError(err)
 		defer auditSystem.Stop()
 
@@ -477,7 +476,7 @@ func (suite *ChaosTestSuite) TestResourceExhaustion() {
 		}
 		auditSystem.backends = []backends.Backend{slowBackend}
 
-		err = auditSystem.Start(context.Background())
+		err = auditSystem.Start()
 		suite.Require().NoError(err)
 		defer auditSystem.Stop()
 
@@ -523,7 +522,7 @@ func (suite *ChaosTestSuite) TestCascadingFailures() {
 		}
 		auditSystem.backends = backends
 
-		err = auditSystem.Start(context.Background())
+		err = auditSystem.Start()
 		suite.Require().NoError(err)
 		defer auditSystem.Stop()
 
@@ -564,7 +563,7 @@ func (suite *ChaosTestSuite) TestCascadingFailures() {
 		}
 		auditSystem.backends = []backends.Backend{dependentBackend}
 
-		err = auditSystem.Start(context.Background())
+		err = auditSystem.Start()
 		suite.Require().NoError(err)
 		defer auditSystem.Stop()
 
@@ -598,7 +597,7 @@ func (suite *ChaosTestSuite) TestRecoveryScenarios() {
 		recoveryBackend := NewRecoveryBackend()
 		auditSystem.backends = []backends.Backend{recoveryBackend}
 
-		err = auditSystem.Start(context.Background())
+		err = auditSystem.Start()
 		suite.Require().NoError(err)
 		defer auditSystem.Stop()
 
@@ -655,7 +654,7 @@ func (suite *ChaosTestSuite) TestRecoveryScenarios() {
 		}
 		auditSystem.backends = []backends.Backend{overloadedBackend}
 
-		err = auditSystem.Start(context.Background())
+		err = auditSystem.Start()
 		suite.Require().NoError(err)
 		defer auditSystem.Stop()
 
@@ -706,7 +705,7 @@ func (suite *ChaosTestSuite) TestSystemLimits() {
 		limitBackend := &SizeLimitBackend{maxEventSize: 1024} // 1KB limit
 		auditSystem.backends = []backends.Backend{limitBackend}
 
-		err = auditSystem.Start(context.Background())
+		err = auditSystem.Start()
 		suite.Require().NoError(err)
 		defer auditSystem.Stop()
 
@@ -751,7 +750,7 @@ func (suite *ChaosTestSuite) TestSystemLimits() {
 					mockBackend := &MockChaosBackend{}
 					auditSystem.backends = []backends.Backend{mockBackend}
 
-					err = auditSystem.Start(context.Background())
+					err = auditSystem.Start()
 					assert.NoError(t, err)
 
 					if err == nil {
@@ -784,10 +783,8 @@ func createChaosTestEvent(action string) *AuditEvent {
 		UserContext: &UserContext{
 			UserID: "chaos-test-user",
 		},
-		Data: map[string]interface{}{
-			"test_type": "chaos",
-			"timestamp": time.Now().Unix(),
-		},
+		Data: map[string]interface{}{},
+
 	}
 }
 
@@ -825,9 +822,8 @@ func createSizedChaosEvent(action string, targetSize int) *AuditEvent {
 		Action:    action,
 		Severity:  SeverityInfo,
 		Result:    ResultSuccess,
-		Data: map[string]interface{}{
-			"padding": string(padding),
-		},
+		Data:      map[string]interface{}{},
+
 	}
 }
 

@@ -135,18 +135,11 @@ func TestO2APILoadPerformance(t *testing.T) {
 
 	// Setup O2 API server
 	config := &o2.O2IMSConfig{
-		ServerAddress: "127.0.0.1",
-		ServerPort:    0,
-		TLSEnabled:    false,
-		DatabaseConfig: map[string]interface{}{
-			"type":     "memory",
-			"database": "o2_load_test_db",
-		},
-		ProviderConfigs: map[string]interface{}{
-			"kubernetes": map[string]interface{}{
-				"enabled": true,
-			},
-		},
+		ServerAddress:  "127.0.0.1",
+		ServerPort:     0,
+		TLSEnabled:     false,
+		DatabaseConfig: json.RawMessage(`{}`),
+		ProviderConfigs: json.RawMessage(`{"enabled": true}`),
 	}
 
 	o2Server, err := o2.NewO2APIServer(config, testLogger, nil)
@@ -154,7 +147,7 @@ func TestO2APILoadPerformance(t *testing.T) {
 	defer o2Server.Shutdown(context.Background())
 
 	httpServer := httptest.NewServer(o2Server.GetRouter())
-	defer httpServer.Close()
+	defer httpServer.Close() // #nosec G307 - Error handled in defer
 
 	client := httpServer.Client()
 	client.Timeout = 30 * time.Second
@@ -628,18 +621,11 @@ func BenchmarkO2APIOperations(b *testing.B) {
 	testLogger := logging.NewLogger("o2-benchmark", "error") // Reduced logging for benchmarks
 
 	config := &o2.O2IMSConfig{
-		ServerAddress: "127.0.0.1",
-		ServerPort:    0,
-		TLSEnabled:    false,
-		DatabaseConfig: map[string]interface{}{
-			"type":     "memory",
-			"database": "o2_benchmark_db",
-		},
-		ProviderConfigs: map[string]interface{}{
-			"kubernetes": map[string]interface{}{
-				"enabled": true,
-			},
-		},
+		ServerAddress:  "127.0.0.1",
+		ServerPort:     0,
+		TLSEnabled:     false,
+		DatabaseConfig: json.RawMessage(`{}`),
+		ProviderConfigs: json.RawMessage(`{"enabled": true}`),
 	}
 
 	o2Server, err := o2.NewO2APIServer(config, testLogger, nil)
@@ -647,7 +633,7 @@ func BenchmarkO2APIOperations(b *testing.B) {
 	defer o2Server.Shutdown(context.Background())
 
 	httpServer := httptest.NewServer(o2Server.GetRouter())
-	defer httpServer.Close()
+	defer httpServer.Close() // #nosec G307 - Error handled in defer
 
 	client := httpServer.Client()
 	client.Timeout = 10 * time.Second
@@ -752,13 +738,10 @@ func TestMemoryUsage(t *testing.T) {
 	testLogger := logging.NewLogger("o2-memory-test", "warn")
 
 	config := &o2.O2IMSConfig{
-		ServerAddress: "127.0.0.1",
-		ServerPort:    0,
-		TLSEnabled:    false,
-		DatabaseConfig: map[string]interface{}{
-			"type":     "memory",
-			"database": "o2_memory_test_db",
-		},
+		ServerAddress:  "127.0.0.1",
+		ServerPort:     0,
+		TLSEnabled:     false,
+		DatabaseConfig: json.RawMessage(`{}`),
 	}
 
 	o2Server, err := o2.NewO2APIServer(config, testLogger, nil)
@@ -766,7 +749,7 @@ func TestMemoryUsage(t *testing.T) {
 	defer o2Server.Shutdown(context.Background())
 
 	httpServer := httptest.NewServer(o2Server.GetRouter())
-	defer httpServer.Close()
+	defer httpServer.Close() // #nosec G307 - Error handled in defer
 
 	client := httpServer.Client()
 

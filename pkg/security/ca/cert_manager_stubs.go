@@ -25,8 +25,8 @@ type ObjectReference struct {
 
 // Common key algorithms
 const (
-	RSA   KeyAlgorithm = "RSA"
-	ECDSA KeyAlgorithm = "ECDSA"
+	RSA     KeyAlgorithm = "RSA"
+	ECDSA   KeyAlgorithm = "ECDSA"
 	Ed25519 KeyAlgorithm = "Ed25519"
 )
 
@@ -45,8 +45,8 @@ const (
 type Certificate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              CertificateSpec      `json:"spec,omitempty"`
-	Status            CertManagerStatus    `json:"status,omitempty"`
+	Spec              CertificateSpec   `json:"spec,omitempty"`
+	Status            CertManagerStatus `json:"status,omitempty"`
 }
 
 // CertificateSpec defines the desired certificate
@@ -91,7 +91,7 @@ type Issuer struct {
 
 // IssuerSpec defines the desired state of Issuer
 type IssuerSpec struct {
-	CA     *CAIssuer     `json:"ca,omitempty"`
+	CA         *CAIssuer         `json:"ca,omitempty"`
 	SelfSigned *SelfSignedIssuer `json:"selfSigned,omitempty"`
 }
 
@@ -100,5 +100,5 @@ type CAIssuer struct {
 	SecretName string `json:"secretName"`
 }
 
-// SelfSignedIssuer represents a self-signed issuer configuration  
+// SelfSignedIssuer represents a self-signed issuer configuration
 type SelfSignedIssuer struct{}

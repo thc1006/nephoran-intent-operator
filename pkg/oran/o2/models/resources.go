@@ -1,7 +1,9 @@
 package models
 
 import (
-	"time"
+	
+	"encoding/json"
+"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -10,13 +12,14 @@ import (
 
 // SystemInfo represents basic system information for the O2 IMS service.
 type SystemInfo struct {
-	Name string `json:"name"`
-	Description string `json:"description"`
-	Version string `json:"version"`
-	APIVersions []string `json:"apiVersions"`
-	SupportedResourceTypes []string `json:"supportedResourceTypes"`
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
-	Timestamp time.Time `json:"timestamp"`
+	ID                     string                 `json:"id"`
+	Name                   string                 `json:"name"`
+	Description            string                 `json:"description"`
+	Version                string                 `json:"version"`
+	APIVersions            []string               `json:"apiVersions"`
+	SupportedResourceTypes []string               `json:"supportedResourceTypes"`
+	Extensions             map[string]interface{} `json:"extensions,omitempty"`
+	Timestamp              time.Time              `json:"timestamp"`
 }
 
 // ResourcePool represents a collection of infrastructure resources.
@@ -146,7 +149,7 @@ type ResourceStatus struct {
 
 	Conditions []ResourceCondition `json:"conditions,omitempty"`
 
-	Metrics map[string]interface{} `json:"metrics,omitempty"`
+	Metrics json.RawMessage `json:"metrics,omitempty"`
 }
 
 // ResourceCondition represents a condition of the resource.
@@ -195,7 +198,6 @@ type ResourcePoolFilter struct {
 	SortBy string `json:"sortBy,omitempty"`
 
 	SortOrder string `json:"sortOrder,omitempty"` // ASC, DESC
-
 }
 
 // Request types for resource management operations.
@@ -293,7 +295,7 @@ type NodeStatus struct {
 
 	Conditions []NodeCondition `json:"conditions,omitempty"`
 
-	Metrics map[string]interface{} `json:"metrics,omitempty"`
+	Metrics json.RawMessage `json:"metrics,omitempty"`
 
 	Alarms []string `json:"alarms,omitempty"`
 }
@@ -344,7 +346,6 @@ type NetworkInterface struct {
 	MTU int `json:"mtu,omitempty"`
 
 	State string `json:"state"` // UP, DOWN, UNKNOWN
-
 }
 
 // StorageDevice represents a storage device on a node.

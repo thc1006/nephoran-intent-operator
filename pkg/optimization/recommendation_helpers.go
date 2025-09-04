@@ -151,53 +151,37 @@ type OptimizationRiskAssessment struct {
 // ConvertRiskAssessment converts the RiskAssessment from predictors to OptimizationRiskAssessment.
 
 func ConvertRiskAssessment(ra *RiskAssessment) *OptimizationRiskAssessment {
-
 	if ra == nil {
-
 		return &OptimizationRiskAssessment{
-
 			OverallRiskLevel: RiskLevelMedium,
 		}
-
 	}
 
 	return &OptimizationRiskAssessment{
+		OverallRiskLevel: ra.OverallRiskLevel,
 
-		OverallRiskLevel: scoreToRiskLevel(ra.OverallRiskScore),
+		ImplementationRisk: ra.ImplementationRisk,
 
-		ImplementationRisk: ra.OverallRiskScore,
+		PerformanceRisk: ra.PerformanceRisk,
 
-		PerformanceRisk: ra.OverallRiskScore * 0.7,
+		AvailabilityRisk: ra.AvailabilityRisk,
 
-		AvailabilityRisk: ra.OverallRiskScore * 0.6,
+		SecurityRisk: ra.SecurityRisk,
 
-		SecurityRisk: ra.OverallRiskScore * 0.3,
-
-		ComplianceRisk: ra.OverallRiskScore * 0.3,
+		ComplianceRisk: ra.ComplianceRisk,
 	}
-
 }
 
 func scoreToRiskLevel(score float64) RiskLevel {
-
 	if score < 0.2 {
-
 		return RiskLevelVeryLow
-
 	} else if score < 0.4 {
-
 		return RiskLevelLow
-
 	} else if score < 0.6 {
-
 		return RiskLevelMedium
-
 	} else if score < 0.8 {
-
 		return RiskLevelHigh
-
 	}
 
 	return RiskLevelVeryHigh
-
 }

@@ -16,7 +16,6 @@ import (
 // ExampleRateLimiterUsage performs exampleratelimiterusage operation.
 
 func ExampleRateLimiterUsage() {
-
 	// Create logger.
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
@@ -24,7 +23,6 @@ func ExampleRateLimiterUsage() {
 	// Configure rate limiter.
 
 	config := RateLimiterConfig{
-
 		QPS: 20, // Allow 20 requests per second per IP
 
 		Burst: 40, // Allow burst of 40 requests
@@ -44,15 +42,11 @@ func ExampleRateLimiterUsage() {
 	// Create HTTP handler.
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		w.WriteHeader(http.StatusOK)
 
 		if _, err := w.Write([]byte("Hello, World!")); err != nil {
-
 			logger.Error("Failed to write response", "error", err)
-
 		}
-
 	})
 
 	// Apply rate limiting middleware.
@@ -77,17 +71,13 @@ func ExampleRateLimiterUsage() {
 	// Start server.
 
 	if err := server.ListenAndServe(); err != nil {
-
 		logger.Error("Server failed", "error", err)
-
 	}
-
 }
 
 // ExamplePostOnlyRateLimiterUsage performs examplepostonlyratelimiterusage operation.
 
 func ExamplePostOnlyRateLimiterUsage() {
-
 	// Create logger.
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
@@ -95,7 +85,6 @@ func ExamplePostOnlyRateLimiterUsage() {
 	// Configure rate limiter for POST requests only.
 
 	config := RateLimiterConfig{
-
 		QPS: 10, // Allow 10 POST requests per second per IP
 
 		Burst: 20, // Allow burst of 20 POST requests
@@ -115,27 +104,19 @@ func ExamplePostOnlyRateLimiterUsage() {
 	// Create HTTP handlers.
 
 	postHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		w.WriteHeader(http.StatusOK)
 
 		if _, err := w.Write([]byte("POST request processed")); err != nil {
-
 			logger.Error("Failed to write POST response", "error", err)
-
 		}
-
 	})
 
 	getHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		w.WriteHeader(http.StatusOK)
 
 		if _, err := w.Write([]byte("GET request processed")); err != nil {
-
 			logger.Error("Failed to write GET response", "error", err)
-
 		}
-
 	})
 
 	// Create router.
@@ -164,11 +145,8 @@ func ExamplePostOnlyRateLimiterUsage() {
 	// Start server.
 
 	if err := server.ListenAndServe(); err != nil {
-
 		logger.Error("Server failed", "error", err)
-
 	}
-
 }
 
 /*

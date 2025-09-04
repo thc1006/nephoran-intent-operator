@@ -14,17 +14,17 @@ type Event = audittypes.AuditEvent
 
 // FilterCriteria defines criteria for filtering audit events
 type FilterCriteria struct {
-	StartTime     *time.Time                  `json:"start_time,omitempty"`
-	EndTime       *time.Time                  `json:"end_time,omitempty"`
-	UserID        string                      `json:"user_id,omitempty"`
-	Component     string                      `json:"component,omitempty"`
-	EventTypes    []audittypes.EventType      `json:"event_types,omitempty"`
-	Severities    []audittypes.Severity       `json:"severities,omitempty"`
-	MinSeverity   audittypes.Severity         `json:"min_severity,omitempty"`
-	MaxResults    int                         `json:"max_results,omitempty"`
-	SourceIP      string                      `json:"source_ip,omitempty"`
+	StartTime     *time.Time                      `json:"start_time,omitempty"`
+	EndTime       *time.Time                      `json:"end_time,omitempty"`
+	UserID        string                          `json:"user_id,omitempty"`
+	Component     string                          `json:"component,omitempty"`
+	EventTypes    []audittypes.EventType          `json:"event_types,omitempty"`
+	Severities    []audittypes.Severity           `json:"severities,omitempty"`
+	MinSeverity   audittypes.Severity             `json:"min_severity,omitempty"`
+	MaxResults    int                             `json:"max_results,omitempty"`
+	SourceIP      string                          `json:"source_ip,omitempty"`
 	ComplianceReq []audittypes.ComplianceStandard `json:"compliance_req,omitempty"`
-	Tags          []string                    `json:"tags,omitempty"`
+	Tags          []string                        `json:"tags,omitempty"`
 }
 
 // AlertThresholds defines thresholds for different alert types
@@ -38,14 +38,14 @@ type AlertThresholds struct {
 // DefaultConfig returns a default audit system configuration
 func DefaultConfig() *AuditSystemConfig {
 	return &AuditSystemConfig{
-		Enabled:           true,
-		EnabledSources:    []string{"kubernetes", "oran", "nephio"},
-		RetentionDays:     365,
-		LogLevel:          audittypes.SeverityInfo,
-		BatchSize:         DefaultBatchSize,
-		FlushInterval:     DefaultFlushInterval,
-		MaxQueueSize:      MaxAuditQueueSize,
-		EnableIntegrity:   true,
-		ComplianceMode:    []audittypes.ComplianceStandard{},
+		Enabled:         true,
+		EnabledSources:  []string{"kubernetes", "oran", "nephio"},
+		RetentionDays:   365,
+		LogLevel:        audittypes.SeverityInfo,
+		BatchSize:       DefaultBatchSize,
+		FlushInterval:   DefaultFlushInterval,
+		MaxQueueSize:    MaxAuditQueueSize,
+		EnableIntegrity: true,
+		ComplianceMode:  []audittypes.ComplianceStandard{},
 	}
 }

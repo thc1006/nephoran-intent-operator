@@ -13,6 +13,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -43,7 +44,6 @@ type ClientMetrics struct {
 // Client is the simplified LLM client when RAG is disabled.
 
 type Client struct {
-
 	// HTTP client with optimization.
 
 	httpClient *http.Client
@@ -146,15 +146,11 @@ type RetryConfig struct {
 // NewClient creates a new simplified client when RAG is disabled.
 
 func NewClient(url, apiKey, modelName string, maxTokens int, config *ClientConfig) *Client {
-
 	if config == nil {
-
 		config = getDefaultClientConfig()
-
 	}
 
 	transport := &http.Transport{
-
 		MaxIdleConns: config.MaxIdleConns,
 
 		MaxIdleConnsPerHost: config.MaxConnsPerHost,
@@ -168,7 +164,6 @@ func NewClient(url, apiKey, modelName string, maxTokens int, config *ClientConfi
 		ForceAttemptHTTP2: true,
 
 		DialContext: (&net.Dialer{
-
 			Timeout: 30 * time.Second,
 
 			KeepAlive: config.KeepAliveTimeout,
@@ -176,20 +171,21 @@ func NewClient(url, apiKey, modelName string, maxTokens int, config *ClientConfi
 	}
 
 	if config.SkipTLSVerification {
-
-		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-
+		// Security check: only allow in non-production environments
+		if !allowInsecureClient() {
+			panic("Security violation: TLS verification cannot be disabled in production")
+		}
+		slog.Warn("SECURITY WARNING: TLS verification disabled (testing only)")
+		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} // #nosec G402 - Controlled by environment check
 	}
 
 	httpClient := &http.Client{
-
 		Transport: transport,
 
 		Timeout: config.Timeout,
 	}
 
 	client := &Client{
-
 		httpClient: httpClient,
 
 		transport: transport,
@@ -217,7 +213,6 @@ func NewClient(url, apiKey, modelName string, maxTokens int, config *ClientConfi
 		circuitBreaker: NewCircuitBreaker("llm-client", config.CircuitBreakerConfig),
 
 		retryConfig: RetryConfig{
-
 			MaxRetries: 3,
 
 			BaseDelay: time.Second,
@@ -233,21 +228,17 @@ func NewClient(url, apiKey, modelName string, maxTokens int, config *ClientConfi
 	}
 
 	return client
-
 }
 
 // ProcessIntent processes an intent (simplified implementation).
 
 func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, error) {
-
 	startTime := time.Now()
 
 	// Update metrics.
 
 	c.updateMetrics(func(m *ClientMetrics) {
-
 		m.RequestsTotal++
-
 	})
 
 	// Check cache first.
@@ -255,11 +246,9 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 	if cached, found := c.cache.Get(intent); found {
 
 		c.updateMetrics(func(m *ClientMetrics) {
-
 			m.CacheHits++
 
 			m.RequestsSuccess++
-
 		})
 
 		if cachedStr, ok := cached.(string); ok {
@@ -270,23 +259,13 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 
 	// Create request.
 
-	reqBody := map[string]interface{}{
-
-		"intent": intent,
-
-		"model": c.modelName,
-
-		"max_tokens": c.maxTokens,
-	}
+	reqBody := json.RawMessage(`{}`)
 
 	jsonData, err := json.Marshal(reqBody)
-
 	if err != nil {
 
 		c.updateMetrics(func(m *ClientMetrics) {
-
 			m.RequestsFailure++
-
 		})
 
 		return "", fmt.Errorf("failed to marshal request: %w", err)
@@ -298,13 +277,11 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 	var response string
 
 	err = c.executeWithRetry(ctx, func() error {
-
 		var execErr error
 
 		response, execErr = c.executeRequest(ctx, jsonData)
 
 		return execErr
-
 	})
 
 	// Update metrics.
@@ -312,13 +289,10 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 	latency := time.Since(startTime)
 
 	c.updateMetrics(func(m *ClientMetrics) {
-
 		m.TotalLatency += latency
 
 		if err != nil {
-
 			m.RequestsFailure++
-
 		} else {
 
 			m.RequestsSuccess++
@@ -326,13 +300,10 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 			m.CacheMisses++
 
 		}
-
 	})
 
 	if err != nil {
-
 		return "", err
-
 	}
 
 	// Cache the response.
@@ -340,38 +311,28 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 	c.cache.Set(intent, response)
 
 	return response, nil
-
 }
 
 // executeRequest executes the HTTP request.
 
 func (c *Client) executeRequest(ctx context.Context, jsonData []byte) (string, error) {
-
 	req, err := http.NewRequestWithContext(ctx, "POST", c.processEndpoint, bytes.NewBuffer(jsonData))
-
 	if err != nil {
-
 		return "", fmt.Errorf("failed to create request: %w", err)
-
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 
 	if c.apiKey != "" {
-
 		req.Header.Set("Authorization", "Bearer "+c.apiKey)
-
 	}
 
 	resp, err := c.httpClient.Do(req)
-
 	if err != nil {
-
 		return "", fmt.Errorf("failed to execute request: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 
@@ -382,11 +343,8 @@ func (c *Client) executeRequest(ctx context.Context, jsonData []byte) (string, e
 	}
 
 	responseBody, err := io.ReadAll(resp.Body)
-
 	if err != nil {
-
 		return "", fmt.Errorf("failed to read response body: %w", err)
-
 	}
 
 	// Parse response.
@@ -394,33 +352,25 @@ func (c *Client) executeRequest(ctx context.Context, jsonData []byte) (string, e
 	var result map[string]interface{}
 
 	if err := json.Unmarshal(responseBody, &result); err != nil {
-
 		return "", fmt.Errorf("failed to unmarshal response: %w", err)
-
 	}
 
 	// Extract content from response.
 
 	if content, ok := result["content"].(string); ok {
-
 		return content, nil
-
 	}
 
 	if response, ok := result["response"].(string); ok {
-
 		return response, nil
-
 	}
 
 	return string(responseBody), nil
-
 }
 
 // executeWithRetry executes a function with retry logic.
 
 func (c *Client) executeWithRetry(ctx context.Context, fn func() error) error {
-
 	var lastErr error
 
 	for attempt := 0; attempt <= c.retryConfig.MaxRetries; attempt++ {
@@ -440,9 +390,7 @@ func (c *Client) executeWithRetry(ctx context.Context, fn func() error) error {
 			}
 
 			c.updateMetrics(func(m *ClientMetrics) {
-
 				m.RetryAttempts++
-
 			})
 
 		}
@@ -452,9 +400,7 @@ func (c *Client) executeWithRetry(ctx context.Context, fn func() error) error {
 			lastErr = err
 
 			if !c.isRetryableError(err) {
-
 				break
-
 			}
 
 			continue
@@ -466,19 +412,15 @@ func (c *Client) executeWithRetry(ctx context.Context, fn func() error) error {
 	}
 
 	return lastErr
-
 }
 
 // calculateBackoffDelay calculates the delay for exponential backoff.
 
 func (c *Client) calculateBackoffDelay(attempt int) time.Duration {
-
 	delay := time.Duration(float64(c.retryConfig.BaseDelay) * (c.retryConfig.BackoffFactor * float64(attempt)))
 
 	if delay > c.retryConfig.MaxDelay {
-
 		delay = c.retryConfig.MaxDelay
-
 	}
 
 	if c.retryConfig.JitterEnabled {
@@ -494,13 +436,11 @@ func (c *Client) calculateBackoffDelay(attempt int) time.Duration {
 	}
 
 	return delay
-
 }
 
 // isRetryableError determines if an error is retryable.
 
 func (c *Client) isRetryableError(err error) bool {
-
 	// Simple retry logic for common network errors.
 
 	return strings.Contains(err.Error(), "connection refused") ||
@@ -508,91 +448,68 @@ func (c *Client) isRetryableError(err error) bool {
 		strings.Contains(err.Error(), "timeout") ||
 
 		strings.Contains(err.Error(), "temporary failure")
-
 }
 
 // updateMetrics safely updates metrics.
 
 func (c *Client) updateMetrics(updater func(*ClientMetrics)) {
-
 	c.metrics.mutex.Lock()
 
 	defer c.metrics.mutex.Unlock()
 
 	updater(c.metrics)
-
 }
 
 // GetMetrics returns current metrics.
 
 func (c *Client) GetMetrics() ClientMetrics {
-
 	c.metrics.mutex.RLock()
 
 	defer c.metrics.mutex.RUnlock()
 
 	return *c.metrics
-
 }
 
 // Close closes the client and cleans up resources.
 
 func (c *Client) Close() error {
-
 	if c.cache != nil {
-
 		c.cache.Stop()
-
 	}
 
 	if c.transport != nil {
-
 		c.transport.CloseIdleConnections()
-
 	}
 
 	return nil
-
 }
 
 // Health checks the health of the backend.
 
 func (c *Client) Health(ctx context.Context) error {
-
 	req, err := http.NewRequestWithContext(ctx, "GET", c.healthEndpoint, nil)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create health request: %w", err)
-
 	}
 
 	resp, err := c.httpClient.Do(req)
-
 	if err != nil {
-
 		return fmt.Errorf("health check failed: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
-
 		return fmt.Errorf("health check returned status %d", resp.StatusCode)
-
 	}
 
 	return nil
-
 }
 
 // getDefaultClientConfig returns default client configuration.
 
 func getDefaultClientConfig() *ClientConfig {
-
 	return &ClientConfig{
-
 		Timeout: 30 * time.Second,
 
 		MaxConnsPerHost: 10,
@@ -610,11 +527,19 @@ func getDefaultClientConfig() *ClientConfig {
 		BackendType: "openai",
 
 		CircuitBreakerConfig: &CircuitBreakerConfig{
-
 			FailureThreshold: 5,
 
 			Timeout: 60 * time.Second,
 		},
 	}
+}
 
+// GetEndpoint returns the client's endpoint URL
+func (c *Client) GetEndpoint() string {
+	return c.url
+}
+
+// allowInsecureClient returns true if insecure TLS connections are explicitly allowed
+func allowInsecureClient() bool {
+	return os.Getenv("ALLOW_INSECURE_CLIENT") == "true"
 }

@@ -42,7 +42,6 @@ type SCTPTransport struct {
 // SCTPConfig contains SCTP transport configuration.
 
 type SCTPConfig struct {
-
 	// Network settings.
 
 	ListenAddress string
@@ -262,9 +261,7 @@ type E2APMessageHandler func(nodeID string, message *E2APMessage) error
 // NewSCTPTransport creates a new SCTP transport.
 
 func NewSCTPTransport(config *SCTPConfig, codec *ASN1Codec) *SCTPTransport {
-
 	return &SCTPTransport{
-
 		config: config,
 
 		connections: make(map[string]*SCTPConnection),
@@ -277,17 +274,13 @@ func NewSCTPTransport(config *SCTPConfig, codec *ASN1Codec) *SCTPTransport {
 
 		stopChan: make(chan struct{}),
 	}
-
 }
 
 // Start starts the SCTP transport listener.
 
 func (t *SCTPTransport) Start(ctx context.Context) error {
-
 	if !t.running.CompareAndSwap(false, true) {
-
 		return fmt.Errorf("transport already running")
-
 	}
 
 	// Create listener.
@@ -299,7 +292,6 @@ func (t *SCTPTransport) Start(ctx context.Context) error {
 	addr := fmt.Sprintf("%s:%d", t.config.ListenAddress, t.config.ListenPort)
 
 	listener, err := net.Listen("tcp", addr)
-
 	if err != nil {
 
 		t.running.Store(false)
@@ -319,17 +311,13 @@ func (t *SCTPTransport) Start(ctx context.Context) error {
 	go t.maintenanceLoop(ctx)
 
 	return nil
-
 }
 
 // Stop stops the SCTP transport.
 
 func (t *SCTPTransport) Stop() error {
-
 	if !t.running.CompareAndSwap(true, false) {
-
 		return fmt.Errorf("transport not running")
-
 	}
 
 	close(t.stopChan)
@@ -337,9 +325,7 @@ func (t *SCTPTransport) Stop() error {
 	// Close listener.
 
 	if t.listener != nil {
-
 		t.listener.Close()
-
 	}
 
 	// Close all connections.
@@ -347,9 +333,7 @@ func (t *SCTPTransport) Stop() error {
 	t.mutex.Lock()
 
 	for nodeID, conn := range t.connections {
-
 		t.closeConnection(nodeID, conn)
-
 	}
 
 	t.connections = make(map[string]*SCTPConnection)
@@ -357,17 +341,13 @@ func (t *SCTPTransport) Stop() error {
 	t.mutex.Unlock()
 
 	return nil
-
 }
 
 // Connect establishes an SCTP connection to a remote E2 node.
 
 func (t *SCTPTransport) Connect(nodeID, address string) error {
-
 	if !t.running.Load() {
-
 		return fmt.Errorf("transport not running")
-
 	}
 
 	// Check if already connected.
@@ -389,17 +369,13 @@ func (t *SCTPTransport) Connect(nodeID, address string) error {
 	// Note: In production, use SCTP-specific connection establishment.
 
 	conn, err := net.DialTimeout("tcp", address, t.config.ConnectionTimeout)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to connect to %s: %w", address, err)
-
 	}
 
 	// Create SCTP connection.
 
 	sctpConn := &SCTPConnection{
-
 		conn: conn,
 
 		nodeID: nodeID,
@@ -440,17 +416,13 @@ func (t *SCTPTransport) Connect(nodeID, address string) error {
 	t.metrics.ConnectionsActive.Add(1)
 
 	return nil
-
 }
 
 // SendMessage sends an E2AP message over SCTP.
 
 func (t *SCTPTransport) SendMessage(nodeID string, message *E2APMessage) error {
-
 	if !t.running.Load() {
-
 		return fmt.Errorf("transport not running")
-
 	}
 
 	// Get connection.
@@ -462,19 +434,14 @@ func (t *SCTPTransport) SendMessage(nodeID string, message *E2APMessage) error {
 	t.mutex.RUnlock()
 
 	if !exists {
-
 		return fmt.Errorf("no connection to node %s", nodeID)
-
 	}
 
 	// Encode message.
 
 	data, err := t.codec.EncodeE2APMessage(message)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to encode message: %w", err)
-
 	}
 
 	// Select appropriate stream based on message type.
@@ -484,9 +451,7 @@ func (t *SCTPTransport) SendMessage(nodeID string, message *E2APMessage) error {
 	// Send message.
 
 	if err := t.sendOnStream(conn, streamID, data); err != nil {
-
 		return fmt.Errorf("failed to send message: %w", err)
-
 	}
 
 	// Update metrics.
@@ -500,23 +465,18 @@ func (t *SCTPTransport) SendMessage(nodeID string, message *E2APMessage) error {
 	conn.metrics.BytesSent += int64(len(data))
 
 	return nil
-
 }
 
 // SetMessageHandler sets the message handler for received E2AP messages.
 
 func (t *SCTPTransport) SetMessageHandler(handler E2APMessageHandler) {
-
 	t.messageHandler = handler
-
 }
 
 // acceptLoop accepts incoming SCTP connections.
 
 func (t *SCTPTransport) acceptLoop(ctx context.Context) {
-
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -532,26 +492,19 @@ func (t *SCTPTransport) acceptLoop(ctx context.Context) {
 			// Accept connection with timeout.
 
 			if tcpListener, ok := t.listener.(*net.TCPListener); ok {
-
 				tcpListener.SetDeadline(time.Now().Add(1 * time.Second))
-
 			}
 
 			conn, err := t.listener.Accept()
-
 			if err != nil {
 
 				var netErr net.Error
 				if errors.As(err, &netErr) && netErr.Timeout() {
-
 					continue
-
 				}
 
 				if !t.running.Load() {
-
 					return
-
 				}
 
 				continue
@@ -563,15 +516,12 @@ func (t *SCTPTransport) acceptLoop(ctx context.Context) {
 			go t.handleIncomingConnection(conn)
 
 		}
-
 	}
-
 }
 
 // handleIncomingConnection handles a new incoming connection.
 
 func (t *SCTPTransport) handleIncomingConnection(conn net.Conn) {
-
 	// Perform SCTP handshake and E2 setup.
 
 	// For now, we'll use a simplified approach.
@@ -579,7 +529,6 @@ func (t *SCTPTransport) handleIncomingConnection(conn net.Conn) {
 	// Read initial E2 Setup Request to identify the node.
 
 	message, nodeID, err := t.readInitialMessage(conn)
-
 	if err != nil {
 
 		conn.Close()
@@ -605,7 +554,6 @@ func (t *SCTPTransport) handleIncomingConnection(conn net.Conn) {
 	// Create SCTP connection.
 
 	sctpConn := &SCTPConnection{
-
 		conn: conn,
 
 		nodeID: nodeID,
@@ -636,9 +584,7 @@ func (t *SCTPTransport) handleIncomingConnection(conn net.Conn) {
 	// Process the initial message.
 
 	if t.messageHandler != nil {
-
 		t.messageHandler(nodeID, message)
-
 	}
 
 	// Start connection handler.
@@ -650,15 +596,12 @@ func (t *SCTPTransport) handleIncomingConnection(conn net.Conn) {
 	t.metrics.ConnectionsTotal.Add(1)
 
 	t.metrics.ConnectionsActive.Add(1)
-
 }
 
 // handleConnection handles an established SCTP connection.
 
 func (t *SCTPTransport) handleConnection(conn *SCTPConnection) {
-
 	defer func() {
-
 		t.mutex.Lock()
 
 		delete(t.connections, conn.nodeID)
@@ -668,7 +611,6 @@ func (t *SCTPTransport) handleConnection(conn *SCTPConnection) {
 		conn.conn.Close()
 
 		t.metrics.ConnectionsActive.Add(-1)
-
 	}()
 
 	// Create read buffer.
@@ -707,9 +649,7 @@ func (t *SCTPTransport) handleConnection(conn *SCTPConnection) {
 		messageLength := binary.BigEndian.Uint32(lengthBytes)
 
 		if messageLength > uint32(t.config.MaxMessageSize) {
-
 			return
-
 		}
 
 		// Read message data.
@@ -717,15 +657,12 @@ func (t *SCTPTransport) handleConnection(conn *SCTPConnection) {
 		messageData := buffer[:messageLength]
 
 		if _, err := io.ReadFull(conn.conn, messageData); err != nil {
-
 			return
-
 		}
 
 		// Decode E2AP message.
 
 		message, err := t.codec.DecodeE2APMessage(messageData)
-
 		if err != nil {
 
 			t.metrics.Errors.Add(1)
@@ -749,27 +686,20 @@ func (t *SCTPTransport) handleConnection(conn *SCTPConnection) {
 		// Handle message.
 
 		if t.messageHandler != nil {
-
 			if err := t.messageHandler(conn.nodeID, message); err != nil {
-
 				t.metrics.Errors.Add(1)
-
 			}
-
 		}
 
 	}
-
 }
 
 // initializeStreams initializes SCTP streams for a connection.
 
 func (t *SCTPTransport) initializeStreams(conn *SCTPConnection) {
-
 	// Create control stream (stream 0).
 
 	conn.streams[0] = &SCTPStream{
-
 		streamID: 0,
 
 		streamType: SCTPStreamTypeControl,
@@ -788,9 +718,7 @@ func (t *SCTPTransport) initializeStreams(conn *SCTPConnection) {
 	// Create data streams (streams 1-3).
 
 	for i := uint16(1); i <= 3; i++ {
-
 		conn.streams[i] = &SCTPStream{
-
 			streamID: i,
 
 			streamType: SCTPStreamTypeData,
@@ -805,13 +733,11 @@ func (t *SCTPTransport) initializeStreams(conn *SCTPConnection) {
 
 			metrics: &SCTPStreamMetrics{},
 		}
-
 	}
 
 	// Create management stream (stream 4).
 
 	conn.streams[4] = &SCTPStream{
-
 		streamID: 4,
 
 		streamType: SCTPStreamTypeManagement,
@@ -826,13 +752,11 @@ func (t *SCTPTransport) initializeStreams(conn *SCTPConnection) {
 
 		metrics: &SCTPStreamMetrics{},
 	}
-
 }
 
 // selectStream selects the appropriate SCTP stream for a message type.
 
 func (t *SCTPTransport) selectStream(messageType E2APMessageType) uint16 {
-
 	switch messageType {
 
 	case E2APMessageTypeSetupRequest, E2APMessageTypeSetupResponse, E2APMessageTypeSetupFailure:
@@ -860,13 +784,11 @@ func (t *SCTPTransport) selectStream(messageType E2APMessageType) uint16 {
 		return 4 // Management stream
 
 	}
-
 }
 
 // sendOnStream sends data on a specific SCTP stream.
 
 func (t *SCTPTransport) sendOnStream(conn *SCTPConnection, streamID uint16, data []byte) error {
-
 	conn.mutex.Lock()
 
 	defer conn.mutex.Unlock()
@@ -874,9 +796,7 @@ func (t *SCTPTransport) sendOnStream(conn *SCTPConnection, streamID uint16, data
 	// Check connection state.
 
 	if conn.state != SCTPStateEstablished {
-
 		return fmt.Errorf("connection not established")
-
 	}
 
 	// Get stream.
@@ -884,17 +804,13 @@ func (t *SCTPTransport) sendOnStream(conn *SCTPConnection, streamID uint16, data
 	stream, exists := conn.streams[streamID]
 
 	if !exists {
-
 		return fmt.Errorf("stream %d does not exist", streamID)
-
 	}
 
 	// Check stream state.
 
 	if stream.state != SCTPStreamStateOpen {
-
 		return fmt.Errorf("stream %d is not open", streamID)
-
 	}
 
 	// Create SCTP data chunk with stream information.
@@ -906,25 +822,19 @@ func (t *SCTPTransport) sendOnStream(conn *SCTPConnection, streamID uint16, data
 	// Write message length (4 bytes).
 
 	if err := binary.Write(chunk, binary.BigEndian, uint32(len(data))); err != nil {
-
 		return err
-
 	}
 
 	// Write message data.
 
 	if _, err := chunk.Write(data); err != nil {
-
 		return err
-
 	}
 
 	// Send over connection.
 
 	if _, err := conn.conn.Write(chunk.Bytes()); err != nil {
-
 		return err
-
 	}
 
 	// Update stream metrics.
@@ -932,13 +842,11 @@ func (t *SCTPTransport) sendOnStream(conn *SCTPConnection, streamID uint16, data
 	stream.metrics.MessagesSent++
 
 	return nil
-
 }
 
 // sendHeartbeat sends an SCTP heartbeat.
 
 func (t *SCTPTransport) sendHeartbeat(conn *SCTPConnection) {
-
 	// In a real SCTP implementation, this would send an SCTP HEARTBEAT chunk.
 
 	// For now, we'll send a simple keepalive message.
@@ -948,13 +856,11 @@ func (t *SCTPTransport) sendHeartbeat(conn *SCTPConnection) {
 	conn.conn.Write(heartbeat)
 
 	t.metrics.HeartbeatsSent.Add(1)
-
 }
 
 // readInitialMessage reads and decodes the initial E2AP message from a connection.
 
 func (t *SCTPTransport) readInitialMessage(conn net.Conn) (*E2APMessage, string, error) {
-
 	// Set timeout for initial message.
 
 	conn.SetReadDeadline(time.Now().Add(t.config.InitTimeout))
@@ -964,17 +870,13 @@ func (t *SCTPTransport) readInitialMessage(conn net.Conn) (*E2APMessage, string,
 	lengthBytes := make([]byte, 4)
 
 	if _, err := io.ReadFull(conn, lengthBytes); err != nil {
-
 		return nil, "", err
-
 	}
 
 	messageLength := binary.BigEndian.Uint32(lengthBytes)
 
 	if messageLength > uint32(t.config.MaxMessageSize) {
-
 		return nil, "", fmt.Errorf("message too large: %d bytes", messageLength)
-
 	}
 
 	// Read message data.
@@ -982,53 +884,41 @@ func (t *SCTPTransport) readInitialMessage(conn net.Conn) (*E2APMessage, string,
 	messageData := make([]byte, messageLength)
 
 	if _, err := io.ReadFull(conn, messageData); err != nil {
-
 		return nil, "", err
-
 	}
 
 	// Decode E2AP message.
 
 	message, err := t.codec.DecodeE2APMessage(messageData)
-
 	if err != nil {
-
 		return nil, "", err
-
 	}
 
 	// Extract node ID from E2 Setup Request.
 
 	if message.MessageType != E2APMessageTypeSetupRequest {
-
 		return nil, "", fmt.Errorf("expected E2 Setup Request, got %v", message.MessageType)
-
 	}
 
 	setupReq, ok := message.Payload.(*E2SetupRequest)
 
 	if !ok {
-
 		return nil, "", fmt.Errorf("invalid E2 Setup Request payload")
-
 	}
 
 	nodeID := fmt.Sprintf("%s-%s", setupReq.GlobalE2NodeID.PLMNIdentity.MCC, setupReq.GlobalE2NodeID.NodeID)
 
 	return message, nodeID, nil
-
 }
 
 // maintenanceLoop performs periodic maintenance tasks.
 
 func (t *SCTPTransport) maintenanceLoop(ctx context.Context) {
-
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1044,23 +934,18 @@ func (t *SCTPTransport) maintenanceLoop(ctx context.Context) {
 			t.performMaintenance()
 
 		}
-
 	}
-
 }
 
 // performMaintenance performs maintenance tasks.
 
 func (t *SCTPTransport) performMaintenance() {
-
 	t.mutex.RLock()
 
 	connections := make([]*SCTPConnection, 0, len(t.connections))
 
 	for _, conn := range t.connections {
-
 		connections = append(connections, conn)
-
 	}
 
 	t.mutex.RUnlock()
@@ -1068,7 +953,6 @@ func (t *SCTPTransport) performMaintenance() {
 	now := time.Now()
 
 	for _, conn := range connections {
-
 		// Check for idle connections.
 
 		if now.Sub(conn.lastActivity) > t.config.ConnectionTimeout {
@@ -1082,23 +966,18 @@ func (t *SCTPTransport) performMaintenance() {
 			t.mutex.Unlock()
 
 		}
-
 	}
-
 }
 
 // closeConnection closes an SCTP connection.
 
 func (t *SCTPTransport) closeConnection(nodeID string, conn *SCTPConnection) {
-
 	conn.mutex.Lock()
 
 	defer conn.mutex.Unlock()
 
 	if conn.state == SCTPStateClosed {
-
 		return
-
 	}
 
 	conn.state = SCTPStateClosed
@@ -1118,21 +997,17 @@ func (t *SCTPTransport) closeConnection(nodeID string, conn *SCTPConnection) {
 	// Close the underlying connection.
 
 	conn.conn.Close()
-
 }
 
 // GetMetrics returns transport metrics.
 
 func (t *SCTPTransport) GetMetrics() *SCTPMetrics {
-
 	return t.metrics
-
 }
 
 // GetConnectionMetrics returns metrics for a specific connection.
 
 func (t *SCTPTransport) GetConnectionMetrics(nodeID string) (*SCTPConnectionMetrics, error) {
-
 	t.mutex.RLock()
 
 	defer t.mutex.RUnlock()
@@ -1140,13 +1015,10 @@ func (t *SCTPTransport) GetConnectionMetrics(nodeID string) (*SCTPConnectionMetr
 	conn, exists := t.connections[nodeID]
 
 	if !exists {
-
 		return nil, fmt.Errorf("no connection to node %s", nodeID)
-
 	}
 
 	return conn.metrics, nil
-
 }
 
 // SCTPConnectionPool manages a pool of SCTP connections.
@@ -1162,20 +1034,16 @@ type SCTPConnectionPool struct {
 // NewSCTPConnectionPool creates a new connection pool.
 
 func NewSCTPConnectionPool(maxConnections int) *SCTPConnectionPool {
-
 	return &SCTPConnectionPool{
-
 		maxConnections: maxConnections,
 
 		connections: make(map[string]*SCTPConnection),
 	}
-
 }
 
 // Get gets a connection from the pool.
 
 func (p *SCTPConnectionPool) Get(nodeID string) (*SCTPConnection, bool) {
-
 	p.mutex.RLock()
 
 	defer p.mutex.RUnlock()
@@ -1183,49 +1051,40 @@ func (p *SCTPConnectionPool) Get(nodeID string) (*SCTPConnection, bool) {
 	conn, exists := p.connections[nodeID]
 
 	return conn, exists
-
 }
 
 // Put puts a connection into the pool.
 
 func (p *SCTPConnectionPool) Put(nodeID string, conn *SCTPConnection) error {
-
 	p.mutex.Lock()
 
 	defer p.mutex.Unlock()
 
 	if len(p.connections) >= p.maxConnections {
-
 		return errors.New("connection pool is full")
-
 	}
 
 	p.connections[nodeID] = conn
 
 	return nil
-
 }
 
 // Remove removes a connection from the pool.
 
 func (p *SCTPConnectionPool) Remove(nodeID string) {
-
 	p.mutex.Lock()
 
 	defer p.mutex.Unlock()
 
 	delete(p.connections, nodeID)
-
 }
 
 // Size returns the current size of the pool.
 
 func (p *SCTPConnectionPool) Size() int {
-
 	p.mutex.RLock()
 
 	defer p.mutex.RUnlock()
 
 	return len(p.connections)
-
 }

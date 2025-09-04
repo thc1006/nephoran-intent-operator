@@ -9,11 +9,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/internal/ves"
+	"github.com/thc1006/nephoran-intent-operator/internal/ves"
 )
 
 func main() {
-
 	outDir := flag.String("out", "events", "output directory for VES events")
 
 	domain := flag.String("domain", "heartbeat", "event domain (heartbeat, fault, measurement)")
@@ -27,9 +26,7 @@ func main() {
 	// Create output directory if it doesn't exist.
 
 	if err := os.MkdirAll(*outDir, 0o750); err != nil {
-
 		log.Fatalf("Failed to create output directory: %v", err)
-
 	}
 
 	var event *ves.Event
@@ -53,7 +50,6 @@ func main() {
 		nowMicros := now.UnixNano() / 1000
 
 		event = &ves.Event{
-
 			Event: struct {
 				CommonEventHeader ves.CommonEventHeader `json:"commonEventHeader"`
 
@@ -61,11 +57,9 @@ func main() {
 
 				FaultFields *ves.FaultFields `json:"faultFields,omitempty"`
 
-				MeasurementFields map[string]interface{} `json:"measurementFields,omitempty"`
+				MeasurementFields json.RawMessage `json:"measurementFields,omitempty"`
 			}{
-
 				CommonEventHeader: ves.CommonEventHeader{
-
 					Domain: *domain,
 
 					EventID: fmt.Sprintf("%s-%d", *domain, time.Now().Unix()),
@@ -96,11 +90,8 @@ func main() {
 	// Marshal event to JSON with indentation.
 
 	jsonData, err := json.MarshalIndent(event, "", "  ")
-
 	if err != nil {
-
 		log.Fatalf("Failed to marshal event: %v", err)
-
 	}
 
 	// Generate filename with timestamp.
@@ -112,11 +103,8 @@ func main() {
 	// Write to file.
 
 	if err := os.WriteFile(filepath, jsonData, 0o640); err != nil {
-
 		log.Fatalf("Failed to write event file: %v", err)
-
 	}
 
 	log.Printf("VES event written to: %s", filepath)
-
 }

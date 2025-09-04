@@ -1,7 +1,9 @@
 package chaos
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -64,7 +66,7 @@ type SafetyCheck struct {
 	Type       SafetyCheckType        `json:"type"`
 	Threshold  float64                `json:"threshold"`
 	Action     SafetyAction           `json:"action"`
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 }
 
 // SafetyCheckType defines types of safety checks
@@ -95,7 +97,7 @@ type ChaosExperiment struct {
 	Description      string                 `json:"description"`
 	Type             ExperimentType         `json:"type"`
 	Target           ExperimentTarget       `json:"target"`
-	Parameters       map[string]interface{} `json:"parameters"`
+	Parameters       json.RawMessage `json:"parameters"`
 	Duration         time.Duration          `json:"duration"`
 	ExpectedBehavior *ExpectedBehavior      `json:"expected_behavior"`
 	SafetyChecks     []*SafetyCheck         `json:"safety_checks"`
@@ -129,15 +131,15 @@ type RecoveryTracker struct {
 
 // RecoveryEvent represents a recovery event
 type RecoveryEvent struct {
-	ID              string            `json:"id"`
-	ComponentID     string            `json:"component_id"`
-	FailureType     ExperimentType    `json:"failure_type"`
-	StartTime       time.Time         `json:"start_time"`
-	EndTime         time.Time         `json:"end_time"`
-	Duration        time.Duration     `json:"duration"`
-	Success         bool              `json:"success"`
-	RecoveryStages  []*RecoveryStage  `json:"recovery_stages"`
-	Metrics         map[string]float64 `json:"metrics"`
+	ID             string             `json:"id"`
+	ComponentID    string             `json:"component_id"`
+	FailureType    ExperimentType     `json:"failure_type"`
+	StartTime      time.Time          `json:"start_time"`
+	EndTime        time.Time          `json:"end_time"`
+	Duration       time.Duration      `json:"duration"`
+	Success        bool               `json:"success"`
+	RecoveryStages []*RecoveryStage   `json:"recovery_stages"`
+	Metrics        map[string]float64 `json:"metrics"`
 }
 
 // SLATracker tracks SLA metrics during chaos experiments
@@ -196,7 +198,7 @@ type SafetyViolation struct {
 	Severity    ViolationSeverity      `json:"severity"`
 	Timestamp   time.Time              `json:"timestamp"`
 	Action      SafetyAction           `json:"action"`
-	Context     map[string]interface{} `json:"context"`
+	Context     json.RawMessage `json:"context"`
 	Resolved    bool                   `json:"resolved"`
 	ResolvedAt  *time.Time             `json:"resolved_at,omitempty"`
 }
@@ -230,13 +232,13 @@ type SLATargets struct {
 
 // AlertValidator validates alerting system behavior
 type AlertValidator struct {
-	prometheusClient   v1.API
-	expectedAlerts     map[string]*ExpectedAlert
-	actualAlerts       []*ActualAlert
-	falsePositives     []*AlertEvent
-	falseNegatives     []*AlertEvent
-	validationResults  *AlertValidationResults
-	mutex              sync.RWMutex
+	prometheusClient  v1.API
+	expectedAlerts    map[string]*ExpectedAlert
+	actualAlerts      []*ActualAlert
+	falsePositives    []*AlertEvent
+	falseNegatives    []*AlertEvent
+	validationResults *AlertValidationResults
+	mutex             sync.RWMutex
 }
 
 // ExpectedAlert defines an expected alert
@@ -262,57 +264,57 @@ type ActualAlert struct {
 
 // AlertValidationResults contains alert validation metrics
 type AlertValidationResults struct {
-	TotalExpected     int     `json:"total_expected"`
-	TotalActual       int     `json:"total_actual"`
-	TruePositives     int     `json:"true_positives"`
-	FalsePositives    int     `json:"false_positives"`
-	FalseNegatives    int     `json:"false_negatives"`
-	Accuracy          float64 `json:"accuracy"`
-	Precision         float64 `json:"precision"`
-	Recall            float64 `json:"recall"`
-	F1Score           float64 `json:"f1_score"`
+	TotalExpected  int     `json:"total_expected"`
+	TotalActual    int     `json:"total_actual"`
+	TruePositives  int     `json:"true_positives"`
+	FalsePositives int     `json:"false_positives"`
+	FalseNegatives int     `json:"false_negatives"`
+	Accuracy       float64 `json:"accuracy"`
+	Precision      float64 `json:"precision"`
+	Recall         float64 `json:"recall"`
+	F1Score        float64 `json:"f1_score"`
 }
 
 // DataConsistencyValidator validates data consistency
 type DataConsistencyValidator struct {
-	prometheusClient    v1.API
-	consistencyChecks   []*ConsistencyCheck
-	inconsistencies     []*DataInconsistency
-	overallScore        float64
-	lastValidation      time.Time
-	mutex               sync.RWMutex
+	prometheusClient  v1.API
+	consistencyChecks []*ConsistencyCheck
+	inconsistencies   []*DataInconsistency
+	overallScore      float64
+	lastValidation    time.Time
+	mutex             sync.RWMutex
 }
 
 // ConsistencyCheck defines a data consistency check
 type ConsistencyCheck struct {
-	Name        string                 `json:"name"`
-	Query       string                 `json:"query"`
-	Expected    interface{}            `json:"expected"`
-	Tolerance   float64                `json:"tolerance"`
-	CheckType   ConsistencyCheckType   `json:"check_type"`
-	Parameters  map[string]interface{} `json:"parameters"`
+	Name       string                 `json:"name"`
+	Query      string                 `json:"query"`
+	Expected   interface{}            `json:"expected"`
+	Tolerance  float64                `json:"tolerance"`
+	CheckType  ConsistencyCheckType   `json:"check_type"`
+	Parameters json.RawMessage `json:"parameters"`
 }
 
 // ConsistencyCheckType defines types of consistency checks
 type ConsistencyCheckType string
 
 const (
-	ConsistencyCheckTypeValue     ConsistencyCheckType = "value"
-	ConsistencyCheckTypeTrend     ConsistencyCheckType = "trend"
-	ConsistencyCheckTypeCorrelation ConsistencyCheckType = "correlation"
+	ConsistencyCheckTypeValue        ConsistencyCheckType = "value"
+	ConsistencyCheckTypeTrend        ConsistencyCheckType = "trend"
+	ConsistencyCheckTypeCorrelation  ConsistencyCheckType = "correlation"
 	ConsistencyCheckTypeCompleteness ConsistencyCheckType = "completeness"
 )
 
 // DataInconsistency represents a data consistency violation
 type DataInconsistency struct {
-	CheckName   string                 `json:"check_name"`
-	Expected    interface{}            `json:"expected"`
-	Actual      interface{}            `json:"actual"`
-	Deviation   float64                `json:"deviation"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Severity    InconsistencySeverity  `json:"severity"`
-	Context     map[string]interface{} `json:"context"`
-	Resolved    bool                   `json:"resolved"`
+	CheckName string                 `json:"check_name"`
+	Expected  interface{}            `json:"expected"`
+	Actual    interface{}            `json:"actual"`
+	Deviation float64                `json:"deviation"`
+	Timestamp time.Time              `json:"timestamp"`
+	Severity  InconsistencySeverity  `json:"severity"`
+	Context   json.RawMessage `json:"context"`
+	Resolved  bool                   `json:"resolved"`
 }
 
 // InconsistencySeverity defines inconsistency severity levels
@@ -327,20 +329,20 @@ const (
 
 // SLAViolation represents an SLA violation event
 type SLAViolation struct {
-	ID            string                 `json:"id"`
-	MetricName    string                 `json:"metric_name"`
-	Threshold     float64                `json:"threshold"`
-	ActualValue   float64                `json:"actual_value"`
-	Deviation     float64                `json:"deviation"`
-	Severity      ViolationSeverity      `json:"severity"`
-	StartTime     time.Time              `json:"start_time"`
-	EndTime       *time.Time             `json:"end_time,omitempty"`
-	Duration      time.Duration          `json:"duration"`
-	Impact        *ViolationImpact       `json:"impact"`
-	Context       map[string]interface{} `json:"context"`
-	Acknowledged  bool                   `json:"acknowledged"`
-	Resolved      bool                   `json:"resolved"`
-	ResolutionNotes string               `json:"resolution_notes,omitempty"`
+	ID              string                 `json:"id"`
+	MetricName      string                 `json:"metric_name"`
+	Threshold       float64                `json:"threshold"`
+	ActualValue     float64                `json:"actual_value"`
+	Deviation       float64                `json:"deviation"`
+	Severity        ViolationSeverity      `json:"severity"`
+	StartTime       time.Time              `json:"start_time"`
+	EndTime         *time.Time             `json:"end_time,omitempty"`
+	Duration        time.Duration          `json:"duration"`
+	Impact          *ViolationImpact       `json:"impact"`
+	Context         json.RawMessage `json:"context"`
+	Acknowledged    bool                   `json:"acknowledged"`
+	Resolved        bool                   `json:"resolved"`
+	ResolutionNotes string                 `json:"resolution_notes,omitempty"`
 }
 
 // ViolationImpact describes the impact of an SLA violation
@@ -349,23 +351,23 @@ type ViolationImpact struct {
 	BusinessImpact    string                 `json:"business_impact"`
 	TechnicalImpact   string                 `json:"technical_impact"`
 	DownstreamEffects []string               `json:"downstream_effects"`
-	Metrics           map[string]interface{} `json:"metrics"`
+	Metrics           json.RawMessage `json:"metrics"`
 }
 
 // AlertEvent represents an alert event
 type AlertEvent struct {
-	ID          string                 `json:"id"`
-	AlertName   string                 `json:"alert_name"`
-	Severity    AlertSeverity          `json:"severity"`
-	State       AlertState             `json:"state"`
-	Labels      map[string]string      `json:"labels"`
-	Annotations map[string]string      `json:"annotations"`
-	StartsAt    time.Time              `json:"starts_at"`
-	EndsAt      *time.Time             `json:"ends_at,omitempty"`
-	GeneratorURL string                `json:"generator_url"`
-	Context     map[string]interface{} `json:"context"`
-	Source      string                 `json:"source"`
-	Fingerprint string                 `json:"fingerprint"`
+	ID           string                 `json:"id"`
+	AlertName    string                 `json:"alert_name"`
+	Severity     AlertSeverity          `json:"severity"`
+	State        AlertState             `json:"state"`
+	Labels       map[string]string      `json:"labels"`
+	Annotations  map[string]string      `json:"annotations"`
+	StartsAt     time.Time              `json:"starts_at"`
+	EndsAt       *time.Time             `json:"ends_at,omitempty"`
+	GeneratorURL string                 `json:"generator_url"`
+	Context      json.RawMessage `json:"context"`
+	Source       string                 `json:"source"`
+	Fingerprint  string                 `json:"fingerprint"`
 }
 
 // AlertSeverity defines alert severity levels
@@ -405,25 +407,22 @@ func NewRecoveryTracker() *RecoveryTracker {
 	}
 }
 
-
-
 // Constructor functions for monitoring components
 func NewAlertMonitor(prometheusClient v1.API) *AlertMonitor {
 	return &AlertMonitor{
-		prometheusClient: prometheusClient,
-		alerts:          make([]*AlertEvent, 0),
+		prometheusClient:  prometheusClient,
+		alerts:            make([]*AlertEvent, 0),
 		validationResults: &AlertValidationResults{},
 	}
 }
 
-// AlertMonitor monitors alerts during chaos experiments  
+// AlertMonitor monitors alerts during chaos experiments
 type AlertMonitor struct {
 	prometheusClient  v1.API
-	alerts           []*AlertEvent
+	alerts            []*AlertEvent
 	validationResults *AlertValidationResults
-	mutex            sync.RWMutex
+	mutex             sync.RWMutex
 }
-
 
 // collectAlerts simulates alert collection from Prometheus
 func (am *AlertMonitor) collectAlerts() {
@@ -436,33 +435,31 @@ func (am *AlertMonitor) collectAlerts() {
 func NewDataConsistencyMonitor() *DataConsistencyMonitor {
 	return &DataConsistencyMonitor{
 		consistencyScore: 1.0,
-		checks:          make([]*ConsistencyCheck, 0),
-		violations:      make([]*DataInconsistency, 0),
+		checks:           make([]*ConsistencyCheck, 0),
+		violations:       make([]*DataInconsistency, 0),
 	}
 }
 
 // DataConsistencyMonitor monitors data consistency
 type DataConsistencyMonitor struct {
 	consistencyScore float64
-	checks          []*ConsistencyCheck  
-	violations      []*DataInconsistency
-	mutex           sync.RWMutex
+	checks           []*ConsistencyCheck
+	violations       []*DataInconsistency
+	mutex            sync.RWMutex
 }
-
-
 
 // performConsistencyChecks performs consistency validation
 func (dcm *DataConsistencyMonitor) performConsistencyChecks() {
 	dcm.mutex.Lock()
 	defer dcm.mutex.Unlock()
-	
+
 	// Simulate consistency checking
 	violationCount := len(dcm.violations)
 	totalChecks := len(dcm.checks)
 	if totalChecks == 0 {
 		totalChecks = 10 // Default number of checks
 	}
-	
+
 	dcm.consistencyScore = float64(totalChecks-violationCount) / float64(totalChecks)
 	if dcm.consistencyScore < 0 {
 		dcm.consistencyScore = 0
@@ -471,20 +468,19 @@ func (dcm *DataConsistencyMonitor) performConsistencyChecks() {
 
 func NewFalsePositiveTracker() *FalsePositiveTracker {
 	return &FalsePositiveTracker{
-		totalAlerts:     0,
-		falsePositives:  0,
+		totalAlerts:    0,
+		falsePositives: 0,
 		alertEvents:    make([]*AlertEvent, 0),
 	}
 }
 
 // FalsePositiveTracker tracks false positive alerts
 type FalsePositiveTracker struct {
-	totalAlerts     int
-	falsePositives  int
+	totalAlerts    int
+	falsePositives int
 	alertEvents    []*AlertEvent
 	mutex          sync.RWMutex
 }
-
 
 // checkForAlerts simulates alert checking
 func (fpt *FalsePositiveTracker) checkForAlerts() {
@@ -494,20 +490,17 @@ func (fpt *FalsePositiveTracker) checkForAlerts() {
 	// For testing purposes, we'll just track the counts
 }
 
-
-
-
 // AlertExperimentResults contains results from alert validation experiments
 type AlertExperimentResults struct {
-	TotalAlerts        int                     `json:"total_alerts"`
-	ExpectedAlerts     int                     `json:"expected_alerts"`
-	ActualAlerts       int                     `json:"actual_alerts"`
-	FalsePositives     int                     `json:"false_positives"`
-	FalseNegatives     int                     `json:"false_negatives"`
-	AlertAccuracy      float64                 `json:"alert_accuracy"`
-	ResponseTimes      []time.Duration         `json:"response_times"`
-	AlertEvents        []*AlertEvent           `json:"alert_events"`
-	ValidationSummary  *AlertValidationResults `json:"validation_summary"`
+	TotalAlerts       int                     `json:"total_alerts"`
+	ExpectedAlerts    int                     `json:"expected_alerts"`
+	ActualAlerts      int                     `json:"actual_alerts"`
+	FalsePositives    int                     `json:"false_positives"`
+	FalseNegatives    int                     `json:"false_negatives"`
+	AlertAccuracy     float64                 `json:"alert_accuracy"`
+	ResponseTimes     []time.Duration         `json:"response_times"`
+	AlertEvents       []*AlertEvent           `json:"alert_events"`
+	ValidationSummary *AlertValidationResults `json:"validation_summary"`
 }
 
 // Additional types that were in the main test file
@@ -542,7 +535,7 @@ type FailureInstance struct {
 	ID         string                 `json:"id"`
 	Type       ExperimentType         `json:"type"`
 	Target     ExperimentTarget       `json:"target"`
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 	StartTime  time.Time              `json:"start_time"`
 	Status     FailureStatus          `json:"status"`
 	Impact     *FailureImpact         `json:"impact"`
@@ -630,7 +623,7 @@ type ChaosObservation struct {
 	Component   string                 `json:"component"`
 	Description string                 `json:"description"`
 	Severity    ObservationSeverity    `json:"severity"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Metadata    json.RawMessage `json:"metadata"`
 }
 
 // ObservationType defines types of chaos observations
@@ -656,7 +649,7 @@ const (
 
 // Additional types needed by test methods
 
-// RecoveryScenario defines a recovery testing scenario  
+// RecoveryScenario defines a recovery testing scenario
 type RecoveryScenario struct {
 	Name             string
 	FailureType      ExperimentType
@@ -748,4 +741,3 @@ type SLAChaosTestSuite struct {
 	totalFailures     atomic.Int64
 	recoveryEvents    atomic.Int64
 }
-

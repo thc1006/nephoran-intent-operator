@@ -3,7 +3,7 @@ package scenarios
 import (
 	"context"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -270,8 +270,8 @@ func runSpikeTest(ctx context.Context, suite *performance.BenchmarkSuite, patter
 	RampDownTime time.Duration
 	MaxLatency   time.Duration
 	RecoveryTime time.Duration
-}) SpikeTestResult {
-
+},
+) SpikeTestResult {
 	result := SpikeTestResult{
 		MetricsSnapshot: make(map[string]interface{}),
 	}
@@ -329,7 +329,7 @@ func runSpikeTest(ctx context.Context, suite *performance.BenchmarkSuite, patter
 				}
 
 				// Small delay between requests
-				time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
+				time.Sleep(time.Duration(rand.IntN(100)) * time.Millisecond)
 			}
 		}
 	}
@@ -412,9 +412,12 @@ recovered:
 
 	if len(latencies) > 0 {
 		analyzer := performance.NewMetricsAnalyzer()
-		result.MetricsSnapshot["p50_latency"] = analyzer.CalculatePercentile(latencies, 50)
-		result.MetricsSnapshot["p95_latency"] = analyzer.CalculatePercentile(latencies, 95)
-		result.MetricsSnapshot["p99_latency"] = analyzer.CalculatePercentile(latencies, 99)
+		for _, latency := range latencies {
+			analyzer.AddSample(float64(latency))
+		}
+		result.MetricsSnapshot["p50_latency"] = analyzer.CalculatePercentile(50)
+		result.MetricsSnapshot["p95_latency"] = analyzer.CalculatePercentile(95)
+		result.MetricsSnapshot["p99_latency"] = analyzer.CalculatePercentile(99)
 	}
 
 	return result
@@ -427,8 +430,8 @@ func testFailureResilience(ctx context.Context, failure struct {
 	FailureType string
 	Duration    time.Duration
 	Impact      func() error
-}) FailureTestResult {
-
+},
+) FailureTestResult {
 	result := FailureTestResult{
 		DegradedOperations: []string{},
 	}
@@ -502,7 +505,7 @@ func testFailureResilience(ctx context.Context, failure struct {
 	}
 
 	// Count circuit breakers (simplified)
-	result.CircuitBreakersTriggered = rand.Intn(3) // Placeholder
+	result.CircuitBreakersTriggered = rand.IntN(3) // Placeholder
 
 	return result
 }
@@ -514,8 +517,8 @@ func runBurstTest(ctx context.Context, suite *performance.BenchmarkSuite, patter
 	BurstInterval time.Duration
 	BurstDuration time.Duration
 	TestDuration  time.Duration
-}) BurstTestResult {
-
+},
+) BurstTestResult {
 	result := BurstTestResult{}
 
 	var totalLatency int64
@@ -573,7 +576,7 @@ func runBurstTest(ctx context.Context, suite *performance.BenchmarkSuite, patter
 			time.Sleep(pattern.BurstInterval)
 		} else {
 			// Random interval for irregular bursts
-			time.Sleep(time.Duration(rand.Intn(10)+1) * time.Second)
+			time.Sleep(time.Duration(rand.IntN(10)+1) * time.Second)
 		}
 	}
 
@@ -593,7 +596,7 @@ func runBurstTest(ctx context.Context, suite *performance.BenchmarkSuite, patter
 
 func processRequest(ctx context.Context) error {
 	// Simulate request processing with variable latency
-	latency := time.Duration(rand.Intn(100)+50) * time.Millisecond
+	latency := time.Duration(rand.IntN(100)+50) * time.Millisecond
 
 	select {
 	case <-ctx.Done():

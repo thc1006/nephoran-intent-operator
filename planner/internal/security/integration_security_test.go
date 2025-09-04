@@ -136,7 +136,7 @@ func TestIntegration_EndToEndSecurity(t *testing.T) {
 			}
 		}
 
-		t.Log("✓ Normal operation with security validations completed successfully")
+		t.Log("??Normal operation with security validations completed successfully")
 	})
 
 	// Test scenario 2: Attack mitigation during operation
@@ -208,7 +208,7 @@ func TestIntegration_EndToEndSecurity(t *testing.T) {
 				}
 
 				if scenario.shouldFail && failed {
-					t.Logf("✓ Successfully blocked attack: %s", scenario.name)
+					t.Logf("??Successfully blocked attack: %s", scenario.name)
 				}
 			})
 		}
@@ -269,7 +269,7 @@ func TestIntegration_EndToEndSecurity(t *testing.T) {
 				}
 
 				if test.shouldFail && hasErrors {
-					t.Logf("✓ Successfully blocked malicious configuration: %s", test.name)
+					t.Logf("??Successfully blocked malicious configuration: %s", test.name)
 				}
 			})
 		}
@@ -299,7 +299,7 @@ func TestIntegration_HTTPSecurityHeaders(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(kmpData)
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	validator := NewValidator(DefaultValidationConfig())
 
@@ -315,7 +315,7 @@ func TestIntegration_HTTPSecurityHeaders(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to make HTTP request: %v", err)
 		}
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		// Verify security headers are present
 		securityHeaders := map[string]string{
@@ -347,7 +347,7 @@ func TestIntegration_HTTPSecurityHeaders(t *testing.T) {
 			t.Fatalf("Received KMP data failed validation: %v", err)
 		}
 
-		t.Log("✓ HTTP security headers and data validation completed")
+		t.Log("??HTTP security headers and data validation completed")
 	})
 }
 
@@ -468,7 +468,7 @@ func TestIntegration_ConcurrentSecurityOperations(t *testing.T) {
 			}
 		}
 
-		t.Logf("✓ Successfully completed %d concurrent secure file operations", len(files))
+		t.Logf("??Successfully completed %d concurrent secure file operations", len(files))
 	})
 
 	// Test concurrent validation operations
@@ -539,7 +539,7 @@ func TestIntegration_ConcurrentSecurityOperations(t *testing.T) {
 			errorCount++
 		}
 
-		t.Logf("✓ Completed %d concurrent validation operations with %d expected rejections",
+		t.Logf("??Completed %d concurrent validation operations with %d expected rejections",
 			numWorkers*operationsPerWorker, errorCount)
 	})
 }
@@ -618,7 +618,7 @@ func TestIntegration_SecurityEventLogging(t *testing.T) {
 			}
 
 			if event.expectLog && (err != nil || hasLog) {
-				t.Logf("✓ Security event logged: %s", event.name)
+				t.Logf("??Security event logged: %s", event.name)
 			}
 		})
 	}
@@ -707,9 +707,9 @@ func TestIntegration_SecurityConfigurationValidation(t *testing.T) {
 			}
 
 			if configTest.shouldWork && works {
-				t.Logf("✓ Configuration works as expected: %s", configTest.name)
+				t.Logf("??Configuration works as expected: %s", configTest.name)
 			} else if !configTest.shouldWork && !works {
-				t.Logf("✓ Configuration properly restrictive: %s", configTest.name)
+				t.Logf("??Configuration properly restrictive: %s", configTest.name)
 			}
 		})
 	}
@@ -802,9 +802,9 @@ func TestIntegration_CrossPlatformSecurity(t *testing.T) {
 					err := validator.ValidateFilePath(path, "cross-platform test")
 					// Most of these should be blocked on their respective platforms
 					if err == nil {
-						t.Logf("⚠ Path validation allowed potentially sensitive path: %s", path)
+						t.Logf("??Path validation allowed potentially sensitive path: %s", path)
 					} else {
-						t.Logf("✓ Path validation blocked sensitive path: %s", path)
+						t.Logf("??Path validation blocked sensitive path: %s", path)
 					}
 				}
 			},
@@ -939,7 +939,7 @@ func TestIntegration_SecurityRecovery(t *testing.T) {
 		if err := validator.ValidateKMPData(normalKMP); err != nil {
 			t.Errorf("System failed to recover after attacks: %v", err)
 		} else {
-			t.Log("✓ System successfully recovered and processes normal data")
+			t.Log("??System successfully recovered and processes normal data")
 		}
 	})
 
@@ -997,6 +997,6 @@ func TestIntegration_SecurityRecovery(t *testing.T) {
 		cancel()
 		wg.Wait()
 
-		t.Logf("✓ System maintained functionality under load (validation time: %v)", elapsed)
+		t.Logf("??System maintained functionality under load (validation time: %v)", elapsed)
 	})
 }

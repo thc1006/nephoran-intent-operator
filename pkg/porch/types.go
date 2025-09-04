@@ -1,5 +1,7 @@
 package porch
 
+import "encoding/json"
+
 // PorchError represents an error from the Porch API.
 
 type PorchError struct {
@@ -13,15 +15,11 @@ type PorchError struct {
 // Error performs error operation.
 
 func (e *PorchError) Error() string {
-
 	if e.Details != "" {
-
 		return e.Message + ": " + e.Details
-
 	}
 
 	return e.Message
-
 }
 
 // PackageSpec represents the specification of a package.
@@ -33,7 +31,7 @@ type PackageSpec struct {
 
 	Workspace string `json:"workspace"`
 
-	Resources map[string]interface{} `json:"resources,omitempty"`
+	Resources json.RawMessage `json:"resources,omitempty"`
 }
 
 // PackageStatus represents the status of a package.

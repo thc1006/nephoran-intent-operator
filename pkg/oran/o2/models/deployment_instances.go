@@ -31,7 +31,9 @@ limitations under the License.
 package models
 
 import (
-	"time"
+	
+	"encoding/json"
+"time"
 )
 
 // Deployment represents an active deployment instance following O2 IMS specification.
@@ -49,7 +51,7 @@ type Deployment struct {
 
 	// Deployment configuration.
 
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 
 	PoolID string `json:"poolId"`
 
@@ -113,9 +115,9 @@ type Deployment struct {
 
 	Annotations map[string]string `json:"annotations,omitempty"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // DeploymentHealth represents the health status of a deployment.
@@ -175,7 +177,6 @@ type ProbeStatus struct {
 // ResourceUtilization represents the resource utilization status.
 
 type ResourceUtilization struct {
-
 	// Resource allocation.
 
 	AllocatedCPU string `json:"allocatedCpu,omitempty"`
@@ -212,7 +213,7 @@ type ResourceUtilization struct {
 
 	// Custom resource metrics.
 
-	CustomMetrics map[string]interface{} `json:"customMetrics,omitempty"`
+	CustomMetrics json.RawMessage `json:"customMetrics,omitempty"`
 }
 
 // DeploymentEndpoint represents a network endpoint exposed by the deployment.
@@ -278,7 +279,7 @@ type LoadBalancerConfig struct {
 
 	HealthCheckPath string `json:"healthCheckPath,omitempty"`
 
-	Configuration map[string]interface{} `json:"configuration,omitempty"`
+	Configuration json.RawMessage `json:"configuration,omitempty"`
 }
 
 // EndpointHealthCheck represents health check configuration for an endpoint.
@@ -393,7 +394,6 @@ type ComplianceViolation struct {
 	DetectedAt time.Time `json:"detectedAt"`
 
 	Status string `json:"status"` // open, acknowledged, resolved, suppressed
-
 }
 
 // VulnerabilityStatus represents vulnerability scan results.
@@ -479,5 +479,5 @@ type AuditEvent struct {
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Details map[string]interface{} `json:"details,omitempty"`
+	Details json.RawMessage `json:"details,omitempty"`
 }

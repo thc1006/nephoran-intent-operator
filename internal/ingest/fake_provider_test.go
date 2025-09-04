@@ -18,13 +18,7 @@ type FakeIntentProvider struct {
 // NewFakeIntentProvider creates a new FakeIntentProvider with default values
 func NewFakeIntentProvider() *FakeIntentProvider {
 	return &FakeIntentProvider{
-		ParseResult: map[string]interface{}{
-			"intent_type": "scaling",
-			"target":      "test-deployment",
-			"namespace":   "default",
-			"replicas":    3,
-			"source":      "test",
-		},
+		ParseResult: map[string]interface{}{},
 		ParseError:   nil,
 		ProviderName: "fake",
 	}
@@ -71,3 +65,4 @@ func (f *FakeIntentProvider) WithName(name string) *FakeIntentProvider {
 	f.ProviderName = name
 	return f
 }
+

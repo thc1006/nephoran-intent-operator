@@ -50,7 +50,6 @@ import (
 // rollback capabilities, health checks, approval integration, and cross-cluster promotion.
 
 type PromotionEngine interface {
-
 	// Environment promotion.
 
 	PromoteToEnvironment(ctx context.Context, ref *PackageReference, targetEnv string, opts *PromotionOptions) (*PromotionResult, error)
@@ -163,7 +162,6 @@ type PromotionEngine interface {
 // promotionEngine implements comprehensive cross-environment package promotion.
 
 type promotionEngine struct {
-
 	// Core dependencies.
 
 	client *Client
@@ -886,21 +884,15 @@ const (
 // NewPromotionEngine creates a new promotion engine instance.
 
 func NewPromotionEngine(client *Client, config *PromotionEngineConfig) (PromotionEngine, error) {
-
 	if client == nil {
-
 		return nil, fmt.Errorf("client cannot be nil")
-
 	}
 
 	if config == nil {
-
 		config = getDefaultPromotionEngineConfig()
-
 	}
 
 	pe := &promotionEngine{
-
 		client: client,
 
 		logger: log.Log.WithName("promotion-engine"),
@@ -965,13 +957,11 @@ func NewPromotionEngine(client *Client, config *PromotionEngineConfig) (Promotio
 	go pe.promotionCleanupWorker()
 
 	return pe, nil
-
 }
 
 // PromoteToEnvironment promotes a package to a target environment.
 
 func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *PackageReference, targetEnv string, opts *PromotionOptions) (*PromotionResult, error) {
-
 	pe.logger.Info("Starting environment promotion",
 
 		"package", ref.GetPackageKey(),
@@ -983,16 +973,13 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 	startTime := time.Now()
 
 	if opts == nil {
-
 		opts = &PromotionOptions{
-
 			Strategy: PromotionStrategyDirect,
 
 			RunHealthChecks: true,
 
 			HealthCheckTimeout: 5 * time.Minute,
 		}
-
 	}
 
 	// Create promotion result.
@@ -1000,7 +987,6 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 	promotionID := fmt.Sprintf("promotion-%s-%s-%d", ref.GetPackageKey(), targetEnv, time.Now().UnixNano())
 
 	result := &PromotionResult{
-
 		ID: promotionID,
 
 		PackageRef: ref,
@@ -1031,13 +1017,11 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 	// Get target environment.
 
 	env, err := pe.environmentRegistry.GetEnvironment(ctx, targetEnv)
-
 	if err != nil {
 
 		result.Status = PromotionResultStatusFailed
 
 		result.Errors = append(result.Errors, PromotionError{
-
 			Code: "ENV_NOT_FOUND",
 
 			Message: fmt.Sprintf("Target environment %s not found: %v", targetEnv, err),
@@ -1050,7 +1034,6 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 	// Determine source environment.
 
 	currentPkg, err := pe.client.GetPackageRevision(ctx, ref.PackageName, ref.Revision)
-
 	if err != nil {
 
 		result.Status = PromotionResultStatusFailed
@@ -1066,7 +1049,6 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 	// Execute pre-promotion hooks.
 
 	if len(opts.PrePromotionHooks) > 0 {
-
 		if err := pe.executePromotionHooks(ctx, opts.PrePromotionHooks, result); err != nil {
 
 			pe.logger.Error(err, "Pre-promotion hooks failed")
@@ -1082,7 +1064,6 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 			result.Warnings = append(result.Warnings, "Pre-promotion hooks failed but promotion forced")
 
 		}
-
 	}
 
 	// Validate promotion.
@@ -1098,9 +1079,7 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 			result.ValidationResults = validationResult
 
 			if !opts.Force {
-
 				return result, fmt.Errorf("promotion validation failed")
-
 			}
 
 			result.Warnings = append(result.Warnings, "Promotion validation failed but promotion forced")
@@ -1116,7 +1095,6 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 	if opts.RequireApproval {
 
 		approvalResult, err := pe.checkPromotionApprovals(ctx, result, opts.Approvers)
-
 		if err != nil {
 
 			result.Status = PromotionResultStatusFailed
@@ -1168,16 +1146,13 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 		result.Status = PromotionResultStatusFailed
 
 		result.Errors = append(result.Errors, PromotionError{
-
 			Code: "PROMOTION_FAILED",
 
 			Message: promotionErr.Error(),
 		})
 
 		if opts.RollbackOnFailure {
-
 			pe.rollbackPromotion(ctx, result)
-
 		}
 
 		return result, promotionErr
@@ -1193,13 +1168,9 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 		allPassed := false
 
 		if healthResult != nil && healthResult.Result != nil {
-
 			if ap, ok := healthResult.Result["AllPassed"].(bool); ok {
-
 				allPassed = ap
-
 			}
-
 		}
 
 		if err != nil || !allPassed {
@@ -1217,23 +1188,17 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 				result.Status = PromotionResultStatusRolledBack
 
 			} else {
-
 				result.Status = PromotionResultStatusFailed
-
 			}
 
 			if !opts.Force {
-
 				return result, fmt.Errorf("health checks failed")
-
 			}
 
 			result.Warnings = append(result.Warnings, "Health checks failed but promotion forced")
 
 		} else {
-
 			result.HealthCheckResults = []*HealthCheckResult{healthResult}
-
 		}
 
 	}
@@ -1241,7 +1206,6 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 	// Execute post-promotion hooks.
 
 	if len(opts.PostPromotionHooks) > 0 {
-
 		if err := pe.executePromotionHooks(ctx, opts.PostPromotionHooks, result); err != nil {
 
 			pe.logger.Error(err, "Post-promotion hooks failed")
@@ -1249,15 +1213,12 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 			result.Warnings = append(result.Warnings, "Post-promotion hooks failed")
 
 		}
-
 	}
 
 	// Finalize promotion.
 
 	if result.Status == PromotionResultStatusRunning {
-
 		result.Status = PromotionResultStatusSucceeded
-
 	}
 
 	endTime := time.Now()
@@ -1291,19 +1252,16 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 		"duration", result.Duration)
 
 	return result, nil
-
 }
 
 // StartCanaryPromotion initiates a canary deployment.
 
 func (pe *promotionEngine) StartCanaryPromotion(ctx context.Context, ref *PackageReference, config *CanaryConfig) (*CanaryPromotion, error) {
-
 	pe.logger.Info("Starting canary promotion", "package", ref.GetPackageKey(), "initialTraffic", config.InitialTrafficPercent)
 
 	canaryID := fmt.Sprintf("canary-%s-%d", ref.GetPackageKey(), time.Now().UnixNano())
 
 	canary := &CanaryPromotion{
-
 		ID: canaryID,
 
 		PackageRef: ref,
@@ -1326,9 +1284,7 @@ func (pe *promotionEngine) StartCanaryPromotion(ctx context.Context, ref *Packag
 	// Register canary with manager.
 
 	if err := pe.canaryManager.RegisterCanary(ctx, canary); err != nil {
-
 		return nil, fmt.Errorf("failed to register canary: %w", err)
-
 	}
 
 	// Start initial deployment.
@@ -1368,19 +1324,16 @@ func (pe *promotionEngine) StartCanaryPromotion(ctx context.Context, ref *Packag
 	pe.logger.Info("Canary promotion started successfully", "canaryID", canaryID, "trafficPercent", config.InitialTrafficPercent)
 
 	return canary, nil
-
 }
 
 // StartBlueGreenPromotion initiates a blue-green deployment.
 
 func (pe *promotionEngine) StartBlueGreenPromotion(ctx context.Context, ref *PackageReference, config *BlueGreenConfig) (*BlueGreenPromotion, error) {
-
 	pe.logger.Info("Starting blue-green promotion", "package", ref.GetPackageKey(), "blueEnv", config.BlueEnvironment, "greenEnv", config.GreenEnvironment)
 
 	promotionID := fmt.Sprintf("bluegreen-%s-%d", ref.GetPackageKey(), time.Now().UnixNano())
 
 	blueGreen := &BlueGreenPromotion{
-
 		ID: promotionID,
 
 		PackageRef: ref,
@@ -1401,9 +1354,7 @@ func (pe *promotionEngine) StartBlueGreenPromotion(ctx context.Context, ref *Pac
 	// Register with manager.
 
 	if err := pe.blueGreenManager.RegisterPromotion(ctx, blueGreen); err != nil {
-
 		return nil, fmt.Errorf("failed to register blue-green promotion: %w", err)
-
 	}
 
 	// Deploy to green environment.
@@ -1421,7 +1372,6 @@ func (pe *promotionEngine) StartBlueGreenPromotion(ctx context.Context, ref *Pac
 	blueGreen.Status = BlueGreenStatusValidating
 
 	validationResults, err := pe.blueGreenManager.RunValidationChecks(ctx, blueGreen)
-
 	if err != nil {
 
 		blueGreen.Status = BlueGreenStatusFailed
@@ -1447,17 +1397,14 @@ func (pe *promotionEngine) StartBlueGreenPromotion(ctx context.Context, ref *Pac
 	pe.logger.Info("Blue-green promotion started successfully", "promotionID", promotionID)
 
 	return blueGreen, nil
-
 }
 
 // AbortCanaryPromotion aborts a canary deployment.
 
 func (pe *promotionEngine) AbortCanaryPromotion(ctx context.Context, canaryID, reason string) (*CanaryAbortResult, error) {
-
 	pe.logger.Info("Aborting canary promotion", "canaryID", canaryID, "reason", reason)
 
 	result := &CanaryAbortResult{
-
 		CanaryID: canaryID,
 
 		AbortReason: reason,
@@ -1480,31 +1427,24 @@ func (pe *promotionEngine) AbortCanaryPromotion(ctx context.Context, canaryID, r
 	// Update metrics.
 
 	if pe.metrics != nil {
-
 		pe.metrics.activeCanaryPromotions.Dec()
-
 	}
 
 	pe.logger.Info("Canary promotion aborted successfully", "canaryID", canaryID)
 
 	return result, nil
-
 }
 
 // UpdateCanaryTraffic updates traffic percentage for a canary deployment.
 
 func (pe *promotionEngine) UpdateCanaryTraffic(ctx context.Context, canaryID string, trafficPercent int) (*CanaryUpdate, error) {
-
 	pe.logger.Info("Updating canary traffic", "canaryID", canaryID, "trafficPercent", trafficPercent)
 
 	if trafficPercent < 0 || trafficPercent > 100 {
-
 		return nil, fmt.Errorf("invalid traffic percentage: %d (must be 0-100)", trafficPercent)
-
 	}
 
 	result := &CanaryUpdate{
-
 		CanaryID: canaryID,
 
 		PreviousPercent: 0, // Would be retrieved from current state
@@ -1531,17 +1471,14 @@ func (pe *promotionEngine) UpdateCanaryTraffic(ctx context.Context, canaryID str
 	pe.logger.Info("Canary traffic updated successfully", "canaryID", canaryID, "trafficPercent", trafficPercent)
 
 	return result, nil
-
 }
 
 // PromoteCanaryToFull promotes canary to full deployment.
 
 func (pe *promotionEngine) PromoteCanaryToFull(ctx context.Context, canaryID string) (*PromotionResult, error) {
-
 	pe.logger.Info("Promoting canary to full deployment", "canaryID", canaryID)
 
 	result := &PromotionResult{
-
 		ID: fmt.Sprintf("canary-promotion-%s-%d", canaryID, time.Now().UnixNano()),
 
 		Status: PromotionResultStatusRunning,
@@ -1574,27 +1511,22 @@ func (pe *promotionEngine) PromoteCanaryToFull(ctx context.Context, canaryID str
 	// Update metrics.
 
 	if pe.metrics != nil {
-
 		pe.metrics.activeCanaryPromotions.Dec()
-
 	}
 
 	pe.logger.Info("Canary promoted to full deployment successfully", "canaryID", canaryID)
 
 	return result, nil
-
 }
 
 // GetCanaryMetrics returns canary deployment metrics.
 
 func (pe *promotionEngine) GetCanaryMetrics(ctx context.Context, canaryID string) (*CanaryMetrics, error) {
-
 	pe.logger.V(1).Info("Getting canary metrics", "canaryID", canaryID)
 
 	// In a real implementation, this would collect metrics from monitoring systems.
 
 	metrics := &CanaryMetrics{
-
 		CanaryID: canaryID,
 
 		TrafficPercent: 0,
@@ -1617,17 +1549,14 @@ func (pe *promotionEngine) GetCanaryMetrics(ctx context.Context, canaryID string
 	pe.logger.V(1).Info("Retrieved canary metrics", "canaryID", canaryID, "healthScore", metrics.HealthScore)
 
 	return metrics, nil
-
 }
 
 // RunHealthChecks executes health checks for a package in an environment.
 
 func (pe *promotionEngine) RunHealthChecks(ctx context.Context, ref *PackageReference, env string, checks []HealthCheck) (*HealthCheckResult, error) {
-
 	pe.logger.V(1).Info("Running health checks", "package", ref.GetPackageKey(), "environment", env, "checks", len(checks))
 
 	result := &HealthCheckResult{
-
 		CheckID: fmt.Sprintf("healthcheck-%d", time.Now().UnixNano()),
 
 		CheckName: "Environment Health Check",
@@ -1650,7 +1579,6 @@ func (pe *promotionEngine) RunHealthChecks(ctx context.Context, ref *PackageRefe
 	for _, check := range checks {
 
 		checkResult, err := pe.healthChecker.ExecuteHealthCheck(ctx, ref, env, &check)
-
 		if err != nil {
 
 			result.Errors = append(result.Errors, fmt.Sprintf("Health check %s failed: %v", check.Name, err))
@@ -1662,9 +1590,7 @@ func (pe *promotionEngine) RunHealthChecks(ctx context.Context, ref *PackageRefe
 		}
 
 		if checkResult.Status != HealthCheckStatusPassed {
-
 			allPassed = false
-
 		}
 
 		// Aggregate results.
@@ -1672,9 +1598,7 @@ func (pe *promotionEngine) RunHealthChecks(ctx context.Context, ref *PackageRefe
 		result.Result[check.Name] = checkResult
 
 		for k, v := range checkResult.Metrics {
-
 			result.Metrics[k] = v
-
 		}
 
 	}
@@ -1684,13 +1608,9 @@ func (pe *promotionEngine) RunHealthChecks(ctx context.Context, ref *PackageRefe
 	result.Duration = result.EndTime.Sub(result.StartTime)
 
 	if allPassed {
-
 		result.Status = HealthCheckStatusPassed
-
 	} else {
-
 		result.Status = HealthCheckStatusFailed
-
 	}
 
 	// Store AllPassed in Result map for access by calling code.
@@ -1710,89 +1630,68 @@ func (pe *promotionEngine) RunHealthChecks(ctx context.Context, ref *PackageRefe
 		"allPassed", allPassed)
 
 	return result, nil
-
 }
 
 // ValidatePromotion validates a promotion before execution.
 
 func (pe *promotionEngine) ValidatePromotion(ctx context.Context, ref *PackageReference, targetEnv string) (*PromotionValidationResult, error) {
-
 	return pe.validator.ValidatePromotion(ctx, ref, targetEnv)
-
 }
 
 // RegisterEnvironment registers a new environment.
 
 func (pe *promotionEngine) RegisterEnvironment(ctx context.Context, env *Environment) error {
-
 	pe.logger.Info("Registering environment", "name", env.Name, "type", env.Type)
 
 	return pe.environmentRegistry.RegisterEnvironment(ctx, env)
-
 }
 
 // The remaining PromotionEngine interface methods.
 
 func (pe *promotionEngine) PromoteThroughPipeline(ctx context.Context, ref *PackageReference, pipeline *PromotionPipeline) (*PipelinePromotionResult, error) {
-
 	return &PipelinePromotionResult{ID: "pipeline-1", Status: "completed", Results: []*PromotionResult{}}, nil
-
 }
 
 // GetPromotionStatus performs getpromotionstatus operation.
 
 func (pe *promotionEngine) GetPromotionStatus(ctx context.Context, promotionID string) (*PromotionStatus, error) {
-
 	return &PromotionStatus{ID: promotionID, Status: PromotionResultStatusSucceeded}, nil
-
 }
 
 // ListPromotions performs listpromotions operation.
 
 func (pe *promotionEngine) ListPromotions(ctx context.Context, opts *PromotionListOptions) (*PromotionList, error) {
-
 	return &PromotionList{Items: []*PromotionResult{}}, nil
-
 }
 
 // SwitchTrafficToGreen performs switchtraffictogreen operation.
 
 func (pe *promotionEngine) SwitchTrafficToGreen(ctx context.Context, promotionID string) (*PromotionTrafficSwitchResult, error) {
-
 	return &PromotionTrafficSwitchResult{Success: true, SwitchedAt: time.Now()}, nil
-
 }
 
 // RollbackToBlue performs rollbacktoblue operation.
 
 func (pe *promotionEngine) RollbackToBlue(ctx context.Context, promotionID, reason string) (*BlueGreenRollback, error) {
-
 	return &BlueGreenRollback{}, nil
-
 }
 
 // CleanupBlueEnvironment performs cleanupblueenvironment operation.
 
 func (pe *promotionEngine) CleanupBlueEnvironment(ctx context.Context, promotionID string) (*CleanupResult, error) {
-
 	return &CleanupResult{ItemsRemoved: 0, Duration: time.Second, Errors: []string{}}, nil
-
 }
 
 // RollbackPromotion performs rollbackpromotion operation.
 
 func (pe *promotionEngine) RollbackPromotion(ctx context.Context, promotionID string, opts *RollbackOptions) (*RollbackResult, error) {
-
 	return &RollbackResult{Success: true, Duration: time.Second}, nil
-
 }
 
 // CreatePromotionCheckpoint performs createpromotioncheckpoint operation.
 
 func (pe *promotionEngine) CreatePromotionCheckpoint(ctx context.Context, ref *PackageReference, env, description string) (*PromotionCheckpoint, error) {
-
 	return &PromotionCheckpoint{
-
 		ID: fmt.Sprintf("checkpoint-%d", time.Now().UnixNano()),
 
 		PackageRef: ref,
@@ -1803,15 +1702,12 @@ func (pe *promotionEngine) CreatePromotionCheckpoint(ctx context.Context, ref *P
 
 		CreatedAt: time.Now(),
 	}, nil
-
 }
 
 // RollbackToCheckpoint performs rollbacktocheckpoint operation.
 
 func (pe *promotionEngine) RollbackToCheckpoint(ctx context.Context, checkpointID string) (*CheckpointRollbackResult, error) {
-
 	return &CheckpointRollbackResult{
-
 		Success: true,
 
 		CheckpointID: checkpointID,
@@ -1822,23 +1718,18 @@ func (pe *promotionEngine) RollbackToCheckpoint(ctx context.Context, checkpointI
 
 		Errors: []string{},
 	}, nil
-
 }
 
 // ListRollbackOptions performs listrollbackoptions operation.
 
 func (pe *promotionEngine) ListRollbackOptions(ctx context.Context, ref *PackageReference, env string) ([]*RollbackOption, error) {
-
 	return []*RollbackOption{}, nil
-
 }
 
 // WaitForHealthy performs waitforhealthy operation.
 
 func (pe *promotionEngine) WaitForHealthy(ctx context.Context, ref *PackageReference, env string, timeout time.Duration) (*HealthWaitResult, error) {
-
 	return &HealthWaitResult{
-
 		Healthy: true,
 
 		WaitTime: time.Second,
@@ -1847,27 +1738,22 @@ func (pe *promotionEngine) WaitForHealthy(ctx context.Context, ref *PackageRefer
 
 		Details: make(map[string]interface{}),
 	}, nil
-
 }
 
 // ConfigureHealthChecks performs configurehealthchecks operation.
 
 func (pe *promotionEngine) ConfigureHealthChecks(ctx context.Context, env string, checks []HealthCheck) error {
-
 	pe.logger.Info("Configured health checks", "environment", env, "count", len(checks))
 
 	return nil
-
 }
 
 // RequireApprovalForPromotion performs requireapprovalforpromotion operation.
 
 func (pe *promotionEngine) RequireApprovalForPromotion(ctx context.Context, ref *PackageReference, targetEnv string, approvers []string) (*PromotionApprovalRequirement, error) {
-
 	// Use the PromotionApprovalRequirement type.
 
 	return &PromotionApprovalRequirement{
-
 		ID: fmt.Sprintf("approval-%d", time.Now().UnixNano()),
 
 		PackageRef: ref,
@@ -1880,15 +1766,12 @@ func (pe *promotionEngine) RequireApprovalForPromotion(ctx context.Context, ref 
 
 		Status: "pending",
 	}, nil
-
 }
 
 // CheckPromotionApprovals performs checkpromotionapprovals operation.
 
 func (pe *promotionEngine) CheckPromotionApprovals(ctx context.Context, promotionID string) (*PromotionApprovalStatus, error) {
-
 	return &PromotionApprovalStatus{
-
 		PromotionID: promotionID,
 
 		Status: PromotionApprovalStatusApproved,
@@ -1897,25 +1780,20 @@ func (pe *promotionEngine) CheckPromotionApprovals(ctx context.Context, promotio
 
 		CreatedAt: time.Now(),
 	}, nil
-
 }
 
 // BypassPromotionApproval performs bypasspromotionapproval operation.
 
 func (pe *promotionEngine) BypassPromotionApproval(ctx context.Context, promotionID, reason, bypassUser string) error {
-
 	pe.logger.Info("Bypassing promotion approval", "promotionID", promotionID, "reason", reason, "user", bypassUser)
 
 	return nil
-
 }
 
 // PromoteAcrossClusters performs promoteacrossclusters operation.
 
 func (pe *promotionEngine) PromoteAcrossClusters(ctx context.Context, ref *PackageReference, targetClusters []*ClusterTarget, opts *CrossClusterOptions) (*CrossClusterPromotionResult, error) {
-
 	return &CrossClusterPromotionResult{
-
 		ID: fmt.Sprintf("crosscluster-%d", time.Now().UnixNano()),
 
 		PackageRef: ref,
@@ -1936,15 +1814,12 @@ func (pe *promotionEngine) PromoteAcrossClusters(ctx context.Context, ref *Packa
 
 		Errors: []CrossClusterError{},
 	}, nil
-
 }
 
 // GetClusterPromotionStatus performs getclusterpromotionstatus operation.
 
 func (pe *promotionEngine) GetClusterPromotionStatus(ctx context.Context, promotionID, clusterName string) (*ClusterPromotionStatus, error) {
-
 	return &ClusterPromotionStatus{
-
 		PromotionID: promotionID,
 
 		ClusterName: clusterName,
@@ -1953,49 +1828,38 @@ func (pe *promotionEngine) GetClusterPromotionStatus(ctx context.Context, promot
 
 		StartTime: time.Now(),
 	}, nil
-
 }
 
 // SynchronizeAcrossClusters performs synchronizeacrossclusters operation.
 
 func (pe *promotionEngine) SynchronizeAcrossClusters(ctx context.Context, ref *PackageReference, clusters []*ClusterTarget) (*SyncResult, error) {
-
 	return &SyncResult{Success: true, SyncTime: time.Now()}, nil
-
 }
 
 // UnregisterEnvironment performs unregisterenvironment operation.
 
 func (pe *promotionEngine) UnregisterEnvironment(ctx context.Context, envName string) error {
-
 	pe.logger.Info("Unregistering environment", "name", envName)
 
 	return nil
-
 }
 
 // GetEnvironment performs getenvironment operation.
 
 func (pe *promotionEngine) GetEnvironment(ctx context.Context, envName string) (*Environment, error) {
-
 	return pe.environmentRegistry.GetEnvironment(ctx, envName)
-
 }
 
 // ListEnvironments performs listenvironments operation.
 
 func (pe *promotionEngine) ListEnvironments(ctx context.Context) ([]*Environment, error) {
-
 	return []*Environment{}, nil
-
 }
 
 // ValidateEnvironmentChain performs validateenvironmentchain operation.
 
 func (pe *promotionEngine) ValidateEnvironmentChain(ctx context.Context, chain []string) (*ChainValidationResult, error) {
-
 	return &ChainValidationResult{
-
 		Valid: true,
 
 		Chain: chain,
@@ -2006,45 +1870,36 @@ func (pe *promotionEngine) ValidateEnvironmentChain(ctx context.Context, chain [
 
 		Dependencies: make(map[string][]string),
 	}, nil
-
 }
 
 // CreatePromotionPipeline performs createpromotionpipeline operation.
 
 func (pe *promotionEngine) CreatePromotionPipeline(ctx context.Context, pipeline *PromotionPipeline) error {
-
 	pe.logger.Info("Creating promotion pipeline", "id", pipeline.ID, "name", pipeline.Name)
 
 	return nil
-
 }
 
 // UpdatePromotionPipeline performs updatepromotionpipeline operation.
 
 func (pe *promotionEngine) UpdatePromotionPipeline(ctx context.Context, pipeline *PromotionPipeline) error {
-
 	pe.logger.Info("Updating promotion pipeline", "id", pipeline.ID)
 
 	return nil
-
 }
 
 // DeletePromotionPipeline performs deletepromotionpipeline operation.
 
 func (pe *promotionEngine) DeletePromotionPipeline(ctx context.Context, pipelineID string) error {
-
 	pe.logger.Info("Deleting promotion pipeline", "id", pipelineID)
 
 	return nil
-
 }
 
 // GetPromotionPipeline performs getpromotionpipeline operation.
 
 func (pe *promotionEngine) GetPromotionPipeline(ctx context.Context, pipelineID string) (*PromotionPipeline, error) {
-
 	return &PromotionPipeline{
-
 		ID: pipelineID,
 
 		Name: "Default Pipeline",
@@ -2055,15 +1910,12 @@ func (pe *promotionEngine) GetPromotionPipeline(ctx context.Context, pipelineID 
 
 		CreatedAt: time.Now(),
 	}, nil
-
 }
 
 // ExecutePipeline performs executepipeline operation.
 
 func (pe *promotionEngine) ExecutePipeline(ctx context.Context, pipelineID string, ref *PackageReference) (*PipelineExecutionResult, error) {
-
 	return &PipelineExecutionResult{
-
 		PipelineID: pipelineID,
 
 		Success: true,
@@ -2078,15 +1930,12 @@ func (pe *promotionEngine) ExecutePipeline(ctx context.Context, pipelineID strin
 
 		Logs: []string{},
 	}, nil
-
 }
 
 // GetPromotionMetrics performs getpromotionmetrics operation.
 
 func (pe *promotionEngine) GetPromotionMetrics(ctx context.Context, env string) (*PromotionMetrics, error) {
-
 	return &PromotionMetrics{
-
 		Environment: env,
 
 		TotalPromotions: 0,
@@ -2107,15 +1956,12 @@ func (pe *promotionEngine) GetPromotionMetrics(ctx context.Context, env string) 
 
 		LastPromotionTime: time.Now(),
 	}, nil
-
 }
 
 // GetEnvironmentMetrics performs getenvironmentmetrics operation.
 
 func (pe *promotionEngine) GetEnvironmentMetrics(ctx context.Context) (*EnvironmentMetrics, error) {
-
 	return &EnvironmentMetrics{
-
 		TotalEnvironments: 3,
 
 		ActivePromotions: 0,
@@ -2130,15 +1976,12 @@ func (pe *promotionEngine) GetEnvironmentMetrics(ctx context.Context) (*Environm
 
 		ErrorRates: make(map[string]float64),
 	}, nil
-
 }
 
 // GeneratePromotionReport performs generatepromotionreport operation.
 
 func (pe *promotionEngine) GeneratePromotionReport(ctx context.Context, opts *PromotionReportOptions) (*PromotionReport, error) {
-
 	return &PromotionReport{
-
 		PromotionID: "report-1",
 
 		Timeline: []PromotionEvent{},
@@ -2149,15 +1992,12 @@ func (pe *promotionEngine) GeneratePromotionReport(ctx context.Context, opts *Pr
 
 		GeneratedAt: time.Now(),
 	}, nil
-
 }
 
 // GetEngineHealth performs getenginehealth operation.
 
 func (pe *promotionEngine) GetEngineHealth(ctx context.Context) (*PromotionEngineHealth, error) {
-
 	return &PromotionEngineHealth{
-
 		Status: "healthy",
 
 		LastCheck: time.Now(),
@@ -2170,22 +2010,18 @@ func (pe *promotionEngine) GetEngineHealth(ctx context.Context) (*PromotionEngin
 
 		AverageTime: time.Minute,
 	}, nil
-
 }
 
 // CleanupCompletedPromotions performs cleanupcompletedpromotions operation.
 
 func (pe *promotionEngine) CleanupCompletedPromotions(ctx context.Context, olderThan time.Duration) (*CleanupResult, error) {
-
 	return &CleanupResult{
-
 		ItemsRemoved: 0,
 
 		Duration: time.Second,
 
 		Errors: []string{},
 	}, nil
-
 }
 
 // Background workers.
@@ -2193,7 +2029,6 @@ func (pe *promotionEngine) CleanupCompletedPromotions(ctx context.Context, older
 // healthMonitorWorker monitors promotion health.
 
 func (pe *promotionEngine) healthMonitorWorker() {
-
 	defer pe.wg.Done()
 
 	ticker := time.NewTicker(30 * time.Second)
@@ -2201,7 +2036,6 @@ func (pe *promotionEngine) healthMonitorWorker() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-pe.shutdown:
@@ -2213,15 +2047,12 @@ func (pe *promotionEngine) healthMonitorWorker() {
 			pe.monitorActivePromotions()
 
 		}
-
 	}
-
 }
 
 // metricsCollectionWorker collects promotion metrics.
 
 func (pe *promotionEngine) metricsCollectionWorker() {
-
 	defer pe.wg.Done()
 
 	ticker := time.NewTicker(1 * time.Minute)
@@ -2229,7 +2060,6 @@ func (pe *promotionEngine) metricsCollectionWorker() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-pe.shutdown:
@@ -2241,15 +2071,12 @@ func (pe *promotionEngine) metricsCollectionWorker() {
 			pe.collectMetrics()
 
 		}
-
 	}
-
 }
 
 // promotionCleanupWorker cleans up completed promotions.
 
 func (pe *promotionEngine) promotionCleanupWorker() {
-
 	defer pe.wg.Done()
 
 	ticker := time.NewTicker(1 * time.Hour)
@@ -2257,7 +2084,6 @@ func (pe *promotionEngine) promotionCleanupWorker() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-pe.shutdown:
@@ -2269,15 +2095,12 @@ func (pe *promotionEngine) promotionCleanupWorker() {
 			pe.cleanupCompletedPromotions()
 
 		}
-
 	}
-
 }
 
 // Close gracefully shuts down the promotion engine.
 
 func (pe *promotionEngine) Close() error {
-
 	pe.logger.Info("Shutting down promotion engine")
 
 	close(pe.shutdown)
@@ -2287,33 +2110,24 @@ func (pe *promotionEngine) Close() error {
 	// Close components.
 
 	if pe.environmentRegistry != nil {
-
 		pe.environmentRegistry.Close()
-
 	}
 
 	if pe.canaryManager != nil {
-
 		pe.canaryManager.Close()
-
 	}
 
 	if pe.blueGreenManager != nil {
-
 		pe.blueGreenManager.Close()
-
 	}
 
 	if pe.healthChecker != nil {
-
 		pe.healthChecker.Close()
-
 	}
 
 	pe.logger.Info("Promotion engine shutdown complete")
 
 	return nil
-
 }
 
 // Helper methods and supporting functionality.
@@ -2321,15 +2135,12 @@ func (pe *promotionEngine) Close() error {
 // getPromotionLock gets or creates a promotion lock.
 
 func (pe *promotionEngine) getPromotionLock(promotionID string) *sync.Mutex {
-
 	pe.lockMutex.Lock()
 
 	defer pe.lockMutex.Unlock()
 
 	if lock, exists := pe.promotionLocks[promotionID]; exists {
-
 		return lock
-
 	}
 
 	lock := &sync.Mutex{}
@@ -2337,75 +2148,62 @@ func (pe *promotionEngine) getPromotionLock(promotionID string) *sync.Mutex {
 	pe.promotionLocks[promotionID] = lock
 
 	return lock
-
 }
 
 // determineSourceEnvironment determines source environment from package.
 
 func (pe *promotionEngine) determineSourceEnvironment(pkg *PackageRevision) string {
-
 	// Implementation would analyze package metadata to determine source environment.
 
 	// For now, return a default.
 
 	return "development"
-
 }
 
 // executePromotionHooks executes promotion hooks.
 
 func (pe *promotionEngine) executePromotionHooks(ctx context.Context, hooks []PromotionHook, result *PromotionResult) error {
-
 	// Implementation would execute hooks.
 
 	return nil
-
 }
 
 // executeDirectPromotion executes a direct promotion strategy.
 
 func (pe *promotionEngine) executeDirectPromotion(ctx context.Context, result *PromotionResult, env *Environment, opts *PromotionOptions) error {
-
 	// Implementation would perform direct promotion.
 
 	pe.logger.V(1).Info("Executing direct promotion", "promotionID", result.ID, "environment", env.Name)
 
 	return nil
-
 }
 
 // executeCanaryPromotionInitiation initiates canary promotion.
 
 func (pe *promotionEngine) executeCanaryPromotionInitiation(ctx context.Context, result *PromotionResult, env *Environment, opts *PromotionOptions) error {
-
 	// Implementation would initiate canary promotion.
 
 	pe.logger.V(1).Info("Executing canary promotion initiation", "promotionID", result.ID)
 
 	return nil
-
 }
 
 // executeBlueGreenPromotionInitiation initiates blue-green promotion.
 
 func (pe *promotionEngine) executeBlueGreenPromotionInitiation(ctx context.Context, result *PromotionResult, env *Environment, opts *PromotionOptions) error {
-
 	// Implementation would initiate blue-green promotion.
 
 	pe.logger.V(1).Info("Executing blue-green promotion initiation", "promotionID", result.ID)
 
 	return nil
-
 }
 
 // checkPromotionApprovals checks for required approvals.
 
 func (pe *promotionEngine) checkPromotionApprovals(ctx context.Context, result *PromotionResult, approvers []string) (*PromotionApprovalStatus, error) {
-
 	// Implementation would check approvals.
 
 	return &PromotionApprovalStatus{
-
 		PromotionID: result.ID,
 
 		Status: PromotionApprovalStatusApproved,
@@ -2414,55 +2212,41 @@ func (pe *promotionEngine) checkPromotionApprovals(ctx context.Context, result *
 
 		CreatedAt: time.Now(),
 	}, nil
-
 }
 
 // rollbackPromotion performs promotion rollback.
 
 func (pe *promotionEngine) rollbackPromotion(ctx context.Context, result *PromotionResult) error {
-
 	pe.logger.Info("Rolling back promotion", "promotionID", result.ID)
 
 	// Implementation would perform rollback.
 
 	return nil
-
 }
 
 // Background worker implementations.
 
 func (pe *promotionEngine) monitorActivePromotions() {
-
 	// Implementation would monitor active promotions.
-
 }
 
 func (pe *promotionEngine) collectMetrics() {
-
 	if pe.metrics == nil {
-
 		return
-
 	}
 
 	// Implementation would collect metrics.
-
 }
 
 func (pe *promotionEngine) cleanupCompletedPromotions() {
-
 	// Implementation would cleanup old promotions.
-
 }
 
 func (pe *promotionEngine) registerDefaultEnvironments() {
-
 	// Implementation would register default environments.
 
 	environments := []*Environment{
-
 		{
-
 			ID: "dev",
 
 			Name: "development",
@@ -2471,7 +2255,6 @@ func (pe *promotionEngine) registerDefaultEnvironments() {
 		},
 
 		{
-
 			ID: "staging",
 
 			Name: "staging",
@@ -2480,7 +2263,6 @@ func (pe *promotionEngine) registerDefaultEnvironments() {
 		},
 
 		{
-
 			ID: "prod",
 
 			Name: "production",
@@ -2490,19 +2272,14 @@ func (pe *promotionEngine) registerDefaultEnvironments() {
 	}
 
 	for _, env := range environments {
-
 		pe.environmentRegistry.RegisterEnvironment(context.Background(), env)
-
 	}
-
 }
 
 // Configuration and metrics.
 
 func getDefaultPromotionEngineConfig() *PromotionEngineConfig {
-
 	return &PromotionEngineConfig{
-
 		MaxConcurrentPromotions: 50,
 
 		DefaultHealthCheckTimeout: 5 * time.Minute,
@@ -2513,17 +2290,13 @@ func getDefaultPromotionEngineConfig() *PromotionEngineConfig {
 
 		EnableHealthMonitoring: true,
 	}
-
 }
 
 func initPromotionEngineMetrics() *PromotionEngineMetrics {
-
 	return &PromotionEngineMetrics{
-
 		promotionsTotal: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "porch_promotions_total",
 
 				Help: "Total number of package promotions",
@@ -2535,7 +2308,6 @@ func initPromotionEngineMetrics() *PromotionEngineMetrics {
 		promotionDuration: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "porch_promotion_duration_seconds",
 
 				Help: "Duration of package promotions",
@@ -2549,7 +2321,6 @@ func initPromotionEngineMetrics() *PromotionEngineMetrics {
 		canaryPromotionsTotal: prometheus.NewCounter(
 
 			prometheus.CounterOpts{
-
 				Name: "porch_canary_promotions_total",
 
 				Help: "Total number of canary promotions",
@@ -2559,7 +2330,6 @@ func initPromotionEngineMetrics() *PromotionEngineMetrics {
 		activeCanaryPromotions: prometheus.NewGauge(
 
 			prometheus.GaugeOpts{
-
 				Name: "porch_active_canary_promotions",
 
 				Help: "Number of active canary promotions",
@@ -2569,7 +2339,6 @@ func initPromotionEngineMetrics() *PromotionEngineMetrics {
 		blueGreenPromotionsTotal: prometheus.NewCounter(
 
 			prometheus.CounterOpts{
-
 				Name: "porch_bluegreen_promotions_total",
 
 				Help: "Total number of blue-green promotions",
@@ -2579,7 +2348,6 @@ func initPromotionEngineMetrics() *PromotionEngineMetrics {
 		activeBlueGreenPromotions: prometheus.NewGauge(
 
 			prometheus.GaugeOpts{
-
 				Name: "porch_active_bluegreen_promotions",
 
 				Help: "Number of active blue-green promotions",
@@ -2589,7 +2357,6 @@ func initPromotionEngineMetrics() *PromotionEngineMetrics {
 		healthCheckDuration: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "porch_health_check_duration_seconds",
 
 				Help: "Duration of health checks",
@@ -2603,7 +2370,6 @@ func initPromotionEngineMetrics() *PromotionEngineMetrics {
 		environmentHealth: prometheus.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "porch_environment_health",
 
 				Help: "Health score of environments (0-1)",
@@ -2612,7 +2378,6 @@ func initPromotionEngineMetrics() *PromotionEngineMetrics {
 			[]string{"environment"},
 		),
 	}
-
 }
 
 // Supporting types and configurations.
@@ -2954,25 +2719,19 @@ type EnvironmentRegistry struct{}
 // NewEnvironmentRegistry performs newenvironmentregistry operation.
 
 func NewEnvironmentRegistry(config *EnvironmentRegistryConfig) *EnvironmentRegistry {
-
 	return &EnvironmentRegistry{}
-
 }
 
 // RegisterEnvironment performs registerenvironment operation.
 
 func (er *EnvironmentRegistry) RegisterEnvironment(ctx context.Context, env *Environment) error {
-
 	return nil
-
 }
 
 // GetEnvironment performs getenvironment operation.
 
 func (er *EnvironmentRegistry) GetEnvironment(ctx context.Context, name string) (*Environment, error) {
-
 	return &Environment{Name: name, HealthChecks: []HealthCheck{}}, nil
-
 }
 
 // Close performs close operation.
@@ -2998,25 +2757,19 @@ func NewCanaryManager(config *CanaryManagerConfig) *CanaryManager { return &Cana
 // RegisterCanary performs registercanary operation.
 
 func (cm *CanaryManager) RegisterCanary(ctx context.Context, canary *CanaryPromotion) error {
-
 	return nil
-
 }
 
 // InitializeCanary performs initializecanary operation.
 
 func (cm *CanaryManager) InitializeCanary(ctx context.Context, canary *CanaryPromotion) error {
-
 	return nil
-
 }
 
 // SetTrafficPercent performs settrafficpercent operation.
 
 func (cm *CanaryManager) SetTrafficPercent(ctx context.Context, canaryID string, percent int) error {
-
 	return nil
-
 }
 
 // Close performs close operation.
@@ -3030,33 +2783,25 @@ type BlueGreenManager struct{}
 // NewBlueGreenManager performs newbluegreenmanager operation.
 
 func NewBlueGreenManager(config *BlueGreenManagerConfig) *BlueGreenManager {
-
 	return &BlueGreenManager{}
-
 }
 
 // RegisterPromotion performs registerpromotion operation.
 
 func (bgm *BlueGreenManager) RegisterPromotion(ctx context.Context, promotion *BlueGreenPromotion) error {
-
 	return nil
-
 }
 
 // DeployToGreen performs deploytogreen operation.
 
 func (bgm *BlueGreenManager) DeployToGreen(ctx context.Context, promotion *BlueGreenPromotion) error {
-
 	return nil
-
 }
 
 // RunValidationChecks performs runvalidationchecks operation.
 
 func (bgm *BlueGreenManager) RunValidationChecks(ctx context.Context, promotion *BlueGreenPromotion) ([]*ValidationResult, error) {
-
 	return []*ValidationResult{}, nil
-
 }
 
 // Close performs close operation.
@@ -3070,9 +2815,7 @@ type RolloutStrategyManager struct{}
 // NewRolloutStrategyManager performs newrolloutstrategymanager operation.
 
 func NewRolloutStrategyManager(config *RolloutStrategyManagerConfig) *RolloutStrategyManager {
-
 	return &RolloutStrategyManager{}
-
 }
 
 // PromotionHealthChecker represents a promotionhealthchecker.
@@ -3082,17 +2825,13 @@ type PromotionHealthChecker struct{}
 // NewPromotionHealthChecker performs newpromotionhealthchecker operation.
 
 func NewPromotionHealthChecker(config *PromotionHealthCheckerConfig) *PromotionHealthChecker {
-
 	return &PromotionHealthChecker{}
-
 }
 
 // ExecuteHealthCheck performs executehealthcheck operation.
 
 func (phc *PromotionHealthChecker) ExecuteHealthCheck(ctx context.Context, ref *PackageReference, env string, check *HealthCheck) (*HealthCheckResult, error) {
-
 	return &HealthCheckResult{Status: HealthCheckStatusPassed, Metrics: make(map[string]float64)}, nil
-
 }
 
 // Close performs close operation.
@@ -3106,17 +2845,13 @@ type PromotionValidator struct{}
 // NewPromotionValidator performs newpromotionvalidator operation.
 
 func NewPromotionValidator(config *PromotionValidatorConfig) *PromotionValidator {
-
 	return &PromotionValidator{}
-
 }
 
 // ValidatePromotion performs validatepromotion operation.
 
 func (pv *PromotionValidator) ValidatePromotion(ctx context.Context, ref *PackageReference, targetEnv string) (*PromotionValidationResult, error) {
-
 	return &PromotionValidationResult{Valid: true}, nil
-
 }
 
 // PipelineRegistry represents a pipelineregistry.
@@ -3126,9 +2861,7 @@ type PipelineRegistry struct{}
 // NewPipelineRegistry performs newpipelineregistry operation.
 
 func NewPipelineRegistry(config *PipelineRegistryConfig) *PipelineRegistry {
-
 	return &PipelineRegistry{}
-
 }
 
 // PipelineExecutionEngine represents a pipelineexecutionengine.
@@ -3138,9 +2871,7 @@ type PipelineExecutionEngine struct{}
 // NewPipelineExecutionEngine performs newpipelineexecutionengine operation.
 
 func NewPipelineExecutionEngine(config *PipelineExecutionEngineConfig) *PipelineExecutionEngine {
-
 	return &PipelineExecutionEngine{}
-
 }
 
 // ApprovalIntegrator represents a approvalintegrator.
@@ -3150,9 +2881,7 @@ type ApprovalIntegrator struct{}
 // NewApprovalIntegrator performs newapprovalintegrator operation.
 
 func NewApprovalIntegrator(config *ApprovalIntegratorConfig) *ApprovalIntegrator {
-
 	return &ApprovalIntegrator{}
-
 }
 
 // CrossClusterManager represents a crossclustermanager.
@@ -3162,9 +2891,7 @@ type CrossClusterManager struct{}
 // NewCrossClusterManager performs newcrossclustermanager operation.
 
 func NewCrossClusterManager(config *CrossClusterManagerConfig) *CrossClusterManager {
-
 	return &CrossClusterManager{}
-
 }
 
 // PromotionTracker represents a promotiontracker.
@@ -3174,25 +2901,19 @@ type PromotionTracker struct{}
 // NewPromotionTracker performs newpromotiontracker operation.
 
 func NewPromotionTracker(config *PromotionTrackerConfig) *PromotionTracker {
-
 	return &PromotionTracker{}
-
 }
 
 // RegisterPromotion performs registerpromotion operation.
 
 func (pt *PromotionTracker) RegisterPromotion(ctx context.Context, result *PromotionResult) error {
-
 	return nil
-
 }
 
 // UpdatePromotion performs updatepromotion operation.
 
 func (pt *PromotionTracker) UpdatePromotion(ctx context.Context, result *PromotionResult) error {
-
 	return nil
-
 }
 
 // CheckpointManager represents a checkpointmanager.
@@ -3202,9 +2923,7 @@ type CheckpointManager struct{}
 // NewCheckpointManager performs newcheckpointmanager operation.
 
 func NewCheckpointManager(config *CheckpointManagerConfig) *CheckpointManager {
-
 	return &CheckpointManager{}
-
 }
 
 // PromotionHealthMonitor represents a promotionhealthmonitor.
@@ -3214,9 +2933,7 @@ type PromotionHealthMonitor struct{}
 // NewPromotionHealthMonitor performs newpromotionhealthmonitor operation.
 
 func NewPromotionHealthMonitor(config *PromotionHealthMonitorConfig) *PromotionHealthMonitor {
-
 	return &PromotionHealthMonitor{}
-
 }
 
 // PromotionMetricsCollector represents a promotionmetricscollector.
@@ -3226,9 +2943,7 @@ type PromotionMetricsCollector struct{}
 // NewPromotionMetricsCollector performs newpromotionmetricscollector operation.
 
 func NewPromotionMetricsCollector(config *PromotionMetricsCollectorConfig) *PromotionMetricsCollector {
-
 	return &PromotionMetricsCollector{}
-
 }
 
 // Configuration placeholder types.

@@ -78,7 +78,7 @@ func TestNewClient(t *testing.T) {
 	assert.NotNil(t, client)
 	assert.Equal(t, repoURL, client.RepoURL)
 	assert.Equal(t, branch, client.Branch)
-	assert.Equal(t, sshKey, client.SshKey)
+	assert.Equal(t, sshKey, client.SSHKey)
 	assert.Equal(t, "/tmp/deployment-repo", client.RepoPath)
 }
 
@@ -88,7 +88,7 @@ func TestClient_InitRepo_NewRepo(t *testing.T) {
 	client := &Client{
 		RepoURL:  "https://github.com/test/repo.git",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: filepath.Join(tmpDir, "test-repo"),
 	}
 
@@ -113,7 +113,7 @@ func TestClient_InitRepo_ExistingRepo(t *testing.T) {
 	client := &Client{
 		RepoURL:  "https://github.com/test/repo.git",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -136,7 +136,7 @@ func TestClient_CommitAndPush_Success(t *testing.T) {
 
 	// Create initial file
 	initialFile := filepath.Join(repoPath, "README.md")
-	err = os.WriteFile(initialFile, []byte("# Test Repository"), 0644)
+	err = os.WriteFile(initialFile, []byte("# Test Repository"), 0o644)
 	require.NoError(t, err)
 
 	_, err = workTree.Add("README.md")
@@ -154,7 +154,7 @@ func TestClient_CommitAndPush_Success(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 	_ = client // Use the client variable
@@ -199,7 +199,7 @@ func TestClient_CommitAndPush_FileCreation(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -237,7 +237,7 @@ func TestClient_CommitAndPush_InvalidRepo(t *testing.T) {
 	client := &Client{
 		RepoURL:  "https://github.com/test/repo.git",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: "/non/existent/path",
 	}
 
@@ -263,7 +263,7 @@ func TestClient_CommitAndPushChanges_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	initialFile := filepath.Join(repoPath, "initial.txt")
-	err = os.WriteFile(initialFile, []byte("initial content"), 0644)
+	err = os.WriteFile(initialFile, []byte("initial content"), 0o644)
 	require.NoError(t, err)
 
 	_, err = workTree.Add("initial.txt")
@@ -281,18 +281,17 @@ func TestClient_CommitAndPushChanges_Success(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
 	// Create some changes
 	testFile := filepath.Join(repoPath, "changes.txt")
-	err = os.WriteFile(testFile, []byte("new changes"), 0644)
+	err = os.WriteFile(testFile, []byte("new changes"), 0o644)
 	require.NoError(t, err)
 
 	// This will fail at push, but commit should work
 	err = client.CommitAndPushChanges("Add changes")
-
 	// Expect push failure but verify commit was made
 	if err != nil {
 		assert.True(t,
@@ -310,7 +309,7 @@ func TestClient_CommitAndPushChanges_InvalidRepo(t *testing.T) {
 	client := &Client{
 		RepoURL:  "https://github.com/test/repo.git",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: "/non/existent/path",
 	}
 
@@ -330,17 +329,17 @@ func TestClient_RemoveDirectory_Success(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
 	// Create a directory structure to remove
 	testDir := filepath.Join(repoPath, "to-remove")
-	err = os.MkdirAll(testDir, 0755)
+	err = os.MkdirAll(testDir, 0o755)
 	require.NoError(t, err)
 
 	testFile := filepath.Join(testDir, "file.txt")
-	err = os.WriteFile(testFile, []byte("content"), 0644)
+	err = os.WriteFile(testFile, []byte("content"), 0o644)
 	require.NoError(t, err)
 
 	// Verify directory exists
@@ -367,7 +366,7 @@ func TestClient_RemoveDirectory_InvalidRepo(t *testing.T) {
 	client := &Client{
 		RepoURL:  "https://github.com/test/repo.git",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: "/non/existent/path",
 	}
 
@@ -387,7 +386,7 @@ func TestClient_RemoveDirectory_NonExistentDirectory(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -415,7 +414,7 @@ func TestClient_CommitAndPushChanges_GitFilesExclusion(t *testing.T) {
 	require.NoError(t, err)
 
 	initialFile := filepath.Join(repoPath, "initial.txt")
-	err = os.WriteFile(initialFile, []byte("initial content"), 0644)
+	err = os.WriteFile(initialFile, []byte("initial content"), 0o644)
 	require.NoError(t, err)
 
 	_, err = workTree.Add("initial.txt")
@@ -433,29 +432,29 @@ func TestClient_CommitAndPushChanges_GitFilesExclusion(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
 	// Create various files including .git related files
 	testFile := filepath.Join(repoPath, "test.txt")
-	err = os.WriteFile(testFile, []byte("test content"), 0644)
+	err = os.WriteFile(testFile, []byte("test content"), 0o644)
 	require.NoError(t, err)
 
 	// Modify the initial file (tracked file)
-	err = os.WriteFile(initialFile, []byte("modified initial content"), 0644)
+	err = os.WriteFile(initialFile, []byte("modified initial content"), 0o644)
 	require.NoError(t, err)
 
 	// Create .git related files and directories (should be excluded)
 	gitIgnoreFile := filepath.Join(repoPath, ".gitignore")
-	err = os.WriteFile(gitIgnoreFile, []byte("*.log"), 0644)
+	err = os.WriteFile(gitIgnoreFile, []byte("*.log"), 0o644)
 	require.NoError(t, err)
 
 	gitConfigDir := filepath.Join(repoPath, ".git-backup")
-	err = os.MkdirAll(gitConfigDir, 0755)
+	err = os.MkdirAll(gitConfigDir, 0o755)
 	require.NoError(t, err)
 	gitBackupFile := filepath.Join(gitConfigDir, "config")
-	err = os.WriteFile(gitBackupFile, []byte("backup config"), 0644)
+	err = os.WriteFile(gitBackupFile, []byte("backup config"), 0o644)
 	require.NoError(t, err)
 
 	// Stage the initial modification (simulate tracked file)
@@ -464,7 +463,6 @@ func TestClient_CommitAndPushChanges_GitFilesExclusion(t *testing.T) {
 
 	// Attempt to commit and push changes
 	err = client.CommitAndPushChanges("Test git files exclusion")
-
 	// Verify that the method handles the files appropriately
 	// The commit should succeed for tracked files but may fail at push or ssh auth
 	if err != nil {
@@ -524,9 +522,9 @@ func TestClient_CommitAndPushChanges_TrackedFilesOnly(t *testing.T) {
 	trackedFile1 := filepath.Join(repoPath, "tracked1.txt")
 	trackedFile2 := filepath.Join(repoPath, "tracked2.txt")
 
-	err = os.WriteFile(trackedFile1, []byte("tracked content 1"), 0644)
+	err = os.WriteFile(trackedFile1, []byte("tracked content 1"), 0o644)
 	require.NoError(t, err)
-	err = os.WriteFile(trackedFile2, []byte("tracked content 2"), 0644)
+	err = os.WriteFile(trackedFile2, []byte("tracked content 2"), 0o644)
 	require.NoError(t, err)
 
 	_, err = workTree.Add("tracked1.txt")
@@ -546,23 +544,23 @@ func TestClient_CommitAndPushChanges_TrackedFilesOnly(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
 	// Modify tracked files
-	err = os.WriteFile(trackedFile1, []byte("modified tracked content 1"), 0644)
+	err = os.WriteFile(trackedFile1, []byte("modified tracked content 1"), 0o644)
 	require.NoError(t, err)
-	err = os.WriteFile(trackedFile2, []byte("modified tracked content 2"), 0644)
+	err = os.WriteFile(trackedFile2, []byte("modified tracked content 2"), 0o644)
 	require.NoError(t, err)
 
 	// Create untracked files (should NOT be staged)
 	untrackedFile1 := filepath.Join(repoPath, "untracked1.txt")
 	untrackedFile2 := filepath.Join(repoPath, "untracked2.txt")
 
-	err = os.WriteFile(untrackedFile1, []byte("untracked content 1"), 0644)
+	err = os.WriteFile(untrackedFile1, []byte("untracked content 1"), 0o644)
 	require.NoError(t, err)
-	err = os.WriteFile(untrackedFile2, []byte("untracked content 2"), 0644)
+	err = os.WriteFile(untrackedFile2, []byte("untracked content 2"), 0o644)
 	require.NoError(t, err)
 
 	// Get status before commit to verify untracked files exist
@@ -585,7 +583,6 @@ func TestClient_CommitAndPushChanges_TrackedFilesOnly(t *testing.T) {
 
 	// Commit and push changes
 	err = client.CommitAndPushChanges("Test tracked files only")
-
 	// The method should only stage tracked files and skip untracked ones
 	// It may fail at push or SSH auth but should succeed at staging and commit
 	if err != nil {
@@ -621,7 +618,7 @@ func TestClient_CommitAndPushChanges_MixedFileStates(t *testing.T) {
 	files := []string{"modify-me.txt", "delete-me.txt", "rename-me.txt"}
 	for _, file := range files {
 		fullPath := filepath.Join(repoPath, file)
-		err = os.WriteFile(fullPath, []byte("initial content"), 0644)
+		err = os.WriteFile(fullPath, []byte("initial content"), 0o644)
 		require.NoError(t, err)
 		_, err = workTree.Add(file)
 		require.NoError(t, err)
@@ -639,7 +636,7 @@ func TestClient_CommitAndPushChanges_MixedFileStates(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -647,7 +644,7 @@ func TestClient_CommitAndPushChanges_MixedFileStates(t *testing.T) {
 
 	// 1. Modified tracked file
 	modifyFile := filepath.Join(repoPath, "modify-me.txt")
-	err = os.WriteFile(modifyFile, []byte("modified content"), 0644)
+	err = os.WriteFile(modifyFile, []byte("modified content"), 0o644)
 	require.NoError(t, err)
 
 	// 2. Delete tracked file
@@ -662,17 +659,17 @@ func TestClient_CommitAndPushChanges_MixedFileStates(t *testing.T) {
 	require.NoError(t, err)
 	err = os.Remove(oldRenameFile)
 	require.NoError(t, err)
-	err = os.WriteFile(newRenameFile, content, 0644)
+	err = os.WriteFile(newRenameFile, content, 0o644)
 	require.NoError(t, err)
 
 	// 4. New untracked file (should be ignored)
 	untrackedFile := filepath.Join(repoPath, "new-untracked.txt")
-	err = os.WriteFile(untrackedFile, []byte("untracked content"), 0644)
+	err = os.WriteFile(untrackedFile, []byte("untracked content"), 0o644)
 	require.NoError(t, err)
 
 	// 5. .git related file (should be ignored)
 	gitFile := filepath.Join(repoPath, ".gitattributes")
-	err = os.WriteFile(gitFile, []byte("* text=auto"), 0644)
+	err = os.WriteFile(gitFile, []byte("* text=auto"), 0o644)
 	require.NoError(t, err)
 
 	// Get status to verify our test setup
@@ -682,7 +679,6 @@ func TestClient_CommitAndPushChanges_MixedFileStates(t *testing.T) {
 
 	// Commit changes - should only handle tracked file changes, skip untracked and .git files
 	err = client.CommitAndPushChanges("Test mixed file states")
-
 	if err != nil {
 		assert.True(t,
 			strings.Contains(err.Error(), "failed to push") ||
@@ -716,7 +712,7 @@ func TestClient_CommitAndPushChanges_EmptyChanges(t *testing.T) {
 
 	// Create initial commit
 	initialFile := filepath.Join(repoPath, "initial.txt")
-	err = os.WriteFile(initialFile, []byte("initial content"), 0644)
+	err = os.WriteFile(initialFile, []byte("initial content"), 0o644)
 	require.NoError(t, err)
 
 	_, err = workTree.Add("initial.txt")
@@ -734,7 +730,7 @@ func TestClient_CommitAndPushChanges_EmptyChanges(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -764,16 +760,16 @@ func TestClient_RemoveDirectory_AtomicOperation(t *testing.T) {
 	// Create directory structure to track and remove
 	testDir := "test-directory"
 	testDirPath := filepath.Join(repoPath, testDir)
-	err = os.MkdirAll(testDirPath, 0755)
+	err = os.MkdirAll(testDirPath, 0o755)
 	require.NoError(t, err)
 
 	// Create files in the directory
 	files := []string{"file1.txt", "file2.yaml", "subdir/nested.json"}
 	for _, file := range files {
 		fullPath := filepath.Join(testDirPath, file)
-		err = os.MkdirAll(filepath.Dir(fullPath), 0755)
+		err = os.MkdirAll(filepath.Dir(fullPath), 0o755)
 		require.NoError(t, err)
-		err = os.WriteFile(fullPath, []byte(fmt.Sprintf("content of %s", file)), 0644)
+		err = os.WriteFile(fullPath, []byte(fmt.Sprintf("content of %s", file)), 0o644)
 		require.NoError(t, err)
 
 		// Add to git (make tracked)
@@ -795,7 +791,7 @@ func TestClient_RemoveDirectory_AtomicOperation(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -806,7 +802,6 @@ func TestClient_RemoveDirectory_AtomicOperation(t *testing.T) {
 	// Remove directory with commit message
 	commitMessage := "Remove test directory and all contents"
 	err = client.RemoveDirectory(testDir, commitMessage)
-
 	// May fail at push, SSH auth, or have no changes to commit
 	if err != nil {
 		assert.True(t,
@@ -853,14 +848,14 @@ func TestClient_RemoveDirectory_NestedDirectories(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
 	// Create deeply nested directory structure
 	basePath := "deep/nested/structure"
 	fullBasePath := filepath.Join(repoPath, basePath)
-	err = os.MkdirAll(fullBasePath, 0755)
+	err = os.MkdirAll(fullBasePath, 0o755)
 	require.NoError(t, err)
 
 	// Create files at different levels
@@ -873,9 +868,9 @@ func TestClient_RemoveDirectory_NestedDirectories(t *testing.T) {
 
 	for filePath, content := range nestedFiles {
 		fullPath := filepath.Join(repoPath, filePath)
-		err = os.MkdirAll(filepath.Dir(fullPath), 0755)
+		err = os.MkdirAll(filepath.Dir(fullPath), 0o755)
 		require.NoError(t, err)
-		err = os.WriteFile(fullPath, []byte(content), 0644)
+		err = os.WriteFile(fullPath, []byte(content), 0o644)
 		require.NoError(t, err)
 
 		// Track the file
@@ -895,7 +890,6 @@ func TestClient_RemoveDirectory_NestedDirectories(t *testing.T) {
 
 	// Remove the top-level directory
 	err = client.RemoveDirectory("deep", "Remove entire deep directory structure")
-
 	if err != nil {
 		assert.True(t,
 			strings.Contains(err.Error(), "failed to push") ||
@@ -930,7 +924,7 @@ func TestClient_RemoveDirectory_PartialPathMatching(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -940,13 +934,13 @@ func TestClient_RemoveDirectory_PartialPathMatching(t *testing.T) {
 
 	for _, dir := range directories {
 		dirPath := filepath.Join(repoPath, dir)
-		err = os.MkdirAll(dirPath, 0755)
+		err = os.MkdirAll(dirPath, 0o755)
 		require.NoError(t, err)
 
 		fileName := filepath.Join(dir, "file.txt")
 		filePath := filepath.Join(repoPath, fileName)
 		content := fmt.Sprintf("content in %s", dir)
-		err = os.WriteFile(filePath, []byte(content), 0644)
+		err = os.WriteFile(filePath, []byte(content), 0o644)
 		require.NoError(t, err)
 
 		files[fileName] = content
@@ -966,7 +960,6 @@ func TestClient_RemoveDirectory_PartialPathMatching(t *testing.T) {
 
 	// Remove only the "test" directory (not "test-similar" or "different/test")
 	err = client.RemoveDirectory("test", "Remove test directory only")
-
 	if err != nil {
 		assert.True(t,
 			strings.Contains(err.Error(), "failed to push") ||
@@ -994,7 +987,7 @@ func TestClient_RemoveDirectory_ErrorScenarios(t *testing.T) {
 		client := &Client{
 			RepoURL:  "origin",
 			Branch:   "main",
-			SshKey:   createTestSSHKey(),
+			SSHKey:   createTestSSHKey(),
 			RepoPath: "/non/existent/path",
 		}
 
@@ -1013,7 +1006,7 @@ func TestClient_RemoveDirectory_ErrorScenarios(t *testing.T) {
 		client := &Client{
 			RepoURL:  "origin",
 			Branch:   "main",
-			SshKey:   createTestSSHKey(),
+			SSHKey:   createTestSSHKey(),
 			RepoPath: repoPath,
 		}
 
@@ -1037,17 +1030,17 @@ func TestClient_RemoveDirectory_ErrorScenarios(t *testing.T) {
 		client := &Client{
 			RepoURL:  "origin",
 			Branch:   "main",
-			SshKey:   createTestSSHKey(),
+			SSHKey:   createTestSSHKey(),
 			RepoPath: repoPath,
 		}
 
 		// Create directory with untracked files
 		untrackedDir := filepath.Join(repoPath, "untracked-dir")
-		err = os.MkdirAll(untrackedDir, 0755)
+		err = os.MkdirAll(untrackedDir, 0o755)
 		require.NoError(t, err)
 
 		untrackedFile := filepath.Join(untrackedDir, "untracked.txt")
-		err = os.WriteFile(untrackedFile, []byte("untracked content"), 0644)
+		err = os.WriteFile(untrackedFile, []byte("untracked content"), 0o644)
 		require.NoError(t, err)
 
 		// Remove the directory
@@ -1077,11 +1070,11 @@ func TestClient_RemoveDirectory_CommitMessagePropagation(t *testing.T) {
 
 	// Create and track a file to remove
 	testDir := filepath.Join(repoPath, "removeme")
-	err = os.MkdirAll(testDir, 0755)
+	err = os.MkdirAll(testDir, 0o755)
 	require.NoError(t, err)
 
 	testFile := filepath.Join(testDir, "file.txt")
-	err = os.WriteFile(testFile, []byte("content"), 0644)
+	err = os.WriteFile(testFile, []byte("content"), 0o644)
 	require.NoError(t, err)
 
 	_, err = workTree.Add("removeme/file.txt")
@@ -1099,7 +1092,7 @@ func TestClient_RemoveDirectory_CommitMessagePropagation(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -1118,9 +1111,9 @@ func TestClient_RemoveDirectory_CommitMessagePropagation(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Recreate the directory for each test
-			err = os.MkdirAll(testDir, 0755)
+			err = os.MkdirAll(testDir, 0o755)
 			require.NoError(t, err)
-			err = os.WriteFile(testFile, []byte("content"), 0644)
+			err = os.WriteFile(testFile, []byte("content"), 0o644)
 			require.NoError(t, err)
 			_, err = workTree.Add("removeme/file.txt")
 			require.NoError(t, err)
@@ -1135,7 +1128,6 @@ func TestClient_RemoveDirectory_CommitMessagePropagation(t *testing.T) {
 
 			// Remove with the test commit message
 			err = client.RemoveDirectory("removeme", tc.commitMessage)
-
 			if err != nil {
 				// Should only fail at push, SSH auth, or empty commit (no changes to commit)
 				assert.True(t,
@@ -1248,9 +1240,9 @@ func TestClient_CommitAndPushChanges_TableDriven(t *testing.T) {
 			// Setup initial tracked files
 			for filePath, content := range tc.setupFiles {
 				fullPath := filepath.Join(repoPath, filePath)
-				err = os.MkdirAll(filepath.Dir(fullPath), 0755)
+				err = os.MkdirAll(filepath.Dir(fullPath), 0o755)
 				require.NoError(t, err)
-				err = os.WriteFile(fullPath, []byte(content), 0644)
+				err = os.WriteFile(fullPath, []byte(content), 0o644)
 				require.NoError(t, err)
 				_, err = workTree.Add(filePath)
 				require.NoError(t, err)
@@ -1271,16 +1263,16 @@ func TestClient_CommitAndPushChanges_TableDriven(t *testing.T) {
 			// Modify tracked files
 			for filePath, content := range tc.modifyFiles {
 				fullPath := filepath.Join(repoPath, filePath)
-				err = os.WriteFile(fullPath, []byte(content), 0644)
+				err = os.WriteFile(fullPath, []byte(content), 0o644)
 				require.NoError(t, err)
 			}
 
 			// Create untracked files
 			for filePath, content := range tc.createFiles {
 				fullPath := filepath.Join(repoPath, filePath)
-				err = os.MkdirAll(filepath.Dir(fullPath), 0755)
+				err = os.MkdirAll(filepath.Dir(fullPath), 0o755)
 				require.NoError(t, err)
-				err = os.WriteFile(fullPath, []byte(content), 0644)
+				err = os.WriteFile(fullPath, []byte(content), 0o644)
 				require.NoError(t, err)
 			}
 
@@ -1294,7 +1286,7 @@ func TestClient_CommitAndPushChanges_TableDriven(t *testing.T) {
 			client := &Client{
 				RepoURL:  "origin",
 				Branch:   "main",
-				SshKey:   createTestSSHKey(),
+				SSHKey:   createTestSSHKey(),
 				RepoPath: repoPath,
 			}
 
@@ -1417,9 +1409,9 @@ func TestClient_RemoveDirectory_TableDriven(t *testing.T) {
 			// Setup directory structure
 			for filePath, content := range tc.setupStructure {
 				fullPath := filepath.Join(repoPath, filePath)
-				err = os.MkdirAll(filepath.Dir(fullPath), 0755)
+				err = os.MkdirAll(filepath.Dir(fullPath), 0o755)
 				require.NoError(t, err)
-				err = os.WriteFile(fullPath, []byte(content), 0644)
+				err = os.WriteFile(fullPath, []byte(content), 0o644)
 				require.NoError(t, err)
 				_, err = workTree.Add(filePath)
 				require.NoError(t, err)
@@ -1440,7 +1432,7 @@ func TestClient_RemoveDirectory_TableDriven(t *testing.T) {
 			client := &Client{
 				RepoURL:  "origin",
 				Branch:   "main",
-				SshKey:   createTestSSHKey(),
+				SSHKey:   createTestSSHKey(),
 				RepoPath: repoPath,
 			}
 
@@ -1504,7 +1496,7 @@ func TestClient_CommitAndPushChanges_FileStatusEdgeCases(t *testing.T) {
 
 	// Test with files that have different git status combinations
 	testFile := filepath.Join(repoPath, "test.txt")
-	err = os.WriteFile(testFile, []byte("initial"), 0644)
+	err = os.WriteFile(testFile, []byte("initial"), 0o644)
 	require.NoError(t, err)
 
 	_, err = workTree.Add("test.txt")
@@ -1522,23 +1514,22 @@ func TestClient_CommitAndPushChanges_FileStatusEdgeCases(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
 	// Test scenario: file is both staged and modified in worktree
-	err = os.WriteFile(testFile, []byte("staged change"), 0644)
+	err = os.WriteFile(testFile, []byte("staged change"), 0o644)
 	require.NoError(t, err)
 
 	_, err = workTree.Add("test.txt") // Stage the change
 	require.NoError(t, err)
 
-	err = os.WriteFile(testFile, []byte("worktree change"), 0644) // Modify again
+	err = os.WriteFile(testFile, []byte("worktree change"), 0o644) // Modify again
 	require.NoError(t, err)
 
 	// Should handle the mixed state correctly
 	err = client.CommitAndPushChanges("Handle mixed staged/worktree state")
-
 	if err != nil {
 		assert.True(t,
 			strings.Contains(err.Error(), "failed to push") ||
@@ -1570,14 +1561,14 @@ func TestClient_RemoveDirectory_EdgeCaseScenarios(t *testing.T) {
 		testDir := filepath.Join(repoPath, "testdir")
 		testDirFile := filepath.Join(testDir, "file.txt")
 
-		err = os.WriteFile(rootFile, []byte("root file content"), 0644)
+		err = os.WriteFile(rootFile, []byte("root file content"), 0o644)
 		require.NoError(t, err)
 		_, err = workTree.Add("test")
 		require.NoError(t, err)
 
-		err = os.MkdirAll(testDir, 0755)
+		err = os.MkdirAll(testDir, 0o755)
 		require.NoError(t, err)
-		err = os.WriteFile(testDirFile, []byte("dir file content"), 0644)
+		err = os.WriteFile(testDirFile, []byte("dir file content"), 0o644)
 		require.NoError(t, err)
 		_, err = workTree.Add("testdir/file.txt")
 		require.NoError(t, err)
@@ -1594,13 +1585,12 @@ func TestClient_RemoveDirectory_EdgeCaseScenarios(t *testing.T) {
 		client := &Client{
 			RepoURL:  "origin",
 			Branch:   "main",
-			SshKey:   createTestSSHKey(),
+			SSHKey:   createTestSSHKey(),
 			RepoPath: repoPath,
 		}
 
 		// Remove directory, not the root file
 		err = client.RemoveDirectory("testdir", "Remove testdir only")
-
 		if err != nil {
 			assert.True(t,
 				strings.Contains(err.Error(), "failed to push") ||
@@ -1629,13 +1619,13 @@ func TestClient_RemoveDirectory_EdgeCaseScenarios(t *testing.T) {
 
 		// Create directory with both tracked and untracked files
 		mixedDir := filepath.Join(repoPath, "mixed")
-		err = os.MkdirAll(mixedDir, 0755)
+		err = os.MkdirAll(mixedDir, 0o755)
 		require.NoError(t, err)
 
 		trackedFile := filepath.Join(mixedDir, "tracked.txt")
 		untrackedFile := filepath.Join(mixedDir, "untracked.txt")
 
-		err = os.WriteFile(trackedFile, []byte("tracked content"), 0644)
+		err = os.WriteFile(trackedFile, []byte("tracked content"), 0o644)
 		require.NoError(t, err)
 		_, err = workTree.Add("mixed/tracked.txt")
 		require.NoError(t, err)
@@ -1650,13 +1640,13 @@ func TestClient_RemoveDirectory_EdgeCaseScenarios(t *testing.T) {
 		require.NoError(t, err)
 
 		// Add untracked file after commit
-		err = os.WriteFile(untrackedFile, []byte("untracked content"), 0644)
+		err = os.WriteFile(untrackedFile, []byte("untracked content"), 0o644)
 		require.NoError(t, err)
 
 		client := &Client{
 			RepoURL:  "origin",
 			Branch:   "main",
-			SshKey:   createTestSSHKey(),
+			SSHKey:   createTestSSHKey(),
 			RepoPath: repoPath,
 		}
 
@@ -1742,7 +1732,7 @@ func TestClient_FilePermissions(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -1767,7 +1757,7 @@ func TestClient_FilePermissions(t *testing.T) {
 		// On Unix systems, check specific permissions
 		if mode&fs.ModePerm != 0 {
 			perm := mode & fs.ModePerm
-			assert.Equal(t, fs.FileMode(0644), perm, "File should have 0644 permissions: %s", filePath)
+			assert.Equal(t, fs.FileMode(0o644), perm, "File should have 0644 permissions: %s", filePath)
 		}
 	}
 }
@@ -1784,7 +1774,7 @@ func TestClient_EdgeCases(t *testing.T) {
 		client := &Client{
 			RepoURL:  "origin",
 			Branch:   "main",
-			SshKey:   createTestSSHKey(),
+			SSHKey:   createTestSSHKey(),
 			RepoPath: repoPath,
 		}
 
@@ -1806,7 +1796,7 @@ func TestClient_EdgeCases(t *testing.T) {
 		client := &Client{
 			RepoURL:  "origin",
 			Branch:   "main",
-			SshKey:   createTestSSHKey(),
+			SSHKey:   createTestSSHKey(),
 			RepoPath: repoPath,
 		}
 
@@ -1832,7 +1822,7 @@ func TestClient_EdgeCases(t *testing.T) {
 		client := &Client{
 			RepoURL:  "origin",
 			Branch:   "main",
-			SshKey:   createTestSSHKey(),
+			SSHKey:   createTestSSHKey(),
 			RepoPath: repoPath,
 		}
 
@@ -1862,7 +1852,7 @@ func TestClient_EdgeCases(t *testing.T) {
 		client := &Client{
 			RepoURL:  "origin",
 			Branch:   "main",
-			SshKey:   createTestSSHKey(),
+			SSHKey:   createTestSSHKey(),
 			RepoPath: repoPath,
 		}
 
@@ -1895,7 +1885,7 @@ func TestClient_ConcurrentAccess(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -1929,7 +1919,7 @@ func BenchmarkClient_CommitAndPush(b *testing.B) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -1962,8 +1952,8 @@ func BenchmarkClient_FileCreation(b *testing.B) {
 		// Only test file creation part, not git operations
 		for filePath, content := range files {
 			fullPath := filepath.Join(repoPath, filePath)
-			os.MkdirAll(filepath.Dir(fullPath), 0755)
-			os.WriteFile(fullPath, []byte(content), 0644)
+			os.MkdirAll(filepath.Dir(fullPath), 0o755)
+			os.WriteFile(fullPath, []byte(content), 0o644)
 		}
 	}
 }
@@ -1995,7 +1985,7 @@ func TestGitCommitDetails(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -2022,7 +2012,7 @@ func TestNewGitClientConfig_ValidTokenFile(t *testing.T) {
 	expectedToken := "github_pat_123456789abcdef"
 
 	// Create token file
-	err := os.WriteFile(tokenFile, []byte(expectedToken), 0600)
+	err := os.WriteFile(tokenFile, []byte(expectedToken), 0o600)
 	require.NoError(t, err)
 
 	config, err := NewGitClientConfig(
@@ -2049,7 +2039,7 @@ func TestNewGitClientConfig_TokenFileWithWhitespace(t *testing.T) {
 	expectedToken := "github_pat_with_whitespace"
 
 	// Create token file with whitespace
-	err := os.WriteFile(tokenFile, []byte(rawToken), 0600)
+	err := os.WriteFile(tokenFile, []byte(rawToken), 0o600)
 	require.NoError(t, err)
 
 	config, err := NewGitClientConfig(
@@ -2140,7 +2130,7 @@ func TestNewGitClientConfig_TokenFileReadError(t *testing.T) {
 
 	// Create a directory instead of a file to cause read error
 	tokenDir := filepath.Join(tmpDir, "token-dir")
-	err := os.Mkdir(tokenDir, 0755)
+	err := os.Mkdir(tokenDir, 0o755)
 	require.NoError(t, err)
 
 	fallbackToken := "fallback-env-token"
@@ -2164,7 +2154,7 @@ func TestNewGitClientConfig_TokenFilePermissions(t *testing.T) {
 	expectedToken := "secure_token_123"
 
 	// Create token file with restricted permissions
-	err := os.WriteFile(tokenFile, []byte(expectedToken), 0600)
+	err := os.WriteFile(tokenFile, []byte(expectedToken), 0o600)
 	require.NoError(t, err)
 
 	config, err := NewGitClientConfig(
@@ -2190,7 +2180,7 @@ func TestNewGitClientConfig_EmptyTokenFileContent(t *testing.T) {
 	fallbackToken := "fallback-token-456"
 
 	// Create empty token file
-	err := os.WriteFile(tokenFile, []byte(""), 0600)
+	err := os.WriteFile(tokenFile, []byte(""), 0o600)
 	require.NoError(t, err)
 
 	config, err := NewGitClientConfig(
@@ -2212,7 +2202,7 @@ func TestNewGitClientConfig_WhitespaceOnlyTokenFile(t *testing.T) {
 	fallbackToken := "fallback-token-789"
 
 	// Create token file with only whitespace
-	err := os.WriteFile(tokenFile, []byte("   \n\t   \n   "), 0600)
+	err := os.WriteFile(tokenFile, []byte("   \n\t   \n   "), 0o600)
 	require.NoError(t, err)
 
 	config, err := NewGitClientConfig(
@@ -2244,7 +2234,7 @@ func TestNewGitClientConfig_TableDriven(t *testing.T) {
 			setupToken: func() (string, string) {
 				tokenFile := filepath.Join(tmpDir, "valid-token.txt")
 				content := "github_pat_valid_token"
-				os.WriteFile(tokenFile, []byte(content), 0600)
+				os.WriteFile(tokenFile, []byte(content), 0o600)
 				return tokenFile, content
 			},
 			envVarToken:   "env-token",
@@ -2257,7 +2247,7 @@ func TestNewGitClientConfig_TableDriven(t *testing.T) {
 			setupToken: func() (string, string) {
 				tokenFile := filepath.Join(tmpDir, "multiline-token.txt")
 				content := "line1\ngithub_pat_multiline\nline3"
-				os.WriteFile(tokenFile, []byte(content), 0600)
+				os.WriteFile(tokenFile, []byte(content), 0o600)
 				return tokenFile, content
 			},
 			envVarToken:   "env-token",
@@ -2354,7 +2344,7 @@ func TestNewClientFromConfig(t *testing.T) {
 	assert.NotNil(t, client)
 	assert.Equal(t, config.RepoURL, client.RepoURL)
 	assert.Equal(t, config.Branch, client.Branch)
-	assert.Equal(t, config.Token, client.SshKey)
+	assert.Equal(t, config.Token, client.SSHKey)
 	assert.Equal(t, config.RepoPath, client.RepoPath)
 	assert.Equal(t, config.Logger, client.logger)
 }
@@ -2374,7 +2364,7 @@ func TestNewClientFromConfig_NilLogger(t *testing.T) {
 	assert.NotNil(t, client.logger, "Logger should be set to default when nil")
 	assert.Equal(t, config.RepoURL, client.RepoURL)
 	assert.Equal(t, config.Branch, client.Branch)
-	assert.Equal(t, config.Token, client.SshKey)
+	assert.Equal(t, config.Token, client.SSHKey)
 	assert.Equal(t, config.RepoPath, client.RepoPath)
 }
 
@@ -2385,7 +2375,7 @@ func TestTokenLoadingIntegration(t *testing.T) {
 	token := "integration_test_token_123"
 
 	// Create token file
-	err := os.WriteFile(tokenFile, []byte("  "+token+"  \n"), 0600)
+	err := os.WriteFile(tokenFile, []byte("  "+token+"  \n"), 0o600)
 	require.NoError(t, err)
 
 	// Create config with token file
@@ -2405,7 +2395,7 @@ func TestTokenLoadingIntegration(t *testing.T) {
 	// Verify the complete workflow
 	assert.Equal(t, "git@github.com:test/repo.git", client.RepoURL)
 	assert.Equal(t, "develop", client.Branch)
-	assert.Equal(t, token, client.SshKey, "Token should be trimmed and used as SSH key")
+	assert.Equal(t, token, client.SSHKey, "Token should be trimmed and used as SSH key")
 	assert.Equal(t, "/tmp/deployment-repo", client.RepoPath)
 	assert.NotNil(t, client.logger)
 }
@@ -2418,7 +2408,7 @@ func TestNewGitClientConfig_EdgeCases(t *testing.T) {
 
 		// Create a very large token (10KB)
 		largeToken := strings.Repeat("a", 10240)
-		err := os.WriteFile(tokenFile, []byte(largeToken), 0600)
+		err := os.WriteFile(tokenFile, []byte(largeToken), 0o600)
 		require.NoError(t, err)
 
 		config, err := NewGitClientConfig(
@@ -2439,7 +2429,7 @@ func TestNewGitClientConfig_EdgeCases(t *testing.T) {
 
 		// Create a file with binary content
 		binaryContent := []byte{0x00, 0x01, 0x02, 0xFF, 0xFE, 0xFD}
-		err := os.WriteFile(tokenFile, binaryContent, 0600)
+		err := os.WriteFile(tokenFile, binaryContent, 0o600)
 		require.NoError(t, err)
 
 		config, err := NewGitClientConfig(
@@ -2461,8 +2451,8 @@ func TestNewGitClientConfig_EdgeCases(t *testing.T) {
 		tokenFile := filepath.Join(tmpDir, "unicode-token.txt")
 
 		// Create a file with Unicode content
-		unicodeToken := "github_pat_🔑_token_测试"
-		err := os.WriteFile(tokenFile, []byte(unicodeToken), 0600)
+		unicodeToken := "github_pat_测试_token_测试"
+		err := os.WriteFile(tokenFile, []byte(unicodeToken), 0o600)
 		require.NoError(t, err)
 
 		config, err := NewGitClientConfig(
@@ -2486,7 +2476,7 @@ func BenchmarkNewGitClientConfig_TokenFile(b *testing.B) {
 
 	tokenFile := filepath.Join(tmpDir, "bench-token.txt")
 	token := "benchmark_token_123456789"
-	err = os.WriteFile(tokenFile, []byte(token), 0600)
+	err = os.WriteFile(tokenFile, []byte(token), 0o600)
 	require.NoError(b, err)
 
 	b.ResetTimer()

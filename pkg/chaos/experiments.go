@@ -21,22 +21,17 @@ type PredefinedExperiments struct {
 // NewPredefinedExperiments creates a new catalog of predefined experiments.
 
 func NewPredefinedExperiments(logger *zap.Logger, engine *ChaosEngine) *PredefinedExperiments {
-
 	return &PredefinedExperiments{
-
 		logger: logger,
 
 		engine: engine,
 	}
-
 }
 
 // GetNetworkLatencyExperiment creates a network latency injection experiment.
 
 func (p *PredefinedExperiments) GetNetworkLatencyExperiment(targetNamespace string, latencyMS int) *Experiment {
-
 	return &Experiment{
-
 		Name: "network-latency-injection",
 
 		Description: "Inject network latency to test system tolerance",
@@ -44,17 +39,14 @@ func (p *PredefinedExperiments) GetNetworkLatencyExperiment(targetNamespace stri
 		Type: ExperimentTypeNetwork,
 
 		Target: ExperimentTarget{
-
 			Namespace: targetNamespace,
 
 			LabelSelector: map[string]string{
-
 				"app.kubernetes.io/component": "network-function",
 			},
 		},
 
 		Parameters: map[string]string{
-
 			"latency": fmt.Sprintf("%dms", latencyMS),
 
 			"jitter": fmt.Sprintf("%dms", latencyMS/10),
@@ -65,7 +57,6 @@ func (p *PredefinedExperiments) GetNetworkLatencyExperiment(targetNamespace stri
 		SafetyLevel: SafetyLevelMedium,
 
 		BlastRadius: BlastRadius{
-
 			Namespaces: []string{targetNamespace},
 
 			MaxPods: 3,
@@ -76,7 +67,6 @@ func (p *PredefinedExperiments) GetNetworkLatencyExperiment(targetNamespace stri
 		},
 
 		SLAThresholds: SLAThresholds{
-
 			MaxLatencyMS: 2000,
 
 			MinAvailability: 99.9,
@@ -92,15 +82,12 @@ func (p *PredefinedExperiments) GetNetworkLatencyExperiment(targetNamespace stri
 
 		RollbackOnFail: true,
 	}
-
 }
 
 // GetPacketLossExperiment creates a packet loss experiment.
 
 func (p *PredefinedExperiments) GetPacketLossExperiment(targetNamespace string, lossPercent float64) *Experiment {
-
 	return &Experiment{
-
 		Name: "packet-loss-injection",
 
 		Description: "Simulate packet loss in network communication",
@@ -108,17 +95,14 @@ func (p *PredefinedExperiments) GetPacketLossExperiment(targetNamespace string, 
 		Type: ExperimentTypeNetwork,
 
 		Target: ExperimentTarget{
-
 			Namespace: targetNamespace,
 
 			LabelSelector: map[string]string{
-
 				"app.kubernetes.io/component": "network-function",
 			},
 		},
 
 		Parameters: map[string]string{
-
 			"loss": fmt.Sprintf("%.2f", lossPercent),
 
 			"correlation": "25",
@@ -127,7 +111,6 @@ func (p *PredefinedExperiments) GetPacketLossExperiment(targetNamespace string, 
 		SafetyLevel: SafetyLevelMedium,
 
 		BlastRadius: BlastRadius{
-
 			Namespaces: []string{targetNamespace},
 
 			MaxPods: 2,
@@ -138,7 +121,6 @@ func (p *PredefinedExperiments) GetPacketLossExperiment(targetNamespace string, 
 		},
 
 		SLAThresholds: SLAThresholds{
-
 			MaxLatencyMS: 2500,
 
 			MinAvailability: 99.5,
@@ -154,15 +136,12 @@ func (p *PredefinedExperiments) GetPacketLossExperiment(targetNamespace string, 
 
 		RollbackOnFail: true,
 	}
-
 }
 
 // GetNetworkPartitionExperiment creates a network partition experiment.
 
 func (p *PredefinedExperiments) GetNetworkPartitionExperiment(sourceNamespace, targetNamespace string) *Experiment {
-
 	return &Experiment{
-
 		Name: "network-partition",
 
 		Description: "Create network partition between components",
@@ -170,17 +149,14 @@ func (p *PredefinedExperiments) GetNetworkPartitionExperiment(sourceNamespace, t
 		Type: ExperimentTypeNetwork,
 
 		Target: ExperimentTarget{
-
 			Namespace: sourceNamespace,
 
 			LabelSelector: map[string]string{
-
 				"app.kubernetes.io/component": "network-function",
 			},
 		},
 
 		Parameters: map[string]string{
-
 			"source_namespace": sourceNamespace,
 
 			"target_namespace": targetNamespace,
@@ -193,7 +169,6 @@ func (p *PredefinedExperiments) GetNetworkPartitionExperiment(sourceNamespace, t
 		SafetyLevel: SafetyLevelHigh,
 
 		BlastRadius: BlastRadius{
-
 			Namespaces: []string{sourceNamespace, targetNamespace},
 
 			MaxPods: 5,
@@ -202,7 +177,6 @@ func (p *PredefinedExperiments) GetNetworkPartitionExperiment(sourceNamespace, t
 		},
 
 		SLAThresholds: SLAThresholds{
-
 			MaxLatencyMS: 3000,
 
 			MinAvailability: 99.0,
@@ -218,15 +192,12 @@ func (p *PredefinedExperiments) GetNetworkPartitionExperiment(sourceNamespace, t
 
 		RollbackOnFail: true,
 	}
-
 }
 
 // GetPodChaosExperiment creates a pod failure experiment.
 
 func (p *PredefinedExperiments) GetPodChaosExperiment(targetNamespace, killMode string) *Experiment {
-
 	return &Experiment{
-
 		Name: "pod-chaos",
 
 		Description: "Randomly terminate pods to test resilience",
@@ -234,17 +205,14 @@ func (p *PredefinedExperiments) GetPodChaosExperiment(targetNamespace, killMode 
 		Type: ExperimentTypePod,
 
 		Target: ExperimentTarget{
-
 			Namespace: targetNamespace,
 
 			LabelSelector: map[string]string{
-
 				"chaos": "enabled",
 			},
 		},
 
 		Parameters: map[string]string{
-
 			"mode": killMode, // random, fixed, percentage
 
 			"count": "1",
@@ -257,7 +225,6 @@ func (p *PredefinedExperiments) GetPodChaosExperiment(targetNamespace, killMode 
 		SafetyLevel: SafetyLevelMedium,
 
 		BlastRadius: BlastRadius{
-
 			Namespaces: []string{targetNamespace},
 
 			MaxPods: 3,
@@ -266,7 +233,6 @@ func (p *PredefinedExperiments) GetPodChaosExperiment(targetNamespace, killMode 
 		},
 
 		SLAThresholds: SLAThresholds{
-
 			MaxLatencyMS: 2000,
 
 			MinAvailability: 99.5,
@@ -282,15 +248,12 @@ func (p *PredefinedExperiments) GetPodChaosExperiment(targetNamespace, killMode 
 
 		RollbackOnFail: true,
 	}
-
 }
 
 // GetCPUStressExperiment creates a CPU stress experiment.
 
 func (p *PredefinedExperiments) GetCPUStressExperiment(targetNamespace string, cpuPercent int) *Experiment {
-
 	return &Experiment{
-
 		Name: "cpu-stress",
 
 		Description: "Inject CPU stress to test performance under load",
@@ -298,17 +261,14 @@ func (p *PredefinedExperiments) GetCPUStressExperiment(targetNamespace string, c
 		Type: ExperimentTypeResource,
 
 		Target: ExperimentTarget{
-
 			Namespace: targetNamespace,
 
 			LabelSelector: map[string]string{
-
 				"app.kubernetes.io/component": "compute-intensive",
 			},
 		},
 
 		Parameters: map[string]string{
-
 			"cpu_percent": fmt.Sprintf("%d", cpuPercent),
 
 			"workers": "2",
@@ -319,7 +279,6 @@ func (p *PredefinedExperiments) GetCPUStressExperiment(targetNamespace string, c
 		SafetyLevel: SafetyLevelMedium,
 
 		BlastRadius: BlastRadius{
-
 			Namespaces: []string{targetNamespace},
 
 			MaxPods: 2,
@@ -328,7 +287,6 @@ func (p *PredefinedExperiments) GetCPUStressExperiment(targetNamespace string, c
 		},
 
 		SLAThresholds: SLAThresholds{
-
 			MaxLatencyMS: 3000,
 
 			MinAvailability: 99.5,
@@ -344,15 +302,12 @@ func (p *PredefinedExperiments) GetCPUStressExperiment(targetNamespace string, c
 
 		RollbackOnFail: true,
 	}
-
 }
 
 // GetMemoryStressExperiment creates a memory stress experiment.
 
 func (p *PredefinedExperiments) GetMemoryStressExperiment(targetNamespace string, memoryMB int) *Experiment {
-
 	return &Experiment{
-
 		Name: "memory-stress",
 
 		Description: "Inject memory pressure to test OOM handling",
@@ -360,17 +315,14 @@ func (p *PredefinedExperiments) GetMemoryStressExperiment(targetNamespace string
 		Type: ExperimentTypeResource,
 
 		Target: ExperimentTarget{
-
 			Namespace: targetNamespace,
 
 			LabelSelector: map[string]string{
-
 				"app.kubernetes.io/component": "memory-intensive",
 			},
 		},
 
 		Parameters: map[string]string{
-
 			"memory_mb": fmt.Sprintf("%d", memoryMB),
 
 			"workers": "1",
@@ -385,7 +337,6 @@ func (p *PredefinedExperiments) GetMemoryStressExperiment(targetNamespace string
 		SafetyLevel: SafetyLevelMedium,
 
 		BlastRadius: BlastRadius{
-
 			Namespaces: []string{targetNamespace},
 
 			MaxPods: 2,
@@ -394,7 +345,6 @@ func (p *PredefinedExperiments) GetMemoryStressExperiment(targetNamespace string
 		},
 
 		SLAThresholds: SLAThresholds{
-
 			MaxLatencyMS: 2500,
 
 			MinAvailability: 99.5,
@@ -410,15 +360,12 @@ func (p *PredefinedExperiments) GetMemoryStressExperiment(targetNamespace string
 
 		RollbackOnFail: true,
 	}
-
 }
 
 // GetDiskIOStressExperiment creates a disk I/O stress experiment.
 
 func (p *PredefinedExperiments) GetDiskIOStressExperiment(targetNamespace string, ioWorkers int) *Experiment {
-
 	return &Experiment{
-
 		Name: "disk-io-stress",
 
 		Description: "Stress disk I/O to test storage performance",
@@ -426,17 +373,14 @@ func (p *PredefinedExperiments) GetDiskIOStressExperiment(targetNamespace string
 		Type: ExperimentTypeResource,
 
 		Target: ExperimentTarget{
-
 			Namespace: targetNamespace,
 
 			LabelSelector: map[string]string{
-
 				"app.kubernetes.io/component": "storage-intensive",
 			},
 		},
 
 		Parameters: map[string]string{
-
 			"io_workers": fmt.Sprintf("%d", ioWorkers),
 
 			"io_ops": "100",
@@ -451,7 +395,6 @@ func (p *PredefinedExperiments) GetDiskIOStressExperiment(targetNamespace string
 		SafetyLevel: SafetyLevelMedium,
 
 		BlastRadius: BlastRadius{
-
 			Namespaces: []string{targetNamespace},
 
 			MaxPods: 1,
@@ -460,7 +403,6 @@ func (p *PredefinedExperiments) GetDiskIOStressExperiment(targetNamespace string
 		},
 
 		SLAThresholds: SLAThresholds{
-
 			MaxLatencyMS: 4000,
 
 			MinAvailability: 99.0,
@@ -476,15 +418,12 @@ func (p *PredefinedExperiments) GetDiskIOStressExperiment(targetNamespace string
 
 		RollbackOnFail: true,
 	}
-
 }
 
 // GetDatabaseConnectionFailureExperiment creates a database connection failure experiment.
 
 func (p *PredefinedExperiments) GetDatabaseConnectionFailureExperiment(targetNamespace string) *Experiment {
-
 	return &Experiment{
-
 		Name: "database-connection-failure",
 
 		Description: "Simulate database connection failures",
@@ -492,17 +431,14 @@ func (p *PredefinedExperiments) GetDatabaseConnectionFailureExperiment(targetNam
 		Type: ExperimentTypeDatabase,
 
 		Target: ExperimentTarget{
-
 			Namespace: targetNamespace,
 
 			LabelSelector: map[string]string{
-
 				"app.kubernetes.io/component": "database-client",
 			},
 		},
 
 		Parameters: map[string]string{
-
 			"failure_type": "connection_drop",
 
 			"failure_rate": "50",
@@ -515,7 +451,6 @@ func (p *PredefinedExperiments) GetDatabaseConnectionFailureExperiment(targetNam
 		SafetyLevel: SafetyLevelHigh,
 
 		BlastRadius: BlastRadius{
-
 			Namespaces: []string{targetNamespace},
 
 			MaxPods: 2,
@@ -524,7 +459,6 @@ func (p *PredefinedExperiments) GetDatabaseConnectionFailureExperiment(targetNam
 		},
 
 		SLAThresholds: SLAThresholds{
-
 			MaxLatencyMS: 3000,
 
 			MinAvailability: 99.0,
@@ -540,15 +474,12 @@ func (p *PredefinedExperiments) GetDatabaseConnectionFailureExperiment(targetNam
 
 		RollbackOnFail: true,
 	}
-
 }
 
 // GetDatabaseSlowQueryExperiment creates a slow database query experiment.
 
 func (p *PredefinedExperiments) GetDatabaseSlowQueryExperiment(targetNamespace string, delayMS int) *Experiment {
-
 	return &Experiment{
-
 		Name: "database-slow-query",
 
 		Description: "Inject delays in database queries",
@@ -556,17 +487,14 @@ func (p *PredefinedExperiments) GetDatabaseSlowQueryExperiment(targetNamespace s
 		Type: ExperimentTypeDatabase,
 
 		Target: ExperimentTarget{
-
 			Namespace: targetNamespace,
 
 			LabelSelector: map[string]string{
-
 				"app.kubernetes.io/component": "database",
 			},
 		},
 
 		Parameters: map[string]string{
-
 			"query_delay_ms": fmt.Sprintf("%d", delayMS),
 
 			"affected_tables": "all",
@@ -579,7 +507,6 @@ func (p *PredefinedExperiments) GetDatabaseSlowQueryExperiment(targetNamespace s
 		SafetyLevel: SafetyLevelMedium,
 
 		BlastRadius: BlastRadius{
-
 			Namespaces: []string{targetNamespace},
 
 			MaxPods: 1,
@@ -588,7 +515,6 @@ func (p *PredefinedExperiments) GetDatabaseSlowQueryExperiment(targetNamespace s
 		},
 
 		SLAThresholds: SLAThresholds{
-
 			MaxLatencyMS: 5000,
 
 			MinAvailability: 99.5,
@@ -604,15 +530,12 @@ func (p *PredefinedExperiments) GetDatabaseSlowQueryExperiment(targetNamespace s
 
 		RollbackOnFail: true,
 	}
-
 }
 
 // GetLLMAPITimeoutExperiment creates an LLM API timeout experiment.
 
 func (p *PredefinedExperiments) GetLLMAPITimeoutExperiment(targetNamespace string) *Experiment {
-
 	return &Experiment{
-
 		Name: "llm-api-timeout",
 
 		Description: "Simulate LLM API timeouts and delays",
@@ -620,17 +543,14 @@ func (p *PredefinedExperiments) GetLLMAPITimeoutExperiment(targetNamespace strin
 		Type: ExperimentTypeExternal,
 
 		Target: ExperimentTarget{
-
 			Namespace: targetNamespace,
 
 			LabelSelector: map[string]string{
-
 				"app.kubernetes.io/name": "llm-processor",
 			},
 		},
 
 		Parameters: map[string]string{
-
 			"api_endpoint": "openai",
 
 			"timeout_ms": "5000",
@@ -643,7 +563,6 @@ func (p *PredefinedExperiments) GetLLMAPITimeoutExperiment(targetNamespace strin
 		SafetyLevel: SafetyLevelHigh,
 
 		BlastRadius: BlastRadius{
-
 			Namespaces: []string{targetNamespace},
 
 			MaxPods: 1,
@@ -652,7 +571,6 @@ func (p *PredefinedExperiments) GetLLMAPITimeoutExperiment(targetNamespace strin
 		},
 
 		SLAThresholds: SLAThresholds{
-
 			MaxLatencyMS: 8000,
 
 			MinAvailability: 99.0,
@@ -668,15 +586,12 @@ func (p *PredefinedExperiments) GetLLMAPITimeoutExperiment(targetNamespace strin
 
 		RollbackOnFail: true,
 	}
-
 }
 
 // GetRAGSystemFailureExperiment creates a RAG system failure experiment.
 
 func (p *PredefinedExperiments) GetRAGSystemFailureExperiment(targetNamespace string) *Experiment {
-
 	return &Experiment{
-
 		Name: "rag-system-failure",
 
 		Description: "Simulate RAG vector database failures",
@@ -684,17 +599,14 @@ func (p *PredefinedExperiments) GetRAGSystemFailureExperiment(targetNamespace st
 		Type: ExperimentTypeExternal,
 
 		Target: ExperimentTarget{
-
 			Namespace: targetNamespace,
 
 			LabelSelector: map[string]string{
-
 				"app.kubernetes.io/name": "rag-api",
 			},
 		},
 
 		Parameters: map[string]string{
-
 			"component": "weaviate",
 
 			"failure_type": "connection_error",
@@ -707,7 +619,6 @@ func (p *PredefinedExperiments) GetRAGSystemFailureExperiment(targetNamespace st
 		SafetyLevel: SafetyLevelMedium,
 
 		BlastRadius: BlastRadius{
-
 			Namespaces: []string{targetNamespace},
 
 			MaxPods: 2,
@@ -716,7 +627,6 @@ func (p *PredefinedExperiments) GetRAGSystemFailureExperiment(targetNamespace st
 		},
 
 		SLAThresholds: SLAThresholds{
-
 			MaxLatencyMS: 4000,
 
 			MinAvailability: 99.0,
@@ -732,15 +642,12 @@ func (p *PredefinedExperiments) GetRAGSystemFailureExperiment(targetNamespace st
 
 		RollbackOnFail: true,
 	}
-
 }
 
 // GetHighLoadExperiment creates a high load test experiment.
 
 func (p *PredefinedExperiments) GetHighLoadExperiment(targetNamespace string, intentsPerMinute int) *Experiment {
-
 	return &Experiment{
-
 		Name: "high-load-test",
 
 		Description: "Test system under high intent processing load",
@@ -748,12 +655,10 @@ func (p *PredefinedExperiments) GetHighLoadExperiment(targetNamespace string, in
 		Type: ExperimentTypeLoad,
 
 		Target: ExperimentTarget{
-
 			Namespace: targetNamespace,
 		},
 
 		Parameters: map[string]string{
-
 			"intents_per_minute": fmt.Sprintf("%d", intentsPerMinute),
 
 			"duration": "300s",
@@ -766,14 +671,12 @@ func (p *PredefinedExperiments) GetHighLoadExperiment(targetNamespace string, in
 		SafetyLevel: SafetyLevelMedium,
 
 		BlastRadius: BlastRadius{
-
 			Namespaces: []string{targetNamespace},
 
 			Duration: 5 * time.Minute,
 		},
 
 		SLAThresholds: SLAThresholds{
-
 			MaxLatencyMS: 3000,
 
 			MinAvailability: 99.5,
@@ -789,15 +692,12 @@ func (p *PredefinedExperiments) GetHighLoadExperiment(targetNamespace string, in
 
 		RollbackOnFail: true,
 	}
-
 }
 
 // GetKubernetesAPIFailureExperiment creates a Kubernetes API failure experiment.
 
 func (p *PredefinedExperiments) GetKubernetesAPIFailureExperiment(targetNamespace string) *Experiment {
-
 	return &Experiment{
-
 		Name: "kubernetes-api-failure",
 
 		Description: "Simulate Kubernetes API server issues",
@@ -805,17 +705,14 @@ func (p *PredefinedExperiments) GetKubernetesAPIFailureExperiment(targetNamespac
 		Type: ExperimentTypeDependency,
 
 		Target: ExperimentTarget{
-
 			Namespace: targetNamespace,
 
 			LabelSelector: map[string]string{
-
 				"app.kubernetes.io/component": "controller",
 			},
 		},
 
 		Parameters: map[string]string{
-
 			"api_operations": "get,list,watch",
 
 			"failure_rate": "20",
@@ -828,7 +725,6 @@ func (p *PredefinedExperiments) GetKubernetesAPIFailureExperiment(targetNamespac
 		SafetyLevel: SafetyLevelHigh,
 
 		BlastRadius: BlastRadius{
-
 			Namespaces: []string{targetNamespace},
 
 			MaxPods: 2,
@@ -837,7 +733,6 @@ func (p *PredefinedExperiments) GetKubernetesAPIFailureExperiment(targetNamespac
 		},
 
 		SLAThresholds: SLAThresholds{
-
 			MaxLatencyMS: 4000,
 
 			MinAvailability: 99.0,
@@ -853,15 +748,12 @@ func (p *PredefinedExperiments) GetKubernetesAPIFailureExperiment(targetNamespac
 
 		RollbackOnFail: true,
 	}
-
 }
 
 // GetDNSFailureExperiment creates a DNS failure experiment.
 
 func (p *PredefinedExperiments) GetDNSFailureExperiment(targetNamespace string) *Experiment {
-
 	return &Experiment{
-
 		Name: "dns-failure",
 
 		Description: "Simulate DNS resolution failures",
@@ -869,12 +761,10 @@ func (p *PredefinedExperiments) GetDNSFailureExperiment(targetNamespace string) 
 		Type: ExperimentTypeDependency,
 
 		Target: ExperimentTarget{
-
 			Namespace: targetNamespace,
 		},
 
 		Parameters: map[string]string{
-
 			"domains": "*.svc.cluster.local",
 
 			"failure_type": "nxdomain",
@@ -887,7 +777,6 @@ func (p *PredefinedExperiments) GetDNSFailureExperiment(targetNamespace string) 
 		SafetyLevel: SafetyLevelMedium,
 
 		BlastRadius: BlastRadius{
-
 			Namespaces: []string{targetNamespace},
 
 			MaxPods: 5,
@@ -896,7 +785,6 @@ func (p *PredefinedExperiments) GetDNSFailureExperiment(targetNamespace string) 
 		},
 
 		SLAThresholds: SLAThresholds{
-
 			MaxLatencyMS: 3000,
 
 			MinAvailability: 99.0,
@@ -912,15 +800,12 @@ func (p *PredefinedExperiments) GetDNSFailureExperiment(targetNamespace string) 
 
 		RollbackOnFail: true,
 	}
-
 }
 
 // Get5GCoreAMFFailureExperiment creates an AMF failure experiment.
 
 func (p *PredefinedExperiments) Get5GCoreAMFFailureExperiment(targetNamespace string) *Experiment {
-
 	return &Experiment{
-
 		Name: "5g-core-amf-failure",
 
 		Description: "Simulate 5G Core AMF component failure",
@@ -928,11 +813,9 @@ func (p *PredefinedExperiments) Get5GCoreAMFFailureExperiment(targetNamespace st
 		Type: ExperimentTypePod,
 
 		Target: ExperimentTarget{
-
 			Namespace: targetNamespace,
 
 			LabelSelector: map[string]string{
-
 				"app.kubernetes.io/name": "amf",
 
 				"app.kubernetes.io/component": "5g-core",
@@ -940,7 +823,6 @@ func (p *PredefinedExperiments) Get5GCoreAMFFailureExperiment(targetNamespace st
 		},
 
 		Parameters: map[string]string{
-
 			"failure_type": "crash",
 
 			"recovery_delay": "30s",
@@ -951,7 +833,6 @@ func (p *PredefinedExperiments) Get5GCoreAMFFailureExperiment(targetNamespace st
 		SafetyLevel: SafetyLevelHigh,
 
 		BlastRadius: BlastRadius{
-
 			Namespaces: []string{targetNamespace},
 
 			MaxPods: 1,
@@ -960,7 +841,6 @@ func (p *PredefinedExperiments) Get5GCoreAMFFailureExperiment(targetNamespace st
 		},
 
 		SLAThresholds: SLAThresholds{
-
 			MaxLatencyMS: 2000,
 
 			MinAvailability: 99.5,
@@ -976,15 +856,12 @@ func (p *PredefinedExperiments) Get5GCoreAMFFailureExperiment(targetNamespace st
 
 		RollbackOnFail: true,
 	}
-
 }
 
 // GetORANRICFailureExperiment creates an O-RAN RIC failure experiment.
 
 func (p *PredefinedExperiments) GetORANRICFailureExperiment(targetNamespace string) *Experiment {
-
 	return &Experiment{
-
 		Name: "oran-ric-failure",
 
 		Description: "Simulate O-RAN Near-RT RIC failure",
@@ -992,11 +869,9 @@ func (p *PredefinedExperiments) GetORANRICFailureExperiment(targetNamespace stri
 		Type: ExperimentTypePod,
 
 		Target: ExperimentTarget{
-
 			Namespace: targetNamespace,
 
 			LabelSelector: map[string]string{
-
 				"app.kubernetes.io/name": "near-rt-ric",
 
 				"app.kubernetes.io/component": "oran",
@@ -1004,7 +879,6 @@ func (p *PredefinedExperiments) GetORANRICFailureExperiment(targetNamespace stri
 		},
 
 		Parameters: map[string]string{
-
 			"failure_type": "partial",
 
 			"affected_xapps": "traffic-steering,qos-management",
@@ -1015,7 +889,6 @@ func (p *PredefinedExperiments) GetORANRICFailureExperiment(targetNamespace stri
 		SafetyLevel: SafetyLevelHigh,
 
 		BlastRadius: BlastRadius{
-
 			Namespaces: []string{targetNamespace},
 
 			MaxPods: 2,
@@ -1024,7 +897,6 @@ func (p *PredefinedExperiments) GetORANRICFailureExperiment(targetNamespace stri
 		},
 
 		SLAThresholds: SLAThresholds{
-
 			MaxLatencyMS: 3000,
 
 			MinAvailability: 99.0,
@@ -1040,15 +912,12 @@ func (p *PredefinedExperiments) GetORANRICFailureExperiment(targetNamespace stri
 
 		RollbackOnFail: true,
 	}
-
 }
 
 // GetCompositeFailureExperiment creates a composite failure experiment.
 
 func (p *PredefinedExperiments) GetCompositeFailureExperiment(targetNamespace string) *Experiment {
-
 	return &Experiment{
-
 		Name: "composite-failure-scenario",
 
 		Description: "Multiple simultaneous failures to test system resilience",
@@ -1056,12 +925,10 @@ func (p *PredefinedExperiments) GetCompositeFailureExperiment(targetNamespace st
 		Type: ExperimentTypeComposite,
 
 		Target: ExperimentTarget{
-
 			Namespace: targetNamespace,
 		},
 
 		Parameters: map[string]string{
-
 			"scenarios": "network-latency,pod-failure,cpu-stress",
 
 			"stagger_start": "true",
@@ -1074,7 +941,6 @@ func (p *PredefinedExperiments) GetCompositeFailureExperiment(targetNamespace st
 		SafetyLevel: SafetyLevelHigh,
 
 		BlastRadius: BlastRadius{
-
 			Namespaces: []string{targetNamespace},
 
 			MaxPods: 5,
@@ -1083,7 +949,6 @@ func (p *PredefinedExperiments) GetCompositeFailureExperiment(targetNamespace st
 		},
 
 		SLAThresholds: SLAThresholds{
-
 			MaxLatencyMS: 4000,
 
 			MinAvailability: 99.0,
@@ -1099,7 +964,6 @@ func (p *PredefinedExperiments) GetCompositeFailureExperiment(targetNamespace st
 
 		RollbackOnFail: true,
 	}
-
 }
 
 // ExperimentSuite represents a collection of related experiments.
@@ -1138,15 +1002,12 @@ const (
 // GetNetworkResilienceSuite returns a suite of network resilience experiments.
 
 func (p *PredefinedExperiments) GetNetworkResilienceSuite(targetNamespace string) *ExperimentSuite {
-
 	return &ExperimentSuite{
-
 		Name: "network-resilience-suite",
 
 		Description: "Comprehensive network resilience testing",
 
 		Experiments: []*Experiment{
-
 			p.GetNetworkLatencyExperiment(targetNamespace, 100),
 
 			p.GetPacketLossExperiment(targetNamespace, 5.0),
@@ -1156,21 +1017,17 @@ func (p *PredefinedExperiments) GetNetworkResilienceSuite(targetNamespace string
 
 		RunSequence: RunSequenceSerial,
 	}
-
 }
 
 // GetResourceExhaustionSuite returns a suite of resource exhaustion experiments.
 
 func (p *PredefinedExperiments) GetResourceExhaustionSuite(targetNamespace string) *ExperimentSuite {
-
 	return &ExperimentSuite{
-
 		Name: "resource-exhaustion-suite",
 
 		Description: "Test system behavior under resource constraints",
 
 		Experiments: []*Experiment{
-
 			p.GetCPUStressExperiment(targetNamespace, 80),
 
 			p.GetMemoryStressExperiment(targetNamespace, 512),
@@ -1180,21 +1037,17 @@ func (p *PredefinedExperiments) GetResourceExhaustionSuite(targetNamespace strin
 
 		RunSequence: RunSequenceStaggered,
 	}
-
 }
 
 // GetDependencyFailureSuite returns a suite of dependency failure experiments.
 
 func (p *PredefinedExperiments) GetDependencyFailureSuite(targetNamespace string) *ExperimentSuite {
-
 	return &ExperimentSuite{
-
 		Name: "dependency-failure-suite",
 
 		Description: "Test resilience to external dependency failures",
 
 		Experiments: []*Experiment{
-
 			p.GetDatabaseConnectionFailureExperiment(targetNamespace),
 
 			p.GetLLMAPITimeoutExperiment(targetNamespace),
@@ -1208,21 +1061,17 @@ func (p *PredefinedExperiments) GetDependencyFailureSuite(targetNamespace string
 
 		RunSequence: RunSequenceSerial,
 	}
-
 }
 
 // GetTelecomSpecificSuite returns a suite of telecom-specific experiments.
 
 func (p *PredefinedExperiments) GetTelecomSpecificSuite(targetNamespace string) *ExperimentSuite {
-
 	return &ExperimentSuite{
-
 		Name: "telecom-specific-suite",
 
 		Description: "Test telecommunications-specific components",
 
 		Experiments: []*Experiment{
-
 			p.Get5GCoreAMFFailureExperiment(targetNamespace),
 
 			p.GetORANRICFailureExperiment(targetNamespace),
@@ -1230,21 +1079,17 @@ func (p *PredefinedExperiments) GetTelecomSpecificSuite(targetNamespace string) 
 
 		RunSequence: RunSequenceSerial,
 	}
-
 }
 
 // GetSLAValidationSuite returns experiments specifically for SLA validation.
 
 func (p *PredefinedExperiments) GetSLAValidationSuite(targetNamespace string) *ExperimentSuite {
-
 	return &ExperimentSuite{
-
 		Name: "sla-validation-suite",
 
 		Description: "Validate system maintains SLA under various conditions",
 
 		Experiments: []*Experiment{
-
 			// Test 99.95% availability.
 
 			p.GetPodChaosExperiment(targetNamespace, "random"),
@@ -1264,13 +1109,11 @@ func (p *PredefinedExperiments) GetSLAValidationSuite(targetNamespace string) *E
 
 		RunSequence: RunSequenceSerial,
 	}
-
 }
 
 // RunExperimentSuite executes a suite of experiments.
 
 func (p *PredefinedExperiments) RunExperimentSuite(ctx context.Context, suite *ExperimentSuite) ([]*ExperimentResult, error) {
-
 	p.logger.Info("Starting experiment suite",
 
 		zap.String("suite", suite.Name),
@@ -1298,21 +1141,17 @@ func (p *PredefinedExperiments) RunExperimentSuite(ctx context.Context, suite *E
 		return nil, fmt.Errorf("unknown run sequence: %s", suite.RunSequence)
 
 	}
-
 }
 
 // runSerialExperiments runs experiments one after another.
 
 func (p *PredefinedExperiments) runSerialExperiments(ctx context.Context, experiments []*Experiment) ([]*ExperimentResult, error) {
-
 	results := make([]*ExperimentResult, 0, len(experiments))
 
 	for _, exp := range experiments {
 
 		result, err := p.engine.RunExperiment(ctx, exp)
-
 		if err != nil {
-
 			p.logger.Error("Experiment failed",
 
 				zap.String("experiment", exp.Name),
@@ -1320,7 +1159,6 @@ func (p *PredefinedExperiments) runSerialExperiments(ctx context.Context, experi
 				zap.Error(err))
 
 			// Continue with other experiments even if one fails.
-
 		}
 
 		results = append(results, result)
@@ -1342,37 +1180,27 @@ func (p *PredefinedExperiments) runSerialExperiments(ctx context.Context, experi
 	}
 
 	return results, nil
-
 }
 
 // runParallelExperiments runs all experiments simultaneously.
 
 func (p *PredefinedExperiments) runParallelExperiments(ctx context.Context, experiments []*Experiment) ([]*ExperimentResult, error) {
-
 	results := make([]*ExperimentResult, len(experiments))
 
 	errChan := make(chan error, len(experiments))
 
 	for i, exp := range experiments {
-
 		go func(index int, experiment *Experiment) {
-
 			result, err := p.engine.RunExperiment(ctx, experiment)
 
 			results[index] = result
 
 			if err != nil {
-
 				errChan <- err
-
 			} else {
-
 				errChan <- nil
-
 			}
-
 		}(i, exp)
-
 	}
 
 	// Wait for all experiments to complete.
@@ -1380,37 +1208,27 @@ func (p *PredefinedExperiments) runParallelExperiments(ctx context.Context, expe
 	var errors []error
 
 	for range experiments {
-
 		if err := <-errChan; err != nil {
-
 			errors = append(errors, err)
-
 		}
-
 	}
 
 	if len(errors) > 0 {
-
 		return results, fmt.Errorf("some experiments failed: %v", errors)
-
 	}
 
 	return results, nil
-
 }
 
 // runStaggeredExperiments runs experiments with a staggered start.
 
 func (p *PredefinedExperiments) runStaggeredExperiments(ctx context.Context, experiments []*Experiment) ([]*ExperimentResult, error) {
-
 	results := make([]*ExperimentResult, len(experiments))
 
 	staggerDelay := 30 * time.Second
 
 	for i, exp := range experiments {
-
 		go func(index int, experiment *Experiment, delay time.Duration) {
-
 			// Wait for stagger delay.
 
 			select {
@@ -1428,17 +1246,13 @@ func (p *PredefinedExperiments) runStaggeredExperiments(ctx context.Context, exp
 			results[index] = result
 
 			if err != nil {
-
 				p.logger.Error("Staggered experiment failed",
 
 					zap.String("experiment", experiment.Name),
 
 					zap.Error(err))
-
 			}
-
 		}(i, exp, time.Duration(i)*staggerDelay)
-
 	}
 
 	// Wait for all experiments to complete.
@@ -1456,7 +1270,6 @@ func (p *PredefinedExperiments) runStaggeredExperiments(ctx context.Context, exp
 		return results, nil
 
 	}
-
 }
 
 // GameDayScenario represents a comprehensive failure simulation.
@@ -1478,13 +1291,11 @@ type GameDayScenario struct {
 // GetGameDayScenario returns a predefined game day scenario.
 
 func (p *PredefinedExperiments) GetGameDayScenario(scenarioType, targetNamespace string) *GameDayScenario {
-
 	switch scenarioType {
 
 	case "datacenter-failure":
 
 		return &GameDayScenario{
-
 			Name: "Datacenter Failure Simulation",
 
 			Description: "Simulate partial datacenter failure",
@@ -1492,7 +1303,6 @@ func (p *PredefinedExperiments) GetGameDayScenario(scenarioType, targetNamespace
 			Severity: "critical",
 
 			Suites: []*ExperimentSuite{
-
 				p.GetNetworkResilienceSuite(targetNamespace),
 
 				p.GetResourceExhaustionSuite(targetNamespace),
@@ -1503,7 +1313,6 @@ func (p *PredefinedExperiments) GetGameDayScenario(scenarioType, targetNamespace
 			Duration: 2 * time.Hour,
 
 			Objectives: []string{
-
 				"Validate multi-region failover",
 
 				"Test data consistency during failures",
@@ -1517,7 +1326,6 @@ func (p *PredefinedExperiments) GetGameDayScenario(scenarioType, targetNamespace
 	case "peak-load":
 
 		return &GameDayScenario{
-
 			Name: "Peak Load Event",
 
 			Description: "Simulate peak traffic conditions with failures",
@@ -1525,14 +1333,12 @@ func (p *PredefinedExperiments) GetGameDayScenario(scenarioType, targetNamespace
 			Severity: "major",
 
 			Suites: []*ExperimentSuite{
-
 				p.GetSLAValidationSuite(targetNamespace),
 			},
 
 			Duration: 1 * time.Hour,
 
 			Objectives: []string{
-
 				"Validate auto-scaling under load",
 
 				"Test circuit breaker effectiveness",
@@ -1546,7 +1352,6 @@ func (p *PredefinedExperiments) GetGameDayScenario(scenarioType, targetNamespace
 	case "dependency-cascade":
 
 		return &GameDayScenario{
-
 			Name: "Dependency Cascade Failure",
 
 			Description: "Test cascading dependency failures",
@@ -1554,14 +1359,12 @@ func (p *PredefinedExperiments) GetGameDayScenario(scenarioType, targetNamespace
 			Severity: "major",
 
 			Suites: []*ExperimentSuite{
-
 				p.GetDependencyFailureSuite(targetNamespace),
 			},
 
 			Duration: 90 * time.Minute,
 
 			Objectives: []string{
-
 				"Test isolation of failure domains",
 
 				"Validate fallback mechanisms",
@@ -1575,7 +1378,6 @@ func (p *PredefinedExperiments) GetGameDayScenario(scenarioType, targetNamespace
 	default:
 
 		return &GameDayScenario{
-
 			Name: "Basic Resilience Test",
 
 			Description: "Basic system resilience validation",
@@ -1583,14 +1385,12 @@ func (p *PredefinedExperiments) GetGameDayScenario(scenarioType, targetNamespace
 			Severity: "minor",
 
 			Suites: []*ExperimentSuite{
-
 				p.GetNetworkResilienceSuite(targetNamespace),
 			},
 
 			Duration: 30 * time.Minute,
 
 			Objectives: []string{
-
 				"Validate basic resilience mechanisms",
 
 				"Test monitoring and alerting",
@@ -1600,5 +1400,4 @@ func (p *PredefinedExperiments) GetGameDayScenario(scenarioType, targetNamespace
 		}
 
 	}
-
 }

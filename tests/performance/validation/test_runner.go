@@ -1,7 +1,9 @@
 package performance_validation
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"log"
 	"sync"
@@ -23,7 +25,6 @@ type TestRunner struct {
 	mu sync.RWMutex
 
 	// prometheusClient v1.API // TODO: Re-enable when Prometheus integration is needed.
-
 }
 
 // IntentClient defines the interface for intent processing operations.
@@ -55,7 +56,7 @@ type NetworkIntent struct {
 
 	Description string `json:"description"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	Complexity string `json:"complexity"`
 
@@ -99,7 +100,7 @@ type RAGResult struct {
 
 	Source string `json:"source"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // CacheStats represents cache statistics.
@@ -143,20 +144,16 @@ type TestMetrics struct {
 // NewTestRunner creates a new test runner instance.
 
 func NewTestRunner(config *TestConfiguration) *TestRunner {
-
 	return &TestRunner{
-
 		config: config,
 
 		metrics: &TestMetrics{},
 	}
-
 }
 
 // RunIntentLatencyTest performs comprehensive intent processing latency testing.
 
 func (tr *TestRunner) RunIntentLatencyTest(ctx context.Context) ([]float64, error) {
-
 	log.Printf("Starting intent latency test with %d scenarios", len(tr.config.TestScenarios))
 
 	var measurements []float64
@@ -191,7 +188,6 @@ func (tr *TestRunner) RunIntentLatencyTest(ctx context.Context) ([]float64, erro
 
 latencyTestLoop:
 	for time.Since(startTime) < tr.config.TestDuration {
-
 		select {
 
 		case <-testCtx.Done():
@@ -205,7 +201,6 @@ latencyTestLoop:
 				wg.Add(1)
 
 				go func(intent *NetworkIntent) {
-
 					defer wg.Done()
 
 					sem <- struct{}{}
@@ -231,13 +226,10 @@ latencyTestLoop:
 						atomic.AddInt64(&tr.metrics.SuccessfulRequests, 1)
 
 					} else {
-
 						atomic.AddInt64(&tr.metrics.FailedRequests, 1)
-
 					}
 
 					atomic.AddInt64(&tr.metrics.TotalRequests, 1)
-
 				}(intent)
 
 			}
@@ -247,7 +239,6 @@ latencyTestLoop:
 			time.Sleep(100 * time.Millisecond)
 
 		}
-
 	}
 
 	wg.Wait()
@@ -255,13 +246,11 @@ latencyTestLoop:
 	log.Printf("Intent latency test completed. Collected %d measurements", len(measurements))
 
 	return measurements, nil
-
 }
 
 // RunConcurrentCapacityTest determines maximum concurrent intent handling capacity.
 
 func (tr *TestRunner) RunConcurrentCapacityTest(ctx context.Context) (int, []float64, error) {
-
 	log.Printf("Starting concurrent capacity test")
 
 	testIntents := tr.generateTestIntents()
@@ -303,13 +292,11 @@ func (tr *TestRunner) RunConcurrentCapacityTest(ctx context.Context) (int, []flo
 	log.Printf("Maximum concurrent capacity determined: %d", maxConcurrent)
 
 	return maxConcurrent, measurements, nil
-
 }
 
 // testConcurrencyLevel tests a specific concurrency level.
 
 func (tr *TestRunner) testConcurrencyLevel(ctx context.Context, intents []*NetworkIntent, concurrency int) bool {
-
 	testCtx, cancel := context.WithTimeout(ctx, 2*time.Minute) // 2-minute timeout per test
 
 	defer cancel()
@@ -331,7 +318,6 @@ func (tr *TestRunner) testConcurrencyLevel(ctx context.Context, intents []*Netwo
 		wg.Add(1)
 
 		go func(intentIndex int) {
-
 			defer wg.Done()
 
 			select {
@@ -347,13 +333,9 @@ func (tr *TestRunner) testConcurrencyLevel(ctx context.Context, intents []*Netwo
 				result, err := tr.intentClient.ProcessIntent(testCtx, intent)
 
 				if err == nil && result.Status == "success" {
-
 					atomic.AddInt32(&successful, 1)
-
 				} else {
-
 					atomic.AddInt32(&failed, 1)
-
 				}
 
 			case <-testCtx.Done():
@@ -361,7 +343,6 @@ func (tr *TestRunner) testConcurrencyLevel(ctx context.Context, intents []*Netwo
 				atomic.AddInt32(&failed, 1)
 
 			}
-
 		}(i)
 
 	}
@@ -377,13 +358,11 @@ func (tr *TestRunner) testConcurrencyLevel(ctx context.Context, intents []*Netwo
 		concurrency, successful, intentCount, successRate*100)
 
 	return successRate >= 0.95
-
 }
 
 // RunThroughputTest measures sustained throughput over time.
 
 func (tr *TestRunner) RunThroughputTest(ctx context.Context) ([]float64, error) {
-
 	log.Printf("Starting throughput test for %v", tr.config.TestDuration)
 
 	testIntents := tr.generateTestIntents()
@@ -419,11 +398,9 @@ func (tr *TestRunner) RunThroughputTest(ctx context.Context) ([]float64, error) 
 		wg.Add(1)
 
 		go func() {
-
 			defer wg.Done()
 
 			for {
-
 				select {
 
 				case intent := <-intentChan:
@@ -431,9 +408,7 @@ func (tr *TestRunner) RunThroughputTest(ctx context.Context) ([]float64, error) 
 					result, err := tr.intentClient.ProcessIntent(testCtx, intent)
 
 					if err == nil && result.Status == "success" {
-
 						atomic.AddInt64(&intentCounter, 1)
-
 					}
 
 				case <-testCtx.Done():
@@ -441,9 +416,7 @@ func (tr *TestRunner) RunThroughputTest(ctx context.Context) ([]float64, error) 
 					return
 
 				}
-
 			}
-
 		}()
 
 	}
@@ -451,11 +424,9 @@ func (tr *TestRunner) RunThroughputTest(ctx context.Context) ([]float64, error) 
 	// Feed intents to workers and measure throughput.
 
 	go func() {
-
 		intentIndex := 0
 
 		for {
-
 			select {
 
 			case <-testCtx.Done():
@@ -471,9 +442,7 @@ func (tr *TestRunner) RunThroughputTest(ctx context.Context) ([]float64, error) 
 				time.Sleep(time.Second / 50) // Target ~50 intents per second input rate
 
 			}
-
 		}
-
 	}()
 
 	// Measure throughput at intervals.
@@ -481,7 +450,6 @@ func (tr *TestRunner) RunThroughputTest(ctx context.Context) ([]float64, error) 
 	lastCount := int64(0)
 
 	for {
-
 		select {
 
 		case <-testCtx.Done():
@@ -509,15 +477,12 @@ func (tr *TestRunner) RunThroughputTest(ctx context.Context) ([]float64, error) 
 			lastCount = currentCount
 
 		}
-
 	}
-
 }
 
 // RunSystemAvailabilityTest measures system availability during operations.
 
 func (tr *TestRunner) RunSystemAvailabilityTest(ctx context.Context) ([]float64, error) {
-
 	log.Printf("Starting system availability test for %v", tr.config.TestDuration)
 
 	var measurements []float64
@@ -539,7 +504,6 @@ func (tr *TestRunner) RunSystemAvailabilityTest(ctx context.Context) ([]float64,
 	successfulChecks := 0
 
 	for {
-
 		select {
 
 		case <-testCtx.Done():
@@ -571,9 +535,7 @@ func (tr *TestRunner) RunSystemAvailabilityTest(ctx context.Context) ([]float64,
 			totalChecks++
 
 			if available {
-
 				successfulChecks++
-
 			}
 
 			// Calculate rolling availability for the last hour.
@@ -591,15 +553,12 @@ func (tr *TestRunner) RunSystemAvailabilityTest(ctx context.Context) ([]float64,
 			}
 
 		}
-
 	}
-
 }
 
 // RunRAGRetrievalLatencyTest measures RAG system retrieval latency.
 
 func (tr *TestRunner) RunRAGRetrievalLatencyTest(ctx context.Context) ([]float64, error) {
-
 	log.Printf("Starting RAG retrieval latency test")
 
 	testQueries := tr.generateRAGTestQueries()
@@ -622,7 +581,6 @@ func (tr *TestRunner) RunRAGRetrievalLatencyTest(ctx context.Context) ([]float64
 
 loadTestLoop:
 	for time.Since(startTime) < tr.config.TestDuration {
-
 		select {
 
 		case <-testCtx.Done():
@@ -634,7 +592,6 @@ loadTestLoop:
 			wg.Add(1)
 
 			go func(query string) {
-
 				defer wg.Done()
 
 				sem <- struct{}{}
@@ -656,7 +613,6 @@ loadTestLoop:
 					mu.Unlock()
 
 				}
-
 			}(testQueries[queryIndex%len(testQueries)])
 
 			queryIndex++
@@ -664,7 +620,6 @@ loadTestLoop:
 			time.Sleep(200 * time.Millisecond) // 5 queries per second
 
 		}
-
 	}
 
 	wg.Wait()
@@ -672,13 +627,11 @@ loadTestLoop:
 	log.Printf("RAG latency test completed. Collected %d measurements", len(measurements))
 
 	return measurements, nil
-
 }
 
 // RunCacheHitRateTest measures cache hit rate in production-like scenarios.
 
 func (tr *TestRunner) RunCacheHitRateTest(ctx context.Context) ([]float64, error) {
-
 	log.Printf("Starting cache hit rate test")
 
 	testQueries := tr.generateRAGTestQueries()
@@ -702,7 +655,6 @@ func (tr *TestRunner) RunCacheHitRateTest(ctx context.Context) ([]float64, error
 			time.Sleep(50 * time.Millisecond)
 
 		}
-
 	}
 
 	// Measure cache hit rate with mixed query patterns.
@@ -714,7 +666,6 @@ func (tr *TestRunner) RunCacheHitRateTest(ctx context.Context) ([]float64, error
 	// Execute queries with realistic access patterns.
 
 	queryWeights := map[int]int{
-
 		0: 50, // 50% frequently accessed queries (high cache hit probability)
 
 		1: 30, // 30% moderately accessed queries
@@ -756,9 +707,7 @@ func (tr *TestRunner) RunCacheHitRateTest(ctx context.Context) ([]float64, error
 			totalQueries++
 
 			if response.CacheHit {
-
 				cacheHits++
-
 			}
 
 			// Record hit rate every 100 queries.
@@ -792,7 +741,6 @@ func (tr *TestRunner) RunCacheHitRateTest(ctx context.Context) ([]float64, error
 	}
 
 	return measurements, nil
-
 }
 
 // Helper methods.
@@ -800,168 +748,93 @@ func (tr *TestRunner) RunCacheHitRateTest(ctx context.Context) ([]float64, error
 // generateTestIntents creates realistic telecommunications intent test cases.
 
 func (tr *TestRunner) generateTestIntents() []*NetworkIntent {
-
 	intents := []*NetworkIntent{
-
 		// 5G Core Network Function Intents.
 
 		{
-
 			Type: "5g-core-amf",
 
 			Description: "Deploy high-availability AMF with auto-scaling",
 
 			Complexity: "moderate",
 
-			Parameters: map[string]interface{}{
-
-				"replicas": 3,
-
-				"memory_limit": "2Gi",
-
-				"cpu_limit": "1000m",
-
-				"auto_scaling": true,
-
-				"max_replicas": 10,
-			},
+			Parameters: json.RawMessage(`{}`),
 		},
 
 		{
-
 			Type: "5g-core-smf",
 
 			Description: "Deploy SMF with session management policies",
 
 			Complexity: "complex",
 
-			Parameters: map[string]interface{}{
-
-				"session_capacity": 10000,
-
-				"qos_policies": []string{"voice", "video", "data"},
-
-				"charging_enabled": true,
-			},
+			Parameters: json.RawMessage(`{"charging_enabled": true}`),
 		},
 
 		{
-
 			Type: "5g-core-upf",
 
 			Description: "Deploy edge UPF for ultra-low latency",
 
 			Complexity: "complex",
 
-			Parameters: map[string]interface{}{
-
-				"location": "edge",
-
-				"latency_target": "1ms",
-
-				"throughput_gbps": 100,
-			},
+			Parameters: json.RawMessage(`{}`),
 		},
 
 		// O-RAN Network Function Intents.
 
 		{
-
 			Type: "oran-odu",
 
 			Description: "Deploy O-DU with beamforming capabilities",
 
 			Complexity: "moderate",
 
-			Parameters: map[string]interface{}{
-
-				"beamforming": true,
-
-				"antenna_ports": 64,
-
-				"frequency_band": "n78",
-			},
+			Parameters: json.RawMessage(`{}`),
 		},
 
 		{
-
 			Type: "oran-ocu",
 
 			Description: "Deploy O-CU with multi-cell coordination",
 
 			Complexity: "complex",
 
-			Parameters: map[string]interface{}{
-
-				"cells": 12,
-
-				"coordination": "comp",
-
-				"load_balancing": true,
-			},
+			Parameters: json.RawMessage(`{}`),
 		},
 
 		// Network Slicing Intents.
 
 		{
-
 			Type: "network-slice-embb",
 
 			Description: "Create eMBB slice for high-speed broadband",
 
 			Complexity: "moderate",
 
-			Parameters: map[string]interface{}{
-
-				"slice_type": "embb",
-
-				"bandwidth_gbps": 10,
-
-				"user_capacity": 50000,
-			},
+			Parameters: json.RawMessage(`{}`),
 		},
 
 		{
-
 			Type: "network-slice-urllc",
 
 			Description: "Create URLLC slice for mission-critical applications",
 
 			Complexity: "complex",
 
-			Parameters: map[string]interface{}{
-
-				"slice_type": "urllc",
-
-				"latency_target": "1ms",
-
-				"reliability": "99.999%",
-
-				"isolation_level": "high",
-			},
+			Parameters: json.RawMessage(`{}`),
 		},
 
 		// Simple configuration intents.
 
 		{
-
 			Type: "monitoring-config",
 
 			Description: "Configure monitoring and alerting",
 
 			Complexity: "simple",
 
-			Parameters: map[string]interface{}{
-
-				"metrics_interval": "30s",
-
-				"alert_thresholds": map[string]float64{
-
-					"cpu": 80.0,
-
-					"memory": 85.0,
-				},
-			},
+			Parameters: json.RawMessage(`{}`),
 		},
 	}
 
@@ -976,15 +849,12 @@ func (tr *TestRunner) generateTestIntents() []*NetworkIntent {
 	}
 
 	return intents
-
 }
 
 // generateRAGTestQueries creates telecommunications-specific test queries.
 
 func (tr *TestRunner) generateRAGTestQueries() []string {
-
 	return []string{
-
 		// 5G and telecommunications queries.
 
 		"How to configure AMF for high availability deployment?",
@@ -1073,13 +943,11 @@ func (tr *TestRunner) generateRAGTestQueries() []string {
 
 		"Multi-cloud deployment strategies for 5G networks",
 	}
-
 }
 
 // modifyIntent creates a unique copy of an intent for testing.
 
 func (tr *TestRunner) modifyIntent(baseIntent *NetworkIntent, index int) *NetworkIntent {
-
 	intent := *baseIntent // Shallow copy
 
 	intent.ID = fmt.Sprintf("%s-%d-%d", baseIntent.ID, index, time.Now().UnixNano())
@@ -1087,19 +955,15 @@ func (tr *TestRunner) modifyIntent(baseIntent *NetworkIntent, index int) *Networ
 	intent.Timestamp = time.Now()
 
 	return &intent
-
 }
 
 // selectWeightedCategory selects a category based on weighted probabilities.
 
 func (tr *TestRunner) selectWeightedCategory(weights map[int]int) int {
-
 	totalWeight := 0
 
 	for _, weight := range weights {
-
 		totalWeight += weight
-
 	}
 
 	// Simple pseudo-random selection based on current time.
@@ -1113,21 +977,17 @@ func (tr *TestRunner) selectWeightedCategory(weights map[int]int) int {
 		cumulative += weight
 
 		if selection < cumulative {
-
 			return category
-
 		}
 
 	}
 
 	return 0 // Default fallback
-
 }
 
 // performWarmup performs system warmup with a subset of intents.
 
 func (tr *TestRunner) performWarmup(ctx context.Context, intents []*NetworkIntent) {
-
 	var wg sync.WaitGroup
 
 	for _, intent := range intents {
@@ -1135,11 +995,9 @@ func (tr *TestRunner) performWarmup(ctx context.Context, intents []*NetworkInten
 		wg.Add(1)
 
 		go func(intent *NetworkIntent) {
-
 			defer wg.Done()
 
 			_, _ = tr.intentClient.ProcessIntent(ctx, intent)
-
 		}(intent)
 
 		time.Sleep(100 * time.Millisecond)
@@ -1149,22 +1007,18 @@ func (tr *TestRunner) performWarmup(ctx context.Context, intents []*NetworkInten
 	wg.Wait()
 
 	log.Printf("System warmup completed")
-
 }
 
 // performHealthChecks checks the health of all system components.
 
 func (tr *TestRunner) performHealthChecks(ctx context.Context) bool {
-
 	healthChecks := []func() error{
-
 		tr.intentClient.HealthCheck,
 
 		tr.ragClient.HealthCheck,
 	}
 
 	for _, check := range healthChecks {
-
 		if err := check(); err != nil {
 
 			log.Printf("Health check failed: %v", err)
@@ -1172,9 +1026,8 @@ func (tr *TestRunner) performHealthChecks(ctx context.Context) bool {
 			return false
 
 		}
-
 	}
 
 	return true
-
 }
+

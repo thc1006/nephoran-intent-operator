@@ -11,7 +11,6 @@ import (
 // PhaseProcessor defines the interface for processing different phases of NetworkIntent reconciliation.
 
 type PhaseProcessor interface {
-
 	// ProcessPhase processes a specific phase and returns the result and any error.
 
 	ProcessPhase(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, processingCtx *ProcessingContext) (ctrl.Result, error)
@@ -86,7 +85,6 @@ type GitOpsHandlerInterface interface {
 // ReconcilerInterface defines the main reconciler contract.
 
 type ReconcilerInterface interface {
-
 	// Reconcile is the main reconciliation entry point.
 
 	Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error)
@@ -121,7 +119,6 @@ type ControllerInterface interface {
 // StatusManagerInterface defines the contract for managing NetworkIntent status.
 
 type StatusManagerInterface interface {
-
 	// UpdatePhase updates the processing phase.
 
 	UpdatePhase(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase string) error
@@ -142,7 +139,6 @@ type StatusManagerInterface interface {
 // EventManagerInterface defines the contract for event management.
 
 type EventManagerInterface interface {
-
 	// RecordEvent records a Kubernetes event.
 
 	RecordEvent(networkIntent *nephoranv1.NetworkIntent, eventType, reason, message string)
@@ -159,7 +155,6 @@ type EventManagerInterface interface {
 // RetryManagerInterface defines the contract for retry management.
 
 type RetryManagerInterface interface {
-
 	// GetRetryCount gets the current retry count for an operation.
 
 	GetRetryCount(networkIntent *nephoranv1.NetworkIntent, operation string) int
@@ -184,7 +179,6 @@ type RetryManagerInterface interface {
 // SecurityManagerInterface defines the contract for security operations.
 
 type SecurityManagerInterface interface {
-
 	// SanitizeInput sanitizes user input for security.
 
 	SanitizeInput(ctx context.Context, input string) (string, error)
@@ -201,7 +195,6 @@ type SecurityManagerInterface interface {
 // MetricsManagerInterface defines the contract for metrics collection.
 
 type MetricsManagerInterface interface {
-
 	// RecordProcessingMetrics records metrics for a processing phase.
 
 	RecordProcessingMetrics(phase ProcessingPhase, duration float64, success bool)
@@ -222,7 +215,6 @@ type MetricsManagerInterface interface {
 // ValidationInterface defines the contract for validation operations.
 
 type ValidationInterface interface {
-
 	// ValidateNetworkIntent validates a NetworkIntent resource.
 
 	ValidateNetworkIntent(networkIntent *nephoranv1.NetworkIntent) error
@@ -243,7 +235,6 @@ type ValidationInterface interface {
 // CleanupManagerInterface defines the contract for cleanup operations.
 
 type CleanupManagerInterface interface {
-
 	// PerformCleanup performs cleanup for a deleted NetworkIntent.
 
 	PerformCleanup(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) error
@@ -260,7 +251,6 @@ type CleanupManagerInterface interface {
 // ContextManagerInterface defines the contract for processing context management.
 
 type ContextManagerInterface interface {
-
 	// InitializeProcessingContext initializes a new processing context.
 
 	InitializeProcessingContext(networkIntent *nephoranv1.NetworkIntent) *ProcessingContext
@@ -285,7 +275,6 @@ type ContextManagerInterface interface {
 // HealthCheckInterface defines the contract for health checking operations.
 
 type HealthCheckInterface interface {
-
 	// CheckHealth checks the overall health of the controller.
 
 	CheckHealth(ctx context.Context) error

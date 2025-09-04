@@ -50,7 +50,7 @@ type PipelineConfig struct {
 type TriggerCondition struct {
 	Type       string                 `json:"type"`
 	Event      string                 `json:"event"`
-	Conditions map[string]interface{} `json:"conditions"`
+	Conditions json.RawMessage `json:"conditions"`
 	Enabled    bool                   `json:"enabled"`
 }
 
@@ -63,8 +63,8 @@ type TestStage struct {
 	Timeout         time.Duration          `json:"timeout"`
 	RetryCount      int                    `json:"retry_count"`
 	ContinueOnFail  bool                   `json:"continue_on_fail"`
-	Parameters      map[string]interface{} `json:"parameters"`
-	ExpectedResults map[string]interface{} `json:"expected_results"`
+	Parameters      json.RawMessage `json:"parameters"`
+	ExpectedResults json.RawMessage `json:"expected_results"`
 }
 
 // NotificationSettings defines notification configuration
@@ -116,7 +116,7 @@ type SecurityBaseline struct {
 	Name            string                 `json:"name"`
 	Version         string                 `json:"version"`
 	LastUpdated     time.Time              `json:"last_updated"`
-	Controls        map[string]interface{} `json:"controls"`
+	Controls        json.RawMessage `json:"controls"`
 	Metrics         map[string]float64     `json:"metrics"`
 	ComplianceScore float64                `json:"compliance_score"`
 	Thresholds      map[string]float64     `json:"thresholds"`
@@ -153,7 +153,7 @@ type StageExecutionResult struct {
 	Metrics          map[string]float64     `json:"metrics"`
 	Logs             []string               `json:"logs"`
 	Errors           []string               `json:"errors"`
-	Metadata         map[string]interface{} `json:"metadata"`
+	Metadata         json.RawMessage `json:"metadata"`
 }
 
 // TestResult represents individual test results
@@ -179,7 +179,7 @@ type SecurityFinding struct {
 	CWE         string                 `json:"cwe"`
 	Remediation string                 `json:"remediation"`
 	References  []string               `json:"references"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Metadata    json.RawMessage `json:"metadata"`
 }
 
 // SecurityRegressionReport contains security regression analysis
@@ -438,7 +438,7 @@ func (p *SecurityRegressionPipeline) loadSecurityBaselines(ctx context.Context) 
 			Name:            "default",
 			Version:         "1.0.0",
 			LastUpdated:     time.Now(),
-			Controls:        make(map[string]interface{}),
+			Controls:        json.RawMessage("{}"),
 			Metrics:         make(map[string]float64),
 			ComplianceScore: 100.0,
 			Thresholds:      make(map[string]float64),
@@ -482,7 +482,7 @@ func (p *SecurityRegressionPipeline) executeSecurityScanStage(ctx context.Contex
 		Metrics:          make(map[string]float64),
 		Logs:             make([]string, 0),
 		Errors:           make([]string, 0),
-		Metadata:         make(map[string]interface{}),
+		Metadata:         json.RawMessage("{}"),
 	}
 
 	// Execute security scanning tools
@@ -526,7 +526,7 @@ func (p *SecurityRegressionPipeline) executePenetrationTestStage(ctx context.Con
 		Metrics:          make(map[string]float64),
 		Logs:             make([]string, 0),
 		Errors:           make([]string, 0),
-		Metadata:         make(map[string]interface{}),
+		Metadata:         json.RawMessage("{}"),
 	}
 
 	// Execute penetration testing suite
@@ -562,7 +562,7 @@ func (p *SecurityRegressionPipeline) executeComplianceCheckStage(ctx context.Con
 		Metrics:     make(map[string]float64),
 		Logs:        make([]string, 0),
 		Errors:      make([]string, 0),
-		Metadata:    make(map[string]interface{}),
+		Metadata:    json.RawMessage("{}"),
 	}
 
 	// Execute compliance validation
@@ -609,7 +609,7 @@ func (p *SecurityRegressionPipeline) executeRegressionAnalysisStage(ctx context.
 		Metrics:     make(map[string]float64),
 		Logs:        make([]string, 0),
 		Errors:      make([]string, 0),
-		Metadata:    make(map[string]interface{}),
+		Metadata:    json.RawMessage("{}"),
 	}
 
 	// Collect current findings from previous stages
@@ -1050,7 +1050,7 @@ func (p *SecurityRegressionPipeline) createSecurityBaseline(ctx context.Context)
 		Version:         "1.0.0",
 		LastUpdated:     time.Now(),
 		ComplianceScore: 100.0,
-		Controls:        make(map[string]interface{}),
+		Controls:        json.RawMessage("{}"),
 		Metrics:         make(map[string]float64),
 		Thresholds:      make(map[string]float64),
 	}
@@ -1069,10 +1069,7 @@ func (p *SecurityRegressionPipeline) processTriggerEvent(ctx context.Context, ev
 }
 
 func (p *SecurityRegressionPipeline) generateCICDReport(ctx context.Context) interface{} {
-	return map[string]interface{}{
-		"status":  "success",
-		"results": p.executionResults,
-	}
+	return json.RawMessage(`{}`)
 }
 
 func (p *SecurityRegressionPipeline) publishPipelineStatus(ctx context.Context) bool {
@@ -1118,8 +1115,9 @@ func (p *SecurityRegressionPipeline) generatePipelineReport(ctx context.Context)
 	// Save pipeline report
 	reportData, _ := json.MarshalIndent(p.executionResults, "", "  ")
 	reportFile := fmt.Sprintf("test-results/security/pipeline-report-%s.json", p.executionResults.ExecutionID)
-	os.MkdirAll("test-results/security", 0755)
-	os.WriteFile(reportFile, reportData, 0644)
+	os.MkdirAll("test-results/security", 0o755)
+	os.WriteFile(reportFile, reportData, 0o644)
 
 	return p.executionResults
 }
+

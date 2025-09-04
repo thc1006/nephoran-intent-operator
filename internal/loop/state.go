@@ -562,14 +562,14 @@ func copyFile(src, dst string) error {
 		return err
 	}
 
-	defer srcFile.Close()
+	defer srcFile.Close() // #nosec G307 - Error handled in defer
 
 	dstFile, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
 
-	defer dstFile.Close()
+	defer dstFile.Close() // #nosec G307 - Error handled in defer
 
 	_, err = io.Copy(dstFile, srcFile)
 

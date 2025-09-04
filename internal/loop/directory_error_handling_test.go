@@ -60,7 +60,7 @@ func TestDirectoryErrorHandlingScenarios(t *testing.T) {
 						if sm != nil {
 							// Create a test file first
 							testFile := filepath.Join(tc.baseDir, "test.json")
-							if err := os.WriteFile(testFile, []byte(`{"test": true}`), 0644); err == nil {
+							if err := os.WriteFile(testFile, []byte(`{"test": true}`), 0o644); err == nil {
 								err = sm.MarkProcessed("test.json")
 								assert.Error(t, err, "MarkProcessed should fail with invalid directory")
 								if tc.errorSubstr != "" {
@@ -92,7 +92,7 @@ func TestDirectoryErrorHandlingScenarios(t *testing.T) {
 				name: "normal nested directory",
 				setupDir: func() string {
 					dir := filepath.Join(tempDir, "normal", "nested")
-					os.MkdirAll(dir, 0755)
+					os.MkdirAll(dir, 0o755)
 					return dir
 				},
 				expectError: false,
@@ -102,7 +102,7 @@ func TestDirectoryErrorHandlingScenarios(t *testing.T) {
 				setupDir: func() string {
 					// Create a directory with special characters that might cause issues
 					dir := filepath.Join(tempDir, "special-chars!@#$%")
-					os.MkdirAll(dir, 0755)
+					os.MkdirAll(dir, 0o755)
 					return dir
 				},
 				expectError: false, // Should be handled gracefully
@@ -126,12 +126,12 @@ func TestDirectoryErrorHandlingScenarios(t *testing.T) {
 					}
 				} else {
 					require.NoError(t, err, "Watcher creation should succeed")
-					defer watcher.Close()
+					defer watcher.Close() // #nosec G307 - Error handled in defer
 
 					// Try to write a status file
 					intentFile := filepath.Join(watchDir, "test-intent.json")
 					intentContent := `{"api_version": "intent.nephoran.io/v1", "kind": "ScaleIntent", "metadata": {"name": "test"}, "spec": {"replicas": 3}}`
-					require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0644))
+					require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0o644))
 
 					// This should not panic or fail silently
 					watcher.writeStatusFileAtomic(intentFile, "success", "Test processing completed")
@@ -183,7 +183,7 @@ func TestDirectoryErrorHandlingScenarios(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				err := atomicWriteFile(tc.filePath, tc.data, 0644)
+				err := atomicWriteFile(tc.filePath, tc.data, 0o644)
 
 				if tc.expectError {
 					assert.Error(t, err, "atomicWriteFile should fail for %q", tc.filePath)
@@ -229,7 +229,7 @@ func TestDirectoryErrorHandlingScenarios(t *testing.T) {
 		}
 
 		// Test atomicWriteFile error messages
-		err = atomicWriteFile("/dev/null/impossible/path.txt", []byte("test"), 0644)
+		err = atomicWriteFile("/dev/null/impossible/path.txt", []byte("test"), 0o644)
 		if err != nil {
 			t.Logf("atomicWriteFile error message: %v", err)
 			errorStr := err.Error()
@@ -247,14 +247,14 @@ func TestDirectoryErrorHandlingScenarios(t *testing.T) {
 
 		// Create a scenario where the rename might fail
 		// First create the target file as read-only (if possible)
-		if err := os.WriteFile(tempPath, []byte("existing"), 0444); err == nil {
+		if err := os.WriteFile(tempPath, []byte("existing"), 0o444); err == nil {
 			// Change to read-only
 			if runtime.GOOS != "windows" {
-				os.Chmod(tempPath, 0444)
+				os.Chmod(tempPath, 0o444)
 			}
 
 			// Try to atomic write - this might fail on the rename step
-			err = atomicWriteFile(tempPath, []byte("new content"), 0644)
+			err = atomicWriteFile(tempPath, []byte("new content"), 0o644)
 
 			// Check that no .tmp files are left behind
 			tmpPath := tempPath + ".tmp"
@@ -263,7 +263,7 @@ func TestDirectoryErrorHandlingScenarios(t *testing.T) {
 
 			// Restore permissions for cleanup
 			if runtime.GOOS != "windows" {
-				os.Chmod(tempPath, 0644)
+				os.Chmod(tempPath, 0o644)
 			}
 		}
 	})
@@ -283,7 +283,7 @@ func TestRobustDirectoryCreation(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			go func(id int) {
 				filePath := filepath.Join(sharedDir, fmt.Sprintf("file-%d.txt", id))
-				err := atomicWriteFile(filePath, []byte(fmt.Sprintf("content-%d", id)), 0644)
+				err := atomicWriteFile(filePath, []byte(fmt.Sprintf("content-%d", id)), 0o644)
 				done <- err
 			}(i)
 		}
@@ -305,11 +305,11 @@ func TestRobustDirectoryCreation(t *testing.T) {
 		conflictPath := filepath.Join(tempDir, "conflict")
 
 		// Create a file at the path where we want a directory
-		require.NoError(t, os.WriteFile(conflictPath, []byte("I'm a file"), 0644))
+		require.NoError(t, os.WriteFile(conflictPath, []byte("I'm a file"), 0o644))
 
 		// Try to create a file in a subdirectory - this should fail
 		subFile := filepath.Join(conflictPath, "subfile.txt")
-		err := atomicWriteFile(subFile, []byte("test"), 0644)
+		err := atomicWriteFile(subFile, []byte("test"), 0o644)
 		assert.Error(t, err, "Should fail when directory path conflicts with existing file")
 	})
 
@@ -321,7 +321,7 @@ func TestRobustDirectoryCreation(t *testing.T) {
 		}
 		deepFile := filepath.Join(deepPath, "deep-file.txt")
 
-		err := atomicWriteFile(deepFile, []byte("deep content"), 0644)
+		err := atomicWriteFile(deepFile, []byte("deep content"), 0o644)
 		if err != nil {
 			// On some systems, very deep paths might fail - that's OK
 			t.Logf("Deep path creation failed (expected on some systems): %v", err)

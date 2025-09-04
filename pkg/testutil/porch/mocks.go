@@ -18,6 +18,7 @@ package porch
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -323,7 +324,8 @@ func (m *MockPorchClient) ApprovePackageRevision(ctx context.Context, name strin
 	}
 
 	// Validate lifecycle transition
-	if !pkg.Spec.Lifecycle.CanTransitionTo(porch.PackageRevisionLifecyclePublished) {
+	// Validate that we can transition to Published (only from Draft or Proposed)
+	if pkg.Spec.Lifecycle != porch.PackageRevisionLifecycleDraft && pkg.Spec.Lifecycle != porch.PackageRevisionLifecycleProposed {
 		return fmt.Errorf("cannot transition from %s to Published", pkg.Spec.Lifecycle)
 	}
 
@@ -351,7 +353,8 @@ func (m *MockPorchClient) ProposePackageRevision(ctx context.Context, name strin
 	}
 
 	// Validate lifecycle transition
-	if !pkg.Spec.Lifecycle.CanTransitionTo(porch.PackageRevisionLifecycleProposed) {
+	// Validate that we can transition to Proposed (only from Draft)
+	if pkg.Spec.Lifecycle != porch.PackageRevisionLifecycleDraft {
 		return fmt.Errorf("cannot transition from %s to Proposed", pkg.Spec.Lifecycle)
 	}
 
@@ -453,18 +456,12 @@ func (m *MockPorchClient) RenderPackage(ctx context.Context, name string, revisi
 		{
 			APIVersion: "apps/v1",
 			Kind:       "Deployment",
-			Metadata: map[string]interface{}{
-				"name":      "rendered-deployment",
-				"namespace": "default",
-			},
+			Metadata: json.RawMessage(`{}`),
 		},
 		{
 			APIVersion: "v1",
 			Kind:       "Service",
-			Metadata: map[string]interface{}{
-				"name":      "rendered-service",
-				"namespace": "default",
-			},
+			Metadata: json.RawMessage(`{}`),
 		},
 	}
 
@@ -862,13 +859,13 @@ func (m *MockPorchClient) clonePackageRevision(pkg *porch.PackageRevision) *porc
 
 	// Deep copy resources
 	if pkg.Spec.Resources != nil {
-		clone.Spec.Resources = make([]porch.KRMResource, len(pkg.Spec.Resources))
+		clone.Spec.Resources = make([]interface{}, len(pkg.Spec.Resources))
 		copy(clone.Spec.Resources, pkg.Spec.Resources)
 	}
 
 	// Deep copy functions
 	if pkg.Spec.Functions != nil {
-		clone.Spec.Functions = make([]porch.FunctionConfig, len(pkg.Spec.Functions))
+		clone.Spec.Functions = make([]interface{}, len(pkg.Spec.Functions))
 		copy(clone.Spec.Functions, pkg.Spec.Functions)
 	}
 
@@ -908,3 +905,4 @@ func (m *MockPorchClient) cloneWorkflow(workflow *porch.Workflow) *porch.Workflo
 
 	return &clone
 }
+

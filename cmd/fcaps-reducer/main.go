@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/internal/fcaps"
-	"github.com/nephio-project/nephoran-intent-operator/internal/ingest"
+	"github.com/thc1006/nephoran-intent-operator/internal/fcaps"
+	"github.com/thc1006/nephoran-intent-operator/internal/ingest"
 )
 
 // Config represents a config.
@@ -43,25 +43,19 @@ type EventTracker struct {
 }
 
 func main() {
-
 	config := parseFlags()
 
 	if config.Verbose {
-
 		log.Printf("FCAPS Reducer starting with config: %+v", config)
-
 	}
 
 	// Ensure handoff directory exists.
 
 	if err := os.MkdirAll(config.HandoffDir, 0o750); err != nil {
-
 		log.Fatalf("Failed to create handoff directory: %v", err)
-
 	}
 
 	tracker := &EventTracker{
-
 		events: make([]fcaps.FCAPSEvent, 0),
 
 		intentCooldown: time.Duration(config.WindowSeconds) * time.Second,
@@ -86,7 +80,6 @@ func main() {
 	// Use http.Server with timeouts to fix G114 security warning.
 
 	server := &http.Server{
-
 		Addr: config.ListenAddr,
 
 		Handler: nil,
@@ -99,15 +92,11 @@ func main() {
 	}
 
 	if err := server.ListenAndServe(); err != nil {
-
 		log.Fatalf("Server failed: %v", err)
-
 	}
-
 }
 
 func parseFlags() Config {
-
 	var config Config
 
 	flag.StringVar(&config.ListenAddr, "listen", ":9999", "Listen address for VES collector")
@@ -123,13 +112,10 @@ func parseFlags() Config {
 	flag.Parse()
 
 	return config
-
 }
 
 func (t *EventTracker) handleVESEvent(config Config) http.HandlerFunc {
-
 	return func(w http.ResponseWriter, r *http.Request) {
-
 		if r.Method != http.MethodPost {
 
 			w.WriteHeader(http.StatusMethodNotAllowed)
@@ -139,7 +125,6 @@ func (t *EventTracker) handleVESEvent(config Config) http.HandlerFunc {
 		}
 
 		body, err := io.ReadAll(r.Body)
-
 		if err != nil {
 
 			http.Error(w, "Failed to read body", http.StatusBadRequest)
@@ -148,7 +133,7 @@ func (t *EventTracker) handleVESEvent(config Config) http.HandlerFunc {
 
 		}
 
-		defer func() { _ = r.Body.Close() }()
+		defer func() { _ = r.Body.Close() }() // #nosec G307 - Error handled in defer
 
 		var event fcaps.FCAPSEvent
 
@@ -169,9 +154,7 @@ func (t *EventTracker) handleVESEvent(config Config) http.HandlerFunc {
 		// Keep only recent events (sliding window).
 
 		if len(t.events) > 100 {
-
 			t.events = t.events[len(t.events)-100:]
-
 		}
 
 		eventCount := len(t.events)
@@ -179,7 +162,6 @@ func (t *EventTracker) handleVESEvent(config Config) http.HandlerFunc {
 		t.mu.Unlock()
 
 		if config.Verbose {
-
 			log.Printf("Received VES event: domain=%s, name=%s, severity=%s (total: %d)",
 
 				event.Event.CommonEventHeader.Domain,
@@ -189,7 +171,6 @@ func (t *EventTracker) handleVESEvent(config Config) http.HandlerFunc {
 				getEventSeverity(event),
 
 				eventCount)
-
 		}
 
 		// Return VES standard response.
@@ -197,17 +178,12 @@ func (t *EventTracker) handleVESEvent(config Config) http.HandlerFunc {
 		w.WriteHeader(http.StatusAccepted)
 
 		if _, err := w.Write([]byte(`{"commandList": []}`)); err != nil {
-
 			log.Printf("Failed to write VES response: %v", err)
-
 		}
-
 	}
-
 }
 
 func (t *EventTracker) detectBursts(config Config) {
-
 	ticker := time.NewTicker(10 * time.Second)
 
 	defer ticker.Stop()
@@ -233,9 +209,7 @@ func (t *EventTracker) detectBursts(config Config) {
 			// If event time is more than 1 day old, consider it as recent (for testing with static examples).
 
 			if time.Since(eventTime) > 24*time.Hour {
-
 				eventTime = time.Now()
-
 			}
 
 			if eventTime.After(cutoff) {
@@ -243,9 +217,7 @@ func (t *EventTracker) detectBursts(config Config) {
 				filtered = append(filtered, event)
 
 				if isCriticalEvent(event) {
-
 					criticalCount++
-
 				}
 
 			}
@@ -261,11 +233,9 @@ func (t *EventTracker) detectBursts(config Config) {
 		t.mu.Unlock()
 
 		if config.Verbose && len(filtered) > 0 {
-
 			log.Printf("Burst detection: %d critical events in window (threshold: %d)",
 
 				criticalCount, config.BurstThreshold)
-
 		}
 
 		// Check if we should generate an intent.
@@ -283,23 +253,18 @@ func (t *EventTracker) detectBursts(config Config) {
 		}
 
 	}
-
 }
 
 func (t *EventTracker) generateScalingIntent(config Config, eventCount int) {
-
 	// Calculate scaling factor based on burst size.
 
 	scaleFactor := 1 + (eventCount / config.BurstThreshold)
 
 	if scaleFactor > 3 {
-
 		scaleFactor = 3 // Cap at 3x scaling
-
 	}
 
 	intent := &ingest.Intent{
-
 		IntentType: "scaling",
 
 		Target: "nf-sim",
@@ -318,7 +283,6 @@ func (t *EventTracker) generateScalingIntent(config Config, eventCount int) {
 	// Write intent to handoff directory.
 
 	intentJSON, err := json.MarshalIndent(intent, "", "  ")
-
 	if err != nil {
 
 		log.Printf("Failed to marshal intent: %v", err)
@@ -344,11 +308,9 @@ func (t *EventTracker) generateScalingIntent(config Config, eventCount int) {
 	log.Printf("Intent details: scale %s to %d replicas in namespace %s",
 
 		intent.Target, intent.Replicas, intent.Namespace)
-
 }
 
 func isCriticalEvent(event fcaps.FCAPSEvent) bool {
-
 	// Check fault events.
 
 	if event.Event.FaultFields != nil {
@@ -356,9 +318,7 @@ func isCriticalEvent(event fcaps.FCAPSEvent) bool {
 		severity := event.Event.FaultFields.EventSeverity
 
 		if severity == "CRITICAL" || severity == "MAJOR" {
-
 			return true
-
 		}
 
 	}
@@ -374,25 +334,19 @@ func isCriticalEvent(event fcaps.FCAPSEvent) bool {
 			// PRB utilization > 0.8.
 
 			if prbUtil, ok := fields["kpm.prb_utilization"].(float64); ok && prbUtil > 0.8 {
-
 				return true
-
 			}
 
 			// P95 latency > 100ms.
 
 			if latency, ok := fields["kpm.p95_latency_ms"].(float64); ok && latency > 100 {
-
 				return true
-
 			}
 
 			// CPU utilization > 0.85.
 
 			if cpuUtil, ok := fields["kpm.cpu_utilization"].(float64); ok && cpuUtil > 0.85 {
-
 				return true
-
 			}
 
 		}
@@ -400,35 +354,24 @@ func isCriticalEvent(event fcaps.FCAPSEvent) bool {
 	}
 
 	return false
-
 }
 
 func getEventSeverity(event fcaps.FCAPSEvent) string {
-
 	if event.Event.FaultFields != nil {
-
 		return event.Event.FaultFields.EventSeverity
-
 	}
 
 	if isCriticalEvent(event) {
-
 		return "HIGH"
-
 	}
 
 	return "NORMAL"
-
 }
 
 func handleHealth(w http.ResponseWriter, r *http.Request) {
-
 	w.WriteHeader(http.StatusOK)
 
 	if _, err := w.Write([]byte("OK")); err != nil {
-
 		log.Printf("Failed to write health response: %v", err)
-
 	}
-
 }

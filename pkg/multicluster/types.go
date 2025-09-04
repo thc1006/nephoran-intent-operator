@@ -38,7 +38,6 @@ type ResourceCapacity struct {
 	StorageGB int64
 
 	EphemeralStorage int64 // bytes
-
 }
 
 // EdgeLocation provides geographic and network context for edge clusters.
@@ -58,7 +57,6 @@ type EdgeLocation struct {
 // WorkloadCluster represents a managed Kubernetes cluster.
 
 type WorkloadCluster struct {
-
 	// Unique identifier for the cluster.
 
 	ID string
@@ -99,7 +97,6 @@ type WorkloadCluster struct {
 // ClusterRegistrationOptions provides configuration for cluster registration.
 
 type ClusterRegistrationOptions struct {
-
 	// Optional timeout for cluster connection and health check.
 
 	ConnectionTimeout time.Duration
@@ -137,7 +134,6 @@ type NetworkPolicy struct {
 	MaxLatencyMS float64
 
 	Bandwidth int64 // Mbps
-
 }
 
 // DeploymentTarget represents a selected cluster for package deployment.
@@ -150,7 +146,6 @@ type DeploymentTarget struct {
 	Priority int
 
 	Fitness float64 // Deployment suitability score
-
 }
 
 // PlacementConstraint defines rules for package deployment.

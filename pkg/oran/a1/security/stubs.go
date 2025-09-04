@@ -12,10 +12,7 @@ import (
 
 // Stub implementations for missing functions to make the package buildable
 
-// NewRBACEngine creates a new RBAC engine (stub implementation)
-func NewRBACEngine(config *RBACConfig, logger *logging.StructuredLogger) (RBACEngine, error) {
-	return &stubRBACEngine{}, nil
-}
+// NewRBACEngine is implemented in auth.go
 
 // stubRBACEngine implements the RBACEngine interface
 type stubRBACEngine struct{}
@@ -48,20 +45,11 @@ func (s *stubRBACEngine) RevokeRole(ctx context.Context, userID string, roleName
 	return nil
 }
 
-// NewJWTProvider creates a new JWT provider (stub implementation)
-func NewJWTProvider(config *JWTConfig, logger *logging.StructuredLogger) (*JWTProvider, error) {
-	return &JWTProvider{config: config, logger: logger}, nil
-}
+// NewJWTProvider is implemented in auth.go
 
-// NewOAuth2Provider creates a new OAuth2 provider (stub implementation)
-func NewOAuth2Provider(config *OAuth2Config, logger *logging.StructuredLogger) (*OAuth2AuthProvider, error) {
-	return &OAuth2AuthProvider{config: config, logger: logger}, nil
-}
+// NewOAuth2Provider is implemented in auth.go
 
-// NewServiceAccountProvider creates a new service account provider (stub implementation)
-func NewServiceAccountProvider(config *ServiceAuthConfig, logger *logging.StructuredLogger) (*ServiceAccountProvider, error) {
-	return &ServiceAccountProvider{config: config, logger: logger}, nil
-}
+// NewServiceAccountProvider is implemented in auth.go
 
 // Stub type definitions that may be missing
 // Note: RBACEngine, OAuth2Provider, and RBACConfig are defined in auth.go
@@ -235,9 +223,4 @@ func (s *ServiceAccountProvider) GetPublicKeys(ctx context.Context) (jwk.Set, er
 	return jwk.NewSet(), nil
 }
 
-// CertRotationManager stub methods
-func (c *CertRotationManager) Start(ctx context.Context) error {
-	// Stub implementation - always succeeds
-	return nil
-}
-
+// CertRotationManager.Start is implemented in mtls.go

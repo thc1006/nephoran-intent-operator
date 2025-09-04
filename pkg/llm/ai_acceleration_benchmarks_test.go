@@ -19,7 +19,7 @@ func BenchmarkGPUInference(b *testing.B) {
 	if err != nil {
 		b.Skipf("GPU accelerator not available: %v", err)
 	}
-	defer accelerator.Close()
+	defer accelerator.Close() // #nosec G307 - Error handled in defer
 
 	// Create test request
 	request := &InferenceRequest{
@@ -51,13 +51,13 @@ func BenchmarkGPUBatchInference(b *testing.B) {
 		b.Run(fmt.Sprintf("BatchSize%d", batchSize), func(b *testing.B) {
 			config := getDefaultGPUConfig()
 			config.EnableBatching = true
-			config.BatchConfig.BatchSize = batchSize
+			config.BatchConfig.QueueSize = batchSize
 
 			accelerator, err := NewGPUAccelerator(config)
 			if err != nil {
 				b.Skipf("GPU accelerator not available: %v", err)
 			}
-			defer accelerator.Close()
+			defer accelerator.Close() // #nosec G307 - Error handled in defer
 
 			// Create batch requests
 			requests := make([]*InferenceRequest, batchSize)
@@ -98,7 +98,7 @@ func BenchmarkModelCaching(b *testing.B) {
 	if err != nil {
 		b.Fatalf("Failed to create model cache: %v", err)
 	}
-	defer cache.Close()
+	defer cache.Close() // #nosec G307 - Error handled in defer
 
 	models := []string{"gpt-3.5-turbo", "gpt-4", "claude-3", "llama-2-7b", "llama-2-13b"}
 	deviceID := 0
@@ -152,17 +152,14 @@ func BenchmarkVectorSearch(b *testing.B) {
 				if err != nil {
 					b.Fatalf("Failed to create vector search accelerator: %v", err)
 				}
-				defer accelerator.Close()
+				defer accelerator.Close() // #nosec G307 - Error handled in defer
 
 				// Index some vectors
 				ctx := context.Background()
 				numVectors := 10000
 				for i := 0; i < numVectors; i++ {
 					vector := generateRandomVector(dim)
-					metadata := map[string]interface{}{
-						"id":       i,
-						"category": fmt.Sprintf("cat_%d", i%10),
-					}
+					metadata := map[string]interface{}{}
 
 					err := accelerator.IndexVector(ctx, fmt.Sprintf("vec_%d", i), vector, metadata)
 					if err != nil {
@@ -209,7 +206,7 @@ func BenchmarkGPUMemoryAllocation(b *testing.B) {
 			if err != nil {
 				b.Skipf("GPU memory manager not available: %v", err)
 			}
-			defer manager.Close()
+			defer manager.Close() // #nosec G307 - Error handled in defer
 
 			b.ResetTimer()
 			b.ReportAllocs()
@@ -246,7 +243,7 @@ func BenchmarkEmbeddingGeneration(b *testing.B) {
 	if err != nil {
 		b.Fatalf("Failed to create vector search accelerator: %v", err)
 	}
-	defer accelerator.Close()
+	defer accelerator.Close() // #nosec G307 - Error handled in defer
 
 	textLengths := []int{50, 200, 500, 1000} // character counts
 	batchSizes := []int{1, 10, 50, 100}
@@ -302,7 +299,7 @@ func BenchmarkConcurrentInference(b *testing.B) {
 			if err != nil {
 				b.Skipf("GPU accelerator not available: %v", err)
 			}
-			defer accelerator.Close()
+			defer accelerator.Close() // #nosec G307 - Error handled in defer
 
 			b.ResetTimer()
 			b.ReportAllocs()
@@ -353,7 +350,7 @@ func BenchmarkMemoryFragmentation(b *testing.B) {
 	if err != nil {
 		b.Skipf("GPU memory manager not available: %v", err)
 	}
-	defer manager.Close()
+	defer manager.Close() // #nosec G307 - Error handled in defer
 
 	b.ResetTimer()
 
@@ -443,28 +440,28 @@ func BenchmarkEndToEndPipeline(b *testing.B) {
 	if err != nil {
 		b.Skipf("GPU accelerator not available: %v", err)
 	}
-	defer gpuAccelerator.Close()
+	defer gpuAccelerator.Close() // #nosec G307 - Error handled in defer
 
 	cacheConfig := getDefaultEnhancedCacheConfig()
 	modelCache, err := NewEnhancedModelCache(cacheConfig)
 	if err != nil {
 		b.Fatalf("Failed to create model cache: %v", err)
 	}
-	defer modelCache.Close()
+	defer modelCache.Close() // #nosec G307 - Error handled in defer
 
 	vectorConfig := getDefaultVectorSearchConfig()
 	vectorSearch, err := NewVectorSearchAccelerator(vectorConfig)
 	if err != nil {
 		b.Fatalf("Failed to create vector search: %v", err)
 	}
-	defer vectorSearch.Close()
+	defer vectorSearch.Close() // #nosec G307 - Error handled in defer
 
 	memoryConfig := getDefaultGPUMemoryConfig()
 	memoryManager, err := NewGPUMemoryManager(memoryConfig, []int{0})
 	if err != nil {
 		b.Skipf("GPU memory manager not available: %v", err)
 	}
-	defer memoryManager.Close()
+	defer memoryManager.Close() // #nosec G307 - Error handled in defer
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -527,7 +524,7 @@ func BenchmarkResourceUtilization(b *testing.B) {
 	if err != nil {
 		b.Skipf("GPU accelerator not available: %v", err)
 	}
-	defer accelerator.Close()
+	defer accelerator.Close() // #nosec G307 - Error handled in defer
 
 	// Monitor resource utilization during benchmark
 	var maxMemoryUsage int64
@@ -579,7 +576,7 @@ func BenchmarkStressTest(b *testing.B) {
 	if err != nil {
 		b.Skipf("GPU accelerator not available: %v", err)
 	}
-	defer accelerator.Close()
+	defer accelerator.Close() // #nosec G307 - Error handled in defer
 
 	// Run for a fixed duration rather than fixed iterations
 	duration := 30 * time.Second

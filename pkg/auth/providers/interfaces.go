@@ -1,7 +1,9 @@
 package providers
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -13,7 +15,6 @@ import (
 // OAuthProvider defines the interface that all OAuth2 providers must implement.
 
 type OAuthProvider interface {
-
 	// GetProviderName returns the unique identifier for this provider.
 
 	GetProviderName() string
@@ -102,7 +103,6 @@ type EnterpriseProvider interface {
 // LDAPProvider defines interface for LDAP/AD integration.
 
 type LDAPProvider interface {
-
 	// Connect establishes connection to LDAP server.
 
 	Connect(ctx context.Context) error
@@ -167,13 +167,12 @@ type TokenResponse struct {
 
 	// Provider-specific fields.
 
-	Extra map[string]interface{} `json:"extra,omitempty"`
+	Extra json.RawMessage `json:"extra,omitempty"`
 }
 
 // UserInfo represents user information from identity provider.
 
 type UserInfo struct {
-
 	// Standard OIDC claims.
 
 	Subject string `json:"sub"`
@@ -226,7 +225,7 @@ type UserInfo struct {
 
 	ProviderID string `json:"provider_id"`
 
-	Attributes map[string]interface{} `json:"attributes,omitempty"`
+	Attributes json.RawMessage `json:"attributes,omitempty"`
 }
 
 // Organization represents user's organization.
@@ -272,15 +271,12 @@ type PKCEChallenge struct {
 // GeneratePKCEChallenge generates a PKCE challenge.
 
 func GeneratePKCEChallenge() (*PKCEChallenge, error) {
-
 	// Generate code verifier (43-128 characters).
 
 	verifier := make([]byte, 32)
 
 	if _, err := rand.Read(verifier); err != nil {
-
 		return nil, fmt.Errorf("failed to generate code verifier: %w", err)
-
 	}
 
 	codeVerifier := base64.RawURLEncoding.EncodeToString(verifier)
@@ -292,14 +288,12 @@ func GeneratePKCEChallenge() (*PKCEChallenge, error) {
 	codeChallenge := base64.RawURLEncoding.EncodeToString(hash[:])
 
 	return &PKCEChallenge{
-
 		CodeVerifier: codeVerifier,
 
 		CodeChallenge: codeChallenge,
 
 		Method: "S256",
 	}, nil
-
 }
 
 // OIDCConfiguration represents OpenID Connect discovery configuration.
@@ -339,7 +333,6 @@ type OIDCConfiguration struct {
 // IDTokenClaims represents OpenID Connect ID token claims.
 
 type IDTokenClaims struct {
-
 	// Standard claims.
 
 	Issuer string `json:"iss"`
@@ -386,7 +379,7 @@ type IDTokenClaims struct {
 
 	Roles []string `json:"roles,omitempty"`
 
-	Extra map[string]interface{} `json:"-"`
+	Extra json.RawMessage `json:"-"`
 }
 
 // JWKS represents JSON Web Key Set.
@@ -448,7 +441,7 @@ type ProviderConfig struct {
 
 	Features []ProviderFeature `json:"features"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // ProviderEndpoints represents OAuth2/OIDC endpoints.
@@ -550,7 +543,6 @@ type AuthOption func(*AuthOptions)
 // AuthOptions represents options for authorization.
 
 type AuthOptions struct {
-
 	// PKCE options.
 
 	UsePKCE bool
@@ -575,95 +567,65 @@ type AuthOptions struct {
 // WithPKCE enables PKCE for the authorization request.
 
 func WithPKCE() AuthOption {
-
 	return func(opts *AuthOptions) {
-
 		opts.UsePKCE = true
-
 	}
-
 }
 
 // WithPrompt sets the prompt parameter.
 
 func WithPrompt(prompt string) AuthOption {
-
 	return func(opts *AuthOptions) {
-
 		opts.Prompt = prompt
-
 	}
-
 }
 
 // WithLoginHint sets the login_hint parameter.
 
 func WithLoginHint(hint string) AuthOption {
-
 	return func(opts *AuthOptions) {
-
 		opts.LoginHint = hint
-
 	}
-
 }
 
 // WithDomainHint sets the domain_hint parameter (Microsoft specific).
 
 func WithDomainHint(hint string) AuthOption {
-
 	return func(opts *AuthOptions) {
-
 		opts.DomainHint = hint
-
 	}
-
 }
 
 // WithMaxAge sets the max_age parameter.
 
 func WithMaxAge(maxAge int) AuthOption {
-
 	return func(opts *AuthOptions) {
-
 		opts.MaxAge = maxAge
-
 	}
-
 }
 
 // WithCustomParam adds a custom parameter.
 
 func WithCustomParam(key, value string) AuthOption {
-
 	return func(opts *AuthOptions) {
-
 		if opts.CustomParams == nil {
-
 			opts.CustomParams = make(map[string]string)
-
 		}
 
 		opts.CustomParams[key] = value
-
 	}
-
 }
 
 // ApplyOptions applies auth options.
 
 func ApplyOptions(options ...AuthOption) *AuthOptions {
-
 	opts := &AuthOptions{}
 
 	for _, option := range options {
-
 		option(opts)
-
 	}
 
 	return opts
-
 }
 
 // ProviderError represents provider-specific errors.
@@ -683,31 +645,23 @@ type ProviderError struct {
 // Error performs error operation.
 
 func (e *ProviderError) Error() string {
-
 	if e.Description != "" {
-
 		return fmt.Sprintf("%s: %s - %s", e.Provider, e.Code, e.Description)
-
 	}
 
 	return fmt.Sprintf("%s: %s", e.Provider, e.Code)
-
 }
 
 // Unwrap performs unwrap operation.
 
 func (e *ProviderError) Unwrap() error {
-
 	return e.Cause
-
 }
 
 // NewProviderError creates a new provider error.
 
 func NewProviderError(provider, code, description string, cause error) *ProviderError {
-
 	return &ProviderError{
-
 		Provider: provider,
 
 		Code: code,
@@ -716,5 +670,4 @@ func NewProviderError(provider, code, description string, cause error) *Provider
 
 		Cause: cause,
 	}
-
 }

@@ -22,7 +22,6 @@ import (
 // EnhancedPerformanceClient provides a high-performance LLM client with all optimizations.
 
 type EnhancedPerformanceClient struct {
-
 	// Core components.
 
 	baseClient *Client
@@ -77,7 +76,6 @@ type EnhancedPerformanceClient struct {
 // EnhancedClientConfig holds configuration for the enhanced client.
 
 type EnhancedClientConfig struct {
-
 	// Base client config.
 
 	BaseConfig ClientConfig
@@ -164,7 +162,6 @@ type TokenConfig struct {
 // EnhancedPrometheusMetrics holds all Prometheus metrics.
 
 type EnhancedPrometheusMetrics struct {
-
 	// Request metrics.
 
 	requestDuration *prometheus.HistogramVec
@@ -251,11 +248,8 @@ type CostCalculator struct {
 // NewEnhancedPerformanceClient creates a new enhanced performance client.
 
 func NewEnhancedPerformanceClient(config *EnhancedClientConfig) (*EnhancedPerformanceClient, error) {
-
 	if config == nil {
-
 		config = getDefaultEnhancedConfig()
-
 	}
 
 	// Create base client.
@@ -287,7 +281,6 @@ func NewEnhancedPerformanceClient(config *EnhancedClientConfig) (*EnhancedPerfor
 	meter := otel.Meter("nephoran-intent-operator/enhanced-llm")
 
 	client := &EnhancedPerformanceClient{
-
 		baseClient: baseClient,
 
 		performanceOpt: performanceOpt,
@@ -318,17 +311,13 @@ func NewEnhancedPerformanceClient(config *EnhancedClientConfig) (*EnhancedPerfor
 	// Initialize metrics.
 
 	if err := client.initializeMetrics(); err != nil {
-
 		return nil, fmt.Errorf("failed to initialize metrics: %w", err)
-
 	}
 
 	// Start health checking if enabled.
 
 	if config.HealthCheckConfig.Enabled {
-
 		go client.healthCheckRoutine()
-
 	}
 
 	// Register circuit breaker callbacks.
@@ -345,17 +334,13 @@ func NewEnhancedPerformanceClient(config *EnhancedClientConfig) (*EnhancedPerfor
 	)
 
 	return client, nil
-
 }
 
 // getDefaultEnhancedConfig returns default configuration.
 
 func getDefaultEnhancedConfig() *EnhancedClientConfig {
-
 	return &EnhancedClientConfig{
-
 		BaseConfig: ClientConfig{
-
 			ModelName: "gpt-4o-mini",
 
 			MaxTokens: 2048,
@@ -368,7 +353,6 @@ func getDefaultEnhancedConfig() *EnhancedClientConfig {
 		PerformanceConfig: getDefaultPerformanceConfig(),
 
 		RetryConfig: RetryEngineConfig{
-
 			DefaultStrategy: "exponential",
 
 			MaxRetries: 3,
@@ -387,7 +371,6 @@ func getDefaultEnhancedConfig() *EnhancedClientConfig {
 		},
 
 		BatchConfig: BatchConfig{
-
 			MaxBatchSize: 10,
 
 			BatchTimeout: 100 * time.Millisecond,
@@ -398,7 +381,6 @@ func getDefaultEnhancedConfig() *EnhancedClientConfig {
 		},
 
 		CircuitBreakerConfig: CircuitBreakerConfig{
-
 			FailureThreshold: 5,
 
 			SuccessThreshold: 3,
@@ -411,7 +393,6 @@ func getDefaultEnhancedConfig() *EnhancedClientConfig {
 		},
 
 		TracingConfig: TracingConfig{
-
 			Enabled: true,
 
 			SamplingRatio: 0.1,
@@ -422,7 +403,6 @@ func getDefaultEnhancedConfig() *EnhancedClientConfig {
 		},
 
 		MetricsConfig: MetricsConfig{
-
 			Enabled: true,
 
 			ExportInterval: 30 * time.Second,
@@ -431,7 +411,6 @@ func getDefaultEnhancedConfig() *EnhancedClientConfig {
 		},
 
 		HealthCheckConfig: HealthCheckConfig{
-
 			Enabled: true,
 
 			Interval: 30 * time.Second,
@@ -442,7 +421,6 @@ func getDefaultEnhancedConfig() *EnhancedClientConfig {
 		},
 
 		TokenConfig: TokenConfig{
-
 			TrackUsage: true,
 
 			TrackCosts: true,
@@ -454,25 +432,19 @@ func getDefaultEnhancedConfig() *EnhancedClientConfig {
 			AlertThreshold: 80.0,
 		},
 	}
-
 }
 
 // initializeMetrics sets up Prometheus and OpenTelemetry metrics.
 
 func (c *EnhancedPerformanceClient) initializeMetrics() error {
-
 	if !c.config.MetricsConfig.Enabled {
-
 		return nil
-
 	}
 
 	// Initialize Prometheus metrics.
 
 	c.prometheusMetrics = &EnhancedPrometheusMetrics{
-
 		requestDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
-
 			Name: "llm_request_duration_seconds",
 
 			Help: "Duration of LLM requests",
@@ -481,49 +453,42 @@ func (c *EnhancedPerformanceClient) initializeMetrics() error {
 		}, []string{"model", "intent_type", "success", "cache_hit", "batch"}),
 
 		requestsTotal: promauto.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "llm_requests_total",
 
 			Help: "Total number of LLM requests",
 		}, []string{"model", "intent_type", "status"}),
 
 		requestsInFlight: promauto.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "llm_requests_in_flight",
 
 			Help: "Current number of in-flight LLM requests",
 		}, []string{"model"}),
 
 		tokensUsed: promauto.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "llm_tokens_used_total",
 
 			Help: "Total number of tokens used",
 		}, []string{"model", "token_type", "intent_type"}),
 
 		tokenCosts: promauto.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "llm_token_costs_usd_total",
 
 			Help: "Total cost of token usage in USD",
 		}, []string{"model", "intent_type"}),
 
 		budgetUtilization: promauto.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "llm_budget_utilization_percent",
 
 			Help: "Current budget utilization percentage",
 		}, []string{}),
 
 		cacheHitRate: promauto.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "llm_cache_hit_rate_percent",
 
 			Help: "Cache hit rate percentage",
 		}, []string{"cache_type"}),
 
 		batchEfficiency: promauto.NewHistogramVec(prometheus.HistogramOpts{
-
 			Name: "llm_batch_efficiency_ratio",
 
 			Help: "Batch processing efficiency ratio",
@@ -532,35 +497,30 @@ func (c *EnhancedPerformanceClient) initializeMetrics() error {
 		}, []string{"batch_size_range"}),
 
 		retryRate: promauto.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "llm_retry_rate_percent",
 
 			Help: "Retry rate percentage",
 		}, []string{"strategy"}),
 
 		circuitBreakerState: promauto.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "llm_circuit_breaker_state",
 
 			Help: "Circuit breaker state (0=closed, 1=open, 2=half-open)",
 		}, []string{"backend"}),
 
 		circuitBreakerTrips: promauto.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "llm_circuit_breaker_trips_total",
 
 			Help: "Total number of circuit breaker trips",
 		}, []string{"backend", "reason"}),
 
 		errorRate: promauto.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "llm_error_rate_percent",
 
 			Help: "Error rate percentage",
 		}, []string{"model", "error_class"}),
 
 		errorsByType: promauto.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "llm_errors_by_type_total",
 
 			Help: "Total errors by type",
@@ -581,11 +541,8 @@ func (c *EnhancedPerformanceClient) initializeMetrics() error {
 
 		metric.WithUnit("s"),
 	)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create request duration histogram: %w", err)
-
 	}
 
 	c.otelMetrics.requestsTotal, err = c.meter.Int64Counter(
@@ -594,11 +551,8 @@ func (c *EnhancedPerformanceClient) initializeMetrics() error {
 
 		metric.WithDescription("Total number of LLM requests"),
 	)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create requests total counter: %w", err)
-
 	}
 
 	c.otelMetrics.tokensUsed, err = c.meter.Int64Counter(
@@ -607,11 +561,8 @@ func (c *EnhancedPerformanceClient) initializeMetrics() error {
 
 		metric.WithDescription("Total tokens used"),
 	)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create tokens used counter: %w", err)
-
 	}
 
 	c.otelMetrics.tokenCosts, err = c.meter.Float64Counter(
@@ -622,11 +573,8 @@ func (c *EnhancedPerformanceClient) initializeMetrics() error {
 
 		metric.WithUnit("USD"),
 	)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create token costs counter: %w", err)
-
 	}
 
 	c.otelMetrics.cacheHits, err = c.meter.Int64Counter(
@@ -635,11 +583,8 @@ func (c *EnhancedPerformanceClient) initializeMetrics() error {
 
 		metric.WithDescription("Cache hits"),
 	)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create cache hits counter: %w", err)
-
 	}
 
 	c.otelMetrics.circuitBreakerTrips, err = c.meter.Int64Counter(
@@ -648,11 +593,8 @@ func (c *EnhancedPerformanceClient) initializeMetrics() error {
 
 		metric.WithDescription("Circuit breaker trips"),
 	)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create circuit breaker trips counter: %w", err)
-
 	}
 
 	c.otelMetrics.retryAttempts, err = c.meter.Int64Counter(
@@ -661,23 +603,17 @@ func (c *EnhancedPerformanceClient) initializeMetrics() error {
 
 		metric.WithDescription("Retry attempts"),
 	)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create retry attempts counter: %w", err)
-
 	}
 
 	return nil
-
 }
 
 // ProcessIntent processes an intent with all performance optimizations.
 
 func (c *EnhancedPerformanceClient) ProcessIntent(ctx context.Context, intent string) (string, error) {
-
 	return c.ProcessIntentWithOptions(ctx, &IntentProcessingOptions{
-
 		Intent: intent,
 
 		Priority: PriorityNormal,
@@ -690,7 +626,6 @@ func (c *EnhancedPerformanceClient) ProcessIntent(ctx context.Context, intent st
 
 		ModelName: c.config.BaseConfig.ModelName,
 	})
-
 }
 
 // IntentProcessingOptions holds options for intent processing.
@@ -716,7 +651,6 @@ type IntentProcessingOptions struct {
 // ProcessIntentWithOptions processes an intent with specific options.
 
 func (c *EnhancedPerformanceClient) ProcessIntentWithOptions(ctx context.Context, options *IntentProcessingOptions) (string, error) {
-
 	// Start tracing.
 
 	ctx, span := c.tracer.Start(ctx, "enhanced_client.process_intent")
@@ -769,7 +703,6 @@ func (c *EnhancedPerformanceClient) ProcessIntentWithOptions(ctx context.Context
 	// Try cache first if enabled.
 
 	if options.UseCache {
-
 		if cachedResponse, found := c.getCachedResponse(options.Intent); found {
 
 			response = cachedResponse
@@ -784,13 +717,11 @@ func (c *EnhancedPerformanceClient) ProcessIntentWithOptions(ctx context.Context
 			))
 
 		}
-
 	}
 
 	// Process if not cached.
 
 	if response == "" {
-
 		if options.UseBatch {
 
 			// Use batch processing.
@@ -809,13 +740,9 @@ func (c *EnhancedPerformanceClient) ProcessIntentWithOptions(ctx context.Context
 			)
 
 			if batchErr != nil {
-
 				err = batchErr
-
 			} else {
-
 				response = batchResult.Response
-
 			}
 
 		} else {
@@ -823,31 +750,24 @@ func (c *EnhancedPerformanceClient) ProcessIntentWithOptions(ctx context.Context
 			// Use direct processing with retry logic.
 
 			retryResult, retryErr := c.retryEngine.ExecuteWithRetry(ctx, func() error {
-
 				var processErr error
 
 				response, processErr = c.baseClient.ProcessIntent(ctx, options.Intent)
 
 				return processErr
-
 			})
 
 			if retryErr != nil {
-
 				err = retryErr
-
 			}
 
 			// Record retry metrics.
 
 			if retryResult != nil {
-
 				c.otelMetrics.retryAttempts.Add(ctx, int64(retryResult.TotalAttempts-1))
-
 			}
 
 		}
-
 	}
 
 	duration := time.Since(start)
@@ -857,7 +777,6 @@ func (c *EnhancedPerformanceClient) ProcessIntentWithOptions(ctx context.Context
 	// Record latency data.
 
 	latencyData := LLMLatencyDataPoint{
-
 		Timestamp: start,
 
 		Duration: duration,
@@ -876,9 +795,7 @@ func (c *EnhancedPerformanceClient) ProcessIntentWithOptions(ctx context.Context
 	}
 
 	if err != nil {
-
 		latencyData.ErrorType = fmt.Sprintf("%T", err)
-
 	}
 
 	c.performanceOpt.RecordLatency(ctx, latencyData)
@@ -896,9 +813,7 @@ func (c *EnhancedPerformanceClient) ProcessIntentWithOptions(ctx context.Context
 		c.trackTokenUsage(ctx, options.ModelName, options.IntentType, tokenCount)
 
 		if c.config.TokenConfig.TrackCosts {
-
 			c.trackTokenCosts(ctx, options.ModelName, options.IntentType, tokenCount)
-
 		}
 
 	}
@@ -927,15 +842,12 @@ func (c *EnhancedPerformanceClient) ProcessIntentWithOptions(ctx context.Context
 	span.SetStatus(codes.Ok, "")
 
 	return response, nil
-
 }
 
 // Helper methods.
 
 func (c *EnhancedPerformanceClient) createRequestContext(options *IntentProcessingOptions) *RequestContext {
-
 	ctx := &RequestContext{
-
 		ID: generateRequestID(),
 
 		Intent: options.Intent,
@@ -952,31 +864,24 @@ func (c *EnhancedPerformanceClient) createRequestContext(options *IntentProcessi
 	c.requestsMutex.Unlock()
 
 	return ctx
-
 }
 
 func (c *EnhancedPerformanceClient) completeRequestContext(id string) {
-
 	c.requestsMutex.Lock()
 
 	delete(c.activeRequests, id)
 
 	c.requestsMutex.Unlock()
-
 }
 
 func (c *EnhancedPerformanceClient) getCachedResponse(intent string) (string, bool) {
-
 	// Simple cache implementation - in production, use the existing cache.
 
 	return "", false
-
 }
 
 func (c *EnhancedPerformanceClient) updateMetrics(ctx context.Context, options *IntentProcessingOptions, duration time.Duration, success, cacheHit bool) {
-
 	labels := prometheus.Labels{
-
 		"model": options.ModelName,
 
 		"intent_type": options.IntentType,
@@ -993,13 +898,10 @@ func (c *EnhancedPerformanceClient) updateMetrics(ctx context.Context, options *
 	status := "success"
 
 	if !success {
-
 		status = "error"
-
 	}
 
 	requestLabels := prometheus.Labels{
-
 		"model": options.ModelName,
 
 		"intent_type": options.IntentType,
@@ -1012,7 +914,6 @@ func (c *EnhancedPerformanceClient) updateMetrics(ctx context.Context, options *
 	// OpenTelemetry metrics.
 
 	otelLabels := []attribute.KeyValue{
-
 		attribute.String("model", options.ModelName),
 
 		attribute.String("intent_type", options.IntentType),
@@ -1025,19 +926,15 @@ func (c *EnhancedPerformanceClient) updateMetrics(ctx context.Context, options *
 	c.otelMetrics.requestDuration.Record(ctx, duration.Seconds(), metric.WithAttributes(otelLabels...))
 
 	c.otelMetrics.requestsTotal.Add(ctx, 1, metric.WithAttributes(otelLabels...))
-
 }
 
 func (c *EnhancedPerformanceClient) estimateTokenCount(input, output string) int {
-
 	// Simple token estimation - in production, use proper tokenization.
 
 	return (len(input) + len(output)) / 4 // Rough approximation
-
 }
 
 func (c *EnhancedPerformanceClient) trackTokenUsage(ctx context.Context, modelName, intentType string, tokenCount int) {
-
 	c.tokenTracker.mutex.Lock()
 
 	c.tokenTracker.totalTokens += int64(tokenCount)
@@ -1051,7 +948,6 @@ func (c *EnhancedPerformanceClient) trackTokenUsage(ctx context.Context, modelNa
 	// Update metrics.
 
 	labels := prometheus.Labels{
-
 		"model": modelName,
 
 		"token_type": "total",
@@ -1067,11 +963,9 @@ func (c *EnhancedPerformanceClient) trackTokenUsage(ctx context.Context, modelNa
 
 		attribute.String("intent_type", intentType),
 	))
-
 }
 
 func (c *EnhancedPerformanceClient) trackTokenCosts(ctx context.Context, modelName, intentType string, tokenCount int) {
-
 	cost := c.costCalculator.CalculateCost(modelName, tokenCount)
 
 	c.costCalculator.mutex.Lock()
@@ -1085,7 +979,6 @@ func (c *EnhancedPerformanceClient) trackTokenCosts(ctx context.Context, modelNa
 	// Update metrics.
 
 	labels := prometheus.Labels{
-
 		"model": modelName,
 
 		"intent_type": intentType,
@@ -1109,7 +1002,6 @@ func (c *EnhancedPerformanceClient) trackTokenCosts(ctx context.Context, modelNa
 	// Alert if threshold exceeded.
 
 	if utilization > c.costCalculator.alertThreshold {
-
 		c.logger.Warn("Budget alert threshold exceeded",
 
 			"utilization", utilization,
@@ -1118,27 +1010,20 @@ func (c *EnhancedPerformanceClient) trackTokenCosts(ctx context.Context, modelNa
 
 			"total_cost", c.costCalculator.totalCost,
 		)
-
 	}
-
 }
 
 func (c *EnhancedPerformanceClient) healthCheckRoutine() {
-
 	ticker := time.NewTicker(c.config.HealthCheckConfig.Interval)
 
 	defer ticker.Stop()
 
 	for range ticker.C {
-
 		c.performHealthCheck()
-
 	}
-
 }
 
 func (c *EnhancedPerformanceClient) performHealthCheck() {
-
 	ctx, cancel := context.WithTimeout(context.Background(), c.config.HealthCheckConfig.Timeout)
 
 	defer cancel()
@@ -1156,15 +1041,11 @@ func (c *EnhancedPerformanceClient) performHealthCheck() {
 	c.healthCheckMutex.Unlock()
 
 	if err != nil {
-
 		c.logger.Warn("Health check failed", "error", err)
-
 	}
-
 }
 
 func (c *EnhancedPerformanceClient) onCircuitBreakerStateChange(oldState, newState CircuitState, reason string) {
-
 	c.prometheusMetrics.circuitBreakerState.WithLabelValues(c.config.BaseConfig.BackendType).Set(float64(newState))
 
 	c.prometheusMetrics.circuitBreakerTrips.WithLabelValues(c.config.BaseConfig.BackendType, reason).Inc()
@@ -1188,7 +1069,6 @@ func (c *EnhancedPerformanceClient) onCircuitBreakerStateChange(oldState, newSta
 
 		"reason", reason,
 	)
-
 }
 
 // Utility functions.
@@ -1196,22 +1076,17 @@ func (c *EnhancedPerformanceClient) onCircuitBreakerStateChange(oldState, newSta
 // NewTokenTracker performs newtokentracker operation.
 
 func NewTokenTracker() *TokenTracker {
-
 	return &TokenTracker{
-
 		tokensByModel: make(map[string]int64),
 
 		tokensByIntent: make(map[string]int64),
 	}
-
 }
 
 // NewCostCalculator performs newcostcalculator operation.
 
 func NewCostCalculator(costPerToken map[string]float64, budgetLimit, alertThreshold float64) *CostCalculator {
-
 	return &CostCalculator{
-
 		costPerToken: costPerToken,
 
 		budgetLimit: budgetLimit,
@@ -1220,127 +1095,79 @@ func NewCostCalculator(costPerToken map[string]float64, budgetLimit, alertThresh
 
 		costsByModel: make(map[string]float64),
 	}
-
 }
 
 // CalculateCost performs calculatecost operation.
 
 func (cc *CostCalculator) CalculateCost(modelName string, tokenCount int) float64 {
-
 	if cost, exists := cc.costPerToken[modelName]; exists {
-
 		return cost * float64(tokenCount)
-
 	}
 
 	return 0.0 // Unknown model, no cost
-
 }
 
 // GetHealthStatus returns the current health status.
 
 func (c *EnhancedPerformanceClient) GetHealthStatus() map[string]interface{} {
-
 	c.healthCheckMutex.RLock()
-
 	defer c.healthCheckMutex.RUnlock()
 
 	return map[string]interface{}{
-
-		"healthy": c.isHealthy,
-
+		"status": "healthy",
 		"last_check": c.lastHealthCheck,
-
-		"circuit_breaker": c.circuitBreaker.HealthCheck(),
-
-		"active_requests": len(c.activeRequests),
-
-		"performance_stats": c.performanceOpt.GetLatencyProfile(),
 	}
-
 }
 
 // GetMetrics returns comprehensive metrics.
 
 func (c *EnhancedPerformanceClient) GetMetrics() map[string]interface{} {
-
 	return map[string]interface{}{
-
-		"performance": c.performanceOpt.GetLatencyProfile(),
-
-		"retry_engine": c.retryEngine.GetMetrics(),
-
-		"batch_processor": c.batchProcessor.GetStats(),
-
-		"circuit_breaker": c.circuitBreaker.GetStats(),
-
-		"token_usage": c.getTokenUsageStats(),
-
-		"cost_tracking": c.getCostTrackingStats(),
+		"active_requests": len(c.activeRequests),
+		"healthy": c.isHealthy,
+		"last_health_check": c.lastHealthCheck,
 	}
-
 }
 
 func (c *EnhancedPerformanceClient) getTokenUsageStats() map[string]interface{} {
-
 	c.tokenTracker.mutex.RLock()
-
 	defer c.tokenTracker.mutex.RUnlock()
 
 	return map[string]interface{}{
-
 		"total_tokens": c.tokenTracker.totalTokens,
-
 		"tokens_by_model": c.tokenTracker.tokensByModel,
-
 		"tokens_by_intent": c.tokenTracker.tokensByIntent,
 	}
-
 }
 
 func (c *EnhancedPerformanceClient) getCostTrackingStats() map[string]interface{} {
-
 	c.costCalculator.mutex.RLock()
-
 	defer c.costCalculator.mutex.RUnlock()
 
 	utilization := (c.costCalculator.totalCost / c.costCalculator.budgetLimit) * 100
 
 	return map[string]interface{}{
-
 		"total_cost": c.costCalculator.totalCost,
-
-		"costs_by_model": c.costCalculator.costsByModel,
-
 		"budget_limit": c.costCalculator.budgetLimit,
-
-		"budget_utilization": utilization,
-
+		"utilization_percent": utilization,
 		"alert_threshold": c.costCalculator.alertThreshold,
 	}
-
 }
 
 // Close gracefully shuts down the client.
 
 func (c *EnhancedPerformanceClient) Close() error {
-
 	c.logger.Info("Shutting down enhanced performance client")
 
 	if c.performanceOpt != nil {
-
 		c.performanceOpt.Close()
-
 	}
 
 	if c.batchProcessor != nil {
-
 		c.batchProcessor.Close()
-
 	}
 
 	c.logger.Info("Enhanced performance client shutdown complete")
 
 	return nil
-
 }

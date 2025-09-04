@@ -229,7 +229,7 @@ func (a *TLSAuditor) testTLSVersions(endpoint string) {
 		}, "tcp", endpoint, config)
 
 		if err == nil {
-			defer conn.Close()
+			defer conn.Close() // #nosec G307 - Error handled in defer
 
 			if !v.secure {
 				a.report.TLSFindings = append(a.report.TLSFindings, TLSAuditFinding{
@@ -336,7 +336,6 @@ func (a *TLSAuditor) testCertificateChain(endpoint string) {
 	conn, err := tls.DialWithDialer(&net.Dialer{
 		Timeout: a.config.Timeout,
 	}, "tcp", endpoint, config)
-
 	if err != nil {
 		a.report.CertFindings = append(a.report.CertFindings, CertificateFinding{
 			Subject:         "Unknown",
@@ -347,7 +346,7 @@ func (a *TLSAuditor) testCertificateChain(endpoint string) {
 		})
 		return
 	}
-	defer conn.Close()
+	defer conn.Close() // #nosec G307 - Error handled in defer
 
 	state := conn.ConnectionState()
 
@@ -438,7 +437,7 @@ func (a *TLSAuditor) testRenegotiation(endpoint string) {
 	}, "tcp", endpoint, config)
 
 	if err == nil {
-		defer conn.Close()
+		defer conn.Close() // #nosec G307 - Error handled in defer
 
 		// Attempt renegotiation
 		err = conn.Handshake()

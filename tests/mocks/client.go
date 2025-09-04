@@ -32,11 +32,11 @@ import (
 
 // MockClient implements a mock Kubernetes client for testing
 type MockClient struct {
-	objects    map[client.ObjectKey]client.Object
-	mutex      sync.RWMutex
-	scheme     *runtime.Scheme
-	getError   error
-	listError  error
+	objects     map[client.ObjectKey]client.Object
+	mutex       sync.RWMutex
+	scheme      *runtime.Scheme
+	getError    error
+	listError   error
 	createError error
 	updateError error
 	deleteError error
@@ -162,7 +162,7 @@ func (m *MockClient) Create(ctx context.Context, obj client.Object, opts ...clie
 		return m.createError
 	}
 
-	key := client.ObjectKeyFromObject(obj)
+	key := types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}
 	if _, exists := m.objects[key]; exists {
 		return errors.NewAlreadyExists(schema.GroupResource{
 			Group:    obj.GetObjectKind().GroupVersionKind().Group,
@@ -188,7 +188,7 @@ func (m *MockClient) Update(ctx context.Context, obj client.Object, opts ...clie
 		return m.updateError
 	}
 
-	key := client.ObjectKeyFromObject(obj)
+	key := types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}
 	if _, exists := m.objects[key]; !exists {
 		return errors.NewNotFound(schema.GroupResource{
 			Group:    obj.GetObjectKind().GroupVersionKind().Group,
@@ -209,7 +209,7 @@ func (m *MockClient) Patch(ctx context.Context, obj client.Object, patch client.
 		return m.patchError
 	}
 
-	key := client.ObjectKeyFromObject(obj)
+	key := types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}
 	if _, exists := m.objects[key]; !exists {
 		return errors.NewNotFound(schema.GroupResource{
 			Group:    obj.GetObjectKind().GroupVersionKind().Group,
@@ -230,7 +230,7 @@ func (m *MockClient) Delete(ctx context.Context, obj client.Object, opts ...clie
 		return m.deleteError
 	}
 
-	key := client.ObjectKeyFromObject(obj)
+	key := types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}
 	if _, exists := m.objects[key]; !exists {
 		return errors.NewNotFound(schema.GroupResource{
 			Group:    obj.GetObjectKind().GroupVersionKind().Group,
@@ -308,7 +308,7 @@ func (m *mockStatusWriter) Create(ctx context.Context, obj client.Object, subRes
 func (m *MockClient) AddObject(obj client.Object) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	key := client.ObjectKeyFromObject(obj)
+	key := types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}
 	m.objects[key] = obj.DeepCopyObject().(client.Object)
 }
 

@@ -28,25 +28,20 @@ type NetworkIntentError struct {
 // Error implements the error interface.
 
 func (e *NetworkIntentError) Error() string {
-
 	return fmt.Sprintf("NetworkIntent %s failed in %s: %v (retries: %d, time: %s)",
 
 		e.Operation, e.Phase, e.Cause, e.Retries, e.Timestamp.Format(time.RFC3339))
-
 }
 
 // Unwrap returns the underlying cause.
 
 func (e *NetworkIntentError) Unwrap() error {
-
 	return e.Cause
-
 }
 
 // IsRetryable determines if an error condition is retryable.
 
 func (e *NetworkIntentError) IsRetryable() bool {
-
 	// Define retry logic based on error characteristics.
 
 	switch e.Phase {
@@ -68,15 +63,12 @@ func (e *NetworkIntentError) IsRetryable() bool {
 		return false
 
 	}
-
 }
 
 // NewNetworkIntentError creates a new NetworkIntentError.
 
 func NewNetworkIntentError(phase, operation string, cause error, retries int) *NetworkIntentError {
-
 	return &NetworkIntentError{
-
 		Phase: phase,
 
 		Operation: operation,
@@ -87,7 +79,6 @@ func NewNetworkIntentError(phase, operation string, cause error, retries int) *N
 
 		Timestamp: time.Now(),
 	}
-
 }
 
 // ValidationError represents a configuration validation error.
@@ -103,24 +94,19 @@ type ValidationError struct {
 // Error implements the error interface.
 
 func (e *ValidationError) Error() string {
-
 	return fmt.Sprintf("validation failed for field '%s' with value '%v': %s", e.Field, e.Value, e.Message)
-
 }
 
 // NewValidationError creates a new ValidationError.
 
 func NewValidationError(field string, value interface{}, message string) *ValidationError {
-
 	return &ValidationError{
-
 		Field: field,
 
 		Value: value,
 
 		Message: message,
 	}
-
 }
 
 // DependencyError represents an error due to missing or invalid dependencies.
@@ -134,28 +120,21 @@ type DependencyError struct {
 // Error implements the error interface.
 
 func (e *DependencyError) Error() string {
-
 	return fmt.Sprintf("dependency '%s' error: %v", e.Dependency, e.Cause)
-
 }
 
 // Unwrap returns the underlying cause.
 
 func (e *DependencyError) Unwrap() error {
-
 	return e.Cause
-
 }
 
 // NewDependencyError creates a new DependencyError.
 
 func NewDependencyError(dependency string, cause error) *DependencyError {
-
 	return &DependencyError{
-
 		Dependency: dependency,
 
 		Cause: cause,
 	}
-
 }

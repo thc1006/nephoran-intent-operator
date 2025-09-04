@@ -30,10 +30,10 @@ func (s *SecurityHeadersMiddleware) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Generate CSP nonce for this request
 		nonce := s.cspNonce()
-		
+
 		// Add security headers before processing the request
 		s.setSecurityHeaders(w, r, nonce)
-		
+
 		// Process the request
 		next.ServeHTTP(w, r)
 	})
@@ -44,63 +44,63 @@ func (s *SecurityHeadersMiddleware) setSecurityHeaders(w http.ResponseWriter, r 
 	// 1. Content Security Policy (CSP) - Prevents XSS attacks
 	csp := s.buildCSP(nonce)
 	w.Header().Set("Content-Security-Policy", csp)
-	
+
 	// Report-Only CSP for monitoring violations
 	if !s.isDevelopment {
 		w.Header().Set("Content-Security-Policy-Report-Only", csp+" report-uri /api/v1/security/csp-report;")
 	}
-	
+
 	// 2. X-Content-Type-Options - Prevents MIME sniffing
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	
+
 	// 3. X-Frame-Options - Prevents clickjacking
 	w.Header().Set("X-Frame-Options", "DENY")
-	
+
 	// 4. X-XSS-Protection - Legacy XSS protection for older browsers
 	w.Header().Set("X-XSS-Protection", "1; mode=block")
-	
+
 	// 5. Referrer-Policy - Controls referrer information
 	w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
-	
+
 	// 6. Permissions-Policy (formerly Feature-Policy) - Controls browser features
 	w.Header().Set("Permissions-Policy", s.buildPermissionsPolicy())
-	
+
 	// 7. Strict-Transport-Security (HSTS) - Forces HTTPS
 	if !s.isDevelopment && r.TLS != nil {
 		hstsValue := fmt.Sprintf("max-age=%d; includeSubDomains; preload", s.hstsMaxAge)
 		w.Header().Set("Strict-Transport-Security", hstsValue)
 	}
-	
+
 	// 8. Cache-Control - Prevents caching of sensitive data
 	if strings.Contains(r.URL.Path, "/api/") || strings.Contains(r.URL.Path, "/auth/") {
 		w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, private")
 		w.Header().Set("Pragma", "no-cache")
 		w.Header().Set("Expires", "0")
 	}
-	
+
 	// 9. X-Permitted-Cross-Domain-Policies - Controls Adobe products' access
 	w.Header().Set("X-Permitted-Cross-Domain-Policies", "none")
-	
+
 	// 10. X-Download-Options - Prevents IE from executing downloads
 	w.Header().Set("X-Download-Options", "noopen")
-	
+
 	// 11. Cross-Origin Headers for enhanced security
 	w.Header().Set("Cross-Origin-Embedder-Policy", "require-corp")
 	w.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
 	w.Header().Set("Cross-Origin-Resource-Policy", "same-origin")
-	
+
 	// 12. Security headers for API responses
 	if strings.HasPrefix(r.URL.Path, "/api/") {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 	}
-	
+
 	// 13. Remove sensitive headers
 	w.Header().Del("X-Powered-By")
 	w.Header().Del("Server")
 	w.Header().Del("X-AspNet-Version")
 	w.Header().Del("X-AspNetMvc-Version")
-	
+
 	// 14. Add custom security headers
 	w.Header().Set("X-Security-Policy", "enabled")
 	w.Header().Set("X-Request-ID", generateSimpleRequestID())
@@ -130,7 +130,7 @@ func (s *SecurityHeadersMiddleware) buildCSP(nonce string) string {
 		"block-all-mixed-content",
 		"require-trusted-types-for 'script'",
 	}
-	
+
 	// Relax CSP in development
 	if s.isDevelopment {
 		directives = []string{
@@ -141,7 +141,7 @@ func (s *SecurityHeadersMiddleware) buildCSP(nonce string) string {
 			"connect-src 'self' http://localhost:* ws://localhost:*",
 		}
 	}
-	
+
 	return strings.Join(directives, "; ")
 }
 
@@ -177,7 +177,7 @@ func (s *SecurityHeadersMiddleware) buildPermissionsPolicy() string {
 		"xr-spatial-tracking=()",
 		"interest-cohort=()",
 	}
-	
+
 	return strings.Join(policies, ", ")
 }
 
@@ -212,11 +212,11 @@ func NewSecureCORSMiddleware(config CORSConfig) func(http.Handler) http.Handler 
 	if config.MaxAge == 0 {
 		config.MaxAge = 86400 // 24 hours
 	}
-	
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			origin := r.Header.Get("Origin")
-			
+
 			// Check if origin is allowed
 			allowed := false
 			for _, allowedOrigin := range config.AllowedOrigins {
@@ -225,15 +225,15 @@ func NewSecureCORSMiddleware(config CORSConfig) func(http.Handler) http.Handler 
 					break
 				}
 			}
-			
+
 			if allowed && origin != "" {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 				w.Header().Set("Vary", "Origin")
-				
+
 				if config.AllowCredentials {
 					w.Header().Set("Access-Control-Allow-Credentials", "true")
 				}
-				
+
 				// Handle preflight requests
 				if r.Method == "OPTIONS" {
 					w.Header().Set("Access-Control-Allow-Methods", strings.Join(config.AllowedMethods, ", "))
@@ -242,13 +242,13 @@ func NewSecureCORSMiddleware(config CORSConfig) func(http.Handler) http.Handler 
 					w.WriteHeader(http.StatusNoContent)
 					return
 				}
-				
+
 				// Set exposed headers for actual requests
 				if len(config.ExposedHeaders) > 0 {
 					w.Header().Set("Access-Control-Expose-Headers", strings.Join(config.ExposedHeaders, ", "))
 				}
 			}
-			
+
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -280,26 +280,26 @@ func (c *CSRFMiddleware) Middleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		
+
 		// Get token from cookie
 		cookie, err := r.Cookie(c.cookieName)
 		if err != nil {
 			http.Error(w, "CSRF token missing", http.StatusForbidden)
 			return
 		}
-		
+
 		// Get token from header or form
 		headerToken := r.Header.Get(c.headerName)
 		if headerToken == "" {
 			headerToken = r.FormValue("csrf_token")
 		}
-		
+
 		// Validate tokens match
 		if !secureCompare(cookie.Value, headerToken) {
 			http.Error(w, "CSRF token invalid", http.StatusForbidden)
 			return
 		}
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -331,11 +331,11 @@ func secureCompare(a, b string) bool {
 	if len(a) != len(b) {
 		return false
 	}
-	
+
 	result := byte(0)
 	for i := 0; i < len(a); i++ {
 		result |= a[i] ^ b[i]
 	}
-	
+
 	return result == 0
 }

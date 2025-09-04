@@ -1,2242 +1,914 @@
-// Package testutil provides testing utilities and helpers for auth package.
+// Package auth provides authentication testing utilities for the Nephoran Intent Operator.
 
-package testutil
+// This package contains helper functions and utilities for testing authentication scenarios.
+
+package auth
 
 import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
+	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"strings"
-	"sync"
 	"testing"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
-
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 )
 
-// Import types from main auth package to avoid circular dependencies.
+// UserFactory creates test users.
+type UserFactory struct{}
 
-type NephoranJWTClaims struct {
-	jwt.RegisteredClaims
-
-	Email string `json:"email"`
-
-	EmailVerified bool `json:"email_verified"`
-
-	Name string `json:"name"`
-
-	PreferredName string `json:"preferred_username"`
-
-	Picture string `json:"picture"`
-
-	Groups []string `json:"groups"`
-
-	Roles []string `json:"roles"`
-
-	Permissions []string `json:"permissions"`
-
-	Organizations []string `json:"organizations"`
-
-	Provider string `json:"provider"`
-
-	ProviderID string `json:"provider_id"`
-
-	TenantID string `json:"tenant_id,omitempty"`
-
-	SessionID string `json:"session_id"`
-
-	TokenType string `json:"token_type"`
-
-	Scope string `json:"scope,omitempty"`
-
-	IPAddress string `json:"ip_address,omitempty"`
-
-	UserAgent string `json:"user_agent,omitempty"`
-
-	Attributes map[string]interface{} `json:"attributes,omitempty"`
+// TokenFactory creates test tokens.
+type TokenFactory struct {
+	issuer string
 }
 
-// TokenInfo represents stored token information.
+// OAuthResponseFactory creates test OAuth responses.
+type OAuthResponseFactory struct{}
 
-type TokenInfo struct {
-	TokenID string `json:"token_id"`
-
-	UserID string `json:"user_id"`
-
-	SessionID string `json:"session_id"`
-
-	TokenType string `json:"token_type"`
-
-	IssuedAt time.Time `json:"issued_at"`
-
-	ExpiresAt time.Time `json:"expires_at"`
-
-	Provider string `json:"provider"`
-
-	Scope string `json:"scope,omitempty"`
-
-	IPAddress string `json:"ip_address,omitempty"`
-
-	UserAgent string `json:"user_agent,omitempty"`
-
-	Attributes map[string]interface{} `json:"attributes,omitempty"`
-
-	LastUsed time.Time `json:"last_used"`
-
-	UseCount int64 `json:"use_count"`
+// TokenResponse represents an OAuth token response.
+type TokenResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	TokenType    string `json:"token_type"`
+	ExpiresIn    int64  `json:"expires_in"`
 }
 
-// Note: Role and Permission types have been moved to contracts.go as TestRole and TestPermission.
-
-// to avoid circular dependencies and type conflicts.
-
-// Role represents a role with associated permissions (alias to TestRole).
-
-type Role = TestRole
-
-// Permission represents a specific permission (alias to TestPermission).
-
-type Permission = TestPermission
-
-// AccessRequest represents an access control request (test copy).
-
-type AccessRequest struct {
-	UserID string `json:"user_id"`
-
-	Resource string `json:"resource"`
-
-	Action string `json:"action"`
-
-	Context map[string]interface{} `json:"context,omitempty"`
-
-	Attributes map[string]interface{} `json:"attributes,omitempty"`
-
-	IPAddress string `json:"ip_address,omitempty"`
-
-	UserAgent string `json:"user_agent,omitempty"`
-
-	Timestamp time.Time `json:"timestamp"`
-
-	RequestID string `json:"request_id,omitempty"`
+// NewUserFactory creates a new user factory.
+func NewUserFactory() *UserFactory {
+	return &UserFactory{}
 }
 
-// AccessDecision represents the result of an access control evaluation (test copy).
-
-type AccessDecision struct {
-	Allowed bool `json:"allowed"`
-
-	Reason string `json:"reason"`
-
-	AppliedPolicies []string `json:"applied_policies"`
-
-	RequiredRoles []string `json:"required_roles,omitempty"`
-
-	MissingPermissions []string `json:"missing_permissions,omitempty"`
-
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
-
-	EvaluatedAt time.Time `json:"evaluated_at"`
-
-	TTL time.Duration `json:"ttl,omitempty"`
-}
-
-// TokenOption represents token generation options.
-
-type TokenOption func(*TokenOptions)
-
-// TokenOptions contains token generation options.
-
-type TokenOptions struct {
-	TTL time.Duration
-
-	Scope string
-
-	IPAddress string
-
-	UserAgent string
-}
-
-// Helper functions for token options.
-
-func WithTTL(ttl time.Duration) TokenOption {
-
-	return func(opts *TokenOptions) {
-
-		opts.TTL = ttl
-
+// CreateBasicUser creates a basic test user.
+func (uf *UserFactory) CreateBasicUser() *TestUser {
+	return &TestUser{
+		Username:      "testuser",
+		Password:      "password123",
+		Email:         "test@example.com",
+		Roles:         []string{"user"},
+		Claims:        make(map[string]interface{}),
+		Enabled:       true,
+		Subject:       "test-user-123",
+		Name:          "Test User",
+		EmailVerified: true,
+		Provider:      "test",
 	}
-
 }
 
-// WithScope performs withscope operation.
+// NewTokenFactory creates a new token factory.
+func NewTokenFactory(issuer string) *TokenFactory {
+	return &TokenFactory{issuer: issuer}
+}
 
-func WithScope(scope string) TokenOption {
-
-	return func(opts *TokenOptions) {
-
-		opts.Scope = scope
-
+// CreateBasicToken creates basic token claims.
+func (tf *TokenFactory) CreateBasicToken(subject string) jwt.MapClaims {
+	now := time.Now()
+	return jwt.MapClaims{
+		"iss": tf.issuer,
+		"sub": subject,
+		"exp": now.Add(time.Hour).Unix(),
+		"iat": now.Unix(),
 	}
-
 }
 
-// WithIPAddress performs withipaddress operation.
-
-func WithIPAddress(ip string) TokenOption {
-
-	return func(opts *TokenOptions) {
-
-		opts.IPAddress = ip
-
+// CreateExpiredToken creates expired token claims.
+func (tf *TokenFactory) CreateExpiredToken(subject string) jwt.MapClaims {
+	now := time.Now()
+	return jwt.MapClaims{
+		"iss": tf.issuer,
+		"sub": subject,
+		"exp": now.Add(-time.Hour).Unix(), // Expired 1 hour ago
+		"iat": now.Add(-2 * time.Hour).Unix(), // Issued 2 hours ago
 	}
-
 }
 
-// WithUserAgent performs withuseragent operation.
-
-func WithUserAgent(ua string) TokenOption {
-
-	return func(opts *TokenOptions) {
-
-		opts.UserAgent = ua
-
+// CreateTokenNotValidYet creates token claims not valid yet (future nbf).
+func (tf *TokenFactory) CreateTokenNotValidYet(subject string) jwt.MapClaims {
+	now := time.Now()
+	return jwt.MapClaims{
+		"iss": tf.issuer,
+		"sub": subject,
+		"exp": now.Add(2 * time.Hour).Unix(),  // Valid for 2 hours from now
+		"iat": now.Unix(),
+		"nbf": now.Add(time.Hour).Unix(), // Not valid until 1 hour from now
 	}
-
 }
 
-// JWTManagerMock provides mock JWT functionality with interface compatibility.
+// NewOAuthResponseFactory creates a new OAuth response factory.
+func NewOAuthResponseFactory() *OAuthResponseFactory {
+	return &OAuthResponseFactory{}
+}
 
+// CreateTokenResponse creates a test token response.
+func (of *OAuthResponseFactory) CreateTokenResponse() *TokenResponse {
+	return &TokenResponse{
+		AccessToken:  "test-access-token",
+		RefreshToken: "test-refresh-token",
+		TokenType:    "Bearer",
+		ExpiresIn:    3600,
+	}
+}
+
+// JWTManagerMock is a mock JWT manager for testing.
 type JWTManagerMock struct {
-	privateKey *rsa.PrivateKey
-
-	keyID string
-
 	blacklistedTokens map[string]bool
+	tokenStore        map[string]interface{}
+}
 
-	tokenStore map[string]*TokenInfo
+// RBACManagerMock is a mock RBAC manager for testing.
+type RBACManagerMock struct {
+	roles           map[string][]string
+	permissions     map[string][]string
+	roleStore       map[string]interface{}
+	permissionStore map[string]interface{}
+}
 
-	mutex sync.RWMutex
+// SessionManagerMock is a mock session manager for testing.
+type SessionManagerMock struct {
+	sessions map[string]interface{}
+	config   struct {
+		SessionTTL time.Duration
+	}
 }
 
 // NewJWTManagerMock creates a new JWT manager mock.
-
 func NewJWTManagerMock() *JWTManagerMock {
-
 	return &JWTManagerMock{
-
 		blacklistedTokens: make(map[string]bool),
-
-		tokenStore: make(map[string]*TokenInfo),
+		tokenStore:        make(map[string]interface{}),
 	}
-
-}
-
-// GenerateAccessToken generates an access token for a user (matches real interface).
-
-func (j *JWTManagerMock) GenerateAccessToken(ctx context.Context, userInfo *providers.UserInfo, sessionID string, options ...TokenOption) (string, *TokenInfo, error) {
-
-	j.mutex.Lock()
-
-	defer j.mutex.Unlock()
-
-	if j.privateKey == nil {
-
-		return "", nil, fmt.Errorf("private key not set")
-
-	}
-
-	opts := &TokenOptions{}
-
-	for _, opt := range options {
-
-		opt(opts)
-
-	}
-
-	now := time.Now()
-
-	tokenID := fmt.Sprintf("token-%d", time.Now().UnixNano())
-
-	ttl := time.Hour
-
-	if opts.TTL > 0 {
-
-		ttl = opts.TTL
-
-	}
-
-	claims := &NephoranJWTClaims{
-
-		RegisteredClaims: jwt.RegisteredClaims{
-
-			ID: tokenID,
-
-			Subject: userInfo.Subject,
-
-			Audience: jwt.ClaimStrings{"test-audience"},
-
-			ExpiresAt: jwt.NewNumericDate(now.Add(ttl)),
-
-			NotBefore: jwt.NewNumericDate(now),
-
-			IssuedAt: jwt.NewNumericDate(now),
-
-			Issuer: "test-issuer",
-		},
-
-		Email: userInfo.Email,
-
-		EmailVerified: userInfo.EmailVerified,
-
-		Name: userInfo.Name,
-
-		PreferredName: userInfo.PreferredName,
-
-		Picture: userInfo.Picture,
-
-		Groups: userInfo.Groups,
-
-		Roles: userInfo.Roles,
-
-		Permissions: userInfo.Permissions,
-
-		Provider: userInfo.Provider,
-
-		ProviderID: userInfo.ProviderID,
-
-		SessionID: sessionID,
-
-		TokenType: "access",
-
-		Scope: opts.Scope,
-
-		IPAddress: opts.IPAddress,
-
-		UserAgent: opts.UserAgent,
-
-		Attributes: userInfo.Attributes,
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-
-	token.Header["kid"] = j.keyID
-
-	tokenString, err := token.SignedString(j.privateKey)
-
-	if err != nil {
-
-		return "", nil, err
-
-	}
-
-	tokenInfo := &TokenInfo{
-
-		TokenID: tokenID,
-
-		UserID: userInfo.Subject,
-
-		SessionID: sessionID,
-
-		TokenType: "access",
-
-		IssuedAt: now,
-
-		ExpiresAt: claims.ExpiresAt.Time,
-
-		Provider: userInfo.Provider,
-
-		Scope: opts.Scope,
-
-		IPAddress: opts.IPAddress,
-
-		UserAgent: opts.UserAgent,
-
-		Attributes: userInfo.Attributes,
-
-		LastUsed: now,
-
-		UseCount: 0,
-	}
-
-	j.tokenStore[tokenID] = tokenInfo
-
-	return tokenString, tokenInfo, nil
-
-}
-
-// GenerateRefreshToken generates a refresh token.
-
-func (j *JWTManagerMock) GenerateRefreshToken(ctx context.Context, userInfo *providers.UserInfo, sessionID string, options ...TokenOption) (string, *TokenInfo, error) {
-
-	j.mutex.Lock()
-
-	defer j.mutex.Unlock()
-
-	if j.privateKey == nil {
-
-		return "", nil, fmt.Errorf("private key not set")
-
-	}
-
-	opts := &TokenOptions{}
-
-	for _, opt := range options {
-
-		opt(opts)
-
-	}
-
-	now := time.Now()
-
-	tokenID := fmt.Sprintf("refresh-%d", time.Now().UnixNano())
-
-	ttl := 24 * time.Hour
-
-	if opts.TTL > 0 {
-
-		ttl = opts.TTL
-
-	}
-
-	claims := &NephoranJWTClaims{
-
-		RegisteredClaims: jwt.RegisteredClaims{
-
-			ID: tokenID,
-
-			Subject: userInfo.Subject,
-
-			Audience: jwt.ClaimStrings{"test-audience"},
-
-			ExpiresAt: jwt.NewNumericDate(now.Add(ttl)),
-
-			NotBefore: jwt.NewNumericDate(now),
-
-			IssuedAt: jwt.NewNumericDate(now),
-
-			Issuer: "test-issuer",
-		},
-
-		Email: userInfo.Email,
-
-		Name: userInfo.Name,
-
-		Provider: userInfo.Provider,
-
-		ProviderID: userInfo.ProviderID,
-
-		SessionID: sessionID,
-
-		TokenType: "refresh",
-
-		IPAddress: opts.IPAddress,
-
-		UserAgent: opts.UserAgent,
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-
-	token.Header["kid"] = j.keyID
-
-	tokenString, err := token.SignedString(j.privateKey)
-
-	if err != nil {
-
-		return "", nil, err
-
-	}
-
-	tokenInfo := &TokenInfo{
-
-		TokenID: tokenID,
-
-		UserID: userInfo.Subject,
-
-		SessionID: sessionID,
-
-		TokenType: "refresh",
-
-		IssuedAt: now,
-
-		ExpiresAt: claims.ExpiresAt.Time,
-
-		Provider: userInfo.Provider,
-
-		IPAddress: opts.IPAddress,
-
-		UserAgent: opts.UserAgent,
-
-		LastUsed: now,
-
-		UseCount: 0,
-	}
-
-	j.tokenStore[tokenID] = tokenInfo
-
-	return tokenString, tokenInfo, nil
-
-}
-
-// ValidateToken validates a JWT token and returns claims (matches real interface).
-
-func (j *JWTManagerMock) ValidateToken(ctx context.Context, tokenString string) (*NephoranJWTClaims, error) {
-
-	j.mutex.RLock()
-
-	defer j.mutex.RUnlock()
-
-	// Check if token is blacklisted.
-
-	if j.blacklistedTokens != nil && j.blacklistedTokens[tokenString] {
-
-		return nil, fmt.Errorf("token has been revoked")
-
-	}
-
-	// Parse and validate token.
-
-	token, err := jwt.ParseWithClaims(tokenString, &NephoranJWTClaims{}, func(token *jwt.Token) (interface{}, error) {
-
-		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-
-		}
-
-		return &j.privateKey.PublicKey, nil
-
-	})
-
-	if err != nil {
-
-		return nil, fmt.Errorf("failed to parse token: %w", err)
-
-	}
-
-	if !token.Valid {
-
-		return nil, fmt.Errorf("invalid token")
-
-	}
-
-	claims, ok := token.Claims.(*NephoranJWTClaims)
-
-	if !ok {
-
-		return nil, fmt.Errorf("invalid token claims")
-
-	}
-
-	// Update token usage if found in store.
-
-	if j.tokenStore != nil {
-
-		if tokenInfo, exists := j.tokenStore[claims.ID]; exists {
-
-			tokenInfo.LastUsed = time.Now()
-
-			tokenInfo.UseCount++
-
-		}
-
-	}
-
-	return claims, nil
-
-}
-
-// RefreshAccessToken generates a new access token using a refresh token.
-
-func (j *JWTManagerMock) RefreshAccessToken(ctx context.Context, refreshTokenString string, options ...TokenOption) (string, *TokenInfo, error) {
-
-	// Validate refresh token.
-
-	claims, err := j.ValidateToken(ctx, refreshTokenString)
-
-	if err != nil {
-
-		return "", nil, fmt.Errorf("invalid refresh token: %w", err)
-
-	}
-
-	if claims.TokenType != "refresh" {
-
-		return "", nil, fmt.Errorf("token is not a refresh token")
-
-	}
-
-	// Create user info from refresh token claims.
-
-	userInfo := &providers.UserInfo{
-
-		Subject: claims.Subject,
-
-		Email: claims.Email,
-
-		EmailVerified: claims.EmailVerified,
-
-		Name: claims.Name,
-
-		PreferredName: claims.PreferredName,
-
-		Picture: claims.Picture,
-
-		Groups: claims.Groups,
-
-		Roles: claims.Roles,
-
-		Permissions: claims.Permissions,
-
-		Provider: claims.Provider,
-
-		ProviderID: claims.ProviderID,
-
-		Attributes: claims.Attributes,
-	}
-
-	// Generate new access token.
-
-	return j.GenerateAccessToken(ctx, userInfo, claims.SessionID, options...)
-
-}
-
-// RevokeToken revokes a token by adding it to the blacklist.
-
-func (j *JWTManagerMock) RevokeToken(ctx context.Context, tokenString string) error {
-
-	j.mutex.Lock()
-
-	defer j.mutex.Unlock()
-
-	// Parse token to get ID.
-
-	token, err := jwt.ParseWithClaims(tokenString, &NephoranJWTClaims{}, func(token *jwt.Token) (interface{}, error) {
-
-		return &j.privateKey.PublicKey, nil
-
-	})
-
-	if err != nil && !strings.Contains(err.Error(), "token is expired") {
-
-		return fmt.Errorf("failed to parse token for revocation: %w", err)
-
-	}
-
-	if claims, ok := token.Claims.(*NephoranJWTClaims); ok {
-
-		// Add to blacklist.
-
-		j.blacklistedTokens[tokenString] = true
-
-		// Remove from token store.
-
-		delete(j.tokenStore, claims.ID)
-
-	}
-
-	return nil
-
-}
-
-// RevokeUserTokens revokes all tokens for a specific user.
-
-func (j *JWTManagerMock) RevokeUserTokens(ctx context.Context, userID string) error {
-
-	j.mutex.Lock()
-
-	defer j.mutex.Unlock()
-
-	tokensToRevoke := []string{}
-
-	for tokenID, tokenInfo := range j.tokenStore {
-
-		if tokenInfo.UserID == userID {
-
-			tokensToRevoke = append(tokensToRevoke, tokenID)
-
-		}
-
-	}
-
-	for _, tokenID := range tokensToRevoke {
-
-		delete(j.tokenStore, tokenID)
-
-	}
-
-	return nil
-
-}
-
-// GetTokenInfo retrieves token information.
-
-func (j *JWTManagerMock) GetTokenInfo(ctx context.Context, tokenID string) (*TokenInfo, error) {
-
-	j.mutex.RLock()
-
-	defer j.mutex.RUnlock()
-
-	tokenInfo, exists := j.tokenStore[tokenID]
-
-	if !exists {
-
-		return nil, fmt.Errorf("token not found")
-
-	}
-
-	return tokenInfo, nil
-
-}
-
-// ListUserTokens lists all active tokens for a user.
-
-func (j *JWTManagerMock) ListUserTokens(ctx context.Context, userID string) ([]*TokenInfo, error) {
-
-	j.mutex.RLock()
-
-	defer j.mutex.RUnlock()
-
-	var tokens []*TokenInfo
-
-	for _, tokenInfo := range j.tokenStore {
-
-		if tokenInfo.UserID == userID {
-
-			tokens = append(tokens, tokenInfo)
-
-		}
-
-	}
-
-	return tokens, nil
-
-}
-
-// SetSigningKey sets the signing key for the mock.
-
-func (j *JWTManagerMock) SetSigningKey(privateKey *rsa.PrivateKey, keyID string) error {
-
-	j.mutex.Lock()
-
-	defer j.mutex.Unlock()
-
-	j.privateKey = privateKey
-
-	j.keyID = keyID
-
-	return nil
-
-}
-
-// Deprecated: GenerateToken is deprecated, use GenerateAccessToken instead.
-
-func (j *JWTManagerMock) GenerateToken(user *providers.UserInfo, customClaims map[string]interface{}) (string, error) {
-
-	// Convert to new interface.
-
-	tokenString, _, err := j.GenerateAccessToken(context.Background(), user, "test-session")
-
-	return tokenString, err
-
-}
-
-// GenerateTokenWithTTL performs generatetokenwithttl operation.
-
-func (j *JWTManagerMock) GenerateTokenWithTTL(user *providers.UserInfo, customClaims map[string]interface{}, ttl time.Duration) (string, error) {
-
-	tokenString, _, err := j.GenerateAccessToken(context.Background(), user, "test-session", WithTTL(ttl))
-
-	return tokenString, err
-
-}
-
-// GenerateTokenPair performs generatetokenpair operation.
-
-func (j *JWTManagerMock) GenerateTokenPair(user *providers.UserInfo, customClaims map[string]interface{}) (string, string, error) {
-
-	accessToken, _, err := j.GenerateAccessToken(context.Background(), user, "test-session")
-
-	if err != nil {
-
-		return "", "", err
-
-	}
-
-	refreshToken, _, err := j.GenerateRefreshToken(context.Background(), user, "test-session")
-
-	if err != nil {
-
-		return "", "", err
-
-	}
-
-	return accessToken, refreshToken, nil
-
-}
-
-// Deprecated: ValidateToken with *jwt.Token return is deprecated.
-
-func (j *JWTManagerMock) ValidateTokenLegacy(tokenString string) (*jwt.Token, error) {
-
-	// Check if token is blacklisted.
-
-	if j.blacklistedTokens != nil && j.blacklistedTokens[tokenString] {
-
-		return nil, fmt.Errorf("token has been revoked")
-
-	}
-
-	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-
-		return &j.privateKey.PublicKey, nil
-
-	})
-
-}
-
-// RefreshToken performs refreshtoken operation.
-
-func (j *JWTManagerMock) RefreshToken(refreshTokenString string) (string, string, error) {
-
-	accessToken, _, err := j.RefreshAccessToken(context.Background(), refreshTokenString)
-
-	if err != nil {
-
-		return "", "", err
-
-	}
-
-	return accessToken, refreshTokenString, nil
-
-}
-
-// BlacklistToken performs blacklisttoken operation.
-
-func (j *JWTManagerMock) BlacklistToken(tokenString string) error {
-
-	return j.RevokeToken(context.Background(), tokenString)
-
-}
-
-// CleanupBlacklist performs cleanupblacklist operation.
-
-func (j *JWTManagerMock) CleanupBlacklist() error {
-
-	// Mock implementation - in real scenario would clean up expired tokens.
-
-	return nil
-
-}
-
-// Close performs close operation.
-
-func (j *JWTManagerMock) Close() {
-
-	// Mock implementation.
-
-}
-
-// RBACManagerMock provides mock RBAC functionality with interface compatibility.
-
-type RBACManagerMock struct {
-	roles map[string][]string // userID -> roles
-
-	permissions map[string][]string // role -> permissions
-
-	roleStore map[string]*TestRole // roleID -> role
-
-	permissionStore map[string]*TestPermission // permissionID -> permission
-
-	mutex sync.RWMutex
 }
 
 // NewRBACManagerMock creates a new RBAC manager mock.
-
 func NewRBACManagerMock() *RBACManagerMock {
-
 	return &RBACManagerMock{
-
-		roles: make(map[string][]string),
-
-		permissions: make(map[string][]string),
-
-		roleStore: make(map[string]*TestRole),
-
-		permissionStore: make(map[string]*TestPermission),
+		roles:           make(map[string][]string),
+		permissions:     make(map[string][]string),
+		roleStore:       make(map[string]interface{}),
+		permissionStore: make(map[string]interface{}),
 	}
-
 }
 
-// GrantRoleToUser assigns a role to a user (matches real interface).
-
-func (r *RBACManagerMock) GrantRoleToUser(ctx context.Context, userID, roleID string) error {
-
-	r.mutex.Lock()
-
-	defer r.mutex.Unlock()
-
-	// Verify role exists.
-
-	if _, exists := r.roleStore[roleID]; !exists {
-
-		return fmt.Errorf("role %s does not exist", roleID)
-
-	}
-
-	// Add role to user.
-
-	userRoles := r.roles[userID]
-
-	for _, existingRole := range userRoles {
-
-		if existingRole == roleID {
-
-			return nil // Already has role
-
-		}
-
-	}
-
-	r.roles[userID] = append(userRoles, roleID)
-
-	return nil
-
-}
-
-// RevokeRoleFromUser removes a role from a user (matches real interface).
-
-func (r *RBACManagerMock) RevokeRoleFromUser(ctx context.Context, userID, roleID string) error {
-
-	r.mutex.Lock()
-
-	defer r.mutex.Unlock()
-
-	userRoles := r.roles[userID]
-
-	for i, role := range userRoles {
-
-		if role == roleID {
-
-			// Remove role.
-
-			r.roles[userID] = append(userRoles[:i], userRoles[i+1:]...)
-
-			return nil
-
-		}
-
-	}
-
-	return fmt.Errorf("user %s does not have role %s", userID, roleID)
-
-}
-
-// GetUserRoles returns all roles for a user (matches real interface).
-
-func (r *RBACManagerMock) GetUserRoles(ctx context.Context, userID string) []string {
-
-	r.mutex.RLock()
-
-	defer r.mutex.RUnlock()
-
-	roles := r.roles[userID]
-
-	result := make([]string, len(roles))
-
-	copy(result, roles)
-
-	return result
-
-}
-
-// GetUserPermissions returns all permissions for a user (matches real interface).
-
-func (r *RBACManagerMock) GetUserPermissions(ctx context.Context, userID string) []string {
-
-	r.mutex.RLock()
-
-	defer r.mutex.RUnlock()
-
-	permissionSet := make(map[string]bool)
-
-	var allPermissions []string
-
-	// Get permissions from user's roles.
-
-	userRoles := r.roles[userID]
-
-	for _, roleID := range userRoles {
-
-		if role, exists := r.roleStore[roleID]; exists {
-
-			for _, permID := range role.Permissions {
-
-				if !permissionSet[permID] {
-
-					allPermissions = append(allPermissions, permID)
-
-					permissionSet[permID] = true
-
-				}
-
-			}
-
-		}
-
-	}
-
-	return allPermissions
-
-}
-
-// CheckPermission checks if a user has a specific permission (matches real interface).
-
-func (r *RBACManagerMock) CheckPermission(ctx context.Context, userID, permission string) bool {
-
-	userPermissions := r.GetUserPermissions(ctx, userID)
-
-	for _, perm := range userPermissions {
-
-		if r.matchesPermission(perm, permission) {
-
-			return true
-
-		}
-
-	}
-
-	return false
-
-}
-
-// CheckAccess evaluates an access request against RBAC policies (matches real interface).
-
-func (r *RBACManagerMock) CheckAccess(ctx context.Context, request *AccessRequest) *AccessDecision {
-
-	startTime := time.Now()
-
-	r.mutex.RLock()
-
-	defer r.mutex.RUnlock()
-
-	decision := &AccessDecision{
-
-		EvaluatedAt: startTime,
-
-		Metadata: make(map[string]interface{}),
-	}
-
-	// Get user permissions.
-
-	userPermissions := r.GetUserPermissions(ctx, request.UserID)
-
-	userRoles := r.GetUserRoles(ctx, request.UserID)
-
-	// Check if user has required permission.
-
-	requiredPermission := fmt.Sprintf("%s:%s", request.Resource, request.Action)
-
-	hasPermission := false
-
-	for _, perm := range userPermissions {
-
-		if r.matchesPermission(perm, requiredPermission) {
-
-			hasPermission = true
-
-			break
-
-		}
-
-	}
-
-	if !hasPermission {
-
-		decision.Allowed = false
-
-		decision.Reason = fmt.Sprintf("User lacks required permission: %s", requiredPermission)
-
-		decision.MissingPermissions = []string{requiredPermission}
-
-		return decision
-
-	}
-
-	decision.Allowed = true
-
-	decision.Reason = "Permission granted by RBAC"
-
-	decision.Metadata["user_roles"] = userRoles
-
-	decision.Metadata["checked_permission"] = requiredPermission
-
-	return decision
-
-}
-
-// CreateRole creates a new role (matches real interface).
-
-func (r *RBACManagerMock) CreateRole(ctx context.Context, role *TestRole) (*TestRole, error) {
-
-	r.mutex.Lock()
-
-	defer r.mutex.Unlock()
-
-	if role.ID == "" {
-
-		return nil, fmt.Errorf("role ID cannot be empty")
-
-	}
-
-	if _, exists := r.roleStore[role.ID]; exists {
-
-		return nil, fmt.Errorf("role %s already exists", role.ID)
-
-	}
-
-	// Validate permissions exist.
-
-	for _, permID := range role.Permissions {
-
-		if _, exists := r.permissionStore[permID]; !exists {
-
-			return nil, fmt.Errorf("permission %s does not exist", permID)
-
-		}
-
-	}
-
-	now := time.Now()
-
-	role.CreatedAt = now
-
-	role.UpdatedAt = now
-
-	r.roleStore[role.ID] = role
-
-	return role, nil
-
-}
-
-// UpdateRole updates an existing role (matches real interface).
-
-func (r *RBACManagerMock) UpdateRole(ctx context.Context, role *TestRole) error {
-
-	r.mutex.Lock()
-
-	defer r.mutex.Unlock()
-
-	if _, exists := r.roleStore[role.ID]; !exists {
-
-		return fmt.Errorf("role %s does not exist", role.ID)
-
-	}
-
-	// Validate permissions exist.
-
-	for _, permID := range role.Permissions {
-
-		if _, exists := r.permissionStore[permID]; !exists {
-
-			return fmt.Errorf("permission %s does not exist", permID)
-
-		}
-
-	}
-
-	role.UpdatedAt = time.Now()
-
-	r.roleStore[role.ID] = role
-
-	return nil
-
-}
-
-// DeleteRole deletes a role (matches real interface).
-
-func (r *RBACManagerMock) DeleteRole(ctx context.Context, roleID string) error {
-
-	r.mutex.Lock()
-
-	defer r.mutex.Unlock()
-
-	if _, exists := r.roleStore[roleID]; !exists {
-
-		return fmt.Errorf("role %s does not exist", roleID)
-
-	}
-
-	// Remove role from all users.
-
-	for userID, userRoles := range r.roles {
-
-		for i, role := range userRoles {
-
-			if role == roleID {
-
-				r.roles[userID] = append(userRoles[:i], userRoles[i+1:]...)
-
-				break
-
-			}
-
-		}
-
-	}
-
-	delete(r.roleStore, roleID)
-
-	return nil
-
-}
-
-// ListRoles returns all roles (matches real interface).
-
-func (r *RBACManagerMock) ListRoles(ctx context.Context) []*TestRole {
-
-	r.mutex.RLock()
-
-	defer r.mutex.RUnlock()
-
-	roles := make([]*TestRole, 0, len(r.roleStore))
-
-	for _, role := range r.roleStore {
-
-		roles = append(roles, role)
-
-	}
-
-	return roles
-
-}
-
-// GetRole returns a specific role (matches real interface).
-
-func (r *RBACManagerMock) GetRole(ctx context.Context, roleID string) (*TestRole, error) {
-
-	r.mutex.RLock()
-
-	defer r.mutex.RUnlock()
-
-	role, exists := r.roleStore[roleID]
-
-	if !exists {
-
-		return nil, fmt.Errorf("role %s does not exist", roleID)
-
-	}
-
-	return role, nil
-
-}
-
-// CreatePermission creates a new permission (matches real interface).
-
-func (r *RBACManagerMock) CreatePermission(ctx context.Context, perm *TestPermission) (*TestPermission, error) {
-
-	r.mutex.Lock()
-
-	defer r.mutex.Unlock()
-
-	if perm.ID == "" {
-
-		return nil, fmt.Errorf("permission ID cannot be empty")
-
-	}
-
-	if _, exists := r.permissionStore[perm.ID]; exists {
-
-		return nil, fmt.Errorf("permission %s already exists", perm.ID)
-
-	}
-
-	now := time.Now()
-
-	perm.CreatedAt = now
-
-	perm.UpdatedAt = now
-
-	r.permissionStore[perm.ID] = perm
-
-	return perm, nil
-
-}
-
-// ListPermissions returns all permissions (matches real interface).
-
-func (r *RBACManagerMock) ListPermissions(ctx context.Context) []*TestPermission {
-
-	r.mutex.RLock()
-
-	defer r.mutex.RUnlock()
-
-	permissions := make([]*TestPermission, 0, len(r.permissionStore))
-
-	for _, perm := range r.permissionStore {
-
-		permissions = append(permissions, perm)
-
-	}
-
-	return permissions
-
-}
-
-// AssignRolesFromClaims assigns roles based on JWT claims and provider groups.
-
-func (r *RBACManagerMock) AssignRolesFromClaims(ctx context.Context, userInfo *providers.UserInfo) error {
-
-	userID := userInfo.Subject
-
-	// Clear existing roles for fresh assignment.
-
-	r.mutex.Lock()
-
-	r.roles[userID] = []string{}
-
-	r.mutex.Unlock()
-
-	// Map provider groups/roles to Nephoran roles.
-
-	roleMappings := []string{"read-only"} // Default role
-
-	for _, roleID := range roleMappings {
-
-		if err := r.GrantRoleToUser(ctx, userID, roleID); err != nil {
-
-			// If role doesn't exist, create a basic one.
-
-			if strings.Contains(err.Error(), "does not exist") {
-
-				basicRole := &TestRole{
-
-					ID: roleID,
-
-					Name: roleID,
-
-					Description: fmt.Sprintf("Auto-generated role: %s", roleID),
-
-					Permissions: []string{"read:basic"},
-
-					CreatedAt: time.Now(),
-
-					UpdatedAt: time.Now(),
-				}
-
-				if _, err := r.CreateRole(ctx, basicRole); err != nil {
-					// Log error but continue - this is test utility code
-					// Note: Error creating basic role but continuing execution
-					_ = err // Acknowledge error but continue
-				}
-
-				if err := r.GrantRoleToUser(ctx, userID, roleID); err != nil {
-					// Log error but continue - this is test utility code
-					// Note: Error granting role to user but continuing execution
-					_ = err // Acknowledge error but continue
-				}
-
-			}
-
-		}
-
-	}
-
-	return nil
-
-}
-
-// Helper method for permission matching.
-
-func (r *RBACManagerMock) matchesPermission(granted, required string) bool {
-
-	// Handle wildcard permissions.
-
-	if granted == "*" || granted == required {
-
-		return true
-
-	}
-
-	// Handle resource-level wildcards (e.g., "intent:*" matches "intent:read").
-
-	if strings.HasSuffix(granted, ":*") {
-
-		grantedResource := strings.TrimSuffix(granted, ":*")
-
-		requiredParts := strings.SplitN(required, ":", 2)
-
-		if len(requiredParts) == 2 && requiredParts[0] == grantedResource {
-
-			return true
-
-		}
-
-	}
-
-	return false
-
-}
-
-// Deprecated methods for backward compatibility.
-
-func (r *RBACManagerMock) CheckPermissionLegacy(ctx context.Context, userID, resource, action string) (bool, error) {
-
-	permission := fmt.Sprintf("%s:%s", resource, action)
-
-	allowed := r.CheckPermission(ctx, userID, permission)
-
-	return allowed, nil
-
-}
-
-// AssignRole performs assignrole operation.
-
-func (r *RBACManagerMock) AssignRole(ctx context.Context, userID, role string) error {
-
-	return r.GrantRoleToUser(ctx, userID, role)
-
-}
-
-// RevokeRole performs revokerole operation.
-
-func (r *RBACManagerMock) RevokeRole(ctx context.Context, userID, role string) error {
-
-	return r.RevokeRoleFromUser(ctx, userID, role)
-
-}
-
-// GetRolePermissions performs getrolepermissions operation.
-
-func (r *RBACManagerMock) GetRolePermissions(ctx context.Context, role string) ([]string, error) {
-
-	if r.permissions == nil {
-
-		return []string{}, nil
-
-	}
-
-	return r.permissions[role], nil
-
-}
-
-// AssignRoleToUser performs assignroletouser operation.
-
-func (r *RBACManagerMock) AssignRoleToUser(ctx context.Context, userID, roleID string) error {
-
-	return r.GrantRoleToUser(ctx, userID, roleID)
-
-}
-
-// Rest of the file continues with SessionManagerMock and TestContext...
-
-// (The rest remains the same as the original file).
-
-// SessionManagerMock provides mock session functionality.
-
-type SessionManagerMock struct {
-	sessions map[string]*MockSession
-
-	mutex sync.RWMutex
-
-	config SessionConfig
-}
-
-// SessionConfig represents a sessionconfig.
-
-type SessionConfig struct {
-	SessionTTL time.Duration
-}
-
-// MockSession represents a mocksession.
-
-type MockSession struct {
-	ID string
-
-	UserID string
-
-	UserInfo *providers.UserInfo
-
-	CreatedAt time.Time
-
-	ExpiresAt time.Time
-
-	Data map[string]interface{}
-}
-
-// NewSessionManagerMock performs newsessionmanagermock operation.
-
+// NewSessionManagerMock creates a new session manager mock.
 func NewSessionManagerMock() *SessionManagerMock {
+	mock := &SessionManagerMock{
+		sessions: make(map[string]interface{}),
+	}
+	mock.config.SessionTTL = time.Hour
+	return mock
+}
 
-	return &SessionManagerMock{
+// CreateCompleteTestSetup creates a complete test setup with all factories.
+func CreateCompleteTestSetup() (*UserFactory, *TokenFactory, *OAuthResponseFactory, interface{}, interface{}, interface{}, interface{}) {
+	uf := NewUserFactory()
+	tf := NewTokenFactory("test-issuer")
+	of := NewOAuthResponseFactory()
+	cf := struct{}{} // placeholder
+	rf := struct{}{} // placeholder
+	pf := struct{}{} // placeholder
+	sf := struct{}{} // placeholder
+	return uf, tf, of, cf, rf, pf, sf
+}
 
-		sessions: make(map[string]*MockSession),
+// CreateTestData creates test data for authentication scenarios.
+func CreateTestData() map[string]interface{} {
+	return map[string]interface{}{
+		"users": map[string]interface{}{
+			"basic":  map[string]string{"id": "user1", "name": "Basic User"},
+			"admin":  map[string]string{"id": "user2", "name": "Admin User"},
+			"github": map[string]string{"id": "user3", "name": "GitHub User"},
+		},
+		"tokens":      []string{"token1", "token2"},
+		"roles":       []string{"user", "admin"},
+		"permissions": []string{"read", "write"},
+		"sessions":    map[string]string{"session1": "user1"},
+	}
+}
 
-		config: SessionConfig{
+// AuthTestSuite provides a comprehensive authentication testing framework.
 
-			SessionTTL: time.Hour,
+type AuthTestSuite struct {
+	t           *testing.T
+	fixtures    *AuthFixtures
+	mocks       *AuthMocks
+	testServer  *httptest.Server
+	testClient  *http.Client
+}
+
+// AuthMocks contains all authentication mocks for testing.
+
+type AuthMocks struct {
+	Authenticator     *MockAuthenticator
+	OAuth2Provider    *MockOAuth2Provider
+	SAMLProvider      *MockSAMLProvider
+	LDAPProvider      *MockLDAPProvider
+	CertProvider      *MockCertificateProvider
+	MFAProvider       *MockMultiFactorProvider
+	AuthzProvider     *MockAuthorizationProvider
+}
+
+// NewAuthTestSuite creates a new authentication test suite.
+
+func NewAuthTestSuite(t *testing.T) *AuthTestSuite {
+	fixtures := DefaultAuthFixtures()
+	mocks := &AuthMocks{
+		Authenticator:     NewMockAuthenticator().WithFixtures(fixtures),
+		OAuth2Provider:    NewMockOAuth2Provider(),
+		SAMLProvider:      NewMockSAMLProvider(),
+		LDAPProvider:      NewMockLDAPProvider(),
+		CertProvider:      NewMockCertificateProvider().WithCertificateFixtures(fixtures),
+		MFAProvider:       NewMockMultiFactorProvider(),
+		AuthzProvider:     NewMockAuthorizationProvider().WithAuthorizationFixtures(fixtures),
+	}
+
+	suite := &AuthTestSuite{
+		t:        t,
+		fixtures: fixtures,
+		mocks:    mocks,
+	}
+
+	// Generate test certificates
+	err := fixtures.GenerateTestCertificates()
+	require.NoError(t, err, "Failed to generate test certificates")
+
+	return suite
+}
+
+// SetupTestServer creates a test HTTP server with authentication middleware.
+
+func (ats *AuthTestSuite) SetupTestServer() {
+	mux := http.NewServeMux()
+
+	// Setup authentication routes
+	mux.HandleFunc("/auth/login", ats.handleLogin)
+	mux.HandleFunc("/auth/logout", ats.handleLogout)
+	mux.HandleFunc("/auth/token", ats.handleTokenValidation)
+	mux.HandleFunc("/auth/refresh", ats.handleTokenRefresh)
+
+	// Setup OAuth2 routes
+	mux.HandleFunc("/oauth2/authorize", ats.handleOAuth2Authorize)
+	mux.HandleFunc("/oauth2/token", ats.handleOAuth2Token)
+	mux.HandleFunc("/oauth2/userinfo", ats.handleOAuth2UserInfo)
+
+	// Setup SAML routes
+	mux.HandleFunc("/saml/login", ats.handleSAMLLogin)
+	mux.HandleFunc("/saml/acs", ats.handleSAMLACS)
+	mux.HandleFunc("/saml/metadata", ats.handleSAMLMetadata)
+
+	// Setup protected routes
+	mux.HandleFunc("/api/networkintents", ats.authMiddleware(ats.handleNetworkIntents))
+	mux.HandleFunc("/api/e2nodesets", ats.authMiddleware(ats.handleE2NodeSets))
+	mux.HandleFunc("/api/admin", ats.requireRole("cluster-admin", ats.handleAdmin))
+
+	// Create test server
+	ats.testServer = httptest.NewServer(mux)
+
+	// Setup test client
+	ats.testClient = &http.Client{
+		Timeout: 30 * time.Second,
+	}
+}
+
+// SetupTLSTestServer creates a TLS test server for mTLS testing.
+
+func (ats *AuthTestSuite) SetupTLSTestServer() {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/secure", ats.clientCertMiddleware(ats.handleSecureAPI))
+
+	// Create TLS server with client certificate verification
+	ats.testServer = httptest.NewUnstartedServer(mux)
+	ats.testServer.TLS = &tls.Config{
+		ClientAuth: tls.RequireAndVerifyClientCert,
+		// In a real scenario, you would set up proper certificate verification
+	}
+	ats.testServer.StartTLS()
+
+	// Setup test client with certificate
+	cert, exists := ats.fixtures.GetCertificateByName("admin-client")
+	require.True(ats.t, exists, "Admin client certificate should exist")
+
+	clientCert, err := tls.X509KeyPair(cert.Certificate, cert.PrivateKey)
+	require.NoError(ats.t, err, "Failed to load client certificate")
+
+	ats.testClient = &http.Client{
+		Timeout: 30 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				Certificates:       []tls.Certificate{clientCert},
+				InsecureSkipVerify: true, // For testing only
+			},
 		},
 	}
-
 }
 
-// CreateSession performs createsession operation.
+// Teardown cleans up the test suite.
 
-func (s *SessionManagerMock) CreateSession(ctx context.Context, userInfo *providers.UserInfo, metadata ...map[string]interface{}) (*MockSession, error) {
+func (ats *AuthTestSuite) Teardown() {
+	if ats.testServer != nil {
+		ats.testServer.Close()
+	}
+}
 
-	s.mutex.Lock()
+// HTTP Handlers
 
-	defer s.mutex.Unlock()
+func (ats *AuthTestSuite) handleLogin(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
-	session := &MockSession{
+	var loginReq struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
 
-		ID: fmt.Sprintf("test-session-%d", time.Now().UnixNano()),
+	if err := json.NewDecoder(r.Body).Decode(&loginReq); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
 
-		UserID: userInfo.Subject,
+	session, err := ats.mocks.Authenticator.Authenticate(r.Context(), loginReq.Username, loginReq.Password)
+	if err != nil {
+		http.Error(w, "Authentication failed", http.StatusUnauthorized)
+		return
+	}
 
-		UserInfo: userInfo,
+	token, err := ats.mocks.Authenticator.GenerateToken(r.Context(), loginReq.Username)
+	if err != nil {
+		http.Error(w, "Token generation failed", http.StatusInternalServerError)
+		return
+	}
 
+	response := map[string]interface{}{
+		"session_id": session.SessionID,
+		"token":      token,
+		"expires_at": session.ExpiresAt,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func (ats *AuthTestSuite) handleLogout(w http.ResponseWriter, r *http.Request) {
+	sessionID := r.Header.Get("X-Session-ID")
+	if sessionID == "" {
+		http.Error(w, "Session ID required", http.StatusBadRequest)
+		return
+	}
+
+	err := ats.mocks.Authenticator.Logout(r.Context(), sessionID)
+	if err != nil {
+		http.Error(w, "Logout failed", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (ats *AuthTestSuite) handleTokenValidation(w http.ResponseWriter, r *http.Request) {
+	token := r.Header.Get("Authorization")
+	if token == "" {
+		http.Error(w, "Token required", http.StatusBadRequest)
+		return
+	}
+
+	// Remove "Bearer " prefix
+	if len(token) > 7 && token[:7] == "Bearer " {
+		token = token[7:]
+	}
+
+	jwtToken, err := ats.mocks.Authenticator.ValidateToken(r.Context(), token)
+	if err != nil {
+		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	claims, ok := jwtToken.Claims.(jwt.MapClaims)
+	if !ok {
+		http.Error(w, "Invalid token claims", http.StatusUnauthorized)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(claims)
+}
+
+func (ats *AuthTestSuite) handleTokenRefresh(w http.ResponseWriter, r *http.Request) {
+	var refreshReq struct {
+		RefreshToken string `json:"refresh_token"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&refreshReq); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	// For simplicity, we'll generate a new token for the same user
+	// In a real implementation, you would validate the refresh token
+	response := map[string]interface{}{
+		"access_token": "new-access-token-" + fmt.Sprintf("%d", time.Now().Unix()),
+		"token_type":   "Bearer",
+		"expires_in":   3600,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func (ats *AuthTestSuite) handleOAuth2Authorize(w http.ResponseWriter, r *http.Request) {
+	clientID := r.URL.Query().Get("client_id")
+	redirectURI := r.URL.Query().Get("redirect_uri")
+	scopes := r.URL.Query()["scope"]
+
+	if clientID == "" || redirectURI == "" {
+		http.Error(w, "Missing required parameters", http.StatusBadRequest)
+		return
+	}
+
+	// For testing, assume user is authenticated and consents
+	code, err := ats.mocks.OAuth2Provider.GenerateAuthorizationCode(
+		r.Context(), clientID, "test-user", redirectURI, scopes)
+	if err != nil {
+		http.Error(w, "Failed to generate authorization code", http.StatusInternalServerError)
+		return
+	}
+
+	// Redirect with authorization code
+	redirectURL := fmt.Sprintf("%s?code=%s&state=%s", redirectURI, code, r.URL.Query().Get("state"))
+	http.Redirect(w, r, redirectURL, http.StatusFound)
+}
+
+func (ats *AuthTestSuite) handleOAuth2Token(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+
+	grantType := r.FormValue("grant_type")
+	code := r.FormValue("code")
+	clientID := r.FormValue("client_id")
+	clientSecret := r.FormValue("client_secret")
+
+	if grantType != "authorization_code" {
+		http.Error(w, "Unsupported grant type", http.StatusBadRequest)
+		return
+	}
+
+	tokenResponse, err := ats.mocks.OAuth2Provider.ExchangeCodeForTokens(
+		r.Context(), code, clientID, clientSecret)
+	if err != nil {
+		http.Error(w, "Token exchange failed", http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(tokenResponse)
+}
+
+func (ats *AuthTestSuite) handleOAuth2UserInfo(w http.ResponseWriter, r *http.Request) {
+	token := r.Header.Get("Authorization")
+	if token == "" {
+		http.Error(w, "Token required", http.StatusUnauthorized)
+		return
+	}
+
+	// Remove "Bearer " prefix
+	if len(token) > 7 && token[:7] == "Bearer " {
+		token = token[7:]
+	}
+
+	accessToken, err := ats.mocks.OAuth2Provider.ValidateAccessToken(r.Context(), token)
+	if err != nil {
+		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	userInfo := map[string]interface{}{
+		"sub":   accessToken.UserID,
+		"scope": accessToken.Scopes,
+		"exp":   accessToken.ExpiresAt.Unix(),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(userInfo)
+}
+
+func (ats *AuthTestSuite) handleSAMLLogin(w http.ResponseWriter, r *http.Request) {
+	entityID := r.URL.Query().Get("entity_id")
+	if entityID == "" {
+		entityID = "https://api.nephoran.local/saml/sp"
+	}
+
+	samlRequest, err := ats.mocks.SAMLProvider.GenerateSAMLRequest(r.Context(), entityID)
+	if err != nil {
+		http.Error(w, "Failed to generate SAML request", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/xml")
+	w.Write([]byte(samlRequest))
+}
+
+func (ats *AuthTestSuite) handleSAMLACS(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	samlResponse := r.FormValue("SAMLResponse")
+	if samlResponse == "" {
+		http.Error(w, "SAML response required", http.StatusBadRequest)
+		return
+	}
+
+	assertion, err := ats.mocks.SAMLProvider.ValidateSAMLResponse(r.Context(), samlResponse)
+	if err != nil {
+		http.Error(w, "Invalid SAML response", http.StatusUnauthorized)
+		return
+	}
+
+	// Create session for authenticated user
+	session := &UserSession{
+		SessionID: fmt.Sprintf("saml-session-%d", time.Now().UnixNano()),
+		Username:  assertion.Subject,
 		CreatedAt: time.Now(),
-
-		ExpiresAt: time.Now().Add(time.Hour),
-
-		Data: make(map[string]interface{}),
+		ExpiresAt: assertion.NotOnOrAfter,
+		Active:    true,
 	}
 
-	// Add metadata if provided.
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(session)
+}
 
-	if len(metadata) > 0 {
+func (ats *AuthTestSuite) handleSAMLMetadata(w http.ResponseWriter, r *http.Request) {
+	metadata := `<?xml version="1.0" encoding="UTF-8"?>
+<EntityDescriptor xmlns="urn:oasis:names:tc:SAML:2.0:metadata" entityID="https://api.nephoran.local/saml/sp">
+  <SPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+    <AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://api.nephoran.local/saml/acs" index="0"/>
+  </SPSSODescriptor>
+</EntityDescriptor>`
 
-		for k, v := range metadata[0] {
+	w.Header().Set("Content-Type", "text/xml")
+	w.Write([]byte(metadata))
+}
 
-			session.Data[k] = v
+// Protected route handlers
 
+func (ats *AuthTestSuite) handleNetworkIntents(w http.ResponseWriter, r *http.Request) {
+	response := map[string]interface{}{
+		"message": "Network intents data",
+		"user":    r.Header.Get("X-User-ID"),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func (ats *AuthTestSuite) handleE2NodeSets(w http.ResponseWriter, r *http.Request) {
+	response := map[string]interface{}{
+		"message": "E2 node sets data",
+		"user":    r.Header.Get("X-User-ID"),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func (ats *AuthTestSuite) handleAdmin(w http.ResponseWriter, r *http.Request) {
+	response := map[string]interface{}{
+		"message": "Admin data - restricted access",
+		"user":    r.Header.Get("X-User-ID"),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func (ats *AuthTestSuite) handleSecureAPI(w http.ResponseWriter, r *http.Request) {
+	response := map[string]interface{}{
+		"message": "Secure API accessed with client certificate",
+		"cert":    r.Header.Get("X-Client-Cert-Subject"),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// Middleware functions
+
+func (ats *AuthTestSuite) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		token := r.Header.Get("Authorization")
+		if token == "" {
+			http.Error(w, "Authorization required", http.StatusUnauthorized)
+			return
 		}
 
-	}
-
-	s.sessions[session.ID] = session
-
-	return session, nil
-
-}
-
-// GetSession performs getsession operation.
-
-func (s *SessionManagerMock) GetSession(ctx context.Context, sessionID string) (*MockSession, error) {
-
-	s.mutex.RLock()
-
-	defer s.mutex.RUnlock()
-
-	session, exists := s.sessions[sessionID]
-
-	if !exists {
-
-		return nil, fmt.Errorf("session not found")
-
-	}
-
-	return session, nil
-
-}
-
-// UpdateSession performs updatesession operation.
-
-func (s *SessionManagerMock) UpdateSession(ctx context.Context, sessionID string, updates map[string]interface{}) error {
-
-	s.mutex.Lock()
-
-	defer s.mutex.Unlock()
-
-	session, exists := s.sessions[sessionID]
-
-	if !exists {
-
-		return fmt.Errorf("session not found")
-
-	}
-
-	for k, v := range updates {
-
-		session.Data[k] = v
-
-	}
-
-	return nil
-
-}
-
-// DeleteSession performs deletesession operation.
-
-func (s *SessionManagerMock) DeleteSession(ctx context.Context, sessionID string) error {
-
-	s.mutex.Lock()
-
-	defer s.mutex.Unlock()
-
-	delete(s.sessions, sessionID)
-
-	return nil
-
-}
-
-// ListUserSessions performs listusersessions operation.
-
-func (s *SessionManagerMock) ListUserSessions(ctx context.Context, userID string) ([]*MockSession, error) {
-
-	s.mutex.RLock()
-
-	defer s.mutex.RUnlock()
-
-	var sessions []*MockSession
-
-	for _, session := range s.sessions {
-
-		if session.UserID == userID {
-
-			sessions = append(sessions, session)
-
+		// Remove "Bearer " prefix
+		if len(token) > 7 && token[:7] == "Bearer " {
+			token = token[7:]
 		}
 
+		jwtToken, err := ats.mocks.Authenticator.ValidateToken(r.Context(), token)
+		if err != nil {
+			http.Error(w, "Invalid token", http.StatusUnauthorized)
+			return
+		}
+
+		claims, ok := jwtToken.Claims.(jwt.MapClaims)
+		if !ok {
+			http.Error(w, "Invalid token claims", http.StatusUnauthorized)
+			return
+		}
+
+		// Add user information to request headers
+		if sub, exists := claims["sub"]; exists {
+			r.Header.Set("X-User-ID", sub.(string))
+		}
+
+		next(w, r)
 	}
-
-	return sessions, nil
-
 }
 
-// ValidateSession performs validatesession operation.
+func (ats *AuthTestSuite) requireRole(requiredRole string, next http.HandlerFunc) http.HandlerFunc {
+	return ats.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		userID := r.Header.Get("X-User-ID")
+		if userID == "" {
+			http.Error(w, "User ID not found", http.StatusUnauthorized)
+			return
+		}
 
-func (s *SessionManagerMock) ValidateSession(ctx context.Context, sessionID string) (*MockSession, error) {
+		roles, err := ats.mocks.AuthzProvider.GetUserRoles(r.Context(), userID)
+		if err != nil {
+			http.Error(w, "Failed to get user roles", http.StatusInternalServerError)
+			return
+		}
 
-	session, err := s.GetSession(ctx, sessionID)
+		hasRole := false
+		for _, role := range roles {
+			if role == requiredRole {
+				hasRole = true
+				break
+			}
+		}
 
-	if err != nil {
+		if !hasRole {
+			http.Error(w, "Insufficient privileges", http.StatusForbidden)
+			return
+		}
 
-		return nil, err
-
-	}
-
-	// Check if session is expired.
-
-	if time.Now().After(session.ExpiresAt) {
-
-		return nil, fmt.Errorf("session expired")
-
-	}
-
-	return session, nil
-
-}
-
-// RefreshSession performs refreshsession operation.
-
-func (s *SessionManagerMock) RefreshSession(ctx context.Context, sessionID string) (*MockSession, error) {
-
-	s.mutex.Lock()
-
-	defer s.mutex.Unlock()
-
-	session, exists := s.sessions[sessionID]
-
-	if !exists {
-
-		return nil, fmt.Errorf("session not found")
-
-	}
-
-	// Extend session expiry.
-
-	session.ExpiresAt = time.Now().Add(time.Hour)
-
-	return session, nil
-
-}
-
-// SetSessionCookie performs setsessioncookie operation.
-
-func (s *SessionManagerMock) SetSessionCookie(w http.ResponseWriter, sessionID string) {
-
-	http.SetCookie(w, &http.Cookie{
-
-		Name: "test-session",
-
-		Value: sessionID,
-
-		Path: "/",
-
-		HttpOnly: true,
-
-		Secure: false, // For testing
-
+		next(w, r)
 	})
-
 }
 
-// GetSessionFromRequest performs getsessionfromrequest operation.
-
-func (s *SessionManagerMock) GetSessionFromRequest(r *http.Request) (*MockSession, error) {
-
-	cookie, err := r.Cookie("test-session")
-
-	if err != nil {
-
-		return nil, err
-
-	}
-
-	return s.GetSession(r.Context(), cookie.Value)
-
-}
-
-// CleanupExpiredSessions performs cleanupexpiredsessions operation.
-
-func (s *SessionManagerMock) CleanupExpiredSessions() error {
-
-	s.mutex.Lock()
-
-	defer s.mutex.Unlock()
-
-	now := time.Now()
-
-	for id, session := range s.sessions {
-
-		if now.After(session.ExpiresAt) {
-
-			delete(s.sessions, id)
-
+func (ats *AuthTestSuite) clientCertMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.TLS == nil || len(r.TLS.PeerCertificates) == 0 {
+			http.Error(w, "Client certificate required", http.StatusUnauthorized)
+			return
 		}
 
+		cert := r.TLS.PeerCertificates[0]
+		r.Header.Set("X-Client-Cert-Subject", cert.Subject.CommonName)
+
+		next(w, r)
 	}
-
-	return nil
-
 }
 
-// Close performs close operation.
+// Helper methods for testing
 
-func (s *SessionManagerMock) Close() {
+// TestBasicAuthentication tests basic username/password authentication.
 
-	// Mock implementation.
+func (ats *AuthTestSuite) TestBasicAuthentication() {
+	require.NotNil(ats.t, ats.fixtures, "Fixtures should be initialized")
 
+	// Test valid credentials
+	session, err := ats.mocks.Authenticator.Authenticate(context.Background(), "admin", "admin123")
+	require.NoError(ats.t, err, "Authentication should succeed with valid credentials")
+	require.NotNil(ats.t, session, "Session should be created")
+	require.Equal(ats.t, "admin", session.Username, "Username should match")
+
+	// Test invalid credentials
+	_, err = ats.mocks.Authenticator.Authenticate(context.Background(), "admin", "wrongpassword")
+	require.Error(ats.t, err, "Authentication should fail with invalid credentials")
 }
 
-// Additional methods needed for comprehensive tests.
+// TestJWTTokenGeneration tests JWT token generation and validation.
 
-// UpdateSessionMetadata performs updatesessionmetadata operation.
+func (ats *AuthTestSuite) TestJWTTokenGeneration() {
+	// Generate token
+	token, err := ats.mocks.Authenticator.GenerateToken(context.Background(), "admin")
+	require.NoError(ats.t, err, "Token generation should succeed")
+	require.NotEmpty(ats.t, token, "Token should not be empty")
 
-func (s *SessionManagerMock) UpdateSessionMetadata(ctx context.Context, sessionID string, metadata map[string]interface{}) (*MockSession, error) {
+	// Validate token
+	jwtToken, err := ats.mocks.Authenticator.ValidateToken(context.Background(), token)
+	require.NoError(ats.t, err, "Token validation should succeed")
+	require.True(ats.t, jwtToken.Valid, "Token should be valid")
 
-	s.mutex.Lock()
-
-	defer s.mutex.Unlock()
-
-	session, exists := s.sessions[sessionID]
-
-	if !exists {
-
-		return nil, fmt.Errorf("session not found")
-
-	}
-
-	// S1031: Range over maps is safe even if the map is nil, no check needed
-	for k, v := range metadata {
-
-		session.Data[k] = v
-
-	}
-
-	return session, nil
-
+	// Check claims
+	claims, ok := jwtToken.Claims.(jwt.MapClaims)
+	require.True(ats.t, ok, "Claims should be accessible")
+	require.Equal(ats.t, "admin", claims["sub"], "Subject should match username")
 }
 
-// GetUserSessions performs getusersessions operation.
+// TestOAuth2Flow tests the OAuth2 authorization code flow.
 
-func (s *SessionManagerMock) GetUserSessions(ctx context.Context, userID string) ([]*MockSession, error) {
+func (ats *AuthTestSuite) TestOAuth2Flow() {
+	clientID := "nephoran-ui"
+	clientSecret := "ui-secret-2025"
+	userID := "admin"
+	redirectURI := "http://localhost:3000/auth/callback"
+	scopes := []string{"openid", "profile", "network:read"}
 
-	return s.ListUserSessions(ctx, userID)
+	// Generate authorization code
+	code, err := ats.mocks.OAuth2Provider.GenerateAuthorizationCode(
+		context.Background(), clientID, userID, redirectURI, scopes)
+	require.NoError(ats.t, err, "Authorization code generation should succeed")
+	require.NotEmpty(ats.t, code, "Authorization code should not be empty")
 
+	// Exchange code for tokens
+	tokenResponse, err := ats.mocks.OAuth2Provider.ExchangeCodeForTokens(
+		context.Background(), code, clientID, clientSecret)
+	require.NoError(ats.t, err, "Token exchange should succeed")
+	require.NotNil(ats.t, tokenResponse, "Token response should not be nil")
+	require.NotEmpty(ats.t, tokenResponse.AccessToken, "Access token should not be empty")
+
+	// Validate access token
+	accessToken, err := ats.mocks.OAuth2Provider.ValidateAccessToken(
+		context.Background(), tokenResponse.AccessToken)
+	require.NoError(ats.t, err, "Access token validation should succeed")
+	require.Equal(ats.t, userID, accessToken.UserID, "User ID should match")
 }
 
-// RevokeSession performs revokesession operation.
+// TestPermissionChecking tests RBAC permission checking.
 
-func (s *SessionManagerMock) RevokeSession(ctx context.Context, sessionID string) error {
+func (ats *AuthTestSuite) TestPermissionChecking() {
+	// Test admin permissions
+	hasPermission := ats.fixtures.HasPermission("admin", "networkintents:create:default")
+	require.True(ats.t, hasPermission, "Admin should have create permission")
 
-	return s.DeleteSession(ctx, sessionID)
+	hasPermission = ats.fixtures.HasPermission("admin", "e2nodesets:delete:production")
+	require.True(ats.t, hasPermission, "Admin should have delete permission")
 
+	// Test operator permissions
+	hasPermission = ats.fixtures.HasPermission("operator", "networkintents:read:default")
+	require.True(ats.t, hasPermission, "Operator should have read permission")
+
+	hasPermission = ats.fixtures.HasPermission("operator", "networkintents:delete:production")
+	require.False(ats.t, hasPermission, "Operator should not have delete permission")
+
+	// Test viewer permissions
+	hasPermission = ats.fixtures.HasPermission("viewer", "networkintents:read:default")
+	require.True(ats.t, hasPermission, "Viewer should have read permission")
+
+	hasPermission = ats.fixtures.HasPermission("viewer", "networkintents:update:default")
+	require.False(ats.t, hasPermission, "Viewer should not have update permission")
 }
 
-// RevokeAllUserSessions performs revokeallusersessions operation.
+// TestCertificateAuthentication tests client certificate authentication.
 
-func (s *SessionManagerMock) RevokeAllUserSessions(ctx context.Context, userID string) error {
+func (ats *AuthTestSuite) TestCertificateAuthentication() {
+	// Get admin client certificate
+	cert, exists := ats.fixtures.GetCertificateByName("admin-client")
+	require.True(ats.t, exists, "Admin client certificate should exist")
 
-	s.mutex.Lock()
-
-	defer s.mutex.Unlock()
-
-	toDelete := []string{}
-
-	for id, session := range s.sessions {
-
-		if session.UserID == userID {
-
-			toDelete = append(toDelete, id)
-
-		}
-
-	}
-
-	for _, id := range toDelete {
-
-		delete(s.sessions, id)
-
-	}
-
-	return nil
-
+	// Validate certificate
+	certInfo, err := ats.mocks.CertProvider.ValidateCertificate(context.Background(), cert.Certificate)
+	require.NoError(ats.t, err, "Certificate validation should succeed")
+	require.NotNil(ats.t, certInfo, "Certificate info should not be nil")
+	require.True(ats.t, certInfo.Valid, "Certificate should be valid")
+	require.Equal(ats.t, cert.CommonName, certInfo.CommonName, "Common names should match")
 }
 
-// GetSessionFromCookie performs getsessionfromcookie operation.
+// GetFixtures returns the test fixtures.
 
-func (s *SessionManagerMock) GetSessionFromCookie(r *http.Request) (string, error) {
-
-	cookie, err := r.Cookie("test-session")
-
-	if err != nil {
-
-		return "", err
-
-	}
-
-	return cookie.Value, nil
-
+func (ats *AuthTestSuite) GetFixtures() *AuthFixtures {
+	return ats.fixtures
 }
 
-// ClearSessionCookie performs clearsessioncookie operation.
+// GetMocks returns the authentication mocks.
 
-func (s *SessionManagerMock) ClearSessionCookie(w http.ResponseWriter) {
-
-	http.SetCookie(w, &http.Cookie{
-
-		Name: "test-session",
-
-		Value: "",
-
-		Path: "/",
-
-		HttpOnly: true,
-
-		Secure: false,
-
-		MaxAge: -1,
-
-		Expires: time.Now().Add(-time.Hour),
-	})
-
+func (ats *AuthTestSuite) GetMocks() *AuthMocks {
+	return ats.mocks
 }
 
-// TestContext provides a complete testing environment for auth tests.
+// GetTestServer returns the test server.
 
+func (ats *AuthTestSuite) GetTestServer() *httptest.Server {
+	return ats.testServer
+}
+
+// GetTestClient returns the test HTTP client.
+
+func (ats *AuthTestSuite) GetTestClient() *http.Client {
+	return ats.testClient
+}
+
+// TestContext provides a comprehensive testing context for authentication scenarios
 type TestContext struct {
-	T *testing.T
-
-	Ctx context.Context
-
-	Logger *slog.Logger
-
-	// Keys for testing.
-
-	PrivateKey *rsa.PrivateKey
-
-	PublicKey *rsa.PublicKey
-
-	KeyID string
-
-	// Test servers.
-
-	OAuthServer *httptest.Server
-
-	LDAPServer *MockLDAPServer
-
-	// Mock implementations for testing.
-
-	JWTManager *JWTManagerMock
-
-	RBACManager *RBACManagerMock
-
-	SessionManager *SessionManagerMock
-
-	// Cleanup functions.
-
-	cleanupFuncs []func()
-
-	mutex sync.Mutex
+	t           *testing.T
+	fixtures    *AuthFixtures
+	PrivateKey  *rsa.PrivateKey
+	PublicKey   *rsa.PublicKey
+	KeyID       string       // Key ID for JWT signing
+	Logger      TestLogger
+	SlogLogger  *slog.Logger // For slog.Logger compatibility
+	TokenStore  *MockTokenStore // For JWT manager compatibility
+	Blacklist   *MockTokenBlacklist // For JWT manager compatibility
+	cleanupFns  []func()
 }
 
-// NewTestContext creates a new test context with default configuration.
+// TestLogger provides a simple test logger interface
+type TestLogger interface {
+	Log(args ...interface{})
+	Logf(format string, args ...interface{})
+}
 
+// testLogger implements TestLogger for testing
+type testLogger struct {
+	t *testing.T
+}
+
+func (tl *testLogger) Log(args ...interface{}) {
+	tl.t.Log(args...)
+}
+
+func (tl *testLogger) Logf(format string, args ...interface{}) {
+	tl.t.Logf(format, args...)
+}
+
+// NewTestContext creates a new test context for authentication testing
 func NewTestContext(t *testing.T) *TestContext {
-
-	ctx := context.Background()
-
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-
-		Level: slog.LevelDebug,
-	}))
-
-	// Generate test RSA key pair.
-
+	// Generate RSA key pair for JWT testing
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-
-	require.NoError(t, err)
-
-	publicKey := &privateKey.PublicKey
-
-	keyID := "test-key-id"
+	require.NoError(t, err, "Failed to generate RSA private key")
 
 	tc := &TestContext{
-
-		T: t,
-
-		Ctx: ctx,
-
-		Logger: logger,
-
+		t:          t,
+		fixtures:   DefaultAuthFixtures(),
 		PrivateKey: privateKey,
-
-		PublicKey: publicKey,
-
-		KeyID: keyID,
-
-		JWTManager: NewJWTManagerMock(),
-
-		RBACManager: NewRBACManagerMock(),
-
-		SessionManager: NewSessionManagerMock(),
+		PublicKey:  &privateKey.PublicKey,
+		KeyID:      "test-key-id",
+		Logger:     &testLogger{t: t},
+		SlogLogger: NewMockSlogLogger(),
+		TokenStore: NewMockTokenStore(),
+		Blacklist:  NewMockTokenBlacklist(),
+		cleanupFns: make([]func(), 0),
 	}
+
+	// Generate test certificates
+	err = tc.fixtures.GenerateTestCertificates()
+	require.NoError(t, err, "Failed to generate test certificates")
 
 	return tc
-
 }
 
-// SetupJWTManager initializes JWT manager mock for testing.
-
-func (tc *TestContext) SetupJWTManager() *JWTManagerMock {
-
-	// Set test keys.
-
-	err := tc.JWTManager.SetSigningKey(tc.PrivateKey, tc.KeyID)
-
-	require.NoError(tc.T, err)
-
-	tc.AddCleanup(func() {
-
-		tc.JWTManager.Close()
-
-	})
-
-	return tc.JWTManager
-
-}
-
-// SetupRBACManager initializes RBAC manager mock for testing.
-
-func (tc *TestContext) SetupRBACManager() *RBACManagerMock {
-
-	return tc.RBACManager
-
-}
-
-// SetupSessionManager initializes session manager mock for testing.
-
-func (tc *TestContext) SetupSessionManager() *SessionManagerMock {
-
-	tc.AddCleanup(func() {
-
-		tc.SessionManager.Close()
-
-	})
-
-	return tc.SessionManager
-
-}
-
-// CreateTestToken creates a test JWT token.
-
-func (tc *TestContext) CreateTestToken(claims jwt.MapClaims) string {
-
-	if claims == nil {
-
-		claims = jwt.MapClaims{}
-
-	}
-
-	// Set default claims if not provided.
-
-	if claims["iss"] == nil {
-
-		claims["iss"] = "test-issuer"
-
-	}
-
-	if claims["sub"] == nil {
-
-		claims["sub"] = "test-user"
-
-	}
-
-	if claims["exp"] == nil {
-
-		claims["exp"] = time.Now().Add(time.Hour).Unix()
-
-	}
-
-	if claims["iat"] == nil {
-
-		claims["iat"] = time.Now().Unix()
-
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-
-	token.Header["kid"] = tc.KeyID
-
-	tokenString, err := token.SignedString(tc.PrivateKey)
-
-	require.NoError(tc.T, err)
-
-	return tokenString
-
-}
-
-// CreateTestUser creates a test user info.
-
-func (tc *TestContext) CreateTestUser(userID string) *providers.UserInfo {
-
-	return &providers.UserInfo{
-
-		Subject: userID,
-
-		Email: fmt.Sprintf("%s@example.com", userID),
-
-		EmailVerified: true,
-
-		Name: fmt.Sprintf("Test %s", cases.Title(language.English).String(userID)),
-
-		GivenName: "Test",
-
-		FamilyName: cases.Title(language.English).String(userID),
-
-		Username: userID,
-
-		Provider: "test",
-
-		ProviderID: fmt.Sprintf("test-%s", userID),
-
-		Groups: []string{"users", "testers"},
-
-		Roles: []string{"viewer"},
-
-		Attributes: map[string]interface{}{
-
-			"department": "engineering",
-
-			"team": "platform",
-		},
-	}
-
-}
-
-// AddCleanup adds a cleanup function to be called when the test finishes.
-
-func (tc *TestContext) AddCleanup(cleanup func()) {
-
-	tc.mutex.Lock()
-
-	defer tc.mutex.Unlock()
-
-	tc.cleanupFuncs = append(tc.cleanupFuncs, cleanup)
-
-}
-
-// Cleanup performs all cleanup operations.
-
+// Cleanup cleans up resources created during testing
 func (tc *TestContext) Cleanup() {
-
-	tc.mutex.Lock()
-
-	defer tc.mutex.Unlock()
-
-	// Run cleanup functions in reverse order.
-
-	for i := len(tc.cleanupFuncs) - 1; i >= 0; i-- {
-
-		tc.cleanupFuncs[i]()
-
+	for i := len(tc.cleanupFns) - 1; i >= 0; i-- {
+		tc.cleanupFns[i]()
 	}
-
-	tc.cleanupFuncs = nil
-
+	tc.cleanupFns = nil
 }
 
-// Assertion helpers.
-
-func AssertNoError(t *testing.T, err error) {
-
-	assert.NoError(t, err)
-
+// AddCleanup adds a cleanup function to be called when the test context is cleaned up
+func (tc *TestContext) AddCleanup(fn func()) {
+	tc.cleanupFns = append(tc.cleanupFns, fn)
 }
 
-// AssertError performs asserterror operation.
-
-func AssertError(t *testing.T, err error) {
-
-	assert.Error(t, err)
-
+// SetupJWTManager creates a JWT manager for testing
+func (tc *TestContext) SetupJWTManager() *JWTManagerMock {
+	return NewJWTManagerMock()
 }
 
-// AssertEqual performs assertequal operation.
-
-func AssertEqual(t *testing.T, expected, actual interface{}) {
-
-	assert.Equal(t, expected, actual)
-
+// SetupSessionManager creates a session manager for testing
+func (tc *TestContext) SetupSessionManager() *SessionManagerMock {
+	return NewSessionManagerMock()
 }
 
-// AssertNotEqual performs assertnotequal operation.
-
-func AssertNotEqual(t *testing.T, expected, actual interface{}) {
-
-	assert.NotEqual(t, expected, actual)
-
+// SetupRBACManager creates an RBAC manager for testing
+func (tc *TestContext) SetupRBACManager() *RBACManagerMock {
+	return NewRBACManagerMock()
 }
 
-// AssertContains performs assertcontains operation.
-
-func AssertContains(t *testing.T, haystack, needle interface{}) {
-
-	assert.Contains(t, haystack, needle)
-
+// CreateTestToken creates a test JWT token with the given claims
+func (tc *TestContext) CreateTestToken(claims jwt.MapClaims) string {
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	tokenString, err := token.SignedString(tc.PrivateKey)
+	require.NoError(tc.t, err, "Failed to sign test token")
+	return tokenString
 }
 
-// AssertNotContains performs assertnotcontains operation.
-
-func AssertNotContains(t *testing.T, haystack, needle interface{}) {
-
-	assert.NotContains(t, haystack, needle)
-
-}
-
-// AssertTrue performs asserttrue operation.
-
-func AssertTrue(t *testing.T, value bool) {
-
-	assert.True(t, value)
-
-}
-
-// AssertFalse performs assertfalse operation.
-
-func AssertFalse(t *testing.T, value bool) {
-
-	assert.False(t, value)
-
-}
-
-// AssertNil performs assertnil operation.
-
-func AssertNil(t *testing.T, value interface{}) {
-
-	assert.Nil(t, value)
-
-}
-
-// AssertNotNil performs assertnotnil operation.
-
-func AssertNotNil(t *testing.T, value interface{}) {
-
-	assert.NotNil(t, value)
-
-}
-
-// PEM helpers for key generation in tests.
-
-func GenerateTestKeyPair() (*rsa.PrivateKey, *rsa.PublicKey, error) {
-
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-
-	if err != nil {
-
-		return nil, nil, err
-
-	}
-
-	return privateKey, &privateKey.PublicKey, nil
-
-}
-
-// PrivateKeyToPEM performs privatekeytopem operation.
-
-func PrivateKeyToPEM(key *rsa.PrivateKey) string {
-
-	keyBytes := x509.MarshalPKCS1PrivateKey(key)
-
-	keyBlock := &pem.Block{
-
-		Type: "RSA PRIVATE KEY",
-
-		Bytes: keyBytes,
-	}
-
-	return string(pem.EncodeToMemory(keyBlock))
-
-}
-
-// PublicKeyToPEM performs publickeytopem operation.
-
-func PublicKeyToPEM(key *rsa.PublicKey) (string, error) {
-
-	keyBytes, err := x509.MarshalPKIXPublicKey(key)
-
-	if err != nil {
-
-		return "", err
-
-	}
-
-	keyBlock := &pem.Block{
-
-		Type: "PUBLIC KEY",
-
-		Bytes: keyBytes,
-	}
-
-	return string(pem.EncodeToMemory(keyBlock)), nil
-
-}
-
-// Type aliases for backward compatibility.
-
-type (
-	MockJWTManager = JWTManagerMock
-
-	// MockSessionManager represents a mocksessionmanager.
-
-	MockSessionManager = SessionManagerMock
-
-	// MockRBACManager represents a mockrbacmanager.
-
-	MockRBACManager = RBACManagerMock
-)

@@ -67,20 +67,16 @@ const (
 // NewQueueMonitor creates a new queue monitor.
 
 func NewQueueMonitor() *QueueMonitor {
-
 	return &QueueMonitor{
-
 		queues: make(map[string]*QueueTracker),
 
 		queueDepthMetric: promauto.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "nephoran_queue_depth",
 
 			Help: "Current depth of processing queues",
 		}, []string{"queue", "priority"}),
 
 		waitTimeMetric: promauto.NewHistogramVec(prometheus.HistogramOpts{
-
 			Name: "nephoran_queue_wait_time_seconds",
 
 			Help: "Time spent in queue before processing",
@@ -89,31 +85,25 @@ func NewQueueMonitor() *QueueMonitor {
 		}, []string{"queue", "priority"}),
 
 		drainRateMetric: promauto.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "nephoran_queue_drain_rate",
 
 			Help: "Rate of items being processed from queues",
 		}, []string{"queue", "priority", "status"}),
 	}
-
 }
 
 // RegisterQueue adds a new queue to monitoring.
 
 func (m *QueueMonitor) RegisterQueue(
-
 	name string,
 
 	maxDepth int,
-
 ) *QueueTracker {
-
 	m.mu.Lock()
 
 	defer m.mu.Unlock()
 
 	tracker := &QueueTracker{
-
 		name: name,
 
 		maxDepth: maxDepth,
@@ -126,21 +116,17 @@ func (m *QueueMonitor) RegisterQueue(
 	m.queues[name] = tracker
 
 	return tracker
-
 }
 
 // Enqueue adds an item to the queue.
 
 func (m *QueueMonitor) Enqueue(
-
 	queueName string,
 
 	priority Priority,
 
 	enqueuedAt time.Time,
-
 ) error {
-
 	m.mu.Lock()
 
 	defer m.mu.Unlock()
@@ -148,9 +134,7 @@ func (m *QueueMonitor) Enqueue(
 	queue, exists := m.queues[queueName]
 
 	if !exists {
-
 		return fmt.Errorf("queue %s not registered", queueName)
-
 	}
 
 	// Increment queue depth.
@@ -166,19 +150,15 @@ func (m *QueueMonitor) Enqueue(
 	// Check for queue overflow.
 
 	if queue.depth > queue.maxDepth {
-
 		return fmt.Errorf("queue %s exceeded max depth of %d", queueName, queue.maxDepth)
-
 	}
 
 	return nil
-
 }
 
 // Dequeue removes an item from the queue.
 
 func (m *QueueMonitor) Dequeue(
-
 	queueName string,
 
 	priority Priority,
@@ -186,9 +166,7 @@ func (m *QueueMonitor) Dequeue(
 	enqueuedAt time.Time,
 
 	status string,
-
 ) error {
-
 	m.mu.Lock()
 
 	defer m.mu.Unlock()
@@ -196,9 +174,7 @@ func (m *QueueMonitor) Dequeue(
 	queue, exists := m.queues[queueName]
 
 	if !exists {
-
 		return fmt.Errorf("queue %s not registered", queueName)
-
 	}
 
 	// Decrement queue depth.
@@ -216,9 +192,7 @@ func (m *QueueMonitor) Dequeue(
 	// Limit wait times history.
 
 	if len(queue.waitTimes) > 1000 {
-
 		queue.waitTimes = queue.waitTimes[1:]
-
 	}
 
 	// Update Prometheus metrics.
@@ -230,13 +204,11 @@ func (m *QueueMonitor) Dequeue(
 	m.drainRateMetric.WithLabelValues(queueName, priority.String(), status).Inc()
 
 	return nil
-
 }
 
 // GetQueueStats retrieves queue performance statistics.
 
 func (m *QueueMonitor) GetQueueStats(queueName string) (*QueueStats, error) {
-
 	m.mu.RLock()
 
 	defer m.mu.RUnlock()
@@ -244,9 +216,7 @@ func (m *QueueMonitor) GetQueueStats(queueName string) (*QueueStats, error) {
 	queue, exists := m.queues[queueName]
 
 	if !exists {
-
 		return nil, fmt.Errorf("queue %s not registered", queueName)
-
 	}
 
 	// Calculate wait time statistics.
@@ -254,15 +224,12 @@ func (m *QueueMonitor) GetQueueStats(queueName string) (*QueueStats, error) {
 	var totalWait time.Duration
 
 	for _, wait := range queue.waitTimes {
-
 		totalWait += wait
-
 	}
 
 	avgWaitTime := totalWait / time.Duration(len(queue.waitTimes))
 
 	return &QueueStats{
-
 		CurrentDepth: queue.depth,
 
 		MaxDepth: queue.maxDepth,
@@ -271,7 +238,6 @@ func (m *QueueMonitor) GetQueueStats(queueName string) (*QueueStats, error) {
 
 		PriorityDistribution: queue.priorityDistribution,
 	}, nil
-
 }
 
 // QueueStats represents detailed queue performance metrics.
@@ -289,7 +255,6 @@ type QueueStats struct {
 // String converts priority to readable string.
 
 func (p Priority) String() string {
-
 	switch p {
 
 	case PriorityLow:
@@ -313,7 +278,6 @@ func (p Priority) String() string {
 		return "unknown"
 
 	}
-
 }
 
 // BackpressureController manages queue flow control.
@@ -335,31 +299,24 @@ type BackpressureController struct {
 // NewBackpressureController creates a new backpressure controller.
 
 func NewBackpressureController(maxDepth int) *BackpressureController {
-
 	return &BackpressureController{
-
 		maxQueueDepth: maxDepth,
 
 		backpressureMetric: promauto.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "nephoran_backpressure_active",
 
 			Help: "Indicates if backpressure is currently active",
 		}, []string{"queue"}),
 	}
-
 }
 
 // ShouldApplyBackpressure checks if backpressure is needed.
 
 func (bc *BackpressureController) ShouldApplyBackpressure(
-
 	currentDepth int,
 
 	queueName string,
-
 ) bool {
-
 	bc.mu.Lock()
 
 	defer bc.mu.Unlock()
@@ -383,5 +340,4 @@ func (bc *BackpressureController) ShouldApplyBackpressure(
 	}
 
 	return shouldApply
-
 }

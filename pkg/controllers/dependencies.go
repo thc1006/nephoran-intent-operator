@@ -27,7 +27,6 @@ type ConcreteDependencies struct {
 // NewConcreteDependencies creates a new instance of ConcreteDependencies.
 
 func NewConcreteDependencies(
-
 	gitClient git.ClientInterface,
 
 	llmClient shared.ClientInterface,
@@ -37,11 +36,8 @@ func NewConcreteDependencies(
 	httpClient *http.Client,
 
 	eventRecorder record.EventRecorder,
-
 ) *ConcreteDependencies {
-
 	return &ConcreteDependencies{
-
 		gitClient: gitClient,
 
 		llmClient: llmClient,
@@ -52,45 +48,34 @@ func NewConcreteDependencies(
 
 		eventRecorder: eventRecorder,
 	}
-
 }
 
 // GetGitClient returns the Git client.
 
 func (d *ConcreteDependencies) GetGitClient() git.ClientInterface {
-
 	return d.gitClient
-
 }
 
 // GetLLMClient returns the LLM client.
 
 func (d *ConcreteDependencies) GetLLMClient() shared.ClientInterface {
-
 	return d.llmClient
-
 }
 
 // GetPackageGenerator returns the Nephio package generator.
 
 func (d *ConcreteDependencies) GetPackageGenerator() *nephio.PackageGenerator {
-
 	return d.packageGen
-
 }
 
 // GetHTTPClient returns the HTTP client.
 
 func (d *ConcreteDependencies) GetHTTPClient() *http.Client {
-
 	return d.httpClient
-
 }
 
 // GetEventRecorder returns the event recorder.
 
 func (d *ConcreteDependencies) GetEventRecorder() record.EventRecorder {
-
 	return d.eventRecorder
-
 }

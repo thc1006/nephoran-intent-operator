@@ -711,3 +711,52 @@ func (rm *ResilienceManager) performHealthChecks() {
 	rm.metrics.HealthMetrics.OverallHealthy = overallHealthy
 	rm.metrics.HealthMetrics.LastHealthCheck = time.Now()
 }
+
+// TimeoutManager manages timeout operations across the system
+type TimeoutManager struct {
+	configs    map[string]*TimeoutConfig
+	operations sync.Map // map[string]*TimeoutOperation
+	metrics    *TimeoutMetrics
+	mu         sync.RWMutex
+	mutex      sync.Mutex
+	logger     logr.Logger
+}
+
+// TimeoutOperation represents a timeout operation
+type TimeoutOperation struct {
+	ID            string             `json:"id"`
+	Duration      time.Duration      `json:"duration"`
+	StartTime     time.Time          `json:"startTime"`
+	Cancelled     bool               `json:"cancelled"`
+	Timeout       time.Duration      `json:"timeout"`
+	Context       context.Context    `json:"-"`
+	CancelFunc    context.CancelFunc `json:"-"`
+	CompletedChan chan bool          `json:"-"`
+	TimeoutChan   chan bool          `json:"-"`
+	mutex         sync.RWMutex       `json:"-"`
+}
+
+// AverageTimeout returns the average timeout duration from metrics
+func (tm *TimeoutMetrics) AverageTimeout() time.Duration {
+	tm.mutex.RLock()
+	defer tm.mutex.RUnlock()
+
+	if tm.TotalOperations == 0 {
+		return 0
+	}
+
+	// Calculate weighted average based on operation timeouts
+	var totalDuration time.Duration
+	var totalOps int64
+
+	for timeout, count := range tm.OperationsByTimeout {
+		totalDuration += time.Duration(int64(timeout) * count)
+		totalOps += count
+	}
+
+	if totalOps == 0 {
+		return tm.AverageLatency
+	}
+
+	return totalDuration / time.Duration(totalOps)
+}

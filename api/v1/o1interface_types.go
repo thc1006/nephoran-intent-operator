@@ -8,7 +8,6 @@ import (
 // O1InterfaceSpec defines the desired state of O1Interface.
 
 type O1InterfaceSpec struct {
-
 	// Host is the hostname or IP address of the managed element.
 
 	Host string `json:"host"`
@@ -73,7 +72,6 @@ type O1InterfaceSpec struct {
 // O1Credentials defines authentication credentials.
 
 type O1Credentials struct {
-
 	// Username reference.
 
 	// +optional
@@ -114,7 +112,6 @@ type O1Credentials struct {
 // FCAPSConfig defines FCAPS management configuration.
 
 type FCAPSConfig struct {
-
 	// Fault management configuration.
 
 	FaultManagement FaultManagementConfig `json:"faultManagement"`
@@ -139,7 +136,6 @@ type FCAPSConfig struct {
 // FaultManagementConfig defines fault management settings.
 
 type FaultManagementConfig struct {
-
 	// Enable fault management.
 
 	// +kubebuilder:default=true
@@ -186,7 +182,6 @@ type FaultManagementConfig struct {
 // ConfigManagementConfig defines configuration management settings.
 
 type ConfigManagementConfig struct {
-
 	// Enable configuration management.
 
 	// +kubebuilder:default=true
@@ -237,7 +232,6 @@ type ConfigManagementConfig struct {
 // AccountingManagementConfig defines accounting management settings.
 
 type AccountingManagementConfig struct {
-
 	// Enable accounting management.
 
 	// +kubebuilder:default=true
@@ -276,7 +270,6 @@ type AccountingManagementConfig struct {
 // PerformanceManagementConfig defines performance management settings.
 
 type PerformanceManagementConfig struct {
-
 	// Enable performance management.
 
 	// +kubebuilder:default=true
@@ -321,7 +314,6 @@ type PerformanceManagementConfig struct {
 // SecurityManagementConfig defines security management settings.
 
 type SecurityManagementConfig struct {
-
 	// Enable security management.
 
 	// +kubebuilder:default=true
@@ -364,7 +356,6 @@ type SecurityManagementConfig struct {
 // SMOConfig defines SMO integration settings.
 
 type SMOConfig struct {
-
 	// SMO endpoint URL.
 
 	Endpoint string `json:"endpoint"`
@@ -393,7 +384,6 @@ type SMOConfig struct {
 // StreamingConfig defines real-time streaming settings.
 
 type StreamingConfig struct {
-
 	// Enable streaming.
 
 	// +kubebuilder:default=true
@@ -440,7 +430,6 @@ type StreamingConfig struct {
 // YANGModelRef references a YANG model to load.
 
 type YANGModelRef struct {
-
 	// Model name.
 
 	Name string `json:"name"`
@@ -467,7 +456,6 @@ type YANGModelRef struct {
 // HighAvailabilityConfig defines HA settings.
 
 type HighAvailabilityConfig struct {
-
 	// Enable high availability.
 
 	// +kubebuilder:default=true
@@ -494,7 +482,6 @@ type HighAvailabilityConfig struct {
 // O1SecurityConfig defines security settings.
 
 type O1SecurityConfig struct {
-
 	// TLS configuration.
 
 	// +optional
@@ -549,7 +536,6 @@ type GrafanaConfig struct {
 // ServiceDiscoveryConfig for service discovery.
 
 type ServiceDiscoveryConfig struct {
-
 	// +kubebuilder:validation:Enum=kubernetes;consul;etcd
 
 	Type string `json:"type"`
@@ -562,7 +548,6 @@ type ServiceDiscoveryConfig struct {
 // RateLimitConfig for rate limiting.
 
 type RateLimitConfig struct {
-
 	// Requests per second.
 
 	RequestsPerSecond int `json:"requestsPerSecond"`
@@ -575,7 +560,6 @@ type RateLimitConfig struct {
 // TLSConfig for TLS settings.
 
 type TLSConfig struct {
-
 	// +kubebuilder:default=true
 
 	Enabled bool `json:"enabled"`
@@ -594,7 +578,6 @@ type TLSConfig struct {
 // OAuth2Config for OAuth2 settings.
 
 type OAuth2Config struct {
-
 	// +kubebuilder:default=true
 
 	Enabled bool `json:"enabled"`
@@ -619,7 +602,6 @@ type RBACRule struct {
 // O1InterfaceStatus defines the observed state of O1Interface.
 
 type O1InterfaceStatus struct {
-
 	// Phase represents the current phase of the O1 interface.
 
 	// +kubebuilder:validation:Enum=Pending;Initializing;Connecting;Connected;Failed;Terminating
@@ -778,7 +760,5 @@ type O1InterfaceList struct {
 }
 
 func init() {
-
 	SchemeBuilder.Register(&O1Interface{}, &O1InterfaceList{})
-
 }

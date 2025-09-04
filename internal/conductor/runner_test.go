@@ -273,7 +273,7 @@ func TestPorchRunnerCommandConstruction(t *testing.T) {
 		"source": "conductor-watch"
 	}`
 
-	if err := os.WriteFile(intentFile, []byte(intentContent), 0644); err != nil {
+	if err := os.WriteFile(intentFile, []byte(intentContent), 0o644); err != nil {
 		t.Fatalf("Failed to create test intent file: %v", err)
 	}
 
@@ -364,7 +364,7 @@ func TestPorchRunnerIntegrationWithWatchReconciler(t *testing.T) {
 		"reason": "Test scaling intent"
 	}`
 
-	if err := os.WriteFile(intentFile, []byte(intentContent), 0644); err != nil {
+	if err := os.WriteFile(intentFile, []byte(intentContent), 0o644); err != nil {
 		t.Fatalf("Failed to create intent file: %v", err)
 	}
 

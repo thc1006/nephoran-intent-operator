@@ -37,6 +37,7 @@ import (
 	"fmt"
 	"sync"
 	"time"
+	"encoding/json"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
@@ -45,12 +46,11 @@ import (
 
 // LifecycleManager provides comprehensive PackageRevision lifecycle orchestration.
 
-// Manages state transitions (Draft → Proposed → Published → Deleted), lifecycle events,.
+// Manages state transitions (Draft ??Proposed ??Published ??Deleted), lifecycle events,.
 
 // validation gates, rollback capabilities, concurrent lifecycle management, and metrics tracking.
 
 type LifecycleManager interface {
-
 	// State transition management.
 
 	TransitionToProposed(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error)
@@ -131,7 +131,6 @@ type LifecycleManager interface {
 // lifecycleManager implements comprehensive package revision lifecycle orchestration.
 
 type lifecycleManager struct {
-
 	// Core dependencies.
 
 	client *Client
@@ -536,21 +535,15 @@ type PackageTransitionResult struct {
 // NewLifecycleManager creates a new lifecycle manager instance.
 
 func NewLifecycleManager(client *Client, config *LifecycleManagerConfig) (LifecycleManager, error) {
-
 	if client == nil {
-
 		return nil, fmt.Errorf("client cannot be nil")
-
 	}
 
 	if config == nil {
-
 		config = getDefaultLifecycleManagerConfig()
-
 	}
 
 	lm := &lifecycleManager{
-
 		client: client,
 
 		logger: log.Log.WithName("lifecycle-manager"),
@@ -589,9 +582,7 @@ func NewLifecycleManager(client *Client, config *LifecycleManagerConfig) (Lifecy
 	// Initialize hooks map.
 
 	for _, stage := range getAllLifecycleStages() {
-
 		lm.integrationHooks[stage] = make(map[HookAction][]IntegrationHook)
-
 	}
 
 	// Register default validation gates.
@@ -603,9 +594,7 @@ func NewLifecycleManager(client *Client, config *LifecycleManagerConfig) (Lifecy
 	lm.wg.Add(lm.eventWorkers)
 
 	for range lm.eventWorkers {
-
 		go lm.eventWorker()
-
 	}
 
 	lm.wg.Add(1)
@@ -617,45 +606,35 @@ func NewLifecycleManager(client *Client, config *LifecycleManagerConfig) (Lifecy
 	go lm.metricsCollectionWorker()
 
 	return lm, nil
-
 }
 
 // TransitionToProposed transitions a package to Proposed stage.
 
 func (lm *lifecycleManager) TransitionToProposed(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error) {
-
 	return lm.performTransition(ctx, ref, PackageRevisionLifecycleProposed, opts)
-
 }
 
 // TransitionToPublished transitions a package to Published stage.
 
 func (lm *lifecycleManager) TransitionToPublished(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error) {
-
 	return lm.performTransition(ctx, ref, PackageRevisionLifecyclePublished, opts)
-
 }
 
 // TransitionToDraft transitions a package to Draft stage.
 
 func (lm *lifecycleManager) TransitionToDraft(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error) {
-
 	return lm.performTransition(ctx, ref, PackageRevisionLifecycleDraft, opts)
-
 }
 
 // TransitionToDeletable transitions a package to Deletable stage.
 
 func (lm *lifecycleManager) TransitionToDeletable(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error) {
-
 	return lm.performTransition(ctx, ref, PackageRevisionLifecycleDeletable, opts)
-
 }
 
 // Core transition logic.
 
 func (lm *lifecycleManager) performTransition(ctx context.Context, ref *PackageReference, targetStage PackageRevisionLifecycle, opts *TransitionOptions) (*TransitionResult, error) {
-
 	lm.logger.Info("Performing lifecycle transition",
 
 		"package", ref.GetPackageKey(),
@@ -665,19 +644,14 @@ func (lm *lifecycleManager) performTransition(ctx context.Context, ref *PackageR
 	startTime := time.Now()
 
 	if opts == nil {
-
 		opts = &TransitionOptions{}
-
 	}
 
 	// Get current package state.
 
 	pkg, err := lm.client.GetPackageRevision(ctx, ref.PackageName, ref.Revision)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to get package revision: %w", err)
-
 	}
 
 	previousStage := pkg.Spec.Lifecycle
@@ -685,9 +659,7 @@ func (lm *lifecycleManager) performTransition(ctx context.Context, ref *PackageR
 	// Check if transition is valid (simplified check).
 
 	if previousStage == targetStage {
-
 		return &TransitionResult{
-
 			Success: false,
 
 			PreviousStage: previousStage,
@@ -696,11 +668,9 @@ func (lm *lifecycleManager) performTransition(ctx context.Context, ref *PackageR
 
 			Duration: time.Since(startTime),
 		}, fmt.Errorf("invalid transition from %s to %s", previousStage, targetStage)
-
 	}
 
 	result := &TransitionResult{
-
 		PreviousStage: previousStage,
 
 		NewStage: targetStage,
@@ -715,11 +685,8 @@ func (lm *lifecycleManager) performTransition(ctx context.Context, ref *PackageR
 	// Acquire lifecycle lock.
 
 	lock, err := lm.AcquireLifecycleLock(ctx, ref, "transition", opts.Timeout)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to acquire lifecycle lock: %w", err)
-
 	}
 
 	defer lm.ReleaseLifecycleLock(ctx, lock.ID)
@@ -727,7 +694,6 @@ func (lm *lifecycleManager) performTransition(ctx context.Context, ref *PackageR
 	// Trigger transition started event.
 
 	startEvent := &LifecycleEvent{
-
 		ID: fmt.Sprintf("event-%d", time.Now().UnixNano()),
 
 		Type: LifecycleEventTransitionStarted,
@@ -756,9 +722,7 @@ func (lm *lifecycleManager) performTransition(ctx context.Context, ref *PackageR
 			result.Warnings = append(result.Warnings, "Failed to create rollback point")
 
 		} else {
-
 			result.RollbackPoint = rollbackPoint
-
 		}
 
 	}
@@ -768,7 +732,6 @@ func (lm *lifecycleManager) performTransition(ctx context.Context, ref *PackageR
 	if !opts.SkipHooks {
 
 		hookResult, err := lm.ExecuteHooks(ctx, ref, targetStage, HookActionPreTransition)
-
 		if err != nil {
 
 			lm.logger.Error(err, "Pre-transition hooks failed", "package", ref.GetPackageKey())
@@ -806,9 +769,7 @@ func (lm *lifecycleManager) performTransition(ctx context.Context, ref *PackageR
 			result.Duration = time.Since(startTime)
 
 			if !opts.ForceTransition {
-
 				return result, fmt.Errorf("validation failed for transition to %s", targetStage)
-
 			}
 
 			result.Warnings = append(result.Warnings, "Validation failed but transition forced")
@@ -826,7 +787,6 @@ func (lm *lifecycleManager) performTransition(ctx context.Context, ref *PackageR
 		pkg.Spec.Lifecycle = targetStage
 
 		updatedPkg, err := lm.client.UpdatePackageRevision(ctx, pkg)
-
 		if err != nil {
 
 			result.Success = false
@@ -836,9 +796,7 @@ func (lm *lifecycleManager) performTransition(ctx context.Context, ref *PackageR
 			// Execute failure hooks.
 
 			if !opts.SkipHooks {
-
 				lm.ExecuteHooks(ctx, ref, targetStage, HookActionOnFailure)
-
 			}
 
 			return result, fmt.Errorf("failed to update package revision: %w", err)
@@ -862,17 +820,13 @@ func (lm *lifecycleManager) performTransition(ctx context.Context, ref *PackageR
 			result.Warnings = append(result.Warnings, "Post-transition hooks failed")
 
 		} else {
-
 			// Execute success hooks.
 
 			lm.ExecuteHooks(ctx, ref, targetStage, HookActionOnSuccess)
-
 		}
 
 		if result.HookResults == nil {
-
 			result.HookResults = hookResult
-
 		}
 
 	}
@@ -882,7 +836,6 @@ func (lm *lifecycleManager) performTransition(ctx context.Context, ref *PackageR
 	// Trigger transition completed event.
 
 	completeEvent := &LifecycleEvent{
-
 		ID: fmt.Sprintf("event-%d", time.Now().UnixNano()),
 
 		Type: LifecycleEventTransitionCompleted,
@@ -919,33 +872,25 @@ func (lm *lifecycleManager) performTransition(ctx context.Context, ref *PackageR
 		"duration", result.Duration)
 
 	return result, nil
-
 }
 
 // RegisterEventHandler registers a lifecycle event handler.
 
 func (lm *lifecycleManager) RegisterEventHandler(eventType LifecycleEventType, handler LifecycleEventHandler) error {
-
 	lm.eventHandlerMutex.Lock()
 
 	defer lm.eventHandlerMutex.Unlock()
 
 	if _, exists := lm.eventHandlers[eventType]; !exists {
-
 		lm.eventHandlers[eventType] = []LifecycleEventHandler{}
-
 	}
 
 	// Check for duplicate handler IDs.
 
 	for _, existing := range lm.eventHandlers[eventType] {
-
 		if existing.GetID() == handler.GetID() {
-
 			return fmt.Errorf("handler with ID %s already exists for event type %s", handler.GetID(), eventType)
-
 		}
-
 	}
 
 	lm.eventHandlers[eventType] = append(lm.eventHandlers[eventType], handler)
@@ -963,13 +908,11 @@ func (lm *lifecycleManager) RegisterEventHandler(eventType LifecycleEventType, h
 		"priority", handler.GetPriority())
 
 	return nil
-
 }
 
 // TriggerEvent triggers a lifecycle event.
 
 func (lm *lifecycleManager) TriggerEvent(ctx context.Context, event *LifecycleEvent) error {
-
 	select {
 
 	case lm.eventQueue <- event:
@@ -985,13 +928,11 @@ func (lm *lifecycleManager) TriggerEvent(ctx context.Context, event *LifecycleEv
 		return fmt.Errorf("event queue is full")
 
 	}
-
 }
 
 // AcquireLifecycleLock acquires a lifecycle operation lock.
 
 func (lm *lifecycleManager) AcquireLifecycleLock(ctx context.Context, ref *PackageReference, operation string, timeout time.Duration) (*LifecycleLock, error) {
-
 	lm.lockMutex.Lock()
 
 	defer lm.lockMutex.Unlock()
@@ -1001,15 +942,12 @@ func (lm *lifecycleManager) AcquireLifecycleLock(ctx context.Context, ref *Packa
 	// Check if already locked.
 
 	if existingLock, exists := lm.lifecycleLocks[lockKey]; exists && !lm.isLockExpired(existingLock) {
-
 		return nil, fmt.Errorf("package %s is already locked by operation %s", lockKey, existingLock.Operation)
-
 	}
 
 	// Create new lock.
 
 	lock := &LifecycleLock{
-
 		ID: fmt.Sprintf("lock-%s-%d", lockKey, time.Now().UnixNano()),
 
 		PackageRef: ref,
@@ -1032,7 +970,6 @@ func (lm *lifecycleManager) AcquireLifecycleLock(ctx context.Context, ref *Packa
 	// Trigger lock acquired event.
 
 	lockEvent := &LifecycleEvent{
-
 		ID: fmt.Sprintf("event-%d", time.Now().UnixNano()),
 
 		Type: LifecycleEventLockAcquired,
@@ -1041,12 +978,7 @@ func (lm *lifecycleManager) AcquireLifecycleLock(ctx context.Context, ref *Packa
 
 		Timestamp: time.Now(),
 
-		Metadata: map[string]interface{}{
-
-			"lockID": lock.ID,
-
-			"operation": operation,
-		},
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	lm.TriggerEvent(ctx, lockEvent)
@@ -1060,13 +992,11 @@ func (lm *lifecycleManager) AcquireLifecycleLock(ctx context.Context, ref *Packa
 		"operation", operation)
 
 	return lock, nil
-
 }
 
 // ReleaseLifecycleLock releases a lifecycle operation lock.
 
 func (lm *lifecycleManager) ReleaseLifecycleLock(ctx context.Context, lockID string) error {
-
 	lm.lockMutex.Lock()
 
 	defer lm.lockMutex.Unlock()
@@ -1078,7 +1008,6 @@ func (lm *lifecycleManager) ReleaseLifecycleLock(ctx context.Context, lockID str
 	var lock *LifecycleLock
 
 	for key, l := range lm.lifecycleLocks {
-
 		if l.ID == lockID {
 
 			lockKey = key
@@ -1088,13 +1017,10 @@ func (lm *lifecycleManager) ReleaseLifecycleLock(ctx context.Context, lockID str
 			break
 
 		}
-
 	}
 
 	if lock == nil {
-
 		return fmt.Errorf("lock with ID %s not found", lockID)
-
 	}
 
 	delete(lm.lifecycleLocks, lockKey)
@@ -1102,7 +1028,6 @@ func (lm *lifecycleManager) ReleaseLifecycleLock(ctx context.Context, lockID str
 	// Trigger lock released event.
 
 	releaseEvent := &LifecycleEvent{
-
 		ID: fmt.Sprintf("event-%d", time.Now().UnixNano()),
 
 		Type: LifecycleEventLockReleased,
@@ -1111,12 +1036,7 @@ func (lm *lifecycleManager) ReleaseLifecycleLock(ctx context.Context, lockID str
 
 		Timestamp: time.Now(),
 
-		Metadata: map[string]interface{}{
-
-			"lockID": lockID,
-
-			"operation": lock.Operation,
-		},
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	lm.TriggerEvent(ctx, releaseEvent)
@@ -1128,21 +1048,17 @@ func (lm *lifecycleManager) ReleaseLifecycleLock(ctx context.Context, lockID str
 		"package", lock.PackageRef.GetPackageKey())
 
 	return nil
-
 }
 
 // CreateRollbackPoint creates a rollback point for the current package state.
 
 func (lm *lifecycleManager) CreateRollbackPoint(ctx context.Context, ref *PackageReference, description string) (*RollbackPoint, error) {
-
 	return lm.rollbackManager.CreateRollbackPoint(ctx, ref, description)
-
 }
 
 // ValidateTransition validates a lifecycle transition.
 
 func (lm *lifecycleManager) ValidateTransition(ctx context.Context, ref *PackageReference, targetStage PackageRevisionLifecycle) (*ValidationResult, error) {
-
 	lm.gateMutex.RLock()
 
 	gates := lm.validationGates[targetStage]
@@ -1150,13 +1066,10 @@ func (lm *lifecycleManager) ValidateTransition(ctx context.Context, ref *Package
 	lm.gateMutex.RUnlock()
 
 	if len(gates) == 0 {
-
 		return &ValidationResult{Valid: true}, nil
-
 	}
 
 	result := &ValidationResult{
-
 		Valid: true,
 
 		Errors: []ValidationError{},
@@ -1167,13 +1080,11 @@ func (lm *lifecycleManager) ValidateTransition(ctx context.Context, ref *Package
 	for _, gate := range gates {
 
 		gateResult, err := gate.Validate(ctx, ref, targetStage)
-
 		if err != nil {
 
 			result.Valid = false
 
 			result.Errors = append(result.Errors, ValidationError{
-
 				Message: fmt.Sprintf("Gate %s failed: %v", gate.GetName(), err),
 
 				Severity: "error",
@@ -1186,9 +1097,7 @@ func (lm *lifecycleManager) ValidateTransition(ctx context.Context, ref *Package
 		if !gateResult.Valid {
 
 			if gate.IsRequired() {
-
 				result.Valid = false
-
 			}
 
 			result.Errors = append(result.Errors, gateResult.Errors...)
@@ -1200,13 +1109,11 @@ func (lm *lifecycleManager) ValidateTransition(ctx context.Context, ref *Package
 	}
 
 	return result, nil
-
 }
 
 // ExecuteHooks executes integration hooks for a lifecycle stage and action.
 
 func (lm *lifecycleManager) ExecuteHooks(ctx context.Context, ref *PackageReference, stage PackageRevisionLifecycle, action HookAction) (*HookExecutionResult, error) {
-
 	lm.hookMutex.RLock()
 
 	stageHooks := lm.integrationHooks[stage]
@@ -1216,13 +1123,10 @@ func (lm *lifecycleManager) ExecuteHooks(ctx context.Context, ref *PackageRefere
 	lm.hookMutex.RUnlock()
 
 	if len(hooks) == 0 {
-
 		return &HookExecutionResult{Success: true}, nil
-
 	}
 
 	result := &HookExecutionResult{
-
 		Success: true,
 
 		Results: []*HookResult{},
@@ -1231,13 +1135,11 @@ func (lm *lifecycleManager) ExecuteHooks(ctx context.Context, ref *PackageRefere
 	for _, hook := range hooks {
 
 		hookResult, err := hook.Execute(ctx, ref, stage, action)
-
 		if err != nil {
 
 			result.Success = false
 
 			hookResult = &HookResult{
-
 				HookID: hook.GetID(),
 
 				Success: false,
@@ -1250,15 +1152,12 @@ func (lm *lifecycleManager) ExecuteHooks(ctx context.Context, ref *PackageRefere
 		result.Results = append(result.Results, hookResult)
 
 		if !hookResult.Success && !hook.IsAsync() {
-
 			result.Success = false
-
 		}
 
 	}
 
 	return result, nil
-
 }
 
 // Background workers.
@@ -1266,11 +1165,9 @@ func (lm *lifecycleManager) ExecuteHooks(ctx context.Context, ref *PackageRefere
 // eventWorker processes lifecycle events.
 
 func (lm *lifecycleManager) eventWorker() {
-
 	defer lm.wg.Done()
 
 	for {
-
 		select {
 
 		case <-lm.shutdown:
@@ -1282,15 +1179,12 @@ func (lm *lifecycleManager) eventWorker() {
 			lm.processEvent(event)
 
 		}
-
 	}
-
 }
 
 // processEvent processes a single lifecycle event.
 
 func (lm *lifecycleManager) processEvent(event *LifecycleEvent) {
-
 	lm.eventHandlerMutex.RLock()
 
 	handlers := lm.eventHandlers[event.Type]
@@ -1300,9 +1194,7 @@ func (lm *lifecycleManager) processEvent(event *LifecycleEvent) {
 	for _, handler := range handlers {
 
 		if !handler.CanHandle(event.Type) {
-
 			continue
-
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -1312,7 +1204,6 @@ func (lm *lifecycleManager) processEvent(event *LifecycleEvent) {
 		cancel()
 
 		if err != nil {
-
 			lm.logger.Error(err, "Event handler failed",
 
 				"handlerID", handler.GetID(),
@@ -1320,9 +1211,7 @@ func (lm *lifecycleManager) processEvent(event *LifecycleEvent) {
 				"eventType", event.Type,
 
 				"eventID", event.ID)
-
 		} else {
-
 			lm.logger.V(1).Info("Event handler completed",
 
 				"handlerID", handler.GetID(),
@@ -1332,17 +1221,14 @@ func (lm *lifecycleManager) processEvent(event *LifecycleEvent) {
 				"eventID", event.ID,
 
 				"success", result.Success)
-
 		}
 
 	}
-
 }
 
 // lockCleanupWorker periodically cleans up expired locks.
 
 func (lm *lifecycleManager) lockCleanupWorker() {
-
 	defer lm.wg.Done()
 
 	ticker := time.NewTicker(lm.lockCleanupInterval)
@@ -1350,7 +1236,6 @@ func (lm *lifecycleManager) lockCleanupWorker() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-lm.shutdown:
@@ -1362,15 +1247,12 @@ func (lm *lifecycleManager) lockCleanupWorker() {
 			lm.cleanupExpiredLocks()
 
 		}
-
 	}
-
 }
 
 // cleanupExpiredLocks removes expired locks.
 
 func (lm *lifecycleManager) cleanupExpiredLocks() {
-
 	lm.lockMutex.Lock()
 
 	defer lm.lockMutex.Unlock()
@@ -1378,7 +1260,6 @@ func (lm *lifecycleManager) cleanupExpiredLocks() {
 	now := time.Now()
 
 	for key, lock := range lm.lifecycleLocks {
-
 		if now.After(lock.ExpiresAt) {
 
 			delete(lm.lifecycleLocks, key)
@@ -1390,15 +1271,12 @@ func (lm *lifecycleManager) cleanupExpiredLocks() {
 				"package", lock.PackageRef.GetPackageKey())
 
 		}
-
 	}
-
 }
 
 // metricsCollectionWorker collects and updates metrics.
 
 func (lm *lifecycleManager) metricsCollectionWorker() {
-
 	defer lm.wg.Done()
 
 	ticker := time.NewTicker(30 * time.Second)
@@ -1406,7 +1284,6 @@ func (lm *lifecycleManager) metricsCollectionWorker() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-lm.shutdown:
@@ -1418,19 +1295,14 @@ func (lm *lifecycleManager) metricsCollectionWorker() {
 			lm.collectMetrics()
 
 		}
-
 	}
-
 }
 
 // collectMetrics collects current system metrics.
 
 func (lm *lifecycleManager) collectMetrics() {
-
 	if lm.metrics == nil {
-
 		return
-
 	}
 
 	lm.lockMutex.RLock()
@@ -1444,13 +1316,11 @@ func (lm *lifecycleManager) collectMetrics() {
 	// Event queue size.
 
 	lm.metrics.eventQueueSize.Set(float64(len(lm.eventQueue)))
-
 }
 
 // Close gracefully shuts down the lifecycle manager.
 
 func (lm *lifecycleManager) Close() error {
-
 	lm.logger.Info("Shutting down lifecycle manager")
 
 	close(lm.shutdown)
@@ -1460,48 +1330,36 @@ func (lm *lifecycleManager) Close() error {
 	// Close components.
 
 	if lm.stateTransitioner != nil {
-
 		lm.stateTransitioner.Close()
-
 	}
 
 	if lm.validationEngine != nil {
-
 		lm.validationEngine.Close()
-
 	}
 
 	if lm.rollbackManager != nil {
-
 		lm.rollbackManager.Close()
-
 	}
 
 	lm.logger.Info("Lifecycle manager shutdown complete")
 
 	return nil
-
 }
 
 // BatchTransition performs lifecycle transitions on multiple packages concurrently.
 
 func (lm *lifecycleManager) BatchTransition(ctx context.Context, refs []*PackageReference, targetStage PackageRevisionLifecycle, opts *BatchTransitionOptions) (*BatchTransitionResult, error) {
-
 	if opts == nil {
-
 		opts = &BatchTransitionOptions{
-
 			Concurrency: 5,
 
 			ContinueOnError: true,
 		}
-
 	}
 
 	start := time.Now()
 
 	result := &BatchTransitionResult{
-
 		TotalPackages: len(refs),
 
 		Results: make([]*PackageTransitionResult, 0, len(refs)),
@@ -1522,15 +1380,12 @@ func (lm *lifecycleManager) BatchTransition(ctx context.Context, refs []*Package
 	// Launch goroutines for each package.
 
 	for _, ref := range refs {
-
 		go func(packageRef *PackageReference) {
-
 			semaphore <- struct{}{} // Acquire semaphore
 
 			defer func() { <-semaphore }() // Release semaphore
 
 			transitionOpts := &TransitionOptions{
-
 				Timeout: 30 * time.Second,
 			}
 
@@ -1543,15 +1398,12 @@ func (lm *lifecycleManager) BatchTransition(ctx context.Context, refs []*Package
 
 				err error
 			}{packageRef, transitionResult, err}
-
 		}(ref)
-
 	}
 
 	// Collect results.
 
 	for range len(refs) {
-
 		select {
 
 		case res := <-results:
@@ -1595,7 +1447,6 @@ func (lm *lifecycleManager) BatchTransition(ctx context.Context, refs []*Package
 			return result, ctx.Err()
 
 		}
-
 	}
 
 	result.Duration = time.Since(start)
@@ -1603,17 +1454,14 @@ func (lm *lifecycleManager) BatchTransition(ctx context.Context, refs []*Package
 	result.OverallSuccess = result.FailedTransitions == 0
 
 	return result, nil
-
 }
 
 // CleanupFailedTransitions removes failed transition records older than specified duration.
 
 func (lm *lifecycleManager) CleanupFailedTransitions(ctx context.Context, olderThan time.Duration) (*CleanupResult, error) {
-
 	cutoffTime := time.Now().Add(-olderThan)
 
 	result := &CleanupResult{
-
 		ItemsRemoved: 0,
 
 		Duration: 0,
@@ -1634,17 +1482,14 @@ func (lm *lifecycleManager) CleanupFailedTransitions(ctx context.Context, olderT
 		"items_removed", result.ItemsRemoved)
 
 	return result, nil
-
 }
 
 // CleanupRollbackPoints removes rollback points for a package older than specified duration.
 
 func (lm *lifecycleManager) CleanupRollbackPoints(ctx context.Context, ref *PackageReference, olderThan time.Duration) (*CleanupResult, error) {
-
 	cutoffTime := time.Now().Add(-olderThan)
 
 	result := &CleanupResult{
-
 		ItemsRemoved: 0,
 
 		Duration: 0,
@@ -1665,13 +1510,11 @@ func (lm *lifecycleManager) CleanupRollbackPoints(ctx context.Context, ref *Pack
 		"items_removed", result.ItemsRemoved)
 
 	return result, nil
-
 }
 
 // ForceReleaseLock forcibly releases a lifecycle lock with a reason.
 
 func (lm *lifecycleManager) ForceReleaseLock(ctx context.Context, lockID, reason string) error {
-
 	lm.logger.Info("Force releasing lifecycle lock",
 
 		"lock_id", lockID,
@@ -1683,19 +1526,15 @@ func (lm *lifecycleManager) ForceReleaseLock(ctx context.Context, lockID, reason
 	// and possibly notify any waiting processes.
 
 	return lm.ReleaseLifecycleLock(ctx, lockID)
-
 }
 
 // GenerateLifecycleReport generates a comprehensive lifecycle report.
 
 func (lm *lifecycleManager) GenerateLifecycleReport(ctx context.Context, opts *ReportOptions) (*LifecycleReport, error) {
-
 	report := &LifecycleReport{
-
 		GeneratedAt: time.Now(),
 
 		Summary: &LifecycleReportSummary{
-
 			TotalPackages: 0,
 
 			TransitionsTotal: 0,
@@ -1711,9 +1550,7 @@ func (lm *lifecycleManager) GenerateLifecycleReport(ctx context.Context, opts *R
 	// Add TimeRange if specified in options.
 
 	if opts != nil && opts.TimeRange != nil {
-
 		report.TimeRange = opts.TimeRange
-
 	}
 
 	// In a real implementation, this would gather statistics from storage.
@@ -1721,34 +1558,27 @@ func (lm *lifecycleManager) GenerateLifecycleReport(ctx context.Context, opts *R
 	lm.logger.Info("Generated lifecycle report")
 
 	return report, nil
-
 }
 
 // GetActiveLocks returns all currently active lifecycle locks.
 
 func (lm *lifecycleManager) GetActiveLocks(ctx context.Context) ([]*LifecycleLock, error) {
-
 	// In a real implementation, this would query the lock storage.
 
 	// For now, return empty slice.
 
 	return []*LifecycleLock{}, nil
-
 }
 
 // GetEventHistory returns the event history for a package.
 
 func (lm *lifecycleManager) GetEventHistory(ctx context.Context, ref *PackageReference, opts *EventHistoryOptions) (*EventHistory, error) {
-
 	if opts == nil {
-
 		opts = &EventHistoryOptions{
-
 			PageSize: 50,
 
 			Page: 1,
 		}
-
 	}
 
 	// In a real implementation, this would query the event storage.
@@ -1756,7 +1586,6 @@ func (lm *lifecycleManager) GetEventHistory(ctx context.Context, ref *PackageRef
 	// For now, return empty history.
 
 	history := &EventHistory{
-
 		PackageRef: ref,
 
 		Events: []*LifecycleEvent{},
@@ -1779,19 +1608,16 @@ func (lm *lifecycleManager) GetEventHistory(ctx context.Context, ref *PackageRef
 		"event_count", len(history.Events))
 
 	return history, nil
-
 }
 
 // GetGlobalMetrics returns system-wide lifecycle metrics.
 
 func (lm *lifecycleManager) GetGlobalMetrics(ctx context.Context) (*GlobalLifecycleMetrics, error) {
-
 	// In a real implementation, this would aggregate metrics from storage.
 
 	// For now, return basic metrics.
 
 	metrics := &GlobalLifecycleMetrics{
-
 		TotalPackages: 0,
 
 		PackagesByStage: make(map[PackageRevisionLifecycle]int64),
@@ -1838,17 +1664,14 @@ func (lm *lifecycleManager) GetGlobalMetrics(ctx context.Context) (*GlobalLifecy
 		"active_locks", metrics.ActiveLocks)
 
 	return metrics, nil
-
 }
 
 // GetLifecycleMetrics returns lifecycle metrics for a specific package.
 
 func (lm *lifecycleManager) GetLifecycleMetrics(ctx context.Context, ref *PackageReference) (*LifecycleMetrics, error) {
-
 	// In a real implementation, this would query metrics from storage.
 
 	metrics := &LifecycleMetrics{
-
 		PackageRef: ref,
 
 		TotalTransitions: 0,
@@ -1895,13 +1718,11 @@ func (lm *lifecycleManager) GetLifecycleMetrics(ctx context.Context, ref *Packag
 		"current_stage", metrics.CurrentStage)
 
 	return metrics, nil
-
 }
 
 // GetManagerHealth returns the health status of the lifecycle manager.
 
 func (lm *lifecycleManager) GetManagerHealth(ctx context.Context) (*LifecycleManagerHealth, error) {
-
 	lm.lockMutex.RLock()
 
 	activeLocks := len(lm.lifecycleLocks)
@@ -1911,7 +1732,6 @@ func (lm *lifecycleManager) GetManagerHealth(ctx context.Context) (*LifecycleMan
 	queueSize := len(lm.eventQueue)
 
 	health := &LifecycleManagerHealth{
-
 		Status: "healthy",
 
 		EventWorkers: lm.eventWorkers,
@@ -1928,13 +1748,11 @@ func (lm *lifecycleManager) GetManagerHealth(ctx context.Context) (*LifecycleMan
 	if queueSize > 800 { // 80% of default queue size
 
 		health.Status = "degraded"
-
 	}
 
 	if queueSize >= 1000 { // Full queue
 
 		health.Status = "unhealthy"
-
 	}
 
 	lm.logger.V(1).Info("Retrieved manager health",
@@ -1946,13 +1764,11 @@ func (lm *lifecycleManager) GetManagerHealth(ctx context.Context) (*LifecycleMan
 		"queue_size", health.QueueSize)
 
 	return health, nil
-
 }
 
 // UnregisterEventHandler unregisters an event handler.
 
 func (lm *lifecycleManager) UnregisterEventHandler(eventType LifecycleEventType, handlerID string) error {
-
 	lm.eventHandlerMutex.Lock()
 
 	defer lm.eventHandlerMutex.Unlock()
@@ -1960,13 +1776,10 @@ func (lm *lifecycleManager) UnregisterEventHandler(eventType LifecycleEventType,
 	handlers, exists := lm.eventHandlers[eventType]
 
 	if !exists {
-
 		return fmt.Errorf("no handlers registered for event type %s", eventType)
-
 	}
 
 	for i, handler := range handlers {
-
 		if handler.GetID() == handlerID {
 
 			// Remove handler from slice.
@@ -1982,17 +1795,14 @@ func (lm *lifecycleManager) UnregisterEventHandler(eventType LifecycleEventType,
 			return nil
 
 		}
-
 	}
 
 	return fmt.Errorf("handler with ID %s not found for event type %s", handlerID, eventType)
-
 }
 
 // UnregisterValidationGate unregisters a validation gate.
 
 func (lm *lifecycleManager) UnregisterValidationGate(stage PackageRevisionLifecycle, gateID string) error {
-
 	lm.gateMutex.Lock()
 
 	defer lm.gateMutex.Unlock()
@@ -2000,13 +1810,10 @@ func (lm *lifecycleManager) UnregisterValidationGate(stage PackageRevisionLifecy
 	gates, exists := lm.validationGates[stage]
 
 	if !exists {
-
 		return fmt.Errorf("no validation gates registered for stage %s", stage)
-
 	}
 
 	for i, gate := range gates {
-
 		if gate.GetID() == gateID {
 
 			// Remove gate from slice.
@@ -2022,25 +1829,20 @@ func (lm *lifecycleManager) UnregisterValidationGate(stage PackageRevisionLifecy
 			return nil
 
 		}
-
 	}
 
 	return fmt.Errorf("validation gate with ID %s not found for stage %s", gateID, stage)
-
 }
 
 // RegisterIntegrationHook registers an integration hook.
 
 func (lm *lifecycleManager) RegisterIntegrationHook(stage PackageRevisionLifecycle, hook IntegrationHook) error {
-
 	lm.hookMutex.Lock()
 
 	defer lm.hookMutex.Unlock()
 
 	if _, exists := lm.integrationHooks[stage]; !exists {
-
 		lm.integrationHooks[stage] = make(map[HookAction][]IntegrationHook)
-
 	}
 
 	// For simplicity, register for all actions - in practice this would be configurable.
@@ -2048,21 +1850,15 @@ func (lm *lifecycleManager) RegisterIntegrationHook(stage PackageRevisionLifecyc
 	for _, action := range []HookAction{HookActionPreTransition, HookActionPostTransition, HookActionOnFailure, HookActionOnSuccess} {
 
 		if _, exists := lm.integrationHooks[stage][action]; !exists {
-
 			lm.integrationHooks[stage][action] = []IntegrationHook{}
-
 		}
 
 		// Check for duplicate hook IDs.
 
 		for _, existing := range lm.integrationHooks[stage][action] {
-
 			if existing.GetID() == hook.GetID() {
-
 				return fmt.Errorf("hook with ID %s already exists for stage %s action %s", hook.GetID(), stage, action)
-
 			}
-
 		}
 
 		lm.integrationHooks[stage][action] = append(lm.integrationHooks[stage][action], hook)
@@ -2076,13 +1872,11 @@ func (lm *lifecycleManager) RegisterIntegrationHook(stage PackageRevisionLifecyc
 		"stage", stage)
 
 	return nil
-
 }
 
 // UnregisterIntegrationHook unregisters an integration hook.
 
 func (lm *lifecycleManager) UnregisterIntegrationHook(stage PackageRevisionLifecycle, hookID string) error {
-
 	lm.hookMutex.Lock()
 
 	defer lm.hookMutex.Unlock()
@@ -2090,9 +1884,7 @@ func (lm *lifecycleManager) UnregisterIntegrationHook(stage PackageRevisionLifec
 	stageHooks, exists := lm.integrationHooks[stage]
 
 	if !exists {
-
 		return fmt.Errorf("no integration hooks registered for stage %s", stage)
-
 	}
 
 	found := false
@@ -2100,7 +1892,6 @@ func (lm *lifecycleManager) UnregisterIntegrationHook(stage PackageRevisionLifec
 	for action, hooks := range stageHooks {
 
 		for i, hook := range hooks {
-
 			if hook.GetID() == hookID {
 
 				// Remove hook from slice.
@@ -2112,21 +1903,16 @@ func (lm *lifecycleManager) UnregisterIntegrationHook(stage PackageRevisionLifec
 				break
 
 			}
-
 		}
 
 		if found {
-
 			break
-
 		}
 
 	}
 
 	if !found {
-
 		return fmt.Errorf("integration hook with ID %s not found for stage %s", hookID, stage)
-
 	}
 
 	lm.logger.Info("Unregistered integration hook",
@@ -2136,23 +1922,18 @@ func (lm *lifecycleManager) UnregisterIntegrationHook(stage PackageRevisionLifec
 		"stage", stage)
 
 	return nil
-
 }
 
 // RollbackToPoint rolls back to a specific rollback point.
 
 func (lm *lifecycleManager) RollbackToPoint(ctx context.Context, ref *PackageReference, pointID string) (*RollbackResult, error) {
-
 	return lm.rollbackManager.RollbackToPoint(ctx, ref, pointID)
-
 }
 
 // ListRollbackPoints lists available rollback points for a package.
 
 func (lm *lifecycleManager) ListRollbackPoints(ctx context.Context, ref *PackageReference) ([]*RollbackPoint, error) {
-
 	return lm.rollbackManager.ListRollbackPoints(ctx, ref)
-
 }
 
 // Helper methods and supporting functionality.
@@ -2160,11 +1941,9 @@ func (lm *lifecycleManager) ListRollbackPoints(ctx context.Context, ref *Package
 // registerDefaultValidationGates registers built-in validation gates.
 
 func (lm *lifecycleManager) registerDefaultValidationGates() {
-
 	// Content validation gate for Proposed stage.
 
 	contentGate := &ContentValidationGate{
-
 		id: "content-validation",
 
 		name: "Content Validation Gate",
@@ -2181,7 +1960,6 @@ func (lm *lifecycleManager) registerDefaultValidationGates() {
 	// Approval gate for Published stage.
 
 	approvalGate := &ApprovalValidationGate{
-
 		id: "approval-required",
 
 		name: "Approval Required Gate",
@@ -2194,33 +1972,25 @@ func (lm *lifecycleManager) registerDefaultValidationGates() {
 	}
 
 	lm.RegisterValidationGate(PackageRevisionLifecyclePublished, approvalGate)
-
 }
 
 // RegisterValidationGate registers a validation gate for a lifecycle stage.
 
 func (lm *lifecycleManager) RegisterValidationGate(stage PackageRevisionLifecycle, gate ValidationGate) error {
-
 	lm.gateMutex.Lock()
 
 	defer lm.gateMutex.Unlock()
 
 	if _, exists := lm.validationGates[stage]; !exists {
-
 		lm.validationGates[stage] = []ValidationGate{}
-
 	}
 
 	// Check for duplicate gate IDs.
 
 	for _, existing := range lm.validationGates[stage] {
-
 		if existing.GetID() == gate.GetID() {
-
 			return fmt.Errorf("validation gate with ID %s already exists for stage %s", gate.GetID(), stage)
-
 		}
-
 	}
 
 	lm.validationGates[stage] = append(lm.validationGates[stage], gate)
@@ -2238,33 +2008,24 @@ func (lm *lifecycleManager) RegisterValidationGate(stage PackageRevisionLifecycl
 		"priority", gate.GetPriority())
 
 	return nil
-
 }
 
 // Utility functions.
 
 func (lm *lifecycleManager) isLockExpired(lock *LifecycleLock) bool {
-
 	return time.Now().After(lock.ExpiresAt)
-
 }
 
 func (lm *lifecycleManager) sortEventHandlersByPriority(handlers []LifecycleEventHandler) {
-
 	// Sort implementation would go here.
-
 }
 
 func (lm *lifecycleManager) sortValidationGatesByPriority(gates []ValidationGate) {
-
 	// Sort implementation would go here.
-
 }
 
 func getAllLifecycleStages() []PackageRevisionLifecycle {
-
 	return []PackageRevisionLifecycle{
-
 		PackageRevisionLifecycleDraft,
 
 		PackageRevisionLifecycleProposed,
@@ -2273,13 +2034,10 @@ func getAllLifecycleStages() []PackageRevisionLifecycle {
 
 		PackageRevisionLifecycleDeletable,
 	}
-
 }
 
 func getDefaultLifecycleManagerConfig() *LifecycleManagerConfig {
-
 	return &LifecycleManagerConfig{
-
 		EventQueueSize: 1000,
 
 		EventWorkers: 5,
@@ -2290,17 +2048,13 @@ func getDefaultLifecycleManagerConfig() *LifecycleManagerConfig {
 
 		EnableMetrics: true,
 	}
-
 }
 
 func initLifecycleManagerMetrics() *LifecycleManagerMetrics {
-
 	return &LifecycleManagerMetrics{
-
 		transitionsTotal: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "porch_lifecycle_transitions_total",
 
 				Help: "Total number of lifecycle transitions",
@@ -2312,7 +2066,6 @@ func initLifecycleManagerMetrics() *LifecycleManagerMetrics {
 		transitionDuration: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "porch_lifecycle_transition_duration_seconds",
 
 				Help: "Duration of lifecycle transitions",
@@ -2326,7 +2079,6 @@ func initLifecycleManagerMetrics() *LifecycleManagerMetrics {
 		activeLocks: prometheus.NewGauge(
 
 			prometheus.GaugeOpts{
-
 				Name: "porch_lifecycle_active_locks",
 
 				Help: "Number of active lifecycle locks",
@@ -2336,14 +2088,12 @@ func initLifecycleManagerMetrics() *LifecycleManagerMetrics {
 		eventQueueSize: prometheus.NewGauge(
 
 			prometheus.GaugeOpts{
-
 				Name: "porch_lifecycle_event_queue_size",
 
 				Help: "Size of the lifecycle event queue",
 			},
 		),
 	}
-
 }
 
 // Supporting types and interfaces for comprehensive implementation.
@@ -2569,11 +2319,9 @@ func (g *ContentValidationGate) IsRequired() bool { return g.required }
 // Validate performs validate operation.
 
 func (g *ContentValidationGate) Validate(ctx context.Context, ref *PackageReference, targetStage PackageRevisionLifecycle) (*ValidationResult, error) {
-
 	// Implementation would validate package content.
 
 	return g.client.ValidatePackage(ctx, ref.PackageName, ref.Revision)
-
 }
 
 // ApprovalValidationGate checks for required approvals.
@@ -2609,13 +2357,11 @@ func (g *ApprovalValidationGate) IsRequired() bool { return g.required }
 // Validate performs validate operation.
 
 func (g *ApprovalValidationGate) Validate(ctx context.Context, ref *PackageReference, targetStage PackageRevisionLifecycle) (*ValidationResult, error) {
-
 	// Implementation would check approval status.
 
 	// For now, return success.
 
 	return &ValidationResult{Valid: true}, nil
-
 }
 
 // Additional supporting components would be implemented here.
@@ -2629,9 +2375,7 @@ type StateTransitioner struct{}
 // NewStateTransitioner performs newstatetransitioner operation.
 
 func NewStateTransitioner(config *StateTransitionerConfig) *StateTransitioner {
-
 	return &StateTransitioner{}
-
 }
 
 // Close performs close operation.
@@ -2645,9 +2389,7 @@ type ValidationEngine struct{}
 // NewValidationEngine performs newvalidationengine operation.
 
 func NewValidationEngine(config *ValidationEngineConfig) *ValidationEngine {
-
 	return &ValidationEngine{}
-
 }
 
 // Close performs close operation.
@@ -2669,9 +2411,7 @@ func (rm *RollbackManager) Close() error { return nil }
 // CreateRollbackPoint performs createrollbackpoint operation.
 
 func (rm *RollbackManager) CreateRollbackPoint(ctx context.Context, ref *PackageReference, description string) (*RollbackPoint, error) {
-
 	return &RollbackPoint{
-
 		ID: fmt.Sprintf("rollback-%d", time.Now().UnixNano()),
 
 		PackageRef: ref,
@@ -2680,15 +2420,12 @@ func (rm *RollbackManager) CreateRollbackPoint(ctx context.Context, ref *Package
 
 		Description: description,
 	}, nil
-
 }
 
 // RollbackToPoint performs rollbacktopoint operation.
 
 func (rm *RollbackManager) RollbackToPoint(ctx context.Context, ref *PackageReference, pointID string) (*RollbackResult, error) {
-
 	return &RollbackResult{
-
 		Success: true,
 
 		RollbackPoint: &RollbackPoint{ID: pointID, PackageRef: ref},
@@ -2705,17 +2442,14 @@ func (rm *RollbackManager) RollbackToPoint(ctx context.Context, ref *PackageRefe
 
 		Warnings: []string{},
 	}, nil
-
 }
 
 // ListRollbackPoints performs listrollbackpoints operation.
 
 func (rm *RollbackManager) ListRollbackPoints(ctx context.Context, ref *PackageReference) ([]*RollbackPoint, error) {
-
 	// In a real implementation, this would query storage.
 
 	return []*RollbackPoint{}, nil
-
 }
 
 // Configuration types for components.
@@ -2731,3 +2465,4 @@ type (
 
 	RollbackManagerConfig struct{}
 )
+

@@ -1,7 +1,9 @@
 package llm
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"log/slog"
 	"math"
@@ -540,7 +542,7 @@ func (vsa *VectorSearchAccelerator) selectTopKResults(similarities []float32, to
 		matches[i] = &VectorMatch{
 			VectorID: fmt.Sprintf("vec_%d", i),
 			Score:    sim,
-			Metadata: make(map[string]interface{}),
+			Metadata: json.RawMessage(`{}`),
 		}
 	}
 
@@ -654,9 +656,11 @@ func getDefaultVectorSearchConfig() *VectorSearchConfig {
 
 // Type definitions
 
-type AcceleratorState int
-type SimilarityMetric int
-type GPUFloatArray []float32
+type (
+	AcceleratorState int
+	SimilarityMetric int
+	GPUFloatArray    []float32
+)
 
 const (
 	AcceleratorStateActive AcceleratorState = iota
@@ -668,49 +672,53 @@ const (
 )
 
 // Supporting structures
-type VectorL2Cache struct{}
-type VectorL3Storage struct{}
-type HNSWIndex struct{}
-type IVFIndex struct{}
-type ProductQuantizer struct{}
-type LSHIndex struct{}
-type VectorCompressor struct{}
-type VectorQuantizer struct{}
-type VectorOptimizer struct{}
-type MetadataIndex struct{}
-type VectorFilterEngine struct{}
-type GPUVectorBlock struct{}
-type BatchVectorLoader struct{}
-type VectorPrefetcher struct{}
-type EmbeddingModel struct{}
-type EmbeddingModelCache struct{}
-type GPUEmbeddingInference struct{}
-type EmbeddingBatchProcessor struct{}
-type DimensionReducer struct{}
-type VectorNormalizer struct{}
-type CUDAKernel struct{}
-type CUDAComputeStream struct{}
-type GPUDotProductEngine struct{}
-type GPUCosineEngine struct{}
-type GPUEuclideanEngine struct{}
-type GPUBatchManager struct{}
-type GPUResultAggregator struct{}
-type GPUWorkspaceAllocator struct{}
-type GPUResultBuffer struct{}
-type VectorIndexManager struct{}
-type SIMDVectorAccelerator struct{}
-type VectorMemoryPool struct{}
-type VectorSearchCache struct{}
-type QueryOptimizer struct{}
-type IntelligentReranker struct{}
-type SearchProfiler struct{}
+type (
+	VectorL2Cache           struct{}
+	VectorL3Storage         struct{}
+	HNSWIndex               struct{}
+	IVFIndex                struct{}
+	ProductQuantizer        struct{}
+	LSHIndex                struct{}
+	VectorCompressor        struct{}
+	VectorQuantizer         struct{}
+	VectorOptimizer         struct{}
+	MetadataIndex           struct{}
+	VectorFilterEngine      struct{}
+	GPUVectorBlock          struct{}
+	BatchVectorLoader       struct{}
+	VectorPrefetcher        struct{}
+	EmbeddingModel          struct{}
+	EmbeddingModelCache     struct{}
+	GPUEmbeddingInference   struct{}
+	EmbeddingBatchProcessor struct{}
+	DimensionReducer        struct{}
+	VectorNormalizer        struct{}
+	CUDAKernel              struct{}
+	CUDAComputeStream       struct{}
+	GPUDotProductEngine     struct{}
+	GPUCosineEngine         struct{}
+	GPUEuclideanEngine      struct{}
+	GPUBatchManager         struct{}
+	GPUResultAggregator     struct{}
+	GPUWorkspaceAllocator   struct{}
+	GPUResultBuffer         struct{}
+	VectorIndexManager      struct{}
+	SIMDVectorAccelerator   struct{}
+	VectorMemoryPool        struct{}
+	VectorSearchCache       struct{}
+	QueryOptimizer          struct{}
+	IntelligentReranker     struct{}
+	SearchProfiler          struct{}
+)
 
-type EmbeddingConfig struct{}
-type HNSWConfig struct {
-	M              int
-	EfConstruction int
-	EfSearch       int
-}
+type (
+	EmbeddingConfig struct{}
+	HNSWConfig      struct {
+		M              int
+		EfConstruction int
+		EfSearch       int
+	}
+)
 type IVFConfig struct {
 	NumClusters int
 	ProbeCount  int
@@ -733,16 +741,18 @@ type VectorSearchResult struct {
 type VectorMatch struct {
 	VectorID string                 `json:"vector_id"`
 	Score    float32                `json:"score"`
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // Placeholder implementations
 func NewAcceleratedVectorStore(config *VectorSearchConfig) (*AcceleratedVectorStore, error) {
 	return &AcceleratedVectorStore{}, nil
 }
+
 func NewGPUVectorCompute(deviceID int, config *VectorSearchConfig) (*GPUVectorCompute, error) {
 	return &GPUVectorCompute{}, nil
 }
+
 func NewFastEmbeddingGenerator(config *VectorSearchConfig) (*FastEmbeddingGenerator, error) {
 	return &FastEmbeddingGenerator{}, nil
 }
@@ -763,6 +773,7 @@ func (avs *AcceleratedVectorStore) Close()                             {}
 func (feg *FastEmbeddingGenerator) GenerateEmbedding(ctx context.Context, text, modelName string) ([]float32, error) {
 	return nil, nil
 }
+
 func (feg *FastEmbeddingGenerator) GenerateEmbeddingBatch(ctx context.Context, texts []string, modelName string) ([][]float32, error) {
 	return nil, nil
 }

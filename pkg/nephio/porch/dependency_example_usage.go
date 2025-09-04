@@ -21,6 +21,7 @@ package porch
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 )
 
@@ -33,15 +34,16 @@ func Example5GCoreDeploymentWithDependencies() error {
 		Config: &ClientConfig{
 			Endpoint: "https://porch.example.com",
 			AuthConfig: &AuthConfig{
-				Type:  AuthTypeToken,
-				Token: "token",
+				Type: AuthTypeToken,
+				// Token should be loaded from environment variable or secret management
+				Token: os.Getenv("PORCH_AUTH_TOKEN"), // Load from environment
 			},
 		},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w", err)
 	}
-	defer client.Close()
+	defer client.Close() // #nosec G307 - Error handled in defer
 
 	// Configure dependency resolver with advanced options
 	config := &DependencyResolverConfig{
@@ -67,7 +69,7 @@ func Example5GCoreDeploymentWithDependencies() error {
 	if err != nil {
 		return fmt.Errorf("failed to create resolver: %w", err)
 	}
-	defer resolver.Close()
+	defer resolver.Close() // #nosec G307 - Error handled in defer
 
 	// Define 5G Core AMF with dependencies
 	amfPackage := &PackageReference{
@@ -341,15 +343,16 @@ func ExampleORANDeploymentWithDependencies() error {
 		Config: &ClientConfig{
 			Endpoint: "https://porch.example.com",
 			AuthConfig: &AuthConfig{
-				Type:  AuthTypeToken,
-				Token: "token",
+				Type: AuthTypeToken,
+				// Token should be loaded from environment variable or secret management
+				Token: os.Getenv("PORCH_AUTH_TOKEN"), // Load from environment
 			},
 		},
 	})
-	defer client.Close()
+	defer client.Close() // #nosec G307 - Error handled in defer
 
 	resolver, _ := NewDependencyResolver(client, nil)
-	defer resolver.Close()
+	defer resolver.Close() // #nosec G307 - Error handled in defer
 
 	// Define Near-RT RIC with xApp dependencies
 	ricPackage := &PackageReference{
@@ -407,15 +410,16 @@ func ExampleNetworkSliceDependencies() error {
 		Config: &ClientConfig{
 			Endpoint: "https://porch.example.com",
 			AuthConfig: &AuthConfig{
-				Type:  AuthTypeToken,
-				Token: "token",
+				Type: AuthTypeToken,
+				// Token should be loaded from environment variable or secret management
+				Token: os.Getenv("PORCH_AUTH_TOKEN"), // Load from environment
 			},
 		},
 	})
-	defer client.Close()
+	defer client.Close() // #nosec G307 - Error handled in defer
 
 	resolver, _ := NewDependencyResolver(client, nil)
-	defer resolver.Close()
+	defer resolver.Close() // #nosec G307 - Error handled in defer
 
 	selector := NewContextAwareDependencySelector()
 

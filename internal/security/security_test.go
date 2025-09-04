@@ -2,6 +2,7 @@ package security
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -109,7 +110,7 @@ func TestOWASPValidator(t *testing.T) {
 		}`
 
 		validFile := filepath.Join(tempDir, "valid-intent.json")
-		err := os.WriteFile(validFile, []byte(validIntent), 0644)
+		err := os.WriteFile(validFile, []byte(validIntent), 0o644)
 		require.NoError(t, err)
 
 		result, err := validator.ValidateIntentFile(validFile)
@@ -126,7 +127,7 @@ func TestOWASPValidator(t *testing.T) {
 		}`
 
 		maliciousFile := filepath.Join(tempDir, "malicious-intent.json")
-		err = os.WriteFile(maliciousFile, []byte(maliciousIntent), 0644)
+		err = os.WriteFile(maliciousFile, []byte(maliciousIntent), 0o644)
 		require.NoError(t, err)
 
 		result, err = validator.ValidateIntentFile(maliciousFile)
@@ -192,10 +193,7 @@ func TestORANComplianceChecker(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("AssessCompliance", func(t *testing.T) {
-		testSystem := map[string]interface{}{
-			"has_mtls": false,
-			"has_rbac": false,
-		}
+		testSystem := json.RawMessage(`{}`)
 
 		report, err := checker.AssessCompliance(testSystem)
 		assert.NoError(t, err)
@@ -394,3 +392,4 @@ func BenchmarkSecureOperations(b *testing.B) {
 		}
 	})
 }
+

@@ -35,7 +35,7 @@ type DeploymentSpec struct {
 
 	Image string `json:"image"`
 
-	Resources map[string]interface{} `json:"resources"`
+	Resources json.RawMessage `json:"resources"`
 }
 
 // A1Policy defines the structure for an A1 policy.
@@ -43,7 +43,7 @@ type DeploymentSpec struct {
 type A1Policy struct {
 	PolicyTypeID string `json:"policy_type_id"`
 
-	PolicyData map[string]interface{} `json:"policy_data"`
+	PolicyData json.RawMessage `json:"policy_data"`
 }
 
 // NetworkFunctionScaleIntent represents the detailed intent for scaling an existing network function.

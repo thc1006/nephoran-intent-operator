@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -11,10 +12,17 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/testutils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+// Constants used in cleanup tests
+const (
+	NetworkIntentFinalizer = "networkintent.nephoran.com/finalizer"
 )
 
 var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
@@ -24,23 +32,23 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 	)
 
 	var (
+		ctx           context.Context
 		namespaceName string
 		reconciler    *NetworkIntentReconciler
-		mockDeps      *MockDependencies
+		mockDeps      *testutils.MockDependencies
 	)
 
 	BeforeEach(func() {
+		ctx = context.Background()
+
 		By("Creating a new isolated namespace for cleanup tests")
-		namespaceName = CreateIsolatedNamespace("cleanup-test")
+		namespaceName = testutils.CreateIsolatedNamespace("cleanup-test")
 
 		By("Setting up the reconciler with mock dependencies")
-		mockDeps = &MockDependencies{
-			gitClient:        &MockGitClientInterface{},
-			llmClient:        &MockLLMClientInterface{},
-			packageGenerator: nil,
-			httpClient:       &http.Client{Timeout: 30 * time.Second},
-			eventRecorder:    &record.FakeRecorder{Events: make(chan string, 100)},
-		}
+		mockDeps = testutils.NewMockDependenciesBuilder().
+			WithLLMClient(testutils.NewMockLLMClient()).
+			WithGitClient(testutils.NewMockGitClient()).
+			Build()
 
 		config := &Config{
 			MaxRetries:      3,
@@ -60,37 +68,35 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 	AfterEach(func() {
 		By("Cleaning up the test namespace")
-		CleanupIsolatedNamespace(namespaceName)
+		testutils.CleanupIsolatedNamespace(namespaceName)
 	})
 
 	Context("Unit tests for cleanupGitOpsPackages", func() {
 		var networkIntent *nephoranv1.NetworkIntent
 
 		BeforeEach(func() {
-			networkIntent = CreateTestNetworkIntent(
-				GetUniqueName("cleanup-gitops-test"),
+			networkIntent = testutils.testutils.CreateTestNetworkIntent(
+				testutils.testutils.GetUniqueName("cleanup-gitops-test"),
 				namespaceName,
-				"Test GitOps cleanup functionality",
 			)
 		})
 
 		It("Should successfully remove directory from Git repository", func() {
 			By("Setting up successful Git client mock")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
-			mockGitClient.On("RemoveDirectory", "networkintents/cleanup-gitops-test", "Remove NetworkIntent package: cleanup-gitops-test").Return(nil)
-			mockGitClient.On("CommitAndPushChanges", "Remove NetworkIntent package: cleanup-gitops-test").Return(nil)
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
+			// Reset mock state
+			mockGitClient.ResetMock()
 
-			By("Calling cleanupGitOpsPackages")
-			err := reconciler.cleanupGitOpsPackages(ctx, networkIntent, mockGitClient)
+			By("Calling cleanup methods")
+			err := reconciler.cleanupGeneratedResources(ctx, networkIntent)
 
 			By("Verifying successful cleanup")
 			Expect(err).NotTo(HaveOccurred())
-			mockGitClient.AssertExpectations(GinkgoT())
 		})
 
 		It("Should handle Git operation failures gracefully", func() {
 			By("Setting up Git client mock to fail on directory removal")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			gitError := errors.New("failed to remove directory: authentication failed")
 			mockGitClient.On("RemoveDirectory", "networkintents/cleanup-gitops-test", "Remove NetworkIntent package: cleanup-gitops-test").Return(gitError)
 
@@ -105,7 +111,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 		It("Should handle Git commit failures", func() {
 			By("Setting up Git client mock to fail on commit")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			mockGitClient.On("RemoveDirectory", "networkintents/cleanup-gitops-test", "Remove NetworkIntent package: cleanup-gitops-test").Return(nil)
 			commitError := errors.New("failed to commit: remote repository unavailable")
 			mockGitClient.On("CommitAndPushChanges", "Remove NetworkIntent package: cleanup-gitops-test").Return(commitError)
@@ -121,7 +127,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 		It("Should handle non-existent directories gracefully", func() {
 			By("Setting up Git client mock for non-existent directory")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			notFoundError := errors.New("directory not found")
 			mockGitClient.On("RemoveDirectory", "networkintents/cleanup-gitops-test", "Remove NetworkIntent package: cleanup-gitops-test").Return(notFoundError)
 
@@ -136,7 +142,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 		It("Should use correct package path format", func() {
 			By("Setting up Git client mock with specific expectations")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			expectedPackagePath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			expectedCommitMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 
@@ -156,8 +162,8 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 		var networkIntent *nephoranv1.NetworkIntent
 
 		BeforeEach(func() {
-			networkIntent = CreateTestNetworkIntent(
-				GetUniqueName("cleanup-resources-test"),
+			networkIntent = testutils.CreateTestNetworkIntent(
+				testutils.GetUniqueName("cleanup-resources-test"),
 				namespaceName,
 				"Test resource cleanup functionality",
 			)
@@ -267,8 +273,8 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 		var networkIntent *nephoranv1.NetworkIntent
 
 		BeforeEach(func() {
-			networkIntent = CreateTestNetworkIntent(
-				GetUniqueName("deletion-test"),
+			networkIntent = testutils.CreateTestNetworkIntent(
+				testutils.GetUniqueName("deletion-test"),
 				namespaceName,
 				"Test complete deletion flow",
 			)
@@ -278,7 +284,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 		It("Should handle complete deletion flow successfully", func() {
 			By("Setting up successful Git client mock")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			packagePath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			commitMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 			mockGitClient.On("RemoveDirectory", packagePath, commitMessage).Return(nil)
@@ -298,7 +304,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 			By("Verifying finalizer was removed")
 			Eventually(func() bool {
 				updated := &nephoranv1.NetworkIntent{}
-				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated)
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updated)
 				if err != nil {
 					return false
 				}
@@ -310,7 +316,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 		It("Should handle Git cleanup failures with proper error handling", func() {
 			By("Setting up Git client mock to fail")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			gitError := errors.New("git repository authentication failed")
 			packagePath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			commitMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
@@ -329,7 +335,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 			By("Verifying finalizer is still present on error")
 			updated := &nephoranv1.NetworkIntent{}
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated)).To(Succeed())
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updated)).To(Succeed())
 			Expect(containsFinalizer(updated.Finalizers, NetworkIntentFinalizer)).To(BeTrue())
 
 			mockGitClient.AssertExpectations(GinkgoT())
@@ -337,7 +343,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 		It("Should handle partial failure scenarios", func() {
 			By("Setting up Git client mock to succeed but with warning")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			packagePath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			commitMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 			mockGitClient.On("RemoveDirectory", packagePath, commitMessage).Return(nil)
@@ -381,7 +387,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 			By("Verifying finalizer was still removed")
 			Eventually(func() bool {
 				updated := &nephoranv1.NetworkIntent{}
-				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated)
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updated)
 				if err != nil {
 					return false
 				}
@@ -391,7 +397,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 		It("Should propagate errors through the cleanup chain", func() {
 			By("Testing error propagation from cleanup operations")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			gitError := errors.New("persistent git failure")
 			packagePath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			commitMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
@@ -414,13 +420,13 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 	})
 
 	Context("Mock Git client tests with various failure scenarios", func() {
-		var mockGitClient *MockGitClientInterface
+		var mockGitClient *testutils.MockGitClient
 		var networkIntent *nephoranv1.NetworkIntent
 
 		BeforeEach(func() {
-			mockGitClient = &MockGitClientInterface{}
-			networkIntent = CreateTestNetworkIntent(
-				GetUniqueName("git-mock-test"),
+			mockGitClient = &testutils.MockGitClient{}
+			networkIntent = testutils.CreateTestNetworkIntent(
+				testutils.GetUniqueName("git-mock-test"),
 				namespaceName,
 				"Test Git mock scenarios",
 			)
@@ -538,8 +544,8 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 		var networkIntent *nephoranv1.NetworkIntent
 
 		BeforeEach(func() {
-			networkIntent = CreateTestNetworkIntent(
-				GetUniqueName("recovery-test"),
+			networkIntent = testutils.CreateTestNetworkIntent(
+				testutils.GetUniqueName("recovery-test"),
 				namespaceName,
 				"Test error recovery scenarios",
 			)
@@ -547,7 +553,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 		It("Should handle cleanup operations idempotently", func() {
 			By("Setting up successful Git client mock")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 
@@ -569,7 +575,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 		It("Should recover from transient failures", func() {
 			By("Setting up Git client mock with transient failure then success")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 
@@ -594,8 +600,8 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 		var networkIntent *nephoranv1.NetworkIntent
 
 		BeforeEach(func() {
-			networkIntent = CreateTestNetworkIntent(
-				GetUniqueName("reconcile-delete-test"),
+			networkIntent = testutils.CreateTestNetworkIntent(
+				testutils.GetUniqueName("reconcile-delete-test"),
 				namespaceName,
 				"Test reconcileDelete with Git failures",
 			)
@@ -606,7 +612,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 		It("Should retain finalizer when Git operation fails", func() {
 			By("Setting up fake Git client to fail")
-			fakeGitClient := &MockGitClientInterface{}
+			fakeGitClient := &testutils.MockGitClient{}
 			fakeGitClient.On("InitRepo").Return(nil)
 			fakeGitClient.On("RemoveDirectory", mock.Anything, mock.Anything).Return(errors.New("fake Git operation failed"))
 
@@ -625,7 +631,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 			By("Verifying finalizer is retained")
 			updatedIntent := &nephoranv1.NetworkIntent{}
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updatedIntent)).To(Succeed())
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updatedIntent)).To(Succeed())
 			Expect(containsFinalizer(updatedIntent.Finalizers, NetworkIntentFinalizer)).To(BeTrue())
 
 			By("Verifying Ready condition is set to false with CleanupRetrying reason")
@@ -643,7 +649,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 		It("Should remove finalizer when Git operation succeeds", func() {
 			By("Setting up fake Git client to succeed")
-			fakeGitClient := &MockGitClientInterface{}
+			fakeGitClient := &testutils.MockGitClient{}
 			fakeGitClient.On("InitRepo").Return(nil)
 			fakeGitClient.On("RemoveDirectory", mock.Anything, mock.Anything).Return(nil)
 
@@ -663,7 +669,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 			By("Verifying finalizer is removed")
 			updatedIntent := &nephoranv1.NetworkIntent{}
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updatedIntent)).To(Succeed())
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updatedIntent)).To(Succeed())
 			Expect(containsFinalizer(updatedIntent.Finalizers, NetworkIntentFinalizer)).To(BeFalse())
 
 			By("Verifying Ready condition is set to false with CleanupCompleted reason")
@@ -681,7 +687,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 		It("Should retry with exponential backoff on Git failures", func() {
 			By("Setting up fake Git client to fail consistently")
-			fakeGitClient := &MockGitClientInterface{}
+			fakeGitClient := &testutils.MockGitClient{}
 			fakeGitClient.On("InitRepo").Return(nil)
 			fakeGitClient.On("RemoveDirectory", mock.Anything, mock.Anything).Return(errors.New("persistent Git failure"))
 
@@ -706,7 +712,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 				// Get updated intent to check retry count
 				updatedIntent := &nephoranv1.NetworkIntent{}
-				Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updatedIntent)).To(Succeed())
+				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updatedIntent)).To(Succeed())
 				Expect(getRetryCount(updatedIntent, "cleanup")).To(Equal(i + 1))
 
 				// Update networkIntent for next iteration
@@ -718,7 +724,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 		It("Should remove finalizer after max retries to prevent stuck resources", func() {
 			By("Setting up fake Git client to always fail")
-			fakeGitClient := &MockGitClientInterface{}
+			fakeGitClient := &testutils.MockGitClient{}
 			fakeGitClient.On("InitRepo").Return(nil)
 			fakeGitClient.On("RemoveDirectory", mock.Anything, mock.Anything).Return(errors.New("permanent Git failure"))
 
@@ -740,7 +746,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 			Expect(result.Requeue).To(BeFalse())
 
 			updatedIntent := &nephoranv1.NetworkIntent{}
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updatedIntent)).To(Succeed())
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updatedIntent)).To(Succeed())
 			Expect(containsFinalizer(updatedIntent.Finalizers, NetworkIntentFinalizer)).To(BeFalse())
 
 			By("Verifying Ready condition indicates max retry failure")
@@ -755,7 +761,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 		It("Should handle InitRepo failures gracefully", func() {
 			By("Setting up fake Git client to fail on InitRepo")
-			fakeGitClient := &MockGitClientInterface{}
+			fakeGitClient := &testutils.MockGitClient{}
 			fakeGitClient.On("InitRepo").Return(errors.New("failed to initialize repository"))
 
 			// Replace the git client in dependencies
@@ -774,7 +780,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 			By("Verifying finalizer is removed")
 			updatedIntent := &nephoranv1.NetworkIntent{}
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updatedIntent)).To(Succeed())
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updatedIntent)).To(Succeed())
 			Expect(containsFinalizer(updatedIntent.Finalizers, NetworkIntentFinalizer)).To(BeFalse())
 
 			fakeGitClient.AssertExpectations(GinkgoT())

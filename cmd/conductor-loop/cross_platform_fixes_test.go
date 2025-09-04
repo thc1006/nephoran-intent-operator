@@ -10,8 +10,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/nephio-project/nephoran-intent-operator/internal/porch"
-	"github.com/nephio-project/nephoran-intent-operator/testdata/helpers"
+	"github.com/thc1006/nephoran-intent-operator/internal/porch"
+	"github.com/thc1006/nephoran-intent-operator/testdata/helpers"
 )
 
 // TestCrossPlatformFixesValidation validates that our cross-platform fixes work correctly
@@ -40,7 +40,7 @@ func TestCrossPlatformFixesValidation(t *testing.T) {
 		// Verify file exists and is executable
 		fileInfo, err := os.Stat(mockPath)
 		require.NoError(t, err)
-		assert.NotEqual(t, 0, fileInfo.Mode()&0755, "File should be executable")
+		assert.NotEqual(t, 0, fileInfo.Mode()&0o755, "File should be executable")
 	})
 
 	t.Run("porch_CreateSimpleMock", func(t *testing.T) {
@@ -115,7 +115,7 @@ func TestCrossPlatformFixesValidation(t *testing.T) {
 		// Verify file is executable
 		fileInfo, err := os.Stat(mockPath)
 		require.NoError(t, err)
-		assert.NotEqual(t, 0, fileInfo.Mode()&0755, "File should be executable")
+		assert.NotEqual(t, 0, fileInfo.Mode()&0o755, "File should be executable")
 	})
 }
 
@@ -171,7 +171,7 @@ func TestOriginalIssueFixed(t *testing.T) {
 		// This simulates the original failing test scenario
 		tempDir := t.TempDir()
 		handoffDir := filepath.Join(tempDir, "handoff")
-		require.NoError(t, os.MkdirAll(handoffDir, 0755))
+		require.NoError(t, os.MkdirAll(handoffDir, 0o755))
 
 		// Create a mock that would fail on Unix if using .bat extension
 		mockPath, err := porch.CreateCrossPlatformMock(tempDir, porch.CrossPlatformMockOptions{
@@ -194,6 +194,6 @@ func TestOriginalIssueFixed(t *testing.T) {
 		require.NoError(t, err)
 		assert.True(t, fileInfo.Mode().IsRegular())
 
-		t.Logf("✅ Cross-platform mock created successfully: %s", mockPath)
+		t.Logf("??Cross-platform mock created successfully: %s", mockPath)
 	})
 }

@@ -74,9 +74,14 @@ func TestEventGeneration(t *testing.T) {
 				if event.Event.MeasurementFields.AdditionalFields == nil {
 					t.Error("Expected additional fields to be present")
 				}
-				// Check for KPM fields
-				if _, exists := event.Event.MeasurementFields.AdditionalFields["kpm.p95_latency_ms"]; !exists {
-					t.Error("Expected kpm.p95_latency_ms in additional fields")
+				// Check for KPM fields in AdditionalFields (JSON)
+				var additionalFieldsMap map[string]interface{}
+				if err := json.Unmarshal(event.Event.MeasurementFields.AdditionalFields, &additionalFieldsMap); err != nil {
+					t.Errorf("Failed to unmarshal additional fields: %v", err)
+				} else {
+					if _, exists := additionalFieldsMap["kpm.p95_latency_ms"]; !exists {
+						t.Error("Expected kpm.p95_latency_ms in additional fields")
+					}
 				}
 			}
 

@@ -33,7 +33,9 @@ limitations under the License.
 package dependencies
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -49,12 +51,9 @@ type OptimizationEngine struct {
 // NewOptimizationEngine performs newoptimizationengine operation.
 
 func NewOptimizationEngine(config *OptimizationEngineConfig) (*OptimizationEngine, error) {
-
 	return &OptimizationEngine{
-
 		logger: log.Log.WithName("optimization-engine"),
 	}, nil
-
 }
 
 // MLOptimizer represents a mloptimizer.
@@ -66,12 +65,9 @@ type MLOptimizer struct {
 // NewMLOptimizer performs newmloptimizer operation.
 
 func NewMLOptimizer(config *MLOptimizerConfig) (*MLOptimizer, error) {
-
 	return &MLOptimizer{
-
 		logger: log.Log.WithName("ml-optimizer"),
 	}, nil
-
 }
 
 // UsageDataCollector represents a usagedatacollector.
@@ -83,22 +79,17 @@ type UsageDataCollector struct {
 // NewUsageDataCollector performs newusagedatacollector operation.
 
 func NewUsageDataCollector(config *UsageCollectorConfig) *UsageDataCollector {
-
 	return &UsageDataCollector{
-
 		logger: log.Log.WithName("usage-data-collector"),
 	}
-
 }
 
 // CollectUsageData performs collectusagedata operation.
 
 func (c *UsageDataCollector) CollectUsageData(ctx context.Context, packages []*PackageReference, timeRange *TimeRange) ([]*UsageData, error) {
-
 	// Stub implementation.
 
 	return make([]*UsageData, 0), nil
-
 }
 
 // MetricsCollector represents a metricscollector.
@@ -110,12 +101,9 @@ type MetricsCollector struct {
 // NewMetricsCollector performs newmetricscollector operation.
 
 func NewMetricsCollector(config *MetricsCollectorConfig) *MetricsCollector {
-
 	return &MetricsCollector{
-
 		logger: log.Log.WithName("metrics-collector"),
 	}
-
 }
 
 // EventProcessor represents a eventprocessor.
@@ -127,12 +115,9 @@ type EventProcessor struct {
 // NewEventProcessor performs neweventprocessor operation.
 
 func NewEventProcessor(config *EventProcessorConfig) *EventProcessor {
-
 	return &EventProcessor{
-
 		logger: log.Log.WithName("event-processor"),
 	}
-
 }
 
 // PredictionModel represents a predictionmodel.
@@ -144,12 +129,9 @@ type PredictionModel struct {
 // NewPredictionModel performs newpredictionmodel operation.
 
 func NewPredictionModel(config *PredictionModelConfig) (*PredictionModel, error) {
-
 	return &PredictionModel{
-
 		logger: log.Log.WithName("prediction-model"),
 	}, nil
-
 }
 
 // RecommendationModel represents a recommendationmodel.
@@ -161,12 +143,9 @@ type RecommendationModel struct {
 // NewRecommendationModel performs newrecommendationmodel operation.
 
 func NewRecommendationModel(config *RecommendationModelConfig) (*RecommendationModel, error) {
-
 	return &RecommendationModel{
-
 		logger: log.Log.WithName("recommendation-model"),
 	}, nil
-
 }
 
 // AnomalyDetector represents a anomalydetector.
@@ -178,12 +157,9 @@ type AnomalyDetector struct {
 // NewAnomalyDetector performs newanomalydetector operation.
 
 func NewAnomalyDetector(config *AnomalyDetectorConfig) (*AnomalyDetector, error) {
-
 	return &AnomalyDetector{
-
 		logger: log.Log.WithName("anomaly-detector"),
 	}, nil
-
 }
 
 // Supporting data types.
@@ -205,7 +181,7 @@ type UsageDataPoint struct {
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // ConstraintSolverConfig provides configuration for the constraint solver.
@@ -235,11 +211,8 @@ type ConstraintCacheConfig struct {
 // NewConstraintSolver creates a new constraint solver with the given configuration.
 
 func NewConstraintSolver(config *ConstraintSolverConfig) *ConstraintSolver {
-
 	if config == nil {
-
 		config = &ConstraintSolverConfig{
-
 			MaxIterations: 1000,
 
 			MaxBacktracks: 100,
@@ -254,13 +227,11 @@ func NewConstraintSolver(config *ConstraintSolverConfig) *ConstraintSolver {
 
 			DebugMode: false,
 		}
-
 	}
 
 	cacheConfig := &CacheConfig{TTL: 1 * time.Hour}
 
 	return &ConstraintSolver{
-
 		logger: log.Log.WithName("constraint-solver"),
 
 		cache: NewConstraintCache(cacheConfig),
@@ -277,7 +248,6 @@ func NewConstraintSolver(config *ConstraintSolverConfig) *ConstraintSolver {
 
 		workers: config.Workers,
 	}
-
 }
 
 // constraintCacheImpl implements the ConstraintCache interface from types.go.
@@ -289,68 +259,51 @@ type constraintCacheImpl struct {
 // NewConstraintCache creates a new constraint cache - return as pointer to interface for resolver.go compatibility.
 
 func NewConstraintCache(config *CacheConfig) *constraintCacheImpl {
-
 	return &constraintCacheImpl{
-
 		logger: log.Log.WithName("constraint-cache"),
 	}
-
 }
 
 // Get performs get operation.
 
 func (c *constraintCacheImpl) Get(key string) (interface{}, bool) {
-
 	return nil, false
-
 }
 
 // Set performs set operation.
 
 func (c *constraintCacheImpl) Set(key string, value interface{}) {
-
 	// Stub implementation.
-
 }
 
 // Delete performs delete operation.
 
 func (c *constraintCacheImpl) Delete(key string) {
-
 	// Stub implementation.
-
 }
 
 // Clear performs clear operation.
 
 func (c *constraintCacheImpl) Clear() {
-
 	// Stub implementation.
-
 }
 
 // Size performs size operation.
 
 func (c *constraintCacheImpl) Size() int {
-
 	return 0
-
 }
 
 // Stats performs stats operation.
 
 func (c *constraintCacheImpl) Stats() *CacheStats {
-
 	return &CacheStats{}
-
 }
 
 // Close performs close operation.
 
 func (c *constraintCacheImpl) Close() error {
-
 	return nil
-
 }
 
 // Additional missing types and functions needed for resolver.go compilation.
@@ -376,23 +329,17 @@ type ConflictResolverConfig struct {
 // NewVersionSolver creates a new version solver.
 
 func NewVersionSolver(config *VersionSolverConfig) *VersionSolver {
-
 	return &VersionSolver{
-
 		logger: log.Log.WithName("version-solver"),
 	}
-
 }
 
 // NewConflictResolver creates a new conflict resolver.
 
 func NewConflictResolver(config *ConflictResolverConfig) *ConflictResolver {
-
 	return &ConflictResolver{
-
 		logger: log.Log.WithName("conflict-resolver"),
 	}
-
 }
 
 // resolutionCacheImpl implements ResolutionCache interface.
@@ -404,68 +351,51 @@ type resolutionCacheImpl struct {
 // NewResolutionCache creates a new resolution cache - return as pointer to interface for resolver.go compatibility.
 
 func NewResolutionCache(config *CacheConfig) *resolutionCacheImpl {
-
 	return &resolutionCacheImpl{
-
 		logger: log.Log.WithName("resolution-cache"),
 	}
-
 }
 
 // Get performs get operation.
 
 func (c *resolutionCacheImpl) Get(key string) (interface{}, bool) {
-
 	return nil, false
-
 }
 
 // Set performs set operation.
 
 func (c *resolutionCacheImpl) Set(key string, value interface{}, ttl time.Duration) {
-
 	// Stub implementation.
-
 }
 
 // Delete performs delete operation.
 
 func (c *resolutionCacheImpl) Delete(key string) {
-
 	// Stub implementation.
-
 }
 
 // Clear performs clear operation.
 
 func (c *resolutionCacheImpl) Clear() {
-
 	// Stub implementation.
-
 }
 
 // Size performs size operation.
 
 func (c *resolutionCacheImpl) Size() int {
-
 	return 0
-
 }
 
 // Stats performs stats operation.
 
 func (c *resolutionCacheImpl) Stats() *CacheStats {
-
 	return &CacheStats{}
-
 }
 
 // Close performs close operation.
 
 func (c *resolutionCacheImpl) Close() error {
-
 	return nil
-
 }
 
 // versionCacheImpl implements VersionCache interface.
@@ -477,68 +407,51 @@ type versionCacheImpl struct {
 // NewVersionCache creates a new version cache - return as pointer to interface for resolver.go compatibility.
 
 func NewVersionCache(config *CacheConfig) *versionCacheImpl {
-
 	return &versionCacheImpl{
-
 		logger: log.Log.WithName("version-cache"),
 	}
-
 }
 
 // Get performs get operation.
 
 func (c *versionCacheImpl) Get(packageName, version string) (interface{}, bool) {
-
 	return nil, false
-
 }
 
 // Set performs set operation.
 
 func (c *versionCacheImpl) Set(packageName, version string, value interface{}) {
-
 	// Stub implementation.
-
 }
 
 // Delete performs delete operation.
 
 func (c *versionCacheImpl) Delete(packageName, version string) {
-
 	// Stub implementation.
-
 }
 
 // Clear performs clear operation.
 
 func (c *versionCacheImpl) Clear() {
-
 	// Stub implementation.
-
 }
 
 // Size performs size operation.
 
 func (c *versionCacheImpl) Size() int {
-
 	return 0
-
 }
 
 // Stats performs stats operation.
 
 func (c *versionCacheImpl) Stats() *CacheStats {
-
 	return &CacheStats{}
-
 }
 
 // Close performs close operation.
 
 func (c *versionCacheImpl) Close() error {
-
 	return nil
-
 }
 
 // workerPoolImpl implements WorkerPool interface.
@@ -554,48 +467,37 @@ type workerPoolImpl struct {
 // NewWorkerPool creates a new worker pool - return as pointer to interface for resolver.go compatibility.
 
 func NewWorkerPool(workerCount, queueSize int) WorkerPool {
-
 	return &workerPoolImpl{
-
 		logger: log.Log.WithName("worker-pool"),
 
 		workers: workerCount,
 	}
-
 }
 
 // Submit performs submit operation.
 
 func (w *workerPoolImpl) Submit(task func() error) error {
-
 	// Stub implementation.
 
 	return task()
-
 }
 
 // Workers performs workers operation.
 
 func (w *workerPoolImpl) Workers() int {
-
 	return w.workers
-
 }
 
 // ActiveJobs performs activejobs operation.
 
 func (w *workerPoolImpl) ActiveJobs() int {
-
 	return w.activeJobs
-
 }
 
 // Close performs close operation.
 
 func (w *workerPoolImpl) Close() error {
-
 	return nil
-
 }
 
 // rateLimiterImpl implements RateLimiter interface.
@@ -609,40 +511,31 @@ type rateLimiterImpl struct {
 // NewRateLimiter creates a new rate limiter - return as pointer to interface for resolver.go compatibility.
 
 func NewRateLimiter(limit int) *RateLimiter {
-
 	var limiter RateLimiter = &rateLimiterImpl{
-
 		logger: log.Log.WithName("rate-limiter"),
 
 		limit: limit,
 	}
 
 	return &limiter
-
 }
 
 // Allow performs allow operation.
 
 func (r *rateLimiterImpl) Allow() bool {
-
 	return true // Stub implementation
-
 }
 
 // Wait performs wait operation.
 
 func (r *rateLimiterImpl) Wait(ctx context.Context) error {
-
 	return nil // Stub implementation
-
 }
 
 // Limit performs limit operation.
 
 func (r *rateLimiterImpl) Limit() int {
-
 	return r.limit
-
 }
 
 // End of missing_types.go - helper types are already defined in types.go.

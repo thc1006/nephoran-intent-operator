@@ -1,7 +1,9 @@
 package parallel
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"sync"
 	"time"
 
@@ -22,12 +24,12 @@ type TaskInterface interface {
 
 // ControllerTaskResult represents the result of a parallel task execution
 type ControllerTaskResult struct {
-	TaskID      string        `json:"task_id"`
-	Success     bool          `json:"success"`
-	Error       error         `json:"error,omitempty"`
-	Duration    time.Duration `json:"duration"`
-	CompletedAt time.Time     `json:"completed_at"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	TaskID      string                 `json:"task_id"`
+	Success     bool                   `json:"success"`
+	Error       error                  `json:"error,omitempty"`
+	Duration    time.Duration          `json:"duration"`
+	CompletedAt time.Time              `json:"completed_at"`
+	Metadata    json.RawMessage `json:"metadata,omitempty"`
 }
 
 // ParallelProcessor manages parallel execution of controller tasks
@@ -57,23 +59,23 @@ type ProcessorMetrics struct {
 
 // ProcessorConfig contains configuration for parallel processing
 type ProcessorConfig struct {
-	MaxConcurrency   int           `json:"max_concurrency"`
-	DefaultTimeout   time.Duration `json:"default_timeout"`
-	QueueSize        int           `json:"queue_size"`
-	EnableMetrics    bool          `json:"enable_metrics"`
-	RetryAttempts    int           `json:"retry_attempts"`
-	RetryBackoff     time.Duration `json:"retry_backoff"`
+	MaxConcurrency int           `json:"max_concurrency"`
+	DefaultTimeout time.Duration `json:"default_timeout"`
+	QueueSize      int           `json:"queue_size"`
+	EnableMetrics  bool          `json:"enable_metrics"`
+	RetryAttempts  int           `json:"retry_attempts"`
+	RetryBackoff   time.Duration `json:"retry_backoff"`
 }
 
 // ReconcileTask represents a Kubernetes reconciliation task
 type ReconcileTask struct {
-	ID       string
-	Priority int
-	Timeout  time.Duration
-	Object   client.Object
-	Req      ctrl.Request
-	Client   client.Client
-	Scheme   *runtime.Scheme
+	ID         string
+	Priority   int
+	Timeout    time.Duration
+	Object     client.Object
+	Req        ctrl.Request
+	Client     client.Client
+	Scheme     *runtime.Scheme
 	Reconciler func(context.Context, ctrl.Request) (ctrl.Result, error)
 }
 
@@ -81,16 +83,16 @@ type ReconcileTask struct {
 func (rt *ReconcileTask) Execute(ctx context.Context) error {
 	logger := log.FromContext(ctx).WithValues("task_id", rt.ID)
 	logger.Info("Executing reconcile task")
-	
+
 	timeoutCtx, cancel := context.WithTimeout(ctx, rt.Timeout)
 	defer cancel()
-	
+
 	result, err := rt.Reconciler(timeoutCtx, rt.Req)
 	if err != nil {
 		logger.Error(err, "Reconcile task failed")
 		return err
 	}
-	
+
 	logger.Info("Reconcile task completed", "result", result)
 	return nil
 }
@@ -131,17 +133,17 @@ type ValidationRule struct {
 func (vt *ValidationTask) Execute(ctx context.Context) error {
 	logger := log.FromContext(ctx).WithValues("task_id", vt.ID)
 	logger.Info("Executing validation task")
-	
+
 	timeoutCtx, cancel := context.WithTimeout(ctx, vt.Timeout)
 	defer cancel()
-	
+
 	for _, rule := range vt.Rules {
 		if err := rule.Validator(timeoutCtx, vt.Object, vt.Client); err != nil {
 			logger.Error(err, "Validation rule failed", "rule", rule.Name)
 			return err
 		}
 	}
-	
+
 	logger.Info("Validation task completed successfully")
 	return nil
 }
@@ -163,27 +165,27 @@ func (vt *ValidationTask) GetTimeout() time.Duration {
 
 // ProcessingTask represents a generic processing task
 type ProcessingTask struct {
-	ID       string
-	Priority int
-	Timeout  time.Duration
+	ID        string
+	Priority  int
+	Timeout   time.Duration
 	Processor func(context.Context) error
-	Metadata map[string]interface{}
+	Metadata  map[string]interface{}
 }
 
 // Execute implements the TaskInterface for ProcessingTask
 func (pt *ProcessingTask) Execute(ctx context.Context) error {
 	logger := log.FromContext(ctx).WithValues("task_id", pt.ID)
 	logger.Info("Executing processing task")
-	
+
 	timeoutCtx, cancel := context.WithTimeout(ctx, pt.Timeout)
 	defer cancel()
-	
+
 	err := pt.Processor(timeoutCtx)
 	if err != nil {
 		logger.Error(err, "Processing task failed")
 		return err
 	}
-	
+
 	logger.Info("Processing task completed successfully")
 	return nil
 }
@@ -221,7 +223,7 @@ type TaskPriorityQueue struct {
 func (pq *TaskPriorityQueue) Push(task TaskInterface) {
 	pq.mutex.Lock()
 	defer pq.mutex.Unlock()
-	
+
 	// Insert task maintaining priority order (higher priority first)
 	inserted := false
 	for i, existing := range pq.tasks {
@@ -231,7 +233,7 @@ func (pq *TaskPriorityQueue) Push(task TaskInterface) {
 			break
 		}
 	}
-	
+
 	if !inserted {
 		pq.tasks = append(pq.tasks, task)
 	}
@@ -241,11 +243,11 @@ func (pq *TaskPriorityQueue) Push(task TaskInterface) {
 func (pq *TaskPriorityQueue) Pop() TaskInterface {
 	pq.mutex.Lock()
 	defer pq.mutex.Unlock()
-	
+
 	if len(pq.tasks) == 0 {
 		return nil
 	}
-	
+
 	task := pq.tasks[0]
 	pq.tasks = pq.tasks[1:]
 	return task
@@ -265,23 +267,23 @@ func (pq *TaskPriorityQueue) IsEmpty() bool {
 
 // BatchProcessor handles batch processing of related tasks
 type BatchProcessor struct {
-	batchSize      int
-	flushInterval  time.Duration
-	processor      func(context.Context, []TaskInterface) error
-	taskBuffer     []TaskInterface
-	mutex          sync.Mutex
-	flushTimer     *time.Timer
-	ctx            context.Context
-	cancel         context.CancelFunc
+	batchSize     int
+	flushInterval time.Duration
+	processor     func(context.Context, []TaskInterface) error
+	taskBuffer    []TaskInterface
+	mutex         sync.Mutex
+	flushTimer    *time.Timer
+	ctx           context.Context
+	cancel        context.CancelFunc
 }
 
 // AddTask adds a task to the batch buffer
 func (bp *BatchProcessor) AddTask(task TaskInterface) {
 	bp.mutex.Lock()
 	defer bp.mutex.Unlock()
-	
+
 	bp.taskBuffer = append(bp.taskBuffer, task)
-	
+
 	if len(bp.taskBuffer) >= bp.batchSize {
 		bp.flushBatch()
 	} else if bp.flushTimer == nil {
@@ -298,16 +300,16 @@ func (bp *BatchProcessor) flushBatch() {
 	if len(bp.taskBuffer) == 0 {
 		return
 	}
-	
+
 	tasks := make([]TaskInterface, len(bp.taskBuffer))
 	copy(tasks, bp.taskBuffer)
 	bp.taskBuffer = bp.taskBuffer[:0]
-	
+
 	if bp.flushTimer != nil {
 		bp.flushTimer.Stop()
 		bp.flushTimer = nil
 	}
-	
+
 	go func() {
 		if err := bp.processor(bp.ctx, tasks); err != nil {
 			// Log error - in a real implementation, this would use proper logging
@@ -320,15 +322,23 @@ func (bp *BatchProcessor) flushBatch() {
 func (bp *BatchProcessor) Close() error {
 	bp.mutex.Lock()
 	defer bp.mutex.Unlock()
-	
+
 	bp.cancel()
 	bp.flushBatch()
-	
+
 	if bp.flushTimer != nil {
 		bp.flushTimer.Stop()
 	}
-	
+
 	return nil
+}
+
+// TaskRetryConfig defines retry configuration for tasks
+type TaskRetryConfig struct {
+	MaxAttempts   int           `json:"maxAttempts"`
+	InitialDelay  time.Duration `json:"initialDelay"`
+	BackoffFactor float64       `json:"backoffFactor"`
+	MaxDelay      time.Duration `json:"maxDelay"`
 }
 
 // Constants for parallel processing
@@ -338,17 +348,17 @@ const (
 	DefaultQueueSize      = 1000
 	DefaultRetryAttempts  = 3
 	DefaultRetryBackoff   = 1 * time.Second
-	
+
 	// Task priorities
 	PriorityHigh   = 100
 	PriorityNormal = 50
 	PriorityLow    = 10
-	
+
 	// Task types
-	TaskTypeReconcile   = "reconcile"
-	TaskTypeValidation  = "validation"
-	TaskTypeProcessing  = "processing"
-	TaskTypeBatch       = "batch"
+	TaskTypeReconcile  = "reconcile"
+	TaskTypeValidation = "validation"
+	TaskTypeProcessing = "processing"
+	TaskTypeBatch      = "batch"
 )
 
 // Helper functions

@@ -53,14 +53,11 @@ type NephoranRBACConfig struct {
 // NewNephoranAuthIntegration creates integration.
 
 func NewNephoranAuthIntegration(config *NephoranAuthConfig, kubeClient client.Client, logger *slog.Logger) (*NephoranAuthIntegration, error) {
-
 	return &NephoranAuthIntegration{
-
 		config: config,
 
 		logger: logger,
 
 		kubeClient: kubeClient,
 	}, nil
-
 }

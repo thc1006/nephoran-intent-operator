@@ -13,15 +13,12 @@ type KRMPackage struct {
 	Namespace string
 
 	Content map[string]string // filename -> content
-
 }
 
 // BuildKRMPackage creates a KRM package from a scaling intent.
 
 func BuildKRMPackage(intent *ScalingIntent, packageName string) (*KRMPackage, error) {
-
 	pkg := &KRMPackage{
-
 		Name: packageName,
 
 		Namespace: intent.Namespace,
@@ -78,27 +75,21 @@ metadata:
 `, intent.Target, intent.Namespace, intent.IntentType, intent.Replicas)
 
 	if intent.Reason != "" {
-
 		deploymentPatch += fmt.Sprintf(`    scaling.nephio.org/reason: "%s"
 
 `, intent.Reason)
-
 	}
 
 	if intent.Source != "" {
-
 		deploymentPatch += fmt.Sprintf(`    scaling.nephio.org/source: "%s"
 
 `, intent.Source)
-
 	}
 
 	if intent.CorrelationID != "" {
-
 		deploymentPatch += fmt.Sprintf(`    scaling.nephio.org/correlation-id: "%s"
 
 `, intent.CorrelationID)
-
 	}
 
 	deploymentPatch += fmt.Sprintf(`spec:
@@ -174,17 +165,13 @@ This package is managed by Porch and applies scaling operations to the specified
 	pkg.Content["README.md"] = readme
 
 	return pkg, nil
-
 }
 
 // GeneratePackagePath creates the package directory path.
 
 func GeneratePackagePath(repoName, packageName, revision string) string {
-
 	if revision == "" {
-
 		revision = "draft"
-
 	}
 
 	// Clean revision to be filesystem-safe.
@@ -192,5 +179,4 @@ func GeneratePackagePath(repoName, packageName, revision string) string {
 	revision = strings.ReplaceAll(revision, "/", "-")
 
 	return fmt.Sprintf("examples/packages/%s/%s/%s", repoName, packageName, revision)
-
 }

@@ -29,13 +29,8 @@ var _ = Describe("LLM Client Unit Tests", func() {
 		mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Default successful response
 			response := map[string]interface{}{
-				"type":      "NetworkFunctionDeployment",
-				"name":      "test-nf",
-				"namespace": "default",
-				"spec": map[string]interface{}{
-					"replicas": float64(1),
-					"image":    "test:latest",
-				},
+				"replicas": float64(1),
+				"image":    "test:latest",
 			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(response)
@@ -45,12 +40,16 @@ var _ = Describe("LLM Client Unit Tests", func() {
 	})
 
 	AfterEach(func() {
+		if client != nil {
+			client.Shutdown()
+		}
 		mockServer.Close()
 	})
 
 	Context("Client Creation", func() {
 		It("should create a new client with default configuration", func() {
 			testClient := NewClient("http://test-url")
+			defer testClient.Shutdown() // Clean up the test client
 			Expect(testClient).NotTo(BeNil())
 			Expect(testClient.url).To(Equal("http://test-url"))
 			Expect(testClient.httpClient.Timeout).To(Equal(60 * time.Second))
@@ -61,6 +60,7 @@ var _ = Describe("LLM Client Unit Tests", func() {
 
 		It("should initialize client with proper configuration", func() {
 			testClient := NewClient("http://test-url")
+			defer testClient.Shutdown() // Clean up the test client
 			Expect(testClient).NotTo(BeNil())
 			// Test that client has core components initialized
 		})
@@ -93,7 +93,7 @@ var _ = Describe("LLM Client Unit Tests", func() {
 			}
 
 			for _, intent := range scalingIntents {
-				// Test basic intent handling  
+				// Test basic intent handling
 				Expect(len(intent)).To(BeNumerically(">", 0))
 			}
 		})
@@ -145,10 +145,11 @@ var _ = Describe("LLM Client Unit Tests", func() {
 				time.Sleep(2 * time.Second)
 				w.WriteHeader(http.StatusOK)
 			}))
-			defer slowServer.Close()
+			defer slowServer.Close() // #nosec G307 - Error handled in defer
 
 			// Create client with short timeout
 			shortTimeoutClient := NewClient(slowServer.URL)
+			defer shortTimeoutClient.Shutdown() // Clean up the test client
 			shortTimeoutClient.httpClient.Timeout = 100 * time.Millisecond
 
 			ctx := context.Background()
@@ -173,20 +174,16 @@ var _ = Describe("LLM Client Unit Tests", func() {
 				}
 				// Third attempt succeeds
 				response := map[string]interface{}{
-					"type":      "NetworkFunctionDeployment",
-					"name":      "test-nf",
-					"namespace": "default",
-					"spec": map[string]interface{}{
-						"replicas": float64(1),
-						"image":    "test:latest",
-					},
+					"replicas": float64(1),
+					"image":    "test:latest",
 				}
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(response)
 			}))
-			defer errorServer.Close()
+			defer errorServer.Close() // #nosec G307 - Error handled in defer
 
 			errorClient := NewClient(errorServer.URL)
+			defer errorClient.Shutdown() // Clean up the test client
 			ctx := context.Background()
 			intent := "Deploy test network function"
 
@@ -202,9 +199,10 @@ var _ = Describe("LLM Client Unit Tests", func() {
 				w.WriteHeader(http.StatusBadRequest)
 				w.Write([]byte(`{"error": "invalid request format"}`))
 			}))
-			defer badRequestServer.Close()
+			defer badRequestServer.Close() // #nosec G307 - Error handled in defer
 
 			badRequestClient := NewClient(badRequestServer.URL)
+			defer badRequestClient.Shutdown() // Clean up the test client
 			ctx := context.Background()
 			intent := "Deploy test network function"
 

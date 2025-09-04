@@ -1,7 +1,9 @@
 package dependencies
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 )
 
@@ -75,33 +77,33 @@ type UpdateWorkerPool interface {
 // Supporting types for the interfaces
 
 type UpdateEvent struct {
-	EventID     string            `json:"eventId"`
-	EventType   string            `json:"eventType"`
-	Package     *PackageReference `json:"package"`
-	Environment string            `json:"environment,omitempty"`
-	User        string            `json:"user"`
-	Timestamp   time.Time         `json:"timestamp"`
-	Details     map[string]interface{} `json:"details,omitempty"`
+	EventID     string                 `json:"eventId"`
+	EventType   string                 `json:"eventType"`
+	Package     *PackageReference      `json:"package"`
+	Environment string                 `json:"environment,omitempty"`
+	User        string                 `json:"user"`
+	Timestamp   time.Time              `json:"timestamp"`
+	Details     json.RawMessage `json:"details,omitempty"`
 }
 
 type SecurityEvent struct {
-	EventID     string    `json:"eventId"`
-	EventType   string    `json:"eventType"`
-	Severity    string    `json:"severity"`
-	Description string    `json:"description"`
-	Source      string    `json:"source"`
-	Timestamp   time.Time `json:"timestamp"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	EventID     string                 `json:"eventId"`
+	EventType   string                 `json:"eventType"`
+	Severity    string                 `json:"severity"`
+	Description string                 `json:"description"`
+	Source      string                 `json:"source"`
+	Timestamp   time.Time              `json:"timestamp"`
+	Metadata    json.RawMessage `json:"metadata,omitempty"`
 }
 
 type ComplianceEvent struct {
-	EventID     string    `json:"eventId"`
-	EventType   string    `json:"eventType"`
-	Policy      string    `json:"policy"`
-	Status      string    `json:"status"`
-	Description string    `json:"description"`
-	Timestamp   time.Time `json:"timestamp"`
-	Evidence    map[string]interface{} `json:"evidence,omitempty"`
+	EventID     string                 `json:"eventId"`
+	EventType   string                 `json:"eventType"`
+	Policy      string                 `json:"policy"`
+	Status      string                 `json:"status"`
+	Description string                 `json:"description"`
+	Timestamp   time.Time              `json:"timestamp"`
+	Evidence    json.RawMessage `json:"evidence,omitempty"`
 }
 
 type AuditFilter struct {
@@ -114,14 +116,14 @@ type AuditFilter struct {
 }
 
 type AuditLog struct {
-	LogID       string    `json:"logId"`
-	EventType   string    `json:"eventType"`
-	User        string    `json:"user"`
-	Action      string    `json:"action"`
-	Resource    string    `json:"resource"`
-	Result      string    `json:"result"`
-	Timestamp   time.Time `json:"timestamp"`
-	Details     map[string]interface{} `json:"details,omitempty"`
+	LogID     string                 `json:"logId"`
+	EventType string                 `json:"eventType"`
+	User      string                 `json:"user"`
+	Action    string                 `json:"action"`
+	Resource  string                 `json:"resource"`
+	Result    string                 `json:"result"`
+	Timestamp time.Time              `json:"timestamp"`
+	Details   json.RawMessage `json:"details,omitempty"`
 }
 
 type PolicyEvaluation struct {
@@ -130,7 +132,7 @@ type PolicyEvaluation struct {
 	Violations  []*PolicyViolation     `json:"violations,omitempty"`
 	Warnings    []*PolicyWarning       `json:"warnings,omitempty"`
 	EvaluatedAt time.Time              `json:"evaluatedAt"`
-	Context     map[string]interface{} `json:"context,omitempty"`
+	Context     json.RawMessage `json:"context,omitempty"`
 }
 
 type UpdatePolicy struct {
@@ -143,16 +145,16 @@ type UpdatePolicy struct {
 	Priority    int                    `json:"priority"`
 	CreatedAt   time.Time              `json:"createdAt"`
 	UpdatedAt   time.Time              `json:"updatedAt"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Metadata    json.RawMessage `json:"metadata,omitempty"`
 }
 
 type PolicyRule struct {
-	RuleID      string                 `json:"ruleId"`
-	Name        string                 `json:"name"`
-	Condition   string                 `json:"condition"`
-	Action      string                 `json:"action"`
-	Parameters  map[string]interface{} `json:"parameters,omitempty"`
-	Enabled     bool                   `json:"enabled"`
+	RuleID     string                 `json:"ruleId"`
+	Name       string                 `json:"name"`
+	Condition  string                 `json:"condition"`
+	Action     string                 `json:"action"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
+	Enabled    bool                   `json:"enabled"`
 }
 
 type PolicyViolation struct {
@@ -163,30 +165,29 @@ type PolicyViolation struct {
 	Message     string                 `json:"message"`
 	Resource    *PackageReference      `json:"resource,omitempty"`
 	DetectedAt  time.Time              `json:"detectedAt"`
-	Context     map[string]interface{} `json:"context,omitempty"`
+	Context     json.RawMessage `json:"context,omitempty"`
 }
 
 type PolicyWarning struct {
-	WarningID   string                 `json:"warningId"`
-	PolicyID    string                 `json:"policyId"`
-	RuleID      string                 `json:"ruleId"`
-	Severity    string                 `json:"severity"`
-	Message     string                 `json:"message"`
-	Resource    *PackageReference      `json:"resource,omitempty"`
-	DetectedAt  time.Time              `json:"detectedAt"`
-	Suggestion  string                 `json:"suggestion,omitempty"`
-	Context     map[string]interface{} `json:"context,omitempty"`
+	WarningID  string                 `json:"warningId"`
+	PolicyID   string                 `json:"policyId"`
+	RuleID     string                 `json:"ruleId"`
+	Severity   string                 `json:"severity"`
+	Message    string                 `json:"message"`
+	Resource   *PackageReference      `json:"resource,omitempty"`
+	DetectedAt time.Time              `json:"detectedAt"`
+	Suggestion string                 `json:"suggestion,omitempty"`
+	Context    json.RawMessage `json:"context,omitempty"`
 }
 
-
 type NotificationFilter struct {
-	Type        string    `json:"type,omitempty"`
-	Channel     string    `json:"channel,omitempty"`
-	Status      string    `json:"status,omitempty"`
-	DateFrom    time.Time `json:"dateFrom,omitempty"`
-	DateTo      time.Time `json:"dateTo,omitempty"`
-	Recipient   string    `json:"recipient,omitempty"`
-	Limit       int       `json:"limit,omitempty"`
+	Type      string    `json:"type,omitempty"`
+	Channel   string    `json:"channel,omitempty"`
+	Status    string    `json:"status,omitempty"`
+	DateFrom  time.Time `json:"dateFrom,omitempty"`
+	DateTo    time.Time `json:"dateTo,omitempty"`
+	Recipient string    `json:"recipient,omitempty"`
+	Limit     int       `json:"limit,omitempty"`
 }
 
 type CacheStats struct {
@@ -208,14 +209,14 @@ type DeploymentResult struct {
 }
 
 type DeploymentStatus struct {
-	DeploymentID string            `json:"deploymentId"`
-	Package      *PackageReference `json:"package"`
-	Environment  string            `json:"environment"`
-	Status       string            `json:"status"`
-	Health       string            `json:"health"`
-	LastChecked  time.Time         `json:"lastChecked"`
-	Replicas     int               `json:"replicas,omitempty"`
-	ReadyReplicas int              `json:"readyReplicas,omitempty"`
+	DeploymentID  string            `json:"deploymentId"`
+	Package       *PackageReference `json:"package"`
+	Environment   string            `json:"environment"`
+	Status        string            `json:"status"`
+	Health        string            `json:"health"`
+	LastChecked   time.Time         `json:"lastChecked"`
+	Replicas      int               `json:"replicas,omitempty"`
+	ReadyReplicas int               `json:"readyReplicas,omitempty"`
 }
 
 type DeploymentInfo struct {
@@ -241,7 +242,7 @@ type MetricsData struct {
 	TimeRange  *TimeRange             `json:"timeRange"`
 	Metrics    map[string][]float64   `json:"metrics"`
 	Timestamps []time.Time            `json:"timestamps"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Metadata   json.RawMessage `json:"metadata,omitempty"`
 }
 
 type AlertFilter struct {
@@ -265,7 +266,7 @@ type Alert struct {
 	Status      string                 `json:"status"`
 	CreatedAt   time.Time              `json:"createdAt"`
 	UpdatedAt   time.Time              `json:"updatedAt"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Metadata    json.RawMessage `json:"metadata,omitempty"`
 }
 
 type WorkerPoolStats struct {

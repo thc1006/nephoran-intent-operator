@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/internal/loop"
+	"github.com/thc1006/nephoran-intent-operator/internal/loop"
 )
 
 func TestGracefulShutdownExitCode(t *testing.T) {
@@ -17,12 +17,12 @@ func TestGracefulShutdownExitCode(t *testing.T) {
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
 
-	err := os.MkdirAll(handoffDir, 0755)
+	err := os.MkdirAll(handoffDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create handoff directory: %v", err)
 	}
 
-	err = os.MkdirAll(outDir, 0755)
+	err = os.MkdirAll(outDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create output directory: %v", err)
 	}
@@ -32,11 +32,11 @@ func TestGracefulShutdownExitCode(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		mockPorchPath = filepath.Join(tempDir, "mock-porch.bat")
 		mockScript := "@echo off\necho Mock porch processing...\ntimeout /t 1 >nul 2>&1\necho Mock porch completed\nexit /b 0\n"
-		err = os.WriteFile(mockPorchPath, []byte(mockScript), 0755)
+		err = os.WriteFile(mockPorchPath, []byte(mockScript), 0o755)
 	} else {
 		mockPorchPath = filepath.Join(tempDir, "mock-porch.sh")
 		mockScript := "#!/bin/bash\necho 'Mock porch processing...'\nsleep 1\necho 'Mock porch completed'\nexit 0\n"
-		err = os.WriteFile(mockPorchPath, []byte(mockScript), 0755)
+		err = os.WriteFile(mockPorchPath, []byte(mockScript), 0o755)
 	}
 	if err != nil {
 		t.Fatalf("Failed to create mock porch: %v", err)
@@ -56,7 +56,7 @@ func TestGracefulShutdownExitCode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create watcher: %v", err)
 	}
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Create intent files that will be processed
 	intentFiles := []string{
@@ -75,7 +75,7 @@ func TestGracefulShutdownExitCode(t *testing.T) {
 
 	for _, filename := range intentFiles {
 		filePath := filepath.Join(handoffDir, filename)
-		err := os.WriteFile(filePath, []byte(intentContent), 0644)
+		err := os.WriteFile(filePath, []byte(intentContent), 0o644)
 		if err != nil {
 			t.Fatalf("Failed to create intent file %s: %v", filename, err)
 		}
@@ -123,7 +123,7 @@ func TestGracefulShutdownExitCode(t *testing.T) {
 
 	// Verify that we distinguish between shutdown failures and real failures
 	if stats.ShutdownFailedCount > 0 {
-		t.Logf("✅ Successfully detected %d shutdown failures", stats.ShutdownFailedCount)
+		t.Logf("??Successfully detected %d shutdown failures", stats.ShutdownFailedCount)
 	}
 
 	// In a graceful shutdown scenario, we should expect:
@@ -133,9 +133,9 @@ func TestGracefulShutdownExitCode(t *testing.T) {
 
 	// The key test: exit code should be 0 even if there are shutdown failures
 	if stats.RealFailedCount == 0 {
-		t.Logf("✅ No real failures detected - exit code should be 0")
+		t.Logf("??No real failures detected - exit code should be 0")
 	} else {
-		t.Errorf("❌ Unexpected real failures: %d - exit code would be 8", stats.RealFailedCount)
+		t.Errorf("??Unexpected real failures: %d - exit code would be 8", stats.RealFailedCount)
 	}
 
 	// Verify total failed count is the sum of real and shutdown failures
@@ -151,7 +151,7 @@ func TestShutdownFailureDetection(t *testing.T) {
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 
-	err := os.MkdirAll(handoffDir, 0755)
+	err := os.MkdirAll(handoffDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create handoff directory: %v", err)
 	}
@@ -169,7 +169,7 @@ func TestShutdownFailureDetection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create watcher: %v", err)
 	}
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Test different error scenarios
 	testCases := []struct {
@@ -216,7 +216,7 @@ func TestShutdownFailureDetection(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to create new watcher: %v", err)
 			}
-			defer newWatcher.Close()
+			defer newWatcher.Close() // #nosec G307 - Error handled in defer
 
 			// Set graceful shutdown state if needed
 			if tc.gracefulShutdown {

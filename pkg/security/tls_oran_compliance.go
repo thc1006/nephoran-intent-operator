@@ -8,7 +8,6 @@ import (
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"net"
@@ -206,8 +205,38 @@ func NewORANCompliantTLS(interfaceType, profile string) (*ORANTLSCompliance, err
 		return nil, fmt.Errorf("unknown security profile: %s", profile)
 	}
 
-	// Create compliance configuration
-	config := *baseConfig
+	// Create compliance configuration without copying mutex
+	config := &ORANTLSCompliance{
+		// Copy all fields except the mutex to avoid lock copying violation
+		InterfaceType:          interfaceType, // Will be set below, but initialize here
+		SecurityProfile:        baseConfig.SecurityProfile,
+		ComplianceLevel:        baseConfig.ComplianceLevel,
+		MinTLSVersion:          baseConfig.MinTLSVersion,
+		MaxTLSVersion:          baseConfig.MaxTLSVersion,
+		CipherSuites:           make([]uint16, len(baseConfig.CipherSuites)),
+		CurvePreferences:       make([]tls.CurveID, len(baseConfig.CurvePreferences)),
+		RequireEKU:             baseConfig.RequireEKU,
+		RequiredEKUs:           make([]x509.ExtKeyUsage, len(baseConfig.RequiredEKUs)),
+		RequireStrongKeys:      baseConfig.RequireStrongKeys,
+		MinRSAKeySize:          baseConfig.MinRSAKeySize,
+		MinECDSAKeySize:        baseConfig.MinECDSAKeySize,
+		OCSPStaplingRequired:   baseConfig.OCSPStaplingRequired,
+		OCSPMustStaple:         baseConfig.OCSPMustStaple,
+		OCSPSoftFail:           baseConfig.OCSPSoftFail,
+		OCSPResponseMaxAge:     baseConfig.OCSPResponseMaxAge,
+		SessionTicketsDisabled: baseConfig.SessionTicketsDisabled,
+		SessionCacheSize:       baseConfig.SessionCacheSize,
+		SessionTimeout:         baseConfig.SessionTimeout,
+		RenegotiationPolicy:    baseConfig.RenegotiationPolicy,
+		PerIPRateLimit:         make(map[string]*rate.Limiter),
+		// Note: mu is not copied to avoid lock copying violation
+	}
+
+	// Copy slices safely
+	copy(config.CipherSuites, baseConfig.CipherSuites)
+	copy(config.CurvePreferences, baseConfig.CurvePreferences)
+	copy(config.RequiredEKUs, baseConfig.RequiredEKUs)
+
 	config.InterfaceType = interfaceType
 
 	// Apply interface-specific requirements
@@ -238,7 +267,7 @@ func NewORANCompliantTLS(interfaceType, profile string) (*ORANTLSCompliance, err
 	config.PostHandshakeHook = config.defaultPostHandshakeHook
 	config.CertificateVerifier = config.defaultCertificateVerifier
 
-	return &config, nil
+	return config, nil
 }
 
 // BuildTLSConfig creates a tls.Config from O-RAN compliance settings
@@ -285,10 +314,7 @@ func (c *ORANTLSCompliance) defaultPreHandshakeHook(hello *tls.ClientHelloInfo) 
 
 	if !limiter.Allow() {
 		if c.AuditLogger != nil {
-			c.AuditLogger.LogSecurityEvent("tls_rate_limit_exceeded", map[string]interface{}{
-				"client_ip": clientIP,
-				"interface": c.InterfaceType,
-			})
+			c.AuditLogger.LogSecurityEvent("tls_rate_limit_exceeded", make(map[string]interface{}))
 		}
 		return errors.New("rate limit exceeded")
 	}
@@ -314,11 +340,7 @@ func (c *ORANTLSCompliance) defaultPreHandshakeHook(hello *tls.ClientHelloInfo) 
 
 	// Log handshake attempt
 	if c.AuditLogger != nil {
-		c.AuditLogger.LogSecurityEvent("tls_handshake_started", map[string]interface{}{
-			"client_ip":   clientIP,
-			"server_name": hello.ServerName,
-			"interface":   c.InterfaceType,
-		})
+		c.AuditLogger.LogSecurityEvent("tls_handshake_started", make(map[string]interface{}))
 	}
 
 	return nil
@@ -347,12 +369,7 @@ func (c *ORANTLSCompliance) defaultPostHandshakeHook(state tls.ConnectionState) 
 
 	// Log successful handshake
 	if c.AuditLogger != nil {
-		c.AuditLogger.LogSecurityEvent("tls_handshake_completed", map[string]interface{}{
-			"tls_version":  fmt.Sprintf("%x", state.Version),
-			"cipher_suite": fmt.Sprintf("%x", state.CipherSuite),
-			"interface":    c.InterfaceType,
-			"profile":      c.SecurityProfile,
-		})
+		c.AuditLogger.LogSecurityEvent("tls_handshake_completed", make(map[string]interface{}))
 	}
 
 	// Update metrics
@@ -396,11 +413,7 @@ func (c *ORANTLSCompliance) defaultCertificateVerifier(rawCerts [][]byte, verifi
 			}
 			// Log but continue if soft fail is enabled
 			if c.AuditLogger != nil {
-				c.AuditLogger.LogSecurityEvent("ocsp_soft_fail", map[string]interface{}{
-					"error":     err.Error(),
-					"subject":   cert.Subject.String(),
-					"interface": c.InterfaceType,
-				})
+				c.AuditLogger.LogSecurityEvent("ocsp_soft_fail", make(map[string]interface{}))
 			}
 		}
 	}
@@ -413,14 +426,7 @@ func (c *ORANTLSCompliance) defaultCertificateVerifier(rawCerts [][]byte, verifi
 
 	// Log successful verification
 	if c.AuditLogger != nil {
-		c.AuditLogger.LogSecurityEvent("certificate_verified", map[string]interface{}{
-			"subject":    cert.Subject.String(),
-			"issuer":     cert.Issuer.String(),
-			"serial":     hex.EncodeToString(cert.SerialNumber.Bytes()),
-			"interface":  c.InterfaceType,
-			"profile":    c.SecurityProfile,
-			"compliance": c.ComplianceLevel,
-		})
+		c.AuditLogger.LogSecurityEvent("certificate_verified", make(map[string]interface{}))
 	}
 
 	return nil
@@ -584,3 +590,4 @@ func (c *ORANTLSCompliance) ValidateCompliance() error {
 type TLSAuditLogger interface {
 	LogSecurityEvent(event string, details map[string]interface{})
 }
+

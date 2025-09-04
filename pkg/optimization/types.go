@@ -1,5 +1,4 @@
 /*
-<<<<<<< HEAD
 Copyright 2025.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,70 +12,77 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-=======
-
-Copyright 2025.
-
-
-
-Licensed under the Apache License, Version 2.0 (the "License");
-
-you may not use this file except in compliance with the License.
-
-You may obtain a copy of the License at
-
-
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-
-
-Unless required by applicable law or agreed to in writing, software
-
-distributed under the License is distributed on an "AS IS" BASIS,
-
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-
-See the License for the specific language governing permissions and
-
-limitations under the License.
-
->>>>>>> origin/integrate/mvp
 */
 
 package optimization
 
 import (
-<<<<<<< HEAD
 	"context"
+	"encoding/json"
+	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
+	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // Missing types and interfaces for optimization package
 
-// MetricsStore stores and manages metrics data
-type MetricsStore struct {
-	data   map[string]interface{}
-	logger logr.Logger
+// PerformanceAnalyzer performs system performance analysis
+type PerformanceAnalyzer struct {
+	logger           logr.Logger
+	k8sClient        client.Client
+	clientset        kubernetes.Interface
+	prometheusClient v1.API
 }
 
-// HistoricalDataStore manages historical data
-type HistoricalDataStore struct {
-	data   []interface{}
-	logger logr.Logger
+// SystemOptimizer optimizes system performance
+type SystemOptimizer struct {
+	logger    logr.Logger
+	k8sClient client.Client
+	clientset kubernetes.Interface
 }
 
-// PatternDetector detects performance patterns
-type PatternDetector struct {
-	window time.Duration
-	logger logr.Logger
+// PerformanceBaseline represents a performance baseline for comparison
+type PerformanceBaseline struct {
+	ComponentType    ComponentType      `json:"componentType"`
+	Timestamp        time.Time          `json:"timestamp"`
+	Metrics          map[string]float64 `json:"metrics"`
+	ResourceUsage    ResourceUtilization `json:"resourceUsage"`
+	ThroughputRate   float64            `json:"throughputRate"`
+	ResponseTime     time.Duration      `json:"responseTime"`
+	ErrorRate        float64            `json:"errorRate"`
+	BaselineVersion  string             `json:"baselineVersion"`
+	EnvironmentInfo  map[string]string  `json:"environmentInfo"`
 }
 
-// BottleneckPredictor predicts performance bottlenecks
-type BottleneckPredictor struct {
-	config *AnalysisConfig
+// Constructor functions for new types
+
+// NewPerformanceAnalyzer creates a new performance analyzer
+func NewPerformanceAnalyzer(logger logr.Logger, k8sClient client.Client, clientset kubernetes.Interface, prometheusClient v1.API) *PerformanceAnalyzer {
+	return &PerformanceAnalyzer{
+		logger:           logger.WithName("performance-analyzer"),
+		k8sClient:        k8sClient,
+		clientset:        clientset,
+		prometheusClient: prometheusClient,
+	}
+}
+
+// NewSystemOptimizer creates a new system optimizer  
+func NewSystemOptimizer(logger logr.Logger, k8sClient client.Client, clientset kubernetes.Interface) *SystemOptimizer {
+	return &SystemOptimizer{
+		logger:    logger.WithName("system-optimizer"),
+		k8sClient: k8sClient,
+		clientset: clientset,
+	}
+}
+
+// OptimizerManager manages optimization processes
+type OptimizerManager struct {
 	logger logr.Logger
 }
 
@@ -92,91 +98,6 @@ type OptimizationRanker struct {
 	logger logr.Logger
 }
 
-// PerformanceIssue represents a performance issue
-type PerformanceIssue struct {
-	Name         string        `json:"name"`
-	Description  string        `json:"description"`
-	Severity     SeverityLevel `json:"severity"`
-	Impact       ImpactLevel   `json:"impact"`
-	Component    ComponentType `json:"component"`
-	MetricName   string        `json:"metricName"`
-	Threshold    float64       `json:"threshold"`
-	CurrentValue float64       `json:"currentValue"`
-}
-
-// ResourceConstraint represents a resource constraint
-type ResourceConstraint struct {
-	ResourceType     string  `json:"resourceType"`
-	CurrentUsage     float64 `json:"currentUsage"`
-	MaxCapacity      float64 `json:"maxCapacity"`
-	UtilizationRatio float64 `json:"utilizationRatio"`
-	Impact           string  `json:"impact"`
-}
-
-// OptimizationOpportunity represents an optimization opportunity
-type OptimizationOpportunity struct {
-	Name              string          `json:"name"`
-	Description       string          `json:"description"`
-	PotentialImpact   *ExpectedImpact `json:"potentialImpact"`
-	EstimatedEffort   string          `json:"estimatedEffort"`
-	Confidence        float64         `json:"confidence"`
-	Prerequisites     []string        `json:"prerequisites"`
-	RecommendedAction string          `json:"recommendedAction"`
-}
-
-// ResourceUtilization represents resource utilization data
-type ResourceUtilization struct {
-	CPU     float64 `json:"cpu"`
-	Memory  float64 `json:"memory"`
-	Storage float64 `json:"storage"`
-	Network float64 `json:"network"`
-	GPU     float64 `json:"gpu,omitempty"`
-}
-
-// ComponentPerformanceMetrics contains component-specific performance metrics
-type ComponentPerformanceMetrics struct {
-	Latency      time.Duration `json:"latency"`
-	Throughput   float64       `json:"throughput"`
-	ErrorRate    float64       `json:"errorRate"`
-	Availability float64       `json:"availability"`
-	ResponseTime time.Duration `json:"responseTime"`
-	RequestRate  float64       `json:"requestRate"`
-	SuccessRate  float64       `json:"successRate"`
-}
-
-// PerformanceBottleneck represents an identified bottleneck
-type PerformanceBottleneck struct {
-	ComponentType  ComponentType `json:"componentType"`
-	BottleneckType string        `json:"bottleneckType"`
-	Severity       SeverityLevel `json:"severity"`
-	Impact         ImpactLevel   `json:"impact"`
-	Description    string        `json:"description"`
-	MetricName     string        `json:"metricName"`
-	CurrentValue   float64       `json:"currentValue"`
-	ThresholdValue float64       `json:"thresholdValue"`
-	Resolution     []string      `json:"resolution"`
-}
-
-// PerformanceTrend represents performance trend data
-type PerformanceTrend struct {
-	MetricName string           `json:"metricName"`
-	Component  ComponentType    `json:"component"`
-	Direction  TrendDirection   `json:"direction"`
-	Rate       float64          `json:"rate"`
-	Confidence float64          `json:"confidence"`
-	TimeWindow time.Duration    `json:"timeWindow"`
-	Prediction *TrendPrediction `json:"prediction"`
-}
-
-// TrendPrediction represents trend predictions
-type TrendPrediction struct {
-	NextValue   float64       `json:"nextValue"`
-	TimeHorizon time.Duration `json:"timeHorizon"`
-	Confidence  float64       `json:"confidence"`
-	UpperBound  float64       `json:"upperBound"`
-	LowerBound  float64       `json:"lowerBound"`
-}
-
 // Constructor functions for missing types
 
 // NewMetricsStore creates a new metrics store
@@ -187,24 +108,27 @@ func NewMetricsStore() *MetricsStore {
 }
 
 // NewHistoricalDataStore creates a new historical data store
-func NewHistoricalDataStore() *HistoricalDataStore {
+func NewHistoricalDataStore(retentionPeriod time.Duration) *HistoricalDataStore {
 	return &HistoricalDataStore{
-		data: make([]interface{}, 0),
+		retentionPeriod: retentionPeriod,
+		data:            make([]DataPoint, 0),
 	}
 }
 
 // NewPatternDetector creates a new pattern detector
-func NewPatternDetector(window time.Duration) *PatternDetector {
+func NewPatternDetector(sensitivity float64, window time.Duration) *PatternDetector {
 	return &PatternDetector{
-		window: window,
+		window:      window,
+		sensitivity: sensitivity,
+		patterns:    make([]*PerformancePattern, 0),
 	}
 }
 
 // NewBottleneckPredictor creates a new bottleneck predictor
-func NewBottleneckPredictor(config *AnalysisConfig, logger logr.Logger) *BottleneckPredictor {
+func NewBottleneckPredictor(predictionHorizon time.Duration) *BottleneckPredictor {
 	return &BottleneckPredictor{
-		config: config,
-		logger: logger.WithName("bottleneck-predictor"),
+		predictionHorizon: predictionHorizon,
+		models:            make(map[string]interface{}),
 	}
 }
 
@@ -228,14 +152,9 @@ func NewOptimizationRanker(config *AnalysisConfig, logger logr.Logger) *Optimiza
 func (pd *PatternDetector) DetectPatterns(ctx context.Context, store *MetricsStore) ([]*PerformancePattern, error) {
 	// Simplified pattern detection
 	return make([]*PerformancePattern, 0), nil
-=======
-	"time"
+}
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
-)
-
-// ComponentType is an alias for shared.ComponentType for backward compatibility.
-
+// ComponentType is an alias for shared.ComponentType for backward compatibility
 // and cleaner imports within the optimization package.
 
 type ComponentType = shared.ComponentType
@@ -277,29 +196,6 @@ const (
 	// CategoryTelecommunications holds categorytelecommunications value.
 
 	CategoryTelecommunications OptimizationCategory = "telecommunications"
-)
-
-// OptimizationPriority represents priority levels for optimizations.
-
-type OptimizationPriority string
-
-const (
-
-	// PriorityCritical holds prioritycritical value.
-
-	PriorityCritical OptimizationPriority = "critical"
-
-	// PriorityHigh holds priorityhigh value.
-
-	PriorityHigh OptimizationPriority = "high"
-
-	// PriorityMedium holds prioritymedium value.
-
-	PriorityMedium OptimizationPriority = "medium"
-
-	// PriorityLow holds prioritylow value.
-
-	PriorityLow OptimizationPriority = "low"
 )
 
 // SeverityLevel represents severity levels.
@@ -412,20 +308,6 @@ type ConfidenceInterval struct {
 	ConfidenceLevel float64 `json:"confidenceLevel"`
 }
 
-// ExpectedImpact represents the expected impact of optimization changes.
-
-type ExpectedImpact struct {
-	LatencyReduction float64 `json:"latencyReduction"`
-
-	ThroughputIncrease float64 `json:"throughputIncrease"`
-
-	ResourceSavings float64 `json:"resourceSavings"`
-
-	CostSavings float64 `json:"costSavings"`
-
-	EfficiencyGain float64 `json:"efficiencyGain"`
-}
-
 // ResourceType represents different types of resources.
 
 type ResourceType string
@@ -511,7 +393,7 @@ type OptimizationRecommendation struct {
 
 	Automation AutomationLevel `json:"automationLevel"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // OptimizationRecommendationEngine represents the engine that generates recommendations.
@@ -609,7 +491,6 @@ const (
 // OptimizationKnowledgeBase contains optimization knowledge and best practices.
 
 type OptimizationKnowledgeBase struct {
-
 	// Best practices indexed by component type.
 
 	BestPractices map[shared.ComponentType][]*OptimizationBestPractice `json:"bestPractices"`
@@ -794,7 +675,7 @@ type MLModelMetadata struct {
 
 	LastValidated time.Time `json:"lastValidated"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	InputFeatures []string `json:"inputFeatures"`
 
@@ -1602,8 +1483,6 @@ const (
 	TrendTypeNoTrend TrendType = "no_trend"
 )
 
-// Note: TrendDirection is already defined in performance_analysis_engine.go.
-
 // ForecastData represents forecast information for performance trends.
 
 type ForecastData struct {
@@ -1617,8 +1496,6 @@ type ForecastData struct {
 
 	ModelType string `json:"modelType"`
 }
-
-// Note: ConfidenceInterval is already defined in performance_analysis_engine.go.
 
 // PerformanceBenchmark represents benchmark results.
 
@@ -1656,5 +1533,183 @@ type BenchmarkEnvironment struct {
 	Load string `json:"load"`
 
 	Concurrency int `json:"concurrency"`
->>>>>>> origin/integrate/mvp
+}
+
+// =======================
+// Missing Types for Performance Analysis Engine
+// =======================
+
+// MetricsStore stores metrics data for analysis
+type MetricsStore struct {
+	data  map[string]interface{}
+	mutex sync.RWMutex
+}
+
+// HistoricalDataStore stores historical performance data
+type HistoricalDataStore struct {
+	retentionPeriod time.Duration
+	data            []DataPoint
+	mutex           sync.RWMutex
+}
+
+// PatternDetector detects patterns in performance data
+type PatternDetector struct {
+	window      time.Duration
+	sensitivity float64
+	patterns    []*PerformancePattern
+	mutex       sync.RWMutex
+}
+
+// BottleneckPredictor predicts performance bottlenecks using ML
+type BottleneckPredictor struct {
+	config            *AnalysisConfig
+	logger            logr.Logger
+	predictionHorizon time.Duration
+	models            map[string]interface{}
+}
+
+// =======================
+// Missing Types for ML Models
+// =======================
+
+// RiskAssessment represents a comprehensive risk assessment
+type RiskAssessment struct {
+	OverallRiskLevel     RiskLevel            `json:"overallRiskLevel"`
+	ImplementationRisk   float64              `json:"implementationRisk"`
+	PerformanceRisk      float64              `json:"performanceRisk"`
+	AvailabilityRisk     float64              `json:"availabilityRisk"`
+	SecurityRisk         float64              `json:"securityRisk"`
+	ComplianceRisk       float64              `json:"complianceRisk"`
+	IdentifiedRisks      []string             `json:"identifiedRisks"`
+	MitigationStrategies []MitigationStrategy `json:"mitigationStrategies"`
+	RiskScoreBreakdown   map[string]float64   `json:"riskScoreBreakdown"`
+	AssessmentTimestamp  time.Time            `json:"assessmentTimestamp"`
+	ValidityPeriod       time.Duration        `json:"validityPeriod"`
+}
+
+// HealthStatus represents the health status of a component
+type HealthStatus string
+
+const (
+	// HealthStatusOptimal holds healthstatusoptimal value (unique to HealthStatus)
+	HealthStatusOptimal HealthStatus = "optimal"
+	// HealthStatusUnhealthy holds healthstatusunhealthy value (unique to HealthStatus)
+	HealthStatusUnhealthy HealthStatus = "unhealthy"
+	// Note: healthy, critical, unknown constants reuse SystemHealthStatus values to avoid conflicts
+)
+
+// MitigationStrategy represents a strategy to mitigate risks
+type MitigationStrategy struct {
+	Name            string        `json:"name"`
+	Description     string        `json:"description"`
+	Effectiveness   float64       `json:"effectiveness"` // 0.0 to 1.0
+	Cost            float64       `json:"cost"`
+	TimeToImplement time.Duration `json:"timeToImplement"`
+	Priority        int           `json:"priority"`
+	Prerequisites   []string      `json:"prerequisites,omitempty"`
+	Steps           []string      `json:"steps,omitempty"`
+}
+
+// OptimizationStrategyConfig represents a complete optimization strategy configuration
+// Note: OptimizationStrategy already exists as a string type in ai_configuration_tuner.go
+type OptimizationStrategyConfig struct {
+	ID                  string               `json:"id"`
+	Name                string               `json:"name"`
+	Description         string               `json:"description"`
+	Category            OptimizationCategory `json:"category"`
+	TargetComponent     ComponentType        `json:"targetComponent"`
+	Priority            OptimizationPriority `json:"priority"`
+	ExpectedBenefits    *ExpectedBenefits    `json:"expectedBenefits"`
+	ImplementationSteps []ImplementationStep `json:"implementationSteps"`
+	RiskFactors         []string             `json:"riskFactors"`
+	RiskLevel           RiskLevel            `json:"riskLevel"`
+	Confidence          float64              `json:"confidence"`
+	EstimatedDuration   time.Duration        `json:"estimatedDuration"`
+	ValidationCriteria  []string             `json:"validationCriteria"`
+	RollbackPlan        string               `json:"rollbackPlan"`
+	ApprovalRequired    bool                 `json:"approvalRequired"`
+	CreatedAt           time.Time            `json:"createdAt"`
+	UpdatedAt           time.Time            `json:"updatedAt"`
+}
+
+
+
+// Add missing fields to OptimizationRecommendation
+func (o *OptimizationRecommendation) GetComponentType() ComponentType {
+	// Parse from metadata or name
+	if o.Metadata != nil {
+		var meta map[string]interface{}
+		if err := json.Unmarshal(o.Metadata, &meta); err == nil {
+			if ct, ok := meta["componentType"].(string); ok {
+				return ComponentType(ct)
+			}
+		}
+	}
+	// Default fallback
+	return ComponentType("unknown")
+}
+
+func (o *OptimizationRecommendation) GetOptimizationType() string {
+	if o.Name != "" {
+		return o.Name
+	}
+	return string(o.Category)
+}
+
+// EstimatedImpact field accessor
+func (o *OptimizationRecommendation) GetEstimatedImpact() *ExpectedImpact {
+	return &ExpectedImpact{
+		PerformanceImprovement: o.Impact.ThroughputIncrease,
+		ResourceReduction:      o.Impact.ResourceSavings,
+		MemoryReduction:        o.Impact.ResourceSavings,
+		CostSavings:            o.Impact.CostSavings,
+		LatencyReduction:       o.Impact.LatencyReduction,
+		ThroughputIncrease:     o.Impact.ThroughputIncrease,
+	}
+}
+
+// Add ComponentType field to OptimizationRecommendation struct
+type ExtendedOptimizationRecommendation struct {
+	*OptimizationRecommendation
+	ComponentType    ComponentType   `json:"componentType"`
+	OptimizationType string          `json:"optimizationType"`
+	EstimatedImpact  *ExpectedImpact `json:"estimatedImpact"`
+}
+
+// Add missing ExpectedImpact fields
+
+// Add missing PerformanceBaseline fields
+func (pb *PerformanceBaseline) GetSystemConfiguration() map[string]string {
+	return pb.EnvironmentInfo
+}
+
+func (pb *PerformanceBaseline) GetValidityPeriod() time.Duration {
+	return 24 * time.Hour // default validity period
+}
+
+// Add GetOptimizationStatus method to AutomatedOptimizationPipeline
+func (pipeline *AutomatedOptimizationPipeline) GetOptimizationStatus() string {
+	pipeline.mu.RLock()
+	defer pipeline.mu.RUnlock()
+	return string(pipeline.state.Status)
+}
+// OptimizeComponent optimizes a specific component
+func (so *SystemOptimizer) OptimizeComponent(ctx context.Context, componentType ComponentType, recommendation *OptimizationRecommendation) (*OptimizationResult, error) {
+	// Simple optimization implementation
+	rollbackData, _ := json.Marshal(map[string]interface{}{
+		"originalConfig": "backup",
+	})
+	
+	result := &OptimizationResult{
+		ComponentType:     componentType,
+		AppliedStrategies: []string{recommendation.Name},
+		Timestamp:         time.Now(),
+		ExpectedImpact: &ExpectedImpact{
+			PerformanceImprovement: 10.0,
+			ResourceReduction:      5.0,
+			CostSavings:            15.0,
+		},
+		RollbackData: rollbackData,
+	}
+	return result, nil
 }

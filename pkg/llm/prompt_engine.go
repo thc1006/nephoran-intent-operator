@@ -108,9 +108,7 @@ type Alarm struct {
 // NewTelecomPromptEngine creates a new unified prompt engine.
 
 func NewTelecomPromptEngine() *TelecomPromptEngine {
-
 	engine := &TelecomPromptEngine{
-
 		systemPrompts: make(map[string]string),
 
 		userPrompts: make(map[string]string),
@@ -125,13 +123,11 @@ func NewTelecomPromptEngine() *TelecomPromptEngine {
 	engine.initializeExamples()
 
 	return engine
-
 }
 
 // initializeSystemPrompts sets up system prompts for different intent types.
 
 func (t *TelecomPromptEngine) initializeSystemPrompts() {
-
 	// Main NetworkFunctionDeployment system prompt.
 
 	t.systemPrompts["NetworkFunctionDeployment"] = `You are an expert telecommunications network engineer with deep knowledge of:
@@ -425,13 +421,11 @@ Always provide technically accurate, standards-compliant configurations with pro
 
 
 Create slice configurations that optimize resource utilization efficiency, SLA compliance, inter-slice isolation, and dynamic scaling capabilities.`
-
 }
 
 // initializeUserPrompts sets up user prompt templates.
 
 func (t *TelecomPromptEngine) initializeUserPrompts() {
-
 	t.userPrompts["network_intent_processing"] = `Process the following network intent and generate appropriate configurations:
 
 
@@ -505,19 +499,15 @@ Please provide:
 
 
 Format your response as valid YAML configuration files with detailed comments explaining each parameter choice.`
-
 }
 
 // initializeExamples sets up few-shot learning examples.
 
 func (t *TelecomPromptEngine) initializeExamples() {
-
 	// NetworkFunctionDeployment examples.
 
 	t.examples["NetworkFunctionDeployment"] = []PromptExample{
-
 		{
-
 			Intent: "Deploy a UPF network function with 3 replicas for high availability in the core network",
 
 			Response: `{
@@ -586,7 +576,6 @@ func (t *TelecomPromptEngine) initializeExamples() {
 		},
 
 		{
-
 			Intent: "Set up Near-RT RIC with xApp support for intelligent traffic management",
 
 			Response: `{
@@ -652,9 +641,7 @@ func (t *TelecomPromptEngine) initializeExamples() {
 	// NetworkFunctionScale examples.
 
 	t.examples["NetworkFunctionScale"] = []PromptExample{
-
 		{
-
 			Intent: "Scale AMF instances to 5 replicas to handle increased signaling load",
 
 			Response: `{
@@ -685,7 +672,6 @@ func (t *TelecomPromptEngine) initializeExamples() {
 		},
 
 		{
-
 			Intent: "Increase UPF resources to 4 CPU cores and 8GB memory for high throughput",
 
 			Response: `{
@@ -715,9 +701,7 @@ func (t *TelecomPromptEngine) initializeExamples() {
 	// O-RAN examples.
 
 	t.examples["oran_network_intent"] = []PromptExample{
-
 		{
-
 			Input: "Deploy Near-RT RIC with traffic steering xApp for 5G network optimization",
 
 			Output: `apiVersion: o-ran.org/v1
@@ -821,19 +805,15 @@ spec:
 			Explanation: "This configuration deploys a Near-RT RIC with traffic steering capabilities, including proper E2 and A1 interface configurations, resource allocation, and xApp deployment with traffic steering algorithms.",
 		},
 	}
-
 }
 
 // GeneratePrompt creates a context-aware prompt for the given intent type.
 
 func (t *TelecomPromptEngine) GeneratePrompt(intentType, userIntent string) string {
-
 	systemPrompt, exists := t.systemPrompts[intentType]
 
 	if !exists {
-
 		systemPrompt = t.systemPrompts["NetworkFunctionDeployment"] // Default
-
 	}
 
 	// Add relevant examples based on intent content.
@@ -849,7 +829,6 @@ func (t *TelecomPromptEngine) GeneratePrompt(intentType, userIntent string) stri
 			if i >= 2 { // Limit to 2 examples to avoid token limits
 
 				break
-
 			}
 
 			systemPrompt += fmt.Sprintf("\nExample %d:\nIntent: %s\nResponse: %s\n", i+1, example.Intent, example.Response)
@@ -863,13 +842,11 @@ func (t *TelecomPromptEngine) GeneratePrompt(intentType, userIntent string) stri
 	systemPrompt += t.generateIntentSpecificGuidelines(intentType, userIntent)
 
 	return systemPrompt
-
 }
 
 // BuildPrompt constructs a complete prompt with system message, examples, and user input.
 
 func (t *TelecomPromptEngine) BuildPrompt(intentType string, context TelecomContext, userIntent string) string {
-
 	var builder strings.Builder
 
 	// Add system prompt.
@@ -909,9 +886,7 @@ func (t *TelecomPromptEngine) BuildPrompt(intentType string, context TelecomCont
 			}
 
 			if example.Explanation != "" {
-
 				builder.WriteString(fmt.Sprintf("**Explanation:** %s\n\n", example.Explanation))
-
 			}
 
 		}
@@ -951,19 +926,15 @@ func (t *TelecomPromptEngine) BuildPrompt(intentType string, context TelecomCont
 	builder.WriteString("5. Validation and testing recommendations\n")
 
 	return builder.String()
-
 }
 
 // selectRelevantExamples picks the most relevant examples based on intent content.
 
 func (t *TelecomPromptEngine) selectRelevantExamples(intentType, userIntent string) []PromptExample {
-
 	examples, exists := t.examples[intentType]
 
 	if !exists {
-
 		return nil
-
 	}
 
 	lowerIntent := strings.ToLower(userIntent)
@@ -986,15 +957,12 @@ func (t *TelecomPromptEngine) selectRelevantExamples(intentType, userIntent stri
 		lowerExampleIntent := strings.ToLower(example.Intent)
 
 		if example.Input != "" {
-
 			lowerExampleIntent = strings.ToLower(example.Input)
-
 		}
 
 		// Define scoring keywords.
 
 		keywords := map[string]int{
-
 			"upf": 10,
 
 			"amf": 10,
@@ -1029,19 +997,13 @@ func (t *TelecomPromptEngine) selectRelevantExamples(intentType, userIntent stri
 		}
 
 		for keyword, weight := range keywords {
-
 			if strings.Contains(lowerIntent, keyword) && strings.Contains(lowerExampleIntent, keyword) {
-
 				score += weight
-
 			}
-
 		}
 
 		if score > 0 {
-
 			scoredExamples = append(scoredExamples, scoredExample{example, score})
-
 		}
 
 	}
@@ -1049,35 +1011,25 @@ func (t *TelecomPromptEngine) selectRelevantExamples(intentType, userIntent stri
 	// Sort by score and return top examples.
 
 	for i := range len(scoredExamples) - 1 {
-
 		for j := i + 1; j < len(scoredExamples); j++ {
-
 			if scoredExamples[j].score > scoredExamples[i].score {
-
 				scoredExamples[i], scoredExamples[j] = scoredExamples[j], scoredExamples[i]
-
 			}
-
 		}
-
 	}
 
 	// Preallocate result slice with known capacity
 	relevantExamples := make([]PromptExample, 0, len(scoredExamples))
 	for _, scored := range scoredExamples {
-
 		relevantExamples = append(relevantExamples, scored.example)
-
 	}
 
 	return relevantExamples
-
 }
 
 // generateIntentSpecificGuidelines adds specific guidelines based on the intent content.
 
 func (t *TelecomPromptEngine) generateIntentSpecificGuidelines(intentType, userIntent string) string {
-
 	guidelines := "\n\n**Specific Guidelines for this Intent:**\n"
 
 	lowerIntent := strings.ToLower(userIntent)
@@ -1161,13 +1113,11 @@ func (t *TelecomPromptEngine) generateIntentSpecificGuidelines(intentType, userI
 	}
 
 	return guidelines
-
 }
 
 // ExtractParameters attempts to extract structured parameters from natural language.
 
 func (t *TelecomPromptEngine) ExtractParameters(intent string) map[string]interface{} {
-
 	params := make(map[string]interface{})
 
 	lowerIntent := strings.ToLower(intent)
@@ -1177,9 +1127,7 @@ func (t *TelecomPromptEngine) ExtractParameters(intent string) map[string]interf
 	replicaRegex := regexp.MustCompile(`(\d+)\s+replicas?`)
 
 	if matches := replicaRegex.FindStringSubmatch(lowerIntent); len(matches) > 1 {
-
 		params["replicas"] = matches[1]
-
 	}
 
 	// Extract CPU resources.
@@ -1187,15 +1135,12 @@ func (t *TelecomPromptEngine) ExtractParameters(intent string) map[string]interf
 	cpuRegex := regexp.MustCompile(`(\d+)\s*(cpu\s+cores?|cores?|cpus?)`)
 
 	if matches := cpuRegex.FindStringSubmatch(lowerIntent); len(matches) > 1 {
-
 		params["cpu"] = matches[1] + "000m" // Convert cores to millicores
-
 	}
 
 	// Extract memory resources - multiple patterns.
 
 	memPatterns := []*regexp.Regexp{
-
 		regexp.MustCompile(`(\d+)\s*([gm])i?b?\s*(memory|ram)`),
 
 		regexp.MustCompile(`(\d+)\s*gb\s+memory`),
@@ -1208,15 +1153,12 @@ func (t *TelecomPromptEngine) ExtractParameters(intent string) map[string]interf
 	}
 
 	for _, memRegex := range memPatterns {
-
 		if matches := memRegex.FindStringSubmatch(lowerIntent); len(matches) > 2 {
 
 			unit := "Mi"
 
 			if matches[2] == "g" {
-
 				unit = "Gi"
-
 			}
 
 			params["memory"] = matches[1] + unit
@@ -1224,7 +1166,6 @@ func (t *TelecomPromptEngine) ExtractParameters(intent string) map[string]interf
 			break
 
 		}
-
 	}
 
 	// Extract network function names.
@@ -1232,9 +1173,7 @@ func (t *TelecomPromptEngine) ExtractParameters(intent string) map[string]interf
 	nfRegex := regexp.MustCompile(`(upf|amf|smf|pcf|nssf|udm|udr|ausf|nrf|near-rt\s+ric|o-du|o-cu)`)
 
 	if matches := nfRegex.FindStringSubmatch(lowerIntent); len(matches) > 1 {
-
 		params["network_function"] = strings.ReplaceAll(matches[1], " ", "-")
-
 	}
 
 	// Extract namespace hints.
@@ -1242,7 +1181,6 @@ func (t *TelecomPromptEngine) ExtractParameters(intent string) map[string]interf
 	nsRegex := regexp.MustCompile(`(5g-core|o-ran|edge|edge-apps|mec|core|radio)`)
 
 	if matches := nsRegex.FindStringSubmatch(lowerIntent); len(matches) > 1 {
-
 		switch matches[1] {
 
 		case "5g-core", "core":
@@ -1258,59 +1196,44 @@ func (t *TelecomPromptEngine) ExtractParameters(intent string) map[string]interf
 			params["namespace"] = "edge-apps"
 
 		}
-
 	}
 
 	return params
-
 }
 
 // GetSystemPrompt returns the system prompt for a given intent type.
 
 func (t *TelecomPromptEngine) GetSystemPrompt(intentType string) string {
-
 	if prompt, exists := t.systemPrompts[intentType]; exists {
-
 		return prompt
-
 	}
 
 	return t.systemPrompts["NetworkFunctionDeployment"] // default
-
 }
 
 // GetUserPrompt returns the user prompt template for a given intent type.
 
 func (t *TelecomPromptEngine) GetUserPrompt(intentType string) string {
-
 	if prompt, exists := t.userPrompts[intentType]; exists {
-
 		return prompt
-
 	}
 
 	return t.userPrompts["network_intent_processing"] // default
-
 }
 
 // GetExamples returns examples for few-shot prompting.
 
 func (t *TelecomPromptEngine) GetExamples(intentType string) []PromptExample {
-
 	if examples, exists := t.examples[intentType]; exists {
-
 		return examples
-
 	}
 
 	return []PromptExample{} // empty if not found
-
 }
 
 // formatContext formats the telecom context into a readable string.
 
 func (t *TelecomPromptEngine) formatContext(context TelecomContext) string {
-
 	var builder strings.Builder
 
 	// Network Functions.
@@ -1320,11 +1243,9 @@ func (t *TelecomPromptEngine) formatContext(context TelecomContext) string {
 		builder.WriteString("**Network Functions:**\n")
 
 		for _, nf := range context.NetworkFunctions {
-
 			builder.WriteString(fmt.Sprintf("- %s (%s): Status=%s, Load=%.1f%%, Location=%s\n",
 
 				nf.Name, nf.Type, nf.Status, nf.Load, nf.Location))
-
 		}
 
 		builder.WriteString("\n")
@@ -1338,11 +1259,9 @@ func (t *TelecomPromptEngine) formatContext(context TelecomContext) string {
 		builder.WriteString("**Active Network Slices:**\n")
 
 		for _, slice := range context.ActiveSlices {
-
 			builder.WriteString(fmt.Sprintf("- Slice %s (%s): Throughput=%.1fMbps, Latency=%.1fms, Reliability=%.3f%%, UEs=%d\n",
 
 				slice.ID, slice.Type, slice.Throughput, slice.Latency, slice.Reliability, slice.ConnectedUEs))
-
 		}
 
 		builder.WriteString("\n")
@@ -1356,11 +1275,9 @@ func (t *TelecomPromptEngine) formatContext(context TelecomContext) string {
 		builder.WriteString("**E2 Nodes:**\n")
 
 		for _, node := range context.E2Nodes {
-
 			builder.WriteString(fmt.Sprintf("- %s (%s): Status=%s, RRC=%s, Cell=%s\n",
 
 				node.ID, node.Type, node.Status, node.RRCState, node.CellID))
-
 		}
 
 		builder.WriteString("\n")
@@ -1374,11 +1291,9 @@ func (t *TelecomPromptEngine) formatContext(context TelecomContext) string {
 		builder.WriteString("**Active Alarms:**\n")
 
 		for _, alarm := range context.Alarms {
-
 			builder.WriteString(fmt.Sprintf("- [%s] %s: %s (%s)\n",
 
 				alarm.Severity, alarm.Source, alarm.Description, alarm.Timestamp.Format("2006-01-02 15:04:05")))
-
 		}
 
 		builder.WriteString("\n")
@@ -1392,9 +1307,7 @@ func (t *TelecomPromptEngine) formatContext(context TelecomContext) string {
 		builder.WriteString("**Performance KPIs:**\n")
 
 		for kpi, value := range context.PerformanceKPIs {
-
 			builder.WriteString(fmt.Sprintf("- %s: %.3f\n", kpi, value))
-
 		}
 
 		builder.WriteString("\n")
@@ -1402,13 +1315,11 @@ func (t *TelecomPromptEngine) formatContext(context TelecomContext) string {
 	}
 
 	return builder.String()
-
 }
 
 // ValidatePrompt validates a prompt for telecom domain compliance.
 
 func (t *TelecomPromptEngine) ValidatePrompt(prompt string) []string {
-
 	var issues []string
 
 	// Check for required telecom keywords.
@@ -1416,27 +1327,19 @@ func (t *TelecomPromptEngine) ValidatePrompt(prompt string) []string {
 	requiredKeywords := []string{"network", "configuration", "interface"}
 
 	for _, keyword := range requiredKeywords {
-
 		if !strings.Contains(strings.ToLower(prompt), keyword) {
-
 			issues = append(issues, fmt.Sprintf("Missing required keyword: %s", keyword))
-
 		}
-
 	}
 
 	// Check prompt length.
 
 	if len(prompt) < 100 {
-
 		issues = append(issues, "Prompt too short for complex telecom intent")
-
 	}
 
 	if len(prompt) > 10000 {
-
 		issues = append(issues, "Prompt too long, may exceed token limits")
-
 	}
 
 	// Check for standards references.
@@ -1446,7 +1349,6 @@ func (t *TelecomPromptEngine) ValidatePrompt(prompt string) []string {
 	hasStandards := false
 
 	for _, standard := range standards {
-
 		if strings.Contains(strings.ToLower(prompt), standard) {
 
 			hasStandards = true
@@ -1454,15 +1356,11 @@ func (t *TelecomPromptEngine) ValidatePrompt(prompt string) []string {
 			break
 
 		}
-
 	}
 
 	if !hasStandards {
-
 		issues = append(issues, "Consider including relevant standards references")
-
 	}
 
 	return issues
-
 }

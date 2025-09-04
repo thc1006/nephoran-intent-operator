@@ -37,7 +37,6 @@ import (
 // RANFunction defines a RAN function supported by E2 nodes.
 
 type RANFunction struct {
-
 	// FunctionID is the unique identifier for the RAN function (0-4095).
 
 	// +kubebuilder:validation:Minimum=0
@@ -70,7 +69,6 @@ type RANFunction struct {
 // E2NodeSpec defines the specification for an individual E2 node.
 
 type E2NodeSpec struct {
-
 	// NodeID is the unique identifier for the E2 node.
 
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$`
@@ -95,7 +93,6 @@ type E2NodeSpec struct {
 // E2NodeTemplate defines the template for creating E2 nodes.
 
 type E2NodeTemplate struct {
-
 	// Metadata for the E2 node template.
 
 	// +optional
@@ -135,7 +132,6 @@ const (
 // SimulationConfig defines configuration for E2 node simulation.
 
 type SimulationConfig struct {
-
 	// UECount specifies the number of UEs to simulate per E2 node.
 
 	// +kubebuilder:validation:Minimum=1
@@ -170,7 +166,6 @@ type SimulationConfig struct {
 // RetryConfig defines retry configuration for RIC connections.
 
 type RetryConfig struct {
-
 	// MaxAttempts specifies the maximum number of retry attempts.
 
 	// +kubebuilder:validation:Minimum=1
@@ -193,7 +188,6 @@ type RetryConfig struct {
 // RICConfiguration defines configuration for RIC connectivity.
 
 type RICConfiguration struct {
-
 	// RICEndpoint specifies the RIC endpoint URL.
 
 	// +kubebuilder:validation:Pattern=`^https?://[a-zA-Z0-9-]+:[0-9]+$`
@@ -228,7 +222,6 @@ type RICConfiguration struct {
 // E2NodeSetSpec defines the desired state of E2NodeSet.
 
 type E2NodeSetSpec struct {
-
 	// Replicas is the number of simulated E2 Nodes to run.
 
 	// +kubebuilder:validation:Minimum=0
@@ -304,7 +297,6 @@ const (
 // E2NodeStatus represents the status of an individual E2 node.
 
 type E2NodeStatus struct {
-
 	// NodeID is the identifier of the E2 node.
 
 	NodeID string `json:"nodeID"`
@@ -360,7 +352,6 @@ const (
 // E2NodeSetCondition represents a condition of the E2NodeSet.
 
 type E2NodeSetCondition struct {
-
 	// Type of the condition.
 
 	Type E2NodeSetConditionType `json:"type"`
@@ -388,9 +379,51 @@ type E2NodeSetCondition struct {
 	Message string `json:"message,omitempty"`
 }
 
+// E2NodeSetPhase represents the phase of E2NodeSet lifecycle.
+
+// +kubebuilder:validation:Enum=Pending;Initializing;Ready;Scaling;Degraded;Failed;Terminating
+
+type E2NodeSetPhase string
+
+const (
+
+	// E2NodeSetPhasePending holds e2nodesetphasepending value.
+
+	E2NodeSetPhasePending E2NodeSetPhase = "Pending"
+
+	// E2NodeSetPhaseInitializing holds e2nodesetphaseinitializing value.
+
+	E2NodeSetPhaseInitializing E2NodeSetPhase = "Initializing"
+
+	// E2NodeSetPhaseReady holds e2nodesetphaseready value.
+
+	E2NodeSetPhaseReady E2NodeSetPhase = "Ready"
+
+	// E2NodeSetPhaseScaling holds e2nodesetphasescaling value.
+
+	E2NodeSetPhaseScaling E2NodeSetPhase = "Scaling"
+
+	// E2NodeSetPhaseDegraded holds e2nodesetphasedegraded value.
+
+	E2NodeSetPhaseDegraded E2NodeSetPhase = "Degraded"
+
+	// E2NodeSetPhaseFailed holds e2nodesetphasefailed value.
+
+	E2NodeSetPhaseFailed E2NodeSetPhase = "Failed"
+
+	// E2NodeSetPhaseTerminating holds e2nodesetphaseterminating value.
+
+	E2NodeSetPhaseTerminating E2NodeSetPhase = "Terminating"
+)
+
 // E2NodeSetStatus defines the observed state of E2NodeSet.
 
 type E2NodeSetStatus struct {
+	// Phase represents the current phase of the E2NodeSet lifecycle.
+
+	// +optional
+
+	Phase E2NodeSetPhase `json:"phase,omitempty"`
 
 	// ReadyReplicas is the number of E2 Nodes that are ready and connected.
 
@@ -457,6 +490,8 @@ type E2NodeSetStatus struct {
 
 //+kubebuilder:printcolumn:name="Available",type="integer",JSONPath=".status.availableReplicas",description="Number of available E2 nodes"
 
+//+kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="Current phase of the E2NodeSet"
+
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Age of the E2NodeSet"
 
 //+kubebuilder:printcolumn:name="E2Version",type="string",JSONPath=".spec.template.spec.e2InterfaceVersion",description="E2 Interface Version"
@@ -486,7 +521,5 @@ type E2NodeSetList struct {
 }
 
 func init() {
-
 	SchemeBuilder.Register(&E2NodeSet{}, &E2NodeSetList{})
-
 }

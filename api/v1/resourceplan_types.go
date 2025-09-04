@@ -101,7 +101,6 @@ const (
 // ResourcePlanSpec defines the desired state of ResourcePlan.
 
 type ResourcePlanSpec struct {
-
 	// ParentIntentRef references the parent NetworkIntent.
 
 	// +kubebuilder:validation:Required
@@ -194,7 +193,6 @@ type ResourcePlanSpec struct {
 // OptimizationGoal represents an optimization objective.
 
 type OptimizationGoal struct {
-
 	// Type specifies the optimization type.
 
 	// +kubebuilder:validation:Required
@@ -211,9 +209,13 @@ type OptimizationGoal struct {
 
 	Priority int `json:"priority"`
 
-	// Weight specifies the relative weight.
+	// Weight specifies the relative weight (0.0-1.0).
 
 	// +optional
+
+	// +kubebuilder:validation:Minimum=0.0
+
+	// +kubebuilder:validation:Maximum=1.0
 
 	Weight *float64 `json:"weight,omitempty"`
 
@@ -233,7 +235,6 @@ type OptimizationGoal struct {
 // ClusterReference represents a reference to a cluster.
 
 type ClusterReference struct {
-
 	// Name of the cluster.
 
 	// +kubebuilder:validation:Required
@@ -292,7 +293,6 @@ type ClusterReference struct {
 // NetworkSliceSpec defines network slice specifications.
 
 type NetworkSliceSpec struct {
-
 	// SliceID uniquely identifies the network slice.
 
 	// +kubebuilder:validation:Required
@@ -345,10 +345,13 @@ type NetworkSliceSpec struct {
 // SLARequirements defines Service Level Agreement requirements.
 
 type SLARequirements struct {
-
-	// AvailabilityTarget as percentage (e.g., 99.99).
+	// AvailabilityTarget as percentage (0.0-100.0).
 
 	// +optional
+
+	// +kubebuilder:validation:Minimum=0.0
+
+	// +kubebuilder:validation:Maximum=100.0
 
 	AvailabilityTarget *float64 `json:"availabilityTarget,omitempty"`
 
@@ -368,9 +371,13 @@ type SLARequirements struct {
 
 	MinThroughput *int32 `json:"minThroughput,omitempty"`
 
-	// MaxPacketLoss as percentage.
+	// MaxPacketLoss as percentage (0.0-100.0).
 
 	// +optional
+
+	// +kubebuilder:validation:Minimum=0.0
+
+	// +kubebuilder:validation:Maximum=100.0
 
 	MaxPacketLoss *float64 `json:"maxPacketLoss,omitempty"`
 
@@ -394,7 +401,6 @@ type SLARequirements struct {
 // QoSRequirements defines Quality of Service requirements.
 
 type QoSRequirements struct {
-
 	// QCI (QoS Class Identifier) for 4G.
 
 	// +optional
@@ -451,7 +457,6 @@ type QoSRequirements struct {
 // ComplianceRequirement defines a compliance requirement.
 
 type ComplianceRequirement struct {
-
 	// Standard specifies the compliance standard.
 
 	// +kubebuilder:validation:Required
@@ -484,7 +489,6 @@ type ComplianceRequirement struct {
 // ResourcePlanStatus defines the observed state of ResourcePlan.
 
 type ResourcePlanStatus struct {
-
 	// Phase represents the current planning phase.
 
 	// +optional
@@ -566,9 +570,13 @@ type ResourcePlanStatus struct {
 
 	RetryCount int32 `json:"retryCount,omitempty"`
 
-	// QualityScore represents the quality of the plan.
+	// QualityScore represents the quality of the plan (0.0-1.0).
 
 	// +optional
+
+	// +kubebuilder:validation:Minimum=0.0
+
+	// +kubebuilder:validation:Maximum=1.0
 
 	QualityScore *float64 `json:"qualityScore,omitempty"`
 
@@ -582,7 +590,6 @@ type ResourcePlanStatus struct {
 // PlannedResource represents a planned resource.
 
 type PlannedResource struct {
-
 	// Name of the resource.
 
 	Name string `json:"name"`
@@ -649,9 +656,11 @@ type PlannedResource struct {
 
 	Annotations map[string]string `json:"annotations,omitempty"`
 
-	// EstimatedCost for the resource.
+	// EstimatedCost for the resource (in USD).
 
 	// +optional
+
+	// +kubebuilder:validation:Minimum=0.0
 
 	EstimatedCost *float64 `json:"estimatedCost,omitempty"`
 }
@@ -659,7 +668,6 @@ type PlannedResource struct {
 // ResourceSpec defines resource specifications.
 
 type ResourceSpec struct {
-
 	// Requests defines resource requests.
 
 	Requests ResourceList `json:"requests"`
@@ -674,7 +682,6 @@ type ResourceSpec struct {
 // ResourceList defines a list of compute resources.
 
 type ResourceList struct {
-
 	// CPU resource.
 
 	// +optional
@@ -709,10 +716,9 @@ type ResourceList struct {
 // CostEstimate represents cost estimation.
 
 type CostEstimate struct {
-
 	// TotalCost is the total estimated cost.
 
-	TotalCost float64 `json:"totalCost"`
+	TotalCost string `json:"totalCost"`
 
 	// Currency for the cost.
 
@@ -740,16 +746,21 @@ type CostEstimate struct {
 
 	// +optional
 
+	// +kubebuilder:validation:Minimum=0.0
+
+	// +kubebuilder:validation:Maximum=1.0
+
 	Confidence *float64 `json:"confidence,omitempty"`
 }
 
 // PerformanceEstimate represents performance estimation.
 
 type PerformanceEstimate struct {
-
 	// ExpectedThroughput in requests per second.
 
 	// +optional
+
+	// +kubebuilder:validation:Minimum=0.0
 
 	ExpectedThroughput *float64 `json:"expectedThroughput,omitempty"`
 
@@ -757,11 +768,17 @@ type PerformanceEstimate struct {
 
 	// +optional
 
+	// +kubebuilder:validation:Minimum=0.0
+
 	ExpectedLatency *float64 `json:"expectedLatency,omitempty"`
 
-	// ExpectedAvailability as percentage.
+	// ExpectedAvailability as percentage (0.0-100.0).
 
 	// +optional
+
+	// +kubebuilder:validation:Minimum=0.0
+
+	// +kubebuilder:validation:Maximum=100.0
 
 	ExpectedAvailability *float64 `json:"expectedAvailability,omitempty"`
 
@@ -787,7 +804,6 @@ type PerformanceEstimate struct {
 // ScalingRecommendation represents a scaling recommendation.
 
 type ScalingRecommendation struct {
-
 	// Resource name.
 
 	Resource string `json:"resource"`
@@ -810,13 +826,16 @@ type ScalingRecommendation struct {
 
 	// +optional
 
+	// +kubebuilder:validation:Minimum=0.0
+
+	// +kubebuilder:validation:Maximum=1.0
+
 	Confidence *float64 `json:"confidence,omitempty"`
 }
 
 // ResourceComplianceStatus represents compliance validation status.
 
 type ResourceComplianceStatus struct {
-
 	// Standard being validated.
 
 	Standard string `json:"standard"`
@@ -851,7 +870,6 @@ type ResourceComplianceStatus struct {
 // ComplianceViolation represents a compliance violation.
 
 type ComplianceViolation struct {
-
 	// Type of violation.
 
 	Type string `json:"type"`
@@ -880,7 +898,6 @@ type ComplianceViolation struct {
 // OptimizationResult represents the result of an optimization.
 
 type OptimizationResult struct {
-
 	// Type of optimization.
 
 	Type string `json:"type"`
@@ -889,9 +906,13 @@ type OptimizationResult struct {
 
 	Status string `json:"status"`
 
-	// ImprovementPercent achieved.
+	// ImprovementPercent achieved (0.0-100.0).
 
 	// +optional
+
+	// +kubebuilder:validation:Minimum=0.0
+
+	// +kubebuilder:validation:Maximum=100.0
 
 	ImprovementPercent *float64 `json:"improvementPercent,omitempty"`
 
@@ -915,7 +936,6 @@ type OptimizationResult struct {
 // ValidationResult represents the result of a validation.
 
 type ValidationResult struct {
-
 	// Type of validation.
 
 	Type string `json:"type"`
@@ -988,119 +1008,85 @@ type ResourcePlanList struct {
 // GetParentIntentName returns the name of the parent NetworkIntent.
 
 func (rp *ResourcePlan) GetParentIntentName() string {
-
 	return rp.Spec.ParentIntentRef.Name
-
 }
 
 // GetNamespace returns the namespace of the resource.
 
 func (rp *ResourcePlan) GetNamespace() string {
-
 	return rp.ObjectMeta.Namespace
-
 }
 
 // GetParentIntentNamespace returns the namespace of the parent NetworkIntent.
 
 func (rp *ResourcePlan) GetParentIntentNamespace() string {
-
 	if rp.Spec.ParentIntentRef.Namespace != "" {
-
 		return rp.Spec.ParentIntentRef.Namespace
-
 	}
 
 	return rp.GetNamespace()
-
 }
 
 // IsPlanningComplete returns true if planning is complete.
 
 func (rp *ResourcePlan) IsPlanningComplete() bool {
-
 	return rp.Status.Phase == ResourcePlanPhaseCompleted
-
 }
 
 // IsPlanningFailed returns true if planning has failed.
 
 func (rp *ResourcePlan) IsPlanningFailed() bool {
-
 	return rp.Status.Phase == ResourcePlanPhaseFailed
-
 }
 
 // GetTotalEstimatedCost returns the total estimated cost.
 
-func (rp *ResourcePlan) GetTotalEstimatedCost() float64 {
-
+func (rp *ResourcePlan) GetTotalEstimatedCost() string {
 	if rp.Status.CostEstimate != nil {
-
 		return rp.Status.CostEstimate.TotalCost
-
 	}
 
-	return 0.0
-
+	return "0.0"
 }
 
 // HasCompliantResources returns true if all compliance requirements are met.
 
 func (rp *ResourcePlan) HasCompliantResources() bool {
-
 	for _, cs := range rp.Status.ComplianceStatus {
-
 		if cs.Status != "Compliant" {
-
 			return false
-
 		}
-
 	}
 
 	return true
-
 }
 
 // GetPlannedResourceCount returns the number of planned resources.
 
 func (rp *ResourcePlan) GetPlannedResourceCount() int {
-
 	return len(rp.Status.PlannedResources)
-
 }
 
 // ShouldOptimizeCost returns true if cost optimization is enabled.
 
 func (rp *ResourcePlan) ShouldOptimizeCost() bool {
-
 	if rp.Spec.EnableCostOptimization == nil {
-
 		return true
-
 	}
 
 	return *rp.Spec.EnableCostOptimization
-
 }
 
 // ShouldOptimizePerformance returns true if performance optimization is enabled.
 
 func (rp *ResourcePlan) ShouldOptimizePerformance() bool {
-
 	if rp.Spec.EnablePerformanceOptimization == nil {
-
 		return true
-
 	}
 
 	return *rp.Spec.EnablePerformanceOptimization
-
 }
 
 func init() {
-
 	SchemeBuilder.Register(&ResourcePlan{}, &ResourcePlanList{})
-
 }

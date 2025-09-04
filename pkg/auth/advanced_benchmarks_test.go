@@ -400,8 +400,8 @@ func benchmarkSessionManagement(b *testing.B, ctx context.Context, authSystem *E
 		b.Run(scenario.name, func(b *testing.B) {
 			// Configure session management
 			sessionConfig := SessionConfig{
-				SessionTTL:    scenario.sessionTTL,
-				CleanupPeriod: time.Minute * 5,
+				SessionTimeout:   scenario.sessionTTL,
+				RefreshThreshold: time.Minute * 5,
 			}
 
 			authSystem.ConfigureSessionManagement(sessionConfig)
@@ -841,7 +841,7 @@ func generateRolePermissions(roleIndex, maxPermissions int) []string {
 
 func generatePermissions(count, resourceTypes int) map[string][]string {
 	permissions := make(map[string][]string)
-	
+
 	actions := []string{"read", "write", "delete", "create", "update"}
 
 	for i := 0; i < count; i++ {
@@ -874,7 +874,7 @@ func generateAuthorizationRequests(resourceTypes, count int) []AuthorizationRequ
 		requests[i] = AuthorizationRequest{
 			Resource: fmt.Sprintf("resource-%d", i%resourceTypes),
 			Action:   actions[i%len(actions)],
-			Context:  map[string]interface{}{"tenant": fmt.Sprintf("tenant-%d", i%10)},
+			Context:  map[string]interface{}{},
 		}
 	}
 
@@ -890,10 +890,7 @@ func generateTestUser(username string, groupCount int) User {
 	return User{
 		Username: username,
 		Groups:   groups,
-		Attributes: map[string]interface{}{
-			"department": "engineering",
-			"level":      "senior",
-		},
+		Attributes: map[string]interface{}{},
 	}
 }
 
@@ -1022,29 +1019,25 @@ func abs(x float64) float64 {
 	return x
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
 
 func setupBenchmarkAuthSystem() *EnhancedAuthSystem {
 	config := AuthSystemConfig{
-		JWTConfig: JWTConfig{
-			Secret: "test-secret-key",
+		JWTConfig: BenchmarkJWTConfig{
+			SigningMethod: "HS256",
+			KeySize:       256,
 		},
-		LDAPConfig: providers.LDAPConfig{
+		LDAPConfig: BenchmarkLDAPConfig{
 			Host:   "localhost:389",
 			BaseDN: "dc=example,dc=com",
 		},
-		OAuth2Providers: []OAuth2Config{
-			{DefaultScopes: []string{"read:user"}, TokenTTL: time.Hour},
-			{DefaultScopes: []string{"openid", "profile"}, TokenTTL: time.Hour},
+		OAuth2Providers: []BenchmarkOAuth2Config{
+			{Provider: "test1", Scopes: []string{"read:user"}},
+			{Provider: "test2", Scopes: []string{"openid", "profile"}},
 		},
-		SessionConfig: SessionConfig{
-			SessionTimeout: time.Hour,
-			MaxSessions:    1000,
+		SessionConfig: BenchmarkSessionConfig{
+			TTL:             time.Hour,
+			StorageBackend:  "memory",
+			CleanupInterval: time.Minute * 5,
 		},
 	}
 
@@ -1231,7 +1224,8 @@ func (a *EnhancedAuthSystem) Cleanup() {}
 
 func (a *EnhancedAuthSystem) ValidateJWTToken(ctx context.Context, token string) (*JWTValidationResult, error) {
 	time.Sleep(100 * time.Microsecond) // Simulate validation time
-	return &JWTValidationResult{Valid: true, Claims: map[string]interface{}{"sub": "test"}}, nil
+	claims := map[string]interface{}{"sub": "test"}
+	return &JWTValidationResult{Valid: true, Claims: claims}, nil
 }
 
 func (a *EnhancedAuthSystem) ValidateJWTTokenCached(ctx context.Context, token string) (*JWTValidationResult, error) {
@@ -1271,7 +1265,7 @@ func (a *EnhancedAuthSystem) ExchangeOAuth2Token(ctx context.Context, token OAut
 	return &OAuth2ExchangeResult{
 		Success:         true,
 		ValidationTime:  10 * time.Millisecond,
-		ScopesValidated: len(config.Scopes),
+		ScopesValidated: len(config.DefaultScopes),
 	}, nil
 }
 
@@ -1307,10 +1301,13 @@ func (a *EnhancedAuthSystem) EvaluatePermission(ctx context.Context, check Permi
 }
 
 // Interface placeholders for benchmarks
-type BenchmarkJWTManager interface{}
-type BenchmarkRBACEngine interface{}
-type BenchmarkLDAPClient interface{}
-type BenchmarkOAuth2Manager interface{}
-type BenchmarkSessionManager interface{}
-type BenchmarkTokenCache interface{}
-type BenchmarkAuthMetrics interface{}
+type (
+	BenchmarkJWTManager     interface{}
+	BenchmarkRBACEngine     interface{}
+	BenchmarkLDAPClient     interface{}
+	BenchmarkOAuth2Manager  interface{}
+	BenchmarkSessionManager interface{}
+	BenchmarkTokenCache     interface{}
+	BenchmarkAuthMetrics    interface{}
+)
+

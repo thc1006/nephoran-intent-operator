@@ -18,6 +18,7 @@ package parallel
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -32,8 +33,8 @@ import (
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/thc1006/nephoran-intent-operator/api/v1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/resilience"
+	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	resilience "github.com/thc1006/nephoran-intent-operator/pkg/controllers/resilience"
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 )
 
@@ -319,7 +320,7 @@ func (suite *ChaosTestSuite) TestNetworkPartitions() {
 					Type:      TaskTypeLLMProcessing,
 					Priority:  10, // Very high priority
 					Status:    TaskStatusPending,
-					InputData: map[string]interface{}{"intent": "chaos"},
+					InputData: json.RawMessage(`{"intent":"chaos"}`),
 					Timeout:   1 * time.Second, // Short timeout to create instability
 				}
 

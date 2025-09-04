@@ -1,5 +1,5 @@
 // Package security provides cryptographically secure random number generation utilities
-// replacing all instances of insecure math/rand usage across the Nephoran codebase
+// replacing all instances of insecure crypto/rand usage across the Nephoran codebase
 package security
 
 import (
@@ -14,7 +14,7 @@ import (
 )
 
 // SecureRandom provides cryptographically secure random number generation
-// This replaces all insecure math/rand usage throughout the codebase
+// This replaces all insecure crypto/rand usage throughout the codebase
 type SecureRandom struct {
 	reader io.Reader
 	mu     sync.Mutex
@@ -31,7 +31,7 @@ func NewSecureRandom() *SecureRandom {
 }
 
 // Int63 returns a non-negative pseudo-random 63-bit integer as an int64
-// This is a drop-in replacement for math/rand.Int63()
+// This is a drop-in replacement for crypto/rand.Int63()
 func (sr *SecureRandom) Int63() int64 {
 	sr.mu.Lock()
 	defer sr.mu.Unlock()
@@ -39,7 +39,8 @@ func (sr *SecureRandom) Int63() int64 {
 	// Generate 8 bytes and mask to 63 bits
 	b := make([]byte, 8)
 	if _, err := io.ReadFull(sr.reader, b); err != nil {
-		panic(fmt.Sprintf("secure random generation failed: %v", err))
+		// Never expose detailed error information in panic messages
+		panic("secure random generation failed")
 	}
 
 	// Convert to int64 and mask to 63 bits (remove sign bit)
@@ -48,7 +49,7 @@ func (sr *SecureRandom) Int63() int64 {
 }
 
 // Intn returns, as an int, a non-negative pseudo-random number in [0,n)
-// This is a drop-in replacement for math/rand.Intn()
+// This is a drop-in replacement for crypto/rand.Intn()
 func (sr *SecureRandom) Intn(n int) int {
 	if n <= 0 {
 		panic("invalid argument to Intn")
@@ -61,20 +62,21 @@ func (sr *SecureRandom) Intn(n int) int {
 	nBig := big.NewInt(int64(n))
 	result, err := rand.Int(sr.reader, nBig)
 	if err != nil {
-		panic(fmt.Sprintf("secure random generation failed: %v", err))
+		// Never expose detailed error information in panic messages
+		panic("secure random generation failed")
 	}
 
 	return int(result.Int64())
 }
 
 // Int31 returns a non-negative pseudo-random 31-bit integer as an int32
-// This is a drop-in replacement for math/rand.Int31()
+// This is a drop-in replacement for crypto/rand.Int31()
 func (sr *SecureRandom) Int31() int32 {
 	return int32(sr.Int63() >> 32)
 }
 
 // Int31n returns, as an int32, a non-negative pseudo-random number in [0,n)
-// This is a drop-in replacement for math/rand.Int31n()
+// This is a drop-in replacement for crypto/rand.Int31n()
 func (sr *SecureRandom) Int31n(n int32) int32 {
 	if n <= 0 {
 		panic("invalid argument to Int31n")
@@ -83,13 +85,13 @@ func (sr *SecureRandom) Int31n(n int32) int32 {
 }
 
 // Int returns a non-negative pseudo-random int
-// This is a drop-in replacement for math/rand.Int()
+// This is a drop-in replacement for crypto/rand.Int()
 func (sr *SecureRandom) Int() int {
 	return int(sr.Int63())
 }
 
 // Float64 returns, as a float64, a pseudo-random number in [0.0,1.0)
-// This is a drop-in replacement for math/rand.Float64()
+// This is a drop-in replacement for crypto/rand.Float64()
 func (sr *SecureRandom) Float64() float64 {
 	// Generate 53 bits of precision (mantissa of float64)
 	val := sr.Int63() >> 11 // Use top 53 bits
@@ -97,7 +99,7 @@ func (sr *SecureRandom) Float64() float64 {
 }
 
 // Float32 returns, as a float32, a pseudo-random number in [0.0,1.0)
-// This is a drop-in replacement for math/rand.Float32()
+// This is a drop-in replacement for crypto/rand.Float32()
 func (sr *SecureRandom) Float32() float32 {
 	// Generate 24 bits of precision (mantissa of float32)
 	val := sr.Int31() >> 8 // Use top 24 bits
@@ -126,14 +128,15 @@ func (sr *SecureRandom) Int63n(n int64) int64 {
 	nBig := big.NewInt(n)
 	result, err := rand.Int(sr.reader, nBig)
 	if err != nil {
-		panic(fmt.Sprintf("secure random generation failed: %v", err))
+		// Never expose detailed error information in panic messages
+		panic("secure random generation failed")
 	}
 
 	return result.Int64()
 }
 
 // Perm returns, as a slice of n ints, a pseudo-random permutation of the integers [0,n)
-// This is a drop-in replacement for math/rand.Perm()
+// This is a drop-in replacement for crypto/rand.Perm()
 func (sr *SecureRandom) Perm(n int) []int {
 	if n < 0 {
 		panic("invalid argument to Perm")
@@ -154,7 +157,7 @@ func (sr *SecureRandom) Perm(n int) []int {
 }
 
 // Shuffle pseudo-randomizes the order of elements using secure random
-// This is a drop-in replacement for math/rand.Shuffle()
+// This is a drop-in replacement for crypto/rand.Shuffle()
 func (sr *SecureRandom) Shuffle(n int, swap func(i, j int)) {
 	if n < 0 {
 		panic("invalid argument to Shuffle")
@@ -196,7 +199,8 @@ func (sr *SecureRandom) Bytes(b []byte) {
 	defer sr.mu.Unlock()
 
 	if _, err := io.ReadFull(sr.reader, b); err != nil {
-		panic(fmt.Sprintf("secure random generation failed: %v", err))
+		// Never expose detailed error information in panic messages
+		panic("secure random generation failed")
 	}
 }
 

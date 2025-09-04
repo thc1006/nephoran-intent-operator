@@ -17,7 +17,6 @@ import (
 // SLAMonitoringArchitecture defines the comprehensive monitoring system.
 
 type SLAMonitoringArchitecture struct {
-
 	// Core Components.
 
 	SLIFramework *ServiceLevelIndicatorFramework
@@ -60,7 +59,6 @@ type SLAMonitoringArchitecture struct {
 // ServiceLevelIndicatorFramework defines precise SLIs for each SLA target.
 
 type ServiceLevelIndicatorFramework struct {
-
 	// Availability SLIs.
 
 	ComponentAvailability *ComponentAvailabilitySLI
@@ -95,7 +93,6 @@ type ServiceLevelIndicatorFramework struct {
 // ComponentAvailabilitySLI measures multi-dimensional availability.
 
 type ComponentAvailabilitySLI struct {
-
 	// Target: 99.95% availability (4.38 hours downtime/year max).
 
 	UptimeMetric prometheus.Gauge
@@ -122,7 +119,6 @@ type ComponentAvailabilitySLI struct {
 // IntentProcessingLatencySLI measures end-to-end latency from intent to deployment.
 
 type IntentProcessingLatencySLI struct {
-
 	// Target: Sub-2-second P95 latency.
 
 	EndToEndLatency *prometheus.HistogramVec
@@ -153,7 +149,6 @@ type IntentProcessingLatencySLI struct {
 // ThroughputSLI measures throughput capacity.
 
 type ThroughputSLI struct {
-
 	// Target: 45 intents/minute sustained throughput.
 
 	CurrentThroughput prometheus.Gauge
@@ -182,7 +177,6 @@ type ThroughputSLI struct {
 // WeightedErrorBudgetSLI implements business impact weighted error budgets.
 
 type WeightedErrorBudgetSLI struct {
-
 	// Error budget calculation with business impact weighting.
 
 	CriticalErrorWeight float64 // 10x weight
@@ -211,7 +205,6 @@ type WeightedErrorBudgetSLI struct {
 // ServiceLevelObjectiveEngine manages SLO definitions and tracking.
 
 type ServiceLevelObjectiveEngine struct {
-
 	// SLO Definitions.
 
 	AvailabilitySLO *AvailabilitySLO
@@ -261,7 +254,6 @@ type AvailabilitySLO struct {
 	FastBurnThreshold float64 // 2% of error budget in 1 hour
 
 	SlowBurnThreshold float64 // 5% of error budget in 6 hours
-
 }
 
 // LatencySLO defines latency service level objectives.
@@ -286,13 +278,11 @@ type LatencySLO struct {
 	ViolationThreshold int // Number of violations before alert
 
 	SustainedViolation time.Duration // Duration of sustained violation
-
 }
 
 // AdvancedMetricsCollector provides high-performance metric collection.
 
 type AdvancedMetricsCollector struct {
-
 	// Low-latency collection (sub-100ms overhead).
 
 	StreamingCollector *StreamingMetricsCollector
@@ -341,7 +331,6 @@ type SamplingStrategy interface {
 // AdaptiveSamplingEngine dynamically adjusts sampling rates.
 
 type AdaptiveSamplingEngine struct {
-
 	// Load-based sampling adjustment.
 
 	LoadThresholds map[string]float64
@@ -364,7 +353,6 @@ type AdaptiveSamplingEngine struct {
 // RealTimeDataAggregator processes metrics in real-time.
 
 type RealTimeDataAggregator struct {
-
 	// Stream processing.
 
 	KafkaConsumer *KafkaMetricsConsumer
@@ -397,7 +385,6 @@ type RealTimeDataAggregator struct {
 // SLAStorageManager handles compliance and audit storage requirements.
 
 type SLAStorageManager struct {
-
 	// Time series storage.
 
 	PrometheusStorage *PrometheusStorageConfig
@@ -438,7 +425,6 @@ type SLAStorageManager struct {
 // ChaosEngineeringIntegration validates resilience.
 
 type ChaosEngineeringIntegration struct {
-
 	// Chaos experiments.
 
 	ChaosExperiments []*ChaosExperiment
@@ -463,7 +449,6 @@ type ChaosEngineeringIntegration struct {
 // SLACostOptimizer optimizes cost per SLA.
 
 type SLACostOptimizer struct {
-
 	// Cost tracking.
 
 	SLACostCalculator *SLACostCalculator
@@ -488,7 +473,6 @@ type SLACostOptimizer struct {
 // AutomatedRemediationEngine provides automated SLA remediation.
 
 type AutomatedRemediationEngine struct {
-
 	// Remediation actions.
 
 	ScalingActions *AutoScalingActions
@@ -515,7 +499,6 @@ type AutomatedRemediationEngine struct {
 // SLAMonitoringConfig provides configuration for the monitoring architecture.
 
 type SLAMonitoringConfig struct {
-
 	// Collection configuration.
 
 	MetricsCollectionInterval time.Duration
@@ -570,7 +553,6 @@ type SLAMonitoringConfig struct {
 // NewSLAMonitoringArchitecture creates a new comprehensive SLA monitoring system.
 
 func NewSLAMonitoringArchitecture(
-
 	ctx context.Context,
 
 	k8sClient client.Client,
@@ -580,11 +562,8 @@ func NewSLAMonitoringArchitecture(
 	config *SLAMonitoringConfig,
 
 	logger *zap.Logger,
-
 ) (*SLAMonitoringArchitecture, error) {
-
 	arch := &SLAMonitoringArchitecture{
-
 		Config: config,
 	}
 
@@ -605,7 +584,7 @@ func NewSLAMonitoringArchitecture(
 		Period:     24 * time.Hour,
 		Amplitude:  1.0,
 	}
-	
+
 	arch.PredictiveAnalyzer = NewPredictiveSLAAnalyzer(prometheus.DefaultRegisterer, *detector)
 
 	// Initialize Data Collection and Processing.
@@ -637,27 +616,25 @@ func NewSLAMonitoringArchitecture(
 	// arch.ComplianceReporter = NewComplianceReporter(config) // TODO: implement.
 
 	return arch, nil
-
 }
 
 // Start initializes and starts all monitoring components.
 
 func (arch *SLAMonitoringArchitecture) Start(ctx context.Context) error {
-
 	// Start data collection.
 
-	if err := arch.MetricsCollector.Start(ctx); err != nil {
-
-		return err
-
+	if arch.MetricsCollector != nil {
+		if err := arch.MetricsCollector.Start(ctx); err != nil {
+			return err
+		}
 	}
 
 	// Start real-time processing.
 
-	if err := arch.DataAggregator.Start(ctx); err != nil {
-
-		return err
-
+	if arch.DataAggregator != nil {
+		if err := arch.DataAggregator.Start(ctx); err != nil {
+			return err
+		}
 	}
 
 	// Start predictive analysis.
@@ -670,87 +647,73 @@ func (arch *SLAMonitoringArchitecture) Start(ctx context.Context) error {
 
 	// Start synthetic monitoring.
 
-	if err := arch.SyntheticMonitor.Start(ctx); err != nil {
-
-		return err
-
+	if arch.SyntheticMonitor != nil {
+		if err := arch.SyntheticMonitor.Start(ctx); err != nil {
+			return err
+		}
 	}
 
 	// Start automated remediation.
 
-	if err := arch.RemediationEngine.Start(ctx); err != nil {
-
-		return err
-
+	if arch.RemediationEngine != nil {
+		if err := arch.RemediationEngine.Start(ctx); err != nil {
+			return err
+		}
 	}
 
 	return nil
-
 }
 
 // GetSLAStatus returns current SLA compliance status.
 
 func (arch *SLAMonitoringArchitecture) GetSLAStatus(ctx context.Context) (*SLAStatus, error) {
-
 	status := &SLAStatus{
-
 		Timestamp: time.Now(),
 	}
 
-	// Get availability status.
+	if arch.SLIFramework != nil && arch.SLIFramework.ComponentAvailability != nil {
+		// Get availability status.
 
-	availabilityStatus, err := arch.SLIFramework.ComponentAvailability.GetStatus(ctx)
+		availabilityStatus, err := arch.SLIFramework.ComponentAvailability.GetStatus(ctx)
+		if err != nil {
+			return nil, err
+		}
 
-	if err != nil {
+		status.AvailabilityStatus = availabilityStatus
 
-		return nil, err
+		// Get latency status.
 
+		latencyStatus, err := arch.SLIFramework.EndToEndLatency.GetStatus(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		status.LatencyStatus = latencyStatus
+
+		// Get throughput status.
+
+		throughputStatus, err := arch.SLIFramework.ThroughputCapacity.GetStatus(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		status.ThroughputStatus = throughputStatus
+
+		// Get error budget status.
+
+		errorBudgetStatus, err := arch.SLIFramework.WeightedErrorBudget.GetStatus(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		status.ErrorBudgetStatus = errorBudgetStatus
+
+		// Calculate composite SLA score.
+
+		status.CompositeSLAScore = arch.calculateCompositeSLAScore(status)
 	}
-
-	status.AvailabilityStatus = availabilityStatus
-
-	// Get latency status.
-
-	latencyStatus, err := arch.SLIFramework.EndToEndLatency.GetStatus(ctx)
-
-	if err != nil {
-
-		return nil, err
-
-	}
-
-	status.LatencyStatus = latencyStatus
-
-	// Get throughput status.
-
-	throughputStatus, err := arch.SLIFramework.ThroughputCapacity.GetStatus(ctx)
-
-	if err != nil {
-
-		return nil, err
-
-	}
-
-	status.ThroughputStatus = throughputStatus
-
-	// Get error budget status.
-
-	errorBudgetStatus, err := arch.SLIFramework.WeightedErrorBudget.GetStatus(ctx)
-
-	if err != nil {
-
-		return nil, err
-
-	}
-
-	status.ErrorBudgetStatus = errorBudgetStatus
-
-	// Calculate composite SLA score.
-
-	status.CompositeSLAScore = arch.calculateCompositeSLAScore(status)
 
 	return status, nil
-
 }
 
 // SLAStatus represents the current SLA compliance status.
@@ -776,11 +739,9 @@ type SLAStatus struct {
 // calculateCompositeSLAScore computes a weighted composite SLA score.
 
 func (arch *SLAMonitoringArchitecture) calculateCompositeSLAScore(status *SLAStatus) float64 {
-
 	// Weights for different SLA components.
 
 	weights := map[string]float64{
-
 		"availability": 0.35,
 
 		"latency": 0.25,
@@ -792,16 +753,32 @@ func (arch *SLAMonitoringArchitecture) calculateCompositeSLAScore(status *SLASta
 
 	score := 0.0
 
-	score += status.AvailabilityStatus.CompliancePercentage * weights["availability"]
+	if status.AvailabilityStatus != nil {
+		score += status.AvailabilityStatus.CompliancePercentage * weights["availability"]
+	}
 
-	score += status.LatencyStatus.CompliancePercentage * weights["latency"]
+	if status.LatencyStatus != nil {
+		score += status.LatencyStatus.CompliancePercentage * weights["latency"]
+	}
 
-	score += status.ThroughputStatus.CompliancePercentage * weights["throughput"]
+	if status.ThroughputStatus != nil {
+		score += status.ThroughputStatus.CompliancePercentage * weights["throughput"]
+	}
 
-	score += (1.0 - status.ErrorBudgetStatus.BurnRate) * weights["reliability"]
+	if status.ErrorBudgetStatus != nil {
+		score += (1.0 - status.ErrorBudgetStatus.BurnRate) * weights["reliability"]
+	}
 
 	return score
+}
 
+// Additional type definitions for monitoring architecture
+
+// StreamingMetricsCollector collects metrics from streaming sources
+type StreamingMetricsCollector struct {
+	StreamRate time.Duration
+	BufferSize int
+	Sources    []string
 }
 
 // ServiceAvailabilitySLI measures service-level availability.
@@ -1010,12 +987,10 @@ type EdgeMetricsCollector struct {
 	MetricsQueue []MetricData
 }
 
-// MetricsPruningEngine prunes old metrics.
-
-type MetricsPruningEngine struct {
-	RetentionPeriod time.Duration
-
-	PruningInterval time.Duration
+// CardinalityManager manages metric cardinality
+type CardinalityManager struct {
+	MaxCardinality int
+	PruningRules   []string
 }
 
 // MetricsCache caches metrics for performance.
@@ -1062,22 +1037,17 @@ type WindowAggregator struct {
 	AggregationType string
 }
 
+// RealTimeSLICalculator calculates SLIs in real-time
+type RealTimeSLICalculator struct {
+	Metrics map[string]float64
+}
+
 // RealTimeSLOEvaluator evaluates SLOs in real-time.
 
 type RealTimeSLOEvaluator struct {
 	EvaluationInterval time.Duration
 
 	SLOTargets map[string]float64
-}
-
-// StateStore stores streaming state.
-
-type StateStore interface {
-	Store(key string, value interface{}) error
-
-	Retrieve(key string) (interface{}, error)
-
-	Delete(key string) error
 }
 
 // CheckpointManager manages checkpoints for streaming.
@@ -1246,164 +1216,6 @@ type DashboardWidget struct {
 	Config map[string]interface{}
 }
 
-// IntentProcessingTestSuite tests intent processing.
-
-type IntentProcessingTestSuite struct {
-	TestCases []TestCase
-
-	ExecutionRate time.Duration
-
-	Timeout time.Duration
-}
-
-// APIEndpointTestSuite tests API endpoints.
-
-type APIEndpointTestSuite struct {
-	Endpoints []EndpointTest
-
-	ExecutionRate time.Duration
-
-	Timeout time.Duration
-}
-
-// UserJourneyTestSuite tests user journeys.
-
-type UserJourneyTestSuite struct {
-	Journeys []UserJourneyTest
-
-	ExecutionRate time.Duration
-
-	Timeout time.Duration
-}
-
-// TestCase defines a test case.
-
-type TestCase struct {
-	Name string
-
-	Description string
-
-	Steps []TestStep
-
-	ExpectedSLA map[string]float64
-}
-
-// EndpointTest defines an endpoint test.
-
-type EndpointTest struct {
-	URL string
-
-	Method string
-
-	Headers map[string]string
-
-	Body string
-
-	ExpectedCode int
-}
-
-// UserJourneyTest defines a user journey test.
-
-type UserJourneyTest struct {
-	Name string
-
-	Description string
-
-	Steps []JourneyStep
-
-	SLATargets map[string]float64
-}
-
-// TestStep defines a test step.
-
-type TestStep struct {
-	Name string
-
-	Action string
-
-	Parameters map[string]interface{}
-
-	Validation string
-}
-
-// JourneyStep defines a journey step.
-
-type JourneyStep struct {
-	Name string
-
-	Endpoint string
-
-	Method string
-
-	Payload interface{}
-
-	Validation string
-}
-
-// TestScheduler schedules tests.
-
-type TestScheduler struct {
-	Schedule string
-
-	TestSuites []string
-
-	MaxParallel int
-}
-
-// TestExecutor executes tests.
-
-type TestExecutor struct {
-	MaxWorkers int
-
-	Timeout time.Duration
-
-	RetryPolicy RetryPolicy
-}
-
-// TestResultProcessor processes test results.
-
-type TestResultProcessor struct {
-	ResultStore ResultStore
-
-	AlertThresholds map[string]float64
-
-	ReportingInterval time.Duration
-}
-
-// RetryPolicy defines retry behavior.
-
-type RetryPolicy struct {
-	MaxRetries int
-
-	BackoffStrategy string
-
-	InitialDelay time.Duration
-}
-
-// ResultStore stores test results.
-
-type ResultStore interface {
-	Store(result TestResult) error
-
-	Query(filters map[string]interface{}) ([]TestResult, error)
-}
-
-// TestResult represents a test result.
-
-type TestResult struct {
-	TestName string
-
-	Success bool
-
-	Duration time.Duration
-
-	Timestamp time.Time
-
-	Metrics map[string]float64
-
-	ErrorMsg string
-}
-
 // ChaosExperiment defines chaos experiments.
 
 type ChaosExperiment struct {
@@ -1450,16 +1262,6 @@ type ResilienceValidator struct {
 	MinRecoveryTime time.Duration
 
 	MaxFailureRate float64
-}
-
-// ValidationRule defines validation rules.
-
-type ValidationRule struct {
-	Name string
-
-	Condition string
-
-	Weight float64
 }
 
 // RecoveryTimeTracker tracks recovery times.
@@ -1663,49 +1465,31 @@ type PriorityRule struct {
 // Start method for AdvancedMetricsCollector.
 
 func (amc *AdvancedMetricsCollector) Start(ctx context.Context) error {
-
 	// TODO: Implement actual start logic.
 
 	return nil
-
 }
 
 // Start method for RealTimeDataAggregator.
 
 func (rtda *RealTimeDataAggregator) Start(ctx context.Context) error {
-
 	// TODO: Implement actual start logic.
 
 	return nil
-
-}
-
-// Start method for SyntheticMonitor.
-
-func (sm *SyntheticMonitor) Start(ctx context.Context) error {
-
-	// TODO: Implement actual start logic.
-
-	return nil
-
 }
 
 // Start method for AutomatedRemediationEngine.
 
 func (are *AutomatedRemediationEngine) Start(ctx context.Context) error {
-
 	// TODO: Implement actual start logic.
 
 	return nil
-
 }
 
 // GetStatus method for ComponentAvailabilitySLI.
 
 func (ca *ComponentAvailabilitySLI) GetStatus(ctx context.Context) (*AvailabilityStatus, error) {
-
 	return &AvailabilityStatus{
-
 		ComponentAvailability: 99.98, // TODO: Calculate actual component availability
 
 		ServiceAvailability: 99.97, // TODO: Calculate actual service availability
@@ -1719,15 +1503,12 @@ func (ca *ComponentAvailabilitySLI) GetStatus(ctx context.Context) (*Availabilit
 		ErrorBudgetBurnRate: 0.05, // TODO: Calculate actual burn rate
 
 	}, nil
-
 }
 
 // GetStatus method for LatencySLI.
 
 func (l *LatencySLI) GetStatus(ctx context.Context) (*LatencyStatus, error) {
-
 	return &LatencyStatus{
-
 		P50Latency: 1200 * time.Millisecond, // TODO: Get actual P50
 
 		P95Latency: 1800 * time.Millisecond, // TODO: Get actual P95
@@ -1741,15 +1522,12 @@ func (l *LatencySLI) GetStatus(ctx context.Context) (*LatencyStatus, error) {
 		SustainedViolationTime: 0, // TODO: Calculate sustained violation time
 
 	}, nil
-
 }
 
 // GetStatus method for ThroughputSLI.
 
 func (t *ThroughputSLI) GetStatus(ctx context.Context) (*ThroughputStatus, error) {
-
 	return &ThroughputStatus{
-
 		CurrentThroughput: 42.5, // TODO: Get actual current throughput
 
 		PeakThroughput: 65.0, // TODO: Get actual peak throughput
@@ -1763,15 +1541,12 @@ func (t *ThroughputSLI) GetStatus(ctx context.Context) (*ThroughputStatus, error
 		CompliancePercentage: 96.2, // TODO: Calculate actual compliance
 
 	}, nil
-
 }
 
 // GetStatus method for WeightedErrorBudgetSLI.
 
 func (web *WeightedErrorBudgetSLI) GetStatus(ctx context.Context) (*ErrorBudgetStatus, error) {
-
 	return &ErrorBudgetStatus{
-
 		TotalErrorBudget: 0.05, // TODO: Calculate actual total budget
 
 		ConsumedErrorBudget: 0.02, // TODO: Calculate actual consumed budget
@@ -1783,5 +1558,4 @@ func (web *WeightedErrorBudgetSLI) GetStatus(ctx context.Context) (*ErrorBudgetS
 		BusinessImpactScore: 0.1, // TODO: Calculate actual business impact
 
 	}, nil
-
 }

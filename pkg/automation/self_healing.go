@@ -2,6 +2,7 @@ package automation
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -18,14 +19,12 @@ var (
 	// Metrics for self-healing operations.
 
 	healingOperations = promauto.NewCounterVec(prometheus.CounterOpts{
-
 		Name: "nephoran_self_healing_operations_total",
 
 		Help: "Total number of self-healing operations performed",
 	}, []string{"type", "status", "component"})
 
 	healingDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
-
 		Name: "nephoran_self_healing_duration_seconds",
 
 		Help: "Duration of self-healing operations",
@@ -34,14 +33,12 @@ var (
 	}, []string{"type", "component"})
 
 	systemHealth = promauto.NewGaugeVec(prometheus.GaugeOpts{
-
 		Name: "nephoran_system_health_status",
 
 		Help: "Current health status of system components (0=unhealthy, 1=healthy)",
 	}, []string{"component"})
 
 	failureDetections = promauto.NewCounterVec(prometheus.CounterOpts{
-
 		Name: "nephoran_failure_detections_total",
 
 		Help: "Total number of failures detected by predictive monitoring",
@@ -143,7 +140,7 @@ type CustomRemediation struct {
 
 	Action string `json:"action"` // RESTART, SCALE, REDEPLOY, CUSTOM_SCRIPT
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	Conditions []*RemediationCondition `json:"conditions"`
 
@@ -314,7 +311,7 @@ type RemediationSession struct {
 
 	Actions []*RemediationAction `json:"actions"`
 
-	Results map[string]interface{} `json:"results"`
+	Results json.RawMessage `json:"results"`
 
 	BackupID string `json:"backup_id,omitempty"`
 
@@ -328,7 +325,7 @@ type RemediationAction struct {
 
 	Target string `json:"target"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	Status string `json:"status"`
 
@@ -366,7 +363,7 @@ type RemediationActionTemplate struct {
 
 	Template string `json:"template"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	Timeout time.Duration `json:"timeout"`
 
@@ -439,47 +436,34 @@ type SelfHealingMetrics struct {
 	MTTR time.Duration `json:"mttr"` // Mean Time To Recovery
 
 	MTBF time.Duration `json:"mtbf"` // Mean Time Between Failures
-
 }
 
 // NewSelfHealingManager creates a new self-healing manager.
 
 func NewSelfHealingManager(config *SelfHealingConfig, k8sClient kubernetes.Interface, ctrlClient client.Client, logger *slog.Logger) (*SelfHealingManager, error) {
-
 	if config == nil {
-
 		return nil, fmt.Errorf("self-healing configuration is required")
-
 	}
 
 	// Set defaults.
 
 	if config.MonitoringInterval == 0 {
-
 		config.MonitoringInterval = 30 * time.Second
-
 	}
 
 	if config.HealthCheckTimeout == 0 {
-
 		config.HealthCheckTimeout = 10 * time.Second
-
 	}
 
 	if config.FailureDetectionThreshold == 0 {
-
 		config.FailureDetectionThreshold = 0.8
-
 	}
 
 	if config.MaxConcurrentRemediations == 0 {
-
 		config.MaxConcurrentRemediations = 3
-
 	}
 
 	manager := &SelfHealingManager{
-
 		config: config,
 
 		logger: logger,
@@ -496,11 +480,8 @@ func NewSelfHealingManager(config *SelfHealingConfig, k8sClient kubernetes.Inter
 	// Initialize health monitor.
 
 	healthMonitor, err := NewHealthMonitor(config, k8sClient, logger)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create health monitor: %w", err)
-
 	}
 
 	manager.healthMonitor = healthMonitor
@@ -510,11 +491,8 @@ func NewSelfHealingManager(config *SelfHealingConfig, k8sClient kubernetes.Inter
 	if config.PredictiveAnalysisEnabled {
 
 		failurePrediction, err := NewFailurePrediction(config, logger)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to create failure prediction: %w", err)
-
 		}
 
 		manager.failurePrediction = failurePrediction
@@ -526,11 +504,8 @@ func NewSelfHealingManager(config *SelfHealingConfig, k8sClient kubernetes.Inter
 	if config.AutoRemediationEnabled {
 
 		automatedRemediation, err := NewAutomatedRemediation(config, k8sClient, ctrlClient, logger)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to create automated remediation: %w", err)
-
 		}
 
 		manager.automatedRemediation = automatedRemediation
@@ -542,11 +517,8 @@ func NewSelfHealingManager(config *SelfHealingConfig, k8sClient kubernetes.Inter
 	if config.NotificationConfig != nil {
 
 		alertManager, err := NewAlertManager(config.NotificationConfig, logger)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to create alert manager: %w", err)
-
 		}
 
 		manager.alertManager = alertManager
@@ -556,13 +528,11 @@ func NewSelfHealingManager(config *SelfHealingConfig, k8sClient kubernetes.Inter
 	}
 
 	return manager, nil
-
 }
 
 // Start starts the self-healing manager.
 
 func (shm *SelfHealingManager) Start(ctx context.Context) error {
-
 	shm.mu.Lock()
 
 	defer shm.mu.Unlock()
@@ -576,9 +546,7 @@ func (shm *SelfHealingManager) Start(ctx context.Context) error {
 	}
 
 	if shm.running {
-
 		return fmt.Errorf("self-healing manager is already running")
-
 	}
 
 	shm.logger.Info("Starting self-healing manager")
@@ -590,17 +558,13 @@ func (shm *SelfHealingManager) Start(ctx context.Context) error {
 	// Start failure prediction if enabled.
 
 	if shm.failurePrediction != nil {
-
 		go shm.failurePrediction.Start(ctx)
-
 	}
 
 	// Start automated remediation if enabled.
 
 	if shm.automatedRemediation != nil {
-
 		go shm.automatedRemediation.Start(ctx)
-
 	}
 
 	// Start main self-healing loop.
@@ -612,21 +576,17 @@ func (shm *SelfHealingManager) Start(ctx context.Context) error {
 	shm.logger.Info("Self-healing manager started successfully")
 
 	return nil
-
 }
 
 // Stop stops the self-healing manager.
 
 func (shm *SelfHealingManager) Stop() {
-
 	shm.mu.Lock()
 
 	defer shm.mu.Unlock()
 
 	if !shm.running {
-
 		return
-
 	}
 
 	shm.logger.Info("Stopping self-healing manager")
@@ -634,19 +594,16 @@ func (shm *SelfHealingManager) Stop() {
 	close(shm.stopCh)
 
 	shm.running = false
-
 }
 
 // run executes the main self-healing loop.
 
 func (shm *SelfHealingManager) run(ctx context.Context) {
-
 	ticker := time.NewTicker(shm.config.MonitoringInterval)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -662,21 +619,16 @@ func (shm *SelfHealingManager) run(ctx context.Context) {
 			shm.performHealthCheck(ctx)
 
 		}
-
 	}
-
 }
 
 // performHealthCheck performs comprehensive health check and initiates healing if needed.
 
 func (shm *SelfHealingManager) performHealthCheck(ctx context.Context) {
-
 	start := time.Now()
 
 	defer func() {
-
 		healingDuration.WithLabelValues("health_check", "system").Observe(time.Since(start).Seconds())
-
 	}()
 
 	shm.logger.Debug("Performing system health check")
@@ -692,7 +644,6 @@ func (shm *SelfHealingManager) performHealthCheck(ctx context.Context) {
 	// Check for components requiring healing.
 
 	for component, health := range systemHealth.ComponentHealth {
-
 		if health == HealthStatusUnhealthy || health == HealthStatusCritical {
 
 			shm.logger.Warn("Unhealthy component detected", "component", component, "status", health)
@@ -708,15 +659,12 @@ func (shm *SelfHealingManager) performHealthCheck(ctx context.Context) {
 					healingOperations.WithLabelValues("remediation", "failed", component).Inc()
 
 				} else {
-
 					healingOperations.WithLabelValues("remediation", "initiated", component).Inc()
-
 				}
 
 			}
 
 		}
-
 	}
 
 	// Check predictive failures.
@@ -726,7 +674,6 @@ func (shm *SelfHealingManager) performHealthCheck(ctx context.Context) {
 		predictions := shm.failurePrediction.GetFailureProbabilities()
 
 		for component, probability := range predictions {
-
 			if probability > shm.config.FailureDetectionThreshold {
 
 				shm.logger.Warn("High failure probability detected",
@@ -738,29 +685,23 @@ func (shm *SelfHealingManager) performHealthCheck(ctx context.Context) {
 				if shm.automatedRemediation != nil {
 
 					err := shm.automatedRemediation.InitiatePreventiveRemediation(ctx, component, probability)
-
 					if err != nil {
-
 						shm.logger.Error("Failed to initiate preventive remediation",
 
 							"component", component, "error", err)
-
 					}
 
 				}
 
 			}
-
 		}
 
 	}
-
 }
 
 // updateHealthMetrics updates system health metrics.
 
 func (shm *SelfHealingManager) updateHealthMetrics(health *SystemHealthMetrics) {
-
 	for component, status := range health.ComponentHealth {
 
 		var healthValue float64
@@ -788,57 +729,58 @@ func (shm *SelfHealingManager) updateHealthMetrics(health *SystemHealthMetrics) 
 		systemHealth.WithLabelValues(component).Set(healthValue)
 
 	}
-
 }
 
 // GetSystemHealth returns current system health status.
 
 func (shm *SelfHealingManager) GetSystemHealth() *SystemHealthMetrics {
-
 	return shm.healthMonitor.GetSystemHealth()
-
 }
 
 // GetRemediationStatus returns status of active remediations.
 
 func (shm *SelfHealingManager) GetRemediationStatus() map[string]*RemediationSession {
-
 	if shm.automatedRemediation == nil {
-
 		return make(map[string]*RemediationSession)
-
 	}
 
 	return shm.automatedRemediation.GetActiveRemediations()
-
 }
 
 // GetMetrics returns self-healing metrics.
 
 func (shm *SelfHealingManager) GetMetrics() *SelfHealingMetrics {
-
 	shm.mu.RLock()
 
 	defer shm.mu.RUnlock()
 
-	metrics := *shm.metrics
+	// Create a safe copy without copying mutex to avoid lock copying violation
+	metrics := &SelfHealingMetrics{
+		TotalHealingOperations:      shm.metrics.TotalHealingOperations,
+		SuccessfulHealingOperations: shm.metrics.SuccessfulHealingOperations,
+		FailedHealingOperations:     shm.metrics.FailedHealingOperations,
+		AverageHealingTime:          shm.metrics.AverageHealingTime,
+		MTTR:                        shm.metrics.MTTR,
+		MTBF:                        shm.metrics.MTBF,
+		ComponentAvailability:       make(map[string]float64),
+	}
 
-	return &metrics
+	// Copy map safely
+	for k, v := range shm.metrics.ComponentAvailability {
+		metrics.ComponentAvailability[k] = v
+	}
 
+	return metrics
 }
 
 // ForceHealing manually triggers healing for a specific component.
 
 func (shm *SelfHealingManager) ForceHealing(ctx context.Context, component, reason string) error {
-
 	shm.logger.Info("Forcing healing for component", "component", component, "reason", reason)
 
 	if shm.automatedRemediation == nil {
-
 		return fmt.Errorf("automated remediation is not enabled")
-
 	}
 
 	return shm.automatedRemediation.InitiateRemediation(ctx, component, reason)
-
 }

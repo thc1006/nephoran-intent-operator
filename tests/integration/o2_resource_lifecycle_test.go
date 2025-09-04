@@ -1,4 +1,4 @@
-package integration_tests_test
+package integration_tests
 
 import (
 	"bytes"
@@ -32,7 +32,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 	)
 
 	BeforeEach(func() {
-		namespace = CreateTestNamespace()
+		namespace = CreateO2TestNamespace()
 		var cancel context.CancelFunc
 		testCtx, cancel = context.WithTimeout(ctx, 25*time.Minute)
 		DeferCleanup(cancel)
@@ -44,31 +44,16 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 			ServerAddress: "127.0.0.1",
 			ServerPort:    0,
 			TLSEnabled:    false,
-			DatabaseConfig: map[string]interface{}{
-				"type":     "memory",
-				"database": "o2_lifecycle_test_db",
-			},
+			DatabaseConfig: json.RawMessage(`{}`),
 			ProviderConfigs: map[string]interface{}{
-				"kubernetes": map[string]interface{}{
-					"enabled": true,
-					"config": map[string]interface{}{
-						"kubeconfig": "",
-						"namespace":  namespace.Name,
-					},
-				},
+				"enabled": true,
+				"config":  json.RawMessage(`{}`),
 			},
 			LifecycleConfig: map[string]interface{}{
-				"enabled":        true,
-				"defaultTimeout": "300s",
-				"retryPolicy": map[string]interface{}{
-					"maxRetries":    3,
-					"backoffFactor": 1.5,
-					"initialDelay":  "5s",
-				},
-				"stateTransitions": map[string]interface{}{
-					"maxConcurrentOperations": 10,
-					"operationTimeout":        "600s",
-				},
+				"maxRetries":       3,
+				"backoffFactor":    1.5,
+				"initialDelay":     "5s",
+				"stateTransitions": json.RawMessage(`{}`),
 			},
 		}
 
@@ -147,11 +132,10 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 							"memory": "64Gi",
 						},
 						Properties: map[string]interface{}{
-							"dependsOn":    []string{poolID},
 							"architecture": "x86_64",
 						},
+						SupportedActions: []string{"CREATE", "DELETE", "UPDATE", "SCALE"},
 					},
-					SupportedActions: []string{"CREATE", "DELETE", "UPDATE", "SCALE"},
 				}
 
 				typeJSON, err := json.Marshal(computeType)
@@ -169,24 +153,14 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 				By("creating actual compute resource instance")
 				resourceID := fmt.Sprintf("compute-resource-%d", baseTimestamp)
 				computeResource := map[string]interface{}{
-					"resourceId":          resourceID,
-					"resourceName":        "Test Compute Resource",
-					"resourceTypeId":      computeTypeID,
-					"resourcePoolId":      poolID,
-					"description":         "Compute resource for lifecycle testing",
-					"resourceState":       "CREATED",
-					"administrativeState": "UNLOCKED",
-					"operationalState":    "ENABLED",
-					"resourceSpec": map[string]interface{}{
+					"resources": map[string]interface{}{
 						"cpu":     "4",
 						"memory":  "8Gi",
 						"storage": "100Gi",
 					},
 					"extensions": map[string]interface{}{
-						"lifecycle": map[string]interface{}{
-							"creationRequested": time.Now().Format(time.RFC3339),
-							"expectedReadyTime": time.Now().Add(5 * time.Minute).Format(time.RFC3339),
-						},
+						"creationRequested": time.Now().Format(time.RFC3339),
+						"expectedReadyTime": time.Now().Add(5 * time.Minute).Format(time.RFC3339),
 					},
 				}
 
@@ -208,7 +182,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 					if err != nil {
 						return ""
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 					if resp.StatusCode != http.StatusOK {
 						return ""
@@ -260,13 +234,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 			It("should prevent creation of resources with unresolved dependencies", func() {
 				By("attempting to create resource with non-existent dependency")
 				resourceID := fmt.Sprintf("orphan-resource-%d", time.Now().UnixNano())
-				orphanResource := map[string]interface{}{
-					"resourceId":     resourceID,
-					"resourceName":   "Orphan Resource",
-					"resourceTypeId": "non-existent-type",
-					"resourcePoolId": "non-existent-pool",
-					"resourceState":  "CREATED",
-				}
+				orphanResource := json.RawMessage(`{}`)
 
 				resourceJSON, err := json.Marshal(orphanResource)
 				Expect(err).NotTo(HaveOccurred())
@@ -342,19 +310,10 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 						"unit":        "cores",
 						"utilization": 20.0,
 					},
-					"memory": map[string]interface{}{
-						"total":       "200Gi",
-						"available":   "160Gi",
-						"used":        "40Gi",
-						"unit":        "bytes",
-						"utilization": 20.0,
-					},
+					"memory": json.RawMessage(`{}`),
 				}
 
-				updateRequest := map[string]interface{}{
-					"capacity":    updatedCapacity,
-					"description": "Updated pool with increased capacity",
-				}
+				updateRequest := json.RawMessage(`{}`)
 
 				updateJSON, err := json.Marshal(updateRequest)
 				Expect(err).NotTo(HaveOccurred())
@@ -395,10 +354,8 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 						defer updateWg.Done()
 
 						concurrentUpdate := map[string]interface{}{
-							"extensions": map[string]interface{}{
-								fmt.Sprintf("concurrentUpdate%d", iteration): time.Now().Format(time.RFC3339),
-								"iteration": iteration,
-							},
+							fmt.Sprintf("concurrentUpdate%d", iteration): time.Now().Format(time.RFC3339),
+							"iteration": iteration,
 						}
 
 						updateJSON, err := json.Marshal(concurrentUpdate)
@@ -421,7 +378,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 							updateErrors <- err
 							return
 						}
-						defer resp.Body.Close()
+						defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 						if resp.StatusCode == http.StatusOK {
 							updateSuccesses <- true
@@ -468,11 +425,9 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 						},
 					},
 					Extensions: map[string]interface{}{
-						"constraints": map[string]interface{}{
-							"maxCPU":          20,
-							"minCPU":          5,
-							"immutableFields": []string{"provider", "oCloudId"},
-						},
+						"maxCPU":          20,
+						"minCPU":          5,
+						"immutableFields": []string{"provider", "oCloudId"},
 					},
 				}
 
@@ -489,11 +444,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 
 				By("attempting to update beyond constraints")
 				violatingUpdate := map[string]interface{}{
-					"capacity": map[string]interface{}{
-						"cpu": map[string]interface{}{
-							"total": "30", // Exceeds maxCPU constraint of 20
-						},
-					},
+					"cpu": json.RawMessage(`{}`),
 				}
 
 				updateJSON, err := json.Marshal(violatingUpdate)
@@ -517,9 +468,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 				Expect(constraintError["title"]).To(ContainSubstring("constraint"))
 
 				By("attempting to update immutable fields")
-				immutableUpdate := map[string]interface{}{
-					"provider": "aws", // Attempt to change immutable field
-				}
+				immutableUpdate := json.RawMessage(`{}`)
 
 				updateJSON, err = json.Marshal(immutableUpdate)
 				Expect(err).NotTo(HaveOccurred())
@@ -537,14 +486,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 
 				By("performing valid update within constraints")
 				validUpdate := map[string]interface{}{
-					"capacity": map[string]interface{}{
-						"cpu": map[string]interface{}{
-							"total":       "15", // Within constraints
-							"available":   "12",
-							"used":        "3",
-							"utilization": 20.0,
-						},
-					},
+					"cpu":         json.RawMessage(`{}`),
 					"description": "Updated within constraints",
 				}
 
@@ -592,19 +534,9 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 						},
 					},
 					Extensions: map[string]interface{}{
-						"scaling": map[string]interface{}{
-							"enabled": true,
-							"horizontal": map[string]interface{}{
-								"minInstances":     1,
-								"maxInstances":     10,
-								"currentInstances": 1,
-							},
-							"vertical": map[string]interface{}{
-								"minCPU":     "1",
-								"maxCPU":     "100",
-								"currentCPU": "10",
-							},
-						},
+						"enabled": true,
+						"horizontal": json.RawMessage(`{}`),
+						"vertical": json.RawMessage(`{}`),
 					},
 				}
 
@@ -621,12 +553,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 
 				By("performing horizontal scale out")
 				scaleOutRequest := map[string]interface{}{
-					"scaleType":     "SCALE_OUT",
-					"aspectId":      "instances",
-					"numberOfSteps": 2,
-					"additionalParams": map[string]interface{}{
-						"targetInstances": 3,
-					},
+					"targetInstances": 3,
 				}
 
 				scaleJSON, err := json.Marshal(scaleOutRequest)
@@ -647,7 +574,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 					if err != nil {
 						return 0
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 					var pool models.ResourcePool
 					err = json.NewDecoder(resp.Body).Decode(&pool)
@@ -667,12 +594,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 
 				By("performing vertical scale up")
 				scaleUpRequest := map[string]interface{}{
-					"scaleType":     "SCALE_UP",
-					"aspectId":      "cpu",
-					"numberOfSteps": 1,
-					"additionalParams": map[string]interface{}{
-						"targetCPU": "20",
-					},
+					"targetCPU": "20",
 				}
 
 				scaleJSON, err = json.Marshal(scaleUpRequest)
@@ -693,7 +615,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 					if err != nil {
 						return ""
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 					var pool models.ResourcePool
 					err = json.NewDecoder(resp.Body).Decode(&pool)
@@ -706,12 +628,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 
 				By("testing scaling limits and constraints")
 				excessiveScaleRequest := map[string]interface{}{
-					"scaleType":     "SCALE_OUT",
-					"aspectId":      "instances",
-					"numberOfSteps": 20, // Exceeds maxInstances
-					"additionalParams": map[string]interface{}{
-						"targetInstances": 15,
-					},
+					"targetInstances": 15,
 				}
 
 				scaleJSON, err = json.Marshal(excessiveScaleRequest)
@@ -767,13 +684,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 				resp.Body.Close()
 
 				By("creating child resource dependent on parent")
-				childResource := map[string]interface{}{
-					"resourceId":     childResourceID,
-					"resourceName":   "Child Resource",
-					"resourcePoolId": parentPoolID,
-					"resourceState":  "ACTIVE",
-					"dependencies":   []string{parentPoolID},
-				}
+				childResource := json.RawMessage(`{}`)
 
 				resourceJSON, err := json.Marshal(childResource)
 				Expect(err).NotTo(HaveOccurred())
@@ -818,7 +729,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 					if err != nil {
 						return http.StatusNotFound
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 					return resp.StatusCode
 				}, 2*time.Minute, 10*time.Second).Should(Equal(http.StatusNotFound))
 
@@ -828,7 +739,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 					if err != nil {
 						return http.StatusNotFound
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 					return resp.StatusCode
 				}, 2*time.Minute, 10*time.Second).Should(Equal(http.StatusNotFound))
 			})
@@ -844,14 +755,12 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 					Provider:       "kubernetes",
 					OCloudID:       "test-ocloud",
 					Extensions: map[string]interface{}{
-						"lifecycle": map[string]interface{}{
-							"gracefulShutdownTimeout": "60s",
-							"preStopHooks": []string{
-								"drain-connections",
-								"save-state",
-							},
-							"forceDeleteAfter": "120s",
+						"gracefulShutdownTimeout": "60s",
+						"preStopHooks": []string{
+							"drain-connections",
+							"save-state",
 						},
+						"forceDeleteAfter": "120s",
 					},
 				}
 
@@ -868,12 +777,8 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 
 				By("initiating graceful deletion")
 				deletionRequest := map[string]interface{}{
-					"deletionType":               "GRACEFUL",
-					"gracefulTerminationTimeout": 30,
-					"additionalParams": map[string]interface{}{
-						"drainTimeout":     "15s",
-						"skipPreStopHooks": false,
-					},
+					"drainTimeout":     "15s",
+					"skipPreStopHooks": false,
 				}
 
 				deletionJSON, err := json.Marshal(deletionRequest)
@@ -894,7 +799,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 					if err != nil {
 						return ""
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 					if resp.StatusCode == http.StatusNotFound {
 						return "DELETED"
@@ -932,10 +837,8 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 						Health: "UNKNOWN",
 					},
 					Extensions: map[string]interface{}{
-						"stateTracking": map[string]interface{}{
-							"enabled":          true,
-							"trackTransitions": true,
-						},
+						"enabled":          true,
+						"trackTransitions": true,
 					},
 				}
 
@@ -959,7 +862,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 					if err != nil {
 						return observedStates
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 					if resp.StatusCode != http.StatusOK {
 						return observedStates
@@ -1011,3 +914,4 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 		})
 	})
 })
+

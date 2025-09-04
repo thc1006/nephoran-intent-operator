@@ -2,9 +2,11 @@ package performance_tests
 
 import (
 	"context"
+	"encoding/json"
+	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
-	"github.com/thc1006/nephoran-intent-operator/pkg/types"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // RAGServiceStub provides stub methods for testing
@@ -19,14 +21,36 @@ func NewRAGServiceStub(service *rag.RAGService) *RAGServiceStub {
 
 // ProcessQuery processes a query and returns a response
 func (r *RAGServiceStub) ProcessQuery(ctx context.Context, request *rag.RAGRequest) (*rag.RAGResponse, error) {
-	// Convert QueryRequest to RAGRequest if needed
+	// Create mock documents for the response
+	documents := []*shared.SearchResult{
+		{
+			ID:         "doc-1",
+			Content:    "Mock search result 1 for query: " + request.Query,
+			Score:      0.85,
+			Confidence: 0.85,
+			Metadata:   json.RawMessage(`{"source":"test"}`),
+		},
+		{
+			ID:         "doc-2",
+			Content:    "Mock search result 2 for query: " + request.Query,
+			Score:      0.75,
+			Confidence: 0.75,
+			Metadata:   json.RawMessage(`{"source":"test"}`),
+		},
+	}
+
+	// Convert QueryRequest to RAGResponse format as expected by performance tests
 	return &rag.RAGResponse{
 		Answer:          "stub answer",
-		SourceDocuments: make([]*types.SearchResult, 0),
-		Documents:       make([]*types.SearchResult, 0),
+		SourceDocuments: rag.ConvertSharedSearchResultsToRAG(documents),
 		Query:           request.Query,
-		Context:         make(map[string]interface{}),
-		Metadata:        make(map[string]interface{}),
+		ProcessingTime:  50 * time.Millisecond,
+		RetrievalTime:   25 * time.Millisecond,
+		Confidence:      0.8,
+		GenerationTime:  25 * time.Millisecond,
+		UsedCache:       false,
+		IntentType:      "test",
+		Metadata:        json.RawMessage("{}"),
 	}, nil
 }
 

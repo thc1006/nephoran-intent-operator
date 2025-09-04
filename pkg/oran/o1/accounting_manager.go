@@ -1,7 +1,9 @@
 package o1
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -124,7 +126,7 @@ type ChargingRate struct {
 
 	ValidUntil time.Time `json:"valid_until"`
 
-	Conditions map[string]interface{} `json:"conditions"`
+	Conditions json.RawMessage `json:"conditions"`
 }
 
 // TierRate represents tiered pricing rates.
@@ -150,7 +152,7 @@ type DiscountRule struct {
 
 	Value float64 `json:"value"`
 
-	Conditions map[string]interface{} `json:"conditions"`
+	Conditions json.RawMessage `json:"conditions"`
 
 	ApplicableTo []string `json:"applicable_to"`
 
@@ -195,7 +197,6 @@ type AccountingRateLimit struct {
 	BurstLimit int `json:"burst_limit"`
 
 	Action string `json:"action"` // THROTTLE, REJECT, QUEUE
-
 }
 
 // UsageDataCollector collects resource usage data.
@@ -275,7 +276,7 @@ type UsageEvent struct {
 
 	SessionID string `json:"session_id,omitempty"`
 
-	Attributes map[string]interface{} `json:"attributes"`
+	Attributes json.RawMessage `json:"attributes"`
 
 	EventType string `json:"event_type"` // START, STOP, INTERIM, ERROR
 
@@ -315,7 +316,7 @@ type ProcessedUsage struct {
 
 	NetAmount float64 `json:"net_amount"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // UsageWorkerPool manages usage processing workers.
@@ -394,7 +395,6 @@ type UsageMeter struct {
 	SampleCount int64
 
 	Status string // ACTIVE, INACTIVE, ERROR
-
 }
 
 // UsageAccumulator accumulates usage values.
@@ -460,7 +460,7 @@ type CalculatedUsage struct {
 
 	CalculationTime time.Time `json:"calculation_time"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // AggregationRule defines usage aggregation rules.
@@ -476,7 +476,7 @@ type AggregationRule struct {
 
 	GroupBy []string `json:"group_by"`
 
-	Filters map[string]interface{} `json:"filters"`
+	Filters json.RawMessage `json:"filters"`
 
 	OutputFormat string `json:"output_format"`
 
@@ -594,7 +594,7 @@ type BillingCharge struct {
 
 	EndDate time.Time `json:"end_date,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // BillingCredit represents a billing credit.
@@ -618,7 +618,7 @@ type BillingCredit struct {
 
 	Reference string `json:"reference"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // BillingAdjustment represents a billing adjustment.
@@ -646,7 +646,7 @@ type BillingAdjustment struct {
 
 	ApprovedBy string `json:"approved_by,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // InvoiceGenerator generates invoices.
@@ -674,7 +674,7 @@ type InvoiceTemplate struct {
 
 	Sections []*InvoiceSection `json:"sections"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // InvoiceSection represents a section in an invoice template.
@@ -726,7 +726,7 @@ type GeneratedInvoice struct {
 
 	Status string `json:"status"` // DRAFT, SENT, PAID, OVERDUE, CANCELLED
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // InvoiceNumberGenerator generates unique invoice numbers.
@@ -780,7 +780,7 @@ type PaymentProvider struct {
 
 	Enabled bool `json:"enabled"`
 
-	Config map[string]interface{} `json:"config"`
+	Config json.RawMessage `json:"config"`
 }
 
 // PaymentTransaction represents a payment transaction.
@@ -816,7 +816,7 @@ type PaymentTransaction struct {
 
 	FailureReason string `json:"failure_reason,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // TaxCalculator calculates taxes.
@@ -844,7 +844,7 @@ type TaxRule struct {
 
 	Jurisdiction string `json:"jurisdiction"`
 
-	Conditions map[string]interface{} `json:"conditions"`
+	Conditions json.RawMessage `json:"conditions"`
 
 	ValidFrom time.Time `json:"valid_from"`
 
@@ -872,7 +872,7 @@ type TaxExemption struct {
 
 	ValidUntil time.Time `json:"valid_until"`
 
-	Conditions map[string]interface{} `json:"conditions"`
+	Conditions json.RawMessage `json:"conditions"`
 }
 
 // DiscountEngine applies discounts.
@@ -910,7 +910,7 @@ type DiscountCoupon struct {
 
 	ValidUntil time.Time `json:"valid_until"`
 
-	Conditions map[string]interface{} `json:"conditions"`
+	Conditions json.RawMessage `json:"conditions"`
 
 	Active bool `json:"active"`
 }
@@ -956,7 +956,7 @@ type DiscountCalculation struct {
 
 	CalculationTime time.Time `json:"calculation_time"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // CreditManager manages customer credits.
@@ -1024,7 +1024,7 @@ type CreditPolicy struct {
 
 	PaymentTerms int `json:"payment_terms"`
 
-	Conditions map[string]interface{} `json:"conditions"`
+	Conditions json.RawMessage `json:"conditions"`
 
 	Enabled bool `json:"enabled"`
 }
@@ -1064,7 +1064,7 @@ type ChargingRule struct {
 
 	RateCardID string `json:"rate_card_id"`
 
-	Conditions map[string]interface{} `json:"conditions"`
+	Conditions json.RawMessage `json:"conditions"`
 
 	Priority int `json:"priority"`
 
@@ -1190,7 +1190,7 @@ type RatedUsage struct {
 
 	RatingTime time.Time `json:"rating_time"`
 
-	RateDetails map[string]interface{} `json:"rate_details"`
+	RateDetails json.RawMessage `json:"rate_details"`
 }
 
 // RateCalculator performs rate calculations.
@@ -1310,9 +1310,9 @@ type AggregatedUsageData struct {
 
 	Count int64 `json:"count"`
 
-	Dimensions map[string]interface{} `json:"dimensions"`
+	Dimensions json.RawMessage `json:"dimensions"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 
 	CreatedAt time.Time `json:"created_at"`
 }
@@ -1330,7 +1330,7 @@ type AggregationQuery struct {
 
 	GroupBy []string `json:"group_by,omitempty"`
 
-	Filters map[string]interface{} `json:"filters,omitempty"`
+	Filters json.RawMessage `json:"filters,omitempty"`
 
 	OrderBy string `json:"order_by,omitempty"`
 
@@ -2066,7 +2066,7 @@ type UsageQuery struct {
 
 	EndTime time.Time `json:"end_time"`
 
-	Filters map[string]interface{} `json:"filters,omitempty"`
+	Filters json.RawMessage `json:"filters,omitempty"`
 
 	OrderBy string `json:"order_by,omitempty"`
 
@@ -2286,15 +2286,11 @@ type RevenueConfig struct {
 // NewComprehensiveAccountingManager creates a new accounting manager.
 
 func NewComprehensiveAccountingManager(config *AccountingManagerConfig) *ComprehensiveAccountingManager {
-
 	if config == nil {
-
 		config = &AccountingManagerConfig{
-
 			CollectionInterval: 5 * time.Minute,
 
 			AggregationIntervals: map[string]time.Duration{
-
 				"hourly": time.Hour,
 
 				"daily": 24 * time.Hour,
@@ -2303,7 +2299,6 @@ func NewComprehensiveAccountingManager(config *AccountingManagerConfig) *Compreh
 			},
 
 			RetentionPeriods: map[string]time.Duration{
-
 				"raw": 30 * 24 * time.Hour,
 
 				"aggregated": 365 * 24 * time.Hour,
@@ -2321,11 +2316,9 @@ func NewComprehensiveAccountingManager(config *AccountingManagerConfig) *Compreh
 
 			AuditRetention: 90 * 24 * time.Hour,
 		}
-
 	}
 
 	cam := &ComprehensiveAccountingManager{
-
 		config: config,
 
 		metrics: initializeAccountingMetrics(),
@@ -2336,7 +2329,6 @@ func NewComprehensiveAccountingManager(config *AccountingManagerConfig) *Compreh
 	// Initialize components.
 
 	cam.usageCollector = NewUsageDataCollector(&CollectorConfig{
-
 		MaxEventQueueSize: 10000,
 
 		MaxConcurrentWorkers: 10,
@@ -2353,7 +2345,6 @@ func NewComprehensiveAccountingManager(config *AccountingManagerConfig) *Compreh
 	})
 
 	cam.meteringEngine = NewMeteringEngine(&MeteringConfig{
-
 		DefaultUnit: "units",
 
 		DefaultPrecision: 2,
@@ -2366,7 +2357,6 @@ func NewComprehensiveAccountingManager(config *AccountingManagerConfig) *Compreh
 	})
 
 	cam.billingEngine = NewBillingEngine(&BillingConfig{
-
 		DefaultCurrency: config.CurrencyCode,
 
 		TaxCalculation: true,
@@ -2379,7 +2369,6 @@ func NewComprehensiveAccountingManager(config *AccountingManagerConfig) *Compreh
 	})
 
 	cam.chargingManager = NewChargingManager(&ChargingConfig{
-
 		RealTimeCharging: config.EnableRealTimeBilling,
 
 		CacheSize: 10000,
@@ -2388,7 +2377,6 @@ func NewComprehensiveAccountingManager(config *AccountingManagerConfig) *Compreh
 	})
 
 	cam.usageAggregator = NewUsageAggregator(&AggregationConfig{
-
 		DefaultGranularity: time.Hour,
 
 		MaxAggregationAge: 24 * time.Hour,
@@ -2399,7 +2387,6 @@ func NewComprehensiveAccountingManager(config *AccountingManagerConfig) *Compreh
 	})
 
 	cam.reportGenerator = NewAccountingReportGenerator(&ReportingConfig{
-
 		DefaultFormat: "PDF",
 
 		MaxReportSize: 100 * 1024 * 1024, // 100MB
@@ -2412,7 +2399,6 @@ func NewComprehensiveAccountingManager(config *AccountingManagerConfig) *Compreh
 	cam.auditTrail = NewAccountingAuditTrail(config.AuditRetention)
 
 	cam.dataRetention = NewDataRetentionManager(&RetentionConfig{
-
 		DefaultPolicy: "standard",
 
 		ArchiveLocation: "/archive",
@@ -2423,9 +2409,7 @@ func NewComprehensiveAccountingManager(config *AccountingManagerConfig) *Compreh
 	})
 
 	if config.EnableFraudDetection {
-
 		cam.fraudDetection = NewFraudDetectionEngine(&FraudDetectionConfig{
-
 			EnabledDetectors: []string{"threshold", "anomaly", "pattern"},
 
 			RiskThreshold: 0.7,
@@ -2436,11 +2420,9 @@ func NewComprehensiveAccountingManager(config *AccountingManagerConfig) *Compreh
 
 			ModelUpdateInterval: 24 * time.Hour,
 		})
-
 	}
 
 	cam.rateLimitManager = NewRateLimitManager(&RateLimitConfig{
-
 		DefaultWindow: time.Minute,
 
 		DefaultLimit: 1000,
@@ -2451,7 +2433,6 @@ func NewComprehensiveAccountingManager(config *AccountingManagerConfig) *Compreh
 	})
 
 	cam.quotaManager = NewQuotaManager(&QuotaConfig{
-
 		DefaultPeriod: "monthly",
 
 		WarningThreshold: 0.8,
@@ -2463,7 +2444,6 @@ func NewComprehensiveAccountingManager(config *AccountingManagerConfig) *Compreh
 	})
 
 	cam.settlementManager = NewSettlementManager(&SettlementConfig{
-
 		DefaultCurrency: config.CurrencyCode,
 
 		ReconciliationTolerance: 0.01,
@@ -2473,7 +2453,6 @@ func NewComprehensiveAccountingManager(config *AccountingManagerConfig) *Compreh
 	})
 
 	cam.revenueTracking = NewRevenueTrackingService(&RevenueConfig{
-
 		TrackingGranularity: time.Hour,
 
 		ForecastHorizon: 90 * 24 * time.Hour,
@@ -2484,21 +2463,17 @@ func NewComprehensiveAccountingManager(config *AccountingManagerConfig) *Compreh
 	})
 
 	return cam
-
 }
 
 // Start starts the accounting manager.
 
 func (cam *ComprehensiveAccountingManager) Start(ctx context.Context) error {
-
 	cam.mutex.Lock()
 
 	defer cam.mutex.Unlock()
 
 	if cam.running {
-
 		return fmt.Errorf("accounting manager already running")
-
 	}
 
 	logger := log.FromContext(ctx)
@@ -2508,45 +2483,33 @@ func (cam *ComprehensiveAccountingManager) Start(ctx context.Context) error {
 	// Start usage collection.
 
 	if err := cam.usageCollector.Start(ctx); err != nil {
-
 		return fmt.Errorf("failed to start usage collector: %w", err)
-
 	}
 
 	// Start metering engine.
 
 	if err := cam.meteringEngine.Start(ctx); err != nil {
-
 		return fmt.Errorf("failed to start metering engine: %w", err)
-
 	}
 
 	// Start billing engine.
 
 	if err := cam.billingEngine.Start(ctx); err != nil {
-
 		return fmt.Errorf("failed to start billing engine: %w", err)
-
 	}
 
 	// Start usage aggregator.
 
 	if err := cam.usageAggregator.Start(ctx); err != nil {
-
 		logger.Error(err, "failed to start usage aggregator")
-
 	}
 
 	// Start fraud detection if enabled.
 
 	if cam.fraudDetection != nil {
-
 		if err := cam.fraudDetection.Start(ctx); err != nil {
-
 			logger.Error(err, "failed to start fraud detection")
-
 		}
-
 	}
 
 	cam.running = true
@@ -2554,21 +2517,17 @@ func (cam *ComprehensiveAccountingManager) Start(ctx context.Context) error {
 	logger.Info("comprehensive accounting manager started successfully")
 
 	return nil
-
 }
 
 // Stop stops the accounting manager.
 
 func (cam *ComprehensiveAccountingManager) Stop(ctx context.Context) error {
-
 	cam.mutex.Lock()
 
 	defer cam.mutex.Unlock()
 
 	if !cam.running {
-
 		return nil
-
 	}
 
 	logger := log.FromContext(ctx)
@@ -2580,33 +2539,23 @@ func (cam *ComprehensiveAccountingManager) Stop(ctx context.Context) error {
 	// Stop all components.
 
 	if cam.usageCollector != nil {
-
 		cam.usageCollector.Stop(ctx)
-
 	}
 
 	if cam.meteringEngine != nil {
-
 		cam.meteringEngine.Stop(ctx)
-
 	}
 
 	if cam.billingEngine != nil {
-
 		cam.billingEngine.Stop(ctx)
-
 	}
 
 	if cam.usageAggregator != nil {
-
 		cam.usageAggregator.Stop(ctx)
-
 	}
 
 	if cam.fraudDetection != nil {
-
 		cam.fraudDetection.Stop(ctx)
-
 	}
 
 	cam.running = false
@@ -2614,7 +2563,6 @@ func (cam *ComprehensiveAccountingManager) Stop(ctx context.Context) error {
 	logger.Info("comprehensive accounting manager stopped")
 
 	return nil
-
 }
 
 // Core accounting operations.
@@ -2622,7 +2570,6 @@ func (cam *ComprehensiveAccountingManager) Stop(ctx context.Context) error {
 // RecordUsage records a usage event.
 
 func (cam *ComprehensiveAccountingManager) RecordUsage(ctx context.Context, event *UsageEvent) error {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("recording usage event", "eventID", event.ID, "resourceType", event.ResourceType)
@@ -2630,9 +2577,7 @@ func (cam *ComprehensiveAccountingManager) RecordUsage(ctx context.Context, even
 	// Check rate limits.
 
 	if violation := cam.rateLimitManager.CheckLimit(event.ResourceType, event.ElementID); violation != nil {
-
 		return fmt.Errorf("rate limit exceeded: %s", violation.ID)
-
 	}
 
 	// Check quotas.
@@ -2658,49 +2603,39 @@ func (cam *ComprehensiveAccountingManager) RecordUsage(ctx context.Context, even
 	cam.metrics.UsageEventsProcessed.Inc()
 
 	return nil
-
 }
 
 // GetUsageRecords retrieves usage records with filtering.
 
 func (cam *ComprehensiveAccountingManager) GetUsageRecords(ctx context.Context, query *UsageQuery) ([]*UsageEvent, error) {
-
 	return cam.usageStorage.Query(ctx, query)
-
 }
 
 // GenerateBill generates a bill for a billing cycle.
 
 func (cam *ComprehensiveAccountingManager) GenerateBill(ctx context.Context, cycleID string) (*BillingCycle, error) {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("generating bill", "cycleID", cycleID)
 
 	cycle, err := cam.billingEngine.GenerateBill(ctx, cycleID)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to generate bill: %w", err)
-
 	}
 
 	cam.metrics.BillingCyclesGenerated.Inc()
 
 	return cycle, nil
-
 }
 
 // ProcessPayment processes a payment.
 
 func (cam *ComprehensiveAccountingManager) ProcessPayment(ctx context.Context, payment *PaymentTransaction) (*PaymentTransaction, error) {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("processing payment", "paymentID", payment.ID, "amount", payment.Amount)
 
 	result, err := cam.billingEngine.ProcessPayment(ctx, payment)
-
 	if err != nil {
 
 		cam.metrics.PaymentsProcessed.WithLabelValues("failed").Inc()
@@ -2712,15 +2647,12 @@ func (cam *ComprehensiveAccountingManager) ProcessPayment(ctx context.Context, p
 	cam.metrics.PaymentsProcessed.WithLabelValues("success").Inc()
 
 	return result, nil
-
 }
 
 // GetAccountingStatistics returns comprehensive accounting statistics.
 
 func (cam *ComprehensiveAccountingManager) GetAccountingStatistics(ctx context.Context) (*AccountingStatistics, error) {
-
 	stats := &AccountingStatistics{
-
 		UsageEventsTotal: cam.getUsageEventsCount(),
 
 		BillingCyclesActive: cam.getActiveBillingCycles(),
@@ -2737,133 +2669,106 @@ func (cam *ComprehensiveAccountingManager) GetAccountingStatistics(ctx context.C
 	}
 
 	return stats, nil
-
 }
 
 // Helper methods and placeholder implementations.
 
 func (cam *ComprehensiveAccountingManager) getUsageEventsCount() int64 {
-
 	// Placeholder - would query actual storage.
 
 	return 1000000
-
 }
 
 func (cam *ComprehensiveAccountingManager) getActiveBillingCycles() int {
-
 	// Placeholder - would query billing engine.
 
 	return 250
-
 }
 
 func (cam *ComprehensiveAccountingManager) getTotalRevenue() float64 {
-
 	// Placeholder - would query revenue tracking.
 
 	return 5000000.00
-
 }
 
 func (cam *ComprehensiveAccountingManager) getPendingPayments() int {
-
 	// Placeholder - would query payment processor.
 
 	return 125
-
 }
 
 func (cam *ComprehensiveAccountingManager) getActiveFraudAlerts() int {
-
 	// Placeholder - would query fraud detection.
 
 	if cam.fraudDetection != nil {
-
 		return cam.fraudDetection.GetActiveAlerts()
-
 	}
 
 	return 0
-
 }
 
 func (cam *ComprehensiveAccountingManager) assessSystemHealth() string {
-
 	// Placeholder - would assess overall system health.
 
 	return "HEALTHY"
-
 }
 
 func initializeAccountingMetrics() *AccountingMetrics {
-
 	return &AccountingMetrics{
-
 		UsageEventsProcessed: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "oran_accounting_usage_events_processed_total",
 
 			Help: "Total number of usage events processed",
 		}),
 
 		ProcessingErrors: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "oran_accounting_processing_errors_total",
 
 			Help: "Total number of processing errors",
 		}),
 
 		BillingCyclesGenerated: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "oran_accounting_billing_cycles_generated_total",
 
 			Help: "Total number of billing cycles generated",
 		}),
 
 		InvoicesGenerated: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "oran_accounting_invoices_generated_total",
 
 			Help: "Total number of invoices generated",
 		}),
 
 		PaymentsProcessed: promauto.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "oran_accounting_payments_processed_total",
 
 			Help: "Total number of payments processed",
 		}, []string{"status"}),
 
 		FraudAlertsGenerated: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "oran_accounting_fraud_alerts_generated_total",
 
 			Help: "Total number of fraud alerts generated",
 		}),
 
 		QuotaViolations: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "oran_accounting_quota_violations_total",
 
 			Help: "Total number of quota violations",
 		}),
 
 		RateLimitViolations: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "oran_accounting_rate_limit_violations_total",
 
 			Help: "Total number of rate limit violations",
 		}),
 
 		RevenueTracked: promauto.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "oran_accounting_revenue_tracked",
 
 			Help: "Revenue tracked by category",
 		}, []string{"category", "currency"}),
 	}
-
 }
 
 // AccountingStatistics provides comprehensive accounting statistics.
@@ -2891,9 +2796,7 @@ type AccountingStatistics struct {
 // NewUsageDataCollector performs newusagedatacollector operation.
 
 func NewUsageDataCollector(config *CollectorConfig) *UsageDataCollector {
-
 	return &UsageDataCollector{
-
 		collectors: make(map[string]*ResourceCollector),
 
 		collectionQueue: make(chan *UsageEvent, config.MaxEventQueueSize),
@@ -2904,33 +2807,27 @@ func NewUsageDataCollector(config *CollectorConfig) *UsageDataCollector {
 
 		config: config,
 	}
-
 }
 
 // Start performs start operation.
 
 func (udc *UsageDataCollector) Start(ctx context.Context) error {
-
 	udc.running = true
 
 	return udc.workerPool.Start(ctx)
-
 }
 
 // Stop performs stop operation.
 
 func (udc *UsageDataCollector) Stop(ctx context.Context) error {
-
 	udc.running = false
 
 	return udc.workerPool.Stop(ctx)
-
 }
 
 // ProcessEvent performs processevent operation.
 
 func (udc *UsageDataCollector) ProcessEvent(ctx context.Context, event *UsageEvent) error {
-
 	select {
 
 	case udc.collectionQueue <- event:
@@ -2942,15 +2839,12 @@ func (udc *UsageDataCollector) ProcessEvent(ctx context.Context, event *UsageEve
 		return fmt.Errorf("collection queue full")
 
 	}
-
 }
 
 // NewUsageWorkerPool performs newusageworkerpool operation.
 
 func NewUsageWorkerPool(workers int) *UsageWorkerPool {
-
 	return &UsageWorkerPool{
-
 		workers: workers,
 
 		eventQueue: make(chan *UsageEvent, workers*2),
@@ -2959,7 +2853,6 @@ func NewUsageWorkerPool(workers int) *UsageWorkerPool {
 
 		stopChan: make(chan struct{}),
 	}
-
 }
 
 // Start performs start operation.
@@ -2973,9 +2866,7 @@ func (uwp *UsageWorkerPool) Stop(ctx context.Context) error { uwp.running = fals
 // NewMeteringEngine performs newmeteringengine operation.
 
 func NewMeteringEngine(config *MeteringConfig) *MeteringEngine {
-
 	return &MeteringEngine{
-
 		meters: make(map[string]*UsageMeter),
 
 		calculators: make(map[string]*UsageCalculator),
@@ -2984,7 +2875,6 @@ func NewMeteringEngine(config *MeteringConfig) *MeteringEngine {
 
 		config: config,
 	}
-
 }
 
 // Start performs start operation.
@@ -2998,9 +2888,7 @@ func (me *MeteringEngine) Stop(ctx context.Context) error { return nil }
 // NewBillingEngine performs newbillingengine operation.
 
 func NewBillingEngine(config *BillingConfig) *BillingEngine {
-
 	return &BillingEngine{
-
 		billingCycles: make(map[string]*BillingCycle),
 
 		invoiceGenerator: &InvoiceGenerator{},
@@ -3015,7 +2903,6 @@ func NewBillingEngine(config *BillingConfig) *BillingEngine {
 
 		config: config,
 	}
-
 }
 
 // Start performs start operation.
@@ -3029,27 +2916,21 @@ func (be *BillingEngine) Stop(ctx context.Context) error { return nil }
 // GenerateBill performs generatebill operation.
 
 func (be *BillingEngine) GenerateBill(ctx context.Context, cycleID string) (*BillingCycle, error) {
-
 	return &BillingCycle{ID: cycleID}, nil
-
 }
 
 // ProcessPayment performs processpayment operation.
 
 func (be *BillingEngine) ProcessPayment(ctx context.Context, payment *PaymentTransaction) (*PaymentTransaction, error) {
-
 	payment.Status = "COMPLETED"
 
 	return payment, nil
-
 }
 
 // NewChargingManager performs newchargingmanager operation.
 
 func NewChargingManager(config *ChargingConfig) *ChargingManager {
-
 	return &ChargingManager{
-
 		chargingRules: make([]*ChargingRule, 0),
 
 		rateCards: make(map[string]*RateCard),
@@ -3060,22 +2941,18 @@ func NewChargingManager(config *ChargingConfig) *ChargingManager {
 
 		config: config,
 	}
-
 }
 
 // NewUsageAggregator performs newusageaggregator operation.
 
 func NewUsageAggregator(config *AggregationConfig) *UsageAggregator {
-
 	return &UsageAggregator{
-
 		aggregators: make(map[string]*DataAggregator),
 
 		schedules: make(map[string]*AggregationSchedule),
 
 		config: config,
 	}
-
 }
 
 // Start performs start operation.
@@ -3089,48 +2966,37 @@ func (ua *UsageAggregator) Stop(ctx context.Context) error { ua.running = false;
 // NewAccountingReportGenerator performs newaccountingreportgenerator operation.
 
 func NewAccountingReportGenerator(config *ReportingConfig) *AccountingReportGenerator {
-
 	return &AccountingReportGenerator{
-
 		templates: make(map[string]*ReportTemplate),
 
 		generators: make(map[string]ReportGenerator),
 
 		config: config,
 	}
-
 }
 
 // NewAccountingAuditTrail performs newaccountingaudittrail operation.
 
 func NewAccountingAuditTrail(retention time.Duration) *AccountingAuditTrail {
-
 	return &AccountingAuditTrail{
-
 		entries: make([]*AuditEntry, 0),
 	}
-
 }
 
 // NewDataRetentionManager performs newdataretentionmanager operation.
 
 func NewDataRetentionManager(config *RetentionConfig) *DataRetentionManager {
-
 	return &DataRetentionManager{
-
 		policies: make(map[string]*RetentionPolicy),
 
 		config: config,
 	}
-
 }
 
 // NewRateLimitManager performs newratelimitmanager operation.
 
 func NewRateLimitManager(config *RateLimitConfig) *RateLimitManager {
-
 	return &RateLimitManager{
-
 		limiters: make(map[string]*ResourceLimiter),
 
 		policies: make([]*RateLimitPolicy, 0),
@@ -3139,25 +3005,20 @@ func NewRateLimitManager(config *RateLimitConfig) *RateLimitManager {
 
 		config: config,
 	}
-
 }
 
 // CheckLimit performs checklimit operation.
 
 func (rlm *RateLimitManager) CheckLimit(resourceType, elementID string) *RateLimitViolation {
-
 	// Placeholder - would implement actual rate limiting.
 
 	return nil
-
 }
 
 // NewQuotaManager performs newquotamanager operation.
 
 func NewQuotaManager(config *QuotaConfig) *QuotaManager {
-
 	return &QuotaManager{
-
 		quotas: make(map[string]*ResourceQuota),
 
 		usage: make(map[string]*QuotaUsage),
@@ -3168,25 +3029,20 @@ func NewQuotaManager(config *QuotaConfig) *QuotaManager {
 
 		config: config,
 	}
-
 }
 
 // CheckQuota performs checkquota operation.
 
 func (qm *QuotaManager) CheckQuota(resourceType, userID string, quantity float64) *QuotaViolation {
-
 	// Placeholder - would implement actual quota checking.
 
 	return nil
-
 }
 
 // NewFraudDetectionEngine performs newfrauddetectionengine operation.
 
 func NewFraudDetectionEngine(config *FraudDetectionConfig) *FraudDetectionEngine {
-
 	return &FraudDetectionEngine{
-
 		detectors: make(map[string]*FraudDetector),
 
 		rules: make([]*FraudRule, 0),
@@ -3197,7 +3053,6 @@ func NewFraudDetectionEngine(config *FraudDetectionConfig) *FraudDetectionEngine
 
 		config: config,
 	}
-
 }
 
 // Start performs start operation.
@@ -3215,9 +3070,7 @@ func (fde *FraudDetectionEngine) GetActiveAlerts() int { return 5 }
 // NewSettlementManager performs newsettlementmanager operation.
 
 func NewSettlementManager(config *SettlementConfig) *SettlementManager {
-
 	return &SettlementManager{
-
 		settlements: make(map[string]*Settlement),
 
 		reconciler: &SettlementReconciler{},
@@ -3226,15 +3079,12 @@ func NewSettlementManager(config *SettlementConfig) *SettlementManager {
 
 		config: config,
 	}
-
 }
 
 // NewRevenueTrackingService performs newrevenuetrackingservice operation.
 
 func NewRevenueTrackingService(config *RevenueConfig) *RevenueTrackingService {
-
 	return &RevenueTrackingService{
-
 		trackers: make(map[string]*RevenueTracker),
 
 		metrics: make(map[string]*RevenueMetric),
@@ -3245,7 +3095,6 @@ func NewRevenueTrackingService(config *RevenueConfig) *RevenueTrackingService {
 
 		config: config,
 	}
-
 }
 
 // Missing types for compilation.
@@ -3303,7 +3152,7 @@ type ScheduleEntry struct {
 
 	TaskType string `json:"task_type"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 }
 
 // DataArchiver handles data archiving operations.

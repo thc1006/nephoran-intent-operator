@@ -643,9 +643,7 @@ func (s *IntegrationTestSuite) GetControllerMetrics() (map[string]map[string]flo
 }
 
 var _ = Describe("Controller Integration and Coordination", func() {
-	var (
-		suite *IntegrationTestSuite
-	)
+	var suite *IntegrationTestSuite
 
 	BeforeEach(func() {
 		suite = NewIntegrationTestSuite()

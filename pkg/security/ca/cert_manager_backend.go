@@ -25,7 +25,6 @@ type CertManagerBackend struct {
 // CertManagerConfig holds cert-manager specific configuration.
 
 type CertManagerConfig struct {
-
 	// Issuer configuration.
 
 	IssuerName string `yaml:"issuer_name"`
@@ -218,26 +217,20 @@ type ServiceAccountRef struct {
 // NewCertManagerBackend creates a new cert-manager backend.
 
 func NewCertManagerBackend(logger *logging.StructuredLogger, client client.Client) (Backend, error) {
-
 	return &CertManagerBackend{
-
 		logger: logger,
 
 		client: client,
 	}, nil
-
 }
 
 // Initialize initializes the cert-manager backend.
 
 func (b *CertManagerBackend) Initialize(ctx context.Context, config interface{}) error {
-
 	cmConfig, ok := config.(*CertManagerConfig)
 
 	if !ok {
-
 		return fmt.Errorf("invalid cert-manager config type")
-
 	}
 
 	b.config = cmConfig
@@ -245,17 +238,13 @@ func (b *CertManagerBackend) Initialize(ctx context.Context, config interface{})
 	// Validate configuration.
 
 	if err := b.validateConfig(); err != nil {
-
 		return fmt.Errorf("cert-manager config validation failed: %w", err)
-
 	}
 
 	// Check if issuer exists and is ready.
 
 	if err := b.verifyIssuer(ctx); err != nil {
-
 		return fmt.Errorf("issuer verification failed: %w", err)
-
 	}
 
 	b.logger.Info("cert-manager backend initialized successfully",
@@ -267,23 +256,19 @@ func (b *CertManagerBackend) Initialize(ctx context.Context, config interface{})
 		"namespace", b.config.IssuerNamespace)
 
 	return nil
-
 }
 
 // HealthCheck performs health check on the cert-manager backend.
 
 func (b *CertManagerBackend) HealthCheck(ctx context.Context) error {
-
 	// Check if issuer is ready.
 
 	return b.verifyIssuer(ctx)
-
 }
 
 // IssueCertificate issues a certificate using cert-manager.
 
 func (b *CertManagerBackend) IssueCertificate(ctx context.Context, req *CertificateRequest) (*CertificateResponse, error) {
-
 	b.logger.Info("issuing certificate via cert-manager",
 
 		"request_id", req.ID,
@@ -299,7 +284,6 @@ func (b *CertManagerBackend) IssueCertificate(ctx context.Context, req *Certific
 	// Return a stub response for now.
 
 	return &CertificateResponse{
-
 		RequestID: req.ID,
 
 		Status: CertStatusPending,
@@ -308,13 +292,11 @@ func (b *CertManagerBackend) IssueCertificate(ctx context.Context, req *Certific
 
 		CreatedAt: time.Now(),
 	}, fmt.Errorf("cert-manager backend is not fully implemented")
-
 }
 
 // RevokeCertificate revokes a certificate.
 
 func (b *CertManagerBackend) RevokeCertificate(ctx context.Context, serialNumber string, reason int) error {
-
 	// cert-manager doesn't directly support certificate revocation.
 
 	// This would depend on the underlying issuer (ACME, Vault, etc.).
@@ -332,13 +314,11 @@ func (b *CertManagerBackend) RevokeCertificate(ctx context.Context, serialNumber
 	// For Vault issuers, we can use Vault's revocation API.
 
 	return fmt.Errorf("revocation not implemented for cert-manager backend")
-
 }
 
 // RenewCertificate renews a certificate.
 
 func (b *CertManagerBackend) RenewCertificate(ctx context.Context, req *CertificateRequest) (*CertificateResponse, error) {
-
 	b.logger.Info("renewing certificate via cert-manager",
 
 		"request_id", req.ID,
@@ -350,7 +330,6 @@ func (b *CertManagerBackend) RenewCertificate(ctx context.Context, req *Certific
 	// Stub implementation.
 
 	return &CertificateResponse{
-
 		RequestID: req.ID,
 
 		Status: CertStatusPending,
@@ -359,13 +338,11 @@ func (b *CertManagerBackend) RenewCertificate(ctx context.Context, req *Certific
 
 		CreatedAt: time.Now(),
 	}, fmt.Errorf("cert-manager backend renewal is not fully implemented")
-
 }
 
 // GetCAChain retrieves the CA certificate chain.
 
 func (b *CertManagerBackend) GetCAChain(ctx context.Context) ([]*x509.Certificate, error) {
-
 	// The CA chain depends on the issuer type.
 
 	// For CA issuers, we can get the CA certificate from the secret.
@@ -379,25 +356,20 @@ func (b *CertManagerBackend) GetCAChain(ctx context.Context) ([]*x509.Certificat
 	// This would be issuer-specific logic.
 
 	return nil, fmt.Errorf("CA chain retrieval not implemented for cert-manager backend")
-
 }
 
 // GetCRL retrieves the Certificate Revocation List.
 
 func (b *CertManagerBackend) GetCRL(ctx context.Context) (*pkix.CertificateList, error) {
-
 	// CRL availability depends on the issuer.
 
 	return nil, fmt.Errorf("CRL retrieval not implemented for cert-manager backend")
-
 }
 
 // GetBackendInfo returns backend information.
 
 func (b *CertManagerBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, error) {
-
 	return &BackendInfo{
-
 		Type: BackendCertManager,
 
 		Version: "cert-manager v1.x",
@@ -408,15 +380,12 @@ func (b *CertManagerBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, 
 
 		Features: b.GetSupportedFeatures(),
 	}, nil
-
 }
 
 // GetSupportedFeatures returns supported features.
 
 func (b *CertManagerBackend) GetSupportedFeatures() []string {
-
 	return []string{
-
 		"certificate_issuance",
 
 		"certificate_renewal",
@@ -429,89 +398,63 @@ func (b *CertManagerBackend) GetSupportedFeatures() []string {
 
 		"secret_management",
 	}
-
 }
 
 // Helper methods.
 
 func (b *CertManagerBackend) validateConfig() error {
-
 	if b.config.IssuerName == "" {
-
 		return fmt.Errorf("issuer name is required")
-
 	}
 
 	if b.config.IssuerKind == "" {
-
 		b.config.IssuerKind = "Issuer" // Default to Issuer
-
 	}
 
 	if b.config.IssuerKind != "Issuer" && b.config.IssuerKind != "ClusterIssuer" {
-
 		return fmt.Errorf("issuer kind must be 'Issuer' or 'ClusterIssuer'")
-
 	}
 
 	if b.config.CertificateNamespace == "" {
-
 		b.config.CertificateNamespace = "default"
-
 	}
 
 	if b.config.SecretNamePrefix == "" {
-
 		b.config.SecretNamePrefix = "nephoran-cert"
-
 	}
 
 	if b.config.DefaultDuration == 0 {
-
 		b.config.DefaultDuration = 24 * 30 * time.Hour // 30 days
-
 	}
 
 	if b.config.RenewBefore == 0 {
-
 		b.config.RenewBefore = 24 * 7 * time.Hour // 7 days
-
 	}
 
 	if b.config.RevisionLimit == 0 {
-
 		b.config.RevisionLimit = 3
-
 	}
 
 	return nil
-
 }
 
 func (b *CertManagerBackend) verifyIssuer(ctx context.Context) error {
-
 	// Simplified stub implementation - in real implementation would check cert-manager CRDs.
 
 	b.logger.Info("Verifying cert-manager issuer", "issuer", b.config.IssuerName, "kind", b.config.IssuerKind)
 
 	return nil
-
 }
 
 func (b *CertManagerBackend) generateCertificateName(req *CertificateRequest) string {
-
 	return fmt.Sprintf("%s-%s", b.config.SecretNamePrefix, req.ID)
-
 }
 
 func (b *CertManagerBackend) generateSecretName(req *CertificateRequest) string {
-
 	return fmt.Sprintf("%s-%s-tls", b.config.SecretNamePrefix, req.ID)
-
 }
 
 func (b *CertManagerBackend) convertKeyUsages(keyUsage, extKeyUsage []string) []string {
-
 	// Stub implementation - would convert to cert-manager KeyUsage types.
 
 	var usages []string
@@ -521,15 +464,12 @@ func (b *CertManagerBackend) convertKeyUsages(keyUsage, extKeyUsage []string) []
 	usages = append(usages, extKeyUsage...)
 
 	return usages
-
 }
 
 func (b *CertManagerBackend) waitForCertificateReady(ctx context.Context, certName string, req *CertificateRequest) (*CertificateResponse, error) {
-
 	// Stub implementation.
 
 	return &CertificateResponse{
-
 		RequestID: req.ID,
 
 		Status: CertStatusPending,
@@ -538,15 +478,12 @@ func (b *CertManagerBackend) waitForCertificateReady(ctx context.Context, certNa
 
 		CreatedAt: time.Now(),
 	}, fmt.Errorf("cert-manager wait not implemented")
-
 }
 
 func (b *CertManagerBackend) buildCertificateResponse(ctx context.Context, certName string, req *CertificateRequest) (*CertificateResponse, error) {
-
 	// Stub implementation.
 
 	return &CertificateResponse{
-
 		RequestID: req.ID,
 
 		Status: CertStatusPending,
@@ -555,5 +492,4 @@ func (b *CertManagerBackend) buildCertificateResponse(ctx context.Context, certN
 
 		CreatedAt: time.Now(),
 	}, fmt.Errorf("cert-manager response building not implemented")
-
 }

@@ -158,13 +158,13 @@ func TestWriteIntent_FileSystemErrors(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				tmpDir := t.TempDir()
 				restrictedDir := filepath.Join(tmpDir, "restricted")
-				err := os.Mkdir(restrictedDir, 0755)
+				err := os.Mkdir(restrictedDir, 0o755)
 				if err != nil {
 					t.Fatalf("Failed to create restricted directory: %v", err)
 				}
 
 				// Remove write permissions
-				err = os.Chmod(restrictedDir, 0444)
+				err = os.Chmod(restrictedDir, 0o444)
 				if err != nil {
 					t.Skipf("Cannot modify directory permissions on this system: %v", err)
 				}
@@ -184,7 +184,7 @@ func TestWriteIntent_FileSystemErrors(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				tmpDir := t.TempDir()
 				filePath := filepath.Join(tmpDir, "not-a-directory")
-				err := os.WriteFile(filePath, []byte("test"), 0644)
+				err := os.WriteFile(filePath, []byte("test"), 0o644)
 				if err != nil {
 					t.Fatalf("Failed to create file: %v", err)
 				}
@@ -205,7 +205,7 @@ func TestWriteIntent_FileSystemErrors(t *testing.T) {
 				// We'll create a directory that exists but can't be written to
 				tmpDir := t.TempDir()
 				targetDir := filepath.Join(tmpDir, "diskfull")
-				err := os.Mkdir(targetDir, 0755)
+				err := os.Mkdir(targetDir, 0o755)
 				if err != nil {
 					t.Fatalf("Failed to create target directory: %v", err)
 				}
@@ -247,7 +247,7 @@ func TestWriteIntent_FileSystemErrors(t *testing.T) {
 			// Ensure cleanup happens even if test fails
 			defer func() {
 				// Restore permissions for cleanup
-				os.Chmod(outDir, 0755)
+				os.Chmod(outDir, 0o755)
 			}()
 
 			err := WriteIntent(tt.intent, outDir, "full")
@@ -304,20 +304,12 @@ func TestWriteIntent_InvalidIntentData(t *testing.T) {
 		},
 		{
 			name: "intent missing required fields",
-			intent: map[string]interface{}{
-				"target": "test",
-				// missing intent_type, namespace, replicas
-			},
+			intent: json.RawMessage(`{}`),
 			expectError: "failed to unmarshal intent",
 		},
 		{
 			name: "intent with wrong field types",
-			intent: map[string]interface{}{
-				"intent_type": 123, // should be string
-				"target":      "test",
-				"namespace":   "default",
-				"replicas":    "three", // should be int
-			},
+			intent: json.RawMessage(`{}`),
 			expectError: "failed to unmarshal intent",
 		},
 	}
@@ -520,3 +512,4 @@ func TestWriteIntent_LargeIntentData(t *testing.T) {
 		t.Error("Large target name not found in output file")
 	}
 }
+

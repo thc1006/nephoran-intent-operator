@@ -1,4 +1,4 @@
-package webui
+package nephiowebui
 
 import (
 	"encoding/json"
@@ -24,20 +24,16 @@ type PackageHandlers struct {
 // NewPackageHandlers creates a new PackageHandlers instance.
 
 func NewPackageHandlers(logger *zap.Logger, kubeClient kubernetes.Interface) *PackageHandlers {
-
 	return &PackageHandlers{
-
 		logger: logger,
 
 		kubeClient: kubeClient,
 	}
-
 }
 
 // ListPackages handles GET request to list package revisions.
 
 func (h *PackageHandlers) ListPackages(w http.ResponseWriter, r *http.Request) {
-
 	page, err := strconv.Atoi(r.URL.Query().Get("page"))
 	if err != nil {
 		page = 0
@@ -49,15 +45,11 @@ func (h *PackageHandlers) ListPackages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if page < 1 {
-
 		page = 1
-
 	}
 
 	if pageSize < 1 || pageSize > 100 {
-
 		pageSize = 20
-
 	}
 
 	// TODO: Implement actual package listing logic.
@@ -65,13 +57,10 @@ func (h *PackageHandlers) ListPackages(w http.ResponseWriter, r *http.Request) {
 	// This is a placeholder implementation.
 
 	packages := []PackageRevision{
-
 		{
-
 			ID: uuid.New(),
 
 			Spec: PackageRevisionSpec{
-
 				Name: "example-package",
 
 				Repository: "nephio-packages",
@@ -82,7 +71,6 @@ func (h *PackageHandlers) ListPackages(w http.ResponseWriter, r *http.Request) {
 			},
 
 			Status: PackageRevisionStatus{
-
 				Phase: "Ready",
 			},
 		},
@@ -93,11 +81,9 @@ func (h *PackageHandlers) ListPackages(w http.ResponseWriter, r *http.Request) {
 
 		PaginationResponse
 	}{
-
 		Packages: packages,
 
 		PaginationResponse: PaginationResponse{
-
 			Total: int64(len(packages)),
 
 			Page: page,
@@ -111,13 +97,11 @@ func (h *PackageHandlers) ListPackages(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(response)
-
 }
 
 // CreatePackage handles POST request to create a new package revision.
 
 func (h *PackageHandlers) CreatePackage(w http.ResponseWriter, r *http.Request) {
-
 	var packageSpec PackageRevisionSpec
 
 	if err := json.NewDecoder(r.Body).Decode(&packageSpec); err != nil {
@@ -131,7 +115,6 @@ func (h *PackageHandlers) CreatePackage(w http.ResponseWriter, r *http.Request) 
 	// TODO: Implement package creation logic with Nephio Porch.
 
 	newPackage := PackageRevision{
-
 		ID: uuid.New(),
 
 		Spec: packageSpec,
@@ -139,7 +122,6 @@ func (h *PackageHandlers) CreatePackage(w http.ResponseWriter, r *http.Request) 
 		CreatedAt: time.Now(),
 
 		Status: PackageRevisionStatus{
-
 			Phase: "Creating",
 		},
 	}
@@ -149,13 +131,11 @@ func (h *PackageHandlers) CreatePackage(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusCreated)
 
 	json.NewEncoder(w).Encode(newPackage)
-
 }
 
 // GetPackage handles GET request to retrieve a specific package revision.
 
 func (h *PackageHandlers) GetPackage(w http.ResponseWriter, r *http.Request) {
-
 	vars := mux.Vars(r)
 
 	packageID := vars["id"]
@@ -163,11 +143,9 @@ func (h *PackageHandlers) GetPackage(w http.ResponseWriter, r *http.Request) {
 	// TODO: Implement package retrieval logic.
 
 	packageRevision := PackageRevision{
-
 		ID: uuid.MustParse(packageID),
 
 		Spec: PackageRevisionSpec{
-
 			Name: "example-package",
 
 			Repository: "nephio-packages",
@@ -178,7 +156,6 @@ func (h *PackageHandlers) GetPackage(w http.ResponseWriter, r *http.Request) {
 		},
 
 		Status: PackageRevisionStatus{
-
 			Phase: "Ready",
 		},
 	}
@@ -186,13 +163,11 @@ func (h *PackageHandlers) GetPackage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(packageRevision)
-
 }
 
 // UpdatePackage handles PUT request to update an existing package revision.
 
 func (h *PackageHandlers) UpdatePackage(w http.ResponseWriter, r *http.Request) {
-
 	vars := mux.Vars(r)
 
 	packageID := vars["id"]
@@ -210,7 +185,6 @@ func (h *PackageHandlers) UpdatePackage(w http.ResponseWriter, r *http.Request) 
 	// TODO: Implement package update logic with Nephio Porch.
 
 	updatedPackage := PackageRevision{
-
 		ID: uuid.MustParse(packageID),
 
 		Spec: updateSpec,
@@ -218,7 +192,6 @@ func (h *PackageHandlers) UpdatePackage(w http.ResponseWriter, r *http.Request) 
 		UpdatedAt: time.Now(),
 
 		Status: PackageRevisionStatus{
-
 			Phase: "Updating",
 		},
 	}
@@ -226,13 +199,11 @@ func (h *PackageHandlers) UpdatePackage(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(updatedPackage)
-
 }
 
 // DeletePackage handles DELETE request to remove a package revision.
 
 func (h *PackageHandlers) DeletePackage(w http.ResponseWriter, r *http.Request) {
-
 	vars := mux.Vars(r)
 
 	_ = vars["id"]
@@ -240,7 +211,6 @@ func (h *PackageHandlers) DeletePackage(w http.ResponseWriter, r *http.Request) 
 	// TODO: Implement package deletion logic with Nephio Porch.
 
 	w.WriteHeader(http.StatusNoContent)
-
 }
 
 // ClusterHandlers manages HTTP handlers for cluster-related operations.
@@ -254,20 +224,16 @@ type ClusterHandlers struct {
 // NewClusterHandlers creates a new ClusterHandlers instance.
 
 func NewClusterHandlers(logger *zap.Logger, kubeClient kubernetes.Interface) *ClusterHandlers {
-
 	return &ClusterHandlers{
-
 		logger: logger,
 
 		kubeClient: kubeClient,
 	}
-
 }
 
 // ListClusters handles GET request to list workload clusters.
 
 func (h *ClusterHandlers) ListClusters(w http.ResponseWriter, r *http.Request) {
-
 	page, err := strconv.Atoi(r.URL.Query().Get("page"))
 	if err != nil {
 		page = 0
@@ -279,23 +245,17 @@ func (h *ClusterHandlers) ListClusters(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if page < 1 {
-
 		page = 1
-
 	}
 
 	if pageSize < 1 || pageSize > 100 {
-
 		pageSize = 20
-
 	}
 
 	// TODO: Implement actual cluster listing logic.
 
 	clusters := []WorkloadCluster{
-
 		{
-
 			Name: "cluster-01",
 
 			Namespace: "default",
@@ -311,11 +271,9 @@ func (h *ClusterHandlers) ListClusters(w http.ResponseWriter, r *http.Request) {
 
 		PaginationResponse
 	}{
-
 		Clusters: clusters,
 
 		PaginationResponse: PaginationResponse{
-
 			Total: int64(len(clusters)),
 
 			Page: page,
@@ -329,7 +287,6 @@ func (h *ClusterHandlers) ListClusters(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(response)
-
 }
 
 // NetworkIntentHandlers manages HTTP handlers for network intent processing.
@@ -343,20 +300,16 @@ type NetworkIntentHandlers struct {
 // NewNetworkIntentHandlers creates a new NetworkIntentHandlers instance.
 
 func NewNetworkIntentHandlers(logger *zap.Logger, kubeClient kubernetes.Interface) *NetworkIntentHandlers {
-
 	return &NetworkIntentHandlers{
-
 		logger: logger,
 
 		kubeClient: kubeClient,
 	}
-
 }
 
 // SubmitIntent handles POST request to submit a new network intent.
 
 func (h *NetworkIntentHandlers) SubmitIntent(w http.ResponseWriter, r *http.Request) {
-
 	var intentSpec NetworkIntentSpec
 
 	if err := json.NewDecoder(r.Body).Decode(&intentSpec); err != nil {
@@ -370,7 +323,6 @@ func (h *NetworkIntentHandlers) SubmitIntent(w http.ResponseWriter, r *http.Requ
 	// TODO: Implement network intent submission logic.
 
 	intent := NetworkIntent{
-
 		ID: uuid.New(),
 
 		Description: intentSpec.Type,
@@ -378,15 +330,12 @@ func (h *NetworkIntentHandlers) SubmitIntent(w http.ResponseWriter, r *http.Requ
 		Spec: intentSpec,
 
 		Status: NetworkIntentStatus{
-
 			Phase: "Submitted",
 
 			Progress: 0.0,
 
 			Conditions: []Condition{
-
 				{
-
 					Type: "Processing",
 
 					Status: "True",
@@ -405,13 +354,11 @@ func (h *NetworkIntentHandlers) SubmitIntent(w http.ResponseWriter, r *http.Requ
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		return
 	}
-
 }
 
 // ListIntents handles GET request to list network intents.
 
 func (h *NetworkIntentHandlers) ListIntents(w http.ResponseWriter, r *http.Request) {
-
 	page, err := strconv.Atoi(r.URL.Query().Get("page"))
 	if err != nil {
 		page = 0
@@ -423,44 +370,34 @@ func (h *NetworkIntentHandlers) ListIntents(w http.ResponseWriter, r *http.Reque
 	}
 
 	if page < 1 {
-
 		page = 1
-
 	}
 
 	if pageSize < 1 || pageSize > 100 {
-
 		pageSize = 20
-
 	}
 
 	// TODO: Implement actual intent listing logic.
 
 	intents := []NetworkIntent{
-
 		{
-
 			ID: uuid.New(),
 
 			Description: "Configure High Availability AMF",
 
 			Spec: NetworkIntentSpec{
-
 				Type: "amf_configuration",
 
 				TargetClusters: []string{"cluster-01"},
 			},
 
 			Status: NetworkIntentStatus{
-
 				Phase: "Processing",
 
 				Progress: 0.5,
 
 				Conditions: []Condition{
-
 					{
-
 						Type: "Deploying",
 
 						Status: "True",
@@ -477,11 +414,9 @@ func (h *NetworkIntentHandlers) ListIntents(w http.ResponseWriter, r *http.Reque
 
 		PaginationResponse
 	}{
-
 		Intents: intents,
 
 		PaginationResponse: PaginationResponse{
-
 			Total: int64(len(intents)),
 
 			Page: page,
@@ -495,7 +430,6 @@ func (h *NetworkIntentHandlers) ListIntents(w http.ResponseWriter, r *http.Reque
 	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(response)
-
 }
 
 // SystemHandlers manages system-related API endpoints.
@@ -509,24 +443,19 @@ type SystemHandlers struct {
 // NewSystemHandlers creates a new SystemHandlers instance.
 
 func NewSystemHandlers(logger *zap.Logger, kubeClient kubernetes.Interface) *SystemHandlers {
-
 	return &SystemHandlers{
-
 		logger: logger,
 
 		kubeClient: kubeClient,
 	}
-
 }
 
 // GetHealthStatus provides system health status.
 
 func (h *SystemHandlers) GetHealthStatus(w http.ResponseWriter, r *http.Request) {
-
 	// TODO: Implement comprehensive health check logic.
 
 	healthStatus := APIHealthStatus{
-
 		Status: "Healthy",
 
 		Version: "1.0.0",
@@ -534,7 +463,6 @@ func (h *SystemHandlers) GetHealthStatus(w http.ResponseWriter, r *http.Request)
 		Uptime: time.Since(time.Time{}),
 
 		Components: map[string]string{
-
 			"database": "Connected",
 
 			"cache": "Operational",
@@ -552,5 +480,4 @@ func (h *SystemHandlers) GetHealthStatus(w http.ResponseWriter, r *http.Request)
 	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(healthStatus)
-
 }

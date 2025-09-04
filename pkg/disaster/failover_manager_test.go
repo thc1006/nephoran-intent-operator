@@ -2,6 +2,7 @@ package disaster
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
@@ -288,7 +289,7 @@ func (suite *FailoverManagerTestSuite) TestGetFailoverHistory() {
 			Status:       "completed",
 			StartTime:    now.Add(-2 * time.Hour),
 			EndTime:      &now,
-			Metadata:     map[string]interface{}{"reason": "Health check failure"},
+			Metadata:     json.RawMessage(`{"reason":"Health check failure"}`),
 		},
 		{
 			ID:           "failover-2",
@@ -298,7 +299,7 @@ func (suite *FailoverManagerTestSuite) TestGetFailoverHistory() {
 			Status:       "completed",
 			StartTime:    now.Add(-1 * time.Hour),
 			EndTime:      &now,
-			Metadata:     map[string]interface{}{"reason": "Failback to primary"},
+			Metadata:     json.RawMessage(`{"reason":"Failback to primary"}`),
 		},
 	}
 
@@ -631,7 +632,7 @@ func (fm *FailoverManager) InitiateFailover(ctx context.Context, targetRegion, r
 		TargetRegion: targetRegion,
 		Status:       "in_progress",
 		StartTime:    start,
-		Metadata:     map[string]interface{}{"reason": reason},
+		Metadata:     json.RawMessage(`{}`),
 	}
 
 	// Update DNS record
@@ -690,3 +691,4 @@ func (fm *FailoverManager) updateDNSRecord(ctx context.Context, targetRegion str
 	// Simple test implementation
 	return nil // Skip DNS update in basic test
 }
+

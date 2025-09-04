@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // DocumentChunk represents a document chunk for RAG processing (stub type).
@@ -42,11 +42,9 @@ type DocumentChunk struct {
 }
 
 func main() {
-
 	// Test DocumentChunk type.
 
 	chunk := &DocumentChunk{
-
 		ID: "test_chunk_1",
 
 		DocumentID: "test_doc",
@@ -83,7 +81,6 @@ func main() {
 	// Test SearchQuery type.
 
 	query := &shared.SearchQuery{
-
 		Query: "test query",
 
 		Limit: 10,
@@ -113,6 +110,5 @@ func main() {
 
 	fmt.Printf("SearchQuery works: Query=%s\n", query.Query)
 
-	fmt.Println("✅ All types are working correctly!")
-
+	fmt.Println("??All types are working correctly!")
 }

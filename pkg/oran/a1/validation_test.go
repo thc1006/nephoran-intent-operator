@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"encoding/json"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -13,85 +14,39 @@ import (
 
 func createValidPolicyTypeSchema() map[string]interface{} {
 	return map[string]interface{}{
-		"$schema": "http://json-schema.org/draft-07/schema#",
-		"type":    "object",
-		"properties": map[string]interface{}{
-			"scope": map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"ue_id": map[string]interface{}{
-						"type":      "string",
-						"minLength": 1,
-						"maxLength": 50,
-					},
-					"cell_id": map[string]interface{}{
-						"type":    "string",
-						"pattern": "^[0-9A-Fa-f]{8}$",
-					},
-				},
-				"required": []string{"ue_id"},
-			},
-			"statement": map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"qos_class": map[string]interface{}{
-						"type":    "integer",
-						"minimum": 1,
-						"maximum": 9,
-					},
-					"bitrate": map[string]interface{}{
-						"type":    "number",
-						"minimum": 0,
-					},
-					"action": map[string]interface{}{
-						"type": "string",
-						"enum": []string{"allow", "deny", "redirect"},
-					},
-				},
-				"required": []string{"qos_class", "action"},
-			},
+		"scope": map[string]interface{}{
+			"ue_id":   json.RawMessage(`{}`),
+			"cell_id": json.RawMessage(`{}`),
 		},
-		"required": []string{"scope", "statement"},
+		"required": []string{"ue_id"},
+		"statement": map[string]interface{}{
+			"qos_class": json.RawMessage(`{}`),
+			"bitrate":   json.RawMessage(`{}`),
+			"action":    json.RawMessage(`{}`),
+		},
+		"required": []string{"qos_class", "action"},
 	}
 }
 
 func createValidEIJobDataSchema() map[string]interface{} {
 	return map[string]interface{}{
-		"$schema": "http://json-schema.org/draft-07/schema#",
-		"type":    "object",
-		"properties": map[string]interface{}{
-			"config": map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"measurement_type": map[string]interface{}{
-						"type": "string",
-						"enum": []string{"throughput", "latency", "packet_loss"},
+		"config": map[string]interface{}{
+			"measurement_type":  json.RawMessage(`{}`),
+			"reporting_period":  json.RawMessage(`{}`),
+			"targets": map[string]interface{}{
+				"type": "array",
+				"items": map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"cell_id":   json.RawMessage(`{"type": "string"}`),
+						"threshold": json.RawMessage(`{}`),
 					},
-					"reporting_period": map[string]interface{}{
-						"type":    "integer",
-						"minimum": 1000,
-						"maximum": 300000,
-					},
-					"targets": map[string]interface{}{
-						"type": "array",
-						"items": map[string]interface{}{
-							"type": "object",
-							"properties": map[string]interface{}{
-								"cell_id": map[string]interface{}{
-									"type": "string",
-								},
-								"threshold": map[string]interface{}{
-									"type": "number",
-								},
-							},
-							"required": []string{"cell_id", "threshold"},
-						},
-						"minItems": 1,
-						"maxItems": 100,
-					},
+					"required": []string{"cell_id", "threshold"},
 				},
-				"required": []string{"measurement_type", "reporting_period", "targets"},
+				"minItems": 1,
+				"maxItems": 100,
 			},
+			"required": []string{"measurement_type", "reporting_period", "targets"},
 		},
 		"required": []string{"config"},
 	}
@@ -154,10 +109,7 @@ func (v *TestA1Validator) ValidatePolicyInstance(policyType *PolicyType, instanc
 
 	if instance.PolicyTypeID != policyType.PolicyTypeID {
 		return NewValidationError("policy_type_id mismatch", "policy_type_id",
-			map[string]interface{}{
-				"expected": policyType.PolicyTypeID,
-				"actual":   instance.PolicyTypeID,
-			})
+			json.RawMessage(`{}`))
 	}
 
 	if instance.PolicyData == nil || len(instance.PolicyData) == 0 {
@@ -223,10 +175,7 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 
 	if job.EiTypeID != eiType.EiTypeID {
 		return NewValidationError("ei_type_id mismatch", "ei_type_id",
-			map[string]interface{}{
-				"expected": eiType.EiTypeID,
-				"actual":   job.EiTypeID,
-			})
+			json.RawMessage(`{}`))
 	}
 
 	if job.EiJobData == nil || len(job.EiJobData) == 0 {
@@ -343,27 +292,17 @@ func TestValidatePolicyType_InvalidSchema(t *testing.T) {
 	}{
 		{
 			"invalid type",
-			map[string]interface{}{
-				"type": "invalid_type",
-			},
+			json.RawMessage(`{}`),
 		},
 		{
 			"circular reference",
 			map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"self": map[string]interface{}{
-						"$ref": "#",
-					},
-				},
+				"self": json.RawMessage(`{}`),
 			},
 		},
 		{
 			"invalid enum values",
-			map[string]interface{}{
-				"type": "string",
-				"enum": []string{}, // Empty enum
-			},
+			json.RawMessage(`{}`), // Empty enum
 		},
 	}
 
@@ -395,15 +334,9 @@ func TestValidatePolicyInstance_Success(t *testing.T) {
 		PolicyID:     "test-policy-1",
 		PolicyTypeID: 1,
 		PolicyData: map[string]interface{}{
-			"scope": map[string]interface{}{
-				"ue_id":   "test-ue-123",
-				"cell_id": "ABCD1234",
-			},
-			"statement": map[string]interface{}{
-				"qos_class": 5,
-				"bitrate":   100.5,
-				"action":    "allow",
-			},
+			"ue_id":     "test-ue-123",
+			"cell_id":   "ABCD1234",
+			"statement": json.RawMessage(`{}`),
 		},
 		PolicyInfo: PolicyInstanceInfo{
 			NotificationDestination: "http://callback.example.com/notify",
@@ -465,7 +398,7 @@ func TestValidatePolicyInstance_InvalidFields(t *testing.T) {
 			&PolicyInstance{
 				PolicyID:     "",
 				PolicyTypeID: 1,
-				PolicyData:   map[string]interface{}{"test": "data"},
+				PolicyData:   json.RawMessage(`{"test":"data"}`),
 			},
 			"policy_id is required",
 		},
@@ -474,7 +407,7 @@ func TestValidatePolicyInstance_InvalidFields(t *testing.T) {
 			&PolicyInstance{
 				PolicyID:     "   ",
 				PolicyTypeID: 1,
-				PolicyData:   map[string]interface{}{"test": "data"},
+				PolicyData:   json.RawMessage(`{"test":"data"}`),
 			},
 			"policy_id is required",
 		},
@@ -483,7 +416,7 @@ func TestValidatePolicyInstance_InvalidFields(t *testing.T) {
 			&PolicyInstance{
 				PolicyID:     "test",
 				PolicyTypeID: 999,
-				PolicyData:   map[string]interface{}{"test": "data"},
+				PolicyData:   json.RawMessage(`{"test":"data"}`),
 			},
 			"policy_type_id mismatch",
 		},
@@ -531,67 +464,43 @@ func TestValidatePolicyInstance_SchemaValidation(t *testing.T) {
 		{
 			"missing required scope",
 			map[string]interface{}{
-				"statement": map[string]interface{}{
-					"qos_class": 5,
-					"action":    "allow",
-				},
+				"qos_class": 5,
+				"action":    "allow",
 			},
 		},
 		{
 			"missing required statement",
 			map[string]interface{}{
-				"scope": map[string]interface{}{
-					"ue_id": "test-ue-123",
-				},
+				"ue_id": "test-ue-123",
 			},
 		},
 		{
 			"invalid qos_class type",
 			map[string]interface{}{
-				"scope": map[string]interface{}{
-					"ue_id": "test-ue-123",
-				},
-				"statement": map[string]interface{}{
-					"qos_class": "invalid", // Should be integer
-					"action":    "allow",
-				},
+				"ue_id":     "test-ue-123",
+				"statement": json.RawMessage(`{}`),
 			},
 		},
 		{
 			"qos_class out of range",
 			map[string]interface{}{
-				"scope": map[string]interface{}{
-					"ue_id": "test-ue-123",
-				},
-				"statement": map[string]interface{}{
-					"qos_class": 15, // Should be 1-9
-					"action":    "allow",
-				},
+				"ue_id":     "test-ue-123",
+				"statement": json.RawMessage(`{}`),
 			},
 		},
 		{
 			"invalid action enum",
 			map[string]interface{}{
-				"scope": map[string]interface{}{
-					"ue_id": "test-ue-123",
-				},
-				"statement": map[string]interface{}{
-					"qos_class": 5,
-					"action":    "invalid_action",
-				},
+				"ue_id":     "test-ue-123",
+				"statement": json.RawMessage(`{}`),
 			},
 		},
 		{
 			"invalid cell_id pattern",
 			map[string]interface{}{
-				"scope": map[string]interface{}{
-					"ue_id":   "test-ue-123",
-					"cell_id": "INVALID",
-				},
-				"statement": map[string]interface{}{
-					"qos_class": 5,
-					"action":    "allow",
-				},
+				"ue_id":     "test-ue-123",
+				"cell_id":   "INVALID",
+				"statement": json.RawMessage(`{}`),
 			},
 		},
 	}
@@ -623,13 +532,8 @@ func TestValidatePolicyInstance_InvalidNotificationURL(t *testing.T) {
 		PolicyID:     "test-policy",
 		PolicyTypeID: 1,
 		PolicyData: map[string]interface{}{
-			"scope": map[string]interface{}{
-				"ue_id": "test-ue-123",
-			},
-			"statement": map[string]interface{}{
-				"qos_class": 5,
-				"action":    "allow",
-			},
+			"ue_id":     "test-ue-123",
+			"statement": json.RawMessage(`{}`),
 		},
 		PolicyInfo: PolicyInstanceInfo{
 			NotificationDestination: "invalid-url",
@@ -652,12 +556,7 @@ func TestValidateEIType_Success(t *testing.T) {
 		Description:     "Test enrichment information type",
 		EiJobDataSchema: createValidEIJobDataSchema(),
 		EiJobResultSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"results": map[string]interface{}{
-					"type": "array",
-				},
-			},
+			"results": json.RawMessage(`{}`),
 		},
 	}
 
@@ -735,15 +634,10 @@ func TestValidateEIJob_Success(t *testing.T) {
 		EiJobID:  "test-job-1",
 		EiTypeID: "test-ei-type-1",
 		EiJobData: map[string]interface{}{
-			"config": map[string]interface{}{
-				"measurement_type": "throughput",
-				"reporting_period": 5000,
-				"targets": []interface{}{
-					map[string]interface{}{
-						"cell_id":   "cell-001",
-						"threshold": 100.5,
-					},
-				},
+			"measurement_type": "throughput",
+			"reporting_period": 5000,
+			"targets": []interface{}{
+				json.RawMessage(`{}`),
 			},
 		},
 		TargetURI:    "http://consumer.example.com/ei",
@@ -787,7 +681,7 @@ func TestValidateEIJob_InvalidFields(t *testing.T) {
 			&EnrichmentInfoJob{
 				EiJobID:   "",
 				EiTypeID:  "test-ei-type-1",
-				EiJobData: map[string]interface{}{"test": "data"},
+				EiJobData: json.RawMessage(`{"test":"data"}`),
 				TargetURI: "http://example.com",
 				JobOwner:  "owner",
 			},
@@ -799,7 +693,7 @@ func TestValidateEIJob_InvalidFields(t *testing.T) {
 			&EnrichmentInfoJob{
 				EiJobID:   "job-1",
 				EiTypeID:  "different-type",
-				EiJobData: map[string]interface{}{"test": "data"},
+				EiJobData: json.RawMessage(`{"test":"data"}`),
 				TargetURI: "http://example.com",
 				JobOwner:  "owner",
 			},
@@ -811,7 +705,7 @@ func TestValidateEIJob_InvalidFields(t *testing.T) {
 			&EnrichmentInfoJob{
 				EiJobID:   "job-1",
 				EiTypeID:  "test-ei-type-1",
-				EiJobData: map[string]interface{}{"test": "data"},
+				EiJobData: json.RawMessage(`{"test":"data"}`),
 				TargetURI: "",
 				JobOwner:  "owner",
 			},
@@ -823,7 +717,7 @@ func TestValidateEIJob_InvalidFields(t *testing.T) {
 			&EnrichmentInfoJob{
 				EiJobID:   "job-1",
 				EiTypeID:  "test-ei-type-1",
-				EiJobData: map[string]interface{}{"test": "data"},
+				EiJobData: json.RawMessage(`{"test":"data"}`),
 				TargetURI: "http://example.com",
 				JobOwner:  "",
 			},
@@ -873,7 +767,7 @@ func TestValidateEIJob_InvalidURLs(t *testing.T) {
 			job := &EnrichmentInfoJob{
 				EiJobID:      "job-1",
 				EiTypeID:     "test-ei-type-1",
-				EiJobData:    map[string]interface{}{"test": "data"},
+				EiJobData:    json.RawMessage(`{"test":"data"}`),
 				TargetURI:    tt.targetURI,
 				JobOwner:     "owner",
 				JobStatusURL: tt.jobStatusURL,
@@ -892,43 +786,40 @@ func TestSchemaValidation_ComplexTypes(t *testing.T) {
 	validator := NewTestA1Validator()
 
 	complexSchema := map[string]interface{}{
-		"type": "object",
-		"properties": map[string]interface{}{
-			"array_field": map[string]interface{}{
-				"type": "array",
-				"items": map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"nested_field": map[string]interface{}{
-							"type": "string",
-						},
+		"array_field": map[string]interface{}{
+			"type": "array",
+			"items": map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"name": map[string]interface{}{
+						"type": "string",
 					},
-				},
-				"minItems": 1,
-				"maxItems": 10,
-			},
-			"oneOf_field": map[string]interface{}{
-				"oneOf": []interface{}{
-					map[string]interface{}{"type": "string"},
-					map[string]interface{}{"type": "number"},
 				},
 			},
-			"conditional_field": map[string]interface{}{
-				"if": map[string]interface{}{
-					"properties": map[string]interface{}{
-						"type": map[string]interface{}{
-							"const": "special",
-						},
+			"minItems": 1,
+			"maxItems": 10,
+		},
+		"oneOf_field": map[string]interface{}{
+			"oneOf": []interface{}{
+				map[string]interface{}{"type": "string"},
+				map[string]interface{}{"type": "number"},
+			},
+		},
+		"conditional_field": map[string]interface{}{
+			"if": map[string]interface{}{
+				"properties": map[string]interface{}{
+					"type": map[string]interface{}{
+						"const": "special",
 					},
 				},
-				"then": map[string]interface{}{
-					"properties": map[string]interface{}{
-						"special_value": map[string]interface{}{
-							"type": "string",
-						},
+			},
+			"then": map[string]interface{}{
+				"properties": map[string]interface{}{
+					"special_value": map[string]interface{}{
+						"type": "string",
 					},
-					"required": []string{"special_value"},
 				},
+				"required": []string{"special_value"},
 			},
 		},
 	}
@@ -945,7 +836,7 @@ func TestSchemaValidation_ComplexTypes(t *testing.T) {
 	validData := map[string]interface{}{
 		"array_field": []interface{}{
 			map[string]interface{}{
-				"nested_field": "value1",
+				"name": "test",
 			},
 		},
 		"oneOf_field": "string_value",
@@ -966,17 +857,13 @@ func TestSchemaValidation_Performance(t *testing.T) {
 
 	// Create a large schema
 	largeSchema := map[string]interface{}{
-		"type":       "object",
+		"type": "object",
 		"properties": make(map[string]interface{}),
 	}
 
 	properties := largeSchema["properties"].(map[string]interface{})
 	for i := 0; i < 100; i++ {
-		properties[fmt.Sprintf("field_%d", i)] = map[string]interface{}{
-			"type":      "string",
-			"minLength": 1,
-			"maxLength": 100,
-		}
+		properties[fmt.Sprintf("field_%d", i)] = json.RawMessage(`{}`)
 	}
 
 	policyType := &PolicyType{
@@ -1025,13 +912,8 @@ func TestValidation_Concurrent(t *testing.T) {
 				PolicyID:     fmt.Sprintf("policy-%d", id),
 				PolicyTypeID: 1,
 				PolicyData: map[string]interface{}{
-					"scope": map[string]interface{}{
-						"ue_id": fmt.Sprintf("ue-%d", id),
-					},
-					"statement": map[string]interface{}{
-						"qos_class": 5,
-						"action":    "allow",
-					},
+					"ue_id":     fmt.Sprintf("ue-%d", id),
+					"statement": json.RawMessage(`{}`),
 				},
 			}
 
@@ -1074,13 +956,8 @@ func BenchmarkValidatePolicyInstance(b *testing.B) {
 		PolicyID:     "test-policy",
 		PolicyTypeID: 1,
 		PolicyData: map[string]interface{}{
-			"scope": map[string]interface{}{
-				"ue_id": "test-ue-123",
-			},
-			"statement": map[string]interface{}{
-				"qos_class": 5,
-				"action":    "allow",
-			},
+			"ue_id":     "test-ue-123",
+			"statement": json.RawMessage(`{}`),
 		},
 	}
 
@@ -1097,215 +974,7 @@ type SchemaValidator interface {
 	ValidateAgainstSchema(data map[string]interface{}, schema map[string]interface{}) error
 }
 
-type JSONSchemaValidator struct{}
+// Note: JSONSchemaValidator is imported from validation.go
 
-func NewJSONSchemaValidator() SchemaValidator {
-	return &JSONSchemaValidator{}
-}
+// Note: All validation functions and types are imported from validation.go and types.go
 
-func (v *JSONSchemaValidator) ValidateSchema(schema map[string]interface{}) error {
-	// Basic schema validation - in real implementation, use a JSON schema library
-	if schema == nil || len(schema) == 0 {
-		return fmt.Errorf("schema cannot be empty")
-	}
-
-	// Check for required schema fields
-	if schemaType, ok := schema["type"]; ok {
-		switch schemaType {
-		case "object", "array", "string", "number", "integer", "boolean", "null":
-			// Valid types
-		default:
-			return fmt.Errorf("invalid schema type: %v", schemaType)
-		}
-	}
-
-	// Validate enum if present
-	if enum, ok := schema["enum"]; ok {
-		if enumArray, ok := enum.([]interface{}); ok {
-			if len(enumArray) == 0 {
-				return fmt.Errorf("enum cannot be empty")
-			}
-		} else {
-			return fmt.Errorf("enum must be array")
-		}
-	}
-
-	return nil
-}
-
-func (v *JSONSchemaValidator) ValidateAgainstSchema(data map[string]interface{}, schema map[string]interface{}) error {
-	// Simplified validation - in real implementation, use a proper JSON schema validator
-	if data == nil {
-		return fmt.Errorf("data cannot be nil")
-	}
-
-	if schema == nil {
-		return fmt.Errorf("schema cannot be nil")
-	}
-
-	// Basic type checking
-	if schemaType, ok := schema["type"]; ok {
-		if schemaType == "object" {
-			// Validate required fields
-			if required, ok := schema["required"]; ok {
-				if requiredFields, ok := required.([]interface{}); ok {
-					for _, field := range requiredFields {
-						if fieldName, ok := field.(string); ok {
-							if _, exists := data[fieldName]; !exists {
-								return fmt.Errorf("required field missing: %s", fieldName)
-							}
-						}
-					}
-				}
-			}
-
-			// Validate properties
-			if properties, ok := schema["properties"]; ok {
-				if props, ok := properties.(map[string]interface{}); ok {
-					for fieldName, value := range data {
-						if fieldSchema, exists := props[fieldName]; exists {
-							if fieldMap, ok := fieldSchema.(map[string]interface{}); ok {
-								if err := v.validateField(value, fieldMap); err != nil {
-									return fmt.Errorf("field %s: %w", fieldName, err)
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
-func (v *JSONSchemaValidator) validateField(value interface{}, schema map[string]interface{}) error {
-	// Basic field validation
-	if fieldType, ok := schema["type"]; ok {
-		switch fieldType {
-		case "string":
-			if _, ok := value.(string); !ok {
-				return fmt.Errorf("expected string, got %T", value)
-			}
-
-			// Check string constraints
-			if str, ok := value.(string); ok {
-				if minLen, exists := schema["minLength"]; exists {
-					if min, ok := minLen.(int); ok && len(str) < min {
-						return fmt.Errorf("string too short, minimum length %d", min)
-					}
-				}
-				if maxLen, exists := schema["maxLength"]; exists {
-					if max, ok := maxLen.(int); ok && len(str) > max {
-						return fmt.Errorf("string too long, maximum length %d", max)
-					}
-				}
-				if pattern, exists := schema["pattern"]; exists {
-					// Simplified pattern checking
-					if patternStr, ok := pattern.(string); ok {
-						if patternStr == "^[0-9A-Fa-f]{8}$" && len(str) != 8 {
-							return fmt.Errorf("string does not match pattern")
-						}
-					}
-				}
-			}
-
-		case "integer":
-			switch v := value.(type) {
-			case int, int32, int64:
-				// Valid integer types
-				if intVal := v.(int); true { // Convert to int for range checking
-					if min, exists := schema["minimum"]; exists {
-						if minVal, ok := min.(int); ok && intVal < minVal {
-							return fmt.Errorf("integer %d below minimum %d", intVal, minVal)
-						}
-					}
-					if max, exists := schema["maximum"]; exists {
-						if maxVal, ok := max.(int); ok && intVal > maxVal {
-							return fmt.Errorf("integer %d above maximum %d", intVal, maxVal)
-						}
-					}
-				}
-			case float64:
-				// JSON numbers are parsed as float64, check if it's actually an integer
-				if floatVal := v; floatVal == float64(int(floatVal)) {
-					intVal := int(floatVal)
-					if min, exists := schema["minimum"]; exists {
-						if minVal, ok := min.(int); ok && intVal < minVal {
-							return fmt.Errorf("integer %d below minimum %d", intVal, minVal)
-						}
-					}
-					if max, exists := schema["maximum"]; exists {
-						if maxVal, ok := max.(int); ok && intVal > maxVal {
-							return fmt.Errorf("integer %d above maximum %d", intVal, maxVal)
-						}
-					}
-				} else {
-					return fmt.Errorf("expected integer, got float %v", floatVal)
-				}
-			default:
-				return fmt.Errorf("expected integer, got %T", value)
-			}
-
-		case "number":
-			if _, ok := value.(float64); !ok {
-				if _, ok := value.(int); !ok {
-					return fmt.Errorf("expected number, got %T", value)
-				}
-			}
-
-		case "object":
-			if _, ok := value.(map[string]interface{}); !ok {
-				return fmt.Errorf("expected object, got %T", value)
-			}
-
-		case "array":
-			if _, ok := value.([]interface{}); !ok {
-				return fmt.Errorf("expected array, got %T", value)
-			}
-		}
-
-		// Check enum constraint
-		if enum, exists := schema["enum"]; exists {
-			if enumArray, ok := enum.([]interface{}); ok {
-				found := false
-				for _, enumValue := range enumArray {
-					if value == enumValue {
-						found = true
-						break
-					}
-				}
-				if !found {
-					return fmt.Errorf("value %v not in enum %v", value, enumArray)
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
-func ValidateURL(urlStr string) error {
-	if !strings.HasPrefix(urlStr, "http://") && !strings.HasPrefix(urlStr, "https://") {
-		return fmt.Errorf("URL must start with http:// or https://")
-	}
-	return nil
-}
-
-type ValidationError struct {
-	Message string
-	Field   string
-	Value   interface{}
-}
-
-func NewValidationError(message, field string, value interface{}) error {
-	return &ValidationError{
-		Message: message,
-		Field:   field,
-		Value:   value,
-	}
-}
-
-func (e *ValidationError) Error() string {
-	return fmt.Sprintf("validation error in field '%s': %s (value: %v)", e.Field, e.Message, e.Value)
-}

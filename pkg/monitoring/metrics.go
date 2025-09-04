@@ -3,6 +3,7 @@ package monitoring
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -23,7 +24,7 @@ type PrometheusMetricsCollector struct {
 	k8sClient  kubernetes.Interface
 	collectors map[string]*ComponentCollector
 	mu         sync.RWMutex
-	
+
 	// Custom metrics
 	scrapeErrors     prometheus.Counter
 	scrapeDuration   prometheus.Histogram
@@ -32,12 +33,12 @@ type PrometheusMetricsCollector struct {
 
 // ComponentCollector collects metrics for a specific component
 type ComponentCollector struct {
-	name      string
-	namespace string
-	selector  map[string]string
-	queries   []MetricQuery
+	name       string
+	namespace  string
+	selector   map[string]string
+	queries    []MetricQuery
 	lastScrape time.Time
-	registry  prometheus.Registerer
+	registry   prometheus.Registerer
 }
 
 // MetricQuery defines a Prometheus query for collecting metrics
@@ -55,7 +56,7 @@ func NewPrometheusMetricsCollector(prometheusURL string, k8sClient kubernetes.In
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Prometheus client: %w", err)
 	}
-	
+
 	pmc := &PrometheusMetricsCollector{
 		client:     client,
 		api:        v1.NewAPI(client),
@@ -63,7 +64,7 @@ func NewPrometheusMetricsCollector(prometheusURL string, k8sClient kubernetes.In
 		k8sClient:  k8sClient,
 		collectors: make(map[string]*ComponentCollector),
 	}
-	
+
 	pmc.initMetrics()
 	return pmc, nil
 }
@@ -74,18 +75,18 @@ func (pmc *PrometheusMetricsCollector) initMetrics() {
 		Name: "oran_metrics_scrape_errors_total",
 		Help: "Total number of metrics scrape errors",
 	})
-	
+
 	pmc.scrapeDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Name: "oran_metrics_scrape_duration_seconds",
-		Help: "Duration of metrics scrapes in seconds",
+		Name:    "oran_metrics_scrape_duration_seconds",
+		Help:    "Duration of metrics scrapes in seconds",
 		Buckets: prometheus.DefBuckets,
 	})
-	
+
 	pmc.metricsCollected = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "oran_metrics_collected_total",
 		Help: "Total number of metrics collected",
 	})
-	
+
 	if pmc.registry != nil {
 		pmc.registry.MustRegister(pmc.scrapeErrors)
 		pmc.registry.MustRegister(pmc.scrapeDuration)
@@ -98,21 +99,21 @@ func (pmc *PrometheusMetricsCollector) RegisterMetrics(registry prometheus.Regis
 	if registry == nil {
 		return fmt.Errorf("registry cannot be nil")
 	}
-	
+
 	pmc.registry = registry
 	pmc.initMetrics()
-	
+
 	return nil
 }
 
-// Start begins metrics collection
+// Start begins metrics collection - FIXED SIGNATURE
 func (pmc *PrometheusMetricsCollector) Start(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	logger.Info("Starting Prometheus metrics collector")
-	
+
 	// Start collection loop for registered collectors
 	go pmc.collectionLoop(ctx)
-	
+
 	return nil
 }
 
@@ -122,34 +123,34 @@ func (pmc *PrometheusMetricsCollector) Stop() error {
 	return nil
 }
 
-// CollectMetrics gathers metrics from the specified source
+// CollectMetrics gathers metrics from the specified source - FIXED SIGNATURE
 func (pmc *PrometheusMetricsCollector) CollectMetrics(ctx context.Context, source string) (*MetricsData, error) {
 	startTime := time.Now()
 	defer func() {
 		pmc.scrapeDuration.Observe(time.Since(startTime).Seconds())
 	}()
-	
+
 	pmc.mu.RLock()
 	collector, exists := pmc.collectors[source]
 	pmc.mu.RUnlock()
-	
+
 	if !exists {
 		pmc.scrapeErrors.Inc()
 		return nil, fmt.Errorf("collector not found for source: %s", source)
 	}
-	
+
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("Collecting metrics", "source", source)
-	
+
 	metricsData := &MetricsData{
 		Timestamp: time.Now(),
 		Source:    source,
 		Namespace: collector.namespace,
-		Metrics:   make(map[string]float64),
+		Metrics:   make(map[string]string),
 		Labels:    make(map[string]string),
-		Metadata:  make(map[string]interface{}),
+		Metadata:  json.RawMessage(`{}`),
 	}
-	
+
 	// Execute queries
 	for _, query := range collector.queries {
 		result, warnings, err := pmc.api.Query(ctx, query.Query, time.Now())
@@ -158,27 +159,29 @@ func (pmc *PrometheusMetricsCollector) CollectMetrics(ctx context.Context, sourc
 			logger.Error(err, "Failed to execute query", "query", query.Query)
 			continue
 		}
-		
+
 		if len(warnings) > 0 {
 			logger.V(1).Info("Query warnings", "warnings", warnings)
 		}
-		
+
 		// Process query result
 		if err := pmc.processQueryResult(query.Name, result, metricsData); err != nil {
 			logger.Error(err, "Failed to process query result", "query", query.Name)
 			continue
 		}
-		
+
 		pmc.metricsCollected.Inc()
 	}
-	
+
 	// Update last scrape time
 	pmc.mu.Lock()
 	collector.lastScrape = time.Now()
 	pmc.mu.Unlock()
-	
+
 	return metricsData, nil
 }
+
+// Removed duplicate CollectMetrics method - use the one with context
 
 // processQueryResult processes a Prometheus query result
 func (pmc *PrometheusMetricsCollector) processQueryResult(name string, result model.Value, data *MetricsData) error {
@@ -187,8 +190,8 @@ func (pmc *PrometheusMetricsCollector) processQueryResult(name string, result mo
 		// Handle vector results (instant vector)
 		for _, sample := range v {
 			metricName := fmt.Sprintf("%s_%s", name, string(sample.Metric[model.MetricNameLabel]))
-			data.Metrics[metricName] = float64(sample.Value)
-			
+			data.Metrics[metricName] = fmt.Sprintf("%.6f", float64(sample.Value))
+
 			// Add labels from the metric
 			for labelName, labelValue := range sample.Metric {
 				if labelName != model.MetricNameLabel {
@@ -203,8 +206,8 @@ func (pmc *PrometheusMetricsCollector) processQueryResult(name string, result mo
 				// Use the latest value
 				latest := sampleStream.Values[len(sampleStream.Values)-1]
 				metricName := fmt.Sprintf("%s_%s", name, string(sampleStream.Metric[model.MetricNameLabel]))
-				data.Metrics[metricName] = float64(latest.Value)
-				
+				data.Metrics[metricName] = fmt.Sprintf("%.6f", float64(latest.Value))
+
 				// Add labels from the metric
 				for labelName, labelValue := range sampleStream.Metric {
 					if labelName != model.MetricNameLabel {
@@ -215,14 +218,18 @@ func (pmc *PrometheusMetricsCollector) processQueryResult(name string, result mo
 		}
 	case *model.Scalar:
 		// Handle scalar results
-		data.Metrics[name] = float64(v.Value)
+		data.Metrics[name] = fmt.Sprintf("%.6f", float64(v.Value))
 	case *model.String:
 		// Handle string results (not common for metrics)
-		data.Metadata[name] = string(v.Value)
+		// Create a map and marshal to JSON for metadata
+		metadata := map[string]interface{}{name: string(v.Value)}
+		if metadataJSON, err := json.Marshal(metadata); err == nil {
+			data.Metadata = metadataJSON
+		}
 	default:
 		return fmt.Errorf("unsupported result type: %T", result)
 	}
-	
+
 	return nil
 }
 
@@ -230,7 +237,7 @@ func (pmc *PrometheusMetricsCollector) processQueryResult(name string, result mo
 func (pmc *PrometheusMetricsCollector) AddCollector(name, namespace string, selector map[string]string, queries []MetricQuery) error {
 	pmc.mu.Lock()
 	defer pmc.mu.Unlock()
-	
+
 	collector := &ComponentCollector{
 		name:      name,
 		namespace: namespace,
@@ -238,7 +245,7 @@ func (pmc *PrometheusMetricsCollector) AddCollector(name, namespace string, sele
 		queries:   queries,
 		registry:  pmc.registry,
 	}
-	
+
 	pmc.collectors[name] = collector
 	return nil
 }
@@ -254,7 +261,7 @@ func (pmc *PrometheusMetricsCollector) RemoveCollector(name string) {
 func (pmc *PrometheusMetricsCollector) GetCollectors() map[string]*ComponentCollector {
 	pmc.mu.RLock()
 	defer pmc.mu.RUnlock()
-	
+
 	collectors := make(map[string]*ComponentCollector)
 	for k, v := range pmc.collectors {
 		collectors[k] = v
@@ -266,10 +273,10 @@ func (pmc *PrometheusMetricsCollector) GetCollectors() map[string]*ComponentColl
 func (pmc *PrometheusMetricsCollector) collectionLoop(ctx context.Context) {
 	logger := log.FromContext(ctx)
 	logger.Info("Starting metrics collection loop")
-	
+
 	ticker := time.NewTicker(30 * time.Second) // Collect every 30 seconds
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -289,9 +296,9 @@ func (pmc *PrometheusMetricsCollector) collectAllMetrics(ctx context.Context) {
 		collectors[k] = v
 	}
 	pmc.mu.RUnlock()
-	
+
 	logger := log.FromContext(ctx)
-	
+
 	for name := range collectors {
 		if _, err := pmc.CollectMetrics(ctx, name); err != nil {
 			logger.Error(err, "Failed to collect metrics", "source", name)
@@ -303,7 +310,7 @@ func (pmc *PrometheusMetricsCollector) collectAllMetrics(ctx context.Context) {
 type KubernetesMetricsCollector struct {
 	client   kubernetes.Interface
 	registry prometheus.Registerer
-	
+
 	// Custom metrics
 	k8sAPIErrors   prometheus.Counter
 	k8sAPIDuration prometheus.Histogram
@@ -315,7 +322,7 @@ func NewKubernetesMetricsCollector(client kubernetes.Interface, registry prometh
 		client:   client,
 		registry: registry,
 	}
-	
+
 	kmc.initMetrics()
 	return kmc
 }
@@ -326,13 +333,13 @@ func (kmc *KubernetesMetricsCollector) initMetrics() {
 		Name: "oran_k8s_api_errors_total",
 		Help: "Total number of Kubernetes API errors",
 	})
-	
+
 	kmc.k8sAPIDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Name: "oran_k8s_api_duration_seconds",
-		Help: "Duration of Kubernetes API calls in seconds",
+		Name:    "oran_k8s_api_duration_seconds",
+		Help:    "Duration of Kubernetes API calls in seconds",
 		Buckets: prometheus.DefBuckets,
 	})
-	
+
 	if kmc.registry != nil {
 		kmc.registry.MustRegister(kmc.k8sAPIErrors)
 		kmc.registry.MustRegister(kmc.k8sAPIDuration)
@@ -344,22 +351,22 @@ func (kmc *KubernetesMetricsCollector) RegisterMetrics(registry prometheus.Regis
 	if registry == nil {
 		return fmt.Errorf("registry cannot be nil")
 	}
-	
+
 	kmc.registry = registry
 	kmc.initMetrics()
-	
+
 	return nil
 }
 
-// Start begins metrics collection
+// Start begins metrics collection - FIXED SIGNATURE
 func (kmc *KubernetesMetricsCollector) Start(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	logger.Info("Starting Kubernetes metrics collector")
-	
+
 	// Start collection tasks
 	go kmc.collectPodMetrics(ctx)
 	go kmc.collectNodeMetrics(ctx)
-	
+
 	return nil
 }
 
@@ -369,24 +376,16 @@ func (kmc *KubernetesMetricsCollector) Stop() error {
 	return nil
 }
 
-// CollectMetrics gathers metrics from Kubernetes API
+// CollectMetrics gathers metrics from Kubernetes API - FIXED SIGNATURE
 func (kmc *KubernetesMetricsCollector) CollectMetrics(ctx context.Context, source string) (*MetricsData, error) {
 	startTime := time.Now()
 	defer func() {
 		kmc.k8sAPIDuration.Observe(time.Since(startTime).Seconds())
 	}()
-	
+
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("Collecting Kubernetes metrics", "source", source)
-	
-	_ = &MetricsData{
-		Timestamp: time.Now(),
-		Source:    source,
-		Metrics:   make(map[string]float64),
-		Labels:    make(map[string]string),
-		Metadata:  make(map[string]interface{}),
-	}
-	
+
 	// Collect different types of metrics based on source
 	switch source {
 	case "pods":
@@ -401,11 +400,13 @@ func (kmc *KubernetesMetricsCollector) CollectMetrics(ctx context.Context, sourc
 	}
 }
 
+// Removed duplicate CollectMetrics method - use the one with context
+
 // collectPodMetrics collects pod-level metrics
 func (kmc *KubernetesMetricsCollector) collectPodMetrics(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -423,7 +424,7 @@ func (kmc *KubernetesMetricsCollector) collectPodMetrics(ctx context.Context) {
 func (kmc *KubernetesMetricsCollector) collectNodeMetrics(ctx context.Context) {
 	ticker := time.NewTicker(2 * time.Minute)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -441,13 +442,13 @@ func (kmc *KubernetesMetricsCollector) collectNodeMetrics(ctx context.Context) {
 func (kmc *KubernetesMetricsCollector) collectPodMetricsData(ctx context.Context) (*MetricsData, error) {
 	// TODO: Implement actual pod metrics collection
 	// This would query the Kubernetes API for pod information and metrics
-	
+
 	return &MetricsData{
 		Timestamp: time.Now(),
 		Source:    "pods",
-		Metrics:   make(map[string]float64),
+		Metrics:   make(map[string]string),
 		Labels:    make(map[string]string),
-		Metadata:  make(map[string]interface{}),
+		Metadata:  json.RawMessage(`{}`),
 	}, nil
 }
 
@@ -455,13 +456,13 @@ func (kmc *KubernetesMetricsCollector) collectPodMetricsData(ctx context.Context
 func (kmc *KubernetesMetricsCollector) collectNodeMetricsData(ctx context.Context) (*MetricsData, error) {
 	// TODO: Implement actual node metrics collection
 	// This would query the Kubernetes API for node information and metrics
-	
+
 	return &MetricsData{
 		Timestamp: time.Now(),
 		Source:    "nodes",
-		Metrics:   make(map[string]float64),
+		Metrics:   make(map[string]string),
 		Labels:    make(map[string]string),
-		Metadata:  make(map[string]interface{}),
+		Metadata:  json.RawMessage(`{}`),
 	}, nil
 }
 
@@ -469,23 +470,23 @@ func (kmc *KubernetesMetricsCollector) collectNodeMetricsData(ctx context.Contex
 func (kmc *KubernetesMetricsCollector) collectServiceMetricsData(ctx context.Context) (*MetricsData, error) {
 	// TODO: Implement actual service metrics collection
 	// This would query the Kubernetes API for service information and metrics
-	
+
 	return &MetricsData{
 		Timestamp: time.Now(),
 		Source:    "services",
-		Metrics:   make(map[string]float64),
+		Metrics:   make(map[string]string),
 		Labels:    make(map[string]string),
-		Metadata:  make(map[string]interface{}),
+		Metadata:  json.RawMessage(`{}`),
 	}, nil
 }
 
 // MetricsAggregator aggregates metrics from multiple sources
 type MetricsAggregator struct {
 	collectors []MetricsCollector
-	mu        sync.RWMutex
-	cache     map[string]*MetricsData
-	registry  prometheus.Registerer
-	
+	mu         sync.RWMutex
+	cache      map[string]*MetricsData
+	registry   prometheus.Registerer
+
 	// Aggregation metrics
 	aggregationErrors prometheus.Counter
 	aggregationTime   prometheus.Histogram
@@ -498,7 +499,7 @@ func NewMetricsAggregator(registry prometheus.Registerer) *MetricsAggregator {
 		cache:      make(map[string]*MetricsData),
 		registry:   registry,
 	}
-	
+
 	ma.initMetrics()
 	return ma
 }
@@ -509,13 +510,13 @@ func (ma *MetricsAggregator) initMetrics() {
 		Name: "oran_metrics_aggregation_errors_total",
 		Help: "Total number of metrics aggregation errors",
 	})
-	
+
 	ma.aggregationTime = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Name: "oran_metrics_aggregation_duration_seconds",
-		Help: "Duration of metrics aggregation in seconds",
+		Name:    "oran_metrics_aggregation_duration_seconds",
+		Help:    "Duration of metrics aggregation in seconds",
 		Buckets: prometheus.DefBuckets,
 	})
-	
+
 	if ma.registry != nil {
 		ma.registry.MustRegister(ma.aggregationErrors)
 		ma.registry.MustRegister(ma.aggregationTime)
@@ -534,45 +535,45 @@ func (ma *MetricsAggregator) RegisterMetrics(registry prometheus.Registerer) err
 	if registry == nil {
 		return fmt.Errorf("registry cannot be nil")
 	}
-	
+
 	ma.registry = registry
 	ma.initMetrics()
-	
+
 	// Register all collector metrics
 	ma.mu.RLock()
 	collectors := make([]MetricsCollector, len(ma.collectors))
 	copy(collectors, ma.collectors)
 	ma.mu.RUnlock()
-	
+
 	for _, collector := range collectors {
 		if err := collector.RegisterMetrics(registry); err != nil {
 			return fmt.Errorf("failed to register collector metrics: %w", err)
 		}
 	}
-	
+
 	return nil
 }
 
-// Start starts all collectors and begins aggregation
+// Start starts all collectors and begins aggregation - FIXED SIGNATURE
 func (ma *MetricsAggregator) Start(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	logger.Info("Starting metrics aggregator")
-	
+
 	// Start all collectors
 	ma.mu.RLock()
 	collectors := make([]MetricsCollector, len(ma.collectors))
 	copy(collectors, ma.collectors)
 	ma.mu.RUnlock()
-	
+
 	for _, collector := range collectors {
-		if err := collector.Start(); err != nil {
+		if err := collector.Start(ctx); err != nil {
 			return fmt.Errorf("failed to start collector: %w", err)
 		}
 	}
-	
+
 	// Start aggregation loop
 	go ma.aggregationLoop(ctx)
-	
+
 	return nil
 }
 
@@ -582,68 +583,70 @@ func (ma *MetricsAggregator) Stop() error {
 	collectors := make([]MetricsCollector, len(ma.collectors))
 	copy(collectors, ma.collectors)
 	ma.mu.RUnlock()
-	
+
 	for _, collector := range collectors {
 		if err := collector.Stop(); err != nil {
 			return fmt.Errorf("failed to stop collector: %w", err)
 		}
 	}
-	
+
 	return nil
 }
 
-// CollectMetrics aggregates metrics from all collectors for the specified source
+// CollectMetrics aggregates metrics from all collectors for the specified source - FIXED SIGNATURE
 func (ma *MetricsAggregator) CollectMetrics(ctx context.Context, source string) (*MetricsData, error) {
 	startTime := time.Now()
 	defer func() {
 		ma.aggregationTime.Observe(time.Since(startTime).Seconds())
 	}()
-	
+
 	ma.mu.RLock()
 	collectors := make([]MetricsCollector, len(ma.collectors))
 	copy(collectors, ma.collectors)
 	ma.mu.RUnlock()
-	
+
 	aggregated := &MetricsData{
 		Timestamp: time.Now(),
 		Source:    source,
-		Metrics:   make(map[string]float64),
+		Metrics:   make(map[string]string),
 		Labels:    make(map[string]string),
-		Metadata:  make(map[string]interface{}),
+		Metadata:  json.RawMessage(`{}`),
 	}
-	
+
 	for _, collector := range collectors {
-		metricsData, err := collector.CollectMetrics()
+		metricsData, err := collector.CollectMetrics(ctx, source)
 		if err != nil {
 			ma.aggregationErrors.Inc()
 			continue
 		}
-		
-		// Convert []*Metric to aggregated data
-		for _, metric := range metricsData {
-			aggregated.Metrics[metric.Name] = metric.Value
-			for k, v := range metric.Labels {
-				aggregated.Labels[k] = v
-			}
+
+		// Convert metrics map to aggregated data
+		for name, value := range metricsData.Metrics {
+			aggregated.Metrics[name] = value
+		}
+		for k, v := range metricsData.Labels {
+			aggregated.Labels[k] = v
 		}
 	}
-	
+
 	// Cache the result
 	ma.mu.Lock()
 	ma.cache[source] = aggregated
 	ma.mu.Unlock()
-	
+
 	return aggregated, nil
 }
+
+// Removed duplicate CollectMetrics method - use the one with context
 
 // aggregationLoop runs the main aggregation loop
 func (ma *MetricsAggregator) aggregationLoop(ctx context.Context) {
 	logger := log.FromContext(ctx)
 	logger.Info("Starting metrics aggregation loop")
-	
+
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -659,10 +662,10 @@ func (ma *MetricsAggregator) aggregationLoop(ctx context.Context) {
 func (ma *MetricsAggregator) performAggregation(ctx context.Context) {
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("Performing metrics aggregation")
-	
+
 	// Define sources to aggregate
 	sources := []string{"pods", "nodes", "services", "oran-components"}
-	
+
 	for _, source := range sources {
 		if _, err := ma.CollectMetrics(ctx, source); err != nil {
 			logger.Error(err, "Failed to aggregate metrics", "source", source)
@@ -674,7 +677,7 @@ func (ma *MetricsAggregator) performAggregation(ctx context.Context) {
 func (ma *MetricsAggregator) GetCachedMetrics(source string) (*MetricsData, bool) {
 	ma.mu.RLock()
 	defer ma.mu.RUnlock()
-	
+
 	data, exists := ma.cache[source]
 	return data, exists
 }

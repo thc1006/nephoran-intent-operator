@@ -10,13 +10,12 @@ import (
 	"github.com/go-logr/logr"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/optimization"
+	"github.com/thc1006/nephoran-intent-operator/pkg/optimization"
 )
 
 // Test that the PerformanceAnalysisEngine compiles and runs.
 
 func main() {
-
 	logger := logr.Discard()
 
 	var prometheusClient v1.API
@@ -32,13 +31,8 @@ func main() {
 	result, err := engine.AnalyzePerformance(ctx)
 
 	if err != nil {
-
 		log.Printf("Analysis failed: %v", err)
-
 	} else {
-
 		log.Printf("Analysis completed: %s, System Health: %s", result.AnalysisID, result.SystemHealth)
-
 	}
-
 }

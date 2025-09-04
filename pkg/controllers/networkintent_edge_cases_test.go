@@ -148,11 +148,7 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 			initialPhase:     "Pending",
 			mockSetup: func(deps *MockDependencies) {
 				// Valid LLM response but Git failure
-				llmResponse := map[string]interface{}{
-					"action":    "deploy",
-					"component": "5gc-core",
-					"namespace": "5g-core",
-				}
+				llmResponse := json.RawMessage(`{}`)
 				responseJSON, _ := json.Marshal(llmResponse)
 				deps.llmClient.SetResponse(string(responseJSON))
 				deps.gitClient.SetShouldFail(true)
@@ -175,10 +171,7 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 			initialPhase:     "Processing",
 			mockSetup: func(deps *MockDependencies) {
 				// Mock will simulate long processing time
-				llmResponse := map[string]interface{}{
-					"action":    "deploy",
-					"component": "amf",
-				}
+				llmResponse := json.RawMessage(`{}`)
 				responseJSON, _ := json.Marshal(llmResponse)
 				deps.llmClient.SetResponse(string(responseJSON))
 			},
@@ -197,10 +190,7 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
 			mockSetup: func(deps *MockDependencies) {
-				llmResponse := map[string]interface{}{
-					"action":    "deploy",
-					"component": "amf",
-				}
+				llmResponse := json.RawMessage(`{}`)
 				responseJSON, _ := json.Marshal(llmResponse)
 				deps.llmClient.SetResponse(string(responseJSON))
 			},
@@ -221,9 +211,7 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 			initialPhase:     "Pending",
 			mockSetup: func(deps *MockDependencies) {
 				llmResponse := map[string]interface{}{
-					"action":    "deploy",
-					"component": "amf",
-					"config": map[string]interface{}{
+					"resources": map[string]interface{}{
 						"cpu":    "500m",
 						"memory": "512Mi",
 						"ports":  []int{8080, 8443},
@@ -243,14 +231,11 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 		},
 		{
 			name:             "unicode_characters_in_intent",
-			intentText:       "Deploy AMF with 高性能 configuration for 5G 网络",
+			intentText:       "Deploy AMF with 高性能 configuration for 5G 网�?",
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
 			mockSetup: func(deps *MockDependencies) {
-				llmResponse := map[string]interface{}{
-					"action":    "deploy",
-					"component": "amf",
-				}
+				llmResponse := json.RawMessage(`{}`)
 				responseJSON, _ := json.Marshal(llmResponse)
 				deps.llmClient.SetResponse(string(responseJSON))
 			},
@@ -396,10 +381,7 @@ func TestConcurrentReconciliation(t *testing.T) {
 
 	// Setup mock dependencies
 	mockDeps := NewMockDependencies()
-	llmResponse := map[string]interface{}{
-		"action":    "deploy",
-		"component": "5gc",
-	}
+	llmResponse := json.RawMessage(`{}`)
 	responseJSON, _ := json.Marshal(llmResponse)
 	mockDeps.llmClient.SetResponse(string(responseJSON))
 
@@ -498,10 +480,7 @@ func TestResourceConstraints(t *testing.T) {
 
 			// Setup mock dependencies
 			mockDeps := NewMockDependencies()
-			llmResponse := map[string]interface{}{
-				"action":    "deploy",
-				"component": "amf",
-			}
+			llmResponse := json.RawMessage(`{}`)
 			responseJSON, _ := json.Marshal(llmResponse)
 			mockDeps.llmClient.SetResponse(string(responseJSON))
 
@@ -568,10 +547,7 @@ func TestNetworkPartitionScenarios(t *testing.T) {
 	assert.Equal(t, "Error", errorNI.Status.Phase)
 
 	// Simulate network recovery
-	llmResponse := map[string]interface{}{
-		"action":    "deploy",
-		"component": "amf",
-	}
+	llmResponse := json.RawMessage(`{}`)
 	responseJSON, _ := json.Marshal(llmResponse)
 	mockDeps.llmClient.SetError(nil)
 	mockDeps.llmClient.SetResponse(string(responseJSON))
@@ -614,7 +590,7 @@ func BenchmarkEdgeCaseProcessing(b *testing.B) {
 			name:   "LongIntent",
 			intent: strings.Repeat("Deploy comprehensive 5G network ", 50),
 			mockSetup: func(deps *MockDependencies) {
-				llmResponse := map[string]interface{}{"action": "deploy", "component": "5g"}
+				llmResponse := json.RawMessage(`{}`)
 				responseJSON, _ := json.Marshal(llmResponse)
 				deps.llmClient.SetResponse(string(responseJSON))
 			},
@@ -650,3 +626,4 @@ func BenchmarkEdgeCaseProcessing(b *testing.B) {
 		})
 	}
 }
+

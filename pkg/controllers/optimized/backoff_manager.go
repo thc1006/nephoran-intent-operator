@@ -74,9 +74,7 @@ type BackoffConfig struct {
 // DefaultBackoffConfigs provides sensible defaults for different error types.
 
 var DefaultBackoffConfigs = map[ErrorType]BackoffConfig{
-
 	TransientError: {
-
 		Strategy: ExponentialBackoff,
 
 		BaseDelay: 2 * time.Second,
@@ -91,7 +89,6 @@ var DefaultBackoffConfigs = map[ErrorType]BackoffConfig{
 	},
 
 	PermanentError: {
-
 		Strategy: ConstantBackoff,
 
 		BaseDelay: 30 * time.Second,
@@ -106,7 +103,6 @@ var DefaultBackoffConfigs = map[ErrorType]BackoffConfig{
 	},
 
 	ResourceError: {
-
 		Strategy: LinearBackoff,
 
 		BaseDelay: 5 * time.Second,
@@ -121,7 +117,6 @@ var DefaultBackoffConfigs = map[ErrorType]BackoffConfig{
 	},
 
 	ThrottlingError: {
-
 		Strategy: ExponentialBackoff,
 
 		BaseDelay: 10 * time.Second,
@@ -136,7 +131,6 @@ var DefaultBackoffConfigs = map[ErrorType]BackoffConfig{
 	},
 
 	ValidationError: {
-
 		Strategy: ConstantBackoff,
 
 		BaseDelay: 15 * time.Second,
@@ -180,34 +174,28 @@ type BackoffManager struct {
 // NewBackoffManager creates a new BackoffManager with default configurations.
 
 func NewBackoffManager() *BackoffManager {
-
 	return &BackoffManager{
-
 		entries: make(map[string]*BackoffEntry),
 
 		configs: DefaultBackoffConfigs,
 
 		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
-
 }
 
 // SetConfig updates the backoff configuration for a specific error type.
 
 func (bm *BackoffManager) SetConfig(errorType ErrorType, config BackoffConfig) {
-
 	bm.mu.Lock()
 
 	defer bm.mu.Unlock()
 
 	bm.configs[errorType] = config
-
 }
 
 // GetNextDelay calculates the next delay duration for a resource and error type.
 
 func (bm *BackoffManager) GetNextDelay(resourceKey string, errorType ErrorType, err error) time.Duration {
-
 	bm.mu.Lock()
 
 	defer bm.mu.Unlock()
@@ -263,9 +251,7 @@ func (bm *BackoffManager) GetNextDelay(resourceKey string, errorType ErrorType, 
 	// Apply maximum delay cap.
 
 	if delay > config.MaxDelay {
-
 		delay = config.MaxDelay
-
 	}
 
 	// Apply consecutive failure penalty.
@@ -275,9 +261,7 @@ func (bm *BackoffManager) GetNextDelay(resourceKey string, errorType ErrorType, 
 		penalty := time.Duration(float64(delay) * (1 + 0.5*float64(entry.ConsecutiveFails)))
 
 		if penalty <= config.MaxDelay {
-
 			delay = penalty
-
 		}
 
 	}
@@ -295,13 +279,11 @@ func (bm *BackoffManager) GetNextDelay(resourceKey string, errorType ErrorType, 
 	entry.CurrentDelay = delay
 
 	return delay
-
 }
 
 // ShouldRetry determines if a retry should be attempted based on current state.
 
 func (bm *BackoffManager) ShouldRetry(resourceKey string, errorType ErrorType) bool {
-
 	bm.mu.RLock()
 
 	defer bm.mu.RUnlock()
@@ -311,19 +293,15 @@ func (bm *BackoffManager) ShouldRetry(resourceKey string, errorType ErrorType) b
 	entry, exists := bm.entries[resourceKey]
 
 	if !exists {
-
 		return true // First attempt
-
 	}
 
 	return entry.RetryCount <= config.MaxRetries
-
 }
 
 // RecordSuccess resets the backoff state for a successful operation.
 
 func (bm *BackoffManager) RecordSuccess(resourceKey string) {
-
 	bm.mu.Lock()
 
 	defer bm.mu.Unlock()
@@ -337,37 +315,30 @@ func (bm *BackoffManager) RecordSuccess(resourceKey string) {
 		entry.ConsecutiveFails = 0
 
 	}
-
 }
 
 // GetRetryCount returns the current retry count for a resource.
 
 func (bm *BackoffManager) GetRetryCount(resourceKey string) int {
-
 	bm.mu.RLock()
 
 	defer bm.mu.RUnlock()
 
 	if entry, exists := bm.entries[resourceKey]; exists {
-
 		return entry.RetryCount
-
 	}
 
 	return 0
-
 }
 
 // CleanupStaleEntries removes entries older than the specified duration.
 
 func (bm *BackoffManager) CleanupStaleEntries(ctx context.Context, maxAge time.Duration) {
-
 	ticker := time.NewTicker(maxAge / 2) // Cleanup at half the max age
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -381,31 +352,22 @@ func (bm *BackoffManager) CleanupStaleEntries(ctx context.Context, maxAge time.D
 			cutoff := time.Now().Add(-maxAge)
 
 			for key, entry := range bm.entries {
-
 				if entry.LastAttempt.Before(cutoff) {
-
 					delete(bm.entries, key)
-
 				}
-
 			}
 
 			bm.mu.Unlock()
 
 		}
-
 	}
-
 }
 
 // ClassifyError attempts to classify an error into an appropriate ErrorType.
 
 func (bm *BackoffManager) ClassifyError(err error) ErrorType {
-
 	if err == nil {
-
 		return TransientError
-
 	}
 
 	errStr := err.Error()
@@ -439,19 +401,16 @@ func (bm *BackoffManager) ClassifyError(err error) ErrorType {
 		return TransientError // Default to transient for unknown errors
 
 	}
-
 }
 
 // GetBackoffStats returns statistics for monitoring.
 
 func (bm *BackoffManager) GetBackoffStats() BackoffStats {
-
 	bm.mu.RLock()
 
 	defer bm.mu.RUnlock()
 
 	stats := BackoffStats{
-
 		TotalEntries: len(bm.entries),
 
 		ErrorTypes: make(map[ErrorType]int),
@@ -486,7 +445,6 @@ func (bm *BackoffManager) GetBackoffStats() BackoffStats {
 	}
 
 	return stats
-
 }
 
 // BackoffStats contains statistics about backoff manager state.
@@ -502,15 +460,11 @@ type BackoffStats struct {
 // getOrCreateEntry gets or creates a backoff entry for a resource.
 
 func (bm *BackoffManager) getOrCreateEntry(resourceKey string) *BackoffEntry {
-
 	if entry, exists := bm.entries[resourceKey]; exists {
-
 		return entry
-
 	}
 
 	entry := &BackoffEntry{
-
 		RetryCount: 0,
 
 		LastAttempt: time.Now(),
@@ -523,31 +477,20 @@ func (bm *BackoffManager) getOrCreateEntry(resourceKey string) *BackoffEntry {
 	bm.entries[resourceKey] = entry
 
 	return entry
-
 }
 
 // containsAny checks if a string contains any of the provided substrings.
 
 func containsAny(s string, substrings []string) bool {
-
 	for _, substr := range substrings {
-
 		if substr != "" && len(s) >= len(substr) {
-
 			for i := 0; i <= len(s)-len(substr); i++ {
-
 				if s[i:i+len(substr)] == substr {
-
 					return true
-
 				}
-
 			}
-
 		}
-
 	}
 
 	return false
-
 }

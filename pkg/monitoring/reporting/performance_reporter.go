@@ -30,7 +30,6 @@ type PerformanceReporter struct {
 // ReporterConfig contains configuration for the performance reporter.
 
 type ReporterConfig struct {
-
 	// Report generation settings.
 
 	ReportInterval time.Duration `yaml:"reportInterval"`
@@ -66,7 +65,6 @@ type PerformanceThresholds struct {
 	RAGLatencyP95 float64 `yaml:"ragLatencyP95"` // 0.2 seconds
 
 	CacheHitRate float64 `yaml:"cacheHitRate"` // 87%
-
 }
 
 // NotificationConfig defines notification settings.
@@ -118,7 +116,6 @@ type WebhookConfig struct {
 // PerformanceReport represents a comprehensive performance report.
 
 type PerformanceReport struct {
-
 	// Report metadata.
 
 	ID string `json:"id"`
@@ -242,7 +239,6 @@ type IntentProcessingMetrics struct {
 	SuccessRate float64 `json:"successRate"` // percentage
 
 	AverageQueueTime float64 `json:"averageQueueTime"` // seconds
-
 }
 
 // RAGSystemMetrics contains RAG system performance data.
@@ -259,7 +255,6 @@ type RAGSystemMetrics struct {
 	QueriesPerSecond float64 `json:"queriesPerSecond"`
 
 	EmbeddingLatency float64 `json:"embeddingLatency"` // seconds
-
 }
 
 // CacheSystemMetrics contains cache performance data.
@@ -278,7 +273,6 @@ type CacheSystemMetrics struct {
 	HitLatency float64 `json:"hitLatency"` // ms
 
 	MissLatency float64 `json:"missLatency"` // ms
-
 }
 
 // ResourceUsageMetrics contains system resource usage data.
@@ -297,7 +291,6 @@ type ResourceUsageMetrics struct {
 	GoroutineCount int64 `json:"goroutineCount"`
 
 	HeapSize int64 `json:"heapSize"` // bytes
-
 }
 
 // NetworkMetrics contains network performance data.
@@ -342,7 +335,6 @@ type ConfidenceInterval struct {
 	Upper float64 `json:"upper"`
 
 	Level float64 `json:"level"` // 95%, 99%, etc.
-
 }
 
 // RegressionAnalysis contains regression detection results.
@@ -381,7 +373,6 @@ type TrendAnalysis struct {
 	MediumTerm TrendData `json:"mediumTerm"` // 24 hours
 
 	LongTerm TrendData `json:"longTerm"` // 7 days
-
 }
 
 // TrendData represents trend information for a specific time period.
@@ -396,7 +387,6 @@ type TrendData struct {
 	Significance string `json:"significance"` // High, Medium, Low
 
 	Prediction string `json:"prediction"` // Future trend prediction
-
 }
 
 // CapacityAnalysis provides capacity planning insights.
@@ -441,7 +431,6 @@ type ResourceBottleneck struct {
 	Impact string `json:"impact"` // High, Medium, Low
 
 	Mitigation string `json:"mitigation"` // Recommended action
-
 }
 
 // AlertsSummary provides alert analysis.
@@ -462,7 +451,6 @@ type AlertsSummary struct {
 	TopAlerts []AlertInfo `json:"topAlerts"`
 
 	MTTR float64 `json:"mttr"` // Mean Time To Resolution (minutes)
-
 }
 
 // AlertTrends shows alert trending information.
@@ -473,7 +461,6 @@ type AlertTrends struct {
 	DailyTrend []int `json:"dailyTrend"` // Alerts per day for last 7 days
 
 	WeeklyTrend []int `json:"weeklyTrend"` // Alerts per week for last 4 weeks
-
 }
 
 // AlertInfo provides detailed alert information.
@@ -497,20 +484,14 @@ type AlertInfo struct {
 // NewPerformanceReporter creates a new performance reporter instance.
 
 func NewPerformanceReporter(prometheusURL string, config *ReporterConfig) (*PerformanceReporter, error) {
-
 	client, err := api.NewClient(api.Config{
-
 		Address: prometheusURL,
 	})
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create Prometheus client: %w", err)
-
 	}
 
 	reporter := &PerformanceReporter{
-
 		prometheusClient: v1.NewAPI(client),
 
 		config: config,
@@ -521,21 +502,16 @@ func NewPerformanceReporter(prometheusURL string, config *ReporterConfig) (*Perf
 	// Load templates.
 
 	if err := reporter.loadTemplates(); err != nil {
-
 		return nil, fmt.Errorf("failed to load templates: %w", err)
-
 	}
 
 	return reporter, nil
-
 }
 
 // GenerateReport creates a comprehensive performance report.
 
 func (pr *PerformanceReporter) GenerateReport(ctx context.Context, period string) (*PerformanceReport, error) {
-
 	report := &PerformanceReport{
-
 		ID: fmt.Sprintf("perf-report-%d", time.Now().Unix()),
 
 		Timestamp: time.Now(),
@@ -555,21 +531,15 @@ func (pr *PerformanceReporter) GenerateReport(ctx context.Context, period string
 	// Collect performance metrics.
 
 	report.Metrics, err = pr.collectPerformanceMetrics(ctx, period)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to collect performance metrics: %w", err)
-
 	}
 
 	// Validate performance claims.
 
 	report.PerformanceClaims, err = pr.validatePerformanceClaims(ctx, report.Metrics)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to validate performance claims: %w", err)
-
 	}
 
 	// Generate executive summary.
@@ -579,31 +549,22 @@ func (pr *PerformanceReporter) GenerateReport(ctx context.Context, period string
 	// Statistical analysis.
 
 	report.StatisticalAnalysis, err = pr.performStatisticalAnalysis(ctx, period)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to perform statistical analysis: %w", err)
-
 	}
 
 	// Regression analysis.
 
 	report.RegressionAnalysis, err = pr.performRegressionAnalysis(ctx, period)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to perform regression analysis: %w", err)
-
 	}
 
 	// Capacity analysis.
 
 	report.CapacityAnalysis, err = pr.performCapacityAnalysis(ctx, report.Metrics)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to perform capacity analysis: %w", err)
-
 	}
 
 	// Business impact analysis.
@@ -617,31 +578,23 @@ func (pr *PerformanceReporter) GenerateReport(ctx context.Context, period string
 	// Collect alerts summary.
 
 	report.AlertsSummary, err = pr.collectAlertsSummary(ctx, period)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to collect alerts summary: %w", err)
-
 	}
 
 	return report, nil
-
 }
 
 // collectPerformanceMetrics queries Prometheus for current performance metrics.
 
 func (pr *PerformanceReporter) collectPerformanceMetrics(ctx context.Context, period string) (PerformanceMetrics, error) {
-
 	metrics := PerformanceMetrics{}
 
 	// Intent processing metrics.
 
 	intentMetrics, err := pr.collectIntentProcessingMetrics(ctx, period)
-
 	if err != nil {
-
 		return metrics, fmt.Errorf("failed to collect intent processing metrics: %w", err)
-
 	}
 
 	metrics.IntentProcessing = intentMetrics
@@ -649,11 +602,8 @@ func (pr *PerformanceReporter) collectPerformanceMetrics(ctx context.Context, pe
 	// RAG system metrics.
 
 	ragMetrics, err := pr.collectRAGSystemMetrics(ctx, period)
-
 	if err != nil {
-
 		return metrics, fmt.Errorf("failed to collect RAG system metrics: %w", err)
-
 	}
 
 	metrics.RAGSystem = ragMetrics
@@ -661,11 +611,8 @@ func (pr *PerformanceReporter) collectPerformanceMetrics(ctx context.Context, pe
 	// Cache system metrics.
 
 	cacheMetrics, err := pr.collectCacheSystemMetrics(ctx, period)
-
 	if err != nil {
-
 		return metrics, fmt.Errorf("failed to collect cache system metrics: %w", err)
-
 	}
 
 	metrics.CacheSystem = cacheMetrics
@@ -673,11 +620,8 @@ func (pr *PerformanceReporter) collectPerformanceMetrics(ctx context.Context, pe
 	// Resource usage metrics.
 
 	resourceMetrics, err := pr.collectResourceUsageMetrics(ctx, period)
-
 	if err != nil {
-
 		return metrics, fmt.Errorf("failed to collect resource usage metrics: %w", err)
-
 	}
 
 	metrics.ResourceUsage = resourceMetrics
@@ -685,113 +629,80 @@ func (pr *PerformanceReporter) collectPerformanceMetrics(ctx context.Context, pe
 	// Network metrics.
 
 	networkMetrics, err := pr.collectNetworkMetrics(ctx, period)
-
 	if err != nil {
-
 		return metrics, fmt.Errorf("failed to collect network metrics: %w", err)
-
 	}
 
 	metrics.NetworkMetrics = networkMetrics
 
 	return metrics, nil
-
 }
 
 // collectIntentProcessingMetrics collects intent processing performance data.
 
 func (pr *PerformanceReporter) collectIntentProcessingMetrics(ctx context.Context, period string) (IntentProcessingMetrics, error) {
-
 	metrics := IntentProcessingMetrics{}
 
 	// P50 latency.
 
 	result, _, err := pr.prometheusClient.Query(ctx, "benchmark:intent_processing_latency_p50", time.Now())
-
 	if err != nil {
-
 		return metrics, err
-
 	}
 
 	if vector, ok := result.(model.Vector); ok && len(vector) > 0 {
-
 		metrics.LatencyP50 = float64(vector[0].Value)
-
 	}
 
 	// P95 latency.
 
 	result, _, err = pr.prometheusClient.Query(ctx, "benchmark:intent_processing_latency_p95", time.Now())
-
 	if err != nil {
-
 		return metrics, err
-
 	}
 
 	if vector, ok := result.(model.Vector); ok && len(vector) > 0 {
-
 		metrics.LatencyP95 = float64(vector[0].Value)
-
 	}
 
 	// P99 latency.
 
 	result, _, err = pr.prometheusClient.Query(ctx, `histogram_quantile(0.99, rate(nephoran_intent_processing_duration_seconds_bucket{service="llm-processor"}[5m]))`, time.Now())
-
 	if err != nil {
-
 		return metrics, err
-
 	}
 
 	if vector, ok := result.(model.Vector); ok && len(vector) > 0 {
-
 		metrics.LatencyP99 = float64(vector[0].Value)
-
 	}
 
 	// Throughput.
 
 	result, _, err = pr.prometheusClient.Query(ctx, "benchmark:intent_processing_rate_1m", time.Now())
-
 	if err != nil {
-
 		return metrics, err
-
 	}
 
 	if vector, ok := result.(model.Vector); ok && len(vector) > 0 {
-
 		metrics.Throughput = float64(vector[0].Value)
-
 	}
 
 	// Concurrent users.
 
 	result, _, err = pr.prometheusClient.Query(ctx, "benchmark_concurrent_users_current", time.Now())
-
 	if err != nil {
-
 		return metrics, err
-
 	}
 
 	if vector, ok := result.(model.Vector); ok && len(vector) > 0 {
-
 		metrics.ConcurrentUsers = int(vector[0].Value)
-
 	}
 
 	// Success rate.
 
 	result, _, err = pr.prometheusClient.Query(ctx, `(1 - (sum(rate(nephoran_intent_processing_errors_total{service="llm-processor"}[5m])) / sum(rate(nephoran_intent_processing_total{service="llm-processor"}[5m])))) * 100`, time.Now())
-
 	if err != nil {
-
 		return metrics, err
-
 	}
 
 	if vector, ok := result.(model.Vector); ok && len(vector) > 0 {
@@ -803,7 +714,6 @@ func (pr *PerformanceReporter) collectIntentProcessingMetrics(ctx context.Contex
 	}
 
 	return metrics, nil
-
 }
 
 // Additional collection methods would be implemented similarly...
@@ -811,11 +721,8 @@ func (pr *PerformanceReporter) collectIntentProcessingMetrics(ctx context.Contex
 // validatePerformanceClaims validates all 6 performance claims.
 
 func (pr *PerformanceReporter) validatePerformanceClaims(ctx context.Context, metrics PerformanceMetrics) ([]ClaimValidation, error) {
-
 	claims := []ClaimValidation{
-
 		{
-
 			ID: "claim-1",
 
 			Name: "Intent Processing P95 Latency",
@@ -828,7 +735,6 @@ func (pr *PerformanceReporter) validatePerformanceClaims(ctx context.Context, me
 		},
 
 		{
-
 			ID: "claim-2",
 
 			Name: "Concurrent User Capacity",
@@ -841,7 +747,6 @@ func (pr *PerformanceReporter) validatePerformanceClaims(ctx context.Context, me
 		},
 
 		{
-
 			ID: "claim-3",
 
 			Name: "Throughput Target",
@@ -854,7 +759,6 @@ func (pr *PerformanceReporter) validatePerformanceClaims(ctx context.Context, me
 		},
 
 		{
-
 			ID: "claim-4",
 
 			Name: "Service Availability",
@@ -867,7 +771,6 @@ func (pr *PerformanceReporter) validatePerformanceClaims(ctx context.Context, me
 		},
 
 		{
-
 			ID: "claim-5",
 
 			Name: "RAG Retrieval P95 Latency",
@@ -880,7 +783,6 @@ func (pr *PerformanceReporter) validatePerformanceClaims(ctx context.Context, me
 		},
 
 		{
-
 			ID: "claim-6",
 
 			Name: "Cache Hit Rate",
@@ -894,49 +796,33 @@ func (pr *PerformanceReporter) validatePerformanceClaims(ctx context.Context, me
 	}
 
 	return claims, nil
-
 }
 
 // getClaimStatus determines if a claim passes or fails.
 
 func (pr *PerformanceReporter) getClaimStatus(actual, threshold float64, higherIsBetter bool) string {
-
 	if higherIsBetter {
-
 		if actual >= threshold {
-
 			return "PASS"
-
 		}
-
 	} else {
-
 		if actual <= threshold {
-
 			return "PASS"
-
 		}
-
 	}
 
 	return "FAIL"
-
 }
 
 // generateExecutiveSummary creates the executive summary section.
 
 func (pr *PerformanceReporter) generateExecutiveSummary(claims []ClaimValidation, metrics PerformanceMetrics) ExecutiveSummary {
-
 	passCount := 0
 
 	for _, claim := range claims {
-
 		if claim.Status == "PASS" {
-
 			passCount++
-
 		}
-
 	}
 
 	overallScore := float64(passCount) / float64(len(claims)) * 100
@@ -994,7 +880,6 @@ func (pr *PerformanceReporter) generateExecutiveSummary(claims []ClaimValidation
 	}
 
 	summary := ExecutiveSummary{
-
 		OverallScore: overallScore,
 
 		PerformanceGrade: grade,
@@ -1015,47 +900,36 @@ func (pr *PerformanceReporter) generateExecutiveSummary(claims []ClaimValidation
 	// Add highlights and issues based on claims.
 
 	for _, claim := range claims {
-
 		if claim.Status == "PASS" {
-
 			summary.KeyHighlights = append(summary.KeyHighlights,
 
 				fmt.Sprintf("%s: %s (Target: %s)", claim.Name, claim.Actual, claim.Target))
-
 		} else {
-
 			summary.CriticalIssues = append(summary.CriticalIssues,
 
 				fmt.Sprintf("%s FAILED: %s (Target: %s)", claim.Name, claim.Actual, claim.Target))
-
 		}
-
 	}
 
 	return summary
-
 }
 
 // loadTemplates loads report templates from configuration.
 
 func (pr *PerformanceReporter) loadTemplates() error {
-
 	// TODO: Implement template loading from config files.
 
 	// This should load HTML, email, and other report templates.
 
 	return nil
-
 }
 
 // performStatisticalAnalysis performs statistical validation of performance metrics.
 
 func (pr *PerformanceReporter) performStatisticalAnalysis(ctx context.Context, period string) (StatisticalAnalysis, error) {
-
 	// TODO: Implement statistical analysis including confidence intervals, p-values, etc.
 
 	return StatisticalAnalysis{
-
 		ConfidenceLevel: 95.0,
 
 		SampleSize: 1000,
@@ -1070,17 +944,14 @@ func (pr *PerformanceReporter) performStatisticalAnalysis(ctx context.Context, p
 
 		ConfidenceIntervals: make(map[string]ConfidenceInterval),
 	}, nil
-
 }
 
 // performRegressionAnalysis detects performance regressions.
 
 func (pr *PerformanceReporter) performRegressionAnalysis(ctx context.Context, period string) (RegressionAnalysis, error) {
-
 	// TODO: Implement regression detection by comparing current metrics to baseline.
 
 	return RegressionAnalysis{
-
 		RegressionDetected: false,
 
 		RegressionSeverity: "Low",
@@ -1088,7 +959,6 @@ func (pr *PerformanceReporter) performRegressionAnalysis(ctx context.Context, pe
 		PerformanceChange: make(map[string]float64),
 
 		BaselineComparison: BaselineComparison{
-
 			BaselinePeriod: "7d",
 
 			BaselineMetrics: make(map[string]float64),
@@ -1101,9 +971,7 @@ func (pr *PerformanceReporter) performRegressionAnalysis(ctx context.Context, pe
 		},
 
 		TrendAnalysis: TrendAnalysis{
-
 			ShortTerm: TrendData{
-
 				Period: "1h",
 
 				Direction: "Stable",
@@ -1116,7 +984,6 @@ func (pr *PerformanceReporter) performRegressionAnalysis(ctx context.Context, pe
 			},
 
 			MediumTerm: TrendData{
-
 				Period: "24h",
 
 				Direction: "Stable",
@@ -1129,7 +996,6 @@ func (pr *PerformanceReporter) performRegressionAnalysis(ctx context.Context, pe
 			},
 
 			LongTerm: TrendData{
-
 				Period: "7d",
 
 				Direction: "Stable",
@@ -1142,19 +1008,16 @@ func (pr *PerformanceReporter) performRegressionAnalysis(ctx context.Context, pe
 			},
 		},
 	}, nil
-
 }
 
 // performCapacityAnalysis analyzes current capacity and provides scaling recommendations.
 
 func (pr *PerformanceReporter) performCapacityAnalysis(ctx context.Context, metrics PerformanceMetrics) (CapacityAnalysis, error) {
-
 	// TODO: Implement capacity analysis based on current resource utilization.
 
 	// Should analyze CPU, memory, network, and predict when scaling is needed.
 
 	return CapacityAnalysis{
-
 		CurrentCapacity: 75.0, // placeholder
 
 		PeakCapacity: 85.0, // placeholder
@@ -1167,13 +1030,11 @@ func (pr *PerformanceReporter) performCapacityAnalysis(ctx context.Context, metr
 
 		ResourceBottlenecks: make([]ResourceBottleneck, 0),
 	}, nil
-
 }
 
 // generateRecommendations generates actionable performance recommendations.
 
 func (pr *PerformanceReporter) generateRecommendations(report *PerformanceReport) []Recommendation {
-
 	// TODO: Implement intelligent recommendation generation based on performance data.
 
 	// Should analyze metrics, trends, and capacity to provide actionable insights.
@@ -1183,9 +1044,7 @@ func (pr *PerformanceReporter) generateRecommendations(report *PerformanceReport
 	// Example placeholder recommendation.
 
 	if report.ExecutiveSummary.OverallScore < 80 {
-
 		recommendations = append(recommendations, Recommendation{
-
 			ID: "perf-rec-1",
 
 			Category: "Performance",
@@ -1204,23 +1063,19 @@ func (pr *PerformanceReporter) generateRecommendations(report *PerformanceReport
 
 			Dependencies: []string{"Performance analysis", "Resource optimization"},
 		})
-
 	}
 
 	return recommendations
-
 }
 
 // collectAlertsSummary collects and summarizes alert data for the report period.
 
 func (pr *PerformanceReporter) collectAlertsSummary(ctx context.Context, period string) (AlertsSummary, error) {
-
 	// TODO: Implement alert collection from Prometheus Alertmanager or similar.
 
 	// Should query alert history and provide meaningful statistics.
 
 	return AlertsSummary{
-
 		TotalAlerts: 0,
 
 		CriticalAlerts: 0,
@@ -1232,7 +1087,6 @@ func (pr *PerformanceReporter) collectAlertsSummary(ctx context.Context, period 
 		AlertsByComponent: make(map[string]int),
 
 		AlertTrends: AlertTrends{
-
 			HourlyTrend: make([]int, 24),
 
 			DailyTrend: make([]int, 7),
@@ -1244,19 +1098,16 @@ func (pr *PerformanceReporter) collectAlertsSummary(ctx context.Context, period 
 
 		MTTR: 0.0,
 	}, nil
-
 }
 
 // calculateBusinessImpact calculates business impact metrics from performance data.
 
 func (pr *PerformanceReporter) calculateBusinessImpact(metrics PerformanceMetrics, claims []ClaimValidation) BusinessImpact {
-
 	// TODO: Implement business impact calculation based on metrics and SLA claims.
 
 	// Should calculate cost per intent, revenue impact, customer satisfaction impact, etc.
 
 	return BusinessImpact{
-
 		CostPerIntent: 0.05, // placeholder
 
 		RevenueImpact: 0.0, // placeholder
@@ -1269,19 +1120,16 @@ func (pr *PerformanceReporter) calculateBusinessImpact(metrics PerformanceMetric
 
 		CompetitivePosition: "Competitive",
 	}
-
 }
 
 // collectRAGSystemMetrics collects RAG system performance data.
 
 func (pr *PerformanceReporter) collectRAGSystemMetrics(ctx context.Context, period string) (RAGSystemMetrics, error) {
-
 	// TODO: Implement RAG system metrics collection from Prometheus.
 
 	// Should query retrieval latency, context accuracy, etc.
 
 	return RAGSystemMetrics{
-
 		RetrievalLatencyP50: 0.15, // placeholder
 
 		RetrievalLatencyP95: 0.25, // placeholder
@@ -1295,19 +1143,16 @@ func (pr *PerformanceReporter) collectRAGSystemMetrics(ctx context.Context, peri
 		EmbeddingLatency: 0.05, // placeholder
 
 	}, nil
-
 }
 
 // collectCacheSystemMetrics collects cache system performance data.
 
 func (pr *PerformanceReporter) collectCacheSystemMetrics(ctx context.Context, period string) (CacheSystemMetrics, error) {
-
 	// TODO: Implement cache system metrics collection from Prometheus.
 
 	// Should query hit rate, miss rate, latency, etc.
 
 	return CacheSystemMetrics{
-
 		HitRate: 87.5, // placeholder
 
 		MissRate: 12.5, // placeholder
@@ -1323,19 +1168,16 @@ func (pr *PerformanceReporter) collectCacheSystemMetrics(ctx context.Context, pe
 		MissLatency: 15.0, // placeholder
 
 	}, nil
-
 }
 
 // collectResourceUsageMetrics collects system resource usage data.
 
 func (pr *PerformanceReporter) collectResourceUsageMetrics(ctx context.Context, period string) (ResourceUsageMetrics, error) {
-
 	// TODO: Implement resource usage metrics collection from Prometheus.
 
 	// Should query CPU, memory, disk, network usage, etc.
 
 	return ResourceUsageMetrics{
-
 		CPUUtilization: 65.0, // placeholder
 
 		MemoryUtilization: 70.0, // placeholder
@@ -1351,19 +1193,16 @@ func (pr *PerformanceReporter) collectResourceUsageMetrics(ctx context.Context, 
 		HeapSize: 1024 * 1024 * 50, // placeholder: 50MB
 
 	}, nil
-
 }
 
 // collectNetworkMetrics collects network performance data.
 
 func (pr *PerformanceReporter) collectNetworkMetrics(ctx context.Context, period string) (NetworkMetrics, error) {
-
 	// TODO: Implement network metrics collection from Prometheus.
 
 	// Should query network latency, throughput, packet loss, etc.
 
 	return NetworkMetrics{
-
 		Latency: 5.0, // placeholder
 
 		Throughput: 500.0, // placeholder
@@ -1377,5 +1216,4 @@ func (pr *PerformanceReporter) collectNetworkMetrics(ctx context.Context, period
 		ConnectionErrors: 2, // placeholder
 
 	}, nil
-
 }

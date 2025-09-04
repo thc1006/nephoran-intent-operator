@@ -20,7 +20,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/nephio-project/nephoran-intent-operator/internal/porch"
+	"github.com/thc1006/nephoran-intent-operator/internal/porch"
 )
 
 // TestMain_FlagParsing tests the command-line flag parsing functionality
@@ -101,8 +101,8 @@ func TestMain_EndToEndWorkflow(t *testing.T) {
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
 
-	require.NoError(t, os.MkdirAll(handoffDir, 0755))
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.MkdirAll(handoffDir, 0o755))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	// Create mock porch executable
 	mockPorchPath := createMockPorch(t, tempDir, 0, "Package processed successfully", "")
@@ -132,7 +132,7 @@ func TestMain_EndToEndWorkflow(t *testing.T) {
 					"namespace": "default"
 				}`
 				intentFile := filepath.Join(handoffDir, "intent-scale.json")
-				require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0644))
+				require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0o644))
 			},
 			verifyResult: func(t *testing.T) {
 				// Verify intent file was moved to processed
@@ -180,7 +180,7 @@ func TestMain_EndToEndWorkflow(t *testing.T) {
 						"replicas": %d
 					}`, i, i*2)
 					intentFile := filepath.Join(handoffDir, fmt.Sprintf("intent-%d.json", i))
-					require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0644))
+					require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0o644))
 				}
 			},
 			verifyResult: func(t *testing.T) {
@@ -212,7 +212,7 @@ func TestMain_EndToEndWorkflow(t *testing.T) {
 
 			// Clean up directories before each test
 			cleanupDirs(t, handoffDir)
-			require.NoError(t, os.MkdirAll(handoffDir, 0755))
+			require.NoError(t, os.MkdirAll(handoffDir, 0o755))
 
 			// Setup test files
 			tt.setupFiles(t)
@@ -271,8 +271,8 @@ func TestMain_SignalHandling(t *testing.T) {
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
 
-	require.NoError(t, os.MkdirAll(handoffDir, 0755))
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.MkdirAll(handoffDir, 0o755))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	// Create mock porch that takes some time to process
 	mockPorchPath := createMockPorch(t, tempDir, 0, "Processed", "", 2*time.Second)
@@ -283,7 +283,7 @@ func TestMain_SignalHandling(t *testing.T) {
 	// Create an intent file
 	intentFile := filepath.Join(handoffDir, "intent-signal-test.json")
 	intentContent := `{"action": "scale", "target": "deployment/test", "replicas": 3}`
-	require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0644))
+	require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0o644))
 
 	// Start conductor-loop (without -once, so it runs continuously)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -310,7 +310,6 @@ func TestMain_SignalHandling(t *testing.T) {
 
 	// Wait for the process to exit gracefully
 	err := cmd.Wait()
-
 	// Process should exit cleanly after signal
 	if err != nil {
 		// On some systems, SIGTERM may result in exit status
@@ -336,8 +335,8 @@ func TestMain_WindowsPathHandling(t *testing.T) {
 	handoffDir := filepath.Join(tempDir, "handoff dir with spaces")
 	outDir := filepath.Join(tempDir, "out-dir_with-special.chars")
 
-	require.NoError(t, os.MkdirAll(handoffDir, 0755))
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.MkdirAll(handoffDir, 0o755))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	mockPorchPath := createMockPorch(t, tempDir, 0, "Success", "")
 
@@ -400,7 +399,7 @@ func TestMain_ExitCodes(t *testing.T) {
 			setupFunc: func(t *testing.T) (string, []string) {
 				testDir := filepath.Join(tempDir, "success-test")
 				handoffDir := filepath.Join(testDir, "handoff")
-				require.NoError(t, os.MkdirAll(handoffDir, 0755))
+				require.NoError(t, os.MkdirAll(handoffDir, 0o755))
 
 				// Create mock porch
 				mockPorch := createMockPorch(t, testDir, 0, "success", "")
@@ -414,7 +413,7 @@ func TestMain_ExitCodes(t *testing.T) {
 					"source": "test"
 				}`
 				intentFile := filepath.Join(handoffDir, "intent-test.json")
-				require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0644))
+				require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0o644))
 
 				return testDir, []string{
 					"-handoff", handoffDir,
@@ -494,8 +493,8 @@ func buildConductorLoop(t *testing.T, tempDir string) string {
 	binaryPath := filepath.Join(tempDir, binaryName)
 
 	// Build the binary with optimized flags for faster builds
-	cmd := exec.Command("go", "build", "-o", binaryPath, ".")
-	cmd.Dir = "." // Current directory should be cmd/conductor-loop
+	cmd := exec.Command("go", "build", "-o", binaryPath, ".") // #nosec G204 - Static command with validated args
+	cmd.Dir = "."                                             // Current directory should be cmd/conductor-loop
 
 	output, err := cmd.CombinedOutput()
 	require.NoError(t, err, "Failed to build conductor-loop: %s", string(output))
@@ -536,13 +535,13 @@ func copyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer source.Close()
+	defer source.Close() // #nosec G307 - Error handled in defer
 
 	destination, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
-	defer destination.Close()
+	defer destination.Close() // #nosec G307 - Error handled in defer
 
 	_, err = io.Copy(destination, source)
 	return err
@@ -591,8 +590,8 @@ func BenchmarkMain_SingleFileProcessing(b *testing.B) {
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
 
-	require.NoError(b, os.MkdirAll(handoffDir, 0755))
-	require.NoError(b, os.MkdirAll(outDir, 0755))
+	require.NoError(b, os.MkdirAll(handoffDir, 0o755))
+	require.NoError(b, os.MkdirAll(outDir, 0o755))
 
 	mockPorchPath := createMockPorchB(b, tempDir, 0, "processed", "")
 	binaryPath := buildConductorLoopB(b, tempDir)
@@ -613,10 +612,10 @@ func BenchmarkMain_SingleFileProcessing(b *testing.B) {
 
 		// Clean up and setup for each iteration
 		cleanupDirsB(b, handoffDir)
-		require.NoError(b, os.MkdirAll(handoffDir, 0755))
+		require.NoError(b, os.MkdirAll(handoffDir, 0o755))
 
 		intentFile := filepath.Join(handoffDir, fmt.Sprintf("intent-%d.json", i))
-		require.NoError(b, os.WriteFile(intentFile, []byte(intentContent), 0644))
+		require.NoError(b, os.WriteFile(intentFile, []byte(intentContent), 0o644))
 
 		b.StartTimer()
 
@@ -661,8 +660,8 @@ func buildConductorLoopB(b *testing.B, tempDir string) string {
 	}
 
 	binaryPath := filepath.Join(tempDir, binaryName)
-	cmd := exec.Command("go", "build", "-o", binaryPath, ".")
-	cmd.Dir = filepath.Dir(tempDir) // Go to the main package directory
+	cmd := exec.Command("go", "build", "-o", binaryPath, ".") // #nosec G204 - Static command with validated args
+	cmd.Dir = filepath.Dir(tempDir)                           // Go to the main package directory
 
 	require.NoError(b, cmd.Run())
 	return binaryPath

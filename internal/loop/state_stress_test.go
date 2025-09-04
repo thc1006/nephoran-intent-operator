@@ -2,7 +2,7 @@ package loop
 
 import (
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"sync"
@@ -25,7 +25,7 @@ func TestConcurrentStateStress(t *testing.T) {
 	tempDir := t.TempDir()
 	sm, err := NewStateManager(tempDir)
 	require.NoError(t, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	numFiles := 50
 	numWorkers := 10
@@ -36,7 +36,7 @@ func TestConcurrentStateStress(t *testing.T) {
 	for i := 0; i < numFiles; i++ {
 		filename := fmt.Sprintf("stress-file-%d.json", i)
 		testFile := filepath.Join(tempDir, filename)
-		err := os.WriteFile(testFile, []byte(fmt.Sprintf(`{"id": %d}`, i)), 0644)
+		err := os.WriteFile(testFile, []byte(fmt.Sprintf(`{"id": %d}`, i)), 0o644)
 		require.NoError(t, err)
 		files = append(files, filename)
 	}
@@ -53,12 +53,12 @@ func TestConcurrentStateStress(t *testing.T) {
 		wg.Add(1)
 		go func(workerID int) {
 			defer wg.Done()
-			rng := rand.New(rand.NewSource(time.Now().UnixNano() + int64(workerID)))
+			rng := rand.New(rand.NewPCG(uint64(time.Now().UnixNano()), uint64(workerID)))
 
 			for op := 0; op < operationsPerWorker; op++ {
-				fileIdx := rng.Intn(numFiles)
+				fileIdx := rng.IntN(numFiles)
 				filename := files[fileIdx]
-				operation := rng.Intn(4)
+				operation := rng.IntN(4)
 
 				totalOps.Add(1)
 
@@ -106,14 +106,14 @@ func TestConcurrentStateStress(t *testing.T) {
 					os.Remove(testFile) // Ignore error if already deleted
 					// Sometimes recreate it
 					if rng.Float32() > 0.5 {
-						os.WriteFile(testFile, []byte(fmt.Sprintf(`{"id": %d, "new": true}`, fileIdx)), 0644)
+						os.WriteFile(testFile, []byte(fmt.Sprintf(`{"id": %d, "new": true}`, fileIdx)), 0o644)
 					}
 					successfulOps.Add(1)
 				}
 
 				// Small random delay to increase race conditions
 				if rng.Float32() > 0.7 {
-					time.Sleep(time.Duration(rng.Intn(5)) * time.Millisecond)
+					time.Sleep(time.Duration(rng.IntN(5)) * time.Millisecond)
 				}
 			}
 		}(w)
@@ -139,7 +139,7 @@ func TestConcurrentStateStress(t *testing.T) {
 	// State should be persisted
 	// sm2, err := NewStateManager(tempDir)
 	// require.NoError(t, err)
-	// defer sm2.Close()
+	// defer sm2.Close() // #nosec G307 - Error handled in defer
 
 	// processed2, failed2 := sm2.GetStats()
 	// assert.Equal(t, processed, processed2, "Processed count should be persisted")
@@ -151,7 +151,7 @@ func TestRapidFileChurn(t *testing.T) {
 	tempDir := t.TempDir()
 	sm, err := NewStateManager(tempDir)
 	require.NoError(t, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	filename := "churning-file.json"
 	testFile := filepath.Join(tempDir, filename)
@@ -169,7 +169,7 @@ func TestRapidFileChurn(t *testing.T) {
 				return
 			default:
 				// Create file
-				os.WriteFile(testFile, []byte(`{"test": true}`), 0644)
+				os.WriteFile(testFile, []byte(`{"test": true}`), 0o644)
 				time.Sleep(time.Millisecond)
 				// Delete file
 				os.Remove(testFile)
@@ -213,7 +213,7 @@ func TestConcurrentHashCalculation(t *testing.T) {
 	tempDir := t.TempDir()
 	sm, err := NewStateManager(tempDir)
 	require.NoError(t, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	filename := "hash-test.json"
 	testFile := filepath.Join(tempDir, filename)
@@ -222,7 +222,7 @@ func TestConcurrentHashCalculation(t *testing.T) {
 	numWorkers := 10
 
 	// Create initial file
-	err = os.WriteFile(testFile, []byte(`{"version": 1}`), 0644)
+	err = os.WriteFile(testFile, []byte(`{"version": 1}`), 0o644)
 	require.NoError(t, err)
 
 	// Workers that calculate hash while file is being modified
@@ -246,14 +246,14 @@ func TestConcurrentHashCalculation(t *testing.T) {
 				// Sometimes modify the file
 				if i%5 == 0 {
 					content := fmt.Sprintf(`{"version": %d, "worker": %d}`, i, workerID)
-					os.WriteFile(testFile, []byte(content), 0644)
+					os.WriteFile(testFile, []byte(content), 0o644)
 				}
 
 				// Sometimes delete the file
 				if i%7 == 0 {
 					os.Remove(testFile)
 					// Recreate it
-					os.WriteFile(testFile, []byte(`{"version": "new"}`), 0644)
+					os.WriteFile(testFile, []byte(`{"version": "new"}`), 0o644)
 				}
 			}
 		}(w)
@@ -267,7 +267,7 @@ func TestWindowsSpecificRaceConditions(t *testing.T) {
 	tempDir := t.TempDir()
 	sm, err := NewStateManager(tempDir)
 	require.NoError(t, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	t.Run("SimultaneousRenameOperations", func(t *testing.T) {
 		// Create multiple files that will be renamed simultaneously
@@ -283,7 +283,7 @@ func TestWindowsSpecificRaceConditions(t *testing.T) {
 				newFile := filepath.Join(tempDir, newName)
 
 				// Create file
-				err := os.WriteFile(testFile, []byte(`{"test": true}`), 0644)
+				err := os.WriteFile(testFile, []byte(`{"test": true}`), 0o644)
 				require.NoError(t, err)
 
 				// Mark as processed with old name
@@ -313,7 +313,7 @@ func TestWindowsSpecificRaceConditions(t *testing.T) {
 		testFile := filepath.Join(tempDir, filename)
 
 		// Create file
-		err := os.WriteFile(testFile, []byte(`{"test": true}`), 0644)
+		err := os.WriteFile(testFile, []byte(`{"test": true}`), 0o644)
 		require.NoError(t, err)
 
 		var wg sync.WaitGroup

@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/tests/security/penetration"
-	"github.com/thc1006/nephoran-intent-operator/tests/utils"
+	testutils "github.com/thc1006/nephoran-intent-operator/tests/utils"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -405,19 +405,19 @@ func (suite *ComprehensiveSecurityTestSuite) runPenetrationTests(ctx context.Con
 		SecurityScore:      87.5,
 		VulnerabilityCount: 2,
 		PenetrationResults: []penetration.PenetrationResult{
-			penetration.PenetrationResult{
+			{
 				TestName:      "API Security Testing",
 				TestCategory:  "API",
 				Status:        "passed",
 				ExecutionTime: 30 * time.Second,
 			},
-			penetration.PenetrationResult{
+			{
 				TestName:      "Container Security Testing",
 				TestCategory:  "Container",
 				Status:        "failed",
 				ExecutionTime: 45 * time.Second,
 				Vulnerabilities: []penetration.SecurityIssue{
-					penetration.SecurityIssue{
+					{
 						ID:          "CONT-001",
 						Severity:    "MEDIUM",
 						Title:       "Container running as root",
@@ -459,12 +459,15 @@ func (suite *ComprehensiveSecurityTestSuite) runSecurityControlValidation(ctx co
 				Severity:    "HIGH",
 			},
 		},
-		ComplianceFrameworks: map[string]ComplianceResult{
+		ComplianceFrameworks: map[string]AutoSecComplianceResult{
 			"NIST-CSF": {
 				Framework:      "NIST Cybersecurity Framework",
+				Version:        "1.1",
 				Score:          90.0,
 				PassedControls: 18,
 				FailedControls: 2,
+				TotalControls:  20,
+				Requirements:   []string{"PR.AC-1", "PR.AT-1", "DE.AE-1"},
 			},
 		},
 	}
@@ -715,12 +718,12 @@ func (suite *ComprehensiveSecurityTestSuite) loadHistoricalScores() []float64 {
 func (suite *ComprehensiveSecurityTestSuite) generateComprehensiveReport() {
 	// Create reports directory
 	reportsDir := "test-results/security/comprehensive"
-	os.MkdirAll(reportsDir, 0755)
+	os.MkdirAll(reportsDir, 0o755)
 
 	// Generate JSON report
 	jsonReport, _ := json.MarshalIndent(suite.testResults, "", "  ")
 	jsonFile := filepath.Join(reportsDir, fmt.Sprintf("comprehensive-security-report-%s.json", suite.testResults.TestSuiteID))
-	os.WriteFile(jsonFile, jsonReport, 0644)
+	os.WriteFile(jsonFile, jsonReport, 0o644)
 
 	// Generate HTML report
 	suite.generateHTMLComprehensiveReport(reportsDir)
@@ -822,7 +825,7 @@ func (suite *ComprehensiveSecurityTestSuite) generateHTMLComprehensiveReport(rep
 	)
 
 	htmlFile := filepath.Join(reportsDir, fmt.Sprintf("comprehensive-security-report-%s.html", suite.testResults.TestSuiteID))
-	os.WriteFile(htmlFile, []byte(htmlContent), 0644)
+	os.WriteFile(htmlFile, []byte(htmlContent), 0o644)
 }
 
 func (suite *ComprehensiveSecurityTestSuite) generateSummaryReport(reportsDir string) {
@@ -867,7 +870,7 @@ Category Results:
 	}
 
 	summaryFile := filepath.Join(reportsDir, fmt.Sprintf("security-test-summary-%s.txt", suite.testResults.TestSuiteID))
-	os.WriteFile(summaryFile, []byte(summary), 0644)
+	os.WriteFile(summaryFile, []byte(summary), 0o644)
 }
 
 // RunComprehensiveSecurityTests is the main entry point for comprehensive testing

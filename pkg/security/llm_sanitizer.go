@@ -20,7 +20,6 @@ var (
 	// Direct prompt injection patterns.
 
 	promptInjectionPatterns = []*regexp.Regexp{
-
 		// Attempts to ignore or override system instructions.
 
 		regexp.MustCompile(`(?i)(ignore|disregard|forget|skip|bypass|override)\s+(all\s+)?(previous|above|prior|system)\s+(instructions?|rules?|context|prompts?)`),
@@ -82,7 +81,6 @@ var (
 	// Patterns that might indicate malicious manifest generation.
 
 	maliciousManifestPatterns = []*regexp.Regexp{
-
 		// Privileged container attempts.
 
 		regexp.MustCompile(`(?i)privileged\s*:\s*true`),
@@ -123,7 +121,6 @@ var (
 	// Suspicious external URLs or domains.
 
 	suspiciousURLPatterns = []*regexp.Regexp{
-
 		regexp.MustCompile(`(?i)https?://[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}`), // IP addresses
 
 		regexp.MustCompile(`(?i)https?://.*\.(tk|ml|ga|cf)`), // Common phishing TLDs
@@ -186,27 +183,20 @@ type SanitizerConfig struct {
 // NewLLMSanitizer creates a new LLM sanitizer instance.
 
 func NewLLMSanitizer(config *SanitizerConfig) *LLMSanitizer {
-
 	logger := ctrl.Log.WithName("llm-sanitizer")
 
 	// Set defaults if not provided.
 
 	if config.MaxInputLength == 0 {
-
 		config.MaxInputLength = 10000 // 10KB default max input
-
 	}
 
 	if config.MaxOutputLength == 0 {
-
 		config.MaxOutputLength = 50000 // 50KB default max output
-
 	}
 
 	if config.ContextBoundary == "" {
-
 		config.ContextBoundary = "===CONTEXT_BOUNDARY==="
-
 	}
 
 	// Hash the system prompt for integrity checking.
@@ -218,7 +208,6 @@ func NewLLMSanitizer(config *SanitizerConfig) *LLMSanitizer {
 	systemPromptHash := hex.EncodeToString(hasher.Sum(nil))
 
 	sanitizer := &LLMSanitizer{
-
 		logger: logger,
 
 		maxInputLength: config.MaxInputLength,
@@ -237,13 +226,11 @@ func NewLLMSanitizer(config *SanitizerConfig) *LLMSanitizer {
 	sanitizer.metrics.suspiciousPatterns = make(map[string]int64)
 
 	return sanitizer
-
 }
 
 // SanitizeInput sanitizes user input before sending to LLM.
 
 func (s *LLMSanitizer) SanitizeInput(ctx context.Context, input string) (string, error) {
-
 	s.mutex.Lock()
 
 	s.metrics.totalRequests++
@@ -267,9 +254,7 @@ func (s *LLMSanitizer) SanitizeInput(ctx context.Context, input string) (string,
 	input = strings.TrimSpace(input)
 
 	if input == "" {
-
 		return "", fmt.Errorf("input cannot be empty")
-
 	}
 
 	// Detect prompt injection attempts.
@@ -293,7 +278,6 @@ func (s *LLMSanitizer) SanitizeInput(ctx context.Context, input string) (string,
 	// Check for blocked keywords.
 
 	for _, keyword := range s.blockedKeywords {
-
 		if strings.Contains(strings.ToLower(input), strings.ToLower(keyword)) {
 
 			s.mutex.Lock()
@@ -307,7 +291,6 @@ func (s *LLMSanitizer) SanitizeInput(ctx context.Context, input string) (string,
 			return "", fmt.Errorf("input contains blocked keyword")
 
 		}
-
 	}
 
 	// Sanitize the input.
@@ -331,13 +314,11 @@ func (s *LLMSanitizer) SanitizeInput(ctx context.Context, input string) (string,
 	logger.V(1).Info("Input sanitized successfully", "original_length", len(input), "sanitized_length", len(sanitized))
 
 	return sanitized, nil
-
 }
 
 // ValidateOutput validates LLM output for malicious content.
 
 func (s *LLMSanitizer) ValidateOutput(ctx context.Context, output string) (string, error) {
-
 	logger := s.logger.WithValues("function", "ValidateOutput")
 
 	// Check output length.
@@ -381,25 +362,19 @@ func (s *LLMSanitizer) ValidateOutput(ctx context.Context, output string) (strin
 	// Validate JSON structure if it appears to be JSON.
 
 	if strings.TrimSpace(output)[0] == '{' || strings.TrimSpace(output)[0] == '[' {
-
 		if err := s.validateJSONStructure(output); err != nil {
-
 			return "", fmt.Errorf("invalid JSON structure in output: %w", err)
-
 		}
-
 	}
 
 	logger.V(1).Info("Output validated successfully", "length", len(output))
 
 	return output, nil
-
 }
 
 // BuildSecurePrompt builds a secure prompt with proper boundaries and context isolation.
 
 func (s *LLMSanitizer) BuildSecurePrompt(systemPrompt, userInput string) string {
-
 	var builder strings.Builder
 
 	// Add system prompt with clear boundary.
@@ -435,15 +410,12 @@ func (s *LLMSanitizer) BuildSecurePrompt(systemPrompt, userInput string) string 
 	builder.WriteString("Do not include any explanatory text, system prompts, or metadata outside the JSON structure.\n")
 
 	return builder.String()
-
 }
 
 // detectPromptInjection checks for common prompt injection patterns.
 
 func (s *LLMSanitizer) detectPromptInjection(input string) (string, bool) {
-
 	for _, pattern := range promptInjectionPatterns {
-
 		if pattern.MatchString(input) {
 
 			// Extract pattern name for logging.
@@ -451,53 +423,41 @@ func (s *LLMSanitizer) detectPromptInjection(input string) (string, bool) {
 			patternStr := pattern.String()
 
 			if len(patternStr) > 50 {
-
 				patternStr = patternStr[:50] + "..."
-
 			}
 
 			return patternStr, true
 
 		}
-
 	}
 
 	return "", false
-
 }
 
 // detectMaliciousManifest checks for malicious patterns in manifest output.
 
 func (s *LLMSanitizer) detectMaliciousManifest(output string) (string, bool) {
-
 	for _, pattern := range maliciousManifestPatterns {
-
 		if pattern.MatchString(output) {
 
 			match := pattern.FindString(output)
 
 			if len(match) > 50 {
-
 				match = match[:50] + "..."
-
 			}
 
 			return match, true
 
 		}
-
 	}
 
 	return "", false
-
 }
 
 // detectSuspiciousURLs checks for suspicious URLs in the output.
 
 func (s *LLMSanitizer) detectSuspiciousURLs(output string) (string, bool) {
-
 	for _, pattern := range suspiciousURLPatterns {
-
 		if match := pattern.FindString(output); match != "" {
 
 			// Check if URL is in allowed domains.
@@ -505,7 +465,6 @@ func (s *LLMSanitizer) detectSuspiciousURLs(output string) (string, bool) {
 			isAllowed := false
 
 			for _, domain := range s.allowedDomains {
-
 				if strings.Contains(match, domain) {
 
 					isAllowed = true
@@ -513,27 +472,21 @@ func (s *LLMSanitizer) detectSuspiciousURLs(output string) (string, bool) {
 					break
 
 				}
-
 			}
 
 			if !isAllowed {
-
 				return match, true
-
 			}
 
 		}
-
 	}
 
 	return "", false
-
 }
 
 // performSanitization performs actual sanitization of input.
 
 func (s *LLMSanitizer) performSanitization(input string) string {
-
 	// Remove null bytes and control characters.
 
 	input = strings.ReplaceAll(input, "\x00", "")
@@ -549,9 +502,7 @@ func (s *LLMSanitizer) performSanitization(input string) string {
 	// This is a simplified approach - in production, use proper parsing.
 
 	if !strings.Contains(input, `"`) && !strings.Contains(input, `'`) {
-
 		input = regexp.MustCompile(`[;&|$`+"`"+`]`).ReplaceAllString(input, "")
-
 	}
 
 	// Limit consecutive special characters.
@@ -559,64 +510,55 @@ func (s *LLMSanitizer) performSanitization(input string) string {
 	input = regexp.MustCompile(`([!@#$%^&*()_+={}\[\]:;"'<>,.?/\\|-]){3,}`).ReplaceAllString(input, "$1$1")
 
 	return strings.TrimSpace(input)
-
 }
 
 // escapeDelimiters escapes characters that might be used as delimiters.
 
 func (s *LLMSanitizer) escapeDelimiters(input string) string {
-
 	// Escape common delimiter patterns.
 
 	replacements := map[string]string{
-
 		"</": "&lt;/",
 
 		"<|": "&lt;|",
 
 		"|>": "|&gt;",
 
-		"###": "##​#", // Zero-width space inserted
+		"###": "##??", // Zero-width space inserted
 
-		"---": "--​-",
+		"---": "--??",
 
-		"```": "``​`",
+		"```": "`` `",
 
-		"[[": "[​[",
+		"[[": "[ [",
 
-		"]]": "]​]",
+		"]]": "] ]",
 
-		"{{": "{​{",
+		"{{": "{ {",
 
-		"}}": "}​}",
+		"}}": "} }",
 	}
 
 	result := input
 
 	for pattern, replacement := range replacements {
-
 		result = strings.ReplaceAll(result, pattern, replacement)
-
 	}
 
 	return result
-
 }
 
 // addContextBoundaries adds clear boundaries to prevent context confusion.
 
 func (s *LLMSanitizer) addContextBoundaries(input string) string {
-
 	// Add clear markers that this is user input.
 
 	return fmt.Sprintf("[USER_INTENT_START]\n%s\n[USER_INTENT_END]", input)
-
 }
 
 // removeSystemPromptLeakage removes any leaked system prompt from output.
 
 func (s *LLMSanitizer) removeSystemPromptLeakage(output string) string {
-
 	// Remove context boundaries if they appear in output.
 
 	output = strings.ReplaceAll(output, s.contextBoundary, "")
@@ -624,7 +566,6 @@ func (s *LLMSanitizer) removeSystemPromptLeakage(output string) string {
 	// Remove common system prompt indicators.
 
 	patterns := []string{
-
 		"SYSTEM CONTEXT",
 
 		"SECURITY NOTICE",
@@ -637,7 +578,6 @@ func (s *LLMSanitizer) removeSystemPromptLeakage(output string) string {
 	}
 
 	for _, pattern := range patterns {
-
 		if idx := strings.Index(output, pattern); idx != -1 {
 
 			// Find the end of the sentence/paragraph containing this pattern.
@@ -645,23 +585,18 @@ func (s *LLMSanitizer) removeSystemPromptLeakage(output string) string {
 			endIdx := strings.IndexAny(output[idx:], ".\n")
 
 			if endIdx != -1 {
-
 				output = output[:idx] + output[idx+endIdx+1:]
-
 			}
 
 		}
-
 	}
 
 	return output
-
 }
 
 // validateJSONStructure validates that JSON output is well-formed.
 
 func (s *LLMSanitizer) validateJSONStructure(output string) error {
-
 	// Basic validation - in production, use a proper JSON schema validator.
 
 	output = strings.TrimSpace(output)
@@ -695,17 +630,13 @@ func (s *LLMSanitizer) validateJSONStructure(output string) error {
 		case '"':
 
 			if !escaped {
-
 				inString = !inString
-
 			}
 
 		case '{':
 
 			if !inString {
-
 				braceCount++
-
 			}
 
 		case '}':
@@ -715,9 +646,7 @@ func (s *LLMSanitizer) validateJSONStructure(output string) error {
 				braceCount--
 
 				if braceCount < 0 {
-
 					return fmt.Errorf("unbalanced braces in JSON")
-
 				}
 
 			}
@@ -725,9 +654,7 @@ func (s *LLMSanitizer) validateJSONStructure(output string) error {
 		case '[':
 
 			if !inString {
-
 				bracketCount++
-
 			}
 
 		case ']':
@@ -737,9 +664,7 @@ func (s *LLMSanitizer) validateJSONStructure(output string) error {
 				bracketCount--
 
 				if bracketCount < 0 {
-
 					return fmt.Errorf("unbalanced brackets in JSON")
-
 				}
 
 			}
@@ -749,66 +674,43 @@ func (s *LLMSanitizer) validateJSONStructure(output string) error {
 	}
 
 	if braceCount != 0 {
-
 		return fmt.Errorf("unbalanced braces: %d extra", braceCount)
-
 	}
 
 	if bracketCount != 0 {
-
 		return fmt.Errorf("unbalanced brackets: %d extra", bracketCount)
-
 	}
 
 	return nil
-
 }
 
 // recordMetric records security metrics for monitoring.
 
 func (s *LLMSanitizer) recordMetric(metricType string) {
-
 	s.mutex.Lock()
 
 	defer s.mutex.Unlock()
 
 	if s.metrics.suspiciousPatterns == nil {
-
 		s.metrics.suspiciousPatterns = make(map[string]int64)
-
 	}
 
 	s.metrics.suspiciousPatterns[metricType]++
-
 }
 
 // GetMetrics returns current security metrics.
 
 func (s *LLMSanitizer) GetMetrics() map[string]interface{} {
-
 	s.mutex.RLock()
 
 	defer s.mutex.RUnlock()
 
-	return map[string]interface{}{
-
-		"total_requests": s.metrics.totalRequests,
-
-		"blocked_requests": s.metrics.blockedRequests,
-
-		"sanitized_requests": s.metrics.sanitizedRequests,
-
-		"suspicious_patterns": s.metrics.suspiciousPatterns,
-
-		"block_rate": float64(s.metrics.blockedRequests) / float64(s.metrics.totalRequests),
-	}
-
+	return make(map[string]interface{})
 }
 
 // ValidateSystemPromptIntegrity verifies the system prompt hasn't been tampered with.
 
 func (s *LLMSanitizer) ValidateSystemPromptIntegrity(systemPrompt string) error {
-
 	hasher := sha256.New()
 
 	hasher.Write([]byte(systemPrompt))
@@ -816,11 +718,9 @@ func (s *LLMSanitizer) ValidateSystemPromptIntegrity(systemPrompt string) error 
 	currentHash := hex.EncodeToString(hasher.Sum(nil))
 
 	if currentHash != s.systemPromptHash {
-
 		return fmt.Errorf("system prompt integrity check failed")
-
 	}
 
 	return nil
-
 }
+

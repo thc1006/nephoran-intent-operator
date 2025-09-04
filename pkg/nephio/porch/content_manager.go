@@ -32,6 +32,7 @@ package porch
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -193,7 +194,6 @@ const (
 // version diffing, content merging, and binary content management for telecommunications packages.
 
 type ContentManager interface {
-
 	// Package content CRUD operations.
 
 	CreateContent(ctx context.Context, ref *PackageReference, content *PackageContentRequest) (*PackageContent, error)
@@ -282,7 +282,6 @@ type ContentManager interface {
 // contentManager implements comprehensive package content management.
 
 type contentManager struct {
-
 	// Core dependencies.
 
 	client *Client
@@ -1081,15 +1080,11 @@ type ContentValidationResult struct {
 // getStatusString returns a string representation of validation status.
 
 func (cvr *ContentValidationResult) getStatusString() string {
-
 	if cvr.Valid {
-
 		return "valid"
-
 	}
 
 	return "invalid"
-
 }
 
 // FileValidationResult contains validation results for a single file.
@@ -1520,14 +1515,11 @@ type TemplateEngine struct {
 // NewTemplateEngine performs newtemplateengine operation.
 
 func NewTemplateEngine(config *TemplateConfig) *TemplateEngine {
-
 	return &TemplateEngine{
-
 		templates: make(map[string]*template.Template),
 
 		funcs: make(template.FuncMap),
 	}
-
 }
 
 // Close performs close operation.
@@ -1545,14 +1537,11 @@ type ContentValidator struct {
 // NewContentValidator performs newcontentvalidator operation.
 
 func NewContentValidator(config *ValidationConfig) *ContentValidator {
-
 	return &ContentValidator{
-
 		schemas: make(map[string]interface{}),
 
 		rules: []ContentValidationRule{},
 	}
-
 }
 
 // Close performs close operation.
@@ -1651,21 +1640,15 @@ type ContentStore interface {
 // NewContentManager creates a new content manager instance.
 
 func NewContentManager(client *Client, config *ContentManagerConfig) (ContentManager, error) {
-
 	if client == nil {
-
 		return nil, fmt.Errorf("client cannot be nil")
-
 	}
 
 	if config == nil {
-
 		config = getDefaultContentManagerConfig()
-
 	}
 
 	cm := &contentManager{
-
 		client: client,
 
 		logger: log.Log.WithName("content-manager"),
@@ -1704,13 +1687,11 @@ func NewContentManager(client *Client, config *ContentManagerConfig) (ContentMan
 	go cm.metricsCollectionLoop()
 
 	return cm, nil
-
 }
 
 // CreateContent creates new package content.
 
 func (cm *contentManager) CreateContent(ctx context.Context, ref *PackageReference, req *PackageContentRequest) (*PackageContent, error) {
-
 	cm.logger.Info("Creating package content", "package", ref.GetPackageKey(), "files", len(req.Files))
 
 	// Acquire operation lock.
@@ -1726,9 +1707,7 @@ func (cm *contentManager) CreateContent(ctx context.Context, ref *PackageReferen
 	// Validate request.
 
 	if err := cm.validateContentRequest(req); err != nil {
-
 		return nil, fmt.Errorf("invalid content request: %w", err)
-
 	}
 
 	// Process templates if requested.
@@ -1738,11 +1717,8 @@ func (cm *contentManager) CreateContent(ctx context.Context, ref *PackageReferen
 	if req.ProcessTemplates && req.TemplateData != nil {
 
 		processed, err := cm.processContentTemplates(ctx, processedContent, req.TemplateData)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("template processing failed: %w", err)
-
 		}
 
 		processedContent = processed
@@ -1752,22 +1728,16 @@ func (cm *contentManager) CreateContent(ctx context.Context, ref *PackageReferen
 	// Create package content.
 
 	content := &PackageContent{
-
 		Files: processedContent,
 
 		Kptfile: &KptfileContent{
-
 			APIVersion: "kpt.dev/v1",
 
 			Kind: "Kptfile",
 
-			Metadata: map[string]interface{}{
-
-				"name": ref.PackageName,
-			},
+			Metadata: json.RawMessage(fmt.Sprintf(`{"name":"%s"}`, ref.PackageName)),
 
 			Info: &PackageMetadata{
-
 				Description: fmt.Sprintf("Package %s revision %s", ref.PackageName, ref.Revision),
 			},
 		},
@@ -1776,13 +1746,9 @@ func (cm *contentManager) CreateContent(ctx context.Context, ref *PackageReferen
 	// Store binary files if any.
 
 	if len(req.BinaryFiles) > 0 {
-
 		if err := cm.storeBinaryFiles(ctx, ref, req.BinaryFiles); err != nil {
-
 			return nil, fmt.Errorf("failed to store binary files: %w", err)
-
 		}
-
 	}
 
 	// Validate content if requested.
@@ -1790,24 +1756,18 @@ func (cm *contentManager) CreateContent(ctx context.Context, ref *PackageReferen
 	if req.ValidateContent {
 
 		validationResult, err := cm.ValidateContent(ctx, ref, content, &ValidationOptions{
-
 			ValidateYAMLSyntax: true,
 
 			ValidateJSONSyntax: true,
 
 			ValidateKRMResources: true,
 		})
-
 		if err != nil {
-
 			return nil, fmt.Errorf("content validation failed: %w", err)
-
 		}
 
 		if !validationResult.Valid {
-
 			return nil, fmt.Errorf("content validation failed with %d critical issues", len(validationResult.CriticalIssues))
-
 		}
 
 	}
@@ -1815,21 +1775,15 @@ func (cm *contentManager) CreateContent(ctx context.Context, ref *PackageReferen
 	// Store content using Porch client.
 
 	if err := cm.client.UpdatePackageContents(ctx, ref.PackageName, ref.Revision, processedContent); err != nil {
-
 		return nil, fmt.Errorf("failed to store content in Porch: %w", err)
-
 	}
 
 	// Index content if indexer is available.
 
 	if cm.indexer != nil {
-
 		if err := cm.indexer.IndexContent(ctx, ref, content); err != nil {
-
 			cm.logger.Error(err, "Failed to index content", "package", ref.GetPackageKey())
-
 		}
-
 	}
 
 	// Update metrics.
@@ -1855,29 +1809,22 @@ func (cm *contentManager) CreateContent(ctx context.Context, ref *PackageReferen
 		"duration", time.Since(startTime))
 
 	return content, nil
-
 }
 
 // GetContent retrieves package content with optional filtering and processing.
 
 func (cm *contentManager) GetContent(ctx context.Context, ref *PackageReference, opts *ContentQueryOptions) (*PackageContent, error) {
-
 	cm.logger.V(1).Info("Getting package content", "package", ref.GetPackageKey())
 
 	if opts == nil {
-
 		opts = &ContentQueryOptions{}
-
 	}
 
 	// Get content from Porch.
 
 	rawContent, err := cm.client.GetPackageContents(ctx, ref.PackageName, ref.Revision)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to get package contents: %w", err)
-
 	}
 
 	// Apply file filtering.
@@ -1891,21 +1838,16 @@ func (cm *contentManager) GetContent(ctx context.Context, ref *PackageReference,
 		processedContent, err := cm.processContentTemplates(ctx, filteredContent, opts.TemplateData)
 
 		if err != nil {
-
 			cm.logger.Error(err, "Template processing failed during content retrieval", "package", ref.GetPackageKey())
 
 			// Continue with unprocessed content.
-
 		} else {
-
 			filteredContent = processedContent
-
 		}
 
 	}
 
 	content := &PackageContent{
-
 		Files: filteredContent,
 	}
 
@@ -1916,13 +1858,9 @@ func (cm *contentManager) GetContent(ctx context.Context, ref *PackageReference,
 		_, err := cm.binaryStore.ListBinaryContent(ctx, ref)
 
 		if err != nil {
-
 			cm.logger.Error(err, "Failed to list binary content", "package", ref.GetPackageKey())
-
 		} else {
-
 			// Binary content metadata would be included here.
-
 		}
 
 	}
@@ -1930,38 +1868,30 @@ func (cm *contentManager) GetContent(ctx context.Context, ref *PackageReference,
 	// Update access metrics.
 
 	if cm.metrics != nil {
-
 		cm.metrics.contentOperations.WithLabelValues("get", "success").Inc()
-
 	}
 
 	return content, nil
-
 }
 
 // ValidateContent performs comprehensive content validation.
 
 func (cm *contentManager) ValidateContent(ctx context.Context, ref *PackageReference, content *PackageContent, opts *ValidationOptions) (*ContentValidationResult, error) {
-
 	cm.logger.V(1).Info("Validating package content", "package", ref.GetPackageKey(), "files", len(content.Files))
 
 	startTime := time.Now()
 
 	if opts == nil {
-
 		opts = &ValidationOptions{
-
 			ValidateYAMLSyntax: true,
 
 			ValidateJSONSyntax: true,
 
 			ValidateKRMResources: true,
 		}
-
 	}
 
 	result := &ContentValidationResult{
-
 		Valid: true,
 
 		FileResults: make(map[string]*FileValidationResult),
@@ -1974,7 +1904,6 @@ func (cm *contentManager) ValidateContent(ctx context.Context, ref *PackageRefer
 	for filename, fileContent := range content.Files {
 
 		fileResult, err := cm.validateSingleFile(ctx, filename, fileContent, opts)
-
 		if err != nil {
 
 			cm.logger.Error(err, "File validation failed", "file", filename)
@@ -1986,9 +1915,7 @@ func (cm *contentManager) ValidateContent(ctx context.Context, ref *PackageRefer
 		result.FileResults[filename] = fileResult
 
 		if !fileResult.Valid {
-
 			result.Valid = false
-
 		}
 
 		// Extract and validate KRM resources.
@@ -2004,9 +1931,7 @@ func (cm *contentManager) ValidateContent(ctx context.Context, ref *PackageRefer
 				result.Valid = false
 
 			} else {
-
 				result.KRMResults = append(result.KRMResults, krmResults...)
-
 			}
 
 		}
@@ -2018,7 +1943,6 @@ func (cm *contentManager) ValidateContent(ctx context.Context, ref *PackageRefer
 	crossFileIssues := cm.performCrossFileValidation(ctx, content, opts)
 
 	for _, issue := range crossFileIssues {
-
 		if issue.Severity == ValidationSeverityCritical {
 
 			result.Valid = false
@@ -2026,11 +1950,8 @@ func (cm *contentManager) ValidateContent(ctx context.Context, ref *PackageRefer
 			result.CriticalIssues = append(result.CriticalIssues, issue)
 
 		} else {
-
 			result.Warnings = append(result.Warnings, issue)
-
 		}
-
 	}
 
 	// Calculate overall quality score.
@@ -2060,13 +1981,11 @@ func (cm *contentManager) ValidateContent(ctx context.Context, ref *PackageRefer
 		"duration", result.ValidationTime)
 
 	return result, nil
-
 }
 
 // Close gracefully shuts down the content manager.
 
 func (cm *contentManager) Close() error {
-
 	cm.logger.Info("Shutting down content manager")
 
 	close(cm.shutdown)
@@ -2076,47 +1995,35 @@ func (cm *contentManager) Close() error {
 	// Close components.
 
 	if cm.templateEngine != nil {
-
 		cm.templateEngine.Close()
-
 	}
 
 	if cm.validator != nil {
-
 		cm.validator.Close()
-
 	}
 
 	if cm.indexer != nil {
-
 		cm.indexer.Close()
-
 	}
 
 	if cm.binaryStore != nil {
-
 		cm.binaryStore.Close()
-
 	}
 
 	cm.logger.Info("Content manager shutdown complete")
 
 	return nil
-
 }
 
 // Helper methods (placeholder implementations).
 
 func (cm *contentManager) getOperationLock(key string) *sync.RWMutex {
-
 	cm.locksMutex.Lock()
 
 	defer cm.locksMutex.Unlock()
 
 	if lock, exists := cm.operationLocks[key]; exists {
-
 		return lock
-
 	}
 
 	lock := &sync.RWMutex{}
@@ -2124,94 +2031,67 @@ func (cm *contentManager) getOperationLock(key string) *sync.RWMutex {
 	cm.operationLocks[key] = lock
 
 	return lock
-
 }
 
 func (cm *contentManager) validateContentRequest(req *PackageContentRequest) error {
-
 	if len(req.Files) == 0 && len(req.BinaryFiles) == 0 {
-
 		return fmt.Errorf("no content provided")
-
 	}
 
 	return nil
-
 }
 
 func (cm *contentManager) processContentTemplates(ctx context.Context, content map[string][]byte, templateData interface{}) (map[string][]byte, error) {
-
 	return content, nil
-
 }
 
 func (cm *contentManager) applyFileFilters(content map[string][]byte, opts *ContentQueryOptions) map[string][]byte {
-
 	return content
-
 }
 
 func (cm *contentManager) calculateContentSize(content map[string][]byte) int64 {
-
 	var total int64
 
 	for _, data := range content {
-
 		total += int64(len(data))
-
 	}
 
 	return total
-
 }
 
 func (cm *contentManager) storeBinaryFiles(ctx context.Context, ref *PackageReference, files map[string]BinaryFileRequest) error {
-
 	return nil
-
 }
 
 func (cm *contentManager) validateSingleFile(ctx context.Context, filename string, content []byte, opts *ValidationOptions) (*FileValidationResult, error) {
-
 	return &FileValidationResult{
-
 		FileName: filename,
 
 		Valid: true,
 
 		Size: int64(len(content)),
 	}, nil
-
 }
 
 func (cm *contentManager) isKRMFile(filename string) bool {
-
 	return strings.HasSuffix(filename, ".yaml") || strings.HasSuffix(filename, ".yml")
-
 }
 
 func (cm *contentManager) extractAndValidateKRMResources(ctx context.Context, content []byte) ([]*KRMValidationResult, error) {
-
 	return []*KRMValidationResult{}, nil
-
 }
 
 func (cm *contentManager) performCrossFileValidation(ctx context.Context, content *PackageContent, opts *ValidationOptions) []ValidationIssue {
-
 	return []ValidationIssue{}
-
 }
 
 func (cm *contentManager) calculateQualityScore(result *ContentValidationResult) float64 {
-
 	return 1.0
-
 }
 
 func (cm *contentManager) registerDefaultTemplateFunctions() {}
 
 func (cm *contentManager) metricsCollectionLoop() {
-
 	defer cm.wg.Done()
 
 	ticker := time.NewTicker(30 * time.Second)
@@ -2219,7 +2099,6 @@ func (cm *contentManager) metricsCollectionLoop() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-cm.shutdown:
@@ -2231,15 +2110,11 @@ func (cm *contentManager) metricsCollectionLoop() {
 			// Collect and update metrics.
 
 		}
-
 	}
-
 }
 
 func getDefaultContentManagerConfig() *ContentManagerConfig {
-
 	return &ContentManagerConfig{
-
 		MaxFileSize: 100 * 1024 * 1024, // 100MB
 
 		MaxFiles: 10000,
@@ -2250,17 +2125,13 @@ func getDefaultContentManagerConfig() *ContentManagerConfig {
 
 		EnableIndexing: true,
 	}
-
 }
 
 func initContentManagerMetrics() *ContentManagerMetrics {
-
 	return &ContentManagerMetrics{
-
 		contentOperations: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "porch_content_operations_total",
 
 				Help: "Total number of content operations",
@@ -2272,7 +2143,6 @@ func initContentManagerMetrics() *ContentManagerMetrics {
 		contentSize: prometheus.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "porch_content_size_bytes",
 
 				Help: "Size of package content in bytes",
@@ -2284,7 +2154,6 @@ func initContentManagerMetrics() *ContentManagerMetrics {
 		contentProcessingTime: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "porch_content_processing_duration_seconds",
 
 				Help: "Time spent processing content",
@@ -2296,7 +2165,6 @@ func initContentManagerMetrics() *ContentManagerMetrics {
 		validationOperations: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "porch_validation_operations_total",
 
 				Help: "Total number of validation operations",
@@ -2308,236 +2176,178 @@ func initContentManagerMetrics() *ContentManagerMetrics {
 		validationDuration: prometheus.NewHistogram(
 
 			prometheus.HistogramOpts{
-
 				Name: "porch_validation_duration_seconds",
 
 				Help: "Time spent on validation operations",
 			},
 		),
 	}
-
 }
 
 // Stub implementations for remaining ContentManager interface methods.
 
 func (cm *contentManager) UpdateContent(ctx context.Context, ref *PackageReference, updates *ContentUpdateRequest) (*PackageContent, error) {
-
 	return nil, fmt.Errorf("not implemented")
-
 }
 
 // DeleteContent performs deletecontent operation.
 
 func (cm *contentManager) DeleteContent(ctx context.Context, ref *PackageReference, filePatterns []string) error {
-
 	return fmt.Errorf("not implemented")
-
 }
 
 // ValidateKRMResources performs validatekrmresources operation.
 
 func (cm *contentManager) ValidateKRMResources(ctx context.Context, resources []KRMResource) (*KRMValidationResult, error) {
-
 	return nil, fmt.Errorf("not implemented")
-
 }
 
 // ValidateYAMLSyntax performs validateyamlsyntax operation.
 
 func (cm *contentManager) ValidateYAMLSyntax(ctx context.Context, yamlContent []byte) (*YAMLValidationResult, error) {
-
 	return nil, fmt.Errorf("not implemented")
-
 }
 
 // ValidateJSONSyntax performs validatejsonsyntax operation.
 
 func (cm *contentManager) ValidateJSONSyntax(ctx context.Context, jsonContent []byte) (*JSONValidationResult, error) {
-
 	return nil, fmt.Errorf("not implemented")
-
 }
 
 // ProcessTemplates performs processtemplates operation.
 
 func (cm *contentManager) ProcessTemplates(ctx context.Context, ref *PackageReference, templateData interface{}, opts *TemplateProcessingOptions) (*PackageContent, error) {
-
 	return nil, fmt.Errorf("not implemented")
-
 }
 
 // RegisterTemplateFunction performs registertemplatefunction operation.
 
 func (cm *contentManager) RegisterTemplateFunction(name string, fn interface{}) error {
-
 	return fmt.Errorf("not implemented")
-
 }
 
 // ListTemplateVariables performs listtemplatevariables operation.
 
 func (cm *contentManager) ListTemplateVariables(ctx context.Context, ref *PackageReference) ([]TemplateVariable, error) {
-
 	return nil, fmt.Errorf("not implemented")
-
 }
 
 // DetectConflicts performs detectconflicts operation.
 
 func (cm *contentManager) DetectConflicts(ctx context.Context, ref *PackageReference, incomingContent *PackageContent) (*ConflictDetectionResult, error) {
-
 	return nil, fmt.Errorf("not implemented")
-
 }
 
 // ResolveConflicts performs resolveconflicts operation.
 
 func (cm *contentManager) ResolveConflicts(ctx context.Context, ref *PackageReference, conflicts *ConflictResolution) (*PackageContent, error) {
-
 	return nil, fmt.Errorf("not implemented")
-
 }
 
 // CreateMergeProposal performs createmergeproposal operation.
 
 func (cm *contentManager) CreateMergeProposal(ctx context.Context, ref *PackageReference, baseContent, incomingContent *PackageContent) (*MergeProposal, error) {
-
 	return nil, fmt.Errorf("not implemented")
-
 }
 
 // DiffContent performs diffcontent operation.
 
 func (cm *contentManager) DiffContent(ctx context.Context, ref1, ref2 *PackageReference, opts *DiffOptions) (*ContentDiff, error) {
-
 	return nil, fmt.Errorf("not implemented")
-
 }
 
 // DiffFiles performs difffiles operation.
 
 func (cm *contentManager) DiffFiles(ctx context.Context, file1, file2 []byte, format DiffFormat) (*FileDiff, error) {
-
 	return nil, fmt.Errorf("not implemented")
-
 }
 
 // GeneratePatch performs generatepatch operation.
 
 func (cm *contentManager) GeneratePatch(ctx context.Context, oldContent, newContent *PackageContent) (*ContentPatch, error) {
-
 	return nil, fmt.Errorf("not implemented")
-
 }
 
 // ApplyPatch performs applypatch operation.
 
 func (cm *contentManager) ApplyPatch(ctx context.Context, ref *PackageReference, patch *ContentPatch) (*ContentPatch, error) {
-
 	return nil, fmt.Errorf("not implemented")
-
 }
 
 // MergeContent performs mergecontent operation.
 
 func (cm *contentManager) MergeContent(ctx context.Context, baseContent, sourceContent, targetContent *PackageContent, opts *MergeOptions) (*MergeResult, error) {
-
 	return nil, fmt.Errorf("not implemented")
-
 }
 
 // ThreeWayMerge performs threewaymerge operation.
 
 func (cm *contentManager) ThreeWayMerge(ctx context.Context, base, source, target []byte, opts *MergeOptions) (*FileMergeResult, error) {
-
 	return nil, fmt.Errorf("not implemented")
-
 }
 
 // StoreBinaryContent performs storebinarycontent operation.
 
 func (cm *contentManager) StoreBinaryContent(ctx context.Context, ref *PackageReference, filename string, data []byte, opts *BinaryStorageOptions) (*BinaryContentInfo, error) {
-
 	return nil, fmt.Errorf("not implemented")
-
 }
 
 // RetrieveBinaryContent performs retrievebinarycontent operation.
 
 func (cm *contentManager) RetrieveBinaryContent(ctx context.Context, ref *PackageReference, filename string) (*BinaryContentInfo, []byte, error) {
-
 	return nil, nil, fmt.Errorf("not implemented")
-
 }
 
 // DeleteBinaryContent performs deletebinarycontent operation.
 
 func (cm *contentManager) DeleteBinaryContent(ctx context.Context, ref *PackageReference, filename string) error {
-
 	return fmt.Errorf("not implemented")
-
 }
 
 // ListBinaryContent performs listbinarycontent operation.
 
 func (cm *contentManager) ListBinaryContent(ctx context.Context, ref *PackageReference) ([]BinaryContentInfo, error) {
-
 	return nil, fmt.Errorf("not implemented")
-
 }
 
 // AnalyzeContent performs analyzecontent operation.
 
 func (cm *contentManager) AnalyzeContent(ctx context.Context, ref *PackageReference) (*ContentAnalysis, error) {
-
 	return nil, fmt.Errorf("not implemented")
-
 }
 
 // GetContentMetrics performs getcontentmetrics operation.
 
 func (cm *contentManager) GetContentMetrics(ctx context.Context, ref *PackageReference) (*ContentMetrics, error) {
-
 	return nil, fmt.Errorf("not implemented")
-
 }
 
 // OptimizeContent performs optimizecontent operation.
 
 func (cm *contentManager) OptimizeContent(ctx context.Context, ref *PackageReference, opts *OptimizationOptions) (*OptimizationResult, error) {
-
 	return nil, fmt.Errorf("not implemented")
-
 }
 
 // IndexContent performs indexcontent operation.
 
 func (cm *contentManager) IndexContent(ctx context.Context, ref *PackageReference) error {
-
 	return fmt.Errorf("not implemented")
-
 }
 
 // SearchContent performs searchcontent operation.
 
 func (cm *contentManager) SearchContent(ctx context.Context, query *ContentSearchQuery) (*ContentSearchResult, error) {
-
 	return nil, fmt.Errorf("not implemented")
-
 }
 
 // GetContentHealth performs getcontenthealth operation.
 
 func (cm *contentManager) GetContentHealth(ctx context.Context) (*ContentManagerHealth, error) {
-
 	return nil, fmt.Errorf("not implemented")
-
 }
 
 // CleanupOrphanedContent performs cleanuporphanedcontent operation.
 
 func (cm *contentManager) CleanupOrphanedContent(ctx context.Context, olderThan time.Duration) (*CleanupResult, error) {
-
 	return nil, fmt.Errorf("not implemented")
-
 }

@@ -368,8 +368,8 @@ func (g *SecureCertificateGenerator) GenerateServerKeyPair(
 	dnsNames []string,
 	ipAddresses []net.IP,
 	caCert *x509.Certificate,
-	caKey *rsa.PrivateKey) (*rsa.PrivateKey, *x509.Certificate, error) {
-
+	caKey *rsa.PrivateKey,
+) (*rsa.PrivateKey, *x509.Certificate, error) {
 	// Generate RSA key pair
 	privateKey, err := rsa.GenerateKey(rand.Reader, g.config.RSAKeySize)
 	if err != nil {
@@ -439,8 +439,8 @@ func NewSecureHTTPClientFactory(config *CryptoConfig, logger *zap.Logger) *Secur
 func (f *SecureHTTPClientFactory) CreateSecureClient(
 	clientCert *tls.Certificate,
 	rootCAs *x509.CertPool,
-	timeout time.Duration) (*http.Client, error) {
-
+	timeout time.Duration,
+) (*http.Client, error) {
 	if timeout == 0 {
 		timeout = 30 * time.Second
 	}
@@ -499,8 +499,8 @@ func NewSecureGRPCFactory(config *CryptoConfig, logger *zap.Logger) *SecureGRPCF
 // CreateSecureServerCredentials creates secure gRPC server credentials
 func (f *SecureGRPCFactory) CreateSecureServerCredentials(
 	serverCert tls.Certificate,
-	clientCAs *x509.CertPool) (credentials.TransportCredentials, error) {
-
+	clientCAs *x509.CertPool,
+) (credentials.TransportCredentials, error) {
 	tlsConfig, err := f.tlsBuilder.BuildServerTLSConfig(serverCert, clientCAs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build server TLS config: %w", err)
@@ -513,8 +513,8 @@ func (f *SecureGRPCFactory) CreateSecureServerCredentials(
 func (f *SecureGRPCFactory) CreateSecureClientCredentials(
 	clientCert *tls.Certificate,
 	rootCAs *x509.CertPool,
-	serverName string) (credentials.TransportCredentials, error) {
-
+	serverName string,
+) (credentials.TransportCredentials, error) {
 	tlsConfig, err := f.tlsBuilder.BuildClientTLSConfig(clientCert, rootCAs, serverName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build client TLS config: %w", err)

@@ -13,12 +13,12 @@ func TestStateManager_BasicOperations(t *testing.T) {
 	dir := t.TempDir()
 	sm, err := NewStateManager(dir)
 	require.NoError(t, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	// Create a test file
 	testFile := filepath.Join(dir, "test-intent.json")
 	testContent := `{"action": "scale", "target": "deployment", "count": 3}`
-	require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0644))
+	require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0o644))
 
 	// Initially should not be processed
 	processed, err := sm.IsProcessed(testFile)
@@ -48,12 +48,12 @@ func TestStateManager_FileModification(t *testing.T) {
 	dir := t.TempDir()
 	sm, err := NewStateManager(dir)
 	require.NoError(t, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	// Create and mark file as processed
 	testFile := filepath.Join(dir, "test-intent.json")
 	testContent := `{"action": "scale", "target": "deployment", "count": 3}`
-	require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0644))
+	require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0o644))
 
 	err = sm.MarkProcessed(testFile)
 	require.NoError(t, err)
@@ -65,7 +65,7 @@ func TestStateManager_FileModification(t *testing.T) {
 
 	// Modify file content
 	newContent := `{"action": "scale", "target": "deployment", "count": 5}`
-	require.NoError(t, os.WriteFile(testFile, []byte(newContent), 0644))
+	require.NoError(t, os.WriteFile(testFile, []byte(newContent), 0o644))
 
 	// Should no longer be considered processed
 	processed, err = sm.IsProcessed(testFile)

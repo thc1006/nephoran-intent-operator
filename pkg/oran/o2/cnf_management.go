@@ -4,6 +4,7 @@ package o2
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -51,92 +52,71 @@ type ContainerRegistryManager struct {
 // Manager method implementations.
 
 func (om *OperatorManager) Initialize() error {
-
 	return nil
-
 }
 
 // Deploy performs deploy operation.
 
 func (om *OperatorManager) Deploy(ctx context.Context, req *OperatorDeployRequest) ([]interface{}, error) {
-
 	return nil, nil
-
 }
 
 // Update performs update operation.
 
 func (om *OperatorManager) Update(ctx context.Context, req *OperatorUpdateRequest) error {
-
 	return nil
-
 }
 
 // Uninstall performs uninstall operation.
 
 func (om *OperatorManager) Uninstall(ctx context.Context, name, namespace string) error {
-
 	return nil
-
 }
 
 // Initialize performs initialize operation.
 
 func (sm *ServiceMeshManager) Initialize() error {
-
 	return nil
-
 }
 
 // Initialize performs initialize operation.
 
 func (crm *ContainerRegistryManager) Initialize() error {
-
 	return nil
-
 }
 
 // NewOperatorManager creates a new operator manager.
 
 func NewOperatorManager(config *OperatorConfig, k8sClient client.Client, logger *logging.StructuredLogger) *OperatorManager {
-
 	return &OperatorManager{
-
 		config: config,
 
 		k8sClient: k8sClient,
 
 		logger: logger,
 	}
-
 }
 
 // NewServiceMeshManager creates a new service mesh manager.
 
 func NewServiceMeshManager(config *ServiceMeshConfig, k8sClient client.Client, logger *logging.StructuredLogger) *ServiceMeshManager {
-
 	return &ServiceMeshManager{
-
 		config: config,
 
 		k8sClient: k8sClient,
 
 		logger: logger,
 	}
-
 }
 
 // NewContainerRegistryManager creates a new container registry manager.
 
 func NewContainerRegistryManager(config *RegistryConfig, logger *logging.StructuredLogger) *ContainerRegistryManager {
-
 	return &ContainerRegistryManager{
-
 		config: config,
 
 		logger: logger,
 	}
-
 }
 
 // CNFManagementService provides comprehensive CNF lifecycle management.
@@ -184,7 +164,6 @@ type CNFManagementService struct {
 // CNFConfig configuration for CNF management.
 
 type CNFConfig struct {
-
 	// Kubernetes settings.
 
 	KubernetesConfig *KubernetesConfig `json:"kubernetesConfig,omitempty"`
@@ -319,7 +298,7 @@ type TrafficPolicy struct {
 
 	Type string `json:"type"`
 
-	Rules map[string]interface{} `json:"rules"`
+	Rules json.RawMessage `json:"rules"`
 }
 
 // RegistryConfig configuration for container registry.
@@ -639,25 +618,18 @@ type ResourceRef struct {
 // NewCNFManagementService creates a new CNF management service.
 
 func NewCNFManagementService(
-
 	config *CNFConfig,
 
 	k8sClient client.Client,
 
 	logger *logging.StructuredLogger,
-
 ) (*CNFManagementService, error) {
-
 	if config == nil {
-
 		config = DefaultCNFConfig()
-
 	}
 
 	if logger == nil {
-
 		logger = logging.NewStructuredLogger(logging.DefaultConfig("cnf-management", "1.0.0", "production"))
-
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -675,7 +647,6 @@ func NewCNFManagementService(
 	registryManager := NewContainerRegistryManager(config.RegistryConfig, logger)
 
 	service := &CNFManagementService{
-
 		config: config,
 
 		logger: logger,
@@ -702,22 +673,17 @@ func NewCNFManagementService(
 	}
 
 	return service, nil
-
 }
 
 // DefaultCNFConfig returns default CNF configuration.
 
 func DefaultCNFConfig() *CNFConfig {
-
 	return &CNFConfig{
-
 		KubernetesConfig: &KubernetesConfig{
-
 			Namespace: "default",
 		},
 
 		HelmConfig: &HelmConfig{
-
 			Enabled: true,
 
 			DefaultTimeout: 10 * time.Minute,
@@ -726,7 +692,6 @@ func DefaultCNFConfig() *CNFConfig {
 		},
 
 		OperatorConfig: &OperatorConfig{
-
 			Enabled: true,
 
 			AutoUpgrade: false,
@@ -735,7 +700,6 @@ func DefaultCNFConfig() *CNFConfig {
 		},
 
 		ServiceMeshConfig: &ServiceMeshConfig{
-
 			Enabled: false,
 
 			MeshType: "istio",
@@ -746,16 +710,13 @@ func DefaultCNFConfig() *CNFConfig {
 		},
 
 		RegistryConfig: &RegistryConfig{
-
 			DefaultRegistry: "docker.io",
 
 			ScanEnabled: true,
 		},
 
 		LifecycleConfig: &CNFLifecycleConfig{
-
 			AutoScaling: &AutoScalingConfig{
-
 				Enabled: false,
 
 				MinReplicas: 1,
@@ -764,7 +725,6 @@ func DefaultCNFConfig() *CNFConfig {
 			},
 
 			HealthChecks: &models.HealthCheckConfig{
-
 				Name: "default-health-check",
 
 				Type: "HTTP",
@@ -785,7 +745,6 @@ func DefaultCNFConfig() *CNFConfig {
 			},
 
 			UpdateStrategy: &UpdateStrategyConfig{
-
 				Type: "RollingUpdate",
 
 				MaxUnavailable: "25%",
@@ -801,7 +760,6 @@ func DefaultCNFConfig() *CNFConfig {
 		LoggingEnabled: true,
 
 		SecurityPolicies: &SecurityPolicies{
-
 			PodSecurityStandard: "restricted",
 
 			RunAsNonRoot: true,
@@ -812,25 +770,20 @@ func DefaultCNFConfig() *CNFConfig {
 		},
 
 		NetworkPolicies: &NetworkPolicies{
-
 			DefaultDeny: true,
 		},
 	}
-
 }
 
 // Start starts the CNF management service.
 
 func (s *CNFManagementService) Start(ctx context.Context) error {
-
 	s.logger.Info("starting CNF management service")
 
 	// Initialize managers.
 
 	if err := s.initializeManagers(); err != nil {
-
 		return fmt.Errorf("failed to initialize managers: %w", err)
-
 	}
 
 	// Start background processes.
@@ -842,13 +795,11 @@ func (s *CNFManagementService) Start(ctx context.Context) error {
 	go s.cnfReconcileLoop()
 
 	return nil
-
 }
 
 // Stop stops the CNF management service.
 
 func (s *CNFManagementService) Stop() error {
-
 	s.logger.Info("stopping CNF management service")
 
 	s.cancel()
@@ -858,59 +809,43 @@ func (s *CNFManagementService) Stop() error {
 	s.logger.Info("CNF management service stopped")
 
 	return nil
-
 }
 
 // initializeManagers initializes all managers.
 
 func (s *CNFManagementService) initializeManagers() error {
-
 	s.logger.Info("initializing CNF managers")
 
 	// Initialize Helm manager.
 
 	if s.config.HelmConfig.Enabled {
-
 		if err := s.helmManager.Initialize(); err != nil {
-
 			return fmt.Errorf("failed to initialize Helm manager: %w", err)
-
 		}
-
 	}
 
 	// Initialize operator manager.
 
 	if s.config.OperatorConfig.Enabled {
-
 		if err := s.operatorManager.Initialize(); err != nil {
-
 			return fmt.Errorf("failed to initialize operator manager: %w", err)
-
 		}
-
 	}
 
 	// Initialize service mesh manager.
 
 	if s.config.ServiceMeshConfig.Enabled {
-
 		if err := s.serviceMeshManager.Initialize(); err != nil {
-
 			return fmt.Errorf("failed to initialize service mesh manager: %w", err)
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // cnfMonitoringLoop monitors CNF instances.
 
 func (s *CNFManagementService) cnfMonitoringLoop() {
-
 	defer s.wg.Done()
 
 	ticker := time.NewTicker(30 * time.Second)
@@ -918,7 +853,6 @@ func (s *CNFManagementService) cnfMonitoringLoop() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-s.ctx.Done():
@@ -930,15 +864,12 @@ func (s *CNFManagementService) cnfMonitoringLoop() {
 			s.monitorCNFInstances()
 
 		}
-
 	}
-
 }
 
 // cnfReconcileLoop reconciles CNF instances.
 
 func (s *CNFManagementService) cnfReconcileLoop() {
-
 	defer s.wg.Done()
 
 	ticker := time.NewTicker(60 * time.Second)
@@ -946,7 +877,6 @@ func (s *CNFManagementService) cnfReconcileLoop() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-s.ctx.Done():
@@ -958,50 +888,39 @@ func (s *CNFManagementService) cnfReconcileLoop() {
 			s.reconcileCNFInstances()
 
 		}
-
 	}
-
 }
 
 // monitorCNFInstances monitors all CNF instances.
 
 func (s *CNFManagementService) monitorCNFInstances() {
-
 	s.mu.RLock()
 
 	cnfInstances := make(map[string]*CNFInstance, len(s.cnfInstances))
 
 	for id, instance := range s.cnfInstances {
-
 		cnfInstances[id] = instance
-
 	}
 
 	s.mu.RUnlock()
 
 	for id, instance := range cnfInstances {
-
 		go s.monitorCNFInstance(id, instance)
-
 	}
-
 }
 
 // monitorCNFInstance monitors a single CNF instance.
 
 func (s *CNFManagementService) monitorCNFInstance(id string, instance *CNFInstance) {
-
 	// Get current deployment status.
 
 	deployment := &appsv1.Deployment{}
 
 	err := s.k8sClient.Get(s.ctx, client.ObjectKey{
-
 		Name: instance.Name,
 
 		Namespace: instance.Namespace,
 	}, deployment)
-
 	if err != nil {
 
 		s.logger.Error("failed to get CNF deployment",
@@ -1019,21 +938,17 @@ func (s *CNFManagementService) monitorCNFInstance(id string, instance *CNFInstan
 	// Update CNF status.
 
 	s.updateCNFStatus(instance, deployment)
-
 }
 
 // updateCNFStatus updates CNF status based on deployment.
 
 func (s *CNFManagementService) updateCNFStatus(instance *CNFInstance, deployment *appsv1.Deployment) {
-
 	s.mu.Lock()
 
 	defer s.mu.Unlock()
 
 	if instance.Status == nil {
-
 		instance.Status = &CNFStatus{}
-
 	}
 
 	// Update replica counts.
@@ -1075,81 +990,62 @@ func (s *CNFManagementService) updateCNFStatus(instance *CNFInstance, deployment
 	instance.Status.LastHealthCheck = time.Now()
 
 	instance.UpdatedAt = time.Now()
-
 }
 
 // reconcileCNFInstances reconciles all CNF instances.
 
 func (s *CNFManagementService) reconcileCNFInstances() {
-
 	s.mu.RLock()
 
 	cnfInstances := make(map[string]*CNFInstance, len(s.cnfInstances))
 
 	for id, instance := range s.cnfInstances {
-
 		cnfInstances[id] = instance
-
 	}
 
 	s.mu.RUnlock()
 
 	for id, instance := range cnfInstances {
-
 		go s.reconcileCNFInstance(id, instance)
-
 	}
-
 }
 
 // reconcileCNFInstance reconciles a single CNF instance.
 
 func (s *CNFManagementService) reconcileCNFInstance(id string, instance *CNFInstance) {
-
 	// Check if CNF should be scaled.
 
 	if s.shouldScaleCNF(instance) {
-
 		if err := s.scaleCNF(instance); err != nil {
-
 			s.logger.Error("failed to scale CNF",
 
 				"cnf_id", id,
 
 				"error", err)
-
 		}
-
 	}
 
 	// Check if CNF needs updates.
 
 	if s.shouldUpdateCNF(instance) {
-
 		if err := s.updateCNF(instance); err != nil {
-
 			s.logger.Error("failed to update CNF",
 
 				"cnf_id", id,
 
 				"error", err)
-
 		}
-
 	}
-
 }
 
 // DeployCNF deploys a new CNF instance.
 
 func (s *CNFManagementService) DeployCNF(ctx context.Context, spec *CNFSpec) (*CNFInstance, error) {
-
 	s.logger.Info("deploying CNF", "name", spec.Image)
 
 	// Generate CNF instance.
 
 	instance := &CNFInstance{
-
 		ID: fmt.Sprintf("cnf-%d", time.Now().Unix()),
 
 		Name: s.generateCNFName(spec.Image),
@@ -1167,7 +1063,6 @@ func (s *CNFManagementService) DeployCNF(ctx context.Context, spec *CNFSpec) (*C
 		UpdatedAt: time.Now(),
 
 		Status: &CNFStatus{
-
 			Phase: "Pending",
 
 			Health: "Unknown",
@@ -1181,23 +1076,15 @@ func (s *CNFManagementService) DeployCNF(ctx context.Context, spec *CNFSpec) (*C
 	var err error
 
 	if spec.HelmChart != nil {
-
 		deployment, err = s.deployWithHelm(ctx, instance, spec.HelmChart)
-
 	} else if spec.Operator != nil {
-
 		deployment, err = s.deployWithOperator(ctx, instance, spec.Operator)
-
 	} else {
-
 		deployment, err = s.deployWithManifests(ctx, instance)
-
 	}
 
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to deploy CNF: %w", err)
-
 	}
 
 	instance.Deployment = deployment
@@ -1221,13 +1108,11 @@ func (s *CNFManagementService) DeployCNF(ctx context.Context, spec *CNFSpec) (*C
 		"deployment_id", deployment.ID)
 
 	return instance, nil
-
 }
 
 // deployWithHelm deploys CNF using Helm.
 
 func (s *CNFManagementService) deployWithHelm(ctx context.Context, instance *CNFInstance, helmChart *HelmChartSpec) (*CNFDeployment, error) {
-
 	s.logger.Info("deploying CNF with Helm",
 
 		"cnf_id", instance.ID,
@@ -1237,7 +1122,6 @@ func (s *CNFManagementService) deployWithHelm(ctx context.Context, instance *CNF
 	// Deploy using Helm manager.
 
 	release, err := s.helmManager.Deploy(ctx, &HelmDeployRequest{
-
 		ReleaseName: instance.Name,
 
 		Namespace: instance.Namespace,
@@ -1252,15 +1136,11 @@ func (s *CNFManagementService) deployWithHelm(ctx context.Context, instance *CNF
 
 		ValuesFiles: helmChart.ValuesFiles,
 	})
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to deploy with Helm: %w", err)
-
 	}
 
 	deployment := &CNFDeployment{
-
 		ID: fmt.Sprintf("helm-%d", time.Now().Unix()),
 
 		CNFID: instance.ID,
@@ -1277,13 +1157,11 @@ func (s *CNFManagementService) deployWithHelm(ctx context.Context, instance *CNF
 	}
 
 	return deployment, nil
-
 }
 
 // deployWithOperator deploys CNF using Kubernetes operator.
 
 func (s *CNFManagementService) deployWithOperator(ctx context.Context, instance *CNFInstance, operatorSpec *OperatorSpec) (*CNFDeployment, error) {
-
 	s.logger.Info("deploying CNF with operator",
 
 		"cnf_id", instance.ID,
@@ -1295,15 +1173,12 @@ func (s *CNFManagementService) deployWithOperator(ctx context.Context, instance 
 	customResources := make([]interface{}, len(operatorSpec.CustomResources))
 
 	for i, cr := range operatorSpec.CustomResources {
-
 		customResources[i] = cr
-
 	}
 
 	// Deploy using operator manager.
 
 	resources, err := s.operatorManager.Deploy(ctx, &OperatorDeployRequest{
-
 		Name: instance.Name,
 
 		Namespace: instance.Namespace,
@@ -1318,15 +1193,11 @@ func (s *CNFManagementService) deployWithOperator(ctx context.Context, instance 
 
 		CustomResources: customResources,
 	})
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to deploy with operator: %w", err)
-
 	}
 
 	deployment := &CNFDeployment{
-
 		ID: fmt.Sprintf("operator-%d", time.Now().Unix()),
 
 		CNFID: instance.ID,
@@ -1343,27 +1214,22 @@ func (s *CNFManagementService) deployWithOperator(ctx context.Context, instance 
 	}
 
 	return deployment, nil
-
 }
 
 // deployWithManifests deploys CNF using Kubernetes manifests.
 
 func (s *CNFManagementService) deployWithManifests(ctx context.Context, instance *CNFInstance) (*CNFDeployment, error) {
-
 	s.logger.Info("deploying CNF with manifests", "cnf_id", instance.ID)
 
 	// Create deployment manifest.
 
 	deployment := &appsv1.Deployment{
-
 		ObjectMeta: metav1.ObjectMeta{
-
 			Name: instance.Name,
 
 			Namespace: instance.Namespace,
 
 			Labels: map[string]string{
-
 				"app": instance.Name,
 
 				"cnf-id": instance.ID,
@@ -1373,33 +1239,24 @@ func (s *CNFManagementService) deployWithManifests(ctx context.Context, instance
 		},
 
 		Spec: appsv1.DeploymentSpec{
-
 			Replicas: &instance.Spec.Replicas,
 
 			Selector: &metav1.LabelSelector{
-
 				MatchLabels: map[string]string{
-
 					"app": instance.Name,
 				},
 			},
 
 			Template: corev1.PodTemplateSpec{
-
 				ObjectMeta: metav1.ObjectMeta{
-
 					Labels: map[string]string{
-
 						"app": instance.Name,
 					},
 				},
 
 				Spec: corev1.PodSpec{
-
 					Containers: []corev1.Container{
-
 						{
-
 							Name: instance.Name,
 
 							Image: fmt.Sprintf("%s:%s", instance.Spec.Image, instance.Spec.Tag),
@@ -1441,13 +1298,10 @@ func (s *CNFManagementService) deployWithManifests(ctx context.Context, instance
 	// Create deployment.
 
 	if err := s.k8sClient.Create(ctx, deployment); err != nil {
-
 		return nil, fmt.Errorf("failed to create deployment: %w", err)
-
 	}
 
 	cnfDeployment := &CNFDeployment{
-
 		ID: fmt.Sprintf("manifest-%d", time.Now().Unix()),
 
 		CNFID: instance.ID,
@@ -1457,9 +1311,7 @@ func (s *CNFManagementService) deployWithManifests(ctx context.Context, instance
 		Status: "deployed",
 
 		Resources: []ResourceRef{
-
 			{
-
 				APIVersion: deployment.APIVersion,
 
 				Kind: deployment.Kind,
@@ -1478,7 +1330,6 @@ func (s *CNFManagementService) deployWithManifests(ctx context.Context, instance
 	}
 
 	return cnfDeployment, nil
-
 }
 
 // Helper functions.
@@ -1486,19 +1337,16 @@ func (s *CNFManagementService) deployWithManifests(ctx context.Context, instance
 // generateCNFName generates a CNF name from image.
 
 func (s *CNFManagementService) generateCNFName(image string) string {
-
 	parts := strings.Split(image, "/")
 
 	name := parts[len(parts)-1]
 
 	return strings.ToLower(strings.ReplaceAll(name, "_", "-"))
-
 }
 
 // determineCNFType determines CNF type from image.
 
 func (s *CNFManagementService) determineCNFType(image string) string {
-
 	image = strings.ToLower(image)
 
 	if strings.Contains(image, "amf") || strings.Contains(image, "smf") ||
@@ -1506,37 +1354,26 @@ func (s *CNFManagementService) determineCNFType(image string) string {
 		strings.Contains(image, "upf") || strings.Contains(image, "nssf") {
 
 		return "5G Core"
-
 	} else if strings.Contains(image, "oran") || strings.Contains(image, "ric") {
-
 		return "O-RAN"
-
 	} else if strings.Contains(image, "edge") {
-
 		return "Edge"
-
 	}
 
 	return "Generic"
-
 }
 
 // applySecurityPolicies applies security policies to deployment.
 
 func (s *CNFManagementService) applySecurityPolicies(deployment *appsv1.Deployment) {
-
 	if s.config.SecurityPolicies == nil {
-
 		return
-
 	}
 
 	container := &deployment.Spec.Template.Spec.Containers[0]
 
 	if container.SecurityContext == nil {
-
 		container.SecurityContext = &corev1.SecurityContext{}
-
 	}
 
 	if s.config.SecurityPolicies.RunAsNonRoot {
@@ -1558,21 +1395,16 @@ func (s *CNFManagementService) applySecurityPolicies(deployment *appsv1.Deployme
 	allowPrivilegeEscalation := s.config.SecurityPolicies.AllowPrivilegeEscalation
 
 	container.SecurityContext.AllowPrivilegeEscalation = &allowPrivilegeEscalation
-
 }
 
 // extractResourceRefs extracts resource references from deployed resources.
 
 func (s *CNFManagementService) extractResourceRefs(resources []runtime.Object) []ResourceRef {
-
 	var refs []ResourceRef
 
 	for _, resource := range resources {
-
 		if obj, ok := resource.(metav1.Object); ok {
-
 			refs = append(refs, ResourceRef{
-
 				APIVersion: resource.GetObjectKind().GroupVersionKind().GroupVersion().String(),
 
 				Kind: resource.GetObjectKind().GroupVersionKind().Kind,
@@ -1583,29 +1415,21 @@ func (s *CNFManagementService) extractResourceRefs(resources []runtime.Object) [
 
 				UID: obj.GetUID(),
 			})
-
 		}
-
 	}
 
 	return refs
-
 }
 
 // extractResourceRefsFromInterfaces extracts resource references from interface{} resources.
 
 func (s *CNFManagementService) extractResourceRefsFromInterfaces(resources []interface{}) []ResourceRef {
-
 	var refs []ResourceRef
 
 	for _, resource := range resources {
-
 		if runtimeObj, ok := resource.(runtime.Object); ok {
-
 			if obj, ok := runtimeObj.(metav1.Object); ok {
-
 				refs = append(refs, ResourceRef{
-
 					APIVersion: runtimeObj.GetObjectKind().GroupVersionKind().GroupVersion().String(),
 
 					Kind: runtimeObj.GetObjectKind().GroupVersionKind().Kind,
@@ -1616,25 +1440,18 @@ func (s *CNFManagementService) extractResourceRefsFromInterfaces(resources []int
 
 					UID: obj.GetUID(),
 				})
-
 			}
-
 		}
-
 	}
 
 	return refs
-
 }
 
 // shouldScaleCNF determines if CNF should be scaled.
 
 func (s *CNFManagementService) shouldScaleCNF(instance *CNFInstance) bool {
-
 	if !s.config.LifecycleConfig.AutoScaling.Enabled {
-
 		return false
-
 	}
 
 	// This would typically check metrics and determine if scaling is needed.
@@ -1642,13 +1459,11 @@ func (s *CNFManagementService) shouldScaleCNF(instance *CNFInstance) bool {
 	// For now, it's a placeholder.
 
 	return false
-
 }
 
 // scaleCNF scales a CNF instance.
 
 func (s *CNFManagementService) scaleCNF(instance *CNFInstance) error {
-
 	s.logger.Info("scaling CNF", "cnf_id", instance.ID)
 
 	// Implementation would scale the CNF based on metrics.
@@ -1656,25 +1471,21 @@ func (s *CNFManagementService) scaleCNF(instance *CNFInstance) error {
 	// For now, it's a placeholder.
 
 	return nil
-
 }
 
 // shouldUpdateCNF determines if CNF needs updates.
 
 func (s *CNFManagementService) shouldUpdateCNF(instance *CNFInstance) bool {
-
 	// This would typically check for available updates.
 
 	// For now, it's a placeholder.
 
 	return false
-
 }
 
 // updateCNF updates a CNF instance.
 
 func (s *CNFManagementService) updateCNF(instance *CNFInstance) error {
-
 	s.logger.Info("updating CNF", "cnf_id", instance.ID)
 
 	// Implementation would update the CNF.
@@ -1682,13 +1493,11 @@ func (s *CNFManagementService) updateCNF(instance *CNFInstance) error {
 	// For now, it's a placeholder.
 
 	return nil
-
 }
 
 // GetCNF retrieves a CNF instance by ID.
 
 func (s *CNFManagementService) GetCNF(ctx context.Context, id string) (*CNFInstance, error) {
-
 	s.mu.RLock()
 
 	defer s.mu.RUnlock()
@@ -1696,19 +1505,15 @@ func (s *CNFManagementService) GetCNF(ctx context.Context, id string) (*CNFInsta
 	instance, exists := s.cnfInstances[id]
 
 	if !exists {
-
 		return nil, fmt.Errorf("CNF instance %s not found", id)
-
 	}
 
 	return instance, nil
-
 }
 
 // ListCNFs lists all CNF instances.
 
 func (s *CNFManagementService) ListCNFs(ctx context.Context) ([]*CNFInstance, error) {
-
 	s.mu.RLock()
 
 	defer s.mu.RUnlock()
@@ -1716,19 +1521,15 @@ func (s *CNFManagementService) ListCNFs(ctx context.Context) ([]*CNFInstance, er
 	instances := make([]*CNFInstance, 0, len(s.cnfInstances))
 
 	for _, instance := range s.cnfInstances {
-
 		instances = append(instances, instance)
-
 	}
 
 	return instances, nil
-
 }
 
 // UpdateCNF updates a CNF instance.
 
 func (s *CNFManagementService) UpdateCNF(ctx context.Context, id string, spec *CNFSpec) error {
-
 	s.mu.Lock()
 
 	defer s.mu.Unlock()
@@ -1736,9 +1537,7 @@ func (s *CNFManagementService) UpdateCNF(ctx context.Context, id string, spec *C
 	instance, exists := s.cnfInstances[id]
 
 	if !exists {
-
 		return fmt.Errorf("CNF instance %s not found", id)
-
 	}
 
 	instance.Spec = spec
@@ -1768,13 +1567,11 @@ func (s *CNFManagementService) UpdateCNF(ctx context.Context, id string, spec *C
 		return fmt.Errorf("unknown deployment type: %s", deployment.Type)
 
 	}
-
 }
 
 // DeleteCNF deletes a CNF instance.
 
 func (s *CNFManagementService) DeleteCNF(ctx context.Context, id string) error {
-
 	s.mu.Lock()
 
 	defer s.mu.Unlock()
@@ -1782,9 +1579,7 @@ func (s *CNFManagementService) DeleteCNF(ctx context.Context, id string) error {
 	instance, exists := s.cnfInstances[id]
 
 	if !exists {
-
 		return fmt.Errorf("CNF instance %s not found", id)
-
 	}
 
 	deployment := s.deployments[instance.Deployment.ID]
@@ -1796,17 +1591,13 @@ func (s *CNFManagementService) DeleteCNF(ctx context.Context, id string) error {
 	case "helm":
 
 		if err := s.helmManager.Uninstall(ctx, instance.Name, instance.Namespace); err != nil {
-
 			return fmt.Errorf("failed to uninstall Helm release: %w", err)
-
 		}
 
 	case "operator":
 
 		if err := s.operatorManager.Uninstall(ctx, instance.Name, instance.Namespace); err != nil {
-
 			return fmt.Errorf("failed to uninstall operator deployment: %w", err)
-
 		}
 
 	case "manifest":
@@ -1816,9 +1607,7 @@ func (s *CNFManagementService) DeleteCNF(ctx context.Context, id string) error {
 		for _, resource := range deployment.Resources {
 
 			obj := &appsv1.Deployment{
-
 				ObjectMeta: metav1.ObjectMeta{
-
 					Name: resource.Name,
 
 					Namespace: resource.Namespace,
@@ -1826,13 +1615,11 @@ func (s *CNFManagementService) DeleteCNF(ctx context.Context, id string) error {
 			}
 
 			if err := s.k8sClient.Delete(ctx, obj); err != nil {
-
 				s.logger.Warn("failed to delete resource",
 
 					"resource", resource.Name,
 
 					"error", err)
-
 			}
 
 		}
@@ -1848,21 +1635,16 @@ func (s *CNFManagementService) DeleteCNF(ctx context.Context, id string) error {
 	s.logger.Info("CNF deleted", "cnf_id", id)
 
 	return nil
-
 }
 
 // updateHelmDeployment updates a Helm deployment.
 
 func (s *CNFManagementService) updateHelmDeployment(ctx context.Context, instance *CNFInstance, deployment *CNFDeployment) error {
-
 	if instance.Spec.HelmChart == nil {
-
 		return fmt.Errorf("Helm chart specification missing")
-
 	}
 
 	_, err := s.helmManager.Upgrade(ctx, &HelmUpgradeRequest{
-
 		ReleaseName: instance.Name,
 
 		Namespace: instance.Namespace,
@@ -1879,17 +1661,13 @@ func (s *CNFManagementService) updateHelmDeployment(ctx context.Context, instanc
 	})
 
 	return err
-
 }
 
 // updateOperatorDeployment updates an operator deployment.
 
 func (s *CNFManagementService) updateOperatorDeployment(ctx context.Context, instance *CNFInstance, deployment *CNFDeployment) error {
-
 	if instance.Spec.Operator == nil {
-
 		return fmt.Errorf("operator specification missing")
-
 	}
 
 	// Convert CustomResources to []interface{}.
@@ -1897,41 +1675,32 @@ func (s *CNFManagementService) updateOperatorDeployment(ctx context.Context, ins
 	customResources := make([]interface{}, len(instance.Spec.Operator.CustomResources))
 
 	for i, cr := range instance.Spec.Operator.CustomResources {
-
 		customResources[i] = cr
-
 	}
 
 	return s.operatorManager.Update(ctx, &OperatorUpdateRequest{
-
 		Name: instance.Name,
 
 		Namespace: instance.Namespace,
 
 		CustomResources: customResources,
 	})
-
 }
 
 // updateManifestDeployment updates a manifest deployment.
 
 func (s *CNFManagementService) updateManifestDeployment(ctx context.Context, instance *CNFInstance, deployment *CNFDeployment) error {
-
 	// Get existing deployment.
 
 	existingDeployment := &appsv1.Deployment{}
 
 	err := s.k8sClient.Get(ctx, client.ObjectKey{
-
 		Name: instance.Name,
 
 		Namespace: instance.Namespace,
 	}, existingDeployment)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to get existing deployment: %w", err)
-
 	}
 
 	// Update deployment spec.
@@ -1947,5 +1716,4 @@ func (s *CNFManagementService) updateManifestDeployment(ctx context.Context, ins
 	// Update deployment.
 
 	return s.k8sClient.Update(ctx, existingDeployment)
-
 }

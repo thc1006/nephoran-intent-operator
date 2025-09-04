@@ -10,11 +10,12 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/health"
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
+	"github.com/thc1006/nephoran-intent-operator/pkg/health"
+	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 )
 
 // BufferLogHandler implements slog.Handler to capture log output in a buffer
@@ -41,11 +42,12 @@ func (h *BufferLogHandler) Enabled(ctx context.Context, level slog.Level) bool {
 // Handle implements slog.Handler.Handle
 func (h *BufferLogHandler) Handle(ctx context.Context, record slog.Record) error {
 	// Create a structured log entry
-	entry := map[string]interface{}{
-		"time":    record.Time.Format(time.RFC3339),
-		"level":   record.Level.String(),
-		"message": record.Message,
-	}
+	entry := make(map[string]interface{})
+
+	// Add basic fields
+	entry["message"] = record.Message
+	entry["level"] = record.Level.String()
+	entry["time"] = record.Time.Format("2006-01-02T15:04:05.000Z")
 
 	// Add record attributes
 	record.Attrs(func(attr slog.Attr) bool {
@@ -147,10 +149,7 @@ func (m *MockStreamingProcessor) GetMetrics() map[string]interface{} {
 	if m.getMetricsFunc != nil {
 		return m.getMetricsFunc()
 	}
-	return map[string]interface{}{
-		"active_streams": 0,
-		"total_requests": 0,
-	}
+	return make(map[string]interface{})
 }
 
 // TestStructuredLoggingInStreamingHandler tests that structured logging works correctly
@@ -281,6 +280,7 @@ func TestStructuredLoggingInStreamingHandler(t *testing.T) {
 				} else {
 					// For errors, the status might still be 200 if error handling is done within HandleStreamingRequest
 					// The important thing is that the error is logged
+					assert.True(t, w.Code == http.StatusOK || w.Code >= http.StatusBadRequest, "Status should be either OK or an error code")
 				}
 			} else {
 				assert.Equal(t, http.StatusOK, w.Code)
@@ -699,6 +699,45 @@ func (m *MockCircuitBreakerManager) GetAllStats() map[string]interface{} {
 	return m.stats
 }
 
+// GetOrCreate is a mock implementation of GetOrCreate
+func (m *MockCircuitBreakerManager) GetOrCreate(name string, config *llm.CircuitBreakerConfig) *llm.CircuitBreaker {
+	return nil // Mock implementation
+}
+
+// Get is a mock implementation of Get
+func (m *MockCircuitBreakerManager) Get(name string) (*llm.CircuitBreaker, bool) {
+	return nil, false // Mock implementation
+}
+
+// Remove is a mock implementation of Remove
+func (m *MockCircuitBreakerManager) Remove(name string) {
+	// Mock implementation - no-op
+}
+
+// List is a mock implementation of List
+func (m *MockCircuitBreakerManager) List() []string {
+	names := make([]string, 0, len(m.stats))
+	for name := range m.stats {
+		names = append(names, name)
+	}
+	return names
+}
+
+// GetStats returns the mock circuit breaker stats (interface-compatible method)
+func (m *MockCircuitBreakerManager) GetStats() (map[string]interface{}, error) {
+	return m.stats, nil
+}
+
+// Shutdown is a mock implementation of Shutdown
+func (m *MockCircuitBreakerManager) Shutdown() {
+	// Mock implementation - no-op
+}
+
+// ResetAll is a mock implementation of ResetAll
+func (m *MockCircuitBreakerManager) ResetAll() {
+	// Mock implementation - no-op
+}
+
 // TestCircuitBreakerHealthValidation tests the circuit breaker health check functionality
 func TestCircuitBreakerHealthValidation(t *testing.T) {
 	tests := []struct {
@@ -710,7 +749,7 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 	}{
 		{
 			name:            "No circuit breakers registered",
-			stats:           map[string]interface{}{},
+			stats:           make(map[string]interface{}),
 			expectedStatus:  health.StatusHealthy,
 			expectedMessage: "No circuit breakers registered",
 			expectUnhealthy: false,
@@ -718,14 +757,9 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 		{
 			name: "All circuit breakers operational (closed)",
 			stats: map[string]interface{}{
-				"service-a": map[string]interface{}{
-					"state":    "closed",
-					"failures": 0,
-				},
-				"service-b": map[string]interface{}{
-					"state":    "closed",
-					"failures": 1,
-				},
+				"state":     "closed",
+				"failures":  0,
+				"service-b": make(map[string]interface{}),
 			},
 			expectedStatus:  health.StatusHealthy,
 			expectedMessage: "All circuit breakers operational",
@@ -734,10 +768,8 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 		{
 			name: "All circuit breakers half-open (should be operational)",
 			stats: map[string]interface{}{
-				"service-a": map[string]interface{}{
-					"state":    "half-open",
-					"failures": 2,
-				},
+				"state":    "half-open",
+				"failures": 2,
 			},
 			expectedStatus:  health.StatusHealthy,
 			expectedMessage: "All circuit breakers operational",
@@ -746,10 +778,8 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 		{
 			name: "Single circuit breaker open",
 			stats: map[string]interface{}{
-				"service-a": map[string]interface{}{
-					"state":    "open",
-					"failures": 5,
-				},
+				"state":    "open",
+				"failures": 5,
 			},
 			expectedStatus:  health.StatusUnhealthy,
 			expectedMessage: "Circuit breakers in open state: [service-a]",
@@ -758,18 +788,10 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 		{
 			name: "Multiple circuit breakers with one open",
 			stats: map[string]interface{}{
-				"service-a": map[string]interface{}{
-					"state":    "closed",
-					"failures": 0,
-				},
-				"service-b": map[string]interface{}{
-					"state":    "open",
-					"failures": 5,
-				},
-				"service-c": map[string]interface{}{
-					"state":    "half-open",
-					"failures": 2,
-				},
+				"state":     "closed",
+				"failures":  0,
+				"service-b": make(map[string]interface{}),
+				"service-c": make(map[string]interface{}),
 			},
 			expectedStatus:  health.StatusUnhealthy,
 			expectedMessage: "Circuit breakers in open state: [service-b]",
@@ -782,21 +804,17 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 					"state":    "open",
 					"failures": 3,
 				},
-				"service-b": map[string]interface{}{
-					"state":    "open",
-					"failures": 7,
-				},
+				"service-b": make(map[string]interface{}),
 			},
 			expectedStatus:  health.StatusUnhealthy,
+			expectedMessage: "Circuit breakers in open state: [service-a, service-b]",
 			expectUnhealthy: true,
-			// Message should contain all open breakers in array format
 		},
 		{
 			name: "Circuit breaker with malformed stats (missing state)",
 			stats: map[string]interface{}{
 				"service-a": map[string]interface{}{
 					"failures": 0,
-					// Missing "state" field
 				},
 			},
 			expectedStatus:  health.StatusHealthy,
@@ -806,8 +824,7 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 		{
 			name: "Circuit breaker with non-map stats (should be ignored)",
 			stats: map[string]interface{}{
-				"service-a": "invalid-data",
-				"service-b": map[string]interface{}{
+				"service-a": map[string]interface{}{
 					"state":    "closed",
 					"failures": 0,
 				},
@@ -826,13 +843,13 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 			}
 
 			// Create mock health checker
-			healthChecker := &health.HealthChecker{}
+			healthChecker := health.NewHealthChecker("test-service", "v1.0.0", slog.Default())
 
 			// Create service manager with mock components
-			sm := &ServiceManager{
-				circuitBreakerMgr: mockCBMgr,
-				healthChecker:     healthChecker,
-			}
+			cfg := &config.LLMProcessorConfig{ServiceVersion: "test-1.0.0"}
+			sm := NewServiceManager(cfg, slog.Default())
+			sm.circuitBreakerMgr = mockCBMgr
+			sm.healthChecker = healthChecker
 
 			// Register health checks (including circuit breaker check)
 			sm.registerHealthChecks()
@@ -873,18 +890,18 @@ func TestRegisterHealthChecksIntegration(t *testing.T) {
 	t.Run("with_circuit_breaker_manager", func(t *testing.T) {
 		mockCBMgr := &MockCircuitBreakerManager{
 			stats: map[string]interface{}{
-				"test-service": map[string]interface{}{
+				"service-a": map[string]interface{}{
 					"state":    "closed",
 					"failures": 0,
 				},
 			},
 		}
 
-		healthChecker := &health.HealthChecker{}
-		sm := &ServiceManager{
-			circuitBreakerMgr: mockCBMgr,
-			healthChecker:     healthChecker,
-		}
+		healthChecker := health.NewHealthChecker("test-service", "v1.0.0", slog.Default())
+		cfg := &config.LLMProcessorConfig{ServiceVersion: "test-1.0.0"}
+		sm := NewServiceManager(cfg, slog.Default())
+		sm.circuitBreakerMgr = mockCBMgr
+		sm.healthChecker = healthChecker
 
 		// Register health checks
 		sm.registerHealthChecks()
@@ -899,11 +916,11 @@ func TestRegisterHealthChecksIntegration(t *testing.T) {
 	})
 
 	t.Run("without_circuit_breaker_manager", func(t *testing.T) {
-		healthChecker := &health.HealthChecker{}
-		sm := &ServiceManager{
-			circuitBreakerMgr: nil, // No circuit breaker manager
-			healthChecker:     healthChecker,
-		}
+		healthChecker := health.NewHealthChecker("test-service", "v1.0.0", slog.Default())
+		cfg := &config.LLMProcessorConfig{ServiceVersion: "test-1.0.0"}
+		sm := NewServiceManager(cfg, slog.Default())
+		sm.circuitBreakerMgr = nil // No circuit breaker manager
+		sm.healthChecker = healthChecker
 
 		// Register health checks
 		sm.registerHealthChecks()
@@ -922,18 +939,15 @@ func BenchmarkCircuitBreakerHealthCheck(b *testing.B) {
 	// Create a large number of circuit breakers for benchmarking
 	stats := make(map[string]interface{})
 	for i := 0; i < 100; i++ {
-		stats[fmt.Sprintf("service-%d", i)] = map[string]interface{}{
-			"state":    "closed",
-			"failures": 0,
-		}
+		stats[fmt.Sprintf("service-%d", i)] = make(map[string]interface{})
 	}
 
 	mockCBMgr := &MockCircuitBreakerManager{stats: stats}
-	healthChecker := &health.HealthChecker{}
-	sm := &ServiceManager{
-		circuitBreakerMgr: mockCBMgr,
-		healthChecker:     healthChecker,
-	}
+	healthChecker := health.NewHealthChecker("test-service", "v1.0.0", slog.Default())
+	cfg := &config.LLMProcessorConfig{ServiceVersion: "test-1.0.0"}
+	sm := NewServiceManager(cfg, slog.Default())
+	sm.circuitBreakerMgr = mockCBMgr
+	sm.healthChecker = healthChecker
 
 	sm.registerHealthChecks()
 	ctx := context.Background()

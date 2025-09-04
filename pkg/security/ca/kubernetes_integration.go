@@ -402,7 +402,8 @@ func (e *AutomationEngine) handleMutatingAdmission(w http.ResponseWriter, r *htt
 
 	if err := json.NewDecoder(r.Body).Decode(&admissionReview); err != nil {
 		e.logger.Error("failed to decode admission review", "error", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		// Never expose internal error details to external clients
+		http.Error(w, "Invalid admission review format", http.StatusBadRequest)
 		return
 	}
 
@@ -430,10 +431,18 @@ func (e *AutomationEngine) handleMutatingAdmission(w http.ResponseWriter, r *htt
 			"namespace", req.Namespace,
 			"error", err)
 
+		// Sanitize error message to avoid information leakage
+		safeMessage := "Mutation operation failed due to policy violation"
+		if strings.Contains(err.Error(), "certificate") {
+			safeMessage = "Certificate validation failed"
+		} else if strings.Contains(err.Error(), "unauthorized") {
+			safeMessage = "Authorization check failed"
+		}
+
 		response := &admissionv1.AdmissionResponse{
 			UID:     req.UID,
 			Allowed: false,
-			Result:  &metav1.Status{Message: err.Error()},
+			Result:  &metav1.Status{Message: safeMessage},
 		}
 		admissionReview.Response = response
 	} else {
@@ -468,7 +477,8 @@ func (e *AutomationEngine) handleValidatingAdmission(w http.ResponseWriter, r *h
 
 	if err := json.NewDecoder(r.Body).Decode(&admissionReview); err != nil {
 		e.logger.Error("failed to decode admission review", "error", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		// Never expose internal error details to external clients
+		http.Error(w, "Invalid admission review format", http.StatusBadRequest)
 		return
 	}
 
@@ -557,11 +567,9 @@ func (e *AutomationEngine) mutateDeployment(req *admissionv1.AdmissionRequest) (
 		// Add annotations to pod template
 		patches := []map[string]interface{}{
 			{
-				"op":   "add",
-				"path": "/spec/template/metadata/annotations",
-				"value": map[string]string{
-					fmt.Sprintf("%s/inject-certificate", e.config.KubernetesIntegration.AnnotationPrefix): "true",
-				},
+				"op":    "add",
+				"path":  "/spec/template/metadata/annotations",
+				"value": map[string]string{},
 			},
 		}
 		return json.Marshal(patches)
@@ -582,11 +590,9 @@ func (e *AutomationEngine) mutateService(req *admissionv1.AdmissionRequest) ([]b
 		// Add annotation to trigger certificate provisioning
 		patches := []map[string]interface{}{
 			{
-				"op":   "add",
-				"path": "/metadata/annotations",
-				"value": map[string]string{
-					fmt.Sprintf("%s/auto-certificate", e.config.KubernetesIntegration.AnnotationPrefix): "true",
-				},
+				"op":    "add",
+				"path":  "/metadata/annotations",
+				"value": map[string]string{},
 			},
 		}
 		return json.Marshal(patches)
@@ -647,7 +653,7 @@ func (e *AutomationEngine) createCertificateVolumePatches(pod *v1.Pod) []map[str
 	secretName := fmt.Sprintf("%s-%s-tls", e.config.KubernetesIntegration.SecretPrefix, pod.Name)
 
 	volume := map[string]interface{}{
-		"name": "certificate-volume",
+		"name": "tls-cert",
 		"secret": map[string]interface{}{
 			"secretName": secretName,
 		},
@@ -664,8 +670,8 @@ func (e *AutomationEngine) createCertificateVolumePatches(pod *v1.Pod) []map[str
 
 func (e *AutomationEngine) createCertificateVolumeMountPatches(pod *v1.Pod) []map[string]interface{} {
 	volumeMount := map[string]interface{}{
-		"name":      "certificate-volume",
-		"mountPath": "/etc/ssl/certs/service",
+		"name":      "tls-cert",
+		"mountPath": "/etc/tls",
 		"readOnly":  true,
 	}
 
@@ -682,7 +688,7 @@ func (e *AutomationEngine) createCertificateVolumeMountPatches(pod *v1.Pod) []ma
 }
 
 func (e *AutomationEngine) createCertificateEnvPatches(pod *v1.Pod) []map[string]interface{} {
-	envVars := []map[string]interface{}{
+	envVars := []map[string]string{
 		{
 			"name":  "TLS_CERT_PATH",
 			"value": "/etc/ssl/certs/service/tls.crt",
@@ -716,3 +722,4 @@ func (e *AutomationEngine) validateCertificateData(certData []byte) error {
 	// This would implement comprehensive certificate validation
 	return nil
 }
+

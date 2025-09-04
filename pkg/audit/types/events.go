@@ -60,7 +60,6 @@ const (
 // String returns the string representation of the severity.
 
 func (s Severity) String() string {
-
 	switch s {
 
 	case SeverityEmergency:
@@ -100,7 +99,6 @@ func (s Severity) String() string {
 		return "unknown"
 
 	}
-
 }
 
 // EventType represents the type of audit event.
@@ -439,11 +437,8 @@ type UserContext struct {
 // Validate checks if the user context is valid.
 
 func (uc *UserContext) Validate() error {
-
 	if uc.UserID == "" {
-
 		return fmt.Errorf("user ID is required")
-
 	}
 
 	// Validate email format if present.
@@ -453,15 +448,12 @@ func (uc *UserContext) Validate() error {
 		emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 
 		if !emailRegex.MatchString(uc.Email) {
-
 			return fmt.Errorf("invalid email format: %s", uc.Email)
-
 		}
 
 	}
 
 	return nil
-
 }
 
 // NetworkContext contains network-related information.
@@ -493,23 +485,17 @@ type NetworkContext struct {
 // Validate checks if the network context is valid.
 
 func (nc *NetworkContext) Validate() error {
-
 	// Validate port ranges if present.
 
 	if nc.SourcePort < 0 || nc.SourcePort > 65535 {
-
 		return fmt.Errorf("invalid source port: %d", nc.SourcePort)
-
 	}
 
 	if nc.DestinationPort < 0 || nc.DestinationPort > 65535 {
-
 		return fmt.Errorf("invalid destination port: %d", nc.DestinationPort)
-
 	}
 
 	return nil
-
 }
 
 // SystemContext contains system-related information.
@@ -565,27 +551,20 @@ type ResourceContext struct {
 // Validate checks if the resource context is valid.
 
 func (rc *ResourceContext) Validate() error {
-
 	if rc.ResourceType == "" {
-
 		return fmt.Errorf("resource type is required")
-
 	}
 
 	if rc.Operation == "" {
-
 		return fmt.Errorf("operation is required")
-
 	}
 
 	return nil
-
 }
 
 // AuditEvent represents a complete audit log entry.
 
 type AuditEvent struct {
-
 	// Core identification fields.
 
 	ID string `json:"id"`
@@ -686,125 +665,88 @@ type AuditEvent struct {
 // Validate checks if the audit event has all required fields.
 
 func (ae *AuditEvent) Validate() error {
-
 	if ae.ID == "" {
-
 		return fmt.Errorf("audit event ID is required")
-
 	}
 
 	if !isValidUUID(ae.ID) {
-
 		return fmt.Errorf("audit event ID must be a valid UUID")
-
 	}
 
 	if ae.EventType == "" {
-
 		return fmt.Errorf("event type is required")
-
 	}
 
 	if ae.Component == "" {
-
 		return fmt.Errorf("component is required")
-
 	}
 
 	if ae.Action == "" {
-
 		return fmt.Errorf("action is required")
-
 	}
 
 	if ae.Timestamp.IsZero() {
-
 		return fmt.Errorf("timestamp is required")
-
 	}
 
 	// Validate network context if present.
 
 	if ae.NetworkContext != nil {
-
 		if err := ae.NetworkContext.Validate(); err != nil {
-
 			return fmt.Errorf("invalid network context: %w", err)
-
 		}
-
 	}
 
 	// Validate user context if present.
 
 	if ae.UserContext != nil {
-
 		if err := ae.UserContext.Validate(); err != nil {
-
 			return fmt.Errorf("invalid user context: %w", err)
-
 		}
-
 	}
 
 	// Validate resource context if present.
 
 	if ae.ResourceContext != nil {
-
 		if err := ae.ResourceContext.Validate(); err != nil {
-
 			return fmt.Errorf("invalid resource context: %w", err)
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // ToJSON converts the audit event to JSON.
 
 func (ae *AuditEvent) ToJSON() ([]byte, error) {
-
 	return json.Marshal(ae)
-
 }
 
 // ToJSONIndent converts the audit event to indented JSON.
 
 func (ae *AuditEvent) ToJSONIndent() ([]byte, error) {
-
 	return json.MarshalIndent(ae, "", "  ")
-
 }
 
 // FromJSON creates an audit event from JSON data.
 
 func FromJSON(data []byte) (*AuditEvent, error) {
-
 	var event AuditEvent
 
 	if err := json.Unmarshal(data, &event); err != nil {
-
 		return nil, fmt.Errorf("failed to unmarshal audit event: %w", err)
-
 	}
 
 	if err := event.Validate(); err != nil {
-
 		return nil, fmt.Errorf("invalid audit event: %w", err)
-
 	}
 
 	return &event, nil
-
 }
 
 // SetRiskLevel sets the risk level based on event type and severity.
 
 func (ae *AuditEvent) SetRiskLevel() {
-
 	switch ae.EventType {
 
 	case EventTypeAuthenticationFailed, EventTypeIntrusionAttempt, EventTypeMalwareDetection:
@@ -818,17 +760,11 @@ func (ae *AuditEvent) SetRiskLevel() {
 	case EventTypeDataAccess, EventTypeSystemChange:
 
 		if ae.Severity >= SeverityError {
-
 			ae.RiskLevel = "high"
-
 		} else if ae.Severity >= SeverityWarning {
-
 			ae.RiskLevel = "medium"
-
 		} else {
-
 			ae.RiskLevel = "low"
-
 		}
 
 	default:
@@ -836,19 +772,16 @@ func (ae *AuditEvent) SetRiskLevel() {
 		ae.RiskLevel = "low"
 
 	}
-
 }
 
 // SetRetentionPeriod sets the retention period based on compliance requirements and event type.
 
 func (ae *AuditEvent) SetRetentionPeriod(complianceMode []ComplianceStandard) {
-
 	// Default retention periods based on compliance standards.
 
 	maxRetention := "1y" // Default 1 year
 
 	for _, standard := range complianceMode {
-
 		switch standard {
 
 		case ComplianceSOC2:
@@ -872,13 +805,10 @@ func (ae *AuditEvent) SetRetentionPeriod(complianceMode []ComplianceStandard) {
 			// GDPR has specific retention requirements based on data type.
 
 			if ae.EventType == EventTypeDataAccess || ae.EventType == EventTypeDataProcessing {
-
 				maxRetention = "3y"
-
 			}
 
 		}
-
 	}
 
 	// Security events may need longer retention.
@@ -896,13 +826,11 @@ func (ae *AuditEvent) SetRetentionPeriod(complianceMode []ComplianceStandard) {
 	}
 
 	ae.RetentionPeriod = maxRetention
-
 }
 
 // GetEventCategory returns a category for the event type.
 
 func (ae *AuditEvent) GetEventCategory() string {
-
 	switch ae.EventType {
 
 	case EventTypeAuthentication, EventTypeAuthenticationFailed, EventTypeAuthenticationSuccess,
@@ -966,17 +894,14 @@ func (ae *AuditEvent) GetEventCategory() string {
 		return "general"
 
 	}
-
 }
 
 // Helper function to validate UUID format.
 
 func isValidUUID(u string) bool {
-
 	_, err := uuid.Parse(u)
 
 	return err == nil
-
 }
 
 // EventBuilder provides a fluent interface for building audit events.
@@ -988,11 +913,8 @@ type EventBuilder struct {
 // NewEventBuilder creates a new event builder.
 
 func NewEventBuilder() *EventBuilder {
-
 	return &EventBuilder{
-
 		event: &AuditEvent{
-
 			ID: uuid.New().String(),
 
 			Version: "1.0",
@@ -1002,79 +924,63 @@ func NewEventBuilder() *EventBuilder {
 			Data: make(map[string]interface{}),
 		},
 	}
-
 }
 
 // WithEventType sets the event type.
 
 func (eb *EventBuilder) WithEventType(eventType EventType) *EventBuilder {
-
 	eb.event.EventType = eventType
 
 	eb.event.Category = eb.event.GetEventCategory()
 
 	return eb
-
 }
 
 // WithSeverity sets the severity.
 
 func (eb *EventBuilder) WithSeverity(severity Severity) *EventBuilder {
-
 	eb.event.Severity = severity
 
 	return eb
-
 }
 
 // WithComponent sets the component.
 
 func (eb *EventBuilder) WithComponent(component string) *EventBuilder {
-
 	eb.event.Component = component
 
 	return eb
-
 }
 
 // WithAction sets the action.
 
 func (eb *EventBuilder) WithAction(action string) *EventBuilder {
-
 	eb.event.Action = action
 
 	return eb
-
 }
 
 // WithDescription sets the description.
 
 func (eb *EventBuilder) WithDescription(description string) *EventBuilder {
-
 	eb.event.Description = description
 
 	return eb
-
 }
 
 // WithResult sets the result.
 
 func (eb *EventBuilder) WithResult(result EventResult) *EventBuilder {
-
 	eb.event.Result = result
 
 	return eb
-
 }
 
 // WithUser sets the user context.
 
 func (eb *EventBuilder) WithUser(userID, username string) *EventBuilder {
-
 	if eb.event.UserContext == nil {
-
 		eb.event.UserContext = &UserContext{}
-
 	}
 
 	eb.event.UserContext.UserID = userID
@@ -1082,39 +988,29 @@ func (eb *EventBuilder) WithUser(userID, username string) *EventBuilder {
 	eb.event.UserContext.Username = username
 
 	return eb
-
 }
 
 // WithNetwork sets the network context.
 
 func (eb *EventBuilder) WithNetwork(sourceIP, userAgent string) *EventBuilder {
-
 	if eb.event.NetworkContext == nil {
-
 		eb.event.NetworkContext = &NetworkContext{}
-
 	}
 
 	if sourceIP != "" {
-
 		eb.event.NetworkContext.SourceIP = net.ParseIP(sourceIP)
-
 	}
 
 	eb.event.NetworkContext.UserAgent = userAgent
 
 	return eb
-
 }
 
 // WithResource sets the resource context.
 
 func (eb *EventBuilder) WithResource(resourceType, resourceID, operation string) *EventBuilder {
-
 	if eb.event.ResourceContext == nil {
-
 		eb.event.ResourceContext = &ResourceContext{}
-
 	}
 
 	eb.event.ResourceContext.ResourceType = resourceType
@@ -1124,29 +1020,23 @@ func (eb *EventBuilder) WithResource(resourceType, resourceID, operation string)
 	eb.event.ResourceContext.Operation = operation
 
 	return eb
-
 }
 
 // WithData adds data to the event.
 
 func (eb *EventBuilder) WithData(key string, value interface{}) *EventBuilder {
-
 	if eb.event.Data == nil {
-
 		eb.event.Data = make(map[string]interface{})
-
 	}
 
 	eb.event.Data[key] = value
 
 	return eb
-
 }
 
 // WithError sets error information.
 
 func (eb *EventBuilder) WithError(err error) *EventBuilder {
-
 	if err != nil {
 
 		eb.event.Error = err.Error()
@@ -1154,37 +1044,30 @@ func (eb *EventBuilder) WithError(err error) *EventBuilder {
 		eb.event.Result = ResultError
 
 		if eb.event.Severity < SeverityError {
-
 			eb.event.Severity = SeverityError
-
 		}
 
 	}
 
 	return eb
-
 }
 
 // WithTracing sets tracing information.
 
 func (eb *EventBuilder) WithTracing(traceID, spanID string) *EventBuilder {
-
 	eb.event.TraceID = traceID
 
 	eb.event.SpanID = spanID
 
 	return eb
-
 }
 
 // Build creates the final audit event.
 
 func (eb *EventBuilder) Build() *AuditEvent {
-
 	eb.event.SetRiskLevel()
 
 	return eb.event
-
 }
 
 // Pre-defined event templates for common scenarios.
@@ -1192,7 +1075,6 @@ func (eb *EventBuilder) Build() *AuditEvent {
 // AuthenticationEvent creates an authentication event.
 
 func AuthenticationEvent(userID, provider string, success bool, err error) *AuditEvent {
-
 	builder := NewEventBuilder().
 		WithEventType(EventTypeAuthentication).
 		WithComponent("authentication").
@@ -1201,29 +1083,21 @@ func AuthenticationEvent(userID, provider string, success bool, err error) *Audi
 		WithData("provider", provider)
 
 	if success {
-
 		builder.WithResult(ResultSuccess).WithSeverity(SeverityInfo)
-
 	} else {
-
 		builder.WithResult(ResultFailure).WithSeverity(SeverityWarning)
-
 	}
 
 	if err != nil {
-
 		builder.WithError(err)
-
 	}
 
 	return builder.Build()
-
 }
 
 // DataAccessEvent creates a data access event.
 
 func DataAccessEvent(userID, resourceType, resourceID, operation string) *AuditEvent {
-
 	return NewEventBuilder().
 		WithEventType(EventTypeDataAccess).
 		WithComponent("data_access").
@@ -1233,13 +1107,11 @@ func DataAccessEvent(userID, resourceType, resourceID, operation string) *AuditE
 		WithSeverity(SeverityInfo).
 		WithResult(ResultSuccess).
 		Build()
-
 }
 
 // SecurityViolationEvent creates a security violation event.
 
 func SecurityViolationEvent(userID, violationType, description string) *AuditEvent {
-
 	return NewEventBuilder().
 		WithEventType(EventTypeSecurityViolation).
 		WithComponent("security").
@@ -1250,13 +1122,11 @@ func SecurityViolationEvent(userID, violationType, description string) *AuditEve
 		WithSeverity(SeverityCritical).
 		WithResult(ResultFailure).
 		Build()
-
 }
 
 // SystemChangeEvent creates a system change event.
 
 func SystemChangeEvent(userID, changeType, description string) *AuditEvent {
-
 	return NewEventBuilder().
 		WithEventType(EventTypeSystemChange).
 		WithComponent("system").
@@ -1267,5 +1137,4 @@ func SystemChangeEvent(userID, changeType, description string) *AuditEvent {
 		WithSeverity(SeverityInfo).
 		WithResult(ResultSuccess).
 		Build()
-
 }

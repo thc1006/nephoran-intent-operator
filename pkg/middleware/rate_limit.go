@@ -15,7 +15,6 @@ import (
 // RateLimiterConfig holds configuration for the rate limiter.
 
 type RateLimiterConfig struct {
-
 	// QPS is the queries per second allowed per IP.
 
 	QPS int
@@ -36,9 +35,7 @@ type RateLimiterConfig struct {
 // DefaultRateLimiterConfig returns a configuration with sensible defaults.
 
 func DefaultRateLimiterConfig() RateLimiterConfig {
-
 	return RateLimiterConfig{
-
 		QPS: 20,
 
 		Burst: 40,
@@ -47,7 +44,6 @@ func DefaultRateLimiterConfig() RateLimiterConfig {
 
 		IPTimeout: 1 * time.Hour,
 	}
-
 }
 
 // ipRateLimiter tracks the rate limiter and last access time for an IP.
@@ -75,33 +71,23 @@ type RateLimiter struct {
 // NewRateLimiter creates a new IP-based rate limiter with the given configuration.
 
 func NewRateLimiter(config RateLimiterConfig, logger *slog.Logger) *RateLimiter {
-
 	if config.QPS <= 0 {
-
 		config.QPS = 20
-
 	}
 
 	if config.Burst <= 0 {
-
 		config.Burst = 40
-
 	}
 
 	if config.CleanupInterval <= 0 {
-
 		config.CleanupInterval = 10 * time.Minute
-
 	}
 
 	if config.IPTimeout <= 0 {
-
 		config.IPTimeout = 1 * time.Hour
-
 	}
 
 	rl := &RateLimiter{
-
 		config: config,
 
 		logger: logger.With(slog.String("component", "rate_limiter")),
@@ -126,13 +112,11 @@ func NewRateLimiter(config RateLimiterConfig, logger *slog.Logger) *RateLimiter 
 		slog.Duration("ip_timeout", config.IPTimeout))
 
 	return rl
-
 }
 
 // getLimiterForIP gets or creates a rate limiter for the given IP address.
 
 func (rl *RateLimiter) getLimiterForIP(ip string) *rate.Limiter {
-
 	now := time.Now()
 
 	// Try to get existing limiter.
@@ -155,7 +139,6 @@ func (rl *RateLimiter) getLimiterForIP(ip string) *rate.Limiter {
 	limiter := rate.NewLimiter(rate.Limit(rl.config.QPS), rl.config.Burst)
 
 	limiterInfo := &ipRateLimiter{
-
 		limiter: limiter,
 
 		lastAccess: now,
@@ -191,15 +174,12 @@ func (rl *RateLimiter) getLimiterForIP(ip string) *rate.Limiter {
 		slog.Int("burst", rl.config.Burst))
 
 	return limiter
-
 }
 
 // Middleware returns an HTTP middleware that enforces rate limiting per IP address.
 
 func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		// Get client IP.
 
 		clientIP := getClientIP(r)
@@ -261,17 +241,13 @@ func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 		remaining := int(tokens)
 
 		if remaining < 0 {
-
 			remaining = 0
-
 		}
 
 		// Add one back since we consumed one for this request.
 
 		if remaining < rl.config.Burst {
-
 			remaining++
-
 		}
 
 		w.Header().Set("X-RateLimit-Limit", fmt.Sprintf("%d", rl.config.QPS))
@@ -289,23 +265,18 @@ func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 		// Proceed with request.
 
 		next.ServeHTTP(w, r)
-
 	})
-
 }
 
 // MiddlewareFunc returns a middleware function that can be used with router.Use().
 
 func (rl *RateLimiter) MiddlewareFunc(next http.HandlerFunc) http.HandlerFunc {
-
 	return rl.Middleware(next).ServeHTTP
-
 }
 
 // cleanupLoop runs periodically to remove old IP entries to prevent memory leaks.
 
 func (rl *RateLimiter) cleanupLoop() {
-
 	defer rl.wg.Done()
 
 	ticker := time.NewTicker(rl.config.CleanupInterval)
@@ -313,7 +284,6 @@ func (rl *RateLimiter) cleanupLoop() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ticker.C:
@@ -325,15 +295,12 @@ func (rl *RateLimiter) cleanupLoop() {
 			return
 
 		}
-
 	}
-
 }
 
 // cleanup removes old IP entries that haven't been accessed recently.
 
 func (rl *RateLimiter) cleanup() {
-
 	now := time.Now()
 
 	cutoff := now.Add(-rl.config.IPTimeout)
@@ -341,7 +308,6 @@ func (rl *RateLimiter) cleanup() {
 	removedCount := 0
 
 	rl.limiters.Range(func(key, value interface{}) bool {
-
 		ip, ok := key.(string)
 		if !ok {
 			rl.logger.Error("Failed to cast key to string during cleanup")
@@ -363,60 +329,39 @@ func (rl *RateLimiter) cleanup() {
 		}
 
 		return true
-
 	})
 
 	if removedCount > 0 {
-
 		rl.logger.Debug("Cleaned up old rate limiter entries",
 
 			slog.Int("removed_count", removedCount),
 
 			slog.Time("cutoff_time", cutoff))
-
 	}
-
 }
 
 // Stop gracefully shuts down the rate limiter.
 
 func (rl *RateLimiter) Stop() {
-
 	close(rl.stopCh)
 
 	rl.wg.Wait()
 
 	rl.logger.Info("Rate limiter stopped")
-
 }
 
 // GetStats returns statistics about the rate limiter.
 
 func (rl *RateLimiter) GetStats() map[string]interface{} {
-
 	activeIPs := 0
 
 	rl.limiters.Range(func(key, value interface{}) bool {
-
 		activeIPs++
 
 		return true
-
 	})
 
-	return map[string]interface{}{
-
-		"active_ips": activeIPs,
-
-		"qps_limit": rl.config.QPS,
-
-		"burst_limit": rl.config.Burst,
-
-		"cleanup_interval": rl.config.CleanupInterval.String(),
-
-		"ip_timeout": rl.config.IPTimeout.String(),
-	}
-
+	return map[string]interface{}{}
 }
 
 // getClientIP extracts the real client IP address from various headers.
@@ -424,7 +369,6 @@ func (rl *RateLimiter) GetStats() map[string]interface{} {
 // This handles common proxy scenarios including load balancers and reverse proxies.
 
 func getClientIP(r *http.Request) string {
-
 	// Check X-Forwarded-For header first (most common).
 
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
@@ -436,9 +380,7 @@ func getClientIP(r *http.Request) string {
 		ip := strings.TrimSpace(ips[0])
 
 		if ip != "" && net.ParseIP(ip) != nil {
-
 			return ip
-
 		}
 
 	}
@@ -450,9 +392,7 @@ func getClientIP(r *http.Request) string {
 		ip := strings.TrimSpace(xri)
 
 		if ip != "" && net.ParseIP(ip) != nil {
-
 			return ip
-
 		}
 
 	}
@@ -464,9 +404,7 @@ func getClientIP(r *http.Request) string {
 		ip := strings.TrimSpace(cfip)
 
 		if ip != "" && net.ParseIP(ip) != nil {
-
 			return ip
-
 		}
 
 	}
@@ -474,15 +412,12 @@ func getClientIP(r *http.Request) string {
 	// Fall back to RemoteAddr (direct connection).
 
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
-
 	if err != nil {
 
 		// RemoteAddr might not have port (e.g., in tests).
 
 		if net.ParseIP(r.RemoteAddr) != nil {
-
 			return r.RemoteAddr
-
 		}
 
 		return ""
@@ -490,13 +425,10 @@ func getClientIP(r *http.Request) string {
 	}
 
 	if net.ParseIP(ip) != nil {
-
 		return ip
-
 	}
 
 	return ""
-
 }
 
 // PostOnlyRateLimiter wraps the rate limiter to only apply to POST requests.
@@ -510,22 +442,17 @@ type PostOnlyRateLimiter struct {
 // NewPostOnlyRateLimiter creates a rate limiter that only applies to POST requests.
 
 func NewPostOnlyRateLimiter(config RateLimiterConfig, logger *slog.Logger) *PostOnlyRateLimiter {
-
 	return &PostOnlyRateLimiter{
-
 		rateLimiter: NewRateLimiter(config, logger),
 
 		logger: logger.With(slog.String("component", "post_only_rate_limiter")),
 	}
-
 }
 
 // Middleware returns an HTTP middleware that enforces rate limiting only on POST requests.
 
 func (prl *PostOnlyRateLimiter) Middleware(next http.Handler) http.Handler {
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		// Only apply rate limiting to POST requests.
 
 		if r.Method != http.MethodPost {
@@ -545,27 +472,21 @@ func (prl *PostOnlyRateLimiter) Middleware(next http.Handler) http.Handler {
 		// Apply rate limiting to POST requests.
 
 		prl.rateLimiter.Middleware(next).ServeHTTP(w, r)
-
 	})
-
 }
 
 // Stop gracefully shuts down the rate limiter.
 
 func (prl *PostOnlyRateLimiter) Stop() {
-
 	prl.rateLimiter.Stop()
-
 }
 
 // GetStats returns statistics about the rate limiter.
 
 func (prl *PostOnlyRateLimiter) GetStats() map[string]interface{} {
-
 	stats := prl.rateLimiter.GetStats()
 
 	stats["applies_to"] = "POST requests only"
 
 	return stats
-
 }

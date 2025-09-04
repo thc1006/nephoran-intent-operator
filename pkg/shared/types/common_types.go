@@ -1,7 +1,9 @@
 package sharedtypes
 
 import (
-	"time"
+	
+	"encoding/json"
+"time"
 )
 
 // CacheEntry represents a unified cached item with comprehensive metadata
@@ -39,7 +41,7 @@ type CacheEntry struct {
 
 	// Intent-specific fields
 	IntentType   string                 `json:"intent_type,omitempty"`
-	Parameters   map[string]interface{} `json:"parameters,omitempty"`
+	Parameters   json.RawMessage `json:"parameters,omitempty"`
 	Dependencies []string               `json:"dependencies,omitempty"`
 
 	// Compression fields
@@ -47,7 +49,7 @@ type CacheEntry struct {
 	SerializationType interface{} `json:"serialization_type,omitempty"`
 
 	// Generic metadata for extension
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // Document represents a unified document type for RAG and performance testing
@@ -55,7 +57,7 @@ type Document struct {
 	ID       string                 `json:"id"`
 	Content  string                 `json:"content"`
 	Title    string                 `json:"title,omitempty"`
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 	Vector   []float32              `json:"vector,omitempty"`
 
 	// Timestamps
@@ -99,7 +101,7 @@ type PerformanceValidator struct {
 	Thresholds map[string]float64     `json:"thresholds"`
 	Metrics    map[string]float64     `json:"metrics"`
 	Enabled    bool                   `json:"enabled"`
-	Config     map[string]interface{} `json:"config,omitempty"`
+	Config     json.RawMessage `json:"config,omitempty"`
 	LastRun    time.Time              `json:"last_run"`
 	Results    []ValidationResult     `json:"results"`
 }
@@ -142,7 +144,7 @@ type Bottleneck struct {
 	EndTime   time.Time     `json:"end_time,omitempty"`
 
 	// Context
-	Context     map[string]interface{} `json:"context,omitempty"`
+	Context     json.RawMessage `json:"context,omitempty"`
 	Suggestions []string               `json:"suggestions,omitempty"`
 
 	// Resolution
@@ -169,7 +171,7 @@ type MemoryStats struct {
 	HeapObjects  uint64 `json:"heap_objects"`  // total number of allocated objects
 
 	// GC stats
-	NextGC       uint64 `json:"next_gc"`        // next collection will happen when HeapAlloc ≥ this amount
+	NextGC       uint64 `json:"next_gc"`        // next collection will happen when HeapAlloc ??this amount
 	LastGC       uint64 `json:"last_gc"`        // end time of last collection (nanoseconds since 1970)
 	PauseTotalNs uint64 `json:"pause_total_ns"` // cumulative nanoseconds in GC stop-the-world pauses
 	NumGC        uint32 `json:"num_gc"`         // number of completed GC cycles
@@ -197,7 +199,7 @@ type ProfileReport struct {
 	HotSpots []HotSpot `json:"hotspots"`
 
 	// Summary metrics
-	Metrics map[string]interface{} `json:"metrics"`
+	Metrics json.RawMessage `json:"metrics"`
 
 	// File paths
 	ProfilePath string `json:"profile_path,omitempty"`

@@ -19,6 +19,7 @@ package v1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // ... (previous content)
@@ -49,6 +50,12 @@ type ManagedElementSpec struct {
 	// O1Config specifies the O1 interface configuration for the managed element
 	// +optional
 	O1Config string `json:"o1Config,omitempty"`
+	// A1Policy specifies the A1 policy configuration
+	// +optional
+	A1Policy runtime.RawExtension `json:"a1Policy,omitempty"`
+	// DeploymentName specifies the name of the associated Kubernetes deployment
+	// +optional
+	DeploymentName string `json:"deploymentName,omitempty"`
 }
 
 // ManagedElementCredentials defines authentication credentials
@@ -108,6 +115,22 @@ const (
 	PriorityUrgent   Priority = "Urgent"
 	PriorityCritical Priority = "Critical"
 )
+
+// ConvertNetworkPriorityToPriority converts NetworkPriority to Priority
+func ConvertNetworkPriorityToPriority(np NetworkPriority) Priority {
+	switch np {
+	case NetworkPriorityLow:
+		return PriorityLow
+	case NetworkPriorityNormal:
+		return PriorityMedium
+	case NetworkPriorityHigh:
+		return PriorityHigh
+	case NetworkPriorityCritical:
+		return PriorityCritical
+	default:
+		return PriorityMedium // Default fallback
+	}
+}
 
 // ObjectReference represents a reference to a Kubernetes object
 type ObjectReference struct {
@@ -173,6 +196,10 @@ type ProcessedParameters struct {
 	SecurityParameters *SecurityParameters `json:"securityParameters,omitempty"`
 	// Metadata for additional information
 	Metadata *ParameterMetadata `json:"metadata,omitempty"`
+
+	// ScaleParameters for scaling-related parameters
+	// +optional
+	ScaleParameters *ScalingParameters `json:"scaleParameters,omitempty"`
 }
 
 // ScalingParameters defines scaling-related parameters
@@ -196,6 +223,10 @@ type ScalingTrigger struct {
 	// Comparison operator (>, <, >=, <=, ==)
 	Operator string `json:"operator"`
 }
+
+// ScaleParameters defines scaling parameters (alias for ScalingParameters for compatibility)
+// Removed type alias to prevent duplicate deepcopy method generation
+// type ScaleParameters = ScalingParameters
 
 // ResourceParameters defines resource-related parameters
 type ResourceParameters struct {
@@ -277,7 +308,7 @@ type ManagedElement struct {
 
 	// Spec defines the desired state of the managed element
 	Spec ManagedElementSpec `json:"spec,omitempty"`
-	
+
 	// Status defines the observed state of the managed element
 	Status ManagedElementStatus `json:"status,omitempty"`
 }
@@ -319,8 +350,9 @@ type ParameterMetadata struct {
 	Default string `json:"default,omitempty"`
 	// ProcessedAt indicates when the parameter was processed
 	ProcessedAt *metav1.Time `json:"processedAt,omitempty"`
-	// ConfidenceScore indicates confidence in parameter extraction
-	ConfidenceScore *float64 `json:"confidenceScore,omitempty"`
+	// ConfidenceScore indicates confidence in parameter extraction (as string to avoid float issues)
+	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
+	ConfidenceScore *string `json:"confidenceScore,omitempty"`
 	// Annotations for additional metadata
 	Annotations map[string]string `json:"annotations,omitempty"`
 }

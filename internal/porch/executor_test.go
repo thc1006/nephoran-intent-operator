@@ -75,8 +75,8 @@ func TestExecutor_BuildCommand(t *testing.T) {
 	outDir := filepath.Join(tempDir, "out")
 
 	// Create test files/directories
-	require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0o644))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	tests := []struct {
 		name        string
@@ -161,8 +161,8 @@ func TestExecutor_Execute_MockCommand(t *testing.T) {
 	intentFile := filepath.Join(tempDir, "test-intent.json")
 	outDir := filepath.Join(tempDir, "out")
 
-	require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0o644))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	tests := []struct {
 		name           string
@@ -254,8 +254,8 @@ func TestExecutor_Execute_ContextCancellation(t *testing.T) {
 	intentFile := filepath.Join(tempDir, "test-intent.json")
 	outDir := filepath.Join(tempDir, "out")
 
-	require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0o644))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	// Create mock porch that sleeps for a long time
 	mockPorchPath := createMockPorch(t, tempDir, 0, "output", "", 10*time.Second)
@@ -292,8 +292,8 @@ func TestStatefulExecutor(t *testing.T) {
 	intentFile := filepath.Join(tempDir, "test-intent.json")
 	outDir := filepath.Join(tempDir, "out")
 
-	require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0o644))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	config := ExecutorConfig{
 		PorchPath: createMockPorch(t, tempDir, 0, "success", ""),
@@ -350,8 +350,8 @@ func TestStatefulExecutor_TimeoutTracking(t *testing.T) {
 	intentFile := filepath.Join(tempDir, "test-intent.json")
 	outDir := filepath.Join(tempDir, "out")
 
-	require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0o644))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	config := ExecutorConfig{
 		PorchPath: createMockPorch(t, tempDir, 0, "output", "", 2*time.Second), // Sleep longer than timeout
@@ -479,7 +479,7 @@ func TestValidatePorchPath(t *testing.T) {
 func TestExecutor_ConcurrentExecutions(t *testing.T) {
 	tempDir := t.TempDir()
 	outDir := filepath.Join(tempDir, "out")
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	config := ExecutorConfig{
 		PorchPath: createMockPorch(t, tempDir, 0, "success", ""),
@@ -495,7 +495,7 @@ func TestExecutor_ConcurrentExecutions(t *testing.T) {
 	intentFiles := make([]string, 10)
 	for i := 0; i < 10; i++ {
 		intentFile := filepath.Join(tempDir, fmt.Sprintf("intent-%d.json", i))
-		require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
+		require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0o644))
 		intentFiles[i] = intentFile
 	}
 
@@ -564,8 +564,8 @@ func BenchmarkExecutor_Execute(b *testing.B) {
 	intentFile := filepath.Join(tempDir, "test-intent.json")
 	outDir := filepath.Join(tempDir, "out")
 
-	require.NoError(b, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
-	require.NoError(b, os.MkdirAll(outDir, 0755))
+	require.NoError(b, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0o644))
+	require.NoError(b, os.MkdirAll(outDir, 0o755))
 
 	config := ExecutorConfig{
 		PorchPath: createMockPorch(b, tempDir, 0, "success", ""),

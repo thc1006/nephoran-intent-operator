@@ -1,7 +1,9 @@
 package shared
 
 import (
-	"time"
+	
+	"encoding/json"
+"time"
 )
 
 // SearchResponse represents the response from a search operation.
@@ -84,7 +86,7 @@ type ComponentStatus struct {
 
 	Version string `json:"version,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 
 	Metrics map[string]float64 `json:"metrics,omitempty"`
 

@@ -49,17 +49,12 @@ import (
 //   - Works correctly on both Windows and Unix systems.
 
 func safeJoin(root, p string) (string, error) {
-
 	if root == "" {
-
 		return "", fmt.Errorf("root directory cannot be empty")
-
 	}
 
 	if p == "" {
-
 		return filepath.Clean(root), nil
-
 	}
 
 	// Security check: reject absolute paths in the second parameter.
@@ -67,9 +62,7 @@ func safeJoin(root, p string) (string, error) {
 	// This prevents bypassing the root directory entirely.
 
 	if filepath.IsAbs(p) {
-
 		return "", fmt.Errorf("absolute path not allowed: %q", p)
-
 	}
 
 	// Additional security check: reject absolute paths that start with separators.
@@ -77,23 +70,17 @@ func safeJoin(root, p string) (string, error) {
 	// These bypass the root directory entirely and should be rejected.
 
 	if strings.HasPrefix(p, "/") && len(p) > 1 {
-
 		return "", fmt.Errorf("absolute path not allowed: %q", p)
-
 	}
 
 	if strings.HasPrefix(p, "\\") && len(p) > 1 {
-
 		return "", fmt.Errorf("absolute path not allowed: %q", p)
-
 	}
 
 	// Handle single separator (treat as current directory).
 
 	if p == "/" || p == "\\" {
-
 		p = "."
-
 	}
 
 	// Early path traversal detection before processing.
@@ -101,9 +88,7 @@ func safeJoin(root, p string) (string, error) {
 	// Only check for obvious traversal patterns - let the final check handle legitimate cases.
 
 	if detectObviousPathTraversal(p) {
-
 		return "", fmt.Errorf("path traversal detected in path %q", p)
-
 	}
 
 	// Remove null bytes from the path (not supported on Windows).
@@ -121,11 +106,8 @@ func safeJoin(root, p string) (string, error) {
 	// Check if the resulting path is still within the root directory.
 
 	rel, err := filepath.Rel(root, joined)
-
 	if err != nil {
-
 		return "", fmt.Errorf("failed to determine relative path: %w", err)
-
 	}
 
 	// If the relative path starts with "..", it means the joined path.
@@ -133,13 +115,10 @@ func safeJoin(root, p string) (string, error) {
 	// has traversed outside the root directory - reject it as a security violation.
 
 	if strings.HasPrefix(rel, "..") || strings.Contains(rel, "..") {
-
 		return "", fmt.Errorf("path traversal attempt: path %q would escape root directory %q", p, root)
-
 	}
 
 	return joined, nil
-
 }
 
 // SafeJoin safely joins a root directory with a relative path, preventing directory traversal attacks.
@@ -161,9 +140,7 @@ func safeJoin(root, p string) (string, error) {
 //
 //	A canonicalized, safe path within the root directory, or an error if the path is unsafe
 func SafeJoin(root, p string) (string, error) {
-
 	return safeJoin(root, p)
-
 }
 
 // MustSafeJoin is like SafeJoin but panics if the path is unsafe.
@@ -188,17 +165,12 @@ func SafeJoin(root, p string) (string, error) {
 //
 //	If the path would escape the root directory or is otherwise unsafe
 func MustSafeJoin(root, p string) string {
-
 	result, err := safeJoin(root, p)
-
 	if err != nil {
-
 		panic(fmt.Sprintf("unsafe path join: %v", err))
-
 	}
 
 	return result
-
 }
 
 // IsPathSafe checks if joining a root directory with a path would be safe without actually performing the join.
@@ -218,11 +190,9 @@ func MustSafeJoin(root, p string) string {
 //
 //	true if the path is safe to join with the root directory, false otherwise
 func IsPathSafe(root, p string) bool {
-
 	_, err := safeJoin(root, p)
 
 	return err == nil
-
 }
 
 // detectObviousPathTraversal checks for obvious path traversal attacks.
@@ -230,7 +200,6 @@ func IsPathSafe(root, p string) bool {
 // This only catches patterns that are clearly malicious, allowing legitimate ../usage.
 
 func detectObviousPathTraversal(p string) bool {
-
 	// Normalize separators for consistent checking.
 
 	normalized := strings.ReplaceAll(p, "\\", "/")
@@ -240,7 +209,6 @@ func detectObviousPathTraversal(p string) bool {
 	// Check for URL-encoded traversal patterns (always malicious).
 
 	encodedPatterns := []string{
-
 		"..%2f", // URL encoded forward slash
 
 		"..%5c", // URL encoded backslash
@@ -256,31 +224,22 @@ func detectObviousPathTraversal(p string) bool {
 	}
 
 	for _, pattern := range encodedPatterns {
-
 		if strings.Contains(lowerPath, strings.ToLower(pattern)) {
-
 			return true
-
 		}
-
 	}
 
 	// Check if path starts with ../ (immediate parent directory escape).
 
 	if strings.HasPrefix(normalized, "../") {
-
 		return true
-
 	}
 
 	// Check for excessive .. sequences (3 or more levels up is suspicious).
 
 	if strings.Contains(normalized, "../../../") {
-
 		return true
-
 	}
 
 	return false
-
 }

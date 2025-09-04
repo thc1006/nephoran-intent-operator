@@ -138,15 +138,12 @@ type EndpointConfig struct {
 // LoadNephoranAuthConfig loads auth configuration from environment.
 
 func LoadNephoranAuthConfig() (*NephoranAuthConfig, error) {
-
 	return &NephoranAuthConfig{
-
 		Enabled: GetBoolEnv("NEPHORAN_AUTH_ENABLED", true),
 
 		RequireAuth: GetBoolEnv("NEPHORAN_REQUIRE_AUTH", true),
 
 		OAuth2: OAuth2Config{
-
 			Enabled: GetBoolEnv("NEPHORAN_OAUTH2_ENABLED", true),
 
 			DefaultProvider: GetEnvOrDefault("NEPHORAN_OAUTH2_DEFAULT_PROVIDER", "github"),
@@ -155,7 +152,6 @@ func LoadNephoranAuthConfig() (*NephoranAuthConfig, error) {
 		},
 
 		LDAP: LDAPConfig{
-
 			Enabled: GetBoolEnv("NEPHORAN_LDAP_ENABLED", false),
 
 			Host: GetEnvOrDefault("NEPHORAN_LDAP_HOST", ""),
@@ -166,7 +162,6 @@ func LoadNephoranAuthConfig() (*NephoranAuthConfig, error) {
 		},
 
 		JWT: JWTConfig{
-
 			SecretKey: GetEnvOrDefault("NEPHORAN_JWT_SECRET_KEY", ""),
 
 			TokenTTL: GetDurationEnv("NEPHORAN_JWT_TOKEN_TTL", 1*time.Hour),
@@ -175,14 +170,12 @@ func LoadNephoranAuthConfig() (*NephoranAuthConfig, error) {
 		},
 
 		RBAC: RBACConfig{
-
 			Enabled: GetBoolEnv("NEPHORAN_RBAC_ENABLED", true),
 
 			DefaultRole: GetEnvOrDefault("NEPHORAN_RBAC_DEFAULT_ROLE", "nephoran-viewer"),
 		},
 
 		Sessions: SessionConfig{
-
 			Enabled: GetBoolEnv("NEPHORAN_SESSIONS_ENABLED", true),
 
 			Timeout: GetDurationEnv("NEPHORAN_SESSIONS_TIMEOUT", 30*time.Minute),
@@ -191,14 +184,12 @@ func LoadNephoranAuthConfig() (*NephoranAuthConfig, error) {
 		},
 
 		Security: SecurityConfig{
-
 			CSRFProtection: GetBoolEnv("NEPHORAN_SECURITY_CSRF_ENABLED", true),
 
 			RequireHTTPS: GetBoolEnv("NEPHORAN_SECURITY_REQUIRE_HTTPS", false),
 		},
 
 		Audit: AuditConfig{
-
 			Enabled: GetBoolEnv("NEPHORAN_AUDIT_ENABLED", true),
 
 			LogLevel: GetEnvOrDefault("NEPHORAN_AUDIT_LOG_LEVEL", "info"),
@@ -207,7 +198,6 @@ func LoadNephoranAuthConfig() (*NephoranAuthConfig, error) {
 		},
 
 		Controller: ControllerAuthConfig{
-
 			Enabled: GetBoolEnv("NEPHORAN_CONTROLLER_AUTH_ENABLED", true),
 
 			RequireUserContext: GetBoolEnv("NEPHORAN_CONTROLLER_REQUIRE_USER_CONTEXT", false),
@@ -218,9 +208,7 @@ func LoadNephoranAuthConfig() (*NephoranAuthConfig, error) {
 		},
 
 		Endpoints: EndpointConfig{
-
 			PublicEndpoints: strings.Split(GetEnvOrDefault("NEPHORAN_ENDPOINTS_PUBLIC", "/healthz,/readyz,/metrics"), ","),
 		},
 	}, nil
-
 }

@@ -17,7 +17,9 @@ limitations under the License.
 package monitoring
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -162,13 +164,19 @@ type ErrorRecord struct {
 	Severity string `json:"severity"`
 
 	// Context provides additional error context
-	Context map[string]interface{} `json:"context,omitempty"`
+	Context json.RawMessage `json:"context,omitempty"`
 
 	// StackTrace contains the stack trace if available
 	StackTrace string `json:"stackTrace,omitempty"`
 
 	// Tags for categorization and filtering
 	Tags []string `json:"tags,omitempty"`
+
+	// CorrelationID for tracing related errors
+	CorrelationID string `json:"correlationId,omitempty"`
+
+	// IntentID for linking errors to specific intents
+	IntentID string `json:"intentId,omitempty"`
 }
 
 // ErrorTracker tracks and analyzes errors for monitoring and alerting
@@ -279,6 +287,14 @@ func (et *ErrorTracker) TrackError(ctx context.Context, err error, component, er
 		}
 	}()
 
+	// Convert context map to JSON
+	contextJSON := json.RawMessage(`{}`)
+	if context != nil && len(context) > 0 {
+		if contextBytes, err := json.Marshal(context); err == nil {
+			contextJSON = contextBytes
+		}
+	}
+
 	record := ErrorRecord{
 		ID:        fmt.Sprintf("%s-%d", component, time.Now().UnixNano()),
 		Timestamp: time.Now(),
@@ -286,7 +302,7 @@ func (et *ErrorTracker) TrackError(ctx context.Context, err error, component, er
 		ErrorType: errorType,
 		Message:   err.Error(),
 		Severity:  et.determineSeverity(err, errorType),
-		Context:   context,
+		Context:   contextJSON,
 		Tags:      et.generateTags(component, errorType, err),
 	}
 
@@ -567,6 +583,49 @@ func (et *ErrorTracker) addUniqueComponent(components []string, component string
 	return append(components, component)
 }
 
+// GetErrorsByCorrelation returns errors filtered by correlation ID
+func (et *ErrorTracker) GetErrorsByCorrelation(correlationID string) []ErrorRecord {
+	et.mu.RLock()
+	defer et.mu.RUnlock()
+
+	var matched []ErrorRecord
+	for _, record := range et.errors {
+		if record.CorrelationID == correlationID {
+			matched = append(matched, record)
+		}
+	}
+
+	return matched
+}
+
+// GetMetrics returns current error tracking metrics
+func (et *ErrorTracker) GetMetrics() map[string]interface{} {
+	et.mu.RLock()
+	defer et.mu.RUnlock()
+
+	metrics := make(map[string]interface{})
+	metrics["total_errors"] = len(et.errors)
+	metrics["total_patterns"] = len(et.patterns)
+
+	// Count errors by severity
+	severityCounts := make(map[string]int)
+	for _, record := range et.errors {
+		severityCounts[record.Severity]++
+	}
+	metrics["errors_by_severity"] = severityCounts
+
+	// Count errors by component
+	componentCounts := make(map[string]int)
+	for _, record := range et.errors {
+		componentCounts[record.Component]++
+	}
+	metrics["errors_by_component"] = componentCounts
+
+	metrics["uptime_seconds"] = time.Since(et.startTime).Seconds()
+
+	return metrics
+}
+
 // contains checks if a string contains any of the given substrings
 func contains(s string, substrings []string) bool {
 	for _, substring := range substrings {
@@ -580,3 +639,4 @@ func contains(s string, substrings []string) bool {
 	}
 	return false
 }
+

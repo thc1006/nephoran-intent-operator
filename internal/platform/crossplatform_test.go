@@ -131,7 +131,7 @@ func TestCreateCrossPlatformScript_GenericScript(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		info, err := os.Stat(scriptPath)
 		require.NoError(t, err)
-		assert.True(t, info.Mode()&0111 != 0, "Script should be executable")
+		assert.True(t, info.Mode()&0o111 != 0, "Script should be executable")
 	}
 }
 
@@ -204,33 +204,33 @@ func TestIsExecutable(t *testing.T) {
 		{
 			name:     "executable file on Unix",
 			filename: "test-exec",
-			mode:     0755,
+			mode:     0o755,
 			expected: runtime.GOOS != "windows", // true on Unix, false on Windows
 		},
 		{
 			name:     "non-executable file on Unix",
 			filename: "test-noexec",
-			mode:     0644,
+			mode:     0o644,
 			expected: false,
 		},
 		{
 			name:       "Windows .exe file",
 			filename:   "test.exe",
-			mode:       0644,
+			mode:       0o644,
 			expected:   runtime.GOOS == "windows",
 			windowsExt: true,
 		},
 		{
 			name:       "Windows .bat file",
 			filename:   "test.bat",
-			mode:       0644,
+			mode:       0o644,
 			expected:   runtime.GOOS == "windows",
 			windowsExt: true,
 		},
 		{
 			name:       "Windows .cmd file",
 			filename:   "test.cmd",
-			mode:       0644,
+			mode:       0o644,
 			expected:   runtime.GOOS == "windows",
 			windowsExt: true,
 		},
@@ -273,7 +273,7 @@ func TestMakeExecutable(t *testing.T) {
 	file.Close()
 
 	// Make it non-executable
-	err = os.Chmod(filePath, 0644)
+	err = os.Chmod(filePath, 0o644)
 	require.NoError(t, err)
 
 	// Test MakeExecutable
@@ -284,7 +284,7 @@ func TestMakeExecutable(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		info, err := os.Stat(filePath)
 		require.NoError(t, err)
-		assert.True(t, info.Mode()&0111 != 0, "File should be executable after MakeExecutable")
+		assert.True(t, info.Mode()&0o111 != 0, "File should be executable after MakeExecutable")
 	} else {
 		// On Windows, just verify the file is still accessible
 		_, err := os.Stat(filePath)

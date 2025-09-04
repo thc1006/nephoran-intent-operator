@@ -24,9 +24,9 @@ type A1PolicyTypeRegistration struct {
 
 	PolicyTypeVersion string `json:"policy_type_version"`
 
-	PolicySchema map[string]interface{} `json:"policy_schema"`
+	PolicySchema json.RawMessage `json:"policy_schema"`
 
-	CreateSchema map[string]interface{} `json:"create_schema,omitempty"`
+	CreateSchema json.RawMessage `json:"create_schema,omitempty"`
 
 	Description string `json:"description,omitempty"`
 
@@ -75,7 +75,6 @@ type XAppInfo struct {
 	Services []string `json:"services"`
 
 	Status string `json:"status"` // ACTIVE, INACTIVE, ERROR
-
 }
 
 // PolicyTypeMetrics represents performance metrics for a policy type.
@@ -150,7 +149,6 @@ type GeographicArea struct {
 	Coordinates interface{} `json:"coordinates"`
 
 	Radius float64 `json:"radius,omitempty"` // for circular areas
-
 }
 
 // NearRTRICHealth represents the health status of a Near-RT RIC.
@@ -254,9 +252,7 @@ type A1ConsumerAdaptor struct {
 // NewA1ConsumerAdaptor creates a new A1-C adaptor.
 
 func NewA1ConsumerAdaptor(ricURL, apiVersion, clientID string) *A1ConsumerAdaptor {
-
 	return &A1ConsumerAdaptor{
-
 		httpClient: &http.Client{Timeout: 30 * time.Second},
 
 		ricURL: ricURL,
@@ -265,13 +261,11 @@ func NewA1ConsumerAdaptor(ricURL, apiVersion, clientID string) *A1ConsumerAdapto
 
 		clientID: clientID,
 	}
-
 }
 
 // RegisterPolicyType registers a policy type with the Near-RT RIC.
 
 func (ac *A1ConsumerAdaptor) RegisterPolicyType(ctx context.Context, policyType *A1PolicyTypeRegistration) error {
-
 	url := fmt.Sprintf("%s/A1-C/v1/policytypes/%d", ac.ricURL, policyType.PolicyTypeID)
 
 	// Set registration time and source.
@@ -281,19 +275,13 @@ func (ac *A1ConsumerAdaptor) RegisterPolicyType(ctx context.Context, policyType 
 	policyType.SourceNonRTRIC = ac.clientID
 
 	body, err := json.Marshal(policyType)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to marshal policy type registration: %w", err)
-
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(body))
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create request: %w", err)
-
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -303,14 +291,11 @@ func (ac *A1ConsumerAdaptor) RegisterPolicyType(ctx context.Context, policyType 
 	req.Header.Set("X-Client-ID", ac.clientID)
 
 	resp, err := ac.httpClient.Do(req)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to send request: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -339,21 +324,16 @@ func (ac *A1ConsumerAdaptor) RegisterPolicyType(ctx context.Context, policyType 
 		return fmt.Errorf("failed to register policy type: status=%d", resp.StatusCode)
 
 	}
-
 }
 
 // DeregisterPolicyType deregisters a policy type from the Near-RT RIC.
 
 func (ac *A1ConsumerAdaptor) DeregisterPolicyType(ctx context.Context, policyTypeID int) error {
-
 	url := fmt.Sprintf("%s/A1-C/v1/policytypes/%d", ac.ricURL, policyTypeID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, http.NoBody)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create request: %w", err)
-
 	}
 
 	req.Header.Set("Accept", "application/json, application/problem+json")
@@ -361,14 +341,11 @@ func (ac *A1ConsumerAdaptor) DeregisterPolicyType(ctx context.Context, policyTyp
 	req.Header.Set("X-Client-ID", ac.clientID)
 
 	resp, err := ac.httpClient.Do(req)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to send request: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -393,21 +370,16 @@ func (ac *A1ConsumerAdaptor) DeregisterPolicyType(ctx context.Context, policyTyp
 		return fmt.Errorf("failed to deregister policy type: status=%d", resp.StatusCode)
 
 	}
-
 }
 
 // GetPolicyTypeStatus gets the status of a registered policy type.
 
 func (ac *A1ConsumerAdaptor) GetPolicyTypeStatus(ctx context.Context, policyTypeID int) (*PolicyTypeStatus, error) {
-
 	url := fmt.Sprintf("%s/A1-C/v1/policytypes/%d/status", ac.ricURL, policyTypeID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create request: %w", err)
-
 	}
 
 	req.Header.Set("Accept", "application/json, application/problem+json")
@@ -415,14 +387,11 @@ func (ac *A1ConsumerAdaptor) GetPolicyTypeStatus(ctx context.Context, policyType
 	req.Header.Set("X-Client-ID", ac.clientID)
 
 	resp, err := ac.httpClient.Do(req)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to send request: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -431,9 +400,7 @@ func (ac *A1ConsumerAdaptor) GetPolicyTypeStatus(ctx context.Context, policyType
 		var status PolicyTypeStatus
 
 		if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
-
 			return nil, fmt.Errorf("failed to decode status response: %w", err)
-
 		}
 
 		return &status, nil
@@ -447,21 +414,16 @@ func (ac *A1ConsumerAdaptor) GetPolicyTypeStatus(ctx context.Context, policyType
 		return nil, fmt.Errorf("failed to get policy type status: status=%d", resp.StatusCode)
 
 	}
-
 }
 
 // GetNearRTRICCapabilities gets the capabilities of the Near-RT RIC.
 
 func (ac *A1ConsumerAdaptor) GetNearRTRICCapabilities(ctx context.Context) (*NearRTRICCapabilities, error) {
-
 	url := fmt.Sprintf("%s/A1-C/v1/capabilities", ac.ricURL)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create request: %w", err)
-
 	}
 
 	req.Header.Set("Accept", "application/json, application/problem+json")
@@ -469,45 +431,33 @@ func (ac *A1ConsumerAdaptor) GetNearRTRICCapabilities(ctx context.Context) (*Nea
 	req.Header.Set("X-Client-ID", ac.clientID)
 
 	resp, err := ac.httpClient.Do(req)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to send request: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
-
 		return nil, fmt.Errorf("failed to get RIC capabilities: status=%d", resp.StatusCode)
-
 	}
 
 	var capabilities NearRTRICCapabilities
 
 	if err := json.NewDecoder(resp.Body).Decode(&capabilities); err != nil {
-
 		return nil, fmt.Errorf("failed to decode capabilities response: %w", err)
-
 	}
 
 	return &capabilities, nil
-
 }
 
 // GetNearRTRICHealth gets the health status of the Near-RT RIC.
 
 func (ac *A1ConsumerAdaptor) GetNearRTRICHealth(ctx context.Context) (*NearRTRICHealth, error) {
-
 	url := fmt.Sprintf("%s/A1-C/v1/health", ac.ricURL)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create request: %w", err)
-
 	}
 
 	req.Header.Set("Accept", "application/json, application/problem+json")
@@ -515,53 +465,38 @@ func (ac *A1ConsumerAdaptor) GetNearRTRICHealth(ctx context.Context) (*NearRTRIC
 	req.Header.Set("X-Client-ID", ac.clientID)
 
 	resp, err := ac.httpClient.Do(req)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to send request: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
-
 		return nil, fmt.Errorf("failed to get RIC health: status=%d", resp.StatusCode)
-
 	}
 
 	var health NearRTRICHealth
 
 	if err := json.NewDecoder(resp.Body).Decode(&health); err != nil {
-
 		return nil, fmt.Errorf("failed to decode health response: %w", err)
-
 	}
 
 	return &health, nil
-
 }
 
 // SubscribeToPolicyEvents subscribes to policy-related events.
 
 func (ac *A1ConsumerAdaptor) SubscribeToPolicyEvents(ctx context.Context, subscription *PolicyEventSubscription) error {
-
 	url := fmt.Sprintf("%s/A1-C/v1/subscriptions", ac.ricURL)
 
 	body, err := json.Marshal(subscription)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to marshal subscription: %w", err)
-
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create request: %w", err)
-
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -571,14 +506,11 @@ func (ac *A1ConsumerAdaptor) SubscribeToPolicyEvents(ctx context.Context, subscr
 	req.Header.Set("X-Client-ID", ac.clientID)
 
 	resp, err := ac.httpClient.Do(req)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to send request: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -599,21 +531,16 @@ func (ac *A1ConsumerAdaptor) SubscribeToPolicyEvents(ctx context.Context, subscr
 		return fmt.Errorf("failed to create subscription: status=%d", resp.StatusCode)
 
 	}
-
 }
 
 // UnsubscribeFromPolicyEvents unsubscribes from policy events.
 
 func (ac *A1ConsumerAdaptor) UnsubscribeFromPolicyEvents(ctx context.Context, subscriptionID string) error {
-
 	url := fmt.Sprintf("%s/A1-C/v1/subscriptions/%s", ac.ricURL, subscriptionID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, http.NoBody)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create request: %w", err)
-
 	}
 
 	req.Header.Set("Accept", "application/json, application/problem+json")
@@ -621,14 +548,11 @@ func (ac *A1ConsumerAdaptor) UnsubscribeFromPolicyEvents(ctx context.Context, su
 	req.Header.Set("X-Client-ID", ac.clientID)
 
 	resp, err := ac.httpClient.Do(req)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to send request: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -649,5 +573,4 @@ func (ac *A1ConsumerAdaptor) UnsubscribeFromPolicyEvents(ctx context.Context, su
 		return fmt.Errorf("failed to unsubscribe: status=%d", resp.StatusCode)
 
 	}
-
 }

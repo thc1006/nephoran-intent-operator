@@ -13,13 +13,11 @@ import (
 // with smart URL handling logic to fix 404 errors.
 
 func SmartEndpointUsageExample() error {
-
 	logger := slog.Default()
 
 	// Example 1: Legacy URL pattern (backward compatibility).
 
 	legacyClient := llm.NewClientWithConfig("http://rag-api:5001/process_intent", llm.ClientConfig{
-
 		BackendType: "rag",
 
 		Timeout: 30 * time.Second,
@@ -28,7 +26,6 @@ func SmartEndpointUsageExample() error {
 	// Example 2: New URL pattern (preferred).
 
 	newClient := llm.NewClientWithConfig("http://rag-api:5001/process", llm.ClientConfig{
-
 		BackendType: "rag",
 
 		Timeout: 30 * time.Second,
@@ -37,7 +34,6 @@ func SmartEndpointUsageExample() error {
 	// Example 3: Base URL pattern (auto-detects to /process).
 
 	autoDetectClient := llm.NewClientWithConfig("http://rag-api:5001", llm.ClientConfig{
-
 		BackendType: "rag",
 
 		Timeout: 30 * time.Second,
@@ -46,7 +42,6 @@ func SmartEndpointUsageExample() error {
 	// Example 4: ProcessingEngine with smart endpoint configuration.
 
 	processingConfig := &llm.ProcessingConfig{
-
 		EnableRAG: true,
 
 		RAGAPIURL: "http://rag-api:5001", // Base URL - will auto-detect to /process
@@ -89,7 +84,6 @@ func SmartEndpointUsageExample() error {
 
 		url string
 	}{
-
 		{"Legacy URL Pattern", legacyClient, "http://rag-api:5001/process_intent"},
 
 		{"New URL Pattern", newClient, "http://rag-api:5001/process"},
@@ -109,7 +103,6 @@ func SmartEndpointUsageExample() error {
 		// Each client will automatically use the correct endpoint.
 
 		result, err := tc.client.ProcessIntent(ctx, "Deploy a high-availability AMF instance")
-
 		if err != nil {
 
 			logger.Error("Client test failed",
@@ -139,11 +132,8 @@ func SmartEndpointUsageExample() error {
 	processingResult, err := processingEngine.ProcessIntent(ctx, "Configure UPF for edge deployment")
 
 	if err != nil {
-
 		logger.Error("ProcessingEngine test failed", slog.String("error", err.Error()))
-
 	} else {
-
 		logger.Info("ProcessingEngine test successful",
 
 			slog.String("result_preview", truncate(processingResult.Content, 100)),
@@ -152,7 +142,6 @@ func SmartEndpointUsageExample() error {
 
 			slog.Bool("cache_hit", processingResult.CacheHit),
 		)
-
 	}
 
 	// StreamingProcessor stub - basic functionality demonstration.
@@ -163,13 +152,11 @@ func SmartEndpointUsageExample() error {
 	)
 
 	return nil
-
 }
 
 // ConfigurationFromEnvironmentExample shows how to configure endpoints from environment variables.
 
 func ConfigurationFromEnvironmentExample() error {
-
 	logger := slog.Default()
 
 	// Load configuration from environment.
@@ -203,13 +190,11 @@ func ConfigurationFromEnvironmentExample() error {
 	logger.Info("All patterns ensure backward compatibility while supporting new endpoints")
 
 	return nil
-
 }
 
 // TroubleshootingExample shows common issues and solutions.
 
 func TroubleshootingExample() error {
-
 	logger := slog.Default()
 
 	logger.Info("Common endpoint configuration issues and solutions:")
@@ -239,13 +224,11 @@ func TroubleshootingExample() error {
 	logger.Info("Solution: Sensible defaults with explicit override options")
 
 	return nil
-
 }
 
 // BestPracticesExample demonstrates best practices for endpoint configuration.
 
 func BestPracticesExample() error {
-
 	logger := slog.Default()
 
 	logger.Info("Best practices for endpoint configuration:")
@@ -291,19 +274,14 @@ func BestPracticesExample() error {
 	logger.Info("   - Monitor for 404 errors")
 
 	return nil
-
 }
 
 // Helper function to truncate long strings.
 
 func truncate(s string, maxLen int) string {
-
 	if len(s) <= maxLen {
-
 		return s
-
 	}
 
 	return s[:maxLen] + "..."
-
 }

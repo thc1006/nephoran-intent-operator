@@ -49,7 +49,6 @@ import (
 // This interface provides a standardized way to implement network function transformations.
 
 type KRMFunction interface {
-
 	// Execute transforms the input resource list and returns the transformed resources.
 
 	Execute(ctx context.Context, input *ResourceList) (*ResourceList, error)
@@ -70,14 +69,13 @@ type KRMFunction interface {
 // ResourceList represents a list of KRM resources with metadata.
 
 type ResourceList struct {
-
 	// Items contains the actual Kubernetes resources.
 
 	Items []porch.KRMResource `json:"items"`
 
 	// FunctionConfig contains configuration passed to the function.
 
-	FunctionConfig map[string]interface{} `json:"functionConfig,omitempty"`
+	FunctionConfig json.RawMessage `json:"functionConfig,omitempty"`
 
 	// Results contains any results or messages from processing.
 
@@ -91,7 +89,6 @@ type ResourceList struct {
 // FunctionConfig represents configuration for a KRM function.
 
 type FunctionConfig struct {
-
 	// APIVersion of the function config.
 
 	APIVersion string `json:"apiVersion"`
@@ -102,21 +99,20 @@ type FunctionConfig struct {
 
 	// Metadata for the function config.
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 
 	// Data contains the actual configuration.
 
-	Data map[string]interface{} `json:"data,omitempty"`
+	Data json.RawMessage `json:"data,omitempty"`
 
 	// Spec contains structured configuration.
 
-	Spec map[string]interface{} `json:"spec,omitempty"`
+	Spec json.RawMessage `json:"spec,omitempty"`
 }
 
 // ExecutionContext provides context information for function execution.
 
 type ExecutionContext struct {
-
 	// Package information.
 
 	Package *PackageContext `json:"package,omitempty"`
@@ -131,7 +127,7 @@ type ExecutionContext struct {
 
 	// Execution metadata.
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 
 	// Timing information.
 
@@ -165,7 +161,6 @@ type PipelineContext struct {
 // FunctionMetadata contains comprehensive metadata about a function.
 
 type FunctionMetadata struct {
-
 	// Basic identification.
 
 	Name string `json:"name"`
@@ -301,7 +296,6 @@ type SecurityProfile struct {
 // TelecomProfile defines telecommunications-specific characteristics.
 
 type TelecomProfile struct {
-
 	// Standards compliance.
 
 	Standards []StandardCompliance `json:"standards,omitempty"`
@@ -432,52 +426,39 @@ type BaseFunctionImpl struct {
 // NewBaseFunctionImpl creates a new base function implementation.
 
 func NewBaseFunctionImpl(metadata *FunctionMetadata, schema *FunctionSchema) *BaseFunctionImpl {
-
 	return &BaseFunctionImpl{
-
 		metadata: metadata,
 
 		schema: schema,
 	}
-
 }
 
 // GetMetadata returns the function metadata.
 
 func (f *BaseFunctionImpl) GetMetadata() *FunctionMetadata {
-
 	return f.metadata
-
 }
 
 // GetSchema returns the function schema.
 
 func (f *BaseFunctionImpl) GetSchema() *FunctionSchema {
-
 	return f.schema
-
 }
 
 // Validate provides basic configuration validation.
 
 func (f *BaseFunctionImpl) Validate(ctx context.Context, config *FunctionConfig) error {
-
 	if config == nil {
-
 		return fmt.Errorf("function configuration is required")
-
 	}
 
 	// Validate against schema if available.
 
 	if f.schema != nil {
-
 		return f.validateAgainstSchema(config, f.schema)
-
 	}
 
 	return nil
-
 }
 
 // Helper methods for common operations.
@@ -485,233 +466,205 @@ func (f *BaseFunctionImpl) Validate(ctx context.Context, config *FunctionConfig)
 // FindResourcesByGVK finds resources by GroupVersionKind.
 
 func FindResourcesByGVK(resources []porch.KRMResource, gvk schema.GroupVersionKind) []porch.KRMResource {
-
 	var matches []porch.KRMResource
 
 	for _, resource := range resources {
-
 		if resource.Kind == gvk.Kind {
-
 			// Check API version.
 
 			if gvk.Group == "" {
-
 				if resource.APIVersion == gvk.Version {
-
 					matches = append(matches, resource)
-
 				}
-
 			} else {
 
 				expectedAPIVersion := gvk.Group + "/" + gvk.Version
 
 				if resource.APIVersion == expectedAPIVersion {
-
 					matches = append(matches, resource)
-
 				}
 
 			}
-
 		}
-
 	}
 
 	return matches
-
 }
 
 // FindResourceByName finds a resource by name and kind.
 
 func FindResourceByName(resources []porch.KRMResource, kind, name string) *porch.KRMResource {
-
 	for _, resource := range resources {
-
 		if resource.Kind == kind {
-
-			if resourceName, ok := resource.Metadata["name"].(string); ok && resourceName == name {
-
+			resourceName, err := GetResourceName(&resource)
+			if err == nil && resourceName == name {
 				return &resource
-
 			}
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // GetResourceName safely extracts the name from resource metadata.
 
 func GetResourceName(resource *porch.KRMResource) (string, error) {
-
 	if resource.Metadata == nil {
-
 		return "", fmt.Errorf("resource metadata is nil")
-
 	}
 
-	name, ok := resource.Metadata["name"].(string)
+	var metadata map[string]interface{}
+	if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
+		return "", fmt.Errorf("failed to unmarshal metadata: %w", err)
+	}
 
+	name, ok := metadata["name"].(string)
 	if !ok {
-
 		return "", fmt.Errorf("resource name not found or not a string")
-
 	}
 
 	return name, nil
-
 }
 
 // GetResourceNamespace safely extracts the namespace from resource metadata.
 
 func GetResourceNamespace(resource *porch.KRMResource) string {
-
 	if resource.Metadata == nil {
-
 		return ""
-
 	}
 
-	namespace, ok := resource.Metadata["namespace"].(string)
-
-	if !ok {
-
+	var metadata map[string]interface{}
+	if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
 		return ""
+	}
 
+	namespace, ok := metadata["namespace"].(string)
+	if !ok {
+		return ""
 	}
 
 	return namespace
-
 }
 
 // SetResourceAnnotation sets an annotation on a resource.
 
 func SetResourceAnnotation(resource *porch.KRMResource, key, value string) {
-
-	if resource.Metadata == nil {
-
-		resource.Metadata = make(map[string]interface{})
-
+	var metadata map[string]interface{}
+	if resource.Metadata != nil {
+		if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
+			metadata = make(map[string]interface{})
+		}
+	} else {
+		metadata = make(map[string]interface{})
 	}
 
-	annotations, ok := resource.Metadata["annotations"].(map[string]interface{})
-
+	annotations, ok := metadata["annotations"].(map[string]interface{})
 	if !ok {
-
 		annotations = make(map[string]interface{})
-
-		resource.Metadata["annotations"] = annotations
-
+		metadata["annotations"] = annotations
 	}
 
 	annotations[key] = value
 
+	// Marshal back to JSON
+	marshaled, err := json.Marshal(metadata)
+	if err != nil {
+		return // Silent fail for now
+	}
+	resource.Metadata = json.RawMessage(marshaled)
 }
 
 // GetResourceAnnotation gets an annotation from a resource.
 
 func GetResourceAnnotation(resource *porch.KRMResource, key string) (string, bool) {
-
 	if resource.Metadata == nil {
-
 		return "", false
-
 	}
 
-	annotations, ok := resource.Metadata["annotations"].(map[string]interface{})
-
-	if !ok {
-
+	var metadata map[string]interface{}
+	if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
 		return "", false
+	}
 
+	annotations, ok := metadata["annotations"].(map[string]interface{})
+	if !ok {
+		return "", false
 	}
 
 	value, ok := annotations[key].(string)
-
 	return value, ok
-
 }
 
 // SetResourceLabel sets a label on a resource.
 
 func SetResourceLabel(resource *porch.KRMResource, key, value string) {
-
-	if resource.Metadata == nil {
-
-		resource.Metadata = make(map[string]interface{})
-
+	var metadata map[string]interface{}
+	if resource.Metadata != nil {
+		if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
+			metadata = make(map[string]interface{})
+		}
+	} else {
+		metadata = make(map[string]interface{})
 	}
 
-	labels, ok := resource.Metadata["labels"].(map[string]interface{})
-
+	labels, ok := metadata["labels"].(map[string]interface{})
 	if !ok {
-
 		labels = make(map[string]interface{})
-
-		resource.Metadata["labels"] = labels
-
+		metadata["labels"] = labels
 	}
 
 	labels[key] = value
 
+	// Marshal back to JSON
+	marshaled, err := json.Marshal(metadata)
+	if err != nil {
+		return // Silent fail for now
+	}
+	resource.Metadata = json.RawMessage(marshaled)
 }
 
 // GetResourceLabel gets a label from a resource.
 
 func GetResourceLabel(resource *porch.KRMResource, key string) (string, bool) {
-
 	if resource.Metadata == nil {
-
 		return "", false
-
 	}
 
-	labels, ok := resource.Metadata["labels"].(map[string]interface{})
-
-	if !ok {
-
+	var metadata map[string]interface{}
+	if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
 		return "", false
+	}
 
+	labels, ok := metadata["labels"].(map[string]interface{})
+	if !ok {
+		return "", false
 	}
 
 	value, ok := labels[key].(string)
-
 	return value, ok
-
 }
 
 // HasLabel checks if resource has a specific label.
 
 func HasLabel(resource *porch.KRMResource, key string) bool {
-
 	_, exists := GetResourceLabel(resource, key)
 
 	return exists
-
 }
 
 // HasAnnotation checks if resource has a specific annotation.
 
 func HasAnnotation(resource *porch.KRMResource, key string) bool {
-
 	_, exists := GetResourceAnnotation(resource, key)
 
 	return exists
-
 }
 
 // MatchesLabelSelector checks if resource matches label selector.
 
 func MatchesLabelSelector(resource *porch.KRMResource, selector map[string]string) bool {
-
 	if len(selector) == 0 {
-
 		return true
-
 	}
 
 	for key, expectedValue := range selector {
@@ -719,204 +672,153 @@ func MatchesLabelSelector(resource *porch.KRMResource, selector map[string]strin
 		actualValue, exists := GetResourceLabel(resource, key)
 
 		if !exists || actualValue != expectedValue {
-
 			return false
-
 		}
 
 	}
 
 	return true
-
 }
 
 // CreateResult creates a function result message.
 
 func CreateResult(severity, message string, tags map[string]string) *porch.FunctionResult {
-
 	result := &porch.FunctionResult{
-
 		Message: message,
 
 		Severity: severity,
 	}
 
 	if tags != nil {
-
 		result.Tags = tags
-
 	}
 
 	return result
-
 }
 
 // CreateInfo creates an info-level result.
 
 func CreateInfo(message string, tags ...map[string]string) *porch.FunctionResult {
-
 	var tagMap map[string]string
 
 	if len(tags) > 0 {
-
 		tagMap = tags[0]
-
 	}
 
 	return CreateResult("info", message, tagMap)
-
 }
 
 // CreateWarning creates a warning-level result.
 
 func CreateWarning(message string, tags ...map[string]string) *porch.FunctionResult {
-
 	var tagMap map[string]string
 
 	if len(tags) > 0 {
-
 		tagMap = tags[0]
-
 	}
 
 	return CreateResult("warning", message, tagMap)
-
 }
 
 // CreateError creates an error-level result.
 
 func CreateError(message string, tags ...map[string]string) *porch.FunctionResult {
-
 	var tagMap map[string]string
 
 	if len(tags) > 0 {
-
 		tagMap = tags[0]
-
 	}
 
 	return CreateResult("error", message, tagMap)
-
 }
 
 // ValidateResourceList validates a resource list.
 
 func ValidateResourceList(rl *ResourceList) error {
-
 	if rl == nil {
-
 		return fmt.Errorf("resource list cannot be nil")
-
 	}
 
 	if len(rl.Items) == 0 {
-
 		return fmt.Errorf("resource list cannot be empty")
-
 	}
 
 	// Validate each resource.
 
 	for i, resource := range rl.Items {
-
 		if err := ValidateKRMResource(&resource); err != nil {
-
 			return fmt.Errorf("resource %d is invalid: %w", i, err)
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // ValidateKRMResource validates a single KRM resource.
 
 func ValidateKRMResource(resource *porch.KRMResource) error {
-
 	if resource.APIVersion == "" {
-
 		return fmt.Errorf("apiVersion is required")
-
 	}
 
 	if resource.Kind == "" {
-
 		return fmt.Errorf("kind is required")
-
 	}
 
 	if resource.Metadata == nil {
-
 		return fmt.Errorf("metadata is required")
-
 	}
 
-	name, ok := resource.Metadata["name"].(string)
+	var metadata map[string]interface{}
+	if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
+		return fmt.Errorf("invalid metadata JSON: %w", err)
+	}
 
+	name, ok := metadata["name"].(string)
 	if !ok || name == "" {
-
 		return fmt.Errorf("metadata.name is required and must be a non-empty string")
-
 	}
 
 	return nil
-
 }
 
 // DeepCopyResource creates a deep copy of a KRM resource.
 
 func DeepCopyResource(resource *porch.KRMResource) (*porch.KRMResource, error) {
-
 	data, err := json.Marshal(resource)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to marshal resource: %w", err)
-
 	}
 
 	var copy porch.KRMResource
 
 	if err := json.Unmarshal(data, &copy); err != nil {
-
 		return nil, fmt.Errorf("failed to unmarshal resource: %w", err)
-
 	}
 
 	return &copy, nil
-
 }
 
 // DeepCopyResourceList creates a deep copy of a resource list.
 
 func DeepCopyResourceList(rl *ResourceList) (*ResourceList, error) {
-
 	data, err := json.Marshal(rl)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to marshal resource list: %w", err)
-
 	}
 
 	var copy ResourceList
 
 	if err := json.Unmarshal(data, &copy); err != nil {
-
 		return nil, fmt.Errorf("failed to unmarshal resource list: %w", err)
-
 	}
 
 	return &copy, nil
-
 }
 
 // FilterResourcesByNamespace filters resources by namespace.
 
 func FilterResourcesByNamespace(resources []porch.KRMResource, namespace string) []porch.KRMResource {
-
 	var filtered []porch.KRMResource
 
 	for _, resource := range resources {
@@ -924,119 +826,130 @@ func FilterResourcesByNamespace(resources []porch.KRMResource, namespace string)
 		resourceNamespace := GetResourceNamespace(&resource)
 
 		if resourceNamespace == namespace {
-
 			filtered = append(filtered, resource)
-
 		}
 
 	}
 
 	return filtered
-
 }
 
 // FilterResourcesByLabel filters resources by label.
 
 func FilterResourcesByLabel(resources []porch.KRMResource, key, value string) []porch.KRMResource {
-
 	var filtered []porch.KRMResource
 
 	for _, resource := range resources {
-
 		if labelValue, exists := GetResourceLabel(&resource, key); exists && labelValue == value {
-
 			filtered = append(filtered, resource)
-
 		}
-
 	}
 
 	return filtered
-
 }
 
 // GetSpecField safely gets a field from resource spec.
 
 func GetSpecField(resource *porch.KRMResource, fieldPath string) (interface{}, error) {
-
 	if resource.Spec == nil {
-
 		return nil, fmt.Errorf("resource spec is nil")
-
 	}
 
-	return getNestedField(resource.Spec, fieldPath)
+	var spec map[string]interface{}
+	if err := json.Unmarshal(resource.Spec, &spec); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal spec: %w", err)
+	}
 
+	return getNestedField(spec, fieldPath)
 }
 
 // SetSpecField safely sets a field in resource spec.
 
 func SetSpecField(resource *porch.KRMResource, fieldPath string, value interface{}) error {
-
-	if resource.Spec == nil {
-
-		resource.Spec = make(map[string]interface{})
-
+	var spec map[string]interface{}
+	if resource.Spec != nil {
+		if err := json.Unmarshal(resource.Spec, &spec); err != nil {
+			spec = make(map[string]interface{})
+		}
+	} else {
+		spec = make(map[string]interface{})
 	}
 
-	return setNestedField(resource.Spec, fieldPath, value)
+	if err := setNestedField(spec, fieldPath, value); err != nil {
+		return err
+	}
 
+	// Marshal back to JSON
+	marshaled, err := json.Marshal(spec)
+	if err != nil {
+		return fmt.Errorf("failed to marshal spec: %w", err)
+	}
+	resource.Spec = json.RawMessage(marshaled)
+	return nil
 }
 
 // GetStatusField safely gets a field from resource status.
 
 func GetStatusField(resource *porch.KRMResource, fieldPath string) (interface{}, error) {
-
 	if resource.Status == nil {
-
 		return nil, fmt.Errorf("resource status is nil")
-
 	}
 
-	return getNestedField(resource.Status, fieldPath)
+	var status map[string]interface{}
+	if err := json.Unmarshal(resource.Status, &status); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal status: %w", err)
+	}
 
+	return getNestedField(status, fieldPath)
 }
 
 // SetStatusField safely sets a field in resource status.
 
 func SetStatusField(resource *porch.KRMResource, fieldPath string, value interface{}) error {
-
-	if resource.Status == nil {
-
-		resource.Status = make(map[string]interface{})
-
+	var status map[string]interface{}
+	if resource.Status != nil {
+		if err := json.Unmarshal(resource.Status, &status); err != nil {
+			status = make(map[string]interface{})
+		}
+	} else {
+		status = make(map[string]interface{})
 	}
 
-	return setNestedField(resource.Status, fieldPath, value)
+	if err := setNestedField(status, fieldPath, value); err != nil {
+		return err
+	}
 
+	// Marshal back to JSON
+	marshaled, err := json.Marshal(status)
+	if err != nil {
+		return fmt.Errorf("failed to marshal status: %w", err)
+	}
+	resource.Status = json.RawMessage(marshaled)
+	return nil
 }
 
 // Private helper methods.
 
 func (f *BaseFunctionImpl) validateAgainstSchema(config *FunctionConfig, schema *FunctionSchema) error {
-
 	// Basic schema validation - in production, use a proper JSON schema validator.
 
 	if schema.Required != nil {
-
-		for _, requiredField := range schema.Required {
-
-			if _, exists := config.Data[requiredField]; !exists {
-
-				return fmt.Errorf("required field '%s' is missing", requiredField)
-
-			}
-
+		var data map[string]interface{}
+		if err := json.Unmarshal(config.Data, &data); err != nil {
+			return fmt.Errorf("failed to unmarshal config data: %w", err)
 		}
-
+		
+		for _, requiredField := range schema.Required {
+			if _, exists := data[requiredField]; !exists {
+				return fmt.Errorf("required field '%s' is missing", requiredField)
+			}
+		}
 	}
 
 	return nil
-
 }
 
 func getNestedField(data map[string]interface{}, fieldPath string) (interface{}, error) {
-
 	parts := strings.Split(fieldPath, ".")
 
 	current := data
@@ -1046,23 +959,17 @@ func getNestedField(data map[string]interface{}, fieldPath string) (interface{},
 		value, exists := current[part]
 
 		if !exists {
-
 			return nil, fmt.Errorf("field '%s' not found", fieldPath)
-
 		}
 
 		if i == len(parts)-1 {
-
 			return value, nil
-
 		}
 
 		next, ok := value.(map[string]interface{})
 
 		if !ok {
-
 			return nil, fmt.Errorf("field '%s' is not a map", strings.Join(parts[:i+1], "."))
-
 		}
 
 		current = next
@@ -1070,11 +977,9 @@ func getNestedField(data map[string]interface{}, fieldPath string) (interface{},
 	}
 
 	return nil, fmt.Errorf("empty field path")
-
 }
 
 func setNestedField(data map[string]interface{}, fieldPath string, value interface{}) error {
-
 	parts := strings.Split(fieldPath, ".")
 
 	current := data
@@ -1090,17 +995,11 @@ func setNestedField(data map[string]interface{}, fieldPath string, value interfa
 		}
 
 		if existing, exists := current[part]; exists {
-
 			if next, ok := existing.(map[string]interface{}); ok {
-
 				current = next
-
 			} else {
-
 				return fmt.Errorf("field '%s' exists but is not a map", strings.Join(parts[:i+1], "."))
-
 			}
-
 		} else {
 
 			next := make(map[string]interface{})
@@ -1114,35 +1013,28 @@ func setNestedField(data map[string]interface{}, fieldPath string, value interfa
 	}
 
 	return fmt.Errorf("empty field path")
-
 }
 
 // Logging helpers for functions.
 
 func LogInfo(ctx context.Context, msg string, keysAndValues ...interface{}) {
-
 	logger := log.FromContext(ctx).WithName("krm-function")
 
 	logger.Info(msg, keysAndValues...)
-
 }
 
 // LogError performs logerror operation.
 
 func LogError(ctx context.Context, err error, msg string, keysAndValues ...interface{}) {
-
 	logger := log.FromContext(ctx).WithName("krm-function")
 
 	logger.Error(err, msg, keysAndValues...)
-
 }
 
 // LogWarning performs logwarning operation.
 
 func LogWarning(ctx context.Context, msg string, keysAndValues ...interface{}) {
-
 	logger := log.FromContext(ctx).WithName("krm-function")
 
 	logger.V(1).Info("WARNING: "+msg, keysAndValues...)
-
 }

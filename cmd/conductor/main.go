@@ -28,15 +28,12 @@ type Intent struct {
 // initLogger initializes structured logging with proper configuration.
 
 func initLogger() logr.Logger {
-
 	config := zap.Config{
-
 		Level: zap.NewAtomicLevelAt(zap.InfoLevel),
 
 		Encoding: "json",
 
 		EncoderConfig: zapcore.EncoderConfig{
-
 			TimeKey: "timestamp",
 
 			LevelKey: "level",
@@ -76,7 +73,6 @@ func initLogger() logr.Logger {
 	}
 
 	zapLogger, err := config.Build()
-
 	if err != nil {
 
 		// Fallback to basic logger if configuration fails.
@@ -86,21 +82,17 @@ func initLogger() logr.Logger {
 		zapLogger, buildErr = zap.NewDevelopment()
 
 		if buildErr != nil {
-
 			// If both fail, panic as we can't proceed without logging
 
 			panic("Failed to initialize any logger: " + buildErr.Error())
-
 		}
 
 	}
 
 	return zapr.NewLogger(zapLogger).WithName("conductor")
-
 }
 
 func main() {
-
 	var (
 		handoffDir string
 
@@ -124,9 +116,7 @@ func main() {
 		outDir = os.Getenv("CONDUCTOR_OUT_DIR")
 
 		if outDir == "" {
-
 			outDir = "examples/packages/scaling"
-
 		}
 
 	}
@@ -148,7 +138,6 @@ func main() {
 	// Create file watcher.
 
 	watcher, err := fsnotify.NewWatcher()
-
 	if err != nil {
 
 		logger.Error(err, "Failed to create file system watcher")
@@ -157,13 +146,9 @@ func main() {
 	}
 
 	defer func() {
-
 		if err := watcher.Close(); err != nil {
-
 			logger.Error(err, "Failed to close file system watcher")
-
 		}
-
 	}()
 
 	// Add handoff directory to watcher.
@@ -181,9 +166,7 @@ func main() {
 	// Start event processing.
 
 	go func() {
-
 		for {
-
 			select {
 
 			case <-ctx.Done():
@@ -203,8 +186,7 @@ func main() {
 				}
 
 				if event.Op&fsnotify.Create == fsnotify.Create {
-
-					if isIntentFile(event.Name) {
+					if IsIntentFile(event.Name) {
 
 						logger.Info("New intent file detected", "file", event.Name)
 
@@ -215,7 +197,6 @@ func main() {
 						processIntentFile(logger, event.Name, outDir)
 
 					}
-
 				}
 
 			case err, ok := <-watcher.Errors:
@@ -231,9 +212,7 @@ func main() {
 				logger.Error(err, "File system watcher error")
 
 			}
-
 		}
-
 	}()
 
 	logger.Info("Conductor is running. Press Ctrl+C to stop.")
@@ -251,23 +230,19 @@ func main() {
 	time.Sleep(500 * time.Millisecond)
 
 	logger.Info("Conductor stopped successfully")
-
 }
 
-// isIntentFile checks if the file matches the pattern intent-*.json.
+// IsIntentFile checks if the file matches the pattern intent-*.json.
 
-func isIntentFile(path string) bool {
-
+func IsIntentFile(path string) bool {
 	filename := filepath.Base(path)
 
 	return strings.HasPrefix(filename, "intent-") && strings.HasSuffix(filename, ".json")
-
 }
 
 // processIntentFile triggers porch-publisher for the given intent file.
 
 func processIntentFile(logger logr.Logger, intentPath, outDir string) {
-
 	// Try to extract correlation_id from the intent file.
 
 	correlationID := extractCorrelationID(logger, intentPath)
@@ -275,23 +250,18 @@ func processIntentFile(logger logr.Logger, intentPath, outDir string) {
 	contextLogger := logger.WithValues("intentFile", intentPath, "correlationID", correlationID)
 
 	if correlationID != "" {
-
 		contextLogger.Info("Processing intent with correlation ID")
-
 	} else {
-
 		contextLogger.Info("Processing intent without correlation ID")
-
 	}
 
 	// Build the command to run porch-publisher.
 
-	cmd := exec.Command("go", "run", "./cmd/porch-publisher", "-intent", intentPath, "-out", outDir)
+	cmd := exec.Command("go", "run", "./cmd/porch-publisher", "-intent", intentPath, "-out", outDir) // #nosec G204 - Static command with validated args
 
 	// Capture output.
 
 	output, err := cmd.CombinedOutput()
-
 	if err != nil {
 
 		contextLogger.Error(err, "Failed to run porch-publisher", "output", string(output))
@@ -301,15 +271,12 @@ func processIntentFile(logger logr.Logger, intentPath, outDir string) {
 	}
 
 	contextLogger.Info("Successfully processed intent file", "output", strings.TrimSpace(string(output)))
-
 }
 
 // extractCorrelationID reads the intent file and extracts correlation_id if present.
 
 func extractCorrelationID(logger logr.Logger, path string) string {
-
 	data, err := os.ReadFile(path)
-
 	if err != nil {
 
 		logger.Error(err, "Could not read intent file for correlation_id extraction", "file", path)
@@ -329,5 +296,4 @@ func extractCorrelationID(logger logr.Logger, path string) string {
 	}
 
 	return intent.CorrelationID
-
 }

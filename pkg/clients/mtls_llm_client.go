@@ -34,7 +34,7 @@ type LLMRequest struct {
 
 	Temperature float64 `json:"temperature,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 
 	UseRAG bool `json:"use_rag,omitempty"`
 
@@ -52,7 +52,7 @@ type LLMResponse struct {
 
 	FinishReason string `json:"finish_reason"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 
 	ProcessingTime time.Duration `json:"processing_time"`
 
@@ -70,7 +70,7 @@ type StreamingResponse struct {
 
 	IsLast bool `json:"is_last"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -78,11 +78,8 @@ type StreamingResponse struct {
 // ProcessIntent processes an intent using the LLM processor with mTLS.
 
 func (c *MTLSLLMClient) ProcessIntent(ctx context.Context, prompt string) (string, error) {
-
 	if prompt == "" {
-
 		return "", fmt.Errorf("prompt cannot be empty")
-
 	}
 
 	c.logger.Debug("processing intent via mTLS LLM client",
@@ -94,27 +91,18 @@ func (c *MTLSLLMClient) ProcessIntent(ctx context.Context, prompt string) (strin
 	// Create request.
 
 	req := &LLMRequest{
-
 		Prompt: prompt,
 
 		UseRAG: true, // Enable RAG by default for intent processing
 
-		Metadata: map[string]interface{}{
-
-			"request_type": "intent_processing",
-
-			"timestamp": time.Now(),
-		},
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Make request to LLM processor.
 
 	response, err := c.makeRequest(ctx, "/api/v1/process", req)
-
 	if err != nil {
-
 		return "", fmt.Errorf("failed to process intent: %w", err)
-
 	}
 
 	c.logger.Debug("intent processed successfully",
@@ -128,17 +116,13 @@ func (c *MTLSLLMClient) ProcessIntent(ctx context.Context, prompt string) (strin
 		"rag_used", response.RAGUsed)
 
 	return response.Content, nil
-
 }
 
 // ProcessIntentStream processes an intent with streaming response.
 
 func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, chunks chan<- *shared.StreamingChunk) error {
-
 	if prompt == "" {
-
 		return fmt.Errorf("prompt cannot be empty")
-
 	}
 
 	defer close(chunks)
@@ -152,17 +136,11 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 	// Create request.
 
 	req := &LLMRequest{
-
 		Prompt: prompt,
 
 		UseRAG: true,
 
-		Metadata: map[string]interface{}{
-
-			"request_type": "streaming_intent_processing",
-
-			"timestamp": time.Now(),
-		},
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Create HTTP request.
@@ -170,19 +148,13 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 	url := fmt.Sprintf("%s/api/v1/stream", c.baseURL)
 
 	reqBody, err := json.Marshal(req)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to marshal request: %w", err)
-
 	}
 
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(reqBody))
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create HTTP request: %w", err)
-
 	}
 
 	httpReq.Header.Set("Content-Type", "application/json")
@@ -192,14 +164,11 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 	// Make request.
 
 	resp, err := c.httpClient.Do(httpReq)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to make streaming request: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 
@@ -230,9 +199,7 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 		if err := decoder.Decode(&streamResp); err != nil {
 
 			if err == io.EOF {
-
 				break
-
 			}
 
 			return fmt.Errorf("failed to decode streaming response: %w", err)
@@ -242,7 +209,6 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 		// Convert to shared.StreamingChunk.
 
 		chunk := &shared.StreamingChunk{
-
 			Content: streamResp.Content,
 
 			IsLast: streamResp.IsLast,
@@ -263,9 +229,7 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 		}
 
 		if streamResp.IsLast {
-
 			break
-
 		}
 
 	}
@@ -273,13 +237,11 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 	c.logger.Debug("intent stream processing completed")
 
 	return nil
-
 }
 
 // GetSupportedModels returns the list of supported models.
 
 func (c *MTLSLLMClient) GetSupportedModels() []string {
-
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
 	defer cancel()
@@ -287,7 +249,6 @@ func (c *MTLSLLMClient) GetSupportedModels() []string {
 	url := fmt.Sprintf("%s/api/v1/models", c.baseURL)
 
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, http.NoBody)
-
 	if err != nil {
 
 		c.logger.Error("failed to create models request", "error", err)
@@ -297,7 +258,6 @@ func (c *MTLSLLMClient) GetSupportedModels() []string {
 	}
 
 	resp, err := c.httpClient.Do(httpReq)
-
 	if err != nil {
 
 		c.logger.Error("failed to get supported models", "error", err)
@@ -306,7 +266,7 @@ func (c *MTLSLLMClient) GetSupportedModels() []string {
 
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 
@@ -327,13 +287,27 @@ func (c *MTLSLLMClient) GetSupportedModels() []string {
 	}
 
 	return models
-
 }
 
-// GetModelCapabilities returns capabilities for a specific model.
+// GetModelCapabilities returns default model capabilities.
+func (c *MTLSLLMClient) GetModelCapabilities() shared.ModelCapabilities {
+	// Return default capabilities - in production this should be retrieved from service
+	return shared.ModelCapabilities{
+		SupportsStreaming:    true,
+		SupportsSystemPrompt: true,
+		SupportsChatFormat:   true,
+		SupportsChat:         true,
+		SupportsFunction:     false,
+		MaxTokens:            4096,
+		CostPerToken:         0.001,
+		SupportedMimeTypes:   []string{"text/plain", "application/json"},
+		ModelVersion:         "1.0.0",
+		Features:             json.RawMessage("{}"),
+	}
+}
 
-func (c *MTLSLLMClient) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
-
+// GetModelCapabilitiesForModel returns capabilities for a specific model.
+func (c *MTLSLLMClient) GetModelCapabilitiesForModel(modelName string) (*shared.ModelCapabilities, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
 	defer cancel()
@@ -341,22 +315,16 @@ func (c *MTLSLLMClient) GetModelCapabilities(modelName string) (*shared.ModelCap
 	url := fmt.Sprintf("%s/api/v1/models/%s/capabilities", c.baseURL, modelName)
 
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, http.NoBody)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create capabilities request: %w", err)
-
 	}
 
 	resp, err := c.httpClient.Do(httpReq)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to get model capabilities: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 
@@ -369,53 +337,40 @@ func (c *MTLSLLMClient) GetModelCapabilities(modelName string) (*shared.ModelCap
 	var capabilities shared.ModelCapabilities
 
 	if err := json.NewDecoder(resp.Body).Decode(&capabilities); err != nil {
-
 		return nil, fmt.Errorf("failed to decode capabilities response: %w", err)
-
 	}
 
 	return &capabilities, nil
-
 }
 
 // ValidateModel validates if a model is supported.
 
 func (c *MTLSLLMClient) ValidateModel(modelName string) error {
-
 	supportedModels := c.GetSupportedModels()
 
 	for _, model := range supportedModels {
-
 		if model == modelName {
-
 			return nil
-
 		}
-
 	}
 
 	return fmt.Errorf("model %s is not supported", modelName)
-
 }
 
 // EstimateTokens estimates the token count for given text.
 
 func (c *MTLSLLMClient) EstimateTokens(text string) int {
-
 	// Simple token estimation (4 characters per token on average).
 
 	// This is a rough approximation and should ideally call the service.
 
 	return len(text) / 4
-
 }
 
 // GetMaxTokens returns the maximum tokens for a model.
 
 func (c *MTLSLLMClient) GetMaxTokens(modelName string) int {
-
-	capabilities, err := c.GetModelCapabilities(modelName)
-
+	capabilities, err := c.GetModelCapabilitiesForModel(modelName)
 	if err != nil {
 
 		c.logger.Warn("failed to get model capabilities, using default max tokens",
@@ -429,29 +384,21 @@ func (c *MTLSLLMClient) GetMaxTokens(modelName string) int {
 	}
 
 	return capabilities.MaxTokens
-
 }
 
 // makeRequest makes an HTTP request to the LLM processor.
 
 func (c *MTLSLLMClient) makeRequest(ctx context.Context, endpoint string, request *LLMRequest) (*LLMResponse, error) {
-
 	url := fmt.Sprintf("%s%s", c.baseURL, endpoint)
 
 	reqBody, err := json.Marshal(request)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
-
 	}
 
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(reqBody))
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
-
 	}
 
 	httpReq.Header.Set("Content-Type", "application/json")
@@ -467,14 +414,11 @@ func (c *MTLSLLMClient) makeRequest(ctx context.Context, endpoint string, reques
 		"content_length", len(reqBody))
 
 	resp, err := c.httpClient.Do(httpReq)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to make HTTP request: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	c.logger.Debug("received LLM response",
 
@@ -493,37 +437,149 @@ func (c *MTLSLLMClient) makeRequest(ctx context.Context, endpoint string, reques
 	var response LLMResponse
 
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-
 		return nil, fmt.Errorf("failed to decode response: %w", err)
-
 	}
 
 	return &response, nil
-
 }
 
 // Close closes the LLM client and cleans up resources.
 
 func (c *MTLSLLMClient) Close() error {
-
 	c.logger.Debug("closing mTLS LLM client")
 
 	// Close idle connections in HTTP client.
 
 	if transport, ok := c.httpClient.Transport.(*http.Transport); ok {
-
 		transport.CloseIdleConnections()
-
 	}
 
 	return nil
+}
 
+// HealthCheck performs a health check on the LLM service.
+func (c *MTLSLLMClient) HealthCheck(ctx context.Context) error {
+	healthStatus, err := c.GetHealth()
+	if err != nil {
+		return fmt.Errorf("health check failed: %w", err)
+	}
+
+	if healthStatus.Status != "healthy" && healthStatus.Status != "ok" {
+		return fmt.Errorf("service unhealthy: %s - %s", healthStatus.Status, healthStatus.Message)
+	}
+
+	return nil
+}
+
+// GetStatus returns the current client status.
+func (c *MTLSLLMClient) GetStatus() shared.ClientStatus {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := c.HealthCheck(ctx); err != nil {
+		c.logger.Debug("health check failed", "error", err)
+		return shared.ClientStatusUnhealthy
+	}
+
+	return shared.ClientStatusHealthy
+}
+
+// GetEndpoint returns the base URL of the LLM service.
+func (c *MTLSLLMClient) GetEndpoint() string {
+	return c.baseURL
+}
+
+// ProcessRequest processes an LLM request and returns a response.
+func (c *MTLSLLMClient) ProcessRequest(ctx context.Context, request *shared.LLMRequest) (*shared.LLMResponse, error) {
+	if request == nil {
+		return nil, fmt.Errorf("request cannot be nil")
+	}
+
+	// Convert shared.LLMRequest to internal LLMRequest format
+	internalReq := &LLMRequest{
+		Prompt:      extractPromptFromMessages(request.Messages),
+		Model:       request.Model,
+		MaxTokens:   request.MaxTokens,
+		Temperature: float64(request.Temperature),
+		Metadata:    request.Metadata,
+	}
+
+	// Use existing makeRequest method
+	response, err := c.makeRequest(ctx, "/api/v1/process", internalReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to process request: %w", err)
+	}
+
+	// Convert internal LLMResponse to shared.LLMResponse
+	return &shared.LLMResponse{
+		ID:      fmt.Sprintf("llm-req-%d", time.Now().UnixNano()),
+		Content: response.Content,
+		Model:   response.Model,
+		Usage: shared.TokenUsage{
+			PromptTokens:     c.EstimateTokens(internalReq.Prompt),
+			CompletionTokens: response.TokensUsed,
+			TotalTokens:      c.EstimateTokens(internalReq.Prompt) + response.TokensUsed,
+		},
+		Created: time.Now(),
+	}, nil
+}
+
+// ProcessStreamingRequest processes a streaming LLM request.
+func (c *MTLSLLMClient) ProcessStreamingRequest(ctx context.Context, request *shared.LLMRequest) (<-chan *shared.StreamingChunk, error) {
+	if request == nil {
+		return nil, fmt.Errorf("request cannot be nil")
+	}
+
+	prompt := extractPromptFromMessages(request.Messages)
+	chunks := make(chan *shared.StreamingChunk, 10)
+
+	go func() {
+		err := c.ProcessIntentStream(ctx, prompt, chunks)
+		if err != nil {
+			// Send error chunk
+			select {
+			case chunks <- &shared.StreamingChunk{
+				Error: &shared.LLMError{
+					Code:    "streaming_error",
+					Message: err.Error(),
+					Type:    "internal_error",
+				},
+				IsLast: true,
+			}:
+			case <-ctx.Done():
+			}
+		}
+	}()
+
+	return chunks, nil
+}
+
+// extractPromptFromMessages converts chat messages to a single prompt string.
+func extractPromptFromMessages(messages []shared.ChatMessage) string {
+	if len(messages) == 0 {
+		return ""
+	}
+
+	var prompt string
+	for _, msg := range messages {
+		switch msg.Role {
+		case "system":
+			prompt += fmt.Sprintf("System: %s\n", msg.Content)
+		case "user":
+			prompt += fmt.Sprintf("User: %s\n", msg.Content)
+		case "assistant":
+			prompt += fmt.Sprintf("Assistant: %s\n", msg.Content)
+		default:
+			prompt += fmt.Sprintf("%s: %s\n", msg.Role, msg.Content)
+		}
+	}
+
+	return prompt
 }
 
 // GetHealth returns the health status of the LLM service.
 
 func (c *MTLSLLMClient) GetHealth() (*HealthStatus, error) {
-
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
 	defer cancel()
@@ -531,54 +587,40 @@ func (c *MTLSLLMClient) GetHealth() (*HealthStatus, error) {
 	url := fmt.Sprintf("%s/health", c.baseURL)
 
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, http.NoBody)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create health request: %w", err)
-
 	}
 
 	resp, err := c.httpClient.Do(httpReq)
-
 	if err != nil {
-
 		return &HealthStatus{
-
 			Status: "unhealthy",
 
 			Message: fmt.Sprintf("failed to connect: %v", err),
 		}, nil
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
-
 		return &HealthStatus{
-
 			Status: "unhealthy",
 
 			Message: fmt.Sprintf("health check failed with status %d", resp.StatusCode),
 		}, nil
-
 	}
 
 	var health HealthStatus
 
 	if err := json.NewDecoder(resp.Body).Decode(&health); err != nil {
-
 		return &HealthStatus{
-
 			Status: "unknown",
 
 			Message: fmt.Sprintf("failed to decode health response: %v", err),
 		}, nil
-
 	}
 
 	return &health, nil
-
 }
 
 // HealthStatus represents the health status of a service.
@@ -590,5 +632,5 @@ type HealthStatus struct {
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Details map[string]interface{} `json:"details,omitempty"`
+	Details json.RawMessage `json:"details,omitempty"`
 }

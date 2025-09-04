@@ -16,9 +16,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/health"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
+	"github.com/thc1006/nephoran-intent-operator/pkg/health"
+	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 )
 
 // TestCircuitBreakerHealthIntegration provides comprehensive integration tests
@@ -143,12 +143,12 @@ func testEndToEndHealthCheckBehavior(t *testing.T, logger *slog.Logger) {
 			// Create HTTP test server
 			router := sm.CreateRouter()
 			server := httptest.NewServer(router)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			// Test /healthz endpoint
 			resp, err := http.Get(server.URL + "/healthz")
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
 
@@ -556,7 +556,7 @@ func testRegressionTests(t *testing.T, logger *slog.Logger) {
 
 		router := sm.CreateRouter()
 		server := httptest.NewServer(router)
-		defer server.Close()
+		defer server.Close() // #nosec G307 - Error handled in defer
 
 		// Test both /healthz and /readyz endpoints
 		endpoints := []string{"/healthz", "/readyz"}
@@ -564,7 +564,7 @@ func testRegressionTests(t *testing.T, logger *slog.Logger) {
 		for _, endpoint := range endpoints {
 			resp, err := http.Get(server.URL + endpoint)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			// Should return 503 due to open circuit breaker
 			assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)

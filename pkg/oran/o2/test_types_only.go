@@ -1,6 +1,7 @@
 package o2
 
 import (
+	"context"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -126,7 +127,6 @@ type VNFInstanceStatus struct {
 	State string `json:"state"` // INSTANTIATED, NOT_INSTANTIATED, TERMINATED
 
 	DetailedState string `json:"detailedState"` // RUNNING, PENDING, ERROR
-
 }
 
 // ResourceInfo represents resource information for a VNF instance.
@@ -223,6 +223,50 @@ type NamespaceInfo struct {
 	Name string `json:"name"`
 
 	Status string `json:"status"`
+	
+	PodCount int32 `json:"pod_count"`
+}
+
+// O2Manager provides high-level management operations for O2 interface.
+type O2Manager struct {
+	adaptor *O2Adaptor
+}
+
+// NewO2Manager creates a new O2Manager instance.
+func NewO2Manager(adaptor *O2Adaptor) *O2Manager {
+	return &O2Manager{
+		adaptor: adaptor,
+	}
+}
+
+// DiscoverResources discovers resources in the cluster.
+func (m *O2Manager) DiscoverResources(ctx context.Context) (*ResourceMap, error) {
+	// This is a stub implementation for testing
+	return &ResourceMap{
+		Nodes: make(map[string]*NodeInfo),
+		Namespaces: make(map[string]*NamespaceInfo),
+		Metrics: &ClusterMetrics{
+			ReadyNodes:  2,
+			TotalCPU:    "4",
+			TotalMemory: "8Gi",
+		},
+	}, nil
+}
+
+// ScaleWorkload scales a workload to the specified number of replicas.
+func (m *O2Manager) ScaleWorkload(ctx context.Context, workloadID string, replicas int32) error {
+	// This is a stub implementation for testing
+	return nil
+}
+
+// DeployVNF deploys a VNF with the given specification.
+func (m *O2Manager) DeployVNF(ctx context.Context, vnfSpec *VNFDescriptor) (*DeploymentStatus, error) {
+	// This is a stub implementation for testing
+	return &DeploymentStatus{
+		State:  "PENDING",
+		Phase:  "CREATING",
+		Health: "UNKNOWN",
+	}, nil
 }
 
 // ClusterMetrics represents cluster metrics.

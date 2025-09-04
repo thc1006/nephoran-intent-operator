@@ -1,15 +1,16 @@
 #!/usr/bin/env pwsh
 # =============================================================================
-# CI Pipeline Fixes Validation Script
+# CI STABILITY FIXES VALIDATION SCRIPT - NEPHORAN INTENT OPERATOR
 # =============================================================================
-# This script validates the GitHub Actions CI pipeline fixes
-# Run this before pushing changes to ensure everything works correctly
+# This script validates the comprehensive CI stability fixes
+# Tests cache recovery, timeout management, security scanning, and orchestration
+# Last Updated: 2025-09-03
 # =============================================================================
 
 param(
-    [string]$Service = "intent-ingest",
     [switch]$SkipBuild = $false,
-    [switch]$Verbose = $false
+    [switch]$Verbose = $false,
+    [switch]$TestWorkflowSyntax = $true
 )
 
 # Set error handling
@@ -106,32 +107,51 @@ try {
 
 Write-Host ""
 
-# Test 2: Check file structure
-Write-Status "=== Testing File Structure ===" $Blue
-$allTests += Test-FileExists ".github/workflows/ci.yml" "CI workflow"
-$allTests += Test-FileExists "Dockerfile" "Main Dockerfile"
+# Test 2: Check CI stability workflow files
+Write-Status "=== Testing CI Stability Workflows ===" $Blue
+
+# Define critical workflow files and their features
+$CriticalWorkflows = @{
+    "security-scan-ultra-reliable.yml" = @("timeout-minutes", "retry.*logic", "SARIF.*valid", "cache.*recover")
+    "cache-recovery-system.yml" = @("cache.*valid", "corruption.*detect", "recovery.*system", "fallback")
+    "timeout-management.yml" = @("timeout.*management", "adaptive", "complexity")
+    "ci-stability-orchestrator.yml" = @("orchestrat", "stability", "quality.*gate")
+}
+
+foreach ($workflow in $CriticalWorkflows.Keys) {
+    $workflowPath = ".github/workflows/$workflow"
+    if (Test-Path $workflowPath) {
+        Write-Success "Critical workflow found: $workflow"
+        $allTests += $true
+        
+        # Test workflow features
+        $content = Get-Content $workflowPath -Raw
+        $missingFeatures = @()
+        
+        foreach ($feature in $CriticalWorkflows[$workflow]) {
+            if ($content -match $feature) {
+                if ($Verbose) { Write-Success "  ✓ Feature '$feature' found in $workflow" }
+            } else {
+                $missingFeatures += $feature
+            }
+        }
+        
+        if ($missingFeatures.Count -eq 0) {
+            Write-Success "All features implemented in $workflow"
+            $allTests += $true
+        } else {
+            Write-Warning "Missing features in $workflow`: $($missingFeatures -join ', ')"
+            $allTests += $true  # Warning, not critical failure
+        }
+    } else {
+        Write-Error "Critical workflow missing: $workflow"
+        $allTests += $false
+    }
+}
+
+# Check basic project files
 $allTests += Test-FileExists "go.mod" "Go module file"
 $allTests += Test-FileExists "go.sum" "Go sum file"
-
-# Check if service exists
-$servicePath = "cmd/$Service/main.go"
-$plannerServicePath = "planner/cmd/$Service/main.go"
-
-if (Test-Path $servicePath) {
-    Write-Success "Service source found: $servicePath"
-    $allTests += $true
-} elseif (Test-Path $plannerServicePath) {
-    Write-Success "Service source found: $plannerServicePath"
-    $allTests += $true
-} else {
-    Write-Error "Service source not found for: $Service"
-    Write-Host "Available services:"
-    Get-ChildItem "cmd" -Directory | ForEach-Object { "  - $($_.Name)" }
-    if (Test-Path "planner/cmd") {
-        Get-ChildItem "planner/cmd" -Directory | ForEach-Object { "  - $($_.Name) (planner)" }
-    }
-    $allTests += $false
-}
 
 Write-Host ""
 

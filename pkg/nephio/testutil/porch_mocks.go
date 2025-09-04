@@ -14,12 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package porch
+package testutil
 
 import (
 	"context"
 	"fmt"
 	"sync"
+	"encoding/json"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -322,8 +323,8 @@ func (m *MockPorchClient) ApprovePackageRevision(ctx context.Context, name strin
 		return fmt.Errorf("package revision %s not found", key)
 	}
 
-	// Validate lifecycle transition
-	if !pkg.Spec.Lifecycle.CanTransitionTo(porch.PackageRevisionLifecyclePublished) {
+	// Validate lifecycle transition using the CanTransitionTo function
+	if !porch.CanTransitionTo(pkg.Spec.Lifecycle, porch.PackageRevisionLifecyclePublished) {
 		return fmt.Errorf("cannot transition from %s to Published", pkg.Spec.Lifecycle)
 	}
 
@@ -350,8 +351,8 @@ func (m *MockPorchClient) ProposePackageRevision(ctx context.Context, name strin
 		return fmt.Errorf("package revision %s not found", key)
 	}
 
-	// Validate lifecycle transition
-	if !pkg.Spec.Lifecycle.CanTransitionTo(porch.PackageRevisionLifecycleProposed) {
+	// Validate lifecycle transition using the CanTransitionTo function
+	if !porch.CanTransitionTo(pkg.Spec.Lifecycle, porch.PackageRevisionLifecycleProposed) {
 		return fmt.Errorf("cannot transition from %s to Proposed", pkg.Spec.Lifecycle)
 	}
 
@@ -410,7 +411,16 @@ func (m *MockPorchClient) GetPackageContents(ctx context.Context, name string, r
 	}
 
 	// Return default contents if none exist
-	return GeneratePackageContents(), nil
+	return map[string][]byte{
+		"Kptfile": []byte(`apiVersion: kpt.dev/v1
+kind: Kptfile
+metadata:
+  name: test-package`),
+		"deployment.yaml": []byte(`apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-deployment`),
+	}, nil
 }
 
 func (m *MockPorchClient) UpdatePackageContents(ctx context.Context, name string, revision string, contents map[string][]byte) error {
@@ -453,18 +463,12 @@ func (m *MockPorchClient) RenderPackage(ctx context.Context, name string, revisi
 		{
 			APIVersion: "apps/v1",
 			Kind:       "Deployment",
-			Metadata: map[string]interface{}{
-				"name":      "rendered-deployment",
-				"namespace": "default",
-			},
+			Metadata: json.RawMessage(`{}`),
 		},
 		{
 			APIVersion: "v1",
 			Kind:       "Service",
-			Metadata: map[string]interface{}{
-				"name":      "rendered-service",
-				"namespace": "default",
-			},
+			Metadata: json.RawMessage(`{}`),
 		},
 	}
 
@@ -861,13 +865,13 @@ func (m *MockPorchClient) clonePackageRevision(pkg *porch.PackageRevision) *porc
 
 	// Deep copy resources
 	if pkg.Spec.Resources != nil {
-		clone.Spec.Resources = make([]porch.KRMResource, len(pkg.Spec.Resources))
+		clone.Spec.Resources = make([]interface{}, len(pkg.Spec.Resources))
 		copy(clone.Spec.Resources, pkg.Spec.Resources)
 	}
 
 	// Deep copy functions
 	if pkg.Spec.Functions != nil {
-		clone.Spec.Functions = make([]porch.FunctionConfig, len(pkg.Spec.Functions))
+		clone.Spec.Functions = make([]interface{}, len(pkg.Spec.Functions))
 		copy(clone.Spec.Functions, pkg.Spec.Functions)
 	}
 
@@ -907,3 +911,52 @@ func (m *MockPorchClient) cloneWorkflow(workflow *porch.Workflow) *porch.Workflo
 
 	return &clone
 }
+
+// GeneratePackageContents creates test package contents
+func GeneratePackageContents() map[string][]byte {
+	return map[string][]byte{
+		"Kptfile": []byte(`
+apiVersion: kpt.dev/v1
+kind: Kptfile
+metadata:
+  name: test-package
+info:
+  description: Test package for Nephoran
+`),
+		"deployment.yaml": []byte(`
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: test-app
+  template:
+    metadata:
+      labels:
+        app: test-app
+    spec:
+      containers:
+      - name: test-container
+        image: nginx:1.21
+        ports:
+        - containerPort: 80
+`),
+		"service.yaml": []byte(`
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-service
+spec:
+  selector:
+    app: test-app
+  ports:
+  - port: 80
+    targetPort: 80
+  type: ClusterIP
+`),
+	}
+}
+

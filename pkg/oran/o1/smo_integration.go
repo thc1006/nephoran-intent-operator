@@ -2,15 +2,10 @@ package o1
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
-
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
-	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // NetworkFunctionManagerImpl provides concrete implementation of NetworkFunctionManager
@@ -148,6 +143,7 @@ func (nfm *NetworkFunctionManagerImpl) ConfigureNetworkFunction(ctx context.Cont
 	if !exists {
 		return fmt.Errorf("network function with ID %s not found", nfID)
 	}
+	_ = nf // Use the variable to avoid compiler error
 
 	// Update network function configuration logic here
 	// This is a simplified placeholder
@@ -167,13 +163,17 @@ func (nfm *NetworkFunctionManagerImpl) GetNetworkFunctionConfiguration(ctx conte
 		return nil, fmt.Errorf("network function with ID %s not found", nfID)
 	}
 
+	_ = nf // Use the variable to avoid compiler error
 	// Return a placeholder configuration
+	configDataMap := make(map[string]interface{})
+	configDataJSON, _ := json.Marshal(configDataMap)
+	
 	return &NetworkFunctionConfig{
 		ConfigID:    nfID + "-config",
 		Version:     "1.0.0",
 		ConfigName:  "Default Configuration",
 		Description: "Default configuration for network function",
-		ConfigData:  make(map[string]interface{}),
+		ConfigData:  json.RawMessage(configDataJSON),
 	}, nil
 }
 

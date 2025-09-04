@@ -81,7 +81,6 @@ type PorchIntegrationManager struct {
 // PorchIntegrationConfig defines configuration for Porch integration.
 
 type PorchIntegrationConfig struct {
-
 	// Package creation settings.
 
 	DefaultRepository string `json:"defaultRepository" yaml:"defaultRepository"`
@@ -259,7 +258,6 @@ type IntentToPackageConverter struct {
 // Default configuration.
 
 var DefaultPorchIntegrationConfig = &PorchIntegrationConfig{
-
 	DefaultRepository: "nephoran-packages",
 
 	DefaultNamespace: "nephoran-system",
@@ -292,7 +290,6 @@ var DefaultPorchIntegrationConfig = &PorchIntegrationConfig{
 // NewPorchIntegrationManager creates a new Porch integration manager.
 
 func NewPorchIntegrationManager(
-
 	client client.Client,
 
 	porchClient porch.PorchClient,
@@ -304,23 +301,17 @@ func NewPorchIntegrationManager(
 	runtime *Runtime,
 
 	config *PorchIntegrationConfig,
-
 ) (*PorchIntegrationManager, error) {
-
 	if config == nil {
-
 		config = DefaultPorchIntegrationConfig
-
 	}
 
 	// Initialize metrics.
 
 	metrics := &PorchIntegrationMetrics{
-
 		PackageCreations: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "krm_porch_package_creations_total",
 
 				Help: "Total number of package creations",
@@ -332,7 +323,6 @@ func NewPorchIntegrationManager(
 		PackageRevisions: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "krm_porch_package_revisions_total",
 
 				Help: "Total number of package revisions created",
@@ -344,7 +334,6 @@ func NewPorchIntegrationManager(
 		FunctionExecutions: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "krm_porch_function_executions_total",
 
 				Help: "Total number of KRM function executions in Porch context",
@@ -356,7 +345,6 @@ func NewPorchIntegrationManager(
 		PipelineExecutions: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "krm_porch_pipeline_executions_total",
 
 				Help: "Total number of KRM pipeline executions",
@@ -368,7 +356,6 @@ func NewPorchIntegrationManager(
 		ExecutionDuration: promauto.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "krm_porch_execution_duration_seconds",
 
 				Help: "Duration of Porch integration operations",
@@ -382,7 +369,6 @@ func NewPorchIntegrationManager(
 		PackageSize: promauto.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "krm_porch_package_size_bytes",
 
 				Help: "Size of generated packages in bytes",
@@ -397,7 +383,6 @@ func NewPorchIntegrationManager(
 		CacheHitRate: promauto.NewCounter(
 
 			prometheus.CounterOpts{
-
 				Name: "krm_porch_cache_hits_total",
 
 				Help: "Total number of cache hits",
@@ -407,7 +392,6 @@ func NewPorchIntegrationManager(
 		CacheMissRate: promauto.NewCounter(
 
 			prometheus.CounterOpts{
-
 				Name: "krm_porch_cache_misses_total",
 
 				Help: "Total number of cache misses",
@@ -417,7 +401,6 @@ func NewPorchIntegrationManager(
 		ErrorRate: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "krm_porch_errors_total",
 
 				Help: "Total number of errors in Porch integration",
@@ -428,7 +411,6 @@ func NewPorchIntegrationManager(
 	}
 
 	return &PorchIntegrationManager{
-
 		client: client,
 
 		porchClient: porchClient,
@@ -445,13 +427,11 @@ func NewPorchIntegrationManager(
 
 		tracer: otel.Tracer("krm-porch-integration"),
 	}, nil
-
 }
 
 // ProcessNetworkIntent processes a NetworkIntent and creates corresponding Porch packages.
 
 func (pim *PorchIntegrationManager) ProcessNetworkIntent(ctx context.Context, intent *v1.NetworkIntent) (*FunctionEvalTask, error) {
-
 	ctx, span := pim.tracer.Start(ctx, "process-network-intent")
 
 	defer span.End()
@@ -477,13 +457,11 @@ func (pim *PorchIntegrationManager) ProcessNetworkIntent(ctx context.Context, in
 	// Create function evaluation task.
 
 	task := &FunctionEvalTask{
-
 		ID: generateTaskID(),
 
 		IntentID: string(intent.UID),
 
 		Context: &FunctionEvalContext{
-
 			IntentSpec: &intent.Spec,
 
 			Environment: make(map[string]string),
@@ -503,30 +481,23 @@ func (pim *PorchIntegrationManager) ProcessNetworkIntent(ctx context.Context, in
 	// Extract network slice from intent spec.
 
 	if intent.Spec.NetworkSlice != "" {
-
 		// For now, create basic network slice spec from string identifier.
 
 		task.Context.NetworkSlice = &porch.NetworkSliceSpec{
-
 			SliceID: intent.Spec.NetworkSlice,
 		}
-
 	}
 
 	// Extract target clusters from intent spec.
 
 	if intent.Spec.TargetCluster != "" {
-
 		task.Context.TargetClusters = []*porch.ClusterTarget{
-
 			{
-
 				Name: intent.Spec.TargetCluster,
 
 				Namespace: intent.Spec.TargetNamespace,
 			},
 		}
-
 	}
 
 	// Store in cache.
@@ -538,16 +509,13 @@ func (pim *PorchIntegrationManager) ProcessNetworkIntent(ctx context.Context, in
 	// Process intent asynchronously.
 
 	go func() {
-
 		defer func() {
-
 			duration := time.Since(startTime)
 
 			pim.metrics.ExecutionDuration.WithLabelValues(
 
 				"process_intent", string(intent.Spec.IntentType),
 			).Observe(duration.Seconds())
-
 		}()
 
 		if err := pim.processIntentTask(ctx, task, intent); err != nil {
@@ -557,9 +525,7 @@ func (pim *PorchIntegrationManager) ProcessNetworkIntent(ctx context.Context, in
 			task.Status = FunctionEvalTaskStatusFailed
 
 			if task.Results == nil {
-
 				task.Results = &FunctionEvalResults{}
-
 			}
 
 			task.Results.Errors = append(task.Results.Errors, err.Error())
@@ -581,19 +547,16 @@ func (pim *PorchIntegrationManager) ProcessNetworkIntent(ctx context.Context, in
 		// Update cache.
 
 		pim.intentCache.Store(task.ID, task)
-
 	}()
 
 	span.SetStatus(codes.Ok, "task created successfully")
 
 	return task, nil
-
 }
 
 // processIntentTask processes an intent task end-to-end.
 
 func (pim *PorchIntegrationManager) processIntentTask(ctx context.Context, task *FunctionEvalTask, intent *v1.NetworkIntent) error {
-
 	ctx, span := pim.tracer.Start(ctx, "process-intent-task")
 
 	defer span.End()
@@ -607,7 +570,6 @@ func (pim *PorchIntegrationManager) processIntentTask(ctx context.Context, task 
 	// Step 1: Convert intent to package specification.
 
 	packageSpec, err := pim.convertIntentToPackageSpec(ctx, intent)
-
 	if err != nil {
 
 		span.RecordError(err)
@@ -619,7 +581,6 @@ func (pim *PorchIntegrationManager) processIntentTask(ctx context.Context, task 
 	// Step 2: Create initial package revision.
 
 	packageRevision, err := pim.createPackageRevision(ctx, packageSpec)
-
 	if err != nil {
 
 		span.RecordError(err)
@@ -629,7 +590,6 @@ func (pim *PorchIntegrationManager) processIntentTask(ctx context.Context, task 
 	}
 
 	task.PackageRef = &porch.PackageReference{
-
 		Repository: packageRevision.Spec.Repository,
 
 		PackageName: packageRevision.Spec.PackageName,
@@ -649,7 +609,6 @@ func (pim *PorchIntegrationManager) processIntentTask(ctx context.Context, task 
 	// Step 3: Build function pipeline based on intent type.
 
 	pipeline, err := pim.buildFunctionPipeline(ctx, intent, packageRevision)
-
 	if err != nil {
 
 		span.RecordError(err)
@@ -669,7 +628,6 @@ func (pim *PorchIntegrationManager) processIntentTask(ctx context.Context, task 
 		defer cancel()
 
 		pipelineExecution, err := pim.executeFunctionPipeline(pipelineCtx, task, packageRevision)
-
 		if err != nil {
 
 			span.RecordError(err)
@@ -679,9 +637,7 @@ func (pim *PorchIntegrationManager) processIntentTask(ctx context.Context, task 
 		}
 
 		if task.Results == nil {
-
 			task.Results = &FunctionEvalResults{}
-
 		}
 
 		task.Results.PipelineResults = pipelineExecution
@@ -691,9 +647,7 @@ func (pim *PorchIntegrationManager) processIntentTask(ctx context.Context, task 
 		generatedResources := make([]porch.KRMResource, 0, len(pipelineExecution.OutputResources))
 
 		for _, resource := range pipelineExecution.OutputResources {
-
 			generatedResources = append(generatedResources, *resource)
-
 		}
 
 		task.Results.GeneratedResources = generatedResources
@@ -703,9 +657,7 @@ func (pim *PorchIntegrationManager) processIntentTask(ctx context.Context, task 
 		executedStages := make([]string, 0, len(pipelineExecution.Stages))
 
 		for stageName := range pipelineExecution.Stages {
-
 			executedStages = append(executedStages, stageName)
-
 		}
 
 		task.Results.AppliedFunctions = executedStages
@@ -713,7 +665,6 @@ func (pim *PorchIntegrationManager) processIntentTask(ctx context.Context, task 
 		// Update package revision with pipeline results.
 
 		packageRevision, err = pim.updatePackageWithResults(ctx, packageRevision, pipelineExecution)
-
 		if err != nil {
 
 			span.RecordError(err)
@@ -727,19 +678,15 @@ func (pim *PorchIntegrationManager) processIntentTask(ctx context.Context, task 
 	// Step 5: Validate package.
 
 	validationResults, err := pim.validatePackage(ctx, packageRevision)
-
 	if err != nil {
-
 		logger.Error(err, "Package validation failed", "package", packageRevision.Name)
 
 		// Continue processing even if validation fails.
-
 	}
 
 	// Step 6: Render package.
 
 	renderResults, err := pim.renderPackage(ctx, packageRevision)
-
 	if err != nil {
 
 		span.RecordError(err)
@@ -751,9 +698,7 @@ func (pim *PorchIntegrationManager) processIntentTask(ctx context.Context, task 
 	// Step 7: Update task results.
 
 	if task.Results == nil {
-
 		task.Results = &FunctionEvalResults{}
-
 	}
 
 	task.Results.PackageRevision = packageRevision
@@ -769,16 +714,13 @@ func (pim *PorchIntegrationManager) processIntentTask(ctx context.Context, task 
 		deploymentTargets := make([]*porch.DeploymentTarget, 0, len(task.Context.TargetClusters))
 
 		for _, cluster := range task.Context.TargetClusters {
-
 			deploymentTargets = append(deploymentTargets, &porch.DeploymentTarget{
-
 				Cluster: cluster.Name,
 
 				Namespace: cluster.Namespace,
 
 				Status: "Pending",
 			})
-
 		}
 
 		task.Results.DeploymentTargets = deploymentTargets
@@ -788,11 +730,9 @@ func (pim *PorchIntegrationManager) processIntentTask(ctx context.Context, task 
 	// Step 9: Update NetworkIntent status.
 
 	if err := pim.updateIntentStatus(ctx, intent, task); err != nil {
-
 		logger.Error(err, "Failed to update intent status", "intent", intent.Name)
 
 		// Don't fail the task for status update errors.
-
 	}
 
 	task.Status = FunctionEvalTaskStatusCompleted
@@ -813,13 +753,11 @@ func (pim *PorchIntegrationManager) processIntentTask(ctx context.Context, task 
 	span.SetStatus(codes.Ok, "intent task completed successfully")
 
 	return nil
-
 }
 
 // convertIntentToPackageSpec converts a NetworkIntent to a PackageSpec.
 
 func (pim *PorchIntegrationManager) convertIntentToPackageSpec(ctx context.Context, intent *v1.NetworkIntent) (*porch.PackageSpec, error) {
-
 	_, span := pim.tracer.Start(ctx, "convert-intent-to-package-spec")
 
 	defer span.End()
@@ -829,9 +767,7 @@ func (pim *PorchIntegrationManager) convertIntentToPackageSpec(ctx context.Conte
 	packageName := fmt.Sprintf("%s-%s", intent.Name, string(intent.Spec.IntentType))
 
 	if len(packageName) > 63 {
-
 		packageName = packageName[:63] // Kubernetes name limit
-
 	}
 
 	// Determine repository.
@@ -841,7 +777,6 @@ func (pim *PorchIntegrationManager) convertIntentToPackageSpec(ctx context.Conte
 	// Create labels and annotations.
 
 	labels := map[string]string{
-
 		porch.LabelComponent: "nephoran-intent-operator",
 
 		porch.LabelRepository: repository,
@@ -851,20 +786,15 @@ func (pim *PorchIntegrationManager) convertIntentToPackageSpec(ctx context.Conte
 		porch.LabelIntentType: string(intent.Spec.IntentType),
 
 		porch.LabelTargetComponent: func() string {
-
 			if len(intent.Spec.TargetComponents) > 0 {
-
 				return string(intent.Spec.TargetComponents[0])
-
 			}
 
 			return ""
-
 		}(),
 	}
 
 	annotations := map[string]string{
-
 		porch.AnnotationManagedBy: "nephoran-intent-operator",
 
 		porch.AnnotationIntentID: string(intent.UID),
@@ -877,13 +807,10 @@ func (pim *PorchIntegrationManager) convertIntentToPackageSpec(ctx context.Conte
 	// Add network slice information if available.
 
 	if intent.Spec.NetworkSlice != "" {
-
 		labels[porch.LabelNetworkSlice] = intent.Spec.NetworkSlice
-
 	}
 
 	packageSpec := &porch.PackageSpec{
-
 		Repository: repository,
 
 		PackageName: packageName,
@@ -905,13 +832,11 @@ func (pim *PorchIntegrationManager) convertIntentToPackageSpec(ctx context.Conte
 	)
 
 	return packageSpec, nil
-
 }
 
 // createPackageRevision creates a new package revision in Porch.
 
 func (pim *PorchIntegrationManager) createPackageRevision(ctx context.Context, spec *porch.PackageSpec) (*porch.PackageRevision, error) {
-
 	ctx, span := pim.tracer.Start(ctx, "create-package-revision")
 
 	defer span.End()
@@ -919,16 +844,13 @@ func (pim *PorchIntegrationManager) createPackageRevision(ctx context.Context, s
 	// Create package revision structure.
 
 	packageRevision := &porch.PackageRevision{
-
 		TypeMeta: metav1.TypeMeta{
-
 			APIVersion: "porch.nephoran.com/v1",
 
 			Kind: "PackageRevision",
 		},
 
 		ObjectMeta: metav1.ObjectMeta{
-
 			Name: fmt.Sprintf("%s-%s", spec.PackageName, spec.Revision),
 
 			Namespace: pim.config.DefaultNamespace,
@@ -939,7 +861,6 @@ func (pim *PorchIntegrationManager) createPackageRevision(ctx context.Context, s
 		},
 
 		Spec: porch.PackageRevisionSpec{
-
 			PackageName: spec.PackageName,
 
 			Repository: spec.Repository,
@@ -958,7 +879,6 @@ func (pim *PorchIntegrationManager) createPackageRevision(ctx context.Context, s
 	// Create in Porch.
 
 	createdPackage, err := pim.porchClient.CreatePackageRevision(ctx, packageRevision)
-
 	if err != nil {
 
 		span.RecordError(err)
@@ -985,19 +905,16 @@ func (pim *PorchIntegrationManager) createPackageRevision(ctx context.Context, s
 	)
 
 	return createdPackage, nil
-
 }
 
 // buildFunctionPipeline builds a function pipeline based on intent type and requirements.
 
 func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, intent *v1.NetworkIntent, packageRevision *porch.PackageRevision) (*PipelineDefinition, error) {
-
 	ctx, span := pim.tracer.Start(ctx, "build-function-pipeline")
 
 	defer span.End()
 
 	pipeline := &PipelineDefinition{
-
 		Name: fmt.Sprintf("%s-pipeline", packageRevision.Spec.PackageName),
 
 		Description: fmt.Sprintf("Function pipeline for %s intent", intent.Spec.IntentType),
@@ -1010,7 +927,6 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 	// Stage 1: Basic validation stage for all intents.
 
 	validationStage := &PipelineStage{
-
 		Name: "basic-validation",
 
 		Description: "Basic validation for intent requirements",
@@ -1018,19 +934,12 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 		Type: "function",
 
 		Functions: []*StageFunction{
-
 			{
-
 				Name: "basic-validator",
 
 				Image: "5g-core-validator", // Use existing validator function
 
-				Config: map[string]interface{}{
-
-					"intentType": string(intent.Spec.IntentType),
-
-					"components": intent.Spec.TargetComponents,
-				},
+				Config: make(map[string]interface{}),
 			},
 		},
 
@@ -1046,9 +955,7 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 	intentStage := pim.buildIntentSpecificStage(ctx, intent)
 
 	if intentStage != nil {
-
 		pipeline.Stages = append(pipeline.Stages, intentStage)
-
 	}
 
 	// Stage 3: Network Slice Optimization (if applicable).
@@ -1056,7 +963,6 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 	if intent.Spec.NetworkSlice != "" {
 
 		sliceStage := &PipelineStage{
-
 			Name: "network-slice-optimization",
 
 			Description: "Optimize network slice configuration",
@@ -1064,17 +970,12 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 			Type: "function",
 
 			Functions: []*StageFunction{
-
 				{
-
 					Name: "network-slice-optimizer",
 
 					Image: "network-slice-optimizer",
 
-					Config: map[string]interface{}{
-
-						"sliceId": intent.Spec.NetworkSlice,
-					},
+					Config: make(map[string]interface{}),
 				},
 			},
 
@@ -1090,7 +991,6 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 	// Stage 4: Multi-Vendor Configuration Normalization.
 
 	normalizationStage := &PipelineStage{
-
 		Name: "multi-vendor-normalization",
 
 		Description: "Normalize configurations for multi-vendor compatibility",
@@ -1098,19 +998,12 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 		Type: "function",
 
 		Functions: []*StageFunction{
-
 			{
-
 				Name: "multi-vendor-normalizer",
 
 				Image: "multi-vendor-normalizer",
 
-				Config: map[string]interface{}{
-
-					"intentType": string(intent.Spec.IntentType),
-
-					"targetComponents": intent.Spec.TargetComponents,
-				},
+				Config: make(map[string]interface{}),
 
 				// Optional optimization.
 
@@ -1129,7 +1022,6 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 	if pim.is5GCoreIntent(intent) {
 
 		coreStage := &PipelineStage{
-
 			Name: "5g-core-validation",
 
 			Description: "Validate 5G Core network function configurations",
@@ -1137,21 +1029,12 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 			Type: "function",
 
 			Functions: []*StageFunction{
-
 				{
-
 					Name: "5g-core-validator",
 
 					Image: "5g-core-validator",
 
-					Config: map[string]interface{}{
-
-						"intentType": string(intent.Spec.IntentType),
-
-						"targetComponents": intent.Spec.TargetComponents,
-
-						"strictMode": true,
-					},
+					Config: make(map[string]interface{}),
 				},
 			},
 
@@ -1172,39 +1055,27 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 	)
 
 	return pipeline, nil
-
 }
 
 // buildIntentSpecificStage builds a pipeline stage specific to the intent type.
 
 func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context, intent *v1.NetworkIntent) *PipelineStage {
-
 	switch intent.Spec.IntentType {
 
 	case v1.IntentTypeDeployment:
 
 		return &PipelineStage{
-
 			Name: "deployment-configuration",
 
 			Description: "Configure deployment-specific parameters",
 
 			Functions: []*StageFunction{
-
 				{
-
 					Name: "deployment-config-generator",
 
 					Image: "5g-core-optimizer", // Use 5G optimizer for deployments
 
-					Config: map[string]interface{}{
-
-						"deploymentType": "production",
-
-						"scalingPolicy": "auto",
-
-						"targetComponents": intent.Spec.TargetComponents,
-					},
+					Config: make(map[string]interface{}),
 				},
 			},
 
@@ -1216,25 +1087,17 @@ func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context
 	case v1.IntentTypeOptimization:
 
 		return &PipelineStage{
-
 			Name: "configuration-validation",
 
 			Description: "Validate and optimize configuration parameters",
 
 			Functions: []*StageFunction{
-
 				{
-
 					Name: "config-validator",
 
 					Image: "5g-core-validator", // Use 5G validator for configuration
 
-					Config: map[string]interface{}{
-
-						"configType": "network-function",
-
-						"targetComponents": intent.Spec.TargetComponents,
-					},
+					Config: make(map[string]interface{}),
 				},
 			},
 
@@ -1246,25 +1109,17 @@ func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context
 	case v1.IntentTypeScaling:
 
 		return &PipelineStage{
-
 			Name: "scaling-optimization",
 
 			Description: "Optimize scaling configuration and resource allocation",
 
 			Functions: []*StageFunction{
-
 				{
-
 					Name: "scaling-optimizer",
 
 					Image: "5g-core-optimizer", // Use 5G optimizer for scaling
 
-					Config: map[string]interface{}{
-
-						"scalingType": "horizontal",
-
-						"targetComponents": intent.Spec.TargetComponents,
-					},
+					Config: make(map[string]interface{}),
 				},
 			},
 
@@ -1278,25 +1133,17 @@ func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context
 		// Generic configuration stage for unknown intent types.
 
 		return &PipelineStage{
-
 			Name: "generic-configuration",
 
 			Description: "Generic configuration processing",
 
 			Functions: []*StageFunction{
-
 				{
-
 					Name: "generic-processor",
 
 					Image: "5g-core-validator", // Use validator as default
 
-					Config: map[string]interface{}{
-
-						"intentType": string(intent.Spec.IntentType),
-
-						"targetComponents": intent.Spec.TargetComponents,
-					},
+					Config: make(map[string]interface{}),
 				},
 			},
 
@@ -1306,13 +1153,11 @@ func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context
 		}
 
 	}
-
 }
 
 // executeFunctionPipeline executes the function pipeline using the pipeline orchestrator.
 
 func (pim *PorchIntegrationManager) executeFunctionPipeline(ctx context.Context, task *FunctionEvalTask, packageRevision *porch.PackageRevision) (*PipelineExecution, error) {
-
 	ctx, span := pim.tracer.Start(ctx, "execute-function-pipeline")
 
 	defer span.End()
@@ -1324,19 +1169,14 @@ func (pim *PorchIntegrationManager) executeFunctionPipeline(ctx context.Context,
 	resources := make([]*porch.KRMResource, 0)
 
 	for _, resource := range packageRevision.Spec.Resources {
-
 		if krmRes, ok := resource.(porch.KRMResource); ok {
-
 			resources = append(resources, &krmRes)
-
 		}
-
 	}
 
 	// Execute pipeline.
 
 	execution, err := pim.pipelineOrch.ExecutePipeline(ctx, task.FunctionPipeline, resources)
-
 	if err != nil {
 
 		span.RecordError(err)
@@ -1357,12 +1197,10 @@ func (pim *PorchIntegrationManager) executeFunctionPipeline(ctx context.Context,
 	// Record metrics for each function execution.
 
 	for stageName := range execution.Stages {
-
 		pim.metrics.FunctionExecutions.WithLabelValues(
 
 			stageName, packageRevision.Spec.PackageName, "success",
 		).Inc()
-
 	}
 
 	pim.metrics.PipelineExecutions.WithLabelValues(
@@ -1393,13 +1231,11 @@ func (pim *PorchIntegrationManager) executeFunctionPipeline(ctx context.Context,
 	)
 
 	return execution, nil
-
 }
 
 // updatePackageWithResults updates the package revision with pipeline results.
 
 func (pim *PorchIntegrationManager) updatePackageWithResults(ctx context.Context, packageRevision *porch.PackageRevision, execution *PipelineExecution) (*porch.PackageRevision, error) {
-
 	ctx, span := pim.tracer.Start(ctx, "update-package-with-results")
 
 	defer span.End()
@@ -1409,9 +1245,7 @@ func (pim *PorchIntegrationManager) updatePackageWithResults(ctx context.Context
 	updatedResources := make([]interface{}, 0)
 
 	for _, resource := range execution.OutputResources {
-
 		updatedResources = append(updatedResources, resource)
-
 	}
 
 	// Update package revision spec.
@@ -1422,17 +1256,11 @@ func (pim *PorchIntegrationManager) updatePackageWithResults(ctx context.Context
 
 	for stageName := range execution.Stages {
 
-		functionConfig := map[string]interface{}{
-
-			"image": fmt.Sprintf("krm/%s:latest", stageName), // Assuming standard naming
-
-			"config": map[string]interface{}{
-
-				"executedAt": time.Now().Format(time.RFC3339),
-
-				"status": "completed",
-			},
-		}
+		functionConfig := json.RawMessage(fmt.Sprintf(`{
+			"executedAt": "%s",
+			"status": "completed",
+			"stageName": "%s"
+		}`, time.Now().Format(time.RFC3339), stageName))
 
 		packageRevision.Spec.Functions = append(packageRevision.Spec.Functions, functionConfig)
 
@@ -1441,7 +1269,6 @@ func (pim *PorchIntegrationManager) updatePackageWithResults(ctx context.Context
 	// Update package revision in Porch.
 
 	updatedPackage, err := pim.porchClient.UpdatePackageRevision(ctx, packageRevision)
-
 	if err != nil {
 
 		span.RecordError(err)
@@ -1462,19 +1289,16 @@ func (pim *PorchIntegrationManager) updatePackageWithResults(ctx context.Context
 	).Observe(float64(packageSize))
 
 	return updatedPackage, nil
-
 }
 
 // validatePackage validates the package using Porch validation.
 
 func (pim *PorchIntegrationManager) validatePackage(ctx context.Context, packageRevision *porch.PackageRevision) ([]*porch.ValidationResult, error) {
-
 	ctx, span := pim.tracer.Start(ctx, "validate-package")
 
 	defer span.End()
 
 	result, err := pim.porchClient.ValidatePackage(ctx, packageRevision.Spec.PackageName, packageRevision.Spec.Revision)
-
 	if err != nil {
 
 		span.RecordError(err)
@@ -1497,19 +1321,16 @@ func (pim *PorchIntegrationManager) validatePackage(ctx context.Context, package
 	)
 
 	return results, nil
-
 }
 
 // renderPackage renders the package using Porch rendering.
 
 func (pim *PorchIntegrationManager) renderPackage(ctx context.Context, packageRevision *porch.PackageRevision) (*porch.RenderResult, error) {
-
 	ctx, span := pim.tracer.Start(ctx, "render-package")
 
 	defer span.End()
 
 	result, err := pim.porchClient.RenderPackage(ctx, packageRevision.Spec.PackageName, packageRevision.Spec.Revision)
-
 	if err != nil {
 
 		span.RecordError(err)
@@ -1526,13 +1347,11 @@ func (pim *PorchIntegrationManager) renderPackage(ctx context.Context, packageRe
 	)
 
 	return result, nil
-
 }
 
 // updateIntentStatus updates the NetworkIntent status with processing results.
 
 func (pim *PorchIntegrationManager) updateIntentStatus(ctx context.Context, intent *v1.NetworkIntent, task *FunctionEvalTask) error {
-
 	ctx, span := pim.tracer.Start(ctx, "update-intent-status")
 
 	defer span.End()
@@ -1542,15 +1361,11 @@ func (pim *PorchIntegrationManager) updateIntentStatus(ctx context.Context, inte
 	intent.Status.Phase = v1.NetworkIntentPhaseProcessing
 
 	if task.Results != nil && task.Results.PackageRevision != nil {
-
 		// Set completion status.
 
 		if task.Status == FunctionEvalTaskStatusCompleted {
-
 			intent.Status.Phase = v1.NetworkIntentPhaseReady
-
 		} else if task.Status == FunctionEvalTaskStatusFailed {
-
 			intent.Status.Phase = v1.NetworkIntentPhaseFailed
 
 			// TODO: Add error message support to NetworkIntentStatus.
@@ -1560,9 +1375,7 @@ func (pim *PorchIntegrationManager) updateIntentStatus(ctx context.Context, inte
 			//     intent.Status.Message = task.Results.Errors[0].
 
 			// }.
-
 		}
-
 	}
 
 	// TODO: Add LastProcessed field support to NetworkIntentStatus.
@@ -1582,57 +1395,41 @@ func (pim *PorchIntegrationManager) updateIntentStatus(ctx context.Context, inte
 	}
 
 	return nil
-
 }
 
 // GetFunctionEvalTask retrieves a function evaluation task by ID.
 
 func (pim *PorchIntegrationManager) GetFunctionEvalTask(ctx context.Context, taskID string) (*FunctionEvalTask, error) {
-
 	if value, ok := pim.intentCache.Load(taskID); ok {
-
 		if task, ok := value.(*FunctionEvalTask); ok {
-
 			return task, nil
-
 		}
-
 	}
 
 	return nil, fmt.Errorf("task not found: %s", taskID)
-
 }
 
 // ListFunctionEvalTasks lists all function evaluation tasks.
 
 func (pim *PorchIntegrationManager) ListFunctionEvalTasks(ctx context.Context) ([]*FunctionEvalTask, error) {
-
 	tasks := make([]*FunctionEvalTask, 0)
 
 	pim.intentCache.Range(func(key, value interface{}) bool {
-
 		if task, ok := value.(*FunctionEvalTask); ok {
-
 			tasks = append(tasks, task)
-
 		}
 
 		return true
-
 	})
 
 	return tasks, nil
-
 }
 
 // CancelFunctionEvalTask cancels a running function evaluation task.
 
 func (pim *PorchIntegrationManager) CancelFunctionEvalTask(ctx context.Context, taskID string) error {
-
 	if value, ok := pim.intentCache.Load(taskID); ok {
-
 		if task, ok := value.(*FunctionEvalTask); ok {
-
 			if task.Status == FunctionEvalTaskStatusRunning || task.Status == FunctionEvalTaskStatusPending {
 
 				task.Status = FunctionEvalTaskStatusCancelled
@@ -1648,19 +1445,15 @@ func (pim *PorchIntegrationManager) CancelFunctionEvalTask(ctx context.Context, 
 				return nil
 
 			}
-
 		}
-
 	}
 
 	return fmt.Errorf("task not found or cannot be cancelled: %s", taskID)
-
 }
 
 // Cleanup performs cleanup of expired cache entries.
 
 func (pim *PorchIntegrationManager) Cleanup(ctx context.Context) error {
-
 	logger := log.FromContext(ctx).WithName("porch-integration-cleanup")
 
 	cleaned := 0
@@ -1670,9 +1463,7 @@ func (pim *PorchIntegrationManager) Cleanup(ctx context.Context) error {
 	// Clean intent cache.
 
 	pim.intentCache.Range(func(key, value interface{}) bool {
-
 		if task, ok := value.(*FunctionEvalTask); ok {
-
 			if task.CompletedAt != nil && task.CompletedAt.Before(cutoff) {
 
 				pim.intentCache.Delete(key)
@@ -1680,21 +1471,16 @@ func (pim *PorchIntegrationManager) Cleanup(ctx context.Context) error {
 				cleaned++
 
 			}
-
 		}
 
 		return true
-
 	})
 
 	// Clean package cache.
 
 	pim.packageCache.Range(func(key, value interface{}) bool {
-
 		if entry, ok := value.(map[string]interface{}); ok {
-
 			if timestamp, ok := entry["timestamp"].(time.Time); ok {
-
 				if timestamp.Before(cutoff) {
 
 					pim.packageCache.Delete(key)
@@ -1702,65 +1488,48 @@ func (pim *PorchIntegrationManager) Cleanup(ctx context.Context) error {
 					cleaned++
 
 				}
-
 			}
-
 		}
 
 		return true
-
 	})
 
 	logger.Info("Cleanup completed", "cleaned", cleaned)
 
 	return nil
-
 }
 
 // Helper functions.
 
 func generateTaskID() string {
-
 	return fmt.Sprintf("task-%d", time.Now().UnixNano())
-
 }
 
 func extractUserFromContext(ctx context.Context) string {
-
 	// Extract user from context (implementation depends on auth setup).
 
 	// This is a placeholder - actual implementation would extract from JWT or similar.
 
 	return "system"
-
 }
 
 func (pim *PorchIntegrationManager) is5GCoreIntent(intent *v1.NetworkIntent) bool {
-
 	// Check if intent targets 5G Core components.
 
 	coreComponents := []string{"amf", "smf", "upf", "nssf", "nrf", "udm", "ausf", "pcf"}
 
 	for _, component := range coreComponents {
-
 		for _, targetComp := range intent.Spec.TargetComponents {
-
 			if string(targetComp) == component {
-
 				return true
-
 			}
-
 		}
-
 	}
 
 	return false
-
 }
 
 func (pim *PorchIntegrationManager) calculatePackageSize(packageRevision *porch.PackageRevision) int64 {
-
 	// Calculate package size in bytes (simplified calculation).
 
 	size := int64(0)
@@ -1774,5 +1543,5 @@ func (pim *PorchIntegrationManager) calculatePackageSize(packageRevision *porch.
 	}
 
 	return size
-
 }
+

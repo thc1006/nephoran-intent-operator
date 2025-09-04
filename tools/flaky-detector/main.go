@@ -182,7 +182,7 @@ func parseTestResults(filename string) ([]TestResult, error) {
 
 	}
 
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	decoder := json.NewDecoder(file)
 

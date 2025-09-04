@@ -522,21 +522,13 @@ func (x *KMPMonitorXApp) handleHealth(w http.ResponseWriter, r *http.Request) {
 	metrics := x.sdk.GetMetrics()
 
 	health := map[string]interface{}{
-
-		"status": string(state),
-
-		"timestamp": time.Now().UTC(),
-
-		"sdk_metrics": map[string]interface{}{
-
+		"status": "running",
+		"timestamp": time.Now(),
+		"metrics": map[string]interface{}{
 			"subscriptions_active": metrics.SubscriptionsActive,
-
 			"indications_received": metrics.IndicationsReceived,
-
 			"control_requests_sent": metrics.ControlRequestsSent,
-
 			"error_count": metrics.ErrorCount,
-
 			"throughput_per_second": metrics.ThroughputPerSecond,
 		},
 	}
@@ -600,22 +592,13 @@ func (x *KMPMonitorXApp) handleInfo(w http.ResponseWriter, r *http.Request) {
 	config := x.sdk.GetConfig()
 
 	info := map[string]interface{}{
-
-		"name": config.XAppName,
-
-		"version": config.XAppVersion,
-
-		"description": config.XAppDescription,
-
+		"xapp_name": config.XAppName,
+		"xapp_version": config.XAppVersion,
+		"xapp_description": config.XAppDescription,
 		"e2_node_id": config.E2NodeID,
-
-		"ric_url": config.NearRTRICURL,
-
+		"near_rt_ric_url": config.NearRTRICURL,
 		"service_models": config.ServiceModels,
-
-		"state": string(x.sdk.GetState()),
-
-		"cells": len(x.metrics),
+		"timestamp": time.Now(),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -625,3 +608,4 @@ func (x *KMPMonitorXApp) handleInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 // Note: Helper functions have been moved to pkg/config/env_helpers.go.
+

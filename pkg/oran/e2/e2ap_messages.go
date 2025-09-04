@@ -330,7 +330,6 @@ type PLMNIdentity struct {
 	MCC string `json:"mcc"` // Mobile Country Code (3 digits)
 
 	MNC string `json:"mnc"` // Mobile Network Code (2-3 digits)
-
 }
 
 // E2NodeID represents the E2 node identifier (choice).
@@ -357,7 +356,6 @@ type GNBIDChoice struct {
 	GNBID22 *string `json:"gnb_id_22,omitempty"` // 22-bit string
 
 	GNBID32 *string `json:"gnb_id_32,omitempty"` // 32-bit string
-
 }
 
 // ENBID represents eNB identifier.
@@ -370,14 +368,12 @@ type ENBID struct {
 	ShortMacro *string `json:"short_macro,omitempty"` // 18-bit string
 
 	LongMacro *string `json:"long_macro,omitempty"` // 21-bit string
-
 }
 
 // EnGNBID represents en-gNB identifier.
 
 type EnGNBID struct {
 	EnGNBID string `json:"en_gnb_id"` // 22-bit string
-
 }
 
 // NgENBID represents ng-eNB identifier.
@@ -388,7 +384,6 @@ type NgENBID struct {
 	ShortMacro *string `json:"short_macro,omitempty"` // 18-bit string
 
 	LongMacro *string `json:"long_macro,omitempty"` // 21-bit string
-
 }
 
 // RICID represents RIC identifier (20-bit).
@@ -1023,9 +1018,7 @@ type E2NodeComponentConfiguration struct {
 // NewE2APEncoder creates a new E2AP encoder with registered codecs.
 
 func NewE2APEncoder() *E2APEncoder {
-
 	encoder := &E2APEncoder{
-
 		messageRegistry: make(map[E2APMessageType]MessageCodec),
 
 		correlationMap: make(map[string]*PendingMessage),
@@ -1072,45 +1065,34 @@ func NewE2APEncoder() *E2APEncoder {
 	encoder.registerCodec(&ErrorIndicationCodec{})
 
 	return encoder
-
 }
 
 // registerCodec registers a message codec.
 
 func (e *E2APEncoder) registerCodec(codec MessageCodec) {
-
 	e.messageRegistry[codec.GetMessageType()] = codec
-
 }
 
 // EncodeMessage encodes an E2AP message to bytes.
 
 func (e *E2APEncoder) EncodeMessage(message *E2APMessage) ([]byte, error) {
-
 	codec, exists := e.messageRegistry[message.MessageType]
 
 	if !exists {
-
 		return nil, fmt.Errorf("no codec registered for message type %d", message.MessageType)
-
 	}
 
 	// Validate message.
 
 	if err := codec.Validate(message.Payload); err != nil {
-
 		return nil, fmt.Errorf("message validation failed: %w", err)
-
 	}
 
 	// Encode payload.
 
 	payloadBytes, err := codec.Encode(message.Payload)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("payload encoding failed: %w", err)
-
 	}
 
 	// Create message header.
@@ -1132,17 +1114,13 @@ func (e *E2APEncoder) EncodeMessage(message *E2APMessage) ([]byte, error) {
 	buf.Write(payloadBytes)
 
 	return buf.Bytes(), nil
-
 }
 
 // DecodeMessage decodes bytes to an E2AP message.
 
 func (e *E2APEncoder) DecodeMessage(data []byte) (*E2APMessage, error) {
-
 	if len(data) < 16 {
-
 		return nil, fmt.Errorf("message too short: expected at least 16 bytes, got %d", len(data))
-
 	}
 
 	// Parse header.
@@ -1160,23 +1138,17 @@ func (e *E2APEncoder) DecodeMessage(data []byte) (*E2APMessage, error) {
 	codec, exists := e.messageRegistry[messageType]
 
 	if !exists {
-
 		return nil, fmt.Errorf("no codec registered for message type %d", messageType)
-
 	}
 
 	// Decode payload.
 
 	payload, err := codec.Decode(data[16:])
-
 	if err != nil {
-
 		return nil, fmt.Errorf("payload decoding failed: %w", err)
-
 	}
 
 	return &E2APMessage{
-
 		MessageType: messageType,
 
 		TransactionID: transactionID,
@@ -1189,25 +1161,21 @@ func (e *E2APEncoder) DecodeMessage(data []byte) (*E2APMessage, error) {
 
 		Timestamp: time.Now(),
 	}, nil
-
 }
 
 // TrackMessage tracks a message for correlation.
 
 func (e *E2APEncoder) TrackMessage(correlationID string, message *PendingMessage) {
-
 	e.mutex.Lock()
 
 	defer e.mutex.Unlock()
 
 	e.correlationMap[correlationID] = message
-
 }
 
 // GetPendingMessage retrieves a pending message by correlation ID.
 
 func (e *E2APEncoder) GetPendingMessage(correlationID string) (*PendingMessage, bool) {
-
 	e.mutex.RLock()
 
 	defer e.mutex.RUnlock()
@@ -1215,19 +1183,16 @@ func (e *E2APEncoder) GetPendingMessage(correlationID string) (*PendingMessage, 
 	msg, exists := e.correlationMap[correlationID]
 
 	return msg, exists
-
 }
 
 // RemovePendingMessage removes a pending message.
 
 func (e *E2APEncoder) RemovePendingMessage(correlationID string) {
-
 	e.mutex.Lock()
 
 	defer e.mutex.Unlock()
 
 	delete(e.correlationMap, correlationID)
-
 }
 
 // Helper functions for creating common E2AP messages.
@@ -1235,9 +1200,7 @@ func (e *E2APEncoder) RemovePendingMessage(correlationID string) {
 // CreateE2SetupRequest creates a new E2 Setup Request message.
 
 func CreateE2SetupRequest(nodeID GlobalE2NodeID, functions []RANFunctionItem) *E2APMessage {
-
 	return &E2APMessage{
-
 		MessageType: E2APMessageTypeSetupRequest,
 
 		ProcedureCode: 1,
@@ -1245,7 +1208,6 @@ func CreateE2SetupRequest(nodeID GlobalE2NodeID, functions []RANFunctionItem) *E
 		Criticality: CriticalityReject,
 
 		Payload: &E2SetupRequest{
-
 			GlobalE2NodeID: nodeID,
 
 			RANFunctionsList: functions,
@@ -1253,15 +1215,12 @@ func CreateE2SetupRequest(nodeID GlobalE2NodeID, functions []RANFunctionItem) *E
 
 		Timestamp: time.Now(),
 	}
-
 }
 
 // CreateRICSubscriptionRequest creates a new RIC Subscription Request message.
 
 func CreateRICSubscriptionRequest(requestID RICRequestID, functionID RANFunctionID, details RICSubscriptionDetails) *E2APMessage {
-
 	return &E2APMessage{
-
 		MessageType: E2APMessageTypeRICSubscriptionRequest,
 
 		ProcedureCode: 2,
@@ -1269,7 +1228,6 @@ func CreateRICSubscriptionRequest(requestID RICRequestID, functionID RANFunction
 		Criticality: CriticalityReject,
 
 		Payload: &RICSubscriptionRequest{
-
 			RICRequestID: requestID,
 
 			RANFunctionID: functionID,
@@ -1279,15 +1237,12 @@ func CreateRICSubscriptionRequest(requestID RICRequestID, functionID RANFunction
 
 		Timestamp: time.Now(),
 	}
-
 }
 
 // CreateRICControlRequest creates a new RIC Control Request message.
 
 func CreateRICControlRequest(requestID RICRequestID, functionID RANFunctionID, header, message []byte) *E2APMessage {
-
 	return &E2APMessage{
-
 		MessageType: E2APMessageTypeRICControlRequest,
 
 		ProcedureCode: 3,
@@ -1295,7 +1250,6 @@ func CreateRICControlRequest(requestID RICRequestID, functionID RANFunctionID, h
 		Criticality: CriticalityReject,
 
 		Payload: &RICControlRequest{
-
 			RICRequestID: requestID,
 
 			RANFunctionID: functionID,
@@ -1307,7 +1261,6 @@ func CreateRICControlRequest(requestID RICRequestID, functionID RANFunctionID, h
 
 		Timestamp: time.Now(),
 	}
-
 }
 
 // Additional E2AP message structures for complete implementation.
@@ -1448,9 +1401,7 @@ const (
 // CreateRICServiceUpdate creates a new RIC Service Update message.
 
 func CreateRICServiceUpdate(nodeID GlobalE2NodeID) *E2APMessage {
-
 	return &E2APMessage{
-
 		MessageType: E2APMessageTypeRICServiceUpdate,
 
 		ProcedureCode: 7,
@@ -1458,21 +1409,17 @@ func CreateRICServiceUpdate(nodeID GlobalE2NodeID) *E2APMessage {
 		Criticality: CriticalityReject,
 
 		Payload: &RICServiceUpdate{
-
 			GlobalE2NodeID: nodeID,
 		},
 
 		Timestamp: time.Now(),
 	}
-
 }
 
 // CreateRICSubscriptionDeleteRequest creates a new RIC Subscription Delete Request message.
 
 func CreateRICSubscriptionDeleteRequest(requestID RICRequestID, functionID RANFunctionID) *E2APMessage {
-
 	return &E2APMessage{
-
 		MessageType: E2APMessageTypeRICSubscriptionDeleteRequest,
 
 		ProcedureCode: 8,
@@ -1480,7 +1427,6 @@ func CreateRICSubscriptionDeleteRequest(requestID RICRequestID, functionID RANFu
 		Criticality: CriticalityReject,
 
 		Payload: &RICSubscriptionDeleteRequest{
-
 			RICRequestID: requestID,
 
 			RANFunctionID: functionID,
@@ -1488,15 +1434,12 @@ func CreateRICSubscriptionDeleteRequest(requestID RICRequestID, functionID RANFu
 
 		Timestamp: time.Now(),
 	}
-
 }
 
 // CreateResetRequest creates a new Reset Request message.
 
 func CreateResetRequest(transactionID int32, cause E2APCause) *E2APMessage {
-
 	return &E2APMessage{
-
 		MessageType: E2APMessageTypeResetRequest,
 
 		TransactionID: transactionID,
@@ -1506,7 +1449,6 @@ func CreateResetRequest(transactionID int32, cause E2APCause) *E2APMessage {
 		Criticality: CriticalityReject,
 
 		Payload: &ResetRequest{
-
 			TransactionID: transactionID,
 
 			Cause: cause,
@@ -1514,15 +1456,12 @@ func CreateResetRequest(transactionID int32, cause E2APCause) *E2APMessage {
 
 		Timestamp: time.Now(),
 	}
-
 }
 
 // CreateErrorIndication creates a new Error Indication message.
 
 func CreateErrorIndication(cause E2APCause) *E2APMessage {
-
 	return &E2APMessage{
-
 		MessageType: E2APMessageTypeErrorIndication,
 
 		ProcedureCode: 10,
@@ -1530,11 +1469,9 @@ func CreateErrorIndication(cause E2APCause) *E2APMessage {
 		Criticality: CriticalityIgnore,
 
 		Payload: &ErrorIndication{
-
 			Cause: cause,
 		},
 
 		Timestamp: time.Now(),
 	}
-
 }

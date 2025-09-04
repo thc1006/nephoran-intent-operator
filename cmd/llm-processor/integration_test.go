@@ -14,7 +14,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 )
 
 // Package level variables for integration tests
@@ -267,12 +267,12 @@ func TestLLMProcessorIntegration(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.NotNil(t, responseStr)
-		
+
 		// Parse the JSON response string
 		var response map[string]interface{}
 		err = json.Unmarshal([]byte(responseStr), &response)
 		require.NoError(t, err)
-		
+
 		// Verify response structure
 		assert.Equal(t, "NetworkFunctionDeployment", response["type"])
 		assert.Equal(t, "upf-deployment", response["name"])
@@ -300,12 +300,12 @@ func TestLLMProcessorIntegration(t *testing.T) {
 		responseStr, err := testProcessor.ProcessIntent(ctx, intent)
 
 		require.NoError(t, err)
-		
+
 		// Parse the JSON response string
 		var response map[string]interface{}
 		err = json.Unmarshal([]byte(responseStr), &response)
 		require.NoError(t, err)
-		
+
 		assert.Equal(t, "NetworkFunctionScale", response["type"])
 		assert.Equal(t, "amf-deployment", response["name"])
 	})
@@ -338,11 +338,11 @@ func TestLLMProcessorIntegration(t *testing.T) {
 	t.Run("Test Internal Processing Flow", func(t *testing.T) {
 		intent := "Deploy UPF with 5 replicas and 4GB memory"
 		ctx := context.Background()
-		
+
 		responseStr, err := testProcessor.ProcessIntent(ctx, intent)
 		require.NoError(t, err)
 		assert.NotEmpty(t, responseStr)
-		
+
 		// Verify response contains expected deployment information
 		assert.Contains(t, responseStr, "UPF")
 		assert.Contains(t, responseStr, "5")

@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/nephio-project/nephoran-intent-operator/internal/loop"
-	"github.com/nephio-project/nephoran-intent-operator/internal/porch"
+	"github.com/thc1006/nephoran-intent-operator/internal/loop"
+	"github.com/thc1006/nephoran-intent-operator/internal/porch"
 )
 
 func TestOnceMode_ExitCodes(t *testing.T) {
@@ -26,7 +26,7 @@ func TestOnceMode_ExitCodes(t *testing.T) {
 				content := `{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 3}`
 				require.NoError(t, os.WriteFile(
 					filepath.Join(handoffDir, "intent-test1.json"),
-					[]byte(content), 0644))
+					[]byte(content), 0o644))
 			},
 			expectedFailed: 0,
 			expectedExit:   0,
@@ -38,13 +38,13 @@ func TestOnceMode_ExitCodes(t *testing.T) {
 				valid := `{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 3}`
 				require.NoError(t, os.WriteFile(
 					filepath.Join(handoffDir, "intent-valid.json"),
-					[]byte(valid), 0644))
+					[]byte(valid), 0o644))
 
 				// Create an invalid intent file (will fail processing)
 				invalid := `{invalid json`
 				require.NoError(t, os.WriteFile(
 					filepath.Join(handoffDir, "intent-invalid.json"),
-					[]byte(invalid), 0644))
+					[]byte(invalid), 0o644))
 			},
 			expectedFailed: 1,
 			expectedExit:   8,
@@ -66,8 +66,8 @@ func TestOnceMode_ExitCodes(t *testing.T) {
 			handoffDir := filepath.Join(tempDir, "handoff")
 			outDir := filepath.Join(tempDir, "out")
 
-			require.NoError(t, os.MkdirAll(handoffDir, 0755))
-			require.NoError(t, os.MkdirAll(outDir, 0755))
+			require.NoError(t, os.MkdirAll(handoffDir, 0o755))
+			require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 			// Setup test files
 			tt.setupFiles(t, handoffDir)
@@ -91,7 +91,7 @@ func TestOnceMode_ExitCodes(t *testing.T) {
 
 			watcher, err := loop.NewWatcher(handoffDir, config)
 			require.NoError(t, err)
-			defer watcher.Close()
+			defer watcher.Close() // #nosec G307 - Error handled in defer
 
 			// Run the watcher (it should process and exit immediately in once mode)
 			err = watcher.Start()

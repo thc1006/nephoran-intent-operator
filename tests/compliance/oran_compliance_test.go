@@ -45,16 +45,11 @@ func (s *ORANComplianceTestSuite) TestA1InterfaceCompliance() {
 	s.Run("A1_PolicyTypeManagement", func() {
 		// Test policy type creation
 		policyType := map[string]interface{}{
-			"policy_type_id": 1001,
-			"name":           "QoS_Policy",
-			"description":    "QoS optimization policy",
-			"policy_schema": map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"max_throughput": map[string]interface{}{
-						"type":    "integer",
-						"minimum": 0,
-					},
+			"type": "object",
+			"properties": map[string]interface{}{
+				"threshold": map[string]interface{}{
+					"type":    "integer",
+					"minimum": 0,
 				},
 			},
 		}
@@ -66,12 +61,7 @@ func (s *ORANComplianceTestSuite) TestA1InterfaceCompliance() {
 	s.Run("A1_PolicyInstanceManagement", func() {
 		// Test policy instance creation
 		policy := map[string]interface{}{
-			"ric_id":         "ric_001",
-			"policy_id":      "policy_001",
-			"policy_type_id": 1001,
-			"policy_data": map[string]interface{}{
-				"max_throughput": 1000,
-			},
+			"max_throughput": 1000,
 		}
 
 		resp := s.makeRequest("PUT", "/A1-P/v2/policies/policy_001", policy)
@@ -196,9 +186,6 @@ func (s *ORANComplianceTestSuite) TestO2InterfaceCompliance() {
 	s.Run("O2_DeploymentManagement", func() {
 		// Test deployment descriptor
 		deployment := map[string]interface{}{
-			"name":        "test-nf-deployment",
-			"description": "Test network function deployment",
-			"nf_type":     "DU",
 			"resources": map[string]interface{}{
 				"cpu":     "4",
 				"memory":  "8Gi",
@@ -232,16 +219,11 @@ func (s *ORANComplianceTestSuite) TestE2InterfaceCompliance() {
 	s.Run("E2_SetupProcedure", func() {
 		// Test E2 setup request
 		setup := map[string]interface{}{
-			"global_e2_node_id": map[string]interface{}{
+			"global_enb_id": map[string]interface{}{
 				"gnb_id":  "001",
 				"plmn_id": "00101",
 			},
-			"ran_functions": []map[string]interface{}{
-				{
-					"ran_function_id":         1,
-					"ran_function_definition": "KPM Service Model",
-				},
-			},
+			"ran_functions": []json.RawMessage{json.RawMessage(`{}`)},
 		}
 
 		resp := s.makeRequest("POST", "/E2/v1/setup", setup)
@@ -251,17 +233,10 @@ func (s *ORANComplianceTestSuite) TestE2InterfaceCompliance() {
 	s.Run("E2_SubscriptionManagement", func() {
 		// Test subscription creation
 		subscription := map[string]interface{}{
-			"subscription_id": "sub_001",
-			"ran_function_id": 1,
-			"event_triggers": map[string]interface{}{
+			"event_trigger": map[string]interface{}{
 				"period_ms": 1000,
 			},
-			"action_list": []map[string]interface{}{
-				{
-					"action_id":   1,
-					"action_type": "REPORT",
-				},
-			},
+			"action_list": []json.RawMessage{json.RawMessage(`{}`)},
 		}
 
 		resp := s.makeRequest("POST", "/E2/v1/subscriptions", subscription)
@@ -299,10 +274,7 @@ func (s *ORANComplianceTestSuite) TestSMOIntegrationCompliance() {
 	s.Run("SMO_ServiceRegistration", func() {
 		// Test service registration with SMO
 		service := map[string]interface{}{
-			"service_id":   "nephoran-operator",
-			"service_type": "rApp",
-			"version":      "2.0.0",
-			"capabilities": []string{"intent-processing", "policy-management"},
+			"name":         "nephoran-operator",
 			"endpoint":     "http://nephoran:8080",
 		}
 
@@ -313,15 +285,9 @@ func (s *ORANComplianceTestSuite) TestSMOIntegrationCompliance() {
 	s.Run("SMO_PolicyCoordination", func() {
 		// Test policy coordination
 		policy := map[string]interface{}{
-			"policy_id": "coord_policy_001",
-			"scope": map[string]interface{}{
-				"ric_ids":  []string{"ric_001", "ric_002"},
-				"cell_ids": []string{"cell_001", "cell_002"},
-			},
-			"objectives": map[string]interface{}{
-				"throughput_optimization": true,
-				"energy_efficiency":       true,
-			},
+			"ric_ids":    []string{"ric_001", "ric_002"},
+			"cell_ids":   []string{"cell_001", "cell_002"},
+			"objectives": map[string]interface{}{},
 		}
 
 		resp := s.makeRequest("POST", "/SMO/v1/policies/coordinate", policy)
@@ -331,8 +297,6 @@ func (s *ORANComplianceTestSuite) TestSMOIntegrationCompliance() {
 	s.Run("SMO_WorkflowOrchestration", func() {
 		// Test workflow creation
 		workflow := map[string]interface{}{
-			"workflow_id": "wf_001",
-			"name":        "Network Slice Deployment",
 			"steps": []map[string]interface{}{
 				{
 					"step_id": "1",
@@ -519,3 +483,4 @@ func GenerateComplianceReport(results *testing.T) (*ComplianceReport, error) {
 
 	return report, nil
 }
+

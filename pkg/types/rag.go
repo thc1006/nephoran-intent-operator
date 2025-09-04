@@ -17,33 +17,34 @@ limitations under the License.
 package types
 
 import (
+	"encoding/json"
 	"time"
 )
 
 // SearchQuery represents a search query for RAG
 type SearchQuery struct {
-	Text         string                 `json:"text"`
-	MaxResults   int                    `json:"max_results"`
-	Threshold    float64                `json:"threshold"`
-	Filters      map[string]interface{} `json:"filters"`
-	Namespace    string                 `json:"namespace"`
+	Text       string                 `json:"text"`
+	MaxResults int                    `json:"max_results"`
+	Threshold  float64                `json:"threshold"`
+	Filters    json.RawMessage `json:"filters"`
+	Namespace  string                 `json:"namespace"`
 }
 
 // SearchResponse represents a response to a search query
 type SearchResponse struct {
-	Query         string         `json:"query"`
+	Query         string          `json:"query"`
 	Results       []*SearchResult `json:"results"`
-	TotalResults  int            `json:"total_results"`
-	ProcessedTime time.Duration  `json:"processed_time"`
+	TotalResults  int             `json:"total_results"`
+	ProcessedTime time.Duration   `json:"processed_time"`
 }
 
 // SearchResult represents a single search result
 type SearchResult struct {
-	ID          string                 `json:"id"`
-	Content     string                 `json:"content"`
-	Score       float64                `json:"score"`
-	Metadata    map[string]interface{} `json:"metadata"`
-	Embedding   []float32              `json:"embedding,omitempty"`
+	ID        string                 `json:"id"`
+	Content   string                 `json:"content"`
+	Score     float64                `json:"score"`
+	Metadata  json.RawMessage `json:"metadata"`
+	Embedding []float32              `json:"embedding,omitempty"`
 }
 
 // BatchSearchRequest represents a batch of search requests
@@ -52,7 +53,7 @@ type BatchSearchRequest struct {
 	MaxConcurrency    int                    `json:"max_concurrency"`
 	EnableAggregation bool                   `json:"enable_aggregation"`
 	DeduplicationKey  string                 `json:"deduplication_key"`
-	Metadata          map[string]interface{} `json:"metadata"`
+	Metadata          json.RawMessage `json:"metadata"`
 }
 
 // BatchSearchResponse represents the response from batch search
@@ -62,7 +63,7 @@ type BatchSearchResponse struct {
 	TotalProcessingTime time.Duration          `json:"total_processing_time"`
 	ParallelQueries     int                    `json:"parallel_queries"`
 	CacheHits           int                    `json:"cache_hits"`
-	Metadata            map[string]interface{} `json:"metadata"`
+	Metadata            json.RawMessage `json:"metadata"`
 }
 
 // EmbeddingCacheInterface defines the interface for embedding caches
@@ -113,12 +114,12 @@ type PoolConfig struct {
 
 // PoolMetrics represents metrics for connection pools
 type PoolMetrics struct {
-	ActiveConnections int64         `json:"active_connections"`
-	IdleConnections   int64         `json:"idle_connections"`
-	TotalConnections  int64         `json:"total_connections"`
-	ConnectionsCreated int64        `json:"connections_created"`
-	ConnectionsDestroyed int64      `json:"connections_destroyed"`
-	HealthChecksRun   int64         `json:"health_checks_run"`
-	HealthChecksFailed int64        `json:"health_checks_failed"`
-	AverageLatency    time.Duration `json:"average_latency"`
+	ActiveConnections    int64         `json:"active_connections"`
+	IdleConnections      int64         `json:"idle_connections"`
+	TotalConnections     int64         `json:"total_connections"`
+	ConnectionsCreated   int64         `json:"connections_created"`
+	ConnectionsDestroyed int64         `json:"connections_destroyed"`
+	HealthChecksRun      int64         `json:"health_checks_run"`
+	HealthChecksFailed   int64         `json:"health_checks_failed"`
+	AverageLatency       time.Duration `json:"average_latency"`
 }

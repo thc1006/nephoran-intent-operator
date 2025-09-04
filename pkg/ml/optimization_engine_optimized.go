@@ -53,62 +53,45 @@ type DataPointPool struct {
 // NewDataPointPool creates a new DataPoint object pool.
 
 func NewDataPointPool() *DataPointPool {
-
 	return &DataPointPool{
-
 		pool: sync.Pool{
-
 			New: func() interface{} {
-
 				return &DataPoint{
-
 					Features: make(map[string]float64, 3),
 
 					Metadata: make(map[string]string, 2),
 				}
-
 			},
 		},
 	}
-
 }
 
 // Get retrieves a DataPoint from the pool.
 
 func (p *DataPointPool) Get() *DataPoint {
-
 	return p.pool.Get().(*DataPoint)
-
 }
 
 // Put returns a DataPoint to the pool.
 
 func (p *DataPointPool) Put(dp *DataPoint) {
-
 	// Clear the maps instead of creating new ones.
 
 	for k := range dp.Features {
-
 		delete(dp.Features, k)
-
 	}
 
 	for k := range dp.Metadata {
-
 		delete(dp.Metadata, k)
-
 	}
 
 	p.pool.Put(dp)
-
 }
 
 // NewDataCache creates a new cache with specified TTL.
 
 func NewDataCache(ttl time.Duration) *DataCache {
-
 	cache := &DataCache{
-
 		entries: make(map[string]*CacheEntry),
 
 		ttl: ttl,
@@ -119,13 +102,11 @@ func NewDataCache(ttl time.Duration) *DataCache {
 	go cache.cleanupExpired()
 
 	return cache
-
 }
 
 // Get retrieves data from cache if available and not expired.
 
 func (c *DataCache) Get(key string) ([]DataPoint, bool) {
-
 	c.mu.RLock()
 
 	defer c.mu.RUnlock()
@@ -133,42 +114,33 @@ func (c *DataCache) Get(key string) ([]DataPoint, bool) {
 	entry, exists := c.entries[key]
 
 	if !exists {
-
 		return nil, false
-
 	}
 
 	if time.Since(entry.timestamp) > c.ttl {
-
 		return nil, false
-
 	}
 
 	return entry.data, true
-
 }
 
 // Set stores data in cache.
 
 func (c *DataCache) Set(key string, data []DataPoint) {
-
 	c.mu.Lock()
 
 	defer c.mu.Unlock()
 
 	c.entries[key] = &CacheEntry{
-
 		data: data,
 
 		timestamp: time.Now(),
 	}
-
 }
 
 // cleanupExpired removes expired entries periodically.
 
 func (c *DataCache) cleanupExpired() {
-
 	ticker := time.NewTicker(c.ttl)
 
 	defer ticker.Stop()
@@ -180,33 +152,25 @@ func (c *DataCache) cleanupExpired() {
 		now := time.Now()
 
 		for key, entry := range c.entries {
-
 			if now.Sub(entry.timestamp) > c.ttl {
-
 				delete(c.entries, key)
-
 			}
-
 		}
 
 		c.mu.Unlock()
 
 	}
-
 }
 
 // GatherHistoricalDataOptimized demonstrates optimized concurrent data gathering.
 
 func GatherHistoricalDataOptimized(ctx context.Context, client v1.API, intent *NetworkIntent, cache *DataCache, pool *DataPointPool) ([]DataPoint, error) {
-
 	// Check cache first.
 
 	cacheKey := fmt.Sprintf("historical:%s", intent.ID)
 
 	if cached, found := cache.Get(cacheKey); found {
-
 		return cached, nil
-
 	}
 
 	// Define time range with adaptive window.
@@ -244,7 +208,6 @@ func GatherHistoricalDataOptimized(ctx context.Context, client v1.API, intent *N
 
 		query string
 	}{
-
 		{"cpu", `avg_over_time(cpu_usage_rate[1h])`},
 
 		{"memory", `avg_over_time(memory_usage_rate[1h])`},
@@ -273,11 +236,9 @@ func GatherHistoricalDataOptimized(ctx context.Context, client v1.API, intent *N
 		wg.Add(1)
 
 		go func(name, query string) {
-
 			defer wg.Done()
 
 			result, _, err := client.QueryRange(ctx, query, v1.Range{
-
 				Start: startTime,
 
 				End: endTime,
@@ -286,14 +247,12 @@ func GatherHistoricalDataOptimized(ctx context.Context, client v1.API, intent *N
 			})
 
 			resultChan <- queryResult{
-
 				name: name,
 
 				result: result,
 
 				err: err,
 			}
-
 		}(q.name, q.query)
 
 	}
@@ -301,11 +260,9 @@ func GatherHistoricalDataOptimized(ctx context.Context, client v1.API, intent *N
 	// Close channel when all queries complete.
 
 	go func() {
-
 		wg.Wait()
 
 		close(resultChan)
-
 	}()
 
 	// Collect results.
@@ -317,23 +274,17 @@ func GatherHistoricalDataOptimized(ctx context.Context, client v1.API, intent *N
 	for res := range resultChan {
 
 		if res.err != nil && firstErr == nil {
-
 			firstErr = res.err
-
 		}
 
 		if res.result != nil {
-
 			results[res.name] = res.result
-
 		}
 
 	}
 
 	if firstErr != nil {
-
 		return nil, firstErr
-
 	}
 
 	// Process results efficiently using streaming.
@@ -345,19 +296,16 @@ func GatherHistoricalDataOptimized(ctx context.Context, client v1.API, intent *N
 	cache.Set(cacheKey, dataPoints)
 
 	return dataPoints, nil
-
 }
 
 // processResultsStreaming processes Prometheus results without loading all into memory.
 
 func processResultsStreaming(results map[string]model.Value, pool *DataPointPool) []DataPoint {
-
 	// Pre-allocate slice with estimated capacity.
 
 	estimatedSize := 0
 
 	for _, result := range results {
-
 		if matrix, ok := result.(model.Matrix); ok && len(matrix) > 0 {
 
 			estimatedSize = len(matrix[0].Values)
@@ -365,7 +313,6 @@ func processResultsStreaming(results map[string]model.Value, pool *DataPointPool
 			break
 
 		}
-
 	}
 
 	dataPoints := make([]DataPoint, 0, estimatedSize)
@@ -377,9 +324,7 @@ func processResultsStreaming(results map[string]model.Value, pool *DataPointPool
 	// Process CPU data first to establish timestamps.
 
 	if cpuResult, exists := results["cpu"]; exists {
-
 		if matrix, ok := cpuResult.(model.Matrix); ok && len(matrix) > 0 {
-
 			for _, value := range matrix[0].Values {
 
 				dp := pool.Get()
@@ -387,13 +332,9 @@ func processResultsStreaming(results map[string]model.Value, pool *DataPointPool
 				// Safe timestamp conversion with overflow protection
 
 				if value.Timestamp >= 0 && value.Timestamp <= float64(1<<62)*1000 {
-
 					dp.Timestamp = time.Unix(int64(value.Timestamp)/1000, 0)
-
 				} else {
-
 					dp.Timestamp = time.Now() // fallback to current time
-
 				}
 
 				dp.Features["cpu_utilization"] = float64(value.Value)
@@ -407,61 +348,40 @@ func processResultsStreaming(results map[string]model.Value, pool *DataPointPool
 				dataPoints = append(dataPoints, *dp)
 
 			}
-
 		}
-
 	}
 
 	// Add memory data to existing data points.
 
 	if memResult, exists := results["memory"]; exists {
-
 		if matrix, ok := memResult.(model.Matrix); ok && len(matrix) > 0 {
-
 			for _, value := range matrix[0].Values {
-
 				if dp, found := timestampMap[value.Timestamp]; found {
-
 					dp.Features["memory_utilization"] = float64(value.Value)
-
 				}
-
 			}
-
 		}
-
 	}
 
 	// Add traffic data to existing data points.
 
 	if trafficResult, exists := results["traffic"]; exists {
-
 		if matrix, ok := trafficResult.(model.Matrix); ok && len(matrix) > 0 {
-
 			for _, value := range matrix[0].Values {
-
 				if dp, found := timestampMap[value.Timestamp]; found {
-
 					dp.Features["request_rate"] = float64(value.Value)
-
 				}
-
 			}
-
 		}
-
 	}
 
 	// Return pooled objects.
 
 	for _, dp := range timestampMap {
-
 		pool.Put(dp)
-
 	}
 
 	return dataPoints
-
 }
 
 // StreamingDataProcessor processes data points in chunks to reduce memory usage.
@@ -475,48 +395,38 @@ type StreamingDataProcessor struct {
 // NewStreamingDataProcessor creates a new streaming processor.
 
 func NewStreamingDataProcessor(chunkSize int, processor func(chunk []DataPoint) error) *StreamingDataProcessor {
-
 	return &StreamingDataProcessor{
-
 		chunkSize: chunkSize,
 
 		processor: processor,
 	}
-
 }
 
 // Process handles data points in chunks.
 
 func (s *StreamingDataProcessor) Process(dataPoints []DataPoint) error {
-
 	for i := 0; i < len(dataPoints); i += s.chunkSize {
 
 		end := i + s.chunkSize
 
 		if end > len(dataPoints) {
-
 			end = len(dataPoints)
-
 		}
 
 		chunk := dataPoints[i:end]
 
 		if err := s.processor(chunk); err != nil {
-
 			return err
-
 		}
 
 	}
 
 	return nil
-
 }
 
 // OptimizedScalingRecommendation demonstrates efficient recommendation generation.
 
 func GenerateScalingRecommendationsOptimized(ctx context.Context, data []DataPoint) (*ScalingRecommendation, error) {
-
 	// Use streaming processor for large datasets.
 
 	var (
@@ -528,7 +438,6 @@ func GenerateScalingRecommendationsOptimized(ctx context.Context, data []DataPoi
 	)
 
 	processor := NewStreamingDataProcessor(100, func(chunk []DataPoint) error {
-
 		for _, point := range chunk {
 
 			if cpu, exists := point.Features["cpu_utilization"]; exists {
@@ -536,9 +445,7 @@ func GenerateScalingRecommendationsOptimized(ctx context.Context, data []DataPoi
 				sumCPU += cpu
 
 				if cpu > maxCPU {
-
 					maxCPU = cpu
-
 				}
 
 				count++
@@ -550,9 +457,7 @@ func GenerateScalingRecommendationsOptimized(ctx context.Context, data []DataPoi
 				sumMemory += memory
 
 				if memory > maxMemory {
-
 					maxMemory = memory
-
 				}
 
 			}
@@ -560,13 +465,10 @@ func GenerateScalingRecommendationsOptimized(ctx context.Context, data []DataPoi
 		}
 
 		return nil
-
 	})
 
 	if err := processor.Process(data); err != nil {
-
 		return nil, err
-
 	}
 
 	avgCPU := sumCPU / float64(count)
@@ -576,7 +478,6 @@ func GenerateScalingRecommendationsOptimized(ctx context.Context, data []DataPoi
 	// Generate recommendations based on analysis.
 
 	recommendation := &ScalingRecommendation{
-
 		PredictiveScaling: true,
 	}
 
@@ -629,7 +530,6 @@ func GenerateScalingRecommendationsOptimized(ctx context.Context, data []DataPoi
 	}
 
 	return recommendation, nil
-
 }
 
 // CircuitBreaker provides circuit breaker pattern for Prometheus queries.
@@ -651,22 +551,18 @@ type CircuitBreaker struct {
 // NewCircuitBreaker creates a new circuit breaker.
 
 func NewCircuitBreaker(threshold int, timeout time.Duration) *CircuitBreaker {
-
 	return &CircuitBreaker{
-
 		state: "closed",
 
 		threshold: threshold,
 
 		timeout: timeout,
 	}
-
 }
 
 // Call executes the function with circuit breaker protection.
 
 func (cb *CircuitBreaker) Call(fn func() error) error {
-
 	cb.mu.Lock()
 
 	defer cb.mu.Unlock()
@@ -674,7 +570,6 @@ func (cb *CircuitBreaker) Call(fn func() error) error {
 	// Check circuit state.
 
 	switch cb.state {
-
 	case "open":
 
 		if time.Since(cb.lastFailTime) > cb.timeout {
@@ -684,17 +579,13 @@ func (cb *CircuitBreaker) Call(fn func() error) error {
 			cb.failures = 0
 
 		} else {
-
 			return fmt.Errorf("circuit breaker is open")
-
 		}
-
 	}
 
 	// Execute function.
 
 	err := fn()
-
 	if err != nil {
 
 		cb.failures++
@@ -716,13 +607,10 @@ func (cb *CircuitBreaker) Call(fn func() error) error {
 	// Success - reset failures.
 
 	if cb.state == "half-open" {
-
 		cb.state = "closed"
-
 	}
 
 	cb.failures = 0
 
 	return nil
-
 }

@@ -172,7 +172,6 @@ type ScheduleConfig struct {
 	Regression string `yaml:"regression,omitempty"` // Cron for regression tests
 
 	Baseline string `yaml:"baseline,omitempty"` // Cron for baseline updates
-
 }
 
 // ValidationResult represents the result of an automated validation run.
@@ -202,7 +201,7 @@ type ValidationResult struct {
 
 	Notifications []NotificationSent `json:"notifications"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // QualityGateResult represents quality gate evaluation results.
@@ -252,9 +251,7 @@ type NotificationSent struct {
 // NewAutomationRunner creates a new automation runner.
 
 func NewAutomationRunner(config *ValidationConfig, environment string) *AutomationRunner {
-
 	return &AutomationRunner{
-
 		config: config,
 
 		environment: environment,
@@ -263,13 +260,11 @@ func NewAutomationRunner(config *ValidationConfig, environment string) *Automati
 
 		ciMode: isRunningInCI(),
 	}
-
 }
 
 // RunAutomatedValidation executes automated validation with full CI/CD integration.
 
 func (ar *AutomationRunner) RunAutomatedValidation(ctx context.Context) (*ValidationResult, error) {
-
 	startTime := time.Now()
 
 	runID := fmt.Sprintf("val-%s-%s", ar.environment, startTime.Format("20060102-150405"))
@@ -277,7 +272,6 @@ func (ar *AutomationRunner) RunAutomatedValidation(ctx context.Context) (*Valida
 	log.Printf("Starting automated validation run: %s", runID)
 
 	result := &ValidationResult{
-
 		ID: runID,
 
 		StartTime: startTime,
@@ -294,7 +288,7 @@ func (ar *AutomationRunner) RunAutomatedValidation(ctx context.Context) (*Valida
 
 		Notifications: []NotificationSent{},
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Gather environment metadata.
@@ -304,7 +298,6 @@ func (ar *AutomationRunner) RunAutomatedValidation(ctx context.Context) (*Valida
 	// Load CI pipeline configuration.
 
 	pipelineConfig, err := ar.loadPipelineConfig()
-
 	if err != nil {
 
 		log.Printf("Warning: Could not load pipeline config: %v", err)
@@ -318,9 +311,7 @@ func (ar *AutomationRunner) RunAutomatedValidation(ctx context.Context) (*Valida
 	for _, stage := range pipelineConfig.Stages {
 
 		if !ar.shouldExecuteStage(stage, result) {
-
 			continue
-
 		}
 
 		log.Printf("Executing stage: %s", stage.Name)
@@ -354,9 +345,7 @@ func (ar *AutomationRunner) RunAutomatedValidation(ctx context.Context) (*Valida
 	result.Duration = result.EndTime.Sub(result.StartTime)
 
 	if result.Status != "failed" {
-
 		result.Status = ar.determineOverallStatus(result)
-
 	}
 
 	// Save artifacts.
@@ -372,13 +361,11 @@ func (ar *AutomationRunner) RunAutomatedValidation(ctx context.Context) (*Valida
 		runID, result.Status, result.Duration)
 
 	return result, nil
-
 }
 
 // executeStage executes a single pipeline stage.
 
 func (ar *AutomationRunner) executeStage(ctx context.Context, stage StageConfig, result *ValidationResult) error {
-
 	switch stage.Type {
 
 	case "validation":
@@ -402,21 +389,17 @@ func (ar *AutomationRunner) executeStage(ctx context.Context, stage StageConfig,
 		return fmt.Errorf("unknown stage type: %s", stage.Type)
 
 	}
-
 }
 
 // executeValidationStage executes performance validation.
 
 func (ar *AutomationRunner) executeValidationStage(ctx context.Context, stage StageConfig, result *ValidationResult) error {
-
 	// Create validation suite with stage-specific configuration.
 
 	config := ar.config
 
 	if stageConfig, ok := stage.Parameters["config"].(map[string]interface{}); ok {
-
 		config = ar.mergeConfig(config, stageConfig)
-
 	}
 
 	validationSuite := NewValidationSuite(config)
@@ -424,37 +407,28 @@ func (ar *AutomationRunner) executeValidationStage(ctx context.Context, stage St
 	// Run validation.
 
 	validationResults, err := validationSuite.ValidateAllClaims(ctx)
-
 	if err != nil {
-
 		return fmt.Errorf("validation failed: %w", err)
-
 	}
 
 	// Merge results.
 
 	for claimName, claimResult := range validationResults.ClaimResults {
-
 		result.Claims[claimName] = *claimResult
-
 	}
 
 	// Update overall status based on validation results.
 
 	if !validationResults.Summary.OverallSuccess {
-
 		result.Status = "failed"
-
 	}
 
 	return nil
-
 }
 
 // executeBaselineStage updates performance baselines.
 
 func (ar *AutomationRunner) executeBaselineStage(ctx context.Context, stage StageConfig, result *ValidationResult) error {
-
 	log.Printf("Updating performance baselines...")
 
 	// This would implement baseline update logic.
@@ -463,18 +437,21 @@ func (ar *AutomationRunner) executeBaselineStage(ctx context.Context, stage Stag
 
 	time.Sleep(2 * time.Second)
 
-	result.Metadata["baseline_updated"] = true
-
-	result.Metadata["baseline_timestamp"] = time.Now()
+	// Update metadata with baseline info
+	baselineMetadata := map[string]interface{}{
+		"baseline_updated":   true,
+		"baseline_timestamp": time.Now(),
+	}
+	if metadataBytes, err := json.Marshal(baselineMetadata); err == nil {
+		result.Metadata = metadataBytes
+	}
 
 	return nil
-
 }
 
 // executeRegressionStage performs regression detection.
 
 func (ar *AutomationRunner) executeRegressionStage(ctx context.Context, stage StageConfig, result *ValidationResult) error {
-
 	log.Printf("Performing regression analysis...")
 
 	// This would implement regression detection logic.
@@ -483,36 +460,34 @@ func (ar *AutomationRunner) executeRegressionStage(ctx context.Context, stage St
 
 	time.Sleep(3 * time.Second)
 
-	result.Metadata["regression_analysis"] = true
-
-	result.Metadata["regressions_detected"] = 0
+	// Update metadata with regression analysis
+	regressionMetadata := map[string]interface{}{
+		"regression_analysis":  true,
+		"regressions_detected": 0,
+	}
+	if metadataBytes, err := json.Marshal(regressionMetadata); err == nil {
+		result.Metadata = metadataBytes
+	}
 
 	return nil
-
 }
 
 // executeReportStage generates comprehensive reports.
 
 func (ar *AutomationRunner) executeReportStage(ctx context.Context, stage StageConfig, result *ValidationResult) error {
-
 	log.Printf("Generating comprehensive reports...")
 
 	// Generate HTML report.
 
 	htmlReport, err := ar.generateHTMLReport(result)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to generate HTML report: %w", err)
-
 	}
 
 	htmlPath := filepath.Join(ar.outputDir, "validation-report.html")
 
 	if err := os.WriteFile(htmlPath, []byte(htmlReport), 0o640); err != nil {
-
 		return fmt.Errorf("failed to save HTML report: %w", err)
-
 	}
 
 	result.Artifacts = append(result.Artifacts, htmlPath)
@@ -522,29 +497,22 @@ func (ar *AutomationRunner) executeReportStage(ctx context.Context, stage StageC
 	jsonPath := filepath.Join(ar.outputDir, "validation-results.json")
 
 	jsonData, err := json.MarshalIndent(result, "", "  ")
-
 	if err != nil {
-
 		return fmt.Errorf("failed to marshal JSON report: %w", err)
-
 	}
 
 	if err := os.WriteFile(jsonPath, jsonData, 0o640); err != nil {
-
 		return fmt.Errorf("failed to save JSON report: %w", err)
-
 	}
 
 	result.Artifacts = append(result.Artifacts, jsonPath)
 
 	return nil
-
 }
 
 // evaluateQualityGates evaluates all configured quality gates.
 
 func (ar *AutomationRunner) evaluateQualityGates(gates []QualityGate, result *ValidationResult) {
-
 	for _, gate := range gates {
 
 		gateResult := ar.evaluateQualityGate(gate, result)
@@ -552,21 +520,16 @@ func (ar *AutomationRunner) evaluateQualityGates(gates []QualityGate, result *Va
 		result.QualityGates = append(result.QualityGates, gateResult)
 
 		if gateResult.Status == "failed" && gateResult.Action == "fail" {
-
 			result.Status = "failed"
-
 		}
 
 	}
-
 }
 
 // evaluateQualityGate evaluates a single quality gate.
 
 func (ar *AutomationRunner) evaluateQualityGate(gate QualityGate, result *ValidationResult) QualityGateResult {
-
 	gateResult := QualityGateResult{
-
 		Name: gate.Name,
 
 		Status: "passed",
@@ -583,31 +546,23 @@ func (ar *AutomationRunner) evaluateQualityGate(gate QualityGate, result *Valida
 		gateResult.Metrics = append(gateResult.Metrics, metricResult)
 
 		if metricResult.Status == "failed" {
-
 			gateResult.Status = "failed"
-
 		}
 
 	}
 
 	if gateResult.Status == "failed" {
-
 		gateResult.Message = fmt.Sprintf("Quality gate '%s' failed", gate.Name)
-
 	} else {
-
 		gateResult.Message = fmt.Sprintf("Quality gate '%s' passed", gate.Name)
-
 	}
 
 	return gateResult
-
 }
 
 // evaluateMetric evaluates a single quality metric.
 
 func (ar *AutomationRunner) evaluateMetric(metric QualityMetric, result *ValidationResult) MetricResult {
-
 	// Extract metric value from validation results.
 
 	value := ar.extractMetricValue(metric.Name, result)
@@ -619,13 +574,10 @@ func (ar *AutomationRunner) evaluateMetric(metric QualityMetric, result *Validat
 	status := "passed"
 
 	if !passed {
-
 		status = "failed"
-
 	}
 
 	return MetricResult{
-
 		Name: metric.Name,
 
 		Value: value,
@@ -636,79 +588,58 @@ func (ar *AutomationRunner) evaluateMetric(metric QualityMetric, result *Validat
 
 		Unit: metric.Unit,
 	}
-
 }
 
 // Helper methods for pipeline execution.
 
 func (ar *AutomationRunner) shouldExecuteStage(stage StageConfig, result *ValidationResult) bool {
-
 	// Check environment matching.
 
 	if stage.Environment != "" && stage.Environment != ar.environment {
-
 		return false
-
 	}
 
 	// Check dependencies.
 
 	for _, dep := range stage.DependsOn {
-
 		// This would check if dependent stages have completed successfully.
 
 		_ = dep // Placeholder
-
 	}
 
 	// Check conditions.
 
 	for _, condition := range stage.Conditions {
-
 		if !ar.evaluateCondition(condition, result) {
-
 			return false
-
 		}
-
 	}
 
 	return true
-
 }
 
 func (ar *AutomationRunner) parseTimeout(timeout string) time.Duration {
-
 	if timeout == "" {
-
 		return 30 * time.Minute // Default timeout
-
 	}
 
 	d, err := time.ParseDuration(timeout)
-
 	if err != nil {
-
 		return 30 * time.Minute
-
 	}
 
 	return d
-
 }
 
 func (ar *AutomationRunner) mergeConfig(base *ValidationConfig, overrides map[string]interface{}) *ValidationConfig {
-
 	// This would implement configuration merging logic.
 
 	// For now, return the base config.
 
 	return base
-
 }
 
 func (ar *AutomationRunner) extractMetricValue(metricName string, result *ValidationResult) float64 {
-
 	// Extract specific metric values from validation results.
 
 	switch metricName {
@@ -720,19 +651,13 @@ func (ar *AutomationRunner) extractMetricValue(metricName string, result *Valida
 		total := len(result.Claims)
 
 		for _, claim := range result.Claims {
-
 			if claim.Status == "validated" {
-
 				passed++
-
 			}
-
 		}
 
 		if total == 0 {
-
 			return 0
-
 		}
 
 		return float64(passed) / float64(total) * 100
@@ -740,17 +665,13 @@ func (ar *AutomationRunner) extractMetricValue(metricName string, result *Valida
 	case "average_confidence":
 
 		if len(result.Claims) == 0 {
-
 			return 0
-
 		}
 
 		total := 0.0
 
 		for _, claim := range result.Claims {
-
 			total += claim.Confidence
-
 		}
 
 		return total / float64(len(result.Claims))
@@ -760,11 +681,9 @@ func (ar *AutomationRunner) extractMetricValue(metricName string, result *Valida
 		return 0
 
 	}
-
 }
 
 func (ar *AutomationRunner) evaluateThreshold(value, threshold float64, operator string) bool {
-
 	switch operator {
 
 	case ">=":
@@ -796,27 +715,22 @@ func (ar *AutomationRunner) evaluateThreshold(value, threshold float64, operator
 		return false
 
 	}
-
 }
 
 func (ar *AutomationRunner) evaluateCondition(condition string, result *ValidationResult) bool {
-
 	// This would implement condition evaluation logic.
 
 	// For now, return true.
 
 	return true
-
 }
 
 func (ar *AutomationRunner) determineOverallStatus(result *ValidationResult) string {
-
 	// Check if all claims passed.
 
 	allPassed := true
 
 	for _, claim := range result.Claims {
-
 		if claim.Status != "validated" {
 
 			allPassed = false
@@ -824,7 +738,6 @@ func (ar *AutomationRunner) determineOverallStatus(result *ValidationResult) str
 			break
 
 		}
-
 	}
 
 	// Check quality gates.
@@ -834,181 +747,133 @@ func (ar *AutomationRunner) determineOverallStatus(result *ValidationResult) str
 	hasWarningGates := false
 
 	for _, gate := range result.QualityGates {
-
 		if gate.Status == "failed" {
-
 			hasFailedGates = true
-
 		} else if gate.Status == "warning" {
-
 			hasWarningGates = true
-
 		}
-
 	}
 
 	if !allPassed || hasFailedGates {
-
 		return "failed"
-
 	} else if hasWarningGates {
-
 		return "warning"
-
 	}
 
 	return "passed"
-
 }
 
 func (ar *AutomationRunner) gatherMetadata(result *ValidationResult) {
-
 	// Gather Git information.
 
 	if gitHash, err := ar.getGitCommitHash(); err == nil {
-
 		result.CommitHash = gitHash
-
 	}
 
 	if gitBranch, err := ar.getGitBranch(); err == nil {
-
 		result.Branch = gitBranch
-
 	}
 
 	// Gather environment information.
 
-	result.Metadata["go_version"] = ar.getGoVersion()
-
-	result.Metadata["kubernetes_version"] = ar.getKubernetesVersion()
-
-	result.Metadata["ci_mode"] = ar.ciMode
+	// Gather metadata
+	metadata := map[string]interface{}{
+		"go_version":         ar.getGoVersion(),
+		"kubernetes_version": ar.getKubernetesVersion(),
+		"ci_mode":            ar.ciMode,
+	}
 
 	// CI-specific metadata.
 
 	if ar.ciMode {
 
-		result.Metadata["ci_build_id"] = os.Getenv("BUILD_ID")
-
-		result.Metadata["ci_job_id"] = os.Getenv("JOB_ID")
-
-		result.Metadata["ci_pipeline_id"] = os.Getenv("PIPELINE_ID")
-
+		metadata["ci_build_id"] = os.Getenv("BUILD_ID")
+		metadata["ci_job_id"] = os.Getenv("JOB_ID")
+		metadata["ci_pipeline_id"] = os.Getenv("PIPELINE_ID")
 	}
 
+	// Marshal metadata to json.RawMessage
+	if metadataBytes, err := json.Marshal(metadata); err == nil {
+		result.Metadata = metadataBytes
+
+	}
 }
 
 func (ar *AutomationRunner) getGitCommitHash() (string, error) {
-
-	cmd := exec.Command("git", "rev-parse", "HEAD")
+	cmd := exec.Command("git", "rev-parse", "HEAD") // #nosec G204 - Static command with validated args
 
 	output, err := cmd.Output()
-
 	if err != nil {
-
 		return "", err
-
 	}
 
 	return strings.TrimSpace(string(output)), nil
-
 }
 
 func (ar *AutomationRunner) getGitBranch() (string, error) {
-
-	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD") // #nosec G204 - Static command with validated args
 
 	output, err := cmd.Output()
-
 	if err != nil {
-
 		return "", err
-
 	}
 
 	return strings.TrimSpace(string(output)), nil
-
 }
 
 func (ar *AutomationRunner) getGoVersion() string {
-
-	cmd := exec.Command("go", "version")
+	cmd := exec.Command("go", "version") // #nosec G204 - Static command with validated args
 
 	output, err := cmd.Output()
-
 	if err != nil {
-
 		return "unknown"
-
 	}
 
 	return strings.TrimSpace(string(output))
-
 }
 
 func (ar *AutomationRunner) getKubernetesVersion() string {
-
-	cmd := exec.Command("kubectl", "version", "--client", "--short")
+	cmd := exec.Command("kubectl", "version", "--client", "--short") // #nosec G204 - Static command with validated args
 
 	output, err := cmd.Output()
-
 	if err != nil {
-
 		return "unknown"
-
 	}
 
 	return strings.TrimSpace(string(output))
-
 }
 
 // Configuration and setup methods.
 
 func (ar *AutomationRunner) loadPipelineConfig() (*CIPipelineConfig, error) {
-
 	configPath := ".nephoran/validation-pipeline.yaml"
 
 	if envPath := os.Getenv("VALIDATION_PIPELINE_CONFIG"); envPath != "" {
-
 		configPath = envPath
-
 	}
 
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-
 		return ar.getDefaultPipelineConfig(), nil
-
 	}
 
 	data, err := os.ReadFile(configPath)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to read pipeline config: %w", err)
-
 	}
 
 	var config CIPipelineConfig
 
 	if err := yaml.Unmarshal(data, &config); err != nil {
-
 		return nil, fmt.Errorf("failed to parse pipeline config: %w", err)
-
 	}
 
 	return &config, nil
-
 }
 
 func (ar *AutomationRunner) getDefaultPipelineConfig() *CIPipelineConfig {
-
 	return &CIPipelineConfig{
-
 		Stages: []StageConfig{
-
 			{
-
 				Name: "validation",
 
 				Type: "validation",
@@ -1021,7 +886,6 @@ func (ar *AutomationRunner) getDefaultPipelineConfig() *CIPipelineConfig {
 			},
 
 			{
-
 				Name: "report",
 
 				Type: "report",
@@ -1035,17 +899,13 @@ func (ar *AutomationRunner) getDefaultPipelineConfig() *CIPipelineConfig {
 		},
 
 		Gates: []QualityGate{
-
 			{
-
 				Name: "overall_success",
 
 				Type: "performance",
 
 				Metrics: []QualityMetric{
-
 					{
-
 						Name: "overall_success_rate",
 
 						Threshold: 100.0,
@@ -1061,7 +921,6 @@ func (ar *AutomationRunner) getDefaultPipelineConfig() *CIPipelineConfig {
 		},
 
 		Artifacts: ArtifactConfig{
-
 			Retention: "30d",
 
 			Storage: "local",
@@ -1073,49 +932,35 @@ func (ar *AutomationRunner) getDefaultPipelineConfig() *CIPipelineConfig {
 			Paths: []string{"*.json", "*.html"},
 		},
 	}
-
 }
 
 // Utility functions.
 
 func getOutputDir() string {
-
 	if dir := os.Getenv("VALIDATION_OUTPUT_DIR"); dir != "" {
-
 		return dir
-
 	}
 
 	return "test-results/validation"
-
 }
 
 func isRunningInCI() bool {
-
 	ciEnvVars := []string{"CI", "CONTINUOUS_INTEGRATION", "GITHUB_ACTIONS", "GITLAB_CI", "JENKINS_URL"}
 
 	for _, envVar := range ciEnvVars {
-
 		if os.Getenv(envVar) != "" {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 // saveArtifacts saves validation artifacts according to configuration.
 
 func (ar *AutomationRunner) saveArtifacts(result *ValidationResult, artifactConfig ArtifactConfig) {
-
 	if len(artifactConfig.Paths) == 0 {
-
 		return
-
 	}
 
 	log.Printf("Saving validation artifacts...")
@@ -1137,7 +982,6 @@ func (ar *AutomationRunner) saveArtifacts(result *ValidationResult, artifactConf
 	resultPath := filepath.Join(artifactDir, fmt.Sprintf("validation-result-%s.json", result.ID))
 
 	data, err := json.MarshalIndent(result, "", "  ")
-
 	if err != nil {
 
 		log.Printf("Warning: Failed to marshal result: %v", err)
@@ -1157,13 +1001,11 @@ func (ar *AutomationRunner) saveArtifacts(result *ValidationResult, artifactConf
 	result.Artifacts = append(result.Artifacts, resultPath)
 
 	log.Printf("Saved validation artifacts to: %s", artifactDir)
-
 }
 
 // sendNotifications sends notifications based on validation results.
 
 func (ar *AutomationRunner) sendNotifications(notificationConfig NotificationConfig, result *ValidationResult) {
-
 	log.Printf("Processing notifications for validation result: %s", result.Status)
 
 	// Determine which targets to notify based on status.
@@ -1201,7 +1043,6 @@ func (ar *AutomationRunner) sendNotifications(notificationConfig NotificationCon
 	for _, target := range targets {
 
 		notification := NotificationSent{
-
 			Type: target.Type,
 
 			Recipients: target.Recipients,
@@ -1222,13 +1063,11 @@ func (ar *AutomationRunner) sendNotifications(notificationConfig NotificationCon
 		result.Notifications = append(result.Notifications, notification)
 
 	}
-
 }
 
 // generateHTMLReport generates a comprehensive HTML report.
 
 func (ar *AutomationRunner) generateHTMLReport(result *ValidationResult) (string, error) {
-
 	log.Printf("Generating HTML report for validation result: %s", result.ID)
 
 	// Simple HTML template for the report.
@@ -1380,9 +1219,7 @@ func (ar *AutomationRunner) generateHTMLReport(result *ValidationResult) (string
 	artifactsHTML := ""
 
 	for _, artifact := range result.Artifacts {
-
 		artifactsHTML += fmt.Sprintf("<li>%s</li>", filepath.Base(artifact))
-
 	}
 
 	// Fill in the template.
@@ -1415,5 +1252,4 @@ func (ar *AutomationRunner) generateHTMLReport(result *ValidationResult) (string
 	)
 
 	return htmlReport, nil
-
 }

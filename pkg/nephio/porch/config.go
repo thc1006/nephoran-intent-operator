@@ -31,7 +31,9 @@ limitations under the License.
 package porch
 
 import (
-	"fmt"
+	
+	"encoding/json"
+"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -47,7 +49,6 @@ import (
 // Config defines the configuration for Porch integration.
 
 type Config struct {
-
 	// Kubernetes configuration.
 
 	KubernetesConfig *KubernetesConfig `json:"kubernetesConfig,omitempty"`
@@ -88,7 +89,6 @@ type Config struct {
 // KubernetesConfig defines Kubernetes client configuration.
 
 type KubernetesConfig struct {
-
 	// Kubeconfig file path.
 
 	KubeconfigPath string `json:"kubeconfigPath,omitempty"`
@@ -129,7 +129,6 @@ type KubernetesConfig struct {
 // PorchServiceConfig defines Porch service specific configuration.
 
 type PorchServiceConfig struct {
-
 	// Porch API server endpoint.
 
 	Endpoint string `json:"endpoint"`
@@ -174,7 +173,6 @@ type PorchServiceConfig struct {
 // FunctionRegistryConfig defines KRM function registry configuration.
 
 type FunctionRegistryConfig struct {
-
 	// Default registry for functions.
 
 	DefaultRegistry string `json:"defaultRegistry,omitempty"`
@@ -203,7 +201,6 @@ type FunctionRegistryConfig struct {
 // ClusterConfig defines target cluster configuration.
 
 type ClusterConfig struct {
-
 	// Display name for the cluster.
 
 	Name string `json:"name"`
@@ -260,7 +257,6 @@ type ClusterConfig struct {
 // PolicyConfig defines policy and workflow configurations.
 
 type PolicyConfig struct {
-
 	// Default approval workflow.
 
 	DefaultWorkflow string `json:"defaultWorkflow,omitempty"`
@@ -293,7 +289,6 @@ type PolicyConfig struct {
 // ObservabilityConfig defines observability configuration.
 
 type ObservabilityConfig struct {
-
 	// Metrics configuration.
 
 	Metrics *MetricsConfig `json:"metrics,omitempty"`
@@ -318,7 +313,6 @@ type ObservabilityConfig struct {
 // SecurityConfig defines security configuration.
 
 type SecurityConfig struct {
-
 	// Authentication configuration.
 
 	Authentication *SecurityAuthConfig `json:"authentication,omitempty"`
@@ -355,7 +349,6 @@ type SecurityConfig struct {
 // PerformanceConfig defines performance configuration.
 
 type PerformanceConfig struct {
-
 	// Client configuration.
 
 	Client *ClientPerformanceConfig `json:"client,omitempty"`
@@ -475,7 +468,6 @@ type RateLimitConfig struct {
 	TimeWindow time.Duration `json:"timeWindow,omitempty"`
 
 	Strategy string `json:"strategy,omitempty"` // token_bucket, sliding_window
-
 }
 
 // ConnectionPoolConfig defines connection pool configuration.
@@ -544,7 +536,6 @@ type FunctionCacheConfig struct {
 	CleanupInterval time.Duration `json:"cleanupInterval,omitempty"`
 
 	Strategy string `json:"strategy,omitempty"` // LRU, LFU, FIFO
-
 }
 
 // FunctionSecurityConfig defines function security configuration.
@@ -706,7 +697,7 @@ type WorkflowStageConfig struct {
 type WorkflowTriggerConfig struct {
 	Type string `json:"type"`
 
-	Condition map[string]interface{} `json:"condition"`
+	Condition json.RawMessage `json:"condition"`
 
 	Schedule string `json:"schedule,omitempty"`
 
@@ -718,7 +709,7 @@ type WorkflowTriggerConfig struct {
 type WorkflowConditionConfig struct {
 	Type string `json:"type"`
 
-	Condition map[string]interface{} `json:"condition"`
+	Condition json.RawMessage `json:"condition"`
 
 	Operator string `json:"operator,omitempty"`
 
@@ -730,7 +721,7 @@ type WorkflowConditionConfig struct {
 type WorkflowActionConfig struct {
 	Type string `json:"type"`
 
-	Config map[string]interface{} `json:"config"`
+	Config json.RawMessage `json:"config"`
 
 	Timeout time.Duration `json:"timeout,omitempty"`
 
@@ -750,7 +741,7 @@ type ApproverConfig struct {
 
 	Permissions []string `json:"permissions,omitempty"`
 
-	Constraints map[string]interface{} `json:"constraints,omitempty"`
+	Constraints json.RawMessage `json:"constraints,omitempty"`
 }
 
 // NotificationConfig defines notification configuration.
@@ -764,7 +755,7 @@ type NotificationConfig struct {
 
 	Events []string `json:"events,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // ValidationPolicyConfig defines validation policy configuration.
@@ -786,7 +777,7 @@ type ValidationPolicyConfig struct {
 type ValidatorConfig struct {
 	Image string `json:"image"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	Resources *FunctionResourceLimits `json:"resources,omitempty"`
 
@@ -1018,7 +1009,7 @@ type AuditRetentionConfig struct {
 type AuditDestinationConfig struct {
 	Type string `json:"type"` // file, webhook, s3, elasticsearch
 
-	Config map[string]interface{} `json:"config"`
+	Config json.RawMessage `json:"config"`
 
 	Format string `json:"format,omitempty"`
 
@@ -1054,7 +1045,7 @@ type MetricsCollectorConfig struct {
 
 	Type string `json:"type"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	Interval time.Duration `json:"interval,omitempty"`
 
@@ -1070,7 +1061,7 @@ type MetricsExporterConfig struct {
 
 	Endpoint string `json:"endpoint"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	Headers map[string]string `json:"headers,omitempty"`
 
@@ -1088,7 +1079,7 @@ type LoggingConfig struct {
 
 	File *LogFileConfig `json:"file,omitempty"`
 
-	Fields map[string]interface{} `json:"fields,omitempty"`
+	Fields json.RawMessage `json:"fields,omitempty"`
 
 	Filters []LogFilterConfig `json:"filters,omitempty"`
 
@@ -1114,7 +1105,7 @@ type LogFileConfig struct {
 type LogFilterConfig struct {
 	Type string `json:"type"`
 
-	Config map[string]interface{} `json:"config"`
+	Config json.RawMessage `json:"config"`
 }
 
 // LogProcessorConfig defines log processor configuration.
@@ -1122,7 +1113,7 @@ type LogFilterConfig struct {
 type LogProcessorConfig struct {
 	Type string `json:"type"`
 
-	Config map[string]interface{} `json:"config"`
+	Config json.RawMessage `json:"config"`
 }
 
 // TracingConfig defines tracing configuration.
@@ -1138,7 +1129,7 @@ type TracingConfig struct {
 
 	Headers map[string]string `json:"headers,omitempty"`
 
-	Attributes map[string]interface{} `json:"attributes,omitempty"`
+	Attributes json.RawMessage `json:"attributes,omitempty"`
 
 	Exporters []TracingExporterConfig `json:"exporters,omitempty"`
 }
@@ -1152,7 +1143,7 @@ type TracingExporterConfig struct {
 
 	Endpoint string `json:"endpoint"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	Headers map[string]string `json:"headers,omitempty"`
 
@@ -1186,7 +1177,7 @@ type HealthCheckDefinition struct {
 
 	Type string `json:"type"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	Timeout time.Duration `json:"timeout,omitempty"`
 
@@ -1216,7 +1207,7 @@ type AlertReceiverConfig struct {
 
 	Type string `json:"type"` // email, slack, webhook, pagerduty
 
-	Config map[string]interface{} `json:"config"`
+	Config json.RawMessage `json:"config"`
 
 	Enabled bool `json:"enabled,omitempty"`
 }
@@ -1357,7 +1348,6 @@ type RBACAuthzConfig struct {
 	Enabled bool `json:"enabled,omitempty"`
 
 	// Additional RBAC specific configuration.
-
 }
 
 // ABACAuthzConfig defines ABAC authorization configuration.
@@ -1397,7 +1387,7 @@ type EncryptionAtRestConfig struct {
 
 	Algorithm string `json:"algorithm,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // EncryptionInTransitConfig defines encryption in transit configuration.
@@ -1433,7 +1423,7 @@ type ServiceMeshSecurityConfig struct {
 
 	MTLS *mTLSConfig `json:"mtls,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // mTLSConfig defines mutual TLS configuration.
@@ -1523,7 +1513,7 @@ type CertificateConfig struct {
 type CertificateAuthority struct {
 	Type string `json:"type"` // internal, external, vault
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	CertFile string `json:"certFile,omitempty"`
 
@@ -1537,7 +1527,7 @@ type CertificateAuthority struct {
 type SecretManagementConfig struct {
 	Provider string `json:"provider"` // kubernetes, vault, aws-secrets-manager
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	Encryption *SecretEncryptionConfig `json:"encryption,omitempty"`
 
@@ -1593,7 +1583,7 @@ type ScanningConfig struct {
 
 	FailOnSeverity string `json:"failOnSeverity,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // ComplianceScanConfig defines compliance scanning configuration.
@@ -1683,7 +1673,7 @@ type CacheLayerConfig struct {
 
 	TTL time.Duration `json:"ttl,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	Enabled bool `json:"enabled,omitempty"`
 }
@@ -1697,7 +1687,7 @@ type CacheStrategyConfig struct {
 
 	Resources []string `json:"resources,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // CacheInvalidationConfig defines cache invalidation configuration.
@@ -1709,7 +1699,7 @@ type CacheInvalidationConfig struct {
 
 	TTL time.Duration `json:"ttl,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // ConnectionPoolingConfig defines connection pooling configuration.
@@ -1921,7 +1911,7 @@ type StorageConfig struct {
 
 	Prefix string `json:"prefix,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	Encryption *EncryptionAtRestConfig `json:"encryption,omitempty"`
 }
@@ -1961,11 +1951,8 @@ type ConfigBuilder struct {
 // NewConfigBuilder creates a new configuration builder.
 
 func NewConfigBuilder() *ConfigBuilder {
-
 	return &ConfigBuilder{
-
 		config: &Config{
-
 			Repositories: make(map[string]*RepositoryConfig),
 
 			Clusters: make(map[string]*ClusterConfig),
@@ -1973,103 +1960,83 @@ func NewConfigBuilder() *ConfigBuilder {
 
 		logger: log.Log.WithName("porch-config"),
 	}
-
 }
 
 // WithKubernetesConfig sets Kubernetes configuration.
 
 func (cb *ConfigBuilder) WithKubernetesConfig(config *KubernetesConfig) *ConfigBuilder {
-
 	cb.config.KubernetesConfig = config
 
 	return cb
-
 }
 
 // WithPorchConfig sets Porch service configuration.
 
 func (cb *ConfigBuilder) WithPorchConfig(config *PorchServiceConfig) *ConfigBuilder {
-
 	cb.config.PorchConfig = config
 
 	return cb
-
 }
 
 // AddRepository adds a repository configuration.
 
 func (cb *ConfigBuilder) AddRepository(name string, config *RepositoryConfig) *ConfigBuilder {
-
 	cb.config.Repositories[name] = config
 
 	return cb
-
 }
 
 // AddCluster adds a cluster configuration.
 
 func (cb *ConfigBuilder) AddCluster(name string, config *ClusterConfig) *ConfigBuilder {
-
 	cb.config.Clusters[name] = config
 
 	return cb
-
 }
 
 // WithFunctions sets function registry configuration.
 
 func (cb *ConfigBuilder) WithFunctions(config *FunctionRegistryConfig) *ConfigBuilder {
-
 	cb.config.Functions = config
 
 	return cb
-
 }
 
 // WithPolicies sets policy configuration.
 
 func (cb *ConfigBuilder) WithPolicies(config *PolicyConfig) *ConfigBuilder {
-
 	cb.config.Policies = config
 
 	return cb
-
 }
 
 // WithObservability sets observability configuration.
 
 func (cb *ConfigBuilder) WithObservability(config *ObservabilityConfig) *ConfigBuilder {
-
 	cb.config.Observability = config
 
 	return cb
-
 }
 
 // WithSecurity sets security configuration.
 
 func (cb *ConfigBuilder) WithSecurity(config *SecurityConfig) *ConfigBuilder {
-
 	cb.config.Security = config
 
 	return cb
-
 }
 
 // WithPerformance sets performance configuration.
 
 func (cb *ConfigBuilder) WithPerformance(config *PerformanceConfig) *ConfigBuilder {
-
 	cb.config.Performance = config
 
 	return cb
-
 }
 
 // Build returns the built configuration.
 
 func (cb *ConfigBuilder) Build() *Config {
-
 	// Apply defaults.
 
 	cb.applyDefaults()
@@ -2085,65 +2052,46 @@ func (cb *ConfigBuilder) Build() *Config {
 	}
 
 	return cb.config
-
 }
 
 // applyDefaults applies default values to the configuration.
 
 func (cb *ConfigBuilder) applyDefaults() {
-
 	if cb.config.KubernetesConfig == nil {
-
 		cb.config.KubernetesConfig = cb.getDefaultKubernetesConfig()
-
 	}
 
 	if cb.config.PorchConfig == nil {
-
 		cb.config.PorchConfig = cb.getDefaultPorchConfig()
-
 	}
 
 	if cb.config.Functions == nil {
-
 		cb.config.Functions = cb.getDefaultFunctionConfig()
-
 	}
 
 	if cb.config.Observability == nil {
-
 		cb.config.Observability = cb.getDefaultObservabilityConfig()
-
 	}
 
 	if cb.config.Security == nil {
-
 		cb.config.Security = cb.getDefaultSecurityConfig()
-
 	}
 
 	if cb.config.Performance == nil {
-
 		cb.config.Performance = cb.getDefaultPerformanceConfig()
-
 	}
-
 }
 
 // getDefaultKubernetesConfig returns default Kubernetes configuration.
 
 func (cb *ConfigBuilder) getDefaultKubernetesConfig() *KubernetesConfig {
-
 	var kubeconfig string
 
 	if home := homedir.HomeDir(); home != "" {
-
 		kubeconfig = filepath.Join(home, ".kube", "config")
-
 	}
 
 	return &KubernetesConfig{
-
 		KubeconfigPath: kubeconfig,
 
 		QPS: 50,
@@ -2154,21 +2102,17 @@ func (cb *ConfigBuilder) getDefaultKubernetesConfig() *KubernetesConfig {
 
 		UserAgent: "nephoran-porch-client/v1.0.0",
 	}
-
 }
 
 // getDefaultPorchConfig returns default Porch configuration.
 
 func (cb *ConfigBuilder) getDefaultPorchConfig() *PorchServiceConfig {
-
 	return &PorchServiceConfig{
-
 		APIVersion: "porch.kpt.dev/v1alpha1",
 
 		Timeout: 30 * time.Second,
 
 		Retry: &RetryConfig{
-
 			MaxRetries: 3,
 
 			InitialDelay: 1 * time.Second,
@@ -2181,7 +2125,6 @@ func (cb *ConfigBuilder) getDefaultPorchConfig() *PorchServiceConfig {
 		},
 
 		CircuitBreaker: &CircuitBreakerConfig{
-
 			Enabled: true,
 
 			FailureThreshold: 5,
@@ -2196,7 +2139,6 @@ func (cb *ConfigBuilder) getDefaultPorchConfig() *PorchServiceConfig {
 		},
 
 		RateLimit: &RateLimitConfig{
-
 			Enabled: true,
 
 			RequestsPerSecond: 10,
@@ -2207,7 +2149,6 @@ func (cb *ConfigBuilder) getDefaultPorchConfig() *PorchServiceConfig {
 		},
 
 		ConnectionPool: &ConnectionPoolConfig{
-
 			MaxIdleConns: 10,
 
 			MaxOpenConns: 100,
@@ -2219,19 +2160,15 @@ func (cb *ConfigBuilder) getDefaultPorchConfig() *PorchServiceConfig {
 			HealthCheckInterval: 30 * time.Second,
 		},
 	}
-
 }
 
 // getDefaultFunctionConfig returns default function configuration.
 
 func (cb *ConfigBuilder) getDefaultFunctionConfig() *FunctionRegistryConfig {
-
 	return &FunctionRegistryConfig{
-
 		DefaultRegistry: "gcr.io/kpt-fn",
 
 		Execution: &FunctionExecutionConfig{
-
 			Runtime: "docker",
 
 			DefaultTimeout: 5 * time.Minute,
@@ -2243,7 +2180,6 @@ func (cb *ConfigBuilder) getDefaultFunctionConfig() *FunctionRegistryConfig {
 			AllowPrivileged: false,
 
 			ResourceLimits: &FunctionResourceLimits{
-
 				CPU: "1000m",
 
 				Memory: "1Gi",
@@ -2255,7 +2191,6 @@ func (cb *ConfigBuilder) getDefaultFunctionConfig() *FunctionRegistryConfig {
 		},
 
 		Cache: &FunctionCacheConfig{
-
 			Enabled: true,
 
 			Size: "1Gi",
@@ -2267,17 +2202,13 @@ func (cb *ConfigBuilder) getDefaultFunctionConfig() *FunctionRegistryConfig {
 			Strategy: "LRU",
 		},
 	}
-
 }
 
 // getDefaultObservabilityConfig returns default observability configuration.
 
 func (cb *ConfigBuilder) getDefaultObservabilityConfig() *ObservabilityConfig {
-
 	return &ObservabilityConfig{
-
 		Metrics: &MetricsConfig{
-
 			Enabled: true,
 
 			Provider: "prometheus",
@@ -2286,7 +2217,6 @@ func (cb *ConfigBuilder) getDefaultObservabilityConfig() *ObservabilityConfig {
 		},
 
 		Logging: &LoggingConfig{
-
 			Level: "info",
 
 			Format: "json",
@@ -2295,7 +2225,6 @@ func (cb *ConfigBuilder) getDefaultObservabilityConfig() *ObservabilityConfig {
 		},
 
 		Tracing: &TracingConfig{
-
 			Enabled: false,
 
 			Provider: "jaeger",
@@ -2304,7 +2233,6 @@ func (cb *ConfigBuilder) getDefaultObservabilityConfig() *ObservabilityConfig {
 		},
 
 		HealthCheck: &HealthCheckConfig{
-
 			Enabled: true,
 
 			Port: 8080,
@@ -2320,31 +2248,24 @@ func (cb *ConfigBuilder) getDefaultObservabilityConfig() *ObservabilityConfig {
 			UnhealthyThreshold: 3,
 		},
 	}
-
 }
 
 // getDefaultSecurityConfig returns default security configuration.
 
 func (cb *ConfigBuilder) getDefaultSecurityConfig() *SecurityConfig {
-
 	return &SecurityConfig{
-
 		Authentication: &SecurityAuthConfig{
-
 			Methods: []string{"cert"},
 		},
 
 		Authorization: &AuthorizationConfig{
-
 			Enabled: true,
 
 			Mode: "rbac",
 		},
 
 		Encryption: &EncryptionConfig{
-
 			InTransit: &EncryptionInTransitConfig{
-
 				Enabled: true,
 
 				MinTLSVersion: "1.3",
@@ -2352,23 +2273,18 @@ func (cb *ConfigBuilder) getDefaultSecurityConfig() *SecurityConfig {
 		},
 
 		Certificates: &CertificateConfig{
-
 			AutoRotation: true,
 
 			TTL: 24 * time.Hour,
 		},
 	}
-
 }
 
 // getDefaultPerformanceConfig returns default performance configuration.
 
 func (cb *ConfigBuilder) getDefaultPerformanceConfig() *PerformanceConfig {
-
 	return &PerformanceConfig{
-
 		Client: &ClientPerformanceConfig{
-
 			MaxConnections: 100,
 
 			ConnectionTimeout: 30 * time.Second,
@@ -2379,13 +2295,10 @@ func (cb *ConfigBuilder) getDefaultPerformanceConfig() *PerformanceConfig {
 		},
 
 		Caching: &CachingConfig{
-
 			Enabled: true,
 
 			Layers: []CacheLayerConfig{
-
 				{
-
 					Name: "memory",
 
 					Type: "memory",
@@ -2399,23 +2312,17 @@ func (cb *ConfigBuilder) getDefaultPerformanceConfig() *PerformanceConfig {
 			},
 		},
 	}
-
 }
 
 // validate validates the configuration.
 
 func (cb *ConfigBuilder) validate() error {
-
 	if cb.config.PorchConfig == nil {
-
 		return fmt.Errorf("porch configuration is required")
-
 	}
 
 	if cb.config.PorchConfig.Endpoint == "" {
-
 		return fmt.Errorf("porch endpoint is required")
-
 	}
 
 	// Validate repositories.
@@ -2423,15 +2330,11 @@ func (cb *ConfigBuilder) validate() error {
 	for name, repo := range cb.config.Repositories {
 
 		if repo.URL == "" {
-
 			return fmt.Errorf("repository %s: URL is required", name)
-
 		}
 
 		if repo.Type == "" {
-
 			return fmt.Errorf("repository %s: type is required", name)
-
 		}
 
 	}
@@ -2439,17 +2342,12 @@ func (cb *ConfigBuilder) validate() error {
 	// Validate clusters.
 
 	for name, cluster := range cb.config.Clusters {
-
 		if cluster.Endpoint == "" && cluster.KubeconfigPath == "" {
-
 			return fmt.Errorf("cluster %s: either endpoint or kubeconfig path is required", name)
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // Configuration factory functions.
@@ -2457,20 +2355,16 @@ func (cb *ConfigBuilder) validate() error {
 // NewConfig creates a new empty configuration.
 
 func NewConfig() *Config {
-
 	return &Config{
-
 		Repositories: make(map[string]*RepositoryConfig),
 
 		Clusters: make(map[string]*ClusterConfig),
 	}
-
 }
 
 // WithDefaults adds default values to the configuration.
 
 func (c *Config) WithDefaults() *Config {
-
 	builder := NewConfigBuilder()
 
 	builder.config = c
@@ -2478,43 +2372,33 @@ func (c *Config) WithDefaults() *Config {
 	builder.applyDefaults()
 
 	return builder.config
-
 }
 
 // NewDefaultConfig creates a default configuration.
 
 func NewDefaultConfig() *Config {
-
 	return NewConfigBuilder().Build()
-
 }
 
 // NewConfigFromEnvironment creates configuration from environment variables.
 
 func NewConfigFromEnvironment() (*Config, error) {
-
 	builder := NewConfigBuilder()
 
 	// Set Porch endpoint from environment.
 
 	if endpoint := os.Getenv("PORCH_ENDPOINT"); endpoint != "" {
-
 		builder.WithPorchConfig(&PorchServiceConfig{
-
 			Endpoint: endpoint,
 		})
-
 	}
 
 	// Set Kubernetes context from environment.
 
 	if context := os.Getenv("KUBERNETES_CONTEXT"); context != "" {
-
 		builder.WithKubernetesConfig(&KubernetesConfig{
-
 			Context: context,
 		})
-
 	}
 
 	// Set namespace from environment.
@@ -2522,9 +2406,7 @@ func NewConfigFromEnvironment() (*Config, error) {
 	if namespace := os.Getenv("PORCH_NAMESPACE"); namespace != "" {
 
 		if builder.config.KubernetesConfig == nil {
-
 			builder.config.KubernetesConfig = &KubernetesConfig{}
-
 		}
 
 		builder.config.KubernetesConfig.Namespace = namespace
@@ -2534,35 +2416,27 @@ func NewConfigFromEnvironment() (*Config, error) {
 	config := builder.Build()
 
 	if config == nil {
-
 		return nil, fmt.Errorf("failed to build configuration from environment")
-
 	}
 
 	return config, nil
-
 }
 
 // LoadConfigFromFile loads configuration from a file.
 
 func LoadConfigFromFile(filepath string) (*Config, error) {
-
 	// Implementation would load from YAML/JSON file.
 
 	// For now, return default config.
 
 	return NewDefaultConfig(), nil
-
 }
 
 // GetKubernetesConfig creates Kubernetes REST config from Porch config.
 
 func (c *Config) GetKubernetesConfig() (*rest.Config, error) {
-
 	if c.KubernetesConfig == nil {
-
 		return nil, fmt.Errorf("kubernetes configuration not specified")
-
 	}
 
 	var config *rest.Config
@@ -2570,7 +2444,6 @@ func (c *Config) GetKubernetesConfig() (*rest.Config, error) {
 	var err error
 
 	if c.KubernetesConfig.KubeconfigPath != "" {
-
 		// Load from kubeconfig file.
 
 		config, err = clientcmd.BuildConfigFromFlags(
@@ -2579,70 +2452,49 @@ func (c *Config) GetKubernetesConfig() (*rest.Config, error) {
 
 			c.KubernetesConfig.KubeconfigPath,
 		)
-
 	} else {
-
 		// Use in-cluster config.
 
 		config, err = rest.InClusterConfig()
-
 	}
 
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create kubernetes config: %w", err)
-
 	}
 
 	// Apply configuration overrides.
 
 	if c.KubernetesConfig.QPS > 0 {
-
 		config.QPS = c.KubernetesConfig.QPS
-
 	}
 
 	if c.KubernetesConfig.Burst > 0 {
-
 		config.Burst = c.KubernetesConfig.Burst
-
 	}
 
 	if c.KubernetesConfig.Timeout > 0 {
-
 		config.Timeout = c.KubernetesConfig.Timeout
-
 	}
 
 	if c.KubernetesConfig.UserAgent != "" {
-
 		config.UserAgent = c.KubernetesConfig.UserAgent
-
 	}
 
 	// Set additional headers.
 
 	if len(c.KubernetesConfig.Headers) > 0 {
-
 		if config.WrapTransport == nil {
-
 			config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
-
 				return &headerRoundTripper{
-
 					headers: c.KubernetesConfig.Headers,
 
 					rt: rt,
 				}
-
 			}
-
 		}
-
 	}
 
 	return config, nil
-
 }
 
 // headerRoundTripper adds custom headers to requests.
@@ -2656,121 +2508,88 @@ type headerRoundTripper struct {
 // RoundTrip performs roundtrip operation.
 
 func (h *headerRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-
 	for key, value := range h.headers {
-
 		req.Header.Set(key, value)
-
 	}
 
 	return h.rt.RoundTrip(req)
-
 }
 
 // GetRepository returns repository configuration by name.
 
 func (c *Config) GetRepository(name string) (*RepositoryConfig, error) {
-
 	repo, exists := c.Repositories[name]
 
 	if !exists {
-
 		return nil, fmt.Errorf("repository %s not found", name)
-
 	}
 
 	return repo, nil
-
 }
 
 // GetCluster returns cluster configuration by name.
 
 func (c *Config) GetCluster(name string) (*ClusterConfig, error) {
-
 	cluster, exists := c.Clusters[name]
 
 	if !exists {
-
 		return nil, fmt.Errorf("cluster %s not found", name)
-
 	}
 
 	return cluster, nil
-
 }
 
 // IsFeatureEnabled checks if an experimental feature is enabled.
 
 func (c *Config) IsFeatureEnabled(feature string) bool {
-
 	if c.PorchConfig == nil {
-
 		return false
-
 	}
 
 	for _, enabled := range c.PorchConfig.ExperimentalFeatures {
-
 		if enabled == feature {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 // GetDefaultWorkflow returns the default workflow configuration.
 
 func (c *Config) GetDefaultWorkflow() (*WorkflowConfig, error) {
-
 	if c.Policies == nil || c.Policies.DefaultWorkflow == "" {
-
 		return nil, fmt.Errorf("no default workflow configured")
-
 	}
 
 	workflow, exists := c.Policies.Workflows[c.Policies.DefaultWorkflow]
 
 	if !exists {
-
 		return nil, fmt.Errorf("default workflow %s not found", c.Policies.DefaultWorkflow)
-
 	}
 
 	return workflow, nil
-
 }
 
 // GetWorkflowForPackage returns workflow configuration for a specific package type.
 
 func (c *Config) GetWorkflowForPackage(packageType string) (*WorkflowConfig, error) {
-
 	if c.Policies == nil {
-
 		return c.GetDefaultWorkflow()
-
 	}
 
 	workflow, exists := c.Policies.Workflows[packageType]
 
 	if !exists {
-
 		return c.GetDefaultWorkflow()
-
 	}
 
 	return workflow, nil
-
 }
 
 // ValidateConfiguration validates the entire configuration.
 
 func (c *Config) Validate() []error {
-
 	var errors []error
 
 	// Validate Kubernetes config.
@@ -2778,15 +2597,11 @@ func (c *Config) Validate() []error {
 	if c.KubernetesConfig != nil {
 
 		if c.KubernetesConfig.QPS < 0 {
-
 			errors = append(errors, fmt.Errorf("kubernetes QPS cannot be negative"))
-
 		}
 
 		if c.KubernetesConfig.Burst < 0 {
-
 			errors = append(errors, fmt.Errorf("kubernetes Burst cannot be negative"))
-
 		}
 
 	}
@@ -2794,21 +2609,15 @@ func (c *Config) Validate() []error {
 	// Validate Porch config.
 
 	if c.PorchConfig == nil {
-
 		errors = append(errors, fmt.Errorf("porch configuration is required"))
-
 	} else {
 
 		if c.PorchConfig.Endpoint == "" {
-
 			errors = append(errors, fmt.Errorf("porch endpoint is required"))
-
 		}
 
 		if c.PorchConfig.Timeout <= 0 {
-
 			errors = append(errors, fmt.Errorf("porch timeout must be positive"))
-
 		}
 
 	}
@@ -2818,21 +2627,15 @@ func (c *Config) Validate() []error {
 	for name, repo := range c.Repositories {
 
 		if repo.URL == "" {
-
 			errors = append(errors, fmt.Errorf("repository %s: URL is required", name))
-
 		}
 
 		if repo.Type == "" {
-
 			errors = append(errors, fmt.Errorf("repository %s: type is required", name))
-
 		}
 
 		if repo.Type != "git" && repo.Type != "oci" {
-
 			errors = append(errors, fmt.Errorf("repository %s: unsupported type %s", name, repo.Type))
-
 		}
 
 	}
@@ -2840,23 +2643,17 @@ func (c *Config) Validate() []error {
 	// Validate cluster configurations.
 
 	for name, cluster := range c.Clusters {
-
 		if cluster.Endpoint == "" && cluster.KubeconfigPath == "" {
-
 			errors = append(errors, fmt.Errorf("cluster %s: either endpoint or kubeconfig path is required", name))
-
 		}
-
 	}
 
 	return errors
-
 }
 
 // DeepCopy creates a deep copy of the configuration.
 
 func (c *Config) DeepCopy() *Config {
-
 	// Implementation would perform deep copy of all fields.
 
 	// For brevity, showing the pattern.
@@ -2874,9 +2671,7 @@ func (c *Config) DeepCopy() *Config {
 			copy.KubernetesConfig.Headers = make(map[string]string)
 
 			for k, v := range c.KubernetesConfig.Headers {
-
 				copy.KubernetesConfig.Headers[k] = v
-
 			}
 
 		}
@@ -2886,5 +2681,4 @@ func (c *Config) DeepCopy() *Config {
 	// Continue with other fields...
 
 	return copy
-
 }

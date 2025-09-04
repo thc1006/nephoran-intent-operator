@@ -81,7 +81,6 @@ type EnhancedRevocationSystem struct {
 // EnhancedRevocationConfig configures the enhanced revocation system.
 
 type EnhancedRevocationConfig struct {
-
 	// CRL Configuration.
 
 	CRLEnabled bool `yaml:"crl_enabled"`
@@ -208,13 +207,11 @@ type DeltaCRLProcessor struct {
 // processDelta processes a delta CRL update.
 
 func (d *DeltaCRLProcessor) processDelta(url string, crl *pkix.CertificateList) {
-
 	d.mu.Lock()
 
 	defer d.mu.Unlock()
 
 	d.baseCRLs[url] = crl
-
 }
 
 // OCSPManager manages OCSP operations.
@@ -249,7 +246,6 @@ type OCSPResponder struct {
 	ErrorCount uint32 // atomic counter (replaced atomic.Uint32)
 
 	RequestCount uint64 // atomic counter (replaced atomic.Uint64)
-
 }
 
 // StaplingCache caches OCSP stapling responses.
@@ -453,25 +449,19 @@ type ReplacementRequest struct {
 // NewEnhancedRevocationSystem creates a new enhanced revocation system.
 
 func NewEnhancedRevocationSystem(
-
 	config *EnhancedRevocationConfig,
 
 	logger *logging.StructuredLogger,
 
 	caManager *CAManager,
-
 ) (*EnhancedRevocationSystem, error) {
-
 	if config == nil {
-
 		return nil, fmt.Errorf("revocation config is required")
-
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	system := &EnhancedRevocationSystem{
-
 		config: config,
 
 		logger: logger,
@@ -486,11 +476,9 @@ func NewEnhancedRevocationSystem(
 	if config.CRLEnabled {
 
 		system.crlManager = &CRLManager{
-
 			distributionPoints: make(map[string]*CRLDistributionPoint),
 
 			httpClient: &http.Client{
-
 				Timeout: 30 * time.Second,
 			},
 
@@ -498,14 +486,11 @@ func NewEnhancedRevocationSystem(
 		}
 
 		if config.CRLDeltaEnabled {
-
 			system.crlManager.deltaProcessor = &DeltaCRLProcessor{
-
 				baseCRLs: make(map[string]*pkix.CertificateList),
 
 				deltaCRLs: make(map[string]*pkix.CertificateList),
 			}
-
 		}
 
 	}
@@ -515,36 +500,28 @@ func NewEnhancedRevocationSystem(
 	if config.OCSPEnabled {
 
 		system.ocspManager = &OCSPManager{
-
 			responders: make(map[string]*OCSPResponder),
 
 			logger: logger,
 		}
 
 		if config.OCSPStaplingEnabled {
-
 			system.ocspManager.staplingCache = &StaplingCache{
-
 				responses: make(map[string]*StapledResponse),
 
 				maxSize: config.OCSPCacheSize,
 
 				ttl: config.OCSPCacheTTL,
 			}
-
 		}
 
 		if config.OCSPNonceEnabled {
-
 			system.ocspManager.nonceGenerator = &NonceGenerator{
-
 				nonces: make(map[string]time.Time),
 			}
-
 		}
 
 		system.ocspManager.connectionPool = &OCSPConnectionPool{
-
 			connections: make(map[string]*PooledConnection),
 
 			maxSize: config.ConnectionPoolSize,
@@ -559,9 +536,7 @@ func NewEnhancedRevocationSystem(
 	if config.CacheEnabled {
 
 		system.cacheManager = &RevocationCacheManager{
-
 			l1Cache: &L1RevocationCache{
-
 				entries: make(map[string]*RevocationCacheEntry),
 
 				maxSize: config.L1CacheSize,
@@ -573,15 +548,11 @@ func NewEnhancedRevocationSystem(
 		}
 
 		if config.L2CacheEnabled {
-
 			// Initialize L2 cache (Redis or similar).
-
 		}
 
 		if config.PreloadCache {
-
 			// Initialize preload cache.
-
 		}
 
 	}
@@ -589,9 +560,7 @@ func NewEnhancedRevocationSystem(
 	// Initialize batch processor.
 
 	if config.BatchProcessingEnabled {
-
 		system.batchProcessor = &BatchRevocationProcessor{
-
 			batchQueue: make(chan *RevocationBatch, 100),
 
 			batchSize: config.BatchSize,
@@ -600,22 +569,18 @@ func NewEnhancedRevocationSystem(
 
 			logger: logger,
 		}
-
 	}
 
 	// Initialize async validator.
 
 	if config.AsyncValidation {
-
 		system.asyncValidator = &AsyncRevocationValidator{
-
 			workers: config.MaxConcurrentChecks,
 
 			workQueue: make(chan *AsyncRevocationRequest, 1000),
 
 			logger: logger,
 		}
-
 	}
 
 	// Initialize circuit breaker.
@@ -623,13 +588,10 @@ func NewEnhancedRevocationSystem(
 	if config.CircuitBreakerEnabled {
 
 		system.circuitBreaker = &RevocationCircuitBreaker{
-
 			crlBreaker: &CircuitBreaker{
-
 				name: "CRL",
 
 				config: &CircuitBreakerConfig{
-
 					FailureThreshold: uint32(config.FailureThreshold),
 
 					SuccessThreshold: 2,
@@ -639,11 +601,9 @@ func NewEnhancedRevocationSystem(
 			},
 
 			ocspBreaker: &CircuitBreaker{
-
 				name: "OCSP",
 
 				config: &CircuitBreakerConfig{
-
 					FailureThreshold: uint32(config.FailureThreshold),
 
 					SuccessThreshold: 2,
@@ -662,16 +622,13 @@ func NewEnhancedRevocationSystem(
 	// Initialize automatic replacer.
 
 	if config.AutoReplaceRevoked && caManager != nil {
-
 		system.automaticReplacer = &AutomaticCertificateReplacer{
-
 			caManager: caManager,
 
 			replacementQueue: make(chan *ReplacementRequest, 100),
 
 			logger: logger,
 		}
-
 	}
 
 	// Initialize metrics collector.
@@ -679,13 +636,11 @@ func NewEnhancedRevocationSystem(
 	system.metricsCollector = NewRevocationMetricsCollector()
 
 	return system, nil
-
 }
 
 // CheckRevocationEnhanced performs enhanced revocation checking.
 
 func (s *EnhancedRevocationSystem) CheckRevocationEnhanced(ctx context.Context, cert *x509.Certificate) (*RevocationCheckResult, error) {
-
 	start := time.Now()
 
 	// Check cache first.
@@ -703,24 +658,19 @@ func (s *EnhancedRevocationSystem) CheckRevocationEnhanced(ctx context.Context, 
 	// Check circuit breakers.
 
 	if s.circuitBreaker != nil {
-
 		if !s.circuitBreaker.AllowCRLCheck() && !s.circuitBreaker.AllowOCSPCheck() {
 
 			if s.config.SoftFailEnabled {
-
 				return &RevocationCheckResult{
-
 					Status: RevocationStatusUnknown,
 
 					Warnings: []string{"all revocation check methods unavailable"},
 				}, nil
-
 			}
 
 			return nil, fmt.Errorf("revocation checking unavailable due to circuit breaker")
 
 		}
-
 	}
 
 	// Perform revocation check based on configuration.
@@ -730,17 +680,11 @@ func (s *EnhancedRevocationSystem) CheckRevocationEnhanced(ctx context.Context, 
 	var err error
 
 	if s.config.AsyncValidation && s.asyncValidator != nil {
-
 		result, err = s.performAsyncCheck(ctx, cert)
-
 	} else if s.config.BatchProcessingEnabled && s.batchProcessor != nil {
-
 		result, err = s.performBatchCheck(ctx, cert)
-
 	} else {
-
 		result, err = s.performStandardCheck(ctx, cert)
-
 	}
 
 	if err != nil {
@@ -748,16 +692,13 @@ func (s *EnhancedRevocationSystem) CheckRevocationEnhanced(ctx context.Context, 
 		s.handleCheckError(err)
 
 		if s.config.SoftFailEnabled {
-
 			return &RevocationCheckResult{
-
 				Status: RevocationStatusUnknown,
 
 				Errors: []string{err.Error()},
 
 				Warnings: []string{"soft-fail mode: treating as unknown"},
 			}, nil
-
 		}
 
 		return nil, err
@@ -771,9 +712,7 @@ func (s *EnhancedRevocationSystem) CheckRevocationEnhanced(ctx context.Context, 
 	// Handle revoked certificates.
 
 	if result.Status == RevocationStatusRevoked && s.automaticReplacer != nil {
-
 		s.scheduleReplacement(cert, result)
-
 	}
 
 	// Record metrics.
@@ -785,15 +724,12 @@ func (s *EnhancedRevocationSystem) CheckRevocationEnhanced(ctx context.Context, 
 	s.metricsCollector.RecordCheckResult(result.Status)
 
 	return result, nil
-
 }
 
 // performStandardCheck performs standard revocation checking.
 
 func (s *EnhancedRevocationSystem) performStandardCheck(ctx context.Context, cert *x509.Certificate) (*RevocationCheckResult, error) {
-
 	result := &RevocationCheckResult{
-
 		SerialNumber: cert.SerialNumber.String(),
 
 		Status: RevocationStatusUnknown,
@@ -810,9 +746,7 @@ func (s *EnhancedRevocationSystem) performStandardCheck(ctx context.Context, cer
 		ocspResult := s.checkOCSPEnhanced(ctx, cert)
 
 		if ocspResult.Status != RevocationStatusUnknown {
-
 			return ocspResult, nil
-
 		}
 
 		result.Errors = append(result.Errors, ocspResult.Errors...)
@@ -828,9 +762,7 @@ func (s *EnhancedRevocationSystem) performStandardCheck(ctx context.Context, cer
 		crlResult := s.checkCRLEnhanced(ctx, cert)
 
 		if crlResult.Status != RevocationStatusUnknown {
-
 			return crlResult, nil
-
 		}
 
 		result.Errors = append(result.Errors, crlResult.Errors...)
@@ -842,15 +774,12 @@ func (s *EnhancedRevocationSystem) performStandardCheck(ctx context.Context, cer
 	result.CheckDuration = time.Since(result.CheckTime)
 
 	return result, nil
-
 }
 
 // checkOCSPEnhanced performs enhanced OCSP checking.
 
 func (s *EnhancedRevocationSystem) checkOCSPEnhanced(ctx context.Context, cert *x509.Certificate) *RevocationCheckResult {
-
 	result := &RevocationCheckResult{
-
 		SerialNumber: cert.SerialNumber.String(),
 
 		Status: RevocationStatusUnknown,
@@ -863,13 +792,9 @@ func (s *EnhancedRevocationSystem) checkOCSPEnhanced(ctx context.Context, cert *
 	// Check OCSP stapling cache first.
 
 	if s.config.OCSPStaplingEnabled {
-
 		if stapled := s.ocspManager.staplingCache.Get(cert.SerialNumber.String()); stapled != nil {
-
 			return s.parseStapledResponse(stapled, result)
-
 		}
-
 	}
 
 	// Get best OCSP responder.
@@ -887,7 +812,6 @@ func (s *EnhancedRevocationSystem) checkOCSPEnhanced(ctx context.Context, cert *
 	// Create OCSP request.
 
 	ocspReq, err := s.createOCSPRequest(cert)
-
 	if err != nil {
 
 		result.Errors = append(result.Errors, fmt.Sprintf("failed to create OCSP request: %v", err))
@@ -911,7 +835,6 @@ func (s *EnhancedRevocationSystem) checkOCSPEnhanced(ctx context.Context, cert *
 	// Send OCSP request.
 
 	ocspResp, err := s.sendOCSPRequest(ctx, responder, ocspReq, cert)
-
 	if err != nil {
 
 		atomic.AddUint32(&responder.ErrorCount, 1)
@@ -931,15 +854,12 @@ func (s *EnhancedRevocationSystem) checkOCSPEnhanced(ctx context.Context, cert *
 	// Parse OCSP response.
 
 	return s.parseOCSPResponse(ocspResp, nonce, result)
-
 }
 
 // checkCRLEnhanced performs enhanced CRL checking.
 
 func (s *EnhancedRevocationSystem) checkCRLEnhanced(ctx context.Context, cert *x509.Certificate) *RevocationCheckResult {
-
 	result := &RevocationCheckResult{
-
 		SerialNumber: cert.SerialNumber.String(),
 
 		Status: RevocationStatusUnknown,
@@ -1022,15 +942,12 @@ func (s *EnhancedRevocationSystem) checkCRLEnhanced(ctx context.Context, cert *x
 	result.CheckDuration = time.Since(result.CheckTime)
 
 	return result
-
 }
 
 // performAsyncCheck performs asynchronous revocation checking.
 
 func (s *EnhancedRevocationSystem) performAsyncCheck(ctx context.Context, cert *x509.Certificate) (*RevocationCheckResult, error) {
-
 	request := &AsyncRevocationRequest{
-
 		ID: fmt.Sprintf("%s-%d", cert.SerialNumber.String(), time.Now().UnixNano()),
 
 		Certificate: cert,
@@ -1077,13 +994,11 @@ func (s *EnhancedRevocationSystem) performAsyncCheck(ctx context.Context, cert *
 		return nil, fmt.Errorf("async validation timeout")
 
 	}
-
 }
 
 // performBatchCheck performs batch revocation checking.
 
 func (s *EnhancedRevocationSystem) performBatchCheck(ctx context.Context, cert *x509.Certificate) (*RevocationCheckResult, error) {
-
 	// Find or create batch.
 
 	batch := s.batchProcessor.GetOrCreateBatch()
@@ -1095,17 +1010,13 @@ func (s *EnhancedRevocationSystem) performBatchCheck(ctx context.Context, cert *
 	// Check if batch is ready.
 
 	if len(batch.Certificates) >= s.config.BatchSize {
-
 		// Process batch immediately.
 
 		s.batchProcessor.ProcessBatch(batch)
-
 	} else {
-
 		// Schedule batch processing.
 
 		s.batchProcessor.ScheduleBatch(batch)
-
 	}
 
 	// Wait for result.
@@ -1115,9 +1026,7 @@ func (s *EnhancedRevocationSystem) performBatchCheck(ctx context.Context, cert *
 	case <-batch.CompleteChan:
 
 		if result, ok := batch.Results[cert.SerialNumber.String()]; ok {
-
 			return result, nil
-
 		}
 
 		return nil, fmt.Errorf("certificate not found in batch results")
@@ -1131,17 +1040,13 @@ func (s *EnhancedRevocationSystem) performBatchCheck(ctx context.Context, cert *
 		return nil, fmt.Errorf("batch processing timeout")
 
 	}
-
 }
 
 // Cache management.
 
 func (s *EnhancedRevocationSystem) checkCache(cert *x509.Certificate) *RevocationCheckResult {
-
 	if s.cacheManager == nil {
-
 		return nil
-
 	}
 
 	key := cert.SerialNumber.String()
@@ -1155,7 +1060,6 @@ func (s *EnhancedRevocationSystem) checkCache(cert *x509.Certificate) *Revocatio
 		entry.LastAccessed = time.Now()
 
 		return &RevocationCheckResult{
-
 			SerialNumber: entry.SerialNumber,
 
 			Status: entry.Status,
@@ -1174,25 +1078,18 @@ func (s *EnhancedRevocationSystem) checkCache(cert *x509.Certificate) *Revocatio
 	// Check L2 cache if available.
 
 	if s.cacheManager.l2Cache != nil {
-
 		return s.cacheManager.l2Cache.Get(key)
-
 	}
 
 	return nil
-
 }
 
 func (s *EnhancedRevocationSystem) cacheResult(cert *x509.Certificate, result *RevocationCheckResult) {
-
 	if s.cacheManager == nil {
-
 		return
-
 	}
 
 	entry := &RevocationCacheEntry{
-
 		SerialNumber: cert.SerialNumber.String(),
 
 		Status: result.Status,
@@ -1203,9 +1100,7 @@ func (s *EnhancedRevocationSystem) cacheResult(cert *x509.Certificate, result *R
 	}
 
 	if result.NextUpdate != nil {
-
 		entry.NextUpdate = *result.NextUpdate
-
 	}
 
 	// Store in L1 cache.
@@ -1215,17 +1110,13 @@ func (s *EnhancedRevocationSystem) cacheResult(cert *x509.Certificate, result *R
 	// Store in L2 cache if available.
 
 	if s.cacheManager.l2Cache != nil {
-
 		s.cacheManager.l2Cache.Put(cert.SerialNumber.String(), entry)
-
 	}
-
 }
 
 // CRL management.
 
 func (s *EnhancedRevocationSystem) shouldUpdateCRL(dp *CRLDistributionPoint) bool {
-
 	dp.mu.RLock()
 
 	defer dp.mu.RUnlock()
@@ -1233,25 +1124,19 @@ func (s *EnhancedRevocationSystem) shouldUpdateCRL(dp *CRLDistributionPoint) boo
 	// Check if update is already in progress.
 
 	if atomic.LoadInt32(&dp.UpdateInProgress) == 1 {
-
 		return false
-
 	}
 
 	// Check if CRL exists.
 
 	if dp.CRL == nil {
-
 		return true
-
 	}
 
 	// Check if CRL has expired.
 
 	if time.Now().After(dp.NextUpdate) {
-
 		return true
-
 	}
 
 	// Check if it's time for scheduled update.
@@ -1259,23 +1144,17 @@ func (s *EnhancedRevocationSystem) shouldUpdateCRL(dp *CRLDistributionPoint) boo
 	updateWindow := dp.NextUpdate.Sub(dp.LastUpdate) / 4
 
 	if time.Since(dp.LastUpdate) > updateWindow*3 {
-
 		return true
-
 	}
 
 	return false
-
 }
 
 func (s *EnhancedRevocationSystem) updateCRL(ctx context.Context, dp *CRLDistributionPoint) error {
-
 	// Mark update in progress.
 
 	if !atomic.CompareAndSwapInt32(&dp.UpdateInProgress, 0, 1) {
-
 		return nil // Update already in progress
-
 	}
 
 	defer atomic.StoreInt32(&dp.UpdateInProgress, 0)
@@ -1283,11 +1162,8 @@ func (s *EnhancedRevocationSystem) updateCRL(ctx context.Context, dp *CRLDistrib
 	// Fetch CRL.
 
 	req, err := http.NewRequestWithContext(ctx, "GET", dp.URL, http.NoBody)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create CRL request: %w", err)
-
 	}
 
 	// Add If-Modified-Since header if we have a previous CRL.
@@ -1295,22 +1171,17 @@ func (s *EnhancedRevocationSystem) updateCRL(ctx context.Context, dp *CRLDistrib
 	dp.mu.RLock()
 
 	if dp.CRL != nil && !dp.LastUpdate.IsZero() {
-
 		req.Header.Set("If-Modified-Since", dp.LastUpdate.Format(http.TimeFormat))
-
 	}
 
 	dp.mu.RUnlock()
 
 	resp, err := s.crlManager.httpClient.Do(req)
-
 	if err != nil {
-
 		return fmt.Errorf("CRL request failed: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Handle 304 Not Modified.
 
@@ -1323,27 +1194,20 @@ func (s *EnhancedRevocationSystem) updateCRL(ctx context.Context, dp *CRLDistrib
 	}
 
 	if resp.StatusCode != http.StatusOK {
-
 		return fmt.Errorf("CRL server returned status %d", resp.StatusCode)
-
 	}
 
 	// Check content length.
 
 	if resp.ContentLength > s.config.CRLMaxSize {
-
 		return fmt.Errorf("CRL size (%d) exceeds maximum (%d)", resp.ContentLength, s.config.CRLMaxSize)
-
 	}
 
 	// Read CRL data.
 
 	crlData, err := io.ReadAll(io.LimitReader(resp.Body, s.config.CRLMaxSize))
-
 	if err != nil {
-
 		return fmt.Errorf("failed to read CRL data: %w", err)
-
 	}
 
 	// Parse CRL using new API.
@@ -1387,9 +1251,7 @@ func (s *EnhancedRevocationSystem) updateCRL(ctx context.Context, dp *CRLDistrib
 	// Process delta CRL if enabled.
 
 	if s.config.CRLDeltaEnabled && s.crlManager.deltaProcessor != nil {
-
 		s.crlManager.deltaProcessor.processDelta(dp.URL, crl)
-
 	}
 
 	s.logger.Info("CRL updated successfully",
@@ -1401,78 +1263,57 @@ func (s *EnhancedRevocationSystem) updateCRL(ctx context.Context, dp *CRLDistrib
 		"revoked_count", len(crl.TBSCertList.RevokedCertificates))
 
 	return nil
-
 }
 
 func (s *EnhancedRevocationSystem) isCertificateRevoked(cert *x509.Certificate, dp *CRLDistributionPoint) bool {
-
 	dp.mu.RLock()
 
 	defer dp.mu.RUnlock()
 
 	if dp.CRL == nil {
-
 		return false
-
 	}
 
 	// Check base CRL.
 
 	for _, revoked := range dp.CRL.TBSCertList.RevokedCertificates {
-
 		if revoked.SerialNumber.Cmp(cert.SerialNumber) == 0 {
-
 			return true
-
 		}
-
 	}
 
 	// Check delta CRL if available.
 
 	if dp.DeltaCRL != nil {
-
 		for _, revoked := range dp.DeltaCRL.TBSCertList.RevokedCertificates {
-
 			if revoked.SerialNumber.Cmp(cert.SerialNumber) == 0 {
-
 				return true
-
 			}
-
 		}
-
 	}
 
 	return false
-
 }
 
 func (s *EnhancedRevocationSystem) getRevocationDetails(cert *x509.Certificate, dp *CRLDistributionPoint) *RevocationDetails {
-
 	dp.mu.RLock()
 
 	defer dp.mu.RUnlock()
 
 	if dp.CRL == nil {
-
 		return nil
-
 	}
 
 	for _, revoked := range dp.CRL.TBSCertList.RevokedCertificates {
-
 		if revoked.SerialNumber.Cmp(cert.SerialNumber) == 0 {
 
 			details := &RevocationDetails{
-
 				RevokedAt: &revoked.RevocationTime,
 			}
 
 			// Extract revocation reason.
 
 			for _, ext := range revoked.Extensions {
-
 				if ext.Id.Equal([]int{2, 5, 29, 21}) { // reasonCode extension OID
 
 					if len(ext.Value) > 0 {
@@ -1482,25 +1323,20 @@ func (s *EnhancedRevocationSystem) getRevocationDetails(cert *x509.Certificate, 
 						details.RevocationReason = &reason
 
 					}
-
 				}
-
 			}
 
 			return details
 
 		}
-
 	}
 
 	return nil
-
 }
 
 // OCSP methods.
 
 func (s *EnhancedRevocationSystem) createOCSPRequest(cert *x509.Certificate) ([]byte, error) {
-
 	// Create OCSP request.
 
 	// This is simplified - real implementation needs issuer certificate.
@@ -1510,7 +1346,6 @@ func (s *EnhancedRevocationSystem) createOCSPRequest(cert *x509.Certificate) ([]
 	issuerKeyHash := sha256.Sum256(cert.AuthorityKeyId)
 
 	template := ocsp.Request{
-
 		HashAlgorithm: crypto.SHA256, // Use crypto.SHA256 instead of ocsp.SHA256
 
 		IssuerNameHash: issuerNameHash[:],
@@ -1521,27 +1356,20 @@ func (s *EnhancedRevocationSystem) createOCSPRequest(cert *x509.Certificate) ([]
 	}
 
 	return template.Marshal()
-
 }
 
 func (s *EnhancedRevocationSystem) addNonceToRequest(req, nonce []byte) []byte {
-
 	// Add nonce extension to OCSP request.
 
 	// This is a simplified implementation.
 
 	return req
-
 }
 
 func (s *EnhancedRevocationSystem) sendOCSPRequest(ctx context.Context, responder *OCSPResponder, reqData []byte, cert *x509.Certificate) (*ocsp.Response, error) {
-
 	req, err := http.NewRequestWithContext(ctx, "POST", responder.URL, bytes.NewReader(reqData))
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create OCSP request: %w", err)
-
 	}
 
 	req.Header.Set("Content-Type", "application/ocsp-request")
@@ -1551,59 +1379,42 @@ func (s *EnhancedRevocationSystem) sendOCSPRequest(ctx context.Context, responde
 	start := time.Now()
 
 	resp, err := responder.Client.Do(req)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("OCSP request failed: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	responder.ResponseTime = time.Since(start)
 
 	if resp.StatusCode != http.StatusOK {
-
 		return nil, fmt.Errorf("OCSP server returned status %d", resp.StatusCode)
-
 	}
 
 	respData, err := io.ReadAll(resp.Body)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to read OCSP response: %w", err)
-
 	}
 
 	ocspResp, err := ocsp.ParseResponse(respData, nil)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to parse OCSP response: %w", err)
-
 	}
 
 	// Cache stapled response if enabled.
 
 	if s.config.OCSPStaplingEnabled && cert != nil {
-
 		s.ocspManager.staplingCache.Put(cert.SerialNumber.String(), respData, ocspResp)
-
 	}
 
 	return ocspResp, nil
-
 }
 
 func (s *EnhancedRevocationSystem) parseOCSPResponse(resp *ocsp.Response, nonce []byte, result *RevocationCheckResult) *RevocationCheckResult {
-
 	// Verify nonce if provided.
 
 	if nonce != nil && !s.verifyOCSPNonce(resp, nonce) {
-
 		result.Warnings = append(result.Warnings, "OCSP nonce verification failed")
-
 	}
 
 	switch resp.Status {
@@ -1633,13 +1444,10 @@ func (s *EnhancedRevocationSystem) parseOCSPResponse(resp *ocsp.Response, nonce 
 	// Add OCSP details using the existing OCSPInfo from revocation_checker.go.
 
 	if result.Details == nil {
-
 		result.Details = &RevocationCheckDetails{}
-
 	}
 
 	result.Details.OCSPInfo = &OCSPInfo{
-
 		ResponderURL: "", // Will be filled by caller
 
 		ProducedAt: resp.ProducedAt,
@@ -1652,13 +1460,10 @@ func (s *EnhancedRevocationSystem) parseOCSPResponse(resp *ocsp.Response, nonce 
 	}
 
 	return result
-
 }
 
 func (s *EnhancedRevocationSystem) parseStapledResponse(stapled *StapledResponse, result *RevocationCheckResult) *RevocationCheckResult {
-
 	resp, err := ocsp.ParseResponse(stapled.Response, nil)
-
 	if err != nil {
 
 		result.Errors = append(result.Errors, fmt.Sprintf("failed to parse stapled response: %v", err))
@@ -1668,31 +1473,24 @@ func (s *EnhancedRevocationSystem) parseStapledResponse(stapled *StapledResponse
 	}
 
 	return s.parseOCSPResponse(resp, nil, result)
-
 }
 
 func (s *EnhancedRevocationSystem) verifyOCSPNonce(resp *ocsp.Response, expectedNonce []byte) bool {
-
 	// Extract nonce from response and compare.
 
 	// This is a simplified implementation.
 
 	return true
-
 }
 
 // Automatic replacement.
 
 func (s *EnhancedRevocationSystem) scheduleReplacement(cert *x509.Certificate, result *RevocationCheckResult) {
-
 	if s.automaticReplacer == nil {
-
 		return
-
 	}
 
 	request := &ReplacementRequest{
-
 		SerialNumber: cert.SerialNumber.String(),
 
 		RevokedCert: cert,
@@ -1703,15 +1501,11 @@ func (s *EnhancedRevocationSystem) scheduleReplacement(cert *x509.Certificate, r
 	}
 
 	if result.RevokedAt != nil {
-
 		request.RevocationTime = *result.RevokedAt
-
 	}
 
 	if result.RevocationReason != nil {
-
 		request.Reason = s.getRevocationReasonString(*result.RevocationReason)
-
 	}
 
 	select {
@@ -1731,13 +1525,10 @@ func (s *EnhancedRevocationSystem) scheduleReplacement(cert *x509.Certificate, r
 			"serial_number", cert.SerialNumber.String())
 
 	}
-
 }
 
 func (s *EnhancedRevocationSystem) getRevocationReasonString(reason int) string {
-
 	reasons := map[int]string{
-
 		0: "unspecified",
 
 		1: "keyCompromise",
@@ -1760,19 +1551,15 @@ func (s *EnhancedRevocationSystem) getRevocationReasonString(reason int) string 
 	}
 
 	if str, ok := reasons[reason]; ok {
-
 		return str
-
 	}
 
 	return fmt.Sprintf("unknown (%d)", reason)
-
 }
 
 // Error handling.
 
 func (s *EnhancedRevocationSystem) handleCheckError(err error) {
-
 	s.logger.Error("revocation check failed", "error", err)
 
 	s.metricsCollector.RecordError(err)
@@ -1780,21 +1567,17 @@ func (s *EnhancedRevocationSystem) handleCheckError(err error) {
 	// Update circuit breaker if needed.
 
 	if s.circuitBreaker != nil {
-
 		// Determine which circuit breaker to update based on error.
 
 		// This is simplified - real implementation would parse error.
 
 		s.circuitBreaker.crlBreaker.RecordFailure()
-
 	}
-
 }
 
 // Start starts the enhanced revocation system.
 
 func (s *EnhancedRevocationSystem) Start(ctx context.Context) error {
-
 	s.logger.Info("starting enhanced revocation system")
 
 	// Start CRL updater.
@@ -1810,7 +1593,6 @@ func (s *EnhancedRevocationSystem) Start(ctx context.Context) error {
 	// Start async validator workers.
 
 	if s.asyncValidator != nil {
-
 		for i := range s.asyncValidator.workers {
 
 			s.wg.Add(1)
@@ -1818,7 +1600,6 @@ func (s *EnhancedRevocationSystem) Start(ctx context.Context) error {
 			go s.runAsyncWorker(i)
 
 		}
-
 	}
 
 	// Start batch processor.
@@ -1848,25 +1629,21 @@ func (s *EnhancedRevocationSystem) Start(ctx context.Context) error {
 	go s.runCacheCleanup()
 
 	return nil
-
 }
 
 // Stop stops the enhanced revocation system.
 
 func (s *EnhancedRevocationSystem) Stop() {
-
 	s.logger.Info("stopping enhanced revocation system")
 
 	s.cancel()
 
 	s.wg.Wait()
-
 }
 
 // Worker routines.
 
 func (s *EnhancedRevocationSystem) runCRLUpdater() {
-
 	defer s.wg.Done()
 
 	ticker := time.NewTicker(s.config.CRLUpdateInterval)
@@ -1874,7 +1651,6 @@ func (s *EnhancedRevocationSystem) runCRLUpdater() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-s.ctx.Done():
@@ -1886,55 +1662,43 @@ func (s *EnhancedRevocationSystem) runCRLUpdater() {
 			s.updateAllCRLs()
 
 		}
-
 	}
-
 }
 
 func (s *EnhancedRevocationSystem) updateAllCRLs() {
-
 	s.crlManager.mu.RLock()
 
 	distributionPoints := make([]*CRLDistributionPoint, 0, len(s.crlManager.distributionPoints))
 
 	for _, dp := range s.crlManager.distributionPoints {
-
 		distributionPoints = append(distributionPoints, dp)
-
 	}
 
 	s.crlManager.mu.RUnlock()
 
 	for _, dp := range distributionPoints {
-
 		if s.shouldUpdateCRL(dp) {
 
 			ctx, cancel := context.WithTimeout(s.ctx, 30*time.Second)
 
 			if err := s.updateCRL(ctx, dp); err != nil {
-
 				s.logger.Warn("CRL update failed",
 
 					"url", dp.URL,
 
 					"error", err)
-
 			}
 
 			cancel()
 
 		}
-
 	}
-
 }
 
 func (s *EnhancedRevocationSystem) runAsyncWorker(workerID int) {
-
 	defer s.wg.Done()
 
 	for {
-
 		select {
 
 		case <-s.ctx.Done():
@@ -1946,28 +1710,21 @@ func (s *EnhancedRevocationSystem) runAsyncWorker(workerID int) {
 			s.processAsyncRequest(workerID, req)
 
 		}
-
 	}
-
 }
 
 func (s *EnhancedRevocationSystem) processAsyncRequest(workerID int, req *AsyncRevocationRequest) {
-
 	ctx, cancel := context.WithTimeout(s.ctx, req.Timeout)
 
 	defer cancel()
 
 	result, err := s.performStandardCheck(ctx, req.Certificate)
-
 	if err != nil {
-
 		result = &RevocationCheckResult{
-
 			Status: RevocationStatusUnknown,
 
 			Errors: []string{err.Error()},
 		}
-
 	}
 
 	select {
@@ -1983,15 +1740,12 @@ func (s *EnhancedRevocationSystem) processAsyncRequest(workerID int, req *AsyncR
 			"request_id", req.ID)
 
 	}
-
 }
 
 func (s *EnhancedRevocationSystem) runBatchProcessor() {
-
 	defer s.wg.Done()
 
 	for {
-
 		select {
 
 		case <-s.ctx.Done():
@@ -2003,13 +1757,10 @@ func (s *EnhancedRevocationSystem) runBatchProcessor() {
 			s.processBatch(batch)
 
 		}
-
 	}
-
 }
 
 func (s *EnhancedRevocationSystem) processBatch(batch *RevocationBatch) {
-
 	batch.Results = make(map[string]*RevocationCheckResult)
 
 	// Process certificates in parallel.
@@ -2027,7 +1778,6 @@ func (s *EnhancedRevocationSystem) processBatch(batch *RevocationBatch) {
 		wg.Add(1)
 
 		go func(c *x509.Certificate) {
-
 			defer wg.Done()
 
 			ctx, cancel := context.WithTimeout(s.ctx, s.config.OCSPTimeout)
@@ -2041,12 +1791,10 @@ func (s *EnhancedRevocationSystem) processBatch(batch *RevocationBatch) {
 
 				Result *RevocationCheckResult
 			}{
-
 				SerialNumber: c.SerialNumber.String(),
 
 				Result: result,
 			}
-
 		}(cert)
 
 	}
@@ -2054,33 +1802,26 @@ func (s *EnhancedRevocationSystem) processBatch(batch *RevocationBatch) {
 	// Wait for all checks to complete.
 
 	go func() {
-
 		wg.Wait()
 
 		close(resultChan)
-
 	}()
 
 	// Collect results.
 
 	for r := range resultChan {
-
 		batch.Results[r.SerialNumber] = r.Result
-
 	}
 
 	// Signal completion.
 
 	close(batch.CompleteChan)
-
 }
 
 func (s *EnhancedRevocationSystem) runAutomaticReplacer() {
-
 	defer s.wg.Done()
 
 	for {
-
 		select {
 
 		case <-s.ctx.Done():
@@ -2092,13 +1833,10 @@ func (s *EnhancedRevocationSystem) runAutomaticReplacer() {
 			s.processReplacementRequest(req)
 
 		}
-
 	}
-
 }
 
 func (s *EnhancedRevocationSystem) processReplacementRequest(req *ReplacementRequest) {
-
 	s.logger.Info("processing certificate replacement request",
 
 		"serial_number", req.SerialNumber,
@@ -2108,7 +1846,6 @@ func (s *EnhancedRevocationSystem) processReplacementRequest(req *ReplacementReq
 	// Create new certificate request.
 
 	certReq := &CertificateRequest{
-
 		CommonName: req.RevokedCert.Subject.CommonName,
 
 		DNSNames: req.RevokedCert.DNSNames,
@@ -2120,7 +1857,6 @@ func (s *EnhancedRevocationSystem) processReplacementRequest(req *ReplacementReq
 		AutoRenew: true,
 
 		Metadata: map[string]string{
-
 			"replaced_serial": req.SerialNumber,
 
 			"replacement_reason": req.Reason,
@@ -2130,9 +1866,7 @@ func (s *EnhancedRevocationSystem) processReplacementRequest(req *ReplacementReq
 	}
 
 	for i, ip := range req.RevokedCert.IPAddresses {
-
 		certReq.IPAddresses[i] = ip.String()
-
 	}
 
 	// Issue new certificate.
@@ -2142,7 +1876,6 @@ func (s *EnhancedRevocationSystem) processReplacementRequest(req *ReplacementReq
 	defer cancel()
 
 	newCert, err := s.automaticReplacer.caManager.IssueCertificate(ctx, certReq)
-
 	if err != nil {
 
 		s.logger.Error("failed to issue replacement certificate",
@@ -2164,11 +1897,9 @@ func (s *EnhancedRevocationSystem) processReplacementRequest(req *ReplacementReq
 	// Update in Kubernetes if applicable.
 
 	// This would integrate with the Kubernetes client to update secrets.
-
 }
 
 func (s *EnhancedRevocationSystem) runCacheCleanup() {
-
 	defer s.wg.Done()
 
 	ticker := time.NewTicker(5 * time.Minute)
@@ -2176,7 +1907,6 @@ func (s *EnhancedRevocationSystem) runCacheCleanup() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-s.ctx.Done():
@@ -2188,19 +1918,13 @@ func (s *EnhancedRevocationSystem) runCacheCleanup() {
 			s.cleanupCache()
 
 		}
-
 	}
-
 }
 
 func (s *EnhancedRevocationSystem) cleanupCache() {
-
 	if s.cacheManager != nil && s.cacheManager.l1Cache != nil {
-
 		s.cacheManager.l1Cache.Cleanup()
-
 	}
-
 }
 
 // Helper types and methods.
@@ -2237,7 +1961,6 @@ type CacheStatistics struct {
 	Evictions uint64 // atomic counter (replaced atomic.Uint64)
 
 	Entries uint32 // atomic counter (replaced atomic.Uint32)
-
 }
 
 // RevocationMetricsCollector represents a revocationmetricscollector.
@@ -2257,34 +1980,26 @@ type RevocationMetricsCollector struct {
 // NewRevocationMetricsCollector performs newrevocationmetricscollector operation.
 
 func NewRevocationMetricsCollector() *RevocationMetricsCollector {
-
 	return &RevocationMetricsCollector{
-
 		checkDurations: make([]time.Duration, 0, 1000),
 	}
-
 }
 
 // RecordCacheHit performs recordcachehit operation.
 
 func (m *RevocationMetricsCollector) RecordCacheHit() {
-
 	atomic.AddUint64(&m.cacheHits, 1)
-
 }
 
 // RecordCacheMiss performs recordcachemiss operation.
 
 func (m *RevocationMetricsCollector) RecordCacheMiss() {
-
 	atomic.AddUint64(&m.cacheMisses, 1)
-
 }
 
 // RecordCheckDuration performs recordcheckduration operation.
 
 func (m *RevocationMetricsCollector) RecordCheckDuration(d time.Duration) {
-
 	m.mu.Lock()
 
 	defer m.mu.Unlock()
@@ -2292,27 +2007,20 @@ func (m *RevocationMetricsCollector) RecordCheckDuration(d time.Duration) {
 	m.checkDurations = append(m.checkDurations, d)
 
 	if len(m.checkDurations) > 1000 {
-
 		m.checkDurations = m.checkDurations[1:]
-
 	}
-
 }
 
 // RecordCheckResult performs recordcheckresult operation.
 
 func (m *RevocationMetricsCollector) RecordCheckResult(status RevocationStatus) {
-
 	atomic.AddUint64(&m.totalChecks, 1)
-
 }
 
 // RecordError performs recorderror operation.
 
 func (m *RevocationMetricsCollector) RecordError(err error) {
-
 	// Record error metrics.
-
 }
 
 // CRL Manager methods.
@@ -2320,7 +2028,6 @@ func (m *RevocationMetricsCollector) RecordError(err error) {
 // GetOrCreateDistributionPoint performs getorcreatedistributionpoint operation.
 
 func (m *CRLManager) GetOrCreateDistributionPoint(url string) *CRLDistributionPoint {
-
 	m.mu.RLock()
 
 	dp, exists := m.distributionPoints[url]
@@ -2328,9 +2035,7 @@ func (m *CRLManager) GetOrCreateDistributionPoint(url string) *CRLDistributionPo
 	m.mu.RUnlock()
 
 	if exists {
-
 		return dp
-
 	}
 
 	m.mu.Lock()
@@ -2340,20 +2045,16 @@ func (m *CRLManager) GetOrCreateDistributionPoint(url string) *CRLDistributionPo
 	// Double-check after acquiring write lock.
 
 	if dp, exists := m.distributionPoints[url]; exists {
-
 		return dp
-
 	}
 
 	dp = &CRLDistributionPoint{
-
 		URL: url,
 	}
 
 	m.distributionPoints[url] = dp
 
 	return dp
-
 }
 
 // OCSP Manager methods.
@@ -2361,11 +2062,8 @@ func (m *CRLManager) GetOrCreateDistributionPoint(url string) *CRLDistributionPo
 // GetBestResponder performs getbestresponder operation.
 
 func (m *OCSPManager) GetBestResponder(urls []string) *OCSPResponder {
-
 	if len(urls) == 0 {
-
 		return nil
-
 	}
 
 	m.mu.RLock()
@@ -2385,11 +2083,9 @@ func (m *OCSPManager) GetBestResponder(urls []string) *OCSPResponder {
 			// Create new responder.
 
 			responder = &OCSPResponder{
-
 				URL: url,
 
 				Client: &http.Client{
-
 					Timeout: 10 * time.Second,
 				},
 			}
@@ -2411,9 +2107,7 @@ func (m *OCSPManager) GetBestResponder(urls []string) *OCSPResponder {
 		score := responder.SuccessRate
 
 		if responder.ResponseTime > 0 {
-
 			score = score / float64(responder.ResponseTime.Milliseconds())
-
 		}
 
 		if bestResponder == nil || score > bestScore {
@@ -2427,7 +2121,6 @@ func (m *OCSPManager) GetBestResponder(urls []string) *OCSPResponder {
 	}
 
 	return bestResponder
-
 }
 
 // Stapling Cache methods.
@@ -2435,7 +2128,6 @@ func (m *OCSPManager) GetBestResponder(urls []string) *OCSPResponder {
 // Get performs get operation.
 
 func (c *StaplingCache) Get(serialNumber string) *StapledResponse {
-
 	c.mu.RLock()
 
 	defer c.mu.RUnlock()
@@ -2443,27 +2135,21 @@ func (c *StaplingCache) Get(serialNumber string) *StapledResponse {
 	response, exists := c.responses[serialNumber]
 
 	if !exists {
-
 		return nil
-
 	}
 
 	// Check if response is still valid.
 
 	if time.Now().After(response.NextUpdate) {
-
 		return nil
-
 	}
 
 	return response
-
 }
 
 // Put performs put operation.
 
 func (c *StaplingCache) Put(serialNumber string, responseData []byte, resp *ocsp.Response) {
-
 	c.mu.Lock()
 
 	defer c.mu.Unlock()
@@ -2471,13 +2157,10 @@ func (c *StaplingCache) Put(serialNumber string, responseData []byte, resp *ocsp
 	// Check cache size.
 
 	if len(c.responses) >= c.maxSize {
-
 		c.evictOldest()
-
 	}
 
 	c.responses[serialNumber] = &StapledResponse{
-
 		Response: responseData,
 
 		ProducedAt: resp.ProducedAt,
@@ -2486,17 +2169,14 @@ func (c *StaplingCache) Put(serialNumber string, responseData []byte, resp *ocsp
 
 		CachedAt: time.Now(),
 	}
-
 }
 
 func (c *StaplingCache) evictOldest() {
-
 	var oldestKey string
 
 	var oldestTime time.Time
 
 	for key, response := range c.responses {
-
 		if oldestKey == "" || response.CachedAt.Before(oldestTime) {
 
 			oldestKey = key
@@ -2504,15 +2184,11 @@ func (c *StaplingCache) evictOldest() {
 			oldestTime = response.CachedAt
 
 		}
-
 	}
 
 	if oldestKey != "" {
-
 		delete(c.responses, oldestKey)
-
 	}
-
 }
 
 // Nonce Generator methods.
@@ -2520,7 +2196,6 @@ func (c *StaplingCache) evictOldest() {
 // GenerateNonce performs generatenonce operation.
 
 func (g *NonceGenerator) GenerateNonce() []byte {
-
 	nonce := make([]byte, 32)
 
 	// Generate random nonce.
@@ -2540,11 +2215,9 @@ func (g *NonceGenerator) GenerateNonce() []byte {
 	g.cleanupOldNonces()
 
 	return nonce
-
 }
 
 func (g *NonceGenerator) cleanupOldNonces() {
-
 	g.mu.Lock()
 
 	defer g.mu.Unlock()
@@ -2552,15 +2225,10 @@ func (g *NonceGenerator) cleanupOldNonces() {
 	cutoff := time.Now().Add(-5 * time.Minute)
 
 	for key, timestamp := range g.nonces {
-
 		if timestamp.Before(cutoff) {
-
 			delete(g.nonces, key)
-
 		}
-
 	}
-
 }
 
 // L1 Revocation Cache methods.
@@ -2568,7 +2236,6 @@ func (g *NonceGenerator) cleanupOldNonces() {
 // Get performs get operation.
 
 func (c *L1RevocationCache) Get(key string) *RevocationCacheEntry {
-
 	c.mu.RLock()
 
 	defer c.mu.RUnlock()
@@ -2576,27 +2243,21 @@ func (c *L1RevocationCache) Get(key string) *RevocationCacheEntry {
 	entry, exists := c.entries[key]
 
 	if !exists {
-
 		return nil
-
 	}
 
 	// Check TTL.
 
 	if time.Since(entry.CheckTime) > c.ttl {
-
 		return nil
-
 	}
 
 	return entry
-
 }
 
 // Put performs put operation.
 
 func (c *L1RevocationCache) Put(key string, entry *RevocationCacheEntry) {
-
 	c.mu.Lock()
 
 	defer c.mu.Unlock()
@@ -2604,23 +2265,18 @@ func (c *L1RevocationCache) Put(key string, entry *RevocationCacheEntry) {
 	// Check size limit.
 
 	if len(c.entries) >= c.maxSize {
-
 		c.evictLRU()
-
 	}
 
 	c.entries[key] = entry
-
 }
 
 func (c *L1RevocationCache) evictLRU() {
-
 	var lruKey string
 
 	var lruTime time.Time
 
 	for key, entry := range c.entries {
-
 		if lruKey == "" || entry.LastAccessed.Before(lruTime) {
 
 			lruKey = key
@@ -2628,21 +2284,16 @@ func (c *L1RevocationCache) evictLRU() {
 			lruTime = entry.LastAccessed
 
 		}
-
 	}
 
 	if lruKey != "" {
-
 		delete(c.entries, lruKey)
-
 	}
-
 }
 
 // Cleanup performs cleanup operation.
 
 func (c *L1RevocationCache) Cleanup() {
-
 	c.mu.Lock()
 
 	defer c.mu.Unlock()
@@ -2650,15 +2301,10 @@ func (c *L1RevocationCache) Cleanup() {
 	now := time.Now()
 
 	for key, entry := range c.entries {
-
 		if now.Sub(entry.CheckTime) > c.ttl {
-
 			delete(c.entries, key)
-
 		}
-
 	}
-
 }
 
 // Circuit Breaker methods.
@@ -2666,23 +2312,18 @@ func (c *L1RevocationCache) Cleanup() {
 // AllowCRLCheck performs allowcrlcheck operation.
 
 func (cb *RevocationCircuitBreaker) AllowCRLCheck() bool {
-
 	return cb.crlBreaker.AllowRequest()
-
 }
 
 // AllowOCSPCheck performs allowocspcheck operation.
 
 func (cb *RevocationCircuitBreaker) AllowOCSPCheck() bool {
-
 	return cb.ocspBreaker.AllowRequest()
-
 }
 
 // AllowRequest performs allowrequest operation.
 
 func (cb *CircuitBreaker) AllowRequest() bool {
-
 	state := cb.state.Load().(CircuitState)
 
 	switch state {
@@ -2718,13 +2359,11 @@ func (cb *CircuitBreaker) AllowRequest() bool {
 		return false
 
 	}
-
 }
 
 // RecordSuccess performs recordsuccess operation.
 
 func (cb *CircuitBreaker) RecordSuccess() {
-
 	atomic.AddUint32(&cb.successCount, 1)
 
 	state := cb.state.Load().(CircuitState)
@@ -2738,23 +2377,18 @@ func (cb *CircuitBreaker) RecordSuccess() {
 		atomic.StoreUint32(&cb.successCount, 0)
 
 	}
-
 }
 
 // RecordFailure performs recordfailure operation.
 
 func (cb *CircuitBreaker) RecordFailure() {
-
 	atomic.AddUint32(&cb.failureCount, 1)
 
 	cb.lastFailureTime.Store(time.Now())
 
 	if atomic.LoadUint32(&cb.failureCount) >= cb.config.FailureThreshold {
-
 		cb.state.Store(CircuitOpen)
-
 	}
-
 }
 
 // Batch Processor methods.
@@ -2762,11 +2396,9 @@ func (cb *CircuitBreaker) RecordFailure() {
 // GetOrCreateBatch performs getorcreatebatch operation.
 
 func (bp *BatchRevocationProcessor) GetOrCreateBatch() *RevocationBatch {
-
 	// This is simplified - real implementation would manage batch lifecycle.
 
 	return &RevocationBatch{
-
 		ID: fmt.Sprintf("batch-%d", time.Now().UnixNano()),
 
 		Certificates: make([]*x509.Certificate, 0, bp.batchSize),
@@ -2775,13 +2407,11 @@ func (bp *BatchRevocationProcessor) GetOrCreateBatch() *RevocationBatch {
 
 		CreatedAt: time.Now(),
 	}
-
 }
 
 // ProcessBatch performs processbatch operation.
 
 func (bp *BatchRevocationProcessor) ProcessBatch(batch *RevocationBatch) {
-
 	select {
 
 	case bp.batchQueue <- batch:
@@ -2791,21 +2421,16 @@ func (bp *BatchRevocationProcessor) ProcessBatch(batch *RevocationBatch) {
 		bp.logger.Warn("batch queue full")
 
 	}
-
 }
 
 // ScheduleBatch performs schedulebatch operation.
 
 func (bp *BatchRevocationProcessor) ScheduleBatch(batch *RevocationBatch) {
-
 	// Schedule batch processing after timeout.
 
 	time.AfterFunc(bp.batchTimeout, func() {
-
 		bp.ProcessBatch(batch)
-
 	})
-
 }
 
 // Placeholder types for undefined components.
@@ -2837,22 +2462,17 @@ type OCSPClient struct {
 // NewOCSPClient performs newocspclient operation.
 
 func NewOCSPClient(url string, timeout time.Duration) *OCSPClient {
-
 	return &OCSPClient{URL: url, Timeout: timeout}
-
 }
 
 // CheckRevocation performs checkrevocation operation.
 
 func (c *PooledConnection) CheckRevocation(ctx context.Context, cert *x509.Certificate) *RevocationCheckResult {
-
 	// Simplified implementation.
 
 	return &RevocationCheckResult{
-
 		Status: RevocationStatusUnknown,
 	}
-
 }
 
 // LRUEvictionPolicy represents a lruevictionpolicy.

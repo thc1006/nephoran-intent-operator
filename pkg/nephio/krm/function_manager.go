@@ -75,7 +75,6 @@ type FunctionManager struct {
 // FunctionManagerConfig defines configuration for function management.
 
 type FunctionManagerConfig struct {
-
 	// Function execution settings.
 
 	ExecutionMode string `json:"executionMode" yaml:"executionMode"` // native, container, hybrid
@@ -123,20 +122,18 @@ type FunctionManagerConfig struct {
 	EnableProfiling bool `json:"enableProfiling" yaml:"enableProfiling"` // Enable profiling
 
 	DetailedLogging bool `json:"detailedLogging" yaml:"detailedLogging"` // Enable detailed logging
-
 }
 
 // FunctionExecutionRequest represents a function execution request.
 
 type FunctionExecutionRequest struct {
-
 	// Function identification.
 
 	FunctionName string `json:"functionName"`
 
 	FunctionImage string `json:"functionImage,omitempty"`
 
-	FunctionConfig map[string]interface{} `json:"functionConfig,omitempty"`
+	FunctionConfig json.RawMessage `json:"functionConfig,omitempty"`
 
 	// Input resources.
 
@@ -172,7 +169,6 @@ type FunctionExecutionRequest struct {
 // FunctionExecutionResponse represents a function execution response.
 
 type FunctionExecutionResponse struct {
-
 	// Results.
 
 	Resources []*porch.KRMResource `json:"resources"`
@@ -221,7 +217,6 @@ type FunctionExecutionResponse struct {
 // FunctionRegistration represents a function registration.
 
 type FunctionRegistration struct {
-
 	// Function metadata.
 
 	Name string `json:"name"`
@@ -396,7 +391,6 @@ type FunctionManagerMetrics struct {
 // Default configuration.
 
 var DefaultFunctionManagerConfig = &FunctionManagerConfig{
-
 	ExecutionMode: "hybrid",
 
 	DefaultTimeout: 5 * time.Minute,
@@ -427,29 +421,22 @@ var DefaultFunctionManagerConfig = &FunctionManagerConfig{
 // NewFunctionManager creates a new function manager.
 
 func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, containerRuntime *ContainerRuntime, registry *Registry) (*FunctionManager, error) {
-
 	if config == nil {
-
 		config = DefaultFunctionManagerConfig
-
 	}
 
 	// Validate configuration.
 
 	if err := validateFunctionManagerConfig(config); err != nil {
-
 		return nil, fmt.Errorf("invalid function manager configuration: %w", err)
-
 	}
 
 	// Initialize metrics.
 
 	metrics := &FunctionManagerMetrics{
-
 		FunctionExecutions: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "krm_function_manager_executions_total",
 
 				Help: "Total number of function executions",
@@ -461,7 +448,6 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 		ExecutionDuration: promauto.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "krm_function_manager_execution_duration_seconds",
 
 				Help: "Duration of function executions",
@@ -475,7 +461,6 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 		FunctionRegistrations: promauto.NewGauge(
 
 			prometheus.GaugeOpts{
-
 				Name: "krm_function_manager_registrations_total",
 
 				Help: "Total number of registered functions",
@@ -485,7 +470,6 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 		ExecutionErrors: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "krm_function_manager_errors_total",
 
 				Help: "Total number of execution errors",
@@ -497,7 +481,6 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 		CachePerformance: promauto.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "krm_function_manager_cache_operation_duration_seconds",
 
 				Help: "Duration of cache operations",
@@ -511,7 +494,6 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 		SecurityViolations: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "krm_function_manager_security_violations_total",
 
 				Help: "Total number of security violations",
@@ -523,7 +505,6 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 		ResourceUtilization: promauto.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "krm_function_manager_resource_utilization",
 
 				Help: "Resource utilization during function execution",
@@ -540,37 +521,31 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 	if config.EnableFunctionCache {
 
 		cacheMetrics := &CacheMetrics{
-
 			Hits: promauto.NewCounter(prometheus.CounterOpts{
-
 				Name: "krm_function_cache_hits_total",
 
 				Help: "Total number of cache hits",
 			}),
 
 			Misses: promauto.NewCounter(prometheus.CounterOpts{
-
 				Name: "krm_function_cache_misses_total",
 
 				Help: "Total number of cache misses",
 			}),
 
 			Evictions: promauto.NewCounter(prometheus.CounterOpts{
-
 				Name: "krm_function_cache_evictions_total",
 
 				Help: "Total number of cache evictions",
 			}),
 
 			Size: promauto.NewGauge(prometheus.GaugeOpts{
-
 				Name: "krm_function_cache_size_bytes",
 
 				Help: "Current cache size in bytes",
 			}),
 
 			Entries: promauto.NewGauge(prometheus.GaugeOpts{
-
 				Name: "krm_function_cache_entries_total",
 
 				Help: "Current number of cache entries",
@@ -578,7 +553,6 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 		}
 
 		functionCache = &FunctionCache{
-
 			cache: make(map[string]*CacheEntry),
 
 			maxSize: config.CacheSize,
@@ -591,7 +565,6 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 	}
 
 	manager := &FunctionManager{
-
 		config: config,
 
 		runtime: runtime,
@@ -612,19 +585,15 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 	// Register built-in native functions.
 
 	if err := manager.registerBuiltinFunctions(); err != nil {
-
 		return nil, fmt.Errorf("failed to register builtin functions: %w", err)
-
 	}
 
 	return manager, nil
-
 }
 
 // ExecuteFunction executes a KRM function.
 
 func (fm *FunctionManager) ExecuteFunction(ctx context.Context, req *FunctionExecutionRequest) (*FunctionExecutionResponse, error) {
-
 	ctx, span := fm.tracer.Start(ctx, "function-execution")
 
 	defer span.End()
@@ -660,15 +629,12 @@ func (fm *FunctionManager) ExecuteFunction(ctx context.Context, req *FunctionExe
 	executionMode := req.ExecutionMode
 
 	if executionMode == "" {
-
 		executionMode = fm.determineExecutionMode(req.FunctionName)
-
 	}
 
 	// Check cache if enabled.
 
 	if fm.config.EnableFunctionCache && req.EnableCaching {
-
 		if cached := fm.checkCache(ctx, req); cached != nil {
 
 			logger.Info("Function execution served from cache")
@@ -680,7 +646,6 @@ func (fm *FunctionManager) ExecuteFunction(ctx context.Context, req *FunctionExe
 			return cached, nil
 
 		}
-
 	}
 
 	// Execute function.
@@ -742,9 +707,7 @@ func (fm *FunctionManager) ExecuteFunction(ctx context.Context, req *FunctionExe
 	// Cache result if enabled.
 
 	if fm.config.EnableFunctionCache && req.EnableCaching && err == nil {
-
 		fm.cacheResult(ctx, req, response)
-
 	}
 
 	// Record metrics.
@@ -762,21 +725,17 @@ func (fm *FunctionManager) ExecuteFunction(ctx context.Context, req *FunctionExe
 	span.SetStatus(codes.Ok, "function execution completed")
 
 	return response, nil
-
 }
 
 // RegisterNativeFunction registers a native Go function.
 
 func (fm *FunctionManager) RegisterNativeFunction(name string, function functions.KRMFunction) error {
-
 	fm.mu.Lock()
 
 	defer fm.mu.Unlock()
 
 	if _, exists := fm.nativeFunctions[name]; exists {
-
 		return fmt.Errorf("function %s is already registered", name)
-
 	}
 
 	fm.nativeFunctions[name] = function
@@ -784,19 +743,16 @@ func (fm *FunctionManager) RegisterNativeFunction(name string, function function
 	fm.metrics.FunctionRegistrations.Inc()
 
 	return nil
-
 }
 
 // RegisterContainerFunction registers a container-based function.
 
 func (fm *FunctionManager) RegisterContainerFunction(name string, config *ContainerFunctionConfig) error {
-
 	// This would register a container function in the registry.
 
 	// Implementation would store the container configuration and make it available for execution.
 
 	registration := &FunctionRegistration{
-
 		Name: name,
 
 		Version: "latest",
@@ -819,13 +775,11 @@ func (fm *FunctionManager) RegisterContainerFunction(name string, config *Contai
 	fm.metrics.FunctionRegistrations.Inc()
 
 	return nil
-
 }
 
 // ListFunctions returns all registered functions.
 
 func (fm *FunctionManager) ListFunctions(ctx context.Context) ([]*FunctionRegistration, error) {
-
 	var functions []*FunctionRegistration
 
 	// Add native functions.
@@ -837,7 +791,6 @@ func (fm *FunctionManager) ListFunctions(ctx context.Context) ([]*FunctionRegist
 		metadata := function.GetMetadata()
 
 		registration := &FunctionRegistration{
-
 			Name: name,
 
 			Version: metadata.Version,
@@ -864,19 +817,15 @@ func (fm *FunctionManager) ListFunctions(ctx context.Context) ([]*FunctionRegist
 	// Add container functions from registry.
 
 	if containerFunctions, err := fm.getContainerFunctions(ctx); err == nil {
-
 		functions = append(functions, containerFunctions...)
-
 	}
 
 	return functions, nil
-
 }
 
 // GetFunction returns information about a specific function.
 
 func (fm *FunctionManager) GetFunction(ctx context.Context, name string) (*FunctionRegistration, error) {
-
 	// Check native functions.
 
 	fm.mu.RLock()
@@ -888,7 +837,6 @@ func (fm *FunctionManager) GetFunction(ctx context.Context, name string) (*Funct
 		metadata := function.GetMetadata()
 
 		return &FunctionRegistration{
-
 			Name: name,
 
 			Version: metadata.Version,
@@ -915,37 +863,29 @@ func (fm *FunctionManager) GetFunction(ctx context.Context, name string) (*Funct
 	// Check container functions.
 
 	return fm.getContainerFunction(ctx, name)
-
 }
 
 // Private methods.
 
 func (fm *FunctionManager) registerBuiltinFunctions() error {
-
 	// Register O-RAN validation functions.
 
 	oranValidator := functions.NewORANComplianceValidator()
 
 	if err := fm.RegisterNativeFunction("oran-compliance-validator", oranValidator); err != nil {
-
 		return err
-
 	}
 
 	a1Validator := functions.NewA1PolicyValidator()
 
 	if err := fm.RegisterNativeFunction("a1-policy-validator", a1Validator); err != nil {
-
 		return err
-
 	}
 
 	fiveGValidator := functions.NewFiveGCoreValidator()
 
 	if err := fm.RegisterNativeFunction("5g-core-validator", fiveGValidator); err != nil {
-
 		return err
-
 	}
 
 	// Register optimization functions.
@@ -953,33 +893,25 @@ func (fm *FunctionManager) registerBuiltinFunctions() error {
 	fiveGOptimizer := functions.NewFiveGCoreOptimizer()
 
 	if err := fm.RegisterNativeFunction("5g-core-optimizer", fiveGOptimizer); err != nil {
-
 		return err
-
 	}
 
 	sliceOptimizer := functions.NewNetworkSliceOptimizer()
 
 	if err := fm.RegisterNativeFunction("network-slice-optimizer", sliceOptimizer); err != nil {
-
 		return err
-
 	}
 
 	vendorNormalizer := functions.NewMultiVendorNormalizer()
 
 	if err := fm.RegisterNativeFunction("multi-vendor-normalizer", vendorNormalizer); err != nil {
-
 		return err
-
 	}
 
 	return nil
-
 }
 
 func (fm *FunctionManager) determineExecutionMode(functionName string) string {
-
 	// Check if it's a native function.
 
 	fm.mu.RLock()
@@ -989,31 +921,24 @@ func (fm *FunctionManager) determineExecutionMode(functionName string) string {
 	fm.mu.RUnlock()
 
 	if isNative {
-
 		return "native"
-
 	}
 
 	// Check if it's a container function.
 
 	if fm.isContainerFunction(functionName) {
-
 		return "container"
-
 	}
 
 	return fm.config.ExecutionMode
-
 }
 
 func (fm *FunctionManager) isContainerFunction(functionName string) bool {
-
 	// This would check if the function is registered as a container function.
 
 	// For now, assume functions with certain patterns are container functions.
 
 	containerPatterns := []string{
-
 		"gcr.io/",
 
 		"docker.io/",
@@ -1024,21 +949,15 @@ func (fm *FunctionManager) isContainerFunction(functionName string) bool {
 	}
 
 	for _, pattern := range containerPatterns {
-
 		if strings.Contains(functionName, pattern) {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 func (fm *FunctionManager) executeNativeFunction(ctx context.Context, req *FunctionExecutionRequest) (*FunctionExecutionResponse, error) {
-
 	fm.mu.RLock()
 
 	function, exists := fm.nativeFunctions[req.FunctionName]
@@ -1046,15 +965,12 @@ func (fm *FunctionManager) executeNativeFunction(ctx context.Context, req *Funct
 	fm.mu.RUnlock()
 
 	if !exists {
-
 		return nil, fmt.Errorf("native function %s not found", req.FunctionName)
-
 	}
 
 	// Convert request to ResourceList.
 
 	resourceList := &functions.ResourceList{
-
 		Items: convertToKRMResources(req.Resources),
 
 		FunctionConfig: req.FunctionConfig,
@@ -1065,17 +981,13 @@ func (fm *FunctionManager) executeNativeFunction(ctx context.Context, req *Funct
 	// Execute function.
 
 	result, err := function.Execute(ctx, resourceList)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	// Convert result to response.
 
 	response := &FunctionExecutionResponse{
-
 		Resources: convertFromKRMResources(result.Items),
 
 		ResourceList: result,
@@ -1084,25 +996,18 @@ func (fm *FunctionManager) executeNativeFunction(ctx context.Context, req *Funct
 	}
 
 	return response, nil
-
 }
 
 func (fm *FunctionManager) executeContainerFunction(ctx context.Context, req *FunctionExecutionRequest) (*FunctionExecutionResponse, error) {
-
 	if fm.containerRuntime == nil {
-
 		return nil, fmt.Errorf("container runtime not available")
-
 	}
 
 	// Get container function configuration.
 
 	config, err := fm.getContainerFunctionConfig(req.FunctionName)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	// Prepare input files.
@@ -1112,7 +1017,6 @@ func (fm *FunctionManager) executeContainerFunction(ctx context.Context, req *Fu
 	// Create resource list input.
 
 	resourceList := &functions.ResourceList{
-
 		Items: convertToKRMResources(req.Resources),
 
 		FunctionConfig: req.FunctionConfig,
@@ -1121,11 +1025,8 @@ func (fm *FunctionManager) executeContainerFunction(ctx context.Context, req *Fu
 	}
 
 	inputData, err := json.Marshal(resourceList)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	inputFiles["input.json"] = inputData
@@ -1133,7 +1034,6 @@ func (fm *FunctionManager) executeContainerFunction(ctx context.Context, req *Fu
 	// Create container request.
 
 	containerReq := &ContainerRequest{
-
 		Image: config.Image,
 
 		Tag: config.Tag,
@@ -1166,15 +1066,11 @@ func (fm *FunctionManager) executeContainerFunction(ctx context.Context, req *Fu
 	if config.SecurityContext != nil {
 
 		if config.SecurityContext.RunAsUser != nil {
-
 			containerReq.User = fmt.Sprintf("%d", *config.SecurityContext.RunAsUser)
-
 		}
 
 		if config.SecurityContext.RunAsGroup != nil {
-
 			containerReq.Group = fmt.Sprintf("%d", *config.SecurityContext.RunAsGroup)
-
 		}
 
 		containerReq.ReadOnlyRootFS = config.SecurityContext.ReadOnlyRootFS
@@ -1182,9 +1078,7 @@ func (fm *FunctionManager) executeContainerFunction(ctx context.Context, req *Fu
 		containerReq.Privileged = config.SecurityContext.Privileged
 
 		if config.SecurityContext.Capabilities != nil {
-
 			containerReq.Capabilities = config.SecurityContext.Capabilities.Add
-
 		}
 
 	}
@@ -1192,21 +1086,16 @@ func (fm *FunctionManager) executeContainerFunction(ctx context.Context, req *Fu
 	// Execute container.
 
 	containerResp, err := fm.containerRuntime.ExecuteContainer(ctx, containerReq)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	// Parse output.
 
 	if containerResp.ExitCode != 0 {
-
 		return nil, fmt.Errorf("container function failed with exit code %d: %s",
 
 			containerResp.ExitCode, string(containerResp.Stderr))
-
 	}
 
 	// Parse output files.
@@ -1214,27 +1103,18 @@ func (fm *FunctionManager) executeContainerFunction(ctx context.Context, req *Fu
 	var outputResourceList functions.ResourceList
 
 	if outputData, exists := containerResp.OutputFiles["output.json"]; exists {
-
 		if err := json.Unmarshal(outputData, &outputResourceList); err != nil {
-
 			return nil, fmt.Errorf("failed to parse function output: %w", err)
-
 		}
-
 	} else {
-
 		// Fallback to stdout.
 
 		if err := json.Unmarshal(containerResp.Stdout, &outputResourceList); err != nil {
-
 			return nil, fmt.Errorf("failed to parse function stdout: %w", err)
-
 		}
-
 	}
 
 	response := &FunctionExecutionResponse{
-
 		Resources: convertFromKRMResources(outputResourceList.Items),
 
 		ResourceList: &outputResourceList,
@@ -1247,25 +1127,19 @@ func (fm *FunctionManager) executeContainerFunction(ctx context.Context, req *Fu
 	}
 
 	return response, nil
-
 }
 
 func (fm *FunctionManager) executeHybridFunction(ctx context.Context, req *FunctionExecutionRequest) (*FunctionExecutionResponse, error) {
-
 	// Try native first, fall back to container.
 
 	if fm.isNativeFunction(req.FunctionName) {
-
 		return fm.executeNativeFunction(ctx, req)
-
 	}
 
 	return fm.executeContainerFunction(ctx, req)
-
 }
 
 func (fm *FunctionManager) isNativeFunction(functionName string) bool {
-
 	fm.mu.RLock()
 
 	defer fm.mu.RUnlock()
@@ -1273,17 +1147,14 @@ func (fm *FunctionManager) isNativeFunction(functionName string) bool {
 	_, exists := fm.nativeFunctions[functionName]
 
 	return exists
-
 }
 
 func (fm *FunctionManager) getContainerFunctionConfig(functionName string) (*ContainerFunctionConfig, error) {
-
 	// This would retrieve container function configuration from registry.
 
 	// For now, provide a default configuration.
 
 	return &ContainerFunctionConfig{
-
 		Image: functionName,
 
 		CPULimit: "500m",
@@ -1293,42 +1164,32 @@ func (fm *FunctionManager) getContainerFunctionConfig(functionName string) (*Con
 		Timeout: 5 * time.Minute,
 
 		SecurityContext: &SecurityConfig{
-
 			ReadOnlyRootFS: true,
 
 			Capabilities: &SecurityCapabilities{
-
 				Drop: []string{"ALL"},
 			},
 		},
 	}, nil
-
 }
 
 func (fm *FunctionManager) getContainerFunctions(ctx context.Context) ([]*FunctionRegistration, error) {
-
 	// This would retrieve container functions from registry.
 
 	return []*FunctionRegistration{}, nil
-
 }
 
 func (fm *FunctionManager) getContainerFunction(ctx context.Context, name string) (*FunctionRegistration, error) {
-
 	// This would retrieve a specific container function from registry.
 
 	return nil, fmt.Errorf("container function %s not found", name)
-
 }
 
 // Cache methods.
 
 func (fm *FunctionManager) checkCache(ctx context.Context, req *FunctionExecutionRequest) *FunctionExecutionResponse {
-
 	if fm.functionCache == nil {
-
 		return nil
-
 	}
 
 	key := fm.generateCacheKey(req)
@@ -1366,15 +1227,11 @@ func (fm *FunctionManager) checkCache(ctx context.Context, req *FunctionExecutio
 	fm.functionCache.metrics.Hits.Inc()
 
 	return entry.Response
-
 }
 
 func (fm *FunctionManager) cacheResult(ctx context.Context, req *FunctionExecutionRequest, response *FunctionExecutionResponse) {
-
 	if fm.functionCache == nil {
-
 		return
-
 	}
 
 	key := fm.generateCacheKey(req)
@@ -1386,7 +1243,6 @@ func (fm *FunctionManager) cacheResult(ctx context.Context, req *FunctionExecuti
 	size := int64(len(data))
 
 	entry := &CacheEntry{
-
 		Key: key,
 
 		Response: response,
@@ -1409,9 +1265,7 @@ func (fm *FunctionManager) cacheResult(ctx context.Context, req *FunctionExecuti
 	// Check if we need to evict entries.
 
 	if fm.functionCache.size+size > fm.functionCache.maxSize {
-
 		fm.evictCacheEntries(size)
-
 	}
 
 	fm.functionCache.cache[key] = entry
@@ -1421,21 +1275,18 @@ func (fm *FunctionManager) cacheResult(ctx context.Context, req *FunctionExecuti
 	fm.functionCache.metrics.Size.Set(float64(fm.functionCache.size))
 
 	fm.functionCache.metrics.Entries.Set(float64(len(fm.functionCache.cache)))
-
 }
 
 func (fm *FunctionManager) generateCacheKey(req *FunctionExecutionRequest) string {
-
 	// Generate a hash of the request for caching.
 
 	data, _ := json.Marshal(struct {
 		Function string `json:"function"`
 
-		Config map[string]interface{} `json:"config"`
+		Config json.RawMessage `json:"config"`
 
 		Resources string `json:"resources"`
 	}{
-
 		Function: req.FunctionName,
 
 		Config: req.FunctionConfig,
@@ -1444,11 +1295,9 @@ func (fm *FunctionManager) generateCacheKey(req *FunctionExecutionRequest) strin
 	})
 
 	return fmt.Sprintf("%x", data)
-
 }
 
 func (fm *FunctionManager) evictCacheEntries(neededSize int64) {
-
 	// Simple LRU eviction.
 
 	for fm.functionCache.size+neededSize > fm.functionCache.maxSize && len(fm.functionCache.cache) > 0 {
@@ -1458,7 +1307,6 @@ func (fm *FunctionManager) evictCacheEntries(neededSize int64) {
 		var oldestTime time.Time
 
 		for key, entry := range fm.functionCache.cache {
-
 			if oldestKey == "" || entry.LastAccess.Before(oldestTime) {
 
 				oldestKey = key
@@ -1466,7 +1314,6 @@ func (fm *FunctionManager) evictCacheEntries(neededSize int64) {
 				oldestTime = entry.LastAccess
 
 			}
-
 		}
 
 		if oldestKey != "" {
@@ -1482,19 +1329,16 @@ func (fm *FunctionManager) evictCacheEntries(neededSize int64) {
 		}
 
 	}
-
 }
 
 // Health returns function manager health status.
 
 func (fm *FunctionManager) Health() *FunctionManagerHealth {
-
 	fm.mu.RLock()
 
 	defer fm.mu.RUnlock()
 
 	health := &FunctionManagerHealth{
-
 		Status: "healthy",
 
 		RegisteredFunctions: len(fm.nativeFunctions),
@@ -1515,7 +1359,6 @@ func (fm *FunctionManager) Health() *FunctionManagerHealth {
 	}
 
 	return health
-
 }
 
 // FunctionManagerHealth represents health status.
@@ -1535,7 +1378,6 @@ type FunctionManagerHealth struct {
 // Shutdown gracefully shuts down the function manager.
 
 func (fm *FunctionManager) Shutdown(ctx context.Context) error {
-
 	logger := log.FromContext(ctx).WithName("function-manager")
 
 	logger.Info("Shutting down function manager")
@@ -1557,53 +1399,38 @@ func (fm *FunctionManager) Shutdown(ctx context.Context) error {
 	logger.Info("Function manager shutdown complete")
 
 	return nil
-
 }
 
 // Helper functions.
 
 func validateFunctionManagerConfig(config *FunctionManagerConfig) error {
-
 	if config.DefaultTimeout <= 0 {
-
 		return fmt.Errorf("defaultTimeout must be positive")
-
 	}
 
 	if config.MaxConcurrentExecs <= 0 {
-
 		return fmt.Errorf("maxConcurrentExecs must be positive")
-
 	}
 
 	return nil
-
 }
 
 func convertToKRMResources(resources []*porch.KRMResource) []porch.KRMResource {
-
 	result := make([]porch.KRMResource, len(resources))
 
 	for i, r := range resources {
-
 		result[i] = *r
-
 	}
 
 	return result
-
 }
 
 func convertFromKRMResources(resources []porch.KRMResource) []*porch.KRMResource {
-
 	result := make([]*porch.KRMResource, len(resources))
 
 	for i, r := range resources {
-
 		result[i] = &r
-
 	}
 
 	return result
-
 }

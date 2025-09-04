@@ -374,7 +374,7 @@ func TestTrafficController_HealthChecks(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			server := tc.httpServerSetup()
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			// Update region endpoints to use test server
 			for _, region := range tc.regions {

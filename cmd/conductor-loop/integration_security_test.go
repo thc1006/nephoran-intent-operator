@@ -16,7 +16,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/nephio-project/nephoran-intent-operator/internal/loop"
+	"github.com/thc1006/nephoran-intent-operator/internal/loop"
 )
 
 // SecurityTestSuite represents a comprehensive security test suite
@@ -34,8 +34,8 @@ func NewSecurityTestSuite(t *testing.T) *SecurityTestSuite {
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
 
-	require.NoError(t, os.MkdirAll(handoffDir, 0755))
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.MkdirAll(handoffDir, 0o755))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	mockPorch := createComprehensiveMockPorch(t, tempDir)
 
@@ -161,11 +161,11 @@ func (s *SecurityTestSuite) testInputValidationSecurity(t *testing.T) {
 			intentFile := filepath.Join(s.handoffDir, fmt.Sprintf("malicious-%s.json",
 				strings.ReplaceAll(input.name, " ", "-")))
 
-			require.NoError(t, os.WriteFile(intentFile, []byte(input.content), 0644))
+			require.NoError(t, os.WriteFile(intentFile, []byte(input.content), 0o644))
 
 			watcher, err := loop.NewWatcher(s.handoffDir, s.config)
 			require.NoError(t, err)
-			defer watcher.Close()
+			defer watcher.Close() // #nosec G307 - Error handled in defer
 
 			err = watcher.Start()
 
@@ -243,11 +243,11 @@ func (s *SecurityTestSuite) testPathTraversalSecurity(t *testing.T) {
 			intentFile := filepath.Join(s.handoffDir, fmt.Sprintf("traversal-%s.json",
 				strings.ReplaceAll(test.name, " ", "-")))
 
-			require.NoError(t, os.WriteFile(intentFile, []byte(content), 0644))
+			require.NoError(t, os.WriteFile(intentFile, []byte(content), 0o644))
 
 			watcher, err := loop.NewWatcher(s.handoffDir, s.config)
 			require.NoError(t, err)
-			defer watcher.Close()
+			defer watcher.Close() // #nosec G307 - Error handled in defer
 
 			err = watcher.Start()
 			assert.NoError(t, err, "Should handle path traversal safely")
@@ -303,7 +303,7 @@ func (s *SecurityTestSuite) testCommandInjectionSecurity(t *testing.T) {
 			}`
 			intentFile := filepath.Join(s.handoffDir, fmt.Sprintf("injection-%s.json",
 				strings.ReplaceAll(test.name, " ", "-")))
-			require.NoError(t, os.WriteFile(intentFile, []byte(content), 0644))
+			require.NoError(t, os.WriteFile(intentFile, []byte(content), 0o644))
 
 			// Use malicious porch path
 			maliciousConfig := s.config
@@ -311,7 +311,7 @@ func (s *SecurityTestSuite) testCommandInjectionSecurity(t *testing.T) {
 
 			watcher, err := loop.NewWatcher(s.handoffDir, maliciousConfig)
 			require.NoError(t, err)
-			defer watcher.Close()
+			defer watcher.Close() // #nosec G307 - Error handled in defer
 
 			err = watcher.Start()
 
@@ -349,7 +349,7 @@ func (s *SecurityTestSuite) testResourceExhaustionSecurity(t *testing.T) {
 					}`, i, i%10, i%5+1)
 
 					file := filepath.Join(s.handoffDir, fmt.Sprintf("bulk-%d.json", i))
-					require.NoError(t, os.WriteFile(file, []byte(content), 0644))
+					require.NoError(t, os.WriteFile(file, []byte(content), 0o644))
 				}
 				return count
 			},
@@ -370,7 +370,7 @@ func (s *SecurityTestSuite) testResourceExhaustionSecurity(t *testing.T) {
 					}`, i, largeData)
 
 					file := filepath.Join(s.handoffDir, fmt.Sprintf("large-%d.json", i))
-					require.NoError(t, os.WriteFile(file, []byte(content), 0644))
+					require.NoError(t, os.WriteFile(file, []byte(content), 0o644))
 				}
 				return count
 			},
@@ -392,7 +392,7 @@ func (s *SecurityTestSuite) testResourceExhaustionSecurity(t *testing.T) {
 						}`, i)
 
 						file := filepath.Join(s.handoffDir, fmt.Sprintf("rapid-%d.json", i))
-						_ = os.WriteFile(file, []byte(content), 0644)
+						_ = os.WriteFile(file, []byte(content), 0o644)
 						time.Sleep(5 * time.Millisecond)
 					}
 				}()
@@ -414,7 +414,7 @@ func (s *SecurityTestSuite) testResourceExhaustionSecurity(t *testing.T) {
 
 			watcher, err := loop.NewWatcher(s.handoffDir, limitedConfig)
 			require.NoError(t, err)
-			defer watcher.Close()
+			defer watcher.Close() // #nosec G307 - Error handled in defer
 
 			// Measure processing time
 			start := time.Now()
@@ -467,7 +467,7 @@ func (s *SecurityTestSuite) testFileSystemSecurity(t *testing.T) {
 				}
 				fifoFile := filepath.Join(s.handoffDir, "test-pipe.json")
 				// Mkfifo is Unix-specific, will be handled by the runtime check above
-				if err := mkfifo(fifoFile, 0644); err != nil {
+				if err := mkfifo(fifoFile, 0o644); err != nil {
 					t.Skip("Cannot create FIFO pipe")
 				}
 				return fifoFile
@@ -489,7 +489,7 @@ func (s *SecurityTestSuite) testFileSystemSecurity(t *testing.T) {
 					"namespace": "default",
 					"replicas": 0
 				}`
-				require.NoError(t, os.WriteFile(deviceFile, []byte(content), 0644))
+				require.NoError(t, os.WriteFile(deviceFile, []byte(content), 0o644))
 				return deviceFile
 			},
 			testFunc: func(t *testing.T, watcher *loop.Watcher, file string) {
@@ -506,7 +506,7 @@ func (s *SecurityTestSuite) testFileSystemSecurity(t *testing.T) {
 
 			watcher, err := loop.NewWatcher(s.handoffDir, s.config)
 			require.NoError(t, err)
-			defer watcher.Close()
+			defer watcher.Close() // #nosec G307 - Error handled in defer
 
 			test.testFunc(t, watcher, file)
 
@@ -533,7 +533,7 @@ func (s *SecurityTestSuite) testConcurrencySecurity(t *testing.T) {
 		}`, i, i%3+1)
 
 		file := filepath.Join(s.handoffDir, fmt.Sprintf("concurrent-%d.json", i))
-		require.NoError(t, os.WriteFile(file, []byte(content), 0644))
+		require.NoError(t, os.WriteFile(file, []byte(content), 0o644))
 	}
 
 	// Start multiple watchers concurrently
@@ -568,27 +568,13 @@ func (s *SecurityTestSuite) testStateManagementSecurity(t *testing.T) {
 
 	// Create malicious state file with correct structure
 	maliciousState := map[string]interface{}{
-		"version": "1.0",
-		"states": map[string]interface{}{
-			"../../../etc/passwd": map[string]interface{}{
-				"file_path":    "../../../etc/passwd",
-				"sha256":       "fake_hash",
-				"size":         1234,
-				"processed_at": time.Now().Format(time.RFC3339),
-				"status":       "processed",
-			},
-			"$(whoami)": map[string]interface{}{
-				"file_path":    "$(whoami)",
-				"sha256":       "fake_hash2",
-				"size":         5678,
-				"processed_at": "2025-08-15T12:00:00Z",
-				"status":       "processed",
-			},
+			"../../../etc/passwd": map[string]interface{}{},
+			"$(whoami)": map[string]interface{}{},
 		},
 	}
 
 	data, _ := json.Marshal(maliciousState)
-	require.NoError(t, os.WriteFile(stateFile, data, 0644))
+	require.NoError(t, os.WriteFile(stateFile, data, 0o644))
 
 	// Create intent file
 	content := `{
@@ -598,11 +584,11 @@ func (s *SecurityTestSuite) testStateManagementSecurity(t *testing.T) {
 		"replicas": 3
 	}`
 	intentFile := filepath.Join(s.handoffDir, "intent-state-test.json")
-	require.NoError(t, os.WriteFile(intentFile, []byte(content), 0644))
+	require.NoError(t, os.WriteFile(intentFile, []byte(content), 0o644))
 
 	watcher, err := loop.NewWatcher(s.handoffDir, s.config)
 	require.NoError(t, err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	err = watcher.Start()
 	assert.NoError(t, err, "Should handle malicious state file safely")
@@ -742,7 +728,7 @@ func (s *SecurityTestSuite) assertSystemHealth(t *testing.T) {
 
 	// Check we can still create files
 	testFile := filepath.Join(s.tempDir, "health-check.tmp")
-	err := os.WriteFile(testFile, []byte("health"), 0644)
+	err := os.WriteFile(testFile, []byte("health"), 0o644)
 	assert.NoError(t, err, "System should still be responsive")
 
 	if err == nil {
@@ -886,7 +872,7 @@ echo "Comprehensive processing completed"
 exit 0`
 	}
 
-	require.NoError(t, os.WriteFile(mockPath, []byte(mockScript), 0755))
+	require.NoError(t, os.WriteFile(mockPath, []byte(mockScript), 0o755))
 	return mockPath
 }
 
@@ -896,3 +882,4 @@ func generateDeepNestedJSON(depth int) string {
 	}
 	return fmt.Sprintf(`{"level": %s}`, generateDeepNestedJSON(depth-1))
 }
+

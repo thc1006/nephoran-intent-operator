@@ -49,14 +49,12 @@ var (
 	// Metrics for audit system monitoring.
 
 	auditEventsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-
 		Name: "nephoran_audit_events_total",
 
 		Help: "Total number of audit events processed by severity",
 	}, []string{"severity", "event_type", "component"})
 
 	auditProcessingDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
-
 		Name: "nephoran_audit_processing_duration_seconds",
 
 		Help: "Time spent processing audit events",
@@ -65,14 +63,12 @@ var (
 	}, []string{"backend", "operation"})
 
 	auditQueueSize = promauto.NewGaugeVec(prometheus.GaugeOpts{
-
 		Name: "nephoran_audit_queue_size",
 
 		Help: "Current size of audit event queue",
 	}, []string{"backend"})
 
 	auditErrorsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-
 		Name: "nephoran_audit_errors_total",
 
 		Help: "Total number of audit processing errors",
@@ -82,7 +78,6 @@ var (
 // AuditSystemConfig holds the configuration for the audit system.
 
 type AuditSystemConfig struct {
-
 	// Enabled controls whether audit logging is active.
 
 	Enabled bool `json:"enabled" yaml:"enabled"`
@@ -127,9 +122,7 @@ type AuditSystemConfig struct {
 // DefaultAuditConfig returns a default configuration for the audit system.
 
 func DefaultAuditConfig() *AuditSystemConfig {
-
 	return &AuditSystemConfig{
-
 		Enabled: true,
 
 		EnabledSources: []string{"kubernetes", "oran", "nephio"},
@@ -150,7 +143,6 @@ func DefaultAuditConfig() *AuditSystemConfig {
 
 		Backends: []backends.BackendConfig{},
 	}
-
 }
 
 // AuditSystem is the main audit logging system.
@@ -206,17 +198,13 @@ type AuditSystem struct {
 // NewAuditSystem creates a new audit system with the provided configuration.
 
 func NewAuditSystem(config *AuditSystemConfig) (*AuditSystem, error) {
-
 	if config == nil {
-
 		config = DefaultAuditConfig()
-
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	system := &AuditSystem{
-
 		config: config,
 
 		eventQueue: make(chan *types.AuditEvent, config.MaxQueueSize),
@@ -239,11 +227,8 @@ func NewAuditSystem(config *AuditSystemConfig) (*AuditSystem, error) {
 		var err error
 
 		system.integrityChain, err = NewIntegrityChain()
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to initialize integrity chain: %w", err)
-
 		}
 
 	}
@@ -251,7 +236,6 @@ func NewAuditSystem(config *AuditSystemConfig) (*AuditSystem, error) {
 	// Initialize retention manager.
 
 	retentionConfig := &RetentionConfig{
-
 		ComplianceMode: config.ComplianceMode,
 	}
 
@@ -266,7 +250,6 @@ func NewAuditSystem(config *AuditSystemConfig) (*AuditSystem, error) {
 	for _, backendConfig := range config.Backends {
 
 		backend, err := backends.NewBackend(backendConfig)
-
 		if err != nil {
 
 			system.logger.Error(err, "Failed to initialize backend", "type", backendConfig.Type)
@@ -280,13 +263,11 @@ func NewAuditSystem(config *AuditSystemConfig) (*AuditSystem, error) {
 	}
 
 	return system, nil
-
 }
 
 // Start begins processing audit events.
 
 func (as *AuditSystem) Start() error {
-
 	if !as.config.Enabled {
 
 		as.logger.Info("Audit system is disabled")
@@ -296,9 +277,7 @@ func (as *AuditSystem) Start() error {
 	}
 
 	if as.running.Load() {
-
 		return fmt.Errorf("audit system is already running")
-
 	}
 
 	as.logger.Info("Starting audit system",
@@ -334,17 +313,13 @@ func (as *AuditSystem) Start() error {
 	go as.retentionManager.Start(as.ctx, &as.wg)
 
 	return nil
-
 }
 
 // Stop gracefully shuts down the audit system.
 
 func (as *AuditSystem) Stop() error {
-
 	if !as.running.Load() {
-
 		return nil
-
 	}
 
 	as.logger.Info("Stopping audit system")
@@ -358,9 +333,7 @@ func (as *AuditSystem) Stop() error {
 	// Stop flush timer.
 
 	if as.flushTimer != nil {
-
 		as.flushTimer.Stop()
-
 	}
 
 	// Wait for all goroutines to finish.
@@ -374,37 +347,27 @@ func (as *AuditSystem) Stop() error {
 	// Close backends.
 
 	for _, backend := range as.backends {
-
 		if err := backend.Close(); err != nil {
-
 			as.logger.Error(err, "Failed to close backend", "type", backend.Type())
-
 		}
-
 	}
 
 	as.logger.Info("Audit system stopped")
 
 	return nil
-
 }
 
 // LogEvent submits an audit event for processing.
 
 func (as *AuditSystem) LogEvent(event *types.AuditEvent) error {
-
 	if !as.config.Enabled || !as.running.Load() {
-
 		return nil
-
 	}
 
 	// Check minimum severity level.
 
 	if event.Severity < as.config.LogLevel {
-
 		return nil
-
 	}
 
 	// Enrich event with system metadata.
@@ -424,13 +387,9 @@ func (as *AuditSystem) LogEvent(event *types.AuditEvent) error {
 	// Apply integrity protection.
 
 	if as.integrityChain != nil {
-
 		if err := as.integrityChain.ProcessEvent(event); err != nil {
-
 			as.logger.Error(err, "Failed to apply integrity protection to audit event")
-
 		}
-
 	}
 
 	// Try to enqueue the event.
@@ -463,15 +422,12 @@ func (as *AuditSystem) LogEvent(event *types.AuditEvent) error {
 		return fmt.Errorf("audit queue is full, dropping event")
 
 	}
-
 }
 
 // GetStats returns audit system statistics.
 
 func (as *AuditSystem) GetStats() AuditStats {
-
 	return AuditStats{
-
 		EventsReceived: atomic.LoadInt64(&as.eventsReceived),
 
 		EventsDropped: atomic.LoadInt64(&as.eventsDropped),
@@ -486,17 +442,14 @@ func (as *AuditSystem) GetStats() AuditStats {
 
 		ComplianceMode: as.config.ComplianceMode,
 	}
-
 }
 
 // processingLoop is the main event processing loop.
 
 func (as *AuditSystem) processingLoop() {
-
 	defer as.wg.Done()
 
 	for {
-
 		select {
 
 		case event := <-as.eventQueue:
@@ -510,9 +463,7 @@ func (as *AuditSystem) processingLoop() {
 			as.batchMutex.Unlock()
 
 			if shouldFlush {
-
 				as.flushBatch()
-
 			}
 
 		case <-as.ctx.Done():
@@ -522,19 +473,15 @@ func (as *AuditSystem) processingLoop() {
 			return
 
 		}
-
 	}
-
 }
 
 // timerLoop handles periodic flushing based on time intervals.
 
 func (as *AuditSystem) timerLoop() {
-
 	defer as.wg.Done()
 
 	for {
-
 		select {
 
 		case <-as.flushTimer.C:
@@ -550,15 +497,12 @@ func (as *AuditSystem) timerLoop() {
 			return
 
 		}
-
 	}
-
 }
 
 // flushBatch sends accumulated events to all backends.
 
 func (as *AuditSystem) flushBatch() {
-
 	as.batchMutex.Lock()
 
 	if len(as.batchBuffer) == 0 {
@@ -586,7 +530,6 @@ func (as *AuditSystem) flushBatch() {
 	// Process events with each backend.
 
 	for _, backend := range as.backends {
-
 		if err := as.processEventsWithBackend(backend, events); err != nil {
 
 			as.logger.Error(err, "Failed to process events with backend", "type", backend.Type())
@@ -594,69 +537,52 @@ func (as *AuditSystem) flushBatch() {
 			auditErrorsTotal.WithLabelValues(backend.Type(), "processing_error").Inc()
 
 		}
-
 	}
 
 	// Update compliance logging.
 
 	for _, event := range events {
-
 		as.complianceLogger.ProcessEvent(event)
-
 	}
 
 	as.lastFlush = time.Now()
 
 	as.logger.V(1).Info("Flushed audit batch", "count", len(events))
-
 }
 
 // processEventsWithBackend sends events to a specific backend with timing metrics.
 
 func (as *AuditSystem) processEventsWithBackend(backend backends.Backend, events []*types.AuditEvent) error {
-
 	start := time.Now()
 
 	defer func() {
-
 		duration := time.Since(start)
 
 		auditProcessingDuration.WithLabelValues(backend.Type(), "batch_write").Observe(duration.Seconds())
-
 	}()
 
 	return backend.WriteEvents(as.ctx, events)
-
 }
 
 // enrichEvent adds system metadata to audit events.
 
 func (as *AuditSystem) enrichEvent(event *types.AuditEvent) {
-
 	if event.ID == "" {
-
 		event.ID = uuid.New().String()
-
 	}
 
 	if event.Timestamp.IsZero() {
-
 		event.Timestamp = time.Now().UTC()
-
 	}
 
 	if event.Version == "" {
-
 		event.Version = AuditFormatVersion
-
 	}
 
 	// Add system context.
 
 	if event.SystemContext == nil {
-
 		event.SystemContext = &SystemContext{}
-
 	}
 
 	event.SystemContext.Hostname = getHostname()
@@ -668,7 +594,6 @@ func (as *AuditSystem) enrichEvent(event *types.AuditEvent) {
 	// Add compliance metadata based on configured standards.
 
 	for _, standard := range as.config.ComplianceMode {
-
 		switch standard {
 
 		case ComplianceSOC2:
@@ -684,63 +609,48 @@ func (as *AuditSystem) enrichEvent(event *types.AuditEvent) {
 			as.addPCIDSSMetadata(event)
 
 		}
-
 	}
-
 }
 
 // addSOC2Metadata enriches events with SOC2-specific fields.
 
 func (as *AuditSystem) addSOC2Metadata(event *types.AuditEvent) {
-
 	if event.ComplianceMetadata == nil {
-
 		event.ComplianceMetadata = make(map[string]interface{})
-
 	}
 
 	event.ComplianceMetadata["soc2_control_id"] = as.getSOC2ControlID(event.EventType)
 
 	event.ComplianceMetadata["soc2_trust_service"] = as.getSOC2TrustService(event.EventType)
-
 }
 
 // addISO27001Metadata enriches events with ISO 27001-specific fields.
 
 func (as *AuditSystem) addISO27001Metadata(event *types.AuditEvent) {
-
 	if event.ComplianceMetadata == nil {
-
 		event.ComplianceMetadata = make(map[string]interface{})
-
 	}
 
 	event.ComplianceMetadata["iso27001_control"] = as.getISO27001Control(event.EventType)
 
 	event.ComplianceMetadata["iso27001_annex"] = as.getISO27001Annex(event.EventType)
-
 }
 
 // addPCIDSSMetadata enriches events with PCI DSS-specific fields.
 
 func (as *AuditSystem) addPCIDSSMetadata(event *types.AuditEvent) {
-
 	if event.ComplianceMetadata == nil {
-
 		event.ComplianceMetadata = make(map[string]interface{})
-
 	}
 
 	event.ComplianceMetadata["pci_requirement"] = as.getPCIRequirement(event.EventType)
 
 	event.ComplianceMetadata["pci_data_classification"] = as.getPCIDataClassification(event)
-
 }
 
 // Helper functions for compliance metadata.
 
 func (as *AuditSystem) getSOC2ControlID(eventType EventType) string {
-
 	switch eventType {
 
 	case EventTypeAuthentication:
@@ -760,11 +670,9 @@ func (as *AuditSystem) getSOC2ControlID(eventType EventType) string {
 		return "CC1.4"
 
 	}
-
 }
 
 func (as *AuditSystem) getSOC2TrustService(eventType EventType) string {
-
 	switch eventType {
 
 	case EventTypeAuthentication, EventTypeAuthorization:
@@ -784,11 +692,9 @@ func (as *AuditSystem) getSOC2TrustService(eventType EventType) string {
 		return "Security"
 
 	}
-
 }
 
 func (as *AuditSystem) getISO27001Control(eventType EventType) string {
-
 	switch eventType {
 
 	case EventTypeAuthentication:
@@ -808,11 +714,9 @@ func (as *AuditSystem) getISO27001Control(eventType EventType) string {
 		return "A.12.1.1"
 
 	}
-
 }
 
 func (as *AuditSystem) getISO27001Annex(eventType EventType) string {
-
 	switch eventType {
 
 	case EventTypeAuthentication, EventTypeAuthorization:
@@ -828,11 +732,9 @@ func (as *AuditSystem) getISO27001Annex(eventType EventType) string {
 		return "A.12 - Operations Security"
 
 	}
-
 }
 
 func (as *AuditSystem) getPCIRequirement(eventType EventType) string {
-
 	switch eventType {
 
 	case EventTypeAuthentication:
@@ -852,31 +754,24 @@ func (as *AuditSystem) getPCIRequirement(eventType EventType) string {
 		return "10.1"
 
 	}
-
 }
 
 func (as *AuditSystem) getPCIDataClassification(event *types.AuditEvent) string {
-
 	// Check if event involves cardholder data.
 
 	if event.Data != nil {
 
 		if _, exists := event.Data["cardholder_data"]; exists {
-
 			return "Cardholder Data"
-
 		}
 
 		if _, exists := event.Data["sensitive_auth_data"]; exists {
-
 			return "Sensitive Authentication Data"
-
 		}
 
 	}
 
 	return "Non-CHD"
-
 }
 
 // AuditStats contains statistics about the audit system.
@@ -900,25 +795,19 @@ type AuditStats struct {
 // Helper functions for system metadata.
 
 func getHostname() string {
-
 	// Implementation would get actual hostname.
 
 	return "nephoran-operator"
-
 }
 
 func getProcessID() int {
-
 	// Implementation would get actual process ID.
 
 	return 1
-
 }
 
 func getGoroutineID() int {
-
 	// Implementation would get goroutine ID.
 
 	return 1
-
 }

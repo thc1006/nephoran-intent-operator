@@ -20,21 +20,19 @@ import (
 // TestFullIntegrationWorkflow tests the complete LLM processing workflow.
 
 func TestFullIntegrationWorkflow(t *testing.T) {
-
 	// Setup mock servers.
 
 	llmServer := setupMockLLMServer(t)
 
-	defer llmServer.Close()
+	defer llmServer.Close() // #nosec G307 - Error handled in defer
 
 	ragServer := setupMockRAGServer(t)
 
-	defer ragServer.Close()
+	defer ragServer.Close() // #nosec G307 - Error handled in defer
 
 	// Create processing engine with all components.
 
 	client := NewClientWithConfig(llmServer.URL, ClientConfig{
-
 		APIKey: "test-key",
 
 		ModelName: "gpt-4o-mini",
@@ -47,7 +45,6 @@ func TestFullIntegrationWorkflow(t *testing.T) {
 	})
 
 	processingConfig := &ProcessingConfig{
-
 		EnableRAG: true,
 
 		RAGAPIURL: ragServer.URL,
@@ -78,49 +75,39 @@ func TestFullIntegrationWorkflow(t *testing.T) {
 
 		validateFn func(string) bool
 	}{
-
 		{
-
 			name: "Deploy AMF",
 
 			intent: "Deploy AMF network function with 3 replicas for high availability",
 
 			validateFn: func(result string) bool {
-
 				return strings.Contains(result, "NetworkFunctionDeployment") &&
 
 					strings.Contains(result, "amf")
-
 			},
 		},
 
 		{
-
 			name: "Scale UPF",
 
 			intent: "Scale UPF to 5 replicas to handle increased traffic",
 
 			validateFn: func(result string) bool {
-
 				return strings.Contains(result, "NetworkFunctionScale") ||
 
 					strings.Contains(result, "upf")
-
 			},
 		},
 
 		{
-
 			name: "Deploy Near-RT RIC",
 
 			intent: "Set up Near-RT RIC with traffic steering capabilities",
 
 			validateFn: func(result string) bool {
-
 				return strings.Contains(result, "near-rt-ric") ||
 
 					strings.Contains(result, "traffic")
-
 			},
 		},
 	}
@@ -130,9 +117,7 @@ func TestFullIntegrationWorkflow(t *testing.T) {
 	// Execute test scenarios.
 
 	for _, scenario := range testScenarios {
-
 		t.Run(scenario.name, func(t *testing.T) {
-
 			result, err := engine.ProcessIntent(ctx, scenario.intent)
 
 			if scenario.expectError && err == nil {
@@ -152,37 +137,26 @@ func TestFullIntegrationWorkflow(t *testing.T) {
 			}
 
 			if !scenario.expectError && scenario.validateFn != nil {
-
 				if !scenario.validateFn(result.Content) {
-
 					t.Errorf("Validation failed for scenario %s. Result: %s", scenario.name, result.Content)
-
 				}
-
 			}
 
 			// Verify processing time is reasonable.
 
 			if result.ProcessingTime > 5*time.Second {
-
 				t.Errorf("Processing time too high for scenario %s: %v", scenario.name, result.ProcessingTime)
-
 			}
-
 		})
-
 	}
-
 }
 
 // TestCacheIntegration tests cache integration across components.
 
 func TestCacheIntegration(t *testing.T) {
-
 	callCount := 0
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		callCount++
 
 		w.WriteHeader(http.StatusOK)
@@ -202,15 +176,13 @@ func TestCacheIntegration(t *testing.T) {
 			"usage": {"total_tokens": 100}
 
 		}`, callCount)))
-
 	}))
 
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	// Create client with caching enabled.
 
 	client := NewClientWithConfig(server.URL, ClientConfig{
-
 		APIKey: "test-key",
 
 		BackendType: "openai",
@@ -223,7 +195,6 @@ func TestCacheIntegration(t *testing.T) {
 	// Create cache with semantic similarity.
 
 	cache := NewResponseCacheWithConfig(&CacheConfig{
-
 		TTL: 2 * time.Minute,
 
 		MaxSize: 1000,
@@ -244,31 +215,21 @@ func TestCacheIntegration(t *testing.T) {
 	intent1 := "Deploy AMF with high availability"
 
 	result1, err := client.ProcessIntent(ctx, intent1)
-
 	if err != nil {
-
 		t.Fatalf("First request failed: %v", err)
-
 	}
 
 	result2, err := client.ProcessIntent(ctx, intent1)
-
 	if err != nil {
-
 		t.Fatalf("Second request failed: %v", err)
-
 	}
 
 	if result1 != result2 {
-
 		t.Error("Cached results should be identical")
-
 	}
 
 	if callCount != 1 {
-
 		t.Errorf("Expected 1 server call (second should be cached), got %d", callCount)
-
 	}
 
 	// Test semantic similarity caching.
@@ -276,11 +237,9 @@ func TestCacheIntegration(t *testing.T) {
 	cache.Set("similar_intent_1", "{\"deployment\": \"amf-similar\"}")
 
 	if result, found := cache.Get("similar_intent_2"); found {
-
 		// This might find a similar result depending on keywords.
 
 		t.Logf("Found similar cached result: %s", result)
-
 	}
 
 	// Verify cache statistics.
@@ -288,29 +247,22 @@ func TestCacheIntegration(t *testing.T) {
 	stats := cache.GetStats()
 
 	if stats["l1_size"].(int) == 0 && stats["l2_size"].(int) == 0 {
-
 		t.Error("Cache should contain entries")
-
 	}
 
 	if stats["hit_rate"].(float64) <= 0 {
-
 		t.Error("Cache hit rate should be positive")
-
 	}
 
 	cache.Stop()
-
 }
 
 // TestWorkerPoolIntegration tests worker pool integration.
 
 func TestWorkerPoolIntegration(t *testing.T) {
-
 	// Create worker pool.
 
 	config := &WorkerPoolConfig{
-
 		MinWorkers: 2,
 
 		MaxWorkers: 5,
@@ -331,11 +283,8 @@ func TestWorkerPoolIntegration(t *testing.T) {
 	}
 
 	pool, err := NewWorkerPool(config)
-
 	if err != nil {
-
 		t.Fatalf("Failed to create worker pool: %v", err)
-
 	}
 
 	ctx := context.Background()
@@ -343,27 +292,19 @@ func TestWorkerPoolIntegration(t *testing.T) {
 	// Start worker pool.
 
 	if err := pool.Start(ctx); err != nil {
-
 		t.Fatalf("Failed to start worker pool: %v", err)
-
 	}
 
 	defer func() {
-
 		if err := pool.Shutdown(ctx); err != nil {
-
 			t.Errorf("Failed to shutdown worker pool: %v", err)
-
 		}
-
 	}()
 
 	// Submit various task types.
 
 	tasks := []Task{
-
 		{
-
 			ID: "llm-task-1",
 
 			Type: TaskTypeLLMProcessing,
@@ -376,7 +317,6 @@ func TestWorkerPoolIntegration(t *testing.T) {
 		},
 
 		{
-
 			ID: "rag-task-1",
 
 			Type: TaskTypeRAGProcessing,
@@ -389,7 +329,6 @@ func TestWorkerPoolIntegration(t *testing.T) {
 		},
 
 		{
-
 			ID: "batch-task-1",
 
 			Type: TaskTypeBatchProcessing,
@@ -405,13 +344,9 @@ func TestWorkerPoolIntegration(t *testing.T) {
 	// Submit tasks.
 
 	for i := range tasks {
-
 		if err := pool.Submit(&tasks[i]); err != nil {
-
 			t.Errorf("Failed to submit task %s: %v", tasks[i].ID, err)
-
 		}
-
 	}
 
 	// Wait for processing.
@@ -423,17 +358,13 @@ func TestWorkerPoolIntegration(t *testing.T) {
 	metrics := pool.GetMetrics()
 
 	if metrics.ActiveWorkers < 2 {
-
 		t.Errorf("Expected at least 2 active workers, got %d", metrics.ActiveWorkers)
-
 	}
 
 	status := pool.GetStatus()
 
 	if !status["running"].(bool) {
-
 		t.Error("Worker pool should be running")
-
 	}
 
 	// Test scaling by submitting many tasks.
@@ -441,7 +372,6 @@ func TestWorkerPoolIntegration(t *testing.T) {
 	for i := 0; i < 50; i++ {
 
 		task := Task{
-
 			ID: fmt.Sprintf("scale-task-%d", i),
 
 			Type: TaskTypeLLMProcessing,
@@ -468,21 +398,16 @@ func TestWorkerPoolIntegration(t *testing.T) {
 	finalMetrics := pool.GetMetrics()
 
 	if finalMetrics.ActiveWorkers <= metrics.ActiveWorkers {
-
 		t.Log("Worker pool may have scaled up") // This is timing-dependent
-
 	}
-
 }
 
 // TestCircuitBreakerIntegration tests circuit breaker integration.
 
 func TestCircuitBreakerIntegration(t *testing.T) {
-
 	failureCount := 0
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		failureCount++
 
 		// Fail first 5 requests, then succeed.
@@ -514,15 +439,13 @@ func TestCircuitBreakerIntegration(t *testing.T) {
 			"usage": {"total_tokens": 75}
 
 		}`))
-
 	}))
 
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	// Configure circuit breaker with low thresholds for testing.
 
 	cbConfig := &CircuitBreakerConfig{
-
 		FailureThreshold: 3,
 
 		FailureRate: 0.6,
@@ -537,7 +460,6 @@ func TestCircuitBreakerIntegration(t *testing.T) {
 	}
 
 	client := NewClientWithConfig(server.URL, ClientConfig{
-
 		APIKey: "test-key",
 
 		BackendType: "openai",
@@ -556,25 +478,17 @@ func TestCircuitBreakerIntegration(t *testing.T) {
 		result, err := client.ProcessIntent(ctx, fmt.Sprintf("Trigger circuit breaker %d", i))
 
 		if i < 3 {
-
 			// First few requests should reach server and fail.
 
 			if err == nil {
-
 				t.Errorf("Request %d should have failed", i+1)
-
 			}
-
 		} else {
-
 			// Later requests might be rejected by circuit breaker.
 
 			if err != nil && strings.Contains(err.Error(), "circuit breaker") {
-
 				t.Logf("Request %d properly rejected by circuit breaker", i+1)
-
 			}
-
 		}
 
 		_ = result
@@ -590,33 +504,24 @@ func TestCircuitBreakerIntegration(t *testing.T) {
 	result, err := client.ProcessIntent(ctx, "Test circuit recovery")
 
 	if err == nil {
-
 		if strings.Contains(result, "circuit-recovery") {
-
 			t.Log("Circuit breaker successfully recovered")
-
 		}
-
 	}
-
 }
 
 // TestPerformanceUnderLoad tests system performance under load.
 
 func TestPerformanceUnderLoad(t *testing.T) {
-
 	if testing.Short() {
-
 		t.Skip("Skipping performance test in short mode")
-
 	}
 
 	server := setupHighPerformanceMockServer(t)
 
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	client := NewClientWithConfig(server.URL, ClientConfig{
-
 		APIKey: "test-key",
 
 		BackendType: "openai",
@@ -627,7 +532,6 @@ func TestPerformanceUnderLoad(t *testing.T) {
 	})
 
 	engine := NewProcessingEngine(client, &ProcessingConfig{
-
 		EnableRAG: false, // Simplified for performance test
 
 		EnableBatching: true,
@@ -656,9 +560,7 @@ func TestPerformanceUnderLoad(t *testing.T) {
 	// Generate requests.
 
 	for i := 0; i < numRequests; i++ {
-
 		requestChan <- fmt.Sprintf("Performance test request %d - deploy AMF with %d replicas", i, i%5+1)
-
 	}
 
 	close(requestChan)
@@ -668,9 +570,7 @@ func TestPerformanceUnderLoad(t *testing.T) {
 	startTime := time.Now()
 
 	for i := 0; i < numWorkers; i++ {
-
 		go func(workerID int) {
-
 			for intent := range requestChan {
 
 				result, err := engine.ProcessIntent(ctx, intent)
@@ -682,15 +582,11 @@ func TestPerformanceUnderLoad(t *testing.T) {
 					resultChan <- &ProcessingResult{Error: err}
 
 				} else {
-
 					resultChan <- result
-
 				}
 
 			}
-
 		}(i)
-
 	}
 
 	// Collect results.
@@ -706,9 +602,7 @@ func TestPerformanceUnderLoad(t *testing.T) {
 		result := <-resultChan
 
 		if result.Error != nil {
-
 			errorCount++
-
 		} else {
 
 			successCount++
@@ -744,21 +638,15 @@ func TestPerformanceUnderLoad(t *testing.T) {
 	// Performance assertions.
 
 	if successRate < 0.95 {
-
 		t.Errorf("Success rate too low: %.2f%% (expected > 95%%)", successRate*100)
-
 	}
 
 	if averageProcessingTime > 1*time.Second {
-
 		t.Errorf("Average processing time too high: %v (expected < 1s)", averageProcessingTime)
-
 	}
 
 	if requestsPerSecond < 10 {
-
 		t.Errorf("Throughput too low: %.2f RPS (expected > 10 RPS)", requestsPerSecond)
-
 	}
 
 	// Check metrics.
@@ -766,21 +654,16 @@ func TestPerformanceUnderLoad(t *testing.T) {
 	metrics := engine.GetMetrics()
 
 	if metrics.TotalRequests == 0 {
-
 		t.Error("Processing metrics should show requests processed")
-
 	}
-
 }
 
 // TestSecurityFeatures tests security-related functionality.
 
 func TestSecurityFeatures(t *testing.T) {
-
 	// Test TLS configuration.
 
 	client := NewClientWithConfig("https://secure.example.com", ClientConfig{
-
 		APIKey: "test-key",
 
 		SkipTLSVerification: false, // Security should be enforced
@@ -791,33 +674,25 @@ func TestSecurityFeatures(t *testing.T) {
 	// Test API key handling (simplified check).
 
 	if client == nil {
-
 		t.Error("Client should be created successfully")
-
 	}
 
 	// Test timeout enforcement.
 
 	shortClient := NewClientWithConfig("http://slow.example.com", ClientConfig{
-
 		Timeout: 1 * time.Millisecond, // Very short timeout
 
 	})
 
 	if shortClient == nil {
-
 		t.Error("Client should be created with timeout")
-
 	}
-
 }
 
 // Helper functions for testing.
 
 func setupMockLLMServer(t *testing.T) *httptest.Server {
-
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		// Simulate realistic LLM API responses.
 
 		time.Sleep(10 * time.Millisecond) // Simulate processing time
@@ -847,15 +722,11 @@ func setupMockLLMServer(t *testing.T) *httptest.Server {
 			}
 
 		}`))
-
 	}))
-
 }
 
 func setupMockRAGServer(t *testing.T) *httptest.Server {
-
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		if !strings.HasSuffix(r.URL.Path, "/process") {
 
 			http.NotFound(w, r)
@@ -897,15 +768,11 @@ func setupMockRAGServer(t *testing.T) *httptest.Server {
 			"sources": ["3GPP TS 23.501", "O-RAN WG1 spec"]
 
 		}`))
-
 	}))
-
 }
 
 func setupHighPerformanceMockServer(t *testing.T) *httptest.Server {
-
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		// Fast response for performance testing.
 
 		w.WriteHeader(http.StatusOK)
@@ -925,7 +792,5 @@ func setupHighPerformanceMockServer(t *testing.T) *httptest.Server {
 			"usage": {"total_tokens": 50}
 
 		}`))
-
 	}))
-
 }

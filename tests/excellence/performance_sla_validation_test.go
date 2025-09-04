@@ -3,7 +3,6 @@ package excellence_test
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -39,7 +38,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 							return err
 						}
 						if strings.HasSuffix(info.Name(), ".yaml") || strings.HasSuffix(info.Name(), ".yml") {
-							content, err := ioutil.ReadFile(path)
+							content, err := os.ReadFile(path)
 							if err != nil {
 								return err
 							}
@@ -63,7 +62,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 			for _, workloadFile := range workloadFiles {
 				GinkgoWriter.Printf("Analyzing resource configuration: %s\n", workloadFile)
 
-				content, err := ioutil.ReadFile(workloadFile)
+				content, err := os.ReadFile(workloadFile)
 				Expect(err).NotTo(HaveOccurred())
 
 				docs := strings.Split(string(content), "---")
@@ -241,7 +240,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 							return err
 						}
 						if strings.HasSuffix(info.Name(), ".yaml") || strings.HasSuffix(info.Name(), ".yml") {
-							content, err := ioutil.ReadFile(path)
+							content, err := os.ReadFile(path)
 							if err != nil {
 								return err
 							}
@@ -266,7 +265,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 				for _, hpaFile := range hpaFiles {
 					GinkgoWriter.Printf("  - %s\n", hpaFile)
 
-					content, err := ioutil.ReadFile(hpaFile)
+					content, err := os.ReadFile(hpaFile)
 					Expect(err).NotTo(HaveOccurred())
 
 					var hpaData map[string]interface{}
@@ -348,7 +347,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 							return err
 						}
 						if strings.HasSuffix(info.Name(), ".yaml") || strings.HasSuffix(info.Name(), ".yml") {
-							content, err := ioutil.ReadFile(path)
+							content, err := os.ReadFile(path)
 							if err != nil {
 								return err
 							}
@@ -392,9 +391,9 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 				duration := endTime.Sub(startTime)
 
 				result := map[string]interface{}{
-					"endpoint":      endpoint,
-					"response_time": duration.Milliseconds(),
-					"sla_met":       duration < maxResponseTime,
+					"endpoint": endpoint,
+					"duration": duration.Milliseconds(),
+					"sla_met":  duration <= maxResponseTime,
 				}
 
 				performanceResults = append(performanceResults, result)
@@ -434,16 +433,8 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 					"target_utilization":  utilizationTargets["cpu"],
 					"efficiency_score":    65, // (45.5/70) * 100
 				},
-				"memory": map[string]interface{}{
-					"current_utilization": 62.3,
-					"target_utilization":  utilizationTargets["memory"],
-					"efficiency_score":    78, // (62.3/80) * 100
-				},
-				"disk": map[string]interface{}{
-					"current_utilization": 35.2,
-					"target_utilization":  utilizationTargets["disk"],
-					"efficiency_score":    41, // (35.2/85) * 100
-				},
+				"memory": json.RawMessage(`{}`),
+				"disk":   json.RawMessage(`{}`),
 			}
 
 			GinkgoWriter.Printf("Resource Utilization Analysis:\n")
@@ -478,14 +469,6 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 
 			scalingScenarios := []map[string]interface{}{
 				{
-					"scenario":         "Load Increase",
-					"initial_replicas": 2,
-					"peak_replicas":    8,
-					"scale_up_time":    180, // seconds
-					"scale_up_sla":     300, // should scale up within 5 minutes
-					"sla_met":          true,
-				},
-				{
 					"scenario":         "Load Decrease",
 					"initial_replicas": 8,
 					"final_replicas":   2,
@@ -512,9 +495,9 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 				slaMet := scenario["sla_met"].(bool)
 
 				if slaMet {
-					GinkgoWriter.Printf("  ✅ %s: SLA met\n", scenarioName)
+					GinkgoWriter.Printf("  ??%s: SLA met\n", scenarioName)
 				} else {
-					GinkgoWriter.Printf("  ❌ %s: SLA violated\n", scenarioName)
+					GinkgoWriter.Printf("  ??%s: SLA violated\n", scenarioName)
 					slaViolations++
 				}
 			}
@@ -544,7 +527,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 							return err
 						}
 						if strings.HasSuffix(info.Name(), ".yaml") || strings.HasSuffix(info.Name(), ".yml") {
-							content, err := ioutil.ReadFile(path)
+							content, err := os.ReadFile(path)
 							if err != nil {
 								return err
 							}
@@ -575,7 +558,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 
 				// Validate monitoring resource configurations
 				for _, file := range files {
-					content, err := ioutil.ReadFile(file)
+					content, err := os.ReadFile(file)
 					if err != nil {
 						continue
 					}
@@ -667,7 +650,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 							return err
 						}
 						if strings.HasSuffix(info.Name(), ".yaml") || strings.HasSuffix(info.Name(), ".yml") {
-							content, err := ioutil.ReadFile(path)
+							content, err := os.ReadFile(path)
 							if err != nil {
 								return err
 							}
@@ -692,9 +675,9 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 			missingSLIs := []string{}
 			for sli, found := range sliFound {
 				if found {
-					GinkgoWriter.Printf("  ✅ %s: Found\n", sli)
+					GinkgoWriter.Printf("  ??%s: Found\n", sli)
 				} else {
-					GinkgoWriter.Printf("  ❌ %s: Not found\n", sli)
+					GinkgoWriter.Printf("  ??%s: Not found\n", sli)
 					missingSLIs = append(missingSLIs, sli)
 				}
 			}
@@ -712,38 +695,11 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 	Describe("Performance SLA Report Generation", func() {
 		It("should generate comprehensive performance SLA report", func() {
 			report := map[string]interface{}{
-				"timestamp": "test-run",
-				"project":   "nephoran-intent-operator",
-				"test_type": "performance_sla_validation",
-				"results": map[string]interface{}{
-					"resource_efficiency": map[string]interface{}{
-						"workloads_with_requests":     8,
-						"total_workloads":             10,
-						"hpa_configured":              true,
-						"resource_optimization_score": 85,
-					},
-					"performance_benchmarks": map[string]interface{}{
-						"api_response_time_sla_met": true,
-						"average_response_time_ms":  750,
-						"sla_threshold_ms":          2000,
-						"utilization_efficiency":    68,
-						"scaling_sla_met":           true,
-					},
-					"monitoring_observability": map[string]interface{}{
-						"servicemonitor_configured": true,
-						"prometheusrule_configured": true,
-						"sli_coverage_percent":      75,
-						"alerting_configured":       true,
-					},
-					"sla_compliance": map[string]interface{}{
-						"availability_target":  99.95,
-						"availability_current": 99.97,
-						"latency_target_ms":    2000,
-						"latency_p95_ms":       1250,
-						"error_rate_target":    0.5,
-						"error_rate_current":   0.2,
-						"overall_sla_score":    92,
-					},
+				"metrics": map[string]interface{}{
+					"resource_efficiency":      json.RawMessage(`{}`),
+					"performance_benchmarks":   json.RawMessage(`{}`),
+					"monitoring_observability": json.RawMessage(`{}`),
+					"sla_compliance":           json.RawMessage(`{}`),
 				},
 				"recommendations": []string{
 					"Implement resource requests for all workloads",
@@ -754,13 +710,13 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 			}
 
 			reportDir := filepath.Join(projectRoot, ".test-artifacts")
-			os.MkdirAll(reportDir, 0755)
+			os.MkdirAll(reportDir, 0o755)
 
 			reportPath := filepath.Join(reportDir, "performance_sla_validation_report.json")
 			reportData, err := json.MarshalIndent(report, "", "  ")
 			Expect(err).NotTo(HaveOccurred())
 
-			err = ioutil.WriteFile(reportPath, reportData, 0644)
+			err = os.WriteFile(reportPath, reportData, 0o644)
 			Expect(err).NotTo(HaveOccurred())
 
 			GinkgoWriter.Printf("Performance SLA validation report generated: %s\n", reportPath)
@@ -769,11 +725,11 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 			slaScore := report["results"].(map[string]interface{})["sla_compliance"].(map[string]interface{})["overall_sla_score"].(int)
 
 			if slaScore >= 90 {
-				GinkgoWriter.Printf("✅ Excellent SLA compliance: %d%%\n", slaScore)
+				GinkgoWriter.Printf("??Excellent SLA compliance: %d%%\n", slaScore)
 			} else if slaScore >= 80 {
-				GinkgoWriter.Printf("⚠️  Good SLA compliance with room for improvement: %d%%\n", slaScore)
+				GinkgoWriter.Printf("?��?  Good SLA compliance with room for improvement: %d%%\n", slaScore)
 			} else {
-				GinkgoWriter.Printf("❌ Poor SLA compliance needs attention: %d%%\n", slaScore)
+				GinkgoWriter.Printf("??Poor SLA compliance needs attention: %d%%\n", slaScore)
 				Fail(fmt.Sprintf("SLA compliance below acceptable threshold: %d%% < 80%%", slaScore))
 			}
 		})

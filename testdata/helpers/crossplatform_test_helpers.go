@@ -135,7 +135,7 @@ func (env *CrossPlatformTestEnvironment) BuildConductorLoop() {
 
 	}
 
-	cmd := exec.Command("go", "build", "-o", env.BinaryPath, ".")
+	cmd := exec.Command("go", "build", "-o", env.BinaryPath, ".") // #nosec G204 - Static command with validated args
 
 	cmd.Dir = mainDir
 

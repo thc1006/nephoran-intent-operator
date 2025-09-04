@@ -1,5 +1,7 @@
 package automation
 
+import "time"
+
 // AutomationType defines types of automation requests.
 
 type AutomationType string
@@ -75,4 +77,40 @@ const (
 	// AutomationPriorityCritical represents critical priority automation.
 
 	AutomationPriorityCritical
+)
+
+// 2025 Modern Automation Constants
+const (
+	// DefaultRemediationTimeout is the default timeout for remediation operations
+	DefaultRemediationTimeout = 10 * time.Minute
+
+	// DefaultLearningBatchSize is the default batch size for ML learning operations
+	DefaultLearningBatchSize = 100
+
+	// MaxConcurrentRemediations is the maximum number of concurrent remediation sessions
+	MaxConcurrentRemediations = 5
+
+	// DefaultHealthCheckInterval is the default interval for health checks
+	DefaultHealthCheckInterval = 30 * time.Second
+
+	// AIModelUpdateInterval is the interval for updating AI models
+	AIModelUpdateInterval = 6 * time.Hour
+)
+
+// 2025 Automation Features
+const (
+	// FeatureAIPoweredRemediation enables AI-powered automated remediation
+	FeatureAIPoweredRemediation = "ai_powered_remediation"
+
+	// FeaturePredictiveScaling enables predictive auto-scaling
+	FeaturePredictiveScaling = "predictive_scaling"
+
+	// FeatureAnomalyDetection enables ML-based anomaly detection
+	FeatureAnomalyDetection = "anomaly_detection"
+
+	// FeatureSmartAlerts enables intelligent alert filtering
+	FeatureSmartAlerts = "smart_alerts"
+
+	// FeatureAutomatedTesting enables automated testing in production
+	FeatureAutomatedTesting = "automated_testing"
 )

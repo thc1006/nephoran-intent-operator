@@ -3,7 +3,9 @@
 package common
 
 import (
-	"time"
+	
+	"encoding/json"
+"time"
 )
 
 // HealthCheck represents health status information for O-RAN services
@@ -13,7 +15,7 @@ type HealthCheck struct {
 	Timestamp  time.Time              `json:"timestamp"`
 	Version    string                 `json:"version,omitempty"`
 	Uptime     time.Duration          `json:"uptime,omitempty"`
-	Components map[string]interface{} `json:"components,omitempty"`
+	Components json.RawMessage `json:"components,omitempty"`
 	Checks     []ComponentCheck       `json:"checks,omitempty"`
 	// O2-specific fields (optional for other interfaces)
 	Services  []ServiceStatus        `json:"services,omitempty"`
@@ -28,7 +30,7 @@ type ComponentCheck struct {
 	Message   string                 `json:"message,omitempty"`
 	Timestamp time.Time              `json:"timestamp"`
 	Duration  time.Duration          `json:"duration,omitempty"`
-	Details   map[string]interface{} `json:"details,omitempty"`
+	Details   json.RawMessage `json:"details,omitempty"`
 	// O2-specific field (optional for other interfaces)
 	CheckType string `json:"check_type,omitempty"` // connectivity, resource, dependency
 }

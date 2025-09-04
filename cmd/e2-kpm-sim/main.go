@@ -8,11 +8,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/internal/kpm"
+	"github.com/thc1006/nephoran-intent-operator/internal/kpm"
 )
 
 func main() {
-
 	var (
 		outputDir = flag.String("out", "metrics", "output directory for metrics")
 
@@ -24,17 +23,12 @@ func main() {
 	flag.Parse()
 
 	if err := os.MkdirAll(*outputDir, 0o750); err != nil {
-
 		log.Fatalf("Failed to create output directory: %v", err)
-
 	}
 
 	generator, err := kpm.NewGenerator(*nodeID, *outputDir)
-
 	if err != nil {
-
 		log.Fatalf("Failed to create generator: %v", err)
-
 	}
 
 	ticker := time.NewTicker(*period)
@@ -52,7 +46,6 @@ func main() {
 	const maxRetries = 3
 
 	for {
-
 		select {
 
 		case <-ticker.C:
@@ -62,7 +55,6 @@ func main() {
 			var lastErr error
 
 			for retry := range maxRetries {
-
 				if err := generator.GenerateMetric(); err != nil {
 
 					lastErr = err
@@ -84,7 +76,6 @@ func main() {
 					break
 
 				}
-
 			}
 
 			if lastErr != nil {
@@ -104,7 +95,5 @@ func main() {
 			return
 
 		}
-
 	}
-
 }

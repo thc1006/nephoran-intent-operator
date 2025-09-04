@@ -28,7 +28,7 @@ func TestValidator(t *testing.T) {
 		"additionalProperties": false
 	}`
 
-	if err := os.WriteFile(schemaPath, []byte(schemaContent), 0644); err != nil {
+	if err := os.WriteFile(schemaPath, []byte(schemaContent), 0o644); err != nil {
 		t.Fatalf("Failed to write test schema: %v", err)
 	}
 
@@ -138,7 +138,7 @@ func TestValidatorReload(t *testing.T) {
 		}
 	}`
 
-	if err := os.WriteFile(schemaPath, []byte(initialSchema), 0644); err != nil {
+	if err := os.WriteFile(schemaPath, []byte(initialSchema), 0o644); err != nil {
 		t.Fatalf("Failed to write initial schema: %v", err)
 	}
 
@@ -165,7 +165,7 @@ func TestValidatorReload(t *testing.T) {
 		}
 	}`
 
-	if err := os.WriteFile(schemaPath, []byte(updatedSchema), 0644); err != nil {
+	if err := os.WriteFile(schemaPath, []byte(updatedSchema), 0o644); err != nil {
 		t.Fatalf("Failed to write updated schema: %v", err)
 	}
 
@@ -200,7 +200,7 @@ func TestValidatorConcurrency(t *testing.T) {
 		}
 	}`
 
-	if err := os.WriteFile(schemaPath, []byte(schemaContent), 0644); err != nil {
+	if err := os.WriteFile(schemaPath, []byte(schemaContent), 0o644); err != nil {
 		t.Fatalf("Failed to write schema: %v", err)
 	}
 

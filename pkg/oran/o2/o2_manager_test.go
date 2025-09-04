@@ -12,9 +12,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	fakeclientset "k8s.io/client-go/kubernetes/fake"
 )
 
 func TestO2Manager_DiscoverResources(t *testing.T) {
@@ -195,12 +195,12 @@ func TestO2Manager_DiscoverResources(t *testing.T) {
 				objects = append(objects, &tt.setupPods[i])
 			}
 
-			clientset := fake.NewSimpleClientset(objects...)
+			clientset := fakeclientset.NewSimpleClientset(objects...)
 
 			// Create fake controller-runtime client
 			scheme := runtime.NewScheme()
 			_ = corev1.AddToScheme(scheme)
-			ctrlClient := fake2.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(objects...).Build()
+			ctrlClient := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(objects...).Build()
 
 			// Create O2 adaptor and manager
 			adaptor := NewO2Adaptor(ctrlClient, clientset, nil)
@@ -330,12 +330,12 @@ func TestO2Manager_ScaleWorkload(t *testing.T) {
 				objects = append(objects, tt.setupDeployment)
 			}
 
-			clientset := fake.NewSimpleClientset(objects...)
+			clientset := fakeclientset.NewSimpleClientset(objects...)
 
 			scheme := runtime.NewScheme()
 			_ = corev1.AddToScheme(scheme)
 			_ = appsv1.AddToScheme(scheme)
-			ctrlClient := fake2.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(objects...).Build()
+			ctrlClient := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(objects...).Build()
 
 			// Create O2 adaptor and manager
 			adaptor := NewO2Adaptor(ctrlClient, clientset, nil)
@@ -468,12 +468,12 @@ func TestO2Manager_DeployVNF(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create fake clients
-			clientset := fake.NewSimpleClientset()
+			clientset := fakeclientset.NewSimpleClientset()
 
 			scheme := runtime.NewScheme()
 			_ = corev1.AddToScheme(scheme)
 			_ = appsv1.AddToScheme(scheme)
-			ctrlClient := fake2.NewClientBuilder().WithScheme(scheme).Build()
+			ctrlClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 			// Create O2 adaptor and manager
 			adaptor := NewO2Adaptor(ctrlClient, clientset, nil)
@@ -549,12 +549,12 @@ func TestO2Adaptor_DeployVNF(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create fake clients
-			clientset := fake.NewSimpleClientset()
+			clientset := fakeclientset.NewSimpleClientset()
 
 			scheme := runtime.NewScheme()
 			_ = corev1.AddToScheme(scheme)
 			_ = appsv1.AddToScheme(scheme)
-			ctrlClient := fake2.NewClientBuilder().WithScheme(scheme).Build()
+			ctrlClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 			// Create O2 adaptor
 			adaptor := NewO2Adaptor(ctrlClient, clientset, nil)
@@ -601,11 +601,11 @@ func TestO2Adaptor_ScaleVNF(t *testing.T) {
 		},
 	}
 
-	clientset := fake.NewSimpleClientset()
+	clientset := fakeclientset.NewSimpleClientset()
 	scheme := runtime.NewScheme()
 	_ = corev1.AddToScheme(scheme)
 	_ = appsv1.AddToScheme(scheme)
-	ctrlClient := fake2.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(deployment).Build()
+	ctrlClient := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(deployment).Build()
 
 	adaptor := NewO2Adaptor(ctrlClient, clientset, nil)
 
@@ -674,10 +674,7 @@ func TestO2Adaptor_ScaleVNF(t *testing.T) {
 }
 
 // Helper functions
-
-func int32Ptr(i int32) *int32 {
-	return &i
-}
+// int32Ptr is defined in example_integration.go
 
 // Integration tests
 
@@ -692,11 +689,11 @@ func TestO2Manager_Integration(t *testing.T) {
 	ctx := context.Background()
 
 	// Setup
-	clientset := fake.NewSimpleClientset()
+	clientset := fakeclientset.NewSimpleClientset()
 	scheme := runtime.NewScheme()
 	_ = corev1.AddToScheme(scheme)
 	_ = appsv1.AddToScheme(scheme)
-	ctrlClient := fake2.NewClientBuilder().WithScheme(scheme).Build()
+	ctrlClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	adaptor := NewO2Adaptor(ctrlClient, clientset, nil)
 	manager := NewO2Manager(adaptor)
@@ -766,10 +763,10 @@ func BenchmarkO2Manager_DiscoverResources(b *testing.B) {
 		}
 	}
 
-	clientset := fake.NewSimpleClientset(nodes...)
+	clientset := fakeclientset.NewSimpleClientset(nodes...)
 	scheme := runtime.NewScheme()
 	_ = corev1.AddToScheme(scheme)
-	ctrlClient := fake2.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(nodes...).Build()
+	ctrlClient := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(nodes...).Build()
 
 	adaptor := NewO2Adaptor(ctrlClient, clientset, nil)
 	manager := NewO2Manager(adaptor)
@@ -786,11 +783,11 @@ func BenchmarkO2Manager_DiscoverResources(b *testing.B) {
 }
 
 func BenchmarkO2Adaptor_DeployVNF(b *testing.B) {
-	clientset := fake.NewSimpleClientset()
+	clientset := fakeclientset.NewSimpleClientset()
 	scheme := runtime.NewScheme()
 	_ = corev1.AddToScheme(scheme)
 	_ = appsv1.AddToScheme(scheme)
-	ctrlClient := fake2.NewClientBuilder().WithScheme(scheme).Build()
+	ctrlClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	adaptor := NewO2Adaptor(ctrlClient, clientset, nil)
 	ctx := context.Background()

@@ -312,7 +312,6 @@ func TestWatchReconcilerWithPorchErrors(t *testing.T) {
 	}
 
 	result, err := reconciler.Reconcile(ctx, req)
-
 	// Should not return error (errors cause requeue)
 	if err != nil {
 		t.Errorf("Expected no error (should requeue), got: %v", err)

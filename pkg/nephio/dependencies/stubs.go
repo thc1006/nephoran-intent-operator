@@ -62,6 +62,7 @@ package dependencies
 
 import (
 	"context"
+	"encoding/json"
 )
 
 // Stub implementations for missing methods and types
@@ -69,48 +70,37 @@ import (
 // ConvertToSAT converts constraints to SAT clauses
 
 func (cs *ConstraintSolver) ConvertToSAT(constraints []*DependencyConstraint) ([]interface{}, map[string]interface{}, error) {
-
 	return []interface{}{}, make(map[string]interface{}), nil
-
 }
 
 // SolveSAT solves SAT problem
 
 func (cs *ConstraintSolver) SolveSAT(ctx context.Context, clauses []interface{}, variables map[string]interface{}) (*SATSolution, error) {
-
 	return &SATSolution{
-
 		Satisfiable: true,
 
 		Assignments: make(map[string]interface{}),
 
 		Statistics: nil,
 	}, nil
-
 }
 
 // ConvertSATAssignments converts SAT assignments back to constraint assignments
 
 func (cs *ConstraintSolver) ConvertSATAssignments(satAssignments, variables map[string]interface{}) map[string]interface{} {
-
 	return make(map[string]interface{})
-
 }
 
 // ExtractUnsatisfiableCore extracts unsatisfiable core from SAT clauses
 
 func (cs *ConstraintSolver) ExtractUnsatisfiableCore(clauses []interface{}, variables map[string]interface{}) ([]interface{}, error) {
-
 	return []interface{}{}, nil
-
 }
 
 // ConvertCoreToConflicts converts unsatisfiable core to conflicts
 
 func (cs *ConstraintSolver) ConvertCoreToConflicts(core []interface{}, constraints []*DependencyConstraint) []*ConstraintConflict {
-
 	return []*ConstraintConflict{}
-
 }
 
 // SATSolution represents a SAT solution
@@ -128,27 +118,19 @@ type SATSolution struct {
 // Stub dependency provider constructors
 
 func NewGitDependencyProvider(config interface{}) DependencyProvider {
-
 	return &stubDependencyProvider{}
-
 }
 
 func NewOCIDependencyProvider(config interface{}) DependencyProvider {
-
 	return &stubDependencyProvider{}
-
 }
 
 func NewHelmDependencyProvider(config interface{}) DependencyProvider {
-
 	return &stubDependencyProvider{}
-
 }
 
 func NewLocalDependencyProvider(config interface{}) DependencyProvider {
-
 	return &stubDependencyProvider{}
-
 }
 
 // Note: DependencyProvider interface is defined in types.go
@@ -158,32 +140,18 @@ func NewLocalDependencyProvider(config interface{}) DependencyProvider {
 type stubDependencyProvider struct{}
 
 func (s *stubDependencyProvider) Close() error {
-
 	return nil
-
 }
 
 func (s *stubDependencyProvider) GetDependency(ctx context.Context, ref *PackageReference) (*PackageReference, error) {
-
 	return ref, nil
-
 }
 
 func (s *stubDependencyProvider) GetMetadata(ctx context.Context, ref *PackageReference) (map[string]interface{}, error) {
-
-	return map[string]interface{}{
-
-		"name": ref.Name,
-
-		"repository": ref.Repository,
-
-		"version": ref.Version,
-	}, nil
-
+	return json.RawMessage(`{}`), nil
 }
 
 func (s *stubDependencyProvider) ListVersions(ctx context.Context, name string) ([]string, error) {
-
 	return []string{"v1.0.0", "v1.1.0", "v2.0.0"}, nil
-
 }
+

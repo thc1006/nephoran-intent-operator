@@ -2,7 +2,14 @@ package dependencies
 
 import (
 	"context"
+	"sync"
 )
+
+// dependencyUpdater is a stub struct for compilation
+type dependencyUpdater struct {
+	metrics interface{}    // stub field
+	wg      sync.WaitGroup // proper wait group
+}
 
 // Additional stub types for compilation
 type ImpactRecommendation struct {
@@ -13,10 +20,10 @@ type ImpactRecommendation struct {
 }
 
 type MitigationStrategy struct {
-	StrategyID  string `json:"strategyId"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Risk        string `json:"risk"`
+	StrategyID    string  `json:"strategyId"`
+	Name          string  `json:"name"`
+	Description   string  `json:"description"`
+	Risk          string  `json:"risk"`
 	Effectiveness float64 `json:"effectiveness"`
 }
 
@@ -27,7 +34,6 @@ type RiskFactor struct {
 	Impact      string  `json:"impact"`
 	Probability float64 `json:"probability"`
 }
-
 
 // Additional stub methods to complete compilation
 
@@ -93,7 +99,8 @@ func (u *dependencyUpdater) GetUpdaterHealth(ctx context.Context) (*UpdaterHealt
 }
 
 func (u *dependencyUpdater) GetUpdateMetrics(ctx context.Context) (*UpdaterMetrics, error) {
-	return u.metrics, nil
+	// Stub implementation returning nil metrics
+	return nil, nil
 }
 
 // Helper methods

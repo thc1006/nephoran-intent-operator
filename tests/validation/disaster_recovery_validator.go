@@ -43,7 +43,6 @@ type DisasterRecoveryValidator struct {
 // DisasterRecoveryMetrics tracks disaster recovery validation results.
 
 type DisasterRecoveryMetrics struct {
-
 	// Backup Capabilities (1 point).
 
 	BackupSystemDeployed bool
@@ -326,9 +325,7 @@ const (
 // NewDisasterRecoveryValidator creates a new disaster recovery validator.
 
 func NewDisasterRecoveryValidator(client client.Client, clientset *kubernetes.Clientset, config *ValidationConfig) *DisasterRecoveryValidator {
-
 	return &DisasterRecoveryValidator{
-
 		client: client,
 
 		clientset: clientset,
@@ -336,11 +333,9 @@ func NewDisasterRecoveryValidator(client client.Client, clientset *kubernetes.Cl
 		config: config,
 
 		metrics: &DisasterRecoveryMetrics{
-
 			BackupComponents: make(map[string]*BackupComponentHealth),
 		},
 	}
-
 }
 
 // ValidateDisasterRecovery executes comprehensive disaster recovery validation.
@@ -348,7 +343,6 @@ func NewDisasterRecoveryValidator(client client.Client, clientset *kubernetes.Cl
 // Returns score out of 2 points for disaster recovery capabilities.
 
 func (drv *DisasterRecoveryValidator) ValidateDisasterRecovery(ctx context.Context) (int, error) {
-
 	ginkgo.By("Starting Disaster Recovery Validation")
 
 	totalScore := 0
@@ -358,11 +352,8 @@ func (drv *DisasterRecoveryValidator) ValidateDisasterRecovery(ctx context.Conte
 	// Phase 1: Backup System Validation (1 point).
 
 	backupScore, err := drv.validateBackupCapabilities(ctx)
-
 	if err != nil {
-
 		return 0, fmt.Errorf("backup capabilities validation failed: %w", err)
-
 	}
 
 	totalScore += backupScore
@@ -372,11 +363,8 @@ func (drv *DisasterRecoveryValidator) ValidateDisasterRecovery(ctx context.Conte
 	// Phase 2: Restore and Recovery Validation (1 point).
 
 	restoreScore, err := drv.validateRestoreCapabilities(ctx)
-
 	if err != nil {
-
 		return 0, fmt.Errorf("restore capabilities validation failed: %w", err)
-
 	}
 
 	totalScore += restoreScore
@@ -394,13 +382,11 @@ func (drv *DisasterRecoveryValidator) ValidateDisasterRecovery(ctx context.Conte
 	ginkgo.By(fmt.Sprintf("Disaster Recovery Total Score: %d/%d points", totalScore, maxScore))
 
 	return totalScore, nil
-
 }
 
 // validateBackupCapabilities validates backup system deployment and configuration.
 
 func (drv *DisasterRecoveryValidator) validateBackupCapabilities(ctx context.Context) (int, error) {
-
 	ginkgo.By("Validating Backup Capabilities")
 
 	score := 0
@@ -420,9 +406,7 @@ func (drv *DisasterRecoveryValidator) validateBackupCapabilities(ctx context.Con
 		drv.mu.Unlock()
 
 	} else {
-
 		ginkgo.By("✗ No backup system found")
-
 	}
 
 	// Additional backup validations.
@@ -436,13 +420,11 @@ func (drv *DisasterRecoveryValidator) validateBackupCapabilities(ctx context.Con
 	drv.validateBackupEncryption(ctx)
 
 	return score, nil
-
 }
 
 // validateBackupSystemDeployment checks for backup system deployment.
 
 func (drv *DisasterRecoveryValidator) validateBackupSystemDeployment(ctx context.Context) bool {
-
 	backupSystems := []struct {
 		name string
 
@@ -452,9 +434,7 @@ func (drv *DisasterRecoveryValidator) validateBackupSystemDeployment(ctx context
 
 		namespace []string
 	}{
-
 		{
-
 			name: "velero",
 
 			component: BackupComponentTypeVelero,
@@ -465,7 +445,6 @@ func (drv *DisasterRecoveryValidator) validateBackupSystemDeployment(ctx context
 		},
 
 		{
-
 			name: "kasten-k10",
 
 			component: BackupComponentTypeKasten,
@@ -477,27 +456,20 @@ func (drv *DisasterRecoveryValidator) validateBackupSystemDeployment(ctx context
 	}
 
 	for _, system := range backupSystems {
-
 		if drv.validateBackupComponent(ctx, system.name, system.component, system.deployment, system.namespace) {
-
 			return true
-
 		}
-
 	}
 
 	// Check for custom backup solutions.
 
 	return drv.validateCustomBackupSolution(ctx)
-
 }
 
 // validateBackupComponent validates a specific backup component.
 
 func (drv *DisasterRecoveryValidator) validateBackupComponent(ctx context.Context, name string, componentType BackupComponentType, deploymentName string, namespaces []string) bool {
-
 	health := &BackupComponentHealth{
-
 		Name: name,
 
 		Type: componentType,
@@ -510,7 +482,6 @@ func (drv *DisasterRecoveryValidator) validateBackupComponent(ctx context.Contex
 		deployment := &appsv1.Deployment{}
 
 		key := types.NamespacedName{
-
 			Name: deploymentName,
 
 			Namespace: namespace,
@@ -533,13 +504,11 @@ func (drv *DisasterRecoveryValidator) validateBackupComponent(ctx context.Contex
 	// If not found as deployment, try as DaemonSet.
 
 	if !health.Deployed {
-
 		for _, namespace := range namespaces {
 
 			daemonSet := &appsv1.DaemonSet{}
 
 			key := types.NamespacedName{
-
 				Name: deploymentName,
 
 				Namespace: namespace,
@@ -558,7 +527,6 @@ func (drv *DisasterRecoveryValidator) validateBackupComponent(ctx context.Contex
 			}
 
 		}
-
 	}
 
 	drv.mu.Lock()
@@ -568,33 +536,26 @@ func (drv *DisasterRecoveryValidator) validateBackupComponent(ctx context.Contex
 	drv.mu.Unlock()
 
 	if health.Deployed {
-
 		ginkgo.By(fmt.Sprintf("✓ Found backup component: %s (%s)", name, health.Status))
-
 	}
 
 	return health.Deployed
-
 }
 
 // validateCustomBackupSolution checks for custom backup solutions.
 
 func (drv *DisasterRecoveryValidator) validateCustomBackupSolution(ctx context.Context) bool {
-
 	// Check for backup-related CronJobs.
 
 	cronJobs := &batchv1.CronJobList{}
 
 	if err := drv.client.List(ctx, cronJobs); err != nil {
-
 		return false
-
 	}
 
 	backupCronJobs := 0
 
 	for _, cronJob := range cronJobs.Items {
-
 		// Look for backup keywords in name or labels.
 
 		if drv.containsBackupKeywords(cronJob.Name) ||
@@ -602,15 +563,12 @@ func (drv *DisasterRecoveryValidator) validateCustomBackupSolution(ctx context.C
 			drv.hasBackupLabels(cronJob.Labels) {
 
 			backupCronJobs++
-
 		}
-
 	}
 
 	if backupCronJobs > 0 {
 
 		health := &BackupComponentHealth{
-
 			Name: "custom-backup",
 
 			Type: BackupComponentTypeCustom,
@@ -635,39 +593,29 @@ func (drv *DisasterRecoveryValidator) validateCustomBackupSolution(ctx context.C
 	}
 
 	return false
-
 }
 
 // containsBackupKeywords checks if a string contains backup-related keywords.
 
 func (drv *DisasterRecoveryValidator) containsBackupKeywords(name string) bool {
-
 	keywords := []string{"backup", "snapshot", "dump", "archive", "velero", "kasten"}
 
 	nameLower := strings.ToLower(name)
 
 	for _, keyword := range keywords {
-
 		if strings.Contains(nameLower, keyword) {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 // hasBackupLabels checks if labels indicate backup functionality.
 
 func (drv *DisasterRecoveryValidator) hasBackupLabels(labels map[string]string) bool {
-
 	if labels == nil {
-
 		return false
-
 	}
 
 	backupLabels := []string{"backup", "velero", "kasten", "component"}
@@ -679,35 +627,26 @@ func (drv *DisasterRecoveryValidator) hasBackupLabels(labels map[string]string) 
 		valueLower := strings.ToLower(value)
 
 		for _, label := range backupLabels {
-
 			if strings.Contains(keyLower, label) || strings.Contains(valueLower, label) {
-
 				if strings.Contains(valueLower, "backup") {
-
 					return true
-
 				}
-
 			}
-
 		}
 
 	}
 
 	return false
-
 }
 
 // validateAutomatedBackups checks for automated backup configurations.
 
 func (drv *DisasterRecoveryValidator) validateAutomatedBackups(ctx context.Context) {
-
 	// Check for Velero BackupStorageLocation.
 
 	backupStorageLocations := &metav1.PartialObjectMetadataList{}
 
 	backupStorageLocations.SetGroupVersionKind(schema.GroupVersionKind{
-
 		Group: "velero.io",
 
 		Version: "v1",
@@ -718,9 +657,7 @@ func (drv *DisasterRecoveryValidator) validateAutomatedBackups(ctx context.Conte
 	automatedBackups := false
 
 	if err := drv.client.List(ctx, backupStorageLocations); err == nil {
-
 		automatedBackups = len(backupStorageLocations.Items) > 0
-
 	}
 
 	// Also check for backup schedules.
@@ -730,7 +667,6 @@ func (drv *DisasterRecoveryValidator) validateAutomatedBackups(ctx context.Conte
 		schedules := &metav1.PartialObjectMetadataList{}
 
 		schedules.SetGroupVersionKind(schema.GroupVersionKind{
-
 			Group: "velero.io",
 
 			Version: "v1",
@@ -739,9 +675,7 @@ func (drv *DisasterRecoveryValidator) validateAutomatedBackups(ctx context.Conte
 		})
 
 		if err := drv.client.List(ctx, schedules); err == nil {
-
 			automatedBackups = len(schedules.Items) > 0
-
 		}
 
 	}
@@ -753,9 +687,7 @@ func (drv *DisasterRecoveryValidator) validateAutomatedBackups(ctx context.Conte
 		cronJobs := &batchv1.CronJobList{}
 
 		if err := drv.client.List(ctx, cronJobs); err == nil {
-
 			for _, cronJob := range cronJobs.Items {
-
 				if drv.containsBackupKeywords(cronJob.Name) {
 
 					automatedBackups = true
@@ -763,9 +695,7 @@ func (drv *DisasterRecoveryValidator) validateAutomatedBackups(ctx context.Conte
 					break
 
 				}
-
 			}
-
 		}
 
 	}
@@ -777,17 +707,13 @@ func (drv *DisasterRecoveryValidator) validateAutomatedBackups(ctx context.Conte
 	drv.mu.Unlock()
 
 	if automatedBackups {
-
 		ginkgo.By("✓ Automated backups configured")
-
 	}
-
 }
 
 // validateBackupSchedules checks for backup schedule configurations.
 
 func (drv *DisasterRecoveryValidator) validateBackupSchedules(ctx context.Context) {
-
 	scheduleCount := 0
 
 	// Check Velero Schedules.
@@ -795,7 +721,6 @@ func (drv *DisasterRecoveryValidator) validateBackupSchedules(ctx context.Contex
 	veleroSchedules := &metav1.PartialObjectMetadataList{}
 
 	veleroSchedules.SetGroupVersionKind(schema.GroupVersionKind{
-
 		Group: "velero.io",
 
 		Version: "v1",
@@ -804,9 +729,7 @@ func (drv *DisasterRecoveryValidator) validateBackupSchedules(ctx context.Contex
 	})
 
 	if err := drv.client.List(ctx, veleroSchedules); err == nil {
-
 		scheduleCount += len(veleroSchedules.Items)
-
 	}
 
 	// Check CronJobs for backup schedules.
@@ -814,17 +737,11 @@ func (drv *DisasterRecoveryValidator) validateBackupSchedules(ctx context.Contex
 	cronJobs := &batchv1.CronJobList{}
 
 	if err := drv.client.List(ctx, cronJobs); err == nil {
-
 		for _, cronJob := range cronJobs.Items {
-
 			if drv.containsBackupKeywords(cronJob.Name) {
-
 				scheduleCount++
-
 			}
-
 		}
-
 	}
 
 	scheduleActive := scheduleCount > 0
@@ -836,17 +753,13 @@ func (drv *DisasterRecoveryValidator) validateBackupSchedules(ctx context.Contex
 	drv.mu.Unlock()
 
 	if scheduleActive {
-
 		ginkgo.By(fmt.Sprintf("✓ Found %d backup schedules", scheduleCount))
-
 	}
-
 }
 
 // validateBackupRetention checks for backup retention policies.
 
 func (drv *DisasterRecoveryValidator) validateBackupRetention(ctx context.Context) {
-
 	// This would typically check backup configuration for retention policies.
 
 	// For now, we'll assume retention is configured if backup system is deployed.
@@ -860,17 +773,13 @@ func (drv *DisasterRecoveryValidator) validateBackupRetention(ctx context.Contex
 	drv.mu.Unlock()
 
 	if retentionConfigured {
-
 		ginkgo.By("✓ Backup retention policy assumed configured")
-
 	}
-
 }
 
 // validateBackupEncryption checks for backup encryption configuration.
 
 func (drv *DisasterRecoveryValidator) validateBackupEncryption(ctx context.Context) {
-
 	// Check for encryption secrets or configuration.
 
 	secrets := &corev1.SecretList{}
@@ -882,9 +791,7 @@ func (drv *DisasterRecoveryValidator) validateBackupEncryption(ctx context.Conte
 	for _, namespace := range namespaces {
 
 		if err := drv.client.List(ctx, secrets, client.InNamespace(namespace)); err == nil {
-
 			for _, secret := range secrets.Items {
-
 				// Look for encryption-related secrets.
 
 				if strings.Contains(secret.Name, "encryption") ||
@@ -898,15 +805,11 @@ func (drv *DisasterRecoveryValidator) validateBackupEncryption(ctx context.Conte
 					break
 
 				}
-
 			}
-
 		}
 
 		if encryptionConfigured {
-
 			break
-
 		}
 
 	}
@@ -918,17 +821,13 @@ func (drv *DisasterRecoveryValidator) validateBackupEncryption(ctx context.Conte
 	drv.mu.Unlock()
 
 	if encryptionConfigured {
-
 		ginkgo.By("✓ Backup encryption configuration found")
-
 	}
-
 }
 
 // validateRestoreCapabilities validates restore and recovery capabilities.
 
 func (drv *DisasterRecoveryValidator) validateRestoreCapabilities(ctx context.Context) (int, error) {
-
 	ginkgo.By("Validating Restore and Recovery Capabilities")
 
 	score := 0
@@ -942,9 +841,7 @@ func (drv *DisasterRecoveryValidator) validateRestoreCapabilities(ctx context.Co
 		ginkgo.By("✓ Restore capabilities validated")
 
 	} else {
-
 		ginkgo.By("✗ Restore capabilities not properly configured")
-
 	}
 
 	// Additional restore validations.
@@ -956,19 +853,15 @@ func (drv *DisasterRecoveryValidator) validateRestoreCapabilities(ctx context.Co
 	drv.validateRecoveryObjectives(ctx)
 
 	return score, nil
-
 }
 
 // validateRestoreProcedures checks for documented restore procedures.
 
 func (drv *DisasterRecoveryValidator) validateRestoreProcedures(ctx context.Context) bool {
-
 	// Check for backup system deployment (prerequisite for restore).
 
 	if !drv.metrics.BackupSystemDeployed {
-
 		return false
-
 	}
 
 	// Check for restore-related resources.
@@ -980,7 +873,6 @@ func (drv *DisasterRecoveryValidator) validateRestoreProcedures(ctx context.Cont
 	veleroRestores := &metav1.PartialObjectMetadataList{}
 
 	veleroRestores.SetGroupVersionKind(schema.GroupVersionKind{
-
 		Group: "velero.io",
 
 		Version: "v1",
@@ -989,11 +881,9 @@ func (drv *DisasterRecoveryValidator) validateRestoreProcedures(ctx context.Cont
 	})
 
 	if err := drv.client.List(ctx, veleroRestores); err == nil {
-
 		// If we can list restores, the CRD exists and restore is possible.
 
 		restoreCapable = true
-
 	}
 
 	// Check for runbooks or documentation ConfigMaps.
@@ -1001,9 +891,7 @@ func (drv *DisasterRecoveryValidator) validateRestoreProcedures(ctx context.Cont
 	configMaps := &corev1.ConfigMapList{}
 
 	if err := drv.client.List(ctx, configMaps); err == nil {
-
 		for _, cm := range configMaps.Items {
-
 			if strings.Contains(cm.Name, "runbook") ||
 
 				strings.Contains(cm.Name, "disaster-recovery") ||
@@ -1015,9 +903,7 @@ func (drv *DisasterRecoveryValidator) validateRestoreProcedures(ctx context.Cont
 				break
 
 			}
-
 		}
-
 	}
 
 	drv.mu.Lock()
@@ -1027,19 +913,16 @@ func (drv *DisasterRecoveryValidator) validateRestoreProcedures(ctx context.Cont
 	drv.mu.Unlock()
 
 	return restoreCapable
-
 }
 
 // validatePointInTimeRecovery checks for point-in-time recovery capabilities.
 
 func (drv *DisasterRecoveryValidator) validatePointInTimeRecovery(ctx context.Context) {
-
 	// Check for volume snapshots or incremental backup capabilities.
 
 	volumeSnapshots := &metav1.PartialObjectMetadataList{}
 
 	volumeSnapshots.SetGroupVersionKind(schema.GroupVersionKind{
-
 		Group: "snapshot.storage.k8s.io",
 
 		Version: "v1",
@@ -1050,15 +933,12 @@ func (drv *DisasterRecoveryValidator) validatePointInTimeRecovery(ctx context.Co
 	pitRecoveryEnabled := false
 
 	if err := drv.client.List(ctx, volumeSnapshots); err == nil {
-
 		pitRecoveryEnabled = len(volumeSnapshots.Items) > 0
-
 	}
 
 	// Also check for VolumeSnapshotClass availability (commented out due to API compatibility).
 
 	if !pitRecoveryEnabled {
-
 		// volumeSnapshotClasses := &storagev1.VolumeSnapshotClassList{}.
 
 		// if err := drv.client.List(ctx, volumeSnapshotClasses); err == nil {.
@@ -1068,7 +948,6 @@ func (drv *DisasterRecoveryValidator) validatePointInTimeRecovery(ctx context.Co
 		// }.
 
 		ginkgo.By("Point-in-time recovery capability check completed")
-
 	}
 
 	drv.mu.Lock()
@@ -1078,23 +957,18 @@ func (drv *DisasterRecoveryValidator) validatePointInTimeRecovery(ctx context.Co
 	drv.mu.Unlock()
 
 	if pitRecoveryEnabled {
-
 		ginkgo.By("✓ Point-in-time recovery capabilities found")
-
 	}
-
 }
 
 // validateRestoreTesting checks for evidence of restore testing.
 
 func (drv *DisasterRecoveryValidator) validateRestoreTesting(ctx context.Context) {
-
 	// Check for completed Velero Restores.
 
 	veleroRestores := &metav1.PartialObjectMetadataList{}
 
 	veleroRestores.SetGroupVersionKind(schema.GroupVersionKind{
-
 		Group: "velero.io",
 
 		Version: "v1",
@@ -1129,17 +1003,13 @@ func (drv *DisasterRecoveryValidator) validateRestoreTesting(ctx context.Context
 	drv.mu.Unlock()
 
 	if restoreTestingPerformed {
-
 		ginkgo.By("✓ Evidence of restore testing found")
-
 	}
-
 }
 
 // validateRecoveryObjectives validates RTO and RPO objectives.
 
 func (drv *DisasterRecoveryValidator) validateRecoveryObjectives(ctx context.Context) {
-
 	// These would typically be measured through actual testing.
 
 	// For validation purposes, we'll set targets based on backup frequency.
@@ -1167,37 +1037,27 @@ func (drv *DisasterRecoveryValidator) validateRecoveryObjectives(ctx context.Con
 	}
 
 	if drv.metrics.RestoreTimeObjectiveMet && drv.metrics.RecoveryPointObjectiveMet {
-
 		ginkgo.By("✓ Recovery objectives (RTO/RPO) targets met")
-
 	}
-
 }
 
 // validateMultiRegionSupport checks for multi-region disaster recovery support.
 
 func (drv *DisasterRecoveryValidator) validateMultiRegionSupport(ctx context.Context) {
-
 	// Check for nodes in multiple regions.
 
 	nodes := &corev1.NodeList{}
 
 	if err := drv.client.List(ctx, nodes); err != nil {
-
 		return
-
 	}
 
 	regions := make(map[string]bool)
 
 	for _, node := range nodes.Items {
-
 		if region, exists := node.Labels["topology.kubernetes.io/region"]; exists {
-
 			regions[region] = true
-
 		}
-
 	}
 
 	multiRegion := len(regions) > 1
@@ -1209,17 +1069,13 @@ func (drv *DisasterRecoveryValidator) validateMultiRegionSupport(ctx context.Con
 	drv.mu.Unlock()
 
 	if multiRegion {
-
 		ginkgo.By(fmt.Sprintf("✓ Multi-region deployment detected (%d regions)", len(regions)))
-
 	}
-
 }
 
 // validateDataProtection checks for persistent data protection.
 
 func (drv *DisasterRecoveryValidator) validateDataProtection(ctx context.Context) {
-
 	// Check for PersistentVolumes with backup annotations.
 
 	pvs := &corev1.PersistentVolumeList{}
@@ -1227,15 +1083,11 @@ func (drv *DisasterRecoveryValidator) validateDataProtection(ctx context.Context
 	protectedVolumes := 0
 
 	if err := drv.client.List(ctx, pvs); err == nil {
-
 		for _, pv := range pvs.Items {
-
 			// Check for backup annotations.
 
 			if pv.Annotations != nil {
-
 				for key := range pv.Annotations {
-
 					if strings.Contains(key, "backup") || strings.Contains(key, "velero") {
 
 						protectedVolumes++
@@ -1243,13 +1095,9 @@ func (drv *DisasterRecoveryValidator) validateDataProtection(ctx context.Context
 						break
 
 					}
-
 				}
-
 			}
-
 		}
-
 	}
 
 	persistentDataProtected := protectedVolumes > 0 || drv.metrics.BackupSystemDeployed
@@ -1261,37 +1109,27 @@ func (drv *DisasterRecoveryValidator) validateDataProtection(ctx context.Context
 	drv.mu.Unlock()
 
 	if persistentDataProtected {
-
 		ginkgo.By(fmt.Sprintf("✓ Persistent data protection configured (%d protected volumes)", protectedVolumes))
-
 	}
-
 }
 
 // validateRecoveryTesting checks for recovery testing procedures.
 
 func (drv *DisasterRecoveryValidator) validateRecoveryTesting(ctx context.Context) {
-
 	// Check for test namespaces or restore validation.
 
 	namespaces := &corev1.NamespaceList{}
 
 	if err := drv.client.List(ctx, namespaces); err != nil {
-
 		return
-
 	}
 
 	testNamespaces := 0
 
 	for _, ns := range namespaces.Items {
-
 		if strings.Contains(ns.Name, "test") || strings.Contains(ns.Name, "backup") {
-
 			testNamespaces++
-
 		}
-
 	}
 
 	recoveryTesting := testNamespaces > 0 || drv.metrics.RestoreTestingPerformed
@@ -1305,29 +1143,23 @@ func (drv *DisasterRecoveryValidator) validateRecoveryTesting(ctx context.Contex
 	drv.mu.Unlock()
 
 	if recoveryTesting {
-
 		ginkgo.By("✓ Recovery testing infrastructure detected")
-
 	}
-
 }
 
 // GetDisasterRecoveryMetrics returns the current disaster recovery metrics.
 
 func (drv *DisasterRecoveryValidator) GetDisasterRecoveryMetrics() *DisasterRecoveryMetrics {
-
 	drv.mu.RLock()
 
 	defer drv.mu.RUnlock()
 
 	return drv.metrics
-
 }
 
 // GenerateDisasterRecoveryReport generates a comprehensive disaster recovery report.
 
 func (drv *DisasterRecoveryValidator) GenerateDisasterRecoveryReport() string {
-
 	drv.mu.RLock()
 
 	defer drv.mu.RUnlock()
@@ -1450,13 +1282,9 @@ BACKUP COMPONENTS HEALTH:
 		status := "❌"
 
 		if health.Healthy {
-
 			status = "✅"
-
 		} else if health.Deployed {
-
 			status = "⚠️"
-
 		}
 
 		report += fmt.Sprintf("├── %-20s %s (%s)\n",
@@ -1513,7 +1341,6 @@ PERFORMANCE METRICS:
 	)
 
 	return report
-
 }
 
 // Helper to import strings package at the top.

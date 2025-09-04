@@ -21,16 +21,13 @@ type NIServiceModel struct {
 // NewNIServiceModel creates a new Network Interface Service Model instance.
 
 func NewNIServiceModel() *NIServiceModel {
-
 	return &NIServiceModel{
-
 		ServiceModelOID: "1.3.6.1.4.1.53148.1.2.2.102",
 
 		ServiceModelName: "E2SM-NI",
 
 		ServiceModelVersion: "v01.00",
 	}
-
 }
 
 // NIEventTriggerDefinition defines event triggers for NI service model.
@@ -39,7 +36,6 @@ type NIEventTriggerDefinition struct {
 	EventDefinitionFormats NIEventDefinitionFormats `json:"event_definition_formats"`
 
 	ReportingPeriod int `json:"reporting_period_ms,omitempty"` // milliseconds
-
 }
 
 // NIEventDefinitionFormats defines different event formats.
@@ -54,7 +50,6 @@ type NIEventDefinitionFormats struct {
 
 type NIEventDefinitionFormat1 struct {
 	ReportingPeriod int `json:"reporting_period_ms"` // milliseconds
-
 }
 
 // NIEventDefinitionFormat2 for event-driven reporting.
@@ -150,7 +145,6 @@ type NIMessageType struct {
 	ProcedureCode int `json:"procedure_code"`
 
 	TypeOfMessage string `json:"type_of_message"` // "initiating", "successful", "unsuccessful"
-
 }
 
 // NIActionDefinition defines actions for NI service model.
@@ -189,7 +183,6 @@ type NIActionDefinitionFormat2 struct {
 	MeasurementList []NIMeasurement `json:"measurement_list"`
 
 	GranularityPeriod int `json:"granularity_period_ms"` // milliseconds
-
 }
 
 // NIActionDefinitionFormat3 for interface monitoring.
@@ -255,7 +248,6 @@ type NIThreshold struct {
 	ThresholdValue float64 `json:"threshold_value"`
 
 	Direction string `json:"direction"` // "above", "below"
-
 }
 
 // NINotificationMode defines how notifications are sent.
@@ -312,7 +304,7 @@ type NIIndicationMessageFormat1 struct {
 
 	MessageType NIMessageType `json:"message_type"`
 
-	DecodedFields map[string]interface{} `json:"decoded_fields,omitempty"`
+	DecodedFields json.RawMessage `json:"decoded_fields,omitempty"`
 
 	CaptureTimestamp time.Time `json:"capture_timestamp"`
 
@@ -378,7 +370,7 @@ type NIInterfaceStatus struct {
 
 	Latency float64 `json:"latency_ms,omitempty"`
 
-	AdditionalInfo map[string]interface{} `json:"additional_info,omitempty"`
+	AdditionalInfo json.RawMessage `json:"additional_info,omitempty"`
 }
 
 // NIOperationalState defines operational state of interface.
@@ -462,7 +454,7 @@ type NIControlMessageFormat1 struct {
 
 	ControlAction NIControlAction `json:"control_action"`
 
-	ControlParameter map[string]interface{} `json:"control_parameter,omitempty"`
+	ControlParameter json.RawMessage `json:"control_parameter,omitempty"`
 }
 
 // NIControlMessageFormat2 for message injection.
@@ -533,7 +525,7 @@ type NIControlOutcomeFormat1 struct {
 
 	ResultDescription string `json:"result_description,omitempty"`
 
-	ResultDetails map[string]interface{} `json:"result_details,omitempty"`
+	ResultDetails json.RawMessage `json:"result_details,omitempty"`
 }
 
 // NIControlResult defines control result status.
@@ -558,191 +550,142 @@ const (
 // EncodeEventTriggerDefinition encodes NI event trigger definition.
 
 func (m *NIServiceModel) EncodeEventTriggerDefinition(definition *NIEventTriggerDefinition) ([]byte, error) {
-
 	return json.Marshal(definition)
-
 }
 
 // DecodeEventTriggerDefinition decodes NI event trigger definition.
 
 func (m *NIServiceModel) DecodeEventTriggerDefinition(data []byte) (*NIEventTriggerDefinition, error) {
-
 	var definition NIEventTriggerDefinition
 
 	if err := json.Unmarshal(data, &definition); err != nil {
-
 		return nil, err
-
 	}
 
 	return &definition, nil
-
 }
 
 // EncodeActionDefinition encodes NI action definition.
 
 func (m *NIServiceModel) EncodeActionDefinition(definition *NIActionDefinition) ([]byte, error) {
-
 	return json.Marshal(definition)
-
 }
 
 // DecodeActionDefinition decodes NI action definition.
 
 func (m *NIServiceModel) DecodeActionDefinition(data []byte) (*NIActionDefinition, error) {
-
 	var definition NIActionDefinition
 
 	if err := json.Unmarshal(data, &definition); err != nil {
-
 		return nil, err
-
 	}
 
 	return &definition, nil
-
 }
 
 // EncodeIndicationHeader encodes NI indication header.
 
 func (m *NIServiceModel) EncodeIndicationHeader(header *NIIndicationHeader) ([]byte, error) {
-
 	return json.Marshal(header)
-
 }
 
 // DecodeIndicationHeader decodes NI indication header.
 
 func (m *NIServiceModel) DecodeIndicationHeader(data []byte) (*NIIndicationHeader, error) {
-
 	var header NIIndicationHeader
 
 	if err := json.Unmarshal(data, &header); err != nil {
-
 		return nil, err
-
 	}
 
 	return &header, nil
-
 }
 
 // EncodeIndicationMessage encodes NI indication message.
 
 func (m *NIServiceModel) EncodeIndicationMessage(message *NIIndicationMessage) ([]byte, error) {
-
 	return json.Marshal(message)
-
 }
 
 // DecodeIndicationMessage decodes NI indication message.
 
 func (m *NIServiceModel) DecodeIndicationMessage(data []byte) (*NIIndicationMessage, error) {
-
 	var message NIIndicationMessage
 
 	if err := json.Unmarshal(data, &message); err != nil {
-
 		return nil, err
-
 	}
 
 	return &message, nil
-
 }
 
 // EncodeControlHeader encodes NI control header.
 
 func (m *NIServiceModel) EncodeControlHeader(header *NIControlHeader) ([]byte, error) {
-
 	return json.Marshal(header)
-
 }
 
 // DecodeControlHeader decodes NI control header.
 
 func (m *NIServiceModel) DecodeControlHeader(data []byte) (*NIControlHeader, error) {
-
 	var header NIControlHeader
 
 	if err := json.Unmarshal(data, &header); err != nil {
-
 		return nil, err
-
 	}
 
 	return &header, nil
-
 }
 
 // EncodeControlMessage encodes NI control message.
 
 func (m *NIServiceModel) EncodeControlMessage(message *NIControlMessage) ([]byte, error) {
-
 	return json.Marshal(message)
-
 }
 
 // DecodeControlMessage decodes NI control message.
 
 func (m *NIServiceModel) DecodeControlMessage(data []byte) (*NIControlMessage, error) {
-
 	var message NIControlMessage
 
 	if err := json.Unmarshal(data, &message); err != nil {
-
 		return nil, err
-
 	}
 
 	return &message, nil
-
 }
 
 // EncodeControlOutcome encodes NI control outcome.
 
 func (m *NIServiceModel) EncodeControlOutcome(outcome *NIControlOutcome) ([]byte, error) {
-
 	return json.Marshal(outcome)
-
 }
 
 // DecodeControlOutcome decodes NI control outcome.
 
 func (m *NIServiceModel) DecodeControlOutcome(data []byte) (*NIControlOutcome, error) {
-
 	var outcome NIControlOutcome
 
 	if err := json.Unmarshal(data, &outcome); err != nil {
-
 		return nil, err
-
 	}
 
 	return &outcome, nil
-
 }
 
 // ValidateEventTriggerDefinition validates NI event trigger definition.
 
 func (m *NIServiceModel) ValidateEventTriggerDefinition(definition *NIEventTriggerDefinition) error {
-
 	if definition == nil {
-
 		return fmt.Errorf("event trigger definition is nil")
-
 	}
 
 	// Validate based on format.
 
 	if definition.EventDefinitionFormats.EventDefinitionFormat1 != nil {
-
 		if definition.EventDefinitionFormats.EventDefinitionFormat1.ReportingPeriod <= 0 {
-
 			return fmt.Errorf("reporting period must be positive")
-
 		}
-
 	}
 
 	if definition.EventDefinitionFormats.EventDefinitionFormat2 != nil {
@@ -750,25 +693,19 @@ func (m *NIServiceModel) ValidateEventTriggerDefinition(definition *NIEventTrigg
 		format2 := definition.EventDefinitionFormats.EventDefinitionFormat2
 
 		if format2.InterfaceID == "" {
-
 			return fmt.Errorf("interface ID is required for format 2")
-
 		}
 
 	}
 
 	return nil
-
 }
 
 // ValidateActionDefinition validates NI action definition.
 
 func (m *NIServiceModel) ValidateActionDefinition(definition *NIActionDefinition) error {
-
 	if definition == nil {
-
 		return fmt.Errorf("action definition is nil")
-
 	}
 
 	// Validate based on format.
@@ -778,9 +715,7 @@ func (m *NIServiceModel) ValidateActionDefinition(definition *NIActionDefinition
 		format1 := definition.ActionDefinitionFormats.ActionDefinitionFormat1
 
 		if len(format1.InterfaceList) == 0 {
-
 			return fmt.Errorf("interface list cannot be empty for format 1")
-
 		}
 
 	}
@@ -790,21 +725,15 @@ func (m *NIServiceModel) ValidateActionDefinition(definition *NIActionDefinition
 		format2 := definition.ActionDefinitionFormats.ActionDefinitionFormat2
 
 		if len(format2.InterfaceList) == 0 {
-
 			return fmt.Errorf("interface list cannot be empty for format 2")
-
 		}
 
 		if len(format2.MeasurementList) == 0 {
-
 			return fmt.Errorf("measurement list cannot be empty for format 2")
-
 		}
 
 		if format2.GranularityPeriod <= 0 {
-
 			return fmt.Errorf("granularity period must be positive")
-
 		}
 
 	}
@@ -814,31 +743,24 @@ func (m *NIServiceModel) ValidateActionDefinition(definition *NIActionDefinition
 		format3 := definition.ActionDefinitionFormats.ActionDefinitionFormat3
 
 		if len(format3.InterfaceList) == 0 {
-
 			return fmt.Errorf("interface list cannot be empty for format 3")
-
 		}
 
 	}
 
 	return nil
-
 }
 
 // GetSupportedInterfaces returns the list of supported network interfaces.
 
 func (m *NIServiceModel) GetSupportedInterfaces() []string {
-
 	return []string{"E1", "F1", "E2", "Xn", "X2", "Ng", "S1"}
-
 }
 
 // GetSupportedMeasurements returns the list of supported measurements.
 
 func (m *NIServiceModel) GetSupportedMeasurements() []NIMeasurement {
-
 	return []NIMeasurement{
-
 		{MeasurementID: 1, MeasurementName: "Messages Sent", MeasurementUnit: "count"},
 
 		{MeasurementID: 2, MeasurementName: "Messages Received", MeasurementUnit: "count"},
@@ -859,13 +781,10 @@ func (m *NIServiceModel) GetSupportedMeasurements() []NIMeasurement {
 
 		{MeasurementID: 10, MeasurementName: "Retransmissions", MeasurementUnit: "count"},
 	}
-
 }
 
 // GetSupportedControlActions returns the list of supported control actions.
 
 func (m *NIServiceModel) GetSupportedControlActions() []string {
-
 	return []string{"Enable", "Disable", "Reset", "Modify", "Inject"}
-
 }

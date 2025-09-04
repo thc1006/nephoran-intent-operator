@@ -88,7 +88,6 @@ type ExtendedProcessedParameters struct {
 // CNFIntentMetadata contains metadata about CNF intent processing.
 
 type CNFIntentMetadata struct {
-
 	// ProcessingTimestamp when the intent was processed.
 
 	ProcessingTimestamp string `json:"processingTimestamp,omitempty"`
@@ -121,7 +120,6 @@ type CNFIntentMetadata struct {
 // CNFDeploymentPlan represents a complete deployment plan for CNFs.
 
 type CNFDeploymentPlan struct {
-
 	// PlanID unique identifier for the deployment plan.
 
 	PlanID string `json:"planId"`
@@ -166,7 +164,6 @@ type CNFDeploymentPlan struct {
 // DeploymentPhase represents a phase in the deployment plan.
 
 type DeploymentPhase struct {
-
 	// PhaseName identifier for the phase.
 
 	PhaseName string `json:"phaseName"`
@@ -187,7 +184,6 @@ type DeploymentPhase struct {
 // CNFDependency defines dependency relationships between CNFs.
 
 type CNFDependency struct {
-
 	// Source CNF that depends on Target.
 
 	Source string `json:"source"`
@@ -214,7 +210,6 @@ type CNFDependency struct {
 // WaitCondition defines conditions to wait for in dependencies.
 
 type WaitCondition struct {
-
 	// Type of condition (ready, healthy, configured).
 
 	// +kubebuilder:validation:Enum=ready;healthy;configured;available.
@@ -233,7 +228,6 @@ type WaitCondition struct {
 // PlanValidationResult contains validation results for a deployment plan.
 
 type PlanValidationResult struct {
-
 	// Valid indicates if the plan is valid overall.
 
 	Valid bool `json:"valid"`
@@ -262,7 +256,6 @@ type PlanValidationResult struct {
 // ValidationError represents a validation error.
 
 type ValidationError struct {
-
 	// Code error code.
 
 	Code string `json:"code"`
@@ -285,7 +278,6 @@ type ValidationError struct {
 // ValidationWarning represents a validation warning.
 
 type ValidationWarning struct {
-
 	// Code warning code.
 
 	Code string `json:"code"`
@@ -306,7 +298,6 @@ type ValidationWarning struct {
 // ResourceValidationResult contains resource validation results.
 
 type ResourceValidationResult struct {
-
 	// SufficientResources indicates if cluster has sufficient resources.
 
 	SufficientResources bool `json:"sufficientResources"`
@@ -327,7 +318,6 @@ type ResourceValidationResult struct {
 // SecurityValidationResult contains security validation results.
 
 type SecurityValidationResult struct {
-
 	// ComplianceLevel achieved compliance level.
 
 	// +kubebuilder:validation:Enum=basic;standard;high;strict.
@@ -350,7 +340,6 @@ type SecurityValidationResult struct {
 // CompatibilityValidationResult contains compatibility validation results.
 
 type CompatibilityValidationResult struct {
-
 	// Compatible indicates overall compatibility.
 
 	Compatible bool `json:"compatible"`
@@ -371,7 +360,6 @@ type CompatibilityValidationResult struct {
 // InterfaceCompatibilityResult represents interface compatibility results.
 
 type InterfaceCompatibilityResult struct {
-
 	// SourceCNF source CNF function.
 
 	SourceCNF CNFFunction `json:"sourceCnf"`
@@ -396,7 +384,6 @@ type InterfaceCompatibilityResult struct {
 // CNFPair represents a pair of CNF functions.
 
 type CNFPair struct {
-
 	// CNF1 first CNF function.
 
 	CNF1 CNFFunction `json:"cnf1"`
@@ -413,7 +400,6 @@ type CNFPair struct {
 // CNFIntentStatus represents enhanced status for CNF-related intents.
 
 type CNFIntentStatus struct {
-
 	// CNFProcessingPhase current phase of CNF processing.
 
 	// +kubebuilder:validation:Enum=Detection;Processing;Planning;Validation;Deployment;Monitoring;Complete.
@@ -466,7 +452,6 @@ type CNFIntentStatus struct {
 // IndividualCNFDeploymentStatus represents the status of an individual CNF deployment.
 
 type IndividualCNFDeploymentStatus struct {
-
 	// Name of the CNF deployment.
 
 	Name string `json:"name"`
@@ -505,7 +490,7 @@ type IndividualCNFDeploymentStatus struct {
 
 	// ResourceUtilization current resource utilization.
 
-	ResourceUtilization map[string]string `json:"resourceUtilization,omitempty"`
+	ResourceUtilization map[string]float64 `json:"resourceUtilization,omitempty"`
 
 	// Errors any errors related to this CNF deployment.
 
@@ -515,7 +500,6 @@ type IndividualCNFDeploymentStatus struct {
 // ServiceMeshStatus represents service mesh integration status.
 
 type ServiceMeshStatus struct {
-
 	// Enabled indicates if service mesh is enabled.
 
 	Enabled bool `json:"enabled"`
@@ -546,7 +530,6 @@ type ServiceMeshStatus struct {
 // NetworkSliceStatus represents network slice configuration status.
 
 type NetworkSliceStatus struct {
-
 	// SliceID network slice identifier.
 
 	SliceID string `json:"sliceId,omitempty"`
@@ -575,7 +558,6 @@ type NetworkSliceStatus struct {
 // MonitoringStatus represents monitoring setup status.
 
 type MonitoringStatus struct {
-
 	// Enabled indicates if monitoring is enabled.
 
 	Enabled bool `json:"enabled"`
@@ -660,7 +642,5 @@ const (
 )
 
 func init() {
-
 	SchemeBuilder.Register(&CNFIntentProcessingResult{})
-
 }

@@ -31,14 +31,15 @@ limitations under the License.
 package shared
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 )
 
 // EventBus defines the interface for event communication.
 
 type EventBus interface {
-
 	// Core event operations.
 
 	PublishStateChange(ctx context.Context, event StateChangeEvent) error
@@ -77,7 +78,7 @@ type ProcessingEvent struct {
 
 	Success bool `json:"success"`
 
-	Data map[string]interface{} `json:"data"`
+	Data json.RawMessage `json:"data"`
 
 	Timestamp int64 `json:"timestamp"` // Unix timestamp
 

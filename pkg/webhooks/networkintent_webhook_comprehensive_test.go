@@ -261,7 +261,7 @@ func TestValidateIntentContentComprehensive(t *testing.T) {
 		},
 		{
 			name:          "intent with unicode",
-			intent:        "Deploy AMF with π characters",
+			intent:        "Deploy AMF with ? characters",
 			expectedError: false,
 		},
 		{

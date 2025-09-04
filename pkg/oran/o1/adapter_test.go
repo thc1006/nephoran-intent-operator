@@ -11,30 +11,30 @@ import (
 )
 
 func TestNewO1Adaptor(t *testing.T) {
-	logger := testr.New(t)
+	_ = testr.New(t) // logger not needed for compat tests
 	config := O1AdaptorConfig{
 		Timeout:    10 * time.Second,
 		RetryCount: 2,
 	}
 
-	adapter := NewO1Adaptor(logger, config)
+	adapter := NewO1AdaptorCompat(config)
 
 	if adapter == nil {
 		t.Fatal("NewO1Adaptor returned nil")
 	}
 
-	if adapter.timeout != 10*time.Second {
-		t.Errorf("Expected timeout 10s, got %v", adapter.timeout)
+	if adapter.GetTimeout() != 10*time.Second {
+		t.Errorf("Expected timeout 10s, got %v", adapter.GetTimeout())
 	}
 
-	if adapter.retryCount != 2 {
-		t.Errorf("Expected retry count 2, got %d", adapter.retryCount)
+	if adapter.GetRetryCount() != 2 {
+		t.Errorf("Expected retry count 2, got %d", adapter.GetRetryCount())
 	}
 }
 
 func TestO1Adaptor_ConnectElement(t *testing.T) {
-	logger := testr.New(t)
-	adapter := NewO1Adaptor(logger, O1AdaptorConfig{})
+	_ = testr.New(t) // logger not needed for compat tests
+	adapter := NewO1AdaptorCompat(O1AdaptorConfig{})
 
 	element := &nephoranv1.ManagedElement{
 		ObjectMeta: metav1.ObjectMeta{
@@ -42,22 +42,22 @@ func TestO1Adaptor_ConnectElement(t *testing.T) {
 			Namespace: "default",
 		},
 		Spec: nephoranv1.ManagedElementSpec{
-			NetworkElementType: "DU",
-			Endpoint:           "http://test-endpoint:8080",
+			Type: "DU",
+			Host: "test-endpoint",
+			Port: 8080,
 		},
 	}
 
 	ctx := context.Background()
 	err := adapter.ConnectElement(ctx, element)
-
 	if err != nil {
 		t.Errorf("ConnectElement failed: %v", err)
 	}
 }
 
 func TestO1Adaptor_ConnectElement_NoEndpoint(t *testing.T) {
-	logger := testr.New(t)
-	adapter := NewO1Adaptor(logger, O1AdaptorConfig{})
+	_ = testr.New(t) // logger not needed for compat tests
+	adapter := NewO1AdaptorCompat(O1AdaptorConfig{})
 
 	element := &nephoranv1.ManagedElement{
 		ObjectMeta: metav1.ObjectMeta{
@@ -65,8 +65,8 @@ func TestO1Adaptor_ConnectElement_NoEndpoint(t *testing.T) {
 			Namespace: "default",
 		},
 		Spec: nephoranv1.ManagedElementSpec{
-			NetworkElementType: "DU",
-			// No endpoint specified
+			Type: "DU",
+			// No host specified
 		},
 	}
 
@@ -79,8 +79,8 @@ func TestO1Adaptor_ConnectElement_NoEndpoint(t *testing.T) {
 }
 
 func TestO1Adaptor_GetElementStatus(t *testing.T) {
-	logger := testr.New(t)
-	adapter := NewO1Adaptor(logger, O1AdaptorConfig{})
+	_ = testr.New(t) // logger not needed for compat tests
+	adapter := NewO1AdaptorCompat(O1AdaptorConfig{})
 
 	element := &nephoranv1.ManagedElement{
 		ObjectMeta: metav1.ObjectMeta{
@@ -88,14 +88,14 @@ func TestO1Adaptor_GetElementStatus(t *testing.T) {
 			Namespace: "default",
 		},
 		Spec: nephoranv1.ManagedElementSpec{
-			NetworkElementType: "DU",
-			Endpoint:           "http://test-endpoint:8080",
+			Type: "DU",
+			Host: "test-endpoint",
+			Port: 8080,
 		},
 	}
 
 	ctx := context.Background()
 	status, err := adapter.GetElementStatus(ctx, element)
-
 	if err != nil {
 		t.Errorf("GetElementStatus failed: %v", err)
 	}

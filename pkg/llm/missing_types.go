@@ -3,13 +3,73 @@ package llm
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	types "github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
-	"log/slog"
 )
+
+// Config represents the configuration for LLM clients.
+type Config struct {
+	Provider    string        `json:"provider"`
+	Model       string        `json:"model"`
+	APIKey      string        `json:"api_key"`
+	MaxTokens   int           `json:"max_tokens"`
+	Temperature float64       `json:"temperature"`
+	Timeout     time.Duration `json:"timeout"`
+}
+
+// EnhancedClient is an alias for EnhancedPerformanceClient for backward compatibility.
+type EnhancedClient = EnhancedPerformanceClient
+
+// NewEnhancedClient creates a new enhanced client from a simple config.
+func NewEnhancedClient(config *Config) (*EnhancedClient, error) {
+	if config == nil {
+		return nil, fmt.Errorf("config cannot be nil")
+	}
+
+	// Convert simple config to enhanced config
+	enhancedConfig := &EnhancedClientConfig{
+		BaseConfig: ClientConfig{
+			APIKey:      config.APIKey,
+			ModelName:   config.Model,
+			MaxTokens:   config.MaxTokens,
+			BackendType: config.Provider,
+			Timeout:     config.Timeout,
+		},
+		PerformanceConfig:   getDefaultPerformanceConfig(),
+		RetryConfig:         getDefaultRetryConfig(),
+		BatchConfig:         getDefaultBatchConfig(),
+		CircuitBreakerConfig: *getDefaultCircuitBreakerConfig(),
+	}
+
+	return NewEnhancedPerformanceClient(enhancedConfig)
+}
+
+
+// getDefaultRetryConfig returns a default retry configuration.
+func getDefaultRetryConfig() RetryEngineConfig {
+	return RetryEngineConfig{
+		DefaultStrategy: "exponential",
+		MaxRetries:      3,
+		BaseDelay:       100 * time.Millisecond,
+		MaxDelay:        5 * time.Second,
+		JitterEnabled:   true,
+	}
+}
+
+// getDefaultBatchConfig returns a default batch configuration.
+func getDefaultBatchConfig() BatchConfig {
+	return BatchConfig{
+		MaxBatchSize:      10,
+		BatchTimeout:      1 * time.Second,
+		ConcurrentBatches: 5,
+	}
+}
+
 
 // Task types
 const (
@@ -17,29 +77,29 @@ const (
 	TaskTypeBatchProcessing = "batch_processing"
 )
 
-// BatchProcessor interface for batch processing capabilities
-type BatchProcessor interface {
+// MissingBatchProcessor interface for batch processing capabilities
+type MissingBatchProcessor interface {
 	ProcessRequest(ctx context.Context, intent, intentType, modelName string, priority Priority) (*BatchResult, error)
 	GetStats() types.BatchProcessorStats
 	Close() error
 }
 
-// BatchProcessorStats holds batch processor statistics
-type BatchProcessorStats struct {
-	ProcessedBatches    int64         `json:"processed_batches"`
-	TotalRequests       int64         `json:"total_requests"`
-	FailedRequests      int64         `json:"failed_requests"`
-	AvgBatchSize        float64       `json:"avg_batch_size"`
-	AvgProcessingTime   time.Duration `json:"avg_processing_time"`
-	CurrentQueueDepth   int           `json:"current_queue_depth"`
-	ActiveBatches       int           `json:"active_batches"`
-	LastProcessedTime   time.Time     `json:"last_processed_time"`
+// MissingBatchProcessorStats holds batch processor statistics
+type MissingBatchProcessorStats struct {
+	ProcessedBatches  int64         `json:"processed_batches"`
+	TotalRequests     int64         `json:"total_requests"`
+	FailedRequests    int64         `json:"failed_requests"`
+	AvgBatchSize      float64       `json:"avg_batch_size"`
+	AvgProcessingTime time.Duration `json:"avg_processing_time"`
+	CurrentQueueDepth int           `json:"current_queue_depth"`
+	ActiveBatches     int           `json:"active_batches"`
+	LastProcessedTime time.Time     `json:"last_processed_time"`
 }
 
 // Note: BatchProcessorConfig is defined in types.go
 
-// MetricsIntegrator integrates various metrics collectors
-type MetricsIntegrator struct {
+// MissingMetricsIntegrator integrates various metrics collectors
+type MissingMetricsIntegrator struct {
 	collector       *MetricsCollector
 	prometheusReg   prometheus.Registerer
 	customMetrics   map[string]prometheus.Collector
@@ -52,20 +112,20 @@ type MetricsIntegrator struct {
 
 // AggregatedStats holds aggregated statistics
 type AggregatedStats struct {
-	TotalRequests     int64         `json:"total_requests"`
-	SuccessfulRequests int64        `json:"successful_requests"`
-	FailedRequests    int64         `json:"failed_requests"`
-	AvgResponseTime   time.Duration `json:"avg_response_time"`
-	P95ResponseTime   time.Duration `json:"p95_response_time"`
-	P99ResponseTime   time.Duration `json:"p99_response_time"`
-	TotalTokens       int64         `json:"total_tokens"`
-	ErrorRate         float64       `json:"error_rate"`
-	LastUpdated       time.Time     `json:"last_updated"`
+	TotalRequests      int64         `json:"total_requests"`
+	SuccessfulRequests int64         `json:"successful_requests"`
+	FailedRequests     int64         `json:"failed_requests"`
+	AvgResponseTime    time.Duration `json:"avg_response_time"`
+	P95ResponseTime    time.Duration `json:"p95_response_time"`
+	P99ResponseTime    time.Duration `json:"p99_response_time"`
+	TotalTokens        int64         `json:"total_tokens"`
+	ErrorRate          float64       `json:"error_rate"`
+	LastUpdated        time.Time     `json:"last_updated"`
 }
 
-// NewMetricsIntegrator creates a new metrics integrator
-func NewMetricsIntegrator(collector *MetricsCollector) *MetricsIntegrator {
-	mi := &MetricsIntegrator{
+// NewMissingMetricsIntegrator creates a new metrics integrator
+func NewMissingMetricsIntegrator(collector *MetricsCollector) *MissingMetricsIntegrator {
+	mi := &MissingMetricsIntegrator{
 		collector:       collector,
 		customMetrics:   make(map[string]prometheus.Collector),
 		logger:          slog.Default().With("component", "metrics-integrator"),
@@ -73,18 +133,18 @@ func NewMetricsIntegrator(collector *MetricsCollector) *MetricsIntegrator {
 		stopChan:        make(chan struct{}),
 		aggregatedStats: &AggregatedStats{},
 	}
-	
+
 	// Start background metrics aggregation
 	go mi.aggregateMetrics()
-	
+
 	return mi
 }
 
 // aggregateMetrics runs in background to aggregate metrics
-func (mi *MetricsIntegrator) aggregateMetrics() {
+func (mi *MissingMetricsIntegrator) aggregateMetrics() {
 	ticker := time.NewTicker(mi.updateInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
@@ -96,15 +156,15 @@ func (mi *MetricsIntegrator) aggregateMetrics() {
 }
 
 // updateAggregatedStats updates the aggregated statistics
-func (mi *MetricsIntegrator) updateAggregatedStats() {
+func (mi *MissingMetricsIntegrator) updateAggregatedStats() {
 	mi.mutex.Lock()
 	defer mi.mutex.Unlock()
-	
+
 	// Update aggregated stats from collector
 	if mi.collector != nil {
 		// For now, just update basic stats since collector doesn't have GetStats
 		mi.aggregatedStats.LastUpdated = time.Now()
-		
+
 		// Calculate error rate
 		if mi.aggregatedStats.TotalRequests > 0 {
 			mi.aggregatedStats.ErrorRate = float64(mi.aggregatedStats.FailedRequests) / float64(mi.aggregatedStats.TotalRequests)
@@ -113,15 +173,15 @@ func (mi *MetricsIntegrator) updateAggregatedStats() {
 }
 
 // RegisterCustomMetric registers a custom Prometheus metric
-func (mi *MetricsIntegrator) RegisterCustomMetric(name string, metric prometheus.Collector) error {
+func (mi *MissingMetricsIntegrator) RegisterCustomMetric(name string, metric prometheus.Collector) error {
 	mi.mutex.Lock()
 	defer mi.mutex.Unlock()
-	
+
 	if _, exists := mi.customMetrics[name]; exists {
 		mi.logger.Warn("Metric already registered", "name", name)
 		return nil
 	}
-	
+
 	mi.customMetrics[name] = metric
 	if mi.prometheusReg != nil {
 		return mi.prometheusReg.Register(metric)
@@ -130,10 +190,10 @@ func (mi *MetricsIntegrator) RegisterCustomMetric(name string, metric prometheus
 }
 
 // GetStats returns current statistics
-func (mi *MetricsIntegrator) GetStats() *AggregatedStats {
+func (mi *MissingMetricsIntegrator) GetStats() *AggregatedStats {
 	mi.mutex.RLock()
 	defer mi.mutex.RUnlock()
-	
+
 	// Return a copy to avoid data races
 	return &AggregatedStats{
 		TotalRequests:      mi.aggregatedStats.TotalRequests,
@@ -149,10 +209,10 @@ func (mi *MetricsIntegrator) GetStats() *AggregatedStats {
 }
 
 // RecordRequest records a request metric
-func (mi *MetricsIntegrator) RecordRequest(duration time.Duration, success bool, tokens int) {
+func (mi *MissingMetricsIntegrator) RecordRequest(duration time.Duration, success bool, tokens int) {
 	mi.mutex.Lock()
 	defer mi.mutex.Unlock()
-	
+
 	mi.aggregatedStats.TotalRequests++
 	if success {
 		mi.aggregatedStats.SuccessfulRequests++
@@ -160,7 +220,7 @@ func (mi *MetricsIntegrator) RecordRequest(duration time.Duration, success bool,
 		mi.aggregatedStats.FailedRequests++
 	}
 	mi.aggregatedStats.TotalTokens += int64(tokens)
-	
+
 	// Update average response time (simple rolling average)
 	if mi.aggregatedStats.TotalRequests > 0 {
 		prevAvg := mi.aggregatedStats.AvgResponseTime
@@ -169,13 +229,13 @@ func (mi *MetricsIntegrator) RecordRequest(duration time.Duration, success bool,
 }
 
 // Close gracefully shuts down the metrics integrator
-func (mi *MetricsIntegrator) Close() error {
+func (mi *MissingMetricsIntegrator) Close() error {
 	close(mi.stopChan)
 	return nil
 }
 
 // RecordCircuitBreakerEvent records a circuit breaker event
-func (mi *MetricsIntegrator) RecordCircuitBreakerEvent(event string, oldState string, newState string) {
+func (mi *MissingMetricsIntegrator) RecordCircuitBreakerEvent(event string, oldState string, newState string) {
 	// Record the event to metrics
 	mi.logger.Info("Circuit breaker event", "event", event, "old_state", oldState, "new_state", newState)
 }
@@ -187,17 +247,17 @@ func (p *PrometheusMetricsWrapper) RecordError(model, errorType string) {
 	// Record error metric
 }
 
-func (mi *MetricsIntegrator) prometheusMetrics() *PrometheusMetricsWrapper {
+func (mi *MissingMetricsIntegrator) prometheusMetrics() *PrometheusMetricsWrapper {
 	return &PrometheusMetricsWrapper{}
 }
 
 // RecordLLMRequest records an LLM request
-func (mi *MetricsIntegrator) RecordLLMRequest(model string, duration time.Duration, tokens int, success bool) {
+func (mi *MissingMetricsIntegrator) RecordLLMRequest(model string, duration time.Duration, tokens int, success bool) {
 	mi.RecordRequest(duration, success, tokens)
 }
 
 // RecordCacheOperation records a cache operation
-func (mi *MetricsIntegrator) RecordCacheOperation(operation string, hit bool, duration time.Duration) {
+func (mi *MissingMetricsIntegrator) RecordCacheOperation(operation string, hit bool, duration time.Duration) {
 	mi.mutex.Lock()
 	defer mi.mutex.Unlock()
 	if hit {
@@ -206,7 +266,7 @@ func (mi *MetricsIntegrator) RecordCacheOperation(operation string, hit bool, du
 }
 
 // RecordRetryAttempt records a retry attempt (overloaded signatures for compatibility)
-func (mi *MetricsIntegrator) RecordRetryAttempt(args ...interface{}) {
+func (mi *MissingMetricsIntegrator) RecordRetryAttempt(args ...interface{}) {
 	// Handle different call signatures
 	if len(args) == 1 {
 		// Called with just model string
@@ -222,23 +282,15 @@ func (mi *MetricsIntegrator) RecordRetryAttempt(args ...interface{}) {
 }
 
 // GetComprehensiveMetrics returns comprehensive metrics
-func (mi *MetricsIntegrator) GetComprehensiveMetrics() map[string]interface{} {
+func (mi *MissingMetricsIntegrator) GetComprehensiveMetrics() map[string]interface{} {
 	mi.mutex.RLock()
 	defer mi.mutex.RUnlock()
-	
-	return map[string]interface{}{
-		"total_requests":      mi.aggregatedStats.TotalRequests,
-		"successful_requests": mi.aggregatedStats.SuccessfulRequests,
-		"failed_requests":     mi.aggregatedStats.FailedRequests,
-		"avg_response_time":   mi.aggregatedStats.AvgResponseTime,
-		"total_tokens":        mi.aggregatedStats.TotalTokens,
-		"error_rate":          mi.aggregatedStats.ErrorRate,
-		"last_updated":        mi.aggregatedStats.LastUpdated,
-	}
+
+	return make(map[string]interface{})
 }
 
 // RecordFallbackAttempt records a fallback attempt (overloaded signatures for compatibility)
-func (mi *MetricsIntegrator) RecordFallbackAttempt(args ...interface{}) {
+func (mi *MissingMetricsIntegrator) RecordFallbackAttempt(args ...interface{}) {
 	// Handle different call signatures
 	if len(args) == 2 {
 		// Called with originalModel, fallbackModel
@@ -258,4 +310,4 @@ func (mi *MetricsIntegrator) RecordFallbackAttempt(args ...interface{}) {
 
 // Note: ContextBuilder is defined in clean_stubs.go as ContextBuilderStub
 // We'll create an alias for compatibility
-type ContextBuilder = ContextBuilderStub
+type MissingContextBuilder = ContextBuilder

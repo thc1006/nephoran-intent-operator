@@ -1,7 +1,9 @@
 package models
 
 import (
-	"time"
+	
+	"encoding/json"
+"time"
 )
 
 // ResourceInstance represents a specific instance of a resource type.
@@ -29,7 +31,7 @@ type ResourceInstance struct {
 
 	UsageStatus string `json:"usageStatus"` // IDLE, ACTIVE, BUSY
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
 	// Nephoran-specific extensions.
 
@@ -41,7 +43,7 @@ type ResourceInstance struct {
 
 	Status *ResourceStatus `json:"status,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 
 	Labels map[string]string `json:"labels,omitempty"`
 
@@ -59,7 +61,7 @@ type ResourceMetrics struct {
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Metrics map[string]interface{} `json:"metrics"`
+	Metrics json.RawMessage `json:"metrics"`
 
 	CPU *MetricValue `json:"cpu,omitempty"`
 
@@ -119,11 +121,11 @@ type CreateResourceInstanceRequest struct {
 
 	ParentID string `json:"parentId,omitempty"`
 
-	Configuration map[string]interface{} `json:"configuration,omitempty"`
+	Configuration json.RawMessage `json:"configuration,omitempty"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 
 	Labels map[string]string `json:"labels,omitempty"`
 
@@ -141,11 +143,11 @@ type UpdateResourceInstanceRequest struct {
 
 	AdministrativeStatus *string `json:"administrativeStatus,omitempty"`
 
-	Configuration map[string]interface{} `json:"configuration,omitempty"`
+	Configuration json.RawMessage `json:"configuration,omitempty"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 
 	Labels map[string]string `json:"labels,omitempty"`
 
@@ -192,7 +194,6 @@ type ResourceInstanceFilter struct {
 	SortBy string `json:"sortBy,omitempty"`
 
 	SortOrder string `json:"sortOrder,omitempty"` // ASC, DESC
-
 }
 
 // Constants for resource instance states and statuses.

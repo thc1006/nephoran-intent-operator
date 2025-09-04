@@ -894,10 +894,11 @@ func (s *APISecuritySuite) generateSecureErrorResponse(errorType string, statusC
 	}
 
 	return map[string]interface{}{
-		"error":      message,
-		"error_code": fmt.Sprintf("ERR_%d", statusCode),
-		"request_id": generateRequestID(),
-		"timestamp":  time.Now().UTC().Format(time.RFC3339),
+		"error": map[string]interface{}{
+			"message":    message,
+			"statusCode": statusCode,
+			"timestamp":  "2024-01-01T00:00:00Z",
+		},
 	}
 }
 
@@ -946,11 +947,8 @@ func TestTelecommunicationsSpecificSecurity(t *testing.T) {
 			t.Run(test.name, func(t *testing.T) {
 				// Create policy request
 				policy := map[string]interface{}{
-					"policyType": test.policyType,
-					"policyData": map[string]interface{}{
 						"targetCell": "cell-123",
 						"action":     "optimize",
-					},
 				}
 
 				if test.signature {
@@ -1098,3 +1096,4 @@ func TestComplianceRequirements(t *testing.T) {
 		assert.True(t, true, "Network segmentation")
 	})
 }
+

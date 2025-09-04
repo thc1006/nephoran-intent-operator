@@ -1,25 +1,25 @@
 package o2
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
-
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
 // Additional missing types for resource lifecycle
 type ResourceLifecycleEvent struct {
-	EventID     string                 `json:"eventId"`
-	ResourceID  string                 `json:"resourceId"`
-	EventType   string                 `json:"eventType"`
-	State       string                 `json:"state"`
-	Phase       string                 `json:"phase"`
-	Reason      string                 `json:"reason,omitempty"`
-	Message     string                 `json:"message,omitempty"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Source      string                 `json:"source,omitempty"`
-	Actor       string                 `json:"actor,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	EventID    string                 `json:"eventId"`
+	ResourceID string                 `json:"resourceId"`
+	EventType  string                 `json:"eventType"`
+	State      string                 `json:"state"`
+	Phase      string                 `json:"phase"`
+	Reason     string                 `json:"reason,omitempty"`
+	Message    string                 `json:"message,omitempty"`
+	Timestamp  time.Time              `json:"timestamp"`
+	Source     string                 `json:"source,omitempty"`
+	Actor      string                 `json:"actor,omitempty"`
+	Metadata   json.RawMessage `json:"metadata,omitempty"`
 }
 
 type ResourceEventBus interface {
@@ -27,15 +27,6 @@ type ResourceEventBus interface {
 	Subscribe(ctx context.Context, filter *EventFilter, callback func(*ResourceLifecycleEvent) error) error
 	Unsubscribe(ctx context.Context, subscriptionID string) error
 	GetEventHistory(ctx context.Context, resourceID string, limit int) ([]*ResourceLifecycleEvent, error)
-}
-
-type EventFilter struct {
-	ResourceIDs []string  `json:"resourceIds,omitempty"`
-	EventTypes  []string  `json:"eventTypes,omitempty"`
-	States      []string  `json:"states,omitempty"`
-	Sources     []string  `json:"sources,omitempty"`
-	After       time.Time `json:"after,omitempty"`
-	Before      time.Time `json:"before,omitempty"`
 }
 
 // Simple event bus implementation
@@ -100,44 +91,44 @@ type EventSubscriber interface {
 
 // ResourceLifecycleMetrics for tracking resource lifecycle performance
 type ResourceLifecycleMetrics struct {
-	TotalEvents         int64         `json:"totalEvents"`
-	EventsPerSecond     float64       `json:"eventsPerSecond"`
-	AverageProcessTime  time.Duration `json:"averageProcessTime"`
-	ErrorRate           float64       `json:"errorRate"`
-	LastEventTimestamp  time.Time     `json:"lastEventTimestamp"`
-	SubscriberCount     int           `json:"subscriberCount"`
-	EventTypeCounters   map[string]int64 `json:"eventTypeCounters"`
+	TotalEvents         int64                    `json:"totalEvents"`
+	EventsPerSecond     float64                  `json:"eventsPerSecond"`
+	AverageProcessTime  time.Duration            `json:"averageProcessTime"`
+	ErrorRate           float64                  `json:"errorRate"`
+	LastEventTimestamp  time.Time                `json:"lastEventTimestamp"`
+	SubscriberCount     int                      `json:"subscriberCount"`
+	EventTypeCounters   map[string]int64         `json:"eventTypeCounters"`
 	StateTransitionTime map[string]time.Duration `json:"stateTransitionTime"`
 }
 
 // ResourcePolicies for defining resource lifecycle rules
 type ResourcePolicies struct {
-	ValidationPolicies    []ValidationPolicy    `json:"validationPolicies,omitempty"`
-	TransitionPolicies    []TransitionPolicy    `json:"transitionPolicies,omitempty"`
-	RetentionPolicies     []RetentionPolicy     `json:"retentionPolicies,omitempty"`
-	NotificationPolicies  []NotificationPolicy  `json:"notificationPolicies,omitempty"`
-	AutomationPolicies    []AutomationPolicy    `json:"automationPolicies,omitempty"`
+	ValidationPolicies   []ValidationPolicy   `json:"validationPolicies,omitempty"`
+	TransitionPolicies   []TransitionPolicy   `json:"transitionPolicies,omitempty"`
+	RetentionPolicies    []RetentionPolicy    `json:"retentionPolicies,omitempty"`
+	NotificationPolicies []NotificationPolicy `json:"notificationPolicies,omitempty"`
+	AutomationPolicies   []AutomationPolicy   `json:"automationPolicies,omitempty"`
 }
 
 type ValidationPolicy struct {
-	Name        string                 `json:"name"`
-	Enabled     bool                   `json:"enabled"`
-	ResourceType string                `json:"resourceType,omitempty"`
-	Conditions  []PolicyCondition      `json:"conditions"`
-	Actions     []ValidationAction     `json:"actions"`
-	Priority    int                    `json:"priority"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Name         string                 `json:"name"`
+	Enabled      bool                   `json:"enabled"`
+	ResourceType string                 `json:"resourceType,omitempty"`
+	Conditions   []PolicyCondition      `json:"conditions"`
+	Actions      []ValidationAction     `json:"actions"`
+	Priority     int                    `json:"priority"`
+	Metadata     json.RawMessage `json:"metadata,omitempty"`
 }
 
 type TransitionPolicy struct {
-	Name         string                 `json:"name"`
-	Enabled      bool                   `json:"enabled"`
-	FromState    string                 `json:"fromState"`
-	ToState      string                 `json:"toState"`
-	Conditions   []PolicyCondition      `json:"conditions"`
-	Actions      []TransitionAction     `json:"actions"`
-	Timeout      time.Duration          `json:"timeout,omitempty"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	Name       string                 `json:"name"`
+	Enabled    bool                   `json:"enabled"`
+	FromState  string                 `json:"fromState"`
+	ToState    string                 `json:"toState"`
+	Conditions []PolicyCondition      `json:"conditions"`
+	Actions    []TransitionAction     `json:"actions"`
+	Timeout    time.Duration          `json:"timeout,omitempty"`
+	Metadata   json.RawMessage `json:"metadata,omitempty"`
 }
 
 type RetentionPolicy struct {
@@ -148,51 +139,51 @@ type RetentionPolicy struct {
 	MaxCount     int                    `json:"maxCount,omitempty"`
 	Conditions   []PolicyCondition      `json:"conditions"`
 	Actions      []RetentionAction      `json:"actions"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	Metadata     json.RawMessage `json:"metadata,omitempty"`
 }
 
 type NotificationPolicy struct {
-	Name         string                 `json:"name"`
-	Enabled      bool                   `json:"enabled"`
-	EventTypes   []string               `json:"eventTypes"`
-	Conditions   []PolicyCondition      `json:"conditions"`
-	Recipients   []NotificationRecipient `json:"recipients"`
-	Template     string                 `json:"template,omitempty"`
-	Throttling   *ThrottlingConfig      `json:"throttling,omitempty"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	Name       string                  `json:"name"`
+	Enabled    bool                    `json:"enabled"`
+	EventTypes []string                `json:"eventTypes"`
+	Conditions []PolicyCondition       `json:"conditions"`
+	Recipients []NotificationRecipient `json:"recipients"`
+	Template   string                  `json:"template,omitempty"`
+	Throttling *ThrottlingConfig       `json:"throttling,omitempty"`
+	Metadata   json.RawMessage  `json:"metadata,omitempty"`
 }
 
 type AutomationPolicy struct {
-	Name         string                 `json:"name"`
-	Enabled      bool                   `json:"enabled"`
-	Trigger      PolicyTrigger          `json:"trigger"`
-	Conditions   []PolicyCondition      `json:"conditions"`
-	Actions      []AutomationAction     `json:"actions"`
-	Schedule     string                 `json:"schedule,omitempty"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	Name       string                 `json:"name"`
+	Enabled    bool                   `json:"enabled"`
+	Trigger    PolicyTrigger          `json:"trigger"`
+	Conditions []PolicyCondition      `json:"conditions"`
+	Actions    []AutomationAction     `json:"actions"`
+	Schedule   string                 `json:"schedule,omitempty"`
+	Metadata   json.RawMessage `json:"metadata,omitempty"`
 }
 
 type PolicyCondition struct {
-	Field    string      `json:"field"`
-	Operator string      `json:"operator"`
-	Value    interface{} `json:"value"`
-	LogicalOp string     `json:"logicalOp,omitempty"`
+	Field     string      `json:"field"`
+	Operator  string      `json:"operator"`
+	Value     interface{} `json:"value"`
+	LogicalOp string      `json:"logicalOp,omitempty"`
 }
 
 type ValidationAction struct {
 	Type       string                 `json:"type"`
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 }
 
 type TransitionAction struct {
 	Type       string                 `json:"type"`
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 	Delay      time.Duration          `json:"delay,omitempty"`
 }
 
 type RetentionAction struct {
 	Type       string                 `json:"type"`
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 }
 
 type NotificationRecipient struct {
@@ -208,14 +199,14 @@ type ThrottlingConfig struct {
 }
 
 type PolicyTrigger struct {
-	Type       string                 `json:"type"`
-	EventTypes []string               `json:"eventTypes,omitempty"`
-	Schedule   string                 `json:"schedule,omitempty"`
-	Conditions []PolicyCondition      `json:"conditions,omitempty"`
+	Type       string            `json:"type"`
+	EventTypes []string          `json:"eventTypes,omitempty"`
+	Schedule   string            `json:"schedule,omitempty"`
+	Conditions []PolicyCondition `json:"conditions,omitempty"`
 }
 
 type AutomationAction struct {
 	Type       string                 `json:"type"`
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 	Timeout    time.Duration          `json:"timeout,omitempty"`
 }

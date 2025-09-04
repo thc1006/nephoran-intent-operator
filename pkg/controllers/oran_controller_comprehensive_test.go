@@ -812,7 +812,3 @@ func TestOranAdaptorReconciler_EdgeCases(t *testing.T) {
 }
 
 // Helper functions
-
-func int32Ptr(i int32) *int32 {
-	return &i
-}

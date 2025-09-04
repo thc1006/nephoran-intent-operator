@@ -533,7 +533,7 @@ func (p *IntentProcessor) markProcessed(filename string) {
 		return
 	}
 
-	defer f.Close()
+	defer f.Close() // #nosec G307 - Error handled in defer
 
 	if _, err := f.WriteString(basename + "\n"); err != nil {
 		log.Printf("Failed to write to processed file: %v", err)

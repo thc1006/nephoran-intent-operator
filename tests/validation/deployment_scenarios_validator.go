@@ -17,6 +17,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -41,7 +42,6 @@ type DeploymentScenariosValidator struct {
 // DeploymentScenariosMetrics tracks deployment scenario validation results.
 
 type DeploymentScenariosMetrics struct {
-
 	// Deployment Strategy Support.
 
 	BlueGreenSupported bool
@@ -317,9 +317,7 @@ type HealthCheckConfig struct {
 // NewDeploymentScenariosValidator creates a new deployment scenarios validator.
 
 func NewDeploymentScenariosValidator(client client.Client, clientset *kubernetes.Clientset, config *ValidationConfig) *DeploymentScenariosValidator {
-
 	return &DeploymentScenariosValidator{
-
 		client: client,
 
 		clientset: clientset,
@@ -327,17 +325,14 @@ func NewDeploymentScenariosValidator(client client.Client, clientset *kubernetes
 		config: config,
 
 		metrics: &DeploymentScenariosMetrics{
-
 			DeploymentScenarios: make(map[string]*DeploymentScenarioResult),
 		},
 	}
-
 }
 
 // ValidateDeploymentScenarios executes comprehensive deployment scenario validation.
 
 func (dsv *DeploymentScenariosValidator) ValidateDeploymentScenarios(ctx context.Context) (int, error) {
-
 	ginkgo.By("Starting Deployment Scenarios Validation")
 
 	totalScore := 0
@@ -347,13 +342,11 @@ func (dsv *DeploymentScenariosValidator) ValidateDeploymentScenarios(ctx context
 	for _, scenario := range scenarios {
 
 		result, err := dsv.executeDeploymentScenario(ctx, scenario)
-
 		if err != nil {
 
 			ginkgo.By(fmt.Sprintf("⚠ Deployment scenario '%s' failed: %v", scenario.Name, err))
 
 			result = &DeploymentScenarioResult{
-
 				ScenarioName: scenario.Name,
 
 				DeploymentType: string(scenario.Type),
@@ -380,11 +373,9 @@ func (dsv *DeploymentScenariosValidator) ValidateDeploymentScenarios(ctx context
 				scenario.Name, result.Duration, result.DowntimeObserved))
 
 		} else {
-
 			ginkgo.By(fmt.Sprintf("✗ Deployment scenario '%s' failed: %s",
 
 				scenario.Name, result.ErrorMessage))
-
 		}
 
 	}
@@ -398,30 +389,24 @@ func (dsv *DeploymentScenariosValidator) ValidateDeploymentScenarios(ctx context
 		totalScore, len(scenarios)))
 
 	return totalScore, nil
-
 }
 
 // getDeploymentScenarios returns the list of deployment scenarios to test.
 
 func (dsv *DeploymentScenariosValidator) getDeploymentScenarios() []*DeploymentStrategy {
-
 	return []*DeploymentStrategy{
-
 		{
-
 			Name: "Rolling Update Deployment",
 
 			Type: DeploymentStrategyRolling,
 
 			MaxUnavailable: &intstr.IntOrString{
-
 				Type: intstr.String,
 
 				StrVal: "25%",
 			},
 
 			MaxSurge: &intstr.IntOrString{
-
 				Type: intstr.String,
 
 				StrVal: "25%",
@@ -430,7 +415,6 @@ func (dsv *DeploymentScenariosValidator) getDeploymentScenarios() []*DeploymentS
 			ProgressDeadlineSeconds: int32Ptr(300),
 
 			HealthCheckConfig: &HealthCheckConfig{
-
 				Path: "/health",
 
 				Port: intstr.FromInt(8080),
@@ -448,13 +432,11 @@ func (dsv *DeploymentScenariosValidator) getDeploymentScenarios() []*DeploymentS
 		},
 
 		{
-
 			Name: "Blue-Green Deployment",
 
 			Type: DeploymentStrategyBlueGreen,
 
 			BlueGreenConfig: &BlueGreenConfig{
-
 				ScaleDownDelaySeconds: 30,
 
 				PreviewService: "nephoran-preview",
@@ -464,13 +446,11 @@ func (dsv *DeploymentScenariosValidator) getDeploymentScenarios() []*DeploymentS
 				AutoPromotionEnabled: false,
 
 				PrePromotionAnalysis: &AnalysisConfig{
-
 					Templates: []string{"success-rate", "response-time"},
 				},
 			},
 
 			HealthCheckConfig: &HealthCheckConfig{
-
 				Path: "/health",
 
 				Port: intstr.FromInt(8080),
@@ -488,45 +468,35 @@ func (dsv *DeploymentScenariosValidator) getDeploymentScenarios() []*DeploymentS
 		},
 
 		{
-
 			Name: "Canary Deployment",
 
 			Type: DeploymentStrategyCanary,
 
 			CanaryConfig: &CanaryConfig{
-
 				Steps: []CanaryStep{
-
 					{
-
 						SetWeight: int32Ptr(20),
 
 						Pause: &PauseConfig{
-
 							Duration: &metav1.Duration{Duration: 30 * time.Second},
 						},
 					},
 
 					{
-
 						SetWeight: int32Ptr(50),
 
 						Analysis: &AnalysisConfig{
-
 							Templates: []string{"success-rate", "error-rate"},
 						},
 					},
 
 					{
-
 						SetWeight: int32Ptr(100),
 					},
 				},
 
 				TrafficRouting: &TrafficRoutingConfig{
-
 					Istio: &IstioConfig{
-
 						VirtualService: "nephoran-vs",
 
 						DestinationRule: "nephoran-dr",
@@ -539,7 +509,6 @@ func (dsv *DeploymentScenariosValidator) getDeploymentScenarios() []*DeploymentS
 			},
 
 			HealthCheckConfig: &HealthCheckConfig{
-
 				Path: "/health",
 
 				Port: intstr.FromInt(8080),
@@ -556,17 +525,14 @@ func (dsv *DeploymentScenariosValidator) getDeploymentScenarios() []*DeploymentS
 			},
 		},
 	}
-
 }
 
 // executeDeploymentScenario executes a single deployment scenario.
 
 func (dsv *DeploymentScenariosValidator) executeDeploymentScenario(ctx context.Context, strategy *DeploymentStrategy) (*DeploymentScenarioResult, error) {
-
 	ginkgo.By(fmt.Sprintf("Executing deployment scenario: %s", strategy.Name))
 
 	result := &DeploymentScenarioResult{
-
 		ScenarioName: strategy.Name,
 
 		DeploymentType: string(strategy.Type),
@@ -595,31 +561,24 @@ func (dsv *DeploymentScenariosValidator) executeDeploymentScenario(ctx context.C
 		return nil, fmt.Errorf("unsupported deployment strategy: %s", strategy.Type)
 
 	}
-
 }
 
 // executeRollingUpdateScenario tests rolling update deployment.
 
 func (dsv *DeploymentScenariosValidator) executeRollingUpdateScenario(ctx context.Context, strategy *DeploymentStrategy, result *DeploymentScenarioResult) (*DeploymentScenarioResult, error) {
-
 	ginkgo.By("Testing Rolling Update deployment scenario")
 
 	// Find existing deployment to test rolling update.
 
 	deployment, err := dsv.findTestDeployment(ctx)
-
 	if err != nil {
-
 		return result, fmt.Errorf("failed to find test deployment: %w", err)
-
 	}
 
 	// Validate rolling update configuration.
 
 	if deployment.Spec.Strategy.Type != appsv1.RollingUpdateDeploymentStrategyType {
-
 		return result, fmt.Errorf("deployment is not configured for rolling update")
-
 	}
 
 	// Simulate rolling update by updating deployment image or labels.
@@ -631,9 +590,7 @@ func (dsv *DeploymentScenariosValidator) executeRollingUpdateScenario(ctx contex
 	deployment.Spec.Template.Labels["deployment-test"] = fmt.Sprintf("test-%d", time.Now().Unix())
 
 	if err := dsv.client.Update(ctx, deployment); err != nil {
-
 		return result, fmt.Errorf("failed to trigger rolling update: %w", err)
-
 	}
 
 	// Monitor rolling update progress.
@@ -649,17 +606,14 @@ func (dsv *DeploymentScenariosValidator) executeRollingUpdateScenario(ctx contex
 	result.Success = success
 
 	if !success {
-
 		result.ErrorMessage = "Rolling update failed or exceeded timeout"
-
 	}
 
 	// Validate that all replicas are available.
 
 	updatedDeployment := &appsv1.Deployment{}
 
-	if err := dsv.client.Get(ctx, client.ObjectKeyFromObject(deployment), updatedDeployment); err == nil {
-
+	if err := dsv.client.Get(ctx, types.NamespacedName{Name: deployment.GetName(), Namespace: deployment.GetNamespace()}, updatedDeployment); err == nil {
 		if updatedDeployment.Status.ReadyReplicas != originalReplicas {
 
 			result.Success = false
@@ -667,33 +621,25 @@ func (dsv *DeploymentScenariosValidator) executeRollingUpdateScenario(ctx contex
 			result.ErrorMessage = fmt.Sprintf("Expected %d ready replicas, got %d", originalReplicas, updatedDeployment.Status.ReadyReplicas)
 
 		}
-
 	}
 
 	return result, nil
-
 }
 
 // executeBlueGreenScenario tests blue-green deployment.
 
 func (dsv *DeploymentScenariosValidator) executeBlueGreenScenario(ctx context.Context, strategy *DeploymentStrategy, result *DeploymentScenarioResult) (*DeploymentScenarioResult, error) {
-
 	ginkgo.By("Testing Blue-Green deployment scenario")
 
 	// Check for blue-green deployment infrastructure.
 
 	blueGreenSupported, err := dsv.validateBlueGreenInfrastructure(ctx, strategy.BlueGreenConfig)
-
 	if err != nil {
-
 		return result, fmt.Errorf("blue-green infrastructure validation failed: %w", err)
-
 	}
 
 	if !blueGreenSupported {
-
 		return result, fmt.Errorf("blue-green deployment infrastructure not properly configured")
-
 	}
 
 	// Simulate blue-green deployment by checking for dual deployment setup.
@@ -711,35 +657,26 @@ func (dsv *DeploymentScenariosValidator) executeBlueGreenScenario(ctx context.Co
 	result.DowntimeObserved = 0 * time.Second
 
 	if !success {
-
 		result.ErrorMessage = "Blue-green deployment pattern not properly implemented"
-
 	}
 
 	return result, nil
-
 }
 
 // executeCanaryScenario tests canary deployment.
 
 func (dsv *DeploymentScenariosValidator) executeCanaryScenario(ctx context.Context, strategy *DeploymentStrategy, result *DeploymentScenarioResult) (*DeploymentScenarioResult, error) {
-
 	ginkgo.By("Testing Canary deployment scenario")
 
 	// Check for canary deployment infrastructure (Istio, Flagger, Argo Rollouts).
 
 	canarySupported, err := dsv.validateCanaryInfrastructure(ctx, strategy.CanaryConfig)
-
 	if err != nil {
-
 		return result, fmt.Errorf("canary infrastructure validation failed: %w", err)
-
 	}
 
 	if !canarySupported {
-
 		return result, fmt.Errorf("canary deployment infrastructure not properly configured")
-
 	}
 
 	// Validate traffic splitting capabilities.
@@ -757,15 +694,12 @@ func (dsv *DeploymentScenariosValidator) executeCanaryScenario(ctx context.Conte
 	result.DowntimeObserved = 5 * time.Second // Minimal downtime expected
 
 	if !result.Success {
-
 		result.ErrorMessage = "Canary deployment infrastructure not fully supported"
-
 	}
 
 	// Create mock traffic metrics.
 
 	result.TrafficMetrics = &TrafficMetrics{
-
 		BlueTrafficPercentage: 80.0,
 
 		GreenTrafficPercentage: 20.0,
@@ -780,37 +714,29 @@ func (dsv *DeploymentScenariosValidator) executeCanaryScenario(ctx context.Conte
 	}
 
 	return result, nil
-
 }
 
 // findTestDeployment finds a deployment to use for testing.
 
 func (dsv *DeploymentScenariosValidator) findTestDeployment(ctx context.Context) (*appsv1.Deployment, error) {
-
 	deployments := &appsv1.DeploymentList{}
 
 	if err := dsv.client.List(ctx, deployments, client.InNamespace("nephoran-system")); err != nil {
-
 		return nil, err
-
 	}
 
 	if len(deployments.Items) == 0 {
-
 		return nil, fmt.Errorf("no deployments found in nephoran-system namespace")
-
 	}
 
 	// Return the first deployment found.
 
 	return &deployments.Items[0], nil
-
 }
 
 // monitorRollingUpdate monitors the progress of a rolling update.
 
 func (dsv *DeploymentScenariosValidator) monitorRollingUpdate(ctx context.Context, deployment *appsv1.Deployment, healthConfig *HealthCheckConfig) (bool, time.Duration) {
-
 	timeout := 5 * time.Minute
 
 	checkInterval := 10 * time.Second
@@ -828,7 +754,6 @@ func (dsv *DeploymentScenariosValidator) monitorRollingUpdate(ctx context.Contex
 	var downtime time.Duration
 
 	for {
-
 		select {
 
 		case <-monitorCtx.Done():
@@ -841,10 +766,8 @@ func (dsv *DeploymentScenariosValidator) monitorRollingUpdate(ctx context.Contex
 
 			currentDeployment := &appsv1.Deployment{}
 
-			if err := dsv.client.Get(ctx, client.ObjectKeyFromObject(deployment), currentDeployment); err != nil {
-
+			if err := dsv.client.Get(ctx, types.NamespacedName{Name: deployment.GetName(), Namespace: deployment.GetNamespace()}, currentDeployment); err != nil {
 				continue
-
 			}
 
 			// Check if rolling update is complete.
@@ -858,31 +781,23 @@ func (dsv *DeploymentScenariosValidator) monitorRollingUpdate(ctx context.Contex
 				// Rolling update completed successfully.
 
 				return true, downtime
-
 			}
 
 			// Check if there are unavailable replicas (indicating potential downtime).
 
 			if currentDeployment.Status.UnavailableReplicas > 0 {
-
 				downtime += checkInterval
-
 			}
 
 		}
-
 	}
-
 }
 
 // validateBlueGreenInfrastructure validates blue-green deployment infrastructure.
 
 func (dsv *DeploymentScenariosValidator) validateBlueGreenInfrastructure(ctx context.Context, config *BlueGreenConfig) (bool, error) {
-
 	if config == nil {
-
 		return false, fmt.Errorf("blue-green configuration is nil")
-
 	}
 
 	// Check for preview and active services.
@@ -890,9 +805,7 @@ func (dsv *DeploymentScenariosValidator) validateBlueGreenInfrastructure(ctx con
 	services := &corev1.ServiceList{}
 
 	if err := dsv.client.List(ctx, services, client.InNamespace("nephoran-system")); err != nil {
-
 		return false, err
-
 	}
 
 	previewServiceFound := false
@@ -902,35 +815,27 @@ func (dsv *DeploymentScenariosValidator) validateBlueGreenInfrastructure(ctx con
 	for _, service := range services.Items {
 
 		if service.Name == config.PreviewService {
-
 			previewServiceFound = true
-
 		}
 
 		if service.Name == config.ActiveService {
-
 			activeServiceFound = true
-
 		}
 
 	}
 
 	return previewServiceFound && activeServiceFound, nil
-
 }
 
 // validateBlueGreenDeploymentPattern validates blue-green deployment pattern.
 
 func (dsv *DeploymentScenariosValidator) validateBlueGreenDeploymentPattern(ctx context.Context) bool {
-
 	// Look for deployments with blue/green labels.
 
 	deployments := &appsv1.DeploymentList{}
 
 	if err := dsv.client.List(ctx, deployments, client.InNamespace("nephoran-system")); err != nil {
-
 		return false
-
 	}
 
 	blueFound := false
@@ -938,41 +843,29 @@ func (dsv *DeploymentScenariosValidator) validateBlueGreenDeploymentPattern(ctx 
 	greenFound := false
 
 	for _, deployment := range deployments.Items {
-
 		if deployment.Labels != nil {
-
 			if version, exists := deployment.Labels["version"]; exists {
 
 				if version == "blue" {
-
 					blueFound = true
-
 				}
 
 				if version == "green" {
-
 					greenFound = true
-
 				}
 
 			}
-
 		}
-
 	}
 
 	return blueFound || greenFound // At least one version should exist
-
 }
 
 // validateCanaryInfrastructure validates canary deployment infrastructure.
 
 func (dsv *DeploymentScenariosValidator) validateCanaryInfrastructure(ctx context.Context, config *CanaryConfig) (bool, error) {
-
 	if config == nil {
-
 		return false, fmt.Errorf("canary configuration is nil")
-
 	}
 
 	// Check for canary deployment tools.
@@ -984,9 +877,7 @@ func (dsv *DeploymentScenariosValidator) validateCanaryInfrastructure(ctx contex
 	deployments := &appsv1.DeploymentList{}
 
 	if err := dsv.client.List(ctx, deployments); err != nil {
-
 		return false, err
-
 	}
 
 	for _, deployment := range deployments.Items {
@@ -994,7 +885,6 @@ func (dsv *DeploymentScenariosValidator) validateCanaryInfrastructure(ctx contex
 		deploymentName := strings.ToLower(deployment.Name)
 
 		for _, tool := range canaryTools {
-
 			if strings.Contains(deploymentName, tool) {
 
 				toolsFound++
@@ -1002,23 +892,18 @@ func (dsv *DeploymentScenariosValidator) validateCanaryInfrastructure(ctx contex
 				break
 
 			}
-
 		}
 
 	}
 
 	return toolsFound > 0, nil
-
 }
 
 // validateTrafficSplitting validates traffic splitting capabilities.
 
 func (dsv *DeploymentScenariosValidator) validateTrafficSplitting(ctx context.Context, routing *TrafficRoutingConfig) bool {
-
 	if routing == nil {
-
 		return false
-
 	}
 
 	// Check for Istio VirtualService.
@@ -1028,7 +913,6 @@ func (dsv *DeploymentScenariosValidator) validateTrafficSplitting(ctx context.Co
 		virtualServices := &metav1.PartialObjectMetadataList{}
 
 		virtualServices.SetGroupVersionKind(schema.GroupVersionKind{
-
 			Group: "networking.istio.io",
 
 			Version: "v1beta1",
@@ -1037,17 +921,11 @@ func (dsv *DeploymentScenariosValidator) validateTrafficSplitting(ctx context.Co
 		})
 
 		if err := dsv.client.List(ctx, virtualServices, client.InNamespace("nephoran-system")); err == nil {
-
 			for _, vs := range virtualServices.Items {
-
 				if vs.Name == routing.Istio.VirtualService {
-
 					return true
-
 				}
-
 			}
-
 		}
 
 	}
@@ -1059,11 +937,8 @@ func (dsv *DeploymentScenariosValidator) validateTrafficSplitting(ctx context.Co
 		ingresses := &networkingv1.IngressList{}
 
 		if err := dsv.client.List(ctx, ingresses, client.InNamespace("nephoran-system")); err == nil {
-
 			for _, ingress := range ingresses.Items {
-
 				if ingress.Name == routing.Nginx.IngressName {
-
 					// Check for canary annotations.
 
 					if ingress.Annotations != nil {
@@ -1071,35 +946,26 @@ func (dsv *DeploymentScenariosValidator) validateTrafficSplitting(ctx context.Co
 						annotationPrefix := routing.Nginx.AnnotationPrefix
 
 						if annotationPrefix == "" {
-
 							annotationPrefix = "nginx.ingress.kubernetes.io"
-
 						}
 
 						if _, exists := ingress.Annotations[annotationPrefix+"/canary"]; exists {
-
 							return true
-
 						}
 
 					}
-
 				}
-
 			}
-
 		}
 
 	}
 
 	return false
-
 }
 
 // updateOverallMetrics updates overall deployment scenarios metrics.
 
 func (dsv *DeploymentScenariosValidator) updateOverallMetrics() {
-
 	dsv.mu.Lock()
 
 	defer dsv.mu.Unlock()
@@ -1121,21 +987,15 @@ func (dsv *DeploymentScenariosValidator) updateOverallMetrics() {
 	for _, result := range dsv.metrics.DeploymentScenarios {
 
 		if result.Success {
-
 			successfulDeployments++
-
 		} else {
-
 			failedDeployments++
-
 		}
 
 		totalDowntime += result.DowntimeObserved
 
 		if result.DowntimeObserved > maxDowntime {
-
 			maxDowntime = result.DowntimeObserved
-
 		}
 
 		switch result.DeploymentType {
@@ -1169,33 +1029,27 @@ func (dsv *DeploymentScenariosValidator) updateOverallMetrics() {
 	dsv.metrics.MaxDowntime = maxDowntime
 
 	if len(dsv.metrics.DeploymentScenarios) > 0 {
-
 		dsv.metrics.AverageDowntime = totalDowntime / time.Duration(len(dsv.metrics.DeploymentScenarios))
-
 	}
 
 	// Zero downtime achieved if max downtime is less than 30 seconds.
 
 	dsv.metrics.ZeroDowntimeAchieved = maxDowntime < 30*time.Second
-
 }
 
 // GetDeploymentScenariosMetrics returns the current deployment scenarios metrics.
 
 func (dsv *DeploymentScenariosValidator) GetDeploymentScenariosMetrics() *DeploymentScenariosMetrics {
-
 	dsv.mu.RLock()
 
 	defer dsv.mu.RUnlock()
 
 	return dsv.metrics
-
 }
 
 // GenerateDeploymentScenariosReport generates a comprehensive deployment scenarios report.
 
 func (dsv *DeploymentScenariosValidator) GenerateDeploymentScenariosReport() string {
-
 	dsv.mu.RLock()
 
 	defer dsv.mu.RUnlock()
@@ -1270,9 +1124,7 @@ SCENARIO DETAILS:
 		status := "❌"
 
 		if result.Success {
-
 			status = "✅"
-
 		}
 
 		report += fmt.Sprintf("├── %-25s %s (Duration: %v, Downtime: %v)\n",
@@ -1280,9 +1132,7 @@ SCENARIO DETAILS:
 			name, status, result.Duration, result.DowntimeObserved)
 
 		if result.ErrorMessage != "" {
-
 			report += fmt.Sprintf("    └── Error: %s\n", result.ErrorMessage)
-
 		}
 
 	}
@@ -1294,7 +1144,6 @@ SCENARIO DETAILS:
 `
 
 	return report
-
 }
 
 // Helper function to get strings from interface.
@@ -1302,7 +1151,5 @@ SCENARIO DETAILS:
 // int32Ptr returns a pointer to the provided int32 value.
 
 func int32Ptr(i int32) *int32 {
-
 	return &i
-
 }

@@ -11,7 +11,6 @@ import (
 // ControllerMetrics provides performance metrics for optimized controllers.
 
 type ControllerMetrics struct {
-
 	// Reconcile metrics.
 
 	ReconcileDuration *prometheus.HistogramVec
@@ -64,13 +63,10 @@ type ControllerMetrics struct {
 // NewControllerMetrics creates a new ControllerMetrics instance.
 
 func NewControllerMetrics() *ControllerMetrics {
-
 	cm := &ControllerMetrics{
-
 		ReconcileDuration: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "controller_reconcile_duration_seconds",
 
 				Help: "Time spent in controller reconcile loops",
@@ -85,7 +81,6 @@ func NewControllerMetrics() *ControllerMetrics {
 		ReconcileTotal: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "controller_reconcile_total",
 
 				Help: "Total number of controller reconciliations",
@@ -97,7 +92,6 @@ func NewControllerMetrics() *ControllerMetrics {
 		ReconcileErrors: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "controller_reconcile_errors_total",
 
 				Help: "Total number of controller reconcile errors",
@@ -109,7 +103,6 @@ func NewControllerMetrics() *ControllerMetrics {
 		ReconcileRequeue: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "controller_reconcile_requeue_total",
 
 				Help: "Total number of controller requeues",
@@ -121,7 +114,6 @@ func NewControllerMetrics() *ControllerMetrics {
 		BackoffDelay: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "controller_backoff_delay_seconds",
 
 				Help: "Backoff delay duration in seconds",
@@ -136,7 +128,6 @@ func NewControllerMetrics() *ControllerMetrics {
 		BackoffRetries: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "controller_backoff_retries",
 
 				Help: "Number of retries before success or giving up",
@@ -151,7 +142,6 @@ func NewControllerMetrics() *ControllerMetrics {
 		BackoffResets: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "controller_backoff_resets_total",
 
 				Help: "Total number of successful backoff resets",
@@ -163,7 +153,6 @@ func NewControllerMetrics() *ControllerMetrics {
 		StatusBatchSize: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "controller_status_batch_size",
 
 				Help: "Size of status update batches",
@@ -178,7 +167,6 @@ func NewControllerMetrics() *ControllerMetrics {
 		StatusBatchDuration: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "controller_status_batch_duration_seconds",
 
 				Help: "Duration of status batch processing",
@@ -193,7 +181,6 @@ func NewControllerMetrics() *ControllerMetrics {
 		StatusUpdatesQueued: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "controller_status_updates_queued_total",
 
 				Help: "Total number of status updates queued",
@@ -205,7 +192,6 @@ func NewControllerMetrics() *ControllerMetrics {
 		StatusUpdatesDropped: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "controller_status_updates_dropped_total",
 
 				Help: "Total number of status updates dropped due to queue full",
@@ -217,7 +203,6 @@ func NewControllerMetrics() *ControllerMetrics {
 		StatusUpdatesFailed: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "controller_status_updates_failed_total",
 
 				Help: "Total number of failed status updates",
@@ -229,7 +214,6 @@ func NewControllerMetrics() *ControllerMetrics {
 		StatusQueueSize: prometheus.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "controller_status_queue_size",
 
 				Help: "Current size of status update queue",
@@ -241,7 +225,6 @@ func NewControllerMetrics() *ControllerMetrics {
 		APICallDuration: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "controller_api_call_duration_seconds",
 
 				Help: "Duration of Kubernetes API calls",
@@ -256,7 +239,6 @@ func NewControllerMetrics() *ControllerMetrics {
 		APICallTotal: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "controller_api_call_total",
 
 				Help: "Total number of Kubernetes API calls",
@@ -268,7 +250,6 @@ func NewControllerMetrics() *ControllerMetrics {
 		APICallErrors: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "controller_api_call_errors_total",
 
 				Help: "Total number of Kubernetes API call errors",
@@ -280,7 +261,6 @@ func NewControllerMetrics() *ControllerMetrics {
 		ActiveReconcilers: prometheus.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "controller_active_reconcilers",
 
 				Help: "Number of active reconciler goroutines",
@@ -292,7 +272,6 @@ func NewControllerMetrics() *ControllerMetrics {
 		MemoryUsage: prometheus.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "controller_memory_usage_bytes",
 
 				Help: "Memory usage of the controller process",
@@ -304,7 +283,6 @@ func NewControllerMetrics() *ControllerMetrics {
 		GoroutineCount: prometheus.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "controller_goroutines",
 
 				Help: "Number of goroutines in the controller process",
@@ -358,7 +336,6 @@ func NewControllerMetrics() *ControllerMetrics {
 	)
 
 	return cm
-
 }
 
 // ReconcileTimer provides timing functionality for reconcile operations.
@@ -380,9 +357,7 @@ type ReconcileTimer struct {
 // NewReconcileTimer creates a new reconcile timer.
 
 func (cm *ControllerMetrics) NewReconcileTimer(controller, namespace, name, phase string) *ReconcileTimer {
-
 	return &ReconcileTimer{
-
 		metrics: cm,
 
 		controller: controller,
@@ -395,20 +370,17 @@ func (cm *ControllerMetrics) NewReconcileTimer(controller, namespace, name, phas
 
 		startTime: time.Now(),
 	}
-
 }
 
 // Finish completes the timing and records the duration.
 
 func (rt *ReconcileTimer) Finish() {
-
 	duration := time.Since(rt.startTime).Seconds()
 
 	rt.metrics.ReconcileDuration.WithLabelValues(
 
 		rt.controller, rt.namespace, rt.name, rt.phase,
 	).Observe(duration)
-
 }
 
 // APICallTimer provides timing functionality for API calls.
@@ -432,9 +404,7 @@ type APICallTimer struct {
 // NewAPICallTimer creates a new API call timer.
 
 func (cm *ControllerMetrics) NewAPICallTimer(controller, operation, resource string) *APICallTimer {
-
 	return &APICallTimer{
-
 		metrics: cm,
 
 		controller: controller,
@@ -445,21 +415,17 @@ func (cm *ControllerMetrics) NewAPICallTimer(controller, operation, resource str
 
 		startTime: time.Now(),
 	}
-
 }
 
 // FinishWithResult completes the timing and records the result.
 
 func (act *APICallTimer) FinishWithResult(success bool, errorType string) {
-
 	act.mu.Lock()
 
 	defer act.mu.Unlock()
 
 	if act.finished {
-
 		return
-
 	}
 
 	act.finished = true
@@ -488,61 +454,49 @@ func (act *APICallTimer) FinishWithResult(success bool, errorType string) {
 
 		act.controller, act.operation, result,
 	).Inc()
-
 }
 
 // RecordBackoffDelay records a backoff delay.
 
 func (cm *ControllerMetrics) RecordBackoffDelay(controller string, errorType ErrorType, strategy BackoffStrategy, delay time.Duration) {
-
 	cm.BackoffDelay.WithLabelValues(
 
 		controller, string(errorType), string(strategy),
 	).Observe(delay.Seconds())
-
 }
 
 // RecordBackoffRetries records backoff retry attempts.
 
 func (cm *ControllerMetrics) RecordBackoffRetries(controller string, errorType ErrorType, retries int, success bool) {
-
 	outcome := "success"
 
 	if !success {
-
 		outcome = "failed"
-
 	}
 
 	cm.BackoffRetries.WithLabelValues(
 
 		controller, string(errorType), outcome,
 	).Observe(float64(retries))
-
 }
 
 // RecordBackoffReset records a successful backoff reset.
 
 func (cm *ControllerMetrics) RecordBackoffReset(controller, resourceType string) {
-
 	cm.BackoffResets.WithLabelValues(controller, resourceType).Inc()
-
 }
 
 // RecordStatusBatch records status batch metrics.
 
 func (cm *ControllerMetrics) RecordStatusBatch(controller string, size int, duration time.Duration, priority string) {
-
 	cm.StatusBatchSize.WithLabelValues(controller, priority).Observe(float64(size))
 
 	cm.StatusBatchDuration.WithLabelValues(controller).Observe(duration.Seconds())
-
 }
 
 // RecordStatusUpdate records status update queue operations.
 
 func (cm *ControllerMetrics) RecordStatusUpdate(controller, priority, resourceType, outcome string) {
-
 	switch outcome {
 
 	case "queued":
@@ -558,61 +512,46 @@ func (cm *ControllerMetrics) RecordStatusUpdate(controller, priority, resourceTy
 		cm.StatusUpdatesFailed.WithLabelValues(controller, "unknown", resourceType).Inc()
 
 	}
-
 }
 
 // UpdateStatusQueueSize updates the current queue size gauge.
 
 func (cm *ControllerMetrics) UpdateStatusQueueSize(controller string, size int) {
-
 	cm.StatusQueueSize.WithLabelValues(controller).Set(float64(size))
-
 }
 
 // RecordReconcileResult records the result of a reconcile operation.
 
 func (cm *ControllerMetrics) RecordReconcileResult(controller, result string) {
-
 	cm.ReconcileTotal.WithLabelValues(controller, result).Inc()
-
 }
 
 // RecordReconcileError records a reconcile error.
 
 func (cm *ControllerMetrics) RecordReconcileError(controller string, errorType ErrorType, category string) {
-
 	cm.ReconcileErrors.WithLabelValues(controller, string(errorType), category).Inc()
-
 }
 
 // RecordRequeue records a requeue operation.
 
 func (cm *ControllerMetrics) RecordRequeue(controller, requeueType string, strategy BackoffStrategy) {
-
 	cm.ReconcileRequeue.WithLabelValues(controller, requeueType, string(strategy)).Inc()
-
 }
 
 // UpdateActiveReconcilers updates the active reconcilers gauge.
 
 func (cm *ControllerMetrics) UpdateActiveReconcilers(controller string, count int) {
-
 	cm.ActiveReconcilers.WithLabelValues(controller).Set(float64(count))
-
 }
 
 // UpdateMemoryUsage updates memory usage metrics.
 
 func (cm *ControllerMetrics) UpdateMemoryUsage(controller, memType string, bytes int64) {
-
 	cm.MemoryUsage.WithLabelValues(controller, memType).Set(float64(bytes))
-
 }
 
 // UpdateGoroutineCount updates the goroutine count gauge.
 
 func (cm *ControllerMetrics) UpdateGoroutineCount(controller string, count int) {
-
 	cm.GoroutineCount.WithLabelValues(controller).Set(float64(count))
-
 }

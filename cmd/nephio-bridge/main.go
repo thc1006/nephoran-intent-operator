@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"net/http"
@@ -18,15 +19,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/telecom"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
+	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
+	"github.com/thc1006/nephoran-intent-operator/pkg/git"
+	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
+	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/telecom"
 )
 
 var (
@@ -49,13 +50,13 @@ var _ shared.ClientInterface = (*llmClientAdapter)(nil)
 func (a *llmClientAdapter) ProcessRequest(ctx context.Context, request *shared.LLMRequest) (*shared.LLMResponse, error) {
 	// Convert modern LLMRequest to legacy prompt
 	prompt := a.convertRequestToPrompt(request)
-	
+
 	// Call legacy method
 	result, err := a.client.ProcessIntent(ctx, prompt)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Convert legacy response to modern LLMResponse
 	return &shared.LLMResponse{
 		ID:      "legacy-" + fmt.Sprintf("%d", time.Now().UnixNano()),
@@ -73,14 +74,13 @@ func (a *llmClientAdapter) ProcessRequest(ctx context.Context, request *shared.L
 // ProcessStreamingRequest implements shared.ClientInterface.ProcessStreamingRequest
 func (a *llmClientAdapter) ProcessStreamingRequest(ctx context.Context, request *shared.LLMRequest) (<-chan *shared.StreamingChunk, error) {
 	chunks := make(chan *shared.StreamingChunk, 1)
-	
+
 	go func() {
 		defer close(chunks)
-		
+
 		// Convert to legacy format and process
 		prompt := a.convertRequestToPrompt(request)
 		result, err := a.client.ProcessIntent(ctx, prompt)
-		
 		if err != nil {
 			chunks <- &shared.StreamingChunk{
 				Error: &shared.LLMError{
@@ -91,7 +91,7 @@ func (a *llmClientAdapter) ProcessStreamingRequest(ctx context.Context, request 
 			}
 			return
 		}
-		
+
 		// Send result as single chunk (simulated streaming)
 		chunks <- &shared.StreamingChunk{
 			ID:        "legacy-chunk-" + fmt.Sprintf("%d", time.Now().UnixNano()),
@@ -102,7 +102,7 @@ func (a *llmClientAdapter) ProcessStreamingRequest(ctx context.Context, request 
 			Timestamp: time.Now(),
 		}
 	}()
-	
+
 	return chunks, nil
 }
 
@@ -135,13 +135,13 @@ func (a *llmClientAdapter) GetModelCapabilities() shared.ModelCapabilities {
 		CostPerToken:         0.001,
 		SupportedMimeTypes:   []string{"text/plain", "application/json"},
 		ModelVersion:         "legacy-1.0",
-		Features:             make(map[string]interface{}),
+		Features:             json.RawMessage(`{}`),
 	}
 }
 
 // GetEndpoint implements shared.ClientInterface.GetEndpoint
 func (a *llmClientAdapter) GetEndpoint() string {
-	return a.client.url
+	return a.client.GetEndpoint()
 }
 
 // Close implements shared.ClientInterface.Close
@@ -164,7 +164,7 @@ func (a *llmClientAdapter) ProcessIntentStream(ctx context.Context, prompt strin
 	if err != nil {
 		return err
 	}
-	
+
 	if chunks != nil {
 		chunks <- &shared.StreamingChunk{
 			Content:   result,
@@ -183,7 +183,7 @@ func (a *llmClientAdapter) convertRequestToPrompt(request *shared.LLMRequest) st
 	if len(request.Messages) == 0 {
 		return ""
 	}
-	
+
 	// Simple conversion: concatenate all message content
 	var prompt strings.Builder
 	for _, msg := range request.Messages {
@@ -223,73 +223,55 @@ type dependencyImpl struct {
 // GetGitClient performs getgitclient operation.
 
 func (d *dependencyImpl) GetGitClient() git.ClientInterface {
-
 	return d.gitClient
-
 }
 
 // GetLLMClient performs getllmclient operation.
 
 func (d *dependencyImpl) GetLLMClient() shared.ClientInterface {
-
 	return d.llmClient
-
 }
 
 // GetPackageGenerator performs getpackagegenerator operation.
 
 func (d *dependencyImpl) GetPackageGenerator() *nephio.PackageGenerator {
-
 	return d.packageGen
-
 }
 
 // GetHTTPClient performs gethttpclient operation.
 
 func (d *dependencyImpl) GetHTTPClient() *http.Client {
-
 	return d.httpClient
-
 }
 
 // GetEventRecorder performs geteventrecorder operation.
 
 func (d *dependencyImpl) GetEventRecorder() record.EventRecorder {
-
 	return d.eventRecorder
-
 }
 
 // GetMetricsCollector returns the metrics collector (placeholder implementation).
 
-func (d *dependencyImpl) GetMetricsCollector() *monitoring.MetricsCollector {
-
+func (d *dependencyImpl) GetMetricsCollector() monitoring.MetricsCollector {
 	return nil // TODO: Implement metrics collector
-
 }
 
 // GetTelecomKnowledgeBase returns the telecom knowledge base (placeholder implementation).
 
 func (d *dependencyImpl) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase {
-
 	return nil // TODO: Implement telecom knowledge base
-
 }
 
 func init() {
-
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(nephoranv1.AddToScheme(scheme))
-
 }
 
 func main() {
-
 	// Load configuration from environment variables.
 
 	cfg, err := config.LoadFromEnv()
-
 	if err != nil {
 
 		setupLog.Error(err, "failed to load configuration")
@@ -311,7 +293,6 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 
 	opts := zap.Options{
-
 		Development: true,
 	}
 
@@ -332,11 +313,9 @@ func main() {
 		"namespace", cfg.Namespace)
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-
 		Scheme: scheme,
 
 		Metrics: metricsserver.Options{
-
 			BindAddress: cfg.MetricsAddr,
 		},
 
@@ -346,7 +325,6 @@ func main() {
 
 		LeaderElectionID: "nephoran-intent-operator",
 	})
-
 	if err != nil {
 
 		setupLog.Error(err, "unable to start manager")
@@ -366,7 +344,6 @@ func main() {
 	if cfg.GitTokenPath != "" || cfg.GitToken != "" {
 
 		gitConfig, err := git.NewGitClientConfig(cfg.GitRepoURL, cfg.GitBranch, cfg.GitToken, cfg.GitTokenPath)
-
 		if err != nil {
 
 			setupLog.Error(err, "unable to create git client config")
@@ -378,19 +355,15 @@ func main() {
 		// Apply concurrent push limit from config if set.
 
 		if cfg.GitConcurrentPushLimit > 0 {
-
 			gitConfig.ConcurrentPushLimit = cfg.GitConcurrentPushLimit
-
 		}
 
 		gitClient = git.NewClientFromConfig(gitConfig)
 
 	} else {
-
 		// Fallback to default constructor for backward compatibility.
 
 		gitClient = git.NewClient(cfg.GitRepoURL, cfg.GitBranch, cfg.GitToken)
-
 	}
 
 	// Initialize Nephio package generator if enabled.
@@ -404,7 +377,6 @@ func main() {
 		var err error
 
 		packageGen, err = nephio.NewPackageGenerator()
-
 		if err != nil {
 
 			setupLog.Error(err, "unable to create package generator")
@@ -420,7 +392,6 @@ func main() {
 	// Create dependencies struct that implements Dependencies interface.
 
 	deps := &dependencyImpl{
-
 		gitClient: gitClient,
 
 		llmClient: &llmClientAdapter{client: llmClient},
@@ -435,7 +406,6 @@ func main() {
 	// Create controller configuration.
 
 	controllerConfig := &controllers.Config{
-
 		MaxRetries: 3,
 
 		RetryDelay: time.Minute * 2,
@@ -465,7 +435,6 @@ func main() {
 
 		controllerConfig,
 	)
-
 	if err != nil {
 
 		setupLog.Error(err, "unable to create NetworkIntent controller")
@@ -485,7 +454,6 @@ func main() {
 	// Setup E2NodeSet controller.
 
 	if err = (&controllers.E2NodeSetReconciler{
-
 		Client: mgr.GetClient(),
 
 		Scheme: mgr.GetScheme(),
@@ -524,5 +492,4 @@ func main() {
 		os.Exit(1)
 
 	}
-
 }

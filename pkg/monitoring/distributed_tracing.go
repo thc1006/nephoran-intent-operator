@@ -8,7 +8,7 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/exporters/jaeger"
+	// "go.opentelemetry.io/otel/exporters/jaeger"  // Commented out due to version compatibility issues
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
@@ -35,11 +35,15 @@ type DistributedTracer struct {
 
 // NewDistributedTracer creates a new distributed tracer
 func NewDistributedTracer(serviceName, jaegerEndpoint string) (*DistributedTracer, error) {
-	// Create Jaeger exporter
-	exp, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(jaegerEndpoint)))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Jaeger exporter: %w", err)
-	}
+	// Create Jaeger exporter - temporarily disabled due to version incompatibility
+	// exp, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(jaegerEndpoint)))
+	// if err != nil {
+	//     return nil, fmt.Errorf("failed to create Jaeger exporter: %w", err)
+	// }
+
+	// Use no-op tracer as fallback
+	var exp trace.SpanExporter
+	err := (error)(nil)
 
 	// Create resource
 	res, err := resource.New(context.Background(),
@@ -100,7 +104,7 @@ func (dt *DistributedTracer) GetTrace(ctx context.Context, traceID string) ([]*T
 // CreateSpanFromOtel converts OpenTelemetry span to TraceSpan
 func (dt *DistributedTracer) CreateSpanFromOtel(span oteltrace.Span) *TraceSpan {
 	spanCtx := span.SpanContext()
-	
+
 	traceSpan := &TraceSpan{
 		TraceID:       spanCtx.TraceID().String(),
 		SpanID:        spanCtx.SpanID().String(),
@@ -158,13 +162,13 @@ func (dt *DistributedTracer) TracingMiddleware() func(next func()) func() {
 		return func() {
 			_, span := dt.StartSpan(context.Background(), "http_request")
 			defer span.End()
-			
+
 			// Set common attributes
 			span.SetAttributes(
 				attribute.String("component", "http"),
 				attribute.String("service.name", dt.serviceName),
 			)
-			
+
 			// Call next handler with tracing context
 			next()
 		}

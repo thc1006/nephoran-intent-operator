@@ -53,20 +53,16 @@ type SimpleExampleUsage struct {
 // NewSimpleExampleUsage creates a new simple example usage instance.
 
 func NewSimpleExampleUsage(client client.Client, integration *NephioIntegration) *SimpleExampleUsage {
-
 	return &SimpleExampleUsage{
-
 		client: client,
 
 		integration: integration,
 	}
-
 }
 
 // BasicDeployment demonstrates basic 5G Core deployment.
 
 func (seu *SimpleExampleUsage) BasicDeployment(ctx context.Context) error {
-
 	logger := log.FromContext(ctx).WithName("simple-deployment")
 
 	logger.Info("Starting basic deployment scenario")
@@ -74,15 +70,12 @@ func (seu *SimpleExampleUsage) BasicDeployment(ctx context.Context) error {
 	// Create a NetworkIntent with correct API structure.
 
 	intent := &v1.NetworkIntent{
-
 		ObjectMeta: metav1.ObjectMeta{
-
 			Name: "deploy-5g-amf-production",
 
 			Namespace: "default",
 
 			Labels: map[string]string{
-
 				"scenario": "basic-5g-core",
 
 				"component": "amf",
@@ -92,14 +85,15 @@ func (seu *SimpleExampleUsage) BasicDeployment(ctx context.Context) error {
 		},
 
 		Spec: v1.NetworkIntentSpec{
-
 			Intent: "Deploy 5G AMF with high availability for production",
 
 			IntentType: v1.IntentTypeDeployment,
 
-			Priority: v1.PriorityHigh,
+			Priority: v1.NetworkPriorityHigh,
 
-			TargetComponents: []v1.ORANComponent{v1.ORANComponentAMF},
+			TargetComponents: []v1.NetworkTargetComponent{
+				v1.NetworkTargetComponentAMF,
+			},
 		},
 	}
 
@@ -108,11 +102,8 @@ func (seu *SimpleExampleUsage) BasicDeployment(ctx context.Context) error {
 	// Process the intent with Nephio workflow.
 
 	execution, err := seu.integration.ProcessNetworkIntent(ctx, intent)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to process NetworkIntent: %w", err)
-
 	}
 
 	logger.Info("Workflow execution started",
@@ -125,27 +116,22 @@ func (seu *SimpleExampleUsage) BasicDeployment(ctx context.Context) error {
 	)
 
 	return seu.monitorWorkflowExecution(ctx, execution.ID, 30*time.Minute)
-
 }
 
 // ORANRICDeployment demonstrates O-RAN RIC deployment.
 
 func (seu *SimpleExampleUsage) ORANRICDeployment(ctx context.Context) error {
-
 	logger := log.FromContext(ctx).WithName("oran-ric-deployment")
 
 	logger.Info("Starting O-RAN RIC deployment scenario")
 
 	intent := &v1.NetworkIntent{
-
 		ObjectMeta: metav1.ObjectMeta{
-
 			Name: "deploy-oran-ric-near-rt",
 
 			Namespace: "oran-system",
 
 			Labels: map[string]string{
-
 				"scenario": "oran-ric",
 
 				"ric-type": "near-rt",
@@ -155,25 +141,21 @@ func (seu *SimpleExampleUsage) ORANRICDeployment(ctx context.Context) error {
 		},
 
 		Spec: v1.NetworkIntentSpec{
-
 			Intent: "Deploy Near-RT RIC with O-RAN compliance and E2 interface support",
 
 			IntentType: v1.IntentTypeDeployment,
 
-			Priority: v1.PriorityHigh,
+			Priority: v1.NetworkPriorityHigh,
 
-			TargetComponents: []v1.ORANComponent{v1.ORANComponentNearRTRIC, v1.ORANComponentE2, v1.ORANComponentA1},
+			TargetComponents: []v1.NetworkTargetComponent{v1.NetworkTargetComponentAMF, v1.NetworkTargetComponentSMF},
 		},
 	}
 
 	logger.Info("Created NetworkIntent for O-RAN RIC deployment", "intent", intent.Name)
 
 	execution, err := seu.integration.ProcessNetworkIntent(ctx, intent)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to process O-RAN NetworkIntent: %w", err)
-
 	}
 
 	logger.Info("O-RAN workflow execution started",
@@ -184,27 +166,22 @@ func (seu *SimpleExampleUsage) ORANRICDeployment(ctx context.Context) error {
 	)
 
 	return seu.monitorWorkflowExecution(ctx, execution.ID, 45*time.Minute)
-
 }
 
 // NetworkSliceConfiguration demonstrates network slice configuration.
 
 func (seu *SimpleExampleUsage) NetworkSliceConfiguration(ctx context.Context) error {
-
 	logger := log.FromContext(ctx).WithName("network-slice-config")
 
 	logger.Info("Starting network slice configuration scenario")
 
 	intent := &v1.NetworkIntent{
-
 		ObjectMeta: metav1.ObjectMeta{
-
 			Name: "configure-urllc-slice",
 
 			Namespace: "slicing-system",
 
 			Labels: map[string]string{
-
 				"scenario": "network-slice",
 
 				"slice-type": "urllc",
@@ -214,25 +191,21 @@ func (seu *SimpleExampleUsage) NetworkSliceConfiguration(ctx context.Context) er
 		},
 
 		Spec: v1.NetworkIntentSpec{
-
 			Intent: "Configure URLLC network slice with ultra-low latency requirements and QoS policies",
 
 			IntentType: v1.IntentTypeOptimization,
 
-			Priority: v1.PriorityHigh,
+			Priority: v1.NetworkPriorityHigh,
 
-			TargetComponents: []v1.ORANComponent{v1.ORANComponentAMF, v1.ORANComponentSMF, v1.ORANComponentUPF},
+			TargetComponents: []v1.NetworkTargetComponent{v1.NetworkTargetComponentAMF, v1.NetworkTargetComponentSMF, v1.NetworkTargetComponentUPF},
 		},
 	}
 
 	logger.Info("Created NetworkIntent for URLLC slice", "intent", intent.Name)
 
 	execution, err := seu.integration.ProcessNetworkIntent(ctx, intent)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to process slice NetworkIntent: %w", err)
-
 	}
 
 	logger.Info("Network slice workflow execution started",
@@ -243,27 +216,22 @@ func (seu *SimpleExampleUsage) NetworkSliceConfiguration(ctx context.Context) er
 	)
 
 	return seu.monitorWorkflowExecution(ctx, execution.ID, 20*time.Minute)
-
 }
 
 // AutoScalingConfiguration demonstrates auto-scaling configuration.
 
 func (seu *SimpleExampleUsage) AutoScalingConfiguration(ctx context.Context) error {
-
 	logger := log.FromContext(ctx).WithName("auto-scaling-config")
 
 	logger.Info("Starting auto-scaling configuration scenario")
 
 	intent := &v1.NetworkIntent{
-
 		ObjectMeta: metav1.ObjectMeta{
-
 			Name: "configure-auto-scaling-upf",
 
 			Namespace: "scaling-system",
 
 			Labels: map[string]string{
-
 				"scenario": "auto-scaling",
 
 				"component": "upf",
@@ -273,25 +241,21 @@ func (seu *SimpleExampleUsage) AutoScalingConfiguration(ctx context.Context) err
 		},
 
 		Spec: v1.NetworkIntentSpec{
-
 			Intent: "Configure intelligent auto-scaling for UPF based on traffic patterns with predictive capabilities",
 
 			IntentType: v1.IntentTypeScaling,
 
-			Priority: v1.PriorityMedium,
+			Priority: v1.NetworkPriorityNormal,
 
-			TargetComponents: []v1.ORANComponent{v1.ORANComponentUPF},
+			TargetComponents: []v1.NetworkTargetComponent{v1.NetworkTargetComponentUPF},
 		},
 	}
 
 	logger.Info("Created NetworkIntent for auto-scaling", "intent", intent.Name)
 
 	execution, err := seu.integration.ProcessNetworkIntent(ctx, intent)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to process auto-scaling NetworkIntent: %w", err)
-
 	}
 
 	logger.Info("Auto-scaling workflow execution started",
@@ -302,13 +266,11 @@ func (seu *SimpleExampleUsage) AutoScalingConfiguration(ctx context.Context) err
 	)
 
 	return seu.monitorWorkflowExecution(ctx, execution.ID, 15*time.Minute)
-
 }
 
 // monitorWorkflowExecution monitors a workflow execution until completion.
 
 func (seu *SimpleExampleUsage) monitorWorkflowExecution(ctx context.Context, executionID string, timeout time.Duration) error {
-
 	logger := log.FromContext(ctx).WithName("workflow-monitor").WithValues("executionId", executionID)
 
 	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
@@ -320,7 +282,6 @@ func (seu *SimpleExampleUsage) monitorWorkflowExecution(ctx context.Context, exe
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-timeoutCtx.Done():
@@ -330,7 +291,6 @@ func (seu *SimpleExampleUsage) monitorWorkflowExecution(ctx context.Context, exe
 		case <-ticker.C:
 
 			execution, err := seu.integration.GetWorkflowExecution(ctx, executionID)
-
 			if err != nil {
 
 				logger.Error(err, "Failed to get workflow execution")
@@ -381,35 +341,26 @@ func (seu *SimpleExampleUsage) monitorWorkflowExecution(ctx context.Context, exe
 			}
 
 		}
-
 	}
-
 }
 
 // countCompletedPhases counts completed workflow phases.
 
 func (seu *SimpleExampleUsage) countCompletedPhases(phases []WorkflowPhaseExecution) int {
-
 	count := 0
 
 	for _, phase := range phases {
-
 		if phase.Status == WorkflowExecutionStatusCompleted {
-
 			count++
-
 		}
-
 	}
 
 	return count
-
 }
 
 // RunAllScenarios runs all simple example scenarios.
 
 func (seu *SimpleExampleUsage) RunAllScenarios(ctx context.Context) error {
-
 	logger := log.FromContext(ctx).WithName("simple-scenarios")
 
 	logger.Info("Starting all simple example scenarios")
@@ -419,7 +370,6 @@ func (seu *SimpleExampleUsage) RunAllScenarios(ctx context.Context) error {
 
 		fn func(context.Context) error
 	}{
-
 		{"Basic 5G Core Deployment", seu.BasicDeployment},
 
 		{"O-RAN RIC Deployment", seu.ORANRICDeployment},
@@ -458,5 +408,4 @@ func (seu *SimpleExampleUsage) RunAllScenarios(ctx context.Context) error {
 	logger.Info("All simple scenarios completed successfully")
 
 	return nil
-
 }

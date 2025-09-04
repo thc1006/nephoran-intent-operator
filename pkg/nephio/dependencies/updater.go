@@ -33,7 +33,9 @@ limitations under the License.
 package dependencies
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -53,9 +55,7 @@ type loggerWrapper struct {
 // Printf performs printf operation.
 
 func (w *loggerWrapper) Printf(format string, args ...interface{}) {
-
 	w.logger.Info(fmt.Sprintf(format, args...))
-
 }
 
 // DependencyUpdater provides comprehensive automated dependency updates and propagation.
@@ -65,7 +65,6 @@ func (w *loggerWrapper) Printf(format string, args ...interface{}) {
 // staged rollouts, automatic rollbacks, and change tracking.
 
 type DependencyUpdater interface {
-
 	// Core update operations.
 
 	UpdateDependencies(ctx context.Context, spec *UpdateSpec) (*UpdateResult, error)
@@ -260,7 +259,7 @@ type UpdateSpec struct {
 
 	Environment string `json:"environment,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // UpdateResult contains comprehensive update execution results.
@@ -318,7 +317,7 @@ type UpdateResult struct {
 
 	Statistics *UpdateStatistics `json:"statistics"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // DependencyUpdate represents a single dependency update.
@@ -384,7 +383,7 @@ type DependencyUpdate struct {
 
 	CreatedBy string `json:"createdBy,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // PropagationSpec defines parameters for update propagation.
@@ -436,7 +435,7 @@ type PropagationSpec struct {
 
 	Reason string `json:"reason,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // PropagationResult contains update propagation results.
@@ -486,7 +485,7 @@ type PropagationResult struct {
 
 	// Metadata.
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // ImpactAnalysis contains comprehensive impact analysis results.
@@ -548,7 +547,7 @@ type ImpactAnalysis struct {
 
 	// Metadata.
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // Enum definitions.
@@ -792,23 +791,17 @@ const (
 // NewDependencyUpdater creates a new dependency updater with comprehensive configuration.
 
 func NewDependencyUpdater(config *UpdaterConfig) (DependencyUpdater, error) {
-
 	if config == nil {
-
 		config = DefaultUpdaterConfig()
-
 	}
 
 	if err := config.Validate(); err != nil {
-
 		return nil, fmt.Errorf("invalid updater config: %w", err)
-
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	updater := &dependencyUpdater{
-
 		logger: log.Log.WithName("dependency-updater"),
 
 		config: config,
@@ -827,43 +820,28 @@ func NewDependencyUpdater(config *UpdaterConfig) (DependencyUpdater, error) {
 	var err error
 
 	updater.updateEngine, err = NewUpdateEngine(config.UpdateEngineConfig)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to initialize update engine: %w", err)
-
 	}
 
 	updater.propagationEngine, err = NewPropagationEngine(config.PropagationEngineConfig)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to initialize propagation engine: %w", err)
-
 	}
 
 	updater.impactAnalyzer, err = NewImpactAnalyzer(config.ImpactAnalyzerConfig)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to initialize impact analyzer: %w", err)
-
 	}
 
 	updater.rolloutManager, err = NewRolloutManager(config.RolloutManagerConfig)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to initialize rollout manager: %w", err)
-
 	}
 
 	updater.rollbackManager, err = NewRollbackManager(config.RollbackManagerConfig)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to initialize rollback manager: %w", err)
-
 	}
 
 	// Initialize scheduling and automation.
@@ -879,11 +857,8 @@ func NewDependencyUpdater(config *UpdaterConfig) (DependencyUpdater, error) {
 	updater.changeTracker = NewChangeTracker(config.ChangeTrackerConfig)
 
 	updater.updateHistory, err = NewUpdateHistoryStore(config.UpdateHistoryConfig)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to initialize update history store: %w", err)
-
 	}
 
 	updater.auditLogger = NewAuditLogger(config.AuditLoggerConfig)
@@ -901,9 +876,7 @@ func NewDependencyUpdater(config *UpdaterConfig) (DependencyUpdater, error) {
 	// Initialize caching.
 
 	if config.EnableCaching {
-
 		updater.updateCache = NewUpdateCache(config.UpdateCacheConfig)
-
 	}
 
 	// Initialize external integrations.
@@ -911,11 +884,8 @@ func NewDependencyUpdater(config *UpdaterConfig) (DependencyUpdater, error) {
 	if config.PackageRegistryConfig != nil {
 
 		updater.packageRegistry, err = NewPackageRegistry(config.PackageRegistryConfig)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to initialize package registry: %w", err)
-
 		}
 
 	}
@@ -923,9 +893,7 @@ func NewDependencyUpdater(config *UpdaterConfig) (DependencyUpdater, error) {
 	// Initialize worker pool.
 
 	if config.EnableConcurrency {
-
 		updater.workerPool = NewUpdateWorkerPool(config.WorkerCount, config.QueueSize)
-
 	}
 
 	// Start background processes.
@@ -945,20 +913,16 @@ func NewDependencyUpdater(config *UpdaterConfig) (DependencyUpdater, error) {
 	if config.NotificationManagerConfig != nil {
 
 		notifConfig := &NotificationConfig{
-
 			Enabled: true,
 		}
 
 		if err := updater.ConfigureNotifications(context.Background(), notifConfig); err != nil {
-
 			return nil, fmt.Errorf("failed to configure notifications: %w", err)
-
 		}
 
 	}
 
 	return updater, nil
-
 }
 
 // Core update methods.
@@ -966,15 +930,12 @@ func NewDependencyUpdater(config *UpdaterConfig) (DependencyUpdater, error) {
 // UpdateDependencies performs comprehensive dependency updates.
 
 func (u *dependencyUpdater) UpdateDependencies(ctx context.Context, spec *UpdateSpec) (*UpdateResult, error) {
-
 	startTime := time.Now()
 
 	// Validate specification.
 
 	if err := u.validateUpdateSpec(spec); err != nil {
-
 		return nil, fmt.Errorf("invalid update spec: %w", err)
-
 	}
 
 	u.logger.Info("Starting dependency updates",
@@ -988,7 +949,6 @@ func (u *dependencyUpdater) UpdateDependencies(ctx context.Context, spec *Update
 	updateID := generateUpdateID()
 
 	result := &UpdateResult{
-
 		UpdateID: updateID,
 
 		UpdatedPackages: make([]*UpdatedPackage, 0),
@@ -1011,7 +971,6 @@ func (u *dependencyUpdater) UpdateDependencies(ctx context.Context, spec *Update
 	// Create update context.
 
 	updateCtx := &UpdateContext{
-
 		UpdateID: updateID,
 
 		Spec: spec,
@@ -1026,11 +985,8 @@ func (u *dependencyUpdater) UpdateDependencies(ctx context.Context, spec *Update
 	// Analyze update impact.
 
 	impact, err := u.AnalyzeUpdateImpact(ctx, u.createDependencyUpdates(spec))
-
 	if err != nil {
-
 		return nil, fmt.Errorf("impact analysis failed: %w", err)
-
 	}
 
 	result.ImpactAnalysis = impact
@@ -1038,21 +994,15 @@ func (u *dependencyUpdater) UpdateDependencies(ctx context.Context, spec *Update
 	// Create update plan.
 
 	plan, err := u.createUpdatePlan(ctx, u.createDependencyUpdates(spec), spec.UpdateStrategy)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("update plan creation failed: %w", err)
-
 	}
 
 	// Validate update plan.
 
 	planValidation, err := u.validateUpdatePlan(ctx, plan)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("update plan validation failed: %w", err)
-
 	}
 
 	if !planValidation.Valid {
@@ -1062,13 +1012,10 @@ func (u *dependencyUpdater) UpdateDependencies(ctx context.Context, spec *Update
 		issueDesc := "Update plan validation failed"
 
 		if len(planValidation.Issues) > 0 {
-
 			issueDesc = planValidation.Issues[0].Description
-
 		}
 
 		result.Errors = append(result.Errors, &UpdateError{
-
 			Code: "INVALID_PLAN",
 
 			Type: "validation_error",
@@ -1087,11 +1034,8 @@ func (u *dependencyUpdater) UpdateDependencies(ctx context.Context, spec *Update
 	if spec.RequireApproval {
 
 		approvalResult, err := u.handleApprovalWorkflow(ctx, updateCtx, plan)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("approval workflow failed: %w", err)
-
 		}
 
 		result.ApprovalRequests = approvalResult.Requests
@@ -1113,11 +1057,8 @@ func (u *dependencyUpdater) UpdateDependencies(ctx context.Context, spec *Update
 	if spec.RolloutConfig != nil && spec.RolloutConfig.EnableStagedRollout {
 
 		rolloutResult, err := u.executeStagedRollout(ctx, plan)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("staged rollout failed: %w", err)
-
 		}
 
 		result.RolloutExecution = rolloutResult
@@ -1129,11 +1070,8 @@ func (u *dependencyUpdater) UpdateDependencies(ctx context.Context, spec *Update
 		// Execute immediate update.
 
 		err := u.executeImmediateUpdate(ctx, updateCtx, plan)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("immediate update failed: %w", err)
-
 		}
 
 		result.RolloutStatus = RolloutStatusCompleted
@@ -1145,17 +1083,13 @@ func (u *dependencyUpdater) UpdateDependencies(ctx context.Context, spec *Update
 	updateRecord := u.createUpdateRecord(updateCtx)
 
 	if err := u.updateHistory.Record(ctx, updateRecord); err != nil {
-
 		u.logger.Error(err, "Failed to record update history")
-
 	}
 
 	// Send notifications.
 
 	if spec.NotificationConfig != nil {
-
 		u.sendUpdateNotifications(ctx, updateCtx)
-
 	}
 
 	// Calculate final results.
@@ -1179,21 +1113,17 @@ func (u *dependencyUpdater) UpdateDependencies(ctx context.Context, spec *Update
 		"duration", result.ExecutionTime)
 
 	return result, nil
-
 }
 
 // PropagateUpdates propagates dependency updates across environments and clusters.
 
 func (u *dependencyUpdater) PropagateUpdates(ctx context.Context, spec *PropagationSpec) (*PropagationResult, error) {
-
 	startTime := time.Now()
 
 	// Validate propagation specification.
 
 	if err := u.validatePropagationSpec(spec); err != nil {
-
 		return nil, fmt.Errorf("invalid propagation spec: %w", err)
-
 	}
 
 	u.logger.Info("Starting update propagation",
@@ -1207,7 +1137,6 @@ func (u *dependencyUpdater) PropagateUpdates(ctx context.Context, spec *Propagat
 	propagationID := generatePropagationID()
 
 	result := &PropagationResult{
-
 		PropagationID: propagationID,
 
 		InitialUpdate: spec.InitialUpdate,
@@ -1230,7 +1159,6 @@ func (u *dependencyUpdater) PropagateUpdates(ctx context.Context, spec *Propagat
 	// Create propagation context.
 
 	propagationCtx := &PropagationContext{
-
 		PropagationID: propagationID,
 
 		Spec: spec,
@@ -1249,51 +1177,36 @@ func (u *dependencyUpdater) PropagateUpdates(ctx context.Context, spec *Propagat
 	case PropagationStrategyImmediate:
 
 		err := u.executeImmediatePropagation(ctx, propagationCtx)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("immediate propagation failed: %w", err)
-
 		}
 
 	case PropagationStrategyStaggered:
 
 		err := u.executeStaggeredPropagation(ctx, propagationCtx)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("staggered propagation failed: %w", err)
-
 		}
 
 	case PropagationStrategyCanary:
 
 		err := u.executeCanaryPropagation(ctx, propagationCtx)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("canary propagation failed: %w", err)
-
 		}
 
 	case PropagationStrategyBlueGreen:
 
 		err := u.executeBlueGreenPropagation(ctx, propagationCtx)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("blue-green propagation failed: %w", err)
-
 		}
 
 	case PropagationStrategyRolling:
 
 		err := u.executeRollingPropagation(ctx, propagationCtx)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("rolling propagation failed: %w", err)
-
 		}
 
 	default:
@@ -1333,19 +1246,16 @@ func (u *dependencyUpdater) PropagateUpdates(ctx context.Context, spec *Propagat
 		"duration", result.PropagationTime)
 
 	return result, nil
-
 }
 
 // AnalyzeUpdateImpact performs comprehensive impact analysis for updates.
 
 func (u *dependencyUpdater) AnalyzeUpdateImpact(ctx context.Context, updates []*DependencyUpdate) (*ImpactAnalysis, error) {
-
 	startTime := time.Now()
 
 	u.logger.V(1).Info("Analyzing update impact", "updates", len(updates))
 
 	analysis := &ImpactAnalysis{
-
 		AnalysisID: generateAnalysisID(),
 
 		Updates: updates,
@@ -1368,15 +1278,10 @@ func (u *dependencyUpdater) AnalyzeUpdateImpact(ctx context.Context, updates []*
 	impactMutex := sync.Mutex{}
 
 	for _, update := range updates {
-
 		g.Go(func() error {
-
 			updateImpact, err := u.analyzeUpdateImpactStub(gCtx, update)
-
 			if err != nil {
-
 				return fmt.Errorf("failed to analyze update %s: %w", update.Package.Name, err)
-
 			}
 
 			impactMutex.Lock()
@@ -1388,15 +1293,11 @@ func (u *dependencyUpdater) AnalyzeUpdateImpact(ctx context.Context, updates []*
 			impactMutex.Unlock()
 
 			return nil
-
 		})
-
 	}
 
 	if err := g.Wait(); err != nil {
-
 		return nil, fmt.Errorf("impact analysis failed: %w", err)
-
 	}
 
 	// Perform cross-update impact analysis.
@@ -1404,19 +1305,13 @@ func (u *dependencyUpdater) AnalyzeUpdateImpact(ctx context.Context, updates []*
 	crossImpact, err := u.analyzeCrossUpdateImpactStub(ctx, updates)
 
 	if err != nil {
-
 		u.logger.Error(err, "Cross-update impact analysis failed")
-
 	} else {
-
 		// Merge cross-update impact into analysis (stub implementation).
 
 		if len(crossImpact.Conflicts) > 0 {
-
 			analysis.OverallRisk = "medium"
-
 		}
-
 	}
 
 	// Calculate overall risk level.
@@ -1440,15 +1335,11 @@ func (u *dependencyUpdater) AnalyzeUpdateImpact(ctx context.Context, updates []*
 	// Update metrics.
 
 	if u.metrics.ImpactAnalysisTime != nil {
-
 		u.metrics.ImpactAnalysisTime.WithLabelValues("success").Observe(analysis.AnalysisTime.Seconds())
-
 	}
 
 	if u.metrics.ImpactAnalysisTotal != nil {
-
 		u.metrics.ImpactAnalysisTotal.WithLabelValues("completed").Inc()
-
 	}
 
 	u.logger.V(1).Info("Impact analysis completed",
@@ -1462,7 +1353,6 @@ func (u *dependencyUpdater) AnalyzeUpdateImpact(ctx context.Context, updates []*
 		"duration", analysis.AnalysisTime)
 
 	return analysis, nil
-
 }
 
 // Helper methods and context structures.
@@ -1498,55 +1388,40 @@ type PropagationContext struct {
 // validateUpdateSpec validates the update specification.
 
 func (u *dependencyUpdater) validateUpdateSpec(spec *UpdateSpec) error {
-
 	if spec == nil {
-
 		return fmt.Errorf("update spec cannot be nil")
-
 	}
 
 	if len(spec.Packages) == 0 {
-
 		return fmt.Errorf("packages cannot be empty")
-
 	}
 
 	for i, pkg := range spec.Packages {
 
 		if pkg == nil {
-
 			return fmt.Errorf("package at index %d is nil", i)
-
 		}
 
 		if pkg.Repository == "" {
-
 			return fmt.Errorf("package at index %d has empty repository", i)
-
 		}
 
 		if pkg.Name == "" {
-
 			return fmt.Errorf("package at index %d has empty name", i)
-
 		}
 
 	}
 
 	return nil
-
 }
 
 // createDependencyUpdates creates DependencyUpdate objects from the spec.
 
 func (u *dependencyUpdater) createDependencyUpdates(spec *UpdateSpec) []*DependencyUpdate {
-
 	updates := make([]*DependencyUpdate, len(spec.Packages))
 
 	for i, pkg := range spec.Packages {
-
 		updates[i] = &DependencyUpdate{
-
 			ID: generateUpdateItemID(),
 
 			Package: pkg,
@@ -1565,35 +1440,28 @@ func (u *dependencyUpdater) createDependencyUpdates(spec *UpdateSpec) []*Depende
 
 			CreatedBy: spec.InitiatedBy,
 		}
-
 	}
 
 	return updates
-
 }
 
 // executeImmediateUpdate executes an immediate update without staged rollout.
 
 func (u *dependencyUpdater) executeImmediateUpdate(ctx context.Context, updateCtx *UpdateContext, plan *UpdatePlan) error {
-
 	u.logger.V(1).Info("Executing immediate update", "updateID", updateCtx.UpdateID)
 
 	// Execute all updates concurrently if enabled.
 
 	if u.workerPool != nil {
-
 		return u.executeUpdatesConcurrently(ctx, updateCtx, plan.UpdateSteps)
-
 	}
 
 	return u.executeUpdatesSequentially(ctx, updateCtx, plan.UpdateSteps)
-
 }
 
 // executeUpdatesConcurrently executes updates using concurrent workers.
 
 func (u *dependencyUpdater) executeUpdatesConcurrently(ctx context.Context, updateCtx *UpdateContext, steps []*UpdateStep) error {
-
 	g, gCtx := errgroup.WithContext(ctx)
 
 	g.SetLimit(u.config.MaxConcurrency)
@@ -1601,15 +1469,10 @@ func (u *dependencyUpdater) executeUpdatesConcurrently(ctx context.Context, upda
 	resultMutex := sync.Mutex{}
 
 	for _, step := range steps {
-
 		g.Go(func() error {
-
 			stepResult, err := u.executeUpdateStep(gCtx, step)
-
 			if err != nil {
-
 				return fmt.Errorf("failed to execute update step %s: %w", step.ID, err)
-
 			}
 
 			resultMutex.Lock()
@@ -1619,39 +1482,28 @@ func (u *dependencyUpdater) executeUpdatesConcurrently(ctx context.Context, upda
 			resultMutex.Unlock()
 
 			return nil
-
 		})
-
 	}
 
 	return g.Wait()
-
 }
 
 // Utility functions.
 
 func generateUpdateID() string {
-
 	return fmt.Sprintf("update-%d", time.Now().UnixNano())
-
 }
 
 func generatePropagationID() string {
-
 	return fmt.Sprintf("propagation-%d", time.Now().UnixNano())
-
 }
 
 func generateUpdateAnalysisID() string {
-
 	return fmt.Sprintf("update-analysis-%d", time.Now().UnixNano())
-
 }
 
 func generateUpdateItemID() string {
-
 	return fmt.Sprintf("item-%d", time.Now().UnixNano())
-
 }
 
 // Background processes and lifecycle management.
@@ -1659,7 +1511,6 @@ func generateUpdateItemID() string {
 // startBackgroundProcesses starts background processing goroutines.
 
 func (u *dependencyUpdater) startBackgroundProcesses() {
-
 	// Start scheduler.
 
 	u.scheduler.Start()
@@ -1695,7 +1546,6 @@ func (u *dependencyUpdater) startBackgroundProcesses() {
 		go u.changeTrackingProcess()
 
 	}
-
 }
 
 // Missing method implementations (stubs for compilation).
@@ -1703,19 +1553,16 @@ func (u *dependencyUpdater) startBackgroundProcesses() {
 // ConfigureNotifications configures the notification system.
 
 func (u *dependencyUpdater) ConfigureNotifications(ctx context.Context, config *NotificationConfig) error {
-
 	u.logger.V(1).Info("Configuring notifications")
 
 	// Stub implementation - configure notification system.
 
 	return nil
-
 }
 
 // createUpdatePlan creates an update plan from dependency updates.
 
 func (u *dependencyUpdater) createUpdatePlan(ctx context.Context, updates []*DependencyUpdate, strategy UpdateStrategy) (*UpdatePlan, error) {
-
 	u.logger.V(1).Info("Creating update plan", "updates", len(updates), "strategy", strategy)
 
 	// Convert DependencyUpdate to PlannedUpdate.
@@ -1723,16 +1570,12 @@ func (u *dependencyUpdater) createUpdatePlan(ctx context.Context, updates []*Dep
 	plannedUpdates := make([]*PlannedUpdate, len(updates))
 
 	for i, update := range updates {
-
 		plannedUpdates[i] = &PlannedUpdate{
-
 			Package: update.Package,
 		}
-
 	}
 
 	plan := &UpdatePlan{
-
 		ID: generateUpdatePlanID(),
 
 		Description: fmt.Sprintf("Update plan for %s strategy", strategy),
@@ -1751,9 +1594,7 @@ func (u *dependencyUpdater) createUpdatePlan(ctx context.Context, updates []*Dep
 	// Create update steps from updates.
 
 	for i, update := range updates {
-
 		plan.UpdateSteps[i] = &UpdateStep{
-
 			ID: fmt.Sprintf("step-%d", i),
 
 			Type: "update",
@@ -1764,21 +1605,17 @@ func (u *dependencyUpdater) createUpdatePlan(ctx context.Context, updates []*Dep
 
 			Order: i,
 		}
-
 	}
 
 	return plan, nil
-
 }
 
 // validateUpdatePlan validates an update plan.
 
 func (u *dependencyUpdater) validateUpdatePlan(ctx context.Context, plan *UpdatePlan) (*PlanValidation, error) {
-
 	u.logger.V(1).Info("Validating update plan", "planID", plan.ID)
 
 	validation := &PlanValidation{
-
 		Valid: true,
 
 		ValidationScore: 1.0,
@@ -1795,13 +1632,11 @@ func (u *dependencyUpdater) validateUpdatePlan(ctx context.Context, plan *Update
 	// Basic validation - check for nil updates.
 
 	for i, update := range plan.Updates {
-
 		if update == nil {
 
 			validation.Valid = false
 
 			issue := &PlanValidationIssue{
-
 				Type: "validation_error",
 
 				Description: fmt.Sprintf("Update at index %d is nil", i),
@@ -1812,23 +1647,19 @@ func (u *dependencyUpdater) validateUpdatePlan(ctx context.Context, plan *Update
 			validation.Issues = append(validation.Issues, issue)
 
 		}
-
 	}
 
 	return validation, nil
-
 }
 
 // executeStagedRollout executes a staged rollout.
 
 func (u *dependencyUpdater) executeStagedRollout(ctx context.Context, plan *UpdatePlan) (*RolloutExecution, error) {
-
 	u.logger.V(1).Info("Executing staged rollout", "planID", plan.ID)
 
 	now := time.Now()
 
 	execution := &RolloutExecution{
-
 		ID: generateRolloutID(),
 
 		Status: RolloutStatusRunning,
@@ -1849,17 +1680,14 @@ func (u *dependencyUpdater) executeStagedRollout(ctx context.Context, plan *Upda
 	execution.Progress = RolloutProgress{TotalBatches: 1, CompletedBatches: 1, ProgressPercent: 100.0}
 
 	return execution, nil
-
 }
 
 // analyzeUpdateImpactStub provides stub implementation for update impact analysis.
 
 func (u *dependencyUpdater) analyzeUpdateImpactStub(ctx context.Context, update *DependencyUpdate) (*UpdateAnalysisResult, error) {
-
 	u.logger.V(2).Info("Analyzing update impact", "package", update.Package.Name)
 
 	result := &UpdateAnalysisResult{
-
 		UpdateID: update.ID,
 
 		Package: update.Package,
@@ -1870,17 +1698,14 @@ func (u *dependencyUpdater) analyzeUpdateImpactStub(ctx context.Context, update 
 	}
 
 	return result, nil
-
 }
 
 // analyzeCrossUpdateImpactStub provides stub implementation for cross-update impact analysis.
 
 func (u *dependencyUpdater) analyzeCrossUpdateImpactStub(ctx context.Context, updates []*DependencyUpdate) (*CrossUpdateImpact, error) {
-
 	u.logger.V(2).Info("Analyzing cross-update impact", "updates", len(updates))
 
 	impact := &CrossUpdateImpact{
-
 		Updates: updates,
 
 		Conflicts: make([]*UpdateConflict, 0),
@@ -1891,41 +1716,32 @@ func (u *dependencyUpdater) analyzeCrossUpdateImpactStub(ctx context.Context, up
 	}
 
 	return impact, nil
-
 }
 
 // CreateUpdatePlan implements the public interface method.
 
 func (u *dependencyUpdater) CreateUpdatePlan(ctx context.Context, updates []*DependencyUpdate, strategy UpdateStrategy) (*UpdatePlan, error) {
-
 	return u.createUpdatePlan(ctx, updates, strategy)
-
 }
 
 // ValidateUpdatePlan implements the public interface method.
 
 func (u *dependencyUpdater) ValidateUpdatePlan(ctx context.Context, plan *UpdatePlan) (*PlanValidation, error) {
-
 	return u.validateUpdatePlan(ctx, plan)
-
 }
 
 // ExecuteStagedRollout implements the public interface method.
 
 func (u *dependencyUpdater) ExecuteStagedRollout(ctx context.Context, plan *UpdatePlan) (*RolloutExecution, error) {
-
 	return u.executeStagedRollout(ctx, plan)
-
 }
 
 // Additional interface methods (stubs).
 
 func (u *dependencyUpdater) CreateRollbackPlan(ctx context.Context, rolloutID string) (*RollbackPlan, error) {
-
 	u.logger.V(1).Info("Creating rollback plan", "rolloutID", rolloutID)
 
 	plan := &RollbackPlan{
-
 		PlanID: fmt.Sprintf("rollback-%s-%d", rolloutID, time.Now().UnixNano()),
 
 		Description: "Automated rollback plan",
@@ -1936,17 +1752,14 @@ func (u *dependencyUpdater) CreateRollbackPlan(ctx context.Context, rolloutID st
 	}
 
 	return plan, nil
-
 }
 
 // ExecuteRollback performs executerollback operation.
 
 func (u *dependencyUpdater) ExecuteRollback(ctx context.Context, rollbackPlan *RollbackPlan) (*RollbackResult, error) {
-
 	u.logger.V(1).Info("Executing rollback", "planID", rollbackPlan.PlanID)
 
 	result := &RollbackResult{
-
 		PlanID: rollbackPlan.PlanID,
 
 		Success: true,
@@ -1957,17 +1770,14 @@ func (u *dependencyUpdater) ExecuteRollback(ctx context.Context, rollbackPlan *R
 	}
 
 	return result, nil
-
 }
 
 // ValidateRollback performs validaterollback operation.
 
 func (u *dependencyUpdater) ValidateRollback(ctx context.Context, rollbackPlan *RollbackPlan) (*RollbackValidation, error) {
-
 	u.logger.V(1).Info("Validating rollback plan", "planID", rollbackPlan.PlanID)
 
 	validation := &RollbackValidation{
-
 		Valid: true,
 
 		ValidationScore: 1.0,
@@ -1978,39 +1788,32 @@ func (u *dependencyUpdater) ValidateRollback(ctx context.Context, rollbackPlan *
 	}
 
 	return validation, nil
-
 }
 
 // EnableAutomaticUpdates performs enableautomaticupdates operation.
 
 func (u *dependencyUpdater) EnableAutomaticUpdates(ctx context.Context, config *AutoUpdateConfig) error {
-
 	u.logger.V(1).Info("Enabling automatic updates")
 
 	return nil
-
 }
 
 // DisableAutomaticUpdates performs disableautomaticupdates operation.
 
 func (u *dependencyUpdater) DisableAutomaticUpdates(ctx context.Context) error {
-
 	u.logger.V(1).Info("Disabling automatic updates")
 
 	return nil
-
 }
 
 // ScheduleUpdate performs scheduleupdate operation.
 
 func (u *dependencyUpdater) ScheduleUpdate(ctx context.Context, schedule UpdateSchedule) (*ScheduledUpdate, error) {
-
 	u.logger.V(1).Info("Scheduling update")
 
 	now := time.Now()
 
 	scheduled := &ScheduledUpdate{
-
 		ID: fmt.Sprintf("scheduled-%d", now.UnixNano()),
 
 		Schedule: schedule.Description(),
@@ -2025,69 +1828,56 @@ func (u *dependencyUpdater) ScheduleUpdate(ctx context.Context, schedule UpdateS
 	}
 
 	return scheduled, nil
-
 }
 
 // MonitorRollout performs monitorrollout operation.
 
 func (u *dependencyUpdater) MonitorRollout(ctx context.Context, rolloutID string) (*RolloutStatus, error) {
-
 	u.logger.V(1).Info("Monitoring rollout", "rolloutID", rolloutID)
 
 	status := RolloutStatusCompleted
 
 	return &status, nil
-
 }
 
 // PauseRollout performs pauserollout operation.
 
 func (u *dependencyUpdater) PauseRollout(ctx context.Context, rolloutID string) error {
-
 	u.logger.V(1).Info("Pausing rollout", "rolloutID", rolloutID)
 
 	return nil
-
 }
 
 // ResumeRollout performs resumerollout operation.
 
 func (u *dependencyUpdater) ResumeRollout(ctx context.Context, rolloutID string) error {
-
 	u.logger.V(1).Info("Resuming rollout", "rolloutID", rolloutID)
 
 	return nil
-
 }
 
 // GetUpdateHistory performs getupdatehistory operation.
 
 func (u *dependencyUpdater) GetUpdateHistory(ctx context.Context, filter *UpdateHistoryFilter) ([]*UpdateRecord, error) {
-
 	u.logger.V(1).Info("Getting update history")
 
 	return make([]*UpdateRecord, 0), nil
-
 }
 
 // TrackDependencyChanges performs trackdependencychanges operation.
 
 func (u *dependencyUpdater) TrackDependencyChanges(ctx context.Context, changeTracker *ChangeTracker) error {
-
 	u.logger.V(1).Info("Tracking dependency changes")
 
 	return nil
-
 }
 
 // GenerateChangeReport performs generatechangereport operation.
 
 func (u *dependencyUpdater) GenerateChangeReport(ctx context.Context, timeRange *TimeRange) (*ChangeReport, error) {
-
 	u.logger.V(1).Info("Generating change report")
 
 	report := &ChangeReport{
-
 		FromVersion: "1.0.0",
 
 		ToVersion: "1.1.0",
@@ -2102,17 +1892,14 @@ func (u *dependencyUpdater) GenerateChangeReport(ctx context.Context, timeRange 
 	}
 
 	return report, nil
-
 }
 
 // SubmitUpdateForApproval performs submitupdateforapproval operation.
 
 func (u *dependencyUpdater) SubmitUpdateForApproval(ctx context.Context, update *DependencyUpdate) (*ApprovalRequest, error) {
-
 	u.logger.V(1).Info("Submitting update for approval", "updateID", update.ID)
 
 	request := &ApprovalRequest{
-
 		ID: fmt.Sprintf("approval-%d", time.Now().UnixNano()),
 
 		Type: "update_approval",
@@ -2133,47 +1920,38 @@ func (u *dependencyUpdater) SubmitUpdateForApproval(ctx context.Context, update 
 	}
 
 	return request, nil
-
 }
 
 // ProcessApproval performs processapproval operation.
 
 func (u *dependencyUpdater) ProcessApproval(ctx context.Context, approvalID string, decision ApprovalDecision) error {
-
 	u.logger.V(1).Info("Processing approval", "approvalID", approvalID, "decision", decision)
 
 	return nil
-
 }
 
 // GetPendingApprovals performs getpendingapprovals operation.
 
 func (u *dependencyUpdater) GetPendingApprovals(ctx context.Context, filter *ApprovalFilter) ([]*ApprovalRequest, error) {
-
 	u.logger.V(1).Info("Getting pending approvals")
 
 	return make([]*ApprovalRequest, 0), nil
-
 }
 
 // SendUpdateNotification performs sendupdatenotification operation.
 
 func (u *dependencyUpdater) SendUpdateNotification(ctx context.Context, notification *UpdateNotification) error {
-
 	u.logger.V(1).Info("Sending update notification", "type", notification.Type)
 
 	return nil
-
 }
 
 // GetUpdaterHealth performs getupdaterhealth operation.
 
 func (u *dependencyUpdater) GetUpdaterHealth(ctx context.Context) (*UpdaterHealth, error) {
-
 	u.logger.V(1).Info("Getting updater health")
 
 	health := &UpdaterHealth{
-
 		Status: "healthy",
 
 		Components: map[string]string{"updater": "healthy", "queue": "healthy"},
@@ -2190,45 +1968,35 @@ func (u *dependencyUpdater) GetUpdaterHealth(ctx context.Context) (*UpdaterHealt
 	}
 
 	return health, nil
-
 }
 
 // GetUpdateMetrics performs getupdatemetrics operation.
 
 func (u *dependencyUpdater) GetUpdateMetrics(ctx context.Context) (*UpdaterMetrics, error) {
-
 	u.logger.V(1).Info("Getting update metrics")
 
 	return u.metrics, nil
-
 }
 
 // Additional utility functions.
 
 func generateUpdatePlanID() string {
-
 	return fmt.Sprintf("plan-%d", time.Now().UnixNano())
-
 }
 
 func generateRolloutID() string {
-
 	return fmt.Sprintf("rollout-%d", time.Now().UnixNano())
-
 }
 
 // Close gracefully shuts down the dependency updater.
 
 func (u *dependencyUpdater) Close() error {
-
 	u.mu.Lock()
 
 	defer u.mu.Unlock()
 
 	if u.closed {
-
 		return nil
-
 	}
 
 	u.logger.Info("Shutting down dependency updater")
@@ -2246,21 +2014,15 @@ func (u *dependencyUpdater) Close() error {
 	// Close components.
 
 	if u.updateCache != nil {
-
 		u.updateCache.Close()
-
 	}
 
 	if u.updateHistory != nil {
-
 		u.updateHistory.Close()
-
 	}
 
 	if u.workerPool != nil {
-
 		u.workerPool.Close()
-
 	}
 
 	u.closed = true
@@ -2268,7 +2030,6 @@ func (u *dependencyUpdater) Close() error {
 	u.logger.Info("Dependency updater shutdown complete")
 
 	return nil
-
 }
 
 // Additional helper methods would be implemented here...

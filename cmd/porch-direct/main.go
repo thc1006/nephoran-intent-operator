@@ -1,20 +1,20 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 
-	"github.com/nephio-project/nephoran-intent-operator/internal/generator"
-	"github.com/nephio-project/nephoran-intent-operator/internal/intent"
-	"github.com/nephio-project/nephoran-intent-operator/internal/writer"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/porch"
+	"github.com/thc1006/nephoran-intent-operator/internal/generator"
+	"github.com/thc1006/nephoran-intent-operator/internal/intent"
+	"github.com/thc1006/nephoran-intent-operator/internal/writer"
+	"github.com/thc1006/nephoran-intent-operator/pkg/porch"
 )
 
 func main() {
-
 	var intentPath, outDir string
 
 	var dryRun, minimal bool
@@ -58,7 +58,6 @@ func main() {
 	}
 
 	cfg := &Config{
-
 		IntentPath: intentPath,
 
 		OutDir: outDir,
@@ -87,7 +86,6 @@ func main() {
 		log.Fatal(1)
 
 	}
-
 }
 
 // Config represents a config.
@@ -115,15 +113,11 @@ type Config struct {
 }
 
 func run(cfg *Config) error {
-
 	// Determine project root by looking for go.mod.
 
 	projectRoot, err := findProjectRoot()
-
 	if err != nil {
-
 		return fmt.Errorf("failed to find project root: %w", err)
-
 	}
 
 	fmt.Printf("[porch-direct] Project root: %s\n", projectRoot)
@@ -133,41 +127,29 @@ func run(cfg *Config) error {
 	fmt.Printf("[porch-direct] Output directory: %s\n", cfg.OutDir)
 
 	if cfg.DryRun {
-
 		fmt.Printf("[porch-direct] Mode: DRY RUN (no files will be written)\n")
-
 	}
 
 	if cfg.Minimal {
-
 		fmt.Printf("[porch-direct] Package type: MINIMAL\n")
-
 	}
 
 	if cfg.PorchURL != "" && !cfg.DryRun {
-
 		fmt.Printf("[porch-direct] Porch API: %s\n", cfg.PorchURL)
-
 	}
 
 	// Create loader.
 
 	loader, err := intent.NewLoader(projectRoot)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create intent loader: %w", err)
-
 	}
 
 	// Load and validate intent.
 
 	result, err := loader.LoadFromFile(cfg.IntentPath)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to load intent file: %w", err)
-
 	}
 
 	if !result.IsValid {
@@ -175,9 +157,7 @@ func run(cfg *Config) error {
 		fmt.Fprintf(os.Stderr, "Intent validation failed:\n")
 
 		for _, validationErr := range result.Errors {
-
 			fmt.Fprintf(os.Stderr, "  - %s: %s\n", validationErr.Field, validationErr.Message)
-
 		}
 
 		return fmt.Errorf("intent validation failed with %d errors", len(result.Errors))
@@ -189,15 +169,11 @@ func run(cfg *Config) error {
 	// Resolve repository and package names if not provided.
 
 	if cfg.Repo == "" {
-
 		cfg.Repo = resolveRepo(result.Intent)
-
 	}
 
 	if cfg.Package == "" {
-
 		cfg.Package = resolvePackage(result.Intent)
-
 	}
 
 	// Create generator.
@@ -209,19 +185,13 @@ func run(cfg *Config) error {
 	var pkg *generator.Package
 
 	if cfg.Minimal {
-
 		pkg, err = packageGen.GenerateMinimalPackage(result.Intent, cfg.OutDir)
-
 	} else {
-
 		pkg, err = packageGen.GeneratePackage(result.Intent, cfg.OutDir)
-
 	}
 
 	if err != nil {
-
 		return fmt.Errorf("failed to generate package: %w", err)
-
 	}
 
 	fmt.Printf("[porch-direct] Generated package: %s (%d files)\n", pkg.Name, pkg.GetFileCount())
@@ -229,9 +199,7 @@ func run(cfg *Config) error {
 	// If Porch URL is provided, use Porch API (handles both dry-run and live modes).
 
 	if cfg.PorchURL != "" {
-
 		return submitToPorch(cfg, result.Intent, pkg)
-
 	}
 
 	// Otherwise, write to filesystem.
@@ -241,11 +209,8 @@ func run(cfg *Config) error {
 	// Write package.
 
 	writeResult, err := fsWriter.WritePackage(pkg)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to write package: %w", err)
-
 	}
 
 	// Report results.
@@ -253,27 +218,19 @@ func run(cfg *Config) error {
 	fmt.Printf("[porch-direct] Package written to: %s\n", writeResult.PackagePath)
 
 	if len(writeResult.FilesWritten) > 0 {
-
 		fmt.Printf("[porch-direct] Files written: %v\n", writeResult.FilesWritten)
-
 	}
 
 	if len(writeResult.FilesUpdated) > 0 {
-
 		fmt.Printf("[porch-direct] Files updated: %v\n", writeResult.FilesUpdated)
-
 	}
 
 	if len(writeResult.FilesSkipped) > 0 {
-
 		fmt.Printf("[porch-direct] Files skipped (unchanged): %v\n", writeResult.FilesSkipped)
-
 	}
 
 	if writeResult.WasIdempotent {
-
 		fmt.Printf("[porch-direct] Operation was idempotent (no changes needed)\n")
-
 	}
 
 	fmt.Printf("[porch-direct] Success! KRM package generated for %s scaling to %d replicas\n",
@@ -281,19 +238,16 @@ func run(cfg *Config) error {
 		result.Intent.Target, result.Intent.Replicas)
 
 	return nil
-
 }
 
 // submitToPorch submits the generated package to Porch API.
 
 func submitToPorch(cfg *Config, intent *intent.NetworkIntent, pkg *generator.Package) error {
-
 	client := porch.NewClient(cfg.PorchURL, cfg.DryRun)
 
 	// Create package request.
 
 	packageReq := &porch.PackageRequest{
-
 		Repository: cfg.Repo,
 
 		Package: cfg.Package,
@@ -304,17 +258,20 @@ func submitToPorch(cfg *Config, intent *intent.NetworkIntent, pkg *generator.Pac
 
 		Intent: intent,
 
-		Files: pkg.GetFiles(),
+		Files: func() json.RawMessage {
+			files := pkg.GetFiles()
+			if filesBytes, err := json.Marshal(files); err == nil {
+				return filesBytes
+			}
+			return json.RawMessage(`{}`)
+		}(),
 	}
 
 	// Create or update package revision.
 
 	revision, err := client.CreateOrUpdatePackage(packageReq)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create/update package: %w", err)
-
 	}
 
 	fmt.Printf("[porch-direct] Package revision created: %s\n", revision.Name)
@@ -324,9 +281,7 @@ func submitToPorch(cfg *Config, intent *intent.NetworkIntent, pkg *generator.Pac
 	if cfg.AutoApprove {
 
 		if err := client.ApprovePackage(revision); err != nil {
-
 			return fmt.Errorf("failed to approve package: %w", err)
-
 		}
 
 		fmt.Printf("[porch-direct] Package approved successfully\n")
@@ -334,11 +289,8 @@ func submitToPorch(cfg *Config, intent *intent.NetworkIntent, pkg *generator.Pac
 	} else {
 
 		proposal, err := client.SubmitProposal(revision)
-
 		if err != nil {
-
 			return fmt.Errorf("failed to submit proposal: %w", err)
-
 		}
 
 		fmt.Printf("[porch-direct] Proposal submitted: %s\n", proposal.ID)
@@ -348,49 +300,36 @@ func submitToPorch(cfg *Config, intent *intent.NetworkIntent, pkg *generator.Pac
 	}
 
 	return nil
-
 }
 
 // resolveRepo determines the repository name based on intent.
 
 func resolveRepo(intent *intent.NetworkIntent) string {
-
 	// Default mapping logic based on intent type.
 
 	if intent.Target == "ran" || intent.Target == "gnb" || intent.Target == "du" || intent.Target == "cu" {
-
 		return "ran-packages"
-
 	}
 
 	if intent.Target == "core" || intent.Target == "smf" || intent.Target == "upf" || intent.Target == "amf" {
-
 		return "core-packages"
-
 	}
 
 	return "nephio-packages"
-
 }
 
 // resolvePackage generates a package name from intent.
 
 func resolvePackage(intent *intent.NetworkIntent) string {
-
 	return fmt.Sprintf("%s-scaling-%d", intent.Target, intent.Replicas)
-
 }
 
 // findProjectRoot walks up the directory tree to find the project root (containing go.mod).
 
 func findProjectRoot() (string, error) {
-
 	dir, err := os.Getwd()
-
 	if err != nil {
-
 		return "", err
-
 	}
 
 	for {
@@ -398,17 +337,13 @@ func findProjectRoot() (string, error) {
 		gomodPath := filepath.Join(dir, "go.mod")
 
 		if _, err := os.Stat(gomodPath); err == nil {
-
 			return dir, nil
-
 		}
 
 		parent := filepath.Dir(dir)
 
 		if parent == dir {
-
 			break // Reached filesystem root
-
 		}
 
 		dir = parent
@@ -416,5 +351,4 @@ func findProjectRoot() (string, error) {
 	}
 
 	return "", fmt.Errorf("go.mod not found in any parent directory")
-
 }

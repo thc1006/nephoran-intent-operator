@@ -51,15 +51,12 @@ type OranAdaptorReconciler struct {
 // Reconcile performs reconcile operation.
 
 func (r *OranAdaptorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-
 	logger := log.FromContext(ctx)
 
 	me := &nephoranv1.ManagedElement{}
 
 	if err := r.Get(ctx, req.NamespacedName, me); err != nil {
-
 		return ctrl.Result{}, client.IgnoreNotFound(err)
-
 	}
 
 	logger.Info("Reconciling ManagedElement", "name", me.Name)
@@ -69,7 +66,6 @@ func (r *OranAdaptorReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	deployment := &appsv1.Deployment{}
 
 	err := r.Get(ctx, types.NamespacedName{Name: me.Spec.DeploymentName, Namespace: me.Namespace}, deployment)
-
 	if err != nil {
 
 		logger.Error(err, "Failed to get associated Deployment", "DeploymentName", me.Spec.DeploymentName)
@@ -95,7 +91,6 @@ func (r *OranAdaptorReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	// O1 Logic: If ready, apply intent-driven O1 configuration.
 
 	if me.Spec.O1Config != "" {
-
 		if err := r.O1Adaptor.ApplyConfiguration(ctx, me); err != nil {
 
 			logger.Error(err, "O1 configuration failed")
@@ -109,13 +104,11 @@ func (r *OranAdaptorReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			meta.SetStatusCondition(&me.Status.Conditions, metav1.Condition{Type: O1ConfiguredCondition, Status: metav1.ConditionTrue, Reason: "Success", Message: "O1 configuration applied."})
 
 		}
-
 	}
 
 	// A1 Logic: If ready, apply intent-driven A1 policy.
 
 	if me.Spec.A1Policy.Raw != nil {
-
 		if err := r.A1Adaptor.ApplyPolicy(ctx, me); err != nil {
 
 			logger.Error(err, "A1 policy application failed")
@@ -129,15 +122,12 @@ func (r *OranAdaptorReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			meta.SetStatusCondition(&me.Status.Conditions, metav1.Condition{Type: A1PolicyAppliedCondition, Status: metav1.ConditionTrue, Reason: "Success", Message: "A1 policy applied."})
 
 		}
-
 	}
 
 	return r.updateStatus(ctx, me)
-
 }
 
 func (r *OranAdaptorReconciler) updateStatus(ctx context.Context, me *nephoranv1.ManagedElement) (ctrl.Result, error) {
-
 	if err := r.Status().Update(ctx, me); err != nil {
 
 		log.FromContext(ctx).Error(err, "Failed to update ManagedElement status")
@@ -147,28 +137,22 @@ func (r *OranAdaptorReconciler) updateStatus(ctx context.Context, me *nephoranv1
 	}
 
 	return ctrl.Result{}, nil
-
 }
 
 // SetupWithManager performs setupwithmanager operation.
 
 func (r *OranAdaptorReconciler) SetupWithManager(mgr ctrl.Manager) error {
-
 	r.O1Adaptor = o1.NewO1Adaptor(nil, mgr.GetClient()) // Use default config with Kubernetes client
 
 	var err error
 
 	r.A1Adaptor, err = a1.NewA1Adaptor(nil) // Use default config
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create A1 adaptor: %w", err)
-
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nephoranv1.ManagedElement{}).
 		Owns(&appsv1.Deployment{}).
 		Complete(r)
-
 }

@@ -31,7 +31,9 @@ limitations under the License.
 package audit
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
@@ -47,7 +49,7 @@ type (
 	BackendConfig struct {
 		Type string `json:"type"` // "elasticsearch", "file", etc.
 
-		Config map[string]interface{} `json:"config"` // Backend-specific config
+		Config json.RawMessage `json:"config"` // Backend-specific config
 
 		Enabled bool `json:"enabled"`
 
@@ -60,7 +62,6 @@ type (
 // ComplianceLogger interface for compliance logging.
 
 type ComplianceLogger interface {
-
 	// LogCompliance logs a compliance event.
 
 	LogCompliance(ctx context.Context, event *ComplianceEvent) error
@@ -87,7 +88,7 @@ type ComplianceEvent struct {
 
 	Status string `json:"status"`
 
-	Evidence map[string]interface{} `json:"evidence,omitempty"`
+	Evidence json.RawMessage `json:"evidence,omitempty"`
 
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
@@ -179,7 +180,7 @@ type StandardSummary struct {
 type ComplianceLoggerConfig struct {
 	Backend string `json:"backend"`
 
-	Config map[string]interface{} `json:"config"`
+	Config json.RawMessage `json:"config"`
 
 	Standards []string `json:"standards,omitempty"`
 
@@ -209,11 +210,9 @@ type ActorContext struct {
 // NewComplianceLogger creates a new compliance logger.
 
 func NewComplianceLogger(config *ComplianceLoggerConfig) (ComplianceLogger, error) {
-
 	// Implementation needed.
 
 	return &DefaultComplianceLogger{}, nil
-
 }
 
 // DefaultComplianceLogger default implementation.
@@ -223,29 +222,23 @@ type DefaultComplianceLogger struct{}
 // LogCompliance performs logcompliance operation.
 
 func (dcl *DefaultComplianceLogger) LogCompliance(ctx context.Context, event *ComplianceEvent) error {
-
 	// Implementation needed.
 
 	return nil
-
 }
 
 // LogViolation performs logviolation operation.
 
 func (dcl *DefaultComplianceLogger) LogViolation(ctx context.Context, violation *ComplianceViolation) error {
-
 	// Implementation needed.
 
 	return nil
-
 }
 
 // GetComplianceReport performs getcompliancereport operation.
 
 func (dcl *DefaultComplianceLogger) GetComplianceReport(ctx context.Context, criteria *ReportCriteria) (*ComplianceReport, error) {
-
 	// Implementation needed.
 
 	return &ComplianceReport{}, nil
-
 }

@@ -1,7 +1,9 @@
 package models
 
 import (
-	"time"
+	
+	"encoding/json"
+"time"
 )
 
 // Notification and Event Type Models following O-RAN.WG6.O2ims-Interface-v01.01
@@ -16,7 +18,7 @@ type NotificationEventType struct {
 	Schema      string                 `json:"schema,omitempty"`
 	Category    string                 `json:"category,omitempty"`
 	Severity    string                 `json:"severity,omitempty"`
-	Extensions  map[string]interface{} `json:"extensions,omitempty"`
+	Extensions  json.RawMessage `json:"extensions,omitempty"`
 	CreatedAt   time.Time              `json:"createdAt"`
 	UpdatedAt   time.Time              `json:"updatedAt"`
 }
@@ -27,7 +29,7 @@ type Alarm struct {
 	ResourceID     string                 `json:"resourceId"`
 	AlarmType      string                 `json:"alarmType"`
 	Severity       string                 `json:"severity"`
-	Status         string                 `json:"status"` // ACTIVE, CLEARED, ACKNOWLEDGED
+	Status         string                 `json:"status"`     // ACTIVE, CLEARED, ACKNOWLEDGED
 	AlarmState     string                 `json:"alarmState"` // Alternative field for alarm state
 	Message        string                 `json:"message"`
 	Description    string                 `json:"description,omitempty"`
@@ -41,8 +43,8 @@ type Alarm struct {
 	AckState       string                 `json:"ackState,omitempty"`
 	AckUser        string                 `json:"ackUser,omitempty"`
 	AckSystemId    string                 `json:"ackSystemId,omitempty"`
-	AdditionalInfo map[string]interface{} `json:"additionalInfo,omitempty"`
-	Extensions     map[string]interface{} `json:"extensions,omitempty"`
+	AdditionalInfo json.RawMessage `json:"additionalInfo,omitempty"`
+	Extensions     json.RawMessage `json:"extensions,omitempty"`
 }
 
 // AlarmFilter defines filters for alarm queries
@@ -69,18 +71,18 @@ type AlarmAcknowledgementRequest struct {
 	AckSystemId    string                 `json:"ackSystemId,omitempty"`
 	Message        string                 `json:"message,omitempty"`
 	Timestamp      time.Time              `json:"timestamp"`
-	Extensions     map[string]interface{} `json:"extensions,omitempty"`
+	Extensions     json.RawMessage `json:"extensions,omitempty"`
 }
 
 // AlarmClearRequest represents a request to clear an alarm
 type AlarmClearRequest struct {
-	ClearedBy   string                 `json:"clearedBy"`
-	ClearUser   string                 `json:"clearUser"`
-	ClearSystemId string               `json:"clearSystemId,omitempty"`
-	ClearReason string                 `json:"clearReason,omitempty"`
-	Message     string                 `json:"message,omitempty"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Extensions  map[string]interface{} `json:"extensions,omitempty"`
+	ClearedBy     string                 `json:"clearedBy"`
+	ClearUser     string                 `json:"clearUser"`
+	ClearSystemId string                 `json:"clearSystemId,omitempty"`
+	ClearReason   string                 `json:"clearReason,omitempty"`
+	Message       string                 `json:"message,omitempty"`
+	Timestamp     time.Time              `json:"timestamp"`
+	Extensions    json.RawMessage `json:"extensions,omitempty"`
 }
 
 // Constants for alarm management

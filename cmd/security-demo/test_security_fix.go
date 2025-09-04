@@ -17,13 +17,10 @@ import (
 // This is the production-safe validation function for config files.
 
 func validateConfigFilePath(filePath string) error {
-
 	// Check for empty path.
 
 	if strings.TrimSpace(filePath) == "" {
-
 		return fmt.Errorf("empty file path")
-
 	}
 
 	// SECURITY: Clean the path first to normalize it.
@@ -33,49 +30,37 @@ func validateConfigFilePath(filePath string) error {
 	// SECURITY: Detect obvious path traversal attempts before resolution.
 
 	if strings.Contains(filePath, "..") || strings.Contains(cleanedPath, "..") {
-
 		return fmt.Errorf("path traversal attempt detected: contains '..'")
-
 	}
 
 	// SECURITY: Reject paths with null bytes (potential injection).
 
 	if strings.Contains(filePath, "\x00") {
-
 		return fmt.Errorf("path contains null byte")
-
 	}
 
 	// Convert to absolute path for validation.
 
 	absPath, err := filepath.Abs(cleanedPath)
-
 	if err != nil {
-
 		return fmt.Errorf("invalid file path format: %w", err)
-
 	}
 
 	// SECURITY: Additional check after absolute path conversion.
 
 	if strings.Contains(absPath, "..") {
-
 		return fmt.Errorf("path traversal detected in absolute path")
-
 	}
 
 	// SECURITY: Check for Windows UNC paths or special devices.
 
 	if strings.HasPrefix(absPath, "\\\\") || strings.HasPrefix(absPath, "//") {
-
 		return fmt.Errorf("UNC paths not allowed")
-
 	}
 
 	// SECURITY: Restrict to specific directories for config files.
 
 	allowedPrefixes := []string{
-
 		"/etc/nephoran",
 
 		"/config",
@@ -102,9 +87,7 @@ func validateConfigFilePath(filePath string) error {
 	}
 
 	if !pathAllowed {
-
 		return fmt.Errorf("config file path not in allowed directory")
-
 	}
 
 	// SECURITY: Reject special file names.
@@ -112,21 +95,15 @@ func validateConfigFilePath(filePath string) error {
 	dangerousNames := []string{"/dev/", "/proc/", "/sys/", "passwd", "shadow"}
 
 	for _, dangerous := range dangerousNames {
-
 		if strings.Contains(strings.ToLower(absPath), dangerous) {
-
 			return fmt.Errorf("suspicious file path detected")
-
 		}
-
 	}
 
 	return nil
-
 }
 
 func main() {
-
 	// Test various attack vectors.
 
 	testPaths := []struct {
@@ -134,7 +111,6 @@ func main() {
 
 		attack string
 	}{
-
 		{"../../etc/passwd", "Path Traversal"},
 
 		{"/etc/passwd", "System File Access"},
@@ -169,7 +145,6 @@ func main() {
 			fmt.Printf("  Error: %v\n\n", err)
 
 		} else {
-
 			if strings.HasPrefix(test.attack, "VALID") {
 
 				fmt.Printf("✓ ALLOWED: %s\n", test.attack)
@@ -183,7 +158,6 @@ func main() {
 				fmt.Printf("  Path: %s\n\n", test.path)
 
 			}
-
 		}
 
 	}
@@ -209,5 +183,4 @@ func main() {
 	fmt.Println("9. JSON validation before parsing")
 
 	fmt.Println("10. Comprehensive audit logging")
-
 }

@@ -3,10 +3,10 @@ package test_validation
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"math"
-	"math/rand"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -193,12 +193,12 @@ func (cpt *ComprehensivePerformanceTester) executeLatencyTests(ctx context.Conte
 	// Score based on P95 latency target (< 2s)
 	if result.P95Latency <= 2*time.Second {
 		score += 4
-		ginkgo.By(fmt.Sprintf("✓ P95 Latency: %v <= 2s (4/4 points)", result.P95Latency))
+		ginkgo.By(fmt.Sprintf("??P95 Latency: %v <= 2s (4/4 points)", result.P95Latency))
 	} else if result.P95Latency <= 3*time.Second {
 		score += 2
-		ginkgo.By(fmt.Sprintf("⚠ P95 Latency: %v <= 3s (2/4 points)", result.P95Latency))
+		ginkgo.By(fmt.Sprintf("??P95 Latency: %v <= 3s (2/4 points)", result.P95Latency))
 	} else {
-		ginkgo.By(fmt.Sprintf("✗ P95 Latency: %v > 3s (0/4 points)", result.P95Latency))
+		ginkgo.By(fmt.Sprintf("??P95 Latency: %v > 3s (0/4 points)", result.P95Latency))
 	}
 
 	// Test 2: Component-Specific Latencies
@@ -284,12 +284,12 @@ func (cpt *ComprehensivePerformanceTester) testComponentLatencies(ctx context.Co
 
 	if llmP95 <= 500*time.Millisecond {
 		score += 2
-		ginkgo.By(fmt.Sprintf("✓ LLM Pipeline P95: %v <= 500ms (2/2 points)", llmP95))
+		ginkgo.By(fmt.Sprintf("??LLM Pipeline P95: %v <= 500ms (2/2 points)", llmP95))
 	} else if llmP95 <= 1*time.Second {
 		score += 1
-		ginkgo.By(fmt.Sprintf("⚠ LLM Pipeline P95: %v <= 1s (1/2 points)", llmP95))
+		ginkgo.By(fmt.Sprintf("??LLM Pipeline P95: %v <= 1s (1/2 points)", llmP95))
 	} else {
-		ginkgo.By(fmt.Sprintf("✗ LLM Pipeline P95: %v > 1s (0/2 points)", llmP95))
+		ginkgo.By(fmt.Sprintf("??LLM Pipeline P95: %v > 1s (0/2 points)", llmP95))
 	}
 
 	// Test Package Generation Latency
@@ -306,12 +306,12 @@ func (cpt *ComprehensivePerformanceTester) testComponentLatencies(ctx context.Co
 
 	if packageP95 <= 300*time.Millisecond {
 		score += 2
-		ginkgo.By(fmt.Sprintf("✓ Package Generation P95: %v <= 300ms (2/2 points)", packageP95))
+		ginkgo.By(fmt.Sprintf("??Package Generation P95: %v <= 300ms (2/2 points)", packageP95))
 	} else if packageP95 <= 500*time.Millisecond {
 		score += 1
-		ginkgo.By(fmt.Sprintf("⚠ Package Generation P95: %v <= 500ms (1/2 points)", packageP95))
+		ginkgo.By(fmt.Sprintf("??Package Generation P95: %v <= 500ms (1/2 points)", packageP95))
 	} else {
-		ginkgo.By(fmt.Sprintf("✗ Package Generation P95: %v > 500ms (0/2 points)", packageP95))
+		ginkgo.By(fmt.Sprintf("??Package Generation P95: %v > 500ms (0/2 points)", packageP95))
 	}
 
 	return score
@@ -330,14 +330,14 @@ func (cpt *ComprehensivePerformanceTester) executeThroughputTests(ctx context.Co
 
 	if sustainedResult.throughput >= 45.0 {
 		score += 4
-		ginkgo.By(fmt.Sprintf("✓ Sustained Throughput: %.1f >= 45 intents/min (4/4 points)",
+		ginkgo.By(fmt.Sprintf("??Sustained Throughput: %.1f >= 45 intents/min (4/4 points)",
 			sustainedResult.throughput))
 	} else if sustainedResult.throughput >= 35.0 {
 		score += 2
-		ginkgo.By(fmt.Sprintf("⚠ Sustained Throughput: %.1f >= 35 intents/min (2/4 points)",
+		ginkgo.By(fmt.Sprintf("??Sustained Throughput: %.1f >= 35 intents/min (2/4 points)",
 			sustainedResult.throughput))
 	} else {
-		ginkgo.By(fmt.Sprintf("✗ Sustained Throughput: %.1f < 35 intents/min (0/4 points)",
+		ginkgo.By(fmt.Sprintf("??Sustained Throughput: %.1f < 35 intents/min (0/4 points)",
 			sustainedResult.throughput))
 	}
 
@@ -347,14 +347,14 @@ func (cpt *ComprehensivePerformanceTester) executeThroughputTests(ctx context.Co
 
 	if peakResult.throughput >= 60.0 {
 		score += 2
-		ginkgo.By(fmt.Sprintf("✓ Peak Throughput: %.1f >= 60 intents/min (2/2 points)",
+		ginkgo.By(fmt.Sprintf("??Peak Throughput: %.1f >= 60 intents/min (2/2 points)",
 			peakResult.throughput))
 	} else if peakResult.throughput >= 50.0 {
 		score += 1
-		ginkgo.By(fmt.Sprintf("⚠ Peak Throughput: %.1f >= 50 intents/min (1/2 points)",
+		ginkgo.By(fmt.Sprintf("??Peak Throughput: %.1f >= 50 intents/min (1/2 points)",
 			peakResult.throughput))
 	} else {
-		ginkgo.By(fmt.Sprintf("✗ Peak Throughput: %.1f < 50 intents/min (0/2 points)",
+		ginkgo.By(fmt.Sprintf("??Peak Throughput: %.1f < 50 intents/min (0/2 points)",
 			peakResult.throughput))
 	}
 
@@ -516,13 +516,13 @@ func (cpt *ComprehensivePerformanceTester) testThroughputConsistency(ctx context
 
 	// Score based on consistency (coefficient of variation)
 	if coefficientOfVariation <= 0.1 { // Less than 10% variation
-		ginkgo.By(fmt.Sprintf("✓ Throughput Consistency: CV=%.2f <= 0.1 (2/2 points)", coefficientOfVariation))
+		ginkgo.By(fmt.Sprintf("??Throughput Consistency: CV=%.2f <= 0.1 (2/2 points)", coefficientOfVariation))
 		return 2
 	} else if coefficientOfVariation <= 0.2 { // Less than 20% variation
-		ginkgo.By(fmt.Sprintf("⚠ Throughput Consistency: CV=%.2f <= 0.2 (1/2 points)", coefficientOfVariation))
+		ginkgo.By(fmt.Sprintf("??Throughput Consistency: CV=%.2f <= 0.2 (1/2 points)", coefficientOfVariation))
 		return 1
 	} else {
-		ginkgo.By(fmt.Sprintf("✗ Throughput Consistency: CV=%.2f > 0.2 (0/2 points)", coefficientOfVariation))
+		ginkgo.By(fmt.Sprintf("??Throughput Consistency: CV=%.2f > 0.2 (0/2 points)", coefficientOfVariation))
 		return 0
 	}
 }
@@ -545,15 +545,15 @@ func (cpt *ComprehensivePerformanceTester) executeScalabilityTests(ctx context.C
 		if concurrency == 200 && throughput >= 45.0 {
 			result.MaxConcurrency = 200
 			score += 3
-			ginkgo.By(fmt.Sprintf("✓ 200+ Concurrent: %.1f intents/min (3/3 points)", throughput))
+			ginkgo.By(fmt.Sprintf("??200+ Concurrent: %.1f intents/min (3/3 points)", throughput))
 		} else if concurrency == 100 && throughput >= 40.0 && score < 2 {
 			result.MaxConcurrency = 100
 			score += 2
-			ginkgo.By(fmt.Sprintf("⚠ 100 Concurrent: %.1f intents/min (2/3 points)", throughput))
+			ginkgo.By(fmt.Sprintf("??100 Concurrent: %.1f intents/min (2/3 points)", throughput))
 		} else if concurrency == 50 && throughput >= 35.0 && score < 1 {
 			result.MaxConcurrency = 50
 			score += 1
-			ginkgo.By(fmt.Sprintf("⚠ 50 Concurrent: %.1f intents/min (1/3 points)", throughput))
+			ginkgo.By(fmt.Sprintf("??50 Concurrent: %.1f intents/min (1/3 points)", throughput))
 		}
 	}
 
@@ -564,12 +564,12 @@ func (cpt *ComprehensivePerformanceTester) executeScalabilityTests(ctx context.C
 
 	if scalingEfficiency >= 0.8 {
 		score += 2
-		ginkgo.By(fmt.Sprintf("✓ Linear Scaling: %.1f%% efficiency (2/2 points)", scalingEfficiency*100))
+		ginkgo.By(fmt.Sprintf("??Linear Scaling: %.1f%% efficiency (2/2 points)", scalingEfficiency*100))
 	} else if scalingEfficiency >= 0.6 {
 		score += 1
-		ginkgo.By(fmt.Sprintf("⚠ Sub-linear Scaling: %.1f%% efficiency (1/2 points)", scalingEfficiency*100))
+		ginkgo.By(fmt.Sprintf("??Sub-linear Scaling: %.1f%% efficiency (1/2 points)", scalingEfficiency*100))
 	} else {
-		ginkgo.By(fmt.Sprintf("✗ Poor Scaling: %.1f%% efficiency (0/2 points)", scalingEfficiency*100))
+		ginkgo.By(fmt.Sprintf("??Poor Scaling: %.1f%% efficiency (0/2 points)", scalingEfficiency*100))
 	}
 
 	ginkgo.By(fmt.Sprintf("Scalability Testing Complete: %d/%d points", score, maxScore))
@@ -687,9 +687,9 @@ func (cpt *ComprehensivePerformanceTester) executeResourceEfficiencyTests(ctx co
 
 	if memoryUsage <= 4096 { // Less than 4GB
 		score += 1
-		ginkgo.By(fmt.Sprintf("✓ Memory Efficiency: %.1f MB <= 4096 MB (1/1 point)", memoryUsage))
+		ginkgo.By(fmt.Sprintf("??Memory Efficiency: %.1f MB <= 4096 MB (1/1 point)", memoryUsage))
 	} else {
-		ginkgo.By(fmt.Sprintf("✗ Memory Efficiency: %.1f MB > 4096 MB (0/1 point)", memoryUsage))
+		ginkgo.By(fmt.Sprintf("??Memory Efficiency: %.1f MB > 4096 MB (0/1 point)", memoryUsage))
 	}
 
 	// Test CPU efficiency
@@ -698,9 +698,9 @@ func (cpt *ComprehensivePerformanceTester) executeResourceEfficiencyTests(ctx co
 
 	if cpuUsage <= 200 { // Less than 2 cores (200%)
 		score += 1
-		ginkgo.By(fmt.Sprintf("✓ CPU Efficiency: %.1f%% <= 200%% (1/1 point)", cpuUsage))
+		ginkgo.By(fmt.Sprintf("??CPU Efficiency: %.1f%% <= 200%% (1/1 point)", cpuUsage))
 	} else {
-		ginkgo.By(fmt.Sprintf("✗ CPU Efficiency: %.1f%% > 200%% (0/1 point)", cpuUsage))
+		ginkgo.By(fmt.Sprintf("??CPU Efficiency: %.1f%% > 200%% (0/1 point)", cpuUsage))
 	}
 
 	ginkgo.By(fmt.Sprintf("Resource Efficiency Testing Complete: %d/%d points", score, maxScore))
@@ -767,7 +767,7 @@ func (cpt *ComprehensivePerformanceTester) waitForDeployment(ctx context.Context
 			}
 
 			var current nephranv1.NetworkIntent
-			if err := cpt.k8sClient.Get(ctx, client.ObjectKeyFromObject(intent), &current); err != nil {
+			if err := cpt.k8sClient.Get(ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, &current); err != nil {
 				continue
 			}
 
@@ -797,7 +797,7 @@ func (cpt *ComprehensivePerformanceTester) waitForProcessing(ctx context.Context
 			}
 
 			var current nephranv1.NetworkIntent
-			if err := cpt.k8sClient.Get(ctx, client.ObjectKeyFromObject(intent), &current); err != nil {
+			if err := cpt.k8sClient.Get(ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, &current); err != nil {
 				continue
 			}
 
@@ -907,31 +907,31 @@ PERFORMANCE TESTING REPORT - NEPHORAN INTENT OPERATOR
 TOTAL PERFORMANCE SCORE: %d/23 points
 
 LATENCY PERFORMANCE (%d/8 points):
-├── P50 Latency:        %v
-├── P75 Latency:        %v
-├── P90 Latency:        %v
-├── P95 Latency:        %v (Target: < 2s)
-├── P99 Latency:        %v (Target: < 5s)
-├── Average:            %v
-├── Std Dev:            %v
-└── Min/Max:            %v / %v
+• P50 Latency:        %v
+• P75 Latency:        %v
+• P90 Latency:        %v
+• P95 Latency:        %v (Target: < 2s)
+• P99 Latency:        %v (Target: < 5s)
+• Average:            %v
+• Std Dev:            %v
+• Min/Max:            %v / %v
 
 THROUGHPUT PERFORMANCE (%d/8 points):
-├── Sustained:          %.1f intents/min (Target: ≥ 45)
-├── Peak:               %.1f intents/min
-├── Variance:           %.2f
-└── Error Rate:         %.2f%%
+?��??� Sustained:          %.1f intents/min (Target: ??45)
+?��??� Peak:               %.1f intents/min
+?��??� Variance:           %.2f
+?��??� Error Rate:         %.2f%%
 
 SCALABILITY PERFORMANCE (%d/5 points):
-├── Max Concurrency:    %d operations (Target: 200+)
-├── Linear Scaling:     %v
-└── Scaling Efficiency: %.1f%%
+?��??� Max Concurrency:    %d operations (Target: 200+)
+?��??� Linear Scaling:     %v
+?��??� Scaling Efficiency: %.1f%%
 
 RESOURCE EFFICIENCY (%d/2 points):
-├── Memory Usage:       %.1f MB (Target: < 4096 MB)
-├── CPU Usage:          %.1f%% (Target: < 200%%)
-├── Network Bandwidth:  %.1f MB/s
-└── Disk IOPS:          %.0f
+?��??� Memory Usage:       %.1f MB (Target: < 4096 MB)
+?��??� CPU Usage:          %.1f%% (Target: < 200%%)
+?��??� Network Bandwidth:  %.1f MB/s
+?��??� Disk IOPS:          %.0f
 
 COMPONENT LATENCIES:
 `,
@@ -964,10 +964,10 @@ COMPONENT LATENCIES:
 
 	// Add component latencies
 	for name, comp := range result.ComponentLatencies {
-		report += fmt.Sprintf("├── %s:\n", name)
-		report += fmt.Sprintf("│   ├── Average: %v\n", comp.AverageLatency)
-		report += fmt.Sprintf("│   ├── P95:     %v\n", comp.P95Latency)
-		report += fmt.Sprintf("│   └── P99:     %v\n", comp.P99Latency)
+		report += fmt.Sprintf("?��??� %s:\n", name)
+		report += fmt.Sprintf("??  ?��??� Average: %v\n", comp.AverageLatency)
+		report += fmt.Sprintf("??  ?��??� P95:     %v\n", comp.P95Latency)
+		report += fmt.Sprintf("??  ?��??� P99:     %v\n", comp.P99Latency)
 	}
 
 	report += "\n============================================================================="
@@ -1018,11 +1018,5 @@ func (pmc *PerformanceMetricsCollector) getMetrics() map[string]interface{} {
 	pmc.mu.RLock()
 	defer pmc.mu.RUnlock()
 
-	return map[string]interface{}{
-		"total_requests":  len(pmc.latencies),
-		"success_count":   atomic.LoadInt64(&pmc.successCount),
-		"error_count":     atomic.LoadInt64(&pmc.errorCount),
-		"bytes_processed": atomic.LoadInt64(&pmc.bytesProcessed),
-		"latency_samples": len(pmc.latencies),
-	}
+	return json.RawMessage(`{}`)
 }

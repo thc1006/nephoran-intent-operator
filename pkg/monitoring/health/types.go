@@ -5,7 +5,9 @@
 package health
 
 import (
-	"time"
+	
+	"encoding/json"
+"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/health"
 )
@@ -36,7 +38,6 @@ const (
 // String returns the string representation of HealthTier.
 
 func (ht HealthTier) String() string {
-
 	switch ht {
 
 	case TierSystem:
@@ -60,7 +61,6 @@ func (ht HealthTier) String() string {
 		return "unknown"
 
 	}
-
 }
 
 // HealthContext represents different operational contexts for health checks.
@@ -93,7 +93,6 @@ const (
 // String returns the string representation of HealthContext.
 
 func (hc HealthContext) String() string {
-
 	switch hc {
 
 	case ContextStartup:
@@ -121,7 +120,6 @@ func (hc HealthContext) String() string {
 		return "unknown"
 
 	}
-
 }
 
 // HealthWeight represents the business criticality weight of a component.
@@ -218,7 +216,6 @@ type StateTransition struct {
 // EnhancedCheck represents an enhanced health check with additional metadata.
 
 type EnhancedCheck struct {
-
 	// Basic health check information.
 
 	Name string `json:"name"`
@@ -265,7 +262,7 @@ type EnhancedCheck struct {
 
 	// Additional context.
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 
 	Dependencies []string `json:"dependencies,omitempty"`
 }
@@ -297,7 +294,7 @@ type EnhancedHealthResponse struct {
 
 	// Additional metadata.
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // TierSummary provides aggregated information for a health tier.
@@ -457,7 +454,7 @@ type HealthAlert struct {
 
 	CurrentHealth *EnhancedCheck `json:"current_health,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // HealthAlertType represents different types of health alerts.
@@ -514,7 +511,7 @@ type DependencyNode struct {
 
 	Critical bool `json:"critical"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // DependencyEdge represents a dependency relationship.
@@ -530,7 +527,7 @@ type DependencyEdge struct {
 
 	Critical bool `json:"critical"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // HealthImpactAnalysis provides analysis of health issues and their impact.
@@ -670,7 +667,6 @@ type HealthMetricsSnapshot struct {
 // HealthConfiguration represents the configuration for the enhanced health system.
 
 type HealthConfiguration struct {
-
 	// Global settings.
 
 	DefaultTimeout time.Duration `json:"default_timeout"`

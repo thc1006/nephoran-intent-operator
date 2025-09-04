@@ -2,6 +2,7 @@ package o1
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"time"
 )
@@ -29,21 +30,21 @@ func NewFaultNotificationChannel(id, chType string, config map[string]interface{
 func (f *FaultNotificationChannelImpl) SendAlarmNotification(ctx context.Context, alarm *EnhancedAlarm, template *NotificationTemplate) error {
 	// Convert alarm to generic notification
 	notification := &Notification{
-		ID:        alarm.AlarmID,
-		Type:      "ALARM",
-		Severity:  alarm.PerceivedSeverity,
-		Title:     template.Subject,
-		Message:   f.formatMessage(alarm, template),
-		Source:    "FAULT_MANAGER",
-		Target:    alarm.ObjectInstance,
-		Timestamp: alarm.AlarmRaisedTime,
+		ID:       alarm.AlarmID,
+		Type:     "ALARM",
+		Severity: alarm.PerceivedSeverity,
+		Title:    template.Subject,
+		Message:  f.formatMessage(alarm, template),
+		Source:   "FAULT_MANAGER",
+		Target:   alarm.ObjectInstance,
+		Timestamp: func() time.Time {
+			if alarm.AlarmRaisedTime != nil {
+				return *alarm.AlarmRaisedTime
+			}
+			return time.Now()
+		}(),
 		AckRequired: true,
-		Metadata: map[string]interface{}{
-			"event_type":      alarm.EventType,
-			"probable_cause":  alarm.ProbableCause,
-			"managed_element": alarm.ObjectInstance,
-			"additional_info": alarm.AdditionalText,
-		},
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	return f.SendNotification(ctx, notification)
@@ -75,3 +76,4 @@ func (f *FaultNotificationChannelImpl) formatMessage(alarm *EnhancedAlarm, templ
 
 	return message
 }
+

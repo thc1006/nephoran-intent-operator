@@ -233,7 +233,7 @@ func TestHTTPClientConnectionReuse(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"timestamp":"2023-01-01T00:00:00Z","node_id":"test","prb_utilization":0.5,"p95_latency":25.0,"active_ues":100,"current_replicas":2}`))
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	// Make multiple requests using the global httpClient
 	for i := 0; i < 3; i++ {
@@ -254,7 +254,7 @@ func TestHTTPClientConcurrentUsage(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"timestamp":"2023-01-01T00:00:00Z","node_id":"test","prb_utilization":0.5,"p95_latency":25.0,"active_ues":100,"current_replicas":2}`))
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	const numRequests = 20
 	var wg sync.WaitGroup
@@ -271,7 +271,7 @@ func TestHTTPClientConcurrentUsage(t *testing.T) {
 				errorChan <- fmt.Errorf("request %d failed: %w", id, err)
 				return
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			if resp.StatusCode != http.StatusOK {
 				errorChan <- fmt.Errorf("request %d returned status %d", id, resp.StatusCode)
@@ -315,7 +315,7 @@ func TestHTTPClientTimeouts(t *testing.T) {
 				w.WriteHeader(http.StatusOK)
 				w.Write([]byte(`{"test":"data"}`))
 			}))
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			resp, err := httpClient.Get(server.URL)
 			if tt.expectTimeout {

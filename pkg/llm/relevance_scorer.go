@@ -4,7 +4,9 @@
 package llm
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"log/slog"
 	"math"
@@ -13,7 +15,7 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
-	"github.com/thc1006/nephoran-intent-operator/pkg/types"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // RelevanceScorerImpl calculates multi-factor relevance scores for documents
@@ -85,29 +87,29 @@ type RelevanceScore struct {
 	DomainScore    float32                `json:"domain_score"`
 	IntentScore    float32                `json:"intent_score"`
 	Explanation    string                 `json:"explanation"`
-	Factors        map[string]interface{} `json:"factors"`
+	Factors        json.RawMessage `json:"factors"`
 	ProcessingTime time.Duration          `json:"processing_time"`
 	CacheUsed      bool                   `json:"cache_used"`
 }
 
 // RelevanceRequest represents a relevance scoring request
 type RelevanceRequest struct {
-	Query         string                 `json:"query"`
-	IntentType    string                 `json:"intent_type"`
-	Document      *types.TelecomDocument `json:"document"`
-	Position      int                    `json:"position"`
-	OriginalScore float32                `json:"original_score"`
-	Context       string                 `json:"context"`
-	UserProfile   map[string]interface{} `json:"user_profile,omitempty"`
+	Query         string                  `json:"query"`
+	IntentType    string                  `json:"intent_type"`
+	Document      *shared.TelecomDocument `json:"document"`
+	Position      int                     `json:"position"`
+	OriginalScore float32                 `json:"original_score"`
+	Context       string                  `json:"context"`
+	UserProfile   json.RawMessage  `json:"user_profile,omitempty"`
 }
 
 // ScoredDocument represents a document with relevance scoring
 type ScoredDocument struct {
-	Document       *types.TelecomDocument `json:"document"`
-	RelevanceScore *RelevanceScore        `json:"relevance_score"`
-	OriginalScore  float32                `json:"original_score"`
-	Position       int                    `json:"position"`
-	TokenCount     int                    `json:"token_count"`
+	Document       *shared.TelecomDocument `json:"document"`
+	RelevanceScore *RelevanceScore         `json:"relevance_score"`
+	OriginalScore  float32                 `json:"original_score"`
+	Position       int                     `json:"position"`
+	TokenCount     int                     `json:"token_count"`
 }
 
 // EmbeddingServiceInterface defines the interface for semantic similarity calculations
@@ -326,21 +328,20 @@ func (rs *RelevanceScorerImpl) CalculateRelevance(ctx context.Context, request *
 	explanation := rs.generateExplanation(scores, request)
 
 	// Create factors map
-	factors := map[string]interface{}{
-		"semantic_similarity": scores.semantic,
-		"source_authority":    scores.authority,
-		"document_recency":    scores.recency,
-		"domain_specificity":  scores.domain,
-		"intent_alignment":    scores.intent,
-		"position_penalty":    positionPenalty,
-		"original_score":      request.OriginalScore,
-		"weights": map[string]float64{
-			"semantic":  rs.config.SemanticWeight,
-			"authority": rs.config.AuthorityWeight,
-			"recency":   rs.config.RecencyWeight,
-			"domain":    rs.config.DomainWeight,
-			"intent":    rs.config.IntentAlignmentWeight,
-		},
+	factorsMap := map[string]interface{}{
+		"semantic_weight":  scores.semantic,
+		"authority_weight": scores.authority,
+		"recency_weight":   scores.recency,
+		"domain_weight":    scores.domain,
+		"intent_weight":    scores.intent,
+	}
+
+	// Convert factors to json.RawMessage
+	var factors json.RawMessage
+	if factorsBytes, err := json.Marshal(factorsMap); err == nil {
+		factors = json.RawMessage(factorsBytes)
+	} else {
+		factors = json.RawMessage(`{}`)
 	}
 
 	processingTime := time.Since(startTime)
@@ -541,7 +542,7 @@ func (rs *RelevanceScorerImpl) calculateAuthorityScore(request *RelevanceRequest
 }
 
 // isStandardsDocument checks if document is a standards document
-func (rs *RelevanceScorerImpl) isStandardsDocument(doc *types.TelecomDocument) bool {
+func (rs *RelevanceScorerImpl) isStandardsDocument(doc *shared.TelecomDocument) bool {
 	indicators := []string{"TS ", "TR ", "RFC ", "IEEE ", "O-RAN.WG", "specification", "standard"}
 
 	titleLower := strings.ToLower(doc.Title)
@@ -735,7 +736,8 @@ func (rs *RelevanceScorerImpl) calculateIntentScore(request *RelevanceRequest) f
 // generateExplanation generates a human-readable explanation of the scoring
 func (rs *RelevanceScorerImpl) generateExplanation(scores struct {
 	semantic, authority, recency, domain, intent float32
-}, request *RelevanceRequest) string {
+}, request *RelevanceRequest,
+) string {
 	var explanations []string
 
 	if scores.semantic > 0.7 {
@@ -781,7 +783,19 @@ func (rs *RelevanceScorerImpl) GetMetrics() *ScoringMetrics {
 	rs.metrics.mutex.RLock()
 	defer rs.metrics.mutex.RUnlock()
 
-	metrics := *rs.metrics
+	// Return a copy without the mutex to avoid copying the lock
+	metrics := ScoringMetrics{
+		TotalScores:        rs.metrics.TotalScores,
+		AverageScoringTime: rs.metrics.AverageScoringTime,
+		CacheHitRate:       rs.metrics.CacheHitRate,
+		SemanticScores:     rs.metrics.SemanticScores,
+		AuthorityScores:    rs.metrics.AuthorityScores,
+		RecencyScores:      rs.metrics.RecencyScores,
+		DomainScores:       rs.metrics.DomainScores,
+		IntentScores:       rs.metrics.IntentScores,
+		LastUpdated:        rs.metrics.LastUpdated,
+		// mutex field is intentionally omitted to avoid copying
+	}
 	return &metrics
 }
 

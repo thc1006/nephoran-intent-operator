@@ -31,7 +31,9 @@ limitations under the License.
 package blueprint
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -575,7 +577,7 @@ type SecurityCheck struct {
 
 	Target string `json:"target"`
 
-	Conditions map[string]interface{} `json:"conditions"`
+	Conditions json.RawMessage `json:"conditions"`
 }
 
 // VulnerabilityInfo represents a vulnerabilityinfo.
@@ -679,27 +681,21 @@ type ComplianceCheck struct {
 
 	Target string `json:"target"`
 
-	Conditions map[string]interface{} `json:"conditions"`
+	Conditions json.RawMessage `json:"conditions"`
 }
 
 // NewValidator creates a new blueprint validator.
 
 func NewValidator(config *BlueprintConfig, logger *zap.Logger) (*Validator, error) {
-
 	if config == nil {
-
 		config = DefaultBlueprintConfig()
-
 	}
 
 	if logger == nil {
-
 		logger = zap.NewNop()
-
 	}
 
 	validator := &Validator{
-
 		config: config,
 
 		logger: logger,
@@ -716,43 +712,29 @@ func NewValidator(config *BlueprintConfig, logger *zap.Logger) (*Validator, erro
 	var err error
 
 	validator.kubernetesValidator, err = NewKubernetesValidator()
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create Kubernetes validator: %w", err)
-
 	}
 
 	validator.oranValidator, err = NewORANValidator()
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create O-RAN validator: %w", err)
-
 	}
 
 	validator.securityValidator, err = NewSecurityValidator()
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create security validator: %w", err)
-
 	}
 
 	validator.policyValidator, err = NewPolicyValidator()
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create policy validator: %w", err)
-
 	}
 
 	// Load O-RAN specifications and compliance rules.
 
 	if err := validator.loadORANSpecifications(); err != nil {
-
 		return nil, fmt.Errorf("failed to load O-RAN specifications: %w", err)
-
 	}
 
 	logger.Info("Blueprint validator initialized",
@@ -764,13 +746,11 @@ func NewValidator(config *BlueprintConfig, logger *zap.Logger) (*Validator, erro
 		zap.Int("compliance_rules", len(validator.complianceRules)))
 
 	return validator, nil
-
 }
 
 // ValidateBlueprint validates a blueprint against all configured rules and standards.
 
 func (v *Validator) ValidateBlueprint(ctx context.Context, intent *v1.NetworkIntent, files map[string]string) (*ValidationResult, error) {
-
 	startTime := time.Now()
 
 	v.logger.Info("Validating blueprint",
@@ -782,7 +762,6 @@ func (v *Validator) ValidateBlueprint(ctx context.Context, intent *v1.NetworkInt
 		zap.Int("files", len(files)))
 
 	result := &ValidationResult{
-
 		IsValid: true,
 
 		Errors: []ValidationError{},
@@ -799,25 +778,19 @@ func (v *Validator) ValidateBlueprint(ctx context.Context, intent *v1.NetworkInt
 	// Validate individual files.
 
 	for filename, content := range files {
-
 		if err := v.validateFile(ctx, filename, content, result); err != nil {
-
 			v.logger.Warn("File validation failed",
 
 				zap.String("filename", filename),
 
 				zap.Error(err))
-
 		}
-
 	}
 
 	// Perform cross-file validations.
 
 	if err := v.validateCrossFileConsistency(ctx, files, result); err != nil {
-
 		v.logger.Warn("Cross-file validation failed", zap.Error(err))
-
 	}
 
 	// O-RAN compliance validation.
@@ -827,17 +800,13 @@ func (v *Validator) ValidateBlueprint(ctx context.Context, intent *v1.NetworkInt
 		oranResult, err := v.validateORANCompliance(ctx, intent, files)
 
 		if err != nil {
-
 			v.logger.Warn("O-RAN compliance validation failed", zap.Error(err))
-
 		} else {
 
 			result.ORANCompliance = oranResult
 
 			if !oranResult.IsCompliant {
-
 				result.IsValid = false
-
 			}
 
 		}
@@ -849,17 +818,13 @@ func (v *Validator) ValidateBlueprint(ctx context.Context, intent *v1.NetworkInt
 	securityResult, err := v.validateSecurityCompliance(ctx, intent, files)
 
 	if err != nil {
-
 		v.logger.Warn("Security compliance validation failed", zap.Error(err))
-
 	} else {
 
 		result.SecurityCompliance = securityResult
 
 		if !securityResult.IsCompliant {
-
 			result.IsValid = false
-
 		}
 
 	}
@@ -869,17 +834,13 @@ func (v *Validator) ValidateBlueprint(ctx context.Context, intent *v1.NetworkInt
 	policyResult, err := v.validatePolicyCompliance(ctx, intent, files)
 
 	if err != nil {
-
 		v.logger.Warn("Policy compliance validation failed", zap.Error(err))
-
 	} else {
 
 		result.PolicyCompliance = policyResult
 
 		if !policyResult.IsCompliant {
-
 			result.IsValid = false
-
 		}
 
 	}
@@ -889,17 +850,13 @@ func (v *Validator) ValidateBlueprint(ctx context.Context, intent *v1.NetworkInt
 	resourceResult, err := v.validateResourceRequirements(ctx, intent, files)
 
 	if err != nil {
-
 		v.logger.Warn("Resource validation failed", zap.Error(err))
-
 	} else {
 
 		result.ResourceValidation = resourceResult
 
 		if !resourceResult.IsValid {
-
 			result.IsValid = false
-
 		}
 
 	}
@@ -911,9 +868,7 @@ func (v *Validator) ValidateBlueprint(ctx context.Context, intent *v1.NetworkInt
 	// Final validation status.
 
 	if len(result.Errors) > 0 {
-
 		for _, err := range result.Errors {
-
 			if err.Severity == SeverityError {
 
 				result.IsValid = false
@@ -921,9 +876,7 @@ func (v *Validator) ValidateBlueprint(ctx context.Context, intent *v1.NetworkInt
 				break
 
 			}
-
 		}
-
 	}
 
 	result.ValidationDuration = time.Since(startTime)
@@ -941,19 +894,15 @@ func (v *Validator) ValidateBlueprint(ctx context.Context, intent *v1.NetworkInt
 		zap.Duration("duration", result.ValidationDuration))
 
 	return result, nil
-
 }
 
 // validateFile validates an individual file.
 
 func (v *Validator) validateFile(ctx context.Context, filename, content string, result *ValidationResult) error {
-
 	// Skip non-YAML files.
 
 	if !v.isYAMLFile(filename, content) {
-
 		return nil
-
 	}
 
 	// Parse YAML content.
@@ -963,7 +912,6 @@ func (v *Validator) validateFile(ctx context.Context, filename, content string, 
 	if err := yaml.Unmarshal([]byte(content), &obj); err != nil {
 
 		result.Errors = append(result.Errors, ValidationError{
-
 			Code: "YAML_PARSE_ERROR",
 
 			Message: fmt.Sprintf("Failed to parse YAML: %v", err),
@@ -982,37 +930,30 @@ func (v *Validator) validateFile(ctx context.Context, filename, content string, 
 	// Kubernetes validation.
 
 	if err := v.kubernetesValidator.ValidateResource(obj, filename, result); err != nil {
-
 		v.logger.Debug("Kubernetes validation failed",
 
 			zap.String("file", filename),
 
 			zap.Error(err))
-
 	}
 
 	// Component-specific validation.
 
 	if err := v.validateComponentSpecific(obj, filename, result); err != nil {
-
 		v.logger.Debug("Component-specific validation failed",
 
 			zap.String("file", filename),
 
 			zap.Error(err))
-
 	}
 
 	return nil
-
 }
 
 // validateORANCompliance validates O-RAN compliance.
 
 func (v *Validator) validateORANCompliance(ctx context.Context, intent *v1.NetworkIntent, files map[string]string) (*ORANComplianceResult, error) {
-
 	result := &ORANComplianceResult{
-
 		IsCompliant: true,
 
 		Interfaces: make(map[string]InterfaceCompliance),
@@ -1025,17 +966,13 @@ func (v *Validator) validateORANCompliance(ctx context.Context, intent *v1.Netwo
 	// Check each target component for O-RAN compliance.
 
 	for _, component := range intent.Spec.TargetComponents {
-
-		if err := v.oranValidator.ValidateComponent(component, files, result); err != nil {
-
+		if err := v.oranValidator.ValidateComponent(convertNetworkTargetComponentToORANComponent(component), files, result); err != nil {
 			v.logger.Warn("O-RAN component validation failed",
 
 				zap.String("component", string(component)),
 
 				zap.Error(err))
-
 		}
-
 	}
 
 	// Validate O-RAN interfaces.
@@ -1047,19 +984,16 @@ func (v *Validator) validateORANCompliance(ctx context.Context, intent *v1.Netwo
 	result.ComplianceScore = v.calculateORANComplianceScore(result)
 
 	return result, nil
-
 }
 
 // validateORANInterfaces validates O-RAN interface implementations.
 
 func (v *Validator) validateORANInterfaces(files map[string]string, result *ORANComplianceResult) {
-
 	interfaces := []string{"A1", "O1", "O2", "E2"}
 
 	for _, interfaceName := range interfaces {
 
 		compliance := InterfaceCompliance{
-
 			Interface: interfaceName,
 
 			Compliant: true,
@@ -1074,7 +1008,6 @@ func (v *Validator) validateORANInterfaces(files map[string]string, result *ORAN
 		// Check if interface is implemented.
 
 		for filename, content := range files {
-
 			if v.containsInterfaceImplementation(content, interfaceName) {
 
 				compliance.Implemented = true
@@ -1082,7 +1015,6 @@ func (v *Validator) validateORANInterfaces(files map[string]string, result *ORAN
 				// Validate interface-specific requirements.
 
 				if err := v.validateInterfaceImplementation(filename, content, interfaceName, &compliance); err != nil {
-
 					v.logger.Debug("Interface validation failed",
 
 						zap.String("interface", interfaceName),
@@ -1090,33 +1022,26 @@ func (v *Validator) validateORANInterfaces(files map[string]string, result *ORAN
 						zap.String("file", filename),
 
 						zap.Error(err))
-
 				}
 
 				break
 
 			}
-
 		}
 
 		result.Interfaces[interfaceName] = compliance
 
 		if !compliance.Compliant {
-
 			result.IsCompliant = false
-
 		}
 
 	}
-
 }
 
 // validateSecurityCompliance validates security compliance.
 
 func (v *Validator) validateSecurityCompliance(ctx context.Context, intent *v1.NetworkIntent, files map[string]string) (*SecurityComplianceResult, error) {
-
 	result := &SecurityComplianceResult{
-
 		IsCompliant: true,
 
 		SecurityScore: 100.0,
@@ -1131,17 +1056,13 @@ func (v *Validator) validateSecurityCompliance(ctx context.Context, intent *v1.N
 	// Validate each file for security issues.
 
 	for filename, content := range files {
-
 		if err := v.securityValidator.ValidateFile(filename, content, result); err != nil {
-
 			v.logger.Debug("Security validation failed",
 
 				zap.String("file", filename),
 
 				zap.Error(err))
-
 		}
-
 	}
 
 	// Calculate security score.
@@ -1151,15 +1072,12 @@ func (v *Validator) validateSecurityCompliance(ctx context.Context, intent *v1.N
 	result.IsCompliant = result.SecurityScore >= 80.0 // 80% threshold
 
 	return result, nil
-
 }
 
 // validatePolicyCompliance validates policy compliance.
 
 func (v *Validator) validatePolicyCompliance(ctx context.Context, intent *v1.NetworkIntent, files map[string]string) (*PolicyComplianceResult, error) {
-
 	result := &PolicyComplianceResult{
-
 		IsCompliant: true,
 
 		PolicyScore: 100.0,
@@ -1172,17 +1090,13 @@ func (v *Validator) validatePolicyCompliance(ctx context.Context, intent *v1.Net
 	// Validate organizational policies.
 
 	if err := v.policyValidator.ValidateOrganizationalPolicies(intent, files, result); err != nil {
-
 		v.logger.Debug("Organizational policy validation failed", zap.Error(err))
-
 	}
 
 	// Validate compliance policies.
 
 	if err := v.policyValidator.ValidateCompliancePolicies(intent, files, result); err != nil {
-
 		v.logger.Debug("Compliance policy validation failed", zap.Error(err))
-
 	}
 
 	// Calculate policy score.
@@ -1192,15 +1106,12 @@ func (v *Validator) validatePolicyCompliance(ctx context.Context, intent *v1.Net
 	result.IsCompliant = len(result.Violations) == 0
 
 	return result, nil
-
 }
 
 // validateResourceRequirements validates resource requirements and constraints.
 
 func (v *Validator) validateResourceRequirements(ctx context.Context, intent *v1.NetworkIntent, files map[string]string) (*ResourceValidationResult, error) {
-
 	result := &ResourceValidationResult{
-
 		IsValid: true,
 
 		ResourceScore: 100.0,
@@ -1213,29 +1124,21 @@ func (v *Validator) validateResourceRequirements(ctx context.Context, intent *v1
 	// Validate resource specifications in each file.
 
 	for filename, content := range files {
-
 		if v.isKubernetesManifest(content) {
-
 			if err := v.validateResourceSpecifications(filename, content, intent, result); err != nil {
-
 				v.logger.Debug("Resource specification validation failed",
 
 					zap.String("file", filename),
 
 					zap.Error(err))
-
 			}
-
 		}
-
 	}
 
 	// Validate against intent constraints.
 
 	if intent.Spec.ResourceConstraints != nil {
-
 		v.validateAgainstResourceConstraints(files, intent.Spec.ResourceConstraints, result)
-
 	}
 
 	// Calculate resource score.
@@ -1245,19 +1148,15 @@ func (v *Validator) validateResourceRequirements(ctx context.Context, intent *v1
 	result.IsValid = len(result.ResourceIssues) == 0
 
 	return result, nil
-
 }
 
 // Helper methods for specific validations.
 
 func (v *Validator) validateComponentSpecific(obj map[string]interface{}, filename string, result *ValidationResult) error {
-
 	kind, ok := obj["kind"].(string)
 
 	if !ok {
-
 		return nil
-
 	}
 
 	switch kind {
@@ -1289,11 +1188,9 @@ func (v *Validator) validateComponentSpecific(obj map[string]interface{}, filena
 		return v.validateGenericKubernetesResource(obj, filename, result)
 
 	}
-
 }
 
 func (v *Validator) validateDeployment(obj map[string]interface{}, filename string, result *ValidationResult) error {
-
 	// Validate deployment-specific requirements.
 
 	spec, ok := obj["spec"].(map[interface{}]interface{})
@@ -1301,7 +1198,6 @@ func (v *Validator) validateDeployment(obj map[string]interface{}, filename stri
 	if !ok {
 
 		result.Errors = append(result.Errors, ValidationError{
-
 			Code: "DEPLOYMENT_MISSING_SPEC",
 
 			Message: "Deployment is missing spec section",
@@ -1318,13 +1214,9 @@ func (v *Validator) validateDeployment(obj map[string]interface{}, filename stri
 	// Validate replicas.
 
 	if replicas, ok := spec["replicas"]; ok {
-
 		if replicasNum, ok := replicas.(int); ok {
-
 			if replicasNum < 1 {
-
 				result.Errors = append(result.Errors, ValidationError{
-
 					Code: "DEPLOYMENT_INVALID_REPLICAS",
 
 					Message: "Deployment replicas must be at least 1",
@@ -1337,11 +1229,8 @@ func (v *Validator) validateDeployment(obj map[string]interface{}, filename stri
 
 					Value: replicasNum,
 				})
-
 			} else if replicasNum == 1 {
-
 				result.Warnings = append(result.Warnings, ValidationWarning{
-
 					Code: "DEPLOYMENT_SINGLE_REPLICA",
 
 					Message: "Deployment has only 1 replica, consider increasing for high availability",
@@ -1352,37 +1241,27 @@ func (v *Validator) validateDeployment(obj map[string]interface{}, filename stri
 
 					Suggestion: "Consider setting replicas to 2 or more for production deployments",
 				})
-
 			}
-
 		}
-
 	}
 
 	// Validate template.
 
 	if template, ok := spec["template"].(map[interface{}]interface{}); ok {
-
 		if err := v.validatePodTemplate(template, filename, result); err != nil {
-
 			return err
-
 		}
-
 	}
 
 	return nil
-
 }
 
 func (v *Validator) validatePodTemplate(template map[interface{}]interface{}, filename string, result *ValidationResult) error {
-
 	spec, ok := template["spec"].(map[interface{}]interface{})
 
 	if !ok {
 
 		result.Errors = append(result.Errors, ValidationError{
-
 			Code: "POD_TEMPLATE_MISSING_SPEC",
 
 			Message: "Pod template is missing spec section",
@@ -1399,21 +1278,13 @@ func (v *Validator) validatePodTemplate(template map[interface{}]interface{}, fi
 	// Validate containers.
 
 	if containers, ok := spec["containers"].([]interface{}); ok {
-
 		for i, container := range containers {
-
 			if err := v.validateContainer(container, i, filename, result); err != nil {
-
 				return err
-
 			}
-
 		}
-
 	} else {
-
 		result.Errors = append(result.Errors, ValidationError{
-
 			Code: "POD_TEMPLATE_MISSING_CONTAINERS",
 
 			Message: "Pod template is missing containers",
@@ -1422,41 +1293,28 @@ func (v *Validator) validatePodTemplate(template map[interface{}]interface{}, fi
 
 			Source: filename,
 		})
-
 	}
 
 	return nil
-
 }
 
 func (v *Validator) validateContainer(container interface{}, index int, filename string, result *ValidationResult) error {
-
 	containerMap, ok := container.(map[interface{}]interface{})
 
 	if !ok {
-
 		return nil
-
 	}
 
 	// Validate image.
 
 	if image, ok := containerMap["image"]; ok {
-
 		if imageStr, ok := image.(string); ok {
-
 			if err := v.validateContainerImage(imageStr, filename, result); err != nil {
-
 				return err
-
 			}
-
 		}
-
 	} else {
-
 		result.Errors = append(result.Errors, ValidationError{
-
 			Code: "CONTAINER_MISSING_IMAGE",
 
 			Message: fmt.Sprintf("Container %d is missing image specification", index),
@@ -1467,23 +1325,16 @@ func (v *Validator) validateContainer(container interface{}, index int, filename
 
 			Field: fmt.Sprintf("spec.template.spec.containers[%d].image", index),
 		})
-
 	}
 
 	// Validate resource requirements.
 
 	if resources, ok := containerMap["resources"].(map[interface{}]interface{}); ok {
-
 		if err := v.validateContainerResources(resources, index, filename, result); err != nil {
-
 			return err
-
 		}
-
 	} else {
-
 		result.Warnings = append(result.Warnings, ValidationWarning{
-
 			Code: "CONTAINER_MISSING_RESOURCES",
 
 			Message: fmt.Sprintf("Container %d is missing resource requirements", index),
@@ -1494,29 +1345,22 @@ func (v *Validator) validateContainer(container interface{}, index int, filename
 
 			Suggestion: "Define resource requests and limits for better resource management",
 		})
-
 	}
 
 	// Validate security context.
 
 	if err := v.validateContainerSecurity(containerMap, index, filename, result); err != nil {
-
 		return err
-
 	}
 
 	return nil
-
 }
 
 func (v *Validator) validateContainerImage(image, filename string, result *ValidationResult) error {
-
 	// Check for security best practices.
 
 	if strings.Contains(image, ":latest") {
-
 		result.Warnings = append(result.Warnings, ValidationWarning{
-
 			Code: "CONTAINER_IMAGE_LATEST_TAG",
 
 			Message: "Container image uses 'latest' tag",
@@ -1525,15 +1369,12 @@ func (v *Validator) validateContainerImage(image, filename string, result *Valid
 
 			Suggestion: "Use specific version tags for better version control and security",
 		})
-
 	}
 
 	// Check for private registry or known secure sources.
 
 	if !v.isFromTrustedRegistry(image) {
-
 		result.Warnings = append(result.Warnings, ValidationWarning{
-
 			Code: "CONTAINER_IMAGE_UNTRUSTED_REGISTRY",
 
 			Message: "Container image is not from a known trusted registry",
@@ -1542,27 +1383,20 @@ func (v *Validator) validateContainerImage(image, filename string, result *Valid
 
 			Suggestion: "Consider using images from trusted registries for better security",
 		})
-
 	}
 
 	return nil
-
 }
 
 func (v *Validator) validateContainerResources(resources map[interface{}]interface{}, index int, filename string, result *ValidationResult) error {
-
 	// Validate requests.
 
 	if requests, ok := resources["requests"].(map[interface{}]interface{}); ok {
 
 		if cpu, ok := requests["cpu"]; ok {
-
 			if cpuStr, ok := cpu.(string); ok {
-
 				if _, err := resource.ParseQuantity(cpuStr); err != nil {
-
 					result.Errors = append(result.Errors, ValidationError{
-
 						Code: "CONTAINER_INVALID_CPU_REQUEST",
 
 						Message: fmt.Sprintf("Container %d has invalid CPU request: %v", index, err),
@@ -1575,21 +1409,14 @@ func (v *Validator) validateContainerResources(resources map[interface{}]interfa
 
 						Value: cpuStr,
 					})
-
 				}
-
 			}
-
 		}
 
 		if memory, ok := requests["memory"]; ok {
-
 			if memoryStr, ok := memory.(string); ok {
-
 				if _, err := resource.ParseQuantity(memoryStr); err != nil {
-
 					result.Errors = append(result.Errors, ValidationError{
-
 						Code: "CONTAINER_INVALID_MEMORY_REQUEST",
 
 						Message: fmt.Sprintf("Container %d has invalid memory request: %v", index, err),
@@ -1602,11 +1429,8 @@ func (v *Validator) validateContainerResources(resources map[interface{}]interfa
 
 						Value: memoryStr,
 					})
-
 				}
-
 			}
-
 		}
 
 	}
@@ -1614,15 +1438,10 @@ func (v *Validator) validateContainerResources(resources map[interface{}]interfa
 	// Validate limits.
 
 	if limits, ok := resources["limits"].(map[interface{}]interface{}); ok {
-
 		if cpu, ok := limits["cpu"]; ok {
-
 			if cpuStr, ok := cpu.(string); ok {
-
 				if _, err := resource.ParseQuantity(cpuStr); err != nil {
-
 					result.Errors = append(result.Errors, ValidationError{
-
 						Code: "CONTAINER_INVALID_CPU_LIMIT",
 
 						Message: fmt.Sprintf("Container %d has invalid CPU limit: %v", index, err),
@@ -1635,21 +1454,15 @@ func (v *Validator) validateContainerResources(resources map[interface{}]interfa
 
 						Value: cpuStr,
 					})
-
 				}
-
 			}
-
 		}
-
 	}
 
 	return nil
-
 }
 
 func (v *Validator) validateContainerSecurity(container map[interface{}]interface{}, index int, filename string, result *ValidationResult) error {
-
 	// Check for security context.
 
 	securityContext, hasSecurityContext := container["securityContext"].(map[interface{}]interface{})
@@ -1657,9 +1470,7 @@ func (v *Validator) validateContainerSecurity(container map[interface{}]interfac
 	// Warn if running as root.
 
 	if !hasSecurityContext {
-
 		result.Warnings = append(result.Warnings, ValidationWarning{
-
 			Code: "CONTAINER_MISSING_SECURITY_CONTEXT",
 
 			Message: fmt.Sprintf("Container %d is missing security context", index),
@@ -1670,17 +1481,13 @@ func (v *Validator) validateContainerSecurity(container map[interface{}]interfac
 
 			Suggestion: "Define security context to improve security posture",
 		})
-
 	} else {
 
 		// Check for non-root user.
 
 		if runAsUser, ok := securityContext["runAsUser"]; ok {
-
 			if userID, ok := runAsUser.(int); ok && userID == 0 {
-
 				result.Warnings = append(result.Warnings, ValidationWarning{
-
 					Code: "CONTAINER_RUNS_AS_ROOT",
 
 					Message: fmt.Sprintf("Container %d runs as root user", index),
@@ -1691,19 +1498,14 @@ func (v *Validator) validateContainerSecurity(container map[interface{}]interfac
 
 					Suggestion: "Use non-root user for better security",
 				})
-
 			}
-
 		}
 
 		// Check for privileged mode.
 
 		if privileged, ok := securityContext["privileged"]; ok {
-
 			if isPrivileged, ok := privileged.(bool); ok && isPrivileged {
-
 				result.Warnings = append(result.Warnings, ValidationWarning{
-
 					Code: "CONTAINER_PRIVILEGED",
 
 					Message: fmt.Sprintf("Container %d runs in privileged mode", index),
@@ -1714,37 +1516,28 @@ func (v *Validator) validateContainerSecurity(container map[interface{}]interfac
 
 					Suggestion: "Avoid privileged mode unless absolutely necessary",
 				})
-
 			}
-
 		}
 
 	}
 
 	return nil
-
 }
 
 // Utility methods.
 
 func (v *Validator) isYAMLFile(filename, content string) bool {
-
 	return strings.HasSuffix(filename, ".yaml") || strings.HasSuffix(filename, ".yml") ||
 
 		(strings.Contains(content, "apiVersion:") && strings.Contains(content, "kind:"))
-
 }
 
 func (v *Validator) isKubernetesManifest(content string) bool {
-
 	return strings.Contains(content, "apiVersion:") && strings.Contains(content, "kind:")
-
 }
 
 func (v *Validator) isFromTrustedRegistry(image string) bool {
-
 	trustedRegistries := []string{
-
 		"docker.io",
 
 		"gcr.io",
@@ -1761,31 +1554,22 @@ func (v *Validator) isFromTrustedRegistry(image string) bool {
 	}
 
 	for _, registry := range trustedRegistries {
-
 		if strings.HasPrefix(image, registry) {
-
 			return true
-
 		}
-
 	}
 
 	// Check if it's an official image (no registry prefix).
 
 	if !strings.Contains(image, "/") || strings.Count(image, "/") == 1 {
-
 		return true
-
 	}
 
 	return false
-
 }
 
 func (v *Validator) containsInterfaceImplementation(content, interfaceName string) bool {
-
 	patterns := map[string][]string{
-
 		"A1": {"a1", "policy", "near-rt-ric"},
 
 		"O1": {"o1", "netconf", "yang", "fcaps"},
@@ -1800,51 +1584,38 @@ func (v *Validator) containsInterfaceImplementation(content, interfaceName strin
 		contentLower := strings.ToLower(content)
 
 		for _, pattern := range interfacePatterns {
-
 			if strings.Contains(contentLower, pattern) {
-
 				return true
-
 			}
-
 		}
 
 	}
 
 	return false
-
 }
 
 // Score calculation methods.
 
 func (v *Validator) calculateORANComplianceScore(result *ORANComplianceResult) float64 {
-
 	if len(result.Interfaces) == 0 {
-
 		return 0.0
-
 	}
 
 	totalScore := 0.0
 
 	for _, compliance := range result.Interfaces {
-
 		totalScore += compliance.Score
-
 	}
 
 	return totalScore / float64(len(result.Interfaces))
-
 }
 
 func (v *Validator) calculateSecurityScore(result *SecurityComplianceResult) float64 {
-
 	baseScore := 100.0
 
 	// Deduct points for vulnerabilities.
 
 	for _, vuln := range result.Vulnerabilities {
-
 		switch vuln.Severity {
 
 		case SeverityError:
@@ -1860,7 +1631,6 @@ func (v *Validator) calculateSecurityScore(result *SecurityComplianceResult) flo
 			baseScore -= 2.0
 
 		}
-
 	}
 
 	// Deduct points for missing controls.
@@ -1868,23 +1638,18 @@ func (v *Validator) calculateSecurityScore(result *SecurityComplianceResult) flo
 	baseScore -= float64(len(result.MissingControls)) * 3.0
 
 	if baseScore < 0 {
-
 		return 0.0
-
 	}
 
 	return baseScore
-
 }
 
 func (v *Validator) calculatePolicyScore(result *PolicyComplianceResult) float64 {
-
 	baseScore := 100.0
 
 	// Deduct points for violations.
 
 	for _, violation := range result.Violations {
-
 		switch violation.Severity {
 
 		case "critical":
@@ -1904,7 +1669,6 @@ func (v *Validator) calculatePolicyScore(result *PolicyComplianceResult) float64
 			baseScore -= 2.0
 
 		}
-
 	}
 
 	// Deduct points for missing policies.
@@ -1912,21 +1676,16 @@ func (v *Validator) calculatePolicyScore(result *PolicyComplianceResult) float64
 	baseScore -= float64(len(result.MissingPolicies)) * 5.0
 
 	if baseScore < 0 {
-
 		return 0.0
-
 	}
 
 	return baseScore
-
 }
 
 func (v *Validator) calculateResourceScore(result *ResourceValidationResult) float64 {
-
 	baseScore := 100.0
 
 	for _, issue := range result.ResourceIssues {
-
 		switch issue.Severity {
 
 		case SeverityError:
@@ -1942,23 +1701,18 @@ func (v *Validator) calculateResourceScore(result *ResourceValidationResult) flo
 			baseScore -= 2.0
 
 		}
-
 	}
 
 	if baseScore < 0 {
-
 		return 0.0
-
 	}
 
 	return baseScore
-
 }
 
 // HealthCheck performs health check on the validator.
 
 func (v *Validator) HealthCheck(ctx context.Context) bool {
-
 	// Check if sub-validators are available.
 
 	if v.kubernetesValidator == nil || v.oranValidator == nil ||
@@ -1982,97 +1736,77 @@ func (v *Validator) HealthCheck(ctx context.Context) bool {
 	}
 
 	return true
-
 }
 
 // Placeholder implementations for complex components that would need full implementation.
 
 func NewKubernetesValidator() (*KubernetesValidator, error) {
-
 	return &KubernetesValidator{
-
 		schemas: make(map[string]gojsonschema.JSONLoader),
 	}, nil
-
 }
 
 // NewORANValidator performs neworanvalidator operation.
 
 func NewORANValidator() (*ORANValidator, error) {
-
 	return &ORANValidator{
-
 		specifications: make(map[string]*ORANSpecification),
 
 		interfaceRules: make(map[string]*InterfaceRule),
 	}, nil
-
 }
 
 // NewSecurityValidator performs newsecurityvalidator operation.
 
 func NewSecurityValidator() (*SecurityValidator, error) {
-
 	return &SecurityValidator{
-
 		securityRules: make(map[string]*SecurityRule),
 
 		vulnerabilityDB: make(map[string]*VulnerabilityInfo),
 	}, nil
-
 }
 
 // NewPolicyValidator performs newpolicyvalidator operation.
 
 func NewPolicyValidator() (*PolicyValidator, error) {
-
 	return &PolicyValidator{
-
 		organizationalPolicies: make(map[string]*OrganizationalPolicy),
 
 		compliancePolicies: make(map[string]*CompliancePolicy),
 	}, nil
-
 }
 
 // loadORANSpecifications loads O-RAN specifications from configuration.
 
 func (v *Validator) loadORANSpecifications() error {
-
 	// Stub implementation - would load from files or remote sources.
 
 	v.logger.Debug("Loading O-RAN specifications (stub)")
 
 	return nil
-
 }
 
 // validateCrossFileConsistency validates consistency across multiple files.
 
 func (v *Validator) validateCrossFileConsistency(ctx context.Context, files map[string]string, result *ValidationResult) error {
-
 	// Stub implementation - would check for naming consistency, reference integrity, etc.
 
 	v.logger.Debug("Validating cross-file consistency (stub)")
 
 	return nil
-
 }
 
 // generateRecommendations generates improvement recommendations.
 
 func (v *Validator) generateRecommendations(result *ValidationResult) {
-
 	// Stub implementation - would analyze validation results and generate recommendations.
 
 	v.logger.Debug("Generating recommendations (stub)")
-
 }
 
 // validateInterfaceImplementation validates specific O-RAN interface implementation.
 
 func (v *Validator) validateInterfaceImplementation(filename, content, interfaceName string, compliance *InterfaceCompliance) error {
-
 	// Stub implementation - would validate interface-specific requirements.
 
 	v.logger.Debug("Validating interface implementation (stub)",
@@ -2082,119 +1816,94 @@ func (v *Validator) validateInterfaceImplementation(filename, content, interface
 		zap.String("file", filename))
 
 	return nil
-
 }
 
 // validateResourceSpecifications validates Kubernetes resource specifications.
 
 func (v *Validator) validateResourceSpecifications(filename, content string, intent *v1.NetworkIntent, result *ResourceValidationResult) error {
-
 	// Stub implementation - would validate resource limits, requests, etc.
 
 	v.logger.Debug("Validating resource specifications (stub)", zap.String("file", filename))
 
 	return nil
-
 }
 
 // validateAgainstResourceConstraints validates against intent resource constraints.
 
 func (v *Validator) validateAgainstResourceConstraints(files map[string]string, constraints *v1.ResourceConstraints, result *ResourceValidationResult) {
-
 	// Stub implementation - would validate against specified constraints.
 
 	v.logger.Debug("Validating against resource constraints (stub)")
-
 }
 
 // KubernetesValidator method stubs.
 
 func (kv *KubernetesValidator) ValidateResource(obj map[string]interface{}, filename string, result *ValidationResult) error {
-
 	// Stub implementation.
 
 	return nil
-
 }
 
 // ORANValidator method stubs.
 
 func (ov *ORANValidator) ValidateComponent(component v1.ORANComponent, files map[string]string, result *ORANComplianceResult) error {
-
 	// Stub implementation.
 
 	return nil
-
 }
 
 // SecurityValidator method stubs.
 
 func (sv *SecurityValidator) ValidateFile(filename, content string, result *SecurityComplianceResult) error {
-
 	// Stub implementation.
 
 	return nil
-
 }
 
 // PolicyValidator method stubs.
 
 func (pv *PolicyValidator) ValidateOrganizationalPolicies(intent *v1.NetworkIntent, files map[string]string, result *PolicyComplianceResult) error {
-
 	// Stub implementation.
 
 	return nil
-
 }
 
 // ValidateCompliancePolicies performs validatecompliancepolicies operation.
 
 func (pv *PolicyValidator) ValidateCompliancePolicies(intent *v1.NetworkIntent, files map[string]string, result *PolicyComplianceResult) error {
-
 	// Stub implementation.
 
 	return nil
-
 }
 
 // Additional helper methods for service, configmap, secret validation.
 
 func (v *Validator) validateService(obj map[string]interface{}, filename string, result *ValidationResult) error {
-
 	// Stub implementation.
 
 	return nil
-
 }
 
 func (v *Validator) validateConfigMap(obj map[string]interface{}, filename string, result *ValidationResult) error {
-
 	// Stub implementation.
 
 	return nil
-
 }
 
 func (v *Validator) validateSecret(obj map[string]interface{}, filename string, result *ValidationResult) error {
-
 	// Stub implementation.
 
 	return nil
-
 }
 
 func (v *Validator) validateNetworkPolicy(obj map[string]interface{}, filename string, result *ValidationResult) error {
-
 	// Stub implementation.
 
 	return nil
-
 }
 
 func (v *Validator) validateGenericKubernetesResource(obj map[string]interface{}, filename string, result *ValidationResult) error {
-
 	// Stub implementation.
 
 	return nil
-
 }

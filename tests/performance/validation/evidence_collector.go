@@ -21,7 +21,6 @@ type EvidenceCollector struct {
 	baselines *BaselineRepository
 
 	// prometheusClient v1.API // TODO: Re-enable when Prometheus integration is needed.
-
 }
 
 // EvidenceReport contains comprehensive evidence for all performance claims.
@@ -75,7 +74,7 @@ type TestMethodology struct {
 
 	SampleSize int `json:"sample_size"`
 
-	Conditions map[string]interface{} `json:"conditions"`
+	Conditions json.RawMessage `json:"conditions"`
 
 	Controls []string `json:"controls"`
 
@@ -115,7 +114,7 @@ type MeasurementData struct {
 
 	CollectionPeriod *TimePeriod `json:"collection_period"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // DataPoint represents a single measurement.
@@ -131,7 +130,7 @@ type DataPoint struct {
 
 	Quality string `json:"quality"` // "good", "suspect", "invalid"
 
-	Context map[string]interface{} `json:"context"`
+	Context json.RawMessage `json:"context"`
 }
 
 // TimePeriod represents a time period.
@@ -753,7 +752,7 @@ type BaselineData struct {
 
 	QualityScore float64 `json:"quality_score"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // EnvironmentInfo contains environment information.
@@ -793,47 +792,37 @@ type ValidationMetadata struct {
 // NewEvidenceCollector creates a new evidence collector.
 
 func NewEvidenceCollector(config *EvidenceRequirements) *EvidenceCollector {
-
 	outputDir := "test-evidence"
 
 	if dir := os.Getenv("EVIDENCE_OUTPUT_DIR"); dir != "" {
-
 		outputDir = dir
-
 	}
 
 	return &EvidenceCollector{
-
 		config: config,
 
 		outputDir: outputDir,
 
 		baselines: NewBaselineRepository(filepath.Join(outputDir, "baselines")),
 	}
-
 }
 
 // NewBaselineRepository creates a new baseline repository.
 
 func NewBaselineRepository(storePath string) *BaselineRepository {
-
 	return &BaselineRepository{
-
 		storePath: storePath,
 
 		baselines: make(map[string]*BaselineData),
 	}
-
 }
 
 // GenerateEvidenceReport generates a comprehensive evidence report.
 
 func (ec *EvidenceCollector) GenerateEvidenceReport(results *ValidationResults) *EvidenceReport {
-
 	log.Printf("Generating comprehensive evidence report...")
 
 	report := &EvidenceReport{
-
 		GeneratedAt: time.Now(),
 
 		ClaimEvidence: make(map[string]*DetailedEvidence),
@@ -876,28 +865,23 @@ func (ec *EvidenceCollector) GenerateEvidenceReport(results *ValidationResults) 
 	log.Printf("Evidence report generated successfully")
 
 	return report
-
 }
 
 // generateDetailedEvidence creates detailed evidence for a single claim.
 
 func (ec *EvidenceCollector) generateDetailedEvidence(claimName string, result *ClaimResult) *DetailedEvidence {
-
 	evidence := &DetailedEvidence{
-
 		ClaimName: claimName,
 	}
 
 	// Generate test methodology documentation.
 
 	evidence.TestMethodology = &TestMethodology{
-
 		TestType: "Performance Validation",
 
 		SampleSize: result.Evidence.SampleSize,
 
 		DataCollection: &DataCollectionMethod{
-
 			Method: "Automated Instrumentation",
 
 			Tools: []string{"Prometheus", "Custom Metrics", "Kubernetes API"},
@@ -921,9 +905,7 @@ func (ec *EvidenceCollector) generateDetailedEvidence(claimName string, result *
 	// Generate time series analysis if time series data is available.
 
 	if len(result.Evidence.TimeSeriesData) > 0 {
-
 		evidence.TimeSeriesAnalysis = ec.generateTimeSeriesAnalysis(result.Evidence.TimeSeriesData)
-
 	}
 
 	// Analyze outliers.
@@ -933,7 +915,6 @@ func (ec *EvidenceCollector) generateDetailedEvidence(claimName string, result *
 	// Create validation results.
 
 	evidence.ValidationResults = &EvidenceValidationResult{
-
 		ClaimValidated: result.Status == "validated",
 
 		ConfidenceLevel: result.Confidence,
@@ -942,19 +923,15 @@ func (ec *EvidenceCollector) generateDetailedEvidence(claimName string, result *
 	}
 
 	return evidence
-
 }
 
 // processRawMeasurements processes and organizes raw measurement data.
 
 func (ec *EvidenceCollector) processRawMeasurements(evidence *ClaimEvidence) *MeasurementData {
-
 	dataPoints := make([]DataPoint, len(evidence.RawData))
 
 	for i, value := range evidence.RawData {
-
 		dataPoints[i] = DataPoint{
-
 			Timestamp: time.Now().Add(-time.Duration(len(evidence.RawData)-i) * time.Second),
 
 			Value: value,
@@ -965,13 +942,11 @@ func (ec *EvidenceCollector) processRawMeasurements(evidence *ClaimEvidence) *Me
 
 			Labels: map[string]string{},
 
-			Context: map[string]interface{}{},
+			Context: json.RawMessage(`{}`),
 		}
-
 	}
 
 	return &MeasurementData{
-
 		DataPoints: dataPoints,
 
 		TotalSamples: len(evidence.RawData),
@@ -983,7 +958,6 @@ func (ec *EvidenceCollector) processRawMeasurements(evidence *ClaimEvidence) *Me
 		MissingData: 0,
 
 		CollectionPeriod: &TimePeriod{
-
 			Start: dataPoints[0].Timestamp,
 
 			End: dataPoints[len(dataPoints)-1].Timestamp,
@@ -991,22 +965,14 @@ func (ec *EvidenceCollector) processRawMeasurements(evidence *ClaimEvidence) *Me
 			Duration: dataPoints[len(dataPoints)-1].Timestamp.Sub(dataPoints[0].Timestamp),
 		},
 
-		Metadata: map[string]interface{}{
-
-			"collection_method": "automated",
-
-			"precision": ec.config.MetricsPrecision,
-		},
+		Metadata: json.RawMessage(`{}`),
 	}
-
 }
 
 // generateStatisticalAnalysis creates comprehensive statistical analysis.
 
 func (ec *EvidenceCollector) generateStatisticalAnalysis(result *ClaimResult) *StatisticalAnalysis {
-
 	analysis := &StatisticalAnalysis{
-
 		DescriptiveStats: result.Statistics,
 	}
 
@@ -1015,7 +981,6 @@ func (ec *EvidenceCollector) generateStatisticalAnalysis(result *ClaimResult) *S
 	if result.HypothesisTest != nil {
 
 		analysis.InferentialStats = &InferentialStats{
-
 			PValue: result.HypothesisTest.PValue,
 
 			TestStatistic: result.HypothesisTest.TestStatistic,
@@ -1034,18 +999,14 @@ func (ec *EvidenceCollector) generateStatisticalAnalysis(result *ClaimResult) *S
 	// Add confidence intervals.
 
 	if result.HypothesisTest != nil && result.HypothesisTest.ConfidenceInterval != nil {
-
 		analysis.ConfidenceIntervals = &ConfidenceIntervals{
-
 			Mean: result.HypothesisTest.ConfidenceInterval,
 		}
-
 	}
 
 	// Add effect size analysis.
 
 	analysis.EffectSizeAnalysis = &EffectSizeAnalysis{
-
 		CohensD: result.HypothesisTest.EffectSize,
 
 		Interpretation: ec.interpretEffectSize(result.HypothesisTest.EffectSize),
@@ -1054,7 +1015,6 @@ func (ec *EvidenceCollector) generateStatisticalAnalysis(result *ClaimResult) *S
 	// Add power analysis.
 
 	analysis.PowerAnalysis = &PowerAnalysis{
-
 		ObservedPower: result.HypothesisTest.Power,
 
 		ActualSampleSize: result.HypothesisTest.SampleSize,
@@ -1065,41 +1025,32 @@ func (ec *EvidenceCollector) generateStatisticalAnalysis(result *ClaimResult) *S
 	}
 
 	return analysis
-
 }
 
 // generateTimeSeriesAnalysis analyzes time series data.
 
 func (ec *EvidenceCollector) generateTimeSeriesAnalysis(timeSeriesData []TimeSeriesPoint) *TimeSeriesAnalysis {
-
 	// Extract values for analysis.
 
 	values := make([]float64, len(timeSeriesData))
 
 	for i, point := range timeSeriesData {
-
 		values[i] = point.Value
-
 	}
 
 	return &TimeSeriesAnalysis{
-
 		TrendAnalysis: ec.analyzeTrend(values),
 
 		// Additional time series analysis would be implemented here.
 
 	}
-
 }
 
 // analyzeTrend performs basic trend analysis.
 
 func (ec *EvidenceCollector) analyzeTrend(values []float64) *TrendAnalysis {
-
 	if len(values) < 2 {
-
 		return &TrendAnalysis{HasTrend: false}
-
 	}
 
 	// Simple linear regression for trend.
@@ -1131,45 +1082,33 @@ func (ec *EvidenceCollector) analyzeTrend(values []float64) *TrendAnalysis {
 	var trendType string
 
 	if math.Abs(slope) < 0.001 {
-
 		trendType = "stable"
-
 	} else if slope > 0 {
-
 		trendType = "increasing"
-
 	} else {
-
 		trendType = "decreasing"
-
 	}
 
 	return &TrendAnalysis{
-
 		HasTrend: math.Abs(slope) >= 0.001,
 
 		TrendType: trendType,
 
 		Slope: slope,
 	}
-
 }
 
 // analyzeOutliers identifies and analyzes outliers in the data.
 
 func (ec *EvidenceCollector) analyzeOutliers(data []float64) *OutlierAnalysis {
-
 	if len(data) < 4 {
-
 		return &OutlierAnalysis{
-
 			OutlierCount: 0,
 
 			OutlierRate: 0,
 
 			DetectionMethod: "insufficient_data",
 		}
-
 	}
 
 	// Calculate IQR method outliers.
@@ -1197,7 +1136,6 @@ func (ec *EvidenceCollector) analyzeOutliers(data []float64) *OutlierAnalysis {
 	var outliers []OutlierData
 
 	for i, value := range data {
-
 		if value < lowerBound || value > upperBound {
 
 			// Calculate z-score for additional information.
@@ -1211,17 +1149,12 @@ func (ec *EvidenceCollector) analyzeOutliers(data []float64) *OutlierAnalysis {
 			severity := "mild"
 
 			if math.Abs(zScore) > 3 {
-
 				severity = "extreme"
-
 			} else if math.Abs(zScore) > 2 {
-
 				severity = "moderate"
-
 			}
 
 			outliers = append(outliers, OutlierData{
-
 				Index: i,
 
 				Value: value,
@@ -1234,11 +1167,9 @@ func (ec *EvidenceCollector) analyzeOutliers(data []float64) *OutlierAnalysis {
 			})
 
 		}
-
 	}
 
 	return &OutlierAnalysis{
-
 		OutlierCount: len(outliers),
 
 		OutlierRate: float64(len(outliers)) / float64(len(data)),
@@ -1247,37 +1178,27 @@ func (ec *EvidenceCollector) analyzeOutliers(data []float64) *OutlierAnalysis {
 
 		Outliers: outliers,
 	}
-
 }
 
 // Helper methods for calculations.
 
 func (ec *EvidenceCollector) calculateMean(data []float64) float64 {
-
 	if len(data) == 0 {
-
 		return 0
-
 	}
 
 	sum := 0.0
 
 	for _, v := range data {
-
 		sum += v
-
 	}
 
 	return sum / float64(len(data))
-
 }
 
 func (ec *EvidenceCollector) calculateStdDev(data []float64, mean float64) float64 {
-
 	if len(data) <= 1 {
-
 		return 0
-
 	}
 
 	sumSquaredDiffs := 0.0
@@ -1293,35 +1214,23 @@ func (ec *EvidenceCollector) calculateStdDev(data []float64, mean float64) float
 	variance := sumSquaredDiffs / float64(len(data)-1)
 
 	return math.Sqrt(variance)
-
 }
 
 func (ec *EvidenceCollector) interpretEffectSize(effectSize float64) string {
-
 	absEffect := math.Abs(effectSize)
 
 	if absEffect < 0.2 {
-
 		return "small effect"
-
 	} else if absEffect < 0.5 {
-
 		return "medium effect"
-
 	} else if absEffect < 0.8 {
-
 		return "large effect"
-
 	} else {
-
 		return "very large effect"
-
 	}
-
 }
 
 func (ec *EvidenceCollector) assessDataPointQuality(value float64, allData []float64) string {
-
 	// Simple quality assessment based on whether the value is an outlier.
 
 	mean := ec.calculateMean(allData)
@@ -1331,17 +1240,12 @@ func (ec *EvidenceCollector) assessDataPointQuality(value float64, allData []flo
 	zScore := math.Abs((value - mean) / stdDev)
 
 	if zScore > 3 {
-
 		return "suspect"
-
 	} else if zScore > 2 {
-
 		return "questionable"
-
 	}
 
 	return "good"
-
 }
 
 // Additional methods for generating other components of the evidence report would be implemented here...
@@ -1349,11 +1253,9 @@ func (ec *EvidenceCollector) assessDataPointQuality(value float64, allData []flo
 // (generateStatisticalSummary, generateHistoricalComparison, generateEvidenceBasedRecommendations, etc.).
 
 func (ec *EvidenceCollector) generateStatisticalSummary(results *ValidationResults) *StatisticalSummary {
-
 	// This would implement comprehensive statistical summary generation.
 
 	return &StatisticalSummary{
-
 		TotalClaims: results.Summary.TotalClaims,
 
 		ValidatedClaims: results.Summary.ValidatedClaims,
@@ -1363,40 +1265,31 @@ func (ec *EvidenceCollector) generateStatisticalSummary(results *ValidationResul
 		AverageQualityScore: 85.0, // Placeholder
 
 	}
-
 }
 
 func (ec *EvidenceCollector) generateHistoricalComparison(results *ValidationResults) *HistoricalComparison {
-
 	// This would implement historical comparison logic.
 
 	return &HistoricalComparison{
-
 		BaselineDate: time.Now().AddDate(0, -1, 0), // 1 month ago
 
 		ComparisonResults: []ComparisonResult{},
 	}
-
 }
 
 func (ec *EvidenceCollector) generateEvidenceBasedRecommendations(results *ValidationResults) []EvidenceBasedRecommendation {
-
 	// This would implement recommendation generation logic.
 
 	return []EvidenceBasedRecommendation{}
-
 }
 
 func (ec *EvidenceCollector) assessEvidenceQuality(report *EvidenceReport) *EvidenceQualityAssessment {
-
 	// This would implement comprehensive quality assessment.
 
 	return &EvidenceQualityAssessment{
-
 		OverallScore: 85.0,
 
 		DataQuality: &DataQualityScore{
-
 			Completeness: 95.0,
 
 			Accuracy: 90.0,
@@ -1410,23 +1303,18 @@ func (ec *EvidenceCollector) assessEvidenceQuality(report *EvidenceReport) *Evid
 			OverallScore: 91.8,
 		},
 	}
-
 }
 
 func (ec *EvidenceCollector) calculateQualityScore(result *ClaimResult) float64 {
-
 	// This would implement quality score calculation.
 
 	return 85.0 // Placeholder
-
 }
 
 func (ec *EvidenceCollector) gatherEnvironmentInfo() *EnvironmentInfo {
-
 	// This would gather actual environment information.
 
 	return &EnvironmentInfo{
-
 		Platform: "kubernetes",
 
 		Architecture: "amd64",
@@ -1435,17 +1323,13 @@ func (ec *EvidenceCollector) gatherEnvironmentInfo() *EnvironmentInfo {
 
 		NodeCount: 3,
 	}
-
 }
 
 func (ec *EvidenceCollector) saveEvidenceReport(report *EvidenceReport) error {
-
 	// Ensure output directory exists.
 
 	if err := os.MkdirAll(ec.outputDir, 0o755); err != nil {
-
 		return fmt.Errorf("failed to create output directory: %w", err)
-
 	}
 
 	// Generate filename with timestamp.
@@ -1459,23 +1343,18 @@ func (ec *EvidenceCollector) saveEvidenceReport(report *EvidenceReport) error {
 	// Marshal report to JSON.
 
 	data, err := json.MarshalIndent(report, "", "  ")
-
 	if err != nil {
-
 		return fmt.Errorf("failed to marshal evidence report: %w", err)
-
 	}
 
 	// Write to file.
 
 	if err := os.WriteFile(filepath, data, 0o640); err != nil {
-
 		return fmt.Errorf("failed to write evidence report: %w", err)
-
 	}
 
 	log.Printf("Evidence report saved to: %s", filepath)
 
 	return nil
-
 }
+

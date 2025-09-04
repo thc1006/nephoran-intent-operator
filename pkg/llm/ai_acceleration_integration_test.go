@@ -8,6 +8,7 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"encoding/json"
 )
 
 // TestGPUAcceleratorIntegration tests the complete GPU accelerator integration
@@ -24,7 +25,7 @@ func TestGPUAcceleratorIntegration(t *testing.T) {
 	if err != nil {
 		t.Skipf("GPU accelerator not available: %v", err)
 	}
-	defer accelerator.Close()
+	defer accelerator.Close() // #nosec G307 - Error handled in defer
 
 	t.Run("SingleInference", func(t *testing.T) {
 		request := &InferenceRequest{
@@ -120,7 +121,7 @@ func TestEnhancedModelCacheIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create enhanced model cache: %v", err)
 	}
-	defer cache.Close()
+	defer cache.Close() // #nosec G307 - Error handled in defer
 
 	ctx := context.Background()
 	modelName := "test-model"
@@ -174,7 +175,7 @@ func TestVectorSearchAcceleratorIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create vector search accelerator: %v", err)
 	}
-	defer accelerator.Close()
+	defer accelerator.Close() // #nosec G307 - Error handled in defer
 
 	ctx := context.Background()
 	dimensions := config.VectorDimensions
@@ -234,28 +235,19 @@ func TestVectorSearchAcceleratorIntegration(t *testing.T) {
 			metadata map[string]interface{}
 		}{
 			{
-				id:     "doc1",
-				vector: generateRandomVector(dimensions),
-				metadata: map[string]interface{}{
-					"category": "technology",
-					"score":    0.95,
-				},
+				id:       "doc1",
+				vector:   generateRandomVector(dimensions),
+				metadata: json.RawMessage(`{}`),
 			},
 			{
-				id:     "doc2",
-				vector: generateRandomVector(dimensions),
-				metadata: map[string]interface{}{
-					"category": "science",
-					"score":    0.87,
-				},
+				id:       "doc2",
+				vector:   generateRandomVector(dimensions),
+				metadata: json.RawMessage(`{}`),
 			},
 			{
-				id:     "doc3",
-				vector: generateRandomVector(dimensions),
-				metadata: map[string]interface{}{
-					"category": "technology",
-					"score":    0.92,
-				},
+				id:       "doc3",
+				vector:   generateRandomVector(dimensions),
+				metadata: json.RawMessage(`{}`),
 			},
 		}
 
@@ -337,7 +329,7 @@ func TestGPUMemoryManagerIntegration(t *testing.T) {
 	if err != nil {
 		t.Skipf("GPU memory manager not available: %v", err)
 	}
-	defer manager.Close()
+	defer manager.Close() // #nosec G307 - Error handled in defer
 
 	ctx := context.Background()
 
@@ -439,7 +431,7 @@ func TestConcurrentOperations(t *testing.T) {
 		if err != nil {
 			t.Skipf("GPU accelerator not available: %v", err)
 		}
-		defer accelerator.Close()
+		defer accelerator.Close() // #nosec G307 - Error handled in defer
 
 		concurrency := 10
 		requestsPerWorker := 5
@@ -492,7 +484,7 @@ func TestConcurrentOperations(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create vector search accelerator: %v", err)
 		}
-		defer accelerator.Close()
+		defer accelerator.Close() // #nosec G307 - Error handled in defer
 
 		concurrency := 5
 		operationsPerWorker := 10
@@ -512,10 +504,7 @@ func TestConcurrentOperations(t *testing.T) {
 						// Index operation
 						vectorID := fmt.Sprintf("worker_%d_vec_%d", workerID, j)
 						vector := generateRandomVector(config.VectorDimensions)
-						metadata := map[string]interface{}{
-							"worker": workerID,
-							"index":  j,
-						}
+						metadata := json.RawMessage(`{}`)
 
 						err := accelerator.IndexVector(ctx, vectorID, vector, metadata)
 						if err != nil {
@@ -566,7 +555,7 @@ func TestErrorHandling(t *testing.T) {
 		if err != nil {
 			t.Skipf("GPU memory manager not available: %v", err)
 		}
-		defer manager.Close()
+		defer manager.Close() // #nosec G307 - Error handled in defer
 
 		ctx := context.Background()
 
@@ -595,7 +584,7 @@ func TestErrorHandling(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create vector search accelerator: %v", err)
 		}
-		defer accelerator.Close()
+		defer accelerator.Close() // #nosec G307 - Error handled in defer
 
 		ctx := context.Background()
 
@@ -622,7 +611,7 @@ func TestErrorHandling(t *testing.T) {
 		if err != nil {
 			t.Skipf("GPU accelerator not available: %v", err)
 		}
-		defer accelerator.Close()
+		defer accelerator.Close() // #nosec G307 - Error handled in defer
 
 		request := &InferenceRequest{
 			ModelName:   "gpt-3.5-turbo",

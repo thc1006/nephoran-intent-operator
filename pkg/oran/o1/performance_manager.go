@@ -1,7 +1,9 @@
 package o1
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"net/http"
 	"sort"
@@ -124,7 +126,6 @@ type MeasurementObject struct {
 	UpdatedAt time.Time `json:"updated_at"`
 
 	Status string `json:"status"` // ACTIVE, INACTIVE, DEPRECATED
-
 }
 
 // MeasurementType defines a specific measurement within an object.
@@ -181,7 +182,6 @@ type MeasurementObjectGroup struct {
 	Priority int `json:"priority"`
 
 	CollectionPolicy string `json:"collection_policy"` // ALL, SELECTIVE, CONDITIONAL
-
 }
 
 // MeasurementCapabilities describes system measurement capabilities.
@@ -251,7 +251,7 @@ type MeasurementCollection struct {
 
 	Filter *MeasurementFilter `json:"filter,omitempty"`
 
-	Configuration map[string]interface{} `json:"configuration"`
+	Configuration json.RawMessage `json:"configuration"`
 
 	LastCollection time.Time `json:"last_collection"`
 
@@ -290,7 +290,6 @@ type ValueFilter struct {
 	Value interface{} `json:"value"`
 
 	Value2 interface{} `json:"value2,omitempty"` // For BETWEEN operator
-
 }
 
 // MeasurementCollector collects data for a specific measurement collection.
@@ -350,7 +349,7 @@ type MeasurementData struct {
 
 	Quality string `json:"quality"` // GOOD, QUESTIONABLE, BAD
 
-	Attributes map[string]interface{} `json:"attributes"`
+	Attributes json.RawMessage `json:"attributes"`
 
 	CollectionID string `json:"collection_id"`
 
@@ -398,7 +397,7 @@ type AggregatedData struct {
 
 	Quality string `json:"quality"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // BinManager manages data bins for different time granularities.
@@ -620,7 +619,7 @@ type HistoricalQuery struct {
 
 	Aggregation string `json:"aggregation,omitempty"`
 
-	Filters map[string]interface{} `json:"filters,omitempty"`
+	Filters json.RawMessage `json:"filters,omitempty"`
 
 	OrderBy string `json:"order_by,omitempty"`
 
@@ -750,7 +749,7 @@ type AnomalyPrediction struct {
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // AnomalyFeedback provides feedback for model improvement.
@@ -776,7 +775,7 @@ type ModelInfo struct {
 
 	LastTrained time.Time `json:"last_trained"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 }
 
 // BaselineManager manages performance baselines.
@@ -858,7 +857,7 @@ type AnomalyAlert struct {
 
 	ResolvedAt time.Time `json:"resolved_at,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // AnomalyEscalationRule defines anomaly alert escalation.
@@ -958,7 +957,7 @@ type Visualization struct {
 
 	DataSeries []string `json:"data_series"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 }
 
 // ReportGenerator interface for different report generation methods.
@@ -986,7 +985,7 @@ type GeneratedReport struct {
 
 	Size int64 `json:"size"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 
 	Status string `json:"status"`
 }
@@ -1080,7 +1079,7 @@ type CalculatedKPI struct {
 
 	Period time.Duration `json:"period"`
 
-	InputData map[string]interface{} `json:"input_data"`
+	InputData json.RawMessage `json:"input_data"`
 
 	Quality string `json:"quality"`
 
@@ -1140,7 +1139,7 @@ type GrafanaDashboard struct {
 
 	Tags []string `json:"tags"`
 
-	Dashboard map[string]interface{} `json:"dashboard"`
+	Dashboard json.RawMessage `json:"dashboard"`
 
 	FolderID int `json:"folder_id"`
 
@@ -1160,7 +1159,7 @@ type GrafanaDatasource struct {
 
 	URL string `json:"url"`
 
-	Settings map[string]interface{} `json:"settings"`
+	Settings json.RawMessage `json:"settings"`
 }
 
 // GrafanaAlertRule represents a Grafana alert rule.
@@ -1174,7 +1173,7 @@ type GrafanaAlertRule struct {
 
 	Datasource string `json:"datasource"`
 
-	Settings map[string]interface{} `json:"settings"`
+	Settings json.RawMessage `json:"settings"`
 
 	Frequency time.Duration `json:"frequency"`
 
@@ -1262,13 +1261,9 @@ type CollectionResult struct {
 // NewCompletePerformanceManager creates a new complete performance manager.
 
 func NewCompletePerformanceManager(config *PerformanceManagerConfig) *CompletePerformanceManager {
-
 	if config == nil {
-
 		config = &PerformanceManagerConfig{
-
 			CollectionIntervals: map[string]time.Duration{
-
 				"default": 15 * time.Second,
 
 				"rt": 1 * time.Second,
@@ -1277,7 +1272,6 @@ func NewCompletePerformanceManager(config *PerformanceManagerConfig) *CompletePe
 			},
 
 			RetentionPeriods: map[string]time.Duration{
-
 				"raw": 7 * 24 * time.Hour,
 
 				"aggregated": 90 * 24 * time.Hour,
@@ -1299,11 +1293,9 @@ func NewCompletePerformanceManager(config *PerformanceManagerConfig) *CompletePe
 
 			MaxConcurrentCollectors: 100,
 		}
-
 	}
 
 	cpm := &CompletePerformanceManager{
-
 		config: config,
 
 		measurementRegistry: NewMeasurementRegistry(),
@@ -1330,15 +1322,11 @@ func NewCompletePerformanceManager(config *PerformanceManagerConfig) *CompletePe
 	// Initialize optional components.
 
 	if config.EnableRealTimeStreaming {
-
 		cpm.streamingManager = NewRealTimeStreamingManager()
-
 	}
 
 	if config.EnableAnomalyDetection {
-
 		cpm.anomalyDetector = NewPerformanceAnomalyDetector(&AnomalyDetectionConfig{
-
 			EnabledModels: []string{"statistical", "ml"},
 
 			TrainingInterval: 24 * time.Hour,
@@ -1349,13 +1337,10 @@ func NewCompletePerformanceManager(config *PerformanceManagerConfig) *CompletePe
 
 			BaselineUpdate: 7 * 24 * time.Hour,
 		})
-
 	}
 
 	if config.EnableReporting {
-
 		cpm.reportGenerator = NewPerformanceReportGenerator()
-
 	}
 
 	// Initialize Prometheus client if configured.
@@ -1365,9 +1350,7 @@ func NewCompletePerformanceManager(config *PerformanceManagerConfig) *CompletePe
 		client, err := api.NewClient(api.Config{Address: config.PrometheusURL})
 
 		if err == nil {
-
 			cpm.prometheusClient = client
-
 		}
 
 	}
@@ -1375,22 +1358,17 @@ func NewCompletePerformanceManager(config *PerformanceManagerConfig) *CompletePe
 	// Initialize Grafana integration if configured.
 
 	if config.GrafanaURL != "" {
-
 		cpm.grafanaIntegration = NewGrafanaIntegration(&GrafanaConfig{
-
 			URL: config.GrafanaURL,
 		})
-
 	}
 
 	return cpm
-
 }
 
 // Start starts the performance manager.
 
 func (cpm *CompletePerformanceManager) Start(ctx context.Context) error {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("starting complete performance manager")
@@ -1400,65 +1378,47 @@ func (cpm *CompletePerformanceManager) Start(ctx context.Context) error {
 	// Start data collector.
 
 	if err := cpm.dataCollector.Start(ctx); err != nil {
-
 		return fmt.Errorf("failed to start data collector: %w", err)
-
 	}
 
 	// Start threshold monitoring.
 
 	if err := cpm.thresholdManager.Start(ctx); err != nil {
-
 		return fmt.Errorf("failed to start threshold manager: %w", err)
-
 	}
 
 	// Start streaming if enabled.
 
 	if cpm.streamingManager != nil {
-
 		if err := cpm.streamingManager.Start(ctx); err != nil {
-
 			logger.Error(err, "failed to start streaming manager")
-
 		}
-
 	}
 
 	// Start anomaly detection if enabled.
 
 	if cpm.anomalyDetector != nil {
-
 		if err := cpm.anomalyDetector.Start(ctx); err != nil {
-
 			logger.Error(err, "failed to start anomaly detector")
-
 		}
-
 	}
 
 	// Start report generation if enabled.
 
 	if cpm.reportGenerator != nil {
-
 		if err := cpm.reportGenerator.Start(ctx); err != nil {
-
 			logger.Error(err, "failed to start report generator")
-
 		}
-
 	}
 
 	logger.Info("complete performance manager started successfully")
 
 	return nil
-
 }
 
 // Stop stops the performance manager.
 
 func (cpm *CompletePerformanceManager) Stop(ctx context.Context) error {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("stopping complete performance manager")
@@ -1484,45 +1444,33 @@ func (cpm *CompletePerformanceManager) Stop(ctx context.Context) error {
 	// Stop components.
 
 	if cpm.dataCollector != nil {
-
 		cpm.dataCollector.Stop(ctx)
-
 	}
 
 	if cpm.thresholdManager != nil {
-
 		cpm.thresholdManager.Stop(ctx)
-
 	}
 
 	if cpm.streamingManager != nil {
-
 		cpm.streamingManager.Stop(ctx)
-
 	}
 
 	if cpm.anomalyDetector != nil {
-
 		cpm.anomalyDetector.Stop(ctx)
-
 	}
 
 	if cpm.reportGenerator != nil {
-
 		cpm.reportGenerator.Stop(ctx)
-
 	}
 
 	logger.Info("complete performance manager stopped")
 
 	return nil
-
 }
 
 // StartMeasurementCollection starts a new measurement collection.
 
 func (cpm *CompletePerformanceManager) StartMeasurementCollection(ctx context.Context, req *MeasurementCollectionRequest) (*MeasurementCollection, error) {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("starting measurement collection", "objectID", req.ObjectID, "elementID", req.ElementID)
@@ -1530,15 +1478,12 @@ func (cpm *CompletePerformanceManager) StartMeasurementCollection(ctx context.Co
 	// Validate request.
 
 	if err := cpm.validateCollectionRequest(req); err != nil {
-
 		return nil, fmt.Errorf("invalid collection request: %w", err)
-
 	}
 
 	// Create collection.
 
 	collection := &MeasurementCollection{
-
 		ID: cpm.generateCollectionID(),
 
 		ObjectID: req.ObjectID,
@@ -1565,11 +1510,8 @@ func (cpm *CompletePerformanceManager) StartMeasurementCollection(ctx context.Co
 	// Create collector.
 
 	measurementObj, err := cpm.measurementRegistry.GetObject(req.ObjectID)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("measurement object not found: %w", err)
-
 	}
 
 	collector := NewMeasurementCollector(collection, measurementObj, cpm.dataCollector)
@@ -1577,9 +1519,7 @@ func (cpm *CompletePerformanceManager) StartMeasurementCollection(ctx context.Co
 	// Start collector.
 
 	if err := collector.Start(ctx); err != nil {
-
 		return nil, fmt.Errorf("failed to start collector: %w", err)
-
 	}
 
 	// Store collector.
@@ -1593,13 +1533,11 @@ func (cpm *CompletePerformanceManager) StartMeasurementCollection(ctx context.Co
 	logger.Info("measurement collection started", "collectionID", collection.ID)
 
 	return collection, nil
-
 }
 
 // StopMeasurementCollection stops a measurement collection.
 
 func (cpm *CompletePerformanceManager) StopMeasurementCollection(ctx context.Context, collectionID string) error {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("stopping measurement collection", "collectionID", collectionID)
@@ -1609,17 +1547,13 @@ func (cpm *CompletePerformanceManager) StopMeasurementCollection(ctx context.Con
 	collector, exists := cpm.collectors[collectionID]
 
 	if exists {
-
 		delete(cpm.collectors, collectionID)
-
 	}
 
 	cpm.collectorsMux.Unlock()
 
 	if !exists {
-
 		return fmt.Errorf("collection not found: %s", collectionID)
-
 	}
 
 	collector.Stop()
@@ -1627,13 +1561,11 @@ func (cpm *CompletePerformanceManager) StopMeasurementCollection(ctx context.Con
 	logger.Info("measurement collection stopped", "collectionID", collectionID)
 
 	return nil
-
 }
 
 // GetMeasurementData retrieves measurement data with optional aggregation.
 
 func (cpm *CompletePerformanceManager) GetMeasurementData(ctx context.Context, query *MeasurementQuery) (*MeasurementQueryResult, error) {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("querying measurement data", "objectIDs", query.ObjectIDs, "startTime", query.StartTime)
@@ -1645,7 +1577,6 @@ func (cpm *CompletePerformanceManager) GetMeasurementData(ctx context.Context, q
 	if query.StartTime.Before(time.Now().Add(-time.Hour)) {
 
 		histQuery := &HistoricalQuery{
-
 			ObjectIDs: query.ObjectIDs,
 
 			MeasurementTypes: query.MeasurementTypes,
@@ -1662,11 +1593,8 @@ func (cpm *CompletePerformanceManager) GetMeasurementData(ctx context.Context, q
 		var err error
 
 		historicalData, err = cpm.historicalManager.Query(ctx, histQuery)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to query historical data: %w", err)
-
 		}
 
 	}
@@ -1676,9 +1604,7 @@ func (cpm *CompletePerformanceManager) GetMeasurementData(ctx context.Context, q
 	var recentData []*MeasurementData
 
 	if query.EndTime.After(time.Now().Add(-time.Hour)) {
-
 		recentData = cpm.dataCollector.QueryBuffer(query)
-
 	}
 
 	// Combine and sort data.
@@ -1686,9 +1612,7 @@ func (cpm *CompletePerformanceManager) GetMeasurementData(ctx context.Context, q
 	allData := append(historicalData, recentData...)
 
 	sort.Slice(allData, func(i, j int) bool {
-
 		return allData[i].Timestamp.Before(allData[j].Timestamp)
-
 	})
 
 	// Apply aggregation if requested.
@@ -1700,17 +1624,13 @@ func (cpm *CompletePerformanceManager) GetMeasurementData(ctx context.Context, q
 		var err error
 
 		aggregatedData, err = cpm.aggregationEngine.AggregateData(allData, query.Aggregation, query.Granularity)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to aggregate data: %w", err)
-
 		}
 
 	}
 
 	result := &MeasurementQueryResult{
-
 		Query: query,
 
 		RawData: allData,
@@ -1722,7 +1642,6 @@ func (cpm *CompletePerformanceManager) GetMeasurementData(ctx context.Context, q
 		DataPointCount: len(allData),
 
 		TimeRange: &TimeRange{
-
 			StartTime: query.StartTime,
 
 			EndTime: query.EndTime,
@@ -1732,25 +1651,21 @@ func (cpm *CompletePerformanceManager) GetMeasurementData(ctx context.Context, q
 	logger.Info("measurement data query completed", "dataPoints", len(allData))
 
 	return result, nil
-
 }
 
 // SetPerformanceThreshold sets a performance threshold.
 
 func (cpm *CompletePerformanceManager) SetPerformanceThreshold(ctx context.Context, threshold *PerformanceThreshold) error {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("setting performance threshold", "thresholdID", threshold.ID, "objectID", threshold.ObjectID)
 
 	return cpm.thresholdManager.SetThreshold(ctx, threshold)
-
 }
 
 // GetPerformanceStatistics returns comprehensive performance statistics.
 
 func (cpm *CompletePerformanceManager) GetPerformanceStatistics(ctx context.Context) (*PerformanceStatistics, error) {
-
 	cpm.collectorsMux.RLock()
 
 	activeCollectors := len(cpm.collectors)
@@ -1758,7 +1673,6 @@ func (cpm *CompletePerformanceManager) GetPerformanceStatistics(ctx context.Cont
 	cpm.collectorsMux.RUnlock()
 
 	stats := &PerformanceStatistics{
-
 		ActiveCollectors: activeCollectors,
 
 		TotalMeasurementObjects: len(cpm.measurementRegistry.objects),
@@ -1773,137 +1687,104 @@ func (cpm *CompletePerformanceManager) GetPerformanceStatistics(ctx context.Cont
 	}
 
 	if cpm.thresholdManager != nil {
-
 		stats.ThresholdStatistics = cpm.thresholdManager.GetStatistics()
-
 	}
 
 	if cpm.anomalyDetector != nil {
-
 		stats.AnomalyStatistics = cpm.anomalyDetector.GetStatistics()
-
 	}
 
 	if cpm.streamingManager != nil {
-
 		stats.StreamingStatistics = cpm.streamingManager.GetStatistics()
-
 	}
 
 	return stats, nil
-
 }
 
 // Helper methods and placeholder implementations.
 
 func (cpm *CompletePerformanceManager) validateCollectionRequest(req *MeasurementCollectionRequest) error {
-
 	if req.ObjectID == "" {
-
 		return fmt.Errorf("object ID is required")
-
 	}
 
 	if req.ElementID == "" {
-
 		return fmt.Errorf("element ID is required")
-
 	}
 
 	if len(req.MeasurementTypes) == 0 {
-
 		return fmt.Errorf("at least one measurement type is required")
-
 	}
 
 	return nil
-
 }
 
 func (cpm *CompletePerformanceManager) generateCollectionID() string {
-
 	return fmt.Sprintf("collection-%d", time.Now().UnixNano())
-
 }
 
 func (cpm *CompletePerformanceManager) calculateDataRate() float64 {
-
 	// Placeholder - would calculate actual data rate.
 
 	return 1000.0
-
 }
 
 func (cpm *CompletePerformanceManager) calculateStorageUtilization() float64 {
-
 	// Placeholder - would calculate storage utilization.
 
 	return 0.75
-
 }
 
 func (cpm *CompletePerformanceManager) assessSystemHealth() string {
-
 	// Placeholder - would assess overall system health.
 
 	return "HEALTHY"
-
 }
 
 func initializePerformanceMetrics() *PerformanceManagerMetrics {
-
 	return &PerformanceManagerMetrics{
-
 		DataPointsCollected: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "oran_performance_data_points_collected_total",
 
 			Help: "Total number of performance data points collected",
 		}),
 
 		CollectionErrors: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "oran_performance_collection_errors_total",
 
 			Help: "Total number of performance collection errors",
 		}),
 
 		AggregationLatency: promauto.NewHistogram(prometheus.HistogramOpts{
-
 			Name: "oran_performance_aggregation_duration_seconds",
 
 			Help: "Duration of performance data aggregation operations",
 		}),
 
 		ThresholdCrossings: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "oran_performance_threshold_crossings_total",
 
 			Help: "Total number of performance threshold crossings",
 		}),
 
 		AnomaliesDetected: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "oran_performance_anomalies_detected_total",
 
 			Help: "Total number of performance anomalies detected",
 		}),
 
 		ReportsGenerated: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "oran_performance_reports_generated_total",
 
 			Help: "Total number of performance reports generated",
 		}),
 
 		ActiveStreams: promauto.NewGauge(prometheus.GaugeOpts{
-
 			Name: "oran_performance_active_streams",
 
 			Help: "Number of active performance data streams",
 		}),
 	}
-
 }
 
 // Request/Response structures.
@@ -1925,7 +1806,7 @@ type MeasurementCollectionRequest struct {
 
 	Filter *MeasurementFilter `json:"filter,omitempty"`
 
-	Configuration map[string]interface{} `json:"configuration,omitempty"`
+	Configuration json.RawMessage `json:"configuration,omitempty"`
 }
 
 // MeasurementQuery represents a query for measurement data.
@@ -1943,7 +1824,7 @@ type MeasurementQuery struct {
 
 	Aggregation string `json:"aggregation,omitempty"`
 
-	Filters map[string]interface{} `json:"filters,omitempty"`
+	Filters json.RawMessage `json:"filters,omitempty"`
 
 	Limit int `json:"limit,omitempty"`
 }
@@ -2025,9 +1906,7 @@ type StreamingStatistics struct {
 // NewMeasurementRegistry performs newmeasurementregistry operation.
 
 func NewMeasurementRegistry() *MeasurementRegistry {
-
 	return &MeasurementRegistry{
-
 		objects: make(map[string]*MeasurementObject),
 
 		types: make(map[string]*MeasurementType),
@@ -2035,7 +1914,6 @@ func NewMeasurementRegistry() *MeasurementRegistry {
 		objectGroups: make(map[string]*MeasurementObjectGroup),
 
 		capabilities: &MeasurementCapabilities{
-
 			MaxBinCount: 1000,
 
 			MaxMeasurementObjectCount: 10000,
@@ -2055,13 +1933,11 @@ func NewMeasurementRegistry() *MeasurementRegistry {
 			SupportedReportingFormats: []string{"JSON", "XML", "CSV", "PROTOBUF"},
 		},
 	}
-
 }
 
 // GetObject performs getobject operation.
 
 func (mr *MeasurementRegistry) GetObject(objectID string) (*MeasurementObject, error) {
-
 	mr.mutex.RLock()
 
 	defer mr.mutex.RUnlock()
@@ -2069,21 +1945,16 @@ func (mr *MeasurementRegistry) GetObject(objectID string) (*MeasurementObject, e
 	obj, exists := mr.objects[objectID]
 
 	if !exists {
-
 		return nil, fmt.Errorf("measurement object not found: %s", objectID)
-
 	}
 
 	return obj, nil
-
 }
 
 // NewPerformanceDataCollector performs newperformancedatacollector operation.
 
 func NewPerformanceDataCollector(config *PerformanceManagerConfig, registry *MeasurementRegistry) *PerformanceDataCollector {
-
 	return &PerformanceDataCollector{
-
 		config: config,
 
 		activeCollections: make(map[string]*MeasurementCollection),
@@ -2094,50 +1965,39 @@ func NewPerformanceDataCollector(config *PerformanceManagerConfig, registry *Mea
 
 		netconfClients: make(map[string]*NetconfClient),
 	}
-
 }
 
 // Start performs start operation.
 
 func (pdc *PerformanceDataCollector) Start(ctx context.Context) error {
-
 	return pdc.collectorPool.Start(ctx)
-
 }
 
 // Stop performs stop operation.
 
 func (pdc *PerformanceDataCollector) Stop(ctx context.Context) error {
-
 	return pdc.collectorPool.Stop(ctx)
-
 }
 
 // QueryBuffer performs querybuffer operation.
 
 func (pdc *PerformanceDataCollector) QueryBuffer(query *MeasurementQuery) []*MeasurementData {
-
 	return pdc.dataBuffer.Query(query)
-
 }
 
 // NewCircularDataBuffer performs newcirculardatabuffer operation.
 
 func NewCircularDataBuffer(maxSize int) *CircularDataBuffer {
-
 	return &CircularDataBuffer{
-
 		data: make([]*MeasurementData, maxSize),
 
 		maxSize: maxSize,
 	}
-
 }
 
 // Query performs query operation.
 
 func (cdb *CircularDataBuffer) Query(query *MeasurementQuery) []*MeasurementData {
-
 	cdb.mutex.RLock()
 
 	defer cdb.mutex.RUnlock()
@@ -2153,23 +2013,18 @@ func (cdb *CircularDataBuffer) Query(query *MeasurementQuery) []*MeasurementData
 		data := cdb.data[idx]
 
 		if data != nil && data.Timestamp.After(query.StartTime) && data.Timestamp.Before(query.EndTime) {
-
 			result = append(result, data)
-
 		}
 
 	}
 
 	return result
-
 }
 
 // NewCollectorWorkerPool performs newcollectorworkerpool operation.
 
 func NewCollectorWorkerPool(workers int) *CollectorWorkerPool {
-
 	return &CollectorWorkerPool{
-
 		workers: workers,
 
 		taskQueue: make(chan *CollectionTask, workers*2),
@@ -2178,13 +2033,11 @@ func NewCollectorWorkerPool(workers int) *CollectorWorkerPool {
 
 		stopChan: make(chan struct{}),
 	}
-
 }
 
 // Start performs start operation.
 
 func (cwp *CollectorWorkerPool) Start(ctx context.Context) error {
-
 	cwp.running = true
 
 	for range cwp.workers {
@@ -2196,13 +2049,11 @@ func (cwp *CollectorWorkerPool) Start(ctx context.Context) error {
 	}
 
 	return nil
-
 }
 
 // Stop performs stop operation.
 
 func (cwp *CollectorWorkerPool) Stop(ctx context.Context) error {
-
 	cwp.running = false
 
 	close(cwp.stopChan)
@@ -2210,15 +2061,12 @@ func (cwp *CollectorWorkerPool) Stop(ctx context.Context) error {
 	cwp.workerWg.Wait()
 
 	return nil
-
 }
 
 func (cwp *CollectorWorkerPool) worker(ctx context.Context) {
-
 	defer cwp.workerWg.Done()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -2244,17 +2092,13 @@ func (cwp *CollectorWorkerPool) worker(ctx context.Context) {
 			}
 
 		}
-
 	}
-
 }
 
 func (cwp *CollectorWorkerPool) processTask(ctx context.Context, task *CollectionTask) *CollectionResult {
-
 	// Placeholder - would implement actual data collection.
 
 	return &CollectionResult{
-
 		TaskID: task.CollectionID,
 
 		Success: true,
@@ -2265,15 +2109,12 @@ func (cwp *CollectorWorkerPool) processTask(ctx context.Context, task *Collectio
 
 		Duration: time.Millisecond * 100,
 	}
-
 }
 
 // NewMeasurementCollector performs newmeasurementcollector operation.
 
 func NewMeasurementCollector(collection *MeasurementCollection, obj *MeasurementObject, dataCollector *PerformanceDataCollector) *MeasurementCollector {
-
 	return &MeasurementCollector{
-
 		collection: collection,
 
 		measurementObj: obj,
@@ -2282,13 +2123,11 @@ func NewMeasurementCollector(collection *MeasurementCollection, obj *Measurement
 
 		lastValue: make(map[string]interface{}),
 	}
-
 }
 
 // Start performs start operation.
 
 func (mc *MeasurementCollector) Start(ctx context.Context) error {
-
 	mc.running = true
 
 	mc.ticker = time.NewTicker(mc.collection.CollectionInterval)
@@ -2296,27 +2135,20 @@ func (mc *MeasurementCollector) Start(ctx context.Context) error {
 	go mc.collectionLoop(ctx)
 
 	return nil
-
 }
 
 // Stop performs stop operation.
 
 func (mc *MeasurementCollector) Stop() {
-
 	mc.running = false
 
 	if mc.ticker != nil {
-
 		mc.ticker.Stop()
-
 	}
-
 }
 
 func (mc *MeasurementCollector) collectionLoop(ctx context.Context) {
-
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -2326,21 +2158,16 @@ func (mc *MeasurementCollector) collectionLoop(ctx context.Context) {
 		case <-mc.ticker.C:
 
 			if !mc.running {
-
 				return
-
 			}
 
 			mc.collectData(ctx)
 
 		}
-
 	}
-
 }
 
 func (mc *MeasurementCollector) collectData(ctx context.Context) {
-
 	// Placeholder - would implement actual measurement collection.
 
 	mc.mutex.Lock()
@@ -2348,7 +2175,6 @@ func (mc *MeasurementCollector) collectData(ctx context.Context) {
 	mc.successCount++
 
 	mc.mutex.Unlock()
-
 }
 
 // Additional placeholder implementations would continue...
@@ -2358,44 +2184,35 @@ func (mc *MeasurementCollector) collectData(ctx context.Context) {
 // NewDataAggregationEngine performs newdataaggregationengine operation.
 
 func NewDataAggregationEngine() *DataAggregationEngine {
-
 	return &DataAggregationEngine{
-
 		aggregators: make(map[string]AggregationFunction),
 
 		binManagers: make(map[time.Duration]*BinManager),
 	}
-
 }
 
 // AggregateData performs aggregatedata operation.
 
 func (dae *DataAggregationEngine) AggregateData(data []*MeasurementData, aggregationType string, granularity time.Duration) ([]*AggregatedData, error) {
-
 	// Placeholder - would implement sophisticated aggregation.
 
 	return []*AggregatedData{}, nil
-
 }
 
 // NewPerformanceThresholdManager performs newperformancethresholdmanager operation.
 
 func NewPerformanceThresholdManager() *PerformanceThresholdManager {
-
 	return &PerformanceThresholdManager{
-
 		thresholds: make(map[string]*PerformanceThreshold),
 
 		crossingHistory: make(map[string][]*ThresholdCrossing),
 
 		alertManager: &ThresholdAlertManager{
-
 			alertChannels: make(map[string]AlertChannel),
 
 			escalationRules: make([]*AlertEscalationRule, 0),
 		},
 	}
-
 }
 
 // Start performs start operation.
@@ -2409,30 +2226,23 @@ func (ptm *PerformanceThresholdManager) Stop(ctx context.Context) error { return
 // SetThreshold performs setthreshold operation.
 
 func (ptm *PerformanceThresholdManager) SetThreshold(ctx context.Context, threshold *PerformanceThreshold) error {
-
 	return nil
-
 }
 
 // GetStatistics performs getstatistics operation.
 
 func (ptm *PerformanceThresholdManager) GetStatistics() *ThresholdStatistics {
-
 	return &ThresholdStatistics{}
-
 }
 
 // NewRealTimeStreamingManager performs newrealtimestreamingmanager operation.
 
 func NewRealTimeStreamingManager() *RealTimeStreamingManager {
-
 	return &RealTimeStreamingManager{
-
 		streams: make(map[string]*DataStream),
 
 		subscribers: make(map[string]*StreamSubscriber),
 	}
-
 }
 
 // Start performs start operation.
@@ -2446,44 +2256,35 @@ func (rtsm *RealTimeStreamingManager) Stop(ctx context.Context) error { return n
 // GetStatistics performs getstatistics operation.
 
 func (rtsm *RealTimeStreamingManager) GetStatistics() *StreamingStatistics {
-
 	return &StreamingStatistics{}
-
 }
 
 // NewHistoricalDataManager performs newhistoricaldatamanager operation.
 
 func NewHistoricalDataManager() *HistoricalDataManager {
-
 	return &HistoricalDataManager{
 
 		// Would initialize with actual storage backend.
 
 	}
-
 }
 
 // Query performs query operation.
 
 func (hdm *HistoricalDataManager) Query(ctx context.Context, query *HistoricalQuery) ([]*MeasurementData, error) {
-
 	return []*MeasurementData{}, nil
-
 }
 
 // NewPerformanceAnomalyDetector performs newperformanceanomalydetector operation.
 
 func NewPerformanceAnomalyDetector(config *AnomalyDetectionConfig) *PerformanceAnomalyDetector {
-
 	return &PerformanceAnomalyDetector{
-
 		models: make(map[string]AnomalyDetectionModel),
 
 		baselineManager: &BaselineManager{baselines: make(map[string]*PerformanceBaseline)},
 
 		config: config,
 	}
-
 }
 
 // Start performs start operation.
@@ -2497,22 +2298,17 @@ func (pad *PerformanceAnomalyDetector) Stop(ctx context.Context) error { return 
 // GetStatistics performs getstatistics operation.
 
 func (pad *PerformanceAnomalyDetector) GetStatistics() *AnomalyStatistics {
-
 	return &AnomalyStatistics{}
-
 }
 
 // NewPerformanceReportGenerator performs newperformancereportgenerator operation.
 
 func NewPerformanceReportGenerator() *PerformanceReportGenerator {
-
 	return &PerformanceReportGenerator{
-
 		templates: make(map[string]*ReportTemplate),
 
 		generators: make(map[string]ReportGenerator),
 	}
-
 }
 
 // Start performs start operation.
@@ -2526,24 +2322,19 @@ func (prg *PerformanceReportGenerator) Stop(ctx context.Context) error { return 
 // NewKPICalculator performs newkpicalculator operation.
 
 func NewKPICalculator() *KPICalculator {
-
 	return &KPICalculator{
-
 		kpiDefinitions: make(map[string]*KPIDefinition),
 
 		calculatedKPIs: make(map[string]*CalculatedKPI),
 
 		calculator: &KPICalculationEngine{functions: make(map[string]KPIFunction)},
 	}
-
 }
 
 // NewGrafanaIntegration performs newgrafanaintegration operation.
 
 func NewGrafanaIntegration(config *GrafanaConfig) *GrafanaIntegration {
-
 	return &GrafanaIntegration{
-
 		client: &GrafanaClient{baseURL: config.URL, apiKey: config.APIKey},
 
 		dashboards: make(map[string]*GrafanaDashboard),
@@ -2554,5 +2345,4 @@ func NewGrafanaIntegration(config *GrafanaConfig) *GrafanaIntegration {
 
 		config: config,
 	}
-
 }

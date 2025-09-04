@@ -1,7 +1,9 @@
 package models
 
 import (
-	"time"
+	
+	"encoding/json"
+"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -39,7 +41,7 @@ type Subscription struct {
 
 	Status *SubscriptionStatus `json:"status"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
 	CreatedAt time.Time `json:"createdAt"`
 
@@ -53,7 +55,6 @@ type Subscription struct {
 // SubscriptionFilter defines filters for event subscriptions.
 
 type SubscriptionFilter struct {
-
 	// Resource filters.
 
 	ResourceTypes []string `json:"resourceTypes,omitempty"`
@@ -74,7 +75,7 @@ type SubscriptionFilter struct {
 
 	// Custom filters.
 
-	CustomFilters map[string]interface{} `json:"customFilters,omitempty"`
+	CustomFilters json.RawMessage `json:"customFilters,omitempty"`
 
 	// Time filters.
 
@@ -109,13 +110,11 @@ type TimeOfDayWindow struct {
 	EndHour int `json:"endHour"` // 0-23
 
 	EndMinute int `json:"endMinute"` // 0-59
-
 }
 
 // EventConfiguration defines event delivery configuration.
 
 type EventConfiguration struct {
-
 	// Delivery options.
 
 	DeliveryMethod string `json:"deliveryMethod"` // webhook, queue, stream
@@ -209,7 +208,6 @@ type OAuth2Config struct {
 	Scope []string `json:"scope,omitempty"`
 
 	GrantType string `json:"grantType"` // client_credentials, authorization_code
-
 }
 
 // CertificateConfig defines certificate-based authentication.
@@ -331,7 +329,7 @@ type InfrastructureEvent struct {
 
 	Labels map[string]string `json:"labels,omitempty"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
 	// Geographic and temporal context.
 
@@ -543,18 +541,18 @@ type SubscriptionQueryFilter struct {
 
 // CreateSubscriptionRequest represents a request to create a subscription.
 type CreateSubscriptionRequest struct {
-	Callback string `json:"callback"`
-	ConsumerSubscriptionID string `json:"consumerSubscriptionId,omitempty"`
-	EventTypes []string `json:"eventTypes"`
-	Filter *SubscriptionFilter `json:"filter,omitempty"`
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Callback               string                 `json:"callback"`
+	ConsumerSubscriptionID string                 `json:"consumerSubscriptionId,omitempty"`
+	EventTypes             []string               `json:"eventTypes"`
+	Filter                 *SubscriptionFilter    `json:"filter,omitempty"`
+	Metadata               json.RawMessage `json:"metadata,omitempty"`
 }
 
 // UpdateSubscriptionRequest represents a request to update a subscription.
 type UpdateSubscriptionRequest struct {
-	Callback string `json:"callback,omitempty"`
-	EventTypes []string `json:"eventTypes,omitempty"`
-	Status string `json:"status,omitempty"`
-	Filter *SubscriptionFilter `json:"filter,omitempty"`
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Callback   string                 `json:"callback,omitempty"`
+	EventTypes []string               `json:"eventTypes,omitempty"`
+	Status     string                 `json:"status,omitempty"`
+	Filter     *SubscriptionFilter    `json:"filter,omitempty"`
+	Metadata   json.RawMessage `json:"metadata,omitempty"`
 }

@@ -35,10 +35,10 @@ var (
 	timeout       time.Duration
 
 	cfg        *rest.Config
-	k8sClient  client.Client
 	clientset  *kubernetes.Clientset
 	testCtx    context.Context
 	testCancel context.CancelFunc
+	// Note: k8sClient is declared in suite_test.go
 )
 
 func init() {

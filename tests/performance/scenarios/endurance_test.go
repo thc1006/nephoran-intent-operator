@@ -121,10 +121,10 @@ func TestMemoryLeakDetection(t *testing.T) {
 	}
 
 	suite := performance.NewBenchmarkSuite()
-	result, err := suite.RunMemoryStabilityBenchmark(ctx, 10*time.Minute, workload)
+	result := suite.RunMemoryStabilityBenchmark(ctx, "MemoryStabilityTest", 10*time.Minute, workload)
 
-	if err != nil {
-		t.Fatalf("Memory stability test failed: %v", err)
+	if result.Error != nil {
+		t.Fatalf("Memory stability test failed: %v", result.Error)
 	}
 
 	if !result.Passed {
@@ -300,9 +300,9 @@ func TestPerformanceDegradation(t *testing.T) {
 			return nil
 		}
 
-		result, err := suite.RunConcurrentBenchmark(ctx, 10, interval, workload)
-		if err != nil {
-			t.Fatalf("Benchmark at %v failed: %v", interval, err)
+		result := suite.RunConcurrentBenchmark(ctx, fmt.Sprintf("EnduranceBenchmark_%v", interval), 10, interval, workload)
+		if result.Error != nil {
+			t.Fatalf("Benchmark at %v failed: %v", interval, result.Error)
 		}
 
 		// Check for degradation
@@ -315,11 +315,9 @@ func TestPerformanceDegradation(t *testing.T) {
 		previousLatency = result.LatencyP95
 
 		t.Logf("Performance at %v:", interval)
-		t.Logf("  P50 Latency: %v", result.LatencyP50)
+		t.Logf("  Duration: %v", result.Duration)
 		t.Logf("  P95 Latency: %v", result.LatencyP95)
-		t.Logf("  P99 Latency: %v", result.LatencyP99)
-		t.Logf("  Throughput: %.2f req/s", result.Throughput)
-		t.Logf("  Memory: %.2f MB", result.PeakMemoryMB)
+		t.Logf("  Passed: %v", result.Passed)
 	}
 
 	if degradationDetected {
@@ -369,8 +367,8 @@ func runEnduranceTest(ctx context.Context, suite *performance.BenchmarkSuite, co
 	MaxMemGrowth  float64
 	MaxGoroutines int
 	MaxErrorRate  float64
-}) EnduranceTestResult {
-
+},
+) EnduranceTestResult {
 	result := EnduranceTestResult{
 		CheckpointMetrics: []CheckpointMetric{},
 	}
@@ -481,7 +479,7 @@ monitorLoop:
 			result.CheckpointMetrics = append(result.CheckpointMetrics, checkpoint)
 
 			// Check for performance degradation
-			if previousLatency > 0 && checkpoint.AvgLatency > previousLatency*1.5 {
+			if previousLatency > 0 && checkpoint.AvgLatency > time.Duration(float64(previousLatency)*1.5) {
 				performanceStable = false
 				klog.Warningf("Performance degradation detected: latency increased from %v to %v",
 					previousLatency, checkpoint.AvgLatency)
@@ -535,8 +533,11 @@ monitorLoop:
 
 	if len(latencies) > 0 {
 		analyzer := performance.NewMetricsAnalyzer()
-		result.AvgResponseTime = analyzer.CalculateAverage(latencies)
-		result.P99ResponseTime = analyzer.CalculatePercentile(latencies, 99)
+		for _, latency := range latencies {
+			analyzer.AddSample(float64(latency))
+		}
+		result.AvgResponseTime = time.Duration(analyzer.CalculateAverage())
+		result.P99ResponseTime = time.Duration(analyzer.CalculatePercentile(99))
 	}
 
 	return result
@@ -549,8 +550,8 @@ func testResourceExhaustion(ctx context.Context, scenario struct {
 	ExhaustFunc  func(context.Context) error
 	RecoverFunc  func() error
 	MaxRecovery  time.Duration
-}) ResourceExhaustionResult {
-
+},
+) ResourceExhaustionResult {
 	result := ResourceExhaustionResult{
 		Survived:         true,
 		DegradedServices: []string{},
@@ -668,8 +669,8 @@ func exhaustMemory(ctx context.Context) error {
 	// Hold for a moment
 	time.Sleep(5 * time.Second)
 
-	// Release
-	_ = nil
+	// Release resources
+	// _ = nil // Removed unused assignment
 	return nil
 }
 

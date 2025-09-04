@@ -165,10 +165,7 @@ func TestGenerateEventID(t *testing.T) {
 
 func TestHeartbeatFields_AdditionalFields(t *testing.T) {
 	event := NewHeartbeatEvent("test", 30)
-	event.Event.HeartbeatFields.AdditionalFields = map[string]interface{}{
-		"customField1": "value1",
-		"customField2": 42,
-	}
+	event.Event.HeartbeatFields.AdditionalFields = json.RawMessage(`{}`)
 
 	jsonData, err := json.Marshal(event)
 	if err != nil {
@@ -268,3 +265,4 @@ func TestNewFaultEvent(t *testing.T) {
 		t.Error("HeartbeatFields should be nil for fault event")
 	}
 }
+

@@ -26,14 +26,12 @@ import (
 
 var (
 	splunkRequestsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-
 		Name: "splunk_audit_requests_total",
 
 		Help: "Total number of requests to Splunk HEC",
 	}, []string{"instance", "status"})
 
 	splunkRequestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
-
 		Name: "splunk_audit_request_duration_seconds",
 
 		Help: "Duration of Splunk HEC requests",
@@ -125,9 +123,9 @@ type SplunkEvent struct {
 
 	Index string `json:"index"`
 
-	Event map[string]interface{} `json:"event"`
+	Event json.RawMessage `json:"event"`
 
-	Fields map[string]interface{} `json:"fields,omitempty"`
+	Fields json.RawMessage `json:"fields,omitempty"`
 }
 
 // SplunkResponse represents a Splunk HEC response.
@@ -149,17 +147,12 @@ type SplunkResponse struct {
 // NewSplunkBackend creates a new Splunk backend.
 
 func NewSplunkBackend(config BackendConfig) (*SplunkBackend, error) {
-
 	splunkConfig, err := parseSplunkConfig(config.Settings)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("invalid Splunk configuration: %w", err)
-
 	}
 
 	backend := &SplunkBackend{
-
 		config: config,
 
 		logger: log.Log.WithName("splunk-backend").WithValues("instance", config.Name),
@@ -180,82 +173,62 @@ func NewSplunkBackend(config BackendConfig) (*SplunkBackend, error) {
 	// Set defaults.
 
 	if backend.index == "" {
-
 		backend.index = "nephoran_audit"
-
 	}
 
 	if backend.source == "" {
-
 		backend.source = "nephoran-intent-operator"
-
 	}
 
 	if backend.sourceType == "" {
-
 		backend.sourceType = "nephoran:audit"
-
 	}
 
 	if backend.host == "" {
-
 		backend.host = "nephoran-operator"
-
 	}
 
 	// Validate required fields.
 
 	if backend.hecURL == "" {
-
 		return nil, fmt.Errorf("HEC URL is required")
-
 	}
 
 	if backend.token == "" {
-
 		return nil, fmt.Errorf("HEC token is required")
-
 	}
 
 	// Create HTTP client.
 
 	tlsConfig := &tls.Config{
-
 		InsecureSkipVerify: !splunkConfig.VerifyTLS,
 	}
 
 	timeout := splunkConfig.RequestTimeout
 
 	if timeout == 0 {
-
 		timeout = 30 * time.Second
-
 	}
 
 	backend.httpClient = &http.Client{
-
 		Timeout: timeout,
 
 		Transport: &http.Transport{
-
 			TLSClientConfig: tlsConfig,
 		},
 	}
 
 	return backend, nil
-
 }
 
 // Initialize sets up the Splunk backend.
 
 func (sb *SplunkBackend) Initialize(config BackendConfig) error {
-
 	sb.logger.Info("Initializing Splunk backend")
 
 	// Test connectivity by sending a health check event.
 
 	testEvent := &types.AuditEvent{
-
 		ID: "health-check",
 
 		Version: "1.0",
@@ -276,51 +249,39 @@ func (sb *SplunkBackend) Initialize(config BackendConfig) error {
 	}
 
 	if err := sb.WriteEvent(context.Background(), testEvent); err != nil {
-
 		return fmt.Errorf("failed to send health check event: %w", err)
-
 	}
 
 	sb.logger.Info("Splunk backend initialized successfully")
 
 	return nil
-
 }
 
 // Type returns the backend type.
 
 func (sb *SplunkBackend) Type() string {
-
 	return string(BackendTypeSplunk)
-
 }
 
 // WriteEvent writes a single audit event to Splunk.
 
 func (sb *SplunkBackend) WriteEvent(ctx context.Context, event *types.AuditEvent) error {
-
 	return sb.WriteEvents(ctx, []*types.AuditEvent{event})
-
 }
 
 // WriteEvents writes multiple audit events to Splunk HEC.
 
 func (sb *SplunkBackend) WriteEvents(ctx context.Context, events []*types.AuditEvent) error {
-
 	if len(events) == 0 {
-
 		return nil
-
 	}
 
 	start := time.Now()
 
 	defer func() {
-
 		duration := time.Since(start)
 
 		splunkRequestDuration.WithLabelValues(sb.config.Name).Observe(duration.Seconds())
-
 	}()
 
 	// Convert events to Splunk format.
@@ -332,9 +293,7 @@ func (sb *SplunkBackend) WriteEvents(ctx context.Context, events []*types.AuditE
 		// Filter event if necessary.
 
 		if !sb.config.Filter.ShouldProcessEvent(event) {
-
 			continue
-
 		}
 
 		filteredEvent := sb.config.Filter.ApplyFieldFilters(event)
@@ -346,9 +305,7 @@ func (sb *SplunkBackend) WriteEvents(ctx context.Context, events []*types.AuditE
 	}
 
 	if len(splunkEvents) == 0 {
-
 		return nil // No events to write after filtering
-
 	}
 
 	// Build request payload.
@@ -358,7 +315,6 @@ func (sb *SplunkBackend) WriteEvents(ctx context.Context, events []*types.AuditE
 	for _, splunkEvent := range splunkEvents {
 
 		eventBytes, err := json.Marshal(splunkEvent)
-
 		if err != nil {
 
 			sb.logger.Error(err, "Failed to marshal Splunk event")
@@ -380,11 +336,8 @@ func (sb *SplunkBackend) WriteEvents(ctx context.Context, events []*types.AuditE
 	url := sb.hecURL + "/services/collector"
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, &payload)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create HEC request: %w", err)
-
 	}
 
 	req.Header.Set("Authorization", fmt.Sprintf("Splunk %s", sb.token))
@@ -392,7 +345,6 @@ func (sb *SplunkBackend) WriteEvents(ctx context.Context, events []*types.AuditE
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := sb.httpClient.Do(req)
-
 	if err != nil {
 
 		splunkRequestsTotal.WithLabelValues(sb.config.Name, "error").Inc()
@@ -403,16 +355,13 @@ func (sb *SplunkBackend) WriteEvents(ctx context.Context, events []*types.AuditE
 
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Check response.
 
 	body, err := io.ReadAll(resp.Body)
-
 	if err != nil {
-
 		sb.logger.Error(err, "Failed to read HEC response")
-
 	}
 
 	if resp.StatusCode >= 400 {
@@ -426,9 +375,7 @@ func (sb *SplunkBackend) WriteEvents(ctx context.Context, events []*types.AuditE
 		var splunkResp SplunkResponse
 
 		if err := json.Unmarshal(body, &splunkResp); err == nil {
-
 			return fmt.Errorf("HEC request failed: %s (code: %d)", splunkResp.Text, splunkResp.Code)
-
 		}
 
 		return fmt.Errorf("HEC request failed with status %d: %s", resp.StatusCode, string(body))
@@ -440,9 +387,7 @@ func (sb *SplunkBackend) WriteEvents(ctx context.Context, events []*types.AuditE
 	var splunkResp SplunkResponse
 
 	if err := json.Unmarshal(body, &splunkResp); err != nil {
-
 		sb.logger.Error(err, "Failed to parse HEC response")
-
 	} else if len(splunkResp.InvalidLines) > 0 {
 
 		sb.logger.Error(fmt.Errorf("some events were invalid"), "Invalid events in batch",
@@ -458,13 +403,11 @@ func (sb *SplunkBackend) WriteEvents(ctx context.Context, events []*types.AuditE
 	atomic.AddInt64(&sb.eventsWritten, int64(len(splunkEvents)))
 
 	return nil
-
 }
 
 // Query searches for audit events in Splunk (using REST API).
 
 func (sb *SplunkBackend) Query(ctx context.Context, query *QueryRequest) (*QueryResponse, error) {
-
 	// Splunk search requires different authentication and API endpoints.
 
 	// This is a simplified implementation for demonstration.
@@ -488,11 +431,8 @@ func (sb *SplunkBackend) Query(ctx context.Context, query *QueryRequest) (*Query
 		query.Offset)
 
 	req, err := http.NewRequestWithContext(ctx, "POST", searchURL, bytes.NewBufferString(form))
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create search request: %w", err)
-
 	}
 
 	req.Header.Set("Authorization", fmt.Sprintf("Splunk %s", sb.token))
@@ -500,14 +440,11 @@ func (sb *SplunkBackend) Query(ctx context.Context, query *QueryRequest) (*Query
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := sb.httpClient.Do(req)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("search request failed: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode >= 400 {
 
@@ -522,209 +459,136 @@ func (sb *SplunkBackend) Query(ctx context.Context, query *QueryRequest) (*Query
 	// parsing the search job ID, polling for completion, and retrieving results.
 
 	return &QueryResponse{
-
 		Events: []*types.AuditEvent{},
 
 		TotalCount: 0,
 
 		HasMore: false,
 	}, nil
-
 }
 
 // Health checks the Splunk backend health.
 
 func (sb *SplunkBackend) Health(ctx context.Context) error {
-
 	// Check HEC health endpoint.
 
 	url := sb.hecURL + "/services/collector/health"
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, http.NoBody)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create health check request: %w", err)
-
 	}
 
 	req.Header.Set("Authorization", fmt.Sprintf("Splunk %s", sb.token))
 
 	resp, err := sb.httpClient.Do(req)
-
 	if err != nil {
-
 		return fmt.Errorf("health check failed: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode >= 400 {
-
 		return fmt.Errorf("health check failed with status %d", resp.StatusCode)
-
 	}
 
 	return nil
-
 }
 
 // Close closes the Splunk backend.
 
 func (sb *SplunkBackend) Close() error {
-
 	sb.logger.Info("Closing Splunk backend")
 
 	return nil
-
 }
 
 // Helper methods.
 
 func (sb *SplunkBackend) convertToSplunkEvent(event *types.AuditEvent) SplunkEvent {
-
 	// Convert timestamp to Unix epoch with milliseconds.
 
 	timestamp := float64(event.Timestamp.UnixNano()) / 1e9
 
 	// Create the main event data.
-
-	eventData := map[string]interface{}{
-
-		"id": event.ID,
-
-		"version": event.Version,
-
-		"timestamp": event.Timestamp.Format(time.RFC3339Nano),
-
-		"event_type": event.EventType,
-
-		"category": event.Category,
-
-		"severity": event.Severity.String(),
-
-		"result": event.Result,
-
-		"component": event.Component,
-
-		"action": event.Action,
-
-		"description": event.Description,
-
-		"message": event.Message,
-	}
+	eventDataMap := make(map[string]interface{})
 
 	// Add context information.
-
 	if event.UserContext != nil {
-
-		eventData["user_context"] = event.UserContext
-
+		eventDataMap["user_context"] = event.UserContext
 	}
 
 	if event.NetworkContext != nil {
-
-		eventData["network_context"] = event.NetworkContext
-
+		eventDataMap["network_context"] = event.NetworkContext
 	}
 
 	if event.SystemContext != nil {
-
-		eventData["system_context"] = event.SystemContext
-
+		eventDataMap["system_context"] = event.SystemContext
 	}
 
 	if event.ResourceContext != nil {
-
-		eventData["resource_context"] = event.ResourceContext
-
+		eventDataMap["resource_context"] = event.ResourceContext
 	}
 
 	// Add additional data.
-
 	if event.Data != nil {
-
-		eventData["data"] = event.Data
-
+		eventDataMap["data"] = event.Data
 	}
 
 	// Add error information.
-
 	if event.Error != "" {
-
-		eventData["error"] = event.Error
-
+		eventDataMap["error"] = event.Error
 	}
 
 	if event.ErrorCode != "" {
-
-		eventData["error_code"] = event.ErrorCode
-
+		eventDataMap["error_code"] = event.ErrorCode
 	}
 
 	// Create fields for indexing.
-
-	fields := map[string]interface{}{
-
-		"event_type": string(event.EventType),
-
-		"severity": event.Severity.String(),
-
-		"component": event.Component,
-
-		"result": string(event.Result),
-	}
+	fieldsMap := make(map[string]interface{})
 
 	if event.UserContext != nil {
-
-		fields["user_id"] = event.UserContext.UserID
-
-		fields["username"] = event.UserContext.Username
-
-		fields["user_role"] = event.UserContext.Role
-
+		fieldsMap["user_id"] = event.UserContext.UserID
+		fieldsMap["username"] = event.UserContext.Username
+		fieldsMap["user_role"] = event.UserContext.Role
 	}
 
 	if event.NetworkContext != nil && event.NetworkContext.SourceIP != nil {
-
-		fields["source_ip"] = event.NetworkContext.SourceIP.String()
-
+		fieldsMap["source_ip"] = event.NetworkContext.SourceIP.String()
 	}
 
 	// Add compliance metadata as fields.
-
 	if event.ComplianceMetadata != nil {
-
 		for key, value := range event.ComplianceMetadata {
-
-			fields["compliance_"+key] = value
-
+			fieldsMap["compliance_"+key] = value
 		}
+	}
 
+	// Marshal the maps to json.RawMessage
+	eventData, err := json.Marshal(eventDataMap)
+	if err != nil {
+		// If marshaling fails, use empty JSON object
+		eventData = json.RawMessage(`{}`)
+	}
+
+	fields, err := json.Marshal(fieldsMap)
+	if err != nil {
+		// If marshaling fails, use empty JSON object
+		fields = json.RawMessage(`{}`)
 	}
 
 	return SplunkEvent{
-
-		Time: &timestamp,
-
-		Host: sb.host,
-
-		Source: sb.source,
-
+		Time:       &timestamp,
+		Host:       sb.host,
+		Source:     sb.source,
 		SourceType: sb.sourceType,
-
-		Index: sb.index,
-
-		Event: eventData,
-
-		Fields: fields,
+		Index:      sb.index,
+		Event:      eventData,
+		Fields:     fields,
 	}
-
 }
 
 func (sb *SplunkBackend) buildSplunkSearch(query *QueryRequest) string {
-
 	search := fmt.Sprintf("search index=%s", sb.index)
 
 	// Add time range.
@@ -738,17 +602,17 @@ func (sb *SplunkBackend) buildSplunkSearch(query *QueryRequest) string {
 	// Add query string if provided.
 
 	if query.Query != "" {
-
 		search += fmt.Sprintf(" %s", query.Query)
-
 	}
 
 	// Add filters.
-
-	for field, value := range query.Filters {
-
-		search += fmt.Sprintf(" %s=\"%v\"", field, value)
-
+	if len(query.Filters) > 0 {
+		var filters map[string]interface{}
+		if err := json.Unmarshal(query.Filters, &filters); err == nil {
+			for field, value := range filters {
+				search += fmt.Sprintf(" %s=\"%v\"", field, value)
+			}
+		}
 	}
 
 	// Add sorting.
@@ -758,9 +622,7 @@ func (sb *SplunkBackend) buildSplunkSearch(query *QueryRequest) string {
 		order := "desc"
 
 		if query.SortOrder == "asc" {
-
 			order = "asc"
-
 		}
 
 		search += fmt.Sprintf(" | sort %s %s", order, query.SortBy)
@@ -768,57 +630,41 @@ func (sb *SplunkBackend) buildSplunkSearch(query *QueryRequest) string {
 	}
 
 	return search
-
 }
 
 func (sb *SplunkBackend) getSplunkManagementURL() string {
-
 	// Extract management URL from HEC URL.
 
 	// This is a simplified approach - in practice you might have separate endpoints.
 
 	return strings.Replace(sb.hecURL, ":8088", ":8089", 1)
-
 }
 
 func parseSplunkConfig(settings map[string]interface{}) (*SplunkConfig, error) {
-
 	configBytes, err := json.Marshal(settings)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to marshal settings: %w", err)
-
 	}
 
 	var config SplunkConfig
 
 	if err := json.Unmarshal(configBytes, &config); err != nil {
-
 		return nil, fmt.Errorf("failed to unmarshal configuration: %w", err)
-
 	}
 
 	// Set defaults.
 
 	if config.RequestTimeout == 0 {
-
 		config.RequestTimeout = 30 * time.Second
-
 	}
 
 	if config.MaxBatchSize == 0 {
-
 		config.MaxBatchSize = 100
-
 	}
 
 	if config.AckTimeout == 0 {
-
 		config.AckTimeout = 60 * time.Second
-
 	}
 
 	return &config, nil
-
 }

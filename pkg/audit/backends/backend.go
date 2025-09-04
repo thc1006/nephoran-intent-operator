@@ -5,7 +5,9 @@
 package backends
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"time"
 
@@ -15,7 +17,6 @@ import (
 // Backend represents an audit log destination.
 
 type Backend interface {
-
 	// Type returns the backend type identifier.
 
 	Type() string
@@ -95,7 +96,6 @@ const (
 // BackendConfig holds configuration for a specific backend.
 
 type BackendConfig struct {
-
 	// Type specifies the backend type.
 
 	Type BackendType `json:"type" yaml:"type"`
@@ -210,7 +210,7 @@ type FilterConfig struct {
 type QueryRequest struct {
 	Query string `json:"query"`
 
-	Filters map[string]interface{} `json:"filters"`
+	Filters json.RawMessage `json:"filters"`
 
 	StartTime time.Time `json:"start_time"`
 
@@ -242,7 +242,7 @@ type QueryResponse struct {
 
 	QueryTime time.Duration `json:"query_time"`
 
-	Aggregations map[string]interface{} `json:"aggregations,omitempty"`
+	Aggregations json.RawMessage `json:"aggregations,omitempty"`
 }
 
 // BackendStatus represents the health status of a backend.
@@ -282,11 +282,8 @@ type BackendMetrics struct {
 // NewBackend creates a new backend instance based on configuration.
 
 func NewBackend(config BackendConfig) (Backend, error) {
-
 	if !config.Enabled {
-
 		return nil, fmt.Errorf("backend %s is disabled", config.Name)
-
 	}
 
 	switch config.Type {
@@ -312,31 +309,23 @@ func NewBackend(config BackendConfig) (Backend, error) {
 		return nil, fmt.Errorf("unsupported backend type: %s", config.Type)
 
 	}
-
 }
 
 // ShouldProcessEvent determines if an event should be processed by this backend.
 
 func (f *FilterConfig) ShouldProcessEvent(event *types.AuditEvent) bool {
-
 	// Check minimum severity.
 
 	if event.Severity < f.MinSeverity {
-
 		return false
-
 	}
 
 	// Check excluded event types.
 
 	for _, excludeType := range f.ExcludeTypes {
-
 		if event.EventType == excludeType {
-
 			return false
-
 		}
-
 	}
 
 	// Check included event types (if specified).
@@ -346,7 +335,6 @@ func (f *FilterConfig) ShouldProcessEvent(event *types.AuditEvent) bool {
 		found := false
 
 		for _, includeType := range f.EventTypes {
-
 			if event.EventType == includeType {
 
 				found = true
@@ -354,13 +342,10 @@ func (f *FilterConfig) ShouldProcessEvent(event *types.AuditEvent) bool {
 				break
 
 			}
-
 		}
 
 		if !found {
-
 			return false
-
 		}
 
 	}
@@ -372,7 +357,6 @@ func (f *FilterConfig) ShouldProcessEvent(event *types.AuditEvent) bool {
 		found := false
 
 		for _, component := range f.Components {
-
 			if event.Component == component {
 
 				found = true
@@ -380,29 +364,22 @@ func (f *FilterConfig) ShouldProcessEvent(event *types.AuditEvent) bool {
 				break
 
 			}
-
 		}
 
 		if !found {
-
 			return false
-
 		}
 
 	}
 
 	return true
-
 }
 
 // ApplyFieldFilters applies include/exclude field filters to an event.
 
 func (f *FilterConfig) ApplyFieldFilters(event *types.AuditEvent) *types.AuditEvent {
-
 	if len(f.IncludeFields) == 0 && len(f.ExcludeFields) == 0 {
-
 		return event
-
 	}
 
 	// Create a copy of the event to avoid modifying the original.
@@ -416,15 +393,12 @@ func (f *FilterConfig) ApplyFieldFilters(event *types.AuditEvent) *types.AuditEv
 	// handle nested field filtering more thoroughly.
 
 	return &filteredEvent
-
 }
 
 // DefaultRetryPolicy returns a sensible default retry policy.
 
 func DefaultRetryPolicy() RetryPolicy {
-
 	return RetryPolicy{
-
 		MaxRetries: 3,
 
 		InitialDelay: 1 * time.Second,
@@ -433,16 +407,21 @@ func DefaultRetryPolicy() RetryPolicy {
 
 		BackoffFactor: 2.0,
 	}
-
 }
 
 // DefaultFilterConfig returns a default filter configuration.
 
 func DefaultFilterConfig() FilterConfig {
-
 	return FilterConfig{
-
 		MinSeverity: types.SeverityInfo,
 	}
+}
 
+// Stub functions for missing backends (for testing compatibility)
+func NewWebhookBackend(config BackendConfig) (Backend, error) {
+	return nil, fmt.Errorf("webhook backend not implemented")
+}
+
+func NewFileBackend(config BackendConfig) (Backend, error) {
+	return nil, fmt.Errorf("file backend not implemented")
 }

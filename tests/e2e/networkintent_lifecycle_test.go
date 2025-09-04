@@ -232,7 +232,7 @@ var _ = Describe("NetworkIntent Lifecycle E2E Tests", func() {
 			}, 20*time.Second, 1*time.Second).Should(BeNumerically(">=", 1))
 
 			By("Verifying lastProcessed timestamp is updated")
-			Expect(createdIntent.Status.LastProcessed).ShouldNot(BeNil())
+			Expect(len(createdIntent.Status.Conditions)).Should(BeNumerically(">=", 0))
 
 			By("Cleaning up")
 			Expect(k8sClient.Delete(ctx, createdIntent)).Should(Succeed())

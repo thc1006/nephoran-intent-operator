@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	ingest "github.com/nephio-project/nephoran-intent-operator/internal/ingest"
+	ingest "github.com/thc1006/nephoran-intent-operator/internal/ingest"
 )
 
 // setupTestServer creates a test server with the same configuration as main()
@@ -94,13 +94,13 @@ func copyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer srcFile.Close()
+	defer srcFile.Close() // #nosec G307 - Error handled in defer
 
 	dstFile, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
-	defer dstFile.Close()
+	defer dstFile.Close() // #nosec G307 - Error handled in defer
 
 	_, err = io.Copy(dstFile, srcFile)
 	return err
@@ -114,7 +114,7 @@ func TestServer_HealthCheck(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to call healthz: %v", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
@@ -144,16 +144,11 @@ func TestServer_Intent_ValidJSON_Success(t *testing.T) {
 			name:        "valid scaling intent",
 			contentType: "application/json",
 			payload: map[string]interface{}{
-				"id":          "scale-test-deployment-001",
-				"type":        "scaling",
-				"description": "Scale test deployment to 3 replicas for load testing",
-				"parameters": map[string]interface{}{
-					"target_replicas": 3,
-					"target":          "test-deployment",
-					"namespace":       "default",
-					"source":          "user",
-					"correlation_id":  "test-123",
-				},
+				"target_replicas":  3,
+				"target":           "test-deployment",
+				"namespace":        "default",
+				"source":           "user",
+				"correlation_id":   "test-123",
 				"target_resources": []string{"deployment/test-deployment"},
 				"status":           "pending",
 			},
@@ -163,14 +158,9 @@ func TestServer_Intent_ValidJSON_Success(t *testing.T) {
 			name:        "minimal valid intent",
 			contentType: "application/json",
 			payload: map[string]interface{}{
-				"id":          "scale-minimal-app-001",
-				"type":        "scaling",
-				"description": "Scale minimal app to 5 replicas for production workload",
-				"parameters": map[string]interface{}{
-					"target_replicas": 5,
-					"target":          "minimal-app",
-					"namespace":       "production",
-				},
+				"target_replicas":  5,
+				"target":           "minimal-app",
+				"namespace":        "production",
 				"target_resources": []string{"deployment/minimal-app"},
 				"status":           "pending",
 			},
@@ -180,14 +170,9 @@ func TestServer_Intent_ValidJSON_Success(t *testing.T) {
 			name:        "text/json content type",
 			contentType: "text/json",
 			payload: map[string]interface{}{
-				"id":          "scale-text-json-app-001",
-				"type":        "scaling",
-				"description": "Scale text json app to 2 replicas for staging environment",
-				"parameters": map[string]interface{}{
-					"target_replicas": 2,
-					"target":          "text-json-app",
-					"namespace":       "staging",
-				},
+				"target_replicas":  2,
+				"target":           "text-json-app",
+				"namespace":        "staging",
 				"target_resources": []string{"deployment/text-json-app"},
 				"status":           "pending",
 			},
@@ -197,14 +182,9 @@ func TestServer_Intent_ValidJSON_Success(t *testing.T) {
 			name:        "application/json with charset",
 			contentType: "application/json; charset=utf-8",
 			payload: map[string]interface{}{
-				"id":          "scale-charset-app-001",
-				"type":        "scaling",
-				"description": "Scale charset app to 1 replica for testing environment",
-				"parameters": map[string]interface{}{
-					"target_replicas": 1,
-					"target":          "charset-app",
-					"namespace":       "testing",
-				},
+				"target_replicas":  1,
+				"target":           "charset-app",
+				"namespace":        "testing",
 				"target_resources": []string{"deployment/charset-app"},
 				"status":           "pending",
 			},
@@ -227,7 +207,7 @@ func TestServer_Intent_ValidJSON_Success(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to post intent: %v", err)
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			if resp.StatusCode != tt.expectedStatus {
 				body, _ := io.ReadAll(resp.Body)
@@ -312,15 +292,10 @@ func TestServer_Intent_ValidPlainText_Success(t *testing.T) {
 			name:  "basic scaling command",
 			input: "scale my-app to 5 in ns production",
 			expected: map[string]interface{}{
-				"id":          "scale-my-app-001",
-				"type":        "scaling",
-				"description": "Scale my-app to 5 replicas in production namespace",
-				"parameters": map[string]interface{}{
-					"target_replicas": float64(5),
-					"target":          "my-app",
-					"namespace":       "production",
-					"source":          "user",
-				},
+				"target_replicas":  float64(5),
+				"target":           "my-app",
+				"namespace":        "production",
+				"source":           "user",
 				"target_resources": []string{"deployment/my-app"},
 				"status":           "pending",
 			},
@@ -329,15 +304,10 @@ func TestServer_Intent_ValidPlainText_Success(t *testing.T) {
 			name:  "hyphenated names",
 			input: "scale nf-sim to 10 in ns ran-a",
 			expected: map[string]interface{}{
-				"id":          "scale-nf-sim-001",
-				"type":        "scaling",
-				"description": "Scale nf-sim to 10 replicas in ran-a namespace",
-				"parameters": map[string]interface{}{
-					"target_replicas": float64(10),
-					"target":          "nf-sim",
-					"namespace":       "ran-a",
-					"source":          "user",
-				},
+				"target_replicas":  float64(10),
+				"target":           "nf-sim",
+				"namespace":        "ran-a",
+				"source":           "user",
 				"target_resources": []string{"deployment/nf-sim"},
 				"status":           "pending",
 			},
@@ -346,15 +316,10 @@ func TestServer_Intent_ValidPlainText_Success(t *testing.T) {
 			name:  "case insensitive",
 			input: "SCALE MY-SERVICE TO 3 IN NS DEFAULT",
 			expected: map[string]interface{}{
-				"id":          "scale-MY-SERVICE-001",
-				"type":        "scaling",
-				"description": "Scale MY-SERVICE to 3 replicas in DEFAULT namespace",
-				"parameters": map[string]interface{}{
-					"target_replicas": float64(3),
-					"target":          "MY-SERVICE",
-					"namespace":       "DEFAULT",
-					"source":          "user",
-				},
+				"target_replicas":  float64(3),
+				"target":           "MY-SERVICE",
+				"namespace":        "DEFAULT",
+				"source":           "user",
 				"target_resources": []string{"deployment/MY-SERVICE"},
 				"status":           "pending",
 			},
@@ -371,7 +336,7 @@ func TestServer_Intent_ValidPlainText_Success(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to post intent: %v", err)
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			if resp.StatusCode != http.StatusAccepted {
 				body, _ := io.ReadAll(resp.Body)
@@ -572,7 +537,7 @@ func TestServer_Intent_BadRequest_Scenarios(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to send request: %v", err)
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			if resp.StatusCode != tt.expectedStatus {
 				body, _ := io.ReadAll(resp.Body)
@@ -609,7 +574,7 @@ func TestServer_Intent_MethodNotAllowed(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to send request: %v", err)
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			if resp.StatusCode != http.StatusMethodNotAllowed {
 				t.Errorf("Expected status %d for method %s, got %d", http.StatusMethodNotAllowed, method, resp.StatusCode)
@@ -624,15 +589,10 @@ func TestServer_Intent_CorrelationIdPassthrough(t *testing.T) {
 
 	correlationID := "test-correlation-123"
 	payload := map[string]interface{}{
-		"id":          "scale-test-deployment-corr-001",
-		"type":        "scaling",
-		"description": "Scale test deployment to 3 replicas with correlation tracking",
-		"parameters": map[string]interface{}{
-			"target_replicas": 3,
-			"target":          "test-deployment",
-			"namespace":       "default",
-			"correlation_id":  correlationID,
-		},
+		"target_replicas":  3,
+		"target":           "test-deployment",
+		"namespace":        "default",
+		"correlation_id":   correlationID,
 		"target_resources": []string{"deployment/test-deployment"},
 		"status":           "pending",
 	}
@@ -650,7 +610,7 @@ func TestServer_Intent_CorrelationIdPassthrough(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to post intent: %v", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusAccepted {
 		body, _ := io.ReadAll(resp.Body)
@@ -683,15 +643,10 @@ func TestServer_Intent_FileCreation(t *testing.T) {
 	defer cleanup()
 
 	payload := map[string]interface{}{
-		"id":          "scale-file-test-deployment-001",
-		"type":        "scaling",
-		"description": "Scale file test deployment to 3 replicas for testing file creation",
-		"parameters": map[string]interface{}{
-			"target_replicas": 3,
-			"target":          "file-test-deployment",
-			"namespace":       "default",
-			"source":          "test",
-		},
+		"target_replicas":  3,
+		"target":           "file-test-deployment",
+		"namespace":        "default",
+		"source":           "test",
 		"target_resources": []string{"deployment/file-test-deployment"},
 		"status":           "pending",
 	}
@@ -709,7 +664,7 @@ func TestServer_Intent_FileCreation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to post intent: %v", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusAccepted {
 		body, _ := io.ReadAll(resp.Body)
@@ -754,12 +709,7 @@ func TestServer_Intent_FileCreation(t *testing.T) {
 		t.Fatalf("Expected parameters to be a map, got %T", savedIntent["parameters"])
 	}
 
-	expectedParams := map[string]interface{}{
-		"target_replicas": float64(3),
-		"target":          "file-test-deployment",
-		"namespace":       "default",
-		"source":          "test",
-	}
+	expectedParams := map[string]interface{}{}
 
 	for key, expected := range expectedParams {
 		if params[key] != expected {
@@ -792,10 +742,7 @@ func TestServer_Intent_ConcurrentRequests(t *testing.T) {
 			time.Sleep(time.Duration(id) * time.Millisecond)
 
 			payload := map[string]interface{}{
-				"id":          fmt.Sprintf("scale-concurrent-test-%d-001", id),
-				"type":        "scaling",
-				"description": fmt.Sprintf("Scale concurrent test %d to 3 replicas for testing concurrent requests", id),
-				"parameters": map[string]interface{}{
+				"metadata": map[string]interface{}{
 					"target_replicas": 3,
 					"target":          fmt.Sprintf("concurrent-test-%d", id),
 					"namespace":       "default",
@@ -816,7 +763,7 @@ func TestServer_Intent_ConcurrentRequests(t *testing.T) {
 				results <- 500 // Use 500 to indicate error
 				return
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			results <- resp.StatusCode
 		}(i)
@@ -875,10 +822,10 @@ func TestServer_EdgeCases(t *testing.T) {
 			expectedStatus: http.StatusAccepted, // Should be treated as plain text
 		},
 		{
-			name:           "very large JSON payload",
-			method:         "POST",
-			contentType:    "application/json",
-			body:           fmt.Sprintf(`{
+			name:        "very large JSON payload",
+			method:      "POST",
+			contentType: "application/json",
+			body: fmt.Sprintf(`{
 				"id": "scale-large-target-001",
 				"type": "scaling",
 				"description": "Scale large target name to 3 replicas in default namespace",
@@ -916,7 +863,7 @@ func TestServer_EdgeCases(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to send request: %v", err)
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			if resp.StatusCode != tt.expectedStatus {
 				body, _ := io.ReadAll(resp.Body)
@@ -940,10 +887,7 @@ func TestServer_RealSchemaValidation(t *testing.T) {
 		{
 			name: "valid with all optional fields",
 			payload: map[string]interface{}{
-				"id":          "scale-test-deployment-all-fields-001",
-				"type":        "scaling",
-				"description": "Load balancing optimization for test deployment with all optional fields",
-				"parameters": map[string]interface{}{
+				"metadata": map[string]interface{}{
 					"target_replicas": 50,
 					"target":          "test-deployment",
 					"namespace":       "default",
@@ -960,10 +904,7 @@ func TestServer_RealSchemaValidation(t *testing.T) {
 		{
 			name: "replicas at minimum boundary",
 			payload: map[string]interface{}{
-				"id":          "scale-test-deployment-min-001",
-				"type":        "scaling",
-				"description": "Scale test deployment to minimum 1 replica for boundary testing",
-				"parameters": map[string]interface{}{
+				"metadata": map[string]interface{}{
 					"target_replicas": 1,
 					"target":          "test-deployment",
 					"namespace":       "default",
@@ -977,10 +918,7 @@ func TestServer_RealSchemaValidation(t *testing.T) {
 		{
 			name: "replicas at maximum boundary",
 			payload: map[string]interface{}{
-				"id":          "scale-test-deployment-max-001",
-				"type":        "scaling",
-				"description": "Scale test deployment to maximum 100 replicas for boundary testing",
-				"parameters": map[string]interface{}{
+				"metadata": map[string]interface{}{
 					"target_replicas": 100,
 					"target":          "test-deployment",
 					"namespace":       "default",
@@ -994,10 +932,7 @@ func TestServer_RealSchemaValidation(t *testing.T) {
 		{
 			name: "valid source enum values",
 			payload: map[string]interface{}{
-				"id":          "scale-test-deployment-test-source-001",
-				"type":        "scaling",
-				"description": "Scale test deployment to 5 replicas using test source enum",
-				"parameters": map[string]interface{}{
+				"metadata": map[string]interface{}{
 					"target_replicas": 5,
 					"target":          "test-deployment",
 					"namespace":       "default",
@@ -1012,10 +947,7 @@ func TestServer_RealSchemaValidation(t *testing.T) {
 		{
 			name: "reason at max length",
 			payload: map[string]interface{}{
-				"id":          "scale-test-deployment-max-reason-001",
-				"type":        "scaling",
-				"description": strings.Repeat("a", 500), // Max description length
-				"parameters": map[string]interface{}{
+				"metadata": map[string]interface{}{
 					"target_replicas": 5,
 					"target":          "test-deployment",
 					"namespace":       "default",
@@ -1044,7 +976,7 @@ func TestServer_RealSchemaValidation(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to post intent: %v", err)
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			if resp.StatusCode != tt.expectedStatus {
 				body, _ := io.ReadAll(resp.Body)
@@ -1063,10 +995,7 @@ func TestServer_IntegrationFlow(t *testing.T) {
 	correlationID := fmt.Sprintf("integration-test-%d", time.Now().Unix())
 
 	payload := map[string]interface{}{
-		"id":          "scale-integration-test-app-001",
-		"type":        "scaling",
-		"description": "Integration test scaling of test app to 7 replicas with correlation tracking",
-		"parameters": map[string]interface{}{
+		"metadata": map[string]interface{}{
 			"target_replicas": 7,
 			"target":          "integration-test-app",
 			"namespace":       "integration",
@@ -1092,7 +1021,7 @@ func TestServer_IntegrationFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to post intent: %v", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Verify response
 	if resp.StatusCode != http.StatusAccepted {

@@ -504,13 +504,10 @@ type configSyncMetrics struct {
 // NewConfigSyncManager creates a new ConfigSync manager.
 
 func NewConfigSyncManager(client client.Client, registry *ClusterRegistry, logger logr.Logger) *ConfigSyncManager {
-
 	metrics := &configSyncMetrics{
-
 		syncOperations: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "nephio_config_sync_operations_total",
 
 				Help: "Total number of sync operations",
@@ -522,7 +519,6 @@ func NewConfigSyncManager(client client.Client, registry *ClusterRegistry, logge
 		syncDuration: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "nephio_config_sync_duration_seconds",
 
 				Help: "Duration of sync operations",
@@ -536,7 +532,6 @@ func NewConfigSyncManager(client client.Client, registry *ClusterRegistry, logge
 		syncStatus: prometheus.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "nephio_config_sync_status",
 
 				Help: "Current sync status (0=failed, 1=success)",
@@ -548,7 +543,6 @@ func NewConfigSyncManager(client client.Client, registry *ClusterRegistry, logge
 		resourcesTotal: prometheus.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "nephio_config_sync_resources_total",
 
 				Help: "Total number of resources managed by sync",
@@ -560,7 +554,6 @@ func NewConfigSyncManager(client client.Client, registry *ClusterRegistry, logge
 		driftDetections: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "nephio_config_drift_detections_total",
 
 				Help: "Total number of configuration drift detections",
@@ -572,7 +565,6 @@ func NewConfigSyncManager(client client.Client, registry *ClusterRegistry, logge
 		policyViolations: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "nephio_policy_violations_total",
 
 				Help: "Total number of policy violations",
@@ -584,7 +576,6 @@ func NewConfigSyncManager(client client.Client, registry *ClusterRegistry, logge
 		complianceScore: prometheus.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "nephio_compliance_score",
 
 				Help: "Compliance score for clusters",
@@ -614,7 +605,6 @@ func NewConfigSyncManager(client client.Client, registry *ClusterRegistry, logge
 	)
 
 	return &ConfigSyncManager{
-
 		client: client,
 
 		registry: registry,
@@ -624,7 +614,6 @@ func NewConfigSyncManager(client client.Client, registry *ClusterRegistry, logge
 		syncStatus: make(map[string]*SyncStatus),
 
 		policyManager: &PolicyManager{
-
 			policies: make(map[string]*Policy),
 
 			violations: make(map[string][]*PolicyViolation),
@@ -635,7 +624,6 @@ func NewConfigSyncManager(client client.Client, registry *ClusterRegistry, logge
 		},
 
 		driftDetector: &DriftDetector{
-
 			detectionRules: make(map[string]*DriftRule),
 
 			drift: make(map[string][]*DriftDetection),
@@ -644,7 +632,6 @@ func NewConfigSyncManager(client client.Client, registry *ClusterRegistry, logge
 		},
 
 		complianceTracker: &ComplianceTracker{
-
 			standards: make(map[string]*ComplianceStandard),
 
 			assessments: make(map[string]*ComplianceAssessment),
@@ -660,13 +647,11 @@ func NewConfigSyncManager(client client.Client, registry *ClusterRegistry, logge
 
 		stopCh: make(chan struct{}),
 	}
-
 }
 
 // Start starts the ConfigSync manager.
 
 func (csm *ConfigSyncManager) Start(ctx context.Context) error {
-
 	csm.logger.Info("Starting ConfigSync manager")
 
 	// Start sync loops.
@@ -680,31 +665,25 @@ func (csm *ConfigSyncManager) Start(ctx context.Context) error {
 	go csm.runComplianceAssessment(ctx)
 
 	return nil
-
 }
 
 // Stop stops the ConfigSync manager.
 
 func (csm *ConfigSyncManager) Stop() {
-
 	csm.logger.Info("Stopping ConfigSync manager")
 
 	close(csm.stopCh)
-
 }
 
 // AddRepository adds a Git repository for synchronization.
 
 func (csm *ConfigSyncManager) AddRepository(ctx context.Context, repo *GitRepository) error {
-
 	csm.mu.Lock()
 
 	defer csm.mu.Unlock()
 
 	if _, exists := csm.repositories[repo.ID]; exists {
-
 		return fmt.Errorf("repository %s already exists", repo.ID)
-
 	}
 
 	csm.logger.Info("Adding repository", "id", repo.ID, "url", repo.URL)
@@ -712,17 +691,13 @@ func (csm *ConfigSyncManager) AddRepository(ctx context.Context, repo *GitReposi
 	// Validate repository.
 
 	if err := csm.validateRepository(ctx, repo); err != nil {
-
 		return fmt.Errorf("repository validation failed: %w", err)
-
 	}
 
 	// Clone repository to check accessibility.
 
 	if err := csm.testRepositoryAccess(ctx, repo); err != nil {
-
 		return fmt.Errorf("repository access test failed: %w", err)
-
 	}
 
 	csm.repositories[repo.ID] = repo
@@ -734,13 +709,11 @@ func (csm *ConfigSyncManager) AddRepository(ctx context.Context, repo *GitReposi
 	csm.logger.Info("Successfully added repository", "id", repo.ID)
 
 	return nil
-
 }
 
 // RemoveRepository removes a Git repository.
 
 func (csm *ConfigSyncManager) RemoveRepository(ctx context.Context, repoID string) error {
-
 	csm.mu.Lock()
 
 	defer csm.mu.Unlock()
@@ -748,9 +721,7 @@ func (csm *ConfigSyncManager) RemoveRepository(ctx context.Context, repoID strin
 	_, exists := csm.repositories[repoID]
 
 	if !exists {
-
 		return fmt.Errorf("repository %s not found", repoID)
-
 	}
 
 	csm.logger.Info("Removing repository", "id", repoID)
@@ -758,13 +729,9 @@ func (csm *ConfigSyncManager) RemoveRepository(ctx context.Context, repoID strin
 	// Clean up sync status for this repository.
 
 	for key := range csm.syncStatus {
-
 		if strings.Contains(key, repoID) {
-
 			delete(csm.syncStatus, key)
-
 		}
-
 	}
 
 	delete(csm.repositories, repoID)
@@ -772,13 +739,11 @@ func (csm *ConfigSyncManager) RemoveRepository(ctx context.Context, repoID strin
 	csm.logger.Info("Successfully removed repository", "id", repoID)
 
 	return nil
-
 }
 
 // SyncRepository manually triggers synchronization for a repository.
 
 func (csm *ConfigSyncManager) SyncRepository(ctx context.Context, repoID string, clusterIDs []string) error {
-
 	csm.mu.RLock()
 
 	repo, exists := csm.repositories[repoID]
@@ -786,9 +751,7 @@ func (csm *ConfigSyncManager) SyncRepository(ctx context.Context, repoID string,
 	csm.mu.RUnlock()
 
 	if !exists {
-
 		return fmt.Errorf("repository %s not found", repoID)
-
 	}
 
 	csm.logger.Info("Manually syncing repository", "repo", repoID, "clusters", len(clusterIDs))
@@ -796,29 +759,21 @@ func (csm *ConfigSyncManager) SyncRepository(ctx context.Context, repoID string,
 	// If no clusters specified, sync to all configured clusters.
 
 	if len(clusterIDs) == 0 {
-
 		clusterIDs = repo.Clusters
-
 	}
 
 	for _, clusterID := range clusterIDs {
-
 		if err := csm.syncToCluster(ctx, repo, clusterID); err != nil {
-
 			csm.logger.Error(err, "Failed to sync to cluster", "repo", repoID, "cluster", clusterID)
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // GetSyncStatus retrieves sync status for a cluster-repository pair.
 
 func (csm *ConfigSyncManager) GetSyncStatus(clusterID, repoID string) (*SyncStatus, error) {
-
 	csm.mu.RLock()
 
 	defer csm.mu.RUnlock()
@@ -828,19 +783,15 @@ func (csm *ConfigSyncManager) GetSyncStatus(clusterID, repoID string) (*SyncStat
 	status, exists := csm.syncStatus[key]
 
 	if !exists {
-
 		return nil, fmt.Errorf("sync status not found for cluster %s and repository %s", clusterID, repoID)
-
 	}
 
 	return status, nil
-
 }
 
 // ListRepositories lists all configured repositories.
 
 func (csm *ConfigSyncManager) ListRepositories() []*GitRepository {
-
 	csm.mu.RLock()
 
 	defer csm.mu.RUnlock()
@@ -848,19 +799,15 @@ func (csm *ConfigSyncManager) ListRepositories() []*GitRepository {
 	repos := make([]*GitRepository, 0, len(csm.repositories))
 
 	for _, repo := range csm.repositories {
-
 		repos = append(repos, repo)
-
 	}
 
 	return repos
-
 }
 
 // RollbackCluster rolls back a cluster to a previous commit.
 
 func (csm *ConfigSyncManager) RollbackCluster(ctx context.Context, clusterID, repoID, commitHash string) error {
-
 	csm.logger.Info("Rolling back cluster", "cluster", clusterID, "repo", repoID, "commit", commitHash)
 
 	// Implementation would:.
@@ -872,51 +819,40 @@ func (csm *ConfigSyncManager) RollbackCluster(ctx context.Context, clusterID, re
 	// 3. Update sync status.
 
 	return nil
-
 }
 
 // CreatePolicy creates a new policy.
 
 func (csm *ConfigSyncManager) CreatePolicy(ctx context.Context, policy *Policy) error {
-
 	return csm.policyManager.CreatePolicy(policy)
-
 }
 
 // ValidatePolicy validates a policy against a cluster.
 
 func (csm *ConfigSyncManager) ValidatePolicy(ctx context.Context, policyID, clusterID string) ([]*PolicyViolation, error) {
-
 	return csm.policyManager.ValidatePolicy(ctx, policyID, clusterID)
-
 }
 
 // DetectDrift detects configuration drift for a cluster.
 
 func (csm *ConfigSyncManager) DetectDrift(ctx context.Context, clusterID string) ([]*DriftDetection, error) {
-
 	return csm.driftDetector.DetectDrift(ctx, clusterID)
-
 }
 
 // AssessCompliance assesses compliance for a cluster.
 
 func (csm *ConfigSyncManager) AssessCompliance(ctx context.Context, clusterID, standard string) (*ComplianceAssessment, error) {
-
 	return csm.complianceTracker.AssessCompliance(ctx, clusterID, standard)
-
 }
 
 // Private methods.
 
 func (csm *ConfigSyncManager) runSyncLoop(ctx context.Context) {
-
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -932,49 +868,34 @@ func (csm *ConfigSyncManager) runSyncLoop(ctx context.Context) {
 			csm.performScheduledSync(ctx)
 
 		}
-
 	}
-
 }
 
 func (csm *ConfigSyncManager) performScheduledSync(ctx context.Context) {
-
 	csm.mu.RLock()
 
 	repos := make([]*GitRepository, 0, len(csm.repositories))
 
 	for _, repo := range csm.repositories {
-
 		if repo.SyncPolicy.AutoSync {
-
 			repos = append(repos, repo)
-
 		}
-
 	}
 
 	csm.mu.RUnlock()
 
 	for _, repo := range repos {
-
 		// Check if sync is due.
 
 		if time.Since(repo.LastSync) >= repo.SyncPolicy.SyncInterval {
-
 			for _, clusterID := range repo.Clusters {
-
 				go csm.syncToCluster(ctx, repo, clusterID)
-
 			}
-
 		}
-
 	}
-
 }
 
 func (csm *ConfigSyncManager) syncToCluster(ctx context.Context, repo *GitRepository, clusterID string) error {
-
 	timer := prometheus.NewTimer(csm.metrics.syncDuration.WithLabelValues(clusterID, repo.ID))
 
 	defer timer.ObserveDuration()
@@ -984,7 +905,6 @@ func (csm *ConfigSyncManager) syncToCluster(ctx context.Context, repo *GitReposi
 	// Get cluster.
 
 	cluster, err := csm.registry.GetCluster(clusterID)
-
 	if err != nil {
 
 		csm.metrics.syncOperations.WithLabelValues(clusterID, repo.ID, "failed").Inc()
@@ -1000,7 +920,6 @@ func (csm *ConfigSyncManager) syncToCluster(ctx context.Context, repo *GitReposi
 	key := fmt.Sprintf("%s:%s", clusterID, repo.ID)
 
 	status := &SyncStatus{
-
 		ClusterID: clusterID,
 
 		RepositoryID: repo.ID,
@@ -1019,13 +938,11 @@ func (csm *ConfigSyncManager) syncToCluster(ctx context.Context, repo *GitReposi
 	// Clone repository.
 
 	repoDir, err := csm.cloneRepository(ctx, repo)
-
 	if err != nil {
 
 		status.Status = SyncStateFailed
 
 		status.Errors = append(status.Errors, SyncError{
-
 			Timestamp: time.Now(),
 
 			Message: err.Error(),
@@ -1046,13 +963,11 @@ func (csm *ConfigSyncManager) syncToCluster(ctx context.Context, repo *GitReposi
 	// Read manifests.
 
 	manifests, err := csm.readManifests(repoDir, repo.Path)
-
 	if err != nil {
 
 		status.Status = SyncStateFailed
 
 		status.Errors = append(status.Errors, SyncError{
-
 			Timestamp: time.Now(),
 
 			Message: err.Error(),
@@ -1071,13 +986,11 @@ func (csm *ConfigSyncManager) syncToCluster(ctx context.Context, repo *GitReposi
 	// Apply manifests.
 
 	syncedResources, appliedCount, failedCount, err := csm.applyManifests(ctx, cluster.Client, manifests, repo.SyncPolicy)
-
 	if err != nil {
 
 		status.Status = SyncStateFailed
 
 		status.Errors = append(status.Errors, SyncError{
-
 			Timestamp: time.Now(),
 
 			Message: err.Error(),
@@ -1102,7 +1015,6 @@ func (csm *ConfigSyncManager) syncToCluster(ctx context.Context, repo *GitReposi
 	status.SyncedResources = syncedResources
 
 	status.Metrics = SyncMetrics{
-
 		Duration: time.Since(status.LastSyncTime),
 
 		ResourcesTotal: len(manifests),
@@ -1141,61 +1053,44 @@ func (csm *ConfigSyncManager) syncToCluster(ctx context.Context, repo *GitReposi
 		"failed", failedCount)
 
 	return nil
-
 }
 
 func (csm *ConfigSyncManager) validateRepository(ctx context.Context, repo *GitRepository) error {
-
 	// Validate URL.
 
 	if _, err := url.Parse(repo.URL); err != nil {
-
 		return fmt.Errorf("invalid repository URL: %w", err)
-
 	}
 
 	// Validate branch.
 
 	if repo.Branch == "" {
-
 		repo.Branch = "main"
-
 	}
 
 	// Validate sync policy.
 
 	if repo.SyncPolicy.SyncInterval <= 0 {
-
 		repo.SyncPolicy.SyncInterval = 5 * time.Minute
-
 	}
 
 	if repo.SyncPolicy.RetryLimit <= 0 {
-
 		repo.SyncPolicy.RetryLimit = 3
-
 	}
 
 	if repo.SyncPolicy.Timeout <= 0 {
-
 		repo.SyncPolicy.Timeout = 10 * time.Minute
-
 	}
 
 	return nil
-
 }
 
 func (csm *ConfigSyncManager) testRepositoryAccess(ctx context.Context, repo *GitRepository) error {
-
 	// Create temporary directory.
 
 	tempDir, err := os.MkdirTemp("", "repo-test-")
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create temp directory: %w", err)
-
 	}
 
 	defer os.RemoveAll(tempDir)
@@ -1203,15 +1098,11 @@ func (csm *ConfigSyncManager) testRepositoryAccess(ctx context.Context, repo *Gi
 	// Clone repository.
 
 	auth, err := csm.getGitAuth(ctx, repo.Auth)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to get git auth: %w", err)
-
 	}
 
 	_, err = git.PlainClone(tempDir, false, &git.CloneOptions{
-
 		URL: repo.URL,
 
 		ReferenceName: plumbing.NewBranchReferenceName(repo.Branch),
@@ -1222,43 +1113,31 @@ func (csm *ConfigSyncManager) testRepositoryAccess(ctx context.Context, repo *Gi
 
 		Auth: auth,
 	})
-
 	if err != nil {
-
 		return fmt.Errorf("failed to clone repository: %w", err)
-
 	}
 
 	return nil
-
 }
 
 func (csm *ConfigSyncManager) cloneRepository(ctx context.Context, repo *GitRepository) (string, error) {
-
 	// Create temporary directory.
 
 	tempDir, err := os.MkdirTemp("", fmt.Sprintf("repo-%s-", repo.ID))
-
 	if err != nil {
-
 		return "", fmt.Errorf("failed to create temp directory: %w", err)
-
 	}
 
 	// Get authentication.
 
 	auth, err := csm.getGitAuth(ctx, repo.Auth)
-
 	if err != nil {
-
 		return "", fmt.Errorf("failed to get git auth: %w", err)
-
 	}
 
 	// Clone repository.
 
 	r, err := git.PlainClone(tempDir, false, &git.CloneOptions{
-
 		URL: repo.URL,
 
 		ReferenceName: plumbing.NewBranchReferenceName(repo.Branch),
@@ -1267,7 +1146,6 @@ func (csm *ConfigSyncManager) cloneRepository(ctx context.Context, repo *GitRepo
 
 		Auth: auth,
 	})
-
 	if err != nil {
 
 		os.RemoveAll(tempDir)
@@ -1279,7 +1157,6 @@ func (csm *ConfigSyncManager) cloneRepository(ctx context.Context, repo *GitRepo
 	// Get latest commit hash.
 
 	ref, err := r.Head()
-
 	if err != nil {
 
 		os.RemoveAll(tempDir)
@@ -1291,17 +1168,14 @@ func (csm *ConfigSyncManager) cloneRepository(ctx context.Context, repo *GitRepo
 	repo.LastCommit = ref.Hash().String()
 
 	return tempDir, nil
-
 }
 
 func (csm *ConfigSyncManager) getGitAuth(ctx context.Context, auth GitAuth) (transport.AuthMethod, error) {
-
 	switch auth.Type {
 
 	case "token":
 
 		return &http.BasicAuth{
-
 			Username: "token",
 
 			Password: auth.Token,
@@ -1310,7 +1184,6 @@ func (csm *ConfigSyncManager) getGitAuth(ctx context.Context, auth GitAuth) (tra
 	case "basic":
 
 		return &http.BasicAuth{
-
 			Username: auth.Username,
 
 			Password: auth.Password,
@@ -1323,14 +1196,11 @@ func (csm *ConfigSyncManager) getGitAuth(ctx context.Context, auth GitAuth) (tra
 		secret := &corev1.Secret{}
 
 		if err := csm.client.Get(ctx, client.ObjectKey{
-
 			Namespace: "nephio-system",
 
 			Name: auth.SecretRef,
 		}, secret); err != nil {
-
 			return nil, fmt.Errorf("failed to get auth secret: %w", err)
-
 		}
 
 		username := string(secret.Data["username"])
@@ -1340,18 +1210,14 @@ func (csm *ConfigSyncManager) getGitAuth(ctx context.Context, auth GitAuth) (tra
 		token := string(secret.Data["token"])
 
 		if token != "" {
-
 			return &http.BasicAuth{
-
 				Username: "token",
 
 				Password: token,
 			}, nil
-
 		}
 
 		return &http.BasicAuth{
-
 			Username: username,
 
 			Password: password,
@@ -1362,41 +1228,29 @@ func (csm *ConfigSyncManager) getGitAuth(ctx context.Context, auth GitAuth) (tra
 		return nil, nil
 
 	}
-
 }
 
 func (csm *ConfigSyncManager) readManifests(repoDir, path string) ([]*unstructured.Unstructured, error) {
-
 	manifestPath := filepath.Join(repoDir, path)
 
 	manifests := []*unstructured.Unstructured{}
 
 	err := filepath.Walk(manifestPath, func(filePath string, info os.FileInfo, err error) error {
-
 		if err != nil {
-
 			return err
-
 		}
 
 		if info.IsDir() {
-
 			return nil
-
 		}
 
 		if !strings.HasSuffix(filePath, ".yaml") && !strings.HasSuffix(filePath, ".yml") {
-
 			return nil
-
 		}
 
 		data, err := os.ReadFile(filePath)
-
 		if err != nil {
-
 			return fmt.Errorf("failed to read file %s: %w", filePath, err)
-
 		}
 
 		// Split multi-document YAML.
@@ -1408,9 +1262,7 @@ func (csm *ConfigSyncManager) readManifests(repoDir, path string) ([]*unstructur
 			doc = strings.TrimSpace(doc)
 
 			if doc == "" {
-
 				continue
-
 			}
 
 			var obj unstructured.Unstructured
@@ -1424,23 +1276,18 @@ func (csm *ConfigSyncManager) readManifests(repoDir, path string) ([]*unstructur
 			}
 
 			if obj.GetKind() != "" {
-
 				manifests = append(manifests, &obj)
-
 			}
 
 		}
 
 		return nil
-
 	})
 
 	return manifests, err
-
 }
 
 func (csm *ConfigSyncManager) applyManifests(ctx context.Context, clusterClient client.Client, manifests []*unstructured.Unstructured, policy SyncPolicy) ([]SyncedResource, int, int, error) {
-
 	syncedResources := []SyncedResource{}
 
 	appliedCount := 0
@@ -1452,7 +1299,6 @@ func (csm *ConfigSyncManager) applyManifests(ctx context.Context, clusterClient 
 		// Validate manifest if enabled.
 
 		if policy.ValidateManifests {
-
 			if err := csm.validateManifest(manifest); err != nil {
 
 				csm.logger.Error(err, "Manifest validation failed", "kind", manifest.GetKind(), "name", manifest.GetName())
@@ -1462,7 +1308,6 @@ func (csm *ConfigSyncManager) applyManifests(ctx context.Context, clusterClient 
 				continue
 
 			}
-
 		}
 
 		// Calculate resource hash.
@@ -1470,7 +1315,6 @@ func (csm *ConfigSyncManager) applyManifests(ctx context.Context, clusterClient 
 		hash := csm.calculateResourceHash(manifest)
 
 		if policy.DryRun {
-
 			// Dry run - just log what would be applied.
 
 			csm.logger.Info("DRY RUN: Would apply resource",
@@ -1480,9 +1324,7 @@ func (csm *ConfigSyncManager) applyManifests(ctx context.Context, clusterClient 
 				"name", manifest.GetName(),
 
 				"namespace", manifest.GetNamespace())
-
 		} else {
-
 			// Apply manifest.
 
 			if err := clusterClient.Patch(ctx, manifest, client.Apply, &client.PatchOptions{FieldManager: "nephio-config-sync", Force: func() *bool { b := true; return &b }()}); err != nil {
@@ -1494,11 +1336,9 @@ func (csm *ConfigSyncManager) applyManifests(ctx context.Context, clusterClient 
 				continue
 
 			}
-
 		}
 
 		syncedResource := SyncedResource{
-
 			Group: manifest.GetObjectKind().GroupVersionKind().Group,
 
 			Version: manifest.GetObjectKind().GroupVersionKind().Version,
@@ -1523,49 +1363,38 @@ func (csm *ConfigSyncManager) applyManifests(ctx context.Context, clusterClient 
 	}
 
 	return syncedResources, appliedCount, failedCount, nil
-
 }
 
 func (csm *ConfigSyncManager) validateManifest(manifest *unstructured.Unstructured) error {
-
 	// Basic validation.
 
 	if manifest.GetKind() == "" {
-
 		return fmt.Errorf("manifest missing kind")
-
 	}
 
 	if manifest.GetName() == "" {
-
 		return fmt.Errorf("manifest missing name")
-
 	}
 
 	// Additional validations can be added here.
 
 	return nil
-
 }
 
 func (csm *ConfigSyncManager) calculateResourceHash(manifest *unstructured.Unstructured) string {
-
 	data, _ := json.Marshal(manifest.Object)
 
 	hash := sha256.Sum256(data)
 
 	return hex.EncodeToString(hash[:])
-
 }
 
 func (csm *ConfigSyncManager) runDriftDetection(ctx context.Context) {
-
 	ticker := time.NewTicker(5 * time.Minute)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1581,19 +1410,15 @@ func (csm *ConfigSyncManager) runDriftDetection(ctx context.Context) {
 			csm.performDriftDetection(ctx)
 
 		}
-
 	}
-
 }
 
 func (csm *ConfigSyncManager) performDriftDetection(ctx context.Context) {
-
 	clusters := csm.registry.ListClusters()
 
 	for _, cluster := range clusters {
 
 		drifts, err := csm.driftDetector.DetectDrift(ctx, cluster.Metadata.ID)
-
 		if err != nil {
 
 			csm.logger.Error(err, "Drift detection failed", "cluster", cluster.Metadata.ID)
@@ -1603,7 +1428,6 @@ func (csm *ConfigSyncManager) performDriftDetection(ctx context.Context) {
 		}
 
 		for _, drift := range drifts {
-
 			csm.metrics.driftDetections.WithLabelValues(
 
 				cluster.Metadata.ID,
@@ -1612,21 +1436,17 @@ func (csm *ConfigSyncManager) performDriftDetection(ctx context.Context) {
 
 				drift.Severity,
 			).Inc()
-
 		}
 
 	}
-
 }
 
 func (csm *ConfigSyncManager) runPolicyValidation(ctx context.Context) {
-
 	ticker := time.NewTicker(10 * time.Minute)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1642,23 +1462,18 @@ func (csm *ConfigSyncManager) runPolicyValidation(ctx context.Context) {
 			csm.performPolicyValidation(ctx)
 
 		}
-
 	}
-
 }
 
 func (csm *ConfigSyncManager) performPolicyValidation(ctx context.Context) {
-
 	clusters := csm.registry.ListClusters()
 
 	policies := csm.policyManager.ListPolicies()
 
 	for _, cluster := range clusters {
-
 		for _, policy := range policies {
 
 			violations, err := csm.policyManager.ValidatePolicy(ctx, policy.ID, cluster.Metadata.ID)
-
 			if err != nil {
 
 				csm.logger.Error(err, "Policy validation failed", "cluster", cluster.Metadata.ID, "policy", policy.ID)
@@ -1668,7 +1483,6 @@ func (csm *ConfigSyncManager) performPolicyValidation(ctx context.Context) {
 			}
 
 			for _, violation := range violations {
-
 				csm.metrics.policyViolations.WithLabelValues(
 
 					cluster.Metadata.ID,
@@ -1677,23 +1491,18 @@ func (csm *ConfigSyncManager) performPolicyValidation(ctx context.Context) {
 
 					violation.Severity,
 				).Inc()
-
 			}
 
 		}
-
 	}
-
 }
 
 func (csm *ConfigSyncManager) runComplianceAssessment(ctx context.Context) {
-
 	ticker := time.NewTicker(1 * time.Hour)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1709,23 +1518,18 @@ func (csm *ConfigSyncManager) runComplianceAssessment(ctx context.Context) {
 			csm.performComplianceAssessment(ctx)
 
 		}
-
 	}
-
 }
 
 func (csm *ConfigSyncManager) performComplianceAssessment(ctx context.Context) {
-
 	clusters := csm.registry.ListClusters()
 
 	standards := csm.complianceTracker.ListStandards()
 
 	for _, cluster := range clusters {
-
 		for _, standard := range standards {
 
 			assessment, err := csm.complianceTracker.AssessCompliance(ctx, cluster.Metadata.ID, standard.Name)
-
 			if err != nil {
 
 				csm.logger.Error(err, "Compliance assessment failed", "cluster", cluster.Metadata.ID, "standard", standard.Name)
@@ -1742,9 +1546,7 @@ func (csm *ConfigSyncManager) performComplianceAssessment(ctx context.Context) {
 			).Set(assessment.Score)
 
 		}
-
 	}
-
 }
 
 // PolicyManager methods.
@@ -1752,15 +1554,12 @@ func (csm *ConfigSyncManager) performComplianceAssessment(ctx context.Context) {
 // CreatePolicy creates a new policy.
 
 func (pm *PolicyManager) CreatePolicy(policy *Policy) error {
-
 	pm.mu.Lock()
 
 	defer pm.mu.Unlock()
 
 	if _, exists := pm.policies[policy.ID]; exists {
-
 		return fmt.Errorf("policy %s already exists", policy.ID)
-
 	}
 
 	policy.CreatedAt = time.Now()
@@ -1772,13 +1571,11 @@ func (pm *PolicyManager) CreatePolicy(policy *Policy) error {
 	pm.logger.Info("Created policy", "id", policy.ID, "name", policy.Name)
 
 	return nil
-
 }
 
 // ValidatePolicy validates a policy against a cluster.
 
 func (pm *PolicyManager) ValidatePolicy(ctx context.Context, policyID, clusterID string) ([]*PolicyViolation, error) {
-
 	pm.mu.RLock()
 
 	policy, exists := pm.policies[policyID]
@@ -1786,9 +1583,7 @@ func (pm *PolicyManager) ValidatePolicy(ctx context.Context, policyID, clusterID
 	pm.mu.RUnlock()
 
 	if !exists {
-
 		return nil, fmt.Errorf("policy %s not found", policyID)
-
 	}
 
 	violations := []*PolicyViolation{}
@@ -1806,7 +1601,6 @@ func (pm *PolicyManager) ValidatePolicy(ctx context.Context, policyID, clusterID
 		if violated {
 
 			violation := &PolicyViolation{
-
 				PolicyID: policyID,
 
 				ClusterID: clusterID,
@@ -1833,13 +1627,11 @@ func (pm *PolicyManager) ValidatePolicy(ctx context.Context, policyID, clusterID
 	pm.mu.Unlock()
 
 	return violations, nil
-
 }
 
 // ListPolicies lists all policies.
 
 func (pm *PolicyManager) ListPolicies() []*Policy {
-
 	pm.mu.RLock()
 
 	defer pm.mu.RUnlock()
@@ -1847,23 +1639,18 @@ func (pm *PolicyManager) ListPolicies() []*Policy {
 	policies := make([]*Policy, 0, len(pm.policies))
 
 	for _, policy := range pm.policies {
-
 		policies = append(policies, policy)
-
 	}
 
 	return policies
-
 }
 
 func (pm *PolicyManager) evaluateRule(ctx context.Context, rule PolicyRule, clusterID string) bool {
-
 	// Implementation would evaluate the rule condition.
 
 	// This is a placeholder that randomly returns violations for demonstration.
 
 	return false
-
 }
 
 // DriftDetector methods.
@@ -1871,15 +1658,12 @@ func (pm *PolicyManager) evaluateRule(ctx context.Context, rule PolicyRule, clus
 // DetectDrift detects configuration drift for a cluster.
 
 func (dd *DriftDetector) DetectDrift(ctx context.Context, clusterID string) ([]*DriftDetection, error) {
-
 	dd.mu.RLock()
 
 	rules := make([]*DriftRule, 0, len(dd.detectionRules))
 
 	for _, rule := range dd.detectionRules {
-
 		rules = append(rules, rule)
-
 	}
 
 	dd.mu.RUnlock()
@@ -1897,7 +1681,6 @@ func (dd *DriftDetector) DetectDrift(ctx context.Context, clusterID string) ([]*
 	dd.mu.Unlock()
 
 	return detections, nil
-
 }
 
 // ComplianceTracker methods.
@@ -1905,7 +1688,6 @@ func (dd *DriftDetector) DetectDrift(ctx context.Context, clusterID string) ([]*
 // AssessCompliance assesses compliance for a cluster.
 
 func (ct *ComplianceTracker) AssessCompliance(ctx context.Context, clusterID, standard string) (*ComplianceAssessment, error) {
-
 	ct.mu.RLock()
 
 	std, exists := ct.standards[standard]
@@ -1913,13 +1695,10 @@ func (ct *ComplianceTracker) AssessCompliance(ctx context.Context, clusterID, st
 	ct.mu.RUnlock()
 
 	if !exists {
-
 		return nil, fmt.Errorf("compliance standard %s not found", standard)
-
 	}
 
 	assessment := &ComplianceAssessment{
-
 		ID: fmt.Sprintf("%s-%s-%d", clusterID, standard, time.Now().Unix()),
 
 		ClusterID: clusterID,
@@ -1938,7 +1717,6 @@ func (ct *ComplianceTracker) AssessCompliance(ctx context.Context, clusterID, st
 	for _, control := range std.Controls {
 
 		result := ComplianceResult{
-
 			ControlID: control.ID,
 
 			Timestamp: time.Now(),
@@ -1973,17 +1751,11 @@ func (ct *ComplianceTracker) AssessCompliance(ctx context.Context, clusterID, st
 	assessment.Score = float64(passedControls) / float64(len(std.Controls)) * 100
 
 	if assessment.Score >= 90 {
-
 		assessment.Status = "compliant"
-
 	} else if assessment.Score >= 70 {
-
 		assessment.Status = "partially-compliant"
-
 	} else {
-
 		assessment.Status = "non-compliant"
-
 	}
 
 	ct.mu.Lock()
@@ -1993,13 +1765,11 @@ func (ct *ComplianceTracker) AssessCompliance(ctx context.Context, clusterID, st
 	ct.mu.Unlock()
 
 	return assessment, nil
-
 }
 
 // ListStandards lists all compliance standards.
 
 func (ct *ComplianceTracker) ListStandards() []*ComplianceStandard {
-
 	ct.mu.RLock()
 
 	defer ct.mu.RUnlock()
@@ -2007,21 +1777,16 @@ func (ct *ComplianceTracker) ListStandards() []*ComplianceStandard {
 	standards := make([]*ComplianceStandard, 0, len(ct.standards))
 
 	for _, standard := range ct.standards {
-
 		standards = append(standards, standard)
-
 	}
 
 	return standards
-
 }
 
 func (ct *ComplianceTracker) evaluateControl(ctx context.Context, control ComplianceControl, clusterID string) bool {
-
 	// Implementation would evaluate the control checks.
 
 	// This is a placeholder that randomly returns compliance status.
 
 	return true
-
 }

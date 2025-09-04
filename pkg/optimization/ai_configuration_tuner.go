@@ -31,7 +31,9 @@ limitations under the License.
 package optimization
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -89,7 +91,6 @@ type AIConfigurationTuner struct {
 // AITunerConfig defines configuration for the AI tuner.
 
 type AITunerConfig struct {
-
 	// Algorithm selection.
 
 	OptimizationAlgorithm OptimizationAlgorithmType `json:"optimizationAlgorithm"`
@@ -602,7 +603,7 @@ const (
 type SystemConfiguration struct {
 	ID string `json:"id"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	Timestamp time.Time `json:"timestamp"`
 
@@ -866,9 +867,7 @@ const (
 // NewAIConfigurationTuner creates a new AI configuration tuner.
 
 func NewAIConfigurationTuner(config *AITunerConfig, logger logr.Logger) *AIConfigurationTuner {
-
 	tuner := &AIConfigurationTuner{
-
 		logger: logger.WithName("ai-configuration-tuner"),
 
 		config: config,
@@ -901,13 +900,11 @@ func NewAIConfigurationTuner(config *AITunerConfig, logger logr.Logger) *AIConfi
 	tuner.configurationSpace = tuner.buildConfigurationSpace()
 
 	return tuner
-
 }
 
 // StartAutoTuning starts the automatic tuning process.
 
 func (tuner *AIConfigurationTuner) StartAutoTuning(ctx context.Context) error {
-
 	tuner.logger.Info("Starting AI configuration tuning",
 
 		"algorithm", tuner.config.OptimizationAlgorithm,
@@ -920,9 +917,7 @@ func (tuner *AIConfigurationTuner) StartAutoTuning(ctx context.Context) error {
 	objectives := tuner.buildOptimizationObjectives()
 
 	if err := tuner.optimizationEngine.Initialize(tuner.configurationSpace, objectives); err != nil {
-
 		return fmt.Errorf("failed to initialize optimization engine: %w", err)
-
 	}
 
 	// Start tuning loop.
@@ -934,13 +929,11 @@ func (tuner *AIConfigurationTuner) StartAutoTuning(ctx context.Context) error {
 	go tuner.safetyMonitoringLoop(ctx)
 
 	return nil
-
 }
 
 // StopAutoTuning stops the automatic tuning process.
 
 func (tuner *AIConfigurationTuner) StopAutoTuning(ctx context.Context) error {
-
 	tuner.logger.Info("Stopping AI configuration tuning")
 
 	close(tuner.stopChan)
@@ -948,41 +941,31 @@ func (tuner *AIConfigurationTuner) StopAutoTuning(ctx context.Context) error {
 	// Save best configuration.
 
 	if tuner.bestConfiguration != nil {
-
 		if err := tuner.applyConfiguration(ctx, tuner.bestConfiguration); err != nil {
-
 			tuner.logger.Error(err, "Failed to apply best configuration")
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // GetOptimalConfiguration returns the current optimal configuration.
 
 func (tuner *AIConfigurationTuner) GetOptimalConfiguration() *SystemConfiguration {
-
 	tuner.mutex.RLock()
 
 	defer tuner.mutex.RUnlock()
 
 	if tuner.bestConfiguration != nil {
-
 		return tuner.bestConfiguration
-
 	}
 
 	return tuner.currentConfiguration
-
 }
 
 // tuningLoop is the main optimization loop.
 
 func (tuner *AIConfigurationTuner) tuningLoop(ctx context.Context) {
-
 	iteration := 0
 
 	for {
@@ -1037,7 +1020,6 @@ func (tuner *AIConfigurationTuner) tuningLoop(ctx context.Context) {
 		// Suggest next configuration.
 
 		candidateConfig, err := tuner.optimizationEngine.SuggestConfiguration(ctx, tuner.learningHistory)
-
 		if err != nil {
 
 			tuner.logger.Error(err, "Failed to suggest configuration", "iteration", iteration)
@@ -1061,7 +1043,6 @@ func (tuner *AIConfigurationTuner) tuningLoop(ctx context.Context) {
 		// Run experiment with new configuration.
 
 		performance, err := tuner.runExperiment(ctx, candidateConfig)
-
 		if err != nil {
 
 			tuner.logger.Error(err, "Experiment failed", "iteration", iteration)
@@ -1073,7 +1054,6 @@ func (tuner *AIConfigurationTuner) tuningLoop(ctx context.Context) {
 		// Create learning iteration record.
 
 		learningIteration := &LearningIteration{
-
 			Iteration: iteration,
 
 			Timestamp: time.Now(),
@@ -1108,9 +1088,7 @@ func (tuner *AIConfigurationTuner) tuningLoop(ctx context.Context) {
 		// Update optimization model.
 
 		if err := tuner.optimizationEngine.UpdateModel(ctx, learningIteration); err != nil {
-
 			tuner.logger.Error(err, "Failed to update optimization model", "iteration", iteration)
-
 		}
 
 		// Update best configuration if improved.
@@ -1137,19 +1115,15 @@ func (tuner *AIConfigurationTuner) tuningLoop(ctx context.Context) {
 		// Add cooldown period between iterations.
 
 		if tuner.config.CooldownPeriod > 0 {
-
 			time.Sleep(tuner.config.CooldownPeriod)
-
 		}
 
 	}
-
 }
 
 // runExperiment runs a performance experiment with the given configuration.
 
 func (tuner *AIConfigurationTuner) runExperiment(ctx context.Context, config *SystemConfiguration) (*PerformanceMetrics, error) {
-
 	experimentID := fmt.Sprintf("exp_%s_%d", config.ID, time.Now().Unix())
 
 	tuner.logger.Info("Starting experiment", "experimentId", experimentID, "configId", config.ID)
@@ -1157,9 +1131,7 @@ func (tuner *AIConfigurationTuner) runExperiment(ctx context.Context, config *Sy
 	// Apply configuration.
 
 	if err := tuner.applyConfiguration(ctx, config); err != nil {
-
 		return nil, fmt.Errorf("failed to apply configuration: %w", err)
-
 	}
 
 	// Warmup period.
@@ -1175,11 +1147,8 @@ func (tuner *AIConfigurationTuner) runExperiment(ctx context.Context, config *Sy
 	// Run performance measurement.
 
 	performance, err := tuner.measurePerformance(ctx, tuner.config.ExperimentDuration)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to measure performance: %w", err)
-
 	}
 
 	// Update configuration with performance metrics.
@@ -1202,19 +1171,16 @@ func (tuner *AIConfigurationTuner) runExperiment(ctx context.Context, config *Sy
 	)
 
 	return performance, nil
-
 }
 
 // safetyMonitoringLoop monitors system safety during tuning.
 
 func (tuner *AIConfigurationTuner) safetyMonitoringLoop(ctx context.Context) {
-
 	ticker := time.NewTicker(tuner.config.SafetyCheckInterval)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1238,9 +1204,7 @@ func (tuner *AIConfigurationTuner) safetyMonitoringLoop(ctx context.Context) {
 					tuner.logger.Info("Triggering emergency rollback")
 
 					if err := tuner.rollbackManager.EmergencyRollback(ctx); err != nil {
-
 						tuner.logger.Error(err, "Emergency rollback failed")
-
 					}
 
 				}
@@ -1248,19 +1212,15 @@ func (tuner *AIConfigurationTuner) safetyMonitoringLoop(ctx context.Context) {
 			}
 
 		}
-
 	}
-
 }
 
 // Helper methods.
 
 func (tuner *AIConfigurationTuner) buildConfigurationSpace() *ConfigurationSpace {
-
 	// Build configuration space based on system components.
 
 	space := &ConfigurationSpace{
-
 		Parameters: make(map[string]*ParameterSpace),
 
 		Constraints: make([]*ConfigurationConstraint, 0),
@@ -1273,7 +1233,6 @@ func (tuner *AIConfigurationTuner) buildConfigurationSpace() *ConfigurationSpace
 	// Add LLM processor parameters.
 
 	space.Parameters["llm_max_tokens"] = &ParameterSpace{
-
 		Name: "llm_max_tokens",
 
 		Type: ParameterTypeInteger,
@@ -1288,7 +1247,6 @@ func (tuner *AIConfigurationTuner) buildConfigurationSpace() *ConfigurationSpace
 	}
 
 	space.Parameters["llm_temperature"] = &ParameterSpace{
-
 		Name: "llm_temperature",
 
 		Type: ParameterTypeFloat,
@@ -1303,7 +1261,6 @@ func (tuner *AIConfigurationTuner) buildConfigurationSpace() *ConfigurationSpace
 	}
 
 	space.Parameters["llm_batch_size"] = &ParameterSpace{
-
 		Name: "llm_batch_size",
 
 		Type: ParameterTypeInteger,
@@ -1320,7 +1277,6 @@ func (tuner *AIConfigurationTuner) buildConfigurationSpace() *ConfigurationSpace
 	// Add caching parameters.
 
 	space.Parameters["cache_ttl_seconds"] = &ParameterSpace{
-
 		Name: "cache_ttl_seconds",
 
 		Type: ParameterTypeInteger,
@@ -1335,7 +1291,6 @@ func (tuner *AIConfigurationTuner) buildConfigurationSpace() *ConfigurationSpace
 	}
 
 	space.Parameters["cache_max_size_mb"] = &ParameterSpace{
-
 		Name: "cache_max_size_mb",
 
 		Type: ParameterTypeInteger,
@@ -1352,7 +1307,6 @@ func (tuner *AIConfigurationTuner) buildConfigurationSpace() *ConfigurationSpace
 	// Add Kubernetes resource parameters.
 
 	space.Parameters["cpu_request_millicores"] = &ParameterSpace{
-
 		Name: "cpu_request_millicores",
 
 		Type: ParameterTypeInteger,
@@ -1367,7 +1321,6 @@ func (tuner *AIConfigurationTuner) buildConfigurationSpace() *ConfigurationSpace
 	}
 
 	space.Parameters["memory_request_mb"] = &ParameterSpace{
-
 		Name: "memory_request_mb",
 
 		Type: ParameterTypeInteger,
@@ -1384,7 +1337,6 @@ func (tuner *AIConfigurationTuner) buildConfigurationSpace() *ConfigurationSpace
 	// Add connection pool parameters.
 
 	space.Parameters["connection_pool_size"] = &ParameterSpace{
-
 		Name: "connection_pool_size",
 
 		Type: ParameterTypeInteger,
@@ -1401,7 +1353,6 @@ func (tuner *AIConfigurationTuner) buildConfigurationSpace() *ConfigurationSpace
 	// Add timeout parameters.
 
 	space.Parameters["request_timeout_seconds"] = &ParameterSpace{
-
 		Name: "request_timeout_seconds",
 
 		Type: ParameterTypeInteger,
@@ -1416,15 +1367,11 @@ func (tuner *AIConfigurationTuner) buildConfigurationSpace() *ConfigurationSpace
 	}
 
 	return space
-
 }
 
 func (tuner *AIConfigurationTuner) buildOptimizationObjectives() []OptimizationObjective {
-
 	objectives := []OptimizationObjective{
-
 		{
-
 			Name: "latency",
 
 			Type: ObjectiveTypeMinimize,
@@ -1435,7 +1382,6 @@ func (tuner *AIConfigurationTuner) buildOptimizationObjectives() []OptimizationO
 		},
 
 		{
-
 			Name: "throughput",
 
 			Type: ObjectiveTypeMaximize,
@@ -1446,7 +1392,6 @@ func (tuner *AIConfigurationTuner) buildOptimizationObjectives() []OptimizationO
 		},
 
 		{
-
 			Name: "error_rate",
 
 			Type: ObjectiveTypeMinimize,
@@ -1457,7 +1402,6 @@ func (tuner *AIConfigurationTuner) buildOptimizationObjectives() []OptimizationO
 		},
 
 		{
-
 			Name: "resource_usage",
 
 			Type: ObjectiveTypeMinimize,
@@ -1468,7 +1412,6 @@ func (tuner *AIConfigurationTuner) buildOptimizationObjectives() []OptimizationO
 		},
 
 		{
-
 			Name: "cost",
 
 			Type: ObjectiveTypeMinimize,
@@ -1480,11 +1423,9 @@ func (tuner *AIConfigurationTuner) buildOptimizationObjectives() []OptimizationO
 	}
 
 	return objectives
-
 }
 
 func (tuner *AIConfigurationTuner) calculateFitnessScore(performance *PerformanceMetrics) float64 {
-
 	// Multi-objective fitness function.
 
 	latencyScore := 1.0 / (1.0 + performance.Latency.Seconds())
@@ -1506,15 +1447,11 @@ func (tuner *AIConfigurationTuner) calculateFitnessScore(performance *Performanc
 		resourceScore*tuner.config.ObjectiveWeights["resource_usage"])
 
 	return fitness
-
 }
 
 func (tuner *AIConfigurationTuner) getBestPerformance(history []*LearningIteration) float64 {
-
 	if len(history) == 0 {
-
 		return 0.0
-
 	}
 
 	bestScore := tuner.calculateFitnessScore(history[0].Performance)
@@ -1524,35 +1461,25 @@ func (tuner *AIConfigurationTuner) getBestPerformance(history []*LearningIterati
 		score := tuner.calculateFitnessScore(iteration.Performance)
 
 		if score > bestScore {
-
 			bestScore = score
-
 		}
 
 	}
 
 	return bestScore
-
 }
 
 func (tuner *AIConfigurationTuner) isConfigurationBetter(config1, config2 *SystemConfiguration) bool {
-
 	if config2 == nil {
-
 		return true
-
 	}
 
 	return config1.FitnessScore > config2.FitnessScore
-
 }
 
 func (tuner *AIConfigurationTuner) shouldTriggerRollback() bool {
-
 	if len(tuner.learningHistory) < 2 {
-
 		return false
-
 	}
 
 	recent := tuner.learningHistory[len(tuner.learningHistory)-1]
@@ -1566,29 +1493,24 @@ func (tuner *AIConfigurationTuner) shouldTriggerRollback() bool {
 	degradation := (baselinePerformance - currentPerformance) / baselinePerformance
 
 	return degradation > tuner.config.RollbackTriggerThreshold
-
 }
 
 // Placeholder implementations for complex components.
 
 func (tuner *AIConfigurationTuner) applyConfiguration(ctx context.Context, config *SystemConfiguration) error {
-
 	// Implementation would apply configuration changes to the system.
 
 	tuner.logger.V(1).Info("Applying configuration", "configId", config.ID)
 
 	return nil
-
 }
 
 func (tuner *AIConfigurationTuner) measurePerformance(ctx context.Context, duration time.Duration) (*PerformanceMetrics, error) {
-
 	// Implementation would measure actual system performance.
 
 	// This is a simplified simulation.
 
 	metrics := &PerformanceMetrics{
-
 		Latency: time.Duration(rand.Intn(2000)) * time.Millisecond,
 
 		Throughput: float64(rand.Intn(1000)) + 100,
@@ -1596,7 +1518,6 @@ func (tuner *AIConfigurationTuner) measurePerformance(ctx context.Context, durat
 		ErrorRate: rand.Float64() * 0.1,
 
 		ResourceUsage: ResourceUsage{
-
 			CPUUsage: rand.Float64() * 100,
 
 			MemoryUsage: rand.Float64() * 100,
@@ -1608,23 +1529,18 @@ func (tuner *AIConfigurationTuner) measurePerformance(ctx context.Context, durat
 	}
 
 	return metrics, nil
-
 }
 
 func (tuner *AIConfigurationTuner) performSafetyCheck(ctx context.Context) error {
-
 	// Implementation would perform safety checks.
 
 	return nil
-
 }
 
 // GetDefaultAITunerConfig returns default configuration for the AI tuner.
 
 func GetDefaultAITunerConfig() *AITunerConfig {
-
 	return &AITunerConfig{
-
 		OptimizationAlgorithm: AlgorithmBayesianOptimization,
 
 		HyperparameterStrategy: HyperparameterStrategyAdaptive,
@@ -1656,7 +1572,6 @@ func GetDefaultAITunerConfig() *AITunerConfig {
 		SafetyCheckInterval: 1 * time.Minute,
 
 		ObjectiveWeights: map[string]float64{
-
 			"latency": 0.3,
 
 			"throughput": 0.25,
@@ -1690,39 +1605,30 @@ func GetDefaultAITunerConfig() *AITunerConfig {
 
 		PolicyUpdateFrequency: 10,
 	}
-
 }
 
 // Placeholder component constructors.
 
 func NewOptimizationEngine(config *AITunerConfig, logger logr.Logger) *OptimizationEngine {
-
 	return &OptimizationEngine{logger: logger}
-
 }
 
 // NewPerformancePredictor performs newperformancepredictor operation.
 
 func NewPerformancePredictor(logger logr.Logger) *PerformancePredictor {
-
 	return &PerformancePredictor{}
-
 }
 
 // NewParameterOptimizer performs newparameteroptimizer operation.
 
 func NewParameterOptimizer(config *AITunerConfig, logger logr.Logger) *ParameterOptimizer {
-
 	return &ParameterOptimizer{}
-
 }
 
 // NewExperimentManager performs newexperimentmanager operation.
 
 func NewExperimentManager(config *AITunerConfig, logger logr.Logger) *ExperimentManager {
-
 	return &ExperimentManager{}
-
 }
 
 // NewResultsAnalyzer performs newresultsanalyzer operation.
@@ -1736,9 +1642,7 @@ func NewConvergenceTracker(threshold float64) *ConvergenceTracker { return &Conv
 // NewSafetyConstraints performs newsafetyconstraints operation.
 
 func NewSafetyConstraints(config *AITunerConfig, logger logr.Logger) *SafetyConstraints {
-
 	return &SafetyConstraints{}
-
 }
 
 // NewRollbackManager performs newrollbackmanager operation.
@@ -1782,47 +1686,33 @@ type (
 // Placeholder methods.
 
 func (oe *OptimizationEngine) Initialize(space *ConfigurationSpace, objectives []OptimizationObjective) error {
-
 	return nil
-
 }
 
 // SuggestConfiguration performs suggestconfiguration operation.
 
 func (oe *OptimizationEngine) SuggestConfiguration(ctx context.Context, history []*LearningIteration) (*SystemConfiguration, error) {
-
 	return &SystemConfiguration{
-
 		ID: fmt.Sprintf("config_%d", time.Now().Unix()),
 
-		Parameters: map[string]interface{}{
-
-			"llm_max_tokens": 2048,
-
-			"cache_ttl_seconds": 600,
-		},
+		Parameters: json.RawMessage(`{}`),
 
 		Timestamp: time.Now(),
 
 		ValidationStatus: ValidationStatusValid,
 	}, nil
-
 }
 
 // UpdateModel performs updatemodel operation.
 
 func (oe *OptimizationEngine) UpdateModel(ctx context.Context, iteration *LearningIteration) error {
-
 	return nil
-
 }
 
 // IsConverged performs isconverged operation.
 
 func (ct *ConvergenceTracker) IsConverged(history []*LearningIteration) (bool, float64) {
-
 	return false, 0.0
-
 }
 
 // ValidateConfiguration performs validateconfiguration operation.
@@ -1832,3 +1722,4 @@ func (sc *SafetyConstraints) ValidateConfiguration(config *SystemConfiguration) 
 // EmergencyRollback performs emergencyrollback operation.
 
 func (rm *RollbackManager) EmergencyRollback(ctx context.Context) error { return nil }
+

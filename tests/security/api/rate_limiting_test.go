@@ -2,7 +2,7 @@ package api
 
 import (
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"net/http"
 	"net/http/httptest"
 	"sort"
@@ -754,7 +754,6 @@ func TestGracefulDegradation(t *testing.T) {
 
 			// Execute function
 			err := fn()
-
 			if err != nil {
 				cb.failures++
 				if cb.state == "half-open" {
@@ -1033,7 +1032,7 @@ func TestRateLimitingMetrics(t *testing.T) {
 
 		// Simulate processing time
 		if allowed {
-			time.Sleep(time.Duration(rand.Intn(50)) * time.Millisecond)
+			time.Sleep(time.Duration(rand.IntN(50)) * time.Millisecond)
 		}
 
 		responseTime := time.Since(start)

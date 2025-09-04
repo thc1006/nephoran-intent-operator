@@ -1,14 +1,19 @@
+//go:build !disable_rag
+// +build !disable_rag
+
 // Package unit provides comprehensive unit tests for LLM integration components
 package unit
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
@@ -24,7 +29,7 @@ type LLMTestSuite struct {
 // TestLLMComponents runs the LLM test suite
 func TestLLMComponents(t *testing.T) {
 	suite.Run(t, &LLMTestSuite{
-		TestSuite: framework.NewTestSuite(),
+		TestSuite: framework.NewTestSuite(nil),
 	})
 }
 
@@ -56,12 +61,8 @@ func (suite *LLMTestSuite) setupLLMMocks() {
 	llmMock := suite.GetMocks().GetLLMMock()
 
 	// Setup standard successful response
-	llmMock.On("ProcessIntent", gomega.Any(), gomega.Any()).Return(
+	llmMock.On("ProcessIntent", mock.Anything, mock.Anything).Return(
 		map[string]interface{}{
-			"type":            "NetworkFunctionDeployment",
-			"networkFunction": "AMF",
-			"replicas":        int64(3),
-			"namespace":       "telecom-core",
 			"resources": map[string]interface{}{
 				"requests": map[string]string{
 					"cpu":    "1000m",
@@ -72,20 +73,15 @@ func (suite *LLMTestSuite) setupLLMMocks() {
 					"memory": "4Gi",
 				},
 			},
-			"config": map[string]interface{}{
-				"plmn": map[string]string{
-					"mcc": "001",
-					"mnc": "01",
-				},
-				"slice_support": []string{"eMBB", "URLLC"},
-			},
+			"config":        "{}",
+			"slice_support": []string{"eMBB", "URLLC"},
 		}, nil)
 }
 
 // TestTokenManager tests the token management functionality
 func (suite *LLMTestSuite) TestTokenManager() {
 	ginkgo.Describe("Token Manager", func() {
-		var tokenManager *llm.TokenManager
+		var tokenManager llm.TokenManager
 
 		ginkgo.BeforeEach(func() {
 			tokenManager = llm.NewTokenManager()
@@ -112,7 +108,7 @@ func (suite *LLMTestSuite) TestTokenManager() {
 				models := []string{"gpt-4o", "gpt-4o-mini", "claude-3-haiku"}
 
 				for _, model := range models {
-					budget, err := tokenManager.CalculateTokenBudget(
+					budget, err := tokenManager.CalculateTokenBudgetAdvanced(
 						context.Background(),
 						model,
 						"System prompt for network automation",
@@ -135,7 +131,7 @@ func (suite *LLMTestSuite) TestTokenManager() {
 					longContext += "This is a very long context that should exceed token limits. "
 				}
 
-				budget, err := tokenManager.CalculateTokenBudget(
+				budget, err := tokenManager.CalculateTokenBudgetAdvanced(
 					context.Background(),
 					"gpt-4o-mini",
 					"System prompt",
@@ -207,20 +203,14 @@ func (suite *LLMTestSuite) TestContextBuilder() {
 						Title:   "AMF Configuration Guide",
 						Content: "Access and Mobility Management Function configuration procedures...",
 						Source:  "3GPP TS 23.501",
-						Metadata: map[string]interface{}{
-							"category":  "5G Core",
-							"authority": "3GPP",
-						},
+						Metadata: "{}",
 					},
 					{
 						ID:      "doc2",
 						Title:   "SMF Deployment",
 						Content: "Session Management Function deployment in Kubernetes...",
 						Source:  "O-RAN WG4",
-						Metadata: map[string]interface{}{
-							"category":  "5G Core",
-							"authority": "O-RAN",
-						},
+						Metadata: "{}",
 					},
 				}
 
@@ -241,18 +231,14 @@ func (suite *LLMTestSuite) TestContextBuilder() {
 						Title:   "Network Function Guide",
 						Content: "General network function information...",
 						Source:  "3GPP TS 23.501",
-						Metadata: map[string]interface{}{
-							"authority": "3GPP",
-						},
+						Metadata: "{}",
 					},
 					{
 						ID:      "doc2",
 						Title:   "Network Function Guide",
 						Content: "General network function information...",
 						Source:  "Blog Post",
-						Metadata: map[string]interface{}{
-							"authority": "Blog",
-						},
+						Metadata: "{}",
 					},
 				}
 
@@ -273,35 +259,29 @@ func (suite *LLMTestSuite) TestContextBuilder() {
 						ID:      "doc1",
 						Content: "AMF configuration details for 5G SA networks...",
 						Source:  "3GPP TS 23.501",
-						Metadata: map[string]interface{}{
-							"category": "AMF",
-						},
+						Metadata: "{}",
 					},
 					{
 						ID:      "doc2",
 						Content: "SMF session management procedures...",
 						Source:  "3GPP TS 23.502",
-						Metadata: map[string]interface{}{
-							"category": "SMF",
-						},
+						Metadata: "{}",
 					},
 					{
 						ID:      "doc3",
 						Content: "Another AMF configuration example...",
 						Source:  "O-RAN WG4",
-						Metadata: map[string]interface{}{
-							"category": "AMF",
-						},
+						Metadata: "{}",
 					},
 				}
 
 				query := "Deploy 5G core network functions"
 
-				context, err := contextBuilder.BuildContext(context.Background(), query, documents)
+				builtContext, err := contextBuilder.BuildContext(context.Background(), query, documents)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				gomega.Expect(context.Context).NotTo(gomega.BeEmpty())
-				gomega.Expect(len(context.UsedDocuments)).To(gomega.BeNumerically(">", 0))
-				gomega.Expect(context.QualityScore).To(gomega.BeNumerically(">", 0.5))
+				gomega.Expect(builtContext.Context).NotTo(gomega.BeEmpty())
+				gomega.Expect(len(builtContext.UsedDocuments)).To(gomega.BeNumerically(">", 0))
+				gomega.Expect(builtContext.QualityScore).To(gomega.BeNumerically(">", 0.5))
 			})
 
 			ginkgo.It("should respect token budget", func() {
@@ -319,12 +299,12 @@ func (suite *LLMTestSuite) TestContextBuilder() {
 				// Set very low token budget
 				contextBuilder.Config.MaxContextTokens = 100
 
-				context, err := contextBuilder.BuildContext(context.Background(), query, documents)
+				builtContext, err := contextBuilder.BuildContext(context.Background(), query, documents)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 				// Verify context respects token budget
 				tokenManager := llm.NewTokenManager()
-				tokens := tokenManager.CountTokens(context.Context)
+				tokens := tokenManager.CountTokens(builtContext.Context)
 				gomega.Expect(tokens).To(gomega.BeNumerically("<=", 100))
 			})
 		})
@@ -344,11 +324,11 @@ func (suite *LLMTestSuite) TestContextBuilder() {
 				query := "Network function deployment"
 
 				start := time.Now()
-				context, err := contextBuilder.BuildContext(context.Background(), query, documents)
+				builtContext, err := contextBuilder.BuildContext(context.Background(), query, documents)
 				duration := time.Since(start)
 
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				gomega.Expect(context.Context).NotTo(gomega.BeEmpty())
+				gomega.Expect(builtContext.Context).NotTo(gomega.BeEmpty())
 
 				suite.GetMetrics().RecordLatency("context_building", duration)
 
@@ -385,8 +365,8 @@ func (suite *LLMTestSuite) TestCircuitBreaker() {
 			ginkgo.It("should open after failure threshold", func() {
 				// Simulate failures
 				for i := 0; i < 5; i++ {
-					circuitBreaker.Execute(func() error {
-						return fmt.Errorf("simulated failure")
+					_, _ = circuitBreaker.Execute(context.Background(), func(ctx context.Context) (interface{}, error) {
+						return nil, fmt.Errorf("simulated failure")
 					})
 				}
 
@@ -397,8 +377,8 @@ func (suite *LLMTestSuite) TestCircuitBreaker() {
 			ginkgo.It("should transition to half-open after reset timeout", func() {
 				// Force circuit to open
 				for i := 0; i < 5; i++ {
-					circuitBreaker.Execute(func() error {
-						return fmt.Errorf("simulated failure")
+					_, _ = circuitBreaker.Execute(context.Background(), func(ctx context.Context) (interface{}, error) {
+						return nil, fmt.Errorf("simulated failure")
 					})
 				}
 
@@ -415,9 +395,9 @@ func (suite *LLMTestSuite) TestCircuitBreaker() {
 		ginkgo.Context("Request Handling", func() {
 			ginkgo.It("should execute requests in closed state", func() {
 				executed := false
-				err := circuitBreaker.Execute(func() error {
+				_, err := circuitBreaker.Execute(context.Background(), func(ctx context.Context) (interface{}, error) {
 					executed = true
-					return nil
+					return nil, nil
 				})
 
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -427,15 +407,15 @@ func (suite *LLMTestSuite) TestCircuitBreaker() {
 			ginkgo.It("should reject requests in open state", func() {
 				// Force circuit to open
 				for i := 0; i < 5; i++ {
-					circuitBreaker.Execute(func() error {
-						return fmt.Errorf("simulated failure")
+					_, _ = circuitBreaker.Execute(context.Background(), func(ctx context.Context) (interface{}, error) {
+						return nil, fmt.Errorf("simulated failure")
 					})
 				}
 
 				executed := false
-				err := circuitBreaker.Execute(func() error {
+				_, err := circuitBreaker.Execute(context.Background(), func(ctx context.Context) (interface{}, error) {
 					executed = true
-					return nil
+					return nil, nil
 				})
 
 				gomega.Expect(err).To(gomega.HaveOccurred())
@@ -447,11 +427,11 @@ func (suite *LLMTestSuite) TestCircuitBreaker() {
 			ginkgo.It("should track success and failure rates", func() {
 				// Execute mix of success and failures
 				for i := 0; i < 10; i++ {
-					circuitBreaker.Execute(func() error {
+					_, _ = circuitBreaker.Execute(context.Background(), func(ctx context.Context) (interface{}, error) {
 						if i%2 == 0 {
-							return nil // Success
+							return nil, nil // Success
 						}
-						return fmt.Errorf("failure") // Failure
+						return nil, fmt.Errorf("failure") // Failure
 					})
 				}
 
@@ -570,7 +550,7 @@ func (suite *LLMTestSuite) TestLLMIntegration() {
 
 		ginkgo.Context("Load Testing", func() {
 			ginkgo.It("should handle concurrent requests", func() {
-				if !suite.GetConfig().LoadTestEnabled {
+				if !suite.GetTestConfig().LoadTestEnabled {
 					ginkgo.Skip("Load testing disabled")
 				}
 
@@ -586,7 +566,7 @@ func (suite *LLMTestSuite) TestLLMIntegration() {
 
 		ginkgo.Context("Chaos Testing", func() {
 			ginkgo.It("should handle service failures gracefully", func() {
-				if !suite.GetConfig().ChaosTestEnabled {
+				if !suite.GetTestConfig().ChaosTestEnabled {
 					ginkgo.Skip("Chaos testing disabled")
 				}
 
@@ -608,7 +588,7 @@ var _ = ginkgo.Describe("LLM Components", func() {
 
 	ginkgo.BeforeEach(func() {
 		testSuite = &LLMTestSuite{
-			TestSuite: framework.NewTestSuite(),
+			TestSuite: framework.NewTestSuite(nil),
 		}
 		testSuite.SetupSuite()
 	})

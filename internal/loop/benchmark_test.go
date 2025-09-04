@@ -119,7 +119,7 @@ func runPerformanceBenchmark(b *testing.B, test PerformanceTest) {
 	if err != nil {
 		b.Fatalf("Failed to create watcher: %v", err)
 	}
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Pre-generate test files
 	testFiles := generateBenchmarkFiles(b, tempDir, test.FileCount, test.FileSize)
@@ -200,7 +200,7 @@ func setupBenchmarkEnvironment(b *testing.B, test PerformanceTest) (string, func
 
 	// Create subdirectories
 	for _, subdir := range []string{"processed", "failed", "status"} {
-		if err := os.MkdirAll(filepath.Join(tempDir, subdir), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Join(tempDir, subdir), 0o755); err != nil {
 			b.Fatalf("Failed to create subdirectory %s: %v", subdir, err)
 		}
 	}
@@ -223,7 +223,7 @@ func generateBenchmarkFiles(b *testing.B, dir string, count, size int) []string 
 		// Generate realistic intent JSON content
 		content := generateIntentContent(size)
 
-		if err := os.WriteFile(filePath, content, 0644); err != nil {
+		if err := os.WriteFile(filePath, content, 0o644); err != nil {
 			b.Fatalf("Failed to create test file %s: %v", filePath, err)
 		}
 
@@ -236,8 +236,6 @@ func generateBenchmarkFiles(b *testing.B, dir string, count, size int) []string 
 // generateIntentContent creates realistic O-RAN intent JSON content
 func generateIntentContent(targetSize int) []byte {
 	baseIntent := map[string]interface{}{
-		"apiVersion": "nephoran.com/v1alpha1",
-		"kind":       "NetworkIntent",
 		"metadata": map[string]interface{}{
 			"name":      fmt.Sprintf("intent-%d", time.Now().UnixNano()),
 			"namespace": "o-ran",
@@ -248,44 +246,31 @@ func generateIntentContent(targetSize int) []byte {
 			},
 		},
 		"spec": map[string]interface{}{
-			"action": "deploy",
-			"target": map[string]interface{}{
-				"type": "du",
-				"name": "o-du-benchmark",
+			"type": "du",
+			"name": "o-du-benchmark",
+			"parameters": []map[string]interface{}{
+				{
+					"name": "o-du-high",
+					"type": "distributed-unit",
+					"resources": map[string]string{
+						"cpu":    "4",
+						"memory": "8Gi",
+						"gpu":    "1",
+					},
+				},
 			},
-			"parameters": map[string]interface{}{
-				"networkFunctions": []map[string]interface{}{
-					{
-						"name": "o-du-high",
-						"type": "distributed-unit",
-						"resources": map[string]string{
-							"cpu":    "4",
-							"memory": "8Gi",
-							"gpu":    "1",
-						},
-					},
+			"connectivity": map[string]interface{}{
+				"midhaul": map[string]string{
+					"interface": "eth1",
+					"bandwidth": "10Gbps",
 				},
-				"connectivity": map[string]interface{}{
-					"fronthaul": map[string]string{
-						"interface": "eth0",
-						"bandwidth": "25Gbps",
-					},
-					"midhaul": map[string]string{
-						"interface": "eth1",
-						"bandwidth": "10Gbps",
-					},
-				},
-				"sla": map[string]string{
-					"latency":      "1ms",
-					"throughput":   "1Gbps",
-					"availability": "99.999%",
-				},
+			},
+			"sla": map[string]string{
+				"latency":      "1ms",
+				"throughput":   "1Gbps",
+				"availability": "99.999%",
 			},
 			"constraints": map[string]interface{}{
-				"placement": map[string]string{
-					"zone": "edge",
-					"rack": "edge-001",
-				},
 				"security": map[string]string{
 					"isolation":  "strict",
 					"encryption": "enabled",
@@ -336,8 +321,8 @@ func processFileForBenchmark(watcher *Watcher, filePath string) error {
 
 // calculateBenchmarkResults computes comprehensive performance metrics
 func calculateBenchmarkResults(completed int64, duration time.Duration, latencies []time.Duration,
-	m1, m2 *runtime.MemStats) BenchmarkResults {
-
+	m1, m2 *runtime.MemStats,
+) BenchmarkResults {
 	throughput := float64(completed) / duration.Seconds()
 
 	// Calculate latency percentiles
@@ -483,7 +468,7 @@ func BenchmarkJSONValidation(b *testing.B) {
 	defer os.Remove(testFile)
 
 	watcher := createTestWatcher(b)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -493,7 +478,7 @@ func BenchmarkJSONValidation(b *testing.B) {
 
 func BenchmarkStateManagerLookup(b *testing.B) {
 	watcher := createTestWatcher(b)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	testFile := "test-file.json"
 
@@ -505,7 +490,7 @@ func BenchmarkStateManagerLookup(b *testing.B) {
 
 func BenchmarkWorkerPoolThroughput(b *testing.B) {
 	watcher := createTestWatcher(b)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	var completed int64
 
@@ -555,7 +540,7 @@ func createTestIntentFile(b *testing.B, size int) string {
 	if err != nil {
 		b.Fatalf("Failed to create temp file: %v", err)
 	}
-	defer tempFile.Close()
+	defer tempFile.Close() // #nosec G307 - Error handled in defer
 
 	content := generateIntentContent(size)
 	if _, err := tempFile.Write(content); err != nil {

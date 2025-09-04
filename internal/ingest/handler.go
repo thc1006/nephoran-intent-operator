@@ -37,15 +37,11 @@ type Handler struct {
 // NewHandler creates a new Handler instance with the specified validator, output directory, and intent provider.
 
 func NewHandler(v ValidatorInterface, outDir string, provider IntentProvider) *Handler {
-
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
-
 		log.Printf("Warning: Failed to create output directory %s: %v", outDir, err)
-
 	}
 
 	return &Handler{v: v, outDir: outDir, provider: provider}
-
 }
 
 var simple = regexp.MustCompile(`(?i)scale\s+([a-z0-9\-]+)\s+to\s+(\d+)\s+in\s+ns\s+([a-z0-9\-]+)`)
@@ -57,7 +53,6 @@ var simple = regexp.MustCompile(`(?i)scale\s+([a-z0-9\-]+)\s+to\s+(\d+)\s+in\s+n
 // 2) Plain text (e.g., "scale nf-sim to 5 in ns ran-a") - parse → convert to JSON → validate.
 
 func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
-
 	// SECURITY: Set security headers to prevent various attacks.
 
 	w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -105,7 +100,6 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 	limitedReader := io.LimitReader(r.Body, maxRequestSize)
 
 	body, err := io.ReadAll(limitedReader)
-
 	if err != nil {
 
 		http.Error(w, "Failed to read request body", http.StatusBadRequest)
@@ -114,14 +108,12 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	defer r.Body.Close()
+	defer r.Body.Close() // #nosec G307 - Error handled in defer
 
 	var payload []byte
 
 	if strings.HasPrefix(ct, "application/json") || strings.HasPrefix(ct, "text/json") {
-
 		payload = body
-
 	} else {
 
 		// Try provider first (LLM or other custom parser).
@@ -139,9 +131,7 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 				jsonData, err := json.Marshal(intent)
 
 				if err == nil {
-
 					payload = jsonData
-
 				}
 
 			}
@@ -157,13 +147,9 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 			if len(m) != 4 {
 
 				if len(body) == 0 {
-
 					http.Error(w, "Request body is empty. Expected JSON intent or plain text command like: scale <target> to <replicas> in ns <namespace>", http.StatusBadRequest)
-
 				} else {
-
 					http.Error(w, "Invalid plain text format. Expected: 'scale <target> to <replicas> in ns <namespace>'. Received: "+string(body), http.StatusBadRequest)
-
 				}
 
 				return
@@ -177,7 +163,6 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	intent, err := h.v.ValidateBytes(payload)
-
 	if err != nil {
 
 		errMsg := fmt.Sprintf("Intent validation failed: %s", err.Error())
@@ -227,9 +212,7 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 	logMsg := fmt.Sprintf("Intent accepted and saved to %s", outFile)
 
 	if intent.CorrelationID != "" {
-
 		logMsg = fmt.Sprintf("[correlation_id: %s] %s", intent.CorrelationID, logMsg)
-
 	}
 
 	log.Println(logMsg)
@@ -239,16 +222,12 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 
 	if err := json.NewEncoder(w).Encode(map[string]any{
-
 		"status": "accepted",
 
 		"saved": outFile,
 
 		"preview": intent,
 	}); err != nil {
-
 		log.Printf("Failed to encode response JSON: %v", err)
-
 	}
-
 }

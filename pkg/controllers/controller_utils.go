@@ -1,16 +1,28 @@
 package controllers
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"math/rand"
 	"strconv"
+	"strings"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	configPkg "github.com/thc1006/nephoran-intent-operator/pkg/config"
+)
+
+// Git operation error constants used by cleanup tests
+var (
+	ErrGitAuthenticationFailed  = errors.New("SSH key authentication failed")
+	ErrGitNetworkTimeout       = errors.New("network timeout during Git operation")
+	ErrGitRepositoryCorrupted  = errors.New("repository is corrupted or locked")
+	ErrGitDirectoryNotFound    = errors.New("directory not found in repository")
+	ErrGitPushRejected        = errors.New("push rejected by remote repository")
+	ErrGitNoChangesToCommit   = errors.New("no changes to commit")
 )
 
 // BackoffConfig holds configuration for exponential backoff
@@ -234,19 +246,40 @@ func UpdateCondition(conditions *[]metav1.Condition, newCondition metav1.Conditi
 // Helper functions for GitOps handler - these provide convenience wrappers
 // around the existing NetworkIntent retry count functions
 
-// getRetryCount retrieves the retry count for a NetworkIntent operation
-func getRetryCount(networkIntent *nephoranv1.NetworkIntent, operation string) int {
-	return GetNetworkIntentRetryCount(networkIntent, operation)
+// getRetryCount retrieves the retry count for any object with annotations
+func getRetryCount(obj metav1.Object, operation string) int {
+	annotations := obj.GetAnnotations()
+	if annotations == nil {
+		return 0
+	}
+	key := fmt.Sprintf("nephoran.com/%s-retry-count", operation)
+	if countStr, exists := annotations[key]; exists {
+		if count, err := strconv.Atoi(countStr); err == nil {
+			return count
+		}
+	}
+	return 0
 }
 
-// setRetryCount sets the retry count for a NetworkIntent operation
-func setRetryCount(networkIntent *nephoranv1.NetworkIntent, operation string, count int) {
-	SetNetworkIntentRetryCount(networkIntent, operation, count)
+// setRetryCount sets the retry count for any object with annotations
+func setRetryCount(obj metav1.Object, operation string, count int) {
+	annotations := obj.GetAnnotations()
+	if annotations == nil {
+		annotations = make(map[string]string)
+		obj.SetAnnotations(annotations)
+	}
+	key := fmt.Sprintf("nephoran.com/%s-retry-count", operation)
+	annotations[key] = strconv.Itoa(count)
 }
 
-// clearRetryCount removes the retry count for a NetworkIntent operation
-func clearRetryCount(networkIntent *nephoranv1.NetworkIntent, operation string) {
-	ClearNetworkIntentRetryCount(networkIntent, operation)
+// clearRetryCount removes the retry count annotation for any object with annotations
+func clearRetryCount(obj metav1.Object, operation string) {
+	annotations := obj.GetAnnotations()
+	if annotations == nil {
+		return
+	}
+	key := fmt.Sprintf("nephoran.com/%s-retry-count", operation)
+	delete(annotations, key)
 }
 
 // updateCondition updates or adds a condition to a NetworkIntent's condition slice
@@ -255,23 +288,57 @@ func updateCondition(conditions *[]metav1.Condition, newCondition metav1.Conditi
 }
 
 // calculateExponentialBackoffForOperation calculates exponential backoff for operations
-// Used by GitOps handler for consistent backoff behavior
+// Used by both GitOps handler and E2NodeSet controller for consistent backoff behavior
 func calculateExponentialBackoffForOperation(retryCount int, operation string) time.Duration {
-	// Use default constants if not provided
-	constants := &configPkg.Constants{
-		BaseBackoffDelay:          1 * time.Second,
-		MaxBackoffDelay:           5 * time.Minute,
-		BackoffMultiplier:         2.0,
-		JitterFactor:              0.1,
-		LLMProcessingBaseDelay:    2 * time.Second,
-		LLMProcessingMaxDelay:     3 * time.Minute,
-		GitOperationsBaseDelay:    1 * time.Second,
-		GitOperationsMaxDelay:     2 * time.Minute,
-		ResourcePlanningBaseDelay: 3 * time.Second,
-		ResourcePlanningMaxDelay:  4 * time.Minute,
+	var baseDelay time.Duration
+	var maxDelay time.Duration
+	var multiplier float64 = 2.0
+
+	// Operation-specific delays for different types of operations
+	switch operation {
+	// E2NodeSet-specific operations
+	case "configmap-operations":
+		baseDelay = 2 * time.Second
+		maxDelay = 2 * time.Minute
+	case "e2-provisioning":
+		baseDelay = 5 * time.Second
+		maxDelay = 5 * time.Minute
+	case "cleanup":
+		baseDelay = 10 * time.Second
+		maxDelay = 10 * time.Minute
+	// NetworkIntent/GitOps operations
+	case "llm-processing":
+		baseDelay = 2 * time.Second
+		maxDelay = 3 * time.Minute
+	case "git-operations":
+		baseDelay = 1 * time.Second
+		maxDelay = 2 * time.Minute
+	case "resource-planning":
+		baseDelay = 3 * time.Second
+		maxDelay = 4 * time.Minute
+	default:
+		baseDelay = 1 * time.Second
+		maxDelay = 1 * time.Minute
 	}
 
-	return CalculateExponentialBackoffForNetworkIntentOperation(retryCount, operation, constants)
+	// Exponential backoff: delay = baseDelay * (multiplier ^ retryCount)
+	delay := baseDelay * time.Duration(math.Pow(multiplier, float64(retryCount)))
+
+	// Cap at max delay
+	if delay > maxDelay {
+		delay = maxDelay
+	}
+
+	// Add jitter (±10%)
+	jitter := float64(delay) * 0.1
+	randomJitter := (rand.Float64() - 0.5) * 2 * jitter
+
+	finalDelay := time.Duration(float64(delay) + randomJitter)
+	if finalDelay < 0 {
+		finalDelay = delay / 2
+	}
+
+	return finalDelay
 }
 
 // isConditionTrue checks if a condition is present and true
@@ -282,4 +349,38 @@ func isConditionTrue(conditions []metav1.Condition, conditionType string) bool {
 		}
 	}
 	return false
+}
+
+// createLabelSelector creates a label selector string from a map of labels
+func createLabelSelector(labels map[string]string) string {
+	if len(labels) == 0 {
+		return ""
+	}
+
+	var selectors []string
+	for key, value := range labels {
+		selectors = append(selectors, fmt.Sprintf("%s=%s", key, value))
+	}
+	return strings.Join(selectors, ",")
+}
+
+// containsFinalizer checks if a finalizer is present in the finalizers slice
+func containsFinalizer(finalizers []string, finalizer string) bool {
+	for _, f := range finalizers {
+		if f == finalizer {
+			return true
+		}
+	}
+	return false
+}
+
+// removeFinalizer removes all instances of a finalizer from the finalizers slice
+func removeFinalizer(finalizers []string, finalizer string) []string {
+	var result []string
+	for _, f := range finalizers {
+		if f != finalizer {
+			result = append(result, f)
+		}
+	}
+	return result
 }

@@ -13,8 +13,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-
-	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
 // AuditConfig holds audit logging configuration.
@@ -30,144 +28,113 @@ type AuditConfig struct {
 
 	FlushInterval time.Duration `json:"flush_interval"`
 
-	IncludeRequestBody bool `json:"include_request_body"`
-
-	IncludeResponseBody bool `json:"include_response_body"`
-
-	MaskSensitiveData bool `json:"mask_sensitive_data"`
-
-	SensitiveFields []string `json:"sensitive_fields"`
-
 	RetentionDays int `json:"retention_days"`
 
-	SignEvents bool `json:"sign_events"`
+	CompressOldLogs bool `json:"compress_old_logs"`
 
-	EncryptEvents bool `json:"encrypt_events"`
+	EncryptLogs bool `json:"encrypt_logs"`
 
-	ComplianceMode ComplianceStandard `json:"compliance_mode"`
+	EncryptionKey string `json:"encryption_key,omitempty"`
 
-	AlertOnViolation bool `json:"alert_on_violation"`
+	IncludeUserAgent bool `json:"include_user_agent"`
 
-	AlertThresholds *AlertThresholds `json:"alert_thresholds"`
+	IncludeSourceIP bool `json:"include_source_ip"`
+
+	MaxEventSize int `json:"max_event_size"`
+
+	SensitiveFields []string `json:"sensitive_fields"`
 }
 
-// AuditLevel represents the audit logging level.
+// AuditLevel defines the audit logging level.
 
 type AuditLevel string
 
 const (
 
-	// AuditLevelNone holds auditlevelnone value.
+	// AuditLevelNone does not log.
 
 	AuditLevelNone AuditLevel = "none"
 
-	// AuditLevelMinimal holds auditlevelminimal value.
+	// AuditLevelError only logs errors.
 
-	AuditLevelMinimal AuditLevel = "minimal"
+	AuditLevelError AuditLevel = "error"
 
-	// AuditLevelStandard holds auditlevelstandard value.
+	// AuditLevelWarn logs warnings and errors.
 
-	AuditLevelStandard AuditLevel = "standard"
+	AuditLevelWarn AuditLevel = "warn"
 
-	// AuditLevelDetailed holds auditleveldetailed value.
+	// AuditLevelInfo logs info, warnings, and errors.
 
-	AuditLevelDetailed AuditLevel = "detailed"
+	AuditLevelInfo AuditLevel = "info"
 
-	// AuditLevelVerbose holds auditlevelverbose value.
+	// AuditLevelDebug logs all events.
 
-	AuditLevelVerbose AuditLevel = "verbose"
+	AuditLevelDebug AuditLevel = "debug"
 )
 
-// AuditDestination represents where audit logs are sent.
+// AuditDestination defines where audit logs are sent.
 
 type AuditDestination struct {
 	Type DestinationType `json:"type"`
 
-	Endpoint string `json:"endpoint"`
+	Config json.RawMessage `json:"config"`
 
-	Format AuditFormat `json:"format"`
+	Format string `json:"format"`
 
-	BatchSize int `json:"batch_size"`
-
-	Timeout time.Duration `json:"timeout"`
-
-	RetryAttempts int `json:"retry_attempts"`
-
-	Authentication map[string]string `json:"authentication"`
+	Enabled bool `json:"enabled"`
 }
 
-// DestinationType represents the type of audit destination.
+// DestinationType defines the type of audit destination.
 
 type DestinationType string
 
 const (
 
-	// DestinationFile holds destinationfile value.
+	// DestinationTypeFile stores logs in files.
 
-	DestinationFile DestinationType = "file"
+	DestinationTypeFile DestinationType = "file"
 
-	// DestinationSyslog holds destinationsyslog value.
+	// DestinationTypeSyslog sends logs to syslog.
 
-	DestinationSyslog DestinationType = "syslog"
+	DestinationTypeSyslog DestinationType = "syslog"
 
-	// DestinationHTTP holds destinationhttp value.
+	// DestinationTypeKafka sends logs to Kafka.
 
-	DestinationHTTP DestinationType = "http"
+	DestinationTypeKafka DestinationType = "kafka"
 
-	// DestinationKafka holds destinationkafka value.
+	// DestinationTypeElasticsearch sends logs to Elasticsearch.
 
-	DestinationKafka DestinationType = "kafka"
+	DestinationTypeElasticsearch DestinationType = "elasticsearch"
 
-	// DestinationElastic holds destinationelastic value.
+	// DestinationTypeWebhook sends logs to a webhook.
 
-	DestinationElastic DestinationType = "elasticsearch"
-
-	// DestinationSplunk holds destinationsplunk value.
-
-	DestinationSplunk DestinationType = "splunk"
-
-	// DestinationCloudWatch holds destinationcloudwatch value.
-
-	DestinationCloudWatch DestinationType = "cloudwatch"
+	DestinationTypeWebhook DestinationType = "webhook"
 )
 
-// AuditFormat represents the format of audit logs.
+// AuditLogger manages audit logging for security events.
 
-type AuditFormat string
+type AuditLogger struct {
+	config *AuditConfig
 
-const (
+	buffer chan *AuditEvent
 
-	// FormatJSON holds formatjson value.
+	destinations map[DestinationType]AuditWriter
 
-	FormatJSON AuditFormat = "json"
+	shutdown chan struct{}
 
-	// FormatCEF holds formatcef value.
+	wg sync.WaitGroup
 
-	FormatCEF AuditFormat = "cef" // Common Event Format
+	mu sync.RWMutex
 
-	// FormatLEEF holds formatleef value.
+	logger *slog.Logger
+}
 
-	FormatLEEF AuditFormat = "leef" // Log Event Extended Format
+// AuditWriter defines the interface for writing audit logs.
 
-	// FormatSyslog holds formatsyslog value.
+type AuditWriter interface {
+	Write(ctx context.Context, event *AuditEvent) error
 
-	FormatSyslog AuditFormat = "syslog"
-)
-
-// ComplianceStandard, SecurityLevel, ThreatLevel, and ViolationType are defined in constants.go.
-
-// AlertThresholds defines thresholds for security alerts.
-
-type AlertThresholds struct {
-	FailedAuthAttempts int `json:"failed_auth_attempts"`
-
-	TimeWindow time.Duration `json:"time_window"`
-
-	SuspiciousPatterns int `json:"suspicious_patterns"`
-
-	RateLimitViolations int `json:"rate_limit_violations"`
-
-	UnauthorizedAccess int `json:"unauthorized_access"`
+	Close() error
 }
 
 // AuditEvent represents a security audit event.
@@ -179,231 +146,134 @@ type AuditEvent struct {
 
 	EventType EventType `json:"event_type"`
 
-	Severity EventSeverity `json:"severity"`
+	Severity Severity `json:"severity"`
 
-	Actor *Actor `json:"actor"`
-
-	Action *Action `json:"action"`
-
-	Resource *Resource `json:"resource"`
-
-	Result EventResult `json:"result"`
-
-	ErrorCode string `json:"error_code,omitempty"`
-
-	ErrorMessage string `json:"error_message,omitempty"`
-
-	RequestID string `json:"request_id,omitempty"`
+	UserID string `json:"user_id,omitempty"`
 
 	SessionID string `json:"session_id,omitempty"`
 
 	CorrelationID string `json:"correlation_id,omitempty"`
 
-	ClientIP string `json:"client_ip"`
+	RemoteAddr string `json:"remote_addr,omitempty"`
 
 	UserAgent string `json:"user_agent,omitempty"`
 
-	RequestMethod string `json:"request_method,omitempty"`
+	RequestID string `json:"request_id,omitempty"`
 
-	RequestPath string `json:"request_path,omitempty"`
+	Action *Action `json:"action"`
 
-	RequestHeaders map[string]string `json:"request_headers,omitempty"`
+	Resource *Resource `json:"resource"`
 
-	RequestBody json.RawMessage `json:"request_body,omitempty"`
+	Result Result `json:"result"`
 
-	ResponseStatus int `json:"response_status,omitempty"`
-
-	ResponseHeaders map[string]string `json:"response_headers,omitempty"`
-
-	ResponseBody json.RawMessage `json:"response_body,omitempty"`
+	ResultMessage string `json:"result_message,omitempty"`
 
 	Duration time.Duration `json:"duration,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	HTTPStatusCode int `json:"http_status_code,omitempty"`
+
+	ResponseSize int64 `json:"response_size,omitempty"`
+
+	ErrorCode string `json:"error_code,omitempty"`
+
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 
 	SecurityContext *SecurityContext `json:"security_context,omitempty"`
-
-	Signature string `json:"signature,omitempty"`
 }
 
-// EventType represents the type of audit event.
+// EventType defines the type of audit event.
 
 type EventType string
 
 const (
 
-	// EventTypeAuthentication holds eventtypeauthentication value.
+	// EventTypeAuthentication represents authentication events.
 
 	EventTypeAuthentication EventType = "authentication"
 
-	// EventTypeAuthorization holds eventtypeauthorization value.
+	// EventTypeAuthorization represents authorization events.
 
 	EventTypeAuthorization EventType = "authorization"
 
-	// EventTypePolicyCreate holds eventtypepolicycreate value.
-
-	EventTypePolicyCreate EventType = "policy_create"
-
-	// EventTypePolicyUpdate holds eventtypepolicyupdate value.
-
-	EventTypePolicyUpdate EventType = "policy_update"
-
-	// EventTypePolicyDelete holds eventtypepolicydelete value.
-
-	EventTypePolicyDelete EventType = "policy_delete"
-
-	// EventTypePolicyAccess holds eventtypepolicyaccess value.
-
-	EventTypePolicyAccess EventType = "policy_access"
-
-	// EventTypeDataAccess holds eventtypedataaccess value.
+	// EventTypeDataAccess represents data access events.
 
 	EventTypeDataAccess EventType = "data_access"
 
-	// EventTypeDataModification holds eventtypedatamodification value.
+	// EventTypeDataModification represents data modification events.
 
 	EventTypeDataModification EventType = "data_modification"
 
-	// EventTypeConfigChange holds eventtypeconfigchange value.
+	// EventTypeSystemAccess represents system access events.
 
-	EventTypeConfigChange EventType = "config_change"
+	EventTypeSystemAccess EventType = "system_access"
 
-	// EventTypeSecurityViolation holds eventtypesecurityviolation value.
+	// EventTypeConfigurationChange represents configuration change events.
+
+	EventTypeConfigurationChange EventType = "configuration_change"
+
+	// EventTypeSecurityViolation represents security violation events.
 
 	EventTypeSecurityViolation EventType = "security_violation"
 
-	// EventTypeRateLimitExceeded holds eventtyperatelimitexceeded value.
+	// EventTypeTokenOperation represents token operation events.
 
-	EventTypeRateLimitExceeded EventType = "rate_limit_exceeded"
+	EventTypeTokenOperation EventType = "token_operation"
 
-	// EventTypeMaliciousActivity holds eventtypemaliciousactivity value.
+	// EventTypeSessionManagement represents session management events.
 
-	EventTypeMaliciousActivity EventType = "malicious_activity"
-
-	// EventTypeSystemError holds eventtypesystemerror value.
-
-	EventTypeSystemError EventType = "system_error"
-
-	// EventTypeAdminAction holds eventtypeadminaction value.
-
-	EventTypeAdminAction EventType = "admin_action"
+	EventTypeSessionManagement EventType = "session_management"
 )
 
-// EventSeverity represents the severity of an event.
+// Severity defines the severity of an audit event.
 
-type EventSeverity string
+type Severity string
 
 const (
 
-	// SeverityDebug holds severitydebug value.
+	// SeverityLow represents low severity events.
 
-	SeverityDebug EventSeverity = "debug"
+	SeverityLow Severity = "low"
 
-	// SeverityInfo holds severityinfo value.
+	// SeverityMedium represents medium severity events.
 
-	SeverityInfo EventSeverity = "info"
+	SeverityMedium Severity = "medium"
 
-	// SeverityNotice holds severitynotice value.
+	// SeverityHigh represents high severity events.
 
-	SeverityNotice EventSeverity = "notice"
+	SeverityHigh Severity = "high"
 
-	// SeverityWarning holds severitywarning value.
+	// SeverityCritical represents critical severity events.
 
-	SeverityWarning EventSeverity = "warning"
-
-	// SeverityError holds severityerror value.
-
-	SeverityError EventSeverity = "error"
-
-	// SeverityCritical holds severitycritical value.
-
-	SeverityCritical EventSeverity = "critical"
-
-	// SeverityAlert holds severityalert value.
-
-	SeverityAlert EventSeverity = "alert"
-
-	// SeverityEmergency holds severityemergency value.
-
-	SeverityEmergency EventSeverity = "emergency"
+	SeverityCritical Severity = "critical"
 )
 
-// EventResult represents the result of an event.
+// Result defines the result of an audit event.
 
-type EventResult string
+type Result string
 
 const (
 
-	// ResultSuccess holds resultsuccess value.
+	// ResultSuccess represents a successful operation.
 
-	ResultSuccess EventResult = "success"
+	ResultSuccess Result = "success"
 
-	// ResultFailure holds resultfailure value.
+	// ResultFailure represents a failed operation.
 
-	ResultFailure EventResult = "failure"
+	ResultFailure Result = "failure"
 
-	// ResultPartial holds resultpartial value.
+	// ResultPartial represents a partially successful operation.
 
-	ResultPartial EventResult = "partial"
-
-	// ResultDenied holds resultdenied value.
-
-	ResultDenied EventResult = "denied"
-
-	// ResultError holds resulterror value.
-
-	ResultError EventResult = "error"
+	ResultPartial Result = "partial"
 )
 
-// Actor represents who performed the action.
-
-type Actor struct {
-	Type ActorType `json:"type"`
-
-	ID string `json:"id"`
-
-	Username string `json:"username,omitempty"`
-
-	Email string `json:"email,omitempty"`
-
-	ServiceName string `json:"service_name,omitempty"`
-
-	Roles []string `json:"roles,omitempty"`
-
-	Attributes map[string]string `json:"attributes,omitempty"`
-}
-
-// ActorType represents the type of actor.
-
-type ActorType string
-
-const (
-
-	// ActorTypeUser holds actortypeuser value.
-
-	ActorTypeUser ActorType = "user"
-
-	// ActorTypeService holds actortypeservice value.
-
-	ActorTypeService ActorType = "service"
-
-	// ActorTypeSystem holds actortypesystem value.
-
-	ActorTypeSystem ActorType = "system"
-
-	// ActorTypeUnknown holds actortypeunknown value.
-
-	ActorTypeUnknown ActorType = "unknown"
-)
-
-// Action represents what action was performed.
+// Action represents the action performed.
 
 type Action struct {
 	Type string `json:"type"`
 
 	Method string `json:"method"`
 
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 }
 
 // Resource represents what resource was affected.
@@ -417,520 +287,313 @@ type Resource struct {
 
 	Path string `json:"path,omitempty"`
 
-	Attributes map[string]string `json:"attributes,omitempty"`
+	Attributes json.RawMessage `json:"attributes,omitempty"`
 }
 
-// SecurityContext contains security-related context.
+// SecurityContext provides additional security information.
 
 type SecurityContext struct {
 	ThreatLevel string `json:"threat_level,omitempty"`
 
 	RiskScore float64 `json:"risk_score,omitempty"`
 
+	Classification string `json:"classification,omitempty"`
+
+	GeoLocation string `json:"geo_location,omitempty"`
+
+	DeviceFingerprint string `json:"device_fingerprint,omitempty"`
+
 	Violations []string `json:"violations,omitempty"`
 
-	ComplianceStatus map[string]bool `json:"compliance_status,omitempty"`
-
-	Indicators []string `json:"indicators,omitempty"`
+	MitigationActions []string `json:"mitigation_actions,omitempty"`
 }
 
-// AuditLogger manages security audit logging.
+// NoOpAuditWriter is a simple audit writer that does nothing
+type NoOpAuditWriter struct{}
 
-type AuditLogger struct {
-	config *AuditConfig
-
-	logger *logging.StructuredLogger
-
-	buffer chan *AuditEvent
-
-	destinations []AuditWriter
-
-	encryptor EventEncryptor
-
-	signer EventSigner
-
-	mu sync.RWMutex
-
-	stats *AuditStats
-
-	alertManager *AlertManager
-
-	shutdown chan bool
-
-	wg sync.WaitGroup
+// Write implements AuditWriter interface
+func (w *NoOpAuditWriter) Write(ctx context.Context, event *AuditEvent) error {
+	return nil
 }
 
-// AuditWriter interface for writing audit events.
-
-type AuditWriter interface {
-	Write(ctx context.Context, events []*AuditEvent) error
-
-	Close() error
-}
-
-// EventEncryptor interface for encrypting audit events.
-
-type EventEncryptor interface {
-	Encrypt(event *AuditEvent) (*AuditEvent, error)
-
-	Decrypt(event *AuditEvent) (*AuditEvent, error)
-}
-
-// EventSigner interface for signing audit events.
-
-type EventSigner interface {
-	Sign(event *AuditEvent) (string, error)
-
-	Verify(event *AuditEvent, signature string) (bool, error)
-}
-
-// AuditStats tracks audit logging statistics.
-
-type AuditStats struct {
-	mu sync.RWMutex
-
-	EventsLogged int64
-
-	EventsDropped int64
-
-	EventsByType map[EventType]int64
-
-	EventsBySeverity map[EventSeverity]int64
-
-	FailedWrites int64
-
-	LastEventTime time.Time
-}
-
-// AlertManager manages security alerts.
-
-type AlertManager struct {
-	config *AlertThresholds
-
-	logger *logging.StructuredLogger
-
-	violations map[string]*ViolationTracker
-
-	mu sync.RWMutex
-}
-
-// ViolationTracker tracks security violations.
-
-type ViolationTracker struct {
-	Count int
-
-	FirstSeen time.Time
-
-	LastSeen time.Time
-
-	Alerted bool
+// Close implements AuditWriter interface
+func (w *NoOpAuditWriter) Close() error {
+	return nil
 }
 
 // NewAuditLogger creates a new audit logger.
 
-func NewAuditLogger(config *AuditConfig, logger *logging.StructuredLogger) (*AuditLogger, error) {
-
+func NewAuditLogger(config *AuditConfig) (*AuditLogger, error) {
 	if config == nil {
 
 		return nil, errors.New("audit config is required")
-
 	}
 
 	al := &AuditLogger{
-
-		config: config,
-
-		logger: logger,
-
-		buffer: make(chan *AuditEvent, config.BufferSize),
-
-		shutdown: make(chan bool),
-
-		stats: &AuditStats{
-
-			EventsByType: make(map[EventType]int64),
-
-			EventsBySeverity: make(map[EventSeverity]int64),
-		},
+		config:       config,
+		buffer:       make(chan *AuditEvent, config.BufferSize),
+		destinations: make(map[DestinationType]AuditWriter),
+		shutdown:     make(chan struct{}),
+		logger:       slog.Default(),
 	}
 
-	// Initialize destinations.
-
-	if err := al.initializeDestinations(); err != nil {
-
-		return nil, fmt.Errorf("failed to initialize audit destinations: %w", err)
-
-	}
-
-	// Initialize encryption if enabled.
-
-	if config.EncryptEvents {
-
-		al.encryptor = NewEventEncryptor()
-
-	}
-
-	// Initialize signing if enabled.
-
-	if config.SignEvents {
-
-		al.signer = NewEventSigner()
-
-	}
-
-	// Initialize alert manager if enabled.
-
-	if config.AlertOnViolation && config.AlertThresholds != nil {
-
-		al.alertManager = NewAlertManager(config.AlertThresholds, logger)
-
-	}
-
-	// Start background workers.
-
-	al.start()
-
-	return al, nil
-
-}
-
-// initializeDestinations initializes audit destinations.
-
-func (al *AuditLogger) initializeDestinations() error {
-
-	for _, dest := range al.config.Destinations {
-
-		writer, err := al.createWriter(dest)
-
-		if err != nil {
-
-			return fmt.Errorf("failed to create writer for %s: %w", dest.Type, err)
-
+	// Initialize destinations with no-op writers
+	for _, dest := range config.Destinations {
+		if dest.Enabled {
+			al.destinations[dest.Type] = &NoOpAuditWriter{}
 		}
-
-		al.destinations = append(al.destinations, writer)
-
 	}
 
-	return nil
-
-}
-
-// createWriter creates an audit writer based on destination type.
-
-func (al *AuditLogger) createWriter(dest AuditDestination) (AuditWriter, error) {
-
-	switch dest.Type {
-
-	case DestinationFile:
-
-		return NewFileWriter(dest)
-
-	case DestinationHTTP:
-
-		return NewHTTPWriter(dest)
-
-	case DestinationSyslog:
-
-		return NewSyslogWriter(dest)
-
-	default:
-
-		return nil, fmt.Errorf("unsupported destination type: %s", dest.Type)
-
-	}
-
-}
-
-// start starts background workers.
-
-func (al *AuditLogger) start() {
-
-	// Start event processor.
+	// Start processing goroutine
 
 	al.wg.Add(1)
 
 	go al.processEvents()
 
-	// Start periodic flush.
-
-	al.wg.Add(1)
-
-	go al.periodicFlush()
-
+	return al, nil
 }
 
 // LogEvent logs an audit event.
 
 func (al *AuditLogger) LogEvent(ctx context.Context, event *AuditEvent) {
-
 	if !al.config.Enabled {
 
 		return
-
 	}
 
-	// Check audit level.
+	// Enrich event
 
-	if !al.shouldLog(event) {
+	al.enrichEvent(ctx, event)
 
-		return
+	// Mask sensitive data
 
+	al.maskSensitiveData(event)
+
+	// Check event size
+
+	if al.exceedsMaxSize(event) {
+
+		al.logger.Warn("audit event exceeds max size, truncating", "event_id", event.ID)
+
+		al.truncateEvent(event)
 	}
 
-	// Generate event ID if not set.
-
-	if event.ID == "" {
-
-		event.ID = uuid.New().String()
-
-	}
-
-	// Set timestamp if not set.
-
-	if event.Timestamp.IsZero() {
-
-		event.Timestamp = time.Now().UTC()
-
-	}
-
-	// Extract context information.
-
-	al.enrichEventFromContext(ctx, event)
-
-	// Mask sensitive data if configured.
-
-	if al.config.MaskSensitiveData {
-
-		al.maskSensitiveData(event)
-
-	}
-
-	// Sign event if configured.
-
-	if al.config.SignEvents && al.signer != nil {
-
-		signature, err := al.signer.Sign(event)
-
-		if err != nil {
-
-			al.logger.Error("failed to sign audit event", "error", err)
-
-		} else {
-
-			event.Signature = signature
-
-		}
-
-	}
-
-	// Encrypt event if configured.
-
-	if al.config.EncryptEvents && al.encryptor != nil {
-
-		encryptedEvent, err := al.encryptor.Encrypt(event)
-
-		if err != nil {
-
-			al.logger.Error("failed to encrypt audit event", "error", err)
-
-		} else {
-
-			event = encryptedEvent
-
-		}
-
-	}
-
-	// Check for security violations.
-
-	if al.alertManager != nil {
-
-		al.alertManager.CheckEvent(event)
-
-	}
-
-	// Send to buffer.
+	// Send to buffer
 
 	select {
 
 	case al.buffer <- event:
 
-		// Update statistics.
-
-		al.updateStats(event)
-
 	default:
 
-		// Buffer full, drop event.
+		// Buffer is full, drop event
 
-		al.stats.mu.Lock()
-
-		al.stats.EventsDropped++
-
-		al.stats.mu.Unlock()
-
-		al.logger.Warn("audit event dropped due to full buffer",
-
-			slog.String("event_id", event.ID),
-
-			slog.String("event_type", string(event.EventType)))
-
+		al.logger.Warn("audit buffer full, dropping event", "event_id", event.ID)
 	}
-
 }
 
-// LogAuthenticationEvent logs an authentication event.
+// LogAuthentication logs an authentication event.
 
-func (al *AuditLogger) LogAuthenticationEvent(ctx context.Context, username string, success bool, reason string) {
-
-	result := ResultSuccess
-
-	severity := SeverityInfo
-
-	if !success {
-
-		result = ResultFailure
-
-		severity = SeverityWarning
-
-	}
-
+func (al *AuditLogger) LogAuthentication(ctx context.Context, userID string, result Result, method string) {
 	event := &AuditEvent{
-
 		EventType: EventTypeAuthentication,
 
-		Severity: severity,
+		Severity: SeverityMedium,
 
-		Actor: &Actor{
-
-			Type: ActorTypeUser,
-
-			Username: username,
-		},
+		UserID: userID,
 
 		Action: &Action{
-
-			Type: "authenticate",
-
-			Method: "login",
+			Type:   "login",
+			Method: method,
 		},
 
 		Result: result,
+	}
 
-		ErrorMessage: reason,
+	if result == ResultFailure {
+
+		event.Severity = SeverityHigh
 	}
 
 	al.LogEvent(ctx, event)
-
 }
 
-// LogAuthorizationEvent logs an authorization event.
+// LogAuthorization logs an authorization event.
 
-func (al *AuditLogger) LogAuthorizationEvent(ctx context.Context, user *User, resource, action string, allowed bool) {
-
-	result := ResultSuccess
-
-	severity := SeverityInfo
-
-	if !allowed {
-
-		result = ResultDenied
-
-		severity = SeverityWarning
-
-	}
-
+func (al *AuditLogger) LogAuthorization(ctx context.Context, userID string, resource *Resource, action string, result Result) {
 	event := &AuditEvent{
-
 		EventType: EventTypeAuthorization,
 
-		Severity: severity,
+		Severity: SeverityMedium,
 
-		Actor: &Actor{
-
-			Type: ActorTypeUser,
-
-			ID: user.ID,
-
-			Username: user.Username,
-
-			Roles: user.Roles,
-		},
+		UserID: userID,
 
 		Action: &Action{
-
-			Type: "authorize",
-
-			Method: action,
+			Type:   action,
+			Method: "RBAC",
 		},
 
-		Resource: &Resource{
-
-			Type: "policy",
-
-			Path: resource,
-		},
+		Resource: resource,
 
 		Result: result,
 	}
 
-	al.LogEvent(ctx, event)
+	if result == ResultFailure {
 
+		event.Severity = SeverityHigh
+	}
+
+	al.LogEvent(ctx, event)
 }
 
-// LogPolicyEvent logs a policy-related event.
+// LogDataAccess logs a data access event.
 
-func (al *AuditLogger) LogPolicyEvent(ctx context.Context, eventType EventType, policyID string, actor *Actor, result EventResult) {
-
+func (al *AuditLogger) LogDataAccess(ctx context.Context, userID string, resource *Resource, action string) {
 	event := &AuditEvent{
+		EventType: EventTypeDataAccess,
 
-		EventType: eventType,
+		Severity: SeverityLow,
 
-		Severity: SeverityInfo,
-
-		Actor: actor,
+		UserID: userID,
 
 		Action: &Action{
-
-			Type: string(eventType),
+			Type: action,
 		},
 
-		Resource: &Resource{
+		Resource: resource,
 
-			Type: "policy",
-
-			ID: policyID,
-		},
-
-		Result: result,
+		Result: ResultSuccess,
 	}
 
 	al.LogEvent(ctx, event)
+}
 
+// LogDataModification logs a data modification event.
+
+func (al *AuditLogger) LogDataModification(ctx context.Context, userID string, resource *Resource, action string, oldValue, newValue interface{}) {
+	// Marshal modification details to JSON
+	modDetails := map[string]interface{}{
+		"old_value": oldValue,
+		"new_value": newValue,
+	}
+	
+	var parametersJSON json.RawMessage
+	if modDetailsJSON, err := json.Marshal(modDetails); err == nil {
+		parametersJSON = json.RawMessage(modDetailsJSON)
+	}
+
+	event := &AuditEvent{
+		EventType: EventTypeDataModification,
+
+		Severity: SeverityMedium,
+
+		UserID: userID,
+
+		Action: &Action{
+			Type:       action,
+			Parameters: parametersJSON,
+		},
+
+		Resource: resource,
+
+		Result: ResultSuccess,
+	}
+
+	al.LogEvent(ctx, event)
+}
+
+// LogConfigurationChange logs a configuration change event.
+
+func (al *AuditLogger) LogConfigurationChange(ctx context.Context, userID string, configPath string, oldConfig, newConfig interface{}) {
+	// Marshal configuration change details to JSON
+	changeDetails := map[string]interface{}{
+		"config_path": configPath,
+		"old_config":  oldConfig,
+		"new_config":  newConfig,
+	}
+	
+	var parametersJSON json.RawMessage
+	if changeDetailsJSON, err := json.Marshal(changeDetails); err == nil {
+		parametersJSON = json.RawMessage(changeDetailsJSON)
+	}
+
+	event := &AuditEvent{
+		EventType: EventTypeConfigurationChange,
+
+		Severity: SeverityHigh,
+
+		UserID: userID,
+
+		Action: &Action{
+			Type:       "config_change",
+			Parameters: parametersJSON,
+		},
+
+		Resource: &Resource{
+			Type: "configuration",
+			Path: configPath,
+		},
+
+		Result: ResultSuccess,
+	}
+
+	al.LogEvent(ctx, event)
+}
+
+// LogTokenOperation logs a token operation event.
+
+func (al *AuditLogger) LogTokenOperation(ctx context.Context, userID string, operation string, tokenType string) {
+	// Marshal token operation details to JSON
+	tokenDetails := map[string]interface{}{
+		"operation":  operation,
+		"token_type": tokenType,
+	}
+	
+	var parametersJSON json.RawMessage
+	if tokenDetailsJSON, err := json.Marshal(tokenDetails); err == nil {
+		parametersJSON = json.RawMessage(tokenDetailsJSON)
+	}
+
+	event := &AuditEvent{
+		EventType: EventTypeTokenOperation,
+
+		Severity: SeverityMedium,
+
+		UserID: userID,
+
+		Action: &Action{
+			Type:       operation,
+			Parameters: parametersJSON,
+		},
+
+		Result: ResultSuccess,
+	}
+
+	al.LogEvent(ctx, event)
 }
 
 // LogSecurityViolation logs a security violation.
 
 func (al *AuditLogger) LogSecurityViolation(ctx context.Context, violationType string, details map[string]interface{}) {
+	// Marshal details to JSON for Parameters field
+	var parametersJSON json.RawMessage
+	if detailsJSON, err := json.Marshal(details); err == nil {
+		parametersJSON = json.RawMessage(detailsJSON)
+	}
 
 	event := &AuditEvent{
-
 		EventType: EventTypeSecurityViolation,
 
 		Severity: SeverityCritical,
 
 		Action: &Action{
-
 			Type: "security_violation",
-
-			Parameters: details,
+			Parameters: parametersJSON,
 		},
 
 		Result: ResultFailure,
 
 		SecurityContext: &SecurityContext{
-
 			ThreatLevel: "high",
 
 			Violations: []string{violationType},
@@ -938,13 +601,11 @@ func (al *AuditLogger) LogSecurityViolation(ctx context.Context, violationType s
 	}
 
 	al.LogEvent(ctx, event)
-
 }
 
 // processEvents processes buffered events.
 
 func (al *AuditLogger) processEvents() {
-
 	defer al.wg.Done()
 
 	batch := make([]*AuditEvent, 0, 100)
@@ -954,7 +615,6 @@ func (al *AuditLogger) processEvents() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case event := <-al.buffer:
@@ -966,7 +626,6 @@ func (al *AuditLogger) processEvents() {
 				al.writeBatch(batch)
 
 				batch = batch[:0]
-
 			}
 
 		case <-ticker.C:
@@ -976,151 +635,69 @@ func (al *AuditLogger) processEvents() {
 				al.writeBatch(batch)
 
 				batch = batch[:0]
-
 			}
 
 		case <-al.shutdown:
 
-			// Flush remaining events.
+			// Flush remaining events
 
 			if len(batch) > 0 {
 
 				al.writeBatch(batch)
-
-			}
-
-			// Drain buffer.
-
-			for len(al.buffer) > 0 {
-
-				batch = append(batch, <-al.buffer)
-
-				if len(batch) >= 100 {
-
-					al.writeBatch(batch)
-
-					batch = batch[:0]
-
-				}
-
-			}
-
-			if len(batch) > 0 {
-
-				al.writeBatch(batch)
-
 			}
 
 			return
-
 		}
-
 	}
-
 }
 
-// writeBatch writes a batch of events to destinations.
+// writeBatch writes a batch of events to all destinations.
 
 func (al *AuditLogger) writeBatch(events []*AuditEvent) {
+	al.mu.RLock()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer al.mu.RUnlock()
 
-	defer cancel()
+	ctx := context.Background()
 
-	for _, dest := range al.destinations {
+	for destType, writer := range al.destinations {
 
-		if err := dest.Write(ctx, events); err != nil {
+		for _, event := range events {
 
-			al.logger.Error("failed to write audit events",
+			if err := writer.Write(ctx, event); err != nil {
 
-				"error", err,
-
-				"event_count", len(events))
-
-			al.stats.mu.Lock()
-
-			al.stats.FailedWrites++
-
-			al.stats.mu.Unlock()
-
+				al.logger.Error("failed to write audit event",
+					"destination", destType,
+					"event_id", event.ID,
+					"error", err)
+			}
 		}
-
 	}
-
 }
 
-// periodicFlush performs periodic flush of events.
+// enrichEvent enriches an audit event with contextual information.
 
-func (al *AuditLogger) periodicFlush() {
+func (al *AuditLogger) enrichEvent(ctx context.Context, event *AuditEvent) {
+	// Set ID and timestamp.
 
-	defer al.wg.Done()
+	if event.ID == "" {
 
-	ticker := time.NewTicker(al.config.FlushInterval)
+		event.ID = uuid.New().String()
+	}
 
-	defer ticker.Stop()
+	if event.Timestamp.IsZero() {
 
-	for {
+		event.Timestamp = time.Now().UTC()
+	}
 
-		select {
+	// Extract user ID from context if not set.
 
-		case <-ticker.C:
+	if event.UserID == "" {
 
-			// Force flush logic if needed.
+		if userID := ctx.Value("user_id"); userID != nil {
 
-		case <-al.shutdown:
-
-			return
-
+			event.UserID = fmt.Sprintf("%v", userID)
 		}
-
-	}
-
-}
-
-// shouldLog determines if an event should be logged based on audit level.
-
-func (al *AuditLogger) shouldLog(event *AuditEvent) bool {
-
-	switch al.config.Level {
-
-	case AuditLevelNone:
-
-		return false
-
-	case AuditLevelMinimal:
-
-		return event.Severity >= SeverityWarning
-
-	case AuditLevelStandard:
-
-		return event.Severity >= SeverityInfo
-
-	case AuditLevelDetailed:
-
-		return event.Severity >= SeverityNotice
-
-	case AuditLevelVerbose:
-
-		return true
-
-	default:
-
-		return true
-
-	}
-
-}
-
-// enrichEventFromContext enriches event with context information.
-
-func (al *AuditLogger) enrichEventFromContext(ctx context.Context, event *AuditEvent) {
-
-	// Extract request ID from context.
-
-	if reqID := ctx.Value("request_id"); reqID != nil {
-
-		event.RequestID = fmt.Sprintf("%v", reqID)
-
 	}
 
 	// Extract session ID from context.
@@ -1128,7 +705,6 @@ func (al *AuditLogger) enrichEventFromContext(ctx context.Context, event *AuditE
 	if sessionID := ctx.Value("session_id"); sessionID != nil {
 
 		event.SessionID = fmt.Sprintf("%v", sessionID)
-
 	}
 
 	// Extract correlation ID from context.
@@ -1136,329 +712,226 @@ func (al *AuditLogger) enrichEventFromContext(ctx context.Context, event *AuditE
 	if corrID := ctx.Value("correlation_id"); corrID != nil {
 
 		event.CorrelationID = fmt.Sprintf("%v", corrID)
-
 	}
 
 	// Add runtime information.
-
-	if event.Metadata == nil {
-
-		event.Metadata = make(map[string]interface{})
-
+	metadataMap := make(map[string]interface{})
+	if event.Metadata != nil {
+		// Try to unmarshal existing metadata
+		if err := json.Unmarshal(event.Metadata, &metadataMap); err != nil {
+			// If unmarshal fails, start with empty map
+			metadataMap = make(map[string]interface{})
+		}
 	}
 
-	event.Metadata["go_version"] = runtime.Version()
+	metadataMap["go_version"] = runtime.Version()
+	metadataMap["num_goroutines"] = runtime.NumGoroutine()
 
-	event.Metadata["num_goroutines"] = runtime.NumGoroutine()
-
+	// Marshal back to JSON
+	if metadataJSON, err := json.Marshal(metadataMap); err == nil {
+		event.Metadata = json.RawMessage(metadataJSON)
+	}
 }
 
 // maskSensitiveData masks sensitive data in the event.
 
 func (al *AuditLogger) maskSensitiveData(event *AuditEvent) {
-
 	// Mask sensitive fields.
 
 	for _, field := range al.config.SensitiveFields {
 
 		al.maskField(event, field)
-
 	}
-
-	// Mask common sensitive patterns.
-
-	if event.RequestBody != nil {
-
-		masked := al.maskJSON(event.RequestBody)
-
-		event.RequestBody = masked
-
-	}
-
-	if event.ResponseBody != nil {
-
-		masked := al.maskJSON(event.ResponseBody)
-
-		event.ResponseBody = masked
-
-	}
-
 }
 
 // maskField masks a specific field in the event.
 
 func (al *AuditLogger) maskField(event *AuditEvent, field string) {
+	// Implementation depends on field structure
 
-	// Implementation would mask specific fields.
+	// This is a simplified version
 
+	switch field {
+
+	case "password":
+
+		// Mask password in action parameters
+
+		if event.Action != nil && event.Action.Parameters != nil {
+
+			var params map[string]interface{}
+
+			if err := json.Unmarshal(event.Action.Parameters, &params); err == nil {
+
+				if _, exists := params["password"]; exists {
+
+					params["password"] = "***MASKED***"
+
+					if masked, err := json.Marshal(params); err == nil {
+
+						event.Action.Parameters = json.RawMessage(masked)
+					}
+				}
+			}
+		}
+
+	case "token":
+
+		// Mask token in action parameters
+
+		if event.Action != nil && event.Action.Parameters != nil {
+
+			var params map[string]interface{}
+
+			if err := json.Unmarshal(event.Action.Parameters, &params); err == nil {
+
+				if _, exists := params["token"]; exists {
+
+					params["token"] = "***MASKED***"
+
+					if masked, err := json.Marshal(params); err == nil {
+
+						event.Action.Parameters = json.RawMessage(masked)
+					}
+				}
+			}
+		}
+
+	case "api_key":
+
+		// Mask API key in action parameters
+
+		if event.Action != nil && event.Action.Parameters != nil {
+
+			var params map[string]interface{}
+
+			if err := json.Unmarshal(event.Action.Parameters, &params); err == nil {
+
+				if _, exists := params["api_key"]; exists {
+
+					params["api_key"] = "***MASKED***"
+
+					if masked, err := json.Marshal(params); err == nil {
+
+						event.Action.Parameters = json.RawMessage(masked)
+					}
+				}
+			}
+		}
+	}
 }
 
-// maskJSON masks sensitive data in JSON.
+// exceedsMaxSize checks if an event exceeds the maximum size.
 
-func (al *AuditLogger) maskJSON(data json.RawMessage) json.RawMessage {
+func (al *AuditLogger) exceedsMaxSize(event *AuditEvent) bool {
+	if al.config.MaxEventSize <= 0 {
 
-	// Implementation would mask sensitive JSON fields.
+		return false
+	}
 
-	return data
+	eventJSON, err := json.Marshal(event)
 
+	if err != nil {
+
+		return false
+	}
+
+	return len(eventJSON) > al.config.MaxEventSize
 }
 
-// updateStats updates audit statistics.
+// truncateEvent truncates an event to fit within the maximum size.
 
-func (al *AuditLogger) updateStats(event *AuditEvent) {
+func (al *AuditLogger) truncateEvent(event *AuditEvent) {
+	// Start by removing less critical fields
 
-	al.stats.mu.Lock()
+	// Remove user agent if present
 
-	defer al.stats.mu.Unlock()
+	if len(event.UserAgent) > 0 {
 
-	al.stats.EventsLogged++
+		event.UserAgent = ""
+	}
 
-	al.stats.EventsByType[event.EventType]++
+	// Truncate metadata if present
 
-	al.stats.EventsBySeverity[event.Severity]++
+	if event.Metadata != nil {
 
-	al.stats.LastEventTime = event.Timestamp
+		event.Metadata = json.RawMessage(`{"truncated": true}`)
+	}
 
+	// Truncate action parameters if present
+
+	if event.Action != nil && event.Action.Parameters != nil {
+
+		event.Action.Parameters = json.RawMessage(`{"truncated": true}`)
+	}
+
+	// Truncate resource attributes if present
+
+	if event.Resource != nil && event.Resource.Attributes != nil {
+
+		event.Resource.Attributes = json.RawMessage(`{"truncated": true}`)
+	}
 }
 
-// Close gracefully shuts down the audit logger.
+// Close shuts down the audit logger gracefully.
 
 func (al *AuditLogger) Close() error {
+	// Signal shutdown
 
 	close(al.shutdown)
 
+	// Wait for processing to complete
+
 	al.wg.Wait()
 
-	// Close all destinations.
+	// Close all writers
 
-	for _, dest := range al.destinations {
+	al.mu.Lock()
 
-		if err := dest.Close(); err != nil {
+	defer al.mu.Unlock()
 
-			al.logger.Error("failed to close audit destination", "error", err)
+	var errs []error
 
+	for destType, writer := range al.destinations {
+
+		if err := writer.Close(); err != nil {
+
+			errs = append(errs, fmt.Errorf("failed to close %s writer: %w", destType, err))
 		}
+	}
 
+	// Return combined errors
+
+	if len(errs) > 0 {
+
+		return fmt.Errorf("errors closing audit writers: %v", errs)
 	}
 
 	return nil
-
 }
 
-// GetStats returns audit statistics.
+// GetMetrics returns audit logger metrics.
 
-func (al *AuditLogger) GetStats() *AuditStats {
+func (al *AuditLogger) GetMetrics() map[string]interface{} {
+	return map[string]interface{}{
+		"buffer_size":        cap(al.buffer),
+		"buffer_used":        len(al.buffer),
+		"destinations_count": len(al.destinations),
+		"enabled":            al.config.Enabled,
+	}
+}
 
-	al.stats.mu.RLock()
+// Hash returns a SHA-256 hash of the audit logger configuration.
 
-	defer al.stats.mu.RUnlock()
+func (al *AuditLogger) Hash() string {
+	configJSON, err := json.Marshal(al.config)
 
-	// Return a copy of stats.
+	if err != nil {
 
-	return &AuditStats{
-
-		EventsLogged: al.stats.EventsLogged,
-
-		EventsDropped: al.stats.EventsDropped,
-
-		EventsByType: al.stats.EventsByType,
-
-		EventsBySeverity: al.stats.EventsBySeverity,
-
-		FailedWrites: al.stats.FailedWrites,
-
-		LastEventTime: al.stats.LastEventTime,
+		return ""
 	}
 
-}
+	hash := sha256.Sum256(configJSON)
 
-// Implementation stubs for interfaces and helpers.
-
-// NewAlertManager performs newalertmanager operation.
-
-func NewAlertManager(thresholds *AlertThresholds, logger *logging.StructuredLogger) *AlertManager {
-
-	return &AlertManager{
-
-		config: thresholds,
-
-		logger: logger,
-
-		violations: make(map[string]*ViolationTracker),
-	}
-
-}
-
-// CheckEvent performs checkevent operation.
-
-func (am *AlertManager) CheckEvent(event *AuditEvent) {
-
-	// Check for violations and raise alerts.
-
-}
-
-// NewEventEncryptor performs neweventencryptor operation.
-
-func NewEventEncryptor() EventEncryptor {
-
-	// Return default encryptor implementation.
-
-	return &defaultEventEncryptor{}
-
-}
-
-type defaultEventEncryptor struct{}
-
-// Encrypt performs encrypt operation.
-
-func (e *defaultEventEncryptor) Encrypt(event *AuditEvent) (*AuditEvent, error) {
-
-	// Encryption implementation.
-
-	return event, nil
-
-}
-
-// Decrypt performs decrypt operation.
-
-func (e *defaultEventEncryptor) Decrypt(event *AuditEvent) (*AuditEvent, error) {
-
-	// Decryption implementation.
-
-	return event, nil
-
-}
-
-// NewEventSigner performs neweventsigner operation.
-
-func NewEventSigner() EventSigner {
-
-	// Return default signer implementation.
-
-	return &defaultEventSigner{}
-
-}
-
-type defaultEventSigner struct{}
-
-// Sign performs sign operation.
-
-func (s *defaultEventSigner) Sign(event *AuditEvent) (string, error) {
-
-	// Create signature.
-
-	data, _ := json.Marshal(event)
-
-	hash := sha256.Sum256(data)
-
-	return hex.EncodeToString(hash[:]), nil
-
-}
-
-// Verify performs verify operation.
-
-func (s *defaultEventSigner) Verify(event *AuditEvent, signature string) (bool, error) {
-
-	// Verify signature.
-
-	return true, nil
-
-}
-
-// Audit writer implementations.
-
-// NewFileWriter performs newfilewriter operation.
-
-func NewFileWriter(dest AuditDestination) (AuditWriter, error) {
-
-	// File writer implementation.
-
-	return &fileWriter{dest: dest}, nil
-
-}
-
-type fileWriter struct {
-	dest AuditDestination
-}
-
-// Write performs write operation.
-
-func (fw *fileWriter) Write(ctx context.Context, events []*AuditEvent) error {
-
-	// Write to file.
-
-	return nil
-
-}
-
-// Close performs close operation.
-
-func (fw *fileWriter) Close() error {
-
-	return nil
-
-}
-
-// NewHTTPWriter performs newhttpwriter operation.
-
-func NewHTTPWriter(dest AuditDestination) (AuditWriter, error) {
-
-	// HTTP writer implementation.
-
-	return &httpWriter{dest: dest}, nil
-
-}
-
-type httpWriter struct {
-	dest AuditDestination
-}
-
-// Write performs write operation.
-
-func (hw *httpWriter) Write(ctx context.Context, events []*AuditEvent) error {
-
-	// Send via HTTP.
-
-	return nil
-
-}
-
-// Close performs close operation.
-
-func (hw *httpWriter) Close() error {
-
-	return nil
-
-}
-
-// NewSyslogWriter performs newsyslogwriter operation.
-
-func NewSyslogWriter(dest AuditDestination) (AuditWriter, error) {
-
-	// Syslog writer implementation.
-
-	return &syslogWriter{dest: dest}, nil
-
-}
-
-type syslogWriter struct {
-	dest AuditDestination
-}
-
-// Write performs write operation.
-
-func (sw *syslogWriter) Write(ctx context.Context, events []*AuditEvent) error {
-
-	// Write to syslog.
-
-	return nil
-
-}
-
-// Close performs close operation.
-
-func (sw *syslogWriter) Close() error {
-
-	return nil
-
+	return hex.EncodeToString(hash[:])
 }

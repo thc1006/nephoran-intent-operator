@@ -2,6 +2,7 @@ package o1
 
 import (
 	"context"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"strconv"
@@ -14,11 +15,8 @@ import (
 // parseAlarmData parses NETCONF XML alarm data into Alarm structs.
 
 func (a *O1Adaptor) parseAlarmData(xmlData, managedElementID string) ([]*Alarm, error) {
-
 	if xmlData == "" {
-
 		return []*Alarm{}, nil
-
 	}
 
 	// Define struct for parsing O-RAN alarm XML.
@@ -54,11 +52,9 @@ func (a *O1Adaptor) parseAlarmData(xmlData, managedElementID string) ([]*Alarm, 
 	var alarmData AlarmData
 
 	if err := xml.Unmarshal([]byte(xmlData), &alarmData); err != nil {
-
 		// If parsing as O-RAN format fails, try generic parsing.
 
 		return a.parseGenericAlarmData(xmlData, managedElementID)
-
 	}
 
 	// Convert O-RAN alarms to our Alarm format.
@@ -68,13 +64,10 @@ func (a *O1Adaptor) parseAlarmData(xmlData, managedElementID string) ([]*Alarm, 
 	for _, oranAlarm := range alarmData.ActiveAlarmList.Alarms {
 
 		if oranAlarm.IsCleared {
-
 			continue // Skip cleared alarms
-
 		}
 
 		alarm := &Alarm{
-
 			AlarmID: fmt.Sprintf("%d-%s", oranAlarm.FaultID, oranAlarm.FaultSource),
 
 			ObjectInstance: managedElementID,
@@ -87,7 +80,7 @@ func (a *O1Adaptor) parseAlarmData(xmlData, managedElementID string) ([]*Alarm, 
 
 			SpecificProblem: oranAlarm.FaultText,
 
-			TimeRaised: oranAlarm.EventTime,
+			AlarmRaisedTime: oranAlarm.EventTime,
 		}
 
 		// Map O-RAN severity to standard alarm severity.
@@ -121,13 +114,11 @@ func (a *O1Adaptor) parseAlarmData(xmlData, managedElementID string) ([]*Alarm, 
 	}
 
 	return alarms, nil
-
 }
 
 // parseGenericAlarmData parses generic XML alarm data.
 
 func (a *O1Adaptor) parseGenericAlarmData(xmlData, managedElementID string) ([]*Alarm, error) {
-
 	// Simple generic parsing for demonstration.
 
 	// In production, this would handle various vendor-specific formats.
@@ -141,10 +132,7 @@ func (a *O1Adaptor) parseGenericAlarmData(xmlData, managedElementID string) ([]*
 		// Create a generic alarm entry.
 
 		alarm := &Alarm{
-
 			ID: fmt.Sprintf("generic-%d", time.Now().Unix()),
-
-			ManagedElementID: managedElementID,
 
 			Severity: "MINOR",
 
@@ -154,9 +142,9 @@ func (a *O1Adaptor) parseGenericAlarmData(xmlData, managedElementID string) ([]*
 
 			SpecificProblem: "Generic alarm parsed from NETCONF response",
 
-			TimeRaised: time.Now(),
+			AlarmRaisedTime: time.Now(),
 
-			AdditionalInfo: "Parsed from XML: " + xmlData[:min(100, len(xmlData))],
+			AdditionalText: "Parsed from XML: " + xmlData[:min(100, len(xmlData))],
 		}
 
 		alarms = append(alarms, alarm)
@@ -164,26 +152,19 @@ func (a *O1Adaptor) parseGenericAlarmData(xmlData, managedElementID string) ([]*
 	}
 
 	return alarms, nil
-
 }
 
 // convertEventToAlarm converts a NETCONF event to an Alarm.
 
 func (a *O1Adaptor) convertEventToAlarm(event *NetconfEvent, managedElementID string) *Alarm {
-
 	if event == nil {
-
 		return nil
-
 	}
 
 	// Extract alarm information from event data.
 
 	alarm := &Alarm{
-
 		ID: fmt.Sprintf("event-%d", time.Now().UnixNano()),
-
-		ManagedElementID: managedElementID,
 
 		Severity: "MINOR",
 
@@ -193,63 +174,47 @@ func (a *O1Adaptor) convertEventToAlarm(event *NetconfEvent, managedElementID st
 
 		SpecificProblem: "Alarm notification received",
 
-		TimeRaised: event.Timestamp,
+		AlarmRaisedTime: event.Timestamp,
 	}
 
 	// Extract more specific information from event data.
-
-	if eventType, exists := event.Data["event_type"]; exists {
-
-		if eventTypeStr, ok := eventType.(string); ok {
-
-			alarm.Type = strings.ToUpper(eventTypeStr)
-
+	var eventData map[string]interface{}
+	if err := json.Unmarshal(event.Data, &eventData); err == nil {
+		if eventType, exists := eventData["event_type"]; exists {
+			if eventTypeStr, ok := eventType.(string); ok {
+				alarm.Type = strings.ToUpper(eventTypeStr)
+			}
 		}
 
-	}
-
-	if severity, exists := event.Data["severity"]; exists {
-
-		if severityStr, ok := severity.(string); ok {
-
-			alarm.Severity = strings.ToUpper(severityStr)
-
+		if severity, exists := eventData["severity"]; exists {
+			if severityStr, ok := severity.(string); ok {
+				alarm.Severity = strings.ToUpper(severityStr)
+			}
 		}
 
-	}
-
-	if description, exists := event.Data["description"]; exists {
-
-		if descStr, ok := description.(string); ok {
-
-			alarm.SpecificProblem = descStr
-
+		if description, exists := eventData["description"]; exists {
+			if descStr, ok := description.(string); ok {
+				alarm.SpecificProblem = descStr
+			}
 		}
-
 	}
 
 	// Parse XML content for more details if available.
 
 	if event.XML != "" {
-
 		if parsedAlarms, err := a.parseAlarmData(event.XML, managedElementID); err == nil && len(parsedAlarms) > 0 {
-
 			// Use the first parsed alarm if available.
 
 			return parsedAlarms[0]
-
 		}
-
 	}
 
 	return alarm
-
 }
 
 // Enhanced metric collection with real NETCONF integration.
 
 func (a *O1Adaptor) collectMetricsFromDevice(ctx context.Context, clientID string, metricNames []string) (map[string]interface{}, error) {
-
 	logger := log.FromContext(ctx)
 
 	a.clientsMux.RLock()
@@ -259,9 +224,7 @@ func (a *O1Adaptor) collectMetricsFromDevice(ctx context.Context, clientID strin
 	a.clientsMux.RUnlock()
 
 	if !exists || !client.IsConnected() {
-
 		return nil, fmt.Errorf("no active client found or client not connected")
-
 	}
 
 	metrics := make(map[string]interface{})
@@ -325,7 +288,6 @@ func (a *O1Adaptor) collectMetricsFromDevice(ctx context.Context, clientID strin
 		// Query the metric using NETCONF.
 
 		configData, err := client.GetConfig(filter)
-
 		if err != nil {
 
 			logger.Info("failed to query metric via NETCONF, using default",
@@ -351,25 +313,19 @@ func (a *O1Adaptor) collectMetricsFromDevice(ctx context.Context, clientID strin
 			metrics[metricName] = defaultValue
 
 		} else {
-
 			metrics[metricName] = value
-
 		}
 
 	}
 
 	return metrics, nil
-
 }
 
 // parseMetricValue parses a metric value from NETCONF XML response.
 
 func (a *O1Adaptor) parseMetricValue(xmlData, metricName string) (interface{}, error) {
-
 	if xmlData == "" {
-
 		return 0, fmt.Errorf("empty XML data")
-
 	}
 
 	// Simple XML parsing for metric values.
@@ -399,25 +355,19 @@ func (a *O1Adaptor) parseMetricValue(xmlData, metricName string) (interface{}, e
 				// Try to parse as float.
 
 				if value, err := strconv.ParseFloat(content, 64); err == nil {
-
 					return value, nil
-
 				}
 
 				// Try to parse as int.
 
 				if value, err := strconv.ParseInt(content, 10, 64); err == nil {
-
 					return value, nil
-
 				}
 
 				// Return as string if not numeric.
 
 				if content != "" {
-
 					return content, nil
-
 				}
 
 			}
@@ -427,13 +377,11 @@ func (a *O1Adaptor) parseMetricValue(xmlData, metricName string) (interface{}, e
 	}
 
 	return 0, fmt.Errorf("no value found in XML data")
-
 }
 
 // startPeriodicMetricCollection starts a goroutine for periodic metric collection.
 
 func (a *O1Adaptor) startPeriodicMetricCollection(ctx context.Context, collector *MetricCollector) {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("starting periodic metric collection",
@@ -451,7 +399,6 @@ func (a *O1Adaptor) startPeriodicMetricCollection(ctx context.Context, collector
 	collector.cancel = cancel
 
 	go func() {
-
 		defer cancel()
 
 		ticker := time.NewTicker(collector.CollectionPeriod)
@@ -459,7 +406,6 @@ func (a *O1Adaptor) startPeriodicMetricCollection(ctx context.Context, collector
 		defer ticker.Stop()
 
 		for {
-
 			select {
 
 			case <-collectionCtx.Done():
@@ -475,7 +421,6 @@ func (a *O1Adaptor) startPeriodicMetricCollection(ctx context.Context, collector
 				clientID := collector.ManagedElement // Assuming clientID format
 
 				metrics, err := a.collectMetricsFromDevice(collectionCtx, clientID, collector.MetricNames)
-
 				if err != nil {
 
 					logger.Error(err, "failed to collect metrics", "collectorID", collector.ID)
@@ -489,9 +434,7 @@ func (a *O1Adaptor) startPeriodicMetricCollection(ctx context.Context, collector
 				a.metricsMux.Lock()
 
 				if c, exists := a.metricCollectors[collector.ID]; exists {
-
 					c.LastCollection = time.Now()
-
 				}
 
 				a.metricsMux.Unlock()
@@ -507,41 +450,31 @@ func (a *O1Adaptor) startPeriodicMetricCollection(ctx context.Context, collector
 					"timestamp", time.Now())
 
 			}
-
 		}
-
 	}()
-
 }
 
 // validateNetworkElement checks if the network element specification is valid.
 
 func (a *O1Adaptor) validateNetworkElement(me interface{}) error {
-
 	// This would typically validate against the ManagedElement CRD schema.
 
 	// For now, perform basic validation.
 
 	if me == nil {
-
 		return fmt.Errorf("managed element cannot be nil")
-
 	}
 
 	// Additional validation logic would go here.
 
 	return nil
-
 }
 
 // buildSecurityConfiguration builds security configuration XML.
 
 func (a *O1Adaptor) buildSecurityConfiguration(policy *SecurityPolicy) string {
-
 	if policy == nil {
-
 		return ""
-
 	}
 
 	var xmlBuilder strings.Builder
@@ -577,19 +510,14 @@ func (a *O1Adaptor) buildSecurityConfiguration(policy *SecurityPolicy) string {
 	xmlBuilder.WriteString("</security-configuration>\n")
 
 	return xmlBuilder.String()
-
 }
 
 // Helper function to find minimum of two integers.
 
 func min(a, b int) int {
-
 	if a < b {
-
 		return a
-
 	}
 
 	return b
-
 }

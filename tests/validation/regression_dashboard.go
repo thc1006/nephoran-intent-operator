@@ -28,9 +28,7 @@ type RegressionDashboard struct {
 // NewRegressionDashboard creates a new regression dashboard.
 
 func NewRegressionDashboard(framework *RegressionFramework, config *RegressionConfig) *RegressionDashboard {
-
 	return &RegressionDashboard{
-
 		framework: framework,
 
 		config: config,
@@ -38,13 +36,11 @@ func NewRegressionDashboard(framework *RegressionFramework, config *RegressionCo
 		templatePath: "./templates", // Default template path
 
 	}
-
 }
 
 // DashboardData aggregates all data needed for dashboard generation.
 
 type DashboardData struct {
-
 	// Metadata.
 
 	GeneratedAt time.Time `json:"generated_at"`
@@ -103,7 +99,6 @@ type SystemInfo struct {
 // DashboardStatistics provides summary statistics.
 
 type DashboardStatistics struct {
-
 	// Regression statistics.
 
 	TotalRegressions int `json:"total_regressions"`
@@ -196,63 +191,48 @@ type AlertInfo struct {
 // GenerateDashboard creates comprehensive regression dashboard.
 
 func (rd *RegressionDashboard) GenerateDashboard(outputPath string) error {
-
 	ginkgo.By("Generating comprehensive regression dashboard")
 
 	// Collect all dashboard data.
 
 	dashboardData, err := rd.collectDashboardData()
-
 	if err != nil {
-
 		return fmt.Errorf("failed to collect dashboard data: %w", err)
-
 	}
 
 	// Generate JSON report.
 
 	if err := rd.generateJSONDashboard(dashboardData, outputPath); err != nil {
-
 		return fmt.Errorf("failed to generate JSON dashboard: %w", err)
-
 	}
 
 	// Generate HTML dashboard.
 
 	if err := rd.generateHTMLDashboard(dashboardData, outputPath); err != nil {
-
 		return fmt.Errorf("failed to generate HTML dashboard: %w", err)
-
 	}
 
 	// Generate Prometheus metrics.
 
 	if err := rd.generatePrometheusMetrics(dashboardData, outputPath); err != nil {
-
 		return fmt.Errorf("failed to generate Prometheus metrics: %w", err)
-
 	}
 
 	// Generate CSV exports for analysis.
 
 	if err := rd.generateCSVExports(dashboardData, outputPath); err != nil {
-
 		return fmt.Errorf("failed to generate CSV exports: %w", err)
-
 	}
 
 	ginkgo.By(fmt.Sprintf("Regression dashboard generated: %s", outputPath))
 
 	return nil
-
 }
 
 // collectDashboardData gathers all data needed for the dashboard.
 
 func (rd *RegressionDashboard) collectDashboardData() (*DashboardData, error) {
-
 	data := &DashboardData{
-
 		GeneratedAt: time.Now(),
 
 		SystemInfo: rd.getSystemInfo(),
@@ -271,37 +251,27 @@ func (rd *RegressionDashboard) collectDashboardData() (*DashboardData, error) {
 	// Load regression history.
 
 	history, err := rd.framework.GetRegressionHistory(30) // Last 30 days
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to load regression history: %w", err)
-
 	}
 
 	data.RegressionHistory = history
 
 	if len(history) > 0 {
-
 		data.LatestDetection = history[0] // Most recent
-
 	}
 
 	// Load baselines.
 
 	baselines, err := rd.framework.baselineManager.LoadAllBaselines()
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to load baselines: %w", err)
-
 	}
 
 	data.Baselines = baselines
 
 	if len(baselines) > 0 {
-
 		data.CurrentBaseline = baselines[0] // Most recent baseline
-
 	}
 
 	// Generate trend analysis.
@@ -309,11 +279,8 @@ func (rd *RegressionDashboard) collectDashboardData() (*DashboardData, error) {
 	if len(baselines) >= rd.config.MinimumSamples {
 
 		trends, err := rd.framework.GenerateRegressionTrends()
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to generate trend analysis: %w", err)
-
 		}
 
 		data.TrendAnalysis = trends
@@ -337,61 +304,46 @@ func (rd *RegressionDashboard) collectDashboardData() (*DashboardData, error) {
 	data.ActiveAlerts, data.RecentAlerts = rd.collectAlertInfo(history)
 
 	return data, nil
-
 }
 
 // generateJSONDashboard creates JSON dashboard report.
 
 func (rd *RegressionDashboard) generateJSONDashboard(data *DashboardData, outputPath string) error {
-
 	jsonPath := filepath.Join(outputPath, "regression-dashboard.json")
 
 	jsonData, err := json.MarshalIndent(data, "", "  ")
-
 	if err != nil {
-
 		return err
-
 	}
 
 	return os.WriteFile(jsonPath, jsonData, 0o640)
-
 }
 
 // generateHTMLDashboard creates HTML dashboard.
 
 func (rd *RegressionDashboard) generateHTMLDashboard(data *DashboardData, outputPath string) error {
-
 	htmlPath := filepath.Join(outputPath, "regression-dashboard.html")
 
 	htmlTemplate := rd.getHTMLTemplate()
 
 	tmpl, err := template.New("dashboard").Parse(htmlTemplate)
-
 	if err != nil {
-
 		return err
-
 	}
 
 	file, err := os.Create(htmlPath)
-
 	if err != nil {
-
 		return err
-
 	}
 
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	return tmpl.Execute(file, data)
-
 }
 
 // generatePrometheusMetrics creates Prometheus metrics export.
 
 func (rd *RegressionDashboard) generatePrometheusMetrics(data *DashboardData, outputPath string) error {
-
 	metricsPath := filepath.Join(outputPath, "regression-metrics.prom")
 
 	var metrics strings.Builder
@@ -403,9 +355,7 @@ func (rd *RegressionDashboard) generatePrometheusMetrics(data *DashboardData, ou
 	metrics.WriteString("# TYPE nephoran_regression_total_score gauge\n")
 
 	if data.LatestDetection != nil && data.CurrentBaseline != nil {
-
 		metrics.WriteString(fmt.Sprintf("nephoran_regression_total_score %d\n", data.CurrentBaseline.Results.TotalScore))
-
 	}
 
 	// Regression count metrics.
@@ -457,47 +407,36 @@ func (rd *RegressionDashboard) generatePrometheusMetrics(data *DashboardData, ou
 	}
 
 	return os.WriteFile(metricsPath, []byte(metrics.String()), 0o640)
-
 }
 
 // generateCSVExports creates CSV files for data analysis.
 
 func (rd *RegressionDashboard) generateCSVExports(data *DashboardData, outputPath string) error {
-
 	// Export regression history.
 
 	if err := rd.exportRegressionHistoryCSV(data.RegressionHistory, outputPath); err != nil {
-
 		return err
-
 	}
 
 	// Export performance metrics.
 
 	if err := rd.exportPerformanceMetricsCSV(data.Metrics, outputPath); err != nil {
-
 		return err
-
 	}
 
 	// Export baseline comparison.
 
 	if err := rd.exportBaselineComparisonCSV(data.Baselines, outputPath); err != nil {
-
 		return err
-
 	}
 
 	return nil
-
 }
 
 // Helper methods for data collection and analysis.
 
 func (rd *RegressionDashboard) getSystemInfo() *SystemInfo {
-
 	return &SystemInfo{
-
 		SystemName: "Nephoran Intent Operator",
 
 		Version: "v1.0.0", // Would be retrieved from build info
@@ -509,25 +448,18 @@ func (rd *RegressionDashboard) getSystemInfo() *SystemInfo {
 		UpTime: "72h", // Placeholder
 
 	}
-
 }
 
 func (rd *RegressionDashboard) getEnvironmentName() string {
-
 	if env := os.Getenv("ENVIRONMENT"); env != "" {
-
 		return env
-
 	}
 
 	return "development"
-
 }
 
 func (rd *RegressionDashboard) calculateStatistics(history []*RegressionDetection, baselines []*BaselineSnapshot, trends *TrendAnalysis) *DashboardStatistics {
-
 	stats := &DashboardStatistics{
-
 		BaselineCount: len(baselines),
 	}
 
@@ -540,25 +472,19 @@ func (rd *RegressionDashboard) calculateStatistics(history []*RegressionDetectio
 	monthAgo := now.AddDate(0, -1, 0)
 
 	for _, detection := range history {
-
 		if detection.HasRegression {
 
 			stats.TotalRegressions++
 
 			if detection.ComparisonTime.After(weekAgo) {
-
 				stats.RegressionsThisWeek++
-
 			}
 
 			if detection.ComparisonTime.After(monthAgo) {
-
 				stats.RegressionsThisMonth++
-
 			}
 
 		}
-
 	}
 
 	// Calculate averages from baselines.
@@ -572,7 +498,6 @@ func (rd *RegressionDashboard) calculateStatistics(history []*RegressionDetectio
 		validSamples := 0
 
 		for _, baseline := range baselines {
-
 			if baseline.Results.P95Latency > 0 {
 
 				latencySum += baseline.Results.P95Latency
@@ -584,7 +509,6 @@ func (rd *RegressionDashboard) calculateStatistics(history []*RegressionDetectio
 				validSamples++
 
 			}
-
 		}
 
 		if validSamples > 0 {
@@ -610,31 +534,23 @@ func (rd *RegressionDashboard) calculateStatistics(history []*RegressionDetectio
 		// Calculate quality score and trends.
 
 		if newest.Results != nil {
-
 			stats.QualityScore = float64(newest.Results.TotalScore)
-
 		}
 
 		if trends != nil && trends.OverallTrend != nil {
-
 			stats.QualityTrend = trends.OverallTrend.Direction
-
 		}
 
 	}
 
 	return stats
-
 }
 
 func (rd *RegressionDashboard) generateMetricSeries(baselines []*BaselineSnapshot) map[string]*MetricSeries {
-
 	metrics := make(map[string]*MetricSeries)
 
 	if len(baselines) == 0 {
-
 		return metrics
-
 	}
 
 	// P95 Latency series.
@@ -642,26 +558,20 @@ func (rd *RegressionDashboard) generateMetricSeries(baselines []*BaselineSnapsho
 	p95Points := []MetricDataPoint{}
 
 	for _, baseline := range baselines {
-
 		if baseline.Results.P95Latency > 0 {
-
 			p95Points = append(p95Points, MetricDataPoint{
-
 				Timestamp: baseline.Timestamp,
 
 				Value: float64(baseline.Results.P95Latency.Nanoseconds()),
 
 				Baseline: true,
 			})
-
 		}
-
 	}
 
 	if len(p95Points) > 0 {
 
 		metrics["p95_latency"] = &MetricSeries{
-
 			MetricName: "P95 Latency",
 
 			Unit: "nanoseconds",
@@ -680,7 +590,6 @@ func (rd *RegressionDashboard) generateMetricSeries(baselines []*BaselineSnapsho
 		var minVal, maxVal float64
 
 		for i, point := range p95Points {
-
 			if i == 0 {
 
 				minVal = point.Value
@@ -690,19 +599,14 @@ func (rd *RegressionDashboard) generateMetricSeries(baselines []*BaselineSnapsho
 			} else {
 
 				if point.Value < minVal {
-
 					minVal = point.Value
-
 				}
 
 				if point.Value > maxVal {
-
 					maxVal = point.Value
-
 				}
 
 			}
-
 		}
 
 		metrics["p95_latency"].MinValue = minVal
@@ -716,26 +620,19 @@ func (rd *RegressionDashboard) generateMetricSeries(baselines []*BaselineSnapsho
 	throughputPoints := []MetricDataPoint{}
 
 	for _, baseline := range baselines {
-
 		if baseline.Results.ThroughputAchieved > 0 {
-
 			throughputPoints = append(throughputPoints, MetricDataPoint{
-
 				Timestamp: baseline.Timestamp,
 
 				Value: baseline.Results.ThroughputAchieved,
 
 				Baseline: true,
 			})
-
 		}
-
 	}
 
 	if len(throughputPoints) > 0 {
-
 		metrics["throughput"] = &MetricSeries{
-
 			MetricName: "Throughput",
 
 			Unit: "intents/minute",
@@ -748,7 +645,6 @@ func (rd *RegressionDashboard) generateMetricSeries(baselines []*BaselineSnapsho
 
 			Threshold: 45.0,
 		}
-
 	}
 
 	// Overall score series.
@@ -756,22 +652,17 @@ func (rd *RegressionDashboard) generateMetricSeries(baselines []*BaselineSnapsho
 	scorePoints := []MetricDataPoint{}
 
 	for _, baseline := range baselines {
-
 		scorePoints = append(scorePoints, MetricDataPoint{
-
 			Timestamp: baseline.Timestamp,
 
 			Value: float64(baseline.Results.TotalScore),
 
 			Baseline: true,
 		})
-
 	}
 
 	if len(scorePoints) > 0 {
-
 		metrics["total_score"] = &MetricSeries{
-
 			MetricName: "Total Score",
 
 			Unit: "points",
@@ -784,19 +675,14 @@ func (rd *RegressionDashboard) generateMetricSeries(baselines []*BaselineSnapsho
 
 			Threshold: 90.0,
 		}
-
 	}
 
 	return metrics
-
 }
 
 func (rd *RegressionDashboard) calculateTrend(points []MetricDataPoint) string {
-
 	if len(points) < 2 {
-
 		return "stable"
-
 	}
 
 	first := points[0].Value
@@ -806,25 +692,17 @@ func (rd *RegressionDashboard) calculateTrend(points []MetricDataPoint) string {
 	diff := (last - first) / first * 100
 
 	if diff > 5 {
-
 		return "improving"
-
 	} else if diff < -5 {
-
 		return "degrading"
-
 	}
 
 	return "stable"
-
 }
 
 func (rd *RegressionDashboard) determineOverallStatus(latestDetection *RegressionDetection, trends *TrendAnalysis) string {
-
 	if latestDetection == nil {
-
 		return "unknown"
-
 	}
 
 	if !latestDetection.HasRegression {
@@ -832,13 +710,9 @@ func (rd *RegressionDashboard) determineOverallStatus(latestDetection *Regressio
 		// Check trends for early warning.
 
 		if trends != nil && trends.OverallTrend != nil {
-
 			if trends.OverallTrend.Direction == "degrading" {
-
 				return "warning"
-
 			}
-
 		}
 
 		return "healthy"
@@ -866,21 +740,17 @@ func (rd *RegressionDashboard) determineOverallStatus(latestDetection *Regressio
 		return "warning"
 
 	}
-
 }
 
 func (rd *RegressionDashboard) collectAlertInfo(history []*RegressionDetection) ([]*AlertInfo, []*AlertInfo) {
-
 	var activeAlerts, recentAlerts []*AlertInfo
 
 	// For demonstration, create sample alerts based on regressions.
 
 	for _, detection := range history {
-
 		if detection.HasRegression {
 
 			alert := &AlertInfo{
-
 				ID: fmt.Sprintf("regression-%s", detection.ComparisonTime.Format("20060102-150405")),
 
 				Type: "regression",
@@ -909,36 +779,28 @@ func (rd *RegressionDashboard) collectAlertInfo(history []*RegressionDetection) 
 				// Active alerts are unresolved critical/high severity.
 
 				if detection.RegressionSeverity == "critical" || detection.RegressionSeverity == "high" {
-
 					activeAlerts = append(activeAlerts, alert)
-
 				}
 
 			}
 
 		}
-
 	}
 
 	return activeAlerts, recentAlerts
-
 }
 
 // CSV export methods.
 
 func (rd *RegressionDashboard) exportRegressionHistoryCSV(history []*RegressionDetection, outputPath string) error {
-
 	csvPath := filepath.Join(outputPath, "regression-history.csv")
 
 	file, err := os.Create(csvPath)
-
 	if err != nil {
-
 		return err
-
 	}
 
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	// Write CSV header.
 
@@ -947,7 +809,6 @@ func (rd *RegressionDashboard) exportRegressionHistoryCSV(history []*RegressionD
 	// Write data rows.
 
 	for _, detection := range history {
-
 		fmt.Fprintf(file, "%s,%s,%t,%s,%d,%d,%d,%d\n",
 
 			detection.ComparisonTime.Format(time.RFC3339),
@@ -965,26 +826,20 @@ func (rd *RegressionDashboard) exportRegressionHistoryCSV(history []*RegressionD
 			len(detection.SecurityRegressions),
 
 			len(detection.ProductionRegressions))
-
 	}
 
 	return nil
-
 }
 
 func (rd *RegressionDashboard) exportPerformanceMetricsCSV(metrics map[string]*MetricSeries, outputPath string) error {
-
 	csvPath := filepath.Join(outputPath, "performance-metrics.csv")
 
 	file, err := os.Create(csvPath)
-
 	if err != nil {
-
 		return err
-
 	}
 
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	// Write CSV header.
 
@@ -993,7 +848,6 @@ func (rd *RegressionDashboard) exportPerformanceMetricsCSV(metrics map[string]*M
 	// Write data rows.
 
 	for _, metric := range metrics {
-
 		for _, point := range metric.DataPoints {
 
 			thresholdExceeded := point.Value > metric.Threshold
@@ -1011,26 +865,20 @@ func (rd *RegressionDashboard) exportPerformanceMetricsCSV(metrics map[string]*M
 				thresholdExceeded)
 
 		}
-
 	}
 
 	return nil
-
 }
 
 func (rd *RegressionDashboard) exportBaselineComparisonCSV(baselines []*BaselineSnapshot, outputPath string) error {
-
 	csvPath := filepath.Join(outputPath, "baseline-comparison.csv")
 
 	file, err := os.Create(csvPath)
-
 	if err != nil {
-
 		return err
-
 	}
 
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	// Write CSV header.
 
@@ -1039,15 +887,12 @@ func (rd *RegressionDashboard) exportBaselineComparisonCSV(baselines []*Baseline
 	// Sort baselines by timestamp.
 
 	sort.Slice(baselines, func(i, j int) bool {
-
 		return baselines[i].Timestamp.Before(baselines[j].Timestamp)
-
 	})
 
 	// Write data rows.
 
 	for _, baseline := range baselines {
-
 		fmt.Fprintf(file, "%s,%s,%d,%d,%d,%d,%d,%f,%f,%f\n",
 
 			baseline.Timestamp.Format(time.RFC3339),
@@ -1069,17 +914,14 @@ func (rd *RegressionDashboard) exportBaselineComparisonCSV(baselines []*Baseline
 			baseline.Results.ThroughputAchieved,
 
 			baseline.Results.AvailabilityAchieved)
-
 	}
 
 	return nil
-
 }
 
 // HTML template for dashboard.
 
 func (rd *RegressionDashboard) getHTMLTemplate() string {
-
 	return `<!DOCTYPE html>
 
 <html>
@@ -1267,5 +1109,4 @@ func (rd *RegressionDashboard) getHTMLTemplate() string {
 </body>
 
 </html>`
-
 }

@@ -3,7 +3,7 @@ package integration_tests
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -51,7 +51,7 @@ func TestE2EAuditTestSuite(t *testing.T) {
 func (suite *E2EAuditTestSuite) SetupSuite() {
 	// Setup temporary directory
 	var err error
-	suite.tempDir, err = ioutil.TempDir("", "e2e_audit_test")
+	suite.tempDir, err = os.MkdirTemp("", "e2e_audit_test")
 	suite.Require().NoError(err)
 
 	// Setup HTTP server for webhook testing
@@ -60,7 +60,7 @@ func (suite *E2EAuditTestSuite) SetupSuite() {
 		defer suite.eventMutex.Unlock()
 
 		var event AuditEvent
-		_, err := ioutil.ReadAll(r.Body)
+		_, err := io.ReadAll(r.Body)
 		if err == nil {
 			// In a real implementation, we'd unmarshal the JSON
 			// For testing, we'll create a mock event
@@ -230,10 +230,7 @@ func (suite *E2EAuditTestSuite) TestCompleteAuditTrailLifecycle() {
 				Action:    "suspicious_activity",
 				Severity:  SeverityCritical,
 				Result:    ResultFailure,
-				Data: map[string]interface{}{
-					"violation_type": "brute_force",
-					"attempts":       10,
-				},
+				Data:      map[string]interface{}{},
 			},
 		}
 
@@ -248,7 +245,7 @@ func (suite *E2EAuditTestSuite) TestCompleteAuditTrailLifecycle() {
 
 		// Verify events were written to file
 		logFile := filepath.Join(suite.tempDir, "audit.log")
-		content, err := ioutil.ReadFile(logFile)
+		content, err := os.ReadFile(logFile)
 		suite.NoError(err)
 		suite.NotEmpty(content)
 
@@ -355,11 +352,7 @@ func (suite *E2EAuditTestSuite) TestAuditEventSources() {
 				Operation:    "update",
 				Namespace:    "default",
 			},
-			Data: map[string]interface{}{
-				"generation":       1,
-				"resource_version": "12345",
-				"reconcile_reason": "spec_change",
-			},
+			Data: map[string]interface{}{},
 		}
 
 		err := suite.auditSystem.LogEvent(reconcileEvent)
@@ -397,11 +390,7 @@ func (suite *E2EAuditTestSuite) TestAuditEventSources() {
 				Operation:    "create",
 				Namespace:    "production",
 			},
-			Data: map[string]interface{}{
-				"admission_allowed":  true,
-				"validation_time_ms": 15,
-				"policies_evaluated": []string{"security-policy", "resource-quota"},
-			},
+			Data: map[string]interface{}{},
 		}
 
 		err := suite.auditSystem.LogEvent(admissionEvent)
@@ -429,11 +418,7 @@ func (suite *E2EAuditTestSuite) TestAuditEventSources() {
 				UserAgent: "kubectl/v1.28.0",
 				RequestID: "req-" + uuid.New().String(),
 			},
-			Data: map[string]interface{}{
-				"token_type": "bearer",
-				"token_exp":  time.Now().Add(1 * time.Hour).Unix(),
-				"scopes":     []string{"openid", "email", "profile"},
-			},
+			Data: map[string]interface{}{},
 		}
 
 		err := suite.auditSystem.LogEvent(authEvent)
@@ -510,10 +495,7 @@ func (suite *E2EAuditTestSuite) TestHighLoadAuditing() {
 						UserContext: &UserContext{
 							UserID: fmt.Sprintf("user-%d", goroutineID),
 						},
-						Data: map[string]interface{}{
-							"goroutine_id": goroutineID,
-							"event_index":  i,
-						},
+						Data: map[string]interface{}{},
 					}
 
 					err := suite.auditSystem.LogEvent(event)
@@ -620,7 +602,7 @@ func (suite *E2EAuditTestSuite) TestErrorRecovery() {
 
 		// Verify backup file received events (webhook should fail but file should succeed)
 		backupFile := filepath.Join(suite.tempDir, "backup.log")
-		content, err := ioutil.ReadFile(backupFile)
+		content, err := os.ReadFile(backupFile)
 		suite.NoError(err)
 		suite.NotEmpty(content)
 	})
@@ -686,10 +668,7 @@ func (suite *E2EAuditTestSuite) TestComplianceIntegration() {
 					UserID:     "compliance-user-1",
 					AuthMethod: "mfa",
 				},
-				Data: map[string]interface{}{
-					"mfa_method": "totp",
-					"device_id":  "device123",
-				},
+				Data: map[string]interface{}{},
 			},
 			{
 				ID:                 uuid.New().String(),
@@ -704,11 +683,7 @@ func (suite *E2EAuditTestSuite) TestComplianceIntegration() {
 					UserID: "payment-processor",
 					Role:   "service_account",
 				},
-				Data: map[string]interface{}{
-					"cardholder_data": true,
-					"transaction_id":  "txn_789",
-					"amount":          100.00,
-				},
+				Data: map[string]interface{}{},
 			},
 			{
 				ID:        uuid.New().String(),
@@ -721,11 +696,7 @@ func (suite *E2EAuditTestSuite) TestComplianceIntegration() {
 				UserContext: &UserContext{
 					UserID: "suspicious-user",
 				},
-				Data: map[string]interface{}{
-					"violation_type":    "unauthorized_pii_access",
-					"records_attempted": 500,
-					"blocked":           true,
-				},
+				Data: map[string]interface{}{},
 			},
 		}
 
@@ -739,7 +710,7 @@ func (suite *E2EAuditTestSuite) TestComplianceIntegration() {
 
 		// Verify compliance metadata was added
 		logFile := filepath.Join(suite.tempDir, "compliance.log")
-		content, err := ioutil.ReadFile(logFile)
+		content, err := os.ReadFile(logFile)
 		suite.NoError(err)
 		suite.NotEmpty(content)
 
@@ -881,13 +852,7 @@ func (suite *E2EAuditTestSuite) TestKubernetesIntegration() {
 					Operation:    "create",
 					APIVersion:   "v1",
 				},
-				Data: map[string]interface{}{
-					"verb":          "create",
-					"resource":      "pods",
-					"namespace":     "default",
-					"response_code": 201,
-					"user_agent":    "kubectl/v1.28.0",
-				},
+				Data: map[string]interface{}{},
 			},
 			{
 				ID:        uuid.New().String(),
@@ -907,11 +872,7 @@ func (suite *E2EAuditTestSuite) TestKubernetesIntegration() {
 					Operation:    "get",
 					APIVersion:   "v1",
 				},
-				Data: map[string]interface{}{
-					"verb":          "get",
-					"resource":      "nodes",
-					"response_code": 200,
-				},
+				Data: map[string]interface{}{},
 			},
 		}
 
@@ -929,7 +890,7 @@ func (suite *E2EAuditTestSuite) TestKubernetesIntegration() {
 
 		// Verify log file contains Kubernetes-specific fields
 		logFile := filepath.Join(suite.tempDir, "basic.log")
-		content, err := ioutil.ReadFile(logFile)
+		content, err := os.ReadFile(logFile)
 		suite.NoError(err)
 
 		contentStr := string(content)

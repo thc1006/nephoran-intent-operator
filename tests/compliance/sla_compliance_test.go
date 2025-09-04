@@ -1,7 +1,9 @@
 package compliance_tests
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -171,16 +173,16 @@ type AuditTrailConfig struct {
 
 // IntegrityReport contains integrity validation results
 type IntegrityReport struct {
-	ValidationTime         time.Time `json:"validation_time"`
-	TotalEntries           int       `json:"total_entries"`
-	IntegrityViolations    int       `json:"integrity_violations"`
-	HashChainValid         bool      `json:"hash_chain_valid"`
+	ValidationTime          time.Time `json:"validation_time"`
+	TotalEntries            int       `json:"total_entries"`
+	IntegrityViolations     int       `json:"integrity_violations"`
+	HashChainValid          bool      `json:"hash_chain_valid"`
 	ChronologicalOrderValid bool      `json:"chronological_order_valid"`
-	TotalSignatures        int       `json:"total_signatures"`
-	ValidSignatures        int       `json:"valid_signatures"`
-	CorruptedEntries       []string  `json:"corrupted_entries"`
-	MissingEntries         []string  `json:"missing_entries"`
-	AnomalousPatterns      []string  `json:"anomalous_patterns"`
+	TotalSignatures         int       `json:"total_signatures"`
+	ValidSignatures         int       `json:"valid_signatures"`
+	CorruptedEntries        []string  `json:"corrupted_entries"`
+	MissingEntries          []string  `json:"missing_entries"`
+	AnomalousPatterns       []string  `json:"anomalous_patterns"`
 }
 
 // TamperReport contains tamper detection results
@@ -212,7 +214,7 @@ type AuditEntry struct {
 	Action          string                 `json:"action"`
 	Resource        string                 `json:"resource"`
 	Result          AuditResult            `json:"result"`
-	Details         map[string]interface{} `json:"details"`
+	Details         json.RawMessage `json:"details"`
 	Hash            string                 `json:"hash"`
 	PreviousHash    string                 `json:"previous_hash"`
 	Signature       string                 `json:"signature"`
@@ -350,14 +352,14 @@ type ArchivalMetadata struct {
 
 // DataRetentionConfig configures data retention policies
 type DataRetentionConfig struct {
-	GlobalRetentionPeriod time.Duration            `yaml:"global_retention_period"`
+	GlobalRetentionPeriod time.Duration              `yaml:"global_retention_period"`
 	DataTypeOverrides     map[DataType]time.Duration `yaml:"data_type_overrides"`
-	ArchivalEnabled       bool                     `yaml:"archival_enabled"`
-	CompressionEnabled    bool                     `yaml:"compression_enabled"`
-	EncryptionEnabled     bool                     `yaml:"encryption_enabled"`
-	CleanupInterval       time.Duration            `yaml:"cleanup_interval"`
-	BatchSize             int                      `yaml:"batch_size"`
-	MaxRetries            int                      `yaml:"max_retries"`
+	ArchivalEnabled       bool                       `yaml:"archival_enabled"`
+	CompressionEnabled    bool                       `yaml:"compression_enabled"`
+	EncryptionEnabled     bool                       `yaml:"encryption_enabled"`
+	CleanupInterval       time.Duration              `yaml:"cleanup_interval"`
+	BatchSize             int                        `yaml:"batch_size"`
+	MaxRetries            int                        `yaml:"max_retries"`
 }
 
 // DataRetentionValidator validates data retention policies
@@ -402,29 +404,29 @@ type ComplianceReporter struct {
 
 // ComplianceData aggregates data for compliance reporting
 type ComplianceData struct {
-	CollectionPeriod ReportingPeriod              `json:"collection_period"`
-	Metrics          map[string]interface{}       `json:"metrics"`
-	AuditEntries     []*AuditEntry                `json:"audit_entries"`
-	ConfigChanges    []*ConfigurationChange       `json:"config_changes"`
-	SecurityEvents   []*SecurityEvent             `json:"security_events"`
+	CollectionPeriod ReportingPeriod               `json:"collection_period"`
+	Metrics          json.RawMessage        `json:"metrics"`
+	AuditEntries     []*AuditEntry                 `json:"audit_entries"`
+	ConfigChanges    []*ConfigurationChange        `json:"config_changes"`
+	SecurityEvents   []*SecurityEvent              `json:"security_events"`
 	PerformanceData  map[string]*PerformanceMetric `json:"performance_data"`
-	SystemHealth     *SystemHealthStatus          `json:"system_health"`
-	UserActivities   []*UserActivity              `json:"user_activities"`
+	SystemHealth     *SystemHealthStatus           `json:"system_health"`
+	UserActivities   []*UserActivity               `json:"user_activities"`
 }
 
 // ConfigurationChange represents a system configuration change
 type ConfigurationChange struct {
-	ID          string                 `json:"id"`
-	Timestamp   time.Time              `json:"timestamp"`
-	User        string                 `json:"user"`
-	Component   string                 `json:"component"`
-	ChangeType  string                 `json:"change_type"`
-	OldValue    interface{}            `json:"old_value"`
-	NewValue    interface{}            `json:"new_value"`
-	Reason      string                 `json:"reason"`
-	ApprovalID  string                 `json:"approval_id"`
-	RiskLevel   string                 `json:"risk_level"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	ID         string                 `json:"id"`
+	Timestamp  time.Time              `json:"timestamp"`
+	User       string                 `json:"user"`
+	Component  string                 `json:"component"`
+	ChangeType string                 `json:"change_type"`
+	OldValue   interface{}            `json:"old_value"`
+	NewValue   interface{}            `json:"new_value"`
+	Reason     string                 `json:"reason"`
+	ApprovalID string                 `json:"approval_id"`
+	RiskLevel  string                 `json:"risk_level"`
+	Metadata   json.RawMessage `json:"metadata"`
 }
 
 // SecurityEvent represents a security-related event
@@ -438,44 +440,44 @@ type SecurityEvent struct {
 	Description string                 `json:"description"`
 	Mitigation  string                 `json:"mitigation"`
 	Status      string                 `json:"status"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Metadata    json.RawMessage `json:"metadata"`
 }
 
 // PerformanceMetric represents a performance measurement
 type PerformanceMetric struct {
-	MetricName  string                 `json:"metric_name"`
-	Value       float64                `json:"value"`
-	Unit        string                 `json:"unit"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Threshold   float64                `json:"threshold"`
-	Status      string                 `json:"status"`
-	Tags        map[string]string      `json:"tags"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	MetricName string                 `json:"metric_name"`
+	Value      float64                `json:"value"`
+	Unit       string                 `json:"unit"`
+	Timestamp  time.Time              `json:"timestamp"`
+	Threshold  float64                `json:"threshold"`
+	Status     string                 `json:"status"`
+	Tags       map[string]string      `json:"tags"`
+	Metadata   json.RawMessage `json:"metadata"`
 }
 
 // SystemHealthStatus represents overall system health
 type SystemHealthStatus struct {
-	OverallStatus    string                    `json:"overall_status"`
+	OverallStatus    string                     `json:"overall_status"`
 	ComponentHealth  map[string]ComponentHealth `json:"component_health"`
-	ResourceUsage    *ResourceUsage            `json:"resource_usage"`
-	ConnectivityTest map[string]bool           `json:"connectivity_test"`
-	LastUpdate       time.Time                 `json:"last_update"`
+	ResourceUsage    *ResourceUsage             `json:"resource_usage"`
+	ConnectivityTest map[string]bool            `json:"connectivity_test"`
+	LastUpdate       time.Time                  `json:"last_update"`
 }
 
 // ComponentHealth represents health of individual components
 type ComponentHealth struct {
-	Status      string    `json:"status"`
+	Status      string        `json:"status"`
 	Uptime      time.Duration `json:"uptime"`
-	LastChecked time.Time `json:"last_checked"`
-	Errors      []string  `json:"errors"`
-	Warnings    []string  `json:"warnings"`
+	LastChecked time.Time     `json:"last_checked"`
+	Errors      []string      `json:"errors"`
+	Warnings    []string      `json:"warnings"`
 }
 
 // ResourceUsage represents system resource usage
 type ResourceUsage struct {
-	CPUPercent    float64 `json:"cpu_percent"`
-	MemoryPercent float64 `json:"memory_percent"`
-	DiskPercent   float64 `json:"disk_percent"`
+	CPUPercent    float64    `json:"cpu_percent"`
+	MemoryPercent float64    `json:"memory_percent"`
+	DiskPercent   float64    `json:"disk_percent"`
 	NetworkIO     *NetworkIO `json:"network_io"`
 }
 
@@ -487,15 +489,15 @@ type NetworkIO struct {
 
 // UserActivity represents user activity data
 type UserActivity struct {
-	UserID      string                 `json:"user_id"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Action      string                 `json:"action"`
-	Resource    string                 `json:"resource"`
-	IPAddress   string                 `json:"ip_address"`
-	UserAgent   string                 `json:"user_agent"`
-	Result      string                 `json:"result"`
-	RiskScore   float64                `json:"risk_score"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	UserID    string                 `json:"user_id"`
+	Timestamp time.Time              `json:"timestamp"`
+	Action    string                 `json:"action"`
+	Resource  string                 `json:"resource"`
+	IPAddress string                 `json:"ip_address"`
+	UserAgent string                 `json:"user_agent"`
+	Result    string                 `json:"result"`
+	RiskScore float64                `json:"risk_score"`
+	Metadata  json.RawMessage `json:"metadata"`
 }
 
 // FrameworkReporter interface for framework-specific reporting
@@ -580,10 +582,10 @@ const (
 
 // ReportingPeriod defines a time period for reporting
 type ReportingPeriod struct {
-	StartTime   time.Time `json:"start_time"`
-	EndTime     time.Time `json:"end_time"`
+	StartTime   time.Time  `json:"start_time"`
+	EndTime     time.Time  `json:"end_time"`
 	PeriodType  PeriodType `json:"period_type"`
-	Description string    `json:"description"`
+	Description string     `json:"description"`
 }
 
 // PeriodType defines types of reporting periods
@@ -630,12 +632,12 @@ type Timestamp struct {
 
 // ComplianceResult represents compliance validation results
 type ComplianceResult struct {
-	Framework    RegulatoryFramework `json:"framework"`
-	Compliant    bool               `json:"compliant"`
-	Score        float64            `json:"score"`
-	Gaps         []ComplianceGap    `json:"gaps"`
-	Recommendations []string        `json:"recommendations"`
-	ValidatedAt  time.Time          `json:"validated_at"`
+	Framework       RegulatoryFramework `json:"framework"`
+	Compliant       bool                `json:"compliant"`
+	Score           float64             `json:"score"`
+	Gaps            []ComplianceGap     `json:"gaps"`
+	Recommendations []string            `json:"recommendations"`
+	ValidatedAt     time.Time           `json:"validated_at"`
 }
 
 // ComplianceGap represents a compliance gap
@@ -661,8 +663,8 @@ type ComplianceRequirement struct {
 // ValidationCriteria defines how to validate a requirement
 type ValidationCriteria struct {
 	Type       string                 `json:"type"`
-	Parameters map[string]interface{} `json:"parameters"`
-	Threshold  float64               `json:"threshold"`
+	Parameters json.RawMessage `json:"parameters"`
+	Threshold  float64                `json:"threshold"`
 }
 
 // ComplianceEvidence aggregates all compliance evidence
@@ -683,7 +685,7 @@ type Evidence struct {
 	Source           string                 `json:"source"`
 	CollectionTime   time.Time              `json:"collection_time"`
 	Data             interface{}            `json:"data"`
-	Metadata         map[string]interface{} `json:"metadata"`
+	Metadata         json.RawMessage `json:"metadata"`
 	Hash             string                 `json:"hash"`
 	DigitalSignature string                 `json:"digital_signature"`
 	Timestamp        string                 `json:"timestamp"`
@@ -974,8 +976,8 @@ func (s *SLAComplianceTestSuite) TestEvidenceCollectionAndIntegrity() {
 
 	// Assert evidence quality requirements
 	integrityScore := integrityResults.(struct {
-		IntegrityScore  float64
-		CorruptedItems  int
+		IntegrityScore float64
+		CorruptedItems int
 	})
 	s.Assert().GreaterOrEqual(integrityScore.IntegrityScore, s.config.ValidationAccuracy,
 		"Evidence integrity below threshold: %.2f%% < %.2f%%",
@@ -1221,7 +1223,7 @@ func (s *SLAComplianceTestSuite) generateTestAuditEvents(ctx context.Context, co
 			Action:       "measure_sla",
 			Resource:     "availability_metric",
 			Result:       ResultSuccess,
-			Details:      map[string]interface{}{"value": 99.95 + rand.Float64()*0.1},
+			Details:      json.RawMessage(`{}`),
 			PreviousHash: previousHash,
 		}
 
@@ -1284,12 +1286,12 @@ type EvidenceStore interface {
 
 // EvidenceFilter defines criteria for filtering evidence
 type EvidenceFilter struct {
-	Type        EvidenceType `json:"type"`
-	StartTime   time.Time    `json:"start_time"`
-	EndTime     time.Time    `json:"end_time"`
-	Source      string       `json:"source"`
-	Limit       int          `json:"limit"`
-	Offset      int          `json:"offset"`
+	Type      EvidenceType `json:"type"`
+	StartTime time.Time    `json:"start_time"`
+	EndTime   time.Time    `json:"end_time"`
+	Source    string       `json:"source"`
+	Limit     int          `json:"limit"`
+	Offset    int          `json:"offset"`
 }
 
 // EvidenceConfig configures evidence collection
@@ -1320,33 +1322,33 @@ type HashingService struct {
 
 // EvidenceReference references evidence items in reports
 type EvidenceReference struct {
-	ID          string      `json:"id"`
+	ID          string       `json:"id"`
 	Type        EvidenceType `json:"type"`
-	Description string      `json:"description"`
-	URL         string      `json:"url"`
-	Hash        string      `json:"hash"`
+	Description string       `json:"description"`
+	URL         string       `json:"url"`
+	Hash        string       `json:"hash"`
 }
 
 // AttestationReference references attestation items in reports
 type AttestationReference struct {
-	ID          string    `json:"id"`
-	Type        string    `json:"type"`
-	Timestamp   time.Time `json:"timestamp"`
-	Authority   string    `json:"authority"`
-	Valid       bool      `json:"valid"`
+	ID        string    `json:"id"`
+	Type      string    `json:"type"`
+	Timestamp time.Time `json:"timestamp"`
+	Authority string    `json:"authority"`
+	Valid     bool      `json:"valid"`
 }
 
 // SLATestResult represents results from SLA compliance tests
 type SLATestResult struct {
-	TestID      string                 `json:"test_id"`
-	TestName    string                 `json:"test_name"`
-	Passed      bool                   `json:"passed"`
-	Score       float64                `json:"score"`
-	Duration    time.Duration          `json:"duration"`
-	Errors      []string               `json:"errors"`
-	Warnings    []string               `json:"warnings"`
-	Metadata    map[string]interface{} `json:"metadata"`
-	Evidence    []EvidenceReference    `json:"evidence"`
+	TestID   string                 `json:"test_id"`
+	TestName string                 `json:"test_name"`
+	Passed   bool                   `json:"passed"`
+	Score    float64                `json:"score"`
+	Duration time.Duration          `json:"duration"`
+	Errors   []string               `json:"errors"`
+	Warnings []string               `json:"warnings"`
+	Metadata json.RawMessage `json:"metadata"`
+	Evidence []EvidenceReference    `json:"evidence"`
 }
 
 // Constructor functions for compliance components
@@ -1620,10 +1622,10 @@ type GDPRValidator struct{}
 
 // Attestation package for validation
 type AttestationPackage struct {
-	Data       interface{}               `json:"data"`
-	Signatures []*DigitalSignature       `json:"signatures"`
-	Timestamps []*Timestamp              `json:"timestamps"`
-	Witnesses  []*WitnessAttestation     `json:"witnesses"`
+	Data       interface{}           `json:"data"`
+	Signatures []*DigitalSignature   `json:"signatures"`
+	Timestamps []*Timestamp          `json:"timestamps"`
+	Witnesses  []*WitnessAttestation `json:"witnesses"`
 }
 
 // WitnessAttestation represents witness validation
@@ -1661,10 +1663,10 @@ type IntegrityValidationResult struct {
 
 // Audit session management types
 type AuditSession struct {
-	ID        string    `json:"id"`
-	StartTime time.Time `json:"start_time"`
-	EndTime   time.Time `json:"end_time"`
-	Status    string    `json:"status"`
+	ID        string        `json:"id"`
+	StartTime time.Time     `json:"start_time"`
+	EndTime   time.Time     `json:"end_time"`
+	Status    string        `json:"status"`
 	Events    []*AuditEntry `json:"events"`
 }
 
@@ -1673,15 +1675,15 @@ type AuditSession struct {
 func (v *AuditTrailValidator) ValidateIntegrity(ctx context.Context, events []*AuditEntry) *IntegrityReport {
 	return &IntegrityReport{
 		ValidationTime:          time.Now(),
-		TotalEntries:           len(events),
-		IntegrityViolations:    0,
-		HashChainValid:         true,
+		TotalEntries:            len(events),
+		IntegrityViolations:     0,
+		HashChainValid:          true,
 		ChronologicalOrderValid: true,
-		TotalSignatures:        len(events),
-		ValidSignatures:        len(events),
-		CorruptedEntries:       []string{},
-		MissingEntries:         []string{},
-		AnomalousPatterns:      []string{},
+		TotalSignatures:         len(events),
+		ValidSignatures:         len(events),
+		CorruptedEntries:        []string{},
+		MissingEntries:          []string{},
+		AnomalousPatterns:       []string{},
 	}
 }
 
@@ -1862,81 +1864,84 @@ func (s *SLAComplianceTestSuite) runSLAOperationsForEvidence(ctx context.Context
 func (s *SLAComplianceTestSuite) validateEvidenceIntegrity(ctx context.Context, evidence interface{}) interface{} {
 	s.T().Log("Validating evidence integrity")
 	return struct {
-		IntegrityScore  float64
-		CorruptedItems  int
+		IntegrityScore float64
+		CorruptedItems int
 	}{
-		IntegrityScore:  99.9,
-		CorruptedItems:  0,
+		IntegrityScore: 99.9,
+		CorruptedItems: 0,
 	}
 }
 
 func (s *SLAComplianceTestSuite) generateTestDataForAttestation() interface{} {
-	return map[string]interface{}{
-		"test_data": "sample data for attestation testing",
-		"timestamp": time.Now(),
-	}
+	return json.RawMessage(`{}`)
 }
 
 // Framework-specific evidence collection methods
 func (s *SLAComplianceTestSuite) collectSOXEvidence(ctx context.Context) *ComplianceEvidence {
 	return &ComplianceEvidence{
-		CollectionID: "sox_evidence",
+		CollectionID:   "sox_evidence",
 		CollectionTime: time.Now(),
 	}
 }
 
 func (s *SLAComplianceTestSuite) collectPCIDSSEvidence(ctx context.Context) *ComplianceEvidence {
 	return &ComplianceEvidence{
-		CollectionID: "pci_evidence",
+		CollectionID:   "pci_evidence",
 		CollectionTime: time.Now(),
 	}
 }
 
 func (s *SLAComplianceTestSuite) collectISO27001Evidence(ctx context.Context) *ComplianceEvidence {
 	return &ComplianceEvidence{
-		CollectionID: "iso27001_evidence",
+		CollectionID:   "iso27001_evidence",
 		CollectionTime: time.Now(),
 	}
 }
 
 func (s *SLAComplianceTestSuite) collectFrameworkEvidence(ctx context.Context, framework RegulatoryFramework) *ComplianceEvidence {
 	return &ComplianceEvidence{
-		CollectionID: fmt.Sprintf("%s_evidence", framework),
+		CollectionID:   fmt.Sprintf("%s_evidence", framework),
 		CollectionTime: time.Now(),
 	}
 }
 
 // Placeholder validation methods for SOX, PCI, ISO27001 sections
-func (s *SLAComplianceTestSuite) validateSOXSection302(report *SLAComplianceReport) {}
-func (s *SLAComplianceTestSuite) validateSOXSection404(report *SLAComplianceReport) {}
-func (s *SLAComplianceTestSuite) validateSOXSection409(report *SLAComplianceReport) {}
-func (s *SLAComplianceTestSuite) validateSOXSection802(report *SLAComplianceReport) {}
-func (s *SLAComplianceTestSuite) validatePCIDSSRequirement1(report *SLAComplianceReport) {}
-func (s *SLAComplianceTestSuite) validatePCIDSSRequirement2(report *SLAComplianceReport) {}
-func (s *SLAComplianceTestSuite) validatePCIDSSRequirement3(report *SLAComplianceReport) {}
-func (s *SLAComplianceTestSuite) validatePCIDSSRequirement4(report *SLAComplianceReport) {}
-func (s *SLAComplianceTestSuite) validatePCIDSSRequirement8(report *SLAComplianceReport) {}
+func (s *SLAComplianceTestSuite) validateSOXSection302(report *SLAComplianceReport)       {}
+func (s *SLAComplianceTestSuite) validateSOXSection404(report *SLAComplianceReport)       {}
+func (s *SLAComplianceTestSuite) validateSOXSection409(report *SLAComplianceReport)       {}
+func (s *SLAComplianceTestSuite) validateSOXSection802(report *SLAComplianceReport)       {}
+func (s *SLAComplianceTestSuite) validatePCIDSSRequirement1(report *SLAComplianceReport)  {}
+func (s *SLAComplianceTestSuite) validatePCIDSSRequirement2(report *SLAComplianceReport)  {}
+func (s *SLAComplianceTestSuite) validatePCIDSSRequirement3(report *SLAComplianceReport)  {}
+func (s *SLAComplianceTestSuite) validatePCIDSSRequirement4(report *SLAComplianceReport)  {}
+func (s *SLAComplianceTestSuite) validatePCIDSSRequirement8(report *SLAComplianceReport)  {}
 func (s *SLAComplianceTestSuite) validatePCIDSSRequirement10(report *SLAComplianceReport) {}
 func (s *SLAComplianceTestSuite) validatePCIDSSRequirement11(report *SLAComplianceReport) {}
 func (s *SLAComplianceTestSuite) validatePCIDSSRequirement12(report *SLAComplianceReport) {}
-func (s *SLAComplianceTestSuite) validateISO27001Control5(report *SLAComplianceReport) {}
-func (s *SLAComplianceTestSuite) validateISO27001Control6(report *SLAComplianceReport) {}
-func (s *SLAComplianceTestSuite) validateISO27001Control8(report *SLAComplianceReport) {}
-func (s *SLAComplianceTestSuite) validateISO27001Control9(report *SLAComplianceReport) {}
-func (s *SLAComplianceTestSuite) validateISO27001Control10(report *SLAComplianceReport) {}
-func (s *SLAComplianceTestSuite) validateISO27001Control12(report *SLAComplianceReport) {}
-func (s *SLAComplianceTestSuite) validateISO27001Control13(report *SLAComplianceReport) {}
-func (s *SLAComplianceTestSuite) validateISO27001Control14(report *SLAComplianceReport) {}
-func (s *SLAComplianceTestSuite) validateISO27001Control16(report *SLAComplianceReport) {}
-func (s *SLAComplianceTestSuite) validateISO27001Control17(report *SLAComplianceReport) {}
-func (s *SLAComplianceTestSuite) validateISO27001Control18(report *SLAComplianceReport) {}
+func (s *SLAComplianceTestSuite) validateISO27001Control5(report *SLAComplianceReport)    {}
+func (s *SLAComplianceTestSuite) validateISO27001Control6(report *SLAComplianceReport)    {}
+func (s *SLAComplianceTestSuite) validateISO27001Control8(report *SLAComplianceReport)    {}
+func (s *SLAComplianceTestSuite) validateISO27001Control9(report *SLAComplianceReport)    {}
+func (s *SLAComplianceTestSuite) validateISO27001Control10(report *SLAComplianceReport)   {}
+func (s *SLAComplianceTestSuite) validateISO27001Control12(report *SLAComplianceReport)   {}
+func (s *SLAComplianceTestSuite) validateISO27001Control13(report *SLAComplianceReport)   {}
+func (s *SLAComplianceTestSuite) validateISO27001Control14(report *SLAComplianceReport)   {}
+func (s *SLAComplianceTestSuite) validateISO27001Control16(report *SLAComplianceReport)   {}
+func (s *SLAComplianceTestSuite) validateISO27001Control17(report *SLAComplianceReport)   {}
+func (s *SLAComplianceTestSuite) validateISO27001Control18(report *SLAComplianceReport)   {}
 
 // Report validation methods
-func (s *SLAComplianceTestSuite) validateReportAccuracy(ctx context.Context, framework RegulatoryFramework, report *SLAComplianceReport, evidence *ComplianceEvidence) {}
-func (s *SLAComplianceTestSuite) crossValidateReports(reports map[RegulatoryFramework]*SLAComplianceReport) {}
-func (s *SLAComplianceTestSuite) testExecutiveDashboard(ctx context.Context, reports map[RegulatoryFramework]*SLAComplianceReport) {}
+func (s *SLAComplianceTestSuite) validateReportAccuracy(ctx context.Context, framework RegulatoryFramework, report *SLAComplianceReport, evidence *ComplianceEvidence) {
+}
+
+func (s *SLAComplianceTestSuite) crossValidateReports(reports map[RegulatoryFramework]*SLAComplianceReport) {
+}
+
+func (s *SLAComplianceTestSuite) testExecutiveDashboard(ctx context.Context, reports map[RegulatoryFramework]*SLAComplianceReport) {
+}
 
 // TestSuite runner function
 func TestSLAComplianceTestSuite(t *testing.T) {
 	suite.Run(t, new(SLAComplianceTestSuite))
 }
+

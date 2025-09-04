@@ -2,6 +2,7 @@ package resiliencecontroller
 
 import (
 	"context"
+
 	"github.com/go-logr/logr"
 )
 
@@ -22,14 +23,17 @@ type RateLimiterManager struct {
 
 // Constructor functions
 func NewBulkheadManager(configs map[string]*ResilienceConfig, logger logr.Logger) *BulkheadManager {
+	_ = configs // suppress unused parameter warning
 	return &BulkheadManager{logger: logger}
 }
 
 func NewCircuitBreakerManager(configs map[string]*CircuitBreakerConfig, logger logr.Logger) *CircuitBreakerManager {
+	_ = configs // suppress unused parameter warning
 	return &CircuitBreakerManager{logger: logger}
 }
 
 func NewRateLimiterManager(configs map[string]*RateLimitConfig, logger logr.Logger) *RateLimiterManager {
+	_ = configs // suppress unused parameter warning
 	return &RateLimiterManager{logger: logger}
 }
 
@@ -39,7 +43,7 @@ func (m *BulkheadManager) Stop(ctx context.Context) error  { return nil }
 func (m *BulkheadManager) Execute(ctx context.Context, key string, fn func(ctx context.Context) (interface{}, error)) (interface{}, error) {
 	return fn(ctx)
 }
-func (m *BulkheadManager) CheckHealth() map[string]interface{} { return map[string]interface{}{} }
+func (m *BulkheadManager) CheckHealth() map[string]interface{} { return make(map[string]interface{}) }
 func (m *BulkheadManager) GetMetrics() *BulkheadMetrics        { return &BulkheadMetrics{} }
 
 // CircuitBreakerManager methods
@@ -47,14 +51,15 @@ func (m *CircuitBreakerManager) Start(ctx context.Context) error                
 func (m *CircuitBreakerManager) Stop(ctx context.Context) error                                 { return nil }
 func (m *CircuitBreakerManager) CanExecute(key string) bool                                     { return true }
 func (m *CircuitBreakerManager) RecordResult(key string, success bool, duration ...interface{}) {}
-func (m *CircuitBreakerManager) CheckHealth() map[string]interface{}                            { return map[string]interface{}{} }
+func (m *CircuitBreakerManager) CheckHealth() map[string]interface{}                            { return make(map[string]interface{}) }
 func (m *CircuitBreakerManager) GetMetrics() *CircuitBreakerMetrics                             { return &CircuitBreakerMetrics{} }
 
 // RateLimiterManager methods
 func (m *RateLimiterManager) Start(ctx context.Context) error     { return nil }
 func (m *RateLimiterManager) Stop(ctx context.Context) error      { return nil }
 func (m *RateLimiterManager) Allow(key string) bool               { return true }
-func (m *RateLimiterManager) CheckHealth() map[string]interface{} { return map[string]interface{}{} }
+func (m *RateLimiterManager) CheckHealth() map[string]interface{} { return make(map[string]interface{}) }
 func (m *RateLimiterManager) GetMetrics() *RateLimitMetrics       { return &RateLimitMetrics{} }
 
 // Note: BulkheadConfig, CircuitBreakerConfig, and RateLimitConfig are defined in manager.go
+

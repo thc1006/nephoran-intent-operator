@@ -1,6 +1,7 @@
 package multicluster
 
 import (
+	"encoding/json"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -114,7 +115,7 @@ type RecommendationAction struct {
 
 	Command string
 
-	Parameters map[string]interface{}
+	Parameters json.RawMessage
 
 	Validation string
 }
@@ -266,7 +267,7 @@ type Task struct {
 
 	Image string `json:"image,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // UpstreamLock contains information about the upstream source.
@@ -292,17 +293,13 @@ type GitLock struct {
 // SetCondition adds or updates a condition in the PackageRevision status.
 
 func (pr *PackageRevision) SetCondition(condition metav1.Condition) {
-
 	if pr.Status.Conditions == nil {
-
 		pr.Status.Conditions = []metav1.Condition{}
-
 	}
 
 	// Look for existing condition with the same type.
 
 	for i, existing := range pr.Status.Conditions {
-
 		if existing.Type == condition.Type {
 
 			// Update existing condition.
@@ -312,11 +309,9 @@ func (pr *PackageRevision) SetCondition(condition metav1.Condition) {
 			return
 
 		}
-
 	}
 
 	// Add new condition.
 
 	pr.Status.Conditions = append(pr.Status.Conditions, condition)
-
 }

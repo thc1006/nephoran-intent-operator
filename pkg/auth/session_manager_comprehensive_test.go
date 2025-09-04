@@ -2,6 +2,7 @@ package auth_test
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -9,7 +10,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	testutil "github.com/thc1006/nephoran-intent-operator/pkg/testutil/auth"
 )
 
@@ -30,11 +30,7 @@ func TestSessionManager_CreateSession(t *testing.T) {
 		{
 			name:     "Valid session creation",
 			userInfo: uf.CreateBasicUser(),
-			metadata: map[string]interface{}{
-				"ip_address":   "192.168.1.1",
-				"user_agent":   "Mozilla/5.0...",
-				"login_method": "oauth2",
-			},
+			metadata: json.RawMessage(`{}`),
 			expectError: false,
 			checkSession: func(t *testing.T, session *Session) {
 				assert.NotEmpty(t, session.ID)
@@ -582,9 +578,7 @@ func TestSessionManager_UpdateSessionMetadata(t *testing.T) {
 	uf := testutil.NewUserFactory()
 
 	user := uf.CreateBasicUser()
-	session, err := manager.CreateSession(context.Background(), user, map[string]interface{}{
-		"initial_key": "initial_value",
-	})
+	session, err := manager.CreateSession(context.Background(), user, json.RawMessage(`{}`))
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -597,12 +591,7 @@ func TestSessionManager_UpdateSessionMetadata(t *testing.T) {
 		{
 			name:      "Update existing session metadata",
 			sessionID: session.ID,
-			metadata: map[string]interface{}{
-				"updated_key":   "updated_value",
-				"new_key":       "new_value",
-				"login_count":   5,
-				"last_activity": time.Now().Format(time.RFC3339),
-			},
+			metadata: json.RawMessage(`{}`),
 			expectError: false,
 			checkSession: func(t *testing.T, updatedSession *Session) {
 				assert.Equal(t, "updated_value", updatedSession.Metadata["updated_key"])
@@ -617,13 +606,13 @@ func TestSessionManager_UpdateSessionMetadata(t *testing.T) {
 		{
 			name:        "Non-existent session",
 			sessionID:   "non-existent-id",
-			metadata:    map[string]interface{}{"key": "value"},
+			metadata:    json.RawMessage(`{"key":"value"}`),
 			expectError: true,
 		},
 		{
 			name:        "Empty session ID",
 			sessionID:   "",
-			metadata:    map[string]interface{}{"key": "value"},
+			metadata:    json.RawMessage(`{"key":"value"}`),
 			expectError: true,
 		},
 		{
@@ -665,14 +654,10 @@ func TestSessionManager_GetUserSessions(t *testing.T) {
 	otherUser := uf.CreateBasicUser()
 
 	// Create multiple sessions for the user
-	_, err = manager.CreateSession(context.Background(), user, map[string]interface{}{
-		"device": "desktop",
-	})
+	_, err = manager.CreateSession(context.Background(), user, json.RawMessage(`{}`))
 	require.NoError(t, err)
 
-	_, err = manager.CreateSession(context.Background(), user, map[string]interface{}{
-		"device": "mobile",
-	})
+	_, err = manager.CreateSession(context.Background(), user, json.RawMessage(`{}`))
 	require.NoError(t, err)
 
 	// Create session for other user
@@ -927,3 +912,4 @@ func TestSessionManager_SecurityFeatures(t *testing.T) {
 		})
 	}
 }
+

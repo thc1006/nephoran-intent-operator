@@ -127,7 +127,6 @@ type ResourceRequirements struct {
 	DiskIOPS int `json:"disk_iops"` // e.g., 1000
 
 	Accelerator string `json:"accelerator"` // e.g., "nvidia.com/gpu"
-
 }
 
 // ScalingParameters defines auto-scaling configuration.
@@ -240,7 +239,6 @@ type HealthCheck struct {
 	Retries int `json:"retries"`
 
 	InitialDelay int `json:"initial_delay"` // seconds
-
 }
 
 // MetricDefinition represents a metricdefinition.
@@ -363,7 +361,6 @@ type BackupPolicy struct {
 	Schedule string `json:"schedule"` // cron format
 
 	Retention int `json:"retention"` // days
-
 }
 
 // EndpointSpec represents a endpointspec.
@@ -398,7 +395,6 @@ type QosRequirements struct {
 	Jitter float64 `json:"jitter"` // ms
 
 	PacketLoss float64 `json:"packet_loss"` // percentage
-
 }
 
 // ReliabilitySpec represents a reliabilityspec.
@@ -409,7 +405,6 @@ type ReliabilitySpec struct {
 	MTBF int `json:"mtbf"` // hours
 
 	MTTR int `json:"mttr"` // minutes
-
 }
 
 // QosProfile represents a qosprofile.
@@ -432,7 +427,6 @@ type QosProfile struct {
 	MaxBitrateDL string `json:"max_bitrate_dl"` // Mbps
 
 	GuaranteedBR string `json:"guaranteed_br"` // Mbps
-
 }
 
 // SliceTypeSpec represents a slicetypespec.
@@ -473,7 +467,6 @@ type ThroughputReq struct {
 	Max string `json:"max"` // Mbps
 
 	Typical string `json:"typical"` // Mbps
-
 }
 
 // LatencyReq represents a latencyreq.
@@ -484,7 +477,6 @@ type LatencyReq struct {
 	ControlPlane float64 `json:"control_plane"` // ms
 
 	MaxJitter float64 `json:"max_jitter"` // ms
-
 }
 
 // ReliabilityReq represents a reliabilityreq.
@@ -495,7 +487,6 @@ type ReliabilityReq struct {
 	PacketLoss float64 `json:"packet_loss"` // percentage
 
 	ErrorRate float64 `json:"error_rate"` // 10^-x
-
 }
 
 // DensityReq represents a densityreq.
@@ -506,7 +497,6 @@ type DensityReq struct {
 	ActiveDevices int `json:"active_devices"` // per km²
 
 	SessionDensity int `json:"session_density"` // per km²
-
 }
 
 // ResourceProfile represents a resourceprofile.
@@ -529,7 +519,6 @@ type ComputeProfile struct {
 	MemoryType string `json:"memory_type"` // standard, high-memory
 
 	Architecture string `json:"architecture"` // x86, ARM
-
 }
 
 // NetworkProfile represents a networkprofile.
@@ -669,9 +658,7 @@ type PerformancePattern struct {
 // NewTelecomKnowledgeBase creates and initializes the knowledge base.
 
 func NewTelecomKnowledgeBase() *TelecomKnowledgeBase {
-
 	kb := &TelecomKnowledgeBase{
-
 		NetworkFunctions: make(map[string]*NetworkFunctionSpec),
 
 		Interfaces: make(map[string]*InterfaceSpec),
@@ -700,17 +687,14 @@ func NewTelecomKnowledgeBase() *TelecomKnowledgeBase {
 	kb.initialized = true
 
 	return kb
-
 }
 
 // initializeNetworkFunctions initializes 5G Core network function specifications.
 
 func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
-
 	// AMF - Access and Mobility Management Function (3GPP TS 23.501).
 
 	kb.NetworkFunctions["amf"] = &NetworkFunctionSpec{
-
 		Name: "AMF",
 
 		Type: "5gc-control-plane",
@@ -732,7 +716,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		OptionalDeps: []string{"NSSF", "NEF", "NRF"},
 
 		Resources: ResourceRequirements{
-
 			MinCPU: "2",
 
 			MinMemory: "4Gi",
@@ -751,7 +734,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		},
 
 		Scaling: ScalingParameters{
-
 			MinReplicas: 3,
 
 			MaxReplicas: 20,
@@ -765,7 +747,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 			ScaleDownDelay: 300,
 
 			CustomMetrics: []CustomMetric{
-
 				{Name: "active_ue_sessions", Target: 10000, Type: "average"},
 
 				{Name: "registration_rate", Target: 1000, Type: "rate"},
@@ -773,7 +754,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		},
 
 		Performance: PerformanceBaseline{
-
 			MaxThroughputRPS: 10000,
 
 			AvgLatencyMs: 50,
@@ -792,13 +772,11 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		},
 
 		Security: SecurityRequirements{
-
 			TLSVersion: []string{"TLS1.3", "TLS1.2"},
 
 			Authentication: []string{"OAuth2", "mTLS", "JWT"},
 
 			Encryption: EncryptionSpec{
-
 				AtRest: "AES-256",
 
 				InTransit: []string{"TLS1.3", "IPSec"},
@@ -809,12 +787,10 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 			RBAC: true,
 
 			NetworkPolicies: []NetworkPolicy{
-
 				{Name: "amf-ingress", Ingress: []string{"N1", "N2", "SBI"}, Egress: []string{"SBI"}, Protocols: []string{"HTTPS", "HTTP2"}},
 			},
 
 			SecurityContext: SecurityContext{
-
 				RunAsNonRoot: true,
 
 				RunAsUser: 1000,
@@ -826,9 +802,7 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		},
 
 		DeploymentPatterns: map[string]DeploymentConfig{
-
 			"production": {
-
 				Name: "production",
 
 				Replicas: 3,
@@ -844,7 +818,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 				ServiceMesh: true,
 
 				LoadBalancer: LoadBalancerSpec{
-
 					Type: "LoadBalancer",
 
 					Algorithm: "least-connections",
@@ -855,7 +828,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 				},
 
 				Monitoring: MonitoringConfig{
-
 					Enabled: true,
 
 					Prometheus: true,
@@ -868,7 +840,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 				},
 
 				BackupPolicy: BackupPolicy{
-
 					Enabled: true,
 
 					Schedule: "0 2 * * *",
@@ -878,7 +849,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 			},
 
 			"development": {
-
 				Name: "development",
 
 				Replicas: 1,
@@ -894,14 +864,12 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 				ServiceMesh: false,
 
 				LoadBalancer: LoadBalancerSpec{
-
 					Type: "ClusterIP",
 
 					Algorithm: "round-robin",
 				},
 
 				Monitoring: MonitoringConfig{
-
 					Enabled: true,
 
 					Prometheus: true,
@@ -912,9 +880,7 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		},
 
 		Configuration: map[string]ConfigParameter{
-
 			"max_ue_contexts": {
-
 				Name: "max_ue_contexts",
 
 				Type: "integer",
@@ -929,7 +895,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 			},
 
 			"registration_timer": {
-
 				Name: "registration_timer",
 
 				Type: "duration",
@@ -945,16 +910,13 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		},
 
 		HealthChecks: []HealthCheck{
-
 			{Type: "http", Path: "/health", Port: 8080, Interval: 30, Timeout: 10, Retries: 3, InitialDelay: 60},
 
 			{Type: "tcp", Port: 38412, Interval: 30, Timeout: 5, Retries: 3, InitialDelay: 30},
 		},
 
 		MonitoringMetrics: []MetricDefinition{
-
 			{
-
 				Name: "amf_registered_ues",
 
 				Type: "gauge",
@@ -964,7 +926,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 				Labels: []string{"plmn_id", "amf_region_id"},
 
 				Alerts: []AlertRule{
-
 					{Name: "high_ue_count", Condition: ">", Threshold: 80000, Duration: "5m", Severity: "warning"},
 				},
 			},
@@ -974,7 +935,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 	// SMF - Session Management Function (3GPP TS 23.501).
 
 	kb.NetworkFunctions["smf"] = &NetworkFunctionSpec{
-
 		Name: "SMF",
 
 		Type: "5gc-control-plane",
@@ -996,7 +956,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		OptionalDeps: []string{"CHF", "NEF"},
 
 		Resources: ResourceRequirements{
-
 			MinCPU: "2",
 
 			MinMemory: "4Gi",
@@ -1013,7 +972,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		},
 
 		Scaling: ScalingParameters{
-
 			MinReplicas: 2,
 
 			MaxReplicas: 15,
@@ -1027,7 +985,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 			ScaleDownDelay: 300,
 
 			CustomMetrics: []CustomMetric{
-
 				{Name: "active_pdu_sessions", Target: 50000, Type: "average"},
 
 				{Name: "session_establishment_rate", Target: 500, Type: "rate"},
@@ -1035,7 +992,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		},
 
 		Performance: PerformanceBaseline{
-
 			MaxThroughputRPS: 5000,
 
 			AvgLatencyMs: 100,
@@ -1054,13 +1010,11 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		},
 
 		Security: SecurityRequirements{
-
 			TLSVersion: []string{"TLS1.3", "TLS1.2"},
 
 			Authentication: []string{"OAuth2", "mTLS"},
 
 			Encryption: EncryptionSpec{
-
 				AtRest: "AES-256",
 
 				InTransit: []string{"TLS1.3", "PFCP"},
@@ -1075,7 +1029,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 	// UPF - User Plane Function (3GPP TS 23.501).
 
 	kb.NetworkFunctions["upf"] = &NetworkFunctionSpec{
-
 		Name: "UPF",
 
 		Type: "5gc-user-plane",
@@ -1093,7 +1046,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		Dependencies: []string{"SMF"},
 
 		Resources: ResourceRequirements{
-
 			MinCPU: "4",
 
 			MinMemory: "8Gi",
@@ -1112,7 +1064,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		},
 
 		Scaling: ScalingParameters{
-
 			MinReplicas: 2,
 
 			MaxReplicas: 10,
@@ -1126,7 +1077,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 			ScaleDownDelay: 600,
 
 			CustomMetrics: []CustomMetric{
-
 				{Name: "throughput_mbps", Target: 10000, Type: "average"},
 
 				{Name: "packet_processing_rate", Target: 1000000, Type: "rate"},
@@ -1134,7 +1084,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		},
 
 		Performance: PerformanceBaseline{
-
 			MaxThroughputRPS: 100000,
 
 			AvgLatencyMs: 10,
@@ -1156,7 +1105,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 	// PCF - Policy Control Function (3GPP TS 23.501).
 
 	kb.NetworkFunctions["pcf"] = &NetworkFunctionSpec{
-
 		Name: "PCF",
 
 		Type: "5gc-control-plane",
@@ -1176,7 +1124,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		OptionalDeps: []string{"BSF", "NEF"},
 
 		Resources: ResourceRequirements{
-
 			MinCPU: "1",
 
 			MinMemory: "2Gi",
@@ -1189,7 +1136,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		},
 
 		Performance: PerformanceBaseline{
-
 			MaxThroughputRPS: 2000,
 
 			AvgLatencyMs: 75,
@@ -1203,7 +1149,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 	// UDM - Unified Data Management (3GPP TS 23.501).
 
 	kb.NetworkFunctions["udm"] = &NetworkFunctionSpec{
-
 		Name: "UDM",
 
 		Type: "5gc-control-plane",
@@ -1221,7 +1166,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		Dependencies: []string{"UDR"},
 
 		Resources: ResourceRequirements{
-
 			MinCPU: "2",
 
 			MinMemory: "4Gi",
@@ -1234,7 +1178,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		},
 
 		Performance: PerformanceBaseline{
-
 			MaxThroughputRPS: 8000,
 
 			AvgLatencyMs: 60,
@@ -1248,7 +1191,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 	// AUSF - Authentication Server Function (3GPP TS 23.501).
 
 	kb.NetworkFunctions["ausf"] = &NetworkFunctionSpec{
-
 		Name: "AUSF",
 
 		Type: "5gc-control-plane",
@@ -1266,7 +1208,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		Dependencies: []string{"UDM"},
 
 		Resources: ResourceRequirements{
-
 			MinCPU: "1",
 
 			MinMemory: "2Gi",
@@ -1279,7 +1220,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		},
 
 		Performance: PerformanceBaseline{
-
 			MaxThroughputRPS: 5000,
 
 			AvgLatencyMs: 80,
@@ -1293,7 +1233,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 	// NRF - Network Repository Function (3GPP TS 23.501).
 
 	kb.NetworkFunctions["nrf"] = &NetworkFunctionSpec{
-
 		Name: "NRF",
 
 		Type: "5gc-control-plane",
@@ -1307,7 +1246,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		ServiceInterfaces: []string{"Nnrf_NFManagement", "Nnrf_NFDiscovery", "Nnrf_AccessToken", "Nnrf_Bootstrapping"},
 
 		Resources: ResourceRequirements{
-
 			MinCPU: "1",
 
 			MinMemory: "2Gi",
@@ -1320,7 +1258,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		},
 
 		Performance: PerformanceBaseline{
-
 			MaxThroughputRPS: 15000,
 
 			AvgLatencyMs: 30,
@@ -1334,7 +1271,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 	// NSSF - Network Slice Selection Function (3GPP TS 23.501).
 
 	kb.NetworkFunctions["nssf"] = &NetworkFunctionSpec{
-
 		Name: "NSSF",
 
 		Type: "5gc-control-plane",
@@ -1352,7 +1288,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		Dependencies: []string{"NRF"},
 
 		Resources: ResourceRequirements{
-
 			MinCPU: "1",
 
 			MinMemory: "1Gi",
@@ -1365,7 +1300,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		},
 
 		Performance: PerformanceBaseline{
-
 			MaxThroughputRPS: 3000,
 
 			AvgLatencyMs: 40,
@@ -1379,7 +1313,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 	// gNodeB - 5G Base Station (3GPP TS 38.401).
 
 	kb.NetworkFunctions["gnb"] = &NetworkFunctionSpec{
-
 		Name: "gNodeB",
 
 		Type: "ran",
@@ -1395,7 +1328,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		Dependencies: []string{"AMF", "UPF"},
 
 		Resources: ResourceRequirements{
-
 			MinCPU: "4",
 
 			MinMemory: "8Gi",
@@ -1412,7 +1344,6 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		},
 
 		Performance: PerformanceBaseline{
-
 			MaxThroughputRPS: 50000,
 
 			AvgLatencyMs: 5,
@@ -1422,17 +1353,14 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 			MaxConcurrentSessions: 500000,
 		},
 	}
-
 }
 
 // initializeInterfaces initializes 5G network interface specifications.
 
 func (kb *TelecomKnowledgeBase) initializeInterfaces() {
-
 	// N1 Interface (UE ↔ AMF).
 
 	kb.Interfaces["n1"] = &InterfaceSpec{
-
 		Name: "N1",
 
 		Type: "reference-point",
@@ -1444,14 +1372,12 @@ func (kb *TelecomKnowledgeBase) initializeInterfaces() {
 		Description: "Interface between UE and AMF for NAS signaling",
 
 		Endpoints: []EndpointSpec{
-
 			{Name: "ue", Port: 0, Protocol: "NAS"},
 
 			{Name: "amf", Port: 38412, Protocol: "NAS"},
 		},
 
 		SecurityModel: SecurityModel{
-
 			Authentication: "5G-AKA",
 
 			Authorization: "AUSF",
@@ -1460,7 +1386,6 @@ func (kb *TelecomKnowledgeBase) initializeInterfaces() {
 		},
 
 		QosRequirements: QosRequirements{
-
 			Bandwidth: "1Mbps",
 
 			Latency: 50.0,
@@ -1474,7 +1399,6 @@ func (kb *TelecomKnowledgeBase) initializeInterfaces() {
 	// N2 Interface (gNB ↔ AMF).
 
 	kb.Interfaces["n2"] = &InterfaceSpec{
-
 		Name: "N2",
 
 		Type: "reference-point",
@@ -1486,14 +1410,12 @@ func (kb *TelecomKnowledgeBase) initializeInterfaces() {
 		Description: "Interface between gNB and AMF for control plane signaling",
 
 		SecurityModel: SecurityModel{
-
 			Authentication: "IPSec",
 
 			Encryption: []string{"AES-256"},
 		},
 
 		QosRequirements: QosRequirements{
-
 			Bandwidth: "100Mbps",
 
 			Latency: 20.0,
@@ -1505,7 +1427,6 @@ func (kb *TelecomKnowledgeBase) initializeInterfaces() {
 	// N3 Interface (gNB ↔ UPF).
 
 	kb.Interfaces["n3"] = &InterfaceSpec{
-
 		Name: "N3",
 
 		Type: "reference-point",
@@ -1517,7 +1438,6 @@ func (kb *TelecomKnowledgeBase) initializeInterfaces() {
 		Description: "Interface between gNB and UPF for user plane data",
 
 		QosRequirements: QosRequirements{
-
 			Bandwidth: "100Gbps",
 
 			Latency: 1.0,
@@ -1529,7 +1449,6 @@ func (kb *TelecomKnowledgeBase) initializeInterfaces() {
 	// N4 Interface (SMF ↔ UPF).
 
 	kb.Interfaces["n4"] = &InterfaceSpec{
-
 		Name: "N4",
 
 		Type: "reference-point",
@@ -1541,7 +1460,6 @@ func (kb *TelecomKnowledgeBase) initializeInterfaces() {
 		Description: "Interface between SMF and UPF for session management",
 
 		QosRequirements: QosRequirements{
-
 			Bandwidth: "10Gbps",
 
 			Latency: 10.0,
@@ -1553,7 +1471,6 @@ func (kb *TelecomKnowledgeBase) initializeInterfaces() {
 	// Service Based Interfaces.
 
 	kb.Interfaces["namf"] = &InterfaceSpec{
-
 		Name: "Namf",
 
 		Type: "service-based",
@@ -1565,7 +1482,6 @@ func (kb *TelecomKnowledgeBase) initializeInterfaces() {
 		Description: "AMF services for communication, event exposure, location, and MT services",
 
 		SecurityModel: SecurityModel{
-
 			Authentication: "OAuth2",
 
 			Authorization: "RBAC",
@@ -1573,17 +1489,14 @@ func (kb *TelecomKnowledgeBase) initializeInterfaces() {
 			Encryption: []string{"TLS1.3"},
 		},
 	}
-
 }
 
 // initializeQosProfiles initializes QoS profiles based on 3GPP TS 23.501.
 
 func (kb *TelecomKnowledgeBase) initializeQosProfiles() {
-
 	// 5QI 1 - Conversational Voice (GBR).
 
 	kb.QosProfiles["5qi_1"] = &QosProfile{
-
 		QCI: 1,
 
 		QFI: 1,
@@ -1606,7 +1519,6 @@ func (kb *TelecomKnowledgeBase) initializeQosProfiles() {
 	// 5QI 2 - Conversational Video (GBR).
 
 	kb.QosProfiles["5qi_2"] = &QosProfile{
-
 		QCI: 2,
 
 		QFI: 2,
@@ -1629,7 +1541,6 @@ func (kb *TelecomKnowledgeBase) initializeQosProfiles() {
 	// 5QI 5 - IMS Signaling (Non-GBR).
 
 	kb.QosProfiles["5qi_5"] = &QosProfile{
-
 		QCI: 5,
 
 		QFI: 5,
@@ -1650,7 +1561,6 @@ func (kb *TelecomKnowledgeBase) initializeQosProfiles() {
 	// 5QI 9 - Default Bearer (Non-GBR).
 
 	kb.QosProfiles["5qi_9"] = &QosProfile{
-
 		QCI: 9,
 
 		QFI: 9,
@@ -1671,7 +1581,6 @@ func (kb *TelecomKnowledgeBase) initializeQosProfiles() {
 	// 5QI 82 - Discrete Automation (URLLC).
 
 	kb.QosProfiles["5qi_82"] = &QosProfile{
-
 		QCI: 82,
 
 		QFI: 82,
@@ -1690,17 +1599,14 @@ func (kb *TelecomKnowledgeBase) initializeQosProfiles() {
 
 		GuaranteedBR: "50",
 	}
-
 }
 
 // initializeSliceTypes initializes network slice type specifications.
 
 func (kb *TelecomKnowledgeBase) initializeSliceTypes() {
-
 	// eMBB - Enhanced Mobile Broadband (SST=1).
 
 	kb.SliceTypes["embb"] = &SliceTypeSpec{
-
 		SST: 1,
 
 		Description: "Enhanced Mobile Broadband",
@@ -1708,9 +1614,7 @@ func (kb *TelecomKnowledgeBase) initializeSliceTypes() {
 		UseCase: "High-speed data services, streaming, web browsing",
 
 		Requirements: SliceRequirements{
-
 			Throughput: ThroughputReq{
-
 				Min: "100",
 
 				Max: "20000",
@@ -1719,7 +1623,6 @@ func (kb *TelecomKnowledgeBase) initializeSliceTypes() {
 			},
 
 			Latency: LatencyReq{
-
 				UserPlane: 10.0,
 
 				ControlPlane: 100.0,
@@ -1728,7 +1631,6 @@ func (kb *TelecomKnowledgeBase) initializeSliceTypes() {
 			},
 
 			Reliability: ReliabilityReq{
-
 				Availability: 99.9,
 
 				PacketLoss: 0.1,
@@ -1737,7 +1639,6 @@ func (kb *TelecomKnowledgeBase) initializeSliceTypes() {
 			},
 
 			Density: DensityReq{
-
 				ConnectedDevices: 10000,
 
 				ActiveDevices: 5000,
@@ -1747,9 +1648,7 @@ func (kb *TelecomKnowledgeBase) initializeSliceTypes() {
 		},
 
 		ResourceProfile: ResourceProfile{
-
 			Compute: ComputeProfile{
-
 				CPUIntensive: false,
 
 				GPURequired: false,
@@ -1760,7 +1659,6 @@ func (kb *TelecomKnowledgeBase) initializeSliceTypes() {
 			},
 
 			Network: NetworkProfile{
-
 				BandwidthIntensive: true,
 
 				LatencySensitive: false,
@@ -1771,7 +1669,6 @@ func (kb *TelecomKnowledgeBase) initializeSliceTypes() {
 			},
 
 			Storage: StorageProfile{
-
 				PersistentStorage: false,
 
 				HighIOPS: false,
@@ -1788,7 +1685,6 @@ func (kb *TelecomKnowledgeBase) initializeSliceTypes() {
 	// URLLC - Ultra-Reliable Low Latency Communications (SST=2).
 
 	kb.SliceTypes["urllc"] = &SliceTypeSpec{
-
 		SST: 2,
 
 		Description: "Ultra-Reliable Low Latency Communications",
@@ -1796,9 +1692,7 @@ func (kb *TelecomKnowledgeBase) initializeSliceTypes() {
 		UseCase: "Industrial automation, autonomous vehicles, remote surgery",
 
 		Requirements: SliceRequirements{
-
 			Throughput: ThroughputReq{
-
 				Min: "1",
 
 				Max: "50",
@@ -1807,7 +1701,6 @@ func (kb *TelecomKnowledgeBase) initializeSliceTypes() {
 			},
 
 			Latency: LatencyReq{
-
 				UserPlane: 1.0,
 
 				ControlPlane: 10.0,
@@ -1816,7 +1709,6 @@ func (kb *TelecomKnowledgeBase) initializeSliceTypes() {
 			},
 
 			Reliability: ReliabilityReq{
-
 				Availability: 99.999,
 
 				PacketLoss: 0.00001,
@@ -1826,16 +1718,13 @@ func (kb *TelecomKnowledgeBase) initializeSliceTypes() {
 		},
 
 		ResourceProfile: ResourceProfile{
-
 			Compute: ComputeProfile{
-
 				CPUIntensive: true,
 
 				MemoryType: "high-memory",
 			},
 
 			Network: NetworkProfile{
-
 				BandwidthIntensive: false,
 
 				LatencySensitive: true,
@@ -1846,7 +1735,6 @@ func (kb *TelecomKnowledgeBase) initializeSliceTypes() {
 			},
 
 			Storage: StorageProfile{
-
 				HighIOPS: true,
 
 				StorageType: "nvme",
@@ -1861,7 +1749,6 @@ func (kb *TelecomKnowledgeBase) initializeSliceTypes() {
 	// mMTC - Massive Machine Type Communications (SST=3).
 
 	kb.SliceTypes["mmtc"] = &SliceTypeSpec{
-
 		SST: 3,
 
 		Description: "Massive Machine Type Communications",
@@ -1869,9 +1756,7 @@ func (kb *TelecomKnowledgeBase) initializeSliceTypes() {
 		UseCase: "IoT sensors, smart city, environmental monitoring",
 
 		Requirements: SliceRequirements{
-
 			Throughput: ThroughputReq{
-
 				Min: "0.1",
 
 				Max: "10",
@@ -1880,21 +1765,18 @@ func (kb *TelecomKnowledgeBase) initializeSliceTypes() {
 			},
 
 			Latency: LatencyReq{
-
 				UserPlane: 1000.0,
 
 				ControlPlane: 10000.0,
 			},
 
 			Reliability: ReliabilityReq{
-
 				Availability: 99.0,
 
 				PacketLoss: 1.0,
 			},
 
 			Density: DensityReq{
-
 				ConnectedDevices: 1000000,
 
 				ActiveDevices: 100000,
@@ -1902,16 +1784,13 @@ func (kb *TelecomKnowledgeBase) initializeSliceTypes() {
 		},
 
 		ResourceProfile: ResourceProfile{
-
 			Compute: ComputeProfile{
-
 				CPUIntensive: false,
 
 				Architecture: "ARM",
 			},
 
 			Network: NetworkProfile{
-
 				BandwidthIntensive: false,
 
 				LatencySensitive: false,
@@ -1920,15 +1799,12 @@ func (kb *TelecomKnowledgeBase) initializeSliceTypes() {
 
 		NetworkFunctions: []string{"amf", "smf", "upf"},
 	}
-
 }
 
 // initializeKPIs initializes performance KPI specifications.
 
 func (kb *TelecomKnowledgeBase) initializeKPIs() {
-
 	kb.PerformanceKPIs["registration_success_rate"] = &KPISpec{
-
 		Name: "Registration Success Rate",
 
 		Type: "gauge",
@@ -1940,7 +1816,6 @@ func (kb *TelecomKnowledgeBase) initializeKPIs() {
 		Category: "reliability",
 
 		Thresholds: Thresholds{
-
 			Critical: 95.0,
 
 			Warning: 98.0,
@@ -1949,7 +1824,6 @@ func (kb *TelecomKnowledgeBase) initializeKPIs() {
 		},
 
 		SLA: SLASpec{
-
 			Availability: 99.9,
 
 			Performance: 99.0,
@@ -1957,7 +1831,6 @@ func (kb *TelecomKnowledgeBase) initializeKPIs() {
 	}
 
 	kb.PerformanceKPIs["session_establishment_latency"] = &KPISpec{
-
 		Name: "Session Establishment Latency",
 
 		Type: "histogram",
@@ -1969,7 +1842,6 @@ func (kb *TelecomKnowledgeBase) initializeKPIs() {
 		Category: "performance",
 
 		Thresholds: Thresholds{
-
 			Critical: 1000.0,
 
 			Warning: 500.0,
@@ -1979,7 +1851,6 @@ func (kb *TelecomKnowledgeBase) initializeKPIs() {
 	}
 
 	kb.PerformanceKPIs["throughput"] = &KPISpec{
-
 		Name: "User Plane Throughput",
 
 		Type: "gauge",
@@ -1991,19 +1862,15 @@ func (kb *TelecomKnowledgeBase) initializeKPIs() {
 		Category: "performance",
 
 		Thresholds: Thresholds{
-
 			Target: 1000.0,
 		},
 	}
-
 }
 
 // initializeDeploymentPatterns initializes deployment patterns.
 
 func (kb *TelecomKnowledgeBase) initializeDeploymentPatterns() {
-
 	kb.DeploymentTypes["high-availability"] = &DeploymentPattern{
-
 		Name: "high-availability",
 
 		Description: "High availability deployment with geographic redundancy",
@@ -2011,7 +1878,6 @@ func (kb *TelecomKnowledgeBase) initializeDeploymentPatterns() {
 		UseCase: []string{"production", "critical-services", "carrier-grade"},
 
 		Architecture: DeploymentArchitecture{
-
 			Type: "multi-region",
 
 			Redundancy: "active-active",
@@ -2024,7 +1890,6 @@ func (kb *TelecomKnowledgeBase) initializeDeploymentPatterns() {
 		},
 
 		Scaling: ScalingPattern{
-
 			Horizontal: true,
 
 			Vertical: false,
@@ -2035,7 +1900,6 @@ func (kb *TelecomKnowledgeBase) initializeDeploymentPatterns() {
 		},
 
 		Resilience: ResiliencePattern{
-
 			CircuitBreaker: true,
 
 			Retry: true,
@@ -2048,7 +1912,6 @@ func (kb *TelecomKnowledgeBase) initializeDeploymentPatterns() {
 		},
 
 		Performance: PerformancePattern{
-
 			Caching: true,
 
 			LoadBalancing: true,
@@ -2060,7 +1923,6 @@ func (kb *TelecomKnowledgeBase) initializeDeploymentPatterns() {
 	}
 
 	kb.DeploymentTypes["edge-optimized"] = &DeploymentPattern{
-
 		Name: "edge-optimized",
 
 		Description: "Edge deployment optimized for low latency",
@@ -2068,7 +1930,6 @@ func (kb *TelecomKnowledgeBase) initializeDeploymentPatterns() {
 		UseCase: []string{"urllc", "edge-computing", "industrial"},
 
 		Architecture: DeploymentArchitecture{
-
 			Type: "single-zone",
 
 			Redundancy: "active-passive",
@@ -2078,125 +1939,95 @@ func (kb *TelecomKnowledgeBase) initializeDeploymentPatterns() {
 			ControlPlane: "centralized",
 		},
 	}
-
 }
 
 // GetNetworkFunction retrieves network function specification by name.
 
 func (kb *TelecomKnowledgeBase) GetNetworkFunction(name string) (*NetworkFunctionSpec, bool) {
-
 	nf, exists := kb.NetworkFunctions[strings.ToLower(name)]
 
 	return nf, exists
-
 }
 
 // GetInterface retrieves interface specification by name.
 
 func (kb *TelecomKnowledgeBase) GetInterface(name string) (*InterfaceSpec, bool) {
-
 	iface, exists := kb.Interfaces[strings.ToLower(name)]
 
 	return iface, exists
-
 }
 
 // GetQosProfile retrieves QoS profile by name.
 
 func (kb *TelecomKnowledgeBase) GetQosProfile(name string) (*QosProfile, bool) {
-
 	qos, exists := kb.QosProfiles[strings.ToLower(name)]
 
 	return qos, exists
-
 }
 
 // GetSliceType retrieves slice type specification by name.
 
 func (kb *TelecomKnowledgeBase) GetSliceType(name string) (*SliceTypeSpec, bool) {
-
 	slice, exists := kb.SliceTypes[strings.ToLower(name)]
 
 	return slice, exists
-
 }
 
 // ListNetworkFunctions returns all available network function names.
 
 func (kb *TelecomKnowledgeBase) ListNetworkFunctions() []string {
-
 	var names []string
 
 	for name := range kb.NetworkFunctions {
-
 		names = append(names, name)
-
 	}
 
 	sort.Strings(names)
 
 	return names
-
 }
 
 // GetNetworkFunctionsByType returns network functions of a specific type.
 
 func (kb *TelecomKnowledgeBase) GetNetworkFunctionsByType(nfType string) []*NetworkFunctionSpec {
-
 	var functions []*NetworkFunctionSpec
 
 	for _, nf := range kb.NetworkFunctions {
-
 		if nf.Type == nfType {
-
 			functions = append(functions, nf)
-
 		}
-
 	}
 
 	return functions
-
 }
 
 // GetInterfacesForFunction returns all interfaces used by a network function.
 
 func (kb *TelecomKnowledgeBase) GetInterfacesForFunction(functionName string) []*InterfaceSpec {
-
 	nf, exists := kb.GetNetworkFunction(functionName)
 
 	if !exists {
-
 		return nil
-
 	}
 
 	var interfaces []*InterfaceSpec
 
 	for _, ifaceName := range nf.Interfaces {
-
 		if iface, exists := kb.GetInterface(ifaceName); exists {
-
 			interfaces = append(interfaces, iface)
-
 		}
-
 	}
 
 	return interfaces
-
 }
 
 // GetDependenciesForFunction returns all dependencies for a network function.
 
 func (kb *TelecomKnowledgeBase) GetDependenciesForFunction(functionName string) ([]*NetworkFunctionSpec, []*NetworkFunctionSpec) {
-
 	nf, exists := kb.GetNetworkFunction(functionName)
 
 	if !exists {
-
 		return nil, nil
-
 	}
 
 	var required []*NetworkFunctionSpec
@@ -2204,33 +2035,23 @@ func (kb *TelecomKnowledgeBase) GetDependenciesForFunction(functionName string) 
 	var optional []*NetworkFunctionSpec
 
 	for _, depName := range nf.Dependencies {
-
 		if dep, exists := kb.GetNetworkFunction(depName); exists {
-
 			required = append(required, dep)
-
 		}
-
 	}
 
 	for _, depName := range nf.OptionalDeps {
-
 		if dep, exists := kb.GetNetworkFunction(depName); exists {
-
 			optional = append(optional, dep)
-
 		}
-
 	}
 
 	return required, optional
-
 }
 
 // ValidateSliceConfiguration validates a network slice configuration.
 
 func (kb *TelecomKnowledgeBase) ValidateSliceConfiguration(sliceType, qosProfile string, functions []string) []string {
-
 	var issues []string
 
 	// Check if slice type exists.
@@ -2248,25 +2069,17 @@ func (kb *TelecomKnowledgeBase) ValidateSliceConfiguration(sliceType, qosProfile
 	// Validate QoS profile.
 
 	if qosProfile != "" {
-
 		if _, exists := kb.GetQosProfile(qosProfile); !exists {
-
 			issues = append(issues, fmt.Sprintf("Unknown QoS profile: %s", qosProfile))
-
 		}
-
 	}
 
 	// Validate network functions.
 
 	for _, funcName := range functions {
-
 		if _, exists := kb.GetNetworkFunction(funcName); !exists {
-
 			issues = append(issues, fmt.Sprintf("Unknown network function: %s", funcName))
-
 		}
-
 	}
 
 	// Check if all required functions are present.
@@ -2278,7 +2091,6 @@ func (kb *TelecomKnowledgeBase) ValidateSliceConfiguration(sliceType, qosProfile
 		found := false
 
 		for _, provided := range functions {
-
 			if strings.EqualFold(required, provided) {
 
 				found = true
@@ -2286,67 +2098,52 @@ func (kb *TelecomKnowledgeBase) ValidateSliceConfiguration(sliceType, qosProfile
 				break
 
 			}
-
 		}
 
 		if !found {
-
 			issues = append(issues, fmt.Sprintf("Missing required network function for %s slice: %s", sliceType, required))
-
 		}
 
 	}
 
 	return issues
-
 }
 
 // GetPerformanceBaseline returns performance baseline for a network function.
 
 func (kb *TelecomKnowledgeBase) GetPerformanceBaseline(functionName string) (*PerformanceBaseline, bool) {
-
 	nf, exists := kb.GetNetworkFunction(functionName)
 
 	if !exists {
-
 		return nil, false
-
 	}
 
 	return &nf.Performance, true
-
 }
 
 // GetScalingParameters returns scaling parameters for a network function.
 
 func (kb *TelecomKnowledgeBase) GetScalingParameters(functionName string) (*ScalingParameters, bool) {
-
 	nf, exists := kb.GetNetworkFunction(functionName)
 
 	if !exists {
-
 		return nil, false
-
 	}
 
 	return &nf.Scaling, true
-
 }
 
 // GetDeploymentPattern returns deployment pattern specification.
 
 func (kb *TelecomKnowledgeBase) GetDeploymentPattern(patternName string) (*DeploymentPattern, bool) {
-
 	pattern, exists := kb.DeploymentTypes[strings.ToLower(patternName)]
 
 	return pattern, exists
-
 }
 
 // EstimateResourceRequirements estimates total resource requirements for a set of functions.
 
 func (kb *TelecomKnowledgeBase) EstimateResourceRequirements(functions []string, replicas map[string]int) (ResourceRequirements, error) {
-
 	var total ResourceRequirements
 
 	var totalCPU, totalMemory, totalStorage float64
@@ -2356,17 +2153,13 @@ func (kb *TelecomKnowledgeBase) EstimateResourceRequirements(functions []string,
 		nf, exists := kb.GetNetworkFunction(funcName)
 
 		if !exists {
-
 			return total, fmt.Errorf("unknown network function: %s", funcName)
-
 		}
 
 		replicaCount := 1
 
 		if r, ok := replicas[funcName]; ok {
-
 			replicaCount = r
-
 		}
 
 		// Parse and sum CPU (assuming cores).
@@ -2402,13 +2195,11 @@ func (kb *TelecomKnowledgeBase) EstimateResourceRequirements(functions []string,
 	total.Storage = fmt.Sprintf("%.0fGi", totalStorage)
 
 	return total, nil
-
 }
 
 // GetCompatibleSliceTypes returns slice types compatible with given requirements.
 
 func (kb *TelecomKnowledgeBase) GetCompatibleSliceTypes(maxLatency float64, minThroughput int, minReliability float64) []*SliceTypeSpec {
-
 	var compatible []*SliceTypeSpec
 
 	for _, slice := range kb.SliceTypes {
@@ -2424,27 +2215,21 @@ func (kb *TelecomKnowledgeBase) GetCompatibleSliceTypes(maxLatency float64, minT
 		reliabilityOK := slice.Requirements.Reliability.Availability >= minReliability
 
 		if latencyOK && throughputOK && reliabilityOK {
-
 			compatible = append(compatible, slice)
-
 		}
 
 	}
 
 	return compatible
-
 }
 
 // GetRecommendedDeploymentConfig returns recommended deployment configuration.
 
 func (kb *TelecomKnowledgeBase) GetRecommendedDeploymentConfig(functionName, environment string) (*DeploymentConfig, error) {
-
 	nf, exists := kb.GetNetworkFunction(functionName)
 
 	if !exists {
-
 		return nil, fmt.Errorf("unknown network function: %s", functionName)
-
 	}
 
 	config, exists := nf.DeploymentPatterns[environment]
@@ -2454,9 +2239,7 @@ func (kb *TelecomKnowledgeBase) GetRecommendedDeploymentConfig(functionName, env
 		// Return production config as default.
 
 		if prodConfig, exists := nf.DeploymentPatterns["production"]; exists {
-
 			return &prodConfig, nil
-
 		}
 
 		return nil, fmt.Errorf("no deployment configuration found for %s in %s environment", functionName, environment)
@@ -2464,29 +2247,22 @@ func (kb *TelecomKnowledgeBase) GetRecommendedDeploymentConfig(functionName, env
 	}
 
 	return &config, nil
-
 }
 
 // IsInitialized returns whether the knowledge base has been initialized.
 
 func (kb *TelecomKnowledgeBase) IsInitialized() bool {
-
 	return kb.initialized
-
 }
 
 // GetVersion returns the knowledge base version.
 
 func (kb *TelecomKnowledgeBase) GetVersion() string {
-
 	return "1.0.0-3GPP-R17"
-
 }
 
 // GetLastUpdated returns the last update time (placeholder).
 
 func (kb *TelecomKnowledgeBase) GetLastUpdated() time.Time {
-
 	return time.Now() // In production, this would be from metadata
-
 }

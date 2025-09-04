@@ -31,7 +31,9 @@ limitations under the License.
 package nephio
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"time"
 
@@ -110,7 +112,7 @@ type RollbackStrategy struct {
 
 	NotifyOnFailure bool `json:"notifyOnFailure"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // RollbackStep defines a rollback step.
@@ -120,7 +122,7 @@ type RollbackStep struct {
 
 	Action string `json:"action"`
 
-	Config map[string]interface{} `json:"config"`
+	Config json.RawMessage `json:"config"`
 
 	Timeout time.Duration `json:"timeout"`
 
@@ -142,7 +144,7 @@ type ApprovalStrategy struct {
 
 	NotifyChannels []string `json:"notifyChannels,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // ApprovalRequirement defines approval requirements.
@@ -170,7 +172,7 @@ type AutoApprovalRule struct {
 
 	Timeout time.Duration `json:"timeout"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // NotificationStrategy defines notification behavior.
@@ -184,7 +186,7 @@ type NotificationStrategy struct {
 
 	Templates map[string]string `json:"templates,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // NotificationEvent defines when to send notifications.
@@ -194,7 +196,7 @@ type NotificationEvent struct {
 
 	Conditions []string `json:"conditions,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // NotificationChannel defines notification channels.
@@ -204,7 +206,7 @@ type NotificationChannel struct {
 
 	Endpoint string `json:"endpoint"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	Enabled bool `json:"enabled"`
 }
@@ -220,7 +222,7 @@ type TimeoutStrategy struct {
 
 	OnTimeout string `json:"onTimeout"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // ValidationResult represents workflow validation results.
@@ -486,7 +488,6 @@ type ResourceResult struct {
 // Default configuration.
 
 var DefaultWorkflowEngineConfig = &WorkflowEngineConfig{
-
 	MaxConcurrentWorkflows: 10,
 
 	DefaultTimeout: 30 * time.Minute,
@@ -507,21 +508,16 @@ var DefaultWorkflowEngineConfig = &WorkflowEngineConfig{
 // NewNephioWorkflowEngine creates a new workflow engine.
 
 func NewNephioWorkflowEngine(config *WorkflowEngineConfig) (*NephioWorkflowEngine, error) {
-
 	if config == nil {
-
 		config = DefaultWorkflowEngineConfig
-
 	}
 
 	// Initialize metrics.
 
 	metrics := &WorkflowEngineMetrics{
-
 		WorkflowRegistrations: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "nephio_workflow_registrations_total",
 
 				Help: "Total number of workflow registrations",
@@ -533,7 +529,6 @@ func NewNephioWorkflowEngine(config *WorkflowEngineConfig) (*NephioWorkflowEngin
 		WorkflowExecutions: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "nephio_workflow_engine_executions_total",
 
 				Help: "Total number of workflow executions by the engine",
@@ -545,7 +540,6 @@ func NewNephioWorkflowEngine(config *WorkflowEngineConfig) (*NephioWorkflowEngin
 		ExecutionDuration: promauto.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "nephio_workflow_engine_execution_duration_seconds",
 
 				Help: "Duration of workflow executions",
@@ -559,7 +553,6 @@ func NewNephioWorkflowEngine(config *WorkflowEngineConfig) (*NephioWorkflowEngin
 		WorkflowErrors: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "nephio_workflow_engine_errors_total",
 
 				Help: "Total number of workflow engine errors",
@@ -571,7 +564,6 @@ func NewNephioWorkflowEngine(config *WorkflowEngineConfig) (*NephioWorkflowEngin
 		ActiveWorkflows: promauto.NewGauge(
 
 			prometheus.GaugeOpts{
-
 				Name: "nephio_workflow_engine_active_workflows",
 
 				Help: "Number of currently active workflows",
@@ -582,7 +574,6 @@ func NewNephioWorkflowEngine(config *WorkflowEngineConfig) (*NephioWorkflowEngin
 	// Initialize executor.
 
 	executor := &WorkflowExecutor{
-
 		config: config,
 
 		metrics: metrics,
@@ -593,14 +584,12 @@ func NewNephioWorkflowEngine(config *WorkflowEngineConfig) (*NephioWorkflowEngin
 	// Initialize validator.
 
 	validator := &WorkflowValidator{
-
 		config: config,
 
 		tracer: otel.Tracer("nephio-workflow-validator"),
 	}
 
 	engine := &NephioWorkflowEngine{
-
 		executor: executor,
 
 		validator: validator,
@@ -613,13 +602,11 @@ func NewNephioWorkflowEngine(config *WorkflowEngineConfig) (*NephioWorkflowEngin
 	}
 
 	return engine, nil
-
 }
 
 // RegisterWorkflow registers a workflow definition.
 
 func (nwe *NephioWorkflowEngine) RegisterWorkflow(workflow *WorkflowDefinition) error {
-
 	ctx, span := nwe.tracer.Start(context.Background(), "register-workflow")
 
 	defer span.End()
@@ -667,12 +654,10 @@ func (nwe *NephioWorkflowEngine) RegisterWorkflow(workflow *WorkflowDefinition) 
 	// Update metrics.
 
 	for _, intentType := range workflow.IntentTypes {
-
 		nwe.metrics.WorkflowRegistrations.WithLabelValues(
 
 			workflow.Name, string(intentType), "success",
 		).Inc()
-
 	}
 
 	logger.Info("Workflow registered successfully",
@@ -683,59 +668,44 @@ func (nwe *NephioWorkflowEngine) RegisterWorkflow(workflow *WorkflowDefinition) 
 	)
 
 	return nil
-
 }
 
 // GetWorkflow retrieves a workflow definition by name.
 
 func (nwe *NephioWorkflowEngine) GetWorkflow(ctx context.Context, name string) (*WorkflowDefinition, error) {
-
 	if value, exists := nwe.workflows.Load(name); exists {
-
 		if workflow, ok := value.(*WorkflowDefinition); ok {
-
 			return workflow, nil
-
 		}
-
 	}
 
 	return nil, fmt.Errorf("workflow not found: %s", name)
-
 }
 
 // ListWorkflows lists all registered workflows.
 
 func (nwe *NephioWorkflowEngine) ListWorkflows(ctx context.Context) ([]*WorkflowDefinition, error) {
-
 	workflows := make([]*WorkflowDefinition, 0)
 
 	nwe.workflows.Range(func(key, value interface{}) bool {
-
 		if workflow, ok := value.(*WorkflowDefinition); ok {
-
 			workflows = append(workflows, workflow)
-
 		}
 
 		return true
-
 	})
 
 	return workflows, nil
-
 }
 
 // ValidateWorkflow validates a workflow definition.
 
 func (wv *WorkflowValidator) ValidateWorkflow(ctx context.Context, workflow *WorkflowDefinition) *ValidationResult {
-
 	ctx, span := wv.tracer.Start(ctx, "validate-workflow")
 
 	defer span.End()
 
 	result := &ValidationResult{
-
 		Valid: true,
 
 		Errors: make([]ValidationError, 0),
@@ -743,7 +713,6 @@ func (wv *WorkflowValidator) ValidateWorkflow(ctx context.Context, workflow *Wor
 		Warnings: make([]ValidationWarning, 0),
 
 		Metrics: &ValidationMetrics{
-
 			TotalPhases: len(workflow.Phases),
 
 			TotalActions: wv.countTotalActions(workflow),
@@ -761,7 +730,6 @@ func (wv *WorkflowValidator) ValidateWorkflow(ctx context.Context, workflow *Wor
 		result.Valid = false
 
 		result.Errors = append(result.Errors, ValidationError{
-
 			Code: "MISSING_NAME",
 
 			Message: "Workflow name is required",
@@ -772,14 +740,11 @@ func (wv *WorkflowValidator) ValidateWorkflow(ctx context.Context, workflow *Wor
 	}
 
 	if len(workflow.IntentTypes) == 0 {
-
 		result.Warnings = append(result.Warnings, ValidationWarning{
-
 			Code: "NO_INTENT_TYPES",
 
 			Message: "Workflow has no associated intent types",
 		})
-
 	}
 
 	if len(workflow.Phases) == 0 {
@@ -787,7 +752,6 @@ func (wv *WorkflowValidator) ValidateWorkflow(ctx context.Context, workflow *Wor
 		result.Valid = false
 
 		result.Errors = append(result.Errors, ValidationError{
-
 			Code: "NO_PHASES",
 
 			Message: "Workflow must have at least one phase",
@@ -820,7 +784,6 @@ func (wv *WorkflowValidator) ValidateWorkflow(ctx context.Context, workflow *Wor
 		result.Valid = false
 
 		result.Errors = append(result.Errors, ValidationError{
-
 			Code: "CIRCULAR_DEPENDENCIES",
 
 			Message: "Workflow has circular dependencies",
@@ -833,7 +796,6 @@ func (wv *WorkflowValidator) ValidateWorkflow(ctx context.Context, workflow *Wor
 	// Set overall validity.
 
 	for _, err := range result.Errors {
-
 		if err.Severity == "ERROR" {
 
 			result.Valid = false
@@ -841,7 +803,6 @@ func (wv *WorkflowValidator) ValidateWorkflow(ctx context.Context, workflow *Wor
 			break
 
 		}
-
 	}
 
 	span.SetAttributes(
@@ -854,21 +815,17 @@ func (wv *WorkflowValidator) ValidateWorkflow(ctx context.Context, workflow *Wor
 	)
 
 	return result
-
 }
 
 // validatePhase validates an individual workflow phase.
 
 func (wv *WorkflowValidator) validatePhase(ctx context.Context, phase WorkflowPhase, index int) []ValidationError {
-
 	errors := make([]ValidationError, 0)
 
 	phasePrefix := fmt.Sprintf("phases[%d]", index)
 
 	if phase.Name == "" {
-
 		errors = append(errors, ValidationError{
-
 			Code: "MISSING_PHASE_NAME",
 
 			Message: "Phase name is required",
@@ -877,13 +834,10 @@ func (wv *WorkflowValidator) validatePhase(ctx context.Context, phase WorkflowPh
 
 			Severity: "ERROR",
 		})
-
 	}
 
 	if len(phase.Actions) == 0 {
-
 		errors = append(errors, ValidationError{
-
 			Code: "NO_PHASE_ACTIONS",
 
 			Message: "Phase must have at least one action",
@@ -892,7 +846,6 @@ func (wv *WorkflowValidator) validatePhase(ctx context.Context, phase WorkflowPh
 
 			Severity: "ERROR",
 		})
-
 	}
 
 	// Validate actions.
@@ -906,19 +859,15 @@ func (wv *WorkflowValidator) validatePhase(ctx context.Context, phase WorkflowPh
 	}
 
 	return errors
-
 }
 
 // validateAction validates a workflow action.
 
 func (wv *WorkflowValidator) validateAction(ctx context.Context, action WorkflowAction, path string) []ValidationError {
-
 	errors := make([]ValidationError, 0)
 
 	if action.Name == "" {
-
 		errors = append(errors, ValidationError{
-
 			Code: "MISSING_ACTION_NAME",
 
 			Message: "Action name is required",
@@ -927,13 +876,10 @@ func (wv *WorkflowValidator) validateAction(ctx context.Context, action Workflow
 
 			Severity: "ERROR",
 		})
-
 	}
 
 	if action.Type == "" {
-
 		errors = append(errors, ValidationError{
-
 			Code: "MISSING_ACTION_TYPE",
 
 			Message: "Action type is required",
@@ -942,13 +888,11 @@ func (wv *WorkflowValidator) validateAction(ctx context.Context, action Workflow
 
 			Severity: "ERROR",
 		})
-
 	}
 
 	// Validate action type.
 
 	validTypes := []WorkflowActionType{
-
 		WorkflowActionTypeCreatePackageRevision,
 
 		WorkflowActionTypeSpecializePackage,
@@ -969,7 +913,6 @@ func (wv *WorkflowValidator) validateAction(ctx context.Context, action Workflow
 	isValidType := false
 
 	for _, validType := range validTypes {
-
 		if action.Type == validType {
 
 			isValidType = true
@@ -977,13 +920,10 @@ func (wv *WorkflowValidator) validateAction(ctx context.Context, action Workflow
 			break
 
 		}
-
 	}
 
 	if !isValidType {
-
 		errors = append(errors, ValidationError{
-
 			Code: "INVALID_ACTION_TYPE",
 
 			Message: fmt.Sprintf("Invalid action type: %s", action.Type),
@@ -992,17 +932,14 @@ func (wv *WorkflowValidator) validateAction(ctx context.Context, action Workflow
 
 			Severity: "ERROR",
 		})
-
 	}
 
 	return errors
-
 }
 
 // validateDependencies validates workflow phase dependencies.
 
 func (wv *WorkflowValidator) validateDependencies(ctx context.Context, workflow *WorkflowDefinition) []ValidationError {
-
 	errors := make([]ValidationError, 0)
 
 	phaseNames := make(map[string]bool)
@@ -1010,21 +947,15 @@ func (wv *WorkflowValidator) validateDependencies(ctx context.Context, workflow 
 	// Build phase name map.
 
 	for _, phase := range workflow.Phases {
-
 		phaseNames[phase.Name] = true
-
 	}
 
 	// Validate dependencies.
 
 	for i, phase := range workflow.Phases {
-
 		for _, dep := range phase.Dependencies {
-
 			if !phaseNames[dep] {
-
 				errors = append(errors, ValidationError{
-
 					Code: "INVALID_DEPENDENCY",
 
 					Message: fmt.Sprintf("Phase %s depends on non-existent phase: %s", phase.Name, dep),
@@ -1033,29 +964,22 @@ func (wv *WorkflowValidator) validateDependencies(ctx context.Context, workflow 
 
 					Severity: "ERROR",
 				})
-
 			}
-
 		}
-
 	}
 
 	return errors
-
 }
 
 // hasCircularDependencies checks for circular dependencies.
 
 func (wv *WorkflowValidator) hasCircularDependencies(workflow *WorkflowDefinition) bool {
-
 	// Build dependency graph.
 
 	graph := make(map[string][]string)
 
 	for _, phase := range workflow.Phases {
-
 		graph[phase.Name] = phase.Dependencies
-
 	}
 
 	// Use DFS to detect cycles.
@@ -1067,85 +991,59 @@ func (wv *WorkflowValidator) hasCircularDependencies(workflow *WorkflowDefinitio
 	var hasCycle func(string) bool
 
 	hasCycle = func(phase string) bool {
-
 		visited[phase] = true
 
 		recStack[phase] = true
 
 		for _, dep := range graph[phase] {
-
 			if !visited[dep] {
-
 				if hasCycle(dep) {
-
 					return true
-
 				}
-
 			} else if recStack[dep] {
-
 				return true
-
 			}
-
 		}
 
 		recStack[phase] = false
 
 		return false
-
 	}
 
 	for _, phase := range workflow.Phases {
-
 		if !visited[phase.Name] {
-
 			if hasCycle(phase.Name) {
-
 				return true
-
 			}
-
 		}
-
 	}
 
 	return false
-
 }
 
 // Helper methods for validation metrics.
 
 func (wv *WorkflowValidator) countTotalActions(workflow *WorkflowDefinition) int {
-
 	count := 0
 
 	for _, phase := range workflow.Phases {
-
 		count += len(phase.Actions)
-
 	}
 
 	return count
-
 }
 
 func (wv *WorkflowValidator) countDependencies(workflow *WorkflowDefinition) int {
-
 	count := 0
 
 	for _, phase := range workflow.Phases {
-
 		count += len(phase.Dependencies)
-
 	}
 
 	return count
-
 }
 
 func (wv *WorkflowValidator) calculateComplexity(workflow *WorkflowDefinition) int {
-
 	// Simple complexity calculation based on phases, actions, and dependencies.
 
 	complexity := len(workflow.Phases)
@@ -1161,27 +1059,20 @@ func (wv *WorkflowValidator) calculateComplexity(workflow *WorkflowDefinition) i
 		complexity += len(phase.Conditions)
 
 		for _, action := range phase.Actions {
-
 			if action.RetryPolicy != nil {
-
 				complexity += 1
-
 			}
-
 		}
 
 	}
 
 	return complexity
-
 }
 
 // registerStandardWorkflows registers the standard Nephio workflows.
 
 func (nwo *NephioWorkflowOrchestrator) registerStandardWorkflows() error {
-
 	workflows := []*WorkflowDefinition{
-
 		nwo.createStandardDeploymentWorkflow(),
 
 		nwo.createStandardConfigurationWorkflow(),
@@ -1194,38 +1085,28 @@ func (nwo *NephioWorkflowOrchestrator) registerStandardWorkflows() error {
 	}
 
 	for _, workflow := range workflows {
-
 		if err := nwo.workflowEngine.RegisterWorkflow(workflow); err != nil {
-
 			return fmt.Errorf("failed to register workflow %s: %w", workflow.Name, err)
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // createStandardDeploymentWorkflow creates the standard deployment workflow.
 
 func (nwo *NephioWorkflowOrchestrator) createStandardDeploymentWorkflow() *WorkflowDefinition {
-
 	return &WorkflowDefinition{
-
 		Name: "standard-deployment",
 
 		Description: "Standard Nephio deployment workflow",
 
 		IntentTypes: []v1.IntentType{
-
 			v1.IntentTypeDeployment,
 		},
 
 		Phases: []WorkflowPhase{
-
 			{
-
 				Name: "blueprint-selection",
 
 				Description: "Select appropriate blueprint for deployment",
@@ -1235,9 +1116,7 @@ func (nwo *NephioWorkflowOrchestrator) createStandardDeploymentWorkflow() *Workf
 				Dependencies: []string{},
 
 				Actions: []WorkflowAction{
-
 					{
-
 						Name: "select-blueprint",
 
 						Type: WorkflowActionTypeCreatePackageRevision,
@@ -1254,7 +1133,6 @@ func (nwo *NephioWorkflowOrchestrator) createStandardDeploymentWorkflow() *Workf
 			},
 
 			{
-
 				Name: "package-specialization",
 
 				Description: "Create specialized packages for target clusters",
@@ -1264,9 +1142,7 @@ func (nwo *NephioWorkflowOrchestrator) createStandardDeploymentWorkflow() *Workf
 				Dependencies: []string{"blueprint-selection"},
 
 				Actions: []WorkflowAction{
-
 					{
-
 						Name: "specialize-package",
 
 						Type: WorkflowActionTypeSpecializePackage,
@@ -1283,7 +1159,6 @@ func (nwo *NephioWorkflowOrchestrator) createStandardDeploymentWorkflow() *Workf
 			},
 
 			{
-
 				Name: "validation",
 
 				Description: "Validate specialized packages",
@@ -1293,9 +1168,7 @@ func (nwo *NephioWorkflowOrchestrator) createStandardDeploymentWorkflow() *Workf
 				Dependencies: []string{"package-specialization"},
 
 				Actions: []WorkflowAction{
-
 					{
-
 						Name: "validate-packages",
 
 						Type: WorkflowActionTypeValidatePackage,
@@ -1312,7 +1185,6 @@ func (nwo *NephioWorkflowOrchestrator) createStandardDeploymentWorkflow() *Workf
 			},
 
 			{
-
 				Name: "approval",
 
 				Description: "Approve packages for deployment",
@@ -1322,9 +1194,7 @@ func (nwo *NephioWorkflowOrchestrator) createStandardDeploymentWorkflow() *Workf
 				Dependencies: []string{"validation"},
 
 				Actions: []WorkflowAction{
-
 					{
-
 						Name: "approve-packages",
 
 						Type: WorkflowActionTypeApprovePackage,
@@ -1342,7 +1212,6 @@ func (nwo *NephioWorkflowOrchestrator) createStandardDeploymentWorkflow() *Workf
 			},
 
 			{
-
 				Name: "deployment",
 
 				Description: "Deploy packages to target clusters",
@@ -1352,9 +1221,7 @@ func (nwo *NephioWorkflowOrchestrator) createStandardDeploymentWorkflow() *Workf
 				Dependencies: []string{"approval"},
 
 				Actions: []WorkflowAction{
-
 					{
-
 						Name: "deploy-to-clusters",
 
 						Type: WorkflowActionTypeDeployToCluster,
@@ -1365,7 +1232,6 @@ func (nwo *NephioWorkflowOrchestrator) createStandardDeploymentWorkflow() *Workf
 					},
 
 					{
-
 						Name: "wait-for-deployment",
 
 						Type: WorkflowActionTypeWaitForDeployment,
@@ -1382,7 +1248,6 @@ func (nwo *NephioWorkflowOrchestrator) createStandardDeploymentWorkflow() *Workf
 			},
 
 			{
-
 				Name: "monitoring",
 
 				Description: "Monitor deployment health",
@@ -1392,9 +1257,7 @@ func (nwo *NephioWorkflowOrchestrator) createStandardDeploymentWorkflow() *Workf
 				Dependencies: []string{"deployment"},
 
 				Actions: []WorkflowAction{
-
 					{
-
 						Name: "verify-health",
 
 						Type: WorkflowActionTypeVerifyHealth,
@@ -1405,7 +1268,6 @@ func (nwo *NephioWorkflowOrchestrator) createStandardDeploymentWorkflow() *Workf
 					},
 
 					{
-
 						Name: "notify-completion",
 
 						Type: WorkflowActionTypeNotifyUsers,
@@ -1424,7 +1286,6 @@ func (nwo *NephioWorkflowOrchestrator) createStandardDeploymentWorkflow() *Workf
 		},
 
 		Rollback: &RollbackStrategy{
-
 			Enabled: true,
 
 			TriggerOn: []string{"deployment-failure", "validation-failure"},
@@ -1433,41 +1294,33 @@ func (nwo *NephioWorkflowOrchestrator) createStandardDeploymentWorkflow() *Workf
 		},
 
 		Approvals: &ApprovalStrategy{
-
 			Required: true,
 
 			Timeout: 30 * time.Minute,
 		},
 
 		Timeouts: &TimeoutStrategy{
-
 			GlobalTimeout: 2 * time.Hour,
 
 			OnTimeout: "rollback",
 		},
 	}
-
 }
 
 // createStandardConfigurationWorkflow creates the standard configuration workflow.
 
 func (nwo *NephioWorkflowOrchestrator) createStandardConfigurationWorkflow() *WorkflowDefinition {
-
 	return &WorkflowDefinition{
-
 		Name: "standard-configuration",
 
 		Description: "Standard Nephio configuration workflow",
 
 		IntentTypes: []v1.IntentType{
-
 			v1.IntentTypeOptimization,
 		},
 
 		Phases: []WorkflowPhase{
-
 			{
-
 				Name: "blueprint-selection",
 
 				Description: "Select appropriate blueprint for configuration",
@@ -1477,9 +1330,7 @@ func (nwo *NephioWorkflowOrchestrator) createStandardConfigurationWorkflow() *Wo
 				Dependencies: []string{},
 
 				Actions: []WorkflowAction{
-
 					{
-
 						Name: "select-blueprint",
 
 						Type: WorkflowActionTypeCreatePackageRevision,
@@ -1496,7 +1347,6 @@ func (nwo *NephioWorkflowOrchestrator) createStandardConfigurationWorkflow() *Wo
 			},
 
 			{
-
 				Name: "package-specialization",
 
 				Description: "Create specialized configuration packages",
@@ -1506,9 +1356,7 @@ func (nwo *NephioWorkflowOrchestrator) createStandardConfigurationWorkflow() *Wo
 				Dependencies: []string{"blueprint-selection"},
 
 				Actions: []WorkflowAction{
-
 					{
-
 						Name: "specialize-config",
 
 						Type: WorkflowActionTypeSpecializePackage,
@@ -1525,7 +1373,6 @@ func (nwo *NephioWorkflowOrchestrator) createStandardConfigurationWorkflow() *Wo
 			},
 
 			{
-
 				Name: "validation",
 
 				Description: "Validate configuration packages",
@@ -1535,9 +1382,7 @@ func (nwo *NephioWorkflowOrchestrator) createStandardConfigurationWorkflow() *Wo
 				Dependencies: []string{"package-specialization"},
 
 				Actions: []WorkflowAction{
-
 					{
-
 						Name: "validate-config",
 
 						Type: WorkflowActionTypeValidatePackage,
@@ -1554,7 +1399,6 @@ func (nwo *NephioWorkflowOrchestrator) createStandardConfigurationWorkflow() *Wo
 			},
 
 			{
-
 				Name: "deployment",
 
 				Description: "Deploy configuration to clusters",
@@ -1564,9 +1408,7 @@ func (nwo *NephioWorkflowOrchestrator) createStandardConfigurationWorkflow() *Wo
 				Dependencies: []string{"validation"},
 
 				Actions: []WorkflowAction{
-
 					{
-
 						Name: "deploy-config",
 
 						Type: WorkflowActionTypeDeployToCluster,
@@ -1584,7 +1426,6 @@ func (nwo *NephioWorkflowOrchestrator) createStandardConfigurationWorkflow() *Wo
 		},
 
 		Rollback: &RollbackStrategy{
-
 			Enabled: true,
 
 			TriggerOn: []string{"deployment-failure", "validation-failure"},
@@ -1593,40 +1434,32 @@ func (nwo *NephioWorkflowOrchestrator) createStandardConfigurationWorkflow() *Wo
 		},
 
 		Approvals: &ApprovalStrategy{
-
 			Required: false, // Auto-approve configuration changes
 
 		},
 
 		Timeouts: &TimeoutStrategy{
-
 			GlobalTimeout: 1 * time.Hour,
 
 			OnTimeout: "rollback",
 		},
 	}
-
 }
 
 // createStandardScalingWorkflow creates the standard scaling workflow.
 
 func (nwo *NephioWorkflowOrchestrator) createStandardScalingWorkflow() *WorkflowDefinition {
-
 	return &WorkflowDefinition{
-
 		Name: "standard-scaling",
 
 		Description: "Standard Nephio scaling workflow",
 
 		IntentTypes: []v1.IntentType{
-
 			v1.IntentTypeScaling,
 		},
 
 		Phases: []WorkflowPhase{
-
 			{
-
 				Name: "blueprint-selection",
 
 				Description: "Select scaling blueprint",
@@ -1636,9 +1469,7 @@ func (nwo *NephioWorkflowOrchestrator) createStandardScalingWorkflow() *Workflow
 				Dependencies: []string{},
 
 				Actions: []WorkflowAction{
-
 					{
-
 						Name: "select-scaling-blueprint",
 
 						Type: WorkflowActionTypeCreatePackageRevision,
@@ -1655,7 +1486,6 @@ func (nwo *NephioWorkflowOrchestrator) createStandardScalingWorkflow() *Workflow
 			},
 
 			{
-
 				Name: "package-specialization",
 
 				Description: "Create scaling-specific packages",
@@ -1665,9 +1495,7 @@ func (nwo *NephioWorkflowOrchestrator) createStandardScalingWorkflow() *Workflow
 				Dependencies: []string{"blueprint-selection"},
 
 				Actions: []WorkflowAction{
-
 					{
-
 						Name: "specialize-scaling",
 
 						Type: WorkflowActionTypeSpecializePackage,
@@ -1684,7 +1512,6 @@ func (nwo *NephioWorkflowOrchestrator) createStandardScalingWorkflow() *Workflow
 			},
 
 			{
-
 				Name: "deployment",
 
 				Description: "Apply scaling changes",
@@ -1694,9 +1521,7 @@ func (nwo *NephioWorkflowOrchestrator) createStandardScalingWorkflow() *Workflow
 				Dependencies: []string{"package-specialization"},
 
 				Actions: []WorkflowAction{
-
 					{
-
 						Name: "apply-scaling",
 
 						Type: WorkflowActionTypeDeployToCluster,
@@ -1713,7 +1538,6 @@ func (nwo *NephioWorkflowOrchestrator) createStandardScalingWorkflow() *Workflow
 			},
 
 			{
-
 				Name: "monitoring",
 
 				Description: "Monitor scaling results",
@@ -1723,9 +1547,7 @@ func (nwo *NephioWorkflowOrchestrator) createStandardScalingWorkflow() *Workflow
 				Dependencies: []string{"deployment"},
 
 				Actions: []WorkflowAction{
-
 					{
-
 						Name: "verify-scaling",
 
 						Type: WorkflowActionTypeVerifyHealth,
@@ -1743,7 +1565,6 @@ func (nwo *NephioWorkflowOrchestrator) createStandardScalingWorkflow() *Workflow
 		},
 
 		Rollback: &RollbackStrategy{
-
 			Enabled: true,
 
 			TriggerOn: []string{"scaling-failure"},
@@ -1752,34 +1573,27 @@ func (nwo *NephioWorkflowOrchestrator) createStandardScalingWorkflow() *Workflow
 		},
 
 		Timeouts: &TimeoutStrategy{
-
 			GlobalTimeout: 45 * time.Minute,
 
 			OnTimeout: "rollback",
 		},
 	}
-
 }
 
 // createORANDeploymentWorkflow creates the O-RAN specific deployment workflow.
 
 func (nwo *NephioWorkflowOrchestrator) createORANDeploymentWorkflow() *WorkflowDefinition {
-
 	return &WorkflowDefinition{
-
 		Name: "oran-deployment",
 
 		Description: "O-RAN compliant deployment workflow",
 
 		IntentTypes: []v1.IntentType{
-
 			v1.IntentTypeDeployment,
 		},
 
 		Phases: []WorkflowPhase{
-
 			{
-
 				Name: "oran-compliance-check",
 
 				Description: "Verify O-RAN compliance requirements",
@@ -1789,9 +1603,7 @@ func (nwo *NephioWorkflowOrchestrator) createORANDeploymentWorkflow() *WorkflowD
 				Dependencies: []string{},
 
 				Actions: []WorkflowAction{
-
 					{
-
 						Name: "check-oran-compliance",
 
 						Type: WorkflowActionTypeValidatePackage,
@@ -1808,7 +1620,6 @@ func (nwo *NephioWorkflowOrchestrator) createORANDeploymentWorkflow() *WorkflowD
 			},
 
 			{
-
 				Name: "blueprint-selection",
 
 				Description: "Select O-RAN compliant blueprint",
@@ -1818,9 +1629,7 @@ func (nwo *NephioWorkflowOrchestrator) createORANDeploymentWorkflow() *WorkflowD
 				Dependencies: []string{"oran-compliance-check"},
 
 				Actions: []WorkflowAction{
-
 					{
-
 						Name: "select-oran-blueprint",
 
 						Type: WorkflowActionTypeCreatePackageRevision,
@@ -1837,7 +1646,6 @@ func (nwo *NephioWorkflowOrchestrator) createORANDeploymentWorkflow() *WorkflowD
 			},
 
 			{
-
 				Name: "package-specialization",
 
 				Description: "Create O-RAN specialized packages",
@@ -1847,9 +1655,7 @@ func (nwo *NephioWorkflowOrchestrator) createORANDeploymentWorkflow() *WorkflowD
 				Dependencies: []string{"blueprint-selection"},
 
 				Actions: []WorkflowAction{
-
 					{
-
 						Name: "specialize-oran-package",
 
 						Type: WorkflowActionTypeSpecializePackage,
@@ -1866,7 +1672,6 @@ func (nwo *NephioWorkflowOrchestrator) createORANDeploymentWorkflow() *WorkflowD
 			},
 
 			{
-
 				Name: "validation",
 
 				Description: "Validate O-RAN packages",
@@ -1876,9 +1681,7 @@ func (nwo *NephioWorkflowOrchestrator) createORANDeploymentWorkflow() *WorkflowD
 				Dependencies: []string{"package-specialization"},
 
 				Actions: []WorkflowAction{
-
 					{
-
 						Name: "validate-oran-packages",
 
 						Type: WorkflowActionTypeValidatePackage,
@@ -1895,7 +1698,6 @@ func (nwo *NephioWorkflowOrchestrator) createORANDeploymentWorkflow() *WorkflowD
 			},
 
 			{
-
 				Name: "deployment",
 
 				Description: "Deploy O-RAN packages",
@@ -1905,9 +1707,7 @@ func (nwo *NephioWorkflowOrchestrator) createORANDeploymentWorkflow() *WorkflowD
 				Dependencies: []string{"validation"},
 
 				Actions: []WorkflowAction{
-
 					{
-
 						Name: "deploy-oran-packages",
 
 						Type: WorkflowActionTypeDeployToCluster,
@@ -1925,7 +1725,6 @@ func (nwo *NephioWorkflowOrchestrator) createORANDeploymentWorkflow() *WorkflowD
 		},
 
 		Rollback: &RollbackStrategy{
-
 			Enabled: true,
 
 			TriggerOn: []string{"compliance-failure", "deployment-failure"},
@@ -1934,34 +1733,27 @@ func (nwo *NephioWorkflowOrchestrator) createORANDeploymentWorkflow() *WorkflowD
 		},
 
 		Timeouts: &TimeoutStrategy{
-
 			GlobalTimeout: 2 * time.Hour,
 
 			OnTimeout: "rollback",
 		},
 	}
-
 }
 
 // create5GCoreDeploymentWorkflow creates the 5G Core specific deployment workflow.
 
 func (nwo *NephioWorkflowOrchestrator) create5GCoreDeploymentWorkflow() *WorkflowDefinition {
-
 	return &WorkflowDefinition{
-
 		Name: "5g-core-deployment",
 
 		Description: "5G Core network functions deployment workflow",
 
 		IntentTypes: []v1.IntentType{
-
 			v1.IntentTypeDeployment,
 		},
 
 		Phases: []WorkflowPhase{
-
 			{
-
 				Name: "5g-requirements-check",
 
 				Description: "Verify 5G Core requirements",
@@ -1971,9 +1763,7 @@ func (nwo *NephioWorkflowOrchestrator) create5GCoreDeploymentWorkflow() *Workflo
 				Dependencies: []string{},
 
 				Actions: []WorkflowAction{
-
 					{
-
 						Name: "check-5g-requirements",
 
 						Type: WorkflowActionTypeValidatePackage,
@@ -1990,7 +1780,6 @@ func (nwo *NephioWorkflowOrchestrator) create5GCoreDeploymentWorkflow() *Workflo
 			},
 
 			{
-
 				Name: "blueprint-selection",
 
 				Description: "Select 5G Core blueprint",
@@ -2000,9 +1789,7 @@ func (nwo *NephioWorkflowOrchestrator) create5GCoreDeploymentWorkflow() *Workflo
 				Dependencies: []string{"5g-requirements-check"},
 
 				Actions: []WorkflowAction{
-
 					{
-
 						Name: "select-5g-blueprint",
 
 						Type: WorkflowActionTypeCreatePackageRevision,
@@ -2019,7 +1806,6 @@ func (nwo *NephioWorkflowOrchestrator) create5GCoreDeploymentWorkflow() *Workflo
 			},
 
 			{
-
 				Name: "package-specialization",
 
 				Description: "Create 5G Core specialized packages",
@@ -2029,9 +1815,7 @@ func (nwo *NephioWorkflowOrchestrator) create5GCoreDeploymentWorkflow() *Workflo
 				Dependencies: []string{"blueprint-selection"},
 
 				Actions: []WorkflowAction{
-
 					{
-
 						Name: "specialize-5g-package",
 
 						Type: WorkflowActionTypeSpecializePackage,
@@ -2048,7 +1832,6 @@ func (nwo *NephioWorkflowOrchestrator) create5GCoreDeploymentWorkflow() *Workflo
 			},
 
 			{
-
 				Name: "network-slice-configuration",
 
 				Description: "Configure network slices",
@@ -2058,9 +1841,7 @@ func (nwo *NephioWorkflowOrchestrator) create5GCoreDeploymentWorkflow() *Workflo
 				Dependencies: []string{"package-specialization"},
 
 				Actions: []WorkflowAction{
-
 					{
-
 						Name: "configure-slices",
 
 						Type: WorkflowActionTypeSpecializePackage,
@@ -2077,7 +1858,6 @@ func (nwo *NephioWorkflowOrchestrator) create5GCoreDeploymentWorkflow() *Workflo
 			},
 
 			{
-
 				Name: "validation",
 
 				Description: "Validate 5G Core packages",
@@ -2087,9 +1867,7 @@ func (nwo *NephioWorkflowOrchestrator) create5GCoreDeploymentWorkflow() *Workflo
 				Dependencies: []string{"network-slice-configuration"},
 
 				Actions: []WorkflowAction{
-
 					{
-
 						Name: "validate-5g-packages",
 
 						Type: WorkflowActionTypeValidatePackage,
@@ -2106,7 +1884,6 @@ func (nwo *NephioWorkflowOrchestrator) create5GCoreDeploymentWorkflow() *Workflo
 			},
 
 			{
-
 				Name: "deployment",
 
 				Description: "Deploy 5G Core network functions",
@@ -2116,9 +1893,7 @@ func (nwo *NephioWorkflowOrchestrator) create5GCoreDeploymentWorkflow() *Workflo
 				Dependencies: []string{"validation"},
 
 				Actions: []WorkflowAction{
-
 					{
-
 						Name: "deploy-5g-core",
 
 						Type: WorkflowActionTypeDeployToCluster,
@@ -2135,7 +1910,6 @@ func (nwo *NephioWorkflowOrchestrator) create5GCoreDeploymentWorkflow() *Workflo
 			},
 
 			{
-
 				Name: "monitoring",
 
 				Description: "Monitor 5G Core deployment",
@@ -2145,9 +1919,7 @@ func (nwo *NephioWorkflowOrchestrator) create5GCoreDeploymentWorkflow() *Workflo
 				Dependencies: []string{"deployment"},
 
 				Actions: []WorkflowAction{
-
 					{
-
 						Name: "verify-5g-health",
 
 						Type: WorkflowActionTypeVerifyHealth,
@@ -2165,7 +1937,6 @@ func (nwo *NephioWorkflowOrchestrator) create5GCoreDeploymentWorkflow() *Workflo
 		},
 
 		Rollback: &RollbackStrategy{
-
 			Enabled: true,
 
 			TriggerOn: []string{"requirements-failure", "deployment-failure", "slice-failure"},
@@ -2174,11 +1945,9 @@ func (nwo *NephioWorkflowOrchestrator) create5GCoreDeploymentWorkflow() *Workflo
 		},
 
 		Timeouts: &TimeoutStrategy{
-
 			GlobalTimeout: 3 * time.Hour,
 
 			OnTimeout: "rollback",
 		},
 	}
-
 }

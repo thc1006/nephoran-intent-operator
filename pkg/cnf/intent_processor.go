@@ -114,7 +114,7 @@ type ResourceProfile struct {
 
 	Dependencies []nephoranv1.CNFFunction `json:"dependencies"`
 
-	Characteristics map[string]interface{} `json:"characteristics"`
+	Characteristics json.RawMessage `json:"characteristics"`
 }
 
 // CNFResourceRequirements defines resource requirements for CNFs.
@@ -174,7 +174,7 @@ type DeploymentPattern struct {
 
 	DefaultReplicas int32 `json:"default_replicas"`
 
-	ScalingCharacteristics map[string]interface{} `json:"scaling_characteristics"`
+	ScalingCharacteristics json.RawMessage `json:"scaling_characteristics"`
 
 	AffinityRules []string `json:"affinity_rules"`
 
@@ -238,7 +238,7 @@ type CNFIntentContext struct {
 
 	TargetCluster string
 
-	Priority nephoranv1.Priority
+	Priority nephoranv1.NetworkPriority
 
 	ProcessingStartTime time.Time
 
@@ -252,9 +252,7 @@ type CNFIntentContext struct {
 // RAGService represents a stub for RAG service functionality.
 
 type RAGService struct {
-
 	// Stub implementation - no actual fields needed.
-
 }
 
 // RAGRequest represents a request to the RAG service.
@@ -278,22 +276,17 @@ type RAGResponse struct {
 // ProcessQuery processes a query using the RAG service (stub implementation).
 
 func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*RAGResponse, error) {
-
 	// Stub implementation - return a generic response.
 
 	return &RAGResponse{
-
 		Answer: fmt.Sprintf("Mock RAG response for query: %s", request.Query),
 	}, nil
-
 }
 
 // NewCNFIntentProcessor creates a new CNF intent processor.
 
 func NewCNFIntentProcessor(client client.Client, llmProcessor llm.Processor, ragService *RAGService) *CNFIntentProcessor {
-
 	processor := &CNFIntentProcessor{
-
 		Client: client,
 
 		LLMProcessor: llmProcessor,
@@ -301,7 +294,6 @@ func NewCNFIntentProcessor(client client.Client, llmProcessor llm.Processor, rag
 		RAGService: ragService,
 
 		Config: &CNFIntentProcessorConfig{
-
 			MaxProcessingTime: 5 * time.Minute,
 
 			ConfidenceThreshold: 0.7,
@@ -323,13 +315,11 @@ func NewCNFIntentProcessor(client client.Client, llmProcessor llm.Processor, rag
 	processor.initializeKnowledgeBase()
 
 	return processor
-
 }
 
 // ProcessCNFIntent processes a natural language intent for CNF deployment.
 
 func (p *CNFIntentProcessor) ProcessCNFIntent(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) (*nephoranv1.CNFIntentProcessingResult, error) {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("Processing CNF intent", "intent", networkIntent.Name)
@@ -337,7 +327,6 @@ func (p *CNFIntentProcessor) ProcessCNFIntent(ctx context.Context, networkIntent
 	// Create processing context.
 
 	intentContext := &CNFIntentContext{
-
 		Intent: networkIntent.Spec.Intent,
 
 		RequestID: string(networkIntent.UID),
@@ -354,34 +343,26 @@ func (p *CNFIntentProcessor) ProcessCNFIntent(ctx context.Context, networkIntent
 	// Validate intent contains CNF-related keywords.
 
 	if !p.containsCNFKeywords(networkIntent.Spec.Intent) {
-
 		return &nephoranv1.CNFIntentProcessingResult{
-
 			ConfidenceScore: 0.0,
 
 			Errors: []string{"Intent does not contain CNF deployment keywords"},
 		}, fmt.Errorf("intent does not appear to be CNF-related")
-
 	}
 
 	// Enrich context with RAG.
 
 	if err := p.enrichContextWithRAG(ctx, intentContext); err != nil {
-
 		logger.Error(err, "Failed to enrich context with RAG")
 
 		// Continue processing with reduced context.
-
 	}
 
 	// Process with LLM.
 
 	llmResponse, err := p.processWithLLM(ctx, intentContext)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("LLM processing failed: %w", err)
-
 	}
 
 	intentContext.LLMResponse = llmResponse
@@ -389,39 +370,28 @@ func (p *CNFIntentProcessor) ProcessCNFIntent(ctx context.Context, networkIntent
 	// Extract CNF functions and requirements.
 
 	result, err := p.extractCNFDeploymentSpecs(ctx, intentContext)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to extract CNF deployment specs: %w", err)
-
 	}
 
 	// Validate extracted specifications.
 
 	if p.Config.EnableValidation {
-
 		if err := p.validateCNFSpecs(result); err != nil {
-
 			result.Warnings = append(result.Warnings, fmt.Sprintf("Validation warnings: %v", err))
-
 		}
-
 	}
 
 	// Estimate resources and costs.
 
 	if p.Config.EnableCostEstimation {
-
 		p.estimateResourcesAndCosts(result)
-
 	}
 
 	// Estimate deployment timeline.
 
 	if p.Config.EnableTimelineEstimation {
-
 		p.estimateDeploymentTimeline(result)
-
 	}
 
 	// Calculate confidence score.
@@ -437,17 +407,14 @@ func (p *CNFIntentProcessor) ProcessCNFIntent(ctx context.Context, networkIntent
 		"confidence", result.ConfidenceScore)
 
 	return result, nil
-
 }
 
 // containsCNFKeywords checks if intent contains CNF-related keywords.
 
 func (p *CNFIntentProcessor) containsCNFKeywords(intent string) bool {
-
 	intentLower := strings.ToLower(intent)
 
 	cnfKeywords := []string{
-
 		"cnf", "cloud native function", "containerized",
 
 		"helm", "operator", "kubernetes",
@@ -464,27 +431,19 @@ func (p *CNFIntentProcessor) containsCNFKeywords(intent string) bool {
 	}
 
 	for _, keyword := range cnfKeywords {
-
 		if strings.Contains(intentLower, keyword) {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 // enrichContextWithRAG enriches the processing context using RAG.
 
 func (p *CNFIntentProcessor) enrichContextWithRAG(ctx context.Context, intentContext *CNFIntentContext) error {
-
 	if p.RAGService == nil {
-
 		return fmt.Errorf("RAG service not configured")
-
 	}
 
 	// Query RAG for CNF-related information.
@@ -496,7 +455,6 @@ func (p *CNFIntentProcessor) enrichContextWithRAG(ctx context.Context, intentCon
 	for _, query := range ragQueries {
 
 		request := &RAGRequest{
-
 			Query: query,
 
 			MaxResults: 10,
@@ -507,11 +465,8 @@ func (p *CNFIntentProcessor) enrichContextWithRAG(ctx context.Context, intentCon
 		}
 
 		response, err := p.RAGService.ProcessQuery(ctx, request)
-
 		if err != nil {
-
 			continue // Skip failed queries
-
 		}
 
 		ragContext[query] = response.Answer
@@ -521,15 +476,12 @@ func (p *CNFIntentProcessor) enrichContextWithRAG(ctx context.Context, intentCon
 	intentContext.RAGContext = ragContext
 
 	return nil
-
 }
 
 // generateRAGQueries generates relevant queries for RAG service.
 
 func (p *CNFIntentProcessor) generateRAGQueries(intent string) []string {
-
 	queries := []string{
-
 		"CNF deployment best practices",
 
 		"5G Core network function requirements",
@@ -556,7 +508,6 @@ func (p *CNFIntentProcessor) generateRAGQueries(intent string) []string {
 	intentWords := strings.Fields(strings.ToLower(intent))
 
 	for _, word := range intentWords {
-
 		if p.isRelevantTerm(word) {
 
 			queries = append(queries, fmt.Sprintf("%s CNF deployment", word))
@@ -564,19 +515,15 @@ func (p *CNFIntentProcessor) generateRAGQueries(intent string) []string {
 			queries = append(queries, fmt.Sprintf("%s configuration requirements", word))
 
 		}
-
 	}
 
 	return queries
-
 }
 
 // isRelevantTerm checks if a term is relevant for RAG queries.
 
 func (p *CNFIntentProcessor) isRelevantTerm(term string) bool {
-
 	relevantTerms := map[string]bool{
-
 		"amf": true, "smf": true, "upf": true, "nrf": true,
 
 		"ausf": true, "udm": true, "pcf": true, "nssf": true,
@@ -591,17 +538,13 @@ func (p *CNFIntentProcessor) isRelevantTerm(term string) bool {
 	}
 
 	return relevantTerms[term]
-
 }
 
 // processWithLLM processes the intent using the LLM service.
 
 func (p *CNFIntentProcessor) processWithLLM(ctx context.Context, intentContext *CNFIntentContext) (*llm.ProcessingResponse, error) {
-
 	if p.LLMProcessor == nil {
-
 		return nil, fmt.Errorf("LLM processor not configured")
-
 	}
 
 	// Prepare LLM request with CNF-specific prompts.
@@ -611,21 +554,16 @@ func (p *CNFIntentProcessor) processWithLLM(ctx context.Context, intentContext *
 	// Process with LLM.
 
 	response, err := p.LLMProcessor.ProcessIntent(ctx, request)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("LLM processing failed: %w", err)
-
 	}
 
 	return response, nil
-
 }
 
 // prepareLLMRequest prepares the LLM request with CNF-specific context.
 
 func (p *CNFIntentProcessor) prepareLLMRequest(intentContext *CNFIntentContext) *llm.ProcessingRequest {
-
 	systemPrompt := `You are an expert in Cloud Native Functions (CNFs) for telecommunications networks. 
 
 Your task is to analyze natural language intents for CNF deployment and extract structured specifications.
@@ -706,32 +644,32 @@ Provide confidence scores for each extracted element.`,
 	}
 
 	return &llm.ProcessingRequest{
-
-		Intent: intentContext.Intent,
-
-		SystemPrompt: systemPrompt,
-
-		UserPrompt: userPrompt,
-
-		Context: string(ragContextJSON),
-
-		MaxTokens: 2000,
-
-		Temperature: 0.3,
-
-		RequestID: intentContext.RequestID,
-
-		ProcessingTimeout: p.Config.MaxProcessingTime,
+		ID:         intentContext.RequestID,
+		Intent:     intentContext.Intent,
+		IntentType: "cnf_deployment",
+		Model:      "gpt-4",
+		Context: map[string]string{
+			"system_prompt": systemPrompt,
+			"user_prompt":   userPrompt,
+			"rag_context":   string(ragContextJSON),
+		},
+		Metadata: llm.RequestMetadata{
+			RequestID: intentContext.RequestID,
+			Source:    "cnf_intent_processor",
+			Properties: map[string]string{
+				"max_tokens":   "2000",
+				"temperature":  "0.3",
+				"timeout":      p.Config.MaxProcessingTime.String(),
+			},
+		},
+		Timestamp: time.Now(),
 	}
-
 }
 
 // extractCNFDeploymentSpecs extracts CNF deployment specifications from LLM response.
 
 func (p *CNFIntentProcessor) extractCNFDeploymentSpecs(ctx context.Context, intentContext *CNFIntentContext) (*nephoranv1.CNFIntentProcessingResult, error) {
-
 	result := &nephoranv1.CNFIntentProcessingResult{
-
 		DetectedFunctions: []nephoranv1.CNFFunction{},
 
 		CNFDeployments: []nephoranv1.CNFDeploymentIntent{},
@@ -744,9 +682,7 @@ func (p *CNFIntentProcessor) extractCNFDeploymentSpecs(ctx context.Context, inte
 	}
 
 	if intentContext.LLMResponse == nil {
-
 		return result, fmt.Errorf("no LLM response available")
-
 	}
 
 	// Parse LLM response.
@@ -754,31 +690,21 @@ func (p *CNFIntentProcessor) extractCNFDeploymentSpecs(ctx context.Context, inte
 	var llmResult map[string]interface{}
 
 	if err := json.Unmarshal([]byte(intentContext.LLMResponse.ProcessedParameters), &llmResult); err != nil {
-
 		// Fallback to pattern matching if JSON parsing fails.
 
 		return p.extractUsingPatterns(intentContext.Intent), nil
-
 	}
 
 	// Extract CNF functions.
 
 	if functions, ok := llmResult["cnf_functions"].([]interface{}); ok {
-
 		for _, f := range functions {
-
 			if funcStr, ok := f.(string); ok {
-
 				if cnfFunc := p.mapToCNFFunction(funcStr); cnfFunc != "" {
-
 					result.DetectedFunctions = append(result.DetectedFunctions, cnfFunc)
-
 				}
-
 			}
-
 		}
-
 	}
 
 	// Extract deployment specifications for each function.
@@ -794,25 +720,18 @@ func (p *CNFIntentProcessor) extractCNFDeploymentSpecs(ctx context.Context, inte
 	// Extract recommended strategy.
 
 	if strategy, ok := llmResult["deployment_strategy"].(string); ok {
-
 		result.RecommendedStrategy = p.mapToDeploymentStrategy(strategy)
-
 	} else {
-
 		result.RecommendedStrategy = p.Config.DefaultStrategy
-
 	}
 
 	return result, nil
-
 }
 
 // extractUsingPatterns extracts CNF specs using pattern matching (fallback).
 
 func (p *CNFIntentProcessor) extractUsingPatterns(intent string) *nephoranv1.CNFIntentProcessingResult {
-
 	result := &nephoranv1.CNFIntentProcessingResult{
-
 		DetectedFunctions: []nephoranv1.CNFFunction{},
 
 		CNFDeployments: []nephoranv1.CNFDeploymentIntent{},
@@ -830,7 +749,6 @@ func (p *CNFIntentProcessor) extractUsingPatterns(intent string) *nephoranv1.CNF
 	// Pattern matching for CNF functions.
 
 	functionPatterns := map[string]nephoranv1.CNFFunction{
-
 		`\bamf\b`: nephoranv1.CNFFunctionAMF,
 
 		`\bsmf\b`: nephoranv1.CNFFunctionSMF,
@@ -857,7 +775,6 @@ func (p *CNFIntentProcessor) extractUsingPatterns(intent string) *nephoranv1.CNF
 	}
 
 	for pattern, function := range functionPatterns {
-
 		if matched, _ := regexp.MatchString(pattern, intentLower); matched {
 
 			result.DetectedFunctions = append(result.DetectedFunctions, function)
@@ -865,7 +782,6 @@ func (p *CNFIntentProcessor) extractUsingPatterns(intent string) *nephoranv1.CNF
 			// Create basic deployment intent.
 
 			cnfDeployment := nephoranv1.CNFDeploymentIntent{
-
 				Function: function,
 
 				CNFType: p.determineCNFType(function),
@@ -878,31 +794,23 @@ func (p *CNFIntentProcessor) extractUsingPatterns(intent string) *nephoranv1.CNF
 			result.CNFDeployments = append(result.CNFDeployments, cnfDeployment)
 
 		}
-
 	}
 
 	return result
-
 }
 
 // mapToCNFFunction maps string to CNFFunction enum.
 
 func (p *CNFIntentProcessor) mapToCNFFunction(funcStr string) nephoranv1.CNFFunction {
-
 	if p.KnowledgeBase != nil && p.KnowledgeBase.FunctionMappings != nil {
-
 		if cnfFunc, exists := p.KnowledgeBase.FunctionMappings[strings.ToLower(funcStr)]; exists {
-
 			return cnfFunc
-
 		}
-
 	}
 
 	// Default mapping.
 
 	mappings := map[string]nephoranv1.CNFFunction{
-
 		"amf": nephoranv1.CNFFunctionAMF,
 
 		"smf": nephoranv1.CNFFunctionSMF,
@@ -931,15 +839,12 @@ func (p *CNFIntentProcessor) mapToCNFFunction(funcStr string) nephoranv1.CNFFunc
 	}
 
 	return mappings[strings.ToLower(funcStr)]
-
 }
 
 // mapToDeploymentStrategy maps string to deployment strategy enum.
 
 func (p *CNFIntentProcessor) mapToDeploymentStrategy(strategy string) nephoranv1.DeploymentStrategy {
-
 	mappings := map[string]nephoranv1.DeploymentStrategy{
-
 		"helm": nephoranv1.DeploymentStrategyHelm,
 
 		"operator": nephoranv1.DeploymentStrategyOperator,
@@ -950,21 +855,16 @@ func (p *CNFIntentProcessor) mapToDeploymentStrategy(strategy string) nephoranv1
 	}
 
 	if strategy, exists := mappings[strings.ToLower(strategy)]; exists {
-
 		return strategy
-
 	}
 
 	return p.Config.DefaultStrategy
-
 }
 
 // createCNFDeploymentIntent creates a CNF deployment intent from LLM result.
 
 func (p *CNFIntentProcessor) createCNFDeploymentIntent(function nephoranv1.CNFFunction, llmResult map[string]interface{}, intentContext *CNFIntentContext) nephoranv1.CNFDeploymentIntent {
-
 	deployment := nephoranv1.CNFDeploymentIntent{
-
 		Function: function,
 
 		CNFType: p.determineCNFType(function),
@@ -977,73 +877,54 @@ func (p *CNFIntentProcessor) createCNFDeploymentIntent(function nephoranv1.CNFFu
 	// Extract resource requirements.
 
 	if resources, ok := llmResult["resource_requirements"].(map[string]interface{}); ok {
-
 		deployment.Resources = p.parseResourceRequirements(resources, function)
-
 	} else {
-
 		deployment.Resources = p.getDefaultResources(function)
-
 	}
 
 	// Extract auto-scaling requirements.
 
 	if scaling, ok := llmResult["auto_scaling"].(map[string]interface{}); ok {
-
 		deployment.AutoScaling = p.parseAutoScalingRequirements(scaling)
-
 	}
 
 	// Extract service mesh requirements.
 
 	if serviceMesh, ok := llmResult["service_mesh"].(map[string]interface{}); ok {
-
 		deployment.ServiceMesh = p.parseServiceMeshRequirements(serviceMesh)
-
 	}
 
 	// Extract monitoring requirements.
 
 	if monitoring, ok := llmResult["monitoring"].(map[string]interface{}); ok {
-
 		deployment.Monitoring = p.parseMonitoringRequirements(monitoring)
-
 	}
 
 	// Extract security requirements.
 
 	if security, ok := llmResult["security"].(map[string]interface{}); ok {
-
 		deployment.Security = p.parseSecurityRequirements(security)
-
 	}
 
 	// Extract high availability requirements.
 
 	if ha, ok := llmResult["high_availability"].(map[string]interface{}); ok {
-
 		deployment.HighAvailability = p.parseHighAvailabilityRequirements(ha)
-
 	}
 
 	// Extract performance requirements.
 
 	if performance, ok := llmResult["performance"].(map[string]interface{}); ok {
-
 		deployment.Performance = p.parsePerformanceRequirements(performance)
-
 	}
 
 	return deployment
-
 }
 
 // Helper methods for parsing different requirement types.
 
 func (p *CNFIntentProcessor) determineCNFType(function nephoranv1.CNFFunction) nephoranv1.CNFType {
-
 	coreTypes := []nephoranv1.CNFFunction{
-
 		nephoranv1.CNFFunctionAMF, nephoranv1.CNFFunctionSMF, nephoranv1.CNFFunctionUPF,
 
 		nephoranv1.CNFFunctionNRF, nephoranv1.CNFFunctionAUSF, nephoranv1.CNFFunctionUDM,
@@ -1052,40 +933,28 @@ func (p *CNFIntentProcessor) determineCNFType(function nephoranv1.CNFFunction) n
 	}
 
 	oranTypes := []nephoranv1.CNFFunction{
-
 		nephoranv1.CNFFunctionODU, nephoranv1.CNFFunctionOCUCP, nephoranv1.CNFFunctionOCUUP,
 
 		nephoranv1.CNFFunctionNearRTRIC, nephoranv1.CNFFunctionNonRTRIC,
 	}
 
 	for _, coreFunc := range coreTypes {
-
 		if function == coreFunc {
-
 			return nephoranv1.CNF5GCore
-
 		}
-
 	}
 
 	for _, oranFunc := range oranTypes {
-
 		if function == oranFunc {
-
 			return nephoranv1.CNFORAN
-
 		}
-
 	}
 
 	return nephoranv1.CNFCustom
-
 }
 
 func (p *CNFIntentProcessor) getDefaultReplicas(function nephoranv1.CNFFunction) *int32 {
-
 	defaultReplicas := map[nephoranv1.CNFFunction]int32{
-
 		nephoranv1.CNFFunctionAMF: 3,
 
 		nephoranv1.CNFFunctionSMF: 3,
@@ -1100,27 +969,20 @@ func (p *CNFIntentProcessor) getDefaultReplicas(function nephoranv1.CNFFunction)
 	}
 
 	if replicas, exists := defaultReplicas[function]; exists {
-
 		return &replicas
-
 	}
 
 	defaultVal := int32(1)
 
 	return &defaultVal
-
 }
 
 func (p *CNFIntentProcessor) getDefaultResources(function nephoranv1.CNFFunction) *nephoranv1.CNFResourceIntent {
-
 	// Get default resources from knowledge base if available.
 
 	if p.KnowledgeBase != nil && p.KnowledgeBase.ResourceRequirements != nil {
-
 		if profile, exists := p.KnowledgeBase.ResourceRequirements[function]; exists {
-
 			return &nephoranv1.CNFResourceIntent{
-
 				CPU: parseQuantity(profile.BaselineResources.CPU),
 
 				Memory: parseQuantity(profile.BaselineResources.Memory),
@@ -1129,17 +991,13 @@ func (p *CNFIntentProcessor) getDefaultResources(function nephoranv1.CNFFunction
 
 				PerformanceTier: "medium",
 			}
-
 		}
-
 	}
 
 	// Fallback to hardcoded defaults.
 
 	defaults := map[nephoranv1.CNFFunction]nephoranv1.CNFResourceIntent{
-
 		nephoranv1.CNFFunctionAMF: {
-
 			CPU: parseQuantity("1000m"),
 
 			Memory: parseQuantity("2Gi"),
@@ -1150,7 +1008,6 @@ func (p *CNFIntentProcessor) getDefaultResources(function nephoranv1.CNFFunction
 		},
 
 		nephoranv1.CNFFunctionSMF: {
-
 			CPU: parseQuantity("1000m"),
 
 			Memory: parseQuantity("2Gi"),
@@ -1161,7 +1018,6 @@ func (p *CNFIntentProcessor) getDefaultResources(function nephoranv1.CNFFunction
 		},
 
 		nephoranv1.CNFFunctionUPF: {
-
 			CPU: parseQuantity("2000m"),
 
 			Memory: parseQuantity("4Gi"),
@@ -1175,15 +1031,12 @@ func (p *CNFIntentProcessor) getDefaultResources(function nephoranv1.CNFFunction
 	}
 
 	if defaultResource, exists := defaults[function]; exists {
-
 		return &defaultResource
-
 	}
 
 	// Generic default.
 
 	return &nephoranv1.CNFResourceIntent{
-
 		CPU: parseQuantity("500m"),
 
 		Memory: parseQuantity("1Gi"),
@@ -1192,39 +1045,30 @@ func (p *CNFIntentProcessor) getDefaultResources(function nephoranv1.CNFFunction
 
 		PerformanceTier: "medium",
 	}
-
 }
 
 func parseQuantity(s string) *resource.Quantity {
-
 	if q, err := resource.ParseQuantity(s); err == nil {
-
 		return &q
-
 	}
 
 	return nil
-
 }
 
 // Additional parsing methods would be implemented here.
 
 func (p *CNFIntentProcessor) parseResourceRequirements(_ map[string]interface{}, function nephoranv1.CNFFunction) *nephoranv1.CNFResourceIntent {
-
 	// Implementation for parsing resource requirements from LLM response.
 	// TODO: Use resources parameter for actual parsing
 
 	return p.getDefaultResources(function)
-
 }
 
 func (p *CNFIntentProcessor) parseAutoScalingRequirements(_ map[string]interface{}) *nephoranv1.AutoScalingIntent {
-
 	// Implementation for parsing auto-scaling requirements.
 	// TODO: Use scaling parameter for actual parsing
 
 	return &nephoranv1.AutoScalingIntent{
-
 		Enabled: true,
 
 		MinReplicas: &[]int32{1}[0],
@@ -1237,64 +1081,52 @@ func (p *CNFIntentProcessor) parseAutoScalingRequirements(_ map[string]interface
 
 		ScalingPolicy: "moderate",
 	}
-
 }
 
 func (p *CNFIntentProcessor) parseServiceMeshRequirements(_ map[string]interface{}) *nephoranv1.ServiceMeshIntent {
-
 	// Implementation for parsing service mesh requirements.
 	// TODO: Use serviceMesh parameter for actual parsing
 
 	return &nephoranv1.ServiceMeshIntent{
-
 		Enabled: true,
 
 		Type: "istio",
 
 		MTLS: &nephoranv1.MTLSIntent{Enabled: true, Mode: "strict"},
 	}
-
 }
 
 func (p *CNFIntentProcessor) parseMonitoringRequirements(_ map[string]interface{}) *nephoranv1.MonitoringIntent {
-
 	// Implementation for parsing monitoring requirements.
 	// TODO: Use monitoring parameter for actual parsing
 
 	return &nephoranv1.MonitoringIntent{
-
 		Enabled: true,
 
 		LogLevel: "info",
 
 		TracingEnabled: true,
 	}
-
 }
 
 func (p *CNFIntentProcessor) parseSecurityRequirements(_ map[string]interface{}) *nephoranv1.SecurityIntent {
-
 	// Implementation for parsing security requirements.
 	// TODO: Use security parameter for actual parsing
 
 	return &nephoranv1.SecurityIntent{
-
 		Level: "standard",
 
 		PodSecurityStandard: "baseline",
 
 		RBACEnabled: true,
 	}
-
 }
 
 func (p *CNFIntentProcessor) parseHighAvailabilityRequirements(_ map[string]interface{}) *nephoranv1.HighAvailabilityIntent {
-
 	// Implementation for parsing HA requirements.
 	// TODO: Use ha parameter for actual parsing
 
 	return &nephoranv1.HighAvailabilityIntent{
-
 		Enabled: true,
 
 		AvailabilityLevel: "99.9%",
@@ -1303,37 +1135,30 @@ func (p *CNFIntentProcessor) parseHighAvailabilityRequirements(_ map[string]inte
 
 		AntiAffinity: true,
 	}
-
 }
 
 func (p *CNFIntentProcessor) parsePerformanceRequirements(_ map[string]interface{}) *nephoranv1.PerformanceIntent {
-
 	// Implementation for parsing performance requirements.
 	// TODO: Use performance parameter for actual parsing
 
 	return &nephoranv1.PerformanceIntent{
-
 		LatencyRequirement: &[]int32{10}[0],
 
 		ThroughputRequirement: &[]int32{1000}[0],
 
 		Tier: "standard",
 	}
-
 }
 
 // Additional methods for validation, estimation, and knowledge base initialization.
 
 func (p *CNFIntentProcessor) validateCNFSpecs(result *nephoranv1.CNFIntentProcessingResult) error {
-
 	// Implementation for validating CNF specifications.
 
 	return nil
-
 }
 
 func (p *CNFIntentProcessor) estimateResourcesAndCosts(result *nephoranv1.CNFIntentProcessingResult) {
-
 	// Implementation for resource and cost estimation.
 
 	totalCPU := 0.0
@@ -1347,15 +1172,11 @@ func (p *CNFIntentProcessor) estimateResourcesAndCosts(result *nephoranv1.CNFInt
 		if deployment.Resources != nil {
 
 			if deployment.Resources.CPU != nil {
-
 				totalCPU += float64(deployment.Resources.CPU.MilliValue()) / 1000.0
-
 			}
 
 			if deployment.Resources.Memory != nil {
-
 				totalMemory += float64(deployment.Resources.Memory.Value()) / (1024 * 1024 * 1024) // Convert to GB
-
 			}
 
 		}
@@ -1363,25 +1184,14 @@ func (p *CNFIntentProcessor) estimateResourcesAndCosts(result *nephoranv1.CNFInt
 		// Estimate cost based on function type.
 
 		if p.KnowledgeBase != nil && p.KnowledgeBase.CostModels != nil {
-
 			if costModel, exists := p.KnowledgeBase.CostModels[deployment.Function]; exists {
-
 				totalCost += costModel.BaseCostPerHour * 24 * 30 // Monthly estimate
-
 			}
-
 		}
 
 	}
 
-	resourceData := map[string]interface{}{
-
-		"total_cpu": totalCPU,
-
-		"total_memory": totalMemory,
-
-		"estimated_monthly_cost": totalCost,
-	}
+	resourceData := json.RawMessage(`{}`)
 
 	resourceDataBytes, err := json.Marshal(resourceData)
 	if err != nil {
@@ -1392,11 +1202,9 @@ func (p *CNFIntentProcessor) estimateResourcesAndCosts(result *nephoranv1.CNFInt
 	result.EstimatedResources = runtime.RawExtension{Raw: resourceDataBytes}
 
 	result.EstimatedCost = totalCost
-
 }
 
 func (p *CNFIntentProcessor) estimateDeploymentTimeline(result *nephoranv1.CNFIntentProcessingResult) {
-
 	// Base deployment time per CNF (in minutes).
 
 	baseTime := int32(5)
@@ -1414,55 +1222,41 @@ func (p *CNFIntentProcessor) estimateDeploymentTimeline(result *nephoranv1.CNFIn
 	for _, deployment := range result.CNFDeployments {
 
 		if deployment.AutoScaling != nil && deployment.AutoScaling.Enabled {
-
 			totalTime += 2
-
 		}
 
 		if deployment.ServiceMesh != nil && deployment.ServiceMesh.Enabled {
-
 			totalTime += 3
-
 		}
 
 		if deployment.HighAvailability != nil && deployment.HighAvailability.Enabled {
-
 			totalTime += 5
-
 		}
 
 	}
 
 	result.EstimatedDeploymentTime = totalTime
-
 }
 
 func (p *CNFIntentProcessor) calculateConfidenceScore(intentContext *CNFIntentContext, result *nephoranv1.CNFIntentProcessingResult) float64 {
-
 	score := 0.5 // Base score
 
 	// Increase score based on detected functions.
 
 	if len(result.DetectedFunctions) > 0 {
-
 		score += 0.2
-
 	}
 
 	// Increase score based on LLM response quality.
 
 	if intentContext.LLMResponse != nil && intentContext.LLMResponse.ProcessedParameters != "" {
-
 		score += 0.2
-
 	}
 
 	// Increase score based on RAG context.
 
 	if len(intentContext.RAGContext) > 0 {
-
 		score += 0.1
-
 	}
 
 	// Decrease score for warnings and errors.
@@ -1474,27 +1268,20 @@ func (p *CNFIntentProcessor) calculateConfidenceScore(intentContext *CNFIntentCo
 	// Ensure score is within bounds.
 
 	if score < 0.0 {
-
 		score = 0.0
-
 	}
 
 	if score > 1.0 {
-
 		score = 1.0
-
 	}
 
 	return score
-
 }
 
 func (p *CNFIntentProcessor) initializeKnowledgeBase() {
-
 	// Initialize with basic knowledge base.
 
 	p.KnowledgeBase = &CNFKnowledgeBase{
-
 		FunctionMappings: make(map[string]nephoranv1.CNFFunction),
 
 		ResourceRequirements: make(map[nephoranv1.CNFFunction]ResourceProfile),
@@ -1505,7 +1292,6 @@ func (p *CNFIntentProcessor) initializeKnowledgeBase() {
 	// Initialize function mappings.
 
 	functionMappings := map[string]nephoranv1.CNFFunction{
-
 		"amf": nephoranv1.CNFFunctionAMF,
 
 		"access mobility": nephoranv1.CNFFunctionAMF,
@@ -1532,17 +1318,13 @@ func (p *CNFIntentProcessor) initializeKnowledgeBase() {
 	// Initialize cost models.
 
 	p.initializeCostModels()
-
 }
 
 func (p *CNFIntentProcessor) initializeResourceProfiles() {
-
 	// AMF resource profile.
 
 	p.KnowledgeBase.ResourceRequirements[nephoranv1.CNFFunctionAMF] = ResourceProfile{
-
 		BaselineResources: CNFResourceRequirements{
-
 			CPU: "1000m",
 
 			Memory: "2Gi",
@@ -1553,16 +1335,13 @@ func (p *CNFIntentProcessor) initializeResourceProfiles() {
 		},
 
 		ScalingFactors: map[string]float64{
-
 			"cpu": 1.5,
 
 			"memory": 1.2,
 		},
 
 		PerformanceTiers: map[string]CNFResourceRequirements{
-
 			"low": {
-
 				CPU: "500m",
 
 				Memory: "1Gi",
@@ -1571,7 +1350,6 @@ func (p *CNFIntentProcessor) initializeResourceProfiles() {
 			},
 
 			"high": {
-
 				CPU: "2000m",
 
 				Memory: "4Gi",
@@ -1584,9 +1362,7 @@ func (p *CNFIntentProcessor) initializeResourceProfiles() {
 	// UPF resource profile (more intensive).
 
 	p.KnowledgeBase.ResourceRequirements[nephoranv1.CNFFunctionUPF] = ResourceProfile{
-
 		BaselineResources: CNFResourceRequirements{
-
 			CPU: "2000m",
 
 			Memory: "4Gi",
@@ -1596,7 +1372,6 @@ func (p *CNFIntentProcessor) initializeResourceProfiles() {
 			NetworkBandwidth: "10Gbps",
 
 			DPDK: &DPDKRequirements{
-
 				Enabled: true,
 
 				Cores: 4,
@@ -1608,25 +1383,20 @@ func (p *CNFIntentProcessor) initializeResourceProfiles() {
 		},
 
 		ScalingFactors: map[string]float64{
-
 			"cpu": 2.0,
 
 			"memory": 1.8,
 		},
 	}
-
 }
 
 func (p *CNFIntentProcessor) initializeCostModels() {
-
 	// Basic cost models.
 
 	p.KnowledgeBase.CostModels[nephoranv1.CNFFunctionAMF] = CostModel{
-
 		BaseCostPerHour: 0.50,
 
 		ResourceMultipliers: map[string]float64{
-
 			"cpu": 0.1,
 
 			"memory": 0.05,
@@ -1636,11 +1406,9 @@ func (p *CNFIntentProcessor) initializeCostModels() {
 	}
 
 	p.KnowledgeBase.CostModels[nephoranv1.CNFFunctionUPF] = CostModel{
-
 		BaseCostPerHour: 1.00,
 
 		ResourceMultipliers: map[string]float64{
-
 			"cpu": 0.15,
 
 			"memory": 0.08,
@@ -1648,5 +1416,5 @@ func (p *CNFIntentProcessor) initializeCostModels() {
 
 		ScalingCostFactor: 1.5,
 	}
-
 }
+

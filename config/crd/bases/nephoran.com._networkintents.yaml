@@ -19,19 +19,8 @@ spec:
       openAPIV3Schema:
         properties:
           apiVersion:
-            description: |-
-              APIVersion defines the versioned schema of this representation of an object.
-              Servers should convert recognized schemas to the latest internal value, and
-              may reject unrecognized values.
-              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: |-
-              Kind is a string value representing the REST resource this object represents.
-              Servers may infer this from the endpoint the client submits requests to.
-              Cannot be updated.
-              In CamelCase.
-              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -46,126 +35,261 @@ spec:
                 type: string
               networkSlice:
                 type: string
+              parameters:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
               priority:
-                enum:
-                - low
-                - medium
-                - high
-                - critical
                 type: string
               processedParameters:
                 properties:
+                  custom:
+                    additionalProperties:
+                      type: string
+                    type: object
                   customParameters:
                     additionalProperties:
                       type: string
                     type: object
+                  metadata:
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      confidenceScore:
+                        pattern: ^(0(\.\d+)?|1(\.0+)?)$
+                        type: string
+                      default:
+                        type: string
+                      description:
+                        type: string
+                      name:
+                        type: string
+                      processedAt:
+                        format: date-time
+                        type: string
+                      required:
+                        type: boolean
+                      type:
+                        type: string
+                    required:
+                    - name
+                    - type
+                    type: object
+                  network:
+                    properties:
+                      loadBalancer:
+                        properties:
+                          healthCheck:
+                            properties:
+                              intervalSeconds:
+                                format: int32
+                                type: integer
+                              path:
+                                type: string
+                              port:
+                                format: int32
+                                type: integer
+                              timeoutSeconds:
+                                format: int32
+                                type: integer
+                            type: object
+                          type:
+                            type: string
+                        type: object
+                      ports:
+                        items:
+                          properties:
+                            name:
+                              type: string
+                            port:
+                              format: int32
+                              type: integer
+                            protocol:
+                              type: string
+                            targetPort:
+                              format: int32
+                              type: integer
+                          required:
+                          - port
+                          type: object
+                        type: array
+                      serviceType:
+                        type: string
+                    type: object
                   networkFunction:
                     type: string
-                  qosParameters:
-                    properties:
-                      bandwidth:
-                        type: string
-                      latency:
-                        type: string
-                      priority:
-                        enum:
-                        - low
-                        - medium
-                        - high
-                        - critical
-                        type: string
-                      serviceLevel:
-                        type: string
+                  raw:
+                    additionalProperties:
+                      type: string
                     type: object
                   region:
                     type: string
+                  resources:
+                    properties:
+                      cpu:
+                        type: string
+                      memory:
+                        type: string
+                      storage:
+                        type: string
+                    type: object
                   scaleParameters:
                     properties:
-                      autoScalingEnabled:
-                        type: boolean
                       maxReplicas:
                         format: int32
-                        minimum: 1
                         type: integer
                       minReplicas:
                         format: int32
-                        minimum: 1
                         type: integer
-                      targetCPUUtilization:
+                      targetReplicas:
                         format: int32
-                        maximum: 100
                         type: integer
+                      triggers:
+                        items:
+                          properties:
+                            metric:
+                              type: string
+                            operator:
+                              type: string
+                            targetValue:
+                              type: string
+                          required:
+                          - metric
+                          - operator
+                          - targetValue
+                          type: object
+                        type: array
+                    type: object
+                  scaling:
+                    properties:
+                      maxReplicas:
+                        format: int32
+                        type: integer
+                      minReplicas:
+                        format: int32
+                        type: integer
+                      targetReplicas:
+                        format: int32
+                        type: integer
+                      triggers:
+                        items:
+                          properties:
+                            metric:
+                              type: string
+                            operator:
+                              type: string
+                            targetValue:
+                              type: string
+                          required:
+                          - metric
+                          - operator
+                          - targetValue
+                          type: object
+                        type: array
                     type: object
                   securityParameters:
                     properties:
                       encryption:
                         properties:
                           algorithm:
-                            enum:
-                            - AES-256
-                            - AES-128
-                            - RSA-2048
-                            - RSA-4096
                             type: string
                           enabled:
                             type: boolean
-                          keyRotationInterval:
-                            type: string
+                          keySize:
+                            type: integer
                         type: object
                       networkPolicies:
                         items:
-                          type: string
+                          properties:
+                            name:
+                              type: string
+                            rules:
+                              items:
+                                type: string
+                              type: array
+                            type:
+                              enum:
+                              - ingress
+                              - egress
+                              - both
+                              type: string
+                          required:
+                          - name
+                          - type
+                          type: object
                         type: array
                       serviceMesh:
                         type: boolean
                       tlsEnabled:
                         type: boolean
                     type: object
+                  structured:
+                    additionalProperties:
+                      type: string
+                    type: object
                 type: object
               region:
                 type: string
               resourceConstraints:
                 properties:
+                  bandwidth:
+                    properties:
+                      limit:
+                        type: string
+                      max:
+                        type: string
+                      min:
+                        type: string
+                      request:
+                        type: string
+                    type: object
                   cpu:
-                    anyOf:
-                    - type: integer
-                    - type: string
-                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                    x-kubernetes-int-or-string: true
-                  maxConcurrency:
-                    default: 10
-                    format: int32
-                    type: integer
-                  maxCpu:
-                    anyOf:
-                    - type: integer
-                    - type: string
-                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                    x-kubernetes-int-or-string: true
-                  maxMemory:
-                    anyOf:
-                    - type: integer
-                    - type: string
-                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                    x-kubernetes-int-or-string: true
+                    properties:
+                      limit:
+                        type: string
+                      max:
+                        type: string
+                      min:
+                        type: string
+                      request:
+                        type: string
+                    type: object
+                  customResources:
+                    additionalProperties:
+                      properties:
+                        limit:
+                          type: string
+                        max:
+                          type: string
+                        min:
+                          type: string
+                        request:
+                          type: string
+                      type: object
+                    type: object
                   memory:
-                    anyOf:
-                    - type: integer
-                    - type: string
-                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                    x-kubernetes-int-or-string: true
-                  networkBandwidth:
-                    anyOf:
-                    - type: integer
-                    - type: string
-                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                    x-kubernetes-int-or-string: true
+                    properties:
+                      limit:
+                        type: string
+                      max:
+                        type: string
+                      min:
+                        type: string
+                      request:
+                        type: string
+                    type: object
                   storage:
-                    anyOf:
-                    - type: integer
-                    - type: string
-                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                    x-kubernetes-int-or-string: true
+                    properties:
+                      limit:
+                        type: string
+                      max:
+                        type: string
+                      min:
+                        type: string
+                      request:
+                        type: string
+                    type: object
                 type: object
               targetCluster:
                 type: string
@@ -182,49 +306,29 @@ spec:
             properties:
               conditions:
                 items:
-                  description: Condition contains details for one aspect of the current
-                    state of this API Resource.
                   properties:
                     lastTransitionTime:
-                      description: |-
-                        lastTransitionTime is the last time the condition transitioned from one status to another.
-                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
-                      description: |-
-                        message is a human readable message indicating details about the transition.
-                        This may be an empty string.
                       maxLength: 32768
                       type: string
                     observedGeneration:
-                      description: |-
-                        observedGeneration represents the .metadata.generation that the condition was set based upon.
-                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
-                        with respect to the current state of the instance.
                       format: int64
                       minimum: 0
                       type: integer
                     reason:
-                      description: |-
-                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
-                        Producers of specific condition types may define expected values and meanings for this field,
-                        and whether the values are considered a guaranteed API.
-                        The value should be a CamelCase string.
-                        This field may not be empty.
                       maxLength: 1024
                       minLength: 1
                       pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
                       type: string
                     status:
-                      description: status of the condition, one of True, False, Unknown.
                       enum:
                       - "True"
                       - "False"
                       - Unknown
                       type: string
                     type:
-                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
                       maxLength: 316
                       pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                       type: string
@@ -240,11 +344,7 @@ spec:
               deployedComponents:
                 items:
                   properties:
-                    dependencies:
-                      items:
-                        type: string
-                      type: array
-                    labelSelector:
+                    labels:
                       additionalProperties:
                         type: string
                       type: object
@@ -253,13 +353,6 @@ spec:
                     namespace:
                       type: string
                     type:
-                      enum:
-                      - deployment
-                      - statefulset
-                      - service
-                      - configmap
-                      - secret
-                      - pvc
                       type: string
                   required:
                   - name
@@ -296,76 +389,197 @@ spec:
               processingResults:
                 properties:
                   confidenceScore:
-                    type: number
+                    pattern: ^(0(\.\d+)?|1(\.0+)?)$
+                    type: string
                   networkFunctionType:
                     type: string
                   processedParameters:
                     properties:
+                      custom:
+                        additionalProperties:
+                          type: string
+                        type: object
                       customParameters:
                         additionalProperties:
                           type: string
                         type: object
+                      metadata:
+                        properties:
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          confidenceScore:
+                            pattern: ^(0(\.\d+)?|1(\.0+)?)$
+                            type: string
+                          default:
+                            type: string
+                          description:
+                            type: string
+                          name:
+                            type: string
+                          processedAt:
+                            format: date-time
+                            type: string
+                          required:
+                            type: boolean
+                          type:
+                            type: string
+                        required:
+                        - name
+                        - type
+                        type: object
+                      network:
+                        properties:
+                          loadBalancer:
+                            properties:
+                              healthCheck:
+                                properties:
+                                  intervalSeconds:
+                                    format: int32
+                                    type: integer
+                                  path:
+                                    type: string
+                                  port:
+                                    format: int32
+                                    type: integer
+                                  timeoutSeconds:
+                                    format: int32
+                                    type: integer
+                                type: object
+                              type:
+                                type: string
+                            type: object
+                          ports:
+                            items:
+                              properties:
+                                name:
+                                  type: string
+                                port:
+                                  format: int32
+                                  type: integer
+                                protocol:
+                                  type: string
+                                targetPort:
+                                  format: int32
+                                  type: integer
+                              required:
+                              - port
+                              type: object
+                            type: array
+                          serviceType:
+                            type: string
+                        type: object
                       networkFunction:
                         type: string
-                      qosParameters:
-                        properties:
-                          bandwidth:
-                            type: string
-                          latency:
-                            type: string
-                          priority:
-                            enum:
-                            - low
-                            - medium
-                            - high
-                            - critical
-                            type: string
-                          serviceLevel:
-                            type: string
+                      raw:
+                        additionalProperties:
+                          type: string
                         type: object
                       region:
                         type: string
+                      resources:
+                        properties:
+                          cpu:
+                            type: string
+                          memory:
+                            type: string
+                          storage:
+                            type: string
+                        type: object
                       scaleParameters:
                         properties:
-                          autoScalingEnabled:
-                            type: boolean
                           maxReplicas:
                             format: int32
-                            minimum: 1
                             type: integer
                           minReplicas:
                             format: int32
-                            minimum: 1
                             type: integer
-                          targetCPUUtilization:
+                          targetReplicas:
                             format: int32
-                            maximum: 100
                             type: integer
+                          triggers:
+                            items:
+                              properties:
+                                metric:
+                                  type: string
+                                operator:
+                                  type: string
+                                targetValue:
+                                  type: string
+                              required:
+                              - metric
+                              - operator
+                              - targetValue
+                              type: object
+                            type: array
+                        type: object
+                      scaling:
+                        properties:
+                          maxReplicas:
+                            format: int32
+                            type: integer
+                          minReplicas:
+                            format: int32
+                            type: integer
+                          targetReplicas:
+                            format: int32
+                            type: integer
+                          triggers:
+                            items:
+                              properties:
+                                metric:
+                                  type: string
+                                operator:
+                                  type: string
+                                targetValue:
+                                  type: string
+                              required:
+                              - metric
+                              - operator
+                              - targetValue
+                              type: object
+                            type: array
                         type: object
                       securityParameters:
                         properties:
                           encryption:
                             properties:
                               algorithm:
-                                enum:
-                                - AES-256
-                                - AES-128
-                                - RSA-2048
-                                - RSA-4096
                                 type: string
                               enabled:
                                 type: boolean
-                              keyRotationInterval:
-                                type: string
+                              keySize:
+                                type: integer
                             type: object
                           networkPolicies:
                             items:
-                              type: string
+                              properties:
+                                name:
+                                  type: string
+                                rules:
+                                  items:
+                                    type: string
+                                  type: array
+                                type:
+                                  enum:
+                                  - ingress
+                                  - egress
+                                  - both
+                                  type: string
+                              required:
+                              - name
+                              - type
+                              type: object
                             type: array
                           serviceMesh:
                             type: boolean
                           tlsEnabled:
                             type: boolean
+                        type: object
+                      structured:
+                        additionalProperties:
+                          type: string
                         type: object
                     type: object
                   processingTimestamp:

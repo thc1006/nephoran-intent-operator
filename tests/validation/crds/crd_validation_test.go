@@ -44,11 +44,11 @@ import (
 // CRDValidationTestSuite provides comprehensive CRD validation testing
 type CRDValidationTestSuite struct {
 	suite.Suite
-	client    client.Client
-	scheme    *runtime.Scheme
-	ctx       context.Context
-	crdFiles  []string
-	crds      []*apiextensionsv1.CustomResourceDefinition
+	client   client.Client
+	scheme   *runtime.Scheme
+	ctx      context.Context
+	crdFiles []string
+	crds     []*apiextensionsv1.CustomResourceDefinition
 }
 
 // SetupSuite initializes the CRD validation test environment
@@ -71,7 +71,7 @@ func (suite *CRDValidationTestSuite) SetupSuite() {
 // loadCRDFiles loads CRD files from the config directory
 func (suite *CRDValidationTestSuite) loadCRDFiles() {
 	crdDir := filepath.Join("..", "..", "..", "config", "crd", "bases")
-	
+
 	// Check if CRD directory exists
 	if _, err := os.Stat(crdDir); os.IsNotExist(err) {
 		suite.T().Skip("CRD directory not found, skipping CRD validation tests")
@@ -126,10 +126,10 @@ func (suite *CRDValidationTestSuite) loadCRDFromFile(filename string) (*apiexten
 // TestValidation_CRDFilesExist tests that CRD files exist
 func (suite *CRDValidationTestSuite) TestValidation_CRDFilesExist() {
 	suite.True(len(suite.crdFiles) > 0, "Should have at least one CRD file")
-	
+
 	for _, file := range suite.crdFiles {
 		suite.FileExists(file, "CRD file should exist: %s", file)
-		
+
 		// Check file is not empty
 		info, err := os.Stat(file)
 		suite.NoError(err)
@@ -150,21 +150,21 @@ func (suite *CRDValidationTestSuite) TestValidation_CRDStructure() {
 			assert.NotEmpty(t, crd.Spec.Group, "CRD should have a group")
 			assert.NotEmpty(t, crd.Spec.Names.Kind, "CRD should have a kind")
 			assert.NotEmpty(t, crd.Spec.Names.Plural, "CRD should have plural name")
-			
+
 			// Validate group follows expected pattern
-			assert.True(t, strings.Contains(crd.Spec.Group, "nephoran.io") || 
-				strings.Contains(crd.Spec.Group, "nephio"), 
+			assert.True(t, strings.Contains(crd.Spec.Group, "nephoran.io") ||
+				strings.Contains(crd.Spec.Group, "nephio"),
 				"CRD group should contain 'nephoran.io' or 'nephio'")
-			
+
 			// Validate scope
 			assert.Contains(t, []apiextensionsv1.ResourceScope{
 				apiextensionsv1.NamespaceScoped,
 				apiextensionsv1.ClusterScoped,
 			}, crd.Spec.Scope, "CRD should have valid scope")
-			
+
 			// Validate versions
 			assert.Greater(t, len(crd.Spec.Versions), 0, "CRD should have at least one version")
-			
+
 			// Check that at least one version is served and storage
 			var hasServed, hasStorage bool
 			for _, version := range crd.Spec.Versions {
@@ -197,25 +197,25 @@ func (suite *CRDValidationTestSuite) TestValidation_CRDSchemas() {
 
 				schema := version.Schema.OpenAPIV3Schema
 				assert.NotNil(t, schema, "Version %s should have OpenAPI schema", version.Name)
-				
+
 				if schema != nil {
 					assert.Equal(t, "object", schema.Type, "Root schema should be of type 'object'")
-					
+
 					// Check for spec and status properties
 					if schema.Properties != nil {
 						_, hasSpec := schema.Properties["spec"]
 						_, hasStatus := schema.Properties["status"]
-						
+
 						if strings.Contains(crd.Name, "networkintent") {
 							assert.True(t, hasSpec, "NetworkIntent should have spec property")
 							// Status is optional for some CRDs
 						}
-						
+
 						// Validate spec schema if present
 						if hasSpec {
 							specSchema := schema.Properties["spec"]
 							assert.Equal(t, "object", specSchema.Type, "Spec should be of type 'object'")
-							
+
 							// Check for intent field in NetworkIntent spec
 							if strings.Contains(crd.Name, "networkintent") && specSchema.Properties != nil {
 								intentProp, hasIntent := specSchema.Properties["intent"]
@@ -241,26 +241,26 @@ func (suite *CRDValidationTestSuite) TestValidation_CRDNames() {
 	for _, crd := range suite.crds {
 		suite.T().Run(fmt.Sprintf("Names_%s", crd.Name), func(t *testing.T) {
 			names := crd.Spec.Names
-			
+
 			// Validate naming conventions
-			assert.Equal(t, strings.ToLower(names.Kind), names.Singular, 
+			assert.Equal(t, strings.ToLower(names.Kind), names.Singular,
 				"Singular name should be lowercase of Kind")
-			assert.True(t, strings.HasSuffix(names.Plural, "s") || 
-				strings.HasSuffix(names.Plural, "ies") || 
+			assert.True(t, strings.HasSuffix(names.Plural, "s") ||
+				strings.HasSuffix(names.Plural, "ies") ||
 				strings.HasSuffix(names.Plural, "es"),
 				"Plural name should be proper plural form")
-			
+
 			// Validate CRD name format (plural.group)
 			expectedName := fmt.Sprintf("%s.%s", names.Plural, crd.Spec.Group)
-			assert.Equal(t, expectedName, crd.Name, 
+			assert.Equal(t, expectedName, crd.Name,
 				"CRD name should follow format 'plural.group'")
-			
+
 			// Check for appropriate short names
 			if len(names.ShortNames) > 0 {
 				for _, shortName := range names.ShortNames {
-					assert.LessOrEqual(t, len(shortName), 8, 
+					assert.LessOrEqual(t, len(shortName), 8,
 						"Short name should be 8 characters or less: %s", shortName)
-					assert.Regexp(t, "^[a-z]+$", shortName, 
+					assert.Regexp(t, "^[a-z]+$", shortName,
 						"Short name should contain only lowercase letters: %s", shortName)
 				}
 			}
@@ -278,23 +278,23 @@ func (suite *CRDValidationTestSuite) TestValidation_CRDVersioning() {
 		suite.T().Run(fmt.Sprintf("Versioning_%s", crd.Name), func(t *testing.T) {
 			versions := crd.Spec.Versions
 			assert.Greater(t, len(versions), 0, "CRD should have at least one version")
-			
+
 			storageVersions := 0
 			for _, version := range versions {
 				// Validate version name format
 				assert.Regexp(t, "^v[0-9]+(alpha[0-9]+|beta[0-9]+)?$", version.Name,
 					"Version name should follow Kubernetes versioning convention: %s", version.Name)
-				
+
 				if version.Storage {
 					storageVersions++
 				}
-				
+
 				// Each version should have schema
 				assert.NotNil(t, version.Schema, "Version %s should have schema", version.Name)
 			}
-			
+
 			// Exactly one version should be marked as storage
-			assert.Equal(t, 1, storageVersions, 
+			assert.Equal(t, 1, storageVersions,
 				"CRD should have exactly one storage version")
 		})
 	}
@@ -303,19 +303,19 @@ func (suite *CRDValidationTestSuite) TestValidation_CRDVersioning() {
 // TestValidation_CRDCompatibility tests CRD compatibility with our API types
 func (suite *CRDValidationTestSuite) TestValidation_CRDCompatibility() {
 	// Test that our Go types are compatible with CRD schemas
-	
+
 	// Create a NetworkIntent object
 	intent := fixtures.SimpleNetworkIntent()
-	
+
 	// Validate that it can be serialized/deserialized properly
 	data, err := json.Marshal(intent)
 	suite.NoError(err, "Should be able to marshal NetworkIntent to JSON")
-	
+
 	var unmarshaled nephoranv1.NetworkIntent
 	err = json.Unmarshal(data, &unmarshaled)
 	suite.NoError(err, "Should be able to unmarshal NetworkIntent from JSON")
-	
-	suite.Equal(intent.Spec.Intent, unmarshaled.Spec.Intent, 
+
+	suite.Equal(intent.Spec.Intent, unmarshaled.Spec.Intent,
 		"Marshaled and unmarshaled intent should match")
 }
 
@@ -324,10 +324,10 @@ func (suite *CRDValidationTestSuite) TestValidation_CRDRequired() {
 	// Test with valid NetworkIntent
 	validIntent := fixtures.SimpleNetworkIntent()
 	validIntent.Namespace = "validation-test"
-	
+
 	err := suite.client.Create(suite.ctx, validIntent)
 	suite.NoError(err, "Valid NetworkIntent should be created successfully")
-	
+
 	// Note: Fake client doesn't enforce CRD validation, so we can't test
 	// required field validation directly. This would need a real cluster.
 	// In a real test environment, we would test invalid objects here.
@@ -345,19 +345,19 @@ func (suite *CRDValidationTestSuite) TestValidation_CRDLabelsAndAnnotations() {
 			if crd.Labels != nil {
 				// Validate common labels if present
 				if appName, exists := crd.Labels["app.kubernetes.io/name"]; exists {
-					assert.Contains(t, appName, "nephoran", 
+					assert.Contains(t, appName, "nephoran",
 						"App name should contain 'nephoran'")
 				}
-				
+
 				if component, exists := crd.Labels["app.kubernetes.io/component"]; exists {
 					assert.NotEmpty(t, component, "Component label should not be empty")
 				}
 			}
-			
+
 			// Check for controller-gen annotations
 			if crd.Annotations != nil {
 				if controllerGen, exists := crd.Annotations["controller-gen.kubebuilder.io/version"]; exists {
-					assert.NotEmpty(t, controllerGen, 
+					assert.NotEmpty(t, controllerGen,
 						"Controller-gen version annotation should not be empty")
 				}
 			}
@@ -376,7 +376,7 @@ func (suite *CRDValidationTestSuite) TestValidation_CRDCategories() {
 			// Check for appropriate categories
 			if len(crd.Spec.Names.Categories) > 0 {
 				validCategories := []string{"all", "nephoran", "networking", "intent"}
-				
+
 				for _, category := range crd.Spec.Names.Categories {
 					assert.Contains(t, validCategories, category,
 						"Category should be in the list of valid categories: %s", category)
@@ -399,9 +399,9 @@ func (suite *CRDValidationTestSuite) TestValidation_CRDSubresources() {
 					// Status subresource validation
 					if version.Subresources.Status != nil {
 						// Status subresource should be enabled for objects with status
-						if version.Schema != nil && 
-						   version.Schema.OpenAPIV3Schema != nil && 
-						   version.Schema.OpenAPIV3Schema.Properties != nil {
+						if version.Schema != nil &&
+							version.Schema.OpenAPIV3Schema != nil &&
+							version.Schema.OpenAPIV3Schema.Properties != nil {
 							_, hasStatus := version.Schema.OpenAPIV3Schema.Properties["status"]
 							if hasStatus {
 								assert.NotNil(t, version.Subresources.Status,
@@ -409,7 +409,7 @@ func (suite *CRDValidationTestSuite) TestValidation_CRDSubresources() {
 							}
 						}
 					}
-					
+
 					// Scale subresource validation (if applicable)
 					if version.Subresources.Scale != nil {
 						scale := version.Subresources.Scale
@@ -428,16 +428,16 @@ func (suite *CRDValidationTestSuite) TestValidation_CRDSubresources() {
 func (suite *CRDValidationTestSuite) TestValidation_GeneratedCRDConsistency() {
 	// This test would verify that generated CRDs match the source API definitions
 	// In a real implementation, this might compare timestamps, comments, or checksums
-	
+
 	for _, file := range suite.crdFiles {
 		info, err := os.Stat(file)
 		if err != nil {
 			continue
 		}
-		
-		suite.T().Logf("CRD file: %s, size: %d bytes, modified: %s", 
+
+		suite.T().Logf("CRD file: %s, size: %d bytes, modified: %s",
 			file, info.Size(), info.ModTime().Format("2006-01-02 15:04:05"))
-		
+
 		// Check that file was generated recently (within last 24 hours)
 		// This is a simple check - real validation might be more sophisticated
 		if info.ModTime().Before(time.Now().Add(-24 * time.Hour)) {
@@ -457,15 +457,15 @@ func TestCRDValidation_NetworkIntentBasic(t *testing.T) {
 	scheme := runtime.NewScheme()
 	err := nephoranv1.AddToScheme(scheme)
 	require.NoError(t, err)
-	
+
 	// Test GVK registration
 	gvk := nephoranv1.GroupVersion.WithKind("NetworkIntent")
 	assert.True(t, scheme.Recognizes(gvk), "Scheme should recognize NetworkIntent GVK")
-	
+
 	// Test object creation
 	obj, err := scheme.New(gvk)
 	assert.NoError(t, err)
-	
+
 	intent, ok := obj.(*nephoranv1.NetworkIntent)
 	assert.True(t, ok)
 	assert.NotNil(t, intent)
@@ -476,20 +476,19 @@ func TestCRDValidation_NetworkIntentBasic(t *testing.T) {
 func TestCRDValidation_RequiredFields(t *testing.T) {
 	// Test that required fields are properly defined
 	intent := &nephoranv1.NetworkIntent{}
-	
+
 	// Set required fields
 	intent.Spec.Intent = "test intent"
-	
+
 	// Basic validation - in a real cluster, this would be enforced by the API server
 	assert.NotEmpty(t, intent.Spec.Intent, "Intent field should not be empty")
-	
+
 	// Test JSON marshaling with required fields
 	data, err := json.Marshal(intent)
 	assert.NoError(t, err)
-	
+
 	var unmarshaled nephoranv1.NetworkIntent
 	err = json.Unmarshal(data, &unmarshaled)
 	assert.NoError(t, err)
 	assert.Equal(t, intent.Spec.Intent, unmarshaled.Spec.Intent)
 }
-

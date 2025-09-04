@@ -1,7 +1,9 @@
 package shared
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 )
 
@@ -10,6 +12,7 @@ type ClientInterface interface {
 	// Basic operations
 	ProcessRequest(ctx context.Context, request *LLMRequest) (*LLMResponse, error)
 	ProcessStreamingRequest(ctx context.Context, request *LLMRequest) (<-chan *StreamingChunk, error)
+	ProcessIntent(ctx context.Context, intent string) (string, error)
 
 	// Health and status
 	HealthCheck(ctx context.Context) error
@@ -28,7 +31,7 @@ type LLMRequest struct {
 	MaxTokens   int                    `json:"max_tokens,omitempty"`
 	Temperature float32                `json:"temperature,omitempty"`
 	Stream      bool                   `json:"stream,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Metadata    json.RawMessage `json:"metadata,omitempty"`
 }
 
 // LLMResponse represents a response from an LLM service
@@ -43,13 +46,14 @@ type LLMResponse struct {
 
 // StreamingChunk represents a chunk of streamed response
 type StreamingChunk struct {
-	ID        string    `json:"id"`
-	Content   string    `json:"content"`
-	Delta     string    `json:"delta"`
-	Done      bool      `json:"done"`
-	IsLast    bool      `json:"is_last"`
-	Timestamp time.Time `json:"timestamp"`
-	Error     *LLMError `json:"error,omitempty"`
+	ID        string                 `json:"id"`
+	Content   string                 `json:"content"`
+	Delta     string                 `json:"delta"`
+	Done      bool                   `json:"done"`
+	IsLast    bool                   `json:"is_last"`
+	Timestamp time.Time              `json:"timestamp"`
+	Metadata  json.RawMessage `json:"metadata,omitempty"`
+	Error     *LLMError              `json:"error,omitempty"`
 }
 
 // ChatMessage represents a chat message
@@ -93,5 +97,5 @@ type ModelCapabilities struct {
 	CostPerToken         float64                `json:"cost_per_token"`
 	SupportedMimeTypes   []string               `json:"supported_mime_types"`
 	ModelVersion         string                 `json:"model_version"`
-	Features             map[string]interface{} `json:"features"`
+	Features             json.RawMessage `json:"features"`
 }

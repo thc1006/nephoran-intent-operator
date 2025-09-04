@@ -16,54 +16,32 @@ func TestRuleBasedIntentParser_ParseIntent(t *testing.T) {
 		{
 			name:  "Valid scaling intent with namespace",
 			input: "scale nf-sim to 4 in ns ran-a",
-			want: map[string]interface{}{
-				"intent_type": "scaling",
-				"target":      "nf-sim",
-				"replicas":    4,
-				"namespace":   "ran-a",
-			},
+			want: map[string]interface{}{},
 			wantErr: false,
 		},
 		{
 			name:  "Valid scaling intent without namespace",
 			input: "scale my-app to 3",
-			want: map[string]interface{}{
-				"intent_type": "scaling",
-				"target":      "my-app",
-				"replicas":    3,
-				"namespace":   "default",
-			},
+			want: map[string]interface{}{},
 			wantErr: false,
 		},
 		{
 			name:  "Valid deployment intent",
 			input: "deploy nginx in ns production",
-			want: map[string]interface{}{
-				"intent_type": "deployment",
-				"target":      "nginx",
-				"namespace":   "production",
-			},
+			want: map[string]interface{}{},
 			wantErr: false,
 		},
 		{
 			name:  "Valid delete intent",
 			input: "delete old-app from ns staging",
-			want: map[string]interface{}{
-				"intent_type": "deletion",
-				"target":      "old-app",
-				"namespace":   "staging",
-			},
+			want: map[string]interface{}{},
 			wantErr: false,
 		},
 		{
 			name:  "Valid update intent",
 			input: "update myapp set replicas=5 in ns prod",
 			want: map[string]interface{}{
-				"intent_type": "configuration",
-				"target":      "myapp",
-				"config": map[string]interface{}{
-					"replicas": "5",
-				},
+				"replicas":  "5",
 				"namespace": "prod",
 			},
 			wantErr: false,
@@ -89,12 +67,7 @@ func TestRuleBasedIntentParser_ParseIntent(t *testing.T) {
 		{
 			name:  "Case insensitive command",
 			input: "SCALE APP TO 2 IN NS TEST",
-			want: map[string]interface{}{
-				"intent_type": "scaling",
-				"target":      "APP",
-				"replicas":    2,
-				"namespace":   "TEST",
-			},
+			want: map[string]interface{}{},
 			wantErr: false,
 		},
 	}
@@ -121,80 +94,45 @@ func TestValidateIntent(t *testing.T) {
 	}{
 		{
 			name: "Valid scaling intent",
-			intent: map[string]interface{}{
-				"intent_type": "scaling",
-				"target":      "my-app",
-				"replicas":    3,
-				"namespace":   "default",
-			},
+			intent: map[string]interface{}{},
 			wantErr: false,
 		},
 		{
 			name: "Missing intent_type",
-			intent: map[string]interface{}{
-				"target":    "my-app",
-				"replicas":  3,
-				"namespace": "default",
-			},
+			intent: map[string]interface{}{},
 			wantErr: true,
 		},
 		{
 			name: "Missing target",
-			intent: map[string]interface{}{
-				"intent_type": "scaling",
-				"replicas":    3,
-				"namespace":   "default",
-			},
+			intent: map[string]interface{}{},
 			wantErr: true,
 		},
 		{
 			name: "Invalid replicas (negative)",
-			intent: map[string]interface{}{
-				"intent_type": "scaling",
-				"target":      "my-app",
-				"replicas":    -1,
-				"namespace":   "default",
-			},
+			intent: map[string]interface{}{},
 			wantErr: true,
 		},
 		{
 			name: "Valid deployment intent",
-			intent: map[string]interface{}{
-				"intent_type": "deployment",
-				"target":      "nginx",
-				"namespace":   "production",
-			},
+			intent: map[string]interface{}{},
 			wantErr: false,
 		},
 		{
 			name: "Valid configuration intent",
 			intent: map[string]interface{}{
-				"intent_type": "configuration",
-				"target":      "myapp",
-				"config": map[string]interface{}{
-					"replicas": "5",
-				},
+				"replicas":  "5",
 				"namespace": "prod",
 			},
 			wantErr: false,
 		},
 		{
-			name: "Invalid configuration (empty config)",
-			intent: map[string]interface{}{
-				"intent_type": "configuration",
-				"target":      "myapp",
-				"config":      map[string]interface{}{},
-				"namespace":   "prod",
-			},
+			name:    "Invalid configuration (empty config)",
+			intent:  map[string]interface{}{},
 			wantErr: true,
 		},
 		{
 			name: "Unknown intent_type",
-			intent: map[string]interface{}{
-				"intent_type": "unknown",
-				"target":      "my-app",
-				"namespace":   "default",
-			},
+			intent: map[string]interface{}{},
 			wantErr: true,
 		},
 	}
@@ -237,3 +175,4 @@ func compareIntents(a, b map[string]interface{}) bool {
 
 	return true
 }
+

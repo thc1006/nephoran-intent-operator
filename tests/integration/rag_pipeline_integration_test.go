@@ -3,7 +3,9 @@
 package integration_tests
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -58,7 +60,7 @@ type TestQuery struct {
 	ExpectedSources  int                    `json:"expected_sources"`
 	ExpectedKeywords []string               `json:"expected_keywords"`
 	MinConfidence    float64                `json:"min_confidence"`
-	Context          map[string]interface{} `json:"context"`
+	Context          json.RawMessage `json:"context"`
 }
 
 // TestNetworkIntent represents a test network intent
@@ -140,11 +142,7 @@ func (suite *RAGPipelineIntegrationTestSuite) initializeTestData() {
 			Content: "Network slicing enables multiple virtual networks on a single physical infrastructure...",
 			Type:    "technical_specification",
 			Source:  "3GPP TS 23.501",
-			Metadata: map[string]interface{}{
-				"category": "5g_core",
-				"version":  "17.0.0",
-				"section":  "5.15",
-			},
+			Metadata: json.RawMessage(`{}`),
 		},
 		{
 			ID:      "doc2",
@@ -152,11 +150,7 @@ func (suite *RAGPipelineIntegrationTestSuite) initializeTestData() {
 			Content: "The O-RAN Alliance defines open interfaces for RAN components...",
 			Type:    "architecture_document",
 			Source:  "O-RAN.WG1.O-RAN-Architecture-Description",
-			Metadata: map[string]interface{}{
-				"category": "oran",
-				"version":  "v07.00",
-				"focus":    "architecture",
-			},
+			Metadata: json.RawMessage(`{}`),
 		},
 		{
 			ID:      "doc3",
@@ -164,11 +158,7 @@ func (suite *RAGPipelineIntegrationTestSuite) initializeTestData() {
 			Content: "The E2 interface connects the Near-RT RIC to E2 nodes...",
 			Type:    "interface_specification",
 			Source:  "O-RAN.WG3.E2AP",
-			Metadata: map[string]interface{}{
-				"category": "e2_interface",
-				"version":  "v03.00",
-				"protocol": "E2AP",
-			},
+			Metadata: json.RawMessage(`{}`),
 		},
 	}
 
@@ -180,10 +170,7 @@ func (suite *RAGPipelineIntegrationTestSuite) initializeTestData() {
 			ExpectedSources:  2,
 			ExpectedKeywords: []string{"network", "slicing", "5G", "configuration"},
 			MinConfidence:    0.8,
-			Context: map[string]interface{}{
-				"technology": "5g",
-				"domain":     "core_network",
-			},
+			Context: json.RawMessage(`{}`),
 		},
 		{
 			Query:            "What is the O-RAN E2 interface?",
@@ -191,10 +178,7 @@ func (suite *RAGPipelineIntegrationTestSuite) initializeTestData() {
 			ExpectedSources:  2,
 			ExpectedKeywords: []string{"O-RAN", "E2", "interface", "RIC"},
 			MinConfidence:    0.75,
-			Context: map[string]interface{}{
-				"standard":  "oran",
-				"component": "e2_interface",
-			},
+			Context: json.RawMessage(`{}`),
 		},
 		{
 			Query:            "Create a network slice for IoT devices",
@@ -202,10 +186,7 @@ func (suite *RAGPipelineIntegrationTestSuite) initializeTestData() {
 			ExpectedSources:  1,
 			ExpectedKeywords: []string{"network", "slice", "IoT", "create"},
 			MinConfidence:    0.7,
-			Context: map[string]interface{}{
-				"use_case": "iot",
-				"action":   "create",
-			},
+			Context: json.RawMessage(`{}`),
 		},
 	}
 
@@ -216,11 +197,7 @@ func (suite *RAGPipelineIntegrationTestSuite) initializeTestData() {
 			Spec: nephoran.NetworkIntentSpec{
 				IntentType:  "network_slice_creation",
 				Description: "Create a network slice for enhanced mobile broadband",
-				Requirements: map[string]interface{}{
-					"slice_type": "eMBB",
-					"bandwidth":  "1Gbps",
-					"latency":    "10ms",
-				},
+				Requirements: json.RawMessage(`{}`),
 			},
 			Expected: TestExpectedResult{
 				Status:     "completed",
@@ -625,7 +602,7 @@ func (suite *RAGPipelineIntegrationTestSuite) TestNetworkIntentIntegration() {
 
 			// Verify processing results
 			var updatedIntent nephoran.NetworkIntent
-			err = suite.k8sClient.Get(suite.ctx, client.ObjectKeyFromObject(intent), &updatedIntent)
+			err = suite.k8sClient.Get(suite.ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, &updatedIntent)
 			suite.NoError(err)
 
 			// Check status
@@ -702,3 +679,4 @@ func BenchmarkRAGQuery(b *testing.B) {
 		}
 	})
 }
+

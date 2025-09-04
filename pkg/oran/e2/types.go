@@ -1,7 +1,9 @@
 package e2
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"time"
 
@@ -11,7 +13,6 @@ import (
 // E2ManagerInterface defines the interface for E2 management operations.
 
 type E2ManagerInterface interface {
-
 	// Core node operations.
 
 	SetupE2Connection(nodeID, endpoint string) error
@@ -70,9 +71,9 @@ type E2ControlMessage struct {
 
 	CallProcessID string `json:"call_process_id,omitempty"`
 
-	ControlHeader map[string]interface{} `json:"control_header"`
+	ControlHeader json.RawMessage `json:"control_header"`
 
-	ControlMessage map[string]interface{} `json:"control_message"`
+	ControlMessage json.RawMessage `json:"control_message"`
 
 	ControlAckRequest bool `json:"control_ack_request"`
 
@@ -96,7 +97,7 @@ type E2Node struct {
 
 	LastSeen time.Time `json:"last_seen"`
 
-	Configuration map[string]interface{} `json:"configuration,omitempty"`
+	Configuration json.RawMessage `json:"configuration,omitempty"`
 }
 
 // RanFunction represents a RAN function for registration.
@@ -120,7 +121,6 @@ type RanFunction struct {
 // getConnection gets a connection from the pool.
 
 func (p *E2ConnectionPool) getConnection(nodeID string) (*PooledConnection, error) {
-
 	p.mutex.RLock()
 
 	defer p.mutex.RUnlock()
@@ -128,9 +128,7 @@ func (p *E2ConnectionPool) getConnection(nodeID string) (*PooledConnection, erro
 	conn, exists := p.connections[nodeID]
 
 	if !exists {
-
 		return nil, fmt.Errorf("no connection for node %s", nodeID)
-
 	}
 
 	conn.mutex.Lock()
@@ -138,15 +136,11 @@ func (p *E2ConnectionPool) getConnection(nodeID string) (*PooledConnection, erro
 	defer conn.mutex.Unlock()
 
 	if conn.inUse {
-
 		return nil, fmt.Errorf("connection for node %s is in use", nodeID)
-
 	}
 
 	if !conn.healthy {
-
 		return nil, fmt.Errorf("connection for node %s is unhealthy", nodeID)
-
 	}
 
 	conn.inUse = true
@@ -154,13 +148,11 @@ func (p *E2ConnectionPool) getConnection(nodeID string) (*PooledConnection, erro
 	conn.lastUsed = time.Now()
 
 	return conn, nil
-
 }
 
 // releaseConnection releases a connection back to the pool.
 
 func (p *E2ConnectionPool) releaseConnection(nodeID string) {
-
 	p.mutex.RLock()
 
 	defer p.mutex.RUnlock()
@@ -168,9 +160,7 @@ func (p *E2ConnectionPool) releaseConnection(nodeID string) {
 	conn, exists := p.connections[nodeID]
 
 	if !exists {
-
 		return
-
 	}
 
 	conn.mutex.Lock()
@@ -180,25 +170,20 @@ func (p *E2ConnectionPool) releaseConnection(nodeID string) {
 	conn.inUse = false
 
 	conn.lastUsed = time.Now()
-
 }
 
 // addConnection adds a new connection to the pool.
 
 func (p *E2ConnectionPool) addConnection(nodeID string, adaptor *E2Adaptor) error {
-
 	p.mutex.Lock()
 
 	defer p.mutex.Unlock()
 
 	if len(p.connections) >= p.maxConnections {
-
 		return fmt.Errorf("connection pool is full")
-
 	}
 
 	p.connections[nodeID] = &PooledConnection{
-
 		adaptor: adaptor,
 
 		lastUsed: time.Now(),
@@ -211,31 +196,26 @@ func (p *E2ConnectionPool) addConnection(nodeID string, adaptor *E2Adaptor) erro
 	}
 
 	return nil
-
 }
 
 // removeConnection removes a connection from the pool.
 
 func (p *E2ConnectionPool) removeConnection(nodeID string) {
-
 	p.mutex.Lock()
 
 	defer p.mutex.Unlock()
 
 	delete(p.connections, nodeID)
-
 }
 
 // startHealthChecker starts the background health checker for the connection pool.
 
 func (p *E2ConnectionPool) startHealthChecker() {
-
 	ticker := time.NewTicker(p.healthInterval)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ticker.C:
@@ -247,39 +227,30 @@ func (p *E2ConnectionPool) startHealthChecker() {
 			return
 
 		}
-
 	}
-
 }
 
 // checkConnections performs health checks on all connections.
 
 func (p *E2ConnectionPool) checkConnections() {
-
 	p.mutex.RLock()
 
 	connections := make(map[string]*PooledConnection)
 
 	for k, v := range p.connections {
-
 		connections[k] = v
-
 	}
 
 	p.mutex.RUnlock()
 
 	for nodeID, conn := range connections {
-
 		go p.checkConnection(nodeID, conn)
-
 	}
-
 }
 
 // checkConnection performs a health check on a single connection.
 
 func (p *E2ConnectionPool) checkConnection(nodeID string, conn *PooledConnection) {
-
 	conn.mutex.Lock()
 
 	defer conn.mutex.Unlock()
@@ -287,9 +258,7 @@ func (p *E2ConnectionPool) checkConnection(nodeID string, conn *PooledConnection
 	// Skip if connection is in use.
 
 	if conn.inUse {
-
 		return
-
 	}
 
 	// Check if connection is idle for too long.
@@ -315,9 +284,7 @@ func (p *E2ConnectionPool) checkConnection(nodeID string, conn *PooledConnection
 		conn.failCount++
 
 		if conn.failCount > 3 {
-
 			conn.healthy = false
-
 		}
 
 	} else {
@@ -331,7 +298,6 @@ func (p *E2ConnectionPool) checkConnection(nodeID string, conn *PooledConnection
 		found := false
 
 		for _, node := range nodes {
-
 			if node.NodeID == nodeID {
 
 				found = true
@@ -339,17 +305,13 @@ func (p *E2ConnectionPool) checkConnection(nodeID string, conn *PooledConnection
 				break
 
 			}
-
 		}
 
 		if !found {
-
 			conn.healthy = false
-
 		}
 
 	}
-
 }
 
 // Health monitor methods for E2HealthMonitor.
@@ -357,13 +319,11 @@ func (p *E2ConnectionPool) checkConnection(nodeID string, conn *PooledConnection
 // startHealthMonitoring starts the background health monitoring.
 
 func (h *E2HealthMonitor) startHealthMonitoring() {
-
 	ticker := time.NewTicker(h.checkInterval)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ticker.C:
@@ -375,39 +335,30 @@ func (h *E2HealthMonitor) startHealthMonitoring() {
 			return
 
 		}
-
 	}
-
 }
 
 // performHealthChecks performs health checks on all monitored components.
 
 func (h *E2HealthMonitor) performHealthChecks() {
-
 	h.mutex.RLock()
 
 	nodes := make(map[string]*NodeHealth)
 
 	for k, v := range h.nodeHealth {
-
 		nodes[k] = v
-
 	}
 
 	h.mutex.RUnlock()
 
 	for nodeID, health := range nodes {
-
 		go h.checkNodeHealth(nodeID, health)
-
 	}
-
 }
 
 // checkNodeHealth performs a health check on a single node.
 
 func (h *E2HealthMonitor) checkNodeHealth(nodeID string, health *NodeHealth) {
-
 	start := time.Now()
 
 	// Perform health check (simplified).
@@ -429,13 +380,9 @@ func (h *E2HealthMonitor) checkNodeHealth(nodeID string, health *NodeHealth) {
 		// Update status based on failure count.
 
 		if health.FailureCount >= 3 {
-
 			health.Status = "UNHEALTHY"
-
 		} else if health.FailureCount >= 1 {
-
 			health.Status = "DEGRADED"
-
 		}
 
 	} else {
@@ -447,25 +394,21 @@ func (h *E2HealthMonitor) checkNodeHealth(nodeID string, health *NodeHealth) {
 		health.Status = "HEALTHY"
 
 	}
-
 }
 
 // pingNode performs a simple ping to check node connectivity.
 
 func (h *E2HealthMonitor) pingNode(nodeID string) error {
-
 	// Simplified ping implementation.
 
 	// In a real implementation, this would use the actual node endpoint.
 
 	return nil // Assume healthy for now
-
 }
 
 // updateNodeHealth updates the health status of a node.
 
 func (h *E2HealthMonitor) updateNodeHealth(nodeID, status string) {
-
 	h.mutex.Lock()
 
 	defer h.mutex.Unlock()
@@ -477,13 +420,11 @@ func (h *E2HealthMonitor) updateNodeHealth(nodeID, status string) {
 		health.LastCheck = time.Now()
 
 	}
-
 }
 
 // getNodeHealth returns the health status of a node.
 
 func (h *E2HealthMonitor) getNodeHealth(nodeID string) (*NodeHealth, bool) {
-
 	h.mutex.RLock()
 
 	defer h.mutex.RUnlock()
@@ -491,9 +432,7 @@ func (h *E2HealthMonitor) getNodeHealth(nodeID string) (*NodeHealth, bool) {
 	health, exists := h.nodeHealth[nodeID]
 
 	if !exists {
-
 		return nil, false
-
 	}
 
 	// Return a copy to avoid race conditions.
@@ -501,19 +440,16 @@ func (h *E2HealthMonitor) getNodeHealth(nodeID string) (*NodeHealth, bool) {
 	healthCopy := *health
 
 	return &healthCopy, true
-
 }
 
 // addNodeHealth adds health monitoring for a new node.
 
 func (h *E2HealthMonitor) addNodeHealth(nodeID string) {
-
 	h.mutex.Lock()
 
 	defer h.mutex.Unlock()
 
 	h.nodeHealth[nodeID] = &NodeHealth{
-
 		NodeID: nodeID,
 
 		Status: "UNKNOWN",
@@ -522,13 +458,11 @@ func (h *E2HealthMonitor) addNodeHealth(nodeID string) {
 
 		Functions: make(map[int]*FunctionHealth),
 	}
-
 }
 
 // removeNodeHealth removes health monitoring for a node.
 
 func (h *E2HealthMonitor) removeNodeHealth(nodeID string) {
-
 	h.mutex.Lock()
 
 	defer h.mutex.Unlock()
@@ -536,7 +470,6 @@ func (h *E2HealthMonitor) removeNodeHealth(nodeID string) {
 	delete(h.nodeHealth, nodeID)
 
 	delete(h.subscriptionHealth, nodeID)
-
 }
 
 // Subscription listener implementation.
@@ -544,25 +477,21 @@ func (h *E2HealthMonitor) removeNodeHealth(nodeID string) {
 // AddSubscriptionListener adds a subscription event listener.
 
 func (n *SubscriptionNotifier) AddSubscriptionListener(listener SubscriptionListener) {
-
 	n.mutex.Lock()
 
 	defer n.mutex.Unlock()
 
 	n.listeners = append(n.listeners, listener)
-
 }
 
 // RemoveSubscriptionListener removes a subscription event listener.
 
 func (n *SubscriptionNotifier) RemoveSubscriptionListener(listener SubscriptionListener) {
-
 	n.mutex.Lock()
 
 	defer n.mutex.Unlock()
 
 	for i, l := range n.listeners {
-
 		if l == listener {
 
 			n.listeners = append(n.listeners[:i], n.listeners[i+1:]...)
@@ -570,55 +499,41 @@ func (n *SubscriptionNotifier) RemoveSubscriptionListener(listener SubscriptionL
 			break
 
 		}
-
 	}
-
 }
 
 // notifyStateChange notifies all listeners of a state change.
 
 func (n *SubscriptionNotifier) notifyStateChange(nodeID, subscriptionID string, oldState, newState SubscriptionState) {
-
 	n.mutex.RLock()
 
 	defer n.mutex.RUnlock()
 
 	for _, listener := range n.listeners {
-
 		go listener.OnSubscriptionStateChange(nodeID, subscriptionID, oldState, newState)
-
 	}
-
 }
 
 // notifyError notifies all listeners of an error.
 
 func (n *SubscriptionNotifier) notifyError(nodeID, subscriptionID string, err error) {
-
 	n.mutex.RLock()
 
 	defer n.mutex.RUnlock()
 
 	for _, listener := range n.listeners {
-
 		go listener.OnSubscriptionError(nodeID, subscriptionID, err)
-
 	}
-
 }
 
 // notifyMessage notifies all listeners of a message.
 
 func (n *SubscriptionNotifier) notifyMessage(nodeID, subscriptionID string, indication *E2Indication) {
-
 	n.mutex.RLock()
 
 	defer n.mutex.RUnlock()
 
 	for _, listener := range n.listeners {
-
 		go listener.OnSubscriptionMessage(nodeID, subscriptionID, indication)
-
 	}
-
 }

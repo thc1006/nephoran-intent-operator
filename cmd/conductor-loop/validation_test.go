@@ -31,7 +31,7 @@ func TestValidateHandoffDir(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				tempDir := t.TempDir()
 				testDir := filepath.Join(tempDir, "valid-dir")
-				require.NoError(t, os.MkdirAll(testDir, 0755))
+				require.NoError(t, os.MkdirAll(testDir, 0o755))
 				return testDir
 			},
 			wantError: false,
@@ -41,7 +41,7 @@ func TestValidateHandoffDir(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				tempDir := t.TempDir()
 				testFile := filepath.Join(tempDir, "test-file.txt")
-				require.NoError(t, os.WriteFile(testFile, []byte("test"), 0644))
+				require.NoError(t, os.WriteFile(testFile, []byte("test"), 0o644))
 				return testFile
 			},
 			wantError:     true,
@@ -68,7 +68,7 @@ func TestValidateHandoffDir(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				tempDir := t.TempDir()
 				testDir := filepath.Join(tempDir, "dir with spaces")
-				require.NoError(t, os.MkdirAll(testDir, 0755))
+				require.NoError(t, os.MkdirAll(testDir, 0o755))
 				return testDir
 			},
 			wantError: false,
@@ -78,7 +78,7 @@ func TestValidateHandoffDir(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				tempDir := t.TempDir()
 				testDir := filepath.Join(tempDir, "dir-with_special.chars")
-				require.NoError(t, os.MkdirAll(testDir, 0755))
+				require.NoError(t, os.MkdirAll(testDir, 0o755))
 				return testDir
 			},
 			wantError: false,
@@ -149,11 +149,11 @@ func TestValidateHandoffDir_PlatformSpecific(t *testing.T) {
 			// Create a directory without read permissions
 			tempDir := t.TempDir()
 			restrictedDir := filepath.Join(tempDir, "restricted")
-			require.NoError(t, os.MkdirAll(restrictedDir, 0000))
+			require.NoError(t, os.MkdirAll(restrictedDir, 0o000))
 
 			// Restore permissions for cleanup
 			defer func() {
-				if err := os.Chmod(restrictedDir, 0755); err != nil {
+				if err := os.Chmod(restrictedDir, 0o755); err != nil {
 					t.Logf("Failed to restore directory permissions: %v", err)
 				}
 			}()
@@ -173,7 +173,7 @@ func TestValidateHandoffDir_PlatformSpecific(t *testing.T) {
 		t.Run("darwin_case_sensitivity", func(t *testing.T) {
 			tempDir := t.TempDir()
 			testDir := filepath.Join(tempDir, "TestDir")
-			require.NoError(t, os.MkdirAll(testDir, 0755))
+			require.NoError(t, os.MkdirAll(testDir, 0o755))
 
 			// Test with different case (macOS is typically case-insensitive)
 			err := validateHandoffDir(filepath.Join(tempDir, "testdir"))
@@ -193,7 +193,7 @@ func TestValidateHandoffDir_EdgeCases(t *testing.T) {
 		realDir := filepath.Join(tempDir, "real-dir")
 		symlinkDir := filepath.Join(tempDir, "symlink-dir")
 
-		require.NoError(t, os.MkdirAll(realDir, 0755))
+		require.NoError(t, os.MkdirAll(realDir, 0o755))
 		require.NoError(t, os.Symlink(realDir, symlinkDir))
 
 		err := validateHandoffDir(symlinkDir)
@@ -209,7 +209,7 @@ func TestValidateHandoffDir_EdgeCases(t *testing.T) {
 		realFile := filepath.Join(tempDir, "real-file.txt")
 		symlinkFile := filepath.Join(tempDir, "symlink-file")
 
-		require.NoError(t, os.WriteFile(realFile, []byte("test"), 0644))
+		require.NoError(t, os.WriteFile(realFile, []byte("test"), 0o644))
 		require.NoError(t, os.Symlink(realFile, symlinkFile))
 
 		err := validateHandoffDir(symlinkFile)
@@ -272,14 +272,14 @@ func TestValidateHandoffDir_Integration(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Create the handoff directory
-		require.NoError(t, os.MkdirAll(handoffDir, 0755))
+		require.NoError(t, os.MkdirAll(handoffDir, 0o755))
 
 		// Validate error directory (should work - parent now exists)
 		err = validateHandoffDir(errorDir)
 		assert.NoError(t, err)
 
 		// Create the error directory
-		require.NoError(t, os.MkdirAll(errorDir, 0755))
+		require.NoError(t, os.MkdirAll(errorDir, 0o755))
 
 		// Both directories should now be accessible
 		err = validateHandoffDir(handoffDir)
@@ -309,7 +309,7 @@ func TestValidateHandoffDir_Integration(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Should be able to create it
-		require.NoError(t, os.MkdirAll(validPath, 0755))
+		require.NoError(t, os.MkdirAll(validPath, 0o755))
 
 		// And validate again
 		err = validateHandoffDir(validPath)
@@ -321,7 +321,7 @@ func TestValidateHandoffDir_Integration(t *testing.T) {
 func BenchmarkValidateHandoffDir(b *testing.B) {
 	tempDir := b.TempDir()
 	testDir := filepath.Join(tempDir, "benchmark-dir")
-	require.NoError(b, os.MkdirAll(testDir, 0755))
+	require.NoError(b, os.MkdirAll(testDir, 0o755))
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

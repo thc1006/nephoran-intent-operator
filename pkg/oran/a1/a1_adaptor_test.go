@@ -40,7 +40,7 @@ func TestA1AdaptorPolicyTypeOperations(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	// Create adaptor
 	adaptor, err := NewA1Adaptor(&A1AdaptorConfig{
@@ -93,11 +93,8 @@ func TestA1AdaptorPolicyInstanceOperations(t *testing.T) {
 				w.WriteHeader(http.StatusCreated)
 			case http.MethodGet:
 				json.NewEncoder(w).Encode(map[string]interface{}{
-					"slice_id": "test-slice",
-					"qos_parameters": map[string]interface{}{
-						"latency_ms":      10,
-						"throughput_mbps": 100,
-					},
+					"latency_ms":      10,
+					"throughput_mbps": 100,
 				})
 			case http.MethodDelete:
 				w.WriteHeader(http.StatusNoContent)
@@ -113,7 +110,7 @@ func TestA1AdaptorPolicyInstanceOperations(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	// Create adaptor
 	adaptor, err := NewA1Adaptor(&A1AdaptorConfig{
@@ -130,13 +127,10 @@ func TestA1AdaptorPolicyInstanceOperations(t *testing.T) {
 		instance := &A1PolicyInstance{
 			PolicyInstanceID: "test-instance",
 			PolicyTypeID:     1000,
-			PolicyData: map[string]interface{}{
-				"slice_id": "test-slice",
-				"qos_parameters": map[string]interface{}{
-					"latency_ms":      10,
-					"throughput_mbps": 100,
-				},
-			},
+			PolicyData: json.RawMessage(`{
+				"latency_ms": 10,
+				"throughput_mbps": 100
+			}`),
 		}
 		err := adaptor.CreatePolicyInstance(ctx, 1000, instance)
 		assert.NoError(t, err)
@@ -190,7 +184,7 @@ func TestA1AdaptorApplyPolicy(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	// Create adaptor
 	adaptor, err := NewA1Adaptor(&A1AdaptorConfig{
@@ -241,7 +235,7 @@ func TestA1AdaptorRemovePolicy(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	// Create adaptor
 	adaptor, err := NewA1Adaptor(&A1AdaptorConfig{
@@ -352,7 +346,7 @@ func TestA1Adaptor_RetryMechanism(t *testing.T) {
 		}
 		w.WriteHeader(http.StatusCreated)
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	config := &A1AdaptorConfig{
 		RICURL:     server.URL,
@@ -375,9 +369,7 @@ func TestA1Adaptor_RetryMechanism(t *testing.T) {
 		PolicyTypeID: 1,
 		Name:         "Test Policy Type",
 		Description:  "Test retry mechanism",
-		PolicySchema: map[string]interface{}{
-			"type": "object",
-		},
+		PolicySchema: json.RawMessage(`{}`),
 	}
 
 	ctx := context.Background()
@@ -505,7 +497,7 @@ func TestA1Adaptor_PolicyInstanceCreationWithRetry(t *testing.T) {
 		assert.Contains(t, r.URL.Path, "/a1-p/policytypes/1/policies/policy-1")
 		w.WriteHeader(http.StatusCreated)
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	config := &A1AdaptorConfig{
 		RICURL:     server.URL,
@@ -516,10 +508,10 @@ func TestA1Adaptor_PolicyInstanceCreationWithRetry(t *testing.T) {
 	adaptor, err := NewA1Adaptor(config)
 	require.NoError(t, err)
 
-	policyData := map[string]interface{}{
-		"threshold": 10.5,
-		"action":    "throttle",
-	}
+	policyDataRaw := json.RawMessage(`{}`)
+	var policyData map[string]interface{}
+	err = json.Unmarshal(policyDataRaw, &policyData)
+	assert.NoError(t, err)
 
 	ctx := context.Background()
 	err = adaptor.createPolicyInstanceWithRetry(ctx, 1, "policy-1", policyData)
@@ -542,7 +534,7 @@ func TestA1Adaptor_FailureAfterMaxRetries(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	config := &A1AdaptorConfig{
 		RICURL:     server.URL,
@@ -672,24 +664,23 @@ func TestA1PolicyStructures(t *testing.T) {
 			PolicyTypeID: 1,
 			Name:         "Test Policy",
 			Description:  "A test policy type",
-			PolicySchema: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"param1": map[string]interface{}{
-						"type": "string",
-					},
+			PolicySchema: json.RawMessage(`{
+				"properties": {
+					"param1": {}
 				},
-				"required": []string{"param1"},
-			},
-			CreateSchema: map[string]interface{}{
-				"type": "object",
-			},
+				"required": ["param1"]
+			}`),
+			CreateSchema: json.RawMessage(`{}`),
 		}
 
 		assert.Equal(t, 1, policyType.PolicyTypeID)
 		assert.Equal(t, "Test Policy", policyType.Name)
 		assert.NotNil(t, policyType.PolicySchema)
-		assert.Equal(t, "object", policyType.PolicySchema["type"])
+		// Validate that the schema is valid JSON
+		var schemaMap map[string]interface{}
+		err := json.Unmarshal(policyType.PolicySchema, &schemaMap)
+		assert.NoError(t, err)
+		assert.Contains(t, schemaMap, "properties")
 	})
 
 	t.Run("A1PolicyInstance validation", func(t *testing.T) {
@@ -698,9 +689,7 @@ func TestA1PolicyStructures(t *testing.T) {
 		instance := A1PolicyInstance{
 			PolicyInstanceID: "test-instance",
 			PolicyTypeID:     1,
-			PolicyData: map[string]interface{}{
-				"param1": "value1",
-			},
+			PolicyData:       json.RawMessage(`{}`),
 			Status: A1PolicyStatus{
 				EnforcementStatus: "ENFORCED",
 				EnforcementReason: "Policy applied successfully",

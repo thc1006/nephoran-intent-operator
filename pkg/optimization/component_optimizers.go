@@ -31,7 +31,9 @@ limitations under the License.
 package optimization
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"time"
 
@@ -70,13 +72,13 @@ type OptimizationResult struct {
 
 	AppliedStrategies []string `json:"appliedStrategies"`
 
-	ConfigChanges map[string]interface{} `json:"configChanges"`
+	ConfigChanges json.RawMessage `json:"configChanges"`
 
 	ExpectedImpact *ExpectedImpact `json:"expectedImpact"`
 
 	ValidationMetrics []string `json:"validationMetrics"`
 
-	RollbackData map[string]interface{} `json:"rollbackData"`
+	RollbackData json.RawMessage `json:"rollbackData"`
 
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -92,7 +94,6 @@ type LLMProcessorOptimizer struct {
 // LLMOptimizerConfig contains LLM-specific optimization configuration.
 
 type LLMOptimizerConfig struct {
-
 	// Token optimization.
 
 	OptimalTokenRanges map[string]TokenRange `json:"optimalTokenRanges"`
@@ -247,24 +248,18 @@ type BatchConfig struct {
 // NewLLMProcessorOptimizer creates a new LLM processor optimizer.
 
 func NewLLMProcessorOptimizer(config *LLMOptimizerConfig, logger logr.Logger) *LLMProcessorOptimizer {
-
 	return &LLMProcessorOptimizer{
-
 		logger: logger.WithName("llm-optimizer"),
 
 		config: config,
 	}
-
 }
 
 // GetOptimizationStrategies returns LLM-specific optimization strategies.
 
 func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []RecommendationStrategy {
-
 	return []RecommendationStrategy{
-
 		{
-
 			Name: "token_optimization",
 
 			Category: CategoryPerformance,
@@ -272,9 +267,7 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []RecommendationSt
 			TargetComponent: shared.ComponentTypeLLMProcessor,
 
 			ApplicableScenarios: []ScenarioCondition{
-
 				{
-
 					MetricName: "token_usage_efficiency",
 
 					Operator: OperatorLessThan,
@@ -286,7 +279,6 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []RecommendationSt
 			},
 
 			ExpectedBenefits: &ExpectedBenefits{
-
 				LatencyReduction: 15.0,
 
 				CostSavings: 25.0,
@@ -295,9 +287,7 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []RecommendationSt
 			},
 
 			ImplementationSteps: []ImplementationStep{
-
 				{
-
 					Order: 1,
 
 					Name: "analyze_token_patterns",
@@ -310,7 +300,6 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []RecommendationSt
 				},
 
 				{
-
 					Order: 2,
 
 					Name: "optimize_prompts",
@@ -323,7 +312,6 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []RecommendationSt
 				},
 
 				{
-
 					Order: 3,
 
 					Name: "implement_compression",
@@ -338,7 +326,6 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []RecommendationSt
 		},
 
 		{
-
 			Name: "model_selection_optimization",
 
 			Category: CategoryCost,
@@ -346,9 +333,7 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []RecommendationSt
 			TargetComponent: shared.ComponentTypeLLMProcessor,
 
 			ApplicableScenarios: []ScenarioCondition{
-
 				{
-
 					MetricName: "cost_per_request",
 
 					Operator: OperatorGreaterThan,
@@ -360,7 +345,6 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []RecommendationSt
 			},
 
 			ExpectedBenefits: &ExpectedBenefits{
-
 				CostSavings: 40.0,
 
 				LatencyReduction: 10.0,
@@ -368,7 +352,6 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []RecommendationSt
 		},
 
 		{
-
 			Name: "intelligent_caching",
 
 			Category: CategoryPerformance,
@@ -376,9 +359,7 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []RecommendationSt
 			TargetComponent: shared.ComponentTypeLLMProcessor,
 
 			ApplicableScenarios: []ScenarioCondition{
-
 				{
-
 					MetricName: "cache_hit_rate",
 
 					Operator: OperatorLessThan,
@@ -390,7 +371,6 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []RecommendationSt
 			},
 
 			ExpectedBenefits: &ExpectedBenefits{
-
 				LatencyReduction: 60.0,
 
 				ResourceSavings: 30.0,
@@ -400,7 +380,6 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []RecommendationSt
 		},
 
 		{
-
 			Name: "connection_pooling_optimization",
 
 			Category: CategoryPerformance,
@@ -408,9 +387,7 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []RecommendationSt
 			TargetComponent: shared.ComponentTypeLLMProcessor,
 
 			ApplicableScenarios: []ScenarioCondition{
-
 				{
-
 					MetricName: "connection_reuse_rate",
 
 					Operator: OperatorLessThan,
@@ -422,7 +399,6 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []RecommendationSt
 			},
 
 			ExpectedBenefits: &ExpectedBenefits{
-
 				LatencyReduction: 25.0,
 
 				ResourceSavings: 15.0,
@@ -430,7 +406,6 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []RecommendationSt
 		},
 
 		{
-
 			Name: "batch_processing_optimization",
 
 			Category: CategoryPerformance,
@@ -438,9 +413,7 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []RecommendationSt
 			TargetComponent: shared.ComponentTypeLLMProcessor,
 
 			ApplicableScenarios: []ScenarioCondition{
-
 				{
-
 					MetricName: "batch_efficiency",
 
 					Operator: OperatorLessThan,
@@ -452,31 +425,26 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []RecommendationSt
 			},
 
 			ExpectedBenefits: &ExpectedBenefits{
-
 				ThroughputIncrease: 50.0,
 
 				ResourceSavings: 20.0,
 			},
 		},
 	}
-
 }
 
 // OptimizeConfiguration optimizes LLM processor configuration.
 
 func (opt *LLMProcessorOptimizer) OptimizeConfiguration(ctx context.Context, analysis *ComponentAnalysis) (*OptimizationResult, error) {
-
 	opt.logger.Info("Optimizing LLM processor configuration")
 
+	// Create temporary maps for collecting changes
+	configChanges := make(map[string]interface{})
+	rollbackData := make(map[string]interface{})
+
 	result := &OptimizationResult{
-
 		ComponentType: shared.ComponentTypeLLMProcessor,
-
-		ConfigChanges: make(map[string]interface{}),
-
-		RollbackData: make(map[string]interface{}),
-
-		Timestamp: time.Now(),
+		Timestamp:     time.Now(),
 	}
 
 	// Optimize token usage.
@@ -486,12 +454,10 @@ func (opt *LLMProcessorOptimizer) OptimizeConfiguration(ctx context.Context, ana
 		tokenConfig, err := opt.optimizeTokenUsage(ctx, analysis)
 
 		if err != nil {
-
 			opt.logger.Error(err, "Failed to optimize token usage")
-
 		} else {
 
-			result.ConfigChanges["token_config"] = tokenConfig
+			configChanges["token_config"] = tokenConfig
 
 			result.AppliedStrategies = append(result.AppliedStrategies, "token_optimization")
 
@@ -506,12 +472,10 @@ func (opt *LLMProcessorOptimizer) OptimizeConfiguration(ctx context.Context, ana
 		modelConfig, err := opt.optimizeModelSelection(ctx, analysis)
 
 		if err != nil {
-
 			opt.logger.Error(err, "Failed to optimize model selection")
-
 		} else {
 
-			result.ConfigChanges["model_config"] = modelConfig
+			configChanges["model_config"] = modelConfig
 
 			result.AppliedStrategies = append(result.AppliedStrategies, "model_selection_optimization")
 
@@ -526,12 +490,10 @@ func (opt *LLMProcessorOptimizer) OptimizeConfiguration(ctx context.Context, ana
 		cacheConfig, err := opt.optimizeCaching(ctx, analysis)
 
 		if err != nil {
-
 			opt.logger.Error(err, "Failed to optimize caching")
-
 		} else {
 
-			result.ConfigChanges["cache_config"] = cacheConfig
+			configChanges["cache_config"] = cacheConfig
 
 			result.AppliedStrategies = append(result.AppliedStrategies, "intelligent_caching")
 
@@ -546,12 +508,10 @@ func (opt *LLMProcessorOptimizer) OptimizeConfiguration(ctx context.Context, ana
 		connectionConfig, err := opt.optimizeConnections(ctx, analysis)
 
 		if err != nil {
-
 			opt.logger.Error(err, "Failed to optimize connections")
-
 		} else {
 
-			result.ConfigChanges["connection_config"] = connectionConfig
+			configChanges["connection_config"] = connectionConfig
 
 			result.AppliedStrategies = append(result.AppliedStrategies, "connection_pooling_optimization")
 
@@ -566,12 +526,10 @@ func (opt *LLMProcessorOptimizer) OptimizeConfiguration(ctx context.Context, ana
 		batchConfig, err := opt.optimizeBatching(ctx, analysis)
 
 		if err != nil {
-
 			opt.logger.Error(err, "Failed to optimize batching")
-
 		} else {
 
-			result.ConfigChanges["batch_config"] = batchConfig
+			configChanges["batch_config"] = batchConfig
 
 			result.AppliedStrategies = append(result.AppliedStrategies, "batch_processing_optimization")
 
@@ -581,10 +539,32 @@ func (opt *LLMProcessorOptimizer) OptimizeConfiguration(ctx context.Context, ana
 
 	// Calculate expected impact.
 
+
+	// Marshal configChanges to json.RawMessage
+	if len(configChanges) > 0 {
+		configBytes, err := json.Marshal(configChanges)
+		if err != nil {
+			return nil, err
+		}
+		result.ConfigChanges = json.RawMessage(configBytes)
+	} else {
+		result.ConfigChanges = json.RawMessage(`{}`)
+	}
+
+	// Marshal rollbackData to json.RawMessage
+	if len(rollbackData) > 0 {
+		rollbackBytes, err := json.Marshal(rollbackData)
+		if err != nil {
+			return nil, err
+		}
+		result.RollbackData = json.RawMessage(rollbackBytes)
+	} else {
+		result.RollbackData = json.RawMessage(`{}`)
+	}
+
 	result.ExpectedImpact = opt.calculateExpectedImpact(result.AppliedStrategies)
 
 	return result, nil
-
 }
 
 // RAGSystemOptimizer optimizes RAG (Retrieval-Augmented Generation) systems.
@@ -598,7 +578,6 @@ type RAGSystemOptimizer struct {
 // RAGOptimizerConfig contains RAG-specific optimization configuration.
 
 type RAGOptimizerConfig struct {
-
 	// Vector database optimization.
 
 	VectorDBConfigs map[string]VectorDBConfig `json:"vectorDBConfigs"`
@@ -693,24 +672,18 @@ type QueryOptimizationRule struct {
 // NewRAGSystemOptimizer creates a new RAG system optimizer.
 
 func NewRAGSystemOptimizer(config *RAGOptimizerConfig, logger logr.Logger) *RAGSystemOptimizer {
-
 	return &RAGSystemOptimizer{
-
 		logger: logger.WithName("rag-optimizer"),
 
 		config: config,
 	}
-
 }
 
 // GetOptimizationStrategies returns RAG-specific optimization strategies.
 
 func (opt *RAGSystemOptimizer) GetOptimizationStrategies() []RecommendationStrategy {
-
 	return []RecommendationStrategy{
-
 		{
-
 			Name: "vector_database_optimization",
 
 			Category: CategoryPerformance,
@@ -718,7 +691,6 @@ func (opt *RAGSystemOptimizer) GetOptimizationStrategies() []RecommendationStrat
 			TargetComponent: shared.ComponentTypeRAGSystem,
 
 			ExpectedBenefits: &ExpectedBenefits{
-
 				LatencyReduction: 40.0,
 
 				ThroughputIncrease: 30.0,
@@ -726,7 +698,6 @@ func (opt *RAGSystemOptimizer) GetOptimizationStrategies() []RecommendationStrat
 		},
 
 		{
-
 			Name: "embedding_optimization",
 
 			Category: CategoryPerformance,
@@ -734,7 +705,6 @@ func (opt *RAGSystemOptimizer) GetOptimizationStrategies() []RecommendationStrat
 			TargetComponent: shared.ComponentTypeRAGSystem,
 
 			ExpectedBenefits: &ExpectedBenefits{
-
 				LatencyReduction: 25.0,
 
 				CostSavings: 20.0,
@@ -742,7 +712,6 @@ func (opt *RAGSystemOptimizer) GetOptimizationStrategies() []RecommendationStrat
 		},
 
 		{
-
 			Name: "retrieval_strategy_optimization",
 
 			Category: CategoryPerformance,
@@ -750,7 +719,6 @@ func (opt *RAGSystemOptimizer) GetOptimizationStrategies() []RecommendationStrat
 			TargetComponent: shared.ComponentTypeRAGSystem,
 
 			ExpectedBenefits: &ExpectedBenefits{
-
 				LatencyReduction: 30.0,
 
 				ResourceSavings: 15.0,
@@ -758,7 +726,6 @@ func (opt *RAGSystemOptimizer) GetOptimizationStrategies() []RecommendationStrat
 		},
 
 		{
-
 			Name: "query_preprocessing_optimization",
 
 			Category: CategoryPerformance,
@@ -766,31 +733,26 @@ func (opt *RAGSystemOptimizer) GetOptimizationStrategies() []RecommendationStrat
 			TargetComponent: shared.ComponentTypeRAGSystem,
 
 			ExpectedBenefits: &ExpectedBenefits{
-
 				LatencyReduction: 20.0,
 
 				ThroughputIncrease: 25.0,
 			},
 		},
 	}
-
 }
 
 // OptimizeConfiguration optimizes RAG system configuration.
 
 func (opt *RAGSystemOptimizer) OptimizeConfiguration(ctx context.Context, analysis *ComponentAnalysis) (*OptimizationResult, error) {
-
 	opt.logger.Info("Optimizing RAG system configuration")
 
+	// Create temporary maps for collecting changes
+	configChanges := make(map[string]interface{})
+	rollbackData := make(map[string]interface{})
+
 	result := &OptimizationResult{
-
 		ComponentType: shared.ComponentTypeRAGSystem,
-
-		ConfigChanges: make(map[string]interface{}),
-
-		RollbackData: make(map[string]interface{}),
-
-		Timestamp: time.Now(),
+		Timestamp:     time.Now(),
 	}
 
 	// Optimize vector database.
@@ -800,12 +762,10 @@ func (opt *RAGSystemOptimizer) OptimizeConfiguration(ctx context.Context, analys
 		vectorDBConfig, err := opt.optimizeVectorDB(ctx, analysis)
 
 		if err != nil {
-
 			opt.logger.Error(err, "Failed to optimize vector database")
-
 		} else {
 
-			result.ConfigChanges["vector_db_config"] = vectorDBConfig
+			configChanges["vector_db_config"] = vectorDBConfig
 
 			result.AppliedStrategies = append(result.AppliedStrategies, "vector_database_optimization")
 
@@ -820,12 +780,10 @@ func (opt *RAGSystemOptimizer) OptimizeConfiguration(ctx context.Context, analys
 		embeddingConfig, err := opt.optimizeEmbeddings(ctx, analysis)
 
 		if err != nil {
-
 			opt.logger.Error(err, "Failed to optimize embeddings")
-
 		} else {
 
-			result.ConfigChanges["embedding_config"] = embeddingConfig
+			configChanges["embedding_config"] = embeddingConfig
 
 			result.AppliedStrategies = append(result.AppliedStrategies, "embedding_optimization")
 
@@ -840,12 +798,10 @@ func (opt *RAGSystemOptimizer) OptimizeConfiguration(ctx context.Context, analys
 		retrievalConfig, err := opt.optimizeRetrieval(ctx, analysis)
 
 		if err != nil {
-
 			opt.logger.Error(err, "Failed to optimize retrieval")
-
 		} else {
 
-			result.ConfigChanges["retrieval_config"] = retrievalConfig
+			configChanges["retrieval_config"] = retrievalConfig
 
 			result.AppliedStrategies = append(result.AppliedStrategies, "retrieval_strategy_optimization")
 
@@ -853,10 +809,32 @@ func (opt *RAGSystemOptimizer) OptimizeConfiguration(ctx context.Context, analys
 
 	}
 
+	
+	// Marshal configChanges to json.RawMessage
+	if len(configChanges) > 0 {
+		configBytes, err := json.Marshal(configChanges)
+		if err != nil {
+			return nil, err
+		}
+		result.ConfigChanges = json.RawMessage(configBytes)
+	} else {
+		result.ConfigChanges = json.RawMessage(`{}`)
+	}
+
+	// Marshal rollbackData to json.RawMessage
+	if len(rollbackData) > 0 {
+		rollbackBytes, err := json.Marshal(rollbackData)
+		if err != nil {
+			return nil, err
+		}
+		result.RollbackData = json.RawMessage(rollbackBytes)
+	} else {
+		result.RollbackData = json.RawMessage(`{}`)
+	}
+
 	result.ExpectedImpact = opt.calculateExpectedImpact(result.AppliedStrategies)
 
 	return result, nil
-
 }
 
 // KubernetesOptimizer optimizes Kubernetes-related performance.
@@ -870,7 +848,6 @@ type KubernetesOptimizer struct {
 // K8sOptimizerConfig contains Kubernetes-specific optimization configuration.
 
 type K8sOptimizerConfig struct {
-
 	// Resource optimization.
 
 	ResourceOptimizationRules []ResourceOptimizationRule `json:"resourceOptimizationRules"`
@@ -981,24 +958,18 @@ type StorageConfig struct {
 // NewKubernetesOptimizer creates a new Kubernetes optimizer.
 
 func NewKubernetesOptimizer(config *K8sOptimizerConfig, logger logr.Logger) *KubernetesOptimizer {
-
 	return &KubernetesOptimizer{
-
 		logger: logger.WithName("k8s-optimizer"),
 
 		config: config,
 	}
-
 }
 
 // GetOptimizationStrategies returns Kubernetes-specific optimization strategies.
 
 func (opt *KubernetesOptimizer) GetOptimizationStrategies() []RecommendationStrategy {
-
 	return []RecommendationStrategy{
-
 		{
-
 			Name: "resource_optimization",
 
 			Category: CategoryResource,
@@ -1006,7 +977,6 @@ func (opt *KubernetesOptimizer) GetOptimizationStrategies() []RecommendationStra
 			TargetComponent: shared.ComponentTypeKubernetes,
 
 			ExpectedBenefits: &ExpectedBenefits{
-
 				ResourceSavings: 30.0,
 
 				CostSavings: 25.0,
@@ -1014,7 +984,6 @@ func (opt *KubernetesOptimizer) GetOptimizationStrategies() []RecommendationStra
 		},
 
 		{
-
 			Name: "scheduling_optimization",
 
 			Category: CategoryPerformance,
@@ -1022,7 +991,6 @@ func (opt *KubernetesOptimizer) GetOptimizationStrategies() []RecommendationStra
 			TargetComponent: shared.ComponentTypeKubernetes,
 
 			ExpectedBenefits: &ExpectedBenefits{
-
 				LatencyReduction: 20.0,
 
 				ResourceSavings: 15.0,
@@ -1030,7 +998,6 @@ func (opt *KubernetesOptimizer) GetOptimizationStrategies() []RecommendationStra
 		},
 
 		{
-
 			Name: "networking_optimization",
 
 			Category: CategoryPerformance,
@@ -1038,7 +1005,6 @@ func (opt *KubernetesOptimizer) GetOptimizationStrategies() []RecommendationStra
 			TargetComponent: shared.ComponentTypeKubernetes,
 
 			ExpectedBenefits: &ExpectedBenefits{
-
 				LatencyReduction: 35.0,
 
 				ThroughputIncrease: 40.0,
@@ -1046,7 +1012,6 @@ func (opt *KubernetesOptimizer) GetOptimizationStrategies() []RecommendationStra
 		},
 
 		{
-
 			Name: "storage_optimization",
 
 			Category: CategoryPerformance,
@@ -1054,45 +1019,59 @@ func (opt *KubernetesOptimizer) GetOptimizationStrategies() []RecommendationStra
 			TargetComponent: shared.ComponentTypeKubernetes,
 
 			ExpectedBenefits: &ExpectedBenefits{
-
 				LatencyReduction: 25.0,
 
 				CostSavings: 20.0,
 			},
 		},
 	}
-
 }
 
 // OptimizeConfiguration optimizes Kubernetes configuration.
 
 func (opt *KubernetesOptimizer) OptimizeConfiguration(ctx context.Context, analysis *ComponentAnalysis) (*OptimizationResult, error) {
-
 	opt.logger.Info("Optimizing Kubernetes configuration")
 
+	// Create temporary maps for collecting changes
+	configChanges := make(map[string]interface{})
+	rollbackData := make(map[string]interface{})
+
 	result := &OptimizationResult{
-
 		ComponentType: shared.ComponentTypeKubernetes,
-
-		ConfigChanges: make(map[string]interface{}),
-
-		RollbackData: make(map[string]interface{}),
-
-		Timestamp: time.Now(),
+		Timestamp:     time.Now(),
 	}
 
 	// Implementation would include specific K8s optimizations.
 
-	return result, nil
+	// Marshal configChanges to json.RawMessage
+	if len(configChanges) > 0 {
+		configBytes, err := json.Marshal(configChanges)
+		if err != nil {
+			return nil, err
+		}
+		result.ConfigChanges = json.RawMessage(configBytes)
+	} else {
+		result.ConfigChanges = json.RawMessage(`{}`)
+	}
 
+	// Marshal rollbackData to json.RawMessage
+	if len(rollbackData) > 0 {
+		rollbackBytes, err := json.Marshal(rollbackData)
+		if err != nil {
+			return nil, err
+		}
+		result.RollbackData = json.RawMessage(rollbackBytes)
+	} else {
+		result.RollbackData = json.RawMessage(`{}`)
+	}
+
+	return result, nil
 }
 
 // NewComponentOptimizerRegistry creates a new component optimizer registry.
 
 func NewComponentOptimizerRegistry(logger logr.Logger) *ComponentOptimizerRegistry {
-
 	registry := &ComponentOptimizerRegistry{
-
 		logger: logger.WithName("component-optimizer-registry"),
 
 		optimizers: make(map[shared.ComponentType]ComponentOptimizer),
@@ -1107,33 +1086,25 @@ func NewComponentOptimizerRegistry(logger logr.Logger) *ComponentOptimizerRegist
 	registry.optimizers[shared.ComponentTypeKubernetes] = NewKubernetesOptimizer(getDefaultK8sConfig(), logger)
 
 	return registry
-
 }
 
 // GetOptimizer returns the optimizer for a specific component type.
 
 func (registry *ComponentOptimizerRegistry) GetOptimizer(componentType shared.ComponentType) (ComponentOptimizer, error) {
-
 	optimizer, exists := registry.optimizers[componentType]
 
 	if !exists {
-
 		return nil, fmt.Errorf("no optimizer found for component type: %s", componentType)
-
 	}
 
 	return optimizer, nil
-
 }
 
 // Helper methods for creating default configurations.
 
 func getDefaultLLMConfig() *LLMOptimizerConfig {
-
 	return &LLMOptimizerConfig{
-
 		OptimalTokenRanges: map[string]TokenRange{
-
 			"simple": {Min: 50, Max: 500, Optimal: 200, CostFactor: 1.0, LatencyFactor: 1.0},
 
 			"complex": {Min: 200, Max: 2000, Optimal: 800, CostFactor: 1.2, LatencyFactor: 1.1},
@@ -1142,9 +1113,7 @@ func getDefaultLLMConfig() *LLMOptimizerConfig {
 		TokenCompressionRatio: 0.8,
 
 		ModelPerformanceMap: map[string]ModelPerformance{
-
 			"gpt-4o-mini": {
-
 				Name: "gpt-4o-mini",
 
 				AverageLatency: time.Millisecond * 500,
@@ -1161,17 +1130,12 @@ func getDefaultLLMConfig() *LLMOptimizerConfig {
 			},
 		},
 	}
-
 }
 
 func getDefaultRAGConfig() *RAGOptimizerConfig {
-
 	return &RAGOptimizerConfig{
-
 		VectorDBConfigs: map[string]VectorDBConfig{
-
 			"default": {
-
 				IndexType: "hnsw",
 
 				Distance: "cosine",
@@ -1186,17 +1150,12 @@ func getDefaultRAGConfig() *RAGOptimizerConfig {
 			},
 		},
 	}
-
 }
 
 func getDefaultK8sConfig() *K8sOptimizerConfig {
-
 	return &K8sOptimizerConfig{
-
 		ResourceOptimizationRules: []ResourceOptimizationRule{
-
 			{
-
 				WorkloadType: "llm-processor",
 
 				CPURequest: resource.MustParse("1000m"),
@@ -1211,7 +1170,6 @@ func getDefaultK8sConfig() *K8sOptimizerConfig {
 			},
 		},
 	}
-
 }
 
 // Implement placeholder methods for the optimizers.
@@ -1219,24 +1177,15 @@ func getDefaultK8sConfig() *K8sOptimizerConfig {
 // (These would contain the actual optimization logic).
 
 func (opt *LLMProcessorOptimizer) shouldOptimizeTokens(analysis *ComponentAnalysis) bool {
-
 	// Implementation logic for determining if token optimization is needed.
 
 	return true
-
 }
 
 func (opt *LLMProcessorOptimizer) optimizeTokenUsage(ctx context.Context, analysis *ComponentAnalysis) (interface{}, error) {
-
 	// Implementation logic for token optimization.
 
-	return map[string]interface{}{
-
-		"max_tokens": 2048,
-
-		"compression_enabled": true,
-	}, nil
-
+	return json.RawMessage(`{}`), nil
 }
 
 // Additional placeholder methods would be implemented similarly...
@@ -1244,51 +1193,35 @@ func (opt *LLMProcessorOptimizer) optimizeTokenUsage(ctx context.Context, analys
 func (opt *LLMProcessorOptimizer) shouldOptimizeModel(analysis *ComponentAnalysis) bool { return true }
 
 func (opt *LLMProcessorOptimizer) optimizeModelSelection(ctx context.Context, analysis *ComponentAnalysis) (interface{}, error) {
-
 	return nil, nil
-
 }
 
 func (opt *LLMProcessorOptimizer) shouldOptimizeCaching(analysis *ComponentAnalysis) bool {
-
 	return true
-
 }
 
 func (opt *LLMProcessorOptimizer) optimizeCaching(ctx context.Context, analysis *ComponentAnalysis) (interface{}, error) {
-
 	return nil, nil
-
 }
 
 func (opt *LLMProcessorOptimizer) shouldOptimizeConnections(analysis *ComponentAnalysis) bool {
-
 	return true
-
 }
 
 func (opt *LLMProcessorOptimizer) optimizeConnections(ctx context.Context, analysis *ComponentAnalysis) (interface{}, error) {
-
 	return nil, nil
-
 }
 
 func (opt *LLMProcessorOptimizer) shouldOptimizeBatching(analysis *ComponentAnalysis) bool {
-
 	return true
-
 }
 
 func (opt *LLMProcessorOptimizer) optimizeBatching(ctx context.Context, analysis *ComponentAnalysis) (interface{}, error) {
-
 	return nil, nil
-
 }
 
 func (opt *LLMProcessorOptimizer) calculateExpectedImpact(strategies []string) *ExpectedImpact {
-
 	return &ExpectedImpact{
-
 		LatencyReduction: 25.0,
 
 		ThroughputIncrease: 30.0,
@@ -1299,23 +1232,18 @@ func (opt *LLMProcessorOptimizer) calculateExpectedImpact(strategies []string) *
 
 		EfficiencyGain: 35.0,
 	}
-
 }
 
 // ValidateOptimization performs validateoptimization operation.
 
 func (opt *LLMProcessorOptimizer) ValidateOptimization(ctx context.Context, result *OptimizationResult) error {
-
 	return nil
-
 }
 
 // RollbackOptimization performs rollbackoptimization operation.
 
 func (opt *LLMProcessorOptimizer) RollbackOptimization(ctx context.Context, result *OptimizationResult) error {
-
 	return nil
-
 }
 
 // Similar placeholder methods for RAG and K8s optimizers...
@@ -1323,94 +1251,79 @@ func (opt *LLMProcessorOptimizer) RollbackOptimization(ctx context.Context, resu
 func (opt *RAGSystemOptimizer) shouldOptimizeVectorDB(analysis *ComponentAnalysis) bool { return true }
 
 func (opt *RAGSystemOptimizer) optimizeVectorDB(ctx context.Context, analysis *ComponentAnalysis) (interface{}, error) {
-
 	return nil, nil
-
 }
 
 func (opt *RAGSystemOptimizer) shouldOptimizeEmbeddings(analysis *ComponentAnalysis) bool {
-
 	return true
-
 }
 
 func (opt *RAGSystemOptimizer) optimizeEmbeddings(ctx context.Context, analysis *ComponentAnalysis) (interface{}, error) {
-
 	return nil, nil
-
 }
 
 func (opt *RAGSystemOptimizer) shouldOptimizeRetrieval(analysis *ComponentAnalysis) bool { return true }
 
 func (opt *RAGSystemOptimizer) optimizeRetrieval(ctx context.Context, analysis *ComponentAnalysis) (interface{}, error) {
-
 	return nil, nil
-
 }
 
 func (opt *RAGSystemOptimizer) calculateExpectedImpact(strategies []string) *ExpectedImpact {
-
 	return &ExpectedImpact{EfficiencyGain: 30.0}
-
 }
 
 // ValidateOptimization performs validateoptimization operation.
 
 func (opt *RAGSystemOptimizer) ValidateOptimization(ctx context.Context, result *OptimizationResult) error {
-
 	return nil
-
 }
 
 // RollbackOptimization performs rollbackoptimization operation.
 
 func (opt *RAGSystemOptimizer) RollbackOptimization(ctx context.Context, result *OptimizationResult) error {
-
 	return nil
-
 }
 
 // ValidateOptimization performs validateoptimization operation.
 
 func (opt *KubernetesOptimizer) ValidateOptimization(ctx context.Context, result *OptimizationResult) error {
-
 	return nil
-
 }
 
 // RollbackOptimization performs rollbackoptimization operation.
 
 func (opt *KubernetesOptimizer) RollbackOptimization(ctx context.Context, result *OptimizationResult) error {
-
 	return nil
-
 }
 
 // K8s optimizer placeholder methods
 func (opt *KubernetesOptimizer) shouldOptimizeResources(analysis *ComponentAnalysis) bool {
 	return true
 }
+
 func (opt *KubernetesOptimizer) optimizeResources(ctx context.Context, analysis *ComponentAnalysis) (interface{}, error) {
 	return nil, nil
 }
+
 func (opt *KubernetesOptimizer) shouldOptimizeScheduling(analysis *ComponentAnalysis) bool {
 	return true
 }
+
 func (opt *KubernetesOptimizer) optimizeScheduling(ctx context.Context, analysis *ComponentAnalysis) (interface{}, error) {
 	return nil, nil
 }
+
 func (opt *KubernetesOptimizer) shouldOptimizeNetworking(analysis *ComponentAnalysis) bool {
 	return true
 }
+
 func (opt *KubernetesOptimizer) optimizeNetworking(ctx context.Context, analysis *ComponentAnalysis) (interface{}, error) {
 	return nil, nil
 }
+
 func (opt *KubernetesOptimizer) calculateExpectedImpact(strategies []string) *ExpectedImpact {
 	return &ExpectedImpact{EfficiencyGain: 25.0}
 }
-func (opt *KubernetesOptimizer) ValidateOptimization(ctx context.Context, result *OptimizationResult) error {
-	return nil
-}
-func (opt *KubernetesOptimizer) RollbackOptimization(ctx context.Context, result *OptimizationResult) error {
-	return nil
-}
+
+// ValidateOptimization and RollbackOptimization are already implemented above
+

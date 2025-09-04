@@ -2,7 +2,9 @@
 package ves
 
 import (
-	"crypto/rand"
+	
+	"encoding/json"
+"crypto/rand"
 	"encoding/hex"
 	"time"
 )
@@ -37,7 +39,6 @@ type CommonEventHeader struct {
 	Version string `json:"version"` // version of event header spec
 
 	VesEventListenerVersion string `json:"vesEventListenerVersion"` // VES collector API version
-
 }
 
 // HeartbeatFields represents heartbeat domain specific fields.
@@ -47,7 +48,7 @@ type HeartbeatFields struct {
 
 	HeartbeatInterval int `json:"heartbeatInterval"`
 
-	AdditionalFields map[string]interface{} `json:"additionalFields,omitempty"`
+	AdditionalFields json.RawMessage `json:"additionalFields,omitempty"`
 }
 
 // FaultFields represents fault domain specific fields.
@@ -78,20 +79,18 @@ type Event struct {
 
 		FaultFields *FaultFields `json:"faultFields,omitempty"`
 
-		MeasurementFields map[string]interface{} `json:"measurementFields,omitempty"`
+		MeasurementFields json.RawMessage `json:"measurementFields,omitempty"`
 	} `json:"event"`
 }
 
 // NewHeartbeatEvent creates a minimal heartbeat event.
 
 func NewHeartbeatEvent(sourceName string, interval int) *Event {
-
 	now := time.Now().UTC()
 
 	nowMicros := now.UnixNano() / 1000
 
 	return &Event{
-
 		Event: struct {
 			CommonEventHeader CommonEventHeader `json:"commonEventHeader"`
 
@@ -99,11 +98,9 @@ func NewHeartbeatEvent(sourceName string, interval int) *Event {
 
 			FaultFields *FaultFields `json:"faultFields,omitempty"`
 
-			MeasurementFields map[string]interface{} `json:"measurementFields,omitempty"`
+			MeasurementFields json.RawMessage `json:"measurementFields,omitempty"`
 		}{
-
 			CommonEventHeader: CommonEventHeader{
-
 				Domain: "heartbeat",
 
 				EventID: generateEventID(),
@@ -130,52 +127,42 @@ func NewHeartbeatEvent(sourceName string, interval int) *Event {
 			},
 
 			HeartbeatFields: &HeartbeatFields{
-
 				HeartbeatFieldsVersion: "3.0",
 
 				HeartbeatInterval: interval,
 			},
 		},
 	}
-
 }
 
 // generateEventID creates a unique event ID.
 
 func generateEventID() string {
-
 	return time.Now().UTC().Format("20060102-150405") + "-" + generateRandomSuffix()
-
 }
 
 func generateRandomSuffix() string {
-
 	randomBytes := make([]byte, 4)
 
 	n, err := rand.Read(randomBytes)
 
 	if err != nil || n != len(randomBytes) {
-
 		// Fallback to time-based suffix if random generation fails.
 
 		return time.Now().Format("150405")
-
 	}
 
 	return hex.EncodeToString(randomBytes)
-
 }
 
 // NewFaultEvent creates a minimal fault event.
 
 func NewFaultEvent(sourceName, alarmCondition, severity string) *Event {
-
 	now := time.Now().UTC()
 
 	nowMicros := now.UnixNano() / 1000
 
 	return &Event{
-
 		Event: struct {
 			CommonEventHeader CommonEventHeader `json:"commonEventHeader"`
 
@@ -183,11 +170,9 @@ func NewFaultEvent(sourceName, alarmCondition, severity string) *Event {
 
 			FaultFields *FaultFields `json:"faultFields,omitempty"`
 
-			MeasurementFields map[string]interface{} `json:"measurementFields,omitempty"`
+			MeasurementFields json.RawMessage `json:"measurementFields,omitempty"`
 		}{
-
 			CommonEventHeader: CommonEventHeader{
-
 				Domain: "fault",
 
 				EventID: generateEventID(),
@@ -214,7 +199,6 @@ func NewFaultEvent(sourceName, alarmCondition, severity string) *Event {
 			},
 
 			FaultFields: &FaultFields{
-
 				FaultFieldsVersion: "4.0",
 
 				AlarmCondition: alarmCondition,
@@ -229,5 +213,4 @@ func NewFaultEvent(sourceName, alarmCondition, severity string) *Event {
 			},
 		},
 	}
-
 }

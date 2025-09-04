@@ -190,8 +190,8 @@ func IntentWithLabelsAndAnnotations() *nephoranv1.NetworkIntent {
 		"version": "v1.0.0",
 	}
 	annotations := map[string]string{
-		"nephoran.io/processed":   "true",
-		"nephoran.io/llm-enabled": "true",
+		"nephoran.io/processed":                            "true",
+		"nephoran.io/llm-enabled":                          "true",
 		"kubectl.kubernetes.io/last-applied-configuration": `{"apiVersion":"nephoran.io/v1","kind":"NetworkIntent"}`,
 	}
 
@@ -287,7 +287,7 @@ func InvalidIntents() []*nephoranv1.NetworkIntent {
 			WithName("invalid-name-with-UPPERCASE").
 			WithIntent("scale network function").
 			Build(),
-		
+
 		// Intent with extremely long name
 		NewNetworkIntentBuilder().
 			WithName("this-is-an-extremely-long-name-that-exceeds-kubernetes-limits-and-should-cause-validation-errors").

@@ -4,7 +4,9 @@
 package llm
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 )
 
@@ -24,9 +26,9 @@ type LLMProcessor interface {
 
 type Processor = LLMProcessor
 
-// BatchProcessor handles batch processing of multiple intents (disabled).
+// DisabledBatchProcessor handles batch processing of multiple intents (disabled).
 
-type BatchProcessor interface {
+type DisabledBatchProcessor interface {
 	ProcessRequest(ctx context.Context, intent, intentType, modelName string, priority Priority) (*BatchResult, error)
 
 	GetStats() BatchProcessorStats
@@ -37,9 +39,7 @@ type BatchProcessor interface {
 // StreamingProcessor handles streaming requests (disabled).
 
 type StreamingProcessor struct {
-
 	// Stub implementation fields.
-
 }
 
 // CacheProvider provides caching functionality (disabled).
@@ -77,7 +77,7 @@ type ProcessingRequest struct {
 
 	Temperature float32 `json:"temperature,omitempty"`
 
-	Context map[string]interface{} `json:"context,omitempty"`
+	Context json.RawMessage `json:"context,omitempty"`
 }
 
 // ProcessingResponse represents a processing response (stub).
@@ -93,5 +93,5 @@ type ProcessingResponse struct {
 
 	Cached bool `json:"cached"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }

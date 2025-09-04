@@ -65,7 +65,6 @@ func AuditLevelFromString(level string) AuditLevel {
 // SecretManager interface defines methods for secure secret operations.
 
 type SecretManager interface {
-
 	// GetSecretValue retrieves a value from a secret source (Kubernetes or environment).
 
 	GetSecretValue(ctx context.Context, secretName, key, envVarName string) (string, error)
@@ -89,12 +88,15 @@ type SecretManager interface {
 	// GetSecretRotationInfo returns information about when a secret was last rotated.
 
 	GetSecretRotationInfo(ctx context.Context, secretName string) (map[string]string, error)
+
+	// GetAPIKeys retrieves all API keys from the configured secret source.
+
+	GetAPIKeys(ctx context.Context) (*APIKeys, error)
 }
 
 // AuditLogger interface defines methods for security audit logging.
 
 type AuditLogger interface {
-
 	// LogSecretAccess logs when secrets are accessed.
 
 	LogSecretAccess(secretType, source, userID, sessionID string, success bool, err error)
@@ -135,7 +137,6 @@ type AuditLogger interface {
 // ConfigProvider interface defines methods for configuration access.
 
 type ConfigProvider interface {
-
 	// GetRAGAPIURL returns the appropriate RAG API URL based on environment.
 
 	GetRAGAPIURL(useInternal bool) string
@@ -203,12 +204,12 @@ type APIKeys struct {
 // IsEmpty returns true if all API keys are empty.
 
 func (ak *APIKeys) IsEmpty() bool {
-	return ak.OpenAI == "" && 
-		   ak.Weaviate == "" && 
-		   ak.Anthropic == "" && 
-		   ak.GoogleAI == "" && 
-		   ak.Generic == "" && 
-		   ak.JWTSecret == ""
+	return ak.OpenAI == "" &&
+		ak.Weaviate == "" &&
+		ak.Anthropic == "" &&
+		ak.GoogleAI == "" &&
+		ak.Generic == "" &&
+		ak.JWTSecret == ""
 }
 
 // RotationResult contains the result of a secret rotation operation.

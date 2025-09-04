@@ -4,6 +4,7 @@ package llm
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"runtime"
 	"runtime/debug"
@@ -19,7 +20,7 @@ func BenchmarkLLMProcessorSuite(b *testing.B) {
 	ctx := context.Background()
 
 	// Create mock LLM client for consistent benchmarking
-	mockClient := &MockLLMClient{
+	mockClient := &BenchmarkMockLLMClient{
 		responses: map[string]string{
 			"simple":  `{"choices":[{"message":{"content":"{\"type\":\"NetworkFunctionDeployment\",\"name\":\"test-amf\",\"replicas\":3}"}}]}`,
 			"complex": `{"choices":[{"message":{"content":"{\"type\":\"NetworkFunctionDeployment\",\"name\":\"test-smf\",\"spec\":{\"replicas\":5,\"autoscaling\":{\"enabled\":true,\"minReplicas\":3,\"maxReplicas\":10},\"resources\":{\"requests\":{\"cpu\":\"500m\",\"memory\":\"1Gi\"},\"limits\":{\"cpu\":\"2\",\"memory\":\"4Gi\"}}}}"}}]}`,
@@ -58,11 +59,7 @@ func BenchmarkLLMProcessorSuite(b *testing.B) {
 // benchmarkSingleRequest tests single request processing using Go 1.24+ testing features
 func benchmarkSingleRequest(b *testing.B, ctx context.Context, processor *EnhancedLLMProcessor) {
 	intent := "Deploy AMF with 3 replicas for production environment"
-	params := map[string]interface{}{
-		"model":       "gpt-4o-mini",
-		"max_tokens":  2048,
-		"temperature": 0.1,
-	}
+	params := map[string]interface{}{}
 
 	b.ResetTimer()
 	b.ReportAllocs() // Go 1.24+ enhanced allocation reporting
@@ -101,10 +98,7 @@ func benchmarkConcurrentRequests(b *testing.B, ctx context.Context, processor *E
 	for _, concurrency := range concurrencyLevels {
 		b.Run(fmt.Sprintf("Concurrency-%d", concurrency), func(b *testing.B) {
 			intent := "Deploy SMF with auto-scaling enabled"
-			params := map[string]interface{}{
-				"model":      "gpt-4o-mini",
-				"max_tokens": 1024,
-			}
+			params := map[string]interface{}{}
 
 			// Enhanced memory stats collection
 			var startMemStats, endMemStats runtime.MemStats
@@ -160,10 +154,7 @@ func benchmarkConcurrentRequests(b *testing.B, ctx context.Context, processor *E
 // benchmarkMemoryEfficiency tests memory usage and GC behavior using Go 1.24+ runtime features
 func benchmarkMemoryEfficiency(b *testing.B, ctx context.Context, processor *EnhancedLLMProcessor) {
 	intent := "Deploy UPF with high-performance configuration"
-	params := map[string]interface{}{
-		"model":      "gpt-4o-mini",
-		"max_tokens": 4096,
-	}
+	params := map[string]interface{}{}
 
 	// Collect detailed GC stats using Go 1.24+ debug enhancements
 	var startGCStats, endGCStats debug.GCStats
@@ -223,10 +214,7 @@ func benchmarkCircuitBreakerBehavior(b *testing.B, ctx context.Context, processo
 	// No Configure method available on actual CircuitBreaker implementation
 
 	intent := "Deploy NSSF for network slicing"
-	params := map[string]interface{}{
-		"model":      "gpt-4o-mini",
-		"max_tokens": 1024,
-	}
+	params := map[string]interface{}{}
 
 	// Test scenarios
 	scenarios := []struct {
@@ -245,7 +233,7 @@ func benchmarkCircuitBreakerBehavior(b *testing.B, ctx context.Context, processo
 			processor.circuitBreaker.Reset()
 
 			// Configure mock client failure rate
-			if mockClient, ok := processor.client.(*MockLLMClient); ok {
+			if mockClient, ok := processor.client.(*BenchmarkMockLLMClient); ok {
 				mockClient.SetFailureRate(scenario.failureRate)
 			}
 
@@ -290,10 +278,7 @@ func benchmarkCachePerformance(b *testing.B, ctx context.Context, processor *Enh
 
 	// Pre-populate cache with some entries
 	baseIntent := "Deploy AMF with configuration"
-	params := map[string]interface{}{
-		"model":      "gpt-4o-mini",
-		"max_tokens": 1024,
-	}
+	params := map[string]interface{}{}
 
 	cacheScenarios := []struct {
 		name          string
@@ -368,10 +353,7 @@ func benchmarkWorkerPoolEfficiency(b *testing.B, ctx context.Context, processor 
 	}
 
 	intent := "Deploy 5G Core components"
-	params := map[string]interface{}{
-		"model":      "gpt-4o-mini",
-		"max_tokens": 2048,
-	}
+	params := map[string]interface{}{}
 
 	for _, config := range poolConfigs {
 		b.Run(config.name, func(b *testing.B) {
@@ -464,7 +446,6 @@ func BenchmarkLLMTokenManager(b *testing.B) {
 			for pb.Next() {
 				testText := fmt.Sprintf("concurrent test request %d", runtime.NumGoroutine())
 				tokens, err := tokenManager.AllocateTokens(testText)
-
 				if err != nil {
 					atomic.AddInt64(&rateLimited, 1)
 				}
@@ -479,14 +460,14 @@ func BenchmarkLLMTokenManager(b *testing.B) {
 
 // Mock implementations for consistent benchmarking
 
-type MockLLMClient struct {
+type BenchmarkMockLLMClient struct {
 	responses   map[string]string
 	latencyMs   int
 	failureRate float64
 	mu          sync.RWMutex
 }
 
-func (m *MockLLMClient) ProcessRequest(ctx context.Context, request *LLMRequest) (*LLMResponse, error) {
+func (m *BenchmarkMockLLMClient) ProcessRequest(ctx context.Context, request *LLMRequest) (*LLMResponse, error) {
 	// Simulate API latency
 	time.Sleep(time.Duration(m.latencyMs) * time.Millisecond)
 
@@ -518,28 +499,36 @@ func (m *MockLLMClient) ProcessRequest(ctx context.Context, request *LLMRequest)
 			tokenCount = len(payload) / 4 // Rough token estimation
 		}
 	}
-	
+
 	model := "default"
-	if request.Metadata != nil && request.Metadata["model"] != nil {
-		if modelStr, ok := request.Metadata["model"].(string); ok {
-			model = modelStr
+	if request.Metadata != nil && len(request.Metadata) > 0 {
+		var metadata map[string]interface{}
+		if err := json.Unmarshal(request.Metadata, &metadata); err == nil {
+			if modelValue, ok := metadata["model"]; ok {
+				if modelStr, ok := modelValue.(string); ok {
+					model = modelStr
+				}
+			}
 		}
 	}
 
+	// Create metadata with calculated values
+	metadataMap := map[string]interface{}{
+		"model":       model,
+		"tokens_used": tokenCount,
+	}
+	metadataBytes, _ := json.Marshal(metadataMap)
+	
 	return &LLMResponse{
 		Content:    response,
 		StatusCode: 200,
 		Size:       len(response),
 		FromCache:  false,
-		Metadata: map[string]interface{}{
-			"tokens_used":   tokenCount,
-			"model":         model,
-			"finish_reason": "stop",
-		},
+		Metadata:   metadataBytes,
 	}, nil
 }
 
-func (m *MockLLMClient) SetFailureRate(rate float64) {
+func (m *BenchmarkMockLLMClient) SetFailureRate(rate float64) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.failureRate = rate
@@ -588,7 +577,6 @@ func (p *EnhancedLLMProcessor) ProcessIntent(ctx context.Context, intent string,
 	result, err := p.circuitBreaker.Execute(func() (interface{}, error) {
 		return p.processWithTokenLimit(ctx, intent, params)
 	})
-
 	if err != nil {
 		p.metrics.RecordError(err)
 		return nil, err
@@ -614,10 +602,7 @@ func (p *EnhancedLLMProcessor) processWithTokenLimit(ctx context.Context, intent
 	// Create LLM request
 	request := &LLMRequest{
 		Payload: intent,
-		Metadata: map[string]interface{}{
-			"model":      params["model"].(string),
-			"max_tokens": params["max_tokens"].(int),
-		},
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Process through client
@@ -627,20 +612,30 @@ func (p *EnhancedLLMProcessor) processWithTokenLimit(ctx context.Context, intent
 	}
 
 	// Track token usage from response metadata
-	if response.Metadata != nil {
-		if tokensUsed, ok := response.Metadata["tokens_used"].(int); ok {
-			_ = tokensUsed // Token usage tracked
+	if response.Metadata != nil && len(response.Metadata) > 0 {
+		var metadata map[string]interface{}
+		if err := json.Unmarshal(response.Metadata, &metadata); err == nil {
+			if tokensUsed, ok := metadata["tokens_used"]; ok {
+				_ = tokensUsed // Token usage tracked
+			}
 		}
 	}
 
 	tokensUsed := 50 // Default
 	model := "default"
-	if response.Metadata != nil {
-		if tokens, ok := response.Metadata["tokens_used"].(int); ok {
-			tokensUsed = tokens
-		}
-		if m, ok := response.Metadata["model"].(string); ok {
-			model = m
+	if response.Metadata != nil && len(response.Metadata) > 0 {
+		var metadata map[string]interface{}
+		if err := json.Unmarshal(response.Metadata, &metadata); err == nil {
+			if tokens, ok := metadata["tokens_used"]; ok {
+				if tokensInt, ok := tokens.(float64); ok {
+					tokensUsed = int(tokensInt)
+				}
+			}
+			if m, ok := metadata["model"]; ok {
+				if modelStr, ok := m.(string); ok {
+					model = modelStr
+				}
+			}
 		}
 	}
 
@@ -674,7 +669,7 @@ type BenchmarkLLMClient interface {
 }
 
 // Placeholder interfaces for the enhanced components
-type IntelligentCache interface {
+type BenchmarkIntelligentCache interface {
 	Get(key string) interface{}
 	Set(key string, value interface{})
 	Has(key string) bool
@@ -692,7 +687,7 @@ type IntelligentCache interface {
 // WorkerPool is already defined in worker_pool.go
 // Using the actual implementation instead of mock
 
-type ProcessorMetrics interface {
+type BenchmarkProcessorMetrics interface {
 	RecordLatency(duration time.Duration)
 	RecordCacheHit()
 	RecordCacheMiss()
@@ -752,7 +747,7 @@ func (m *mockCache) Set(key string, value interface{})                          
 func (m *mockCache) Has(key string) bool                                             { return false }
 func (m *mockCache) GenerateKey(intent string, params map[string]interface{}) string { return intent }
 func (m *mockCache) Clear()                                                          {}
-func (m *mockCache) Configure(config BenchmarkCacheConfig)                                    {}
+func (m *mockCache) Configure(config BenchmarkCacheConfig)                           {}
 
 type mockCircuitBreaker struct{}
 
@@ -786,7 +781,6 @@ type mockWorkerPool struct{}
 
 func (m *mockWorkerPool) Shutdown() {}
 
-
 type mockMetrics struct{}
 
 func (m *mockMetrics) RecordLatency(duration time.Duration) {}
@@ -794,3 +788,4 @@ func (m *mockMetrics) RecordCacheHit()                      {}
 func (m *mockMetrics) RecordCacheMiss()                     {}
 func (m *mockMetrics) RecordError(err error)                {}
 func (m *mockMetrics) RecordSuccess()                       {}
+

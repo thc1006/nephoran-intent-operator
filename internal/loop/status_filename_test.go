@@ -59,12 +59,12 @@ func TestStatusFilenameGeneration(t *testing.T) {
 
 			watcher, err := NewWatcher(tempDir, *config)
 			require.NoError(t, err)
-			defer watcher.Close()
+			defer watcher.Close() // #nosec G307 - Error handled in defer
 
 			// Create the intent file
 			intentPath := filepath.Join(tempDir, tc.intentFile)
 			intentContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "metadata": {"name": "test"}}`
-			err = os.WriteFile(intentPath, []byte(intentContent), 0644)
+			err = os.WriteFile(intentPath, []byte(intentContent), 0o644)
 			require.NoError(t, err)
 
 			// Process the file
@@ -131,7 +131,7 @@ func TestStatusFilenameConsistency(t *testing.T) {
 
 	watcher, err := NewWatcher(tempDir, *config)
 	require.NoError(t, err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Create intent file
 	intentFile := "intent-versioning.json"
@@ -144,7 +144,7 @@ func TestStatusFilenameConsistency(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		// Write/update the intent file
 		content := fmt.Sprintf(`{"version": %d}`, i+1)
-		err := os.WriteFile(intentPath, []byte(content), 0644)
+		err := os.WriteFile(intentPath, []byte(content), 0o644)
 		require.NoError(t, err)
 
 		// Wait for processing

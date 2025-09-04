@@ -203,7 +203,7 @@ func NewGPUMemoryMetrics(meter metric.Meter) *GPUMemoryMetrics {
 func (gmm *GPUMemoryMetrics) RecordAllocation(duration time.Duration, size int64, purpose AllocationPurpose) {
 	seconds := duration.Seconds()
 	deviceID := "0" // Default device, could be parameterized
-	purposeStr := string(purpose)
+	purposeStr := purpose.String()
 	sizeRange := getSizeRange(size)
 
 	// Prometheus
@@ -228,7 +228,7 @@ func (gmm *GPUMemoryMetrics) RecordAllocation(duration time.Duration, size int64
 // RecordSuccessfulAllocation records a successful allocation
 func (gmm *GPUMemoryMetrics) RecordSuccessfulAllocation(size int64, purpose AllocationPurpose, deviceID int) {
 	deviceIDStr := string(rune('0' + deviceID))
-	purposeStr := string(purpose)
+	purposeStr := purpose.String()
 
 	labels := prometheus.Labels{
 		"device_id": deviceIDStr,
@@ -241,7 +241,7 @@ func (gmm *GPUMemoryMetrics) RecordSuccessfulAllocation(size int64, purpose Allo
 // RecordAllocationFailure records a failed allocation
 func (gmm *GPUMemoryMetrics) RecordAllocationFailure(purpose AllocationPurpose, deviceID int) {
 	deviceIDStr := string(rune('0' + deviceID))
-	purposeStr := string(purpose)
+	purposeStr := purpose.String()
 
 	// Record in allocation count
 	countLabels := prometheus.Labels{

@@ -38,7 +38,6 @@ import (
 // NetworkIntentSpec defines the desired state of NetworkIntent.
 
 type NetworkIntentSpec struct {
-
 	// Intent is the natural language intent from the user describing the desired network configuration.
 
 	//
@@ -113,13 +112,13 @@ type NetworkIntentSpec struct {
 
 	// +optional
 
-	Priority Priority `json:"priority,omitempty"`
+	Priority NetworkPriority `json:"priority,omitempty"`
 
 	// TargetComponents specifies the target components for the intent.
 
 	// +optional
 
-	TargetComponents []ORANComponent `json:"targetComponents,omitempty"`
+	TargetComponents []NetworkTargetComponent `json:"targetComponents,omitempty"`
 
 	// TargetNamespace specifies the target namespace for deployment.
 
@@ -156,12 +155,17 @@ type NetworkIntentSpec struct {
 	// +optional
 
 	ProcessedParameters *ProcessedParameters `json:"processedParameters,omitempty"`
+
+	// Parameters contains raw parameters for the intent as a runtime extension.
+
+	// +optional
+
+	Parameters *runtime.RawExtension `json:"parameters,omitempty"`
 }
 
 // ProcessingResult contains the results of intent processing.
 
 type ProcessingResult struct {
-
 	// NetworkFunctionType contains the detected network function type.
 
 	NetworkFunctionType string `json:"networkFunctionType,omitempty"`
@@ -172,7 +176,8 @@ type ProcessingResult struct {
 
 	// ConfidenceScore represents the confidence in the processing results.
 
-	ConfidenceScore *float64 `json:"confidenceScore,omitempty"`
+	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
+	ConfidenceScore *string `json:"confidenceScore,omitempty"`
 
 	// ProcessingTimestamp when the processing completed.
 
@@ -249,6 +254,48 @@ const (
 	ORANComponentUPF ORANComponent = "upf"
 )
 
+// NetworkPriority represents the priority level for network operations.
+type NetworkPriority string
+
+const (
+	// NetworkPriorityLow represents low priority network operations.
+	NetworkPriorityLow NetworkPriority = "Low"
+	// NetworkPriorityNormal represents normal priority network operations.
+	NetworkPriorityNormal NetworkPriority = "Normal"
+	// NetworkPriorityHigh represents high priority network operations.
+	NetworkPriorityHigh NetworkPriority = "High"
+	// NetworkPriorityCritical represents critical priority network operations.
+	NetworkPriorityCritical NetworkPriority = "Critical"
+)
+
+// NetworkTargetComponent represents target network components for intents.
+type NetworkTargetComponent string
+
+const (
+	// NetworkTargetComponentAMF represents Access and Mobility Management Function.
+	NetworkTargetComponentAMF NetworkTargetComponent = "amf"
+	// NetworkTargetComponentSMF represents Session Management Function.
+	NetworkTargetComponentSMF NetworkTargetComponent = "smf"
+	// NetworkTargetComponentUPF represents User Plane Function.
+	NetworkTargetComponentUPF NetworkTargetComponent = "upf"
+	// NetworkTargetComponentNRF represents Network Repository Function.
+	NetworkTargetComponentNRF NetworkTargetComponent = "nrf"
+	// NetworkTargetComponentUDM represents Unified Data Management.
+	NetworkTargetComponentUDM NetworkTargetComponent = "udm"
+	// NetworkTargetComponentUDR represents Unified Data Repository.
+	NetworkTargetComponentUDR NetworkTargetComponent = "udr"
+	// NetworkTargetComponentPCF represents Policy Control Function.
+	NetworkTargetComponentPCF NetworkTargetComponent = "pcf"
+	// NetworkTargetComponentAUSF represents Authentication Server Function.
+	NetworkTargetComponentAUSF NetworkTargetComponent = "ausf"
+	// NetworkTargetComponentNSSF represents Network Slice Selection Function.
+	NetworkTargetComponentNSSF NetworkTargetComponent = "nssf"
+	// NetworkTargetComponentNearRTRIC represents Near-RT RIC component.
+	NetworkTargetComponentNearRTRIC NetworkTargetComponent = "near-rt-ric"
+	// NetworkTargetComponentXApp represents xApp component.
+	NetworkTargetComponentXApp NetworkTargetComponent = "xapp"
+)
+
 // NetworkIntentPhase represents the phase of NetworkIntent processing.
 
 type NetworkIntentPhase string
@@ -287,7 +334,6 @@ const (
 // NetworkIntentStatus defines the observed state of NetworkIntent.
 
 type NetworkIntentStatus struct {
-
 	// ObservedGeneration reflects the generation of the most recently observed NetworkIntent.
 
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
@@ -364,6 +410,12 @@ type NetworkIntentStatus struct {
 
 	Extensions map[string]runtime.RawExtension `json:"extensions,omitempty"`
 
+	// GitCommitHash contains the Git commit hash for deployments.
+
+	// +optional
+
+	GitCommitHash string `json:"gitCommitHash,omitempty"`
+
 	// Conditions contains the conditions for the NetworkIntent.
 
 	// +optional
@@ -405,7 +457,5 @@ type NetworkIntentList struct {
 }
 
 func init() {
-
 	SchemeBuilder.Register(&NetworkIntent{}, &NetworkIntentList{})
-
 }

@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	
+
 	"github.com/go-logr/logr"
 )
 
@@ -48,9 +48,9 @@ func TestIsIntentFile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := isIntentFile(tt.filename)
+			got := IsIntentFile(tt.filename)
 			if got != tt.want {
-				t.Errorf("isIntentFile(%q) = %v, want %v", tt.filename, got, tt.want)
+				t.Errorf("IsIntentFile(%q) = %v, want %v", tt.filename, got, tt.want)
 			}
 		})
 	}
@@ -96,7 +96,7 @@ func TestExtractCorrelationID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create test file
 			testFile := filepath.Join(tempDir, "test-intent.json")
-			err := os.WriteFile(testFile, []byte(tt.jsonContent), 0644)
+			err := os.WriteFile(testFile, []byte(tt.jsonContent), 0o644)
 			if err != nil {
 				t.Fatalf("Failed to create test file: %v", err)
 			}

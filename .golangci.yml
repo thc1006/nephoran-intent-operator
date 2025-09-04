@@ -2,7 +2,7 @@
 # Comprehensive linting with performance optimizations for CI/CD
 
 run:
-  timeout: 30m
+  timeout: 45m
   go: '1.24'
   tests: true
   build-tags:
@@ -11,50 +11,14 @@ run:
     - osusergo
 
 linters:
-  enable:
-    - govet
-    - shadow
-    - errcheck
-    - staticcheck
-    - gosec
-    - ineffassign
-    - typecheck
-    - gocritic
-    - gosimple
-    - revive
-    - bodyclose
-    - noctx
-    - errorlint
-    - prealloc
-    - unconvert
-    - nolintlint
-    - misspell
-
+  enable-all: true
   disable:
-    # Temporarily disabled formatting linters to unblock merge
-    - gofmt         # Formatting linter - temporarily disabled
-    - gofumpt       # Enhanced formatting linter - temporarily disabled
-    - gci           # Import organization - temporarily disabled
-    - whitespace    # Whitespace formatting - temporarily disabled
-    - stylecheck    # Style formatting - temporarily disabled
-    - godot         # Comment formatting - temporarily disabled
-    # Original disabled linters
-    - unused        # Too many false positives
+    # Disable only the most problematic linters
+    - unused        # Too many false positives in interface implementations
     - unparam       # Too aggressive for interface implementations
     - dupl          # Too many false positives
-    - gocyclo       # Complexity is sometimes necessary
-    - funlen        # Long functions are sometimes necessary
-    - lll           # Line length is not critical
-    - gocognit      # Cognitive complexity varies
-    - nestif        # Nested ifs are sometimes clearer
-    - goconst       # Constants not always needed
-    - exhaustive    # Exhaustive switches not always needed
-    - wsl           # Whitespace linter too strict
-    - nlreturn      # Newline return too strict
-    - forcetypeassert # Type assertions are sometimes safe
-    - tagliatelle   # JSON tags don't need to be camelCase
-    - varnamelen    # Short variable names are OK
-    - wrapcheck     # Error wrapping not always needed
+    - varnamelen    # Short variable names are OK in Go idioms
+    - exhaustive    # Not always needed for non-critical switches
 
 linters-settings:
   errcheck:
@@ -79,11 +43,11 @@ linters-settings:
   gosec:
     excludes:
       - G104  # Errors unhandled - covered by errcheck
-      - G304  # File path provided as taint input - false positives
       - G307  # Deferring unsafe method - false positives
-      - G401  # Use of weak crypto - for non-security contexts
-      - G501  # Weak crypto imports - for non-security contexts
       - G601  # Implicit memory aliasing - too many false positives
+    # Security settings - strict mode for v1.64.3+
+    severity: high
+    confidence: medium
 
   gocritic:
     enabled-tags:

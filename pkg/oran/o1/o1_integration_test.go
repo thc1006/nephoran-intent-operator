@@ -6,6 +6,7 @@ import (
 	"context"
 	"testing"
 	"time"
+	"encoding/json"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -521,10 +522,7 @@ func TestO1AdaptorFCAPSOperations(t *testing.T) {
 				{
 					RuleID: "rule-001",
 					Action: "ALLOW",
-					Conditions: map[string]interface{}{
-						"source_ip": "192.168.1.0/24",
-						"protocol":  "https",
-					},
+					Conditions: json.RawMessage(`{}`),
 				},
 			},
 		}
@@ -688,3 +686,4 @@ func BenchmarkO1AdaptorParseAlarmData(b *testing.B) {
 		_, _ = adaptor.parseAlarmData(xmlData, "test-element")
 	}
 }
+

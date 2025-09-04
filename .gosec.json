@@ -1,0 +1,138 @@
+{
+  "global": {
+    "nosec": "enabled",
+    "audit": "enabled",
+    "exclude-generated": true,
+    "severity": "medium",
+    "confidence": "medium",
+    "sort": true,
+    "tests": false,
+    "exclude-dir": [
+      "vendor",
+      "testdata",
+      ".git",
+      "hack",
+      "tools",
+      "docs",
+      "examples",
+      "test",
+      "tests",
+      "scripts",
+      ".cache",
+      ".local",
+      "build",
+      "dist",
+      "_output",
+      "tmp",
+      "temp",
+      ".idea",
+      ".vscode"
+    ]
+  },
+  "rules": {
+    "G101": {
+      "pattern": "(?i)(password|passwd|pwd|secret|token|apikey|api_key)\\s*[:=]\\s*[\"'][^\"']{8,}[\"']",
+      "ignore_entropy": false,
+      "entropy_threshold": "4.5",
+      "per_char_threshold": "3.0",
+      "truncate": "32"
+    },
+    "G102": {
+      "bind": ["0.0.0.0"]
+    },
+    "G104": {
+      "exclude": ["os.Remove", "file.Close", "rows.Close", "resp.Body.Close", "w.WriteHeader"]
+    },
+    "G204": {
+      "exclude": ["kubectl", "helm", "kustomize", "kpt", "porch", "oc", "docker", "podman", "crictl"]
+    },
+    "G301": {
+      "exclude": ["0755", "0750", "0700"]
+    },
+    "G302": {
+      "exclude": ["0600", "0640", "0644"]
+    },
+    "G306": {
+      "exclude": ["0600", "0640", "0644", "0755", "0750", "0700"]
+    },
+    "G304": {
+      "exclude": ["template", "config", "manifest", "yaml", "json", "toml"]
+    }
+  },
+  "exclude-rules": [
+    {
+      "id": "G104",
+      "path": "_test\\.go$"
+    },
+    {
+      "id": "G204",
+      "path": "_test\\.go$"
+    },
+    {
+      "id": "G304",
+      "path": "_test\\.go$"
+    },
+    {
+      "id": "G402",
+      "path": "_test\\.go$"
+    },
+    {
+      "id": "G404",
+      "path": "_test\\.go$"
+    },
+    {
+      "id": "G306",
+      "path": ".*\\.go$",
+      "text": "0600|0640|0644|0755|0750|0700"
+    },
+    {
+      "id": "G301",
+      "path": ".*\\.go$",
+      "text": "0755|0750|0700"
+    },
+    {
+      "id": "G302",
+      "path": ".*\\.go$",
+      "text": "0600|0640|0644"
+    },
+    {
+      "id": "G204",
+      "path": ".*\\.go$",
+      "text": "kubectl|helm|kustomize|kpt|porch"
+    },
+    {
+      "id": "G304",
+      "path": "controllers/.*\\.go$"
+    },
+    {
+      "id": "G304",
+      "path": "pkg/.*\\.go$",
+      "text": "template|config|manifest"
+    },
+    {
+      "id": "G104",
+      "path": ".*\\.go$",
+      "text": "defer.*Close\\(\\)|defer.*Unlock\\(\\)|defer.*Done\\(\\)"
+    },
+    {
+      "id": "G307",
+      "path": ".*\\.go$",
+      "text": "defer.*Close\\(\\)"
+    },
+    {
+      "id": "G601",
+      "path": ".*_test\\.go$"
+    }
+  ],
+  "exclude": [
+    "G306:.*Expect file permissions to be 0600 or less.*",
+    "G301:.*Expect directory permissions to be 0750 or less.*",
+    "G302:.*Expect file permissions to be 0600 or less.*",
+    "G204:.*Subprocess launched with variable.*kubectl.*",
+    "G204:.*Subprocess launched with variable.*helm.*",
+    "G204:.*Subprocess launched with variable.*kustomize.*",
+    "G304:.*Potential file inclusion via variable.*template.*",
+    "G304:.*Potential file inclusion via variable.*config.*",
+    "G304:.*Potential file inclusion via variable.*manifest.*"
+  ]
+}

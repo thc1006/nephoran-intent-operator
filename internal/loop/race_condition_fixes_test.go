@@ -85,7 +85,7 @@ func TestFixedRaceConditions(t *testing.T) {
 		// Step 5: Use enhanced once watcher for proper completion tracking
 		enhancedWatcher, err := syncHelper.NewEnhancedOnceWatcher(config, 2)
 		require.NoError(t, err)
-		defer enhancedWatcher.Close()
+		defer enhancedWatcher.Close() // #nosec G307 - Error handled in defer
 
 		// Step 6: Start with completion tracking
 		require.NoError(t, enhancedWatcher.StartWithTracking())
@@ -137,7 +137,7 @@ func TestFixedRaceConditions(t *testing.T) {
 		// Use once mode synchronizer for proper completion tracking
 		watcher, err := syncHelper.StartWatcherWithSync(config)
 		require.NoError(t, err)
-		defer watcher.Close()
+		defer watcher.Close() // #nosec G307 - Error handled in defer
 
 		synchronizer := NewOnceModeSynchronizer(watcher, 2)
 
@@ -200,7 +200,7 @@ func TestFixedRaceConditions(t *testing.T) {
 		// Use enhanced watcher with platform-aware timeouts
 		enhancedWatcher, err := syncHelper.NewEnhancedOnceWatcher(config, 1)
 		require.NoError(t, err)
-		defer enhancedWatcher.Close()
+		defer enhancedWatcher.Close() // #nosec G307 - Error handled in defer
 
 		require.NoError(t, enhancedWatcher.StartWithTracking())
 

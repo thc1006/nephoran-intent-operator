@@ -18,6 +18,7 @@ package orchestration
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -43,13 +44,13 @@ func NewSharedMockRAGService() *SharedMockRAGService {
 		responses: make(map[string]*rag.RetrievalResponse),
 		documents: []map[string]interface{}{
 			{
-				"content":    "AMF (Access and Mobility Management Function) is a key component of 5G Core Network",
+				"content":    "AMF (Access and Mobility Management Function) manages access and mobility for UE",
 				"metadata":   map[string]interface{}{"source": "3GPP TS 23.501", "section": "6.2.2"},
 				"similarity": 0.9,
 			},
 			{
 				"content":    "SMF (Session Management Function) handles PDU sessions in 5G networks",
-				"metadata":   map[string]interface{}{"source": "3GPP TS 23.502", "section": "4.3.2"},
+				"metadata":   map[string]interface{}{},
 				"similarity": 0.85,
 			},
 		},
@@ -59,7 +60,7 @@ func NewSharedMockRAGService() *SharedMockRAGService {
 
 func (m *SharedMockRAGService) RetrieveContext(ctx context.Context, request *rag.RetrievalRequest) (*rag.RetrievalResponse, error) {
 	args := m.Called(ctx, request)
-	
+
 	// Simulate delay if configured
 	if m.queryDelay > 0 {
 		time.Sleep(m.queryDelay)
@@ -69,7 +70,7 @@ func (m *SharedMockRAGService) RetrieveContext(ctx context.Context, request *rag
 	if m.shouldReturnError {
 		return nil, args.Error(1)
 	}
-	
+
 	// Return predefined response if available
 	m.mutex.RLock()
 	if response, exists := m.responses[request.Query]; exists {
@@ -79,23 +80,24 @@ func (m *SharedMockRAGService) RetrieveContext(ctx context.Context, request *rag
 	m.mutex.RUnlock()
 
 	// Create default response
-	documents := make([]rag.Doc, 0, len(m.documents))
+	documents := make([]*rag.SearchResult, 0, len(m.documents))
 	for _, doc := range m.documents {
-		documents = append(documents, rag.Doc{
-			ID:         "doc-1",
-			Content:    doc["content"].(string),
-			Confidence: doc["similarity"].(float64),
-			Metadata:   doc["metadata"].(map[string]interface{}),
+		metadata, _ := json.Marshal(doc["metadata"].(map[string]interface{}))
+		documents = append(documents, &rag.SearchResult{
+			ID:       "doc-1",
+			Content:  doc["content"].(string),
+			Score:    float32(doc["similarity"].(float64)),
+			Metadata: json.RawMessage(metadata),
 		})
 	}
 
 	response := &rag.RetrievalResponse{
-		Documents:   documents,
-		Query:       request.Query,
-		TotalFound:  len(documents),
-		ProcessTime: 50 * time.Millisecond,
-		Context:     make(map[string]interface{}),
-		Metadata:    make(map[string]interface{}),
+		Documents:             documents,
+		Duration:              50 * time.Millisecond,
+		AverageRelevanceScore: 0.8,
+		TopRelevanceScore:     0.9,
+		QueryWasEnhanced:      false,
+		Metadata:              json.RawMessage(`{}`),
 	}
 
 	if args.Error(1) != nil {
@@ -131,15 +133,24 @@ func (m *SharedMockRAGService) Query(ctx context.Context, req *rag.QueryRequest)
 		avgSimilarity /= float64(len(filteredDocs))
 	}
 
+	// Convert filteredDocs to SearchResult format for QueryResponse
+	results := make([]*rag.SearchResult, len(filteredDocs))
+	for i, doc := range filteredDocs {
+		metadata, _ := json.Marshal(doc["metadata"].(map[string]interface{}))
+		results[i] = &rag.SearchResult{
+			ID:       fmt.Sprintf("doc-%d", i),
+			Content:  doc["content"].(string),
+			Score:    float32(doc["similarity"].(float64)),
+			Metadata: json.RawMessage(metadata),
+		}
+	}
+
 	return &rag.QueryResponse{
-		// TODO: Fix struct fields - these fields don't exist in rag.QueryResponse
-		// Documents:     filteredDocs,
-		// MaxSimilarity: m.maxSimilarity,
-		// AvgSimilarity: avgSimilarity,
-		// Metadata: map[string]interface{}{
-		// 	"queryTime": m.queryDelay,
-		// 	"totalDocs": len(m.documents),
-		// },
+		Query:          req.Query,
+		Results:        results,
+		ProcessingTime: m.queryDelay,
+		EmbeddingCost:  0.001,
+		ProviderUsed:   "mock-provider",
 	}, nil
 }
 
@@ -175,3 +186,95 @@ type MockRAGService = SharedMockRAGService
 func NewMockRAGService() *MockRAGService {
 	return NewSharedMockRAGService()
 }
+
+// MockTelecomResourceCalculator provides mock telecom resource calculation functionality
+type MockTelecomResourceCalculator struct {
+	mock.Mock
+	calculationDelay  time.Duration
+	shouldReturnError bool
+	mutex             sync.RWMutex
+}
+
+// NewMockTelecomResourceCalculator creates a new mock telecom resource calculator
+func NewMockTelecomResourceCalculator() *MockTelecomResourceCalculator {
+	return &MockTelecomResourceCalculator{}
+}
+
+// CalculateResources performs mock resource calculation
+func (m *MockTelecomResourceCalculator) CalculateResources(ctx context.Context, request interface{}) (interface{}, error) {
+	args := m.Called(ctx, request)
+
+	// Simulate delay if configured
+	m.mutex.RLock()
+	delay := m.calculationDelay
+	shouldError := m.shouldReturnError
+	m.mutex.RUnlock()
+
+	if delay > 0 {
+		time.Sleep(delay)
+	}
+
+	// Return error if configured
+	if shouldError {
+		return nil, args.Error(1)
+	}
+
+	// Return mock calculation result
+	result := map[string]interface{}{
+		"status": "completed",
+		"timestamp": time.Now().Unix(),
+	}
+
+	if args.Error(1) != nil {
+		return nil, args.Error(1)
+	}
+
+	return result, nil
+}
+
+// SetCalculationDelay sets the delay for mock calculations
+func (m *MockTelecomResourceCalculator) SetCalculationDelay(delay time.Duration) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.calculationDelay = delay
+}
+
+// SetShouldReturnError configures whether the mock should return errors
+func (m *MockTelecomResourceCalculator) SetShouldReturnError(shouldError bool) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.shouldReturnError = shouldError
+}
+
+// Additional mock types needed for compilation (non-duplicates only)
+
+// MockResourceOptimizationEngine provides mock resource optimization functionality
+type MockResourceOptimizationEngine struct {
+	mock.Mock
+}
+
+// NewMockResourceOptimizationEngine creates a new mock resource optimization engine
+func NewMockResourceOptimizationEngine() *MockResourceOptimizationEngine {
+	return &MockResourceOptimizationEngine{}
+}
+
+// MockResourceConstraintSolver provides mock resource constraint solving functionality
+type MockResourceConstraintSolver struct {
+	mock.Mock
+}
+
+// NewMockResourceConstraintSolver creates a new mock resource constraint solver
+func NewMockResourceConstraintSolver() *MockResourceConstraintSolver {
+	return &MockResourceConstraintSolver{}
+}
+
+// MockTelecomCostEstimator provides mock telecom cost estimation functionality
+type MockTelecomCostEstimator struct {
+	mock.Mock
+}
+
+// NewMockTelecomCostEstimator creates a new mock telecom cost estimator
+func NewMockTelecomCostEstimator() *MockTelecomCostEstimator {
+	return &MockTelecomCostEstimator{}
+}
+

@@ -1,7 +1,9 @@
 package auth
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"crypto/rsa"
 	"net/http"
 	"time"
@@ -14,49 +16,87 @@ import (
 // JWTManagerInterface defines the interface for JWT management.
 
 type JWTManagerInterface interface {
+	// Core token operations
 	GenerateToken(user *providers.UserInfo, customClaims map[string]interface{}) (string, error)
+	GenerateTokenWithTTL(user *providers.UserInfo, customClaims map[string]interface{}, ttl time.Duration) (string, error)
+	GenerateTokenPair(user *providers.UserInfo, customClaims map[string]interface{}) (string, string, error)
 
-	ValidateToken(tokenString string) (jwt.MapClaims, error)
+	// Validation and claims
+	ValidateToken(ctx context.Context, tokenString string) (*NephoranJWTClaims, error)
+	ExtractClaims(tokenString string) (jwt.MapClaims, error)
 
-	RefreshToken(tokenString string) (string, error)
+	// Token lifecycle
+	RefreshToken(refreshTokenString string) (string, string, error)
+	BlacklistToken(tokenString string) error
+	IsTokenBlacklisted(ctx context.Context, tokenString string) (bool, error)
+	CleanupBlacklist() error
 
-	RevokeToken(tokenString string) error
-
+	// Key management
 	SetSigningKey(privateKey *rsa.PrivateKey, keyID string) error
+	GetPublicKey(keyID string) (*rsa.PublicKey, error)
+	GetJWKS() (map[string]interface{}, error)
+	RotateKeys() error
+	GetKeyID() string
 
+	// Configuration getters
+	GetIssuer() string
+	GetDefaultTTL() time.Duration
+	GetRefreshTTL() time.Duration
+	GetRequireSecureCookies() bool
+
+	// Cleanup
 	Close()
 }
 
 // RBACManagerInterface defines the interface for role-based access control.
 
 type RBACManagerInterface interface {
-	CheckPermission(ctx context.Context, userID, resource, action string) (bool, error)
+	// Permission checking
+	CheckPermission(ctx context.Context, userID, permission string) bool
+	CheckPermissionLegacy(ctx context.Context, userID, resource, action string) (bool, error)
+	CheckAccess(ctx context.Context, request *AccessRequest) *AccessDecision
 
+	// Role management  
 	AssignRole(ctx context.Context, userID, role string) error
-
+	AssignRoleToUser(ctx context.Context, userID, roleID string) error
 	RevokeRole(ctx context.Context, userID, role string) error
+	RevokeRoleFromUser(ctx context.Context, userID, roleID string) error
 
-	GetUserRoles(ctx context.Context, userID string) ([]string, error)
-
+	// User queries
+	GetUserRoles(ctx context.Context, userID string) []string
+	GetUserPermissions(ctx context.Context, userID string) []string
 	GetRolePermissions(ctx context.Context, role string) ([]string, error)
+
+	// RBAC data management
+	CreateRole(ctx context.Context, role interface{}) (interface{}, error)
+	UpdateRole(ctx context.Context, role interface{}) error  
+	DeleteRole(ctx context.Context, roleID string) error
+	ListRoles(ctx context.Context) interface{}
+	GetRole(ctx context.Context, roleID string) (interface{}, error)
+
+	CreatePermission(ctx context.Context, perm interface{}) (interface{}, error)
+	ListPermissions(ctx context.Context) interface{}
+
+	// Role assignment from claims
+	AssignRolesFromClaims(ctx context.Context, userInfo *providers.UserInfo) error
 }
 
 // SessionManagerInterface defines the interface for session management.
 
 type SessionManagerInterface interface {
-	CreateSession(ctx context.Context, userInfo *providers.UserInfo) (*UserSession, error)
+	CreateSession(ctx context.Context, userInfo *providers.UserInfo, metadata ...map[string]interface{}) (interface{}, error)
 
-	GetSession(ctx context.Context, sessionID string) (*UserSession, error)
+	GetSession(ctx context.Context, sessionID string) (interface{}, error)
 
 	UpdateSession(ctx context.Context, sessionID string, updates map[string]interface{}) error
 
 	DeleteSession(ctx context.Context, sessionID string) error
 
-	ListUserSessions(ctx context.Context, userID string) ([]*UserSession, error)
+	ListUserSessions(ctx context.Context, userID string) (interface{}, error)
 
 	SetSessionCookie(w http.ResponseWriter, sessionID string)
 
-	GetSessionFromRequest(r *http.Request) (*UserSession, error)
+	GetSessionFromRequest(r *http.Request) (interface{}, error)
 
 	Close()
 }
@@ -108,7 +148,7 @@ type UserSession struct {
 
 	Permissions []string `json:"permissions"`
 
-	Attributes map[string]interface{} `json:"attributes,omitempty"`
+	Attributes json.RawMessage `json:"attributes,omitempty"`
 
 	// SSO state.
 

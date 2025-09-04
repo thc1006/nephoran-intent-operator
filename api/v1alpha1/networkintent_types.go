@@ -17,6 +17,7 @@ type NetworkIntent struct {
 	Status NetworkIntentStatus `json:"status,omitempty"`
 }
 
+// +kubebuilder:object:generate=true
 type NetworkIntentSpec struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=low;medium;high
@@ -27,6 +28,7 @@ type NetworkIntentSpec struct {
 	TargetClusters []string `json:"targetClusters,omitempty"`
 }
 
+// +kubebuilder:object:generate=true
 type NetworkIntentStatus struct {
 	// +kubebuilder:validation:Optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`

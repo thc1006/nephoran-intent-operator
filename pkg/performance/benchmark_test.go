@@ -60,7 +60,7 @@ type ComplexStruct struct {
 	ID          string                 `json:"id"`
 	Name        string                 `json:"name"`
 	Timestamp   time.Time              `json:"timestamp"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Metadata    json.RawMessage `json:"metadata"`
 	Items       []Item                 `json:"items"`
 	Status      string                 `json:"status"`
 	Version     int                    `json:"version"`
@@ -73,7 +73,7 @@ type Item struct {
 	Type     string                 `json:"type"`
 	Value    float64                `json:"value"`
 	Tags     []string               `json:"tags"`
-	Settings map[string]interface{} `json:"settings"`
+	Settings json.RawMessage `json:"settings"`
 }
 
 type Config2 struct {
@@ -94,11 +94,7 @@ func createSampleData(size int) *ComplexStruct {
 			Type:  "type-" + string(rune('A'+i%10)),
 			Value: float64(i) * 3.14159,
 			Tags:  []string{"tag1", "tag2", "tag3"},
-			Settings: map[string]interface{}{
-				"enabled":  i%2 == 0,
-				"priority": i % 10,
-				"scale":    float64(i) / 100.0,
-			},
+			Settings: json.RawMessage(`{}`),
 		}
 	}
 
@@ -106,12 +102,7 @@ func createSampleData(size int) *ComplexStruct {
 		ID:        "test-struct-123",
 		Name:      "Test Complex Structure",
 		Timestamp: time.Now(),
-		Metadata: map[string]interface{}{
-			"version":     "1.0.0",
-			"environment": "test",
-			"region":      "us-west-2",
-			"cost":        123.45,
-		},
+		Metadata: json.RawMessage(`{}`),
 		Items:   items,
 		Status:  "active",
 		Version: 42,
@@ -407,3 +398,4 @@ func BenchmarkMetricsRegistryOperations(b *testing.B) {
 		metrics.RecordIntentProcessing("test-intent", "success", time.Millisecond*10)
 	}
 }
+

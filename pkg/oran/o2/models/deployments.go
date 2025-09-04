@@ -1,7 +1,9 @@
 package models
 
 import (
-	"time"
+	
+	"encoding/json"
+"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -43,7 +45,7 @@ type DeploymentTemplate struct {
 
 	Labels map[string]string `json:"labels,omitempty"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
 	Status *TemplateStatus `json:"status"`
 
@@ -66,7 +68,6 @@ type DeploymentTemplate struct {
 	InputSchema *runtime.RawExtension `json:"inputSchema,omitempty"` // Maps to TemplateSpec.InputSchema
 
 	OutputSchema *runtime.RawExtension `json:"outputSchema,omitempty"` // Maps to TemplateSpec.OutputSchema
-
 }
 
 // TemplateDependency represents a dependency of a deployment template.
@@ -138,7 +139,7 @@ type DeploymentHook struct {
 
 	FailurePolicy string `json:"failurePolicy,omitempty"` // IGNORE, ABORT
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 }
 
 // ResourceMapping defines how template resources map to actual resources.
@@ -152,7 +153,7 @@ type ResourceMapping struct {
 
 	Constraints []PlacementConstraint `json:"constraints,omitempty"`
 
-	Properties map[string]interface{} `json:"properties,omitempty"`
+	Properties json.RawMessage `json:"properties,omitempty"`
 }
 
 // NetworkMapping defines network mappings for deployments.
@@ -168,7 +169,7 @@ type NetworkMapping struct {
 
 	VLANID *int `json:"vlanId,omitempty"`
 
-	Properties map[string]interface{} `json:"properties,omitempty"`
+	Properties json.RawMessage `json:"properties,omitempty"`
 }
 
 // StorageMapping defines storage mappings for deployments.
@@ -184,7 +185,7 @@ type StorageMapping struct {
 
 	AccessModes []string `json:"accessModes,omitempty"`
 
-	Properties map[string]interface{} `json:"properties,omitempty"`
+	Properties json.RawMessage `json:"properties,omitempty"`
 }
 
 // ScalingPolicy defines scaling policies for deployments.
@@ -408,7 +409,7 @@ type MonitoringExporter struct {
 
 	Headers map[string]string `json:"headers,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // HealthCheckConfig defines health check configuration.
@@ -464,7 +465,7 @@ type AlertAction struct {
 
 	Template string `json:"template,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // SecurityConfiguration defines security configuration for deployments.
@@ -575,7 +576,6 @@ type NetworkPolicyConfig struct {
 	Egress []NetworkPolicyRule `json:"egress,omitempty"`
 
 	PolicyTypes []string `json:"policyTypes,omitempty"` // Ingress, Egress
-
 }
 
 // NetworkPolicyRule defines a network policy rule.
@@ -638,7 +638,6 @@ type ServiceMeshConfig struct {
 
 type MTLSConfig struct {
 	Mode string `json:"mode"` // STRICT, PERMISSIVE, DISABLE
-
 }
 
 // TrafficPolicyConfig defines traffic policy configuration.
@@ -655,7 +654,6 @@ type TrafficPolicyConfig struct {
 
 type TrafficLoadBalancerConfig struct {
 	Simple string `json:"simple,omitempty"` // ROUND_ROBIN, LEAST_CONN, RANDOM, PASSTHROUGH
-
 }
 
 // CircuitBreakerConfig defines circuit breaker configuration.
@@ -737,7 +735,7 @@ type AuthenticationConfig struct {
 
 	MTLS *MTLSAuthConfig `json:"mtls,omitempty"`
 
-	Custom map[string]interface{} `json:"custom,omitempty"`
+	Custom json.RawMessage `json:"custom,omitempty"`
 }
 
 // OIDCConfig defines OpenID Connect configuration.
@@ -860,7 +858,6 @@ type AuthzPolicy struct {
 	Condition string `json:"condition,omitempty"`
 
 	Effect string `json:"effect"` // ALLOW, DENY
-
 }
 
 // ComplianceRequirement defines a compliance requirement.
@@ -1014,7 +1011,7 @@ type DeploymentInstance struct {
 
 	ParentDeploymentID string `json:"parentDeploymentId,omitempty"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
 	// Deployment specification.
 
@@ -1068,7 +1065,7 @@ type DeploymentStatus struct {
 
 	LastHealthCheck time.Time `json:"lastHealthCheck"`
 
-	Metrics map[string]interface{} `json:"metrics,omitempty"`
+	Metrics json.RawMessage `json:"metrics,omitempty"`
 }
 
 // DeploymentProgress represents the progress of a deployment operation.
@@ -1122,7 +1119,7 @@ type DeploymentEvent struct {
 
 	Count int32 `json:"count"`
 
-	AdditionalData map[string]interface{} `json:"additionalData,omitempty"`
+	AdditionalData json.RawMessage `json:"additionalData,omitempty"`
 }
 
 // DeployedResource represents a resource that has been deployed.
@@ -1146,7 +1143,7 @@ type DeployedResource struct {
 
 	Endpoints []*ResourceEndpoint `json:"endpoints,omitempty"`
 
-	Metrics map[string]interface{} `json:"metrics,omitempty"`
+	Metrics json.RawMessage `json:"metrics,omitempty"`
 
 	CreatedAt time.Time `json:"createdAt"`
 
@@ -1193,7 +1190,6 @@ type ResourceEndpoint struct {
 	Scheme string `json:"scheme,omitempty"`
 
 	Type string `json:"type"` // HTTP, HTTPS, TCP, UDP, GRPC
-
 }
 
 // ServicePort represents a port exposed by a service.
@@ -1355,7 +1351,7 @@ type CreateDeploymentTemplateRequest struct {
 
 	Requirements *ResourceRequirements `json:"requirements,omitempty"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
@@ -1381,7 +1377,7 @@ type UpdateDeploymentTemplateRequest struct {
 
 	Requirements *ResourceRequirements `json:"requirements,omitempty"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
@@ -1403,7 +1399,7 @@ type CreateDeploymentRequest struct {
 
 	ParentDeploymentID string `json:"parentDeploymentId,omitempty"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
 	Metadata map[string]string `json:"metadata,omitempty"`
 
@@ -1425,7 +1421,7 @@ type UpdateDeploymentRequest struct {
 
 	InputParameters *runtime.RawExtension `json:"inputParameters,omitempty"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
 	Metadata map[string]string `json:"metadata,omitempty"`
 

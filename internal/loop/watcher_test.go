@@ -108,7 +108,7 @@ func TestNewWatcher(t *testing.T) {
 func TestWatcher_ProcessExistingFiles(t *testing.T) {
 	tempDir := t.TempDir()
 	outDir := filepath.Join(tempDir, "out")
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	// Create test intent files
 	intentFiles := []string{
@@ -120,7 +120,7 @@ func TestWatcher_ProcessExistingFiles(t *testing.T) {
 	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "action": "scale", "target": "deployment", "count": 3}`
 	for _, fileName := range intentFiles {
 		filePath := filepath.Join(tempDir, fileName)
-		require.NoError(t, os.WriteFile(filePath, []byte(testContent), 0644))
+		require.NoError(t, os.WriteFile(filePath, []byte(testContent), 0o644))
 	}
 
 	config := Config{
@@ -133,7 +133,7 @@ func TestWatcher_ProcessExistingFiles(t *testing.T) {
 
 	watcher, err := NewWatcher(tempDir, config)
 	require.NoError(t, err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Start watcher in once mode
 	err = watcher.Start()
@@ -160,7 +160,7 @@ func TestWatcher_ProcessExistingFiles(t *testing.T) {
 func TestWatcher_FileDetectionWithinRequirement(t *testing.T) {
 	tempDir := t.TempDir()
 	outDir := filepath.Join(tempDir, "out")
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	config := Config{
 		PorchPath:   createMockPorch(t, tempDir, 0, "processed", ""),
@@ -172,7 +172,7 @@ func TestWatcher_FileDetectionWithinRequirement(t *testing.T) {
 
 	watcher, err := NewWatcher(tempDir, config)
 	require.NoError(t, err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Start watcher in background
 	_, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -191,7 +191,7 @@ func TestWatcher_FileDetectionWithinRequirement(t *testing.T) {
 	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "action": "scale", "target": "deployment", "count": 5}`
 
 	startTime := time.Now()
-	require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0644))
+	require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0o644))
 
 	// Wait for file to be processed (should be within 2 seconds)
 	timeout := time.After(2 * time.Second)
@@ -227,7 +227,7 @@ func TestWatcher_FileDetectionWithinRequirement(t *testing.T) {
 func TestWatcher_DebouncingRapidChanges(t *testing.T) {
 	tempDir := t.TempDir()
 	outDir := filepath.Join(tempDir, "out")
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	config := Config{
 		PorchPath:   createMockPorch(t, tempDir, 0, "processed", ""),
@@ -239,7 +239,7 @@ func TestWatcher_DebouncingRapidChanges(t *testing.T) {
 
 	watcher, err := NewWatcher(tempDir, config)
 	require.NoError(t, err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Start watcher
 	_, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -258,7 +258,7 @@ func TestWatcher_DebouncingRapidChanges(t *testing.T) {
 	// Write to file multiple times rapidly
 	for i := 0; i < 5; i++ {
 		content := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "action": "scale", "count": %d}`, i+1)
-		require.NoError(t, os.WriteFile(testFile, []byte(content), 0644))
+		require.NoError(t, os.WriteFile(testFile, []byte(content), 0o644))
 		time.Sleep(50 * time.Millisecond) // Rapid changes
 	}
 
@@ -279,7 +279,7 @@ func TestWatcher_DebouncingRapidChanges(t *testing.T) {
 func TestWatcher_IdempotentProcessing(t *testing.T) {
 	tempDir := t.TempDir()
 	outDir := filepath.Join(tempDir, "out")
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	config := Config{
 		PorchPath:   createMockPorch(t, tempDir, 0, "processed", ""),
@@ -291,11 +291,11 @@ func TestWatcher_IdempotentProcessing(t *testing.T) {
 
 	watcher, err := NewWatcher(tempDir, config)
 	require.NoError(t, err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	testFile := filepath.Join(tempDir, "intent-idempotent-test.json")
 	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "action": "scale", "target": "deployment", "count": 3}`
-	require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0644))
+	require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0o644))
 
 	// Manually mark file as already processed
 	require.NoError(t, watcher.stateManager.MarkProcessed(testFile))
@@ -318,7 +318,7 @@ func TestWatcher_IdempotentProcessing(t *testing.T) {
 func TestWatcher_ConcurrentFileProcessing(t *testing.T) {
 	tempDir := t.TempDir()
 	outDir := filepath.Join(tempDir, "out")
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	config := Config{
 		PorchPath:   createMockPorch(t, tempDir, 0, "processed", "", 100*time.Millisecond), // Add small delay
@@ -330,7 +330,7 @@ func TestWatcher_ConcurrentFileProcessing(t *testing.T) {
 
 	watcher, err := NewWatcher(tempDir, config)
 	require.NoError(t, err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Create multiple intent files
 	numFiles := 10
@@ -338,7 +338,7 @@ func TestWatcher_ConcurrentFileProcessing(t *testing.T) {
 
 	for i := 0; i < numFiles; i++ {
 		testFile := filepath.Join(tempDir, fmt.Sprintf("intent-concurrent-test-%d.json", i))
-		require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0644))
+		require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0o644))
 	}
 
 	// Start watcher in once mode
@@ -364,7 +364,7 @@ func TestWatcher_ConcurrentFileProcessing(t *testing.T) {
 func TestWatcher_FailureScenarios(t *testing.T) {
 	tempDir := t.TempDir()
 	outDir := filepath.Join(tempDir, "out")
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	tests := []struct {
 		name            string
@@ -404,12 +404,12 @@ func TestWatcher_FailureScenarios(t *testing.T) {
 
 			watcher, err := NewWatcher(tempDir, config)
 			require.NoError(t, err)
-			defer watcher.Close()
+			defer watcher.Close() // #nosec G307 - Error handled in defer
 
 			// Create test file
 			testFile := filepath.Join(tempDir, fmt.Sprintf("intent-failure-test-%s.json", tt.name))
 			testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "action": "scale", "target": "deployment", "count": 1}`
-			require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0644))
+			require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0o644))
 
 			// Process file
 			err = watcher.Start()
@@ -456,7 +456,7 @@ func TestWatcher_FailureScenarios(t *testing.T) {
 func TestWatcher_CleanupRoutine(t *testing.T) {
 	tempDir := t.TempDir()
 	outDir := filepath.Join(tempDir, "out")
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	config := Config{
 		PorchPath:    createMockPorch(t, tempDir, 0, "processed", ""),
@@ -468,12 +468,12 @@ func TestWatcher_CleanupRoutine(t *testing.T) {
 
 	watcher, err := NewWatcher(tempDir, config)
 	require.NoError(t, err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Create and process a file
 	testFile := filepath.Join(tempDir, "intent-cleanup-test.json")
 	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "action": "scale", "target": "deployment", "count": 1}`
-	require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0644))
+	require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0o644))
 
 	// Process once
 	config.Once = true
@@ -493,7 +493,7 @@ func TestWatcher_CleanupRoutine(t *testing.T) {
 func TestWatcher_GracefulShutdown(t *testing.T) {
 	tempDir := t.TempDir()
 	outDir := filepath.Join(tempDir, "out")
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	config := Config{
 		PorchPath:   createMockPorch(t, tempDir, 0, "processed", "", 2*time.Second), // Longer processing
@@ -510,7 +510,7 @@ func TestWatcher_GracefulShutdown(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		testFile := filepath.Join(tempDir, fmt.Sprintf("intent-shutdown-test-%d.json", i))
 		testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "action": "scale", "target": "deployment", "count": 1}`
-		require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0644))
+		require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0o644))
 	}
 
 	// Start watcher
@@ -548,7 +548,7 @@ func TestWatcher_GracefulShutdown(t *testing.T) {
 func TestWatcher_StatusFileGeneration(t *testing.T) {
 	tempDir := t.TempDir()
 	outDir := filepath.Join(tempDir, "out")
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	config := Config{
 		PorchPath:  createMockPorch(t, tempDir, 0, "processing successful", ""),
@@ -560,12 +560,12 @@ func TestWatcher_StatusFileGeneration(t *testing.T) {
 
 	watcher, err := NewWatcher(tempDir, config)
 	require.NoError(t, err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Create test file
 	testFile := filepath.Join(tempDir, "intent-status-test.json")
 	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "action": "scale", "target": "deployment", "count": 3}`
-	require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0644))
+	require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0o644))
 
 	// Process file
 	err = watcher.Start()
@@ -671,7 +671,7 @@ exit %d`, stdoutCmd, stderrCmd, exitCode)
 	}
 
 	// Write the script file
-	err := os.WriteFile(mockPath, []byte(script), 0755)
+	err := os.WriteFile(mockPath, []byte(script), 0o755)
 	require.NoError(t, err)
 	return mockPath
 }
@@ -679,7 +679,7 @@ exit %d`, stdoutCmd, stderrCmd, exitCode)
 func BenchmarkWatcher_ProcessSingleFile(b *testing.B) {
 	tempDir := b.TempDir()
 	outDir := filepath.Join(tempDir, "out")
-	require.NoError(b, os.MkdirAll(outDir, 0755))
+	require.NoError(b, os.MkdirAll(outDir, 0o755))
 
 	config := Config{
 		PorchPath:  createMockPorch(b, tempDir, 0, "processed", ""),
@@ -701,7 +701,7 @@ func BenchmarkWatcher_ProcessSingleFile(b *testing.B) {
 
 		// Create test file
 		testFile := filepath.Join(tempDir, fmt.Sprintf("intent-bench-%d.json", i))
-		require.NoError(b, os.WriteFile(testFile, []byte(testContent), 0644))
+		require.NoError(b, os.WriteFile(testFile, []byte(testContent), 0o644))
 
 		b.StartTimer()
 
@@ -732,7 +732,7 @@ func TestWatcherTestSuite(t *testing.T) {
 func (s *WatcherTestSuite) SetupTest() {
 	s.tempDir = s.T().TempDir()
 	outDir := filepath.Join(s.tempDir, "out")
-	s.Require().NoError(os.MkdirAll(outDir, 0755))
+	s.Require().NoError(os.MkdirAll(outDir, 0o755))
 
 	s.porchPath = createMockPorch(s.T(), s.tempDir, 0, "processed successfully", "")
 	s.config = Config{
@@ -759,7 +759,7 @@ func (s *WatcherTestSuite) TestRaceCondition_ConcurrentFileProcessing() {
 
 	watcher, err := NewWatcher(s.tempDir, raceConfig)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	numFiles := 10  // Reduced from 20 for faster test
 	numWorkers := 4 // Reduced from 8
@@ -782,7 +782,7 @@ func (s *WatcherTestSuite) TestRaceCondition_ConcurrentFileProcessing() {
 			filePath := filepath.Join(s.tempDir, fileName)
 			testContent := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale", "target": {"type": "deployment", "name": "app-%d"}}}`, fileID)
 
-			s.Require().NoError(os.WriteFile(filePath, []byte(testContent), 0644))
+			s.Require().NoError(os.WriteFile(filePath, []byte(testContent), 0o644))
 
 			fileMutex.Lock()
 			fileSet[fileName] = struct{}{}
@@ -821,7 +821,7 @@ func (s *WatcherTestSuite) TestRaceCondition_DirectoryCreationRace() {
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	numGoroutines := 50
 	var wg sync.WaitGroup
@@ -849,11 +849,11 @@ func (s *WatcherTestSuite) TestRaceCondition_FileLevelLocking() {
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	testFile := filepath.Join(s.tempDir, "intent-lock-test.json")
 	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "action": "scale", "target": "deployment", "count": 1}`
-	s.Require().NoError(os.WriteFile(testFile, []byte(testContent), 0644))
+	s.Require().NoError(os.WriteFile(testFile, []byte(testContent), 0o644))
 
 	numWorkers := 10
 	var wg sync.WaitGroup
@@ -889,7 +889,7 @@ func (s *WatcherTestSuite) TestRaceCondition_WorkerPoolHighConcurrency() {
 	s.config.MaxWorkers = 8
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	numFiles := 100
 	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "action": "scale", "target": "deployment", "count": 1}`
@@ -898,7 +898,7 @@ func (s *WatcherTestSuite) TestRaceCondition_WorkerPoolHighConcurrency() {
 	for i := 0; i < numFiles; i++ {
 		fileName := fmt.Sprintf("intent-concurrency-%d.json", i)
 		filePath := filepath.Join(s.tempDir, fileName)
-		s.Require().NoError(os.WriteFile(filePath, []byte(testContent), 0644))
+		s.Require().NoError(os.WriteFile(filePath, []byte(testContent), 0o644))
 	}
 
 	// Process in once mode
@@ -924,7 +924,7 @@ func (s *WatcherTestSuite) TestJSONValidation_ValidJSONProcessing() {
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	tests := []struct {
 		name    string
@@ -953,7 +953,7 @@ func (s *WatcherTestSuite) TestJSONValidation_ValidJSONProcessing() {
 			fileName := fmt.Sprintf("intent-%s.json", tt.name)
 			filePath := filepath.Join(s.tempDir, fileName)
 
-			err := os.WriteFile(filePath, []byte(tt.content), 0644)
+			err := os.WriteFile(filePath, []byte(tt.content), 0o644)
 			require.NoError(t, err)
 
 			err = watcher.validateJSONFile(filePath)
@@ -971,7 +971,7 @@ func (s *WatcherTestSuite) TestJSONValidation_InvalidJSONRejection() {
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	tests := []struct {
 		name    string
@@ -1015,7 +1015,7 @@ func (s *WatcherTestSuite) TestJSONValidation_InvalidJSONRejection() {
 			fileName := fmt.Sprintf("intent-invalid-%s.json", tt.name)
 			filePath := filepath.Join(s.tempDir, fileName)
 
-			err := os.WriteFile(filePath, []byte(tt.content), 0644)
+			err := os.WriteFile(filePath, []byte(tt.content), 0o644)
 			require.NoError(t, err)
 
 			err = watcher.validateJSONFile(filePath)
@@ -1034,7 +1034,7 @@ func (s *WatcherTestSuite) TestJSONValidation_SizeLimitEnforcement() {
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Test with file exceeding MaxJSONSize
 	largeFileName := filepath.Join(s.tempDir, "intent-large.json")
@@ -1047,7 +1047,7 @@ func (s *WatcherTestSuite) TestJSONValidation_SizeLimitEnforcement() {
 	padding := strings.Repeat("x", MaxJSONSize+100)
 	largeJSON := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "data": "%s"}`, padding)
 
-	s.Require().NoError(os.WriteFile(largeFileName, []byte(largeJSON), 0644))
+	s.Require().NoError(os.WriteFile(largeFileName, []byte(largeJSON), 0o644))
 
 	err = watcher.validateJSONFile(largeFileName)
 	s.Require().NotNil(err, "File exceeding size limit MUST return non-nil error")
@@ -1059,7 +1059,7 @@ func (s *WatcherTestSuite) TestJSONValidation_PathTraversalPrevention() {
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Test various path traversal attempts
 	maliciousPaths := []string{
@@ -1071,9 +1071,9 @@ func (s *WatcherTestSuite) TestJSONValidation_PathTraversalPrevention() {
 	for i, maliciousPath := range maliciousPaths {
 		s.T().Run(fmt.Sprintf("traversal_attempt_%d", i), func(t *testing.T) {
 			// Try to create file outside watched directory
-			os.MkdirAll(filepath.Dir(maliciousPath), 0755)
+			os.MkdirAll(filepath.Dir(maliciousPath), 0o755)
 			content := `{"apiVersion": "v1", "kind": "NetworkIntent"}`
-			os.WriteFile(maliciousPath, []byte(content), 0644)
+			os.WriteFile(maliciousPath, []byte(content), 0o644)
 
 			err := watcher.validatePath(maliciousPath)
 			assert.Error(t, err, "Path traversal should be prevented for: %s", maliciousPath)
@@ -1086,7 +1086,7 @@ func (s *WatcherTestSuite) TestJSONValidation_RequiredFieldsValidation() {
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Test various field validation scenarios
 	tests := []struct {
@@ -1126,7 +1126,7 @@ func (s *WatcherTestSuite) TestJSONValidation_RequiredFieldsValidation() {
 			fileName := fmt.Sprintf("intent-fields-%s.json", tt.name)
 			filePath := filepath.Join(s.tempDir, fileName)
 
-			err := os.WriteFile(filePath, []byte(tt.content), 0644)
+			err := os.WriteFile(filePath, []byte(tt.content), 0o644)
 			require.NoError(t, err)
 
 			err = watcher.validateJSONFile(filePath)
@@ -1148,7 +1148,7 @@ func (s *WatcherTestSuite) TestSecurity_PathTraversalAttacks() {
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Test various path traversal attack patterns
 	attackPatterns := []struct {
@@ -1188,7 +1188,7 @@ func (s *WatcherTestSuite) TestSecurity_JSONBombPrevention() {
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Create deeply nested JSON structure
 	deepJSON := `{"apiVersion": "v1", "kind": "NetworkIntent", "data": `
@@ -1203,7 +1203,7 @@ func (s *WatcherTestSuite) TestSecurity_JSONBombPrevention() {
 	deepJSON += `}`
 
 	fileName := filepath.Join(s.tempDir, "intent-bomb.json")
-	err = os.WriteFile(fileName, []byte(deepJSON), 0644)
+	err = os.WriteFile(fileName, []byte(deepJSON), 0o644)
 	s.Require().NoError(err)
 
 	// Should reject extremely deep JSON
@@ -1216,7 +1216,7 @@ func (s *WatcherTestSuite) TestSecurity_SuspiciousFilenamePatterns() {
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	suspiciousNames := []string{
 		"intent-test..json",
@@ -1236,7 +1236,7 @@ func (s *WatcherTestSuite) TestSecurity_SuspiciousFilenamePatterns() {
 			filePath := filepath.Join(s.tempDir, name)
 			// Create the file first
 			content := `{"apiVersion": "v1", "kind": "NetworkIntent"}`
-			os.WriteFile(filePath, []byte(content), 0644)
+			os.WriteFile(filePath, []byte(content), 0o644)
 
 			err := watcher.validatePath(filePath)
 			assert.Error(t, err, "Should reject suspicious filename: %s", name)
@@ -1274,7 +1274,7 @@ func (s *WatcherTestSuite) TestSecurity_FileSizeLimits() {
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Test various size scenarios
 	tests := []struct {
@@ -1298,7 +1298,7 @@ func (s *WatcherTestSuite) TestSecurity_FileSizeLimits() {
 				// Create valid JSON of specified size
 				padding := strings.Repeat("x", int(tt.size-100))
 				content := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "data": "%s"}`, padding)
-				err := os.WriteFile(filePath, []byte(content), 0644)
+				err := os.WriteFile(filePath, []byte(content), 0o644)
 				require.NoError(t, err)
 			} else {
 				// Create oversized file with well-formed JSON
@@ -1311,7 +1311,7 @@ func (s *WatcherTestSuite) TestSecurity_FileSizeLimits() {
 				padding := strings.Repeat("A", paddingSize)
 				content := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "data": "%s"}`, padding)
 
-				err := os.WriteFile(filePath, []byte(content), 0644)
+				err := os.WriteFile(filePath, []byte(content), 0o644)
 				require.NoError(t, err)
 			}
 
@@ -1336,12 +1336,12 @@ func (s *WatcherTestSuite) TestIntegration_EndToEndProcessingFlow() {
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Create a valid intent file with proper structure
 	testFile := filepath.Join(s.tempDir, "intent-e2e-test.json")
 	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "metadata": {"name": "test-e2e"}, "spec": {"action": "scale", "target": {"name": "deployment"}, "replicas": 3}}`
-	s.Require().NoError(os.WriteFile(testFile, []byte(testContent), 0644))
+	s.Require().NoError(os.WriteFile(testFile, []byte(testContent), 0o644))
 
 	// Start processing
 	watcher.config.Once = true
@@ -1399,7 +1399,7 @@ func (s *WatcherTestSuite) TestIntegration_StatusFileGenerationWithVersioning() 
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Process multiple files to test versioning
 	numFiles := 3
@@ -1408,7 +1408,7 @@ func (s *WatcherTestSuite) TestIntegration_StatusFileGenerationWithVersioning() 
 		filePath := filepath.Join(s.tempDir, fileName)
 		testContent := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "metadata": {"name": "test-%d"}}`, i)
 
-		s.Require().NoError(os.WriteFile(filePath, []byte(testContent), 0644))
+		s.Require().NoError(os.WriteFile(filePath, []byte(testContent), 0o644))
 	}
 
 	watcher.config.Once = true
@@ -1451,14 +1451,14 @@ func (s *WatcherTestSuite) TestIntegration_FileMovementProcessedFailed() {
 
 	watcher, err := NewWatcher(s.tempDir, failConfig)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Create files for both success and failure scenarios
 	successFile := filepath.Join(s.tempDir, "intent-success.json")
 	failureFile := filepath.Join(s.tempDir, "intent-failure.json")
 
 	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale"}}`
-	s.Require().NoError(os.WriteFile(failureFile, []byte(testContent), 0644))
+	s.Require().NoError(os.WriteFile(failureFile, []byte(testContent), 0o644))
 
 	// Process the failing file
 	watcher.config.Once = true
@@ -1477,9 +1477,9 @@ func (s *WatcherTestSuite) TestIntegration_FileMovementProcessedFailed() {
 
 	successWatcher, err := NewWatcher(s.tempDir, successConfig)
 	s.Require().NoError(err)
-	defer successWatcher.Close()
+	defer successWatcher.Close() // #nosec G307 - Error handled in defer
 
-	s.Require().NoError(os.WriteFile(successFile, []byte(testContent), 0644))
+	s.Require().NoError(os.WriteFile(successFile, []byte(testContent), 0o644))
 
 	successWatcher.config.Once = true
 	err = successWatcher.Start()
@@ -1510,7 +1510,7 @@ func (s *WatcherTestSuite) TestIntegration_GracefulShutdownWithActiveProcessing(
 		filePath := filepath.Join(s.tempDir, fileName)
 		testContent := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "metadata": {"name": "test-%d"}}`, i)
 
-		s.Require().NoError(os.WriteFile(filePath, []byte(testContent), 0644))
+		s.Require().NoError(os.WriteFile(filePath, []byte(testContent), 0o644))
 	}
 
 	// Start processing in background
@@ -1562,7 +1562,7 @@ func (s *WatcherTestSuite) TestPerformance_WorkerPoolScalability() {
 		s.T().Run(fmt.Sprintf("workers_%d", workers), func(t *testing.T) {
 			testDir := s.T().TempDir()
 			outDir := filepath.Join(testDir, "out")
-			require.NoError(t, os.MkdirAll(outDir, 0755))
+			require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 			config := Config{
 				PorchPath:   createFastMockPorch(t, testDir, 0, "processed", ""), // Ultra-fast mock
@@ -1575,13 +1575,13 @@ func (s *WatcherTestSuite) TestPerformance_WorkerPoolScalability() {
 
 			watcher, err := NewWatcher(testDir, config)
 			require.NoError(t, err)
-			defer watcher.Close()
+			defer watcher.Close() // #nosec G307 - Error handled in defer
 
 			// Create test files
 			for i := 0; i < numFiles; i++ {
 				fileName := fmt.Sprintf("intent-scale-%d.json", i)
 				filePath := filepath.Join(testDir, fileName)
-				require.NoError(t, os.WriteFile(filePath, []byte(testContent), 0644))
+				require.NoError(t, os.WriteFile(filePath, []byte(testContent), 0o644))
 			}
 
 			// Measure processing time
@@ -1613,7 +1613,7 @@ func (s *WatcherTestSuite) TestPerformance_DebouncingMechanism() {
 
 	watcher, err := NewWatcher(s.tempDir, debounceConfig)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Start watcher in background
 	done := make(chan error, 1)
@@ -1630,7 +1630,7 @@ func (s *WatcherTestSuite) TestPerformance_DebouncingMechanism() {
 	numWrites := 10
 	for i := 0; i < numWrites; i++ {
 		content := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "iteration": %d}`, i)
-		s.Require().NoError(os.WriteFile(testFile, []byte(content), 0644))
+		s.Require().NoError(os.WriteFile(testFile, []byte(content), 0o644))
 		time.Sleep(50 * time.Millisecond) // Rapid writes within debounce window
 	}
 
@@ -1667,7 +1667,7 @@ func (s *WatcherTestSuite) TestPerformance_BatchProcessingEfficiency() {
 		s.T().Run(fmt.Sprintf("batch_%d", batchSize), func(t *testing.T) {
 			testDir := s.T().TempDir()
 			outDir := filepath.Join(testDir, "out")
-			require.NoError(t, os.MkdirAll(outDir, 0755))
+			require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 			config := Config{
 				PorchPath:   createFastMockPorch(t, testDir, 0, "processed", ""), // Ultra-fast mock
@@ -1680,13 +1680,13 @@ func (s *WatcherTestSuite) TestPerformance_BatchProcessingEfficiency() {
 
 			watcher, err := NewWatcher(testDir, config)
 			require.NoError(t, err)
-			defer watcher.Close()
+			defer watcher.Close() // #nosec G307 - Error handled in defer
 
 			// Create batch of files
 			for i := 0; i < batchSize; i++ {
 				fileName := fmt.Sprintf("intent-batch-%d.json", i)
 				filePath := filepath.Join(testDir, fileName)
-				require.NoError(t, os.WriteFile(filePath, []byte(testContent), 0644))
+				require.NoError(t, os.WriteFile(filePath, []byte(testContent), 0o644))
 			}
 
 			// Measure batch processing
@@ -1723,7 +1723,7 @@ func (s *WatcherTestSuite) TestPerformance_MemoryUsageUnderLoad() {
 
 	watcher, err := NewWatcher(s.tempDir, largeConfig)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Create fewer files for faster test
 	numFiles := 100 // Reduced from 500
@@ -1732,7 +1732,7 @@ func (s *WatcherTestSuite) TestPerformance_MemoryUsageUnderLoad() {
 	for i := 0; i < numFiles; i++ {
 		fileName := fmt.Sprintf("intent-memory-%d.json", i)
 		filePath := filepath.Join(s.tempDir, fileName)
-		s.Require().NoError(os.WriteFile(filePath, []byte(testContent), 0644))
+		s.Require().NoError(os.WriteFile(filePath, []byte(testContent), 0o644))
 	}
 
 	// Process all files
@@ -1779,7 +1779,7 @@ func (s *WatcherTestSuite) TestWatcherIntegration_LargeScaleProcessing() {
 
 	watcher, err := NewWatcher(s.tempDir, largeScaleConfig)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Create a large number of files for processing
 	numFiles := 250 // Reasonable scale that won't timeout
@@ -1803,7 +1803,7 @@ func (s *WatcherTestSuite) TestWatcherIntegration_LargeScaleProcessing() {
 			filePath := filepath.Join(s.tempDir, fileName)
 			content := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "metadata": {"name": "test-%d"}, "spec": {"action": "scale", "target": {"type": "deployment", "name": "app-%d"}}}`, fileID, fileID)
 
-			s.Require().NoError(os.WriteFile(filePath, []byte(content), 0644))
+			s.Require().NoError(os.WriteFile(filePath, []byte(content), 0o644))
 		}(i)
 	}
 
@@ -1875,7 +1875,7 @@ func (s *WatcherTestSuite) TestWindowsFilenameValidation_StatusFileGeneration() 
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Test cases with problematic filenames that need sanitization
 	testCases := []struct {
@@ -1944,11 +1944,11 @@ func (s *WatcherTestSuite) TestWindowsFilenameValidation_StatusFileGeneration() 
 
 			// Create directory if needed for path traversal test
 			if strings.Contains(tc.intentFilename, "\\") || strings.Contains(tc.intentFilename, "/") {
-				os.MkdirAll(filepath.Dir(intentPath), 0755)
+				os.MkdirAll(filepath.Dir(intentPath), 0o755)
 			}
 
 			// Try to create file - Windows may not allow files with certain reserved characters
-			err := os.WriteFile(intentPath, []byte(testContent), 0644)
+			err := os.WriteFile(intentPath, []byte(testContent), 0o644)
 			if err != nil {
 				t.Logf("Cannot create file %s on Windows (expected for reserved chars): %v", tc.intentFilename, err)
 				// Skip this test case if Windows won't allow us to create the file
@@ -2027,7 +2027,7 @@ func (s *WatcherTestSuite) TestWindowsFilenameValidation_PathTraversalPrevention
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Test various path traversal attempts
 	pathTraversalTests := []struct {
@@ -2069,10 +2069,10 @@ func (s *WatcherTestSuite) TestWindowsFilenameValidation_PathTraversalPrevention
 
 			// Try to create directory structure if needed
 			fullPath := filepath.Join(s.tempDir, tc.filePath)
-			os.MkdirAll(filepath.Dir(fullPath), 0755)
+			os.MkdirAll(filepath.Dir(fullPath), 0o755)
 
 			// Write the file
-			err := os.WriteFile(fullPath, []byte(testContent), 0644)
+			err := os.WriteFile(fullPath, []byte(testContent), 0o644)
 			if err != nil {
 				t.Logf("Could not create test file %s: %v (this is expected for some traversal attempts)", tc.filePath, err)
 				return // Skip if we can't create the file (expected for some cases)
@@ -2105,7 +2105,7 @@ func (s *WatcherTestSuite) TestWindowsFilenameValidation_LongFilenames() {
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Test very long filenames
 	longFilenameTests := []struct {
@@ -2149,7 +2149,7 @@ func (s *WatcherTestSuite) TestWindowsFilenameValidation_LongFilenames() {
 			// Create the file
 			intentPath := filepath.Join(s.tempDir, intentFilename)
 			testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "metadata": {"name": "long-name-test"}}`
-			err := os.WriteFile(intentPath, []byte(testContent), 0644)
+			err := os.WriteFile(intentPath, []byte(testContent), 0o644)
 			require.NoError(t, err)
 
 			// Process the file
@@ -2194,7 +2194,7 @@ func (s *WatcherTestSuite) TestWindowsFilenameValidation_SpecialFileTypes() {
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Test different file extensions and special cases
 	specialFileTests := []struct {
@@ -2246,7 +2246,7 @@ func (s *WatcherTestSuite) TestWindowsFilenameValidation_SpecialFileTypes() {
 			// Create the file
 			intentPath := filepath.Join(s.tempDir, tc.filename)
 			testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "metadata": {"name": "special-file-test"}}`
-			err := os.WriteFile(intentPath, []byte(testContent), 0644)
+			err := os.WriteFile(intentPath, []byte(testContent), 0o644)
 			require.NoError(t, err)
 
 			// Process the file

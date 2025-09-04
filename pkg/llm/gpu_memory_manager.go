@@ -144,7 +144,7 @@ type MemoryAllocation struct {
 
 	// Performance tracking
 	AllocationTime    time.Duration
-	AccessPattern     AccessPattern
+	AccessPattern     GPUAccessPattern
 	FragmentationCost float64
 
 	// Lifecycle management
@@ -330,7 +330,7 @@ func (gmm *GPUMemoryManager) AllocateMemory(ctx context.Context, size int64, pur
 	span.SetAttributes(
 		attribute.Int("device_id", deviceID),
 		attribute.Int64("size", size),
-		attribute.String("purpose", string(purpose)),
+		attribute.String("purpose", purpose.String()),
 		attribute.String("allocation_id", allocation.ID),
 	)
 
@@ -665,13 +665,31 @@ func getDefaultDeviceMemoryConfig(deviceID int) *DeviceMemoryConfig {
 }
 
 // Type definitions and enums
-type ManagerState int
-type MemoryOwnerType int
-type AllocationPurpose int
-type AllocationPriority int
-type AllocationStrategy int
-type AccessPattern int
-type GrowthStrategy int
+type (
+	ManagerState       int
+	MemoryOwnerType    int
+	AllocationPurpose  int
+	AllocationPriority int
+	AllocationStrategy int
+	GPUAccessPattern   int
+	GrowthStrategy     int
+)
+
+// String method for AllocationPurpose to fix conversion issues
+func (ap AllocationPurpose) String() string {
+	switch ap {
+	case AllocationPurposeModelWeights:
+		return "model_weights"
+	case AllocationPurposeInferenceBuffer:
+		return "inference_buffer"
+	case AllocationPurposeVectorData:
+		return "vector_data"
+	case AllocationPurposeCache:
+		return "cache"
+	default:
+		return "unknown"
+	}
+}
 
 const (
 	ManagerStateActive ManagerState = iota
@@ -697,20 +715,22 @@ const (
 )
 
 // Supporting structures with placeholder implementations
-type GlobalMemoryAllocator struct{}
-type MemoryDefragmenter struct{}
-type GPUGCManager struct{}
-type MemoryOptimizer struct{}
-type MemoryCompressor struct{}
-type MemoryPrefetcher struct{}
-type ResourceTracker struct{}
-type MemoryMonitor struct{}
-type MemoryProfiler struct{}
-type AllocationCache struct{}
-type BufferPool struct{}
-type AllocationStats struct {
-	PeakUsage int64
-}
+type (
+	GlobalMemoryAllocator struct{}
+	MemoryDefragmenter    struct{}
+	GPUGCManager          struct{}
+	MemoryOptimizer       struct{}
+	MemoryCompressor      struct{}
+	MemoryPrefetcher      struct{}
+	ResourceTracker       struct{}
+	MemoryMonitor         struct{}
+	MemoryProfiler        struct{}
+	AllocationCache       struct{}
+	BufferPool            struct{}
+	AllocationStats       struct {
+		PeakUsage int64
+	}
+)
 type AllocationRecord struct{}
 
 type MemoryStats struct {
@@ -776,6 +796,7 @@ func (dmp *DeviceMemoryPool) Allocate(ctx context.Context, size int64, purpose A
 	dmp.activeAllocations[uintptr(time.Now().UnixNano())] = allocation
 	return allocation, nil
 }
+
 func (dmp *DeviceMemoryPool) Deallocate(ctx context.Context, allocation *MemoryAllocation) error {
 	dmp.availableMemory += allocation.AllocatedSize
 	return nil

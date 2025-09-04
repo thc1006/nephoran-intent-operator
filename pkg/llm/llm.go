@@ -271,7 +271,11 @@ func NewLegacyClientWithConfig(url string, config LegacyClientConfig) (*LegacyCl
 			MaxTokens:        config.MaxTokens,
 			Temperature:      0.0,
 		}
-		client.ragClient = rag.NewRAGClient(ragConfig)
+		ragClient, err := rag.NewRAGClient(ragConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create RAG client: %w", err)
+		}
+		client.ragClient = ragClient
 
 		// Initialize the RAG client
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -312,7 +316,19 @@ func NewLegacyResponseCache(ttl time.Duration, maxSize int) *LegacyResponseCache
 func (c *LegacyClient) GetMetrics() LegacyClientMetrics {
 	c.metrics.mutex.RLock()
 	defer c.metrics.mutex.RUnlock()
-	return *c.metrics
+
+	// Return a copy without the mutex to avoid copying the lock
+	return LegacyClientMetrics{
+		RequestsTotal:    c.metrics.RequestsTotal,
+		RequestsSuccess:  c.metrics.RequestsSuccess,
+		RequestsFailure:  c.metrics.RequestsFailure,
+		TotalLatency:     c.metrics.TotalLatency,
+		CacheHits:        c.metrics.CacheHits,
+		CacheMisses:      c.metrics.CacheMisses,
+		RetryAttempts:    c.metrics.RetryAttempts,
+		FallbackAttempts: c.metrics.FallbackAttempts,
+		// mutex field is intentionally omitted to avoid copying
+	}
 }
 
 // updateMetrics updates client metrics
@@ -417,7 +433,6 @@ func (c *LegacyClient) ProcessIntent(ctx context.Context, intent string) (string
 		retryCount++
 		return processErr
 	})
-
 	if err != nil {
 		// Try fallback URLs if available
 		if len(c.fallbackURLs) > 0 {
@@ -589,7 +604,6 @@ func (c *LegacyClient) processWithLLMBackend(ctx context.Context, intent, intent
 // processWithChatCompletion handles OpenAI/Mistral-style chat completions
 func (c *LegacyClient) processWithChatCompletion(ctx context.Context, systemPrompt, intent string) (string, error) {
 	requestBody := map[string]interface{}{
-		"model": c.modelName,
 		"messages": []map[string]string{
 			{"role": "system", "content": systemPrompt},
 			{"role": "user", "content": intent},
@@ -626,7 +640,7 @@ func (c *LegacyClient) processWithChatCompletion(ctx context.Context, systemProm
 	if err != nil {
 		return "", fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Validate Content-Type header
 	contentType := resp.Header.Get("Content-Type")
@@ -674,7 +688,7 @@ func (c *LegacyClient) processWithRAGAPI(ctx context.Context, intent string) (st
 	// Use the RAG client interface if available
 	if c.ragClient != nil {
 		// Use the new Retrieve method to get relevant documents
-		docs, err := c.ragClient.Retrieve(ctx, intent)
+		docs, err := c.ragClient.Retrieve(ctx, intent, 5)
 		if err != nil {
 			c.logger.Debug("RAG client retrieval failed, falling back to direct API",
 				slog.String("error", err.Error()))
@@ -699,9 +713,7 @@ func (c *LegacyClient) processWithRAGAPI(ctx context.Context, intent string) (st
 
 	// Fallback to direct API call (legacy compatibility)
 	req := map[string]interface{}{
-		"spec": map[string]string{
-			"intent": intent,
-		},
+		"query": intent,
 	}
 
 	// Use buffer pool for JSON marshaling
@@ -727,7 +739,7 @@ func (c *LegacyClient) processWithRAGAPI(ctx context.Context, intent string) (st
 	if err != nil {
 		return "", fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Validate Content-Type header for RAG API
 	contentType := resp.Header.Get("Content-Type")

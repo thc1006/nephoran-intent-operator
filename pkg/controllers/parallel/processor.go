@@ -123,25 +123,35 @@ func (pp *ParallelProcessor) WaitForAllTasksWithTimeout(timeout time.Duration) e
 func (pp *ParallelProcessor) GetMetrics() ProcessorMetrics {
 	pp.metrics.mutex.RLock()
 	defer pp.metrics.mutex.RUnlock()
-	return *pp.metrics
+
+	// Create a safe copy without copying the mutex to avoid lock copying violation
+	return ProcessorMetrics{
+		TotalTasks:     pp.metrics.TotalTasks,
+		CompletedTasks: pp.metrics.CompletedTasks,
+		FailedTasks:    pp.metrics.FailedTasks,
+		AverageTime:    pp.metrics.AverageTime,
+		MaxTime:        pp.metrics.MaxTime,
+		MinTime:        pp.metrics.MinTime,
+		// Note: mutex is not copied to avoid lock copying violation
+	}
 }
 
 // Shutdown gracefully shuts down the processor
 func (pp *ParallelProcessor) Shutdown() error {
 	pp.logger.Info("Shutting down parallel processor")
-	
+
 	// Close task queue to signal no more tasks
 	close(pp.taskQueue)
-	
+
 	// Wait for all tasks to complete
 	pp.wg.Wait()
-	
+
 	// Cancel context to stop workers
 	pp.cancel()
-	
+
 	// Close results channel
 	close(pp.results)
-	
+
 	pp.logger.Info("Parallel processor shutdown complete")
 	return nil
 }
@@ -157,7 +167,7 @@ func (pp *ParallelProcessor) startWorkers() {
 func (pp *ParallelProcessor) worker(workerID int) {
 	logger := pp.logger.WithValues("worker_id", workerID)
 	logger.Info("Worker started")
-	
+
 	for {
 		select {
 		case task, ok := <-pp.taskQueue:
@@ -193,7 +203,7 @@ func (pp *ParallelProcessor) processTask(task TaskInterface, logger logr.Logger)
 	if taskTimeout == 0 {
 		taskTimeout = pp.timeout
 	}
-	
+
 	ctx, cancel := context.WithTimeout(pp.ctx, taskTimeout)
 	defer cancel()
 
@@ -227,7 +237,7 @@ func (pp *ParallelProcessor) processTask(task TaskInterface, logger logr.Logger)
 		if !success {
 			m.FailedTasks++
 		}
-		
+
 		// Update timing metrics
 		if duration > m.MaxTime {
 			m.MaxTime = duration
@@ -235,7 +245,7 @@ func (pp *ParallelProcessor) processTask(task TaskInterface, logger logr.Logger)
 		if duration < m.MinTime {
 			m.MinTime = duration
 		}
-		
+
 		// Calculate running average
 		totalCompleted := m.CompletedTasks
 		if totalCompleted > 0 {
@@ -313,7 +323,7 @@ func (pr *ParallelReconciler) ReconcileParallel(ctx context.Context, tasks []Tas
 // NewBatchProcessor creates a new batch processor
 func NewBatchProcessor(batchSize int, flushInterval time.Duration, processor func(context.Context, []TaskInterface) error) *BatchProcessor {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	return &BatchProcessor{
 		batchSize:     batchSize,
 		flushInterval: flushInterval,
@@ -327,7 +337,7 @@ func NewBatchProcessor(batchSize int, flushInterval time.Duration, processor fun
 // ExecuteWithRetry executes a task with retry logic
 func ExecuteWithRetry(ctx context.Context, task TaskInterface, maxRetries int, backoff time.Duration) error {
 	var lastErr error
-	
+
 	for attempt := 0; attempt <= maxRetries; attempt++ {
 		if attempt > 0 {
 			select {
@@ -336,15 +346,15 @@ func ExecuteWithRetry(ctx context.Context, task TaskInterface, maxRetries int, b
 				return ctx.Err()
 			}
 		}
-		
+
 		err := task.Execute(ctx)
 		if err == nil {
 			return nil
 		}
-		
+
 		lastErr = err
 	}
-	
+
 	return fmt.Errorf("task failed after %d attempts: %w", maxRetries+1, lastErr)
 }
 
@@ -353,17 +363,17 @@ func ExecuteTasksInBatches(ctx context.Context, tasks []Task, batchSize int) err
 	if batchSize <= 0 {
 		batchSize = 1
 	}
-	
+
 	for i := 0; i < len(tasks); i += batchSize {
 		end := i + batchSize
 		if end > len(tasks) {
 			end = len(tasks)
 		}
-		
+
 		batch := tasks[i:end]
 		var wg sync.WaitGroup
 		errors := make(chan error, len(batch))
-		
+
 		for _, task := range batch {
 			wg.Add(1)
 			go func(t Task) {
@@ -373,10 +383,10 @@ func ExecuteTasksInBatches(ctx context.Context, tasks []Task, batchSize int) err
 				}
 			}(task)
 		}
-		
+
 		wg.Wait()
 		close(errors)
-		
+
 		// Check for errors
 		for err := range errors {
 			if err != nil {
@@ -384,6 +394,6 @@ func ExecuteTasksInBatches(ctx context.Context, tasks []Task, batchSize int) err
 			}
 		}
 	}
-	
+
 	return nil
 }

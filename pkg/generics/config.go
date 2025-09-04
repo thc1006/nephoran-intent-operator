@@ -99,50 +99,38 @@ type ConfigTransform[T any] func(T) Result[T, error]
 // NewConfigManager creates a new configuration manager.
 
 func NewConfigManager[T any](defaults T) *ConfigManager[T] {
-
 	return &ConfigManager[T]{
-
 		providers: make(map[ConfigSource]ConfigProvider[T]),
 
 		cache: NewMap[string, ConfigEntry[T]](),
 
 		defaults: defaults,
 	}
-
 }
 
 // RegisterProvider registers a configuration provider.
 
 func (cm *ConfigManager[T]) RegisterProvider(source ConfigSource, provider ConfigProvider[T]) {
-
 	cm.providers[source] = provider
-
 }
 
 // AddValidator adds a configuration validator.
 
 func (cm *ConfigManager[T]) AddValidator(validator ConfigValidator[T]) {
-
 	cm.validators = append(cm.validators, validator)
-
 }
 
 // AddTransform adds a configuration transformer.
 
 func (cm *ConfigManager[T]) AddTransform(transform ConfigTransform[T]) {
-
 	cm.transforms = append(cm.transforms, transform)
-
 }
 
 // Load loads configuration with cascading from multiple sources.
 
 func (cm *ConfigManager[T]) Load(ctx context.Context, key string, sources ...ConfigSource) Result[T, error] {
-
 	if len(sources) == 0 {
-
 		sources = []ConfigSource{ConfigSourceEnv, ConfigSourceFile, ConfigSourceKubernetes}
-
 	}
 
 	// Check cache first.
@@ -154,9 +142,7 @@ func (cm *ConfigManager[T]) Load(ctx context.Context, key string, sources ...Con
 		// Consider cache valid for 5 minutes.
 
 		if time.Since(cacheEntry.Timestamp) < 5*time.Minute {
-
 			return Ok[T, error](cacheEntry.Value)
-
 		}
 
 	}
@@ -166,7 +152,6 @@ func (cm *ConfigManager[T]) Load(ctx context.Context, key string, sources ...Con
 	var lastErr error
 
 	for _, source := range sources {
-
 		if provider, exists := cm.providers[source]; exists {
 
 			result := provider.Load(ctx, key)
@@ -227,7 +212,6 @@ func (cm *ConfigManager[T]) Load(ctx context.Context, key string, sources ...Con
 					// Cache the result.
 
 					entry := ConfigEntry[T]{
-
 						Value: config,
 
 						Source: source,
@@ -255,31 +239,24 @@ func (cm *ConfigManager[T]) Load(ctx context.Context, key string, sources ...Con
 			}
 
 		}
-
 	}
 
 	// Return defaults if all sources fail.
 
 	if !isZero(cm.defaults) {
-
 		return Ok[T, error](cm.defaults)
-
 	}
 
 	return Err[T, error](fmt.Errorf("failed to load config for key %s: %w", key, lastErr))
-
 }
 
 // Store stores configuration to the specified source.
 
 func (cm *ConfigManager[T]) Store(ctx context.Context, key string, value T, source ConfigSource) Result[bool, error] {
-
 	provider, exists := cm.providers[source]
 
 	if !exists {
-
 		return Err[bool, error](fmt.Errorf("no provider registered for source: %d", source))
-
 	}
 
 	// Validate before storing.
@@ -289,15 +266,11 @@ func (cm *ConfigManager[T]) Store(ctx context.Context, key string, value T, sour
 		result := validator(value)
 
 		if result.IsErr() {
-
 			return Err[bool, error](result.Error())
-
 		}
 
 		if !result.Value() {
-
 			return Err[bool, error](fmt.Errorf("validation failed for key: %s", key))
-
 		}
 
 	}
@@ -311,7 +284,6 @@ func (cm *ConfigManager[T]) Store(ctx context.Context, key string, value T, sour
 		// Update cache.
 
 		entry := ConfigEntry[T]{
-
 			Value: value,
 
 			Source: source,
@@ -326,13 +298,11 @@ func (cm *ConfigManager[T]) Store(ctx context.Context, key string, value T, sour
 	}
 
 	return result
-
 }
 
 // Watch watches for configuration changes.
 
 func (cm *ConfigManager[T]) Watch(ctx context.Context, key string, source ConfigSource) <-chan Result[T, error] {
-
 	provider, exists := cm.providers[source]
 
 	if !exists {
@@ -348,13 +318,11 @@ func (cm *ConfigManager[T]) Watch(ctx context.Context, key string, source Config
 	}
 
 	return provider.Watch(ctx, key)
-
 }
 
 // Reload reloads all cached configurations.
 
 func (cm *ConfigManager[T]) Reload(ctx context.Context) Result[int, error] {
-
 	reloaded := 0
 
 	keys := cm.cache.Keys()
@@ -364,9 +332,7 @@ func (cm *ConfigManager[T]) Reload(ctx context.Context) Result[int, error] {
 		entry := cm.cache.Get(key)
 
 		if entry.IsNone() {
-
 			continue
-
 		}
 
 		cacheEntry := entry.Value()
@@ -374,41 +340,30 @@ func (cm *ConfigManager[T]) Reload(ctx context.Context) Result[int, error] {
 		result := cm.Load(ctx, key, cacheEntry.Source)
 
 		if result.IsOk() {
-
 			reloaded++
-
 		}
 
 	}
 
 	return Ok[int, error](reloaded)
-
 }
 
 // Close closes all providers.
 
 func (cm *ConfigManager[T]) Close() error {
-
 	var errs []error
 
 	for _, provider := range cm.providers {
-
 		if err := provider.Close(); err != nil {
-
 			errs = append(errs, err)
-
 		}
-
 	}
 
 	if len(errs) > 0 {
-
 		return fmt.Errorf("errors closing providers: %v", errs)
-
 	}
 
 	return nil
-
 }
 
 // EnvironmentProvider loads configuration from environment variables.
@@ -428,20 +383,16 @@ type EnvParser[T any] interface {
 // NewEnvironmentProvider creates a new environment provider.
 
 func NewEnvironmentProvider[T any](prefix string, parser EnvParser[T]) *EnvironmentProvider[T] {
-
 	return &EnvironmentProvider[T]{
-
 		prefix: prefix,
 
 		parser: parser,
 	}
-
 }
 
 // Load loads configuration from environment variables.
 
 func (ep *EnvironmentProvider[T]) Load(ctx context.Context, key string) Result[T, error] {
-
 	envVars := make(map[string]string)
 
 	// Collect all environment variables with the prefix.
@@ -451,9 +402,7 @@ func (ep *EnvironmentProvider[T]) Load(ctx context.Context, key string) Result[T
 		parts := strings.SplitN(env, "=", 2)
 
 		if len(parts) != 2 {
-
 			continue
-
 		}
 
 		envKey := parts[0]
@@ -461,29 +410,23 @@ func (ep *EnvironmentProvider[T]) Load(ctx context.Context, key string) Result[T
 		envValue := parts[1]
 
 		if strings.HasPrefix(envKey, ep.prefix) {
-
 			envVars[envKey] = envValue
-
 		}
 
 	}
 
 	return ep.parser.Parse(envVars)
-
 }
 
 // Store is not supported for environment provider.
 
 func (ep *EnvironmentProvider[T]) Store(ctx context.Context, key string, value T) Result[bool, error] {
-
 	return Err[bool, error](fmt.Errorf("store not supported for environment provider"))
-
 }
 
 // Watch is not supported for environment provider.
 
 func (ep *EnvironmentProvider[T]) Watch(ctx context.Context, key string) <-chan Result[T, error] {
-
 	resultChan := make(chan Result[T, error], 1)
 
 	resultChan <- Err[T, error](fmt.Errorf("watch not supported for environment provider"))
@@ -491,15 +434,12 @@ func (ep *EnvironmentProvider[T]) Watch(ctx context.Context, key string) <-chan 
 	close(resultChan)
 
 	return resultChan
-
 }
 
 // Close closes the environment provider.
 
 func (ep *EnvironmentProvider[T]) Close() error {
-
 	return nil
-
 }
 
 // ReflectiveEnvParser uses reflection to parse environment variables.
@@ -509,7 +449,6 @@ type ReflectiveEnvParser[T any] struct{}
 // Parse parses environment variables using reflection.
 
 func (rep ReflectiveEnvParser[T]) Parse(env map[string]string) Result[T, error] {
-
 	var config T
 
 	configValue := reflect.ValueOf(&config).Elem()
@@ -523,9 +462,7 @@ func (rep ReflectiveEnvParser[T]) Parse(env map[string]string) Result[T, error] 
 		fieldValue := configValue.Field(i)
 
 		if !fieldValue.CanSet() {
-
 			continue
-
 		}
 
 		// Get environment variable name from tag or field name.
@@ -533,47 +470,35 @@ func (rep ReflectiveEnvParser[T]) Parse(env map[string]string) Result[T, error] 
 		envName := field.Tag.Get("env")
 
 		if envName == "" {
-
 			envName = strings.ToUpper(field.Name)
-
 		}
 
 		envValue, exists := env[envName]
 
 		if !exists {
-
 			// Check for default value.
 
 			if defaultValue := field.Tag.Get("default"); defaultValue != "" {
-
 				envValue = defaultValue
-
 			} else {
-
 				continue
-
 			}
-
 		}
 
 		// Parse the value based on field type.
 
 		if err := setFieldValue(fieldValue, envValue); err != nil {
-
 			return Err[T, error](fmt.Errorf("failed to set field %s: %w", field.Name, err))
-
 		}
 
 	}
 
 	return Ok[T, error](config)
-
 }
 
 // setFieldValue sets a reflect.Value from a string.
 
 func setFieldValue(fieldValue reflect.Value, value string) error {
-
 	switch fieldValue.Kind() {
 
 	case reflect.String:
@@ -585,11 +510,8 @@ func setFieldValue(fieldValue reflect.Value, value string) error {
 		if fieldValue.Type().String() == "time.Duration" {
 
 			duration, err := time.ParseDuration(value)
-
 			if err != nil {
-
 				return err
-
 			}
 
 			fieldValue.SetInt(int64(duration))
@@ -597,11 +519,8 @@ func setFieldValue(fieldValue reflect.Value, value string) error {
 		} else {
 
 			intValue, err := strconv.ParseInt(value, 10, fieldValue.Type().Bits())
-
 			if err != nil {
-
 				return err
-
 			}
 
 			fieldValue.SetInt(intValue)
@@ -611,11 +530,8 @@ func setFieldValue(fieldValue reflect.Value, value string) error {
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 
 		uintValue, err := strconv.ParseUint(value, 10, fieldValue.Type().Bits())
-
 		if err != nil {
-
 			return err
-
 		}
 
 		fieldValue.SetUint(uintValue)
@@ -623,11 +539,8 @@ func setFieldValue(fieldValue reflect.Value, value string) error {
 	case reflect.Float32, reflect.Float64:
 
 		floatValue, err := strconv.ParseFloat(value, fieldValue.Type().Bits())
-
 		if err != nil {
-
 			return err
-
 		}
 
 		fieldValue.SetFloat(floatValue)
@@ -635,11 +548,8 @@ func setFieldValue(fieldValue reflect.Value, value string) error {
 	case reflect.Bool:
 
 		boolValue, err := strconv.ParseBool(value)
-
 		if err != nil {
-
 			return err
-
 		}
 
 		fieldValue.SetBool(boolValue)
@@ -655,9 +565,7 @@ func setFieldValue(fieldValue reflect.Value, value string) error {
 			slice := reflect.MakeSlice(fieldValue.Type(), len(values), len(values))
 
 			for i, v := range values {
-
 				slice.Index(i).SetString(strings.TrimSpace(v))
-
 			}
 
 			fieldValue.Set(slice)
@@ -671,7 +579,6 @@ func setFieldValue(fieldValue reflect.Value, value string) error {
 	}
 
 	return nil
-
 }
 
 // FileProvider loads configuration from files.
@@ -708,28 +615,21 @@ const (
 // NewFileProvider creates a new file provider.
 
 func NewFileProvider[T any](basePath string, format FileFormat) *FileProvider[T] {
-
 	return &FileProvider[T]{
-
 		basePath: basePath,
 
 		format: format,
 	}
-
 }
 
 // Load loads configuration from a file.
 
 func (fp *FileProvider[T]) Load(ctx context.Context, key string) Result[T, error] {
-
 	filename := fp.getFilename(key)
 
 	data, err := os.ReadFile(filename)
-
 	if err != nil {
-
 		return Err[T, error](fmt.Errorf("failed to read config file %s: %w", filename, err))
-
 	}
 
 	var config T
@@ -739,9 +639,7 @@ func (fp *FileProvider[T]) Load(ctx context.Context, key string) Result[T, error
 	case FormatJSON:
 
 		if err := json.Unmarshal(data, &config); err != nil {
-
 			return Err[T, error](fmt.Errorf("failed to unmarshal JSON config: %w", err))
-
 		}
 
 	default:
@@ -751,13 +649,11 @@ func (fp *FileProvider[T]) Load(ctx context.Context, key string) Result[T, error
 	}
 
 	return Ok[T, error](config)
-
 }
 
 // Store stores configuration to a file.
 
 func (fp *FileProvider[T]) Store(ctx context.Context, key string, value T) Result[bool, error] {
-
 	filename := fp.getFilename(key)
 
 	var data []byte
@@ -769,11 +665,8 @@ func (fp *FileProvider[T]) Store(ctx context.Context, key string, value T) Resul
 	case FormatJSON:
 
 		data, err = json.MarshalIndent(value, "", "  ")
-
 		if err != nil {
-
 			return Err[bool, error](fmt.Errorf("failed to marshal JSON config: %w", err))
-
 		}
 
 	default:
@@ -783,23 +676,18 @@ func (fp *FileProvider[T]) Store(ctx context.Context, key string, value T) Resul
 	}
 
 	if err := os.WriteFile(filename, data, 0o640); err != nil {
-
 		return Err[bool, error](fmt.Errorf("failed to write config file %s: %w", filename, err))
-
 	}
 
 	return Ok[bool, error](true)
-
 }
 
 // Watch watches for file changes (simplified implementation).
 
 func (fp *FileProvider[T]) Watch(ctx context.Context, key string) <-chan Result[T, error] {
-
 	resultChan := make(chan Result[T, error])
 
 	go func() {
-
 		defer close(resultChan)
 
 		filename := fp.getFilename(key)
@@ -811,7 +699,6 @@ func (fp *FileProvider[T]) Watch(ctx context.Context, key string) <-chan Result[
 		defer ticker.Stop()
 
 		for {
-
 			select {
 
 			case <-ctx.Done():
@@ -821,11 +708,8 @@ func (fp *FileProvider[T]) Watch(ctx context.Context, key string) <-chan Result[
 			case <-ticker.C:
 
 				stat, err := os.Stat(filename)
-
 				if err != nil {
-
 					continue
-
 				}
 
 				if stat.ModTime().After(lastModTime) {
@@ -839,27 +723,21 @@ func (fp *FileProvider[T]) Watch(ctx context.Context, key string) <-chan Result[
 				}
 
 			}
-
 		}
-
 	}()
 
 	return resultChan
-
 }
 
 // Close closes the file provider.
 
 func (fp *FileProvider[T]) Close() error {
-
 	return nil
-
 }
 
 // getFilename constructs the filename for a configuration key.
 
 func (fp *FileProvider[T]) getFilename(key string) string {
-
 	extension := ".json"
 
 	switch fp.format {
@@ -879,7 +757,6 @@ func (fp *FileProvider[T]) getFilename(key string) string {
 	}
 
 	return fmt.Sprintf("%s/%s%s", fp.basePath, key, extension)
-
 }
 
 // ConfigMerger merges multiple configurations.
@@ -891,22 +768,16 @@ type ConfigMerger[T any] struct {
 // NewConfigMerger creates a new configuration merger.
 
 func NewConfigMerger[T any](mergeFunc func(T, T) Result[T, error]) *ConfigMerger[T] {
-
 	return &ConfigMerger[T]{
-
 		mergeFunc: mergeFunc,
 	}
-
 }
 
 // Merge merges multiple configurations.
 
 func (cm *ConfigMerger[T]) Merge(configs ...T) Result[T, error] {
-
 	if len(configs) == 0 {
-
 		return Err[T, error](fmt.Errorf("no configurations to merge"))
-
 	}
 
 	result := configs[0]
@@ -916,9 +787,7 @@ func (cm *ConfigMerger[T]) Merge(configs ...T) Result[T, error] {
 		mergeResult := cm.mergeFunc(result, configs[i])
 
 		if mergeResult.IsErr() {
-
 			return mergeResult
-
 		}
 
 		result = mergeResult.Value()
@@ -926,7 +795,6 @@ func (cm *ConfigMerger[T]) Merge(configs ...T) Result[T, error] {
 	}
 
 	return Ok[T, error](result)
-
 }
 
 // Utility functions.
@@ -934,33 +802,24 @@ func (cm *ConfigMerger[T]) Merge(configs ...T) Result[T, error] {
 // isZero checks if a value is the zero value of its type.
 
 func isZero[T any](v T) bool {
-
 	return reflect.ValueOf(v).IsZero()
-
 }
 
 // DeepCopy performs a deep copy of a configuration value.
 
 func DeepCopy[T any](original T) Result[T, error] {
-
 	data, err := json.Marshal(original)
-
 	if err != nil {
-
 		return Err[T, error](fmt.Errorf("failed to marshal for deep copy: %w", err))
-
 	}
 
 	var result T
 
 	if err := json.Unmarshal(data, &result); err != nil {
-
 		return Err[T, error](fmt.Errorf("failed to unmarshal for deep copy: %w", err))
-
 	}
 
 	return Ok[T, error](result)
-
 }
 
 // CommonValidators provides common configuration validators.
@@ -968,29 +827,22 @@ func DeepCopy[T any](original T) Result[T, error] {
 // NonEmptyStringValidator validates that string fields are not empty.
 
 func NonEmptyStringValidator[T any]() ConfigValidator[T] {
-
 	return func(config T) Result[bool, error] {
-
 		value := reflect.ValueOf(config)
 
 		return validateNonEmptyStrings(value)
-
 	}
-
 }
 
 // validateNonEmptyStrings recursively validates string fields.
 
 func validateNonEmptyStrings(value reflect.Value) Result[bool, error] {
-
 	switch value.Kind() {
 
 	case reflect.String:
 
 		if value.String() == "" {
-
 			return Ok[bool, error](false)
-
 		}
 
 	case reflect.Struct:
@@ -1004,9 +856,7 @@ func validateNonEmptyStrings(value reflect.Value) Result[bool, error] {
 				result := validateNonEmptyStrings(field)
 
 				if result.IsErr() || !result.Value() {
-
 					return result
-
 				}
 
 			}
@@ -1016,35 +866,27 @@ func validateNonEmptyStrings(value reflect.Value) Result[bool, error] {
 	case reflect.Ptr:
 
 		if !value.IsNil() {
-
 			return validateNonEmptyStrings(value.Elem())
-
 		}
 
 	}
 
 	return Ok[bool, error](true)
-
 }
 
 // RangeValidator validates that numeric fields are within specified ranges.
 
 func RangeValidator[T any](min, max int64) ConfigValidator[T] {
-
 	return func(config T) Result[bool, error] {
-
 		value := reflect.ValueOf(config)
 
 		return validateRanges(value, min, max)
-
 	}
-
 }
 
 // validateRanges recursively validates numeric ranges.
 
 func validateRanges(value reflect.Value, minVal, maxVal int64) Result[bool, error] {
-
 	switch value.Kind() {
 
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -1052,9 +894,7 @@ func validateRanges(value reflect.Value, minVal, maxVal int64) Result[bool, erro
 		intValue := value.Int()
 
 		if intValue < minVal || intValue > maxVal {
-
 			return Ok[bool, error](false)
-
 		}
 
 	case reflect.Struct:
@@ -1068,9 +908,7 @@ func validateRanges(value reflect.Value, minVal, maxVal int64) Result[bool, erro
 				result := validateRanges(field, minVal, maxVal)
 
 				if result.IsErr() || !result.Value() {
-
 					return result
-
 				}
 
 			}
@@ -1080,13 +918,10 @@ func validateRanges(value reflect.Value, minVal, maxVal int64) Result[bool, erro
 	case reflect.Ptr:
 
 		if !value.IsNil() {
-
 			return validateRanges(value.Elem(), minVal, maxVal)
-
 		}
 
 	}
 
 	return Ok[bool, error](true)
-
 }

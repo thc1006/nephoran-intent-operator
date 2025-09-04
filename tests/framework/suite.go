@@ -16,6 +16,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/stretchr/testify/suite"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -65,7 +66,6 @@ type TestSuite struct {
 // TestConfig holds configuration for test execution.
 
 type TestConfig struct {
-
 	// Environment settings.
 
 	UseExistingCluster bool
@@ -114,9 +114,7 @@ type TestConfig struct {
 // DefaultTestConfig returns a default test configuration.
 
 func DefaultTestConfig() *TestConfig {
-
 	return &TestConfig{
-
 		UseExistingCluster: false,
 
 		CRDPath: filepath.Join("..", "..", "deployments", "crds"),
@@ -149,23 +147,18 @@ func DefaultTestConfig() *TestConfig {
 
 		MockExternalAPIs: true,
 	}
-
 }
 
 // NewTestSuite creates a new comprehensive test suite.
 
 func NewTestSuite(config *TestConfig) *TestSuite {
-
 	if config == nil {
-
 		config = DefaultTestConfig()
-
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &TestSuite{
-
 		config: config,
 
 		ctx: ctx,
@@ -176,13 +169,11 @@ func NewTestSuite(config *TestConfig) *TestSuite {
 
 		metrics: NewTestMetrics(),
 	}
-
 }
 
 // SetupSuite initializes the test environment.
 
 func (ts *TestSuite) SetupSuite() {
-
 	logf.SetLogger(crzap.New(crzap.UseDevMode(true)))
 
 	ginkgo.By("Bootstrapping test environment")
@@ -190,7 +181,6 @@ func (ts *TestSuite) SetupSuite() {
 	// Setup test environment.
 
 	ts.testEnv = &envtest.Environment{
-
 		CRDDirectoryPaths: []string{ts.config.CRDPath},
 
 		ErrorIfCRDPathMissing: true,
@@ -231,13 +221,11 @@ func (ts *TestSuite) SetupSuite() {
 	ts.metrics.Initialize()
 
 	ginkgo.By("Test environment ready")
-
 }
 
 // TearDownSuite cleans up the test environment.
 
 func (ts *TestSuite) TearDownSuite() {
-
 	ginkgo.By("Tearing down test environment")
 
 	// Cancel context.
@@ -257,13 +245,11 @@ func (ts *TestSuite) TearDownSuite() {
 	err := ts.testEnv.Stop()
 
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
 }
 
 // SetupTest initializes each test case.
 
 func (ts *TestSuite) SetupTest() {
-
 	// Reset metrics for each test.
 
 	ts.metrics.Reset()
@@ -275,13 +261,11 @@ func (ts *TestSuite) SetupTest() {
 	// Create test-specific context.
 
 	ts.ctx, ts.cancel = context.WithTimeout(context.Background(), ts.config.Timeout)
-
 }
 
 // TearDownTest cleans up after each test case.
 
 func (ts *TestSuite) TearDownTest() {
-
 	// Collect test metrics.
 
 	ts.metrics.CollectTestMetrics()
@@ -289,105 +273,79 @@ func (ts *TestSuite) TearDownTest() {
 	// Cancel test context.
 
 	if ts.cancel != nil {
-
 		ts.cancel()
-
 	}
-
 }
 
 // GetK8sClient returns the Kubernetes client for testing.
 
 func (ts *TestSuite) GetK8sClient() client.Client {
-
 	return ts.k8sClient
-
 }
 
 // GetConfig returns the REST config for testing.
 
 func (ts *TestSuite) GetConfig() *rest.Config {
-
 	return ts.cfg
-
 }
 
 // GetTestConfig returns the test configuration.
 
 func (ts *TestSuite) GetTestConfig() *TestConfig {
-
 	return ts.config
-
 }
 
 // GetContext returns the test context.
 
 func (ts *TestSuite) GetContext() context.Context {
-
 	return ts.ctx
-
 }
 
 // GetMocks returns the mock manager.
 
 func (ts *TestSuite) GetMocks() *MockManager {
-
 	return ts.mocks
-
 }
 
 // GetMetrics returns the test metrics collector.
 
 func (ts *TestSuite) GetMetrics() *TestMetrics {
-
 	return ts.metrics
-
 }
 
 // RunLoadTest executes load testing scenarios.
 
 func (ts *TestSuite) RunLoadTest(testFunc func() error) error {
-
 	if !ts.config.LoadTestEnabled {
-
 		return nil
-
 	}
 
 	ginkgo.By(fmt.Sprintf("Running load test with %d concurrent operations", ts.config.MaxConcurrency))
 
 	return ts.metrics.ExecuteLoadTest(ts.config.MaxConcurrency, ts.config.TestDuration, testFunc)
-
 }
 
 // RunChaosTest executes chaos engineering scenarios.
 
 func (ts *TestSuite) RunChaosTest(testFunc func() error) error {
-
 	if !ts.config.ChaosTestEnabled {
-
 		return nil
-
 	}
 
 	ginkgo.By(fmt.Sprintf("Running chaos test with %.1f%% failure rate", ts.config.FailureRate*100))
 
 	return ts.mocks.InjectChaos(ts.config.FailureRate, testFunc)
-
 }
 
 // generateTestReports creates comprehensive test reports.
 
 func (ts *TestSuite) generateTestReports() {
-
 	ginkgo.By("Generating test reports")
 
 	// Generate coverage report.
 
 	if ts.config.CoverageEnabled {
-
 		ts.generateCoverageReport()
-
 	}
 
 	// Generate performance report.
@@ -397,13 +355,11 @@ func (ts *TestSuite) generateTestReports() {
 	// Generate mock interaction report.
 
 	ts.mocks.GenerateReport()
-
 }
 
 // generateCoverageReport creates a code coverage report.
 
 func (ts *TestSuite) generateCoverageReport() {
-
 	// Implementation for coverage reporting.
 
 	// This would integrate with Go's coverage tools.
@@ -411,23 +367,17 @@ func (ts *TestSuite) generateCoverageReport() {
 	coverage := ts.metrics.GetCoveragePercentage()
 
 	if coverage < ts.config.CoverageThreshold {
-
 		ginkgo.Fail(fmt.Sprintf("Coverage %.2f%% is below threshold %.2f%%", coverage, ts.config.CoverageThreshold))
-
 	}
 
 	fmt.Printf("Code coverage: %.2f%%\n", coverage)
-
 }
 
 // RunIntegrationTests executes comprehensive integration test scenarios.
 
 func RunIntegrationTests(t *testing.T, config *TestConfig) {
-
 	if config == nil {
-
 		config = DefaultTestConfig()
-
 	}
 
 	// Register Ginkgo fail handler.
@@ -443,46 +393,42 @@ func RunIntegrationTests(t *testing.T, config *TestConfig) {
 	// Run Ginkgo tests.
 
 	ginkgo.RunSpecs(t, "Nephoran Intent Operator Integration Test Suite")
-
 }
 
 // ValidateTestEnvironment ensures the test environment is properly configured.
 
 func (ts *TestSuite) ValidateTestEnvironment() error {
-
 	// Check if required environment variables are set.
 
 	requiredEnvVars := []string{
-
 		"KUBEBUILDER_ASSETS",
 	}
 
 	for _, envVar := range requiredEnvVars {
-
 		if os.Getenv(envVar) == "" {
-
 			return fmt.Errorf("required environment variable %s is not set", envVar)
-
 		}
-
 	}
 
 	// Validate CRD paths exist.
 
 	if _, err := os.Stat(ts.config.CRDPath); os.IsNotExist(err) {
-
 		return fmt.Errorf("CRD path does not exist: %s", ts.config.CRDPath)
-
 	}
 
 	return nil
-
 }
 
 // GetTestNamespace returns a unique namespace for testing.
-
 func (ts *TestSuite) GetTestNamespace() string {
-
 	return fmt.Sprintf("nephran-test-%d", time.Now().Unix())
+}
 
+// ObjectKeyFromObject returns a client.ObjectKey for the given object.
+// This is a compatibility helper for the deprecated client.ObjectKeyFromObject function.
+func ObjectKeyFromObject(obj client.Object) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      obj.GetName(),
+		Namespace: obj.GetNamespace(),
+	}
 }

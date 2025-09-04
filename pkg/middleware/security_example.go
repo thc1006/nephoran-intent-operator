@@ -4,6 +4,7 @@ package middleware
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -61,7 +62,7 @@ func ExampleSecurityImplementation() {
 			IPTimeout:       1 * time.Hour,
 		},
 
-		// Request Size Configuration  
+		// Request Size Configuration
 		RequestSize: NewRequestSizeLimiter(10*1024*1024, logger), // 10MB
 
 		// CORS Configuration
@@ -186,11 +187,7 @@ func setupAPIRoutes(router *mux.Router, logger *slog.Logger) {
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":    "healthy",
-		"timestamp": time.Now().UTC(),
-		"service":   "nephoran-intent-operator",
-	})
+	json.NewEncoder(w).Encode(json.RawMessage(`{}`))
 }
 
 func csrfTokenHandler(suite *SecuritySuite) http.HandlerFunc {
@@ -217,21 +214,11 @@ func csrfTokenHandler(suite *SecuritySuite) http.HandlerFunc {
 
 func listIntentsHandler(w http.ResponseWriter, r *http.Request) {
 	// Example: List all network intents
-	intents := []map[string]interface{}{
-		{
-			"id":          "intent-001",
-			"name":        "scale-up-cnf",
-			"status":      "active",
-			"created_at":  time.Now().Add(-24 * time.Hour),
-			"target_type": "deployment",
-			"target_name": "o-ran-du",
-		},
-	}
+	intents := []map[string]interface{}{}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"intents": intents,
-		"total":   len(intents),
 	})
 }
 
@@ -265,13 +252,8 @@ func getIntentHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Example response
 	intent := map[string]interface{}{
-		"id":          intentID,
-		"name":        "scale-up-cnf",
-		"status":      "active",
-		"created_at":  time.Now().Add(-24 * time.Hour),
-		"target_type": "deployment",
-		"target_name": "o-ran-du",
-		"parameters": map[string]interface{}{
+		"id": intentID,
+		"spec": map[string]interface{}{
 			"replicas":    3,
 			"cpu_request": "500m",
 			"mem_request": "1Gi",
@@ -304,17 +286,19 @@ func deleteIntentHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	intentID := vars["id"]
 
+	// Log the intentID for audit purposes
+	log.Printf("Deleting intent: %s", intentID)
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"id":      intentID,
-		"status":  "deleted",
-		"message": "Intent successfully deleted",
-	})
+	json.NewEncoder(w).Encode(json.RawMessage(`{}`))
 }
 
 func scaleIntentHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	intentID := vars["id"]
+
+	// Log the intentID for audit purposes
+	log.Printf("Scaling intent: %s", intentID)
 
 	var scaleRequest map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&scaleRequest); err != nil {
@@ -330,13 +314,7 @@ func scaleIntentHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"id":        intentID,
-		"operation": "scale",
-		"status":    "in_progress",
-		"replicas":  scaleRequest["replicas"],
-		"message":   "Scaling operation initiated",
-	})
+	json.NewEncoder(w).Encode(json.RawMessage(`{}`))
 }
 
 func validateIntentHandler(w http.ResponseWriter, r *http.Request) {
@@ -373,17 +351,7 @@ func validateIntentHandler(w http.ResponseWriter, r *http.Request) {
 
 func metricsHandler(w http.ResponseWriter, r *http.Request) {
 	// Example metrics response
-	metrics := map[string]interface{}{
-		"total_intents":      42,
-		"active_intents":     15,
-		"pending_intents":    3,
-		"failed_intents":     2,
-		"total_scaling_ops":  156,
-		"successful_scaling": 150,
-		"failed_scaling":     6,
-		"avg_response_time":  "125ms",
-		"uptime":             "72h15m",
-	}
+	metrics := json.RawMessage(`{}`)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(metrics)
@@ -420,3 +388,4 @@ func ExampleCustomValidation() {
 	// Use validator in your middleware chain
 	_ = validator
 }
+

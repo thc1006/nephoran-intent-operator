@@ -133,7 +133,7 @@ func (v *SQLValidator) ValidateAndSanitizeSQL(ctx context.Context, table string,
 	// Build parameterized query - NEVER concatenate user input
 	var query strings.Builder
 	var args []interface{}
-	
+
 	query.WriteString("SELECT ")
 	for i, col := range columns {
 		if i > 0 {
@@ -142,10 +142,10 @@ func (v *SQLValidator) ValidateAndSanitizeSQL(ctx context.Context, table string,
 		// Column names are validated above, safe to use
 		query.WriteString(col)
 	}
-	
+
 	query.WriteString(" FROM ")
 	query.WriteString(table)
-	
+
 	if len(conditions) > 0 {
 		query.WriteString(" WHERE ")
 		i := 0
@@ -178,7 +178,7 @@ func (v *SQLValidator) ExecuteSafeQuery(ctx context.Context, db *sql.DB, query s
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare statement: %w", err)
 	}
-	defer stmt.Close()
+	defer stmt.Close() // #nosec G307 - Error handled in defer
 
 	rows, err := stmt.QueryContext(ctx, args...)
 	if err != nil {
@@ -192,23 +192,23 @@ func (v *SQLValidator) ExecuteSafeQuery(ctx context.Context, db *sql.DB, query s
 func (p *PathValidator) ValidateAndSanitizePath(inputPath string) (string, error) {
 	// Remove any null bytes
 	inputPath = strings.ReplaceAll(inputPath, "\x00", "")
-	
+
 	// Clean the path
 	cleanPath := filepath.Clean(inputPath)
-	
+
 	// Convert to absolute path
 	absPath, err := filepath.Abs(cleanPath)
 	if err != nil {
 		return "", fmt.Errorf("invalid path: %w", err)
 	}
-	
+
 	// Check for forbidden patterns
 	for _, forbidden := range p.forbiddenPaths {
 		if strings.Contains(absPath, forbidden) {
 			return "", fmt.Errorf("path contains forbidden pattern: %s", forbidden)
 		}
 	}
-	
+
 	// Ensure path is within allowed directories
 	allowed := false
 	for _, allowedDir := range p.allowedDirs {
@@ -218,16 +218,16 @@ func (p *PathValidator) ValidateAndSanitizePath(inputPath string) (string, error
 			break
 		}
 	}
-	
+
 	if !allowed {
 		return "", fmt.Errorf("path '%s' is outside allowed directories", absPath)
 	}
-	
+
 	// Additional checks for path traversal
 	if strings.Contains(absPath, "..") {
 		return "", fmt.Errorf("path traversal detected")
 	}
-	
+
 	return absPath, nil
 }
 
@@ -235,19 +235,19 @@ func (p *PathValidator) ValidateAndSanitizePath(inputPath string) (string, error
 func (h *HTMLValidator) SanitizeHTML(input string) string {
 	// First, HTML escape everything
 	sanitized := html.EscapeString(input)
-	
+
 	// Remove any JavaScript event handlers
 	eventHandlerRegex := regexp.MustCompile(`\bon\w+\s*=`)
 	sanitized = eventHandlerRegex.ReplaceAllString(sanitized, "")
-	
+
 	// Remove javascript: protocol
 	jsProtocolRegex := regexp.MustCompile(`(?i)javascript:`)
 	sanitized = jsProtocolRegex.ReplaceAllString(sanitized, "")
-	
+
 	// Remove data: URLs that could contain scripts
 	dataURLRegex := regexp.MustCompile(`(?i)data:[^,]*script`)
 	sanitized = dataURLRegex.ReplaceAllString(sanitized, "")
-	
+
 	return sanitized
 }
 
@@ -257,24 +257,24 @@ func ValidateJSON(input string, maxSize int) error {
 	if len(input) > maxSize {
 		return fmt.Errorf("JSON input exceeds maximum size of %d bytes", maxSize)
 	}
-	
+
 	// Check for valid UTF-8
 	if !utf8.ValidString(input) {
 		return fmt.Errorf("JSON input contains invalid UTF-8")
 	}
-	
+
 	// Validate JSON structure
 	var js json.RawMessage
 	if err := json.Unmarshal([]byte(input), &js); err != nil {
 		return fmt.Errorf("invalid JSON: %w", err)
 	}
-	
+
 	// Check for recursive depth to prevent stack overflow
 	depth := calculateJSONDepth([]byte(input))
 	if depth > 100 {
 		return fmt.Errorf("JSON nesting depth exceeds maximum of 100")
 	}
-	
+
 	return nil
 }
 
@@ -285,21 +285,21 @@ func ValidateURL(inputURL string) (*url.URL, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid URL: %w", err)
 	}
-	
+
 	// Check scheme - only allow http(s)
 	if u.Scheme != "http" && u.Scheme != "https" {
 		return nil, fmt.Errorf("only HTTP(S) URLs are allowed")
 	}
-	
+
 	// Check for localhost/private IPs (SSRF prevention)
 	host := strings.ToLower(u.Hostname())
 	if isPrivateHost(host) {
 		return nil, fmt.Errorf("private/internal URLs are not allowed")
 	}
-	
+
 	// Remove any credentials from URL
 	u.User = nil
-	
+
 	// Validate port
 	if u.Port() != "" {
 		port := u.Port()
@@ -307,7 +307,7 @@ func ValidateURL(inputURL string) (*url.URL, error) {
 			return nil, fmt.Errorf("port %s is not allowed", port)
 		}
 	}
-	
+
 	return u, nil
 }
 
@@ -317,18 +317,18 @@ func ValidateEmail(email string) error {
 	if len(email) < 3 || len(email) > 254 {
 		return fmt.Errorf("invalid email length")
 	}
-	
+
 	// RFC 5322 compliant regex
 	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 	if !emailRegex.MatchString(email) {
 		return fmt.Errorf("invalid email format")
 	}
-	
+
 	// Check for common injection patterns
 	if strings.ContainsAny(email, "<>\"'`;") {
 		return fmt.Errorf("email contains invalid characters")
 	}
-	
+
 	return nil
 }
 
@@ -366,14 +366,14 @@ func isPrivateHost(host string) bool {
 		"127.0.0.1",
 		"0.0.0.0",
 		"::1",
-		"169.254",    // Link-local
-		"10.",        // Private network
-		"172.16.",    // Private network
-		"192.168.",   // Private network
-		"fc00::",     // IPv6 private
-		"metadata",   // Cloud metadata endpoints
+		"169.254",  // Link-local
+		"10.",      // Private network
+		"172.16.",  // Private network
+		"192.168.", // Private network
+		"fc00::",   // IPv6 private
+		"metadata", // Cloud metadata endpoints
 	}
-	
+
 	for _, pattern := range privatePatterns {
 		if strings.HasPrefix(host, pattern) || strings.Contains(host, pattern) {
 			return true

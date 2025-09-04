@@ -2,7 +2,9 @@ package disaster
 
 import (
 	"archive/tar"
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
@@ -230,7 +232,7 @@ func (suite *BackupManagerTestSuite) TestBackupKubernetesConfig_Success() {
 	record := &BackupRecord{
 		ID:         "test-backup",
 		Components: make(map[string]ComponentBackup),
-		Metadata:   make(map[string]interface{}),
+		Metadata:   json.RawMessage(`{}`),
 	}
 
 	err = manager.backupKubernetesConfig(suite.ctx, record)
@@ -252,20 +254,21 @@ func (suite *BackupManagerTestSuite) TestBackupResourceType_ConfigMap() {
 	manager, err := NewBackupManager(drConfig, suite.k8sClient, suite.logger)
 	require.NoError(suite.T(), err)
 
-	// Create a mock tar writer (simplified for testing)
-	mockTarWriter := &MockTarWriter{}
+	// Create a real tar writer with buffer for testing
+	var buf bytes.Buffer
+	tarWriter := tar.NewWriter(&buf)
+	defer tarWriter.Close() // #nosec G307 - Error handled in defer
 
 	resourceType := ResourceType{
 		APIVersion: "v1",
 		Kind:       "ConfigMap",
 	}
 
-	size, err := manager.backupResourceType(suite.ctx, mockTarWriter, "nephoran-system", resourceType)
+	size, err := manager.backupResourceType(suite.ctx, tarWriter, "nephoran-system", resourceType)
 
 	assert.NoError(suite.T(), err)
 	assert.Greater(suite.T(), size, int64(0))
-	assert.True(suite.T(), mockTarWriter.WriteHeaderCalled)
-	assert.True(suite.T(), mockTarWriter.WriteCalled)
+	assert.Greater(suite.T(), buf.Len(), 0, "Should have written data to tar")
 }
 
 func (suite *BackupManagerTestSuite) TestBackupResourceType_Secret_WithMasking() {
@@ -276,21 +279,21 @@ func (suite *BackupManagerTestSuite) TestBackupResourceType_Secret_WithMasking()
 	// Enable secret masking
 	manager.config.ConfigBackupConfig.SecretMask = true
 
-	mockTarWriter := &MockTarWriter{}
+	// Create a real tar writer with buffer for testing
+	var buf bytes.Buffer
+	tarWriter := tar.NewWriter(&buf)
+	defer tarWriter.Close() // #nosec G307 - Error handled in defer
 
 	resourceType := ResourceType{
 		APIVersion: "v1",
 		Kind:       "Secret",
 	}
 
-	size, err := manager.backupResourceType(suite.ctx, mockTarWriter, "nephoran-system", resourceType)
+	size, err := manager.backupResourceType(suite.ctx, tarWriter, "nephoran-system", resourceType)
 
 	assert.NoError(suite.T(), err)
 	assert.Greater(suite.T(), size, int64(0))
-
-	// Verify that secret data was written (would be masked in actual implementation)
-	assert.True(suite.T(), mockTarWriter.WriteHeaderCalled)
-	assert.True(suite.T(), mockTarWriter.WriteCalled)
+	assert.Greater(suite.T(), buf.Len(), 0, "Should have written data to tar")
 }
 
 func (suite *BackupManagerTestSuite) TestBackupResourceType_Secret_WithoutSecrets() {
@@ -301,19 +304,21 @@ func (suite *BackupManagerTestSuite) TestBackupResourceType_Secret_WithoutSecret
 	// Disable secret backup
 	manager.config.ConfigBackupConfig.IncludeSecrets = false
 
-	mockTarWriter := &MockTarWriter{}
+	// Create a real tar writer with buffer for testing
+	var buf bytes.Buffer
+	tarWriter := tar.NewWriter(&buf)
+	defer tarWriter.Close() // #nosec G307 - Error handled in defer
 
 	resourceType := ResourceType{
 		APIVersion: "v1",
 		Kind:       "Secret",
 	}
 
-	size, err := manager.backupResourceType(suite.ctx, mockTarWriter, "nephoran-system", resourceType)
+	size, err := manager.backupResourceType(suite.ctx, tarWriter, "nephoran-system", resourceType)
 
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), int64(0), size)
-	assert.False(suite.T(), mockTarWriter.WriteHeaderCalled)
-	assert.False(suite.T(), mockTarWriter.WriteCalled)
+	assert.Equal(suite.T(), int64(0), size, "Should not backup secrets when disabled")
+	assert.Equal(suite.T(), 0, buf.Len(), "Should not have written data to tar")
 }
 
 func (suite *BackupManagerTestSuite) TestBackupWeaviate_Success() {
@@ -324,7 +329,7 @@ func (suite *BackupManagerTestSuite) TestBackupWeaviate_Success() {
 	record := &BackupRecord{
 		ID:         "test-backup",
 		Components: make(map[string]ComponentBackup),
-		Metadata:   make(map[string]interface{}),
+		Metadata:   json.RawMessage(`{}`),
 	}
 
 	err = manager.backupWeaviate(suite.ctx, record)
@@ -339,7 +344,12 @@ func (suite *BackupManagerTestSuite) TestBackupWeaviate_Success() {
 	assert.Greater(suite.T(), component.Size, int64(0))
 	assert.NotEmpty(suite.T(), component.Path)
 	assert.NotEmpty(suite.T(), component.Checksum)
-	assert.Equal(suite.T(), "rest_api", component.Metadata["backup_method"])
+	
+	// Parse the metadata JSON to check backup_method
+	var metadata map[string]interface{}
+	err = json.Unmarshal(component.Metadata, &metadata)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "rest_api", metadata["backup_method"])
 }
 
 func (suite *BackupManagerTestSuite) TestBackupGitRepositories_Success() {
@@ -359,7 +369,7 @@ func (suite *BackupManagerTestSuite) TestBackupGitRepositories_Success() {
 	record := &BackupRecord{
 		ID:         "test-backup",
 		Components: make(map[string]ComponentBackup),
-		Metadata:   make(map[string]interface{}),
+		Metadata:   json.RawMessage(`{}`),
 	}
 
 	// Note: This will fail in test environment without actual Git repo,
@@ -383,7 +393,7 @@ func (suite *BackupManagerTestSuite) TestBackupSystemState_Success() {
 	record := &BackupRecord{
 		ID:         "test-backup",
 		Components: make(map[string]ComponentBackup),
-		Metadata:   make(map[string]interface{}),
+		Metadata:   json.RawMessage(`{}`),
 	}
 
 	err = manager.backupSystemState(suite.ctx, record)
@@ -709,24 +719,6 @@ func (suite *BackupManagerTestSuite) TestCreateBackup_EdgeCases() {
 	}
 }
 
-// Mock implementations for testing
-type MockTarWriter struct {
-	WriteHeaderCalled bool
-	WriteCalled       bool
-	Data              []byte
-}
-
-func (m *MockTarWriter) WriteHeader(header *tar.Header) error {
-	m.WriteHeaderCalled = true
-	return nil
-}
-
-func (m *MockTarWriter) Write(data []byte) (int, error) {
-	m.WriteCalled = true
-	m.Data = append(m.Data, data...)
-	return len(data), nil
-}
-
 // Benchmarks for performance testing
 func BenchmarkCreateFullBackup(b *testing.B) {
 	ctx := context.Background()
@@ -774,7 +766,7 @@ func BenchmarkBackupKubernetesConfig(b *testing.B) {
 	record := &BackupRecord{
 		ID:         "bench-backup",
 		Components: make(map[string]ComponentBackup),
-		Metadata:   make(map[string]interface{}),
+		Metadata:   json.RawMessage(`{}`),
 	}
 
 	b.ResetTimer()

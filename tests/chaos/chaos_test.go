@@ -3,8 +3,9 @@ package chaos
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"sync"
 	"testing"
 	"time"
@@ -283,7 +284,7 @@ func (suite *ChaosTestSuite) TestNetworkFailures() {
 				llmMock := suite.GetMocks().GetLLMMock()
 				llmMock.ExpectedCalls = nil
 				llmMock.On("ProcessIntent", mock.Anything, mock.Anything).Return(
-					map[string]interface{}{}, fmt.Errorf("request timeout"))
+					json.RawMessage(`{}`), fmt.Errorf("request timeout"))
 
 				intent := &nephranv1.NetworkIntent{
 					ObjectMeta: metav1.ObjectMeta{
@@ -352,17 +353,13 @@ func (suite *ChaosTestSuite) TestNetworkFailures() {
 						llmMock := suite.GetMocks().GetLLMMock()
 						llmMock.ExpectedCalls = nil
 						llmMock.On("ProcessIntent", mock.Anything, mock.Anything).Return(
-							map[string]interface{}{}, fmt.Errorf("connection refused"))
+							json.RawMessage(`{}`), fmt.Errorf("connection refused"))
 						retryCount++
 					} else {
 						llmMock := suite.GetMocks().GetLLMMock()
 						llmMock.ExpectedCalls = nil
 						llmMock.On("ProcessIntent", mock.Anything, mock.Anything).Return(
-							map[string]interface{}{
-								"type":            "NetworkFunctionDeployment",
-								"networkFunction": "AMF",
-								"replicas":        int64(3),
-							}, nil)
+							json.RawMessage(`{}`), nil)
 						successCount++
 					}
 
@@ -536,11 +533,7 @@ func (suite *ChaosTestSuite) TestLatencyInjection() {
 				if latency > 0 {
 					time.Sleep(latency)
 				}
-			}).Return(map[string]interface{}{
-				"type":            "NetworkFunctionDeployment",
-				"networkFunction": "AMF",
-				"replicas":        int64(3),
-			}, nil)
+			}).Return(json.RawMessage(`{}`), nil)
 
 			intent := &nephranv1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{
@@ -624,17 +617,13 @@ func (suite *ChaosTestSuite) TestServiceFailures() {
 						llmMock := suite.GetMocks().GetLLMMock()
 						llmMock.ExpectedCalls = nil
 						llmMock.On("ProcessIntent", mock.Anything, mock.Anything).Return(
-							map[string]interface{}{}, fmt.Errorf("service crashed"))
+							json.RawMessage(`{}`), fmt.Errorf("service crashed"))
 						failedCount++
 					} else {
 						llmMock := suite.GetMocks().GetLLMMock()
 						llmMock.ExpectedCalls = nil
 						llmMock.On("ProcessIntent", mock.Anything, mock.Anything).Return(
-							map[string]interface{}{
-								"type":            "NetworkFunctionDeployment",
-								"networkFunction": "AMF",
-								"replicas":        int64(3),
-							}, nil)
+							json.RawMessage(`{}`), nil)
 						processedCount++
 					}
 
@@ -690,7 +679,7 @@ func (suite *ChaosTestSuite) TestServiceFailures() {
 					llmMock.On("ProcessIntent", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 						// Simulate hanging by sleeping longer than expected timeout
 						time.Sleep(10 * time.Second)
-					}).Return(map[string]interface{}{}, fmt.Errorf("service hanging"))
+					}).Return(json.RawMessage(`{}`), fmt.Errorf("service hanging"))
 				}
 
 				start := time.Now()
@@ -759,7 +748,7 @@ func (suite *ChaosTestSuite) TestCombinedChaosScenarios() {
 
 				if suite.chaosInjector.ShouldInjectFailure("llm-service") {
 					llmMock.On("ProcessIntent", mock.Anything, mock.Anything).Return(
-						map[string]interface{}{}, fmt.Errorf("network timeout"))
+						json.RawMessage(`{}`), fmt.Errorf("network timeout"))
 				} else {
 					// Inject latency even for successful calls
 					llmMock.On("ProcessIntent", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
@@ -767,11 +756,7 @@ func (suite *ChaosTestSuite) TestCombinedChaosScenarios() {
 						if latency > 0 {
 							time.Sleep(latency)
 						}
-					}).Return(map[string]interface{}{
-						"type":            "NetworkFunctionDeployment",
-						"networkFunction": "AMF",
-						"replicas":        int64(3),
-					}, nil)
+					}).Return(json.RawMessage(`{}`), nil)
 				}
 
 				start := time.Now()

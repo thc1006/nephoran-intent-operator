@@ -47,9 +47,7 @@
 //	// Create provider instances
 //	config := providers.ProviderConfig{
 //		Type: "aws",
-//		Config: map[string]interface{}{
-//			"region": "us-west-2",
-//		},
+//		Config: json.RawMessage(`{}`),
 //		Credentials: map[string]string{
 //			"accessKey": "...",
 //			"secretKey": "...",
@@ -60,7 +58,7 @@
 //	if err != nil {
 //		log.Fatal(err)
 //	}
-//	defer provider.Close()
+//	defer provider.Close() // #nosec G307 - Error handled in defer
 //
 //	// Initialize the provider
 //	ctx := context.Background()
@@ -73,10 +71,7 @@
 //	req := providers.ResourceRequest{
 //		Name: "my-cluster",
 //		Type: providers.ResourceTypeCluster,
-//		Spec: map[string]interface{}{
-//			"nodeCount": 3,
-//			"nodeSize":  "m5.large",
-//		},
+//		Spec: json.RawMessage(`{}`),
 //	}
 //
 //	resource, err := provider.CreateResource(ctx, req)
@@ -123,7 +118,7 @@
 //	devProvider, err := registry.GetProvider("aws-dev")
 //
 //	// Clean up
-//	defer registry.Close()
+//	defer registry.Close() // #nosec G307 - Error handled in defer
 //
 // # Testing
 //

@@ -17,27 +17,27 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
+	// "k8s.io/client-go/kubernetes" // Removed - imported but not used
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/thc1006/nephoran-intent-operator/tests/utils"
+	testutils "github.com/thc1006/nephoran-intent-operator/tests/utils"
 )
 
 var _ = Describe("TLS/mTLS Security Tests", func() {
 	var (
 		ctx       context.Context
 		k8sClient client.Client
-		clientset *kubernetes.Clientset
+		// clientset *kubernetes.Clientset // Removed - declared but not used
 		namespace string
-		timeout   time.Duration
+		// timeout   time.Duration // Removed - declared but not used
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		k8sClient = utils.GetK8sClient()
-		clientset = utils.GetClientset()
-		namespace = utils.GetTestNamespace()
-		timeout = 30 * time.Second
+		k8sClient = testutils.GetK8sClient()
+		// clientset = testutils.GetClientset() // Removed - declared but not used
+		namespace = testutils.GetTestNamespace()
+		// timeout = 30 * time.Second // Removed - declared but not used
 	})
 
 	Context("TLS Certificate Validation", func() {
@@ -190,7 +190,6 @@ var _ = Describe("TLS/mTLS Security Tests", func() {
 					Name:      serviceName,
 					Namespace: namespace,
 				}, &service)
-
 				if err != nil {
 					By(fmt.Sprintf("Service %s not found - may not be deployed in test environment", serviceName))
 					continue
@@ -314,7 +313,6 @@ var _ = Describe("TLS/mTLS Security Tests", func() {
 					Name:      sourceService + "-client-cert",
 					Namespace: namespace,
 				}, &sourceSecret)
-
 				if err != nil {
 					By(fmt.Sprintf("Client certificate for %s not found - may not use mTLS", sourceService))
 					continue
@@ -665,7 +663,7 @@ func testTLSConnectivity(endpoint string, expectedCert *x509.Certificate) error 
 	if err != nil {
 		return fmt.Errorf("TLS connection failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Verify certificate chain
 	if resp.TLS != nil && len(resp.TLS.PeerCertificates) > 0 {

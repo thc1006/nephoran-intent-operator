@@ -1,23 +1,35 @@
-name: Parallel Test Execution
+name: Parallel Test Execution - DISABLED
+# DISABLED: Overlapping with ci-production.yml
+# This workflow has been consolidated into the main ci-production.yml workflow
 
+# DISABLED - Only manual dispatch allowed
 on:
   workflow_dispatch:
     inputs:
-      test_suite:
-        description: 'Specific test suite to run'
+      disabled_notice:
+        description: 'This workflow is DISABLED - use ci-production.yml instead'
         required: false
-        type: choice
-        options:
-          - all
-          - unit-core
-          - unit-controllers
-          - unit-internal
-          - integration
-          - security
-          - performance
-        default: 'all'
-  push:
-    branches: [ main, integrate/mvp, "feat/**" ]
+        default: 'DISABLED - Use ci-production.yml instead'
+
+# ORIGINAL TRIGGERS - DISABLED
+# on:
+#   workflow_dispatch:
+#     inputs:
+#       test_suite:
+#         description: 'Specific test suite to run'
+#         required: false
+#         type: choice
+#         options:
+#           - all
+#           - unit-core
+#           - unit-controllers
+#           - unit-internal
+#           - integration
+#           - security
+#           - performance
+#         default: 'all'
+#   push:
+#     branches: [ main, integrate/mvp, "feat/**" ]
   pull_request:
     branches: [ main, integrate/mvp ]
 
@@ -30,13 +42,11 @@ permissions:
   checks: write
 
 env:
-  GO_VERSION: '1.24'
+  GO_VERSION: "1.22.7"  # Updated to latest stable version
+  GOPROXY: "https://proxy.golang.org,direct"
   REGISTRY: ghcr.io
 
 jobs:
-  # =============================================================================
-  # Test Configuration and Sharding
-  # =============================================================================
   configure:
     name: Configure Test Matrix
     runs-on: ubuntu-latest
@@ -122,9 +132,6 @@ jobs:
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
           echo "should-run=true" >> $GITHUB_OUTPUT
 
-  # =============================================================================
-  # Parallel Test Execution
-  # =============================================================================
   parallel-tests:
     name: ${{ matrix.name }}
     runs-on: ubuntu-latest
@@ -159,395 +166,37 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-          check-latest: true
           cache: true
+          cache-dependency-path: |
+            go.sum
+            **/go.sum
           
-      - name: Cache test dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-            ~/.cache/go-security-db
-          key: test-deps-${{ runner.os }}-go${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            test-deps-${{ runner.os }}-go${{ env.GO_VERSION }}-
-            
       - name: Download dependencies
         run: |
           go mod download
           go mod verify
           
-      - name: Install test tools
+      - name: Run Test Suite
         run: |
-          if [ "${{ matrix.suite }}" = "integration" ]; then
-            go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
-            setup-envtest use 1.29.0 --bin-dir ~/.local/bin
-            echo "KUBEBUILDER_ASSETS=$(setup-envtest use 1.29.0 --bin-dir ~/.local/bin -p path)" >> $GITHUB_ENV
+          # Create a common test options
+          test_opts="-v -timeout=${{ matrix.timeout }} -race"
+          
+          # Add coverage profile for suites that support it
+          if [ "${{ matrix.coverage }}" = "true" ]; then
+            test_opts+=" -coverprofile=coverage-${{ matrix.suite }}.out"
           fi
           
-          if [ "${{ matrix.suite }}" = "security" ]; then
-            go install golang.org/x/vuln/cmd/govulncheck@latest
+          # Performance and benchmark tests
+          if [ "${{ matrix.suite }}" = "performance" ]; then
+            test_opts+=" -bench=. -benchtime=${{ matrix.benchtime }}"
           fi
           
-      - name: Create test directories
-        run: |
-          mkdir -p test-results/${{ matrix.suite }}
-          mkdir -p coverage-reports/${{ matrix.suite }}
+          # Run tests with appropriate options
+          go test $test_opts ${{ matrix.pattern }}
           
-      - name: Run ${{ matrix.suite }} tests
-        timeout-minutes: ${{ fromJSON(matrix.timeout == '' && '15' || matrix.timeout) }}
-        env:
-          GOMAXPROCS: ${{ matrix.parallel }}
-          REDIS_URL: ${{ contains(matrix.services, 'redis') && 'redis://localhost:6379' || '' }}
-          USE_EXISTING_CLUSTER: false
-        run: |
-          set -euo pipefail
-          
-          # Configure test execution based on suite type
-          case "${{ matrix.suite }}" in
-            "performance")
-              # Performance/benchmark tests
-              go test -v -bench=. -run=^Benchmark \
-                -benchtime=${{ matrix.benchtime || '5s' }} \
-                -benchmem \
-                -timeout=${{ matrix.timeout }} \
-                ${{ matrix.pattern }} \
-                2>&1 | tee test-results/${{ matrix.suite }}/output.log
-              ;;
-            "security")
-              # Security tests with special handling
-              echo "Running security vulnerability scan..."
-              govulncheck ./... > test-results/${{ matrix.suite }}/vuln-report.txt || true
-              
-              echo "Running security-focused tests..."
-              go test -v -count=1 \
-                -timeout=${{ matrix.timeout }} \
-                -parallel=${{ matrix.parallel }} \
-                ${{ matrix.pattern }} \
-                2>&1 | tee test-results/${{ matrix.suite }}/output.log
-              ;;
-            *)
-              # Standard unit/integration tests
-              coverage_flag=""
-              if [ "${{ matrix.coverage }}" = "true" ]; then
-                coverage_flag="-coverprofile=coverage-reports/${{ matrix.suite }}/coverage.out -covermode=atomic"
-              fi
-              
-              go test -v -count=1 \
-                -timeout=${{ matrix.timeout }} \
-                -parallel=${{ matrix.parallel }} \
-                $coverage_flag \
-                ${{ matrix.pattern }} \
-                2>&1 | tee test-results/${{ matrix.suite }}/output.log
-              ;;
-          esac
-          
-      - name: Generate coverage report
-        if: matrix.coverage == true
-        run: |
-          if [ -f coverage-reports/${{ matrix.suite }}/coverage.out ]; then
-            go tool cover -html=coverage-reports/${{ matrix.suite }}/coverage.out \
-              -o coverage-reports/${{ matrix.suite }}/coverage.html
-            go tool cover -func=coverage-reports/${{ matrix.suite }}/coverage.out \
-              > coverage-reports/${{ matrix.suite }}/coverage-summary.txt
-          fi
-          
-      - name: Parse test results
-        if: always()
-        run: |
-          # Convert test output to JUnit XML format for better CI integration
-          go install github.com/jstemmer/go-junit-report/v2@latest
-          
-          if [ -f test-results/${{ matrix.suite }}/output.log ]; then
-            go-junit-report -in test-results/${{ matrix.suite }}/output.log \
-              -out test-results/${{ matrix.suite }}/junit.xml || true
-          fi
-          
-          # Extract test statistics
-          if [ -f test-results/${{ matrix.suite }}/output.log ]; then
-            grep -E "(PASS|FAIL|SKIP)" test-results/${{ matrix.suite }}/output.log | \
-              tail -10 > test-results/${{ matrix.suite }}/summary.txt || true
-          fi
-          
-      - name: Upload test results
-        if: always()
+      - name: Upload Coverage
+        if: ${{ matrix.coverage }}
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ matrix.suite }}
-          path: |
-            test-results/${{ matrix.suite }}/
-            coverage-reports/${{ matrix.suite }}/
-          retention-days: 7
-          
-      - name: Report test results
-        if: always()
-        uses: dorny/test-reporter@v1
-        with:
-          name: ${{ matrix.name }} Results
-          path: test-results/${{ matrix.suite }}/junit.xml
-          reporter: java-junit
-          fail-on-error: false
-          
-  # =============================================================================
-  # Flaky Test Detection
-  # =============================================================================
-  flaky-detection:
-    name: Flaky Test Detection
-    runs-on: ubuntu-latest
-    needs: [configure, parallel-tests]
-    if: always() && needs.configure.outputs.should-run == 'true'
-    timeout-minutes: 20
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache: true
-          
-      - name: Build flaky test detector
-        run: |
-          cd tools/flaky-detector
-          go build -o ../../flaky-detector .
-          
-      - name: Run flakiness detection
-        run: |
-          mkdir -p flaky-test-results
-          
-          # Run critical tests multiple times to detect flakiness
-          for i in {1..5}; do
-            echo "=== Flakiness Detection Run $i ==="
-            go test -json -count=1 \
-              ./internal/loop/... \
-              ./cmd/conductor-loop/... \
-              > flaky-test-results/run-$i.json || true
-          done
-          
-      - name: Analyze flakiness
-        run: |
-          ./flaky-detector flaky-test-results/run-*.json > flaky-report.json
-          
-          # Check if any flaky tests were found
-          if [ -s flaky-report.json ] && grep -q '"flaky_tests":[1-9]' flaky-report.json; then
-            echo "❌ Flaky tests detected!" 
-            cat flaky-report.json
-            exit 1
-          else
-            echo "✅ No flaky tests detected"
-            cat flaky-report.json
-          fi
-          
-      - name: Upload flaky test report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: flaky-test-report
-          path: |
-            flaky-report.json
-            flaky-test-results/
-          retention-days: 30
-
-  # =============================================================================
-  # Test Results Aggregation
-  # =============================================================================
-  aggregate-results:
-    name: Aggregate Test Results  
-    runs-on: ubuntu-latest
-    needs: [configure, parallel-tests, flaky-detection]
-    if: always() && needs.configure.outputs.should-run == 'true'
-    timeout-minutes: 10
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-          
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.24'
-          cache: true
-          
-      - name: Download Go dependencies
-        run: |
-          go mod download
-          go mod verify
-          
-      - name: Download all test artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: all-test-results/
-          
-      - name: Aggregate coverage reports
-        run: |
-          mkdir -p aggregated-coverage
-          
-          # Combine coverage files if they exist
-          find all-test-results -name "coverage.out" -type f | while read coverage_file; do
-            suite=$(basename $(dirname $(dirname "$coverage_file")))
-            cp "$coverage_file" "aggregated-coverage/${suite}-coverage.out"
-          done
-          
-          # Generate combined coverage report if we have coverage files
-          if ls aggregated-coverage/*-coverage.out 1> /dev/null 2>&1; then
-            echo "mode: atomic" > aggregated-coverage/combined-coverage.out
-            
-            for coverage_file in aggregated-coverage/*-coverage.out; do
-              tail -n +2 "$coverage_file" >> aggregated-coverage/combined-coverage.out
-            done
-            
-            go tool cover -html=aggregated-coverage/combined-coverage.out -o aggregated-coverage/combined-coverage.html
-            go tool cover -func=aggregated-coverage/combined-coverage.out > aggregated-coverage/coverage-summary.txt
-            
-            # Extract overall coverage percentage
-            coverage_pct=$(tail -1 aggregated-coverage/coverage-summary.txt | awk '{print $NF}')
-            echo "COVERAGE_PERCENTAGE=$coverage_pct" >> $GITHUB_ENV
-            echo "Overall test coverage: $coverage_pct"
-          fi
-          
-      - name: Generate test summary
-        run: |
-          cat > test-summary.md << 'EOF'
-          ## 🧪 Test Execution Summary
-          
-          | Suite | Status | Duration |
-          |-------|--------|----------|
-          EOF
-          
-          # Check status of each test suite
-          for suite in unit-core unit-controllers unit-internal integration security performance; do
-            if [ -d "all-test-results/test-results-$suite" ]; then
-              if grep -q "FAIL" all-test-results/test-results-$suite/output.log 2>/dev/null; then
-                status="❌ Failed"
-              elif grep -q "PASS" all-test-results/test-results-$suite/output.log 2>/dev/null; then
-                status="✅ Passed" 
-              else
-                status="⚠️ Unknown"
-              fi
-              
-              # Extract duration if available
-              duration=$(grep "DONE\|took" all-test-results/test-results-$suite/output.log 2>/dev/null | tail -1 | grep -o '[0-9.]*s' | head -1 || echo "N/A")
-              
-              echo "| $suite | $status | $duration |" >> test-summary.md
-            fi
-          done
-          
-          if [ ! -z "${COVERAGE_PERCENTAGE:-}" ]; then
-            cat >> test-summary.md << EOF
-          
-          ### 📊 Coverage Report
-          - **Overall Coverage**: $COVERAGE_PERCENTAGE
-          - **Coverage Threshold**: 85%
-          - **Status**: $([ "${COVERAGE_PERCENTAGE%.*}" -ge 85 ] && echo "✅ Meets threshold" || echo "⚠️ Below threshold")
-          EOF
-          fi
-          
-      - name: Upload aggregated results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: aggregated-test-results
-          path: |
-            aggregated-coverage/
-            test-summary.md
-          retention-days: 30
-          
-      - name: Comment test results on PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            
-            let summary = "## 🧪 Test Results Summary\\n\\n";
-            
-            try {
-              if (fs.existsSync('test-summary.md')) {
-                const testSummary = fs.readFileSync('test-summary.md', 'utf8');
-                summary += testSummary;
-              }
-              
-              // Add flaky test info if available
-              if (fs.existsSync('all-test-results/flaky-test-report/flaky-report.json')) {
-                const flakyReport = JSON.parse(fs.readFileSync('all-test-results/flaky-test-report/flaky-report.json', 'utf8'));
-                if (flakyReport.flaky_tests > 0) {
-                  summary += `\\n\\n### ⚠️ Flaky Tests Detected\\n`;
-                  summary += `- **Total Flaky Tests**: ${flakyReport.flaky_tests}\\n`;
-                  summary += `- **Flake Rate**: ${(flakyReport.flake_rate * 100).toFixed(2)}%\\n`;
-                } else {
-                  summary += `\\n\\n### ✅ No Flaky Tests Detected\\n`;
-                }
-              }
-            } catch (error) {
-              summary += "Error generating test summary.\\n";
-              console.log('Error:', error);
-            }
-            
-            // Find existing comment and update it, or create new one
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-            
-            const existingComment = comments.find(comment => 
-              comment.body.includes('🧪 Test Results Summary')
-            );
-            
-            if (existingComment) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existingComment.id,
-                body: summary
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: summary
-              });
-            }
-          
-  # =============================================================================
-  # Final Status Check
-  # =============================================================================
-  test-status:
-    name: Test Status Check
-    runs-on: ubuntu-latest
-    needs: [configure, parallel-tests, flaky-detection, aggregate-results]
-    if: always()
-    timeout-minutes: 5
-    
-    steps:
-      - name: Check test results
-        run: |
-          echo "=== Test Execution Results ==="
-          echo "Configure: ${{ needs.configure.result }}"
-          echo "Parallel Tests: ${{ needs.parallel-tests.result }}"
-          echo "Flaky Detection: ${{ needs.flaky-detection.result }}"
-          echo "Aggregate Results: ${{ needs.aggregate-results.result }}"
-          
-          # Fail if any critical step failed
-          if [[ "${{ needs.configure.result }}" != "success" ]]; then
-            echo "❌ Configuration failed"
-            exit 1
-          fi
-          
-          if [[ "${{ needs.parallel-tests.result }}" == "failure" ]]; then
-            echo "❌ Test execution failed"
-            exit 1
-          fi
-          
-          if [[ "${{ needs.flaky-detection.result }}" == "failure" ]]; then
-            echo "❌ Flaky tests detected - build must be fixed"
-            exit 1
-          fi
-          
-          echo "✅ All tests completed successfully"
+          name: coverage-${{ matrix.suite }}
+          path: coverage-${{ matrix.suite }}.out

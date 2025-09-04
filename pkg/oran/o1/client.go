@@ -2,7 +2,9 @@ package o1
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -17,16 +19,16 @@ func (c *ClientImpl) GetConfig(ctx context.Context, path string) (*ConfigRespons
 	// This is a placeholder implementation
 	// In a real implementation, this would make REST API calls to the O1 interface
 
+	attributes := map[string]interface{}{
+		"example_parameter": "example_value",
+	}
+	attributesJSON, _ := json.Marshal(attributes)
+	
 	response := &ConfigResponse{
 		ObjectInstance: path,
-		Attributes: map[string]interface{}{
-			"status": "active",
-			"config": map[string]interface{}{
-				"example_parameter": "example_value",
-			},
-		},
-		Status:    "success",
-		Timestamp: time.Now(),
+		Attributes:     json.RawMessage(attributesJSON),
+		Status:         "success",
+		Timestamp:      time.Now(),
 	}
 
 	return response, nil
@@ -53,20 +55,20 @@ func (c *ClientImpl) GetPerformanceData(ctx context.Context, request *Performanc
 	// This is a placeholder implementation
 	// In a real implementation, this would query performance management data
 
-	data := []PerformanceMeasurement{
+	data := []PerformanceData{
 		{
-			ObjectInstance:  "cell_001",
-			MeasurementType: "RRCConnections",
-			Value:           150.0,
-			Unit:            "connections",
-			Timestamp:       time.Now(),
+			ID:        "perf_data_1",
+			Timestamp: time.Now(),
+			Metrics: json.RawMessage(`{}`),
+			Source:   "cell_001",
+			DataType: "RRCConnections",
 		},
 		{
-			ObjectInstance:  "cell_001",
-			MeasurementType: "Throughput",
-			Value:           1024.5,
-			Unit:            "Mbps",
-			Timestamp:       time.Now(),
+			ID:        "perf_data_2",
+			Timestamp: time.Now(),
+			Metrics: json.RawMessage(`{}`),
+			Source:   "cell_001",
+			DataType: "Throughput",
 		},
 	}
 
@@ -89,7 +91,7 @@ func (c *ClientImpl) SubscribePerformanceData(ctx context.Context, subscription 
 	go func() {
 		defer close(ch)
 		// Parse reporting period (assume it's in seconds if numeric, otherwise parse as duration)
-		reportingPeriod, err := time.ParseDuration(subscription.ReportingPeriod + "s")
+		reportingPeriod, err := time.ParseDuration(subscription.ReportingPeriod.String())
 		if err != nil {
 			reportingPeriod = 10 * time.Second // Default fallback
 		}
@@ -156,14 +158,8 @@ func (c *ClientImpl) GetAlarms(ctx context.Context, filter *AlarmFilter) (*Alarm
 		},
 	}
 
-	// Convert []Alarm to []*Alarm
-	alarmPtrs := make([]*Alarm, len(alarms))
-	for i := range alarms {
-		alarmPtrs[i] = &alarms[i]
-	}
-	
 	response := &AlarmResponse{
-		Alarms:    alarmPtrs,
+		Alarms:    alarms,
 		Total:     len(alarms),
 		RequestID: "req_" + fmt.Sprintf("%d", time.Now().Unix()),
 		Timestamp: time.Now(),
@@ -234,8 +230,8 @@ func (c *ClientImpl) UploadFile(ctx context.Context, file *FileUploadRequest) (*
 	response := &FileUploadResponse{
 		FileID:    fmt.Sprintf("file_%d", time.Now().Unix()),
 		Status:    "success",
-		Message:   "File uploaded successfully",
-		Timestamp: time.Now(),
+		RequestID: fmt.Sprintf("req_%d", time.Now().Unix()),
+		Metadata:  json.RawMessage(`{}`),
 	}
 
 	return response, nil
@@ -247,13 +243,12 @@ func (c *ClientImpl) DownloadFile(ctx context.Context, fileID string) (*FileDown
 	// In a real implementation, this would handle file downloads via the O1 interface
 
 	response := &FileDownloadResponse{
-		FileID:    fileID,
-		FileName:  "example_file.log",
-		Content:   []byte("Example log file content"),
-		Metadata:  map[string]interface{}{"type": "log", "size": 1024},
-		Status:    "success",
-		RequestID: "req_" + fmt.Sprintf("%d", time.Now().Unix()),
-		Timestamp: time.Now(),
+		FileID:      fileID,
+		ID:          "dl_" + fmt.Sprintf("%d", time.Now().Unix()),
+		DownloadURL: "https://example.com/download/" + fileID,
+		Status:      "success",
+		ExpiresAt:   time.Now().Add(24 * time.Hour),
+		Metadata:    json.RawMessage(`{}`),
 	}
 
 	return response, nil
@@ -266,10 +261,12 @@ func (c *ClientImpl) SendHeartbeat(ctx context.Context) (*HeartbeatResponse, err
 
 	now := time.Now()
 	response := &HeartbeatResponse{
-		Status:     "active",
-		Timestamp:  now,
-		RequestID:  "heartbeat_" + fmt.Sprintf("%d", now.Unix()),
-		ServerTime: now,
+		Status:    "active",
+		Timestamp: now,
+		Version:   "1.0.0",
+		Uptime:    time.Since(time.Now().Add(-24 * time.Hour)),
+		Health:    json.RawMessage(`{"status":"healthy"}`),
+		Metadata:  json.RawMessage(`{}`),
 	}
 
 	return response, nil
@@ -280,54 +277,64 @@ func (c *ClientImpl) SendHeartbeat(ctx context.Context) (*HeartbeatResponse, err
 // NewConfigGetRequest creates a configuration get request
 func NewConfigGetRequest(path string) *ConfigRequest {
 	return &ConfigRequest{
+		ID:             fmt.Sprintf("get_%d", time.Now().Unix()),
+		Type:           "get",
+		Target:         path,
 		ObjectInstance: path,
-		Operation:      "get",
+		RequestedAt:    time.Now(),
+		RequestedBy:    "system",
+		Configuration:  json.RawMessage(`{}`),
 	}
 }
 
 // NewConfigSetRequest creates a configuration set request
 func NewConfigSetRequest(path string, data map[string]interface{}) *ConfigRequest {
+	attributesJSON, _ := json.Marshal(data)
+	configurationJSON, _ := json.Marshal(data)
 	return &ConfigRequest{
+		ID:             fmt.Sprintf("set_%d", time.Now().Unix()),
+		Type:           "set",
+		Target:         path,
 		ObjectInstance: path,
-		Operation:      "set",
-		Attributes:     data,
+		Attributes:     json.RawMessage(attributesJSON),
+		RequestedAt:    time.Now(),
+		RequestedBy:    "system",
+		Configuration:  json.RawMessage(configurationJSON),
 	}
 }
 
 // NewPerformanceRequest creates a performance data request
 func NewPerformanceRequest(measurementTypes []string, startTime, endTime time.Time, granularity string) *PerformanceRequest {
 	return &PerformanceRequest{
-		PerformanceTypes:  measurementTypes,
-		StartTime:         startTime,
-		EndTime:           endTime,
-		GranularityPeriod: granularity,
+		MetricType: strings.Join(measurementTypes, ","),
+		TimeRange:  json.RawMessage(`{}`),
 	}
 }
 
 // NewAlarmFilter creates an alarm filter
 func NewAlarmFilter() *AlarmFilter {
 	return &AlarmFilter{
-		ObjectClass:       []string{},
-		EventType:         []string{},
-		ProbableCause:     []string{},
-		PerceivedSeverity: []string{},
+		Severity: "",
+		Source:   "",
+		Status:   "",
 	}
 }
 
 // WithAlarmSeverities adds severity filter to alarm filter
-func (f *AlarmFilter) WithAlarmSeverities(severities []string) *AlarmFilter {
-	f.PerceivedSeverity = severities
+func (f *AlarmFilter) WithAlarmSeverities(severity string) *AlarmFilter {
+	f.Severity = severity
 	return f
 }
 
 // WithAlarmTypes adds alarm type filter to alarm filter
-func (f *AlarmFilter) WithAlarmTypes(alarmTypes []string) *AlarmFilter {
-	f.EventType = alarmTypes
+func (f *AlarmFilter) WithAlarmTypes(source string) *AlarmFilter {
+	f.Source = source
 	return f
 }
 
 // WithObjectClass adds object class filter to alarm filter
-func (f *AlarmFilter) WithObjectClass(objectClass []string) *AlarmFilter {
-	f.ObjectClass = objectClass
+func (f *AlarmFilter) WithStatus(status string) *AlarmFilter {
+	f.Status = status
 	return f
 }
+

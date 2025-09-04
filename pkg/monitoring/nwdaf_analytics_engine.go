@@ -11,10 +11,10 @@ import (
 
 // NWDAFAnalyticsEngine implements 5G NWDAF (Network Data Analytics Function)
 type NWDAFAnalyticsEngine struct {
-	analytics    map[string]*NWDAFAnalytics
-	subscribers  map[string][]AnalyticsSubscriber
-	mu           sync.RWMutex
-	logger       *log.Logger
+	analytics   map[string]*NWDAFAnalytics
+	subscribers map[string][]AnalyticsSubscriber
+	mu          sync.RWMutex
+	logger      *log.Logger
 }
 
 // AnalyticsSubscriber defines interface for analytics consumers
@@ -34,10 +34,10 @@ type AnalyticsRequest struct {
 
 // AnalyticsFilter defines filtering criteria for analytics
 type AnalyticsFilter struct {
-	NetworkSlice    *NetworkSliceInfo `json:"networkSlice,omitempty"`
-	ServiceArea     []string          `json:"serviceArea,omitempty"`
-	UEGroups        []string          `json:"ueGroups,omitempty"`
-	ApplicationIDs  []string          `json:"applicationIds,omitempty"`
+	NetworkSlice   *NetworkSliceInfo `json:"networkSlice,omitempty"`
+	ServiceArea    []string          `json:"serviceArea,omitempty"`
+	UEGroups       []string          `json:"ueGroups,omitempty"`
+	ApplicationIDs []string          `json:"applicationIds,omitempty"`
 	DNNs           []string          `json:"dnns,omitempty"`
 }
 
@@ -49,25 +49,25 @@ type NetworkSliceInfo struct {
 
 // LoadLevelAnalytics represents load level information analytics
 type LoadLevelAnalytics struct {
-	NfType        string    `json:"nfType"`
-	NfInstanceID  string    `json:"nfInstanceId"`
-	LoadLevel     int       `json:"loadLevel"`     // 0-100
-	CPUUsage      float64   `json:"cpuUsage"`      // 0-100
-	MemoryUsage   float64   `json:"memoryUsage"`   // 0-100
-	Timestamp     time.Time `json:"timestamp"`
-	Confidence    float64   `json:"confidence"`
+	NfType       string    `json:"nfType"`
+	NfInstanceID string    `json:"nfInstanceId"`
+	LoadLevel    int       `json:"loadLevel"`   // 0-100
+	CPUUsage     float64   `json:"cpuUsage"`    // 0-100
+	MemoryUsage  float64   `json:"memoryUsage"` // 0-100
+	Timestamp    time.Time `json:"timestamp"`
+	Confidence   float64   `json:"confidence"`
 }
 
 // NetworkPerformanceAnalytics represents network performance analytics
 type NetworkPerformanceAnalytics struct {
-	Throughput       float64   `json:"throughput"`       // Mbps
-	Latency          float64   `json:"latency"`          // ms
-	PacketLossRate   float64   `json:"packetLossRate"`   // percentage
-	Jitter           float64   `json:"jitter"`           // ms
-	NetworkSlice     string    `json:"networkSlice"`
-	ServiceArea      string    `json:"serviceArea"`
-	Timestamp        time.Time `json:"timestamp"`
-	Confidence       float64   `json:"confidence"`
+	Throughput     float64   `json:"throughput"`     // Mbps
+	Latency        float64   `json:"latency"`        // ms
+	PacketLossRate float64   `json:"packetLossRate"` // percentage
+	Jitter         float64   `json:"jitter"`         // ms
+	NetworkSlice   string    `json:"networkSlice"`
+	ServiceArea    string    `json:"serviceArea"`
+	Timestamp      time.Time `json:"timestamp"`
+	Confidence     float64   `json:"confidence"`
 }
 
 // NewNWDAFAnalyticsEngine creates a new NWDAF analytics engine
@@ -114,12 +114,13 @@ func (nae *NWDAFAnalyticsEngine) RequestAnalytics(ctx context.Context, req *Anal
 		return nil, fmt.Errorf("failed to generate analytics: %w", err)
 	}
 
+	dataBytes, _ := json.Marshal(analyticsData)
 	analytics := &NWDAFAnalytics{
 		AnalyticsID:   req.AnalyticsID,
 		AnalyticsType: req.AnalyticsType,
 		Timestamp:     time.Now(),
-		Data:          analyticsData,
-		Confidence:    0.85, // Default confidence level
+		Data:          json.RawMessage(dataBytes),
+		Confidence:    "0.85", // Default confidence level
 		Validity:      req.TargetPeriod,
 	}
 
@@ -218,7 +219,7 @@ func (nae *NWDAFAnalyticsEngine) generateNetworkPerformanceAnalytics(ctx context
 // generateNFLoadAnalytics generates NF load analytics
 func (nae *NWDAFAnalyticsEngine) generateNFLoadAnalytics(ctx context.Context, req *AnalyticsRequest) (map[string]interface{}, error) {
 	return map[string]interface{}{
-		"nfInstances": []map[string]interface{}{
+		"nfLoadData": []map[string]interface{}{
 			{
 				"nfInstanceId": "smf-instance-1",
 				"nfType":       "SMF",
@@ -244,22 +245,22 @@ func (nae *NWDAFAnalyticsEngine) generateNFLoadAnalytics(ctx context.Context, re
 // generateServiceExperienceAnalytics generates service experience analytics
 func (nae *NWDAFAnalyticsEngine) generateServiceExperienceAnalytics(ctx context.Context, req *AnalyticsRequest) (map[string]interface{}, error) {
 	return map[string]interface{}{
-		"services": []map[string]interface{}{
+		"serviceExperienceData": []map[string]interface{}{
 			{
 				"applicationId": "video-streaming",
-				"qoe":          4.2, // Quality of Experience (1-5)
-				"throughput":   50.5,
-				"latency":      25.0,
-				"jitter":       5.2,
-				"users":        150,
+				"qoe":           4.2, // Quality of Experience (1-5)
+				"throughput":    50.5,
+				"latency":       25.0,
+				"jitter":        5.2,
+				"users":         150,
 			},
 			{
 				"applicationId": "gaming",
-				"qoe":          4.8,
-				"throughput":   15.2,
-				"latency":      8.5,
-				"jitter":       1.2,
-				"users":        75,
+				"qoe":           4.8,
+				"throughput":    15.2,
+				"latency":       8.5,
+				"jitter":        1.2,
+				"users":         75,
 			},
 		},
 		"timestamp":  time.Now(),
@@ -270,20 +271,20 @@ func (nae *NWDAFAnalyticsEngine) generateServiceExperienceAnalytics(ctx context.
 // generateUEMobilityAnalytics generates UE mobility analytics
 func (nae *NWDAFAnalyticsEngine) generateUEMobilityAnalytics(ctx context.Context, req *AnalyticsRequest) (map[string]interface{}, error) {
 	return map[string]interface{}{
-		"mobilityPatterns": []map[string]interface{}{
+		"ueMobilityData": []map[string]interface{}{
 			{
-				"area":        "downtown",
-				"ueCount":     1250,
-				"mobility":    "high",
-				"handovers":   85,
-				"avgSpeed":    45.5, // km/h
+				"area":      "downtown",
+				"ueCount":   1250,
+				"mobility":  "high",
+				"handovers": 85,
+				"avgSpeed":  45.5, // km/h
 			},
 			{
-				"area":       "residential",
-				"ueCount":    850,
-				"mobility":   "low",
-				"handovers":  12,
-				"avgSpeed":   15.2,
+				"area":      "residential",
+				"ueCount":   850,
+				"mobility":  "low",
+				"handovers": 12,
+				"avgSpeed":  15.2,
 			},
 		},
 		"timestamp":  time.Now(),
@@ -294,10 +295,10 @@ func (nae *NWDAFAnalyticsEngine) generateUEMobilityAnalytics(ctx context.Context
 // generateUECommunicationAnalytics generates UE communication analytics
 func (nae *NWDAFAnalyticsEngine) generateUECommunicationAnalytics(ctx context.Context, req *AnalyticsRequest) (map[string]interface{}, error) {
 	return map[string]interface{}{
-		"communicationPatterns": []map[string]interface{}{
+		"ueCommunicationData": []map[string]interface{}{
 			{
 				"ueGroup":         "enterprise",
-				"avgSessionTime":  300.5, // seconds
+				"avgSessionTime":  300.5,  // seconds
 				"dataUsage":       1250.0, // MB
 				"peakHours":       []int{9, 10, 11, 14, 15, 16},
 				"primaryServices": []string{"email", "video-conf", "file-sharing"},

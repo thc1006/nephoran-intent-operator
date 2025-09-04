@@ -37,7 +37,7 @@ func TestWatcherValidationSuite(t *testing.T) {
 func (s *WatcherValidationTestSuite) SetupTest() {
 	s.tempDir = s.T().TempDir()
 	outDir := filepath.Join(s.tempDir, "out")
-	s.Require().NoError(os.MkdirAll(outDir, 0755))
+	s.Require().NoError(os.MkdirAll(outDir, 0o755))
 
 	s.porchPath = createMockPorch(s.T(), s.tempDir, 0, "processed successfully", "")
 	s.config = Config{
@@ -60,7 +60,7 @@ func (s *WatcherValidationTestSuite) TestDuplicateEventPrevention_CreateFollowed
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	testFile := filepath.Join(s.tempDir, "intent-debounce-test.json")
 	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale"}}`
@@ -80,7 +80,7 @@ func (s *WatcherValidationTestSuite) TestDuplicateEventPrevention_CreateFollowed
 	time.Sleep(100 * time.Millisecond)
 
 	// Simulate CREATE event followed by WRITE event rapidly
-	s.Require().NoError(os.WriteFile(testFile, []byte(testContent), 0644))
+	s.Require().NoError(os.WriteFile(testFile, []byte(testContent), 0o644))
 
 	// Trigger events manually to simulate filesystem behavior
 	watcher.handleIntentFileWithEnhancedDebounce(testFile, fsnotify.Create)
@@ -109,7 +109,7 @@ func (s *WatcherValidationTestSuite) TestDuplicateEventPrevention_RecentEventsCl
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	testFile := filepath.Join(s.tempDir, "intent-cleanup-test.json")
 
@@ -162,7 +162,7 @@ func (s *WatcherValidationTestSuite) TestDuplicateEventPrevention_DebounceWindow
 
 			watcher, err := NewWatcher(s.tempDir, testConfig)
 			require.NoError(t, err)
-			defer watcher.Close()
+			defer watcher.Close() // #nosec G307 - Error handled in defer
 
 			testFile := filepath.Join(s.tempDir, fmt.Sprintf("intent-%s.json", tt.name))
 			testContent := `{"apiVersion": "v1", "kind": "NetworkIntent"}`
@@ -179,7 +179,7 @@ func (s *WatcherValidationTestSuite) TestDuplicateEventPrevention_DebounceWindow
 			time.Sleep(50 * time.Millisecond) // Let watcher start
 
 			// First event
-			require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0644))
+			require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0o644))
 			watcher.handleIntentFileWithEnhancedDebounce(testFile, fsnotify.Create)
 
 			// Wait specified gap
@@ -187,7 +187,7 @@ func (s *WatcherValidationTestSuite) TestDuplicateEventPrevention_DebounceWindow
 
 			// Second event - update file content to trigger processing
 			testContent2 := `{"apiVersion": "v1", "kind": "NetworkIntent", "updated": true}`
-			require.NoError(t, os.WriteFile(testFile, []byte(testContent2), 0644))
+			require.NoError(t, os.WriteFile(testFile, []byte(testContent2), 0o644))
 			watcher.handleIntentFileWithEnhancedDebounce(testFile, fsnotify.Write)
 
 			// Wait for processing to complete
@@ -217,14 +217,14 @@ func (s *WatcherValidationTestSuite) TestDuplicateEventPrevention_ConcurrentEven
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	testFile := filepath.Join(s.tempDir, "intent-concurrent-test.json")
 	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent"}`
 
 	initialStats := watcher.executor.GetStats()
 
-	s.Require().NoError(os.WriteFile(testFile, []byte(testContent), 0644))
+	s.Require().NoError(os.WriteFile(testFile, []byte(testContent), 0o644))
 
 	// Simulate multiple concurrent events for the same file
 	numEvents := 10
@@ -262,7 +262,7 @@ func (s *WatcherValidationTestSuite) TestDirectoryCreationRace_ConcurrentCreatio
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	targetDir := filepath.Join(s.tempDir, "status", "subdir", "nested")
 	numGoroutines := 50
@@ -303,7 +303,7 @@ func (s *WatcherValidationTestSuite) TestDirectoryCreationRace_DirectoryManagerS
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	dirs := []string{
 		filepath.Join(s.tempDir, "status"),
@@ -346,7 +346,7 @@ func (s *WatcherValidationTestSuite) TestDirectoryCreationRace_SyncOncePattern()
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	targetDir := filepath.Join(s.tempDir, "once-test")
 	var callCount int64
@@ -369,7 +369,7 @@ func (s *WatcherValidationTestSuite) TestDirectoryCreationRace_SyncOncePattern()
 			// Simulate the sync.Once pattern
 			once.Do(func() {
 				atomic.AddInt64(&actualMkdirCalls, 1)
-				os.MkdirAll(targetDir, 0755)
+				os.MkdirAll(targetDir, 0o755)
 			})
 		}()
 	}
@@ -386,7 +386,7 @@ func (s *WatcherValidationTestSuite) TestDirectoryCreationRace_NestedDirectories
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Create deeply nested directory structure concurrently
 	baseDir := filepath.Join(s.tempDir, "nested")
@@ -428,7 +428,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_ValidNetworkIntentStruct
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	validCases := []struct {
 		name    string
@@ -523,7 +523,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_ValidNetworkIntentStruct
 			fileName := fmt.Sprintf("intent-%s.json", tc.name)
 			filePath := filepath.Join(s.tempDir, fileName)
 
-			err := os.WriteFile(filePath, []byte(tc.content), 0644)
+			err := os.WriteFile(filePath, []byte(tc.content), 0o644)
 			require.NoError(t, err)
 
 			err = watcher.validateJSONFile(filePath)
@@ -537,7 +537,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_InvalidJSONRejection() {
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	invalidCases := []struct {
 		name        string
@@ -618,7 +618,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_InvalidJSONRejection() {
 			fileName := fmt.Sprintf("intent-invalid-%s.json", tc.name)
 			filePath := filepath.Join(s.tempDir, fileName)
 
-			err := os.WriteFile(filePath, []byte(tc.content), 0644)
+			err := os.WriteFile(filePath, []byte(tc.content), 0o644)
 			require.NoError(t, err)
 
 			err = watcher.validateJSONFile(filePath)
@@ -635,7 +635,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_PathTraversalPrevention(
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	maliciousPaths := []struct {
 		name string
@@ -674,8 +674,8 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_PathTraversalPrevention(
 	for _, tc := range maliciousPaths {
 		s.T().Run(tc.name, func(t *testing.T) {
 			// Try to create the malicious file
-			os.MkdirAll(filepath.Dir(tc.path), 0755)
-			os.WriteFile(tc.path, []byte(validContent), 0644)
+			os.MkdirAll(filepath.Dir(tc.path), 0o755)
+			os.WriteFile(tc.path, []byte(validContent), 0o644)
 
 			err := watcher.validatePath(tc.path)
 			assert.Error(t, err, "Should reject path traversal: %s", tc.desc)
@@ -694,7 +694,7 @@ func (s *WatcherValidationTestSuite) TestWindowsPathValidation_EdgeCases() {
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	windowsPathCases := []struct {
 		name          string
@@ -787,9 +787,9 @@ func (s *WatcherValidationTestSuite) TestWindowsPathValidation_EdgeCases() {
 			if strings.Contains(tc.path, s.tempDir) || (!strings.Contains(tc.path, ":") && !strings.HasPrefix(tc.path, "\\\\")) {
 				// Create parent directories
 				if dir := filepath.Dir(tc.path); dir != "." {
-					os.MkdirAll(dir, 0755)
+					os.MkdirAll(dir, 0o755)
 				}
-				os.WriteFile(tc.path, []byte(validContent), 0644)
+				os.WriteFile(tc.path, []byte(validContent), 0o644)
 			}
 
 			err := watcher.validatePath(tc.path)
@@ -817,7 +817,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_SizeLimitEnforcement() {
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	tests := []struct {
 		name       string
@@ -839,7 +839,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_SizeLimitEnforcement() {
 				// Create valid JSON of specified size
 				padding := strings.Repeat("x", tt.size-100)
 				content := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "data": "%s"}`, padding)
-				err := os.WriteFile(filePath, []byte(content), 0644)
+				err := os.WriteFile(filePath, []byte(content), 0o644)
 				require.NoError(t, err)
 			} else {
 				// Create oversized file with well-formed JSON
@@ -852,7 +852,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_SizeLimitEnforcement() {
 				padding := strings.Repeat("A", paddingSize)
 				content := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "data": "%s"}`, padding)
 
-				err := os.WriteFile(filePath, []byte(content), 0644)
+				err := os.WriteFile(filePath, []byte(content), 0o644)
 				require.NoError(t, err)
 			}
 
@@ -873,7 +873,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_SuspiciousFilenamePatter
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	suspiciousPatterns := []string{
 		"intent-test..json",
@@ -896,7 +896,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_SuspiciousFilenamePatter
 			filePath := filepath.Join(s.tempDir, pattern)
 
 			// Create the file
-			os.WriteFile(filePath, []byte(validContent), 0644)
+			os.WriteFile(filePath, []byte(validContent), 0o644)
 
 			err := watcher.validatePath(filePath)
 			assert.Error(t, err, "Should reject suspicious filename: %s", pattern)
@@ -957,7 +957,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_ComplexIntentValidation(
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	complexCases := []struct {
 		name        string
@@ -1067,7 +1067,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_ComplexIntentValidation(
 			fileName := fmt.Sprintf("intent-complex-%s.json", tc.name)
 			filePath := filepath.Join(s.tempDir, fileName)
 
-			err := os.WriteFile(filePath, []byte(tc.content), 0644)
+			err := os.WriteFile(filePath, []byte(tc.content), 0o644)
 			require.NoError(t, err)
 
 			err = watcher.validateJSONFile(filePath)
@@ -1089,7 +1089,7 @@ func (s *WatcherValidationTestSuite) TestIntegration_DebouncingWithValidation() 
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	testFile := filepath.Join(s.tempDir, "intent-debounce-validation.json")
 
@@ -1109,7 +1109,7 @@ func (s *WatcherValidationTestSuite) TestIntegration_DebouncingWithValidation() 
 	// Write invalid JSON multiple times rapidly
 	invalidContent := `{"apiVersion": "v1", "kind": "InvalidKind"`
 	for i := 0; i < 5; i++ {
-		s.Require().NoError(os.WriteFile(testFile, []byte(invalidContent), 0644))
+		s.Require().NoError(os.WriteFile(testFile, []byte(invalidContent), 0o644))
 		watcher.handleIntentFileWithEnhancedDebounce(testFile, fsnotify.Write)
 		time.Sleep(10 * time.Millisecond)
 	}
@@ -1139,7 +1139,7 @@ func (s *WatcherValidationTestSuite) TestIntegration_ConcurrentDirectoryAndFileP
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	var wg sync.WaitGroup
 
@@ -1171,7 +1171,7 @@ func (s *WatcherValidationTestSuite) TestIntegration_ConcurrentDirectoryAndFileP
 			fileName := fmt.Sprintf("intent-concurrent-%d.json", fileID)
 			filePath := filepath.Join(s.tempDir, fileName)
 
-			s.Require().NoError(os.WriteFile(filePath, []byte(validContent), 0644))
+			s.Require().NoError(os.WriteFile(filePath, []byte(validContent), 0o644))
 			watcher.handleIntentFileWithEnhancedDebounce(filePath, fsnotify.Create)
 		}(i)
 
@@ -1223,7 +1223,7 @@ func BenchmarkWatcherValidation_JSONValidation(b *testing.B) {
 
 	watcher, err := NewWatcher(tempDir, config)
 	require.NoError(b, err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	validContent := `{
 		"apiVersion": "nephoran.com/v1alpha1",
@@ -1240,7 +1240,7 @@ func BenchmarkWatcherValidation_JSONValidation(b *testing.B) {
 	}`
 
 	testFile := filepath.Join(tempDir, "intent-bench.json")
-	require.NoError(b, os.WriteFile(testFile, []byte(validContent), 0644))
+	require.NoError(b, os.WriteFile(testFile, []byte(validContent), 0o644))
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -1259,7 +1259,7 @@ func BenchmarkWatcherValidation_DirectoryCreation(b *testing.B) {
 
 	watcher, err := NewWatcher(tempDir, config)
 	require.NoError(b, err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -1280,11 +1280,11 @@ func BenchmarkWatcherValidation_EventDebouncing(b *testing.B) {
 
 	watcher, err := NewWatcher(tempDir, config)
 	require.NoError(b, err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	testFile := filepath.Join(tempDir, "intent-debounce-bench.json")
 	validContent := `{"apiVersion": "v1", "kind": "NetworkIntent"}`
-	require.NoError(b, os.WriteFile(testFile, []byte(validContent), 0644))
+	require.NoError(b, os.WriteFile(testFile, []byte(validContent), 0o644))
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

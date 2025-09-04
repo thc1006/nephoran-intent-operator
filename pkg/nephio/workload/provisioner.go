@@ -518,13 +518,10 @@ type provisionerMetrics struct {
 // NewClusterProvisioner creates a new cluster provisioner.
 
 func NewClusterProvisioner(client client.Client, logger logr.Logger) *ClusterProvisioner {
-
 	metrics := &provisionerMetrics{
-
 		provisioningDuration: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "nephio_cluster_provisioning_duration_seconds",
 
 				Help: "Duration of cluster provisioning operations",
@@ -538,7 +535,6 @@ func NewClusterProvisioner(client client.Client, logger logr.Logger) *ClusterPro
 		provisioningTotal: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "nephio_cluster_provisioning_total",
 
 				Help: "Total number of cluster provisioning operations",
@@ -550,7 +546,6 @@ func NewClusterProvisioner(client client.Client, logger logr.Logger) *ClusterPro
 		clusterCost: prometheus.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "nephio_cluster_cost_dollars",
 
 				Help: "Cluster cost in dollars",
@@ -562,7 +557,6 @@ func NewClusterProvisioner(client client.Client, logger logr.Logger) *ClusterPro
 		backupOperations: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "nephio_cluster_backup_operations_total",
 
 				Help: "Total number of backup operations",
@@ -574,7 +568,6 @@ func NewClusterProvisioner(client client.Client, logger logr.Logger) *ClusterPro
 		upgradeOperations: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "nephio_cluster_upgrade_operations_total",
 
 				Help: "Total number of upgrade operations",
@@ -600,7 +593,6 @@ func NewClusterProvisioner(client client.Client, logger logr.Logger) *ClusterPro
 	)
 
 	provisioner := &ClusterProvisioner{
-
 		providers: make(map[CloudProvider]CloudProviderInterface),
 
 		templates: make(map[string]*ProvisioningTemplate),
@@ -613,7 +605,6 @@ func NewClusterProvisioner(client client.Client, logger logr.Logger) *ClusterPro
 	}
 
 	provisioner.lifecycleManager = &ClusterLifecycleManager{
-
 		provisioner: provisioner,
 
 		upgrades: make(map[string]*UpgradeOperation),
@@ -622,7 +613,6 @@ func NewClusterProvisioner(client client.Client, logger logr.Logger) *ClusterPro
 	}
 
 	provisioner.costOptimizer = &CostOptimizer{
-
 		recommendations: make(map[string][]*CostRecommendation),
 
 		savings: make(map[string]float64),
@@ -631,7 +621,6 @@ func NewClusterProvisioner(client client.Client, logger logr.Logger) *ClusterPro
 	}
 
 	provisioner.backupManager = &BackupManager{
-
 		backups: make(map[string][]*ClusterBackup),
 
 		schedules: make(map[string]*BackupSchedule),
@@ -648,13 +637,11 @@ func NewClusterProvisioner(client client.Client, logger logr.Logger) *ClusterPro
 	provisioner.loadTemplates()
 
 	return provisioner
-
 }
 
 // ProvisionCluster provisions a new cluster.
 
 func (cp *ClusterProvisioner) ProvisionCluster(ctx context.Context, spec *ClusterSpec) (*ProvisionedCluster, error) {
-
 	cp.logger.Info("Provisioning cluster", "name", spec.Name, "provider", spec.Provider)
 
 	timer := prometheus.NewTimer(cp.metrics.provisioningDuration.WithLabelValues(
@@ -679,9 +666,7 @@ func (cp *ClusterProvisioner) ProvisionCluster(ctx context.Context, spec *Cluste
 	// Apply cost optimization if enabled.
 
 	if spec.CostOptimization.RightSizing {
-
 		spec = cp.optimizeSpec(spec)
-
 	}
 
 	// Get provider.
@@ -699,7 +684,6 @@ func (cp *ClusterProvisioner) ProvisionCluster(ctx context.Context, spec *Cluste
 	// Generate Infrastructure as Code.
 
 	iacConfig, err := cp.generateIaC(spec)
-
 	if err != nil {
 
 		cp.metrics.provisioningTotal.WithLabelValues(string(spec.Provider), "create", "failed").Inc()
@@ -711,15 +695,12 @@ func (cp *ClusterProvisioner) ProvisionCluster(ctx context.Context, spec *Cluste
 	// Store IaC configuration.
 
 	if err := cp.storeIaCConfig(ctx, spec.Name, iacConfig); err != nil {
-
 		cp.logger.Error(err, "Failed to store IaC configuration", "cluster", spec.Name)
-
 	}
 
 	// Provision cluster.
 
 	cluster, err := provider.CreateCluster(ctx, spec)
-
 	if err != nil {
 
 		cp.metrics.provisioningTotal.WithLabelValues(string(spec.Provider), "create", "failed").Inc()
@@ -731,21 +712,15 @@ func (cp *ClusterProvisioner) ProvisionCluster(ctx context.Context, spec *Cluste
 	// Setup backup if enabled.
 
 	if spec.Backup.Enabled {
-
 		if err := cp.backupManager.SetupBackup(ctx, cluster.ID, spec.Backup); err != nil {
-
 			cp.logger.Error(err, "Failed to setup backup", "cluster", cluster.ID)
-
 		}
-
 	}
 
 	// Setup monitoring.
 
 	if err := cp.setupMonitoring(ctx, cluster, spec.Monitoring); err != nil {
-
 		cp.logger.Error(err, "Failed to setup monitoring", "cluster", cluster.ID)
-
 	}
 
 	// Update metrics.
@@ -759,13 +734,11 @@ func (cp *ClusterProvisioner) ProvisionCluster(ctx context.Context, spec *Cluste
 	cp.logger.Info("Successfully provisioned cluster", "id", cluster.ID, "name", cluster.Name)
 
 	return cluster, nil
-
 }
 
 // UpdateCluster updates an existing cluster.
 
 func (cp *ClusterProvisioner) UpdateCluster(ctx context.Context, clusterID string, spec *ClusterSpec) error {
-
 	cp.logger.Info("Updating cluster", "id", clusterID)
 
 	provider, exists := cp.providers[spec.Provider]
@@ -791,21 +764,17 @@ func (cp *ClusterProvisioner) UpdateCluster(ctx context.Context, clusterID strin
 	cp.logger.Info("Successfully updated cluster", "id", clusterID)
 
 	return nil
-
 }
 
 // DeleteCluster deletes a cluster.
 
 func (cp *ClusterProvisioner) DeleteCluster(ctx context.Context, clusterID string, provider CloudProvider) error {
-
 	cp.logger.Info("Deleting cluster", "id", clusterID)
 
 	// Create final backup before deletion.
 
 	if err := cp.backupManager.CreateFinalBackup(ctx, clusterID); err != nil {
-
 		cp.logger.Error(err, "Failed to create final backup", "cluster", clusterID)
-
 	}
 
 	prov, exists := cp.providers[provider]
@@ -831,47 +800,36 @@ func (cp *ClusterProvisioner) DeleteCluster(ctx context.Context, clusterID strin
 	cp.logger.Info("Successfully deleted cluster", "id", clusterID)
 
 	return nil
-
 }
 
 // ScaleCluster scales a cluster.
 
 func (cp *ClusterProvisioner) ScaleCluster(ctx context.Context, clusterID, nodePoolName string, targetNodes int) error {
-
 	cp.logger.Info("Scaling cluster", "id", clusterID, "nodePool", nodePoolName, "targetNodes", targetNodes)
 
 	// Implementation would scale the specified node pool.
 
 	return nil
-
 }
 
 // UpgradeCluster upgrades a cluster to a new version.
 
 func (cp *ClusterProvisioner) UpgradeCluster(ctx context.Context, clusterID, targetVersion string, rollbackOnFail bool) error {
-
 	return cp.lifecycleManager.UpgradeCluster(ctx, clusterID, targetVersion, rollbackOnFail)
-
 }
 
 // EstimateCost estimates the cost of a cluster specification.
 
 func (cp *ClusterProvisioner) EstimateCost(spec *ClusterSpec) (*CostEstimate, error) {
-
 	provider, exists := cp.providers[spec.Provider]
 
 	if !exists {
-
 		return nil, fmt.Errorf("unsupported provider: %s", spec.Provider)
-
 	}
 
 	estimate, err := provider.EstimateCost(spec)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to estimate cost: %w", err)
-
 	}
 
 	// Add optimization recommendations.
@@ -881,13 +839,11 @@ func (cp *ClusterProvisioner) EstimateCost(spec *ClusterSpec) (*CostEstimate, er
 	estimate.Recommendations = append(estimate.Recommendations, recommendations...)
 
 	return estimate, nil
-
 }
 
 // GetOptimizationRecommendations gets cost optimization recommendations.
 
 func (cp *ClusterProvisioner) GetOptimizationRecommendations(clusterID string) ([]*CostRecommendation, error) {
-
 	cp.costOptimizer.mu.RLock()
 
 	defer cp.costOptimizer.mu.RUnlock()
@@ -895,35 +851,27 @@ func (cp *ClusterProvisioner) GetOptimizationRecommendations(clusterID string) (
 	recommendations, exists := cp.costOptimizer.recommendations[clusterID]
 
 	if !exists {
-
 		return nil, fmt.Errorf("no recommendations available for cluster %s", clusterID)
-
 	}
 
 	return recommendations, nil
-
 }
 
 // CreateBackup creates a backup of a cluster.
 
 func (cp *ClusterProvisioner) CreateBackup(ctx context.Context, clusterID, backupType string) (*ClusterBackup, error) {
-
 	return cp.backupManager.CreateBackup(ctx, clusterID, backupType)
-
 }
 
 // RestoreBackup restores a cluster from a backup.
 
 func (cp *ClusterProvisioner) RestoreBackup(ctx context.Context, backupID, targetClusterID string) error {
-
 	return cp.backupManager.RestoreBackup(ctx, backupID, targetClusterID)
-
 }
 
 // Private methods.
 
 func (cp *ClusterProvisioner) initializeProviders() {
-
 	// Initialize AWS provider.
 
 	// cp.providers[CloudProviderAWS] = NewAWSProvider(cp.logger).
@@ -939,17 +887,14 @@ func (cp *ClusterProvisioner) initializeProviders() {
 	// Initialize on-premise provider.
 
 	// cp.providers[CloudProviderOnPremise] = NewOnPremiseProvider(cp.logger).
-
 }
 
 func (cp *ClusterProvisioner) loadTemplates() {
-
 	// Load templates from ConfigMaps or files.
 
 	templatesDir := "/etc/nephio/cluster-templates"
 
 	files, err := os.ReadDir(templatesDir)
-
 	if err != nil {
 
 		cp.logger.Error(err, "Failed to read templates directory", "dir", templatesDir)
@@ -959,21 +904,14 @@ func (cp *ClusterProvisioner) loadTemplates() {
 	}
 
 	for _, file := range files {
-
 		if strings.HasSuffix(file.Name(), ".yaml") || strings.HasSuffix(file.Name(), ".json") {
-
 			cp.loadTemplate(filepath.Join(templatesDir, file.Name()))
-
 		}
-
 	}
-
 }
 
 func (cp *ClusterProvisioner) loadTemplate(path string) {
-
 	data, err := os.ReadFile(path)
-
 	if err != nil {
 
 		cp.logger.Error(err, "Failed to read template file", "path", path)
@@ -999,35 +937,25 @@ func (cp *ClusterProvisioner) loadTemplate(path string) {
 	cp.mu.Unlock()
 
 	cp.logger.Info("Loaded provisioning template", "name", tmpl.Name)
-
 }
 
 func (cp *ClusterProvisioner) validateSpec(spec *ClusterSpec) error {
-
 	// Validate required fields.
 
 	if spec.Name == "" {
-
 		return fmt.Errorf("cluster name is required")
-
 	}
 
 	if spec.Provider == "" {
-
 		return fmt.Errorf("cloud provider is required")
-
 	}
 
 	if spec.Region == "" {
-
 		return fmt.Errorf("region is required")
-
 	}
 
 	if len(spec.NodePools) == 0 {
-
 		return fmt.Errorf("at least one node pool is required")
-
 	}
 
 	// Validate node pools.
@@ -1035,21 +963,15 @@ func (cp *ClusterProvisioner) validateSpec(spec *ClusterSpec) error {
 	for _, pool := range spec.NodePools {
 
 		if pool.Name == "" {
-
 			return fmt.Errorf("node pool name is required")
-
 		}
 
 		if pool.MinNodes > pool.MaxNodes {
-
 			return fmt.Errorf("min nodes cannot be greater than max nodes for pool %s", pool.Name)
-
 		}
 
 		if pool.DesiredNodes < pool.MinNodes || pool.DesiredNodes > pool.MaxNodes {
-
 			return fmt.Errorf("desired nodes must be between min and max for pool %s", pool.Name)
-
 		}
 
 	}
@@ -1057,23 +979,17 @@ func (cp *ClusterProvisioner) validateSpec(spec *ClusterSpec) error {
 	// Validate networking.
 
 	if spec.Networking.PodCIDR == "" {
-
 		return fmt.Errorf("pod CIDR is required")
-
 	}
 
 	if spec.Networking.ServiceCIDR == "" {
-
 		return fmt.Errorf("service CIDR is required")
-
 	}
 
 	return nil
-
 }
 
 func (cp *ClusterProvisioner) optimizeSpec(spec *ClusterSpec) *ClusterSpec {
-
 	optimized := *spec
 
 	// Optimize node pools.
@@ -1085,35 +1001,27 @@ func (cp *ClusterProvisioner) optimizeSpec(spec *ClusterSpec) *ClusterSpec {
 		// Enable spot instances if cost optimization is enabled.
 
 		if spec.CostOptimization.UseSpotInstances {
-
 			pool.SpotInstances = true
-
 		}
 
 		// Right-size machine types based on workload patterns.
 
 		if spec.CostOptimization.RightSizing {
-
 			pool.MachineType = cp.selectOptimalMachineType(pool)
-
 		}
 
 	}
 
 	return &optimized
-
 }
 
 func (cp *ClusterProvisioner) selectOptimalMachineType(pool *NodePoolSpec) string {
-
 	// Implementation would analyze workload patterns and select optimal machine type.
 
 	return pool.MachineType
-
 }
 
 func (cp *ClusterProvisioner) generateIaC(spec *ClusterSpec) (string, error) {
-
 	// Select template based on provider.
 
 	templateName := fmt.Sprintf("%s-cluster", strings.ToLower(string(spec.Provider)))
@@ -1125,47 +1033,35 @@ func (cp *ClusterProvisioner) generateIaC(spec *ClusterSpec) (string, error) {
 	cp.mu.RUnlock()
 
 	if !exists {
-
 		return "", fmt.Errorf("template %s not found", templateName)
-
 	}
 
 	// Parse and execute template.
 
 	t, err := template.New("cluster").Parse(tmpl.Template)
-
 	if err != nil {
-
 		return "", fmt.Errorf("failed to parse template: %w", err)
-
 	}
 
 	var buf strings.Builder
 
 	if err := t.Execute(&buf, spec); err != nil {
-
 		return "", fmt.Errorf("failed to execute template: %w", err)
-
 	}
 
 	return buf.String(), nil
-
 }
 
 func (cp *ClusterProvisioner) storeIaCConfig(ctx context.Context, clusterName, config string) error {
-
 	// Store IaC configuration as a ConfigMap.
 
 	configMap := &corev1.ConfigMap{
-
 		ObjectMeta: metav1.ObjectMeta{
-
 			Name: fmt.Sprintf("%s-iac", clusterName),
 
 			Namespace: "nephio-system",
 
 			Labels: map[string]string{
-
 				"nephio.io/cluster": clusterName,
 
 				"nephio.io/type": "iac-config",
@@ -1173,23 +1069,19 @@ func (cp *ClusterProvisioner) storeIaCConfig(ctx context.Context, clusterName, c
 		},
 
 		Data: map[string]string{
-
 			"terraform.tf": config,
 		},
 	}
 
 	return cp.client.Create(ctx, configMap)
-
 }
 
 func (cp *ClusterProvisioner) setupMonitoring(ctx context.Context, cluster *ProvisionedCluster, spec MonitoringSpec) error {
-
 	// Implementation would setup monitoring based on provider.
 
 	cp.logger.Info("Setting up monitoring", "cluster", cluster.ID, "provider", spec.Provider)
 
 	return nil
-
 }
 
 // ClusterLifecycleManager methods.
@@ -1197,7 +1089,6 @@ func (cp *ClusterProvisioner) setupMonitoring(ctx context.Context, cluster *Prov
 // UpgradeCluster upgrades a cluster to a new version.
 
 func (clm *ClusterLifecycleManager) UpgradeCluster(ctx context.Context, clusterID, targetVersion string, rollbackOnFail bool) error {
-
 	clm.mu.Lock()
 
 	// Check if upgrade is already in progress.
@@ -1211,7 +1102,6 @@ func (clm *ClusterLifecycleManager) UpgradeCluster(ctx context.Context, clusterI
 	}
 
 	upgrade := &UpgradeOperation{
-
 		ClusterID: clusterID,
 
 		TargetVersion: targetVersion,
@@ -1232,11 +1122,9 @@ func (clm *ClusterLifecycleManager) UpgradeCluster(ctx context.Context, clusterI
 	go clm.performUpgrade(ctx, upgrade)
 
 	return nil
-
 }
 
 func (clm *ClusterLifecycleManager) performUpgrade(ctx context.Context, upgrade *UpgradeOperation) {
-
 	clm.logger.Info("Starting cluster upgrade", "cluster", upgrade.ClusterID, "target", upgrade.TargetVersion)
 
 	// Implementation would perform the actual upgrade.
@@ -1256,7 +1144,6 @@ func (clm *ClusterLifecycleManager) performUpgrade(ctx context.Context, upgrade 
 	clm.provisioner.metrics.upgradeOperations.WithLabelValues(upgrade.ClusterID, "success").Inc()
 
 	clm.logger.Info("Cluster upgrade completed", "cluster", upgrade.ClusterID)
-
 }
 
 // CostOptimizer methods.
@@ -1264,7 +1151,6 @@ func (clm *ClusterLifecycleManager) performUpgrade(ctx context.Context, upgrade 
 // GetRecommendations gets cost optimization recommendations for a cluster spec.
 
 func (co *CostOptimizer) GetRecommendations(spec *ClusterSpec) []string {
-
 	recommendations := []string{}
 
 	// Check for spot instance usage.
@@ -1272,7 +1158,6 @@ func (co *CostOptimizer) GetRecommendations(spec *ClusterSpec) []string {
 	hasSpot := false
 
 	for _, pool := range spec.NodePools {
-
 		if pool.SpotInstances {
 
 			hasSpot = true
@@ -1280,13 +1165,10 @@ func (co *CostOptimizer) GetRecommendations(spec *ClusterSpec) []string {
 			break
 
 		}
-
 	}
 
 	if !hasSpot && spec.CostOptimization.UseSpotInstances {
-
 		recommendations = append(recommendations, "Consider using spot instances for non-critical workloads")
-
 	}
 
 	// Check for over-provisioning.
@@ -1294,35 +1176,26 @@ func (co *CostOptimizer) GetRecommendations(spec *ClusterSpec) []string {
 	totalNodes := 0
 
 	for _, pool := range spec.NodePools {
-
 		totalNodes += pool.DesiredNodes
-
 	}
 
 	if totalNodes > 10 {
-
 		recommendations = append(recommendations, "Review node count for potential over-provisioning")
-
 	}
 
 	// Check for reserved instances.
 
 	if !spec.CostOptimization.UseReservedInstances && totalNodes > 5 {
-
 		recommendations = append(recommendations, "Consider reserved instances for predictable workloads")
-
 	}
 
 	// Check for auto-shutdown.
 
 	if !spec.CostOptimization.AutoShutdown {
-
 		recommendations = append(recommendations, "Enable auto-shutdown for development clusters")
-
 	}
 
 	return recommendations
-
 }
 
 // BackupManager methods.
@@ -1330,13 +1203,11 @@ func (co *CostOptimizer) GetRecommendations(spec *ClusterSpec) []string {
 // SetupBackup sets up backup for a cluster.
 
 func (bm *BackupManager) SetupBackup(ctx context.Context, clusterID string, spec BackupSpec) error {
-
 	bm.mu.Lock()
 
 	defer bm.mu.Unlock()
 
 	schedule := &BackupSchedule{
-
 		ClusterID: clusterID,
 
 		Schedule: spec.Schedule,
@@ -1351,17 +1222,14 @@ func (bm *BackupManager) SetupBackup(ctx context.Context, clusterID string, spec
 	bm.logger.Info("Backup schedule configured", "cluster", clusterID, "schedule", spec.Schedule)
 
 	return nil
-
 }
 
 // CreateBackup creates a backup of a cluster.
 
 func (bm *BackupManager) CreateBackup(ctx context.Context, clusterID, backupType string) (*ClusterBackup, error) {
-
 	bm.logger.Info("Creating backup", "cluster", clusterID, "type", backupType)
 
 	backup := &ClusterBackup{
-
 		ID: fmt.Sprintf("backup-%s-%d", clusterID, time.Now().Unix()),
 
 		ClusterID: clusterID,
@@ -1384,11 +1252,9 @@ func (bm *BackupManager) CreateBackup(ctx context.Context, clusterID, backupType
 	go bm.performBackup(ctx, backup)
 
 	return backup, nil
-
 }
 
 func (bm *BackupManager) performBackup(ctx context.Context, backup *ClusterBackup) {
-
 	// Implementation would perform the actual backup.
 
 	time.Sleep(5 * time.Second) // Simulate backup operation
@@ -1402,35 +1268,27 @@ func (bm *BackupManager) performBackup(ctx context.Context, backup *ClusterBacku
 	bm.mu.Unlock()
 
 	bm.logger.Info("Backup completed", "backup", backup.ID)
-
 }
 
 // CreateFinalBackup creates a final backup before cluster deletion.
 
 func (bm *BackupManager) CreateFinalBackup(ctx context.Context, clusterID string) error {
-
 	backup, err := bm.CreateBackup(ctx, clusterID, "final")
-
 	if err != nil {
-
 		return err
-
 	}
 
 	bm.logger.Info("Final backup created", "cluster", clusterID, "backup", backup.ID)
 
 	return nil
-
 }
 
 // RestoreBackup restores a cluster from a backup.
 
 func (bm *BackupManager) RestoreBackup(ctx context.Context, backupID, targetClusterID string) error {
-
 	bm.logger.Info("Restoring backup", "backup", backupID, "target", targetClusterID)
 
 	// Implementation would perform the actual restore.
 
 	return nil
-
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,7 +30,7 @@ type ControllerTestSuite struct {
 // TestControllers runs the controller test suite
 func TestControllers(t *testing.T) {
 	suite.Run(t, &ControllerTestSuite{
-		TestSuite: framework.NewTestSuite(),
+		TestSuite: framework.NewTestSuite(nil),
 	})
 }
 
@@ -45,12 +46,8 @@ func (suite *ControllerTestSuite) SetupSuite() {
 func (suite *ControllerTestSuite) setupControllerMocks() {
 	// Setup LLM mock responses
 	llmMock := suite.GetMocks().GetLLMMock()
-	llmMock.On("ProcessIntent", gomega.Any(), gomega.Any()).Return(
+	llmMock.On("ProcessIntent", mock.Anything, mock.Anything).Return(
 		map[string]interface{}{
-			"type":            "NetworkFunctionDeployment",
-			"networkFunction": "AMF",
-			"replicas":        int64(3),
-			"namespace":       "telecom-core",
 			"resources": map[string]interface{}{
 				"requests": map[string]string{
 					"cpu":    "1000m",
@@ -65,7 +62,7 @@ func (suite *ControllerTestSuite) setupControllerMocks() {
 
 	// Setup Weaviate mock for RAG queries
 	weaviateMock := suite.GetMocks().GetWeaviateMock()
-	weaviateMock.On("Query").Return(&graphQLMock{}, nil)
+	weaviateMock.On("Query").Return(&MockGraphQLResponse{}, nil)
 }
 
 // TestNetworkIntentController tests the NetworkIntent controller comprehensively
@@ -125,8 +122,8 @@ func (suite *ControllerTestSuite) TestNetworkIntentController() {
 				// Configure mock to return error
 				llmMock := suite.GetMocks().GetLLMMock()
 				llmMock.ExpectedCalls = nil // Reset expectations
-				llmMock.On("ProcessIntent", gomega.Any(), gomega.Any()).Return(
-					map[string]interface{}{}, fmt.Errorf("LLM service unavailable"))
+				llmMock.On("ProcessIntent", mock.Anything, mock.Anything).Return(
+					nil, fmt.Errorf("LLM service unavailable"))
 
 				// Create the NetworkIntent
 				err := suite.GetK8sClient().Create(ctx, intent)
@@ -252,15 +249,22 @@ func (suite *ControllerTestSuite) TestE2NodeSetController() {
 				Spec: nephranv1.E2NodeSetSpec{
 					Replicas: 3,
 					Template: nephranv1.E2NodeTemplate{
-						Metadata: metav1.ObjectMeta{
+						ObjectMeta: metav1.ObjectMeta{
 							Labels: map[string]string{
 								"app": "e2-node",
 							},
 						},
 						Spec: nephranv1.E2NodeSpec{
-							NodeID:      "test-node",
-							CellInfo:    "test-cell",
-							RICEndpoint: "http://ric.example.com",
+							NodeID:              "test-node",
+							E2InterfaceVersion:  "v20",
+							SupportedRANFunctions: []nephranv1.RANFunction{
+								{
+									FunctionID:  1,
+									Revision:    1,
+									Description: "Test RAN Function",
+									OID:         "1.3.6.1.4.1.1.1",
+								},
+							},
 						},
 					},
 				},
@@ -388,7 +392,7 @@ func (suite *ControllerTestSuite) TestE2NodeSetController() {
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 				gomega.Expect(updatedNodeSet.Status.ReadyReplicas).To(gomega.Equal(nodeSet.Spec.Replicas))
-				gomega.Expect(updatedNodeSet.Status.Replicas).To(gomega.Equal(nodeSet.Spec.Replicas))
+				gomega.Expect(updatedNodeSet.Status.CurrentReplicas).To(gomega.Equal(nodeSet.Spec.Replicas))
 			})
 		})
 	})
@@ -398,7 +402,7 @@ func (suite *ControllerTestSuite) TestE2NodeSetController() {
 func (suite *ControllerTestSuite) TestLoadTesting() {
 	ginkgo.Describe("Controller Load Testing", func() {
 		ginkgo.It("should handle concurrent intent processing", func() {
-			if !suite.GetConfig().LoadTestEnabled {
+			if !suite.GetTestConfig().LoadTestEnabled {
 				ginkgo.Skip("Load testing disabled")
 			}
 
@@ -446,7 +450,7 @@ func (suite *ControllerTestSuite) TestLoadTesting() {
 func (suite *ControllerTestSuite) TestChaosEngineering() {
 	ginkgo.Describe("Controller Chaos Testing", func() {
 		ginkgo.It("should handle external service failures", func() {
-			if !suite.GetConfig().ChaosTestEnabled {
+			if !suite.GetTestConfig().ChaosTestEnabled {
 				ginkgo.Skip("Chaos testing disabled")
 			}
 
@@ -490,11 +494,10 @@ func (suite *ControllerTestSuite) TestChaosEngineering() {
 	})
 }
 
-// Mock GraphQL client for testing
-type graphQLMock struct{}
-
-func (g *graphQLMock) Get() *graphql.Get {
-	return &graphql.Get{}
+// MockGraphQLResponse provides a simple mock for GraphQL responses
+type MockGraphQLResponse struct {
+	Data   interface{} `json:"data,omitempty"`
+	Errors interface{} `json:"errors,omitempty"`
 }
 
 var _ = ginkgo.Describe("Controller Integration", func() {
@@ -502,7 +505,7 @@ var _ = ginkgo.Describe("Controller Integration", func() {
 
 	ginkgo.BeforeEach(func() {
 		testSuite = &ControllerTestSuite{
-			TestSuite: framework.NewTestSuite(),
+			TestSuite: framework.NewTestSuite(nil),
 		}
 		testSuite.SetupSuite()
 	})

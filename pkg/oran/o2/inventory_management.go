@@ -28,7 +28,7 @@ type InventoryManagementService struct {
 
 	// Provider registry for multi-cloud inventory.
 
-	providerRegistry *providers.ProviderRegistry
+	providerRegistry providers.ProviderRegistry
 
 	// Storage components.
 
@@ -66,7 +66,6 @@ type InventoryManagementService struct {
 // InventoryConfig configuration for inventory management.
 
 type InventoryConfig struct {
-
 	// Discovery settings.
 
 	AutoDiscoveryEnabled bool `json:"autoDiscoveryEnabled,omitempty"`
@@ -225,7 +224,7 @@ type AuditEntry struct {
 
 	ResourceID string `json:"resourceId"`
 
-	Changes map[string]interface{} `json:"changes,omitempty"`
+	Changes json.RawMessage `json:"changes,omitempty"`
 
 	Timestamp time.Time `json:"timestamp"`
 
@@ -283,7 +282,6 @@ type AssetFilter struct {
 // CMDBStorage interface for CMDB storage operations.
 
 type CMDBStorage interface {
-
 	// Asset operations.
 
 	CreateAsset(ctx context.Context, asset *Asset) error
@@ -364,25 +362,18 @@ type RelationshipFilter struct {
 // NewInventoryManagementService creates a new inventory management service.
 
 func NewInventoryManagementService(
-
 	config *InventoryConfig,
 
-	providerRegistry *providers.ProviderRegistry,
+	providerRegistry providers.ProviderRegistry,
 
 	logger *logging.StructuredLogger,
-
 ) (*InventoryManagementService, error) {
-
 	if config == nil {
-
 		config = DefaultInventoryConfig()
-
 	}
 
 	if logger == nil {
-
 		logger = logging.NewStructuredLogger(logging.DefaultConfig("inventory-management", "1.0.0", "production"))
-
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -406,7 +397,6 @@ func NewInventoryManagementService(
 	relationshipIndex := &RelationshipIndex{}
 
 	service := &InventoryManagementService{
-
 		config: config,
 
 		logger: logger,
@@ -431,15 +421,12 @@ func NewInventoryManagementService(
 	}
 
 	return service, nil
-
 }
 
 // DefaultInventoryConfig returns default configuration.
 
 func DefaultInventoryConfig() *InventoryConfig {
-
 	return &InventoryConfig{
-
 		AutoDiscoveryEnabled: true,
 
 		DiscoveryInterval: 5 * time.Minute,
@@ -468,21 +455,17 @@ func DefaultInventoryConfig() *InventoryConfig {
 
 		ConnectionTimeout: 30 * time.Second,
 	}
-
 }
 
 // Start starts the inventory management service.
 
 func (s *InventoryManagementService) Start(ctx context.Context) error {
-
 	s.logger.Info("starting inventory management service")
 
 	// Initialize database schema if needed.
 
 	if err := s.initializeDatabase(); err != nil {
-
 		return fmt.Errorf("failed to initialize database: %w", err)
-
 	}
 
 	// Start background processes.
@@ -490,27 +473,21 @@ func (s *InventoryManagementService) Start(ctx context.Context) error {
 	s.wg.Add(3)
 
 	if s.config.AutoDiscoveryEnabled {
-
 		go s.discoveryLoop()
-
 	}
 
 	if s.config.InventorySyncEnabled {
-
 		go s.syncLoop()
-
 	}
 
 	go s.maintenanceLoop()
 
 	return nil
-
 }
 
 // Stop stops the inventory management service.
 
 func (s *InventoryManagementService) Stop() error {
-
 	s.logger.Info("stopping inventory management service")
 
 	s.cancel()
@@ -520,13 +497,11 @@ func (s *InventoryManagementService) Stop() error {
 	s.logger.Info("inventory management service stopped")
 
 	return nil
-
 }
 
 // discoveryLoop runs the asset discovery loop.
 
 func (s *InventoryManagementService) discoveryLoop() {
-
 	defer s.wg.Done()
 
 	ticker := time.NewTicker(s.config.DiscoveryInterval)
@@ -538,7 +513,6 @@ func (s *InventoryManagementService) discoveryLoop() {
 	s.performDiscovery()
 
 	for {
-
 		select {
 
 		case <-s.ctx.Done():
@@ -550,15 +524,12 @@ func (s *InventoryManagementService) discoveryLoop() {
 			s.performDiscovery()
 
 		}
-
 	}
-
 }
 
 // syncLoop runs the inventory synchronization loop.
 
 func (s *InventoryManagementService) syncLoop() {
-
 	defer s.wg.Done()
 
 	ticker := time.NewTicker(s.config.SyncInterval)
@@ -566,7 +537,6 @@ func (s *InventoryManagementService) syncLoop() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-s.ctx.Done():
@@ -578,15 +548,12 @@ func (s *InventoryManagementService) syncLoop() {
 			s.performSync()
 
 		}
-
 	}
-
 }
 
 // maintenanceLoop runs maintenance tasks.
 
 func (s *InventoryManagementService) maintenanceLoop() {
-
 	defer s.wg.Done()
 
 	ticker := time.NewTicker(24 * time.Hour) // Run maintenance daily
@@ -594,7 +561,6 @@ func (s *InventoryManagementService) maintenanceLoop() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-s.ctx.Done():
@@ -606,15 +572,12 @@ func (s *InventoryManagementService) maintenanceLoop() {
 			s.performMaintenance()
 
 		}
-
 	}
-
 }
 
 // performDiscovery performs asset discovery across all providers.
 
 func (s *InventoryManagementService) performDiscovery() {
-
 	s.logger.Info("performing asset discovery")
 
 	discoveryCtx, cancel := context.WithTimeout(s.ctx, s.config.DiscoveryTimeout)
@@ -626,7 +589,6 @@ func (s *InventoryManagementService) performDiscovery() {
 	for _, providerName := range providerNames {
 
 		provider, err := s.providerRegistry.GetProvider(providerName)
-
 		if err != nil {
 
 			s.logger.Error("Failed to get provider", "name", providerName, "error", err)
@@ -638,13 +600,11 @@ func (s *InventoryManagementService) performDiscovery() {
 		go s.discoverProviderAssets(discoveryCtx, provider)
 
 	}
-
 }
 
 // discoverProviderAssets discovers assets from a specific provider.
 
 func (s *InventoryManagementService) discoverProviderAssets(ctx context.Context, provider providers.CloudProvider) {
-
 	s.logger.Info("discovering assets from provider",
 
 		"provider", getProviderType(provider))
@@ -652,7 +612,6 @@ func (s *InventoryManagementService) discoverProviderAssets(ctx context.Context,
 	// Use discovery engine to find assets.
 
 	assets, err := s.discoveryEngine.DiscoverAssets(ctx, provider)
-
 	if err != nil {
 
 		s.logger.Error("failed to discover assets from provider",
@@ -668,9 +627,7 @@ func (s *InventoryManagementService) discoverProviderAssets(ctx context.Context,
 	// Process discovered assets.
 
 	for _, asset := range assets {
-
 		if err := s.processDiscoveredAsset(asset); err != nil {
-
 			s.logger.Error("failed to process discovered asset",
 
 				"asset_id", asset.ID,
@@ -678,9 +635,7 @@ func (s *InventoryManagementService) discoverProviderAssets(ctx context.Context,
 				"provider", getProviderType(provider),
 
 				"error", err)
-
 		}
-
 	}
 
 	s.logger.Info("completed asset discovery for provider",
@@ -688,13 +643,11 @@ func (s *InventoryManagementService) discoverProviderAssets(ctx context.Context,
 		"provider", getProviderType(provider),
 
 		"assets_discovered", len(assets))
-
 }
 
 // processDiscoveredAsset processes a discovered asset.
 
 func (s *InventoryManagementService) processDiscoveredAsset(asset *Asset) error {
-
 	s.mu.Lock()
 
 	defer s.mu.Unlock()
@@ -704,21 +657,15 @@ func (s *InventoryManagementService) processDiscoveredAsset(asset *Asset) error 
 	existingAsset, err := s.cmdbStorage.GetAsset(s.ctx, asset.ID)
 
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-
 		return fmt.Errorf("failed to check existing asset: %w", err)
-
 	}
 
 	if existingAsset != nil {
-
 		// Update existing asset.
 
 		if err := s.updateExistingAsset(existingAsset, asset); err != nil {
-
 			return fmt.Errorf("failed to update existing asset: %w", err)
-
 		}
-
 	} else {
 
 		// Create new asset.
@@ -730,9 +677,7 @@ func (s *InventoryManagementService) processDiscoveredAsset(asset *Asset) error 
 		asset.CreatedBy = "discovery-engine"
 
 		if err := s.cmdbStorage.CreateAsset(s.ctx, asset); err != nil {
-
 			return fmt.Errorf("failed to create asset: %w", err)
-
 		}
 
 		// Update index.
@@ -742,7 +687,6 @@ func (s *InventoryManagementService) processDiscoveredAsset(asset *Asset) error 
 		// Create audit entry.
 
 		auditEntry := &AuditEntry{
-
 			ID: uuid.New().String(),
 
 			Action: "create",
@@ -759,21 +703,17 @@ func (s *InventoryManagementService) processDiscoveredAsset(asset *Asset) error 
 		}
 
 		if err := s.cmdbStorage.CreateAuditEntry(s.ctx, auditEntry); err != nil {
-
 			s.logger.Warn("failed to create audit entry", "error", err)
-
 		}
 
 	}
 
 	return nil
-
 }
 
 // updateExistingAsset updates an existing asset with discovered information.
 
 func (s *InventoryManagementService) updateExistingAsset(existing, discovered *Asset) error {
-
 	changes := make(map[string]interface{})
 
 	// Update last seen timestamp.
@@ -843,9 +783,7 @@ func (s *InventoryManagementService) updateExistingAsset(existing, discovered *A
 		changes["updatedBy"] = existing.UpdatedBy
 
 		if err := s.cmdbStorage.UpdateAsset(s.ctx, existing); err != nil {
-
 			return fmt.Errorf("failed to update asset in storage: %w", err)
-
 		}
 
 		// Update index.
@@ -855,7 +793,6 @@ func (s *InventoryManagementService) updateExistingAsset(existing, discovered *A
 		// Create audit entry for changes.
 
 		auditEntry := &AuditEntry{
-
 			ID: uuid.New().String(),
 
 			Action: "update",
@@ -866,7 +803,7 @@ func (s *InventoryManagementService) updateExistingAsset(existing, discovered *A
 
 			ResourceID: existing.ID,
 
-			Changes: changes,
+			Changes: func() json.RawMessage { if data, err := json.Marshal(changes); err == nil { return data } else { return json.RawMessage("{}") } }(),
 
 			Timestamp: time.Now(),
 
@@ -874,21 +811,17 @@ func (s *InventoryManagementService) updateExistingAsset(existing, discovered *A
 		}
 
 		if err := s.cmdbStorage.CreateAuditEntry(s.ctx, auditEntry); err != nil {
-
 			s.logger.Warn("failed to create audit entry", "error", err)
-
 		}
 
 	}
 
 	return nil
-
 }
 
 // performSync performs inventory synchronization.
 
 func (s *InventoryManagementService) performSync() {
-
 	s.logger.Info("performing inventory synchronization")
 
 	// Sync with external systems, validate relationships, etc.
@@ -896,21 +829,17 @@ func (s *InventoryManagementService) performSync() {
 	// This is a placeholder for more complex sync logic.
 
 	s.logger.Info("completed inventory synchronization")
-
 }
 
 // performMaintenance performs maintenance tasks.
 
 func (s *InventoryManagementService) performMaintenance() {
-
 	s.logger.Info("performing inventory maintenance")
 
 	// Cleanup old audit entries.
 
 	if err := s.cmdbStorage.Cleanup(s.ctx, s.config.AuditRetentionPeriod); err != nil {
-
 		s.logger.Error("failed to cleanup old entries", "error", err)
-
 	}
 
 	// Rebuild indexes if needed.
@@ -918,19 +847,16 @@ func (s *InventoryManagementService) performMaintenance() {
 	s.rebuildIndexes()
 
 	s.logger.Info("completed inventory maintenance")
-
 }
 
 // rebuildIndexes rebuilds asset and relationship indexes.
 
 func (s *InventoryManagementService) rebuildIndexes() {
-
 	s.logger.Info("rebuilding indexes")
 
 	// Rebuild asset index.
 
 	assets, err := s.cmdbStorage.ListAssets(s.ctx, &AssetFilter{})
-
 	if err != nil {
 
 		s.logger.Error("failed to list assets for index rebuild", "error", err)
@@ -942,15 +868,12 @@ func (s *InventoryManagementService) rebuildIndexes() {
 	s.assetIndex.Clear()
 
 	for _, asset := range assets {
-
 		s.assetIndex.AddAsset(asset)
-
 	}
 
 	// Rebuild relationship index.
 
 	relationships, err := s.cmdbStorage.ListRelationships(s.ctx, &RelationshipFilter{})
-
 	if err != nil {
 
 		s.logger.Error("failed to list relationships for index rebuild", "error", err)
@@ -962,19 +885,15 @@ func (s *InventoryManagementService) rebuildIndexes() {
 	s.relationshipIndex.Clear()
 
 	for _, rel := range relationships {
-
 		s.relationshipIndex.AddRelationship(rel)
-
 	}
 
 	s.logger.Info("completed index rebuild")
-
 }
 
 // initializeDatabase initializes the database schema.
 
 func (s *InventoryManagementService) initializeDatabase() error {
-
 	// This would typically create tables, indexes, and other database objects.
 
 	// For this example, we'll assume the database is already set up.
@@ -982,7 +901,6 @@ func (s *InventoryManagementService) initializeDatabase() error {
 	s.logger.Info("initializing database schema")
 
 	return nil
-
 }
 
 // Asset management operations.
@@ -990,7 +908,6 @@ func (s *InventoryManagementService) initializeDatabase() error {
 // CreateAsset creates a new asset in the inventory.
 
 func (s *InventoryManagementService) CreateAsset(ctx context.Context, asset *Asset) error {
-
 	s.mu.Lock()
 
 	defer s.mu.Unlock()
@@ -1010,9 +927,7 @@ func (s *InventoryManagementService) CreateAsset(ctx context.Context, asset *Ass
 	// Store in CMDB.
 
 	if err := s.cmdbStorage.CreateAsset(ctx, asset); err != nil {
-
 		return fmt.Errorf("failed to create asset in CMDB: %w", err)
-
 	}
 
 	// Update index.
@@ -1022,7 +937,6 @@ func (s *InventoryManagementService) CreateAsset(ctx context.Context, asset *Ass
 	// Create audit entry.
 
 	auditEntry := &AuditEntry{
-
 		ID: uuid.New().String(),
 
 		Action: "create",
@@ -1039,29 +953,23 @@ func (s *InventoryManagementService) CreateAsset(ctx context.Context, asset *Ass
 	}
 
 	if err := s.cmdbStorage.CreateAuditEntry(ctx, auditEntry); err != nil {
-
 		s.logger.Warn("failed to create audit entry", "error", err)
-
 	}
 
 	s.logger.Info("created asset", "asset_id", asset.ID, "name", asset.Name)
 
 	return nil
-
 }
 
 // GetAsset retrieves an asset by ID.
 
 func (s *InventoryManagementService) GetAsset(ctx context.Context, id string) (*Asset, error) {
-
 	return s.cmdbStorage.GetAsset(ctx, id)
-
 }
 
 // UpdateAsset updates an existing asset.
 
 func (s *InventoryManagementService) UpdateAsset(ctx context.Context, asset *Asset) error {
-
 	s.mu.Lock()
 
 	defer s.mu.Unlock()
@@ -1069,11 +977,8 @@ func (s *InventoryManagementService) UpdateAsset(ctx context.Context, asset *Ass
 	// Get existing asset to track changes.
 
 	existing, err := s.cmdbStorage.GetAsset(ctx, asset.ID)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to get existing asset: %w", err)
-
 	}
 
 	// Track changes.
@@ -1087,9 +992,7 @@ func (s *InventoryManagementService) UpdateAsset(ctx context.Context, asset *Ass
 	// Store in CMDB.
 
 	if err := s.cmdbStorage.UpdateAsset(ctx, asset); err != nil {
-
 		return fmt.Errorf("failed to update asset in CMDB: %w", err)
-
 	}
 
 	// Update index.
@@ -1101,7 +1004,6 @@ func (s *InventoryManagementService) UpdateAsset(ctx context.Context, asset *Ass
 	if len(changes) > 0 {
 
 		auditEntry := &AuditEntry{
-
 			ID: uuid.New().String(),
 
 			Action: "update",
@@ -1112,7 +1014,7 @@ func (s *InventoryManagementService) UpdateAsset(ctx context.Context, asset *Ass
 
 			ResourceID: asset.ID,
 
-			Changes: changes,
+			Changes: func() json.RawMessage { if data, err := json.Marshal(changes); err == nil { return data } else { return json.RawMessage("{}") } }(),
 
 			Timestamp: time.Now(),
 
@@ -1120,9 +1022,7 @@ func (s *InventoryManagementService) UpdateAsset(ctx context.Context, asset *Ass
 		}
 
 		if err := s.cmdbStorage.CreateAuditEntry(ctx, auditEntry); err != nil {
-
 			s.logger.Warn("failed to create audit entry", "error", err)
-
 		}
 
 	}
@@ -1130,13 +1030,11 @@ func (s *InventoryManagementService) UpdateAsset(ctx context.Context, asset *Ass
 	s.logger.Info("updated asset", "asset_id", asset.ID, "changes", len(changes))
 
 	return nil
-
 }
 
 // DeleteAsset deletes an asset from the inventory.
 
 func (s *InventoryManagementService) DeleteAsset(ctx context.Context, id string) error {
-
 	s.mu.Lock()
 
 	defer s.mu.Unlock()
@@ -1144,19 +1042,14 @@ func (s *InventoryManagementService) DeleteAsset(ctx context.Context, id string)
 	// Get asset before deletion for audit.
 
 	asset, err := s.cmdbStorage.GetAsset(ctx, id)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to get asset before deletion: %w", err)
-
 	}
 
 	// Delete from CMDB.
 
 	if err := s.cmdbStorage.DeleteAsset(ctx, id); err != nil {
-
 		return fmt.Errorf("failed to delete asset from CMDB: %w", err)
-
 	}
 
 	// Update index.
@@ -1166,7 +1059,6 @@ func (s *InventoryManagementService) DeleteAsset(ctx context.Context, id string)
 	// Create audit entry.
 
 	auditEntry := &AuditEntry{
-
 		ID: uuid.New().String(),
 
 		Action: "delete",
@@ -1183,53 +1075,40 @@ func (s *InventoryManagementService) DeleteAsset(ctx context.Context, id string)
 	}
 
 	if err := s.cmdbStorage.CreateAuditEntry(ctx, auditEntry); err != nil {
-
 		s.logger.Warn("failed to create audit entry", "error", err)
-
 	}
 
 	s.logger.Info("deleted asset", "asset_id", id, "name", asset.Name)
 
 	return nil
-
 }
 
 // ListAssets lists assets based on filter criteria.
 
 func (s *InventoryManagementService) ListAssets(ctx context.Context, filter *AssetFilter) ([]*Asset, error) {
-
 	assets, err := s.cmdbStorage.ListAssets(ctx, filter)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to list assets: %w", err)
-
 	}
 
 	// Apply sorting if specified.
 
 	if filter.SortBy != "" {
-
 		s.sortAssets(assets, filter.SortBy, filter.SortOrder)
-
 	}
 
 	return assets, nil
-
 }
 
 // GetAssetRelationships retrieves relationships for an asset.
 
 func (s *InventoryManagementService) GetAssetRelationships(ctx context.Context, assetID string) ([]*AssetRelationship, error) {
-
 	return s.cmdbStorage.GetAssetRelationships(ctx, assetID)
-
 }
 
 // CreateRelationship creates a new asset relationship.
 
 func (s *InventoryManagementService) CreateRelationship(ctx context.Context, rel *AssetRelationship) error {
-
 	s.mu.Lock()
 
 	defer s.mu.Unlock()
@@ -1245,9 +1124,7 @@ func (s *InventoryManagementService) CreateRelationship(ctx context.Context, rel
 	// Store in CMDB.
 
 	if err := s.cmdbStorage.CreateRelationship(ctx, rel); err != nil {
-
 		return fmt.Errorf("failed to create relationship in CMDB: %w", err)
-
 	}
 
 	// Update index.
@@ -1265,47 +1142,36 @@ func (s *InventoryManagementService) CreateRelationship(ctx context.Context, rel
 		"type", rel.RelationType)
 
 	return nil
-
 }
 
 // GetComplianceStatus returns compliance status for an asset.
 
 func (s *InventoryManagementService) GetComplianceStatus(ctx context.Context, assetID string) ([]*ComplianceCheck, error) {
-
 	return s.cmdbStorage.GetComplianceStatus(ctx, assetID)
-
 }
 
 // GetAuditTrail returns audit trail for a resource.
 
 func (s *InventoryManagementService) GetAuditTrail(ctx context.Context, resourceID string) ([]*AuditEntry, error) {
-
 	return s.cmdbStorage.GetAuditTrail(ctx, resourceID)
-
 }
 
 // SyncInventory triggers manual inventory synchronization.
 
 func (s *InventoryManagementService) SyncInventory(ctx context.Context) error {
-
 	s.logger.Info("triggering manual inventory synchronization")
 
 	go s.performSync()
 
 	return nil
-
 }
 
 // DiscoverInfrastructure triggers manual infrastructure discovery for a provider.
 
 func (s *InventoryManagementService) DiscoverInfrastructure(ctx context.Context, providerID string) error {
-
 	provider, err := s.providerRegistry.GetProvider(providerID)
-
 	if err != nil {
-
 		return fmt.Errorf("provider %s not found: %w", providerID, err)
-
 	}
 
 	s.logger.Info("triggering manual infrastructure discovery",
@@ -1315,7 +1181,6 @@ func (s *InventoryManagementService) DiscoverInfrastructure(ctx context.Context,
 	go s.discoverProviderAssets(ctx, provider)
 
 	return nil
-
 }
 
 // Helper functions.
@@ -1323,65 +1188,39 @@ func (s *InventoryManagementService) DiscoverInfrastructure(ctx context.Context,
 // trackAssetChanges tracks changes between existing and updated asset.
 
 func (s *InventoryManagementService) trackAssetChanges(existing, updated *Asset) map[string]interface{} {
-
 	changes := make(map[string]interface{})
 
 	if existing.Name != updated.Name {
-
 		changes["name"] = map[string]string{"from": existing.Name, "to": updated.Name}
-
 	}
 
 	if existing.Status != updated.Status {
-
 		changes["status"] = map[string]string{"from": existing.Status, "to": updated.Status}
-
 	}
 
 	if existing.Health != updated.Health {
-
 		changes["health"] = map[string]string{"from": existing.Health, "to": updated.Health}
-
 	}
 
 	if existing.State != updated.State {
-
 		changes["state"] = map[string]string{"from": existing.State, "to": updated.State}
-
 	}
 
 	if !equalMaps(existing.Properties, updated.Properties) {
-
-		changes["properties"] = map[string]interface{}{
-
-			"from": existing.Properties,
-
-			"to": updated.Properties,
-		}
-
+		changes["properties"] = json.RawMessage(`{}`)
 	}
 
 	if !equalStringMaps(existing.Tags, updated.Tags) {
-
-		changes["tags"] = map[string]interface{}{
-
-			"from": existing.Tags,
-
-			"to": updated.Tags,
-		}
-
+		changes["tags"] = json.RawMessage(`{}`)
 	}
 
 	return changes
-
 }
 
 // sortAssets sorts assets based on the specified criteria.
 
 func (s *InventoryManagementService) sortAssets(assets []*Asset, sortBy, sortOrder string) {
-
 	sort.Slice(assets, func(i, j int) bool {
-
 		var result bool
 
 		switch sortBy {
@@ -1409,25 +1248,18 @@ func (s *InventoryManagementService) sortAssets(assets []*Asset, sortBy, sortOrd
 		}
 
 		if sortOrder == "DESC" {
-
 			result = !result
-
 		}
 
 		return result
-
 	})
-
 }
 
 // equalMaps compares two maps for equality.
 
 func equalMaps(a, b map[string]interface{}) bool {
-
 	if len(a) != len(b) {
-
 		return false
-
 	}
 
 	aJSON, _ := json.Marshal(a)
@@ -1435,17 +1267,13 @@ func equalMaps(a, b map[string]interface{}) bool {
 	bJSON, _ := json.Marshal(b)
 
 	return bytes.Equal(aJSON, bJSON)
-
 }
 
 // equalStringMaps compares two string maps for equality.
 
 func equalStringMaps(a, b map[string]string) bool {
-
 	if len(a) != len(b) {
-
 		return false
-
 	}
 
 	aJSON, _ := json.Marshal(a)
@@ -1453,7 +1281,6 @@ func equalStringMaps(a, b map[string]string) bool {
 	bJSON, _ := json.Marshal(b)
 
 	return bytes.Equal(aJSON, bJSON)
-
 }
 
 // getProviderType helper is defined in infrastructure_monitoring.go.
@@ -1465,87 +1292,66 @@ type stubAssetStorage struct{}
 // Store performs store operation.
 
 func (s *stubAssetStorage) Store(ctx context.Context, asset *Asset) error {
-
 	return nil
-
 }
 
 // Retrieve performs retrieve operation.
 
 func (s *stubAssetStorage) Retrieve(ctx context.Context, id string) (*Asset, error) {
-
 	return nil, fmt.Errorf("asset not found")
-
 }
 
 // List performs list operation.
 
 func (s *stubAssetStorage) List(ctx context.Context, filter *AssetFilter) ([]*Asset, error) {
-
 	return []*Asset{}, nil
-
 }
 
 // Delete performs delete operation.
 
 func (s *stubAssetStorage) Delete(ctx context.Context, id string) error {
-
 	return nil
-
 }
 
 // Stub implementations for DiscoveryEngine methods.
 
 func (d *DiscoveryEngine) DiscoverAssets(ctx context.Context, provider providers.CloudProvider) ([]*Asset, error) {
-
 	return []*Asset{}, nil
-
 }
 
 // Stub implementations for AssetIndex methods.
 
 func (a *AssetIndex) AddAsset(asset *Asset) error {
-
 	return nil
-
 }
 
 // UpdateAsset performs updateasset operation.
 
 func (a *AssetIndex) UpdateAsset(asset *Asset) error {
-
 	return nil
-
 }
 
 // Clear performs clear operation.
 
 func (a *AssetIndex) Clear() error {
-
 	return nil
-
 }
 
 // RemoveAsset performs removeasset operation.
 
 func (a *AssetIndex) RemoveAsset(id string) error {
-
 	return nil
-
 }
 
 // Stub implementations for RelationshipIndex methods.
 
 func (r *RelationshipIndex) AddRelationship(relationship *AssetRelationship) error {
-
 	return nil
-
 }
 
 // Clear performs clear operation.
 
 func (r *RelationshipIndex) Clear() error {
-
 	return nil
-
 }
+

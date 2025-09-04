@@ -16,7 +16,6 @@ import (
 // SessionManager manages user sessions and SSO.
 
 type SessionManager struct {
-
 	// Session storage.
 
 	sessions map[string]*UserSession
@@ -199,11 +198,8 @@ type SessionInfo struct {
 // NewSessionManager creates a new session manager.
 
 func NewSessionManager(config *SessionConfig, jwtManager *JWTManager, rbacManager *RBACManager, logger *slog.Logger) *SessionManager {
-
 	if config == nil {
-
 		config = &SessionConfig{
-
 			SessionTimeout: 24 * time.Hour,
 
 			RefreshThreshold: 15 * time.Minute,
@@ -226,11 +222,9 @@ func NewSessionManager(config *SessionConfig, jwtManager *JWTManager, rbacManage
 
 			CleanupInterval: 1 * time.Hour,
 		}
-
 	}
 
 	manager := &SessionManager{
-
 		sessions: make(map[string]*UserSession),
 
 		stateStore: make(map[string]*State),
@@ -251,13 +245,11 @@ func NewSessionManager(config *SessionConfig, jwtManager *JWTManager, rbacManage
 	go manager.cleanupLoop()
 
 	return manager
-
 }
 
 // RegisterProvider registers an OAuth2 provider.
 
 func (sm *SessionManager) RegisterProvider(provider providers.OAuthProvider) {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
@@ -271,13 +263,11 @@ func (sm *SessionManager) RegisterProvider(provider providers.OAuthProvider) {
 		"provider", name,
 
 		"features", provider.GetConfiguration().Features)
-
 }
 
 // InitiateLogin starts the OAuth2 login flow.
 
 func (sm *SessionManager) InitiateLogin(ctx context.Context, request *LoginRequest) (*LoginResponse, error) {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
@@ -287,9 +277,7 @@ func (sm *SessionManager) InitiateLogin(ctx context.Context, request *LoginReque
 	provider, exists := sm.providers[request.Provider]
 
 	if !exists {
-
 		return nil, fmt.Errorf("unknown provider: %s", request.Provider)
-
 	}
 
 	// Generate state.
@@ -297,9 +285,7 @@ func (sm *SessionManager) InitiateLogin(ctx context.Context, request *LoginReque
 	state := request.State
 
 	if state == "" {
-
 		state = sm.generateState()
-
 	}
 
 	// Build auth options.
@@ -307,41 +293,31 @@ func (sm *SessionManager) InitiateLogin(ctx context.Context, request *LoginReque
 	capacity := len(request.Options)
 
 	if sm.config.EnableCSRF {
-
 		capacity++
-
 	}
 
 	authOptions := make([]providers.AuthOption, 0, capacity)
 
 	if sm.config.EnableCSRF {
-
 		authOptions = append(authOptions, providers.WithPKCE())
-
 	}
 
 	// Add custom options.
 
 	for key, value := range request.Options {
-
 		authOptions = append(authOptions, providers.WithCustomParam(key, value))
-
 	}
 
 	// Get authorization URL.
 
 	authURL, challenge, err := provider.GetAuthorizationURL(state, request.RedirectURI, authOptions...)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to get authorization URL: %w", err)
-
 	}
 
 	// Store state.
 
 	authState := &State{
-
 		State: state,
 
 		Provider: request.Provider,
@@ -372,26 +348,21 @@ func (sm *SessionManager) InitiateLogin(ctx context.Context, request *LoginReque
 		"ip_address", request.IPAddress)
 
 	response := &LoginResponse{
-
 		AuthURL: authURL,
 
 		State: state,
 	}
 
 	if challenge != nil {
-
 		response.PKCEChallenge = challenge.CodeChallenge
-
 	}
 
 	return response, nil
-
 }
 
 // HandleCallback handles OAuth2 callback and creates session.
 
 func (sm *SessionManager) HandleCallback(ctx context.Context, request *CallbackRequest) (*CallbackResponse, error) {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
@@ -401,14 +372,11 @@ func (sm *SessionManager) HandleCallback(ctx context.Context, request *CallbackR
 	authState, exists := sm.stateStore[request.State]
 
 	if !exists {
-
 		return &CallbackResponse{
-
 			Success: false,
 
 			Error: "Invalid or expired state parameter",
 		}, nil
-
 	}
 
 	// Check state expiration.
@@ -418,7 +386,6 @@ func (sm *SessionManager) HandleCallback(ctx context.Context, request *CallbackR
 		delete(sm.stateStore, request.State)
 
 		return &CallbackResponse{
-
 			Success: false,
 
 			Error: "Authorization state has expired",
@@ -429,14 +396,11 @@ func (sm *SessionManager) HandleCallback(ctx context.Context, request *CallbackR
 	// Validate provider match.
 
 	if authState.Provider != request.Provider {
-
 		return &CallbackResponse{
-
 			Success: false,
 
 			Error: "Provider mismatch in callback",
 		}, nil
-
 	}
 
 	// Get provider.
@@ -444,20 +408,16 @@ func (sm *SessionManager) HandleCallback(ctx context.Context, request *CallbackR
 	provider, exists := sm.providers[request.Provider]
 
 	if !exists {
-
 		return &CallbackResponse{
-
 			Success: false,
 
 			Error: "Unknown provider",
 		}, nil
-
 	}
 
 	// Exchange code for token.
 
 	tokenResponse, err := provider.ExchangeCodeForToken(ctx, request.Code, request.RedirectURI, authState.PKCEChallenge)
-
 	if err != nil {
 
 		sm.logger.Error("Token exchange failed",
@@ -467,7 +427,6 @@ func (sm *SessionManager) HandleCallback(ctx context.Context, request *CallbackR
 			"error", err)
 
 		return &CallbackResponse{
-
 			Success: false,
 
 			Error: "Failed to exchange authorization code",
@@ -478,7 +437,6 @@ func (sm *SessionManager) HandleCallback(ctx context.Context, request *CallbackR
 	// Get user info.
 
 	userInfo, err := provider.GetUserInfo(ctx, tokenResponse.AccessToken)
-
 	if err != nil {
 
 		sm.logger.Error("Failed to get user info",
@@ -488,7 +446,6 @@ func (sm *SessionManager) HandleCallback(ctx context.Context, request *CallbackR
 			"error", err)
 
 		return &CallbackResponse{
-
 			Success: false,
 
 			Error: "Failed to retrieve user information",
@@ -499,7 +456,6 @@ func (sm *SessionManager) HandleCallback(ctx context.Context, request *CallbackR
 	// Create user session.
 
 	session, err := sm.createUserSession(ctx, userInfo, tokenResponse, request)
-
 	if err != nil {
 
 		sm.logger.Error("Failed to create user session",
@@ -511,7 +467,6 @@ func (sm *SessionManager) HandleCallback(ctx context.Context, request *CallbackR
 			"error", err)
 
 		return &CallbackResponse{
-
 			Success: false,
 
 			Error: "Failed to create user session",
@@ -534,7 +489,6 @@ func (sm *SessionManager) HandleCallback(ctx context.Context, request *CallbackR
 		"ip_address", request.IPAddress)
 
 	return &CallbackResponse{
-
 		Success: true,
 
 		SessionID: session.ID,
@@ -547,27 +501,21 @@ func (sm *SessionManager) HandleCallback(ctx context.Context, request *CallbackR
 
 		UserInfo: userInfo,
 	}, nil
-
 }
 
 // CreateSession creates a new user session.
 
 func (sm *SessionManager) createUserSession(ctx context.Context, userInfo *providers.UserInfo, tokenResponse *providers.TokenResponse, request *CallbackRequest) (*UserSession, error) {
-
 	// Assign roles based on provider claims.
 
 	if sm.rbacManager != nil {
-
 		if err := sm.rbacManager.AssignRolesFromClaims(ctx, userInfo); err != nil {
-
 			sm.logger.Warn("Failed to assign roles from claims",
 
 				"user_id", userInfo.Subject,
 
 				"error", err)
-
 		}
-
 	}
 
 	// Get user roles and permissions.
@@ -591,7 +539,6 @@ func (sm *SessionManager) createUserSession(ctx context.Context, userInfo *provi
 	// Create session.
 
 	session := &UserSession{
-
 		ID: sessionID,
 
 		UserID: userInfo.Subject,
@@ -634,9 +581,7 @@ func (sm *SessionManager) createUserSession(ctx context.Context, userInfo *provi
 	// Check session limits.
 
 	if err := sm.enforceSessionLimits(userInfo.Subject); err != nil {
-
 		return nil, fmt.Errorf("session limit exceeded: %w", err)
-
 	}
 
 	// Store session.
@@ -644,13 +589,11 @@ func (sm *SessionManager) createUserSession(ctx context.Context, userInfo *provi
 	sm.sessions[sessionID] = session
 
 	return session, nil
-
 }
 
 // GetSession retrieves a session by ID.
 
 func (sm *SessionManager) GetSession(ctx context.Context, sessionID string) (*UserSession, error) {
-
 	sm.mutex.RLock()
 
 	defer sm.mutex.RUnlock()
@@ -658,9 +601,7 @@ func (sm *SessionManager) GetSession(ctx context.Context, sessionID string) (*Us
 	session, exists := sm.sessions[sessionID]
 
 	if !exists {
-
 		return nil, fmt.Errorf("session not found")
-
 	}
 
 	// Check expiration.
@@ -686,13 +627,11 @@ func (sm *SessionManager) GetSession(ctx context.Context, sessionID string) (*Us
 	session.LastActivity = time.Now()
 
 	return session, nil
-
 }
 
 // RefreshSession refreshes session tokens if needed.
 
 func (sm *SessionManager) RefreshSession(ctx context.Context, sessionID string) error {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
@@ -700,17 +639,13 @@ func (sm *SessionManager) RefreshSession(ctx context.Context, sessionID string) 
 	session, exists := sm.sessions[sessionID]
 
 	if !exists {
-
 		return fmt.Errorf("session not found")
-
 	}
 
 	// Check if refresh is needed.
 
 	if time.Until(session.ExpiresAt) > sm.config.RefreshThreshold {
-
 		return nil // No refresh needed
-
 	}
 
 	// Get provider.
@@ -718,15 +653,12 @@ func (sm *SessionManager) RefreshSession(ctx context.Context, sessionID string) 
 	provider, exists := sm.providers[session.Provider]
 
 	if !exists {
-
 		return fmt.Errorf("provider not available for refresh")
-
 	}
 
 	// Refresh token.
 
 	tokenResponse, err := provider.RefreshToken(ctx, session.RefreshToken)
-
 	if err != nil {
 
 		sm.logger.Error("Token refresh failed",
@@ -748,15 +680,11 @@ func (sm *SessionManager) RefreshSession(ctx context.Context, sessionID string) 
 	session.AccessToken = tokenResponse.AccessToken
 
 	if tokenResponse.RefreshToken != "" {
-
 		session.RefreshToken = tokenResponse.RefreshToken
-
 	}
 
 	if tokenResponse.IDToken != "" {
-
 		session.IDToken = tokenResponse.IDToken
-
 	}
 
 	session.ExpiresAt = time.Now().Add(sm.config.SessionTimeout)
@@ -772,39 +700,29 @@ func (sm *SessionManager) RefreshSession(ctx context.Context, sessionID string) 
 		"provider", session.Provider)
 
 	return nil
-
 }
 
 // ValidateSession validates a session and returns user info.
 
 func (sm *SessionManager) ValidateSession(ctx context.Context, sessionID string) (*SessionInfo, error) {
-
 	session, err := sm.GetSession(ctx, sessionID)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	// Try to refresh if near expiration.
 
 	if time.Until(session.ExpiresAt) < sm.config.RefreshThreshold {
-
 		if refreshErr := sm.RefreshSession(ctx, sessionID); refreshErr != nil {
-
 			sm.logger.Warn("Session refresh failed during validation",
 
 				"session_id", sessionID,
 
 				"error", refreshErr)
-
 		}
-
 	}
 
 	return &SessionInfo{
-
 		ID: session.ID,
 
 		UserID: session.UserID,
@@ -827,13 +745,11 @@ func (sm *SessionManager) ValidateSession(ctx context.Context, sessionID string)
 
 		UserInfo: session.UserInfo,
 	}, nil
-
 }
 
 // RevokeSession revokes a user session.
 
 func (sm *SessionManager) RevokeSession(ctx context.Context, sessionID string) error {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
@@ -841,19 +757,14 @@ func (sm *SessionManager) RevokeSession(ctx context.Context, sessionID string) e
 	session, exists := sm.sessions[sessionID]
 
 	if !exists {
-
 		return fmt.Errorf("session not found")
-
 	}
 
 	// Revoke tokens with provider if supported.
 
 	if provider, exists := sm.providers[session.Provider]; exists {
-
 		if provider.SupportsFeature(providers.FeatureTokenRevocation) {
-
 			if err := provider.RevokeToken(ctx, session.AccessToken); err != nil {
-
 				sm.logger.Warn("Failed to revoke token with provider",
 
 					"session_id", sessionID,
@@ -861,19 +772,14 @@ func (sm *SessionManager) RevokeSession(ctx context.Context, sessionID string) e
 					"provider", session.Provider,
 
 					"error", err)
-
 			}
-
 		}
-
 	}
 
 	// Revoke JWT tokens.
 
 	if sm.jwtManager != nil {
-
 		if err := sm.jwtManager.RevokeUserTokens(ctx, session.UserID); err != nil {
-
 			sm.logger.Warn("Failed to revoke JWT tokens",
 
 				"session_id", sessionID,
@@ -881,9 +787,7 @@ func (sm *SessionManager) RevokeSession(ctx context.Context, sessionID string) e
 				"user_id", session.UserID,
 
 				"error", err)
-
 		}
-
 	}
 
 	// Remove session.
@@ -899,13 +803,11 @@ func (sm *SessionManager) RevokeSession(ctx context.Context, sessionID string) e
 		"provider", session.Provider)
 
 	return nil
-
 }
 
 // RevokeUserSessions revokes all sessions for a user.
 
 func (sm *SessionManager) RevokeUserSessions(ctx context.Context, userID string) error {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
@@ -913,13 +815,9 @@ func (sm *SessionManager) RevokeUserSessions(ctx context.Context, userID string)
 	var sessionIDs []string
 
 	for id, session := range sm.sessions {
-
 		if session.UserID == userID {
-
 			sessionIDs = append(sessionIDs, id)
-
 		}
-
 	}
 
 	for _, sessionID := range sessionIDs {
@@ -929,13 +827,9 @@ func (sm *SessionManager) RevokeUserSessions(ctx context.Context, userID string)
 		// Revoke tokens with provider.
 
 		if provider, exists := sm.providers[session.Provider]; exists {
-
 			if provider.SupportsFeature(providers.FeatureTokenRevocation) {
-
 				provider.RevokeToken(ctx, session.AccessToken)
-
 			}
-
 		}
 
 		delete(sm.sessions, sessionID)
@@ -945,9 +839,7 @@ func (sm *SessionManager) RevokeUserSessions(ctx context.Context, userID string)
 	// Revoke JWT tokens.
 
 	if sm.jwtManager != nil {
-
 		sm.jwtManager.RevokeUserTokens(ctx, userID)
-
 	}
 
 	sm.logger.Info("All user sessions revoked",
@@ -957,13 +849,11 @@ func (sm *SessionManager) RevokeUserSessions(ctx context.Context, userID string)
 		"session_count", len(sessionIDs))
 
 	return nil
-
 }
 
 // ListUserSessions returns all active sessions for a user.
 
 func (sm *SessionManager) ListUserSessions(ctx context.Context, userID string) ([]*SessionInfo, error) {
-
 	sm.mutex.RLock()
 
 	defer sm.mutex.RUnlock()
@@ -973,11 +863,8 @@ func (sm *SessionManager) ListUserSessions(ctx context.Context, userID string) (
 	now := time.Now()
 
 	for _, session := range sm.sessions {
-
 		if session.UserID == userID && now.Before(session.ExpiresAt) {
-
 			sessions = append(sessions, &SessionInfo{
-
 				ID: session.ID,
 
 				UserID: session.UserID,
@@ -998,19 +885,15 @@ func (sm *SessionManager) ListUserSessions(ctx context.Context, userID string) (
 
 				SSOEnabled: session.SSOEnabled,
 			})
-
 		}
-
 	}
 
 	return sessions, nil
-
 }
 
 // GetSessionMetrics returns session statistics.
 
 func (sm *SessionManager) GetSessionMetrics(ctx context.Context) map[string]interface{} {
-
 	sm.mutex.RLock()
 
 	defer sm.mutex.RUnlock()
@@ -1024,7 +907,6 @@ func (sm *SessionManager) GetSessionMetrics(ctx context.Context) map[string]inte
 	providerCounts := make(map[string]int)
 
 	for _, session := range sm.sessions {
-
 		if now.Before(session.ExpiresAt) {
 
 			activeSessions++
@@ -1032,90 +914,59 @@ func (sm *SessionManager) GetSessionMetrics(ctx context.Context) map[string]inte
 			providerCounts[session.Provider]++
 
 		} else {
-
 			expiredSessions++
-
 		}
-
 	}
 
 	return map[string]interface{}{
-
-		"active_sessions": activeSessions,
-
-		"expired_sessions": expiredSessions,
-
-		"total_sessions": len(sm.sessions),
-
-		"provider_counts": providerCounts,
-
-		"active_states": len(sm.stateStore),
-
-		"registered_providers": len(sm.providers),
-
-		"sso_enabled": sm.config.EnableSSO,
-
-		"session_timeout": sm.config.SessionTimeout,
+		"active_sessions":   activeSessions,
+		"expired_sessions":  expiredSessions,
+		"provider_counts":   providerCounts,
+		"total_sessions":    len(sm.sessions),
 	}
-
 }
 
 // Helper methods.
 
 func (sm *SessionManager) generateSessionID() string {
-
 	bytes := make([]byte, 32)
 
 	if _, err := rand.Read(bytes); err != nil {
-
 		// Fallback to time-based ID if random generation fails.
 
 		return fmt.Sprintf("%x", time.Now().UnixNano())
-
 	}
 
 	return hex.EncodeToString(bytes)
-
 }
 
 func (sm *SessionManager) generateState() string {
-
 	bytes := make([]byte, 16)
 
 	if _, err := rand.Read(bytes); err != nil {
-
 		// Fallback to time-based state if random generation fails.
 
 		return fmt.Sprintf("%x", time.Now().UnixNano())
-
 	}
 
 	return hex.EncodeToString(bytes)
-
 }
 
 func (sm *SessionManager) generateCSRFToken() string {
-
 	bytes := make([]byte, 16)
 
 	if _, err := rand.Read(bytes); err != nil {
-
 		// Fallback to time-based token if random generation fails.
 
 		return fmt.Sprintf("%x", time.Now().UnixNano())
-
 	}
 
 	return hex.EncodeToString(bytes)
-
 }
 
 func (sm *SessionManager) enforceSessionLimits(userID string) error {
-
 	if sm.config.MaxSessions <= 0 {
-
 		return nil
-
 	}
 
 	userSessionCount := 0
@@ -1123,27 +974,19 @@ func (sm *SessionManager) enforceSessionLimits(userID string) error {
 	now := time.Now()
 
 	for _, session := range sm.sessions {
-
 		if session.UserID == userID && now.Before(session.ExpiresAt) {
-
 			userSessionCount++
-
 		}
-
 	}
 
 	if userSessionCount >= sm.config.MaxSessions {
-
 		return fmt.Errorf("maximum sessions (%d) exceeded for user", sm.config.MaxSessions)
-
 	}
 
 	return nil
-
 }
 
 func (sm *SessionManager) cleanupLoop() {
-
 	ticker := time.NewTicker(sm.config.CleanupInterval)
 
 	defer ticker.Stop()
@@ -1155,11 +998,9 @@ func (sm *SessionManager) cleanupLoop() {
 		sm.cleanupExpiredStates()
 
 	}
-
 }
 
 func (sm *SessionManager) cleanupExpiredSessions() {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
@@ -1169,7 +1010,6 @@ func (sm *SessionManager) cleanupExpiredSessions() {
 	expiredCount := 0
 
 	for sessionID, session := range sm.sessions {
-
 		if now.After(session.ExpiresAt) {
 
 			delete(sm.sessions, sessionID)
@@ -1177,19 +1017,14 @@ func (sm *SessionManager) cleanupExpiredSessions() {
 			expiredCount++
 
 		}
-
 	}
 
 	if expiredCount > 0 {
-
 		sm.logger.Info("Cleaned up expired sessions", "count", expiredCount)
-
 	}
-
 }
 
 func (sm *SessionManager) cleanupExpiredStates() {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
@@ -1199,7 +1034,6 @@ func (sm *SessionManager) cleanupExpiredStates() {
 	expiredCount := 0
 
 	for state, authState := range sm.stateStore {
-
 		if now.After(authState.ExpiresAt) {
 
 			delete(sm.stateStore, state)
@@ -1207,23 +1041,17 @@ func (sm *SessionManager) cleanupExpiredStates() {
 			expiredCount++
 
 		}
-
 	}
 
 	if expiredCount > 0 {
-
 		sm.logger.Info("Cleaned up expired auth states", "count", expiredCount)
-
 	}
-
 }
 
 // SetSessionCookie sets session cookie on HTTP response.
 
 func (sm *SessionManager) SetSessionCookie(w http.ResponseWriter, sessionID string) {
-
 	cookie := &http.Cookie{
-
 		Name: "nephoran_session",
 
 		Value: sessionID,
@@ -1256,15 +1084,12 @@ func (sm *SessionManager) SetSessionCookie(w http.ResponseWriter, sessionID stri
 	}
 
 	http.SetCookie(w, cookie)
-
 }
 
 // ClearSessionCookie clears session cookie.
 
 func (sm *SessionManager) ClearSessionCookie(w http.ResponseWriter) {
-
 	cookie := &http.Cookie{
-
 		Name: "nephoran_session",
 
 		Value: "",
@@ -1281,7 +1106,6 @@ func (sm *SessionManager) ClearSessionCookie(w http.ResponseWriter) {
 	}
 
 	http.SetCookie(w, cookie)
-
 }
 
 // SessionData represents data used to create a new session.
@@ -1307,19 +1131,16 @@ type SessionData struct {
 // CreateSession creates a new user session from session data.
 
 func (sm *SessionManager) CreateSession(ctx context.Context, data *SessionData) (*UserSession, error) {
-
 	sessionID := sm.generateSessionID()
 
 	now := time.Now()
 
 	session := &UserSession{
-
 		ID: sessionID,
 
 		UserID: data.UserID,
 
 		UserInfo: &providers.UserInfo{
-
 			Username: data.Username,
 
 			Email: data.Email,
@@ -1349,25 +1170,21 @@ func (sm *SessionManager) CreateSession(ctx context.Context, data *SessionData) 
 	sm.mutex.Unlock()
 
 	return session, nil
-
 }
 
 // InvalidateSession invalidates a session by session ID.
 
 func (sm *SessionManager) InvalidateSession(ctx context.Context, sessionID string) error {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
 
 	if _, exists := sm.sessions[sessionID]; !exists {
-
 		return fmt.Errorf("session not found: %s", sessionID)
-
 	}
 
 	delete(sm.sessions, sessionID)
 
 	return nil
-
 }
+

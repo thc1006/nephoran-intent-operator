@@ -68,13 +68,11 @@ type BatchConfig struct {
 	EnablePriority bool // Whether to prioritize updates
 
 	MaxQueueSize int // Maximum queue size before dropping updates
-
 }
 
 // DefaultBatchConfig provides sensible defaults.
 
 var DefaultBatchConfig = BatchConfig{
-
 	MaxBatchSize: 10,
 
 	BatchTimeout: 2 * time.Second,
@@ -127,11 +125,9 @@ type StatusBatcher struct {
 // NewStatusBatcher creates a new status batcher.
 
 func NewStatusBatcher(client client.Client, config BatchConfig) *StatusBatcher {
-
 	ctx, cancel := context.WithCancel(context.Background())
 
 	batcher := &StatusBatcher{
-
 		client: client,
 
 		config: config,
@@ -152,13 +148,11 @@ func NewStatusBatcher(client client.Client, config BatchConfig) *StatusBatcher {
 	go batcher.processUpdates()
 
 	return batcher
-
 }
 
 // QueueUpdate queues a status update for batching.
 
 func (sb *StatusBatcher) QueueUpdate(namespacedName types.NamespacedName, updateFunc func(obj client.Object) error, priority UpdatePriority) error {
-
 	sb.mu.Lock()
 
 	defer sb.mu.Unlock()
@@ -174,7 +168,6 @@ func (sb *StatusBatcher) QueueUpdate(namespacedName types.NamespacedName, update
 	}
 
 	update := &StatusUpdate{
-
 		NamespacedName: namespacedName,
 
 		UpdateFunc: updateFunc,
@@ -193,9 +186,7 @@ func (sb *StatusBatcher) QueueUpdate(namespacedName types.NamespacedName, update
 		// Update priority to higher value if needed.
 
 		if priority > existing.Priority {
-
 			existing.Priority = priority
-
 		}
 
 		existing.UpdateFunc = updateFunc
@@ -213,73 +204,52 @@ func (sb *StatusBatcher) QueueUpdate(namespacedName types.NamespacedName, update
 	// Trigger immediate flush for critical updates.
 
 	if priority == CriticalPriority {
-
 		sb.triggerFlush()
-
 	} else if len(sb.queue) >= sb.config.MaxBatchSize {
-
 		sb.triggerFlush()
-
 	} else if sb.flushTimer == nil {
-
 		sb.flushTimer = time.AfterFunc(sb.config.BatchTimeout, sb.triggerFlush)
-
 	}
 
 	return nil
-
 }
 
 // QueueNetworkIntentUpdate queues a NetworkIntent status update.
 
 func (sb *StatusBatcher) QueueNetworkIntentUpdate(namespacedName types.NamespacedName, conditionUpdates []metav1.Condition, phase string, priority UpdatePriority) error {
-
 	updateFunc := func(obj client.Object) error {
-
 		networkIntent, ok := obj.(*nephoranv1.NetworkIntent)
 
 		if !ok {
-
 			return fmt.Errorf("object is not a NetworkIntent")
-
 		}
 
 		// Apply condition updates.
 
 		for _, condition := range conditionUpdates {
-
 			updateCondition(&networkIntent.Status.Conditions, condition)
-
 		}
 
 		// Update phase if provided.
 
 		if phase != "" {
-
 			networkIntent.Status.Phase = nephoranv1.NetworkIntentPhase(phase)
-
 		}
 
 		return nil
-
 	}
 
 	return sb.QueueUpdate(namespacedName, updateFunc, priority)
-
 }
 
 // QueueE2NodeSetUpdate queues an E2NodeSet status update.
 
 func (sb *StatusBatcher) QueueE2NodeSetUpdate(namespacedName types.NamespacedName, readyReplicas, totalReplicas int32, conditions []metav1.Condition, priority UpdatePriority) error {
-
 	updateFunc := func(obj client.Object) error {
-
 		e2nodeSet, ok := obj.(*nephoranv1.E2NodeSet)
 
 		if !ok {
-
 			return fmt.Errorf("object is not an E2NodeSet")
-
 		}
 
 		// Update replica status.
@@ -291,23 +261,18 @@ func (sb *StatusBatcher) QueueE2NodeSetUpdate(namespacedName types.NamespacedNam
 		// Apply condition updates.
 
 		for _, condition := range conditions {
-
 			updateE2NodeSetCondition(&e2nodeSet.Status.Conditions, condition)
-
 		}
 
 		return nil
-
 	}
 
 	return sb.QueueUpdate(namespacedName, updateFunc, priority)
-
 }
 
 // Flush immediately processes all queued updates.
 
 func (sb *StatusBatcher) Flush() error {
-
 	sb.mu.Lock()
 
 	if sb.flushTimer != nil {
@@ -321,13 +286,11 @@ func (sb *StatusBatcher) Flush() error {
 	sb.mu.Unlock()
 
 	return sb.processBatch()
-
 }
 
 // Stop gracefully shuts down the status batcher.
 
 func (sb *StatusBatcher) Stop() error {
-
 	// Cancel background processing.
 
 	sb.cancel()
@@ -335,9 +298,7 @@ func (sb *StatusBatcher) Stop() error {
 	// Process any remaining updates.
 
 	if err := sb.Flush(); err != nil {
-
 		log.Log.Error(err, "Failed to flush final batch during shutdown")
-
 	}
 
 	// Wait for background goroutine to finish.
@@ -345,19 +306,16 @@ func (sb *StatusBatcher) Stop() error {
 	sb.wg.Wait()
 
 	return nil
-
 }
 
 // GetStats returns statistics about the batcher.
 
 func (sb *StatusBatcher) GetStats() StatusBatcherStats {
-
 	sb.mu.RLock()
 
 	defer sb.mu.RUnlock()
 
 	return StatusBatcherStats{
-
 		QueueSize: len(sb.queue),
 
 		BatchesProcessed: sb.batchesProcessed,
@@ -370,7 +328,6 @@ func (sb *StatusBatcher) GetStats() StatusBatcherStats {
 
 		AverageBatchSize: sb.averageBatchSize,
 	}
-
 }
 
 // StatusBatcherStats contains statistics about the batcher.
@@ -392,7 +349,6 @@ type StatusBatcherStats struct {
 // processUpdates runs in a background goroutine to periodically flush updates.
 
 func (sb *StatusBatcher) processUpdates() {
-
 	defer sb.wg.Done()
 
 	ticker := time.NewTicker(sb.config.FlushInterval)
@@ -400,7 +356,6 @@ func (sb *StatusBatcher) processUpdates() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-sb.ctx.Done():
@@ -410,37 +365,26 @@ func (sb *StatusBatcher) processUpdates() {
 		case <-ticker.C:
 
 			if err := sb.processBatch(); err != nil {
-
 				log.Log.Error(err, "Failed to process batch during periodic flush")
-
 			}
 
 		}
-
 	}
-
 }
 
 // triggerFlush triggers an immediate flush.
 
 func (sb *StatusBatcher) triggerFlush() {
-
 	go func() {
-
 		if err := sb.processBatch(); err != nil {
-
 			log.Log.Error(err, "Failed to process batch during triggered flush")
-
 		}
-
 	}()
-
 }
 
 // processBatch processes a batch of status updates.
 
 func (sb *StatusBatcher) processBatch() error {
-
 	sb.mu.Lock()
 
 	if len(sb.queue) == 0 {
@@ -456,9 +400,7 @@ func (sb *StatusBatcher) processBatch() error {
 	batchSize := len(sb.queue)
 
 	if batchSize > sb.config.MaxBatchSize {
-
 		batchSize = sb.config.MaxBatchSize
-
 	}
 
 	batch := make([]*StatusUpdate, batchSize)
@@ -468,9 +410,7 @@ func (sb *StatusBatcher) processBatch() error {
 	// Sort by priority if enabled.
 
 	if sb.config.EnablePriority {
-
 		sb.sortByPriority(batch)
-
 	}
 
 	// Clear processed items from queue and map.
@@ -482,9 +422,7 @@ func (sb *StatusBatcher) processBatch() error {
 	sb.queue = append(sb.queue, remaining...)
 
 	for _, update := range batch {
-
 		delete(sb.updates, update.NamespacedName)
-
 	}
 
 	// Reset flush timer.
@@ -504,7 +442,6 @@ func (sb *StatusBatcher) processBatch() error {
 	successCount := 0
 
 	for _, update := range batch {
-
 		if err := sb.processUpdate(update); err != nil {
 
 			log.Log.Error(err, "Failed to process status update", "resource", update.NamespacedName)
@@ -518,25 +455,18 @@ func (sb *StatusBatcher) processBatch() error {
 				// Requeue with delay.
 
 				go func(u *StatusUpdate) {
-
 					time.Sleep(time.Duration(u.RetryCount) * sb.config.RetryDelay)
 
 					sb.QueueUpdate(u.NamespacedName, u.UpdateFunc, u.Priority)
-
 				}(update)
 
 			} else {
-
 				sb.updatesFailed++
-
 			}
 
 		} else {
-
 			successCount++
-
 		}
-
 	}
 
 	// Update metrics.
@@ -548,9 +478,7 @@ func (sb *StatusBatcher) processBatch() error {
 	// Update average batch size (exponential moving average).
 
 	if sb.averageBatchSize == 0 {
-
 		sb.averageBatchSize = float64(batchSize)
-
 	} else {
 
 		alpha := 0.1 // Smoothing factor
@@ -560,13 +488,11 @@ func (sb *StatusBatcher) processBatch() error {
 	}
 
 	return nil
-
 }
 
 // processUpdate processes a single status update.
 
 func (sb *StatusBatcher) processUpdate(update *StatusUpdate) error {
-
 	// Determine object type based on the resource.
 
 	var obj client.Object
@@ -588,65 +514,48 @@ func (sb *StatusBatcher) processUpdate(update *StatusUpdate) error {
 			obj = &nephoranv1.E2NodeSet{}
 
 			if err := sb.client.Get(sb.ctx, update.NamespacedName, obj); err != nil {
-
 				return fmt.Errorf("failed to get object %s: %w", update.NamespacedName, err)
-
 			}
 
 		}
 
 	} else {
-
 		return fmt.Errorf("invalid namespaced name: %s", update.NamespacedName)
-
 	}
 
 	// Apply the update function.
 
 	if err := update.UpdateFunc(obj); err != nil {
-
 		return fmt.Errorf("failed to apply update function: %w", err)
-
 	}
 
 	// Update the object status.
 
 	if err := sb.client.Status().Update(sb.ctx, obj); err != nil {
-
 		return fmt.Errorf("failed to update object status: %w", err)
-
 	}
 
 	return nil
-
 }
 
 // sortByPriority sorts updates by priority (highest first).
 
 func (sb *StatusBatcher) sortByPriority(updates []*StatusUpdate) {
-
 	sort.Slice(updates, func(i, j int) bool {
-
 		return updates[i].Priority > updates[j].Priority
-
 	})
-
 }
 
 // updateCondition updates a condition in a condition slice.
 
 func updateCondition(conditions *[]metav1.Condition, newCondition metav1.Condition) {
-
 	if conditions == nil {
-
 		*conditions = make([]metav1.Condition, 0, 1) // Preallocate for typical single condition
-
 	}
 
 	// Find existing condition.
 
 	for i, condition := range *conditions {
-
 		if condition.Type == newCondition.Type {
 
 			// Update existing condition.
@@ -656,13 +565,11 @@ func updateCondition(conditions *[]metav1.Condition, newCondition metav1.Conditi
 			return
 
 		}
-
 	}
 
 	// Add new condition.
 
 	*conditions = append(*conditions, newCondition)
-
 }
 
 // updateE2NodeSetCondition updates a condition in an E2NodeSet condition slice.
@@ -670,17 +577,13 @@ func updateCondition(conditions *[]metav1.Condition, newCondition metav1.Conditi
 // This converts metav1.Condition to E2NodeSetCondition.
 
 func updateE2NodeSetCondition(conditions *[]nephoranv1.E2NodeSetCondition, newCondition metav1.Condition) {
-
 	if conditions == nil {
-
 		*conditions = make([]nephoranv1.E2NodeSetCondition, 0, 1) // Preallocate for typical single condition
-
 	}
 
 	// Convert metav1.Condition to E2NodeSetCondition.
 
 	e2Condition := nephoranv1.E2NodeSetCondition{
-
 		Type: nephoranv1.E2NodeSetConditionType(newCondition.Type),
 
 		Status: newCondition.Status,
@@ -695,7 +598,6 @@ func updateE2NodeSetCondition(conditions *[]nephoranv1.E2NodeSetCondition, newCo
 	// Find existing condition.
 
 	for i, condition := range *conditions {
-
 		if condition.Type == e2Condition.Type {
 
 			// Update existing condition.
@@ -705,11 +607,9 @@ func updateE2NodeSetCondition(conditions *[]nephoranv1.E2NodeSetCondition, newCo
 			return
 
 		}
-
 	}
 
 	// Add new condition.
 
 	*conditions = append(*conditions, e2Condition)
-
 }

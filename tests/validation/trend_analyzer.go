@@ -3,7 +3,9 @@
 package test_validation
 
 import (
-	"fmt"
+	
+	"encoding/json"
+"fmt"
 	"math"
 	"sort"
 	"strings"
@@ -21,18 +23,14 @@ type TrendAnalyzer struct {
 // NewTrendAnalyzer creates a new trend analyzer.
 
 func NewTrendAnalyzer(config *RegressionConfig) *TrendAnalyzer {
-
 	return &TrendAnalyzer{
-
 		config: config,
 	}
-
 }
 
 // TrendAnalysis contains comprehensive trend analysis results.
 
 type TrendAnalysis struct {
-
 	// Overall trends.
 
 	OverallTrend *OverallTrendAnalysis `json:"overall_trend"`
@@ -82,7 +80,6 @@ type OverallTrendAnalysis struct {
 	TimeToTarget *time.Duration `json:"time_to_target,omitempty"`
 
 	RiskLevel string `json:"risk_level"` // "low", "medium", "high", "critical"
-
 }
 
 // PerformanceTrend tracks performance metric trends.
@@ -172,7 +169,7 @@ type TrendDataPoint struct {
 
 	Value float64 `json:"value"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // SeasonalPattern identifies recurring patterns.
@@ -225,7 +222,6 @@ type TrendPrediction struct {
 	Accuracy float64 `json:"accuracy"`
 
 	Model string `json:"model"` // "linear", "exponential", "polynomial"
-
 }
 
 // ThresholdBreach tracks when metrics exceeded thresholds.
@@ -253,11 +249,9 @@ type TimeRange struct {
 // AnalyzeTrends compares current results with baseline and generates trend analysis.
 
 func (ta *TrendAnalyzer) AnalyzeTrends(baseline *BaselineSnapshot, current *ValidationResults) *TrendAnalysis {
-
 	ginkgo.By("Performing trend analysis")
 
 	analysis := &TrendAnalysis{
-
 		PerformanceTrends: make(map[string]*PerformanceTrend),
 
 		FunctionalTrends: make(map[string]*FunctionalTrend),
@@ -275,7 +269,6 @@ func (ta *TrendAnalyzer) AnalyzeTrends(baseline *BaselineSnapshot, current *Vali
 		ConfidenceLevel: ta.config.StatisticalConfidence,
 
 		TimeRange: TimeRange{
-
 			Start: baseline.Timestamp,
 
 			End: time.Now(),
@@ -305,13 +298,11 @@ func (ta *TrendAnalyzer) AnalyzeTrends(baseline *BaselineSnapshot, current *Vali
 	ginkgo.By("Trend analysis completed")
 
 	return analysis
-
 }
 
 // GenerateTrends creates comprehensive trend analysis from multiple baselines.
 
 func (ta *TrendAnalyzer) GenerateTrends(baselines []*BaselineSnapshot) *TrendAnalysis {
-
 	ginkgo.By(fmt.Sprintf("Generating comprehensive trends from %d baselines", len(baselines)))
 
 	if len(baselines) < ta.config.MinimumSamples {
@@ -325,13 +316,10 @@ func (ta *TrendAnalyzer) GenerateTrends(baselines []*BaselineSnapshot) *TrendAna
 	// Sort baselines by timestamp.
 
 	sort.Slice(baselines, func(i, j int) bool {
-
 		return baselines[i].Timestamp.Before(baselines[j].Timestamp)
-
 	})
 
 	analysis := &TrendAnalysis{
-
 		PerformanceTrends: make(map[string]*PerformanceTrend),
 
 		FunctionalTrends: make(map[string]*FunctionalTrend),
@@ -349,7 +337,6 @@ func (ta *TrendAnalyzer) GenerateTrends(baselines []*BaselineSnapshot) *TrendAna
 		ConfidenceLevel: ta.config.StatisticalConfidence,
 
 		TimeRange: TimeRange{
-
 			Start: baselines[0].Timestamp,
 
 			End: baselines[len(baselines)-1].Timestamp,
@@ -377,13 +364,11 @@ func (ta *TrendAnalyzer) GenerateTrends(baselines []*BaselineSnapshot) *TrendAna
 	ginkgo.By("Comprehensive trend analysis completed")
 
 	return analysis
-
 }
 
 // analyzeOverallTrend determines the overall quality trajectory.
 
 func (ta *TrendAnalyzer) analyzeOverallTrend(baseline *BaselineSnapshot, current *ValidationResults) *OverallTrendAnalysis {
-
 	scoreDiff := current.TotalScore - baseline.Results.TotalScore
 
 	direction := "stable"
@@ -407,15 +392,12 @@ func (ta *TrendAnalyzer) analyzeOverallTrend(baseline *BaselineSnapshot, current
 		riskLevel = "medium"
 
 		if scoreDiff < -5 {
-
 			riskLevel = "high"
-
 		}
 
 	}
 
 	return &OverallTrendAnalysis{
-
 		Direction: direction,
 
 		Confidence: 85.0, // With only 2 samples, confidence is limited
@@ -428,13 +410,11 @@ func (ta *TrendAnalyzer) analyzeOverallTrend(baseline *BaselineSnapshot, current
 
 		RiskLevel: riskLevel,
 	}
-
 }
 
 // analyzePerformanceTrends analyzes performance metric trends.
 
 func (ta *TrendAnalyzer) analyzePerformanceTrends(baseline *BaselineSnapshot, current *ValidationResults) map[string]*PerformanceTrend {
-
 	trends := make(map[string]*PerformanceTrend)
 
 	// P95 Latency trend.
@@ -448,14 +428,12 @@ func (ta *TrendAnalyzer) analyzePerformanceTrends(baseline *BaselineSnapshot, cu
 		direction := ta.determineDirection(baselineNs, currentNs, true) // Higher is worse for latency
 
 		slope := ta.calculateSlope([]TrendDataPoint{
-
 			{Timestamp: baseline.Timestamp, Value: baselineNs},
 
 			{Timestamp: time.Now(), Value: currentNs},
 		})
 
 		trends["p95_latency"] = &PerformanceTrend{
-
 			MetricName: "P95 Latency",
 
 			Direction: direction,
@@ -467,7 +445,6 @@ func (ta *TrendAnalyzer) analyzePerformanceTrends(baseline *BaselineSnapshot, cu
 			Volatility: math.Abs(currentNs-baselineNs) / baselineNs,
 
 			HistoricalValues: []TrendDataPoint{
-
 				{Timestamp: baseline.Timestamp, Value: baselineNs},
 
 				{Timestamp: time.Now(), Value: currentNs},
@@ -485,14 +462,12 @@ func (ta *TrendAnalyzer) analyzePerformanceTrends(baseline *BaselineSnapshot, cu
 		direction := ta.determineDirection(baseline.Results.ThroughputAchieved, current.ThroughputAchieved, false) // Higher is better
 
 		slope := ta.calculateSlope([]TrendDataPoint{
-
 			{Timestamp: baseline.Timestamp, Value: baseline.Results.ThroughputAchieved},
 
 			{Timestamp: time.Now(), Value: current.ThroughputAchieved},
 		})
 
 		trends["throughput"] = &PerformanceTrend{
-
 			MetricName: "Throughput",
 
 			Direction: direction,
@@ -504,7 +479,6 @@ func (ta *TrendAnalyzer) analyzePerformanceTrends(baseline *BaselineSnapshot, cu
 			Volatility: math.Abs(current.ThroughputAchieved-baseline.Results.ThroughputAchieved) / baseline.Results.ThroughputAchieved,
 
 			HistoricalValues: []TrendDataPoint{
-
 				{Timestamp: baseline.Timestamp, Value: baseline.Results.ThroughputAchieved},
 
 				{Timestamp: time.Now(), Value: current.ThroughputAchieved},
@@ -522,14 +496,12 @@ func (ta *TrendAnalyzer) analyzePerformanceTrends(baseline *BaselineSnapshot, cu
 		direction := ta.determineDirection(baseline.Results.AvailabilityAchieved, current.AvailabilityAchieved, false) // Higher is better
 
 		slope := ta.calculateSlope([]TrendDataPoint{
-
 			{Timestamp: baseline.Timestamp, Value: baseline.Results.AvailabilityAchieved},
 
 			{Timestamp: time.Now(), Value: current.AvailabilityAchieved},
 		})
 
 		trends["availability"] = &PerformanceTrend{
-
 			MetricName: "Availability",
 
 			Direction: direction,
@@ -541,7 +513,6 @@ func (ta *TrendAnalyzer) analyzePerformanceTrends(baseline *BaselineSnapshot, cu
 			Volatility: math.Abs(current.AvailabilityAchieved-baseline.Results.AvailabilityAchieved) / baseline.Results.AvailabilityAchieved,
 
 			HistoricalValues: []TrendDataPoint{
-
 				{Timestamp: baseline.Timestamp, Value: baseline.Results.AvailabilityAchieved},
 
 				{Timestamp: time.Now(), Value: current.AvailabilityAchieved},
@@ -553,13 +524,11 @@ func (ta *TrendAnalyzer) analyzePerformanceTrends(baseline *BaselineSnapshot, cu
 	}
 
 	return trends
-
 }
 
 // analyzeFunctionalTrends analyzes functional test trends.
 
 func (ta *TrendAnalyzer) analyzeFunctionalTrends(baseline *BaselineSnapshot, current *ValidationResults) map[string]*FunctionalTrend {
-
 	trends := make(map[string]*FunctionalTrend)
 
 	// Overall functional trend.
@@ -569,7 +538,6 @@ func (ta *TrendAnalyzer) analyzeFunctionalTrends(baseline *BaselineSnapshot, cur
 	currentPassRate := float64(current.FunctionalScore) / 50.0 * 100
 
 	trends["overall"] = &FunctionalTrend{
-
 		Category: "Overall Functional",
 
 		PassRateTrend: ta.determineDirection(baselinePassRate, currentPassRate, false),
@@ -583,7 +551,6 @@ func (ta *TrendAnalyzer) analyzeFunctionalTrends(baseline *BaselineSnapshot, cur
 		NewTestImpact: 0.0, // Would need test diff to calculate
 
 		HistoricalPassRate: []TrendDataPoint{
-
 			{Timestamp: baseline.Timestamp, Value: baselinePassRate},
 
 			{Timestamp: time.Now(), Value: currentPassRate},
@@ -593,13 +560,11 @@ func (ta *TrendAnalyzer) analyzeFunctionalTrends(baseline *BaselineSnapshot, cur
 	}
 
 	return trends
-
 }
 
 // analyzeSecurityTrends analyzes security posture trends.
 
 func (ta *TrendAnalyzer) analyzeSecurityTrends(baseline *BaselineSnapshot, current *ValidationResults) *SecurityTrend {
-
 	baselineVulns := len(baseline.Results.SecurityFindings)
 
 	currentVulns := len(current.SecurityFindings)
@@ -613,20 +578,17 @@ func (ta *TrendAnalyzer) analyzeSecurityTrends(baseline *BaselineSnapshot, curre
 	complianceTrend := ta.determineDirection(baselineScore, currentScore, false) // Higher is better
 
 	return &SecurityTrend{
-
 		VulnerabilityTrend: vulnTrend,
 
 		ComplianceTrend: complianceTrend,
 
 		CriticalVulnHistory: []TrendDataPoint{
-
 			{Timestamp: baseline.Timestamp, Value: float64(ta.countCriticalVulns(baseline.Results.SecurityFindings))},
 
 			{Timestamp: time.Now(), Value: float64(ta.countCriticalVulns(current.SecurityFindings))},
 		},
 
 		ComplianceScoreHistory: []TrendDataPoint{
-
 			{Timestamp: baseline.Timestamp, Value: baselineScore},
 
 			{Timestamp: time.Now(), Value: currentScore},
@@ -638,13 +600,11 @@ func (ta *TrendAnalyzer) analyzeSecurityTrends(baseline *BaselineSnapshot, curre
 
 		SecurityPostureTrend: complianceTrend,
 	}
-
 }
 
 // analyzeProductionTrends analyzes production readiness trends.
 
 func (ta *TrendAnalyzer) analyzeProductionTrends(baseline *BaselineSnapshot, current *ValidationResults) *ProductionTrend {
-
 	baselineScore := float64(baseline.Results.ProductionScore)
 
 	currentScore := float64(current.ProductionScore)
@@ -654,7 +614,6 @@ func (ta *TrendAnalyzer) analyzeProductionTrends(baseline *BaselineSnapshot, cur
 	availabilityTrend := ta.determineDirection(baseline.Results.AvailabilityAchieved, current.AvailabilityAchieved, false)
 
 	return &ProductionTrend{
-
 		ReadinessTrend: readinessTrend,
 
 		AvailabilityTrend: availabilityTrend,
@@ -662,14 +621,12 @@ func (ta *TrendAnalyzer) analyzeProductionTrends(baseline *BaselineSnapshot, cur
 		ReliabilityTrend: "stable", // Would need more data
 
 		MTBFTrend: []TrendDataPoint{
-
 			{Timestamp: baseline.Timestamp, Value: float64(24 * time.Hour)}, // Default assumption
 
 			{Timestamp: time.Now(), Value: float64(24 * time.Hour)},
 		},
 
 		MTTRTrend: []TrendDataPoint{
-
 			{Timestamp: baseline.Timestamp, Value: float64(5 * time.Minute)}, // Default assumption
 
 			{Timestamp: time.Now(), Value: float64(5 * time.Minute)},
@@ -680,7 +637,6 @@ func (ta *TrendAnalyzer) analyzeProductionTrends(baseline *BaselineSnapshot, cur
 		RecoveryEfficiency: 95.0, // Default assumption
 
 	}
-
 }
 
 // Helper methods for more comprehensive trend analysis with multiple baselines.
@@ -688,13 +644,10 @@ func (ta *TrendAnalyzer) analyzeProductionTrends(baseline *BaselineSnapshot, cur
 // generateOverallTrends creates overall trend analysis from multiple baselines.
 
 func (ta *TrendAnalyzer) generateOverallTrends(baselines []*BaselineSnapshot) *OverallTrendAnalysis {
-
 	scores := make([]float64, len(baselines))
 
 	for i, baseline := range baselines {
-
 		scores[i] = float64(baseline.Results.TotalScore)
-
 	}
 
 	slope := ta.calculateLinearTrendSlope(baselines, scores)
@@ -732,21 +685,16 @@ func (ta *TrendAnalyzer) generateOverallTrends(baselines []*BaselineSnapshot) *O
 			strength = "strong"
 
 			if slope < 0 {
-
 				riskLevel = "high"
-
 			}
 
 		} else if math.Abs(slope) > 0.25 {
-
 			strength = "moderate"
-
 		}
 
 	}
 
 	return &OverallTrendAnalysis{
-
 		Direction: direction,
 
 		Confidence: math.Abs(correlation) * 100,
@@ -759,13 +707,11 @@ func (ta *TrendAnalyzer) generateOverallTrends(baselines []*BaselineSnapshot) *O
 
 		RiskLevel: riskLevel,
 	}
-
 }
 
 // generatePerformanceTrends creates performance trends from multiple baselines.
 
 func (ta *TrendAnalyzer) generatePerformanceTrends(baselines []*BaselineSnapshot) map[string]*PerformanceTrend {
-
 	trends := make(map[string]*PerformanceTrend)
 
 	// Extract P95 latency values.
@@ -773,9 +719,7 @@ func (ta *TrendAnalyzer) generatePerformanceTrends(baselines []*BaselineSnapshot
 	p95Values := ta.extractP95LatencyValues(baselines)
 
 	if len(p95Values) >= ta.config.MinimumSamples {
-
 		trends["p95_latency"] = ta.createPerformanceTrend("P95 Latency", baselines, p95Values, true)
-
 	}
 
 	// Extract throughput values.
@@ -783,9 +727,7 @@ func (ta *TrendAnalyzer) generatePerformanceTrends(baselines []*BaselineSnapshot
 	throughputValues := ta.extractThroughputValues(baselines)
 
 	if len(throughputValues) >= ta.config.MinimumSamples {
-
 		trends["throughput"] = ta.createPerformanceTrend("Throughput", baselines, throughputValues, false)
-
 	}
 
 	// Extract availability values.
@@ -793,31 +735,24 @@ func (ta *TrendAnalyzer) generatePerformanceTrends(baselines []*BaselineSnapshot
 	availabilityValues := ta.extractAvailabilityValues(baselines)
 
 	if len(availabilityValues) >= ta.config.MinimumSamples {
-
 		trends["availability"] = ta.createPerformanceTrend("Availability", baselines, availabilityValues, false)
-
 	}
 
 	return trends
-
 }
 
 // generateFunctionalTrends creates functional trends from multiple baselines.
 
 func (ta *TrendAnalyzer) generateFunctionalTrends(baselines []*BaselineSnapshot) map[string]*FunctionalTrend {
-
 	trends := make(map[string]*FunctionalTrend)
 
 	functionalScores := make([]float64, len(baselines))
 
 	for i, baseline := range baselines {
-
 		functionalScores[i] = float64(baseline.Results.FunctionalScore) / 50.0 * 100
-
 	}
 
 	trends["overall"] = &FunctionalTrend{
-
 		Category: "Overall Functional",
 
 		PassRateTrend: ta.determineTrendDirection(functionalScores, false),
@@ -830,13 +765,11 @@ func (ta *TrendAnalyzer) generateFunctionalTrends(baselines []*BaselineSnapshot)
 	}
 
 	return trends
-
 }
 
 // generateSecurityTrends creates security trends from multiple baselines.
 
 func (ta *TrendAnalyzer) generateSecurityTrends(baselines []*BaselineSnapshot) *SecurityTrend {
-
 	vulnCounts := make([]float64, len(baselines))
 
 	securityScores := make([]float64, len(baselines))
@@ -850,7 +783,6 @@ func (ta *TrendAnalyzer) generateSecurityTrends(baselines []*BaselineSnapshot) *
 	}
 
 	return &SecurityTrend{
-
 		VulnerabilityTrend: ta.determineTrendDirection(vulnCounts, true),
 
 		ComplianceTrend: ta.determineTrendDirection(securityScores, false),
@@ -861,13 +793,11 @@ func (ta *TrendAnalyzer) generateSecurityTrends(baselines []*BaselineSnapshot) *
 
 		SecurityPostureTrend: ta.determineTrendDirection(securityScores, false),
 	}
-
 }
 
 // generateProductionTrends creates production trends from multiple baselines.
 
 func (ta *TrendAnalyzer) generateProductionTrends(baselines []*BaselineSnapshot) *ProductionTrend {
-
 	productionScores := make([]float64, len(baselines))
 
 	availabilityScores := make([]float64, len(baselines))
@@ -881,7 +811,6 @@ func (ta *TrendAnalyzer) generateProductionTrends(baselines []*BaselineSnapshot)
 	}
 
 	return &ProductionTrend{
-
 		ReadinessTrend: ta.determineTrendDirection(productionScores, false),
 
 		AvailabilityTrend: ta.determineTrendDirection(availabilityScores, false),
@@ -893,13 +822,11 @@ func (ta *TrendAnalyzer) generateProductionTrends(baselines []*BaselineSnapshot)
 		MTTRTrend: ta.createTrendDataPoints(baselines, productionScores), // Simplified
 
 	}
-
 }
 
 // detectSeasonalPatterns identifies recurring patterns in the data.
 
 func (ta *TrendAnalyzer) detectSeasonalPatterns(baselines []*BaselineSnapshot) map[string]*SeasonalPattern {
-
 	patterns := make(map[string]*SeasonalPattern)
 
 	// For now, return empty patterns as we'd need more sophisticated time series analysis.
@@ -907,13 +834,11 @@ func (ta *TrendAnalyzer) detectSeasonalPatterns(baselines []*BaselineSnapshot) m
 	// This would typically use FFT or autocorrelation analysis.
 
 	return patterns
-
 }
 
 // detectAnomalies identifies unusual data points.
 
 func (ta *TrendAnalyzer) detectAnomalies(baselines []*BaselineSnapshot) []*TrendAnomaly {
-
 	var anomalies []*TrendAnomaly
 
 	// Simple anomaly detection using standard deviation.
@@ -921,9 +846,7 @@ func (ta *TrendAnalyzer) detectAnomalies(baselines []*BaselineSnapshot) []*Trend
 	scores := make([]float64, len(baselines))
 
 	for i, baseline := range baselines {
-
 		scores[i] = float64(baseline.Results.TotalScore)
-
 	}
 
 	mean, stdDev := ta.calculateMeanAndStdDev(scores)
@@ -941,13 +864,10 @@ func (ta *TrendAnalyzer) detectAnomalies(baselines []*BaselineSnapshot) []*Trend
 			severity := "medium"
 
 			if deviation > 3.0*stdDev {
-
 				severity = "high"
-
 			}
 
 			anomaly := &TrendAnomaly{
-
 				Timestamp: baseline.Timestamp,
 
 				MetricName: "Total Score",
@@ -970,13 +890,11 @@ func (ta *TrendAnalyzer) detectAnomalies(baselines []*BaselineSnapshot) []*Trend
 	}
 
 	return anomalies
-
 }
 
 // generatePredictions creates future value predictions.
 
 func (ta *TrendAnalyzer) generatePredictions(baselines []*BaselineSnapshot) map[string]*TrendPrediction {
-
 	predictions := make(map[string]*TrendPrediction)
 
 	// Predict total score trend.
@@ -984,9 +902,7 @@ func (ta *TrendAnalyzer) generatePredictions(baselines []*BaselineSnapshot) map[
 	scores := make([]float64, len(baselines))
 
 	for i, baseline := range baselines {
-
 		scores[i] = float64(baseline.Results.TotalScore)
-
 	}
 
 	nextValue := ta.predictNextValue(scores)
@@ -994,13 +910,11 @@ func (ta *TrendAnalyzer) generatePredictions(baselines []*BaselineSnapshot) map[
 	confidence := ta.calculatePredictionConfidence(scores)
 
 	predictions["total_score"] = &TrendPrediction{
-
 		MetricName: "Total Score",
 
 		PredictedValue: nextValue,
 
 		ConfidenceInterval: [2]float64{
-
 			nextValue - confidence,
 
 			nextValue + confidence,
@@ -1014,17 +928,13 @@ func (ta *TrendAnalyzer) generatePredictions(baselines []*BaselineSnapshot) map[
 	}
 
 	return predictions
-
 }
 
 // Utility methods.
 
 func (ta *TrendAnalyzer) createMinimalTrendAnalysis(baselines []*BaselineSnapshot) *TrendAnalysis {
-
 	return &TrendAnalysis{
-
 		OverallTrend: &OverallTrendAnalysis{
-
 			Direction: "stable",
 
 			Confidence: 0.0,
@@ -1052,27 +962,21 @@ func (ta *TrendAnalyzer) createMinimalTrendAnalysis(baselines []*BaselineSnapsho
 
 		ConfidenceLevel: 0.0,
 	}
-
 }
 
 func (ta *TrendAnalyzer) determineDirection(baseline, current float64, higherIsWorse bool) string {
-
 	diff := current - baseline
 
 	threshold := baseline * 0.05 // 5% threshold
 
 	if math.Abs(diff) < threshold {
-
 		return "stable"
-
 	}
 
 	if higherIsWorse {
 
 		if diff > 0 {
-
 			return "degrading"
-
 		}
 
 		return "improving"
@@ -1080,23 +984,17 @@ func (ta *TrendAnalyzer) determineDirection(baseline, current float64, higherIsW
 	} else {
 
 		if diff > 0 {
-
 			return "improving"
-
 		}
 
 		return "degrading"
 
 	}
-
 }
 
 func (ta *TrendAnalyzer) determineTrendDirection(values []float64, higherIsWorse bool) string {
-
 	if len(values) < 2 {
-
 		return "stable"
-
 	}
 
 	slope := ta.calculateLinearSlope(values)
@@ -1104,17 +1002,13 @@ func (ta *TrendAnalyzer) determineTrendDirection(values []float64, higherIsWorse
 	threshold := 0.01 // Minimal threshold for trend detection
 
 	if math.Abs(slope) < threshold {
-
 		return "stable"
-
 	}
 
 	if higherIsWorse {
 
 		if slope > 0 {
-
 			return "degrading"
-
 		}
 
 		return "improving"
@@ -1122,23 +1016,17 @@ func (ta *TrendAnalyzer) determineTrendDirection(values []float64, higherIsWorse
 	} else {
 
 		if slope > 0 {
-
 			return "improving"
-
 		}
 
 		return "degrading"
 
 	}
-
 }
 
 func (ta *TrendAnalyzer) calculateSlope(points []TrendDataPoint) float64 {
-
 	if len(points) < 2 {
-
 		return 0
-
 	}
 
 	x1 := float64(points[0].Timestamp.Unix())
@@ -1150,21 +1038,15 @@ func (ta *TrendAnalyzer) calculateSlope(points []TrendDataPoint) float64 {
 	y2 := points[len(points)-1].Value
 
 	if x2 == x1 {
-
 		return 0
-
 	}
 
 	return (y2 - y1) / (x2 - x1)
-
 }
 
 func (ta *TrendAnalyzer) calculateLinearSlope(values []float64) float64 {
-
 	if len(values) < 2 {
-
 		return 0
-
 	}
 
 	n := float64(len(values))
@@ -1196,21 +1078,15 @@ func (ta *TrendAnalyzer) calculateLinearSlope(values []float64) float64 {
 	denominator := n*sumX2 - sumX*sumX
 
 	if denominator == 0 {
-
 		return 0
-
 	}
 
 	return (n*sumXY - sumX*sumY) / denominator
-
 }
 
 func (ta *TrendAnalyzer) calculateLinearTrendSlope(baselines []*BaselineSnapshot, values []float64) float64 {
-
 	if len(baselines) != len(values) || len(values) < 2 {
-
 		return 0
-
 	}
 
 	// Convert timestamps to numeric values for regression.
@@ -1220,21 +1096,15 @@ func (ta *TrendAnalyzer) calculateLinearTrendSlope(baselines []*BaselineSnapshot
 	baseTime := baselines[0].Timestamp.Unix()
 
 	for i, baseline := range baselines {
-
 		times[i] = float64(baseline.Timestamp.Unix() - baseTime)
-
 	}
 
 	return ta.calculateRegressionSlope(times, values)
-
 }
 
 func (ta *TrendAnalyzer) calculateRegressionSlope(x, y []float64) float64 {
-
 	if len(x) != len(y) || len(x) < 2 {
-
 		return 0
-
 	}
 
 	n := float64(len(x))
@@ -1256,21 +1126,15 @@ func (ta *TrendAnalyzer) calculateRegressionSlope(x, y []float64) float64 {
 	denominator := n*sumX2 - sumX*sumX
 
 	if denominator == 0 {
-
 		return 0
-
 	}
 
 	return (n*sumXY - sumX*sumY) / denominator
-
 }
 
 func (ta *TrendAnalyzer) calculateCorrelation(baselines []*BaselineSnapshot, values []float64) float64 {
-
 	if len(baselines) != len(values) || len(values) < 2 {
-
 		return 0
-
 	}
 
 	times := make([]float64, len(baselines))
@@ -1278,21 +1142,15 @@ func (ta *TrendAnalyzer) calculateCorrelation(baselines []*BaselineSnapshot, val
 	baseTime := baselines[0].Timestamp.Unix()
 
 	for i, baseline := range baselines {
-
 		times[i] = float64(baseline.Timestamp.Unix() - baseTime)
-
 	}
 
 	return ta.calculatePearsonCorrelation(times, values)
-
 }
 
 func (ta *TrendAnalyzer) calculatePearsonCorrelation(x, y []float64) float64 {
-
 	if len(x) != len(y) || len(x) < 2 {
-
 		return 0
-
 	}
 
 	n := float64(len(x))
@@ -1318,21 +1176,15 @@ func (ta *TrendAnalyzer) calculatePearsonCorrelation(x, y []float64) float64 {
 	denominator := math.Sqrt((n*sumX2 - sumX*sumX) * (n*sumY2 - sumY*sumY))
 
 	if denominator == 0 {
-
 		return 0
-
 	}
 
 	return numerator / denominator
-
 }
 
 func (ta *TrendAnalyzer) calculateStability(values []float64) float64 {
-
 	if len(values) < 2 {
-
 		return 100.0
-
 	}
 
 	_, stdDev := ta.calculateMeanAndStdDev(values)
@@ -1340,9 +1192,7 @@ func (ta *TrendAnalyzer) calculateStability(values []float64) float64 {
 	mean := ta.calculateMean(values)
 
 	if mean == 0 {
-
 		return 0.0
-
 	}
 
 	// Coefficient of variation (inverted for stability).
@@ -1352,15 +1202,11 @@ func (ta *TrendAnalyzer) calculateStability(values []float64) float64 {
 	stability := math.Max(0, 100.0-cv*100.0)
 
 	return stability
-
 }
 
 func (ta *TrendAnalyzer) calculateTrendConfidence(values []float64) float64 {
-
 	if len(values) < ta.config.MinimumSamples {
-
 		return 0.0
-
 	}
 
 	// Simple confidence based on sample size and stability.
@@ -1370,17 +1216,13 @@ func (ta *TrendAnalyzer) calculateTrendConfidence(values []float64) float64 {
 	sampleWeight := math.Min(100.0, float64(len(values))/float64(ta.config.MinimumSamples)*50.0)
 
 	return (stability + sampleWeight) / 2.0
-
 }
 
 func (ta *TrendAnalyzer) predictNextValue(values []float64) float64 {
-
 	if len(values) < 2 {
 
 		if len(values) == 1 {
-
 			return values[0]
-
 		}
 
 		return 0
@@ -1392,57 +1234,41 @@ func (ta *TrendAnalyzer) predictNextValue(values []float64) float64 {
 	slope := ta.calculateLinearSlope(values)
 
 	return values[len(values)-1] + slope
-
 }
 
 func (ta *TrendAnalyzer) calculatePredictionConfidence(values []float64) float64 {
-
 	if len(values) < 2 {
-
 		return 0
-
 	}
 
 	_, stdDev := ta.calculateMeanAndStdDev(values)
 
 	return stdDev * 1.96 // 95% confidence interval
-
 }
 
 func (ta *TrendAnalyzer) calculateMean(values []float64) float64 {
-
 	if len(values) == 0 {
-
 		return 0
-
 	}
 
 	sum := 0.0
 
 	for _, v := range values {
-
 		sum += v
-
 	}
 
 	return sum / float64(len(values))
-
 }
 
 func (ta *TrendAnalyzer) calculateMeanAndStdDev(values []float64) (float64, float64) {
-
 	if len(values) == 0 {
-
 		return 0, 0
-
 	}
 
 	mean := ta.calculateMean(values)
 
 	if len(values) == 1 {
-
 		return mean, 0
-
 	}
 
 	sumSquaredDiff := 0.0
@@ -1460,169 +1286,117 @@ func (ta *TrendAnalyzer) calculateMeanAndStdDev(values []float64) (float64, floa
 	stdDev := math.Sqrt(variance)
 
 	return mean, stdDev
-
 }
 
 func (ta *TrendAnalyzer) countCriticalVulns(findings []*SecurityFinding) int {
-
 	count := 0
 
 	for _, finding := range findings {
-
 		if strings.EqualFold(finding.Severity, "critical") {
-
 			count++
-
 		}
-
 	}
 
 	return count
-
 }
 
 func (ta *TrendAnalyzer) calculateVulnRate(baseline *BaselineSnapshot, current *ValidationResults) float64 {
-
 	timeDiff := time.Since(baseline.Timestamp).Hours()
 
 	if timeDiff <= 0 {
-
 		return 0
-
 	}
 
 	newVulns := len(current.SecurityFindings) - len(baseline.Results.SecurityFindings)
 
 	if newVulns < 0 {
-
 		newVulns = 0
-
 	}
 
 	// Rate per day.
 
 	return float64(newVulns) / (timeDiff / 24.0)
-
 }
 
 func (ta *TrendAnalyzer) calculateRemediationEffectiveness(baseline *BaselineSnapshot, current *ValidationResults) float64 {
-
 	baselineFailedFindings := 0
 
 	for _, finding := range baseline.Results.SecurityFindings {
-
 		if !finding.Passed {
-
 			baselineFailedFindings++
-
 		}
-
 	}
 
 	currentFailedFindings := 0
 
 	for _, finding := range current.SecurityFindings {
-
 		if !finding.Passed {
-
 			currentFailedFindings++
-
 		}
-
 	}
 
 	if baselineFailedFindings == 0 {
-
 		return 100.0 // Perfect if no initial failures
-
 	}
 
 	remediated := baselineFailedFindings - currentFailedFindings
 
 	if remediated < 0 {
-
 		remediated = 0
-
 	}
 
 	return float64(remediated) / float64(baselineFailedFindings) * 100.0
-
 }
 
 func (ta *TrendAnalyzer) inferAnomalyCause(actual, expected float64) string {
-
 	if actual < expected {
-
 		return "Possible performance regression or test failure"
-
 	}
 
 	return "Possible improvement or test variation"
-
 }
 
 // Helper methods for extracting values from baselines.
 
 func (ta *TrendAnalyzer) extractP95LatencyValues(baselines []*BaselineSnapshot) []float64 {
-
 	var values []float64
 
 	for _, baseline := range baselines {
-
 		if baseline.Results.P95Latency > 0 {
-
 			values = append(values, float64(baseline.Results.P95Latency.Nanoseconds()))
-
 		}
-
 	}
 
 	return values
-
 }
 
 func (ta *TrendAnalyzer) extractThroughputValues(baselines []*BaselineSnapshot) []float64 {
-
 	var values []float64
 
 	for _, baseline := range baselines {
-
 		if baseline.Results.ThroughputAchieved > 0 {
-
 			values = append(values, baseline.Results.ThroughputAchieved)
-
 		}
-
 	}
 
 	return values
-
 }
 
 func (ta *TrendAnalyzer) extractAvailabilityValues(baselines []*BaselineSnapshot) []float64 {
-
 	var values []float64
 
 	for _, baseline := range baselines {
-
 		if baseline.Results.AvailabilityAchieved > 0 {
-
 			values = append(values, baseline.Results.AvailabilityAchieved)
-
 		}
-
 	}
 
 	return values
-
 }
 
 func (ta *TrendAnalyzer) createPerformanceTrend(name string, baselines []*BaselineSnapshot, values []float64, higherIsWorse bool) *PerformanceTrend {
-
 	if len(baselines) != len(values) {
-
 		return nil
-
 	}
 
 	slope := ta.calculateLinearTrendSlope(baselines, values)
@@ -1630,7 +1404,6 @@ func (ta *TrendAnalyzer) createPerformanceTrend(name string, baselines []*Baseli
 	correlation := ta.calculateCorrelation(baselines, values)
 
 	return &PerformanceTrend{
-
 		MetricName: name,
 
 		Direction: ta.determineTrendDirection(values, higherIsWorse),
@@ -1645,30 +1418,22 @@ func (ta *TrendAnalyzer) createPerformanceTrend(name string, baselines []*Baseli
 
 		PredictedValue: ta.predictNextValue(values),
 	}
-
 }
 
 func (ta *TrendAnalyzer) createTrendDataPoints(baselines []*BaselineSnapshot, values []float64) []TrendDataPoint {
-
 	if len(baselines) != len(values) {
-
 		return []TrendDataPoint{}
-
 	}
 
 	points := make([]TrendDataPoint, len(baselines))
 
 	for i := range baselines {
-
 		points[i] = TrendDataPoint{
-
 			Timestamp: baselines[i].Timestamp,
 
 			Value: values[i],
 		}
-
 	}
 
 	return points
-
 }

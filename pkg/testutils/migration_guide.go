@@ -20,7 +20,6 @@ import (
 // BEFORE: Standard approach (slow on Windows).
 
 func ExampleStandardFileCreation(t *testing.T) {
-
 	// Don't use this pattern - it's slow on Windows.
 
 	/*
@@ -46,21 +45,17 @@ func ExampleStandardFileCreation(t *testing.T) {
 		}
 
 	*/
-
 }
 
 // AFTER: Optimized approach (fast on Windows).
 
 func ExampleOptimizedFileCreation(t *testing.T) {
-
 	// Use the optimized test runner.
 
 	WithOptimizedTest(t, func(t *testing.T, ctx *TestContext) {
-
 		// Create multiple files efficiently.
 
 		files := map[string][]byte{
-
 			"file-1.txt": []byte("content 1"),
 
 			"file-2.txt": []byte("content 2"),
@@ -76,9 +71,7 @@ func ExampleOptimizedFileCreation(t *testing.T) {
 		filePaths := ctx.CreateTempFiles(files)
 
 		_ = filePaths // Use the created files
-
 	})
-
 }
 
 // Example 2: Timeout handling optimization.
@@ -86,7 +79,6 @@ func ExampleOptimizedFileCreation(t *testing.T) {
 // BEFORE: Fixed timeouts (problematic on Windows).
 
 func ExampleStandardTimeout(t *testing.T) {
-
 	// Don't use fixed timeouts - they cause flaky tests on Windows.
 
 	/*
@@ -108,15 +100,12 @@ func ExampleStandardTimeout(t *testing.T) {
 		}
 
 	*/
-
 }
 
 // AFTER: Platform-optimized timeouts.
 
 func ExampleOptimizedTimeout(t *testing.T) {
-
 	WithOptimizedTest(t, func(t *testing.T, ctx *TestContext) {
-
 		// Automatically adjusted timeout for Windows (7.5s instead of 5s).
 
 		testCtx, cancel := ctx.GetOptimizedContext(5 * time.Second)
@@ -126,15 +115,10 @@ func ExampleOptimizedTimeout(t *testing.T) {
 		// This is more reliable across platforms.
 
 		err := someSlowOperation(testCtx)
-
 		if err != nil {
-
 			t.Fatal(err)
-
 		}
-
 	})
-
 }
 
 // Example 3: Concurrency optimization.
@@ -142,7 +126,6 @@ func ExampleOptimizedTimeout(t *testing.T) {
 // BEFORE: Uncontrolled parallelism (resource exhaustion on Windows).
 
 func ExampleStandardParallelism(t *testing.T) {
-
 	// Don't use unlimited parallelism on Windows.
 
 	/*
@@ -176,13 +159,11 @@ func ExampleStandardParallelism(t *testing.T) {
 		wg.Wait()
 
 	*/
-
 }
 
 // AFTER: Managed concurrency.
 
 func ExampleOptimizedParallelism(t *testing.T) {
-
 	// Use concurrency management for Windows.
 
 	release := AcquireConcurrencySlot(t.Name())
@@ -190,23 +171,18 @@ func ExampleOptimizedParallelism(t *testing.T) {
 	defer release()
 
 	WithOptimizedTest(t, func(t *testing.T, ctx *TestContext) {
-
 		// Batch operations are better than many concurrent operations.
 
 		files := make(map[string][]byte)
 
 		for i := range 20 {
-
 			files[fmt.Sprintf("parallel-%d.txt", i)] = []byte("data")
-
 		}
 
 		// Single batch operation instead of many concurrent ones.
 
 		_ = ctx.CreateTempFiles(files)
-
 	})
-
 }
 
 // Example 4: Resource cleanup optimization.
@@ -214,7 +190,6 @@ func ExampleOptimizedParallelism(t *testing.T) {
 // BEFORE: Manual cleanup (error-prone).
 
 func ExampleStandardCleanup(t *testing.T) {
-
 	// Don't rely on manual cleanup - it can fail on Windows.
 
 	/*
@@ -246,15 +221,12 @@ func ExampleStandardCleanup(t *testing.T) {
 		}()
 
 	*/
-
 }
 
 // AFTER: Automated cleanup.
 
 func ExampleOptimizedCleanup(t *testing.T) {
-
 	WithOptimizedTest(t, func(t *testing.T, ctx *TestContext) {
-
 		// Create file with automatic cleanup.
 
 		filePath := ctx.CreateTempFile("test.txt", []byte("data"))
@@ -264,15 +236,11 @@ func ExampleOptimizedCleanup(t *testing.T) {
 		// Add custom cleanup if needed.
 
 		ctx.AddCleanup(func() {
-
 			// Custom cleanup operations.
-
 		})
 
 		// Cleanup is automatically handled by the test context.
-
 	})
-
 }
 
 // Example 5: Test data preparation optimization.
@@ -280,7 +248,6 @@ func ExampleOptimizedCleanup(t *testing.T) {
 // BEFORE: Repeated file operations.
 
 func ExampleStandardTestData(t *testing.T) {
-
 	// Don't create the same test data repeatedly.
 
 	/*
@@ -312,13 +279,11 @@ func ExampleStandardTestData(t *testing.T) {
 		}
 
 	*/
-
 }
 
 // AFTER: Cached test data.
 
 func ExampleOptimizedTestData(t *testing.T) {
-
 	runner := NewOptimizedTestRunner()
 
 	defer runner.optimizer.Cleanup()
@@ -326,18 +291,14 @@ func ExampleOptimizedTestData(t *testing.T) {
 	// Create shared test data once.
 
 	sharedFiles := map[string][]byte{
-
 		"config.json": []byte(`{"key": "value"}`),
 
 		"data.txt": []byte("test data"),
 	}
 
 	for i := range 5 {
-
 		t.Run(fmt.Sprintf("test-%d", i), func(t *testing.T) {
-
 			runner.RunOptimizedTest(t, func(t *testing.T, ctx *TestContext) {
-
 				// Reuse cached data efficiently.
 
 				filePaths := ctx.CreateTempFiles(sharedFiles)
@@ -345,13 +306,9 @@ func ExampleOptimizedTestData(t *testing.T) {
 				_ = filePaths
 
 				// Run test with files...
-
 			})
-
 		})
-
 	}
-
 }
 
 // Example 6: Integration test optimization.
@@ -359,7 +316,6 @@ func ExampleOptimizedTestData(t *testing.T) {
 // BEFORE: Heavy setup/teardown per test.
 
 func ExampleStandardIntegrationTest(t *testing.T) {
-
 	// Don't recreate expensive resources for each test.
 
 	/*
@@ -397,13 +353,11 @@ func ExampleStandardIntegrationTest(t *testing.T) {
 		}
 
 	*/
-
 }
 
 // AFTER: Shared resource management.
 
 func ExampleOptimizedIntegrationTest(t *testing.T) {
-
 	runner := NewOptimizedTestRunner()
 
 	defer runner.optimizer.Cleanup()
@@ -416,7 +370,6 @@ func ExampleOptimizedIntegrationTest(t *testing.T) {
 		name string
 
 		// test cases...
-
 	}{
 
 		// many test cases...
@@ -424,27 +377,19 @@ func ExampleOptimizedIntegrationTest(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-
 		t.Run(tt.name, func(t *testing.T) {
-
 			runner.RunOptimizedTest(t, func(t *testing.T, ctx *TestContext) {
-
 				// Reuse expensive resources.
 
 				// Run test with optimizations...
-
 			})
-
 		})
-
 	}
-
 }
 
 // Example helper functions (stubs for the examples).
 
 func someSlowOperation(ctx context.Context) error {
-
 	// Simulate a slow operation.
 
 	select {
@@ -458,31 +403,24 @@ func someSlowOperation(ctx context.Context) error {
 		return ctx.Err()
 
 	}
-
 }
 
 func setupExpensiveResources(t *testing.T) {
-
 	// Simulate expensive setup.
 
 	time.Sleep(100 * time.Millisecond)
-
 }
 
 func cleanupExpensiveResources(t *testing.T) {
-
 	// Simulate cleanup.
 
 	time.Sleep(50 * time.Millisecond)
-
 }
 
 func setupExpensiveResourcesOnce(t *testing.T, runner *OptimizedTestRunner) {
-
 	// Setup once and cache in runner.
 
 	runner.resourcePool.CacheDirectory("expensive-setup", "setup-complete")
-
 }
 
 // Performance Tips Summary:.

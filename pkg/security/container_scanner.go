@@ -3,7 +3,9 @@
 package security
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -158,18 +160,18 @@ type ScanRequest struct {
 
 // ScanResult represents the result of a container scan
 type ScanResult struct {
-	ID                string                 `json:"id"`
-	Image             string                 `json:"image"`
-	Scanner           string                 `json:"scanner"`
-	ScanTime          time.Time              `json:"scan_time"`
-	Duration          time.Duration          `json:"duration"`
-	Status            string                 `json:"status"`
-	SecurityScore     int                    `json:"security_score"`
-	Vulnerabilities   []ContainerVulnerability        `json:"vulnerabilities"`
-	Misconfigurations []Misconfiguration     `json:"misconfigurations"`
-	Secrets           []SecretLeak           `json:"secrets"`
-	Compliance        ComplianceResult       `json:"compliance"`
-	Metadata          map[string]interface{} `json:"metadata"`
+	ID                string                   `json:"id"`
+	Image             string                   `json:"image"`
+	Scanner           string                   `json:"scanner"`
+	ScanTime          time.Time                `json:"scan_time"`
+	Duration          time.Duration            `json:"duration"`
+	Status            string                   `json:"status"`
+	SecurityScore     int                      `json:"security_score"`
+	Vulnerabilities   []ContainerVulnerability `json:"vulnerabilities"`
+	Misconfigurations []Misconfiguration       `json:"misconfigurations"`
+	Secrets           []SecretLeak             `json:"secrets"`
+	Compliance        ComplianceResult         `json:"compliance"`
+	Metadata          json.RawMessage   `json:"metadata"`
 }
 
 // ContainerVulnerability represents a security vulnerability in containers
@@ -225,7 +227,7 @@ type ComplianceResult struct {
 	PassedChecks int                    `json:"passed_checks"`
 	FailedChecks int                    `json:"failed_checks"`
 	Results      []ComplianceCheck      `json:"results"`
-	Summary      map[string]interface{} `json:"summary"`
+	Summary      json.RawMessage `json:"summary"`
 }
 
 // ComplianceCheck represents a compliance check
@@ -259,7 +261,7 @@ type RBACPolicy struct {
 	Exceptions  []string               `json:"exceptions"`
 	CreatedAt   time.Time              `json:"created_at"`
 	UpdatedAt   time.Time              `json:"updated_at"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Metadata    json.RawMessage `json:"metadata"`
 }
 
 // RBACRule represents an RBAC rule
@@ -283,7 +285,7 @@ type PolicyViolation struct {
 	Timestamp   time.Time              `json:"timestamp"`
 	Resolved    bool                   `json:"resolved"`
 	Action      string                 `json:"action"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Metadata    json.RawMessage `json:"metadata"`
 }
 
 // SecurityPolicy represents a security policy
@@ -298,7 +300,7 @@ type SecurityPolicy struct {
 	Enabled     bool                   `json:"enabled"`
 	CreatedAt   time.Time              `json:"created_at"`
 	UpdatedAt   time.Time              `json:"updated_at"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Metadata    json.RawMessage `json:"metadata"`
 }
 
 // PolicyRule represents a policy rule
@@ -306,7 +308,7 @@ type PolicyRule struct {
 	ID         string                 `json:"id"`
 	Condition  string                 `json:"condition"`
 	Action     string                 `json:"action"`
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 	Enabled    bool                   `json:"enabled"`
 }
 

@@ -3,7 +3,9 @@
 package security
 
 import (
-	"fmt"
+	
+	"encoding/json"
+"fmt"
 	"log/slog"
 	"net/http"
 	"regexp"
@@ -130,7 +132,7 @@ type SecurityEvent struct {
 	SourceIP        string                 `json:"source_ip"`
 	Target          string                 `json:"target"`
 	Description     string                 `json:"description"`
-	RawData         map[string]interface{} `json:"raw_data"`
+	RawData         json.RawMessage `json:"raw_data"`
 	ThreatScore     int                    `json:"threat_score"`
 	Tags            []string               `json:"tags"`
 	Context         map[string]string      `json:"context"`
@@ -162,7 +164,7 @@ type ActiveThreat struct {
 	Active      bool                   `json:"active"`
 	Mitigated   bool                   `json:"mitigated"`
 	Indicators  []ThreatIndicator      `json:"indicators"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Metadata    json.RawMessage `json:"metadata"`
 }
 
 // ThreatIndicator represents an indicator of compromise (IoC)
@@ -352,13 +354,7 @@ func (td *ThreatDetector) ProcessRequest(r *http.Request) *SecurityEvent {
 		SourceIP:    clientIP,
 		Target:      r.Host,
 		Description: fmt.Sprintf("%s %s from %s", r.Method, r.URL.Path, clientIP),
-		RawData: map[string]interface{}{
-			"method":     r.Method,
-			"path":       r.URL.Path,
-			"user_agent": r.UserAgent(),
-			"referer":    r.Referer(),
-			"headers":    r.Header,
-		},
+		RawData: json.RawMessage(`{}`),
 		Tags:            []string{"http", "inbound"},
 		Context:         make(map[string]string),
 		ResponseActions: make([]string, 0),
@@ -448,8 +444,7 @@ func (td *ThreatDetector) runSignatureDetection(event *SecurityEvent) int {
 		// Check different fields for pattern match
 		fields := []string{
 			event.Description,
-			fmt.Sprintf("%v", event.RawData["path"]),
-			fmt.Sprintf("%v", event.RawData["user_agent"]),
+			string(event.RawData), // Convert RawData to string for pattern matching
 		}
 
 		for _, field := range fields {
@@ -492,19 +487,25 @@ func (td *ThreatDetector) runBehavioralAnalysis(event *SecurityEvent) int {
 		event.Tags = append(event.Tags, "rapid_requests")
 	}
 
-	// Check for suspicious user agents
-	if userAgent, ok := event.RawData["user_agent"].(string); ok {
-		if td.isSuspiciousUserAgent(userAgent) {
-			score += 15
-			event.Tags = append(event.Tags, "suspicious_user_agent")
-		}
-	}
+	// Parse RawData to extract fields for analysis
+	var rawDataMap map[string]interface{}
+	if len(event.RawData) > 0 {
+		if err := json.Unmarshal(event.RawData, &rawDataMap); err == nil {
+			// Check for suspicious user agents
+			if userAgent, ok := rawDataMap["user_agent"].(string); ok {
+				if td.isSuspiciousUserAgent(userAgent) {
+					score += 15
+					event.Tags = append(event.Tags, "suspicious_user_agent")
+				}
+			}
 
-	// Check for suspicious paths
-	if path, ok := event.RawData["path"].(string); ok {
-		if td.isSuspiciousPath(path) {
-			score += 25
-			event.Tags = append(event.Tags, "suspicious_path")
+			// Check for suspicious paths
+			if path, ok := rawDataMap["path"].(string); ok {
+				if td.isSuspiciousPath(path) {
+					score += 25
+					event.Tags = append(event.Tags, "suspicious_path")
+				}
+			}
 		}
 	}
 
@@ -665,13 +666,7 @@ func (td *ThreatDetector) createSecurityIncident(event *SecurityEvent) {
 		Evidence:    []*Evidence{},
 		Timeline:    []*TimelineEvent{},
 		Actions:     []*ResponseAction{},
-		Artifacts: map[string]interface{}{
-			"threat_score": event.ThreatScore,
-			"source_ip":    event.SourceIP,
-			"event_type":   event.EventType,
-			"auto_created": true,
-			"event_id":     event.ID,
-		},
+		Artifacts: json.RawMessage(`{}`),
 	}
 
 	td.mu.Lock()
@@ -967,3 +962,4 @@ func (config *ThreatDetectionConfig) Validate() error {
 	}
 	return nil
 }
+

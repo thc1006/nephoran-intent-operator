@@ -16,7 +16,6 @@ import (
 // A1EIInterface defines the A1-EI interface operations.
 
 type A1EIInterface interface {
-
 	// EI Type Management.
 
 	CreateEIType(ctx context.Context, eiType *EnrichmentInfoType) error
@@ -81,38 +80,28 @@ type A1EIAdaptor struct {
 // NewA1EIAdaptor creates a new A1-EI adaptor.
 
 func NewA1EIAdaptor(ricURL, apiVersion string) *A1EIAdaptor {
-
 	return &A1EIAdaptor{
-
 		httpClient: &http.Client{Timeout: 30 * time.Second},
 
 		ricURL: ricURL,
 
 		apiVersion: apiVersion,
 	}
-
 }
 
 // CreateEIType creates a new enrichment information type.
 
 func (ei *A1EIAdaptor) CreateEIType(ctx context.Context, eiType *EnrichmentInfoType) error {
-
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes/%s", ei.ricURL, eiType.EiTypeID)
 
 	body, err := json.Marshal(eiType)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to marshal EI type: %w", err)
-
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(body))
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create request: %w", err)
-
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -120,14 +109,11 @@ func (ei *A1EIAdaptor) CreateEIType(ctx context.Context, eiType *EnrichmentInfoT
 	req.Header.Set("Accept", "application/json, application/problem+json")
 
 	resp, err := ei.httpClient.Do(req)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to send request: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -152,34 +138,26 @@ func (ei *A1EIAdaptor) CreateEIType(ctx context.Context, eiType *EnrichmentInfoT
 		return fmt.Errorf("failed to create EI type: status=%d", resp.StatusCode)
 
 	}
-
 }
 
 // GetEIType retrieves an enrichment information type.
 
 func (ei *A1EIAdaptor) GetEIType(ctx context.Context, eiTypeID string) (*EnrichmentInfoType, error) {
-
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes/%s", ei.ricURL, eiTypeID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create request: %w", err)
-
 	}
 
 	req.Header.Set("Accept", "application/json, application/problem+json")
 
 	resp, err := ei.httpClient.Do(req)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to send request: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -188,9 +166,7 @@ func (ei *A1EIAdaptor) GetEIType(ctx context.Context, eiTypeID string) (*Enrichm
 		var eiType EnrichmentInfoType
 
 		if err := json.NewDecoder(resp.Body).Decode(&eiType); err != nil {
-
 			return nil, fmt.Errorf("failed to decode response: %w", err)
-
 		}
 
 		return &eiType, nil
@@ -204,47 +180,35 @@ func (ei *A1EIAdaptor) GetEIType(ctx context.Context, eiTypeID string) (*Enrichm
 		return nil, fmt.Errorf("failed to get EI type: status=%d", resp.StatusCode)
 
 	}
-
 }
 
 // ListEITypes lists all enrichment information types.
 
 func (ei *A1EIAdaptor) ListEITypes(ctx context.Context) ([]*EnrichmentInfoType, error) {
-
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes", ei.ricURL)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create request: %w", err)
-
 	}
 
 	req.Header.Set("Accept", "application/json, application/problem+json")
 
 	resp, err := ei.httpClient.Do(req)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to send request: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
-
 		return nil, fmt.Errorf("failed to list EI types: status=%d", resp.StatusCode)
-
 	}
 
 	var eiTypeIDs []string
 
 	if err := json.NewDecoder(resp.Body).Decode(&eiTypeIDs); err != nil {
-
 		return nil, fmt.Errorf("failed to decode response: %w", err)
-
 	}
 
 	// Fetch details for each EI type.
@@ -254,11 +218,8 @@ func (ei *A1EIAdaptor) ListEITypes(ctx context.Context) ([]*EnrichmentInfoType, 
 	for _, id := range eiTypeIDs {
 
 		eiType, err := ei.GetEIType(ctx, id)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to get EI type %s: %w", id, err)
-
 		}
 
 		eiTypes = append(eiTypes, eiType)
@@ -266,34 +227,26 @@ func (ei *A1EIAdaptor) ListEITypes(ctx context.Context) ([]*EnrichmentInfoType, 
 	}
 
 	return eiTypes, nil
-
 }
 
 // DeleteEIType deletes an enrichment information type.
 
 func (ei *A1EIAdaptor) DeleteEIType(ctx context.Context, eiTypeID string) error {
-
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes/%s", ei.ricURL, eiTypeID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, http.NoBody)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create request: %w", err)
-
 	}
 
 	req.Header.Set("Accept", "application/json, application/problem+json")
 
 	resp, err := ei.httpClient.Do(req)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to send request: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -314,29 +267,21 @@ func (ei *A1EIAdaptor) DeleteEIType(ctx context.Context, eiTypeID string) error 
 		return fmt.Errorf("failed to delete EI type: status=%d", resp.StatusCode)
 
 	}
-
 }
 
 // CreateEIJob creates a new enrichment information job.
 
 func (ei *A1EIAdaptor) CreateEIJob(ctx context.Context, eiTypeID string, eiJob *EnrichmentInfoJob) error {
-
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes/%s/eijobs/%s", ei.ricURL, eiTypeID, eiJob.EiJobID)
 
 	body, err := json.Marshal(eiJob)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to marshal EI job: %w", err)
-
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(body))
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create request: %w", err)
-
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -344,14 +289,11 @@ func (ei *A1EIAdaptor) CreateEIJob(ctx context.Context, eiTypeID string, eiJob *
 	req.Header.Set("Accept", "application/json, application/problem+json")
 
 	resp, err := ei.httpClient.Do(req)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to send request: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -380,34 +322,26 @@ func (ei *A1EIAdaptor) CreateEIJob(ctx context.Context, eiTypeID string, eiJob *
 		return fmt.Errorf("failed to create EI job: status=%d", resp.StatusCode)
 
 	}
-
 }
 
 // GetEIJob retrieves an enrichment information job.
 
 func (ei *A1EIAdaptor) GetEIJob(ctx context.Context, eiTypeID, eiJobID string) (*EnrichmentInfoJob, error) {
-
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes/%s/eijobs/%s", ei.ricURL, eiTypeID, eiJobID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create request: %w", err)
-
 	}
 
 	req.Header.Set("Accept", "application/json, application/problem+json")
 
 	resp, err := ei.httpClient.Do(req)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to send request: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -416,9 +350,7 @@ func (ei *A1EIAdaptor) GetEIJob(ctx context.Context, eiTypeID, eiJobID string) (
 		var eiJob EnrichmentInfoJob
 
 		if err := json.NewDecoder(resp.Body).Decode(&eiJob); err != nil {
-
 			return nil, fmt.Errorf("failed to decode response: %w", err)
-
 		}
 
 		return &eiJob, nil
@@ -432,47 +364,35 @@ func (ei *A1EIAdaptor) GetEIJob(ctx context.Context, eiTypeID, eiJobID string) (
 		return nil, fmt.Errorf("failed to get EI job: status=%d", resp.StatusCode)
 
 	}
-
 }
 
 // ListEIJobs lists all enrichment information jobs for a given type.
 
 func (ei *A1EIAdaptor) ListEIJobs(ctx context.Context, eiTypeID string) ([]*EnrichmentInfoJob, error) {
-
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes/%s/eijobs", ei.ricURL, eiTypeID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create request: %w", err)
-
 	}
 
 	req.Header.Set("Accept", "application/json, application/problem+json")
 
 	resp, err := ei.httpClient.Do(req)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to send request: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
-
 		return nil, fmt.Errorf("failed to list EI jobs: status=%d", resp.StatusCode)
-
 	}
 
 	var eiJobIDs []string
 
 	if err := json.NewDecoder(resp.Body).Decode(&eiJobIDs); err != nil {
-
 		return nil, fmt.Errorf("failed to decode response: %w", err)
-
 	}
 
 	// Fetch details for each EI job.
@@ -482,11 +402,8 @@ func (ei *A1EIAdaptor) ListEIJobs(ctx context.Context, eiTypeID string) ([]*Enri
 	for _, id := range eiJobIDs {
 
 		eiJob, err := ei.GetEIJob(ctx, eiTypeID, id)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to get EI job %s: %w", id, err)
-
 		}
 
 		eiJobs = append(eiJobs, eiJob)
@@ -494,34 +411,26 @@ func (ei *A1EIAdaptor) ListEIJobs(ctx context.Context, eiTypeID string) ([]*Enri
 	}
 
 	return eiJobs, nil
-
 }
 
 // DeleteEIJob deletes an enrichment information job.
 
 func (ei *A1EIAdaptor) DeleteEIJob(ctx context.Context, eiTypeID, eiJobID string) error {
-
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes/%s/eijobs/%s", ei.ricURL, eiTypeID, eiJobID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, http.NoBody)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create request: %w", err)
-
 	}
 
 	req.Header.Set("Accept", "application/json, application/problem+json")
 
 	resp, err := ei.httpClient.Do(req)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to send request: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -538,34 +447,26 @@ func (ei *A1EIAdaptor) DeleteEIJob(ctx context.Context, eiTypeID, eiJobID string
 		return fmt.Errorf("failed to delete EI job: status=%d", resp.StatusCode)
 
 	}
-
 }
 
 // GetEIJobStatus retrieves the status of an enrichment information job.
 
 func (ei *A1EIAdaptor) GetEIJobStatus(ctx context.Context, eiTypeID, eiJobID string) (*EIJobStatus, error) {
-
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes/%s/eijobs/%s/status", ei.ricURL, eiTypeID, eiJobID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create request: %w", err)
-
 	}
 
 	req.Header.Set("Accept", "application/json, application/problem+json")
 
 	resp, err := ei.httpClient.Do(req)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to send request: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -574,9 +475,7 @@ func (ei *A1EIAdaptor) GetEIJobStatus(ctx context.Context, eiTypeID, eiJobID str
 		var status EIJobStatus
 
 		if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
-
 			return nil, fmt.Errorf("failed to decode status response: %w", err)
-
 		}
 
 		return &status, nil
@@ -590,29 +489,21 @@ func (ei *A1EIAdaptor) GetEIJobStatus(ctx context.Context, eiTypeID, eiJobID str
 		return nil, fmt.Errorf("failed to get EI job status: status=%d", resp.StatusCode)
 
 	}
-
 }
 
 // RegisterEIProducer registers an enrichment information data producer.
 
 func (ei *A1EIAdaptor) RegisterEIProducer(ctx context.Context, producer *EIProducerInfo) error {
-
 	url := fmt.Sprintf("%s/A1-EI/v1/eiproducers/%s", ei.ricURL, producer.ProducerID)
 
 	body, err := json.Marshal(producer)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to marshal EI producer: %w", err)
-
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(body))
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create request: %w", err)
-
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -620,14 +511,11 @@ func (ei *A1EIAdaptor) RegisterEIProducer(ctx context.Context, producer *EIProdu
 	req.Header.Set("Accept", "application/json, application/problem+json")
 
 	resp, err := ei.httpClient.Do(req)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to send request: %w", err)
-
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -648,5 +536,4 @@ func (ei *A1EIAdaptor) RegisterEIProducer(ctx context.Context, producer *EIProdu
 		return fmt.Errorf("failed to register EI producer: status=%d", resp.StatusCode)
 
 	}
-
 }

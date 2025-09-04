@@ -78,7 +78,6 @@ type AdmissionAuditWebhook struct {
 // AdmissionAuditConfig configures the admission audit webhook.
 
 type AdmissionAuditConfig struct {
-
 	// Enabled controls whether admission auditing is active.
 
 	Enabled bool `json:"enabled" yaml:"enabled"`
@@ -129,7 +128,6 @@ type AdmissionAuditConfig struct {
 // PolicyEnforcementConfig defines security policy enforcement settings.
 
 type PolicyEnforcementConfig struct {
-
 	// Enabled controls whether policy enforcement is active.
 
 	Enabled bool `json:"enabled" yaml:"enabled"`
@@ -252,15 +250,11 @@ type PolicyViolation struct {
 // NewAdmissionAuditWebhook creates a new admission audit webhook.
 
 func NewAdmissionAuditWebhook(auditSystem *AuditSystem, scheme *runtime.Scheme, config *AdmissionAuditConfig) *AdmissionAuditWebhook {
-
 	if config == nil {
-
 		config = DefaultAdmissionAuditConfig()
-
 	}
 
 	return &AdmissionAuditWebhook{
-
 		auditSystem: auditSystem,
 
 		config: config,
@@ -271,13 +265,11 @@ func NewAdmissionAuditWebhook(auditSystem *AuditSystem, scheme *runtime.Scheme, 
 
 		codecs: serializer.NewCodecFactory(scheme),
 	}
-
 }
 
 // SetupWebhookServer sets up the admission webhook server.
 
 func (w *AdmissionAuditWebhook) SetupWebhookServer() *http.ServeMux {
-
 	mux := http.NewServeMux()
 
 	// Validating admission controller endpoint.
@@ -289,29 +281,23 @@ func (w *AdmissionAuditWebhook) SetupWebhookServer() *http.ServeMux {
 	mux.HandleFunc(MutatingWebhookPath, w.handleMutatingAdmission)
 
 	return mux
-
 }
 
 // handleValidatingAdmission handles validating admission requests.
 
 func (w *AdmissionAuditWebhook) handleValidatingAdmission(rw http.ResponseWriter, req *http.Request) {
-
 	w.handleAdmissionRequest(rw, req, "validating")
-
 }
 
 // handleMutatingAdmission handles mutating admission requests.
 
 func (w *AdmissionAuditWebhook) handleMutatingAdmission(rw http.ResponseWriter, req *http.Request) {
-
 	w.handleAdmissionRequest(rw, req, "mutating")
-
 }
 
 // handleAdmissionRequest processes admission requests and creates audit events.
 
 func (w *AdmissionAuditWebhook) handleAdmissionRequest(rw http.ResponseWriter, req *http.Request, webhookType string) {
-
 	if !w.config.Enabled {
 
 		w.sendErrorResponse(rw, fmt.Errorf("admission auditing is disabled"))
@@ -367,13 +353,9 @@ func (w *AdmissionAuditWebhook) handleAdmissionRequest(rw http.ResponseWriter, r
 	var violations []PolicyViolation
 
 	if webhookType == "validating" {
-
 		response, violations = w.processValidatingRequest(admissionRequest)
-
 	} else {
-
 		response, violations = w.processMutatingRequest(admissionRequest)
-
 	}
 
 	// Create response info.
@@ -391,27 +373,22 @@ func (w *AdmissionAuditWebhook) handleAdmissionRequest(rw http.ResponseWriter, r
 	admissionReview.Response = response
 
 	w.sendAdmissionResponse(rw, admissionReview)
-
 }
 
 // processValidatingRequest processes validating admission requests.
 
 func (w *AdmissionAuditWebhook) processValidatingRequest(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, []PolicyViolation) {
-
 	var violations []PolicyViolation
 
 	// Check security policies if enforcement is enabled.
 
 	if w.config.PolicyEnforcement != nil && w.config.PolicyEnforcement.Enabled {
-
 		violations = w.checkSecurityPolicies(req)
-
 	}
 
 	// Create response.
 
 	response := &admissionv1.AdmissionResponse{
-
 		UID: req.UID,
 
 		Allowed: len(violations) == 0,
@@ -424,13 +401,10 @@ func (w *AdmissionAuditWebhook) processValidatingRequest(req *admissionv1.Admiss
 		messages := make([]string, len(violations))
 
 		for i, v := range violations {
-
 			messages[i] = fmt.Sprintf("%s: %s", v.PolicyName, v.Violation)
-
 		}
 
 		response.Result = &metav1.Status{
-
 			Code: http.StatusForbidden,
 
 			Reason: metav1.StatusReasonForbidden,
@@ -441,17 +415,14 @@ func (w *AdmissionAuditWebhook) processValidatingRequest(req *admissionv1.Admiss
 	}
 
 	return response, violations
-
 }
 
 // processMutatingRequest processes mutating admission requests.
 
 func (w *AdmissionAuditWebhook) processMutatingRequest(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, []PolicyViolation) {
-
 	// For mutating webhooks, we typically modify the request rather than deny it.
 
 	response := &admissionv1.AdmissionResponse{
-
 		UID: req.UID,
 
 		Allowed: true,
@@ -466,9 +437,7 @@ func (w *AdmissionAuditWebhook) processMutatingRequest(req *admissionv1.Admissio
 		patchBytes, err := json.Marshal(patches)
 
 		if err != nil {
-
 			w.logger.Error(err, "Failed to marshal patches")
-
 		} else {
 
 			patchType := admissionv1.PatchTypeJSONPatch
@@ -482,21 +451,17 @@ func (w *AdmissionAuditWebhook) processMutatingRequest(req *admissionv1.Admissio
 	}
 
 	return response, []PolicyViolation{}
-
 }
 
 // checkSecurityPolicies checks various security policies.
 
 func (w *AdmissionAuditWebhook) checkSecurityPolicies(req *admissionv1.AdmissionRequest) []PolicyViolation {
-
 	var violations []PolicyViolation
 
 	// Only check pods for now (can be extended to other resources).
 
 	if req.Kind.Kind != "Pod" {
-
 		return violations
-
 	}
 
 	// Decode the pod object.
@@ -514,33 +479,25 @@ func (w *AdmissionAuditWebhook) checkSecurityPolicies(req *admissionv1.Admission
 	// Check privileged containers.
 
 	if w.config.PolicyEnforcement.BlockPrivilegedContainers {
-
 		violations = append(violations, w.checkPrivilegedContainers(pod)...)
-
 	}
 
 	// Check security context requirements.
 
 	if w.config.PolicyEnforcement.RequireSecurityContext {
-
 		violations = append(violations, w.checkSecurityContext(pod)...)
-
 	}
 
 	// Check read-only root filesystem.
 
 	if w.config.PolicyEnforcement.RequireReadOnlyRootFilesystem {
-
 		violations = append(violations, w.checkReadOnlyRootFilesystem(pod)...)
-
 	}
 
 	// Check host network.
 
 	if w.config.PolicyEnforcement.BlockHostNetwork && pod.Spec.HostNetwork {
-
 		violations = append(violations, PolicyViolation{
-
 			PolicyName: "block-host-network",
 
 			Violation: "hostNetwork is not allowed",
@@ -551,15 +508,12 @@ func (w *AdmissionAuditWebhook) checkSecurityPolicies(req *admissionv1.Admission
 
 			Remediation: "Set hostNetwork to false or remove the field",
 		})
-
 	}
 
 	// Check host PID.
 
 	if w.config.PolicyEnforcement.BlockHostPID && pod.Spec.HostPID {
-
 		violations = append(violations, PolicyViolation{
-
 			PolicyName: "block-host-pid",
 
 			Violation: "hostPID is not allowed",
@@ -570,47 +524,37 @@ func (w *AdmissionAuditWebhook) checkSecurityPolicies(req *admissionv1.Admission
 
 			Remediation: "Set hostPID to false or remove the field",
 		})
-
 	}
 
 	// Check container registries.
 
 	if len(w.config.PolicyEnforcement.AllowedRegistries) > 0 {
-
 		violations = append(violations, w.checkAllowedRegistries(pod)...)
-
 	}
 
 	// Check required labels.
 
 	if len(w.config.PolicyEnforcement.RequiredLabels) > 0 {
-
 		violations = append(violations, w.checkRequiredLabels(pod)...)
-
 	}
 
 	// Check forbidden annotations.
 
 	if len(w.config.PolicyEnforcement.ForbiddenAnnotations) > 0 {
-
 		violations = append(violations, w.checkForbiddenAnnotations(pod)...)
-
 	}
 
 	return violations
-
 }
 
 // checkPrivilegedContainers checks for privileged containers.
 
 func (w *AdmissionAuditWebhook) checkPrivilegedContainers(pod *corev1.Pod) []PolicyViolation {
-
 	var violations []PolicyViolation
 
 	allContainers := append(pod.Spec.Containers, pod.Spec.InitContainers...)
 
 	for _, container := range allContainers {
-
 		if container.SecurityContext != nil &&
 
 			container.SecurityContext.Privileged != nil &&
@@ -618,7 +562,6 @@ func (w *AdmissionAuditWebhook) checkPrivilegedContainers(pod *corev1.Pod) []Pol
 			*container.SecurityContext.Privileged {
 
 			violations = append(violations, PolicyViolation{
-
 				PolicyName: "block-privileged-containers",
 
 				Violation: fmt.Sprintf("Container '%s' is privileged", container.Name),
@@ -631,29 +574,22 @@ func (w *AdmissionAuditWebhook) checkPrivilegedContainers(pod *corev1.Pod) []Pol
 
 				Metadata: map[string]string{"container": container.Name},
 			})
-
 		}
-
 	}
 
 	return violations
-
 }
 
 // checkSecurityContext checks for required security context.
 
 func (w *AdmissionAuditWebhook) checkSecurityContext(pod *corev1.Pod) []PolicyViolation {
-
 	var violations []PolicyViolation
 
 	allContainers := append(pod.Spec.Containers, pod.Spec.InitContainers...)
 
 	for _, container := range allContainers {
-
 		if container.SecurityContext == nil {
-
 			violations = append(violations, PolicyViolation{
-
 				PolicyName: "require-security-context",
 
 				Violation: fmt.Sprintf("Container '%s' missing security context", container.Name),
@@ -666,25 +602,20 @@ func (w *AdmissionAuditWebhook) checkSecurityContext(pod *corev1.Pod) []PolicyVi
 
 				Metadata: map[string]string{"container": container.Name},
 			})
-
 		}
-
 	}
 
 	return violations
-
 }
 
 // checkReadOnlyRootFilesystem checks for read-only root filesystem.
 
 func (w *AdmissionAuditWebhook) checkReadOnlyRootFilesystem(pod *corev1.Pod) []PolicyViolation {
-
 	var violations []PolicyViolation
 
 	allContainers := append(pod.Spec.Containers, pod.Spec.InitContainers...)
 
 	for _, container := range allContainers {
-
 		if container.SecurityContext == nil ||
 
 			container.SecurityContext.ReadOnlyRootFilesystem == nil ||
@@ -692,7 +623,6 @@ func (w *AdmissionAuditWebhook) checkReadOnlyRootFilesystem(pod *corev1.Pod) []P
 			!*container.SecurityContext.ReadOnlyRootFilesystem {
 
 			violations = append(violations, PolicyViolation{
-
 				PolicyName: "require-readonly-root-filesystem",
 
 				Violation: fmt.Sprintf("Container '%s' does not have read-only root filesystem", container.Name),
@@ -705,19 +635,15 @@ func (w *AdmissionAuditWebhook) checkReadOnlyRootFilesystem(pod *corev1.Pod) []P
 
 				Metadata: map[string]string{"container": container.Name},
 			})
-
 		}
-
 	}
 
 	return violations
-
 }
 
 // checkAllowedRegistries checks if container images are from allowed registries.
 
 func (w *AdmissionAuditWebhook) checkAllowedRegistries(pod *corev1.Pod) []PolicyViolation {
-
 	var violations []PolicyViolation
 
 	allContainers := append(pod.Spec.Containers, pod.Spec.InitContainers...)
@@ -727,7 +653,6 @@ func (w *AdmissionAuditWebhook) checkAllowedRegistries(pod *corev1.Pod) []Policy
 		allowed := false
 
 		for _, allowedRegistry := range w.config.PolicyEnforcement.AllowedRegistries {
-
 			if strings.HasPrefix(container.Image, allowedRegistry) {
 
 				allowed = true
@@ -735,13 +660,10 @@ func (w *AdmissionAuditWebhook) checkAllowedRegistries(pod *corev1.Pod) []Policy
 				break
 
 			}
-
 		}
 
 		if !allowed {
-
 			violations = append(violations, PolicyViolation{
-
 				PolicyName: "allowed-registries",
 
 				Violation: fmt.Sprintf("Container '%s' uses disallowed registry", container.Name),
@@ -754,27 +676,21 @@ func (w *AdmissionAuditWebhook) checkAllowedRegistries(pod *corev1.Pod) []Policy
 
 				Metadata: map[string]string{"container": container.Name, "image": container.Image},
 			})
-
 		}
 
 	}
 
 	return violations
-
 }
 
 // checkRequiredLabels checks for required labels.
 
 func (w *AdmissionAuditWebhook) checkRequiredLabels(pod *corev1.Pod) []PolicyViolation {
-
 	var violations []PolicyViolation
 
 	for key, expectedValue := range w.config.PolicyEnforcement.RequiredLabels {
-
 		if actualValue, exists := pod.Labels[key]; !exists {
-
 			violations = append(violations, PolicyViolation{
-
 				PolicyName: "required-labels",
 
 				Violation: fmt.Sprintf("Required label '%s' is missing", key),
@@ -787,11 +703,8 @@ func (w *AdmissionAuditWebhook) checkRequiredLabels(pod *corev1.Pod) []PolicyVio
 
 				Metadata: map[string]string{"missing_label": key, "expected_value": expectedValue},
 			})
-
 		} else if expectedValue != "" && actualValue != expectedValue {
-
 			violations = append(violations, PolicyViolation{
-
 				PolicyName: "required-labels",
 
 				Violation: fmt.Sprintf("Label '%s' has incorrect value", key),
@@ -804,27 +717,20 @@ func (w *AdmissionAuditWebhook) checkRequiredLabels(pod *corev1.Pod) []PolicyVio
 
 				Metadata: map[string]string{"label": key, "expected_value": expectedValue, "actual_value": actualValue},
 			})
-
 		}
-
 	}
 
 	return violations
-
 }
 
 // checkForbiddenAnnotations checks for forbidden annotations.
 
 func (w *AdmissionAuditWebhook) checkForbiddenAnnotations(pod *corev1.Pod) []PolicyViolation {
-
 	var violations []PolicyViolation
 
 	for _, forbiddenAnnotation := range w.config.PolicyEnforcement.ForbiddenAnnotations {
-
 		if _, exists := pod.Annotations[forbiddenAnnotation]; exists {
-
 			violations = append(violations, PolicyViolation{
-
 				PolicyName: "forbidden-annotations",
 
 				Violation: fmt.Sprintf("Forbidden annotation '%s' is present", forbiddenAnnotation),
@@ -837,19 +743,15 @@ func (w *AdmissionAuditWebhook) checkForbiddenAnnotations(pod *corev1.Pod) []Pol
 
 				Metadata: map[string]string{"forbidden_annotation": forbiddenAnnotation},
 			})
-
 		}
-
 	}
 
 	return violations
-
 }
 
 // generateSecurityPatches generates JSON patches for security mutations.
 
 func (w *AdmissionAuditWebhook) generateSecurityPatches(req *admissionv1.AdmissionRequest) []map[string]interface{} {
-
 	// This is a placeholder for mutating webhook patches.
 
 	// In practice, you would generate appropriate JSON patch operations.
@@ -858,25 +760,17 @@ func (w *AdmissionAuditWebhook) generateSecurityPatches(req *admissionv1.Admissi
 
 	// Example: Add security labels.
 
-	patches = append(patches, map[string]interface{}{
-
-		"op": "add",
-
-		"path": "/metadata/labels/security.nephoran.io~1audited",
-
-		"value": "true",
-	})
+	// Create empty patch map
+	emptyPatch := make(map[string]interface{})
+	patches = append(patches, emptyPatch)
 
 	return patches
-
 }
 
 // Helper methods.
 
 func (w *AdmissionAuditWebhook) createAdmissionEventInfo(req *admissionv1.AdmissionRequest, webhookType string) *AdmissionEventInfo {
-
 	return &AdmissionEventInfo{
-
 		UID: string(req.UID),
 
 		Kind: req.Kind,
@@ -892,7 +786,6 @@ func (w *AdmissionAuditWebhook) createAdmissionEventInfo(req *admissionv1.Admiss
 		Operation: req.Operation,
 
 		UserInfo: &AdmissionUserInfo{
-
 			Username: req.UserInfo.Username,
 
 			UID: req.UserInfo.UID,
@@ -916,13 +809,10 @@ func (w *AdmissionAuditWebhook) createAdmissionEventInfo(req *admissionv1.Admiss
 
 		AdmissionTime: time.Now().UTC(),
 	}
-
 }
 
 func (w *AdmissionAuditWebhook) createAdmissionResponseInfo(resp *admissionv1.AdmissionResponse, processingTime time.Duration) *AdmissionResponseInfo {
-
 	return &AdmissionResponseInfo{
-
 		UID: string(resp.UID),
 
 		Allowed: resp.Allowed,
@@ -939,27 +829,19 @@ func (w *AdmissionAuditWebhook) createAdmissionResponseInfo(resp *admissionv1.Ad
 
 		ProcessingTime: processingTime,
 	}
-
 }
 
 func (w *AdmissionAuditWebhook) createAdmissionAuditEvent(eventInfo *AdmissionEventInfo, responseInfo *AdmissionResponseInfo, violations []PolicyViolation, webhookType string) {
-
 	// Determine event type and severity.
 
 	eventType := EventTypeAuthorization
 
 	if eventInfo.Operation == admissionv1.Create {
-
 		eventType = EventTypeDataCreate
-
 	} else if eventInfo.Operation == admissionv1.Update {
-
 		eventType = EventTypeDataUpdate
-
 	} else if eventInfo.Operation == admissionv1.Delete {
-
 		eventType = EventTypeDataDelete
-
 	}
 
 	severity := SeverityInfo
@@ -975,7 +857,6 @@ func (w *AdmissionAuditWebhook) createAdmissionAuditEvent(eventInfo *AdmissionEv
 		// Check for critical violations.
 
 		for _, violation := range violations {
-
 			if violation.Severity == "critical" {
 
 				severity = SeverityCritical
@@ -983,11 +864,8 @@ func (w *AdmissionAuditWebhook) createAdmissionAuditEvent(eventInfo *AdmissionEv
 				break
 
 			} else if violation.Severity == "high" && severity < SeverityError {
-
 				severity = SeverityError
-
 			}
-
 		}
 
 	}
@@ -1015,9 +893,7 @@ func (w *AdmissionAuditWebhook) createAdmissionAuditEvent(eventInfo *AdmissionEv
 	if eventInfo.Namespace != "" {
 
 		if event.SystemContext == nil {
-
 			event.SystemContext = &SystemContext{}
-
 		}
 
 		event.SystemContext.Namespace = eventInfo.Namespace
@@ -1037,7 +913,6 @@ func (w *AdmissionAuditWebhook) createAdmissionAuditEvent(eventInfo *AdmissionEv
 	// Log the event.
 
 	if err := w.auditSystem.LogEvent(event); err != nil {
-
 		w.logger.Error(err, "Failed to log admission audit event",
 
 			"request_uid", eventInfo.UID,
@@ -1045,23 +920,16 @@ func (w *AdmissionAuditWebhook) createAdmissionAuditEvent(eventInfo *AdmissionEv
 			"resource", eventInfo.Kind.Kind,
 
 			"operation", eventInfo.Operation)
-
 	}
-
 }
 
 func (w *AdmissionAuditWebhook) shouldExcludeRequest(req *admissionv1.AdmissionRequest) bool {
-
 	// Check excluded namespaces.
 
 	for _, excludedNS := range w.config.ExcludeNamespaces {
-
 		if req.Namespace == excludedNS {
-
 			return true
-
 		}
-
 	}
 
 	// Check excluded resources.
@@ -1069,68 +937,50 @@ func (w *AdmissionAuditWebhook) shouldExcludeRequest(req *admissionv1.AdmissionR
 	resourceKey := fmt.Sprintf("%s/%s", req.Resource.Group, req.Resource.Resource)
 
 	for _, excludedResource := range w.config.ExcludeResources {
-
 		if resourceKey == excludedResource || req.Resource.Resource == excludedResource {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 func (w *AdmissionAuditWebhook) decodeAdmissionReview(req *http.Request, ar *admissionv1.AdmissionReview) error {
-
 	decoder := w.codecs.UniversalDeserializer()
 
 	body, err := io.ReadAll(req.Body)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to read request body: %w", err)
-
 	}
 
 	_, _, err = decoder.Decode(body, nil, ar)
 
 	return err
-
 }
 
 func (w *AdmissionAuditWebhook) decodeObject(rawExtension runtime.RawExtension, obj runtime.Object) error {
-
 	decoder := w.codecs.UniversalDeserializer()
 
 	_, _, err := decoder.Decode(rawExtension.Raw, nil, obj)
 
 	return err
-
 }
 
 func (w *AdmissionAuditWebhook) sendAdmissionResponse(rw http.ResponseWriter, ar *admissionv1.AdmissionReview) {
-
 	rw.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(rw).Encode(ar)
-
 }
 
 func (w *AdmissionAuditWebhook) sendAllowedResponse(rw http.ResponseWriter, uid string) {
-
 	response := &admissionv1.AdmissionReview{
-
 		TypeMeta: metav1.TypeMeta{
-
 			APIVersion: "admission.k8s.io/v1",
 
 			Kind: "AdmissionReview",
 		},
 
 		Response: &admissionv1.AdmissionResponse{
-
 			UID: types.UID(uid),
 
 			Allowed: true,
@@ -1138,21 +988,16 @@ func (w *AdmissionAuditWebhook) sendAllowedResponse(rw http.ResponseWriter, uid 
 	}
 
 	w.sendAdmissionResponse(rw, response)
-
 }
 
 func (w *AdmissionAuditWebhook) sendErrorResponse(rw http.ResponseWriter, err error) {
-
 	http.Error(rw, err.Error(), http.StatusInternalServerError)
-
 }
 
 // DefaultAdmissionAuditConfig returns a default admission audit configuration.
 
 func DefaultAdmissionAuditConfig() *AdmissionAuditConfig {
-
 	return &AdmissionAuditConfig{
-
 		Enabled: true,
 
 		AuditLevel: "standard",
@@ -1174,7 +1019,6 @@ func DefaultAdmissionAuditConfig() *AdmissionAuditConfig {
 		AlertOnDenial: true,
 
 		PolicyEnforcement: &PolicyEnforcementConfig{
-
 			Enabled: false,
 
 			RequireSecurityContext: false,
@@ -1194,57 +1038,41 @@ func DefaultAdmissionAuditConfig() *AdmissionAuditConfig {
 			ForbiddenAnnotations: []string{},
 		},
 	}
-
 }
 
 // isSensitiveResource checks if a resource is considered sensitive.
 
 func (w *AdmissionAuditWebhook) isSensitiveResource(resource string) bool {
-
 	for _, sensitive := range w.config.SensitiveResources {
-
 		if resource == sensitive {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 // isHighRiskOperation checks if an operation is considered high risk.
 
 func (w *AdmissionAuditWebhook) isHighRiskOperation(operation admissionv1.Operation) bool {
-
 	for _, highRisk := range w.config.HighRiskOperations {
-
 		if string(operation) == highRisk {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 // convertExtraValues converts authentication v1 ExtraValue to []string.
 
 func convertExtraValues(extra map[string]authenticationv1.ExtraValue) map[string][]string {
-
 	result := make(map[string][]string)
 
 	for k, v := range extra {
-
 		result[k] = []string(v)
-
 	}
 
 	return result
-
 }
+

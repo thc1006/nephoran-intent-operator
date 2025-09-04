@@ -20,20 +20,20 @@ type Metrics struct {
 	JSONProcessingErrors  prometheus.Counter
 
 	// Memory metrics
-	HeapAlloc     prometheus.Gauge
-	HeapSys       prometheus.Gauge
-	HeapIdle      prometheus.Gauge
-	HeapInuse     prometheus.Gauge
-	HeapReleased  prometheus.Gauge
-	StackInuse    prometheus.Gauge
-	StackSys      prometheus.Gauge
-	MSpanInuse    prometheus.Gauge
-	MSpanSys      prometheus.Gauge
-	MCacheInuse   prometheus.Gauge
-	MCacheSys     prometheus.Gauge
-	GCPauseTotal  prometheus.Gauge
-	GCCount       prometheus.Gauge
-	Goroutines    prometheus.Gauge
+	HeapAlloc    prometheus.Gauge
+	HeapSys      prometheus.Gauge
+	HeapIdle     prometheus.Gauge
+	HeapInuse    prometheus.Gauge
+	HeapReleased prometheus.Gauge
+	StackInuse   prometheus.Gauge
+	StackSys     prometheus.Gauge
+	MSpanInuse   prometheus.Gauge
+	MSpanSys     prometheus.Gauge
+	MCacheInuse  prometheus.Gauge
+	MCacheSys    prometheus.Gauge
+	GCPauseTotal prometheus.Gauge
+	GCCount      prometheus.Gauge
+	Goroutines   prometheus.Gauge
 
 	// HTTP/2 metrics
 	HTTP2StreamsActive    prometheus.Gauge
@@ -43,10 +43,10 @@ type Metrics struct {
 	HTTP2ConnectionErrors prometheus.Counter
 
 	// Cache metrics
-	CacheHits   *prometheus.CounterVec
-	CacheMisses *prometheus.CounterVec
+	CacheHits      *prometheus.CounterVec
+	CacheMisses    *prometheus.CounterVec
 	CacheEvictions *prometheus.CounterVec
-	CacheSize   *prometheus.GaugeVec
+	CacheSize      *prometheus.GaugeVec
 
 	// Database metrics
 	DBConnectionsActive prometheus.Gauge
@@ -55,10 +55,10 @@ type Metrics struct {
 	DBQueryErrors       *prometheus.CounterVec
 
 	// Business metrics
-	IntentsProcessed   *prometheus.CounterVec
-	IntentLatency      *prometheus.HistogramVec
-	ScalingOperations  *prometheus.CounterVec
-	ScalingDuration    *prometheus.HistogramVec
+	IntentsProcessed  *prometheus.CounterVec
+	IntentLatency     *prometheus.HistogramVec
+	ScalingOperations *prometheus.CounterVec
+	ScalingDuration   *prometheus.HistogramVec
 }
 
 // NewMetrics creates and registers all performance metrics
@@ -472,9 +472,9 @@ func (m *Metrics) RecordScalingOperation(direction, resourceType, status string,
 
 // Helper function for string contains
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && s[:len(substr)] == substr || 
-		   len(s) >= len(substr) && s[len(s)-len(substr):] == substr ||
-		   findSubstring(s, substr)
+	return len(s) >= len(substr) && s[:len(substr)] == substr ||
+		len(s) >= len(substr) && s[len(s)-len(substr):] == substr ||
+		findSubstring(s, substr)
 }
 
 func findSubstring(s, substr string) bool {

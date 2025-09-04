@@ -90,7 +90,7 @@ func (suite *LLMProcessorServiceTestSuite) TestInitializeWithValidConfig() {
 
 func (suite *LLMProcessorServiceTestSuite) TestInitializeSecretManagerDisabled() {
 	suite.config.UseKubernetesSecrets = false
-	
+
 	err := suite.service.initializeSecretManager()
 	assert.NoError(suite.T(), err)
 	assert.Nil(suite.T(), suite.service.secretManager)
@@ -99,7 +99,7 @@ func (suite *LLMProcessorServiceTestSuite) TestInitializeSecretManagerDisabled()
 func (suite *LLMProcessorServiceTestSuite) TestInitializeSecretManagerEnabled() {
 	suite.config.UseKubernetesSecrets = true
 	suite.config.SecretNamespace = "test-namespace"
-	
+
 	err := suite.service.initializeSecretManager()
 	// In test environment, this might fail but shouldn't panic
 	if err != nil {
@@ -147,7 +147,7 @@ func (suite *LLMProcessorServiceTestSuite) TestShutdown() {
 func (suite *LLMProcessorServiceTestSuite) TestShutdownWithTimeout() {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
 	defer cancel()
-	
+
 	// Even with a short timeout, shutdown should handle it gracefully
 	err := suite.service.Shutdown(ctx)
 	assert.NoError(suite.T(), err)
@@ -259,13 +259,13 @@ func (suite *LLMProcessorServiceTestSuite) TestValidateLLMConfig() {
 // API Key Loading Tests
 func (suite *LLMProcessorServiceTestSuite) TestLoadSecureAPIKeys() {
 	ctx := context.Background()
-	
+
 	// This will attempt to load from files or environment
 	apiKeys, err := suite.service.loadSecureAPIKeys(ctx)
-	
+
 	// In test environment, this might not find any keys, but should not panic
 	assert.NotNil(suite.T(), apiKeys)
-	
+
 	if err != nil {
 		suite.T().Logf("Load API keys returned error (expected in test environment): %v", err)
 	}
@@ -275,23 +275,23 @@ func (suite *LLMProcessorServiceTestSuite) TestLoadSecureAPIKeys() {
 func (suite *LLMProcessorServiceTestSuite) TestRegisterHealthChecks() {
 	// Initialize health checker first
 	suite.service.healthChecker = health.NewHealthChecker("test-service", "1.0.0", suite.logger)
-	
+
 	// This should not panic
 	suite.service.registerHealthChecks()
-	
+
 	// Verify health checker is still functional
 	assert.True(suite.T(), suite.service.healthChecker.IsReady())
 }
 
 func (suite *LLMProcessorServiceTestSuite) TestRegisterHealthChecksWithCircuitBreaker() {
 	suite.service.healthChecker = health.NewHealthChecker("test-service", "1.0.0", suite.logger)
-	
+
 	// Create a real circuit breaker manager (not a mock)
 	cbMgr := llm.NewCircuitBreakerManager(nil)
 	suite.service.circuitBreakerMgr = cbMgr
-	
+
 	suite.service.registerHealthChecks()
-	
+
 	// Test health checker functionality
 	assert.True(suite.T(), suite.service.healthChecker.IsReady())
 }
@@ -301,17 +301,17 @@ func (suite *LLMProcessorServiceTestSuite) TestInitializationFailure() {
 	// Test with invalid configuration that should fail
 	invalidConfig := &config.LLMProcessorConfig{
 		ServiceVersion: "1.0.0",
-		LLMAPIKey:      "",        // Empty API key
-		LLMBackendType: "openai",  // Non-mock backend
-		LLMModelName:   "",        // Empty model name
-		RAGAPIURL:      "",        // Empty RAG URL
+		LLMAPIKey:      "",       // Empty API key
+		LLMBackendType: "openai", // Non-mock backend
+		LLMModelName:   "",       // Empty model name
+		RAGAPIURL:      "",       // Empty RAG URL
 		Port:           "8080",
 		LogLevel:       "info",
 	}
-	
+
 	service := NewLLMProcessorService(invalidConfig, suite.logger)
 	ctx := context.Background()
-	
+
 	err := service.Initialize(ctx)
 	// Should fail due to invalid configuration
 	assert.Error(suite.T(), err)
@@ -320,13 +320,13 @@ func (suite *LLMProcessorServiceTestSuite) TestInitializationFailure() {
 // Edge Case Tests
 func (suite *LLMProcessorServiceTestSuite) TestMultipleInitializeCalls() {
 	ctx := context.Background()
-	
+
 	// First initialization
 	err1 := suite.service.Initialize(ctx)
-	
+
 	// Second initialization (should handle gracefully)
 	err2 := suite.service.Initialize(ctx)
-	
+
 	// Both calls should either succeed or fail consistently
 	if err1 != nil {
 		assert.Error(suite.T(), err2)
@@ -338,9 +338,9 @@ func (suite *LLMProcessorServiceTestSuite) TestMultipleInitializeCalls() {
 
 func (suite *LLMProcessorServiceTestSuite) TestConcurrentShutdown() {
 	ctx := context.Background()
-	
+
 	done := make(chan error, 2)
-	
+
 	// Launch two concurrent shutdown calls
 	go func() {
 		done <- suite.service.Shutdown(ctx)
@@ -348,11 +348,11 @@ func (suite *LLMProcessorServiceTestSuite) TestConcurrentShutdown() {
 	go func() {
 		done <- suite.service.Shutdown(ctx)
 	}()
-	
+
 	// Both should complete without hanging
 	err1 := <-done
 	err2 := <-done
-	
+
 	assert.NoError(suite.T(), err1)
 	assert.NoError(suite.T(), err2)
 }
@@ -389,23 +389,22 @@ func (suite *LLMProcessorServiceTestSuite) TestConfigurationScenarios() {
 			},
 		},
 	}
-	
+
 	for _, scenario := range scenarios {
 		suite.T().Run(scenario.name, func(t *testing.T) {
 			cfg := suite.setupMinimalConfig()
 			scenario.modifier(cfg)
-			
+
 			service := NewLLMProcessorService(cfg, suite.logger)
 			assert.NotNil(t, service)
-			
+
 			// Test initialization (may fail in test environment, but shouldn't panic)
 			ctx := context.Background()
 			err := service.Initialize(ctx)
-			
 			if err != nil {
 				suite.T().Logf("Scenario %s failed initialization (expected in test): %v", scenario.name, err)
 			}
-			
+
 			// Test shutdown
 			shutdownErr := service.Shutdown(ctx)
 			assert.NoError(t, shutdownErr)
@@ -443,13 +442,13 @@ func TestNewLLMProcessorService(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}))
-	
+
 	config := &config.LLMProcessorConfig{
 		ServiceVersion: "1.0.0",
-		Port:          "8080",
-		LogLevel:      "info",
+		Port:           "8080",
+		LogLevel:       "info",
 	}
-	
+
 	service := NewLLMProcessorService(config, logger)
 	assert.NotNil(t, service)
 	assert.Equal(t, config, service.config)
@@ -460,13 +459,13 @@ func TestNewLLMProcessor(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}))
-	
+
 	config := &config.LLMProcessorConfig{
 		ServiceVersion: "1.0.0",
-		Port:          "8080",
-		LogLevel:      "info",
+		Port:           "8080",
+		LogLevel:       "info",
 	}
-	
+
 	processor := NewLLMProcessor(config, logger)
 	assert.NotNil(t, processor)
 	assert.Equal(t, config, processor.config)

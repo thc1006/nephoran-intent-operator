@@ -224,17 +224,16 @@ func (suite *AuditTrailControllerTestSuite) TestConfigurationHandling() {
 						Settings: runtime.RawExtension{
 							Raw: []byte(`{"urls": ["http://localhost:9200"], "index": "audit-logs"}`),
 						},
-						RetryPolicy: &nephv1.RetryPolicy{
-							MaxRetries:    5,
-							InitialDelay:  2,
-							MaxDelay:      30,
-							BackoffFactor: 2.0,
+						RetryPolicy: &nephv1.RetryPolicySpec{
+							MaxRetries:   5,
+							InitialDelay: 2,
+							MaxDelay:     30,
 						},
-						TLS: &nephv1.TLSConfig{
+						TLS: &nephv1.TLSConfigSpec{
 							Enabled:    true,
 							ServerName: "elasticsearch.local",
 						},
-						Filter: &nephv1.FilterConfig{
+						Filter: &nephv1.FilterConfigSpec{
 							MinSeverity:   "error",
 							EventTypes:    []string{"authentication", "authorization"},
 							Components:    []string{"auth-service"},
@@ -390,7 +389,6 @@ func (suite *AuditTrailControllerTestSuite) TestErrorHandling() {
 				Namespace: "default",
 			},
 		})
-
 		// Should not crash, might return error or handle gracefully
 		if err != nil {
 			suite.T().Logf("Expected error handling malformed config: %v", err)
@@ -708,18 +706,7 @@ func (suite *AuditTrailControllerTestSuite) TestKubernetesIntegration() {
 						Enabled: true,
 						Name:    "secret-webhook",
 						Settings: runtime.RawExtension{
-							Raw: []byte(`{"url": "https://webhook.example.com/audit"}`),
-						},
-						Auth: nephv1.AuthConfig{
-							Type: "basic",
-							SecretRef: &nephv1.SecretReference{
-								Name: "audit-backend-secret",
-								Key:  "username",
-							},
-							PasswordSecretRef: &nephv1.SecretReference{
-								Name: "audit-backend-secret",
-								Key:  "password",
-							},
+							Raw: []byte(`{"url": "https://webhook.example.com/audit", "auth": {"type": "basic", "username_secret": "audit-backend-secret", "password_secret": "audit-backend-secret"}}`),
 						},
 					},
 				},
@@ -746,10 +733,8 @@ func (suite *AuditTrailControllerTestSuite) TestKubernetesIntegration() {
 	suite.Run("configmap reference handling", func() {
 		// Create a configmap for backend configuration
 		configData := map[string]interface{}{
-			"elasticsearch": map[string]interface{}{
-				"urls":  []string{"http://elasticsearch:9200"},
-				"index": "audit-logs",
-			},
+			"urls":  []string{"http://elasticsearch:9200"},
+			"index": "audit-logs",
 		}
 		configBytes, _ := json.Marshal(configData)
 
@@ -778,9 +763,8 @@ func (suite *AuditTrailControllerTestSuite) TestKubernetesIntegration() {
 						Type:    "elasticsearch",
 						Enabled: true,
 						Name:    "configmap-elasticsearch",
-						ConfigMapRef: &nephv1.ConfigMapReference{
-							Name: "audit-backend-config",
-							Key:  "elasticsearch.json",
+						Settings: runtime.RawExtension{
+							Raw: []byte(`{"urls": ["http://localhost:9200"], "index": "audit-logs", "config_from_configmap": {"name": "audit-backend-config", "key": "elasticsearch.json"}}`),
 						},
 					},
 				},
@@ -858,13 +842,8 @@ func BenchmarkAuditTrailControllerReconcile(b *testing.B) {
 
 // Test helper functions
 
-func findCondition(conditions []metav1.Condition, conditionType string) *metav1.Condition {
-	for _, condition := range conditions {
-		if condition.Type == conditionType {
-			return &condition
-		}
-	}
-	return nil
+func int64Ptr(i int64) *int64 {
+	return &i
 }
 
 // Table-driven tests for various scenarios

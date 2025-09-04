@@ -71,7 +71,7 @@ func TestUnixPathSecurityValidation(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				baseDir := t.TempDir()
 				hiddenDir := filepath.Join(baseDir, ".hidden", "output")
-				require.NoError(t, os.MkdirAll(hiddenDir, 0755))
+				require.NoError(t, os.MkdirAll(hiddenDir, 0o755))
 				return baseDir
 			},
 			configFunc: func(baseDir string) Config {
@@ -90,7 +90,7 @@ func TestUnixPathSecurityValidation(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				baseDir := t.TempDir()
 				spacedDir := filepath.Join(baseDir, "my output", "with spaces")
-				require.NoError(t, os.MkdirAll(spacedDir, 0755))
+				require.NoError(t, os.MkdirAll(spacedDir, 0o755))
 				return baseDir
 			},
 			configFunc: func(baseDir string) Config {
@@ -216,9 +216,9 @@ func TestUnixFilePermissions(t *testing.T) {
 
 	// Create a directory with no write permissions
 	readOnlyDir := filepath.Join(tempDir, "readonly")
-	require.NoError(t, os.MkdirAll(readOnlyDir, 0755))
-	require.NoError(t, os.Chmod(readOnlyDir, 0555))
-	defer os.Chmod(readOnlyDir, 0755) // Restore permissions for cleanup
+	require.NoError(t, os.MkdirAll(readOnlyDir, 0o755))
+	require.NoError(t, os.Chmod(readOnlyDir, 0o555))
+	defer os.Chmod(readOnlyDir, 0o755) // Restore permissions for cleanup
 
 	config := Config{
 		PorchPath:   "porch",

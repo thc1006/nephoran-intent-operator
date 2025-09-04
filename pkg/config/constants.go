@@ -12,7 +12,6 @@ import (
 // Constants defines all configurable constants for the Nephoran Intent Operator.
 
 type Constants struct {
-
 	// Controller Configuration.
 
 	NetworkIntentFinalizer string
@@ -125,7 +124,6 @@ type Constants struct {
 // Default values for all constants.
 
 var defaultConstants = Constants{
-
 	// Controller Configuration.
 
 	NetworkIntentFinalizer: "networkintent.nephoran.com/finalizer",
@@ -177,7 +175,6 @@ var defaultConstants = Constants{
 	ContextBoundary: "===NEPHORAN_BOUNDARY===",
 
 	AllowedDomains: []string{
-
 		"kubernetes.io",
 
 		"3gpp.org",
@@ -190,7 +187,6 @@ var defaultConstants = Constants{
 	},
 
 	BlockedKeywords: []string{
-
 		"exploit",
 
 		"hack",
@@ -268,7 +264,6 @@ var defaultConstants = Constants{
 // LoadConstants loads configuration constants from environment variables with fallbacks to defaults.
 
 func LoadConstants() *Constants {
-
 	constants := defaultConstants
 
 	// Load controller configuration.
@@ -382,7 +377,6 @@ func LoadConstants() *Constants {
 	constants.HealthCheckTimeout = getEnvDuration("NEPHORAN_HEALTH_CHECK_TIMEOUT", constants.HealthCheckTimeout)
 
 	return &constants
-
 }
 
 // Helper functions for environment variable parsing.
@@ -390,75 +384,52 @@ func LoadConstants() *Constants {
 // getEnvString gets a string environment variable with a default value.
 
 func getEnvString(key, defaultValue string) string {
-
 	if value := os.Getenv(key); value != "" {
-
 		return value
-
 	}
 
 	return defaultValue
-
 }
 
 // getEnvInt gets an integer environment variable with a default value.
 
 func getEnvInt(key string, defaultValue int) int {
-
 	if value := os.Getenv(key); value != "" {
-
 		if parsed, err := strconv.Atoi(value); err == nil {
-
 			return parsed
-
 		}
-
 	}
 
 	return defaultValue
-
 }
 
 // getEnvFloat gets a float environment variable with a default value.
 
 func getEnvFloat(key string, defaultValue float64) float64 {
-
 	if value := os.Getenv(key); value != "" {
-
 		if parsed, err := strconv.ParseFloat(value, 64); err == nil {
-
 			return parsed
-
 		}
-
 	}
 
 	return defaultValue
-
 }
 
 // getEnvDuration gets a duration environment variable with a default value.
 
 func getEnvDuration(key string, defaultValue time.Duration) time.Duration {
-
 	if value := os.Getenv(key); value != "" {
-
 		if parsed, err := time.ParseDuration(value); err == nil {
-
 			return parsed
-
 		}
-
 	}
 
 	return defaultValue
-
 }
 
 // getEnvStringArray gets a comma-separated string array environment variable with a default value.
 
 func getEnvStringArray(key string, defaultValue []string) []string {
-
 	if value := os.Getenv(key); value != "" {
 
 		// Simple split by comma - could be enhanced for more complex parsing.
@@ -466,35 +437,25 @@ func getEnvStringArray(key string, defaultValue []string) []string {
 		result := make([]string, 0)
 
 		for _, item := range splitString(value, ",") {
-
 			if trimmed := trimSpace(item); trimmed != "" {
-
 				result = append(result, trimmed)
-
 			}
-
 		}
 
 		if len(result) > 0 {
-
 			return result
-
 		}
 
 	}
 
 	return defaultValue
-
 }
 
 // Simple string split function (avoiding external dependencies).
 
 func splitString(s, sep string) []string {
-
 	if s == "" {
-
 		return nil
-
 	}
 
 	var result []string
@@ -502,7 +463,6 @@ func splitString(s, sep string) []string {
 	start := 0
 
 	for i := 0; i <= len(s)-len(sep); i++ {
-
 		if s[i:i+len(sep)] == sep {
 
 			result = append(result, s[start:i])
@@ -512,19 +472,16 @@ func splitString(s, sep string) []string {
 			i += len(sep) - 1 // Skip the separator
 
 		}
-
 	}
 
 	result = append(result, s[start:]) // Add the last part
 
 	return result
-
 }
 
 // Simple string trim function (avoiding external dependencies).
 
 func trimSpace(s string) string {
-
 	start := 0
 
 	end := len(s)
@@ -532,207 +489,149 @@ func trimSpace(s string) string {
 	// Trim leading spaces.
 
 	for start < end && (s[start] == ' ' || s[start] == '\t' || s[start] == '\n' || s[start] == '\r') {
-
 		start++
-
 	}
 
 	// Trim trailing spaces.
 
 	for end > start && (s[end-1] == ' ' || s[end-1] == '\t' || s[end-1] == '\n' || s[end-1] == '\r') {
-
 		end--
-
 	}
 
 	return s[start:end]
-
 }
 
 // ValidateConstants validates that all configuration values are within acceptable ranges.
 
 func ValidateConstants(constants *Constants) error {
-
 	// Validate retry configuration.
 
 	if constants.MaxRetries < 0 {
-
 		return fmt.Errorf("MaxRetries cannot be negative: %d", constants.MaxRetries)
-
 	}
 
 	if constants.MaxRetries > constants.MaxAllowedRetries {
-
 		return fmt.Errorf("MaxRetries (%d) exceeds maximum allowed (%d)", constants.MaxRetries, constants.MaxAllowedRetries)
-
 	}
 
 	if constants.RetryDelay <= 0 {
-
 		return fmt.Errorf("RetryDelay must be positive: %v", constants.RetryDelay)
-
 	}
 
 	if constants.RetryDelay > constants.MaxAllowedRetryDelay {
-
 		return fmt.Errorf("RetryDelay (%v) exceeds maximum allowed (%v)", constants.RetryDelay, constants.MaxAllowedRetryDelay)
-
 	}
 
 	// Validate timeout configuration.
 
 	if constants.Timeout <= 0 {
-
 		return fmt.Errorf("timeout must be positive: %v", constants.Timeout)
-
 	}
 
 	if constants.LLMTimeout <= 0 {
-
 		return fmt.Errorf("LLMTimeout must be positive: %v", constants.LLMTimeout)
-
 	}
 
 	if constants.GitTimeout <= 0 {
-
 		return fmt.Errorf("GitTimeout must be positive: %v", constants.GitTimeout)
-
 	}
 
 	if constants.KubernetesTimeout <= 0 {
-
 		return fmt.Errorf("KubernetesTimeout must be positive: %v", constants.KubernetesTimeout)
-
 	}
 
 	// Validate backoff configuration.
 
 	if constants.BaseBackoffDelay <= 0 {
-
 		return fmt.Errorf("BaseBackoffDelay must be positive: %v", constants.BaseBackoffDelay)
-
 	}
 
 	if constants.MaxBackoffDelay <= constants.BaseBackoffDelay {
-
 		return fmt.Errorf("MaxBackoffDelay (%v) must be greater than BaseBackoffDelay (%v)", constants.MaxBackoffDelay, constants.BaseBackoffDelay)
-
 	}
 
 	if constants.JitterFactor < 0 || constants.JitterFactor > 1 {
-
 		return fmt.Errorf("JitterFactor must be between 0 and 1: %f", constants.JitterFactor)
-
 	}
 
 	if constants.BackoffMultiplier <= 1 {
-
 		return fmt.Errorf("BackoffMultiplier must be greater than 1: %f", constants.BackoffMultiplier)
-
 	}
 
 	// Validate security configuration.
 
 	if constants.MaxInputLength <= 0 {
-
 		return fmt.Errorf("MaxInputLength must be positive: %d", constants.MaxInputLength)
-
 	}
 
 	if constants.MaxInputLength > 1000000 { // 1MB limit
 
 		return fmt.Errorf("MaxInputLength exceeds safety limit of 1MB: %d", constants.MaxInputLength)
-
 	}
 
 	if constants.MaxOutputLength <= 0 {
-
 		return fmt.Errorf("MaxOutputLength must be positive: %d", constants.MaxOutputLength)
-
 	}
 
 	if constants.MaxOutputLength > 10000000 { // 10MB limit
 
 		return fmt.Errorf("MaxOutputLength exceeds safety limit of 10MB: %d", constants.MaxOutputLength)
-
 	}
 
 	if constants.ContextBoundary == "" {
-
 		return fmt.Errorf("contextBoundary cannot be empty")
-
 	}
 
 	// Validate circuit breaker configuration.
 
 	if constants.CircuitBreakerFailureThreshold <= 0 {
-
 		return fmt.Errorf("CircuitBreakerFailureThreshold must be positive: %d", constants.CircuitBreakerFailureThreshold)
-
 	}
 
 	if constants.CircuitBreakerRecoveryTimeout <= 0 {
-
 		return fmt.Errorf("CircuitBreakerRecoveryTimeout must be positive: %v", constants.CircuitBreakerRecoveryTimeout)
-
 	}
 
 	if constants.CircuitBreakerSuccessThreshold <= 0 {
-
 		return fmt.Errorf("CircuitBreakerSuccessThreshold must be positive: %d", constants.CircuitBreakerSuccessThreshold)
-
 	}
 
 	if constants.CircuitBreakerFailureRate <= 0 || constants.CircuitBreakerFailureRate > 1 {
-
 		return fmt.Errorf("CircuitBreakerFailureRate must be between 0 and 1: %f", constants.CircuitBreakerFailureRate)
-
 	}
 
 	// Validate monitoring configuration.
 
 	if constants.MetricsPort <= 0 || constants.MetricsPort > 65535 {
-
 		return fmt.Errorf("MetricsPort must be a valid port number: %d", constants.MetricsPort)
-
 	}
 
 	if constants.HealthProbePort <= 0 || constants.HealthProbePort > 65535 {
-
 		return fmt.Errorf("HealthProbePort must be a valid port number: %d", constants.HealthProbePort)
-
 	}
 
 	if constants.MetricsUpdateInterval <= 0 {
-
 		return fmt.Errorf("MetricsUpdateInterval must be positive: %v", constants.MetricsUpdateInterval)
-
 	}
 
 	if constants.HealthCheckTimeout <= 0 {
-
 		return fmt.Errorf("HealthCheckTimeout must be positive: %v", constants.HealthCheckTimeout)
-
 	}
 
 	return nil
-
 }
 
 // GetDefaults returns the default constants configuration.
 
 func GetDefaults() *Constants {
-
 	defaults := defaultConstants
 
 	return &defaults
-
 }
 
 // PrintConfiguration prints the current configuration (for debugging).
 
 func PrintConfiguration(constants *Constants) {
-
 	fmt.Printf("Nephoran Intent Operator Configuration:\n")
 
 	fmt.Printf("  Controller:\n")
@@ -766,5 +665,4 @@ func PrintConfiguration(constants *Constants) {
 	fmt.Printf("    Git: %v\n", constants.GitTimeout)
 
 	fmt.Printf("    Kubernetes: %v\n", constants.KubernetesTimeout)
-
 }

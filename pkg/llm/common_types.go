@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-// ClientMetrics tracks client performance (used by both disable_rag and regular builds)
-type ClientMetrics struct {
+// CommonClientMetrics tracks client performance (used by both disable_rag and regular builds)
+type CommonClientMetrics struct {
 	RequestsTotal    int64         `json:"requests_total"`
 	RequestsSuccess  int64         `json:"requests_success"`
 	RequestsFailure  int64         `json:"requests_failure"`
@@ -55,9 +55,8 @@ func (tt *SimpleTokenTracker) GetStats() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"total_tokens":           tt.totalTokens,
-		"total_cost":             tt.totalCost,
-		"request_count":          tt.requestCount,
+		"total_tokens": tt.totalTokens,
+		"request_count": tt.requestCount,
 		"avg_tokens_per_request": avgTokensPerRequest,
 	}
 }

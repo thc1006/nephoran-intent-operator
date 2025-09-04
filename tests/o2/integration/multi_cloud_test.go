@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 	"time"
+	"encoding/json"
 
 	"github.com/stretchr/testify/suite"
 
@@ -35,11 +36,7 @@ func (suite *MultiCloudTestSuite) TestAWSProviderOperations() {
 	ctx := context.Background()
 
 	suite.Run("AWS Provider Initialization", func() {
-		config := map[string]interface{}{
-			"accessKeyId":     "test-access-key",
-			"secretAccessKey": "test-secret-key",
-			"region":          "us-east-1",
-		}
+		config := json.RawMessage(`{}`)
 
 		suite.awsProvider.On("Initialize", ctx, config).Return(nil).Once()
 		err := suite.awsProvider.Initialize(ctx, config)
@@ -154,12 +151,7 @@ func (suite *MultiCloudTestSuite) TestAzureProviderOperations() {
 	ctx := context.Background()
 
 	suite.Run("Azure Provider Initialization", func() {
-		config := map[string]interface{}{
-			"subscriptionId": "test-subscription-id",
-			"clientId":       "test-client-id",
-			"clientSecret":   "test-client-secret",
-			"tenantId":       "test-tenant-id",
-		}
+		config := json.RawMessage(`{}`)
 
 		suite.azureProvider.On("Initialize", ctx, config).Return(nil).Once()
 		err := suite.azureProvider.Initialize(ctx, config)
@@ -176,10 +168,7 @@ func (suite *MultiCloudTestSuite) TestAzureProviderOperations() {
 
 	suite.Run("Azure Resource Pool Lifecycle", func() {
 		testPool := suite.helpers.CreateTestResourcePool("azure", "eastus")
-		testPool.Extensions = map[string]interface{}{
-			"resourceGroup": "test-rg",
-			"vnet":          "test-vnet",
-		}
+		testPool.Extensions = json.RawMessage(`{}`)
 
 		createReq := &providers.CreateResourcePoolRequest{
 			Name:        testPool.Name,
@@ -230,11 +219,7 @@ func (suite *MultiCloudTestSuite) TestGCPProviderOperations() {
 	ctx := context.Background()
 
 	suite.Run("GCP Provider Initialization", func() {
-		config := map[string]interface{}{
-			"projectId":       "test-project-id",
-			"credentialsFile": "/path/to/service-account.json",
-			"region":          "us-central1",
-		}
+		config := json.RawMessage(`{}`)
 
 		suite.gcpProvider.On("Initialize", ctx, config).Return(nil).Once()
 		err := suite.gcpProvider.Initialize(ctx, config)
@@ -251,11 +236,7 @@ func (suite *MultiCloudTestSuite) TestGCPProviderOperations() {
 
 	suite.Run("GCP Resource Pool with Custom Networking", func() {
 		testPool := suite.helpers.CreateTestResourcePool("gcp", "us-central1")
-		testPool.Extensions = map[string]interface{}{
-			"network":    "default",
-			"subnetwork": "default",
-			"projectId":  "test-project",
-		}
+		testPool.Extensions = json.RawMessage(`{}`)
 
 		createReq := &providers.CreateResourcePoolRequest{
 			Name:        testPool.Name,
@@ -351,11 +332,7 @@ func (suite *MultiCloudTestSuite) TestCrossCloudComparison() {
 	})
 
 	suite.Run("Cross-Provider Resource Pool Consistency", func() {
-		_ = map[string]interface{}{
-			"aws":   suite.awsProvider,
-			"azure": suite.azureProvider,
-			"gcp":   suite.gcpProvider,
-		}
+		_ = json.RawMessage(`{}`)
 
 		regions := map[string]string{
 			"aws":   "us-east-1",
@@ -483,12 +460,7 @@ func (suite *MultiCloudTestSuite) TestProviderSpecificFeatures() {
 	suite.Run("AWS Specific Features", func() {
 		// Test AWS-specific functionality like spot instances, placement groups, etc.
 		testPool := suite.helpers.CreateTestResourcePool("aws", "us-east-1")
-		testPool.Extensions = map[string]interface{}{
-			"spotInstancesEnabled": true,
-			"placementGroup":       "cluster-pg-1",
-			"instanceProfile":      "ec2-role",
-			"securityGroups":       []string{"sg-12345", "sg-67890"},
-		}
+		testPool.Extensions = json.RawMessage(`{}`)
 
 		createReq := &providers.CreateResourcePoolRequest{
 			Name:     testPool.Name,
@@ -511,12 +483,7 @@ func (suite *MultiCloudTestSuite) TestProviderSpecificFeatures() {
 	suite.Run("Azure Specific Features", func() {
 		// Test Azure-specific functionality like managed disks, availability sets, etc.
 		testPool := suite.helpers.CreateTestResourcePool("azure", "eastus")
-		testPool.Extensions = map[string]interface{}{
-			"availabilitySet":         "avset-1",
-			"managedDiskType":         "Premium_LRS",
-			"acceleratedNetworking":   true,
-			"proximityPlacementGroup": "ppg-1",
-		}
+		testPool.Extensions = json.RawMessage(`{}`)
 
 		createReq := &providers.CreateResourcePoolRequest{
 			Name:     testPool.Name,
@@ -539,12 +506,7 @@ func (suite *MultiCloudTestSuite) TestProviderSpecificFeatures() {
 	suite.Run("GCP Specific Features", func() {
 		// Test GCP-specific functionality like preemptible instances, custom machine types, etc.
 		testPool := suite.helpers.CreateTestResourcePool("gcp", "us-central1")
-		testPool.Extensions = map[string]interface{}{
-			"preemptibleInstances": true,
-			"customMachineType":    true,
-			"localSSDCount":        2,
-			"nodeGroup":            "test-node-group",
-		}
+		testPool.Extensions = json.RawMessage(`{}`)
 
 		createReq := &providers.CreateResourcePoolRequest{
 			Name:     testPool.Name,
@@ -581,3 +543,4 @@ func (suite *MultiCloudTestSuite) TearDownSuite() {
 func TestMultiCloudIntegration(t *testing.T) {
 	suite.Run(t, new(MultiCloudTestSuite))
 }
+

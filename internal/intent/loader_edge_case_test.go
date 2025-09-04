@@ -36,7 +36,7 @@ func TestLoader_MalformedJSONEdgeCases(t *testing.T) {
 		},
 		{
 			name:        "JSON with unicode characters",
-			jsonData:    []byte(`{"intent_type": "scaling", "target": "测试-应用", "namespace": "命名空间", "replicas": 3}`),
+			jsonData:    []byte(`{"intent_type": "scaling", "target": "测试-应用", "namespace": "名称空间", "replicas": 3}`),
 			expectError: true,
 			description: "Unicode characters should be handled properly",
 		},
@@ -176,7 +176,7 @@ func TestLoader_ExtremeValueEdgeCases(t *testing.T) {
 			name: "target with emoji",
 			intent: ScalingIntent{
 				IntentType: "scaling",
-				Target:     "test-app-😀",
+				Target:     "test-app-??",
 				Namespace:  "default",
 				Replicas:   3,
 			},
@@ -308,7 +308,7 @@ func TestLoader_FileSystemEdgeCases(t *testing.T) {
 
 				// Add UTF-8 BOM to the beginning
 				content := "\xEF\xBB\xBF" + `{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 3}`
-				err := os.WriteFile(filePath, []byte(content), 0644)
+				err := os.WriteFile(filePath, []byte(content), 0o644)
 				if err != nil {
 					t.Fatalf("Failed to write file: %v", err)
 				}
@@ -325,7 +325,7 @@ func TestLoader_FileSystemEdgeCases(t *testing.T) {
 
 				// Use Windows line endings
 				content := "{\r\n  \"intent_type\": \"scaling\",\r\n  \"target\": \"test\",\r\n  \"namespace\": \"default\",\r\n  \"replicas\": 3\r\n}"
-				err := os.WriteFile(filePath, []byte(content), 0644)
+				err := os.WriteFile(filePath, []byte(content), 0o644)
 				if err != nil {
 					t.Fatalf("Failed to write file: %v", err)
 				}
@@ -341,7 +341,7 @@ func TestLoader_FileSystemEdgeCases(t *testing.T) {
 				filePath := filepath.Join(tempDir, "whitespace.json")
 
 				content := "   \t\n\r   "
-				err := os.WriteFile(filePath, []byte(content), 0644)
+				err := os.WriteFile(filePath, []byte(content), 0o644)
 				if err != nil {
 					t.Fatalf("Failed to write file: %v", err)
 				}
@@ -362,7 +362,7 @@ func TestLoader_FileSystemEdgeCases(t *testing.T) {
 				// Insert invalid UTF-8 byte sequence
 				content = append(content[:10], append([]byte{0xFF, 0xFE}, content[10:]...)...)
 
-				err := os.WriteFile(filePath, content, 0644)
+				err := os.WriteFile(filePath, content, 0o644)
 				if err != nil {
 					t.Fatalf("Failed to write file: %v", err)
 				}
@@ -379,7 +379,7 @@ func TestLoader_FileSystemEdgeCases(t *testing.T) {
 
 				// Create 10MB JSON file
 				largeContent := `{"intent_type": "scaling", "target": "` + strings.Repeat("a", 10*1024*1024) + `", "namespace": "default", "replicas": 3}`
-				err := os.WriteFile(filePath, []byte(largeContent), 0644)
+				err := os.WriteFile(filePath, []byte(largeContent), 0o644)
 				if err != nil {
 					t.Fatalf("Failed to write large file: %v", err)
 				}
@@ -396,7 +396,7 @@ func TestLoader_FileSystemEdgeCases(t *testing.T) {
 				symlinkFile := filepath.Join(tempDir, "symlink.json")
 
 				content := `{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 3}`
-				err := os.WriteFile(originalFile, []byte(content), 0644)
+				err := os.WriteFile(originalFile, []byte(content), 0o644)
 				if err != nil {
 					t.Fatalf("Failed to write original file: %v", err)
 				}
@@ -577,7 +577,7 @@ func createTestLoader(t *testing.T) (*Loader, func()) {
 
 	tempDir := t.TempDir()
 	schemaDir := filepath.Join(tempDir, "docs", "contracts")
-	err := os.MkdirAll(schemaDir, 0755)
+	err := os.MkdirAll(schemaDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create schema directory: %v", err)
 	}
@@ -621,7 +621,7 @@ func createTestLoader(t *testing.T) (*Loader, func()) {
 		}
 	}`
 
-	err = os.WriteFile(schemaPath, []byte(schema), 0644)
+	err = os.WriteFile(schemaPath, []byte(schema), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write schema file: %v", err)
 	}

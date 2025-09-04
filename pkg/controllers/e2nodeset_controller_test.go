@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -11,7 +12,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
@@ -19,14 +22,38 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/testutils"
 )
 
+// Package-level variables needed for controller tests
+var (
+	k8sClient client.Client
+)
+
+func init() {
+	// Initialize the scheme
+	s := scheme.Scheme
+	err := nephoranv1.AddToScheme(s)
+	if err != nil {
+		panic(err)
+	}
+
+	// Create a fake client for testing
+	k8sClient = fake.NewClientBuilder().WithScheme(s).Build()
+}
+
+// WaitForE2NodeSetReady is a test helper that wraps the testutils function
+func WaitForE2NodeSetReady(namespacedName types.NamespacedName, expectedReplicas int32) {
+	testutils.WaitForE2NodeSetReady(context.Background(), k8sClient, namespacedName, expectedReplicas)
+}
+
 var _ = Describe("E2NodeSet Controller", func() {
 	var (
 		testNamespace string
 		reconciler    *E2NodeSetReconciler
 		fakeManager   *testutil.FakeE2Manager
+		ctx           context.Context
 	)
 
 	BeforeEach(func() {
+		ctx = context.Background()
 		testNamespace = testutil.CreateIsolatedNamespace("e2nodeset-controller")
 
 		// Create fake E2Manager

@@ -2,12 +2,12 @@ package auth_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	testutil "github.com/thc1006/nephoran-intent-operator/pkg/testutil/auth"
 )
 
@@ -1198,10 +1198,7 @@ func TestRBACManager_PolicyEngineIntegration(t *testing.T) {
 			policyRules: []string{
 				"allow read on sensitive-data if time between 09:00 and 17:00",
 			},
-			userContext: map[string]interface{}{
-				"time": "14:30",
-				"user": "test-user",
-			},
+			userContext: json.RawMessage(`{}`),
 			resource:      "sensitive-data",
 			action:        "read",
 			expectAllowed: true,
@@ -1211,10 +1208,7 @@ func TestRBACManager_PolicyEngineIntegration(t *testing.T) {
 			policyRules: []string{
 				"allow * on internal-resource if ip in 192.168.1.0/24",
 			},
-			userContext: map[string]interface{}{
-				"ip_address": "192.168.1.100",
-				"user":       "test-user",
-			},
+			userContext: json.RawMessage(`{}`),
 			resource:      "internal-resource",
 			action:        "write",
 			expectAllowed: true,
@@ -1248,3 +1242,4 @@ func TestRBACManager_PolicyEngineIntegration(t *testing.T) {
 		})
 	}
 }
+

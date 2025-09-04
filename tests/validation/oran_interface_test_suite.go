@@ -8,6 +8,7 @@ package test_validation
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -43,7 +44,6 @@ type ORANInterfaceTestSuite struct {
 // NewORANInterfaceTestSuite creates a new O-RAN interface test suite.
 
 func NewORANInterfaceTestSuite(config *ValidationConfig) *ORANInterfaceTestSuite {
-
 	validator := NewORANInterfaceValidator(config)
 
 	factory := NewORANTestFactory()
@@ -51,7 +51,6 @@ func NewORANInterfaceTestSuite(config *ValidationConfig) *ORANInterfaceTestSuite
 	benchmarker := NewORANPerformanceBenchmarker(validator, factory)
 
 	return &ORANInterfaceTestSuite{
-
 		validator: validator,
 
 		benchmarker: benchmarker,
@@ -64,29 +63,24 @@ func NewORANInterfaceTestSuite(config *ValidationConfig) *ORANInterfaceTestSuite
 
 		systemValidator: NewSystemValidator(config),
 	}
-
 }
 
 // SetK8sClient sets the Kubernetes client for all components.
 
 func (oits *ORANInterfaceTestSuite) SetK8sClient(client client.Client) {
-
 	oits.validator.SetK8sClient(client)
 
 	oits.benchmarker.SetK8sClient(client)
 
 	oits.systemValidator.SetK8sClient(client)
-
 }
 
 // RunComprehensiveORANValidation runs the complete O-RAN interface validation suite.
 
 func (oits *ORANInterfaceTestSuite) RunComprehensiveORANValidation(ctx context.Context) *ORANValidationReport {
-
 	ginkgo.By("🚀 Starting Comprehensive O-RAN Interface Validation Suite")
 
 	report := &ORANValidationReport{
-
 		StartTime: time.Now(),
 
 		TestSuiteVersion: "1.0.0",
@@ -108,7 +102,7 @@ func (oits *ORANInterfaceTestSuite) RunComprehensiveORANValidation(ctx context.C
 
 	if oits.config.EnableLoadTesting {
 
-		ginkgo.By("⚡ Phase 2: O-RAN Interface Performance Benchmarking")
+		ginkgo.By("⚡Phase 2: O-RAN Interface Performance Benchmarking")
 
 		oits.performanceResults = oits.runPerformanceBenchmarks(ctx)
 
@@ -122,7 +116,7 @@ func (oits *ORANInterfaceTestSuite) RunComprehensiveORANValidation(ctx context.C
 
 	if oits.config.EnableChaosTesting {
 
-		ginkgo.By("🔒 Phase 3: O-RAN Interface Reliability Testing")
+		ginkgo.By("🔧 Phase 3: O-RAN Interface Reliability Testing")
 
 		reliabilityScore := oits.runReliabilityTests(ctx)
 
@@ -144,7 +138,7 @@ func (oits *ORANInterfaceTestSuite) RunComprehensiveORANValidation(ctx context.C
 
 	// Phase 5: End-to-End Integration Testing.
 
-	ginkgo.By("🔗 Phase 5: End-to-End Integration Testing")
+	ginkgo.By("🔄 Phase 5: End-to-End Integration Testing")
 
 	integrationScore := oits.runIntegrationTests(ctx)
 
@@ -165,13 +159,11 @@ func (oits *ORANInterfaceTestSuite) RunComprehensiveORANValidation(ctx context.C
 	oits.generateComprehensiveReport(report)
 
 	return report
-
 }
 
 // runFunctionalComplianceTests runs O-RAN functional compliance tests.
 
 func (oits *ORANInterfaceTestSuite) runFunctionalComplianceTests(ctx context.Context) int {
-
 	ginkgo.By("Running O-RAN Functional Compliance Tests")
 
 	// Use the main validator to run comprehensive tests.
@@ -181,27 +173,19 @@ func (oits *ORANInterfaceTestSuite) runFunctionalComplianceTests(ctx context.Con
 	ginkgo.By(fmt.Sprintf("O-RAN Functional Compliance Score: %d/%d points", score, oits.targetScore))
 
 	if score == oits.targetScore {
-
-		ginkgo.By("✅ Full O-RAN functional compliance achieved!")
-
+		ginkgo.By("✅Full O-RAN functional compliance achieved!")
 	} else if score >= oits.targetScore-1 {
-
 		ginkgo.By("⚠️  Near-complete O-RAN functional compliance")
-
 	} else {
-
-		ginkgo.By("❌ O-RAN functional compliance below target")
-
+		ginkgo.By("❌O-RAN functional compliance below target")
 	}
 
 	return score
-
 }
 
 // runPerformanceBenchmarks runs comprehensive performance benchmarks.
 
 func (oits *ORANInterfaceTestSuite) runPerformanceBenchmarks(ctx context.Context) map[string]*ORANBenchmarkResult {
-
 	ginkgo.By("Running Comprehensive Performance Benchmarks")
 
 	results := oits.benchmarker.RunComprehensivePerformanceBenchmarks(ctx)
@@ -209,29 +193,23 @@ func (oits *ORANInterfaceTestSuite) runPerformanceBenchmarks(ctx context.Context
 	// Log key performance metrics.
 
 	for interfaceName, result := range results {
-
 		if interfaceName == "A1" || interfaceName == "E2" || interfaceName == "O1" || interfaceName == "O2" {
-
 			ginkgo.By(fmt.Sprintf("%s Performance: %.2f RPS, %.2fms latency, %.1f%% errors",
 
-				interfaceName, result.ThroughputRPS,
+				interfaceName, result.Throughput,
 
-				float64(result.AverageLatency.Nanoseconds())/1e6,
+				float64(result.Latency.Nanoseconds())/1e6,
 
 				result.ErrorRate))
-
 		}
-
 	}
 
 	return results
-
 }
 
 // runReliabilityTests runs reliability and fault tolerance tests.
 
 func (oits *ORANInterfaceTestSuite) runReliabilityTests(ctx context.Context) int {
-
 	ginkgo.By("Running Reliability and Fault Tolerance Tests")
 
 	reliabilityScore := 0
@@ -241,9 +219,7 @@ func (oits *ORANInterfaceTestSuite) runReliabilityTests(ctx context.Context) int
 	// Test A1 interface resilience.
 
 	if oits.testA1Resilience(ctx) {
-
 		reliabilityScore += 25
-
 	}
 
 	totalTests += 25
@@ -251,9 +227,7 @@ func (oits *ORANInterfaceTestSuite) runReliabilityTests(ctx context.Context) int
 	// Test E2 interface resilience.
 
 	if oits.testE2Resilience(ctx) {
-
 		reliabilityScore += 25
-
 	}
 
 	totalTests += 25
@@ -261,9 +235,7 @@ func (oits *ORANInterfaceTestSuite) runReliabilityTests(ctx context.Context) int
 	// Test O1 interface resilience.
 
 	if oits.testO1Resilience(ctx) {
-
 		reliabilityScore += 25
-
 	}
 
 	totalTests += 25
@@ -271,9 +243,7 @@ func (oits *ORANInterfaceTestSuite) runReliabilityTests(ctx context.Context) int
 	// Test O2 interface resilience.
 
 	if oits.testO2Resilience(ctx) {
-
 		reliabilityScore += 25
-
 	}
 
 	totalTests += 25
@@ -283,13 +253,11 @@ func (oits *ORANInterfaceTestSuite) runReliabilityTests(ctx context.Context) int
 	ginkgo.By(fmt.Sprintf("Reliability Score: %d%% (%d/%d points)", percentageScore, reliabilityScore, totalTests))
 
 	return percentageScore
-
 }
 
 // runInteroperabilityTests runs multi-vendor interoperability tests.
 
 func (oits *ORANInterfaceTestSuite) runInteroperabilityTests(ctx context.Context) int {
-
 	ginkgo.By("Running Multi-Vendor Interoperability Tests")
 
 	interopScore := 0
@@ -299,9 +267,7 @@ func (oits *ORANInterfaceTestSuite) runInteroperabilityTests(ctx context.Context
 	// Test cross-vendor A1 policy management.
 
 	if oits.testCrossVendorA1(ctx) {
-
 		interopScore += 25
-
 	}
 
 	totalTests += 25
@@ -309,9 +275,7 @@ func (oits *ORANInterfaceTestSuite) runInteroperabilityTests(ctx context.Context
 	// Test multi-vendor E2 node registration.
 
 	if oits.testMultiVendorE2(ctx) {
-
 		interopScore += 25
-
 	}
 
 	totalTests += 25
@@ -319,9 +283,7 @@ func (oits *ORANInterfaceTestSuite) runInteroperabilityTests(ctx context.Context
 	// Test heterogeneous O1 management.
 
 	if oits.testHeterogeneousO1(ctx) {
-
 		interopScore += 25
-
 	}
 
 	totalTests += 25
@@ -329,9 +291,7 @@ func (oits *ORANInterfaceTestSuite) runInteroperabilityTests(ctx context.Context
 	// Test multi-cloud O2 deployment.
 
 	if oits.testMultiCloudO2(ctx) {
-
 		interopScore += 25
-
 	}
 
 	totalTests += 25
@@ -341,13 +301,11 @@ func (oits *ORANInterfaceTestSuite) runInteroperabilityTests(ctx context.Context
 	ginkgo.By(fmt.Sprintf("Interoperability Score: %d%% (%d/%d points)", percentageScore, interopScore, totalTests))
 
 	return percentageScore
-
 }
 
 // runIntegrationTests runs end-to-end integration tests.
 
 func (oits *ORANInterfaceTestSuite) runIntegrationTests(ctx context.Context) int {
-
 	ginkgo.By("Running End-to-End Integration Tests")
 
 	integrationScore := 0
@@ -357,9 +315,7 @@ func (oits *ORANInterfaceTestSuite) runIntegrationTests(ctx context.Context) int
 	// Test complete RAN optimization workflow.
 
 	if oits.testRanOptimizationWorkflow(ctx) {
-
 		integrationScore += 30
-
 	}
 
 	totalTests += 30
@@ -367,9 +323,7 @@ func (oits *ORANInterfaceTestSuite) runIntegrationTests(ctx context.Context) int
 	// Test network slice lifecycle.
 
 	if oits.testNetworkSliceLifecycle(ctx) {
-
 		integrationScore += 30
-
 	}
 
 	totalTests += 30
@@ -377,9 +331,7 @@ func (oits *ORANInterfaceTestSuite) runIntegrationTests(ctx context.Context) int
 	// Test automated network healing.
 
 	if oits.testAutomatedNetworkHealing(ctx) {
-
 		integrationScore += 20
-
 	}
 
 	totalTests += 20
@@ -387,9 +339,7 @@ func (oits *ORANInterfaceTestSuite) runIntegrationTests(ctx context.Context) int
 	// Test hybrid cloud deployment.
 
 	if oits.testHybridCloudDeployment(ctx) {
-
 		integrationScore += 20
-
 	}
 
 	totalTests += 20
@@ -399,7 +349,6 @@ func (oits *ORANInterfaceTestSuite) runIntegrationTests(ctx context.Context) int
 	ginkgo.By(fmt.Sprintf("Integration Score: %d%% (%d/%d points)", percentageScore, integrationScore, totalTests))
 
 	return percentageScore
-
 }
 
 // Helper methods for specific test categories.
@@ -407,7 +356,6 @@ func (oits *ORANInterfaceTestSuite) runIntegrationTests(ctx context.Context) int
 // testA1Resilience tests A1 interface resilience.
 
 func (oits *ORANInterfaceTestSuite) testA1Resilience(ctx context.Context) bool {
-
 	ginkgo.By("Testing A1 Interface Resilience")
 
 	// Test RIC service disruption and recovery.
@@ -421,9 +369,7 @@ func (oits *ORANInterfaceTestSuite) testA1Resilience(ctx context.Context) bool {
 	err := oits.validator.ricMockService.CreatePolicy(policy)
 
 	if err == nil {
-
 		return false // Should fail during disruption
-
 	}
 
 	// Restore service.
@@ -433,11 +379,8 @@ func (oits *ORANInterfaceTestSuite) testA1Resilience(ctx context.Context) bool {
 	// Test recovery.
 
 	err = oits.validator.ricMockService.CreatePolicy(policy)
-
 	if err != nil {
-
 		return false // Should succeed after recovery
-
 	}
 
 	// Cleanup.
@@ -445,13 +388,11 @@ func (oits *ORANInterfaceTestSuite) testA1Resilience(ctx context.Context) bool {
 	oits.validator.ricMockService.DeletePolicy(policy.PolicyID)
 
 	return true
-
 }
 
 // testE2Resilience tests E2 interface resilience.
 
 func (oits *ORANInterfaceTestSuite) testE2Resilience(ctx context.Context) bool {
-
 	ginkgo.By("Testing E2 Interface Resilience")
 
 	// Register node.
@@ -459,11 +400,8 @@ func (oits *ORANInterfaceTestSuite) testE2Resilience(ctx context.Context) bool {
 	node := oits.testFactory.CreateE2Node("gnodeb")
 
 	err := oits.validator.e2MockService.RegisterNode(node)
-
 	if err != nil {
-
 		return false
-
 	}
 
 	// Create subscription.
@@ -471,11 +409,8 @@ func (oits *ORANInterfaceTestSuite) testE2Resilience(ctx context.Context) bool {
 	subscription := oits.testFactory.CreateE2Subscription("KPM", node.NodeID)
 
 	err = oits.validator.e2MockService.CreateSubscription(subscription)
-
 	if err != nil {
-
 		return false
-
 	}
 
 	// Simulate node disconnection and reconnection.
@@ -485,11 +420,8 @@ func (oits *ORANInterfaceTestSuite) testE2Resilience(ctx context.Context) bool {
 	// Re-register node (recovery).
 
 	err = oits.validator.e2MockService.RegisterNode(node)
-
 	if err != nil {
-
 		return false
-
 	}
 
 	// Verify node is healthy.
@@ -497,9 +429,7 @@ func (oits *ORANInterfaceTestSuite) testE2Resilience(ctx context.Context) bool {
 	retrievedNode, err := oits.validator.e2MockService.GetNode(node.NodeID)
 
 	if err != nil || retrievedNode.Status != "CONNECTED" {
-
 		return false
-
 	}
 
 	// Cleanup.
@@ -509,13 +439,11 @@ func (oits *ORANInterfaceTestSuite) testE2Resilience(ctx context.Context) bool {
 	oits.validator.e2MockService.UnregisterNode(node.NodeID)
 
 	return true
-
 }
 
 // testO1Resilience tests O1 interface resilience.
 
 func (oits *ORANInterfaceTestSuite) testO1Resilience(ctx context.Context) bool {
-
 	ginkgo.By("Testing O1 Interface Resilience")
 
 	// Test SMO service disruption.
@@ -523,11 +451,8 @@ func (oits *ORANInterfaceTestSuite) testO1Resilience(ctx context.Context) bool {
 	element := oits.testFactory.CreateManagedElement("UPF")
 
 	err := oits.validator.smoMockService.AddManagedElement(element)
-
 	if err != nil {
-
 		return false
-
 	}
 
 	// Disrupt service.
@@ -539,9 +464,7 @@ func (oits *ORANInterfaceTestSuite) testO1Resilience(ctx context.Context) bool {
 	err = oits.validator.smoMockService.ApplyConfiguration(config)
 
 	if err == nil {
-
 		return false // Should fail during disruption
-
 	}
 
 	// Restore service.
@@ -551,11 +474,8 @@ func (oits *ORANInterfaceTestSuite) testO1Resilience(ctx context.Context) bool {
 	// Test recovery.
 
 	err = oits.validator.smoMockService.ApplyConfiguration(config)
-
 	if err != nil {
-
 		return false
-
 	}
 
 	// Cleanup.
@@ -563,25 +483,19 @@ func (oits *ORANInterfaceTestSuite) testO1Resilience(ctx context.Context) bool {
 	oits.validator.smoMockService.RemoveManagedElement(element.ElementID)
 
 	return true
-
 }
 
 // testO2Resilience tests O2 interface resilience.
 
 func (oits *ORANInterfaceTestSuite) testO2Resilience(ctx context.Context) bool {
-
 	ginkgo.By("Testing O2 Interface Resilience")
 
 	// Test cloud provider failover scenario.
 
 	primaryCloudConfig := map[string]interface{}{
-
 		"provider": "aws",
-
-		"region": "us-west-2",
-
+		"region":   "us-east-1",
 		"resources": map[string]interface{}{
-
 			"ec2_instances": 3,
 		},
 	}
@@ -589,21 +503,15 @@ func (oits *ORANInterfaceTestSuite) testO2Resilience(ctx context.Context) bool {
 	// Validate primary cloud config.
 
 	if !oits.validator.ValidateCloudProviderConfig(primaryCloudConfig) {
-
 		return false
-
 	}
 
 	// Simulate primary cloud failure and failover to secondary.
 
 	secondaryCloudConfig := map[string]interface{}{
-
 		"provider": "azure",
-
-		"region": "West US 2",
-
+		"region":   "eastus",
 		"resources": map[string]interface{}{
-
 			"virtual_machines": 3,
 		},
 	}
@@ -611,19 +519,15 @@ func (oits *ORANInterfaceTestSuite) testO2Resilience(ctx context.Context) bool {
 	// Validate secondary cloud config (failover).
 
 	if !oits.validator.ValidateCloudProviderConfig(secondaryCloudConfig) {
-
 		return false
-
 	}
 
 	return true
-
 }
 
 // testCrossVendorA1 tests cross-vendor A1 interface compatibility.
 
 func (oits *ORANInterfaceTestSuite) testCrossVendorA1(ctx context.Context) bool {
-
 	ginkgo.By("Testing Cross-Vendor A1 Interface")
 
 	// Test policies from different vendors.
@@ -637,11 +541,8 @@ func (oits *ORANInterfaceTestSuite) testCrossVendorA1(ctx context.Context) bool 
 		policy.PolicyID = policyType
 
 		err := oits.validator.ricMockService.CreatePolicy(policy)
-
 		if err != nil {
-
 			return false
-
 		}
 
 		// Verify policy is active.
@@ -649,9 +550,7 @@ func (oits *ORANInterfaceTestSuite) testCrossVendorA1(ctx context.Context) bool 
 		retrievedPolicy, err := oits.validator.ricMockService.GetPolicy(policy.PolicyID)
 
 		if err != nil || retrievedPolicy.Status != "ACTIVE" {
-
 			return false
-
 		}
 
 		// Cleanup.
@@ -661,13 +560,11 @@ func (oits *ORANInterfaceTestSuite) testCrossVendorA1(ctx context.Context) bool 
 	}
 
 	return true
-
 }
 
 // testMultiVendorE2 tests multi-vendor E2 interface.
 
 func (oits *ORANInterfaceTestSuite) testMultiVendorE2(ctx context.Context) bool {
-
 	ginkgo.By("Testing Multi-Vendor E2 Interface")
 
 	vendorNodes := []struct {
@@ -675,7 +572,6 @@ func (oits *ORANInterfaceTestSuite) testMultiVendorE2(ctx context.Context) bool 
 
 		nodeType string
 	}{
-
 		{"VendorA", "gnodeb"},
 
 		{"VendorB", "enb"},
@@ -687,14 +583,11 @@ func (oits *ORANInterfaceTestSuite) testMultiVendorE2(ctx context.Context) bool 
 
 		node := oits.testFactory.CreateE2Node(vendorNode.nodeType)
 
-		node.Capabilities["vendor"] = vendorNode.vendor
+		node.Capabilities = json.RawMessage(fmt.Sprintf(`{"vendor": "%s"}`, vendorNode.vendor))
 
 		err := oits.validator.e2MockService.RegisterNode(node)
-
 		if err != nil {
-
 			return false
-
 		}
 
 		// Test cross-vendor subscription.
@@ -702,11 +595,8 @@ func (oits *ORANInterfaceTestSuite) testMultiVendorE2(ctx context.Context) bool 
 		subscription := oits.testFactory.CreateE2Subscription("KPM", node.NodeID)
 
 		err = oits.validator.e2MockService.CreateSubscription(subscription)
-
 		if err != nil {
-
 			return false
-
 		}
 
 		// Cleanup.
@@ -718,13 +608,11 @@ func (oits *ORANInterfaceTestSuite) testMultiVendorE2(ctx context.Context) bool 
 	}
 
 	return true
-
 }
 
 // testHeterogeneousO1 tests heterogeneous O1 management.
 
 func (oits *ORANInterfaceTestSuite) testHeterogeneousO1(ctx context.Context) bool {
-
 	ginkgo.By("Testing Heterogeneous O1 Management")
 
 	// Different vendor network functions.
@@ -735,14 +623,11 @@ func (oits *ORANInterfaceTestSuite) testHeterogeneousO1(ctx context.Context) boo
 
 		element := oits.testFactory.CreateManagedElement(nfType)
 
-		element.Configuration["vendor"] = fmt.Sprintf("Vendor-%s", nfType)
+		element.Configuration = json.RawMessage(fmt.Sprintf(`{"vendor": "Vendor-%s"}`, nfType))
 
 		err := oits.validator.smoMockService.AddManagedElement(element)
-
 		if err != nil {
-
 			return false
-
 		}
 
 		// Apply vendor-specific configuration.
@@ -750,11 +635,8 @@ func (oits *ORANInterfaceTestSuite) testHeterogeneousO1(ctx context.Context) boo
 		config := oits.testFactory.CreateO1Configuration("FCAPS", element.ElementID)
 
 		err = oits.validator.smoMockService.ApplyConfiguration(config)
-
 		if err != nil {
-
 			return false
-
 		}
 
 		// Cleanup.
@@ -764,13 +646,11 @@ func (oits *ORANInterfaceTestSuite) testHeterogeneousO1(ctx context.Context) boo
 	}
 
 	return true
-
 }
 
 // testMultiCloudO2 tests multi-cloud O2 deployment.
 
 func (oits *ORANInterfaceTestSuite) testMultiCloudO2(ctx context.Context) bool {
-
 	ginkgo.By("Testing Multi-Cloud O2 Deployment")
 
 	cloudProviders := []string{"aws", "azure", "gcp"}
@@ -778,29 +658,21 @@ func (oits *ORANInterfaceTestSuite) testMultiCloudO2(ctx context.Context) bool {
 	for _, provider := range cloudProviders {
 
 		cloudConfig := map[string]interface{}{
-
 			"provider": provider,
-
-			"region": "us-west-2",
-
+			"region":   "us-east-1",
 			"resources": map[string]interface{}{
-
 				"instances": 2,
-
-				"storage": 1,
+				"storage":   1,
 			},
 		}
 
 		if !oits.validator.ValidateCloudProviderConfig(cloudConfig) {
-
 			return false
-
 		}
 
 	}
 
 	return true
-
 }
 
 // Additional integration test methods would be implemented here.
@@ -808,47 +680,37 @@ func (oits *ORANInterfaceTestSuite) testMultiCloudO2(ctx context.Context) bool {
 // testRanOptimizationWorkflow, testNetworkSliceLifecycle, etc.
 
 func (oits *ORANInterfaceTestSuite) testRanOptimizationWorkflow(ctx context.Context) bool {
-
 	// Implementation would test complete RAN optimization workflow.
 
 	return true
-
 }
 
 func (oits *ORANInterfaceTestSuite) testNetworkSliceLifecycle(ctx context.Context) bool {
-
 	// Implementation would test network slice lifecycle.
 
 	return true
-
 }
 
 func (oits *ORANInterfaceTestSuite) testAutomatedNetworkHealing(ctx context.Context) bool {
-
 	// Implementation would test automated network healing.
 
 	return true
-
 }
 
 func (oits *ORANInterfaceTestSuite) testHybridCloudDeployment(ctx context.Context) bool {
-
 	// Implementation would test hybrid cloud deployment.
 
 	return true
-
 }
 
 // validatePerformanceResults validates that performance results meet targets.
 
 func (oits *ORANInterfaceTestSuite) validatePerformanceResults() bool {
-
 	targets := map[string]struct {
 		minThroughput float64
 
 		maxErrorRate float64
 	}{
-
 		"A1": {20.0, 2.0},
 
 		"E2": {50.0, 1.5},
@@ -859,27 +721,19 @@ func (oits *ORANInterfaceTestSuite) validatePerformanceResults() bool {
 	}
 
 	for interfaceName, target := range targets {
-
 		if result, exists := oits.performanceResults[interfaceName]; exists {
-
-			if result.ThroughputRPS < target.minThroughput || result.ErrorRate > target.maxErrorRate {
-
+			if result.Throughput < target.minThroughput || result.ErrorRate > target.maxErrorRate {
 				return false
-
 			}
-
 		}
-
 	}
 
 	return true
-
 }
 
 // calculateOverallResult calculates the overall test result.
 
 func (oits *ORANInterfaceTestSuite) calculateOverallResult(report *ORANValidationReport) bool {
-
 	// Require all major categories to pass.
 
 	return report.CompliancePassed &&
@@ -891,14 +745,12 @@ func (oits *ORANInterfaceTestSuite) calculateOverallResult(report *ORANValidatio
 		report.InteroperabilityPassed &&
 
 		report.IntegrationPassed
-
 }
 
 // generateComprehensiveReport generates a comprehensive test report.
 
 func (oits *ORANInterfaceTestSuite) generateComprehensiveReport(report *ORANValidationReport) {
-
-	ginkgo.By("📊 Generating Comprehensive O-RAN Validation Report")
+	ginkgo.By("📄 Generating Comprehensive O-RAN Validation Report")
 
 	ginkgo.By(strings.Repeat("=", 80))
 
@@ -921,13 +773,9 @@ func (oits *ORANInterfaceTestSuite) generateComprehensiveReport(report *ORANVali
 	ginkgo.By(fmt.Sprintf("Compliance Score: %d/%d points", report.ComplianceScore, report.TargetScore))
 
 	if report.CompliancePassed {
-
-		ginkgo.By("✅ Compliance: PASSED")
-
+		ginkgo.By("✅Compliance: PASSED")
 	} else {
-
-		ginkgo.By("❌ Compliance: FAILED")
-
+		ginkgo.By("❌Compliance: FAILED")
 	}
 
 	ginkgo.By("")
@@ -936,32 +784,24 @@ func (oits *ORANInterfaceTestSuite) generateComprehensiveReport(report *ORANVali
 
 	if report.PerformanceResults != nil {
 
-		ginkgo.By("⚡ PERFORMANCE RESULTS")
+		ginkgo.By("⚡PERFORMANCE RESULTS")
 
 		for interfaceName, result := range report.PerformanceResults {
-
 			if interfaceName == "A1" || interfaceName == "E2" || interfaceName == "O1" || interfaceName == "O2" {
-
 				ginkgo.By(fmt.Sprintf("%s: %.2f RPS, %.2fms latency, %.1f%% errors",
 
-					interfaceName, result.ThroughputRPS,
+					interfaceName, result.Throughput,
 
-					float64(result.AverageLatency.Nanoseconds())/1e6,
+					float64(result.Latency.Nanoseconds())/1e6,
 
 					result.ErrorRate))
-
 			}
-
 		}
 
 		if report.PerformancePassed {
-
-			ginkgo.By("✅ Performance: PASSED")
-
+			ginkgo.By("✅Performance: PASSED")
 		} else {
-
-			ginkgo.By("❌ Performance: FAILED")
-
+			ginkgo.By("❌Performance: FAILED")
 		}
 
 		ginkgo.By("")
@@ -970,30 +810,28 @@ func (oits *ORANInterfaceTestSuite) generateComprehensiveReport(report *ORANVali
 
 	// Overall Result.
 
-	ginkgo.By("🏆 OVERALL RESULT")
+	ginkgo.By("🏁 OVERALL RESULT")
 
 	if report.OverallPassed {
 
-		ginkgo.By("✅ O-RAN INTERFACE VALIDATION: PASSED")
+		ginkgo.By("✅O-RAN INTERFACE VALIDATION: PASSED")
 
 		ginkgo.By("🎉 Congratulations! Full O-RAN compliance achieved.")
 
 	} else {
 
-		ginkgo.By("❌ O-RAN INTERFACE VALIDATION: FAILED")
+		ginkgo.By("❌O-RAN INTERFACE VALIDATION: FAILED")
 
 		ginkgo.By("⚠️  Please review failed test categories and retry.")
 
 	}
 
 	ginkgo.By(strings.Repeat("=", 80))
-
 }
 
 // ORANValidationReport contains the comprehensive validation results.
 
 type ORANValidationReport struct {
-
 	// Test metadata.
 
 	StartTime time.Time `json:"startTime"`

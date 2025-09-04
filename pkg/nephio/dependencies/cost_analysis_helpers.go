@@ -43,34 +43,26 @@ import (
 // calculateTotalCost calculates total cost from package costs.
 
 func (a *dependencyAnalyzer) calculateTotalCost(packageCosts []*PackageCost) *Cost {
-
 	totalAmount := 0.0
 
 	for _, pc := range packageCosts {
-
 		if pc.Cost != nil {
-
 			totalAmount += pc.Cost.Amount
-
 		}
-
 	}
 
 	return &Cost{
-
 		Amount: totalAmount,
 
 		Currency: a.config.Currency,
 
 		Period: "monthly",
 	}
-
 }
 
 // categorizeCosts categorizes costs by different criteria.
 
 func (a *dependencyAnalyzer) categorizeCosts(packageCosts []*PackageCost) map[string]*Cost {
-
 	categories := make(map[string]*Cost)
 
 	// Simple categorization by cost level.
@@ -78,27 +70,19 @@ func (a *dependencyAnalyzer) categorizeCosts(packageCosts []*PackageCost) map[st
 	low, medium, high := 0.0, 0.0, 0.0
 
 	for _, pc := range packageCosts {
-
 		if pc.Cost != nil {
 
 			amount := pc.Cost.Amount
 
 			if amount < 10 {
-
 				low += amount
-
 			} else if amount < 100 {
-
 				medium += amount
-
 			} else {
-
 				high += amount
-
 			}
 
 		}
-
 	}
 
 	categories["low"] = &Cost{Amount: low, Currency: a.config.Currency, Period: "monthly"}
@@ -108,27 +92,22 @@ func (a *dependencyAnalyzer) categorizeCosts(packageCosts []*PackageCost) map[st
 	categories["high"] = &Cost{Amount: high, Currency: a.config.Currency, Period: "monthly"}
 
 	return categories
-
 }
 
 // analyzeCostTrend analyzes cost trends over time.
 
 func (a *dependencyAnalyzer) analyzeCostTrend(ctx context.Context, packages []*PackageReference) (*TrendDirection, error) {
-
 	// Stub implementation - return TrendDirectionStable.
 
 	direction := TrendDirectionStable
 
 	return &direction, nil
-
 }
 
 // projectCosts projects future costs.
 
 func (a *dependencyAnalyzer) projectCosts(analysis *CostAnalysis) *CostProjection {
-
 	projection := &CostProjection{
-
 		ProjectionPeriod: &TimePeriod{Start: time.Now(), End: time.Now().Add(365 * 24 * time.Hour), Label: "12 months"},
 
 		BaselineCost: analysis.TotalCost.Amount,
@@ -141,13 +120,11 @@ func (a *dependencyAnalyzer) projectCosts(analysis *CostAnalysis) *CostProjectio
 	}
 
 	return projection
-
 }
 
 // calculateCostEfficiency calculates cost efficiency score.
 
 func (a *dependencyAnalyzer) calculateCostEfficiency(analysis *CostAnalysis) float64 {
-
 	// Simple efficiency calculation based on waste.
 
 	if analysis.WastefulSpending != nil && analysis.TotalCost != nil && analysis.TotalCost.Amount > 0 {
@@ -159,36 +136,29 @@ func (a *dependencyAnalyzer) calculateCostEfficiency(analysis *CostAnalysis) flo
 	}
 
 	return 0.8 // Default efficiency
-
 }
 
 // identifyWastefulSpending identifies wasteful spending.
 
 func (a *dependencyAnalyzer) identifyWastefulSpending(analysis *CostAnalysis) *Cost {
-
 	// Estimate 5% of total cost as wasteful.
 
 	if analysis.TotalCost != nil {
-
 		return &Cost{
-
 			Amount: analysis.TotalCost.Amount * 0.05,
 
 			Currency: analysis.TotalCost.Currency,
 
 			Period: analysis.TotalCost.Period,
 		}
-
 	}
 
 	return &Cost{Amount: 0, Currency: "USD", Period: "monthly"}
-
 }
 
 // findCostOptimizationOpportunities finds cost optimization opportunities.
 
 func (a *dependencyAnalyzer) findCostOptimizationOpportunities(analysis *CostAnalysis) []*CostOptimizationOpportunity {
-
 	opportunities := make([]*CostOptimizationOpportunity, 0)
 
 	// Add a sample optimization opportunity.
@@ -196,7 +166,6 @@ func (a *dependencyAnalyzer) findCostOptimizationOpportunities(analysis *CostAna
 	if len(analysis.CostByPackage) > 0 {
 
 		opportunity := &CostOptimizationOpportunity{
-
 			ID: fmt.Sprintf("cost-opt-%d", time.Now().UnixNano()),
 
 			Type: "rightsizing",
@@ -215,48 +184,36 @@ func (a *dependencyAnalyzer) findCostOptimizationOpportunities(analysis *CostAna
 	}
 
 	return opportunities
-
 }
 
 // calculatePotentialSavings calculates potential savings from optimization opportunities.
 
 func (a *dependencyAnalyzer) calculatePotentialSavings(opportunities []*CostOptimizationOpportunity) *Cost {
-
 	totalSavings := 0.0
 
 	for _, opp := range opportunities {
-
 		if opp.PotentialSavings != nil {
-
 			totalSavings += opp.PotentialSavings.Amount
-
 		}
-
 	}
 
 	return &Cost{
-
 		Amount: totalSavings,
 
 		Currency: a.config.Currency,
 
 		Period: "monthly",
 	}
-
 }
 
 // DetectUnusedDependencies detects unused dependencies.
 
 func (a *dependencyAnalyzer) DetectUnusedDependencies(ctx context.Context, packages []*PackageReference) (*UnusedDependencyReport, error) {
-
 	if len(packages) == 0 {
-
 		return nil, fmt.Errorf("no packages provided for unused dependency detection")
-
 	}
 
 	report := &UnusedDependencyReport{
-
 		ReportID: fmt.Sprintf("unused-deps-%d", time.Now().UnixNano()),
 
 		AnalyzedPackages: packages,
@@ -279,21 +236,17 @@ func (a *dependencyAnalyzer) DetectUnusedDependencies(ctx context.Context, packa
 	// report.UnusedCount = len(report.UnusedDependencies) // Field doesn't exist.
 
 	return report, nil
-
 }
 
 // Add the missing CostAnalyzer method.
 
 func (c *CostAnalyzer) CalculatePackageCost(ctx context.Context, pkg *PackageReference) (*PackageCost, error) {
-
 	// Stub implementation.
 
 	cost := &PackageCost{
-
 		PackageName: pkg.Name,
 
 		Cost: &Cost{
-
 			Amount: 10.0, // $10 per month
 
 			Currency: "USD",
@@ -317,7 +270,6 @@ func (c *CostAnalyzer) CalculatePackageCost(ctx context.Context, pkg *PackageRef
 	// cost.CostBreakdown["network"] = &Cost{Amount: 2.0, Currency: "USD", Period: "monthly"}.
 
 	return cost, nil
-
 }
 
 // Removed duplicate methods - already implemented in analyzer.go:.

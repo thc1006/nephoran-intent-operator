@@ -17,6 +17,7 @@ limitations under the License.
 package types
 
 import (
+	"encoding/json"
 	"time"
 )
 
@@ -41,22 +42,22 @@ type CircuitBreakerConfig struct {
 
 // ServiceConfig represents service configuration
 type ServiceConfig struct {
-	Name        string                 `json:"name"`
-	Port        int                    `json:"port"`
-	Host        string                 `json:"host"`
-	TLS         bool                   `json:"tls"`
-	Timeout     time.Duration          `json:"timeout"`
-	Retries     int                    `json:"retries"`
-	CircuitBreaker *CircuitBreakerConfig `json:"circuit_breaker,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Name           string                 `json:"name"`
+	Port           int                    `json:"port"`
+	Host           string                 `json:"host"`
+	TLS            bool                   `json:"tls"`
+	Timeout        time.Duration          `json:"timeout"`
+	Retries        int                    `json:"retries"`
+	CircuitBreaker *CircuitBreakerConfig  `json:"circuit_breaker,omitempty"`
+	Metadata       json.RawMessage `json:"metadata"`
 }
 
 // HealthStatus represents health status
 type HealthStatus struct {
-	Healthy     bool                   `json:"healthy"`
-	Message     string                 `json:"message"`
-	LastCheck   time.Time              `json:"last_check"`
-	Details     map[string]interface{} `json:"details"`
+	Healthy   bool                   `json:"healthy"`
+	Message   string                 `json:"message"`
+	LastCheck time.Time              `json:"last_check"`
+	Details   json.RawMessage `json:"details"`
 }
 
 // NetworkIntent represents a network intent
@@ -65,9 +66,9 @@ type NetworkIntent struct {
 	Type            string                 `json:"type"`
 	Priority        int                    `json:"priority"`
 	Description     string                 `json:"description"`
-	Parameters      map[string]interface{} `json:"parameters"`
+	Parameters      json.RawMessage `json:"parameters"`
 	TargetResources []string               `json:"target_resources"`
-	Constraints     map[string]interface{} `json:"constraints"`
+	Constraints     json.RawMessage `json:"constraints"`
 	CreatedAt       time.Time              `json:"created_at"`
 	UpdatedAt       time.Time              `json:"updated_at"`
 	Status          string                 `json:"status"`
@@ -75,15 +76,15 @@ type NetworkIntent struct {
 
 // ScalingIntent represents a scaling intent
 type ScalingIntent struct {
-	ID            string                 `json:"id"`
-	ResourceType  string                 `json:"resource_type"`
-	ResourceName  string                 `json:"resource_name"`
-	TargetScale   int                    `json:"target_scale"`
-	CurrentScale  int                    `json:"current_scale"`
-	ScaleDirection string                `json:"scale_direction"` // "up", "down", "auto"
-	Reason        string                 `json:"reason"`
-	Metadata      map[string]interface{} `json:"metadata"`
-	CreatedAt     time.Time              `json:"created_at"`
-	CompletedAt   *time.Time             `json:"completed_at,omitempty"`
-	Status        string                 `json:"status"`
+	ID             string                 `json:"id"`
+	ResourceType   string                 `json:"resource_type"`
+	ResourceName   string                 `json:"resource_name"`
+	TargetScale    int                    `json:"target_scale"`
+	CurrentScale   int                    `json:"current_scale"`
+	ScaleDirection string                 `json:"scale_direction"` // "up", "down", "auto"
+	Reason         string                 `json:"reason"`
+	Metadata       json.RawMessage `json:"metadata"`
+	CreatedAt      time.Time              `json:"created_at"`
+	CompletedAt    *time.Time             `json:"completed_at,omitempty"`
+	Status         string                 `json:"status"`
 }

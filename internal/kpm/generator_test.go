@@ -171,7 +171,7 @@ func TestFilePermissions(t *testing.T) {
 
 	// Check file permissions (0600 = owner read/write only)
 	mode := info.Mode().Perm()
-	expectedMode := os.FileMode(0600)
+	expectedMode := os.FileMode(0o600)
 	if mode != expectedMode {
 		t.Errorf("Expected file permissions %o, got %o", expectedMode, mode)
 	}

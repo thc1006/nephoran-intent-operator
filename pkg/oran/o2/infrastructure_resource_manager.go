@@ -1,7 +1,9 @@
 package o2
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -63,7 +65,6 @@ type InfrastructureResourceManager struct {
 // ResourceManagerConfig defines configuration for resource management.
 
 type ResourceManagerConfig struct {
-
 	// Cache configuration.
 
 	CacheEnabled bool `json:"cache_enabled"`
@@ -142,7 +143,6 @@ type ResourceManagerConfig struct {
 // ResourceLifecycleManager defines the interface for resource lifecycle operations.
 
 type ResourceLifecycleManager interface {
-
 	// Provisioning operations.
 
 	ProvisionResource(ctx context.Context, req *ProvisionResourceRequest) (*models.Resource, error)
@@ -193,7 +193,6 @@ type ResourceLifecycleManager interface {
 // ProvisioningQueue defines the interface for managing resource provisioning queue.
 
 type ProvisioningQueue interface {
-
 	// Queue operations.
 
 	EnqueueProvisioningRequest(ctx context.Context, req *ProvisioningQueueEntry) error
@@ -226,7 +225,6 @@ type ProvisioningQueue interface {
 // ResourceHealthMonitor defines the interface for resource health monitoring.
 
 type ResourceHealthMonitor interface {
-
 	// Health checking.
 
 	CheckResourceHealth(ctx context.Context, resourceID string) (*models.ResourceHealthInfo, error)
@@ -257,7 +255,6 @@ type ResourceHealthMonitor interface {
 // ResourceMetricsCollector defines the interface for resource metrics collection.
 
 type ResourceMetricsCollector interface {
-
 	// Metrics collection.
 
 	CollectResourceMetrics(ctx context.Context, resourceID string, metricNames []string) (*MetricsData, error)
@@ -288,7 +285,6 @@ type ResourceMetricsCollector interface {
 // OperationTracker defines the interface for tracking resource operations.
 
 type OperationTracker interface {
-
 	// Operation tracking.
 
 	StartOperation(ctx context.Context, operation *ResourceOperation) (string, error)
@@ -319,7 +315,6 @@ type OperationTracker interface {
 // ResourceValidator defines the interface for resource validation.
 
 type ResourceValidator interface {
-
 	// Configuration validation.
 
 	ValidateResourceConfiguration(ctx context.Context, resourceTypeID string, config *runtime.RawExtension) (*ValidationResult, error)
@@ -381,7 +376,6 @@ type ScalingMetric struct {
 	Threshold float64 `json:"threshold"`
 
 	ComparisonOperator string `json:"comparisonOperator"` // GT, LT, GE, LE, EQ
-
 }
 
 // MigrationValidationResult represents the result of migration validation.
@@ -411,7 +405,7 @@ type ResourceStateInfo struct {
 
 	StateTransitions []*StateTransition `json:"stateTransitions,omitempty"`
 
-	StateMetadata map[string]interface{} `json:"stateMetadata,omitempty"`
+	StateMetadata json.RawMessage `json:"stateMetadata,omitempty"`
 
 	LastStateChange time.Time `json:"lastStateChange"`
 }
@@ -463,7 +457,7 @@ type ProvisioningQueueEntry struct {
 
 	LastError string `json:"lastError,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // QueueStatus represents the status of the provisioning queue.
@@ -523,7 +517,7 @@ type HealthCheckConfig struct {
 
 	FailureThreshold int `json:"failureThreshold"`
 
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 }
 
 // HealthPolicy defines health policies for resources.
@@ -553,7 +547,7 @@ type HealthAction struct {
 
 	Condition string `json:"condition"` // Health condition that triggers this action
 
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 
 	Priority int `json:"priority"`
 
@@ -634,7 +628,6 @@ type TrendData struct {
 	ChangePercent float64 `json:"changePercent"`
 
 	Trend string `json:"trend"` // UP, DOWN, STABLE
-
 }
 
 // HealthTrendPoint represents a point in health trend data.
@@ -728,7 +721,7 @@ type CustomMetricDefinition struct {
 
 	CollectionMethod string `json:"collectionMethod"` // PULL, PUSH, CALCULATED
 
-	CollectionConfig map[string]interface{} `json:"collectionConfig,omitempty"`
+	CollectionConfig json.RawMessage `json:"collectionConfig,omitempty"`
 
 	Labels []string `json:"labels,omitempty"`
 }
@@ -754,7 +747,7 @@ type ResourceOperation struct {
 
 	CreatedBy string `json:"createdBy,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // OperationStatus represents the status of an operation.
@@ -838,12 +831,11 @@ type ResourceConstraint struct {
 
 	Expression string `json:"expression"`
 
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 
 	Severity string `json:"severity"` // ERROR, WARNING, INFO
 
 	EnforceAt string `json:"enforceAt"` // CREATION, RUNTIME, BOTH
-
 }
 
 // ResourcePolicy defines a policy that applies to resources.
@@ -866,7 +858,6 @@ type ResourcePolicy struct {
 	Priority int `json:"priority"`
 
 	EnforcementMode string `json:"enforcementMode"` // ENFORCED, MONITOR, DISABLED
-
 }
 
 // PolicyRule defines a rule within a policy.
@@ -880,7 +871,7 @@ type PolicyRule struct {
 
 	Action string `json:"action"`
 
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 
 	Enabled bool `json:"enabled"`
 }
@@ -902,9 +893,7 @@ type PolicyScope struct {
 // NewInfrastructureResourceManager creates a new infrastructure resource manager.
 
 func NewInfrastructureResourceManager(storage O2IMSStorage, kubeClient client.Client, logger *logging.StructuredLogger) *InfrastructureResourceManager {
-
 	config := &ResourceManagerConfig{
-
 		CacheEnabled: true,
 
 		CacheExpiry: 15 * time.Minute,
@@ -963,7 +952,6 @@ func NewInfrastructureResourceManager(storage O2IMSStorage, kubeClient client.Cl
 	}
 
 	return &InfrastructureResourceManager{
-
 		storage: storage,
 
 		kubeClient: kubeClient,
@@ -980,13 +968,11 @@ func NewInfrastructureResourceManager(storage O2IMSStorage, kubeClient client.Cl
 
 		syncEnabled: config.StateSyncEnabled,
 	}
-
 }
 
 // GetResources retrieves infrastructure resources with filtering support.
 
 func (irm *InfrastructureResourceManager) GetResources(ctx context.Context, filter *models.ResourceFilter) ([]*models.Resource, error) {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("retrieving infrastructure resources", "filter", filter)
@@ -994,55 +980,58 @@ func (irm *InfrastructureResourceManager) GetResources(ctx context.Context, filt
 	// Check cache first if enabled and no specific filter.
 
 	if irm.config.CacheEnabled && filter == nil {
-
 		if resources := irm.getCachedResources(ctx); len(resources) > 0 {
-
 			return resources, nil
-
 		}
-
 	}
 
-	// Retrieve from storage.
+	// Retrieve from storage - convert filter to map.
+	filterMap := make(map[string]interface{})
+	if filter != nil {
+		if len(filter.ResourcePoolIDs) > 0 {
+			filterMap["resource_pool_ids"] = filter.ResourcePoolIDs
+		}
+		if len(filter.ResourceTypeIDs) > 0 {
+			filterMap["resource_type_ids"] = filter.ResourceTypeIDs
+		}
+		if len(filter.LifecycleStates) > 0 {
+			filterMap["lifecycle_states"] = filter.LifecycleStates
+		}
+		if filter.Limit > 0 {
+			filterMap["limit"] = filter.Limit
+		}
+		if filter.Offset > 0 {
+			filterMap["offset"] = filter.Offset
+		}
+	}
 
-	resources, err := irm.storage.ListResources(ctx, filter)
-
+	resources, err := irm.storage.ListResources(ctx, filterMap)
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to list resources: %w", err)
-
 	}
 
 	// Update cache if enabled.
 
 	if irm.config.CacheEnabled {
-
 		irm.updateResourceCache(resources)
-
 	}
 
 	// Enrich with real-time data if monitoring is enabled.
 
 	if irm.config.HealthMonitoringEnabled || irm.config.MetricsCollectionEnabled {
-
 		if err := irm.enrichResourcesWithRealTimeData(ctx, resources); err != nil {
-
 			logger.Info("failed to enrich resources with real-time data", "error", err)
-
 		}
-
 	}
 
 	logger.Info("retrieved infrastructure resources", "count", len(resources))
 
 	return resources, nil
-
 }
 
 // GetResource retrieves a specific infrastructure resource.
 
 func (irm *InfrastructureResourceManager) GetResource(ctx context.Context, resourceID string) (*models.Resource, error) {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("retrieving infrastructure resource", "resourceId", resourceID)
@@ -1050,53 +1039,38 @@ func (irm *InfrastructureResourceManager) GetResource(ctx context.Context, resou
 	// Check cache first.
 
 	if irm.config.CacheEnabled {
-
 		if resource := irm.getCachedResource(resourceID); resource != nil {
-
 			return resource, nil
-
 		}
-
 	}
 
 	// Retrieve from storage.
 
-	resource, err := irm.storage.GetResource(ctx, resourceID)
-
+	resource, err := irm.storage.RetrieveResource(ctx, resourceID)
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to get resource %s: %w", resourceID, err)
-
 	}
 
 	// Update cache.
 
 	if irm.config.CacheEnabled {
-
 		irm.setCachedResource(resource)
-
 	}
 
 	// Enrich with real-time data.
 
 	if irm.config.HealthMonitoringEnabled || irm.config.MetricsCollectionEnabled {
-
 		if err := irm.enrichResourceWithRealTimeData(ctx, resource); err != nil {
-
 			logger.Info("failed to enrich resource with real-time data", "error", err)
-
 		}
-
 	}
 
 	return resource, nil
-
 }
 
 // CreateResource creates a new infrastructure resource.
 
 func (irm *InfrastructureResourceManager) CreateResource(ctx context.Context, req *models.CreateResourceRequest) (*models.Resource, error) {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("creating infrastructure resource", "name", req.Name, "type", req.ResourceTypeID)
@@ -1104,7 +1078,6 @@ func (irm *InfrastructureResourceManager) CreateResource(ctx context.Context, re
 	// Start operation tracking.
 
 	operation := &ResourceOperation{
-
 		OperationID: irm.generateOperationID(),
 
 		OperationType: "CREATE",
@@ -1114,7 +1087,6 @@ func (irm *InfrastructureResourceManager) CreateResource(ctx context.Context, re
 		StartedAt: time.Now(),
 
 		Status: &OperationStatus{
-
 			State: "RUNNING",
 
 			Progress: 0.0,
@@ -1130,11 +1102,8 @@ func (irm *InfrastructureResourceManager) CreateResource(ctx context.Context, re
 		var err error
 
 		operationID, err = irm.operationTracker.StartOperation(ctx, operation)
-
 		if err != nil {
-
 			logger.Info("failed to start operation tracking", "error", err)
-
 		}
 
 	}
@@ -1144,9 +1113,7 @@ func (irm *InfrastructureResourceManager) CreateResource(ctx context.Context, re
 	if err := irm.validateCreateResourceRequest(ctx, req); err != nil {
 
 		if operationID != "" {
-
 			irm.operationTracker.FailOperation(ctx, operationID, err)
-
 		}
 
 		return nil, fmt.Errorf("invalid create resource request: %w", err)
@@ -1156,7 +1123,6 @@ func (irm *InfrastructureResourceManager) CreateResource(ctx context.Context, re
 	// Create the resource.
 
 	resource := &models.Resource{
-
 		ResourceID: irm.generateResourceID(req.Name, req.ResourceTypeID),
 
 		Name: req.Name,
@@ -1180,7 +1146,6 @@ func (irm *InfrastructureResourceManager) CreateResource(ctx context.Context, re
 		Extensions: req.Extensions,
 
 		Status: &models.ResourceStatus{
-
 			State: models.LifecycleStateProvisioning,
 
 			Health: models.ResourceHealthUnknown,
@@ -1200,9 +1165,7 @@ func (irm *InfrastructureResourceManager) CreateResource(ctx context.Context, re
 	if err := irm.storage.StoreResource(ctx, resource); err != nil {
 
 		if operationID != "" {
-
 			irm.operationTracker.FailOperation(ctx, operationID, err)
-
 		}
 
 		return nil, fmt.Errorf("failed to store resource: %w", err)
@@ -1216,7 +1179,6 @@ func (irm *InfrastructureResourceManager) CreateResource(ctx context.Context, re
 		operation.ResourceID = resource.ResourceID
 
 		irm.operationTracker.UpdateOperation(ctx, operationID, &OperationStatus{
-
 			State: "RUNNING",
 
 			Progress: 0.3,
@@ -1229,9 +1191,7 @@ func (irm *InfrastructureResourceManager) CreateResource(ctx context.Context, re
 	// Update cache.
 
 	if irm.config.CacheEnabled {
-
 		irm.setCachedResource(resource)
-
 	}
 
 	// Initiate provisioning if lifecycle manager is available.
@@ -1239,7 +1199,6 @@ func (irm *InfrastructureResourceManager) CreateResource(ctx context.Context, re
 	if irm.lifecycleManager != nil {
 
 		provisionReq := &ProvisionResourceRequest{
-
 			Name: req.Name,
 
 			ResourceType: req.ResourceTypeID,
@@ -1263,15 +1222,10 @@ func (irm *InfrastructureResourceManager) CreateResource(ctx context.Context, re
 
 			resource.Status.ErrorMessage = fmt.Sprintf("Provisioning failed: %v", err)
 
-			irm.storage.UpdateResource(ctx, resource.ResourceID, map[string]interface{}{
-
-				"status": resource.Status,
-			})
+			irm.storage.UpdateResource(ctx, resource)
 
 			if operationID != "" {
-
 				irm.operationTracker.FailOperation(ctx, operationID, err)
-
 			}
 
 		} else {
@@ -1282,22 +1236,16 @@ func (irm *InfrastructureResourceManager) CreateResource(ctx context.Context, re
 
 			resource.Status.ErrorMessage = ""
 
-			irm.storage.UpdateResource(ctx, resource.ResourceID, map[string]interface{}{
-
-				"status": resource.Status,
-			})
+			irm.storage.UpdateResource(ctx, resource)
 
 			if operationID != "" {
-
 				irm.operationTracker.CompleteOperation(ctx, operationID, &OperationResult{
-
 					Success: true,
 
 					ResourceID: resource.ResourceID,
 
 					Message: "Resource created successfully",
 				})
-
 			}
 
 		}
@@ -1307,25 +1255,19 @@ func (irm *InfrastructureResourceManager) CreateResource(ctx context.Context, re
 	// Start monitoring if enabled.
 
 	if irm.config.HealthMonitoringEnabled && irm.healthMonitor != nil {
-
 		if err := irm.startResourceMonitoring(ctx, resource.ResourceID); err != nil {
-
 			logger.Info("failed to start resource monitoring", "error", err)
-
 		}
-
 	}
 
 	logger.Info("infrastructure resource created", "resourceId", resource.ResourceID)
 
 	return resource, nil
-
 }
 
 // UpdateResource updates an existing infrastructure resource.
 
 func (irm *InfrastructureResourceManager) UpdateResource(ctx context.Context, resourceID string, req *models.UpdateResourceRequest) (*models.Resource, error) {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("updating infrastructure resource", "resourceId", resourceID)
@@ -1333,17 +1275,13 @@ func (irm *InfrastructureResourceManager) UpdateResource(ctx context.Context, re
 	// Get current resource.
 
 	resource, err := irm.GetResource(ctx, resourceID)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	// Start operation tracking.
 
 	operation := &ResourceOperation{
-
 		OperationID: irm.generateOperationID(),
 
 		ResourceID: resourceID,
@@ -1355,7 +1293,6 @@ func (irm *InfrastructureResourceManager) UpdateResource(ctx context.Context, re
 		StartedAt: time.Now(),
 
 		Status: &OperationStatus{
-
 			State: "RUNNING",
 
 			Progress: 0.0,
@@ -1369,11 +1306,8 @@ func (irm *InfrastructureResourceManager) UpdateResource(ctx context.Context, re
 	if irm.operationTracker != nil {
 
 		operationID, err = irm.operationTracker.StartOperation(ctx, operation)
-
 		if err != nil {
-
 			logger.Info("failed to start operation tracking", "error", err)
-
 		}
 
 	}
@@ -1436,12 +1370,10 @@ func (irm *InfrastructureResourceManager) UpdateResource(ctx context.Context, re
 
 	// Update in storage.
 
-	if err := irm.storage.UpdateResource(ctx, resourceID, updates); err != nil {
+	if err := irm.storage.UpdateResource(ctx, resource); err != nil {
 
 		if operationID != "" {
-
 			irm.operationTracker.FailOperation(ctx, operationID, err)
-
 		}
 
 		return nil, fmt.Errorf("failed to update resource: %w", err)
@@ -1451,54 +1383,43 @@ func (irm *InfrastructureResourceManager) UpdateResource(ctx context.Context, re
 	// Update cache.
 
 	if irm.config.CacheEnabled {
-
 		irm.setCachedResource(resource)
-
 	}
 
 	// Apply configuration changes if lifecycle manager is available.
 
 	if req.Configuration != nil && irm.lifecycleManager != nil {
-
 		if err := irm.lifecycleManager.ConfigureResource(ctx, resourceID, req.Configuration); err != nil {
 
 			logger.Info("configuration update failed", "error", err)
 
 			if operationID != "" {
-
 				irm.operationTracker.FailOperation(ctx, operationID, err)
-
 			}
 
 		}
-
 	}
 
 	// Complete operation tracking.
 
 	if operationID != "" {
-
 		irm.operationTracker.CompleteOperation(ctx, operationID, &OperationResult{
-
 			Success: true,
 
 			ResourceID: resourceID,
 
 			Message: "Resource updated successfully",
 		})
-
 	}
 
 	logger.Info("infrastructure resource updated", "resourceId", resourceID)
 
 	return resource, nil
-
 }
 
 // DeleteResource deletes an infrastructure resource.
 
 func (irm *InfrastructureResourceManager) DeleteResource(ctx context.Context, resourceID string) error {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("deleting infrastructure resource", "resourceId", resourceID)
@@ -1506,25 +1427,19 @@ func (irm *InfrastructureResourceManager) DeleteResource(ctx context.Context, re
 	// Check if resource exists.
 
 	resource, err := irm.GetResource(ctx, resourceID)
-
 	if err != nil {
-
 		return err
-
 	}
 
 	// Check for dependent resources.
 
 	if err := irm.checkResourceDependencies(ctx, resourceID); err != nil {
-
 		return fmt.Errorf("cannot delete resource with dependencies: %w", err)
-
 	}
 
 	// Start operation tracking.
 
 	operation := &ResourceOperation{
-
 		OperationID: irm.generateOperationID(),
 
 		ResourceID: resourceID,
@@ -1534,7 +1449,6 @@ func (irm *InfrastructureResourceManager) DeleteResource(ctx context.Context, re
 		StartedAt: time.Now(),
 
 		Status: &OperationStatus{
-
 			State: "RUNNING",
 
 			Progress: 0.0,
@@ -1548,11 +1462,8 @@ func (irm *InfrastructureResourceManager) DeleteResource(ctx context.Context, re
 	if irm.operationTracker != nil {
 
 		operationID, err = irm.operationTracker.StartOperation(ctx, operation)
-
 		if err != nil {
-
 			logger.Info("failed to start operation tracking", "error", err)
-
 		}
 
 	}
@@ -1560,25 +1471,17 @@ func (irm *InfrastructureResourceManager) DeleteResource(ctx context.Context, re
 	// Stop monitoring if enabled.
 
 	if irm.config.HealthMonitoringEnabled && irm.healthMonitor != nil {
-
 		if err := irm.stopResourceMonitoring(ctx, resourceID); err != nil {
-
 			logger.Info("failed to stop resource monitoring", "error", err)
-
 		}
-
 	}
 
 	// Terminate resource if lifecycle manager is available.
 
 	if irm.lifecycleManager != nil {
-
 		if err := irm.lifecycleManager.TerminateResource(ctx, resourceID, false); err != nil {
-
 			logger.Info("resource termination failed, proceeding with deletion", "error", err)
-
 		}
-
 	}
 
 	// Update resource status before deletion.
@@ -1587,19 +1490,14 @@ func (irm *InfrastructureResourceManager) DeleteResource(ctx context.Context, re
 
 	resource.Status.ErrorMessage = ""
 
-	irm.storage.UpdateResource(ctx, resourceID, map[string]interface{}{
-
-		"status": resource.Status,
-	})
+	irm.storage.UpdateResource(ctx, resource)
 
 	// Delete from storage.
 
 	if err := irm.storage.DeleteResource(ctx, resourceID); err != nil {
 
 		if operationID != "" {
-
 			irm.operationTracker.FailOperation(ctx, operationID, err)
-
 		}
 
 		return fmt.Errorf("failed to delete resource: %w", err)
@@ -1609,30 +1507,24 @@ func (irm *InfrastructureResourceManager) DeleteResource(ctx context.Context, re
 	// Remove from cache.
 
 	if irm.config.CacheEnabled {
-
 		irm.removeCachedResource(resourceID)
-
 	}
 
 	// Complete operation tracking.
 
 	if operationID != "" {
-
 		irm.operationTracker.CompleteOperation(ctx, operationID, &OperationResult{
-
 			Success: true,
 
 			ResourceID: resourceID,
 
 			Message: "Resource deleted successfully",
 		})
-
 	}
 
 	logger.Info("infrastructure resource deleted", "resourceId", resourceID)
 
 	return nil
-
 }
 
 // Private helper methods.
@@ -1640,23 +1532,16 @@ func (irm *InfrastructureResourceManager) DeleteResource(ctx context.Context, re
 // validateCreateResourceRequest validates a create resource request.
 
 func (irm *InfrastructureResourceManager) validateCreateResourceRequest(ctx context.Context, req *models.CreateResourceRequest) error {
-
 	if req.Name == "" {
-
 		return fmt.Errorf("resource name is required")
-
 	}
 
 	if req.ResourceTypeID == "" {
-
 		return fmt.Errorf("resource type ID is required")
-
 	}
 
 	if req.ResourcePoolID == "" {
-
 		return fmt.Errorf("resource pool ID is required")
-
 	}
 
 	// Additional validation through validator if available.
@@ -1664,98 +1549,76 @@ func (irm *InfrastructureResourceManager) validateCreateResourceRequest(ctx cont
 	if irm.config.ValidationEnabled && irm.validator != nil {
 
 		if req.Configuration != nil {
-
 			if result, err := irm.validator.ValidateResourceConfiguration(ctx, req.ResourceTypeID, req.Configuration); err != nil {
-
 				return fmt.Errorf("configuration validation failed: %w", err)
-
 			} else if !result.Valid {
-
 				return fmt.Errorf("configuration validation failed: %v", result.Errors)
-
 			}
-
 		}
 
 		if req.PlacementConstraints != nil {
-
 			if result, err := irm.validator.ValidateResourcePlacement(ctx, req.PlacementConstraints); err != nil {
-
 				return fmt.Errorf("placement validation failed: %w", err)
-
 			} else if !result.Valid {
-
 				return fmt.Errorf("placement validation failed: %v", result.Errors)
-
 			}
-
 		}
 
 	}
 
 	return nil
-
 }
 
 // generateResourceID generates a unique resource ID.
 
 func (irm *InfrastructureResourceManager) generateResourceID(name, resourceTypeID string) string {
-
 	return fmt.Sprintf("%s-%s-%d", resourceTypeID, name, time.Now().Unix())
-
 }
 
 // generateOperationID generates a unique operation ID.
 
 func (irm *InfrastructureResourceManager) generateOperationID() string {
-
 	return fmt.Sprintf("op-%d", time.Now().UnixNano())
-
 }
 
 // checkResourceDependencies checks if there are resources depending on this resource.
 
 func (irm *InfrastructureResourceManager) checkResourceDependencies(ctx context.Context, resourceID string) error {
-
 	// Check for dependent resources.
 
 	filter := &models.ResourceFilter{
-
 		ParentResourceIDs: []string{resourceID},
 
 		Limit: 1,
 	}
 
-	resources, err := irm.storage.ListResources(ctx, filter)
+	// Convert filter to map for storage interface
+	filterMap := make(map[string]interface{})
+	if len(filter.ParentResourceIDs) > 0 {
+		filterMap["parent_resource_ids"] = filter.ParentResourceIDs
+	}
+	filterMap["limit"] = filter.Limit
 
+	resources, err := irm.storage.ListResources(ctx, filterMap)
 	if err != nil {
-
 		return fmt.Errorf("failed to check dependencies: %w", err)
-
 	}
 
 	if len(resources) > 0 {
-
 		return fmt.Errorf("resource has %d dependent resources", len(resources))
-
 	}
 
 	return nil
-
 }
 
 // startResourceMonitoring starts monitoring for a resource.
 
 func (irm *InfrastructureResourceManager) startResourceMonitoring(ctx context.Context, resourceID string) error {
-
 	if irm.healthMonitor == nil {
-
 		return nil
-
 	}
 
 	config := &HealthMonitoringConfig{
-
 		CheckInterval: irm.config.HealthCheckInterval,
 
 		Timeout: irm.config.HealthCheckTimeout,
@@ -1770,45 +1633,33 @@ func (irm *InfrastructureResourceManager) startResourceMonitoring(ctx context.Co
 	}
 
 	return irm.healthMonitor.StartHealthMonitoring(ctx, resourceID, config)
-
 }
 
 // stopResourceMonitoring stops monitoring for a resource.
 
 func (irm *InfrastructureResourceManager) stopResourceMonitoring(ctx context.Context, resourceID string) error {
-
 	if irm.healthMonitor == nil {
-
 		return nil
-
 	}
 
 	return irm.healthMonitor.StopHealthMonitoring(ctx, resourceID)
-
 }
 
 // enrichResourcesWithRealTimeData enriches resources with real-time health and metrics data.
 
 func (irm *InfrastructureResourceManager) enrichResourcesWithRealTimeData(ctx context.Context, resources []*models.Resource) error {
-
 	for _, resource := range resources {
-
 		if err := irm.enrichResourceWithRealTimeData(ctx, resource); err != nil {
-
 			irm.logger.Error("failed to enrich resource with real-time data", "resourceId", resource.ResourceID, "error", err)
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // enrichResourceWithRealTimeData enriches a single resource with real-time data.
 
 func (irm *InfrastructureResourceManager) enrichResourceWithRealTimeData(ctx context.Context, resource *models.Resource) error {
-
 	// Enrich with health information.
 
 	if irm.config.HealthMonitoringEnabled && irm.healthMonitor != nil {
@@ -1816,9 +1667,7 @@ func (irm *InfrastructureResourceManager) enrichResourceWithRealTimeData(ctx con
 		health, err := irm.healthMonitor.CheckResourceHealth(ctx, resource.ResourceID)
 
 		if err == nil && health != nil {
-
 			resource.Health = health
-
 		}
 
 	}
@@ -1830,15 +1679,12 @@ func (irm *InfrastructureResourceManager) enrichResourceWithRealTimeData(ctx con
 		metrics, err := irm.metricsCollector.CollectResourceMetrics(ctx, resource.ResourceID, []string{"cpu", "memory", "storage"})
 
 		if err == nil && metrics != nil {
-
 			resource.Metrics = metrics.Metrics
-
 		}
 
 	}
 
 	return nil
-
 }
 
 // Cache management methods.
@@ -1846,7 +1692,6 @@ func (irm *InfrastructureResourceManager) enrichResourceWithRealTimeData(ctx con
 // getCachedResources returns all cached resources.
 
 func (irm *InfrastructureResourceManager) getCachedResources(ctx context.Context) []*models.Resource {
-
 	irm.cacheMu.RLock()
 
 	defer irm.cacheMu.RUnlock()
@@ -1854,65 +1699,52 @@ func (irm *InfrastructureResourceManager) getCachedResources(ctx context.Context
 	resources := make([]*models.Resource, 0, len(irm.resourceCache))
 
 	for _, resource := range irm.resourceCache {
-
 		resources = append(resources, resource)
-
 	}
 
 	return resources
-
 }
 
 // getCachedResource returns a cached resource by ID.
 
 func (irm *InfrastructureResourceManager) getCachedResource(resourceID string) *models.Resource {
-
 	irm.cacheMu.RLock()
 
 	defer irm.cacheMu.RUnlock()
 
 	return irm.resourceCache[resourceID]
-
 }
 
 // setCachedResource adds or updates a resource in the cache.
 
 func (irm *InfrastructureResourceManager) setCachedResource(resource *models.Resource) {
-
 	irm.cacheMu.Lock()
 
 	defer irm.cacheMu.Unlock()
 
 	irm.resourceCache[resource.ResourceID] = resource
-
 }
 
 // updateResourceCache updates multiple resources in the cache.
 
 func (irm *InfrastructureResourceManager) updateResourceCache(resources []*models.Resource) {
-
 	irm.cacheMu.Lock()
 
 	defer irm.cacheMu.Unlock()
 
 	for _, resource := range resources {
-
 		irm.resourceCache[resource.ResourceID] = resource
-
 	}
-
 }
 
 // removeCachedResource removes a resource from the cache.
 
 func (irm *InfrastructureResourceManager) removeCachedResource(resourceID string) {
-
 	irm.cacheMu.Lock()
 
 	defer irm.cacheMu.Unlock()
 
 	delete(irm.resourceCache, resourceID)
-
 }
 
 // Component setters.
@@ -1920,63 +1752,48 @@ func (irm *InfrastructureResourceManager) removeCachedResource(resourceID string
 // SetLifecycleManager sets the resource lifecycle manager.
 
 func (irm *InfrastructureResourceManager) SetLifecycleManager(manager ResourceLifecycleManager) {
-
 	irm.lifecycleManager = manager
-
 }
 
 // SetProvisioningQueue sets the provisioning queue.
 
 func (irm *InfrastructureResourceManager) SetProvisioningQueue(queue ProvisioningQueue) {
-
 	irm.provisioningQueue = queue
-
 }
 
 // SetHealthMonitor sets the resource health monitor.
 
 func (irm *InfrastructureResourceManager) SetHealthMonitor(monitor ResourceHealthMonitor) {
-
 	irm.healthMonitor = monitor
-
 }
 
 // SetMetricsCollector sets the resource metrics collector.
 
 func (irm *InfrastructureResourceManager) SetMetricsCollector(collector ResourceMetricsCollector) {
-
 	irm.metricsCollector = collector
-
 }
 
 // SetOperationTracker sets the operation tracker.
 
 func (irm *InfrastructureResourceManager) SetOperationTracker(tracker OperationTracker) {
-
 	irm.operationTracker = tracker
-
 }
 
 // SetValidator sets the resource validator.
 
 func (irm *InfrastructureResourceManager) SetValidator(validator ResourceValidator) {
-
 	irm.validator = validator
-
 }
 
 // GetConfig returns the current configuration.
 
 func (irm *InfrastructureResourceManager) GetConfig() *ResourceManagerConfig {
-
 	return irm.config
-
 }
 
 // UpdateConfig updates the configuration.
 
 func (irm *InfrastructureResourceManager) UpdateConfig(config *ResourceManagerConfig) {
-
 	irm.config = config
 
 	irm.cacheExpiry = config.CacheExpiry
@@ -1984,5 +1801,4 @@ func (irm *InfrastructureResourceManager) UpdateConfig(config *ResourceManagerCo
 	irm.discoveryEnabled = config.AutoDiscoveryEnabled
 
 	irm.syncEnabled = config.StateSyncEnabled
-
 }

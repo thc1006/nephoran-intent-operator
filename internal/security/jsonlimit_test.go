@@ -83,7 +83,7 @@ func TestValidateAndLimitJSON_FileHandles(t *testing.T) {
 	tempFile, err := os.CreateTemp("", "test_json_*.json")
 	require.NoError(t, err)
 	defer os.Remove(tempFile.Name())
-	defer tempFile.Close()
+	defer tempFile.Close() // #nosec G307 - Error handled in defer
 
 	// Test content
 	content := `{"intent": "scaling", "target": "app", "namespace": "default"}`
@@ -117,7 +117,7 @@ func TestValidateAndLimitJSON_LargeFile(t *testing.T) {
 	tempFile, err := os.CreateTemp("", "large_test_*.json")
 	require.NoError(t, err)
 	defer os.Remove(tempFile.Name())
-	defer tempFile.Close()
+	defer tempFile.Close() // #nosec G307 - Error handled in defer
 
 	// Write 2MB of content
 	largeContent := strings.Repeat("a", 2*1024*1024)

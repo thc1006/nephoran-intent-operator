@@ -43,13 +43,12 @@ import (
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
 )
 
 // NetworkIntentReconciler reconciles a NetworkIntent object.
@@ -93,15 +92,13 @@ type LLMResponse struct {
 // move the current state of the cluster closer to the desired state.
 
 func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-
 	log := log.FromContext(ctx)
 
 	// Fetch the NetworkIntent instance.
 
-	networkIntent := &nephoranv1.NetworkIntent{}
+	networkIntent := &intentv1alpha1.NetworkIntent{}
 
 	err := r.Get(ctx, req.NamespacedName, networkIntent)
-
 	if err != nil {
 
 		if errors.IsNotFound(err) {
@@ -136,35 +133,29 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Validate the intent field.
 
-	if networkIntent.Spec.Intent == "" {
-
-		return r.updateStatus(ctx, networkIntent, "Error", "Intent field cannot be empty", networkIntent.Generation)
-
+	if len(networkIntent.Spec.Source) == 0 {
+		return r.updateStatus(ctx, networkIntent, "Error", "Source field cannot be empty", networkIntent.Generation)
 	}
 
 	// Initial validation passed.
 
 	if _, err := r.updateStatus(ctx, networkIntent, "Validated", "Intent validated successfully", networkIntent.Generation); err != nil {
-
 		return ctrl.Result{}, err
-
 	}
 
 	// If LLM intent processing is enabled, send to LLM processor.
 
 	if r.EnableLLMIntent {
 
-		log.Info("Processing intent with LLM", "intent", networkIntent.Spec.Intent)
+		log.Info("Processing intent with LLM", "source", networkIntent.Spec.Source)
 
 		// Prepare the request.
 
 		llmReq := LLMRequest{
-
-			Intent: networkIntent.Spec.Intent,
+			Intent: networkIntent.Spec.Source,
 		}
 
 		jsonData, err := json.Marshal(llmReq)
-
 		if err != nil {
 
 			log.Error(err, "Failed to marshal LLM request")
@@ -176,7 +167,6 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		// Create HTTP client with timeout.
 
 		client := &http.Client{
-
 			Timeout: 15 * time.Second,
 		}
 
@@ -185,15 +175,12 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		llmURL := r.LLMProcessorURL
 
 		if llmURL == "" {
-
 			llmURL = "http://llm-processor:8080/process"
-
 		}
 
 		// Create the request.
 
 		httpReq, err := http.NewRequestWithContext(ctx, "POST", llmURL, bytes.NewBuffer(jsonData))
-
 		if err != nil {
 
 			log.Error(err, "Failed to create HTTP request")
@@ -207,7 +194,6 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		// Send the request.
 
 		resp, err := client.Do(httpReq)
-
 		if err != nil {
 
 			log.Error(err, "Failed to send request to LLM processor")
@@ -217,13 +203,9 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 
 		defer func() {
-
 			if err := resp.Body.Close(); err != nil {
-
 				log.Error(err, "Failed to close response body")
-
 			}
-
 		}()
 
 		// Parse the response.
@@ -261,24 +243,18 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	log.Info("NetworkIntent reconciled successfully", "name", networkIntent.Name)
 
 	return ctrl.Result{}, nil
-
 }
 
 // updateStatus updates the status of the NetworkIntent.
 
-func (r *NetworkIntentReconciler) updateStatus(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase, message string, generation int64) (ctrl.Result, error) {
-
+func (r *NetworkIntentReconciler) updateStatus(ctx context.Context, networkIntent *intentv1alpha1.NetworkIntent, phase, message string, generation int64) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
 	// Update the status fields.
 
-	networkIntent.Status.Phase = nephoranv1.NetworkIntentPhase(phase)
+	networkIntent.Status.Phase = phase
 
-	networkIntent.Status.LastMessage = message
-
-	networkIntent.Status.ObservedGeneration = generation
-
-	networkIntent.Status.LastUpdateTime = metav1.Now()
+	networkIntent.Status.Message = message
 
 	// Update the status subresource.
 
@@ -291,31 +267,24 @@ func (r *NetworkIntentReconciler) updateStatus(ctx context.Context, networkInten
 	}
 
 	return ctrl.Result{}, nil
-
 }
 
 // SetupWithManager sets up the controller with the Manager.
 
 func (r *NetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) error {
-
 	// Check if LLM intent is enabled via environment variable.
 
 	if envVal := os.Getenv("ENABLE_LLM_INTENT"); envVal == "true" {
-
 		r.EnableLLMIntent = true
-
 	}
 
 	// Get LLM processor URL from environment if set.
 
 	if url := os.Getenv("LLM_PROCESSOR_URL"); url != "" {
-
 		r.LLMProcessorURL = url
-
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&nephoranv1.NetworkIntent{}).
+		For(&intentv1alpha1.NetworkIntent{}).
 		Complete(r)
-
 }

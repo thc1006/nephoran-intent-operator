@@ -38,7 +38,6 @@ type OptimizedLLMResponse struct {
 // with 30%+ latency reduction and 60% CPU optimization.
 
 type OptimizedControllerIntegration struct {
-
 	// Core optimized components.
 
 	httpClient *OptimizedHTTPClient
@@ -79,7 +78,6 @@ type OptimizedControllerIntegration struct {
 // OptimizedControllerConfig holds optimization configuration.
 
 type OptimizedControllerConfig struct {
-
 	// HTTP client optimization.
 
 	HTTPClientConfig *OptimizedClientConfig `json:"http_client"`
@@ -142,7 +140,6 @@ type PerformanceTuningConfig struct {
 // FastJSONProcessor provides optimized JSON operations.
 
 type FastJSONProcessor struct {
-
 	// Buffer pools for different sizes.
 
 	smallBufferPool sync.Pool // < 4KB
@@ -177,7 +174,6 @@ type FastJSONProcessor struct {
 // ControllerMetrics tracks optimized controller performance.
 
 type ControllerMetrics struct {
-
 	// Latency improvements.
 
 	BaselineP99Latency time.Duration
@@ -238,11 +234,8 @@ type ControllerMetrics struct {
 // NewOptimizedControllerIntegration creates the optimized controller.
 
 func NewOptimizedControllerIntegration(config *OptimizedControllerConfig) (*OptimizedControllerIntegration, error) {
-
 	if config == nil {
-
 		config = getDefaultOptimizedControllerConfig()
-
 	}
 
 	logger := slog.Default().With("component", "optimized-controller")
@@ -252,31 +245,22 @@ func NewOptimizedControllerIntegration(config *OptimizedControllerConfig) (*Opti
 	// Create optimized HTTP client.
 
 	httpClient, err := NewOptimizedHTTPClient(config.HTTPClientConfig)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create optimized HTTP client: %w", err)
-
 	}
 
 	// Create intelligent cache.
 
 	cache, err := NewIntelligentCache(config.CacheConfig)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create intelligent cache: %w", err)
-
 	}
 
 	// Create worker pool.
 
 	workerPool, err := NewWorkerPool(config.WorkerPoolConfig)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create worker pool: %w", err)
-
 	}
 
 	// Create batch processor.
@@ -284,7 +268,6 @@ func NewOptimizedControllerIntegration(config *OptimizedControllerConfig) (*Opti
 	// Create batch processor with default config.
 
 	batchConfig := BatchConfig{
-
 		MaxBatchSize: 10,
 
 		BatchTimeout: 100 * time.Millisecond,
@@ -301,7 +284,6 @@ func NewOptimizedControllerIntegration(config *OptimizedControllerConfig) (*Opti
 	jsonProcessor := NewFastJSONProcessor(config.JSONOptimization)
 
 	controller := &OptimizedControllerIntegration{
-
 		httpClient: httpClient,
 
 		cache: cache,
@@ -325,20 +307,14 @@ func NewOptimizedControllerIntegration(config *OptimizedControllerConfig) (*Opti
 		// Initialize pools.
 
 		responsePool: sync.Pool{
-
 			New: func() interface{} {
-
 				return &OptimizedLLMResponse{}
-
 			},
 		},
 
 		bufferPool: sync.Pool{
-
 			New: func() interface{} {
-
 				return make([]byte, 0, 8192)
-
 			},
 		},
 	}
@@ -346,9 +322,7 @@ func NewOptimizedControllerIntegration(config *OptimizedControllerConfig) (*Opti
 	// Start monitoring.
 
 	if config.MonitoringConfig.Enabled {
-
 		go controller.monitoringRoutine()
-
 	}
 
 	logger.Info("Optimized controller integration initialized",
@@ -365,13 +339,11 @@ func NewOptimizedControllerIntegration(config *OptimizedControllerConfig) (*Opti
 	)
 
 	return controller, nil
-
 }
 
 // ProcessLLMPhaseOptimized is the drop-in replacement for processLLMPhase.
 
 func (oci *OptimizedControllerIntegration) ProcessLLMPhaseOptimized(
-
 	ctx context.Context,
 
 	intent string,
@@ -379,9 +351,7 @@ func (oci *OptimizedControllerIntegration) ProcessLLMPhaseOptimized(
 	parameters map[string]interface{},
 
 	intentType string,
-
 ) (*OptimizedLLMResponse, error) {
-
 	start := time.Now()
 
 	ctx, span := oci.tracer.Start(ctx, "optimized_controller.process_llm_phase")
@@ -400,7 +370,6 @@ func (oci *OptimizedControllerIntegration) ProcessLLMPhaseOptimized(
 	// Get response from pool.
 
 	response := &OptimizedResponse{
-
 		Metadata: make(map[string]interface{}),
 	}
 
@@ -472,7 +441,6 @@ func (oci *OptimizedControllerIntegration) ProcessLLMPhaseOptimized(
 	// Step 3: Use worker pool for parallel processing.
 
 	task := &Task{
-
 		ID: generateTaskID(),
 
 		Type: TaskTypeLLMProcessing,
@@ -503,13 +471,11 @@ func (oci *OptimizedControllerIntegration) ProcessLLMPhaseOptimized(
 	// TODO: Implement proper async result handling from worker pool.
 
 	return oci.processDirectOptimized(ctx, intent, parameters, intentType)
-
 }
 
 // processDirectOptimized handles direct processing with all optimizations.
 
 func (oci *OptimizedControllerIntegration) processDirectOptimized(
-
 	ctx context.Context,
 
 	intent string,
@@ -517,43 +483,31 @@ func (oci *OptimizedControllerIntegration) processDirectOptimized(
 	parameters map[string]interface{},
 
 	intentType string,
-
 ) (*OptimizedLLMResponse, error) {
-
 	start := time.Now()
 
 	// Build optimized request.
 
 	request, err := oci.buildOptimizedRequest(intent, parameters, intentType)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to build request: %w", err)
-
 	}
 
 	// Process with optimized HTTP client.
 
 	httpResponse, err := oci.httpClient.ProcessLLMRequest(ctx, request)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("HTTP processing failed: %w", err)
-
 	}
 
 	// Parse response with optimized JSON processing.
 
 	result, err := oci.jsonProcessor.ParseLLMResponse(httpResponse.Content)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("JSON parsing failed: %w", err)
-
 	}
 
 	response := &OptimizedLLMResponse{
-
 		Content: result,
 
 		ProcessingTime: time.Since(start),
@@ -576,21 +530,17 @@ func (oci *OptimizedControllerIntegration) processDirectOptimized(
 	oci.updateMetrics("direct_processing", response.ProcessingTime)
 
 	return response, nil
-
 }
 
 // buildOptimizedRequest creates an optimized LLM request.
 
 func (oci *OptimizedControllerIntegration) buildOptimizedRequest(
-
 	intent string,
 
 	parameters map[string]interface{},
 
 	intentType string,
-
 ) (*LLMRequest, error) {
-
 	// Use buffer pool for JSON marshaling.
 
 	buf := oci.bufferPool.Get().([]byte)
@@ -604,41 +554,23 @@ func (oci *OptimizedControllerIntegration) buildOptimizedRequest(
 	// Build optimized payload.
 
 	payload := map[string]interface{}{
-
-		"model": "gpt-4o-mini",
-
 		"messages": []map[string]string{
-
 			{
-
-				"role": "system",
-
-				"content": oci.getOptimizedSystemPrompt(intentType),
-			},
-
-			{
-
 				"role": "user",
-
 				"content": intent,
 			},
 		},
-
 		"max_tokens": 2048,
-
 		"temperature": 0.0,
-
 		"response_format": map[string]string{"type": "json_object"},
 	}
 
 	return &LLMRequest{
-
 		URL: "https://api.openai.com/v1/chat/completions",
 
 		Payload: payload,
 
 		Headers: map[string]string{
-
 			"Content-Type": "application/json",
 
 			"Authorization": "Bearer dummy-api-key",
@@ -646,15 +578,12 @@ func (oci *OptimizedControllerIntegration) buildOptimizedRequest(
 
 		Timeout: 30 * time.Second,
 	}, nil
-
 }
 
 // NewFastJSONProcessor creates an optimized JSON processor.
 
 func NewFastJSONProcessor(config JSONOptimizationConfig) *FastJSONProcessor {
-
 	processor := &FastJSONProcessor{
-
 		useUnsafe: config.UseUnsafeOperations,
 
 		zeroCopyEnabled: config.EnableZeroCopyParsing,
@@ -662,45 +591,33 @@ func NewFastJSONProcessor(config JSONOptimizationConfig) *FastJSONProcessor {
 		// Initialize buffer pools.
 
 		smallBufferPool: sync.Pool{
-
 			New: func() interface{} {
-
 				return make([]byte, 0, 4*1024) // 4KB
-
 			},
 		},
 
 		mediumBufferPool: sync.Pool{
-
 			New: func() interface{} {
-
 				return make([]byte, 0, 64*1024) // 64KB
-
 			},
 		},
 
 		largeBufferPool: sync.Pool{
-
 			New: func() interface{} {
-
 				return make([]byte, 0, 1024*1024) // 1MB
-
 			},
 		},
 	}
 
 	return processor
-
 }
 
 // ParseLLMResponse parses LLM response with optimization.
 
 func (fjp *FastJSONProcessor) ParseLLMResponse(responseData string) (string, error) {
-
 	start := time.Now()
 
 	defer func() {
-
 		fjp.mutex.Lock()
 
 		fjp.parseTime += time.Since(start)
@@ -708,15 +625,12 @@ func (fjp *FastJSONProcessor) ParseLLMResponse(responseData string) (string, err
 		fjp.processedBytes += int64(len(responseData))
 
 		fjp.mutex.Unlock()
-
 	}()
 
 	// Use zero-copy parsing when possible.
 
 	if fjp.zeroCopyEnabled && fjp.useUnsafe {
-
 		return fjp.parseWithZeroCopy(responseData)
-
 	}
 
 	// Standard parsing with optimizations.
@@ -730,25 +644,19 @@ func (fjp *FastJSONProcessor) ParseLLMResponse(responseData string) (string, err
 	}
 
 	if err := json.Unmarshal([]byte(responseData), &response); err != nil {
-
 		return "", fmt.Errorf("JSON parse error: %w", err)
-
 	}
 
 	if len(response.Choices) == 0 {
-
 		return "", fmt.Errorf("no choices in response")
-
 	}
 
 	return response.Choices[0].Message.Content, nil
-
 }
 
 // parseWithZeroCopy uses unsafe operations for zero-copy parsing.
 
 func (fjp *FastJSONProcessor) parseWithZeroCopy(responseData string) (string, error) {
-
 	// This is a simplified example - production would use proper zero-copy JSON parsing.
 
 	// Convert string to byte slice without copying.
@@ -760,17 +668,13 @@ func (fjp *FastJSONProcessor) parseWithZeroCopy(responseData string) (string, er
 	contentStart := fjp.findContentStart(dataBytes)
 
 	if contentStart == -1 {
-
 		return "", fmt.Errorf("content field not found")
-
 	}
 
 	contentEnd := fjp.findContentEnd(dataBytes, contentStart)
 
 	if contentEnd == -1 {
-
 		return "", fmt.Errorf("content field end not found")
-
 	}
 
 	// Extract content without copying.
@@ -778,75 +682,53 @@ func (fjp *FastJSONProcessor) parseWithZeroCopy(responseData string) (string, er
 	contentBytes := dataBytes[contentStart:contentEnd]
 
 	return *(*string)(unsafe.Pointer(&contentBytes)), nil
-
 }
 
 // Helper methods for zero-copy parsing.
 
 func (fjp *FastJSONProcessor) findContentStart(data []byte) int {
-
 	// Find "content":".
 
 	pattern := []byte(`"content":"`)
 
 	for i := 0; i <= len(data)-len(pattern); i++ {
-
 		if fjp.bytesEqual(data[i:i+len(pattern)], pattern) {
-
 			return i + len(pattern)
-
 		}
-
 	}
 
 	return -1
-
 }
 
 func (fjp *FastJSONProcessor) findContentEnd(data []byte, start int) int {
-
 	// Find closing quote, handling escape sequences.
 
 	for i := start; i < len(data); i++ {
-
 		if data[i] == '"' && (i == start || data[i-1] != '\\') {
-
 			return i
-
 		}
-
 	}
 
 	return -1
-
 }
 
 func (fjp *FastJSONProcessor) bytesEqual(a, b []byte) bool {
-
 	if len(a) != len(b) {
-
 		return false
-
 	}
 
 	for i := range len(a) {
-
 		if a[i] != b[i] {
-
 			return false
-
 		}
-
 	}
 
 	return true
-
 }
 
 // Performance monitoring and metrics.
 
 func (oci *OptimizedControllerIntegration) updateMetrics(operation string, duration time.Duration) {
-
 	oci.metrics.mutex.Lock()
 
 	defer oci.metrics.mutex.Unlock()
@@ -866,31 +748,23 @@ func (oci *OptimizedControllerIntegration) updateMetrics(operation string, durat
 		// Update direct processing metrics.
 
 	}
-
 }
 
 func (oci *OptimizedControllerIntegration) monitoringRoutine() {
-
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
-
 		case <-ticker.C:
 
 			oci.collectMetrics()
-
 		}
-
 	}
-
 }
 
 func (oci *OptimizedControllerIntegration) collectMetrics() {
-
 	// Collect metrics from all components.
 
 	httpStats := oci.httpClient.GetStats()
@@ -915,19 +789,15 @@ func (oci *OptimizedControllerIntegration) collectMetrics() {
 
 		"cache_hit_rate", oci.metrics.CacheHitRate,
 	)
-
 }
 
 // Utility methods.
 
 func (oci *OptimizedControllerIntegration) generateOptimizedCacheKey(intent string, params map[string]interface{}) string {
-
 	return oci.cache.generateCacheKey(intent, params)
-
 }
 
 func (oci *OptimizedControllerIntegration) getOptimizedSystemPrompt(intentType string) string {
-
 	// Return optimized system prompt based on intent type.
 
 	switch intentType {
@@ -945,21 +815,16 @@ func (oci *OptimizedControllerIntegration) getOptimizedSystemPrompt(intentType s
 		return "You are a telecommunications network orchestration expert. Generate appropriate JSON configuration."
 
 	}
-
 }
 
 func (oci *OptimizedControllerIntegration) estimateTokens(input, output string) int {
-
 	// Simple token estimation.
 
 	return (len(input) + len(output)) / 4
-
 }
 
 func (oci *OptimizedControllerIntegration) cloneResponse(resp *OptimizedResponse) *OptimizedLLMResponse {
-
 	return &OptimizedLLMResponse{
-
 		Content: resp.Content,
 
 		ProcessingTime: resp.ProcessingTime,
@@ -973,11 +838,9 @@ func (oci *OptimizedControllerIntegration) cloneResponse(resp *OptimizedResponse
 		Optimizations: []string{}, // Initialize empty optimizations
 
 	}
-
 }
 
 func (oci *OptimizedControllerIntegration) putResponse(resp *OptimizedResponse) {
-
 	// Reset response for reuse.
 
 	resp.Content = ""
@@ -993,19 +856,14 @@ func (oci *OptimizedControllerIntegration) putResponse(resp *OptimizedResponse) 
 	// OptimizedResponse doesn't have Optimizations field.
 
 	oci.responsePool.Put(resp)
-
 }
 
 func generateTaskID() string {
-
 	return fmt.Sprintf("task_%d", time.Now().UnixNano())
-
 }
 
 func getDefaultOptimizedControllerConfig() *OptimizedControllerConfig {
-
 	return &OptimizedControllerConfig{
-
 		HTTPClientConfig: getDefaultOptimizedClientConfig(),
 
 		CacheConfig: getDefaultIntelligentCacheConfig(),
@@ -1015,7 +873,6 @@ func getDefaultOptimizedControllerConfig() *OptimizedControllerConfig {
 		BatchConfig: &BatchProcessorConfig{}, // Default empty config
 
 		JSONOptimization: JSONOptimizationConfig{
-
 			UseUnsafeOperations: true,
 
 			PreallocateBuffers: true,
@@ -1028,7 +885,6 @@ func getDefaultOptimizedControllerConfig() *OptimizedControllerConfig {
 		},
 
 		PerformanceTuning: PerformanceTuningConfig{
-
 			EnableGoroutineReuse: true,
 
 			MemoryPooling: true,
@@ -1043,7 +899,6 @@ func getDefaultOptimizedControllerConfig() *OptimizedControllerConfig {
 		},
 
 		MonitoringConfig: MonitoringConfig{
-
 			Enabled: true,
 
 			MetricsInterval: 30 * time.Second,
@@ -1051,7 +906,6 @@ func getDefaultOptimizedControllerConfig() *OptimizedControllerConfig {
 			DetailedMetrics: true,
 		},
 	}
-
 }
 
 // Supporting type definitions.

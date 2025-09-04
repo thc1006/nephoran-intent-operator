@@ -1,7 +1,9 @@
 package nephio
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 )
 
@@ -30,7 +32,7 @@ type Resource struct {
 	Kind       string                 `json:"kind"`
 	APIVersion string                 `json:"api_version"`
 	Metadata   ResourceMetadata       `json:"metadata"`
-	Spec       map[string]interface{} `json:"spec"`
+	Spec       json.RawMessage `json:"spec"`
 }
 
 // ResourceMetadata represents resource metadata
@@ -59,12 +61,12 @@ type PackageStatus struct {
 
 // PackageFilter represents filtering criteria for packages
 type PackageFilter struct {
-	Name      string            `json:"name,omitempty"`
-	Version   string            `json:"version,omitempty"`
-	Labels    map[string]string `json:"labels,omitempty"`
-	Status    string            `json:"status,omitempty"`
-	Limit     int               `json:"limit,omitempty"`
-	Offset    int               `json:"offset,omitempty"`
+	Name    string            `json:"name,omitempty"`
+	Version string            `json:"version,omitempty"`
+	Labels  map[string]string `json:"labels,omitempty"`
+	Status  string            `json:"status,omitempty"`
+	Limit   int               `json:"limit,omitempty"`
+	Offset  int               `json:"offset,omitempty"`
 }
 
 // Intent represents a network intent for Nephio
@@ -74,7 +76,7 @@ type Intent struct {
 	Description     string                 `json:"description"`
 	IntentType      string                 `json:"intent_type"`
 	NetworkFunction string                 `json:"network_function,omitempty"`
-	Parameters      map[string]interface{} `json:"parameters"`
+	Parameters      json.RawMessage `json:"parameters"`
 	Status          string                 `json:"status"`
 	CreatedAt       time.Time              `json:"created_at"`
 	UpdatedAt       time.Time              `json:"updated_at"`
@@ -91,7 +93,7 @@ type IntentProcessor interface {
 type ProcessingResult struct {
 	IntentID      string                 `json:"intent_id"`
 	PackageID     string                 `json:"package_id,omitempty"`
-	GeneratedSpec map[string]interface{} `json:"generated_spec"`
+	GeneratedSpec json.RawMessage `json:"generated_spec"`
 	Status        string                 `json:"status"`
 	Message       string                 `json:"message,omitempty"`
 	ProcessedAt   time.Time              `json:"processed_at"`
@@ -99,11 +101,11 @@ type ProcessingResult struct {
 
 // ProcessingStatus represents the status of intent processing
 type ProcessingStatus struct {
-	IntentID      string    `json:"intent_id"`
-	Status        string    `json:"status"` // "processing", "completed", "failed"
-	Progress      float64   `json:"progress"` // 0-100
-	Message       string    `json:"message,omitempty"`
-	LastUpdated   time.Time `json:"last_updated"`
+	IntentID    string    `json:"intent_id"`
+	Status      string    `json:"status"`   // "processing", "completed", "failed"
+	Progress    float64   `json:"progress"` // 0-100
+	Message     string    `json:"message,omitempty"`
+	LastUpdated time.Time `json:"last_updated"`
 }
 
 // IntentFilter represents filtering criteria for intents
@@ -124,13 +126,13 @@ type Client interface {
 
 // Config represents Nephio client configuration
 type Config struct {
-	PorchEndpoint    string            `json:"porch_endpoint"`
-	Namespace        string            `json:"namespace"`
-	Repository       string            `json:"repository"`
-	Timeout          time.Duration     `json:"timeout"`
-	RetryAttempts    int               `json:"retry_attempts"`
-	Headers          map[string]string `json:"headers,omitempty"`
-	InsecureSkipTLS  bool              `json:"insecure_skip_tls"`
+	PorchEndpoint   string            `json:"porch_endpoint"`
+	Namespace       string            `json:"namespace"`
+	Repository      string            `json:"repository"`
+	Timeout         time.Duration     `json:"timeout"`
+	RetryAttempts   int               `json:"retry_attempts"`
+	Headers         map[string]string `json:"headers,omitempty"`
+	InsecureSkipTLS bool              `json:"insecure_skip_tls"`
 }
 
 // DefaultConfig returns default Nephio configuration

@@ -18,6 +18,7 @@ package parallel
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"runtime"
 	"sync"
@@ -29,7 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/resilience"
+	resilience "github.com/thc1006/nephoran-intent-operator/pkg/controllers/resilience"
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 )
 
@@ -249,7 +250,7 @@ func BenchmarkTaskSubmission(b *testing.B) {
 			Type:      TaskTypeLLMProcessing,
 			Priority:  1,
 			Status:    TaskStatusPending,
-			InputData: map[string]interface{}{"intent": "benchmark task"},
+			InputData: json.RawMessage(`{"intent":"benchmark task"}`),
 			Timeout:   10 * time.Second,
 		}
 

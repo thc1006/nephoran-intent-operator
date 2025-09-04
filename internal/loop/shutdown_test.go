@@ -64,7 +64,7 @@ func TestShutdownSequencing(t *testing.T) {
 	for i := 0; i < numFiles; i++ {
 		// Create actual file on disk
 		testFile := filepath.Join(handoffDir, fmt.Sprintf("file-%d.json", i))
-		require.NoError(t, os.WriteFile(testFile, intentData, 0644))
+		require.NoError(t, os.WriteFile(testFile, intentData, 0o644))
 
 		wg.Add(1)
 		go func(id int, filename string) {

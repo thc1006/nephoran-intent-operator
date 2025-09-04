@@ -1,7 +1,9 @@
 package models
 
 import (
-	"time"
+	
+	"encoding/json"
+"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -69,9 +71,9 @@ type ResourceType struct {
 
 	// Extensions and metadata.
 
-	VendorExtensions map[string]interface{} `json:"vendorExtensions,omitempty"`
+	VendorExtensions json.RawMessage `json:"vendorExtensions,omitempty"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
 	Tags map[string]string `json:"tags,omitempty"`
 
@@ -89,7 +91,7 @@ type ResourceType struct {
 
 	// Capabilities as map (legacy format) - use Capabilities field for current model.
 
-	CapabilitiesMap map[string]interface{} `json:"capabilitiesLegacy,omitempty"`
+	CapabilitiesMap json.RawMessage `json:"capabilitiesLegacy,omitempty"`
 
 	// Lifecycle information.
 
@@ -133,12 +135,11 @@ type ResourceCapability struct {
 
 	Description string `json:"description,omitempty"`
 
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 
 	Constraints []*CapabilityConstraint `json:"constraints,omitempty"`
 
 	SupportLevel string `json:"supportLevel,omitempty"` // MANDATORY, OPTIONAL, CONDITIONAL
-
 }
 
 // ResourceFeature represents a feature supported by a resource type.
@@ -156,13 +157,12 @@ type ResourceFeature struct {
 
 	Constraints []*FeatureConstraint `json:"constraints,omitempty"`
 
-	Configuration map[string]interface{} `json:"configuration,omitempty"`
+	Configuration json.RawMessage `json:"configuration,omitempty"`
 }
 
 // ResourceLimits defines limits and constraints for resources of this type.
 
 type ResourceLimits struct {
-
 	// Quantity limits.
 
 	MinInstances *int `json:"minInstances,omitempty"`
@@ -215,7 +215,6 @@ type NetworkLimits struct {
 // PerformanceProfile defines expected performance characteristics.
 
 type PerformanceProfile struct {
-
 	// Compute performance.
 
 	CPUPerformance *PerformanceMetric `json:"cpuPerformance,omitempty"`
@@ -293,7 +292,6 @@ type CompatibilityRule struct {
 	Description string `json:"description,omitempty"`
 
 	Severity string `json:"severity,omitempty"` // ERROR, WARNING, INFO
-
 }
 
 // TypeRequirement defines requirements for deploying resources of this type.
@@ -451,7 +449,7 @@ type Resource struct {
 
 	Health *ResourceHealthInfo `json:"health,omitempty"`
 
-	Metrics map[string]interface{} `json:"metrics,omitempty"`
+	Metrics json.RawMessage `json:"metrics,omitempty"`
 
 	Alarms []*ResourceAlarm `json:"alarms,omitempty"`
 
@@ -463,9 +461,9 @@ type Resource struct {
 
 	// Extensions and metadata.
 
-	VendorExtensions map[string]interface{} `json:"vendorExtensions,omitempty"`
+	VendorExtensions json.RawMessage `json:"vendorExtensions,omitempty"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
 	Tags map[string]string `json:"tags,omitempty"`
 
@@ -489,7 +487,7 @@ type ResourceRelationship struct {
 
 	TargetResourceID string `json:"targetResourceId"`
 
-	Properties map[string]interface{} `json:"properties,omitempty"`
+	Properties json.RawMessage `json:"properties,omitempty"`
 
 	Description string `json:"description,omitempty"`
 }
@@ -497,7 +495,6 @@ type ResourceRelationship struct {
 // ResourceLocation represents the location of a resource.
 
 type ResourceLocation struct {
-
 	// Geographic location.
 
 	Country string `json:"country,omitempty"`
@@ -536,13 +533,12 @@ type ResourceLocation struct {
 
 	// Additional properties.
 
-	Properties map[string]interface{} `json:"properties,omitempty"`
+	Properties json.RawMessage `json:"properties,omitempty"`
 }
 
 // ResourcePlacement represents placement constraints and preferences.
 
 type ResourcePlacement struct {
-
 	// Affinity rules.
 
 	NodeAffinity *NodeAffinity `json:"nodeAffinity,omitempty"`
@@ -620,7 +616,6 @@ type AntiAffinityConstraint struct {
 	Values []string `json:"values,omitempty"`
 
 	Scope string `json:"scope"` // NODE, RACK, ZONE, REGION
-
 }
 
 // PlacementConstraint defines a placement constraint.
@@ -694,7 +689,7 @@ type HealthCheckInfo struct {
 
 	Duration time.Duration `json:"duration"`
 
-	Details map[string]interface{} `json:"details,omitempty"`
+	Details json.RawMessage `json:"details,omitempty"`
 }
 
 // HealthHistoryEntry represents a health history entry.
@@ -708,7 +703,7 @@ type HealthHistoryEntry struct {
 
 	Reason string `json:"reason,omitempty"`
 
-	Details map[string]interface{} `json:"details,omitempty"`
+	Details json.RawMessage `json:"details,omitempty"`
 }
 
 // ResourceAlarm represents an alarm associated with a resource.
@@ -724,7 +719,7 @@ type ResourceAlarm struct {
 
 	Message string `json:"message"`
 
-	Details map[string]interface{} `json:"details,omitempty"`
+	Details json.RawMessage `json:"details,omitempty"`
 
 	RaisedAt time.Time `json:"raisedAt"`
 
@@ -740,7 +735,7 @@ type ResourceManagementInfo struct {
 
 	ManagementEndpoint string `json:"managementEndpoint,omitempty"`
 
-	Credentials map[string]interface{} `json:"credentials,omitempty"`
+	Credentials json.RawMessage `json:"credentials,omitempty"`
 
 	ManagementState string `json:"managementState,omitempty"`
 
@@ -878,7 +873,7 @@ type CreateResourceRequest struct {
 
 	Configuration *runtime.RawExtension `json:"configuration,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"` // Added Metadata field
+	Metadata json.RawMessage `json:"metadata,omitempty"` // Added Metadata field
 
 	PlacementConstraints *ResourcePlacement `json:"placementConstraints,omitempty"`
 
@@ -886,7 +881,7 @@ type CreateResourceRequest struct {
 
 	Labels map[string]string `json:"labels,omitempty"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 }
 
 // UpdateResourceRequest represents a request to update a resource.
@@ -902,7 +897,7 @@ type UpdateResourceRequest struct {
 
 	Labels map[string]string `json:"labels,omitempty"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
@@ -1185,9 +1180,9 @@ type ResourceTypeSpec struct {
 
 	OptionalPorts []PortSpec `json:"optionalPorts,omitempty"`
 
-	Properties map[string]interface{} `json:"properties,omitempty"`
+	Properties json.RawMessage `json:"properties,omitempty"`
 
-	Capabilities map[string]interface{} `json:"capabilities,omitempty"`
+	Capabilities json.RawMessage `json:"capabilities,omitempty"`
 }
 
 // PortSpec represents a port specification for network services.
@@ -1211,7 +1206,7 @@ type ComplianceInfo struct {
 
 	CertificationLevel string `json:"certificationLevel,omitempty"`
 
-	TestResults map[string]interface{} `json:"testResults,omitempty"`
+	TestResults json.RawMessage `json:"testResults,omitempty"`
 
 	ValidatedAt *time.Time `json:"validatedAt,omitempty"`
 }

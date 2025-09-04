@@ -37,11 +37,9 @@ func init() {
 
 // initializeRuntimeOptimizations applies Go 1.24.8 performance tuning
 func initializeRuntimeOptimizations() {
-	// Import runtime optimization package
-	runtimePkg := "github.com/thc1006/nephoran-intent-operator/pkg/runtime"
-	_ = runtimePkg // Prevent unused import error for now
-
-	// This will be expanded once the runtime package is imported properly
+	// Go 1.24.8 runtime optimizations (applied at process startup)
+	// These optimizations are applied via build flags and environment variables
+	// No additional runtime imports needed for core optimizations
 }
 
 func main() {

@@ -11,11 +11,10 @@ import (
 	"path/filepath"
 	"time"
 
-	ingest "github.com/nephio-project/nephoran-intent-operator/internal/ingest"
+	ingest "github.com/thc1006/nephoran-intent-operator/internal/ingest"
 )
 
 func main() {
-
 	// Command-line flags.
 
 	var (
@@ -39,9 +38,7 @@ func main() {
 		*mode = os.Getenv("MODE")
 
 		if *mode == "" {
-
 			*mode = "rules" // default to rules mode
-
 		}
 
 	}
@@ -51,9 +48,7 @@ func main() {
 		*provider = os.Getenv("PROVIDER")
 
 		if *provider == "" {
-
 			*provider = "mock" // default to mock provider for LLM mode
-
 		}
 
 	}
@@ -63,17 +58,12 @@ func main() {
 	var schemaPath string
 
 	if *schemaFile != "" {
-
 		schemaPath = *schemaFile
-
 	} else {
 
 		repoRoot, err := os.Getwd()
-
 		if err != nil {
-
 			log.Fatalf("failed to get working directory: %v", err)
-
 		}
 
 		schemaPath = filepath.Join(repoRoot, "docs", "contracts", "intent.schema.json")
@@ -83,21 +73,15 @@ func main() {
 	// Initialize validator.
 
 	v, err := ingest.NewValidator(schemaPath)
-
 	if err != nil {
-
 		log.Fatalf("Failed to load schema: %v", err)
-
 	}
 
 	// Create provider based on mode.
 
 	intentProvider, err := ingest.NewProvider(*mode, *provider)
-
 	if err != nil {
-
 		log.Fatalf("Failed to create provider: %v", err)
-
 	}
 
 	// Create handler with provider.
@@ -109,17 +93,13 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-
 		w.Header().Set("Content-Type", "text/plain")
 
 		if _, err := w.Write([]byte("ok\n")); err != nil {
-
 			// Log error but continue since response may have already been sent.
 
 			log.Printf("Failed to write health check response: %v", err)
-
 		}
-
 	})
 
 	mux.HandleFunc("/intent", h.HandleIntent)
@@ -133,9 +113,7 @@ func main() {
 	log.Printf("  Mode: %s", *mode)
 
 	if *mode == "llm" {
-
 		log.Printf("  Provider: %s", *provider)
-
 	}
 
 	log.Printf("  Handoff directory: %s", *handoffDir)
@@ -147,7 +125,6 @@ func main() {
 	// Use http.Server with timeouts to fix G114 security warning.
 
 	server := &http.Server{
-
 		Addr: *addr,
 
 		Handler: mux,
@@ -160,5 +137,4 @@ func main() {
 	}
 
 	log.Fatal(server.ListenAndServe())
-
 }

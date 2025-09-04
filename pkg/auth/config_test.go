@@ -1,11 +1,13 @@
 package auth
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/interfaces"
 	"github.com/thc1006/nephoran-intent-operator/pkg/security"
 )
 
@@ -80,7 +82,7 @@ func TestLoadAuthConfig_JWTSecretValidation(t *testing.T) {
 			}
 
 			// Call LoadAuthConfig
-			config, err := LoadAuthConfig("")
+			config, err := LoadAuthConfig(context.Background(), "")
 
 			if tt.expectError {
 				if err == nil {
@@ -117,7 +119,7 @@ func TestLoadAuthConfig_AuthDisabled(t *testing.T) {
 	os.Setenv("AUTH_ENABLED", "false")
 	os.Setenv("JWT_SECRET_KEY", "")
 
-	config, err := LoadAuthConfig("")
+	config, err := LoadAuthConfig(context.Background(), "")
 	if err != nil {
 		t.Errorf("unexpected error when auth is disabled: %v", err)
 		return
@@ -151,7 +153,7 @@ func TestLoadAuthConfig_AuthEnabledWithValidSecret(t *testing.T) {
 	os.Setenv("GOOGLE_CLIENT_ID", "test-client-id")
 	os.Setenv("GOOGLE_CLIENT_SECRET", "test-client-secret")
 
-	config, err := LoadAuthConfig("")
+	config, err := LoadAuthConfig(context.Background(), "")
 	if err != nil {
 		t.Errorf("unexpected error with valid JWT secret: %v", err)
 		return
@@ -180,7 +182,7 @@ func TestGetOAuth2ClientSecret_ErrorScenarios(t *testing.T) {
 	}()
 
 	// Create a real audit logger for testing but with null output
-	security.GlobalAuditLogger, _ = security.NewAuditLogger("", security.AuditLevelInfo)
+	security.GlobalAuditLogger, _ = security.NewAuditLogger("", interfaces.AuditLevelInfo)
 
 	tests := []struct {
 		name             string
@@ -239,7 +241,7 @@ func TestGetOAuth2ClientSecret_ErrorScenarios(t *testing.T) {
 				// Create temporary directory structure for testing
 				tempDir := t.TempDir()
 				secretsDir := filepath.Join(tempDir, "secrets", "oauth2")
-				if err := os.MkdirAll(secretsDir, 0755); err != nil {
+				if err := os.MkdirAll(secretsDir, 0o755); err != nil {
 					t.Fatalf("Failed to create test directory: %v", err)
 				}
 				// Don't create the file to simulate loading failure
@@ -333,7 +335,7 @@ func TestGetOAuth2ClientSecret_ErrorScenarios(t *testing.T) {
 			defer cleanupEnv()
 
 			// Test the function
-			secret, err := getOAuth2ClientSecret(tt.provider)
+			secret, err := getOAuth2ClientSecret(context.Background(), tt.provider)
 
 			// Validate results
 			if tt.expectError {
@@ -367,7 +369,7 @@ func TestLoadProviders_ErrorPropagation(t *testing.T) {
 		security.GlobalAuditLogger = originalAuditLogger
 	}()
 
-	security.GlobalAuditLogger, _ = security.NewAuditLogger("", security.AuditLevelInfo)
+	security.GlobalAuditLogger, _ = security.NewAuditLogger("", interfaces.AuditLevelInfo)
 
 	tests := []struct {
 		name                string
@@ -472,16 +474,15 @@ func TestLoadProviders_ErrorPropagation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
 			cleanup := tt.setupEnvironment(t)
 			defer cleanup()
 
 			// Create config and test loadProviders
-			config := &AuthConfig{
+			config := &Config{
 				Providers: make(map[string]ProviderConfig),
 			}
 
-			err := config.loadProviders()
+			err := config.loadProviders(context.Background())
 
 			if tt.expectError {
 				if err == nil {
@@ -525,13 +526,13 @@ func TestLoadProviders_ErrorPropagation(t *testing.T) {
 func TestValidate_EnhancedValidation(t *testing.T) {
 	tests := []struct {
 		name        string
-		config      *AuthConfig
+		config      *Config
 		expectError bool
 		errorSubstr string
 	}{
 		{
 			name: "auth disabled - skip validation",
-			config: &AuthConfig{
+			config: &Config{
 				Enabled: false,
 				// Invalid settings that should be ignored when auth is disabled
 				JWTSecretKey: "",
@@ -541,7 +542,7 @@ func TestValidate_EnhancedValidation(t *testing.T) {
 		},
 		{
 			name: "empty JWT secret when auth enabled",
-			config: &AuthConfig{
+			config: &Config{
 				Enabled:      true,
 				JWTSecretKey: "",
 				Providers:    make(map[string]ProviderConfig),
@@ -551,7 +552,7 @@ func TestValidate_EnhancedValidation(t *testing.T) {
 		},
 		{
 			name: "weak JWT secret",
-			config: &AuthConfig{
+			config: &Config{
 				Enabled:      true,
 				JWTSecretKey: "secret-but-long-enough-to-pass-length-check", // Weak secret but long enough
 				Providers:    make(map[string]ProviderConfig),
@@ -561,7 +562,7 @@ func TestValidate_EnhancedValidation(t *testing.T) {
 		},
 		{
 			name: "JWT secret too short",
-			config: &AuthConfig{
+			config: &Config{
 				Enabled:      true,
 				JWTSecretKey: "short", // Too short
 				Providers:    make(map[string]ProviderConfig),
@@ -571,7 +572,7 @@ func TestValidate_EnhancedValidation(t *testing.T) {
 		},
 		{
 			name: "repetitive JWT secret pattern",
-			config: &AuthConfig{
+			config: &Config{
 				Enabled:      true,
 				JWTSecretKey: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", // All same character
 				Providers:    make(map[string]ProviderConfig),
@@ -581,7 +582,7 @@ func TestValidate_EnhancedValidation(t *testing.T) {
 		},
 		{
 			name: "enabled provider with empty client secret",
-			config: &AuthConfig{
+			config: &Config{
 				Enabled:      true,
 				JWTSecretKey: "this-is-a-very-strong-jwt-unique-key-for-validation",
 				Providers: map[string]ProviderConfig{
@@ -599,7 +600,7 @@ func TestValidate_EnhancedValidation(t *testing.T) {
 		},
 		{
 			name: "provider-specific validation - Azure missing tenant",
-			config: &AuthConfig{
+			config: &Config{
 				Enabled:      true,
 				JWTSecretKey: "this-is-a-very-strong-jwt-unique-key-for-validation",
 				Providers: map[string]ProviderConfig{
@@ -617,7 +618,7 @@ func TestValidate_EnhancedValidation(t *testing.T) {
 		},
 		{
 			name: "provider-specific validation - Okta missing domain",
-			config: &AuthConfig{
+			config: &Config{
 				Enabled:      true,
 				JWTSecretKey: "this-is-a-very-strong-jwt-unique-key-for-validation",
 				Providers: map[string]ProviderConfig{
@@ -635,7 +636,7 @@ func TestValidate_EnhancedValidation(t *testing.T) {
 		},
 		{
 			name: "provider-specific validation - Keycloak missing base_url",
-			config: &AuthConfig{
+			config: &Config{
 				Enabled:      true,
 				JWTSecretKey: "this-is-a-very-strong-jwt-unique-key-for-validation",
 				Providers: map[string]ProviderConfig{
@@ -654,7 +655,7 @@ func TestValidate_EnhancedValidation(t *testing.T) {
 		},
 		{
 			name: "provider-specific validation - Custom missing URLs",
-			config: &AuthConfig{
+			config: &Config{
 				Enabled:      true,
 				JWTSecretKey: "this-is-a-very-strong-jwt-unique-key-for-validation",
 				Providers: map[string]ProviderConfig{
@@ -674,7 +675,7 @@ func TestValidate_EnhancedValidation(t *testing.T) {
 		},
 		{
 			name: "no enabled providers",
-			config: &AuthConfig{
+			config: &Config{
 				Enabled:      true,
 				JWTSecretKey: "this-is-a-very-strong-jwt-unique-key-for-validation",
 				Providers: map[string]ProviderConfig{
@@ -692,7 +693,7 @@ func TestValidate_EnhancedValidation(t *testing.T) {
 		},
 		{
 			name: "valid configuration",
-			config: &AuthConfig{
+			config: &Config{
 				Enabled:      true,
 				JWTSecretKey: "this-is-a-very-strong-jwt-unique-key-for-validation",
 				Providers: map[string]ProviderConfig{
@@ -740,14 +741,14 @@ func TestValidate_EnhancedValidation(t *testing.T) {
 func TestCreateOAuth2Providers_ErrorHandling(t *testing.T) {
 	tests := []struct {
 		name                string
-		config              *AuthConfig
+		config              *Config
 		expectError         bool
 		expectedProviders   []string
 		expectedErrorSubstr string
 	}{
 		{
 			name: "invalid provider configuration - empty client_id",
-			config: &AuthConfig{
+			config: &Config{
 				Providers: map[string]ProviderConfig{
 					"azure-ad": {
 						Enabled:      true,
@@ -763,7 +764,7 @@ func TestCreateOAuth2Providers_ErrorHandling(t *testing.T) {
 		},
 		{
 			name: "invalid provider configuration - empty client_secret",
-			config: &AuthConfig{
+			config: &Config{
 				Providers: map[string]ProviderConfig{
 					"okta": {
 						Enabled:      true,
@@ -779,7 +780,7 @@ func TestCreateOAuth2Providers_ErrorHandling(t *testing.T) {
 		},
 		{
 			name: "partial success scenario - some providers succeed, others fail",
-			config: &AuthConfig{
+			config: &Config{
 				Providers: map[string]ProviderConfig{
 					"azure-ad": {
 						Enabled:      true,
@@ -808,7 +809,7 @@ func TestCreateOAuth2Providers_ErrorHandling(t *testing.T) {
 		},
 		{
 			name: "unknown provider type",
-			config: &AuthConfig{
+			config: &Config{
 				Providers: map[string]ProviderConfig{
 					"unknown": {
 						Enabled:      true,
@@ -823,7 +824,7 @@ func TestCreateOAuth2Providers_ErrorHandling(t *testing.T) {
 		},
 		{
 			name: "all providers fail",
-			config: &AuthConfig{
+			config: &Config{
 				Providers: map[string]ProviderConfig{
 					"azure-ad": {
 						Enabled:      true,
@@ -846,7 +847,7 @@ func TestCreateOAuth2Providers_ErrorHandling(t *testing.T) {
 		},
 		{
 			name: "valid providers only",
-			config: &AuthConfig{
+			config: &Config{
 				Providers: map[string]ProviderConfig{
 					"azure-ad": {
 						Enabled:      true,
@@ -920,14 +921,14 @@ func TestLoadAuthConfig_IntegrationTests(t *testing.T) {
 		security.GlobalAuditLogger = originalAuditLogger
 	}()
 
-	security.GlobalAuditLogger, _ = security.NewAuditLogger("", security.AuditLevelInfo)
+	security.GlobalAuditLogger, _ = security.NewAuditLogger("", interfaces.AuditLevelInfo)
 
 	tests := []struct {
 		name                string
 		setupEnvironment    func(t *testing.T) (cleanup func())
 		expectError         bool
 		expectedErrorSubstr string
-		validateResult      func(t *testing.T, config *AuthConfig)
+		validateResult      func(t *testing.T, config *Config)
 	}{
 		{
 			name: "complete valid configuration",
@@ -944,7 +945,7 @@ func TestLoadAuthConfig_IntegrationTests(t *testing.T) {
 				return setMultipleEnvVars(env)
 			},
 			expectError: false,
-			validateResult: func(t *testing.T, config *AuthConfig) {
+			validateResult: func(t *testing.T, config *Config) {
 				if !config.Enabled {
 					t.Errorf("expected auth to be enabled")
 				}
@@ -999,7 +1000,7 @@ func TestLoadAuthConfig_IntegrationTests(t *testing.T) {
 				return setMultipleEnvVars(env)
 			},
 			expectError: false,
-			validateResult: func(t *testing.T, config *AuthConfig) {
+			validateResult: func(t *testing.T, config *Config) {
 				if config.Enabled {
 					t.Errorf("expected auth to be disabled")
 				}
@@ -1027,11 +1028,10 @@ func TestLoadAuthConfig_IntegrationTests(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
 			cleanup := tt.setupEnvironment(t)
 			defer cleanup()
 
-			config, err := LoadAuthConfig("")
+			config, err := LoadAuthConfig(context.Background(), "")
 
 			if tt.expectError {
 				if err == nil {
@@ -1065,7 +1065,7 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 	defer func() {
 		security.GlobalAuditLogger = originalAuditLogger
 	}()
-	security.GlobalAuditLogger, _ = security.NewAuditLogger("", security.AuditLevelInfo)
+	security.GlobalAuditLogger, _ = security.NewAuditLogger("", interfaces.AuditLevelInfo)
 
 	tests := []struct {
 		name                   string
@@ -1073,7 +1073,7 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 		setupEnvironment       func(t *testing.T) (customFile, envFile string, cleanup func())
 		expectError            bool
 		expectedErrorSubstring string
-		validateConfig         func(*testing.T, *AuthConfig)
+		validateConfig         func(*testing.T, *Config)
 	}{
 		{
 			name:       "custom path takes precedence over environment variable",
@@ -1114,12 +1114,12 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 				}`
 
 				// Write custom config file
-				if err := os.WriteFile(customFile, []byte(customContent), 0644); err != nil {
+				if err := os.WriteFile(customFile, []byte(customContent), 0o644); err != nil {
 					t.Fatalf("Failed to create custom config file: %v", err)
 				}
 
 				// Write env config file
-				if err := os.WriteFile(envFile, []byte(envContent), 0644); err != nil {
+				if err := os.WriteFile(envFile, []byte(envContent), 0o644); err != nil {
 					t.Fatalf("Failed to create env config file: %v", err)
 				}
 
@@ -1135,7 +1135,7 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 				return customFile, envFile, cleanup
 			},
 			expectError: false,
-			validateConfig: func(t *testing.T, config *AuthConfig) {
+			validateConfig: func(t *testing.T, config *Config) {
 				if config == nil {
 					t.Fatal("config should not be nil")
 				}
@@ -1170,7 +1170,7 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 					}
 				}`
 
-				if err := os.WriteFile(envFile, []byte(envContent), 0644); err != nil {
+				if err := os.WriteFile(envFile, []byte(envContent), 0o644); err != nil {
 					t.Fatalf("Failed to create env config file: %v", err)
 				}
 
@@ -1185,7 +1185,7 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 				return "", envFile, cleanup
 			},
 			expectError: false,
-			validateConfig: func(t *testing.T, config *AuthConfig) {
+			validateConfig: func(t *testing.T, config *Config) {
 				if config == nil {
 					t.Fatal("config should not be nil")
 				}
@@ -1230,7 +1230,7 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 					// Missing closing brace
 				}`
 
-				if err := os.WriteFile(customFile, []byte(invalidContent), 0644); err != nil {
+				if err := os.WriteFile(customFile, []byte(invalidContent), 0o644); err != nil {
 					t.Fatalf("Failed to create custom config file: %v", err)
 				}
 
@@ -1266,7 +1266,7 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 				return "", "", cleanup
 			},
 			expectError: false,
-			validateConfig: func(t *testing.T, config *AuthConfig) {
+			validateConfig: func(t *testing.T, config *Config) {
 				if config == nil {
 					t.Fatal("config should not be nil")
 				}
@@ -1313,7 +1313,7 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 					"operator_users": ["operator@example.com"]
 				}`
 
-				if err := os.WriteFile(customFile, []byte(overrideContent), 0644); err != nil {
+				if err := os.WriteFile(customFile, []byte(overrideContent), 0o644); err != nil {
 					t.Fatalf("Failed to create custom config file: %v", err)
 				}
 
@@ -1333,7 +1333,7 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 				return customFile, "", cleanup
 			},
 			expectError: false,
-			validateConfig: func(t *testing.T, config *AuthConfig) {
+			validateConfig: func(t *testing.T, config *Config) {
 				if config == nil {
 					t.Fatal("config should not be nil")
 				}
@@ -1380,7 +1380,7 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 			}
 
 			// Call LoadAuthConfig with the determined config path
-			config, err := LoadAuthConfig(configPath)
+			config, err := LoadAuthConfig(context.Background(), configPath)
 
 			// Validate error expectations
 			if tt.expectError {

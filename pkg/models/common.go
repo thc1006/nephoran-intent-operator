@@ -28,7 +28,7 @@ func NewBaseModel() BaseModel {
 
 // NetworkIntent represents a network configuration intent
 type NetworkIntent struct {
-	BaseModel
+	BaseModel `json:",inline" yaml:",inline"`
 	Spec   NetworkIntentSpec   `json:"spec" yaml:"spec"`
 	Status NetworkIntentStatus `json:"status,omitempty" yaml:"status,omitempty"`
 }
@@ -45,22 +45,22 @@ type NetworkIntentSpec struct {
 
 // NetworkIntentStatus defines the observed state of NetworkIntent
 type NetworkIntentStatus struct {
-	Phase              string            `json:"phase" yaml:"phase"`
-	Conditions         []Condition       `json:"conditions,omitempty" yaml:"conditions,omitempty"`
-	ProcessedIntent    json.RawMessage   `json:"processed_intent,omitempty" yaml:"processed_intent,omitempty"`
-	GeneratedConfig    json.RawMessage   `json:"generated_config,omitempty" yaml:"generated_config,omitempty"`
+	Phase              string             `json:"phase" yaml:"phase"`
+	Conditions         []Condition        `json:"conditions,omitempty" yaml:"conditions,omitempty"`
+	ProcessedIntent    json.RawMessage    `json:"processed_intent,omitempty" yaml:"processed_intent,omitempty"`
+	GeneratedConfig    json.RawMessage    `json:"generated_config,omitempty" yaml:"generated_config,omitempty"`
 	ValidationResults  []ValidationResult `json:"validation_results,omitempty" yaml:"validation_results,omitempty"`
-	LastProcessedAt    *time.Time        `json:"last_processed_at,omitempty" yaml:"last_processed_at,omitempty"`
-	ObservedGeneration int64             `json:"observed_generation,omitempty" yaml:"observed_generation,omitempty"`
+	LastProcessedAt    *time.Time         `json:"last_processed_at,omitempty" yaml:"last_processed_at,omitempty"`
+	ObservedGeneration int64              `json:"observed_generation,omitempty" yaml:"observed_generation,omitempty"`
 }
 
 // Condition represents a condition of a NetworkIntent
 type Condition struct {
-	Type               string      `json:"type" yaml:"type"`
-	Status             string      `json:"status" yaml:"status"`
-	LastTransitionTime time.Time   `json:"last_transition_time" yaml:"last_transition_time"`
-	Reason             string      `json:"reason,omitempty" yaml:"reason,omitempty"`
-	Message            string      `json:"message,omitempty" yaml:"message,omitempty"`
+	Type               string    `json:"type" yaml:"type"`
+	Status             string    `json:"status" yaml:"status"`
+	LastTransitionTime time.Time `json:"last_transition_time" yaml:"last_transition_time"`
+	Reason             string    `json:"reason,omitempty" yaml:"reason,omitempty"`
+	Message            string    `json:"message,omitempty" yaml:"message,omitempty"`
 }
 
 // ValidationResult represents the result of a validation check
@@ -73,7 +73,7 @@ type ValidationResult struct {
 
 // NetworkConfiguration represents a processed network configuration
 type NetworkConfiguration struct {
-	BaseModel
+	BaseModel `json:",inline" yaml:",inline"`
 	IntentID      string          `json:"intent_id" yaml:"intent_id"`
 	ConfigType    string          `json:"config_type" yaml:"config_type"`
 	Configuration json.RawMessage `json:"configuration" yaml:"configuration"`
@@ -82,32 +82,32 @@ type NetworkConfiguration struct {
 
 // ConfigStatus represents the status of a network configuration
 type ConfigStatus struct {
-	Phase       string      `json:"phase" yaml:"phase"`
-	Applied     bool        `json:"applied" yaml:"applied"`
-	AppliedAt   *time.Time  `json:"applied_at,omitempty" yaml:"applied_at,omitempty"`
-	Errors      []string    `json:"errors,omitempty" yaml:"errors,omitempty"`
-	Conditions  []Condition `json:"conditions,omitempty" yaml:"conditions,omitempty"`
+	Phase      string      `json:"phase" yaml:"phase"`
+	Applied    bool        `json:"applied" yaml:"applied"`
+	AppliedAt  *time.Time  `json:"applied_at,omitempty" yaml:"applied_at,omitempty"`
+	Errors     []string    `json:"errors,omitempty" yaml:"errors,omitempty"`
+	Conditions []Condition `json:"conditions,omitempty" yaml:"conditions,omitempty"`
 }
 
 // ExecutionPolicy represents an execution policy for intents
 type ExecutionPolicy struct {
-	BaseModel
-	Name        string                 `json:"name" yaml:"name"`
-	Description string                 `json:"description,omitempty" yaml:"description,omitempty"`
-	Rules       []ExecutionRule        `json:"rules" yaml:"rules"`
-	Metadata    map[string]string      `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-	Status      ExecutionPolicyStatus  `json:"status,omitempty" yaml:"status,omitempty"`
+	BaseModel `json:",inline" yaml:",inline"`
+	Name        string                `json:"name" yaml:"name"`
+	Description string                `json:"description,omitempty" yaml:"description,omitempty"`
+	Rules       []ExecutionRule       `json:"rules" yaml:"rules"`
+	Metadata    map[string]string     `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	Status      ExecutionPolicyStatus `json:"status,omitempty" yaml:"status,omitempty"`
 }
 
 // ExecutionRule represents a rule in an execution policy
 type ExecutionRule struct {
-	ID          string            `json:"id" yaml:"id"`
-	Type        string            `json:"type" yaml:"type"`
-	Condition   string            `json:"condition" yaml:"condition"`
-	Action      string            `json:"action" yaml:"action"`
-	Parameters  map[string]string `json:"parameters,omitempty" yaml:"parameters,omitempty"`
-	Priority    int               `json:"priority" yaml:"priority"`
-	Enabled     bool              `json:"enabled" yaml:"enabled"`
+	ID         string            `json:"id" yaml:"id"`
+	Type       string            `json:"type" yaml:"type"`
+	Condition  string            `json:"condition" yaml:"condition"`
+	Action     string            `json:"action" yaml:"action"`
+	Parameters map[string]string `json:"parameters,omitempty" yaml:"parameters,omitempty"`
+	Priority   int               `json:"priority" yaml:"priority"`
+	Enabled    bool              `json:"enabled" yaml:"enabled"`
 }
 
 // ExecutionPolicyStatus represents the status of an execution policy
@@ -120,15 +120,15 @@ type ExecutionPolicyStatus struct {
 
 // ProcessingMetrics contains metrics for intent processing
 type ProcessingMetrics struct {
-	BaseModel
-	IntentID         string        `json:"intent_id" yaml:"intent_id"`
-	ProcessingTime   time.Duration `json:"processing_time" yaml:"processing_time"`
-	ValidationTime   time.Duration `json:"validation_time" yaml:"validation_time"`
-	ConfigGenTime    time.Duration `json:"config_generation_time" yaml:"config_generation_time"`
-	TotalTime        time.Duration `json:"total_time" yaml:"total_time"`
-	TokensUsed       int           `json:"tokens_used,omitempty" yaml:"tokens_used,omitempty"`
-	Cost             float64       `json:"cost,omitempty" yaml:"cost,omitempty"`
-	Status           string        `json:"status" yaml:"status"`
+	BaseModel `json:",inline" yaml:",inline"`
+	IntentID       string        `json:"intent_id" yaml:"intent_id"`
+	ProcessingTime time.Duration `json:"processing_time" yaml:"processing_time"`
+	ValidationTime time.Duration `json:"validation_time" yaml:"validation_time"`
+	ConfigGenTime  time.Duration `json:"config_generation_time" yaml:"config_generation_time"`
+	TotalTime      time.Duration `json:"total_time" yaml:"total_time"`
+	TokensUsed     int           `json:"tokens_used,omitempty" yaml:"tokens_used,omitempty"`
+	Cost           float64       `json:"cost,omitempty" yaml:"cost,omitempty"`
+	Status         string        `json:"status" yaml:"status"`
 }
 
 // Constants for status and phase values

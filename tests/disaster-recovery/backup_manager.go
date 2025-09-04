@@ -156,32 +156,25 @@ type ValidationResult struct {
 // NewBackupManager creates a new backup manager.
 
 func NewBackupManager(client client.Client, backupDir string, scheme *runtime.Scheme) *BackupManager {
-
 	return &BackupManager{
-
 		client: client,
 
 		backupDir: backupDir,
 
 		scheme: scheme,
 	}
-
 }
 
 // CreateBackup creates a backup of specified resources.
 
 func (bm *BackupManager) CreateBackup(ctx context.Context, backupID string, options BackupOptions) (*BackupManifest, error) {
-
 	backupPath := filepath.Join(bm.backupDir, backupID)
 
 	if err := os.MkdirAll(backupPath, 0o755); err != nil {
-
 		return nil, fmt.Errorf("failed to create backup directory: %w", err)
-
 	}
 
 	manifest := &BackupManifest{
-
 		ID: backupID,
 
 		Timestamp: time.Now(),
@@ -202,11 +195,8 @@ func (bm *BackupManager) CreateBackup(ctx context.Context, backupID string, opti
 	for _, gvk := range options.ResourceTypes {
 
 		resources, err := bm.backupResourceType(ctx, gvk, options)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to backup %s: %w", gvk.String(), err)
-
 		}
 
 		allResources = append(allResources, resources...)
@@ -220,11 +210,8 @@ func (bm *BackupManager) CreateBackup(ctx context.Context, backupID string, opti
 	for i, resource := range allResources {
 
 		resourceData, err := json.MarshalIndent(resource.Object, "", "  ")
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to marshal resource: %w", err)
-
 		}
 
 		filename := fmt.Sprintf("resource-%d-%s-%s.json", i, resource.GetKind(), resource.GetName())
@@ -232,9 +219,7 @@ func (bm *BackupManager) CreateBackup(ctx context.Context, backupID string, opti
 		resourcePath := filepath.Join(backupPath, filename)
 
 		if err := os.WriteFile(resourcePath, resourceData, 0o640); err != nil {
-
 			return nil, fmt.Errorf("failed to write resource file: %w", err)
-
 		}
 
 		// Add resource metadata.
@@ -242,7 +227,6 @@ func (bm *BackupManager) CreateBackup(ctx context.Context, backupID string, opti
 		checksum := bm.calculateChecksum(resourceData)
 
 		metadata := BackupResourceMetadata{
-
 			APIVersion: resource.GetAPIVersion(),
 
 			Kind: resource.GetKind(),
@@ -267,33 +251,25 @@ func (bm *BackupManager) CreateBackup(ctx context.Context, backupID string, opti
 	// Save manifest.
 
 	manifestData, err := json.MarshalIndent(manifest, "", "  ")
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to marshal manifest: %w", err)
-
 	}
 
 	manifestPath := filepath.Join(backupPath, "manifest.json")
 
 	if err := os.WriteFile(manifestPath, manifestData, 0o640); err != nil {
-
 		return nil, fmt.Errorf("failed to write manifest: %w", err)
-
 	}
 
 	return manifest, nil
-
 }
 
 // RestoreBackup restores resources from a backup.
 
 func (bm *BackupManager) RestoreBackup(ctx context.Context, backupID string, options RestoreOptions) (*RestoreResult, error) {
-
 	startTime := time.Now()
 
 	result := &RestoreResult{
-
 		Success: true,
 	}
 
@@ -302,31 +278,24 @@ func (bm *BackupManager) RestoreBackup(ctx context.Context, backupID string, opt
 	// Load manifest.
 
 	manifest, err := bm.loadManifest(backupPath)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to load backup manifest: %w", err)
-
 	}
 
 	// Validate backup integrity.
 
 	if err := bm.validateBackupIntegrity(backupPath, manifest); err != nil {
-
 		return nil, fmt.Errorf("backup integrity validation failed: %w", err)
-
 	}
 
 	// Restore each resource.
 
 	for _, resourceMeta := range manifest.Resources {
-
 		if err := bm.restoreResource(ctx, backupPath, resourceMeta, options); err != nil {
 
 			result.ResourcesFailed++
 
 			result.Errors = append(result.Errors, RestoreError{
-
 				Resource: fmt.Sprintf("%s/%s", resourceMeta.Kind, resourceMeta.Name),
 
 				Error: err.Error(),
@@ -335,17 +304,12 @@ func (bm *BackupManager) RestoreBackup(ctx context.Context, backupID string, opt
 			})
 
 			if !options.IgnoreErrors {
-
 				result.Success = false
-
 			}
 
 		} else {
-
 			result.ResourcesRestored++
-
 		}
-
 	}
 
 	// Perform post-restore validation.
@@ -353,18 +317,14 @@ func (bm *BackupManager) RestoreBackup(ctx context.Context, backupID string, opt
 	if options.ValidationMode != ValidationModeNone {
 
 		validationResults, err := bm.validateRestoredResources(ctx, manifest, options)
-
 		if err != nil {
-
 			result.Errors = append(result.Errors, RestoreError{
-
 				Resource: "validation",
 
 				Error: err.Error(),
 
 				Fatal: false,
 			})
-
 		}
 
 		result.ValidationResults = validationResults
@@ -374,45 +334,33 @@ func (bm *BackupManager) RestoreBackup(ctx context.Context, backupID string, opt
 	result.Duration = time.Since(startTime)
 
 	return result, nil
-
 }
 
 // ListBackups returns a list of available backups.
 
 func (bm *BackupManager) ListBackups() ([]BackupManifest, error) {
-
 	var backups []BackupManifest
 
 	entries, err := os.ReadDir(bm.backupDir)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to read backup directory: %w", err)
-
 	}
 
 	for _, entry := range entries {
 
 		if !entry.IsDir() {
-
 			continue
-
 		}
 
 		manifestPath := filepath.Join(bm.backupDir, entry.Name(), "manifest.json")
 
 		if _, err := os.Stat(manifestPath); os.IsNotExist(err) {
-
 			continue // Skip directories without manifest
-
 		}
 
 		manifest, err := bm.loadManifest(filepath.Join(bm.backupDir, entry.Name()))
-
 		if err != nil {
-
 			continue // Skip invalid manifests
-
 		}
 
 		backups = append(backups, *manifest)
@@ -420,41 +368,32 @@ func (bm *BackupManager) ListBackups() ([]BackupManifest, error) {
 	}
 
 	return backups, nil
-
 }
 
 // DeleteBackup removes a backup.
 
 func (bm *BackupManager) DeleteBackup(backupID string) error {
-
 	backupPath := filepath.Join(bm.backupDir, backupID)
 
 	return os.RemoveAll(backupPath)
-
 }
 
 // ValidateBackup checks backup integrity.
 
 func (bm *BackupManager) ValidateBackup(backupID string) error {
-
 	backupPath := filepath.Join(bm.backupDir, backupID)
 
 	manifest, err := bm.loadManifest(backupPath)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to load manifest: %w", err)
-
 	}
 
 	return bm.validateBackupIntegrity(backupPath, manifest)
-
 }
 
 // Helper methods.
 
 func (bm *BackupManager) backupResourceType(ctx context.Context, gvk schema.GroupVersionKind, options BackupOptions) ([]unstructured.Unstructured, error) {
-
 	var resources []unstructured.Unstructured
 
 	// Create unstructured list for this resource type.
@@ -462,7 +401,6 @@ func (bm *BackupManager) backupResourceType(ctx context.Context, gvk schema.Grou
 	list := &unstructured.UnstructuredList{}
 
 	list.SetGroupVersionKind(schema.GroupVersionKind{
-
 		Group: gvk.Group,
 
 		Version: gvk.Version,
@@ -475,15 +413,11 @@ func (bm *BackupManager) backupResourceType(ctx context.Context, gvk schema.Grou
 	listOptions := []client.ListOption{}
 
 	if options.Namespace != "" {
-
 		listOptions = append(listOptions, client.InNamespace(options.Namespace))
-
 	}
 
 	if err := bm.client.List(ctx, list, listOptions...); err != nil {
-
 		return nil, fmt.Errorf("failed to list resources: %w", err)
-
 	}
 
 	// Process each resource.
@@ -493,17 +427,13 @@ func (bm *BackupManager) backupResourceType(ctx context.Context, gvk schema.Grou
 		// Skip secrets if not included.
 
 		if !options.IncludeSecrets && item.GetKind() == "Secret" {
-
 			continue
-
 		}
 
 		// Skip config maps if not included.
 
 		if !options.IncludeConfigMaps && item.GetKind() == "ConfigMap" {
-
 			continue
-
 		}
 
 		// Clean up resource for backup (remove status, resource version, etc.).
@@ -515,11 +445,9 @@ func (bm *BackupManager) backupResourceType(ctx context.Context, gvk schema.Grou
 	}
 
 	return resources, nil
-
 }
 
 func (bm *BackupManager) cleanResourceForBackup(resource unstructured.Unstructured) unstructured.Unstructured {
-
 	// Create a copy.
 
 	cleaned := resource.DeepCopy()
@@ -539,35 +467,26 @@ func (bm *BackupManager) cleanResourceForBackup(resource unstructured.Unstructur
 	unstructured.RemoveNestedField(cleaned.Object, "status")
 
 	return *cleaned
-
 }
 
 func (bm *BackupManager) loadManifest(backupPath string) (*BackupManifest, error) {
-
 	manifestPath := filepath.Join(backupPath, "manifest.json")
 
 	data, err := os.ReadFile(manifestPath)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to read manifest file: %w", err)
-
 	}
 
 	var manifest BackupManifest
 
 	if err := json.Unmarshal(data, &manifest); err != nil {
-
 		return nil, fmt.Errorf("failed to unmarshal manifest: %w", err)
-
 	}
 
 	return &manifest, nil
-
 }
 
 func (bm *BackupManager) validateBackupIntegrity(backupPath string, manifest *BackupManifest) error {
-
 	// Check if all resource files exist and have correct checksums.
 
 	for _, resourceMeta := range manifest.Resources {
@@ -575,35 +494,25 @@ func (bm *BackupManager) validateBackupIntegrity(backupPath string, manifest *Ba
 		found := false
 
 		err := filepath.Walk(backupPath, func(path string, info os.FileInfo, err error) error {
-
 			if err != nil {
-
 				return err
-
 			}
 
 			if info.IsDir() || filepath.Ext(path) != ".json" || filepath.Base(path) == "manifest.json" {
-
 				return nil
-
 			}
 
 			// Read and validate resource file.
 
 			data, err := os.ReadFile(path)
-
 			if err != nil {
-
 				return err
-
 			}
 
 			var resource unstructured.Unstructured
 
 			if err := json.Unmarshal(data, &resource.Object); err != nil {
-
 				return err
-
 			}
 
 			if resource.GetKind() == resourceMeta.Kind && resource.GetName() == resourceMeta.Name {
@@ -611,9 +520,7 @@ func (bm *BackupManager) validateBackupIntegrity(backupPath string, manifest *Ba
 				checksum := bm.calculateChecksum(data)
 
 				if checksum != resourceMeta.Checksum {
-
 					return fmt.Errorf("checksum mismatch for resource %s/%s", resourceMeta.Kind, resourceMeta.Name)
-
 				}
 
 				found = true
@@ -621,19 +528,13 @@ func (bm *BackupManager) validateBackupIntegrity(backupPath string, manifest *Ba
 			}
 
 			return nil
-
 		})
-
 		if err != nil {
-
 			return err
-
 		}
 
 		if !found {
-
 			return fmt.Errorf("resource file not found for %s/%s", resourceMeta.Kind, resourceMeta.Name)
-
 		}
 
 	}
@@ -643,71 +544,49 @@ func (bm *BackupManager) validateBackupIntegrity(backupPath string, manifest *Ba
 	currentChecksum, _ := bm.calculateBackupChecksum(backupPath)
 
 	if currentChecksum != manifest.ChecksumSHA256 {
-
 		return fmt.Errorf("backup checksum mismatch: expected %s, got %s", manifest.ChecksumSHA256, currentChecksum)
-
 	}
 
 	return nil
-
 }
 
 func (bm *BackupManager) restoreResource(ctx context.Context, backupPath string, resourceMeta BackupResourceMetadata, options RestoreOptions) error {
-
 	// Find and load resource file.
 
 	var resourceData []byte
 
 	err := filepath.Walk(backupPath, func(path string, info os.FileInfo, err error) error {
-
 		if err != nil {
-
 			return err
-
 		}
 
 		if info.IsDir() || filepath.Ext(path) != ".json" || filepath.Base(path) == "manifest.json" {
-
 			return nil
-
 		}
 
 		data, err := os.ReadFile(path)
-
 		if err != nil {
-
 			return err
-
 		}
 
 		var resource unstructured.Unstructured
 
 		if err := json.Unmarshal(data, &resource.Object); err != nil {
-
 			return err
-
 		}
 
 		if resource.GetKind() == resourceMeta.Kind && resource.GetName() == resourceMeta.Name {
-
 			resourceData = data
-
 		}
 
 		return nil
-
 	})
-
 	if err != nil {
-
 		return fmt.Errorf("failed to find resource file: %w", err)
-
 	}
 
 	if resourceData == nil {
-
 		return fmt.Errorf("resource file not found for %s/%s", resourceMeta.Kind, resourceMeta.Name)
-
 	}
 
 	// Parse resource.
@@ -715,61 +594,44 @@ func (bm *BackupManager) restoreResource(ctx context.Context, backupPath string,
 	var resource unstructured.Unstructured
 
 	if err := json.Unmarshal(resourceData, &resource.Object); err != nil {
-
 		return fmt.Errorf("failed to unmarshal resource: %w", err)
-
 	}
 
 	// Set target namespace if specified.
 
 	if options.Namespace != "" {
-
 		resource.SetNamespace(options.Namespace)
-
 	}
 
 	// Handle dry run.
 
 	if options.DryRun {
-
 		return nil // Just validate parsing for dry run
-
 	}
 
 	// Try to create the resource.
 
 	if err := bm.client.Create(ctx, &resource); err != nil {
-
 		// If resource exists and force replace is enabled, update it.
 
 		if options.ForceReplace {
-
 			if updateErr := bm.client.Update(ctx, &resource); updateErr != nil {
-
 				return fmt.Errorf("failed to create or update resource: create error: %w, update error: %w", err, updateErr)
-
 			}
-
 		} else {
-
 			return fmt.Errorf("failed to create resource: %w", err)
-
 		}
-
 	}
 
 	return nil
-
 }
 
 func (bm *BackupManager) validateRestoredResources(ctx context.Context, manifest *BackupManifest, options RestoreOptions) ([]ValidationResult, error) {
-
 	var results []ValidationResult
 
 	for _, resourceMeta := range manifest.Resources {
 
 		result := ValidationResult{
-
 			Resource: fmt.Sprintf("%s/%s", resourceMeta.Kind, resourceMeta.Name),
 		}
 
@@ -778,7 +640,6 @@ func (bm *BackupManager) validateRestoredResources(ctx context.Context, manifest
 		resource := &unstructured.Unstructured{}
 
 		resource.SetGroupVersionKind(schema.GroupVersionKind{
-
 			Group: "", // Will be determined from API discovery
 
 			Version: "v1", // Simplified for test
@@ -787,7 +648,6 @@ func (bm *BackupManager) validateRestoredResources(ctx context.Context, manifest
 		})
 
 		err := bm.client.Get(ctx, client.ObjectKey{
-
 			Name: resourceMeta.Name,
 
 			Namespace: resourceMeta.Namespace,
@@ -808,7 +668,6 @@ func (bm *BackupManager) validateRestoredResources(ctx context.Context, manifest
 			// Additional validation for strict mode.
 
 			if options.ValidationMode == ValidationModeStrict {
-
 				// Validate resource has expected fields and values.
 
 				if resource.GetName() != resourceMeta.Name {
@@ -818,7 +677,6 @@ func (bm *BackupManager) validateRestoredResources(ctx context.Context, manifest
 					result.Message = "Resource name mismatch"
 
 				}
-
 			}
 
 		}
@@ -828,91 +686,66 @@ func (bm *BackupManager) validateRestoredResources(ctx context.Context, manifest
 	}
 
 	return results, nil
-
 }
 
 func (bm *BackupManager) calculateChecksum(data []byte) string {
-
 	hash := sha256.Sum256(data)
 
 	return fmt.Sprintf("%x", hash)
-
 }
 
 func (bm *BackupManager) calculateBackupChecksum(backupPath string) (string, int64) {
-
 	hash := sha256.New()
 
 	var totalSize int64
 
 	filepath.Walk(backupPath, func(path string, info os.FileInfo, err error) error {
-
 		if err != nil || info.IsDir() || filepath.Base(path) == "manifest.json" {
-
 			return nil
-
 		}
 
 		file, err := os.Open(path)
-
 		if err != nil {
-
 			return nil
-
 		}
 
-		defer file.Close()
+		defer file.Close() // #nosec G307 - Error handled in defer
 
 		size, err := io.Copy(hash, file)
-
 		if err != nil {
-
 			return nil
-
 		}
 
 		totalSize += size
 
 		return nil
-
 	})
 
 	return fmt.Sprintf("%x", hash.Sum(nil)), totalSize
-
 }
 
 // GetBackupInfo returns information about a specific backup.
 
 func (bm *BackupManager) GetBackupInfo(backupID string) (*BackupManifest, error) {
-
 	backupPath := filepath.Join(bm.backupDir, backupID)
 
 	return bm.loadManifest(backupPath)
-
 }
 
 // CompareBackups compares two backups and returns differences.
 
 func (bm *BackupManager) CompareBackups(backup1ID, backup2ID string) (*BackupComparison, error) {
-
 	manifest1, err := bm.GetBackupInfo(backup1ID)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to load backup1: %w", err)
-
 	}
 
 	manifest2, err := bm.GetBackupInfo(backup2ID)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to load backup2: %w", err)
-
 	}
 
 	comparison := &BackupComparison{
-
 		Backup1ID: backup1ID,
 
 		Backup2ID: backup2ID,
@@ -925,33 +758,26 @@ func (bm *BackupManager) CompareBackups(backup1ID, backup2ID string) (*BackupCom
 		count2, exists := manifest2.ResourceCounts[kind]
 
 		if !exists {
-
 			comparison.Differences = append(comparison.Differences, BackupDifference{
-
 				Type: "missing_resource_type",
 
 				Resource: kind,
 
 				Description: fmt.Sprintf("Resource type %s exists in backup1 but not backup2", kind),
 			})
-
 		} else if count1 != count2 {
-
 			comparison.Differences = append(comparison.Differences, BackupDifference{
-
 				Type: "resource_count_mismatch",
 
 				Resource: kind,
 
 				Description: fmt.Sprintf("Resource count mismatch for %s: backup1=%d, backup2=%d", kind, count1, count2),
 			})
-
 		}
 
 	}
 
 	return comparison, nil
-
 }
 
 // BackupComparison represents a comparison between two backups.

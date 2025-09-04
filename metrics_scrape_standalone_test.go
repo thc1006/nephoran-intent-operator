@@ -98,12 +98,12 @@ func TestMetricsEndpointStandalone(t *testing.T) {
 		router := mux.NewRouter()
 		router.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{})).Methods("GET")
 		server := httptest.NewServer(router)
-		defer server.Close()
+		defer server.Close() // #nosec G307 - Error handled in defer
 
 		// Test metrics endpoint
 		resp, err := http.Get(server.URL + "/metrics")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		// Validate response
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -173,12 +173,12 @@ func TestMetricsEndpointStandalone(t *testing.T) {
 		// Don't register /metrics endpoint when disabled
 
 		server := httptest.NewServer(router)
-		defer server.Close()
+		defer server.Close() // #nosec G307 - Error handled in defer
 
 		// Test metrics endpoint should return 404
 		resp, err := http.Get(server.URL + "/metrics")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 	})
@@ -258,12 +258,12 @@ func TestMetricsEndpointConditionalBehavior(t *testing.T) {
 			}
 
 			server := httptest.NewServer(router)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			// Test endpoint
 			resp, err := http.Get(server.URL + "/metrics")
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			assert.Equal(t, tc.expectedStatus, resp.StatusCode, tc.description)
 
@@ -322,7 +322,7 @@ func TestMetricsEndpointPerformanceAndConcurrency(t *testing.T) {
 	router := mux.NewRouter()
 	router.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{})).Methods("GET")
 	server := httptest.NewServer(router)
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	t.Run("Response time performance", func(t *testing.T) {
 		start := time.Now()
@@ -330,7 +330,7 @@ func TestMetricsEndpointPerformanceAndConcurrency(t *testing.T) {
 		duration := time.Since(start)
 
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 		assert.Less(t, duration, 2*time.Second, "Metrics endpoint should respond within 2 seconds")

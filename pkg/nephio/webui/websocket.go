@@ -37,25 +37,18 @@ type WebSocketServer struct {
 // NewWebSocketServer creates a new WebSocket server.
 
 func NewWebSocketServer(
-
 	logger *zap.Logger,
 
 	kubeClient kubernetes.Interface,
-
 ) *WebSocketServer {
-
 	ws := &WebSocketServer{
-
 		logger: logger,
 
 		upgrader: websocket.Upgrader{
-
 			CheckOrigin: func(r *http.Request) bool {
-
 				// TODO: Implement proper origin checking.
 
 				return true
-
 			},
 
 			ReadBufferSize: 1024,
@@ -75,15 +68,12 @@ func NewWebSocketServer(
 	}
 
 	return ws
-
 }
 
 // HandleWebSocket manages WebSocket connection lifecycle.
 
 func (ws *WebSocketServer) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
-
 	conn, err := ws.upgrader.Upgrade(w, r, nil)
-
 	if err != nil {
 
 		ws.logger.Error("WebSocket upgrade failed", zap.Error(err))
@@ -99,15 +89,12 @@ func (ws *WebSocketServer) HandleWebSocket(w http.ResponseWriter, r *http.Reques
 	ws.clientsMutex.Unlock()
 
 	go ws.handleClient(conn)
-
 }
 
 // handleClient manages individual WebSocket client interactions.
 
 func (ws *WebSocketServer) handleClient(conn *websocket.Conn) {
-
 	defer func() {
-
 		ws.clientsMutex.Lock()
 
 		delete(ws.clients, conn)
@@ -115,19 +102,15 @@ func (ws *WebSocketServer) handleClient(conn *websocket.Conn) {
 		ws.clientsMutex.Unlock()
 
 		conn.Close()
-
 	}()
 
 	for {
 
 		_, message, err := conn.ReadMessage()
-
 		if err != nil {
 
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-
 				ws.logger.Error("WebSocket read error", zap.Error(err))
-
 			}
 
 			break
@@ -149,13 +132,11 @@ func (ws *WebSocketServer) handleClient(conn *websocket.Conn) {
 		ws.processClientMessage(conn, wsMessage)
 
 	}
-
 }
 
 // processClientMessage handles incoming WebSocket messages.
 
 func (ws *WebSocketServer) processClientMessage(conn *websocket.Conn, message WebSocketMessage) {
-
 	switch message.Type {
 
 	case "subscribe":
@@ -167,7 +148,6 @@ func (ws *WebSocketServer) processClientMessage(conn *websocket.Conn, message We
 		// Respond to client ping.
 
 		if err := ws.sendMessage(conn, WebSocketMessage{
-
 			Type: "pong",
 
 			Payload: "pong",
@@ -180,31 +160,25 @@ func (ws *WebSocketServer) processClientMessage(conn *websocket.Conn, message We
 		ws.logger.Warn("Unhandled WebSocket message type", zap.String("type", message.Type))
 
 	}
-
 }
 
 // sendMessage sends a message to a specific WebSocket client.
 
 func (ws *WebSocketServer) sendMessage(conn *websocket.Conn, message WebSocketMessage) error {
-
 	ws.clientsMutex.RLock()
 
 	defer ws.clientsMutex.RUnlock()
 
 	if !ws.clients[conn] {
-
 		return fmt.Errorf("client not connected")
-
 	}
 
 	return conn.WriteJSON(message)
-
 }
 
 // Start initializes WebSocket server and Kubernetes event watchers.
 
 func (ws *WebSocketServer) Start(ctx context.Context) error {
-
 	// Start Kubernetes informers.
 
 	ws.startInformers(ctx)
@@ -222,15 +196,12 @@ func (ws *WebSocketServer) Start(ctx context.Context) error {
 	go ws.watchIntentEvents(ctx)
 
 	return nil
-
 }
 
 // startBroadcaster distributes messages to all connected clients.
 
 func (ws *WebSocketServer) startBroadcaster(ctx context.Context) {
-
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -242,77 +213,60 @@ func (ws *WebSocketServer) startBroadcaster(ctx context.Context) {
 			ws.broadcastMessage(message)
 
 		}
-
 	}
-
 }
 
 // broadcastMessage sends a message to all connected clients.
 
 func (ws *WebSocketServer) broadcastMessage(message WebSocketMessage) {
-
 	ws.clientsMutex.RLock()
 
 	defer ws.clientsMutex.RUnlock()
 
 	for client := range ws.clients {
-
 		if err := client.WriteJSON(message); err != nil {
-
 			ws.logger.Error("Failed to send WebSocket message", zap.Error(err))
-
 		}
-
 	}
-
 }
 
 // startInformers initializes Kubernetes resource informers.
 
 func (ws *WebSocketServer) startInformers(ctx context.Context) {
-
 	// Add informers for different Kubernetes resources.
 
 	ws.informerFactory.Start(ctx.Done())
 
 	ws.informerFactory.WaitForCacheSync(ctx.Done())
-
 }
 
 // watchPackageEvents monitors PackageRevision events.
 
 func (ws *WebSocketServer) watchPackageEvents(ctx context.Context) {
-
 	// TODO: Implement specific package event watching.
 
 	// Use Kubernetes informers or custom watcher to track package changes.
-
 }
 
 // watchClusterEvents monitors Workload Cluster events.
 
 func (ws *WebSocketServer) watchClusterEvents(ctx context.Context) {
-
 	// TODO: Implement cluster event watching.
 
 	// Track cluster status, readiness, and configuration changes.
-
 }
 
 // watchIntentEvents monitors NetworkIntent processing events.
 
 func (ws *WebSocketServer) watchIntentEvents(ctx context.Context) {
-
 	// TODO: Implement intent processing event tracking.
 
 	// Monitor intent status, processing stages, and completion.
-
 }
 
 // Stop gracefully shuts down the WebSocket server.
 
 func (ws *WebSocketServer) Stop() {
-
 	close(ws.stopChan)
 
 	ws.clientsMutex.Lock()
@@ -326,5 +280,4 @@ func (ws *WebSocketServer) Stop() {
 		delete(ws.clients, conn)
 
 	}
-
 }

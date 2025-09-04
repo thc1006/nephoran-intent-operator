@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"strings"
@@ -118,8 +118,8 @@ func TestProfileConfigurations(t *testing.T) {
 
 // TestGenerateWindow tests the generateWindow function
 func TestGenerateWindow(t *testing.T) {
-	// Use local random generator for reproducible tests (Go 1.20+)
-	rng := rand.New(rand.NewSource(12345))
+	// Use local random generator for reproducible tests (Go 1.22+)
+	rng := rand.New(rand.NewPCG(12345, 67890))
 	_ = rng // Will be used when implementing actual test logic
 
 	tests := []struct {

@@ -66,7 +66,6 @@ type Policy struct {
 // PolicySpec contains the specification for a policy.
 
 type PolicySpec struct {
-
 	// mTLS settings.
 
 	MTLSMode string `json:"mtlsMode,omitempty" yaml:"mtlsMode,omitempty"`
@@ -230,116 +229,90 @@ type PolicyStore struct {
 // NewPolicyStore creates a new policy store.
 
 func NewPolicyStore() *PolicyStore {
-
 	return &PolicyStore{
-
 		policies: make(map[string]Policy),
 
 		policySets: make(map[string]*PolicySet),
 	}
-
 }
 
 // StorePolicy stores a policy.
 
 func (s *PolicyStore) StorePolicy(policy Policy) {
-
 	s.policies[policy.Name] = policy
 
 	s.lastUpdated = time.Now()
-
 }
 
 // StorePolicySet stores a policy set.
 
 func (s *PolicyStore) StorePolicySet(policySet *PolicySet) {
-
 	s.policySets[policySet.Name] = policySet
 
 	for _, policy := range policySet.Policies {
-
 		s.StorePolicy(policy)
-
 	}
 
 	s.lastUpdated = time.Now()
-
 }
 
 // GetPolicy retrieves a policy by name.
 
 func (s *PolicyStore) GetPolicy(name string) (Policy, bool) {
-
 	policy, exists := s.policies[name]
 
 	return policy, exists
-
 }
 
 // GetPolicySet retrieves a policy set by name.
 
 func (s *PolicyStore) GetPolicySet(name string) (*PolicySet, bool) {
-
 	policySet, exists := s.policySets[name]
 
 	return policySet, exists
-
 }
 
 // GetAllPolicies returns all stored policies.
 
 func (s *PolicyStore) GetAllPolicies() []Policy {
-
 	policies := []Policy{}
 
 	for _, policy := range s.policies {
-
 		policies = append(policies, policy)
-
 	}
 
 	return policies
-
 }
 
 // GetAllPolicySets returns all stored policy sets.
 
 func (s *PolicyStore) GetAllPolicySets() []*PolicySet {
-
 	policySets := []*PolicySet{}
 
 	for _, policySet := range s.policySets {
-
 		policySets = append(policySets, policySet)
-
 	}
 
 	return policySets
-
 }
 
 // DeletePolicy deletes a policy.
 
 func (s *PolicyStore) DeletePolicy(name string) {
-
 	delete(s.policies, name)
 
 	s.lastUpdated = time.Now()
-
 }
 
 // DeletePolicySet deletes a policy set.
 
 func (s *PolicyStore) DeletePolicySet(name string) {
-
 	if policySet, exists := s.policySets[name]; exists {
 
 		// Also delete associated policies.
 
 		for _, policy := range policySet.Policies {
-
 			delete(s.policies, policy.Name)
-
 		}
 
 		delete(s.policySets, name)
@@ -347,7 +320,6 @@ func (s *PolicyStore) DeletePolicySet(name string) {
 		s.lastUpdated = time.Now()
 
 	}
-
 }
 
 // PolicyValidator validates policies.
@@ -359,36 +331,26 @@ type PolicyValidator struct {
 // NewPolicyValidator creates a new policy validator.
 
 func NewPolicyValidator(mesh abstraction.ServiceMeshInterface) *PolicyValidator {
-
 	return &PolicyValidator{
-
 		mesh: mesh,
 	}
-
 }
 
 // ValidatePolicy validates a single policy.
 
 func (v *PolicyValidator) ValidatePolicy(ctx context.Context, policy Policy) error {
-
 	// Basic validation.
 
 	if policy.Name == "" {
-
 		return fmt.Errorf("policy name is required")
-
 	}
 
 	if policy.Type == "" {
-
 		return fmt.Errorf("policy type is required")
-
 	}
 
 	if policy.Namespace == "" {
-
 		return fmt.Errorf("policy namespace is required")
-
 	}
 
 	// Type-specific validation.
@@ -412,15 +374,12 @@ func (v *PolicyValidator) ValidatePolicy(ctx context.Context, policy Policy) err
 		return nil
 
 	}
-
 }
 
 // validateMTLSPolicy validates an mTLS policy.
 
 func (v *PolicyValidator) validateMTLSPolicy(policy Policy) error {
-
 	validModes := map[string]bool{
-
 		"STRICT": true,
 
 		"PERMISSIVE": true,
@@ -429,21 +388,16 @@ func (v *PolicyValidator) validateMTLSPolicy(policy Policy) error {
 	}
 
 	if !validModes[policy.Spec.MTLSMode] {
-
 		return fmt.Errorf("invalid mTLS mode: %s", policy.Spec.MTLSMode)
-
 	}
 
 	return nil
-
 }
 
 // validateAuthorizationPolicy validates an authorization policy.
 
 func (v *PolicyValidator) validateAuthorizationPolicy(policy Policy) error {
-
 	validActions := map[string]bool{
-
 		"ALLOW": true,
 
 		"DENY": true,
@@ -454,43 +408,31 @@ func (v *PolicyValidator) validateAuthorizationPolicy(policy Policy) error {
 	}
 
 	if !validActions[policy.Spec.Action] {
-
 		return fmt.Errorf("invalid action: %s", policy.Spec.Action)
-
 	}
 
 	return nil
-
 }
 
 // validateTrafficPolicy validates a traffic policy.
 
 func (v *PolicyValidator) validateTrafficPolicy(policy Policy) error {
-
 	// Validate circuit breaker settings if present.
 
 	if policy.Spec.CircuitBreaker != nil {
-
 		if cb, ok := policy.Spec.CircuitBreaker.(map[string]interface{}); ok {
-
 			if errors, ok := cb["consecutiveErrors"].(float64); ok && errors < 1 {
-
 				return fmt.Errorf("consecutive errors must be at least 1")
-
 			}
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // CheckConflicts checks for policy conflicts.
 
 func (v *PolicyValidator) CheckConflicts(policies []Policy) []string {
-
 	conflicts := []string{}
 
 	// Check for conflicting mTLS modes.
@@ -498,31 +440,23 @@ func (v *PolicyValidator) CheckConflicts(policies []Policy) []string {
 	mtlsModes := make(map[string]string)
 
 	for _, policy := range policies {
-
 		if policy.Type == PolicyTypeMTLS {
 
 			namespace := policy.Namespace
 
 			if existingMode, exists := mtlsModes[namespace]; exists {
-
 				if existingMode != policy.Spec.MTLSMode {
-
 					conflicts = append(conflicts,
 
 						fmt.Sprintf("Conflicting mTLS modes in namespace %s: %s vs %s",
 
 							namespace, existingMode, policy.Spec.MTLSMode))
-
 				}
-
 			} else {
-
 				mtlsModes[namespace] = policy.Spec.MTLSMode
-
 			}
 
 		}
-
 	}
 
 	// Check for conflicting authorization policies.
@@ -530,7 +464,6 @@ func (v *PolicyValidator) CheckConflicts(policies []Policy) []string {
 	authPolicies := make(map[string][]Policy)
 
 	for _, policy := range policies {
-
 		if policy.Type == PolicyTypeAuthorization {
 
 			key := fmt.Sprintf("%s/%s", policy.Namespace, getSelectorKey(policy.Selector))
@@ -538,7 +471,6 @@ func (v *PolicyValidator) CheckConflicts(policies []Policy) []string {
 			authPolicies[key] = append(authPolicies[key], policy)
 
 		}
-
 	}
 
 	for key, policies := range authPolicies {
@@ -548,41 +480,29 @@ func (v *PolicyValidator) CheckConflicts(policies []Policy) []string {
 		hasAllow := false
 
 		for _, policy := range policies {
-
 			if policy.Spec.Action == "DENY" {
-
 				hasDeny = true
-
 			} else if policy.Spec.Action == "ALLOW" {
-
 				hasAllow = true
-
 			}
-
 		}
 
 		if hasDeny && hasAllow {
-
 			conflicts = append(conflicts,
 
 				fmt.Sprintf("Conflicting ALLOW and DENY policies for %s", key))
-
 		}
 
 	}
 
 	return conflicts
-
 }
 
 // getSelectorKey creates a key from a label selector.
 
 func getSelectorKey(selector *abstraction.LabelSelector) string {
-
 	if selector == nil || len(selector.MatchLabels) == 0 {
-
 		return "default"
-
 	}
 
 	key := ""
@@ -590,9 +510,7 @@ func getSelectorKey(selector *abstraction.LabelSelector) string {
 	for k, v := range selector.MatchLabels {
 
 		if key != "" {
-
 			key += ","
-
 		}
 
 		key += fmt.Sprintf("%s=%s", k, v)
@@ -600,7 +518,6 @@ func getSelectorKey(selector *abstraction.LabelSelector) string {
 	}
 
 	return key
-
 }
 
 // PolicyEnforcer enforces policies.
@@ -612,30 +529,23 @@ type PolicyEnforcer struct {
 // NewPolicyEnforcer creates a new policy enforcer.
 
 func NewPolicyEnforcer(mesh abstraction.ServiceMeshInterface) *PolicyEnforcer {
-
 	return &PolicyEnforcer{
-
 		mesh: mesh,
 	}
-
 }
 
 // EnforcePolicy enforces a policy.
 
 func (e *PolicyEnforcer) EnforcePolicy(ctx context.Context, policy Policy) error {
-
 	// Implementation would enforce the policy through the mesh.
 
 	return nil
-
 }
 
 // RemovePolicy removes a policy.
 
 func (e *PolicyEnforcer) RemovePolicy(ctx context.Context, policy Policy) error {
-
 	// Implementation would remove the policy from the mesh.
 
 	return nil
-
 }

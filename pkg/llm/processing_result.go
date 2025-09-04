@@ -1,7 +1,9 @@
 package llm
 
 import (
-	"time"
+	
+	"encoding/json"
+"time"
 )
 
 // ProcessingResult represents the result of LLM processing
@@ -11,14 +13,14 @@ type ProcessingResult struct {
 	ProcessingTime    time.Duration          `json:"processing_time"`
 	CacheHit          bool                   `json:"cache_hit"`
 	Batched           bool                   `json:"batched"`
-	Metadata          map[string]interface{} `json:"metadata"`
+	Metadata          json.RawMessage `json:"metadata"`
 	Error             error                  `json:"error,omitempty"`
 	ProcessingContext *ProcessingContext     `json:"processing_context,omitempty"` // Uses the existing ProcessingContext from processing_pipeline.go
 	Success           bool                   `json:"success"`                      // Added for processing_pipeline.go
 }
 
 // NOTE: ProcessingContext is already defined in processing_pipeline.go
-// NOTE: ClassificationResult is already defined in processing_pipeline.go  
+// NOTE: ClassificationResult is already defined in processing_pipeline.go
 // NOTE: EnrichmentContext is already defined in processing_pipeline.go
 // NOTE: ValidationResult is already defined in security_validator.go
 
@@ -32,7 +34,7 @@ func NewProcessingResult(content string) *ProcessingResult {
 		ProcessingTime: time.Duration(0),
 		CacheHit:       false,
 		Batched:        false,
-		Metadata:       make(map[string]interface{}),
+		Metadata:       json.RawMessage(`{}`),
 		Success:        true,
 	}
 }
@@ -46,10 +48,27 @@ func (pr *ProcessingResult) WithError(err error) *ProcessingResult {
 
 // WithMetadata adds metadata to the processing result
 func (pr *ProcessingResult) WithMetadata(key string, value interface{}) *ProcessingResult {
-	if pr.Metadata == nil {
-		pr.Metadata = make(map[string]interface{})
+	// Parse existing metadata
+	var metadata map[string]interface{}
+	if pr.Metadata != nil && len(pr.Metadata) > 0 && string(pr.Metadata) != "{}" {
+		if err := json.Unmarshal(pr.Metadata, &metadata); err != nil {
+			metadata = make(map[string]interface{})
+		}
+	} else {
+		metadata = make(map[string]interface{})
 	}
-	pr.Metadata[key] = value
+	
+	// Add new key-value pair
+	metadata[key] = value
+	
+	// Convert back to json.RawMessage
+	if metadataBytes, err := json.Marshal(metadata); err == nil {
+		pr.Metadata = json.RawMessage(metadataBytes)
+	} else {
+		// Fallback to empty JSON object on error
+		pr.Metadata = json.RawMessage(`{}`)
+	}
+	
 	return pr
 }
 

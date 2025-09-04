@@ -32,27 +32,10 @@ type ProblemDetail struct {
 // handleGetServiceInfo returns service information.
 
 func (s *O2APIServer) handleGetServiceInfo(w http.ResponseWriter, r *http.Request) {
-
 	serviceInfo := map[string]interface{}{
-
-		"name": "Nephoran O2 IMS",
+		"service": "O2 Infrastructure Management Service",
 
 		"version": "1.0.0",
-
-		"description": "O-RAN Infrastructure Management Service",
-
-		"apiVersion": "v1",
-
-		"specification": "O-RAN.WG6.O2ims-Interface-v01.01",
-
-		"capabilities": []string{
-
-			"InfrastructureInventory",
-
-			"InfrastructureMonitoring",
-
-			"InfrastructureProvisioning",
-		},
 
 		"supported_providers": s.providerRegistry.GetSupportedProviders(),
 
@@ -60,51 +43,33 @@ func (s *O2APIServer) handleGetServiceInfo(w http.ResponseWriter, r *http.Reques
 	}
 
 	s.writeJSONResponse(w, r, StatusOK, serviceInfo)
-
 }
 
 // handleHealthCheck returns health status.
 
 func (s *O2APIServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
-
 	health := s.healthChecker.GetHealthStatus()
 
 	status := StatusOK
 
 	if health.Status == "DOWN" {
-
 		status = StatusServiceUnavailable
-
 	} else if health.Status == "DEGRADED" {
-
 		status = StatusOK // Still return 200 for degraded but mention in body
-
 	}
 
 	s.writeJSONResponse(w, r, status, health)
-
 }
 
 // handleReadinessCheck returns readiness status.
 
 func (s *O2APIServer) handleReadinessCheck(w http.ResponseWriter, r *http.Request) {
-
 	ready := map[string]interface{}{
-
-		"status": "READY",
-
+		"ready": true,
 		"timestamp": time.Now().Format(time.RFC3339),
-
-		"checks": map[string]string{
-
-			"database": "OK",
-
-			"providers": "OK",
-		},
 	}
 
 	s.writeJSONResponse(w, r, StatusOK, ready)
-
 }
 
 // Resource Pool Handlers.
@@ -112,11 +77,9 @@ func (s *O2APIServer) handleReadinessCheck(w http.ResponseWriter, r *http.Reques
 // handleGetResourcePools retrieves resource pools with filtering.
 
 func (s *O2APIServer) handleGetResourcePools(w http.ResponseWriter, r *http.Request) {
-
 	filter := s.parseResourcePoolFilter(r)
 
 	pools, err := s.imsService.GetResourcePools(r.Context(), filter)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to retrieve resource pools", err)
@@ -126,13 +89,11 @@ func (s *O2APIServer) handleGetResourcePools(w http.ResponseWriter, r *http.Requ
 	}
 
 	s.writeJSONResponse(w, r, StatusOK, pools)
-
 }
 
 // handleGetResourcePool retrieves a specific resource pool.
 
 func (s *O2APIServer) handleGetResourcePool(w http.ResponseWriter, r *http.Request) {
-
 	poolID := s.getPathParam(r, "resourcePoolId")
 
 	if poolID == "" {
@@ -144,7 +105,6 @@ func (s *O2APIServer) handleGetResourcePool(w http.ResponseWriter, r *http.Reque
 	}
 
 	pool, err := s.imsService.GetResourcePool(r.Context(), poolID)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusNotFound, "Resource pool not found", err)
@@ -154,13 +114,11 @@ func (s *O2APIServer) handleGetResourcePool(w http.ResponseWriter, r *http.Reque
 	}
 
 	s.writeJSONResponse(w, r, StatusOK, pool)
-
 }
 
 // handleCreateResourcePool creates a new resource pool.
 
 func (s *O2APIServer) handleCreateResourcePool(w http.ResponseWriter, r *http.Request) {
-
 	var req models.CreateResourcePoolRequest
 
 	if err := s.decodeJSONRequest(r, &req); err != nil {
@@ -172,7 +130,6 @@ func (s *O2APIServer) handleCreateResourcePool(w http.ResponseWriter, r *http.Re
 	}
 
 	pool, err := s.imsService.CreateResourcePool(r.Context(), &req)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to create resource pool", err)
@@ -184,13 +141,11 @@ func (s *O2APIServer) handleCreateResourcePool(w http.ResponseWriter, r *http.Re
 	s.metrics.RecordResourceOperation("create", "resource_pool", req.Provider, "success")
 
 	s.writeJSONResponse(w, r, StatusCreated, pool)
-
 }
 
 // handleUpdateResourcePool updates an existing resource pool.
 
 func (s *O2APIServer) handleUpdateResourcePool(w http.ResponseWriter, r *http.Request) {
-
 	poolID := s.getPathParam(r, "resourcePoolId")
 
 	if poolID == "" {
@@ -212,7 +167,6 @@ func (s *O2APIServer) handleUpdateResourcePool(w http.ResponseWriter, r *http.Re
 	}
 
 	pool, err := s.imsService.UpdateResourcePool(r.Context(), poolID, &req)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to update resource pool", err)
@@ -224,13 +178,11 @@ func (s *O2APIServer) handleUpdateResourcePool(w http.ResponseWriter, r *http.Re
 	s.metrics.RecordResourceOperation("update", "resource_pool", "unknown", "success")
 
 	s.writeJSONResponse(w, r, StatusOK, pool)
-
 }
 
 // handleDeleteResourcePool deletes a resource pool.
 
 func (s *O2APIServer) handleDeleteResourcePool(w http.ResponseWriter, r *http.Request) {
-
 	poolID := s.getPathParam(r, "resourcePoolId")
 
 	if poolID == "" {
@@ -252,7 +204,6 @@ func (s *O2APIServer) handleDeleteResourcePool(w http.ResponseWriter, r *http.Re
 	s.metrics.RecordResourceOperation("delete", "resource_pool", "unknown", "success")
 
 	w.WriteHeader(StatusNoContent)
-
 }
 
 // Resource Type Handlers.
@@ -260,11 +211,9 @@ func (s *O2APIServer) handleDeleteResourcePool(w http.ResponseWriter, r *http.Re
 // handleGetResourceTypes retrieves resource types.
 
 func (s *O2APIServer) handleGetResourceTypes(w http.ResponseWriter, r *http.Request) {
-
 	filter := s.parseResourceTypeFilter(r)
 
 	resourceTypes, err := s.imsService.GetResourceTypes(r.Context(), filter)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to retrieve resource types", err)
@@ -274,13 +223,11 @@ func (s *O2APIServer) handleGetResourceTypes(w http.ResponseWriter, r *http.Requ
 	}
 
 	s.writeJSONResponse(w, r, StatusOK, resourceTypes)
-
 }
 
 // handleGetResourceType retrieves a specific resource type.
 
 func (s *O2APIServer) handleGetResourceType(w http.ResponseWriter, r *http.Request) {
-
 	typeID := s.getPathParam(r, "resourceTypeId")
 
 	if typeID == "" {
@@ -292,7 +239,6 @@ func (s *O2APIServer) handleGetResourceType(w http.ResponseWriter, r *http.Reque
 	}
 
 	resourceType, err := s.imsService.GetResourceType(r.Context(), typeID)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusNotFound, "Resource type not found", err)
@@ -302,13 +248,11 @@ func (s *O2APIServer) handleGetResourceType(w http.ResponseWriter, r *http.Reque
 	}
 
 	s.writeJSONResponse(w, r, StatusOK, resourceType)
-
 }
 
 // handleCreateResourceType creates a new resource type.
 
 func (s *O2APIServer) handleCreateResourceType(w http.ResponseWriter, r *http.Request) {
-
 	var resourceType models.ResourceType
 
 	if err := s.decodeJSONRequest(r, &resourceType); err != nil {
@@ -320,7 +264,6 @@ func (s *O2APIServer) handleCreateResourceType(w http.ResponseWriter, r *http.Re
 	}
 
 	createdType, err := s.imsService.CreateResourceType(r.Context(), &resourceType)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to create resource type", err)
@@ -332,13 +275,11 @@ func (s *O2APIServer) handleCreateResourceType(w http.ResponseWriter, r *http.Re
 	s.metrics.RecordResourceOperation("create", "resource_type", "system", "success")
 
 	s.writeJSONResponse(w, r, StatusCreated, createdType)
-
 }
 
 // handleUpdateResourceType updates an existing resource type.
 
 func (s *O2APIServer) handleUpdateResourceType(w http.ResponseWriter, r *http.Request) {
-
 	typeID := s.getPathParam(r, "resourceTypeId")
 
 	if typeID == "" {
@@ -360,7 +301,6 @@ func (s *O2APIServer) handleUpdateResourceType(w http.ResponseWriter, r *http.Re
 	}
 
 	updatedType, err := s.imsService.UpdateResourceType(r.Context(), typeID, &resourceType)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to update resource type", err)
@@ -372,13 +312,11 @@ func (s *O2APIServer) handleUpdateResourceType(w http.ResponseWriter, r *http.Re
 	s.metrics.RecordResourceOperation("update", "resource_type", "system", "success")
 
 	s.writeJSONResponse(w, r, StatusOK, updatedType)
-
 }
 
 // handleDeleteResourceType deletes a resource type.
 
 func (s *O2APIServer) handleDeleteResourceType(w http.ResponseWriter, r *http.Request) {
-
 	typeID := s.getPathParam(r, "resourceTypeId")
 
 	if typeID == "" {
@@ -400,7 +338,6 @@ func (s *O2APIServer) handleDeleteResourceType(w http.ResponseWriter, r *http.Re
 	s.metrics.RecordResourceOperation("delete", "resource_type", "system", "success")
 
 	w.WriteHeader(StatusNoContent)
-
 }
 
 // Resource Handlers.
@@ -408,11 +345,9 @@ func (s *O2APIServer) handleDeleteResourceType(w http.ResponseWriter, r *http.Re
 // handleGetResources retrieves resources with filtering.
 
 func (s *O2APIServer) handleGetResources(w http.ResponseWriter, r *http.Request) {
-
 	filter := s.parseResourceFilter(r)
 
 	resources, err := s.imsService.GetResources(r.Context(), filter)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to retrieve resources", err)
@@ -422,13 +357,11 @@ func (s *O2APIServer) handleGetResources(w http.ResponseWriter, r *http.Request)
 	}
 
 	s.writeJSONResponse(w, r, StatusOK, resources)
-
 }
 
 // handleGetResource retrieves a specific resource.
 
 func (s *O2APIServer) handleGetResource(w http.ResponseWriter, r *http.Request) {
-
 	resourceID := s.getPathParam(r, "resourceId")
 
 	if resourceID == "" {
@@ -440,7 +373,6 @@ func (s *O2APIServer) handleGetResource(w http.ResponseWriter, r *http.Request) 
 	}
 
 	resource, err := s.imsService.GetResource(r.Context(), resourceID)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusNotFound, "Resource not found", err)
@@ -450,13 +382,11 @@ func (s *O2APIServer) handleGetResource(w http.ResponseWriter, r *http.Request) 
 	}
 
 	s.writeJSONResponse(w, r, StatusOK, resource)
-
 }
 
 // handleCreateResource creates a new resource.
 
 func (s *O2APIServer) handleCreateResource(w http.ResponseWriter, r *http.Request) {
-
 	var req models.CreateResourceRequest
 
 	if err := s.decodeJSONRequest(r, &req); err != nil {
@@ -468,7 +398,6 @@ func (s *O2APIServer) handleCreateResource(w http.ResponseWriter, r *http.Reques
 	}
 
 	resource, err := s.imsService.CreateResource(r.Context(), &req)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to create resource", err)
@@ -480,13 +409,11 @@ func (s *O2APIServer) handleCreateResource(w http.ResponseWriter, r *http.Reques
 	s.metrics.RecordResourceOperation("create", req.ResourceTypeID, "unknown", "success")
 
 	s.writeJSONResponse(w, r, StatusCreated, resource)
-
 }
 
 // handleUpdateResource updates an existing resource.
 
 func (s *O2APIServer) handleUpdateResource(w http.ResponseWriter, r *http.Request) {
-
 	resourceID := s.getPathParam(r, "resourceId")
 
 	if resourceID == "" {
@@ -508,7 +435,6 @@ func (s *O2APIServer) handleUpdateResource(w http.ResponseWriter, r *http.Reques
 	}
 
 	resource, err := s.imsService.UpdateResource(r.Context(), resourceID, &req)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to update resource", err)
@@ -520,13 +446,11 @@ func (s *O2APIServer) handleUpdateResource(w http.ResponseWriter, r *http.Reques
 	s.metrics.RecordResourceOperation("update", "resource", "unknown", "success")
 
 	s.writeJSONResponse(w, r, StatusOK, resource)
-
 }
 
 // handleDeleteResource deletes a resource.
 
 func (s *O2APIServer) handleDeleteResource(w http.ResponseWriter, r *http.Request) {
-
 	resourceID := s.getPathParam(r, "resourceId")
 
 	if resourceID == "" {
@@ -548,7 +472,6 @@ func (s *O2APIServer) handleDeleteResource(w http.ResponseWriter, r *http.Reques
 	s.metrics.RecordResourceOperation("delete", "resource", "unknown", "success")
 
 	w.WriteHeader(StatusNoContent)
-
 }
 
 // Resource Health and Monitoring Handlers.
@@ -556,7 +479,6 @@ func (s *O2APIServer) handleDeleteResource(w http.ResponseWriter, r *http.Reques
 // handleGetResourceHealth retrieves resource health status.
 
 func (s *O2APIServer) handleGetResourceHealth(w http.ResponseWriter, r *http.Request) {
-
 	resourceID := s.getPathParam(r, "resourceId")
 
 	if resourceID == "" {
@@ -568,7 +490,6 @@ func (s *O2APIServer) handleGetResourceHealth(w http.ResponseWriter, r *http.Req
 	}
 
 	health, err := s.imsService.GetResourceHealth(r.Context(), resourceID)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to retrieve resource health", err)
@@ -578,13 +499,11 @@ func (s *O2APIServer) handleGetResourceHealth(w http.ResponseWriter, r *http.Req
 	}
 
 	s.writeJSONResponse(w, r, StatusOK, health)
-
 }
 
 // handleGetResourceAlarms retrieves resource alarms.
 
 func (s *O2APIServer) handleGetResourceAlarms(w http.ResponseWriter, r *http.Request) {
-
 	resourceID := s.getPathParam(r, "resourceId")
 
 	if resourceID == "" {
@@ -598,7 +517,6 @@ func (s *O2APIServer) handleGetResourceAlarms(w http.ResponseWriter, r *http.Req
 	filter := s.parseAlarmFilter(r)
 
 	alarms, err := s.imsService.GetResourceAlarms(r.Context(), resourceID, filter)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to retrieve resource alarms", err)
@@ -608,13 +526,11 @@ func (s *O2APIServer) handleGetResourceAlarms(w http.ResponseWriter, r *http.Req
 	}
 
 	s.writeJSONResponse(w, r, StatusOK, alarms)
-
 }
 
 // handleGetResourceMetrics retrieves resource metrics.
 
 func (s *O2APIServer) handleGetResourceMetrics(w http.ResponseWriter, r *http.Request) {
-
 	resourceID := s.getPathParam(r, "resourceId")
 
 	if resourceID == "" {
@@ -628,7 +544,6 @@ func (s *O2APIServer) handleGetResourceMetrics(w http.ResponseWriter, r *http.Re
 	filter := s.parseMetricsFilter(r)
 
 	metrics, err := s.imsService.GetResourceMetrics(r.Context(), resourceID, filter)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to retrieve resource metrics", err)
@@ -638,7 +553,6 @@ func (s *O2APIServer) handleGetResourceMetrics(w http.ResponseWriter, r *http.Re
 	}
 
 	s.writeJSONResponse(w, r, StatusOK, metrics)
-
 }
 
 // Deployment Template Handlers.
@@ -646,11 +560,9 @@ func (s *O2APIServer) handleGetResourceMetrics(w http.ResponseWriter, r *http.Re
 // handleGetDeploymentTemplates retrieves deployment templates.
 
 func (s *O2APIServer) handleGetDeploymentTemplates(w http.ResponseWriter, r *http.Request) {
-
 	filter := s.parseDeploymentTemplateFilter(r)
 
 	templates, err := s.imsService.GetDeploymentTemplates(r.Context(), filter)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to retrieve deployment templates", err)
@@ -660,13 +572,11 @@ func (s *O2APIServer) handleGetDeploymentTemplates(w http.ResponseWriter, r *htt
 	}
 
 	s.writeJSONResponse(w, r, StatusOK, templates)
-
 }
 
 // handleGetDeploymentTemplate retrieves a specific deployment template.
 
 func (s *O2APIServer) handleGetDeploymentTemplate(w http.ResponseWriter, r *http.Request) {
-
 	templateID := s.getPathParam(r, "templateId")
 
 	if templateID == "" {
@@ -678,7 +588,6 @@ func (s *O2APIServer) handleGetDeploymentTemplate(w http.ResponseWriter, r *http
 	}
 
 	template, err := s.imsService.GetDeploymentTemplate(r.Context(), templateID)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusNotFound, "Deployment template not found", err)
@@ -688,13 +597,11 @@ func (s *O2APIServer) handleGetDeploymentTemplate(w http.ResponseWriter, r *http
 	}
 
 	s.writeJSONResponse(w, r, StatusOK, template)
-
 }
 
 // handleCreateDeploymentTemplate creates a new deployment template.
 
 func (s *O2APIServer) handleCreateDeploymentTemplate(w http.ResponseWriter, r *http.Request) {
-
 	var template DeploymentTemplate
 
 	if err := s.decodeJSONRequest(r, &template); err != nil {
@@ -706,7 +613,6 @@ func (s *O2APIServer) handleCreateDeploymentTemplate(w http.ResponseWriter, r *h
 	}
 
 	createdTemplate, err := s.imsService.CreateDeploymentTemplate(r.Context(), &template)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to create deployment template", err)
@@ -718,13 +624,11 @@ func (s *O2APIServer) handleCreateDeploymentTemplate(w http.ResponseWriter, r *h
 	s.metrics.RecordResourceOperation("create", "deployment_template", "system", "success")
 
 	s.writeJSONResponse(w, r, StatusCreated, createdTemplate)
-
 }
 
 // handleUpdateDeploymentTemplate updates an existing deployment template.
 
 func (s *O2APIServer) handleUpdateDeploymentTemplate(w http.ResponseWriter, r *http.Request) {
-
 	templateID := s.getPathParam(r, "templateId")
 
 	if templateID == "" {
@@ -746,7 +650,6 @@ func (s *O2APIServer) handleUpdateDeploymentTemplate(w http.ResponseWriter, r *h
 	}
 
 	updatedTemplate, err := s.imsService.UpdateDeploymentTemplate(r.Context(), templateID, &template)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to update deployment template", err)
@@ -758,13 +661,11 @@ func (s *O2APIServer) handleUpdateDeploymentTemplate(w http.ResponseWriter, r *h
 	s.metrics.RecordResourceOperation("update", "deployment_template", "system", "success")
 
 	s.writeJSONResponse(w, r, StatusOK, updatedTemplate)
-
 }
 
 // handleDeleteDeploymentTemplate deletes a deployment template.
 
 func (s *O2APIServer) handleDeleteDeploymentTemplate(w http.ResponseWriter, r *http.Request) {
-
 	templateID := s.getPathParam(r, "templateId")
 
 	if templateID == "" {
@@ -786,7 +687,6 @@ func (s *O2APIServer) handleDeleteDeploymentTemplate(w http.ResponseWriter, r *h
 	s.metrics.RecordResourceOperation("delete", "deployment_template", "system", "success")
 
 	w.WriteHeader(StatusNoContent)
-
 }
 
 // Deployment Management Handlers.
@@ -794,11 +694,9 @@ func (s *O2APIServer) handleDeleteDeploymentTemplate(w http.ResponseWriter, r *h
 // handleGetDeployments retrieves deployments.
 
 func (s *O2APIServer) handleGetDeployments(w http.ResponseWriter, r *http.Request) {
-
 	filter := s.parseDeploymentFilter(r)
 
 	deployments, err := s.imsService.GetDeployments(r.Context(), filter)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to retrieve deployments", err)
@@ -808,13 +706,11 @@ func (s *O2APIServer) handleGetDeployments(w http.ResponseWriter, r *http.Reques
 	}
 
 	s.writeJSONResponse(w, r, StatusOK, deployments)
-
 }
 
 // handleGetDeployment retrieves a specific deployment.
 
 func (s *O2APIServer) handleGetDeployment(w http.ResponseWriter, r *http.Request) {
-
 	deploymentID := s.getPathParam(r, "deploymentId")
 
 	if deploymentID == "" {
@@ -826,7 +722,6 @@ func (s *O2APIServer) handleGetDeployment(w http.ResponseWriter, r *http.Request
 	}
 
 	deployment, err := s.imsService.GetDeployment(r.Context(), deploymentID)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusNotFound, "Deployment not found", err)
@@ -836,13 +731,11 @@ func (s *O2APIServer) handleGetDeployment(w http.ResponseWriter, r *http.Request
 	}
 
 	s.writeJSONResponse(w, r, StatusOK, deployment)
-
 }
 
 // handleCreateDeployment creates a new deployment.
 
 func (s *O2APIServer) handleCreateDeployment(w http.ResponseWriter, r *http.Request) {
-
 	var req CreateDeploymentRequest
 
 	if err := s.decodeJSONRequest(r, &req); err != nil {
@@ -854,7 +747,6 @@ func (s *O2APIServer) handleCreateDeployment(w http.ResponseWriter, r *http.Requ
 	}
 
 	deployment, err := s.imsService.CreateDeployment(r.Context(), &req)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to create deployment", err)
@@ -866,13 +758,11 @@ func (s *O2APIServer) handleCreateDeployment(w http.ResponseWriter, r *http.Requ
 	s.metrics.RecordResourceOperation("create", "deployment", "unknown", "success")
 
 	s.writeJSONResponse(w, r, StatusCreated, deployment)
-
 }
 
 // handleUpdateDeployment updates an existing deployment.
 
 func (s *O2APIServer) handleUpdateDeployment(w http.ResponseWriter, r *http.Request) {
-
 	deploymentID := s.getPathParam(r, "deploymentId")
 
 	if deploymentID == "" {
@@ -894,7 +784,6 @@ func (s *O2APIServer) handleUpdateDeployment(w http.ResponseWriter, r *http.Requ
 	}
 
 	deployment, err := s.imsService.UpdateDeployment(r.Context(), deploymentID, &req)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to update deployment", err)
@@ -906,13 +795,11 @@ func (s *O2APIServer) handleUpdateDeployment(w http.ResponseWriter, r *http.Requ
 	s.metrics.RecordResourceOperation("update", "deployment", "unknown", "success")
 
 	s.writeJSONResponse(w, r, StatusOK, deployment)
-
 }
 
 // handleDeleteDeployment deletes a deployment.
 
 func (s *O2APIServer) handleDeleteDeployment(w http.ResponseWriter, r *http.Request) {
-
 	deploymentID := s.getPathParam(r, "deploymentId")
 
 	if deploymentID == "" {
@@ -934,7 +821,6 @@ func (s *O2APIServer) handleDeleteDeployment(w http.ResponseWriter, r *http.Requ
 	s.metrics.RecordResourceOperation("delete", "deployment", "unknown", "success")
 
 	w.WriteHeader(StatusNoContent)
-
 }
 
 // Subscription Handlers.
@@ -942,7 +828,6 @@ func (s *O2APIServer) handleDeleteDeployment(w http.ResponseWriter, r *http.Requ
 // handleCreateSubscription creates a new subscription.
 
 func (s *O2APIServer) handleCreateSubscription(w http.ResponseWriter, r *http.Request) {
-
 	var subscription Subscription
 
 	if err := s.decodeJSONRequest(r, &subscription); err != nil {
@@ -954,7 +839,6 @@ func (s *O2APIServer) handleCreateSubscription(w http.ResponseWriter, r *http.Re
 	}
 
 	createdSubscription, err := s.imsService.CreateSubscription(r.Context(), &subscription)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to create subscription", err)
@@ -964,17 +848,14 @@ func (s *O2APIServer) handleCreateSubscription(w http.ResponseWriter, r *http.Re
 	}
 
 	s.writeJSONResponse(w, r, StatusCreated, createdSubscription)
-
 }
 
 // handleGetSubscriptions retrieves subscriptions.
 
 func (s *O2APIServer) handleGetSubscriptions(w http.ResponseWriter, r *http.Request) {
-
 	filter := s.parseSubscriptionFilter(r)
 
 	subscriptions, err := s.imsService.GetSubscriptions(r.Context(), filter)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to retrieve subscriptions", err)
@@ -984,13 +865,11 @@ func (s *O2APIServer) handleGetSubscriptions(w http.ResponseWriter, r *http.Requ
 	}
 
 	s.writeJSONResponse(w, r, StatusOK, subscriptions)
-
 }
 
 // handleGetSubscription retrieves a specific subscription.
 
 func (s *O2APIServer) handleGetSubscription(w http.ResponseWriter, r *http.Request) {
-
 	subscriptionID := s.getPathParam(r, "subscriptionId")
 
 	if subscriptionID == "" {
@@ -1002,7 +881,6 @@ func (s *O2APIServer) handleGetSubscription(w http.ResponseWriter, r *http.Reque
 	}
 
 	subscription, err := s.imsService.GetSubscription(r.Context(), subscriptionID)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusNotFound, "Subscription not found", err)
@@ -1012,13 +890,11 @@ func (s *O2APIServer) handleGetSubscription(w http.ResponseWriter, r *http.Reque
 	}
 
 	s.writeJSONResponse(w, r, StatusOK, subscription)
-
 }
 
 // handleUpdateSubscription updates an existing subscription.
 
 func (s *O2APIServer) handleUpdateSubscription(w http.ResponseWriter, r *http.Request) {
-
 	subscriptionID := s.getPathParam(r, "subscriptionId")
 
 	if subscriptionID == "" {
@@ -1040,7 +916,6 @@ func (s *O2APIServer) handleUpdateSubscription(w http.ResponseWriter, r *http.Re
 	}
 
 	updatedSubscription, err := s.imsService.UpdateSubscription(r.Context(), subscriptionID, &subscription)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to update subscription", err)
@@ -1050,13 +925,11 @@ func (s *O2APIServer) handleUpdateSubscription(w http.ResponseWriter, r *http.Re
 	}
 
 	s.writeJSONResponse(w, r, StatusOK, updatedSubscription)
-
 }
 
 // handleDeleteSubscription deletes a subscription.
 
 func (s *O2APIServer) handleDeleteSubscription(w http.ResponseWriter, r *http.Request) {
-
 	subscriptionID := s.getPathParam(r, "subscriptionId")
 
 	if subscriptionID == "" {
@@ -1076,7 +949,6 @@ func (s *O2APIServer) handleDeleteSubscription(w http.ResponseWriter, r *http.Re
 	}
 
 	w.WriteHeader(StatusNoContent)
-
 }
 
 // Cloud Provider Management Handlers.
@@ -1084,7 +956,6 @@ func (s *O2APIServer) handleDeleteSubscription(w http.ResponseWriter, r *http.Re
 // handleRegisterCloudProvider registers a new cloud provider.
 
 func (s *O2APIServer) handleRegisterCloudProvider(w http.ResponseWriter, r *http.Request) {
-
 	var provider CloudProviderConfig
 
 	if err := s.decodeJSONRequest(r, &provider); err != nil {
@@ -1096,7 +967,6 @@ func (s *O2APIServer) handleRegisterCloudProvider(w http.ResponseWriter, r *http
 	}
 
 	_, err := s.imsService.RegisterCloudProvider(r.Context(), &provider)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to register cloud provider", err)
@@ -1106,15 +976,12 @@ func (s *O2APIServer) handleRegisterCloudProvider(w http.ResponseWriter, r *http
 	}
 
 	s.writeJSONResponse(w, r, StatusCreated, provider)
-
 }
 
 // handleGetCloudProviders retrieves cloud providers.
 
 func (s *O2APIServer) handleGetCloudProviders(w http.ResponseWriter, r *http.Request) {
-
 	providers, err := s.imsService.GetCloudProviders(r.Context())
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to retrieve cloud providers", err)
@@ -1124,13 +991,11 @@ func (s *O2APIServer) handleGetCloudProviders(w http.ResponseWriter, r *http.Req
 	}
 
 	s.writeJSONResponse(w, r, StatusOK, providers)
-
 }
 
 // handleGetCloudProvider retrieves a specific cloud provider.
 
 func (s *O2APIServer) handleGetCloudProvider(w http.ResponseWriter, r *http.Request) {
-
 	providerID := s.getPathParam(r, "providerId")
 
 	if providerID == "" {
@@ -1142,7 +1007,6 @@ func (s *O2APIServer) handleGetCloudProvider(w http.ResponseWriter, r *http.Requ
 	}
 
 	provider, err := s.imsService.GetCloudProvider(r.Context(), providerID)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusNotFound, "Cloud provider not found", err)
@@ -1152,13 +1016,11 @@ func (s *O2APIServer) handleGetCloudProvider(w http.ResponseWriter, r *http.Requ
 	}
 
 	s.writeJSONResponse(w, r, StatusOK, provider)
-
 }
 
 // handleUpdateCloudProvider updates an existing cloud provider.
 
 func (s *O2APIServer) handleUpdateCloudProvider(w http.ResponseWriter, r *http.Request) {
-
 	providerID := s.getPathParam(r, "providerId")
 
 	if providerID == "" {
@@ -1180,7 +1042,6 @@ func (s *O2APIServer) handleUpdateCloudProvider(w http.ResponseWriter, r *http.R
 	}
 
 	_, err := s.imsService.UpdateCloudProvider(r.Context(), providerID, &provider)
-
 	if err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to update cloud provider", err)
@@ -1190,13 +1051,11 @@ func (s *O2APIServer) handleUpdateCloudProvider(w http.ResponseWriter, r *http.R
 	}
 
 	s.writeJSONResponse(w, r, StatusOK, provider)
-
 }
 
 // handleRemoveCloudProvider removes a cloud provider.
 
 func (s *O2APIServer) handleRemoveCloudProvider(w http.ResponseWriter, r *http.Request) {
-
 	providerID := s.getPathParam(r, "providerId")
 
 	if providerID == "" {
@@ -1216,5 +1075,5 @@ func (s *O2APIServer) handleRemoveCloudProvider(w http.ResponseWriter, r *http.R
 	}
 
 	w.WriteHeader(StatusNoContent)
-
 }
+

@@ -12,7 +12,7 @@ func TestNewValidator(t *testing.T) {
 	// Create a temporary directory for testing
 	tempDir := t.TempDir()
 	contractsDir := filepath.Join(tempDir, "docs", "contracts")
-	if err := os.MkdirAll(contractsDir, 0755); err != nil {
+	if err := os.MkdirAll(contractsDir, 0o755); err != nil {
 		t.Fatalf("Failed to create contracts directory: %v", err)
 	}
 
@@ -60,7 +60,7 @@ func TestNewValidator(t *testing.T) {
 		}`
 
 		schemaPath := filepath.Join(contractsDir, "intent.schema.json")
-		if err := os.WriteFile(schemaPath, []byte(validSchema), 0644); err != nil {
+		if err := os.WriteFile(schemaPath, []byte(validSchema), 0o644); err != nil {
 			t.Fatalf("Failed to write schema file: %v", err)
 		}
 
@@ -110,7 +110,7 @@ func TestNewValidator(t *testing.T) {
 	t.Run("InvalidJSON", func(t *testing.T) {
 		invalidJSON := `{"invalid": json}`
 		schemaPath := filepath.Join(contractsDir, "intent.schema.json")
-		if err := os.WriteFile(schemaPath, []byte(invalidJSON), 0644); err != nil {
+		if err := os.WriteFile(schemaPath, []byte(invalidJSON), 0o644); err != nil {
 			t.Fatalf("Failed to write invalid schema: %v", err)
 		}
 
@@ -130,7 +130,7 @@ func TestNewValidator(t *testing.T) {
 			"type": "invalid-type"
 		}`
 		schemaPath := filepath.Join(contractsDir, "intent.schema.json")
-		if err := os.WriteFile(schemaPath, []byte(invalidSchema), 0644); err != nil {
+		if err := os.WriteFile(schemaPath, []byte(invalidSchema), 0o644); err != nil {
 			t.Fatalf("Failed to write invalid schema: %v", err)
 		}
 
@@ -148,7 +148,7 @@ func TestValidatorValidateIntent(t *testing.T) {
 	// Setup validator with valid schema
 	tempDir := t.TempDir()
 	contractsDir := filepath.Join(tempDir, "docs", "contracts")
-	if err := os.MkdirAll(contractsDir, 0755); err != nil {
+	if err := os.MkdirAll(contractsDir, 0o755); err != nil {
 		t.Fatalf("Failed to create contracts directory: %v", err)
 	}
 
@@ -194,7 +194,7 @@ func TestValidatorValidateIntent(t *testing.T) {
 	}`
 
 	schemaPath := filepath.Join(contractsDir, "intent.schema.json")
-	if err := os.WriteFile(schemaPath, []byte(validSchema), 0644); err != nil {
+	if err := os.WriteFile(schemaPath, []byte(validSchema), 0o644); err != nil {
 		t.Fatalf("Failed to write schema file: %v", err)
 	}
 
@@ -335,7 +335,7 @@ func TestValidatorValidateJSON(t *testing.T) {
 	// Setup validator
 	tempDir := t.TempDir()
 	contractsDir := filepath.Join(tempDir, "docs", "contracts")
-	if err := os.MkdirAll(contractsDir, 0755); err != nil {
+	if err := os.MkdirAll(contractsDir, 0o755); err != nil {
 		t.Fatalf("Failed to create contracts directory: %v", err)
 	}
 
@@ -369,7 +369,7 @@ func TestValidatorValidateJSON(t *testing.T) {
 	}`
 
 	schemaPath := filepath.Join(contractsDir, "intent.schema.json")
-	if err := os.WriteFile(schemaPath, []byte(validSchema), 0644); err != nil {
+	if err := os.WriteFile(schemaPath, []byte(validSchema), 0o644); err != nil {
 		t.Fatalf("Failed to write schema file: %v", err)
 	}
 
@@ -427,7 +427,7 @@ func TestValidatorMetrics(t *testing.T) {
 	// Setup validator
 	tempDir := t.TempDir()
 	contractsDir := filepath.Join(tempDir, "docs", "contracts")
-	if err := os.MkdirAll(contractsDir, 0755); err != nil {
+	if err := os.MkdirAll(contractsDir, 0o755); err != nil {
 		t.Fatalf("Failed to create contracts directory: %v", err)
 	}
 
@@ -461,7 +461,7 @@ func TestValidatorMetrics(t *testing.T) {
 	}`
 
 	schemaPath := filepath.Join(contractsDir, "intent.schema.json")
-	if err := os.WriteFile(schemaPath, []byte(validSchema), 0644); err != nil {
+	if err := os.WriteFile(schemaPath, []byte(validSchema), 0o644); err != nil {
 		t.Fatalf("Failed to write schema file: %v", err)
 	}
 
@@ -518,7 +518,7 @@ func TestValidatorLogging(t *testing.T) {
 	// Test that logging doesn't cause panics
 	tempDir := t.TempDir()
 	contractsDir := filepath.Join(tempDir, "docs", "contracts")
-	if err := os.MkdirAll(contractsDir, 0755); err != nil {
+	if err := os.MkdirAll(contractsDir, 0o755); err != nil {
 		t.Fatalf("Failed to create contracts directory: %v", err)
 	}
 
@@ -533,7 +533,7 @@ func TestValidatorLogging(t *testing.T) {
 	}`
 
 	schemaPath := filepath.Join(contractsDir, "intent.schema.json")
-	if err := os.WriteFile(schemaPath, []byte(validSchema), 0644); err != nil {
+	if err := os.WriteFile(schemaPath, []byte(validSchema), 0o644); err != nil {
 		t.Fatalf("Failed to write schema file: %v", err)
 	}
 
@@ -555,7 +555,7 @@ func TestSchemaValidationErrorHandling(t *testing.T) {
 	// Setup validator with valid schema
 	tempDir := t.TempDir()
 	contractsDir := filepath.Join(tempDir, "docs", "contracts")
-	if err := os.MkdirAll(contractsDir, 0755); err != nil {
+	if err := os.MkdirAll(contractsDir, 0o755); err != nil {
 		t.Fatalf("Failed to create contracts directory: %v", err)
 	}
 
@@ -606,7 +606,7 @@ func TestSchemaValidationErrorHandling(t *testing.T) {
 	}`
 
 	schemaPath := filepath.Join(contractsDir, "intent.schema.json")
-	if err := os.WriteFile(schemaPath, []byte(validSchema), 0644); err != nil {
+	if err := os.WriteFile(schemaPath, []byte(validSchema), 0o644); err != nil {
 		t.Fatalf("Failed to write schema file: %v", err)
 	}
 
@@ -840,7 +840,7 @@ func TestMalformedJSONInputs(t *testing.T) {
 	// Setup validator
 	tempDir := t.TempDir()
 	contractsDir := filepath.Join(tempDir, "docs", "contracts")
-	if err := os.MkdirAll(contractsDir, 0755); err != nil {
+	if err := os.MkdirAll(contractsDir, 0o755); err != nil {
 		t.Fatalf("Failed to create contracts directory: %v", err)
 	}
 
@@ -854,7 +854,7 @@ func TestMalformedJSONInputs(t *testing.T) {
 	}`
 
 	schemaPath := filepath.Join(contractsDir, "intent.schema.json")
-	if err := os.WriteFile(schemaPath, []byte(validSchema), 0644); err != nil {
+	if err := os.WriteFile(schemaPath, []byte(validSchema), 0o644); err != nil {
 		t.Fatalf("Failed to write schema file: %v", err)
 	}
 
@@ -989,12 +989,12 @@ func TestSchemaFileCorruption(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tempDir := t.TempDir()
 			contractsDir := filepath.Join(tempDir, "docs", "contracts")
-			if err := os.MkdirAll(contractsDir, 0755); err != nil {
+			if err := os.MkdirAll(contractsDir, 0o755); err != nil {
 				t.Fatalf("Failed to create contracts directory: %v", err)
 			}
 
 			schemaPath := filepath.Join(contractsDir, "intent.schema.json")
-			if err := os.WriteFile(schemaPath, []byte(tt.schemaContent), 0644); err != nil {
+			if err := os.WriteFile(schemaPath, []byte(tt.schemaContent), 0o644); err != nil {
 				t.Fatalf("Failed to write schema file: %v", err)
 			}
 
@@ -1024,7 +1024,7 @@ func TestEdgeCaseValidation(t *testing.T) {
 	// Setup validator
 	tempDir := t.TempDir()
 	contractsDir := filepath.Join(tempDir, "docs", "contracts")
-	if err := os.MkdirAll(contractsDir, 0755); err != nil {
+	if err := os.MkdirAll(contractsDir, 0o755); err != nil {
 		t.Fatalf("Failed to create contracts directory: %v", err)
 	}
 
@@ -1041,7 +1041,7 @@ func TestEdgeCaseValidation(t *testing.T) {
 	}`
 
 	schemaPath := filepath.Join(contractsDir, "intent.schema.json")
-	if err := os.WriteFile(schemaPath, []byte(validSchema), 0644); err != nil {
+	if err := os.WriteFile(schemaPath, []byte(validSchema), 0o644); err != nil {
 		t.Fatalf("Failed to write schema file: %v", err)
 	}
 
@@ -1116,7 +1116,7 @@ func BenchmarkValidateIntent(b *testing.B) {
 	// Setup
 	tempDir := b.TempDir()
 	contractsDir := filepath.Join(tempDir, "docs", "contracts")
-	if err := os.MkdirAll(contractsDir, 0755); err != nil {
+	if err := os.MkdirAll(contractsDir, 0o755); err != nil {
 		b.Fatalf("Failed to create contracts directory: %v", err)
 	}
 
@@ -1150,7 +1150,7 @@ func BenchmarkValidateIntent(b *testing.B) {
 	}`
 
 	schemaPath := filepath.Join(contractsDir, "intent.schema.json")
-	if err := os.WriteFile(schemaPath, []byte(validSchema), 0644); err != nil {
+	if err := os.WriteFile(schemaPath, []byte(validSchema), 0o644); err != nil {
 		b.Fatalf("Failed to write schema file: %v", err)
 	}
 

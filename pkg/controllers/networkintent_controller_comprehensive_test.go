@@ -103,7 +103,7 @@ func (f *fakeHTTPClient) Reset() {
 
 // fakeDependencies implements Dependencies interface for testing
 type fakeDependencies struct {
-	gitClient        *fake.Client
+	gitClient        *gitfake.Client
 	llmClient        *fakeLLMClient
 	packageGenerator *fakePackageGenerator
 	httpClient       *fakeHTTPClient
@@ -307,7 +307,7 @@ func TestNetworkIntentController_Reconcile(t *testing.T) {
 				},
 				Spec: nephoranv1.NetworkIntentSpec{
 					Intent:     "Deploy a test network",
-					Parameters: runtime.RawExtension{Raw: []byte(`{"deployment_type": "test"}`)},
+					Parameters: &runtime.RawExtension{Raw: []byte(`{"deployment_type": "test"}`)},
 				},
 				Status: nephoranv1.NetworkIntentStatus{
 					Conditions: []metav1.Condition{

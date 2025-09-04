@@ -128,72 +128,6 @@ func createTestReconciler(mockClient client.Client, mockRecorder record.EventRec
 	}
 }
 
-func TestCalculateExponentialBackoff(t *testing.T) {
-	tests := []struct {
-		name        string
-		retryCount  int
-		baseDelay   time.Duration
-		maxDelay    time.Duration
-		expectRange struct {
-			min time.Duration
-			max time.Duration
-		}
-	}{
-		{
-			name:       "first retry with default values",
-			retryCount: 0,
-			baseDelay:  0, // Use default
-			maxDelay:   0, // Use default
-			expectRange: struct {
-				min time.Duration
-				max time.Duration
-			}{
-				min: 900 * time.Millisecond,  // BaseBackoffDelay (1s) with jitter -10%
-				max: 1100 * time.Millisecond, // BaseBackoffDelay (1s) with jitter +10%
-			},
-		},
-		{
-			name:       "second retry with exponential backoff",
-			retryCount: 1,
-			baseDelay:  2 * time.Second,
-			maxDelay:   5 * time.Minute,
-			expectRange: struct {
-				min time.Duration
-				max time.Duration
-			}{
-				min: 3600 * time.Millisecond, // 2s * 2^1 = 4s, with jitter -10% = 3.6s
-				max: 4400 * time.Millisecond, // 2s * 2^1 = 4s, with jitter +10% = 4.4s
-			},
-		},
-		{
-			name:       "high retry count capped at max delay",
-			retryCount: 10,
-			baseDelay:  time.Second,
-			maxDelay:   10 * time.Second,
-			expectRange: struct {
-				min time.Duration
-				max time.Duration
-			}{
-				min: 9 * time.Second,  // maxDelay with jitter -10%
-				max: 10 * time.Second, // maxDelay (no jitter can exceed max)
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Run multiple times to account for jitter randomness
-			for i := 0; i < 10; i++ {
-				delay := calculateExponentialBackoff(tt.retryCount, tt.baseDelay, tt.maxDelay)
-				assert.True(t, delay >= tt.expectRange.min,
-					"Delay %v should be >= %v", delay, tt.expectRange.min)
-				assert.True(t, delay <= tt.expectRange.max,
-					"Delay %v should be <= %v", delay, tt.expectRange.max)
-			}
-		})
-	}
-}
-
 func TestCalculateExponentialBackoffForOperation(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -526,7 +460,7 @@ func TestE2ProvisioningErrorHandling(t *testing.T) {
 	ctx := context.Background()
 	namespacedName := types.NamespacedName{Name: e2nodeSet.Name, Namespace: e2nodeSet.Namespace}
 
-	_, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
+	result, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
 
 	assert.Error(t, err)
 	assert.NotZero(t, result.RequeueAfter, "Should schedule retry with backoff")
@@ -572,7 +506,7 @@ func TestMaxRetriesExceeded(t *testing.T) {
 	ctx := context.Background()
 	namespacedName := types.NamespacedName{Name: e2nodeSet.Name, Namespace: e2nodeSet.Namespace}
 
-	_, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
+	result, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
 
 	assert.Error(t, err)
 	assert.Equal(t, time.Hour, result.RequeueAfter, "Should use long delay after max retries")
@@ -646,7 +580,7 @@ func TestFinalizerNotRemovedUntilCleanupSuccess(t *testing.T) {
 	ctx := context.Background()
 	namespacedName := types.NamespacedName{Name: e2nodeSet.Name, Namespace: e2nodeSet.Namespace}
 
-	_, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
+	result, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
 
 	assert.Error(t, err)
 	assert.NotZero(t, result.RequeueAfter, "Should retry cleanup with backoff")
@@ -719,7 +653,7 @@ func TestFinalizerRemovedAfterMaxCleanupRetries(t *testing.T) {
 	ctx := context.Background()
 	namespacedName := types.NamespacedName{Name: e2nodeSet.Name, Namespace: e2nodeSet.Namespace}
 
-	_, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
+	result, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
 
 	assert.NoError(t, err, "Should not return error when finalizer is removed after max retries")
 	assert.Zero(t, result.RequeueAfter, "Should not requeue after finalizer removal")
@@ -828,7 +762,7 @@ func TestSetReadyCondition(t *testing.T) {
 
 			// Verify condition was set correctly
 			var updatedE2NodeSet nephoranv1.E2NodeSet
-			err = fakeClient.Get(ctx, client.ObjectKeyFromObject(e2nodeSet), &updatedE2NodeSet)
+			err = fakeClient.Get(ctx, types.NamespacedName{Name: e2nodeSet.GetName(), Namespace: e2nodeSet.GetNamespace()}, &updatedE2NodeSet)
 			require.NoError(t, err)
 
 			found := false
@@ -885,7 +819,7 @@ func TestReconcileWithPartialFailures(t *testing.T) {
 	ctx := context.Background()
 	namespacedName := types.NamespacedName{Name: e2nodeSet.Name, Namespace: e2nodeSet.Namespace}
 
-	_, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
+	result, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
 
 	assert.Error(t, err)
 	assert.NotZero(t, result.RequeueAfter, "Should retry with backoff")

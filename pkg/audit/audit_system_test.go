@@ -186,12 +186,12 @@ func (suite *AuditSystemTestSuite) TestNewAuditSystemWithNilConfig() {
 
 func (suite *AuditSystemTestSuite) TestStartStop() {
 	// Test start
-	err := suite.auditSystem.Start(context.Background())
+	err := suite.auditSystem.Start()
 	suite.NoError(err)
 	suite.True(suite.auditSystem.running.Load())
 
 	// Test double start (should return error)
-	err = suite.auditSystem.Start(context.Background())
+	err = suite.auditSystem.Start()
 	suite.Error(err)
 
 	// Test stop
@@ -229,7 +229,7 @@ func (suite *AuditSystemTestSuite) TestLogEventBelowMinimumSeverity() {
 	suite.Require().NoError(err)
 	auditSystem.backends = []backends.Backend{suite.mockBackend}
 
-	err = auditSystem.Start(context.Background())
+	err = auditSystem.Start()
 	suite.Require().NoError(err)
 	defer auditSystem.Stop()
 
@@ -254,7 +254,7 @@ func (suite *AuditSystemTestSuite) TestLogEventBelowMinimumSeverity() {
 }
 
 func (suite *AuditSystemTestSuite) TestLogEventValidation() {
-	err := suite.auditSystem.Start(context.Background())
+	err := suite.auditSystem.Start()
 	suite.Require().NoError(err)
 	defer suite.auditSystem.Stop()
 
@@ -266,7 +266,7 @@ func (suite *AuditSystemTestSuite) TestLogEventValidation() {
 }
 
 func (suite *AuditSystemTestSuite) TestEventEnrichment() {
-	err := suite.auditSystem.Start(context.Background())
+	err := suite.auditSystem.Start()
 	suite.Require().NoError(err)
 	defer suite.auditSystem.Stop()
 
@@ -294,7 +294,7 @@ func (suite *AuditSystemTestSuite) TestEventEnrichment() {
 }
 
 func (suite *AuditSystemTestSuite) TestBatchProcessing() {
-	err := suite.auditSystem.Start(context.Background())
+	err := suite.auditSystem.Start()
 	suite.Require().NoError(err)
 	defer suite.auditSystem.Stop()
 
@@ -321,7 +321,7 @@ func (suite *AuditSystemTestSuite) TestBatchProcessing() {
 }
 
 func (suite *AuditSystemTestSuite) TestTimerBasedFlushing() {
-	err := suite.auditSystem.Start(context.Background())
+	err := suite.auditSystem.Start()
 	suite.Require().NoError(err)
 	defer suite.auditSystem.Stop()
 
@@ -359,7 +359,7 @@ func (suite *AuditSystemTestSuite) TestQueueOverflow() {
 	suite.Require().NoError(err)
 	auditSystem.backends = []backends.Backend{suite.mockBackend}
 
-	err = auditSystem.Start(context.Background())
+	err = auditSystem.Start()
 	suite.Require().NoError(err)
 	defer auditSystem.Stop()
 
@@ -386,7 +386,7 @@ func (suite *AuditSystemTestSuite) TestQueueOverflow() {
 }
 
 func (suite *AuditSystemTestSuite) TestStats() {
-	err := suite.auditSystem.Start(context.Background())
+	err := suite.auditSystem.Start()
 	suite.Require().NoError(err)
 	defer suite.auditSystem.Stop()
 
@@ -420,7 +420,7 @@ func (suite *AuditSystemTestSuite) TestBackendFailure() {
 	// Configure backend to fail
 	suite.mockBackend.SetFailure(true)
 
-	err := suite.auditSystem.Start(context.Background())
+	err := suite.auditSystem.Start()
 	suite.Require().NoError(err)
 	defer suite.auditSystem.Stop()
 
@@ -444,7 +444,7 @@ func (suite *AuditSystemTestSuite) TestBackendFailure() {
 }
 
 func (suite *AuditSystemTestSuite) TestConcurrentEventLogging() {
-	err := suite.auditSystem.Start(context.Background())
+	err := suite.auditSystem.Start()
 	suite.Require().NoError(err)
 	defer suite.auditSystem.Stop()
 
@@ -588,7 +588,7 @@ func TestAuditSystemScenarios(t *testing.T) {
 			auditSystem.backends = []backends.Backend{mockBackend}
 
 			if config.Enabled {
-				err = auditSystem.Start(context.Background())
+				err = auditSystem.Start()
 				require.NoError(t, err)
 				defer auditSystem.Stop()
 			}
@@ -633,7 +633,7 @@ func BenchmarkAuditSystemLogEvent(b *testing.B) {
 
 	auditSystem.backends = []backends.Backend{mockBackend}
 
-	err = auditSystem.Start(context.Background())
+	err = auditSystem.Start()
 	require.NoError(b, err)
 	defer auditSystem.Stop()
 
@@ -798,7 +798,7 @@ func TestMetricsCollection(t *testing.T) {
 
 	auditSystem.backends = []backends.Backend{mockBackend}
 
-	err = auditSystem.Start(context.Background())
+	err = auditSystem.Start()
 	require.NoError(t, err)
 	defer auditSystem.Stop()
 

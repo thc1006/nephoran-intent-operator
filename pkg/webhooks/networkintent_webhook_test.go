@@ -473,5 +473,5 @@ func TestValidateIntentContent(t *testing.T) {
 	}
 }
 
-// Note: TestValidateSecurity and TestValidateTelecomRelevance are implemented 
+// Note: TestValidateSecurity and TestValidateTelecomRelevance are implemented
 // in networkintent_webhook_comprehensive_test.go to avoid duplication

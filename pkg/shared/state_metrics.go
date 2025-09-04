@@ -146,9 +146,7 @@ type LatencyTracker struct {
 // NewStateMetrics creates a new state metrics collector.
 
 func NewStateMetrics() *StateMetrics {
-
 	return &StateMetrics{
-
 		updateTimes: make([]time.Duration, 0, 1000),
 
 		syncTimes: make([]time.Duration, 0, 100),
@@ -163,33 +161,26 @@ func NewStateMetrics() *StateMetrics {
 
 		latency: NewLatencyTracker(1000),
 	}
-
 }
 
 // NewThroughputTracker creates a new throughput tracker.
 
 func NewThroughputTracker(windowSize time.Duration) *ThroughputTracker {
-
 	return &ThroughputTracker{
-
 		operations: make([]time.Time, 0, 1000),
 
 		windowSize: windowSize,
 	}
-
 }
 
 // NewLatencyTracker creates a new latency tracker.
 
 func NewLatencyTracker(maxSamples int) *LatencyTracker {
-
 	return &LatencyTracker{
-
 		latencies: make([]time.Duration, 0, maxSamples),
 
 		maxSamples: maxSamples,
 	}
-
 }
 
 // Cache metrics methods.
@@ -197,7 +188,6 @@ func NewLatencyTracker(maxSamples int) *LatencyTracker {
 // RecordCacheHit performs recordcachehit operation.
 
 func (sm *StateMetrics) RecordCacheHit() {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
@@ -205,49 +195,41 @@ func (sm *StateMetrics) RecordCacheHit() {
 	sm.cacheHits++
 
 	sm.throughput.RecordOperation()
-
 }
 
 // RecordCacheMiss performs recordcachemiss operation.
 
 func (sm *StateMetrics) RecordCacheMiss() {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
 
 	sm.cacheMisses++
-
 }
 
 // RecordCacheSize performs recordcachesize operation.
 
 func (sm *StateMetrics) RecordCacheSize(size int64) {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
 
 	sm.cacheSize = size
-
 }
 
 // RecordCacheCleanup performs recordcachecleanup operation.
 
 func (sm *StateMetrics) RecordCacheCleanup() {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
 
 	sm.cacheCleanups++
-
 }
 
 // GetCacheHitRate performs getcachehitrate operation.
 
 func (sm *StateMetrics) GetCacheHitRate() float64 {
-
 	sm.mutex.RLock()
 
 	defer sm.mutex.RUnlock()
@@ -255,13 +237,10 @@ func (sm *StateMetrics) GetCacheHitRate() float64 {
 	total := sm.cacheHits + sm.cacheMisses
 
 	if total == 0 {
-
 		return 0.0
-
 	}
 
 	return float64(sm.cacheHits) / float64(total)
-
 }
 
 // State operation metrics methods.
@@ -269,7 +248,6 @@ func (sm *StateMetrics) GetCacheHitRate() float64 {
 // RecordStateUpdate performs recordstateupdate operation.
 
 func (sm *StateMetrics) RecordStateUpdate() {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
@@ -277,13 +255,11 @@ func (sm *StateMetrics) RecordStateUpdate() {
 	sm.stateUpdates++
 
 	sm.throughput.RecordOperation()
-
 }
 
 // RecordStateUpdateTime performs recordstateupdatetime operation.
 
 func (sm *StateMetrics) RecordStateUpdateTime(duration time.Duration) {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
@@ -295,17 +271,13 @@ func (sm *StateMetrics) RecordStateUpdateTime(duration time.Duration) {
 	// Keep only recent times.
 
 	if len(sm.updateTimes) > 1000 {
-
 		sm.updateTimes = sm.updateTimes[100:]
-
 	}
-
 }
 
 // RecordStateSync performs recordstatesync operation.
 
 func (sm *StateMetrics) RecordStateSync() {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
@@ -313,13 +285,11 @@ func (sm *StateMetrics) RecordStateSync() {
 	sm.stateSyncs++
 
 	sm.lastSyncTime = time.Now()
-
 }
 
 // RecordStateSyncTime performs recordstatesynctime operation.
 
 func (sm *StateMetrics) RecordStateSyncTime(duration time.Duration) {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
@@ -329,85 +299,68 @@ func (sm *StateMetrics) RecordStateSyncTime(duration time.Duration) {
 	// Keep only recent times.
 
 	if len(sm.syncTimes) > 100 {
-
 		sm.syncTimes = sm.syncTimes[10:]
-
 	}
-
 }
 
 // RecordValidationError performs recordvalidationerror operation.
 
 func (sm *StateMetrics) RecordValidationError() {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
 
 	sm.validationErrors++
-
 }
 
 // RecordConflictResolution performs recordconflictresolution operation.
 
 func (sm *StateMetrics) RecordConflictResolution() {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
 
 	sm.conflictResolutions++
-
 }
 
 // GetAverageUpdateTime performs getaverageupdatetime operation.
 
 func (sm *StateMetrics) GetAverageUpdateTime() time.Duration {
-
 	sm.mutex.RLock()
 
 	defer sm.mutex.RUnlock()
 
 	if len(sm.updateTimes) == 0 {
-
 		return 0
-
 	}
 
 	var total time.Duration
 
 	for _, duration := range sm.updateTimes {
-
 		total += duration
-
 	}
 
 	return total / time.Duration(len(sm.updateTimes))
-
 }
 
 // GetValidationErrors performs getvalidationerrors operation.
 
 func (sm *StateMetrics) GetValidationErrors() int64 {
-
 	sm.mutex.RLock()
 
 	defer sm.mutex.RUnlock()
 
 	return sm.validationErrors
-
 }
 
 // GetLastSyncTime performs getlastsynctime operation.
 
 func (sm *StateMetrics) GetLastSyncTime() time.Time {
-
 	sm.mutex.RLock()
 
 	defer sm.mutex.RUnlock()
 
 	return sm.lastSyncTime
-
 }
 
 // Lock metrics methods.
@@ -415,49 +368,41 @@ func (sm *StateMetrics) GetLastSyncTime() time.Time {
 // RecordActiveLocks performs recordactivelocks operation.
 
 func (sm *StateMetrics) RecordActiveLocks(count int) {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
 
 	sm.activeLocks = int64(count)
-
 }
 
 // RecordLockAcquisition performs recordlockacquisition operation.
 
 func (sm *StateMetrics) RecordLockAcquisition() {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
 
 	sm.lockAcquisitions++
-
 }
 
 // RecordLockRelease performs recordlockrelease operation.
 
 func (sm *StateMetrics) RecordLockRelease() {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
 
 	sm.lockReleases++
-
 }
 
 // RecordLockTimeout performs recordlocktimeout operation.
 
 func (sm *StateMetrics) RecordLockTimeout() {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
 
 	sm.lockTimeouts++
-
 }
 
 // Error tracking methods.
@@ -465,13 +410,11 @@ func (sm *StateMetrics) RecordLockTimeout() {
 // RecordError performs recorderror operation.
 
 func (sm *StateMetrics) RecordError(operation, errorMsg, context, severity string) {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
 
 	error := MetricError{
-
 		Timestamp: time.Now(),
 
 		Operation: operation,
@@ -488,31 +431,23 @@ func (sm *StateMetrics) RecordError(operation, errorMsg, context, severity strin
 	// Keep only recent errors.
 
 	if len(sm.errors) > sm.maxErrorHistory {
-
 		sm.errors = sm.errors[sm.maxErrorHistory/10:]
-
 	}
-
 }
 
 // GetRecentErrors performs getrecenterrors operation.
 
 func (sm *StateMetrics) GetRecentErrors(count int) []MetricError {
-
 	sm.mutex.RLock()
 
 	defer sm.mutex.RUnlock()
 
 	if count > len(sm.errors) {
-
 		count = len(sm.errors)
-
 	}
 
 	if count == 0 {
-
 		return []MetricError{}
-
 	}
 
 	// Return most recent errors.
@@ -524,7 +459,6 @@ func (sm *StateMetrics) GetRecentErrors(count int) []MetricError {
 	copy(result, sm.errors[start:])
 
 	return result
-
 }
 
 // Resource usage methods.
@@ -532,37 +466,31 @@ func (sm *StateMetrics) GetRecentErrors(count int) []MetricError {
 // RecordMemoryUsage performs recordmemoryusage operation.
 
 func (sm *StateMetrics) RecordMemoryUsage(bytes int64) {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
 
 	sm.memoryUsage = bytes
-
 }
 
 // RecordCPUUsage performs recordcpuusage operation.
 
 func (sm *StateMetrics) RecordCPUUsage(percent float64) {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
 
 	sm.cpuUsage = percent
-
 }
 
 // RecordDiskUsage performs recorddiskusage operation.
 
 func (sm *StateMetrics) RecordDiskUsage(bytes int64) {
-
 	sm.mutex.Lock()
 
 	defer sm.mutex.Unlock()
 
 	sm.diskUsage = bytes
-
 }
 
 // Comprehensive metrics retrieval.
@@ -570,13 +498,11 @@ func (sm *StateMetrics) RecordDiskUsage(bytes int64) {
 // GetMetrics performs getmetrics operation.
 
 func (sm *StateMetrics) GetMetrics() *StateMetricsSnapshot {
-
 	sm.mutex.RLock()
 
 	defer sm.mutex.RUnlock()
 
 	return &StateMetricsSnapshot{
-
 		Timestamp: time.Now(),
 
 		// Cache metrics.
@@ -639,7 +565,6 @@ func (sm *StateMetrics) GetMetrics() *StateMetricsSnapshot {
 
 		RecentErrorCount: int64(len(sm.errors)),
 	}
-
 }
 
 // StateMetricsSnapshot represents a point-in-time snapshot of metrics.
@@ -713,7 +638,6 @@ type StateMetricsSnapshot struct {
 // RecordOperation performs recordoperation operation.
 
 func (tt *ThroughputTracker) RecordOperation() {
-
 	tt.mutex.Lock()
 
 	defer tt.mutex.Unlock()
@@ -727,7 +651,6 @@ func (tt *ThroughputTracker) RecordOperation() {
 	cutoff := now.Add(-tt.windowSize)
 
 	for i, op := range tt.operations {
-
 		if op.After(cutoff) {
 
 			tt.operations = tt.operations[i:]
@@ -735,7 +658,6 @@ func (tt *ThroughputTracker) RecordOperation() {
 			break
 
 		}
-
 	}
 
 	// Calculate current throughput.
@@ -745,25 +667,20 @@ func (tt *ThroughputTracker) RecordOperation() {
 		elapsed := tt.operations[len(tt.operations)-1].Sub(tt.operations[0])
 
 		if elapsed > 0 {
-
 			tt.currentThroughput = float64(len(tt.operations)) / elapsed.Seconds()
-
 		}
 
 	}
-
 }
 
 // GetCurrentThroughput performs getcurrentthroughput operation.
 
 func (tt *ThroughputTracker) GetCurrentThroughput() float64 {
-
 	tt.mutex.RLock()
 
 	defer tt.mutex.RUnlock()
 
 	return tt.currentThroughput
-
 }
 
 // LatencyTracker methods.
@@ -771,7 +688,6 @@ func (tt *ThroughputTracker) GetCurrentThroughput() float64 {
 // RecordLatency performs recordlatency operation.
 
 func (lt *LatencyTracker) RecordLatency(latency time.Duration) {
-
 	lt.mutex.Lock()
 
 	defer lt.mutex.Unlock()
@@ -781,23 +697,17 @@ func (lt *LatencyTracker) RecordLatency(latency time.Duration) {
 	// Keep only recent samples.
 
 	if len(lt.latencies) > lt.maxSamples {
-
 		lt.latencies = lt.latencies[lt.maxSamples/10:]
-
 	}
 
 	// Update percentiles.
 
 	lt.updatePercentiles()
-
 }
 
 func (lt *LatencyTracker) updatePercentiles() {
-
 	if len(lt.latencies) == 0 {
-
 		return
-
 	}
 
 	// Simple percentile calculation (in production, use a more efficient algorithm).
@@ -809,17 +719,11 @@ func (lt *LatencyTracker) updatePercentiles() {
 	// Simple bubble sort (replace with quicksort for large datasets).
 
 	for i := range len(sorted) - 1 {
-
 		for j := range len(sorted) - i - 1 {
-
 			if sorted[j] > sorted[j+1] {
-
 				sorted[j], sorted[j+1] = sorted[j+1], sorted[j]
-
 			}
-
 		}
-
 	}
 
 	n := len(sorted)
@@ -829,41 +733,34 @@ func (lt *LatencyTracker) updatePercentiles() {
 	lt.currentP95 = sorted[n*95/100]
 
 	lt.currentP99 = sorted[n*99/100]
-
 }
 
 // GetP50 performs getp50 operation.
 
 func (lt *LatencyTracker) GetP50() time.Duration {
-
 	lt.mutex.RLock()
 
 	defer lt.mutex.RUnlock()
 
 	return lt.currentP50
-
 }
 
 // GetP95 performs getp95 operation.
 
 func (lt *LatencyTracker) GetP95() time.Duration {
-
 	lt.mutex.RLock()
 
 	defer lt.mutex.RUnlock()
 
 	return lt.currentP95
-
 }
 
 // GetP99 performs getp99 operation.
 
 func (lt *LatencyTracker) GetP99() time.Duration {
-
 	lt.mutex.RLock()
 
 	defer lt.mutex.RUnlock()
 
 	return lt.currentP99
-
 }

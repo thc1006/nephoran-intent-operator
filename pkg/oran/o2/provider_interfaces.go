@@ -1,14 +1,16 @@
 package o2
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 )
 
 // CloudProvider constants for provider types
 const (
 	CloudProviderKubernetes = "kubernetes"
-	CloudProviderOpenStack = "openstack"
+	CloudProviderOpenStack  = "openstack"
 	CloudProviderAWS        = "aws"
 	CloudProviderAzure      = "azure"
 	CloudProviderGCP        = "gcp"
@@ -66,7 +68,7 @@ type CreateResourceRequest struct {
 	ResourceType string                 `json:"resourceType"`
 	Name         string                 `json:"name"`
 	Namespace    string                 `json:"namespace,omitempty"`
-	Spec         map[string]interface{} `json:"spec"`
+	Spec         json.RawMessage `json:"spec"`
 	Labels       map[string]string      `json:"labels,omitempty"`
 	Annotations  map[string]string      `json:"annotations,omitempty"`
 	DryRun       bool                   `json:"dryRun,omitempty"`
@@ -74,7 +76,7 @@ type CreateResourceRequest struct {
 
 // UpdateResourceRequest represents a request to update a resource
 type UpdateResourceRequest struct {
-	Spec        map[string]interface{} `json:"spec"`
+	Spec        json.RawMessage `json:"spec"`
 	Labels      map[string]string      `json:"labels,omitempty"`
 	Annotations map[string]string      `json:"annotations,omitempty"`
 	DryRun      bool                   `json:"dryRun,omitempty"`
@@ -88,7 +90,7 @@ type ResourceResponse struct {
 	Namespace    string                 `json:"namespace,omitempty"`
 	Status       string                 `json:"status"`
 	Phase        string                 `json:"phase,omitempty"`
-	Spec         map[string]interface{} `json:"spec"`
+	Spec         json.RawMessage `json:"spec"`
 	Labels       map[string]string      `json:"labels,omitempty"`
 	Annotations  map[string]string      `json:"annotations,omitempty"`
 	CreatedAt    time.Time              `json:"createdAt"`
@@ -106,17 +108,6 @@ type ResourceFilter struct {
 	Offset        int               `json:"offset,omitempty"`
 }
 
-// ResourceEvent represents an event related to a resource
-type ResourceEvent struct {
-	EventID   string                 `json:"eventId"`
-	Type      string                 `json:"type"`
-	Reason    string                 `json:"reason"`
-	Message   string                 `json:"message"`
-	Source    string                 `json:"source"`
-	Timestamp time.Time              `json:"timestamp"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
-}
-
 // ProviderEvent represents an event from a provider
 type ProviderEvent struct {
 	EventID    string                 `json:"eventId"`
@@ -126,7 +117,7 @@ type ProviderEvent struct {
 	Severity   string                 `json:"severity"`
 	Message    string                 `json:"message"`
 	Timestamp  time.Time              `json:"timestamp"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Metadata   json.RawMessage `json:"metadata,omitempty"`
 }
 
 // Resource status constants

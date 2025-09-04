@@ -48,7 +48,6 @@ type ValidationSuite struct {
 // ValidationConfig holds configuration for comprehensive validation.
 
 type ValidationConfig struct {
-
 	// Scoring targets (total 100 points).
 
 	FunctionalTarget int // 50 points target: 45/50
@@ -93,9 +92,7 @@ type ValidationConfig struct {
 // DefaultValidationConfig returns production-ready validation configuration.
 
 func DefaultValidationConfig() *ValidationConfig {
-
 	return &ValidationConfig{
-
 		FunctionalTarget: 45, // Target 45/50 points
 
 		PerformanceTarget: 23, // Target 23/25 points
@@ -128,13 +125,11 @@ func DefaultValidationConfig() *ValidationConfig {
 
 		EnableSecurityTesting: true,
 	}
-
 }
 
 // ValidationResults aggregates all validation outcomes.
 
 type ValidationResults struct {
-
 	// Overall scoring.
 
 	TotalScore int
@@ -276,17 +271,13 @@ type ReliabilityMetrics struct {
 	CircuitBreaker bool // Circuit breaker functionality
 
 	SelfHealing bool // Self-healing capabilities
-
 }
 
 // NewValidationSuite creates a comprehensive validation suite.
 
 func NewValidationSuite(config *ValidationConfig) *ValidationSuite {
-
 	if config == nil {
-
 		config = DefaultValidationConfig()
-
 	}
 
 	testConfig := framework.DefaultTestConfig()
@@ -300,7 +291,6 @@ func NewValidationSuite(config *ValidationConfig) *ValidationSuite {
 	testConfig.TestDuration = config.LoadTestDuration
 
 	vs := &ValidationSuite{
-
 		TestSuite: framework.NewTestSuite(testConfig),
 
 		config: config,
@@ -316,7 +306,6 @@ func NewValidationSuite(config *ValidationConfig) *ValidationSuite {
 		reliabilityTest: NewReliabilityValidator(config),
 
 		results: &ValidationResults{
-
 			TestResults: make(map[string]*TestCategoryResult),
 
 			BenchmarkResults: make(map[string]*BenchmarkResult),
@@ -344,21 +333,17 @@ func NewValidationSuite(config *ValidationConfig) *ValidationSuite {
 		clientset, err := kubernetes.NewForConfig(vs.TestSuite.GetConfig())
 
 		if err == nil {
-
 			vs.reliabilityTest.SetClientset(clientset)
-
 		}
 
 	}
 
 	return vs
-
 }
 
 // ExecuteComprehensiveValidation runs the complete validation suite.
 
 func (vs *ValidationSuite) ExecuteComprehensiveValidation(ctx context.Context) (*ValidationResults, error) {
-
 	ginkgo.By("Starting Comprehensive Nephoran Intent Operator Validation")
 
 	startTime := time.Now()
@@ -370,11 +355,8 @@ func (vs *ValidationSuite) ExecuteComprehensiveValidation(ctx context.Context) (
 	ginkgo.By("Phase 1: Functional Completeness Validation")
 
 	funcScore, err := vs.executeFunctionalTests(ctx)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("functional tests failed: %w", err)
-
 	}
 
 	vs.results.FunctionalScore = funcScore
@@ -384,11 +366,8 @@ func (vs *ValidationSuite) ExecuteComprehensiveValidation(ctx context.Context) (
 	ginkgo.By("Phase 2: Performance Benchmarking")
 
 	perfScore, err := vs.executePerformanceTests(ctx)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("performance tests failed: %w", err)
-
 	}
 
 	vs.results.PerformanceScore = perfScore
@@ -398,11 +377,8 @@ func (vs *ValidationSuite) ExecuteComprehensiveValidation(ctx context.Context) (
 	ginkgo.By("Phase 3: Security Compliance Validation")
 
 	secScore, err := vs.executeSecurityTests(ctx)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("security tests failed: %w", err)
-
 	}
 
 	vs.results.SecurityScore = secScore
@@ -412,11 +388,8 @@ func (vs *ValidationSuite) ExecuteComprehensiveValidation(ctx context.Context) (
 	ginkgo.By("Phase 4: Production Readiness Assessment")
 
 	prodScore, err := vs.executeProductionTests(ctx)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("production tests failed: %w", err)
-
 	}
 
 	vs.results.ProductionScore = prodScore
@@ -434,11 +407,9 @@ func (vs *ValidationSuite) ExecuteComprehensiveValidation(ctx context.Context) (
 	// Validate against target score.
 
 	if vs.results.TotalScore < vs.config.TotalTarget {
-
 		return vs.results, fmt.Errorf("validation failed: achieved %d points, target %d points",
 
 			vs.results.TotalScore, vs.config.TotalTarget)
-
 	}
 
 	ginkgo.By(fmt.Sprintf("Comprehensive Validation PASSED: %d/%d points achieved",
@@ -446,13 +417,11 @@ func (vs *ValidationSuite) ExecuteComprehensiveValidation(ctx context.Context) (
 		vs.results.TotalScore, vs.results.MaxPossibleScore))
 
 	return vs.results, nil
-
 }
 
 // executeFunctionalTests performs comprehensive functional validation.
 
 func (vs *ValidationSuite) executeFunctionalTests(ctx context.Context) (int, error) {
-
 	ginkgo.By("Executing Functional Completeness Tests")
 
 	testCtx, cancel := context.WithTimeout(ctx, vs.config.TimeoutDuration)
@@ -474,9 +443,7 @@ func (vs *ValidationSuite) executeFunctionalTests(ctx context.Context) (int, err
 		ginkgo.By("✓ Intent Processing Pipeline: 15/15 points")
 
 	} else {
-
 		ginkgo.By("✗ Intent Processing Pipeline: 0/15 points")
-
 	}
 
 	// Test 2: LLM/RAG Integration (10 points).
@@ -490,9 +457,7 @@ func (vs *ValidationSuite) executeFunctionalTests(ctx context.Context) (int, err
 		ginkgo.By("✓ LLM/RAG Integration: 10/10 points")
 
 	} else {
-
 		ginkgo.By("✗ LLM/RAG Integration: 0/10 points")
-
 	}
 
 	// Test 3: Porch Package Management (10 points).
@@ -506,9 +471,7 @@ func (vs *ValidationSuite) executeFunctionalTests(ctx context.Context) (int, err
 		ginkgo.By("✓ Porch Integration: 10/10 points")
 
 	} else {
-
 		ginkgo.By("✗ Porch Integration: 0/10 points")
-
 	}
 
 	// Test 4: Multi-cluster Deployment (8 points).
@@ -522,9 +485,7 @@ func (vs *ValidationSuite) executeFunctionalTests(ctx context.Context) (int, err
 		ginkgo.By("✓ Multi-cluster Deployment: 8/8 points")
 
 	} else {
-
 		ginkgo.By("✗ Multi-cluster Deployment: 0/8 points")
-
 	}
 
 	// Test 5: O-RAN Interface Compliance (7 points).
@@ -538,7 +499,6 @@ func (vs *ValidationSuite) executeFunctionalTests(ctx context.Context) (int, err
 	ginkgo.By(fmt.Sprintf("O-RAN Interfaces: %d/7 points", oranScore))
 
 	vs.results.TestResults["functional"] = &TestCategoryResult{
-
 		Category: "Functional Completeness",
 
 		Score: score,
@@ -549,13 +509,11 @@ func (vs *ValidationSuite) executeFunctionalTests(ctx context.Context) (int, err
 	}
 
 	return score, nil
-
 }
 
 // executePerformanceTests performs comprehensive performance validation.
 
 func (vs *ValidationSuite) executePerformanceTests(ctx context.Context) (int, error) {
-
 	ginkgo.By("Executing Performance Benchmarking Tests")
 
 	testCtx, cancel := context.WithTimeout(ctx, vs.config.LoadTestDuration)
@@ -579,11 +537,9 @@ func (vs *ValidationSuite) executePerformanceTests(ctx context.Context) (int, er
 		ginkgo.By(fmt.Sprintf("✓ Latency Performance: 8/8 points (P95: %v)", latencyResult.P95Latency))
 
 	} else {
-
 		ginkgo.By(fmt.Sprintf("✗ Latency Performance: 0/8 points (P95: %v > %v)",
 
 			latencyResult.P95Latency, vs.config.LatencyThreshold))
-
 	}
 
 	vs.results.P95Latency = latencyResult.P95Latency
@@ -607,11 +563,9 @@ func (vs *ValidationSuite) executePerformanceTests(ctx context.Context) (int, er
 			throughputResult.ThroughputAchieved))
 
 	} else {
-
 		ginkgo.By(fmt.Sprintf("✗ Throughput Performance: 0/8 points (%.1f < %.1f intents/min)",
 
 			throughputResult.ThroughputAchieved, vs.config.ThroughputThreshold))
-
 	}
 
 	vs.results.ThroughputAchieved = throughputResult.ThroughputAchieved
@@ -637,7 +591,6 @@ func (vs *ValidationSuite) executePerformanceTests(ctx context.Context) (int, er
 	ginkgo.By(fmt.Sprintf("Resource Efficiency: %d/4 points", resourceScore))
 
 	vs.results.TestResults["performance"] = &TestCategoryResult{
-
 		Category: "Performance Benchmarks",
 
 		Score: score,
@@ -648,13 +601,11 @@ func (vs *ValidationSuite) executePerformanceTests(ctx context.Context) (int, er
 	}
 
 	return score, nil
-
 }
 
 // executeSecurityTests performs comprehensive security validation.
 
 func (vs *ValidationSuite) executeSecurityTests(ctx context.Context) (int, error) {
-
 	ginkgo.By("Executing Security Compliance Tests")
 
 	testCtx, cancel := context.WithTimeout(ctx, vs.config.TimeoutDuration)
@@ -706,7 +657,6 @@ func (vs *ValidationSuite) executeSecurityTests(ctx context.Context) (int, error
 	ginkgo.By(fmt.Sprintf("Vulnerability Scanning: %d/3 points", vulnScore))
 
 	vs.results.TestResults["security"] = &TestCategoryResult{
-
 		Category: "Security Compliance",
 
 		Score: score,
@@ -717,13 +667,11 @@ func (vs *ValidationSuite) executeSecurityTests(ctx context.Context) (int, error
 	}
 
 	return score, nil
-
 }
 
 // executeProductionTests performs production readiness validation.
 
 func (vs *ValidationSuite) executeProductionTests(ctx context.Context) (int, error) {
-
 	ginkgo.By("Executing Production Readiness Tests")
 
 	testCtx, cancel := context.WithTimeout(ctx, vs.config.TimeoutDuration)
@@ -747,11 +695,9 @@ func (vs *ValidationSuite) executeProductionTests(ctx context.Context) (int, err
 		ginkgo.By(fmt.Sprintf("✓ High Availability: 3/3 points (%.2f%%)", availabilityMetrics.Availability))
 
 	} else {
-
 		ginkgo.By(fmt.Sprintf("✗ High Availability: 0/3 points (%.2f%% < %.2f%%)",
 
 			availabilityMetrics.Availability, vs.config.AvailabilityTarget))
-
 	}
 
 	vs.results.AvailabilityAchieved = availabilityMetrics.Availability
@@ -767,9 +713,7 @@ func (vs *ValidationSuite) executeProductionTests(ctx context.Context) (int, err
 		ginkgo.By("✓ Fault Tolerance: 3/3 points")
 
 	} else {
-
 		ginkgo.By("✗ Fault Tolerance: 0/3 points")
-
 	}
 
 	// Test 3: Monitoring & Observability (2 points).
@@ -793,13 +737,10 @@ func (vs *ValidationSuite) executeProductionTests(ctx context.Context) (int, err
 		ginkgo.By("✓ Disaster Recovery: 2/2 points")
 
 	} else {
-
 		ginkgo.By("✗ Disaster Recovery: 0/2 points")
-
 	}
 
 	vs.results.TestResults["production"] = &TestCategoryResult{
-
 		Category: "Production Readiness",
 
 		Score: score,
@@ -810,13 +751,11 @@ func (vs *ValidationSuite) executeProductionTests(ctx context.Context) (int, err
 	}
 
 	return score, nil
-
 }
 
 // generateValidationReport creates a comprehensive validation report.
 
 func (vs *ValidationSuite) generateValidationReport() {
-
 	ginkgo.By("Generating Comprehensive Validation Report")
 
 	report := fmt.Sprintf(`
@@ -882,15 +821,11 @@ EXECUTION SUMMARY:
 		vs.results.TotalScore, vs.results.MaxPossibleScore, vs.config.TotalTarget,
 
 		func() string {
-
 			if vs.results.TotalScore >= vs.config.TotalTarget {
-
 				return "PASSED"
-
 			}
 
 			return "FAILED"
-
 		}(),
 
 		vs.results.FunctionalScore,
@@ -927,67 +862,53 @@ EXECUTION SUMMARY:
 	// Write detailed report to file.
 
 	vs.writeDetailedReport()
-
 }
 
 // writeDetailedReport writes a detailed JSON report.
 
 func (vs *ValidationSuite) writeDetailedReport() {
-
 	// Implementation would write detailed JSON report.
 
 	// This provides data for further analysis and trending.
-
 }
 
 // GetValidationResults returns the current validation results.
 
 func (vs *ValidationSuite) GetValidationResults() *ValidationResults {
-
 	vs.mu.RLock()
 
 	defer vs.mu.RUnlock()
 
 	return vs.results
-
 }
 
 // GetFunctionalValidator returns the functional validator component.
 
 func (vs *ValidationSuite) GetFunctionalValidator() *SystemValidator {
-
 	return vs.validator
-
 }
 
 // GetPerformanceBenchmarker returns the performance benchmarker component.
 
 func (vs *ValidationSuite) GetPerformanceBenchmarker() *PerformanceBenchmarker {
-
 	return vs.benchmarker
-
 }
 
 // GetSecurityValidator returns the security validator component.
 
 func (vs *ValidationSuite) GetSecurityValidator() *SecurityValidator {
-
 	return vs.securityTester
-
 }
 
 // GetReliabilityValidator returns the reliability validator component.
 
 func (vs *ValidationSuite) GetReliabilityValidator() *ReliabilityValidator {
-
 	return vs.reliabilityTest
-
 }
 
 // RunValidationSuite is the main entry point for comprehensive validation.
 
 var _ = ginkgo.Describe("Nephoran Intent Operator Comprehensive Validation Suite", func() {
-
 	var validationSuite *ValidationSuite
 
 	var ctx context.Context
@@ -995,27 +916,21 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Comprehensive Validation Suite
 	var cancel context.CancelFunc
 
 	ginkgo.BeforeEach(func() {
-
 		ctx, cancel = context.WithTimeout(context.Background(), 45*time.Minute)
 
 		validationSuite = NewValidationSuite(DefaultValidationConfig())
 
 		validationSuite.SetupSuite()
-
 	})
 
 	ginkgo.AfterEach(func() {
-
 		defer cancel()
 
 		validationSuite.TearDownSuite()
-
 	})
 
 	ginkgo.Context("when running comprehensive system validation", func() {
-
 		ginkgo.It("should achieve target score of 90/100 points", func() {
-
 			results, err := validationSuite.ExecuteComprehensiveValidation(ctx)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -1033,11 +948,9 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Comprehensive Validation Suite
 			gomega.Expect(results.SecurityScore).To(gomega.BeNumerically(">=", 12)) // At least 12/15
 
 			gomega.Expect(results.ProductionScore).To(gomega.BeNumerically(">=", 6)) // At least 6/10
-
 		})
 
 		ginkgo.It("should meet performance SLA requirements", func() {
-
 			results, err := validationSuite.ExecuteComprehensiveValidation(ctx)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -1047,9 +960,6 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Comprehensive Validation Suite
 			gomega.Expect(results.ThroughputAchieved).To(gomega.BeNumerically(">=", 45.0))
 
 			gomega.Expect(results.AvailabilityAchieved).To(gomega.BeNumerically(">=", 99.9))
-
 		})
-
 	})
-
 })

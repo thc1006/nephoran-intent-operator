@@ -119,7 +119,6 @@ type PerformanceThresholds struct {
 }
 
 func main() {
-
 	fmt.Println("🚀 Nephoran Performance Regression Test Suite")
 
 	fmt.Println("================================================")
@@ -127,7 +126,6 @@ func main() {
 	// Initialize test suite.
 
 	suite := &PerformanceTestSuite{
-
 		ProjectPath: ".",
 
 		Timestamp: time.Now(),
@@ -135,7 +133,6 @@ func main() {
 		Environment: getTestEnvironment(),
 
 		Thresholds: PerformanceThresholds{
-
 			MaxRegressionPercent: 10.0,
 
 			MaxMemoryIncrease: 20.0,
@@ -151,9 +148,7 @@ func main() {
 	ctx := context.Background()
 
 	if err := suite.runPerformanceTests(ctx); err != nil {
-
 		log.Fatalf("Performance tests failed: %v", err)
-
 	}
 
 	// Analyze results.
@@ -165,37 +160,28 @@ func main() {
 	suite.generateReports()
 
 	fmt.Println("✅ Performance regression testing completed!")
-
 }
 
 func (pts *PerformanceTestSuite) runPerformanceTests(ctx context.Context) error {
-
 	fmt.Println("📊 Running comprehensive performance tests...")
 
 	// Run benchmark tests.
 
 	results, err := pts.runBenchmarkTests(ctx)
-
 	if err != nil {
-
 		return fmt.Errorf("benchmark tests failed: %w", err)
-
 	}
 
 	pts.TestResults = results
 
 	return nil
-
 }
 
 func (pts *PerformanceTestSuite) runBenchmarkTests(ctx context.Context) ([]BenchmarkResult, error) {
-
 	// Simulate benchmark results.
 
 	results := []BenchmarkResult{
-
 		{
-
 			Name: "BenchmarkHTTPHandler",
 
 			Iterations: 1000000,
@@ -212,7 +198,6 @@ func (pts *PerformanceTestSuite) runBenchmarkTests(ctx context.Context) ([]Bench
 		},
 
 		{
-
 			Name: "BenchmarkJSONProcessing",
 
 			Iterations: 500000,
@@ -230,11 +215,9 @@ func (pts *PerformanceTestSuite) runBenchmarkTests(ctx context.Context) ([]Bench
 	}
 
 	return results, nil
-
 }
 
 func (pts *PerformanceTestSuite) analyzeResults() {
-
 	fmt.Println("🔍 Analyzing performance results...")
 
 	totalTests := len(pts.TestResults)
@@ -244,23 +227,17 @@ func (pts *PerformanceTestSuite) analyzeResults() {
 	regressionTests := 0
 
 	for _, result := range pts.TestResults {
-
 		// Simple pass/fail logic.
 
 		if result.NsPerOp < 5000 { // 5µs threshold
 
 			passedTests++
-
 		} else {
-
 			regressionTests++
-
 		}
-
 	}
 
 	pts.Summary = PerformanceSummary{
-
 		TotalTests: totalTests,
 
 		PassedTests: passedTests,
@@ -273,15 +250,11 @@ func (pts *PerformanceTestSuite) analyzeResults() {
 	}
 
 	if regressionTests > 0 {
-
 		pts.Summary.Status = "FAIL"
-
 	}
-
 }
 
 func (pts *PerformanceTestSuite) generateReports() {
-
 	fmt.Println("📄 Generating performance reports...")
 
 	// Generate JSON report.
@@ -291,17 +264,14 @@ func (pts *PerformanceTestSuite) generateReports() {
 	// Generate markdown report.
 
 	pts.generateMarkdownReport()
-
 }
 
 func (pts *PerformanceTestSuite) generateJSONReport() {
-
 	filename := fmt.Sprintf("performance-regression-report-%s.json",
 
 		time.Now().Format("20060102-150405"))
 
 	file, err := os.Create(filename)
-
 	if err != nil {
 
 		log.Printf("Error creating JSON report: %v", err)
@@ -310,7 +280,7 @@ func (pts *PerformanceTestSuite) generateJSONReport() {
 
 	}
 
-	defer func() { _ = file.Close() }()
+	defer func() { _ = file.Close() }() // #nosec G307 - Error handled in defer
 
 	encoder := json.NewEncoder(file)
 
@@ -325,17 +295,14 @@ func (pts *PerformanceTestSuite) generateJSONReport() {
 	}
 
 	fmt.Printf("📄 JSON report generated: %s\n", filename)
-
 }
 
 func (pts *PerformanceTestSuite) generateMarkdownReport() {
-
 	filename := fmt.Sprintf("performance-regression-report-%s.md",
 
 		time.Now().Format("20060102-150405"))
 
 	file, err := os.Create(filename)
-
 	if err != nil {
 
 		log.Printf("Error creating markdown report: %v", err)
@@ -344,7 +311,7 @@ func (pts *PerformanceTestSuite) generateMarkdownReport() {
 
 	}
 
-	defer func() { _ = file.Close() }()
+	defer func() { _ = file.Close() }() // #nosec G307 - Error handled in defer
 
 	fmt.Fprintf(file, "# Performance Regression Test Report\n\n")
 
@@ -365,9 +332,7 @@ func (pts *PerformanceTestSuite) generateMarkdownReport() {
 		status := "✅ PASS"
 
 		if result.NsPerOp > 5000 {
-
 			status = "❌ FAIL"
-
 		}
 
 		fmt.Fprintf(file, "| %s | %d | %d | %d | %s |\n",
@@ -377,13 +342,10 @@ func (pts *PerformanceTestSuite) generateMarkdownReport() {
 	}
 
 	fmt.Printf("📄 Markdown report generated: %s\n", filename)
-
 }
 
 func getTestEnvironment() TestEnvironment {
-
 	return TestEnvironment{
-
 		GoVersion: runtime.Version(),
 
 		GOOS: runtime.GOOS,
@@ -395,5 +357,4 @@ func getTestEnvironment() TestEnvironment {
 		MemoryMB: 1024, // Simplified
 
 	}
-
 }

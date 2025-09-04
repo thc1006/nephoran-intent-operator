@@ -169,4 +169,13 @@ type ProviderRegistry interface {
 
 	// SelectProvider selects the best provider based on criteria
 	SelectProvider(ctx context.Context, criteria *ProviderSelectionCriteria) (CloudProvider, error)
+
+	// GetSupportedProviders returns the list of supported provider types
+	GetSupportedProviders() []string
+
+	// CreateAndRegisterProvider creates and registers a provider
+	CreateAndRegisterProvider(providerType string, name string, config *ProviderConfiguration) error
+
+	// Close closes all providers and cleans up resources
+	Close() error
 }

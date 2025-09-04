@@ -162,6 +162,7 @@ func TestConfig_Validate_EnhancedValidation(t *testing.T) {
 				cfg := DefaultConfig()
 				cfg.OpenAIAPIKey = "sk-test-api-key"
 				cfg.RAGAPIURLInternal = ""
+				cfg.RAGAPIURLExternal = ""
 				cfg.WeaviateURL = ""
 				return cfg
 			},
@@ -192,6 +193,7 @@ func TestConfig_Validate_EnhancedValidation(t *testing.T) {
 				cfg.GitToken = ""
 				cfg.LLMProcessorURL = ""
 				cfg.RAGAPIURLInternal = ""
+				cfg.RAGAPIURLExternal = ""
 				cfg.WeaviateURL = ""
 				return cfg
 			},

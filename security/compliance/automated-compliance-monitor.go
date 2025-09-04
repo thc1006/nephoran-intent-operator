@@ -1,7 +1,9 @@
 package compliance
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -59,7 +61,7 @@ type RemediationAction struct {
 	ErrorMessage      string                 `json:"error_message,omitempty"`
 	RollbackPlan      string                 `json:"rollback_plan"`
 	ResourcesAffected []string               `json:"resources_affected"`
-	Details           map[string]interface{} `json:"details"`
+	Details           json.RawMessage `json:"details"`
 }
 
 // ComplianceAutomationConfig defines automation behavior
@@ -326,12 +328,7 @@ func (acm *AutomatedComplianceMonitor) executeRemediation(ctx context.Context, v
 		Success:           false,
 		RollbackPlan:      acm.generateRollbackPlan(violation, rule),
 		ResourcesAffected: []string{violation.AffectedResource},
-		Details: map[string]interface{}{
-			"rule_id":     rule.RuleID,
-			"framework":   rule.Framework,
-			"severity":    violation.Severity,
-			"max_retries": rule.MaxRetries,
-		},
+		Details: json.RawMessage(`{}`),
 	}
 
 	acm.mutex.Lock()
@@ -1075,3 +1072,4 @@ func (acm *AutomatedComplianceMonitor) configureAdmissionControl(ctx context.Con
 	acm.logger.Info("Configuring admission control", "resource", resource)
 	return true, nil
 }
+

@@ -156,7 +156,6 @@ const (
 // BlueprintMetrics contains Prometheus metrics for blueprint operations.
 
 type BlueprintMetrics struct {
-
 	// Blueprint generation metrics.
 
 	GenerationDuration prometheus.Histogram
@@ -201,11 +200,8 @@ type BlueprintMetrics struct {
 // NewBlueprintMetrics creates new blueprint metrics.
 
 func NewBlueprintMetrics() *BlueprintMetrics {
-
 	return &BlueprintMetrics{
-
 		GenerationDuration: promauto.NewHistogram(prometheus.HistogramOpts{
-
 			Name: "nephoran_blueprint_generation_duration_seconds",
 
 			Help: "Duration of blueprint generation operations",
@@ -214,42 +210,36 @@ func NewBlueprintMetrics() *BlueprintMetrics {
 		}),
 
 		GenerationTotal: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "nephoran_blueprint_generation_total",
 
 			Help: "Total number of blueprint generation operations",
 		}),
 
 		GenerationErrors: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "nephoran_blueprint_generation_errors_total",
 
 			Help: "Total number of blueprint generation errors",
 		}),
 
 		TemplateHits: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "nephoran_blueprint_template_hits_total",
 
 			Help: "Total number of blueprint template cache hits",
 		}),
 
 		TemplateMisses: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "nephoran_blueprint_template_misses_total",
 
 			Help: "Total number of blueprint template cache misses",
 		}),
 
 		TemplateErrors: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "nephoran_blueprint_template_errors_total",
 
 			Help: "Total number of blueprint template errors",
 		}),
 
 		ValidationDuration: promauto.NewHistogram(prometheus.HistogramOpts{
-
 			Name: "nephoran_blueprint_validation_duration_seconds",
 
 			Help: "Duration of blueprint validation operations",
@@ -258,56 +248,48 @@ func NewBlueprintMetrics() *BlueprintMetrics {
 		}),
 
 		ValidationTotal: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "nephoran_blueprint_validation_total",
 
 			Help: "Total number of blueprint validation operations",
 		}),
 
 		ValidationErrors: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "nephoran_blueprint_validation_errors_total",
 
 			Help: "Total number of blueprint validation errors",
 		}),
 
 		CacheSize: promauto.NewGauge(prometheus.GaugeOpts{
-
 			Name: "nephoran_blueprint_cache_size",
 
 			Help: "Current size of blueprint template cache",
 		}),
 
 		CacheHitRatio: promauto.NewGauge(prometheus.GaugeOpts{
-
 			Name: "nephoran_blueprint_cache_hit_ratio",
 
 			Help: "Cache hit ratio for blueprint templates",
 		}),
 
 		CacheEvictions: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "nephoran_blueprint_cache_evictions_total",
 
 			Help: "Total number of blueprint template cache evictions",
 		}),
 
 		ConcurrentOperations: promauto.NewGauge(prometheus.GaugeOpts{
-
 			Name: "nephoran_blueprint_concurrent_operations",
 
 			Help: "Current number of concurrent blueprint operations",
 		}),
 
 		QueueDepth: promauto.NewGauge(prometheus.GaugeOpts{
-
 			Name: "nephoran_blueprint_queue_depth",
 
 			Help: "Current depth of blueprint operation queue",
 		}),
 
 		ProcessingLatency: promauto.NewHistogram(prometheus.HistogramOpts{
-
 			Name: "nephoran_blueprint_processing_latency_seconds",
 
 			Help: "Latency of blueprint processing operations",
@@ -315,13 +297,11 @@ func NewBlueprintMetrics() *BlueprintMetrics {
 			Buckets: []float64{0.1, 0.25, 0.5, 1, 2.5, 5, 10},
 		}),
 	}
-
 }
 
 // BlueprintConfig contains configuration for the blueprint manager.
 
 type BlueprintConfig struct {
-
 	// PorchEndpoint is the Nephio Porch API endpoint.
 
 	PorchEndpoint string
@@ -362,9 +342,7 @@ type BlueprintConfig struct {
 // DefaultBlueprintConfig returns default configuration.
 
 func DefaultBlueprintConfig() *BlueprintConfig {
-
 	return &BlueprintConfig{
-
 		PorchEndpoint: "http://porch-server.porch-system.svc.cluster.local:9080",
 
 		LLMEndpoint: "http://llm-processor.nephoran-system.svc.cluster.local:8080",
@@ -383,7 +361,6 @@ func DefaultBlueprintConfig() *BlueprintConfig {
 
 		DefaultNamespace: "default",
 	}
-
 }
 
 // BlueprintOperation represents a blueprint operation request.
@@ -435,7 +412,6 @@ type SimpleValidationResult struct {
 // Manager handles blueprint lifecycle operations and orchestration.
 
 type Manager struct {
-
 	// Core dependencies.
 
 	client client.Client
@@ -484,31 +460,22 @@ type Manager struct {
 // NewManager creates a new blueprint manager.
 
 func NewManager(mgr manager.Manager, config *BlueprintConfig, logger *zap.Logger) (*Manager, error) {
-
 	if config == nil {
-
 		config = DefaultBlueprintConfig()
-
 	}
 
 	if logger == nil {
-
 		logger = zap.NewNop()
-
 	}
 
 	k8sClient, err := kubernetes.NewForConfig(mgr.GetConfig())
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
-
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	m := &Manager{
-
 		client: mgr.GetClient(),
 
 		k8sClient: k8sClient,
@@ -555,43 +522,32 @@ func NewManager(mgr manager.Manager, config *BlueprintConfig, logger *zap.Logger
 		zap.Int("max_concurrency", config.MaxConcurrency))
 
 	return m, nil
-
 }
 
 // initializeComponents initializes all blueprint manager components.
 
 func (m *Manager) initializeComponents() error {
-
 	var err error
 
 	// Initialize catalog.
 
 	m.catalog, err = NewCatalog(m.config, m.logger.Named("catalog"))
-
 	if err != nil {
-
 		return fmt.Errorf("failed to initialize catalog: %w", err)
-
 	}
 
 	// Initialize generator.
 
 	m.generator, err = NewGenerator(m.config, m.logger.Named("generator"))
-
 	if err != nil {
-
 		return fmt.Errorf("failed to initialize generator: %w", err)
-
 	}
 
 	// Initialize customizer.
 
 	m.customizer, err = NewCustomizer(m.config, m.logger.Named("customizer"))
-
 	if err != nil {
-
 		return fmt.Errorf("failed to initialize customizer: %w", err)
-
 	}
 
 	// Initialize validator if enabled.
@@ -599,23 +555,18 @@ func (m *Manager) initializeComponents() error {
 	if m.config.EnableValidation {
 
 		m.validator, err = NewValidator(m.config, m.logger.Named("validator"))
-
 		if err != nil {
-
 			return fmt.Errorf("failed to initialize validator: %w", err)
-
 		}
 
 	}
 
 	return nil
-
 }
 
 // startWorkers starts background worker goroutines.
 
 func (m *Manager) startWorkers() {
-
 	// Start operation processor workers.
 
 	for range m.config.MaxConcurrency / 2 {
@@ -643,13 +594,11 @@ func (m *Manager) startWorkers() {
 	m.wg.Add(1)
 
 	go m.cacheCleanupWorker()
-
 }
 
 // ProcessNetworkIntent processes a NetworkIntent and generates blueprint packages.
 
 func (m *Manager) ProcessNetworkIntent(ctx context.Context, intent *v1.NetworkIntent) (*BlueprintResult, error) {
-
 	startTime := time.Now()
 
 	m.metrics.GenerationTotal.Inc()
@@ -659,13 +608,11 @@ func (m *Manager) ProcessNetworkIntent(ctx context.Context, intent *v1.NetworkIn
 	defer m.metrics.ConcurrentOperations.Dec()
 
 	defer func() {
-
 		duration := time.Since(startTime)
 
 		m.metrics.GenerationDuration.Observe(duration.Seconds())
 
 		m.metrics.ProcessingLatency.Observe(duration.Seconds())
-
 	}()
 
 	m.logger.Info("Processing NetworkIntent for blueprint generation",
@@ -679,14 +626,13 @@ func (m *Manager) ProcessNetworkIntent(ctx context.Context, intent *v1.NetworkIn
 	// Create operation context.
 
 	operation := &BlueprintOperation{
-
 		ID: fmt.Sprintf("%s-%d", intent.Name, time.Now().UnixNano()),
 
 		Intent: intent,
 
 		Type: "process_intent",
 
-		Priority: intent.Spec.Priority,
+		Priority: v1.ConvertNetworkPriorityToPriority(intent.Spec.Priority),
 
 		Context: ctx,
 
@@ -708,7 +654,6 @@ func (m *Manager) ProcessNetworkIntent(ctx context.Context, intent *v1.NetworkIn
 			zap.Error(result.Error))
 
 	} else {
-
 		m.logger.Info("Successfully processed NetworkIntent",
 
 			zap.String("intent_name", intent.Name),
@@ -716,32 +661,25 @@ func (m *Manager) ProcessNetworkIntent(ctx context.Context, intent *v1.NetworkIn
 			zap.Duration("duration", result.Duration),
 
 			zap.Int("generated_files", len(result.GeneratedFiles)))
-
 	}
 
 	return result, result.Error
-
 }
 
 // processOperationSync processes a blueprint operation synchronously.
 
 func (m *Manager) processOperationSync(operation *BlueprintOperation) *BlueprintResult {
-
 	result := &BlueprintResult{
-
 		Operation: operation,
 	}
 
 	defer func() {
-
 		result.Duration = time.Since(operation.StartTime)
-
 	}()
 
 	// Step 1: Generate blueprint from NetworkIntent.
 
 	generatedFiles, err := m.generator.GenerateFromNetworkIntent(operation.Context, operation.Intent)
-
 	if err != nil {
 
 		result.Error = fmt.Errorf("blueprint generation failed: %w", err)
@@ -755,7 +693,6 @@ func (m *Manager) processOperationSync(operation *BlueprintOperation) *Blueprint
 	// Step 2: Customize blueprint based on intent parameters.
 
 	customizedFiles, err := m.customizer.CustomizeBlueprint(operation.Context, operation.Intent, generatedFiles)
-
 	if err != nil {
 
 		result.Error = fmt.Errorf("blueprint customization failed: %w", err)
@@ -771,7 +708,6 @@ func (m *Manager) processOperationSync(operation *BlueprintOperation) *Blueprint
 	if m.validator != nil {
 
 		validationResult, err := m.validator.ValidateBlueprint(operation.Context, operation.Intent, customizedFiles)
-
 		if err != nil {
 
 			result.Error = fmt.Errorf("blueprint validation failed: %w", err)
@@ -785,13 +721,10 @@ func (m *Manager) processOperationSync(operation *BlueprintOperation) *Blueprint
 		errorStrings := make([]string, len(validationResult.Errors))
 
 		for i, err := range validationResult.Errors {
-
 			errorStrings[i] = err.Message
-
 		}
 
 		result.ValidationResults = &SimpleValidationResult{
-
 			IsValid: validationResult.IsValid,
 
 			Errors: errorStrings,
@@ -810,7 +743,6 @@ func (m *Manager) processOperationSync(operation *BlueprintOperation) *Blueprint
 	// Step 4: Create Nephio PackageRevision.
 
 	packageRevision, err := m.createPackageRevision(operation.Context, operation.Intent, customizedFiles)
-
 	if err != nil {
 
 		result.Error = fmt.Errorf("package revision creation failed: %w", err)
@@ -824,30 +756,24 @@ func (m *Manager) processOperationSync(operation *BlueprintOperation) *Blueprint
 	result.Success = true
 
 	return result
-
 }
 
 // createPackageRevision creates a Nephio PackageRevision.
 
 func (m *Manager) createPackageRevision(ctx context.Context, intent *v1.NetworkIntent, files map[string]string) (*PackageRevision, error) {
-
 	packageRevision := &PackageRevision{
-
 		TypeMeta: metav1.TypeMeta{
-
 			APIVersion: "porch.kpt.dev/v1alpha1",
 
 			Kind: "PackageRevision",
 		},
 
 		ObjectMeta: metav1.ObjectMeta{
-
 			Name: fmt.Sprintf("%s-blueprint-%d", intent.Name, time.Now().Unix()),
 
 			Namespace: intent.Namespace,
 
 			Annotations: map[string]string{
-
 				AnnotationBlueprintVersion: "v1.0.0",
 
 				AnnotationBlueprintType: string(intent.Spec.IntentType),
@@ -860,7 +786,6 @@ func (m *Manager) createPackageRevision(ctx context.Context, intent *v1.NetworkI
 			},
 
 			Labels: map[string]string{
-
 				"nephoran.com/blueprint": "true",
 
 				"nephoran.com/intent": intent.Name,
@@ -870,24 +795,19 @@ func (m *Manager) createPackageRevision(ctx context.Context, intent *v1.NetworkI
 		},
 
 		Spec: PackageRevisionSpec{
-
 			PackageName: fmt.Sprintf("%s-blueprint", intent.Name),
 
 			WorkspaceName: WorkspaceName{
-
 				Name: fmt.Sprintf("%s-workspace", intent.Name),
 
 				Namespace: intent.Namespace,
 			},
 
 			Tasks: []Task{
-
 				{
-
 					Type: TaskTypeInit,
 
 					Init: &PackageInitTaskSpec{
-
 						Description: fmt.Sprintf("Blueprint package for NetworkIntent: %s", intent.Name),
 					},
 				},
@@ -906,31 +826,24 @@ func (m *Manager) createPackageRevision(ctx context.Context, intent *v1.NetworkI
 		zap.Int("files", len(files)))
 
 	return packageRevision, nil
-
 }
 
 // getComponentFromIntent extracts the primary component type from NetworkIntent.
 
 func (m *Manager) getComponentFromIntent(intent *v1.NetworkIntent) string {
-
 	if len(intent.Spec.TargetComponents) > 0 {
-
 		return string(intent.Spec.TargetComponents[0])
-
 	}
 
 	return "unknown"
-
 }
 
 // operationWorker processes blueprint operations from the queue.
 
 func (m *Manager) operationWorker() {
-
 	defer m.wg.Done()
 
 	for {
-
 		select {
 
 		case <-m.ctx.Done():
@@ -952,9 +865,7 @@ func (m *Manager) operationWorker() {
 				// Execute callback if provided.
 
 				if operation.Callback != nil {
-
 					operation.Callback(result)
-
 				}
 
 				// Release semaphore.
@@ -968,15 +879,12 @@ func (m *Manager) operationWorker() {
 			}
 
 		}
-
 	}
-
 }
 
 // healthCheckWorker performs periodic health checks.
 
 func (m *Manager) healthCheckWorker() {
-
 	defer m.wg.Done()
 
 	ticker := time.NewTicker(30 * time.Second)
@@ -984,7 +892,6 @@ func (m *Manager) healthCheckWorker() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-m.ctx.Done():
@@ -996,15 +903,12 @@ func (m *Manager) healthCheckWorker() {
 			m.performHealthCheck()
 
 		}
-
 	}
-
 }
 
 // performHealthCheck checks the health of all components.
 
 func (m *Manager) performHealthCheck() {
-
 	m.healthMutex.Lock()
 
 	defer m.healthMutex.Unlock()
@@ -1028,19 +932,15 @@ func (m *Manager) performHealthCheck() {
 	// Check validator health if enabled.
 
 	if m.validator != nil {
-
 		m.healthStatus["validator"] = m.validator.HealthCheck(ctx)
-
 	}
 
 	m.lastHealthCheck = time.Now()
-
 }
 
 // metricsWorker updates metrics periodically.
 
 func (m *Manager) metricsWorker() {
-
 	defer m.wg.Done()
 
 	ticker := time.NewTicker(10 * time.Second)
@@ -1048,7 +948,6 @@ func (m *Manager) metricsWorker() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-m.ctx.Done():
@@ -1060,15 +959,12 @@ func (m *Manager) metricsWorker() {
 			m.updateMetrics()
 
 		}
-
 	}
-
 }
 
 // updateMetrics updates Prometheus metrics.
 
 func (m *Manager) updateMetrics() {
-
 	// Update queue depth.
 
 	m.metrics.QueueDepth.Set(float64(len(m.operationQueue)))
@@ -1078,11 +974,9 @@ func (m *Manager) updateMetrics() {
 	cacheSize := 0
 
 	m.cache.Range(func(_, _ interface{}) bool {
-
 		cacheSize++
 
 		return true
-
 	})
 
 	m.metrics.CacheSize.Set(float64(cacheSize))
@@ -1104,13 +998,11 @@ func (m *Manager) updateMetrics() {
 		}
 
 	}
-
 }
 
 // cacheCleanupWorker performs periodic cache cleanup.
 
 func (m *Manager) cacheCleanupWorker() {
-
 	defer m.wg.Done()
 
 	ticker := time.NewTicker(m.config.CacheTTL / 2)
@@ -1118,7 +1010,6 @@ func (m *Manager) cacheCleanupWorker() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-m.ctx.Done():
@@ -1130,25 +1021,19 @@ func (m *Manager) cacheCleanupWorker() {
 			m.cleanupCache()
 
 		}
-
 	}
-
 }
 
 // cleanupCache removes expired entries from cache.
 
 func (m *Manager) cleanupCache() {
-
 	now := time.Now()
 
 	evicted := 0
 
 	m.cache.Range(func(key, value interface{}) bool {
-
 		if cacheEntry, ok := value.(map[string]interface{}); ok {
-
 			if expireTime, exists := cacheEntry["expire_time"]; exists {
-
 				if expTime, ok := expireTime.(time.Time); ok && now.After(expTime) {
 
 					m.cache.Delete(key)
@@ -1156,13 +1041,10 @@ func (m *Manager) cleanupCache() {
 					evicted++
 
 				}
-
 			}
-
 		}
 
 		return true
-
 	})
 
 	if evicted > 0 {
@@ -1172,13 +1054,11 @@ func (m *Manager) cleanupCache() {
 		m.logger.Debug("Cleaned up expired cache entries", zap.Int("evicted", evicted))
 
 	}
-
 }
 
 // GetHealthStatus returns the current health status of all components.
 
 func (m *Manager) GetHealthStatus() map[string]bool {
-
 	m.healthMutex.RLock()
 
 	defer m.healthMutex.RUnlock()
@@ -1186,50 +1066,31 @@ func (m *Manager) GetHealthStatus() map[string]bool {
 	status := make(map[string]bool)
 
 	for component, health := range m.healthStatus {
-
 		status[component] = health
-
 	}
 
 	return status
-
 }
 
 // GetMetrics returns current metrics.
 
 func (m *Manager) GetMetrics() map[string]interface{} {
+	size := 0
+	m.cache.Range(func(k, v interface{}) bool {
+		size++
+		return true
+	})
 
 	return map[string]interface{}{
-
-		"queue_depth": len(m.operationQueue),
-
-		"concurrent_operations": len(m.semaphore),
-
-		"last_health_check": m.lastHealthCheck,
-
-		"cache_size": func() int {
-
-			size := 0
-
-			m.cache.Range(func(_, _ interface{}) bool {
-
-				size++
-
-				return true
-
-			})
-
-			return size
-
-		}(),
+		"blueprints_count": size,
+		"cache_size":      size,
+		"last_updated":    time.Now().Unix(),
 	}
-
 }
 
 // Stop gracefully stops the blueprint manager.
 
 func (m *Manager) Stop() error {
-
 	m.logger.Info("Stopping blueprint manager...")
 
 	// Cancel context to stop workers.
@@ -1241,11 +1102,9 @@ func (m *Manager) Stop() error {
 	done := make(chan struct{})
 
 	go func() {
-
 		m.wg.Wait()
 
 		close(done)
-
 	}()
 
 	select {
@@ -1261,5 +1120,5 @@ func (m *Manager) Stop() error {
 	}
 
 	return nil
-
 }
+

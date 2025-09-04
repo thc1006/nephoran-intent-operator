@@ -31,7 +31,9 @@ limitations under the License.
 package webui
 
 import (
-	"fmt"
+	
+	"encoding/json"
+"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -61,7 +63,6 @@ type StreamFilter struct {
 	Labels map[string]string `json:"labels,omitempty"` // label selectors
 
 	Since *time.Time `json:"since,omitempty"` // events since timestamp
-
 }
 
 // StreamMessage represents a generic real-time stream message.
@@ -77,7 +78,7 @@ type StreamMessage struct {
 
 	Data interface{} `json:"data"` // actual event data
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // WebSocketMessage represents a WebSocket-specific message with additional controls.
@@ -90,7 +91,6 @@ type WebSocketMessage struct {
 	Filters *StreamFilter `json:"filters,omitempty"` // subscription filters
 
 	RequestID string `json:"request_id,omitempty"` // for request/response correlation
-
 }
 
 // SystemEvent represents system-wide events.
@@ -104,7 +104,7 @@ type SystemEvent struct {
 
 	Message string `json:"message"` // human-readable message
 
-	Details map[string]interface{} `json:"details,omitempty"`
+	Details json.RawMessage `json:"details,omitempty"`
 
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -126,7 +126,6 @@ type MetricsUpdate struct {
 // setupRealtimeRoutes sets up real-time streaming API routes.
 
 func (s *NephoranAPIServer) setupRealtimeRoutes(router *mux.Router) {
-
 	realtime := router.PathPrefix("/realtime").Subrouter()
 
 	// WebSocket endpoints.
@@ -162,53 +161,41 @@ func (s *NephoranAPIServer) setupRealtimeRoutes(router *mux.Router) {
 	realtime.HandleFunc("/streams/{id}", s.getStreamInfo).Methods("GET")
 
 	realtime.HandleFunc("/streams/{id}/close", s.closeStream).Methods("DELETE")
-
 }
 
 // handleWebSocket handles the main WebSocket endpoint for all event types.
 
 func (s *NephoranAPIServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
-
 	s.handleWebSocketConnection(w, r, "all")
-
 }
 
 // handleIntentWebSocket handles WebSocket connections for intent events only.
 
 func (s *NephoranAPIServer) handleIntentWebSocket(w http.ResponseWriter, r *http.Request) {
-
 	s.handleWebSocketConnection(w, r, "intents")
-
 }
 
 // handlePackageWebSocket handles WebSocket connections for package events only.
 
 func (s *NephoranAPIServer) handlePackageWebSocket(w http.ResponseWriter, r *http.Request) {
-
 	s.handleWebSocketConnection(w, r, "packages")
-
 }
 
 // handleClusterWebSocket handles WebSocket connections for cluster events only.
 
 func (s *NephoranAPIServer) handleClusterWebSocket(w http.ResponseWriter, r *http.Request) {
-
 	s.handleWebSocketConnection(w, r, "clusters")
-
 }
 
 // handleMetricsWebSocket handles WebSocket connections for metrics events only.
 
 func (s *NephoranAPIServer) handleMetricsWebSocket(w http.ResponseWriter, r *http.Request) {
-
 	s.handleWebSocketConnection(w, r, "metrics")
-
 }
 
 // handleWebSocketConnection handles the core WebSocket connection logic.
 
 func (s *NephoranAPIServer) handleWebSocketConnection(w http.ResponseWriter, r *http.Request, eventType string) {
-
 	// Check if we've reached connection limit.
 
 	s.connectionsMutex.RLock()
@@ -232,15 +219,12 @@ func (s *NephoranAPIServer) handleWebSocketConnection(w http.ResponseWriter, r *
 	userID := auth.GetUserID(r.Context())
 
 	if userID == "" {
-
 		userID = "anonymous"
-
 	}
 
 	// Upgrade connection to WebSocket.
 
 	conn, err := s.upgrader.Upgrade(w, r, nil)
-
 	if err != nil {
 
 		s.logger.Error(err, "Failed to upgrade WebSocket connection")
@@ -255,12 +239,11 @@ func (s *NephoranAPIServer) handleWebSocketConnection(w http.ResponseWriter, r *
 
 	// Parse query parameters for initial filters.
 
-	filters := s.parseStreamFilters(r)
+	_ = s.parseStreamFilters(r)
 
 	// Create WebSocket connection object.
 
 	wsConn := &WebSocketConnection{
-
 		ID: connectionID,
 
 		UserID: userID,
@@ -269,12 +252,7 @@ func (s *NephoranAPIServer) handleWebSocketConnection(w http.ResponseWriter, r *
 
 		Send: make(chan []byte, 256),
 
-		Filters: map[string]interface{}{
-
-			"event_type": eventType,
-
-			"filters": filters,
-		},
+		Filters: make(map[string]interface{}),
 
 		LastSeen: time.Now(),
 	}
@@ -300,9 +278,7 @@ func (s *NephoranAPIServer) handleWebSocketConnection(w http.ResponseWriter, r *
 	// Send welcome message.
 
 	welcomeMsg := WebSocketMessage{
-
 		StreamMessage: StreamMessage{
-
 			Type: "connection_established",
 
 			ID: uuid.New().String(),
@@ -311,14 +287,7 @@ func (s *NephoranAPIServer) handleWebSocketConnection(w http.ResponseWriter, r *
 
 			Source: "nephoran-api-server",
 
-			Data: map[string]interface{}{
-
-				"connection_id": connectionID,
-
-				"event_type": eventType,
-
-				"server_time": time.Now(),
-			},
+			Data: json.RawMessage(`{}`),
 		},
 
 		Action: "welcome",
@@ -343,19 +312,15 @@ func (s *NephoranAPIServer) handleWebSocketConnection(w http.ResponseWriter, r *
 	go s.webSocketReader(wsConn)
 
 	go s.webSocketWriter(wsConn)
-
 }
 
 // webSocketReader handles incoming WebSocket messages.
 
 func (s *NephoranAPIServer) webSocketReader(conn *WebSocketConnection) {
-
 	defer func() {
-
 		s.removeWebSocketConnection(conn.ID)
 
 		conn.Connection.Close()
-
 	}()
 
 	// Set read deadline.
@@ -363,13 +328,11 @@ func (s *NephoranAPIServer) webSocketReader(conn *WebSocketConnection) {
 	conn.Connection.SetReadDeadline(time.Now().Add(s.config.WSTimeout))
 
 	conn.Connection.SetPongHandler(func(string) error {
-
 		conn.Connection.SetReadDeadline(time.Now().Add(s.config.WSTimeout))
 
 		conn.LastSeen = time.Now()
 
 		return nil
-
 	})
 
 	for {
@@ -377,13 +340,10 @@ func (s *NephoranAPIServer) webSocketReader(conn *WebSocketConnection) {
 		var msg WebSocketMessage
 
 		err := conn.Connection.ReadJSON(&msg)
-
 		if err != nil {
 
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-
 				s.logger.Error(err, "WebSocket read error", "connection_id", conn.ID)
-
 			}
 
 			break
@@ -395,25 +355,20 @@ func (s *NephoranAPIServer) webSocketReader(conn *WebSocketConnection) {
 		s.handleWebSocketMessage(conn, &msg)
 
 	}
-
 }
 
 // webSocketWriter handles outgoing WebSocket messages.
 
 func (s *NephoranAPIServer) webSocketWriter(conn *WebSocketConnection) {
-
 	ticker := time.NewTicker(s.config.PingInterval)
 
 	defer func() {
-
 		ticker.Stop()
 
 		conn.Connection.Close()
-
 	}()
 
 	for {
-
 		select {
 
 		case message, ok := <-conn.Send:
@@ -441,21 +396,16 @@ func (s *NephoranAPIServer) webSocketWriter(conn *WebSocketConnection) {
 			conn.Connection.SetWriteDeadline(time.Now().Add(10 * time.Second))
 
 			if err := conn.Connection.WriteMessage(websocket.PingMessage, nil); err != nil {
-
 				return
-
 			}
 
 		}
-
 	}
-
 }
 
 // handleWebSocketMessage processes incoming WebSocket messages.
 
 func (s *NephoranAPIServer) handleWebSocketMessage(conn *WebSocketConnection, msg *WebSocketMessage) {
-
 	switch msg.Action {
 
 	case "subscribe":
@@ -481,13 +431,11 @@ func (s *NephoranAPIServer) handleWebSocketMessage(conn *WebSocketConnection, ms
 			fmt.Sprintf("Unknown action: %s", msg.Action))
 
 	}
-
 }
 
 // handleWebSocketSubscribe handles subscription requests.
 
 func (s *NephoranAPIServer) handleWebSocketSubscribe(conn *WebSocketConnection, msg *WebSocketMessage) {
-
 	if msg.Filters != nil {
 
 		// Update connection filters.
@@ -505,9 +453,7 @@ func (s *NephoranAPIServer) handleWebSocketSubscribe(conn *WebSocketConnection, 
 	// Send subscription confirmation.
 
 	response := WebSocketMessage{
-
 		StreamMessage: StreamMessage{
-
 			Type: "subscription_confirmed",
 
 			ID: uuid.New().String(),
@@ -516,12 +462,7 @@ func (s *NephoranAPIServer) handleWebSocketSubscribe(conn *WebSocketConnection, 
 
 			Source: "nephoran-api-server",
 
-			Data: map[string]interface{}{
-
-				"filters": msg.Filters,
-
-				"active": true,
-			},
+			Data: json.RawMessage(`{}`),
 		},
 
 		Action: "subscribe_response",
@@ -538,26 +479,19 @@ func (s *NephoranAPIServer) handleWebSocketSubscribe(conn *WebSocketConnection, 
 		s.logger.V(1).Info("Failed to send subscription confirmation", "connection_id", conn.ID)
 
 	}
-
 }
 
 // handleWebSocketUnsubscribe handles unsubscription requests.
 
 func (s *NephoranAPIServer) handleWebSocketUnsubscribe(conn *WebSocketConnection, msg *WebSocketMessage) {
-
 	// Reset filters to default.
 
-	conn.Filters = map[string]interface{}{
-
-		"event_type": "none",
-	}
+	conn.Filters = make(map[string]interface{})
 
 	// Send unsubscription confirmation.
 
 	response := WebSocketMessage{
-
 		StreamMessage: StreamMessage{
-
 			Type: "unsubscription_confirmed",
 
 			ID: uuid.New().String(),
@@ -566,10 +500,7 @@ func (s *NephoranAPIServer) handleWebSocketUnsubscribe(conn *WebSocketConnection
 
 			Source: "nephoran-api-server",
 
-			Data: map[string]interface{}{
-
-				"active": false,
-			},
+			Data: json.RawMessage(`{}`),
 		},
 
 		Action: "unsubscribe_response",
@@ -586,17 +517,13 @@ func (s *NephoranAPIServer) handleWebSocketUnsubscribe(conn *WebSocketConnection
 		s.logger.V(1).Info("Failed to send unsubscription confirmation", "connection_id", conn.ID)
 
 	}
-
 }
 
 // handleWebSocketPing handles ping requests.
 
 func (s *NephoranAPIServer) handleWebSocketPing(conn *WebSocketConnection, msg *WebSocketMessage) {
-
 	response := WebSocketMessage{
-
 		StreamMessage: StreamMessage{
-
 			Type: "pong",
 
 			ID: uuid.New().String(),
@@ -620,25 +547,21 @@ func (s *NephoranAPIServer) handleWebSocketPing(conn *WebSocketConnection, msg *
 		s.logger.V(1).Info("Failed to send pong response", "connection_id", conn.ID)
 
 	}
-
 }
 
 // handleWebSocketGetStatus handles status requests.
 
 func (s *NephoranAPIServer) handleWebSocketGetStatus(conn *WebSocketConnection, msg *WebSocketMessage) {
-
 	s.connectionsMutex.RLock()
 
-	totalConnections := len(s.wsConnections)
+	_ = len(s.wsConnections)
 
-	sseConnections := len(s.sseConnections)
+	_ = len(s.sseConnections)
 
 	s.connectionsMutex.RUnlock()
 
 	response := WebSocketMessage{
-
 		StreamMessage: StreamMessage{
-
 			Type: "status",
 
 			ID: uuid.New().String(),
@@ -647,23 +570,7 @@ func (s *NephoranAPIServer) handleWebSocketGetStatus(conn *WebSocketConnection, 
 
 			Source: "nephoran-api-server",
 
-			Data: map[string]interface{}{
-
-				"connection_id": conn.ID,
-
-				"user_id": conn.UserID,
-
-				"connected_since": conn.LastSeen,
-
-				"total_ws_connections": totalConnections,
-
-				"total_sse_connections": sseConnections,
-
-				"filters": conn.Filters,
-
-				"server_uptime": time.Since(time.Now()), // Would track actual uptime
-
-			},
+			Data: json.RawMessage(`{}`),
 		},
 
 		Action: "status_response",
@@ -680,17 +587,13 @@ func (s *NephoranAPIServer) handleWebSocketGetStatus(conn *WebSocketConnection, 
 		s.logger.V(1).Info("Failed to send status response", "connection_id", conn.ID)
 
 	}
-
 }
 
 // sendWebSocketError sends an error message through WebSocket.
 
 func (s *NephoranAPIServer) sendWebSocketError(conn *WebSocketConnection, requestID, code, message string) {
-
 	errorMsg := WebSocketMessage{
-
 		StreamMessage: StreamMessage{
-
 			Type: "error",
 
 			ID: uuid.New().String(),
@@ -699,12 +602,7 @@ func (s *NephoranAPIServer) sendWebSocketError(conn *WebSocketConnection, reques
 
 			Source: "nephoran-api-server",
 
-			Data: map[string]interface{}{
-
-				"error_code": code,
-
-				"error_message": message,
-			},
+			Data: json.RawMessage(`{}`),
 		},
 
 		Action: "error",
@@ -721,7 +619,6 @@ func (s *NephoranAPIServer) sendWebSocketError(conn *WebSocketConnection, reques
 		s.logger.V(1).Info("Failed to send error message", "connection_id", conn.ID)
 
 	}
-
 }
 
 // Server-Sent Events handlers.
@@ -729,55 +626,42 @@ func (s *NephoranAPIServer) sendWebSocketError(conn *WebSocketConnection, reques
 // handleServerSentEvents handles the main SSE endpoint for all event types.
 
 func (s *NephoranAPIServer) handleServerSentEvents(w http.ResponseWriter, r *http.Request) {
-
 	s.handleSSEConnection(w, r, "all")
-
 }
 
 // handleIntentEvents handles SSE connections for intent events only.
 
 func (s *NephoranAPIServer) handleIntentEvents(w http.ResponseWriter, r *http.Request) {
-
 	s.handleSSEConnection(w, r, "intents")
-
 }
 
 // handlePackageEvents handles SSE connections for package events only.
 
 func (s *NephoranAPIServer) handlePackageEvents(w http.ResponseWriter, r *http.Request) {
-
 	s.handleSSEConnection(w, r, "packages")
-
 }
 
 // handleClusterEvents handles SSE connections for cluster events only.
 
 func (s *NephoranAPIServer) handleClusterEvents(w http.ResponseWriter, r *http.Request) {
-
 	s.handleSSEConnection(w, r, "clusters")
-
 }
 
 // handleSystemEvents handles SSE connections for system events only.
 
 func (s *NephoranAPIServer) handleSystemEvents(w http.ResponseWriter, r *http.Request) {
-
 	s.handleSSEConnection(w, r, "system")
-
 }
 
 // handleMetricsEvents handles SSE connections for metrics events only.
 
 func (s *NephoranAPIServer) handleMetricsEvents(w http.ResponseWriter, r *http.Request) {
-
 	s.handleSSEConnection(w, r, "metrics")
-
 }
 
 // handleSSEConnection handles the core SSE connection logic.
 
 func (s *NephoranAPIServer) handleSSEConnection(w http.ResponseWriter, r *http.Request, eventType string) {
-
 	// Set SSE headers.
 
 	w.Header().Set("Content-Type", "text/event-stream")
@@ -809,9 +693,7 @@ func (s *NephoranAPIServer) handleSSEConnection(w http.ResponseWriter, r *http.R
 	userID := auth.GetUserID(r.Context())
 
 	if userID == "" {
-
 		userID = "anonymous"
-
 	}
 
 	// Generate connection ID.
@@ -820,12 +702,11 @@ func (s *NephoranAPIServer) handleSSEConnection(w http.ResponseWriter, r *http.R
 
 	// Parse query parameters for initial filters.
 
-	filters := s.parseStreamFilters(r)
+	_ = s.parseStreamFilters(r)
 
 	// Create SSE connection object.
 
 	sseConn := &SSEConnection{
-
 		ID: connectionID,
 
 		UserID: userID,
@@ -834,12 +715,7 @@ func (s *NephoranAPIServer) handleSSEConnection(w http.ResponseWriter, r *http.R
 
 		Flusher: flusher,
 
-		Filters: map[string]interface{}{
-
-			"event_type": eventType,
-
-			"filters": filters,
-		},
+		Filters: make(map[string]interface{}),
 
 		LastSeen: time.Now(),
 	}
@@ -865,7 +741,6 @@ func (s *NephoranAPIServer) handleSSEConnection(w http.ResponseWriter, r *http.R
 	// Send welcome message.
 
 	welcomeMsg := StreamMessage{
-
 		Type: "connection_established",
 
 		ID: uuid.New().String(),
@@ -874,14 +749,7 @@ func (s *NephoranAPIServer) handleSSEConnection(w http.ResponseWriter, r *http.R
 
 		Source: "nephoran-api-server",
 
-		Data: map[string]interface{}{
-
-			"connection_id": connectionID,
-
-			"event_type": eventType,
-
-			"server_time": time.Now(),
-		},
+		Data: json.RawMessage(`{}`),
 	}
 
 	s.sendSSEMessage(sseConn, &welcomeMsg)
@@ -895,17 +763,14 @@ func (s *NephoranAPIServer) handleSSEConnection(w http.ResponseWriter, r *http.R
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer func() {
-
 		ticker.Stop()
 
 		s.removeSSEConnection(connectionID)
 
 		s.logger.Info("SSE connection closed", "connection_id", connectionID)
-
 	}()
 
 	for {
-
 		select {
 
 		case <-notify:
@@ -920,31 +785,21 @@ func (s *NephoranAPIServer) handleSSEConnection(w http.ResponseWriter, r *http.R
 
 			// Send keep-alive ping.
 
-			fmt.Fprintf(w, "event: ping\ndata: %s\n\n", mustMarshalString(map[string]interface{}{
-
-				"timestamp": time.Now(),
-
-				"type": "keepalive",
-			}))
+			fmt.Fprintf(w, "event: ping\ndata: %s\n\n", mustMarshalString(json.RawMessage(`{}`)))
 
 			flusher.Flush()
 
 			sseConn.LastSeen = time.Now()
 
 		}
-
 	}
-
 }
 
 // sendSSEMessage sends a message through SSE connection.
 
 func (s *NephoranAPIServer) sendSSEMessage(conn *SSEConnection, msg *StreamMessage) {
-
 	if conn.Flusher == nil {
-
 		return
-
 	}
 
 	fmt.Fprintf(conn.Writer, "event: %s\ndata: %s\n\n", msg.Type, mustMarshalString(msg))
@@ -952,7 +807,6 @@ func (s *NephoranAPIServer) sendSSEMessage(conn *SSEConnection, msg *StreamMessa
 	conn.Flusher.Flush()
 
 	conn.LastSeen = time.Now()
-
 }
 
 // Stream management endpoints.
@@ -960,7 +814,6 @@ func (s *NephoranAPIServer) sendSSEMessage(conn *SSEConnection, msg *StreamMessa
 // listActiveStreams handles GET /api/v1/realtime/streams.
 
 func (s *NephoranAPIServer) listActiveStreams(w http.ResponseWriter, r *http.Request) {
-
 	// Check admin permissions.
 
 	if s.authMiddleware != nil && !auth.HasPermission(r.Context(), auth.PermissionViewMetrics) {
@@ -981,67 +834,41 @@ func (s *NephoranAPIServer) listActiveStreams(w http.ResponseWriter, r *http.Req
 
 	// Add WebSocket connections.
 
-	for id, conn := range s.wsConnections {
-
-		streams = append(streams, map[string]interface{}{
-
-			"id": id,
-
-			"type": "websocket",
-
-			"user_id": conn.UserID,
-
-			"filters": conn.Filters,
-
+	for _, conn := range s.wsConnections {
+		streamInfo := map[string]interface{}{
+			"id":       conn.ID,
+			"user_id":  conn.UserID,
+			"type":     "websocket",
+			"filters":  conn.Filters,
 			"last_seen": conn.LastSeen,
-
-			"connected_at": conn.LastSeen, // Would track actual connection time
-
-		})
-
+		}
+		streams = append(streams, streamInfo)
 	}
 
 	// Add SSE connections.
 
-	for id, conn := range s.sseConnections {
-
-		streams = append(streams, map[string]interface{}{
-
-			"id": id,
-
-			"type": "sse",
-
-			"user_id": conn.UserID,
-
-			"filters": conn.Filters,
-
+	for _, conn := range s.sseConnections {
+		streamInfo := map[string]interface{}{
+			"id":       conn.ID,
+			"user_id":  conn.UserID,
+			"type":     "sse",
+			"filters":  conn.Filters,
 			"last_seen": conn.LastSeen,
-
-			"connected_at": conn.LastSeen, // Would track actual connection time
-
-		})
-
+		}
+		streams = append(streams, streamInfo)
 	}
 
-	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-
-		"active_streams": streams,
-
-		"total_ws": len(s.wsConnections),
-
-		"total_sse": len(s.sseConnections),
-
-		"total_streams": len(streams),
-	})
-
+	response := map[string]interface{}{
+		"streams": streams,
+		"total":   len(streams),
+	}
+	s.writeJSONResponse(w, http.StatusOK, response)
 }
 
 // Helper functions.
 
 func (s *NephoranAPIServer) parseStreamFilters(r *http.Request) *StreamFilter {
-
 	filters := &StreamFilter{
-
 		Labels: make(map[string]string),
 	}
 
@@ -1050,87 +877,65 @@ func (s *NephoranAPIServer) parseStreamFilters(r *http.Request) *StreamFilter {
 	// Parse event types.
 
 	if eventTypes := query.Get("event_types"); eventTypes != "" {
-
 		filters.EventTypes = strings.Split(eventTypes, ",")
-
 	}
 
 	// Parse status filters.
 
 	if statuses := query.Get("status"); statuses != "" {
-
 		filters.Status = strings.Split(statuses, ",")
-
 	}
 
 	// Parse priority filters.
 
 	if priorities := query.Get("priority"); priorities != "" {
-
 		filters.Priority = strings.Split(priorities, ",")
-
 	}
 
 	// Parse component filters.
 
 	if components := query.Get("components"); components != "" {
-
 		filters.Components = strings.Split(components, ",")
-
 	}
 
 	// Parse cluster filters.
 
 	if clusters := query.Get("clusters"); clusters != "" {
-
 		filters.Clusters = strings.Split(clusters, ",")
-
 	}
 
 	// Parse namespace filters.
 
 	if namespaces := query.Get("namespaces"); namespaces != "" {
-
 		filters.Namespaces = strings.Split(namespaces, ",")
-
 	}
 
 	// Parse since timestamp.
 
 	if since := query.Get("since"); since != "" {
-
 		if timestamp, err := time.Parse(time.RFC3339, since); err == nil {
-
 			filters.Since = &timestamp
-
 		}
-
 	}
 
 	// Parse label filters (format: label.key=value).
 
 	for key, values := range query {
-
 		if strings.HasPrefix(key, "label.") {
 
 			labelKey := strings.TrimPrefix(key, "label.")
 
 			if len(values) > 0 {
-
 				filters.Labels[labelKey] = values[0]
-
 			}
 
 		}
-
 	}
 
 	return filters
-
 }
 
 func (s *NephoranAPIServer) removeWebSocketConnection(connectionID string) {
-
 	s.connectionsMutex.Lock()
 
 	defer s.connectionsMutex.Unlock()
@@ -1144,11 +949,9 @@ func (s *NephoranAPIServer) removeWebSocketConnection(connectionID string) {
 		s.logger.Info("WebSocket connection removed", "connection_id", connectionID)
 
 	}
-
 }
 
 func (s *NephoranAPIServer) removeSSEConnection(connectionID string) {
-
 	s.connectionsMutex.Lock()
 
 	defer s.connectionsMutex.Unlock()
@@ -1160,15 +963,12 @@ func (s *NephoranAPIServer) removeSSEConnection(connectionID string) {
 		s.logger.Info("SSE connection removed", "connection_id", connectionID)
 
 	}
-
 }
 
 // Broadcast event to all appropriate connections based on filters.
 
 func (s *NephoranAPIServer) broadcastEvent(eventType string, data interface{}) {
-
 	message := &StreamMessage{
-
 		Type: eventType,
 
 		ID: uuid.New().String(),
@@ -1185,9 +985,7 @@ func (s *NephoranAPIServer) broadcastEvent(eventType string, data interface{}) {
 	s.connectionsMutex.RLock()
 
 	for _, conn := range s.wsConnections {
-
 		if s.shouldSendToConnection(conn.Filters, eventType, data) {
-
 			select {
 
 			case conn.Send <- mustMarshal(message):
@@ -1197,82 +995,58 @@ func (s *NephoranAPIServer) broadcastEvent(eventType string, data interface{}) {
 				close(conn.Send)
 
 			}
-
 		}
-
 	}
 
 	// Broadcast to SSE connections.
 
 	for _, conn := range s.sseConnections {
-
 		if s.shouldSendToConnection(conn.Filters, eventType, data) {
-
 			s.sendSSEMessage(conn, message)
-
 		}
-
 	}
 
 	s.connectionsMutex.RUnlock()
-
 }
 
 func (s *NephoranAPIServer) shouldSendToConnection(filters map[string]interface{}, eventType string, data interface{}) bool {
-
 	// Basic event type filtering.
 
 	if connEventType, exists := filters["event_type"]; exists {
-
 		if eventTypeStr, ok := connEventType.(string); ok {
-
 			if eventTypeStr != "all" && !strings.Contains(eventType, eventTypeStr) {
-
 				return false
-
 			}
-
 		}
-
 	}
 
 	// Additional filter logic would be implemented here based on the actual data structure.
 
 	return true
-
 }
 
 // getStreamInfo handles GET /api/v1/realtime/streams/{id}.
 
 func (s *NephoranAPIServer) getStreamInfo(w http.ResponseWriter, r *http.Request) {
-
 	vars := mux.Vars(r)
 
 	streamID := vars["id"]
 
 	// TODO: Implement actual stream info retrieval.
+	s.logger.V(1).Info("Getting stream info", "streamID", streamID)
 
 	streamInfo := map[string]interface{}{
-
-		"stream_id": streamID,
-
-		"status": "active",
-
-		"type": "websocket",
-
-		"created_at": time.Now(),
-
-		"message_count": 0,
+		"id": streamID,
+		"status": "unknown",
+		"message": "Stream info retrieval not yet implemented",
 	}
 
 	s.writeJSONResponse(w, http.StatusOK, streamInfo)
-
 }
 
 // closeStream handles DELETE /api/v1/realtime/streams/{id}/close.
 
 func (s *NephoranAPIServer) closeStream(w http.ResponseWriter, r *http.Request) {
-
 	vars := mux.Vars(r)
 
 	streamID := vars["id"]
@@ -1282,14 +1056,11 @@ func (s *NephoranAPIServer) closeStream(w http.ResponseWriter, r *http.Request) 
 	s.logger.Info("Closing stream", "streamID", streamID)
 
 	response := map[string]interface{}{
-
-		"stream_id": streamID,
-
+		"id": streamID,
 		"status": "closed",
-
-		"closed_at": time.Now(),
+		"message": "Stream close requested (not yet implemented)",
 	}
 
 	s.writeJSONResponse(w, http.StatusOK, response)
-
 }
+

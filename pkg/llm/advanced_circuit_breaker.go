@@ -18,7 +18,6 @@ import (
 // AdvancedCircuitBreaker provides enhanced circuit breaker functionality.
 
 type AdvancedCircuitBreaker struct {
-
 	// Configuration.
 
 	failureThreshold int64
@@ -83,9 +82,7 @@ type StateChangeCallback func(oldState, newState CircuitState, reason string)
 // NewAdvancedCircuitBreaker creates a new advanced circuit breaker.
 
 func NewAdvancedCircuitBreaker(config CircuitBreakerConfig) *AdvancedCircuitBreaker {
-
 	return &AdvancedCircuitBreaker{
-
 		failureThreshold: int64(config.FailureThreshold),
 
 		successThreshold: int64(config.SuccessThreshold),
@@ -104,13 +101,11 @@ func NewAdvancedCircuitBreaker(config CircuitBreakerConfig) *AdvancedCircuitBrea
 
 		tracer: otel.Tracer("nephoran-intent-operator/circuit-breaker"),
 	}
-
 }
 
 // Execute executes an operation through the circuit breaker.
 
 func (cb *AdvancedCircuitBreaker) Execute(ctx context.Context, operation func() error) error {
-
 	// Start tracing.
 
 	_, span := cb.tracer.Start(ctx, "circuit_breaker.execute")
@@ -131,7 +126,6 @@ func (cb *AdvancedCircuitBreaker) Execute(ctx context.Context, operation func() 
 		)
 
 		return &CircuitBreakerError{
-
 			CircuitName: "advanced",
 
 			State: CircuitState(state),
@@ -162,9 +156,7 @@ func (cb *AdvancedCircuitBreaker) Execute(ctx context.Context, operation func() 
 	// Record latency for adaptive timeout.
 
 	if cb.enableAdaptive {
-
 		cb.recordLatency(duration)
-
 	}
 
 	span.SetAttributes(
@@ -191,13 +183,11 @@ func (cb *AdvancedCircuitBreaker) Execute(ctx context.Context, operation func() 
 	}
 
 	return err
-
 }
 
 // allowRequest determines if a request should be allowed.
 
 func (cb *AdvancedCircuitBreaker) allowRequest() bool {
-
 	state := CircuitState(atomic.LoadInt32(&cb.state))
 
 	now := time.Now().UnixNano()
@@ -247,13 +237,11 @@ func (cb *AdvancedCircuitBreaker) allowRequest() bool {
 		return false
 
 	}
-
 }
 
 // onFailure handles failure events.
 
 func (cb *AdvancedCircuitBreaker) onFailure() {
-
 	atomic.StoreInt64(&cb.lastFailureTime, time.Now().UnixNano())
 
 	failureCount := atomic.AddInt64(&cb.failureCount, 1)
@@ -263,7 +251,6 @@ func (cb *AdvancedCircuitBreaker) onFailure() {
 	// Transition to open if threshold exceeded.
 
 	if (state == StateClosed || state == StateHalfOpen) && failureCount >= cb.failureThreshold {
-
 		if atomic.CompareAndSwapInt32(&cb.state, int32(state), int32(StateOpen)) {
 
 			atomic.StoreInt64(&cb.successCount, 0)
@@ -271,15 +258,12 @@ func (cb *AdvancedCircuitBreaker) onFailure() {
 			cb.notifyStateChange(state, StateOpen, "failure_threshold_exceeded")
 
 		}
-
 	}
-
 }
 
 // onSuccess handles success events.
 
 func (cb *AdvancedCircuitBreaker) onSuccess() {
-
 	successCount := atomic.AddInt64(&cb.successCount, 1)
 
 	state := CircuitState(atomic.LoadInt32(&cb.state))
@@ -291,7 +275,6 @@ func (cb *AdvancedCircuitBreaker) onSuccess() {
 	// Transition from half-open to closed if success threshold reached.
 
 	if state == StateHalfOpen && successCount >= cb.successThreshold {
-
 		if atomic.CompareAndSwapInt32(&cb.state, int32(StateHalfOpen), int32(StateClosed)) {
 
 			atomic.StoreInt64(&cb.successCount, 0)
@@ -299,15 +282,12 @@ func (cb *AdvancedCircuitBreaker) onSuccess() {
 			cb.notifyStateChange(StateHalfOpen, StateClosed, "success_threshold_reached")
 
 		}
-
 	}
-
 }
 
 // recordLatency records latency for adaptive timeout calculation.
 
 func (cb *AdvancedCircuitBreaker) recordLatency(duration time.Duration) {
-
 	cb.latencyMutex.Lock()
 
 	defer cb.latencyMutex.Unlock()
@@ -317,29 +297,21 @@ func (cb *AdvancedCircuitBreaker) recordLatency(duration time.Duration) {
 	// Keep only last 100 measurements.
 
 	if len(cb.latencyHistory) > 100 {
-
 		cb.latencyHistory = cb.latencyHistory[1:]
-
 	}
 
 	// Update adaptive timeout every 10 measurements.
 
 	if len(cb.latencyHistory)%10 == 0 {
-
 		cb.updateAdaptiveTimeout()
-
 	}
-
 }
 
 // updateAdaptiveTimeout calculates new adaptive timeout based on latency history.
 
 func (cb *AdvancedCircuitBreaker) updateAdaptiveTimeout() {
-
 	if len(cb.latencyHistory) < 10 {
-
 		return
-
 	}
 
 	// Calculate P95 latency.
@@ -351,17 +323,11 @@ func (cb *AdvancedCircuitBreaker) updateAdaptiveTimeout() {
 	// Simple sort for small arrays.
 
 	for i := 0; i < len(sorted); i++ {
-
 		for j := i + 1; j < len(sorted); j++ {
-
 			if sorted[i] > sorted[j] {
-
 				sorted[i], sorted[j] = sorted[j], sorted[i]
-
 			}
-
 		}
-
 	}
 
 	p95Index := int(float64(len(sorted)) * 0.95)
@@ -379,55 +345,40 @@ func (cb *AdvancedCircuitBreaker) updateAdaptiveTimeout() {
 	maxTimeout := 60 * time.Second
 
 	if newTimeout < minTimeout {
-
 		newTimeout = minTimeout
-
 	} else if newTimeout > maxTimeout {
-
 		newTimeout = maxTimeout
-
 	}
 
 	cb.adaptiveTimeout = newTimeout
-
 }
 
 // getEffectiveTimeout returns the current effective timeout.
 
 func (cb *AdvancedCircuitBreaker) getEffectiveTimeout() time.Duration {
-
 	if cb.enableAdaptive {
-
 		return cb.adaptiveTimeout
-
 	}
 
 	return cb.timeout
-
 }
 
 // GetState returns the current circuit breaker state.
 
 func (cb *AdvancedCircuitBreaker) GetState() CircuitState {
-
 	return CircuitState(atomic.LoadInt32(&cb.state))
-
 }
 
 // GetStateName returns the human-readable state name.
 
 func (cb *AdvancedCircuitBreaker) getStateName(state CircuitState) string {
-
 	return state.String()
-
 }
 
 // GetStats returns current circuit breaker statistics.
 
 func (cb *AdvancedCircuitBreaker) GetStats() CircuitBreakerStats {
-
 	return CircuitBreakerStats{
-
 		State: cb.GetState(),
 
 		StateName: cb.getStateName(cb.GetState()),
@@ -450,7 +401,6 @@ func (cb *AdvancedCircuitBreaker) GetStats() CircuitBreakerStats {
 
 		LastFailureTime: time.Unix(0, atomic.LoadInt64(&cb.lastFailureTime)),
 	}
-
 }
 
 // CircuitBreakerStats holds circuit breaker statistics.
@@ -482,19 +432,16 @@ type CircuitBreakerStats struct {
 // AddStateChangeCallback adds a callback for state changes.
 
 func (cb *AdvancedCircuitBreaker) AddStateChangeCallback(callback StateChangeCallback) {
-
 	cb.mutex.Lock()
 
 	defer cb.mutex.Unlock()
 
 	cb.stateChangeCallbacks = append(cb.stateChangeCallbacks, callback)
-
 }
 
 // notifyStateChange notifies all registered callbacks of state changes.
 
 func (cb *AdvancedCircuitBreaker) notifyStateChange(oldState, newState CircuitState, reason string) {
-
 	atomic.AddInt64(&cb.stateChanges, 1)
 
 	cb.mutex.RLock()
@@ -506,17 +453,13 @@ func (cb *AdvancedCircuitBreaker) notifyStateChange(oldState, newState CircuitSt
 	cb.mutex.RUnlock()
 
 	for _, callback := range callbacks {
-
 		go callback(oldState, newState, reason)
-
 	}
-
 }
 
 // Reset resets the circuit breaker to its initial state.
 
 func (cb *AdvancedCircuitBreaker) Reset() {
-
 	oldState := CircuitState(atomic.SwapInt32(&cb.state, int32(StateClosed)))
 
 	atomic.StoreInt64(&cb.failureCount, 0)
@@ -534,33 +477,25 @@ func (cb *AdvancedCircuitBreaker) Reset() {
 	cb.latencyMutex.Unlock()
 
 	if oldState != StateClosed {
-
 		cb.notifyStateChange(oldState, StateClosed, "manual_reset")
-
 	}
-
 }
 
 // ForceOpen forces the circuit breaker to open state.
 
 func (cb *AdvancedCircuitBreaker) ForceOpen() {
-
 	oldState := CircuitState(atomic.SwapInt32(&cb.state, int32(StateOpen)))
 
 	atomic.StoreInt64(&cb.lastFailureTime, time.Now().UnixNano())
 
 	if oldState != StateOpen {
-
 		cb.notifyStateChange(oldState, StateOpen, "forced_open")
-
 	}
-
 }
 
 // ForceClose forces the circuit breaker to closed state.
 
 func (cb *AdvancedCircuitBreaker) ForceClose() {
-
 	oldState := CircuitState(atomic.SwapInt32(&cb.state, int32(StateClosed)))
 
 	atomic.StoreInt64(&cb.failureCount, 0)
@@ -568,86 +503,56 @@ func (cb *AdvancedCircuitBreaker) ForceClose() {
 	atomic.StoreInt64(&cb.successCount, 0)
 
 	if oldState != StateClosed {
-
 		cb.notifyStateChange(oldState, StateClosed, "forced_close")
-
 	}
-
 }
 
 // UpdateTimeout updates the circuit breaker timeout.
 
 func (cb *AdvancedCircuitBreaker) UpdateTimeout(timeout time.Duration) {
-
 	if cb.enableAdaptive {
-
 		cb.adaptiveTimeout = timeout
-
 	} else {
-
 		cb.timeout = timeout
-
 	}
-
 }
 
 // IsRequestAllowed checks if a request would be allowed without executing it.
 
 func (cb *AdvancedCircuitBreaker) IsRequestAllowed() bool {
-
 	return cb.allowRequest()
-
 }
 
 // GetFailureRate returns the current failure rate.
 
 func (cb *AdvancedCircuitBreaker) GetFailureRate() float64 {
-
 	totalRequests := atomic.LoadInt64(&cb.totalRequests)
 
 	if totalRequests == 0 {
-
 		return 0
-
 	}
 
 	totalFailures := atomic.LoadInt64(&cb.totalFailures)
 
 	return float64(totalFailures) / float64(totalRequests)
-
 }
 
 // GetSuccessRate returns the current success rate.
 
 func (cb *AdvancedCircuitBreaker) GetSuccessRate() float64 {
-
 	return 1.0 - cb.GetFailureRate()
-
 }
 
 // HealthCheck performs a health check on the circuit breaker.
 
 func (cb *AdvancedCircuitBreaker) HealthCheck() map[string]interface{} {
-
 	stats := cb.GetStats()
-
+	
 	return map[string]interface{}{
-
-		"state": stats.StateName,
-
-		"healthy": stats.State == StateClosed,
-
+		"state": atomic.LoadInt32(&cb.state),
 		"failure_rate": cb.GetFailureRate(),
-
 		"success_rate": cb.GetSuccessRate(),
-
-		"concurrent_requests": stats.ConcurrentRequests,
-
-		"effective_timeout": stats.EffectiveTimeout.String(),
-
-		"total_requests": stats.TotalRequests,
-
-		"state_changes": stats.StateChanges,
+		"requests": stats.TotalRequests,
+		"failures": stats.TotalFailures,
 	}
-
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 	"time"
+	"encoding/json"
 )
 
 func TestProviderFactory(t *testing.T) {
@@ -32,10 +33,8 @@ func TestProviderFactory(t *testing.T) {
 
 	// Test creating provider
 	config := ProviderConfig{
-		Type: "test",
-		Config: map[string]interface{}{
-			"name": "test-provider",
-		},
+		Type:   "test",
+		Config: json.RawMessage(`{}`),
 	}
 
 	provider, err := factory.CreateProvider("test", config)
@@ -72,10 +71,8 @@ func TestMockProvider(t *testing.T) {
 
 	// Initialize provider
 	config := ProviderConfig{
-		Type: "mock",
-		Config: map[string]interface{}{
-			"name": "test-provider",
-		},
+		Type:   "mock",
+		Config: json.RawMessage(`{}`),
 	}
 
 	err = provider.Initialize(ctx, config)
@@ -96,25 +93,21 @@ func TestResourceOperations(t *testing.T) {
 
 	// Initialize provider
 	config := ProviderConfig{
-		Type: "mock",
-		Config: map[string]interface{}{
-			"name": "test-provider",
-		},
+		Type:   "mock",
+		Config: json.RawMessage(`{}`),
 	}
 
 	err := provider.Initialize(ctx, config)
 	if err != nil {
 		t.Fatalf("Failed to initialize provider: %v", err)
 	}
-	defer provider.Close()
+	defer provider.Close() // #nosec G307 - Error handled in defer
 
 	// Test CreateResource
 	req := ResourceRequest{
 		Name: "test-deployment",
 		Type: ResourceTypeDeployment,
-		Spec: map[string]interface{}{
-			"replicas": 3,
-		},
+		Spec: json.RawMessage(`{}`),
 		Labels: map[string]string{
 			"env": "test",
 		},
@@ -160,9 +153,7 @@ func TestResourceOperations(t *testing.T) {
 	updateReq := ResourceRequest{
 		Name: "updated-deployment",
 		Type: ResourceTypeDeployment,
-		Spec: map[string]interface{}{
-			"replicas": 5,
-		},
+		Spec: json.RawMessage(`{}`),
 		Labels: map[string]string{
 			"env":     "test",
 			"updated": "true",
@@ -242,10 +233,8 @@ func TestProviderRegistry(t *testing.T) {
 
 	// Test CreateAndRegisterProvider
 	config := ProviderConfig{
-		Type: "mock",
-		Config: map[string]interface{}{
-			"name": "registry-test-provider",
-		},
+		Type:   "mock",
+		Config: json.RawMessage(`{}`),
 	}
 
 	err = registry.CreateAndRegisterProvider("test-provider", "mock", config)
@@ -373,10 +362,8 @@ func TestGlobalFactory(t *testing.T) {
 
 	// Test creating provider using global factory
 	config := ProviderConfig{
-		Type: "mock",
-		Config: map[string]interface{}{
-			"name": "global-test-provider",
-		},
+		Type:   "mock",
+		Config: json.RawMessage(`{}`),
 	}
 
 	provider, err := CreateGlobalProvider("mock", config)

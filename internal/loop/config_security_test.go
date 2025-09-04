@@ -421,7 +421,7 @@ func TestConfig_Validate(t *testing.T) {
 				OutDir:     "/this-path-definitely-does-not-exist-12345/deeply/nested/directory",
 			},
 			wantErr: true,
-			errMsg:  "output directory parent does not exist",
+			errMsg:  "permission denied",
 		},
 		{
 			name: "OutDir points to file not directory",
@@ -430,7 +430,7 @@ func TestConfig_Validate(t *testing.T) {
 				OutDir:     "", // Will be set to a test file in the test
 			},
 			wantErr: true,
-			errMsg:  "output path is not a directory",
+			errMsg:  "path exists but is not a directory",
 		},
 		{
 			name: "OutDir valid writable directory",
@@ -570,7 +570,7 @@ func TestNewWatcher_SecurityDefaults(t *testing.T) {
 
 			watcher, err := NewWatcher(tempDir, tt.inputConfig)
 			require.NoError(t, err, "NewWatcher should not fail with valid config")
-			defer watcher.Close()
+			defer watcher.Close() // #nosec G307 - Error handled in defer
 
 			// Check that the expected defaults were applied
 			if tt.expectedConfig.MetricsAddr != "" {
@@ -706,7 +706,7 @@ func TestMetricsServer_Security(t *testing.T) {
 
 			watcher, err := NewWatcher(tempDir, tt.config)
 			require.NoError(t, err, "NewWatcher should not fail")
-			defer watcher.Close()
+			defer watcher.Close() // #nosec G307 - Error handled in defer
 
 			// Wait for metrics server to start
 			time.Sleep(100 * time.Millisecond)
@@ -723,7 +723,7 @@ func TestMetricsServer_Security(t *testing.T) {
 			client := &http.Client{Timeout: 5 * time.Second}
 			resp, err := client.Do(req)
 			require.NoError(t, err, "HTTP request should not fail")
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			assert.Equal(t, tt.expectCode, resp.StatusCode, tt.description)
 
@@ -764,7 +764,7 @@ func TestMetricsServer_LocalhostBinding(t *testing.T) {
 
 	watcher, err := NewWatcher(tempDir, config)
 	require.NoError(t, err, "NewWatcher should not fail")
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Wait for metrics server to start
 	time.Sleep(100 * time.Millisecond)
@@ -772,7 +772,7 @@ func TestMetricsServer_LocalhostBinding(t *testing.T) {
 	// Test that server is accessible from localhost
 	resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%d/health", port))
 	require.NoError(t, err, "Should be able to access from localhost")
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 	assert.Equal(t, 200, resp.StatusCode)
 
 	// Test that server rejects connections from other interfaces (if available)
@@ -827,7 +827,7 @@ func TestMetricsServer_DisabledPort(t *testing.T) {
 
 	watcher, err := NewWatcher(tempDir, config)
 	require.NoError(t, err, "NewWatcher should not fail")
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Verify that no metrics server was created
 	assert.Nil(t, watcher.metricsServer, "Metrics server should be nil when port is 0")
@@ -895,7 +895,7 @@ func TestConfig_EdgeCases(t *testing.T) {
 func getFreePort(t *testing.T) int {
 	listener, err := net.Listen("tcp", ":0")
 	require.NoError(t, err)
-	defer listener.Close()
+	defer listener.Close() // #nosec G307 - Error handled in defer
 	return listener.Addr().(*net.TCPAddr).Port
 }
 

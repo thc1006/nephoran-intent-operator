@@ -126,13 +126,10 @@ type Client struct {
 // NewClient creates a new O-RAN client.
 
 func NewClient(baseURL string, auth *AuthConfig) *Client {
-
 	return &Client{
-
 		baseURL: baseURL,
 
 		httpClient: &http.Client{
-
 			Timeout: 30 * time.Second,
 		},
 
@@ -140,5 +137,4 @@ func NewClient(baseURL string, auth *AuthConfig) *Client {
 
 		headers: make(map[string]string),
 	}
-
 }

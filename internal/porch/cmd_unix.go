@@ -20,7 +20,6 @@ import (
 // requirement when building on Linux/Unix systems.
 
 func cmdSafeQuote(args []string) string {
-
 	// On Unix systems, we shouldn't be calling Windows-specific functions,.
 
 	// but if we do reach here, just join the arguments with spaces.
@@ -30,5 +29,4 @@ func cmdSafeQuote(args []string) string {
 	// should return false on Unix systems.
 
 	return strings.Join(args, " ")
-
 }

@@ -41,15 +41,12 @@ type RetentionPolicy struct {
 // NewRetentionManager creates a new retention manager.
 
 func NewRetentionManager(config *RetentionConfig) *RetentionManager {
-
 	return &RetentionManager{config: config}
-
 }
 
 // CalculateRetentionPeriod calculates retention period based on compliance standards.
 
 func (rm *RetentionManager) CalculateRetentionPeriod(event *types.AuditEvent, standards []types.ComplianceStandard) time.Duration {
-
 	maxRetention := rm.config.DefaultRetention
 
 	for _, standard := range standards {
@@ -77,9 +74,7 @@ func (rm *RetentionManager) CalculateRetentionPeriod(event *types.AuditEvent, st
 		}
 
 		if retention > maxRetention {
-
 			maxRetention = retention
-
 		}
 
 	}
@@ -91,21 +86,17 @@ func (rm *RetentionManager) CalculateRetentionPeriod(event *types.AuditEvent, st
 		securityRetention := 7 * 365 * 24 * time.Hour
 
 		if securityRetention > maxRetention {
-
 			maxRetention = securityRetention
-
 		}
 
 	}
 
 	return maxRetention
-
 }
 
 // ApplyRetentionPolicy applies retention policy to events.
 
 func (rm *RetentionManager) ApplyRetentionPolicy(events []*types.AuditEvent, standards []types.ComplianceStandard) []*types.AuditEvent {
-
 	now := time.Now()
 
 	var retained []*types.AuditEvent
@@ -115,21 +106,17 @@ func (rm *RetentionManager) ApplyRetentionPolicy(events []*types.AuditEvent, sta
 		retentionPeriod := rm.CalculateRetentionPeriod(event, standards)
 
 		if now.Sub(event.Timestamp) <= retentionPeriod {
-
 			retained = append(retained, event)
-
 		}
 
 	}
 
 	return retained
-
 }
 
 // GetPolicyRecommendations provides retention policy recommendations.
 
 func (rm *RetentionManager) GetPolicyRecommendations(standards []types.ComplianceStandard) []RetentionPolicy {
-
 	var policies []RetentionPolicy
 
 	// Base recommendations.
@@ -152,7 +139,6 @@ func (rm *RetentionManager) GetPolicyRecommendations(standards []types.Complianc
 	// Adjust based on compliance standards.
 
 	for _, standard := range standards {
-
 		switch standard {
 
 		case types.ComplianceSOC2:
@@ -160,13 +146,9 @@ func (rm *RetentionManager) GetPolicyRecommendations(standards []types.Complianc
 			// SOC2 requires longer retention.
 
 			for i := range policies {
-
 				if policies[i].RetentionPeriod < 7*365*24*time.Hour {
-
 					policies[i].RetentionPeriod = 7 * 365 * 24 * time.Hour
-
 				}
-
 			}
 
 		case types.CompliancePCIDSS:
@@ -174,19 +156,21 @@ func (rm *RetentionManager) GetPolicyRecommendations(standards []types.Complianc
 			// PCI DSS minimum 1 year.
 
 			for i := range policies {
-
 				if policies[i].RetentionPeriod < 365*24*time.Hour {
-
 					policies[i].RetentionPeriod = 365 * 24 * time.Hour
-
 				}
-
 			}
 
 		}
-
 	}
 
 	return policies
+}
 
+// ShouldRetainEvent determines if an event should be retained based on a retention policy.
+func (rm *RetentionManager) ShouldRetainEvent(event *types.AuditEvent, policy RetentionPolicy) bool {
+	if event.EventType != policy.EventType {
+		return false
+	}
+	return time.Since(event.Timestamp) < policy.RetentionPeriod
 }

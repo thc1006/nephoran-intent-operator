@@ -589,7 +589,7 @@ func TestSecurity_PerformanceRegression(t *testing.T) {
 					test.name, avgDuration, baseline)
 			} else {
 				margin := float64(baseline-avgDuration) / float64(baseline) * 100
-				t.Logf("✓ Performance within baseline with %.1f%% margin", margin)
+				t.Logf("??Performance within baseline with %.1f%% margin", margin)
 			}
 		})
 	}
@@ -751,7 +751,7 @@ func TestSecurity_PerformanceStability(t *testing.T) {
 		if variance > maxAcceptableVariance {
 			t.Errorf("Performance is unstable: variance %v exceeds 50%% of average %v", variance, avg)
 		} else {
-			t.Logf("✓ Performance is stable over %d rounds", numRounds)
+			t.Logf("??Performance is stable over %d rounds", numRounds)
 		}
 	})
 }

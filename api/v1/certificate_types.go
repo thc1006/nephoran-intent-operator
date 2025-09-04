@@ -11,7 +11,6 @@ import (
 // CertificateAutomationSpec defines the desired state of CertificateAutomation.
 
 type CertificateAutomationSpec struct {
-
 	// ServiceName specifies the target service name.
 
 	ServiceName string `json:"serviceName"`
@@ -60,7 +59,6 @@ type CertificateAutomationSpec struct {
 // CertificateAutomationStatus defines the observed state of CertificateAutomation.
 
 type CertificateAutomationStatus struct {
-
 	// Phase represents the current phase of certificate automation.
 
 	Phase CertificateAutomationPhase `json:"phase,omitempty"`
@@ -140,7 +138,6 @@ const (
 // CertificateAutomationCondition describes the state of certificate automation.
 
 type CertificateAutomationCondition struct {
-
 	// Type of condition.
 
 	Type CertificateAutomationConditionType `json:"type"`

@@ -38,7 +38,6 @@ import (
 // ProcessingPhaseToNetworkIntentPhase converts a ProcessingPhase to NetworkIntentPhase.
 
 func ProcessingPhaseToNetworkIntentPhase(phase interfaces.ProcessingPhase) nephoranv1.NetworkIntentPhase {
-
 	switch phase {
 
 	case interfaces.PhaseIntentReceived, interfaces.PhaseReceived:
@@ -74,13 +73,11 @@ func ProcessingPhaseToNetworkIntentPhase(phase interfaces.ProcessingPhase) nepho
 		return nephoranv1.NetworkIntentPhasePending
 
 	}
-
 }
 
 // NetworkIntentPhaseToProcessingPhase converts a NetworkIntentPhase to ProcessingPhase.
 
 func NetworkIntentPhaseToProcessingPhase(phase nephoranv1.NetworkIntentPhase) interfaces.ProcessingPhase {
-
 	switch phase {
 
 	case nephoranv1.NetworkIntentPhasePending:
@@ -112,13 +109,11 @@ func NetworkIntentPhaseToProcessingPhase(phase nephoranv1.NetworkIntentPhase) in
 		return interfaces.PhaseIntentReceived
 
 	}
-
 }
 
 // StringToNetworkIntentPhase converts a string to NetworkIntentPhase with validation.
 
 func StringToNetworkIntentPhase(phase string) nephoranv1.NetworkIntentPhase {
-
 	switch phase {
 
 	case "Pending":
@@ -154,13 +149,10 @@ func StringToNetworkIntentPhase(phase string) nephoranv1.NetworkIntentPhase {
 		return nephoranv1.NetworkIntentPhasePending
 
 	}
-
 }
 
 // NetworkIntentPhaseToString converts a NetworkIntentPhase to string.
 
 func NetworkIntentPhaseToString(phase nephoranv1.NetworkIntentPhase) string {
-
 	return string(phase)
-
 }

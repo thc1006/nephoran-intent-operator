@@ -1,6 +1,9 @@
-package testutil
+package auth
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // Forward declarations and aliases to break circular dependencies.
 
@@ -67,7 +70,7 @@ type TestSession struct {
 
 	UserAgent string `json:"user_agent"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // Configuration types for testing.

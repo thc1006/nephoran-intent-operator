@@ -238,7 +238,6 @@ const (
 // CNFResources defines resource requirements for CNF.
 
 type CNFResources struct {
-
 	// CPU resource requirements.
 
 	CPU resource.Quantity `json:"cpu"`
@@ -287,7 +286,6 @@ type CNFResources struct {
 // DPDKConfig defines DPDK-specific configuration.
 
 type DPDKConfig struct {
-
 	// Enable DPDK support.
 
 	Enabled bool `json:"enabled"`
@@ -314,7 +312,6 @@ type DPDKConfig struct {
 // HelmConfig defines Helm chart configuration.
 
 type HelmConfig struct {
-
 	// Chart repository URL.
 
 	// +kubebuilder:validation:Pattern=`^https?://*`
@@ -347,7 +344,6 @@ type HelmConfig struct {
 // OperatorConfig defines operator-based deployment configuration.
 
 type OperatorConfig struct {
-
 	// Operator name.
 
 	Name string `json:"name"`
@@ -366,7 +362,6 @@ type OperatorConfig struct {
 // ServiceMeshConfig defines service mesh integration.
 
 type ServiceMeshConfig struct {
-
 	// Enable service mesh integration.
 
 	Enabled bool `json:"enabled"`
@@ -395,7 +390,6 @@ type ServiceMeshConfig struct {
 // MTLSConfig defines mutual TLS configuration.
 
 type MTLSConfig struct {
-
 	// Enable mTLS.
 
 	Enabled bool `json:"enabled"`
@@ -412,7 +406,6 @@ type MTLSConfig struct {
 // TrafficPolicy defines traffic routing policies.
 
 type TrafficPolicy struct {
-
 	// Policy name.
 
 	Name string `json:"name"`
@@ -435,7 +428,6 @@ type TrafficPolicy struct {
 // LoadBalancingConfig defines load balancing configuration.
 
 type LoadBalancingConfig struct {
-
 	// Load balancing algorithm.
 
 	// +kubebuilder:validation:Enum=round_robin;least_conn;random;ip_hash
@@ -452,7 +444,6 @@ type LoadBalancingConfig struct {
 // CNFHealthCheckConfig defines health check configuration.
 
 type CNFHealthCheckConfig struct {
-
 	// Path for HTTP health checks.
 
 	Path string `json:"path"`
@@ -489,7 +480,6 @@ type CNFHealthCheckConfig struct {
 // AutoScaling defines auto-scaling configuration.
 
 type AutoScaling struct {
-
 	// Enable auto-scaling.
 
 	Enabled bool `json:"enabled"`
@@ -536,7 +526,6 @@ type AutoScaling struct {
 // CustomMetric defines custom metrics for auto-scaling.
 
 type CustomMetric struct {
-
 	// Metric name.
 
 	Name string `json:"name"`
@@ -555,7 +544,6 @@ type CustomMetric struct {
 // CNFDeploymentSpec defines the desired state of CNFDeployment.
 
 type CNFDeploymentSpec struct {
-
 	// CNF type classification.
 
 	// +kubebuilder:validation:Required
@@ -670,7 +658,6 @@ type CNFDeploymentSpec struct {
 // MonitoringConfig defines monitoring configuration.
 
 type MonitoringConfig struct {
-
 	// Enable monitoring.
 
 	Enabled bool `json:"enabled"`
@@ -697,7 +684,6 @@ type MonitoringConfig struct {
 // PrometheusConfig defines Prometheus configuration.
 
 type PrometheusConfig struct {
-
 	// Enable Prometheus scraping.
 
 	Enabled bool `json:"enabled"`
@@ -730,7 +716,6 @@ type PrometheusConfig struct {
 // BackupConfig defines backup configuration.
 
 type BackupConfig struct {
-
 	// Enable backup.
 
 	Enabled bool `json:"enabled"`
@@ -761,7 +746,6 @@ type BackupConfig struct {
 // CNFDeploymentStatus defines the observed state of CNFDeployment.
 
 type CNFDeploymentStatus struct {
-
 	// Conditions represent the latest available observations of the deployment's state.
 
 	// +optional
@@ -811,7 +795,7 @@ type CNFDeploymentStatus struct {
 
 	// +optional
 
-	ResourceUtilization map[string]string `json:"resourceUtilization,omitempty"`
+	ResourceUtilization map[string]float64 `json:"resourceUtilization,omitempty"`
 
 	// Health status.
 
@@ -835,7 +819,6 @@ type CNFDeploymentStatus struct {
 // CNFHealthStatus defines the health status.
 
 type CNFHealthStatus struct {
-
 	// Overall health status.
 
 	// +kubebuilder:validation:Enum=Healthy;Degraded;Unhealthy;Unknown
@@ -858,7 +841,6 @@ type CNFHealthStatus struct {
 // ServiceEndpoint defines service endpoint information.
 
 type ServiceEndpoint struct {
-
 	// Service name.
 
 	Name string `json:"name"`
@@ -887,7 +869,6 @@ type ServiceEndpoint struct {
 // ServicePort defines service port information.
 
 type ServicePort struct {
-
 	// Port name.
 
 	Name string `json:"name"`
@@ -956,7 +937,6 @@ type CNFDeploymentList struct {
 // ValidateCNFDeployment validates the CNF deployment specification.
 
 func (cnf *CNFDeployment) ValidateCNFDeployment() error {
-
 	// Preallocate slice with expected capacity for performance.
 
 	errors := make([]string, 0, 4)
@@ -991,9 +971,7 @@ func (cnf *CNFDeployment) ValidateCNFDeployment() error {
 // validateFunctionCompatibility ensures CNF function is compatible with CNF type.
 func (cnf *CNFDeployment) validateFunctionCompatibility() error {
 	compatibilityMap := map[CNFType][]CNFFunction{
-
 		CNF5GCore: {
-
 			CNFFunctionAMF, CNFFunctionSMF, CNFFunctionUPF, CNFFunctionNRF,
 
 			CNFFunctionAUSF, CNFFunctionUDM, CNFFunctionPCF, CNFFunctionNSSF,
@@ -1006,7 +984,6 @@ func (cnf *CNFDeployment) validateFunctionCompatibility() error {
 		},
 
 		CNFORAN: {
-
 			CNFFunctionODU, CNFFunctionOCUCP, CNFFunctionOCUUP,
 
 			CNFFunctionNearRTRIC, CNFFunctionNonRTRIC, CNFFunctionOENB,
@@ -1017,7 +994,6 @@ func (cnf *CNFDeployment) validateFunctionCompatibility() error {
 		},
 
 		CNFEdge: {
-
 			CNFFunctionUESimulator, CNFFunctionTrafficGenerator,
 		},
 
@@ -1072,27 +1048,18 @@ func (cnf *CNFDeployment) validateDeploymentStrategy() error {
 // validateResources ensures resource requirements are properly specified.
 
 func (cnf *CNFDeployment) validateResources() error {
-
 	// Validate max resources are greater than or equal to min resources.
 
 	if cnf.Spec.Resources.MaxCPU != nil {
-
 		if cnf.Spec.Resources.MaxCPU.Cmp(cnf.Spec.Resources.CPU) < 0 {
-
 			return fmt.Errorf("maxCpu must be greater than or equal to cpu")
-
 		}
-
 	}
 
 	if cnf.Spec.Resources.MaxMemory != nil {
-
 		if cnf.Spec.Resources.MaxMemory.Cmp(cnf.Spec.Resources.Memory) < 0 {
-
 			return fmt.Errorf("maxMemory must be greater than or equal to memory")
-
 		}
-
 	}
 
 	// Validate minimum resource requirements for specific functions.
@@ -1101,9 +1068,7 @@ func (cnf *CNFDeployment) validateResources() error {
 		CPU int64 // milliCPU
 
 		Memory int64 // bytes
-
 	}{
-
 		CNFFunctionUPF: {CPU: 2000, Memory: 4 << 30}, // 2 CPU, 4Gi memory
 
 		CNFFunctionAMF: {CPU: 1000, Memory: 2 << 30}, // 1 CPU, 2Gi memory
@@ -1115,15 +1080,11 @@ func (cnf *CNFDeployment) validateResources() error {
 	if req, exists := minRequirements[cnf.Spec.Function]; exists {
 
 		if cnf.Spec.Resources.CPU.MilliValue() < req.CPU {
-
 			return fmt.Errorf("function %s requires minimum %dm CPU", cnf.Spec.Function, req.CPU)
-
 		}
 
 		if cnf.Spec.Resources.Memory.Value() < req.Memory {
-
 			return fmt.Errorf("function %s requires minimum %d bytes memory", cnf.Spec.Function, req.Memory)
-
 		}
 
 	}
@@ -1134,11 +1095,8 @@ func (cnf *CNFDeployment) validateResources() error {
 // validateAutoScaling ensures auto-scaling configuration is valid.
 
 func (cnf *CNFDeployment) validateAutoScaling() error {
-
 	if cnf.Spec.AutoScaling == nil || !cnf.Spec.AutoScaling.Enabled {
-
 		return nil
-
 	}
 
 	as := cnf.Spec.AutoScaling
@@ -1146,30 +1104,22 @@ func (cnf *CNFDeployment) validateAutoScaling() error {
 	// Validate replica counts.
 
 	if as.MaxReplicas <= as.MinReplicas {
-
 		return fmt.Errorf("maxReplicas must be greater than minReplicas")
-
 	}
 
 	if cnf.Spec.Replicas < as.MinReplicas || cnf.Spec.Replicas > as.MaxReplicas {
-
 		return fmt.Errorf("replicas must be between minReplicas and maxReplicas")
-
 	}
 
 	// Ensure at least one scaling metric is configured.
 
 	if as.CPUUtilization == nil && as.MemoryUtilization == nil && len(as.CustomMetrics) == 0 {
-
 		return fmt.Errorf("at least one scaling metric must be configured")
-
 	}
 
 	return nil
 }
 
 func init() {
-
 	SchemeBuilder.Register(&CNFDeployment{}, &CNFDeploymentList{})
-
 }

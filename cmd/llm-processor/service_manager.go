@@ -14,12 +14,14 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/auth"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/handlers"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/health"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
+	"github.com/thc1006/nephoran-intent-operator/pkg/handlers"
+	"github.com/thc1006/nephoran-intent-operator/pkg/health"
+	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 )
+
+// Note: startTime is declared in main.go to avoid duplication
 
 // ServiceManager manages the overall service lifecycle and components.
 
@@ -30,7 +32,7 @@ type ServiceManager struct {
 
 	healthChecker *health.HealthChecker
 
-	secretManager *config.SecretManager
+	secretManager config.SecretManager
 
 	oauth2Manager *auth.OAuth2Manager
 
@@ -42,13 +44,13 @@ type ServiceManager struct {
 		GetMetrics() map[string]interface{}
 	}
 
-	circuitBreakerMgr *llm.CircuitBreakerManager
+	circuitBreakerMgr llm.CircuitBreakerManagerInterface
 
-	tokenManager *llm.TokenManager
+	tokenManager llm.TokenManager
 
 	contextBuilder *llm.ContextBuilder
 
-	relevanceScorer *llm.RelevanceScorer
+	relevanceScorer llm.RelevanceScorer
 
 	promptBuilder *llm.RAGAwarePromptBuilder
 }
@@ -56,20 +58,16 @@ type ServiceManager struct {
 // NewServiceManager creates a new service manager.
 
 func NewServiceManager(config *config.LLMProcessorConfig, logger *slog.Logger) *ServiceManager {
-
 	return &ServiceManager{
-
 		config: config,
 
 		logger: logger,
 	}
-
 }
 
 // Initialize initializes all service components.
 
 func (sm *ServiceManager) Initialize(ctx context.Context) error {
-
 	// Initialize health checker.
 
 	sm.healthChecker = health.NewHealthChecker("llm-processor", sm.config.ServiceVersion, sm.logger)
@@ -77,25 +75,19 @@ func (sm *ServiceManager) Initialize(ctx context.Context) error {
 	// Initialize secret manager.
 
 	if err := sm.initializeSecretManager(); err != nil {
-
 		return fmt.Errorf("failed to initialize secret manager: %w", err)
-
 	}
 
 	// Initialize OAuth2 manager.
 
 	if err := sm.initializeOAuth2Manager(ctx); err != nil {
-
 		return fmt.Errorf("failed to initialize OAuth2 manager: %w", err)
-
 	}
 
 	// Initialize processing components.
 
 	if err := sm.initializeProcessingComponents(ctx); err != nil {
-
 		return fmt.Errorf("failed to initialize processing components: %w", err)
-
 	}
 
 	// Register health checks.
@@ -105,19 +97,16 @@ func (sm *ServiceManager) Initialize(ctx context.Context) error {
 	sm.logger.Info("Service manager initialized successfully")
 
 	return nil
-
 }
 
 // initializeSecretManager initializes the secret manager.
 
 func (sm *ServiceManager) initializeSecretManager() error {
-
 	var err error
 
 	if sm.config.UseKubernetesSecrets {
 
 		sm.secretManager, err = config.NewSecretManager(sm.config.SecretNamespace)
-
 		if err != nil {
 
 			sm.logger.Error("Failed to initialize secret manager", slog.String("error", err.Error()))
@@ -135,15 +124,12 @@ func (sm *ServiceManager) initializeSecretManager() error {
 	}
 
 	return nil
-
 }
 
 // initializeOAuth2Manager initializes the OAuth2 manager.
 
 func (sm *ServiceManager) initializeOAuth2Manager(ctx context.Context) error {
-
 	oauth2Config := &auth.OAuth2ManagerConfig{
-
 		Enabled: sm.config.AuthEnabled,
 
 		AuthConfigFile: sm.config.AuthConfigFile,
@@ -158,29 +144,22 @@ func (sm *ServiceManager) initializeOAuth2Manager(ctx context.Context) error {
 	}
 
 	if err := oauth2Config.Validate(); err != nil {
-
 		return err
-
 	}
 
 	var err error
 
 	sm.oauth2Manager, err = auth.NewOAuth2Manager(ctx, oauth2Config, sm.logger)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create OAuth2 manager: %w", err)
-
 	}
 
 	return nil
-
 }
 
 // initializeProcessingComponents initializes all LLM and RAG processing components.
 
 func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) error {
-
 	// Initialize token manager.
 
 	sm.tokenManager = llm.NewTokenManager()
@@ -192,19 +171,14 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 	// Validate configuration.
 
 	if sm.config.RAGAPIURL == "" {
-
 		return fmt.Errorf("RAG API URL is required but not configured")
-
 	}
 
 	// Load API keys securely.
 
 	apiKeys, err := sm.loadSecureAPIKeys(ctx)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to load API keys: %w", err)
-
 	}
 
 	// Use the secure API key for LLM client.
@@ -212,13 +186,10 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 	apiKey := apiKeys.OpenAI
 
 	if apiKey == "" {
-
 		apiKey = sm.config.LLMAPIKey // fallback to config
-
 	}
 
 	clientConfig := llm.ClientConfig{
-
 		APIKey: apiKey,
 
 		ModelName: sm.config.LLMModelName,
@@ -233,17 +204,13 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 	// Validate client configuration.
 
 	if err := sm.validateClientConfig(clientConfig); err != nil {
-
 		return err
-
 	}
 
 	llmClient := llm.NewClientWithConfig(sm.config.RAGAPIURL, clientConfig)
 
 	if llmClient == nil {
-
 		return fmt.Errorf("failed to create LLM client - nil client returned")
-
 	}
 
 	// Initialize supporting components.
@@ -251,9 +218,7 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 	sm.relevanceScorer = llm.NewRelevanceScorerStub()
 
 	if sm.config.EnableContextBuilder {
-
-		sm.contextBuilder = llm.NewContextBuilderStub()
-
+		sm.contextBuilder = &llm.ContextBuilder{}
 	}
 
 	sm.promptBuilder = llm.NewRAGAwarePromptBuilder(sm.tokenManager, nil)
@@ -271,11 +236,9 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 	// Initialize streaming processor if enabled.
 
 	if sm.config.StreamingEnabled {
-
 		// Use stub implementation for now.
 
-		sm.streamingProcessor = llm.NewStreamingProcessor()
-
+		sm.streamingProcessor = &llm.ConsolidatedStreamingProcessor{}
 	}
 
 	// Initialize main processor with circuit breaker.
@@ -283,7 +246,6 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 	circuitBreaker := sm.circuitBreakerMgr.GetOrCreate("llm-processor", nil)
 
 	sm.processor = &handlers.IntentProcessor{
-
 		LLMClient: llmClient,
 
 		RAGEnhancedClient: ragEnhanced,
@@ -294,52 +256,40 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 	}
 
 	return nil
-
 }
 
 // registerHealthChecks registers all health checks for the service.
 
 func (sm *ServiceManager) registerHealthChecks() {
-
 	// Internal service health checks.
 
 	sm.healthChecker.RegisterCheck("service_status", func(ctx context.Context) *health.Check {
-
 		return &health.Check{
-
 			Status: health.StatusHealthy,
 
 			Message: "Service is running normally",
 		}
-
 	})
 
 	// Circuit breaker health check.
 
 	sm.healthChecker.RegisterCheck("circuit_breaker", func(ctx context.Context) *health.Check {
-
 		if sm.circuitBreakerMgr == nil {
-
 			return &health.Check{
-
 				Status: health.StatusHealthy,
 
 				Message: "No circuit breakers registered",
 			}
-
 		}
 
 		stats := sm.circuitBreakerMgr.GetAllStats()
 
 		if len(stats) == 0 {
-
 			return &health.Check{
-
 				Status: health.StatusHealthy,
 
 				Message: "No circuit breakers registered",
 			}
-
 		}
 
 		// Check if any circuit breakers are open.
@@ -349,82 +299,58 @@ func (sm *ServiceManager) registerHealthChecks() {
 		openBreakers := make([]string, 0, len(stats))
 
 		for name, state := range stats {
-
 			if cbStats, ok := state.(map[string]interface{}); ok {
-
 				if cbState, exists := cbStats["state"]; exists && cbState == "open" {
-
 					openBreakers = append(openBreakers, name)
-
 				}
-
 			}
-
 		}
 
 		if len(openBreakers) > 0 {
-
 			return &health.Check{
-
 				Status: health.StatusUnhealthy,
 
 				Message: fmt.Sprintf("Circuit breakers in open state: %v", openBreakers),
 			}
-
 		}
 
 		return &health.Check{
-
 			Status: health.StatusHealthy,
 
 			Message: "All circuit breakers operational",
 		}
-
 	})
 
 	// Token manager health check.
 
 	if sm.tokenManager != nil {
-
 		sm.healthChecker.RegisterCheck("token_manager", func(ctx context.Context) *health.Check {
-
 			models := sm.tokenManager.GetSupportedModels()
 
 			return &health.Check{
-
 				Status: health.StatusHealthy,
 
 				Message: fmt.Sprintf("Token manager operational with %d supported models", len(models)),
 
-				Metadata: map[string]interface{}{
-
-					"supported_models": models,
-				},
+				Metadata: json.RawMessage(`{}`),
 			}
-
 		})
-
 	}
 
 	// Streaming processor health check.
 
 	if sm.streamingProcessor != nil {
-
 		sm.healthChecker.RegisterCheck("streaming_processor", func(ctx context.Context) *health.Check {
-
 			metrics := sm.streamingProcessor.GetMetrics()
 
 			return &health.Check{
-
 				Status: health.StatusHealthy,
 
 				Message: "Streaming processor operational",
 
 				Metadata: metrics,
 			}
-
 		})
-
 	}
 
 	// RAG API dependency check with smart endpoint detection.
@@ -438,19 +364,15 @@ func (sm *ServiceManager) registerHealthChecks() {
 	}
 
 	sm.logger.Info("Health checks registered")
-
 }
 
 // loadSecureAPIKeys loads API keys from Kubernetes secrets or environment variables.
 
 func (sm *ServiceManager) loadSecureAPIKeys(ctx context.Context) (*config.APIKeys, error) {
-
 	if sm.secretManager == nil {
-
 		// Fall back to environment variables.
 
 		return &config.APIKeys{
-
 			OpenAI: getEnvString("OPENAI_API_KEY", ""),
 
 			Weaviate: getEnvString("WEAVIATE_API_KEY", ""),
@@ -459,49 +381,36 @@ func (sm *ServiceManager) loadSecureAPIKeys(ctx context.Context) (*config.APIKey
 
 			JWTSecret: getEnvString("JWT_SECRET_KEY", ""),
 		}, nil
-
 	}
 
 	return sm.secretManager.GetAPIKeys(ctx)
-
 }
 
 // validateClientConfig validates the LLM client configuration.
 
 func (sm *ServiceManager) validateClientConfig(config llm.ClientConfig) error {
-
 	if config.APIKey == "" && config.BackendType != "mock" {
-
 		return fmt.Errorf("API Key is required for non-mock backends")
-
 	}
 
 	if config.ModelName == "" {
-
 		return fmt.Errorf("model name is required")
-
 	}
 
 	if config.MaxTokens <= 0 {
-
 		return fmt.Errorf("max tokens must be greater than 0")
-
 	}
 
 	if config.Timeout <= 0 {
-
 		return fmt.Errorf("timeout must be greater than 0")
-
 	}
 
 	return nil
-
 }
 
 // CreateRouter creates and configures the HTTP router.
 
 func (sm *ServiceManager) CreateRouter() *mux.Router {
-
 	router := mux.NewRouter()
 
 	// Setup OAuth2 routes.
@@ -519,7 +428,6 @@ func (sm *ServiceManager) CreateRouter() *mux.Router {
 	// Setup protected/unprotected routes based on configuration.
 
 	handlers := &auth.RouteHandlers{
-
 		ProcessIntent: sm.processIntentHandler,
 
 		Status: sm.statusHandler,
@@ -530,23 +438,18 @@ func (sm *ServiceManager) CreateRouter() *mux.Router {
 	}
 
 	if sm.config.StreamingEnabled {
-
 		handlers.StreamingHandler = sm.streamingHandler
-
 	}
 
 	sm.oauth2Manager.ConfigureProtectedRoutes(router, handlers)
 
 	return router
-
 }
 
 // CreateServer creates the HTTP server.
 
 func (sm *ServiceManager) CreateServer(router *mux.Router) *http.Server {
-
 	return &http.Server{
-
 		Addr: ":" + sm.config.Port,
 
 		Handler: router,
@@ -557,47 +460,36 @@ func (sm *ServiceManager) CreateServer(router *mux.Router) *http.Server {
 
 		IdleTimeout: 2 * time.Minute,
 	}
-
 }
 
 // MarkReady marks the service as ready.
 
 func (sm *ServiceManager) MarkReady() {
-
 	sm.healthChecker.SetReady(true)
-
 }
 
 // MarkNotReady marks the service as not ready.
 
 func (sm *ServiceManager) MarkNotReady() {
-
 	sm.healthChecker.SetReady(false)
-
 }
 
 // GetHealthChecker returns the health checker.
 
 func (sm *ServiceManager) GetHealthChecker() *health.HealthChecker {
-
 	return sm.healthChecker
-
 }
 
 // GetOAuth2Manager returns the OAuth2 manager.
 
 func (sm *ServiceManager) GetOAuth2Manager() *auth.OAuth2Manager {
-
 	return sm.oauth2Manager
-
 }
 
 // GetProcessor returns the intent processor.
 
 func (sm *ServiceManager) GetProcessor() *handlers.IntentProcessor {
-
 	return sm.processor
-
 }
 
 // GetStreamingProcessor returns the streaming processor.
@@ -607,31 +499,23 @@ func (sm *ServiceManager) GetStreamingProcessor() interface {
 
 	GetMetrics() map[string]interface{}
 } {
-
 	return sm.streamingProcessor
-
 }
 
 // GetCircuitBreakerMgr returns the circuit breaker manager.
 
-func (sm *ServiceManager) GetCircuitBreakerMgr() *llm.CircuitBreakerManager {
-
+func (sm *ServiceManager) GetCircuitBreakerMgr() llm.CircuitBreakerManagerInterface {
 	return sm.circuitBreakerMgr
-
 }
 
 // getEnvString gets a string environment variable with a default value.
 
 func getEnvString(key, defaultValue string) string {
-
 	if value := os.Getenv(key); value != "" {
-
 		return value
-
 	}
 
 	return defaultValue
-
 }
 
 // HTTP Handlers.
@@ -639,7 +523,6 @@ func getEnvString(key, defaultValue string) string {
 // processIntentHandler handles intent processing requests.
 
 func (sm *ServiceManager) processIntentHandler(w http.ResponseWriter, r *http.Request) {
-
 	if r.Method != http.MethodPost {
 
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -679,7 +562,6 @@ func (sm *ServiceManager) processIntentHandler(w http.ResponseWriter, r *http.Re
 	// Process intent.
 
 	result, err := sm.processor.ProcessIntent(r.Context(), req.Intent, req.Metadata)
-
 	if err != nil {
 
 		sm.logger.Error("Failed to process intent",
@@ -690,7 +572,6 @@ func (sm *ServiceManager) processIntentHandler(w http.ResponseWriter, r *http.Re
 		)
 
 		response := handlers.ProcessIntentResponse{
-
 			Status: "error",
 
 			Error: err.Error(),
@@ -721,7 +602,6 @@ func (sm *ServiceManager) processIntentHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	response := handlers.ProcessIntentResponse{
-
 		Result: result.Result,
 
 		Status: "success",
@@ -751,35 +631,12 @@ func (sm *ServiceManager) processIntentHandler(w http.ResponseWriter, r *http.Re
 
 		slog.Duration("processing_time", time.Since(startTime)),
 	)
-
 }
 
 // statusHandler provides service status information.
 
 func (sm *ServiceManager) statusHandler(w http.ResponseWriter, r *http.Request) {
-
-	status := map[string]interface{}{
-
-		"service": "llm-processor",
-
-		"version": sm.config.ServiceVersion,
-
-		"uptime": time.Since(startTime).String(),
-
-		"healthy": sm.healthChecker.IsHealthy(),
-
-		"ready": sm.healthChecker.IsReady(),
-
-		"backend_type": sm.config.LLMBackendType,
-
-		"model": sm.config.LLMModelName,
-
-		"rag_enabled": sm.config.RAGEnabled,
-
-		"authentication": sm.oauth2Manager.GetAuthenticationInfo(),
-
-		"timestamp": time.Now().UTC().Format(time.RFC3339),
-	}
+	status := json.RawMessage(`{}`)
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -792,68 +649,47 @@ func (sm *ServiceManager) statusHandler(w http.ResponseWriter, r *http.Request) 
 		return
 
 	}
-
 }
 
 // metricsHandler provides comprehensive metrics.
 
 func (sm *ServiceManager) metricsHandler(w http.ResponseWriter, r *http.Request) {
-
-	metrics := map[string]interface{}{
-
-		"service": "llm-processor",
-
-		"version": sm.config.ServiceVersion,
-
-		"uptime": time.Since(startTime).String(),
-	}
+	metrics := make(map[string]interface{})
 
 	// Add token manager metrics.
 
 	if sm.tokenManager != nil {
-
 		metrics["supported_models"] = sm.tokenManager.GetSupportedModels()
-
 	}
 
 	// Add circuit breaker metrics.
 
 	if sm.circuitBreakerMgr != nil {
-
 		metrics["circuit_breakers"] = sm.circuitBreakerMgr.GetAllStats()
-
 	}
 
 	// Add streaming metrics.
 
 	if sm.streamingProcessor != nil {
-
 		metrics["streaming"] = sm.streamingProcessor.GetMetrics()
-
 	}
 
 	// Add context builder metrics.
 
 	if sm.contextBuilder != nil {
-
 		metrics["context_builder"] = sm.contextBuilder.GetMetrics()
-
 	}
 
 	// Add relevance scorer metrics.
 
 	if sm.relevanceScorer != nil {
-
 		metrics["relevance_scorer"] = sm.relevanceScorer.GetMetrics()
-
 	}
 
 	// Add prompt builder metrics.
 
 	if sm.promptBuilder != nil {
-
 		metrics["prompt_builder"] = sm.promptBuilder.GetMetrics()
-
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -867,13 +703,11 @@ func (sm *ServiceManager) metricsHandler(w http.ResponseWriter, r *http.Request)
 		return
 
 	}
-
 }
 
 // streamingHandler handles Server-Sent Events streaming requests.
 
 func (sm *ServiceManager) streamingHandler(w http.ResponseWriter, r *http.Request) {
-
 	if r.Method != http.MethodPost {
 
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -913,15 +747,11 @@ func (sm *ServiceManager) streamingHandler(w http.ResponseWriter, r *http.Reques
 	// Set defaults.
 
 	if req.ModelName == "" {
-
 		req.ModelName = sm.config.LLMModelName
-
 	}
 
 	if req.MaxTokens == 0 {
-
 		req.MaxTokens = sm.config.LLMMaxTokens
-
 	}
 
 	sm.logger.Info("Starting streaming request",
@@ -934,21 +764,16 @@ func (sm *ServiceManager) streamingHandler(w http.ResponseWriter, r *http.Reques
 	)
 
 	err := sm.streamingProcessor.HandleStreamingRequest(w, r, &req)
-
 	if err != nil {
-
 		sm.logger.Error("Streaming request failed", slog.String("error", err.Error()))
 
 		// Error handling is done within HandleStreamingRequest.
-
 	}
-
 }
 
 // circuitBreakerStatusHandler provides circuit breaker status and controls.
 
 func (sm *ServiceManager) circuitBreakerStatusHandler(w http.ResponseWriter, r *http.Request) {
-
 	if sm.circuitBreakerMgr == nil {
 
 		http.Error(w, "Circuit breaker manager not available", http.StatusServiceUnavailable)
@@ -1038,5 +863,5 @@ func (sm *ServiceManager) circuitBreakerStatusHandler(w http.ResponseWriter, r *
 		return
 
 	}
-
 }
+

@@ -554,44 +554,54 @@ func getDefaultGPUConfig() *GPUAcceleratorConfig {
 
 // Type definitions and placeholder implementations
 
-type GPUAcceleratorState int
-type DeviceSelectionStrategy int
-type ModelEvictionPolicy int
-type ModelPreloadPolicy int
-type ModelCompressionPolicy int
-type BatchingStrategy int
-type PaddingStrategy int
-type SortingStrategy int
+type (
+	GPUAcceleratorState     int
+	DeviceSelectionStrategy int
+	ModelEvictionPolicy     int
+	ModelPreloadPolicy      int
+	ModelCompressionPolicy  int
+	BatchingStrategy        int
+	PaddingStrategy         int
+	SortingStrategy         int
+)
 
 type CUDAContext interface {
 	Destroy() error
 }
 
-type CUDAStreamPool struct{}
-type ModelLoader struct{}
-type InferenceModelManager struct{}
-type GPURequestQueue struct{}
-type GPUPerformanceOptimizer struct{}
-type GPUWorkloadScheduler struct{}
-type GPULoadBalancer struct{}
-type MemoryChunkPool struct{}
+type (
+	CUDAStreamPool          struct{}
+	ModelLoader             struct{}
+	InferenceModelManager   struct{}
+	GPURequestQueue         struct{}
+	GPUPerformanceOptimizer struct{}
+	GPUWorkloadScheduler    struct{}
+	GPULoadBalancer         struct{}
+	MemoryChunkPool         struct{}
+)
 
-type GPUGCTrigger struct{}
-type MemoryPoolStats struct{}
-type ModelL1Cache struct{}
-type ModelL2Cache struct{}
-type ModelL3Cache struct{}
+type (
+	GPUGCTrigger    struct{}
+	MemoryPoolStats struct{}
+	ModelL1Cache    struct{}
+	ModelL2Cache    struct{}
+	ModelL3Cache    struct{}
+)
 
 type ModelPreloader struct{}
 
-type ModelRequestQueue struct{}
-type ThroughputOptimizer struct{}
-type LatencyOptimizer struct{}
-type BatchProcessingMetrics struct{}
-type MemoryChunk struct{}
+type (
+	ModelRequestQueue      struct{}
+	ThroughputOptimizer    struct{}
+	LatencyOptimizer       struct{}
+	BatchProcessingMetrics struct{}
+	MemoryChunk            struct{}
+)
 
-type GPUMemoryPoolConfig struct{}
-type ModelCacheConfig struct{}
+type (
+	GPUMemoryPoolConfig struct{}
+	ModelCacheConfig    struct{}
+)
 
 type InferenceRequest struct {
 	ModelName   string
@@ -625,6 +635,7 @@ const (
 
 // Placeholder methods
 func getDeviceSelectionStrategy(strategy string) DeviceSelectionStrategy { return 0 }
+
 func NewGPUMemoryPool(config GPUMemoryPoolConfig) (*GPUMemoryPool, error) {
 	return &GPUMemoryPool{}, nil
 }
@@ -632,9 +643,11 @@ func NewGPUModelCache(config ModelCacheConfig) (*GPUModelCache, error) { return 
 func NewGPUBatchProcessor(config BatchProcessorConfig) (*GPUBatchProcessor, error) {
 	return &GPUBatchProcessor{}, nil
 }
+
 func NewGPUPerformanceOptimizer(ga *GPUAccelerator) *GPUPerformanceOptimizer {
 	return &GPUPerformanceOptimizer{}
 }
+
 func NewGPUWorkloadScheduler(ga *GPUAccelerator) *GPUWorkloadScheduler {
 	return &GPUWorkloadScheduler{}
 }
@@ -642,18 +655,23 @@ func NewGPUWorkloadScheduler(ga *GPUAccelerator) *GPUWorkloadScheduler {
 func (dp *GPUDevicePool) SelectDevice(request *InferenceRequest) (*GPUDevice, error) {
 	return dp.devices[0], nil
 }
+
 func (ga *GPUAccelerator) ensureModelLoaded(ctx context.Context, modelName string, device *GPUDevice) (interface{}, error) {
 	return nil, nil
 }
+
 func (ga *GPUAccelerator) prepareInputTensors(request *InferenceRequest, device *GPUDevice) (interface{}, error) {
 	return nil, nil
 }
+
 func (ga *GPUAccelerator) executeInference(ctx context.Context, model, inputTensors interface{}, device *GPUDevice) (interface{}, error) {
 	return nil, nil
 }
+
 func (ga *GPUAccelerator) processOutput(outputTensors interface{}, request *InferenceRequest) (*InferenceResponse, error) {
 	return &InferenceResponse{}, nil
 }
+
 func (ga *GPUAccelerator) processSequentially(ctx context.Context, requests []*InferenceRequest) ([]*InferenceResponse, error) {
 	return nil, nil
 }

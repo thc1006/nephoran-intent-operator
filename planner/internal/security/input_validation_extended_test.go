@@ -113,7 +113,7 @@ func TestKMPDataValidation_EdgeCases(t *testing.T) {
 			name: "node ID with emoji",
 			data: rules.KPMData{
 				Timestamp:       time.Now(),
-				NodeID:          "node-🚀-001",
+				NodeID:          "node-??-001",
 				PRBUtilization:  0.5,
 				P95Latency:      100.0,
 				ActiveUEs:       50,

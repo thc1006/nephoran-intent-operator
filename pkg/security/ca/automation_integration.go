@@ -28,7 +28,6 @@ type AutomationIntegration struct {
 // AutomationIntegrationConfig configures the automation integration.
 
 type AutomationIntegrationConfig struct {
-
 	// CA Manager configuration.
 
 	CAManagerConfig *Config `yaml:"ca_manager"`
@@ -65,43 +64,31 @@ type AutomationIntegrationConfig struct {
 // NewAutomationIntegration creates a new automation integration.
 
 func NewAutomationIntegration(
-
 	mgr manager.Manager,
 
 	logger *logging.StructuredLogger,
 
 	config *AutomationIntegrationConfig,
-
 ) (*AutomationIntegration, error) {
-
 	if config == nil {
-
 		return nil, fmt.Errorf("integration config is required")
-
 	}
 
 	// Set defaults.
 
 	if config.MaxConcurrentOperations == 0 {
-
 		config.MaxConcurrentOperations = 50
-
 	}
 
 	if config.OperationTimeout == 0 {
-
 		config.OperationTimeout = 5 * time.Minute
-
 	}
 
 	if config.HealthCheckInterval == 0 {
-
 		config.HealthCheckInterval = 30 * time.Second
-
 	}
 
 	integration := &AutomationIntegration{
-
 		manager: mgr,
 
 		logger: logger,
@@ -110,97 +97,71 @@ func NewAutomationIntegration(
 	}
 
 	return integration, nil
-
 }
 
 // Initialize initializes all components of the automation integration.
 
 func (ai *AutomationIntegration) Initialize(ctx context.Context) error {
-
 	ai.logger.Info("initializing certificate automation integration")
 
 	// Initialize CA Manager.
 
 	if err := ai.initializeCAManager(); err != nil {
-
 		return fmt.Errorf("failed to initialize CA manager: %w", err)
-
 	}
 
 	// Initialize Automation Engine.
 
 	if err := ai.initializeAutomationEngine(); err != nil {
-
 		return fmt.Errorf("failed to initialize automation engine: %w", err)
-
 	}
 
 	// Setup Kubernetes controllers if enabled.
 
 	if ai.config.EnableKubernetesIntegration {
-
 		if err := ai.setupKubernetesControllers(); err != nil {
-
 			return fmt.Errorf("failed to setup Kubernetes controllers: %w", err)
-
 		}
-
 	}
 
 	// Setup monitoring integration if enabled.
 
 	if ai.config.EnableMonitoringIntegration {
-
 		if err := ai.setupMonitoringIntegration(); err != nil {
-
 			return fmt.Errorf("failed to setup monitoring integration: %w", err)
-
 		}
-
 	}
 
 	// Setup alerting integration if enabled.
 
 	if ai.config.EnableAlertingIntegration {
-
 		if err := ai.setupAlertingIntegration(); err != nil {
-
 			return fmt.Errorf("failed to setup alerting integration: %w", err)
-
 		}
-
 	}
 
 	ai.logger.Info("certificate automation integration initialized successfully")
 
 	return nil
-
 }
 
 // Start starts the automation integration.
 
 func (ai *AutomationIntegration) Start(ctx context.Context) error {
-
 	ai.logger.Info("starting certificate automation integration")
 
 	// Start CA Manager background processes.
 
 	go func() {
-
 		ai.caManager.runCertificateLifecycleManager()
-
 	}()
 
 	// Start Automation Engine.
 
 	go func() {
-
 		if err := ai.automationEngine.Start(ctx); err != nil {
-
 			ai.logger.Error("automation engine error", "error", err)
-
 		}
-
 	}()
 
 	// Start health checking.
@@ -214,63 +175,44 @@ func (ai *AutomationIntegration) Start(ctx context.Context) error {
 	ai.logger.Info("certificate automation integration stopped")
 
 	return nil
-
 }
 
 // Stop stops the automation integration.
 
 func (ai *AutomationIntegration) Stop() error {
-
 	ai.logger.Info("stopping certificate automation integration")
 
 	// Stop automation engine.
 
 	if ai.automationEngine != nil {
-
 		ai.automationEngine.Stop()
-
 	}
 
 	// Stop CA manager.
 
 	if ai.caManager != nil {
-
 		ai.caManager.Close()
-
 	}
 
 	return nil
-
 }
 
 // GetCAManager returns the CA manager instance.
 
 func (ai *AutomationIntegration) GetCAManager() *CAManager {
-
 	return ai.caManager
-
 }
 
 // GetAutomationEngine returns the automation engine instance.
 
 func (ai *AutomationIntegration) GetAutomationEngine() *AutomationEngine {
-
 	return ai.automationEngine
-
 }
 
 // GetHealthStatus returns the overall health status.
 
 func (ai *AutomationIntegration) GetHealthStatus() map[string]interface{} {
-
-	status := map[string]interface{}{
-
-		"healthy": true,
-
-		"timestamp": time.Now().Format(time.RFC3339),
-
-		"components": map[string]interface{}{},
-	}
+	status := make(map[string]interface{})
 
 	// Check CA Manager health.
 
@@ -279,16 +221,12 @@ func (ai *AutomationIntegration) GetHealthStatus() map[string]interface{} {
 		caHealth := ai.caManager.HealthCheck(context.Background())
 
 		caStatus := map[string]interface{}{
-
 			"healthy": len(caHealth) == 0,
-
-			"backends": caHealth,
+			"errors": caHealth,
 		}
 
 		if len(caHealth) > 0 {
-
 			status["healthy"] = false
-
 		}
 
 		status["components"].(map[string]interface{})["ca_manager"] = caStatus
@@ -300,12 +238,7 @@ func (ai *AutomationIntegration) GetHealthStatus() map[string]interface{} {
 	if ai.automationEngine != nil {
 
 		engineStatus := map[string]interface{}{
-
-			"healthy": true,
-
-			"provisioning_queue": ai.automationEngine.GetProvisioningQueueSize(),
-
-			"renewal_queue": ai.automationEngine.GetRenewalQueueSize(),
+			"running": ai.automationEngine.IsRunning(),
 		}
 
 		status["components"].(map[string]interface{})["automation_engine"] = engineStatus
@@ -313,60 +246,35 @@ func (ai *AutomationIntegration) GetHealthStatus() map[string]interface{} {
 	}
 
 	return status
-
 }
 
 // GetMetrics returns integration metrics.
 
 func (ai *AutomationIntegration) GetMetrics() map[string]interface{} {
-
 	metrics := map[string]interface{}{
-
-		"timestamp": time.Now().Format(time.RFC3339),
-
-		"ca_manager": map[string]interface{}{},
-
-		"automation_engine": map[string]interface{}{},
+		"automation_engine": make(map[string]interface{}),
 	}
 
 	// Add CA Manager metrics if available.
 
 	if ai.caManager != nil && ai.caManager.monitor != nil {
-
 		// This would collect CA manager metrics.
 
-		metrics["ca_manager"] = map[string]interface{}{
-
-			"certificates_issued": 0, // Placeholder
-
-			"certificates_revoked": 0, // Placeholder
-
-			"backend_health": map[string]bool{},
-		}
-
+		metrics["ca_manager"] = make(map[string]interface{})
 	}
 
 	// Add Automation Engine metrics.
 
 	if ai.automationEngine != nil {
-
-		metrics["automation_engine"] = map[string]interface{}{
-
-			"provisioning_queue_size": ai.automationEngine.GetProvisioningQueueSize(),
-
-			"renewal_queue_size": ai.automationEngine.GetRenewalQueueSize(),
-		}
-
+		metrics["automation_engine"] = make(map[string]interface{})
 	}
 
 	return metrics
-
 }
 
 // Emergency procedures for incident response.
 
 func (ai *AutomationIntegration) EmergencyRevokeCertificate(ctx context.Context, serialNumber string, reason int) error {
-
 	ai.logger.Warn("emergency certificate revocation initiated",
 
 		"serial_number", serialNumber,
@@ -374,9 +282,7 @@ func (ai *AutomationIntegration) EmergencyRevokeCertificate(ctx context.Context,
 		"reason", reason)
 
 	if ai.caManager == nil {
-
 		return fmt.Errorf("CA manager not available for emergency revocation")
-
 	}
 
 	if err := ai.caManager.RevokeCertificate(ctx, serialNumber, reason, "emergency"); err != nil {
@@ -396,13 +302,11 @@ func (ai *AutomationIntegration) EmergencyRevokeCertificate(ctx context.Context,
 		"serial_number", serialNumber)
 
 	return nil
-
 }
 
 // BulkRevokeCertificates revokes multiple certificates (emergency procedure).
 
 func (ai *AutomationIntegration) BulkRevokeCertificates(ctx context.Context, serialNumbers []string, reason int) error {
-
 	ai.logger.Warn("bulk certificate revocation initiated",
 
 		"count", len(serialNumbers),
@@ -410,9 +314,7 @@ func (ai *AutomationIntegration) BulkRevokeCertificates(ctx context.Context, ser
 		"reason", reason)
 
 	if ai.caManager == nil {
-
 		return fmt.Errorf("CA manager not available for bulk revocation")
-
 	}
 
 	errors := []string{}
@@ -420,7 +322,6 @@ func (ai *AutomationIntegration) BulkRevokeCertificates(ctx context.Context, ser
 	successCount := 0
 
 	for _, serialNumber := range serialNumbers {
-
 		if err := ai.caManager.RevokeCertificate(ctx, serialNumber, reason, "bulk_emergency"); err != nil {
 
 			ai.logger.Error("bulk revocation failed for certificate",
@@ -432,11 +333,8 @@ func (ai *AutomationIntegration) BulkRevokeCertificates(ctx context.Context, ser
 			errors = append(errors, fmt.Sprintf("%s: %v", serialNumber, err))
 
 		} else {
-
 			successCount++
-
 		}
-
 	}
 
 	ai.logger.Info("bulk certificate revocation completed",
@@ -448,51 +346,37 @@ func (ai *AutomationIntegration) BulkRevokeCertificates(ctx context.Context, ser
 		"failed", len(errors))
 
 	if len(errors) > 0 {
-
 		return fmt.Errorf("bulk revocation partially failed: %v", errors)
-
 	}
 
 	return nil
-
 }
 
 // Internal initialization methods.
 
 func (ai *AutomationIntegration) initializeCAManager() error {
-
 	ai.logger.Info("initializing CA manager")
 
 	caManager, err := NewCAManager(ai.config.CAManagerConfig, ai.logger, ai.manager.GetClient())
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create CA manager: %w", err)
-
 	}
 
 	ai.caManager = caManager
 
 	return nil
-
 }
 
 func (ai *AutomationIntegration) initializeAutomationEngine() error {
-
 	ai.logger.Info("initializing automation engine")
 
 	if ai.caManager == nil {
-
 		return fmt.Errorf("CA manager must be initialized before automation engine")
-
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(ai.manager.GetConfig())
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create kubernetes client: %w", err)
-
 	}
 
 	automationEngine, err := NewAutomationEngine(
@@ -507,21 +391,16 @@ func (ai *AutomationIntegration) initializeAutomationEngine() error {
 
 		ai.manager.GetClient(),
 	)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create automation engine: %w", err)
-
 	}
 
 	ai.automationEngine = automationEngine
 
 	return nil
-
 }
 
 func (ai *AutomationIntegration) setupKubernetesControllers() error {
-
 	ai.logger.Info("setting up Kubernetes controllers")
 
 	// This would setup the CertificateAutomationReconciler and other controllers.
@@ -529,11 +408,9 @@ func (ai *AutomationIntegration) setupKubernetesControllers() error {
 	// Implementation would register controllers with the manager.
 
 	return nil
-
 }
 
 func (ai *AutomationIntegration) setupMonitoringIntegration() error {
-
 	ai.logger.Info("setting up monitoring integration")
 
 	// This would integrate with existing Prometheus/Grafana monitoring.
@@ -541,11 +418,9 @@ func (ai *AutomationIntegration) setupMonitoringIntegration() error {
 	// Implementation would expose metrics endpoints and dashboards.
 
 	return nil
-
 }
 
 func (ai *AutomationIntegration) setupAlertingIntegration() error {
-
 	ai.logger.Info("setting up alerting integration")
 
 	// This would integrate with existing alerting systems.
@@ -553,17 +428,14 @@ func (ai *AutomationIntegration) setupAlertingIntegration() error {
 	// Implementation would configure alert rules and notification channels.
 
 	return nil
-
 }
 
 func (ai *AutomationIntegration) runHealthChecks(ctx context.Context) {
-
 	ticker := time.NewTicker(ai.config.HealthCheckInterval)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -575,13 +447,10 @@ func (ai *AutomationIntegration) runHealthChecks(ctx context.Context) {
 			ai.performHealthChecks()
 
 		}
-
 	}
-
 }
 
 func (ai *AutomationIntegration) performHealthChecks() {
-
 	status := ai.GetHealthStatus()
 
 	if !status["healthy"].(bool) {
@@ -593,35 +462,25 @@ func (ai *AutomationIntegration) performHealthChecks() {
 		// Trigger alerts if configured.
 
 		if ai.config.EnableAlertingIntegration {
-
 			ai.triggerHealthAlert(status)
-
 		}
 
 	} else {
-
 		ai.logger.Debug("certificate automation integration health check passed")
-
 	}
-
 }
 
 func (ai *AutomationIntegration) triggerHealthAlert(status map[string]interface{}) {
-
 	// This would trigger health-related alerts.
 
 	ai.logger.Warn("health alert triggered", "status", status)
-
 }
 
 // Default configuration factory.
 
 func NewDefaultAutomationIntegrationConfig() *AutomationIntegrationConfig {
-
 	return &AutomationIntegrationConfig{
-
 		CAManagerConfig: &Config{
-
 			DefaultBackend: BackendSelfSigned,
 
 			BackendConfigs: make(map[CABackendType]interface{}),
@@ -645,7 +504,6 @@ func NewDefaultAutomationIntegrationConfig() *AutomationIntegrationConfig {
 			AutoRotationEnabled: true,
 
 			CertificateStore: &CertificateStoreConfig{
-
 				Type: "kubernetes",
 
 				Namespace: "nephoran-system",
@@ -660,7 +518,6 @@ func NewDefaultAutomationIntegrationConfig() *AutomationIntegrationConfig {
 			},
 
 			MonitoringConfig: &MonitoringConfig{
-
 				Enabled: true,
 
 				HealthCheckInterval: 30 * time.Second,
@@ -674,7 +531,6 @@ func NewDefaultAutomationIntegrationConfig() *AutomationIntegrationConfig {
 		},
 
 		AutomationConfig: &AutomationConfig{
-
 			ServiceDiscoveryEnabled: true,
 
 			DiscoveryInterval: 5 * time.Minute,
@@ -734,5 +590,5 @@ func NewDefaultAutomationIntegrationConfig() *AutomationIntegrationConfig {
 
 		EnableAuditLogging: true,
 	}
-
 }
+

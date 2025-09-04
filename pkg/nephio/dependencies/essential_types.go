@@ -19,7 +19,9 @@ limitations under the License.
 package dependencies
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"time"
 
@@ -209,7 +211,7 @@ type PackageReference struct {
 	Version           string                 `json:"version,omitempty"`
 	VersionConstraint *VersionConstraint     `json:"versionConstraint,omitempty"`
 	Source            PackageSource          `json:"source,omitempty"`
-	Metadata          map[string]interface{} `json:"metadata,omitempty"`
+	Metadata          json.RawMessage `json:"metadata,omitempty"`
 }
 
 type VersionConstraint struct {

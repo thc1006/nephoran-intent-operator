@@ -2,7 +2,6 @@ package llm
 
 import (
 	"os"
-	"sync"
 	"testing"
 	"time"
 
@@ -12,7 +11,7 @@ import (
 
 // Simple test for prometheus metrics without full integration
 func TestPrometheusMetricsBasic(t *testing.T) {
-	// Save and restore original environment
+	// Save and restore original environment and test state
 	originalEnv := os.Getenv("METRICS_ENABLED")
 	defer func() {
 		if originalEnv == "" {
@@ -20,7 +19,12 @@ func TestPrometheusMetricsBasic(t *testing.T) {
 		} else {
 			os.Setenv("METRICS_ENABLED", originalEnv)
 		}
+		// Reset test mode
+		SetTestMode(false)
 	}()
+
+	// Enable test mode for all subtests
+	SetTestMode(true)
 
 	t.Run("metrics disabled by default", func(t *testing.T) {
 		os.Unsetenv("METRICS_ENABLED")
@@ -33,9 +37,8 @@ func TestPrometheusMetricsBasic(t *testing.T) {
 	})
 
 	t.Run("metrics creation respects environment variable", func(t *testing.T) {
-		// Reset singleton
-		prometheusOnce = sync.Once{}
-		prometheusMetrics = nil
+		// Reset test registry
+		ResetMetricsForTest()
 
 		// Test with metrics disabled
 		os.Setenv("METRICS_ENABLED", "false")
@@ -43,9 +46,8 @@ func TestPrometheusMetricsBasic(t *testing.T) {
 		assert.NotNil(t, pm)
 		assert.False(t, pm.isRegistered())
 
-		// Reset singleton
-		prometheusOnce = sync.Once{}
-		prometheusMetrics = nil
+		// Reset test registry
+		ResetMetricsForTest()
 
 		// Test with metrics enabled
 		os.Setenv("METRICS_ENABLED", "true")
@@ -55,9 +57,8 @@ func TestPrometheusMetricsBasic(t *testing.T) {
 	})
 
 	t.Run("prometheus metrics recording with disabled metrics", func(t *testing.T) {
-		// Reset singleton
-		prometheusOnce = sync.Once{}
-		prometheusMetrics = nil
+		// Reset test registry
+		ResetMetricsForTest()
 
 		os.Setenv("METRICS_ENABLED", "false")
 		pm := NewPrometheusMetrics()
@@ -73,9 +74,8 @@ func TestPrometheusMetricsBasic(t *testing.T) {
 	})
 
 	t.Run("prometheus metrics recording with enabled metrics", func(t *testing.T) {
-		// Reset singleton
-		prometheusOnce = sync.Once{}
-		prometheusMetrics = nil
+		// Reset test registry
+		ResetMetricsForTest()
 
 		os.Setenv("METRICS_ENABLED", "true")
 		pm := NewPrometheusMetrics()

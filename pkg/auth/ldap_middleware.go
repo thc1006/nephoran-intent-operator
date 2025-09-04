@@ -31,7 +31,6 @@ type LDAPAuthMiddleware struct {
 // LDAPMiddlewareConfig represents LDAP middleware configuration.
 
 type LDAPMiddlewareConfig struct {
-
 	// Authentication settings.
 
 	Realm string `json:"realm"`
@@ -130,11 +129,8 @@ type LDAPUserResponse struct {
 // NewLDAPAuthMiddleware creates new LDAP authentication middleware.
 
 func NewLDAPAuthMiddleware(providers map[string]providers.LDAPProvider, sessionManager *SessionManager, jwtManager *JWTManager, rbacManager *RBACManager, config *LDAPMiddlewareConfig, logger *slog.Logger) *LDAPAuthMiddleware {
-
 	if config == nil {
-
 		config = &LDAPMiddlewareConfig{
-
 			Realm: "Nephoran Intent Operator",
 
 			AllowBasicAuth: true,
@@ -162,23 +158,18 @@ func NewLDAPAuthMiddleware(providers map[string]providers.LDAPProvider, sessionM
 			GroupsHeader: "X-LDAP-Groups",
 
 			SkipAuth: []string{
-
 				"/health", "/metrics", "/auth/ldap/login",
 
 				"/.well-known/", "/favicon.ico",
 			},
 		}
-
 	}
 
 	if logger == nil {
-
 		logger = slog.Default().With("component", "ldap_middleware")
-
 	}
 
 	return &LDAPAuthMiddleware{
-
 		providers: providers,
 
 		sessionManager: sessionManager,
@@ -191,15 +182,12 @@ func NewLDAPAuthMiddleware(providers map[string]providers.LDAPProvider, sessionM
 
 		logger: logger,
 	}
-
 }
 
 // LDAPAuthenticateMiddleware handles LDAP authentication.
 
 func (lm *LDAPAuthMiddleware) LDAPAuthenticateMiddleware(next http.Handler) http.Handler {
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		// Skip authentication for certain paths.
 
 		if lm.shouldSkipAuth(r.URL.Path) {
@@ -241,7 +229,6 @@ func (lm *LDAPAuthMiddleware) LDAPAuthenticateMiddleware(next http.Handler) http
 		// Try Basic Authentication.
 
 		if lm.config.AllowBasicAuth {
-
 			if authContext, err = lm.tryBasicAuth(r); err == nil && authContext != nil {
 
 				ctx := context.WithValue(r.Context(), AuthContextKey, authContext)
@@ -251,7 +238,6 @@ func (lm *LDAPAuthMiddleware) LDAPAuthenticateMiddleware(next http.Handler) http
 				return
 
 			}
-
 		}
 
 		// Try JWT token authentication.
@@ -269,15 +255,12 @@ func (lm *LDAPAuthMiddleware) LDAPAuthenticateMiddleware(next http.Handler) http
 		// If no authentication succeeded, require authentication.
 
 		lm.requireAuthentication(w, r)
-
 	})
-
 }
 
 // HandleLDAPLogin handles LDAP login requests.
 
 func (lm *LDAPAuthMiddleware) HandleLDAPLogin(w http.ResponseWriter, r *http.Request) {
-
 	if r.Method != http.MethodPost {
 
 		lm.writeErrorResponse(w, http.StatusMethodNotAllowed, "method_not_allowed", "Only POST method is allowed")
@@ -289,7 +272,6 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogin(w http.ResponseWriter, r *http.Req
 	// Parse authentication request.
 
 	authReq, err := lm.parseAuthRequest(r)
-
 	if err != nil {
 
 		lm.logger.Warn("Invalid authentication request", "error", err, "remote_addr", r.RemoteAddr)
@@ -303,7 +285,6 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogin(w http.ResponseWriter, r *http.Req
 	// Authenticate user.
 
 	userInfo, provider, err := lm.authenticateUser(r.Context(), authReq.Username, authReq.Password, authReq.Provider)
-
 	if err != nil {
 
 		lm.logger.Warn("Authentication failed", "username", authReq.Username, "provider", authReq.Provider, "error", err, "remote_addr", r.RemoteAddr)
@@ -317,7 +298,6 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogin(w http.ResponseWriter, r *http.Req
 	// Create session.
 
 	sessionInfo, err := lm.sessionManager.CreateSession(r.Context(), &SessionData{
-
 		UserID: userInfo.Username,
 
 		Username: userInfo.Username,
@@ -332,7 +312,6 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogin(w http.ResponseWriter, r *http.Req
 
 		Roles: userInfo.Roles,
 	})
-
 	if err != nil {
 
 		lm.logger.Error("Failed to create session", "error", err, "username", authReq.Username)
@@ -346,7 +325,6 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogin(w http.ResponseWriter, r *http.Req
 	// Create JWT tokens.
 
 	accessToken, refreshToken, err := lm.createTokens(r.Context(), userInfo, sessionInfo.ID, provider)
-
 	if err != nil {
 
 		lm.logger.Error("Failed to create tokens", "error", err, "username", authReq.Username)
@@ -360,7 +338,6 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogin(w http.ResponseWriter, r *http.Req
 	// Set session cookie.
 
 	http.SetCookie(w, &http.Cookie{
-
 		Name: "nephoran_session",
 
 		Value: sessionInfo.ID,
@@ -379,7 +356,6 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogin(w http.ResponseWriter, r *http.Req
 	// Return successful response.
 
 	response := &LDAPAuthResponse{
-
 		Success: true,
 
 		AccessToken: accessToken,
@@ -391,7 +367,6 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogin(w http.ResponseWriter, r *http.Req
 		TokenType: "Bearer",
 
 		User: &LDAPUserResponse{
-
 			Username: userInfo.Username,
 
 			Email: userInfo.Email,
@@ -409,35 +384,19 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogin(w http.ResponseWriter, r *http.Req
 	}
 
 	// Add user attributes if available.
-
-	if attrs, ok := userInfo.Attributes["title"]; ok {
-
-		if title, ok := attrs.(string); ok {
-
-			response.User.Title = title
-
+	if len(userInfo.Attributes) > 0 {
+		var attrs map[string]interface{}
+		if err := json.Unmarshal(userInfo.Attributes, &attrs); err == nil {
+			if title, ok := attrs["title"].(string); ok {
+				response.User.Title = title
+			}
+			if dept, ok := attrs["department"].(string); ok {
+				response.User.Department = dept
+			}
+			if phone, ok := attrs["phone"].(string); ok {
+				response.User.Phone = phone
+			}
 		}
-
-	}
-
-	if attrs, ok := userInfo.Attributes["department"]; ok {
-
-		if dept, ok := attrs.(string); ok {
-
-			response.User.Department = dept
-
-		}
-
-	}
-
-	if attrs, ok := userInfo.Attributes["phone"]; ok {
-
-		if phone, ok := attrs.(string); ok {
-
-			response.User.Phone = phone
-
-		}
-
 	}
 
 	lm.logger.Info("User authenticated successfully via LDAP",
@@ -455,13 +414,11 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogin(w http.ResponseWriter, r *http.Req
 	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(response)
-
 }
 
 // HandleLDAPLogout handles LDAP logout requests.
 
 func (lm *LDAPAuthMiddleware) HandleLDAPLogout(w http.ResponseWriter, r *http.Request) {
-
 	if r.Method != http.MethodPost {
 
 		lm.writeErrorResponse(w, http.StatusMethodNotAllowed, "method_not_allowed", "Only POST method is allowed")
@@ -479,15 +436,12 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogout(w http.ResponseWriter, r *http.Re
 		// Invalidate session.
 
 		if err := lm.sessionManager.InvalidateSession(r.Context(), sessionID); err != nil {
-
 			lm.logger.Warn("Failed to invalidate session", "error", err, "session_id", sessionID)
-
 		}
 
 		// Clear session cookie.
 
 		http.SetCookie(w, &http.Cookie{
-
 			Name: "nephoran_session",
 
 			Value: "",
@@ -507,67 +461,44 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogout(w http.ResponseWriter, r *http.Re
 
 	w.Header().Set("Content-Type", "application/json")
 
-	json.NewEncoder(w).Encode(map[string]interface{}{
-
-		"success": true,
-
-		"message": "Logged out successfully",
-	})
-
+	json.NewEncoder(w).Encode(json.RawMessage(`{}`))
 }
 
 // Private helper methods.
 
 func (lm *LDAPAuthMiddleware) shouldSkipAuth(path string) bool {
-
 	for _, skipPath := range lm.config.SkipAuth {
-
 		if strings.HasPrefix(path, skipPath) {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 func (lm *LDAPAuthMiddleware) isLocalhost(r *http.Request) bool {
-
 	host := r.Host
 
 	if strings.Contains(host, ":") {
-
 		host, _, _ = strings.Cut(host, ":")
-
 	}
 
 	return host == "localhost" || host == "127.0.0.1" || host == "::1"
-
 }
 
 func (lm *LDAPAuthMiddleware) trySessionAuth(r *http.Request) *AuthContext {
-
 	sessionID := lm.getSessionID(r)
 
 	if sessionID == "" {
-
 		return nil
-
 	}
 
 	sessionInfo, err := lm.sessionManager.ValidateSession(r.Context(), sessionID)
-
 	if err != nil {
-
 		return nil
-
 	}
 
 	return &AuthContext{
-
 		UserID: sessionInfo.UserID,
 
 		SessionID: sessionInfo.ID,
@@ -580,31 +511,23 @@ func (lm *LDAPAuthMiddleware) trySessionAuth(r *http.Request) *AuthContext {
 
 		IsAdmin: lm.hasAdminRole(sessionInfo.Roles),
 
-		Attributes: make(map[string]interface{}),
+		Attributes: json.RawMessage(`{}`),
 	}
-
 }
 
 func (lm *LDAPAuthMiddleware) tryBasicAuth(r *http.Request) (*AuthContext, error) {
-
 	username, password, ok := r.BasicAuth()
 
 	if !ok {
-
 		return nil, fmt.Errorf("no basic auth credentials")
-
 	}
 
 	userInfo, provider, err := lm.authenticateUser(r.Context(), username, password, "")
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	return &AuthContext{
-
 		UserID: userInfo.Username,
 
 		Provider: "ldap:" + provider,
@@ -615,50 +538,33 @@ func (lm *LDAPAuthMiddleware) tryBasicAuth(r *http.Request) (*AuthContext, error
 
 		IsAdmin: lm.hasAdminRole(userInfo.Roles),
 
-		Attributes: map[string]interface{}{
-
-			"auth_method": "basic",
-
-			"ldap_dn": userInfo.ProviderID,
-		},
+		Attributes: json.RawMessage(`{}`),
 	}, nil
-
 }
 
 func (lm *LDAPAuthMiddleware) tryJWTAuth(r *http.Request) (*AuthContext, error) {
-
 	if lm.jwtManager == nil {
-
 		return nil, fmt.Errorf("JWT manager not available")
-
 	}
 
 	authHeader := r.Header.Get("Authorization")
 
 	if !strings.HasPrefix(authHeader, "Bearer ") {
-
 		return nil, fmt.Errorf("no bearer token")
-
 	}
 
 	token := strings.TrimPrefix(authHeader, "Bearer ")
 
 	claims, err := lm.jwtManager.ValidateToken(r.Context(), token)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	if claims.TokenType != "access" {
-
 		return nil, fmt.Errorf("invalid token type")
-
 	}
 
 	return &AuthContext{
-
 		UserID: claims.Subject,
 
 		SessionID: claims.SessionID,
@@ -673,25 +579,19 @@ func (lm *LDAPAuthMiddleware) tryJWTAuth(r *http.Request) (*AuthContext, error) 
 
 		Attributes: claims.Attributes,
 	}, nil
-
 }
 
 func (lm *LDAPAuthMiddleware) authenticateUser(ctx context.Context, username, password, providerName string) (*providers.UserInfo, string, error) {
-
 	// Validate inputs.
 
 	if username == "" || password == "" {
-
 		return nil, "", fmt.Errorf("username and password required")
-
 	}
 
 	// Use constant-time comparison to prevent timing attacks on password validation.
 
 	if len(password) > 256 {
-
 		return nil, "", fmt.Errorf("password too long")
-
 	}
 
 	// Try specific provider if requested.
@@ -701,11 +601,8 @@ func (lm *LDAPAuthMiddleware) authenticateUser(ctx context.Context, username, pa
 		if provider, exists := lm.providers[providerName]; exists {
 
 			userInfo, err := provider.Authenticate(ctx, username, password)
-
 			if err != nil {
-
 				return nil, "", fmt.Errorf("authentication failed with provider %s: %w", providerName, err)
-
 			}
 
 			return userInfo, providerName, nil
@@ -719,15 +616,12 @@ func (lm *LDAPAuthMiddleware) authenticateUser(ctx context.Context, username, pa
 	// Try default provider first.
 
 	if lm.config.DefaultProvider != "" {
-
 		if provider, exists := lm.providers[lm.config.DefaultProvider]; exists {
 
 			userInfo, err := provider.Authenticate(ctx, username, password)
 
 			if err == nil {
-
 				return userInfo, lm.config.DefaultProvider, nil
-
 			}
 
 			lm.logger.Debug("Authentication failed with default provider",
@@ -739,7 +633,6 @@ func (lm *LDAPAuthMiddleware) authenticateUser(ctx context.Context, username, pa
 				"error", err)
 
 		}
-
 	}
 
 	// Try all providers.
@@ -749,17 +642,13 @@ func (lm *LDAPAuthMiddleware) authenticateUser(ctx context.Context, username, pa
 	for name, provider := range lm.providers {
 
 		if name == lm.config.DefaultProvider {
-
 			continue // Already tried
-
 		}
 
 		userInfo, err := provider.Authenticate(ctx, username, password)
 
 		if err == nil {
-
 			return userInfo, name, nil
-
 		}
 
 		lastErr = err
@@ -775,49 +664,35 @@ func (lm *LDAPAuthMiddleware) authenticateUser(ctx context.Context, username, pa
 	}
 
 	if lastErr != nil {
-
 		return nil, "", fmt.Errorf("authentication failed with all providers: %w", lastErr)
-
 	}
 
 	return nil, "", fmt.Errorf("no LDAP providers available")
-
 }
 
 func (lm *LDAPAuthMiddleware) createTokens(ctx context.Context, userInfo *providers.UserInfo, sessionID, provider string) (string, string, error) {
-
 	if lm.jwtManager == nil {
-
 		return "", "", fmt.Errorf("JWT manager not available")
-
 	}
 
 	// Create access token.
 
 	accessTokenStr, _, err := lm.jwtManager.GenerateAccessToken(ctx, userInfo, sessionID)
-
 	if err != nil {
-
 		return "", "", fmt.Errorf("failed to create access token: %w", err)
-
 	}
 
 	// Create refresh token.
 
 	refreshTokenStr, _, err := lm.jwtManager.GenerateRefreshToken(ctx, userInfo, sessionID)
-
 	if err != nil {
-
 		return "", "", fmt.Errorf("failed to create refresh token: %w", err)
-
 	}
 
 	return accessTokenStr, refreshTokenStr, nil
-
 }
 
 func (lm *LDAPAuthMiddleware) parseAuthRequest(r *http.Request) (*LDAPAuthRequest, error) {
-
 	contentType := r.Header.Get("Content-Type")
 
 	var authReq LDAPAuthRequest
@@ -827,17 +702,13 @@ func (lm *LDAPAuthMiddleware) parseAuthRequest(r *http.Request) (*LDAPAuthReques
 	case strings.Contains(contentType, "application/json") && lm.config.AllowJSONAuth:
 
 		if err := json.NewDecoder(r.Body).Decode(&authReq); err != nil {
-
 			return nil, fmt.Errorf("invalid JSON request: %w", err)
-
 		}
 
 	case strings.Contains(contentType, "application/x-www-form-urlencoded") && lm.config.AllowFormAuth:
 
 		if err := r.ParseForm(); err != nil {
-
 			return nil, fmt.Errorf("invalid form request: %w", err)
-
 		}
 
 		authReq.Username = r.FormValue("username")
@@ -855,106 +726,70 @@ func (lm *LDAPAuthMiddleware) parseAuthRequest(r *http.Request) (*LDAPAuthReques
 	// Validate required fields.
 
 	if authReq.Username == "" {
-
 		return nil, fmt.Errorf("username is required")
-
 	}
 
 	if authReq.Password == "" {
-
 		return nil, fmt.Errorf("password is required")
-
 	}
 
 	return &authReq, nil
-
 }
 
 func (lm *LDAPAuthMiddleware) getSessionID(r *http.Request) string {
-
 	// Try cookie first.
 
 	cookie, err := r.Cookie("nephoran_session")
 
 	if err == nil && cookie.Value != "" {
-
 		return cookie.Value
-
 	}
 
 	// Try header.
 
 	return r.Header.Get("X-Session-ID")
-
 }
 
 func (lm *LDAPAuthMiddleware) getUserPermissions(ctx context.Context, userID string) []string {
-
 	if lm.rbacManager == nil {
-
 		return []string{}
-
 	}
 
 	return lm.rbacManager.GetUserPermissions(ctx, userID)
-
 }
 
 func (lm *LDAPAuthMiddleware) hasAdminRole(roles []string) bool {
-
 	adminRoles := []string{"system-admin", "admin", "administrator"}
 
 	for _, role := range roles {
-
 		for _, adminRole := range adminRoles {
-
 			if strings.EqualFold(role, adminRole) {
-
 				return true
-
 			}
-
 		}
-
 	}
 
 	return false
-
 }
 
 func (lm *LDAPAuthMiddleware) requireAuthentication(w http.ResponseWriter, r *http.Request) {
-
 	// Set WWW-Authenticate header for Basic auth.
 
 	if lm.config.AllowBasicAuth {
-
 		w.Header().Set("WWW-Authenticate", fmt.Sprintf(`Basic realm="%s"`, lm.config.Realm))
-
 	}
 
 	lm.writeErrorResponse(w, http.StatusUnauthorized, "authentication_required", "Authentication required")
-
 }
 
 func (lm *LDAPAuthMiddleware) writeErrorResponse(w http.ResponseWriter, status int, code, message string) {
-
 	w.Header().Set("Content-Type", "application/json")
 
 	w.WriteHeader(status)
 
-	errorResponse := map[string]interface{}{
-
-		"error": code,
-
-		"error_description": message,
-
-		"status": status,
-
-		"timestamp": time.Now().Unix(),
-	}
+	errorResponse := json.RawMessage(`{}`)
 
 	json.NewEncoder(w).Encode(errorResponse)
-
 }
 
 // Utility methods for integration.
@@ -962,19 +797,15 @@ func (lm *LDAPAuthMiddleware) writeErrorResponse(w http.ResponseWriter, status i
 // GetLDAPProviders returns available LDAP providers.
 
 func (lm *LDAPAuthMiddleware) GetLDAPProviders() map[string]providers.LDAPProvider {
-
 	return lm.providers
-
 }
 
 // TestLDAPConnection tests connection to all LDAP providers.
 
 func (lm *LDAPAuthMiddleware) TestLDAPConnection(ctx context.Context) map[string]error {
-
 	results := make(map[string]error)
 
 	for name, provider := range lm.providers {
-
 		if err := provider.Connect(ctx); err != nil {
 
 			results[name] = err
@@ -988,17 +819,14 @@ func (lm *LDAPAuthMiddleware) TestLDAPConnection(ctx context.Context) map[string
 			lm.logger.Info("LDAP connection test successful", "provider", name)
 
 		}
-
 	}
 
 	return results
-
 }
 
 // GetUserInfo retrieves user information from LDAP without authentication.
 
 func (lm *LDAPAuthMiddleware) GetUserInfo(ctx context.Context, username, providerName string) (*providers.UserInfo, error) {
-
 	var provider providers.LDAPProvider
 
 	var exists bool
@@ -1008,9 +836,7 @@ func (lm *LDAPAuthMiddleware) GetUserInfo(ctx context.Context, username, provide
 		provider, exists = lm.providers[providerName]
 
 		if !exists {
-
 			return nil, fmt.Errorf("provider %s not found", providerName)
-
 		}
 
 	} else if lm.config.DefaultProvider != "" {
@@ -1018,9 +844,7 @@ func (lm *LDAPAuthMiddleware) GetUserInfo(ctx context.Context, username, provide
 		provider, exists = lm.providers[lm.config.DefaultProvider]
 
 		if !exists {
-
 			return nil, fmt.Errorf("default provider %s not found", lm.config.DefaultProvider)
-
 		}
 
 	} else {
@@ -1036,13 +860,11 @@ func (lm *LDAPAuthMiddleware) GetUserInfo(ctx context.Context, username, provide
 		}
 
 		if provider == nil {
-
 			return nil, fmt.Errorf("no LDAP providers available")
-
 		}
 
 	}
 
 	return provider.SearchUser(ctx, username)
-
 }
+

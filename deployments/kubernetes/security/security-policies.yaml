@@ -1,78 +1,25 @@
 # Kubernetes Security Policies for Conductor Loop
-# Comprehensive security hardening including Pod Security Standards,
+# Comprehensive security hardening using Pod Security Standards,
 # Resource Quotas, Limit Ranges, and Network Policies
+# 
+# NOTE: PodSecurityPolicy was deprecated in Kubernetes v1.21 and removed in v1.25
+# This configuration uses Pod Security Standards (introduced in v1.23)
+
 ---
-# Pod Security Policy (for clusters that still support PSPs)
-apiVersion: policy/v1beta1
-kind: PodSecurityPolicy
+# Namespace with Pod Security Standards enforcement
+apiVersion: v1
+kind: Namespace
 metadata:
-  name: conductor-loop-restricted
+  name: nephoran-conductor
   labels:
     app.kubernetes.io/name: conductor-loop
-    security.nephoran.com/policy-level: "restricted"
-  annotations:
-    kubernetes.io/description: "Restricted security policy for conductor-loop pods"
-    seccomp.security.alpha.kubernetes.io/allowedProfileNames: "runtime/default"
-    seccomp.security.alpha.kubernetes.io/defaultProfileName: "runtime/default"
-    apparmor.security.beta.kubernetes.io/allowedProfileNames: "runtime/default"
-    apparmor.security.beta.kubernetes.io/defaultProfileName: "runtime/default"
-spec:
-  # Security: Prevent privileged containers
-  privileged: false
-  allowPrivilegeEscalation: false
-  
-  # Security: Drop all capabilities
-  requiredDropCapabilities:
-  - ALL
-  allowedCapabilities: []
-  defaultAllowPrivilegeEscalation: false
-  
-  # Security: Require non-root user
-  runAsUser:
-    rule: MustRunAsNonRoot
-  runAsGroup:
-    rule: MustRunAs
-    ranges:
-    - min: 1000
-      max: 65535
-  supplementalGroups:
-    rule: MustRunAs
-    ranges:
-    - min: 1000
-      max: 65535
-  fsGroup:
-    rule: MustRunAs
-    ranges:
-    - min: 1000
-      max: 65535
-  
-  # Security: Read-only root filesystem
-  readOnlyRootFilesystem: true
-  
-  # Security: Restrict volume types
-  volumes:
-  - configMap
-  - emptyDir
-  - projected
-  - secret
-  - downwardAPI
-  - persistentVolumeClaim
-  
-  # Security: Disable host access
-  hostNetwork: false
-  hostIPC: false
-  hostPID: false
-  hostPorts: []
-  
-  # Security: Seccomp profile
-  seccomp:
-    rule: MustRunAs
-    allowedProfiles:
-    - runtime/default
-  
-  # Security: SELinux (if enabled)
-  seLinux:
-    rule: RunAsAny
+    # Enable restricted Pod Security Standards
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted  
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest
 
 ---
 # Resource Quota for the namespace

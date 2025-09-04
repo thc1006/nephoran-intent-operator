@@ -22,7 +22,6 @@ import (
 // ExamplePrometheusMetricsUsage demonstrates the Prometheus metrics integration.
 
 func ExamplePrometheusMetricsUsage() {
-
 	// Set environment variable to enable metrics.
 
 	os.Setenv("METRICS_ENABLED", "true")
@@ -44,13 +43,9 @@ func ExamplePrometheusMetricsUsage() {
 	response1, err1 := client.ProcessIntent(ctx, intent1)
 
 	if err1 != nil {
-
 		log.Printf("Request 1 failed: %v", err1)
-
 	} else {
-
 		log.Printf("Request 1 successful: %s", response1[:50])
-
 	}
 
 	// Cache hit (if processing same intent again).
@@ -58,13 +53,9 @@ func ExamplePrometheusMetricsUsage() {
 	response2, err2 := client.ProcessIntent(ctx, intent1)
 
 	if err2 != nil {
-
 		log.Printf("Request 2 failed: %v", err2)
-
 	} else {
-
 		log.Printf("Request 2 (cache hit): %s", response2[:50])
-
 	}
 
 	// Get comprehensive metrics that include both traditional and Prometheus metrics.
@@ -84,13 +75,11 @@ func ExamplePrometheusMetricsUsage() {
 	client.Shutdown()
 
 	fmt.Println("Example completed successfully")
-
 }
 
 // ExamplePrometheusMetricsWithoutEnvironment shows behavior when METRICS_ENABLED is false.
 
 func ExamplePrometheusMetricsWithoutEnvironment() {
-
 	// Ensure metrics are disabled.
 
 	os.Setenv("METRICS_ENABLED", "false")
@@ -108,11 +97,8 @@ func ExamplePrometheusMetricsWithoutEnvironment() {
 	intent := "Configure O-RAN DU with load balancing"
 
 	_, err := client.ProcessIntent(ctx, intent)
-
 	if err != nil {
-
 		log.Printf("Request failed: %v", err)
-
 	}
 
 	// Check metrics status.
@@ -130,13 +116,11 @@ func ExamplePrometheusMetricsWithoutEnvironment() {
 	client.Shutdown()
 
 	fmt.Println("Example without metrics completed successfully")
-
 }
 
 // ExamplePrometheusMetricsTypes demonstrates different metric types being recorded.
 
 func ExamplePrometheusMetricsTypes() {
-
 	os.Setenv("METRICS_ENABLED", "true")
 
 	defer os.Unsetenv("METRICS_ENABLED")
@@ -144,7 +128,6 @@ func ExamplePrometheusMetricsTypes() {
 	// Create client.
 
 	config := ClientConfig{
-
 		APIKey: os.Getenv("OPENAI_API_KEY"),
 
 		ModelName: "gpt-4o-mini",
@@ -193,9 +176,7 @@ func ExamplePrometheusMetricsTypes() {
 	fmt.Println("Recording retry metrics...")
 
 	if client.metricsIntegrator != nil {
-
 		client.metricsIntegrator.RecordRetryAttempt("gpt-4o-mini")
-
 	}
 
 	// 5. Fallback attempts (records: fallback_attempts_total).
@@ -203,21 +184,17 @@ func ExamplePrometheusMetricsTypes() {
 	fmt.Println("Recording fallback metrics...")
 
 	if client.metricsIntegrator != nil {
-
 		client.metricsIntegrator.RecordFallbackAttempt("gpt-4o-mini", "gpt-3.5-turbo")
-
 	}
 
 	fmt.Println("All metric types recorded successfully")
 
 	client.Shutdown()
-
 }
 
 // ExampleMetricNamingConventions shows the Prometheus metric naming conventions used.
 
 func ExampleMetricNamingConventions() {
-
 	fmt.Println("Prometheus metrics for LLM client follow these naming conventions:")
 
 	fmt.Println("")
@@ -257,5 +234,4 @@ func ExampleMetricNamingConventions() {
 	fmt.Println("Environment Variables:")
 
 	fmt.Println("  - METRICS_ENABLED: Set to 'true' to enable Prometheus metrics")
-
 }

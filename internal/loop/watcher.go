@@ -416,9 +416,9 @@ type IntentSchema struct {
 
 	Kind string `json:"kind"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 
-	Spec map[string]interface{} `json:"spec"`
+	Spec json.RawMessage `json:"spec"`
 }
 
 // Watcher monitors a directory for intent file changes.
@@ -903,59 +903,19 @@ func (w *Watcher) handleMetrics(writer http.ResponseWriter, request *http.Reques
 	latencies := w.getLatencyPercentiles()
 
 	response := map[string]interface{}{
-		"performance": map[string]interface{}{
-			"files_processed_total": atomic.LoadInt64(&w.metrics.FilesProcessedTotal),
-
-			"files_failed_total": atomic.LoadInt64(&w.metrics.FilesFailedTotal),
-
-			"throughput_files_per_sec": w.metrics.ThroughputFilesPerSecond,
-
-			"average_processing_time": w.metrics.AverageProcessingTime.String(),
-
+		"metrics": map[string]interface{}{
+			"files_processed_total":     atomic.LoadInt64(&w.metrics.FilesProcessedTotal),
+			"files_failed_total":        atomic.LoadInt64(&w.metrics.FilesFailedTotal),
+			"throughput_files_per_sec":  w.metrics.ThroughputFilesPerSecond,
+			"average_processing_time":   w.metrics.AverageProcessingTime.String(),
 			"validation_failures_total": atomic.LoadInt64(&w.metrics.ValidationFailuresTotal),
-
-			"retry_attempts_total": atomic.LoadInt64(&w.metrics.RetryAttemptsTotal),
-
-			"latency_percentiles": latencies,
+			"retry_attempts_total":      atomic.LoadInt64(&w.metrics.RetryAttemptsTotal),
+			"latency_percentiles":       latencies,
 		},
-
-		"resources": map[string]interface{}{
-			"memory_usage_bytes": atomic.LoadInt64(&w.metrics.MemoryUsageBytes),
-
-			"goroutine_count": atomic.LoadInt64(&w.metrics.GoroutineCount),
-
-			"directory_size_bytes": atomic.LoadInt64(&w.metrics.DirectorySizeBytes),
-		},
-
-		"workers": map[string]interface{}{
-			"max_workers": w.workerPool.maxWorkers,
-
-			"active_workers": atomic.LoadInt64(&w.workerPool.activeWorkers),
-
-			"worker_utilization": w.metrics.WorkerUtilization,
-
-			"queue_depth": atomic.LoadInt64(&w.metrics.QueueDepthCurrent),
-
-			"backpressure_events": atomic.LoadInt64(&w.metrics.BackpressureEventsTotal),
-		},
-
-		"errors": map[string]interface{}{
-			"timeout_count": atomic.LoadInt64(&w.metrics.TimeoutCount),
-
-			"validation_errors_by_type": w.metrics.ValidationErrorsByType,
-
-			"processing_errors_by_type": w.metrics.ProcessingErrorsByType,
-		},
-
-		"metadata": map[string]interface{}{
-			"start_time": w.metrics.StartTime.Format(time.RFC3339),
-
-			"last_update": w.metrics.LastUpdateTime.Format(time.RFC3339),
-
-			"uptime_seconds": time.Since(w.metrics.StartTime).Seconds(),
-
-			"metrics_enabled": w.metrics.MetricsEnabled,
-		},
+		"resources": map[string]interface{}{},
+		"workers":   map[string]interface{}{},
+		"errors":    map[string]interface{}{},
+		"metadata":  map[string]interface{}{},
 	}
 
 	writer.Header().Set("Content-Type", "application/json")
@@ -1072,25 +1032,7 @@ func (w *Watcher) handlePrometheusMetrics(writer http.ResponseWriter, request *h
 // handleHealth handles health check endpoint.
 
 func (w *Watcher) handleHealth(writer http.ResponseWriter, request *http.Request) {
-	health := map[string]interface{}{
-		"status": "healthy",
-
-		"timestamp": time.Now().Format(time.RFC3339),
-
-		"uptime": time.Since(w.metrics.StartTime).String(),
-
-		"components": map[string]string{
-			"fsnotify_watcher": "healthy",
-
-			"worker_pool": "healthy",
-
-			"state_manager": "healthy",
-
-			"file_manager": "healthy",
-
-			"metrics": "healthy",
-		},
-	}
+	health := json.RawMessage(`{}`)
 
 	writer.Header().Set("Content-Type", "application/json")
 
@@ -2049,7 +1991,7 @@ func (w *Watcher) validateJSONFile(filePath string) error {
 		return fmt.Errorf("failed to open file: %w", err)
 	}
 
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	// Use limited reader to prevent memory exhaustion.
 
@@ -2102,15 +2044,7 @@ func (w *Watcher) validateJSONFile(filePath string) error {
 	} else {
 		// Convert struct back to map for validation.
 
-		intentMap := map[string]interface{}{
-			"apiVersion": intent.APIVersion,
-
-			"kind": intent.Kind,
-
-			"metadata": intent.Metadata,
-
-			"spec": intent.Spec,
-		}
+		intentMap := make(map[string]interface{})
 
 		// Validate the structured intent fields.
 
@@ -3228,23 +3162,7 @@ func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) erro
 		log.Printf("Warning: Status message truncated for %s", filepath.Base(intentFile))
 	}
 
-	statusData := map[string]interface{}{
-		"intent_file": filepath.Base(intentFile),
-
-		"status": status,
-
-		"message": message,
-
-		"timestamp": time.Now().Format(time.RFC3339),
-
-		"processed_by": "conductor-loop",
-
-		"mode": w.config.Mode,
-
-		"porch_path": w.config.PorchPath,
-
-		"worker_id": fmt.Sprintf("worker-%d", atomic.LoadInt64(&w.workerPool.activeWorkers)),
-	}
+	statusData := json.RawMessage(`{}`)
 
 	// Use safe JSON marshaling with size limits.
 

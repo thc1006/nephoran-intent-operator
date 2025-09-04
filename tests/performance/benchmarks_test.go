@@ -1,3 +1,6 @@
+//go:build !disable_rag
+// +build !disable_rag
+
 // Package performance provides comprehensive performance testing and benchmarking
 package performance_tests
 
@@ -10,6 +13,7 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+	"encoding/json"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -44,8 +48,13 @@ func TestBenchmarks(t *testing.T) {
 
 // BenchmarkIntentProcessing benchmarks intent processing performance
 func BenchmarkIntentProcessing(b *testing.B) {
+	config := &framework.TestConfig{
+		// Add minimal test config for benchmarks
+		Timeout:        30 * time.Second,
+		CleanupTimeout: 10 * time.Second,
+	}
 	testSuite := &BenchmarkTestSuite{
-		TestSuite: framework.NewTestSuite(),
+		TestSuite: framework.NewTestSuite(config),
 	}
 	testSuite.SetupSuite()
 	defer testSuite.TearDownSuite()
@@ -132,7 +141,7 @@ func BenchmarkLLMTokenManagement(b *testing.B) {
 				if i >= len(texts) {
 					i = 0
 				}
-				tokenManager.CountTokens(texts[i])
+				tokenManager.EstimateTokensForModel("gpt-3.5-turbo", texts[i])
 				i++
 			}
 		})
@@ -141,7 +150,7 @@ func BenchmarkLLMTokenManagement(b *testing.B) {
 	b.Run("BudgetCalculation", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				_, err := tokenManager.CalculateTokenBudget(
+				budget, err := tokenManager.CalculateTokenBudget(
 					context.Background(),
 					"gpt-4o-mini",
 					"System prompt for network automation",
@@ -151,6 +160,7 @@ func BenchmarkLLMTokenManagement(b *testing.B) {
 				if err != nil {
 					b.Errorf("Budget calculation failed: %v", err)
 				}
+				_ = budget // Use the result to prevent optimization
 			}
 		})
 	})
@@ -189,11 +199,7 @@ func BenchmarkContextBuilding(b *testing.B) {
 			Title:   fmt.Sprintf("Telecom Document %d", i),
 			Content: fmt.Sprintf("This is document %d about network functions, AMF, SMF, UPF deployment procedures and 5G SA network configuration details...", i),
 			Source:  "3GPP TS 23.501",
-			Metadata: map[string]interface{}{
-				"category":  "5G Core",
-				"authority": "3GPP",
-				"recency":   0.9,
-			},
+			Metadata: json.RawMessage(`{}`),
 		}
 	}
 
@@ -268,10 +274,10 @@ func BenchmarkCircuitBreaker(b *testing.B) {
 	b.Run("SuccessfulRequests", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				err := circuitBreaker.Execute(func() error {
+				_, err := circuitBreaker.Execute(context.Background(), func(ctx context.Context) (interface{}, error) {
 					// Simulate successful operation
 					time.Sleep(1 * time.Millisecond)
-					return nil
+					return nil, nil
 				})
 				if err != nil {
 					b.Errorf("Circuit breaker execution failed: %v", err)
@@ -284,12 +290,12 @@ func BenchmarkCircuitBreaker(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
 			i := 0
 			for pb.Next() {
-				circuitBreaker.Execute(func() error {
+				_, _ = circuitBreaker.Execute(context.Background(), func(ctx context.Context) (interface{}, error) {
 					if i%10 < 2 { // 20% failure rate
-						return fmt.Errorf("simulated failure")
+						return nil, fmt.Errorf("simulated failure")
 					}
 					time.Sleep(1 * time.Millisecond)
-					return nil
+					return nil, nil
 				})
 				i++
 			}
@@ -450,7 +456,7 @@ func (suite *BenchmarkTestSuite) TestLoadTesting() {
 							start := time.Now()
 
 							text := fmt.Sprintf("Goroutine %d request %d: Deploy network function with specific configuration", goroutineID, j)
-							tokenManager.CountTokens(text)
+							tokenManager.EstimateTokensForModel("gpt-3.5-turbo", text)
 
 							latency := time.Since(start)
 							latencies <- latency
@@ -505,7 +511,7 @@ func (suite *BenchmarkTestSuite) TestMemoryProfiling() {
 
 			for i := 0; i < 10000; i++ {
 				text := fmt.Sprintf("Operation %d: Network function deployment with configuration", i)
-				tokenManager.CountTokens(text)
+				tokenManager.EstimateTokensForModel("gpt-3.5-turbo", text)
 
 				// Periodically force GC to detect leaks
 				if i%1000 == 0 {
@@ -685,3 +691,4 @@ var _ = ginkgo.Describe("Performance Benchmarks", func() {
 		testSuite.TestMemoryProfiling()
 	})
 })
+

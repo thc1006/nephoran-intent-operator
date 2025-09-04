@@ -27,11 +27,9 @@ type ProductionValidationRunner struct {
 // NewProductionValidationRunner creates a new production validation runner.
 
 func NewProductionValidationRunner() *ProductionValidationRunner {
-
 	// Create validation configuration with production targets.
 
 	config := &ValidationConfig{
-
 		FunctionalTarget: 45, // Target 45/50 points
 
 		PerformanceTarget: 23, // Target 23/25 points
@@ -70,18 +68,15 @@ func NewProductionValidationRunner() *ProductionValidationRunner {
 	validationSuite := NewValidationSuite(config)
 
 	return &ProductionValidationRunner{
-
 		validationSuite: validationSuite,
 
 		config: config,
 	}
-
 }
 
 // RunProductionValidation executes comprehensive production validation.
 
 func (pvr *ProductionValidationRunner) RunProductionValidation(ctx context.Context) error {
-
 	ginkgo.By("Starting Production Deployment Validation Suite")
 
 	// Setup validation suite.
@@ -97,21 +92,15 @@ func (pvr *ProductionValidationRunner) RunProductionValidation(ctx context.Conte
 	// Execute comprehensive validation with focus on production readiness.
 
 	results, err := pvr.validationSuite.ExecuteComprehensiveValidation(ctx)
-
 	if err != nil {
-
 		return fmt.Errorf("comprehensive validation failed: %w", err)
-
 	}
 
 	// Execute production readiness checklist.
 
 	checklistResults, err := pvr.checklist.ExecuteProductionReadinessAssessment(ctx)
-
 	if err != nil {
-
 		return fmt.Errorf("production readiness assessment failed: %w", err)
-
 	}
 
 	// Generate comprehensive reports.
@@ -121,19 +110,15 @@ func (pvr *ProductionValidationRunner) RunProductionValidation(ctx context.Conte
 	// Validate against production targets.
 
 	if results.ProductionScore < pvr.config.ProductionTarget {
-
 		return fmt.Errorf("production readiness failed: achieved %d points, target %d points",
 
 			results.ProductionScore, pvr.config.ProductionTarget)
-
 	}
 
 	if checklistResults.TotalScore < checklistResults.TargetScore {
-
 		return fmt.Errorf("production checklist failed: achieved %d points, target %d points",
 
 			checklistResults.TotalScore, checklistResults.TargetScore)
-
 	}
 
 	ginkgo.By(fmt.Sprintf("Production Validation PASSED: %d/%d validation points, %d/%d checklist points",
@@ -141,13 +126,11 @@ func (pvr *ProductionValidationRunner) RunProductionValidation(ctx context.Conte
 		results.ProductionScore, 10, checklistResults.TotalScore, checklistResults.MaxScore))
 
 	return nil
-
 }
 
 // generateReports generates comprehensive production validation reports.
 
 func (pvr *ProductionValidationRunner) generateReports(results *ValidationResults, checklistResults *ProductionReadinessResults) {
-
 	// Generate main validation report.
 
 	mainReport := pvr.generateMainReport(results)
@@ -169,13 +152,11 @@ func (pvr *ProductionValidationRunner) generateReports(results *ValidationResult
 	fmt.Println(mainReport)
 
 	fmt.Println(checklistReport)
-
 }
 
 // generateMainReport generates the main production validation report.
 
 func (pvr *ProductionValidationRunner) generateMainReport(results *ValidationResults) string {
-
 	return fmt.Sprintf(`
 
 =============================================================================
@@ -270,13 +251,11 @@ EXECUTION SUMMARY:
 
 		time.Now().Format("2006-01-02 15:04:05"),
 	)
-
 }
 
 // generateDetailedReports generates detailed component reports.
 
 func (pvr *ProductionValidationRunner) generateDetailedReports() map[string]string {
-
 	reports := make(map[string]string)
 
 	// Get detailed metrics from specialized validators.
@@ -286,51 +265,39 @@ func (pvr *ProductionValidationRunner) generateDetailedReports() map[string]stri
 	// Production deployment metrics.
 
 	if productionMetrics := reliabilityValidator.GetProductionMetrics(); productionMetrics != nil {
-
 		reports["production_deployment"] = fmt.Sprintf("Production Deployment Metrics:\n%+v", productionMetrics)
-
 	}
 
 	// Chaos engineering metrics.
 
 	if chaosMetrics := reliabilityValidator.GetChaosMetrics(); chaosMetrics != nil {
-
 		reports["chaos_engineering"] = fmt.Sprintf("Chaos Engineering Metrics:\n%+v", chaosMetrics)
-
 	}
 
 	// Observability metrics.
 
 	if observabilityMetrics := reliabilityValidator.GetObservabilityMetrics(); observabilityMetrics != nil {
-
 		reports["observability"] = fmt.Sprintf("Observability Metrics:\n%+v", observabilityMetrics)
-
 	}
 
 	// Disaster recovery metrics.
 
 	if drMetrics := reliabilityValidator.GetDisasterRecoveryMetrics(); drMetrics != nil {
-
 		reports["disaster_recovery"] = fmt.Sprintf("Disaster Recovery Metrics:\n%+v", drMetrics)
-
 	}
 
 	// Deployment scenarios metrics.
 
 	if deploymentMetrics := reliabilityValidator.GetDeploymentScenariosMetrics(); deploymentMetrics != nil {
-
 		reports["deployment_scenarios"] = fmt.Sprintf("Deployment Scenarios Metrics:\n%+v", deploymentMetrics)
-
 	}
 
 	return reports
-
 }
 
 // writeReportsToFiles writes all reports to output files.
 
 func (pvr *ProductionValidationRunner) writeReportsToFiles(mainReport, checklistReport string, detailedReports map[string]string) {
-
 	outputDir := "test-results/production-validation"
 
 	// Create output directory.
@@ -348,9 +315,7 @@ func (pvr *ProductionValidationRunner) writeReportsToFiles(mainReport, checklist
 	mainReportFile := fmt.Sprintf("%s/production-validation-summary.txt", outputDir)
 
 	if err := os.WriteFile(mainReportFile, []byte(mainReport), 0o640); err != nil {
-
 		ginkgo.By(fmt.Sprintf("Failed to write main report: %v", err))
-
 	}
 
 	// Write checklist report.
@@ -358,9 +323,7 @@ func (pvr *ProductionValidationRunner) writeReportsToFiles(mainReport, checklist
 	checklistReportFile := fmt.Sprintf("%s/production-readiness-checklist.txt", outputDir)
 
 	if err := os.WriteFile(checklistReportFile, []byte(checklistReport), 0o640); err != nil {
-
 		ginkgo.By(fmt.Sprintf("Failed to write checklist report: %v", err))
-
 	}
 
 	// Write detailed reports.
@@ -370,21 +333,17 @@ func (pvr *ProductionValidationRunner) writeReportsToFiles(mainReport, checklist
 		detailedReportFile := fmt.Sprintf("%s/%s-detailed.txt", outputDir, name)
 
 		if err := os.WriteFile(detailedReportFile, []byte(report), 0o640); err != nil {
-
 			ginkgo.By(fmt.Sprintf("Failed to write %s detailed report: %v", name, err))
-
 		}
 
 	}
 
 	ginkgo.By(fmt.Sprintf("Production validation reports written to: %s", outputDir))
-
 }
 
 // Production Validation Test Suite using Ginkgo.
 
 var _ = ginkgo.Describe("Production Deployment Validation Suite", func() {
-
 	var runner *ProductionValidationRunner
 
 	var ctx context.Context
@@ -392,23 +351,17 @@ var _ = ginkgo.Describe("Production Deployment Validation Suite", func() {
 	var cancel context.CancelFunc
 
 	ginkgo.BeforeEach(func() {
-
 		ctx, cancel = context.WithTimeout(context.Background(), 60*time.Minute)
 
 		runner = NewProductionValidationRunner()
-
 	})
 
 	ginkgo.AfterEach(func() {
-
 		defer cancel()
-
 	})
 
 	ginkgo.Context("when running comprehensive production validation", func() {
-
 		ginkgo.It("should achieve production readiness target of 8/10 points", func() {
-
 			err := runner.RunProductionValidation(ctx)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -420,11 +373,9 @@ var _ = ginkgo.Describe("Production Deployment Validation Suite", func() {
 			gomega.Expect(checklistResults).NotTo(gomega.BeNil())
 
 			gomega.Expect(checklistResults.TotalScore).To(gomega.BeNumerically(">=", 8))
-
 		})
 
 		ginkgo.It("should validate high availability requirements", func() {
-
 			err := runner.RunProductionValidation(ctx)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -432,11 +383,9 @@ var _ = ginkgo.Describe("Production Deployment Validation Suite", func() {
 			checklistResults := runner.checklist.GetProductionReadinessResults()
 
 			gomega.Expect(checklistResults.HighAvailabilityScore).To(gomega.BeNumerically(">=", 2))
-
 		})
 
 		ginkgo.It("should validate fault tolerance through chaos engineering", func() {
-
 			err := runner.RunProductionValidation(ctx)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -444,11 +393,9 @@ var _ = ginkgo.Describe("Production Deployment Validation Suite", func() {
 			checklistResults := runner.checklist.GetProductionReadinessResults()
 
 			gomega.Expect(checklistResults.FaultToleranceScore).To(gomega.BeNumerically(">=", 2))
-
 		})
 
 		ginkgo.It("should validate monitoring and observability", func() {
-
 			err := runner.RunProductionValidation(ctx)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -456,11 +403,9 @@ var _ = ginkgo.Describe("Production Deployment Validation Suite", func() {
 			checklistResults := runner.checklist.GetProductionReadinessResults()
 
 			gomega.Expect(checklistResults.MonitoringObservabilityScore).To(gomega.BeNumerically(">=", 1))
-
 		})
 
 		ginkgo.It("should validate disaster recovery capabilities", func() {
-
 			err := runner.RunProductionValidation(ctx)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -468,15 +413,11 @@ var _ = ginkgo.Describe("Production Deployment Validation Suite", func() {
 			checklistResults := runner.checklist.GetProductionReadinessResults()
 
 			gomega.Expect(checklistResults.DisasterRecoveryScore).To(gomega.BeNumerically(">=", 1))
-
 		})
-
 	})
 
 	ginkgo.Context("when running individual production validation categories", func() {
-
 		ginkgo.It("should validate deployment scenarios", func() {
-
 			err := runner.RunProductionValidation(ctx)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -486,11 +427,9 @@ var _ = ginkgo.Describe("Production Deployment Validation Suite", func() {
 			// Deployment scenarios are additional, so no minimum requirement.
 
 			gomega.Expect(checklistResults.DeploymentScenariosScore).To(gomega.BeNumerically(">=", 0))
-
 		})
 
 		ginkgo.It("should validate infrastructure as code", func() {
-
 			err := runner.RunProductionValidation(ctx)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -500,15 +439,11 @@ var _ = ginkgo.Describe("Production Deployment Validation Suite", func() {
 			// Infrastructure as Code is additional, so no minimum requirement.
 
 			gomega.Expect(checklistResults.InfrastructureAsCodeScore).To(gomega.BeNumerically(">=", 0))
-
 		})
-
 	})
 
 	ginkgo.Context("when generating production validation reports", func() {
-
 		ginkgo.It("should generate comprehensive reports", func() {
-
 			err := runner.RunProductionValidation(ctx)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -532,17 +467,13 @@ var _ = ginkgo.Describe("Production Deployment Validation Suite", func() {
 			_, err = os.Stat(checklistReportFile)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
 		})
-
 	})
-
 })
 
 // Entry point for standalone execution.
 
 func RunProductionValidationSuite() {
-
 	// Configure Ginkgo for production validation.
 
 	// Create a dummy testing.T for Ginkgo - this is safe as Ginkgo doesn't actually use these methods in this context.
@@ -550,7 +481,6 @@ func RunProductionValidationSuite() {
 	dummyT := &DummyTestingT{}
 
 	ginkgo.RunSpecs(dummyT, "Nephoran Production Deployment Validation Suite")
-
 }
 
 // DummyTestingT provides a minimal testing.T interface for Ginkgo.
@@ -562,35 +492,27 @@ type DummyTestingT struct {
 // Errorf performs errorf operation.
 
 func (t *DummyTestingT) Errorf(format string, args ...interface{}) {
-
 	fmt.Printf("ERROR: "+format+"\n", args...)
 
 	t.failed = true
-
 }
 
 // FailNow performs failnow operation.
 
 func (t *DummyTestingT) FailNow() {
-
 	t.failed = true
 
 	panic("test failed")
-
 }
 
 // Failed performs failed operation.
 
 func (t *DummyTestingT) Failed() bool {
-
 	return t.failed
-
 }
 
 // Fail performs fail operation.
 
 func (t *DummyTestingT) Fail() {
-
 	t.failed = true
-
 }

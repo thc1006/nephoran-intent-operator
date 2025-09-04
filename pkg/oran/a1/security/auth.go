@@ -5,7 +5,9 @@
 package security
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -270,7 +272,7 @@ type AuthResult struct {
 
 	User *User `json:"user,omitempty"`
 
-	Claims map[string]interface{} `json:"claims,omitempty"`
+	Claims json.RawMessage `json:"claims,omitempty"`
 
 	SessionID string `json:"session_id,omitempty"`
 }
@@ -400,15 +402,11 @@ type RBACEngine interface {
 // NewAuthManager creates a new authentication manager.
 
 func NewAuthManager(config *AuthConfig, logger *logging.StructuredLogger) (*AuthManager, error) {
-
 	if config == nil {
-
 		return nil, errors.New("auth config is required")
-
 	}
 
 	am := &AuthManager{
-
 		config: config,
 
 		logger: logger,
@@ -423,21 +421,15 @@ func NewAuthManager(config *AuthConfig, logger *logging.StructuredLogger) (*Auth
 	// Initialize providers based on configuration.
 
 	if err := am.initializeProviders(); err != nil {
-
 		return nil, fmt.Errorf("failed to initialize auth providers: %w", err)
-
 	}
 
 	// Load cryptographic keys if JWT is enabled.
 
 	if config.Type == AuthTypeJWT && config.JWTConfig != nil {
-
 		if err := am.loadKeys(); err != nil {
-
 			return nil, fmt.Errorf("failed to load cryptographic keys: %w", err)
-
 		}
-
 	}
 
 	// Initialize RBAC engine if enabled.
@@ -445,11 +437,8 @@ func NewAuthManager(config *AuthConfig, logger *logging.StructuredLogger) (*Auth
 	if config.RBACConfig != nil && config.RBACConfig.Enabled {
 
 		rbacEngine, err := NewRBACEngine(config.RBACConfig, logger)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to initialize RBAC engine: %w", err)
-
 		}
 
 		am.rbacEngine = rbacEngine
@@ -461,23 +450,18 @@ func NewAuthManager(config *AuthConfig, logger *logging.StructuredLogger) (*Auth
 	go am.cleanupExpiredTokens()
 
 	return am, nil
-
 }
 
 // initializeProviders initializes authentication providers.
 
 func (am *AuthManager) initializeProviders() error {
-
 	switch am.config.Type {
 
 	case AuthTypeJWT:
 
 		provider, err := NewJWTProvider(am.config.JWTConfig, am.logger)
-
 		if err != nil {
-
 			return err
-
 		}
 
 		am.providers[AuthTypeJWT] = provider
@@ -485,11 +469,8 @@ func (am *AuthManager) initializeProviders() error {
 	case AuthTypeOAuth2:
 
 		provider, err := NewOAuth2Provider(am.config.OAuth2Config, am.logger)
-
 		if err != nil {
-
 			return err
-
 		}
 
 		am.providers[AuthTypeOAuth2] = provider
@@ -497,11 +478,8 @@ func (am *AuthManager) initializeProviders() error {
 	case AuthTypeServiceAccount:
 
 		provider, err := NewServiceAccountProvider(am.config.ServiceAuthConfig, am.logger)
-
 		if err != nil {
-
 			return err
-
 		}
 
 		am.providers[AuthTypeServiceAccount] = provider
@@ -513,17 +491,13 @@ func (am *AuthManager) initializeProviders() error {
 	}
 
 	return nil
-
 }
 
 // loadKeys loads cryptographic keys for JWT signing/verification.
 
 func (am *AuthManager) loadKeys() error {
-
 	if am.config.JWTConfig == nil {
-
 		return errors.New("JWT config is nil")
-
 	}
 
 	// Load public key.
@@ -531,19 +505,13 @@ func (am *AuthManager) loadKeys() error {
 	if am.config.JWTConfig.PublicKeyPath != "" {
 
 		pubKeyData, err := readFile(am.config.JWTConfig.PublicKeyPath)
-
 		if err != nil {
-
 			return fmt.Errorf("failed to read public key: %w", err)
-
 		}
 
 		pubKey, err := parsePublicKey(pubKeyData)
-
 		if err != nil {
-
 			return fmt.Errorf("failed to parse public key: %w", err)
-
 		}
 
 		am.publicKey = pubKey
@@ -555,19 +523,13 @@ func (am *AuthManager) loadKeys() error {
 	if am.config.JWTConfig.PrivateKeyPath != "" {
 
 		privKeyData, err := readFile(am.config.JWTConfig.PrivateKeyPath)
-
 		if err != nil {
-
 			return fmt.Errorf("failed to read private key: %w", err)
-
 		}
 
 		privKey, err := parsePrivateKey(privKeyData)
-
 		if err != nil {
-
 			return fmt.Errorf("failed to parse private key: %w", err)
-
 		}
 
 		am.privateKey = privKey
@@ -577,39 +539,28 @@ func (am *AuthManager) loadKeys() error {
 	// Load JWKS if endpoint is configured.
 
 	if am.config.JWTConfig.JWKSEndpoint != "" {
-
 		if err := am.refreshJWKS(); err != nil {
-
 			return fmt.Errorf("failed to load JWKS: %w", err)
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // Authenticate performs authentication based on configured provider.
 
 func (am *AuthManager) Authenticate(ctx context.Context, r *http.Request) (*AuthResult, error) {
-
 	// Check for secure transport if required.
 
 	if am.config.RequireSecureTransport && !isSecureTransport(r) {
-
 		return nil, errors.New("secure transport required")
-
 	}
 
 	// Extract credentials from request.
 
 	credentials, authType, err := am.extractCredentials(r)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to extract credentials: %w", err)
-
 	}
 
 	// Get appropriate provider.
@@ -617,15 +568,12 @@ func (am *AuthManager) Authenticate(ctx context.Context, r *http.Request) (*Auth
 	provider, ok := am.providers[authType]
 
 	if !ok {
-
 		return nil, fmt.Errorf("no provider for auth type: %s", authType)
-
 	}
 
 	// Perform authentication.
 
 	result, err := provider.Authenticate(ctx, credentials)
-
 	if err != nil {
 
 		am.logger.Error("authentication failed",
@@ -645,17 +593,13 @@ func (am *AuthManager) Authenticate(ctx context.Context, r *http.Request) (*Auth
 		permissions, err := am.rbacEngine.GetUserPermissions(ctx, result.User)
 
 		if err != nil {
-
 			am.logger.Warn("failed to get user permissions",
 
 				slog.String("user_id", result.User.ID),
 
 				slog.String("error", err.Error()))
-
 		} else {
-
 			result.User.Permissions = permissions
-
 		}
 
 	}
@@ -665,9 +609,7 @@ func (am *AuthManager) Authenticate(ctx context.Context, r *http.Request) (*Auth
 	if am.tokenStore != nil {
 
 		claims := &TokenClaims{
-
 			RegisteredClaims: jwt.RegisteredClaims{
-
 				Subject: result.User.ID,
 
 				ExpiresAt: jwt.NewNumericDate(result.ExpiresAt),
@@ -687,9 +629,7 @@ func (am *AuthManager) Authenticate(ctx context.Context, r *http.Request) (*Auth
 		}
 
 		if err := am.tokenStore.Store(ctx, result.AccessToken, claims, am.config.TokenExpiry); err != nil {
-
 			am.logger.Warn("failed to cache token", slog.String("error", err.Error()))
-
 		}
 
 	}
@@ -701,31 +641,23 @@ func (am *AuthManager) Authenticate(ctx context.Context, r *http.Request) (*Auth
 		slog.String("auth_type", string(authType)))
 
 	return result, nil
-
 }
 
 // ValidateToken validates an access token.
 
 func (am *AuthManager) ValidateToken(ctx context.Context, token string) (*TokenClaims, error) {
-
 	// Check if token is revoked.
 
 	if am.isTokenRevoked(token) {
-
 		return nil, errors.New("token has been revoked")
-
 	}
 
 	// Check token store first if available.
 
 	if am.tokenStore != nil {
-
 		if claims, err := am.tokenStore.Get(ctx, token); err == nil {
-
 			return claims, nil
-
 		}
-
 	}
 
 	// Validate with appropriate provider.
@@ -733,65 +665,47 @@ func (am *AuthManager) ValidateToken(ctx context.Context, token string) (*TokenC
 	provider, ok := am.providers[am.config.Type]
 
 	if !ok {
-
 		return nil, fmt.Errorf("no provider for auth type: %s", am.config.Type)
-
 	}
 
 	claims, err := provider.ValidateToken(ctx, token)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("token validation failed: %w", err)
-
 	}
 
 	// Check token expiry.
 
 	if claims.ExpiresAt != nil && claims.ExpiresAt.Before(time.Now()) {
-
 		return nil, errors.New("token has expired")
-
 	}
 
 	return claims, nil
-
 }
 
 // Authorize checks if a user has permission for a resource and action.
 
 func (am *AuthManager) Authorize(ctx context.Context, user *User, resource, action string) (bool, error) {
-
 	if am.rbacEngine == nil {
-
 		// If RBAC is not configured, allow all authenticated users.
 
 		return user != nil, nil
-
 	}
 
 	return am.rbacEngine.Authorize(ctx, user, resource, action)
-
 }
 
 // RefreshToken refreshes an access token using a refresh token.
 
 func (am *AuthManager) RefreshToken(ctx context.Context, refreshToken string) (*AuthResult, error) {
-
 	provider, ok := am.providers[am.config.Type]
 
 	if !ok {
-
 		return nil, fmt.Errorf("no provider for auth type: %s", am.config.Type)
-
 	}
 
 	result, err := provider.RefreshToken(ctx, refreshToken)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("token refresh failed: %w", err)
-
 	}
 
 	// Check max token lifetime.
@@ -811,17 +725,13 @@ func (am *AuthManager) RefreshToken(ctx context.Context, refreshToken string) (*
 	}
 
 	return result, nil
-
 }
 
 // RevokeToken revokes an access token.
 
 func (am *AuthManager) RevokeToken(ctx context.Context, token string) error {
-
 	if !am.config.EnableRevocation {
-
 		return errors.New("token revocation is not enabled")
-
 	}
 
 	// Add to revoked tokens list.
@@ -835,13 +745,9 @@ func (am *AuthManager) RevokeToken(ctx context.Context, token string) error {
 	// Remove from token store if present.
 
 	if am.tokenStore != nil {
-
 		if err := am.tokenStore.Delete(ctx, token); err != nil {
-
 			am.logger.Warn("failed to remove token from store", slog.String("error", err.Error()))
-
 		}
-
 	}
 
 	// Call provider's revoke method if available.
@@ -849,25 +755,19 @@ func (am *AuthManager) RevokeToken(ctx context.Context, token string) error {
 	provider, ok := am.providers[am.config.Type]
 
 	if ok {
-
 		if err := provider.RevokeToken(ctx, token); err != nil {
-
 			am.logger.Warn("provider token revocation failed", slog.String("error", err.Error()))
-
 		}
-
 	}
 
 	am.logger.Info("token revoked successfully", slog.String("token_id", hashToken(token)))
 
 	return nil
-
 }
 
 // extractCredentials extracts authentication credentials from request.
 
 func (am *AuthManager) extractCredentials(r *http.Request) (interface{}, AuthType, error) {
-
 	// Check Authorization header.
 
 	authHeader := r.Header.Get("Authorization")
@@ -877,9 +777,7 @@ func (am *AuthManager) extractCredentials(r *http.Request) (interface{}, AuthTyp
 		parts := strings.SplitN(authHeader, " ", 2)
 
 		if len(parts) != 2 {
-
 			return nil, "", errors.New("invalid authorization header format")
-
 		}
 
 		scheme := strings.ToLower(parts[0])
@@ -907,33 +805,25 @@ func (am *AuthManager) extractCredentials(r *http.Request) (interface{}, AuthTyp
 	// Check for API key in header or query.
 
 	if apiKey := r.Header.Get("X-API-Key"); apiKey != "" {
-
 		return apiKey, AuthTypeAPIKey, nil
-
 	}
 
 	if apiKey := r.URL.Query().Get("api_key"); apiKey != "" {
-
 		return apiKey, AuthTypeAPIKey, nil
-
 	}
 
 	// Check for client certificate (mTLS).
 
 	if r.TLS != nil && len(r.TLS.PeerCertificates) > 0 {
-
 		return r.TLS.PeerCertificates[0], AuthTypeMutualTLS, nil
-
 	}
 
 	return nil, "", errors.New("no authentication credentials found")
-
 }
 
 // isTokenRevoked checks if a token has been revoked.
 
 func (am *AuthManager) isTokenRevoked(token string) bool {
-
 	am.revokedTokensMu.RLock()
 
 	expiry, revoked := am.revokedTokens[token]
@@ -941,9 +831,7 @@ func (am *AuthManager) isTokenRevoked(token string) bool {
 	am.revokedTokensMu.RUnlock()
 
 	if !revoked {
-
 		return false
-
 	}
 
 	// Check if revocation has expired.
@@ -961,25 +849,19 @@ func (am *AuthManager) isTokenRevoked(token string) bool {
 	}
 
 	return true
-
 }
 
 // refreshJWKS refreshes the JWKS cache.
 
 func (am *AuthManager) refreshJWKS() error {
-
 	if am.config.JWTConfig.JWKSEndpoint == "" {
-
 		return nil
-
 	}
 
 	// Check if cache is still valid.
 
 	if time.Now().Before(am.jwksCacheExpiry) {
-
 		return nil
-
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -987,11 +869,8 @@ func (am *AuthManager) refreshJWKS() error {
 	defer cancel()
 
 	set, err := jwk.Fetch(ctx, am.config.JWTConfig.JWKSEndpoint)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to fetch JWKS: %w", err)
-
 	}
 
 	am.mu.Lock()
@@ -1003,13 +882,11 @@ func (am *AuthManager) refreshJWKS() error {
 	am.mu.Unlock()
 
 	return nil
-
 }
 
 // cleanupExpiredTokens periodically removes expired tokens from revocation list.
 
 func (am *AuthManager) cleanupExpiredTokens() {
-
 	ticker := time.NewTicker(1 * time.Hour)
 
 	defer ticker.Stop()
@@ -1021,111 +898,80 @@ func (am *AuthManager) cleanupExpiredTokens() {
 		now := time.Now()
 
 		for token, expiry := range am.revokedTokens {
-
 			if now.After(expiry) {
-
 				delete(am.revokedTokens, token)
-
 			}
-
 		}
 
 		am.revokedTokensMu.Unlock()
 
 	}
-
 }
 
 // Helper functions.
 
 func isSecureTransport(r *http.Request) bool {
-
 	return r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https"
-
 }
 
 func hashToken(token string) string {
-
 	// Return first 8 characters for logging (not for security).
 
 	if len(token) > 8 {
-
 		return token[:8] + "..."
-
 	}
 
 	return "***"
-
 }
 
 func readFile(path string) ([]byte, error) {
-
 	// Implementation would read file securely.
 
 	return nil, nil
-
 }
 
 func parsePublicKey(data []byte) (*rsa.PublicKey, error) {
-
 	block, _ := pem.Decode(data)
 
 	if block == nil {
-
 		return nil, errors.New("failed to parse PEM block")
-
 	}
 
 	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	rsaPub, ok := pub.(*rsa.PublicKey)
 
 	if !ok {
-
 		return nil, errors.New("not an RSA public key")
-
 	}
 
 	return rsaPub, nil
-
 }
 
 func parsePrivateKey(data []byte) (*rsa.PrivateKey, error) {
-
 	block, _ := pem.Decode(data)
 
 	if block == nil {
-
 		return nil, errors.New("failed to parse PEM block")
-
 	}
 
 	priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)
-
 	if err != nil {
 
 		// Try PKCS8.
 
 		privInterface, err := x509.ParsePKCS8PrivateKey(block.Bytes)
-
 		if err != nil {
-
 			return nil, err
-
 		}
 
 		rsaPriv, ok := privInterface.(*rsa.PrivateKey)
 
 		if !ok {
-
 			return nil, errors.New("not an RSA private key")
-
 		}
 
 		return rsaPriv, nil
@@ -1133,52 +979,41 @@ func parsePrivateKey(data []byte) (*rsa.PrivateKey, error) {
 	}
 
 	return priv, nil
-
 }
 
 // NewKeyCache creates a new key cache.
 
 func NewKeyCache(ttl time.Duration) *KeyCache {
-
 	return &KeyCache{
-
 		keys: make(map[string]interface{}),
 
 		expiry: make(map[string]time.Time),
 
 		ttl: ttl,
 	}
-
 }
 
 // Get retrieves a key from cache.
 
 func (kc *KeyCache) Get(keyID string) (interface{}, bool) {
-
 	kc.mu.RLock()
 
 	defer kc.mu.RUnlock()
 
 	if expiry, ok := kc.expiry[keyID]; ok {
-
 		if time.Now().After(expiry) {
-
 			return nil, false
-
 		}
-
 	}
 
 	key, ok := kc.keys[keyID]
 
 	return key, ok
-
 }
 
 // Set stores a key in cache.
 
 func (kc *KeyCache) Set(keyID string, key interface{}) {
-
 	kc.mu.Lock()
 
 	defer kc.mu.Unlock()
@@ -1186,7 +1021,6 @@ func (kc *KeyCache) Set(keyID string, key interface{}) {
 	kc.keys[keyID] = key
 
 	kc.expiry[keyID] = time.Now().Add(kc.ttl)
-
 }
 
 // SimpleRBACEngine provides a basic implementation of RBACEngine.
@@ -1200,104 +1034,81 @@ type SimpleRBACEngine struct {
 // NewRBACEngine creates a new RBAC engine.
 
 func NewRBACEngine(config *RBACConfig, logger *logging.StructuredLogger) (RBACEngine, error) {
-
 	return &SimpleRBACEngine{
-
 		config: config,
 
 		logger: logger,
 	}, nil
-
 }
 
 // Authorize checks if a user is authorized for a resource/action.
 
 func (r *SimpleRBACEngine) Authorize(ctx context.Context, user *User, resource, action string) (bool, error) {
-
 	// Basic authorization logic - always allow for now.
 
 	return true, nil
-
 }
 
 // GetUserPermissions returns user permissions.
 
 func (r *SimpleRBACEngine) GetUserPermissions(ctx context.Context, user *User) ([]*Permission, error) {
-
 	return []*Permission{}, nil
-
 }
 
 // GetRolePermissions returns role permissions.
 
 func (r *SimpleRBACEngine) GetRolePermissions(ctx context.Context, role string) ([]*Permission, error) {
-
 	return []*Permission{}, nil
-
 }
 
 // AddRole adds a new role.
 
 func (r *SimpleRBACEngine) AddRole(ctx context.Context, role *Role) error {
-
 	// Implementation for adding role.
 
 	return nil
-
 }
 
 // RemoveRole removes a role.
 
 func (r *SimpleRBACEngine) RemoveRole(ctx context.Context, roleName string) error {
-
 	// Implementation for removing role.
 
 	return nil
-
 }
 
 // AssignRole assigns a role to a user.
 
 func (r *SimpleRBACEngine) AssignRole(ctx context.Context, userID, roleName string) error {
-
 	// Implementation for assigning role.
 
 	return nil
-
 }
 
 // RevokeRole revokes a role from a user.
 
 func (r *SimpleRBACEngine) RevokeRole(ctx context.Context, userID, roleName string) error {
-
 	// Implementation for revoking role.
 
 	return nil
-
 }
 
 // NewJWTProvider creates a new JWT auth provider.
 
 func NewJWTProvider(config *JWTConfig, logger *logging.StructuredLogger) (AuthProvider, error) {
-
 	return &jwtProvider{config: config, logger: logger}, nil
-
 }
 
 // NewOAuth2Provider creates a new OAuth2 auth provider.
 
 func NewOAuth2Provider(config *OAuth2Config, logger *logging.StructuredLogger) (AuthProvider, error) {
-
 	return &oauth2Provider{config: config, logger: logger}, nil
-
 }
 
 // NewServiceAccountProvider creates a new service account auth provider.
 
 func NewServiceAccountProvider(config *ServiceAuthConfig, logger *logging.StructuredLogger) (AuthProvider, error) {
-
 	return &serviceAccountProvider{config: config, logger: logger}, nil
-
 }
 
 // JWT Provider implementation.
@@ -1311,51 +1122,41 @@ type jwtProvider struct {
 // Authenticate performs authenticate operation.
 
 func (p *jwtProvider) Authenticate(ctx context.Context, credentials interface{}) (*AuthResult, error) {
-
 	// JWT authentication implementation.
 
 	return nil, fmt.Errorf("JWT authentication not fully implemented")
-
 }
 
 // ValidateToken performs validatetoken operation.
 
 func (p *jwtProvider) ValidateToken(ctx context.Context, token string) (*TokenClaims, error) {
-
 	// JWT token validation implementation.
 
 	return nil, fmt.Errorf("JWT validation not fully implemented")
-
 }
 
 // RefreshToken performs refreshtoken operation.
 
 func (p *jwtProvider) RefreshToken(ctx context.Context, refreshToken string) (*AuthResult, error) {
-
 	// JWT token refresh implementation.
 
 	return nil, fmt.Errorf("JWT refresh not fully implemented")
-
 }
 
 // RevokeToken performs revoketoken operation.
 
 func (p *jwtProvider) RevokeToken(ctx context.Context, token string) error {
-
 	// JWT token revocation implementation.
 
 	return nil
-
 }
 
 // GetPublicKeys performs getpublickeys operation.
 
 func (p *jwtProvider) GetPublicKeys(ctx context.Context) (jwk.Set, error) {
-
 	// Get JWT public keys.
 
 	return nil, fmt.Errorf("JWT public keys not available")
-
 }
 
 // OAuth2 Provider implementation.
@@ -1369,51 +1170,41 @@ type oauth2Provider struct {
 // Authenticate performs authenticate operation.
 
 func (p *oauth2Provider) Authenticate(ctx context.Context, credentials interface{}) (*AuthResult, error) {
-
 	// OAuth2 authentication implementation.
 
 	return nil, fmt.Errorf("OAuth2 authentication not fully implemented")
-
 }
 
 // ValidateToken performs validatetoken operation.
 
 func (p *oauth2Provider) ValidateToken(ctx context.Context, token string) (*TokenClaims, error) {
-
 	// OAuth2 token validation implementation.
 
 	return nil, fmt.Errorf("OAuth2 validation not fully implemented")
-
 }
 
 // RefreshToken performs refreshtoken operation.
 
 func (p *oauth2Provider) RefreshToken(ctx context.Context, refreshToken string) (*AuthResult, error) {
-
 	// OAuth2 token refresh implementation.
 
 	return nil, fmt.Errorf("OAuth2 refresh not fully implemented")
-
 }
 
 // RevokeToken performs revoketoken operation.
 
 func (p *oauth2Provider) RevokeToken(ctx context.Context, token string) error {
-
 	// OAuth2 token revocation implementation.
 
 	return nil
-
 }
 
 // GetPublicKeys performs getpublickeys operation.
 
 func (p *oauth2Provider) GetPublicKeys(ctx context.Context) (jwk.Set, error) {
-
 	// Get OAuth2 public keys.
 
 	return nil, fmt.Errorf("OAuth2 public keys not available")
-
 }
 
 // Service Account Provider implementation.
@@ -1427,49 +1218,39 @@ type serviceAccountProvider struct {
 // Authenticate performs authenticate operation.
 
 func (p *serviceAccountProvider) Authenticate(ctx context.Context, credentials interface{}) (*AuthResult, error) {
-
 	// Service account authentication implementation.
 
 	return nil, fmt.Errorf("service account authentication not fully implemented")
-
 }
 
 // ValidateToken performs validatetoken operation.
 
 func (p *serviceAccountProvider) ValidateToken(ctx context.Context, token string) (*TokenClaims, error) {
-
 	// Service account token validation implementation.
 
 	return nil, fmt.Errorf("service account validation not fully implemented")
-
 }
 
 // RefreshToken performs refreshtoken operation.
 
 func (p *serviceAccountProvider) RefreshToken(ctx context.Context, refreshToken string) (*AuthResult, error) {
-
 	// Service account token refresh implementation.
 
 	return nil, fmt.Errorf("service account refresh not fully implemented")
-
 }
 
 // RevokeToken performs revoketoken operation.
 
 func (p *serviceAccountProvider) RevokeToken(ctx context.Context, token string) error {
-
 	// Service account token revocation implementation.
 
 	return nil
-
 }
 
 // GetPublicKeys performs getpublickeys operation.
 
 func (p *serviceAccountProvider) GetPublicKeys(ctx context.Context) (jwk.Set, error) {
-
 	// Get service account public keys.
 
 	return nil, fmt.Errorf("service account public keys not available")
-
 }

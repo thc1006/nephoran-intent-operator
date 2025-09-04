@@ -76,14 +76,17 @@ func TestOptimizedClientConfigContract(t *testing.T) {
 
 	// BatchConfig should be settable
 	config.BatchConfig = &BatchProcessorConfig{
-		BatchSize:      10,
-		FlushInterval:  5 * time.Second,
-		MaxConcurrency: 3,
+		MaxWorkers:      3,
+		QueueSize:       100,
+		ProcessTimeout:  5 * time.Second,
+		RetryAttempts:   3,
+		RetryDelay:      1 * time.Second,
+		MetricsInterval: 10 * time.Second,
 	}
 
 	assert.Equal(t, "test-api-key", config.APIKey)
 	assert.NotNil(t, config.BatchConfig)
-	assert.Equal(t, 10, config.BatchConfig.BatchSize)
+	assert.Equal(t, 3, config.BatchConfig.MaxWorkers)
 }
 
 // TestCircuitBreakerConfigContract verifies the shared CircuitBreakerConfig has MaxConcurrentRequests

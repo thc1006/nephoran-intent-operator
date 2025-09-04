@@ -1,7 +1,9 @@
 package ca
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -71,7 +73,6 @@ type CAManager struct {
 // Config holds CA manager configuration.
 
 type Config struct {
-
 	// Global settings.
 
 	DefaultBackend CABackendType `yaml:"default_backend"`
@@ -403,7 +404,6 @@ const (
 // Backend defines the interface for CA backends.
 
 type Backend interface {
-
 	// Initialization.
 
 	Initialize(ctx context.Context, config interface{}) error
@@ -446,23 +446,19 @@ type BackendInfo struct {
 
 	Features []string `json:"features"`
 
-	Metrics map[string]interface{} `json:"metrics"`
+	Metrics json.RawMessage `json:"metrics"`
 }
 
 // NewCAManager creates a new CA manager.
 
 func NewCAManager(config *Config, logger *logging.StructuredLogger, client client.Client) (*CAManager, error) {
-
 	if config == nil {
-
 		return nil, fmt.Errorf("CA manager config is required")
-
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	manager := &CAManager{
-
 		config: config,
 
 		logger: logger,
@@ -479,7 +475,6 @@ func NewCAManager(config *Config, logger *logging.StructuredLogger, client clien
 	// Initialize certificate pool.
 
 	pool, err := NewCertificatePool(config.CertificateStore, logger)
-
 	if err != nil {
 
 		cancel()
@@ -497,7 +492,6 @@ func NewCAManager(config *Config, logger *logging.StructuredLogger, client clien
 		// Convert manager policy config to policy engine config.
 
 		engineConfig := &PolicyEngineConfig{
-
 			Enabled: config.PolicyConfig.Enabled,
 
 			Rules: convertValidationRulesToPolicyRules(config.PolicyConfig.ValidationRules),
@@ -513,7 +507,6 @@ func NewCAManager(config *Config, logger *logging.StructuredLogger, client clien
 		}
 
 		policyEngine, err := NewPolicyEngine(engineConfig, logger)
-
 		if err != nil {
 
 			cancel()
@@ -531,7 +524,6 @@ func NewCAManager(config *Config, logger *logging.StructuredLogger, client clien
 	if config.DistributionConfig != nil && config.DistributionConfig.Enabled {
 
 		distributor, err := NewCertificateDistributor(config.DistributionConfig, logger, client)
-
 		if err != nil {
 
 			cancel()
@@ -549,7 +541,6 @@ func NewCAManager(config *Config, logger *logging.StructuredLogger, client clien
 	if config.MonitoringConfig != nil && config.MonitoringConfig.Enabled {
 
 		monitor, err := NewCAMonitor(config.MonitoringConfig, logger)
-
 		if err != nil {
 
 			cancel()
@@ -577,25 +568,19 @@ func NewCAManager(config *Config, logger *logging.StructuredLogger, client clien
 	go manager.runCertificateLifecycleManager()
 
 	if manager.monitor != nil {
-
 		go manager.monitor.Start(ctx)
-
 	}
 
 	if manager.distributor != nil {
-
 		go manager.distributor.Start(ctx)
-
 	}
 
 	return manager, nil
-
 }
 
 // initializeBackends initializes all configured backends.
 
 func (m *CAManager) initializeBackends() error {
-
 	for backendType, backendConfig := range m.config.BackendConfigs {
 
 		var backend Backend
@@ -625,7 +610,6 @@ func (m *CAManager) initializeBackends() error {
 			// Need HSM config - using default config for now.
 
 			hsmConfig := &HSMBackendConfig{
-
 				ProviderType: "mock", // Default to mock provider for testing
 
 			}
@@ -641,15 +625,11 @@ func (m *CAManager) initializeBackends() error {
 		}
 
 		if err != nil {
-
 			return fmt.Errorf("failed to create %s backend: %w", backendType, err)
-
 		}
 
 		if err := backend.Initialize(m.ctx, backendConfig); err != nil {
-
 			return fmt.Errorf("failed to initialize %s backend: %w", backendType, err)
-
 		}
 
 		m.backends[backendType] = backend
@@ -663,13 +643,11 @@ func (m *CAManager) initializeBackends() error {
 	}
 
 	return nil
-
 }
 
 // IssueCertificate issues a new certificate.
 
 func (m *CAManager) IssueCertificate(ctx context.Context, req *CertificateRequest) (*CertificateResponse, error) {
-
 	m.logger.Info("issuing certificate",
 
 		"request_id", req.ID,
@@ -681,9 +659,7 @@ func (m *CAManager) IssueCertificate(ctx context.Context, req *CertificateReques
 	// Validate request.
 
 	if err := m.validateCertificateRequest(req); err != nil {
-
 		return nil, fmt.Errorf("certificate request validation failed: %w", err)
-
 	}
 
 	// Apply policy validation if enabled (after certificate is issued).
@@ -693,17 +669,13 @@ func (m *CAManager) IssueCertificate(ctx context.Context, req *CertificateReques
 	// Select backend.
 
 	backend, err := m.selectBackend(req)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("backend selection failed: %w", err)
-
 	}
 
 	// Issue certificate.
 
 	response, err := backend.IssueCertificate(ctx, req)
-
 	if err != nil {
 
 		m.logger.Error("certificate issuance failed",
@@ -721,7 +693,6 @@ func (m *CAManager) IssueCertificate(ctx context.Context, req *CertificateReques
 	// Store certificate.
 
 	if err := m.certificatePool.StoreCertificate(response); err != nil {
-
 		m.logger.Warn("failed to store certificate",
 
 			"request_id", req.ID,
@@ -729,23 +700,18 @@ func (m *CAManager) IssueCertificate(ctx context.Context, req *CertificateReques
 			"serial_number", response.SerialNumber,
 
 			"error", err)
-
 	}
 
 	// Distribute certificate if enabled.
 
 	if m.distributor != nil {
-
 		if err := m.distributor.DistributeCertificate(response); err != nil {
-
 			m.logger.Warn("certificate distribution failed",
 
 				"request_id", req.ID,
 
 				"error", err)
-
 		}
-
 	}
 
 	m.logger.Info("certificate issued successfully",
@@ -757,13 +723,11 @@ func (m *CAManager) IssueCertificate(ctx context.Context, req *CertificateReques
 		"expires_at", response.ExpiresAt)
 
 	return response, nil
-
 }
 
 // RevokeCertificate revokes an existing certificate.
 
 func (m *CAManager) RevokeCertificate(ctx context.Context, serialNumber string, reason int, tenantID string) error {
-
 	m.logger.Info("revoking certificate",
 
 		"serial_number", serialNumber,
@@ -775,11 +739,8 @@ func (m *CAManager) RevokeCertificate(ctx context.Context, serialNumber string, 
 	// Find certificate in pool.
 
 	cert, err := m.certificatePool.GetCertificate(serialNumber)
-
 	if err != nil {
-
 		return fmt.Errorf("certificate not found: %w", err)
-
 	}
 
 	// Determine backend.
@@ -787,27 +748,19 @@ func (m *CAManager) RevokeCertificate(ctx context.Context, serialNumber string, 
 	var backend Backend
 
 	if cert.IssuedBy != "" {
-
 		if b, ok := m.backends[CABackendType(cert.IssuedBy)]; ok {
-
 			backend = b
-
 		}
-
 	}
 
 	if backend == nil {
-
 		backend = m.backends[m.config.DefaultBackend]
-
 	}
 
 	// Revoke certificate.
 
 	if err := backend.RevokeCertificate(ctx, serialNumber, reason); err != nil {
-
 		return fmt.Errorf("certificate revocation failed: %w", err)
-
 	}
 
 	// Update certificate status.
@@ -815,13 +768,11 @@ func (m *CAManager) RevokeCertificate(ctx context.Context, serialNumber string, 
 	cert.Status = StatusRevoked
 
 	if err := m.certificatePool.UpdateCertificate(cert); err != nil {
-
 		m.logger.Warn("failed to update certificate status",
 
 			"serial_number", serialNumber,
 
 			"error", err)
-
 	}
 
 	m.logger.Info("certificate revoked successfully",
@@ -829,13 +780,11 @@ func (m *CAManager) RevokeCertificate(ctx context.Context, serialNumber string, 
 		"serial_number", serialNumber)
 
 	return nil
-
 }
 
 // RenewCertificate renews an existing certificate.
 
 func (m *CAManager) RenewCertificate(ctx context.Context, serialNumber string) (*CertificateResponse, error) {
-
 	m.logger.Info("renewing certificate",
 
 		"serial_number", serialNumber)
@@ -843,17 +792,13 @@ func (m *CAManager) RenewCertificate(ctx context.Context, serialNumber string) (
 	// Get existing certificate.
 
 	existingCert, err := m.certificatePool.GetCertificate(serialNumber)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("existing certificate not found: %w", err)
-
 	}
 
 	// Create renewal request based on existing certificate.
 
 	req := &CertificateRequest{
-
 		ID: generateManagerRequestID(),
 
 		TenantID: existingCert.Metadata["tenant_id"],
@@ -870,9 +815,7 @@ func (m *CAManager) RenewCertificate(ctx context.Context, serialNumber string) (
 	// Extract IP addresses and other details from existing certificate.
 
 	for _, ip := range existingCert.Certificate.IPAddresses {
-
 		req.IPAddresses = append(req.IPAddresses, ip.String())
-
 	}
 
 	req.EmailAddresses = existingCert.Certificate.EmailAddresses
@@ -882,21 +825,15 @@ func (m *CAManager) RenewCertificate(ctx context.Context, serialNumber string) (
 	// Select backend.
 
 	backend, err := m.selectBackend(req)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("backend selection failed: %w", err)
-
 	}
 
 	// Renew certificate.
 
 	response, err := backend.RenewCertificate(ctx, req)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("certificate renewal failed: %w", err)
-
 	}
 
 	// Update status.
@@ -906,29 +843,23 @@ func (m *CAManager) RenewCertificate(ctx context.Context, serialNumber string) (
 	// Store renewed certificate.
 
 	if err := m.certificatePool.StoreCertificate(response); err != nil {
-
 		m.logger.Warn("failed to store renewed certificate",
 
 			"serial_number", response.SerialNumber,
 
 			"error", err)
-
 	}
 
 	// Distribute certificate if enabled.
 
 	if m.distributor != nil {
-
 		if err := m.distributor.DistributeCertificate(response); err != nil {
-
 			m.logger.Warn("certificate distribution failed",
 
 				"serial_number", response.SerialNumber,
 
 				"error", err)
-
 		}
-
 	}
 
 	m.logger.Info("certificate renewed successfully",
@@ -940,69 +871,51 @@ func (m *CAManager) RenewCertificate(ctx context.Context, serialNumber string) (
 		"expires_at", response.ExpiresAt)
 
 	return response, nil
-
 }
 
 // GetCertificate retrieves a certificate by serial number.
 
 func (m *CAManager) GetCertificate(serialNumber string) (*CertificateResponse, error) {
-
 	return m.certificatePool.GetCertificate(serialNumber)
-
 }
 
 // ListCertificates lists certificates with optional filters.
 
 func (m *CAManager) ListCertificates(filters map[string]string) ([]*CertificateResponse, error) {
-
 	return m.certificatePool.ListCertificates(filters)
-
 }
 
 // GetCAChain retrieves the CA certificate chain for a backend.
 
 func (m *CAManager) GetCAChain(ctx context.Context, backendType CABackendType) ([]*x509.Certificate, error) {
-
 	backend, ok := m.backends[backendType]
 
 	if !ok {
-
 		return nil, fmt.Errorf("backend %s not available", backendType)
-
 	}
 
 	return backend.GetCAChain(ctx)
-
 }
 
 // HealthCheck performs health check on all backends.
 
 func (m *CAManager) HealthCheck(ctx context.Context) map[CABackendType]error {
-
 	results := make(map[CABackendType]error)
 
 	for backendType, backend := range m.backends {
-
 		if err := backend.HealthCheck(ctx); err != nil {
-
 			results[backendType] = err
-
 		} else {
-
 			results[backendType] = nil
-
 		}
-
 	}
 
 	return results
-
 }
 
 // Close gracefully shuts down the CA manager.
 
 func (m *CAManager) Close() error {
-
 	m.logger.Info("shutting down CA manager")
 
 	m.cancel()
@@ -1010,65 +923,47 @@ func (m *CAManager) Close() error {
 	// Close distributor.
 
 	if m.distributor != nil {
-
 		m.distributor.Stop()
-
 	}
 
 	// Close certificate pool.
 
 	if m.certificatePool != nil {
-
 		m.certificatePool.Close()
-
 	}
 
 	return nil
-
 }
 
 // Helper methods.
 
 func (m *CAManager) validateCertificateRequest(req *CertificateRequest) error {
-
 	if req.CommonName == "" {
-
 		return fmt.Errorf("common name is required")
-
 	}
 
 	if req.ValidityDuration < m.config.MinValidityDuration {
-
 		return fmt.Errorf("validity duration too short: minimum %v", m.config.MinValidityDuration)
-
 	}
 
 	if req.ValidityDuration > m.config.MaxValidityDuration {
-
 		return fmt.Errorf("validity duration too long: maximum %v", m.config.MaxValidityDuration)
-
 	}
 
 	if req.KeySize < 2048 {
-
 		return fmt.Errorf("key size too small: minimum 2048 bits")
-
 	}
 
 	return nil
-
 }
 
 func (m *CAManager) selectBackend(req *CertificateRequest) (Backend, error) {
-
 	// Use request-specific backend if specified.
 
 	if req.Backend != "" {
 
 		if backend, ok := m.backends[req.Backend]; ok {
-
 			return backend, nil
-
 		}
 
 		return nil, fmt.Errorf("requested backend %s not available", req.Backend)
@@ -1078,39 +973,28 @@ func (m *CAManager) selectBackend(req *CertificateRequest) (Backend, error) {
 	// Use tenant-specific backend if configured.
 
 	if m.config.TenantSupport && req.TenantID != "" {
-
 		if tenantConfig, ok := m.config.TenantConfigs[req.TenantID]; ok {
-
 			if backend, ok := m.backends[tenantConfig.Backend]; ok {
-
 				return backend, nil
-
 			}
-
 		}
-
 	}
 
 	// Use default backend.
 
 	if backend, ok := m.backends[m.config.DefaultBackend]; ok {
-
 		return backend, nil
-
 	}
 
 	return nil, fmt.Errorf("no available backends")
-
 }
 
 func (m *CAManager) runCertificateLifecycleManager() {
-
 	ticker := time.NewTicker(time.Hour) // Check every hour
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-m.ctx.Done():
@@ -1122,17 +1006,13 @@ func (m *CAManager) runCertificateLifecycleManager() {
 			m.processExpiringCertificates()
 
 		}
-
 	}
-
 }
 
 func (m *CAManager) processExpiringCertificates() {
-
 	threshold := time.Now().Add(m.config.RenewalThreshold)
 
 	expiringCerts, err := m.certificatePool.GetExpiringCertificates(threshold)
-
 	if err != nil {
 
 		m.logger.Error("failed to get expiring certificates", "error", err)
@@ -1142,61 +1022,44 @@ func (m *CAManager) processExpiringCertificates() {
 	}
 
 	for _, cert := range expiringCerts {
-
 		if cert.Metadata["auto_renew"] == "true" {
-
 			go func(serialNumber string) {
-
 				_, err := m.RenewCertificate(m.ctx, serialNumber)
-
 				if err != nil {
-
 					m.logger.Error("automatic certificate renewal failed",
 
 						"serial_number", serialNumber,
 
 						"error", err)
-
 				}
-
 			}(cert.SerialNumber)
-
 		}
-
 	}
-
 }
 
 // generateManagerRequestID generates a unique request ID for manager operations.
 
 func generateManagerRequestID() string {
-
 	// Generate a random request ID.
 
 	randomBytes := make([]byte, 8)
 
 	if _, err := rand.Read(randomBytes); err != nil {
-
 		// Fallback to time-based ID if random generation fails.
 
 		return fmt.Sprintf("req-%x", time.Now().UnixNano())
-
 	}
 
 	return fmt.Sprintf("req-%x", randomBytes)
-
 }
 
 // convertValidationRulesToPolicyRules converts manager validation rules to policy engine rules.
 
 func convertValidationRulesToPolicyRules(validationRules []ValidationRule) []PolicyRule {
-
 	policyRules := make([]PolicyRule, len(validationRules))
 
 	for i, rule := range validationRules {
-
 		policyRules[i] = PolicyRule{
-
 			Name: rule.Name,
 
 			Type: rule.Type,
@@ -1209,9 +1072,7 @@ func convertValidationRulesToPolicyRules(validationRules []ValidationRule) []Pol
 
 			Description: rule.ErrorMessage,
 		}
-
 	}
 
 	return policyRules
-
 }

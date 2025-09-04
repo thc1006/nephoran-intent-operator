@@ -73,7 +73,6 @@ type Pipeline struct {
 // PipelineConfig defines configuration for pipeline execution.
 
 type PipelineConfig struct {
-
 	// Execution settings.
 
 	MaxConcurrentStages int `json:"maxConcurrentStages" yaml:"maxConcurrentStages"`
@@ -124,7 +123,6 @@ type PipelineConfig struct {
 // PipelineStage represents a stage in the pipeline.
 
 type PipelineStage struct {
-
 	// Basic properties.
 
 	Name string `json:"name" yaml:"name"`
@@ -282,7 +280,6 @@ type RetryPolicy struct {
 	Multiplier float64 `json:"multiplier" yaml:"multiplier"`
 
 	RetryOn []string `json:"retryOn,omitempty" yaml:"retryOn,omitempty"` // Error types to retry on
-
 }
 
 // ExecutionSettings defines execution configuration.
@@ -342,7 +339,6 @@ type ComplianceSettings struct {
 // PipelineExecution represents an execution of a pipeline.
 
 type PipelineExecution struct {
-
 	// Metadata.
 
 	ID string `json:"id"`
@@ -379,13 +375,13 @@ type PipelineExecution struct {
 
 	// State management.
 
-	Variables map[string]interface{} `json:"variables"`
+	Variables json.RawMessage `json:"variables"`
 
 	Checkpoints []*ExecutionCheckpoint `json:"checkpoints"`
 
 	// Context.
 
-	Context map[string]interface{} `json:"context"`
+	Context json.RawMessage `json:"context"`
 
 	Metadata map[string]string `json:"metadata"`
 }
@@ -411,7 +407,7 @@ type StageExecution struct {
 
 	Retries int `json:"retries"`
 
-	Output map[string]interface{} `json:"output"`
+	Output json.RawMessage `json:"output"`
 }
 
 // FunctionExecution represents execution of a function within a stage.
@@ -447,7 +443,7 @@ type FunctionExecution struct {
 
 	Logs []string `json:"logs"`
 
-	Context map[string]interface{} `json:"context"`
+	Context json.RawMessage `json:"context"`
 }
 
 // DependencyStatus represents dependency status.
@@ -530,7 +526,7 @@ type ExecutionResult struct {
 
 	Message string `json:"message"`
 
-	Data map[string]interface{} `json:"data,omitempty"`
+	Data json.RawMessage `json:"data,omitempty"`
 
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -544,7 +540,7 @@ type ExecutionCheckpoint struct {
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Variables map[string]interface{} `json:"variables"`
+	Variables json.RawMessage `json:"variables"`
 
 	Resources []porch.KRMResource `json:"resources"`
 
@@ -652,7 +648,6 @@ type PipelineMetrics struct {
 // Default pipeline configuration.
 
 var DefaultPipelineConfig = &PipelineConfig{
-
 	MaxConcurrentStages: 10,
 
 	StageTimeout: 15 * time.Minute,
@@ -693,29 +688,22 @@ var DefaultPipelineConfig = &PipelineConfig{
 // NewPipeline creates a new KRM function pipeline with comprehensive orchestration.
 
 func NewPipeline(config *PipelineConfig, runtime *Runtime, registry *Registry) (*Pipeline, error) {
-
 	if config == nil {
-
 		config = DefaultPipelineConfig
-
 	}
 
 	// Validate configuration.
 
 	if err := validatePipelineConfig(config); err != nil {
-
 		return nil, fmt.Errorf("invalid pipeline configuration: %w", err)
-
 	}
 
 	// Initialize metrics.
 
 	metrics := &PipelineMetrics{
-
 		PipelineExecutions: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "krm_pipeline_executions_total",
 
 				Help: "Total number of pipeline executions",
@@ -727,7 +715,6 @@ func NewPipeline(config *PipelineConfig, runtime *Runtime, registry *Registry) (
 		ExecutionDuration: promauto.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "krm_pipeline_execution_duration_seconds",
 
 				Help: "Duration of pipeline executions",
@@ -741,7 +728,6 @@ func NewPipeline(config *PipelineConfig, runtime *Runtime, registry *Registry) (
 		StageExecutions: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "krm_pipeline_stage_executions_total",
 
 				Help: "Total number of stage executions",
@@ -753,7 +739,6 @@ func NewPipeline(config *PipelineConfig, runtime *Runtime, registry *Registry) (
 		StageDuration: promauto.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "krm_pipeline_stage_duration_seconds",
 
 				Help: "Duration of stage executions",
@@ -767,7 +752,6 @@ func NewPipeline(config *PipelineConfig, runtime *Runtime, registry *Registry) (
 		FunctionExecutions: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "krm_pipeline_function_executions_total",
 
 				Help: "Total number of function executions in pipelines",
@@ -779,7 +763,6 @@ func NewPipeline(config *PipelineConfig, runtime *Runtime, registry *Registry) (
 		FunctionDuration: promauto.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "krm_pipeline_function_duration_seconds",
 
 				Help: "Duration of function executions in pipelines",
@@ -793,7 +776,6 @@ func NewPipeline(config *PipelineConfig, runtime *Runtime, registry *Registry) (
 		ErrorRate: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "krm_pipeline_errors_total",
 
 				Help: "Total number of pipeline execution errors",
@@ -805,7 +787,6 @@ func NewPipeline(config *PipelineConfig, runtime *Runtime, registry *Registry) (
 		RetryCount: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "krm_pipeline_retries_total",
 
 				Help: "Total number of execution retries",
@@ -817,7 +798,6 @@ func NewPipeline(config *PipelineConfig, runtime *Runtime, registry *Registry) (
 		QueueDepth: promauto.NewGauge(
 
 			prometheus.GaugeOpts{
-
 				Name: "krm_pipeline_queue_depth",
 
 				Help: "Current depth of function execution queue",
@@ -827,7 +807,6 @@ func NewPipeline(config *PipelineConfig, runtime *Runtime, registry *Registry) (
 		ActiveExecutions: promauto.NewGauge(
 
 			prometheus.GaugeOpts{
-
 				Name: "krm_pipeline_active_executions",
 
 				Help: "Number of active pipeline executions",
@@ -837,7 +816,6 @@ func NewPipeline(config *PipelineConfig, runtime *Runtime, registry *Registry) (
 		CheckpointOperations: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "krm_pipeline_checkpoint_operations_total",
 
 				Help: "Total number of checkpoint operations",
@@ -850,12 +828,10 @@ func NewPipeline(config *PipelineConfig, runtime *Runtime, registry *Registry) (
 	// Initialize state manager.
 
 	var storage StateStorage = &MemoryStateStorage{
-
 		data: make(map[string][]byte),
 	}
 
 	stateManager := &StateManager{
-
 		storage: storage,
 
 		checkpoints: make(map[string]*ExecutionCheckpoint),
@@ -866,7 +842,6 @@ func NewPipeline(config *PipelineConfig, runtime *Runtime, registry *Registry) (
 	ctx, cancel := context.WithCancel(context.Background())
 
 	scheduler := &FunctionScheduler{
-
 		maxConcurrency: config.MaxConcurrentStages,
 
 		semaphore: make(chan struct{}, config.MaxConcurrentStages),
@@ -881,7 +856,6 @@ func NewPipeline(config *PipelineConfig, runtime *Runtime, registry *Registry) (
 	}
 
 	pipeline := &Pipeline{
-
 		config: config,
 
 		runtime: runtime,
@@ -902,13 +876,11 @@ func NewPipeline(config *PipelineConfig, runtime *Runtime, registry *Registry) (
 	pipeline.startScheduler()
 
 	return pipeline, nil
-
 }
 
 // Execute executes a pipeline definition with comprehensive orchestration.
 
 func (p *Pipeline) Execute(ctx context.Context, definition *PipelineDefinition, resources []porch.KRMResource) (*PipelineExecution, error) {
-
 	ctx, span := p.tracer.Start(ctx, "krm-pipeline-execute")
 
 	defer span.End()
@@ -916,7 +888,6 @@ func (p *Pipeline) Execute(ctx context.Context, definition *PipelineDefinition, 
 	// Create execution instance.
 
 	execution := &PipelineExecution{
-
 		ID: generateExecutionID(),
 
 		Name: definition.Name,
@@ -935,11 +906,15 @@ func (p *Pipeline) Execute(ctx context.Context, definition *PipelineDefinition, 
 
 		Errors: []ExecutionError{},
 
-		Variables: p.convertAndInitializeVariables(definition.Variables),
+		Variables: func() json.RawMessage {
+			vars := p.convertAndInitializeVariables(definition.Variables)
+			data, _ := json.Marshal(vars)
+			return json.RawMessage(data)
+		}(),
 
 		Checkpoints: []*ExecutionCheckpoint{},
 
-		Context: make(map[string]interface{}),
+		Context: json.RawMessage(`{}`),
 
 		Metadata: make(map[string]string),
 	}
@@ -994,7 +969,6 @@ func (p *Pipeline) Execute(ctx context.Context, definition *PipelineDefinition, 
 	var execErr error
 
 	defer func() {
-
 		execution.EndTime = &time.Time{}
 
 		*execution.EndTime = time.Now()
@@ -1022,29 +996,21 @@ func (p *Pipeline) Execute(ctx context.Context, definition *PipelineDefinition, 
 		p.metrics.PipelineExecutions.WithLabelValues(definition.Name, status).Inc()
 
 		p.metrics.ExecutionDuration.WithLabelValues(definition.Name).Observe(execution.Duration.Seconds())
-
 	}()
 
 	// Execute stages based on execution mode.
 
 	if definition.ExecutionMode == "parallel" {
-
 		execErr = p.executeStagesParallel(execCtx, execution)
-
 	} else if definition.ExecutionMode == "dag" {
-
 		execErr = p.executeStagesDAG(execCtx, execution)
-
 	} else {
-
 		execErr = p.executeStagesSequential(execCtx, execution)
-
 	}
 
 	// Handle rollback on failure.
 
 	if execErr != nil && p.config.RollbackOnFailure {
-
 		if rollbackErr := p.rollbackExecution(execCtx, execution); rollbackErr != nil {
 
 			logger.Error(rollbackErr, "Rollback failed")
@@ -1052,11 +1018,8 @@ func (p *Pipeline) Execute(ctx context.Context, definition *PipelineDefinition, 
 			execution.Status = StatusFailed
 
 		} else {
-
 			execution.Status = StatusRolledBack
-
 		}
-
 	}
 
 	if execErr != nil {
@@ -1072,19 +1035,16 @@ func (p *Pipeline) Execute(ctx context.Context, definition *PipelineDefinition, 
 	span.SetStatus(codes.Ok, "pipeline execution completed")
 
 	return execution, nil
-
 }
 
 // ExecuteStage executes a single pipeline stage.
 
 func (p *Pipeline) ExecuteStage(ctx context.Context, execution *PipelineExecution, stage *PipelineStage, resources []porch.KRMResource) (*StageExecution, error) {
-
 	ctx, span := p.tracer.Start(ctx, "krm-pipeline-execute-stage")
 
 	defer span.End()
 
 	stageExec := &StageExecution{
-
 		Name: stage.Name,
 
 		Status: StatusRunning,
@@ -1093,7 +1053,7 @@ func (p *Pipeline) ExecuteStage(ctx context.Context, execution *PipelineExecutio
 
 		Functions: make(map[string]*FunctionExecution),
 
-		Output: make(map[string]interface{}),
+		Output: json.RawMessage(`{}`),
 	}
 
 	span.SetAttributes(
@@ -1112,9 +1072,7 @@ func (p *Pipeline) ExecuteStage(ctx context.Context, execution *PipelineExecutio
 	stageTimeout := p.config.StageTimeout
 
 	if stage.Timeout != nil {
-
 		stageTimeout = *stage.Timeout
-
 	}
 
 	stageCtx, cancel := context.WithTimeout(ctx, stageTimeout)
@@ -1123,7 +1081,15 @@ func (p *Pipeline) ExecuteStage(ctx context.Context, execution *PipelineExecutio
 
 	// Check conditions.
 
-	if !p.evaluateConditions(stage.Conditions, execution.Variables, resources) {
+	// Convert Variables from json.RawMessage to map[string]interface{}
+	var variables map[string]interface{}
+	if len(execution.Variables) > 0 {
+		json.Unmarshal(execution.Variables, &variables)
+	} else {
+		variables = make(map[string]interface{})
+	}
+	
+	if !p.evaluateConditions(stage.Conditions, variables, resources) {
 
 		logger.Info("Stage conditions not met, skipping")
 
@@ -1136,7 +1102,6 @@ func (p *Pipeline) ExecuteStage(ctx context.Context, execution *PipelineExecutio
 	var stageErr error
 
 	defer func() {
-
 		stageExec.EndTime = &time.Time{}
 
 		*stageExec.EndTime = time.Now()
@@ -1152,15 +1117,12 @@ func (p *Pipeline) ExecuteStage(ctx context.Context, execution *PipelineExecutio
 			status = "failed"
 
 		} else {
-
 			stageExec.Status = StatusSucceeded
-
 		}
 
 		p.metrics.StageExecutions.WithLabelValues(execution.Name, stage.Name, status).Inc()
 
 		p.metrics.StageDuration.WithLabelValues(execution.Name, stage.Name).Observe(stageExec.Duration.Seconds())
-
 	}()
 
 	// Execute based on stage type.
@@ -1190,13 +1152,9 @@ func (p *Pipeline) ExecuteStage(ctx context.Context, execution *PipelineExecutio
 		// Handle error based on stage configuration.
 
 		if stage.OnError != nil {
-
 			if handledErr := p.handleStageError(stageCtx, execution, stage, stageExec, stageErr); handledErr == nil {
-
 				stageErr = nil // Error was handled successfully
-
 			}
-
 		}
 
 		return stageExec, stageErr
@@ -1206,13 +1164,11 @@ func (p *Pipeline) ExecuteStage(ctx context.Context, execution *PipelineExecutio
 	span.SetStatus(codes.Ok, "stage execution completed")
 
 	return stageExec, nil
-
 }
 
 // Private helper methods.
 
 func (p *Pipeline) executeStagesSequential(ctx context.Context, execution *PipelineExecution) error {
-
 	currentResources := execution.Resources
 
 	for _, stage := range execution.Pipeline.Stages {
@@ -1226,13 +1182,10 @@ func (p *Pipeline) executeStagesSequential(ctx context.Context, execution *Pipel
 		if err != nil {
 
 			if !p.config.ContinueOnError {
-
 				return err
-
 			}
 
 			execution.Errors = append(execution.Errors, ExecutionError{
-
 				Code: "STAGE_EXECUTION_FAILED",
 
 				Message: err.Error(),
@@ -1247,31 +1200,21 @@ func (p *Pipeline) executeStagesSequential(ctx context.Context, execution *Pipel
 		// Update resources with stage output.
 
 		if stageExec.Status == StatusSucceeded {
-
 			// Extract resources from stage execution.
 
 			for _, funcExec := range stageExec.Functions {
-
 				if funcExec.Status == StatusSucceeded {
-
 					currentResources = funcExec.Output
-
 				}
-
 			}
-
 		}
 
 		// Create checkpoint.
 
 		if p.config.PersistentState && len(execution.Stages)%p.config.CheckpointInterval == 0 {
-
 			if err := p.createCheckpoint(ctx, execution, stage.Name, currentResources); err != nil {
-
 				log.FromContext(ctx).Error(err, "Failed to create checkpoint")
-
 			}
-
 		}
 
 	}
@@ -1281,11 +1224,9 @@ func (p *Pipeline) executeStagesSequential(ctx context.Context, execution *Pipel
 	execution.Resources = currentResources
 
 	return nil
-
 }
 
 func (p *Pipeline) executeStagesParallel(ctx context.Context, execution *PipelineExecution) error {
-
 	var wg sync.WaitGroup
 
 	var mu sync.Mutex
@@ -1299,7 +1240,6 @@ func (p *Pipeline) executeStagesParallel(ctx context.Context, execution *Pipelin
 		wg.Add(1)
 
 		go func(s *PipelineStage) {
-
 			defer wg.Done()
 
 			// Acquire semaphore.
@@ -1315,13 +1255,10 @@ func (p *Pipeline) executeStagesParallel(ctx context.Context, execution *Pipelin
 			execution.Stages[s.Name] = stageExec
 
 			if err != nil {
-
 				errors = append(errors, err)
-
 			}
 
 			mu.Unlock()
-
 		}(stage)
 
 	}
@@ -1329,33 +1266,26 @@ func (p *Pipeline) executeStagesParallel(ctx context.Context, execution *Pipelin
 	wg.Wait()
 
 	if len(errors) > 0 {
-
 		return fmt.Errorf("parallel execution failed with %d errors", len(errors))
-
 	}
 
 	return nil
-
 }
 
 func (p *Pipeline) executeStagesDAG(ctx context.Context, execution *PipelineExecution) error {
-
 	// DAG execution would implement topological sorting and dependency resolution.
 
 	// For now, fall back to sequential execution.
 
 	return p.executeStagesSequential(ctx, execution)
-
 }
 
 func (p *Pipeline) executeStageSequential(ctx context.Context, execution *PipelineExecution, stage *PipelineStage, stageExec *StageExecution, resources []porch.KRMResource) error {
-
 	currentResources := resources
 
 	for _, function := range stage.Functions {
 
 		funcExec := &FunctionExecution{
-
 			Name: function.Name,
 
 			Image: function.Image,
@@ -1382,7 +1312,6 @@ func (p *Pipeline) executeStageSequential(ctx context.Context, execution *Pipeli
 			funcExec.Status = StatusFailed
 
 			funcExec.Error = &ExecutionError{
-
 				Code: "FUNCTION_EXECUTION_FAILED",
 
 				Message: err.Error(),
@@ -1402,9 +1331,7 @@ func (p *Pipeline) executeStageSequential(ctx context.Context, execution *Pipeli
 			).Inc()
 
 			if !function.Optional {
-
 				return err
-
 			}
 
 		} else {
@@ -1436,11 +1363,9 @@ func (p *Pipeline) executeStageSequential(ctx context.Context, execution *Pipeli
 	}
 
 	return nil
-
 }
 
 func (p *Pipeline) executeStageParallel(ctx context.Context, execution *PipelineExecution, stage *PipelineStage, stageExec *StageExecution, resources []porch.KRMResource) error {
-
 	var wg sync.WaitGroup
 
 	var mu sync.Mutex
@@ -1452,11 +1377,9 @@ func (p *Pipeline) executeStageParallel(ctx context.Context, execution *Pipeline
 		wg.Add(1)
 
 		go func(f *StageFunction) {
-
 			defer wg.Done()
 
 			funcExec := &FunctionExecution{
-
 				Name: f.Name,
 
 				Image: f.Image,
@@ -1481,7 +1404,6 @@ func (p *Pipeline) executeStageParallel(ctx context.Context, execution *Pipeline
 				funcExec.Status = StatusFailed
 
 				funcExec.Error = &ExecutionError{
-
 					Code: "FUNCTION_EXECUTION_FAILED",
 
 					Message: err.Error(),
@@ -1498,9 +1420,7 @@ func (p *Pipeline) executeStageParallel(ctx context.Context, execution *Pipeline
 				mu.Lock()
 
 				if !f.Optional {
-
 					errors = append(errors, err)
-
 				}
 
 				mu.Unlock()
@@ -1522,7 +1442,6 @@ func (p *Pipeline) executeStageParallel(ctx context.Context, execution *Pipeline
 			stageExec.Functions[f.Name] = funcExec
 
 			mu.Unlock()
-
 		}(function)
 
 	}
@@ -1530,25 +1449,19 @@ func (p *Pipeline) executeStageParallel(ctx context.Context, execution *Pipeline
 	wg.Wait()
 
 	if len(errors) > 0 {
-
 		return fmt.Errorf("parallel stage execution failed with %d errors", len(errors))
-
 	}
 
 	return nil
-
 }
 
 func (p *Pipeline) executeStageConditional(ctx context.Context, execution *PipelineExecution, stage *PipelineStage, stageExec *StageExecution, resources []porch.KRMResource) error {
-
 	// For conditional stages, evaluate conditions for each function.
 
 	return p.executeStageSequential(ctx, execution, stage, stageExec, resources)
-
 }
 
 func (p *Pipeline) executeFunction(ctx context.Context, execution *PipelineExecution, stage *PipelineStage, function *StageFunction, resources []porch.KRMResource) (*porch.FunctionResponse, error) {
-
 	// Filter resources based on selectors.
 
 	selectedResources := p.filterResources(resources, function.Selectors)
@@ -1556,12 +1469,16 @@ func (p *Pipeline) executeFunction(ctx context.Context, execution *PipelineExecu
 	// Create function request.
 
 	request := &porch.FunctionRequest{
-
 		FunctionConfig: porch.FunctionConfig{
-
 			Image: function.Image,
 
-			ConfigMap: function.Config,
+			ConfigMap: func() json.RawMessage {
+				if function.Config != nil {
+					data, _ := json.Marshal(function.Config)
+					return json.RawMessage(data)
+				}
+				return json.RawMessage(`{}`)
+			}(),
 
 			Selectors: convertResourceSelectors(function.Selectors),
 		},
@@ -1569,9 +1486,7 @@ func (p *Pipeline) executeFunction(ctx context.Context, execution *PipelineExecu
 		Resources: convertToPorchResources(selectedResources),
 
 		Context: &porch.FunctionContext{
-
 			Package: &porch.PackageReference{
-
 				Repository: "pipeline-execution",
 
 				PackageName: execution.Name,
@@ -1580,7 +1495,6 @@ func (p *Pipeline) executeFunction(ctx context.Context, execution *PipelineExecu
 			},
 
 			Environment: map[string]string{
-
 				"PIPELINE_NAME": execution.Name,
 
 				"EXECUTION_ID": execution.ID,
@@ -1595,15 +1509,11 @@ func (p *Pipeline) executeFunction(ctx context.Context, execution *PipelineExecu
 	// Execute function using runtime.
 
 	return p.runtime.ExecuteFunction(ctx, request)
-
 }
 
 func (p *Pipeline) rollbackExecution(ctx context.Context, execution *PipelineExecution) error {
-
 	if execution.Pipeline.FailurePolicy == nil || execution.Pipeline.FailurePolicy.Mode != "rollback" {
-
 		return nil
-
 	}
 
 	// Implement rollback logic.
@@ -1615,15 +1525,11 @@ func (p *Pipeline) rollbackExecution(ctx context.Context, execution *PipelineExe
 	execution.Status = StatusRolledBack
 
 	return nil
-
 }
 
 func (p *Pipeline) handleStageError(ctx context.Context, execution *PipelineExecution, stage *PipelineStage, stageExec *StageExecution, err error) error {
-
 	if stage.OnError == nil {
-
 		return err
-
 	}
 
 	switch stage.OnError.Action {
@@ -1647,17 +1553,13 @@ func (p *Pipeline) handleStageError(ctx context.Context, execution *PipelineExec
 		return err
 
 	}
-
 }
 
 func (p *Pipeline) retryStage(ctx context.Context, execution *PipelineExecution, stage *PipelineStage, stageExec *StageExecution) error {
-
 	retryPolicy := stage.Retry
 
 	if retryPolicy == nil {
-
 		retryPolicy = &RetryPolicy{
-
 			MaxAttempts: p.config.RetryAttempts,
 
 			InitialDelay: p.config.RetryDelay,
@@ -1666,13 +1568,10 @@ func (p *Pipeline) retryStage(ctx context.Context, execution *PipelineExecution,
 
 			Multiplier: 2.0,
 		}
-
 	}
 
 	if stageExec.Retries >= retryPolicy.MaxAttempts {
-
 		return fmt.Errorf("max retries exceeded for stage %s", stage.Name)
-
 	}
 
 	delay := time.Duration(float64(retryPolicy.InitialDelay) *
@@ -1680,9 +1579,7 @@ func (p *Pipeline) retryStage(ctx context.Context, execution *PipelineExecution,
 		math.Pow(retryPolicy.Multiplier, float64(stageExec.Retries)))
 
 	if delay > retryPolicy.MaxDelay {
-
 		delay = retryPolicy.MaxDelay
-
 	}
 
 	log.FromContext(ctx).Info("Retrying stage",
@@ -1705,21 +1602,16 @@ func (p *Pipeline) retryStage(ctx context.Context, execution *PipelineExecution,
 	newStageExec, err := p.ExecuteStage(ctx, execution, stage, execution.Resources)
 
 	if err == nil {
-
 		// Replace with successful execution.
 
 		execution.Stages[stage.Name] = newStageExec
-
 	}
 
 	return err
-
 }
 
 func (p *Pipeline) createCheckpoint(ctx context.Context, execution *PipelineExecution, stageName string, resources []porch.KRMResource) error {
-
 	checkpoint := &ExecutionCheckpoint{
-
 		ID: fmt.Sprintf("%s-%s-%d", execution.ID, stageName, len(execution.Checkpoints)),
 
 		Stage: stageName,
@@ -1731,7 +1623,6 @@ func (p *Pipeline) createCheckpoint(ctx context.Context, execution *PipelineExec
 		Resources: resources,
 
 		Metadata: map[string]string{
-
 			"execution_id": execution.ID,
 
 			"stage": stageName,
@@ -1739,9 +1630,7 @@ func (p *Pipeline) createCheckpoint(ctx context.Context, execution *PipelineExec
 	}
 
 	if err := p.stateManager.SaveCheckpoint(ctx, checkpoint); err != nil {
-
 		return err
-
 	}
 
 	execution.Checkpoints = append(execution.Checkpoints, checkpoint)
@@ -1749,11 +1638,9 @@ func (p *Pipeline) createCheckpoint(ctx context.Context, execution *PipelineExec
 	p.metrics.CheckpointOperations.WithLabelValues("create", "success").Inc()
 
 	return nil
-
 }
 
 func (p *Pipeline) startScheduler() {
-
 	for range p.scheduler.workers {
 
 		p.scheduler.wg.Add(1)
@@ -1761,15 +1648,12 @@ func (p *Pipeline) startScheduler() {
 		go p.schedulerWorker()
 
 	}
-
 }
 
 func (p *Pipeline) schedulerWorker() {
-
 	defer p.scheduler.wg.Done()
 
 	for {
-
 		select {
 
 		case scheduledFunc := <-p.scheduler.queue:
@@ -1785,19 +1669,15 @@ func (p *Pipeline) schedulerWorker() {
 			return
 
 		}
-
 	}
-
 }
 
 func (p *Pipeline) processScheduledFunction(scheduled *ScheduledFunction) {
-
 	// Process the scheduled function.
 
 	// Implementation would execute the function and send result to ResultChan.
 
 	result := &FunctionExecutionResult{
-
 		Resources: scheduled.Resources,
 
 		Results: []*porch.FunctionResult{},
@@ -1814,13 +1694,11 @@ func (p *Pipeline) processScheduledFunction(scheduled *ScheduledFunction) {
 	case <-scheduled.Context.Done():
 
 	}
-
 }
 
 // Shutdown gracefully shuts down the pipeline.
 
 func (p *Pipeline) Shutdown(ctx context.Context) error {
-
 	logger := log.FromContext(ctx).WithName("krm-pipeline")
 
 	logger.Info("Shutting down KRM pipeline")
@@ -1834,11 +1712,9 @@ func (p *Pipeline) Shutdown(ctx context.Context) error {
 	done := make(chan struct{})
 
 	go func() {
-
 		p.scheduler.wg.Wait()
 
 		close(done)
-
 	}()
 
 	select {
@@ -1856,7 +1732,6 @@ func (p *Pipeline) Shutdown(ctx context.Context) error {
 	logger.Info("KRM pipeline shutdown complete")
 
 	return nil
-
 }
 
 // Helper functions and supporting types.
@@ -1872,13 +1747,9 @@ type MemoryStateStorage struct {
 // Save performs save operation.
 
 func (s *MemoryStateStorage) Save(ctx context.Context, key string, data interface{}) error {
-
 	jsonData, err := json.Marshal(data)
-
 	if err != nil {
-
 		return err
-
 	}
 
 	s.mu.Lock()
@@ -1888,13 +1759,11 @@ func (s *MemoryStateStorage) Save(ctx context.Context, key string, data interfac
 	s.mu.Unlock()
 
 	return nil
-
 }
 
 // Load performs load operation.
 
 func (s *MemoryStateStorage) Load(ctx context.Context, key string, data interface{}) error {
-
 	s.mu.RLock()
 
 	jsonData, exists := s.data[key]
@@ -1902,19 +1771,15 @@ func (s *MemoryStateStorage) Load(ctx context.Context, key string, data interfac
 	s.mu.RUnlock()
 
 	if !exists {
-
 		return fmt.Errorf("key not found: %s", key)
-
 	}
 
 	return json.Unmarshal(jsonData, data)
-
 }
 
 // Delete performs delete operation.
 
 func (s *MemoryStateStorage) Delete(ctx context.Context, key string) error {
-
 	s.mu.Lock()
 
 	delete(s.data, key)
@@ -1922,13 +1787,11 @@ func (s *MemoryStateStorage) Delete(ctx context.Context, key string) error {
 	s.mu.Unlock()
 
 	return nil
-
 }
 
 // List performs list operation.
 
 func (s *MemoryStateStorage) List(ctx context.Context, prefix string) ([]string, error) {
-
 	s.mu.RLock()
 
 	defer s.mu.RUnlock()
@@ -1936,109 +1799,75 @@ func (s *MemoryStateStorage) List(ctx context.Context, prefix string) ([]string,
 	var keys []string
 
 	for key := range s.data {
-
 		if strings.HasPrefix(key, prefix) {
-
 			keys = append(keys, key)
-
 		}
-
 	}
 
 	return keys, nil
-
 }
 
 // SaveCheckpoint performs savecheckpoint operation.
 
 func (sm *StateManager) SaveCheckpoint(ctx context.Context, checkpoint *ExecutionCheckpoint) error {
-
 	return sm.storage.Save(ctx, checkpoint.ID, checkpoint)
-
 }
 
 // LoadCheckpoint performs loadcheckpoint operation.
 
 func (sm *StateManager) LoadCheckpoint(ctx context.Context, id string) (*ExecutionCheckpoint, error) {
-
 	var checkpoint ExecutionCheckpoint
 
 	err := sm.storage.Load(ctx, id, &checkpoint)
 
 	return &checkpoint, err
-
 }
 
 // Helper functions.
 
 func (p *Pipeline) convertAndInitializeVariables(vars map[string]*Variable) map[string]interface{} {
-
 	result := make(map[string]interface{})
 
 	for name, variable := range vars {
-
 		if variable.Value != nil {
-
 			result[name] = variable.Value
-
 		} else if variable.Default != nil {
-
 			result[name] = variable.Default
-
 		}
-
 	}
 
 	return result
-
 }
 
 func (p *Pipeline) initializeVariables(vars map[string]Variable) map[string]interface{} {
-
 	result := make(map[string]interface{})
 
 	for name, variable := range vars {
-
 		if variable.Value != nil {
-
 			result[name] = variable.Value
-
 		} else if variable.Default != nil {
-
 			result[name] = variable.Default
-
 		}
-
 	}
 
 	return result
-
 }
 
 func (p *Pipeline) evaluateConditions(conditions []*Condition, variables map[string]interface{}, resources []porch.KRMResource) bool {
-
 	if len(conditions) == 0 {
-
 		return true
-
 	}
 
 	for _, condition := range conditions {
-
 		if !p.evaluateCondition(condition, variables, resources) {
-
 			return false
-
 		}
-
 	}
 
 	return true
-
 }
 
 func (p *Pipeline) evaluateCondition(condition *Condition, variables map[string]interface{}, resources []porch.KRMResource) bool {
-
 	// Simple condition evaluation - could be more sophisticated.
 
 	switch condition.Type {
@@ -2050,9 +1879,7 @@ func (p *Pipeline) evaluateCondition(condition *Condition, variables map[string]
 			varName := condition.Parameters["variable"].(string)
 
 			if varValue, ok := variables[varName]; ok {
-
 				return varValue == value
-
 			}
 
 		}
@@ -2068,17 +1895,15 @@ func (p *Pipeline) evaluateCondition(condition *Condition, variables map[string]
 		name := condition.Parameters["name"].(string)
 
 		for _, resource := range resources {
-
-			if resource.APIVersion == apiVersion &&
-
-				resource.Kind == kind &&
-
-				resource.Metadata["name"] == name {
-
-				return !condition.Negate
-
+			if resource.APIVersion == apiVersion && resource.Kind == kind {
+				// Extract name from Metadata
+				var metadata map[string]interface{}
+				if err := json.Unmarshal(resource.Metadata, &metadata); err == nil {
+					if resourceName, ok := metadata["name"].(string); ok && resourceName == name {
+						return !condition.Negate
+					}
+				}
 			}
-
 		}
 
 		return condition.Negate
@@ -2086,23 +1911,17 @@ func (p *Pipeline) evaluateCondition(condition *Condition, variables map[string]
 	}
 
 	return true
-
 }
 
 func (p *Pipeline) filterResources(resources []porch.KRMResource, selectors []ResourceSelector) []porch.KRMResource {
-
 	if len(selectors) == 0 {
-
 		return resources
-
 	}
 
 	var filtered []porch.KRMResource
 
 	for _, resource := range resources {
-
 		for _, selector := range selectors {
-
 			if p.resourceMatches(resource, selector) {
 
 				filtered = append(filtered, resource)
@@ -2110,81 +1929,59 @@ func (p *Pipeline) filterResources(resources []porch.KRMResource, selectors []Re
 				break
 
 			}
-
 		}
-
 	}
 
 	return filtered
-
 }
 
 func (p *Pipeline) resourceMatches(resource porch.KRMResource, selector ResourceSelector) bool {
-
 	if selector.APIVersion != "" && resource.APIVersion != selector.APIVersion {
-
 		return false
-
 	}
 
 	if selector.Kind != "" && resource.Kind != selector.Kind {
-
 		return false
+	}
 
+	// Unmarshal metadata once
+	var metadata map[string]interface{}
+	if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
+		return false
 	}
 
 	if selector.Name != "" {
-
-		if name, ok := resource.Metadata["name"].(string); !ok || name != selector.Name {
-
+		if name, ok := metadata["name"].(string); !ok || name != selector.Name {
 			return false
-
 		}
-
 	}
 
 	if selector.Namespace != "" {
-
-		if namespace, ok := resource.Metadata["namespace"].(string); !ok || namespace != selector.Namespace {
-
+		if namespace, ok := metadata["namespace"].(string); !ok || namespace != selector.Namespace {
 			return false
-
 		}
-
 	}
 
 	// Check labels.
 
 	for key, value := range selector.Labels {
-
-		if labels, ok := resource.Metadata["labels"].(map[string]interface{}); ok {
-
+		if labels, ok := metadata["labels"].(map[string]interface{}); ok {
 			if labelValue, exists := labels[key]; !exists || labelValue != value {
-
 				return false
-
 			}
-
 		} else {
-
 			return false
-
 		}
-
 	}
 
 	return true
-
 }
 
 func convertResourceSelectors(selectors []ResourceSelector) []porch.ResourceSelector {
-
 	var result []porch.ResourceSelector
 
 	for _, selector := range selectors {
-
 		result = append(result, porch.ResourceSelector{
-
 			APIVersion: selector.APIVersion,
 
 			Kind: selector.Kind,
@@ -2195,39 +1992,27 @@ func convertResourceSelectors(selectors []ResourceSelector) []porch.ResourceSele
 
 			Labels: selector.Labels,
 		})
-
 	}
 
 	return result
-
 }
 
 func convertToPorchResources(resources []porch.KRMResource) []porch.KRMResource {
-
 	return resources
-
 }
 
 func validatePipelineConfig(config *PipelineConfig) error {
-
 	if config.MaxConcurrentStages <= 0 {
-
 		return fmt.Errorf("maxConcurrentStages must be positive")
-
 	}
 
 	if config.StageTimeout <= 0 {
-
 		return fmt.Errorf("stageTimeout must be positive")
-
 	}
 
 	if config.PipelineTimeout <= 0 {
-
 		return fmt.Errorf("pipelineTimeout must be positive")
-
 	}
 
 	return nil
-
 }

@@ -31,7 +31,9 @@ limitations under the License.
 package orchestration
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -133,17 +135,15 @@ type PhaseConfig struct {
 
 	// Resource requirements.
 
-	ResourceLimits map[string]interface{} `json:"resourceLimits"`
+	ResourceLimits json.RawMessage `json:"resourceLimits"`
 }
 
 // NewIntentOrchestrator creates a new IntentOrchestrator.
 
 func NewIntentOrchestrator(client client.Client, scheme *runtime.Scheme, recorder record.EventRecorder, config *OrchestratorConfig) (*IntentOrchestrator, error) {
-
 	logger := log.Log.WithName("intent-orchestrator")
 
 	orchestrator := &IntentOrchestrator{
-
 		Client: client,
 
 		Scheme: scheme,
@@ -170,17 +170,13 @@ func NewIntentOrchestrator(client client.Client, scheme *runtime.Scheme, recorde
 	orchestrator.LockManager = NewIntentLockManager(client, logger)
 
 	return orchestrator, nil
-
 }
 
 // RegisterController registers a phase controller with the orchestrator.
 
 func (o *IntentOrchestrator) RegisterController(phase interfaces.ProcessingPhase, controller interfaces.PhaseController) error {
-
 	if controller == nil {
-
 		return fmt.Errorf("controller cannot be nil for phase %s", phase)
-
 	}
 
 	o.Controllers[phase] = controller
@@ -190,13 +186,11 @@ func (o *IntentOrchestrator) RegisterController(phase interfaces.ProcessingPhase
 	// Subscribe to phase completion events.
 
 	return o.EventBus.Subscribe(string(phase), o.handlePhaseEvent)
-
 }
 
 // Reconcile handles NetworkIntent resources.
 
 func (o *IntentOrchestrator) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-
 	log := o.Logger.WithValues("networkintent", req.NamespacedName)
 
 	// Fetch the NetworkIntent instance.
@@ -206,11 +200,9 @@ func (o *IntentOrchestrator) Reconcile(ctx context.Context, req ctrl.Request) (c
 	if err := o.Get(ctx, req.NamespacedName, intent); err != nil {
 
 		if apierrors.IsNotFound(err) {
-
 			// Object not found, handle cleanup.
 
 			return o.handleIntentDeletion(ctx, req.NamespacedName)
-
 		}
 
 		log.Error(err, "Failed to fetch NetworkIntent")
@@ -222,9 +214,7 @@ func (o *IntentOrchestrator) Reconcile(ctx context.Context, req ctrl.Request) (c
 	// Handle deletion.
 
 	if intent.DeletionTimestamp != nil {
-
 		return o.handleIntentDeletion(ctx, req.NamespacedName)
-
 	}
 
 	// Add finalizer if not present.
@@ -240,19 +230,16 @@ func (o *IntentOrchestrator) Reconcile(ctx context.Context, req ctrl.Request) (c
 	// Start processing.
 
 	return o.processIntent(ctx, intent)
-
 }
 
 // processIntent orchestrates the processing of a NetworkIntent.
 
 func (o *IntentOrchestrator) processIntent(ctx context.Context, intent *nephoranv1.NetworkIntent) (ctrl.Result, error) {
-
 	log := o.Logger.WithValues("intent", intent.Name, "namespace", intent.Namespace)
 
 	// Get or create processing context.
 
 	processingCtx, err := o.getOrCreateProcessingContext(ctx, intent)
-
 	if err != nil {
 
 		log.Error(err, "Failed to get processing context")
@@ -264,7 +251,6 @@ func (o *IntentOrchestrator) processIntent(ctx context.Context, intent *nephoran
 	// Acquire intent lock.
 
 	lock, err := o.LockManager.AcquireIntentLock(ctx, processingCtx.IntentID)
-
 	if err != nil {
 
 		log.Error(err, "Failed to acquire intent lock")
@@ -288,7 +274,6 @@ func (o *IntentOrchestrator) processIntent(ctx context.Context, intent *nephoran
 	// Execute phase processing.
 
 	result, err := o.executePhase(ctx, intent, currentPhase, processingCtx)
-
 	if err != nil {
 
 		log.Error(err, "Phase execution failed", "phase", currentPhase)
@@ -310,13 +295,11 @@ func (o *IntentOrchestrator) processIntent(ctx context.Context, intent *nephoran
 	// Determine next phase and schedule if needed.
 
 	return o.handlePhaseResult(ctx, intent, currentPhase, result, processingCtx)
-
 }
 
 // executePhase executes a specific processing phase.
 
 func (o *IntentOrchestrator) executePhase(ctx context.Context, intent *nephoranv1.NetworkIntent, phase interfaces.ProcessingPhase, processingCtx *interfaces.ProcessingContext) (interfaces.ProcessingResult, error) {
-
 	log := o.Logger.WithValues("intent", intent.Name, "phase", phase)
 
 	// Get the controller for this phase.
@@ -324,17 +307,13 @@ func (o *IntentOrchestrator) executePhase(ctx context.Context, intent *nephoranv
 	controller, exists := o.Controllers[phase]
 
 	if !exists {
-
 		return interfaces.ProcessingResult{}, fmt.Errorf("no controller found for phase %s", phase)
-
 	}
 
 	// Check dependencies.
 
 	if err := o.checkPhaseDependencies(ctx, phase, processingCtx); err != nil {
-
 		return interfaces.ProcessingResult{}, fmt.Errorf("phase dependencies not met: %w", err)
-
 	}
 
 	// Create phase-specific context with timeout.
@@ -342,14 +321,11 @@ func (o *IntentOrchestrator) executePhase(ctx context.Context, intent *nephoranv
 	phaseConfig := o.Config.PhaseConfigs[phase]
 
 	if phaseConfig == nil {
-
 		phaseConfig = &PhaseConfig{
-
 			Timeout: o.Config.PhaseTimeout,
 
 			MaxRetries: o.Config.MaxRetries,
 		}
-
 	}
 
 	phaseCtx, cancel := context.WithTimeout(ctx, phaseConfig.Timeout)
@@ -361,31 +337,24 @@ func (o *IntentOrchestrator) executePhase(ctx context.Context, intent *nephoranv
 	log.Info("Executing phase", "timeout", phaseConfig.Timeout)
 
 	result, err := controller.ProcessPhase(phaseCtx, intent, phase)
-
 	if err != nil {
-
 		return result, fmt.Errorf("phase %s failed: %w", phase, err)
-
 	}
 
 	// Validate result.
 
 	if err := o.validatePhaseResult(phase, result); err != nil {
-
 		return result, fmt.Errorf("phase %s result validation failed: %w", phase, err)
-
 	}
 
 	log.Info("Phase completed successfully", "success", result.Success, "nextPhase", result.NextPhase)
 
 	return result, nil
-
 }
 
 // handlePhaseResult handles the result of a phase execution.
 
 func (o *IntentOrchestrator) handlePhaseResult(ctx context.Context, intent *nephoranv1.NetworkIntent, currentPhase interfaces.ProcessingPhase, result interfaces.ProcessingResult, processingCtx *interfaces.ProcessingContext) (ctrl.Result, error) {
-
 	log := o.Logger.WithValues("intent", intent.Name, "phase", currentPhase, "success", result.Success)
 
 	// Update intent status.
@@ -401,7 +370,6 @@ func (o *IntentOrchestrator) handlePhaseResult(ctx context.Context, intent *neph
 	// Publish phase completion event.
 
 	event := ProcessingEvent{
-
 		Type: fmt.Sprintf("phase.%s.completed", currentPhase),
 
 		IntentID: processingCtx.IntentID,
@@ -418,29 +386,23 @@ func (o *IntentOrchestrator) handlePhaseResult(ctx context.Context, intent *neph
 	}
 
 	if err := o.EventBus.Publish(ctx, event); err != nil {
-
 		log.Error(err, "Failed to publish phase completion event")
-
 	}
 
 	// Handle success.
 
 	if result.Success {
-
 		return o.handlePhaseSuccess(ctx, intent, currentPhase, result, processingCtx)
-
 	}
 
 	// Handle failure with retry logic.
 
 	return o.handlePhaseFailure(ctx, intent, currentPhase, result, processingCtx)
-
 }
 
 // handlePhaseSuccess handles successful phase completion.
 
 func (o *IntentOrchestrator) handlePhaseSuccess(ctx context.Context, intent *nephoranv1.NetworkIntent, currentPhase interfaces.ProcessingPhase, result interfaces.ProcessingResult, processingCtx *interfaces.ProcessingContext) (ctrl.Result, error) {
-
 	log := o.Logger.WithValues("intent", intent.Name, "phase", currentPhase)
 
 	// Record success event.
@@ -452,9 +414,7 @@ func (o *IntentOrchestrator) handlePhaseSuccess(ctx context.Context, intent *nep
 	nextPhase := result.NextPhase
 
 	if nextPhase == "" {
-
 		nextPhase = o.StateMachine.GetNextPhase(currentPhase)
-
 	}
 
 	// Check if processing is complete.
@@ -470,19 +430,15 @@ func (o *IntentOrchestrator) handlePhaseSuccess(ctx context.Context, intent *nep
 	// Schedule next phase.
 
 	if o.Config.EnableParallelProcessing {
-
 		return o.scheduleParallelProcessing(ctx, intent, nextPhase, processingCtx)
-
 	}
 
 	return o.scheduleNextPhase(ctx, intent, nextPhase, processingCtx)
-
 }
 
 // handlePhaseFailure handles phase failure with retry logic.
 
 func (o *IntentOrchestrator) handlePhaseFailure(ctx context.Context, intent *nephoranv1.NetworkIntent, currentPhase interfaces.ProcessingPhase, result interfaces.ProcessingResult, processingCtx *interfaces.ProcessingContext) (ctrl.Result, error) {
-
 	log := o.Logger.WithValues("intent", intent.Name, "phase", currentPhase)
 
 	// Get phase status.
@@ -496,9 +452,7 @@ func (o *IntentOrchestrator) handlePhaseFailure(ctx context.Context, intent *nep
 	maxRetries := o.Config.MaxRetries
 
 	if phaseConfig != nil && phaseConfig.MaxRetries > 0 {
-
 		maxRetries = phaseConfig.MaxRetries
-
 	}
 
 	// Check if we should retry.
@@ -508,9 +462,7 @@ func (o *IntentOrchestrator) handlePhaseFailure(ctx context.Context, intent *nep
 		backoffDuration := o.calculateBackoff(retryCount)
 
 		if result.RetryAfter != nil {
-
 			backoffDuration = *result.RetryAfter
-
 		}
 
 		log.Info("Retrying phase", "retryCount", retryCount+1, "backoff", backoffDuration)
@@ -526,13 +478,11 @@ func (o *IntentOrchestrator) handlePhaseFailure(ctx context.Context, intent *nep
 	log.Error(fmt.Errorf("max retries exceeded"), "Phase failed permanently", "phase", currentPhase, "retries", retryCount)
 
 	return o.handleIntentFailure(ctx, intent, currentPhase, fmt.Errorf("phase %s failed after %d retries: %s", currentPhase, retryCount, result.ErrorMessage), processingCtx)
-
 }
 
 // scheduleParallelProcessing schedules phases that can run in parallel.
 
 func (o *IntentOrchestrator) scheduleParallelProcessing(ctx context.Context, intent *nephoranv1.NetworkIntent, nextPhase interfaces.ProcessingPhase, processingCtx *interfaces.ProcessingContext) (ctrl.Result, error) {
-
 	log := o.Logger.WithValues("intent", intent.Name, "nextPhase", nextPhase)
 
 	// Get phases that can run in parallel with the next phase.
@@ -544,7 +494,6 @@ func (o *IntentOrchestrator) scheduleParallelProcessing(ctx context.Context, int
 	for _, phase := range parallelPhases {
 
 		job := ProcessingJob{
-
 			ID: fmt.Sprintf("%s-%s-%d", processingCtx.IntentID, phase, time.Now().Unix()),
 
 			IntentID: processingCtx.IntentID,
@@ -553,7 +502,7 @@ func (o *IntentOrchestrator) scheduleParallelProcessing(ctx context.Context, int
 
 			Priority: o.getPhasePriority(phase),
 
-			Data: map[string]interface{}{"parallelExecution": true},
+			Data: json.RawMessage(`{}`),
 
 			Context: processingCtx,
 
@@ -563,9 +512,7 @@ func (o *IntentOrchestrator) scheduleParallelProcessing(ctx context.Context, int
 		}
 
 		if err := o.WorkQueueManager.EnqueueJob(ctx, phase, job); err != nil {
-
 			log.Error(err, "Failed to enqueue parallel phase", "phase", phase)
-
 		}
 
 	}
@@ -573,13 +520,11 @@ func (o *IntentOrchestrator) scheduleParallelProcessing(ctx context.Context, int
 	log.Info("Scheduled parallel phases", "phases", parallelPhases)
 
 	return ctrl.Result{}, nil
-
 }
 
 // scheduleNextPhase schedules the next phase for sequential processing.
 
 func (o *IntentOrchestrator) scheduleNextPhase(ctx context.Context, intent *nephoranv1.NetworkIntent, nextPhase interfaces.ProcessingPhase, processingCtx *interfaces.ProcessingContext) (ctrl.Result, error) {
-
 	log := o.Logger.WithValues("intent", intent.Name, "nextPhase", nextPhase)
 
 	// Update current phase.
@@ -591,23 +536,18 @@ func (o *IntentOrchestrator) scheduleNextPhase(ctx context.Context, intent *neph
 	log.Info("Scheduling next phase")
 
 	return ctrl.Result{RequeueAfter: time.Second}, nil
-
 }
 
 // Helper methods.
 
 func (o *IntentOrchestrator) getOrCreateProcessingContext(ctx context.Context, intent *nephoranv1.NetworkIntent) (*interfaces.ProcessingContext, error) {
-
 	intentID := string(intent.UID)
 
 	if ctx, exists := o.ProcessingContexts.Load(intentID); exists {
-
 		return ctx.(*interfaces.ProcessingContext), nil
-
 	}
 
 	processingCtx := &interfaces.ProcessingContext{
-
 		IntentID: intentID,
 
 		CorrelationID: fmt.Sprintf("intent-%s-%d", intent.Name, time.Now().Unix()),
@@ -628,23 +568,17 @@ func (o *IntentOrchestrator) getOrCreateProcessingContext(ctx context.Context, i
 	o.ProcessingContexts.Store(intentID, processingCtx)
 
 	return processingCtx, nil
-
 }
 
 func (o *IntentOrchestrator) updateProcessingContext(processingCtx *interfaces.ProcessingContext, phase interfaces.ProcessingPhase, result interfaces.ProcessingResult) {
-
 	// Update phase metrics.
 
 	phaseMetrics := processingCtx.PhaseMetrics[phase]
 
 	if result.Success {
-
 		phaseMetrics.Duration = time.Since(processingCtx.StartTime)
-
 	} else {
-
 		phaseMetrics.ErrorCount++
-
 	}
 
 	// Update phase-specific data.
@@ -661,18 +595,31 @@ func (o *IntentOrchestrator) updateProcessingContext(processingCtx *interfaces.P
 
 	case interfaces.PhaseManifestGeneration:
 
-		if manifests, ok := result.Data["manifests"].(map[string]string); ok {
-
-			processingCtx.GeneratedManifests = manifests
-
+		if result.Data != nil {
+			var data map[string]interface{}
+			if err := json.Unmarshal(result.Data, &data); err == nil {
+				if manifests, ok := data["manifests"].(map[string]interface{}); ok {
+					// Convert to map[string]string
+					manifestsStr := make(map[string]string)
+					for k, v := range manifests {
+						if str, ok := v.(string); ok {
+							manifestsStr[k] = str
+						}
+					}
+					processingCtx.GeneratedManifests = manifestsStr
+				}
+			}
 		}
 
 	case interfaces.PhaseGitOpsCommit:
 
-		if commitHash, ok := result.Data["commitHash"].(string); ok {
-
-			processingCtx.GitCommitHash = commitHash
-
+		if result.Data != nil {
+			var data map[string]interface{}
+			if err := json.Unmarshal(result.Data, &data); err == nil {
+				if commitHash, ok := data["commitHash"].(string); ok {
+					processingCtx.GitCommitHash = commitHash
+				}
+			}
 		}
 
 	case interfaces.PhaseDeploymentVerification:
@@ -682,55 +629,39 @@ func (o *IntentOrchestrator) updateProcessingContext(processingCtx *interfaces.P
 	}
 
 	processingCtx.PhaseMetrics[phase] = phaseMetrics
-
 }
 
 func (o *IntentOrchestrator) checkPhaseDependencies(ctx context.Context, phase interfaces.ProcessingPhase, processingCtx *interfaces.ProcessingContext) error {
-
 	phaseConfig := o.Config.PhaseConfigs[phase]
 
 	if phaseConfig == nil {
-
 		return nil
-
 	}
 
 	// Check required dependencies.
 
 	for _, depPhase := range phaseConfig.RequiredDependencies {
-
 		if metrics, exists := processingCtx.PhaseMetrics[depPhase]; !exists || metrics.Duration == 0 {
-
 			return fmt.Errorf("required dependency %s not completed", depPhase)
-
 		}
-
 	}
 
 	// Check blocking conditions.
 
 	for _, blockingPhase := range phaseConfig.BlockedBy {
-
 		if metrics, exists := processingCtx.PhaseMetrics[blockingPhase]; exists && metrics.ErrorCount > 0 {
-
 			return fmt.Errorf("blocked by failed phase %s", blockingPhase)
-
 		}
-
 	}
 
 	return nil
-
 }
 
 func (o *IntentOrchestrator) validatePhaseResult(phase interfaces.ProcessingPhase, result interfaces.ProcessingResult) error {
-
 	// Basic validation.
 
 	if !result.Success && result.ErrorMessage == "" {
-
 		return fmt.Errorf("failed result must include error message")
-
 	}
 
 	// Phase-specific validation.
@@ -740,43 +671,47 @@ func (o *IntentOrchestrator) validatePhaseResult(phase interfaces.ProcessingPhas
 	case interfaces.PhaseLLMProcessing:
 
 		if result.Success && result.Data == nil {
-
 			return fmt.Errorf("LLM processing must return data on success")
-
 		}
 
 	case interfaces.PhaseManifestGeneration:
 
 		if result.Success {
-
-			if manifests, ok := result.Data["manifests"]; !ok || manifests == nil {
-
-				return fmt.Errorf("manifest generation must return manifests on success")
-
+			if result.Data != nil {
+				var data map[string]interface{}
+				if err := json.Unmarshal(result.Data, &data); err != nil {
+					return fmt.Errorf("manifest generation must return valid JSON data on success")
+				}
+				if manifests, ok := data["manifests"]; !ok || manifests == nil {
+					return fmt.Errorf("manifest generation must return manifests on success")
+				}
+			} else {
+				return fmt.Errorf("manifest generation must return data on success")
 			}
-
 		}
 
 	case interfaces.PhaseGitOpsCommit:
 
 		if result.Success {
-
-			if commitHash, ok := result.Data["commitHash"]; !ok || commitHash == "" {
-
-				return fmt.Errorf("GitOps commit must return commit hash on success")
-
+			if result.Data != nil {
+				var data map[string]interface{}
+				if err := json.Unmarshal(result.Data, &data); err != nil {
+					return fmt.Errorf("GitOps commit must return valid JSON data on success")
+				}
+				if commitHash, ok := data["commitHash"]; !ok || commitHash == "" {
+					return fmt.Errorf("GitOps commit must return commit hash on success")
+				}
+			} else {
+				return fmt.Errorf("GitOps commit must return data on success")
 			}
-
 		}
 
 	}
 
 	return nil
-
 }
 
 func (o *IntentOrchestrator) updateIntentStatus(ctx context.Context, intent *nephoranv1.NetworkIntent, phase interfaces.ProcessingPhase, result interfaces.ProcessingResult) error {
-
 	// Update phase in status.
 
 	intent.Status.Phase = shared.ProcessingPhaseToNetworkIntentPhase(phase)
@@ -794,7 +729,6 @@ func (o *IntentOrchestrator) updateIntentStatus(ctx context.Context, intent *nep
 	// Update conditions.
 
 	condition := metav1.Condition{
-
 		Type: string(phase),
 
 		Status: metav1.ConditionFalse,
@@ -827,7 +761,6 @@ func (o *IntentOrchestrator) updateIntentStatus(ctx context.Context, intent *nep
 	// Update conditions array.
 
 	for i, existing := range intent.Status.Conditions {
-
 		if existing.Type == condition.Type {
 
 			intent.Status.Conditions[i] = condition
@@ -835,17 +768,14 @@ func (o *IntentOrchestrator) updateIntentStatus(ctx context.Context, intent *nep
 			return o.Status().Update(ctx, intent)
 
 		}
-
 	}
 
 	intent.Status.Conditions = append(intent.Status.Conditions, condition)
 
 	return o.Status().Update(ctx, intent)
-
 }
 
 func (o *IntentOrchestrator) calculateBackoff(retryCount int) time.Duration {
-
 	backoff := o.Config.RetryBackoffBase
 
 	for range retryCount {
@@ -863,23 +793,17 @@ func (o *IntentOrchestrator) calculateBackoff(retryCount int) time.Duration {
 	}
 
 	return backoff
-
 }
 
 func (o *IntentOrchestrator) getPhasePriority(phase interfaces.ProcessingPhase) int {
-
 	if config, exists := o.Config.PhaseConfigs[phase]; exists {
-
 		return config.Priority
-
 	}
 
 	return 0 // Default priority
-
 }
 
 func (o *IntentOrchestrator) handleIntentCompletion(ctx context.Context, intent *nephoranv1.NetworkIntent, processingCtx *interfaces.ProcessingContext) (ctrl.Result, error) {
-
 	o.Logger.Info("Intent processing completed", "intent", intent.Name)
 
 	// Clean up processing context.
@@ -899,11 +823,9 @@ func (o *IntentOrchestrator) handleIntentCompletion(ctx context.Context, intent 
 	intent.Status.LastUpdateTime = now
 
 	return ctrl.Result{}, o.Status().Update(ctx, intent)
-
 }
 
 func (o *IntentOrchestrator) handleIntentFailure(ctx context.Context, intent *nephoranv1.NetworkIntent, phase interfaces.ProcessingPhase, err error, processingCtx *interfaces.ProcessingContext) (ctrl.Result, error) {
-
 	o.Logger.Error(err, "Intent processing failed", "intent", intent.Name, "phase", phase)
 
 	// Clean up processing context.
@@ -923,11 +845,9 @@ func (o *IntentOrchestrator) handleIntentFailure(ctx context.Context, intent *ne
 	o.Recorder.Event(intent, "Warning", "ProcessingFailed", err.Error())
 
 	return ctrl.Result{}, o.Status().Update(ctx, intent)
-
 }
 
 func (o *IntentOrchestrator) handleIntentDeletion(ctx context.Context, namespacedName types.NamespacedName) (ctrl.Result, error) {
-
 	o.Logger.Info("Handling intent deletion", "intent", namespacedName)
 
 	// Clean up any processing contexts.
@@ -935,7 +855,6 @@ func (o *IntentOrchestrator) handleIntentDeletion(ctx context.Context, namespace
 	// This is a simplified cleanup - in production, you'd want more thorough cleanup.
 
 	o.ProcessingContexts.Range(func(key, value interface{}) bool {
-
 		if processingCtx, ok := value.(*interfaces.ProcessingContext); ok {
 
 			// Check if this context belongs to the deleted intent.
@@ -949,15 +868,12 @@ func (o *IntentOrchestrator) handleIntentDeletion(ctx context.Context, namespace
 		}
 
 		return true
-
 	})
 
 	return ctrl.Result{}, nil
-
 }
 
 func (o *IntentOrchestrator) handlePhaseError(ctx context.Context, intent *nephoranv1.NetworkIntent, phase interfaces.ProcessingPhase, err error, processingCtx *interfaces.ProcessingContext) (ctrl.Result, error) {
-
 	o.Logger.Error(err, "Phase error occurred", "intent", intent.Name, "phase", phase)
 
 	// Record error in processing context.
@@ -971,7 +887,6 @@ func (o *IntentOrchestrator) handlePhaseError(ctx context.Context, intent *nepho
 	// Create error result.
 
 	result := interfaces.ProcessingResult{
-
 		Success: false,
 
 		ErrorMessage: err.Error(),
@@ -980,11 +895,9 @@ func (o *IntentOrchestrator) handlePhaseError(ctx context.Context, intent *nepho
 	}
 
 	return o.handlePhaseResult(ctx, intent, phase, result, processingCtx)
-
 }
 
 func (o *IntentOrchestrator) handlePhaseEvent(ctx context.Context, event ProcessingEvent) error {
-
 	o.Logger.Info("Received phase event", "type", event.Type, "intentId", event.IntentID, "phase", event.Phase)
 
 	// Handle cross-phase coordination here if needed.
@@ -992,94 +905,72 @@ func (o *IntentOrchestrator) handlePhaseEvent(ctx context.Context, event Process
 	// For example, triggering dependent phases when prerequisites are met.
 
 	return nil
-
 }
 
 // SetupWithManager sets up the controller with the Manager.
 
 func (o *IntentOrchestrator) SetupWithManager(mgr ctrl.Manager) error {
-
 	// Set up the main reconciler.
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nephoranv1.NetworkIntent{}).
 		Named("intent-orchestrator").
 		Complete(o)
-
 }
 
 // Start starts the orchestrator and all its components.
 
 func (o *IntentOrchestrator) Start(ctx context.Context) error {
-
 	o.Logger.Info("Starting Intent Orchestrator")
 
 	// Start all components.
 
 	if err := o.EventBus.Start(ctx); err != nil {
-
 		return fmt.Errorf("failed to start event bus: %w", err)
-
 	}
 
 	if err := o.WorkQueueManager.Start(ctx); err != nil {
-
 		return fmt.Errorf("failed to start work queue manager: %w", err)
-
 	}
 
 	// Start all registered controllers.
 
 	for phase, controller := range o.Controllers {
-
 		if err := controller.Start(ctx); err != nil {
-
 			return fmt.Errorf("failed to start controller for phase %s: %w", phase, err)
-
 		}
-
 	}
 
 	o.Logger.Info("Intent Orchestrator started successfully")
 
 	return nil
-
 }
 
 // Stop stops the orchestrator and all its components.
 
 func (o *IntentOrchestrator) Stop(ctx context.Context) error {
-
 	o.Logger.Info("Stopping Intent Orchestrator")
 
 	// Stop all registered controllers.
 
 	for phase, controller := range o.Controllers {
-
 		if err := controller.Stop(ctx); err != nil {
-
 			o.Logger.Error(err, "Error stopping controller", "phase", phase)
-
 		}
-
 	}
 
 	// Stop components.
 
 	if err := o.WorkQueueManager.Stop(ctx); err != nil {
-
 		o.Logger.Error(err, "Error stopping work queue manager")
-
 	}
 
 	if err := o.EventBus.Stop(ctx); err != nil {
-
 		o.Logger.Error(err, "Error stopping event bus")
-
 	}
 
 	o.Logger.Info("Intent Orchestrator stopped")
 
 	return nil
-
 }
+

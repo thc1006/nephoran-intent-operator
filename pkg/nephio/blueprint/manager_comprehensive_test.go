@@ -23,6 +23,7 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"encoding/json"
 
 	"github.com/go-logr/logr"
 	"github.com/rogpeppe/go-internal/cache"
@@ -38,6 +39,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -975,10 +977,7 @@ func TestCacheOperations(t *testing.T) {
 
 	// Test cache operations
 	testKey := "test-key"
-	testValue := map[string]interface{}{
-		"data":        "test-data",
-		"expire_time": time.Now().Add(time.Hour),
-	}
+	testValue := json.RawMessage(`{}`)
 
 	// Store in cache
 	manager.cache.Store(testKey, testValue)
@@ -990,10 +989,7 @@ func TestCacheOperations(t *testing.T) {
 
 	// Test cache cleanup
 	expiredKey := "expired-key"
-	expiredValue := map[string]interface{}{
-		"data":        "expired-data",
-		"expire_time": time.Now().Add(-time.Hour), // Expired
-	}
+	expiredValue := json.RawMessage(`{}`)
 	manager.cache.Store(expiredKey, expiredValue)
 
 	// Run cleanup
@@ -1222,3 +1218,4 @@ func TestComplexScenarios(t *testing.T) {
 		}
 	})
 }
+

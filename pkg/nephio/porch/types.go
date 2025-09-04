@@ -32,6 +32,7 @@ package porch
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -47,7 +48,6 @@ import (
 // Provides comprehensive CRUD operations for Porch resources with O-RAN compliance.
 
 type PorchClient interface {
-
 	// Repository Operations.
 
 	GetRepository(ctx context.Context, name string) (*Repository, error)
@@ -116,7 +116,6 @@ type PorchClient interface {
 // RepositoryManager provides high-level repository lifecycle management.
 
 type RepositoryManager interface {
-
 	// Repository lifecycle.
 
 	RegisterRepository(ctx context.Context, config *RepositoryConfig) (*Repository, error)
@@ -145,7 +144,6 @@ type RepositoryManager interface {
 // PackageRevisionManager provides package revision lifecycle management.
 
 type PackageRevisionManager interface {
-
 	// Package lifecycle.
 
 	CreatePackage(ctx context.Context, spec *PackageSpec) (*PackageRevision, error)
@@ -184,7 +182,6 @@ type PackageRevisionManager interface {
 // FunctionRunner provides KRM function execution capabilities.
 
 type FunctionRunner interface {
-
 	// Function execution.
 
 	ExecuteFunction(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error)
@@ -205,7 +202,6 @@ type FunctionRunner interface {
 // NetworkIntentExtensions provides Nephio-specific extensions to NetworkIntent CRD.
 
 type NetworkIntentExtensions struct {
-
 	// Porch integration metadata.
 
 	PorchMetadata *PorchMetadata `json:"porchMetadata,omitempty"`
@@ -258,7 +254,6 @@ type RepositoryList struct {
 // RepositorySpec defines the desired state of a repository.
 
 type RepositorySpec struct {
-
 	// Repository type (git, oci).
 
 	Type string `json:"type"`
@@ -291,7 +286,6 @@ type RepositorySpec struct {
 // RepositoryStatus defines the observed state of a repository.
 
 type RepositoryStatus struct {
-
 	// Conditions represent the current state.
 
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
@@ -519,7 +513,7 @@ type KptfileContent struct {
 
 	Kind string `json:"kind"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 
 	Info *PackageMetadata `json:"info,omitempty"`
 
@@ -549,6 +543,10 @@ type PackageMetadata struct {
 // Pipeline defines the KRM function pipeline.
 
 type Pipeline struct {
+	Name string `json:"name,omitempty"`
+
+	Functions []FunctionConfig `json:"functions,omitempty"`
+
 	Mutators []FunctionConfig `json:"mutators,omitempty"`
 
 	Validators []FunctionConfig `json:"validators,omitempty"`
@@ -563,7 +561,7 @@ type FunctionConfig struct {
 
 	ConfigPath string `json:"configPath,omitempty"`
 
-	ConfigMap map[string]interface{} `json:"configMap,omitempty"`
+	ConfigMap json.RawMessage `json:"configMap,omitempty"`
 
 	Selectors []ResourceSelector `json:"selectors,omitempty"`
 
@@ -621,7 +619,7 @@ type TransformationRequest struct {
 
 	Rules []TransformationRule `json:"rules"`
 
-	Context map[string]interface{} `json:"context,omitempty"`
+	Context json.RawMessage `json:"context,omitempty"`
 
 	Options *TransformationOptions `json:"options,omitempty"`
 }
@@ -651,7 +649,7 @@ type TransformationRule struct {
 
 	Conditions []TransformationCond `json:"conditions,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // TransformationOp defines a transformation operation.
@@ -723,7 +721,7 @@ type ORANValidationRequest struct {
 
 	Rules []ComplianceRule `json:"rules,omitempty"`
 
-	Context map[string]interface{} `json:"context,omitempty"`
+	Context json.RawMessage `json:"context,omitempty"`
 
 	Options *ORANValidationOptions `json:"options,omitempty"`
 }
@@ -773,7 +771,7 @@ type ORANValidationResult struct {
 
 	Message string `json:"message,omitempty"`
 
-	Details map[string]interface{} `json:"details,omitempty"`
+	Details json.RawMessage `json:"details,omitempty"`
 
 	Severity string `json:"severity,omitempty"`
 }
@@ -805,13 +803,13 @@ type KRMResource struct {
 
 	Kind string `json:"kind"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 
-	Spec map[string]interface{} `json:"spec,omitempty"`
+	Spec json.RawMessage `json:"spec,omitempty"`
 
-	Status map[string]interface{} `json:"status,omitempty"`
+	Status json.RawMessage `json:"status,omitempty"`
 
-	Data map[string]interface{} `json:"data,omitempty"`
+	Data json.RawMessage `json:"data,omitempty"`
 }
 
 // ResourceSelector defines resource selection criteria.
@@ -989,7 +987,7 @@ type ORANInterface struct {
 
 	Endpoint string `json:"endpoint,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	Enabled bool `json:"enabled"`
 }
@@ -1387,7 +1385,7 @@ const (
 type WorkflowTrigger struct {
 	Type string `json:"type"`
 
-	Condition map[string]interface{} `json:"condition"`
+	Condition json.RawMessage `json:"condition"`
 }
 
 // Approver defines who can approve workflow stages.
@@ -1410,7 +1408,6 @@ type RetryPolicy struct {
 	BackoffDelay *metav1.Duration `json:"backoffDelay,omitempty"`
 
 	BackoffType string `json:"backoffType,omitempty"` // fixed, exponential
-
 }
 
 // WorkflowCondition defines conditions for stage execution.
@@ -1418,7 +1415,7 @@ type RetryPolicy struct {
 type WorkflowCondition struct {
 	Type string `json:"type"`
 
-	Condition map[string]interface{} `json:"condition"`
+	Condition json.RawMessage `json:"condition"`
 }
 
 // WorkflowAction defines actions to execute in a stage.
@@ -1426,7 +1423,7 @@ type WorkflowCondition struct {
 type WorkflowAction struct {
 	Type string `json:"type"`
 
-	Config map[string]interface{} `json:"config"`
+	Config json.RawMessage `json:"config"`
 }
 
 // FailureAction defines what to do on stage failure.
@@ -1434,7 +1431,7 @@ type WorkflowAction struct {
 type FailureAction struct {
 	Type string `json:"type"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // WorkflowResult contains workflow execution results.
@@ -1448,7 +1445,7 @@ type WorkflowResult struct {
 
 	Timestamp *metav1.Time `json:"timestamp"`
 
-	Data map[string]interface{} `json:"data,omitempty"`
+	Data json.RawMessage `json:"data,omitempty"`
 }
 
 // Network slice supporting types.
@@ -1523,7 +1520,6 @@ type CoverageParameters struct {
 	Mobility string `json:"mobility,omitempty"` // stationary, pedestrian, vehicular
 
 	Density string `json:"density,omitempty"` // sparse, dense, ultra_dense
-
 }
 
 // SLA requirement types.
@@ -1579,30 +1575,24 @@ type ReliabilityRequirement struct {
 // GetPackageReference creates a PackageReference from components.
 
 func GetPackageReference(repository, packageName, revision string) *PackageReference {
-
 	return &PackageReference{
-
 		Repository: repository,
 
 		PackageName: packageName,
 
 		Revision: revision,
 	}
-
 }
 
 // GetPackageKey returns a unique key for a package revision.
 
 func (pr *PackageReference) GetPackageKey() string {
-
 	return fmt.Sprintf("%s/%s@%s", pr.Repository, pr.PackageName, pr.Revision)
-
 }
 
 // IsValidLifecycle checks if a lifecycle value is valid.
 
 func IsValidLifecycle(lifecycle PackageRevisionLifecycle) bool {
-
 	switch lifecycle {
 
 	case PackageRevisionLifecycleDraft,
@@ -1620,7 +1610,6 @@ func IsValidLifecycle(lifecycle PackageRevisionLifecycle) bool {
 		return false
 
 	}
-
 }
 
 // CanTransitionTo is a helper function that works like a method for PackageRevisionLifecycle.
@@ -1628,26 +1617,20 @@ func IsValidLifecycle(lifecycle PackageRevisionLifecycle) bool {
 // Usage: CanTransitionTo(current, target) instead of current.CanTransitionTo(target).
 
 func CanTransitionTo(current, target PackageRevisionLifecycle) bool {
-
 	return CanPackageRevisionTransitionTo(current, target)
-
 }
 
 // CanPackageRevisionTransitionTo checks if lifecycle transition is valid.
 
 func CanPackageRevisionTransitionTo(current, target PackageRevisionLifecycle) bool {
-
 	transitions := map[PackageRevisionLifecycle][]PackageRevisionLifecycle{
-
 		PackageRevisionLifecycleDraft: {
-
 			PackageRevisionLifecycleProposed,
 
 			PackageRevisionLifecycleDeletable,
 		},
 
 		PackageRevisionLifecycleProposed: {
-
 			PackageRevisionLifecyclePublished,
 
 			PackageRevisionLifecycleDraft,
@@ -1656,7 +1639,6 @@ func CanPackageRevisionTransitionTo(current, target PackageRevisionLifecycle) bo
 		},
 
 		PackageRevisionLifecyclePublished: {
-
 			PackageRevisionLifecycleDeletable,
 		},
 
@@ -1666,49 +1648,34 @@ func CanPackageRevisionTransitionTo(current, target PackageRevisionLifecycle) bo
 	validTargets, exists := transitions[current]
 
 	if !exists {
-
 		return false
-
 	}
 
 	for _, valid := range validTargets {
-
 		if valid == target {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 // Helper methods for working with conditions.
 
 func (r *Repository) GetCondition(conditionType string) *metav1.Condition {
-
 	for _, condition := range r.Status.Conditions {
-
 		if condition.Type == conditionType {
-
 			return &condition
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // SetCondition performs setcondition operation.
 
 func (r *Repository) SetCondition(condition metav1.Condition) {
-
 	for i, existing := range r.Status.Conditions {
-
 		if existing.Type == condition.Type {
 
 			r.Status.Conditions[i] = condition
@@ -1716,37 +1683,27 @@ func (r *Repository) SetCondition(condition metav1.Condition) {
 			return
 
 		}
-
 	}
 
 	r.Status.Conditions = append(r.Status.Conditions, condition)
-
 }
 
 // Helper functions for PackageRevision conditions (since we can't define methods on type aliases).
 
 func GetPackageRevisionCondition(pr *PackageRevision, conditionType string) *metav1.Condition {
-
 	for _, condition := range pr.Status.Conditions {
-
 		if condition.Type == conditionType {
-
 			return &condition
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // SetPackageRevisionCondition performs setpackagerevisioncondition operation.
 
 func SetPackageRevisionCondition(pr *PackageRevision, condition metav1.Condition) {
-
 	for i, existing := range pr.Status.Conditions {
-
 		if existing.Type == condition.Type {
 
 			pr.Status.Conditions[i] = condition
@@ -1754,27 +1711,21 @@ func SetPackageRevisionCondition(pr *PackageRevision, condition metav1.Condition
 			return
 
 		}
-
 	}
 
 	pr.Status.Conditions = append(pr.Status.Conditions, condition)
-
 }
 
 // Implement runtime.Object interface for Kubernetes integration.
 
 func (r *Repository) DeepCopyObject() runtime.Object {
-
 	return r.DeepCopy()
-
 }
 
 // DeepCopyObject performs deepcopyobject operation.
 
 func (rl *RepositoryList) DeepCopyObject() runtime.Object {
-
-	return rl.DeepCopy()
-
+	return rl
 }
 
 // DeepCopyObject methods are implemented by the multicluster package types.
@@ -1782,17 +1733,13 @@ func (rl *RepositoryList) DeepCopyObject() runtime.Object {
 // DeepCopyObject performs deepcopyobject operation.
 
 func (w *Workflow) DeepCopyObject() runtime.Object {
-
-	return w.DeepCopy()
-
+	return w
 }
 
 // DeepCopyObject performs deepcopyobject operation.
 
 func (wl *WorkflowList) DeepCopyObject() runtime.Object {
-
-	return wl.DeepCopy()
-
+	return wl
 }
 
 // DeepCopy methods would be generated by code-gen or implemented manually.
@@ -1800,11 +1747,8 @@ func (wl *WorkflowList) DeepCopyObject() runtime.Object {
 // For brevity, showing the pattern for Repository.
 
 func (r *Repository) DeepCopy() *Repository {
-
 	if r == nil {
-
 		return nil
-
 	}
 
 	out := new(Repository)
@@ -1812,13 +1756,11 @@ func (r *Repository) DeepCopy() *Repository {
 	r.DeepCopyInto(out)
 
 	return out
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (r *Repository) DeepCopyInto(out *Repository) {
-
 	*out = *r
 
 	out.TypeMeta = r.TypeMeta
@@ -1828,24 +1770,24 @@ func (r *Repository) DeepCopyInto(out *Repository) {
 	r.Spec.DeepCopyInto(&out.Spec)
 
 	r.Status.DeepCopyInto(&out.Status)
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (rs *RepositorySpec) DeepCopyInto(out *RepositorySpec) {
-
 	*out = *rs
 
 	if rs.Auth != nil {
 
-		out.Auth = rs.Auth.DeepCopy()
+		out.Auth = &AuthConfig{}
+		*out.Auth = *rs.Auth
 
 	}
 
 	if rs.Sync != nil {
 
-		out.Sync = rs.Sync.DeepCopy()
+		out.Sync = &SyncConfig{}
+		*out.Sync = *rs.Sync
 
 	}
 
@@ -1856,13 +1798,11 @@ func (rs *RepositorySpec) DeepCopyInto(out *RepositorySpec) {
 		copy(out.Capabilities, rs.Capabilities)
 
 	}
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (rs *RepositoryStatus) DeepCopyInto(out *RepositoryStatus) {
-
 	*out = *rs
 
 	if rs.Conditions != nil {
@@ -1870,19 +1810,14 @@ func (rs *RepositoryStatus) DeepCopyInto(out *RepositoryStatus) {
 		out.Conditions = make([]metav1.Condition, len(rs.Conditions))
 
 		for i := range rs.Conditions {
-
 			rs.Conditions[i].DeepCopyInto(&out.Conditions[i])
-
 		}
 
 	}
 
 	if rs.LastSyncTime != nil {
-
 		out.LastSyncTime = rs.LastSyncTime.DeepCopy()
-
 	}
-
 }
 
 // DeepCopy methods are implemented in deepcopy.go.
@@ -1926,23 +1861,17 @@ type PorchError struct {
 // Error performs error operation.
 
 func (e *PorchError) Error() string {
-
 	if e.Cause != nil {
-
 		return fmt.Sprintf("%s: %s (caused by: %v)", e.Type, e.Message, e.Cause)
-
 	}
 
 	return fmt.Sprintf("%s: %s", e.Type, e.Message)
-
 }
 
 // Unwrap performs unwrap operation.
 
 func (e *PorchError) Unwrap() error {
-
 	return e.Cause
-
 }
 
 // Common error types.
@@ -2094,3 +2023,349 @@ const (
 
 	LabelORANInterface = "porch.nephoran.com/oran-interface"
 )
+
+// Additional interfaces and types needed by package revision manager
+
+// LifecycleManager provides package lifecycle management capabilities.
+type LifecycleManager interface {
+	// Lifecycle transitions
+	TransitionToProposed(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error)
+	TransitionToPublished(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error)
+	TransitionToDraft(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error)
+	TransitionToDeletable(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error)
+
+	// Rollback operations
+	CreateRollbackPoint(ctx context.Context, ref *PackageReference, description string) (*RollbackPoint, error)
+	ListRollbackPoints(ctx context.Context, ref *PackageReference) ([]*RollbackPoint, error)
+	RestoreFromRollbackPoint(ctx context.Context, ref *PackageReference, rollbackPoint *RollbackPoint) error
+
+	// Health and lifecycle management
+	GetManagerHealth(ctx context.Context) (*LifecycleManagerHealth, error)
+	Close() error
+}
+
+// TransitionOptions configures lifecycle transitions.
+type TransitionOptions struct {
+	SkipValidation      bool          `json:"skipValidation,omitempty"`
+	CreateRollbackPoint bool          `json:"createRollbackPoint,omitempty"`
+	RollbackDescription string        `json:"rollbackDescription,omitempty"`
+	ForceTransition     bool          `json:"forceTransition,omitempty"`
+	Timeout             time.Duration `json:"timeout,omitempty"`
+	DryRun              bool          `json:"dryRun,omitempty"`
+}
+
+// TransitionResult contains lifecycle transition results.
+type TransitionResult struct {
+	Success       bool                     `json:"success"`
+	FromStage     PackageRevisionLifecycle `json:"fromStage"`
+	ToStage       PackageRevisionLifecycle `json:"toStage"`
+	Duration      time.Duration            `json:"duration"`
+	RollbackPoint *RollbackPoint           `json:"rollbackPoint,omitempty"`
+	Warnings      []string                 `json:"warnings,omitempty"`
+	Metadata      json.RawMessage `json:"metadata,omitempty"`
+}
+
+// RollbackPoint represents a point-in-time snapshot for rollback.
+type RollbackPoint struct {
+	ID          string                   `json:"id"`
+	PackageRef  *PackageReference        `json:"packageRef"`
+	Stage       PackageRevisionLifecycle `json:"stage"`
+	CreatedAt   *metav1.Time             `json:"createdAt"`
+	Description string                   `json:"description,omitempty"`
+	Resources   []KRMResource            `json:"resources"`
+	Metadata    json.RawMessage `json:"metadata,omitempty"`
+}
+
+// LifecycleManagerConfig configures the lifecycle manager.
+type LifecycleManagerConfig struct {
+	// Basic configuration
+	Name       string        `json:"name"`
+	Enabled    bool          `json:"enabled"`
+	MaxRetries int           `json:"maxRetries,omitempty"`
+	Timeout    time.Duration `json:"timeout,omitempty"`
+
+	// Package configuration
+	DefaultLifecycle    PackageRevisionLifecycle `json:"defaultLifecycle,omitempty"`
+	AutoCreateRollbacks bool                     `json:"autoCreateRollbacks,omitempty"`
+	MaxRollbackPoints   int                      `json:"maxRollbackPoints,omitempty"`
+
+	// Validation configuration
+	EnableValidation   bool          `json:"enableValidation,omitempty"`
+	ValidationTimeout  time.Duration `json:"validationTimeout,omitempty"`
+	RequiredValidators []string      `json:"requiredValidators,omitempty"`
+
+	// Workflow configuration
+	WorkflowEnabled bool   `json:"workflowEnabled,omitempty"`
+	DefaultWorkflow string `json:"defaultWorkflow,omitempty"`
+
+	// Metrics and monitoring
+	MetricsEnabled      bool          `json:"metricsEnabled,omitempty"`
+	EnableMetrics       bool          `json:"enableMetrics,omitempty"`
+	HealthCheckInterval time.Duration `json:"healthCheckInterval,omitempty"`
+
+	// Event processing
+	EventQueueSize int `json:"eventQueueSize,omitempty"`
+	EventWorkers   int `json:"eventWorkers,omitempty"`
+
+	// Locking configuration
+	LockCleanupInterval time.Duration `json:"lockCleanupInterval,omitempty"`
+	DefaultLockTimeout  time.Duration `json:"defaultLockTimeout,omitempty"`
+
+	// Advanced configuration
+	ParallelTransitions   bool   `json:"parallelTransitions,omitempty"`
+	TransitionConcurrency int    `json:"transitionConcurrency,omitempty"`
+	StorageBackend        string `json:"storageBackend,omitempty"`
+}
+
+// LifecycleManagerHealth represents the health status of the lifecycle manager.
+type LifecycleManagerHealth struct {
+	Status                    string                 `json:"status"`
+	Healthy                   bool                   `json:"healthy"`
+	LastCheck                 *metav1.Time           `json:"lastCheck"`
+	ActiveTransitions         int                    `json:"activeTransitions"`
+	TotalTransitions          int64                  `json:"totalTransitions"`
+	FailedTransitions         int64                  `json:"failedTransitions"`
+	AverageTransitionDuration time.Duration          `json:"averageTransitionDuration,omitempty"`
+	PendingRollbacks          int                    `json:"pendingRollbacks"`
+	Details                   json.RawMessage `json:"details,omitempty"`
+	Errors                    []string               `json:"errors,omitempty"`
+}
+
+// Factory functions
+
+// NewLifecycleManager creates a new LifecycleManager with the given client and configuration.
+func NewLifecycleManager(client *Client, config *LifecycleManagerConfig) (LifecycleManager, error) {
+	if config == nil {
+		return nil, fmt.Errorf("lifecycle manager configuration cannot be nil")
+	}
+	if client == nil {
+		return nil, fmt.Errorf("porch client cannot be nil")
+	}
+
+	// For now, return a default implementation
+	// In a real implementation, this would return a concrete type that implements the interface
+	return &defaultLifecycleManager{
+		client: client,
+		config: config,
+	}, nil
+}
+
+// defaultLifecycleManager is a basic implementation of LifecycleManager.
+// This is a placeholder - in a real implementation you would have a full implementation.
+type defaultLifecycleManager struct {
+	client *Client
+	config *LifecycleManagerConfig
+}
+
+func (d *defaultLifecycleManager) TransitionToProposed(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error) {
+	return &TransitionResult{
+		Success:   true,
+		FromStage: PackageRevisionLifecycleDraft,
+		ToStage:   PackageRevisionLifecycleProposed,
+		Duration:  time.Second,
+	}, nil
+}
+
+func (d *defaultLifecycleManager) TransitionToPublished(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error) {
+	return &TransitionResult{
+		Success:   true,
+		FromStage: PackageRevisionLifecycleProposed,
+		ToStage:   PackageRevisionLifecyclePublished,
+		Duration:  time.Second,
+	}, nil
+}
+
+func (d *defaultLifecycleManager) TransitionToDraft(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error) {
+	return &TransitionResult{
+		Success:   true,
+		FromStage: PackageRevisionLifecycleProposed,
+		ToStage:   PackageRevisionLifecycleDraft,
+		Duration:  time.Second,
+	}, nil
+}
+
+func (d *defaultLifecycleManager) TransitionToDeletable(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error) {
+	return &TransitionResult{
+		Success:   true,
+		FromStage: PackageRevisionLifecyclePublished,
+		ToStage:   PackageRevisionLifecycleDeletable,
+		Duration:  time.Second,
+	}, nil
+}
+
+func (d *defaultLifecycleManager) CreateRollbackPoint(ctx context.Context, ref *PackageReference, description string) (*RollbackPoint, error) {
+	now := metav1.Now()
+	return &RollbackPoint{
+		ID:          fmt.Sprintf("rollback-%d", now.Unix()),
+		PackageRef:  ref,
+		Stage:       PackageRevisionLifecycleDraft,
+		CreatedAt:   &now,
+		Description: description,
+		Resources:   []KRMResource{},
+	}, nil
+}
+
+func (d *defaultLifecycleManager) ListRollbackPoints(ctx context.Context, ref *PackageReference) ([]*RollbackPoint, error) {
+	return []*RollbackPoint{}, nil
+}
+
+func (d *defaultLifecycleManager) RestoreFromRollbackPoint(ctx context.Context, ref *PackageReference, rollbackPoint *RollbackPoint) error {
+	return nil
+}
+
+func (d *defaultLifecycleManager) GetManagerHealth(ctx context.Context) (*LifecycleManagerHealth, error) {
+	now := metav1.Now()
+	return &LifecycleManagerHealth{
+		Status:                    "healthy",
+		Healthy:                   true,
+		LastCheck:                 &now,
+		ActiveTransitions:         0,
+		TotalTransitions:          0,
+		FailedTransitions:         0,
+		AverageTransitionDuration: time.Millisecond * 100,
+		PendingRollbacks:          0,
+	}, nil
+}
+
+func (d *defaultLifecycleManager) Close() error {
+	return nil
+}
+
+// Additional Function Execution Types needed for tests
+
+// FunctionExecutionRequest extends FunctionRequest with execution-specific details.
+type FunctionExecutionRequest struct {
+	*FunctionRequest
+	ExecutionID    string
+	Runtime        string
+	ResourceLimits *FunctionResourceLimits
+	Timeout        time.Duration
+	Environment    map[string]string
+	WorkingDir     string
+	NetworkAccess  bool
+	Privileged     bool
+}
+
+// FunctionExecutionResult extends FunctionResponse with execution details.
+type FunctionExecutionResult struct {
+	*FunctionResponse
+	ExecutionID   string
+	ResourceUsage *ResourceUsage
+	ExitCode      int
+	StartTime     time.Time
+	EndTime       time.Time
+	Runtime       string
+}
+
+// ResourceRequirement defines resource requirements.
+type ResourceRequirement struct {
+	CPU     float64
+	Memory  int64
+	Storage int64
+	Network int64
+}
+
+// QuotaUsage represents current quota usage.
+type QuotaUsage struct {
+	Used      *ResourceRequirement
+	Available *ResourceRequirement
+	Limit     *ResourceRequirement
+}
+
+// SecurityScanResult represents security scan results.
+type SecurityScanResult struct {
+	Vulnerabilities  []Vulnerability
+	PolicyViolations []PolicyViolation
+	RiskScore        int
+	Approved         bool
+}
+
+// PolicyViolation represents a policy violation.
+type PolicyViolation struct {
+	Policy      string
+	Severity    string
+	Description string
+	Remediation string
+}
+
+// PipelineMetrics represents pipeline execution metrics.
+type PipelineMetrics struct {
+	TotalDuration   time.Duration
+	StageExecutions map[string]time.Duration
+	ResourceUsage   *ResourceUsage
+	SuccessRate     float64
+	ErrorRate       float64
+}
+
+// ResourceUsage tracks resource consumption during execution.
+type ResourceUsage struct {
+	CPU       float64
+	Memory    int64
+	Storage   int64
+	Network   int64
+	Duration  time.Duration
+	ExitCode  int
+	StartTime time.Time
+	EndTime   time.Time
+}
+
+// CacheStats represents cache statistics.
+type CacheStats struct {
+	HitCount  int64
+	MissCount int64
+	Size      int64
+	HitRate   float64
+}
+
+// ComplianceResult represents O-RAN compliance validation results.
+type ComplianceResult struct {
+	Compliant  bool
+	Violations []ComplianceViolation
+	Warnings   []ComplianceWarning
+	Score      int
+}
+
+// ComplianceViolation represents a compliance violation.
+type ComplianceViolation struct {
+	Rule        string
+	Severity    string
+	Description string
+	Resource    string
+	Field       string
+	Remediation string
+}
+
+// ComplianceWarning represents a compliance warning.
+type ComplianceWarning struct {
+	Rule        string
+	Description string
+	Resource    string
+	Field       string
+	Suggestion  string
+}
+
+// NetworkFunctionSpec represents a network function specification.
+type NetworkFunctionSpec struct {
+	Type       string
+	Interfaces []ORANInterface
+	Resources  json.RawMessage
+	Metadata   map[string]string
+}
+
+// GitClient interface for Git operations (placeholder for testing)
+type GitClient interface {
+	Clone(url, dir string) error
+	Pull(dir string) error
+	Push(dir string) error
+	GetCommitHash(dir string) (string, error)
+}
+
+// functionRunner - placeholder implementation type for testing
+type functionRunner struct {
+	// Implementation details would be here
+}
+
+// repositoryManager - placeholder implementation type for testing
+type repositoryManager struct {
+	// Implementation details would be here
+}

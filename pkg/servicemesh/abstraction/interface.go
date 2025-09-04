@@ -3,7 +3,9 @@
 package abstraction
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"crypto/x509"
 	"time"
 
@@ -37,7 +39,6 @@ const (
 // ServiceMeshInterface defines the universal interface for service mesh operations.
 
 type ServiceMeshInterface interface {
-
 	// Initialize sets up the service mesh provider.
 
 	Initialize(ctx context.Context, config *ServiceMeshConfig) error
@@ -110,7 +111,7 @@ type ServiceMeshConfig struct {
 
 	MultiCluster *MultiClusterConfig `json:"multiCluster,omitempty"`
 
-	CustomConfig map[string]interface{} `json:"customConfig,omitempty"`
+	CustomConfig json.RawMessage `json:"customConfig,omitempty"`
 }
 
 // CertificateConfig defines certificate management configuration.
@@ -127,7 +128,6 @@ type CertificateConfig struct {
 	SPIREServerURL string `json:"spireServerUrl,omitempty"`
 
 	CertStorage string `json:"certStorage"` // "secret", "configmap", "external"
-
 }
 
 // PolicyDefaults defines default policy configurations.
@@ -220,7 +220,6 @@ type MTLSPolicySpec struct {
 	PortLevelMTLS []PortMTLS `json:"portLevelMtls,omitempty"`
 
 	Exceptions []string `json:"exceptions,omitempty"` // Service names exempt from policy
-
 }
 
 // PortMTLS defines port-specific mTLS configuration.
@@ -384,7 +383,7 @@ type ServiceStatus struct {
 
 	Policies []string `json:"policies"`
 
-	Metrics map[string]interface{} `json:"metrics"`
+	Metrics json.RawMessage `json:"metrics"`
 }
 
 // CertificateStatus represents certificate status for a service.
@@ -479,7 +478,6 @@ type PolicyCompliance struct {
 	NetworkSegmented bool `json:"networkSegmented"`
 
 	ComplianceScore float64 `json:"complianceScore"` // 0-100
-
 }
 
 // DependencyGraph represents service dependencies.
@@ -524,7 +522,6 @@ type ServiceEdge struct {
 	Latency float64 `json:"latency"` // milliseconds
 
 	ErrorRate float64 `json:"errorRate"` // percentage
-
 }
 
 // MTLSStatusReport provides comprehensive mTLS status.
@@ -619,7 +616,6 @@ const (
 // CertificateProvider manages certificates for the service mesh.
 
 type CertificateProvider interface {
-
 	// IssueCertificate issues a new certificate for a service.
 
 	IssueCertificate(ctx context.Context, service, namespace string) (*x509.Certificate, error)

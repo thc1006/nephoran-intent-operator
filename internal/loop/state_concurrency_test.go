@@ -19,7 +19,7 @@ func TestIsProcessedRobustToENOENT(t *testing.T) {
 	tempDir := t.TempDir()
 	sm, err := NewStateManager(tempDir)
 	require.NoError(t, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	t.Run("NonExistentFileReturnsNotProcessedNoError", func(t *testing.T) {
 		// When checking a file that doesn't exist and has no state entry,
@@ -32,7 +32,7 @@ func TestIsProcessedRobustToENOENT(t *testing.T) {
 	t.Run("FileDisappearsAfterMarkedProcessed", func(t *testing.T) {
 		// Create a file, mark it as processed, then delete it
 		testFile := filepath.Join(tempDir, "disappearing.json")
-		err := os.WriteFile(testFile, []byte(`{"test": true}`), 0644)
+		err := os.WriteFile(testFile, []byte(`{"test": true}`), 0o644)
 		require.NoError(t, err)
 
 		// Mark as processed
@@ -57,7 +57,7 @@ func TestIsProcessedRobustToENOENT(t *testing.T) {
 		for i := 0; i < numFiles; i++ {
 			filename := fmt.Sprintf("concurrent-%d.json", i)
 			testFile := filepath.Join(tempDir, filename)
-			err := os.WriteFile(testFile, []byte(`{"test": true}`), 0644)
+			err := os.WriteFile(testFile, []byte(`{"test": true}`), 0o644)
 			require.NoError(t, err)
 		}
 
@@ -97,7 +97,7 @@ func TestIsProcessedRobustToENOENT(t *testing.T) {
 	t.Run("FileDeletedDuringProcessing", func(t *testing.T) {
 		// Simulate a file being deleted while another worker is checking it
 		testFile := filepath.Join(tempDir, "racing.json")
-		err := os.WriteFile(testFile, []byte(`{"test": true}`), 0644)
+		err := os.WriteFile(testFile, []byte(`{"test": true}`), 0o644)
 		require.NoError(t, err)
 
 		var wg sync.WaitGroup

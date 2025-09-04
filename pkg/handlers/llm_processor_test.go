@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
-	"github.com/thc1006/nephoran-intent-operator/pkg/health"
 )
 
 func TestNLToIntentHandler(t *testing.T) {
@@ -180,7 +179,7 @@ func TestIntentParserEdgeCases(t *testing.T) {
 		},
 		{
 			name:           "Scale with non-numeric replicas",
-			body:           "scale app to abc in ns test", 
+			body:           "scale app to abc in ns test",
 			expectedStatus: http.StatusBadRequest,
 			validateError:  "Failed to parse intent",
 		},

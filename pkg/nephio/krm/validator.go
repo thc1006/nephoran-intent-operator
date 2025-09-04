@@ -31,7 +31,9 @@ limitations under the License.
 package krm
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"crypto/sha256"
 	"fmt"
 	"sync"
@@ -71,7 +73,6 @@ type Validator struct {
 // ValidatorConfig defines configuration for KRM function validation.
 
 type ValidatorConfig struct {
-
 	// Security scanning.
 
 	EnableSecurityScan bool `json:"enableSecurityScan" yaml:"enableSecurityScan"`
@@ -180,7 +181,7 @@ type ValidationRequest struct {
 
 	Image string `json:"image"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	TestResources []porch.KRMResource `json:"testResources,omitempty"`
 
@@ -220,7 +221,6 @@ type ValidationOptions struct {
 // ValidationResult represents the result of function validation.
 
 type ValidationResult struct {
-
 	// Overall result.
 
 	Valid bool `json:"valid"`
@@ -731,7 +731,6 @@ type ValidatorMetrics struct {
 // Default validator configuration.
 
 var DefaultValidatorConfig = &ValidatorConfig{
-
 	EnableSecurityScan: true,
 
 	VulnerabilityDatabase: "https://cve.mitre.org/data/downloads/allitems.xml",
@@ -782,29 +781,22 @@ var DefaultValidatorConfig = &ValidatorConfig{
 // NewValidator creates a new KRM function validator.
 
 func NewValidator(config *ValidatorConfig) (*Validator, error) {
-
 	if config == nil {
-
 		config = DefaultValidatorConfig
-
 	}
 
 	// Validate configuration.
 
 	if err := validateValidatorConfig(config); err != nil {
-
 		return nil, fmt.Errorf("invalid validator configuration: %w", err)
-
 	}
 
 	// Initialize metrics.
 
 	metrics := &ValidatorMetrics{
-
 		ValidationsTotal: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "krm_validator_validations_total",
 
 				Help: "Total number of validations performed",
@@ -816,7 +808,6 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 		ValidationDuration: promauto.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "krm_validator_validation_duration_seconds",
 
 				Help: "Duration of validations",
@@ -830,7 +821,6 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 		SecurityScansTotal: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "krm_validator_security_scans_total",
 
 				Help: "Total number of security scans performed",
@@ -842,7 +832,6 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 		ComplianceChecks: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "krm_validator_compliance_checks_total",
 
 				Help: "Total number of compliance checks performed",
@@ -854,7 +843,6 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 		PerformanceTests: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "krm_validator_performance_tests_total",
 
 				Help: "Total number of performance tests performed",
@@ -866,7 +854,6 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 		CacheHits: promauto.NewCounter(
 
 			prometheus.CounterOpts{
-
 				Name: "krm_validator_cache_hits_total",
 
 				Help: "Total number of validation cache hits",
@@ -876,7 +863,6 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 		CacheMisses: promauto.NewCounter(
 
 			prometheus.CounterOpts{
-
 				Name: "krm_validator_cache_misses_total",
 
 				Help: "Total number of validation cache misses",
@@ -886,7 +872,6 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 		CertificationsIssued: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "krm_validator_certifications_issued_total",
 
 				Help: "Total number of certifications issued",
@@ -899,7 +884,6 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 	// Initialize security scanner.
 
 	securityScanner := &SecurityScanner{
-
 		config: config,
 
 		database: NewVulnerabilityDatabase(config.VulnerabilityDatabase),
@@ -910,7 +894,6 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 	// Initialize compliance checker.
 
 	complianceChecker := &ComplianceChecker{
-
 		config: config,
 
 		standards: make(map[string]*ComplianceStandard),
@@ -923,7 +906,6 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 	// Initialize performance tester.
 
 	performanceTester := &PerformanceTester{
-
 		config: config,
 
 		benchmarks: []PerformanceBenchmark{},
@@ -934,14 +916,12 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 	// Initialize validation cache.
 
 	cache := &ValidationCache{
-
 		cache: make(map[string]*CachedValidationResult),
 
 		ttl: config.CacheTTL,
 	}
 
 	validator := &Validator{
-
 		config: config,
 
 		securityScanner: securityScanner,
@@ -960,19 +940,15 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 	// Initialize standards and profiles.
 
 	if err := validator.initializeStandardsAndProfiles(); err != nil {
-
 		return nil, fmt.Errorf("failed to initialize standards and profiles: %w", err)
-
 	}
 
 	return validator, nil
-
 }
 
 // ValidateFunction validates a KRM function comprehensively.
 
 func (v *Validator) ValidateFunction(ctx context.Context, req *ValidationRequest) (*ValidationResult, error) {
-
 	ctx, span := v.tracer.Start(ctx, "krm-validator-validate-function")
 
 	defer span.End()
@@ -1019,7 +995,6 @@ func (v *Validator) ValidateFunction(ctx context.Context, req *ValidationRequest
 	// Create validation result.
 
 	result := &ValidationResult{
-
 		Valid: true,
 
 		Score: 0.0,
@@ -1048,7 +1023,6 @@ func (v *Validator) ValidateFunction(ctx context.Context, req *ValidationRequest
 		logger.Info("Performing security validation", "function", req.Function.Name)
 
 		securityResult, err := v.validateSecurity(ctx, req)
-
 		if err != nil {
 
 			if req.Options != nil && req.Options.FailFast {
@@ -1068,9 +1042,7 @@ func (v *Validator) ValidateFunction(ctx context.Context, req *ValidationRequest
 		result.SecurityResult = securityResult
 
 		if securityResult != nil && !securityResult.Secure {
-
 			result.Valid = false
-
 		}
 
 	}
@@ -1082,7 +1054,6 @@ func (v *Validator) ValidateFunction(ctx context.Context, req *ValidationRequest
 		logger.Info("Performing compliance validation", "function", req.Function.Name)
 
 		complianceResult, err := v.validateCompliance(ctx, req)
-
 		if err != nil {
 
 			if req.Options != nil && req.Options.FailFast {
@@ -1102,9 +1073,7 @@ func (v *Validator) ValidateFunction(ctx context.Context, req *ValidationRequest
 		result.ComplianceResult = complianceResult
 
 		if complianceResult != nil && !complianceResult.Compliant {
-
 			result.Valid = false
-
 		}
 
 	}
@@ -1116,7 +1085,6 @@ func (v *Validator) ValidateFunction(ctx context.Context, req *ValidationRequest
 		logger.Info("Performing performance validation", "function", req.Function.Name)
 
 		performanceResult, err := v.validatePerformance(ctx, req)
-
 		if err != nil {
 
 			if req.Options != nil && req.Options.FailFast {
@@ -1136,9 +1104,7 @@ func (v *Validator) ValidateFunction(ctx context.Context, req *ValidationRequest
 		result.PerformanceResult = performanceResult
 
 		if performanceResult != nil && !performanceResult.PerformanceAcceptable {
-
 			result.Valid = false
-
 		}
 
 	}
@@ -1150,7 +1116,6 @@ func (v *Validator) ValidateFunction(ctx context.Context, req *ValidationRequest
 		logger.Info("Performing integration validation", "function", req.Function.Name)
 
 		integrationResult, err := v.validateIntegration(ctx, req)
-
 		if err != nil {
 
 			if req.Options != nil && req.Options.FailFast {
@@ -1170,9 +1135,7 @@ func (v *Validator) ValidateFunction(ctx context.Context, req *ValidationRequest
 		result.IntegrationResult = integrationResult
 
 		if integrationResult != nil && !integrationResult.Integrated {
-
 			result.Valid = false
-
 		}
 
 	}
@@ -1202,9 +1165,7 @@ func (v *Validator) ValidateFunction(ctx context.Context, req *ValidationRequest
 	// Cache result if enabled.
 
 	if v.config.CacheValidationResults {
-
 		v.cache.set(functionHash, result)
-
 	}
 
 	// Record metrics.
@@ -1212,9 +1173,7 @@ func (v *Validator) ValidateFunction(ctx context.Context, req *ValidationRequest
 	resultStatus := "valid"
 
 	if !result.Valid {
-
 		resultStatus = "invalid"
-
 	}
 
 	v.metrics.ValidationsTotal.WithLabelValues("comprehensive", resultStatus).Inc()
@@ -1249,13 +1208,11 @@ func (v *Validator) ValidateFunction(ctx context.Context, req *ValidationRequest
 	)
 
 	return result, nil
-
 }
 
 // ValidateImage validates a container image for security vulnerabilities.
 
 func (v *Validator) ValidateImage(ctx context.Context, image string) (*SecurityValidationResult, error) {
-
 	ctx, span := v.tracer.Start(ctx, "krm-validator-validate-image")
 
 	defer span.End()
@@ -1263,13 +1220,11 @@ func (v *Validator) ValidateImage(ctx context.Context, image string) (*SecurityV
 	span.SetAttributes(attribute.String("image", image))
 
 	return v.securityScanner.scanImage(ctx, image)
-
 }
 
 // ValidateCompliance validates function compliance against standards.
 
 func (v *Validator) ValidateCompliance(ctx context.Context, function *FunctionMetadata) (*ComplianceValidationResult, error) {
-
 	ctx, span := v.tracer.Start(ctx, "krm-validator-validate-compliance")
 
 	defer span.End()
@@ -1277,35 +1232,26 @@ func (v *Validator) ValidateCompliance(ctx context.Context, function *FunctionMe
 	span.SetAttributes(attribute.String("function.name", function.Name))
 
 	return v.complianceChecker.checkCompliance(ctx, function)
-
 }
 
 // Private validation methods.
 
 func (v *Validator) validateSecurity(ctx context.Context, req *ValidationRequest) (*SecurityValidationResult, error) {
-
 	return v.securityScanner.scanImage(ctx, req.Image)
-
 }
 
 func (v *Validator) validateCompliance(ctx context.Context, req *ValidationRequest) (*ComplianceValidationResult, error) {
-
 	return v.complianceChecker.checkCompliance(ctx, req.Function)
-
 }
 
 func (v *Validator) validatePerformance(ctx context.Context, req *ValidationRequest) (*PerformanceValidationResult, error) {
-
 	return v.performanceTester.runPerformanceTests(ctx, req)
-
 }
 
 func (v *Validator) validateIntegration(ctx context.Context, req *ValidationRequest) (*IntegrationValidationResult, error) {
-
 	// Run integration tests.
 
 	result := &IntegrationValidationResult{
-
 		Integrated: true,
 
 		Score: 1.0,
@@ -1318,7 +1264,6 @@ func (v *Validator) validateIntegration(ctx context.Context, req *ValidationRequ
 	// Mock integration test for now.
 
 	test := IntegrationTest{
-
 		Name: "basic-integration",
 
 		Description: "Basic integration test",
@@ -1331,23 +1276,19 @@ func (v *Validator) validateIntegration(ctx context.Context, req *ValidationRequ
 	result.TestResults = append(result.TestResults, test)
 
 	return result, nil
-
 }
 
 // Helper methods.
 
 func (v *Validator) createFunctionHash(req *ValidationRequest) string {
-
 	data := fmt.Sprintf("%s:%s:%v", req.Function.Name, req.Image, req.Config)
 
 	hash := sha256.Sum256([]byte(data))
 
 	return fmt.Sprintf("%x", hash)
-
 }
 
 func (v *Validator) calculateOverallScore(result *ValidationResult) float64 {
-
 	scores := []float64{}
 
 	weights := []float64{}
@@ -1385,9 +1326,7 @@ func (v *Validator) calculateOverallScore(result *ValidationResult) float64 {
 	}
 
 	if len(scores) == 0 {
-
 		return 0.0
-
 	}
 
 	totalWeight := 0.0
@@ -1403,37 +1342,23 @@ func (v *Validator) calculateOverallScore(result *ValidationResult) float64 {
 	}
 
 	return weightedSum / totalWeight
-
 }
 
 func (v *Validator) calculateGrade(score float64) string {
-
 	if score >= 0.9 {
-
 		return "A"
-
 	} else if score >= 0.8 {
-
 		return "B"
-
 	} else if score >= 0.7 {
-
 		return "C"
-
 	} else if score >= 0.6 {
-
 		return "D"
-
 	} else {
-
 		return "F"
-
 	}
-
 }
 
 func (v *Validator) issueCertifications(ctx context.Context, req *ValidationRequest, result *ValidationResult) []FunctionCertification {
-
 	var certifications []FunctionCertification
 
 	// Issue basic certification if function is valid.
@@ -1441,7 +1366,6 @@ func (v *Validator) issueCertifications(ctx context.Context, req *ValidationRequ
 	if result.Valid && result.Score >= 0.7 {
 
 		cert := FunctionCertification{
-
 			Level: "basic",
 
 			Authority: "nephoran",
@@ -1466,7 +1390,6 @@ func (v *Validator) issueCertifications(ctx context.Context, req *ValidationRequ
 	if result.Valid && result.Score >= 0.85 {
 
 		cert := FunctionCertification{
-
 			Level: "enhanced",
 
 			Authority: "nephoran",
@@ -1487,15 +1410,12 @@ func (v *Validator) issueCertifications(ctx context.Context, req *ValidationRequ
 	}
 
 	return certifications
-
 }
 
 func (v *Validator) initializeStandardsAndProfiles() error {
-
 	// Initialize default compliance standards.
 
 	pciDSSStandard := &ComplianceStandard{
-
 		Name: "PCI-DSS",
 
 		Version: "3.2.1",
@@ -1508,7 +1428,6 @@ func (v *Validator) initializeStandardsAndProfiles() error {
 	v.complianceChecker.standards["pci-dss"] = pciDSSStandard
 
 	nistCSFStandard := &ComplianceStandard{
-
 		Name: "NIST-CSF",
 
 		Version: "1.1",
@@ -1521,7 +1440,6 @@ func (v *Validator) initializeStandardsAndProfiles() error {
 	v.complianceChecker.standards["nist-csf"] = nistCSFStandard
 
 	return nil
-
 }
 
 // Security Scanner implementation.
@@ -1529,22 +1447,17 @@ func (v *Validator) initializeStandardsAndProfiles() error {
 // NewVulnerabilityDatabase performs newvulnerabilitydatabase operation.
 
 func NewVulnerabilityDatabase(url string) *VulnerabilityDatabase {
-
 	return &VulnerabilityDatabase{
-
 		url: url,
 
 		cache: make(map[string][]SecurityVulnerability),
 	}
-
 }
 
 func (ss *SecurityScanner) scanImage(ctx context.Context, image string) (*SecurityValidationResult, error) {
-
 	// Mock security scan for now.
 
 	result := &SecurityValidationResult{
-
 		Secure: true,
 
 		Score: 0.9,
@@ -1559,17 +1472,14 @@ func (ss *SecurityScanner) scanImage(ctx context.Context, image string) (*Securi
 	}
 
 	return result, nil
-
 }
 
 // Compliance Checker implementation.
 
 func (cc *ComplianceChecker) checkCompliance(ctx context.Context, function *FunctionMetadata) (*ComplianceValidationResult, error) {
-
 	// Mock compliance check for now.
 
 	result := &ComplianceValidationResult{
-
 		Compliant: true,
 
 		Score: 0.85,
@@ -1584,17 +1494,14 @@ func (cc *ComplianceChecker) checkCompliance(ctx context.Context, function *Func
 	}
 
 	return result, nil
-
 }
 
 // Performance Tester implementation.
 
 func (pt *PerformanceTester) runPerformanceTests(ctx context.Context, req *ValidationRequest) (*PerformanceValidationResult, error) {
-
 	// Mock performance test for now.
 
 	result := &PerformanceValidationResult{
-
 		PerformanceAcceptable: true,
 
 		Score: 0.8,
@@ -1613,13 +1520,11 @@ func (pt *PerformanceTester) runPerformanceTests(ctx context.Context, req *Valid
 	}
 
 	return result, nil
-
 }
 
 // Cache implementation.
 
 func (vc *ValidationCache) get(key string) *CachedValidationResult {
-
 	vc.mu.RLock()
 
 	defer vc.mu.RUnlock()
@@ -1627,9 +1532,7 @@ func (vc *ValidationCache) get(key string) *CachedValidationResult {
 	cached, exists := vc.cache[key]
 
 	if !exists {
-
 		return nil
-
 	}
 
 	if time.Now().After(cached.ExpiresAt) {
@@ -1641,17 +1544,14 @@ func (vc *ValidationCache) get(key string) *CachedValidationResult {
 	}
 
 	return cached
-
 }
 
 func (vc *ValidationCache) set(key string, result *ValidationResult) {
-
 	vc.mu.Lock()
 
 	defer vc.mu.Unlock()
 
 	cached := &CachedValidationResult{
-
 		Result: result,
 
 		ExpiresAt: time.Now().Add(vc.ttl),
@@ -1660,13 +1560,11 @@ func (vc *ValidationCache) set(key string, result *ValidationResult) {
 	}
 
 	vc.cache[key] = cached
-
 }
 
 // Shutdown gracefully shuts down the validator.
 
 func (v *Validator) Shutdown(ctx context.Context) error {
-
 	logger := log.FromContext(ctx).WithName("krm-validator")
 
 	logger.Info("Shutting down KRM validator")
@@ -1682,31 +1580,22 @@ func (v *Validator) Shutdown(ctx context.Context) error {
 	logger.Info("KRM validator shutdown complete")
 
 	return nil
-
 }
 
 // Helper functions.
 
 func validateValidatorConfig(config *ValidatorConfig) error {
-
 	if config.SecurityTimeout <= 0 {
-
 		return fmt.Errorf("securityTimeout must be positive")
-
 	}
 
 	if config.PerformanceTimeout <= 0 {
-
 		return fmt.Errorf("performanceTimeout must be positive")
-
 	}
 
 	if config.TestTimeout <= 0 {
-
 		return fmt.Errorf("testTimeout must be positive")
-
 	}
 
 	return nil
-
 }

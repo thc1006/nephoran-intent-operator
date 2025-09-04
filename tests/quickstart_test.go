@@ -82,7 +82,7 @@ func TestQuickstartTutorial(t *testing.T) {
 	if elapsed > maxDuration {
 		t.Errorf("Quickstart took %v, exceeding 15-minute target", elapsed)
 	} else {
-		t.Logf("✅ Quickstart completed in %v (under 15-minute target)", elapsed)
+		t.Logf("??Quickstart completed in %v (under 15-minute target)", elapsed)
 	}
 
 	// Run validation checks
@@ -117,7 +117,7 @@ func TestQuickstartPrerequisites(t *testing.T) {
 			if err != nil {
 				t.Errorf("%s not found or not working: %v", tool.name, err)
 			} else {
-				t.Logf("✅ %s: %s", tool.name, strings.TrimSpace(string(output)))
+				t.Logf("??%s: %s", tool.name, strings.TrimSpace(string(output)))
 			}
 		})
 	}
@@ -187,7 +187,7 @@ func TestQuickstartSteps(t *testing.T) {
 				if elapsed > step.maxDuration {
 					t.Errorf("Step took %v, exceeding target of %v", elapsed, step.maxDuration)
 				} else {
-					t.Logf("✅ Completed in %v (target: %v)", elapsed, step.maxDuration)
+					t.Logf("??Completed in %v (target: %v)", elapsed, step.maxDuration)
 				}
 			case <-time.After(step.maxDuration + 30*time.Second):
 				t.Fatalf("Step timed out after %v", step.maxDuration)
@@ -205,13 +205,13 @@ func TestQuickstartSteps(t *testing.T) {
 
 func validatePrerequisites(t *testing.T) {
 	// Check Docker daemon is running
-	cmd := exec.Command("docker", "info")
+	cmd := exec.Command("docker", "info") // #nosec G204 - Static command with validated args
 	if err := cmd.Run(); err != nil {
 		t.Fatal("Docker daemon is not running")
 	}
 
 	// Check kubectl is configured
-	cmd = exec.Command("kubectl", "version", "--client", "--short")
+	cmd = exec.Command("kubectl", "version", "--client", "--short") // #nosec G204 - Static command with validated args
 	if err := cmd.Run(); err != nil {
 		t.Fatal("kubectl is not properly configured")
 	}
@@ -230,7 +230,7 @@ func validateClusterSetup(t *testing.T) {
 	}
 
 	// Check nodes are ready
-	cmd = exec.Command("kubectl", "get", "nodes", "-o", "json")
+	cmd = exec.Command("kubectl", "get", "nodes", "-o", "json") // #nosec G204 - Static command with validated args
 	output, err = cmd.Output()
 	if err != nil {
 		t.Fatal("Failed to get nodes")
@@ -250,7 +250,7 @@ func validateCRDs(t *testing.T) {
 	}
 
 	for _, crd := range crds {
-		cmd := exec.Command("kubectl", "get", "crd", crd)
+		cmd := exec.Command("kubectl", "get", "crd", crd) // #nosec G204 - Static command with validated args
 		if err := cmd.Run(); err != nil {
 			t.Errorf("CRD %s not found", crd)
 		}
@@ -259,13 +259,13 @@ func validateCRDs(t *testing.T) {
 
 func validateController(t *testing.T) {
 	// Check deployment exists
-	cmd := exec.Command("kubectl", "get", "deployment", "nephoran-controller", "-n", "nephoran-system")
+	cmd := exec.Command("kubectl", "get", "deployment", "nephoran-controller", "-n", "nephoran-system") // #nosec G204 - Static command with validated args
 	if err := cmd.Run(); err != nil {
 		t.Fatal("Controller deployment not found")
 	}
 
 	// Check if pods are running
-	cmd = exec.Command("kubectl", "get", "pods", "-n", "nephoran-system", "-l", "app=nephoran-controller", "-o", "jsonpath={.items[*].status.phase}")
+	cmd = exec.Command("kubectl", "get", "pods", "-n", "nephoran-system", "-l", "app=nephoran-controller", "-o", "jsonpath={.items[*].status.phase}") // #nosec G204 - Static command with validated args
 	output, err := cmd.Output()
 	if err != nil {
 		t.Fatal("Failed to get controller pods")
@@ -278,13 +278,13 @@ func validateController(t *testing.T) {
 
 func validateFirstIntent(t *testing.T) {
 	// Check if intent exists
-	cmd := exec.Command("kubectl", "get", "networkintent", "deploy-amf-quickstart")
+	cmd := exec.Command("kubectl", "get", "networkintent", "deploy-amf-quickstart") // #nosec G204 - Static command with validated args
 	if err := cmd.Run(); err != nil {
 		t.Fatal("First intent not found")
 	}
 
 	// Check intent status
-	cmd = exec.Command("kubectl", "get", "networkintent", "deploy-amf-quickstart", "-o", "jsonpath={.status.phase}")
+	cmd = exec.Command("kubectl", "get", "networkintent", "deploy-amf-quickstart", "-o", "jsonpath={.status.phase}") // #nosec G204 - Static command with validated args
 	output, err := cmd.Output()
 	if err != nil {
 		t.Fatal("Failed to get intent status")
@@ -350,7 +350,7 @@ func cleanupQuickstart(t *testing.T) {
 	if err := cmd.Run(); err != nil {
 		t.Logf("Warning: Cleanup failed: %v", err)
 	} else {
-		t.Log("✅ Cleanup completed successfully")
+		t.Log("??Cleanup completed successfully")
 	}
 }
 
@@ -438,5 +438,5 @@ func TestQuickstartDocumentation(t *testing.T) {
 		}
 	}
 
-	t.Logf("✅ QUICKSTART.md validated (%d bytes, all required sections present)", info.Size())
+	t.Logf("??QUICKSTART.md validated (%d bytes, all required sections present)", info.Size())
 }

@@ -515,7 +515,7 @@ func TestTLSConfiguration(t *testing.T) {
 			name: "Certificate validation required",
 			tlsConfig: &tls.Config{
 				MinVersion:         tls.VersionTLS13,
-				InsecureSkipVerify: true,
+				InsecureSkipVerify: true, // #nosec G402 - Test file only
 			},
 			wantError: true,
 			errorMsg:  "certificate validation required",

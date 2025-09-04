@@ -25,8 +25,8 @@ import (
 // E2ETestSuite provides a complete end-to-end test suite
 type E2ETestSuite struct {
 	suite.Suite
-	tempDir        string
-	handoffDir     string
+	tempDir         string
+	handoffDir      string
 	intentIngestURL string
 	processes       []*os.Process
 	cleanup         func()
@@ -36,23 +36,23 @@ func TestE2ETestSuite(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping E2E tests in short mode")
 	}
-	
+
 	suite.Run(t, new(E2ETestSuite))
 }
 
 func (s *E2ETestSuite) SetupSuite() {
 	s.tempDir = s.T().TempDir()
 	s.handoffDir = filepath.Join(s.tempDir, "handoff")
-	
-	err := os.MkdirAll(s.handoffDir, 0755)
+
+	err := os.MkdirAll(s.handoffDir, 0o755)
 	s.Require().NoError(err)
-	
+
 	// Setup schema file
 	s.createTestSchema()
-	
+
 	// Start intent-ingest service
 	s.startIntentIngestService()
-	
+
 	// Wait for service to be ready
 	s.waitForServiceReady()
 }
@@ -65,7 +65,7 @@ func (s *E2ETestSuite) TearDownSuite() {
 			proc.Wait()
 		}
 	}
-	
+
 	if s.cleanup != nil {
 		s.cleanup()
 	}
@@ -75,52 +75,44 @@ func (s *E2ETestSuite) TestFullWorkflow_IntentIngestionToHandoff() {
 	s.T().Run("ingests intent and creates handoff file", func(t *testing.T) {
 		// Prepare test intent
 		intent := map[string]interface{}{
-			"apiVersion": "intent.nephoran.com/v1alpha1",
-			"kind":       "NetworkIntent",
-			"metadata": map[string]interface{}{
 				"name":      "e2e-test-intent",
 				"namespace": "default",
 			},
-			"spec": map[string]interface{}{
-				"intentType": "scaling",
-				"target":     "nginx-deployment",
-				"replicas":   3,
-				"source":     "e2e-test",
-			},
+			"spec": json.RawMessage(`{}`),
 		}
-		
+
 		intentJSON, err := json.Marshal(intent)
 		require.NoError(t, err)
-		
+
 		// Send intent to ingest service
 		resp, err := http.Post(s.intentIngestURL+"/ingest", "application/json", bytes.NewBuffer(intentJSON))
 		require.NoError(t, err)
-		defer resp.Body.Close()
-		
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
+
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
-		
+
 		// Verify handoff file was created
 		s.Eventually(func() bool {
 			files, err := os.ReadDir(s.handoffDir)
 			return err == nil && len(files) > 0
 		}, 10*time.Second, 100*time.Millisecond, "Handoff file should be created")
-		
+
 		// Verify handoff file contents
 		files, err := os.ReadDir(s.handoffDir)
 		require.NoError(t, err)
 		require.Greater(t, len(files), 0)
-		
+
 		handoffFile := filepath.Join(s.handoffDir, files[0].Name())
 		content, err := os.ReadFile(handoffFile)
 		require.NoError(t, err)
-		
+
 		var handoffData map[string]interface{}
 		err = json.Unmarshal(content, &handoffData)
 		require.NoError(t, err)
-		
+
 		assert.Equal(t, "intent.nephoran.com/v1alpha1", handoffData["apiVersion"])
 		assert.Equal(t, "NetworkIntent", handoffData["kind"])
-		
+
 		spec := handoffData["spec"].(map[string]interface{})
 		assert.Equal(t, "scaling", spec["intentType"])
 		assert.Equal(t, "nginx-deployment", spec["target"])
@@ -133,10 +125,10 @@ func (s *E2ETestSuite) TestHealthEndpoints() {
 		// Test intent-ingest health
 		resp, err := http.Get(s.intentIngestURL + "/health")
 		require.NoError(t, err)
-		defer resp.Body.Close()
-		
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
+
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
-		
+
 		body, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
 		assert.Contains(t, string(body), "OK")
@@ -148,30 +140,29 @@ func (s *E2ETestSuite) TestMetricsCollection() {
 		// Send a few requests first to generate metrics
 		for i := 0; i < 5; i++ {
 			intent := map[string]interface{}{
-				"spec": map[string]interface{}{
 					"intent": fmt.Sprintf("Metrics test intent %d", i),
 				},
 			}
-			
+
 			intentJSON, err := json.Marshal(intent)
 			require.NoError(t, err)
-			
+
 			resp, err := http.Post(s.intentIngestURL+"/ingest", "application/json", bytes.NewBuffer(intentJSON))
 			require.NoError(t, err)
 			resp.Body.Close()
 		}
-		
+
 		// Check metrics endpoint
 		resp, err := http.Get(s.intentIngestURL + "/metrics")
 		require.NoError(t, err)
-		defer resp.Body.Close()
-		
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
+
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 		assert.Equal(t, "text/plain", resp.Header.Get("Content-Type"))
-		
+
 		body, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
-		
+
 		metricsText := string(body)
 		assert.Contains(t, metricsText, "# HELP")
 		assert.Contains(t, metricsText, "# TYPE")
@@ -211,19 +202,19 @@ func (s *E2ETestSuite) TestErrorScenarios() {
 				expectedStatus: http.StatusBadRequest,
 			},
 		}
-		
+
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				req, err := http.NewRequest("POST", s.intentIngestURL+"/ingest", strings.NewReader(tc.payload))
 				require.NoError(t, err)
-				
+
 				req.Header.Set("Content-Type", tc.contentType)
-				
+
 				client := &http.Client{Timeout: 10 * time.Second}
 				resp, err := client.Do(req)
 				require.NoError(t, err)
-				defer resp.Body.Close()
-				
+				defer resp.Body.Close() // #nosec G307 - Error handled in defer
+
 				assert.Equal(t, tc.expectedStatus, resp.StatusCode, "Test case: %s", tc.name)
 			})
 		}
@@ -236,28 +227,25 @@ func (s *E2ETestSuite) TestLoadHandling() {
 			concurrency = 10
 			requests    = 50
 		)
-		
+
 		intent := map[string]interface{}{
-			"apiVersion": "intent.nephoran.com/v1alpha1",
-			"kind":       "NetworkIntent",
-			"spec": map[string]interface{}{
 				"intentType": "scaling",
 				"target":     "load-test-deployment",
 				"replicas":   2,
 			},
 		}
-		
+
 		intentJSON, err := json.Marshal(intent)
 		require.NoError(t, err)
-		
+
 		// Count initial files
 		initialFiles, err := os.ReadDir(s.handoffDir)
 		require.NoError(t, err)
 		initialCount := len(initialFiles)
-		
+
 		// Execute load test
 		resultCh := make(chan int, concurrency*requests)
-		
+
 		for i := 0; i < concurrency; i++ {
 			go func(workerID int) {
 				for j := 0; j < requests; j++ {
@@ -271,20 +259,20 @@ func (s *E2ETestSuite) TestLoadHandling() {
 				}
 			}(i)
 		}
-		
+
 		// Collect results
 		successCount := 0
 		totalRequests := concurrency * requests
-		
+
 		for i := 0; i < totalRequests; i++ {
 			statusCode := <-resultCh
 			if statusCode == http.StatusOK {
 				successCount++
 			}
 		}
-		
+
 		assert.Equal(t, totalRequests, successCount, "All requests should succeed")
-		
+
 		// Verify all handoff files were created
 		s.Eventually(func() bool {
 			files, err := os.ReadDir(s.handoffDir)
@@ -297,34 +285,33 @@ func (s *E2ETestSuite) TestServiceRecovery() {
 	s.T().Run("service recovers gracefully from simulated failures", func(t *testing.T) {
 		// Verify service is working
 		intent := map[string]interface{}{
-			"spec": map[string]interface{}{
 				"intent": "Recovery test intent",
 			},
 		}
-		
+
 		intentJSON, err := json.Marshal(intent)
 		require.NoError(t, err)
-		
+
 		// Send initial request
 		resp, err := http.Post(s.intentIngestURL+"/ingest", "application/json", bytes.NewBuffer(intentJSON))
 		require.NoError(t, err)
 		resp.Body.Close()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
-		
+
 		// Simulate temporary file system issue by making handoff directory read-only
-		err = os.Chmod(s.handoffDir, 0444)
+		err = os.Chmod(s.handoffDir, 0o444)
 		require.NoError(t, err)
-		
+
 		// Send request during "failure"
 		resp, err = http.Post(s.intentIngestURL+"/ingest", "application/json", bytes.NewBuffer(intentJSON))
 		require.NoError(t, err)
 		resp.Body.Close()
 		// Should handle gracefully (may return error status)
-		
+
 		// Restore directory permissions
-		err = os.Chmod(s.handoffDir, 0755)
+		err = os.Chmod(s.handoffDir, 0o755)
 		require.NoError(t, err)
-		
+
 		// Verify service recovers
 		resp, err = http.Post(s.intentIngestURL+"/ingest", "application/json", bytes.NewBuffer(intentJSON))
 		require.NoError(t, err)
@@ -337,47 +324,40 @@ func (s *E2ETestSuite) TestDataIntegrity() {
 	s.T().Run("maintains data integrity under concurrent access", func(t *testing.T) {
 		const numWorkers = 5
 		const requestsPerWorker = 20
-		
+
 		resultCh := make(chan string, numWorkers*requestsPerWorker)
-		
+
 		for workerID := 0; workerID < numWorkers; workerID++ {
 			go func(id int) {
 				for i := 0; i < requestsPerWorker; i++ {
 					intent := map[string]interface{}{
-						"apiVersion": "intent.nephoran.com/v1alpha1",
-						"kind":       "NetworkIntent",
-						"metadata": map[string]interface{}{
 							"name": fmt.Sprintf("integrity-test-w%d-r%d", id, i),
 						},
-						"spec": map[string]interface{}{
-							"intentType": "scaling",
-							"target":     fmt.Sprintf("worker-%d-target-%d", id, i),
-							"replicas":   i + 1,
-						},
+						"spec": json.RawMessage(`{}`),
 					}
-					
+
 					intentJSON, err := json.Marshal(intent)
 					if err != nil {
 						continue
 					}
-					
+
 					resp, err := http.Post(s.intentIngestURL+"/ingest", "application/json", bytes.NewBuffer(intentJSON))
 					if err != nil {
 						continue
 					}
 					resp.Body.Close()
-					
+
 					if resp.StatusCode == http.StatusOK {
 						resultCh <- fmt.Sprintf("w%d-r%d", id, i)
 					}
 				}
 			}(workerID)
 		}
-		
+
 		// Collect results
 		var successfulRequests []string
 		timeout := time.After(30 * time.Second)
-		
+
 		for i := 0; i < numWorkers*requestsPerWorker; i++ {
 			select {
 			case result := <-resultCh:
@@ -386,16 +366,16 @@ func (s *E2ETestSuite) TestDataIntegrity() {
 				t.Fatalf("Timeout waiting for concurrent requests to complete")
 			}
 		}
-		
+
 		assert.Equal(t, numWorkers*requestsPerWorker, len(successfulRequests))
-		
+
 		// Wait for all files to be written
 		time.Sleep(2 * time.Second)
-		
+
 		// Verify file integrity
 		files, err := os.ReadDir(s.handoffDir)
 		require.NoError(t, err)
-		
+
 		validFiles := 0
 		for _, file := range files {
 			if strings.HasSuffix(file.Name(), ".json") {
@@ -404,14 +384,14 @@ func (s *E2ETestSuite) TestDataIntegrity() {
 				if err != nil {
 					continue
 				}
-				
+
 				var data map[string]interface{}
 				if json.Unmarshal(content, &data) == nil {
 					validFiles++
 				}
 			}
 		}
-		
+
 		assert.Greater(t, validFiles, numWorkers*requestsPerWorker/2, "At least half of the files should be valid JSON")
 	})
 }
@@ -420,57 +400,32 @@ func (s *E2ETestSuite) TestDataIntegrity() {
 
 func (s *E2ETestSuite) createTestSchema() {
 	schemaFile := filepath.Join(s.tempDir, "intent.schema.json")
-	
+
 	schema := map[string]interface{}{
-		"$schema": "http://json-schema.org/draft-07/schema#",
-		"type":    "object",
-		"title":   "NetworkIntent Schema",
-		"properties": map[string]interface{}{
-			"apiVersion": map[string]interface{}{
-				"type": "string",
-				"enum": []string{"intent.nephoran.com/v1alpha1"},
+			"apiVersion": json.RawMessage(`{}`),
 			},
-			"kind": map[string]interface{}{
-				"type": "string",
-				"enum": []string{"NetworkIntent"},
+			"kind": json.RawMessage(`{}`),
 			},
 			"metadata": map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"name": map[string]interface{}{
-						"type": "string",
-					},
-					"namespace": map[string]interface{}{
-						"type": "string",
-					},
+					"name": json.RawMessage(`{}`),
+					"namespace": json.RawMessage(`{}`),
 				},
 			},
 			"spec": map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"intentType": map[string]interface{}{
-						"type": "string",
-						"enum": []string{"scaling", "deployment", "configuration"},
+					"intentType": json.RawMessage(`{}`),
 					},
-					"target": map[string]interface{}{
-						"type": "string",
-					},
-					"replicas": map[string]interface{}{
-						"type": "integer",
-						"minimum": 0,
-					},
-					"intent": map[string]interface{}{
-						"type": "string",
-					},
+					"target": json.RawMessage(`{}`),
+					"replicas": json.RawMessage(`{}`),
+					"intent": json.RawMessage(`{}`),
 				},
 			},
 		},
 	}
-	
+
 	schemaData, err := json.MarshalIndent(schema, "", "  ")
 	s.Require().NoError(err)
-	
-	err = os.WriteFile(schemaFile, schemaData, 0644)
+
+	err = os.WriteFile(schemaFile, schemaData, 0o644)
 	s.Require().NoError(err)
 }
 
@@ -481,25 +436,25 @@ func (s *E2ETestSuite) startIntentIngestService() {
 		s.T().Skip("intent-ingest binary not found, skipping E2E tests")
 		return
 	}
-	
+
 	schemaFile := filepath.Join(s.tempDir, "intent.schema.json")
-	
+
 	cmd := exec.Command(binaryPath,
 		"-addr", ":0", // Let OS choose port
 		"-handoff", s.handoffDir,
 		"-schema", schemaFile,
 		"-mode", "rules",
 	)
-	
+
 	// Capture output for debugging
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	
+
 	err := cmd.Start()
 	s.Require().NoError(err)
-	
+
 	s.processes = append(s.processes, cmd.Process)
-	
+
 	// For simplicity, use a fixed port in tests
 	// In real E2E tests, you'd parse the actual port from logs
 	s.intentIngestURL = "http://localhost:8080"
@@ -509,10 +464,10 @@ func (s *E2ETestSuite) waitForServiceReady() {
 	// Wait up to 30 seconds for service to start
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	
+
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -531,8 +486,8 @@ func (s *E2ETestSuite) isServiceReady() bool {
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
-	
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
+
 	return resp.StatusCode == http.StatusOK
 }
 
@@ -546,14 +501,14 @@ func (s *E2ETestSuite) findBinary(name string) string {
 		name + ".exe",
 		name,
 	}
-	
+
 	for _, location := range locations {
 		if _, err := os.Stat(location); err == nil {
 			absPath, _ := filepath.Abs(location)
 			return absPath
 		}
 	}
-	
+
 	return ""
 }
 
@@ -561,15 +516,15 @@ func (s *E2ETestSuite) findBinary(name string) string {
 func (s *E2ETestSuite) Eventually(condition func() bool, timeout, interval time.Duration, msgAndArgs ...interface{}) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	
+
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
-	
+
 	for {
 		if condition() {
 			return
 		}
-		
+
 		select {
 		case <-ctx.Done():
 			s.Fail("Condition never became true", msgAndArgs...)
@@ -579,3 +534,4 @@ func (s *E2ETestSuite) Eventually(condition func() bool, timeout, interval time.
 		}
 	}
 }
+

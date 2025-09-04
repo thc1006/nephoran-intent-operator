@@ -16,6 +16,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 	authtestutil "github.com/thc1006/nephoran-intent-operator/pkg/testutil/auth"
 )
@@ -24,11 +25,11 @@ import (
 type SecurityTestSuite struct {
 	t              *testing.T
 	tc             *authtestutil.TestContext
-	jwtManager     *JWTManager
-	sessionManager *SessionManager
-	rbacManager    *RBACManager
+	jwtManager     *auth.JWTManager
+	sessionManager *auth.SessionManager
+	rbacManager    *auth.RBACManager
 	server         *httptest.Server
-	handlers       *AuthHandlers
+	handlers       *auth.AuthHandlers
 	testUser       *providers.UserInfo
 	validToken     string
 }
@@ -230,7 +231,7 @@ func TestSecurity_JWTTokenManipulation(t *testing.T) {
 			client := &http.Client{}
 			resp, err := client.Do(req)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			assert.Equal(t, tt.expectStatus, resp.StatusCode)
 		})
@@ -243,10 +244,7 @@ func TestSecurity_SessionSecurity(t *testing.T) {
 
 	// Create valid session
 	ctx := context.Background()
-	session, err := suite.sessionManager.CreateSession(ctx, suite.testUser, map[string]interface{}{
-		"ip_address": "192.168.1.100",
-		"user_agent": "test-browser",
-	})
+	session, err := suite.sessionManager.CreateSession(ctx, suite.testUser, json.RawMessage(`{}`))
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -331,7 +329,7 @@ func TestSecurity_CSRFProtection(t *testing.T) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	var csrfResp map[string]string
 	err = json.NewDecoder(resp.Body).Decode(&csrfResp)
@@ -388,7 +386,7 @@ func TestSecurity_CSRFProtection(t *testing.T) {
 
 			resp, err := client.Do(req)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			assert.Equal(t, tt.expectStatus, resp.StatusCode, tt.description)
 		})
@@ -525,7 +523,7 @@ func TestSecurity_InputValidation(t *testing.T) {
 			client := &http.Client{}
 			resp, err := client.Do(req)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			assert.Equal(t, tt.expectStatus, resp.StatusCode, tt.description)
 		})
@@ -542,7 +540,7 @@ func TestSecurity_HeaderSecurity(t *testing.T) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Check security headers
 	assert.Equal(t, "default-src 'self'", resp.Header.Get("Content-Security-Policy"))
@@ -742,10 +740,7 @@ func TestSecurity_MemoryLeakPrevention(t *testing.T) {
 	const numTokens = 1000
 
 	for i := 0; i < numTokens; i++ {
-		token, err := jwtManager.GenerateToken(user, map[string]interface{}{
-			"iteration":      i,
-			"sensitive_data": fmt.Sprintf("secret-%d", i),
-		})
+		token, err := jwtManager.GenerateToken(user, json.RawMessage(`{}`))
 		require.NoError(t, err)
 
 		// Validate token

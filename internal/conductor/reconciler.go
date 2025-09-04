@@ -67,21 +67,16 @@ type defaultPorchExecutor struct{}
 // ExecutePorch performs executeporch operation.
 
 func (dpe *defaultPorchExecutor) ExecutePorch(ctx context.Context, porchPath string, args []string, outputDir, intentFile, mode string) error {
-
 	cmd := exec.CommandContext(ctx, porchPath, args...)
 
 	cmd.Dir = outputDir
 
 	output, err := cmd.CombinedOutput()
-
 	if err != nil {
-
 		return fmt.Errorf("porch CLI failed: %w, output: %s", err, string(output))
-
 	}
 
 	return nil
-
 }
 
 // NetworkIntentReconciler reconciles a NetworkIntent object.
@@ -100,7 +95,6 @@ type NetworkIntentReconciler struct {
 	OutputDir string
 
 	porchExecutor PorchExecutor // Injected for testing
-
 }
 
 // IntentJSON represents the intent JSON structure matching docs/contracts/intent.schema.json.
@@ -124,17 +118,14 @@ type IntentJSON struct {
 // SetupWithManager sets up the controller with the Manager.
 
 func (r *NetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) error {
-
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nephoranv1.NetworkIntent{}).
 		Complete(r)
-
 }
 
 // Reconcile handles NetworkIntent resource changes.
 
 func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-
 	logger := r.Log.WithValues("networkintent", req.NamespacedName)
 
 	logger.Info("Reconciling NetworkIntent")
@@ -162,7 +153,6 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Parse the intent string to extract scaling information.
 
 	intentData, err := r.parseIntentString(networkIntent.Spec.Intent, networkIntent.Namespace)
-
 	if err != nil {
 
 		logger.Error(err, "Failed to parse intent string", "intent", networkIntent.Spec.Intent)
@@ -190,7 +180,6 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Create intent JSON file.
 
 	intentFile, err := r.createIntentFile(intentData, networkIntent.Name)
-
 	if err != nil {
 
 		logger.Error(err, "Failed to create intent JSON file")
@@ -214,7 +203,6 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	logger.Info("Successfully processed NetworkIntent")
 
 	return ctrl.Result{}, nil
-
 }
 
 // parseIntentString parses the natural language intent string to extract scaling parameters.
@@ -222,9 +210,7 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 // This is an MVP implementation using simple regex patterns.
 
 func (r *NetworkIntentReconciler) parseIntentString(intent, namespace string) (*IntentJSON, error) {
-
 	intentData := &IntentJSON{
-
 		IntentType: "scaling",
 
 		Namespace: namespace,
@@ -243,7 +229,6 @@ func (r *NetworkIntentReconciler) parseIntentString(intent, namespace string) (*
 	// Try different patterns to capture the target name.
 
 	patterns := []*regexp.Regexp{
-
 		regexp.MustCompile(`scale\s+(?:deployment|app|service)\s+([a-z0-9\-]+)`), // "scale deployment web-server"
 
 		regexp.MustCompile(`(?:deployment|app|service)\s+([a-z0-9\-]+)`), // "deployment web-server"
@@ -287,9 +272,7 @@ func (r *NetworkIntentReconciler) parseIntentString(intent, namespace string) (*
 			candidate := matches[1]
 
 			if candidate != "deployment" && candidate != "app" && candidate != "service" && candidate != "to" {
-
 				intentData.Target = candidate
-
 			}
 
 		}
@@ -303,7 +286,6 @@ func (r *NetworkIntentReconciler) parseIntentString(intent, namespace string) (*
 	// Order matters - more specific patterns first to avoid false matches.
 
 	replicaPatterns := []*regexp.Regexp{
-
 		regexp.MustCompile(`to\s+(\d+)\s+(?:replicas?|instances?)`),
 
 		regexp.MustCompile(`(\d+)\s+(?:replicas?|instances?)(?:\s|$)`), // Added word boundary
@@ -319,7 +301,6 @@ func (r *NetworkIntentReconciler) parseIntentString(intent, namespace string) (*
 		matches := pattern.FindStringSubmatch(intent)
 
 		if len(matches) > 1 {
-
 			if count, err := strconv.Atoi(matches[1]); err == nil && count > 0 {
 				// Security fix (G115): Validate bounds for replica count
 				if count > math.MaxInt32 {
@@ -330,7 +311,6 @@ func (r *NetworkIntentReconciler) parseIntentString(intent, namespace string) (*
 				break
 
 			}
-
 		}
 
 	}
@@ -338,39 +318,29 @@ func (r *NetworkIntentReconciler) parseIntentString(intent, namespace string) (*
 	// Validation.
 
 	if intentData.Target == "" {
-
 		return nil, fmt.Errorf("could not extract deployment target from intent: %s", intent)
-
 	}
 
 	if intentData.Replicas == 0 {
-
 		// Default to 1 if no replica count is specified.
 
 		intentData.Replicas = 1
-
 	}
 
 	if intentData.Replicas > 100 {
-
 		return nil, fmt.Errorf("replica count %d exceeds maximum of 100", intentData.Replicas)
-
 	}
 
 	return intentData, nil
-
 }
 
 // createIntentFile creates an intent JSON file in the output directory.
 
 func (r *NetworkIntentReconciler) createIntentFile(intentData *IntentJSON, name string) (string, error) {
-
 	// Ensure output directory exists.
 
 	if err := os.MkdirAll(r.OutputDir, 0o755); err != nil {
-
 		return "", fmt.Errorf("failed to create output directory: %w", err)
-
 	}
 
 	// Generate filename with timestamp.
@@ -382,31 +352,23 @@ func (r *NetworkIntentReconciler) createIntentFile(intentData *IntentJSON, name 
 	// Marshal intent to JSON.
 
 	jsonData, err := json.MarshalIndent(intentData, "", "  ")
-
 	if err != nil {
-
 		return "", fmt.Errorf("failed to marshal intent JSON: %w", err)
-
 	}
 
 	// Write to file.
 
 	if err := os.WriteFile(filepath, jsonData, 0o640); err != nil {
-
 		return "", fmt.Errorf("failed to write intent file: %w", err)
-
 	}
 
 	return filepath, nil
-
 }
 
 // callPorchCLI executes the porch CLI command to generate KRM files.
 
 func (r *NetworkIntentReconciler) callPorchCLI(ctx context.Context, intentFile string, logger logr.Logger) error {
-
 	args := []string{
-
 		"fn", "render",
 
 		"--input", intentFile,
@@ -417,9 +379,7 @@ func (r *NetworkIntentReconciler) callPorchCLI(ctx context.Context, intentFile s
 	// Add mode-specific arguments.
 
 	if r.Mode == "dry-run" {
-
 		args = append(args, "--dry-run")
-
 	}
 
 	logger.Info("Executing porch CLI", "command", r.PorchPath, "args", args)
@@ -429,13 +389,10 @@ func (r *NetworkIntentReconciler) callPorchCLI(ctx context.Context, intentFile s
 	executor := r.porchExecutor
 
 	if executor == nil {
-
 		executor = &defaultPorchExecutor{}
-
 	}
 
 	err := executor.ExecutePorch(ctx, r.PorchPath, args, r.OutputDir, intentFile, r.Mode)
-
 	if err != nil {
 
 		logger.Error(err, "Porch CLI execution failed")
@@ -447,5 +404,4 @@ func (r *NetworkIntentReconciler) callPorchCLI(ctx context.Context, intentFile s
 	logger.Info("Porch CLI executed successfully")
 
 	return nil
-
 }

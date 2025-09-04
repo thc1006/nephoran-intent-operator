@@ -164,7 +164,6 @@ type LatencyRequirement struct {
 	Unit string `json:"unit"`
 
 	Type string `json:"type"` // user-plane, control-plane, end-to-end
-
 }
 
 // ThroughputRequirement represents a throughputrequirement.
@@ -175,7 +174,6 @@ type ThroughputRequirement struct {
 	Unit string `json:"unit"`
 
 	Type string `json:"type"` // uplink, downlink, aggregate
-
 }
 
 // ReliabilityRequirement represents a reliabilityrequirement.
@@ -186,7 +184,6 @@ type ReliabilityRequirement struct {
 	Unit string `json:"unit"`
 
 	Type string `json:"type"` // availability, packet-loss, error-rate
-
 }
 
 // ScalabilityRequirement represents a scalabilityrequirement.
@@ -197,7 +194,6 @@ type ScalabilityRequirement struct {
 	MaxReplicas int `json:"max_replicas"`
 
 	Type string `json:"type"` // horizontal, vertical, auto
-
 }
 
 // SecurityRequirement represents a securityrequirement.
@@ -210,7 +206,6 @@ type SecurityRequirement struct {
 	Compliance []string `json:"compliance"` // GDPR, HIPAA, etc.
 
 	Certificates []string `json:"certificates"` // TLS, mTLS, etc.
-
 }
 
 // AvailabilityRequirement represents a availabilityrequirement.
@@ -221,15 +216,12 @@ type AvailabilityRequirement struct {
 	Unit string `json:"unit"`
 
 	Type string `json:"type"` // service, system, network
-
 }
 
 // NewContextMatcher creates a new context matcher with initialized patterns.
 
 func NewContextMatcher(kb *TelecomKnowledgeBase) *ContextMatcher {
-
 	cm := &ContextMatcher{
-
 		knowledgeBase: kb,
 
 		patterns: make(map[string]*regexp.Regexp),
@@ -250,17 +242,13 @@ func NewContextMatcher(kb *TelecomKnowledgeBase) *ContextMatcher {
 	cm.initialized = true
 
 	return cm
-
 }
 
 // GetRelevantContext analyzes intent and returns relevant telecom context.
 
 func (cm *ContextMatcher) GetRelevantContext(intent string) (*MatchResult, error) {
-
 	if !cm.initialized {
-
 		return nil, fmt.Errorf("context matcher not initialized")
-
 	}
 
 	// Check cache first.
@@ -278,7 +266,6 @@ func (cm *ContextMatcher) GetRelevantContext(intent string) (*MatchResult, error
 	}
 
 	result := &MatchResult{
-
 		Intent: intent,
 
 		Timestamp: time.Now(),
@@ -329,13 +316,11 @@ func (cm *ContextMatcher) GetRelevantContext(intent string) (*MatchResult, error
 	cm.contextCache[cacheKey] = result
 
 	return result, nil
-
 }
 
 // normalizeIntent cleans and normalizes the input intent.
 
 func (cm *ContextMatcher) normalizeIntent(intent string) string {
-
 	// Convert to lowercase.
 
 	normalized := strings.ToLower(intent)
@@ -343,9 +328,7 @@ func (cm *ContextMatcher) normalizeIntent(intent string) string {
 	// Expand abbreviations.
 
 	for abbr, expansion := range cm.abbreviations {
-
 		normalized = strings.ReplaceAll(normalized, abbr, expansion)
-
 	}
 
 	// Remove extra whitespace.
@@ -355,13 +338,11 @@ func (cm *ContextMatcher) normalizeIntent(intent string) string {
 	normalized = strings.TrimSpace(normalized)
 
 	return normalized
-
 }
 
 // matchNetworkFunctions finds relevant network functions based on intent.
 
 func (cm *ContextMatcher) matchNetworkFunctions(intent string) []*NetworkFunctionMatch {
-
 	var matches []*NetworkFunctionMatch
 
 	for name, nf := range cm.knowledgeBase.NetworkFunctions {
@@ -399,7 +380,6 @@ func (cm *ContextMatcher) matchNetworkFunctions(intent string) []*NetworkFunctio
 		descWords := strings.Fields(strings.ToLower(nf.Description))
 
 		for _, word := range descWords {
-
 			if len(word) > 3 && cm.containsWord(intent, word) {
 
 				confidence += 0.1
@@ -407,13 +387,11 @@ func (cm *ContextMatcher) matchNetworkFunctions(intent string) []*NetworkFunctio
 				reasons = append(reasons, "description_keyword")
 
 			}
-
 		}
 
 		// Interface mentions.
 
 		for _, iface := range nf.Interfaces {
-
 			if cm.containsWord(intent, iface) {
 
 				confidence += 0.4
@@ -423,7 +401,6 @@ func (cm *ContextMatcher) matchNetworkFunctions(intent string) []*NetworkFunctio
 				context = append(context, fmt.Sprintf("Interface %s mentioned", iface))
 
 			}
-
 		}
 
 		// Use case patterns.
@@ -433,9 +410,7 @@ func (cm *ContextMatcher) matchNetworkFunctions(intent string) []*NetworkFunctio
 		// Synonym matching.
 
 		for _, synonyms := range cm.synonyms {
-
 			for _, synonym := range synonyms {
-
 				if synonym == name && cm.containsAny(intent, synonyms) {
 
 					confidence += 0.6
@@ -445,15 +420,11 @@ func (cm *ContextMatcher) matchNetworkFunctions(intent string) []*NetworkFunctio
 					break
 
 				}
-
 			}
-
 		}
 
 		if confidence > 0.1 {
-
 			matches = append(matches, &NetworkFunctionMatch{
-
 				Function: nf,
 
 				Confidence: confidence,
@@ -462,7 +433,6 @@ func (cm *ContextMatcher) matchNetworkFunctions(intent string) []*NetworkFunctio
 
 				Context: context,
 			})
-
 		}
 
 	}
@@ -470,27 +440,21 @@ func (cm *ContextMatcher) matchNetworkFunctions(intent string) []*NetworkFunctio
 	// Sort by confidence.
 
 	sort.Slice(matches, func(i, j int) bool {
-
 		return matches[i].Confidence > matches[j].Confidence
-
 	})
 
 	// Limit to top 5 matches.
 
 	if len(matches) > 5 {
-
 		matches = matches[:5]
-
 	}
 
 	return matches
-
 }
 
 // matchInterfaces finds relevant interfaces based on intent.
 
 func (cm *ContextMatcher) matchInterfaces(intent string) []*InterfaceMatch {
-
 	var matches []*InterfaceMatch
 
 	for name, iface := range cm.knowledgeBase.Interfaces {
@@ -516,7 +480,6 @@ func (cm *ContextMatcher) matchInterfaces(intent string) []*InterfaceMatch {
 		// Protocol match.
 
 		for _, protocol := range iface.Protocol {
-
 			if cm.containsWord(intent, protocol) {
 
 				confidence += 0.5
@@ -526,7 +489,6 @@ func (cm *ContextMatcher) matchInterfaces(intent string) []*InterfaceMatch {
 				context = append(context, fmt.Sprintf("Protocol %s mentioned", protocol))
 
 			}
-
 		}
 
 		// Description keywords.
@@ -540,9 +502,7 @@ func (cm *ContextMatcher) matchInterfaces(intent string) []*InterfaceMatch {
 		}
 
 		if confidence > 0.1 {
-
 			matches = append(matches, &InterfaceMatch{
-
 				Interface: iface,
 
 				Confidence: confidence,
@@ -551,7 +511,6 @@ func (cm *ContextMatcher) matchInterfaces(intent string) []*InterfaceMatch {
 
 				Context: context,
 			})
-
 		}
 
 	}
@@ -559,19 +518,15 @@ func (cm *ContextMatcher) matchInterfaces(intent string) []*InterfaceMatch {
 	// Sort by confidence.
 
 	sort.Slice(matches, func(i, j int) bool {
-
 		return matches[i].Confidence > matches[j].Confidence
-
 	})
 
 	return matches
-
 }
 
 // matchSliceTypes finds relevant slice types based on intent.
 
 func (cm *ContextMatcher) matchSliceTypes(intent string) []*SliceTypeMatch {
-
 	var matches []*SliceTypeMatch
 
 	for name, slice := range cm.knowledgeBase.SliceTypes {
@@ -621,9 +576,7 @@ func (cm *ContextMatcher) matchSliceTypes(intent string) []*SliceTypeMatch {
 		confidence += cm.matchSliceRequirements(intent, slice)
 
 		if confidence > 0.1 {
-
 			matches = append(matches, &SliceTypeMatch{
-
 				SliceType: slice,
 
 				Confidence: confidence,
@@ -632,7 +585,6 @@ func (cm *ContextMatcher) matchSliceTypes(intent string) []*SliceTypeMatch {
 
 				Context: context,
 			})
-
 		}
 
 	}
@@ -640,19 +592,15 @@ func (cm *ContextMatcher) matchSliceTypes(intent string) []*SliceTypeMatch {
 	// Sort by confidence.
 
 	sort.Slice(matches, func(i, j int) bool {
-
 		return matches[i].Confidence > matches[j].Confidence
-
 	})
 
 	return matches
-
 }
 
 // matchQosProfiles finds relevant QoS profiles based on intent.
 
 func (cm *ContextMatcher) matchQosProfiles(intent string) []*QosMatch {
-
 	var matches []*QosMatch
 
 	for _, qos := range cm.knowledgeBase.QosProfiles {
@@ -708,9 +656,7 @@ func (cm *ContextMatcher) matchQosProfiles(intent string) []*QosMatch {
 		}
 
 		if confidence > 0.1 {
-
 			matches = append(matches, &QosMatch{
-
 				Profile: qos,
 
 				Confidence: confidence,
@@ -719,7 +665,6 @@ func (cm *ContextMatcher) matchQosProfiles(intent string) []*QosMatch {
 
 				Context: context,
 			})
-
 		}
 
 	}
@@ -727,19 +672,15 @@ func (cm *ContextMatcher) matchQosProfiles(intent string) []*QosMatch {
 	// Sort by confidence.
 
 	sort.Slice(matches, func(i, j int) bool {
-
 		return matches[i].Confidence > matches[j].Confidence
-
 	})
 
 	return matches
-
 }
 
 // matchDeploymentPatterns finds relevant deployment patterns.
 
 func (cm *ContextMatcher) matchDeploymentPatterns(intent string) []*DeploymentMatch {
-
 	var matches []*DeploymentMatch
 
 	for name, pattern := range cm.knowledgeBase.DeploymentTypes {
@@ -763,7 +704,6 @@ func (cm *ContextMatcher) matchDeploymentPatterns(intent string) []*DeploymentMa
 		// Use case match.
 
 		for _, useCase := range pattern.UseCase {
-
 			if cm.containsWord(intent, useCase) {
 
 				confidence += 0.6
@@ -773,7 +713,6 @@ func (cm *ContextMatcher) matchDeploymentPatterns(intent string) []*DeploymentMa
 				context = append(context, fmt.Sprintf("Use case: %s", useCase))
 
 			}
-
 		}
 
 		// Architecture keywords.
@@ -787,9 +726,7 @@ func (cm *ContextMatcher) matchDeploymentPatterns(intent string) []*DeploymentMa
 		}
 
 		if confidence > 0.1 {
-
 			matches = append(matches, &DeploymentMatch{
-
 				Pattern: pattern,
 
 				Confidence: confidence,
@@ -798,7 +735,6 @@ func (cm *ContextMatcher) matchDeploymentPatterns(intent string) []*DeploymentMa
 
 				Context: context,
 			})
-
 		}
 
 	}
@@ -806,19 +742,15 @@ func (cm *ContextMatcher) matchDeploymentPatterns(intent string) []*DeploymentMa
 	// Sort by confidence.
 
 	sort.Slice(matches, func(i, j int) bool {
-
 		return matches[i].Confidence > matches[j].Confidence
-
 	})
 
 	return matches
-
 }
 
 // matchKPIs finds relevant KPIs based on intent.
 
 func (cm *ContextMatcher) matchKPIs(intent string) []*KPIMatch {
-
 	var matches []*KPIMatch
 
 	for _, kpi := range cm.knowledgeBase.PerformanceKPIs {
@@ -836,13 +768,9 @@ func (cm *ContextMatcher) matchKPIs(intent string) []*KPIMatch {
 		matchCount := 0
 
 		for _, word := range kpiWords {
-
 			if cm.containsWord(intent, word) {
-
 				matchCount++
-
 			}
-
 		}
 
 		if matchCount > 0 {
@@ -874,9 +802,7 @@ func (cm *ContextMatcher) matchKPIs(intent string) []*KPIMatch {
 		}
 
 		if confidence > 0.1 {
-
 			matches = append(matches, &KPIMatch{
-
 				KPI: kpi,
 
 				Confidence: confidence,
@@ -885,7 +811,6 @@ func (cm *ContextMatcher) matchKPIs(intent string) []*KPIMatch {
 
 				Context: context,
 			})
-
 		}
 
 	}
@@ -893,79 +818,60 @@ func (cm *ContextMatcher) matchKPIs(intent string) []*KPIMatch {
 	// Sort by confidence.
 
 	sort.Slice(matches, func(i, j int) bool {
-
 		return matches[i].Confidence > matches[j].Confidence
-
 	})
 
 	return matches
-
 }
 
 // extractRequirements extracts quantified requirements from intent.
 
 func (cm *ContextMatcher) extractRequirements(intent string) *RequirementExtraction {
-
 	req := &RequirementExtraction{}
 
 	// Extract latency requirements.
 
 	if latency := cm.extractLatencyRequirement(intent); latency != nil {
-
 		req.Latency = latency
-
 	}
 
 	// Extract throughput requirements.
 
 	if throughput := cm.extractThroughputRequirement(intent); throughput != nil {
-
 		req.Throughput = throughput
-
 	}
 
 	// Extract reliability requirements.
 
 	if reliability := cm.extractReliabilityRequirement(intent); reliability != nil {
-
 		req.Reliability = reliability
-
 	}
 
 	// Extract scalability requirements.
 
 	if scalability := cm.extractScalabilityRequirement(intent); scalability != nil {
-
 		req.Scalability = scalability
-
 	}
 
 	// Extract security requirements.
 
 	if security := cm.extractSecurityRequirement(intent); security != nil {
-
 		req.Security = security
-
 	}
 
 	// Extract availability requirements.
 
 	if availability := cm.extractAvailabilityRequirement(intent); availability != nil {
-
 		req.Availability = availability
-
 	}
 
 	return req
-
 }
 
 // build3GPPContext builds relevant 3GPP specification context.
 
 func (cm *ContextMatcher) build3GPPContext(result *MatchResult) *Context3GPP {
-
 	context := &Context3GPP{
-
 		Specifications: make([]string, 0, 10),
 
 		Procedures: make([]string, 0, 5),
@@ -982,9 +888,7 @@ func (cm *ContextMatcher) build3GPPContext(result *MatchResult) *Context3GPP {
 	// Collect specifications from matched network functions.
 
 	for _, nfMatch := range result.NetworkFunctions {
-
 		for _, spec := range nfMatch.Function.Specification3GPP {
-
 			if !specSet[spec] {
 
 				context.Specifications = append(context.Specifications, spec)
@@ -992,15 +896,12 @@ func (cm *ContextMatcher) build3GPPContext(result *MatchResult) *Context3GPP {
 				specSet[spec] = true
 
 			}
-
 		}
-
 	}
 
 	// Collect interface specifications.
 
 	for _, ifaceMatch := range result.Interfaces {
-
 		if ifaceMatch.Interface.Specification != "" && !specSet[ifaceMatch.Interface.Specification] {
 
 			context.Specifications = append(context.Specifications, ifaceMatch.Interface.Specification)
@@ -1008,7 +909,6 @@ func (cm *ContextMatcher) build3GPPContext(result *MatchResult) *Context3GPP {
 			specSet[ifaceMatch.Interface.Specification] = true
 
 		}
-
 	}
 
 	// Add relevant procedures based on context.
@@ -1024,17 +924,13 @@ func (cm *ContextMatcher) build3GPPContext(result *MatchResult) *Context3GPP {
 	sort.Strings(context.Specifications)
 
 	return context
-
 }
 
 // Helper methods for pattern matching.
 
 func (cm *ContextMatcher) containsWord(text, word string) bool {
-
 	if word == "" {
-
 		return false
-
 	}
 
 	pattern := fmt.Sprintf(`\b%s\b`, regexp.QuoteMeta(strings.ToLower(word)))
@@ -1042,47 +938,33 @@ func (cm *ContextMatcher) containsWord(text, word string) bool {
 	matched, _ := regexp.MatchString(pattern, strings.ToLower(text))
 
 	return matched
-
 }
 
 func (cm *ContextMatcher) containsAny(text string, words []string) bool {
-
 	for _, word := range words {
-
 		if cm.containsWord(text, word) {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 func (cm *ContextMatcher) matchDescription(intent, description string) bool {
-
 	words := strings.Fields(strings.ToLower(description))
 
 	matchCount := 0
 
 	for _, word := range words {
-
 		if len(word) > 3 && cm.containsWord(intent, word) {
-
 			matchCount++
-
 		}
-
 	}
 
 	return matchCount > 2
-
 }
 
 func (cm *ContextMatcher) matchUseCasePatterns(intent string, nf *NetworkFunctionSpec) float64 {
-
 	confidence := 0.0
 
 	// AMF specific patterns.
@@ -1092,13 +974,9 @@ func (cm *ContextMatcher) matchUseCasePatterns(intent string, nf *NetworkFunctio
 		patterns := []string{"registration", "authentication", "mobility", "access"}
 
 		for _, pattern := range patterns {
-
 			if cm.containsWord(intent, pattern) {
-
 				confidence += 0.2
-
 			}
-
 		}
 
 	}
@@ -1110,13 +988,9 @@ func (cm *ContextMatcher) matchUseCasePatterns(intent string, nf *NetworkFunctio
 		patterns := []string{"session", "pdu", "ip allocation", "routing"}
 
 		for _, pattern := range patterns {
-
 			if cm.containsWord(intent, pattern) {
-
 				confidence += 0.2
-
 			}
-
 		}
 
 	}
@@ -1128,31 +1002,23 @@ func (cm *ContextMatcher) matchUseCasePatterns(intent string, nf *NetworkFunctio
 		patterns := []string{"forwarding", "qos", "user plane", "packet"}
 
 		for _, pattern := range patterns {
-
 			if cm.containsWord(intent, pattern) {
-
 				confidence += 0.2
-
 			}
-
 		}
 
 	}
 
 	return confidence
-
 }
 
 func (cm *ContextMatcher) matchSliceRequirements(intent string, slice *SliceTypeSpec) float64 {
-
 	confidence := 0.0
 
 	// Check latency requirements.
 
 	if cm.matchLatencyRequirements(intent, slice.Requirements.Latency.UserPlane) {
-
 		confidence += 0.3
-
 	}
 
 	// Check throughput requirements.
@@ -1162,47 +1028,34 @@ func (cm *ContextMatcher) matchSliceRequirements(intent string, slice *SliceType
 	fmt.Sscanf(slice.Requirements.Throughput.Typical, "%f", &throughputValue)
 
 	if cm.matchThroughputRequirements(intent, throughputValue) {
-
 		confidence += 0.3
-
 	}
 
 	// Check reliability requirements.
 
 	if cm.matchReliabilityRequirements(intent, slice.Requirements.Reliability.Availability) {
-
 		confidence += 0.2
-
 	}
 
 	return confidence
-
 }
 
 func (cm *ContextMatcher) matchArchitectureKeywords(intent string, arch *DeploymentArchitecture) bool {
-
 	keywords := []string{arch.Type, arch.Redundancy, arch.DataPlane, arch.ControlPlane}
 
 	for _, keyword := range keywords {
-
 		if cm.containsWord(intent, keyword) {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 func (cm *ContextMatcher) matchLatencyRequirements(intent string, latency float64) bool {
-
 	// Look for latency-related keywords and values.
 
 	patterns := []string{
-
 		`(\d+(?:\.\d+)?)\s*(?:ms|millisecond|msec)`,
 
 		`latency.*?(\d+(?:\.\d+)?)`,
@@ -1219,25 +1072,18 @@ func (cm *ContextMatcher) matchLatencyRequirements(intent string, latency float6
 		matches := re.FindStringSubmatch(intent)
 
 		if len(matches) > 1 {
-
 			if value, err := strconv.ParseFloat(matches[1], 64); err == nil {
-
 				return value <= latency*1.5 // Allow 50% tolerance
-
 			}
-
 		}
 
 	}
 
 	return false
-
 }
 
 func (cm *ContextMatcher) matchThroughputRequirements(intent string, throughput float64) bool {
-
 	patterns := []string{
-
 		`(\d+(?:\.\d+)?)\s*(?:mbps|gbps|kbps)`,
 
 		`throughput.*?(\d+(?:\.\d+)?)`,
@@ -1254,25 +1100,18 @@ func (cm *ContextMatcher) matchThroughputRequirements(intent string, throughput 
 		matches := re.FindStringSubmatch(intent)
 
 		if len(matches) > 1 {
-
 			if value, err := strconv.ParseFloat(matches[1], 64); err == nil {
-
 				return value >= throughput*0.5 // Allow for lower bounds
-
 			}
-
 		}
 
 	}
 
 	return false
-
 }
 
 func (cm *ContextMatcher) matchReliabilityRequirements(intent string, reliability float64) bool {
-
 	patterns := []string{
-
 		`(\d+(?:\.\d+)?)\s*%.*?(?:availability|uptime|reliability)`,
 
 		`(?:availability|uptime|reliability).*?(\d+(?:\.\d+)?)\s*%`,
@@ -1287,25 +1126,18 @@ func (cm *ContextMatcher) matchReliabilityRequirements(intent string, reliabilit
 		matches := re.FindStringSubmatch(intent)
 
 		if len(matches) > 1 {
-
 			if value, err := strconv.ParseFloat(matches[1], 64); err == nil {
-
 				return value >= reliability*0.95 // Allow 5% tolerance
-
 			}
-
 		}
 
 	}
 
 	return false
-
 }
 
 func (cm *ContextMatcher) matchPriorityRequirements(intent string, priority int) bool {
-
 	patterns := []string{
-
 		`priority\s*(\d+)`,
 
 		`high.*?priority`,
@@ -1326,27 +1158,19 @@ func (cm *ContextMatcher) matchPriorityRequirements(intent string, priority int)
 			matches := re.FindStringSubmatch(intent)
 
 			if len(matches) > 1 {
-
 				if value, err := strconv.Atoi(matches[1]); err == nil {
-
 					return value <= priority+2 // Allow some tolerance
-
 				}
-
 			}
 
 			// Handle qualitative priorities.
 
 			if strings.Contains(intent, "high") || strings.Contains(intent, "critical") {
-
 				return priority <= 3
-
 			}
 
 			if strings.Contains(intent, "low") {
-
 				return priority >= 7
-
 			}
 
 		}
@@ -1354,15 +1178,12 @@ func (cm *ContextMatcher) matchPriorityRequirements(intent string, priority int)
 	}
 
 	return false
-
 }
 
 // Requirement extraction methods.
 
 func (cm *ContextMatcher) extractLatencyRequirement(intent string) *LatencyRequirement {
-
 	patterns := []string{
-
 		`(?:latency|delay|response.*?time).*?(\d+(?:\.\d+)?)\s*(ms|millisecond|msec|μs|microsecond|s|second)`,
 
 		`(\d+(?:\.\d+)?)\s*(ms|millisecond|msec|μs|microsecond|s|second).*?(?:latency|delay)`,
@@ -1375,7 +1196,6 @@ func (cm *ContextMatcher) extractLatencyRequirement(intent string) *LatencyRequi
 		matches := re.FindStringSubmatch(intent)
 
 		if len(matches) > 2 {
-
 			if value, err := strconv.ParseFloat(matches[1], 64); err == nil {
 
 				unit := strings.ToLower(matches[2])
@@ -1383,17 +1203,12 @@ func (cm *ContextMatcher) extractLatencyRequirement(intent string) *LatencyRequi
 				reqType := "user-plane"
 
 				if strings.Contains(intent, "control") {
-
 					reqType = "control-plane"
-
 				} else if strings.Contains(intent, "end-to-end") {
-
 					reqType = "end-to-end"
-
 				}
 
 				return &LatencyRequirement{
-
 					Value: value,
 
 					Unit: unit,
@@ -1402,19 +1217,15 @@ func (cm *ContextMatcher) extractLatencyRequirement(intent string) *LatencyRequi
 				}
 
 			}
-
 		}
 
 	}
 
 	return nil
-
 }
 
 func (cm *ContextMatcher) extractThroughputRequirement(intent string) *ThroughputRequirement {
-
 	patterns := []string{
-
 		`(?i)(?:throughput|bandwidth|speed).*?(\d+(?:\.\d+)?)\s*(mbps|gbps|kbps|mb/s|gb/s|kb/s)`,
 
 		`(?i)(\d+(?:\.\d+)?)\s*(mbps|gbps|kbps|mb/s|gb/s|kb/s).*?(?:throughput|bandwidth)`,
@@ -1427,7 +1238,6 @@ func (cm *ContextMatcher) extractThroughputRequirement(intent string) *Throughpu
 		matches := re.FindStringSubmatch(intent)
 
 		if len(matches) > 2 {
-
 			if value, err := strconv.ParseFloat(matches[1], 64); err == nil {
 
 				unit := strings.ToLower(matches[2])
@@ -1437,17 +1247,12 @@ func (cm *ContextMatcher) extractThroughputRequirement(intent string) *Throughpu
 				lowerIntent := strings.ToLower(intent)
 
 				if strings.Contains(lowerIntent, "uplink") || strings.Contains(lowerIntent, "ul") {
-
 					reqType = "uplink"
-
 				} else if strings.Contains(lowerIntent, "downlink") || strings.Contains(lowerIntent, "dl") {
-
 					reqType = "downlink"
-
 				}
 
 				return &ThroughputRequirement{
-
 					Value: value,
 
 					Unit: unit,
@@ -1456,19 +1261,15 @@ func (cm *ContextMatcher) extractThroughputRequirement(intent string) *Throughpu
 				}
 
 			}
-
 		}
 
 	}
 
 	return nil
-
 }
 
 func (cm *ContextMatcher) extractReliabilityRequirement(intent string) *ReliabilityRequirement {
-
 	patterns := []string{
-
 		`(?:availability|uptime|reliability).*?(\d+(?:\.\d+)?)\s*%`,
 
 		`(\d+(?:\.\d+)?)\s*%.*?(?:availability|uptime|reliability)`,
@@ -1485,19 +1286,15 @@ func (cm *ContextMatcher) extractReliabilityRequirement(intent string) *Reliabil
 		matches := re.FindStringSubmatch(intent)
 
 		if len(matches) > 1 {
-
 			if value, err := strconv.ParseFloat(matches[1], 64); err == nil {
 
 				reqType := "availability"
 
 				if strings.Contains(pattern, "packet") {
-
 					reqType = "packet-loss"
-
 				}
 
 				return &ReliabilityRequirement{
-
 					Value: value,
 
 					Unit: "percentage",
@@ -1506,26 +1303,21 @@ func (cm *ContextMatcher) extractReliabilityRequirement(intent string) *Reliabil
 				}
 
 			}
-
 		}
 
 	}
 
 	return nil
-
 }
 
 func (cm *ContextMatcher) extractScalabilityRequirement(intent string) *ScalabilityRequirement {
-
 	req := &ScalabilityRequirement{
-
 		Type: "horizontal",
 	}
 
 	// Extract replica counts.
 
 	patterns := []string{
-
 		`(?:min.*?replica).*?(\d+)`,
 
 		`(?:max.*?replica).*?(\d+)`,
@@ -1542,25 +1334,15 @@ func (cm *ContextMatcher) extractScalabilityRequirement(intent string) *Scalabil
 		matches := re.FindStringSubmatch(intent)
 
 		if len(matches) > 1 {
-
 			if value, err := strconv.Atoi(matches[1]); err == nil {
-
 				if strings.Contains(pattern, "min") {
-
 					req.MinReplicas = value
-
 				} else if strings.Contains(pattern, "max") {
-
 					req.MaxReplicas = value
-
 				} else {
-
 					req.MaxReplicas = value
-
 				}
-
 			}
-
 		}
 
 	}
@@ -1568,31 +1350,22 @@ func (cm *ContextMatcher) extractScalabilityRequirement(intent string) *Scalabil
 	// Determine scaling type.
 
 	if strings.Contains(intent, "vertical") {
-
 		req.Type = "vertical"
-
 	} else if strings.Contains(intent, "auto") {
-
 		req.Type = "auto"
-
 	}
 
 	// Only return if we found some scaling information.
 
 	if req.MinReplicas > 0 || req.MaxReplicas > 0 {
-
 		return req
-
 	}
 
 	return nil
-
 }
 
 func (cm *ContextMatcher) extractSecurityRequirement(intent string) *SecurityRequirement {
-
 	req := &SecurityRequirement{
-
 		Features: make([]string, 0, 8),
 
 		Compliance: make([]string, 0, 5),
@@ -1603,21 +1376,13 @@ func (cm *ContextMatcher) extractSecurityRequirement(intent string) *SecurityReq
 	// Determine security level.
 
 	if strings.Contains(intent, "high security") || strings.Contains(intent, "maximum security") {
-
 		req.Level = "high"
-
 	} else if strings.Contains(intent, "enhanced security") {
-
 		req.Level = "enhanced"
-
 	} else if strings.Contains(intent, "security") {
-
 		req.Level = "basic"
-
 	} else {
-
 		return nil
-
 	}
 
 	// Extract security features.
@@ -1625,19 +1390,15 @@ func (cm *ContextMatcher) extractSecurityRequirement(intent string) *SecurityReq
 	securityKeywords := []string{"encryption", "authentication", "authorization", "tls", "mtls", "oauth", "rbac"}
 
 	for _, keyword := range securityKeywords {
-
 		if cm.containsWord(intent, keyword) {
 
 			req.Features = append(req.Features, keyword)
 
 			if strings.Contains(keyword, "tls") {
-
 				req.Certificates = append(req.Certificates, keyword)
-
 			}
 
 		}
-
 	}
 
 	// Extract compliance requirements.
@@ -1645,23 +1406,16 @@ func (cm *ContextMatcher) extractSecurityRequirement(intent string) *SecurityReq
 	complianceKeywords := []string{"gdpr", "hipaa", "pci", "sox", "iso27001"}
 
 	for _, keyword := range complianceKeywords {
-
 		if cm.containsWord(intent, keyword) {
-
 			req.Compliance = append(req.Compliance, strings.ToUpper(keyword))
-
 		}
-
 	}
 
 	return req
-
 }
 
 func (cm *ContextMatcher) extractAvailabilityRequirement(intent string) *AvailabilityRequirement {
-
 	patterns := []string{
-
 		`(?:availability|uptime).*?(\d+(?:\.\d+)?)\s*%`,
 
 		`(\d+(?:\.\d+)?)\s*%.*?(?:availability|uptime)`,
@@ -1677,7 +1431,6 @@ func (cm *ContextMatcher) extractAvailabilityRequirement(intent string) *Availab
 		matches := re.FindStringSubmatch(intent)
 
 		if len(matches) > 1 {
-
 			if value, err := strconv.ParseFloat(matches[1], 64); err == nil {
 
 				// Handle "nines" notation.
@@ -1693,17 +1446,12 @@ func (cm *ContextMatcher) extractAvailabilityRequirement(intent string) *Availab
 				reqType := "service"
 
 				if strings.Contains(intent, "system") {
-
 					reqType = "system"
-
 				} else if strings.Contains(intent, "network") {
-
 					reqType = "network"
-
 				}
 
 				return &AvailabilityRequirement{
-
 					Value: value,
 
 					Unit: "percentage",
@@ -1712,23 +1460,19 @@ func (cm *ContextMatcher) extractAvailabilityRequirement(intent string) *Availab
 				}
 
 			}
-
 		}
 
 	}
 
 	return nil
-
 }
 
 func (cm *ContextMatcher) getRelevantProcedures(result *MatchResult) []string {
-
 	procedures := make([]string, 0, 10)
 
 	// Add procedures based on matched network functions.
 
 	for _, nfMatch := range result.NetworkFunctions {
-
 		switch nfMatch.Function.Name {
 
 		case "AMF":
@@ -1748,15 +1492,12 @@ func (cm *ContextMatcher) getRelevantProcedures(result *MatchResult) []string {
 			procedures = append(procedures, "Policy Control", "Charging Control")
 
 		}
-
 	}
 
 	return procedures
-
 }
 
 func (cm *ContextMatcher) calculateConfidence(result *MatchResult) float64 {
-
 	totalConfidence := 0.0
 
 	matchCount := 0
@@ -1802,35 +1543,27 @@ func (cm *ContextMatcher) calculateConfidence(result *MatchResult) float64 {
 	}
 
 	if matchCount == 0 {
-
 		return 0.0
-
 	}
 
 	return totalConfidence / float64(matchCount)
-
 }
 
 // Helper function for power of 10.
 
 func pow10(n int) float64 {
-
 	result := 1.0
 
 	for range n {
-
 		result *= 10
-
 	}
 
 	return result
-
 }
 
 // Initialize patterns, synonyms, and abbreviations.
 
 func (cm *ContextMatcher) initializePatterns() {
-
 	// Compile common patterns for better performance.
 
 	cm.patterns["latency"] = regexp.MustCompile(`(?:latency|delay|response.*?time).*?(\d+(?:\.\d+)?)\s*(ms|millisecond|msec|μs|microsecond|s|second)`)
@@ -1840,11 +1573,9 @@ func (cm *ContextMatcher) initializePatterns() {
 	cm.patterns["availability"] = regexp.MustCompile(`(?:availability|uptime).*?(\d+(?:\.\d+)?)\s*%`)
 
 	cm.patterns["replicas"] = regexp.MustCompile(`(?:replica|instance).*?(\d+)`)
-
 }
 
 func (cm *ContextMatcher) initializeSynonyms() {
-
 	cm.synonyms["amf"] = []string{"amf", "access mobility function", "access and mobility management function"}
 
 	cm.synonyms["smf"] = []string{"smf", "session management function"}
@@ -1880,11 +1611,9 @@ func (cm *ContextMatcher) initializeSynonyms() {
 	cm.synonyms["n3"] = []string{"n3", "gnb upf interface", "user plane"}
 
 	cm.synonyms["n4"] = []string{"n4", "smf upf interface", "pfcp"}
-
 }
 
 func (cm *ContextMatcher) initializeAbbreviations() {
-
 	// Common telecom abbreviations.
 
 	cm.abbreviations["5gc"] = "5g core"
@@ -1944,29 +1673,22 @@ func (cm *ContextMatcher) initializeAbbreviations() {
 	cm.abbreviations["ip"] = "internet protocol"
 
 	cm.abbreviations["dns"] = "domain name system"
-
 }
 
 // IsInitialized returns whether the context matcher is initialized.
 
 func (cm *ContextMatcher) IsInitialized() bool {
-
 	return cm.initialized
-
 }
 
 // ClearCache clears the context matching cache.
 
 func (cm *ContextMatcher) ClearCache() {
-
 	cm.contextCache = make(map[string]*MatchResult)
-
 }
 
 // GetCacheSize returns the number of cached results.
 
 func (cm *ContextMatcher) GetCacheSize() int {
-
 	return len(cm.contextCache)
-
 }

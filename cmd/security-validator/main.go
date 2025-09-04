@@ -8,9 +8,10 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/tests/security"
+	"github.com/thc1006/nephoran-intent-operator/tests/security"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -28,7 +29,7 @@ func main() {
 	)
 	flag.Parse()
 
-	fmt.Println("🔒 Nephoran Security Validator")
+	fmt.Println("?? Nephoran Security Validator")
 	fmt.Println("==============================")
 	fmt.Printf("Namespace: %s\n", *namespace)
 	fmt.Printf("Timeout: %s\n", timeout.String())
@@ -37,7 +38,7 @@ func main() {
 	fmt.Println()
 
 	// Create reports directory
-	if err := os.MkdirAll(*reportDir, 0755); err != nil {
+	if err := os.MkdirAll(*reportDir, 0o755); err != nil {
 		log.Fatalf("Failed to create report directory: %v", err)
 	}
 
@@ -72,7 +73,7 @@ func main() {
 	suite := security.NewComprehensiveSecurityTestSuite(ctrlClient, k8sClient, config, *namespace)
 
 	// Execute comprehensive security tests
-	fmt.Println("🚀 Starting Comprehensive Security Tests...")
+	fmt.Println("?? Starting Comprehensive Security Tests...")
 	startTime := time.Now()
 
 	var results *security.ComprehensiveTestResults
@@ -97,12 +98,12 @@ func main() {
 	exitCode := 0
 	if results.OverallStatus != "PASSED" {
 		exitCode = 1
-		fmt.Println("❌ Security tests failed!")
+		fmt.Println("??Security tests failed!")
 	} else {
-		fmt.Println("✅ All security tests passed!")
+		fmt.Println("??All security tests passed!")
 	}
 
-	fmt.Printf("\n📊 Reports generated in: %s\n", *reportDir)
+	fmt.Printf("\n?? Reports generated in: %s\n", *reportDir)
 	os.Exit(exitCode)
 }
 
@@ -127,15 +128,24 @@ func getKubernetesConfig(kubeconfigPath string) (*rest.Config, error) {
 }
 
 func contains(s, substr string) bool {
-	return len(s) > 0 && len(substr) > 0 &&
-		(s == substr ||
-			fmt.Sprintf(",%s,", s) != fmt.Sprintf(",%s,", fmt.Sprintf(",%s,", s)[1:len(fmt.Sprintf(",%s,", s))-1]))
+	if len(s) == 0 || len(substr) == 0 {
+		return false
+	}
+
+	if s == substr {
+		return true
+	}
+
+	// Check if substr is in comma-separated list
+	parts := fmt.Sprintf(",%s,", s)
+	target := fmt.Sprintf(",%s,", substr)
+	return strings.Contains(parts, target)
 }
 
 func executeSelectiveTests(ctx context.Context, suite *security.ComprehensiveSecurityTestSuite,
-	runPenetration, runValidation, runMonitoring, runRegression bool) *security.ComprehensiveTestResults {
-
-	fmt.Println("🎯 Running Selective Security Tests...")
+	runPenetration, runValidation, runMonitoring, runRegression bool,
+) *security.ComprehensiveTestResults {
+	fmt.Println("🔍 Running Selective Security Tests...")
 
 	// This is a simplified version for selective testing
 	// In a real implementation, you would modify the suite to support selective execution
@@ -149,7 +159,7 @@ func executeSelectiveTests(ctx context.Context, suite *security.ComprehensiveSec
 	}
 
 	if runPenetration {
-		fmt.Println("🎯 Running Penetration Tests...")
+		fmt.Println("🔓 Running Penetration Tests...")
 		// Run penetration tests
 		results.TestCategories["penetration_testing"] = security.CategoryResult{
 			Category:    "Penetration Testing",
@@ -163,7 +173,7 @@ func executeSelectiveTests(ctx context.Context, suite *security.ComprehensiveSec
 	}
 
 	if runValidation {
-		fmt.Println("✅ Running Security Control Validation...")
+		fmt.Println("??Running Security Control Validation...")
 		// Run validation tests
 		results.TestCategories["security_validation"] = security.CategoryResult{
 			Category:    "Security Control Validation",
@@ -177,7 +187,7 @@ func executeSelectiveTests(ctx context.Context, suite *security.ComprehensiveSec
 	}
 
 	if runMonitoring {
-		fmt.Println("📊 Running Continuous Monitoring Tests...")
+		fmt.Println("?? Running Continuous Monitoring Tests...")
 		// Run monitoring tests
 		results.TestCategories["continuous_monitoring"] = security.CategoryResult{
 			Category:    "Continuous Monitoring",
@@ -191,7 +201,7 @@ func executeSelectiveTests(ctx context.Context, suite *security.ComprehensiveSec
 	}
 
 	if runRegression {
-		fmt.Println("🔄 Running Regression Tests...")
+		fmt.Println("?? Running Regression Tests...")
 		// Run regression tests
 		results.TestCategories["regression_testing"] = security.CategoryResult{
 			Category:    "Regression Testing",
@@ -235,7 +245,7 @@ func executeSelectiveTests(ctx context.Context, suite *security.ComprehensiveSec
 
 func displayResultsSummary(results *security.ComprehensiveTestResults, duration time.Duration, verbose bool) {
 	fmt.Println()
-	fmt.Println("🏁 Security Test Results Summary")
+	fmt.Println("?? Security Test Results Summary")
 	fmt.Println("================================")
 	fmt.Printf("Overall Status: %s\n", getStatusIcon(results.OverallStatus))
 	fmt.Printf("Security Score: %.2f/100\n", results.SecurityScore)
@@ -256,7 +266,7 @@ func displayResultsSummary(results *security.ComprehensiveTestResults, duration 
 
 	for _, category := range results.TestCategories {
 		statusIcon := getStatusIcon(category.Status)
-		fmt.Printf("• %s: %s (Score: %.1f, Duration: %s)\n",
+		fmt.Printf("??%s: %s (Score: %.1f, Duration: %s)\n",
 			category.Category, statusIcon, category.Score, category.Duration.String())
 
 		if verbose {
@@ -275,7 +285,7 @@ func displayResultsSummary(results *security.ComprehensiveTestResults, duration 
 		fmt.Println("--------------------------")
 		for i, rec := range results.SecurityRecommendations {
 			if i < 3 { // Show top 3 recommendations
-				fmt.Printf("• [%s] %s\n", rec.Priority, rec.Title)
+				fmt.Printf("??[%s] %s\n", rec.Priority, rec.Title)
 				if verbose {
 					fmt.Printf("  %s\n", rec.Description)
 				}
@@ -330,7 +340,7 @@ func generateCSVReport(results *security.ComprehensiveTestResults, reportDir str
 	}
 
 	csvFile := filepath.Join(reportDir, fmt.Sprintf("security-test-results-%s.csv", results.TestSuiteID))
-	if err := os.WriteFile(csvFile, []byte(csvContent), 0644); err != nil {
+	if err := os.WriteFile(csvFile, []byte(csvContent), 0o644); err != nil {
 		log.Printf("Failed to write CSV report: %v", err)
 	}
 }
@@ -364,7 +374,7 @@ func generateJUnitReport(results *security.ComprehensiveTestResults, reportDir s
 	junitXML += "</testsuites>\n"
 
 	junitFile := filepath.Join(reportDir, fmt.Sprintf("junit-security-tests-%s.xml", results.TestSuiteID))
-	if err := os.WriteFile(junitFile, []byte(junitXML), 0644); err != nil {
+	if err := os.WriteFile(junitFile, []byte(junitXML), 0o644); err != nil {
 		log.Printf("Failed to write JUnit report: %v", err)
 	}
 }
@@ -389,7 +399,7 @@ security_execution_time_seconds %.0f
 	}
 
 	metricsFile := filepath.Join(reportDir, fmt.Sprintf("security-metrics-%s.txt", results.TestSuiteID))
-	if err := os.WriteFile(metricsFile, []byte(metrics), 0644); err != nil {
+	if err := os.WriteFile(metricsFile, []byte(metrics), 0o644); err != nil {
 		log.Printf("Failed to write metrics report: %v", err)
 	}
 }

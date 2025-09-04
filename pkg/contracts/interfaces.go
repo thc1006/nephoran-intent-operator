@@ -17,7 +17,9 @@ limitations under the License.
 package contracts
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 )
 
@@ -25,7 +27,7 @@ import (
 type ProcessingResult struct {
 	Success      bool                   `json:"success"`
 	NextPhase    ProcessingPhase        `json:"nextPhase,omitempty"`
-	Data         map[string]interface{} `json:"data,omitempty"`
+	Data         json.RawMessage `json:"data,omitempty"`
 	Metrics      map[string]float64     `json:"metrics,omitempty"`
 	Events       []ProcessingEvent      `json:"events,omitempty"`
 	RetryAfter   *time.Duration         `json:"retryAfter,omitempty"`
@@ -39,7 +41,7 @@ type ProcessingEvent struct {
 	Phase       ProcessingPhase        `json:"phase"`
 	Event       string                 `json:"event"`
 	Component   string                 `json:"component"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Metadata    json.RawMessage `json:"metadata,omitempty"`
 	Level       string                 `json:"level"`
 	Duration    time.Duration          `json:"duration,omitempty"`
 	ResourceRef *ResourceReference     `json:"resourceRef,omitempty"`

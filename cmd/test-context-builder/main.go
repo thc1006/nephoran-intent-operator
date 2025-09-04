@@ -6,11 +6,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 )
 
 func main() {
-
 	fmt.Println("Testing ContextBuilder implementation...")
 
 	// Create a simple ContextBuilder for testing.
@@ -32,5 +31,4 @@ func main() {
 	// This is a minimal test to demonstrate the interface.
 
 	fmt.Println("ContextBuilder implementation test completed successfully!")
-
 }

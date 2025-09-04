@@ -46,7 +46,6 @@ type CircuitBreaker struct {
 // CircuitBreakerConfig holds configuration for circuit breaker.
 
 type CircuitBreakerConfig struct {
-
 	// Failure threshold.
 
 	FailureThreshold int64 `json:"failure_threshold"`
@@ -110,27 +109,25 @@ const (
 // String performs string operation.
 
 func (s CircuitState) String() string {
-
 	switch s {
 
 	case StateClosed:
 
-		return "closed"
+		return "Closed"
 
 	case StateOpen:
 
-		return "open"
+		return "Open"
 
 	case StateHalfOpen:
 
-		return "half-open"
+		return "HalfOpen"
 
 	default:
 
-		return "unknown"
+		return "Unknown"
 
 	}
-
 }
 
 // CircuitMetrics tracks circuit breaker performance.
@@ -174,9 +171,7 @@ type CircuitBreakerError struct {
 // Error performs error operation.
 
 func (e *CircuitBreakerError) Error() string {
-
 	return fmt.Sprintf("circuit breaker '%s' is %s: %s", e.CircuitName, e.State.String(), e.Message)
-
 }
 
 // CircuitOperation represents an operation to be executed through circuit breaker.
@@ -186,15 +181,11 @@ type CircuitOperation func(context.Context) (interface{}, error)
 // NewCircuitBreaker creates a new circuit breaker.
 
 func NewCircuitBreaker(name string, config *CircuitBreakerConfig) *CircuitBreaker {
-
 	if config == nil {
-
 		config = getDefaultCircuitBreakerConfig()
-
 	}
 
 	cb := &CircuitBreaker{
-
 		name: name,
 
 		config: config,
@@ -206,7 +197,6 @@ func NewCircuitBreaker(name string, config *CircuitBreakerConfig) *CircuitBreake
 		logger: slog.Default().With("component", "circuit-breaker", "name", name),
 
 		metrics: &CircuitMetrics{
-
 			CurrentState: StateClosed.String(),
 
 			LastStateChange: time.Now(),
@@ -218,21 +208,16 @@ func NewCircuitBreaker(name string, config *CircuitBreakerConfig) *CircuitBreake
 	// Start health check routine if enabled.
 
 	if config.EnableHealthCheck {
-
 		go cb.healthCheckRoutine()
-
 	}
 
 	return cb
-
 }
 
 // getDefaultCircuitBreakerConfig returns default configuration.
 
 func getDefaultCircuitBreakerConfig() *CircuitBreakerConfig {
-
 	return &CircuitBreakerConfig{
-
 		FailureThreshold: 5,
 
 		FailureRate: 0.5,
@@ -257,7 +242,6 @@ func getDefaultCircuitBreakerConfig() *CircuitBreakerConfig {
 
 		HealthCheckTimeout: 10 * time.Second,
 	}
-
 }
 
 // Call executes a simple function through the circuit breaker.
@@ -265,19 +249,15 @@ func getDefaultCircuitBreakerConfig() *CircuitBreakerConfig {
 // This method provides a simpler interface compared to Execute for functions that don't need context.
 
 func (cb *CircuitBreaker) Call(fn func() error) error {
-
 	ctx, cancel := context.WithTimeout(context.Background(), cb.config.Timeout)
 
 	defer cancel()
 
 	_, err := cb.Execute(ctx, func(context.Context) (interface{}, error) {
-
 		return nil, fn()
-
 	})
 
 	return err
-
 }
 
 // ExecuteSimple provides a simpler Execute interface for functions that return only an error.
@@ -285,15 +265,12 @@ func (cb *CircuitBreaker) Call(fn func() error) error {
 // This is needed for compatibility with test frameworks that expect Execute(func() error) error.
 
 func (cb *CircuitBreaker) ExecuteSimple(fn func() error) error {
-
 	return cb.Call(fn)
-
 }
 
 // Execute executes an operation through the circuit breaker.
 
 func (cb *CircuitBreaker) Execute(ctx context.Context, operation CircuitOperation) (interface{}, error) {
-
 	startTime := time.Now()
 
 	// Check if circuit is open.
@@ -301,15 +278,12 @@ func (cb *CircuitBreaker) Execute(ctx context.Context, operation CircuitOperatio
 	if !cb.canExecute() {
 
 		cb.updateMetrics(func(m *CircuitMetrics) {
-
 			m.RejectedRequests++
 
 			m.TotalRequests++
-
 		})
 
 		return nil, &CircuitBreakerError{
-
 			CircuitName: cb.name,
 
 			State: cb.getState(),
@@ -334,21 +308,17 @@ func (cb *CircuitBreaker) Execute(ctx context.Context, operation CircuitOperatio
 	cb.recordResult(err, time.Since(startTime))
 
 	return result, err
-
 }
 
 // canExecute checks if the circuit breaker allows execution.
 
 func (cb *CircuitBreaker) canExecute() bool {
-
 	cb.mutex.RLock()
-
-	defer cb.mutex.RUnlock()
 
 	switch cb.state {
 
 	case StateClosed:
-
+		cb.mutex.RUnlock()
 		return true
 
 	case StateOpen:
@@ -357,60 +327,62 @@ func (cb *CircuitBreaker) canExecute() bool {
 
 		if time.Since(cb.stateChangeTime) >= cb.config.ResetTimeout {
 
-			cb.transitionToHalfOpen()
+			// Need to upgrade to write lock for state transition
+			// Release read lock first
+			cb.mutex.RUnlock()
 
-			return true
+			// Acquire write lock
+			cb.mutex.Lock()
+			defer cb.mutex.Unlock()
+
+			// Double-check state hasn't changed while acquiring write lock
+			if cb.state == StateOpen && time.Since(cb.stateChangeTime) >= cb.config.ResetTimeout {
+				cb.transitionToHalfOpen()
+				return true
+			}
+
+			return cb.state != StateOpen
 
 		}
 
+		cb.mutex.RUnlock()
 		return false
 
 	case StateHalfOpen:
 
 		// Allow limited requests in half-open state.
-
-		return cb.halfOpenRequests < cb.config.HalfOpenMaxRequests
+		result := cb.halfOpenRequests < cb.config.HalfOpenMaxRequests
+		cb.mutex.RUnlock()
+		return result
 
 	default:
-
+		cb.mutex.RUnlock()
 		return false
 
 	}
-
 }
 
 // executeWithTimeout executes operation with timeout handling.
 
 func (cb *CircuitBreaker) executeWithTimeout(ctx context.Context, operation CircuitOperation) (interface{}, error) {
-
 	resultChan := make(chan interface{}, 1)
 
 	errorChan := make(chan error, 1)
 
 	go func() {
-
 		defer func() {
-
 			if r := recover(); r != nil {
-
 				errorChan <- fmt.Errorf("operation panicked: %v", r)
-
 			}
-
 		}()
 
 		result, err := operation(ctx)
 
 		if err != nil {
-
 			errorChan <- err
-
 		} else {
-
 			resultChan <- result
-
 		}
-
 	}()
 
 	select {
@@ -426,21 +398,17 @@ func (cb *CircuitBreaker) executeWithTimeout(ctx context.Context, operation Circ
 	case <-ctx.Done():
 
 		cb.updateMetrics(func(m *CircuitMetrics) {
-
 			m.TimeoutRequests++
-
 		})
 
 		return nil, fmt.Errorf("operation timeout: %w", ctx.Err())
 
 	}
-
 }
 
 // recordResult records the result of an operation and updates circuit state.
 
 func (cb *CircuitBreaker) recordResult(err error, latency time.Duration) {
-
 	cb.mutex.Lock()
 
 	defer cb.mutex.Unlock()
@@ -454,19 +422,15 @@ func (cb *CircuitBreaker) recordResult(err error, latency time.Duration) {
 		cb.lastFailureTime = time.Now()
 
 		cb.updateMetrics(func(m *CircuitMetrics) {
-
 			m.FailedRequests++
 
 			m.TotalRequests++
-
 		})
 
 		// Check if we should open the circuit.
 
 		if cb.shouldOpenCircuit() {
-
 			cb.transitionToOpen()
-
 		}
 
 	} else {
@@ -476,7 +440,6 @@ func (cb *CircuitBreaker) recordResult(err error, latency time.Duration) {
 		cb.lastSuccessTime = time.Now()
 
 		cb.updateMetrics(func(m *CircuitMetrics) {
-
 			m.SuccessfulRequests++
 
 			m.TotalRequests++
@@ -486,15 +449,12 @@ func (cb *CircuitBreaker) recordResult(err error, latency time.Duration) {
 			totalLatency := m.AverageLatency * time.Duration(m.SuccessfulRequests-1)
 
 			m.AverageLatency = (totalLatency + latency) / time.Duration(m.SuccessfulRequests)
-
 		})
 
 		// Check if we should close the circuit (from half-open state).
 
 		if cb.state == StateHalfOpen && cb.shouldCloseCircuit() {
-
 			cb.transitionToClosed()
-
 		}
 
 	}
@@ -506,37 +466,27 @@ func (cb *CircuitBreaker) recordResult(err error, latency time.Duration) {
 		failureRate := float64(cb.failureCount) / float64(cb.requestCount)
 
 		cb.updateMetrics(func(m *CircuitMetrics) {
-
 			m.FailureRate = failureRate
-
 		})
 
 	}
 
 	if cb.state == StateHalfOpen {
-
 		cb.halfOpenRequests++
-
 	}
-
 }
 
 // shouldOpenCircuit determines if the circuit should be opened.
 
 func (cb *CircuitBreaker) shouldOpenCircuit() bool {
-
 	if cb.state != StateClosed {
-
 		return false
-
 	}
 
 	// Check failure threshold.
 
 	if cb.failureCount >= cb.config.FailureThreshold {
-
 		return true
-
 	}
 
 	// Check failure rate.
@@ -546,25 +496,19 @@ func (cb *CircuitBreaker) shouldOpenCircuit() bool {
 		failureRate := float64(cb.failureCount) / float64(cb.requestCount)
 
 		if failureRate >= cb.config.FailureRate {
-
 			return true
-
 		}
 
 	}
 
 	return false
-
 }
 
 // shouldCloseCircuit determines if the circuit should be closed (from half-open).
 
 func (cb *CircuitBreaker) shouldCloseCircuit() bool {
-
 	if cb.state != StateHalfOpen {
-
 		return false
-
 	}
 
 	// Check success threshold in half-open state.
@@ -572,29 +516,23 @@ func (cb *CircuitBreaker) shouldCloseCircuit() bool {
 	recentSuccesses := cb.getRecentSuccesses()
 
 	return recentSuccesses >= cb.config.SuccessThreshold
-
 }
 
 // getRecentSuccesses gets the number of recent successful requests.
 
 func (cb *CircuitBreaker) getRecentSuccesses() int64 {
-
 	// Simplified implementation - in production, use sliding window.
 
 	if cb.state == StateHalfOpen {
-
 		return cb.successCount
-
 	}
 
 	return 0
-
 }
 
 // transitionToOpen transitions circuit to open state.
 
 func (cb *CircuitBreaker) transitionToOpen() {
-
 	oldState := cb.state
 
 	cb.state = StateOpen
@@ -604,7 +542,6 @@ func (cb *CircuitBreaker) transitionToOpen() {
 	cb.halfOpenRequests = 0
 
 	cb.updateMetrics(func(m *CircuitMetrics) {
-
 		m.StateTransitions++
 
 		m.CurrentState = StateOpen.String()
@@ -612,7 +549,6 @@ func (cb *CircuitBreaker) transitionToOpen() {
 		m.LastStateChange = cb.stateChangeTime
 
 		m.LastUpdated = time.Now()
-
 	})
 
 	cb.logger.Warn("Circuit breaker opened",
@@ -625,17 +561,13 @@ func (cb *CircuitBreaker) transitionToOpen() {
 	)
 
 	if cb.onStateChange != nil {
-
 		go cb.onStateChange(cb.name, oldState, StateOpen)
-
 	}
-
 }
 
 // transitionToHalfOpen transitions circuit to half-open state.
 
 func (cb *CircuitBreaker) transitionToHalfOpen() {
-
 	oldState := cb.state
 
 	cb.state = StateHalfOpen
@@ -649,7 +581,6 @@ func (cb *CircuitBreaker) transitionToHalfOpen() {
 	cb.failureCount = 0
 
 	cb.updateMetrics(func(m *CircuitMetrics) {
-
 		m.StateTransitions++
 
 		m.CurrentState = StateHalfOpen.String()
@@ -657,23 +588,18 @@ func (cb *CircuitBreaker) transitionToHalfOpen() {
 		m.LastStateChange = cb.stateChangeTime
 
 		m.LastUpdated = time.Now()
-
 	})
 
 	cb.logger.Info("Circuit breaker transitioned to half-open")
 
 	if cb.onStateChange != nil {
-
 		go cb.onStateChange(cb.name, oldState, StateHalfOpen)
-
 	}
-
 }
 
 // transitionToClosed transitions circuit to closed state.
 
 func (cb *CircuitBreaker) transitionToClosed() {
-
 	oldState := cb.state
 
 	cb.state = StateClosed
@@ -687,7 +613,6 @@ func (cb *CircuitBreaker) transitionToClosed() {
 	cb.requestCount = 0
 
 	cb.updateMetrics(func(m *CircuitMetrics) {
-
 		m.StateTransitions++
 
 		m.CurrentState = StateClosed.String()
@@ -697,31 +622,24 @@ func (cb *CircuitBreaker) transitionToClosed() {
 		m.FailureRate = 0
 
 		m.LastUpdated = time.Now()
-
 	})
 
 	cb.logger.Info("Circuit breaker closed - service recovered")
 
 	if cb.onStateChange != nil {
-
 		go cb.onStateChange(cb.name, oldState, StateClosed)
-
 	}
-
 }
 
 // healthCheckRoutine performs periodic health checks.
 
 func (cb *CircuitBreaker) healthCheckRoutine() {
-
 	ticker := time.NewTicker(cb.config.HealthCheckInterval)
 
 	defer ticker.Stop()
 
 	for range ticker.C {
-
 		if cb.getState() == StateOpen {
-
 			if cb.performHealthCheck() {
 
 				cb.mutex.Lock()
@@ -731,17 +649,13 @@ func (cb *CircuitBreaker) healthCheckRoutine() {
 				cb.mutex.Unlock()
 
 			}
-
 		}
-
 	}
-
 }
 
 // performHealthCheck performs a health check operation.
 
 func (cb *CircuitBreaker) performHealthCheck() bool {
-
 	// This is a placeholder - in a real implementation, you would perform.
 
 	// an actual health check against the protected service.
@@ -767,70 +681,49 @@ func (cb *CircuitBreaker) performHealthCheck() bool {
 		return false
 
 	}
-
 }
 
 // getState safely gets the current state.
 
 func (cb *CircuitBreaker) getState() CircuitState {
-
 	cb.mutex.RLock()
 
 	defer cb.mutex.RUnlock()
 
 	return cb.state
-
 }
 
 // GetStats returns current circuit breaker statistics.
 
 func (cb *CircuitBreaker) GetStats() map[string]interface{} {
-
 	cb.mutex.RLock()
-
 	defer cb.mutex.RUnlock()
 
 	return map[string]interface{}{
-
-		"name": cb.name,
-
-		"state": cb.state.String(),
-
+		"state": cb.state,
 		"failure_count": cb.failureCount,
-
 		"success_count": cb.successCount,
-
 		"request_count": cb.requestCount,
-
-		"failure_rate": cb.metrics.FailureRate,
-
-		"state_change_time": cb.stateChangeTime,
-
 		"last_failure_time": cb.lastFailureTime,
-
 		"last_success_time": cb.lastSuccessTime,
-
+		"state_change_time": cb.stateChangeTime,
 		"half_open_requests": cb.halfOpenRequests,
 	}
-
 }
 
 // updateMetrics safely updates metrics.
 
 func (cb *CircuitBreaker) updateMetrics(updater func(*CircuitMetrics)) {
-
 	cb.metrics.mutex.Lock()
 
 	defer cb.metrics.mutex.Unlock()
 
 	updater(cb.metrics)
-
 }
 
 // GetMetrics returns current circuit breaker metrics.
 
 func (cb *CircuitBreaker) GetMetrics() *CircuitMetrics {
-
 	cb.metrics.mutex.RLock()
 
 	defer cb.metrics.mutex.RUnlock()
@@ -838,7 +731,6 @@ func (cb *CircuitBreaker) GetMetrics() *CircuitMetrics {
 	// Return a copy without the mutex to avoid copying lock values.
 
 	return &CircuitMetrics{
-
 		TotalRequests: cb.metrics.TotalRequests,
 
 		SuccessfulRequests: cb.metrics.SuccessfulRequests,
@@ -861,25 +753,21 @@ func (cb *CircuitBreaker) GetMetrics() *CircuitMetrics {
 
 		LastUpdated: cb.metrics.LastUpdated,
 	}
-
 }
 
 // SetStateChangeCallback sets a callback for state changes.
 
 func (cb *CircuitBreaker) SetStateChangeCallback(callback func(name string, from, to CircuitState)) {
-
 	cb.mutex.Lock()
 
 	defer cb.mutex.Unlock()
 
 	cb.onStateChange = callback
-
 }
 
 // Reset manually resets the circuit breaker to closed state.
 
 func (cb *CircuitBreaker) Reset() {
-
 	cb.mutex.Lock()
 
 	defer cb.mutex.Unlock()
@@ -899,7 +787,6 @@ func (cb *CircuitBreaker) Reset() {
 	cb.halfOpenRequests = 0
 
 	cb.updateMetrics(func(m *CircuitMetrics) {
-
 		m.StateTransitions++
 
 		m.CurrentState = StateClosed.String()
@@ -909,23 +796,18 @@ func (cb *CircuitBreaker) Reset() {
 		m.FailureRate = 0
 
 		m.LastUpdated = time.Now()
-
 	})
 
 	cb.logger.Info("Circuit breaker manually reset")
 
 	if cb.onStateChange != nil {
-
 		go cb.onStateChange(cb.name, oldState, StateClosed)
-
 	}
-
 }
 
 // ForceOpen manually forces the circuit breaker to open state.
 
 func (cb *CircuitBreaker) ForceOpen() {
-
 	cb.mutex.Lock()
 
 	defer cb.mutex.Unlock()
@@ -937,31 +819,24 @@ func (cb *CircuitBreaker) ForceOpen() {
 		cb.logger.Warn("Circuit breaker manually forced open")
 
 	}
-
 }
 
 // IsOpen checks if the circuit breaker is in open state.
 
 func (cb *CircuitBreaker) IsOpen() bool {
-
 	return cb.getState() == StateOpen
-
 }
 
 // IsClosed checks if the circuit breaker is in closed state.
 
 func (cb *CircuitBreaker) IsClosed() bool {
-
 	return cb.getState() == StateClosed
-
 }
 
 // IsHalfOpen checks if the circuit breaker is in half-open state.
 
 func (cb *CircuitBreaker) IsHalfOpen() bool {
-
 	return cb.getState() == StateHalfOpen
-
 }
 
 // CircuitBreakerManager manages multiple circuit breakers.
@@ -979,42 +854,32 @@ type CircuitBreakerManager struct {
 // NewCircuitBreakerManager creates a new circuit breaker manager.
 
 func NewCircuitBreakerManager(defaultConfig *CircuitBreakerConfig) *CircuitBreakerManager {
-
 	if defaultConfig == nil {
-
 		defaultConfig = getDefaultCircuitBreakerConfig()
-
 	}
 
 	return &CircuitBreakerManager{
-
 		circuitBreakers: make(map[string]*CircuitBreaker),
 
 		defaultConfig: defaultConfig,
 
 		logger: slog.Default().With("component", "circuit-breaker-manager"),
 	}
-
 }
 
 // GetOrCreate gets an existing circuit breaker or creates a new one.
 
 func (cbm *CircuitBreakerManager) GetOrCreate(name string, config *CircuitBreakerConfig) *CircuitBreaker {
-
 	cbm.mutex.Lock()
 
 	defer cbm.mutex.Unlock()
 
 	if cb, exists := cbm.circuitBreakers[name]; exists {
-
 		return cb
-
 	}
 
 	if config == nil {
-
 		config = cbm.defaultConfig
-
 	}
 
 	cb := NewCircuitBreaker(name, config)
@@ -1024,13 +889,11 @@ func (cbm *CircuitBreakerManager) GetOrCreate(name string, config *CircuitBreake
 	cbm.logger.Info("Created new circuit breaker", "name", name)
 
 	return cb
-
 }
 
 // Get gets an existing circuit breaker.
 
 func (cbm *CircuitBreakerManager) Get(name string) (*CircuitBreaker, bool) {
-
 	cbm.mutex.RLock()
 
 	defer cbm.mutex.RUnlock()
@@ -1038,13 +901,11 @@ func (cbm *CircuitBreakerManager) Get(name string) (*CircuitBreaker, bool) {
 	cb, exists := cbm.circuitBreakers[name]
 
 	return cb, exists
-
 }
 
 // Remove removes a circuit breaker.
 
 func (cbm *CircuitBreakerManager) Remove(name string) {
-
 	cbm.mutex.Lock()
 
 	defer cbm.mutex.Unlock()
@@ -1052,13 +913,11 @@ func (cbm *CircuitBreakerManager) Remove(name string) {
 	delete(cbm.circuitBreakers, name)
 
 	cbm.logger.Info("Removed circuit breaker", "name", name)
-
 }
 
 // List returns all circuit breaker names.
 
 func (cbm *CircuitBreakerManager) List() []string {
-
 	cbm.mutex.RLock()
 
 	defer cbm.mutex.RUnlock()
@@ -1066,19 +925,15 @@ func (cbm *CircuitBreakerManager) List() []string {
 	names := make([]string, 0, len(cbm.circuitBreakers))
 
 	for name := range cbm.circuitBreakers {
-
 		names = append(names, name)
-
 	}
 
 	return names
-
 }
 
 // GetAllStats returns statistics for all circuit breakers.
 
 func (cbm *CircuitBreakerManager) GetAllStats() map[string]interface{} {
-
 	cbm.mutex.RLock()
 
 	defer cbm.mutex.RUnlock()
@@ -1086,65 +941,50 @@ func (cbm *CircuitBreakerManager) GetAllStats() map[string]interface{} {
 	stats := make(map[string]interface{})
 
 	for name, cb := range cbm.circuitBreakers {
-
 		stats[name] = cb.GetStats()
-
 	}
 
 	return stats
-
 }
 
 // GetStats returns statistics for all circuit breakers (interface-compatible method).
 
 func (cbm *CircuitBreakerManager) GetStats() (map[string]interface{}, error) {
-
 	return cbm.GetAllStats(), nil
-
 }
 
 // Shutdown gracefully shuts down all circuit breakers.
 
 func (cbm *CircuitBreakerManager) Shutdown() {
-
 	cbm.mutex.Lock()
 
 	defer cbm.mutex.Unlock()
 
 	for name := range cbm.circuitBreakers {
-
 		cbm.logger.Debug("Shutting down circuit breaker", "name", name)
-
 	}
 
 	// Clear all circuit breakers.
 
 	cbm.circuitBreakers = make(map[string]*CircuitBreaker)
-
 }
 
 // ResetAll resets all circuit breakers.
 
 func (cbm *CircuitBreakerManager) ResetAll() {
-
 	cbm.mutex.RLock()
 
 	circuitBreakers := make([]*CircuitBreaker, 0, len(cbm.circuitBreakers))
 
 	for _, cb := range cbm.circuitBreakers {
-
 		circuitBreakers = append(circuitBreakers, cb)
-
 	}
 
 	cbm.mutex.RUnlock()
 
 	for _, cb := range circuitBreakers {
-
 		cb.Reset()
-
 	}
 
 	cbm.logger.Info("Reset all circuit breakers", "count", len(circuitBreakers))
-
 }

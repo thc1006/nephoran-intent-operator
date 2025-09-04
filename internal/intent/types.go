@@ -51,35 +51,27 @@ type ValidationError struct {
 // Error implements the error interface for ValidationError.
 
 func (ve ValidationError) Error() string {
-
 	return ve.Message
-
 }
 
 // ToJSON serializes the intent to JSON.
 
 func (si *ScalingIntent) ToJSON() ([]byte, error) {
-
 	return json.MarshalIndent(si, "", "  ")
-
 }
 
 // FromJSON deserializes the intent from JSON.
 
 func (si *ScalingIntent) FromJSON(data []byte) error {
-
 	return json.Unmarshal(data, si)
-
 }
 
 // String returns a human-readable representation of the intent.
 
 func (si *ScalingIntent) String() string {
-
 	return fmt.Sprintf("ScalingIntent{target=%s, namespace=%s, replicas=%d, source=%s}",
 
 		si.Target, si.Namespace, si.Replicas, si.Source)
-
 }
 
 // NetworkIntent is an alias for ScalingIntent to maintain compatibility.

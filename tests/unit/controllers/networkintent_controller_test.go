@@ -144,7 +144,7 @@ func (suite *NetworkIntentControllerTestSuite) TestReconcile_NewNetworkIntent() 
 
 	// Verify the NetworkIntent was updated
 	updated := &nephoranv1.NetworkIntent{}
-	err = suite.client.Get(suite.ctx, client.ObjectKeyFromObject(intent), updated)
+	err = suite.client.Get(suite.ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, updated)
 	suite.NoError(err)
 	suite.NotNil(updated)
 }
@@ -207,7 +207,7 @@ func (suite *NetworkIntentControllerTestSuite) TestReconcile_LLMServerDown() {
 	result, err := suite.reconciler.Reconcile(suite.ctx, request)
 
 	// Assert - should handle LLM server errors gracefully
-	suite.NoError(err) // Controller should handle external service failures
+	suite.NoError(err)                                              // Controller should handle external service failures
 	suite.Equal(ctrl.Result{RequeueAfter: 5 * time.Minute}, result) // Should requeue for retry
 }
 
@@ -336,7 +336,7 @@ func TestNetworkIntentReconciler_Reconcile_BasicFlow(t *testing.T) {
 
 	// Verify object still exists
 	retrieved := &nephoranv1.NetworkIntent{}
-	err = client.Get(ctx, client.ObjectKeyFromObject(intent), retrieved)
+	err = client.Get(ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, retrieved)
 	assert.NoError(t, err)
 	assert.Equal(t, intent.Spec.Intent, retrieved.Spec.Intent)
 }
@@ -459,7 +459,7 @@ func TestNetworkIntentReconciler_ErrorConditions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			reconciler, request := tt.setupFunc()
 			_, err := reconciler.Reconcile(context.Background(), request)
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {

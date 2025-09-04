@@ -68,6 +68,24 @@ func setupSLAAlertingSystem(t *testing.T, logger *logging.StructuredLogger) (*SL
 	return NewSLAAlertManager(config, logger)
 }
 
+// setupSLAAlertingSystemForBenchmark creates SLA alert manager for benchmark tests
+func setupSLAAlertingSystemForBenchmark(logger *logging.StructuredLogger) (*SLAAlertManager, error) {
+	// Configure for benchmarking
+	config := &SLAAlertConfig{
+		EvaluationInterval:   1 * time.Second, // Fast evaluation for benchmarks
+		BurnRateInterval:     500 * time.Millisecond,
+		PredictiveInterval:   2 * time.Second,
+		MaxActiveAlerts:      100,
+		DeduplicationWindow:  30 * time.Second,
+		NotificationTimeout:  5 * time.Second,
+		EnableBusinessImpact: true,
+		MetricCacheSize:      50,
+		QueryTimeout:         2 * time.Second,
+	}
+
+	return NewSLAAlertManager(config, logger)
+}
+
 // testAvailabilityViolationDetection tests availability SLA violation detection
 func testAvailabilityViolationDetection(t *testing.T, ctx context.Context, sam *SLAAlertManager) {
 	// Simulate availability drop below 99.95%
@@ -416,7 +434,7 @@ func BenchmarkSLAAlertProcessing(b *testing.B) {
 	ctx := context.Background()
 	logger := logging.NewLogger("benchmark", "info")
 
-	alertManager, err := setupSLAAlertingSystem(b, logger)
+	alertManager, err := setupSLAAlertingSystemForBenchmark(logger)
 	require.NoError(b, err)
 
 	err = alertManager.Start(ctx)

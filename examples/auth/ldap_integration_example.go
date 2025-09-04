@@ -255,26 +255,15 @@ func handleAuthInfo(authManager *auth.Manager) http.HandlerFunc {
 		providers := authManager.ListProviders()
 
 		info := map[string]interface{}{
-
-			"enabled": true,
-
 			"providers": providers,
-
-			"features": map[string]bool{
-
-				"ldap": len(providers["ldap"].(map[string]interface{})) > 0,
-
+			"features": map[string]interface{}{
+				"ldap":   len(providers["ldap"].([]string)) > 0,
 				"oauth2": len(providers["oauth2"].(map[string]interface{})) > 0,
-
 				"session": true,
-
-				"jwt": true,
-
-				"rbac": true,
-
-				"csrf": true,
-
-				"pkce": true,
+				"jwt":     true,
+				"rbac":    true,
+				"csrf":    true,
+				"pkce":    true,
 			},
 		}
 
@@ -307,28 +296,17 @@ func handleLDAPUserInfo(ldapMiddleware *auth.LDAPAuthMiddleware) http.HandlerFun
 		}
 
 		// Remove sensitive information.
-
 		response := map[string]interface{}{
-
-			"username": userInfo.Username,
-
-			"email": userInfo.Email,
-
+			"subject":      userInfo.Subject,
+			"username":     userInfo.PreferredName,
 			"display_name": userInfo.Name,
-
-			"first_name": userInfo.GivenName,
-
-			"last_name": userInfo.FamilyName,
-
-			"groups": userInfo.Groups,
-
-			"roles": userInfo.Roles,
-
-			"provider": userInfo.Provider,
+			"email":        userInfo.Email,
+			"given_name":   userInfo.GivenName,
+			"family_name":  userInfo.FamilyName,
+			"provider":     provider,
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-
 		json.NewEncoder(w).Encode(response)
 
 	}
@@ -342,34 +320,24 @@ func handleLDAPTest(ldapMiddleware *auth.LDAPAuthMiddleware) http.HandlerFunc {
 		results := ldapMiddleware.TestLDAPConnection(r.Context())
 
 		response := map[string]interface{}{
-
 			"results": make(map[string]interface{}),
 		}
 
 		allHealthy := true
+		results_map := response["results"].(map[string]interface{})
 
 		for provider, err := range results {
-
 			if err != nil {
-
-				response["results"].(map[string]interface{})[provider] = map[string]interface{}{
-
+				results_map[provider] = map[string]interface{}{
 					"status": "unhealthy",
-
-					"error": err.Error(),
+					"error":  err.Error(),
 				}
-
 				allHealthy = false
-
 			} else {
-
-				response["results"].(map[string]interface{})[provider] = map[string]interface{}{
-
+				results_map[provider] = map[string]interface{}{
 					"status": "healthy",
 				}
-
 			}
-
 		}
 
 		response["overall_status"] = "healthy"
@@ -395,12 +363,9 @@ func handleOAuth2Providers(oauth2Manager *auth.OAuth2Manager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		// This would be implemented to list available OAuth2 providers.
-
 		providers := map[string]interface{}{
-
-			"providers": []string{},
-
-			"message": "OAuth2 providers endpoint - implementation depends on OAuth2Manager interface",
+			"providers": []string{"google", "github", "microsoft"},
+			"message":   "OAuth2 providers endpoint - implementation depends on OAuth2Manager interface",
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -472,18 +437,12 @@ func handleTokenRefresh(authManager *auth.Manager) http.HandlerFunc {
 		}
 
 		response := map[string]interface{}{
-
-			"access_token": accessToken,
-
+			"access_token":  accessToken,
 			"refresh_token": refreshToken,
-
-			"token_type": "Bearer",
-
-			"expires_in": 3600,
+			"token_type":    "Bearer",
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-
 		json.NewEncoder(w).Encode(response)
 
 	}
@@ -517,30 +476,15 @@ func handleSessionInfo(authManager *auth.Manager) http.HandlerFunc {
 		}
 
 		response := map[string]interface{}{
-
-			"session_id": userSession.ID,
-
-			"user_id": userSession.UserID,
-
-			"username": userSession.UserInfo.Username,
-
-			"email": userSession.UserInfo.Email,
-
-			"display_name": userSession.UserInfo.Name,
-
-			"provider": userSession.Provider,
-
-			"groups": userSession.UserInfo.Groups,
-
-			"roles": userSession.Roles,
-
-			"created_at": userSession.CreatedAt,
-
-			"expires_at": userSession.ExpiresAt,
+			"session_id":    userSession.ID,
+			"user_id":       userSession.UserID,
+			"provider":      userSession.Provider,
+			"expires_at":    userSession.ExpiresAt,
+			"created_at":    userSession.CreatedAt,
+			"last_activity": userSession.LastActivity,
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-
 		json.NewEncoder(w).Encode(response)
 
 	}
@@ -612,22 +556,16 @@ func handleUserProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	profile := map[string]interface{}{
-
-		"user_id": authContext.UserID,
-
-		"provider": authContext.Provider,
-
-		"roles": authContext.Roles,
-
+		"user_id":     authContext.UserID,
+		"session_id":  authContext.SessionID,
+		"provider":    authContext.Provider,
+		"roles":       authContext.Roles,
 		"permissions": authContext.Permissions,
-
-		"is_admin": authContext.IsAdmin,
-
-		"attributes": authContext.Attributes,
+		"is_admin":    authContext.IsAdmin,
+		"attributes":  authContext.Attributes,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-
 	json.NewEncoder(w).Encode(profile)
 
 }
@@ -637,41 +575,26 @@ func handleIntentsList(w http.ResponseWriter, r *http.Request) {
 	authContext := auth.GetAuthContext(r.Context())
 
 	// Example intents list - in real implementation, this would query the database.
-
 	intents := []map[string]interface{}{
-
 		{
-
-			"id": "intent-001",
-
-			"description": "Deploy 5G AMF in production with high availability",
-
-			"status": "deployed",
-
-			"created_by": authContext.UserID,
-
-			"created_at": time.Now().Add(-2 * time.Hour),
+			"id":          "intent-001",
+			"description": "Scale CU-UP instances for peak traffic",
+			"status":      "active",
+			"created_by":  authContext.UserID,
+			"created_at":  time.Now().Add(-2 * time.Hour),
 		},
-
 		{
-
-			"id": "intent-002",
-
+			"id":          "intent-002",
 			"description": "Scale UPF instances for increased traffic",
-
-			"status": "pending",
-
-			"created_by": authContext.UserID,
-
-			"created_at": time.Now().Add(-1 * time.Hour),
+			"status":      "pending",
+			"created_by":  authContext.UserID,
+			"created_at":  time.Now().Add(-1 * time.Hour),
 		},
 	}
 
 	response := map[string]interface{}{
-
 		"intents": intents,
-
-		"total": len(intents),
+		"total":   len(intents),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -689,7 +612,7 @@ func handleIntentCreate(w http.ResponseWriter, r *http.Request) {
 
 		Type string `json:"type"`
 
-		Parameters map[string]interface{} `json:"parameters"`
+		Parameters json.RawMessage `json:"parameters"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -701,28 +624,18 @@ func handleIntentCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Example intent creation - in real implementation, this would create the intent.
-
 	intent := map[string]interface{}{
-
-		"id": fmt.Sprintf("intent-%d", time.Now().Unix()),
-
+		"id":          "intent-" + fmt.Sprintf("%d", time.Now().Unix()),
 		"description": request.Description,
-
-		"type": request.Type,
-
-		"parameters": request.Parameters,
-
-		"status": "pending",
-
-		"created_by": authContext.UserID,
-
-		"created_at": time.Now(),
+		"type":        request.Type,
+		"parameters":  request.Parameters,
+		"status":      "pending",
+		"created_by":  authContext.UserID,
+		"created_at":  time.Now(),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-
 	w.WriteHeader(http.StatusCreated)
-
 	json.NewEncoder(w).Encode(intent)
 
 }
@@ -730,48 +643,29 @@ func handleIntentCreate(w http.ResponseWriter, r *http.Request) {
 func handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 
 	// Example admin endpoint - in real implementation, this would query user data.
-
 	users := []map[string]interface{}{
-
 		{
-
-			"user_id": "admin1",
-
-			"username": "admin1",
-
-			"email": "admin1@company.com",
-
+			"user_id":      "admin1",
+			"username":     "admin1",
+			"email":        "admin1@company.com",
 			"display_name": "System Administrator",
-
-			"roles": []string{"system-admin"},
-
-			"last_login": time.Now().Add(-1 * time.Hour),
-
-			"active": true,
+			"roles":        []string{"admin", "system-admin"},
+			"last_login":   time.Now().Add(-1 * time.Hour),
+			"active":       true,
 		},
-
 		{
-
-			"user_id": "operator1",
-
-			"username": "operator1",
-
-			"email": "operator1@company.com",
-
+			"user_id":      "operator1",
+			"username":     "operator1",
+			"email":        "operator1@company.com",
 			"display_name": "Network Operator",
-
-			"roles": []string{"network-operator"},
-
-			"last_login": time.Now().Add(-2 * time.Hour),
-
-			"active": true,
+			"roles":        []string{"network-operator"},
+			"last_login":   time.Now().Add(-2 * time.Hour),
+			"active":       true,
 		},
 	}
 
 	response := map[string]interface{}{
-
 		"users": users,
-
 		"total": len(users),
 	}
 
@@ -830,7 +724,8 @@ func ExampleLDAPIntegrationTest() {
 
 		BindDN: "cn=admin,dc=example,dc=com",
 
-		BindPassword: "admin",
+		// SECURITY: Never hardcode passwords - load from environment or secret management
+		BindPassword: os.Getenv("LDAP_BIND_PASSWORD"), // Load from environment
 
 		UserSearchBase: "ou=people,dc=example,dc=com",
 
@@ -889,3 +784,4 @@ func ExampleLDAPIntegrationTest() {
 	ldapProvider.Close()
 
 }
+

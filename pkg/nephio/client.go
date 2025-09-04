@@ -35,7 +35,7 @@ func NewClient(config *Config) Client {
 func (c *clientImpl) PublishPackage(ctx context.Context, pkg *Package) (*PublishResult, error) {
 	// This is a placeholder implementation
 	// In a real implementation, this would interact with Porch API
-	
+
 	result := &PublishResult{
 		PackageID:   generatePackageID(pkg),
 		PublishedAt: time.Now(),
@@ -63,7 +63,7 @@ func (c *clientImpl) GetPackageStatus(ctx context.Context, packageID string) (*P
 func (c *clientImpl) ListPackages(ctx context.Context, filter *PackageFilter) ([]*Package, error) {
 	// This is a placeholder implementation
 	// In a real implementation, this would query Porch API
-	
+
 	packages := []*Package{
 		{
 			ID:          "pkg-001",
@@ -72,7 +72,7 @@ func (c *clientImpl) ListPackages(ctx context.Context, filter *PackageFilter) ([
 			Description: "Example UPF deployment package",
 			Metadata: map[string]string{
 				"network-function": "UPF",
-				"vendor":          "example-vendor",
+				"vendor":           "example-vendor",
 			},
 			CreatedAt: time.Now().Add(-24 * time.Hour),
 			UpdatedAt: time.Now(),
@@ -86,7 +86,7 @@ func (c *clientImpl) ListPackages(ctx context.Context, filter *PackageFilter) ([
 func (c *clientImpl) DeletePackage(ctx context.Context, packageID string) error {
 	// This is a placeholder implementation
 	// In a real implementation, this would call Porch API to delete the package
-	
+
 	return nil
 }
 
@@ -98,24 +98,24 @@ func (c *clientImpl) ProcessIntent(ctx context.Context, intent *Intent) (*Proces
 	// 2. Generate Kubernetes manifests
 	// 3. Create a Nephio package
 	// 4. Publish to Porch
-	
+
 	generatedSpec := map[string]interface{}{
-		"apiVersion": "v1",
-		"kind":       "ConfigMap",
 		"metadata": map[string]interface{}{
 			"name":      intent.Name + "-config",
 			"namespace": c.config.Namespace,
 		},
-		"data": map[string]interface{}{
-			"intent-id":   intent.ID,
-			"intent-type": intent.IntentType,
-		},
+		"data": map[string]interface{}{},
 	}
 
 	result := &ProcessingResult{
 		IntentID:      intent.ID,
 		PackageID:     "pkg-" + intent.ID,
-		GeneratedSpec: generatedSpec,
+		GeneratedSpec: func() json.RawMessage {
+			if specBytes, err := json.Marshal(generatedSpec); err == nil {
+				return specBytes
+			}
+			return json.RawMessage(`{}`)
+		}(),
 		Status:        "completed",
 		Message:       "Intent processed successfully",
 		ProcessedAt:   time.Now(),
@@ -148,13 +148,7 @@ func (c *clientImpl) ListIntents(ctx context.Context, filter *IntentFilter) ([]*
 			Description:     "Deploy UPF with 3 replicas",
 			IntentType:      "NetworkFunctionDeployment",
 			NetworkFunction: "UPF",
-			Parameters: map[string]interface{}{
-				"replicas": 3,
-				"resources": map[string]interface{}{
-					"cpu":    "2000m",
-					"memory": "4Gi",
-				},
-			},
+			Parameters: json.RawMessage(`{"resources":{"cpu":"2000m","memory":"4Gi"}}`),
 			Status:    "processed",
 			CreatedAt: time.Now().Add(-1 * time.Hour),
 			UpdatedAt: time.Now(),
@@ -182,7 +176,7 @@ func (c *clientImpl) makeHTTPRequest(ctx context.Context, method, endpoint strin
 		}
 	}
 
-	var bodyReader = bytes.NewReader(reqBody)
+	bodyReader := bytes.NewReader(reqBody)
 	req, err := http.NewRequestWithContext(ctx, method, c.config.PorchEndpoint+endpoint, bodyReader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create HTTP request: %w", err)

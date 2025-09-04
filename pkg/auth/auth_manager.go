@@ -100,13 +100,7 @@ func (am *AuthManager) Close() error {
 func (am *AuthManager) HandleHealthCheck(w http.ResponseWriter, r *http.Request) {
 	status := map[string]interface{}{
 		"status": "healthy",
-		"components": map[string]string{
-			"jwt_manager":      "healthy",
-			"session_manager":  "healthy",
-			"rbac_manager":     "healthy",
-			"oauth2_manager":   "healthy",
-			"security_manager": "healthy",
-		},
+		"timestamp": time.Now().Unix(),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -122,7 +116,7 @@ func (am *AuthManager) GetLDAPMiddleware() *LDAPAuthMiddleware {
 
 // GetMiddleware returns the auth middleware
 func (am *AuthManager) GetMiddleware() *AuthMiddleware {
-	return NewAuthMiddleware(am.SessionManager, am.JWTManager, am.RBACManager, nil)
+	return NewAuthMiddlewareWithComponents(am.SessionManager, am.JWTManager, am.RBACManager, nil)
 }
 
 // GetOAuth2Manager returns OAuth2 manager
@@ -143,8 +137,8 @@ func (am *AuthManager) ListProviders() map[string]interface{} {
 			"message":   "LDAP providers not configured in this example",
 		},
 		"oauth2": map[string]interface{}{
-			"available": am.OAuth2Manager != nil,
-			"message":   "OAuth2 providers may be available",
+			"available": false,
+			"message":   "OAuth2 providers not configured in this example",
 		},
 	}
 }

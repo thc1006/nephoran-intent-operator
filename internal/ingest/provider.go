@@ -12,7 +12,6 @@ import (
 // IntentProvider defines the interface for intent parsing providers.
 
 type IntentProvider interface {
-
 	// ParseIntent converts natural language text to structured intent.
 
 	ParseIntent(ctx context.Context, text string) (map[string]interface{}, error)
@@ -31,11 +30,8 @@ type RulesProvider struct {
 // NewRulesProvider creates a new rules-based provider.
 
 func NewRulesProvider() *RulesProvider {
-
 	return &RulesProvider{
-
 		patterns: map[string]*regexp.Regexp{
-
 			// Primary pattern: scale <target> to <N> in ns <namespace>.
 
 			"scale_full": regexp.MustCompile(`(?i)scale\s+([a-z0-9\-]+)\s+to\s+(\d+)\s+in\s+ns\s+([a-z0-9\-]+)`),
@@ -51,21 +47,17 @@ func NewRulesProvider() *RulesProvider {
 			"scale_in": regexp.MustCompile(`(?i)scale\s+in\s+([a-z0-9\-]+)\s+by\s+(\d+)(?:\s+in\s+ns\s+([a-z0-9\-]+))?`),
 		},
 	}
-
 }
 
 // Name returns the provider name.
 
 func (p *RulesProvider) Name() string {
-
 	return "rules"
-
 }
 
 // ParseIntent converts natural language to structured intent using rules.
 
 func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[string]interface{}, error) {
-
 	text = strings.TrimSpace(text)
 
 	// Try full scale pattern.
@@ -73,28 +65,24 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 	if m := p.patterns["scale_full"].FindStringSubmatch(text); len(m) == 4 {
 
 		replicas, err := strconv.Atoi(m[2])
-
 		if err != nil {
-
 			return nil, fmt.Errorf("invalid replica count: %s", m[2])
-
 		}
 		// Security fix (G115): Validate bounds for replica count
 		if replicas < 0 || replicas > math.MaxInt32 {
 			return nil, fmt.Errorf("replica count %d out of valid range (0-%d)", replicas, math.MaxInt32)
 		}
 
+		ns := "default"
+		if len(m) > 3 && m[3] != "" {
+			ns = m[3]
+		}
+
 		return map[string]interface{}{
-
-			"intent_type": "scaling",
-
+			"action": "scale",
 			"target": m[1],
-
 			"replicas": replicas,
-
-			"namespace": m[3],
-
-			"source": "user",
+			"namespace": ns,
 		}, nil
 
 	}
@@ -104,11 +92,8 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 	if m := p.patterns["scale_simple"].FindStringSubmatch(text); len(m) == 3 {
 
 		replicas, err := strconv.Atoi(m[2])
-
 		if err != nil {
-
 			return nil, fmt.Errorf("invalid replica count: %s", m[2])
-
 		}
 		// Security fix (G115): Validate bounds for replica count
 		if replicas < 0 || replicas > math.MaxInt32 {
@@ -116,16 +101,10 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 		}
 
 		return map[string]interface{}{
-
-			"intent_type": "scaling",
-
+			"action": "scale",
 			"target": m[1],
-
 			"replicas": replicas,
-
 			"namespace": "default",
-
-			"source": "user",
 		}, nil
 
 	}
@@ -135,11 +114,8 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 	if m := p.patterns["scale_out"].FindStringSubmatch(text); len(m) >= 3 {
 
 		delta, err := strconv.Atoi(m[2])
-
 		if err != nil {
-
 			return nil, fmt.Errorf("invalid delta count: %s", m[2])
-
 		}
 		// Security fix (G115): Validate bounds for delta count
 		if delta < 0 || delta > math.MaxInt32 {
@@ -149,9 +125,7 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 		ns := "default"
 
 		if len(m) > 3 && m[3] != "" {
-
 			ns = m[3]
-
 		}
 
 		// Note: scale out by N means increase by N, so we'd need current count.
@@ -159,18 +133,10 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 		// For MVP, we'll just use the delta as the new replica count.
 
 		return map[string]interface{}{
-
-			"intent_type": "scaling",
-
+			"action": "scale",
 			"target": m[1],
-
-			"replicas": delta, // In production, this would be current + delta
-
+			"delta": delta,
 			"namespace": ns,
-
-			"source": "user",
-
-			"reason": fmt.Sprintf("scale out by %d", delta),
 		}, nil
 
 	}
@@ -180,11 +146,8 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 	if m := p.patterns["scale_in"].FindStringSubmatch(text); len(m) >= 3 {
 
 		delta, err := strconv.Atoi(m[2])
-
 		if err != nil {
-
 			return nil, fmt.Errorf("invalid delta count: %s", m[2])
-
 		}
 		// Security fix (G115): Validate bounds for delta count
 		if delta < 0 || delta > math.MaxInt32 {
@@ -194,9 +157,7 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 		ns := "default"
 
 		if len(m) > 3 && m[3] != "" {
-
 			ns = m[3]
-
 		}
 
 		// Note: scale in by N means decrease by N.
@@ -204,24 +165,15 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 		// For MVP, we'll use 1 as minimum.
 
 		return map[string]interface{}{
-
-			"intent_type": "scaling",
-
+			"action": "scale",
 			"target": m[1],
-
-			"replicas": 1, // In production, this would be max(1, current - delta)
-
+			"delta": -delta, // negative delta for scale in
 			"namespace": ns,
-
-			"source": "user",
-
-			"reason": fmt.Sprintf("scale in by %d", delta),
 		}, nil
 
 	}
 
 	return nil, fmt.Errorf("unable to parse intent from text: %s", text)
-
 }
 
 // MockLLMProvider simulates an LLM provider but returns the same results as rules.
@@ -233,44 +185,34 @@ type MockLLMProvider struct {
 // NewMockLLMProvider creates a new mock LLM provider.
 
 func NewMockLLMProvider() *MockLLMProvider {
-
 	return &MockLLMProvider{
-
 		rulesProvider: NewRulesProvider(),
 	}
-
 }
 
 // Name returns the provider name.
 
 func (p *MockLLMProvider) Name() string {
-
 	return "mock"
-
 }
 
 // ParseIntent simulates LLM processing but uses rules internally.
 
 func (p *MockLLMProvider) ParseIntent(ctx context.Context, text string) (map[string]interface{}, error) {
-
 	// Mock provider returns the same result as rules provider.
 
 	// In a real implementation, this would call an actual LLM API.
 
 	return p.rulesProvider.ParseIntent(ctx, text)
-
 }
 
 // ProviderFactory creates providers based on mode.
 
 func NewProvider(mode, provider string) (IntentProvider, error) {
-
 	// Default to rules mode if not specified.
 
 	if mode == "" {
-
 		mode = "rules"
-
 	}
 
 	switch mode {
@@ -284,9 +226,7 @@ func NewProvider(mode, provider string) (IntentProvider, error) {
 		// Default to mock provider if not specified.
 
 		if provider == "" {
-
 			provider = "mock"
-
 		}
 
 		switch provider {
@@ -306,5 +246,4 @@ func NewProvider(mode, provider string) (IntentProvider, error) {
 		return nil, fmt.Errorf("unknown mode: %s", mode)
 
 	}
-
 }

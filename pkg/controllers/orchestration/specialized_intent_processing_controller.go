@@ -1,3 +1,6 @@
+//go:build !disable_rag
+// +build !disable_rag
+
 /*
 
 Copyright 2025.
@@ -127,9 +130,9 @@ type ProcessingSession struct {
 
 	IntentText string `json:"intentText"`
 
-	RAGContext map[string]interface{} `json:"ragContext,omitempty"`
+	RAGContext json.RawMessage `json:"ragContext,omitempty"`
 
-	LLMResponse map[string]interface{} `json:"llmResponse,omitempty"`
+	LLMResponse json.RawMessage `json:"llmResponse,omitempty"`
 
 	Confidence float64 `json:"confidence"`
 
@@ -235,7 +238,6 @@ type CacheEntry struct {
 // NewSpecializedIntentProcessingController creates a new specialized intent processing controller.
 
 func NewSpecializedIntentProcessingController(mgr ctrl.Manager, config IntentProcessingConfig) (*SpecializedIntentProcessingController, error) {
-
 	logger := log.FromContext(context.Background()).WithName("specialized-intent-processor")
 
 	// Initialize LLM client.
@@ -251,9 +253,7 @@ func NewSpecializedIntentProcessingController(mgr ctrl.Manager, config IntentPro
 	var err error = nil
 
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to initialize RAG service: %w", err)
-
 	}
 
 	// Initialize prompt engine.
@@ -267,7 +267,6 @@ func NewSpecializedIntentProcessingController(mgr ctrl.Manager, config IntentPro
 	// Initialize performance optimizer.
 
 	performanceOptimizer := llm.NewPerformanceOptimizer(&llm.PerformanceConfig{
-
 		LatencyBufferSize: 1000,
 
 		OptimizationInterval: time.Minute * 5,
@@ -286,7 +285,6 @@ func NewSpecializedIntentProcessingController(mgr ctrl.Manager, config IntentPro
 	if config.CircuitBreakerEnabled {
 
 		cbConfig := &llm.CircuitBreakerConfig{
-
 			FailureThreshold: int64(config.FailureThreshold),
 
 			Timeout: config.RecoveryTimeout,
@@ -309,7 +307,6 @@ func NewSpecializedIntentProcessingController(mgr ctrl.Manager, config IntentPro
 	}
 
 	controller := &SpecializedIntentProcessingController{
-
 		Client: mgr.GetClient(),
 
 		Scheme: mgr.GetScheme(),
@@ -341,7 +338,6 @@ func NewSpecializedIntentProcessingController(mgr ctrl.Manager, config IntentPro
 		stopChan: make(chan struct{}),
 
 		healthStatus: interfaces.HealthStatus{
-
 			Status: "Healthy",
 
 			Message: "Controller initialized successfully",
@@ -357,13 +353,10 @@ func NewSpecializedIntentProcessingController(mgr ctrl.Manager, config IntentPro
 		cacheTTL := config.CacheTTL
 
 		if cacheTTL == 0 {
-
 			cacheTTL = 5 * time.Minute // Default TTL
-
 		}
 
 		controller.cache = &IntentProcessingCache{
-
 			entries: make(map[string]*CacheEntry),
 
 			ttl: cacheTTL,
@@ -375,45 +368,34 @@ func NewSpecializedIntentProcessingController(mgr ctrl.Manager, config IntentPro
 	}
 
 	return controller, nil
-
 }
 
 // ProcessPhase implements the PhaseController interface.
 
 func (c *SpecializedIntentProcessingController) ProcessPhase(ctx context.Context, intent *nephoranv1.NetworkIntent, phase interfaces.ProcessingPhase) (interfaces.ProcessingResult, error) {
-
 	if phase != interfaces.PhaseLLMProcessing {
-
 		return interfaces.ProcessingResult{
-
 			Success: false,
 
 			ErrorMessage: fmt.Sprintf("unsupported phase: %s", phase),
 		}, nil
-
 	}
 
 	result, err := c.ProcessIntent(ctx, intent)
-
 	if err != nil {
-
 		return interfaces.ProcessingResult{
-
 			Success: false,
 
 			ErrorMessage: err.Error(),
 		}, err
-
 	}
 
 	return *result, nil
-
 }
 
 // ProcessIntent implements the IntentProcessor interface.
 
 func (c *SpecializedIntentProcessingController) ProcessIntent(ctx context.Context, intent *nephoranv1.NetworkIntent) (*interfaces.ProcessingResult, error) {
-
 	startTime := time.Now()
 
 	c.Logger.Info("Processing intent",
@@ -427,7 +409,6 @@ func (c *SpecializedIntentProcessingController) ProcessIntent(ctx context.Contex
 	// Create processing session.
 
 	session := &ProcessingSession{
-
 		IntentID: intent.Name,
 
 		CorrelationID: fmt.Sprintf("intent-%s-%d", intent.Name, startTime.Unix()),
@@ -452,7 +433,6 @@ func (c *SpecializedIntentProcessingController) ProcessIntent(ctx context.Contex
 	// Check cache first.
 
 	if c.cache != nil {
-
 		if cached := c.getCachedResult(intent.Spec.Intent); cached != nil {
 
 			c.Logger.Info("Cache hit for intent", "intentId", intent.Name)
@@ -462,7 +442,6 @@ func (c *SpecializedIntentProcessingController) ProcessIntent(ctx context.Contex
 			c.updateMetrics(session, true, time.Since(startTime))
 
 			return &interfaces.ProcessingResult{
-
 				Success: true,
 
 				NextPhase: interfaces.PhaseResourcePlanning,
@@ -470,7 +449,6 @@ func (c *SpecializedIntentProcessingController) ProcessIntent(ctx context.Contex
 				Data: cached.Result.Data,
 
 				Metrics: map[string]float64{
-
 					"processing_time_ms": float64(time.Since(startTime).Milliseconds()),
 
 					"cache_hit": 1,
@@ -478,7 +456,6 @@ func (c *SpecializedIntentProcessingController) ProcessIntent(ctx context.Contex
 			}, nil
 
 		}
-
 	}
 
 	// Validate intent.
@@ -492,7 +469,6 @@ func (c *SpecializedIntentProcessingController) ProcessIntent(ctx context.Contex
 		c.updateMetrics(session, false, time.Since(startTime))
 
 		return &interfaces.ProcessingResult{
-
 			Success: false,
 
 			ErrorMessage: err.Error(),
@@ -507,7 +483,6 @@ func (c *SpecializedIntentProcessingController) ProcessIntent(ctx context.Contex
 	session.updateProgress(0.3, "enhancing_with_rag")
 
 	ragContext, err := c.EnhanceWithRAG(ctx, intent.Spec.Intent)
-
 	if err != nil {
 
 		c.Logger.Error(err, "Failed to enhance intent with RAG", "intentId", intent.Name)
@@ -520,7 +495,11 @@ func (c *SpecializedIntentProcessingController) ProcessIntent(ctx context.Contex
 
 	}
 
-	session.RAGContext = ragContext
+	if ragContext != nil {
+		if ragBytes, err := json.Marshal(ragContext); err == nil {
+			session.RAGContext = json.RawMessage(ragBytes)
+		}
+	}
 
 	session.Metrics.RAGLatency = time.Since(startTime)
 
@@ -549,7 +528,6 @@ func (c *SpecializedIntentProcessingController) ProcessIntent(ctx context.Contex
 		c.updateMetrics(session, false, time.Since(startTime))
 
 		return &interfaces.ProcessingResult{
-
 			Success: false,
 
 			ErrorMessage: err.Error(),
@@ -568,7 +546,6 @@ func (c *SpecializedIntentProcessingController) ProcessIntent(ctx context.Contex
 		c.updateMetrics(session, false, time.Since(startTime))
 
 		return &interfaces.ProcessingResult{
-
 			Success: false,
 
 			ErrorMessage: fmt.Sprintf("intent processing confidence %.2f below threshold %.2f", confidence, c.ConfidenceThreshold),
@@ -578,7 +555,11 @@ func (c *SpecializedIntentProcessingController) ProcessIntent(ctx context.Contex
 
 	}
 
-	session.LLMResponse = llmResponse
+	if llmResponse != nil {
+		if llmBytes, err := json.Marshal(llmResponse); err == nil {
+			session.LLMResponse = json.RawMessage(llmBytes)
+		}
+	}
 
 	session.Confidence = confidence
 
@@ -587,28 +568,13 @@ func (c *SpecializedIntentProcessingController) ProcessIntent(ctx context.Contex
 	// Create result.
 
 	result := &interfaces.ProcessingResult{
-
 		Success: true,
 
 		NextPhase: interfaces.PhaseResourcePlanning,
 
-		Data: map[string]interface{}{
-
-			"llmResponse": llmResponse,
-
-			"ragContext": ragContext,
-
-			"confidence": confidence,
-
-			"intentType": intent.Spec.IntentType,
-
-			"originalIntent": intent.Spec.Intent,
-
-			"correlationId": session.CorrelationID,
-		},
+		Data: json.RawMessage(`{}`),
 
 		Metrics: map[string]float64{
-
 			"processing_time_ms": float64(time.Since(startTime).Milliseconds()),
 
 			"llm_latency_ms": float64(session.Metrics.LLMLatency.Milliseconds()),
@@ -621,9 +587,7 @@ func (c *SpecializedIntentProcessingController) ProcessIntent(ctx context.Contex
 		},
 
 		Events: []interfaces.ProcessingEvent{
-
 			{
-
 				Timestamp: time.Now(),
 
 				EventType: "IntentProcessed",
@@ -632,12 +596,7 @@ func (c *SpecializedIntentProcessingController) ProcessIntent(ctx context.Contex
 
 				CorrelationID: session.CorrelationID,
 
-				Data: map[string]interface{}{
-
-					"intentId": intent.Name,
-
-					"confidence": confidence,
-				},
+				Data: json.RawMessage(`{}`),
 			},
 		},
 	}
@@ -645,9 +604,7 @@ func (c *SpecializedIntentProcessingController) ProcessIntent(ctx context.Contex
 	// Cache result if enabled.
 
 	if c.cache != nil {
-
 		c.cacheResult(intent.Spec.Intent, *result)
-
 	}
 
 	// Update metrics.
@@ -663,13 +620,11 @@ func (c *SpecializedIntentProcessingController) ProcessIntent(ctx context.Contex
 		"duration", time.Since(startTime))
 
 	return result, nil
-
 }
 
 // processWithLLM processes intent using standard LLM client.
 
 func (c *SpecializedIntentProcessingController) processWithLLM(ctx context.Context, intent *nephoranv1.NetworkIntent, ragContext map[string]interface{}) (map[string]interface{}, float64, error) {
-
 	// Build enhanced prompt with RAG context.
 
 	prompt := c.PromptEngine.GeneratePrompt("NetworkFunctionDeployment", intent.Spec.Intent)
@@ -681,23 +636,18 @@ func (c *SpecializedIntentProcessingController) processWithLLM(ctx context.Conte
 		prompt += "\n\nAdditional Context from Knowledge Base:\n"
 
 		if docs, ok := ragContext["relevant_documents"]; ok {
-
 			if docList, ok := docs.([]interface{}); ok {
-
 				for i, doc := range docList {
 
 					if i >= 3 { // Limit to 3 most relevant documents
 
 						break
-
 					}
 
 					prompt += fmt.Sprintf("- %v\n", doc)
 
 				}
-
 			}
-
 		}
 
 	}
@@ -707,15 +657,10 @@ func (c *SpecializedIntentProcessingController) processWithLLM(ctx context.Conte
 	if c.circuitBreaker != nil {
 
 		response, err := c.circuitBreaker.Execute(ctx, func(ctx context.Context) (interface{}, error) {
-
 			return c.LLMClient.ProcessIntent(ctx, prompt)
-
 		})
-
 		if err != nil {
-
 			return nil, 0, err
-
 		}
 
 		return c.parseValidateLLMResponse(response.(string))
@@ -725,33 +670,26 @@ func (c *SpecializedIntentProcessingController) processWithLLM(ctx context.Conte
 	// Direct LLM call.
 
 	response, err := c.LLMClient.ProcessIntent(ctx, prompt)
-
 	if err != nil {
-
 		return nil, 0, fmt.Errorf("LLM processing failed: %w", err)
-
 	}
 
 	return c.parseValidateLLMResponse(response)
-
 }
 
 // processWithStreamingLLM processes intent using streaming LLM client.
 
 func (c *SpecializedIntentProcessingController) processWithStreamingLLM(ctx context.Context, intent *nephoranv1.NetworkIntent, ragContext map[string]interface{}) (map[string]interface{}, float64, error) {
-
 	// Note: Streaming would require a different interface.
 
 	// For now, fall back to regular processing.
 
 	return c.processWithLLM(ctx, intent, ragContext)
-
 }
 
 // parseValidateLLMResponse parses and validates LLM response.
 
 func (c *SpecializedIntentProcessingController) parseValidateLLMResponse(response string) (map[string]interface{}, float64, error) {
-
 	// Parse JSON response.
 
 	var result map[string]interface{}
@@ -769,15 +707,11 @@ func (c *SpecializedIntentProcessingController) parseValidateLLMResponse(respons
 			jsonStr := response[startIdx : endIdx+1]
 
 			if err := json.Unmarshal([]byte(jsonStr), &result); err != nil {
-
 				return nil, 0, fmt.Errorf("failed to parse LLM response as JSON: %w", err)
-
 			}
 
 		} else {
-
 			return nil, 0, fmt.Errorf("no valid JSON found in LLM response")
-
 		}
 
 	}
@@ -791,19 +725,13 @@ func (c *SpecializedIntentProcessingController) parseValidateLLMResponse(respons
 		// Try alternative confidence field names.
 
 		if confInterface, exists := result["confidence_score"]; exists {
-
 			if conf, ok := confInterface.(float64); ok {
-
 				confidence = conf
-
 			}
-
 		}
 
 		if confidence == 0 {
-
 			confidence = 0.8 // Default confidence if not provided
-
 		}
 
 	}
@@ -813,43 +741,32 @@ func (c *SpecializedIntentProcessingController) parseValidateLLMResponse(respons
 	requiredFields := []string{"network_functions", "deployment_pattern", "resources"}
 
 	for _, field := range requiredFields {
-
 		if _, exists := result[field]; !exists {
-
 			c.Logger.Info("Missing required field in LLM response", "field", field)
-
 		}
-
 	}
 
 	return result, confidence, nil
-
 }
 
 // ValidateIntent validates the intent text.
 
 func (c *SpecializedIntentProcessingController) ValidateIntent(ctx context.Context, intent string) error {
-
 	// Basic validation.
 
 	if strings.TrimSpace(intent) == "" {
-
 		return fmt.Errorf("intent cannot be empty")
-
 	}
 
 	// Length validation.
 
 	if len(intent) > 10000 {
-
 		return fmt.Errorf("intent text too long (max 10000 characters)")
-
 	}
 
 	// Telecom-specific validation.
 
 	telecomKeywords := []string{
-
 		"5g", "network", "deployment", "slice", "cnf", "vnf", "amf", "smf", "upf",
 
 		"monitoring", "security", "performance", "scaling", "bandwidth", "latency",
@@ -860,7 +777,6 @@ func (c *SpecializedIntentProcessingController) ValidateIntent(ctx context.Conte
 	hasRelevantKeyword := false
 
 	for _, keyword := range telecomKeywords {
-
 		if strings.Contains(intentLower, keyword) {
 
 			hasRelevantKeyword = true
@@ -868,33 +784,25 @@ func (c *SpecializedIntentProcessingController) ValidateIntent(ctx context.Conte
 			break
 
 		}
-
 	}
 
 	if !hasRelevantKeyword {
-
 		return fmt.Errorf("intent does not appear to be telecommunications-related")
-
 	}
 
 	return nil
-
 }
 
 // EnhanceWithRAG enhances intent with RAG context.
 
 func (c *SpecializedIntentProcessingController) EnhanceWithRAG(ctx context.Context, intent string) (map[string]interface{}, error) {
-
 	if c.RAGService == nil {
-
 		return make(map[string]interface{}), nil
-
 	}
 
 	// Query RAG service for relevant context.
 
 	ragQuery := &RAGRequest{
-
 		Query: intent,
 
 		MaxResults: 10, // Default value since MaxContextChunks doesn't exist
@@ -904,11 +812,8 @@ func (c *SpecializedIntentProcessingController) EnhanceWithRAG(ctx context.Conte
 	}
 
 	ragResponse, err := c.RAGService.ProcessQuery(ctx, ragQuery)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("RAG query failed: %w", err)
-
 	}
 
 	// Structure RAG context.
@@ -916,15 +821,12 @@ func (c *SpecializedIntentProcessingController) EnhanceWithRAG(ctx context.Conte
 	ragContext := ragResponse.Context
 
 	return ragContext, nil
-
 }
 
 // GetSupportedIntentTypes returns supported intent types.
 
 func (c *SpecializedIntentProcessingController) GetSupportedIntentTypes() []string {
-
 	return c.SupportedIntents
-
 }
 
 // Helper methods for session management.
@@ -932,7 +834,6 @@ func (c *SpecializedIntentProcessingController) GetSupportedIntentTypes() []stri
 // updateProgress updates session progress.
 
 func (s *ProcessingSession) updateProgress(progress float64, step string) {
-
 	s.mutex.Lock()
 
 	defer s.mutex.Unlock()
@@ -940,13 +841,11 @@ func (s *ProcessingSession) updateProgress(progress float64, step string) {
 	s.Progress = progress
 
 	s.CurrentStep = step
-
 }
 
 // addError adds error to session.
 
 func (s *ProcessingSession) addError(errorMsg string) {
-
 	s.mutex.Lock()
 
 	defer s.mutex.Unlock()
@@ -954,7 +853,6 @@ func (s *ProcessingSession) addError(errorMsg string) {
 	s.Errors = append(s.Errors, errorMsg)
 
 	s.LastError = errorMsg
-
 }
 
 // Cache management methods.
@@ -962,11 +860,8 @@ func (s *ProcessingSession) addError(errorMsg string) {
 // getCachedResult retrieves cached result for intent.
 
 func (c *SpecializedIntentProcessingController) getCachedResult(intent string) *CacheEntry {
-
 	if c.cache == nil {
-
 		return nil
-
 	}
 
 	c.cache.mutex.RLock()
@@ -994,17 +889,13 @@ func (c *SpecializedIntentProcessingController) getCachedResult(intent string) *
 	}
 
 	return nil
-
 }
 
 // cacheResult stores result in cache.
 
 func (c *SpecializedIntentProcessingController) cacheResult(intent string, result interfaces.ProcessingResult) {
-
 	if c.cache == nil {
-
 		return
-
 	}
 
 	c.cache.mutex.Lock()
@@ -1024,7 +915,6 @@ func (c *SpecializedIntentProcessingController) cacheResult(intent string, resul
 		var oldestTime time.Time
 
 		for key, entry := range c.cache.entries {
-
 			if oldestKey == "" || entry.Timestamp.Before(oldestTime) {
 
 				oldestKey = key
@@ -1032,19 +922,15 @@ func (c *SpecializedIntentProcessingController) cacheResult(intent string, resul
 				oldestTime = entry.Timestamp
 
 			}
-
 		}
 
 		if oldestKey != "" {
-
 			delete(c.cache.entries, oldestKey)
-
 		}
 
 	}
 
 	c.cache.entries[intentHash] = &CacheEntry{
-
 		Result: result,
 
 		Timestamp: time.Now(),
@@ -1053,23 +939,19 @@ func (c *SpecializedIntentProcessingController) cacheResult(intent string, resul
 
 		IntentHash: intentHash,
 	}
-
 }
 
 // hashIntent creates a hash for intent text.
 
 func (c *SpecializedIntentProcessingController) hashIntent(intent string) string {
-
 	// Simple hash based on intent content - in production, use proper hashing.
 
 	return fmt.Sprintf("intent_%x", len(intent)+int(intent[0]))
-
 }
 
 // updateMetrics updates controller metrics.
 
 func (c *SpecializedIntentProcessingController) updateMetrics(session *ProcessingSession, success bool, totalDuration time.Duration) {
-
 	c.metrics.mutex.Lock()
 
 	defer c.metrics.mutex.Unlock()
@@ -1077,13 +959,9 @@ func (c *SpecializedIntentProcessingController) updateMetrics(session *Processin
 	c.metrics.TotalProcessed++
 
 	if success {
-
 		c.metrics.SuccessfulProcessed++
-
 	} else {
-
 		c.metrics.FailedProcessed++
-
 	}
 
 	// Update average latency.
@@ -1097,9 +975,7 @@ func (c *SpecializedIntentProcessingController) updateMetrics(session *Processin
 		c.metrics.AverageLatency = totalLatency / time.Duration(c.metrics.TotalProcessed)
 
 	} else {
-
 		c.metrics.AverageLatency = totalDuration
-
 	}
 
 	// Update cache hit rate.
@@ -1113,34 +989,26 @@ func (c *SpecializedIntentProcessingController) updateMetrics(session *Processin
 		c.cache.mutex.RLock()
 
 		for _, entry := range c.cache.entries {
-
 			cacheHits += entry.HitCount
-
 		}
 
 		c.cache.mutex.RUnlock()
 
 		if totalCacheRequests > 0 {
-
 			c.metrics.CacheHitRate = float64(cacheHits) / float64(totalCacheRequests)
-
 		}
 
 	}
 
 	c.metrics.LastUpdated = time.Now()
-
 }
 
 // NewIntentProcessingMetrics creates new metrics instance.
 
 func NewIntentProcessingMetrics() *IntentProcessingMetrics {
-
 	return &IntentProcessingMetrics{
-
 		IntentTypeMetrics: make(map[string]*IntentTypeMetrics),
 	}
-
 }
 
 // Interface implementation methods.
@@ -1148,7 +1016,6 @@ func NewIntentProcessingMetrics() *IntentProcessingMetrics {
 // GetPhaseStatus returns the status of a processing phase.
 
 func (c *SpecializedIntentProcessingController) GetPhaseStatus(ctx context.Context, intentID string) (*interfaces.PhaseStatus, error) {
-
 	if session, exists := c.activeProcessing.Load(intentID); exists {
 
 		s := session.(*ProcessingSession)
@@ -1160,23 +1027,16 @@ func (c *SpecializedIntentProcessingController) GetPhaseStatus(ctx context.Conte
 		status := "Pending"
 
 		if s.Progress > 0 && s.Progress < 1.0 {
-
 			status = "InProgress"
-
 		} else if s.Progress >= 1.0 {
-
 			status = "Completed"
-
 		}
 
 		if len(s.Errors) > 0 {
-
 			status = "Failed"
-
 		}
 
 		return &interfaces.PhaseStatus{
-
 			Phase: interfaces.PhaseLLMProcessing,
 
 			Status: status,
@@ -1188,7 +1048,6 @@ func (c *SpecializedIntentProcessingController) GetPhaseStatus(ctx context.Conte
 			LastError: s.LastError,
 
 			Metrics: map[string]float64{
-
 				"progress": s.Progress,
 
 				"confidence": s.Confidence,
@@ -1202,18 +1061,15 @@ func (c *SpecializedIntentProcessingController) GetPhaseStatus(ctx context.Conte
 	}
 
 	return &interfaces.PhaseStatus{
-
 		Phase: interfaces.PhaseLLMProcessing,
 
 		Status: "Pending",
 	}, nil
-
 }
 
 // HandlePhaseError handles errors during phase processing.
 
 func (c *SpecializedIntentProcessingController) HandlePhaseError(ctx context.Context, intentID string, err error) error {
-
 	c.Logger.Error(err, "Intent processing error", "intentId", intentID)
 
 	if session, exists := c.activeProcessing.Load(intentID); exists {
@@ -1245,23 +1101,18 @@ func (c *SpecializedIntentProcessingController) HandlePhaseError(ctx context.Con
 	}
 
 	return err
-
 }
 
 // GetDependencies returns phase dependencies.
 
 func (c *SpecializedIntentProcessingController) GetDependencies() []interfaces.ProcessingPhase {
-
 	return []interfaces.ProcessingPhase{interfaces.PhaseIntentReceived}
-
 }
 
 // GetBlockedPhases returns phases blocked by this controller.
 
 func (c *SpecializedIntentProcessingController) GetBlockedPhases() []interfaces.ProcessingPhase {
-
 	return []interfaces.ProcessingPhase{
-
 		interfaces.PhaseResourcePlanning,
 
 		interfaces.PhaseManifestGeneration,
@@ -1270,31 +1121,25 @@ func (c *SpecializedIntentProcessingController) GetBlockedPhases() []interfaces.
 
 		interfaces.PhaseDeploymentVerification,
 	}
-
 }
 
 // SetupWithManager sets up the controller with the Manager.
 
 func (c *SpecializedIntentProcessingController) SetupWithManager(mgr ctrl.Manager) error {
-
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nephoranv1.NetworkIntent{}).
 		Complete(c)
-
 }
 
 // Start starts the controller.
 
 func (c *SpecializedIntentProcessingController) Start(ctx context.Context) error {
-
 	c.mutex.Lock()
 
 	defer c.mutex.Unlock()
 
 	if c.started {
-
 		return fmt.Errorf("controller already started")
-
 	}
 
 	c.Logger.Info("Starting specialized intent processing controller")
@@ -1308,7 +1153,6 @@ func (c *SpecializedIntentProcessingController) Start(ctx context.Context) error
 	c.started = true
 
 	c.healthStatus = interfaces.HealthStatus{
-
 		Status: "Healthy",
 
 		Message: "Controller started successfully",
@@ -1317,21 +1161,17 @@ func (c *SpecializedIntentProcessingController) Start(ctx context.Context) error
 	}
 
 	return nil
-
 }
 
 // Stop stops the controller.
 
 func (c *SpecializedIntentProcessingController) Stop(ctx context.Context) error {
-
 	c.mutex.Lock()
 
 	defer c.mutex.Unlock()
 
 	if !c.started {
-
 		return nil
-
 	}
 
 	c.Logger.Info("Stopping specialized intent processing controller")
@@ -1350,17 +1190,13 @@ waitLoop:
 		activeCount := 0
 
 		c.activeProcessing.Range(func(key, value interface{}) bool {
-
 			activeCount++
 
 			return true
-
 		})
 
 		if activeCount == 0 {
-
 			break
-
 		}
 
 		select {
@@ -1382,7 +1218,6 @@ waitLoop:
 	c.started = false
 
 	c.healthStatus = interfaces.HealthStatus{
-
 		Status: "Stopped",
 
 		Message: "Controller stopped",
@@ -1391,48 +1226,32 @@ waitLoop:
 	}
 
 	return nil
-
 }
 
 // GetHealthStatus returns the health status of the controller.
 
 func (c *SpecializedIntentProcessingController) GetHealthStatus(ctx context.Context) (interfaces.HealthStatus, error) {
-
 	c.mutex.RLock()
 
 	defer c.mutex.RUnlock()
 
 	// Update metrics in health status.
 
-	c.healthStatus.Metrics = map[string]interface{}{
-
-		"totalProcessed": c.metrics.TotalProcessed,
-
-		"successRate": c.getSuccessRate(),
-
-		"averageLatency": c.metrics.AverageLatency.Milliseconds(),
-
-		"cacheHitRate": c.metrics.CacheHitRate,
-
-		"activeProcessing": c.getActiveProcessingCount(),
-	}
+	c.healthStatus.Metrics = json.RawMessage(`{}`)
 
 	c.healthStatus.LastChecked = time.Now()
 
 	return c.healthStatus, nil
-
 }
 
 // GetMetrics returns controller metrics.
 
 func (c *SpecializedIntentProcessingController) GetMetrics(ctx context.Context) (map[string]float64, error) {
-
 	c.metrics.mutex.RLock()
 
 	defer c.metrics.mutex.RUnlock()
 
 	return map[string]float64{
-
 		"total_processed": float64(c.metrics.TotalProcessed),
 
 		"successful_processed": float64(c.metrics.SuccessfulProcessed),
@@ -1453,13 +1272,11 @@ func (c *SpecializedIntentProcessingController) GetMetrics(ctx context.Context) 
 
 		"active_processing": float64(c.getActiveProcessingCount()),
 	}, nil
-
 }
 
 // Reconcile implements the controller reconciliation logic.
 
 func (c *SpecializedIntentProcessingController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-
 	logger := log.FromContext(ctx)
 
 	// Get the NetworkIntent.
@@ -1487,15 +1304,12 @@ func (c *SpecializedIntentProcessingController) Reconcile(ctx context.Context, r
 	// For now, we'll process all intents in certain phases.
 
 	if intent.Status.Phase != "LLMProcessing" && intent.Status.Phase != "" {
-
 		return ctrl.Result{}, nil
-
 	}
 
 	// Process the intent.
 
 	result, err := c.ProcessIntent(ctx, &intent)
-
 	if err != nil {
 
 		logger.Error(err, "Failed to process intent")
@@ -1511,17 +1325,13 @@ func (c *SpecializedIntentProcessingController) Reconcile(ctx context.Context, r
 		intent.Status.Phase = "ResourcePlanning"
 
 		if intent.Status.Extensions == nil {
-
 			intent.Status.Extensions = make(map[string]runtime.RawExtension)
-
 		}
 
 		// Store LLM response in extensions.
 
 		if llmResponseBytes, err := json.Marshal(result.Data); err == nil {
-
 			intent.Status.Extensions["llmResponse"] = runtime.RawExtension{Raw: llmResponseBytes}
-
 		}
 
 		intent.Status.LastUpdateTime = metav1.Now()
@@ -1551,7 +1361,6 @@ func (c *SpecializedIntentProcessingController) Reconcile(ctx context.Context, r
 	logger.Info("Intent processing completed", "intentId", intent.Name, "success", result.Success)
 
 	return ctrl.Result{}, nil
-
 }
 
 // Helper methods.
@@ -1559,13 +1368,11 @@ func (c *SpecializedIntentProcessingController) Reconcile(ctx context.Context, r
 // backgroundCleanup performs background cleanup tasks.
 
 func (c *SpecializedIntentProcessingController) backgroundCleanup(ctx context.Context) {
-
 	ticker := time.NewTicker(10 * time.Minute)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ticker.C:
@@ -1583,21 +1390,17 @@ func (c *SpecializedIntentProcessingController) backgroundCleanup(ctx context.Co
 			return
 
 		}
-
 	}
-
 }
 
 // healthMonitoring performs periodic health monitoring.
 
 func (c *SpecializedIntentProcessingController) healthMonitoring(ctx context.Context) {
-
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ticker.C:
@@ -1613,29 +1416,23 @@ func (c *SpecializedIntentProcessingController) healthMonitoring(ctx context.Con
 			return
 
 		}
-
 	}
-
 }
 
 // cleanupExpiredSessions removes expired processing sessions.
 
 func (c *SpecializedIntentProcessingController) cleanupExpiredSessions() {
-
 	expiredSessions := make([]string, 0)
 
 	c.activeProcessing.Range(func(key, value interface{}) bool {
-
 		session := value.(*ProcessingSession)
 
 		if time.Since(session.StartTime) > time.Hour { // 1 hour expiration
 
 			expiredSessions = append(expiredSessions, key.(string))
-
 		}
 
 		return true
-
 	})
 
 	for _, sessionID := range expiredSessions {
@@ -1645,17 +1442,13 @@ func (c *SpecializedIntentProcessingController) cleanupExpiredSessions() {
 		c.Logger.Info("Cleaned up expired processing session", "sessionId", sessionID)
 
 	}
-
 }
 
 // cleanupExpiredCache removes expired cache entries.
 
 func (c *SpecializedIntentProcessingController) cleanupExpiredCache() {
-
 	if c.cache == nil {
-
 		return
-
 	}
 
 	c.cache.mutex.Lock()
@@ -1665,33 +1458,23 @@ func (c *SpecializedIntentProcessingController) cleanupExpiredCache() {
 	expiredKeys := make([]string, 0)
 
 	for key, entry := range c.cache.entries {
-
 		if time.Since(entry.Timestamp) > c.cache.ttl {
-
 			expiredKeys = append(expiredKeys, key)
-
 		}
-
 	}
 
 	for _, key := range expiredKeys {
-
 		delete(c.cache.entries, key)
-
 	}
 
 	if len(expiredKeys) > 0 {
-
 		c.Logger.Info("Cleaned up expired cache entries", "count", len(expiredKeys))
-
 	}
-
 }
 
 // performHealthCheck performs controller health checking.
 
 func (c *SpecializedIntentProcessingController) performHealthCheck() {
-
 	c.mutex.Lock()
 
 	defer c.mutex.Unlock()
@@ -1729,7 +1512,6 @@ func (c *SpecializedIntentProcessingController) performHealthCheck() {
 		cbStats := c.circuitBreaker.GetStats()
 
 		if stateVal, ok := cbStats["state"]; ok {
-
 			if state, ok := stateVal.(string); ok && state == "Open" {
 
 				status = "Unhealthy"
@@ -1737,59 +1519,42 @@ func (c *SpecializedIntentProcessingController) performHealthCheck() {
 				message = "Circuit breaker is open"
 
 			}
-
 		}
 
 	}
 
 	c.healthStatus = interfaces.HealthStatus{
-
 		Status: status,
 
 		Message: message,
 
 		LastChecked: time.Now(),
 
-		Metrics: map[string]interface{}{
-
-			"successRate": successRate,
-
-			"activeProcessing": activeCount,
-
-			"totalProcessed": c.metrics.TotalProcessed,
-		},
+		Metrics: json.RawMessage(`{}`),
 	}
-
 }
 
 // getSuccessRate calculates success rate.
 
 func (c *SpecializedIntentProcessingController) getSuccessRate() float64 {
-
 	if c.metrics.TotalProcessed == 0 {
-
 		return 1.0
-
 	}
 
 	return float64(c.metrics.SuccessfulProcessed) / float64(c.metrics.TotalProcessed)
-
 }
 
 // getActiveProcessingCount returns count of active processing sessions.
 
 func (c *SpecializedIntentProcessingController) getActiveProcessingCount() int {
-
 	count := 0
 
 	c.activeProcessing.Range(func(key, value interface{}) bool {
-
 		count++
 
 		return true
-
 	})
 
 	return count
-
 }
+

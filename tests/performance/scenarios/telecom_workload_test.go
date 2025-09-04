@@ -107,33 +107,21 @@ func TestRealisticTelecomWorkload(t *testing.T) {
 				{
 					Name: "Create eMBB Slice",
 					Execute: func() error {
-						return createNetworkSlice(ctx, "eMBB", map[string]interface{}{
-							"bandwidth": "10Gbps",
-							"latency":   "20ms",
-							"priority":  5,
-						})
+						return createNetworkSlice(ctx, "eMBB", map[string]interface{}{})
 					},
 					Delay: 1 * time.Second,
 				},
 				{
 					Name: "Create URLLC Slice",
 					Execute: func() error {
-						return createNetworkSlice(ctx, "URLLC", map[string]interface{}{
-							"bandwidth": "1Gbps",
-							"latency":   "1ms",
-							"priority":  10,
-						})
+						return createNetworkSlice(ctx, "URLLC", map[string]interface{}{})
 					},
 					Delay: 1 * time.Second,
 				},
 				{
 					Name: "Create mMTC Slice",
 					Execute: func() error {
-						return createNetworkSlice(ctx, "mMTC", map[string]interface{}{
-							"bandwidth": "100Mbps",
-							"devices":   "1000000",
-							"priority":  3,
-						})
+						return createNetworkSlice(ctx, "mMTC", map[string]interface{}{})
 					},
 					Delay: 1 * time.Second,
 				},
@@ -236,9 +224,9 @@ func TestHighVolumeDeployment(t *testing.T) {
 		return processIntent(ctx, intent)
 	}
 
-	result, err := suite.RunConcurrentBenchmark(ctx, 50, 60*time.Second, workload)
-	if err != nil {
-		t.Fatalf("High volume deployment test failed: %v", err)
+	result := suite.RunConcurrentBenchmark(ctx, "HighVolumeDeploymentTest", 50, 60*time.Second, workload)
+	if result.Error != nil {
+		t.Fatalf("High volume deployment test failed: %v", result.Error)
 	}
 
 	// Validate against target: 50 intents/second with <5s P95 latency
@@ -272,11 +260,7 @@ func TestComplexIntentProcessing(t *testing.T) {
 			},
 			Spec: nephoranv1.NetworkIntentSpec{
 				Intent: "Deploy complete 5G network with AMF, SMF, UPF, configure network slicing for eMBB and URLLC, enable auto-scaling, setup monitoring and alerting, configure security policies, and integrate with existing OSS/BSS systems",
-				TargetClusters: []string{
-					"production-cluster-1",
-					"production-cluster-2",
-					"edge-cluster-1",
-				},
+				TargetCluster: "production-cluster-1",
 			},
 		}
 
@@ -284,21 +268,19 @@ func TestComplexIntentProcessing(t *testing.T) {
 		return processComplexIntent(ctx, intent)
 	}
 
-	result, err := suite.RunSingleIntentBenchmark(ctx, complexIntent)
-	if err != nil {
-		t.Fatalf("Complex intent processing failed: %v", err)
+	result := suite.RunMemoryStabilityBenchmark(ctx, "ComplexIntentProcessing", 30*time.Second, complexIntent)
+	if result.Error != nil {
+		t.Fatalf("Complex intent processing failed: %v", result.Error)
 	}
 
 	// Complex intents should complete within 30 seconds
-	if result.Latencies[0] > 30*time.Second {
-		t.Errorf("Complex intent processing took %v, exceeds 30 second target", result.Latencies[0])
+	if result.Duration > 30*time.Second {
+		t.Errorf("Complex intent processing took %v, exceeds 30 second target", result.Duration)
 	}
 
 	t.Logf("Complex Intent Results:")
-	t.Logf("  Processing Time: %v", result.Latencies[0])
-	t.Logf("  Memory Used: %.2f MB", result.PeakMemoryMB)
-	t.Logf("  CPU Used: %.2f%%", result.PeakCPUPercent)
-	t.Logf("  Goroutines: %d", result.MaxGoroutines)
+	t.Logf("  Processing Time: %v", result.Duration)
+	t.Logf("  Test Passed: %v", result.Passed)
 }
 
 // Helper functions for simulating telecom operations
@@ -406,8 +388,8 @@ func generateRandomIntent() *nephoranv1.NetworkIntent {
 			Namespace: "default",
 		},
 		Spec: nephoranv1.NetworkIntentSpec{
-			Intent:         intents[time.Now().UnixNano()%int64(len(intents))],
-			TargetClusters: []string{"cluster-1"},
+			Intent:        intents[time.Now().UnixNano()%int64(len(intents))],
+			TargetCluster: "cluster-1",
 		},
 	}
 }
@@ -436,3 +418,4 @@ func processComplexIntent(ctx context.Context, intent *nephoranv1.NetworkIntent)
 
 	return nil
 }
+

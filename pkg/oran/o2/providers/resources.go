@@ -1,7 +1,9 @@
 package providers
 
 import (
-	"time"
+	
+	"encoding/json"
+"time"
 )
 
 // ClusterSpec defines the specification for creating a Kubernetes cluster
@@ -225,19 +227,19 @@ type AlertResource struct {
 // AlertAction defines an action to take when alert fires
 type AlertAction struct {
 	Type   string                 `json:"type"` // webhook, email, slack
-	Config map[string]interface{} `json:"config"`
+	Config json.RawMessage `json:"config"`
 }
 
 // HealthStatus represents the health status of a resource
 type HealthStatus struct {
-	ResourceID  string            `json:"resourceId"`
-	Status      string            `json:"status"` // healthy, warning, critical, unknown
-	Message     string            `json:"message,omitempty"`
-	Checks      []HealthCheck     `json:"checks"`
-	Timestamp   time.Time         `json:"timestamp"`
-	LastUpdated time.Time         `json:"lastUpdated"`
-	Metadata    map[string]string `json:"metadata,omitempty"`
-	Details     map[string]interface{} `json:"details,omitempty"` // Additional health details
+	ResourceID  string                 `json:"resourceId"`
+	Status      string                 `json:"status"` // healthy, warning, critical, unknown
+	Message     string                 `json:"message,omitempty"`
+	Checks      []HealthCheck          `json:"checks"`
+	Timestamp   time.Time              `json:"timestamp"`
+	LastUpdated time.Time              `json:"lastUpdated"`
+	Metadata    map[string]string      `json:"metadata,omitempty"`
+	Details     json.RawMessage `json:"details,omitempty"` // Additional health details
 }
 
 // HealthCheck represents a single health check result

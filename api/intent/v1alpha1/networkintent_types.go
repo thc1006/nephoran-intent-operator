@@ -1,93 +1,132 @@
 package v1alpha1
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // +kubebuilder:object:root=true
-
 // +kubebuilder:subresource:status
-
-// +kubebuilder:resource:scope=Namespaced,shortName=ni
-
-// +kubebuilder:printcolumn:name="Target",type=string,JSONPath=`.spec.target`
-
-// +kubebuilder:printcolumn:name="Replicas",type=integer,JSONPath=`.spec.replicas`
-
-// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
-
-// +kubebuilder:webhook:path=/mutate-intent-nephoran-com-v1alpha1-networkintent,mutating=true,failurePolicy=fail,sideEffects=None,groups=intent.nephoran.com,resources=networkintents,verbs=create;update,versions=v1alpha1,name=mnetworkintent.kb.io,admissionReviewVersions=v1
-
-// +kubebuilder:webhook:path=/validate-intent-nephoran-com-v1alpha1-networkintent,mutating=false,failurePolicy=fail,sideEffects=None,groups=intent.nephoran.com,resources=networkintents,verbs=create;update,versions=v1alpha1,name=vnetworkintent.kb.io,admissionReviewVersions=v1
-
-// NetworkIntent is the Schema for the networkintents API.
-// It represents a high-level intent for network configuration and management.
+// +kubebuilder:resource:scope=Namespaced
+// NetworkIntent represents a high-level network scaling and configuration intent
 type NetworkIntent struct {
-	metav1.TypeMeta `json:",inline"`
-
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec NetworkIntentSpec `json:"spec,omitempty"`
-
+	Spec   NetworkIntentSpec   `json:"spec,omitempty"`
 	Status NetworkIntentStatus `json:"status,omitempty"`
 }
 
-// NetworkIntentSpec defines the desired state of NetworkIntent.
-// It specifies the intent type, target, and configuration parameters.
+// NetworkIntentSpec defines the desired state of a network intent
 type NetworkIntentSpec struct {
-	// +kubebuilder:validation:Enum=scaling
-
-	IntentType string `json:"intentType"`
-
-	// +kubebuilder:validation:MinLength=1
-
-	Target string `json:"target"`
-
-	// +kubebuilder:validation:MinLength=1
-
-	Namespace string `json:"namespace"`
-
-	// +kubebuilder:validation:Minimum=0
-
-	Replicas int32 `json:"replicas"`
-
-	// +kubebuilder:default="user"
-
+	// Source of the intent (e.g., "user", "automation")
 	Source string `json:"source,omitempty"`
+
+	// IntentType specifies the type of intent (e.g., "scaling")
+	IntentType string `json:"intentType,omitempty"`
+
+	// Target specifies the target component or resource
+	Target string `json:"target,omitempty"`
+
+	// Namespace specifies the target namespace
+	Namespace string `json:"namespace,omitempty"`
+
+	// Replicas specifies the desired number of replicas
+	Replicas int32 `json:"replicas,omitempty"`
+
+	// ScalingParameters define how network functions should be scaled
+	ScalingParameters ScalingConfig `json:"scalingParameters,omitempty"`
+
+	// NetworkParameters define network-level configurations
+	NetworkParameters NetworkConfig `json:"networkParameters,omitempty"`
 }
 
-// +k8s:deepcopy-gen=true
-
-// NetworkIntentStatus defines the observed state of NetworkIntent.
-// It contains runtime status information and conditions.
-type NetworkIntentStatus struct {
+// ScalingConfig defines scaling behavior for network functions
+type ScalingConfig struct {
+	// Replicas defines the desired number of replicas for network functions
 	// +optional
+	Replicas int32 `json:"replicas,omitempty"`
 
+	// AutoscalingPolicy defines how automatic scaling should occur
+	// +optional
+	AutoscalingPolicy AutoscalingPolicy `json:"autoscalingPolicy,omitempty"`
+}
+
+// AutoscalingPolicy defines rules for automatic scaling
+type AutoscalingPolicy struct {
+	// MinReplicas is the lower limit of replicas
+	// +optional
+	MinReplicas *int32 `json:"minReplicas,omitempty"`
+
+	// MaxReplicas is the upper limit of replicas
+	// +optional
+	MaxReplicas *int32 `json:"maxReplicas,omitempty"`
+
+	// MetricThresholds define scaling triggers
+	// +optional
+	MetricThresholds []MetricThreshold `json:"metricThresholds,omitempty"`
+}
+
+// MetricThreshold defines a condition for scaling
+type MetricThreshold struct {
+	// Type of metric (CPU, Memory, Custom)
+	Type string `json:"type"`
+
+	// Value at which scaling occurs
+	Value int64 `json:"value"`
+}
+
+// NetworkConfig defines network-level configurations
+type NetworkConfig struct {
+	// NetworkSliceID defines the specific network slice
+	// +optional
+	NetworkSliceID string `json:"networkSliceId,omitempty"`
+
+	// QoSProfile defines Quality of Service settings
+	// +optional
+	QoSProfile QoSProfile `json:"qosProfile,omitempty"`
+}
+
+// QoSProfile defines Quality of Service parameters
+type QoSProfile struct {
+	// Priority of the network slice
+	// +optional
+	Priority int32 `json:"priority,omitempty"`
+
+	// MaximumDataRate defines the maximum data transmission rate
+	// +optional
+	MaximumDataRate string `json:"maximumDataRate,omitempty"`
+}
+
+// NetworkIntentStatus defines the observed state of a network intent
+type NetworkIntentStatus struct {
+	// Phase indicates the current phase of the intent
+	Phase string `json:"phase,omitempty"`
+
+	// Message contains human-readable information about the status
+	Message string `json:"message,omitempty"`
+
+	// ObservedReplicas reflects the current number of replicas
+	// +optional
 	ObservedReplicas *int32 `json:"observedReplicas,omitempty"`
 
+	// ReadyReplicas represents the number of ready instances
 	// +optional
+	ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
 
+	// Conditions represent the current conditions
+	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	// LLMResponse contains the raw LLM response data.
-
+	// LLMResponse contains the LLM processing response
 	// +optional
-
 	LLMResponse *apiextensionsv1.JSON `json:"llmResponse,omitempty"`
 }
 
 // +kubebuilder:object:root=true
-
-// NetworkIntentList contains a list of NetworkIntent resources.
+// NetworkIntentList contains a list of NetworkIntent
 type NetworkIntentList struct {
 	metav1.TypeMeta `json:",inline"`
-
 	metav1.ListMeta `json:"metadata,omitempty"`
-
-	Items []NetworkIntent `json:"items"`
-}
-
-func init() {
-	SchemeBuilder.Register(&NetworkIntent{}, &NetworkIntentList{})
+	Items           []NetworkIntent `json:"items"`
 }

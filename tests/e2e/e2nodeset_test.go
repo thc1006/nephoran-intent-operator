@@ -26,7 +26,7 @@ var _ = Describe("E2NodeSet Controller", func() {
 					Replicas: 3,
 					Template: nephoran.E2NodeTemplate{
 						Spec: nephoran.E2NodeSpec{
-							NodeID: "test-e2node-001",
+							NodeID:             "test-e2node-001",
 							E2InterfaceVersion: "v2.0",
 							SupportedRANFunctions: []nephoran.RANFunction{
 								{FunctionID: 1, Revision: 1},
@@ -61,7 +61,7 @@ var _ = Describe("E2NodeSet Controller", func() {
 				if err != nil {
 					return ""
 				}
-				return createdE2NodeSet.Status.Phase
+				return string(createdE2NodeSet.Status.Phase)
 			}, 30*time.Second, 2*time.Second).Should(Not(BeEmpty()))
 
 			By("Cleaning up the E2NodeSet")
@@ -80,7 +80,7 @@ var _ = Describe("E2NodeSet Controller", func() {
 					Replicas: 1,
 					Template: nephoran.E2NodeTemplate{
 						Spec: nephoran.E2NodeSpec{
-							NodeID: "scalable-e2node-001",
+							NodeID:             "scalable-e2node-001",
 							E2InterfaceVersion: "v2.0",
 							SupportedRANFunctions: []nephoran.RANFunction{
 								{FunctionID: 1, Revision: 1},
@@ -173,7 +173,7 @@ var _ = Describe("E2NodeSet Controller", func() {
 						Replicas: 1,
 						Template: nephoran.E2NodeTemplate{
 							Spec: nephoran.E2NodeSpec{
-								NodeID: config.name + "-e2node",
+								NodeID:             config.name + "-e2node",
 								E2InterfaceVersion: "v2.0",
 								SupportedRANFunctions: []nephoran.RANFunction{
 									{FunctionID: 1, Revision: 1},
@@ -205,7 +205,7 @@ var _ = Describe("E2NodeSet Controller", func() {
 					if err != nil {
 						return ""
 					}
-					return createdE2NodeSet.Status.Phase
+					return string(createdE2NodeSet.Status.Phase)
 				}, 30*time.Second, 2*time.Second).Should(Not(BeEmpty()))
 			}
 
@@ -229,7 +229,7 @@ var _ = Describe("E2NodeSet Controller", func() {
 					Replicas: 1,
 					Template: nephoran.E2NodeTemplate{
 						Spec: nephoran.E2NodeSpec{
-							NodeID: "", // Invalid empty NodeID
+							NodeID:             "", // Invalid empty NodeID
 							E2InterfaceVersion: "v2.0",
 							SupportedRANFunctions: []nephoran.RANFunction{
 								{FunctionID: 1, Revision: 1},
@@ -260,7 +260,7 @@ var _ = Describe("E2NodeSet Controller", func() {
 				if err != nil {
 					return ""
 				}
-				return createdE2NodeSet.Status.Phase
+				return string(createdE2NodeSet.Status.Phase)
 			}, 30*time.Second, 2*time.Second).Should(Not(BeEmpty()))
 
 			By("Cleaning up the invalid E2NodeSet")
@@ -281,7 +281,7 @@ var _ = Describe("E2NodeSet Controller", func() {
 					Replicas: 2,
 					Template: nephoran.E2NodeTemplate{
 						Spec: nephoran.E2NodeSpec{
-							NodeID: "deletable-e2node",
+							NodeID:             "deletable-e2node",
 							E2InterfaceVersion: "v2.0",
 							SupportedRANFunctions: []nephoran.RANFunction{
 								{FunctionID: 1, Revision: 1},
