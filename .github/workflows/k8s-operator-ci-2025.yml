@@ -194,9 +194,18 @@ jobs:
       - name: Install Kubebuilder
         run: |
           echo "🔧 Installing Kubebuilder ${{ env.KUBEBUILDER_VERSION }}..."
-          curl -L -o kubebuilder https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${{ env.KUBEBUILDER_VERSION }}/kubebuilder_linux_amd64
-          chmod +x kubebuilder
-          sudo mv kubebuilder /usr/local/bin/
+          
+          # Remove any existing invalid kubebuilder
+          sudo rm -f /usr/local/bin/kubebuilder
+          
+          # Download and install kubebuilder
+          curl -L -o kubebuilder.tar.gz https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${{ env.KUBEBUILDER_VERSION }}/kubebuilder_linux_amd64.tar.gz
+          tar -zxvf kubebuilder.tar.gz
+          sudo mv kubebuilder/bin/kubebuilder /usr/local/bin/kubebuilder
+          
+          # Verify installation
+          file /usr/local/bin/kubebuilder
+          chmod +x /usr/local/bin/kubebuilder
           kubebuilder version
           
       - name: Install additional K8s tools
