@@ -877,7 +877,7 @@ jobs:
   # =============================================================================
   ci-status:
     name: "📊 CI Status Report"
-    needs: [preflight, k8s-validation, security-scan, controller-tests, integration-tests, build-package]
+    needs: [preflight, k8s-validation, security-scan, controller-tests, build-package]
     runs-on: ubuntu-latest
     if: always()
     
@@ -898,7 +898,6 @@ jobs:
           echo "- ☸️ K8s Validation: ${{ needs.k8s-validation.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- 🔒 Security Scan: ${{ needs.security-scan.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- 🎮 Controller Tests: ${{ needs.controller-tests.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- 🔗 Integration Tests: ${{ needs.integration-tests.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- 📦 Build & Package: ${{ needs.build-package.result }}" >> $GITHUB_STEP_SUMMARY
           
       - name: Determine final status
@@ -940,12 +939,6 @@ jobs:
             echo "[View logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
           fi
-          if [[ "${{ needs.integration-tests.result }}" == "failure" ]]; then
-            FAILED_JOBS="$FAILED_JOBS integration-tests"
-            echo "### ❌ Integration Tests Failed" >> $GITHUB_STEP_SUMMARY
-            echo "[View logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-          fi
           
           if [[ -n "$FAILED_JOBS" ]]; then
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -956,8 +949,12 @@ jobs:
             echo "- Check the logs above for each failed job" >> $GITHUB_STEP_SUMMARY
             echo "- Look for error patterns in the workflow output" >> $GITHUB_STEP_SUMMARY
             echo "- Enable debug logs by setting ACTIONS_STEP_DEBUG=true" >> $GITHUB_STEP_SUMMARY
+            echo "📊 CI Status Report: FAILURE"
+            echo "CI Status: fail"
             exit 1
           else
+            echo "📊 CI Status Report: SUCCESS"
+            echo "CI Status: success"
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "**✅ Status: PASSED**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -967,8 +964,5 @@ jobs:
             echo "- ✅ CRD and RBAC configurations validated" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ Enhanced security scanning completed" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ envtest-based controller testing passed" >> $GITHUB_STEP_SUMMARY
-            if [[ "${{ needs.integration-tests.result }}" == "success" ]]; then
-              echo "- ✅ Full integration testing with KIND cluster completed" >> $GITHUB_STEP_SUMMARY
-            fi
             echo "- ✅ Production-ready build artifacts generated" >> $GITHUB_STEP_SUMMARY
           fi

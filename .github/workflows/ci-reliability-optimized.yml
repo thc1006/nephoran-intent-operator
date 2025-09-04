@@ -411,7 +411,7 @@ jobs:
   integration-validation:
     name: "🔗 Integration Validation"
     needs: [reliable-build, reliability-tests]
-    if: always() && needs.reliable-build.result != 'cancelled'
+    if: always() && needs.reliable-build.result != 'cancelled' && needs.reliable-build.result != 'skipped'
     runs-on: ubuntu-latest
     timeout-minutes: 8
     
@@ -439,7 +439,13 @@ jobs:
           if [ "$total_files" -eq 0 ]; then
             echo "❌ No build artifacts found. Build job may have failed or not produced binaries."
             echo "Checking if build job skipped due to no changes..."
-            exit 1
+            echo "Build job result: ${{ needs.reliable-build.result }}"
+            # Don't fail if build was skipped due to no changes or if builds completed but no artifacts
+            if [ "${{ needs.reliable-build.result }}" = "skipped" ]; then
+              echo "✅ Build was skipped due to no changes - this is expected"
+            else
+              exit 1
+            fi
           else
             echo "✅ Found $total_files artifact files"
           fi
@@ -485,7 +491,14 @@ jobs:
             echo "❌ No binaries found in artifacts. Build artifacts may be missing."
             echo "Available artifacts:"
             ls -la artifacts/ 2>/dev/null || echo "No artifacts directory found"
-            exit 1
+            echo "Build job result: ${{ needs.reliable-build.result }}"
+            # Don't fail if build was skipped due to no changes
+            if [ "${{ needs.reliable-build.result }}" = "skipped" ]; then
+              echo "✅ Build was skipped due to no changes - integration tests not applicable"
+              exit 0
+            else
+              exit 1
+            fi
           fi
           
           for binary in bin/*; do
@@ -568,7 +581,7 @@ jobs:
             echo "⚠️ Some tests failed - check test results" >> $GITHUB_STEP_SUMMARY
           fi
           
-          # Integration validation failure is critical
+          # Integration validation failure is critical (but skipped is OK)
           if [ "${{ needs.integration-validation.result }}" = "failure" ]; then
             CRITICAL_FAILURES="$CRITICAL_FAILURES integration"
           fi
@@ -579,8 +592,12 @@ jobs:
             echo "**Status: FAILED** ❌" >> $GITHUB_STEP_SUMMARY
             echo "Critical failures: $CRITICAL_FAILURES" >> $GITHUB_STEP_SUMMARY
             echo "❌ CI Pipeline failed with critical errors"
+            echo "📊 CI Status Report: FAILURE" 
+            echo "CI Status: fail"
             exit 1
           else
+            echo "📊 CI Status Report: SUCCESS"
+            echo "CI Status: success"
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "**Status: PASSED** ✅" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
