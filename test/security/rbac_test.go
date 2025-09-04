@@ -6,7 +6,6 @@ Kubernetes operator following 2025 security best practices.
 package security
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -30,11 +29,9 @@ func TestRBACValidation(t *testing.T) {
 var _ = Describe("RBAC Security Validation", func() {
 	var (
 		rbacManifests []string
-		ctx           context.Context
 	)
 
 	BeforeEach(func() {
-		ctx = context.TODO()
 		
 		// Load all RBAC manifests from config/rbac
 		rbacDir := filepath.Join("..", "..", "config", "rbac")

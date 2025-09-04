@@ -33,8 +33,7 @@ func TestSystemIntegration(t *testing.T) {
 	discoveryClient, err := discovery.NewDiscoveryClientForConfig(config)
 	require.NoError(t, err, "Failed to create discovery client")
 
-	porchClient, err := porchclient.NewClient(config)
-	require.NoError(t, err, "Failed to create Porch client")
+	porchClient := porchclient.NewClient("http://porch-server:8080", false)
 
 	t.Run("KubernetesAPIServerHealthCheck", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
 
 	porchclient "github.com/thc1006/nephoran-intent-operator/pkg/porch"
 )
@@ -62,8 +63,7 @@ func TestPorchPerformanceLoad(t *testing.T) {
 	config, err := rest.InClusterConfig()
 	require.NoError(t, err, "Failed to load Kubernetes config")
 
-	porchClient, err := porchclient.NewClient(config)
-	require.NoError(t, err, "Failed to create Porch client")
+	porchClient := porchclient.NewClient("http://porch-server:8080", false)
 
 	metrics := &performanceMetrics{}
 	var wg sync.WaitGroup

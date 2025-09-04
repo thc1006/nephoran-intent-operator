@@ -17,11 +17,11 @@ on:
       - 'PROJECT'
       - 'Makefile*'
       - '.github/workflows/k8s-operator-ci-2025.yml'
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-    branches:
-      - main
-      - integrate/**
+  # pull_request: DISABLED - Consolidated into nephoran-ci-consolidated-2025.yml
+  #   types: [opened, synchronize, reopened, ready_for_review]
+  #   branches:
+  #     - main
+  #     - integrate/**
   workflow_dispatch:
     inputs:
       security_scan:

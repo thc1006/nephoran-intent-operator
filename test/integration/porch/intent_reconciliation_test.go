@@ -3,14 +3,22 @@ package porch_test
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	networkintentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
+	networkintentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1alpha1"
+	porchv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1alpha1"
+)
+
+const (
+	letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 )
 
 var _ = Describe("Porch Intent Reconciliation", func() {

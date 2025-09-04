@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
@@ -34,8 +35,7 @@ func setupTestEnvironment(t *testing.T) (*rest.Config, *kubernetes.Clientset, *p
 	require.NoError(t, err, "Failed to create Kubernetes clientset")
 
 	// Create Porch client
-	porchClient, err := porchclient.NewClient(config)
-	require.NoError(t, err, "Failed to create Porch client")
+	porchClient := porchclient.NewClient("http://porch-server:8080", false)
 
 	// Create test namespace
 	ns := &v1.Namespace{

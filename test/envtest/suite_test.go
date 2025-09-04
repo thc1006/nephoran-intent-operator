@@ -20,12 +20,16 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	// Import your API types here
 	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1alpha1"
@@ -158,12 +162,8 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(mgr)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = (&controllers.OranClusterReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Log:    ctrl.Log.WithName("controllers").WithName("OranCluster"),
-	}).SetupWithManager(mgr)
-	Expect(err).ToNot(HaveOccurred())
+	// OranClusterReconciler setup commented out - type not found
+	// TODO: Add OranClusterReconciler when OranCluster type is implemented
 
 	// +kubebuilder:scaffold:builder
 
@@ -174,10 +174,8 @@ var _ = BeforeSuite(func() {
 		logf.Log.Info("Webhook setup failed, continuing without webhooks", "error", err)
 	}
 
-	err = (&intentv1alpha1.OranCluster{}).SetupWebhookWithManager(mgr)
-	if err != nil {
-		logf.Log.Info("OranCluster webhook setup failed, continuing without webhooks", "error", err)
-	}
+	// OranCluster webhook setup commented out - type not found
+	// TODO: Add OranCluster webhook when OranCluster type is implemented
 
 	By("starting the controller manager")
 	go func() {
@@ -219,16 +217,9 @@ func CreateNetworkIntent(name, namespace string, spec intentv1alpha1.NetworkInte
 	}
 }
 
-// CreateOranCluster creates an OranCluster resource for testing
-func CreateOranCluster(name, namespace string, spec intentv1alpha1.OranClusterSpec) *intentv1alpha1.OranCluster {
-	return &intentv1alpha1.OranCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: spec,
-	}
-}
+// CreateOranCluster commented out - OranCluster type not found
+// TODO: Implement when OranCluster type is added
+// func CreateOranCluster(name, namespace string, spec intentv1alpha1.OranClusterSpec) *intentv1alpha1.OranCluster
 
 // WaitForResource waits for a resource to reach a specific condition
 func WaitForResource(ctx context.Context, client client.Client, obj client.Object, conditionFunc func() bool) error {

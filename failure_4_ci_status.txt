@@ -1,0 +1,33 @@
+CI Status	Check CI Status	﻿2025-09-04T22:43:16.1620177Z ##[group]Run set -e  # Bash strict mode - fail on any error
+CI Status	Check CI Status	2025-09-04T22:43:16.1621706Z [36;1mset -e  # Bash strict mode - fail on any error[0m
+CI Status	Check CI Status	2025-09-04T22:43:16.1622862Z [36;1mecho "Checking individual job results..."[0m
+CI Status	Check CI Status	2025-09-04T22:43:16.1624135Z [36;1mecho "Quick check: failure"[0m
+CI Status	Check CI Status	2025-09-04T22:43:16.1625133Z [36;1mecho "Build: skipped"[0m
+CI Status	Check CI Status	2025-09-04T22:43:16.1626097Z [36;1mecho "Test: skipped"[0m
+CI Status	Check CI Status	2025-09-04T22:43:16.1627316Z [36;1mecho "Integration: skipped"[0m
+CI Status	Check CI Status	2025-09-04T22:43:16.1628327Z [36;1m[0m
+CI Status	Check CI Status	2025-09-04T22:43:16.1629133Z [36;1mif [ "failure" == "failure" ] || \[0m
+CI Status	Check CI Status	2025-09-04T22:43:16.1630441Z [36;1m   [ "skipped" == "failure" ] || \[0m
+CI Status	Check CI Status	2025-09-04T22:43:16.1631565Z [36;1m   [ "skipped" == "failure" ] || \[0m
+CI Status	Check CI Status	2025-09-04T22:43:16.1632660Z [36;1m   [ "skipped" == "failure" ]; then[0m
+CI Status	Check CI Status	2025-09-04T22:43:16.1633928Z [36;1m  echo "CI pipeline failed - one or more jobs failed"[0m
+CI Status	Check CI Status	2025-09-04T22:43:16.1635096Z [36;1m  exit 1[0m
+CI Status	Check CI Status	2025-09-04T22:43:16.1635855Z [36;1mfi[0m
+CI Status	Check CI Status	2025-09-04T22:43:16.1636924Z [36;1mecho "CI pipeline passed successfully!"[0m
+CI Status	Check CI Status	2025-09-04T22:43:16.2014452Z shell: /usr/bin/bash -e {0}
+CI Status	Check CI Status	2025-09-04T22:43:16.2016208Z env:
+CI Status	Check CI Status	2025-09-04T22:43:16.2016963Z   GO_VERSION: 1.22
+CI Status	Check CI Status	2025-09-04T22:43:16.2018110Z   GOPROXY: https://proxy.golang.org,direct
+CI Status	Check CI Status	2025-09-04T22:43:16.2019235Z   GOSUMDB: sum.golang.org
+CI Status	Check CI Status	2025-09-04T22:43:16.2020327Z   CGO_ENABLED: 0
+CI Status	Check CI Status	2025-09-04T22:43:16.2021345Z   GOMAXPROCS: 4
+CI Status	Check CI Status	2025-09-04T22:43:16.2022087Z   GOMEMLIMIT: 4GiB
+CI Status	Check CI Status	2025-09-04T22:43:16.2022862Z   GOGC: 100
+CI Status	Check CI Status	2025-09-04T22:43:16.2023691Z ##[endgroup]
+CI Status	Check CI Status	2025-09-04T22:43:16.2316417Z Checking individual job results...
+CI Status	Check CI Status	2025-09-04T22:43:16.2317454Z Quick check: failure
+CI Status	Check CI Status	2025-09-04T22:43:16.2318215Z Build: skipped
+CI Status	Check CI Status	2025-09-04T22:43:16.2318885Z Test: skipped
+CI Status	Check CI Status	2025-09-04T22:43:16.2319767Z Integration: skipped
+CI Status	Check CI Status	2025-09-04T22:43:16.2320585Z CI pipeline failed - one or more jobs failed
+CI Status	Check CI Status	2025-09-04T22:43:16.2347516Z ##[error]Process completed with exit code 1.

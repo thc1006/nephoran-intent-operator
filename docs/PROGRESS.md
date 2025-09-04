@@ -71,3 +71,4 @@ Updates are tracked here in append-only format.
 | 2025-08-19T12:05:00.0000000+08:00 | feat/porch-direct | merge | Confirmed no actual conflicts, updated PR status for GitHub |
 | 2025-08-19T12:15:00.0000000+08:00 | feat/porch-direct | merge | Resolved real conflicts with integrate/mvp, merged all progress entries |
 | 2025-08-19T14:01:27.9260571+08:00 | feat/porch-direct | security/tests | Critical security fixes and comprehensive test coverage |
+| 2025-09-04T15:30:00Z | feat/porch-direct | ci-pipeline | Consolidated 38+ workflows to fix PR 176 timeout cascade |

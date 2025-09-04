@@ -1,0 +1,289 @@
+# =============================================================================
+# Nephoran Intent Operator - Go Build Configuration
+# =============================================================================
+# Advanced configuration for Go 1.24.x build optimization
+# Optimizes: caching, dependencies, parallelization, memory usage
+# Target: Sub-8 minute builds for large Kubernetes operator projects
+# =============================================================================
+
+# Build configuration
+build:
+  # Go toolchain version and optimization level
+  go_version: "1.24.0"
+  toolchain: "go1.24.6"
+  optimization_level: "ultra"  # ultra, high, balanced, standard, debug
+  
+  # Environment variables for maximum performance
+  environment:
+    CGO_ENABLED: "0"
+    GOOS: "linux"
+    GOARCH: "amd64"
+    GOMAXPROCS: "8"
+    GOMEMLIMIT: "12GiB"
+    GOGC: "75"  # Aggressive GC for build speed
+    GOEXPERIMENT: "fieldtrack,boringcrypto"
+    GODEBUG: "gocachehash=1,gocachetest=1"
+    GOFLAGS: "-mod=readonly -trimpath -buildvcs=false"
+  
+  # Advanced build flags by optimization level
+  flags:
+    ultra:
+      ldflags: "-s -w -extldflags=-static -buildid="
+      gcflags: "-l=4 -B -C -wb=false"  # Aggressive inlining and optimizations
+      tags: "netgo,osusergo,static_build,ultra_fast,boringcrypto"
+      parallel: 8
+    high:
+      ldflags: "-s -w -extldflags=-static"
+      gcflags: "-l=3 -B"
+      tags: "netgo,osusergo,static_build,optimized"
+      parallel: 6
+    balanced:
+      ldflags: "-s -w -extldflags=-static"
+      gcflags: "-l=2"
+      tags: "netgo,osusergo,static_build"
+      parallel: 4
+    standard:
+      ldflags: "-s -w"
+      gcflags: "-l=1"
+      tags: "netgo,osusergo"
+      parallel: 4
+    debug:
+      ldflags: "-w"
+      gcflags: ""
+      tags: "netgo,osusergo"
+      parallel: 2
+      race: true
+
+# Dependency management and caching
+dependencies:
+  # Module proxy configuration for large dependency trees
+  proxy:
+    primary: "https://proxy.golang.org"
+    fallback: "direct"
+    private_repos: "github.com/thc1006/*"
+  
+  # Aggressive caching strategy
+  caching:
+    module_cache_ttl: "24h"
+    build_cache_ttl: "7d"
+    aggressive_prefetch: true
+    parallel_downloads: 8
+    retry_attempts: 3
+    retry_delay: "5s"
+    download_timeout: "180s"
+  
+  # Dependency optimization
+  optimization:
+    auto_cleanup: true
+    cleanup_interval: "7d"
+    verify_integrity: true
+    compress_cache: true
+    deduplicate_modules: true
+
+# Test configuration
+testing:
+  # Test execution optimization
+  execution:
+    parallel_processes: 4
+    timeout: "8m"
+    race_detection: true  # For critical components
+    coverage_enabled: true
+    shuffle_tests: true
+  
+  # Test categorization for optimized execution
+  categories:
+    critical:
+      patterns: ["./controllers/...", "./api/..."]
+      timeout: "6m"
+      parallel: 4
+      race: true
+      coverage: true
+    core:
+      patterns: ["./pkg/context/...", "./pkg/clients/...", "./pkg/nephio/..."]
+      timeout: "5m"
+      parallel: 4
+      race: false
+      coverage: true
+    integration:
+      patterns: ["./tests/integration/..."]
+      timeout: "15m"
+      parallel: 2
+      race: false
+      coverage: false
+    internal:
+      patterns: ["./internal/..."]
+      timeout: "6m"
+      parallel: 4
+      race: false
+      coverage: true
+
+# Component build configuration
+components:
+  # Critical path components - highest priority
+  critical:
+    - name: "intent-ingest"
+      timeout: "2m"
+      priority: 1
+    - name: "conductor-loop"  
+      timeout: "2m"
+      priority: 1
+    - name: "llm-processor"
+      timeout: "2m"
+      priority: 1
+    - name: "webhook"
+      timeout: "2m"
+      priority: 1
+    - name: "webhook-manager"
+      timeout: "2m"
+      priority: 1
+  
+  # Core service components - high priority
+  core:
+    - name: "porch-publisher"
+      timeout: "2m"
+      priority: 2
+    - name: "conductor"
+      timeout: "2m"
+      priority: 2
+    - name: "nephio-bridge"
+      timeout: "2m"
+      priority: 2
+    - name: "porch-direct"
+      timeout: "2m"
+      priority: 2
+  
+  # Simulator components - medium priority
+  simulators:
+    - name: "a1-sim"
+      timeout: "90s"
+      priority: 3
+    - name: "e2-kpm-sim"
+      timeout: "90s"
+      priority: 3
+    - name: "fcaps-sim"
+      timeout: "90s"
+      priority: 3
+    - name: "o1-ves-sim"
+      timeout: "90s"
+      priority: 3
+    - name: "oran-adaptor"
+      timeout: "90s"
+      priority: 3
+  
+  # Tool components - low priority
+  tools:
+    - name: "security-validator"
+      timeout: "60s"
+      priority: 4
+    - name: "performance-comparison"
+      timeout: "60s"
+      priority: 4
+    - name: "test-performance-engine"
+      timeout: "60s"
+      priority: 4
+    - name: "test-runner-2025"
+      timeout: "60s"
+      priority: 4
+
+# Cache management
+cache:
+  # Directory configuration
+  directories:
+    build_cache: ".go-build-cache"
+    module_cache: ".go-mod-cache"
+    vendor_cache: "vendor"
+  
+  # Cache optimization strategy
+  strategy:
+    type: "aggressive"  # aggressive, conservative, minimal
+    compression: true
+    deduplication: true
+    cleanup_policy: "lru"  # lru, time-based, size-based
+    max_size: "20GB"
+    cleanup_threshold: "85%"
+  
+  # Cache key generation
+  keys:
+    include_go_version: true
+    include_build_flags: true
+    include_dependencies: true
+    include_build_mode: true
+    salt: "nephoran-v10"
+
+# Performance monitoring
+monitoring:
+  # Build metrics collection
+  metrics:
+    enabled: true
+    detailed_timing: true
+    memory_usage: true
+    cache_hit_rates: true
+    dependency_analysis: true
+  
+  # Performance thresholds
+  thresholds:
+    total_build_time: "8m"
+    dependency_resolution: "3m"
+    component_build_avg: "2m"
+    test_execution: "6m"
+    cache_hit_rate: "85%"
+  
+  # Reporting
+  reporting:
+    format: "json"
+    output_file: "build/performance-report.json"
+    include_recommendations: true
+
+# CI/CD integration
+ci:
+  # GitHub Actions optimizations
+  github_actions:
+    runner_type: "ubuntu-22.04"
+    concurrency_limit: 8
+    timeout: "25m"
+    cache_strategy: "aggressive"
+  
+  # Environment-specific configurations
+  environments:
+    development:
+      optimization_level: "balanced"
+      enable_tests: true
+      enable_profiling: false
+    staging:
+      optimization_level: "high"
+      enable_tests: true
+      enable_profiling: true
+    production:
+      optimization_level: "ultra"
+      enable_tests: true
+      enable_profiling: false
+      
+# Security and compliance
+security:
+  # Static binary generation for container security
+  static_linking: true
+  strip_symbols: true
+  remove_debug_info: true
+  
+  # Dependency security
+  vulnerability_scanning: true
+  license_compliance: true
+  private_repo_handling: true
+
+# Experimental features and future optimizations
+experimental:
+  # Go 1.24+ specific optimizations
+  profile_guided_optimization: false  # Enable when profiles available
+  link_time_optimization: true
+  dead_code_elimination: true
+  symbol_table_optimization: true
+  
+  # Advanced caching
+  distributed_cache: false  # For future distributed builds
+  build_cache_compression: "zstd"
+  incremental_builds: true
+  
+  # AI-assisted optimization
+  ml_build_prediction: false  # Future ML-based optimization
+  auto_parallelization: true
+  dynamic_resource_allocation: true

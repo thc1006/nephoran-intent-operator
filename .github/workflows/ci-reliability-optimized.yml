@@ -16,9 +16,9 @@ on:
       - 'go.sum'
       - 'Makefile*'
       - '.github/workflows/ci-reliability-optimized.yml'
-  pull_request:
-    types: [opened, synchronize, reopened]
-    branches: [ main, integrate/** ]
+  # pull_request: DISABLED - Consolidated into nephoran-ci-consolidated-2025.yml
+  #   types: [opened, synchronize, reopened]
+  #   branches: [ main, integrate/** ]
   workflow_dispatch:
     inputs:
       cache_reset:
