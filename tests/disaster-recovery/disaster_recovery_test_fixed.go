@@ -62,7 +62,7 @@ func (suite *EnhancedDisasterRecoveryTestSuite) SetupSuite() {
 
 	// Get disaster recovery specific options.
 
-	options := testtools.DisasterRecoveryTestEnvironmentOptions()
+	options := testtools.DefaultTestEnvironmentOptions()
 
 	// Override CRD paths for this test.
 
@@ -84,34 +84,16 @@ func (suite *EnhancedDisasterRecoveryTestSuite) SetupSuite() {
 
 	var testEnv *testtools.TestEnvironment
 
-	if hasEnhancedTesttools() {
-		testEnv, err = testtools.SetupTestEnvironmentWithBinaryCheck(options)
-	} else {
-		// Fallback to original setup.
-
-		testEnv, err = suite.setupFallbackEnvironment(options)
-	}
+	// Use standard setup method
+	testEnv, err = testtools.SetupTestEnvironmentWithOptions(options)
 
 	if err != nil {
 
 		suite.T().Logf("Enhanced envtest setup failed: %v", err)
 
-		// Try with existing cluster as final fallback.
-
-		suite.T().Log("Attempting fallback to existing cluster...")
-
-		useExisting := true
-
-		options.UseExistingCluster = &useExisting
-
-		testEnv, err = suite.setupFallbackEnvironment(options)
-		if err != nil {
-
-			suite.T().Skipf("Cannot setup test environment: %v", err)
-
-			return
-
-		}
+		// Skip the test if environment setup fails
+		suite.T().Skipf("Cannot setup test environment: %v", err)
+		return
 
 	}
 

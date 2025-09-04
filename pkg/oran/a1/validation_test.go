@@ -15,16 +15,15 @@ import (
 func createValidPolicyTypeSchema() map[string]interface{} {
 	return map[string]interface{}{
 		"scope": map[string]interface{}{
-			"ue_id":   json.RawMessage(`{}`),
-			"cell_id": json.RawMessage(`{}`),
+			"ue_id":   map[string]interface{}{},
+			"cell_id": map[string]interface{}{},
 		},
-		"required": []string{"ue_id"},
+		"required": []string{"ue_id", "statement"},
 		"statement": map[string]interface{}{
-			"qos_class": json.RawMessage(`{}`),
-			"bitrate":   json.RawMessage(`{}`),
-			"action":    json.RawMessage(`{}`),
+			"qos_class": map[string]interface{}{},
+			"bitrate":   map[string]interface{}{},
+			"action":    map[string]interface{}{},
 		},
-		"required": []string{"qos_class", "action"},
 	}
 }
 

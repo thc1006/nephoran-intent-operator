@@ -88,7 +88,7 @@ func TestPolicyType_JSON_Serialization(t *testing.T) {
 		Description:    "Policy for managing traffic steering in O-RAN",
 		Schema: map[string]interface{}{
 			"scope": map[string]interface{}{
-				"ue_id": json.RawMessage(`{}`),
+				"ue_id": map[string]interface{}{},
 			},
 		},
 		CreateSchema: json.RawMessage(`{"notification_destination": {}}`),
@@ -123,7 +123,7 @@ func TestPolicyType_Validation_Tags(t *testing.T) {
 			name: "valid policy type",
 			policyType: PolicyType{
 				PolicyTypeID: 1,
-				Schema: json.RawMessage(`{}`),
+				Schema: map[string]interface{}{},
 			},
 			expectValid: true,
 		},
@@ -131,7 +131,7 @@ func TestPolicyType_Validation_Tags(t *testing.T) {
 			name: "missing policy_type_id",
 			policyType: PolicyType{
 				PolicyTypeID: 0, // Invalid: must be >= 1
-				Schema: json.RawMessage(`{}`),
+				Schema: map[string]interface{}{},
 			},
 			expectValid: false,
 			fieldErrors: []string{"policy_type_id"},
@@ -140,7 +140,7 @@ func TestPolicyType_Validation_Tags(t *testing.T) {
 			name: "negative policy_type_id",
 			policyType: PolicyType{
 				PolicyTypeID: -1, // Invalid: must be >= 1
-				Schema: json.RawMessage(`{}`),
+				Schema: map[string]interface{}{},
 			},
 			expectValid: false,
 			fieldErrors: []string{"policy_type_id"},
@@ -166,7 +166,7 @@ func TestPolicyType_Validation_Tags(t *testing.T) {
 func TestPolicyType_EmptyOptionalFields(t *testing.T) {
 	policyType := &PolicyType{
 		PolicyTypeID: 1,
-		Schema: json.RawMessage(`{}`),
+		Schema: map[string]interface{}{},
 		// Optional fields left empty
 		PolicyTypeName: "",
 		Description:    "",
@@ -237,7 +237,7 @@ func TestPolicyInstance_Validation_Tags(t *testing.T) {
 			instance: PolicyInstance{
 				PolicyID:     "valid-policy-id",
 				PolicyTypeID: 1,
-				PolicyData: json.RawMessage(`{}`),
+				PolicyData: map[string]interface{}{},
 			},
 			expectValid: true,
 		},
@@ -246,7 +246,7 @@ func TestPolicyInstance_Validation_Tags(t *testing.T) {
 			instance: PolicyInstance{
 				PolicyID:     "", // Invalid: required
 				PolicyTypeID: 1,
-				PolicyData: json.RawMessage(`{}`),
+				PolicyData: map[string]interface{}{},
 			},
 			expectValid: false,
 			fieldErrors: []string{"policy_id"},
@@ -256,7 +256,7 @@ func TestPolicyInstance_Validation_Tags(t *testing.T) {
 			instance: PolicyInstance{
 				PolicyID:     "valid-policy-id",
 				PolicyTypeID: 0, // Invalid: must be >= 1
-				PolicyData: json.RawMessage(`{}`),
+				PolicyData: map[string]interface{}{},
 			},
 			expectValid: false,
 			fieldErrors: []string{"policy_type_id"},
@@ -437,15 +437,15 @@ func TestEnrichmentInfoType_JSON_Serialization(t *testing.T) {
 			},
 			"required": []string{"interval_seconds", "target_cells"},
 		},
-		EiJobResultSchema: map[string]interface{}{
-			"measurements": map[string]interface{}{
+		EiJobResultSchema: json.RawMessage(`{
+			"measurements": {
 				"type": "object",
-				"properties": map[string]interface{}{
-					"throughput": json.RawMessage(`{"type":"number"}`),
-					"timestamp":  json.RawMessage(`{}`),
-				},
-			},
-		},
+				"properties": {
+					"throughput": {"type":"number"},
+					"timestamp":  {}
+				}
+			}
+		}`),
 		CreatedAt:  now,
 		ModifiedAt: now,
 	}
@@ -477,7 +477,7 @@ func TestEnrichmentInfoType_Validation_Tags(t *testing.T) {
 			name: "valid EI type",
 			eiType: EnrichmentInfoType{
 				EiTypeID:        "valid-type-id",
-				EiJobDataSchema: json.RawMessage(`{"type":"object"}`),
+				EiJobDataSchema: map[string]interface{}{"type": "object"},
 			},
 			expectValid: true,
 		},
@@ -485,7 +485,7 @@ func TestEnrichmentInfoType_Validation_Tags(t *testing.T) {
 			name: "empty ei_type_id",
 			eiType: EnrichmentInfoType{
 				EiTypeID:        "", // Required field
-				EiJobDataSchema: json.RawMessage(`{"type":"object"}`),
+				EiJobDataSchema: map[string]interface{}{"type": "object"},
 			},
 			expectValid: false,
 			fieldErrors: []string{"ei_type_id"},
@@ -528,18 +528,15 @@ func TestEnrichmentInfoJob_JSON_Serialization(t *testing.T) {
 		JobDefinition: EnrichmentJobDef{
 			DeliveryInfo: []DeliveryInfo{
 				{
-					DeliveryURL:    "http://ei-consumer.example.com/measurements",
-					DeliveryMethod: "POST",
-					Headers: map[string]string{
-						"Content-Type":  "application/json",
-						"Authorization": "Bearer token123",
-					},
+					TopicName:       "ei-measurements",
+					BootStrapServer: "kafka.example.com:9092",
+					AdditionalInfo:  json.RawMessage(`{"content_type": "application/json", "authorization": "Bearer token123"}`),
 				},
 			},
 			JobParameters: json.RawMessage(`{}`),
-			JobResultSchema: map[string]interface{}{
-				"cell_measurements": json.RawMessage(`{}`),
-			},
+			JobResultSchema: json.RawMessage(`{
+				"cell_measurements": {}
+			}`),
 		},
 		CreatedAt:      now,
 		ModifiedAt:     now,
@@ -579,7 +576,7 @@ func TestEnrichmentInfoJob_Validation_Tags(t *testing.T) {
 			job: EnrichmentInfoJob{
 				EiJobID:   "valid-job-id",
 				EiTypeID:  "valid-type-id",
-				EiJobData: json.RawMessage(`{"key":"value"}`),
+				EiJobData: map[string]interface{}{"key": "value"},
 				TargetURI: "http://valid.example.com",
 				JobOwner:  "valid-owner",
 			},
@@ -590,7 +587,7 @@ func TestEnrichmentInfoJob_Validation_Tags(t *testing.T) {
 			job: EnrichmentInfoJob{
 				EiJobID:   "", // Required field
 				EiTypeID:  "valid-type-id",
-				EiJobData: json.RawMessage(`{"key":"value"}`),
+				EiJobData: map[string]interface{}{"key": "value"},
 				TargetURI: "http://valid.example.com",
 				JobOwner:  "valid-owner",
 			},
@@ -602,7 +599,7 @@ func TestEnrichmentInfoJob_Validation_Tags(t *testing.T) {
 			job: EnrichmentInfoJob{
 				EiJobID:   "valid-job-id",
 				EiTypeID:  "", // Required field
-				EiJobData: json.RawMessage(`{"key":"value"}`),
+				EiJobData: map[string]interface{}{"key": "value"},
 				TargetURI: "http://valid.example.com",
 				JobOwner:  "valid-owner",
 			},
@@ -614,7 +611,7 @@ func TestEnrichmentInfoJob_Validation_Tags(t *testing.T) {
 			job: EnrichmentInfoJob{
 				EiJobID:   "valid-job-id",
 				EiTypeID:  "valid-type-id",
-				EiJobData: json.RawMessage(`{"key":"value"}`),
+				EiJobData: map[string]interface{}{"key": "value"},
 				TargetURI: "not-a-url", // Invalid URL format
 				JobOwner:  "valid-owner",
 			},
@@ -626,7 +623,7 @@ func TestEnrichmentInfoJob_Validation_Tags(t *testing.T) {
 			job: EnrichmentInfoJob{
 				EiJobID:   "valid-job-id",
 				EiTypeID:  "valid-type-id",
-				EiJobData: json.RawMessage(`{"key":"value"}`),
+				EiJobData: map[string]interface{}{"key": "value"},
 				TargetURI: "http://valid.example.com",
 				JobOwner:  "", // Required field
 			},
@@ -655,20 +652,21 @@ func TestEnrichmentInfoJob_Validation_Tags(t *testing.T) {
 
 func TestDeliveryInfo_JSON_Serialization(t *testing.T) {
 	deliveryInfo := &DeliveryInfo{
-		DeliveryURL:    "http://callback.example.com/ei-results",
-		DeliveryMethod: "POST",
-		Headers: map[string]string{
-			"Content-Type":      "application/json",
-			"Authorization":     "Bearer token123",
-			"X-Client-ID":       "ei-consumer-1",
-			"X-Request-Timeout": "30s",
-		},
-		RetryPolicy: RetryPolicy{
-			MaxRetries:  3,
-			RetryDelay:  time.Second * 5,
-			BackoffType: "exponential",
-		},
-		Timeout: time.Second * 30,
+		TopicName:       "ei-results-topic",
+		BootStrapServer: "kafka.example.com:9092",
+		AdditionalInfo: json.RawMessage(`{
+			"headers": {
+				"Content-Type": "application/json",
+				"Authorization": "Bearer token123",
+				"X-Client-ID": "ei-consumer-1"
+			},
+			"timeout": "30s",
+			"retry_policy": {
+				"max_retries": 3,
+				"retry_delay": "5s",
+				"backoff_type": "exponential"
+			}
+		}`),
 	}
 
 	jsonData, err := json.Marshal(deliveryInfo)
@@ -678,13 +676,9 @@ func TestDeliveryInfo_JSON_Serialization(t *testing.T) {
 	err = json.Unmarshal(jsonData, &unmarshaled)
 	require.NoError(t, err)
 
-	assert.Equal(t, deliveryInfo.DeliveryURL, unmarshaled.DeliveryURL)
-	assert.Equal(t, deliveryInfo.DeliveryMethod, unmarshaled.DeliveryMethod)
-	assert.Equal(t, deliveryInfo.Headers, unmarshaled.Headers)
-	assert.Equal(t, deliveryInfo.RetryPolicy.MaxRetries, unmarshaled.RetryPolicy.MaxRetries)
-	assert.Equal(t, deliveryInfo.RetryPolicy.RetryDelay, unmarshaled.RetryPolicy.RetryDelay)
-	assert.Equal(t, deliveryInfo.RetryPolicy.BackoffType, unmarshaled.RetryPolicy.BackoffType)
-	assert.Equal(t, deliveryInfo.Timeout, unmarshaled.Timeout)
+	assert.Equal(t, deliveryInfo.TopicName, unmarshaled.TopicName)
+	assert.Equal(t, deliveryInfo.BootStrapServer, unmarshaled.BootStrapServer)
+	assert.Equal(t, deliveryInfo.AdditionalInfo, unmarshaled.AdditionalInfo)
 }
 
 // Test Edge Cases and Error Conditions
@@ -873,7 +867,7 @@ func TestTypes_ConcurrentAccess(t *testing.T) {
 	instance := &PolicyInstance{
 		PolicyID:     "concurrent-test",
 		PolicyTypeID: 1,
-		PolicyData: json.RawMessage(`{}`),
+		PolicyData: map[string]interface{}{},
 	}
 
 	// Test concurrent read access
