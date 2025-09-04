@@ -1,7 +1,6 @@
 package controllers
 
 import (
-t"context"
 	"context"
 	"errors"
 	"fmt"
@@ -20,7 +19,8 @@ t"context"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-n// Constants used in cleanup tests
+
+// Constants used in cleanup tests
 const (
 	NetworkIntentFinalizer = "networkintent.nephoran.com/finalizer"
 )

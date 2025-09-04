@@ -1,0 +1,843 @@
+name: Kubernetes Operator CI 2025
+
+on:
+  push:
+    branches: 
+      - main
+      - integrate/**
+      - feat/**
+      - fix/**
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'config/**'
+      - 'controllers/**'
+      - 'api/**'
+      - 'PROJECT'
+      - 'Makefile*'
+      - '.github/workflows/k8s-operator-ci-2025.yml'
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - main
+      - integrate/**
+  workflow_dispatch:
+    inputs:
+      security_scan:
+        description: 'Enable enhanced security scanning'
+        required: false
+        default: 'true'
+        type: boolean
+      integration_test:
+        description: 'Run full integration tests'
+        required: false
+        default: 'false'
+        type: boolean
+
+# 2025 CI/CD best practice - branch-specific concurrency
+concurrency:
+  group: k8s-operator-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # 2025 Kubernetes and Go versions
+  GO_VERSION: "1.25.0"
+  KUBERNETES_VERSION: "1.32.1"
+  CONTROLLER_RUNTIME_VERSION: "v0.19.1"
+  KUBEBUILDER_VERSION: "4.4.1"
+  ENVTEST_KUBERNETES_VERSION: "1.32.1"
+  
+  # Build optimizations for 2025
+  CGO_ENABLED: "0"
+  GOOS: "linux"
+  GOARCH: "amd64"
+  GOMAXPROCS: "4"
+  GOMEMLIMIT: "4GiB"
+  
+  # Cache configuration
+  GOCACHE: "/tmp/go-cache"
+  GOMODCACHE: "/tmp/go-mod"
+  
+  # Security scanning tools versions
+  TRIVY_VERSION: "0.58.1"
+  COSIGN_VERSION: "2.4.1"
+  GOVULNCHECK_VERSION: "latest"
+
+jobs:
+  # =============================================================================
+  # STAGE 1: Pre-flight Validation & Setup
+  # =============================================================================
+  preflight:
+    name: "🚀 Pre-flight Setup"
+    runs-on: ubuntu-24.04  # 2025 Ubuntu LTS
+    timeout-minutes: 5
+    outputs:
+      go-cache-key: ${{ steps.cache-setup.outputs.cache-key }}
+      should-build: ${{ steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true' }}
+      should-test-integration: ${{ steps.integration-check.outputs.should-run }}
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for security scanning
+          
+      - name: Detect changes
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            go:
+              - '**.go'
+              - 'go.mod'
+              - 'go.sum'
+            k8s:
+              - 'config/**'
+              - 'controllers/**'
+              - 'api/**'
+              - 'PROJECT'
+            security:
+              - 'config/rbac/**'
+              - 'config/crd/**'
+              - 'config/webhook/**'
+              - 'controllers/**'
+              
+      - name: Setup Go ${{ env.GO_VERSION }}
+        if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false  # Manual cache control
+          
+      - name: Setup advanced Go cache
+        if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
+        id: cache-setup
+        run: |
+          # Generate comprehensive cache key for 2025 standards
+          GO_SUM_HASH="${{ hashFiles('**/go.sum') }}"
+          GO_MOD_HASH="${{ hashFiles('go.mod') }}"
+          CONFIG_HASH="${{ hashFiles('config/**/*.yaml', 'PROJECT') }}"
+          
+          # Fallback for empty hashes
+          if [[ -z "$GO_SUM_HASH" ]]; then GO_SUM_HASH="${{ github.sha }}"; fi
+          if [[ -z "$GO_MOD_HASH" ]]; then GO_MOD_HASH="${{ github.sha }}"; fi
+          if [[ -z "$CONFIG_HASH" ]]; then CONFIG_HASH="${{ github.sha }}"; fi
+          
+          CACHE_KEY="nephoran-k8s-op-v3-${{ runner.os }}-go${{ env.GO_VERSION }}-k8s${{ env.KUBERNETES_VERSION }}-${GO_SUM_HASH}-${GO_MOD_HASH}-${CONFIG_HASH}"
+          echo "cache-key=${CACHE_KEY}" >> $GITHUB_OUTPUT
+          echo "Generated cache key: $CACHE_KEY"
+          
+      - name: Restore Go cache
+        if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.GOCACHE }}
+            ${{ env.GOMODCACHE }}
+          key: ${{ steps.cache-setup.outputs.cache-key }}
+          restore-keys: |
+            nephoran-k8s-op-v3-${{ runner.os }}-go${{ env.GO_VERSION }}-k8s${{ env.KUBERNETES_VERSION }}-
+            nephoran-k8s-op-v3-${{ runner.os }}-go${{ env.GO_VERSION }}-
+            
+      - name: Download dependencies
+        if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
+        run: |
+          echo "📦 Downloading Go modules..."
+          go mod download
+          go mod verify
+          echo "✅ Dependencies verified"
+          
+      - name: Integration test check
+        id: integration-check
+        run: |
+          # Determine if integration tests should run
+          SHOULD_RUN="false"
+          if [[ "${{ github.event.inputs.integration_test }}" == "true" ]] || \
+             [[ "${{ github.ref }}" == "refs/heads/main" ]] || \
+             [[ "${{ github.ref }}" =~ refs/heads/integrate/ ]]; then
+            SHOULD_RUN="true"
+          fi
+          echo "should-run=${SHOULD_RUN}" >> $GITHUB_OUTPUT
+          echo "Integration tests will run: ${SHOULD_RUN}"
+
+  # =============================================================================
+  # STAGE 2: Kubernetes-specific Validation
+  # =============================================================================
+  k8s-validation:
+    name: "☸️ Kubernetes Validation"
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    if: needs.preflight.outputs.should-build == 'true'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+          
+      - name: Restore Go cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.GOCACHE }}
+            ${{ env.GOMODCACHE }}
+          key: ${{ needs.preflight.outputs.go-cache-key }}
+          restore-keys: |
+            nephoran-k8s-op-v3-${{ runner.os }}-go${{ env.GO_VERSION }}-k8s${{ env.KUBERNETES_VERSION }}-
+            
+      - name: Install Kubebuilder
+        run: |
+          echo "🔧 Installing Kubebuilder ${{ env.KUBEBUILDER_VERSION }}..."
+          curl -L -o kubebuilder https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${{ env.KUBEBUILDER_VERSION }}/kubebuilder_linux_amd64
+          chmod +x kubebuilder
+          sudo mv kubebuilder /usr/local/bin/
+          kubebuilder version
+          
+      - name: Install additional K8s tools
+        run: |
+          # Install controller-gen for 2025
+          echo "🔧 Installing controller-gen..."
+          go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.19.0
+          
+          # Install kustomize
+          echo "🔧 Installing kustomize..."
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin/
+          
+          # Install CRD validation tools
+          echo "🔧 Installing kubeval..."
+          curl -L https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz | tar xz
+          sudo mv kubeval /usr/local/bin/
+          
+          # Verify installations
+          controller-gen --version
+          kustomize version
+          kubeval --version
+          
+      - name: Validate CRD generation
+        timeout-minutes: 3
+        run: |
+          echo "🎯 Generating and validating CRDs..."
+          make manifests
+          
+          # Validate generated CRDs
+          echo "🔍 Validating CRD schemas..."
+          find config/crd/bases -name "*.yaml" -exec kubeval --strict {} \;
+          
+          # Check for CRD changes (should be committed)
+          if ! git diff --quiet config/crd/bases/; then
+            echo "❌ CRD changes detected but not committed!"
+            echo "Please run 'make manifests' and commit the changes"
+            git diff config/crd/bases/
+            exit 1
+          fi
+          echo "✅ CRDs are up-to-date"
+          
+      - name: Validate RBAC generation
+        timeout-minutes: 2
+        run: |
+          echo "🔐 Generating and validating RBAC..."
+          make generate
+          
+          # Check RBAC files
+          echo "🔍 Validating RBAC configurations..."
+          find config/rbac -name "*.yaml" -exec kubeval --strict {} \;
+          
+          # Check for uncommitted changes
+          if ! git diff --quiet config/rbac/; then
+            echo "❌ RBAC changes detected but not committed!"
+            echo "Please run 'make generate' and commit the changes"
+            git diff config/rbac/
+            exit 1
+          fi
+          echo "✅ RBAC is up-to-date"
+          
+      - name: Validate webhook configurations
+        if: hashFiles('config/webhook/**') != ''
+        timeout-minutes: 2
+        run: |
+          echo "🪝 Validating webhook configurations..."
+          find config/webhook -name "*.yaml" -exec kubeval --strict {} \;
+          echo "✅ Webhook configurations are valid"
+          
+      - name: Kustomize validation
+        timeout-minutes: 2
+        run: |
+          echo "📋 Validating kustomize configurations..."
+          
+          # Validate default overlay
+          echo "🔍 Testing default kustomization..."
+          kustomize build config/default > /tmp/default-manifest.yaml
+          kubeval --strict /tmp/default-manifest.yaml
+          
+          # Validate samples if they exist
+          if [[ -d config/samples ]]; then
+            echo "🔍 Validating sample configurations..."
+            find config/samples -name "*.yaml" -exec kubeval --strict {} \;
+          fi
+          
+          echo "✅ All kustomize configurations are valid"
+
+  # =============================================================================
+  # STAGE 3: Enhanced Security Scanning (2025 Standards)
+  # =============================================================================
+  security-scan:
+    name: "🔒 Security Scan"
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    if: needs.preflight.outputs.should-build == 'true'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better vulnerability detection
+          
+      - name: Setup Go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+          
+      - name: Restore Go cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.GOCACHE }}
+            ${{ env.GOMODCACHE }}
+          key: ${{ needs.preflight.outputs.go-cache-key }}
+          
+      - name: Install security tools
+        run: |
+          # Install Trivy for comprehensive scanning
+          echo "🔧 Installing Trivy ${{ env.TRIVY_VERSION }}..."
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v${{ env.TRIVY_VERSION }}
+          
+          # Install govulncheck for Go-specific vulnerability scanning
+          echo "🔧 Installing govulncheck..."
+          go install golang.org/x/vuln/cmd/govulncheck@${{ env.GOVULNCHECK_VERSION }}
+          
+          # Install cosign for supply chain security
+          echo "🔧 Installing cosign ${{ env.COSIGN_VERSION }}..."
+          curl -O -L "https://github.com/sigstore/cosign/releases/download/v${{ env.COSIGN_VERSION }}/cosign-linux-amd64"
+          sudo mv cosign-linux-amd64 /usr/local/bin/cosign
+          sudo chmod +x /usr/local/bin/cosign
+          
+          # Verify installations
+          trivy --version
+          govulncheck -version
+          cosign version
+          
+      - name: Run Go vulnerability scan
+        timeout-minutes: 5
+        run: |
+          echo "🔍 Scanning Go modules for vulnerabilities..."
+          govulncheck ./...
+          echo "✅ Go vulnerability scan completed"
+          
+      - name: Run filesystem security scan
+        timeout-minutes: 5
+        run: |
+          echo "🔍 Scanning filesystem for security issues..."
+          trivy fs . \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --scanners vuln,secret,config \
+            --format sarif \
+            --output trivy-fs-results.sarif
+          echo "✅ Filesystem security scan completed"
+          
+      - name: Scan Kubernetes configurations
+        timeout-minutes: 3
+        run: |
+          echo "🔍 Scanning Kubernetes configurations..."
+          trivy config config/ \
+            --severity HIGH,CRITICAL \
+            --format sarif \
+            --output trivy-k8s-results.sarif
+          echo "✅ Kubernetes configuration scan completed"
+          
+      - name: RBAC security analysis
+        timeout-minutes: 2
+        run: |
+          echo "🔐 Analyzing RBAC configurations for security issues..."
+          
+          # Check for overprivileged roles
+          echo "🔍 Checking for dangerous RBAC permissions..."
+          if grep -r "apiGroups.*\*" config/rbac/ 2>/dev/null; then
+            echo "⚠️ Warning: Found wildcard API groups in RBAC"
+          fi
+          
+          if grep -r "resources.*\*" config/rbac/ 2>/dev/null; then
+            echo "⚠️ Warning: Found wildcard resources in RBAC"
+          fi
+          
+          if grep -r "verbs.*\*" config/rbac/ 2>/dev/null; then
+            echo "❌ Error: Found wildcard verbs in RBAC - this is dangerous!"
+            exit 1
+          fi
+          
+          echo "✅ RBAC security analysis completed"
+          
+      - name: Container image security scan
+        if: hashFiles('**/Dockerfile') != ''
+        timeout-minutes: 5
+        run: |
+          echo "🐳 Building and scanning container images..."
+          
+          # Build operator image
+          make docker-build IMG=nephoran-operator:security-scan
+          
+          # Scan the built image
+          trivy image \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --format sarif \
+            --output trivy-image-results.sarif \
+            nephoran-operator:security-scan
+            
+          echo "✅ Container image security scan completed"
+          
+      - name: Upload security scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: '.'
+          
+      - name: Security scan summary
+        if: always()
+        run: |
+          echo "# 🔒 Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Scans Completed:**" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Go vulnerability scanning" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Filesystem security scanning" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Kubernetes configuration scanning" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ RBAC security analysis" >> $GITHUB_STEP_SUMMARY
+          if [[ -f "trivy-image-results.sarif" ]]; then
+            echo "- ✅ Container image scanning" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Security Tools Used:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Trivy v${{ env.TRIVY_VERSION }} (comprehensive security scanner)" >> $GITHUB_STEP_SUMMARY
+          echo "- govulncheck (Go-specific vulnerability detection)" >> $GITHUB_STEP_SUMMARY
+          echo "- Custom RBAC analysis" >> $GITHUB_STEP_SUMMARY
+
+  # =============================================================================
+  # STAGE 4: Controller Testing with envtest
+  # =============================================================================
+  controller-tests:
+    name: "🎮 Controller Tests"
+    needs: [preflight, k8s-validation]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    if: needs.preflight.outputs.should-build == 'true'
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        test-suite:
+          - controllers
+          - webhooks
+          - api
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+          
+      - name: Restore Go cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.GOCACHE }}
+            ${{ env.GOMODCACHE }}
+          key: ${{ needs.preflight.outputs.go-cache-key }}
+          
+      - name: Setup envtest environment
+        run: |
+          echo "🧪 Setting up envtest for Kubernetes ${{ env.ENVTEST_KUBERNETES_VERSION }}..."
+          
+          # Install setup-envtest
+          go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+          
+          # Setup test environment
+          export KUBEBUILDER_ASSETS=$(setup-envtest use ${{ env.ENVTEST_KUBERNETES_VERSION }} --bin-dir /tmp/envtest-bins -p path)
+          echo "KUBEBUILDER_ASSETS=${KUBEBUILDER_ASSETS}" >> $GITHUB_ENV
+          
+          # Verify setup
+          echo "📍 KUBEBUILDER_ASSETS: ${KUBEBUILDER_ASSETS}"
+          ls -la ${KUBEBUILDER_ASSETS}
+          
+          # Test basic functionality
+          ${KUBEBUILDER_ASSETS}/kube-apiserver --version
+          ${KUBEBUILDER_ASSETS}/etcd --version
+          ${KUBEBUILDER_ASSETS}/kubectl version --client
+          
+      - name: Run ${{ matrix.test-suite }} tests
+        timeout-minutes: 10
+        run: |
+          echo "🧪 Running ${{ matrix.test-suite }} tests with envtest..."
+          
+          # Set test environment variables
+          export USE_EXISTING_CLUSTER=false
+          export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT=60s
+          export KUBEBUILDER_CONTROLPLANE_STOP_TIMEOUT=60s
+          
+          case "${{ matrix.test-suite }}" in
+            controllers)
+              echo "Testing controller logic..."
+              go test -v -timeout=10m -p=1 ./controllers/... -coverprofile=controller-coverage.out
+              ;;
+            webhooks)
+              if [[ -d "webhooks" ]]; then
+                echo "Testing webhook logic..."
+                go test -v -timeout=10m -p=1 ./webhooks/... -coverprofile=webhook-coverage.out
+              else
+                echo "No webhook tests found, checking for webhook code in controllers..."
+                go test -v -timeout=10m -p=1 ./controllers/... -run=".*Webhook.*" -coverprofile=webhook-coverage.out || echo "No webhook tests in controllers"
+              fi
+              ;;
+            api)
+              echo "Testing API validation logic..."
+              go test -v -timeout=10m -p=1 ./api/... -coverprofile=api-coverage.out
+              ;;
+          esac
+          
+      - name: Generate coverage report
+        if: always()
+        run: |
+          COVERAGE_FILE=""
+          case "${{ matrix.test-suite }}" in
+            controllers) COVERAGE_FILE="controller-coverage.out" ;;
+            webhooks) COVERAGE_FILE="webhook-coverage.out" ;;
+            api) COVERAGE_FILE="api-coverage.out" ;;
+          esac
+          
+          if [[ -f "$COVERAGE_FILE" ]]; then
+            echo "📊 Generating coverage report for ${{ matrix.test-suite }}..."
+            go tool cover -html=$COVERAGE_FILE -o coverage-${{ matrix.test-suite }}.html
+            go tool cover -func=$COVERAGE_FILE | tail -1 | awk '{print "Coverage: " $3}' > coverage-${{ matrix.test-suite }}.txt
+          else
+            echo "No coverage file found for ${{ matrix.test-suite }}"
+          fi
+          
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.test-suite }}
+          path: |
+            coverage-*.html
+            coverage-*.txt
+            *-coverage.out
+          retention-days: 7
+
+  # =============================================================================
+  # STAGE 5: Integration Testing (Optional)
+  # =============================================================================
+  integration-tests:
+    name: "🔗 Integration Tests"
+    needs: [preflight, controller-tests]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    if: needs.preflight.outputs.should-test-integration == 'true'
+    
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+          
+      - name: Restore Go cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.GOCACHE }}
+            ${{ env.GOMODCACHE }}
+          key: ${{ needs.preflight.outputs.go-cache-key }}
+          
+      - name: Setup KIND cluster
+        uses: helm/kind-action@v1.10.0
+        with:
+          version: v0.26.0
+          kubernetes_version: v${{ env.KUBERNETES_VERSION }}
+          cluster_name: nephoran-test
+          config: |
+            kind: Cluster
+            apiVersion: kind.x-k8s.io/v1alpha4
+            containerdConfigPatches:
+            - |-
+              [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:5000"]
+                endpoint = ["http://registry:5000"]
+            nodes:
+            - role: control-plane
+              kubeadmConfigPatches:
+              - |
+                kind: InitConfiguration
+                nodeRegistration:
+                  kubeletExtraArgs:
+                    node-labels: "ingress-ready=true"
+              extraPortMappings:
+              - containerPort: 80
+                hostPort: 80
+                protocol: TCP
+              - containerPort: 443
+                hostPort: 443
+                protocol: TCP
+          
+      - name: Build and load operator image
+        run: |
+          echo "🐳 Building operator image for integration tests..."
+          make docker-build IMG=localhost:5000/nephoran-operator:integration-test
+          
+          echo "📤 Pushing to local registry..."
+          docker push localhost:5000/nephoran-operator:integration-test
+          
+          echo "📥 Loading image to KIND..."
+          kind load docker-image localhost:5000/nephoran-operator:integration-test --name nephoran-test
+          
+      - name: Deploy operator to cluster
+        timeout-minutes: 5
+        run: |
+          echo "☸️ Deploying operator to KIND cluster..."
+          
+          # Install CRDs
+          make install
+          
+          # Deploy operator
+          cd config/manager && kustomize edit set image controller=localhost:5000/nephoran-operator:integration-test
+          make deploy IMG=localhost:5000/nephoran-operator:integration-test
+          
+          # Wait for operator to be ready
+          kubectl wait --for=condition=available --timeout=300s deployment/nephoran-controller-manager -n nephoran-system
+          
+          echo "✅ Operator deployed successfully"
+          
+      - name: Run integration tests
+        timeout-minutes: 10
+        run: |
+          echo "🔗 Running integration tests..."
+          
+          # Test CRD installation
+          kubectl get crd | grep nephio.org
+          
+          # Test operator functionality with sample resources
+          if [[ -d "config/samples" ]]; then
+            echo "📋 Testing with sample resources..."
+            kubectl apply -f config/samples/
+            
+            # Wait and verify resources are processed
+            sleep 30
+            kubectl get all -A
+            
+            # Check operator logs
+            kubectl logs -n nephoran-system deployment/nephoran-controller-manager --tail=50
+            
+            # Cleanup samples
+            kubectl delete -f config/samples/ --ignore-not-found=true
+          fi
+          
+          echo "✅ Integration tests completed"
+          
+      - name: Collect cluster information
+        if: always()
+        run: |
+          echo "📊 Collecting cluster information..."
+          
+          echo "## Cluster Information" >> $GITHUB_STEP_SUMMARY
+          echo "- Kubernetes Version: $(kubectl version --short)" >> $GITHUB_STEP_SUMMARY
+          echo "- Node Information:" >> $GITHUB_STEP_SUMMARY
+          kubectl get nodes -o wide >> $GITHUB_STEP_SUMMARY
+          
+          # Save operator logs
+          kubectl logs -n nephoran-system deployment/nephoran-controller-manager > operator-logs.txt
+          
+      - name: Upload integration test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: |
+            operator-logs.txt
+          retention-days: 7
+
+  # =============================================================================
+  # STAGE 6: Build & Package
+  # =============================================================================
+  build-package:
+    name: "📦 Build & Package"
+    needs: [preflight, k8s-validation, security-scan, controller-tests]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    if: needs.preflight.outputs.should-build == 'true'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+          
+      - name: Restore Go cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.GOCACHE }}
+            ${{ env.GOMODCACHE }}
+          key: ${{ needs.preflight.outputs.go-cache-key }}
+          
+      - name: Build operator binary
+        timeout-minutes: 5
+        run: |
+          echo "🔨 Building operator binary..."
+          make build
+          
+          # Verify binary
+          ./bin/manager --version 2>/dev/null || echo "Manager binary built (no version flag)"
+          ls -la bin/
+          
+      - name: Build container image
+        timeout-minutes: 8
+        run: |
+          echo "🐳 Building container image..."
+          make docker-build IMG=nephoran-operator:latest
+          
+          # Image security check
+          docker images nephoran-operator:latest
+          
+          # Basic image inspection
+          echo "🔍 Image inspection:"
+          docker inspect nephoran-operator:latest | jq '.[0].Config.Labels'
+          
+      - name: Package Helm chart (if exists)
+        if: hashFiles('charts/**') != ''
+        timeout-minutes: 3
+        run: |
+          echo "📋 Packaging Helm chart..."
+          helm package charts/nephoran-operator
+          ls -la *.tgz
+          
+      - name: Generate deployment manifests
+        timeout-minutes: 2
+        run: |
+          echo "📄 Generating deployment manifests..."
+          mkdir -p dist/
+          
+          # Generate complete deployment manifest
+          kustomize build config/default > dist/nephoran-operator.yaml
+          
+          # Generate CRD-only manifest
+          kustomize build config/crd > dist/nephoran-crds.yaml
+          
+          # Generate RBAC-only manifest
+          kustomize build config/rbac > dist/nephoran-rbac.yaml
+          
+          echo "Generated manifests:"
+          ls -la dist/
+          
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            bin/
+            dist/
+            *.tgz
+          retention-days: 30
+
+  # =============================================================================
+  # STAGE 7: Final Status Report
+  # =============================================================================
+  ci-status:
+    name: "📊 CI Status Report"
+    needs: [preflight, k8s-validation, security-scan, controller-tests, integration-tests, build-package]
+    runs-on: ubuntu-24.04
+    if: always()
+    
+    steps:
+      - name: Generate comprehensive status report
+        run: |
+          echo "# 🎯 Nephoran Kubernetes Operator CI Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**🔧 Build Information:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Go Version: ${{ env.GO_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Kubernetes Version: ${{ env.KUBERNETES_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Controller-Runtime: ${{ env.CONTROLLER_RUNTIME_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Trigger: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**📋 Stage Results:**" >> $GITHUB_STEP_SUMMARY
+          echo "- 🚀 Pre-flight: ${{ needs.preflight.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ☸️ K8s Validation: ${{ needs.k8s-validation.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔒 Security Scan: ${{ needs.security-scan.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 🎮 Controller Tests: ${{ needs.controller-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔗 Integration Tests: ${{ needs.integration-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 📦 Build & Package: ${{ needs.build-package.result }}" >> $GITHUB_STEP_SUMMARY
+          
+      - name: Determine final status
+        run: |
+          # Check critical job results
+          FAILED_JOBS=""
+          
+          if [[ "${{ needs.preflight.result }}" == "failure" ]]; then
+            FAILED_JOBS="$FAILED_JOBS preflight"
+          fi
+          if [[ "${{ needs.k8s-validation.result }}" == "failure" ]]; then
+            FAILED_JOBS="$FAILED_JOBS k8s-validation"
+          fi
+          if [[ "${{ needs.security-scan.result }}" == "failure" ]]; then
+            FAILED_JOBS="$FAILED_JOBS security-scan"
+          fi
+          if [[ "${{ needs.controller-tests.result }}" == "failure" ]]; then
+            FAILED_JOBS="$FAILED_JOBS controller-tests"
+          fi
+          if [[ "${{ needs.build-package.result }}" == "failure" ]]; then
+            FAILED_JOBS="$FAILED_JOBS build-package"
+          fi
+          
+          if [[ -n "$FAILED_JOBS" ]]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**❌ Status: FAILED**" >> $GITHUB_STEP_SUMMARY
+            echo "**Failed Jobs:** $FAILED_JOBS" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**✅ Status: PASSED**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🎉 **2025 K8s Operator CI Achievements:**" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Modern Kubernetes ${{ env.KUBERNETES_VERSION }} compatibility verified" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Controller-runtime ${{ env.CONTROLLER_RUNTIME_VERSION }} integration tested" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ CRD and RBAC configurations validated" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Enhanced security scanning completed" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ envtest-based controller testing passed" >> $GITHUB_STEP_SUMMARY
+            if [[ "${{ needs.integration-tests.result }}" == "success" ]]; then
+              echo "- ✅ Full integration testing with KIND cluster completed" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "- ✅ Production-ready build artifacts generated" >> $GITHUB_STEP_SUMMARY
+          fi

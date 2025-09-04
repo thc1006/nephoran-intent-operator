@@ -132,7 +132,10 @@ func TestAuthMiddleware(t *testing.T) {
 			name: "Expired JWT token",
 			setupRequest: func() *http.Request {
 				// Create expired token
-				expiredToken := tc.CreateTestToken(json.RawMessage(`{}`))
+				expiredClaims := jwt.MapClaims{
+					"exp": time.Now().Add(-time.Hour).Unix(), // Expired 1 hour ago
+				}
+				expiredToken := tc.CreateTestToken(expiredClaims)
 
 				req := httptest.NewRequest("GET", "/protected", nil)
 				req.Header.Set("Authorization", "Bearer "+expiredToken)

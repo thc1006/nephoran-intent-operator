@@ -548,7 +548,11 @@ func (s *EventSender) createEvent() VESEvent {
 				},
 			},
 
-			AdditionalFields: json.RawMessage(`{}`),
+			AdditionalFields: json.RawMessage(`{
+				"kpm.p95_latency_ms": 25.7,
+				"kpm.throughput_mbps": 1250.5,
+				"kpm.error_rate_percent": 0.02
+			}`),
 		}
 
 	case "heartbeat":

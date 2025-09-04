@@ -376,7 +376,7 @@ jobs:
               ;;
             cmd-batch-2)
               # Build second batch
-              for cmd in cmd/fcaps-reducer cmd/conductor-watch cmd/performance-comparison cmd/performance-regression-test cmd/porch-direct cmd/porch-publisher cmd/porch-resolver cmd/ran-cu-sim cmd/ran-du-sim cmd/resource-watcher cmd/scaling-planner; do
+              for cmd in cmd/fcaps-reducer cmd/conductor-watch cmd/performance-comparison cmd/performance-regression-test cmd/porch-direct cmd/porch-publisher cmd/porch-structured-patch cmd/security-validator cmd/technical-debt-monitor cmd/test-context-builder cmd/test-lint; do
                 if [ -d "$cmd" ] && [ -f "$cmd/main.go" ]; then
                   echo "  Building $cmd..."
                   timeout 90s go build -v -ldflags="-s -w" -o bin/$(basename $cmd) ./$cmd || echo "  ⚠️ $cmd build failed"

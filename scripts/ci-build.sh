@@ -7,13 +7,16 @@
 # =============================================================================
 
 set -euo pipefail  # Exit on error, undefined vars, pipe failures
+set -E  # Enable ERR trap inheritance for subshells
 
 # Build configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 BIN_DIR="$PROJECT_ROOT/bin"
-BUILD_TIMEOUT=90
-MAX_PARALLEL=3
+BUILD_TIMEOUT=300  # Increased for 2025 security scanning
+MAX_PARALLEL=$(nproc 2>/dev/null || echo 4)  # Dynamic CPU detection
+GO_BUILD_CACHE="${PROJECT_ROOT}/.go-build-cache"
+GO_MOD_CACHE="${PROJECT_ROOT}/.go-mod-cache"
 
 # Colors for output
 RED='\033[0;31m'
@@ -60,12 +63,21 @@ SUCCESSFUL_BUILDS=0
 FAILED_BUILDS=0
 START_TIME=$(date +%s)
 
-# Cleanup function
+# Cleanup function with 2025 cache management
 cleanup() {
     local exit_code=$?
     if [ $exit_code -ne 0 ]; then
         log_error "Build script interrupted or failed"
     fi
+    
+    # 2025: Clean up temporary build artifacts but preserve caches
+    if [[ -n "${GOTMPDIR:-}" && -d "$GOTMPDIR" ]]; then
+        log_info "Cleaning temporary build directory..."
+        rm -rf "$GOTMPDIR" 2>/dev/null || true
+    fi
+    
+    # Reset CGO_ENABLED if we changed it for race detection
+    export CGO_ENABLED=0
     
     # Show summary
     show_build_summary
@@ -73,6 +85,25 @@ cleanup() {
 }
 
 trap cleanup EXIT INT TERM
+
+# 2025: Optimize build caches
+optimize_build_cache() {
+    log_info "Optimizing build caches for 2025 performance..."
+    
+    # Set cache size limits to prevent disk space issues
+    if [[ -d "$GOCACHE" ]]; then
+        # Clean cache older than 7 days
+        find "$GOCACHE" -type f -mtime +7 -delete 2>/dev/null || true
+        local cache_size=$(du -sh "$GOCACHE" 2>/dev/null | cut -f1 || echo "unknown")
+        log_info "  Build cache size: $cache_size"
+    fi
+    
+    # Pre-warm the build cache with common dependencies
+    log_info "Pre-warming build cache..."
+    timeout 60 go list -m all >/dev/null 2>&1 || {
+        log_warning "Cache pre-warming timeout, continuing..."
+    }
+}
 
 # Initialize build environment  
 init_build_env() {
@@ -84,21 +115,43 @@ init_build_env() {
         exit 1
     fi
     
-    # Create/clean bin directory
-    mkdir -p "$BIN_DIR"
+    # Create/clean build directories
+    mkdir -p "$BIN_DIR" "$GO_BUILD_CACHE" "$GO_MOD_CACHE"
     
-    # Set build environment variables for reproducible builds
+    # Set build environment variables for 2025 best practices
     export CGO_ENABLED=0
     export GOOS=linux
     export GOARCH=amd64
-    export GOMAXPROCS=4
+    export GOMAXPROCS=$MAX_PARALLEL
     export GOMEMLIMIT=4GiB
+    export GOCACHE="$GO_BUILD_CACHE"
+    export GOMODCACHE="$GO_MOD_CACHE"
+    export GOTMPDIR="${TMPDIR:-/tmp}/go-build"
+    export GOAMD64=v3  # 2025: Optimize for modern x86-64
+    export GOEXPERIMENT=rangefunc,arenas  # 2025: Enable performance experiments
+    
+    # 2025: Reproducible build settings
+    export SOURCE_DATE_EPOCH=$(git log -1 --format=%ct 2>/dev/null || date +%s)
+    export GOPROXY=${GOPROXY:-https://proxy.golang.org,direct}
+    export GOSUMDB=${GOSUMDB:-sum.golang.org}
+    
+    # Create temp directory
+    mkdir -p "$GOTMPDIR"
+    
+    log_info "Downloading dependencies..."
+    # 2025: Pre-download modules for better caching and parallel builds
+    timeout 180 go mod download -x || {
+        log_warning "Module download timeout, continuing with available modules"
+    }
     
     log_info "Build environment ready"
     log_info "  Project Root: $PROJECT_ROOT"
     log_info "  Binary Dir: $BIN_DIR"
     log_info "  Go Version: $(go version | cut -d' ' -f3)"
-    log_info "  Build Target: $GOOS/$GOARCH"
+    log_info "  Build Target: $GOOS/$GOARCH (GOAMD64=$GOAMD64)"
+    log_info "  Max Parallel: $GOMAXPROCS cores"
+    log_info "  Build Cache: $GOCACHE"
+    log_info "  Module Cache: $GOMODCACHE"
 }
 
 # Build single component with timeout and error handling
@@ -117,31 +170,74 @@ build_component() {
     fi
     
     if [ ! -f "$PROJECT_ROOT/$component/main.go" ]; then
-        log_warning "$component: main.go not found, skipping"
-        BUILD_RESULTS["$component"]="SKIP_NO_MAIN"
-        return 0
+        # Check for any Go files in the directory
+        if ! find "$PROJECT_ROOT/$component" -name "*.go" -type f | grep -q .; then
+            log_warning "$component: No Go files found, skipping"
+            BUILD_RESULTS["$component"]="SKIP_NO_GO_FILES"
+            return 0
+        fi
+        log_warning "$component: main.go not found but other Go files exist, attempting build"
     fi
     
     log_info "Building $component..."
     
-    # Build with timeout and capture output
+    # Build with timeout and 2025 optimization flags
     local build_start=$(date +%s)
-    if timeout $BUILD_TIMEOUT go build \
-        -v \
-        -ldflags="-s -w -X main.version=$(git rev-parse --short HEAD 2>/dev/null || echo 'dev')" \
-        -gcflags="-l=4" \
+    local git_version=$(git rev-parse --short HEAD 2>/dev/null || echo 'dev')
+    local build_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    
+    # 2025: Enhanced build flags for security and performance
+    local build_flags=(
+        "-v"
+        "-trimpath"  # Remove absolute paths for reproducible builds
+        "-buildmode=pie"  # Position Independent Executable for security
+        "-ldflags=-s -w -buildid= -X main.version=$git_version -X main.buildTime=$build_time"
+        "-gcflags=-l=4 -B -wb=false"  # 2025: Aggressive inlining and optimizations
+        "-asmflags=-spectre=all"  # 2025: Spectre mitigation
+    )
+    
+    # Add race detection for non-production builds in CI
+    if [[ "${CI:-false}" == "true" && "${ENABLE_RACE_DETECTION:-true}" == "true" ]]; then
+        # Only for select components to avoid timeout
+        case "$component" in
+            "cmd/intent-ingest"|"cmd/llm-processor"|"cmd/conductor")
+                log_info "  Enabling race detection for $component"
+                build_flags+=("-race")
+                export CGO_ENABLED=1  # Required for race detection
+                ;;
+        esac
+    fi
+    
+    if timeout $BUILD_TIMEOUT go build "${build_flags[@]}" \
         -o "$binary_path" \
-        "./$component" 2>&1 | head -20; then
+        "./$component" 2>&1 | head -30; then
         
         local build_duration=$(($(date +%s) - build_start))
         log_success "$component built successfully in ${build_duration}s"
         BUILD_RESULTS["$component"]="SUCCESS:${build_duration}s"
         SUCCESSFUL_BUILDS=$((SUCCESSFUL_BUILDS + 1))
         
-        # Verify binary
+        # Verify binary and perform 2025 security checks
         if [ -x "$binary_path" ]; then
             local binary_size=$(stat -c%s "$binary_path" 2>/dev/null || echo "unknown")
             log_info "  Binary size: $(numfmt --to=iec-i --suffix=B $binary_size 2>/dev/null || echo $binary_size bytes)"
+            
+            # 2025: Verify PIE and security features
+            if command -v file >/dev/null 2>&1; then
+                local binary_info=$(file "$binary_path")
+                if [[ "$binary_info" == *"pie executable"* ]]; then
+                    log_info "  Security: PIE enabled ✓"
+                else
+                    log_warning "  Security: PIE not detected"
+                fi
+            fi
+            
+            # 2025: Basic symbol stripping verification
+            if command -v nm >/dev/null 2>&1; then
+                if nm "$binary_path" 2>/dev/null | grep -q "no symbols"; then
+                    log_info "  Optimization: Symbols stripped ✓"
+                fi
+            fi
         fi
         
         return 0
@@ -158,17 +254,42 @@ build_component() {
 build_components_parallel() {
     log_info "Building critical components in parallel (max $MAX_PARALLEL concurrent builds)..."
     
-    # Use xargs for controlled parallel execution
-    printf '%s\n' "${CRITICAL_COMPONENTS[@]}" | \
-    xargs -I {} -P $MAX_PARALLEL -n 1 bash -c '
-        component="$1"
-        echo "Starting build for $component..."
-        if '"$(declare -f build_component)"'; build_component "$component"; then
-            echo "✅ $component: Build successful"
-        else
-            echo "⚠️  $component: Build failed"
-        fi
-    ' -- {}
+    # Simple parallel build using background processes
+    local pids=()
+    local active_jobs=0
+    
+    for component in "${CRITICAL_COMPONENTS[@]}"; do
+        # Wait if we've reached max parallel jobs
+        while [ $active_jobs -ge $MAX_PARALLEL ]; do
+            # Check which jobs have finished
+            local new_pids=()
+            active_jobs=0
+            for pid in "${pids[@]}"; do
+                if kill -0 $pid 2>/dev/null; then
+                    new_pids+=($pid)
+                    active_jobs=$((active_jobs + 1))
+                fi
+            done
+            pids=("${new_pids[@]}")
+            
+            if [ $active_jobs -ge $MAX_PARALLEL ]; then
+                sleep 1
+            fi
+        done
+        
+        # Start new build in background
+        (
+            build_component "$component"
+        ) &
+        
+        pids+=($!)
+        active_jobs=$((active_jobs + 1))
+    done
+    
+    # Wait for all remaining jobs to complete
+    for pid in "${pids[@]}"; do
+        wait $pid 2>/dev/null || true
+    done
     
     log_info "Parallel build phase completed"
 }
@@ -255,14 +376,23 @@ validate_environment() {
         exit 1
     fi
     
-    # Check Go version (require 1.21+)
+    # Check Go version (require 1.23+ for 2025)
     local go_version=$(go version | grep -oE 'go[0-9]+\.[0-9]+' | sed 's/go//')
     local major=$(echo $go_version | cut -d. -f1)
     local minor=$(echo $go_version | cut -d. -f2)
     
-    if [ "$major" -lt 1 ] || ([ "$major" -eq 1 ] && [ "$minor" -lt 21 ]); then
-        log_warning "Go version $go_version may not support all features (recommend 1.21+)"
+    if [ "$major" -lt 1 ] || ([ "$major" -eq 1 ] && [ "$minor" -lt 23 ]); then
+        log_warning "Go version $go_version is below recommended 1.23+ for 2025 optimizations"
+        log_warning "  Some build optimizations may not be available"
     fi
+    
+    # 2025: Validate build tools
+    local required_tools=("file" "nm")
+    for tool in "${required_tools[@]}"; do
+        if ! command -v "$tool" >/dev/null 2>&1; then
+            log_warning "Tool '$tool' not found - some security validations will be skipped"
+        fi
+    done
     
     # Check available disk space (warn if < 1GB)
     local available_space=$(df "$PROJECT_ROOT" | tail -1 | awk '{print $4}')
@@ -300,6 +430,17 @@ main() {
                 ;;
             --max-parallel=*)
                 MAX_PARALLEL="${1#*=}"
+                export GOMAXPROCS="$MAX_PARALLEL"
+                shift
+                ;;
+            --enable-race)
+                export ENABLE_RACE_DETECTION=true
+                log_info "Race detection enabled for select components"
+                shift
+                ;;
+            --disable-race)
+                export ENABLE_RACE_DETECTION=false
+                log_info "Race detection disabled"
                 shift
                 ;;
             --help)
@@ -307,8 +448,17 @@ main() {
                 echo "Options:"
                 echo "  --sequential     Build components one by one instead of parallel"
                 echo "  --timeout=N      Set build timeout in seconds (default: $BUILD_TIMEOUT)"
-                echo "  --max-parallel=N Set max parallel builds (default: $MAX_PARALLEL)"
+                echo "  --max-parallel=N Set max parallel builds (default: auto-detected)"
+                echo "  --enable-race    Enable race detection for select components"
+                echo "  --disable-race   Disable race detection (default in CI)"
                 echo "  --help           Show this help message"
+                echo ""
+                echo "2025 Build Features:"
+                echo "  • PIE (Position Independent Executable) for security"
+                echo "  • Trimmed paths for reproducible builds"
+                echo "  • Spectre mitigation in assembly"
+                echo "  • Enhanced caching and parallel processing"
+                echo "  • Dynamic CPU detection for optimal parallelism"
                 exit 0
                 ;;
             *)
@@ -318,9 +468,10 @@ main() {
         esac
     done
     
-    # Execute build pipeline
+    # Execute build pipeline with 2025 optimizations
     validate_environment
     init_build_env
+    optimize_build_cache
     
     case "$build_mode" in
         "sequential")

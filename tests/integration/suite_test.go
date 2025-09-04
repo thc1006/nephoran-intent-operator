@@ -21,7 +21,8 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	nephoranv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
+	"k8s.io/apimachinery/pkg/types"
 	"github.com/thc1006/nephoran-intent-operator/hack/testtools"
 )
 
@@ -113,7 +114,7 @@ func setupEnvtestEnvironment() (*testtools.TestEnvironment, error) {
 
 	// Configure schema builders including Nephoran CRDs
 	opts.SchemeBuilders = []func(*runtime.Scheme) error{
-		nephoranv1.AddToScheme,
+		nephoranv1alpha1.AddToScheme,
 	}
 
 	// Setup environment with custom options

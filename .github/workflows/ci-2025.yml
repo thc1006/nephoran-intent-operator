@@ -1,7 +1,7 @@
 # =============================================================================
 # Nephoran Intent Operator - 2025 CI Pipeline
 # =============================================================================
-# Optimized for Go 1.25.0, Ubuntu Linux only, with modern security practices
+# Optimized for Go 1.24.6, Ubuntu Linux only, with modern security practices
 # Addresses: cache key failures, tar extraction errors, timeout issues
 # =============================================================================
 
@@ -38,9 +38,9 @@ permissions:
   checks: write
   pull-requests: read
 
-# Environment optimized for Go 1.25.0 and Ubuntu Linux
+# Environment optimized for Go 1.24.6 and Ubuntu Linux
 env:
-  GO_VERSION: "1.25.0"
+  GO_VERSION: "1.24.6"
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   GOPRIVATE: "github.com/thc1006/*"
@@ -96,7 +96,7 @@ jobs:
         if: steps.changes.outputs.go == 'true'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.0'
+          go-version: '1.24.6'
           check-latest: true
           cache: false  # We handle caching manually
 
@@ -197,7 +197,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.0'
+          go-version: '1.24.6'
           check-latest: true
           cache: false
 
@@ -314,7 +314,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.0'
+          go-version: '1.24.6'
           check-latest: true
           cache: false
 
@@ -333,43 +333,122 @@ jobs:
           restore-keys: |
             go-v4-ubuntu-${{ env.GO_VERSION }}-
 
-      - name: Setup test environment
+      - name: Download and verify test dependencies
         timeout-minutes: 3
         run: |
-          # Install envtest for controller tests
+          echo "Downloading Go dependencies for testing..."
+          go mod download -x
+          echo "Verifying Go modules integrity..."
+          go mod verify
+          echo "Test dependencies ready"
+
+      - name: Setup test environment
+        timeout-minutes: 5
+        run: |
+          # Install envtest for controller tests with specific version
+          echo "Installing setup-envtest..."
           go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+          
+          # Setup Kubernetes test environment
+          echo "Setting up Kubernetes test environment..."
           setup-envtest use 1.31.0 --arch=amd64 --os=linux
           export KUBEBUILDER_ASSETS=$(setup-envtest use 1.31.0 --arch=amd64 --os=linux -p path)
           echo "KUBEBUILDER_ASSETS=$KUBEBUILDER_ASSETS" >> $GITHUB_ENV
+          echo "Kubernetes test environment ready"
 
       - name: Run tests - ${{ matrix.name }}
         timeout-minutes: ${{ matrix.timeout - 3 }}
         env:
           KUBEBUILDER_ASSETS: ${{ env.KUBEBUILDER_ASSETS }}
+          # Go 1.22+ test optimizations
+          GOCOVERDIR: test-results/coverage-raw
+          GOMAXPROCS: "4" 
+          CGO_ENABLED: "1"  # Required for -race detection
         run: |
           echo "Running tests for: ${{ matrix.test-pattern }}"
+          echo "Go version: $(go version)"
+          echo "CPU count: $(nproc)"
+          echo "Available memory: $(free -h | awk '/^Mem:/ {print $2}')"
           
-          # Create test results directory
-          mkdir -p test-results
+          # Create test results directories with proper structure
+          mkdir -p test-results/coverage-raw
+          mkdir -p test-results/junit
+          mkdir -p test-results/logs
           
-          # Run tests with coverage and race detection
-          go test -v -race -timeout=10m \
+          # Set parallel execution based on CPU cores (max 4 for CI stability)
+          PARALLEL_COUNT=$(nproc)
+          if [ $PARALLEL_COUNT -gt 4 ]; then
+            PARALLEL_COUNT=4
+          fi
+          echo "Running with parallelism: $PARALLEL_COUNT"
+          
+          # Run tests with 2025 best practices
+          set -o pipefail
+          
+          # Test execution with comprehensive flags
+          go test -v \
+            -race \
+            -timeout=10m \
             -coverprofile="test-results/coverage-${{ matrix.name }}.out" \
             -covermode=atomic \
-            -parallel=4 \
-            ${{ matrix.test-pattern }} 2>&1 | tee "test-results/test-output-${{ matrix.name }}.log"
+            -parallel=$PARALLEL_COUNT \
+            -cpu=1,2,4 \
+            -count=1 \
+            -failfast \
+            -json \
+            ${{ matrix.test-pattern }} 2>&1 | tee "test-results/logs/test-output-${{ matrix.name }}.log"
+          
+          # Check if tests passed (go test returns 0 on success)
+          TEST_EXIT_CODE=$?
+          
+          if [ $TEST_EXIT_CODE -ne 0 ]; then
+            echo "❌ Tests failed with exit code: $TEST_EXIT_CODE"
+            echo "Check test output above for details"
+            exit $TEST_EXIT_CODE
+          else
+            echo "✅ All tests passed successfully"
+          fi
 
       - name: Generate coverage report
         if: always()
         run: |
+          echo "Generating coverage reports for ${{ matrix.name }}..."
+          
           if [ -f "test-results/coverage-${{ matrix.name }}.out" ]; then
+            echo "✅ Coverage profile found, generating reports..."
+            
+            # Generate HTML coverage report
             go tool cover -html="test-results/coverage-${{ matrix.name }}.out" \
               -o "test-results/coverage-${{ matrix.name }}.html"
+            echo "HTML coverage report: test-results/coverage-${{ matrix.name }}.html"
+            
+            # Generate function-level coverage summary
             go tool cover -func="test-results/coverage-${{ matrix.name }}.out" \
               > "test-results/coverage-summary-${{ matrix.name }}.txt"
             
-            echo "Coverage summary for ${{ matrix.name }}:"
+            # Display coverage summary with proper formatting
+            echo ""
+            echo "📊 Coverage Summary for ${{ matrix.name }}:"
+            echo "=================================================="
             cat "test-results/coverage-summary-${{ matrix.name }}.txt" | tail -1
+            echo "=================================================="
+            echo ""
+            
+            # Extract total coverage percentage for later use
+            TOTAL_COVERAGE=$(cat "test-results/coverage-summary-${{ matrix.name }}.txt" | tail -1 | awk '{print $3}')
+            echo "COVERAGE_${{ matrix.name }}=$TOTAL_COVERAGE" >> $GITHUB_ENV
+            
+            # Generate detailed coverage breakdown
+            echo "📋 Detailed Coverage Breakdown:" > "test-results/coverage-detailed-${{ matrix.name }}.txt"
+            echo "===============================" >> "test-results/coverage-detailed-${{ matrix.name }}.txt"
+            head -n -1 "test-results/coverage-summary-${{ matrix.name }}.txt" | \
+              sort -k3 -nr >> "test-results/coverage-detailed-${{ matrix.name }}.txt"
+            
+          else
+            echo "⚠️ No coverage profile found for ${{ matrix.name }}"
+            echo "This may indicate that tests did not run or failed"
+            touch "test-results/coverage-missing-${{ matrix.name }}.txt"
+            echo "No coverage data available" > "test-results/coverage-missing-${{ matrix.name }}.txt"
           fi
 
       - name: Upload test results
@@ -400,7 +479,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.0'
+          go-version: '1.24.6'
           check-latest: true
           cache: false
 
@@ -419,10 +498,14 @@ jobs:
           restore-keys: |
             go-v4-ubuntu-${{ env.GO_VERSION }}-
 
-      - name: Download dependencies
+      - name: Download and verify dependencies
+        timeout-minutes: 5
         run: |
-          go mod download
+          echo "Downloading Go dependencies with retry..."
+          go mod download -x
+          echo "Verifying Go modules integrity..."
           go mod verify
+          echo "Dependencies ready for testing"
 
       - name: Go vet analysis
         run: |
@@ -446,7 +529,7 @@ jobs:
       # - name: Go vulnerability check (using govulncheck-action)
       #   uses: golang/govulncheck-action@v1
       #   with:
-      #     go-version-input: '1.25.0'
+      #     go-version-input: '1.24.6'
       #     go-package: './cmd/... ./api/... ./controllers/...'
       #   continue-on-error: true  # Don't fail CI for vulnerabilities
 
