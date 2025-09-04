@@ -349,6 +349,7 @@ jobs:
         timeout-minutes: ${{ matrix.test-suite.timeout }}
         env:
           KUBEBUILDER_ASSETS: ${{ env.KUBEBUILDER_ASSETS }}
+          CGO_ENABLED: 1  # Required for -race flag
         run: |
           echo "Running ${{ matrix.test-suite.name }} tests..."
           

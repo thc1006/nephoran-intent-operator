@@ -300,7 +300,7 @@ jobs:
           KUBEBUILDER_ASSETS: ${{ env.KUBEBUILDER_ASSETS }}
         run: |
           mkdir -p test-results
-          export CGO_ENABLED=0
+          export CGO_ENABLED=1  # Required for -race flag
           export GOMAXPROCS=2
           echo "Running 2025 test patterns with enhanced race detection..."
           go test -v -race -timeout=20m -parallel=2 -coverprofile=test-results/coverage.out -covermode=atomic ./...

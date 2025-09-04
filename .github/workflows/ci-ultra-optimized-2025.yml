@@ -704,6 +704,7 @@ jobs:
         timeout-minutes: ${{ matrix.timeout - 1 }}
         env:
           KUBEBUILDER_ASSETS: ${{ env.KUBEBUILDER_ASSETS }}
+          CGO_ENABLED: 1  # Required for -race flag
         run: |
           echo "🚀 Executing tests: ${{ matrix.pattern }}"
           
