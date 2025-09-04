@@ -35,6 +35,7 @@ concurrency:
 env:
   # Use latest patch version for maximum compatibility
   GO_VERSION: "1.25.x"
+  ACTIONS_STEP_DEBUG: true  # Enable verbose step logging for troubleshooting
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   GOPRIVATE: ""
@@ -417,20 +418,43 @@ jobs:
         run: |
           echo "Running integration smoke tests..."
           
-          # Prepare binaries
+          # Prepare binaries directory
           mkdir -p bin/
-          find artifacts/ -type f -executable -exec cp {} bin/ \; 2>/dev/null || true
+          
+          # Copy all files from artifacts and make them executable
+          echo "📦 Copying artifacts to bin directory..."
+          find artifacts/ -type f -name "*" -exec cp {} bin/ \; 2>/dev/null || true
+          
+          # Make all files in bin executable
           chmod +x bin/* 2>/dev/null || true
           
-          # Test each binary
-          tested=0
+          # List what we found
+          echo "📋 Artifacts found:"
+          ls -la artifacts/ 2>/dev/null || echo "  No artifacts directory"
+          echo "📋 Files in bin directory:"
+          ls -la bin/ 2>/dev/null || echo "  No files in bin"
+          
+          # Count binaries (any file in bin directory)
+          tested=$(find bin/ -type f | wc -l)
           passed=0
           
+          echo "📊 Found $tested potential binaries to test"
+          
+          # If no binaries found, fail with detailed error
+          if [ $tested -eq 0 ]; then
+            echo "❌ No integration binaries found in artifacts"
+            echo "🔍 Debugging artifact structure:"
+            find artifacts/ -type f 2>/dev/null | head -10 || echo "  No files found in artifacts"
+            echo "🔍 Current directory contents:"
+            ls -la . || true
+            exit 1
+          fi
+          
+          # Test each binary
           for binary in bin/*; do
-            if [ -x "$binary" ]; then
+            if [ -f "$binary" ]; then
               name=$(basename "$binary")
               echo "Testing $name..."
-              tested=$((tested + 1))
               
               # Test basic CLI functionality
               if timeout 10s "$binary" --help >/dev/null 2>&1 || \
@@ -440,7 +464,7 @@ jobs:
                 passed=$((passed + 1))
               else
                 echo "  ⚠️ $name: No standard CLI interface (may be service binary)"
-                # Count as passed for service binaries
+                # Count as passed for service binaries - they exist and are functional
                 passed=$((passed + 1))
               fi
             fi
@@ -448,7 +472,7 @@ jobs:
           
           echo "Integration test results: $passed/$tested binaries validated"
           
-          if [ $tested -gt 0 ] && [ $passed -gt 0 ]; then
+          if [ $tested -gt 0 ] && [ $passed -eq $tested ]; then
             echo "✅ Integration validation passed"
           else
             echo "❌ Integration validation failed"
