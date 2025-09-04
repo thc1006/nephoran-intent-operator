@@ -777,7 +777,7 @@ jobs:
 
     steps:
       - name: Download all security artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: security-artifacts
           # 2025 Enhancement: Better artifact pattern matching

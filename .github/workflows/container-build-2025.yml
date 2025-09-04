@@ -568,13 +568,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download binary artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: binaries-${{ matrix.name }}-${{ github.run_number }}
           path: .
 
       - name: Download Dockerfiles
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: dockerfiles-${{ github.run_number }}
           path: .

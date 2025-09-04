@@ -358,7 +358,7 @@ jobs:
           cache: false
 
       - name: Download tool bundle
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: security-tools-${{ github.run_id }}
           path: tools
@@ -494,7 +494,7 @@ jobs:
           cache: false
 
       - name: Download tool bundle
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: security-tools-${{ github.run_id }}
           path: tools
@@ -605,7 +605,7 @@ jobs:
     
     steps:
       - name: Download all scan artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: all-results
           pattern: "*-${{ github.run_id }}"
