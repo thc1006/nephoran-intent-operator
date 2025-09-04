@@ -197,8 +197,25 @@ jobs:
       - name: Install Kubebuilder
         run: |
           echo "🔧 Installing Kubebuilder latest..."
-          curl -L https://go.kubebuilder.io/dl/latest/linux/amd64 | sudo tar -xz -C /usr/local/bin
+          curl -L -o kubebuilder-archive https://go.kubebuilder.io/dl/latest/linux/amd64
+          echo "📋 Checking downloaded file format..."
+          file kubebuilder-archive
+          if file kubebuilder-archive | grep -q 'gzip compressed'; then
+            echo "✅ Found gzip compressed tarball"
+            sudo tar -xzf kubebuilder-archive -C /usr/local/bin
+          elif file kubebuilder-archive | grep -q 'POSIX tar archive'; then
+            echo "✅ Found tar archive (not compressed)"
+            sudo tar -xf kubebuilder-archive -C /usr/local/bin
+          elif file kubebuilder-archive | grep -q 'executable'; then
+            echo "✅ Found executable binary"
+            sudo mv kubebuilder-archive /usr/local/bin/kubebuilder
+          else
+            echo "❌ Unknown file format:"
+            file kubebuilder-archive
+            exit 1
+          fi
           sudo chmod +x /usr/local/bin/kubebuilder
+          rm -f kubebuilder-archive
           
       - name: Verify Kubebuilder Installation
         run: |
