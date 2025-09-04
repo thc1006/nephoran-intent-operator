@@ -322,3 +322,5 @@ safety-*.bundle
 
 *.bundle
 >>>>>>> origin/integrate/mvp
+.go-build-cache/
+.go-mod-cache/
