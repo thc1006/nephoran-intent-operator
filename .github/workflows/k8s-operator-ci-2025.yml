@@ -828,26 +828,56 @@ jobs:
           # Check critical job results
           FAILED_JOBS=""
           
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🔍 Detailed Job Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
           if [[ "${{ needs.preflight.result }}" == "failure" ]]; then
             FAILED_JOBS="$FAILED_JOBS preflight"
+            echo "### ❌ Preflight Failed" >> $GITHUB_STEP_SUMMARY
+            echo "[View logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
           fi
           if [[ "${{ needs.k8s-validation.result }}" == "failure" ]]; then
             FAILED_JOBS="$FAILED_JOBS k8s-validation"
+            echo "### ❌ K8s Validation Failed" >> $GITHUB_STEP_SUMMARY
+            echo "[View logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
           fi
           if [[ "${{ needs.security-scan.result }}" == "failure" ]]; then
             FAILED_JOBS="$FAILED_JOBS security-scan"
+            echo "### ❌ Security Scan Failed" >> $GITHUB_STEP_SUMMARY
+            echo "[View logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
           fi
           if [[ "${{ needs.controller-tests.result }}" == "failure" ]]; then
             FAILED_JOBS="$FAILED_JOBS controller-tests"
+            echo "### ❌ Controller Tests Failed" >> $GITHUB_STEP_SUMMARY
+            echo "[View logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
           fi
           if [[ "${{ needs.build-package.result }}" == "failure" ]]; then
             FAILED_JOBS="$FAILED_JOBS build-package"
+            echo "### ❌ Build & Package Failed" >> $GITHUB_STEP_SUMMARY
+            echo "[View logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [[ "${{ needs.integration-tests.result }}" == "failure" ]]; then
+            FAILED_JOBS="$FAILED_JOBS integration-tests"
+            echo "### ❌ Integration Tests Failed" >> $GITHUB_STEP_SUMMARY
+            echo "[View logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
           fi
           
           if [[ -n "$FAILED_JOBS" ]]; then
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "**❌ Status: FAILED**" >> $GITHUB_STEP_SUMMARY
             echo "**Failed Jobs:** $FAILED_JOBS" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "💡 **Troubleshooting Tips:**" >> $GITHUB_STEP_SUMMARY
+            echo "- Check the logs above for each failed job" >> $GITHUB_STEP_SUMMARY
+            echo "- Look for error patterns in the workflow output" >> $GITHUB_STEP_SUMMARY
+            echo "- Enable debug logs by setting ACTIONS_STEP_DEBUG=true" >> $GITHUB_STEP_SUMMARY
             exit 1
           else
             echo "" >> $GITHUB_STEP_SUMMARY
