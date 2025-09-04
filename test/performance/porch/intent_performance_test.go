@@ -43,7 +43,7 @@ func BenchmarkIntentReconciliation(b *testing.B) {
 			metrics := runIntentPerformanceTest(
 				ctx, 
 				scenario.concurrentIntents, 
-				scenario.networkFunctions
+				scenario.networkFunctions,
 			)
 			
 			// Performance assertions
