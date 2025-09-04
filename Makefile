@@ -317,7 +317,7 @@ IMG ?= nephoran-operator:latest
 docker-build: manager ## Build docker image with the manager
 	@echo "Building Docker image: $(IMG)"
 	@echo "Creating multi-stage Dockerfile for Kubernetes operator..."
-	@cat > Dockerfile.operator <<'EOF'
+	@cat > Dockerfile.operator <<EOF
 # Build stage
 FROM golang:1.24-alpine AS builder
 WORKDIR /workspace
@@ -341,7 +341,7 @@ USER 65532:65532
 ENTRYPOINT ["/manager"]
 EOF
 	@echo "Building Docker image with multi-stage build..."
-	docker build -f Dockerfile.operator -t $(IMG) .
+	@docker build -f Dockerfile.operator -t $(IMG) .
 	@echo "✅ Docker image built: $(IMG)"
 	@rm -f Dockerfile.operator
 

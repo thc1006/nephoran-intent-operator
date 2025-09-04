@@ -51,8 +51,8 @@ permissions:
 # Global environment optimized for Go 1.25 and Ubuntu 22.04
 env:
   # Go 1.25 configuration
-  GO_VERSION: "1.22.7"
-  GOTOOLCHAIN: "go1.25.0"
+  GO_VERSION: "1.24.6"
+  GOTOOLCHAIN: "go1.24.6"
   
   # Build optimization environment
   CGO_ENABLED: "0"
