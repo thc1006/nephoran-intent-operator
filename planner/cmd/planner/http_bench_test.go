@@ -17,7 +17,7 @@ func BenchmarkHTTPClientConnectionReuse(b *testing.B) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"timestamp":"2023-01-01T00:00:00Z","node_id":"test","prb_utilization":0.5,"p95_latency":25.0,"active_ues":100,"current_replicas":2}`))
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -36,7 +36,7 @@ func BenchmarkHTTPClientWithoutConnectionReuse(b *testing.B) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"timestamp":"2023-01-01T00:00:00Z","node_id":"test","prb_utilization":0.5,"p95_latency":25.0,"active_ues":100,"current_replicas":2}`))
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -59,7 +59,7 @@ func BenchmarkFetchKPMMetrics(b *testing.B) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"timestamp":"2023-01-01T00:00:00Z","node_id":"test","prb_utilization":0.5,"p95_latency":25.0,"active_ues":100,"current_replicas":2}`))
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	validator := security.NewValidator(security.DefaultValidationConfig())
 	b.ResetTimer()
@@ -118,7 +118,7 @@ logging:
 			PollingInterval: 30 * time.Second,
 			SimMode:         false,
 		}
-		
+
 		validator := security.NewValidator(security.DefaultValidationConfig())
 		err := loadConfig(configFile, cfg, validator)
 		if err != nil {

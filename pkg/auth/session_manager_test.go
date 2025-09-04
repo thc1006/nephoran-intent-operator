@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"testing"
@@ -143,7 +144,7 @@ func setupTestSessionManager(t *testing.T) (*SessionManager, *JWTManager, *RBACM
 	mockStore := &mockTokenStore{tokens: make(map[string]*TokenInfo)}
 	mockBlacklist := &mockTokenBlacklist{blacklisted: make(map[string]time.Time)}
 
-	jwtManager, err := NewJWTManager(jwtConfig, mockStore, mockBlacklist, logger)
+	jwtManager, err := NewJWTManager(context.Background(), jwtConfig, mockStore, mockBlacklist, logger)
 	if err != nil {
 		t.Fatalf("Failed to create JWT manager: %v", err)
 	}

@@ -1,3 +1,5 @@
+//go:build integration
+
 package main
 
 import (
@@ -14,6 +16,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/health"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 )
@@ -128,10 +131,10 @@ func testEndToEndHealthCheckBehavior(t *testing.T, logger *slog.Logger) {
 			}
 
 			// Create service manager with health checker
-			config := &Config{ServiceVersion: "test-1.0.0"}
-			sm := NewServiceManager(config, logger)
+			cfg := &config.LLMProcessorConfig{ServiceVersion: "test-1.0.0"}
+			sm := NewServiceManager(cfg, logger)
 			sm.circuitBreakerMgr = cbMgr
-			sm.healthChecker = health.NewHealthChecker("llm-processor", config.ServiceVersion, logger)
+			sm.healthChecker = health.NewHealthChecker("llm-processor", cfg.ServiceVersion, logger)
 
 			// Register health checks (this is what we're testing)
 			sm.registerHealthChecks()
@@ -140,12 +143,12 @@ func testEndToEndHealthCheckBehavior(t *testing.T, logger *slog.Logger) {
 			// Create HTTP test server
 			router := sm.CreateRouter()
 			server := httptest.NewServer(router)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			// Test /healthz endpoint
 			resp, err := http.Get(server.URL + "/healthz")
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
 
@@ -156,7 +159,7 @@ func testEndToEndHealthCheckBehavior(t *testing.T, logger *slog.Logger) {
 
 			// Validate overall response structure
 			assert.Equal(t, "llm-processor", healthResp.Service)
-			assert.Equal(t, config.ServiceVersion, healthResp.Version)
+			assert.Equal(t, cfg.ServiceVersion, healthResp.Version)
 			assert.NotEmpty(t, healthResp.Uptime)
 			assert.NotZero(t, healthResp.Timestamp)
 
@@ -209,10 +212,10 @@ func testConcurrentStateChanges(t *testing.T, logger *slog.Logger) {
 		}
 
 		// Create service manager
-		config := &Config{ServiceVersion: "test-1.0.0"}
-		sm := NewServiceManager(config, logger)
+		cfg := &config.LLMProcessorConfig{ServiceVersion: "test-1.0.0"}
+		sm := NewServiceManager(cfg, logger)
 		sm.circuitBreakerMgr = cbMgr
-		sm.healthChecker = health.NewHealthChecker("llm-processor", config.ServiceVersion, logger)
+		sm.healthChecker = health.NewHealthChecker("llm-processor", cfg.ServiceVersion, logger)
 		sm.registerHealthChecks()
 
 		// Test concurrent health checks while changing states
@@ -324,10 +327,10 @@ func testConcurrentStateChanges(t *testing.T, logger *slog.Logger) {
 			cbMgr.GetOrCreate(name, nil)
 		}
 
-		config := &Config{ServiceVersion: "test-1.0.0"}
-		sm := NewServiceManager(config, logger)
+		cfg := &config.LLMProcessorConfig{ServiceVersion: "test-1.0.0"}
+		sm := NewServiceManager(cfg, logger)
 		sm.circuitBreakerMgr = cbMgr
-		sm.healthChecker = health.NewHealthChecker("llm-processor", config.ServiceVersion, logger)
+		sm.healthChecker = health.NewHealthChecker("llm-processor", cfg.ServiceVersion, logger)
 		sm.registerHealthChecks()
 
 		// Run concurrent operations
@@ -394,10 +397,10 @@ func testPerformanceWithManyBreakers(t *testing.T, logger *slog.Logger) {
 				}
 			}
 
-			config := &Config{ServiceVersion: "test-1.0.0"}
-			sm := NewServiceManager(config, logger)
+			cfg := &config.LLMProcessorConfig{ServiceVersion: "test-1.0.0"}
+			sm := NewServiceManager(cfg, logger)
 			sm.circuitBreakerMgr = cbMgr
-			sm.healthChecker = health.NewHealthChecker("llm-processor", config.ServiceVersion, logger)
+			sm.healthChecker = health.NewHealthChecker("llm-processor", cfg.ServiceVersion, logger)
 			sm.registerHealthChecks()
 
 			// Measure health check performance
@@ -457,10 +460,10 @@ func testRegressionTests(t *testing.T, logger *slog.Logger) {
 		// Test that existing health check functionality still works
 		cbMgr := llm.NewCircuitBreakerManager(nil)
 
-		config := &Config{ServiceVersion: "test-1.0.0"}
-		sm := NewServiceManager(config, logger)
+		cfg := &config.LLMProcessorConfig{ServiceVersion: "test-1.0.0"}
+		sm := NewServiceManager(cfg, logger)
 		sm.circuitBreakerMgr = cbMgr
-		sm.healthChecker = health.NewHealthChecker("llm-processor", config.ServiceVersion, logger)
+		sm.healthChecker = health.NewHealthChecker("llm-processor", cfg.ServiceVersion, logger)
 
 		// Register all health checks like in production
 		sm.registerHealthChecks()
@@ -471,7 +474,7 @@ func testRegressionTests(t *testing.T, logger *slog.Logger) {
 
 		// Verify standard health response structure
 		assert.Equal(t, "llm-processor", response.Service)
-		assert.Equal(t, config.ServiceVersion, response.Version)
+		assert.Equal(t, cfg.ServiceVersion, response.Version)
 		assert.NotEmpty(t, response.Uptime)
 		assert.True(t, len(response.Checks) >= 1) // Should have service_status at minimum
 
@@ -482,10 +485,10 @@ func testRegressionTests(t *testing.T, logger *slog.Logger) {
 
 	t.Run("empty_circuit_breaker_manager", func(t *testing.T) {
 		// Test with nil circuit breaker manager (should not crash)
-		config := &Config{ServiceVersion: "test-1.0.0"}
-		sm := NewServiceManager(config, logger)
+		cfg := &config.LLMProcessorConfig{ServiceVersion: "test-1.0.0"}
+		sm := NewServiceManager(cfg, logger)
 		sm.circuitBreakerMgr = nil // Explicitly nil
-		sm.healthChecker = health.NewHealthChecker("llm-processor", config.ServiceVersion, logger)
+		sm.healthChecker = health.NewHealthChecker("llm-processor", cfg.ServiceVersion, logger)
 
 		sm.registerHealthChecks()
 
@@ -510,10 +513,10 @@ func testRegressionTests(t *testing.T, logger *slog.Logger) {
 		cb := cbMgr.GetOrCreate("test-service", nil)
 		_ = cb // We'll test through the manager interface
 
-		config := &Config{ServiceVersion: "test-1.0.0"}
-		sm := NewServiceManager(config, logger)
+		cfg := &config.LLMProcessorConfig{ServiceVersion: "test-1.0.0"}
+		sm := NewServiceManager(cfg, logger)
 		sm.circuitBreakerMgr = cbMgr
-		sm.healthChecker = health.NewHealthChecker("llm-processor", config.ServiceVersion, logger)
+		sm.healthChecker = health.NewHealthChecker("llm-processor", cfg.ServiceVersion, logger)
 		sm.registerHealthChecks()
 
 		ctx := context.Background()
@@ -544,16 +547,16 @@ func testRegressionTests(t *testing.T, logger *slog.Logger) {
 		cbMgr.GetOrCreate("service-healthy", nil).Reset()
 		cbMgr.GetOrCreate("service-open", nil).ForceOpen()
 
-		config := &Config{ServiceVersion: "test-1.0.0"}
-		sm := NewServiceManager(config, logger)
+		cfg := &config.LLMProcessorConfig{ServiceVersion: "test-1.0.0"}
+		sm := NewServiceManager(cfg, logger)
 		sm.circuitBreakerMgr = cbMgr
-		sm.healthChecker = health.NewHealthChecker("llm-processor", config.ServiceVersion, logger)
+		sm.healthChecker = health.NewHealthChecker("llm-processor", cfg.ServiceVersion, logger)
 		sm.registerHealthChecks()
 		sm.MarkReady()
 
 		router := sm.CreateRouter()
 		server := httptest.NewServer(router)
-		defer server.Close()
+		defer server.Close() // #nosec G307 - Error handled in defer
 
 		// Test both /healthz and /readyz endpoints
 		endpoints := []string{"/healthz", "/readyz"}
@@ -561,7 +564,7 @@ func testRegressionTests(t *testing.T, logger *slog.Logger) {
 		for _, endpoint := range endpoints {
 			resp, err := http.Get(server.URL + endpoint)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			// Should return 503 due to open circuit breaker
 			assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
@@ -618,10 +621,10 @@ func BenchmarkCircuitBreakerHealthCheckFix(b *testing.B) {
 				}
 			}
 
-			config := &Config{ServiceVersion: "bench-1.0.0"}
-			sm := NewServiceManager(config, logger)
+			cfg := &config.LLMProcessorConfig{ServiceVersion: "bench-1.0.0"}
+			sm := NewServiceManager(cfg, logger)
 			sm.circuitBreakerMgr = cbMgr
-			sm.healthChecker = health.NewHealthChecker("llm-processor", config.ServiceVersion, logger)
+			sm.healthChecker = health.NewHealthChecker("llm-processor", cfg.ServiceVersion, logger)
 			sm.registerHealthChecks()
 
 			ctx := context.Background()
@@ -694,10 +697,10 @@ func TestCircuitBreakerHealthMessageFormatting(t *testing.T) {
 			cbMgr.GetOrCreate("closed-service-1", nil).Reset()
 			cbMgr.GetOrCreate("closed-service-2", nil).Reset()
 
-			config := &Config{ServiceVersion: "test-1.0.0"}
-			sm := NewServiceManager(config, logger)
+			cfg := &config.LLMProcessorConfig{ServiceVersion: "test-1.0.0"}
+			sm := NewServiceManager(cfg, logger)
 			sm.circuitBreakerMgr = cbMgr
-			sm.healthChecker = health.NewHealthChecker("llm-processor", config.ServiceVersion, logger)
+			sm.healthChecker = health.NewHealthChecker("llm-processor", cfg.ServiceVersion, logger)
 			sm.registerHealthChecks()
 
 			ctx := context.Background()

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-	"time"
+	// "time" // Removed - imported but not used
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -17,7 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/security"
-	"github.com/thc1006/nephoran-intent-operator/tests/utils"
+	testutils "github.com/thc1006/nephoran-intent-operator/tests/utils"
 )
 
 var _ = Describe("Network Policy Security Tests", func() {
@@ -26,15 +26,15 @@ var _ = Describe("Network Policy Security Tests", func() {
 		k8sClient     client.Client
 		namespace     string
 		policyManager *security.NetworkPolicyManager
-		timeout       time.Duration
+		// timeout       time.Duration // Removed - declared but not used
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		k8sClient = utils.GetK8sClient()
-		namespace = utils.GetTestNamespace()
+		k8sClient = testutils.GetK8sClient()
+		namespace = testutils.GetTestNamespace()
 		policyManager = security.NewNetworkPolicyManager(k8sClient, namespace)
-		timeout = 30 * time.Second
+		// timeout = 30 * time.Second // Removed - declared but not used
 	})
 
 	Context("Zero-Trust Network Policies", func() {
@@ -202,7 +202,7 @@ var _ = Describe("Network Policy Security Tests", func() {
 											}
 
 											if isAllowed {
-												By(fmt.Sprintf("✓ %s correctly allows communication to %s",
+												By(fmt.Sprintf("??%s correctly allows communication to %s",
 													sourceComponent, targetApp))
 											} else {
 												By(fmt.Sprintf("Warning: %s has unexpected communication to %s",
@@ -624,23 +624,26 @@ func ValidateNetworkPolicy(policy *networkingv1.NetworkPolicy) []string {
 
 // Test network connectivity with policies
 func TestNetworkConnectivity(t *testing.T) {
+	_ = context.Background()
 	// This would test actual network connectivity between pods
 	// given the current network policies
 
-	// Implementation would:
-	// 1. Create test pods
-	// 2. Attempt connections between them
-	// 3. Verify that allowed connections work and denied connections fail
+	// For now, this is a placeholder test requiring live cluster setup
+	t.Skip("Network connectivity test requires live cluster setup")
 
-	// TODO: Implement actual network connectivity tests
-	t.Skip("Network connectivity test not yet implemented")
+	// When implemented, this test would:
+	// 1. Create test pods in different namespaces
+	// 2. Apply network policies
+	// 3. Attempt connections between pods
+	// 4. Verify that allowed connections work and denied connections fail
+	// 5. Test security boundaries between O-RAN interfaces
 }
 
 // Benchmark network policy operations
 func BenchmarkNetworkPolicyOperations(b *testing.B) {
 	ctx := context.Background()
-	k8sClient := utils.GetK8sClient()
-	namespace := utils.GetTestNamespace()
+	k8sClient := testutils.GetK8sClient()
+	namespace := testutils.GetTestNamespace()
 
 	policyManager := security.NewNetworkPolicyManager(k8sClient, namespace)
 

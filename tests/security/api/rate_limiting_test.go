@@ -1,9 +1,8 @@
 package api
 
 import (
-	"context"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"net/http"
 	"net/http/httptest"
 	"sort"
@@ -40,7 +39,7 @@ func NewRateLimitTestSuite(t *testing.T) *RateLimitTestSuite {
 
 // TestEndpointRateLimiting tests rate limiting per endpoint
 func TestEndpointRateLimiting(t *testing.T) {
-	suite := NewRateLimitTestSuite(t)
+	_ = NewRateLimitTestSuite(t)
 
 	endpointLimits := map[string]struct {
 		rps   int // requests per second
@@ -94,7 +93,7 @@ func TestEndpointRateLimiting(t *testing.T) {
 
 // TestPerUserRateLimiting tests rate limiting per user
 func TestPerUserRateLimiting(t *testing.T) {
-	suite := NewRateLimitTestSuite(t)
+	_ = NewRateLimitTestSuite(t)
 
 	userLimiters := make(map[string]*rate.Limiter)
 	getUserLimiter := func(userID string) *rate.Limiter {
@@ -170,7 +169,7 @@ func TestPerUserRateLimiting(t *testing.T) {
 
 // TestDistributedRateLimiting tests distributed rate limiting across multiple instances
 func TestDistributedRateLimiting(t *testing.T) {
-	suite := NewRateLimitTestSuite(t)
+	_ = NewRateLimitTestSuite(t)
 
 	// Simulate distributed rate limiter with shared state
 	type DistributedLimiter struct {
@@ -291,7 +290,7 @@ func TestRateLimitHeaders(t *testing.T) {
 
 // TestDDoSProtection tests DDoS protection mechanisms
 func TestDDoSProtection(t *testing.T) {
-	suite := NewRateLimitTestSuite(t)
+	_ = NewRateLimitTestSuite(t)
 
 	t.Run("SYN_Flood_Protection", func(t *testing.T) {
 		// Simulate SYN flood detection
@@ -302,6 +301,15 @@ func TestDDoSProtection(t *testing.T) {
 		for i := 0; i < 200; i++ {
 			ip := fmt.Sprintf("192.168.1.%d", i%50) // 50 unique IPs
 			connectionAttempts[ip]++
+
+			// Check if we should start dropping connections
+			totalConnections := 0
+			for _, count := range connectionAttempts {
+				totalConnections += count
+			}
+			if totalConnections > maxHalfOpenConnections {
+				break // Simulate dropping new connections
+			}
 
 			// Check if we should block this IP
 			if connectionAttempts[ip] > 5 {
@@ -455,7 +463,7 @@ func TestDDoSProtection(t *testing.T) {
 
 // TestBurstHandling tests burst request handling
 func TestBurstHandling(t *testing.T) {
-	suite := NewRateLimitTestSuite(t)
+	_ = NewRateLimitTestSuite(t)
 
 	t.Run("Token_Bucket_Algorithm", func(t *testing.T) {
 		// Implement token bucket
@@ -658,7 +666,7 @@ func TestBurstHandling(t *testing.T) {
 
 // TestGracefulDegradation tests graceful degradation under load
 func TestGracefulDegradation(t *testing.T) {
-	suite := NewRateLimitTestSuite(t)
+	_ = NewRateLimitTestSuite(t)
 
 	t.Run("Priority_Based_Rate_Limiting", func(t *testing.T) {
 		// Different rate limits based on request priority
@@ -746,7 +754,6 @@ func TestGracefulDegradation(t *testing.T) {
 
 			// Execute function
 			err := fn()
-
 			if err != nil {
 				cb.failures++
 				if cb.state == "half-open" {
@@ -874,7 +881,7 @@ func TestGracefulDegradation(t *testing.T) {
 
 // TestIPBasedRateLimiting tests IP-based rate limiting
 func TestIPBasedRateLimiting(t *testing.T) {
-	suite := NewRateLimitTestSuite(t)
+	_ = NewRateLimitTestSuite(t)
 
 	type IPRateLimiter struct {
 		mu       sync.RWMutex
@@ -951,14 +958,14 @@ func TestIPBasedRateLimiting(t *testing.T) {
 		for ip := range whitelist {
 			// Whitelisted IPs should have higher limits
 			limiter := rate.NewLimiter(1000, 2000) // Much higher limits
-			assert.NotNil(t, limiter, "Whitelisted IP should always get a limiter")
+			assert.NotNil(t, limiter, fmt.Sprintf("Whitelisted IP %s should always get a limiter", ip))
 		}
 	})
 }
 
 // TestRateLimitingMetrics tests rate limiting metrics and monitoring
 func TestRateLimitingMetrics(t *testing.T) {
-	suite := NewRateLimitTestSuite(t)
+	_ = NewRateLimitTestSuite(t)
 
 	type RateLimitMetrics struct {
 		mu              sync.RWMutex
@@ -1025,7 +1032,7 @@ func TestRateLimitingMetrics(t *testing.T) {
 
 		// Simulate processing time
 		if allowed {
-			time.Sleep(time.Duration(rand.Intn(50)) * time.Millisecond)
+			time.Sleep(time.Duration(rand.IntN(50)) * time.Millisecond)
 		}
 
 		responseTime := time.Since(start)

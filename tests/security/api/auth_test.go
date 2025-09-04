@@ -1,9 +1,8 @@
 package api
 
 import (
-	"bytes"
-	"context"
 	"crypto/rand"
+	mathrand "math/rand/v2"
 	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/base32"
@@ -19,7 +18,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/oauth2"
 )
 
 // API endpoints for each service
@@ -905,7 +903,7 @@ func (s *AuthTestSuite) verifyTOTPCode(secret, code string, t time.Time) bool {
 }
 
 func (s *AuthTestSuite) generateSMSOTP() string {
-	return fmt.Sprintf("%06d", rand.Intn(1000000))
+	return fmt.Sprintf("%06d", mathrand.IntN(1000000))
 }
 
 func (s *AuthTestSuite) verifySMSOTP(phone, otp string) bool {
@@ -963,8 +961,10 @@ type Session struct {
 	ExpiresAt time.Time
 }
 
-var sessionStore = make(map[string]*Session)
-var usedBackupCodes = make(map[string]bool)
+var (
+	sessionStore    = make(map[string]*Session)
+	usedBackupCodes = make(map[string]bool)
+)
 
 func (s *AuthTestSuite) createSession(userID string) string {
 	sessionID := s.generateSecureState()

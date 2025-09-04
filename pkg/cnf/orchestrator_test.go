@@ -18,12 +18,15 @@ package cnf
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/mock"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,9 +35,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/git"
-	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
 )
 
 func TestCNFOrchestrator(t *testing.T) {
@@ -106,7 +106,7 @@ var _ = Describe("CNF Orchestrator", func() {
 				Spec: nephoranv1.CNFDeploymentSpec{
 					CNFType:            nephoranv1.CNF5GCore,
 					Function:           nephoranv1.CNFFunctionAMF,
-					DeploymentStrategy: nephoranv1.DeploymentStrategyDirect,
+					DeploymentStrategy: nephoranv1.CNFDeploymentStrategyDirect,
 					Replicas:           2,
 					Resources: nephoranv1.CNFResources{
 						CPU:    mustParseQuantity("1000m"),
@@ -131,7 +131,7 @@ var _ = Describe("CNF Orchestrator", func() {
 		})
 
 		It("should successfully deploy CNF via GitOps strategy", func() {
-			cnfDeployment.Spec.DeploymentStrategy = nephoranv1.DeploymentStrategyGitOps
+			cnfDeployment.Spec.DeploymentStrategy = nephoranv1.CNFDeploymentStrategyGitOps
 			mockPackageGen.On("GenerateCNFPackage").Return([]byte("package-data"), nil)
 			mockGitClient.On("CommitPackage").Return("abc123", nil)
 
@@ -210,7 +210,7 @@ var _ = Describe("CNF Orchestrator", func() {
 					Spec: nephoranv1.CNFDeploymentSpec{
 						CNFType:            nephoranv1.CNF5GCore,
 						Function:           nephoranv1.CNFFunctionAMF,
-						DeploymentStrategy: nephoranv1.DeploymentStrategyHelm,
+						DeploymentStrategy: nephoranv1.CNFDeploymentStrategyHelm,
 						Replicas:           1,
 					},
 				},
@@ -231,7 +231,7 @@ var _ = Describe("CNF Orchestrator", func() {
 		})
 
 		It("should fail validation with missing Helm config for Helm strategy", func() {
-			deployRequest.CNFDeployment.Spec.DeploymentStrategy = nephoranv1.DeploymentStrategyHelm
+			deployRequest.CNFDeployment.Spec.DeploymentStrategy = nephoranv1.CNFDeploymentStrategyHelm
 			// Helm config is nil
 
 			err := orchestrator.validateDeploymentRequest(deployRequest)
@@ -240,7 +240,7 @@ var _ = Describe("CNF Orchestrator", func() {
 		})
 
 		It("should fail validation with missing Operator config for Operator strategy", func() {
-			deployRequest.CNFDeployment.Spec.DeploymentStrategy = nephoranv1.DeploymentStrategyOperator
+			deployRequest.CNFDeployment.Spec.DeploymentStrategy = nephoranv1.CNFDeploymentStrategyOperator
 			// Operator config is nil
 
 			err := orchestrator.validateDeploymentRequest(deployRequest)
@@ -355,7 +355,7 @@ var _ = Describe("CNF Orchestrator", func() {
 					Resources: nephoranv1.CNFResources{
 						CPU:       mustParseQuantity("1000m"),
 						Memory:    mustParseQuantity("2Gi"),
-						Storage:   mustParseQuantity("10Gi"),
+						Storage:   &[]resource.Quantity{mustParseQuantity("10Gi")}[0],
 						MaxCPU:    &[]resource.Quantity{mustParseQuantity("2000m")}[0],
 						MaxMemory: &[]resource.Quantity{mustParseQuantity("4Gi")}[0],
 					},
@@ -365,10 +365,8 @@ var _ = Describe("CNF Orchestrator", func() {
 			template = &CNFTemplate{
 				Function: nephoranv1.CNFFunctionAMF,
 				DefaultValues: map[string]interface{}{
-					"image": map[string]interface{}{
-						"repository": "5gc/amf",
-						"tag":        "latest",
-					},
+					"repository": "5gc/amf",
+					"tag":        "latest",
 				},
 			}
 		})
@@ -382,11 +380,11 @@ var _ = Describe("CNF Orchestrator", func() {
 
 			resources := config["resources"].(map[string]interface{})
 			requests := resources["requests"].(map[string]interface{})
-			Expect(requests["cpu"]).To(Equal("1000m"))
+			Expect(requests["cpu"]).To(Equal("1"))  // 1000m = 1 CPU core
 			Expect(requests["memory"]).To(Equal("2Gi"))
 
 			limits := resources["limits"].(map[string]interface{})
-			Expect(limits["cpu"]).To(Equal("2000m"))
+			Expect(limits["cpu"]).To(Equal("2"))    // 2000m = 2 CPU cores
 			Expect(limits["memory"]).To(Equal("4Gi"))
 		})
 
@@ -491,6 +489,56 @@ func (m *MockGitClient) CommitPackage(ctx context.Context, packageData []byte, c
 	return args.String(0), args.Error(1)
 }
 
+func (m *MockGitClient) CommitAndPush(files map[string]string, message string) (string, error) {
+	args := m.Called(files, message)
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockGitClient) CommitAndPushChanges(message string) error {
+	args := m.Called(message)
+	return args.Error(0)
+}
+
+func (m *MockGitClient) InitRepo() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
+func (m *MockGitClient) RemoveDirectory(path string, commitMessage string) error {
+	args := m.Called(path, commitMessage)
+	return args.Error(0)
+}
+
+func (m *MockGitClient) CommitFiles(files []string, msg string) error {
+	args := m.Called(files, msg)
+	return args.Error(0)
+}
+
+func (m *MockGitClient) CreateBranch(name string) error {
+	args := m.Called(name)
+	return args.Error(0)
+}
+
+func (m *MockGitClient) SwitchBranch(name string) error {
+	args := m.Called(name)
+	return args.Error(0)
+}
+
+func (m *MockGitClient) GetCurrentBranch() (string, error) {
+	args := m.Called()
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockGitClient) ListBranches() ([]string, error) {
+	args := m.Called()
+	return args.Get(0).([]string), args.Error(1)
+}
+
+func (m *MockGitClient) GetFileContent(path string) ([]byte, error) {
+	args := m.Called(path)
+	return args.Get(0).([]byte), args.Error(1)
+}
+
 type MockMetricsCollector struct {
 	mock.Mock
 }
@@ -554,8 +602,12 @@ var _ = Describe("CNF Orchestrator Error Scenarios", func() {
 					Spec: nephoranv1.CNFDeploymentSpec{
 						CNFType:            nephoranv1.CNF5GCore,
 						Function:           nephoranv1.CNFFunctionAMF,
-						DeploymentStrategy: nephoranv1.DeploymentStrategyGitOps,
+						DeploymentStrategy: nephoranv1.CNFDeploymentStrategyGitOps,
 						Replicas:           1,
+						Resources: nephoranv1.CNFResources{
+							CPU:    mustParseQuantity("1000m"), // Meet minimum AMF requirement
+							Memory: mustParseQuantity("2Gi"),   // Meet minimum AMF requirement
+						},
 					},
 				},
 			}
@@ -599,7 +651,7 @@ var _ = Describe("CNF Orchestrator Error Scenarios", func() {
 		})
 
 		It("should handle unsupported deployment strategy", func() {
-			deployRequest.CNFDeployment.Spec.DeploymentStrategy = nephoranv1.DeploymentStrategy("unsupported")
+			deployRequest.CNFDeployment.Spec.DeploymentStrategy = nephoranv1.CNFDeploymentStrategy("unsupported")
 
 			result, err := orchestrator.Deploy(ctx, deployRequest)
 
@@ -626,9 +678,15 @@ var _ = Describe("CNF Orchestrator Error Scenarios", func() {
 				},
 			}
 
+			// Convert json.RawMessage to map[string]interface{}
+			var defaultValues map[string]interface{}
+			if err := json.Unmarshal([]byte(`{}`), &defaultValues); err != nil {
+				panic(fmt.Sprintf("failed to unmarshal default values: %v", err))
+			}
+
 			template = &CNFTemplate{
 				Function:      nephoranv1.CNFFunctionAMF,
-				DefaultValues: map[string]interface{}{},
+				DefaultValues: defaultValues,
 			}
 		})
 
@@ -638,7 +696,7 @@ var _ = Describe("CNF Orchestrator Error Scenarios", func() {
 			Expect(err).NotTo(HaveOccurred())
 			resources := config["resources"].(map[string]interface{})
 			limits := resources["limits"].(map[string]interface{})
-			Expect(limits["cpu"]).To(Equal("1000m"))  // Same as request
+			Expect(limits["cpu"]).To(Equal("1"))    // Same as request (1000m = 1)
 			Expect(limits["memory"]).To(Equal("2Gi")) // Same as request
 		})
 
@@ -675,7 +733,6 @@ var _ = Describe("CNF Orchestrator Performance Tests", func() {
 		fakeClient   client.Client
 		fakeRecorder *record.FakeRecorder
 		scheme       *runtime.Scheme
-		ctx          context.Context
 	)
 
 	BeforeEach(func() {
@@ -684,7 +741,6 @@ var _ = Describe("CNF Orchestrator Performance Tests", func() {
 
 		fakeClient = fake.NewClientBuilder().WithScheme(scheme).Build()
 		fakeRecorder = record.NewFakeRecorder(100)
-		ctx = context.Background()
 
 		orchestrator = NewCNFOrchestrator(fakeClient, scheme, fakeRecorder)
 	})
@@ -791,3 +847,4 @@ var _ = Describe("CNF Orchestrator Performance Tests", func() {
 		})
 	})
 })
+

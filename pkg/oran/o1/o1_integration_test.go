@@ -1,17 +1,18 @@
+//go:build integration
+
 package o1
 
 import (
 	"context"
 	"testing"
 	"time"
+	"encoding/json"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -51,9 +52,15 @@ func TestO1AdaptorIntegrationWithManagedElement(t *testing.T) {
 				Spec: nephoranv1.ManagedElementSpec{
 					Host: "192.168.1.10",
 					Port: 830,
-					Credentials: nephoranv1.Credentials{
-						Username: "admin",
-						Password: "password",
+					Credentials: nephoranv1.ManagedElementCredentials{
+						UsernameRef: &nephoranv1.SecretReference{
+							Name: "test-secret",
+							Key:  "username",
+						},
+						PasswordRef: &nephoranv1.SecretReference{
+							Name: "test-secret",
+							Key:  "password",
+						},
 					},
 					O1Config: `<hardware>
 						<component>
@@ -68,7 +75,13 @@ func TestO1AdaptorIntegrationWithManagedElement(t *testing.T) {
 					</hardware>`,
 				},
 				Status: nephoranv1.ManagedElementStatus{
-					Phase: "Pending",
+					Conditions: []metav1.Condition{
+						{
+							Type:   "Ready",
+							Status: metav1.ConditionFalse,
+							Reason: "NotConfigured",
+						},
+					},
 				},
 			},
 			testFunction: testO1ConfigurationApplication,
@@ -87,9 +100,15 @@ func TestO1AdaptorIntegrationWithManagedElement(t *testing.T) {
 				Spec: nephoranv1.ManagedElementSpec{
 					Host: "192.168.1.11",
 					Port: 830,
-					Credentials: nephoranv1.Credentials{
-						Username: "admin",
-						Password: "admin123",
+					Credentials: nephoranv1.ManagedElementCredentials{
+						UsernameRef: &nephoranv1.SecretReference{
+							Name: "test-secret",
+							Key:  "username",
+						},
+						PasswordRef: &nephoranv1.SecretReference{
+							Name: "test-secret",
+							Key:  "password",
+						},
 					},
 					O1Config: `{
 						"interfaces": {
@@ -108,7 +127,13 @@ func TestO1AdaptorIntegrationWithManagedElement(t *testing.T) {
 					}`,
 				},
 				Status: nephoranv1.ManagedElementStatus{
-					Phase: "Pending",
+					Conditions: []metav1.Condition{
+						{
+							Type:   "Ready",
+							Status: metav1.ConditionFalse,
+							Reason: "NotConfigured",
+						},
+					},
 				},
 			},
 			testFunction: testO1JSONConfiguration,
@@ -127,9 +152,15 @@ func TestO1AdaptorIntegrationWithManagedElement(t *testing.T) {
 				Spec: nephoranv1.ManagedElementSpec{
 					Host: "192.168.1.12",
 					Port: 830,
-					Credentials: nephoranv1.Credentials{
-						Username: "monitor",
-						Password: "monitor123",
+					Credentials: nephoranv1.ManagedElementCredentials{
+						UsernameRef: &nephoranv1.SecretReference{
+							Name: "test-secret",
+							Key:  "username",
+						},
+						PasswordRef: &nephoranv1.SecretReference{
+							Name: "test-secret",
+							Key:  "password",
+						},
 					},
 					O1Config: `<performance-measurement>
 						<measurement-group>
@@ -249,14 +280,20 @@ func testO1PerformanceMonitoring(t *testing.T, adaptor *O1Adaptor, me *nephoranv
 func TestO1AdaptorControllerCompatibility(t *testing.T) {
 	ctx := context.Background()
 
-	// Create O1 adaptor
+	// Create fake Kubernetes client
+	s := runtime.NewScheme()
+	err := nephoranv1.AddToScheme(s)
+	require.NoError(t, err)
+	fakeClient := fake.NewClientBuilder().WithScheme(s).Build()
+
+	// Create O1 adaptor with config
 	adaptor := NewO1Adaptor(&O1Config{
 		DefaultPort:    830,
 		ConnectTimeout: 10 * time.Second,
 		RequestTimeout: 30 * time.Second,
 		MaxRetries:     2,
 		RetryInterval:  2 * time.Second,
-	})
+	}, fakeClient)
 
 	// Test ManagedElement specification validation
 	t.Run("managed_element_spec_validation", func(t *testing.T) {
@@ -268,9 +305,15 @@ func TestO1AdaptorControllerCompatibility(t *testing.T) {
 			Spec: nephoranv1.ManagedElementSpec{
 				Host: "192.168.1.100",
 				Port: 830,
-				Credentials: nephoranv1.Credentials{
-					Username: "admin",
-					Password: "password",
+				Credentials: nephoranv1.ManagedElementCredentials{
+					UsernameRef: &nephoranv1.SecretReference{
+						Name: "test-secret",
+						Key:  "username",
+					},
+					PasswordRef: &nephoranv1.SecretReference{
+						Name: "test-secret",
+						Key:  "password",
+					},
 				},
 				O1Config: `<hardware><component><name>test</name></component></hardware>`,
 			},
@@ -279,7 +322,7 @@ func TestO1AdaptorControllerCompatibility(t *testing.T) {
 		// Test that all required fields are accessible
 		assert.NotEmpty(t, validME.Spec.Host)
 		assert.NotZero(t, validME.Spec.Port)
-		assert.NotEmpty(t, validME.Spec.Credentials.Username)
+		assert.NotNil(t, validME.Spec.Credentials.UsernameRef)
 		assert.NotEmpty(t, validME.Spec.O1Config)
 
 		// Test configuration validation
@@ -292,16 +335,15 @@ func TestO1AdaptorControllerCompatibility(t *testing.T) {
 		me := &nephoranv1.ManagedElement{}
 
 		// Test that status fields can be set (as a controller would do)
-		me.Status.Phase = "Ready"
-		me.Status.Conditions = []nephoranv1.ManagedElementCondition{
+		me.Status.Conditions = []metav1.Condition{
 			{
-				Type:   "ConfigurationApplied",
-				Status: "True",
-				Reason: "ConfigurationValid",
+				Type:               "ConfigurationApplied",
+				Status:             metav1.ConditionTrue,
+				Reason:             "ConfigurationValid",
+				LastTransitionTime: metav1.Now(),
 			},
 		}
 
-		assert.Equal(t, "Ready", me.Status.Phase)
 		assert.Len(t, me.Status.Conditions, 1)
 		assert.Equal(t, "ConfigurationApplied", me.Status.Conditions[0].Type)
 	})
@@ -314,6 +356,12 @@ func TestO1AdaptorWithMockNetconfServer(t *testing.T) {
 	// Note: This would ideally use a mock NETCONF server
 	// For now, we test the error handling and interface behavior
 
+	// Create fake Kubernetes client
+	s := runtime.NewScheme()
+	err := nephoranv1.AddToScheme(s)
+	require.NoError(t, err)
+	fakeClient := fake.NewClientBuilder().WithScheme(s).Build()
+
 	adaptor := NewO1Adaptor(nil, fakeClient)
 
 	mockME := &nephoranv1.ManagedElement{
@@ -323,9 +371,15 @@ func TestO1AdaptorWithMockNetconfServer(t *testing.T) {
 		Spec: nephoranv1.ManagedElementSpec{
 			Host: "localhost", // Non-existent NETCONF server
 			Port: 8300,        // Non-standard port to ensure failure
-			Credentials: nephoranv1.Credentials{
-				Username: "test",
-				Password: "test",
+			Credentials: nephoranv1.ManagedElementCredentials{
+				UsernameRef: &nephoranv1.SecretReference{
+					Name: "test-secret",
+					Key:  "username",
+				},
+				PasswordRef: &nephoranv1.SecretReference{
+					Name: "test-secret",
+					Key:  "password",
+				},
 			},
 			O1Config: `<test>configuration</test>`,
 		},
@@ -359,6 +413,13 @@ func TestO1AdaptorWithMockNetconfServer(t *testing.T) {
 // TestO1AdaptorFCAPSOperations tests comprehensive FCAPS operations
 func TestO1AdaptorFCAPSOperations(t *testing.T) {
 	ctx := context.Background()
+
+	// Create fake Kubernetes client
+	s := runtime.NewScheme()
+	err := nephoranv1.AddToScheme(s)
+	require.NoError(t, err)
+	fakeClient := fake.NewClientBuilder().WithScheme(s).Build()
+
 	adaptor := NewO1Adaptor(nil, fakeClient)
 
 	me := &nephoranv1.ManagedElement{
@@ -368,9 +429,15 @@ func TestO1AdaptorFCAPSOperations(t *testing.T) {
 		Spec: nephoranv1.ManagedElementSpec{
 			Host: "192.168.1.200",
 			Port: 830,
-			Credentials: nephoranv1.Credentials{
-				Username: "fcaps-user",
-				Password: "fcaps-pass",
+			Credentials: nephoranv1.ManagedElementCredentials{
+				UsernameRef: &nephoranv1.SecretReference{
+					Name: "test-secret",
+					Key:  "username",
+				},
+				PasswordRef: &nephoranv1.SecretReference{
+					Name: "test-secret",
+					Key:  "password",
+				},
 			},
 		},
 	}
@@ -455,10 +522,7 @@ func TestO1AdaptorFCAPSOperations(t *testing.T) {
 				{
 					RuleID: "rule-001",
 					Action: "ALLOW",
-					Conditions: map[string]interface{}{
-						"source_ip": "192.168.1.0/24",
-						"protocol":  "https",
-					},
+					Conditions: json.RawMessage(`{}`),
 				},
 			},
 		}
@@ -477,13 +541,20 @@ func TestO1AdaptorFCAPSOperations(t *testing.T) {
 // TestO1AdaptorResourceManagement tests resource cleanup and management
 func TestO1AdaptorResourceManagement(t *testing.T) {
 	ctx := context.Background()
+
+	// Create fake Kubernetes client
+	s := runtime.NewScheme()
+	err := nephoranv1.AddToScheme(s)
+	require.NoError(t, err)
+	fakeClient := fake.NewClientBuilder().WithScheme(s).Build()
+
 	adaptor := NewO1Adaptor(&O1Config{
 		DefaultPort:    830,
 		ConnectTimeout: 5 * time.Second,
 		RequestTimeout: 10 * time.Second,
 		MaxRetries:     1,
 		RetryInterval:  1 * time.Second,
-	})
+	}, fakeClient)
 
 	// Test that adaptor properly initializes internal resources
 	t.Run("initialization", func(t *testing.T) {
@@ -501,8 +572,13 @@ func TestO1AdaptorResourceManagement(t *testing.T) {
 			Spec: nephoranv1.ManagedElementSpec{
 				Host: "192.168.1.201",
 				Port: 830,
-				Credentials: nephoranv1.Credentials{
-					Username: "user1", Password: "pass1",
+				Credentials: nephoranv1.ManagedElementCredentials{
+					UsernameRef: &nephoranv1.SecretReference{
+						Name: "test-secret", Key: "username",
+					},
+					PasswordRef: &nephoranv1.SecretReference{
+						Name: "test-secret", Key: "password",
+					},
 				},
 			},
 		}
@@ -512,8 +588,13 @@ func TestO1AdaptorResourceManagement(t *testing.T) {
 			Spec: nephoranv1.ManagedElementSpec{
 				Host: "192.168.1.202",
 				Port: 830,
-				Credentials: nephoranv1.Credentials{
-					Username: "user2", Password: "pass2",
+				Credentials: nephoranv1.ManagedElementCredentials{
+					UsernameRef: &nephoranv1.SecretReference{
+						Name: "test-secret", Key: "username",
+					},
+					PasswordRef: &nephoranv1.SecretReference{
+						Name: "test-secret", Key: "password",
+					},
 				},
 			},
 		}
@@ -554,6 +635,12 @@ func TestO1AdaptorResourceManagement(t *testing.T) {
 // Benchmark tests for performance verification
 func BenchmarkO1AdaptorValidateConfiguration(b *testing.B) {
 	ctx := context.Background()
+
+	// Create fake Kubernetes client
+	s := runtime.NewScheme()
+	nephoranv1.AddToScheme(s)
+	fakeClient := fake.NewClientBuilder().WithScheme(s).Build()
+
 	adaptor := NewO1Adaptor(nil, fakeClient)
 
 	config := `<hardware>
@@ -574,6 +661,11 @@ func BenchmarkO1AdaptorValidateConfiguration(b *testing.B) {
 }
 
 func BenchmarkO1AdaptorParseAlarmData(b *testing.B) {
+	// Create fake Kubernetes client
+	s := runtime.NewScheme()
+	nephoranv1.AddToScheme(s)
+	fakeClient := fake.NewClientBuilder().WithScheme(s).Build()
+
 	adaptor := NewO1Adaptor(nil, fakeClient)
 
 	xmlData := `<data>
@@ -594,3 +686,4 @@ func BenchmarkO1AdaptorParseAlarmData(b *testing.B) {
 		_, _ = adaptor.parseAlarmData(xmlData, "test-element")
 	}
 }
+

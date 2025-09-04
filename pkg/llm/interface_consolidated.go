@@ -1,234 +1,158 @@
+//go:build !disable_rag
+// +build !disable_rag
+
 package llm
 
 import (
 	"context"
-	"sync"
 	"time"
 )
 
-// CONSOLIDATED INTERFACES - Simplified from over-engineered abstractions
+// CONSOLIDATED INTERFACES - Essential interfaces only, duplicates removed
 
 // LLMProcessor is the main interface for LLM processing
 type LLMProcessor interface {
-	ProcessIntent(ctx context.Context, intent string) (string, error)
+	ProcessIntent(ctx context.Context, request *ProcessingRequest) (*ProcessingResponse, error)
 	GetMetrics() ClientMetrics
 	Shutdown()
 }
 
+// Processor is an alias for backward compatibility using Go 1.24 type alias
+type Processor = LLMProcessor
+
 // BatchProcessor handles batch processing of multiple intents
 type BatchProcessor interface {
-	ProcessBatch(ctx context.Context, requests []*BatchRequest) ([]*ProcessingResult, error)
-	GetMetrics() *ProcessingMetrics
+	ProcessRequest(ctx context.Context, intent, intentType, modelName string, priority Priority) (*BatchResult, error)
+	GetStats() BatchProcessorStats
+	Close() error
 }
 
-// StreamingProcessor handles streaming requests
-type StreamingProcessor interface {
-	HandleStreamingRequest(w interface{}, r interface{}, req *StreamingRequest) error
-	GetMetrics() map[string]interface{}
+// CORE TYPES - Only non-duplicate types remain
+
+// ProcessingRequest represents a request for LLM processing
+type ProcessingRequest struct {
+	ID         string            `json:"id"`
+	Intent     string            `json:"intent"`
+	IntentType string            `json:"intent_type"`
+	Model      string            `json:"model"`
+	Context    map[string]string `json:"context,omitempty"`
+	Metadata   RequestMetadata   `json:"metadata,omitempty"`
+	Timestamp  time.Time         `json:"timestamp"`
 }
 
-// CacheProvider provides caching functionality
-type CacheProvider interface {
-	Get(key string) (string, bool)
-	Set(key, response string)
-	Clear()
-	Stop()
-	GetStats() map[string]interface{}
+// ProcessingResponse represents a response from LLM processing
+type ProcessingResponse struct {
+	ID                  string        `json:"id"`
+	Response            string        `json:"response"`
+	ProcessedParameters string        `json:"processed_parameters"`
+	Confidence          float32       `json:"confidence"`
+	TokensUsed          int           `json:"tokens_used"`
+	ProcessingTime      time.Duration `json:"processing_time"`
+	Cost                float64       `json:"cost"`
+	ModelUsed           string        `json:"model_used"`
+	Error               string        `json:"error,omitempty"`
 }
 
-// PromptGenerator generates prompts for different intent types
-type PromptGenerator interface {
-	GeneratePrompt(intentType, userIntent string) string
-	ExtractParameters(intent string) map[string]interface{}
+// StreamingRequest represents a request for streaming processing
+type StreamingRequest struct {
+	ID         string                 `json:"id"`
+	Intent     string                 `json:"intent"`
+	IntentType string                 `json:"intent_type"`
+	Model      string                 `json:"model"`
+	ModelName  string                 `json:"model_name,omitempty"`     // Added for compatibility
+	Query      string                 `json:"query,omitempty"`          // Added for compatibility
+	SessionID  string                 `json:"session_id,omitempty"`     // Added for compatibility
+	EnableRAG  bool                   `json:"enable_rag,omitempty"`     // Added for compatibility
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`       // Added for compatibility
+	Context    map[string]string      `json:"context,omitempty"`
+	Stream     bool                   `json:"stream"`
+	MaxTokens  int                    `json:"max_tokens,omitempty"`     // Added for compatibility
 }
 
-// ESSENTIAL TYPES ONLY - Consolidated from scattered definitions
-
-// ClientMetrics tracks client performance (consolidated from multiple files)
-type ClientMetrics struct {
-	RequestsTotal    int64         `json:"requests_total"`
-	RequestsSuccess  int64         `json:"requests_success"`
-	RequestsFailure  int64         `json:"requests_failure"`
-	TotalLatency     time.Duration `json:"total_latency"`
-	CacheHits        int64         `json:"cache_hits"`
-	CacheMisses      int64         `json:"cache_misses"`
-	RetryAttempts    int64         `json:"retry_attempts"`
-	FallbackAttempts int64         `json:"fallback_attempts"`
-	mutex            sync.RWMutex
+// StreamingResponse represents a streaming response chunk
+type StreamingResponse struct {
+	ID       string `json:"id"`
+	Content  string `json:"content"`
+	Done     bool   `json:"done"`
+	Error    string `json:"error,omitempty"`
+	Metadata struct {
+		TokensUsed int `json:"tokens_used"`
+	} `json:"metadata,omitempty"`
 }
 
-// CircuitBreakerConfig holds configuration for circuit breaker (consolidated)
-type CircuitBreakerConfig struct {
-	FailureThreshold    int64         `json:"failure_threshold"`
-	FailureRate         float64       `json:"failure_rate"`
-	MinimumRequestCount int64         `json:"minimum_request_count"`
-	Timeout             time.Duration `json:"timeout"`
-	HalfOpenTimeout     time.Duration `json:"half_open_timeout"`
-	SuccessThreshold    int64         `json:"success_threshold"`
-	HalfOpenMaxRequests int64         `json:"half_open_max_requests"`
-	ResetTimeout        time.Duration `json:"reset_timeout"`
-	SlidingWindowSize   int           `json:"sliding_window_size"`
-	EnableHealthCheck   bool          `json:"enable_health_check"`
-	HealthCheckInterval time.Duration `json:"health_check_interval"`
-	HealthCheckTimeout  time.Duration `json:"health_check_timeout"`
+// UTILITY INTERFACES
+
+// HealthChecker interface for health checking
+type HealthChecker interface {
+	CheckHealth(ctx context.Context) (*HealthStatus, error)
+	GetName() string
 }
 
-// TokenTracker tracks token usage and costs
-type TokenTracker struct {
-	totalTokens  int64
-	totalCost    float64
-	requestCount int64
-	mutex        sync.RWMutex
+// HealthStatus represents health check status
+type HealthStatus struct {
+	Healthy   bool              `json:"healthy"`
+	Message   string            `json:"message,omitempty"`
+	Details   map[string]string `json:"details,omitempty"`
+	Timestamp time.Time         `json:"timestamp"`
 }
 
-// NewTokenTracker creates a new token tracker
-func NewTokenTracker() *TokenTracker {
-	return &TokenTracker{}
+// EndpointPool manages LLM endpoints
+type EndpointPool interface {
+	GetEndpoint() (string, error)
+	MarkHealthy(endpoint string)
+	MarkUnhealthy(endpoint string)
+	GetHealthyEndpoints() []string
 }
 
-// RecordUsage records token usage
-func (tt *TokenTracker) RecordUsage(tokens int) {
-	tt.mutex.Lock()
-	defer tt.mutex.Unlock()
-
-	tt.totalTokens += int64(tokens)
-	tt.requestCount++
-
-	// Simple cost calculation (adjust based on model pricing)
-	costPerToken := 0.0001 // Example: $0.0001 per token
-	tt.totalCost += float64(tokens) * costPerToken
+// StreamingContextManager manages streaming contexts
+type StreamingContextManager interface {
+	CreateContext(sessionID string) (*StreamingContext, error)
+	GetContext(sessionID string) (*StreamingContext, error)
+	UpdateContext(sessionID string, content string) error
+	DeleteContext(sessionID string) error
+	ListActiveSessions() []string
 }
 
-// GetStats returns token usage statistics
-func (tt *TokenTracker) GetStats() map[string]interface{} {
-	tt.mutex.RLock()
-	defer tt.mutex.RUnlock()
-
-	avgTokensPerRequest := float64(0)
-	if tt.requestCount > 0 {
-		avgTokensPerRequest = float64(tt.totalTokens) / float64(tt.requestCount)
-	}
-
-	return map[string]interface{}{
-		"total_tokens":           tt.totalTokens,
-		"total_cost":             tt.totalCost,
-		"request_count":          tt.requestCount,
-		"avg_tokens_per_request": avgTokensPerRequest,
-	}
+// StreamingContext represents a streaming session context
+type StreamingContext struct {
+	SessionID     string            `json:"session_id"`
+	History       []string          `json:"history"`
+	Metadata      map[string]string `json:"metadata,omitempty"`
+	CreatedAt     time.Time         `json:"created_at"`
+	LastUpdatedAt time.Time         `json:"last_updated_at"`
+	TokenCount    int               `json:"token_count"`
 }
 
-// BACKWARD COMPATIBILITY SECTION
-// These maintain compatibility with existing code but should be phased out
+// CONFIGURATION TYPES
 
-// Config represents LLM client configuration (from old interface.go)
-type Config struct {
-	Endpoint string
-	Timeout  time.Duration
-	APIKey   string
-	Model    string
+// BatchProcessorConfig represents batch processor configuration
+type BatchProcessorConfig struct {
+	MaxWorkers      int           `json:"max_workers"`
+	QueueSize       int           `json:"queue_size"`
+	ProcessTimeout  time.Duration `json:"process_timeout"`
+	RetryAttempts   int           `json:"retry_attempts"`
+	RetryDelay      time.Duration `json:"retry_delay"`
+	MetricsInterval time.Duration `json:"metrics_interval"`
 }
 
-// IntentRequest represents a request to process an intent (from old interface.go)
-type IntentRequest struct {
-	Intent      string                 `json:"intent"`
-	Prompt      string                 `json:"prompt"`
-	Context     map[string]interface{} `json:"context"`
-	MaxTokens   int                    `json:"maxTokens"`
-	Temperature float64                `json:"temperature"`
+// RequestContext contains context information for processing requests
+type RequestContext struct {
+	ID          string                 `json:"id,omitempty"`          // Added for compatibility
+	Intent      string                 `json:"intent,omitempty"`      // Added for compatibility
+	StartTime   time.Time              `json:"start_time,omitempty"`  // Added for compatibility
+	SessionID   string                 `json:"session_id,omitempty"`
+	UserID      string                 `json:"user_id,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`    // Changed to interface{} for compatibility
+	TraceID     string                 `json:"trace_id,omitempty"`
+	SpanID      string                 `json:"span_id,omitempty"`
+	Timeout     time.Duration          `json:"timeout,omitempty"`
+	RetryPolicy *RetryPolicy           `json:"retry_policy,omitempty"`
 }
 
-// IntentResponse represents the response from intent processing (from old interface.go)
-type IntentResponse struct {
-	Response   string                 `json:"response"`
-	Confidence float64                `json:"confidence"`
-	Tokens     int                    `json:"tokens"`
-	Duration   time.Duration          `json:"duration"`
-	Metadata   map[string]interface{} `json:"metadata"`
-}
-
-// STUB IMPLEMENTATIONS - Consolidated from stubs.go
-// These provide default implementations for components not yet fully implemented
-
-// ContextBuilder stub implementation (consolidated from stubs.go)
-type ContextBuilder struct{}
-
-func NewContextBuilder() *ContextBuilder {
-	return &ContextBuilder{}
-}
-
-func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
-	return map[string]interface{}{
-		"context_builder_enabled": false,
-		"status":                  "not_implemented",
-	}
-}
-
-// RelevanceScorer stub implementation (consolidated from stubs.go)
-type RelevanceScorer struct{}
-
-func NewRelevanceScorer() *RelevanceScorer {
-	return &RelevanceScorer{}
-}
-
-func (rs *RelevanceScorer) GetMetrics() map[string]interface{} {
-	return map[string]interface{}{
-		"relevance_scorer_enabled": false,
-		"status":                   "not_implemented",
-	}
-}
-
-// RAGAwarePromptBuilder stub implementation (consolidated from stubs.go)
-type RAGAwarePromptBuilder struct{}
-
-func NewRAGAwarePromptBuilder() *RAGAwarePromptBuilder {
-	return &RAGAwarePromptBuilder{}
-}
-
-func (rpb *RAGAwarePromptBuilder) GetMetrics() map[string]interface{} {
-	return map[string]interface{}{
-		"prompt_builder_enabled": false,
-		"status":                 "not_implemented",
-	}
-}
-
-// UTILITY FUNCTIONS
-
-// getDefaultCircuitBreakerConfig returns default circuit breaker configuration
-func getDefaultCircuitBreakerConfig() *CircuitBreakerConfig {
-	return &CircuitBreakerConfig{
-		FailureThreshold:    5,
-		FailureRate:         0.5,
-		MinimumRequestCount: 10,
-		Timeout:             30 * time.Second,
-		HalfOpenTimeout:     60 * time.Second,
-		SuccessThreshold:    3,
-		HalfOpenMaxRequests: 5,
-		ResetTimeout:        60 * time.Second,
-		SlidingWindowSize:   100,
-		EnableHealthCheck:   false,
-		HealthCheckInterval: 30 * time.Second,
-		HealthCheckTimeout:  10 * time.Second,
-	}
-}
-
-// isValidKubernetesName validates Kubernetes resource names
-func isValidKubernetesName(name string) bool {
-	if len(name) == 0 || len(name) > 253 {
-		return false
-	}
-
-	// Kubernetes names must match DNS subdomain format
-	for i, r := range name {
-		if !((r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' || r == '.') {
-			return false
-		}
-		if i == 0 && (r == '-' || r == '.') {
-			return false
-		}
-		if i == len(name)-1 && (r == '-' || r == '.') {
-			return false
-		}
-	}
-
-	return true
+// RetryPolicy defines retry behavior
+type RetryPolicy struct {
+	MaxAttempts  int           `json:"max_attempts"`
+	InitialDelay time.Duration `json:"initial_delay"`
+	MaxDelay     time.Duration `json:"max_delay"`
+	Multiplier   float64       `json:"multiplier"`
 }

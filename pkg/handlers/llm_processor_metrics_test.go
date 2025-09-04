@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,7 +13,6 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/health"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
-	"log/slog"
 )
 
 // TestProcessIntentHandlerMetrics tests that metrics are recorded for the ProcessIntentHandler
@@ -37,7 +37,7 @@ func TestProcessIntentHandlerMetrics(t *testing.T) {
 		nil, // relevanceScorer
 		nil, // promptBuilder
 		slog.Default(),
-		health.NewHealthChecker(),
+		health.NewHealthChecker("test-service", "test-v1", slog.Default()),
 		time.Now(),
 		metricsCollector,
 	)
@@ -113,7 +113,7 @@ func TestStatusHandlerMetrics(t *testing.T) {
 		nil, // relevanceScorer
 		nil, // promptBuilder
 		slog.Default(),
-		health.NewHealthChecker(),
+		health.NewHealthChecker("test-service", "test-v1", slog.Default()),
 		time.Now(),
 		metricsCollector,
 	)
@@ -162,7 +162,7 @@ func TestStreamingHandlerMetrics(t *testing.T) {
 		nil, // relevanceScorer
 		nil, // promptBuilder
 		slog.Default(),
-		health.NewHealthChecker(),
+		health.NewHealthChecker("test-service", "test-v1", slog.Default()),
 		time.Now(),
 		metricsCollector,
 	)
@@ -214,7 +214,7 @@ func TestMetricsHandlerMetrics(t *testing.T) {
 		nil, // relevanceScorer
 		nil, // promptBuilder
 		slog.Default(),
-		health.NewHealthChecker(),
+		health.NewHealthChecker("test-service", "test-v1", slog.Default()),
 		time.Now(),
 		metricsCollector,
 	)
@@ -244,7 +244,7 @@ func TestCircuitBreakerStatusHandlerMetrics(t *testing.T) {
 		nil, // relevanceScorer
 		nil, // promptBuilder
 		slog.Default(),
-		health.NewHealthChecker(),
+		health.NewHealthChecker("test-service", "test-v1", slog.Default()),
 		time.Now(),
 		metricsCollector,
 	)

@@ -1,0 +1,59 @@
+# Codecov Configuration for Nephoran Intent Operator
+# Temporary relaxed settings while build/coverage is being stabilized
+# TODO: Re-enable strict patch coverage once baseline coverage is established
+
+codecov:
+  notify:
+    require_ci_to_pass: false  # Don't block if CI has issues
+    wait_for_ci: true
+
+coverage:
+  precision: 2
+  round: down
+  range: "50...90"
+  
+  status:
+    # Project coverage: overall repository coverage
+    project:
+      default:
+        target: auto           # Automatically adjust based on base branch
+        threshold: 1%          # Allow 1% coverage drop
+        informational: false   # Still report as status check
+        
+    # Patch coverage: coverage of new/modified lines in PR
+    patch:
+      default:
+        target: 80%            # Target for new code
+        threshold: 1%          # Allow 1% variance
+        informational: true    # TODO: Set to false once coverage stabilized
+        # Currently informational to prevent blocking PRs during build stabilization
+        
+# Comment configuration for PRs
+comment:
+  layout: "header, diff, flags, components"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+
+# GitHub integration
+github_checks:
+  annotations: true
+
+# Ignore paths that should not count towards coverage
+ignore:
+  - "vendor/"
+  - "**/*_generated.go"
+  - "**/zz_generated.*.go"
+  - "**/*.pb.go"
+  - "**/mock_*.go"
+  - "**/testdata/"
+  - "**/examples/"
+  - "docs/"
+  - "scripts/"
+  - "tools/"
+  - "*.md"
+  - "**/*_test.go"  # Don't count test files themselves
+  - ".github/"
+  - "*.yml"
+  - "*.yaml"

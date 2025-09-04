@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -21,7 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/testutil"
+	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 	gitfake "github.com/thc1006/nephoran-intent-operator/pkg/git/fake"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
@@ -104,7 +103,7 @@ func (f *fakeHTTPClient) Reset() {
 
 // fakeDependencies implements Dependencies interface for testing
 type fakeDependencies struct {
-	gitClient        *fake.Client
+	gitClient        *gitfake.Client
 	llmClient        *fakeLLMClient
 	packageGenerator *fakePackageGenerator
 	httpClient       *fakeHTTPClient
@@ -308,7 +307,7 @@ func TestNetworkIntentController_Reconcile(t *testing.T) {
 				},
 				Spec: nephoranv1.NetworkIntentSpec{
 					Intent:     "Deploy a test network",
-					Parameters: runtime.RawExtension{Raw: []byte(`{"deployment_type": "test"}`)},
+					Parameters: &runtime.RawExtension{Raw: []byte(`{"deployment_type": "test"}`)},
 				},
 				Status: nephoranv1.NetworkIntentStatus{
 					Conditions: []metav1.Condition{

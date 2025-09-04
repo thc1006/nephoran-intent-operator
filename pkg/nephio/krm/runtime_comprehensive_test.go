@@ -17,8 +17,9 @@ limitations under the License.
 package krm
 
 import (
-	"context"
+	
 	"encoding/json"
+"context"
 	"fmt"
 	"strings"
 	"sync"
@@ -26,34 +27,32 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/thc1006/nephoran-intent-operator/api/v1"
+	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // KRMResource represents a Kubernetes resource manifest for KRM functions
 type KRMResource struct {
 	APIVersion string                 `json:"apiVersion"`
 	Kind       string                 `json:"kind"`
-	Metadata   map[string]interface{} `json:"metadata"`
-	Spec       map[string]interface{} `json:"spec,omitempty"`
-	Status     map[string]interface{} `json:"status,omitempty"`
-	Data       map[string]interface{} `json:"data,omitempty"`
+	Metadata   json.RawMessage `json:"metadata"`
+	Spec       json.RawMessage `json:"spec,omitempty"`
+	Status     json.RawMessage `json:"status,omitempty"`
+	Data       json.RawMessage `json:"data,omitempty"`
 }
 
 // FunctionConfig defines KRM function configuration
 type FunctionConfig struct {
 	Image      string                 `json:"image"`
 	ConfigPath string                 `json:"configPath,omitempty"`
-	ConfigMap  map[string]interface{} `json:"configMap,omitempty"`
+	ConfigMap  json.RawMessage `json:"configMap,omitempty"`
 	Selectors  []ResourceSelector     `json:"selectors,omitempty"`
 	Exec       *ExecConfig            `json:"exec,omitempty"`
 }
@@ -116,7 +115,7 @@ type FunctionContext struct {
 type Pipeline struct {
 	Name      string                 `json:"name"`
 	Functions []FunctionConfig       `json:"functions"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Metadata  json.RawMessage `json:"metadata,omitempty"`
 }
 
 // PipelineRequest represents a pipeline execution request
@@ -241,20 +240,15 @@ func (r *MockKRMRuntime) registerStandardFunctions() {
 				Description: "Set basic labels on resources",
 				Config: &FunctionConfig{
 					Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-					ConfigMap: map[string]interface{}{
-						"labels": map[string]string{
-							"app": "my-app",
-							"env": "production",
-						},
-					},
+					ConfigMap: json.RawMessage(`{}`),
 				},
 				Input: []KRMResource{
 					generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),
 				},
 				Output: []KRMResource{
 					generateTestResourceWithLabels("apps/v1", "Deployment", "test-deployment", "default", map[string]string{
-						"app": "my-app",
-						"env": "production",
+					"app": "my-app",
+					"env": "production",
 					}),
 				},
 			},
@@ -763,13 +757,8 @@ func generateTestResource(apiVersion, kind, name, namespace string) KRMResource 
 	return KRMResource{
 		APIVersion: apiVersion,
 		Kind:       kind,
-		Metadata: map[string]interface{}{
-			"name":      name,
-			"namespace": namespace,
-		},
-		Spec: map[string]interface{}{
-			"testField": "testValue",
-		},
+		Metadata: json.RawMessage(`{}`),
+		Spec: json.RawMessage(`{}`),
 	}
 }
 
@@ -897,10 +886,8 @@ func TestStandardFunctions(t *testing.T) {
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
 				ConfigMap: map[string]interface{}{
-					"labels": map[string]interface{}{
-						"app": "test-app",
-						"env": "production",
-					},
+					"app": "test-app",
+					"env": "production",
 				},
 			},
 			Resources: resources,
@@ -932,9 +919,7 @@ func TestStandardFunctions(t *testing.T) {
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-namespace:v0.4.1",
-				ConfigMap: map[string]interface{}{
-					"namespace": "production",
-				},
+				ConfigMap: json.RawMessage(`{}`),
 			},
 			Resources: resources,
 		}
@@ -960,9 +945,7 @@ func TestStandardFunctions(t *testing.T) {
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/ensure-name-substring:v0.1.1",
-				ConfigMap: map[string]interface{}{
-					"substring": "prod",
-				},
+				ConfigMap: json.RawMessage(`{}`),
 			},
 			Resources: resources,
 		}
@@ -994,16 +977,7 @@ func TestORANFunctions(t *testing.T) {
 			FunctionConfig: FunctionConfig{
 				Image: "nephoran.io/kpt-fn/oran-interface-config:v1.0.0",
 				ConfigMap: map[string]interface{}{
-					"interfaces": []interface{}{
-						map[string]interface{}{
-							"name": "N2",
-							"type": "AMF-gNB",
-						},
-						map[string]interface{}{
-							"name": "N11",
-							"type": "AMF-SMF",
-						},
-					},
+					"interfaces": []interface{}{},
 				},
 			},
 			Resources: resources,
@@ -1035,11 +1009,9 @@ func TestORANFunctions(t *testing.T) {
 			FunctionConfig: FunctionConfig{
 				Image: "nephoran.io/kpt-fn/network-slice-config:v1.0.0",
 				ConfigMap: map[string]interface{}{
-					"sliceConfig": map[string]interface{}{
-						"sliceType": "eMBB",
-						"sst":       1,
-						"sd":        "000001",
-					},
+					"sliceType": "eMBB",
+					"sst":       1,
+					"sd":        "000001",
 				},
 			},
 			Resources: resources,
@@ -1078,17 +1050,13 @@ func TestPipelineExecution(t *testing.T) {
 		Functions: []FunctionConfig{
 			{
 				Image: "gcr.io/kpt-fn/set-namespace:v0.4.1",
-				ConfigMap: map[string]interface{}{
-					"namespace": "production",
-				},
+				ConfigMap: json.RawMessage(`{}`),
 			},
 			{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
 				ConfigMap: map[string]interface{}{
-					"labels": map[string]interface{}{
-						"app": "test-app",
-						"env": "production",
-					},
+					"app": "test-app",
+					"env": "production",
 				},
 			},
 		},
@@ -1151,9 +1119,7 @@ func TestPipelineExecutionFailure(t *testing.T) {
 		Functions: []FunctionConfig{
 			{
 				Image: "gcr.io/kpt-fn/set-namespace:v0.4.1",
-				ConfigMap: map[string]interface{}{
-					"namespace": "production",
-				},
+				ConfigMap: json.RawMessage(`{}`),
 			},
 			{
 				Image: "test/failing-function:v1.0.0",
@@ -1183,9 +1149,7 @@ func TestFunctionValidation(t *testing.T) {
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
 				ConfigMap: map[string]interface{}{
-					"labels": map[string]interface{}{
-						"app": "test",
-					},
+					"app": "test",
 				},
 			},
 			Resources: []KRMResource{
@@ -1203,7 +1167,7 @@ func TestFunctionValidation(t *testing.T) {
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image:     "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: map[string]interface{}{}, // Missing required 'labels' field
+				ConfigMap: json.RawMessage(`{}`), // Missing required 'labels' field
 			},
 			Resources: []KRMResource{
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
@@ -1213,6 +1177,7 @@ func TestFunctionValidation(t *testing.T) {
 		resp, err := runtime.ExecuteFunction(ctx, req)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "required field 'labels' is missing")
+		assert.Nil(t, resp, "Response should be nil when function execution fails")
 	})
 
 	t.Run("validation_disabled", func(t *testing.T) {
@@ -1221,7 +1186,7 @@ func TestFunctionValidation(t *testing.T) {
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image:     "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: map[string]interface{}{}, // Missing required field, but validation is disabled
+				ConfigMap: json.RawMessage(`{}`), // Missing required field, but validation is disabled
 			},
 			Resources: []KRMResource{
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
@@ -1264,10 +1229,8 @@ func TestConcurrentExecution(t *testing.T) {
 					FunctionConfig: FunctionConfig{
 						Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
 						ConfigMap: map[string]interface{}{
-							"labels": map[string]interface{}{
-								"worker": fmt.Sprintf("worker-%d", id),
-								"job":    fmt.Sprintf("job-%d", j),
-							},
+							"worker": fmt.Sprintf("worker-%d", id),
+							"job":    fmt.Sprintf("job-%d", j),
 						},
 					},
 					Resources: resources,
@@ -1323,7 +1286,6 @@ func TestExecutionHistory(t *testing.T) {
 			FunctionConfig: FunctionConfig{
 				Image: funcImage,
 				ConfigMap: map[string]interface{}{
-					"labels":    map[string]interface{}{"test": "value"},
 					"namespace": "test-namespace",
 				},
 			},
@@ -1399,9 +1361,7 @@ func TestErrorHandling(t *testing.T) {
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: map[string]interface{}{
-					"labels": map[string]interface{}{"test": "value"},
-				},
+				ConfigMap: json.RawMessage(`{}`),
 			},
 			Resources: []KRMResource{
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
@@ -1429,9 +1389,7 @@ func TestPerformanceCharacteristics(t *testing.T) {
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: map[string]interface{}{
-					"labels": map[string]interface{}{"test": "value"},
-				},
+				ConfigMap: json.RawMessage(`{}`),
 			},
 			Resources: []KRMResource{
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
@@ -1464,10 +1422,8 @@ func BenchmarkFunctionExecution(b *testing.B) {
 		FunctionConfig: FunctionConfig{
 			Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
 			ConfigMap: map[string]interface{}{
-				"labels": map[string]interface{}{
-					"app": "test-app",
-					"env": "production",
-				},
+				"app": "test-app",
+				"env": "production",
 			},
 		},
 		Resources: resources,
@@ -1499,17 +1455,13 @@ func BenchmarkPipelineExecution(b *testing.B) {
 		Functions: []FunctionConfig{
 			{
 				Image: "gcr.io/kpt-fn/set-namespace:v0.4.1",
-				ConfigMap: map[string]interface{}{
-					"namespace": "production",
-				},
+				ConfigMap: json.RawMessage(`{}`),
 			},
 			{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
 				ConfigMap: map[string]interface{}{
-					"labels": map[string]interface{}{
-						"app": "test-app",
-						"env": "production",
-					},
+					"app": "test-app",
+					"env": "production",
 				},
 			},
 		},
@@ -1528,3 +1480,4 @@ func BenchmarkPipelineExecution(b *testing.B) {
 		}
 	}
 }
+

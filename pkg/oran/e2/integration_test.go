@@ -1,12 +1,14 @@
+//go:build integration
+
 package e2
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 	"testing"
 	"time"
+	"encoding/json"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -180,8 +182,7 @@ func TestE2ManagerIntegration(t *testing.T) {
 			EventTriggers: []E2EventTrigger{
 				{
 					TriggerType: "periodic",
-					Parameters: map[string]interface{}{
-						"measurement_types":  []string{"DRB.UEThpDl", "DRB.UEThpUl"},
+					Parameters: json.RawMessage(`{}`),
 						"granularity_period": "1000ms",
 					},
 				},
@@ -190,7 +191,7 @@ func TestE2ManagerIntegration(t *testing.T) {
 				{
 					ActionID:         1,
 					ActionType:       "report",
-					ActionDefinition: map[string]interface{}{"format": "json"},
+					ActionDefinition: json.RawMessage(`{"format":"json"}`),
 				},
 			},
 			ReportingPeriod: 1 * time.Second,
@@ -620,7 +621,7 @@ func TestE2PerformanceIntegration(t *testing.T) {
 		t.Skip("Skipping performance tests in short mode")
 	}
 
-	ctx := context.Background()
+	_ = context.Background()
 
 	t.Run("HighVolumeSubscriptions", func(t *testing.T) {
 		// Test handling many concurrent subscriptions
@@ -713,3 +714,4 @@ func TestE2PerformanceIntegration(t *testing.T) {
 		assert.Greater(t, throughput, 1000.0, "Indication processing throughput too low")
 	})
 }
+

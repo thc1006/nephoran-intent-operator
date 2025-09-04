@@ -3,7 +3,6 @@ package controllers_test
 import (
 	"context"
 	"fmt"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -11,7 +10,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -19,13 +17,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/hack/testtools"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/a1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o1"
 )
 
 // MockO1Adaptor implements the O1Adaptor interface for testing
@@ -1077,7 +1072,7 @@ var _ = Describe("OranAdaptorReconciler Integration", func() {
 		// Simulate deployment becoming ready
 		Eventually(func() error {
 			current := &appsv1.Deployment{}
-			if err := testEnv.K8sClient.Get(ctx, client.ObjectKeyFromObject(deployment), current); err != nil {
+			if err := testEnv.K8sClient.Get(ctx, types.NamespacedName{Name: deployment.GetName(), Namespace: deployment.GetNamespace()}, current); err != nil {
 				return err
 			}
 			current.Status.Replicas = replicas
@@ -1106,7 +1101,7 @@ var _ = Describe("OranAdaptorReconciler Integration", func() {
 		// Wait for reconciliation to complete
 		Eventually(func() bool {
 			current := &nephoranv1.ManagedElement{}
-			if err := testEnv.K8sClient.Get(ctx, client.ObjectKeyFromObject(managedElement), current); err != nil {
+			if err := testEnv.K8sClient.Get(ctx, types.NamespacedName{Name: managedElement.GetName(), Namespace: managedElement.GetNamespace()}, current); err != nil {
 				return false
 			}
 
@@ -1116,7 +1111,7 @@ var _ = Describe("OranAdaptorReconciler Integration", func() {
 
 		// Verify final state
 		updated := &nephoranv1.ManagedElement{}
-		Expect(testEnv.K8sClient.Get(ctx, client.ObjectKeyFromObject(managedElement), updated)).To(Succeed())
+		Expect(testEnv.K8sClient.Get(ctx, types.NamespacedName{Name: managedElement.GetName(), Namespace: managedElement.GetNamespace()}, updated)).To(Succeed())
 
 		// Should have at least the Ready condition
 		readyCondition := meta.FindStatusCondition(updated.Status.Conditions, "Ready")

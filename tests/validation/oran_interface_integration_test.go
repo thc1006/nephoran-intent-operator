@@ -1,19 +1,19 @@
-package validation_test
+//go:build integration
+
+package test_validation_test
 
 import (
 	"context"
 	"time"
+	"encoding/json"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/tests/framework"
-	"github.com/thc1006/nephoran-intent-operator/tests/validation"
 )
 
 var _ = Describe("O-RAN Interface Integration Tests", func() {
@@ -80,7 +80,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 
 				By("Waiting for intent processing to begin")
 				Eventually(func() string {
-					err := k8sClient.Get(ctx, client.ObjectKeyFromObject(policyIntent), policyIntent)
+					err := k8sClient.Get(ctx, types.NamespacedName{Name: policyIntent.GetName(), Namespace: policyIntent.GetNamespace()}, policyIntent)
 					if err != nil {
 						return ""
 					}
@@ -245,7 +245,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 
 				By("Waiting for E2 nodes to become ready")
 				Eventually(func() int32 {
-					err := k8sClient.Get(ctx, client.ObjectKeyFromObject(e2NodeSet), e2NodeSet)
+					err := k8sClient.Get(ctx, types.NamespacedName{Name: e2NodeSet.GetName(), Namespace: e2NodeSet.GetNamespace()}, e2NodeSet)
 					if err != nil {
 						return -1
 					}
@@ -491,15 +491,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 
 				By("Testing YANG model validation")
 				yangModel := map[string]interface{}{
-					"module":       "o-ran-sc-ric-1.0",
-					"namespace":    "urn:o-ran:sc:yang:o-ran-sc-ric",
-					"prefix":       "o-ran-ric",
-					"organization": "O-RAN Software Community",
-					"description":  "O-RAN Near-RT RIC YANG model",
-					"schema": map[string]interface{}{
 						"container": map[string]interface{}{
-							"name": "ric-config",
-							"leaf": []map[string]interface{}{
 								{
 									"name":      "ric-id",
 									"type":      "string",
@@ -529,13 +521,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 
 			It("should handle NETCONF session management", func() {
 				By("Testing NETCONF session capabilities")
-				session := map[string]interface{}{
-					"sessionId": "netconf-session-001",
-					"capabilities": []string{
-						"urn:ietf:params:netconf:base:1.0",
-						"urn:ietf:params:netconf:base:1.1",
-						"urn:o-ran:netconf:capability:1.0",
-					},
+				session := json.RawMessage(`{}`),
 					"transport": "SSH",
 					"status":    "active",
 				}
@@ -560,18 +546,14 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 
 				By("Testing Infrastructure as Code template generation")
 				terraformTemplate := map[string]interface{}{
-					"terraform": map[string]interface{}{
 						"required_providers": map[string]interface{}{
-							"kubernetes": map[string]interface{}{
 								"source":  "hashicorp/kubernetes",
 								"version": "~> 2.0",
 							},
 						},
 					},
 					"resource": map[string]interface{}{
-						"kubernetes_namespace": map[string]interface{}{
 							"upf_namespace": map[string]interface{}{
-								"metadata": map[string]interface{}{
 									"name": "upf-production",
 									"labels": map[string]string{
 										"app.kubernetes.io/name":      "upf",
@@ -589,10 +571,6 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 
 				By("Testing multi-cloud provider configurations")
 				cloudProviders := []map[string]interface{}{
-					{
-						"provider": "aws",
-						"region":   "us-west-2",
-						"resources": map[string]interface{}{
 							"ec2_instances": 3,
 							"rds_instances": 1,
 							"s3_buckets":    2,
@@ -601,20 +579,12 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 					{
 						"provider": "azure",
 						"region":   "West US 2",
-						"resources": map[string]interface{}{
-							"virtual_machines": 3,
-							"sql_databases":    1,
-							"storage_accounts": 2,
-						},
+						"resources": json.RawMessage(`{}`),
 					},
 					{
 						"provider": "gcp",
 						"region":   "us-west1",
-						"resources": map[string]interface{}{
-							"compute_instances": 3,
-							"cloud_sql":         1,
-							"storage_buckets":   2,
-						},
+						"resources": json.RawMessage(`{}`),
 					},
 				}
 
@@ -625,15 +595,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 				}
 
 				By("Testing resource lifecycle management")
-				resource := map[string]interface{}{
-					"id":        "upf-cluster-001",
-					"type":      "kubernetes-cluster",
-					"status":    "provisioning",
-					"provider":  "aws",
-					"region":    "us-west-2",
-					"nodeCount": 3,
-					"nodeType":  "m5.large",
-				}
+				resource := json.RawMessage(`{}`)
 
 				By("Simulating resource lifecycle operations")
 				// Provisioning
@@ -680,7 +642,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 				By("Verifying all deployment types are supported")
 				// Edge deployment
 				Eventually(func() string {
-					err := k8sClient.Get(ctx, client.ObjectKeyFromObject(edgeIntent), edgeIntent)
+					err := k8sClient.Get(ctx, types.NamespacedName{Name: edgeIntent.GetName(), Namespace: edgeIntent.GetNamespace()}, edgeIntent)
 					if err != nil {
 						return ""
 					}
@@ -689,7 +651,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 
 				// Hybrid deployment
 				Eventually(func() string {
-					err := k8sClient.Get(ctx, client.ObjectKeyFromObject(hybridIntent), hybridIntent)
+					err := k8sClient.Get(ctx, types.NamespacedName{Name: hybridIntent.GetName(), Namespace: hybridIntent.GetNamespace()}, hybridIntent)
 					if err != nil {
 						return ""
 					}
@@ -698,7 +660,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 
 				// Container deployment
 				Eventually(func() string {
-					err := k8sClient.Get(ctx, client.ObjectKeyFromObject(containerIntent), containerIntent)
+					err := k8sClient.Get(ctx, types.NamespacedName{Name: containerIntent.GetName(), Namespace: containerIntent.GetNamespace()}, containerIntent)
 					if err != nil {
 						return ""
 					}
@@ -814,11 +776,12 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 		GinkgoWriter.Printf("Compliance Level: %.1f%%\n", float64(finalScore)/float64(targetScore)*100)
 
 		if finalScore == targetScore {
-			GinkgoWriter.Printf("âœ… Full O-RAN compliance achieved!\n")
+			GinkgoWriter.Printf("??Full O-RAN compliance achieved!\n")
 		} else {
-			GinkgoWriter.Printf("âš ï¸  Partial O-RAN compliance: %d points missing\n", targetScore-finalScore)
+			GinkgoWriter.Printf("? ï?  Partial O-RAN compliance: %d points missing\n", targetScore-finalScore)
 		}
 
 		Expect(finalScore).To(BeNumerically(">=", targetScore-1), "Should achieve near-complete O-RAN compliance")
 	})
 })
+

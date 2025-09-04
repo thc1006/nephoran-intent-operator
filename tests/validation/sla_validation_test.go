@@ -1,7 +1,9 @@
-package validation
+package test_validation
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"math"
 	"sort"
@@ -12,8 +14,6 @@ import (
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
@@ -39,15 +39,15 @@ type SLAValidationTestSuite struct {
 	claimVerifier       *ClaimVerifier
 
 	// Test configuration
-	config *ValidationConfig
+	config *SLAValidationConfig
 
 	// Results and evidence
-	validationResults *ValidationResults
+	validationResults *SLAValidationResults
 	evidence          *ValidationEvidence
 }
 
-// ValidationConfig defines precise validation parameters
-type ValidationConfig struct {
+// SLAValidationConfig defines precise validation parameters for SLA testing
+type SLAValidationConfig struct {
 	// SLA Claims to validate
 	AvailabilityClaim float64       `yaml:"availability_claim"` // 99.95%
 	LatencyP95Claim   time.Duration `yaml:"latency_p95_claim"`  // Sub-2-second
@@ -77,7 +77,7 @@ type ValidationConfig struct {
 // SLAValidator performs comprehensive SLA validation
 type SLAValidator struct {
 	prometheus   v1.API
-	config       *ValidationConfig
+	config       *SLAValidationConfig
 	measurements map[string]*MeasurementSet
 	mutex        sync.RWMutex
 
@@ -93,7 +93,7 @@ type MeasurementSet struct {
 	Type       MeasurementType        `json:"type"`
 	Values     []float64              `json:"values"`
 	Timestamps []time.Time            `json:"timestamps"`
-	Metadata   map[string]interface{} `json:"metadata"`
+	Metadata   json.RawMessage `json:"metadata"`
 
 	// Statistical properties
 	Mean        float64         `json:"mean"`
@@ -130,9 +130,10 @@ type StatisticalAnalyzer struct {
 type StatisticalAnalysis struct {
 	SampleSize         int                 `json:"sample_size"`
 	ConfidenceLevel    float64             `json:"confidence_level"`
+	Mean               float64             `json:"mean"`
 	ConfidenceInterval *ConfidenceInterval `json:"confidence_interval"`
 	HypothesisTest     *HypothesisTest     `json:"hypothesis_test"`
-	TrendAnalysis      *TrendAnalysis      `json:"trend_analysis"`
+	TrendAnalysis      *SLATrendAnalysis   `json:"trend_analysis"`
 	OutlierAnalysis    *OutlierAnalysis    `json:"outlier_analysis"`
 }
 
@@ -153,8 +154,8 @@ type HypothesisTest struct {
 	PowerAnalysis         float64 `json:"power_analysis"`
 }
 
-// TrendAnalysis contains trend analysis results
-type TrendAnalysis struct {
+// SLATrendAnalysis contains trend analysis results for SLA testing
+type SLATrendAnalysis struct {
 	HasTrend     bool    `json:"has_trend"`
 	TrendSlope   float64 `json:"trend_slope"`
 	TrendR2      float64 `json:"trend_r2"`
@@ -241,13 +242,13 @@ type ClaimVerification struct {
 	MeasuredValue    interface{}          `json:"measured_value"`
 	Verified         bool                 `json:"verified"`
 	ConfidenceLevel  float64              `json:"confidence_level"`
-	Evidence         []ValidationEvidence `json:"evidence"`
+	Evidence         []interface{} `json:"evidence"`
 	Discrepancy      float64              `json:"discrepancy"`
 	VerificationTime time.Time            `json:"verification_time"`
 }
 
-// ValidationResults contains comprehensive validation results
-type ValidationResults struct {
+// SLAValidationResults contains comprehensive SLA validation results
+type SLAValidationResults struct {
 	TestID    string        `json:"test_id"`
 	StartTime time.Time     `json:"start_time"`
 	EndTime   time.Time     `json:"end_time"`
@@ -259,9 +260,9 @@ type ValidationResults struct {
 	OverallConfidence   float64 `json:"overall_confidence"`
 
 	// Specific claim results
-	AvailabilityResults *AvailabilityValidationResult `json:"availability_results"`
-	LatencyResults      *LatencyValidationResult      `json:"latency_results"`
-	ThroughputResults   *ThroughputValidationResult   `json:"throughput_results"`
+	AvailabilityResults *SLAAvailabilityValidationResult `json:"availability_results"`
+	LatencyResults      *SLALatencyValidationResult      `json:"latency_results"`
+	ThroughputResults   *SLAThroughputValidationResult   `json:"throughput_results"`
 
 	// Statistical summaries
 	StatisticalSummary *StatisticalSummary `json:"statistical_summary"`
@@ -271,8 +272,8 @@ type ValidationResults struct {
 	EvidencePackage *EvidencePackage `json:"evidence_package"`
 }
 
-// AvailabilityValidationResult contains availability validation results
-type AvailabilityValidationResult struct {
+// SLAAvailabilityValidationResult contains availability validation results for SLA testing
+type SLAAvailabilityValidationResult struct {
 	ClaimedAvailability  float64             `json:"claimed_availability"`
 	MeasuredAvailability float64             `json:"measured_availability"`
 	ConfidenceInterval   *ConfidenceInterval `json:"confidence_interval"`
@@ -289,8 +290,8 @@ type AvailabilityValidationResult struct {
 	IndependentMeasurements []IndependentMeasurement `json:"independent_measurements"`
 }
 
-// LatencyValidationResult contains latency validation results
-type LatencyValidationResult struct {
+// SLALatencyValidationResult contains latency validation results for SLA testing
+type SLALatencyValidationResult struct {
 	ClaimedLatencyP95  float64             `json:"claimed_latency_p95"`
 	MeasuredLatencyP95 float64             `json:"measured_latency_p95"`
 	ConfidenceInterval *ConfidenceInterval `json:"confidence_interval"`
@@ -307,8 +308,8 @@ type LatencyValidationResult struct {
 	PeakLatencyEvents []LatencyEvent `json:"peak_latency_events"`
 }
 
-// ThroughputValidationResult contains throughput validation results
-type ThroughputValidationResult struct {
+// SLAThroughputValidationResult contains throughput validation results for SLA testing
+type SLAThroughputValidationResult struct {
 	ClaimedThroughput  float64             `json:"claimed_throughput"`
 	MeasuredThroughput float64             `json:"measured_throughput"`
 	ConfidenceInterval *ConfidenceInterval `json:"confidence_interval"`
@@ -332,7 +333,7 @@ type ValidationEvidence struct {
 	Source       string                 `json:"source"`
 	Timestamp    time.Time              `json:"timestamp"`
 	Data         interface{}            `json:"data"`
-	Metadata     map[string]interface{} `json:"metadata"`
+	Metadata     json.RawMessage `json:"metadata"`
 	Authenticity *AuthenticitySeal      `json:"authenticity"`
 }
 
@@ -360,7 +361,7 @@ func (s *SLAValidationTestSuite) SetupTest() {
 	s.ctx, s.cancel = context.WithTimeout(context.Background(), 2*time.Hour)
 
 	// Initialize validation configuration
-	s.config = &ValidationConfig{
+	s.config = &SLAValidationConfig{
 		// Claims to validate
 		AvailabilityClaim: 99.95,
 		LatencyP95Claim:   2 * time.Second,
@@ -702,32 +703,6 @@ func (s *SLAValidationTestSuite) TestCompositeSLAAccuracy() {
 
 // Helper methods for different measurement approaches
 
-// measureAvailabilityDirect measures availability through direct uptime monitoring
-func (s *SLAValidationTestSuite) measureAvailabilityDirect(ctx context.Context) *MeasurementSet {
-	measurements := &MeasurementSet{
-		Name:       "availability_direct",
-		Type:       MeasurementTypeAvailability,
-		Values:     make([]float64, 0),
-		Timestamps: make([]time.Time, 0),
-		Metadata:   map[string]interface{}{"method": "direct_uptime"},
-	}
-
-	ticker := time.NewTicker(s.config.SamplingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			s.calculateMeasurementStatistics(measurements)
-			return measurements
-		case <-ticker.C:
-			availability := s.sampleDirectAvailability()
-			measurements.Values = append(measurements.Values, availability)
-			measurements.Timestamps = append(measurements.Timestamps, time.Now())
-		}
-	}
-}
-
 // sampleDirectAvailability samples availability directly
 func (s *SLAValidationTestSuite) sampleDirectAvailability() float64 {
 	// Query Prometheus for service uptime
@@ -752,7 +727,7 @@ func (s *SLAValidationTestSuite) sampleDirectAvailability() float64 {
 // Additional helper methods would be implemented here...
 // Due to length constraints, showing core structure and key validation methods
 
-func NewSLAValidator(prometheus v1.API, config *ValidationConfig) *SLAValidator {
+func NewSLAValidator(prometheus v1.API, config *SLAValidationConfig) *SLAValidator {
 	return &SLAValidator{
 		prometheus:   prometheus,
 		config:       config,
@@ -781,66 +756,7 @@ func NewClaimVerifier() *ClaimVerifier {
 	}
 }
 
-// configureClaimsForVerification sets up the claims to be verified
-func (s *SLAValidationTestSuite) configureClaimsForVerification() {
-	claims := []*SLAClaim{
-		{
-			Name:             "availability_99_95",
-			Type:             ClaimTypeAvailability,
-			ClaimedValue:     s.config.AvailabilityClaim,
-			Tolerance:        s.config.AvailabilityAccuracy,
-			CriticalityLevel: CriticalityCritical,
-		},
-		{
-			Name:             "latency_p95_sub_2s",
-			Type:             ClaimTypeLatency,
-			ClaimedValue:     s.config.LatencyP95Claim,
-			Tolerance:        s.config.LatencyAccuracy.Seconds(),
-			CriticalityLevel: CriticalityCritical,
-		},
-		{
-			Name:             "throughput_45_per_minute",
-			Type:             ClaimTypeThroughput,
-			ClaimedValue:     s.config.ThroughputClaim,
-			Tolerance:        s.config.ThroughputAccuracy,
-			CriticalityLevel: CriticalityHigh,
-		},
-	}
 
-	for _, claim := range claims {
-		s.claimVerifier.AddClaim(claim)
-	}
-}
-
-// calibrateMeasurementSystems calibrates measurement systems for precision
-func (s *SLAValidationTestSuite) calibrateMeasurementSystems() error {
-	s.T().Log("Calibrating measurement systems for precision")
-
-	// Calibrate system clock
-	clockOffset := s.calibrateSystemClock()
-
-	// Measure network latency to Prometheus
-	networkLatency := s.measureNetworkLatency()
-
-	// Calculate processing overhead
-	processingOverhead := s.measureProcessingOverhead()
-
-	calibrationData := &CalibrationData{
-		SystemClockOffset:  clockOffset,
-		NetworkLatency:     networkLatency,
-		ProcessingOverhead: processingOverhead,
-		Corrections:        make(map[string]float64),
-	}
-
-	s.metricCollector.calibrationData = calibrationData
-
-	s.T().Logf("Calibration completed:")
-	s.T().Logf("  Clock offset: %v", clockOffset)
-	s.T().Logf("  Network latency: %v", networkLatency)
-	s.T().Logf("  Processing overhead: %v", processingOverhead)
-
-	return nil
-}
 
 // Additional helper methods for calibration and validation...
 
@@ -883,6 +799,63 @@ func (s *SLAValidationTestSuite) calculateMeasurementStatistics(measurements *Me
 			index = len(sortedValues) - 1
 		}
 		measurements.Percentiles[p] = sortedValues[index]
+	}
+}
+
+// SetupSuite initializes the test suite
+func (s *SLAValidationTestSuite) SetupSuite() {
+	s.ctx, s.cancel = context.WithCancel(context.Background())
+
+	// Initialize logger
+	s.logger = logging.NewStructuredLogger("sla-validation-test", "info")
+
+	// Initialize configuration with default values
+	s.config = &SLAValidationConfig{
+		AvailabilityClaim:    99.95,
+		LatencyP95Claim:      2 * time.Second,
+		ThroughputClaim:      45.0,
+		ConfidenceLevel:      99.95,
+		SampleSize:           10000,
+		MeasurementPrecision: 0.01,
+		ValidationDuration:   1 * time.Hour,
+		SamplingInterval:     1 * time.Second,
+		BatchSize:            100,
+		AvailabilityAccuracy: 0.01,
+		LatencyAccuracy:      10 * time.Millisecond,
+		ThroughputAccuracy:   1.0,
+		IndependentMethods:   3,
+		ValidationRounds:     5,
+		TimeWindows:          []time.Duration{5 * time.Minute, 15 * time.Minute, 1 * time.Hour},
+	}
+
+	// Initialize validator components
+	s.validator = &SLAValidator{
+		config:       s.config,
+		measurements: make(map[string]*MeasurementSet),
+	}
+
+	s.statisticalAnalyzer = &StatisticalAnalyzer{}
+	s.metricCollector = &PrecisionMetricCollector{
+		config: s.config,
+	}
+	s.claimVerifier = &ClaimVerifier{
+		config: s.config,
+	}
+
+	// Initialize results containers
+	s.validationResults = &SLAValidationResults{}
+	s.evidence = &ValidationEvidence{}
+}
+
+// TearDownSuite cleans up after the test suite
+func (s *SLAValidationTestSuite) TearDownSuite() {
+	if s.cancel != nil {
+		s.cancel()
+	}
+
+	// Clean up any resources or connections
+	if s.prometheusClient != nil {
+		// Close prometheus client if needed
 	}
 }
 

@@ -1,0 +1,89 @@
+# =============================================================================
+# EMERGENCY MERGE WORKFLOW - ULTRA SPEED CI BYPASS
+# =============================================================================
+
+name: Emergency Merge
+
+on:
+  workflow_dispatch:
+    inputs:
+      emergency_type:
+        description: 'Emergency type'
+        required: true
+        default: 'hotfix'
+        type: choice
+        options:
+          - hotfix
+          - critical
+          - emergency
+
+# STANDARDIZED concurrency group - Ultra-fast, cancel everything else
+concurrency:
+  group: nephoran-emergency-merge-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GO_VERSION: "1.22.7"  # Updated to latest stable version
+  CGO_ENABLED: "0"
+  GOPROXY: "https://proxy.golang.org,direct"
+
+jobs:
+  emergency-gate:
+    name: Emergency Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      is_emergency: ${{ steps.check-emergency.outputs.emergency }}
+      emergency_type: ${{ steps.check-emergency.outputs.type }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.1  # PINNED VERSION
+        with:
+          fetch-depth: 2
+
+      - name: Check for emergency keywords
+        id: check-emergency
+        run: |
+          # Simplified emergency type detection
+          echo "emergency=true" >> $GITHUB_OUTPUT
+          echo "type=${{ github.event.inputs.emergency_type }}" >> $GITHUB_OUTPUT
+
+  ultra-fast-checks:
+    name: Ultra Fast Safety
+    runs-on: ubuntu-latest
+    needs: emergency-gate
+    timeout-minutes: 8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.1  # PINNED VERSION
+        
+      - name: Setup Go
+        uses: actions/setup-go@v5.0.2  # PINNED VERSION
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false  # Using standardized manual caching
+      
+      - name: Setup STANDARDIZED Go cache (Emergency)
+        uses: actions/cache@v4  # LATEST STABLE VERSION
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('go.mod') }}
+          restore-keys: |
+            nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-
+            nephoran-go-v1-${{ runner.os }}-
+          
+      - name: Fast Dependency Check
+        run: |
+          go mod download
+          go mod verify
+          
+      - name: Critical Compilation Check
+        run: |
+          go build -v ./cmd/...
+          go build -v ./controllers/...
+          
+      - name: Quick Compat Tests
+        run: |
+          go test -short -timeout=5m ./...

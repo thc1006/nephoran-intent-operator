@@ -1,125 +1,64 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
+
   "permissions": {
     "allow": [
-      "Bash(go build:*)",
-      "Bash(go list:*)",
-      "Bash(find:*)",
-      "Bash(go:*)",
-      "Bash(go clean:*)",
-      "Bash(export GOTOOLCHAIN=go1.24.5)",
-      "Bash(grep:*)",
-      "Bash(true)",
-      "Bash(GOTOOLCHAIN=go1.24.5 go build ./pkg/oran/e2/...)",
-      "Bash(kubectl:*)",
-      "Bash(ls:*)",
-      "Bash(rm:*)",
-      "Bash(GOOS=linux GOARCH=amd64 /go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.5.linux-amd64/bin/go build ./pkg/rag ./pkg/llm)",
-      "Bash(chmod:*)",
-      "Bash(./scripts/security-scan.sh:*)",
-      "Bash(sed:*)",
-      "Bash(./scripts/update-dependencies.sh:*)",
-      "Bash(make:*)",
-      "Bash(export GOTOOLCHAIN=auto)",
-      "Bash(echo:*)",
-      "Bash(/usr/local/go/bin/go:*)",
-      "Bash(GOTOOLCHAIN=go1.24.5 go clean -cache -modcache -i -r)",
-      "Bash(GOTOOLCHAIN=go1.24.5 go mod download)",
-      "Bash($GOROOT/pkg/tool/linux_amd64/compile:*)",
-      "Bash(./scripts/execute-production-load-test.sh:*)",
-      "Bash(dos2unix:*)",
-      "Bash(sudo mkdir:*)",
-      "Bash(sudo chmod:*)",
-      "Bash(command -v:*)",
-      "Bash(curl:*)",
-      "Bash(tar:*)",
-      "Bash(sudo mv:*)",
-      "Bash(vegeta:*)",
-      "Bash(./scripts/validate-load-test-capability.sh:*)",
-      "Bash(cat:*)",
-      "Bash(./scripts/phase3-load-test-summary.sh:*)",
-      "Bash(jq:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(minikube:*)",
-      "Bash(docker:*)",
-      "WebFetch(domain:github.com)",
-      "Bash(git config:*)",
-      "Bash(git branch:*)",
-      "Bash(git push:*)",
-      "Bash(git fetch:*)",
-      "Bash(git merge-base:*)",
-      "Bash(git rebase:*)",
-      "Bash(mkdir:*)",
-      "Bash(move .mcp.json ..)",
-      "Bash(mv:*)",
-      "Bash(mv:*)",
-      "Bash(mkdir:*)",
-      "mcp__filesystem__read_text_file",
-      "Bash(python -m pip:*)",
-      "Bash(python:*)",
-      "Bash(npx:*)",
-      "Bash(setx:*)",
-      "Read(./**/*)",
-      "Glob(./**/*)",
-      "Grep(./**/*)",
-      "Edit(./**/*)",
-      "Write(./**/*)",
       "Bash(go *)",
-      "Bash(git *)",
-      "Bash(kubectl *)",
-      "Bash(kind *)",
-      "Bash(ajv *)",
-      "Bash(controller-gen *)",
-      "mcp__filesystem__list_directory",
-      "mcp__filesystem__read_multiple_files",
-      "mcp__filesystem__directory_tree",
-      "mcp__filesystem__write_file",
-      "mcp__filesystem__edit_file",
-      "mcp__filesystem__create_directory",
-      "Bash(test:*)",
-      "mcp__filesystem__search_files",
-      "mcp__filesystem__get_file_info",
-      "Bash(git restore:*)",
-      "Bash(git pull:*)",
-      "mcp__filesystem__list_allowed_directories"
+      "Bash(golangci-lint*)",
+      "Bash(act *)"
     ],
-    "deny": [],
     "ask": [
-      "WebFetch(*)",
-      "WebSearch(*)"
-    ]
+      "Bash(git push:*)"
+    ],
+    "deny": []
   },
+
+  "env": {
+    "BASH_DEFAULT_TIMEOUT_MS": "300000",     // 5 分鐘
+    "BASH_MAX_TIMEOUT_MS": "1800000",       // 30 分鐘上限
+    "MCP_TOOL_TIMEOUT": "1800000",          // MCP 工具逾時（毫秒）
+    "BASH_MAX_OUTPUT_LENGTH": "1000000",
+    "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "8192"
+  },
+
   "hooks": {
     "PreToolUse": [
       {
-        "name": "guard-dangerous-bash",
-        "matchers": [{ "tool": "Bash" }],
-        "command": "python .claude/hooks/pre_bash_guard.py",
-        "timeoutMs": 20000
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python $CLAUDE_PROJECT_DIR/.claude/hooks/pre_bash_guard.py",
+            "timeout": 60
+          }
+        ]
       }
     ],
     "PostToolUse": [
       {
-        "name": "validate-on-write",
-        "matchers": [{ "tool": "Write" }, { "tool": "Edit" }, { "tool": "MultiEdit" }],
-        "command": "python .claude/hooks/post_write_validate.py",
-        "timeoutMs": 45000
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python $CLAUDE_PROJECT_DIR/.claude/hooks/post_write_validate.py",
+            "timeout": 120
+          }
+        ]
       }
     ],
     "Notification": [
       {
-        "name": "notify",
-        "matchers": [{ "tool": "*" }],
-        "command": "python .claude/hooks/notify.py",
-        "timeoutMs": 5000
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python $CLAUDE_PROJECT_DIR/.claude/hooks/notify.py",
+            "timeout": 10
+          }
+        ]
       }
     ]
   },
-  "enabledMcpjsonServers": [
-    "github",
-    "filesystem",
-    "kubernetes"
-  ],
+
+  "enabledMcpjsonServers": ["github", "filesystem", "kubernetes"],
   "enableAllProjectMcpServers": true
 }

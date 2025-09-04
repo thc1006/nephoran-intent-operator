@@ -1,4 +1,5 @@
 /*
+
 Copyright 2025.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,410 +18,330 @@ limitations under the License.
 package v1
 
 import (
+	"fmt"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// ProcessedParameters defines structured parameters extracted from intent processing
-type ProcessedParameters struct {
-	// NetworkFunction specifies the network function type
-	// +optional
-	NetworkFunction string `json:"networkFunction,omitempty"`
-
-	// Region specifies the deployment region
-	// +optional
-	Region string `json:"region,omitempty"`
-
-	// ScaleParameters contains scaling configuration
-	// +optional
-	ScaleParameters *ScaleParameters `json:"scaleParameters,omitempty"`
-
-	// QoSParameters contains quality of service settings
-	// +optional
-	QoSParameters *QoSParameters `json:"qosParameters,omitempty"`
-
-	// SecurityParameters contains security settings
-	// +optional
-	SecurityParameters *SecurityParameters `json:"securityParameters,omitempty"`
-
-	// CustomParameters contains additional custom parameters
-	// +optional
-	CustomParameters map[string]string `json:"customParameters,omitempty"`
-}
-
-// ScaleParameters defines scaling configuration
-type ScaleParameters struct {
-	// MinReplicas specifies the minimum number of replicas
-	// +optional
-	// +kubebuilder:validation:Minimum=1
-	MinReplicas *int32 `json:"minReplicas,omitempty"`
-
-	// MaxReplicas specifies the maximum number of replicas
-	// +optional
-	// +kubebuilder:validation:Minimum=1
-	MaxReplicas *int32 `json:"maxReplicas,omitempty"`
-
-	// TargetCPUUtilization specifies the target CPU utilization percentage
-	// +optional
-	// +kubebuilder:validation:Minimum=1
-	// +kubebuilder:validation:Maximum=100
-	TargetCPUUtilization *int32 `json:"targetCPUUtilization,omitempty"`
-
-	// AutoScalingEnabled indicates if auto-scaling is enabled
-	// +optional
-	AutoScalingEnabled *bool `json:"autoScalingEnabled,omitempty"`
-}
-
-// QoSParameters defines quality of service parameters
-type QoSParameters struct {
-	// Latency specifies the target latency requirement
-	// +optional
-	Latency string `json:"latency,omitempty"`
-
-	// Bandwidth specifies the bandwidth requirement
-	// +optional
-	Bandwidth string `json:"bandwidth,omitempty"`
-
-	// Priority specifies the traffic priority
-	// +optional
-	// +kubebuilder:validation:Enum=low;medium;high;critical
-	Priority string `json:"priority,omitempty"`
-
-	// ServiceLevel specifies the service level agreement
-	// +optional
-	ServiceLevel string `json:"serviceLevel,omitempty"`
-}
-
-// SecurityParameters defines security configuration
-type SecurityParameters struct {
-	// Encryption specifies encryption requirements
-	// +optional
-	Encryption *EncryptionConfig `json:"encryption,omitempty"`
-
-	// NetworkPolicies specifies network security policies
-	// +optional
-	NetworkPolicies []string `json:"networkPolicies,omitempty"`
-
-	// ServiceMesh indicates if service mesh should be enabled
-	// +optional
-	ServiceMesh *bool `json:"serviceMesh,omitempty"`
-
-	// TLSEnabled indicates if TLS should be enabled
-	// +optional
-	TLSEnabled *bool `json:"tlsEnabled,omitempty"`
-}
-
-// EncryptionConfig defines encryption configuration
-type EncryptionConfig struct {
-	// Enabled indicates if encryption is enabled
-	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
-
-	// Algorithm specifies the encryption algorithm
-	// +optional
-	// +kubebuilder:validation:Enum=AES-256;AES-128;RSA-2048;RSA-4096
-	Algorithm string `json:"algorithm,omitempty"`
-
-	// KeyRotationInterval specifies the key rotation interval
-	// +optional
-	KeyRotationInterval string `json:"keyRotationInterval,omitempty"`
-}
-
-// IntentProcessingPhase represents the phase of LLM processing
-type IntentProcessingPhase string
-
+// Intent processing phase constants
 const (
-	// IntentProcessingPhasePending indicates the processing is pending
-	IntentProcessingPhasePending IntentProcessingPhase = "Pending"
-	// IntentProcessingPhaseInProgress indicates the processing is in progress
-	IntentProcessingPhaseInProgress IntentProcessingPhase = "InProgress"
-	// IntentProcessingPhaseCompleted indicates the processing is completed
-	IntentProcessingPhaseCompleted IntentProcessingPhase = "Completed"
-	// IntentProcessingPhaseFailed indicates the processing has failed
-	IntentProcessingPhaseFailed IntentProcessingPhase = "Failed"
-	// IntentProcessingPhaseRetrying indicates the processing is retrying
-	IntentProcessingPhaseRetrying IntentProcessingPhase = "Retrying"
-)
-
-// LLMProvider represents the LLM provider used for processing
-type LLMProvider string
-
-const (
-	// LLMProviderOpenAI represents OpenAI GPT models
-	LLMProviderOpenAI LLMProvider = "openai"
-	// LLMProviderMistral represents Mistral models
-	LLMProviderMistral LLMProvider = "mistral"
-	// LLMProviderClaude represents Anthropic Claude models
-	LLMProviderClaude LLMProvider = "claude"
-	// LLMProviderLocal represents local models
-	LLMProviderLocal LLMProvider = "local"
+	IntentProcessingPhasePending    = "Pending"
+	IntentProcessingPhaseProcessing = "Processing"
+	IntentProcessingPhaseInProgress = "InProgress"
+	IntentProcessingPhaseCompleted  = "Completed"
+	IntentProcessingPhaseFailed     = "Failed"
+	IntentProcessingPhaseRetrying   = "Retrying"
 )
 
 // IntentProcessingSpec defines the desired state of IntentProcessing
 type IntentProcessingSpec struct {
+	// Intent is the natural language intent to process
+	Intent string `json:"intent"`
+
 	// ParentIntentRef references the parent NetworkIntent
-	// +kubebuilder:validation:Required
-	ParentIntentRef ObjectReference `json:"parentIntentRef"`
-
-	// OriginalIntent contains the raw natural language intent
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=10
-	// +kubebuilder:validation:MaxLength=10000
-	OriginalIntent string `json:"originalIntent"`
-
-	// ProcessingConfiguration contains LLM processing configuration
 	// +optional
-	ProcessingConfiguration *LLMProcessingConfig `json:"processingConfiguration,omitempty"`
+	ParentIntentRef *ObjectReference `json:"parentIntentRef,omitempty"`
 
-	// Priority defines processing priority
+	// OriginalIntent stores the original intent text
 	// +optional
-	// +kubebuilder:default="medium"
+	OriginalIntent string `json:"originalIntent,omitempty"`
+
+	// Priority processing priority
+	// +optional
+	// +kubebuilder:default="Medium"
 	Priority Priority `json:"priority,omitempty"`
 
-	// Timeout for processing in seconds
+	// LLMConfig configuration for LLM processing
 	// +optional
-	// +kubebuilder:default=120
-	// +kubebuilder:validation:Minimum=30
-	// +kubebuilder:validation:Maximum=1800
-	TimeoutSeconds *int32 `json:"timeoutSeconds,omitempty"`
+	LLMConfig *LLMProcessingConfig `json:"llmConfig,omitempty"`
 
-	// MaxRetries defines maximum retry attempts
+	// RAGConfig configuration for RAG processing
+	// +optional
+	RAGConfig *RAGProcessingConfig `json:"ragConfig,omitempty"`
+
+	// ProcessingTimeout timeout for processing in seconds
+	// +optional
+	// +kubebuilder:default=300
+	ProcessingTimeout int32 `json:"processingTimeout,omitempty"`
+
+	// MaxRetries maximum number of retries
 	// +optional
 	// +kubebuilder:default=3
-	// +kubebuilder:validation:Minimum=0
-	// +kubebuilder:validation:Maximum=10
-	MaxRetries *int32 `json:"maxRetries,omitempty"`
+	MaxRetries int32 `json:"maxRetries,omitempty"`
 
-	// ContextEnrichment enables RAG-based context enrichment
+	// ProcessingConfiguration additional processing configuration
 	// +optional
-	// +kubebuilder:default=true
-	ContextEnrichment *bool `json:"contextEnrichment,omitempty"`
-
-	// OutputFormat specifies the expected output format
-	// +optional
-	// +kubebuilder:default="structured"
-	// +kubebuilder:validation:Enum=structured;json;yaml
-	OutputFormat string `json:"outputFormat,omitempty"`
-}
-
-// LLMProcessingConfig contains configuration for LLM processing
-type LLMProcessingConfig struct {
-	// Provider specifies the LLM provider to use
-	// +optional
-	// +kubebuilder:default="openai"
-	Provider LLMProvider `json:"provider,omitempty"`
-
-	// Model specifies the model to use within the provider
-	// +optional
-	// +kubebuilder:default="gpt-4o-mini"
-	Model string `json:"model,omitempty"`
-
-	// Temperature controls randomness in generation
-	// +optional
-	// +kubebuilder:default=0.1
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=2.0
-	Temperature *float64 `json:"temperature,omitempty"`
-
-	// MaxTokens limits the response length
-	// +optional
-	// +kubebuilder:default=2048
-	// +kubebuilder:validation:Minimum=100
-	// +kubebuilder:validation:Maximum=8192
-	MaxTokens *int32 `json:"maxTokens,omitempty"`
-
-	// SystemPrompt provides system-level instructions
-	// +optional
-	SystemPrompt string `json:"systemPrompt,omitempty"`
-
-	// ContextWindow defines the context window size
-	// +optional
-	// +kubebuilder:default=8192
-	ContextWindow *int32 `json:"contextWindow,omitempty"`
-
-	// RAGConfiguration contains RAG-specific settings
-	// +optional
-	RAGConfiguration *RAGConfig `json:"ragConfiguration,omitempty"`
-}
-
-// RAGConfig contains RAG system configuration
-type RAGConfig struct {
-	// Enabled determines if RAG is enabled
-	// +optional
-	// +kubebuilder:default=true
-	Enabled *bool `json:"enabled,omitempty"`
-
-	// MaxDocuments limits the number of retrieved documents
-	// +optional
-	// +kubebuilder:default=5
-	// +kubebuilder:validation:Minimum=1
-	// +kubebuilder:validation:Maximum=20
-	MaxDocuments *int32 `json:"maxDocuments,omitempty"`
-
-	// RetrievalThreshold sets the minimum similarity threshold
-	// +optional
-	// +kubebuilder:default=0.7
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=1.0
-	RetrievalThreshold *float64 `json:"retrievalThreshold,omitempty"`
-
-	// KnowledgeBase specifies the knowledge base to use
-	// +optional
-	// +kubebuilder:default="telecom-default"
-	KnowledgeBase string `json:"knowledgeBase,omitempty"`
-
-	// EmbeddingModel specifies the embedding model for RAG
-	// +optional
-	// +kubebuilder:default="text-embedding-3-large"
-	EmbeddingModel string `json:"embeddingModel,omitempty"`
+	ProcessingConfiguration *ProcessingConfig `json:"processingConfiguration,omitempty"`
 }
 
 // IntentProcessingStatus defines the observed state of IntentProcessing
 type IntentProcessingStatus struct {
-	// Phase represents the current processing phase
-	// +optional
-	Phase IntentProcessingPhase `json:"phase,omitempty"`
+	// Phase current processing phase
+	// +kubebuilder:validation:Enum=Pending;Processing;Completed;Failed
+	Phase string `json:"phase,omitempty"`
 
-	// Conditions represent the latest available observations
+	// ProcessedIntent structured intent result
 	// +optional
-	// +listType=map
-	// +listMapKey=type
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	ProcessedIntent *ProcessedParameters `json:"processedIntent,omitempty"`
 
-	// ProcessingStartTime indicates when processing started
+	// LLMResponse contains the raw LLM response
 	// +optional
-	ProcessingStartTime *metav1.Time `json:"processingStartTime,omitempty"`
+	LLMResponse *runtime.RawExtension `json:"llmResponse,omitempty"`
 
-	// ProcessingCompletionTime indicates when processing completed
-	// +optional
-	ProcessingCompletionTime *metav1.Time `json:"processingCompletionTime,omitempty"`
-
-	// LLMResponse contains the processed response from the LLM
-	// +optional
-	// +kubebuilder:pruning:PreserveUnknownFields
-	LLMResponse runtime.RawExtension `json:"llmResponse,omitempty"`
-
-	// ProcessedParameters contains structured parameters
+	// ProcessedParameters contains the processed parameters from LLM
 	// +optional
 	ProcessedParameters *ProcessedParameters `json:"processedParameters,omitempty"`
 
-	// ExtractedEntities contains telecommunications entities
+	// ExtractedEntities contains entities extracted from the intent
 	// +optional
-	ExtractedEntities map[string]string `json:"extractedEntities,omitempty"`
+	ExtractedEntities map[string]runtime.RawExtension `json:"extractedEntities,omitempty"`
 
-	// TelecomContext contains domain-specific context
+	// QualityScore indicates the quality of processing (as string to avoid float issues)
 	// +optional
-	// +kubebuilder:pruning:PreserveUnknownFields
-	TelecomContext runtime.RawExtension `json:"telecomContext,omitempty"`
+	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
+	QualityScore *string `json:"qualityScore,omitempty"`
 
-	// RetryCount tracks the number of retry attempts
+	// Metrics processing metrics
 	// +optional
-	RetryCount int32 `json:"retryCount,omitempty"`
+	Metrics *ProcessingMetrics `json:"metrics,omitempty"`
 
-	// LastRetryTime indicates the last retry attempt
+	// Error processing error if any
 	// +optional
-	LastRetryTime *metav1.Time `json:"lastRetryTime,omitempty"`
+	Error string `json:"error,omitempty"`
 
-	// ProcessingDuration represents total processing time
+	// LastUpdated timestamp of last update
 	// +optional
-	ProcessingDuration *metav1.Duration `json:"processingDuration,omitempty"`
+	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
-	// TokenUsage tracks token consumption
+	// ProcessingStartTime when processing started
 	// +optional
-	TokenUsage *TokenUsageInfo `json:"tokenUsage,omitempty"`
+	ProcessingStartTime *metav1.Time `json:"processingStartTime,omitempty"`
 
-	// RAGMetrics contains retrieval-augmented generation metrics
+	// ProcessingCompletionTime when processing completed
 	// +optional
-	RAGMetrics *RAGMetrics `json:"ragMetrics,omitempty"`
+	ProcessingCompletionTime *metav1.Time `json:"processingCompletionTime,omitempty"`
 
-	// QualityScore represents the quality of processing
-	// +optional
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=1.0
-	QualityScore *float64 `json:"qualityScore,omitempty"`
-
-	// ValidationErrors contains any validation errors
+	// ValidationErrors validation errors if any
 	// +optional
 	ValidationErrors []string `json:"validationErrors,omitempty"`
 
-	// ObservedGeneration reflects the generation observed
+	// TokenUsage token usage information
+	// +optional
+	TokenUsage *TokenUsageInfo `json:"tokenUsage,omitempty"`
+
+	// RAGMetrics RAG processing metrics
+	// +optional
+	RAGMetrics *RAGMetrics `json:"ragMetrics,omitempty"`
+
+	// TelecomContext telecom-specific context
+	// +optional
+	TelecomContext map[string]string `json:"telecomContext,omitempty"`
+
+	// ProcessingDuration total processing duration
+	// +optional
+	ProcessingDuration *metav1.Duration `json:"processingDuration,omitempty"`
+
+	// RetryCount number of retries attempted
+	// +optional
+	RetryCount int32 `json:"retryCount,omitempty"`
+
+	// LastRetryTime timestamp of last retry
+	// +optional
+	LastRetryTime *metav1.Time `json:"lastRetryTime,omitempty"`
+
+	// Conditions represents the current conditions
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// ObservedGeneration reflects the generation observed by the controller
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
-// TokenUsageInfo tracks LLM token usage
-type TokenUsageInfo struct {
-	// PromptTokens used for the prompt
-	PromptTokens int32 `json:"promptTokens"`
-	// CompletionTokens used for the response
-	CompletionTokens int32 `json:"completionTokens"`
-	// TotalTokens used in total
-	TotalTokens int32 `json:"totalTokens"`
-	// EstimatedCost in USD
+// LLMProcessingConfig defines LLM processing configuration
+type LLMProcessingConfig struct {
+	// Model LLM model to use
+	// +kubebuilder:default="gpt-4"
+	Model string `json:"model,omitempty"`
+
+	// Temperature for text generation (as string to avoid float issues)
 	// +optional
-	EstimatedCost *float64 `json:"estimatedCost,omitempty"`
-	// Provider used for processing
-	Provider LLMProvider `json:"provider"`
-	// Model used for processing
-	Model string `json:"model"`
+	// +kubebuilder:validation:Pattern=`^([01](\.[0-9]+)?|2(\.0+)?)$`
+	Temperature *string `json:"temperature,omitempty"`
+
+	// MaxTokens maximum tokens in response
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=8192
+	MaxTokens *int32 `json:"maxTokens,omitempty"`
+
+	// SystemPrompt custom system prompt
+	// +optional
+	SystemPrompt string `json:"systemPrompt,omitempty"`
+}
+
+// RAGProcessingConfig defines RAG processing configuration
+type RAGProcessingConfig struct {
+	// Enabled whether RAG is enabled
+	Enabled bool `json:"enabled,omitempty"`
+
+	// Sources list of knowledge sources
+	// +optional
+	Sources []string `json:"sources,omitempty"`
+
+	// MaxRetrievalResults maximum number of retrieved results
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=50
+	MaxRetrievalResults *int32 `json:"maxRetrievalResults,omitempty"`
+
+	// SimilarityThreshold threshold for similarity matching (as string to avoid float issues)
+	// +optional
+	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
+	SimilarityThreshold *string `json:"similarityThreshold,omitempty"`
+
+	// MaxDocuments maximum number of documents to retrieve
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=100
+	MaxDocuments *int32 `json:"maxDocuments,omitempty"`
+
+	// RetrievalThreshold threshold for retrieval (as string to avoid float issues)
+	// +optional
+	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
+	RetrievalThreshold *string `json:"retrievalThreshold,omitempty"`
+}
+
+// ProcessingConfig defines general processing configuration
+type ProcessingConfig struct {
+	// Provider specifies the processing provider
+	// +optional
+	Provider string `json:"provider,omitempty"`
+
+	// Model specifies the model to use
+	// +optional
+	Model string `json:"model,omitempty"`
+
+	// Temperature for text generation (as string to avoid float issues)
+	// +optional
+	// +kubebuilder:validation:Pattern=`^([01](\.[0-9]+)?|2(\.0+)?)$`
+	Temperature *string `json:"temperature,omitempty"`
+
+	// MaxTokens maximum tokens in response
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=8192
+	MaxTokens *int32 `json:"maxTokens,omitempty"`
+
+	// RAGConfiguration for RAG-specific settings
+	// +optional
+	RAGConfiguration *RAGProcessingConfig `json:"ragConfiguration,omitempty"`
+}
+
+// ProcessingMetrics contains metrics for intent processing
+type ProcessingMetrics struct {
+	// StartTime when processing started
+	StartTime *metav1.Time `json:"startTime,omitempty"`
+
+	// EndTime when processing completed
+	EndTime *metav1.Time `json:"endTime,omitempty"`
+
+	// DurationMs processing duration in milliseconds
+	DurationMs int64 `json:"durationMs,omitempty"`
+
+	// LLMMetrics metrics for LLM processing
+	// +optional
+	LLMMetrics *LLMMetrics `json:"llmMetrics,omitempty"`
+
+	// RAGMetrics metrics for RAG processing
+	// +optional
+	RAGMetrics *RAGMetrics `json:"ragMetrics,omitempty"`
+}
+
+// LLMMetrics contains metrics for LLM processing
+type LLMMetrics struct {
+	// TokenUsage token usage information
+	TokenUsage *TokenUsageInfo `json:"tokenUsage,omitempty"`
+
+	// ResponseTimeMs LLM response time in milliseconds
+	ResponseTimeMs int64 `json:"responseTimeMs,omitempty"`
+
+	// Model the LLM model used
+	Model string `json:"model,omitempty"`
+
+	// ConfidenceScore confidence in the response (0.0-1.0)
+	// +optional
+	// +kubebuilder:validation:Minimum=0.0
+	// +kubebuilder:validation:Maximum=1.0
+	ConfidenceScore *float64 `json:"confidenceScore,omitempty"`
 }
 
 // RAGMetrics contains metrics for RAG processing
 type RAGMetrics struct {
-	// DocumentsRetrieved is the number of documents retrieved
-	DocumentsRetrieved int32 `json:"documentsRetrieved"`
-	// RetrievalDuration is the time taken to retrieve documents
-	RetrievalDuration metav1.Duration `json:"retrievalDuration"`
-	// AverageRelevanceScore is the average relevance of retrieved docs
+	// RetrievalTimeMs time spent on retrieval in milliseconds
+	RetrievalTimeMs int64 `json:"retrievalTimeMs,omitempty"`
+
+	// RetrievalDuration duration of retrieval process
+	// +optional
+	RetrievalDuration int64 `json:"retrievalDuration,omitempty"`
+
+	// DocumentsRetrieved number of documents retrieved
+	DocumentsRetrieved int32 `json:"documentsRetrieved,omitempty"`
+
+	// AverageRelevanceScore average relevance score of retrieved documents (0.0-1.0)
+	// +optional
 	// +kubebuilder:validation:Minimum=0.0
 	// +kubebuilder:validation:Maximum=1.0
-	AverageRelevanceScore float64 `json:"averageRelevanceScore"`
-	// TopRelevanceScore is the highest relevance score
+	AverageRelevanceScore *float64 `json:"averageRelevanceScore,omitempty"`
+
+	// TopRelevanceScore highest relevance score (0.0-1.0)
+	// +optional
 	// +kubebuilder:validation:Minimum=0.0
 	// +kubebuilder:validation:Maximum=1.0
-	TopRelevanceScore float64 `json:"topRelevanceScore"`
-	// KnowledgeBase used for retrieval
-	KnowledgeBase string `json:"knowledgeBase"`
-	// QueryEnhancement indicates if query was enhanced
-	QueryEnhancement bool `json:"queryEnhancement"`
+	TopRelevanceScore *float64 `json:"topRelevanceScore,omitempty"`
+
+	// SourcesUsed list of knowledge sources used
+	SourcesUsed []string `json:"sourcesUsed,omitempty"`
+
+	// IndexHits number of index hits
+	IndexHits int64 `json:"indexHits,omitempty"`
+
+	// CacheHits number of cache hits
+	CacheHits int64 `json:"cacheHits,omitempty"`
+
+	// QueryEnhancement information about query enhancement
+	// +optional
+	QueryEnhancement string `json:"queryEnhancement,omitempty"`
 }
 
-// ObjectReference represents a reference to a Kubernetes object
-type ObjectReference struct {
-	// APIVersion of the referent
+// TokenUsageInfo contains token usage information
+type TokenUsageInfo struct {
+	// InputTokens number of input tokens
+	InputTokens int32 `json:"inputTokens,omitempty"`
+
+	// OutputTokens number of output tokens
+	OutputTokens int32 `json:"outputTokens,omitempty"`
+
+	// TotalTokens total number of tokens
+	TotalTokens int32 `json:"totalTokens,omitempty"`
+
+	// Cost estimated cost in USD (as string to avoid float issues)
 	// +optional
-	APIVersion string `json:"apiVersion,omitempty"`
-	// Kind of the referent
-	// +kubebuilder:validation:Required
-	Kind string `json:"kind"`
-	// Name of the referent
-	// +kubebuilder:validation:Required
-	Name string `json:"name"`
-	// Namespace of the referent
-	// +optional
-	Namespace string `json:"namespace,omitempty"`
-	// UID of the referent
-	// +optional
-	UID string `json:"uid,omitempty"`
-	// ResourceVersion of the referent
-	// +optional
-	ResourceVersion string `json:"resourceVersion,omitempty"`
+	// +kubebuilder:validation:Pattern=`^\d+(\.\d{1,4})?$`
+	Cost *string `json:"cost,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:printcolumn:name="Parent Intent",type=string,JSONPath=`.spec.parentIntentRef.name`
-//+kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
-//+kubebuilder:printcolumn:name="Priority",type=string,JSONPath=`.spec.priority`
-//+kubebuilder:printcolumn:name="Retries",type=integer,JSONPath=`.status.retryCount`
-//+kubebuilder:printcolumn:name="Duration",type=string,JSONPath=`.status.processingDuration`
-//+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
-//+kubebuilder:resource:shortName=ip;intentproc
-//+kubebuilder:storageversion
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:shortName=ip
+// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
+// +kubebuilder:printcolumn:name="Intent",type=string,JSONPath=`.spec.intent`
+// +kubebuilder:printcolumn:name="Duration",type=string,JSONPath=`.status.metrics.durationMs`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
-// IntentProcessing is the Schema for the intentprocessings API
+// IntentProcessing represents an intent processing request
 type IntentProcessing struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -429,7 +350,7 @@ type IntentProcessing struct {
 	Status IntentProcessingStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // IntentProcessingList contains a list of IntentProcessing
 type IntentProcessingList struct {
@@ -438,53 +359,64 @@ type IntentProcessingList struct {
 	Items           []IntentProcessing `json:"items"`
 }
 
-// GetParentIntentName returns the name of the parent NetworkIntent
-func (ip *IntentProcessing) GetParentIntentName() string {
-	return ip.Spec.ParentIntentRef.Name
-}
-
-// GetParentIntentNamespace returns the namespace of the parent NetworkIntent
-func (ip *IntentProcessing) GetParentIntentNamespace() string {
-	if ip.Spec.ParentIntentRef.Namespace != "" {
-		return ip.Spec.ParentIntentRef.Namespace
-	}
-	return ip.Namespace // Default to same namespace
-}
-
-// IsProcessingComplete returns true if processing is complete
-func (ip *IntentProcessing) IsProcessingComplete() bool {
-	return ip.Status.Phase == IntentProcessingPhaseCompleted
-}
-
-// IsProcessingFailed returns true if processing has failed
-func (ip *IntentProcessing) IsProcessingFailed() bool {
-	return ip.Status.Phase == IntentProcessingPhaseFailed
-}
-
-// CanRetry returns true if the processing can be retried
-func (ip *IntentProcessing) CanRetry() bool {
-	if ip.Spec.MaxRetries == nil {
-		return false
-	}
-	return ip.Status.RetryCount < *ip.Spec.MaxRetries
-}
-
-// GetProcessingTimeout returns the timeout for processing
-func (ip *IntentProcessing) GetProcessingTimeout() time.Duration {
-	if ip.Spec.TimeoutSeconds == nil {
-		return 120 * time.Second // Default timeout
-	}
-	return time.Duration(*ip.Spec.TimeoutSeconds) * time.Second
-}
-
-// ShouldEnableRAG returns true if RAG should be enabled
-func (ip *IntentProcessing) ShouldEnableRAG() bool {
-	if ip.Spec.ContextEnrichment == nil {
-		return true // Default to enabled
-	}
-	return *ip.Spec.ContextEnrichment
-}
-
 func init() {
 	SchemeBuilder.Register(&IntentProcessing{}, &IntentProcessingList{})
+}
+
+// IsProcessingComplete checks if the intent processing is complete
+func (ip *IntentProcessing) IsProcessingComplete() bool {
+	return ip.Status.Phase == "Completed"
+}
+
+// IsProcessingFailed checks if the intent processing has failed
+func (ip *IntentProcessing) IsProcessingFailed() bool {
+	return ip.Status.Phase == "Failed"
+}
+
+// CanRetry determines if the intent processing can be retried
+func (ip *IntentProcessing) CanRetry() bool {
+	// Don't retry if already completed
+	if ip.IsProcessingComplete() {
+		return false
+	}
+
+	// Check if we have retry count annotation
+	retryCountStr, exists := ip.Annotations["nephoran.com/retry-count"]
+	if !exists {
+		return true // First attempt, can retry
+	}
+
+	// Parse retry count and check against max retries (default 3)
+	var retryCount int
+	if _, err := fmt.Sscanf(retryCountStr, "%d", &retryCount); err != nil {
+		return true // If we can't parse, assume first attempt
+	}
+
+	maxRetries := 3 // Default max retries
+	if maxRetriesStr, exists := ip.Annotations["nephoran.com/max-retries"]; exists {
+		if mr, err := fmt.Sscanf(maxRetriesStr, "%d", &maxRetries); err == nil && mr == 1 {
+			// Use custom max retries
+		}
+	}
+
+	return retryCount < maxRetries
+}
+
+// GetProcessingTimeout returns the processing timeout with a default value
+func (ip *IntentProcessing) GetProcessingTimeout() time.Duration {
+	if ip.Spec.ProcessingTimeout <= 0 {
+		return 300 * time.Second // Default 5 minutes
+	}
+	return time.Duration(ip.Spec.ProcessingTimeout) * time.Second
+}
+
+// ShouldEnableRAG determines if RAG should be enabled for this processing
+func (ip *IntentProcessing) ShouldEnableRAG() bool {
+	if ip.Spec.RAGConfig != nil && ip.Spec.RAGConfig.Enabled {
+		return true
+	}
+	if ip.Spec.ProcessingConfiguration != nil && ip.Spec.ProcessingConfiguration.RAGConfiguration != nil {
+		return ip.Spec.ProcessingConfiguration.RAGConfiguration.Enabled
+	}
+	return false
 }

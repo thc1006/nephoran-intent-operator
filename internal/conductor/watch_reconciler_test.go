@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/go-logr/logr"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -90,13 +90,13 @@ func TestWatchReconcilerIntegration(t *testing.T) {
 	_ = nephoranv1.AddToScheme(scheme)
 
 	testCases := []struct {
-		name           string
-		intent         string
-		namespace      string
-		expectedTarget string
+		name             string
+		intent           string
+		namespace        string
+		expectedTarget   string
 		expectedReplicas int
-		expectError    bool
-		expectRequeue  bool
+		expectError      bool
+		expectRequeue    bool
 	}{
 		{
 			name:             "valid-scaling-intent",
@@ -108,18 +108,18 @@ func TestWatchReconcilerIntegration(t *testing.T) {
 			expectRequeue:    false,
 		},
 		{
-			name:           "invalid-intent", 
-			intent:         "restart database connection",
-			namespace:      "default",
-			expectError:    false, // Parse error causes requeue, not error
-			expectRequeue:  true,
+			name:          "invalid-intent",
+			intent:        "restart database connection",
+			namespace:     "default",
+			expectError:   false, // Parse error causes requeue, not error
+			expectRequeue: true,
 		},
 		{
-			name:           "empty-intent",
-			intent:         "",
-			namespace:      "default",
-			expectError:    false, // Empty intent causes requeue
-			expectRequeue:  true,
+			name:          "empty-intent",
+			intent:        "",
+			namespace:     "default",
+			expectError:   false, // Empty intent causes requeue
+			expectRequeue: true,
 		},
 		{
 			name:             "app-scaling-format",
@@ -136,13 +136,13 @@ func TestWatchReconcilerIntegration(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// Setup test directory
 			testDir := t.TempDir()
-			
+
 			// Create NetworkIntent
 			networkIntent := &nephoranv1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      tc.name,
-					Namespace: tc.namespace,
-					UID:       "test-uid-123",
+					Name:       tc.name,
+					Namespace:  tc.namespace,
+					UID:        "test-uid-123",
 					Generation: 1,
 				},
 				Spec: nephoranv1.NetworkIntentSpec{
@@ -312,7 +312,6 @@ func TestWatchReconcilerWithPorchErrors(t *testing.T) {
 	}
 
 	result, err := reconciler.Reconcile(ctx, req)
-
 	// Should not return error (errors cause requeue)
 	if err != nil {
 		t.Errorf("Expected no error (should requeue), got: %v", err)
@@ -547,7 +546,7 @@ func verifyIntentJSON(t *testing.T, intentData map[string]interface{}, expectedT
 		t.Errorf("Expected target '%s', got: %v", expectedTarget, target)
 	}
 
-	// Verify namespace  
+	// Verify namespace
 	if namespace := intentData["namespace"]; namespace != expectedNamespace {
 		t.Errorf("Expected namespace '%s', got: %v", expectedNamespace, namespace)
 	}

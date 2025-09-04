@@ -3,7 +3,6 @@ package webhooks
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -25,10 +24,7 @@ func createTestValidator() (*NetworkIntentValidator, error) {
 		return nil, err
 	}
 
-	decoder, err := admission.NewDecoder(scheme)
-	if err != nil {
-		return nil, err
-	}
+	decoder := admission.NewDecoder(scheme)
 
 	validator := NewNetworkIntentValidator()
 	err = validator.InjectDecoder(decoder)
@@ -225,7 +221,7 @@ func TestNetworkIntentValidator_Handle(t *testing.T) {
 	}
 }
 
-func TestValidateIntentContent(t *testing.T) {
+func TestValidateIntentContentComprehensive(t *testing.T) {
 	validator, err := createTestValidator()
 	require.NoError(t, err)
 
@@ -265,7 +261,7 @@ func TestValidateIntentContent(t *testing.T) {
 		},
 		{
 			name:          "intent with unicode",
-			intent:        "Deploy AMF with π characters",
+			intent:        "Deploy AMF with ? characters",
 			expectedError: false,
 		},
 		{

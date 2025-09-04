@@ -92,17 +92,14 @@ import (
     "context"
     "log"
     
-    "github.com/thc1006/nephoran-intent-operator/pkg/logging"
-    "github.com/thc1006/nephoran-intent-operator/pkg/oran/o2"
+    "github.com/nephio-project/nephoran-intent-operator/pkg/logging"
+    "github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2"
     "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func main() {
     // Initialize logger
-    logger := logging.NewStructuredLogger(
-        logging.WithService("o2-ims-demo"),
-        logging.WithVersion("1.0.0"),
-    )
+    logger := logging.NewStructuredLogger(logging.DefaultConfig("o2-ims-demo", "1.0.0", "development"))
     
     // Initialize Kubernetes client
     k8sClient, err := client.New(config, client.Options{})

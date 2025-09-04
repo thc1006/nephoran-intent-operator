@@ -1,0 +1,705 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  name: gitopsdeployments.nephoran.com.
+spec:
+  group: nephoran.com.
+  names:
+    kind: GitOpsDeployment
+    listKind: GitOpsDeploymentList
+    plural: gitopsdeployments
+    singular: gitopsdeployment
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              autoSync:
+                default: true
+                type: boolean
+              deploymentConfig:
+                properties:
+                  dependencyChecks:
+                    properties:
+                      dependencies:
+                        items:
+                          properties:
+                            apiVersion:
+                              type: string
+                            condition:
+                              type: string
+                            kind:
+                              type: string
+                            name:
+                              type: string
+                            namespace:
+                              type: string
+                          required:
+                          - apiVersion
+                          - kind
+                          - name
+                          type: object
+                        type: array
+                      enabled:
+                        default: true
+                        type: boolean
+                      timeout:
+                        default: 120s
+                        type: string
+                    type: object
+                  maxRetries:
+                    format: int32
+                    maximum: 10
+                    type: integer
+                  postDeploymentHooks:
+                    items:
+                      properties:
+                        configuration:
+                          type: object
+                          x-kubernetes-preserve-unknown-fields: true
+                        name:
+                          type: string
+                        onFailure:
+                          enum:
+                          - abort
+                          - continue
+                          - retry
+                          type: string
+                        timeout:
+                          default: 300s
+                          type: string
+                        type:
+                          type: string
+                      required:
+                      - configuration
+                      - name
+                      - type
+                      type: object
+                    type: array
+                  preDeploymentHooks:
+                    items:
+                      properties:
+                        configuration:
+                          type: object
+                          x-kubernetes-preserve-unknown-fields: true
+                        name:
+                          type: string
+                        onFailure:
+                          enum:
+                          - abort
+                          - continue
+                          - retry
+                          type: string
+                        timeout:
+                          default: 300s
+                          type: string
+                        type:
+                          type: string
+                      required:
+                      - configuration
+                      - name
+                      - type
+                      type: object
+                    type: array
+                  resourceOrder:
+                    items:
+                      type: string
+                    type: array
+                  retryBackoff:
+                    properties:
+                      initialInterval:
+                        default: 30s
+                        type: string
+                      maxInterval:
+                        default: 300s
+                        type: string
+                      multiplier:
+                        default: "2.0"
+                        pattern: ^\d+(\.\d+)?$
+                        type: string
+                    type: object
+                  timeoutSeconds:
+                    format: int32
+                    maximum: 3600
+                    type: integer
+                type: object
+              deploymentStrategy:
+                default: RollingUpdate
+                type: string
+              gitRepository:
+                properties:
+                  authorEmail:
+                    default: noreply@nephorancom
+                    type: string
+                  authorName:
+                    default: nephoran-intent-operator
+                    type: string
+                  branch:
+                    default: main
+                    type: string
+                  commitMessage:
+                    type: string
+                  path:
+                    default: deployments
+                    type: string
+                  provider:
+                    default: generic
+                    type: string
+                  secretRef:
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  signCommits:
+                    default: false
+                    type: boolean
+                  url:
+                    type: string
+                required:
+                - url
+                type: object
+              healthChecks:
+                properties:
+                  checks:
+                    items:
+                      properties:
+                        configuration:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        enabled:
+                          type: boolean
+                        intervalSeconds:
+                          format: int32
+                          type: integer
+                        path:
+                          type: string
+                        port:
+                          format: int32
+                          type: integer
+                        resource:
+                          type: string
+                        timeoutSeconds:
+                          format: int32
+                          type: integer
+                      type: object
+                    type: array
+                  enabled:
+                    type: boolean
+                  exec:
+                    properties:
+                      configuration:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      enabled:
+                        type: boolean
+                      intervalSeconds:
+                        format: int32
+                        type: integer
+                      path:
+                        type: string
+                      port:
+                        format: int32
+                        type: integer
+                      resource:
+                        type: string
+                      timeoutSeconds:
+                        format: int32
+                        type: integer
+                    type: object
+                  http:
+                    properties:
+                      configuration:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      enabled:
+                        type: boolean
+                      intervalSeconds:
+                        format: int32
+                        type: integer
+                      path:
+                        type: string
+                      port:
+                        format: int32
+                        type: integer
+                      resource:
+                        type: string
+                      timeoutSeconds:
+                        format: int32
+                        type: integer
+                    type: object
+                  tcp:
+                    properties:
+                      configuration:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      enabled:
+                        type: boolean
+                      intervalSeconds:
+                        format: int32
+                        type: integer
+                      path:
+                        type: string
+                      port:
+                        format: int32
+                        type: integer
+                      resource:
+                        type: string
+                      timeoutSeconds:
+                        format: int32
+                        type: integer
+                    type: object
+                type: object
+              manifestGenerationRef:
+                properties:
+                  apiVersion:
+                    type: string
+                  kind:
+                    type: string
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                  uid:
+                    type: string
+                type: object
+              manifests:
+                additionalProperties:
+                  type: string
+                type: object
+              parentIntentRef:
+                properties:
+                  apiVersion:
+                    type: string
+                  kind:
+                    type: string
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                  uid:
+                    type: string
+                type: object
+              priority:
+                default: medium
+                type: string
+              rollbackConfig:
+                properties:
+                  autoRollback:
+                    default: false
+                    type: boolean
+                  enabled:
+                    default: true
+                    type: boolean
+                  strategy:
+                    enum:
+                    - immediate
+                    - gradual
+                    - manual
+                    type: string
+                  timeout:
+                    default: 300s
+                    type: string
+                  trigger:
+                    properties:
+                      errorThreshold:
+                        maximum: 100
+                        type: integer
+                      onFailure:
+                        default: true
+                        type: boolean
+                      onHealthCheckFailure:
+                        default: false
+                        type: boolean
+                      timeWindow:
+                        default: 5m
+                        type: string
+                    type: object
+                type: object
+              syncPolicy:
+                properties:
+                  automated:
+                    properties:
+                      allowEmpty:
+                        default: false
+                        type: boolean
+                      prune:
+                        default: false
+                        type: boolean
+                      selfHeal:
+                        default: true
+                        type: boolean
+                    type: object
+                  retry:
+                    properties:
+                      backoff:
+                        properties:
+                          duration:
+                            default: 5s
+                            type: string
+                          factor:
+                            format: int64
+                            minimum: 1
+                            type: integer
+                          maxDuration:
+                            default: 3m
+                            type: string
+                        type: object
+                      limit:
+                        format: int64
+                        maximum: 20
+                        type: integer
+                    type: object
+                  syncOptions:
+                    items:
+                      type: string
+                    type: array
+                type: object
+              targetClusters:
+                items:
+                  properties:
+                    config:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+                    labels:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                    priority:
+                      maximum: 10
+                      type: integer
+                    secretRef:
+                      properties:
+                        key:
+                          type: string
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    server:
+                      type: string
+                  required:
+                  - name
+                  type: object
+                type: array
+            required:
+            - gitRepository
+            - manifests
+            - parentIntentRef
+            type: object
+          status:
+            properties:
+              conditions:
+                items:
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-type: atomic
+              deploymentCompletionTime:
+                format: date-time
+                type: string
+              deploymentDuration:
+                type: string
+              deploymentStartTime:
+                format: date-time
+                type: string
+              deploymentStatus:
+                items:
+                  properties:
+                    clusterName:
+                      type: string
+                    deployedResources:
+                      items:
+                        properties:
+                          apiVersion:
+                            type: string
+                          kind:
+                            type: string
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                          uid:
+                            type: string
+                        required:
+                        - apiVersion
+                        - kind
+                        - name
+                        type: object
+                      type: array
+                    failedResources:
+                      items:
+                        properties:
+                          apiVersion:
+                            type: string
+                          kind:
+                            type: string
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                          uid:
+                            type: string
+                        required:
+                        - apiVersion
+                        - kind
+                        - name
+                        type: object
+                      type: array
+                    lastUpdateTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    status:
+                      type: string
+                  required:
+                  - clusterName
+                  - status
+                  type: object
+                type: array
+              gitCommit:
+                properties:
+                  author:
+                    type: string
+                  branch:
+                    type: string
+                  files:
+                    items:
+                      type: string
+                    type: array
+                  hash:
+                    type: string
+                  message:
+                    type: string
+                  timestamp:
+                    format: date-time
+                    type: string
+                  url:
+                    type: string
+                required:
+                - author
+                - branch
+                - hash
+                - message
+                - timestamp
+                type: object
+              healthStatus:
+                properties:
+                  checkResults:
+                    items:
+                      properties:
+                        duration:
+                          type: string
+                        lastCheckTime:
+                          format: date-time
+                          type: string
+                        message:
+                          type: string
+                        name:
+                          type: string
+                        status:
+                          type: string
+                      required:
+                      - name
+                      - status
+                      type: object
+                    type: array
+                  healthScore:
+                    pattern: ^(0(\.\d+)?|1(\.0+)?)$
+                    type: string
+                  lastCheckTime:
+                    format: date-time
+                    type: string
+                  overallStatus:
+                    type: string
+                required:
+                - overallStatus
+                type: object
+              lastSyncTime:
+                format: date-time
+                type: string
+              observedGeneration:
+                format: int64
+                type: integer
+              phase:
+                type: string
+              resourceStatus:
+                items:
+                  properties:
+                    apiVersion:
+                      type: string
+                    createdAt:
+                      format: date-time
+                      type: string
+                    health:
+                      type: string
+                    kind:
+                      type: string
+                    message:
+                      type: string
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                    status:
+                      type: string
+                    syncWave:
+                      type: integer
+                    uid:
+                      type: string
+                  required:
+                  - apiVersion
+                  - kind
+                  - name
+                  - status
+                  type: object
+                type: array
+              retryCount:
+                format: int32
+                type: integer
+              rollbackInfo:
+                properties:
+                  completedAt:
+                    format: date-time
+                    type: string
+                  initiated:
+                    type: boolean
+                  initiatedAt:
+                    format: date-time
+                    type: string
+                  originalRevision:
+                    type: string
+                  reason:
+                    type: string
+                  status:
+                    type: string
+                  targetRevision:
+                    type: string
+                required:
+                - initiated
+                type: object
+              syncStatus:
+                properties:
+                  comparedTo:
+                    properties:
+                      destination:
+                        properties:
+                          namespace:
+                            type: string
+                          server:
+                            type: string
+                        required:
+                        - namespace
+                        - server
+                        type: object
+                      source:
+                        properties:
+                          path:
+                            type: string
+                          repoURL:
+                            type: string
+                          targetRevision:
+                            type: string
+                        required:
+                        - path
+                        - repoURL
+                        - targetRevision
+                        type: object
+                    required:
+                    - destination
+                    - source
+                    type: object
+                  health:
+                    type: string
+                  resources:
+                    items:
+                      properties:
+                        health:
+                          type: string
+                        kind:
+                          type: string
+                        message:
+                          type: string
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                        status:
+                          type: string
+                      required:
+                      - kind
+                      - name
+                      - status
+                      type: object
+                    type: array
+                  revision:
+                    type: string
+                  status:
+                    type: string
+                required:
+                - status
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true

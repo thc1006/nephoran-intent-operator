@@ -3,6 +3,7 @@ package optimized
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"sync"
 	"testing"
 	"time"
@@ -13,11 +14,15 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
+	"github.com/thc1006/nephoran-intent-operator/pkg/git"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
+	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/telecom"
 )
 
 // BenchmarkOptimizedNetworkIntentController benchmarks the optimized NetworkIntent controller
@@ -140,7 +145,7 @@ func BenchmarkOptimizedE2NodeSetController(b *testing.B) {
 		},
 		Spec: nephoranv1.E2NodeSetSpec{
 			Replicas:    5,
-			RICEndpoint: "http://ric:8080",
+			RicEndpoint: "http://ric:8080",
 		},
 	}
 
@@ -457,13 +462,13 @@ func BenchmarkComparison(b *testing.B) {
 // Mock dependencies for testing
 type mockDependencies struct{}
 
-func (m *mockDependencies) GetGitClient() interface{}              { return nil }
-func (m *mockDependencies) GetLLMClient() interface{}              { return nil }
-func (m *mockDependencies) GetPackageGenerator() interface{}       { return nil }
-func (m *mockDependencies) GetHTTPClient() interface{}             { return nil }
-func (m *mockDependencies) GetEventRecorder() record.EventRecorder { return nil }
-func (m *mockDependencies) GetTelecomKnowledgeBase() interface{}   { return nil }
-func (m *mockDependencies) GetMetricsCollector() interface{}       { return nil }
+func (m *mockDependencies) GetGitClient() git.ClientInterface                      { return nil }
+func (m *mockDependencies) GetLLMClient() shared.ClientInterface                   { return nil }
+func (m *mockDependencies) GetPackageGenerator() *nephio.PackageGenerator          { return nil }
+func (m *mockDependencies) GetHTTPClient() *http.Client                            { return nil }
+func (m *mockDependencies) GetEventRecorder() record.EventRecorder                 { return nil }
+func (m *mockDependencies) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase { return nil }
+func (m *mockDependencies) GetMetricsCollector() monitoring.MetricsCollector       { return nil }
 
 // Helper function to check if error is a requeue error (acceptable in benchmarks)
 func isRequeueError(err error) bool {

@@ -1,0 +1,50 @@
+# Minimal Dockerfile for planner service
+# Optimized for fast builds and minimal dependencies
+
+# Build stage
+FROM golang:1.24-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache git
+
+WORKDIR /workspace
+
+# Copy go mod files first for better caching
+COPY go.mod go.sum ./
+
+# Download dependencies with timeout and retry
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download -x || \
+    (sleep 5 && go mod download -x) || \
+    (sleep 10 && go mod download -x)
+
+# Copy source code
+COPY . .
+
+# Build the planner service with simplified flags
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 \
+    GOOS=linux \
+    GOARCH=amd64 \
+    go build \
+      -trimpath \
+      -ldflags="-s -w" \
+      -o /planner \
+      ./planner/cmd/planner
+
+# Runtime stage - minimal distroless image
+FROM gcr.io/distroless/static:nonroot
+
+# Copy the binary
+COPY --from=builder /planner /planner
+
+# Use non-root user
+USER nonroot:nonroot
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD ["/planner", "--health"]
+
+# Run the service
+ENTRYPOINT ["/planner"]

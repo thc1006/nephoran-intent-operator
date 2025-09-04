@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: conductor-loop
+  namespace: conductor-loop
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    app.kubernetes.io/instance: conductor-loop
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: orchestration
+    app.kubernetes.io/part-of: nephoran-intent-operator
+  annotations:
+    description: "Service for Conductor Loop health checks and metrics"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  sessionAffinity: None
+  ports:
+    - name: http-health
+      port: 8080
+      targetPort: http-health
+      protocol: TCP
+    - name: http-metrics
+      port: 9090
+      targetPort: http-metrics
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: conductor-loop
+    app.kubernetes.io/instance: conductor-loop
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: conductor-loop-metrics
+  namespace: conductor-loop
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    app.kubernetes.io/instance: conductor-loop
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: orchestration
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    service.type: metrics
+  annotations:
+    description: "Dedicated metrics service for Prometheus scraping"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+    - name: http-metrics
+      port: 9090
+      targetPort: http-metrics
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: conductor-loop
+    app.kubernetes.io/instance: conductor-loop

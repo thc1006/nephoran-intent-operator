@@ -265,7 +265,7 @@ func TestRuleEngine_InPlacePruning(t *testing.T) {
 	})
 
 	now := time.Now()
-	
+
 	// Add old metrics that should be pruned
 	for i := 0; i < 5; i++ {
 		oldData := KPMData{
@@ -352,7 +352,7 @@ func BenchmarkRuleEngine_MemoryPerformance(b *testing.B) {
 	})
 
 	now := time.Now()
-	
+
 	b.ResetTimer()
 	b.ReportAllocs()
 
@@ -545,7 +545,7 @@ func BenchmarkRuleEngine_PruningComparison(b *testing.B) {
 	}
 
 	sizes := []int{100, 500, 1000}
-	
+
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("InPlace_Size_%d", size), func(b *testing.B) {
 			engine := setupEngine(size)
@@ -619,7 +619,7 @@ func TestRuleEngine_CapacityLimitEnforcement(t *testing.T) {
 
 				// Check capacity after each insert
 				if len(engine.state.MetricsHistory) > tt.expectedMax {
-					t.Errorf("After insert %d: history size %d exceeds expected max %d", 
+					t.Errorf("After insert %d: history size %d exceeds expected max %d",
 						i+1, len(engine.state.MetricsHistory), tt.expectedMax)
 				}
 			}
@@ -662,11 +662,11 @@ func TestRuleEngine_PruningAccuracy(t *testing.T) {
 
 	// Add data spanning the cutoff
 	testData := []struct {
-		offset   time.Duration
+		offset     time.Duration
 		shouldKeep bool
 	}{
 		{-30 * time.Hour, false}, // Old - should be pruned
-		{-25 * time.Hour, false}, // Old - should be pruned  
+		{-25 * time.Hour, false}, // Old - should be pruned
 		{-23 * time.Hour, true},  // Recent - should be kept
 		{-12 * time.Hour, true},  // Recent - should be kept
 		{-1 * time.Hour, true},   // Recent - should be kept
@@ -682,7 +682,7 @@ func TestRuleEngine_PruningAccuracy(t *testing.T) {
 			CurrentReplicas: 2,
 		}
 		engine.state.MetricsHistory = append(engine.state.MetricsHistory, data)
-		
+
 		// Add a marker to identify this specific data point
 		engine.state.MetricsHistory[len(engine.state.MetricsHistory)-1].ActiveUEs = i + 100
 	}
@@ -693,7 +693,7 @@ func TestRuleEngine_PruningAccuracy(t *testing.T) {
 	// Verify pruning accuracy
 	for _, metric := range engine.state.MetricsHistory {
 		if metric.Timestamp.Before(cutoff) {
-			t.Errorf("Old metric with timestamp %v should have been pruned (cutoff: %v)", 
+			t.Errorf("Old metric with timestamp %v should have been pruned (cutoff: %v)",
 				metric.Timestamp, cutoff)
 		}
 	}
@@ -748,43 +748,43 @@ func TestRuleEngine_LongRunningMemoryStability(t *testing.T) {
 
 	now := time.Now()
 	iterations := 1000
-	
+
 	// Track memory usage patterns
 	historySizes := make([]int, 0, iterations/10)
-	
+
 	for i := 0; i < iterations; i++ {
 		data := KPMData{
 			Timestamp:       now.Add(time.Duration(i) * 100 * time.Millisecond),
 			NodeID:          "node1",
 			PRBUtilization:  0.4 + float64(i%40)/100.0, // Varies 0.4-0.8
-			P95Latency:      60 + float64(i%80),         // Varies 60-140
-			CurrentReplicas: 2 + i%3,                    // Varies 2-4
+			P95Latency:      60 + float64(i%80),        // Varies 60-140
+			CurrentReplicas: 2 + i%3,                   // Varies 2-4
 		}
-		
+
 		engine.Evaluate(data)
-		
+
 		// Sample memory usage every 10 iterations
 		if i%10 == 0 {
 			historySizes = append(historySizes, len(engine.state.MetricsHistory))
 		}
-		
+
 		// Verify capacity limit is never exceeded
 		if len(engine.state.MetricsHistory) > engine.config.MaxHistorySize {
-			t.Fatalf("Iteration %d: history size %d exceeded limit %d", 
+			t.Fatalf("Iteration %d: history size %d exceeded limit %d",
 				i, len(engine.state.MetricsHistory), engine.config.MaxHistorySize)
 		}
 	}
-	
+
 	// Analyze memory stability
 	if len(historySizes) < 10 {
 		t.Fatal("Not enough history size samples")
 	}
-	
+
 	// Check that memory usage stabilizes (doesn't grow unbounded)
 	lastQuarter := historySizes[len(historySizes)*3/4:]
 	maxLastQuarter := 0
 	minLastQuarter := engine.config.MaxHistorySize
-	
+
 	for _, size := range lastQuarter {
 		if size > maxLastQuarter {
 			maxLastQuarter = size
@@ -793,20 +793,20 @@ func TestRuleEngine_LongRunningMemoryStability(t *testing.T) {
 			minLastQuarter = size
 		}
 	}
-	
+
 	// Memory should be stable in the last quarter of iterations
 	if maxLastQuarter-minLastQuarter > engine.config.MaxHistorySize/4 {
-		t.Errorf("Memory usage not stable: range %d-%d in last quarter", 
+		t.Errorf("Memory usage not stable: range %d-%d in last quarter",
 			minLastQuarter, maxLastQuarter)
 	}
-	
+
 	// Final history should be within reasonable bounds
 	finalSize := len(engine.state.MetricsHistory)
 	if finalSize > engine.config.MaxHistorySize {
 		t.Errorf("Final history size %d exceeds limit %d", finalSize, engine.config.MaxHistorySize)
 	}
-	
-	t.Logf("Long-running test completed: %d iterations, final history size: %d/%d", 
+
+	t.Logf("Long-running test completed: %d iterations, final history size: %d/%d",
 		iterations, finalSize, engine.config.MaxHistorySize)
 }
 
@@ -827,79 +827,79 @@ func TestRuleEngine_ThreadSafety(t *testing.T) {
 
 	const numGoroutines = 10
 	const operationsPerGoroutine = 100
-	
+
 	var wg sync.WaitGroup
 	var decisionsCount sync.Map
-	
+
 	// Concurrent metric insertion
 	for i := 0; i < numGoroutines; i++ {
 		wg.Add(1)
 		go func(workerID int) {
 			defer wg.Done()
-			
+
 			now := time.Now()
 			decisions := 0
-			
+
 			for j := 0; j < operationsPerGoroutine; j++ {
 				data := KPMData{
 					Timestamp:       now.Add(time.Duration(workerID*operationsPerGoroutine+j) * time.Millisecond),
 					NodeID:          fmt.Sprintf("node%d", workerID),
 					PRBUtilization:  0.3 + float64(j%60)/100.0, // Varies to trigger decisions
-					P95Latency:      40 + float64(j%120),        // Varies to trigger decisions
+					P95Latency:      40 + float64(j%120),       // Varies to trigger decisions
 					CurrentReplicas: 2,
 				}
-				
+
 				decision := engine.Evaluate(data)
 				if decision != nil {
 					decisions++
 				}
-				
+
 				// Small delay to allow other goroutines to interleave
 				if j%10 == 0 {
 					runtime.Gosched()
 				}
 			}
-			
+
 			decisionsCount.Store(workerID, decisions)
 		}(i)
 	}
-	
+
 	wg.Wait()
-	
+
 	// Verify engine state integrity
 	engine.mu.RLock()
 	historySize := len(engine.state.MetricsHistory)
 	decisionHistorySize := len(engine.state.DecisionHistory)
 	currentReplicas := engine.state.CurrentReplicas
 	engine.mu.RUnlock()
-	
+
 	// Validate results
 	if historySize > engine.config.MaxHistorySize {
 		t.Errorf("History size %d exceeds maximum %d", historySize, engine.config.MaxHistorySize)
 	}
-	
+
 	if historySize == 0 {
 		t.Error("History should not be empty after concurrent operations")
 	}
-	
+
 	if currentReplicas < engine.config.MinReplicas || currentReplicas > engine.config.MaxReplicas {
-		t.Errorf("Current replicas %d outside valid range [%d, %d]", 
+		t.Errorf("Current replicas %d outside valid range [%d, %d]",
 			currentReplicas, engine.config.MinReplicas, engine.config.MaxReplicas)
 	}
-	
+
 	// Count total decisions made
 	totalDecisions := 0
 	decisionsCount.Range(func(key, value interface{}) bool {
 		totalDecisions += value.(int)
 		return true
 	})
-	
+
 	if totalDecisions != decisionHistorySize {
-		t.Errorf("Decision count mismatch: counted %d, history has %d", 
+		t.Errorf("Decision count mismatch: counted %d, history has %d",
 			totalDecisions, decisionHistorySize)
 	}
-	
-	t.Logf("Thread safety test completed: %d goroutines, %d total operations, %d decisions, final history size: %d", 
+
+	t.Logf("Thread safety test completed: %d goroutines, %d total operations, %d decisions, final history size: %d",
 		numGoroutines, numGoroutines*operationsPerGoroutine, totalDecisions, historySize)
 }
 
@@ -909,7 +909,7 @@ func TestRuleEngine_EdgeCases(t *testing.T) {
 		engine := NewRuleEngine(Config{
 			MaxHistorySize: 0, // Should default to 300
 		})
-		
+
 		if engine.config.MaxHistorySize != 300 {
 			t.Errorf("Expected default MaxHistorySize 300, got %d", engine.config.MaxHistorySize)
 		}
@@ -919,7 +919,7 @@ func TestRuleEngine_EdgeCases(t *testing.T) {
 		engine := NewRuleEngine(Config{
 			MaxHistorySize: -100, // Should default to 300
 		})
-		
+
 		if engine.config.MaxHistorySize != 300 {
 			t.Errorf("Expected default MaxHistorySize 300, got %d", engine.config.MaxHistorySize)
 		}
@@ -929,7 +929,7 @@ func TestRuleEngine_EdgeCases(t *testing.T) {
 		engine := NewRuleEngine(Config{
 			PruneInterval: 0, // Should default to 30s
 		})
-		
+
 		if engine.config.PruneInterval != 30*time.Second {
 			t.Errorf("Expected default PruneInterval 30s, got %v", engine.config.PruneInterval)
 		}
@@ -946,16 +946,16 @@ func TestRuleEngine_EdgeCases(t *testing.T) {
 			PRBThresholdLow:      0.3,
 			EvaluationWindow:     30 * time.Second,
 		})
-		
+
 		// Clear history
 		engine.state.MetricsHistory = nil
-		
+
 		// Should not panic
 		metrics := engine.calculateAverageMetrics()
 		if metrics.DataPoints != 0 {
 			t.Error("Expected 0 data points for empty history")
 		}
-		
+
 		// Pruning empty history should not panic
 		engine.pruneHistoryInPlace()
 	})
@@ -965,9 +965,9 @@ func TestRuleEngine_EdgeCases(t *testing.T) {
 			MaxHistorySize: 1, // Very small limit
 			PruneInterval:  1 * time.Millisecond,
 		})
-		
+
 		now := time.Now()
-		
+
 		// Add multiple metrics - only last should remain
 		for i := 0; i < 5; i++ {
 			data := KPMData{
@@ -979,11 +979,11 @@ func TestRuleEngine_EdgeCases(t *testing.T) {
 			}
 			engine.Evaluate(data)
 		}
-		
+
 		if len(engine.state.MetricsHistory) != 1 {
 			t.Errorf("Expected exactly 1 metric in history, got %d", len(engine.state.MetricsHistory))
 		}
-		
+
 		// Last metric should be preserved
 		lastMetric := engine.state.MetricsHistory[0]
 		expectedTime := now.Add(4 * time.Second)
@@ -997,7 +997,7 @@ func TestRuleEngine_EdgeCases(t *testing.T) {
 			MaxHistorySize: 100,
 			PruneInterval:  1 * time.Millisecond,
 		})
-		
+
 		// Add metric with very old timestamp
 		veryOld := time.Unix(0, 0) // Unix epoch
 		oldData := KPMData{
@@ -1008,7 +1008,7 @@ func TestRuleEngine_EdgeCases(t *testing.T) {
 			CurrentReplicas: 2,
 		}
 		engine.Evaluate(oldData)
-		
+
 		// Add recent metric
 		recent := time.Now()
 		recentData := KPMData{
@@ -1019,11 +1019,11 @@ func TestRuleEngine_EdgeCases(t *testing.T) {
 			CurrentReplicas: 2,
 		}
 		engine.Evaluate(recentData)
-		
+
 		// Force pruning
 		time.Sleep(2 * time.Millisecond)
 		engine.Evaluate(recentData)
-		
+
 		// Old metric should be pruned
 		for _, metric := range engine.state.MetricsHistory {
 			if metric.Timestamp.Equal(veryOld) {
@@ -1043,7 +1043,7 @@ func TestRuleEngine_EdgeCases(t *testing.T) {
 			PRBThresholdLow:      0.3,
 			EvaluationWindow:     30 * time.Second,
 		})
-		
+
 		// Test with zero current replicas (should not update)
 		data := KPMData{
 			Timestamp:       time.Now(),
@@ -1052,18 +1052,18 @@ func TestRuleEngine_EdgeCases(t *testing.T) {
 			P95Latency:      75,
 			CurrentReplicas: 0, // Invalid
 		}
-		
+
 		originalReplicas := engine.state.CurrentReplicas
 		engine.Evaluate(data)
-		
+
 		if engine.state.CurrentReplicas != originalReplicas {
 			t.Error("Should not update replicas when CurrentReplicas is 0")
 		}
-		
+
 		// Test with negative current replicas (should not update)
 		data.CurrentReplicas = -5
 		engine.Evaluate(data)
-		
+
 		if engine.state.CurrentReplicas != originalReplicas {
 			t.Error("Should not update replicas when CurrentReplicas is negative")
 		}
@@ -1086,7 +1086,7 @@ func TestRuleEngine_BackwardCompatibility(t *testing.T) {
 			EvaluationWindow:     30 * time.Second,
 			// MaxHistorySize and PruneInterval intentionally omitted
 		})
-		
+
 		// Add multiple data points to meet DataPoints >= 3 requirement
 		now := time.Now()
 		highLoadData := []KPMData{
@@ -1094,12 +1094,12 @@ func TestRuleEngine_BackwardCompatibility(t *testing.T) {
 			{Timestamp: now.Add(-10 * time.Second), NodeID: "node1", PRBUtilization: 0.85, P95Latency: 140, CurrentReplicas: 2},
 			{Timestamp: now, NodeID: "node1", PRBUtilization: 0.88, P95Latency: 145, CurrentReplicas: 2},
 		}
-		
+
 		var decision *ScalingDecision
 		for _, data := range highLoadData {
 			decision = engine.Evaluate(data)
 		}
-		
+
 		// Should work without issues
 		if decision == nil {
 			t.Error("Expected scaling decision with high load")
@@ -1109,7 +1109,7 @@ func TestRuleEngine_BackwardCompatibility(t *testing.T) {
 	t.Run("StateFileCompatibility", func(t *testing.T) {
 		tmpFile := filepath.Join(os.TempDir(), "compat-test-state.json")
 		defer os.Remove(tmpFile)
-		
+
 		// Create engine and generate some state
 		engine1 := NewRuleEngine(Config{
 			StateFile:            tmpFile,
@@ -1122,7 +1122,7 @@ func TestRuleEngine_BackwardCompatibility(t *testing.T) {
 			PRBThresholdLow:      0.3,
 			EvaluationWindow:     30 * time.Second,
 		})
-		
+
 		now := time.Now()
 		for i := 0; i < 5; i++ {
 			data := KPMData{
@@ -1134,10 +1134,10 @@ func TestRuleEngine_BackwardCompatibility(t *testing.T) {
 			}
 			engine1.Evaluate(data)
 		}
-		
+
 		// Force save state
 		engine1.saveState()
-		
+
 		// Create new engine that loads the same state
 		engine2 := NewRuleEngine(Config{
 			StateFile:            tmpFile,
@@ -1150,7 +1150,7 @@ func TestRuleEngine_BackwardCompatibility(t *testing.T) {
 			PRBThresholdLow:      0.3,
 			EvaluationWindow:     30 * time.Second,
 		})
-		
+
 		// Should have loaded the state (allow for some variance due to default allocations)
 		engine1Size := len(engine1.state.MetricsHistory)
 		engine2Size := len(engine2.state.MetricsHistory)
@@ -1174,26 +1174,26 @@ func TestRuleEngine_BackwardCompatibility(t *testing.T) {
 			PRBThresholdLow:      0.3,
 			EvaluationWindow:     30 * time.Second,
 		})
-		
+
 		now := time.Now()
-		
+
 		// Test scale-out decision logic unchanged
 		highLoadData := []KPMData{
 			{Timestamp: now.Add(-20 * time.Second), NodeID: "node1", PRBUtilization: 0.85, P95Latency: 120, CurrentReplicas: 2},
 			{Timestamp: now.Add(-10 * time.Second), NodeID: "node1", PRBUtilization: 0.90, P95Latency: 130, CurrentReplicas: 2},
 			{Timestamp: now, NodeID: "node1", PRBUtilization: 0.88, P95Latency: 125, CurrentReplicas: 2},
 		}
-		
+
 		var decision *ScalingDecision
 		for _, data := range highLoadData {
 			decision = engine.Evaluate(data)
 		}
-		
+
 		if decision == nil || decision.Action != "scale-out" || decision.TargetReplicas != 3 {
 			t.Error("Scale-out logic changed unexpectedly")
 		}
-		
-		// Test scale-in decision logic unchanged  
+
+		// Test scale-in decision logic unchanged
 		// Create new engine for scale-in test to avoid cooldown issues
 		scaleInEngine := NewRuleEngine(Config{
 			CooldownDuration:     1 * time.Second,
@@ -1206,19 +1206,19 @@ func TestRuleEngine_BackwardCompatibility(t *testing.T) {
 			EvaluationWindow:     30 * time.Second,
 		})
 		scaleInEngine.state.CurrentReplicas = 5
-		
+
 		laterTime := now.Add(10 * time.Second) // Use later time to avoid cooldown
 		lowLoadData := []KPMData{
 			{Timestamp: laterTime.Add(-20 * time.Second), NodeID: "node1", PRBUtilization: 0.2, P95Latency: 30, CurrentReplicas: 5},
 			{Timestamp: laterTime.Add(-10 * time.Second), NodeID: "node1", PRBUtilization: 0.25, P95Latency: 35, CurrentReplicas: 5},
 			{Timestamp: laterTime, NodeID: "node1", PRBUtilization: 0.22, P95Latency: 32, CurrentReplicas: 5},
 		}
-		
+
 		var scaleInDecision *ScalingDecision
 		for _, data := range lowLoadData {
 			scaleInDecision = scaleInEngine.Evaluate(data)
 		}
-		
+
 		if scaleInDecision == nil || scaleInDecision.Action != "scale-in" || scaleInDecision.TargetReplicas != 4 {
 			if scaleInDecision == nil {
 				t.Error("Scale-in decision was nil")
@@ -1236,15 +1236,15 @@ func BenchmarkRuleEngine_MemoryGrowthComparison(b *testing.B) {
 			MaxHistorySize: 100,
 			PruneInterval:  1 * time.Second,
 		})
-		
+
 		now := time.Now()
-		
+
 		var m1, m2 runtime.MemStats
 		runtime.GC()
 		runtime.ReadMemStats(&m1)
-		
+
 		b.ResetTimer()
-		
+
 		for i := 0; i < b.N; i++ {
 			data := KPMData{
 				Timestamp:       now.Add(time.Duration(i) * time.Millisecond),
@@ -1255,29 +1255,29 @@ func BenchmarkRuleEngine_MemoryGrowthComparison(b *testing.B) {
 			}
 			engine.Evaluate(data)
 		}
-		
+
 		b.StopTimer()
 		runtime.GC()
 		runtime.ReadMemStats(&m2)
-		
+
 		b.ReportMetric(float64(m2.Alloc-m1.Alloc), "bytes/alloc")
 		b.ReportMetric(float64(len(engine.state.MetricsHistory)), "final_history_size")
 	})
 
 	b.Run("WithoutCapacityLimits", func(b *testing.B) {
 		engine := NewRuleEngine(Config{
-			MaxHistorySize: 999999999, // Effectively unlimited
+			MaxHistorySize: 999999999,               // Effectively unlimited
 			PruneInterval:  999999999 * time.Second, // No pruning
 		})
-		
+
 		now := time.Now()
-		
+
 		var m1, m2 runtime.MemStats
 		runtime.GC()
 		runtime.ReadMemStats(&m1)
-		
+
 		b.ResetTimer()
-		
+
 		for i := 0; i < b.N; i++ {
 			data := KPMData{
 				Timestamp:       now.Add(time.Duration(i) * time.Millisecond),
@@ -1288,11 +1288,11 @@ func BenchmarkRuleEngine_MemoryGrowthComparison(b *testing.B) {
 			}
 			engine.Evaluate(data)
 		}
-		
+
 		b.StopTimer()
 		runtime.GC()
 		runtime.ReadMemStats(&m2)
-		
+
 		b.ReportMetric(float64(m2.Alloc-m1.Alloc), "bytes/alloc")
 		b.ReportMetric(float64(len(engine.state.MetricsHistory)), "final_history_size")
 	})

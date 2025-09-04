@@ -1,0 +1,272 @@
+{
+  "conductor_loop": {
+    "version": "1.0.0",
+    "environment": "production",
+    "
+": {
+      "log_level": "info",
+      "log_format": "json",
+      "log_file": "/logs/conductor-loop.log",
+      "audit_logging": true,
+      "audit_file": "/logs/audit.log",
+      "structured_logging": true,
+      "log_rotation": {
+        "max_size": "100MB",
+        "max_files": 10,
+        "max_age": "30d",
+        "compress": true
+      }
+    },
+    
+    "file_handling": {
+      "handoff_dir": "/data/handoff",
+      "output_dir": "/data/out",
+      "status_dir": "/data/status",
+      "processed_dir": "/data/processed",
+      "failed_dir": "/data/failed",
+      "debounce_duration": "500ms",
+      "max_workers": 2,
+      "cleanup_after": "168h",
+      "file_permissions": "0644",
+      "directory_permissions": "0755"
+    },
+    
+    "porch_integration": {
+      "porch_path": "porch",
+      "mode": "direct",
+      "timeout": "30s",
+      "retry_attempts": 3,
+      "retry_delay": "5s",
+      "endpoint": "http://porch-server:7007",
+      "tls_enabled": true,
+      "verify_ssl": true,
+      "client_cert": "/config/certs/client.crt",
+      "client_key": "/config/certs/client.key",
+      "ca_cert": "/config/certs/ca.crt"
+    },
+    
+    "security": {
+      "rate_limiting": {
+        "enabled": true,
+        "requests_per_minute": 60,
+        "burst_size": 10,
+        "cleanup_interval": "1m"
+      },
+      
+      "file_validation": {
+        "max_file_size": "10MB",
+        "max_files_per_batch": 100,
+        "allowed_extensions": [".json", ".yaml", ".yml"],
+        "forbidden_paths": ["/etc", "/root", "/proc", "/sys"],
+        "scan_for_malware": true,
+        "quarantine_suspicious": true
+      },
+      
+      "input_sanitization": {
+        "enabled": true,
+        "max_input_length": 10000,
+        "blocked_patterns": [
+          "eval\\s*\\(",
+          "exec\\s*\\(",
+          "system\\s*\\(",
+          "\\$\\{.*\\}",
+          "<script",
+          "javascript:",
+          "data:text/html"
+        ],
+        "content_type_validation": true,
+        "encoding_validation": true
+      },
+      
+      "access_control": {
+        "require_authentication": true,
+        "jwt_secret_file": "/config/secrets/jwt-secret",
+        "session_timeout": "1h",
+        "max_sessions_per_user": 5,
+        "password_policy": {
+          "min_length": 12,
+          "require_uppercase": true,
+          "require_lowercase": true,
+          "require_numbers": true,
+          "require_symbols": true
+        }
+      },
+      
+      "network_security": {
+        "allowed_hosts": [
+          "porch-server",
+          "prometheus",
+          "grafana"
+        ],
+        "blocked_ips": [],
+        "use_tls": true,
+        "min_tls_version": "1.2",
+        "cipher_suites": [
+          "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+          "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+          "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305"
+        ]
+      }
+    },
+    
+    "monitoring": {
+      "metrics": {
+        "enabled": true,
+        "port": 9090,
+        "path": "/metrics",
+        "collection_interval": "15s",
+        "retention_days": 30,
+        "prometheus_format": true,
+        "custom_metrics": {
+          "file_processing_duration": true,
+          "error_rates": true,
+          "queue_depth": true,
+          "security_events": true
+        }
+      },
+      
+      "health_checks": {
+        "enabled": true,
+        "port": 8080,
+        "endpoints": {
+          "liveness": "/healthz",
+          "readiness": "/ready",
+          "startup": "/startup"
+        },
+        "check_interval": "10s",
+        "timeout": "5s",
+        "failure_threshold": 3,
+        "dependencies": [
+          {
+            "name": "porch-server",
+            "url": "http://porch-server:7007/health",
+            "timeout": "5s",
+            "critical": true
+          },
+          {
+            "name": "redis",
+            "url": "redis://redis:6379",
+            "timeout": "3s",
+            "critical": false
+          }
+        ]
+      },
+      
+      "tracing": {
+        "enabled": true,
+        "endpoint": "http://jaeger:14268/api/traces",
+        "sampling_rate": 0.1,
+        "service_name": "conductor-loop",
+        "service_version": "1.0.0",
+        "environment": "production"
+      },
+      
+      "alerting": {
+        "enabled": true,
+        "webhook_url": "https://alerts.nephoran.com/webhook",
+        "critical_alerts": [
+          "high_error_rate",
+          "service_unavailable",
+          "security_breach",
+          "disk_space_low",
+          "memory_leak"
+        ],
+        "notification_channels": [
+          {
+            "type": "slack",
+            "webhook": "https://hooks.slack.com/services/...",
+            "channel": "#production-alerts"
+          },
+          {
+            "type": "email",
+            "smtp_server": "smtp.nephoran.com",
+            "recipients": ["ops@nephoran.com", "security@nephoran.com"]
+          }
+        ]
+      }
+    },
+    
+    "performance": {
+      "resource_limits": {
+        "max_memory": "512MB",
+        "max_cpu": "1000m",
+        "max_file_descriptors": 65536,
+        "max_goroutines": 10000
+      },
+      
+      "caching": {
+        "enabled": true,
+        "redis_url": "redis://redis:6379",
+        "password_file": "/config/secrets/redis-password",
+        "ttl": "1h",
+        "max_keys": 10000,
+        "eviction_policy": "allkeys-lru"
+      },
+      
+      "optimization": {
+        "gc_target_percentage": 100,
+        "max_procs": 2,
+        "gomaxprocs_auto": true,
+        "memory_ballast": "64MB",
+        "profile_enabled": false,
+        "profile_port": 6060
+      }
+    },
+    
+    "backup_and_recovery": {
+      "backup_enabled": true,
+      "backup_interval": "1h",
+      "backup_retention": "30d",
+      "backup_location": "/backups",
+      "backup_encryption": true,
+      "backup_compression": true,
+      "recovery_testing": {
+        "enabled": true,
+        "test_interval": "24h",
+        "test_data_size": "1MB"
+      }
+    },
+    
+    "compliance": {
+      "audit_mode": "full",
+      "data_retention": {
+        "logs": "90d",
+        "metrics": "30d",
+        "traces": "7d",
+        "user_data": "365d"
+      },
+      "privacy": {
+        "pii_detection": true,
+        "data_masking": true,
+        "anonymization": true,
+        "consent_required": false
+      },
+      "regulatory": {
+        "gdpr_compliant": true,
+        "sox_compliant": true,
+        "hipaa_compliant": false,
+        "iso27001_compliant": true
+      }
+    },
+    
+    "disaster_recovery": {
+      "enabled": true,
+      "failover_mode": "automatic",
+      "backup_sites": [
+        {
+          "name": "secondary-datacenter",
+          "url": "https://backup.nephoran.com",
+          "priority": 1,
+          "health_check_interval": "30s"
+        }
+      ],
+      "rpo_target": "1h",
+      "rto_target": "15m",
+      "data_replication": {
+        "enabled": true,
+        "mode": "async",
+        "lag_threshold": "5m"
+      }
+    }
+  }
+}

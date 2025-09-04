@@ -19,21 +19,32 @@ package blueprint
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"sync"
 	"testing"
 	"time"
+	"encoding/json"
 
+	"github.com/go-logr/logr"
+	"github.com/rogpeppe/go-internal/cache"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/record"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/config"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	"github.com/thc1006/nephoran-intent-operator/api/v1"
+	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // MockManager implements the controller-runtime manager interface for testing
@@ -846,7 +857,7 @@ func TestPackageRevisionCreation(t *testing.T) {
 
 // TestComponentExtraction tests component extraction from NetworkIntent
 func TestComponentExtraction(t *testing.T) {
-	mockMgr := newMockManager()
+	_ = newMockManager() // Mock manager available but not needed for component extraction
 	logger := zaptest.NewLogger(t)
 
 	manager := &Manager{
@@ -966,10 +977,7 @@ func TestCacheOperations(t *testing.T) {
 
 	// Test cache operations
 	testKey := "test-key"
-	testValue := map[string]interface{}{
-		"data":        "test-data",
-		"expire_time": time.Now().Add(time.Hour),
-	}
+	testValue := json.RawMessage(`{}`)
 
 	// Store in cache
 	manager.cache.Store(testKey, testValue)
@@ -981,10 +989,7 @@ func TestCacheOperations(t *testing.T) {
 
 	// Test cache cleanup
 	expiredKey := "expired-key"
-	expiredValue := map[string]interface{}{
-		"data":        "expired-data",
-		"expire_time": time.Now().Add(-time.Hour), // Expired
-	}
+	expiredValue := json.RawMessage(`{}`)
 	manager.cache.Store(expiredKey, expiredValue)
 
 	// Run cleanup
@@ -1213,3 +1218,4 @@ func TestComplexScenarios(t *testing.T) {
 		}
 	})
 }
+

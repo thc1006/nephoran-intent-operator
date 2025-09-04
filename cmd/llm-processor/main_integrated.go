@@ -1,3 +1,6 @@
+//go:build integrated && !fast_build && !disable_rag
+// +build integrated,!fast_build,!disable_rag
+
 // main_integrated.go - LLM Processor with integrated authentication
 package main
 

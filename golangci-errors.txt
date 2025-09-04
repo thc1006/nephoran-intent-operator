@@ -1,0 +1,5 @@
+api\intent\v1alpha1\doc.go:1:1: expected 'package', found 'import' (typecheck)
+api\v1\audittrail_types.go:1:1: expected 'package', found 'import' (typecheck)
+api\v1\common\types.go:1:1: expected 'package', found 'import' (typecheck)
+cmd\a1-sim\main.go:1:1: expected 'package', found 'import' (typecheck)
+tools.go:1:1: expected 'package', found 'import' (typecheck)

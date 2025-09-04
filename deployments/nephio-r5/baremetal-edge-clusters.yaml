@@ -1,0 +1,495 @@
+# Baremetal Edge Clusters for Nephio R5-O-RAN L Release
+# Metal3 provider for baremetal provisioning
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: edge-cluster-far-01
+  namespace: default
+  labels:
+    cluster-type: edge
+    cluster-location: far-edge
+    nephio-version: r5
+    oran-release: l-release
+    ocloud: enabled
+  annotations:
+    nephio.org/version: r5
+    oran.org/release: l-release
+    ocloud.oran.org/profile: far-edge
+    edge.oran.org/location: cell-site-north
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks: ["10.200.0.0/16", "fd00:10:200::/56"]
+    services:
+      cidrBlocks: ["10.100.0.0/12", "fd00:10:100::/112"]
+    serviceDomain: cluster.local
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    kind: KubeadmControlPlane
+    name: edge-cluster-far-01-control-plane
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    kind: Metal3Cluster
+    name: edge-cluster-far-01
+
+---
+# Metal3 Cluster Configuration for Far Edge
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: Metal3Cluster
+metadata:
+  name: edge-cluster-far-01
+  namespace: default
+  labels:
+    edge-type: far-edge
+spec:
+  controlPlaneEndpoint:
+    host: 192.168.100.10
+    port: 6443
+  noCloudProvider: false
+  provisioningInterface: "eth1"
+  provisioningIP: "172.22.0.1/24"
+  provisioningNetworkCIDR: "172.22.0.0/24"
+  provisioningDHCPRange: "172.22.0.10,172.22.0.100"
+
+---
+# Control Plane for Far Edge with 5G optimizations
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: KubeadmControlPlane
+metadata:
+  name: edge-cluster-far-01-control-plane
+  namespace: default
+spec:
+  version: v1.29.0
+  replicas: 3
+  machineTemplate:
+    infrastructureRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: Metal3MachineTemplate
+      name: edge-cluster-far-01-control-plane
+  kubeadmConfigSpec:
+    clusterConfiguration:
+      controllerManager:
+        extraArgs:
+          enable-hostpath-provisioner: "true"
+          feature-gates: "TopologyAwareHints=true,ProxyTerminatingEndpoints=true"
+      apiServer:
+        extraArgs:
+          enable-admission-plugins: "NodeRestriction,PodSecurityPolicy,ResourceQuota,LimitRanger"
+          feature-gates: "TopologyAwareHints=true,ProxyTerminatingEndpoints=true"
+          audit-log-path: "/var/log/kubernetes/audit.log"
+          audit-policy-file: "/etc/kubernetes/audit-policy.yaml"
+      scheduler:
+        extraArgs:
+          feature-gates: "TopologyAwareHints=true"
+    initConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          node-labels: "nephio.org/role=edge-control-plane,nephio.org/version=r5,ocloud=enabled,edge.oran.org/location=far-edge"
+          feature-gates: "TopologyAwareHints=true,GracefulNodeShutdown=true"
+          system-reserved: "cpu=200m,memory=512Mi,ephemeral-storage=1Gi"
+          kube-reserved: "cpu=200m,memory=512Mi,ephemeral-storage=1Gi"
+    joinConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          node-labels: "nephio.org/role=edge-control-plane,nephio.org/version=r5,ocloud=enabled,edge.oran.org/location=far-edge"
+          feature-gates: "TopologyAwareHints=true,GracefulNodeShutdown=true"
+    files:
+    - path: /etc/kubernetes/audit-policy.yaml
+      content: |
+        apiVersion: audit.k8s.io/v1
+        kind: Policy
+        rules:
+        - level: Metadata
+          resources:
+          - group: ""
+            resources: ["secrets", "configmaps"]
+        - level: RequestResponse
+          resources:
+          - group: "nephio.org"
+            resources: ["*"]
+          - group: "workload.nephio.org"
+            resources: ["*"]
+          - group: "ran.nephio.org"
+            resources: ["*"]
+
+---
+# Control Plane Machine Template for Far Edge
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: Metal3MachineTemplate
+metadata:
+  name: edge-cluster-far-01-control-plane
+  namespace: default
+spec:
+  template:
+    spec:
+      image:
+        url: http://image-server/ubuntu-22.04-k8s-v1.29.0.img
+        checksum: sha256:abc123def456789
+        checksumType: sha256
+        format: raw
+      hostSelector:
+        matchLabels:
+          role: control-plane
+          location: far-edge
+      userData:
+        name: edge-far-01-controlplane-userdata
+        namespace: default
+
+---
+# Worker Node Deployment for Far Edge
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineDeployment
+metadata:
+  name: edge-cluster-far-01-workers
+  namespace: default
+  labels:
+    cluster.x-k8s.io/cluster-name: edge-cluster-far-01
+spec:
+  clusterName: edge-cluster-far-01
+  replicas: 3
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: edge-cluster-far-01
+      pool: far-edge-workers
+  template:
+    metadata:
+      labels:
+        cluster.x-k8s.io/cluster-name: edge-cluster-far-01
+        pool: far-edge-workers
+        edge.oran.org/workload-type: "du"
+    spec:
+      version: v1.29.0
+      clusterName: edge-cluster-far-01
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfigTemplate
+          name: edge-cluster-far-01-workers
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: Metal3MachineTemplate
+        name: edge-cluster-far-01-workers
+
+---
+# Worker Node Bootstrap with DU-specific configuration
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: edge-cluster-far-01-workers
+  namespace: default
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "nephio.org/role=edge-worker,nephio.org/version=r5,edge.oran.org/function=du,ocloud=enabled"
+            feature-gates: "TopologyAwareHints=true,GracefulNodeShutdown=true,CPUManagerPolicyAlphaOptions=true"
+            cpu-manager-policy: "static"
+            cpu-manager-policy-options: "distribute-cpus-across-numa=true,align-by-socket=true"
+            topology-manager-policy: "single-numa-node"
+            system-reserved: "cpu=500m,memory=1Gi,ephemeral-storage=1Gi"
+            kube-reserved: "cpu=500m,memory=1Gi,ephemeral-storage=1Gi"
+      files:
+      - path: /etc/kubernetes/kubelet-config.yaml
+        content: |
+          apiVersion: kubelet.config.k8s.io/v1beta1
+          kind: KubeletConfiguration
+          featureGates:
+            CPUManager: true
+            TopologyManager: true
+            DevicePlugins: true
+          cpuManagerPolicy: "static"
+          topologyManagerPolicy: "single-numa-node"
+          reservedSystemCPUs: "0,1"
+      - path: /etc/systemd/system/setup-hugepages.service
+        content: |
+          [Unit]
+          Description=Setup hugepages for 5G workloads
+          Before=kubelet.service
+          
+          [Service]
+          Type=oneshot
+          ExecStart=/bin/bash -c 'echo 1024 > /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages'
+          ExecStart=/bin/bash -c 'echo 8 > /sys/devices/system/node/node0/hugepages/hugepages-1048576kB/nr_hugepages'
+          RemainAfterExit=yes
+          
+          [Install]
+          WantedBy=multi-user.target
+      - path: /etc/modules-load.d/vfio.conf
+        content: |
+          vfio
+          vfio-pci
+          vfio_iommu_type1
+
+---
+# Worker Machine Template for Far Edge with Hardware Specifications
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: Metal3MachineTemplate
+metadata:
+  name: edge-cluster-far-01-workers
+  namespace: default
+spec:
+  template:
+    spec:
+      image:
+        url: http://image-server/ubuntu-22.04-k8s-v1.29.0-rt.img
+        checksum: sha256:def789abc123456
+        checksumType: sha256
+        format: raw
+      hostSelector:
+        matchLabels:
+          role: worker
+          location: far-edge
+          hardware-profile: "du-optimized"
+      userData:
+        name: edge-far-01-worker-userdata
+        namespace: default
+
+---
+# Baremetal Host Definitions for Far Edge
+apiVersion: metal3.io/v1alpha1
+kind: BareMetalHost
+metadata:
+  name: edge-far-01-control-01
+  namespace: metal3-system
+  labels:
+    role: control-plane
+    location: far-edge
+spec:
+  online: true
+  bootMACAddress: "00:1A:2B:3C:4D:01"
+  bmc:
+    address: redfish+https://192.168.1.10/redfish/v1/Systems/1
+    credentialsName: edge-far-01-control-01-bmc-secret
+  rootDeviceHints:
+    deviceName: "/dev/nvme0n1"
+  firmware:
+    simultaneousMultithreadingEnabled: false
+    sriovEnabled: true
+    virtualizationEnabled: true
+  userData:
+    name: edge-far-01-controlplane-userdata
+    namespace: default
+
+---
+apiVersion: metal3.io/v1alpha1
+kind: BareMetalHost
+metadata:
+  name: edge-far-01-worker-01
+  namespace: metal3-system
+  labels:
+    role: worker
+    location: far-edge
+    hardware-profile: "du-optimized"
+spec:
+  online: true
+  bootMACAddress: "00:1A:2B:3C:4D:10"
+  bmc:
+    address: redfish+https://192.168.1.20/redfish/v1/Systems/1
+    credentialsName: edge-far-01-worker-01-bmc-secret
+  rootDeviceHints:
+    deviceName: "/dev/nvme0n1"
+  firmware:
+    simultaneousMultithreadingEnabled: false
+    sriovEnabled: true
+    virtualizationEnabled: true
+  hardwareProfile: "du-optimized"
+  userData:
+    name: edge-far-01-worker-userdata
+    namespace: default
+
+---
+# Near Edge Cluster Configuration
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: edge-cluster-near-01
+  namespace: default
+  labels:
+    cluster-type: edge
+    cluster-location: near-edge
+    nephio-version: r5
+    oran-release: l-release
+    ocloud: enabled
+  annotations:
+    nephio.org/version: r5
+    oran.org/release: l-release
+    ocloud.oran.org/profile: near-edge
+    edge.oran.org/location: regional-dc
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks: ["10.201.0.0/16", "fd00:10:201::/56"]
+    services:
+      cidrBlocks: ["10.101.0.0/12", "fd00:10:101::/112"]
+    serviceDomain: cluster.local
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    kind: KubeadmControlPlane
+    name: edge-cluster-near-01-control-plane
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    kind: AWSCluster
+    name: edge-cluster-near-01
+
+---
+# AWS Cluster for Near Edge (Regional Deployment)
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSCluster
+metadata:
+  name: edge-cluster-near-01
+  namespace: default
+spec:
+  region: us-west-2
+  sshKeyName: nephio-r5-key
+  network:
+    vpc:
+      cidrBlock: "10.0.0.0/16"
+      enableDnsHostnames: true
+      enableDnsSupport: true
+    subnets:
+    - availabilityZone: us-west-2a
+      cidrBlock: "10.0.1.0/24"
+      isPublic: true
+    - availabilityZone: us-west-2b
+      cidrBlock: "10.0.2.0/24"
+      isPublic: true
+    - availabilityZone: us-west-2c
+      cidrBlock: "10.0.3.0/24"
+      isPublic: true
+
+---
+# Near Edge Control Plane with CU-specific optimizations
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: KubeadmControlPlane
+metadata:
+  name: edge-cluster-near-01-control-plane
+  namespace: default
+spec:
+  version: v1.29.0
+  replicas: 3
+  machineTemplate:
+    infrastructureRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: AWSMachineTemplate
+      name: edge-cluster-near-01-control-plane
+  kubeadmConfigSpec:
+    clusterConfiguration:
+      controllerManager:
+        extraArgs:
+          enable-hostpath-provisioner: "true"
+          feature-gates: "TopologyAwareHints=true,HPAContainerMetrics=true"
+      apiServer:
+        extraArgs:
+          enable-admission-plugins: "NodeRestriction,PodSecurityPolicy,ResourceQuota,LimitRanger,NamespaceLifecycle"
+          feature-gates: "TopologyAwareHints=true,HPAContainerMetrics=true"
+      scheduler:
+        extraArgs:
+          feature-gates: "TopologyAwareHints=true"
+    initConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          node-labels: "nephio.org/role=near-edge-control-plane,nephio.org/version=r5,edge.oran.org/function=cu,ocloud=enabled"
+          cloud-provider: "aws"
+    joinConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          node-labels: "nephio.org/role=near-edge-control-plane,nephio.org/version=r5,edge.oran.org/function=cu,ocloud=enabled"
+          cloud-provider: "aws"
+
+---
+# Control Plane Machine Template for Near Edge
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSMachineTemplate
+metadata:
+  name: edge-cluster-near-01-control-plane
+  namespace: default
+spec:
+  template:
+    spec:
+      instanceType: c5n.2xlarge
+      ami:
+        id: ami-12345678  # Ubuntu 22.04 with Kubernetes 1.29
+      iamInstanceProfile: control-plane.cluster-api-provider-aws.sigs.k8s.io
+      sshKeyName: nephio-r5-key
+      rootVolume:
+        size: 100
+        type: gp3
+        encrypted: true
+
+---
+# Worker Nodes for Near Edge with CU workloads
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineDeployment
+metadata:
+  name: edge-cluster-near-01-workers
+  namespace: default
+  labels:
+    cluster.x-k8s.io/cluster-name: edge-cluster-near-01
+spec:
+  clusterName: edge-cluster-near-01
+  replicas: 5
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: edge-cluster-near-01
+      pool: near-edge-workers
+  template:
+    metadata:
+      labels:
+        cluster.x-k8s.io/cluster-name: edge-cluster-near-01
+        pool: near-edge-workers
+        edge.oran.org/workload-type: "cu"
+    spec:
+      version: v1.29.0
+      clusterName: edge-cluster-near-01
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfigTemplate
+          name: edge-cluster-near-01-workers
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: AWSMachineTemplate
+        name: edge-cluster-near-01-workers
+
+---
+# Worker Machine Template for Near Edge
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSMachineTemplate
+metadata:
+  name: edge-cluster-near-01-workers
+  namespace: default
+spec:
+  template:
+    spec:
+      instanceType: c5n.4xlarge
+      ami:
+        id: ami-87654321  # Ubuntu 22.04 with Kubernetes 1.29 and CU optimizations
+      iamInstanceProfile: nodes.cluster-api-provider-aws.sigs.k8s.io
+      sshKeyName: nephio-r5-key
+      rootVolume:
+        size: 200
+        type: gp3
+        encrypted: true
+      additionalSecurityGroups:
+      - id: sg-cu-workloads
+
+---
+# Worker Bootstrap Configuration for Near Edge
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: edge-cluster-near-01-workers
+  namespace: default
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "nephio.org/role=near-edge-worker,nephio.org/version=r5,edge.oran.org/function=cu,ocloud=enabled"
+            cloud-provider: "aws"
+            system-reserved: "cpu=300m,memory=512Mi,ephemeral-storage=1Gi"
+            kube-reserved: "cpu=300m,memory=512Mi,ephemeral-storage=1Gi"

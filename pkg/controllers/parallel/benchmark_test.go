@@ -18,19 +18,19 @@ package parallel
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"runtime"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/go-logr/logr"
 	"github.com/go-logr/zapr"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/thc1006/nephoran-intent-operator/api/v1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/resilience"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	resilience "github.com/thc1006/nephoran-intent-operator/pkg/controllers/resilience"
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 )
 
@@ -44,7 +44,7 @@ const (
 // setupBenchmarkEngine creates a high-performance engine for benchmarking
 func setupBenchmarkEngine() (*ParallelProcessingEngine, func(), error) {
 	zapLogger, _ := zap.NewDevelopment()
-	logger := zapr.New(zapLogger)
+	logger := zapr.NewLogger(zapLogger)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -137,9 +137,9 @@ func BenchmarkSingleIntentProcessing(b *testing.B) {
 
 	// Warmup
 	for i := 0; i < warmupIntents; i++ {
-		intent := &v1alpha1.NetworkIntent{
+		intent := &nephoranv1.NetworkIntent{
 			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("warmup-%d", i), Namespace: "benchmark"},
-			Spec: v1alpha1.NetworkIntentSpec{
+			Spec: nephoranv1.NetworkIntentSpec{
 				IntentType: "simple_deployment",
 				Intent:     "Deploy simple network service",
 				Priority:   "medium",
@@ -153,12 +153,12 @@ func BenchmarkSingleIntentProcessing(b *testing.B) {
 
 	// Benchmark single intent processing
 	for i := 0; i < b.N; i++ {
-		intent := &v1alpha1.NetworkIntent{
+		intent := &nephoranv1.NetworkIntent{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      fmt.Sprintf("bench-intent-%d", i),
 				Namespace: "benchmark",
 			},
-			Spec: v1alpha1.NetworkIntentSpec{
+			Spec: nephoranv1.NetworkIntentSpec{
 				IntentType: "benchmark_deployment",
 				Intent:     fmt.Sprintf("Benchmark intent %d", i),
 				Priority:   "medium",
@@ -207,12 +207,12 @@ func BenchmarkConcurrentIntentProcessing(b *testing.B) {
 					go func(intentNum int) {
 						defer wg.Done()
 
-						intent := &v1alpha1.NetworkIntent{
+						intent := &nephoranv1.NetworkIntent{
 							ObjectMeta: metav1.ObjectMeta{
 								Name:      fmt.Sprintf("concurrent-%d-%d", i, intentNum),
 								Namespace: "benchmark",
 							},
-							Spec: v1alpha1.NetworkIntentSpec{
+							Spec: nephoranv1.NetworkIntentSpec{
 								IntentType: "concurrent_test",
 								Intent:     fmt.Sprintf("Concurrent intent %d-%d", i, intentNum),
 								Priority:   "medium",
@@ -250,7 +250,7 @@ func BenchmarkTaskSubmission(b *testing.B) {
 			Type:      TaskTypeLLMProcessing,
 			Priority:  1,
 			Status:    TaskStatusPending,
-			InputData: map[string]interface{}{"intent": "benchmark task"},
+			InputData: json.RawMessage(`{"intent":"benchmark task"}`),
 			Timeout:   10 * time.Second,
 		}
 
@@ -288,12 +288,12 @@ func BenchmarkMemoryAllocation(b *testing.B) {
 
 	// Benchmark with memory allocation tracking
 	for i := 0; i < b.N; i++ {
-		intent := &v1alpha1.NetworkIntent{
+		intent := &nephoranv1.NetworkIntent{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      fmt.Sprintf("memory-bench-%d", i),
 				Namespace: "benchmark",
 			},
-			Spec: v1alpha1.NetworkIntentSpec{
+			Spec: nephoranv1.NetworkIntentSpec{
 				IntentType: "memory_test",
 				Intent:     fmt.Sprintf("Memory allocation test intent %d", i),
 				Priority:   "medium",
@@ -351,12 +351,12 @@ func BenchmarkThroughput(b *testing.B) {
 		go func(num int64) {
 			defer wg.Done()
 
-			intent := &v1alpha1.NetworkIntent{
+			intent := &nephoranv1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      fmt.Sprintf("throughput-%d", num),
 					Namespace: "benchmark",
 				},
-				Spec: v1alpha1.NetworkIntentSpec{
+				Spec: nephoranv1.NetworkIntentSpec{
 					IntentType: "throughput_test",
 					Intent:     fmt.Sprintf("Throughput test intent %d", num),
 					Priority:   "medium",
@@ -409,7 +409,7 @@ func BenchmarkWorkerPoolScaling(b *testing.B) {
 		b.Run(config.name, func(b *testing.B) {
 			// Create engine with specific pool configuration
 			zapLogger, _ := zap.NewDevelopment()
-			logger := zapr.New(zapLogger)
+			logger := zapr.NewLogger(zapLogger)
 
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
@@ -465,12 +465,12 @@ func BenchmarkWorkerPoolScaling(b *testing.B) {
 				go func(intentNum int) {
 					defer wg.Done()
 
-					intent := &v1alpha1.NetworkIntent{
+					intent := &nephoranv1.NetworkIntent{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      fmt.Sprintf("scaling-%s-%d", config.name, intentNum),
 							Namespace: "benchmark",
 						},
-						Spec: v1alpha1.NetworkIntentSpec{
+						Spec: nephoranv1.NetworkIntentSpec{
 							IntentType: "scaling_test",
 							Intent:     fmt.Sprintf("Pool scaling test %d", intentNum),
 							Priority:   "medium",
@@ -516,12 +516,12 @@ func BenchmarkLatencyDistribution(b *testing.B) {
 		go func(intentNum int) {
 			defer wg.Done()
 
-			intent := &v1alpha1.NetworkIntent{
+			intent := &nephoranv1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      fmt.Sprintf("latency-%d", intentNum),
 					Namespace: "benchmark",
 				},
-				Spec: v1alpha1.NetworkIntentSpec{
+				Spec: nephoranv1.NetworkIntentSpec{
 					IntentType: "latency_test",
 					Intent:     fmt.Sprintf("Latency measurement intent %d", intentNum),
 					Priority:   "medium",

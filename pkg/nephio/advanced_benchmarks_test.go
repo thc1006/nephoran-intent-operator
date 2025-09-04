@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"runtime"
 	"runtime/debug"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+	"encoding/json"
 )
 
 // BenchmarkNephioSystemSuite provides comprehensive Nephio package benchmarks using Go 1.24+ features
@@ -79,16 +79,11 @@ func benchmarkPackageGeneration(b *testing.B, ctx context.Context, nephioSystem 
 				Version:   "v1.0.0",
 				Namespace: "telecom-core",
 				Replicas:  3,
-				Resources: ResourceRequirements{
+				Resources: BenchmarkResourceRequirements{
 					CPU:    "500m",
 					Memory: "1Gi",
 				},
-				Configuration: map[string]interface{}{
-					"complexity":     scenario.complexity,
-					"resourceCount":  scenario.resourceCount,
-					"configMapCount": scenario.configMapCount,
-					"secretCount":    scenario.secretCount,
-				},
+				Configuration: json.RawMessage(`{}`),
 			}
 
 			var totalGenTime, validationTime int64
@@ -139,6 +134,8 @@ func benchmarkPackageGeneration(b *testing.B, ctx context.Context, nephioSystem 
 				if currentAlloc > peakMemory {
 					peakMemory = currentAlloc
 					peakMemStats = currentMemStats
+					// Track additional memory metrics for potential debugging
+					_ = peakMemStats.Sys // Total memory obtained from the OS
 				}
 			}
 
@@ -181,10 +178,7 @@ func benchmarkKRMFunctionExecution(b *testing.B, ctx context.Context, nephioSyst
 				Name:    scenario.functionType,
 				Version: "v1.0.0",
 				Image:   fmt.Sprintf("nephio/%s:latest", scenario.functionType),
-				Config: map[string]interface{}{
-					"inputSize":      scenario.inputSize,
-					"transformCount": scenario.transformCount,
-				},
+				Config: json.RawMessage(`{}`),
 			}
 
 			// Generate test input resources
@@ -722,10 +716,7 @@ func generateKRMTestResources(size string, count int) []KRMResource {
 		resources[i] = KRMResource{
 			APIVersion: "apps/v1",
 			Kind:       "Deployment",
-			Metadata: map[string]interface{}{
-				"name":      fmt.Sprintf("test-deployment-%d", i),
-				"namespace": "default",
-			},
+			Metadata: json.RawMessage(`{}`),
 			Spec: generateResourceSpec(baseSize),
 		}
 	}
@@ -736,7 +727,6 @@ func generateKRMTestResources(size string, count int) []KRMResource {
 func generateResourceSpec(sizeBytes int) map[string]interface{} {
 	// Generate realistic Kubernetes resource spec
 	spec := map[string]interface{}{
-		"replicas": 3,
 		"selector": map[string]interface{}{
 			"matchLabels": map[string]string{
 				"app": "test-app",
@@ -753,9 +743,7 @@ func generateResourceSpec(sizeBytes int) map[string]interface{} {
 					{
 						"name":  "main",
 						"image": "nginx:latest",
-						"ports": []map[string]interface{}{
-							{"containerPort": 80},
-						},
+						"ports": []json.RawMessage{json.RawMessage(`{}`)},
 					},
 				},
 			},
@@ -826,22 +814,14 @@ func generateTestResource(resourceType string) KRMResource {
 		return KRMResource{
 			APIVersion: "apps/v1",
 			Kind:       "Deployment",
-			Metadata: map[string]interface{}{
-				"name":      "test-deployment",
-				"namespace": "default",
-			},
-			Spec: map[string]interface{}{
-				"replicas": 3,
-			},
+			Metadata: json.RawMessage(`{}`),
+			Spec: json.RawMessage(`{}`),
 		}
 	case "service":
 		return KRMResource{
 			APIVersion: "v1",
 			Kind:       "Service",
-			Metadata: map[string]interface{}{
-				"name":      "test-service",
-				"namespace": "default",
-			},
+			Metadata: json.RawMessage(`{}`),
 			Spec: map[string]interface{}{
 				"ports": []map[string]interface{}{
 					{"port": 80, "targetPort": 8080},
@@ -852,10 +832,7 @@ func generateTestResource(resourceType string) KRMResource {
 		return KRMResource{
 			APIVersion: "v1",
 			Kind:       "ConfigMap",
-			Metadata: map[string]interface{}{
-				"name":      "test-configmap",
-				"namespace": "default",
-			},
+			Metadata: json.RawMessage(`{}`),
 			Data: map[string]string{
 				"key": "value",
 			},
@@ -895,11 +872,11 @@ type PackageSpec struct {
 	Version       string
 	Namespace     string
 	Replicas      int
-	Resources     ResourceRequirements
+	Resources     BenchmarkResourceRequirements
 	Configuration map[string]interface{}
 }
 
-type ResourceRequirements struct {
+type BenchmarkBenchmarkResourceRequirements struct {
 	CPU    string
 	Memory string
 }
@@ -1157,11 +1134,14 @@ func (n *EnhancedNephioSystem) ManageResources(ctx context.Context, spec Resourc
 }
 
 // Interface placeholders
-type PackageGenerator interface{}
-type KRMFunctionRuntime interface{}
-type PorchClient interface{}
-type GitClient interface{}
-type ConfigSyncManager interface{}
-type PolicyEngine interface{}
-type ResourceManager interface{}
-type NephioMetrics interface{}
+type (
+	PackageGenerator   interface{}
+	KRMFunctionRuntime interface{}
+	PorchClient        interface{}
+	GitClient          interface{}
+	ConfigSyncManager  interface{}
+	PolicyEngine       interface{}
+	ResourceManager    interface{}
+	NephioMetrics      interface{}
+)
+

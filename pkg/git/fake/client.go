@@ -6,93 +6,124 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 )
 
-// Client is a fake implementation of git.ClientInterface for testing
+// Client implements a fake git.ClientInterface for testing
 type Client struct {
-	// ShouldFailCommitAndPush controls whether CommitAndPush should fail
+	// Track method calls for test verification
+	CommitAndPushCalls        int
+	CommitAndPushChangesCalls int
+	InitRepoCalls             int
+	RemoveDirectoryCalls      int
+
+	// Control return values
 	ShouldFailCommitAndPush bool
-	// ShouldFailInitRepo controls whether InitRepo should fail
-	ShouldFailInitRepo bool
-	// ShouldFailRemoveDirectory controls whether RemoveDirectory should fail
-	ShouldFailRemoveDirectory bool
-	// ShouldFailCommitAndPushChanges controls whether CommitAndPushChanges should fail
-	ShouldFailCommitAndPushChanges bool
-	// ShouldFailWithPushError controls whether to simulate a Git push failure
-	ShouldFailWithPushError bool
-
-	// CallHistory tracks method calls for verification in tests
-	CallHistory []string
-
-	// CommitHash is the hash that will be returned by CommitAndPush
-	CommitHash string
+	ShouldFailInit          bool
+	CommitHash              string
 }
 
-// NewClient creates a new fake Git client
+// NewClient creates a new fake git client
 func NewClient() *Client {
 	return &Client{
-		CallHistory: make([]string, 0),
-		CommitHash:  "fake-commit-hash-12345678",
+		CommitHash: "fake-commit-hash-123",
 	}
 }
 
-// Ensure Client implements the GitClientInterface
-var _ git.ClientInterface = (*Client)(nil)
-
-// InitRepo fake implementation
-func (c *Client) InitRepo() error {
-	c.CallHistory = append(c.CallHistory, "InitRepo")
-	if c.ShouldFailInitRepo {
-		return fmt.Errorf("fake InitRepo error")
-	}
-	return nil
-}
-
-// CommitAndPush fake implementation
+// CommitAndPush implements git.ClientInterface
 func (c *Client) CommitAndPush(files map[string]string, message string) (string, error) {
-	c.CallHistory = append(c.CallHistory, fmt.Sprintf("CommitAndPush(files=%d, message=%s)", len(files), message))
+	c.CommitAndPushCalls++
 	if c.ShouldFailCommitAndPush {
-		return "", fmt.Errorf("fake CommitAndPush error")
+		return "", fmt.Errorf("fake commit and push failed")
 	}
 	return c.CommitHash, nil
 }
 
-// CommitAndPushChanges fake implementation
+// CommitAndPushChanges implements git.ClientInterface
 func (c *Client) CommitAndPushChanges(message string) error {
-	c.CallHistory = append(c.CallHistory, fmt.Sprintf("CommitAndPushChanges(message=%s)", message))
-	if c.ShouldFailCommitAndPushChanges {
-		return fmt.Errorf("fake CommitAndPushChanges error")
+	c.CommitAndPushChangesCalls++
+	if c.ShouldFailCommitAndPush {
+		return fmt.Errorf("fake commit and push changes failed")
 	}
 	return nil
 }
 
-// RemoveDirectory fake implementation
+// InitRepo implements git.ClientInterface
+func (c *Client) InitRepo() error {
+	c.InitRepoCalls++
+	if c.ShouldFailInit {
+		return fmt.Errorf("fake init repo failed")
+	}
+	return nil
+}
+
+// RemoveDirectory implements git.ClientInterface
 func (c *Client) RemoveDirectory(path string, commitMessage string) error {
-	c.CallHistory = append(c.CallHistory, fmt.Sprintf("RemoveDirectory(path=%s, commitMessage=%s)", path, commitMessage))
-	if c.ShouldFailRemoveDirectory {
-		// Simulate different types of failures
-		if c.ShouldFailWithPushError {
-			return fmt.Errorf("failed to push directory removal: remote rejected push")
-		}
-		return fmt.Errorf("fake RemoveDirectory error")
+	c.RemoveDirectoryCalls++
+	return nil
+}
+
+// CommitFiles implements git.ClientInterface
+func (c *Client) CommitFiles(files []string, message string) error {
+	// Fake implementation for testing - just track the call
+	if c.ShouldFailCommitAndPush {
+		return fmt.Errorf("fake commit files failed")
 	}
 	return nil
 }
 
-// Reset clears the call history and resets failure flags
+// CreateBranch implements git.ClientInterface
+func (c *Client) CreateBranch(branchName string) error {
+	// Fake implementation for testing
+	if c.ShouldFailInit {
+		return fmt.Errorf("fake create branch failed")
+	}
+	return nil
+}
+
+// GetCurrentBranch implements git.ClientInterface
+func (c *Client) GetCurrentBranch() (string, error) {
+	// Fake implementation for testing
+	if c.ShouldFailInit {
+		return "", fmt.Errorf("fake get current branch failed")
+	}
+	return "main", nil
+}
+
+// GetFileContent implements git.ClientInterface
+func (c *Client) GetFileContent(filePath string) ([]byte, error) {
+	// Fake implementation for testing
+	if c.ShouldFailInit {
+		return nil, fmt.Errorf("fake get file content failed")
+	}
+	return []byte("fake file content"), nil
+}
+
+// ListBranches implements git.ClientInterface
+func (c *Client) ListBranches() ([]string, error) {
+	// Fake implementation for testing
+	if c.ShouldFailInit {
+		return nil, fmt.Errorf("fake list branches failed")
+	}
+	return []string{"main", "develop"}, nil
+}
+
+// SwitchBranch implements git.ClientInterface
+func (c *Client) SwitchBranch(branchName string) error {
+	// Fake implementation for testing
+	if c.ShouldFailInit {
+		return fmt.Errorf("fake switch branch failed")
+	}
+	return nil
+}
+
+// Reset resets the fake client state for test isolation
 func (c *Client) Reset() {
-	c.CallHistory = make([]string, 0)
+	c.CommitAndPushCalls = 0
+	c.CommitAndPushChangesCalls = 0
+	c.InitRepoCalls = 0
+	c.RemoveDirectoryCalls = 0
 	c.ShouldFailCommitAndPush = false
-	c.ShouldFailInitRepo = false
-	c.ShouldFailRemoveDirectory = false
-	c.ShouldFailCommitAndPushChanges = false
-	c.ShouldFailWithPushError = false
+	c.ShouldFailInit = false
+	c.CommitHash = "fake-commit-hash-123"
 }
 
-// SetCommitHash sets the commit hash returned by CommitAndPush
-func (c *Client) SetCommitHash(hash string) {
-	c.CommitHash = hash
-}
-
-// GetCallHistory returns the history of method calls
-func (c *Client) GetCallHistory() []string {
-	return c.CallHistory
-}
+// Verify that Client implements git.ClientInterface at compile time
+var _ git.ClientInterface = (*Client)(nil)

@@ -1,0 +1,56 @@
+# Dockerfile specifically optimized for planner service
+# Addresses dependency resolution issues with minimal dependencies
+
+FROM golang:1.24.1-alpine AS builder
+
+# Install minimal dependencies including tzdata
+# CRITICAL: Keep tzdata for copying to runtime stage
+RUN apk add --no-cache ca-certificates git tzdata && \
+    # Verify tzdata is properly installed
+    ls -la /usr/share/zoneinfo/UTC || (echo "tzdata installation failed" && exit 1)
+
+WORKDIR /src
+
+# Copy only what's needed for planner service
+COPY go.mod go.sum ./
+COPY planner/ planner/
+COPY internal/planner/ internal/planner/
+
+# Download only required dependencies with timeout handling
+RUN set -ex; \
+    timeout 300 go mod download || { \
+        echo "Download timed out, trying with proxy..."; \
+        GOPROXY=direct timeout 180 go mod download; \
+    }
+
+# Build planner service with simplified flags
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -v \
+    -trimpath \
+    -ldflags="-s -w -X main.version=${VERSION:-dev}" \
+    -tags="netgo" \
+    -o /planner \
+    ./planner/cmd/planner
+
+# Runtime stage - minimal distroless image
+FROM gcr.io/distroless/static-debian12:nonroot
+
+WORKDIR /
+
+# Copy the binary
+COPY --from=builder /planner /planner
+
+# Copy CA certificates and timezone data
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
+
+# Create directories for planner operation
+USER 65532:65532
+
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD ["/planner", "-h"]
+
+ENTRYPOINT ["/planner"]

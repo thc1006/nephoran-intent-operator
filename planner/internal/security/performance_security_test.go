@@ -41,7 +41,7 @@ func BenchmarkSecurity_ValidationPerformance(b *testing.B) {
 	for _, length := range urlLengths {
 		b.Run(fmt.Sprintf("URLValidation_Length%d", length), func(b *testing.B) {
 			url := "https://api.example.com/v1/metrics?param=" + strings.Repeat("a", length-50)
-			
+
 			b.ResetTimer()
 			b.ReportAllocs()
 			for i := 0; i < b.N; i++ {
@@ -55,7 +55,7 @@ func BenchmarkSecurity_ValidationPerformance(b *testing.B) {
 	for _, depth := range pathDepths {
 		b.Run(fmt.Sprintf("FilePathValidation_Depth%d", depth), func(b *testing.B) {
 			path := "/" + strings.Repeat("level/", depth) + "file.json"
-			
+
 			b.ResetTimer()
 			b.ReportAllocs()
 			for i := 0; i < b.N; i++ {
@@ -69,7 +69,7 @@ func BenchmarkSecurity_ValidationPerformance(b *testing.B) {
 	for _, length := range nodeIDLengths {
 		b.Run(fmt.Sprintf("NodeIDValidation_Length%d", length), func(b *testing.B) {
 			nodeID := "node-" + strings.Repeat("a", length-5)
-			
+
 			b.ResetTimer()
 			b.ReportAllocs()
 			for i := 0; i < b.N; i++ {
@@ -83,7 +83,7 @@ func BenchmarkSecurity_ValidationPerformance(b *testing.B) {
 	for _, size := range logSizes {
 		b.Run(fmt.Sprintf("LogSanitization_Size%d", size), func(b *testing.B) {
 			input := "log message " + strings.Repeat("a\nb\tc\rd", size/10)
-			
+
 			b.ResetTimer()
 			b.ReportAllocs()
 			for i := 0; i < b.N; i++ {
@@ -125,12 +125,12 @@ func BenchmarkSecurity_FileOperations(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			fileName := filepath.Join(tempDir, fmt.Sprintf("secure-%d.json", i))
-			
+
 			// Validate path
 			if err := validator.ValidateFilePath(fileName, "benchmark"); err != nil {
 				b.Fatalf("Path validation failed: %v", err)
 			}
-			
+
 			// Write with secure permissions
 			if err := os.WriteFile(fileName, intentData, 0600); err != nil {
 				b.Fatalf("Secure file write failed: %v", err)
@@ -144,7 +144,7 @@ func BenchmarkSecurity_FileOperations(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			fileName := filepath.Join(tempDir, fmt.Sprintf("standard-%d.json", i))
-			
+
 			// Direct write without validation
 			if err := os.WriteFile(fileName, intentData, 0644); err != nil {
 				b.Fatalf("Standard file write failed: %v", err)
@@ -158,12 +158,12 @@ func BenchmarkSecurity_FileOperations(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			fileName := filepath.Join(tempDir, fmt.Sprintf("validation-%d.json", i))
-			
+
 			// Validate path but use standard permissions
 			if err := validator.ValidateFilePath(fileName, "benchmark"); err != nil {
 				b.Fatalf("Path validation failed: %v", err)
 			}
-			
+
 			if err := os.WriteFile(fileName, intentData, 0644); err != nil {
 				b.Fatalf("Validation-only file write failed: %v", err)
 			}
@@ -202,7 +202,7 @@ func BenchmarkSecurity_KMPProcessingPipeline(b *testing.B) {
 	b.Run("CompleteKMPProcessingWithSecurity", func(b *testing.B) {
 		b.ResetTimer()
 		b.ReportAllocs()
-		
+
 		for i := 0; i < b.N; i++ {
 			// Create KMP data that will trigger scaling decision
 			kmpData := rules.KPMData{
@@ -256,10 +256,10 @@ func BenchmarkSecurity_KMPProcessingPipeline(b *testing.B) {
 	b.Run("KMPProcessingWithoutSecurity", func(b *testing.B) {
 		// Create engine without security validator
 		engineNoSecurity := rules.NewRuleEngine(config)
-		
+
 		b.ResetTimer()
 		b.ReportAllocs()
-		
+
 		for i := 0; i < b.N; i++ {
 			kmpData := rules.KPMData{
 				Timestamp:       time.Now(),
@@ -318,7 +318,7 @@ func BenchmarkSecurity_MemoryUsage(b *testing.B) {
 
 		b.ResetTimer()
 		b.ReportAllocs()
-		
+
 		for i := 0; i < b.N; i++ {
 			_ = validator.ValidateKMPData(kmpData)
 			_ = validator.ValidateURL("https://api.example.com/metrics", "memory test")
@@ -369,9 +369,9 @@ func BenchmarkSecurity_ComplexInputs(b *testing.B) {
 
 	// Test with various input complexities
 	complexities := []struct {
-		name   string
-		setup  func() interface{}
-		test   func(validator *Validator, input interface{})
+		name  string
+		setup func() interface{}
+		test  func(validator *Validator, input interface{})
 	}{
 		{
 			name: "SimpleNodeID",
@@ -433,10 +433,10 @@ func BenchmarkSecurity_ComplexInputs(b *testing.B) {
 	for _, complexity := range complexities {
 		b.Run(complexity.name, func(b *testing.B) {
 			input := complexity.setup()
-			
+
 			b.ResetTimer()
 			b.ReportAllocs()
-			
+
 			for i := 0; i < b.N; i++ {
 				complexity.test(validator, input)
 			}
@@ -485,7 +485,7 @@ func BenchmarkSecurity_RegexPerformance(b *testing.B) {
 		b.Run(test.name, func(b *testing.B) {
 			b.ResetTimer()
 			b.ReportAllocs()
-			
+
 			for i := 0; i < b.N; i++ {
 				_ = validator.validateNodeID(test.input)
 			}
@@ -503,11 +503,11 @@ func TestSecurity_PerformanceRegression(t *testing.T) {
 
 	// Define acceptable performance baselines (in nanoseconds per operation)
 	performanceBaselines := map[string]time.Duration{
-		"KMPDataValidation":  1000000,   // 1ms max per validation
-		"URLValidation":      500000,    // 500μs max per validation
-		"FilePathValidation": 300000,    // 300μs max per validation
-		"NodeIDValidation":   100000,    // 100μs max per validation
-		"LogSanitization":    50000,     // 50μs max per sanitization
+		"KMPDataValidation":  1000000, // 1ms max per validation
+		"URLValidation":      500000,  // 500μs max per validation
+		"FilePathValidation": 300000,  // 300μs max per validation
+		"NodeIDValidation":   100000,  // 100μs max per validation
+		"LogSanitization":    50000,   // 50μs max per sanitization
 	}
 
 	testCases := []struct {
@@ -581,7 +581,7 @@ func TestSecurity_PerformanceRegression(t *testing.T) {
 			avgDuration := totalDuration / iterations
 			baseline := performanceBaselines[test.baseline]
 
-			t.Logf("Performance test %s: avg duration = %v (baseline = %v)", 
+			t.Logf("Performance test %s: avg duration = %v (baseline = %v)",
 				test.name, avgDuration, baseline)
 
 			if avgDuration > baseline {
@@ -589,7 +589,7 @@ func TestSecurity_PerformanceRegression(t *testing.T) {
 					test.name, avgDuration, baseline)
 			} else {
 				margin := float64(baseline-avgDuration) / float64(baseline) * 100
-				t.Logf("✓ Performance within baseline with %.1f%% margin", margin)
+				t.Logf("??Performance within baseline with %.1f%% margin", margin)
 			}
 		})
 	}
@@ -685,7 +685,7 @@ func BenchmarkSecurity_WorstCaseScenarios(b *testing.B) {
 		b.Run(test.name, func(b *testing.B) {
 			b.ResetTimer()
 			b.ReportAllocs()
-			
+
 			for i := 0; i < b.N; i++ {
 				test.operation()
 			}
@@ -710,7 +710,7 @@ func TestSecurity_PerformanceStability(t *testing.T) {
 
 		for round := 0; round < numRounds; round++ {
 			start := time.Now()
-			
+
 			for i := 0; i < iterationsPerRound; i++ {
 				kmpData := rules.KPMData{
 					Timestamp:       time.Now(),
@@ -722,7 +722,7 @@ func TestSecurity_PerformanceStability(t *testing.T) {
 				}
 				_ = validator.ValidateKMPData(kmpData)
 			}
-			
+
 			durations[round] = time.Since(start)
 		}
 
@@ -751,7 +751,7 @@ func TestSecurity_PerformanceStability(t *testing.T) {
 		if variance > maxAcceptableVariance {
 			t.Errorf("Performance is unstable: variance %v exceeds 50%% of average %v", variance, avg)
 		} else {
-			t.Logf("✓ Performance is stable over %d rounds", numRounds)
+			t.Logf("??Performance is stable over %d rounds", numRounds)
 		}
 	})
 }

@@ -89,6 +89,88 @@ All dependencies are automatically scanned using:
 4. **Testing**: All updates must pass full test suite
 5. **Rollback Plan**: Previous versions maintained for quick rollback
 
+## Recent Security Enhancements (v0.2.0)
+
+### Critical Security Fixes
+
+The latest release includes significant security improvements addressing input validation, command injection prevention, and secure timestamp handling:
+
+#### 1. Enhanced Input Validation and Path Traversal Prevention
+
+**Module**: `internal/patchgen` and `planner/internal/security`
+
+- **Comprehensive Input Validation**: All user inputs validated against strict schemas and security rules
+- **Path Traversal Protection**: File paths sanitized using `filepath.Clean()` to prevent directory traversal attacks
+- **URL Validation**: URLs parsed and validated against allowed schemes (HTTP/HTTPS only)
+- **Node ID Security**: O-RAN node identifiers validated using regex patterns to prevent injection attacks
+
+Implementation:
+```go
+// Prevent directory traversal attacks
+cleanPath := filepath.Clean(path)
+if strings.Contains(cleanPath, "..") {
+    return ValidationError{
+        Field:   "file_path",
+        Reason:  "file path contains directory traversal sequences (..)",
+    }
+}
+```
+
+#### 2. Secure Command Execution
+
+**Module**: `internal/patchgen` and `internal/patch`
+
+- **Input Sanitization**: All command inputs validated before execution
+- **Command Injection Prevention**: Use of parameterized commands and input validation
+- **File Permission Controls**: Proper file permissions (0644 for files, 0755 for directories)
+- **Error Handling**: Comprehensive error handling preventing information disclosure
+
+#### 3. Timestamp Security and Collision Prevention
+
+**Module**: `internal/patchgen`
+
+- **RFC3339 Timestamp Format**: All timestamps use standardized RFC3339 format for consistency
+- **UTC Timezone Normalization**: All timestamps normalized to UTC preventing timezone attacks
+- **Collision-Resistant Naming**: Package names include timestamps to prevent naming collisions
+- **Timestamp Validation**: Timestamps validated to prevent replay attacks and future-dating
+
+Implementation:
+```go
+// Secure timestamp generation
+"nephoran.io/generated-at": time.Now().UTC().Format(time.RFC3339)
+```
+
+#### 4. JSON Schema Validation Enhancement
+
+**Module**: `internal/patchgen/validator.go`
+
+- **JSON Schema 2020-12 Compliance**: Uses latest JSON Schema specification
+- **Strict Validation**: All intent data validated against comprehensive schema
+- **Type Safety**: Strong typing prevents injection through type confusion
+- **Bounds Checking**: Numeric values validated within acceptable ranges
+
+#### 5. Secure Logging and Audit Trail
+
+**Module**: `planner/internal/security/validation.go`
+
+- **Log Injection Prevention**: All logged values sanitized to prevent log injection
+- **Sensitive Data Filtering**: Automatic truncation and sanitization of logged values
+- **Structured Logging**: Use of structured logging to prevent format string attacks
+
+### Migration from internal/patch to internal/patchgen
+
+The migration introduced several security enhancements:
+
+- **Enhanced Validation**: Comprehensive JSON Schema validation with OWASP compliance
+- **Secure File Handling**: Path traversal prevention, permission controls, error handling
+- **Timestamp Security**: RFC3339 format with collision prevention and validation
+
+**Migration Steps**:
+1. Update imports: `internal/patch` → `internal/patchgen`
+2. All intent data must pass JSON Schema validation
+3. Update error handling for new validation errors
+4. Update tests to account for enhanced security validation
+
 ## Security Measures
 
 ### Architecture Security
@@ -220,12 +302,44 @@ We would like to thank the following individuals for responsibly disclosing secu
 
 - [Security Hall of Fame](https://nephoran.io/security/hall-of-fame)
 
+## Security Testing and Validation
+
+### Automated Security Tests
+
+**Location**: `planner/internal/security/`
+
+#### Test Coverage:
+- Input validation boundary testing
+- Path traversal attack simulation  
+- Injection attack prevention verification
+- Timestamp manipulation testing
+- File permission verification
+
+#### Running Security Tests:
+```bash
+# Run all security tests
+go test ./planner/internal/security/... -v
+
+# Run specific security test suites
+go test ./planner/internal/security/ -run TestPathTraversalPrevention
+go test ./planner/internal/security/ -run TestInputValidation
+```
+
+### Security Metrics and Monitoring
+
+Monitor these security-related metrics:
+- `nephoran_security_validation_failures_total`: Input validation failures
+- `nephoran_security_path_traversal_attempts_total`: Path traversal attempts
+- `nephoran_security_injection_attempts_total`: Injection attack attempts
+- `nephoran_security_timestamp_violations_total`: Timestamp validation failures
+
 ## Security Resources
 
 - [Security Best Practices](docs/security/best-practices.md)
 - [Hardening Guide](docs/security/hardening.md)
 - [Threat Model](docs/security/threat-model.md)
 - [Compliance Documentation](docs/security/compliance.md)
+- [Security Audit Report](planner/internal/security/SECURITY_TESTS_SUMMARY.md)
 
 ## PGP Key
 

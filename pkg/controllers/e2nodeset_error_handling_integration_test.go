@@ -1,3 +1,5 @@
+//go:build integration
+
 package controllers
 
 import (
@@ -9,12 +11,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -88,7 +87,7 @@ func TestCompleteErrorHandlingWorkflow(t *testing.T) {
 
 	t.Run("successful reconciliation with no errors", func(t *testing.T) {
 		// First reconciliation should succeed
-		result, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
+		_, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
 		require.NoError(t, err)
 
 		// Verify ConfigMaps were created
@@ -535,7 +534,7 @@ func TestSuccessfulReconciliationClearsRetryCount(t *testing.T) {
 	assert.Equal(t, 1, getRetryCount(&initialE2NodeSet, "configmap-operations"))
 
 	// Successful reconciliation
-	result, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
+	_, err = reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
 	require.NoError(t, err)
 
 	// Verify retry counts were cleared

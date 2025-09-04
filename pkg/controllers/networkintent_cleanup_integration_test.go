@@ -1,7 +1,9 @@
+//go:build integration
+
 package controllers
 
 import (
-	"context"
+t"context"
 	"errors"
 	"fmt"
 	"time"
@@ -10,11 +12,16 @@ import (
 	. "github.com/onsi/gomega"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+		"github.com/thc1006/nephoran-intent-operator/pkg/testutils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+n// Constants used in cleanup tests
+const (
+	NetworkIntentFinalizer = "networkintent.nephoran.com/finalizer"
 )
 
 var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
@@ -31,12 +38,12 @@ var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
 
 	BeforeEach(func() {
 		By("Creating a new isolated namespace for integration tests")
-		namespaceName = CreateIsolatedNamespace("cleanup-integration")
+		namespaceName = testutils.CreateIsolatedNamespace("cleanup-integration")
 
 		By("Setting up the reconciler with enhanced mock dependencies")
 		mockDeps = NewMockDependenciesBuilder().
 			WithGitClient(NewEnhancedMockGitClient()).
-			WithLLMClient(&MockLLMClientInterface{}).
+			WithLLMClient(&testutils.MockLLMClient{}).
 			Build()
 
 		config := &Config{
@@ -57,14 +64,14 @@ var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
 
 	AfterEach(func() {
 		By("Cleaning up the test namespace")
-		CleanupIsolatedNamespace(namespaceName)
+		testutils.CleanupIsolatedNamespace(namespaceName)
 	})
 
 	Context("End-to-end deletion scenarios", func() {
 		It("Should handle complete NetworkIntent lifecycle with cleanup", func() {
 			By("Creating a NetworkIntent with processed state")
-			networkIntent := CreateTestNetworkIntent(
-				GetUniqueName("e2e-test"),
+			networkIntent := testutils.CreateTestNetworkIntent(
+				testutils.GetUniqueName("e2e-test"),
 				namespaceName,
 				"End-to-end test with complete cleanup",
 			)
@@ -136,7 +143,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
 			By("Verifying finalizer was removed")
 			Eventually(func() bool {
 				updated := &nephoranv1.NetworkIntent{}
-				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated)
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updated)
 				return client.IgnoreNotFound(err) == nil && !containsFinalizer(updated.Finalizers, NetworkIntentFinalizer)
 			}, timeout, interval).Should(BeTrue())
 
@@ -146,8 +153,8 @@ var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
 
 		It("Should handle cascading failures in cleanup chain", func() {
 			By("Creating a NetworkIntent for cascading failure test")
-			networkIntent := CreateTestNetworkIntent(
-				GetUniqueName("cascade-fail-test"),
+			networkIntent := testutils.CreateTestNetworkIntent(
+				testutils.GetUniqueName("cascade-fail-test"),
 				namespaceName,
 				"Test cascading failure handling",
 			)
@@ -180,7 +187,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
 
 			By("Verifying finalizer is still present")
 			updated := &nephoranv1.NetworkIntent{}
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated)).To(Succeed())
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updated)).To(Succeed())
 			Expect(containsFinalizer(updated.Finalizers, NetworkIntentFinalizer)).To(BeTrue())
 
 			mockGitClient.AssertExpectations(GinkgoT())
@@ -190,8 +197,8 @@ var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
 	Context("Resource cleanup integration", func() {
 		It("Should clean up all associated Kubernetes resources", func() {
 			By("Creating a NetworkIntent")
-			networkIntent := CreateTestNetworkIntent(
-				GetUniqueName("resource-cleanup-test"),
+			networkIntent := testutils.CreateTestNetworkIntent(
+				testutils.GetUniqueName("resource-cleanup-test"),
 				namespaceName,
 				"Test comprehensive resource cleanup",
 			)
@@ -257,7 +264,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
 			// By("Verifying resources are deleted")
 			// for _, resource := range resources {
 			//     Eventually(func() bool {
-			//         return k8sClient.Get(ctx, client.ObjectKeyFromObject(resource), resource) != nil
+			//         return k8sClient.Get(ctx, types.NamespacedName{Name: resource.GetName(), Namespace: resource.GetNamespace()}, resource) != nil
 			//     }, timeout, interval).Should(BeTrue())
 			// }
 		})
@@ -266,8 +273,8 @@ var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
 	Context("Error recovery scenarios", func() {
 		It("Should recover from transient Git failures", func() {
 			By("Creating a NetworkIntent for recovery test")
-			networkIntent := CreateTestNetworkIntent(
-				GetUniqueName("recovery-test"),
+			networkIntent := testutils.CreateTestNetworkIntent(
+				testutils.GetUniqueName("recovery-test"),
 				namespaceName,
 				"Test recovery from transient failures",
 			)
@@ -320,8 +327,8 @@ var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
 
 		It("Should handle mixed success/failure scenarios", func() {
 			By("Creating a NetworkIntent for mixed scenario test")
-			networkIntent := CreateTestNetworkIntent(
-				GetUniqueName("mixed-scenario-test"),
+			networkIntent := testutils.CreateTestNetworkIntent(
+				testutils.GetUniqueName("mixed-scenario-test"),
 				namespaceName,
 				"Test mixed success/failure scenarios",
 			)
@@ -364,8 +371,8 @@ var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
 			By("Creating multiple NetworkIntents for concurrent deletion")
 			var networkIntents []*nephoranv1.NetworkIntent
 			for i := 0; i < 3; i++ {
-				ni := CreateTestNetworkIntent(
-					GetUniqueName(fmt.Sprintf("concurrent-test-%d", i)),
+				ni := testutils.CreateTestNetworkIntent(
+					testutils.GetUniqueName(fmt.Sprintf("concurrent-test-%d", i)),
 					namespaceName,
 					fmt.Sprintf("Concurrent deletion test %d", i),
 				)
@@ -422,8 +429,8 @@ var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
 	Context("Performance and timeout scenarios", func() {
 		It("Should handle cleanup operations within reasonable time limits", func() {
 			By("Creating a NetworkIntent for performance test")
-			networkIntent := CreateTestNetworkIntent(
-				GetUniqueName("performance-test"),
+			networkIntent := testutils.CreateTestNetworkIntent(
+				testutils.GetUniqueName("performance-test"),
 				namespaceName,
 				"Test cleanup performance",
 			)

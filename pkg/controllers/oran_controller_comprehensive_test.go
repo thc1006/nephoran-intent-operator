@@ -4,12 +4,10 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -21,8 +19,6 @@ import (
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/testutil"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/a1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o1"
 )
 
 // fakeO1Adaptor implements O1Adaptor for testing
@@ -816,7 +812,3 @@ func TestOranAdaptorReconciler_EdgeCases(t *testing.T) {
 }
 
 // Helper functions
-
-func int32Ptr(i int32) *int32 {
-	return &i
-}

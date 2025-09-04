@@ -1,11 +1,12 @@
-package performance
+package performance_tests
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"net/http"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -15,8 +16,8 @@ import (
 	vegeta "github.com/tsenart/vegeta/v12/lib"
 )
 
-// LoadTestConfig defines load test configuration
-type LoadTestConfig struct {
+// ProductionLoadTestConfig defines load test configuration
+type ProductionLoadTestConfig struct {
 	Duration         time.Duration
 	RampUpDuration   time.Duration
 	TargetRPS        int
@@ -40,8 +41,8 @@ type TestScenario struct {
 // ResponseValidator validates response
 type ResponseValidator func(*http.Response, []byte) error
 
-// LoadTestResult contains test results
-type LoadTestResult struct {
+// ProductionLoadTestResult contains test results
+type ProductionLoadTestResult struct {
 	StartTime           time.Time                  `json:"start_time"`
 	EndTime             time.Time                  `json:"end_time"`
 	Duration            time.Duration              `json:"duration"`
@@ -57,7 +58,7 @@ type LoadTestResult struct {
 	Throughput          float64                    `json:"throughput"`
 	ErrorRate           float64                    `json:"error_rate"`
 	ScenarioResults     map[string]*ScenarioResult `json:"scenario_results"`
-	ResourceUtilization *ResourceMetrics           `json:"resource_utilization"`
+	ResourceUtilization *ProductionResourceMetrics `json:"resource_utilization"`
 	SystemPerformance   *SystemMetrics             `json:"system_performance"`
 }
 
@@ -70,8 +71,8 @@ type ScenarioResult struct {
 	ErrorsByType map[string]int64 `json:"errors_by_type"`
 }
 
-// ResourceMetrics tracks resource utilization
-type ResourceMetrics struct {
+// ProductionResourceMetrics tracks resource utilization
+type ProductionResourceMetrics struct {
 	CPUUsage         float64 `json:"cpu_usage"`
 	MemoryUsage      float64 `json:"memory_usage"`
 	DiskIOPS         float64 `json:"disk_iops"`
@@ -439,30 +440,36 @@ func generateNetworkIntentPayload() interface{} {
 		"Enable network slicing for IoT devices",
 	}
 
+	specs := []map[string]interface{}{
+		{
+			"intent":   intents[rand.Intn(len(intents))],
+			"priority": "high",
+		},
+		{
+			"intent":   intents[rand.Intn(len(intents))],
+			"priority": "medium",
+		},
+		{
+			"intent":   intents[rand.Intn(len(intents))],
+			"priority": "low",
+		},
+	}
+
 	return map[string]interface{}{
-		"apiVersion": "nephoran.com/v1",
-		"kind":       "NetworkIntent",
 		"metadata": map[string]interface{}{
 			"name":      fmt.Sprintf("intent-%d", rand.Intn(100000)),
 			"namespace": "default",
 		},
-		"spec": map[string]interface{}{
-			"description": intents[rand.Intn(len(intents))],
-			"priority":    []string{"low", "medium", "high"}[rand.Intn(3)],
-		},
+		"spec": specs[rand.Intn(len(specs))],
 	}
 }
 
 func generatePolicyPayload() interface{} {
 	return map[string]interface{}{
-		"policy_id":      fmt.Sprintf("policy-%d", rand.Intn(100000)),
-		"policy_type_id": 1001,
-		"policy_data": map[string]interface{}{
-			"max_throughput":    rand.Intn(10000) + 1000,
-			"min_throughput":    rand.Intn(1000) + 100,
-			"latency_target_ms": rand.Intn(50) + 10,
-			"reliability":       0.99 + rand.Float64()*0.009,
-		},
+		"max_throughput":    rand.Intn(10000) + 1000,
+		"min_throughput":    rand.Intn(1000) + 100,
+		"latency_target_ms": rand.Intn(50) + 10,
+		"reliability":       0.99 + rand.Float64()*0.009,
 		"target_cells": []string{
 			fmt.Sprintf("cell-%d", rand.Intn(100)),
 			fmt.Sprintf("cell-%d", rand.Intn(100)),
@@ -471,11 +478,17 @@ func generatePolicyPayload() interface{} {
 }
 
 func generateScalingPayload() interface{} {
-	return map[string]interface{}{
-		"e2nodeset_name": fmt.Sprintf("e2nodeset-%d", rand.Intn(10)),
-		"replicas":       rand.Intn(10) + 1,
-		"scaling_type":   []string{"horizontal", "vertical"}[rand.Intn(2)],
+	payloads := []map[string]interface{}{
+		{
+			"component": "amf",
+			"replicas":  rand.Intn(10) + 1,
+		},
+		{
+			"component": "smf",
+			"replicas":  rand.Intn(5) + 1,
+		},
 	}
+	return payloads[rand.Intn(len(payloads))]
 }
 
 // Validator functions
@@ -633,6 +646,6 @@ func RunProductionLoadTest() error {
 		return fmt.Errorf("throughput %.2f RPS below 900 RPS requirement", results.Throughput)
 	}
 
-	fmt.Println("\n✅ All performance requirements met!")
+	fmt.Println("\n??All performance requirements met!")
 	return nil
 }

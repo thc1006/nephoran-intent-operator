@@ -1,0 +1,280 @@
+# =============================================================================
+# Emergency Workflow Disable System
+# =============================================================================
+# Allows immediate disabling of problematic workflows during merge crises
+# =============================================================================
+
+name: Emergency Workflow Disable
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_workflow:
+        description: 'Workflow file to disable (e.g., ci-2025.yml)'
+        required: true
+        type: string
+      reason:
+        description: 'Reason for emergency disable'
+        required: true
+        type: string
+      disable_duration:
+        description: 'Disable duration (hours)'
+        required: false
+        type: number
+        default: 24
+      notification_required:
+        description: 'Notify team of disable action'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  actions: write
+  pull-requests: write
+  issues: write
+
+env:
+  DISABLE_MARKER_DIR: ".github/workflows/.disabled"
+  EMERGENCY_CONTACT: "@thc1006/nephoran-team"
+
+jobs:
+  emergency_disable:
+    name: Emergency Disable Workflow
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate target workflow
+        id: validate
+        run: |
+          TARGET_WORKFLOW="${{ inputs.target_workflow }}"
+          WORKFLOW_PATH=".github/workflows/$TARGET_WORKFLOW"
+          
+          if [ ! -f "$WORKFLOW_PATH" ]; then
+            echo "❌ Workflow file not found: $WORKFLOW_PATH"
+            echo "Available workflows:"
+            ls -la .github/workflows/*.yml
+            exit 1
+          fi
+          
+          echo "✅ Target workflow validated: $TARGET_WORKFLOW"
+          echo "workflow_path=$WORKFLOW_PATH" >> $GITHUB_OUTPUT
+          
+          # Extract workflow name from file
+          WORKFLOW_NAME=$(grep -m1 "^name:" "$WORKFLOW_PATH" | cut -d':' -f2- | xargs)
+          echo "workflow_name=$WORKFLOW_NAME" >> $GITHUB_OUTPUT
+
+      - name: Create disable infrastructure
+        run: |
+          # Create disable marker directory
+          mkdir -p "$DISABLE_MARKER_DIR"
+          
+          # Create disable marker file with metadata
+          DISABLE_FILE="$DISABLE_MARKER_DIR/${{ inputs.target_workflow }}.disabled"
+          
+          cat > "$DISABLE_FILE" << EOF
+          {
+            "disabled_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "disabled_by": "${{ github.actor }}",
+            "reason": "${{ inputs.reason }}",
+            "duration_hours": ${{ inputs.disable_duration }},
+            "expires_at": "$(date -u -d '+${{ inputs.disable_duration }} hours' +%Y-%m-%dT%H:%M:%SZ)",
+            "workflow_file": "${{ inputs.target_workflow }}",
+            "workflow_name": "${{ steps.validate.outputs.workflow_name }}",
+            "emergency_run_id": "${{ github.run_id }}",
+            "repository": "${{ github.repository }}"
+          }
+          EOF
+          
+          echo "✅ Disable marker created: $DISABLE_FILE"
+
+      - name: Modify workflow file
+        run: |
+          WORKFLOW_PATH="${{ steps.validate.outputs.workflow_path }}"
+          BACKUP_PATH="$WORKFLOW_PATH.emergency-backup-$(date +%Y%m%d-%H%M%S)"
+          
+          # Create backup
+          cp "$WORKFLOW_PATH" "$BACKUP_PATH"
+          echo "✅ Backup created: $BACKUP_PATH"
+          
+          # Add disable check at the top of the workflow
+          cat > "$WORKFLOW_PATH.tmp" << 'EOF'
+          # =============================================================================
+          # 🚨 EMERGENCY DISABLED 🚨
+          # =============================================================================
+          # Workflow: ${{ steps.validate.outputs.workflow_name }}
+          # Reason: ${{ inputs.reason }}
+          # Disabled by: ${{ github.actor }}
+          # Disabled at: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+          # Duration: ${{ inputs.disable_duration }} hours
+          # 
+          # To re-enable:
+          # 1. Remove this comment block
+          # 2. Delete .github/workflows/.disabled/${{ inputs.target_workflow }}.disabled
+          # 3. Restore from backup if needed: $(basename "$BACKUP_PATH")
+          # =============================================================================
+
+          EOF
+          
+          cat "$WORKFLOW_PATH" >> "$WORKFLOW_PATH.tmp"
+          mv "$WORKFLOW_PATH.tmp" "$WORKFLOW_PATH"
+          
+          # Add disable check job at the beginning
+          sed -i '/^jobs:/a\
+            emergency_disable_check:\
+              name: Emergency Disable Check\
+              runs-on: ubuntu-latest\
+              steps:\
+                - name: Check if workflow is disabled\
+                  run: |\
+                    echo "🚨 WORKFLOW EMERGENCY DISABLED 🚨"\
+                    echo "Reason: ${{ inputs.reason }}"\
+                    echo "Disabled by: ${{ github.actor }}"\
+                    echo "Contact: ${{ env.EMERGENCY_CONTACT }}"\
+                    exit 1' "$WORKFLOW_PATH"
+          
+          echo "✅ Workflow modified with disable check"
+
+      - name: Create emergency issue
+        if: inputs.notification_required
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueBody = `
+            ## 🚨 EMERGENCY WORKFLOW DISABLE ALERT
+
+            **Workflow Disabled**: \`${{ inputs.target_workflow }}\`  
+            **Workflow Name**: ${{ steps.validate.outputs.workflow_name }}  
+            **Disabled By**: @${{ github.actor }}  
+            **Reason**: ${{ inputs.reason }}  
+            **Duration**: ${{ inputs.disable_duration }} hours  
+            **Expires**: $(date -u -d '+${{ inputs.disable_duration }} hours' +%Y-%m-%dT%H:%M:%SZ)
+
+            ### Impact
+            - ⚠️ The specified workflow is now disabled and will fail immediately if triggered
+            - ⚠️ Any automatic triggers for this workflow will result in failed runs
+            - ⚠️ Manual workflow runs will also fail with the disable message
+
+            ### Recovery Steps
+            1. Address the underlying issue that caused the emergency disable
+            2. Test the workflow in a feature branch if needed
+            3. Remove the disable marker: \`.github/workflows/.disabled/${{ inputs.target_workflow }}.disabled\`
+            4. Remove the emergency disable comments from the workflow file
+            5. Restore from backup if needed: \`${{ inputs.target_workflow }}.emergency-backup-*\`
+
+            ### Files Modified
+            - ✏️ \`${{ steps.validate.outputs.workflow_path }}\` (disable check added)
+            - 📁 \`${{ env.DISABLE_MARKER_DIR }}/${{ inputs.target_workflow }}.disabled\` (marker created)
+            - 💾 Backup created with timestamp
+
+            ### Contact
+            Emergency contact: ${{ env.EMERGENCY_CONTACT }}
+
+            ---
+            *Auto-generated by Emergency Disable System - Run ID: ${{ github.run_id }}*
+            `;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚨 EMERGENCY: Workflow "${{ steps.validate.outputs.workflow_name }}" Disabled`,
+              body: issueBody,
+              labels: ['emergency', 'workflow-disabled', 'needs-attention']
+            });
+
+      - name: Commit disable changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "Emergency Disable System"
+          
+          git add .
+          git commit -m "🚨 EMERGENCY: Disable workflow ${{ inputs.target_workflow }}
+
+          Reason: ${{ inputs.reason }}
+          Duration: ${{ inputs.disable_duration }} hours
+          Disabled by: ${{ github.actor }}
+          
+          This is an automatic emergency disable to prevent
+          problematic workflow execution during critical periods.
+          
+          Files modified:
+          - ${{ steps.validate.outputs.workflow_path }} (disable check added)
+          - ${{ env.DISABLE_MARKER_DIR }}/${{ inputs.target_workflow }}.disabled (marker)
+          
+          To re-enable: Remove disable comments and marker file.
+          Emergency run: ${{ github.run_id }}"
+
+      - name: Push changes
+        run: |
+          git push origin ${{ github.ref_name }}
+          echo "✅ Emergency disable changes pushed to repository"
+
+      - name: Schedule re-enable reminder
+        if: inputs.disable_duration > 0
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Calculate reminder time (1 hour before expiry)
+            const disableDuration = ${{ inputs.disable_duration }};
+            const reminderTime = Math.max(disableDuration - 1, 0.5); // At least 30 minutes
+            
+            const reminderBody = `
+            ## 🔔 WORKFLOW RE-ENABLE REMINDER
+
+            **Workflow**: \`${{ inputs.target_workflow }}\`  
+            **Originally Disabled**: $(date -u +%Y-%m-%dT%H:%M:%SZ)  
+            **Scheduled Expiry**: $(date -u -d '+${{ inputs.disable_duration }} hours' +%Y-%m-%dT%H:%M:%SZ)
+
+            This workflow was emergency disabled and is scheduled to need re-enabling soon.
+
+            ### Actions Required
+            1. ✅ Verify the original issue has been resolved
+            2. ✅ Test the workflow in a safe environment
+            3. ✅ Remove disable marker: \`.github/workflows/.disabled/${{ inputs.target_workflow }}.disabled\`
+            4. ✅ Remove emergency disable comments from workflow file
+            5. ✅ Close this reminder issue
+
+            ### Original Disable Reason
+            ${{ inputs.reason }}
+
+            ---
+            *Reminder created by Emergency Disable System*
+            `;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🔔 Reminder: Re-enable workflow "${{ steps.validate.outputs.workflow_name }}" in ${reminderTime} hours`,
+              body: reminderBody,
+              labels: ['reminder', 'workflow-disabled', 'scheduled-action']
+            });
+
+      - name: Summary
+        run: |
+          echo "# 🚨 Emergency Disable Completed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Workflow**: \`${{ inputs.target_workflow }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Name**: ${{ steps.validate.outputs.workflow_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Reason**: ${{ inputs.reason }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Duration**: ${{ inputs.disable_duration }} hours" >> $GITHUB_STEP_SUMMARY
+          echo "**Disabled By**: @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Status" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Workflow file modified with disable check" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Disable marker created" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Backup created with timestamp" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Emergency issue created" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Changes committed and pushed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Address the underlying issue" >> $GITHUB_STEP_SUMMARY
+          echo "2. Remove disable marker when ready: \`.github/workflows/.disabled/${{ inputs.target_workflow }}.disabled\`" >> $GITHUB_STEP_SUMMARY
+          echo "3. Remove emergency disable comments from workflow" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**The workflow will now fail immediately if triggered until re-enabled.**"

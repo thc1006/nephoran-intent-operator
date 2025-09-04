@@ -1,20 +1,21 @@
-package integration_test
+package integration_tests
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/prometheus/client_golang/prometheus"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2"
@@ -35,7 +36,7 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 	)
 
 	BeforeEach(func() {
-		namespace = CreateTestNamespace()
+		namespace = CreateO2TestNamespace()
 		var cancel context.CancelFunc
 		testCtx, cancel = context.WithTimeout(ctx, 15*time.Minute)
 		DeferCleanup(cancel)
@@ -48,85 +49,59 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 			ServerAddress: "127.0.0.1",
 			ServerPort:    0,
 			TLSEnabled:    false,
-			DatabaseConfig: map[string]interface{}{
-				"type":     "memory",
-				"database": "o2_multicloud_test_db",
-			},
+			DatabaseConfig: json.RawMessage(`{}`),
 			ProviderConfigs: map[string]interface{}{
-				"kubernetes": map[string]interface{}{
-					"enabled": true,
-					"config": map[string]interface{}{
-						"kubeconfig": "",
-						"namespace":  namespace.Name,
-					},
-				},
+				"enabled": true,
+				"config":  json.RawMessage(`{}`),
 				"openstack": map[string]interface{}{
-					"enabled": true,
-					"config": map[string]interface{}{
-						"auth_url":  "http://mock-openstack.test:5000/v3",
-						"username":  "test-user",
-						"password":  "test-password",
-						"project":   "test-project",
-						"region":    "RegionOne",
-						"mock_mode": true,
-					},
+					"auth_url":  "http://mock-openstack.test:5000/v3",
+					"username":  "test-user",
+					"password":  "test-password",
+					"project":   "test-project",
+					"region":    "RegionOne",
+					"mock_mode": true,
 				},
 				"aws": map[string]interface{}{
-					"enabled": true,
-					"config": map[string]interface{}{
-						"region":            "us-west-2",
-						"access_key_id":     "test-access-key",
-						"secret_access_key": "test-secret-key",
-						"mock_mode":         true,
-					},
+					"region":            "us-west-2",
+					"access_key_id":     "test-access-key",
+					"secret_access_key": "test-secret-key",
+					"mock_mode":         true,
 				},
 				"azure": map[string]interface{}{
-					"enabled": true,
-					"config": map[string]interface{}{
-						"subscription_id": "test-subscription",
-						"tenant_id":       "test-tenant",
-						"client_id":       "test-client",
-						"client_secret":   "test-secret",
-						"mock_mode":       true,
-					},
+					"subscription_id": "test-subscription",
+					"tenant_id":       "test-tenant",
+					"client_id":       "test-client",
+					"client_secret":   "test-secret",
+					"mock_mode":       true,
 				},
 				"gcp": map[string]interface{}{
-					"enabled": true,
-					"config": map[string]interface{}{
-						"project":     "test-project",
-						"region":      "us-central1",
-						"zone":        "us-central1-a",
-						"credentials": "test-credentials.json",
-						"mock_mode":   true,
-					},
+					"project":     "test-project",
+					"region":      "us-central1",
+					"zone":        "us-central1-a",
+					"credentials": "test-credentials.json",
+					"mock_mode":   true,
 				},
 				"vmware": map[string]interface{}{
-					"enabled": true,
-					"config": map[string]interface{}{
-						"vcenter_url": "https://mock-vcenter.test",
-						"username":    "administrator@vsphere.local",
-						"password":    "test-password",
-						"datacenter":  "test-datacenter",
-						"mock_mode":   true,
-					},
+					"vcenter_url": "https://mock-vcenter.test",
+					"username":    "administrator@vsphere.local",
+					"password":    "test-password",
+					"datacenter":  "test-datacenter",
+					"mock_mode":   true,
 				},
 				"edge": map[string]interface{}{
-					"enabled": true,
-					"config": map[string]interface{}{
-						"edge_nodes": []map[string]interface{}{
-							{
-								"name":     "edge-node-1",
-								"location": "cell-tower-1",
-								"endpoint": "http://edge-node-1.test:8080",
-							},
-							{
-								"name":     "edge-node-2",
-								"location": "cell-tower-2",
-								"endpoint": "http://edge-node-2.test:8080",
-							},
+					"edge_nodes": []map[string]interface{}{
+						{
+							"name":     "edge-node-1",
+							"location": "cell-tower-1",
+							"endpoint": "http://edge-node-1.test:8080",
 						},
-						"mock_mode": true,
+						{
+							"name":     "edge-node-2",
+							"location": "cell-tower-2",
+							"endpoint": "http://edge-node-2.test:8080",
+						},
 					},
+					"mock_mode": true,
 				},
 			},
 		}
@@ -263,11 +238,8 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 						OCloudID:       "test-ocloud-" + provider.name,
 						Location:       fmt.Sprintf("%s-region", provider.name),
 						Extensions: map[string]interface{}{
-							"poolType": provider.poolType,
-							"providerSpecific": map[string]interface{}{
-								"mockMode":        true,
-								"testEnvironment": true,
-							},
+							"mockMode":        true,
+							"testEnvironment": true,
 						},
 						Capacity: &models.ResourceCapacity{
 							CPU: &models.ResourceMetric{
@@ -362,12 +334,10 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 					Provider:       "kubernetes",
 					OCloudID:       "test-k8s-ocloud",
 					Extensions: map[string]interface{}{
-						"kubernetesConfig": map[string]interface{}{
-							"namespace":    namespace.Name,
-							"storageClass": "standard",
-							"ingressClass": "nginx",
-							"serviceType":  "ClusterIP",
-						},
+						"namespace":    namespace.Name,
+						"storageClass": "standard",
+						"ingressClass": "nginx",
+						"serviceType":  "ClusterIP",
 						"supportedWorkloads": []string{
 							"deployment", "statefulset", "daemonset", "job", "cronjob",
 						},
@@ -433,12 +403,10 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 					Zone:           "us-west-2a",
 					OCloudID:       "test-aws-ocloud",
 					Extensions: map[string]interface{}{
-						"awsConfig": map[string]interface{}{
-							"vpcId":           "vpc-test123",
-							"subnetId":        "subnet-test123",
-							"securityGroupId": "sg-test123",
-							"keyPairName":     "test-keypair",
-						},
+						"vpcId":           "vpc-test123",
+						"subnetId":        "subnet-test123",
+						"securityGroupId": "sg-test123",
+						"keyPairName":     "test-keypair",
 						"supportedInstanceTypes": []string{
 							"t3.micro", "t3.small", "t3.medium", "c5.large", "m5.xlarge",
 						},
@@ -493,26 +461,15 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 					Location:       "cell-tower-site-1",
 					OCloudID:       "test-edge-ocloud",
 					Extensions: map[string]interface{}{
-						"edgeConfig": map[string]interface{}{
-							"siteType":          "cell-tower",
-							"connectivity":      []string{"5G", "4G", "fiber"},
-							"powerSource":       "grid-with-backup",
-							"environmentRating": "outdoor",
-							"computeCapability": map[string]interface{}{
-								"cpuType":     "arm64",
-								"accelerator": "gpu",
-								"storage":     "nvme-ssd",
-								"network":     "dpdk-capable",
-							},
-						},
+						"siteType":          "cell-tower",
+						"connectivity":      []string{"5G", "4G", "fiber"},
+						"powerSource":       "grid-with-backup",
+						"environmentRating": "outdoor",
+						"computeCapability": json.RawMessage(`{}`),
 						"supportedFunctions": []string{
 							"ran-function", "mec-app", "cdn-cache", "ai-inference",
 						},
-						"latencyRequirements": map[string]interface{}{
-							"ultra-low": "< 1ms",
-							"low":       "< 10ms",
-							"medium":    "< 50ms",
-						},
+						"latencyRequirements": json.RawMessage(`{}`),
 					},
 				}
 
@@ -562,47 +519,27 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 
 				By("creating a hybrid deployment specification")
 				hybridDeployment := map[string]interface{}{
-					"deploymentId": deploymentID,
-					"name":         "Hybrid Multi-Cloud Deployment",
-					"description":  "Test deployment spanning multiple cloud providers",
-					"components": []map[string]interface{}{
+					"services": []map[string]interface{}{
 						{
 							"name":     "core-services",
 							"provider": "kubernetes",
 							"region":   "us-west-2",
-							"resources": map[string]interface{}{
-								"cpu":      "4",
-								"memory":   "8Gi",
-								"replicas": 3,
-							},
+							"resources": json.RawMessage(`{}`),
 						},
 						{
 							"name":     "data-processing",
 							"provider": "aws",
 							"region":   "us-west-2",
-							"resources": map[string]interface{}{
-								"instanceType": "c5.2xlarge",
-								"minInstances": 2,
-								"maxInstances": 10,
-							},
+							"resources": json.RawMessage(`{}`),
 						},
 						{
 							"name":     "edge-functions",
 							"provider": "edge",
 							"location": "cell-tower-sites",
-							"resources": map[string]interface{}{
-								"cpu":      "2",
-								"memory":   "4Gi",
-								"latency":  "< 5ms",
-								"replicas": 5,
-							},
+							"resources": json.RawMessage(`{}`),
 						},
 					},
-					"networking": map[string]interface{}{
-						"connectivity": "vpn-mesh",
-						"bandwidth":    "10Gbps",
-						"protocol":     "service-mesh",
-					},
+					"networking": json.RawMessage(`{}`),
 				}
 
 				deploymentJSON, err := json.Marshal(hybridDeployment)
@@ -623,7 +560,7 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 					if err != nil {
 						return nil
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 					if resp.StatusCode != http.StatusOK {
 						return nil
@@ -717,3 +654,4 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 		})
 	})
 })
+

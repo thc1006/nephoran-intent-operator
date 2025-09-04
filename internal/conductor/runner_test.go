@@ -112,10 +112,10 @@ func TestMockPorchRunner(t *testing.T) {
 		nameParam   string
 	}{
 		{
-			name:       "successful-execution",
+			name:        "successful-execution",
 			shouldError: false,
-			intentFile: "/test/intent-test-default-123.json",
-			nameParam:  "test-intent",
+			intentFile:  "/test/intent-test-default-123.json",
+			nameParam:   "test-intent",
 		},
 		{
 			name:        "execution-with-error",
@@ -125,10 +125,10 @@ func TestMockPorchRunner(t *testing.T) {
 			nameParam:   "failing-intent",
 		},
 		{
-			name:       "multiple-calls",
+			name:        "multiple-calls",
 			shouldError: false,
-			intentFile: "/test/intent-multi-default-789.json",
-			nameParam:  "multi-intent",
+			intentFile:  "/test/intent-multi-default-789.json",
+			nameParam:   "multi-intent",
 		},
 	}
 
@@ -272,15 +272,15 @@ func TestPorchRunnerCommandConstruction(t *testing.T) {
 		"replicas": 3,
 		"source": "conductor-watch"
 	}`
-	
-	if err := os.WriteFile(intentFile, []byte(intentContent), 0644); err != nil {
+
+	if err := os.WriteFile(intentFile, []byte(intentContent), 0o644); err != nil {
 		t.Fatalf("Failed to create test intent file: %v", err)
 	}
 
 	// Test different reconciler configurations
 	testCases := []struct {
-		name      string
-		reconciler *WatchReconciler
+		name         string
+		reconciler   *WatchReconciler
 		expectedArgs []string
 	}{
 		{
@@ -327,7 +327,7 @@ func TestPorchRunnerCommandConstruction(t *testing.T) {
 func TestPorchRunnerDryRunMode(t *testing.T) {
 	// Test that dry-run mode in reconciler affects execution
 	testDir := t.TempDir()
-	
+
 	reconciler := &WatchReconciler{
 		PorchPath: "/fake/path/to/porch", // Non-existent path
 		PorchMode: "apply",
@@ -340,7 +340,7 @@ func TestPorchRunnerDryRunMode(t *testing.T) {
 
 	// This should not fail even with fake porch path because DryRun is true
 	_ = runner.ExecutePorch(logger, "/fake/intent.json", "test-name")
-	
+
 	// The actual implementation would need to check DryRun in executePorch
 	// For now, we just verify the runner was created correctly
 	if runner.reconciler.DryRun != true {
@@ -352,7 +352,7 @@ func TestPorchRunnerIntegrationWithWatchReconciler(t *testing.T) {
 	// Integration test showing how the runner would be used in the reconciler
 	testDir := t.TempDir()
 	intentFile := filepath.Join(testDir, "intent-test-default-123.json")
-	
+
 	// Create test intent file
 	intentContent := `{
 		"intent_type": "scaling",
@@ -363,8 +363,8 @@ func TestPorchRunnerIntegrationWithWatchReconciler(t *testing.T) {
 		"correlation_id": "test-default-123",
 		"reason": "Test scaling intent"
 	}`
-	
-	if err := os.WriteFile(intentFile, []byte(intentContent), 0644); err != nil {
+
+	if err := os.WriteFile(intentFile, []byte(intentContent), 0o644); err != nil {
 		t.Fatalf("Failed to create intent file: %v", err)
 	}
 
@@ -395,7 +395,7 @@ func TestPorchRunnerIntegrationWithWatchReconciler(t *testing.T) {
 	// Test error scenario
 	mockRunner.Reset()
 	mockRunner.SetError(true, "porch execution failed")
-	
+
 	err = mockRunner.ExecutePorch(logger, intentFile, "test-default")
 	if err == nil {
 		t.Error("Expected error from mock runner")

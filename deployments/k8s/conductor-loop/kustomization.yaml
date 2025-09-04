@@ -1,0 +1,90 @@
+# Kustomization for Conductor Loop Kubernetes manifests
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: conductor-loop
+  annotations:
+    description: "Kustomization for Nephoran Conductor Loop deployment"
+
+# Common metadata
+commonLabels:
+  app.kubernetes.io/name: conductor-loop
+  app.kubernetes.io/instance: conductor-loop
+  app.kubernetes.io/version: "1.0.0"
+  app.kubernetes.io/component: orchestration
+  app.kubernetes.io/part-of: nephoran-intent-operator
+
+commonAnnotations:
+  managed-by: kustomize
+  description: "Conductor Loop for Nephoran Intent Operator"
+
+# Namespace
+namespace: conductor-loop
+
+# Resources to include
+resources:
+  - namespace.yaml
+  - serviceaccount.yaml
+  - configmap.yaml
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml
+  - hpa.yaml
+  - networkpolicy.yaml
+  - monitoring.yaml
+
+# Images to replace (for CI/CD)
+images:
+  - name: ghcr.io/thc1006/conductor-loop
+    newTag: latest
+
+# ConfigMap generators
+configMapGenerator:
+  - name: conductor-loop-env-config
+    literals:
+      - LOG_LEVEL=info
+      - METRICS_ENABLED=true
+      - PORCH_ENDPOINT=http://porch-server.porch-system.svc.cluster.local:7007
+
+# Secret generators (placeholder - actual secrets should be managed externally)
+secretGenerator:
+  - name: conductor-loop-secrets
+    type: Opaque
+    literals:
+      - api-key=placeholder # Should be replaced in overlays
+
+# Patches
+patches:
+  # Patch deployment with environment-specific values
+  - target:
+      kind: Deployment
+      name: conductor-loop
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: ENVIRONMENT
+          value: production
+      - op: add
+        path: /spec/template/metadata/annotations/deployment.kubernetes.io~1revision
+        value: "1"
+
+# Replacements
+replacements:
+  - source:
+      kind: ConfigMap
+      name: conductor-loop-env-config
+      fieldPath: data.LOG_LEVEL
+    targets:
+      - select:
+          kind: Deployment
+          name: conductor-loop
+        fieldPaths:
+          - spec.template.spec.containers.[name=conductor-loop].env.[name=CONDUCTOR_LOG_LEVEL].value
+
+# Validation
+buildMetadata:
+  - buildDate
+  - vcsRef
+  - originAnnotations

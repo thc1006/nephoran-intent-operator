@@ -18,6 +18,7 @@ package parallel
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"testing"
@@ -30,9 +31,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
-	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/resilience"
-	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
+	resilience "github.com/thc1006/nephoran-intent-operator/pkg/controllers/resilience"
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 )
 
@@ -50,7 +49,7 @@ type ErrorRecoveryTestSuite struct {
 // SetupSuite initializes the test suite
 func (suite *ErrorRecoveryTestSuite) SetupSuite() {
 	zapLogger, _ := zap.NewDevelopment()
-	suite.logger = zapr.New(zapLogger)
+	suite.logger = zapr.NewLogger(zapLogger)
 
 	suite.ctx, suite.cancel = context.WithCancel(context.Background())
 
@@ -143,7 +142,7 @@ func (suite *ErrorRecoveryTestSuite) TestErrorCorrelation() {
 			Priority:      1,
 			Dependencies:  []string{},
 			Status:        TaskStatusPending,
-			InputData:     map[string]interface{}{"intent": "test intent"},
+			InputData:     json.RawMessage(`{"intent":"test intent"}`),
 			Timeout:       5 * time.Second,
 		},
 		{
@@ -154,7 +153,7 @@ func (suite *ErrorRecoveryTestSuite) TestErrorCorrelation() {
 			Priority:      1,
 			Dependencies:  []string{"task-1"},
 			Status:        TaskStatusPending,
-			InputData:     map[string]interface{}{"query": "test query"},
+			InputData:     json.RawMessage(`{"query":"test query"}`),
 			Timeout:       5 * time.Second,
 		},
 	}
@@ -186,7 +185,7 @@ func (suite *ErrorRecoveryTestSuite) TestErrorCorrelation() {
 // TestCircuitBreakerIntegration tests circuit breaker behavior with parallel processing
 func (suite *ErrorRecoveryTestSuite) TestCircuitBreakerIntegration() {
 	// Create a failing processor to trigger circuit breaker
-	failingProcessor := &FailingProcessor{
+	_ = &FailingProcessor{
 		failureRate: 1.0, // Always fail
 		logger:      suite.logger,
 	}
@@ -206,7 +205,7 @@ func (suite *ErrorRecoveryTestSuite) TestCircuitBreakerIntegration() {
 				Type:      TaskTypeLLMProcessing,
 				Priority:  1,
 				Status:    TaskStatusPending,
-				InputData: map[string]interface{}{"intent": "test intent"},
+				InputData: json.RawMessage(`{"intent":"test intent"}`),
 				Timeout:   2 * time.Second,
 			}
 
@@ -234,7 +233,7 @@ func (suite *ErrorRecoveryTestSuite) TestCircuitBreakerIntegration() {
 // TestRetryMechanismWithBackoff tests retry behavior with exponential backoff
 func (suite *ErrorRecoveryTestSuite) TestRetryMechanismWithBackoff() {
 	// Create a processor that fails first few times then succeeds
-	retryProcessor := &RetryableProcessor{
+	_ = &RetryableProcessor{
 		failCount:    3,
 		currentTries: 0,
 		logger:       suite.logger,
@@ -248,7 +247,7 @@ func (suite *ErrorRecoveryTestSuite) TestRetryMechanismWithBackoff() {
 		Type:      TaskTypeLLMProcessing,
 		Priority:  1,
 		Status:    TaskStatusPending,
-		InputData: map[string]interface{}{"intent": "test intent"},
+		InputData: json.RawMessage(`{"intent":"test intent"}`),
 		Timeout:   10 * time.Second,
 		RetryConfig: &TaskRetryConfig{
 			MaxAttempts:   5,
@@ -283,7 +282,7 @@ func (suite *ErrorRecoveryTestSuite) TestBulkheadIsolation() {
 		Type:      TaskTypeLLMProcessing,
 		Priority:  1,
 		Status:    TaskStatusPending,
-		InputData: map[string]interface{}{"intent": "test intent"},
+		InputData: json.RawMessage(`{"intent":"test intent"}`),
 		Timeout:   5 * time.Second,
 	}
 
@@ -293,7 +292,7 @@ func (suite *ErrorRecoveryTestSuite) TestBulkheadIsolation() {
 		Type:      TaskTypeRAGRetrieval,
 		Priority:  1,
 		Status:    TaskStatusPending,
-		InputData: map[string]interface{}{"query": "test query"},
+		InputData: json.RawMessage(`{"query":"test query"}`),
 		Timeout:   5 * time.Second,
 	}
 
@@ -325,7 +324,7 @@ func (suite *ErrorRecoveryTestSuite) TestTimeoutHandling() {
 		Type:      TaskTypeLLMProcessing,
 		Priority:  1,
 		Status:    TaskStatusPending,
-		InputData: map[string]interface{}{"intent": "test intent"},
+		InputData: json.RawMessage(`{"intent":"test intent"}`),
 		Timeout:   500 * time.Millisecond, // Very short timeout
 	}
 
@@ -364,7 +363,7 @@ func (suite *ErrorRecoveryTestSuite) TestDependencyFailurePropagation() {
 			Priority:     1,
 			Dependencies: []string{},
 			Status:       TaskStatusPending,
-			InputData:    map[string]interface{}{"intent": "test intent"},
+			InputData:    json.RawMessage(`{"intent":"test intent"}`),
 			Timeout:      5 * time.Second,
 		},
 		{
@@ -374,7 +373,7 @@ func (suite *ErrorRecoveryTestSuite) TestDependencyFailurePropagation() {
 			Priority:     1,
 			Dependencies: []string{"dep-task-root"},
 			Status:       TaskStatusPending,
-			InputData:    map[string]interface{}{"query": "test query"},
+			InputData:    json.RawMessage(`{"query":"test query"}`),
 			Timeout:      5 * time.Second,
 		},
 		{
@@ -384,7 +383,7 @@ func (suite *ErrorRecoveryTestSuite) TestDependencyFailurePropagation() {
 			Priority:     1,
 			Dependencies: []string{"dep-task-root"},
 			Status:       TaskStatusPending,
-			InputData:    map[string]interface{}{},
+			InputData:    json.RawMessage(`{}`),
 			Timeout:      5 * time.Second,
 		},
 		{
@@ -394,7 +393,7 @@ func (suite *ErrorRecoveryTestSuite) TestDependencyFailurePropagation() {
 			Priority:     1,
 			Dependencies: []string{"dep-task-child1", "dep-task-child2"},
 			Status:       TaskStatusPending,
-			InputData:    map[string]interface{}{},
+			InputData:    json.RawMessage(`{}`),
 			Timeout:      5 * time.Second,
 		},
 	}
@@ -438,7 +437,7 @@ func (suite *ErrorRecoveryTestSuite) TestConcurrentErrorHandling() {
 				Type:      TaskTypeLLMProcessing,
 				Priority:  1,
 				Status:    TaskStatusPending,
-				InputData: map[string]interface{}{"intent": "test intent"},
+				InputData: json.RawMessage(`{"intent":"test intent"}`),
 				Timeout:   10 * time.Second,
 			}
 
@@ -475,7 +474,7 @@ func (suite *ErrorRecoveryTestSuite) TestRecoveryAfterFailure() {
 		Type:      TaskTypeLLMProcessing,
 		Priority:  1,
 		Status:    TaskStatusPending,
-		InputData: map[string]interface{}{"intent": "test intent"},
+		InputData: json.RawMessage(`{"intent":"test intent"}`),
 		Timeout:   5 * time.Second,
 	}
 
@@ -491,7 +490,7 @@ func (suite *ErrorRecoveryTestSuite) TestRecoveryAfterFailure() {
 		Type:      TaskTypeRAGRetrieval,
 		Priority:  1,
 		Status:    TaskStatusPending,
-		InputData: map[string]interface{}{"query": "recovery query"},
+		InputData: json.RawMessage(`{"query":"recovery query"}`),
 		Timeout:   5 * time.Second,
 	}
 
@@ -521,7 +520,7 @@ func (suite *ErrorRecoveryTestSuite) TestErrorReporting() {
 			Type:      TaskTypeLLMProcessing,
 			Priority:  1,
 			Status:    TaskStatusPending,
-			InputData: map[string]interface{}{"intent": "test intent 1"},
+			InputData: json.RawMessage(`{"intent":"test intent 1"}`),
 			Timeout:   5 * time.Second,
 		},
 		{
@@ -530,7 +529,7 @@ func (suite *ErrorRecoveryTestSuite) TestErrorReporting() {
 			Type:      TaskTypeRAGRetrieval,
 			Priority:  2,
 			Status:    TaskStatusPending,
-			InputData: map[string]interface{}{"query": "test query 2"},
+			InputData: json.RawMessage(`{"query":"test query 2"}`),
 			Timeout:   3 * time.Second,
 		},
 	}
@@ -603,10 +602,7 @@ func (fp *FailingProcessor) HealthCheck(ctx context.Context) error {
 }
 
 func (fp *FailingProcessor) GetMetrics() map[string]interface{} {
-	return map[string]interface{}{
-		"processor_type": "failing_processor",
-		"failure_rate":   fp.failureRate,
-	}
+	return map[string]interface{}{}
 }
 
 // RetryableProcessor fails a specific number of times then succeeds
@@ -640,12 +636,9 @@ func (rp *RetryableProcessor) ProcessTask(ctx context.Context, task *Task) (*Tas
 
 	// Succeed after enough attempts
 	return &TaskResult{
-		TaskID:  task.ID,
-		Success: true,
-		OutputData: map[string]interface{}{
-			"attempts":                rp.currentTries,
-			"succeeded_after_retries": true,
-		},
+		TaskID:     task.ID,
+		Success:    true,
+		OutputData: map[string]interface{}{"status": "completed", "attempts": rp.currentTries},
 	}, nil
 }
 
@@ -661,9 +654,6 @@ func (rp *RetryableProcessor) GetMetrics() map[string]interface{} {
 	rp.mutex.Lock()
 	defer rp.mutex.Unlock()
 
-	return map[string]interface{}{
-		"processor_type": "retryable_processor",
-		"current_tries":  rp.currentTries,
-		"fail_count":     rp.failCount,
-	}
+	return map[string]interface{}{"current_tries": rp.currentTries, "fail_count": rp.failCount}
 }
+

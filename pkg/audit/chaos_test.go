@@ -4,8 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"math/rand"
+	"math/rand/v2"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -18,7 +17,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/audit/backends"
@@ -42,7 +40,7 @@ func TestChaosTestSuite(t *testing.T) {
 
 func (suite *ChaosTestSuite) SetupSuite() {
 	var err error
-	suite.tempDir, err = ioutil.TempDir("", "chaos_test")
+	suite.tempDir, err = os.MkdirTemp("", "chaos_test")
 	suite.Require().NoError(err)
 
 	// Setup chaos server that randomly fails
@@ -785,10 +783,8 @@ func createChaosTestEvent(action string) *AuditEvent {
 		UserContext: &UserContext{
 			UserID: "chaos-test-user",
 		},
-		Data: map[string]interface{}{
-			"test_type": "chaos",
-			"timestamp": time.Now().Unix(),
-		},
+		Data: map[string]interface{}{},
+
 	}
 }
 
@@ -826,9 +822,8 @@ func createSizedChaosEvent(action string, targetSize int) *AuditEvent {
 		Action:    action,
 		Severity:  SeverityInfo,
 		Result:    ResultSuccess,
-		Data: map[string]interface{}{
-			"padding": string(padding),
-		},
+		Data:      map[string]interface{}{},
+
 	}
 }
 

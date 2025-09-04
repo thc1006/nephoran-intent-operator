@@ -1,0 +1,233 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-system
+  labels:
+    name: istio-system
+    istio-injection: disabled
+    app.kubernetes.io/part-of: istio
+---
+# Istio Base Components
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+metadata:
+  name: control-plane
+  namespace: istio-system
+spec:
+  values:
+    global:
+      meshID: mesh1
+      multiCluster:
+        clusterName: cluster1
+      network: network1
+    pilot:
+      env:
+        EXTERNAL_ISTIOD: false
+  components:
+    pilot:
+      k8s:
+        env:
+          - name: PILOT_TRACE_SAMPLING
+            value: "1.0"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    ingressGateways:
+    - name: istio-ingressgateway
+      enabled: true
+      k8s:
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        service:
+          type: LoadBalancer
+          ports:
+          - port: 15021
+            targetPort: 15021
+            name: status-port
+          - port: 80
+            targetPort: 8080
+            name: http2
+          - port: 443
+            targetPort: 8443
+            name: https
+          - port: 31400
+            targetPort: 31400
+            name: tcp
+          - port: 15443
+            targetPort: 15443
+            name: tls
+---
+# Gateway for Nephoran services
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: nephoran-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "nephoran.local"
+    - "a1.nephoran.local"
+    - "ves.nephoran.local"
+    tls:
+      httpsRedirect: true
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: nephoran-tls
+    hosts:
+    - "nephoran.local"
+    - "a1.nephoran.local"  
+    - "ves.nephoran.local"
+---
+# Virtual Service for A1 Policy Service
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: a1-policy-service
+  namespace: nephoran-a1
+spec:
+  hosts:
+  - "a1.nephoran.local"
+  gateways:
+  - istio-system/nephoran-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /a1-p
+    - uri:
+        prefix: /A1-P
+    route:
+    - destination:
+        host: a1-policy-service
+        port:
+          number: 8080
+      weight: 100
+    fault:
+      delay:
+        percentage:
+          value: 0.1
+        fixedDelay: 5s
+    retries:
+      attempts: 3
+      perTryTimeout: 2s
+      retryOn: 5xx,reset,connect-failure,refused-stream
+    timeout: 30s
+---
+# Destination Rule for A1 Policy Service
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: a1-policy-service
+  namespace: nephoran-a1
+spec:
+  host: a1-policy-service
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 50
+        http2MaxRequests: 100
+        maxRequestsPerConnection: 10
+        maxRetries: 3
+        consecutiveGatewayErrors: 5
+        interval: 30s
+        baseEjectionTime: 30s
+        maxEjectionPercent: 50
+        minHealthPercent: 50
+    loadBalancer:
+      simple: LEAST_CONN
+    outlierDetection:
+      consecutiveGatewayErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 50
+  subsets:
+  - name: v1
+    labels:
+      version: v1.0.0
+  portLevelSettings:
+  - port:
+      number: 8080
+    connectionPool:
+      tcp:
+        maxConnections: 50
+---
+# Sidecar configuration for optimized resource usage
+apiVersion: networking.istio.io/v1beta1
+kind: Sidecar
+metadata:
+  name: a1-policy-service-sidecar
+  namespace: nephoran-a1
+spec:
+  workloadSelector:
+    labels:
+      app.kubernetes.io/name: a1-policy-service
+  ingress:
+  - port:
+      number: 8080
+      protocol: HTTP
+      name: http
+    defaultEndpoint: 127.0.0.1:8080
+  egress:
+  - port:
+      number: 5432
+      protocol: TCP
+      name: postgres
+    hosts:
+    - "./postgresql"
+  - port:
+      number: 6379
+      protocol: TCP
+      name: redis
+    hosts:
+    - "./redis"
+  - port:
+      number: 443
+      protocol: HTTPS
+      name: https
+    hosts:
+    - "*/*"
+  - port:
+      number: 53
+      protocol: UDP
+      name: dns
+    hosts:
+    - "*/*"
+---
+# Service Monitor for Istio metrics
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: istio-proxy
+  namespace: istio-system
+  labels:
+    app: istiod
+spec:
+  selector:
+    matchLabels:
+      app: istiod
+  endpoints:
+  - port: http-monitoring
+    path: /metrics
+    interval: 15s

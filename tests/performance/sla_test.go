@@ -1,4 +1,4 @@
-package performance
+package performance_tests
 
 import (
 	"context"
@@ -651,7 +651,7 @@ func (s *SLATestSuite) generateSLAReport(t *testing.T) {
 			t.Logf("  [%s] %s: %s", violation.Severity, violation.Metric, violation.Violation)
 		}
 	} else {
-		t.Logf("\nAll SLAs within acceptable limits ✅")
+		t.Logf("\nAll SLAs within acceptable limits ✓")
 	}
 
 	// Calculate overall compliance rate
@@ -691,7 +691,7 @@ func (s *SLATestSuite) extractScalarValue(result interface{}) (float64, error) {
 }
 
 // BenchmarkIntentProcessing benchmarks intent processing performance
-func BenchmarkIntentProcessing(b *testing.B) {
+func BenchmarkSLAIntentProcessing(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 
@@ -705,7 +705,7 @@ func BenchmarkIntentProcessing(b *testing.B) {
 // BenchmarkConcurrentIntentProcessing benchmarks concurrent intent processing
 func BenchmarkConcurrentIntentProcessing(b *testing.B) {
 	b.ReportAllocs()
-	concurrency := 10
+	_ = 10
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {

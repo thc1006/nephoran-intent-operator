@@ -565,7 +565,9 @@ class TelecomComplianceChecker:
                     content = f.read().lower()
                     if any(pattern in content for pattern in patterns):
                         found_files.append(go_file)
-            except Exception:
+            except (OSError, UnicodeError) as e:
+                # Log specific errors rather than silently continuing
+                print(f"Warning: Could not read {go_file}: {e}", file=sys.stderr)
                 continue
         
         # Search in YAML files
@@ -576,7 +578,9 @@ class TelecomComplianceChecker:
                     content = f.read().lower()
                     if any(pattern in content for pattern in patterns):
                         found_files.append(yaml_file)
-            except Exception:
+            except (OSError, UnicodeError) as e:
+                # Log specific errors rather than silently continuing
+                print(f"Warning: Could not read {yaml_file}: {e}", file=sys.stderr)
                 continue
         
         return found_files
@@ -592,7 +596,9 @@ class TelecomComplianceChecker:
                     content = f.read().lower()
                     if 'securitycontext' in content and ('runasnonroot' in content or 'runasuser' in content):
                         security_contexts_found += 1
-            except Exception:
+            except (OSError, UnicodeError) as e:
+                # Log specific errors rather than silently continuing
+                print(f"Warning: Could not read {deploy_file}: {e}", file=sys.stderr)
                 continue
         
         return security_contexts_found > 0
@@ -608,7 +614,9 @@ class TelecomComplianceChecker:
                     content = f.read().lower()
                     if 'livenessprobe' in content or 'readinessprobe' in content:
                         health_checks_found += 1
-            except Exception:
+            except (OSError, UnicodeError) as e:
+                # Log specific errors rather than silently continuing
+                print(f"Warning: Could not read {deploy_file}: {e}", file=sys.stderr)
                 continue
         
         return health_checks_found > 0

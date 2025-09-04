@@ -1,4 +1,4 @@
-package performance_test
+package o2_performance_tests_test
 
 import (
 	"bytes"
@@ -15,10 +15,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeClient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
@@ -131,24 +129,17 @@ func TestO2APILoadPerformance(t *testing.T) {
 	// Setup test environment
 	scheme := runtime.NewScheme()
 	corev1.AddToScheme(scheme)
-	k8sClient := fakeClient.NewClientBuilder().WithScheme(scheme).Build()
-	k8sClientset := fake.NewSimpleClientset()
+	_ = fakeClient.NewClientBuilder().WithScheme(scheme).Build()
+	_ = fake.NewSimpleClientset()
 	testLogger := logging.NewLogger("o2-load-test", "info")
 
 	// Setup O2 API server
 	config := &o2.O2IMSConfig{
-		ServerAddress: "127.0.0.1",
-		ServerPort:    0,
-		TLSEnabled:    false,
-		DatabaseConfig: map[string]interface{}{
-			"type":     "memory",
-			"database": "o2_load_test_db",
-		},
-		ProviderConfigs: map[string]interface{}{
-			"kubernetes": map[string]interface{}{
-				"enabled": true,
-			},
-		},
+		ServerAddress:  "127.0.0.1",
+		ServerPort:     0,
+		TLSEnabled:     false,
+		DatabaseConfig: json.RawMessage(`{}`),
+		ProviderConfigs: json.RawMessage(`{"enabled": true}`),
 	}
 
 	o2Server, err := o2.NewO2APIServer(config, testLogger, nil)
@@ -156,7 +147,7 @@ func TestO2APILoadPerformance(t *testing.T) {
 	defer o2Server.Shutdown(context.Background())
 
 	httpServer := httptest.NewServer(o2Server.GetRouter())
-	defer httpServer.Close()
+	defer httpServer.Close() // #nosec G307 - Error handled in defer
 
 	client := httpServer.Client()
 	client.Timeout = 30 * time.Second
@@ -625,23 +616,16 @@ func BenchmarkO2APIOperations(b *testing.B) {
 	// Setup test environment
 	scheme := runtime.NewScheme()
 	corev1.AddToScheme(scheme)
-	k8sClient := fakeClient.NewClientBuilder().WithScheme(scheme).Build()
-	k8sClientset := fake.NewSimpleClientset()
+	_ = fakeClient.NewClientBuilder().WithScheme(scheme).Build()
+	_ = fake.NewSimpleClientset()
 	testLogger := logging.NewLogger("o2-benchmark", "error") // Reduced logging for benchmarks
 
 	config := &o2.O2IMSConfig{
-		ServerAddress: "127.0.0.1",
-		ServerPort:    0,
-		TLSEnabled:    false,
-		DatabaseConfig: map[string]interface{}{
-			"type":     "memory",
-			"database": "o2_benchmark_db",
-		},
-		ProviderConfigs: map[string]interface{}{
-			"kubernetes": map[string]interface{}{
-				"enabled": true,
-			},
-		},
+		ServerAddress:  "127.0.0.1",
+		ServerPort:     0,
+		TLSEnabled:     false,
+		DatabaseConfig: json.RawMessage(`{}`),
+		ProviderConfigs: json.RawMessage(`{"enabled": true}`),
 	}
 
 	o2Server, err := o2.NewO2APIServer(config, testLogger, nil)
@@ -649,7 +633,7 @@ func BenchmarkO2APIOperations(b *testing.B) {
 	defer o2Server.Shutdown(context.Background())
 
 	httpServer := httptest.NewServer(o2Server.GetRouter())
-	defer httpServer.Close()
+	defer httpServer.Close() // #nosec G307 - Error handled in defer
 
 	client := httpServer.Client()
 	client.Timeout = 10 * time.Second
@@ -749,18 +733,15 @@ func TestMemoryUsage(t *testing.T) {
 
 	scheme := runtime.NewScheme()
 	corev1.AddToScheme(scheme)
-	k8sClient := fakeClient.NewClientBuilder().WithScheme(scheme).Build()
-	k8sClientset := fake.NewSimpleClientset()
+	_ = fakeClient.NewClientBuilder().WithScheme(scheme).Build()
+	_ = fake.NewSimpleClientset()
 	testLogger := logging.NewLogger("o2-memory-test", "warn")
 
 	config := &o2.O2IMSConfig{
-		ServerAddress: "127.0.0.1",
-		ServerPort:    0,
-		TLSEnabled:    false,
-		DatabaseConfig: map[string]interface{}{
-			"type":     "memory",
-			"database": "o2_memory_test_db",
-		},
+		ServerAddress:  "127.0.0.1",
+		ServerPort:     0,
+		TLSEnabled:     false,
+		DatabaseConfig: json.RawMessage(`{}`),
 	}
 
 	o2Server, err := o2.NewO2APIServer(config, testLogger, nil)
@@ -768,7 +749,7 @@ func TestMemoryUsage(t *testing.T) {
 	defer o2Server.Shutdown(context.Background())
 
 	httpServer := httptest.NewServer(o2Server.GetRouter())
-	defer httpServer.Close()
+	defer httpServer.Close() // #nosec G307 - Error handled in defer
 
 	client := httpServer.Client()
 

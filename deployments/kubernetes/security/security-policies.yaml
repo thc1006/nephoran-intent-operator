@@ -1,0 +1,420 @@
+# Kubernetes Security Policies for Conductor Loop
+# Comprehensive security hardening using Pod Security Standards,
+# Resource Quotas, Limit Ranges, and Network Policies
+# 
+# NOTE: PodSecurityPolicy was deprecated in Kubernetes v1.21 and removed in v1.25
+# This configuration uses Pod Security Standards (introduced in v1.23)
+
+---
+# Namespace with Pod Security Standards enforcement
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nephoran-conductor
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    # Enable restricted Pod Security Standards
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted  
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest
+
+---
+# Resource Quota for the namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: conductor-loop-quota
+  namespace: nephoran-conductor
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    security.nephoran.com/resource-control: "enabled"
+spec:
+  hard:
+    # Compute resources
+    requests.cpu: "2"
+    requests.memory: 2Gi
+    limits.cpu: "4"
+    limits.memory: 4Gi
+    
+    # Storage resources
+    requests.storage: 50Gi
+    persistentvolumeclaims: "5"
+    
+    # Object count limits
+    pods: "10"
+    services: "5"
+    secrets: "10"
+    configmaps: "10"
+    replicationcontrollers: "0"  # We use Deployments
+    
+    # Security-related quotas
+    count/ingresses.networking.k8s.io: "2"
+    count/networkpolicies.networking.k8s.io: "10"
+    count/poddisruptionbudgets.policy: "2"
+
+---
+# Limit Range for resource constraints
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: conductor-loop-limits
+  namespace: nephoran-conductor
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    security.nephoran.com/resource-control: "enabled"
+spec:
+  limits:
+  # Container limits
+  - type: Container
+    default:
+      cpu: 500m
+      memory: 256Mi
+      ephemeral-storage: 512Mi
+    defaultRequest:
+      cpu: 100m
+      memory: 128Mi
+      ephemeral-storage: 256Mi
+    max:
+      cpu: "2"
+      memory: 1Gi
+      ephemeral-storage: 2Gi
+    min:
+      cpu: 10m
+      memory: 32Mi
+      ephemeral-storage: 100Mi
+  
+  # Pod limits
+  - type: Pod
+    max:
+      cpu: "2"
+      memory: 1Gi
+      ephemeral-storage: 2Gi
+    min:
+      cpu: 10m
+      memory: 32Mi
+      ephemeral-storage: 100Mi
+  
+  # PVC limits
+  - type: PersistentVolumeClaim
+    max:
+      storage: 20Gi
+    min:
+      storage: 1Gi
+
+---
+# Network Policy for comprehensive traffic control
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: conductor-loop-default-deny
+  namespace: nephoran-conductor
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    security.nephoran.com/policy-type: "default-deny"
+spec:
+  podSelector: {}  # Apply to all pods in namespace
+  policyTypes:
+  - Ingress
+  - Egress
+  # Default deny all traffic (explicit empty rules)
+
+---
+# Network Policy for DNS resolution
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: conductor-loop-allow-dns
+  namespace: nephoran-conductor
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    security.nephoran.com/policy-type: "dns-access"
+spec:
+  podSelector: {}  # Apply to all pods
+  policyTypes:
+  - Egress
+  egress:
+  # Allow DNS queries to kube-dns
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    - podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow DNS queries to CoreDNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    - podSelector:
+        matchLabels:
+          k8s-app: coredns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+
+---
+# Network Policy for health checks from kubelet
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: conductor-loop-allow-health-checks
+  namespace: nephoran-conductor
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    security.nephoran.com/policy-type: "health-access"
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: conductor-loop
+  policyTypes:
+  - Ingress
+  ingress:
+  # Allow health checks from kubelet (node network)
+  - from: []  # Allow from any source for health checks
+    ports:
+    - protocol: TCP
+      port: 8080  # Health check port
+
+---
+# Network Policy for monitoring traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: conductor-loop-allow-monitoring
+  namespace: nephoran-conductor
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    security.nephoran.com/policy-type: "monitoring-access"
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: conductor-loop
+  policyTypes:
+  - Ingress
+  ingress:
+  # Allow Prometheus scraping
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    - podSelector:
+        matchLabels:
+          app: prometheus
+    ports:
+    - protocol: TCP
+      port: 9090  # Metrics port
+  
+  # Allow Grafana access (if direct access needed)
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    - podSelector:
+        matchLabels:
+          app: grafana
+    ports:
+    - protocol: TCP
+      port: 9090
+
+---
+# Network Policy for Porch communication
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: conductor-loop-allow-porch
+  namespace: nephoran-conductor
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    security.nephoran.com/policy-type: "porch-access"
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: conductor-loop
+  policyTypes:
+  - Egress
+  egress:
+  # Allow communication with Porch server
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: porch-system
+    - podSelector:
+        matchLabels:
+          app: porch-server
+    ports:
+    - protocol: TCP
+      port: 7007
+
+---
+# Pod Disruption Budget for availability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: conductor-loop-pdb
+  namespace: nephoran-conductor
+  labels:
+    app.kubernetes.io/name: conductor-loop
+spec:
+  minAvailable: 1  # At least 1 pod must be available
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: conductor-loop
+
+---
+# Priority Class for scheduling priority
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: conductor-loop-priority
+  labels:
+    app.kubernetes.io/name: conductor-loop
+value: 1000
+globalDefault: false
+description: "Priority class for conductor-loop pods - higher than default but not system critical"
+
+---
+# Security: Admission Controller Webhook Configuration (if using OPA Gatekeeper)
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: conductorloopsecurity
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    security.nephoran.com/policy-type: "admission-control"
+spec:
+  crd:
+    spec:
+      names:
+        kind: ConductorLoopSecurity
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            allowedImages:
+              type: array
+              items:
+                type: string
+            maxReplicas:
+              type: integer
+            requiredLabels:
+              type: array
+              items:
+                type: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package conductorloopsecurity
+        
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.template.spec.containers[_]
+          not starts_with(container.image, "conductor-loop:")
+          not starts_with(container.image, "gcr.io/nephoran/conductor-loop:")
+          msg := sprintf("Container image '%v' is not allowed for conductor-loop", [container.image])
+        }
+        
+        violation[{"msg": msg}] {
+          replicas := input.review.object.spec.replicas
+          replicas > input.parameters.maxReplicas
+          msg := sprintf("Too many replicas: %v (max: %v)", [replicas, input.parameters.maxReplicas])
+        }
+        
+        violation[{"msg": msg}] {
+          required := input.parameters.requiredLabels[_]
+          not input.review.object.metadata.labels[required]
+          msg := sprintf("Missing required label: %v", [required])
+        }
+
+---
+# Gatekeeper Constraint using the template above
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: ConductorLoopSecurity
+metadata:
+  name: conductor-loop-security-constraints
+  labels:
+    app.kubernetes.io/name: conductor-loop
+spec:
+  match:
+    kinds:
+      - apiGroups: ["apps"]
+        kinds: ["Deployment"]
+    namespaces: ["nephoran-conductor"]
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: conductor-loop
+  parameters:
+    allowedImages:
+      - "conductor-loop:"
+      - "gcr.io/nephoran/conductor-loop:"
+    maxReplicas: 5
+    requiredLabels:
+      - "app.kubernetes.io/name"
+      - "app.kubernetes.io/version"
+      - "security.nephoran.com/policy"
+
+---
+# Security Scanning: CIS Benchmark validation job
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: conductor-loop-security-scan
+  namespace: nephoran-conductor
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    security.nephoran.com/scanner: "cis-benchmark"
+spec:
+  schedule: "0 2 * * 0"  # Weekly on Sunday at 2 AM
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: conductor-loop-security-scan
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            fsGroup: 65532
+          containers:
+          - name: kube-bench
+            image: aquasec/kube-bench:latest
+            command:
+            - sh
+            - -c
+            - |
+              kube-bench run --targets node,policies,managedservices \
+                --json --outputfile /tmp/kube-bench-report.json
+              echo "Security scan completed. Results in /tmp/kube-bench-report.json"
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 65532
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop:
+                - ALL
+            resources:
+              limits:
+                cpu: 500m
+                memory: 256Mi
+              requests:
+                cpu: 100m
+                memory: 128Mi
+            volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp
+          volumes:
+          - name: tmp-volume
+            emptyDir:
+              sizeLimit: 100Mi

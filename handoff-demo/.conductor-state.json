@@ -1,0 +1,13 @@
+{
+  "version": "1.0",
+  "saved_at": "2025-08-16T00:04:31.5358502+08:00",
+  "states": {
+    "C:\\Users\\tingy\\dev\\_worktrees\\nephoran\\feat-conductor-loop\\handoff-demo\\intent-scale-up.json": {
+      "file_path": "C:\\Users\\tingy\\dev\\_worktrees\\nephoran\\feat-conductor-loop\\handoff-demo\\intent-scale-up.json",
+      "sha256": "3275c03543a67e8b2a95d8d48b795be46be0cfcd07849cedba8e3b8bffc1be79",
+      "size": 143,
+      "processed_at": "2025-08-16T00:04:31.5314054+08:00",
+      "status": "failed"
+    }
+  }
+}

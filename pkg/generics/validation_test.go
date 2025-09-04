@@ -4,10 +4,12 @@ package generics
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
+	"github.com/thc1006/nephoran-intent-operator/pkg/testutil"
 )
 
 // Test data structures
@@ -19,10 +21,16 @@ type TestUser struct {
 }
 
 func TestValidationBuilder_Required(t *testing.T) {
+	ctx, cancel := testutil.ContextWithTimeout(t)
+	defer cancel()
+
 	builder := NewValidationBuilder[TestUser]()
+	require.NotNil(t, builder, "validation builder should not be nil")
+
 	validator := builder.
 		Required("name", func(u TestUser) any { return u.Name }).
 		Build()
+	require.NotNil(t, validator, "validator should not be nil")
 
 	tests := []struct {
 		name  string
@@ -43,13 +51,20 @@ func TestValidationBuilder_Required(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := validator(tt.user)
-			if result.Valid != tt.valid {
-				t.Errorf("Expected valid=%v, got %v", tt.valid, result.Valid)
-			}
+			select {
+			case <-ctx.Done():
+				t.Fatal("test timeout")
+			default:
+				result := validator(tt.user)
+				require.NotNil(t, result, "validation result should not be nil")
 
-			if !tt.valid && len(result.Errors) == 0 {
-				t.Error("Expected validation errors for invalid case")
+				if result.Valid != tt.valid {
+					t.Errorf("Expected valid=%v, got %v", tt.valid, result.Valid)
+				}
+
+				if !tt.valid && len(result.Errors) == 0 {
+					t.Error("Expected validation errors for invalid case")
+				}
 			}
 		})
 	}
@@ -236,8 +251,8 @@ func TestValidationBuilder_OneOf(t *testing.T) {
 
 	builder := NewValidationBuilder[Status]()
 	validator := builder.
-		OneOf("status", []string{"active", "inactive", "pending"},
-			func(s Status) string { return s.Value }).
+		OneOf("status", []interface{}{"active", "inactive", "pending"},
+			func(s Status) interface{} { return s.Value }).
 		Build()
 
 	tests := []struct {
@@ -725,7 +740,7 @@ func TestUniqueSliceValidator(t *testing.T) {
 		Items []int
 	}
 
-	validator := UniqueSlice("items", func(d ListData) []int { return d.Items })
+	validator := ValidateUniqueSlice("items", func(d ListData) []int { return d.Items })
 
 	tests := []struct {
 		name  string

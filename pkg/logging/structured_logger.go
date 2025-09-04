@@ -11,57 +11,95 @@ import (
 	"time"
 )
 
-// LogLevel represents the severity level of a log entry
+// LogLevel represents the severity level of a log entry.
+
 type LogLevel string
 
 const (
+
+	// LevelDebug holds leveldebug value.
+
 	LevelDebug LogLevel = "debug"
-	LevelInfo  LogLevel = "info"
-	LevelWarn  LogLevel = "warn"
+
+	// LevelInfo holds levelinfo value.
+
+	LevelInfo LogLevel = "info"
+
+	// LevelWarn holds levelwarn value.
+
+	LevelWarn LogLevel = "warn"
+
+	// LevelError holds levelerror value.
+
 	LevelError LogLevel = "error"
 )
 
-// StructuredLogger provides enhanced structured logging capabilities
+// StructuredLogger provides enhanced structured logging capabilities.
+
 type StructuredLogger struct {
 	*slog.Logger
-	serviceName    string
+
+	serviceName string
+
 	serviceVersion string
-	environment    string
-	component      string
-	requestID      string
+
+	environment string
+
+	component string
+
+	requestID string
 }
 
-// Config holds configuration for the structured logger
+// Config holds configuration for the structured logger.
+
 type Config struct {
-	Level       LogLevel `json:"level"`
-	Format      string   `json:"format"` // "json" or "text"
-	ServiceName string   `json:"service_name"`
-	Version     string   `json:"version"`
-	Environment string   `json:"environment"`
-	Component   string   `json:"component"`
-	AddSource   bool     `json:"add_source"`
-	TimeFormat  string   `json:"time_format"`
+	Level LogLevel `json:"level"`
+
+	Format string `json:"format"` // "json" or "text"
+
+	ServiceName string `json:"service_name"`
+
+	Version string `json:"version"`
+
+	Environment string `json:"environment"`
+
+	Component string `json:"component"`
+
+	AddSource bool `json:"add_source"`
+
+	TimeFormat string `json:"time_format"`
 }
 
-// RequestContext holds request-specific logging context
+// RequestContext holds request-specific logging context.
+
 type RequestContext struct {
 	RequestID string
-	UserID    string
-	TraceID   string
-	SpanID    string
-	Method    string
-	Path      string
-	IP        string
+
+	UserID string
+
+	TraceID string
+
+	SpanID string
+
+	Method string
+
+	Path string
+
+	IP string
+
 	UserAgent string
 }
 
-// NewStructuredLogger creates a new structured logger instance
+// NewStructuredLogger creates a new structured logger instance.
+
 func NewStructuredLogger(config Config) *StructuredLogger {
 	level := parseLevel(config.Level)
 
 	var handler slog.Handler
+
 	opts := &slog.HandlerOptions{
-		Level:     level,
+		Level: level,
+
 		AddSource: config.AddSource,
 	}
 
@@ -69,118 +107,166 @@ func NewStructuredLogger(config Config) *StructuredLogger {
 		opts.ReplaceAttr = func(groups []string, a slog.Attr) slog.Attr {
 			if a.Key == slog.TimeKey {
 				return slog.Attr{
-					Key:   slog.TimeKey,
+					Key: slog.TimeKey,
+
 					Value: slog.StringValue(a.Value.Time().Format(config.TimeFormat)),
 				}
 			}
+
 			return a
 		}
 	}
 
 	switch strings.ToLower(config.Format) {
+
 	case "json":
+
 		handler = slog.NewJSONHandler(os.Stdout, opts)
+
 	default:
+
 		handler = slog.NewTextHandler(os.Stdout, opts)
+
 	}
 
 	logger := slog.New(handler)
 
 	return &StructuredLogger{
-		Logger:         logger,
-		serviceName:    config.ServiceName,
+		Logger: logger,
+
+		serviceName: config.ServiceName,
+
 		serviceVersion: config.Version,
-		environment:    config.Environment,
-		component:      config.Component,
+
+		environment: config.Environment,
+
+		component: config.Component,
 	}
 }
 
-// WithComponent creates a logger with a specific component context
+// WithComponent creates a logger with a specific component context.
+
 func (sl *StructuredLogger) WithComponent(component string) *StructuredLogger {
 	return &StructuredLogger{
-		Logger:         sl.Logger,
-		serviceName:    sl.serviceName,
+		Logger: sl.Logger,
+
+		serviceName: sl.serviceName,
+
 		serviceVersion: sl.serviceVersion,
-		environment:    sl.environment,
-		component:      component,
-		requestID:      sl.requestID,
+
+		environment: sl.environment,
+
+		component: component,
+
+		requestID: sl.requestID,
 	}
 }
 
-// WithRequest creates a logger with request context
+// WithRequest creates a logger with request context.
+
 func (sl *StructuredLogger) WithRequest(ctx *RequestContext) *StructuredLogger {
 	logger := sl.Logger.With(
+
 		"request_id", ctx.RequestID,
+
 		"trace_id", ctx.TraceID,
+
 		"span_id", ctx.SpanID,
+
 		"method", ctx.Method,
+
 		"path", ctx.Path,
+
 		"user_id", ctx.UserID,
+
 		"ip", ctx.IP,
+
 		"user_agent", ctx.UserAgent,
 	)
 
 	return &StructuredLogger{
-		Logger:         logger,
-		serviceName:    sl.serviceName,
+		Logger: logger,
+
+		serviceName: sl.serviceName,
+
 		serviceVersion: sl.serviceVersion,
-		environment:    sl.environment,
-		component:      sl.component,
-		requestID:      ctx.RequestID,
+
+		environment: sl.environment,
+
+		component: sl.component,
+
+		requestID: ctx.RequestID,
 	}
 }
 
-// Enhanced logging methods with automatic context
+// Enhanced logging methods with automatic context.
 
-// InfoWithContext logs an info message with full service context
+// InfoWithContext logs an info message with full service context.
+
 func (sl *StructuredLogger) InfoWithContext(msg string, args ...any) {
 	sl.Logger.Info(msg, sl.withServiceContext(args...)...)
 }
 
-// ErrorWithContext logs an error message with full service context
+// ErrorWithContext logs an error message with full service context.
+
 func (sl *StructuredLogger) ErrorWithContext(msg string, err error, args ...any) {
 	attrs := sl.withServiceContext(args...)
+
 	if err != nil {
 		attrs = append(attrs, "error", err.Error(), "error_type", fmt.Sprintf("%T", err))
 	}
+
 	sl.Logger.Error(msg, attrs...)
 }
 
-// WarnWithContext logs a warning message with full service context
+// WarnWithContext logs a warning message with full service context.
+
 func (sl *StructuredLogger) WarnWithContext(msg string, args ...any) {
 	sl.Logger.Warn(msg, sl.withServiceContext(args...)...)
 }
 
-// DebugWithContext logs a debug message with full service context
+// DebugWithContext logs a debug message with full service context.
+
 func (sl *StructuredLogger) DebugWithContext(msg string, args ...any) {
 	sl.Logger.Debug(msg, sl.withServiceContext(args...)...)
 }
 
-// Performance and operation logging
+// Performance and operation logging.
 
-// LogOperation logs the start and completion of an operation
+// LogOperation logs the start and completion of an operation.
+
 func (sl *StructuredLogger) LogOperation(operationName string, fn func() error) error {
 	start := time.Now()
 
 	sl.InfoWithContext("Operation started",
+
 		"operation", operationName,
+
 		"start_time", start,
 	)
 
 	err := fn()
+
 	duration := time.Since(start)
 
 	if err != nil {
 		sl.ErrorWithContext("Operation failed",
+
 			err,
+
 			"operation", operationName,
+
 			"duration", duration,
+
 			"duration_ms", duration.Milliseconds(),
 		)
 	} else {
 		sl.InfoWithContext("Operation completed",
+
 			"operation", operationName,
+
 			"duration", duration,
+
 			"duration_ms", duration.Milliseconds(),
 		)
 	}
@@ -188,12 +274,16 @@ func (sl *StructuredLogger) LogOperation(operationName string, fn func() error) 
 	return err
 }
 
-// LogPerformance logs performance metrics for an operation
+// LogPerformance logs performance metrics for an operation.
+
 func (sl *StructuredLogger) LogPerformance(operationName string, duration time.Duration, metadata map[string]interface{}) {
 	attrs := []any{
 		"operation", operationName,
+
 		"duration", duration,
+
 		"duration_ms", duration.Milliseconds(),
+
 		"performance_log", true,
 	}
 
@@ -204,37 +294,52 @@ func (sl *StructuredLogger) LogPerformance(operationName string, duration time.D
 	sl.InfoWithContext("Performance metrics", attrs...)
 }
 
-// LogHTTPRequest logs HTTP request details
+// LogHTTPRequest logs HTTP request details.
+
 func (sl *StructuredLogger) LogHTTPRequest(method, path string, statusCode int, duration time.Duration, size int64) {
 	level := slog.LevelInfo
+
 	if statusCode >= 400 {
 		level = slog.LevelWarn
 	}
+
 	if statusCode >= 500 {
 		level = slog.LevelError
 	}
 
 	sl.Logger.Log(context.Background(), level, "HTTP request processed",
+
 		sl.withServiceContext(
+
 			"http_method", method,
+
 			"http_path", path,
+
 			"http_status", statusCode,
+
 			"http_duration", duration,
+
 			"http_duration_ms", duration.Milliseconds(),
+
 			"http_response_size", size,
 		)...,
 	)
 }
 
-// Security and audit logging
+// Security and audit logging.
 
-// LogSecurityEvent logs security-related events
-func (sl *StructuredLogger) LogSecurityEvent(eventType, description string, severity string, metadata map[string]interface{}) {
+// LogSecurityEvent logs security-related events.
+
+func (sl *StructuredLogger) LogSecurityEvent(eventType, description, severity string, metadata map[string]interface{}) {
 	attrs := []any{
 		"security_event", true,
+
 		"event_type", eventType,
+
 		"description", description,
+
 		"severity", severity,
+
 		"timestamp", time.Now(),
 	}
 
@@ -243,22 +348,34 @@ func (sl *StructuredLogger) LogSecurityEvent(eventType, description string, seve
 	}
 
 	switch severity {
+
 	case "high", "critical":
+
 		sl.ErrorWithContext("Security event", nil, attrs...)
+
 	case "medium":
+
 		sl.WarnWithContext("Security event", attrs...)
+
 	default:
+
 		sl.InfoWithContext("Security event", attrs...)
+
 	}
 }
 
-// LogAuditEvent logs audit trail events
+// LogAuditEvent logs audit trail events.
+
 func (sl *StructuredLogger) LogAuditEvent(action, resource, userID string, metadata map[string]interface{}) {
 	attrs := []any{
 		"audit_event", true,
+
 		"action", action,
+
 		"resource", resource,
+
 		"user_id", userID,
+
 		"timestamp", time.Now(),
 	}
 
@@ -269,13 +386,16 @@ func (sl *StructuredLogger) LogAuditEvent(action, resource, userID string, metad
 	sl.InfoWithContext("Audit event", attrs...)
 }
 
-// Business and application logging
+// Business and application logging.
 
-// LogBusinessEvent logs business-specific events
+// LogBusinessEvent logs business-specific events.
+
 func (sl *StructuredLogger) LogBusinessEvent(eventType string, metadata map[string]interface{}) {
 	attrs := []any{
 		"business_event", true,
+
 		"event_type", eventType,
+
 		"timestamp", time.Now(),
 	}
 
@@ -286,26 +406,37 @@ func (sl *StructuredLogger) LogBusinessEvent(eventType string, metadata map[stri
 	sl.InfoWithContext("Business event", attrs...)
 }
 
-// LogAPIUsage logs API usage patterns
+// LogAPIUsage logs API usage patterns.
+
 func (sl *StructuredLogger) LogAPIUsage(endpoint, method, userID string, requestSize, responseSize int64, duration time.Duration) {
 	sl.InfoWithContext("API usage",
+
 		"api_endpoint", endpoint,
+
 		"http_method", method,
+
 		"user_id", userID,
+
 		"request_size", requestSize,
+
 		"response_size", responseSize,
+
 		"duration", duration,
+
 		"duration_ms", duration.Milliseconds(),
+
 		"api_usage_log", true,
 	)
 }
 
-// System and infrastructure logging
+// System and infrastructure logging.
 
-// LogSystemMetrics logs system performance metrics
+// LogSystemMetrics logs system performance metrics.
+
 func (sl *StructuredLogger) LogSystemMetrics(metrics map[string]interface{}) {
 	attrs := []any{
 		"system_metrics", true,
+
 		"timestamp", time.Now(),
 	}
 
@@ -316,23 +447,31 @@ func (sl *StructuredLogger) LogSystemMetrics(metrics map[string]interface{}) {
 	sl.InfoWithContext("System metrics", attrs...)
 }
 
-// LogResourceUsage logs resource utilization
-func (sl *StructuredLogger) LogResourceUsage(cpuPercent, memoryMB float64, diskUsagePercent float64) {
+// LogResourceUsage logs resource utilization.
+
+func (sl *StructuredLogger) LogResourceUsage(cpuPercent, memoryMB, diskUsagePercent float64) {
 	sl.InfoWithContext("Resource usage",
+
 		"cpu_percent", cpuPercent,
+
 		"memory_mb", memoryMB,
+
 		"disk_usage_percent", diskUsagePercent,
+
 		"resource_usage_log", true,
 	)
 }
 
-// Utility methods
+// Utility methods.
 
-// withServiceContext adds service-level context to log attributes
+// withServiceContext adds service-level context to log attributes.
+
 func (sl *StructuredLogger) withServiceContext(args ...any) []any {
 	baseAttrs := []any{
 		"service", sl.serviceName,
+
 		"version", sl.serviceVersion,
+
 		"environment", sl.environment,
 	}
 
@@ -347,64 +486,100 @@ func (sl *StructuredLogger) withServiceContext(args ...any) []any {
 	return append(baseAttrs, args...)
 }
 
-// parseLevel converts string level to slog.Level
+// parseLevel converts string level to slog.Level.
+
 func parseLevel(level LogLevel) slog.Level {
 	switch strings.ToLower(string(level)) {
+
 	case "debug":
+
 		return slog.LevelDebug
+
 	case "info":
+
 		return slog.LevelInfo
+
 	case "warn", "warning":
+
 		return slog.LevelWarn
+
 	case "error":
+
 		return slog.LevelError
+
 	default:
+
 		return slog.LevelInfo
+
 	}
 }
 
-// LogFormat provides formatted logging for complex objects
+// LogFormat provides formatted logging for complex objects.
+
 func (sl *StructuredLogger) LogFormat(level LogLevel, msg string, obj interface{}) {
 	jsonData, err := json.MarshalIndent(obj, "", "  ")
 	if err != nil {
+
 		sl.ErrorWithContext("Failed to marshal object for logging", err,
+
 			"original_message", msg,
+
 			"object_type", fmt.Sprintf("%T", obj),
 		)
+
 		return
+
 	}
 
 	switch level {
+
 	case LevelDebug:
+
 		sl.DebugWithContext(msg, "formatted_data", string(jsonData))
+
 	case LevelInfo:
+
 		sl.InfoWithContext(msg, "formatted_data", string(jsonData))
+
 	case LevelWarn:
+
 		sl.WarnWithContext(msg, "formatted_data", string(jsonData))
+
 	case LevelError:
+
 		sl.ErrorWithContext(msg, nil, "formatted_data", string(jsonData))
+
 	default:
+
 		sl.InfoWithContext(msg, "formatted_data", string(jsonData))
+
 	}
 }
 
-// getSafeFunctionName safely extracts function name with proper error handling
+// getSafeFunctionName safely extracts function name with proper error handling.
+
 func getSafeFunctionName(fn *runtime.Func) string {
 	if fn == nil {
 		return ""
 	}
 
-	// Use defer/recover to catch any potential panics from fn.Name()
+	// Use defer/recover to catch any potential panics from fn.Name().
+
 	defer func() {
 		if r := recover(); r != nil {
-			// Log the panic but don't propagate it - return empty string instead
-			// This prevents the entire logging system from crashing
+			// Log the panic but don't propagate it - return empty string instead.
+
+			// This prevents the entire logging system from crashing.
+			// We intentionally do nothing here to prevent logging system crashes
 		}
 	}()
 
-	// Even though fn is not nil, fn.Name() can still panic in edge cases
-	// where the PC doesn't correspond to a valid function entry point
+	// Even though fn is not nil, fn.Name() can still panic in edge cases.
+
+	// where the PC doesn't correspond to a valid function entry point.
+
 	name := fn.Name()
+
 	if name == "" {
 		return "<unnamed>"
 	}
@@ -412,15 +587,19 @@ func getSafeFunctionName(fn *runtime.Func) string {
 	return name
 }
 
-// GetCallerInfo returns caller information for debugging
+// GetCallerInfo returns caller information for debugging.
+
 func GetCallerInfo(skip int) (string, int, string) {
 	pc, file, line, ok := runtime.Caller(skip + 1)
+
 	if !ok {
 		return "", 0, ""
 	}
 
 	fn := runtime.FuncForPC(pc)
+
 	funcName := getSafeFunctionName(fn)
+
 	if funcName == "" {
 		funcName = "<unknown>"
 	}
@@ -428,15 +607,100 @@ func GetCallerInfo(skip int) (string, int, string) {
 	return file, line, funcName
 }
 
-// DefaultConfig returns a default logging configuration
+// DefaultConfig returns a default logging configuration.
+
 func DefaultConfig(serviceName, version, environment string) Config {
 	return Config{
+		Level: LevelInfo,
+
+		Format: "json",
+
+		ServiceName: serviceName,
+
+		Version: version,
+
+		Environment: environment,
+
+		AddSource: true,
+
+		TimeFormat: time.RFC3339,
+	}
+}
+
+// NewLogger creates a simple logger for backwards compatibility.
+
+func NewLogger(serviceName, level string) *StructuredLogger {
+	logLevel := LevelInfo
+
+	switch strings.ToLower(level) {
+
+	case "debug":
+
+		logLevel = LevelDebug
+
+	case "warn", "warning":
+
+		logLevel = LevelWarn
+
+	case "error":
+
+		logLevel = LevelError
+
+	}
+
+	config := Config{
+		Level: logLevel,
+
+		Format: "text",
+
+		ServiceName: serviceName,
+
+		Version: "1.0.0",
+
+		Environment: "development",
+
+		AddSource: false,
+	}
+
+	return NewStructuredLogger(config)
+}
+
+// WithService creates a config option to set the service name
+func WithService(serviceName string) func(*Config) {
+	return func(cfg *Config) {
+		cfg.ServiceName = serviceName
+	}
+}
+
+// WithVersion creates a config option to set the service version
+func WithVersion(version string) func(*Config) {
+	return func(cfg *Config) {
+		cfg.Version = version
+	}
+}
+
+// WithEnvironment creates a config option to set the environment
+func WithEnvironment(environment string) func(*Config) {
+	return func(cfg *Config) {
+		cfg.Environment = environment
+	}
+}
+
+// NewStructuredLogger creates a new structured logger with functional options
+func NewStructuredLoggerWithOptions(options ...func(*Config)) *StructuredLogger {
+	config := Config{
 		Level:       LevelInfo,
 		Format:      "json",
-		ServiceName: serviceName,
-		Version:     version,
-		Environment: environment,
+		ServiceName: "nephoran",
+		Version:     "1.0.0",
+		Environment: "production",
 		AddSource:   true,
 		TimeFormat:  time.RFC3339,
 	}
+
+	for _, option := range options {
+		option(&config)
+	}
+
+	return NewStructuredLogger(config)
 }

@@ -3,9 +3,10 @@
 package kpm
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"os"
 	"path/filepath"
 	"time"
@@ -14,6 +15,7 @@ import (
 // KPMMetric represents a single KPM measurement from an E2 node.
 // It follows the minimal structure defined in docs/contracts/e2.kpm.profile.md
 // for planner consumption.
+
 type KPMMetric struct {
 	NodeID    string    `json:"node_id"`
 	Timestamp time.Time `json:"timestamp"`
@@ -28,7 +30,8 @@ type KPMMetric struct {
 type Generator struct {
 	nodeID    string
 	outputDir string
-	rng       *rand.Rand // instance-specific random number generator
+
+	// Removed rng field - using crypto/rand for secure random generation
 }
 
 // NewGenerator creates a new KPM metric generator for the specified node.
@@ -39,14 +42,14 @@ func NewGenerator(nodeID, outputDir string) (*Generator, error) {
 	if nodeID == "" {
 		return nil, fmt.Errorf("nodeID cannot be empty")
 	}
+
 	if outputDir == "" {
 		return nil, fmt.Errorf("outputDir cannot be empty")
 	}
-	
+
 	return &Generator{
 		nodeID:    nodeID,
 		outputDir: outputDir,
-		rng:       rand.New(rand.NewSource(time.Now().UnixNano())),
 	}, nil
 }
 
@@ -54,14 +57,18 @@ func NewGenerator(nodeID, outputDir string) (*Generator, error) {
 // The metric value is a random float64 between 0 and 1 representing resource utilization.
 // Returns an error if JSON marshaling or file writing fails.
 func (g *Generator) GenerateMetric() error {
-	// Generate value and ensure it's clamped to [0, 1] range
-	value := g.rng.Float64()
+	// Generate cryptographically secure random value between 0 and 1.
+	value, err := g.secureRandFloat64()
+	if err != nil {
+		return fmt.Errorf("generate random value: %w", err)
+	}
+
 	if value < 0 {
 		value = 0
 	} else if value > 1 {
 		value = 1
 	}
-	
+
 	metric := &KPMMetric{
 		NodeID:    g.nodeID,
 		Timestamp: time.Now().UTC(),
@@ -75,14 +82,28 @@ func (g *Generator) GenerateMetric() error {
 		return fmt.Errorf("marshal metric: %w", err)
 	}
 
-	filename := fmt.Sprintf("%s_%s.json", 
+	filename := fmt.Sprintf("%s_%s.json",
 		metric.Timestamp.Format("20060102T150405Z"),
 		g.nodeID)
+
 	metricPath := filepath.Join(g.outputDir, filename)
 
-	if err := os.WriteFile(metricPath, data, 0600); err != nil {
+	if err := os.WriteFile(metricPath, data, 0o640); err != nil {
 		return fmt.Errorf("write file: %w", err)
 	}
 
 	return nil
+}
+
+// secureRandFloat64 generates a cryptographically secure random float64 between 0 and 1.
+func (g *Generator) secureRandFloat64() (float64, error) {
+	// Generate a random 64-bit integer
+	maxVal := big.NewInt(1 << 53) // Use 53 bits to avoid precision issues with float64
+	n, err := rand.Int(rand.Reader, maxVal)
+	if err != nil {
+		return 0, err
+	}
+
+	// Convert to float64 and normalize to [0, 1)
+	return float64(n.Int64()) / float64(1<<53), nil
 }

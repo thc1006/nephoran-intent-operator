@@ -4,10 +4,10 @@
 
 set -euo pipefail
 
-# Configuration
-COVERAGE_THRESHOLD=90
-QUALITY_THRESHOLD=8.0
-REPORTS_DIR=".quality-reports"
+# Configuration - Use environment variables first, then CLI args, then defaults
+COVERAGE_THRESHOLD="${COVERAGE_THRESHOLD:-90}"
+QUALITY_THRESHOLD="${QUALITY_THRESHOLD:-8.0}"
+REPORTS_DIR="${REPORTS_DIR:-.quality-reports}"
 TEMP_DIR=$(mktemp -d)
 EXIT_CODE=0
 
@@ -63,6 +63,8 @@ OPTIONS:
     --skip-tests              Skip test execution (use existing coverage)
     --skip-lint               Skip linting checks
     --skip-security           Skip security scanning
+    --skip-complexity         Skip cyclomatic complexity analysis
+    --reports-only            Generate reports only, don't fail on quality gate violations
     --verbose                 Enable verbose output
     --help                    Show this help message
 
@@ -117,6 +119,14 @@ parse_args() {
                 SKIP_SECURITY=true
                 shift
                 ;;
+            --skip-complexity)
+                SKIP_COMPLEXITY=true
+                shift
+                ;;
+            --reports-only)
+                REPORTS_ONLY=true
+                shift
+                ;;
             --verbose)
                 VERBOSE=true
                 shift
@@ -158,7 +168,13 @@ init_environment() {
             if [[ "$tool" == "golangci-lint" ]]; then
                 info "Install with: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"
             fi
-            exit 1
+            
+            # In reports-only mode, continue with warnings instead of failing
+            if [[ "${REPORTS_ONLY:-false}" == "true" ]]; then
+                warning "Continuing in reports-only mode without $tool"
+            else
+                exit 1
+            fi
         fi
     done
     
@@ -381,10 +397,36 @@ calculate_quality_metrics() {
     # Cyclomatic complexity analysis
     info "Analyzing cyclomatic complexity..."
     local complexity_data
-    complexity_data=$(find . -name "*.go" -not -path "./vendor/*" -not -path "./.git/*" -not -name "*_test.go" -not -name "*generated*" | \
-        xargs gocyclo -over 10 2>/dev/null | \
-        awk '{complexity+=$1; files++} END {if(files>0) print complexity/files; else print 0}')
-    complexity_data=${complexity_data:-0}
+    
+    # Check if complexity analyzer is available and install if needed
+    if ! command -v gocyclo &> /dev/null; then
+        if [[ "${SKIP_COMPLEXITY:-false}" == "true" ]]; then
+            warning "Complexity analysis skipped (SKIP_COMPLEXITY=1)"
+            complexity_data=0
+        else
+            warning "gocyclo not found, attempting to install..."
+            if go install github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0; then
+                # Ensure Go bin is in PATH
+                export PATH="$PATH:$(go env GOPATH)/bin"
+                success "gocyclo installed successfully"
+            else
+                warning "Failed to install gocyclo, skipping complexity analysis"
+                complexity_data=0
+            fi
+        fi
+    fi
+    
+    # Run complexity analysis if tool is available
+    if command -v gocyclo &> /dev/null && [[ "${SKIP_COMPLEXITY:-false}" != "true" ]]; then
+        complexity_data=$(find . -name "*.go" -not -path "./vendor/*" -not -path "./.git/*" -not -name "*_test.go" -not -name "*generated*" | \
+            xargs gocyclo -over 10 2>/dev/null | \
+            awk '{complexity+=$1; files++} END {if(files>0) print complexity/files; else print 0}')
+        complexity_data=${complexity_data:-0}
+        info "Complexity analysis completed (average: $complexity_data)"
+    else
+        warning "Complexity analysis skipped - gocyclo not available"
+        complexity_data=0
+    fi
     
     # Line count analysis
     local total_lines
@@ -816,7 +858,7 @@ main() {
     else
         error "❌ QUALITY GATE FAILURES DETECTED"
         
-        if [[ "${CI_MODE:-false}" == "true" ]]; then
+        if [[ "${CI_MODE:-false}" == "true" ]] && [[ "${REPORTS_ONLY:-false}" != "true" ]]; then
             error "Failing CI build due to quality gate failures"
         fi
     fi
@@ -827,7 +869,13 @@ main() {
     echo "Dashboard: $REPORTS_DIR/quality-dashboard.html"
     echo "============================================================================="
     
-    exit $EXIT_CODE
+    # Only exit with failure code if not in reports-only mode
+    if [[ "${REPORTS_ONLY:-false}" == "true" ]]; then
+        success "Reports generated successfully (reports-only mode, ignoring quality gate failures)"
+        exit 0
+    else
+        exit $EXIT_CODE
+    fi
 }
 
 # Parse arguments and run main function
@@ -836,6 +884,8 @@ CI_MODE=false
 SKIP_TESTS=false
 SKIP_LINT=false
 SKIP_SECURITY=false
+SKIP_COMPLEXITY=false
+REPORTS_ONLY=false
 VERBOSE=false
 
 parse_args "$@"

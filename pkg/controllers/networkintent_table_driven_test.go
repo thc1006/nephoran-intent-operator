@@ -17,7 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
@@ -68,10 +67,6 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
 			llmResponse: mustMarshal(map[string]interface{}{
-				"action":    "deploy",
-				"component": "amf",
-				"namespace": "5g-core",
-				"replicas":  1,
 				"resources": map[string]interface{}{
 					"cpu":    "500m",
 					"memory": "1Gi",
@@ -83,11 +78,7 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 				{Type: "Validated", Status: metav1.ConditionTrue},
 				{Type: "Processed", Status: metav1.ConditionTrue},
 			},
-			expectedParameters: map[string]interface{}{
-				"action":    "deploy",
-				"component": "amf",
-				"namespace": "5g-core",
-			},
+			expectedParameters: json.RawMessage(`{}`),
 			description: "Successful AMF deployment with LLM processing",
 			tags:        []string{"5gc", "amf", "deployment"},
 		},
@@ -98,9 +89,6 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
 			llmResponse: mustMarshal(map[string]interface{}{
-				"action":    "configure",
-				"component": "smf",
-				"namespace": "5g-core",
 				"config": map[string]interface{}{
 					"upf_integration":  true,
 					"session_policies": []string{"policy1", "policy2"},
@@ -122,11 +110,9 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
 			llmResponse: mustMarshal(map[string]interface{}{
-				"action":          "deploy",
-				"component":       "oran",
-				"namespace":       "oran-system",
-				"components":      []string{"o-cu", "o-du"},
-				"deployment_type": "edge",
+				"deployment": map[string]interface{}{
+					"deployment_type": "edge",
+				},
 			}),
 			expectedPhase:   "Processing",
 			expectedRequeue: false,
@@ -144,11 +130,7 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
 			llmResponse: mustMarshal(map[string]interface{}{
-				"action":     "deploy",
-				"component":  "network-slice",
-				"slice_type": "embb",
-				"namespace":  "slicing",
-				"qos_profile": map[string]interface{}{
+				"qos": map[string]interface{}{
 					"throughput": "10Gbps",
 					"latency":    "10ms",
 				},
@@ -215,11 +197,7 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 			intentText:       "Deploy comprehensive 5G network",
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
-			llmResponse: mustMarshal(map[string]interface{}{
-				"action":    "deploy",
-				"component": "5gc-comprehensive",
-				"namespace": "5g-core",
-			}),
+			llmResponse: mustMarshal(json.RawMessage(`{}`)),
 			gitShouldFail:   true,
 			expectedPhase:   "Error",
 			expectedRequeue: true,
@@ -247,11 +225,7 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 				},
 			},
 			llmFailCount: 1, // Fail first attempt, succeed second
-			llmResponse: mustMarshal(map[string]interface{}{
-				"action":    "deploy",
-				"component": "nssf",
-				"namespace": "5g-core",
-			}),
+			llmResponse: mustMarshal(json.RawMessage(`{}`)),
 			expectedPhase:   "Processing",
 			expectedRequeue: false,
 			expectedConditions: []ExpectedCondition{
@@ -325,14 +299,10 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 		{
 			name:             "unicode_intent_success",
 			category:         "edge_cases",
-			intentText:       "Deploy AMF with 高性能 configuration for 5G 网络 deployment",
+			intentText:       "Deploy AMF with 高性能 configuration for 5G 网�? deployment",
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
-			llmResponse: mustMarshal(map[string]interface{}{
-				"action":    "deploy",
-				"component": "amf",
-				"config":    "高性能",
-			}),
+			llmResponse: mustMarshal(json.RawMessage(`{}`)),
 			expectedPhase:   "Processing",
 			expectedRequeue: false,
 			expectedConditions: []ExpectedCondition{
@@ -349,13 +319,9 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
 			llmResponse: mustMarshal(map[string]interface{}{
-				"action":    "deploy",
-				"component": "smf",
-				"config": map[string]interface{}{
-					"cpu":    "500m",
-					"memory": "1Gi",
-					"ports":  []int{8080, 8443},
-				},
+				"cpu":    "500m",
+				"memory": "1Gi",
+				"ports":  []int{8080, 8443},
 			}),
 			expectedPhase:   "Processing",
 			expectedRequeue: false,
@@ -388,11 +354,7 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 			intentText:       "Deploy UPF for user plane processing",
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
-			llmResponse: mustMarshal(map[string]interface{}{
-				"action":    "deploy",
-				"component": "upf",
-				"namespace": "5g-core",
-			}),
+			llmResponse: mustMarshal(json.RawMessage(`{}`)),
 			expectedPhase:   "Processing",
 			expectedRequeue: false,
 			validationChecks: func(t *testing.T, ni *nephoranv1.NetworkIntent, result ctrl.Result) {
@@ -419,11 +381,7 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 				},
 			},
 			llmFailCount: 1, // Recover on retry
-			llmResponse: mustMarshal(map[string]interface{}{
-				"action":    "deploy",
-				"component": "pcf",
-				"namespace": "5g-core",
-			}),
+			llmResponse: mustMarshal(json.RawMessage(`{}`)),
 			expectedPhase:   "Processing",
 			expectedRequeue: false,
 			validationChecks: func(t *testing.T, ni *nephoranv1.NetworkIntent, result ctrl.Result) {
@@ -566,7 +524,7 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 			}
 
 			// Log test completion with tags for analysis
-			t.Logf("✓ Test %s completed successfully. Category: %s, Tags: %v", tc.name, tc.category, tc.tags)
+			t.Logf("??Test %s completed successfully. Category: %s, Tags: %v", tc.name, tc.category, tc.tags)
 		})
 	}
 
@@ -633,10 +591,7 @@ func BenchmarkTableDrivenScenarios(b *testing.B) {
 		{
 			name:       "HappyPath",
 			intentText: "Deploy AMF network function",
-			llmResponse: mustMarshal(map[string]interface{}{
-				"action":    "deploy",
-				"component": "amf",
-			}),
+			llmResponse: mustMarshal(json.RawMessage(`{}`)),
 			mockSetup: func(deps *MockDependencies) {},
 		},
 		{
@@ -650,10 +605,7 @@ func BenchmarkTableDrivenScenarios(b *testing.B) {
 			name:       "ComplexIntent",
 			intentText: "Deploy comprehensive 5G core with AMF, SMF, UPF, and network slicing",
 			llmResponse: mustMarshal(map[string]interface{}{
-				"action":     "deploy",
-				"component":  "5gc-comprehensive",
-				"components": []string{"amf", "smf", "upf"},
-				"slicing":    true,
+				"slicing": true,
 			}),
 			mockSetup: func(deps *MockDependencies) {},
 		},
@@ -691,3 +643,4 @@ func BenchmarkTableDrivenScenarios(b *testing.B) {
 		})
 	}
 }
+

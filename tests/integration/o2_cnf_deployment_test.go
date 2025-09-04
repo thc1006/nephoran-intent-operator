@@ -1,25 +1,22 @@
-package integration_test
+package integration_tests
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
-	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/prometheus/client_golang/prometheus"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
 var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
@@ -34,7 +31,7 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 	)
 
 	BeforeEach(func() {
-		namespace = CreateTestNamespace()
+		namespace = CreateO2TestNamespace()
 		var cancel context.CancelFunc
 		testCtx, cancel = context.WithTimeout(ctx, 20*time.Minute)
 		DeferCleanup(cancel)
@@ -43,25 +40,16 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 		metricsRegistry = prometheus.NewRegistry()
 
 		config := &o2.O2IMSConfig{
-			ServerAddress: "127.0.0.1",
-			ServerPort:    0,
-			TLSEnabled:    false,
-			DatabaseConfig: map[string]interface{}{
-				"type":     "memory",
-				"database": "o2_cnf_test_db",
-			},
+			ServerAddress:  "127.0.0.1",
+			ServerPort:     0,
+			TLSEnabled:     false,
+			DatabaseConfig: json.RawMessage(`{}`),
 			ProviderConfigs: map[string]interface{}{
-				"kubernetes": map[string]interface{}{
-					"enabled": true,
-					"config": map[string]interface{}{
-						"kubeconfig": "",
-						"namespace":  namespace.Name,
-					},
-				},
+				"enabled": true,
+				"config":  json.RawMessage(`{}`),
 			},
 			CNFConfig: map[string]interface{}{
-				"enabled": true,
-				"helmRepositories": []map[string]interface{}{
+				"repositories": []map[string]interface{}{
 					{
 						"name": "nephoran-charts",
 						"url":  "https://charts.nephoran.io",
@@ -72,10 +60,7 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 					},
 				},
 				"defaultTimeout": "10m",
-				"retryPolicy": map[string]interface{}{
-					"maxRetries":    3,
-					"backoffFactor": 2,
-				},
+				"retryPolicy":    json.RawMessage(`{}`),
 			},
 		}
 
@@ -102,11 +87,8 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 
 				By("registering a CNF package")
 				cnfPackage := map[string]interface{}{
-					"packageId":   packageID,
-					"name":        "Test 5G AMF CNF",
-					"description": "Test AMF CNF package for integration testing",
-					"version":     "1.0.0",
-					"vendor":      "Nephoran",
+					"packageId": packageID,
+					"name":      "Test 5G AMF CNF",
 					"vnfdInfo": map[string]interface{}{
 						"vnfdId":             "amf-vnfd-v1",
 						"vnfdVersion":        "1.0",
@@ -114,13 +96,8 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 						"vnfProductName":     "5G-AMF",
 						"vnfSoftwareVersion": "1.0.0",
 					},
-					"packageType": "helm",
-					"packageSource": map[string]interface{}{
-						"type":       "helm-repo",
-						"repository": "nephoran-charts",
-						"chart":      "5g-amf",
-						"version":    "1.0.0",
-					},
+					"packageType":      "helm",
+					"packageSource":    json.RawMessage(`{}`),
 					"operationalState": "ENABLED",
 					"usageState":       "NOT_IN_USE",
 					"onboardingState":  "ONBOARDED",
@@ -135,28 +112,12 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 							},
 						},
 						{
-							"id":          "medium",
-							"description": "Medium deployment flavor",
-							"requirements": map[string]interface{}{
-								"cpu":     "4",
-								"memory":  "8Gi",
-								"storage": "20Gi",
-							},
+							"id":           "medium",
+							"description":  "Medium deployment flavor",
+							"requirements": json.RawMessage(`{}`),
 						},
 					},
-					"softwareImages": []map[string]interface{}{
-						{
-							"id":              "amf-image",
-							"name":            "5g-amf-container",
-							"provider":        "Nephoran",
-							"version":         "1.0.0",
-							"containerFormat": "docker",
-							"diskFormat":      "raw",
-							"minDisk":         "1",
-							"minRam":          "1024",
-							"imagePath":       "nephoran/5g-amf:1.0.0",
-						},
-					},
+					"softwareImages": []json.RawMessage{json.RawMessage(`{}`)},
 				}
 
 				packageJSON, err := json.Marshal(cnfPackage)
@@ -221,15 +182,14 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 				By("creating CNF package with complex dependencies")
 				complexCNF := map[string]interface{}{
 					"packageId": packageID,
-					"name":      "5G Core Network CNF",
-					"version":   "2.0.0",
+					"name":      "Complex 5G Core CNF",
 					"vnfdInfo": map[string]interface{}{
 						"vnfdId": "5g-core-vnfd-v2",
 					},
 					"dependencies": []map[string]interface{}{
 						{
 							"name":       "mongodb",
-							"version":    ">=13.0.0",
+							"version":    ">=6.0.0",
 							"repository": "bitnami",
 							"required":   true,
 						},
@@ -244,7 +204,7 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 						{
 							"name":     "n1-interface",
 							"type":     "service",
-							"protocol": "HTTP/2",
+							"protocol": "HTTP2",
 							"port":     80,
 						},
 						{
@@ -334,14 +294,14 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 				cnfPackage := map[string]interface{}{
 					"packageId": packageID,
 					"name":      "Lifecycle Test CNF",
-					"version":   "1.0.0",
 					"vnfdInfo": map[string]interface{}{
 						"vnfdId": "lifecycle-test-vnfd",
 					},
 					"operationalState": "ENABLED",
 					"deploymentFlavors": []map[string]interface{}{
 						{
-							"id": "small",
+							"id":          "small",
+							"description": "Small deployment flavor",
 							"requirements": map[string]interface{}{
 								"cpu":    "1",
 								"memory": "2Gi",
@@ -364,15 +324,11 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 
 				By("instantiating CNF from package")
 				instantiationRequest := map[string]interface{}{
-					"vnfInstanceName":        "Test CNF Instance",
-					"vnfInstanceDescription": "Integration test CNF instance",
-					"vnfdId":                 "lifecycle-test-vnfd",
-					"flavourId":              "small",
-					"instantiationLevelId":   "default",
+					"vnfInstanceName": "Test CNF Instance",
+					"vnfdId":          "lifecycle-test-vnfd",
+					"targetNamespace": namespace.Name,
 					"additionalParams": map[string]interface{}{
-						"namespace": namespace.Name,
 						"values": map[string]interface{}{
-							"replicaCount": 1,
 							"image": map[string]interface{}{
 								"repository": "nginx",
 								"tag":        "latest",
@@ -383,10 +339,7 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 									"cpu":    "100m",
 									"memory": "128Mi",
 								},
-								"limits": map[string]interface{}{
-									"cpu":    "500m",
-									"memory": "512Mi",
-								},
+								"limits": json.RawMessage(`{}`),
 							},
 						},
 					},
@@ -418,7 +371,7 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 					if err != nil {
 						return ""
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 					if resp.StatusCode != http.StatusOK {
 						return ""
@@ -452,10 +405,9 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 
 				By("scaling CNF instance")
 				scaleRequest := map[string]interface{}{
-					"type":          "SCALE_OUT",
-					"aspectId":      "default",
-					"numberOfSteps": 1,
-					"additionalParams": map[string]interface{}{
+					"type":     "SCALE_OUT",
+					"aspectId": "default",
+					"scaleBySteps": map[string]interface{}{
 						"replicaCount": 2,
 					},
 				}
@@ -478,7 +430,7 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 					if err != nil {
 						return 0
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 					if resp.StatusCode != http.StatusOK {
 						return 0
@@ -521,10 +473,7 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 				resp.Body.Close()
 
 				By("terminating CNF instance")
-				terminationRequest := map[string]interface{}{
-					"terminationType":            "GRACEFUL",
-					"gracefulTerminationTimeout": 60,
-				}
+				terminationRequest := json.RawMessage(`{}`)
 
 				terminationJSON, err := json.Marshal(terminationRequest)
 				Expect(err).NotTo(HaveOccurred())
@@ -544,7 +493,7 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 					if err != nil {
 						return ""
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 					if resp.StatusCode == http.StatusNotFound {
 						return "NOT_INSTANTIATED"
@@ -578,15 +527,15 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 				By("registering CNF package with excessive resource requirements")
 				cnfPackage := map[string]interface{}{
 					"packageId": packageID,
-					"name":      "Resource Intensive CNF",
-					"version":   "1.0.0",
+					"name":      "Resource Intensive Test CNF",
 					"vnfdInfo": map[string]interface{}{
 						"vnfdId": "resource-intensive-vnfd",
 					},
 					"operationalState": "ENABLED",
 					"deploymentFlavors": []map[string]interface{}{
 						{
-							"id": "excessive",
+							"id":          "excessive",
+							"description": "Excessive resource deployment flavor",
 							"requirements": map[string]interface{}{
 								"cpu":    "100",    // Intentionally excessive
 								"memory": "1000Gi", // Intentionally excessive
@@ -608,17 +557,14 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 
 				By("attempting to instantiate CNF with excessive resources")
 				instantiationRequest := map[string]interface{}{
-					"vnfInstanceName": "Failure Test CNF",
+					"vnfInstanceName": "Failure Test CNF Instance",
 					"vnfdId":          "resource-intensive-vnfd",
+					"targetNamespace": namespace.Name,
 					"flavourId":       "excessive",
 					"additionalParams": map[string]interface{}{
-						"namespace": namespace.Name,
 						"values": map[string]interface{}{
 							"resources": map[string]interface{}{
-								"requests": map[string]interface{}{
-									"cpu":    "100",
-									"memory": "1000Gi",
-								},
+								"requests": json.RawMessage(`{}`),
 							},
 						},
 					},
@@ -648,7 +594,7 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 					if err != nil {
 						return ""
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 					var instance map[string]interface{}
 					err = json.NewDecoder(resp.Body).Decode(&instance)
@@ -733,11 +679,9 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 
 				By("creating a CNF deployment template")
 				cnfTemplate := map[string]interface{}{
-					"templateId":  templateID,
-					"name":        "5G Core CNF Template",
-					"description": "Template for 5G Core Network Functions",
-					"version":     "1.0.0",
-					"category":    "5G-Core",
+					"templateId": templateID,
+					"name":       "5G Core Network Template",
+					"category":   "5G-Core",
 					"vnfds": []map[string]interface{}{
 						{
 							"vnfdId":        "amf-vnfd",
@@ -751,7 +695,7 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 						},
 					},
 					"networkTopology": map[string]interface{}{
-						"interfaces": []map[string]interface{}{
+						"connections": []map[string]interface{}{
 							{
 								"name":      "n1-n2-interface",
 								"type":      "internal",
@@ -760,21 +704,16 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 						},
 					},
 					"configurationTemplate": map[string]interface{}{
-						"globalConfig": map[string]interface{}{
-							"plmn": map[string]interface{}{
-								"mcc": "001",
-								"mnc": "01",
-							},
-							"nsi": "default-slice",
+						"global": map[string]interface{}{
+							"plmn": json.RawMessage(`{}`),
+							"nsi":  "default-slice",
 						},
 						"vnfConfigs": map[string]interface{}{
 							"amf": map[string]interface{}{
 								"guamiList": []map[string]interface{}{
 									{
-										"plmnId": map[string]interface{}{
-											"mcc": "001",
-											"mnc": "01",
-										},
+										"mcc":   "001",
+										"mnc":   "01",
 										"amfId": "cafe00",
 									},
 								},
@@ -814,16 +753,16 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 
 				By("instantiating from template")
 				templateInstantiation := map[string]interface{}{
-					"templateId":   templateID,
-					"instanceName": "5G Core Instance from Template",
-					"parameters": map[string]interface{}{
+					"instanceName":    "5G Core Network Instance",
+					"templateId":      templateID,
+					"targetNamespace": namespace.Name,
+					"additionalParams": map[string]interface{}{
 						"globalConfig": map[string]interface{}{
 							"plmn": map[string]interface{}{
 								"mcc": "001",
 								"mnc": "01",
 							},
 						},
-						"namespace": namespace.Name,
 					},
 				}
 

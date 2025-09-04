@@ -1,0 +1,644 @@
+# Secure Docker Compose for Conductor Loop
+# Production-ready with security hardening, scanning, and monitoring
+# 
+# Usage:
+#   Development: docker-compose -f docker-compose.secure.yml up
+#   Production:  docker-compose -f docker-compose.secure.yml --profile production up
+#   Security:    docker-compose -f docker-compose.secure.yml --profile security up
+
+version: '3.8'
+
+# =============================================================================
+# Networks - Isolated and secure communication
+# =============================================================================
+networks:
+  conductor-frontend:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: conductor-fe
+    ipam:
+      config:
+        - subnet: 172.21.1.0/24
+          gateway: 172.21.1.1
+    labels:
+      security.zone: "frontend"
+      
+  conductor-backend:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: conductor-be
+    internal: true  # No external access
+    ipam:
+      config:
+        - subnet: 172.21.2.0/24
+          gateway: 172.21.2.1
+    labels:
+      security.zone: "backend"
+      
+  conductor-data:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: conductor-data
+    internal: true  # Database network isolation
+    ipam:
+      config:
+        - subnet: 172.21.3.0/24
+          gateway: 172.21.3.1
+    labels:
+      security.zone: "data"
+
+# =============================================================================
+# Volumes - Secure persistent storage
+# =============================================================================
+volumes:
+  conductor-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${CONDUCTOR_DATA_PATH:-./data}
+    labels:
+      security.encrypted: "true"
+      backup.policy: "daily"
+      
+  conductor-logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${CONDUCTOR_LOGS_PATH:-./logs}
+    labels:
+      security.audit: "enabled"
+      retention.days: "30"
+      
+  conductor-config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${CONDUCTOR_CONFIG_PATH:-./config}
+    labels:
+      security.readonly: "true"
+      
+  redis-data:
+    driver: local
+    labels:
+      security.encrypted: "true"
+      backup.policy: "daily"
+      
+  monitoring-data:
+    driver: local
+    labels:
+      retention.days: "90"
+
+# =============================================================================
+# Secrets - Secure credential management
+# =============================================================================
+secrets:
+  conductor-credentials:
+    file: ${CONDUCTOR_SECRETS_PATH:-./secrets/credentials.json}
+  redis-password:
+    file: ${REDIS_PASSWORD_FILE:-./secrets/redis-password.txt}
+  prometheus-config:
+    file: ${PROMETHEUS_CONFIG_PATH:-./monitoring/prometheus.yml}
+
+# =============================================================================
+# Services
+# =============================================================================
+services:
+
+  # ---------------------------------------------------------------------------
+  # Security Scanner Service
+  # ---------------------------------------------------------------------------
+  security-scanner:
+    build:
+      context: ../../
+      dockerfile: cmd/conductor-loop/Dockerfile
+      target: security-scanner
+    container_name: conductor-security-scanner
+    profiles:
+      - security
+    environment:
+      - SCAN_TARGET=/app
+      - REPORT_PATH=/reports
+    volumes:
+      - ../../:/app:ro
+      - ./security-reports:/reports
+    command: >
+      sh -c "
+      echo 'Running comprehensive security scan...' &&
+      govulncheck ./... > /reports/vulncheck-$(date +%Y%m%d).json &&
+      gosec -fmt json -out /reports/gosec-$(date +%Y%m%d).json ./... &&
+      echo 'Security scan completed. Reports available in ./security-reports/'
+      "
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+    cap_drop:
+      - ALL
+    networks:
+      - conductor-backend
+
+  # ---------------------------------------------------------------------------
+  # Main Conductor Loop Service
+  # ---------------------------------------------------------------------------
+  conductor-loop:
+    build:
+      context: ../../
+      dockerfile: cmd/conductor-loop/Dockerfile
+      target: runtime
+      args:
+        VERSION: ${VERSION:-1.0.0}
+        BUILD_DATE: ${BUILD_DATE}
+        VCS_REF: ${VCS_REF}
+    image: conductor-loop:${VERSION:-1.0.0}
+    container_name: conductor-loop
+    hostname: conductor-loop
+    restart: unless-stopped
+    
+    # Security Configuration
+    user: "65532:65532"  # Distroless nonroot user
+    security_opt:
+      - no-new-privileges:true
+      - seccomp:unconfined  # Allow for development, restrict in production
+    read_only: true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE  # For binding to ports
+    
+    # Environment variables with security defaults
+    environment:
+      - CONDUCTOR_LOG_LEVEL=${LOG_LEVEL:-info}
+      - CONDUCTOR_LOG_FORMAT=json
+      - CONDUCTOR_CONFIG_PATH=/config/config.json
+      - CONDUCTOR_DATA_PATH=/data
+      - CONDUCTOR_LOG_PATH=/logs
+      - CONDUCTOR_METRICS_ENABLED=true
+      - CONDUCTOR_METRICS_PORT=9090
+      - CONDUCTOR_HEALTH_PORT=8080
+      
+      # Security settings
+      - CONDUCTOR_SECURITY_RATE_LIMIT=${RATE_LIMIT:-60}
+      - CONDUCTOR_SECURITY_MAX_FILE_SIZE=${MAX_FILE_SIZE:-10MB}
+      - CONDUCTOR_SECURITY_TIMEOUT=${TIMEOUT:-30s}
+      
+      # Redis connection (secured)
+      - CONDUCTOR_REDIS_URL=redis://redis:6379
+      - CONDUCTOR_REDIS_PASSWORD_FILE=/run/secrets/redis-password
+      
+      # Service discovery
+      - CONDUCTOR_PORCH_ENDPOINT=http://porch-server:7007
+    
+    # Port mappings - restricted to essential ports only
+    ports:
+      - "127.0.0.1:8080:8080"  # Health check - localhost only
+      - "127.0.0.1:9090:9090"  # Metrics - localhost only
+    
+    # Secrets
+    secrets:
+      - conductor-credentials
+      - redis-password
+    
+    # Volume mounts with security constraints
+    volumes:
+      - conductor-config:/config:ro,noexec,nosuid
+      - conductor-data:/data:nodev,nosuid
+      - conductor-logs:/logs:nodev,nosuid,noexec
+      - /tmp:/tmp:rw,nodev,nosuid,noexec,size=100m  # Temporary files
+    
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    
+    # Logging with security audit
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+        labels: "security.audit=true,service=conductor-loop"
+    
+    # Network configuration
+    networks:
+      - conductor-frontend
+      - conductor-backend
+    
+    # Dependencies
+    depends_on:
+      redis:
+        condition: service_healthy
+      security-scanner:
+        condition: service_completed_successfully
+    
+    # Profiles
+    profiles:
+      - production
+      - development
+
+  # ---------------------------------------------------------------------------
+  # Redis Cache with Security Hardening
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: conductor-redis
+    hostname: redis
+    restart: unless-stopped
+    
+    # Security configuration
+    user: "999:1000"  # Redis user
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    cap_drop:
+      - ALL
+    
+    # Redis configuration with security
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --tcp-keepalive 60
+      --timeout 300
+      --requirepass $$(cat /run/secrets/redis-password)
+      --bind 0.0.0.0
+      --protected-mode yes
+      --port 6379
+      --disable-thp yes
+      --always-show-logo no
+    
+    # Secrets
+    secrets:
+      - redis-password
+    
+    # Volumes
+    volumes:
+      - redis-data:/data:nodev,nosuid
+    
+    # No external ports - internal access only
+    expose:
+      - "6379"
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "$$(cat /run/secrets/redis-password)", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
+        labels: "security.audit=true,service=redis"
+    
+    # Network isolation
+    networks:
+      - conductor-data
+      - conductor-backend
+
+  # ---------------------------------------------------------------------------
+  # Porch Server Mock (Development/Testing)
+  # ---------------------------------------------------------------------------
+  porch-server:
+    image: nginx:1.25-alpine
+    container_name: conductor-porch-mock
+    hostname: porch-server
+    restart: unless-stopped
+    
+    # Security configuration
+    user: "101:101"  # nginx user
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    cap_drop:
+      - ALL
+    
+    # Configuration
+    volumes:
+      - ./porch-mock/html:/usr/share/nginx/html:ro,noexec,nosuid
+      - ./porch-mock/nginx.conf:/etc/nginx/nginx.conf:ro,noexec,nosuid
+    
+    # Temporary directories
+    tmpfs:
+      - /var/cache/nginx:noexec,nosuid,size=50m
+      - /var/run:noexec,nosuid,size=50m
+      - /tmp:noexec,nosuid,size=50m
+    
+    # Internal access only
+    expose:
+      - "80"
+    
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 64M
+        reservations:
+          cpus: '0.05'
+          memory: 16M
+    
+    # Network access
+    networks:
+      - conductor-backend
+    
+    profiles:
+      - development
+
+  # ---------------------------------------------------------------------------
+  # Security Monitoring and Scanning
+  # ---------------------------------------------------------------------------
+  
+  # Container Security Scanner
+  trivy-scanner:
+    image: aquasecurity/trivy:latest
+    container_name: conductor-trivy-scanner
+    profiles:
+      - security
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    cap_drop:
+      - ALL
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./security-reports:/reports
+    command: >
+      sh -c "
+      echo 'Scanning conductor-loop image for vulnerabilities...' &&
+      trivy image --format json --output /reports/trivy-$(date +%Y%m%d).json conductor-loop:${VERSION:-1.0.0} &&
+      echo 'Container scan completed'
+      "
+    networks:
+      - conductor-backend
+
+  # File Integrity Monitoring
+  file-integrity-monitor:
+    image: alpine:3.18
+    container_name: conductor-fim
+    profiles:
+      - security
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    cap_drop:
+      - ALL
+    volumes:
+      - conductor-config:/monitor/config:ro
+      - conductor-data:/monitor/data:ro
+      - ./security-reports:/reports
+    command: >
+      sh -c "
+      apk add --no-cache inotify-tools sha256sum &&
+      echo 'Starting file integrity monitoring...' &&
+      while true; do
+        find /monitor -type f -exec sha256sum {} \; > /reports/integrity-$(date +%Y%m%d-%H%M).txt
+        inotifywait -r -e modify,create,delete /monitor && echo 'File change detected at $(date)'
+      done
+      "
+    tmpfs:
+      - /tmp:noexec,nosuid,size=10m
+    networks:
+      - conductor-backend
+
+  # ---------------------------------------------------------------------------
+  # Monitoring Stack (Production Profile)
+  # ---------------------------------------------------------------------------
+  
+  # Prometheus with Security Hardening
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: conductor-prometheus
+    hostname: prometheus
+    restart: unless-stopped
+    profiles:
+      - production
+      - monitoring
+    
+    # Security configuration
+    user: "65534:65534"  # nobody user
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    cap_drop:
+      - ALL
+    
+    # Command with security flags
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.external-url=http://localhost:9091'
+      - '--storage.tsdb.retention.time=30d'
+      - '--storage.tsdb.retention.size=10GB'
+      - '--web.enable-admin-api'
+    
+    # Secrets and configuration
+    secrets:
+      - prometheus-config
+    
+    # Volumes
+    volumes:
+      - monitoring-data:/prometheus:nodev,nosuid
+    
+    # External access (restricted)
+    ports:
+      - "127.0.0.1:9091:9090"  # Localhost only
+    
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9090/-/healthy || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.1'
+          memory: 256M
+    
+    # Networks
+    networks:
+      - conductor-frontend
+      - conductor-backend
+    
+    depends_on:
+      - conductor-loop
+
+  # Grafana with Security Configuration
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: conductor-grafana
+    hostname: grafana
+    restart: unless-stopped
+    profiles:
+      - production
+      - monitoring
+    
+    # Security configuration
+    user: "472:472"  # grafana user
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    cap_drop:
+      - ALL
+    
+    # Environment with security settings
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-$(openssl rand -base64 32)}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_USERS_ALLOW_ORG_CREATE=false
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_SECURITY_COOKIE_SECURE=true
+      - GF_SECURITY_COOKIE_SAMESITE=strict
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_SECURITY_DISABLE_GRAVATAR=true
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+      - GF_LOG_MODE=console
+      - GF_LOG_LEVEL=warn
+    
+    # Volumes
+    volumes:
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    
+    # Temporary storage
+    tmpfs:
+      - /var/lib/grafana:noexec,nosuid,size=100m
+      - /tmp:noexec,nosuid,size=50m
+    
+    # External access (restricted)
+    ports:
+      - "127.0.0.1:3000:3000"  # Localhost only
+    
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    
+    # Networks
+    networks:
+      - conductor-frontend
+    
+    depends_on:
+      - prometheus
+
+  # ---------------------------------------------------------------------------
+  # Security Audit Logger
+  # ---------------------------------------------------------------------------
+  audit-logger:
+    image: fluent/fluentd:v1.16-1
+    container_name: conductor-audit-logger
+    profiles:
+      - production
+      - security
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    cap_drop:
+      - ALL
+    volumes:
+      - conductor-logs:/fluentd/log:ro
+      - ./logging/fluentd.conf:/fluentd/etc/fluentd.conf:ro
+      - ./security-reports:/fluentd/audit
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+    environment:
+      - FLUENTD_CONF=fluentd.conf
+      - FLUENTD_OPT=-v
+    networks:
+      - conductor-backend
+
+# =============================================================================
+# Configuration Files and Usage Examples
+# =============================================================================
+
+# Example environment file (.env):
+# VERSION=1.0.0
+# BUILD_DATE=2025-01-01T00:00:00Z
+# VCS_REF=abc123
+# LOG_LEVEL=info
+# RATE_LIMIT=60
+# MAX_FILE_SIZE=10MB
+# TIMEOUT=30s
+# GRAFANA_PASSWORD=secure-password-here
+# CONDUCTOR_DATA_PATH=./data
+# CONDUCTOR_LOGS_PATH=./logs
+# CONDUCTOR_CONFIG_PATH=./config
+
+# Usage examples:
+# 
+# Development with security scanning:
+# docker-compose -f docker-compose.secure.yml --profile development --profile security up
+#
+# Production deployment:
+# docker-compose -f docker-compose.secure.yml --profile production up -d
+#
+# Security audit only:
+# docker-compose -f docker-compose.secure.yml --profile security up --abort-on-container-exit
+#
+# Full monitoring stack:
+# docker-compose -f docker-compose.secure.yml --profile production --profile monitoring up -d

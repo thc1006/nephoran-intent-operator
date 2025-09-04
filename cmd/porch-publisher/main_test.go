@@ -12,10 +12,10 @@ func TestMainIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
-	
+
 	// Create temp directory for test files
 	tmpDir := t.TempDir()
-	
+
 	// Create test intent file
 	intent := Intent{
 		IntentType: "scaling",
@@ -23,34 +23,34 @@ func TestMainIntegration(t *testing.T) {
 		Namespace:  "test-namespace",
 		Replicas:   3,
 	}
-	
+
 	intentJSON, err := json.Marshal(intent)
 	if err != nil {
 		t.Fatalf("Failed to marshal intent: %v", err)
 	}
-	
+
 	intentFile := filepath.Join(tmpDir, "test-intent.json")
-	if err := os.WriteFile(intentFile, intentJSON, 0644); err != nil {
+	if err := os.WriteFile(intentFile, intentJSON, 0o644); err != nil {
 		t.Fatalf("Failed to write intent file: %v", err)
 	}
-	
+
 	outputDir := filepath.Join(tmpDir, "output")
-	
+
 	// Test default format (full)
 	t.Run("DefaultFormat", func(t *testing.T) {
-		cmd := exec.Command("go", "run", "main.go", "-intent", intentFile, "-out", outputDir)
+		cmd := exec.Command("go", "run", "main.go", "-intent", intentFile, "-out", outputDir) // #nosec G204 - Static command with validated args
 		cmd.Dir = "."
 		output, err := cmd.CombinedOutput()
 		if err != nil {
 			t.Fatalf("Command failed: %v\nOutput: %s", err, output)
 		}
-		
+
 		// Check YAML file exists
 		yamlPath := filepath.Join(outputDir, "scaling-patch.yaml")
 		if _, err := os.Stat(yamlPath); os.IsNotExist(err) {
 			t.Error("Expected YAML file not created")
 		}
-		
+
 		content, _ := os.ReadFile(yamlPath)
 		expected := `apiVersion: apps/v1
 kind: Deployment
@@ -64,29 +64,29 @@ spec:
 			t.Errorf("Unexpected YAML content:\nGot:\n%s\nExpected:\n%s", content, expected)
 		}
 	})
-	
+
 	// Test SMP format
 	t.Run("SMPFormat", func(t *testing.T) {
 		outputDirSMP := filepath.Join(tmpDir, "output-smp")
-		cmd := exec.Command("go", "run", "main.go", "-intent", intentFile, "-out", outputDirSMP, "-format", "smp")
+		cmd := exec.Command("go", "run", "main.go", "-intent", intentFile, "-out", outputDirSMP, "-format", "smp") // #nosec G204 - Static command with validated args
 		cmd.Dir = "."
 		output, err := cmd.CombinedOutput()
 		if err != nil {
 			t.Fatalf("Command failed: %v\nOutput: %s", err, output)
 		}
-		
+
 		// Check JSON file exists
 		jsonPath := filepath.Join(outputDirSMP, "scaling-patch.json")
 		if _, err := os.Stat(jsonPath); os.IsNotExist(err) {
 			t.Error("Expected JSON file not created")
 		}
-		
+
 		content, _ := os.ReadFile(jsonPath)
 		var smp map[string]interface{}
 		if err := json.Unmarshal(content, &smp); err != nil {
 			t.Fatalf("Invalid JSON output: %v", err)
 		}
-		
+
 		// Validate structure
 		if smp["apiVersion"] != "apps/v1" {
 			t.Errorf("Wrong apiVersion: %v", smp["apiVersion"])
@@ -95,7 +95,7 @@ spec:
 			t.Errorf("Wrong kind: %v", smp["kind"])
 		}
 	})
-	
+
 	// Test invalid intent type
 	t.Run("InvalidIntentType", func(t *testing.T) {
 		invalidIntent := Intent{
@@ -104,18 +104,20 @@ spec:
 			Namespace:  "test-namespace",
 			Replicas:   3,
 		}
-		
+
 		invalidJSON, _ := json.Marshal(invalidIntent)
 		invalidFile := filepath.Join(tmpDir, "invalid-intent.json")
-		os.WriteFile(invalidFile, invalidJSON, 0644)
-		
-		cmd := exec.Command("go", "run", "main.go", "-intent", invalidFile, "-out", tmpDir)
+		if err := os.WriteFile(invalidFile, invalidJSON, 0o644); err != nil {
+			t.Fatalf("Failed to write test file: %v", err)
+		}
+
+		cmd := exec.Command("go", "run", "main.go", "-intent", invalidFile, "-out", tmpDir) // #nosec G204 - Static command with validated args
 		cmd.Dir = "."
 		output, err := cmd.CombinedOutput()
 		if err == nil {
 			t.Fatal("Expected command to fail for invalid intent type")
 		}
-		
+
 		if !contains(string(output), "only scaling intent is supported") {
 			t.Errorf("Expected error message about scaling intent, got: %s", output)
 		}

@@ -12,17 +12,26 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/telecom"
 )
 
-// Dependencies defines the interface for dependency injection
-// This matches the interface expected by the controllers
+// Dependencies defines the interface for dependency injection.
+
+// This matches the interface expected by the controllers.
+
 type Dependencies interface {
 	GetGitClient() git.ClientInterface
+
 	GetLLMClient() shared.ClientInterface
+
 	GetPackageGenerator() *nephio.PackageGenerator
+
 	GetHTTPClient() *http.Client
+
 	GetEventRecorder() record.EventRecorder
+
 	GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase
-	GetMetricsCollector() *monitoring.MetricsCollector
+
+	GetMetricsCollector() monitoring.MetricsCollector
 }
 
-// Ensure Container implements Dependencies interface
+// Ensure Container implements Dependencies interface.
+
 var _ Dependencies = (*Container)(nil)

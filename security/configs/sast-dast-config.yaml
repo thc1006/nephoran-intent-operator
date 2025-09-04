@@ -1,0 +1,481 @@
+# SAST/DAST Configuration for Nephoran Intent Operator
+# Comprehensive static and dynamic security testing configuration
+
+metadata:
+  name: "nephoran-sast-dast-config"
+  version: "1.2.0"
+  description: "Static and Dynamic Application Security Testing Configuration"
+  updated: "2025-01-24T00:00:00Z"
+  maintainer: "security-team@nephoran.io"
+
+# Static Application Security Testing (SAST) Configuration
+sast:
+  # Go-specific static analysis
+  gosec:
+    version: "v2.18.0"
+    config_file: "./security/configs/gosec.yaml"
+    rules:
+      enabled:
+        - G101  # Look for hardcoded credentials
+        - G102  # Bind to all interfaces
+        - G103  # Audit the use of unsafe block
+        - G104  # Audit unhandled error returns
+        - G106  # Audit the use of ssh.InsecureIgnoreHostKey
+        - G107  # Url provided to HTTP request as taint input
+        - G108  # Profiling endpoint is automatically exposed
+        - G109  # Potential integer overflow
+        - G110  # Potential DoS vulnerability via decompression bomb
+        - G201  # SQL injection via format string
+        - G202  # SQL injection via concatenation
+        - G203  # Use of unescaped data in HTML templates
+        - G204  # Audit use of command execution
+        - G301  # Poor file permissions used when creating a file
+        - G302  # Poor file permissions used with chmod
+        - G303  # Creating tempfile using predictable path
+        - G304  # File path provided as taint input
+        - G305  # File traversal when extracting zip archive
+        - G306  # Poor file permissions used when writing to file
+        - G307  # Deferring a method which returns error
+        - G401  # Detect the usage of DES, RC4, MD5 or SHA1
+        - G402  # Look for bad TLS connection settings
+        - G403  # Ensure minimum RSA key length of 2048 bits
+        - G404  # Insecure random number source (rand)
+        - G501  # Import blocklist: crypto/md5
+        - G502  # Import blocklist: crypto/des
+        - G503  # Import blocklist: crypto/rc4
+        - G504  # Import blocklist: net/http/cgi
+        - G505  # Import blocklist: crypto/sha1
+        - G601  # Implicit memory aliasing in for loop
+      disabled:
+        - G112  # Zip slip vulnerability (handled by other tools)
+      custom_rules:
+        - id: "NEPHORAN-001"
+          description: "Nephio/Porch API key exposure"
+          pattern: '(?i)(nephio|porch|kpt)[-_]?(api[-_]?key|token|secret)'
+          severity: "CRITICAL"
+        - id: "NEPHORAN-002"
+          description: "O-RAN interface credentials"
+          pattern: '(?i)(a1|o1|o2|e2)[-_]?(credential|password|secret|key)'
+          severity: "HIGH"
+        - id: "NEPHORAN-003"
+          description: "LLM API key detection"
+          pattern: '(?i)(openai|anthropic|claude|gpt)[-_]?api[-_]?key'
+          severity: "HIGH"
+    severity_threshold: "medium"
+    confidence_threshold: "medium"
+    exclude_dirs:
+      - "vendor/"
+      - "testdata/"
+      - ".git/"
+      - "node_modules/"
+    exclude_files:
+      - "*_test.go"
+      - "mock_*.go"
+      - "*.pb.go"
+    output_formats:
+      - json
+      - sarif
+      - html
+    integrations:
+      github_security_alerts: true
+      sonarqube: false
+      
+  # Semgrep configuration
+  semgrep:
+    version: "latest"
+    rulesets:
+      - "p/security-audit"
+      - "p/golang"
+      - "p/kubernetes"
+      - "p/docker"
+      - "p/secrets"
+      - "p/ci"
+      - "p/supply-chain"
+    custom_rules:
+      telecom_security:
+        - id: "telecom-logging-sensitive-data"
+          pattern: 'log.*(?i)(imsi|imei|msisdn|plmn)'
+          message: "Potential logging of sensitive telecom identifiers"
+          severity: "WARNING"
+          languages:
+            - go
+        - id: "oran-interface-unencrypted"
+          pattern: 'http://.*(a1|o1|o2|e2)'
+          message: "O-RAN interface should use HTTPS/TLS"
+          severity: "ERROR"
+          languages:
+            - go
+            - yaml
+        - id: "kubernetes-secret-hardcoded"
+          pattern: 'kubectl.*create.*secret.*--from-literal'
+          message: "Hardcoded Kubernetes secrets in scripts"
+          severity: "ERROR"
+          languages:
+            - bash
+            - sh
+    exclude_paths:
+      - "test/"
+      - "tests/"
+      - "vendor/"
+      - ".git/"
+    timeout: 300
+    
+  # CodeQL configuration
+  codeql:
+    version: "latest"
+    queries:
+      - "security-and-quality"
+      - "security-experimental"
+    custom_queries:
+      - "security/telecom-security.ql"
+      - "security/kubernetes-security.ql"
+      - "security/oran-security.ql"
+    languages:
+      - go
+      - python
+      - javascript
+      - yaml
+    build_mode: "autobuild"
+    
+  # Staticcheck configuration
+  staticcheck:
+    version: "2023.1.6"
+    checks:
+      - "all"
+      - "-ST1000" # Disable package comment check for tests
+    exclude_files:
+      - "*_test.go"
+      - "testdata/*"
+
+# Dynamic Application Security Testing (DAST) Configuration
+dast:
+  # OWASP ZAP configuration
+  zap:
+    version: "2.14.0"
+    scan_types:
+      - baseline
+      - full_scan
+      - api_scan
+    targets:
+      api_endpoints:
+        - url: "http://localhost:8080/api/v1"
+          authentication:
+            type: "jwt"
+            token_endpoint: "/api/v1/auth/token"
+          scan_policy: "api_security_policy"
+        - url: "http://localhost:8081/webhooks"
+          authentication:
+            type: "bearer"
+          scan_policy: "webhook_security_policy"
+        - url: "http://localhost:8082/metrics"
+          authentication:
+            type: "none"
+          scan_policy: "metrics_security_policy"
+    scan_policies:
+      api_security_policy:
+        active_scan: true
+        passive_scan: true
+        attack_strength: "medium"
+        alert_threshold: "medium"
+        rules:
+          - id: 10016  # Web Browser XSS Protection Not Enabled
+            threshold: "off"
+          - id: 10017  # Cross-Domain Misconfiguration
+            threshold: "high"
+          - id: 10021  # X-Content-Type-Options Missing
+            threshold: "low"
+          - id: 10023  # Information Disclosure - Debug Error Messages
+            threshold: "medium"
+          - id: 40012  # Cross Site Scripting (Reflected)
+            threshold: "medium"
+          - id: 40014  # Cross Site Scripting (Persistent)
+            threshold: "medium"
+          - id: 90019  # Server Leaks Information via "X-Powered-By" HTTP Response Header Field(s)
+            threshold: "low"
+      webhook_security_policy:
+        active_scan: true
+        passive_scan: true
+        attack_strength: "high"
+        alert_threshold: "low"
+      metrics_security_policy:
+        active_scan: false
+        passive_scan: true
+        attack_strength: "low"
+        alert_threshold: "medium"
+    authentication:
+      jwt:
+        login_url: "http://localhost:8080/api/v1/auth/login"
+        username_field: "username"
+        password_field: "password"
+        username: "${DAST_USERNAME}"
+        password: "${DAST_PASSWORD}"
+        token_field: "token"
+      bearer:
+        header_name: "Authorization"
+        token: "${BEARER_TOKEN}"
+    exclude_urls:
+      - ".*logout.*"
+      - ".*admin.*"
+      - ".*debug.*"
+    report_formats:
+      - html
+      - json
+      - xml
+      - sarif
+      
+  # Nuclei configuration
+  nuclei:
+    version: "3.1.0"
+    templates:
+      - "cves/"
+      - "vulnerabilities/"
+      - "misconfiguration/"
+      - "exposures/"
+      - "technologies/"
+    custom_templates:
+      - "security/templates/nephoran-checks.yaml"
+      - "security/templates/oran-vulnerabilities.yaml"
+      - "security/templates/kubernetes-misconfigs.yaml"
+    severity_filters:
+      - "critical"
+      - "high"
+      - "medium"
+    rate_limit: 150
+    bulk_size: 25
+    timeout: 10
+    retries: 1
+    
+  # API Security Testing
+  api_security:
+    tools:
+      - name: "apiscan"
+        version: "latest"
+        openapi_spec: "docs/api/openapi-spec.yaml"
+        base_url: "http://localhost:8080"
+        authentication:
+          type: "api_key"
+          header: "X-API-Key"
+          value: "${API_KEY}"
+        tests:
+          - injection_attacks
+          - authentication_bypass
+          - authorization_flaws
+          - business_logic_errors
+          - excessive_data_exposure
+          - security_misconfiguration
+      - name: "dredd"
+        version: "14.1.0"
+        config: "security/configs/dredd-config.yaml"
+        hooks: "security/hooks/api-security-hooks.js"
+
+# Container Security Testing
+container_security:
+  # Container image scanning
+  image_scanning:
+    trivy:
+      scan_types:
+        - "vuln"
+        - "config"
+        - "secret"
+        - "license"
+      severity_levels:
+        - "CRITICAL"
+        - "HIGH"
+        - "MEDIUM"
+      ignore_unfixed: false
+      security_checks:
+        - "vuln"
+        - "config"
+        - "secret"
+      policy_bundle: "security/policies/trivy-policies.rego"
+      
+    snyk:
+      severity_threshold: "medium"
+      fail_on: "upgradable"
+      docker_file: "Dockerfile"
+      exclude_base_image_vulns: false
+      
+    clair:
+      api_version: "v3"
+      vulnerability_sources:
+        - "alpine-secdb"
+        - "aws"
+        - "debian"
+        - "oracle"
+        - "photon"
+        - "pyupio"
+        - "rhel"
+        - "ubuntu"
+        
+  # Runtime security
+  runtime_security:
+    falco:
+      version: "0.36.0"
+      rules_files:
+        - "/etc/falco/falco_rules.yaml"
+        - "/etc/falco/falco_rules.local.yaml"
+        - "security/rules/nephoran-runtime-rules.yaml"
+      outputs:
+        - elasticsearch
+        - webhook
+        - grpc
+      custom_rules:
+        - rule: "Unauthorized Process in Container"
+          desc: "Detect unauthorized processes in Nephoran containers"
+          condition: >
+            spawned_process and container and
+            (proc.name in (nc, ncat, nmap, dig, netstat, nslookup, tcpdump)) and
+            container.image.name contains "nephoran"
+          output: >
+            Unauthorized process spawned in container
+            (user=%user.name command=%proc.cmdline image=%container.image.name)
+          priority: WARNING
+
+# Infrastructure Security Testing
+infrastructure_security:
+  # Kubernetes security scanning
+  kubernetes:
+    kube_bench:
+      version: "0.6.15"
+      benchmark: "cis-1.23"
+      skip_checks:
+        - "1.1.12"  # etcd data directory ownership (managed by cloud provider)
+      custom_checks:
+        - "security/benchmarks/nephoran-k8s-benchmarks.yaml"
+        
+    kube_hunter:
+      version: "0.6.8"
+      remote_scanning: false
+      pod_scanning: true
+      network_scanning: true
+      
+    kubesec:
+      version: "2.12.0"
+      threshold: 7
+      format: "json"
+      
+  # Network security scanning
+  network:
+    nmap:
+      version: "7.94"
+      scan_types:
+        - "tcp_connect"
+        - "service_detection"
+        - "os_detection"
+      scripts:
+        - "vuln"
+        - "safe"
+      exclude_ports:
+        - "135-139"  # Windows NetBIOS
+        - "445"      # Windows SMB
+        
+    masscan:
+      version: "1.3.2"
+      rate: 1000
+      retries: 3
+      timeout: 30
+
+# Reporting and Integration
+reporting:
+  formats:
+    - format: "sarif"
+      destination: "security/reports/sarif/"
+      include_details: true
+    - format: "json"
+      destination: "security/reports/json/"
+      include_details: true
+    - format: "html"
+      destination: "security/reports/html/"
+      include_details: true
+      template: "security/templates/security-report-template.html"
+    - format: "junit"
+      destination: "security/reports/junit/"
+      include_details: false
+      
+  dashboards:
+    grafana:
+      datasource: "prometheus"
+      dashboard_id: "security-testing-overview"
+      panels:
+        - "vulnerability_trends"
+        - "security_test_coverage"
+        - "remediation_metrics"
+        - "compliance_status"
+        
+  notifications:
+    slack:
+      webhook_url: "${SLACK_WEBHOOK_URL}"
+      channels:
+        - "#security-alerts"
+        - "#dev-team"
+      severity_filter: "high,critical"
+      
+    email:
+      smtp_server: "${SMTP_SERVER}"
+      recipients:
+        - "security-team@nephoran.io"
+        - "dev-team@nephoran.io"
+      severity_filter: "critical"
+      
+    github:
+      create_issues: true
+      labels:
+        - "security"
+        - "vulnerability"
+      severity_filter: "high,critical"
+
+# CI/CD Integration
+cicd_integration:
+  github_actions:
+    workflow_file: ".github/workflows/security-sast-dast.yml"
+    trigger_events:
+      - "push"
+      - "pull_request"
+      - "schedule"
+    fail_build_on:
+      - "critical_vulnerabilities"
+      - "high_severity_sast_findings"
+      - "dast_security_failures"
+      
+  pre_commit:
+    hooks:
+      - id: "security-scan"
+        name: "Run security scans"
+        entry: "make security-scan-quick"
+        language: "system"
+        stages: ["commit"]
+      - id: "secret-detection"
+        name: "Detect secrets"
+        entry: "gitleaks detect --source . --verbose"
+        language: "system"
+        stages: ["commit"]
+        
+  quality_gates:
+    sonarqube:
+      server_url: "${SONARQUBE_URL}"
+      token: "${SONARQUBE_TOKEN}"
+      quality_gate: "Sonar way"
+      coverage_threshold: 80
+      security_rating: "A"
+      reliability_rating: "A"
+      maintainability_rating: "A"
+
+# Performance and Optimization
+performance:
+  parallel_execution: true
+  max_concurrent_scans: 4
+  timeout_minutes: 60
+  cache_enabled: true
+  cache_ttl: "24h"
+  incremental_scanning: true
+  
+  resource_limits:
+    cpu: "2"
+    memory: "4Gi"
+    disk_space: "10Gi"
+    
+  optimization:
+    skip_unchanged_files: true
+    use_build_cache: true
+    parallel_container_scans: true
+    differential_analysis: true

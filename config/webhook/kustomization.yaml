@@ -1,14 +1,10 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: nephoran-system
-
 resources:
+- manifests.yaml
 - service.yaml
-- deployment.yaml
-- webhook.yaml
 
-images:
-- name: webhook-manager
-  newName: nephoran/webhook-manager
-  newTag: latest
+patchesStrategicMerge:
+- patches/webhook_patch.yaml
+- patches/cainjection_patch.yaml

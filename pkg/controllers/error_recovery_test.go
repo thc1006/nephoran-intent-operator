@@ -4,23 +4,274 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"sync"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	configPkg "github.com/thc1006/nephoran-intent-operator/pkg/config"
+	"github.com/thc1006/nephoran-intent-operator/pkg/git"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
+	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
+	"github.com/thc1006/nephoran-intent-operator/pkg/resilience"
+	"github.com/thc1006/nephoran-intent-operator/pkg/security"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/telecom"
 	"github.com/thc1006/nephoran-intent-operator/pkg/testutils"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
+
+// Mock types for testing
+type MockLLMClient struct {
+	response  string
+	error     error
+	CallCount int
+	failCount int
+	Mutex     sync.Mutex
+}
+
+func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (string, error) {
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+	m.CallCount++
+	
+	// Handle fail count for retry scenarios
+	if m.failCount > 0 && m.CallCount <= m.failCount {
+		return "", m.error
+	}
+	
+	return m.response, m.error
+}
+
+func (m *MockLLMClient) ProcessRequest(ctx context.Context, request *shared.LLMRequest) (*shared.LLMResponse, error) {
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+	m.CallCount++
+	if m.error != nil {
+		return nil, m.error
+	}
+	return &shared.LLMResponse{Content: m.response}, nil
+}
+
+func (m *MockLLMClient) ProcessStreamingRequest(ctx context.Context, request *shared.LLMRequest) (<-chan *shared.StreamingChunk, error) {
+	// Simple mock implementation
+	return nil, fmt.Errorf("streaming not implemented in mock")
+}
+
+func (m *MockLLMClient) HealthCheck(ctx context.Context) error {
+	return m.error
+}
+
+func (m *MockLLMClient) GetStatus() shared.ClientStatus {
+	return shared.ClientStatusHealthy
+}
+
+func (m *MockLLMClient) Close() error {
+	return nil
+}
+
+func (m *MockLLMClient) GetModelCapabilities() shared.ModelCapabilities {
+	return shared.ModelCapabilities{
+		SupportsStreaming:    true,
+		SupportsSystemPrompt: true,
+		SupportsChatFormat:   true,
+		SupportsChat:         true,
+		SupportsFunction:     false,
+		MaxTokens:            4096,
+		CostPerToken:         0.001,
+		SupportedMimeTypes:   []string{"text/plain", "application/json"},
+		ModelVersion:         "mock-1.0",
+		Features:             json.RawMessage(`{"mock": true}`),
+	}
+}
+
+func (m *MockLLMClient) GetEndpoint() string {
+	return "https://mock-llm-endpoint.example.com"
+}
+
+type MockGitClient struct {
+	CommitHash string
+	Error      error
+	FailCount  int
+	callCount  int
+	Mutex      sync.Mutex
+}
+
+func (m *MockGitClient) CommitAndPush(files map[string]string, message string) (string, error) {
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+	m.callCount++
+
+	if m.FailCount > 0 && m.callCount <= m.FailCount {
+		return "", m.Error
+	}
+	return m.CommitHash, nil
+}
+
+func (m *MockGitClient) CommitAndPushChanges(message string) error {
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+	m.callCount++
+
+	if m.FailCount > 0 && m.callCount <= m.FailCount {
+		return m.Error
+	}
+	return nil
+}
+
+func (m *MockGitClient) InitRepo() error {
+	return m.Error
+}
+
+func (m *MockGitClient) RemoveDirectory(path string, commitMessage string) error {
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+	m.callCount++
+
+	if m.FailCount > 0 && m.callCount <= m.FailCount {
+		return m.Error
+	}
+	return nil
+}
+
+func (m *MockGitClient) CommitFiles(files []string, msg string) error {
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+	m.callCount++
+
+	if m.FailCount > 0 && m.callCount <= m.FailCount {
+		return m.Error
+	}
+	return nil
+}
+
+func (m *MockGitClient) CreateBranch(name string) error {
+	return m.Error
+}
+
+func (m *MockGitClient) SwitchBranch(name string) error {
+	return m.Error
+}
+
+func (m *MockGitClient) GetCurrentBranch() (string, error) {
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+	m.callCount++
+
+	if m.FailCount > 0 && m.callCount <= m.FailCount {
+		return "", m.Error
+	}
+	return "main", nil
+}
+
+func (m *MockGitClient) ListBranches() ([]string, error) {
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+	m.callCount++
+
+	if m.FailCount > 0 && m.callCount <= m.FailCount {
+		return nil, m.Error
+	}
+	return []string{"main", "develop", "feature/test"}, nil
+}
+
+func (m *MockGitClient) GetFileContent(path string) ([]byte, error) {
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+	m.callCount++
+
+	if m.FailCount > 0 && m.callCount <= m.FailCount {
+		return nil, m.Error
+	}
+	return []byte("mock file content for: " + path), nil
+}
+
+// MockDependencies provides mock implementations for Dependencies interface
+type MockDependencies struct {
+	gitClient            git.ClientInterface
+	llmClient            shared.ClientInterface
+	packageGenerator     *nephio.PackageGenerator
+	httpClient           *http.Client
+	eventRecorder        record.EventRecorder
+	telecomKnowledgeBase *telecom.TelecomKnowledgeBase
+	metricsCollector     monitoring.MetricsCollector
+}
+
+func (m *MockDependencies) GetGitClient() git.ClientInterface {
+	return m.gitClient
+}
+
+func (m *MockDependencies) GetLLMClient() shared.ClientInterface {
+	return m.llmClient
+}
+
+func (m *MockDependencies) GetPackageGenerator() *nephio.PackageGenerator {
+	return m.packageGenerator
+}
+
+func (m *MockDependencies) GetHTTPClient() *http.Client {
+	return m.httpClient
+}
+
+func (m *MockDependencies) GetEventRecorder() record.EventRecorder {
+	return m.eventRecorder
+}
+
+func (m *MockDependencies) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase {
+	return m.telecomKnowledgeBase
+}
+
+func (m *MockDependencies) GetMetricsCollector() monitoring.MetricsCollector {
+	return m.metricsCollector
+}
+
+// Package-level test variables
+var (
+	errorRecoveryClient client.Client
+	errorRecoveryTestEnv *envtest.Environment
+	errorRecoveryCtx     context.Context
+)
+
+func init() {
+	// Initialize the scheme and fake client for unit tests
+	s := scheme.Scheme
+	err := nephoranv1.AddToScheme(s)
+	if err != nil {
+		panic(err)
+	}
+
+	// Create a fake client for unit testing
+	errorRecoveryClient = fake.NewClientBuilder().WithScheme(s).Build()
+	errorRecoveryCtx = context.Background()
+
+	// Create a mock errorRecoveryTestEnv for compatibility
+	errorRecoveryTestEnv = &envtest.Environment{}
+	errorRecoveryTestEnv.Scheme = s
+}
+
+// Helper functions for the error recovery tests
+func CreateIsolatedNamespace(prefix string) string {
+	return testutils.CreateIsolatedNamespace(prefix)
+}
+
+func CleanupIsolatedNamespace(namespaceName string) {
+	testutils.CleanupIsolatedNamespace(namespaceName)
+}
+
+
 
 var _ = Describe("Error Handling and Recovery Tests", func() {
 	const (
@@ -39,20 +290,39 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 		namespaceName = CreateIsolatedNamespace("error-recovery")
 
 		By("Setting up reconcilers for error testing")
-		networkIntentReconciler = &NetworkIntentReconciler{
-			Client:        k8sClient,
-			Scheme:        testEnv.Scheme,
-			EventRecorder: &record.FakeRecorder{},
+		// Create mock dependencies
+		mockDeps := &MockDependencies{
+			gitClient:        &MockGitClient{},
+			llmClient:        &MockLLMClient{},
+			eventRecorder:    &record.FakeRecorder{},
+			httpClient:       &http.Client{Timeout: 30 * time.Second},
+			metricsCollector: &monitoring.SimpleMetricsCollector{},
+		}
+
+		// Create config
+		config := &Config{
 			MaxRetries:    3,
 			RetryDelay:    time.Second * 1,
 			GitRepoURL:    "https://github.com/test/deployments.git",
 			GitBranch:     "main",
 			GitDeployPath: "networkintents",
+			Timeout:       time.Minute * 5,
+			Constants:     &configPkg.Constants{},
 		}
 
+		// Create NetworkIntentReconciler with proper constructor
+		var err error
+		networkIntentReconciler, err = NewNetworkIntentReconciler(
+			errorRecoveryClient,
+			errorRecoveryTestEnv.Scheme,
+			mockDeps,
+			config,
+		)
+		Expect(err).NotTo(HaveOccurred())
+
 		e2nodeSetReconciler = &E2NodeSetReconciler{
-			Client: k8sClient,
-			Scheme: k8sClient.Scheme(),
+			Client: errorRecoveryClient,
+			Scheme: errorRecoveryClient.Scheme(),
 		}
 	})
 
@@ -66,7 +336,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			By("Creating NetworkIntent with persistently failing LLM")
 			networkIntent := &nephoranv1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      GetUniqueName("persistent-llm-failure"),
+					Name:      testutils.GetUniqueName("persistent-llm-failure"),
 					Namespace: namespaceName,
 					Labels: map[string]string{
 						"test-resource": "true",
@@ -78,12 +348,14 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				},
 			}
 
-			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
+			Expect(errorRecoveryClient.Create(errorRecoveryCtx, networkIntent)).To(Succeed())
 
 			By("Setting up persistently failing LLM client")
-			networkIntentReconciler.LLMClient = &MockLLMClient{
-				Response: "",
-				Error:    fmt.Errorf("persistent LLM service unavailable"),
+			// Update the mock dependencies to use failing LLM client
+			mockDeps := networkIntentReconciler.GetDependencies().(*MockDependencies)
+			mockDeps.llmClient = &MockLLMClient{
+				response: "",
+				error:    fmt.Errorf("persistent LLM service unavailable"),
 			}
 
 			namespacedName := types.NamespacedName{
@@ -92,14 +364,14 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			}
 
 			By("Exhausting all retry attempts")
-			for i := 0; i <= networkIntentReconciler.MaxRetries; i++ {
-				result, err := networkIntentReconciler.Reconcile(ctx, reconcile.Request{
+			for i := 0; i <= networkIntentReconciler.GetConfig().MaxRetries; i++ {
+				result, err := networkIntentReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 					NamespacedName: namespacedName,
 				})
 				Expect(err).NotTo(HaveOccurred())
 
-				if i < networkIntentReconciler.MaxRetries {
-					Expect(result.RequeueAfter).To(Equal(networkIntentReconciler.RetryDelay))
+				if i < networkIntentReconciler.GetConfig().MaxRetries {
+					Expect(result.RequeueAfter).To(Equal(networkIntentReconciler.GetConfig().RetryDelay))
 				} else {
 					Expect(result.Requeue).To(BeFalse())
 					Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
@@ -108,7 +380,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 
 			By("Verifying NetworkIntent is marked as failed after max retries")
 			finalIntent := &nephoranv1.NetworkIntent{}
-			Expect(k8sClient.Get(ctx, namespacedName, finalIntent)).To(Succeed())
+			Expect(errorRecoveryClient.Get(errorRecoveryCtx, namespacedName, finalIntent)).To(Succeed())
 
 			processedCondition := testGetCondition(finalIntent.Status.Conditions, "Processed")
 			Expect(processedCondition).NotTo(BeNil())
@@ -121,7 +393,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			By("Creating NetworkIntent with processed parameters")
 			networkIntent := &nephoranv1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      GetUniqueName("git-failure-recovery"),
+					Name:      testutils.GetUniqueName("git-failure-recovery"),
 					Namespace: namespaceName,
 					Labels: map[string]string{
 						"test-resource": "true",
@@ -130,7 +402,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				},
 				Spec: nephoranv1.NetworkIntentSpec{
 					Intent: "Deploy network function for Git recovery testing",
-					Parameters: runtime.RawExtension{
+					Parameters: &runtime.RawExtension{
 						Raw: []byte(`{"action": "deploy", "component": "test-nf", "replicas": 2}`),
 					},
 				},
@@ -148,7 +420,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				},
 			}
 
-			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
+			Expect(errorRecoveryClient.Create(errorRecoveryCtx, networkIntent)).To(Succeed())
 
 			By("Setting up temporarily failing Git client")
 			mockGitClient := &MockGitClient{
@@ -156,7 +428,9 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				Error:      fmt.Errorf("temporary git authentication failure"),
 				FailCount:  2, // Fail first 2 attempts, succeed on 3rd
 			}
-			networkIntentReconciler.GitClient = mockGitClient
+			// Update the mock dependencies to use failing Git client
+			mockDeps := networkIntentReconciler.GetDependencies().(*MockDependencies)
+			mockDeps.gitClient = mockGitClient
 
 			namespacedName := types.NamespacedName{
 				Name:      networkIntent.Name,
@@ -164,24 +438,24 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			}
 
 			By("First reconciliation should fail Git operation")
-			result, err := networkIntentReconciler.Reconcile(ctx, reconcile.Request{
+			result, err := networkIntentReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result.RequeueAfter).To(Equal(networkIntentReconciler.RetryDelay))
+			Expect(result.RequeueAfter).To(Equal(networkIntentReconciler.GetConfig().RetryDelay))
 
 			By("Second reconciliation should also fail")
-			result, err = networkIntentReconciler.Reconcile(ctx, reconcile.Request{
+			result, err = networkIntentReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result.RequeueAfter).To(Equal(networkIntentReconciler.RetryDelay))
+			Expect(result.RequeueAfter).To(Equal(networkIntentReconciler.GetConfig().RetryDelay))
 
 			By("Third reconciliation should succeed after Git recovery")
 			mockGitClient.CommitHash = "recovery-commit-success"
 			mockGitClient.Error = nil
 
-			result, err = networkIntentReconciler.Reconcile(ctx, reconcile.Request{
+			result, err = networkIntentReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -190,15 +464,15 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			By("Verifying NetworkIntent deployment eventually succeeds")
 			Eventually(func() bool {
 				updated := &nephoranv1.NetworkIntent{}
-				if err := k8sClient.Get(ctx, namespacedName, updated); err != nil {
+				if err := errorRecoveryClient.Get(errorRecoveryCtx, namespacedName, updated); err != nil {
 					return false
 				}
-				return isConditionTrue(updated.Status.Conditions, "Deployed")
+				return testutils.IsConditionTrue(updated.Status.Conditions, "Deployed")
 			}, timeout, interval).Should(BeTrue())
 
 			By("Verifying final state")
 			finalIntent := &nephoranv1.NetworkIntent{}
-			Expect(k8sClient.Get(ctx, namespacedName, finalIntent)).To(Succeed())
+			Expect(errorRecoveryClient.Get(errorRecoveryCtx, namespacedName, finalIntent)).To(Succeed())
 			Expect(finalIntent.Status.GitCommitHash).To(Equal("recovery-commit-success"))
 			Expect(finalIntent.Status.Phase).To(Equal("Completed"))
 		})
@@ -207,7 +481,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			By("Creating NetworkIntent for malformed response testing")
 			networkIntent := &nephoranv1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      GetUniqueName("malformed-response"),
+					Name:      testutils.GetUniqueName("malformed-response"),
 					Namespace: namespaceName,
 					Labels: map[string]string{
 						"test-resource": "true",
@@ -219,7 +493,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				},
 			}
 
-			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
+			Expect(errorRecoveryClient.Create(errorRecoveryCtx, networkIntent)).To(Succeed())
 
 			By("Setting up LLM client with malformed JSON responses")
 			malformedResponses := []string{
@@ -240,20 +514,22 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			for i, malformedResponse := range malformedResponses {
 				By(fmt.Sprintf("Testing malformed response %d: %s", i+1, malformedResponse))
 
-				networkIntentReconciler.LLMClient = &MockLLMClient{
-					Response: malformedResponse,
-					Error:    nil,
+				// Update the mock dependencies to use malformed LLM client
+				mockDeps := networkIntentReconciler.GetDependencies().(*MockDependencies)
+				mockDeps.llmClient = &MockLLMClient{
+					response: malformedResponse,
+					error:    nil,
 				}
 
-				result, err := networkIntentReconciler.Reconcile(ctx, reconcile.Request{
+				result, err := networkIntentReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 					NamespacedName: namespacedName,
 				})
 				Expect(err).NotTo(HaveOccurred())
-				Expect(result.RequeueAfter).To(Equal(networkIntentReconciler.RetryDelay))
+				Expect(result.RequeueAfter).To(Equal(networkIntentReconciler.GetConfig().RetryDelay))
 
 				// Verify error condition is set
 				updatedIntent := &nephoranv1.NetworkIntent{}
-				Expect(k8sClient.Get(ctx, namespacedName, updatedIntent)).To(Succeed())
+				Expect(errorRecoveryClient.Get(errorRecoveryCtx, namespacedName, updatedIntent)).To(Succeed())
 
 				processedCondition := testGetCondition(updatedIntent.Status.Conditions, "Processed")
 				Expect(processedCondition).NotTo(BeNil())
@@ -269,7 +545,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			for i := 0; i < 5; i++ {
 				ni := &nephoranv1.NetworkIntent{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      GetUniqueName(fmt.Sprintf("concurrent-%d", i)),
+						Name:      testutils.GetUniqueName(fmt.Sprintf("concurrent-%d", i)),
 						Namespace: namespaceName,
 						Labels: map[string]string{
 							"test-resource": "true",
@@ -281,22 +557,20 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 						Intent: fmt.Sprintf("Deploy concurrent network function %d", i),
 					},
 				}
-				Expect(k8sClient.Create(ctx, ni)).To(Succeed())
+				Expect(errorRecoveryClient.Create(errorRecoveryCtx, ni)).To(Succeed())
 				networkIntents = append(networkIntents, ni)
 			}
 
 			By("Setting up LLM client for concurrent processing")
-			successResponse := map[string]interface{}{
-				"action":    "deploy",
-				"component": "concurrent-nf",
-				"replicas":  1,
-			}
+			successResponse := json.RawMessage(`{}`)
 			successResponseBytes, _ := json.Marshal(successResponse)
-			networkIntentReconciler.LLMClient = &MockLLMClient{
-				Response: string(successResponseBytes),
-				Error:    nil,
+			// Update mock dependencies for concurrent processing test
+			mockDeps := networkIntentReconciler.GetDependencies().(*MockDependencies)
+			mockDeps.llmClient = &MockLLMClient{
+				response: string(successResponseBytes),
+				error:    nil,
 			}
-			networkIntentReconciler.GitClient = &MockGitClient{
+			mockDeps.gitClient = &MockGitClient{
 				CommitHash: "concurrent-commit",
 				Error:      nil,
 			}
@@ -313,7 +587,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 						Namespace: intent.Namespace,
 					}
 
-					result, err := networkIntentReconciler.Reconcile(ctx, reconcile.Request{
+					result, err := networkIntentReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 						NamespacedName: namespacedName,
 					})
 					if err != nil {
@@ -345,11 +619,11 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 						Name:      ni.Name,
 						Namespace: ni.Namespace,
 					}
-					if err := k8sClient.Get(ctx, namespacedName, updated); err != nil {
+					if err := errorRecoveryClient.Get(errorRecoveryCtx, namespacedName, updated); err != nil {
 						return false
 					}
-					return isConditionTrue(updated.Status.Conditions, "Processed") &&
-						isConditionTrue(updated.Status.Conditions, "Deployed")
+					return testutils.IsConditionTrue(updated.Status.Conditions, "Processed") &&
+						testutils.IsConditionTrue(updated.Status.Conditions, "Deployed")
 				}, timeout, interval).Should(BeTrue())
 			}
 		})
@@ -360,7 +634,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			By("Creating E2NodeSet for conflict testing")
 			e2nodeSet := &nephoranv1.E2NodeSet{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      GetUniqueName("conflict-recovery"),
+					Name:      testutils.GetUniqueName("conflict-recovery"),
 					Namespace: namespaceName,
 					Labels: map[string]string{
 						"test-resource": "true",
@@ -372,7 +646,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				},
 			}
 
-			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+			Expect(errorRecoveryClient.Create(errorRecoveryCtx, e2nodeSet)).To(Succeed())
 
 			By("Pre-creating conflicting ConfigMaps")
 			conflictingCMs := []*corev1.ConfigMap{}
@@ -391,7 +665,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 						"index":    fmt.Sprintf("%d", i),
 					},
 				}
-				Expect(k8sClient.Create(ctx, cm)).To(Succeed())
+				Expect(errorRecoveryClient.Create(errorRecoveryCtx, cm)).To(Succeed())
 				conflictingCMs = append(conflictingCMs, cm)
 			}
 
@@ -401,7 +675,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			}
 
 			By("Initial reconciliation should encounter conflicts")
-			result, err := e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			result, err := e2nodeSetReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).To(HaveOccurred())
@@ -409,36 +683,36 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 
 			By("Verifying E2NodeSet status reflects partial creation")
 			partialE2NodeSet := &nephoranv1.E2NodeSet{}
-			Expect(k8sClient.Get(ctx, namespacedName, partialE2NodeSet)).To(Succeed())
+			Expect(errorRecoveryClient.Get(errorRecoveryCtx, namespacedName, partialE2NodeSet)).To(Succeed())
 			// Should have created only 1 ConfigMap (node-2) since 0 and 1 conflicted
 			Expect(partialE2NodeSet.Status.ReadyReplicas).To(BeNumerically("<=", 1))
 
 			By("Resolving conflicts by deleting conflicting ConfigMaps")
 			for _, cm := range conflictingCMs {
-				Expect(k8sClient.Delete(ctx, cm)).To(Succeed())
+				Expect(errorRecoveryClient.Delete(errorRecoveryCtx, cm)).To(Succeed())
 			}
 
 			By("Retry reconciliation should succeed after conflict resolution")
-			result, err = e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			result, err = e2nodeSetReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Requeue).To(BeFalse())
 
 			By("Verifying E2NodeSet recovers and creates all ConfigMaps")
-			testutils.WaitForConfigMapCount(ctx, k8sClient, namespaceName, map[string]string{
+			testutils.WaitForConfigMapCount(errorRecoveryCtx, errorRecoveryClient, namespaceName, map[string]string{
 				"app":       "e2node",
 				"e2nodeset": e2nodeSet.Name,
 			}, 3)
 
-			WaitForE2NodeSetReady(namespacedName, 3)
+			testutils.WaitForE2NodeSetReady(errorRecoveryCtx, errorRecoveryClient, namespacedName, 3)
 		})
 
 		It("Should handle partial ConfigMap deletions during scale-down", func() {
 			By("Creating E2NodeSet with initial replicas")
 			e2nodeSet := &nephoranv1.E2NodeSet{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      GetUniqueName("partial-deletion"),
+					Name:      testutils.GetUniqueName("partial-deletion"),
 					Namespace: namespaceName,
 					Labels: map[string]string{
 						"test-resource": "true",
@@ -450,7 +724,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				},
 			}
 
-			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+			Expect(errorRecoveryClient.Create(errorRecoveryCtx, e2nodeSet)).To(Succeed())
 
 			namespacedName := types.NamespacedName{
 				Name:      e2nodeSet.Name,
@@ -458,13 +732,13 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			}
 
 			By("Initial reconciliation to create all ConfigMaps")
-			result, err := e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			result, err := e2nodeSetReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Waiting for all ConfigMaps to be created")
-			testutils.WaitForConfigMapCount(ctx, k8sClient, namespaceName, map[string]string{
+			testutils.WaitForConfigMapCount(errorRecoveryCtx, errorRecoveryClient, namespaceName, map[string]string{
 				"app":       "e2node",
 				"e2nodeset": e2nodeSet.Name,
 			}, 5)
@@ -481,24 +755,24 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 					Name:      cmName,
 					Namespace: namespaceName,
 				}
-				Expect(k8sClient.Get(ctx, cmNamespacedName, cm)).To(Succeed())
+				Expect(errorRecoveryClient.Get(errorRecoveryCtx, cmNamespacedName, cm)).To(Succeed())
 
 				cm.Finalizers = append(cm.Finalizers, "test.nephoran.com/prevent-deletion")
-				Expect(k8sClient.Update(ctx, cm)).To(Succeed())
+				Expect(errorRecoveryClient.Update(errorRecoveryCtx, cm)).To(Succeed())
 			}
 
 			By("Scaling down to 2 replicas")
 			Eventually(func() error {
 				var currentE2NodeSet nephoranv1.E2NodeSet
-				if err := k8sClient.Get(ctx, namespacedName, &currentE2NodeSet); err != nil {
+				if err := errorRecoveryClient.Get(errorRecoveryCtx, namespacedName, &currentE2NodeSet); err != nil {
 					return err
 				}
 				currentE2NodeSet.Spec.Replicas = 2
-				return k8sClient.Update(ctx, &currentE2NodeSet)
+				return errorRecoveryClient.Update(errorRecoveryCtx, &currentE2NodeSet)
 			}, timeout, interval).Should(Succeed())
 
 			By("Reconciling after scale down")
-			result, err = e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			result, err = e2nodeSetReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 
@@ -514,35 +788,35 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 						Name:      cmName,
 						Namespace: namespaceName,
 					}
-					if err := k8sClient.Get(ctx, cmNamespacedName, cm); err != nil {
+					if err := errorRecoveryClient.Get(errorRecoveryCtx, cmNamespacedName, cm); err != nil {
 						return err
 					}
 					cm.Finalizers = []string{}
-					return k8sClient.Update(ctx, cm)
+					return errorRecoveryClient.Update(errorRecoveryCtx, cm)
 				}, timeout, interval).Should(Succeed())
 			}
 
 			By("Retry reconciliation should succeed after finalizer removal")
-			result, err = e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			result, err = e2nodeSetReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Requeue).To(BeFalse())
 
 			By("Verifying scale down completed successfully")
-			testutils.WaitForConfigMapCount(ctx, k8sClient, namespaceName, map[string]string{
+			testutils.WaitForConfigMapCount(errorRecoveryCtx, errorRecoveryClient, namespaceName, map[string]string{
 				"app":       "e2node",
 				"e2nodeset": e2nodeSet.Name,
 			}, 2)
 
-			WaitForE2NodeSetReady(namespacedName, 2)
+			testutils.WaitForE2NodeSetReady(errorRecoveryCtx, errorRecoveryClient, namespacedName, 2)
 		})
 
 		It("Should handle rapid scaling operations", func() {
 			By("Creating E2NodeSet for rapid scaling test")
 			e2nodeSet := &nephoranv1.E2NodeSet{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      GetUniqueName("rapid-scaling"),
+					Name:      testutils.GetUniqueName("rapid-scaling"),
 					Namespace: namespaceName,
 					Labels: map[string]string{
 						"test-resource": "true",
@@ -554,7 +828,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				},
 			}
 
-			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+			Expect(errorRecoveryClient.Create(errorRecoveryCtx, e2nodeSet)).To(Succeed())
 
 			namespacedName := types.NamespacedName{
 				Name:      e2nodeSet.Name,
@@ -562,12 +836,12 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			}
 
 			By("Initial state establishment")
-			result, err := e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			_, err := e2nodeSetReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			WaitForE2NodeSetReady(namespacedName, 1)
+			testutils.WaitForE2NodeSetReady(errorRecoveryCtx, errorRecoveryClient, namespacedName, 1)
 
 			By("Performing rapid scaling operations")
 			scaleSequence := []int32{5, 2, 8, 3, 1, 6}
@@ -578,22 +852,22 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				// Update replica count
 				Eventually(func() error {
 					var currentE2NodeSet nephoranv1.E2NodeSet
-					if err := k8sClient.Get(ctx, namespacedName, &currentE2NodeSet); err != nil {
+					if err := errorRecoveryClient.Get(errorRecoveryCtx, namespacedName, &currentE2NodeSet); err != nil {
 						return err
 					}
 					currentE2NodeSet.Spec.Replicas = targetReplicas
-					return k8sClient.Update(ctx, &currentE2NodeSet)
+					return errorRecoveryClient.Update(errorRecoveryCtx, &currentE2NodeSet)
 				}, timeout, interval).Should(Succeed())
 
 				// Reconcile
-				result, err = e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+				_, err = e2nodeSetReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 					NamespacedName: namespacedName,
 				})
 				Expect(err).NotTo(HaveOccurred())
 
 				// Verify scaling completed
-				WaitForE2NodeSetReady(namespacedName, targetReplicas)
-				testutils.WaitForConfigMapCount(ctx, k8sClient, namespaceName, map[string]string{
+				testutils.WaitForE2NodeSetReady(errorRecoveryCtx, errorRecoveryClient, namespacedName, targetReplicas)
+				testutils.WaitForConfigMapCount(errorRecoveryCtx, errorRecoveryClient, namespaceName, map[string]string{
 					"app":       "e2node",
 					"e2nodeset": e2nodeSet.Name,
 				}, int(targetReplicas))
@@ -601,7 +875,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 
 			By("Verifying final state consistency")
 			finalE2NodeSet := &nephoranv1.E2NodeSet{}
-			Expect(k8sClient.Get(ctx, namespacedName, finalE2NodeSet)).To(Succeed())
+			Expect(errorRecoveryClient.Get(errorRecoveryCtx, namespacedName, finalE2NodeSet)).To(Succeed())
 
 			finalReplicas := scaleSequence[len(scaleSequence)-1]
 			Expect(finalE2NodeSet.Spec.Replicas).To(Equal(finalReplicas))
@@ -612,7 +886,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			By("Creating E2NodeSet for corruption testing")
 			e2nodeSet := &nephoranv1.E2NodeSet{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      GetUniqueName("corruption-recovery"),
+					Name:      testutils.GetUniqueName("corruption-recovery"),
 					Namespace: namespaceName,
 					Labels: map[string]string{
 						"test-resource": "true",
@@ -624,7 +898,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				},
 			}
 
-			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+			Expect(errorRecoveryClient.Create(errorRecoveryCtx, e2nodeSet)).To(Succeed())
 
 			namespacedName := types.NamespacedName{
 				Name:      e2nodeSet.Name,
@@ -632,13 +906,13 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			}
 
 			By("Initial reconciliation")
-			result, err := e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			_, err := e2nodeSetReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Waiting for normal operation")
-			WaitForE2NodeSetReady(namespacedName, 3)
+			testutils.WaitForE2NodeSetReady(errorRecoveryCtx, errorRecoveryClient, namespacedName, 3)
 
 			By("Simulating ConfigMap corruption by modifying labels")
 			configMapList := &corev1.ConfigMapList{}
@@ -649,7 +923,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 					"e2nodeset": e2nodeSet.Name,
 				}),
 			}
-			Expect(k8sClient.List(ctx, configMapList, listOptions...)).To(Succeed())
+			Expect(errorRecoveryClient.List(errorRecoveryCtx, configMapList, listOptions...)).To(Succeed())
 			Expect(len(configMapList.Items)).To(Equal(3))
 
 			// Corrupt one ConfigMap by removing essential labels
@@ -657,10 +931,10 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			delete(corruptedCM.Labels, "e2nodeset")
 			delete(corruptedCM.Labels, "app")
 			corruptedCM.Labels["corrupted"] = "true"
-			Expect(k8sClient.Update(ctx, corruptedCM)).To(Succeed())
+			Expect(errorRecoveryClient.Update(errorRecoveryCtx, corruptedCM)).To(Succeed())
 
 			By("Reconciling after corruption - should detect and recover")
-			result, err = e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			_, err = e2nodeSetReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -669,15 +943,15 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			// The controller should recreate the missing/corrupted ConfigMap
 			Eventually(func() int {
 				correctConfigMaps := &corev1.ConfigMapList{}
-				Expect(k8sClient.List(ctx, correctConfigMaps, listOptions...)).To(Succeed())
+				Expect(errorRecoveryClient.List(errorRecoveryCtx, correctConfigMaps, listOptions...)).To(Succeed())
 				return len(correctConfigMaps.Items)
 			}, timeout, interval).Should(Equal(3))
 
-			WaitForE2NodeSetReady(namespacedName, 3)
+			testutils.WaitForE2NodeSetReady(errorRecoveryCtx, errorRecoveryClient, namespacedName, 3)
 
 			By("Verifying all ConfigMaps have correct labels and data")
 			finalConfigMaps := &corev1.ConfigMapList{}
-			Expect(k8sClient.List(ctx, finalConfigMaps, listOptions...)).To(Succeed())
+			Expect(errorRecoveryClient.List(errorRecoveryCtx, finalConfigMaps, listOptions...)).To(Succeed())
 
 			for _, cm := range finalConfigMaps.Items {
 				Expect(cm.Labels["app"]).To(Equal("e2node"))
@@ -692,30 +966,27 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 	Context("Cross-Controller Error Scenarios", func() {
 		It("Should handle cascading failures across NetworkIntent and E2NodeSet", func() {
 			By("Creating NetworkIntent that will drive E2NodeSet creation")
-			networkIntent := CreateTestNetworkIntent(
-				GetUniqueName("cascading-failure"),
+			networkIntent := testutils.CreateTestNetworkIntent(
+				testutils.GetUniqueName("cascading-failure"),
 				namespaceName,
 				"Deploy E2NodeSet that will experience cascading failures",
 			)
 
 			// Set up successful LLM processing
-			mockResponse := map[string]interface{}{
-				"action":        "deploy",
-				"component":     "e2nodeset",
-				"resource_name": "cascading-test-e2nodeset",
-				"replicas":      3,
-			}
+			mockResponse := json.RawMessage(`{}`)
 			mockResponseBytes, _ := json.Marshal(mockResponse)
-			networkIntentReconciler.LLMClient = &MockLLMClient{
-				Response: string(mockResponseBytes),
-				Error:    nil,
+			// Update mock dependencies for cascading failure test
+			mockDeps := networkIntentReconciler.GetDependencies().(*MockDependencies)
+			mockDeps.llmClient = &MockLLMClient{
+				response: string(mockResponseBytes),
+				error:    nil,
 			}
-			networkIntentReconciler.GitClient = &MockGitClient{
+			mockDeps.gitClient = &MockGitClient{
 				CommitHash: "cascading-commit",
 				Error:      nil,
 			}
 
-			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
+			Expect(errorRecoveryClient.Create(errorRecoveryCtx, networkIntent)).To(Succeed())
 
 			By("Processing NetworkIntent successfully")
 			niNamespacedName := types.NamespacedName{
@@ -723,7 +994,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				Namespace: networkIntent.Namespace,
 			}
 
-			result, err := networkIntentReconciler.Reconcile(ctx, reconcile.Request{
+			_, err := networkIntentReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: niNamespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -731,11 +1002,11 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			By("Verifying NetworkIntent processing completed")
 			Eventually(func() bool {
 				updated := &nephoranv1.NetworkIntent{}
-				if err := k8sClient.Get(ctx, niNamespacedName, updated); err != nil {
+				if err := errorRecoveryClient.Get(errorRecoveryCtx, niNamespacedName, updated); err != nil {
 					return false
 				}
-				return isConditionTrue(updated.Status.Conditions, "Processed") &&
-					isConditionTrue(updated.Status.Conditions, "Deployed")
+				return testutils.IsConditionTrue(updated.Status.Conditions, "Processed") &&
+					testutils.IsConditionTrue(updated.Status.Conditions, "Deployed")
 			}, timeout, interval).Should(BeTrue())
 
 			By("Creating E2NodeSet as would be done by GitOps system")
@@ -757,7 +1028,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				},
 			}
 
-			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+			Expect(errorRecoveryClient.Create(errorRecoveryCtx, e2nodeSet)).To(Succeed())
 
 			By("Simulating E2NodeSet failures during processing")
 			e2nsNamespacedName := types.NamespacedName{
@@ -778,10 +1049,10 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 					"invalid": "configuration",
 				},
 			}
-			Expect(k8sClient.Create(ctx, invalidCM)).To(Succeed())
+			Expect(errorRecoveryClient.Create(errorRecoveryCtx, invalidCM)).To(Succeed())
 
 			By("E2NodeSet reconciliation should handle the invalid ConfigMap")
-			result, err = e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			result, err := e2nodeSetReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: e2nsNamespacedName,
 			})
 			// Should fail due to conflicting ConfigMap
@@ -789,27 +1060,27 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			Expect(result.RequeueAfter).To(Equal(30 * time.Second))
 
 			By("Resolving the conflict and retrying")
-			Expect(k8sClient.Delete(ctx, invalidCM)).To(Succeed())
+			Expect(errorRecoveryClient.Delete(errorRecoveryCtx, invalidCM)).To(Succeed())
 
-			result, err = e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			result, err = e2nodeSetReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: e2nsNamespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Verifying both controllers eventually reach consistent state")
-			WaitForE2NodeSetReady(e2nsNamespacedName, 3)
-			testutils.WaitForConfigMapCount(ctx, k8sClient, namespaceName, map[string]string{
+			testutils.WaitForE2NodeSetReady(errorRecoveryCtx, errorRecoveryClient, e2nsNamespacedName, 3)
+			testutils.WaitForConfigMapCount(errorRecoveryCtx, errorRecoveryClient, namespaceName, map[string]string{
 				"app":       "e2node",
 				"e2nodeset": e2nodeSet.Name,
 			}, 3)
 
 			By("Verifying NetworkIntent and E2NodeSet relationship is maintained")
 			finalNetworkIntent := &nephoranv1.NetworkIntent{}
-			Expect(k8sClient.Get(ctx, niNamespacedName, finalNetworkIntent)).To(Succeed())
+			Expect(errorRecoveryClient.Get(errorRecoveryCtx, niNamespacedName, finalNetworkIntent)).To(Succeed())
 			Expect(finalNetworkIntent.Status.Phase).To(Equal("Completed"))
 
 			finalE2NodeSet := &nephoranv1.E2NodeSet{}
-			Expect(k8sClient.Get(ctx, e2nsNamespacedName, finalE2NodeSet)).To(Succeed())
+			Expect(errorRecoveryClient.Get(errorRecoveryCtx, e2nsNamespacedName, finalE2NodeSet)).To(Succeed())
 			Expect(finalE2NodeSet.Annotations["nephoran.com/intent-source"]).To(Equal(networkIntent.Name))
 			Expect(finalE2NodeSet.Status.ReadyReplicas).To(Equal(int32(3)))
 		})
@@ -848,3 +1119,4 @@ func testGetRetryCount(ni *nephoranv1.NetworkIntent, operation string) int {
 	}
 	return 0
 }
+

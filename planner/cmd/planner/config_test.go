@@ -210,12 +210,12 @@ func TestHTTPClientConnectionReuse(t *testing.T) {
 	if httpClient.Transport == nil {
 		t.Fatal("HTTP client should have a custom transport")
 	}
-	
+
 	transport, ok := httpClient.Transport.(*http.Transport)
 	if !ok {
 		t.Fatal("HTTP client transport should be *http.Transport")
 	}
-	
+
 	// Verify connection pooling settings
 	if transport.MaxIdleConns != 10 {
 		t.Errorf("Expected MaxIdleConns 10, got %d", transport.MaxIdleConns)
@@ -226,15 +226,15 @@ func TestHTTPClientConnectionReuse(t *testing.T) {
 	if transport.IdleConnTimeout != 90*time.Second {
 		t.Errorf("Expected IdleConnTimeout 90s, got %v", transport.IdleConnTimeout)
 	}
-	
+
 	// Test that the client actually works
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"timestamp":"2023-01-01T00:00:00Z","node_id":"test","prb_utilization":0.5,"p95_latency":25.0,"active_ues":100,"current_replicas":2}`))
 	}))
-	defer server.Close()
-	
+	defer server.Close() // #nosec G307 - Error handled in defer
+
 	// Make multiple requests using the global httpClient
 	for i := 0; i < 3; i++ {
 		resp, err := httpClient.Get(server.URL)
@@ -254,14 +254,14 @@ func TestHTTPClientConcurrentUsage(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"timestamp":"2023-01-01T00:00:00Z","node_id":"test","prb_utilization":0.5,"p95_latency":25.0,"active_ues":100,"current_replicas":2}`))
 	}))
-	defer server.Close()
-	
+	defer server.Close() // #nosec G307 - Error handled in defer
+
 	const numRequests = 20
 	var wg sync.WaitGroup
 	errorChan := make(chan error, numRequests)
-	
+
 	start := time.Now()
-	
+
 	for i := 0; i < numRequests; i++ {
 		wg.Add(1)
 		go func(id int) {
@@ -271,24 +271,24 @@ func TestHTTPClientConcurrentUsage(t *testing.T) {
 				errorChan <- fmt.Errorf("request %d failed: %w", id, err)
 				return
 			}
-			defer resp.Body.Close()
-			
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
+
 			if resp.StatusCode != http.StatusOK {
 				errorChan <- fmt.Errorf("request %d returned status %d", id, resp.StatusCode)
 			}
 		}(i)
 	}
-	
+
 	wg.Wait()
 	close(errorChan)
-	
+
 	elapsed := time.Since(start)
-	
+
 	// Check for errors
 	for err := range errorChan {
 		t.Error(err)
 	}
-	
+
 	// Verify concurrent execution was efficient (should be much less than sequential)
 	expectedSequentialTime := time.Duration(numRequests) * 10 * time.Millisecond
 	if elapsed > expectedSequentialTime/2 {
@@ -299,15 +299,15 @@ func TestHTTPClientConcurrentUsage(t *testing.T) {
 // TestHTTPClientTimeouts tests various timeout scenarios
 func TestHTTPClientTimeouts(t *testing.T) {
 	tests := []struct {
-		name           string
-		serverDelay    time.Duration
-		expectTimeout  bool
+		name          string
+		serverDelay   time.Duration
+		expectTimeout bool
 	}{
 		{"Normal response", 50 * time.Millisecond, false},
 		{"Slow response within timeout", 5 * time.Second, false},
 		{"Response exceeding timeout", 15 * time.Second, true},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -315,8 +315,8 @@ func TestHTTPClientTimeouts(t *testing.T) {
 				w.WriteHeader(http.StatusOK)
 				w.Write([]byte(`{"test":"data"}`))
 			}))
-			defer server.Close()
-			
+			defer server.Close() // #nosec G307 - Error handled in defer
+
 			resp, err := httpClient.Get(server.URL)
 			if tt.expectTimeout {
 				if err == nil {
@@ -404,7 +404,7 @@ scaling_rules:
 			"Extreme timeout values should be parsed correctly",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tmpDir := t.TempDir()
@@ -413,7 +413,7 @@ scaling_rules:
 			if err != nil {
 				t.Fatalf("Failed to create test config file: %v", err)
 			}
-			
+
 			cfg := &Config{
 				MetricsURL:      "http://localhost:9090/metrics/kmp",
 				EventsURL:       "http://localhost:9091/events/ves",
@@ -424,7 +424,7 @@ scaling_rules:
 				SimDataFile:     "examples/planner/kmp-sample.json",
 				StateFile:       filepath.Join(os.TempDir(), "planner-state.json"),
 			}
-			
+
 			err = loadConfig(configFile, cfg, security.NewValidator(security.DefaultValidationConfig()))
 			if tt.expectError && err == nil {
 				t.Errorf("Expected error for %s, but got none", tt.description)
@@ -464,24 +464,24 @@ scaling_rules:
 logging:
   level: "debug"
   format: "text"`
-	
+
 	tmpDir := t.TempDir()
 	configFile := filepath.Join(tmpDir, "test-config.yaml")
 	err := os.WriteFile(configFile, []byte(yamlContent), 0644)
 	if err != nil {
 		t.Fatalf("Failed to create test config file: %v", err)
 	}
-	
+
 	const numGoroutines = 10
 	var wg sync.WaitGroup
 	errorChan := make(chan error, numGoroutines)
 	resultChan := make(chan *Config, numGoroutines)
-	
+
 	for i := 0; i < numGoroutines; i++ {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
-			
+
 			cfg := &Config{
 				MetricsURL:      "http://localhost:9090/metrics/kmp",
 				EventsURL:       "http://localhost:9091/events/ves",
@@ -492,35 +492,35 @@ logging:
 				SimDataFile:     "examples/planner/kmp-sample.json",
 				StateFile:       filepath.Join(os.TempDir(), "planner-state.json"),
 			}
-			
+
 			if err := loadConfig(configFile, cfg, security.NewValidator(security.DefaultValidationConfig())); err != nil {
 				errorChan <- fmt.Errorf("goroutine %d failed: %w", id, err)
 				return
 			}
-			
+
 			resultChan <- cfg
 		}(i)
 	}
-	
+
 	wg.Wait()
 	close(errorChan)
 	close(resultChan)
-	
+
 	// Check for errors
 	for err := range errorChan {
 		t.Error(err)
 	}
-	
+
 	// Verify all results are consistent
 	var configs []*Config
 	for cfg := range resultChan {
 		configs = append(configs, cfg)
 	}
-	
+
 	if len(configs) != numGoroutines {
 		t.Errorf("Expected %d configs, got %d", numGoroutines, len(configs))
 	}
-	
+
 	// Verify all configs have the same values
 	for i, cfg := range configs {
 		if cfg.MetricsURL != "http://test:9090/metrics" {
@@ -538,9 +538,9 @@ logging:
 // TestIntegrationWithRealConfigFiles tests loading actual config files
 func TestIntegrationWithRealConfigFiles(t *testing.T) {
 	tests := []struct {
-		name           string
-		configPath     string
-		expectedURL    string
+		name             string
+		configPath       string
+		expectedURL      string
 		expectedInterval time.Duration
 	}{
 		{
@@ -556,7 +556,7 @@ func TestIntegrationWithRealConfigFiles(t *testing.T) {
 			0,  // May not exist or have different values
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Check if config file exists
@@ -575,18 +575,18 @@ func TestIntegrationWithRealConfigFiles(t *testing.T) {
 				SimDataFile:     "examples/planner/kmp-sample.json",
 				StateFile:       filepath.Join(os.TempDir(), "planner-state.json"),
 			}
-			
+
 			// Use a more permissive validator for test files that might have different URL schemes
 			testValidatorConfig := security.DefaultValidationConfig()
 			testValidatorConfig.AllowedSchemes = append(testValidatorConfig.AllowedSchemes, "file")
 			testValidator := security.NewValidator(testValidatorConfig)
-			
+
 			err := loadConfig(tt.configPath, cfg, testValidator)
 			if err != nil {
 				t.Errorf("Failed to load real config file %s: %v", tt.configPath, err)
 				return
 			}
-			
+
 			// Only validate expected values if they are set
 			if tt.expectedURL != "" && cfg.MetricsURL != tt.expectedURL {
 				t.Errorf("Expected MetricsURL %s, got %s", tt.expectedURL, cfg.MetricsURL)
@@ -594,7 +594,7 @@ func TestIntegrationWithRealConfigFiles(t *testing.T) {
 			if tt.expectedInterval != 0 && cfg.PollingInterval != tt.expectedInterval {
 				t.Errorf("Expected PollingInterval %v, got %v", tt.expectedInterval, cfg.PollingInterval)
 			}
-			
+
 			// Verify basic integrity
 			if cfg.MetricsURL == "" {
 				t.Error("MetricsURL should not be empty")
@@ -671,7 +671,7 @@ func TestYAMLParsingErrorScenarios(t *testing.T) {
 			true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tmpDir := t.TempDir()
@@ -680,10 +680,10 @@ func TestYAMLParsingErrorScenarios(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to create test config file: %v", err)
 			}
-			
+
 			cfg := &Config{}
 			err = loadConfig(configFile, cfg, security.NewValidator(security.DefaultValidationConfig()))
-			
+
 			if tt.expectError && err == nil {
 				t.Errorf("Expected error for test '%s', but got none", tt.name)
 			} else if !tt.expectError && err != nil {
@@ -737,20 +737,20 @@ func TestFileSystemErrorHandling(t *testing.T) {
 			true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			configPath := tt.setup(t)
-			
+
 			cfg := &Config{}
 			err := loadConfig(configPath, cfg, security.NewValidator(security.DefaultValidationConfig()))
-			
+
 			if tt.expectError && err == nil {
 				t.Errorf("Expected error for test '%s', but got none", tt.name)
 			} else if !tt.expectError && err != nil {
 				t.Errorf("Unexpected error for test '%s': %v", tt.name, err)
 			}
-			
+
 			// Cleanup: restore permissions if needed
 			if tt.name == "Permission denied" {
 				os.Chmod(configPath, 0644)
@@ -766,7 +766,7 @@ func TestEnvironmentVariableOverrides(t *testing.T) {
 	oldOutputDir := os.Getenv("PLANNER_OUTPUT_DIR")
 	oldSimMode := os.Getenv("PLANNER_SIM_MODE")
 	oldMetricsDir := os.Getenv("PLANNER_METRICS_DIR")
-	
+
 	defer func() {
 		// Restore environment
 		os.Setenv("PLANNER_METRICS_URL", oldMetricsURL)
@@ -774,36 +774,36 @@ func TestEnvironmentVariableOverrides(t *testing.T) {
 		os.Setenv("PLANNER_SIM_MODE", oldSimMode)
 		os.Setenv("PLANNER_METRICS_DIR", oldMetricsDir)
 	}()
-	
+
 	// Set test environment variables
 	os.Setenv("PLANNER_METRICS_URL", "http://env:9090/metrics")
 	os.Setenv("PLANNER_OUTPUT_DIR", "./env-output")
 	os.Setenv("PLANNER_SIM_MODE", "true")
 	os.Setenv("PLANNER_METRICS_DIR", "./env-metrics")
-	
+
 	// Create a config with different values
 	yamlContent := `planner:
   metrics_url: "http://config:9090/metrics"
   output_dir: "./config-output"
   sim_mode: false`
-	
+
 	tmpDir := t.TempDir()
 	configFile := filepath.Join(tmpDir, "test-config.yaml")
 	err := os.WriteFile(configFile, []byte(yamlContent), 0644)
 	if err != nil {
 		t.Fatalf("Failed to create test config file: %v", err)
 	}
-	
+
 	cfg := &Config{
-		MetricsURL:      "http://default:9090/metrics",
-		OutputDir:       "./default-output",
-		SimMode:         false,
-		MetricsDir:      "./default-metrics",
+		MetricsURL: "http://default:9090/metrics",
+		OutputDir:  "./default-output",
+		SimMode:    false,
+		MetricsDir: "./default-metrics",
 	}
-	
+
 	// Load config (this simulates the main function logic)
 	loadConfig(configFile, cfg, security.NewValidator(security.DefaultValidationConfig()))
-	
+
 	// Apply environment variable overrides (from main function)
 	if envURL := os.Getenv("PLANNER_METRICS_URL"); envURL != "" {
 		cfg.MetricsURL = envURL
@@ -817,7 +817,7 @@ func TestEnvironmentVariableOverrides(t *testing.T) {
 	if envMetricsDir := os.Getenv("PLANNER_METRICS_DIR"); envMetricsDir != "" {
 		cfg.MetricsDir = envMetricsDir
 	}
-	
+
 	// Verify environment variables override config file values
 	if cfg.MetricsURL != "http://env:9090/metrics" {
 		t.Errorf("Expected env MetricsURL, got %s", cfg.MetricsURL)

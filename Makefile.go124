@@ -134,7 +134,7 @@ security-scan: ## Run security scans
 	@echo "Running security scans..."
 	@if ! which gosec >/dev/null 2>&1; then \
 		echo "Installing gosec..."; \
-		go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest; \
+		go install github.com/securego/gosec/v2/cmd/gosec@latest; \
 	fi
 	gosec -fmt sarif -out gosec-report.sarif ./...
 	@if ! which staticcheck >/dev/null 2>&1; then \
@@ -254,7 +254,7 @@ clean-docker: ## Clean Docker resources
 dev-setup: go-version-check deps ## Setup development environment
 	@echo "Setting up development environment..."
 	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-	@go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+	@go install github.com/securego/gosec/v2/cmd/gosec@latest
 	@go install honnef.co/go/tools/cmd/staticcheck@latest
 	@go install golang.org/x/perf/cmd/benchcmp@latest
 	@go install github.com/onsi/ginkgo/v2/ginkgo@latest

@@ -1,3 +1,5 @@
+//go:build ignore
+
 /*
 Copyright 2025.
 
@@ -20,9 +22,9 @@ import (
 	"context"
 	"fmt"
 	"time"
+	"encoding/json"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
@@ -58,7 +60,7 @@ func ExamplePorchClientUsage() error {
 	if err != nil {
 		return fmt.Errorf("failed to create Porch client: %w", err)
 	}
-	defer client.Close()
+	defer client.Close() // #nosec G307 - Error handled in defer
 
 	ctx := context.Background()
 
@@ -116,14 +118,8 @@ func ExamplePorchClientUsage() error {
 				{
 					APIVersion: "v1",
 					Kind:       "ConfigMap",
-					Metadata: map[string]interface{}{
-						"name":      "example-config",
-						"namespace": "default",
-					},
-					Data: map[string]interface{}{
-						"message": "Hello from Porch!",
-						"version": "1.0.0",
-					},
+					Metadata: json.RawMessage(`{}`),
+					Data: json.RawMessage(`{}`),
 				},
 			},
 		},
@@ -206,20 +202,14 @@ data:
 	functionReq := &FunctionRequest{
 		FunctionConfig: FunctionConfig{
 			Image: "gcr.io/kpt-fn/set-namespace:v0.4.1",
-			ConfigMap: map[string]interface{}{
-				"namespace": "production",
-			},
+			ConfigMap: json.RawMessage(`{}`),
 		},
 		Resources: []KRMResource{
 			{
 				APIVersion: "v1",
 				Kind:       "ConfigMap",
-				Metadata: map[string]interface{}{
-					"name": "test-config",
-				},
-				Data: map[string]interface{}{
-					"key": "value",
-				},
+				Metadata: json.RawMessage(`{}`),
+				Data: json.RawMessage(`{}`),
 			},
 		},
 	}
@@ -296,7 +286,7 @@ func ExampleAdvancedUsage() error {
 	if err != nil {
 		return fmt.Errorf("failed to create advanced Porch client: %w", err)
 	}
-	defer client.Close()
+	defer client.Close() // #nosec G307 - Error handled in defer
 
 	ctx := context.Background()
 
@@ -322,19 +312,13 @@ func ExampleAdvancedUsage() error {
 				},
 				{
 					Image: "gcr.io/kpt-fn/apply-replacements:v0.1.1",
-					ConfigMap: map[string]interface{}{
-						"replacements": []interface{}{
-							map[string]interface{}{
-								"source": map[string]interface{}{
-									"objref": map[string]interface{}{
-										"kind": "ConfigMap",
-										"name": "app-config",
-									},
+					ConfigMap: json.RawMessage(`{}`){
+							json.RawMessage(`{}`){
+									"objref": json.RawMessage(`{}`),
 									"fieldref": "data.app-name",
 								},
 								"targets": []interface{}{
-									map[string]interface{}{
-										"select": map[string]interface{}{
+									json.RawMessage(`{}`){
 											"kind": "Deployment",
 										},
 										"fieldPaths": []string{"metadata.name"},
@@ -349,44 +333,22 @@ func ExampleAdvancedUsage() error {
 				{
 					APIVersion: "v1",
 					Kind:       "ConfigMap",
-					Metadata: map[string]interface{}{
-						"name":      "app-config",
-						"namespace": "default",
-					},
-					Data: map[string]interface{}{
-						"app-name": "my-application",
-						"version":  "1.0.0",
-					},
+					Metadata: json.RawMessage(`{}`),
+					Data: json.RawMessage(`{}`),
 				},
 				{
 					APIVersion: "apps/v1",
 					Kind:       "Deployment",
-					Metadata: map[string]interface{}{
-						"name":      "placeholder-deployment",
-						"namespace": "default",
-					},
-					Spec: map[string]interface{}{
-						"replicas": 3,
-						"selector": map[string]interface{}{
-							"matchLabels": map[string]interface{}{
-								"app": "my-application",
-							},
+					Metadata: json.RawMessage(`{}`),
+					Spec: json.RawMessage(`{}`){
+							"matchLabels": json.RawMessage(`{}`),
 						},
-						"template": map[string]interface{}{
-							"metadata": map[string]interface{}{
-								"labels": map[string]interface{}{
-									"app": "my-application",
-								},
+						"template": json.RawMessage(`{}`){
+								"labels": json.RawMessage(`{}`),
 							},
-							"spec": map[string]interface{}{
-								"containers": []interface{}{
-									map[string]interface{}{
-										"name":  "app",
-										"image": "nginx:1.21",
-										"ports": []interface{}{
-											map[string]interface{}{
-												"containerPort": 80,
-											},
+							"spec": json.RawMessage(`{}`){
+									json.RawMessage(`{}`){
+											json.RawMessage(`{}`),
 										},
 									},
 								},
@@ -439,7 +401,7 @@ func ExampleWorkflowUsage() error {
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w", err)
 	}
-	defer client.Close()
+	defer client.Close() // #nosec G307 - Error handled in defer
 
 	ctx := context.Background()
 	packageName := "workflow-example"
@@ -459,19 +421,12 @@ func ExampleWorkflowUsage() error {
 				{
 					APIVersion: "v1",
 					Kind:       "Service",
-					Metadata: map[string]interface{}{
-						"name":      "example-service",
-						"namespace": "default",
-					},
-					Spec: map[string]interface{}{
-						"selector": map[string]interface{}{
+					Metadata: json.RawMessage(`{}`),
+					Spec: json.RawMessage(`{}`){
 							"app": "example",
 						},
 						"ports": []interface{}{
-							map[string]interface{}{
-								"port":       80,
-								"targetPort": 8080,
-							},
+							json.RawMessage(`{}`),
 						},
 					},
 				},
@@ -533,3 +488,4 @@ func ExampleWorkflowUsage() error {
 	fmt.Println("Workflow example completed successfully!")
 	return nil
 }
+

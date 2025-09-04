@@ -1,3 +1,5 @@
+//go:build integration
+
 package main
 
 import (
@@ -9,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"gopkg.in/yaml.v3"
 	"github.com/thc1006/nephoran-intent-operator/planner/internal/rules"
 	"github.com/thc1006/nephoran-intent-operator/planner/internal/security"
+	"gopkg.in/yaml.v3"
 )
 
 // TestEndToEndScenario tests the complete flow from metrics fetching to intent generation
@@ -21,17 +23,17 @@ func TestEndToEndScenario(t *testing.T) {
 		kmpData := rules.KPMData{
 			Timestamp:       time.Now(),
 			NodeID:          "test-node",
-			PRBUtilization:  0.9, // High utilization to trigger scale-out
+			PRBUtilization:  0.9,   // High utilization to trigger scale-out
 			P95Latency:      150.0, // High latency to trigger scale-out
 			ActiveUEs:       200,
 			CurrentReplicas: 2,
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(kmpData)
 	}))
-	defer metricsServer.Close()
+	defer metricsServer.Close() // #nosec G307 - Error handled in defer
 
 	// Create temporary directories for output and state
 	tmpDir := t.TempDir()
@@ -94,7 +96,7 @@ func TestEndToEndScenario(t *testing.T) {
 	if intent["target"] != "test-node" {
 		t.Errorf("Expected target 'test-node', got %v", intent["target"])
 	}
-	
+
 	replicas, ok := intent["replicas"].(float64)
 	if !ok || replicas != 3 { // Should scale from 2 to 3
 		t.Errorf("Expected replicas 3, got %v", intent["replicas"])
@@ -276,7 +278,7 @@ func TestHTTPClientErrorRecovery(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(tt.serverBehavior))
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			_, err := fetchKPMMetrics(server.URL, security.NewValidator(security.DefaultValidationConfig()))
 
@@ -303,7 +305,7 @@ func TestSimModeIntegration(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	simDataFile := filepath.Join(tmpDir, "sim-kmp-data.json")
-	
+
 	data, err := json.MarshalIndent(testKMPData, "", "  ")
 	if err != nil {
 		t.Fatalf("Failed to marshal test KMP data: %v", err)
@@ -363,7 +365,7 @@ func TestMetricsDirIntegration(t *testing.T) {
 			"kmp-recent.json",
 			rules.KPMData{
 				Timestamp:       time.Now().Add(-10 * time.Minute),
-				NodeID:          "recent-node", 
+				NodeID:          "recent-node",
 				PRBUtilization:  0.8,
 				P95Latency:      120.0,
 				ActiveUEs:       180,

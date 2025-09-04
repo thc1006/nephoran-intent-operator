@@ -12,9 +12,9 @@ func TestValidateKMPData(t *testing.T) {
 	validator := NewValidator(DefaultValidationConfig())
 
 	tests := []struct {
-		name      string
-		data      rules.KPMData
-		wantError bool
+		name       string
+		data       rules.KPMData
+		wantError  bool
 		errorField string
 	}{
 		{
@@ -207,7 +207,7 @@ func TestValidateKMPData(t *testing.T) {
 				t.Errorf("ValidateKMPData() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
-			
+
 			if tt.wantError && err != nil {
 				validationErr, ok := err.(ValidationError)
 				if !ok {

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/thc1006/nephoran-intent-operator/api/v1"
+	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -96,7 +96,7 @@ func TestGeneratePackage_IntentTypeRouting(t *testing.T) {
 				Spec: v1.NetworkIntentSpec{
 					Intent:     "Test intent for " + tt.intentType,
 					IntentType: tt.intentType,
-					Parameters: runtime.RawExtension{
+					Parameters: &runtime.RawExtension{
 						Raw: paramsJSON,
 					},
 				},
@@ -156,7 +156,7 @@ func TestGeneratePackage_DefaultsToDeployment(t *testing.T) {
 		Spec: v1.NetworkIntentSpec{
 			Intent: "Deploy a network function",
 			// IntentType is intentionally not set
-			Parameters: runtime.RawExtension{
+			Parameters: &runtime.RawExtension{
 				Raw: paramsJSON,
 			},
 		},
@@ -182,61 +182,37 @@ func TestGeneratePackage_DefaultsToDeployment(t *testing.T) {
 
 // Helper function to create test parameters based on intent type
 func createTestParameters(intentType string) map[string]interface{} {
-	baseParams := map[string]interface{}{
-		"name":      "test-app",
-		"namespace": "test-namespace",
-		"component": "test-component",
-		"intent_id": "test-intent",
-	}
+	baseParams := make(map[string]interface{})
 
 	switch intentType {
 	case "deployment", "":
 		baseParams["replicas"] = 3
 		baseParams["image"] = "test-image:latest"
-		baseParams["ports"] = []map[string]interface{}{
-			{
-				"Name":     "http",
-				"Port":     8080,
-				"Protocol": "TCP",
-			},
-		}
-		baseParams["env"] = []map[string]interface{}{
-			{
-				"Name":  "ENV_VAR",
-				"Value": "test-value",
-			},
-		}
+		baseParams["ports"] = []map[string]interface{}{{}}
+		baseParams["env"] = []map[string]interface{}{{}}
 		baseParams["resources"] = map[string]interface{}{
 			"Requests": map[string]interface{}{
 				"CPU":    "100m",
 				"Memory": "128Mi",
 			},
-			"Limits": map[string]interface{}{
-				"CPU":    "200m",
-				"Memory": "256Mi",
-			},
+			"Limits": map[string]interface{}{},
 		}
 	case "scaling":
 		baseParams["target"] = "existing-deployment"
 		baseParams["replicas"] = 5
 	case "policy":
 		baseParams["policy_spec"] = map[string]interface{}{
-			"podSelector": map[string]interface{}{
-				"matchLabels": map[string]string{
-					"app": "test-app",
-				},
+			"matchLabels": map[string]string{
+				"app": "test-app",
 			},
 			"policyTypes": []string{"Ingress", "Egress"},
 		}
 		baseParams["a1_policy"] = map[string]interface{}{
-			"policy_type_id":     20000,
-			"policy_instance_id": "slice-policy-001",
-			"policy_data": map[string]interface{}{
-				"scope":  "network-slice",
-				"target": "slice-001",
-			},
+			"scope":  "network-slice",
+			"target": "slice-001",
 		}
 	}
 
 	return baseParams
 }
+

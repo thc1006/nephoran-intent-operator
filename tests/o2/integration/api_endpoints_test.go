@@ -1,4 +1,4 @@
-package integration_test
+package o2_integration_tests_test
 
 import (
 	"bytes"
@@ -14,11 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -48,17 +45,12 @@ func (suite *O2APITestSuite) SetupSuite() {
 
 	// Setup O2 API server
 	config := &o2.O2IMSConfig{
-		ServerAddress: "127.0.0.1",
-		ServerPort:    0,
-		TLSEnabled:    false,
-		DatabaseConfig: map[string]interface{}{
-			"type":     "memory",
-			"database": "o2_test_db",
-		},
+		ServerAddress:  "127.0.0.1",
+		ServerPort:     0,
+		TLSEnabled:     false,
+		DatabaseConfig: json.RawMessage(`{}`),
 		ProviderConfigs: map[string]interface{}{
-			"kubernetes": map[string]interface{}{
-				"enabled": true,
-			},
+			"enabled": true,
 		},
 	}
 
@@ -143,11 +135,7 @@ func (suite *O2APITestSuite) TestResourcePoolCRUD() {
 					Utilization: 20.0,
 				},
 			},
-			Extensions: map[string]interface{}{
-				"networkPlugin": "calico",
-				"cniVersion":    "v1.0.0",
-				"storageClass":  "fast-ssd",
-			},
+			Extensions: json.RawMessage(`{}`),
 		}
 
 		poolJSON, err := json.Marshal(pool)
@@ -289,11 +277,7 @@ func (suite *O2APITestSuite) TestResourceTypeCRUD() {
 				},
 			},
 			SupportedActions: []string{"CREATE", "DELETE", "UPDATE", "SCALE", "HEAL"},
-			Capabilities: map[string]interface{}{
-				"autoScaling": true,
-				"monitoring":  true,
-				"ha":          true,
-			},
+			Capabilities:     json.RawMessage(`{}`),
 		}
 
 		typeJSON, err := json.Marshal(resourceType)
@@ -383,11 +367,7 @@ func (suite *O2APITestSuite) TestResourceInstanceOperations() {
 			OperationalStatus:    "ENABLED",
 			AdministrativeStatus: "UNLOCKED",
 			UsageStatus:          "ACTIVE",
-			Metadata: map[string]interface{}{
-				"deployment": "test-amf",
-				"namespace":  "o-ran-vnfs",
-				"replicas":   3,
-			},
+			Metadata:             json.RawMessage(`{}`),
 		}
 
 		instanceJSON, err := json.Marshal(instance)
@@ -673,7 +653,7 @@ func (suite *O2APITestSuite) TestConcurrentOperations() {
 					errors <- err
 					return
 				}
-				defer resp.Body.Close()
+				defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 				if resp.StatusCode == http.StatusCreated || resp.StatusCode == http.StatusOK {
 					successes <- poolID

@@ -1,0 +1,201 @@
+# Pod Security Policy for Nephoran Services (2025 Security Standards)
+# Implements CIS Kubernetes Benchmark v1.8 and NIST 800-190
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nephoran
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nephoran-service
+  namespace: nephoran
+  annotations:
+    security.nephoran.io/review-date: "2025-08-30"
+    security.nephoran.io/compliance: "CIS-K8s-v1.8,NIST-800-190"
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nephoran-service-token
+  namespace: nephoran
+  annotations:
+    kubernetes.io/service-account.name: nephoran-service
+type: kubernetes.io/service-account-token
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: security-context
+  namespace: nephoran
+data:
+  pod-security-context.yaml: |
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 65532
+      runAsGroup: 65532
+      fsGroup: 65532
+      fsGroupChangePolicy: "OnRootMismatch"
+      seccompProfile:
+        type: RuntimeDefault
+      sysctls: []
+      supplementalGroups: []
+  
+  container-security-context.yaml: |
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      privileged: false
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      runAsUser: 65532
+      runAsGroup: 65532
+      seccompProfile:
+        type: RuntimeDefault
+      seLinuxOptions:
+        level: "s0:c123,c456"
+        type: "container_t"
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nephoran-default-deny-all
+  namespace: nephoran
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nephoran-allow-internal
+  namespace: nephoran
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: nephoran
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/part-of: nephoran
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8081
+    - protocol: TCP
+      port: 9090
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/part-of: nephoran
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+  - to:
+    - namespaceSelector: {}
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: nephoran-quota
+  namespace: nephoran
+spec:
+  hard:
+    requests.cpu: "10"
+    requests.memory: 20Gi
+    limits.cpu: "20"
+    limits.memory: 40Gi
+    persistentvolumeclaims: "10"
+    services.loadbalancers: "2"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: nephoran-limits
+  namespace: nephoran
+spec:
+  limits:
+  - max:
+      cpu: "2"
+      memory: 4Gi
+    min:
+      cpu: 100m
+      memory: 128Mi
+    default:
+      cpu: 500m
+      memory: 512Mi
+    defaultRequest:
+      cpu: 100m
+      memory: 128Mi
+    type: Container
+  - max:
+      cpu: "4"
+      memory: 8Gi
+    min:
+      cpu: 200m
+      memory: 256Mi
+    type: Pod
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nephoran-service-role
+  namespace: nephoran
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+  resourceNames: ["nephoran-config", "nephoran-tls"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nephoran-service-binding
+  namespace: nephoran
+subjects:
+- kind: ServiceAccount
+  name: nephoran-service
+  namespace: nephoran
+roleRef:
+  kind: Role
+  name: nephoran-service-role
+  apiGroup: rbac.authorization.k8s.io

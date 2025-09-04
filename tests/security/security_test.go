@@ -1,27 +1,23 @@
 package security
 
 import (
-	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/kubernetes/fake"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // TestRBACCompliance validates RBAC policies for security compliance
@@ -165,7 +161,7 @@ func TestNetworkPolicyEnforcement(t *testing.T) {
 						{
 							Ports: []networkingv1.NetworkPolicyPort{
 								{
-									Protocol: &corev1.Protocol("TCP"),
+									Protocol: func() *corev1.Protocol { p := corev1.ProtocolTCP; return &p }(),
 									Port:     &intstr.IntOrString{IntVal: 80},
 								},
 							},
@@ -205,7 +201,7 @@ func TestNetworkPolicyEnforcement(t *testing.T) {
 							},
 							Ports: []networkingv1.NetworkPolicyPort{
 								{
-									Protocol: &corev1.Protocol("TCP"),
+									Protocol: func() *corev1.Protocol { p := corev1.ProtocolTCP; return &p }(),
 									Port:     &intstr.IntOrString{IntVal: 443},
 								},
 							},
@@ -519,7 +515,7 @@ func TestTLSConfiguration(t *testing.T) {
 			name: "Certificate validation required",
 			tlsConfig: &tls.Config{
 				MinVersion:         tls.VersionTLS13,
-				InsecureSkipVerify: true,
+				InsecureSkipVerify: true, // #nosec G402 - Test file only
 			},
 			wantError: true,
 			errorMsg:  "certificate validation required",
@@ -623,7 +619,7 @@ func TestAPISecurityValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateAPISecurityt(tt.request)
+			err := validateAPISecurity(tt.request)
 			if tt.wantError {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errorMsg)

@@ -1,0 +1,327 @@
+# ==============================================================================
+# Optimized Build Makefile for Nephoran Intent Operator
+# Fixes CI timeouts and build performance issues
+# ==============================================================================
+
+# Go Configuration - Fixed version
+GO_VERSION := 1.24.6
+GOOS ?= linux
+GOARCH ?= amd64
+CGO_ENABLED := 0
+
+# Performance Settings
+GOMAXPROCS ?= $(shell nproc 2>/dev/null || echo 4)
+GOMEMLIMIT ?= 4GiB
+GOGC ?= 100
+GOEXPERIMENT ?= rangefunc
+
+# Build parallelism (2x CPU cores for optimal throughput)
+BUILD_PARALLEL := $(shell echo "$$(nproc 2>/dev/null || echo 4) * 2" | bc 2>/dev/null || echo 8)
+
+# Build environment exports
+export CGO_ENABLED GOOS GOARCH GOMAXPROCS GOMEMLIMIT GOGC GOEXPERIMENT
+
+# ==============================================================================
+# Build Optimization Flags
+# ==============================================================================
+
+# Compiler flags for speed
+GCFLAGS := -l=4 -B -C
+LDFLAGS := -s -w -buildid=
+ASMFLAGS := -trimpath=$(shell pwd)
+
+# Build tags to skip unnecessary features
+BUILD_TAGS := fast_build,no_swagger,no_docs
+
+# Complete build command with all optimizations
+GO_BUILD := go build \
+	-p=$(BUILD_PARALLEL) \
+	-mod=readonly \
+	-trimpath \
+	-buildvcs=false \
+	-gcflags="all=$(GCFLAGS)" \
+	-ldflags="$(LDFLAGS)" \
+	-asmflags="all=$(ASMFLAGS)" \
+	-tags="$(BUILD_TAGS)"
+
+# Test command with timeout protection
+GO_TEST := go test \
+	-p=$(BUILD_PARALLEL) \
+	-timeout=2m \
+	-short \
+	-tags="$(BUILD_TAGS)"
+
+# ==============================================================================
+# Directories
+# ==============================================================================
+
+BIN_DIR := bin
+CACHE_DIR := .cache/go-build
+MOD_CACHE := .cache/go-mod
+
+# ==============================================================================
+# Primary Targets
+# ==============================================================================
+
+.PHONY: all
+all: deps build test
+
+.PHONY: ci
+ci: ci-setup ci-build ci-test ## Complete CI pipeline with timeouts
+
+# ==============================================================================
+# CI-Specific Targets (with timeout protection)
+# ==============================================================================
+
+.PHONY: ci-setup
+ci-setup: ## Setup CI environment
+	@echo "=== CI Setup ==="
+	@echo "Go version: $$(go version)"
+	@echo "GOMAXPROCS: $(GOMAXPROCS)"
+	@echo "GOMEMLIMIT: $(GOMEMLIMIT)"
+	@echo "Build parallelism: $(BUILD_PARALLEL)"
+	@mkdir -p $(BIN_DIR) $(CACHE_DIR) $(MOD_CACHE)
+
+.PHONY: ci-build
+ci-build: ## CI build with timeout protection
+	@echo "=== Starting optimized CI build ==="
+	@echo "Building cmd packages..."
+	@timeout 120 bash -c '\
+		for dir in cmd/*; do \
+			if [ -d "$$dir" ] && [ -f "$$dir/main.go" ]; then \
+				name=$$(basename $$dir); \
+				echo "  Building $$name..."; \
+				$(GO_BUILD) -o $(BIN_DIR)/$$name ./$$dir || exit 1; \
+			fi; \
+		done' || (echo "Build timeout after 2 minutes" && exit 1)
+	@echo "Building controllers..."
+	@timeout 60 $(GO_BUILD) ./controllers/... || (echo "Controller build timeout" && exit 1)
+	@echo "=== Build completed successfully ==="
+
+.PHONY: ci-test
+ci-test: ## CI test with strict timeouts
+	@echo "=== Running CI tests ==="
+	@timeout 120 $(GO_TEST) ./pkg/... || (echo "Test timeout" && exit 1)
+	@timeout 60 $(GO_TEST) ./internal/... || (echo "Test timeout" && exit 1)
+	@echo "=== Tests completed successfully ==="
+
+# ==============================================================================
+# Dependency Management
+# ==============================================================================
+
+.PHONY: deps
+deps: ## Download and verify dependencies
+	@echo "=== Managing dependencies ==="
+	@export GOPROXY=https://proxy.golang.org,direct && \
+	export GOSUMDB=sum.golang.org && \
+	timeout 60 go mod download -x || (echo "Dependency download timeout" && exit 1)
+	@go mod verify
+	@echo "Dependencies ready"
+
+.PHONY: deps-tidy
+deps-tidy: ## Tidy dependencies
+	@go mod tidy -v
+
+.PHONY: deps-upgrade
+deps-upgrade: ## Upgrade all dependencies
+	@go get -u -t ./...
+	@go mod tidy -v
+
+# ==============================================================================
+# Build Targets (with chunking for large builds)
+# ==============================================================================
+
+.PHONY: build
+build: build-cmd build-controllers ## Build all components
+
+.PHONY: build-cmd
+build-cmd: ## Build command-line tools
+	@echo "=== Building command-line tools ==="
+	@mkdir -p $(BIN_DIR)
+	@for dir in cmd/*; do \
+		if [ -d "$$dir" ] && [ -f "$$dir/main.go" ]; then \
+			name=$$(basename $$dir); \
+			echo "Building $$name..."; \
+			$(GO_BUILD) -o $(BIN_DIR)/$$name ./$$dir || exit 1; \
+		fi; \
+	done
+	@echo "Command tools built successfully"
+
+.PHONY: build-controllers
+build-controllers: ## Build controllers separately
+	@echo "=== Building controllers ==="
+	$(GO_BUILD) ./controllers/...
+	@echo "Controllers built successfully"
+
+.PHONY: build-single
+build-single: ## Build a single component (usage: make build-single TARGET=cmd/intent-ingest)
+	@if [ -z "$(TARGET)" ]; then \
+		echo "Error: TARGET not specified"; \
+		echo "Usage: make build-single TARGET=cmd/intent-ingest"; \
+		exit 1; \
+	fi
+	@echo "Building $(TARGET)..."
+	@name=$$(basename $(TARGET)); \
+	$(GO_BUILD) -o $(BIN_DIR)/$$name ./$(TARGET)
+
+# ==============================================================================
+# Parallel Build Targets (for faster builds)
+# ==============================================================================
+
+.PHONY: build-parallel
+build-parallel: ## Build all components in parallel
+	@echo "=== Parallel build ($(BUILD_PARALLEL) jobs) ==="
+	@mkdir -p $(BIN_DIR)
+	@echo "Starting parallel builds..."
+	@find cmd -maxdepth 1 -type d -name "*" | \
+		xargs -P $(BUILD_PARALLEL) -I {} bash -c '\
+			dir="{}"; \
+			if [ -f "$$dir/main.go" ]; then \
+				name=$$(basename $$dir); \
+				echo "  Building $$name..."; \
+				$(GO_BUILD) -o $(BIN_DIR)/$$name ./$$dir || exit 1; \
+			fi'
+	@echo "Parallel build completed"
+
+# ==============================================================================
+# Testing Targets
+# ==============================================================================
+
+.PHONY: test
+test: ## Run tests with timeout protection
+	@echo "=== Running tests ==="
+	$(GO_TEST) ./...
+
+.PHONY: test-pkg
+test-pkg: ## Test only pkg directory
+	$(GO_TEST) ./pkg/...
+
+.PHONY: test-controllers
+test-controllers: ## Test only controllers
+	$(GO_TEST) ./controllers/...
+
+.PHONY: test-verbose
+test-verbose: ## Run tests with verbose output
+	$(GO_TEST) -v ./...
+
+.PHONY: test-race
+test-race: ## Run tests with race detection (slower)
+	go test -race -timeout=5m ./...
+
+# ==============================================================================
+# Benchmarking & Profiling
+# ==============================================================================
+
+.PHONY: benchmark
+benchmark: ## Run benchmarks
+	@echo "=== Running benchmarks ==="
+	go test -bench=. -benchmem -run=^$$ ./...
+
+.PHONY: profile-cpu
+profile-cpu: ## Generate CPU profile
+	@echo "=== Generating CPU profile ==="
+	go test -cpuprofile=cpu.prof -bench=. ./...
+	@echo "Profile saved to cpu.prof"
+
+.PHONY: profile-mem
+profile-mem: ## Generate memory profile
+	@echo "=== Generating memory profile ==="
+	go test -memprofile=mem.prof -bench=. ./...
+	@echo "Profile saved to mem.prof"
+
+# ==============================================================================
+# Code Quality
+# ==============================================================================
+
+.PHONY: lint
+lint: ## Run fast linting
+	@echo "=== Running linter ==="
+	@if command -v golangci-lint > /dev/null; then \
+		golangci-lint run --fast --timeout=3m; \
+	else \
+		echo "golangci-lint not installed, skipping"; \
+	fi
+
+.PHONY: fmt
+fmt: ## Format code
+	@echo "=== Formatting code ==="
+	go fmt ./...
+	gofmt -s -w .
+
+.PHONY: vet
+vet: ## Run go vet
+	@echo "=== Running go vet ==="
+	go vet ./...
+
+# ==============================================================================
+# Cache Management
+# ==============================================================================
+
+.PHONY: cache-warm
+cache-warm: ## Warm build cache for faster builds
+	@echo "=== Warming build cache ==="
+	@go list -deps ./... | head -100 | \
+		xargs -P $(BUILD_PARALLEL) -I {} go build -v {}
+	@echo "Cache warmed"
+
+.PHONY: cache-clean
+cache-clean: ## Clean build cache
+	@echo "=== Cleaning caches ==="
+	go clean -cache -testcache -modcache
+	rm -rf $(CACHE_DIR) $(MOD_CACHE)
+	@echo "Caches cleaned"
+
+# ==============================================================================
+# Utility Targets
+# ==============================================================================
+
+.PHONY: clean
+clean: ## Clean build artifacts
+	@echo "=== Cleaning build artifacts ==="
+	rm -rf $(BIN_DIR)
+	go clean ./...
+	@echo "Clean completed"
+
+.PHONY: info
+info: ## Show build configuration
+	@echo "=== Build Configuration ==="
+	@echo "Go Version: $$(go version)"
+	@echo "GOOS: $(GOOS)"
+	@echo "GOARCH: $(GOARCH)"
+	@echo "CGO_ENABLED: $(CGO_ENABLED)"
+	@echo "GOMAXPROCS: $(GOMAXPROCS)"
+	@echo "GOMEMLIMIT: $(GOMEMLIMIT)"
+	@echo "GOGC: $(GOGC)"
+	@echo "Build Parallelism: $(BUILD_PARALLEL)"
+	@echo "Build Tags: $(BUILD_TAGS)"
+
+.PHONY: verify
+verify: ## Verify module integrity
+	@echo "=== Verifying modules ==="
+	go mod verify
+	go mod download -x
+	@echo "Modules verified"
+
+.PHONY: help
+help: ## Show this help message
+	@echo "Nephoran Intent Operator - Optimized Build System"
+	@echo ""
+	@echo "Usage: make [target]"
+	@echo ""
+	@echo "Primary targets:"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
+		awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
+	@echo ""
+	@echo "CI targets:"
+	@echo "  ci               Complete CI pipeline"
+	@echo "  ci-setup         Setup CI environment"
+	@echo "  ci-build         Build with timeout protection"
+	@echo "  ci-test          Test with timeout protection"
+	@echo ""
+	@echo "Environment variables:"
+	@echo "  GOMAXPROCS       Number of CPUs to use (default: all)"
+	@echo "  GOMEMLIMIT       Memory limit (default: 4GiB)"
+	@echo "  BUILD_PARALLEL   Parallel build jobs (default: 2x CPUs)"
+
+# Default target
+.DEFAULT_GOAL := help

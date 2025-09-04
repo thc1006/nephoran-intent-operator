@@ -17,14 +17,14 @@ func TestWebhookValidation(t *testing.T) {
 var _ = Describe("NetworkIntent Webhook", func() {
 	var (
 		ctx       context.Context
-		validator *NetworkIntentValidator
-		defaulter *NetworkIntentDefaulter
+		ni        *NetworkIntent
+		validator *NetworkIntent
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		validator = &NetworkIntentValidator{}
-		defaulter = &NetworkIntentDefaulter{}
+		ni = &NetworkIntent{}
+		validator = &NetworkIntent{}
 	})
 
 	Describe("Defaulting webhook", func() {
@@ -43,7 +43,7 @@ var _ = Describe("NetworkIntent Webhook", func() {
 				},
 			}
 
-			err := defaulter.Default(ctx, ni)
+			err := ni.Default(ctx, ni)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(ni.Spec.Source).To(Equal("user"))
 		})
@@ -55,7 +55,7 @@ var _ = Describe("NetworkIntent Webhook", func() {
 				},
 			}
 
-			err := defaulter.Default(ctx, ni)
+			err := ni.Default(ctx, ni)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(ni.Spec.Source).To(Equal("planner"))
 		})
@@ -74,7 +74,7 @@ var _ = Describe("NetworkIntent Webhook", func() {
 					},
 				}
 
-				warnings, err := validator.ValidateCreate(ctx, ni)
+				warnings, err := ni.ValidateCreate(ctx, ni)
 				Expect(warnings).To(BeNil())
 				Expect(err).NotTo(HaveOccurred())
 			})
@@ -90,7 +90,7 @@ var _ = Describe("NetworkIntent Webhook", func() {
 					},
 				}
 
-				warnings, err := validator.ValidateCreate(ctx, ni)
+				warnings, err := ni.ValidateCreate(ctx, ni)
 				Expect(warnings).To(BeNil())
 				Expect(err).NotTo(HaveOccurred())
 			})
@@ -106,14 +106,14 @@ var _ = Describe("NetworkIntent Webhook", func() {
 					},
 				}
 
-				warnings, err := validator.ValidateCreate(ctx, ni)
+				warnings, err := ni.ValidateCreate(ctx, ni)
 				Expect(warnings).To(BeNil())
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("should accept all valid source values", func() {
 				validSources := []string{"user", "planner", "test"}
-				
+
 				for _, source := range validSources {
 					ni := &NetworkIntent{
 						Spec: NetworkIntentSpec{
@@ -125,7 +125,7 @@ var _ = Describe("NetworkIntent Webhook", func() {
 						},
 					}
 
-					warnings, err := validator.ValidateCreate(ctx, ni)
+					warnings, err := ni.ValidateCreate(ctx, ni)
 					Expect(warnings).To(BeNil())
 					Expect(err).NotTo(HaveOccurred(), "source=%s should be valid", source)
 				}
@@ -144,7 +144,7 @@ var _ = Describe("NetworkIntent Webhook", func() {
 					},
 				}
 
-				warnings, err := validator.ValidateCreate(ctx, ni)
+				warnings, err := ni.ValidateCreate(ctx, ni)
 				Expect(warnings).To(BeNil())
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("only 'scaling' supported"))
@@ -161,12 +161,11 @@ var _ = Describe("NetworkIntent Webhook", func() {
 					},
 				}
 
-				warnings, err := validator.ValidateCreate(ctx, ni)
+				warnings, err := ni.ValidateCreate(ctx, ni)
 				Expect(warnings).To(BeNil())
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("must be >= 0"))
 			})
-
 
 			It("should reject empty target", func() {
 				ni := &NetworkIntent{
@@ -179,7 +178,7 @@ var _ = Describe("NetworkIntent Webhook", func() {
 					},
 				}
 
-				warnings, err := validator.ValidateCreate(ctx, ni)
+				warnings, err := ni.ValidateCreate(ctx, ni)
 				Expect(warnings).To(BeNil())
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("must be non-empty"))
@@ -196,7 +195,7 @@ var _ = Describe("NetworkIntent Webhook", func() {
 					},
 				}
 
-				warnings, err := validator.ValidateCreate(ctx, ni)
+				warnings, err := ni.ValidateCreate(ctx, ni)
 				Expect(warnings).To(BeNil())
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("must be non-empty"))
@@ -213,7 +212,7 @@ var _ = Describe("NetworkIntent Webhook", func() {
 					},
 				}
 
-				warnings, err := validator.ValidateCreate(ctx, ni)
+				warnings, err := ni.ValidateCreate(ctx, ni)
 				Expect(warnings).To(BeNil())
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("must be 'user', 'planner', or 'test'"))
@@ -222,18 +221,18 @@ var _ = Describe("NetworkIntent Webhook", func() {
 			It("should report multiple validation errors", func() {
 				ni := &NetworkIntent{
 					Spec: NetworkIntentSpec{
-						IntentType: "invalid",  // Invalid
-						Target:     "",          // Empty
-						Namespace:  "",          // Empty
-						Replicas:   -5,          // Negative
-						Source:     "invalid",   // Invalid
+						IntentType: "invalid", // Invalid
+						Target:     "",        // Empty
+						Namespace:  "",        // Empty
+						Replicas:   -5,        // Negative
+						Source:     "invalid", // Invalid
 					},
 				}
 
-				warnings, err := validator.ValidateCreate(ctx, ni)
+				warnings, err := ni.ValidateCreate(ctx, ni)
 				Expect(warnings).To(BeNil())
 				Expect(err).To(HaveOccurred())
-				
+
 				// Check for all expected error messages
 				errorMsg := err.Error()
 				Expect(errorMsg).To(ContainSubstring("only 'scaling' supported"))
@@ -266,7 +265,7 @@ var _ = Describe("NetworkIntent Webhook", func() {
 					},
 				}
 
-				warnings, err := validator.ValidateUpdate(ctx, oldNI, newNI)
+				warnings, err := ni.ValidateUpdate(ctx, oldNI, newNI)
 				Expect(warnings).To(BeNil())
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("must be >= 0"))

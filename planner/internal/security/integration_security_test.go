@@ -1,3 +1,5 @@
+//go:build integration
+
 package security
 
 import (
@@ -134,15 +136,15 @@ func TestIntegration_EndToEndSecurity(t *testing.T) {
 			}
 		}
 
-		t.Log("✓ Normal operation with security validations completed successfully")
+		t.Log("??Normal operation with security validations completed successfully")
 	})
 
 	// Test scenario 2: Attack mitigation during operation
 	t.Run("AttackMitigationDuringOperation", func(t *testing.T) {
 		// Attempt various attacks during normal operation
 		attackScenarios := []struct {
-			name      string
-			kmpData   rules.KPMData
+			name       string
+			kmpData    rules.KPMData
 			shouldFail bool
 		}{
 			{
@@ -174,7 +176,7 @@ func TestIntegration_EndToEndSecurity(t *testing.T) {
 				kmpData: rules.KPMData{
 					Timestamp:       time.Now(),
 					NodeID:          "test-node",
-					PRBUtilization:  -1.0, // Invalid value
+					PRBUtilization:  -1.0,   // Invalid value
 					P95Latency:      -100.0, // Invalid value
 					ActiveUEs:       -50,    // Invalid value
 					CurrentReplicas: -2,     // Invalid value
@@ -186,7 +188,7 @@ func TestIntegration_EndToEndSecurity(t *testing.T) {
 				kmpData: rules.KPMData{
 					Timestamp:       time.Now(),
 					NodeID:          "test-node",
-					PRBUtilization:  999.0,  // Excessive value
+					PRBUtilization:  999.0,    // Excessive value
 					P95Latency:      999999.0, // Excessive value
 					ActiveUEs:       999999,   // Excessive value
 					CurrentReplicas: 999999,   // Excessive value
@@ -206,7 +208,7 @@ func TestIntegration_EndToEndSecurity(t *testing.T) {
 				}
 
 				if scenario.shouldFail && failed {
-					t.Logf("✓ Successfully blocked attack: %s", scenario.name)
+					t.Logf("??Successfully blocked attack: %s", scenario.name)
 				}
 			})
 		}
@@ -215,8 +217,8 @@ func TestIntegration_EndToEndSecurity(t *testing.T) {
 	// Test scenario 3: Configuration security validation
 	t.Run("ConfigurationSecurityValidation", func(t *testing.T) {
 		configTests := []struct {
-			name      string
-			envVars   map[string]string
+			name       string
+			envVars    map[string]string
 			shouldFail bool
 		}{
 			{
@@ -267,7 +269,7 @@ func TestIntegration_EndToEndSecurity(t *testing.T) {
 				}
 
 				if test.shouldFail && hasErrors {
-					t.Logf("✓ Successfully blocked malicious configuration: %s", test.name)
+					t.Logf("??Successfully blocked malicious configuration: %s", test.name)
 				}
 			})
 		}
@@ -297,7 +299,7 @@ func TestIntegration_HTTPSecurityHeaders(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(kmpData)
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	validator := NewValidator(DefaultValidationConfig())
 
@@ -313,7 +315,7 @@ func TestIntegration_HTTPSecurityHeaders(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to make HTTP request: %v", err)
 		}
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		// Verify security headers are present
 		securityHeaders := map[string]string{
@@ -345,7 +347,7 @@ func TestIntegration_HTTPSecurityHeaders(t *testing.T) {
 			t.Fatalf("Received KMP data failed validation: %v", err)
 		}
 
-		t.Log("✓ HTTP security headers and data validation completed")
+		t.Log("??HTTP security headers and data validation completed")
 	})
 }
 
@@ -466,7 +468,7 @@ func TestIntegration_ConcurrentSecurityOperations(t *testing.T) {
 			}
 		}
 
-		t.Logf("✓ Successfully completed %d concurrent secure file operations", len(files))
+		t.Logf("??Successfully completed %d concurrent secure file operations", len(files))
 	})
 
 	// Test concurrent validation operations
@@ -513,7 +515,7 @@ func TestIntegration_ConcurrentSecurityOperations(t *testing.T) {
 					data.Timestamp = time.Now().Add(time.Duration(j) * time.Millisecond)
 
 					err := validator.ValidateKMPData(data)
-					
+
 					// Record both successes and failures for analysis
 					if err != nil {
 						validationErrors <- fmt.Errorf("worker %d operation %d: validation error: %v", workerID, j, err)
@@ -529,15 +531,15 @@ func TestIntegration_ConcurrentSecurityOperations(t *testing.T) {
 		errorCount := 0
 		for err := range validationErrors {
 			// Don't treat expected validation failures as errors
-			if !strings.Contains(err.Error(), "DROP TABLE") && 
-			   !strings.Contains(err.Error(), "negative") &&
-			   !strings.Contains(err.Error(), "exceeds maximum") {
+			if !strings.Contains(err.Error(), "DROP TABLE") &&
+				!strings.Contains(err.Error(), "negative") &&
+				!strings.Contains(err.Error(), "exceeds maximum") {
 				t.Errorf("Unexpected validation error: %v", err)
 			}
 			errorCount++
 		}
 
-		t.Logf("✓ Completed %d concurrent validation operations with %d expected rejections",
+		t.Logf("??Completed %d concurrent validation operations with %d expected rejections",
 			numWorkers*operationsPerWorker, errorCount)
 	})
 }
@@ -594,9 +596,9 @@ func TestIntegration_SecurityEventLogging(t *testing.T) {
 	for _, event := range securityEvents {
 		t.Run(event.name, func(t *testing.T) {
 			initialLogSize := logBuffer.Len()
-			
+
 			err := event.operation()
-			
+
 			logContent := logBuffer.String()[initialLogSize:]
 			hasLog := len(logContent) > 0 || err != nil
 
@@ -616,7 +618,7 @@ func TestIntegration_SecurityEventLogging(t *testing.T) {
 			}
 
 			if event.expectLog && (err != nil || hasLog) {
-				t.Logf("✓ Security event logged: %s", event.name)
+				t.Logf("??Security event logged: %s", event.name)
 			}
 		})
 	}
@@ -626,40 +628,40 @@ func TestIntegration_SecurityEventLogging(t *testing.T) {
 func TestIntegration_SecurityConfigurationValidation(t *testing.T) {
 	// Test custom security configurations
 	customConfigs := []struct {
-		name      string
-		config    ValidationConfig
+		name       string
+		config     ValidationConfig
 		shouldWork bool
-		reason    string
+		reason     string
 	}{
 		{
 			name: "Overly permissive config",
 			config: ValidationConfig{
-				MaxPRBUtilization: 10.0, // Too high
-				MaxLatency:        1000000.0, // Too high
-				MaxReplicas:       10000, // Too high
-				MaxActiveUEs:      10000000, // Too high
-				AllowedExtensions: []string{".exe", ".bat", ".sh"}, // Dangerous extensions
-				MaxPathLength:     1000000, // Too high
+				MaxPRBUtilization: 10.0,                                  // Too high
+				MaxLatency:        1000000.0,                             // Too high
+				MaxReplicas:       10000,                                 // Too high
+				MaxActiveUEs:      10000000,                              // Too high
+				AllowedExtensions: []string{".exe", ".bat", ".sh"},       // Dangerous extensions
+				MaxPathLength:     1000000,                               // Too high
 				AllowedSchemes:    []string{"ftp", "file", "javascript"}, // Insecure schemes
-				MaxURLLength:      1000000, // Too high
+				MaxURLLength:      1000000,                               // Too high
 			},
 			shouldWork: false,
-			reason:    "Configuration allows dangerous values",
+			reason:     "Configuration allows dangerous values",
 		},
 		{
 			name: "Overly restrictive config",
 			config: ValidationConfig{
-				MaxPRBUtilization: 0.1, // Too restrictive
-				MaxLatency:        1.0,  // Too restrictive
-				MaxReplicas:       1,    // Too restrictive
-				MaxActiveUEs:      1,    // Too restrictive
+				MaxPRBUtilization: 0.1,        // Too restrictive
+				MaxLatency:        1.0,        // Too restrictive
+				MaxReplicas:       1,          // Too restrictive
+				MaxActiveUEs:      1,          // Too restrictive
 				AllowedExtensions: []string{}, // No extensions allowed
-				MaxPathLength:     10,  // Too short
+				MaxPathLength:     10,         // Too short
 				AllowedSchemes:    []string{}, // No schemes allowed
-				MaxURLLength:      10,  // Too short
+				MaxURLLength:      10,         // Too short
 			},
 			shouldWork: false,
-			reason:    "Configuration is too restrictive for normal operation",
+			reason:     "Configuration is too restrictive for normal operation",
 		},
 		{
 			name: "Balanced secure config",
@@ -674,7 +676,7 @@ func TestIntegration_SecurityConfigurationValidation(t *testing.T) {
 				MaxURLLength:      1024,
 			},
 			shouldWork: true,
-			reason:    "Balanced security configuration",
+			reason:     "Balanced security configuration",
 		},
 	}
 
@@ -705,9 +707,9 @@ func TestIntegration_SecurityConfigurationValidation(t *testing.T) {
 			}
 
 			if configTest.shouldWork && works {
-				t.Logf("✓ Configuration works as expected: %s", configTest.name)
+				t.Logf("??Configuration works as expected: %s", configTest.name)
 			} else if !configTest.shouldWork && !works {
-				t.Logf("✓ Configuration properly restrictive: %s", configTest.name)
+				t.Logf("??Configuration properly restrictive: %s", configTest.name)
 			}
 		})
 	}
@@ -800,9 +802,9 @@ func TestIntegration_CrossPlatformSecurity(t *testing.T) {
 					err := validator.ValidateFilePath(path, "cross-platform test")
 					// Most of these should be blocked on their respective platforms
 					if err == nil {
-						t.Logf("⚠ Path validation allowed potentially sensitive path: %s", path)
+						t.Logf("??Path validation allowed potentially sensitive path: %s", path)
 					} else {
-						t.Logf("✓ Path validation blocked sensitive path: %s", path)
+						t.Logf("??Path validation blocked sensitive path: %s", path)
 					}
 				}
 			},
@@ -864,16 +866,16 @@ func BenchmarkIntegration_SecurityOverhead(b *testing.B) {
 
 	b.Run("SecureFileOperations", func(b *testing.B) {
 		testData := []byte(`{"benchmark": true}`)
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			fileName := filepath.Join(tempDir, fmt.Sprintf("benchmark-%d.json", i))
-			
+
 			// Validate path and write with secure permissions
 			if err := validator.ValidateFilePath(fileName, "benchmark"); err != nil {
 				b.Fatalf("Path validation failed: %v", err)
 			}
-			
+
 			if err := os.WriteFile(fileName, testData, 0600); err != nil {
 				b.Fatalf("Secure file write failed: %v", err)
 			}
@@ -882,11 +884,11 @@ func BenchmarkIntegration_SecurityOverhead(b *testing.B) {
 
 	b.Run("WithoutSecurity", func(b *testing.B) {
 		testData := []byte(`{"benchmark": true}`)
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			fileName := filepath.Join(tempDir, fmt.Sprintf("no-security-%d.json", i))
-			
+
 			// Direct file write without security validation
 			if err := os.WriteFile(fileName, testData, 0644); err != nil {
 				b.Fatalf("Direct file write failed: %v", err)
@@ -937,7 +939,7 @@ func TestIntegration_SecurityRecovery(t *testing.T) {
 		if err := validator.ValidateKMPData(normalKMP); err != nil {
 			t.Errorf("System failed to recover after attacks: %v", err)
 		} else {
-			t.Log("✓ System successfully recovered and processes normal data")
+			t.Log("??System successfully recovered and processes normal data")
 		}
 	})
 
@@ -954,7 +956,7 @@ func TestIntegration_SecurityRecovery(t *testing.T) {
 			wg.Add(1)
 			go func(id int) {
 				defer wg.Done()
-				
+
 				for {
 					select {
 					case <-ctx.Done():
@@ -970,7 +972,7 @@ func TestIntegration_SecurityRecovery(t *testing.T) {
 
 		// Test normal operations during high load
 		time.Sleep(2 * time.Second)
-		
+
 		normalKMP := rules.KPMData{
 			Timestamp:       time.Now(),
 			NodeID:          "degradation-test-node",
@@ -995,6 +997,6 @@ func TestIntegration_SecurityRecovery(t *testing.T) {
 		cancel()
 		wg.Wait()
 
-		t.Logf("✓ System maintained functionality under load (validation time: %v)", elapsed)
+		t.Logf("??System maintained functionality under load (validation time: %v)", elapsed)
 	})
 }

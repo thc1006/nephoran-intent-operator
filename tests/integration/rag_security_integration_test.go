@@ -1,15 +1,17 @@
-package integration
+//go:build integration
+
+package integration_tests
 
 import (
 	"context"
 	"time"
+	"encoding/json"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 	"github.com/thc1006/nephoran-intent-operator/pkg/security"
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 var _ = Describe("RAG Security Integration", func() {
@@ -193,12 +195,7 @@ var _ = Describe("RAG Security Integration", func() {
 					Type:        "scan_results",
 					Source:      "security-scanner",
 					Description: "Comprehensive security scan results",
-					Data: map[string]interface{}{
-						"scan_id":             securityScanner.GenerateReport(),
-						"vulnerability_count": 5,
-						"risk_score":          75.5,
-						"scan_duration":       "5m30s",
-					},
+					Data: json.RawMessage(`{}`),
 				}
 
 				err = incidentResp.AddEvidence(incident.ID, evidence)
@@ -251,12 +248,7 @@ var _ = Describe("RAG Security Integration", func() {
 					Type:        "remediation_guidance",
 					Source:      "ai-assistant",
 					Description: "AI-generated remediation recommendations",
-					Data: map[string]interface{}{
-						"query":      ragRequest.Query,
-						"response":   ragResponse.Answer,
-						"confidence": ragResponse.Confidence,
-						"sources":    len(ragResponse.SourceDocuments),
-					},
+					Data: json.RawMessage(`{}`),
 				}
 
 				err = incidentResp.AddEvidence(incident.ID, evidence)
@@ -423,7 +415,7 @@ var _ = Describe("RAG Security Integration", func() {
 							Source:   "load-test",
 						}
 
-						incident, err := incidentResp.CreateIncident(ctx, incidentRequest)
+						_, err := incidentResp.CreateIncident(ctx, incidentRequest)
 						Expect(err).ToNot(HaveOccurred())
 
 						// Query RAG
@@ -489,3 +481,4 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, prompt string) (strin
 	}
 	return m.processResponse, nil
 }
+

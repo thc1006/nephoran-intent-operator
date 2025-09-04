@@ -1,3 +1,5 @@
+//go:build integration
+
 /*
 Copyright 2025.
 
@@ -72,13 +74,13 @@ type PorchCall struct {
 
 func (m *MockPorchExecutor) ExecutePorch(ctx context.Context, porchPath string, args []string, outputDir string, intentFile string, mode string) error {
 	m.callCount++
-	
+
 	call := PorchCall{
 		IntentFile: intentFile,
 		OutputDir:  outputDir,
-		Mode:      mode,
-		Args:      args,
-		Timestamp: time.Now(),
+		Mode:       mode,
+		Args:       args,
+		Timestamp:  time.Now(),
 	}
 	m.CallHistory = append(m.CallHistory, call)
 
@@ -101,7 +103,7 @@ data:
   timestamp: "%s"
 `, intentFile, time.Now().Format(time.RFC3339))
 
-	if err := os.WriteFile(outputFile, []byte(fakeKRMContent), 0644); err != nil {
+	if err := os.WriteFile(outputFile, []byte(fakeKRMContent), 0o644); err != nil {
 		return fmt.Errorf("failed to write fake output: %w", err)
 	}
 
@@ -153,9 +155,9 @@ var _ = AfterSuite(func() {
 
 var _ = Describe("Conductor Watch Controller Integration", func() {
 	var (
-		reconciler   *NetworkIntentReconciler
-		mockExecutor *MockPorchExecutor
-		tempDir      string
+		reconciler    *NetworkIntentReconciler
+		mockExecutor  *MockPorchExecutor
+		tempDir       string
 		namespaceName string
 	)
 
@@ -237,7 +239,7 @@ var _ = Describe("Conductor Watch Controller Integration", func() {
 			By("verifying intent JSON file was created")
 			files, err := os.ReadDir(tempDir)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			var intentFiles []string
 			for _, file := range files {
 				if filepath.Ext(file.Name()) == ".json" {
@@ -281,9 +283,9 @@ var _ = Describe("Conductor Watch Controller Integration", func() {
 
 		It("should handle complex scaling intents", func() {
 			testCases := []struct {
-				name            string
-				intent          string
-				expectedTarget  string
+				name             string
+				intent           string
+				expectedTarget   string
 				expectedReplicas int
 			}{
 				{
@@ -308,7 +310,7 @@ var _ = Describe("Conductor Watch Controller Integration", func() {
 
 			for _, tc := range testCases {
 				By(fmt.Sprintf("testing %s", tc.name))
-				
+
 				intent := &nephoranv1.NetworkIntent{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      fmt.Sprintf("scale-test-%d", time.Now().UnixNano()),
@@ -335,7 +337,7 @@ var _ = Describe("Conductor Watch Controller Integration", func() {
 				// Find the most recent JSON file
 				files, err := os.ReadDir(tempDir)
 				Expect(err).NotTo(HaveOccurred())
-				
+
 				var latestFile string
 				var latestTime time.Time
 				for _, file := range files {
@@ -396,7 +398,7 @@ var _ = Describe("Conductor Watch Controller Integration", func() {
 			Expect(mockExecutor.GetCallCount()).To(Equal(1))
 
 			By("updating the NetworkIntent spec")
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(intent), intent)).To(Succeed())
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, intent)).To(Succeed())
 			intent.Spec.Intent = "scale deployment web-app to 5 replicas"
 			Expect(k8sClient.Update(ctx, intent)).To(Succeed())
 
@@ -411,7 +413,7 @@ var _ = Describe("Conductor Watch Controller Integration", func() {
 			By("verifying new JSON file has updated replicas")
 			files, err := os.ReadDir(tempDir)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			var jsonFiles []string
 			for _, file := range files {
 				if filepath.Ext(file.Name()) == ".json" {
@@ -486,7 +488,7 @@ var _ = Describe("Conductor Watch Controller Integration", func() {
 			By("verifying only expected number of JSON files exist")
 			files, err := os.ReadDir(tempDir)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			jsonCount := 0
 			for _, file := range files {
 				if filepath.Ext(file.Name()) == ".json" {
@@ -555,7 +557,7 @@ var _ = Describe("Conductor Watch Controller Integration", func() {
 			By("verifying correct number of JSON files were generated")
 			files, err := os.ReadDir(tempDir)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			jsonCount := 0
 			for _, file := range files {
 				if filepath.Ext(file.Name()) == ".json" {
@@ -690,7 +692,7 @@ var _ = Describe("Conductor Watch Controller Integration", func() {
 			By("verifying JSON file was still created")
 			files, err := os.ReadDir(tempDir)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			jsonCount := 0
 			for _, file := range files {
 				if filepath.Ext(file.Name()) == ".json" {
@@ -739,7 +741,7 @@ var _ = Describe("Conductor Watch Controller Integration", func() {
 			By("verifying JSON file was created in the new directory")
 			files, err := os.ReadDir(nonExistentDir)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			jsonCount := 0
 			for _, file := range files {
 				if filepath.Ext(file.Name()) == ".json" {
@@ -752,7 +754,7 @@ var _ = Describe("Conductor Watch Controller Integration", func() {
 		It("should handle file write permissions", func() {
 			By("creating a read-only directory")
 			readOnlyDir := filepath.Join(tempDir, "readonly")
-			err := os.MkdirAll(readOnlyDir, 0444) // Read-only permissions
+			err := os.MkdirAll(readOnlyDir, 0o444) // Read-only permissions
 			Expect(err).NotTo(HaveOccurred())
 
 			// Skip this test on Windows as file permissions work differently
@@ -790,7 +792,7 @@ var _ = Describe("Conductor Watch Controller Integration", func() {
 			Expect(result.RequeueAfter).To(Equal(time.Minute * 5))
 
 			// Restore permissions for cleanup
-			_ = os.Chmod(readOnlyDir, 0755)
+			_ = os.Chmod(readOnlyDir, 0o755)
 		})
 	})
 

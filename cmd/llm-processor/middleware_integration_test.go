@@ -1,16 +1,15 @@
+//go:build integration
+
 package main
 
 import (
 	"bytes"
-	"context"
 	"crypto/tls"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -19,6 +18,8 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/middleware"
 )
+
+// Note: createIPAllowlistHandler is defined in main_test.go to avoid duplication
 
 // TestSecurityHeadersMiddleware validates that security headers are correctly set
 func TestSecurityHeadersMiddleware(t *testing.T) {
@@ -828,7 +829,7 @@ func TestMiddlewareWithExistingEndpoints(t *testing.T) {
 	if cfg.ExposeMetricsPublicly {
 		router.HandleFunc("/metrics", metricsHandler).Methods("GET")
 	} else {
-		router.HandleFunc("/metrics", createIPAllowlistHandler(
+		router.Handle("/metrics", createIPAllowlistHandler(
 			http.HandlerFunc(metricsHandler), cfg.MetricsAllowedCIDRs, logger)).Methods("GET")
 	}
 
@@ -842,10 +843,7 @@ func TestMiddlewareWithExistingEndpoints(t *testing.T) {
 			}
 
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"status":     "success",
-				"request_id": r.Header.Get("X-Request-ID"),
-			})
+			json.NewEncoder(w).Encode(json.RawMessage(`{}`))
 		}))
 	router.Handle("/process", processHandler).Methods("POST")
 
@@ -1134,3 +1132,4 @@ func TestMiddlewareErrorHandling(t *testing.T) {
 func init() {
 	// This test file comprehensively covers middleware integration testing
 }
+

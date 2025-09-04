@@ -1,8 +1,12 @@
+//go:build !disable_rag
+// +build !disable_rag
+
 package llm
 
 import (
-	"context"
+	
 	"encoding/json"
+"context"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -10,13 +14,35 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
-// RAGEnhancedProcessor provides LLM processing enhanced with RAG capabilities
-type RAGEnhancedProcessor struct {
-	baseClient     Client
+// convertSearchResults converts shared.SearchResult to rag.SearchResult
+func convertSearchResults(sharedResults []*shared.SearchResult) []*rag.SearchResult {
+	if sharedResults == nil {
+		return nil
+	}
+	ragResults := make([]*rag.SearchResult, len(sharedResults))
+	for i, tr := range sharedResults {
+		if tr != nil {
+			ragResults[i] = &rag.SearchResult{
+				ID:       tr.Document.ID,
+				Content:  tr.Document.Content,
+				Metadata: tr.Metadata,
+				Score:    tr.Score,
+				Distance: tr.Distance,
+				Source:   tr.Document.Source,
+			}
+		}
+	}
+	return ragResults
+}
+
+// RAGEnhancedProcessorImpl provides LLM processing enhanced with RAG capabilities
+type RAGEnhancedProcessorImpl struct {
+	baseClient     interface{} // Use interface{} to allow type assertions
 	ragService     *rag.RAGService
-	weaviateClient *rag.WeaviateClient
+	weaviateClient rag.WeaviateClient
 	config         *RAGProcessorConfig
 	logger         *slog.Logger
 	metrics        *ProcessorMetrics
@@ -68,21 +94,21 @@ type EnhancedResponse struct {
 	Sources        []*rag.SearchResult    `json:"sources,omitempty"`
 	ProcessingTime time.Duration          `json:"processing_time"`
 	IntentType     string                 `json:"intent_type,omitempty"`
-	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	Metadata       json.RawMessage `json:"metadata,omitempty"`
 }
 
 // NewRAGEnhancedProcessor creates a new RAG-enhanced LLM processor
-func NewRAGEnhancedProcessor(
-	baseClient Client,
-	weaviateClient *rag.WeaviateClient,
+func NewRAGEnhancedProcessorImpl(
+	baseClient *Client,
+	weaviateClient rag.WeaviateClient,
 	ragService *rag.RAGService,
 	config *RAGProcessorConfig,
-) *RAGEnhancedProcessor {
+) *RAGEnhancedProcessorImpl {
 	if config == nil {
 		config = getDefaultRAGProcessorConfig()
 	}
 
-	return &RAGEnhancedProcessor{
+	return &RAGEnhancedProcessorImpl{
 		baseClient:     baseClient,
 		ragService:     ragService,
 		weaviateClient: weaviateClient,
@@ -123,7 +149,7 @@ func getDefaultRAGProcessorConfig() *RAGProcessorConfig {
 }
 
 // ProcessIntent processes an intent using RAG enhancement when appropriate
-func (rep *RAGEnhancedProcessor) ProcessIntent(ctx context.Context, intent string) (string, error) {
+func (rep *RAGEnhancedProcessorImpl) ProcessIntent(ctx context.Context, intent string) (string, error) {
 	startTime := time.Now()
 
 	// Update metrics
@@ -176,7 +202,7 @@ func (rep *RAGEnhancedProcessor) ProcessIntent(ctx context.Context, intent strin
 }
 
 // ProcessIntentEnhanced processes an intent and returns enhanced response with metadata
-func (rep *RAGEnhancedProcessor) ProcessIntentEnhanced(ctx context.Context, intent string) (*EnhancedResponse, error) {
+func (rep *RAGEnhancedProcessorImpl) ProcessIntentEnhanced(ctx context.Context, intent string) (*EnhancedResponse, error) {
 	startTime := time.Now()
 
 	rep.updateMetrics(func(m *ProcessorMetrics) {
@@ -224,7 +250,7 @@ func (rep *RAGEnhancedProcessor) ProcessIntentEnhanced(ctx context.Context, inte
 }
 
 // shouldUseRAG determines if a query should use RAG enhancement
-func (rep *RAGEnhancedProcessor) shouldUseRAG(intent string) bool {
+func (rep *RAGEnhancedProcessorImpl) shouldUseRAG(intent string) bool {
 	if !rep.config.EnableRAG {
 		return false
 	}
@@ -261,7 +287,7 @@ func (rep *RAGEnhancedProcessor) shouldUseRAG(intent string) bool {
 }
 
 // processWithRAG processes the intent using RAG enhancement
-func (rep *RAGEnhancedProcessor) processWithRAG(ctx context.Context, intent string) (*EnhancedResponse, error) {
+func (rep *RAGEnhancedProcessorImpl) processWithRAG(ctx context.Context, intent string) (*EnhancedResponse, error) {
 	rep.logger.Info("Processing intent with RAG enhancement", "intent", intent)
 
 	// Classify intent type
@@ -272,18 +298,23 @@ func (rep *RAGEnhancedProcessor) processWithRAG(ctx context.Context, intent stri
 		Query:             intent,
 		IntentType:        intentType,
 		MaxResults:        10,
-		MinConfidence:     rep.config.RAGConfidenceThreshold,
+		MinConfidence:     float64(rep.config.RAGConfidenceThreshold),
 		UseHybridSearch:   true,
 		EnableReranking:   true,
 		IncludeSourceRefs: true,
 	}
 
 	// Add telecom-specific filters
-	ragRequest.SearchFilters = map[string]interface{}{
+	searchFiltersMap := map[string]interface{}{
 		"confidence": map[string]interface{}{
 			"operator": "GreaterThan",
 			"value":    rep.config.RAGConfidenceThreshold,
 		},
+	}
+	if searchFiltersBytes, err := json.Marshal(searchFiltersMap); err == nil {
+		ragRequest.SearchFilters = json.RawMessage(searchFiltersBytes)
+	} else {
+		ragRequest.SearchFilters = json.RawMessage(`{}`)
 	}
 
 	// Process with RAG
@@ -310,20 +341,23 @@ func (rep *RAGEnhancedProcessor) processWithRAG(ctx context.Context, intent stri
 		Confidence: ragResponse.Confidence,
 		Sources:    ragResponse.SourceDocuments,
 		IntentType: intentType,
-		Metadata: map[string]interface{}{
-			"rag_retrieval_time":  ragResponse.RetrievalTime,
-			"rag_generation_time": ragResponse.GenerationTime,
-			"documents_used":      len(ragResponse.SourceDocuments),
-			"used_cache":          ragResponse.UsedCache,
-		},
+		Metadata: json.RawMessage(`{}`),
 	}, nil
 }
 
 // processWithBase processes the intent using only the base LLM client
-func (rep *RAGEnhancedProcessor) processWithBase(ctx context.Context, intent string) (*EnhancedResponse, error) {
+func (rep *RAGEnhancedProcessorImpl) processWithBase(ctx context.Context, intent string) (*EnhancedResponse, error) {
 	rep.logger.Info("Processing intent with base client", "intent", intent)
 
-	response, err := rep.baseClient.ProcessIntent(ctx, intent)
+	// Type assert to get the ProcessIntent method
+	processor, ok := rep.baseClient.(interface {
+		ProcessIntent(context.Context, string) (string, error)
+	})
+	if !ok {
+		return nil, fmt.Errorf("base client does not support ProcessIntent method")
+	}
+
+	response, err := processor.ProcessIntent(ctx, intent)
 	if err != nil {
 		return nil, fmt.Errorf("base client processing failed: %w", err)
 	}
@@ -333,14 +367,12 @@ func (rep *RAGEnhancedProcessor) processWithBase(ctx context.Context, intent str
 		UsedRAG:    false,
 		Confidence: 0.8, // Default confidence for base responses
 		IntentType: rep.classifyIntentType(intent),
-		Metadata: map[string]interface{}{
-			"method": "base_llm",
-		},
+		Metadata: json.RawMessage(`{}`),
 	}, nil
 }
 
 // classifyIntentType attempts to classify the intent type
-func (rep *RAGEnhancedProcessor) classifyIntentType(intent string) string {
+func (rep *RAGEnhancedProcessorImpl) classifyIntentType(intent string) string {
 	intentLower := strings.ToLower(intent)
 
 	// Check predefined mappings
@@ -368,16 +400,17 @@ func (rep *RAGEnhancedProcessor) classifyIntentType(intent string) string {
 }
 
 // AddTelecomDocument adds a document to the knowledge base
-func (rep *RAGEnhancedProcessor) AddTelecomDocument(ctx context.Context, doc *rag.TelecomDocument) error {
+func (rep *RAGEnhancedProcessorImpl) AddTelecomDocument(ctx context.Context, doc *shared.TelecomDocument) error {
 	if rep.weaviateClient == nil {
 		return fmt.Errorf("weaviate client not available")
 	}
 
-	return rep.weaviateClient.AddDocument(ctx, doc)
+	ragDoc := rag.ConvertTelecomDocumentToDocument(doc)
+	return rep.weaviateClient.AddDocument(ctx, ragDoc)
 }
 
 // SearchKnowledgeBase searches the knowledge base directly
-func (rep *RAGEnhancedProcessor) SearchKnowledgeBase(ctx context.Context, query *rag.SearchQuery) (*rag.SearchResponse, error) {
+func (rep *RAGEnhancedProcessorImpl) SearchKnowledgeBase(ctx context.Context, query *rag.SearchQuery) (*rag.SearchResponse, error) {
 	if rep.weaviateClient == nil {
 		return nil, fmt.Errorf("weaviate client not available")
 	}
@@ -386,12 +419,8 @@ func (rep *RAGEnhancedProcessor) SearchKnowledgeBase(ctx context.Context, query 
 }
 
 // GetHealth returns the health status of the processor and its dependencies
-func (rep *RAGEnhancedProcessor) GetHealth() map[string]interface{} {
-	health := map[string]interface{}{
-		"status":      "healthy",
-		"rag_enabled": rep.config.EnableRAG,
-		"metrics":     rep.GetMetrics(),
-	}
+func (rep *RAGEnhancedProcessorImpl) GetHealth() map[string]interface{} {
+	health := make(map[string]interface{})
 
 	// Add base client health if available
 	if healthChecker, ok := rep.baseClient.(interface{ GetHealth() map[string]interface{} }); ok {
@@ -406,35 +435,42 @@ func (rep *RAGEnhancedProcessor) GetHealth() map[string]interface{} {
 	// Add Weaviate health
 	if rep.weaviateClient != nil {
 		weaviateHealth := rep.weaviateClient.GetHealthStatus()
-		health["weaviate"] = map[string]interface{}{
-			"healthy":    weaviateHealth.IsHealthy,
-			"version":    weaviateHealth.Version,
-			"last_check": weaviateHealth.LastCheck,
-		}
+		health["weaviate"] = weaviateHealth
 	}
 
 	return health
 }
 
 // GetMetrics returns current processor metrics
-func (rep *RAGEnhancedProcessor) GetMetrics() *ProcessorMetrics {
+func (rep *RAGEnhancedProcessorImpl) GetMetrics() *ProcessorMetrics {
 	rep.metrics.mutex.RLock()
 	defer rep.metrics.mutex.RUnlock()
 
-	// Return a copy
-	metrics := *rep.metrics
+	// Return a copy without the mutex to avoid copying the lock
+	metrics := ProcessorMetrics{
+		TotalRequests:      rep.metrics.TotalRequests,
+		RAGRequests:        rep.metrics.RAGRequests,
+		BaseRequests:       rep.metrics.BaseRequests,
+		SuccessfulRequests: rep.metrics.SuccessfulRequests,
+		FailedRequests:     rep.metrics.FailedRequests,
+		AverageLatency:     rep.metrics.AverageLatency,
+		RAGLatency:         rep.metrics.RAGLatency,
+		BaseLatency:        rep.metrics.BaseLatency,
+		LastUpdated:        rep.metrics.LastUpdated,
+		// mutex field is intentionally omitted to avoid copying
+	}
 	return &metrics
 }
 
 // updateMetrics safely updates metrics
-func (rep *RAGEnhancedProcessor) updateMetrics(updater func(*ProcessorMetrics)) {
+func (rep *RAGEnhancedProcessorImpl) updateMetrics(updater func(*ProcessorMetrics)) {
 	rep.metrics.mutex.Lock()
 	defer rep.metrics.mutex.Unlock()
 	updater(rep.metrics)
 }
 
 // ValidateConfig validates the processor configuration
-func (rep *RAGEnhancedProcessor) ValidateConfig() error {
+func (rep *RAGEnhancedProcessorImpl) ValidateConfig() error {
 	if rep.config == nil {
 		return fmt.Errorf("configuration cannot be nil")
 	}
@@ -459,7 +495,7 @@ func (rep *RAGEnhancedProcessor) ValidateConfig() error {
 }
 
 // Close cleans up resources
-func (rep *RAGEnhancedProcessor) Close() error {
+func (rep *RAGEnhancedProcessorImpl) Close() error {
 	rep.logger.Info("Closing RAG enhanced processor")
 
 	if rep.weaviateClient != nil {
@@ -478,5 +514,6 @@ func (rep *RAGEnhancedProcessor) Close() error {
 	return nil
 }
 
-// Ensure RAGEnhancedProcessor implements the Client interface
-var _ Client = (*RAGEnhancedProcessor)(nil)
+// RAGEnhancedProcessorImpl provides RAG-enhanced processing capabilities
+// Note: This is a separate type that wraps a Client, not implementing the Client interface itself
+

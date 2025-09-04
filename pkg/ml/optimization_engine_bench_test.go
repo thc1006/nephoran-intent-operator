@@ -9,8 +9,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"encoding/json"
 
-	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 )
@@ -195,10 +195,7 @@ func BenchmarkOptimizeNetworkDeployment(b *testing.B) {
 				ID:          "test-intent",
 				Description: "Benchmark test intent",
 				Priority:    "high",
-				Parameters: map[string]interface{}{
-					"bandwidth": "10Gbps",
-					"latency":   "5ms",
-				},
+				Parameters: json.RawMessage(`{}`),
 			}
 
 			ctx := context.Background()
@@ -457,3 +454,4 @@ func BenchmarkConfidenceScoreCalculation(b *testing.B) {
 		_ = engine.calculateConfidenceScore(recommendations)
 	}
 }
+

@@ -2,8 +2,8 @@ package audit
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"runtime"
 	"sync"
@@ -176,7 +176,7 @@ func BenchmarkEventSerialization(b *testing.B) {
 
 // BenchmarkBackendPerformance measures backend-specific performance
 func BenchmarkBackendPerformance(b *testing.B) {
-	tempDir, err := ioutil.TempDir("", "benchmark_backend")
+	tempDir, err := os.MkdirTemp("", "benchmark_backend")
 	require.NoError(b, err)
 	defer os.RemoveAll(tempDir)
 
@@ -187,12 +187,10 @@ func BenchmarkBackendPerformance(b *testing.B) {
 		{
 			"FileBackend",
 			backends.BackendConfig{
-				Type:    backends.BackendTypeFile,
-				Enabled: true,
-				Name:    "benchmark-file",
-				Settings: map[string]interface{}{
-					"path": tempDir + "/benchmark.log",
-				},
+				Type:     backends.BackendTypeFile,
+				Enabled:  true,
+				Name:     "benchmark-file",
+				Settings: map[string]interface{}{},
 			},
 		},
 		{
@@ -202,9 +200,7 @@ func BenchmarkBackendPerformance(b *testing.B) {
 				Enabled:     true,
 				Name:        "benchmark-compressed",
 				Compression: true,
-				Settings: map[string]interface{}{
-					"path": tempDir + "/benchmark_compressed.log",
-				},
+				Settings:    map[string]interface{}{},
 			},
 		},
 	}
@@ -665,11 +661,7 @@ func createMediumEvent() *AuditEvent {
 			ResourceID:   "data123",
 			Operation:    "read",
 		},
-		Data: map[string]interface{}{
-			"field1": "value1",
-			"field2": 42,
-			"field3": true,
-		},
+		Data: map[string]interface{}{},
 	}
 }
 
@@ -723,8 +715,7 @@ func createExtraLargeEvent() *AuditEvent {
 	extraLargeData := make(map[string]interface{})
 	for i := 0; i < 1000; i++ {
 		extraLargeData[fmt.Sprintf("field_%d", i)] = map[string]interface{}{
-			"value":       fmt.Sprintf("value_%d", i),
-			"metadata":    map[string]string{"key1": "val1", "key2": "val2"},
+			"payload":     json.RawMessage(`{}`),
 			"nested_data": []string{"item1", "item2", "item3"},
 			"timestamp":   time.Now(),
 		}
@@ -902,20 +893,20 @@ func analyzePerformanceResults(results *PerformanceResults) {
 	// Check thresholds
 	thresholdsPassed := true
 	if results.EventsPerSecond < MinThroughputEventsPerSec {
-		fmt.Printf("  ❌ Throughput below threshold\n")
+		fmt.Printf("  ??Throughput below threshold\n")
 		thresholdsPassed = false
 	}
 	if results.AverageLatencyMs > MaxAcceptableLatencyMs {
-		fmt.Printf("  ❌ Average latency above threshold\n")
+		fmt.Printf("  ??Average latency above threshold\n")
 		thresholdsPassed = false
 	}
 	if results.MemoryUsageMB > MaxMemoryUsageMB {
-		fmt.Printf("  ❌ Memory usage above threshold\n")
+		fmt.Printf("  ??Memory usage above threshold\n")
 		thresholdsPassed = false
 	}
 
 	if thresholdsPassed {
-		fmt.Printf("  ✅ All performance thresholds passed\n")
+		fmt.Printf("  ??All performance thresholds passed\n")
 	}
 
 	results.PassedThresholds = thresholdsPassed

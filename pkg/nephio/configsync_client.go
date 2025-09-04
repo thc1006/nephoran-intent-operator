@@ -1,23 +1,39 @@
 /*
+
 Copyright 2025.
 
+
+
 Licensed under the Apache License, Version 2.0 (the "License");
+
 you may not use this file except in compliance with the License.
+
 You may obtain a copy of the License at
+
+
 
     http://www.apache.org/licenses/LICENSE-2.0
 
+
+
 Unless required by applicable law or agreed to in writing, software
+
 distributed under the License is distributed on an "AS IS" BASIS,
+
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
 See the License for the specific language governing permissions and
+
 limitations under the License.
+
 */
 
 package nephio
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -31,557 +47,490 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
-// ConfigSyncMetrics provides Config Sync metrics
-type ConfigSyncMetrics struct {
-	SyncOperations     prometheus.CounterVec
-	SyncDuration       prometheus.HistogramVec
-	SyncErrors         prometheus.CounterVec
-	GitOperations      prometheus.CounterVec
-	RepositoryHealth   prometheus.GaugeVec
-	PackageDeployments prometheus.CounterVec
+// ConfigSyncConfig defines Config Sync configuration (unified type).
+
+type ConfigSyncConfig struct {
+	Repository string `json:"repository" yaml:"repository"`
+
+	Branch string `json:"branch" yaml:"branch"`
+
+	Directory string `json:"directory" yaml:"directory"`
+
+	SyncPeriod time.Duration `json:"syncPeriod" yaml:"syncPeriod"`
+
+	Username string `json:"username" yaml:"username"`
+
+	Email string `json:"email" yaml:"email"`
+
+	AuthToken string `json:"authToken" yaml:"authToken"`
+
+	PolicyDir string `json:"policyDir" yaml:"policyDir"`
+
+	Namespaces []string `json:"namespaces" yaml:"namespaces"`
 }
 
-// GitClient implements Git operations for Config Sync
-type GitClient struct {
-	workingDir string
-	config     *GitConfig
-	tracer     trace.Tracer
-	metrics    *GitClientMetrics
-}
+// GitConfig contains Git configuration for Config Sync.
 
-// GitConfig defines Git client configuration
 type GitConfig struct {
-	Username    string            `json:"username,omitempty"`
-	Email       string            `json:"email,omitempty"`
-	SSHKeyPath  string            `json:"sshKeyPath,omitempty"`
-	HTTPSToken  string            `json:"httpsToken,omitempty"`
-	Environment map[string]string `json:"environment,omitempty"`
-	Timeout     time.Duration     `json:"timeout,omitempty"`
+	URL string
+
+	Branch string
+
+	AuthToken string
+
+	Username string
+
+	Email string
 }
 
-// GitClientMetrics provides Git client metrics
-type GitClientMetrics struct {
-	GitCommands     prometheus.CounterVec
-	CommandDuration prometheus.HistogramVec
-	GitErrors       prometheus.CounterVec
+// ConfigSyncMetrics provides Config Sync metrics.
+
+type ConfigSyncMetrics struct {
+	SyncOperations *prometheus.CounterVec
+
+	SyncDuration *prometheus.HistogramVec
+
+	SyncErrors *prometheus.CounterVec
+
+	GitOperations *prometheus.CounterVec
+
+	RepositoryHealth *prometheus.GaugeVec
+
+	PackageDeployments *prometheus.CounterVec
 }
 
-// ConfigSyncResult extends SyncResult with additional Config Sync information
-type ConfigSyncResult struct {
-	*SyncResult
-	Repository     string          `json:"repository"`
-	Branch         string          `json:"branch"`
-	Directory      string          `json:"directory"`
-	SyncRevision   string          `json:"syncRevision"`
-	ClusterStatus  string          `json:"clusterStatus"`
-	RootSyncStatus *RootSyncStatus `json:"rootSyncStatus,omitempty"`
-	RepoSyncStatus *RepoSyncStatus `json:"repoSyncStatus,omitempty"`
-	Conflicts      []SyncConflict  `json:"conflicts,omitempty"`
+// NewConfigSyncMetrics creates new Config Sync metrics.
+
+func NewConfigSyncMetrics() *ConfigSyncMetrics {
+	return &ConfigSyncMetrics{
+		SyncOperations: promauto.NewCounterVec(
+
+			prometheus.CounterOpts{
+				Name: "configsync_operations_total",
+
+				Help: "Total number of Config Sync operations",
+			},
+
+			[]string{"operation", "repository", "status"},
+		),
+
+		SyncDuration: promauto.NewHistogramVec(
+
+			prometheus.HistogramOpts{
+				Name: "configsync_operation_duration_seconds",
+
+				Help: "Duration of Config Sync operations",
+
+				Buckets: prometheus.DefBuckets,
+			},
+
+			[]string{"operation", "repository"},
+		),
+
+		SyncErrors: promauto.NewCounterVec(
+
+			prometheus.CounterOpts{
+				Name: "configsync_errors_total",
+
+				Help: "Total number of Config Sync errors",
+			},
+
+			[]string{"repository", "error_type"},
+		),
+
+		GitOperations: promauto.NewCounterVec(
+
+			prometheus.CounterOpts{
+				Name: "configsync_git_operations_total",
+
+				Help: "Total number of Git operations",
+			},
+
+			[]string{"operation", "repository", "status"},
+		),
+
+		RepositoryHealth: promauto.NewGaugeVec(
+
+			prometheus.GaugeOpts{
+				Name: "configsync_repository_health",
+
+				Help: "Health status of Git repositories (1=healthy, 0=unhealthy)",
+			},
+
+			[]string{"repository", "branch"},
+		),
+
+		PackageDeployments: promauto.NewCounterVec(
+
+			prometheus.CounterOpts{
+				Name: "configsync_package_deployments_total",
+
+				Help: "Total number of package deployments",
+			},
+
+			[]string{"package", "cluster", "status"},
+		),
+	}
 }
 
-// RootSyncStatus represents RootSync resource status
-type RootSyncStatus struct {
-	Name       string          `json:"name"`
-	Status     string          `json:"status"`
-	Message    string          `json:"message"`
-	Conditions []SyncCondition `json:"conditions"`
-	Source     *SyncSource     `json:"source"`
-	Sync       *SyncStatusInfo `json:"sync"`
+// ConfigSyncClient manages Config Sync operations.
+
+type ConfigSyncClient struct {
+	client client.Client
+
+	logger logr.Logger
+
+	metrics *ConfigSyncMetrics
+
+	tracer trace.Tracer
+
+	repoPath string
+
+	gitConfig GitConfig
 }
 
-// RepoSyncStatus represents RepoSync resource status
-type RepoSyncStatus struct {
-	Name       string          `json:"name"`
-	Namespace  string          `json:"namespace"`
-	Status     string          `json:"status"`
-	Message    string          `json:"message"`
-	Conditions []SyncCondition `json:"conditions"`
-	Source     *SyncSource     `json:"source"`
-	Sync       *SyncStatusInfo `json:"sync"`
+// SyncResult represents the result of a Config Sync operation.
+
+type SyncResult struct {
+	Status string
+
+	Resources []string
+
+	Duration time.Duration
+
+	Error error
 }
 
-// SyncCondition represents a sync condition
-type SyncCondition struct {
-	Type               string    `json:"type"`
-	Status             string    `json:"status"`
-	LastUpdateTime     time.Time `json:"lastUpdateTime"`
-	LastTransitionTime time.Time `json:"lastTransitionTime"`
-	Reason             string    `json:"reason"`
-	Message            string    `json:"message"`
-}
+// NewConfigSyncClient creates a new Config Sync client.
 
-// SyncSource represents sync source information
-type SyncSource struct {
-	Git       *GitSyncSource `json:"git,omitempty"`
-	Revision  string         `json:"revision"`
-	Directory string         `json:"directory"`
-}
-
-// GitSyncSource represents Git sync source
-type GitSyncSource struct {
-	Repo      string           `json:"repo"`
-	Branch    string           `json:"branch"`
-	Revision  string           `json:"revision"`
-	Auth      string           `json:"auth,omitempty"`
-	SecretRef *SecretReference `json:"secretRef,omitempty"`
-}
-
-// SecretReference represents a secret reference
-type SecretReference struct {
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
-}
-
-// SyncStatusInfo represents sync status information
-type SyncStatusInfo struct {
-	Commit       string        `json:"commit"`
-	ErrorSummary *ErrorSummary `json:"errorSummary,omitempty"`
-	Errors       []SyncError   `json:"errors,omitempty"`
-}
-
-// ErrorSummary represents error summary
-type ErrorSummary struct {
-	TotalCount                int  `json:"totalCount"`
-	Truncated                 bool `json:"truncated"`
-	ErrorCountAfterTruncation int  `json:"errorCountAfterTruncation"`
-}
-
-// SyncConflict represents a sync conflict
-type SyncConflict struct {
-	Name      string `json:"name"`
-	Kind      string `json:"kind"`
-	Namespace string `json:"namespace"`
-	Message   string `json:"message"`
-	Status    string `json:"status"`
-}
-
-// PolicyDir represents a policy directory structure
-type PolicyDir struct {
-	Path       string         `json:"path"`
-	Policies   []PolicyFile   `json:"policies"`
-	Namespaces []NamespaceDir `json:"namespaces"`
-	Clusters   []ClusterDir   `json:"clusters"`
-}
-
-// PolicyFile represents a policy file
-type PolicyFile struct {
-	Name    string      `json:"name"`
-	Kind    string      `json:"kind"`
-	Content interface{} `json:"content"`
-}
-
-// NamespaceDir represents a namespace directory
-type NamespaceDir struct {
-	Name      string       `json:"name"`
-	Path      string       `json:"path"`
-	Resources []PolicyFile `json:"resources"`
-}
-
-// ClusterDir represents a cluster directory
-type ClusterDir struct {
-	Name      string       `json:"name"`
-	Path      string       `json:"path"`
-	Resources []PolicyFile `json:"resources"`
-}
-
-// Default Config Sync configuration
-var DefaultConfigSyncMetrics = &ConfigSyncMetrics{
-	SyncOperations: *promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "nephio_configsync_operations_total",
-			Help: "Total number of Config Sync operations",
-		},
-		[]string{"operation", "cluster", "repository", "status"},
-	),
-	SyncDuration: *promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "nephio_configsync_duration_seconds",
-			Help:    "Duration of Config Sync operations",
-			Buckets: prometheus.ExponentialBuckets(1, 2, 10),
-		},
-		[]string{"operation", "cluster"},
-	),
-	SyncErrors: *promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "nephio_configsync_errors_total",
-			Help: "Total number of Config Sync errors",
-		},
-		[]string{"cluster", "error_type"},
-	),
-	GitOperations: *promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "nephio_configsync_git_operations_total",
-			Help: "Total number of Git operations",
-		},
-		[]string{"operation", "repository", "status"},
-	),
-	RepositoryHealth: *promauto.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "nephio_configsync_repository_health",
-			Help: "Health status of Config Sync repositories",
-		},
-		[]string{"repository", "branch"},
-	),
-	PackageDeployments: *promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "nephio_configsync_package_deployments_total",
-			Help: "Total number of package deployments via Config Sync",
-		},
-		[]string{"cluster", "package", "status"},
-	),
-}
-
-// NewConfigSyncClient creates a new Config Sync client
-func NewConfigSyncClient(
-	client client.Client,
-	config *ConfigSyncConfig,
-) (*ConfigSyncClient, error) {
+func NewConfigSyncClient(client client.Client, config *ConfigSyncConfig) (*ConfigSyncClient, error) {
 	if config == nil {
-		return nil, fmt.Errorf("Config Sync configuration is required")
+		return nil, fmt.Errorf("config cannot be nil")
 	}
 
-	// Initialize metrics
-	metrics := DefaultConfigSyncMetrics
+	gitConfig := GitConfig{
+		URL: config.Repository,
 
-	// Initialize Git client
-	gitConfig := &GitConfig{
-		Username: "nephoran-operator",
-		Email:    "nephoran-operator@example.com",
-		Timeout:  5 * time.Minute,
-	}
+		Branch: config.Branch,
 
-	if config.Credentials != nil {
-		gitConfig.Username = config.Credentials.Username
-		gitConfig.HTTPSToken = config.Credentials.Token
-		gitConfig.SSHKeyPath = config.Credentials.SSHKey
-	}
+		AuthToken: config.AuthToken,
 
-	gitClient := &GitClient{
-		config: gitConfig,
-		tracer: otel.Tracer("nephio-git-client"),
-		metrics: &GitClientMetrics{
-			GitCommands: *promauto.NewCounterVec(
-				prometheus.CounterOpts{
-					Name: "nephio_git_commands_total",
-					Help: "Total number of Git commands executed",
-				},
-				[]string{"command", "repository", "status"},
-			),
-			CommandDuration: *promauto.NewHistogramVec(
-				prometheus.HistogramOpts{
-					Name:    "nephio_git_command_duration_seconds",
-					Help:    "Duration of Git commands",
-					Buckets: prometheus.ExponentialBuckets(0.1, 2, 8),
-				},
-				[]string{"command", "repository"},
-			),
-			GitErrors: *promauto.NewCounterVec(
-				prometheus.CounterOpts{
-					Name: "nephio_git_errors_total",
-					Help: "Total number of Git errors",
-				},
-				[]string{"command", "error_type"},
-			),
-		},
-	}
+		Username: config.Username,
 
-	// Initialize sync service
-	syncService := &SyncService{
-		client:       client,
-		configSync:   config,
-		tracer:       otel.Tracer("nephio-sync-service"),
-		pollInterval: 30 * time.Second,
+		Email: config.Email,
 	}
 
 	return &ConfigSyncClient{
-		client:      client,
-		gitClient:   gitClient,
-		syncService: syncService,
-		config:      config,
-		tracer:      otel.Tracer("nephio-configsync"),
-		metrics:     metrics,
+		client: client,
+
+		logger: log.Log.WithName("configsync"),
+
+		metrics: NewConfigSyncMetrics(),
+
+		tracer: otel.Tracer("configsync"),
+
+		repoPath: "/tmp/configsync-repo",
+
+		gitConfig: gitConfig,
 	}, nil
 }
 
-// SyncPackageToCluster deploys a package to a cluster via Config Sync
-func (csc *ConfigSyncClient) SyncPackageToCluster(ctx context.Context, pkg *porch.PackageRevision, cluster *WorkloadCluster) (*SyncResult, error) {
-	ctx, span := csc.tracer.Start(ctx, "sync-package-to-cluster")
+// DeployPackage deploys a package using Config Sync.
+
+func (csc *ConfigSyncClient) DeployPackage(ctx context.Context, pkg *porch.PackageRevision, cluster *WorkloadCluster) (*SyncResult, error) {
+	ctx, span := csc.tracer.Start(ctx, "deploy-package")
+
 	defer span.End()
 
-	logger := log.FromContext(ctx).WithName("configsync").WithValues(
+	startTime := time.Now()
+
+	logger := csc.logger.WithValues(
+
 		"package", pkg.Spec.PackageName,
+
 		"revision", pkg.Spec.Revision,
+
 		"cluster", cluster.Name,
 	)
 
-	span.SetAttributes(
-		attribute.String("package.name", pkg.Spec.PackageName),
-		attribute.String("package.revision", pkg.Spec.Revision),
-		attribute.String("cluster.name", cluster.Name),
-	)
+	logger.Info("Starting package deployment via Config Sync")
 
-	startTime := time.Now()
-	defer func() {
-		csc.metrics.SyncDuration.WithLabelValues(
-			"sync_package", cluster.Name,
-		).Observe(time.Since(startTime).Seconds())
-	}()
+	// Prepare package content for Git repository.
 
-	// Step 1: Prepare package contents for deployment
-	deploymentContent, err := csc.preparePackageContent(ctx, pkg, cluster)
+	content, err := csc.preparePackageContent(ctx, pkg, cluster)
 	if err != nil {
+
+		csc.metrics.SyncErrors.WithLabelValues(csc.gitConfig.URL, "prepare_content").Inc()
+
 		span.RecordError(err)
-		csc.metrics.SyncErrors.WithLabelValues(cluster.Name, "preparation_failed").Inc()
-		return nil, errors.WithContext(err, "failed to prepare package content")
+
+		return nil, fmt.Errorf("failed to prepare package content: %w", err)
+
 	}
 
-	// Step 2: Create cluster-specific directory structure
-	clusterDir := filepath.Join(csc.config.Directory, cluster.Name)
-	packageDir := filepath.Join(clusterDir, pkg.Spec.PackageName)
+	// Clone or update Git repository.
 
-	// Step 3: Write package resources to Git repository
-	if err := csc.writePackageToRepository(ctx, packageDir, deploymentContent); err != nil {
+	if err := csc.setupRepository(ctx); err != nil {
+
+		csc.metrics.SyncErrors.WithLabelValues(csc.gitConfig.URL, "setup_repo").Inc()
+
 		span.RecordError(err)
-		csc.metrics.SyncErrors.WithLabelValues(cluster.Name, "write_failed").Inc()
-		return nil, errors.WithContext(err, "failed to write package to repository")
+
+		return nil, fmt.Errorf("failed to setup repository: %w", err)
+
 	}
 
-	// Step 4: Commit and push changes
-	commitMessage := fmt.Sprintf("Deploy %s v%s to cluster %s",
-		pkg.Spec.PackageName, pkg.Spec.Revision, cluster.Name)
+	// Write package files to repository.
 
-	files := []string{packageDir}
-	if err := csc.gitClient.Commit(ctx, commitMessage, files); err != nil {
+	packagePath := filepath.Join(csc.repoPath, "clusters", cluster.Name, pkg.Spec.PackageName)
+
+	if err := os.MkdirAll(packagePath, 0o755); err != nil {
+
 		span.RecordError(err)
-		csc.metrics.GitOperations.WithLabelValues("commit", csc.config.Repository, "failed").Inc()
-		return nil, errors.WithContext(err, "failed to commit package changes")
+
+		return nil, fmt.Errorf("failed to create package directory: %w", err)
+
 	}
 
-	if err := csc.gitClient.Push(ctx); err != nil {
-		span.RecordError(err)
-		csc.metrics.GitOperations.WithLabelValues("push", csc.config.Repository, "failed").Inc()
-		return nil, errors.WithContext(err, "failed to push package changes")
-	}
+	var resources []string
 
-	// Step 5: Monitor sync status
-	syncResult, err := csc.waitForSyncCompletion(ctx, cluster, pkg.Spec.PackageName)
-	if err != nil {
-		logger.Error(err, "Sync monitoring failed")
-		// Don't fail the operation - sync may still succeed
-	}
+	for filename, data := range content {
 
-	// Step 6: Verify deployment status
-	if syncResult == nil {
-		syncResult = &SyncResult{
-			Status:    "Deployed",
-			Message:   "Package deployed successfully",
-			Commit:    "unknown", // Would get actual commit hash
-			Resources: []SyncedResource{},
-			Duration:  time.Since(startTime),
-			Timestamp: time.Now(),
+		filePath := filepath.Join(packagePath, filename)
+
+		if err := os.WriteFile(filePath, data, 0o640); err != nil {
+
+			span.RecordError(err)
+
+			return nil, fmt.Errorf("failed to write file %s: %w", filename, err)
+
 		}
+
+		resources = append(resources, filename)
+
 	}
 
-	csc.metrics.SyncOperations.WithLabelValues(
-		"sync_package", cluster.Name, csc.config.Repository, "success",
-	).Inc()
+	// Commit and push changes.
 
-	csc.metrics.PackageDeployments.WithLabelValues(
-		cluster.Name, pkg.Spec.PackageName, "success",
-	).Inc()
+	if err := csc.commitAndPush(ctx, pkg, cluster); err != nil {
+
+		csc.metrics.GitOperations.WithLabelValues("push", csc.gitConfig.URL, "failed").Inc()
+
+		span.RecordError(err)
+
+		return nil, fmt.Errorf("failed to commit and push changes: %w", err)
+
+	}
+
+	csc.metrics.GitOperations.WithLabelValues("push", csc.gitConfig.URL, "success").Inc()
+
+	csc.metrics.PackageDeployments.WithLabelValues(pkg.Spec.PackageName, cluster.Name, "success").Inc()
+
+	syncResult := &SyncResult{
+		Status: "Success",
+
+		Resources: resources,
+
+		Duration: time.Since(startTime),
+	}
+
+	csc.metrics.SyncOperations.WithLabelValues("deploy", csc.gitConfig.URL, "success").Inc()
+
+	csc.metrics.SyncDuration.WithLabelValues("deploy", csc.gitConfig.URL).Observe(syncResult.Duration.Seconds())
 
 	logger.Info("Package deployed successfully",
+
 		"duration", time.Since(startTime),
+
 		"status", syncResult.Status,
 	)
 
 	span.SetAttributes(
+
 		attribute.String("sync.status", syncResult.Status),
+
 		attribute.Int("sync.resources", len(syncResult.Resources)),
+
 		attribute.Float64("sync.duration", syncResult.Duration.Seconds()),
 	)
 
 	return syncResult, nil
 }
 
-// preparePackageContent prepares package content for Config Sync deployment
+// KrmResource represents a KRM resource structure.
+
+type KrmResource struct {
+	APIVersion string `json:"apiVersion,omitempty" yaml:"apiVersion,omitempty"`
+
+	Kind string `json:"kind,omitempty" yaml:"kind,omitempty"`
+
+	Metadata map[string]interface{} `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+
+	Spec interface{} `json:"spec,omitempty" yaml:"spec,omitempty"`
+
+	Status interface{} `json:"status,omitempty" yaml:"status,omitempty"`
+
+	Data interface{} `json:"data,omitempty" yaml:"data,omitempty"`
+}
+
+// preparePackageContent prepares package content for Config Sync deployment.
+
 func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *porch.PackageRevision, cluster *WorkloadCluster) (map[string][]byte, error) {
-	ctx, span := csc.tracer.Start(ctx, "prepare-package-content")
+	_, span := csc.tracer.Start(ctx, "prepare-package-content")
+
 	defer span.End()
 
 	content := make(map[string][]byte)
 
-	// Convert KRM resources to YAML files
-	for _, resource := range pkg.Spec.Resources {
-		// Generate filename
-		filename := fmt.Sprintf("%s-%s.yaml", strings.ToLower(resource.Kind), resource.Name)
+	// Convert KRM resources to YAML files.
 
-		// Convert resource content to YAML
-		yamlContent, err := yaml.Marshal(resource.Content)
+	for i, resourceInterface := range pkg.Spec.Resources {
+
+		// Try to handle resource as a map first.
+
+		resourceMap, ok := resourceInterface.(map[string]interface{})
+
+		if !ok {
+
+			// Try to marshal and unmarshal to get a map.
+
+			resourceData, err := yaml.Marshal(resourceInterface)
+			if err != nil {
+
+				span.RecordError(err)
+
+				return nil, fmt.Errorf("failed to marshal resource %d: %w", i, err)
+
+			}
+
+			if err := yaml.Unmarshal(resourceData, &resourceMap); err != nil {
+
+				span.RecordError(err)
+
+				return nil, fmt.Errorf("failed to unmarshal resource %d: %w", i, err)
+
+			}
+
+		}
+
+		// Extract kind and name from the resource map.
+
+		kind, _ := resourceMap["kind"].(string)
+
+		if kind == "" {
+			kind = "Resource"
+		}
+
+		var name string
+
+		if metadata, ok := resourceMap["metadata"].(map[string]interface{}); ok {
+			name, _ = metadata["name"].(string)
+		}
+
+		if name == "" {
+			name = fmt.Sprintf("resource-%d", i)
+		}
+
+		// Generate filename.
+
+		filename := fmt.Sprintf("%s-%s.yaml", strings.ToLower(kind), name)
+
+		// Convert resource content to YAML.
+
+		yamlContent, err := yaml.Marshal(resourceMap)
 		if err != nil {
+
 			span.RecordError(err)
-			return nil, errors.WithContext(err, fmt.Sprintf("failed to marshal resource %s", resource.Name))
+
+			return nil, fmt.Errorf("failed to marshal resource %s: %w", name, err)
+
 		}
 
 		content[filename] = yamlContent
+
 	}
 
-	// Generate Kustomization file
+	// Generate Kustomization file.
+
 	kustomization := map[string]interface{}{
-		"apiVersion": "kustomize.config.k8s.io/v1beta1",
-		"kind":       "Kustomization",
 		"metadata": map[string]interface{}{
 			"name": pkg.Spec.PackageName,
-			"annotations": map[string]interface{}{
-				"config.k8s.io/local-config": "true",
-			},
+			"annotations": map[string]interface{}{},
 		},
 		"resources": csc.getResourceFileNames(content),
-		"commonLabels": map[string]interface{}{
-			"app.kubernetes.io/name":       pkg.Spec.PackageName,
-			"app.kubernetes.io/version":    pkg.Spec.Revision,
-			"app.kubernetes.io/managed-by": "nephoran-intent-operator",
-			"nephoran.io/cluster":          cluster.Name,
-			"nephoran.io/package":          pkg.Spec.PackageName,
-		},
-		"commonAnnotations": map[string]interface{}{
-			"nephoran.io/deployed-at": time.Now().Format(time.RFC3339),
-			"nephoran.io/source-repo": pkg.Spec.Repository,
-			"nephoran.io/source-rev":  pkg.Spec.Revision,
-		},
+
+		"commonLabels": json.RawMessage(`{}`),
+
+		"commonAnnotations": json.RawMessage(`{}`),
 	}
 
 	kustomizationYAML, err := yaml.Marshal(kustomization)
 	if err != nil {
+
 		span.RecordError(err)
-		return nil, errors.WithContext(err, "failed to generate kustomization.yaml")
+
+		return nil, fmt.Errorf("failed to generate kustomization.yaml: %w", err)
+
 	}
+
 	content["kustomization.yaml"] = kustomizationYAML
 
-	// Generate namespace if not present
+	// Generate namespace if not present.
+
 	if !csc.hasNamespaceResource(content) {
+
 		namespace := map[string]interface{}{
-			"apiVersion": "v1",
-			"kind":       "Namespace",
-			"metadata": map[string]interface{}{
-				"name": fmt.Sprintf("%s-ns", pkg.Spec.PackageName),
-				"labels": map[string]interface{}{
-					"nephoran.io/managed": "true",
-					"nephoran.io/cluster": cluster.Name,
-					"nephoran.io/package": pkg.Spec.PackageName,
-				},
-			},
-		}
+		"metadata": map[string]interface{}{
+			"name": fmt.Sprintf("%s-ns", pkg.Spec.PackageName),
+			"labels": map[string]interface{}{},
+		},
+	}
 
 		namespaceYAML, err := yaml.Marshal(namespace)
 		if err != nil {
+
 			span.RecordError(err)
-			return nil, errors.WithContext(err, "failed to generate namespace")
+
+			return nil, fmt.Errorf("failed to generate namespace: %w", err)
+
 		}
+
 		content["namespace.yaml"] = namespaceYAML
+
 	}
 
 	span.SetAttributes(
+
 		attribute.Int("content.files", len(content)),
+
 		attribute.Int("content.resources", len(pkg.Spec.Resources)),
 	)
 
 	return content, nil
 }
 
-// writePackageToRepository writes package content to Git repository
-func (csc *ConfigSyncClient) writePackageToRepository(ctx context.Context, packageDir string, content map[string][]byte) error {
-	ctx, span := csc.tracer.Start(ctx, "write-package-to-repository")
-	defer span.End()
-
-	// Create directory structure
-	if err := os.MkdirAll(packageDir, 0755); err != nil {
-		span.RecordError(err)
-		return errors.WithContext(err, "failed to create package directory")
-	}
-
-	// Write all files
-	for filename, data := range content {
-		filePath := filepath.Join(packageDir, filename)
-		if err := os.WriteFile(filePath, data, 0644); err != nil {
-			span.RecordError(err)
-			return errors.WithContext(err, fmt.Sprintf("failed to write file %s", filename))
-		}
-	}
-
-	span.SetAttributes(
-		attribute.String("package.dir", packageDir),
-		attribute.Int("files.written", len(content)),
-	)
-
-	return nil
-}
-
-// waitForSyncCompletion waits for Config Sync to complete deployment
-func (csc *ConfigSyncClient) waitForSyncCompletion(ctx context.Context, cluster *WorkloadCluster, packageName string) (*SyncResult, error) {
-	ctx, span := csc.tracer.Start(ctx, "wait-for-sync-completion")
-	defer span.End()
-
-	// In a real implementation, this would:
-	// 1. Query Config Sync status in the target cluster
-	// 2. Monitor RootSync/RepoSync resources
-	// 3. Check resource deployment status
-	// 4. Wait for all resources to be applied
-
-	// For now, simulate successful sync after a delay
-	time.Sleep(2 * time.Second)
-
-	syncResult := &SyncResult{
-		Status:  "Synced",
-		Message: "All resources synced successfully",
-		Commit:  "abc123def", // Would be actual commit hash
-		Resources: []SyncedResource{
-			{
-				Name:      fmt.Sprintf("%s-deployment", packageName),
-				Kind:      "Deployment",
-				Namespace: fmt.Sprintf("%s-ns", packageName),
-				Status:    "Synced",
-				Message:   "Deployment created successfully",
-			},
-			{
-				Name:      fmt.Sprintf("%s-service", packageName),
-				Kind:      "Service",
-				Namespace: fmt.Sprintf("%s-ns", packageName),
-				Status:    "Synced",
-				Message:   "Service created successfully",
-			},
-		},
-		Duration:  2 * time.Second,
-		Timestamp: time.Now(),
-	}
-
-	span.SetAttributes(
-		attribute.String("sync.status", syncResult.Status),
-		attribute.Int("sync.resources", len(syncResult.Resources)),
-	)
-
-	return syncResult, nil
-}
-
-// Helper methods
+// getResourceFileNames extracts resource file names from content map.
 
 func (csc *ConfigSyncClient) getResourceFileNames(content map[string][]byte) []string {
 	var files []string
+
 	for filename := range content {
 		if filename != "kustomization.yaml" {
 			files = append(files, filename)
 		}
 	}
+
 	return files
 }
+
+// hasNamespaceResource checks if the content contains a namespace resource.
 
 func (csc *ConfigSyncClient) hasNamespaceResource(content map[string][]byte) bool {
 	for filename := range content {
@@ -589,211 +538,279 @@ func (csc *ConfigSyncClient) hasNamespaceResource(content map[string][]byte) boo
 			return true
 		}
 	}
+
 	return false
 }
 
-// Git client implementation
+// setupRepository clones or updates the Git repository.
 
-// Clone clones a Git repository
-func (gc *GitClient) Clone(ctx context.Context, repo, branch, dir string) error {
-	ctx, span := gc.tracer.Start(ctx, "git-clone")
+func (csc *ConfigSyncClient) setupRepository(ctx context.Context) error {
+	ctx, span := csc.tracer.Start(ctx, "setup-repository")
+
 	defer span.End()
 
-	startTime := time.Now()
-	defer func() {
-		gc.metrics.CommandDuration.WithLabelValues("clone", repo).Observe(time.Since(startTime).Seconds())
-	}()
+	// Check if repository already exists.
 
-	args := []string{"clone", "--branch", branch, "--single-branch", repo, dir}
-	if err := gc.runGitCommand(ctx, ".", args...); err != nil {
-		span.RecordError(err)
-		gc.metrics.GitErrors.WithLabelValues("clone", "execution_failed").Inc()
-		gc.metrics.GitCommands.WithLabelValues("clone", repo, "failed").Inc()
-		return err
-	}
+	if _, err := os.Stat(csc.repoPath); os.IsNotExist(err) {
 
-	gc.workingDir = dir
-	gc.metrics.GitCommands.WithLabelValues("clone", repo, "success").Inc()
+		// Clone repository.
 
-	span.SetAttributes(
-		attribute.String("git.repo", repo),
-		attribute.String("git.branch", branch),
-		attribute.String("git.dir", dir),
-	)
+		cmd := exec.CommandContext(ctx, "git", "clone", csc.gitConfig.URL, csc.repoPath)
 
-	return nil
-}
+		if output, err := cmd.CombinedOutput(); err != nil {
 
-// Commit commits changes to Git
-func (gc *GitClient) Commit(ctx context.Context, message string, files []string) error {
-	ctx, span := gc.tracer.Start(ctx, "git-commit")
-	defer span.End()
-
-	startTime := time.Now()
-	defer func() {
-		gc.metrics.CommandDuration.WithLabelValues("commit", "local").Observe(time.Since(startTime).Seconds())
-	}()
-
-	// Add files
-	for _, file := range files {
-		if err := gc.runGitCommand(ctx, gc.workingDir, "add", file); err != nil {
 			span.RecordError(err)
-			gc.metrics.GitErrors.WithLabelValues("add", "execution_failed").Inc()
-			return err
+
+			return fmt.Errorf("failed to clone repository: %w, output: %s", err, output)
+
 		}
+
+	} else {
+
+		// Pull latest changes.
+
+		cmd := exec.CommandContext(ctx, "git", "-C", csc.repoPath, "pull", "origin", csc.gitConfig.Branch)
+
+		if output, err := cmd.CombinedOutput(); err != nil {
+
+			span.RecordError(err)
+
+			return fmt.Errorf("failed to pull repository: %w, output: %s", err, output)
+
+		}
+
 	}
 
-	// Commit
-	if err := gc.runGitCommand(ctx, gc.workingDir, "commit", "-m", message); err != nil {
+	// Configure Git user if needed.
+
+	if csc.gitConfig.Username != "" && csc.gitConfig.Email != "" {
+
+		userCmd := exec.CommandContext(ctx, "git", "-C", csc.repoPath, "config", "user.name", csc.gitConfig.Username)
+
+		if err := userCmd.Run(); err != nil {
+
+			span.RecordError(err)
+
+			return fmt.Errorf("failed to configure git user: %w", err)
+
+		}
+
+		emailCmd := exec.CommandContext(ctx, "git", "-C", csc.repoPath, "config", "user.email", csc.gitConfig.Email)
+
+		if err := emailCmd.Run(); err != nil {
+
+			span.RecordError(err)
+
+			return fmt.Errorf("failed to configure git email: %w", err)
+
+		}
+
+	}
+
+	return nil
+}
+
+// commitAndPush commits and pushes changes to the Git repository.
+
+func (csc *ConfigSyncClient) commitAndPush(ctx context.Context, pkg *porch.PackageRevision, cluster *WorkloadCluster) error {
+	ctx, span := csc.tracer.Start(ctx, "commit-and-push")
+
+	defer span.End()
+
+	// Add all changes.
+
+	addCmd := exec.CommandContext(ctx, "git", "-C", csc.repoPath, "add", ".")
+
+	if output, err := addCmd.CombinedOutput(); err != nil {
+
 		span.RecordError(err)
-		gc.metrics.GitErrors.WithLabelValues("commit", "execution_failed").Inc()
-		gc.metrics.GitCommands.WithLabelValues("commit", "local", "failed").Inc()
-		return err
+
+		return fmt.Errorf("failed to add changes: %w, output: %s", err, output)
+
 	}
 
-	gc.metrics.GitCommands.WithLabelValues("commit", "local", "success").Inc()
+	// Check if there are changes to commit.
+
+	statusCmd := exec.CommandContext(ctx, "git", "-C", csc.repoPath, "status", "--porcelain")
+
+	output, err := statusCmd.CombinedOutput()
+	if err != nil {
+
+		span.RecordError(err)
+
+		return fmt.Errorf("failed to check git status: %w", err)
+
+	}
+
+	if len(output) == 0 {
+
+		csc.logger.Info("No changes to commit")
+
+		return nil
+
+	}
+
+	// Commit changes.
+
+	commitMsg := fmt.Sprintf("Deploy package %s revision %s to cluster %s", pkg.Spec.PackageName, pkg.Spec.Revision, cluster.Name)
+
+	commitCmd := exec.CommandContext(ctx, "git", "-C", csc.repoPath, "commit", "-m", commitMsg)
+
+	if output, err := commitCmd.CombinedOutput(); err != nil {
+
+		span.RecordError(err)
+
+		return fmt.Errorf("failed to commit changes: %w, output: %s", err, output)
+
+	}
+
+	// Push changes.
+
+	pushCmd := exec.CommandContext(ctx, "git", "-C", csc.repoPath, "push", "origin", csc.gitConfig.Branch)
+
+	if output, err := pushCmd.CombinedOutput(); err != nil {
+
+		span.RecordError(err)
+
+		return fmt.Errorf("failed to push changes: %w, output: %s", err, output)
+
+	}
 
 	span.SetAttributes(
-		attribute.String("git.message", message),
-		attribute.Int("git.files", len(files)),
+
+		attribute.String("commit.message", commitMsg),
+
+		attribute.String("git.branch", csc.gitConfig.Branch),
 	)
 
 	return nil
 }
 
-// Push pushes changes to remote
-func (gc *GitClient) Push(ctx context.Context) error {
-	ctx, span := gc.tracer.Start(ctx, "git-push")
+// ValidateRepository validates the Git repository configuration.
+
+func (csc *ConfigSyncClient) ValidateRepository(ctx context.Context) error {
+	ctx, span := csc.tracer.Start(ctx, "validate-repository")
+
 	defer span.End()
 
-	startTime := time.Now()
-	defer func() {
-		gc.metrics.CommandDuration.WithLabelValues("push", "remote").Observe(time.Since(startTime).Seconds())
-	}()
+	// Test repository connectivity.
 
-	if err := gc.runGitCommand(ctx, gc.workingDir, "push", "origin"); err != nil {
+	cmd := exec.CommandContext(ctx, "git", "ls-remote", csc.gitConfig.URL)
+
+	if output, err := cmd.CombinedOutput(); err != nil {
+
+		csc.metrics.RepositoryHealth.WithLabelValues(csc.gitConfig.URL, csc.gitConfig.Branch).Set(0)
+
 		span.RecordError(err)
-		gc.metrics.GitErrors.WithLabelValues("push", "execution_failed").Inc()
-		gc.metrics.GitCommands.WithLabelValues("push", "remote", "failed").Inc()
-		return err
+
+		return fmt.Errorf("repository validation failed: %w, output: %s", err, output)
+
 	}
 
-	gc.metrics.GitCommands.WithLabelValues("push", "remote", "success").Inc()
-	return nil
-}
-
-// Pull pulls changes from remote
-func (gc *GitClient) Pull(ctx context.Context) error {
-	ctx, span := gc.tracer.Start(ctx, "git-pull")
-	defer span.End()
-
-	startTime := time.Now()
-	defer func() {
-		gc.metrics.CommandDuration.WithLabelValues("pull", "remote").Observe(time.Since(startTime).Seconds())
-	}()
-
-	if err := gc.runGitCommand(ctx, gc.workingDir, "pull", "origin"); err != nil {
-		span.RecordError(err)
-		gc.metrics.GitErrors.WithLabelValues("pull", "execution_failed").Inc()
-		gc.metrics.GitCommands.WithLabelValues("pull", "remote", "failed").Inc()
-		return err
-	}
-
-	gc.metrics.GitCommands.WithLabelValues("pull", "remote", "success").Inc()
-	return nil
-}
-
-// CreateBranch creates a new branch
-func (gc *GitClient) CreateBranch(ctx context.Context, branch string) error {
-	ctx, span := gc.tracer.Start(ctx, "git-create-branch")
-	defer span.End()
-
-	if err := gc.runGitCommand(ctx, gc.workingDir, "checkout", "-b", branch); err != nil {
-		span.RecordError(err)
-		gc.metrics.GitErrors.WithLabelValues("checkout", "execution_failed").Inc()
-		return err
-	}
-
-	span.SetAttributes(attribute.String("git.branch", branch))
-	return nil
-}
-
-// MergeBranch merges source branch into target
-func (gc *GitClient) MergeBranch(ctx context.Context, source, target string) error {
-	ctx, span := gc.tracer.Start(ctx, "git-merge-branch")
-	defer span.End()
-
-	// Checkout target branch
-	if err := gc.runGitCommand(ctx, gc.workingDir, "checkout", target); err != nil {
-		span.RecordError(err)
-		return err
-	}
-
-	// Merge source branch
-	if err := gc.runGitCommand(ctx, gc.workingDir, "merge", source); err != nil {
-		span.RecordError(err)
-		gc.metrics.GitErrors.WithLabelValues("merge", "execution_failed").Inc()
-		return err
-	}
-
-	span.SetAttributes(
-		attribute.String("git.source", source),
-		attribute.String("git.target", target),
-	)
+	csc.metrics.RepositoryHealth.WithLabelValues(csc.gitConfig.URL, csc.gitConfig.Branch).Set(1)
 
 	return nil
 }
 
-// GetCommitHash gets the current commit hash
-func (gc *GitClient) GetCommitHash(ctx context.Context) (string, error) {
-	ctx, span := gc.tracer.Start(ctx, "git-commit-hash")
+// GetSyncStatus returns the current sync status for a package.
+
+func (csc *ConfigSyncClient) GetSyncStatus(ctx context.Context, packageName, clusterName string) (*SyncResult, error) {
+	_, span := csc.tracer.Start(ctx, "get-sync-status")
+
 	defer span.End()
 
-	cmd := exec.CommandContext(ctx, "git", "rev-parse", "HEAD")
-	cmd.Dir = gc.workingDir
+	// This is a simplified implementation.
 
-	output, err := cmd.Output()
-	if err != nil {
-		span.RecordError(err)
-		return "", err
-	}
+	// In a real scenario, you would query the Config Sync API or Git repository.
 
-	hash := strings.TrimSpace(string(output))
-	span.SetAttributes(attribute.String("git.hash", hash))
+	return &SyncResult{
+		Status: "Unknown",
 
-	return hash, nil
+		Resources: []string{},
+
+		Duration: 0,
+	}, nil
 }
 
-// runGitCommand runs a Git command with proper configuration
-func (gc *GitClient) runGitCommand(ctx context.Context, dir string, args ...string) error {
-	cmd := exec.CommandContext(ctx, "git", args...)
-	cmd.Dir = dir
+// CleanupPackage removes a package from the Config Sync repository.
 
-	// Set up environment
-	env := os.Environ()
-	if gc.config.Username != "" {
-		env = append(env, fmt.Sprintf("GIT_AUTHOR_NAME=%s", gc.config.Username))
-		env = append(env, fmt.Sprintf("GIT_COMMITTER_NAME=%s", gc.config.Username))
-	}
-	if gc.config.Email != "" {
-		env = append(env, fmt.Sprintf("GIT_AUTHOR_EMAIL=%s", gc.config.Email))
-		env = append(env, fmt.Sprintf("GIT_COMMITTER_EMAIL=%s", gc.config.Email))
-	}
-	cmd.Env = env
+func (csc *ConfigSyncClient) CleanupPackage(ctx context.Context, packageName, clusterName string) error {
+	ctx, span := csc.tracer.Start(ctx, "cleanup-package")
 
-	// Set timeout
-	if gc.config.Timeout > 0 {
-		ctx, cancel := context.WithTimeout(ctx, gc.config.Timeout)
-		defer cancel()
-		cmd = exec.CommandContext(ctx, cmd.Path, cmd.Args[1:]...)
-		cmd.Dir = dir
-		cmd.Env = env
+	defer span.End()
+
+	logger := csc.logger.WithValues("package", packageName, "cluster", clusterName)
+
+	logger.Info("Cleaning up package from Config Sync repository")
+
+	// Setup repository.
+
+	if err := csc.setupRepository(ctx); err != nil {
+
+		span.RecordError(err)
+
+		return fmt.Errorf("failed to setup repository for cleanup: %w", err)
+
 	}
 
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("git command failed: %s, output: %s", err, string(output))
+	// Remove package directory.
+
+	packagePath := filepath.Join(csc.repoPath, "clusters", clusterName, packageName)
+
+	if err := os.RemoveAll(packagePath); err != nil {
+
+		span.RecordError(err)
+
+		return fmt.Errorf("failed to remove package directory: %w", err)
+
 	}
+
+	// Commit and push removal.
+
+	addCmd := exec.CommandContext(ctx, "git", "-C", csc.repoPath, "add", ".")
+
+	if output, err := addCmd.CombinedOutput(); err != nil {
+
+		span.RecordError(err)
+
+		return fmt.Errorf("failed to add removal changes: %w, output: %s", err, output)
+
+	}
+
+	commitMsg := fmt.Sprintf("Remove package %s from cluster %s", packageName, clusterName)
+
+	commitCmd := exec.CommandContext(ctx, "git", "-C", csc.repoPath, "commit", "-m", commitMsg)
+
+	if output, err := commitCmd.CombinedOutput(); err != nil {
+
+		// Check if there were no changes to commit.
+
+		if strings.Contains(string(output), "nothing to commit") {
+
+			logger.Info("Package directory was already removed")
+
+			return nil
+
+		}
+
+		span.RecordError(err)
+
+		return fmt.Errorf("failed to commit removal: %w, output: %s", err, output)
+
+	}
+
+	pushCmd := exec.CommandContext(ctx, "git", "-C", csc.repoPath, "push", "origin", csc.gitConfig.Branch)
+
+	if output, err := pushCmd.CombinedOutput(); err != nil {
+
+		span.RecordError(err)
+
+		return fmt.Errorf("failed to push removal: %w, output: %s", err, output)
+
+	}
+
+	logger.Info("Package cleanup completed successfully")
 
 	return nil
 }
+

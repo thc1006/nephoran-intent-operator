@@ -1,0 +1,498 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  name: cnfdeployments.nephoran.com.
+spec:
+  group: nephoran.com.
+  names:
+    kind: CNFDeployment
+    listKind: CNFDeploymentList
+    plural: cnfdeployments
+    singular: cnfdeployment
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              autoScaling:
+                properties:
+                  cpuUtilization:
+                    format: int32
+                    maximum: 100
+                    type: integer
+                  customMetrics:
+                    items:
+                      properties:
+                        name:
+                          type: string
+                        targetValue:
+                          type: string
+                        type:
+                          enum:
+                          - pods
+                          - object
+                          - external
+                          type: string
+                      required:
+                      - name
+                      - targetValue
+                      - type
+                      type: object
+                    type: array
+                  enabled:
+                    type: boolean
+                  maxReplicas:
+                    format: int32
+                    minimum: 1
+                    type: integer
+                  memoryUtilization:
+                    format: int32
+                    maximum: 100
+                    type: integer
+                  minReplicas:
+                    format: int32
+                    minimum: 1
+                    type: integer
+                required:
+                - enabled
+                - maxReplicas
+                - minReplicas
+                type: object
+              backup:
+                properties:
+                  enabled:
+                    type: boolean
+                  retentionDays:
+                    format: int32
+                    maximum: 365
+                    type: integer
+                  schedule:
+                    type: string
+                  storageLocation:
+                    type: string
+                required:
+                - enabled
+                type: object
+              cnfType:
+                enum:
+                - 5G-Core
+                - O-RAN
+                - Edge
+                - Custom
+                type: string
+              configuration:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              deploymentStrategy:
+                default: Helm
+                enum:
+                - Helm
+                - Operator
+                - Direct
+                - GitOps
+                type: string
+              function:
+                enum:
+                - AMF
+                - SMF
+                - UPF
+                - NRF
+                - AUSF
+                - UDM
+                - PCF
+                - NSSF
+                - NEF
+                - SMSF
+                - BSF
+                - UDR
+                - UDSF
+                - CHF
+                - N3IWF
+                - TNGF
+                - TWIF
+                - NWDAF
+                - SCP
+                - SEPP
+                - O-DU
+                - O-CU-CP
+                - O-CU-UP
+                - Near-RT-RIC
+                - Non-RT-RIC
+                - O-eNB
+                - SMO
+                - rApp
+                - xApp
+                - O-FH
+                - O-M-P
+                - UE-Simulator
+                - Traffic-Generator
+                type: string
+              helm:
+                properties:
+                  chartName:
+                    type: string
+                  chartVersion:
+                    type: string
+                  releaseName:
+                    type: string
+                  repository:
+                    pattern: ^https?://*
+                    type: string
+                  values:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                required:
+                - chartName
+                - chartVersion
+                - repository
+                type: object
+              monitoring:
+                properties:
+                  alertingRules:
+                    items:
+                      type: string
+                    type: array
+                  customMetrics:
+                    items:
+                      type: string
+                    type: array
+                  enabled:
+                    type: boolean
+                  prometheus:
+                    properties:
+                      enabled:
+                        type: boolean
+                      interval:
+                        default: 30s
+                        type: string
+                      path:
+                        default: /metrics
+                        type: string
+                      port:
+                        default: 9090
+                        format: int32
+                        type: integer
+                    required:
+                    - enabled
+                    type: object
+                required:
+                - enabled
+                type: object
+              networkSlice:
+                pattern: ^[0-9A-Fa-f]{6}-[0-9A-Fa-f]{6}$
+                type: string
+              operator:
+                properties:
+                  customResource:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                required:
+                - customResource
+                - name
+                - namespace
+                type: object
+              replicas:
+                default: 1
+                format: int32
+                type: integer
+              resources:
+                properties:
+                  cpu:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  dpdk:
+                    properties:
+                      cores:
+                        format: int32
+                        type: integer
+                      driver:
+                        type: string
+                      enabled:
+                        type: boolean
+                      memory:
+                        format: int32
+                        type: integer
+                    required:
+                    - enabled
+                    type: object
+                  gpu:
+                    format: int32
+                    type: integer
+                  hugepages:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    type: object
+                  maxCpu:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  maxMemory:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  memory:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  storage:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                required:
+                - cpu
+                - memory
+                type: object
+              securityPolicies:
+                items:
+                  type: string
+                type: array
+              serviceMesh:
+                properties:
+                  enabled:
+                    type: boolean
+                  mtls:
+                    properties:
+                      enabled:
+                        type: boolean
+                      mode:
+                        enum:
+                        - strict
+                        - permissive
+                        type: string
+                    required:
+                    - enabled
+                    type: object
+                  trafficPolicies:
+                    items:
+                      properties:
+                        destination:
+                          type: string
+                        loadBalancing:
+                          properties:
+                            algorithm:
+                              enum:
+                              - round_robin
+                              - least_conn
+                              - random
+                              - ip_hash
+                              type: string
+                            healthCheck:
+                              properties:
+                                interval:
+                                  format: int32
+                                  maximum: 300
+                                  type: integer
+                                path:
+                                  type: string
+                                port:
+                                  format: int32
+                                  type: integer
+                                retries:
+                                  format: int32
+                                  maximum: 10
+                                  type: integer
+                                timeout:
+                                  format: int32
+                                  maximum: 60
+                                  type: integer
+                              required:
+                              - interval
+                              - path
+                              - port
+                              - retries
+                              - timeout
+                              type: object
+                          required:
+                          - algorithm
+                          type: object
+                        name:
+                          type: string
+                        source:
+                          type: string
+                      required:
+                      - destination
+                      - name
+                      - source
+                      type: object
+                    type: array
+                  type:
+                    enum:
+                    - Istio
+                    - Linkerd
+                    - Consul
+                    type: string
+                required:
+                - enabled
+                type: object
+              targetCluster:
+                type: string
+              targetNamespace:
+                maxLength: 63
+                type: string
+            required:
+            - cnfType
+            - deploymentStrategy
+            - function
+            - replicas
+            - resources
+            type: object
+          status:
+            properties:
+              availableReplicas:
+                format: int32
+                type: integer
+              conditions:
+                items:
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-type: atomic
+              deploymentStartTime:
+                format: date-time
+                type: string
+              health:
+                properties:
+                  details:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  lastCheckTime:
+                    format: date-time
+                    type: string
+                  status:
+                    enum:
+                    - Healthy
+                    - Degraded
+                    - Unhealthy
+                    - Unknown
+                    type: string
+                required:
+                - status
+                type: object
+              helmRelease:
+                type: string
+              lastUpdatedTime:
+                format: date-time
+                type: string
+              observedGeneration:
+                format: int64
+                type: integer
+              phase:
+                enum:
+                - Pending
+                - Deploying
+                - Running
+                - Scaling
+                - Upgrading
+                - Failed
+                - Terminating
+                type: string
+              readyReplicas:
+                format: int32
+                type: integer
+              resourceUtilization:
+                additionalProperties:
+                  type: string
+                type: object
+              serviceEndpoints:
+                items:
+                  properties:
+                    clusterIP:
+                      type: string
+                    externalIP:
+                      type: string
+                    name:
+                      type: string
+                    ports:
+                      items:
+                        properties:
+                          name:
+                            type: string
+                          port:
+                            format: int32
+                            type: integer
+                          protocol:
+                            type: string
+                          targetPort:
+                            type: string
+                        required:
+                        - name
+                        - port
+                        - protocol
+                        - targetPort
+                        type: object
+                      type: array
+                    type:
+                      type: string
+                  required:
+                  - name
+                  - ports
+                  - type
+                  type: object
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true

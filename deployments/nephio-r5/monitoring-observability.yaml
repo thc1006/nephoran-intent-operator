@@ -1,0 +1,715 @@
+# Comprehensive Monitoring and Observability for Nephio R5-O-RAN L Release
+# VES 7.3, NWDAF, and Cloud-native monitoring stack
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    name: monitoring
+    nephio.org/version: r5
+    oran.org/release: l-release
+    monitoring.oran.org/enabled: "true"
+  annotations:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+
+---
+# Prometheus Configuration for R5 Metrics
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: monitoring
+  labels:
+    nephio.org/version: r5
+    component: prometheus
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      external_labels:
+        nephio_version: 'r5'
+        oran_release: 'l-release'
+        cluster: '{{ .Values.clusterName }}'
+    
+    rule_files:
+    - "/etc/prometheus/rules/*.yml"
+    
+    alerting:
+      alertmanagers:
+      - static_configs:
+        - targets:
+          - alertmanager:9093
+    
+    scrape_configs:
+    # Kubernetes API Server
+    - job_name: 'kubernetes-apiservers'
+      kubernetes_sd_configs:
+      - role: endpoints
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: default;kubernetes;https
+    
+    # Conductor Loop Metrics
+    - job_name: 'conductor-loop'
+      kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names:
+          - nephoran-conductor
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_service_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_service_name]
+        action: replace
+        target_label: kubernetes_name
+      metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'conductor_loop_(.+)'
+        target_label: __name__
+        replacement: 'nephio_${1}'
+    
+    # O-RAN Network Functions
+    - job_name: 'oran-network-functions'
+      kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+          - ran-functions
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_label_oran_org_function]
+        action: keep
+        regex: (cu|du|ric)
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+    
+    # VES Collector Metrics
+    - job_name: 'ves-collector'
+      kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names:
+          - ves
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: ves-collector
+    
+    # NWDAF Analytics
+    - job_name: 'nwdaf-analytics'
+      kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names:
+          - analytics
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: nwdaf-.*
+
+  conductor-loop-rules.yml: |
+    groups:
+    - name: conductor-loop.rules
+      rules:
+      - alert: ConductorLoopDown
+        expr: up{job="conductor-loop"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          component: conductor-loop
+          nephio_version: r5
+        annotations:
+          summary: "Conductor Loop is down"
+          description: "Conductor Loop has been down for more than 30 seconds."
+      
+      - alert: ConductorLoopHighErrorRate
+        expr: rate(nephio_errors_total{job="conductor-loop"}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          component: conductor-loop
+          nephio_version: r5
+        annotations:
+          summary: "High error rate in Conductor Loop"
+          description: "Error rate is {{ $value | humanizePercentage }} over the last 5 minutes."
+      
+      - alert: ConductorLoopQueueBacklog
+        expr: nephio_queue_depth{job="conductor-loop"} > 100
+        for: 5m
+        labels:
+          severity: warning
+          component: conductor-loop
+          nephio_version: r5
+        annotations:
+          summary: "Conductor Loop queue backlog"
+          description: "Queue depth is {{ $value }} files, indicating processing delays."
+      
+      - alert: ConductorLoopHighMemoryUsage
+        expr: container_memory_usage_bytes{pod=~"conductor-loop-.*"} / container_spec_memory_limit_bytes > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          component: conductor-loop
+          nephio_version: r5
+        annotations:
+          summary: "High memory usage in Conductor Loop"
+          description: "Memory usage is {{ $value | humanizePercentage }} of the limit."
+
+---
+# Prometheus Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+    nephio.org/version: r5
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: prometheus
+        nephio.org/version: r5
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      serviceAccountName: prometheus
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        fsGroup: 65534
+      containers:
+      - name: prometheus
+        image: prom/prometheus:v2.48.0
+        args:
+        - '--config.file=/etc/prometheus/prometheus.yml'
+        - '--storage.tsdb.path=/prometheus/'
+        - '--web.console.libraries=/etc/prometheus/console_libraries'
+        - '--web.console.templates=/etc/prometheus/consoles'
+        - '--storage.tsdb.retention.time=30d'
+        - '--storage.tsdb.retention.size=50GB'
+        - '--web.enable-lifecycle'
+        - '--web.enable-admin-api'
+        - '--log.level=info'
+        ports:
+        - containerPort: 9090
+          name: web
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            memory: 2Gi
+            cpu: 1000m
+          limits:
+            memory: 4Gi
+            cpu: 2000m
+        volumeMounts:
+        - name: prometheus-config-volume
+          mountPath: /etc/prometheus/
+        - name: prometheus-storage-volume
+          mountPath: /prometheus/
+        livenessProbe:
+          httpGet:
+            path: /-/healthy
+            port: 9090
+          initialDelaySeconds: 30
+          timeoutSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /-/ready
+            port: 9090
+          initialDelaySeconds: 30
+          timeoutSeconds: 30
+      volumes:
+      - name: prometheus-config-volume
+        configMap:
+          name: prometheus-config
+      - name: prometheus-storage-volume
+        persistentVolumeClaim:
+          claimName: prometheus-storage
+
+---
+# VES 7.3 Collector for O-RAN L Release
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ves
+  labels:
+    name: ves
+    oran.org/release: l-release
+    ves.oran.org/version: "7.3"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ves-collector-config
+  namespace: ves
+  labels:
+    component: ves-collector
+    ves.version: "7.3"
+data:
+  collector.properties: |
+    collector.service.port=8080
+    collector.service.secure.port=8443
+    collector.inputQueue.maxPending=8096
+    collector.schema.checkflag=1
+    collector.schema.file={"v1":"./etc/CommonEventFormat_27.2.json","v2":"./etc/CommonEventFormat_27.2.json","v3":"./etc/CommonEventFormat_27.2.json","v4":"./etc/CommonEventFormat_28.4.json","v5":"./etc/CommonEventFormat_28.4.json","v7":"./etc/CommonEventFormat_30.2.json"}
+    collector.keystore.file=./etc/keystore
+    collector.keystore.passwordfile=./etc/passwordfile
+    collector.truststore.file=./etc/truststore
+    collector.truststore.passwordfile=./etc/trustpasswordfile
+    collector.dmaap.streamid=fault=ves-fault|syslog=ves-syslog|heartbeat=ves-heartbeat|measurement=ves-measurement|notification=ves-notification|pnfRegistration=ves-pnf-registration|thresholdCrossingAlert=ves-threshold-crossing-alert
+    streams_publishes.ves-fault.dmaap_info.topic_url=http://dmaap:3904/events/unauthenticated.SEC_FAULT_OUTPUT
+    streams_publishes.ves-syslog.dmaap_info.topic_url=http://dmaap:3904/events/unauthenticated.SEC_SYSLOG_OUTPUT
+    streams_publishes.ves-heartbeat.dmaap_info.topic_url=http://dmaap:3904/events/unauthenticated.SEC_HEARTBEAT_OUTPUT
+    streams_publishes.ves-measurement.dmaap_info.topic_url=http://dmaap:3904/events/unauthenticated.SEC_MEASUREMENT_OUTPUT
+    streams_publishes.ves-notification.dmaap_info.topic_url=http://dmaap:3904/events/unauthenticated.SEC_NOTIFICATION_OUTPUT
+    streams_publishes.ves-pnf-registration.dmaap_info.topic_url=http://dmaap:3904/events/unauthenticated.SEC_PNF_REGISTRATION_OUTPUT
+    streams_publishes.ves-threshold-crossing-alert.dmaap_info.topic_url=http://dmaap:3904/events/unauthenticated.SEC_TCA_OUTPUT
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ves-collector
+  namespace: ves
+  labels:
+    app.kubernetes.io/name: ves-collector
+    ves.version: "7.3"
+    oran.org/release: l-release
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ves-collector
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ves-collector
+        ves.version: "7.3"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: ves-collector
+        image: onap/org.onap.dcaegen2.collectors.ves.vescollector:1.12.3
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8443
+          name: https
+        env:
+        - name: DMAAPHOST
+          value: "dmaap"
+        - name: VES_LOGLEVEL
+          value: "INFO"
+        resources:
+          requests:
+            memory: 1Gi
+            cpu: 500m
+          limits:
+            memory: 2Gi
+            cpu: 1000m
+        volumeMounts:
+        - name: ves-config
+          mountPath: /opt/app/VESCollector/etc/collector.properties
+          subPath: collector.properties
+        livenessProbe:
+          httpGet:
+            path: /healthcheck
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /healthcheck
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      volumes:
+      - name: ves-config
+        configMap:
+          name: ves-collector-config
+
+---
+# NWDAF Analytics Engine for 5G Insights
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: analytics
+  labels:
+    name: analytics
+    nwdaf.org/enabled: "true"
+    oran.org/release: l-release
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nwdaf-config
+  namespace: analytics
+  labels:
+    component: nwdaf-analytics
+data:
+  nwdaf.yaml: |
+    analytics:
+      enabled: true
+      ml_models:
+        - name: "traffic_prediction"
+          type: "lstm"
+          input_features: ["throughput", "latency", "packet_loss"]
+          prediction_window: "1h"
+        - name: "anomaly_detection"
+          type: "isolation_forest"
+          sensitivity: 0.1
+          training_interval: "24h"
+      data_sources:
+        - name: "prometheus"
+          type: "prometheus"
+          endpoint: "http://prometheus.monitoring.svc.cluster.local:9090"
+          query_interval: "30s"
+        - name: "ves"
+          type: "kafka"
+          brokers: ["kafka.ves.svc.cluster.local:9092"]
+          topics: ["ves-measurement", "ves-fault"]
+      outputs:
+        - name: "predictions"
+          type: "kafka"
+          topic: "nwdaf-predictions"
+        - name: "anomalies"
+          type: "webhook"
+          endpoint: "http://alertmanager.monitoring.svc.cluster.local:9093/api/v1/alerts"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nwdaf-analytics
+  namespace: analytics
+  labels:
+    app.kubernetes.io/name: nwdaf-analytics
+    nwdaf.version: "1.0"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nwdaf-analytics
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nwdaf-analytics
+        nwdaf.version: "1.0"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      containers:
+      - name: nwdaf-analytics
+        image: nwdaf/analytics-engine:1.0.0
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: CONFIG_PATH
+          value: "/config/nwdaf.yaml"
+        - name: LOG_LEVEL
+          value: "INFO"
+        resources:
+          requests:
+            memory: 2Gi
+            cpu: 1000m
+          limits:
+            memory: 4Gi
+            cpu: 2000m
+        volumeMounts:
+        - name: nwdaf-config
+          mountPath: /config
+      volumes:
+      - name: nwdaf-config
+        configMap:
+          name: nwdaf-config
+
+---
+# Grafana Dashboards for R5 Visualization
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards-r5
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+    nephio.org/version: r5
+data:
+  conductor-loop-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Nephio R5 Conductor Loop",
+        "tags": ["nephio", "r5", "conductor-loop"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Files Processed Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(nephio_files_processed_total[5m])",
+                "legendFormat": "Processing Rate"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Files/sec",
+                "min": 0
+              }
+            ],
+            "xAxis": {
+              "show": true
+            },
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 0,
+              "y": 0
+            }
+          },
+          {
+            "id": 2,
+            "title": "Queue Depth",
+            "type": "singlestat",
+            "targets": [
+              {
+                "expr": "nephio_queue_depth",
+                "legendFormat": "Queue Depth"
+              }
+            ],
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 12,
+              "y": 0
+            }
+          },
+          {
+            "id": 3,
+            "title": "Error Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(nephio_errors_total[5m])",
+                "legendFormat": "Error Rate"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Errors/sec",
+                "min": 0
+              }
+            ],
+            "gridPos": {
+              "h": 8,
+              "w": 24,
+              "x": 0,
+              "y": 8
+            }
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "5s"
+      }
+    }
+
+  oran-kpis-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "O-RAN L Release KPIs",
+        "tags": ["oran", "l-release", "kpis"],
+        "panels": [
+          {
+            "id": 1,
+            "title": "RAN Throughput",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(rate(oran_throughput_bytes_total[5m])) by (cell_id)",
+                "legendFormat": "Cell {{cell_id}}"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Bytes/sec",
+                "min": 0
+              }
+            ],
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 0,
+              "y": 0
+            }
+          },
+          {
+            "id": 2,
+            "title": "Latency Percentiles",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, oran_latency_seconds)",
+                "legendFormat": "95th percentile"
+              },
+              {
+                "expr": "histogram_quantile(0.99, oran_latency_seconds)",
+                "legendFormat": "99th percentile"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Seconds",
+                "min": 0
+              }
+            ],
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 12,
+              "y": 0
+            }
+          }
+        ]
+      }
+    }
+
+---
+# ServiceMonitor for Prometheus Operator
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: conductor-loop-monitoring
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    monitoring.coreos.com/key: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: conductor-loop
+  namespaceSelector:
+    matchNames:
+    - nephoran-conductor
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: 'conductor_loop_(.+)'
+      targetLabel: __name__
+      replacement: 'nephio_r5_${1}'
+
+---
+# PrometheusRule for Advanced Alerting
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: nephio-r5-alerts
+  namespace: monitoring
+  labels:
+    prometheus: kube-prometheus
+    role: alert-rules
+    nephio.org/version: r5
+spec:
+  groups:
+  - name: nephio.r5.conductor-loop
+    rules:
+    - alert: NephioR5ConductorLoopDown
+      expr: up{job="conductor-loop"} == 0
+      for: 30s
+      labels:
+        severity: critical
+        service: conductor-loop
+        nephio_version: r5
+      annotations:
+        summary: "Nephio R5 Conductor Loop is down"
+        description: "Conductor Loop {{ $labels.instance }} has been down for more than 30 seconds."
+        runbook_url: "https://docs.nephio.org/runbooks/conductor-loop-down"
+    
+    - alert: NephioR5HighProcessingLatency
+      expr: histogram_quantile(0.95, nephio_processing_duration_seconds) > 30
+      for: 5m
+      labels:
+        severity: warning
+        service: conductor-loop
+        nephio_version: r5
+      annotations:
+        summary: "High processing latency in Conductor Loop"
+        description: "95th percentile latency is {{ $value }}s, which exceeds the 30s threshold."
+    
+    - alert: NephioR5OCloudResourceExhaustion
+      expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) < 0.1
+      for: 2m
+      labels:
+        severity: critical
+        service: ocloud
+        nephio_version: r5
+      annotations:
+        summary: "O-Cloud node memory exhaustion"
+        description: "Node {{ $labels.instance }} has less than 10% memory available."

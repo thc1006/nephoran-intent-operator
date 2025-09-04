@@ -4,18 +4,15 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"testing"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/thc1006/nephoran-intent-operator/tests/utils"
+	testutils "github.com/thc1006/nephoran-intent-operator/tests/utils"
 )
 
 var _ = Describe("Container Security Tests", func() {
@@ -23,19 +20,19 @@ var _ = Describe("Container Security Tests", func() {
 		ctx       context.Context
 		k8sClient client.Client
 		namespace string
-		timeout   time.Duration
+		// timeout   time.Duration // Removed unused variable
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		k8sClient = utils.GetK8sClient()
-		namespace = utils.GetTestNamespace()
-		timeout = 30 * time.Second
+		k8sClient = testutils.GetK8sClient()
+		namespace = testutils.GetTestNamespace()
+		// timeout = 30 * time.Second // Removed unused assignment
 	})
 
 	Context("Non-Root User Verification", func() {
 		It("should verify all containers run as non-root", func() {
-			deployments, err := utils.GetAllDeployments(ctx, k8sClient, namespace)
+			deployments, err := testutils.GetAllDeployments(ctx, k8sClient, namespace)
 			Expect(err).NotTo(HaveOccurred())
 
 			for _, deployment := range deployments {
@@ -61,7 +58,7 @@ var _ = Describe("Container Security Tests", func() {
 		})
 
 		It("should verify init containers run as non-root", func() {
-			deployments, err := utils.GetAllDeployments(ctx, k8sClient, namespace)
+			deployments, err := testutils.GetAllDeployments(ctx, k8sClient, namespace)
 			Expect(err).NotTo(HaveOccurred())
 
 			for _, deployment := range deployments {
@@ -86,7 +83,7 @@ var _ = Describe("Container Security Tests", func() {
 
 	Context("Read-Only Root Filesystem", func() {
 		It("should verify containers use read-only root filesystem", func() {
-			deployments, err := utils.GetAllDeployments(ctx, k8sClient, namespace)
+			deployments, err := testutils.GetAllDeployments(ctx, k8sClient, namespace)
 			Expect(err).NotTo(HaveOccurred())
 
 			for _, deployment := range deployments {
@@ -102,7 +99,7 @@ var _ = Describe("Container Security Tests", func() {
 		})
 
 		It("should verify writable volume mounts are explicitly defined", func() {
-			deployments, err := utils.GetAllDeployments(ctx, k8sClient, namespace)
+			deployments, err := testutils.GetAllDeployments(ctx, k8sClient, namespace)
 			Expect(err).NotTo(HaveOccurred())
 
 			writablePaths := []string{"/tmp", "/var/tmp", "/var/log", "/var/cache"}
@@ -137,7 +134,7 @@ var _ = Describe("Container Security Tests", func() {
 
 	Context("Capability Management", func() {
 		It("should verify containers drop all capabilities", func() {
-			deployments, err := utils.GetAllDeployments(ctx, k8sClient, namespace)
+			deployments, err := testutils.GetAllDeployments(ctx, k8sClient, namespace)
 			Expect(err).NotTo(HaveOccurred())
 
 			for _, deployment := range deployments {
@@ -156,7 +153,7 @@ var _ = Describe("Container Security Tests", func() {
 		})
 
 		It("should verify no privileged containers", func() {
-			deployments, err := utils.GetAllDeployments(ctx, k8sClient, namespace)
+			deployments, err := testutils.GetAllDeployments(ctx, k8sClient, namespace)
 			Expect(err).NotTo(HaveOccurred())
 
 			for _, deployment := range deployments {
@@ -172,7 +169,7 @@ var _ = Describe("Container Security Tests", func() {
 		})
 
 		It("should verify allowPrivilegeEscalation is false", func() {
-			deployments, err := utils.GetAllDeployments(ctx, k8sClient, namespace)
+			deployments, err := testutils.GetAllDeployments(ctx, k8sClient, namespace)
 			Expect(err).NotTo(HaveOccurred())
 
 			for _, deployment := range deployments {
@@ -190,7 +187,7 @@ var _ = Describe("Container Security Tests", func() {
 
 	Context("Security Context Validation", func() {
 		It("should verify pod-level security context", func() {
-			deployments, err := utils.GetAllDeployments(ctx, k8sClient, namespace)
+			deployments, err := testutils.GetAllDeployments(ctx, k8sClient, namespace)
 			Expect(err).NotTo(HaveOccurred())
 
 			for _, deployment := range deployments {
@@ -215,7 +212,7 @@ var _ = Describe("Container Security Tests", func() {
 		})
 
 		It("should verify seccomp profiles", func() {
-			deployments, err := utils.GetAllDeployments(ctx, k8sClient, namespace)
+			deployments, err := testutils.GetAllDeployments(ctx, k8sClient, namespace)
 			Expect(err).NotTo(HaveOccurred())
 
 			for _, deployment := range deployments {
@@ -241,7 +238,7 @@ var _ = Describe("Container Security Tests", func() {
 
 	Context("Image Security", func() {
 		It("should verify container images use specific tags (not latest)", func() {
-			deployments, err := utils.GetAllDeployments(ctx, k8sClient, namespace)
+			deployments, err := testutils.GetAllDeployments(ctx, k8sClient, namespace)
 			Expect(err).NotTo(HaveOccurred())
 
 			for _, deployment := range deployments {
@@ -265,7 +262,7 @@ var _ = Describe("Container Security Tests", func() {
 		})
 
 		It("should verify images are from trusted registries", func() {
-			deployments, err := utils.GetAllDeployments(ctx, k8sClient, namespace)
+			deployments, err := testutils.GetAllDeployments(ctx, k8sClient, namespace)
 			Expect(err).NotTo(HaveOccurred())
 
 			trustedRegistries := []string{
@@ -299,7 +296,7 @@ var _ = Describe("Container Security Tests", func() {
 		})
 
 		It("should verify image pull policy", func() {
-			deployments, err := utils.GetAllDeployments(ctx, k8sClient, namespace)
+			deployments, err := testutils.GetAllDeployments(ctx, k8sClient, namespace)
 			Expect(err).NotTo(HaveOccurred())
 
 			for _, deployment := range deployments {
@@ -325,7 +322,7 @@ var _ = Describe("Container Security Tests", func() {
 
 	Context("Resource Limits and Requests", func() {
 		It("should verify containers have resource limits", func() {
-			deployments, err := utils.GetAllDeployments(ctx, k8sClient, namespace)
+			deployments, err := testutils.GetAllDeployments(ctx, k8sClient, namespace)
 			Expect(err).NotTo(HaveOccurred())
 
 			for _, deployment := range deployments {
@@ -349,7 +346,7 @@ var _ = Describe("Container Security Tests", func() {
 		})
 
 		It("should verify containers have resource requests", func() {
-			deployments, err := utils.GetAllDeployments(ctx, k8sClient, namespace)
+			deployments, err := testutils.GetAllDeployments(ctx, k8sClient, namespace)
 			Expect(err).NotTo(HaveOccurred())
 
 			for _, deployment := range deployments {
@@ -375,7 +372,7 @@ var _ = Describe("Container Security Tests", func() {
 
 	Context("Vulnerability Scanning Integration", func() {
 		It("should check for image vulnerability scan annotations", func() {
-			deployments, err := utils.GetAllDeployments(ctx, k8sClient, namespace)
+			deployments, err := testutils.GetAllDeployments(ctx, k8sClient, namespace)
 			Expect(err).NotTo(HaveOccurred())
 
 			for _, deployment := range deployments {

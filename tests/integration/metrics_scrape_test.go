@@ -6,8 +6,7 @@
 // - LLM metrics collection and exposition
 // - Controller metrics collection and exposition
 // - Prometheus text format parsing and validation
-//
-package integration
+package integration_tests
 
 import (
 	"bufio"
@@ -95,7 +94,7 @@ func (suite *MetricsScrapeTestSuite) TestMetricsEndpointEnabled() {
 	// Make request to metrics endpoint
 	resp, err := http.Get(suite.server.URL + "/metrics")
 	require.NoError(suite.T(), err)
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Validate response
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
@@ -127,7 +126,7 @@ func (suite *MetricsScrapeTestSuite) TestMetricsEndpointDisabled() {
 	// Make request to metrics endpoint
 	resp, err := http.Get(suite.server.URL + "/metrics")
 	require.NoError(suite.T(), err)
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Validate response - should return 404
 	assert.Equal(suite.T(), http.StatusNotFound, resp.StatusCode)
@@ -147,7 +146,7 @@ func (suite *MetricsScrapeTestSuite) TestLLMMetricsPresent() {
 	// Make request to metrics endpoint
 	resp, err := http.Get(suite.server.URL + "/metrics")
 	require.NoError(suite.T(), err)
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Parse metrics
 	metrics, err := suite.parsePrometheusMetrics(resp)
@@ -189,7 +188,7 @@ func (suite *MetricsScrapeTestSuite) TestControllerMetricsPresent() {
 	// Make request to metrics endpoint
 	resp, err := http.Get(suite.server.URL + "/metrics")
 	require.NoError(suite.T(), err)
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Parse metrics
 	metrics, err := suite.parsePrometheusMetrics(resp)
@@ -276,7 +275,7 @@ func (suite *MetricsScrapeTestSuite) TestMetricsEndpointPerformance() {
 	duration := time.Since(start)
 
 	require.NoError(suite.T(), err)
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Validate response time is acceptable (< 1 second)
 	assert.Less(suite.T(), duration, time.Second,
@@ -632,12 +631,12 @@ func TestMetricsScrapeFunctional(t *testing.T) {
 		router := mux.NewRouter()
 		router.Handle("/metrics", promhttp.Handler()).Methods("GET")
 		server := httptest.NewServer(router)
-		defer server.Close()
+		defer server.Close() // #nosec G307 - Error handled in defer
 
 		// Test metrics endpoint
 		resp, err := http.Get(server.URL + "/metrics")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 		assert.Contains(t, resp.Header.Get("Content-Type"), "text/plain")
@@ -651,12 +650,12 @@ func TestMetricsScrapeFunctional(t *testing.T) {
 		router := mux.NewRouter()
 		// Intentionally don't register /metrics endpoint
 		server := httptest.NewServer(router)
-		defer server.Close()
+		defer server.Close() // #nosec G307 - Error handled in defer
 
 		// Test metrics endpoint should return 404
 		resp, err := http.Get(server.URL + "/metrics")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 	})

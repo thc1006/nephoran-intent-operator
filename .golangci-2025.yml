@@ -1,0 +1,165 @@
+# golangci-lint configuration optimized for 2025
+# Ultra-fast CI/CD verification with Go 1.24+ compatibility
+
+run:
+  timeout: 15m
+  tests: true
+  modules-download-mode: readonly
+  allow-parallel-runners: true
+  allow-serial-runners: false
+  
+  # Go 1.24+ specific settings
+  go: "1.24"
+  
+  # Skip generated and stub files
+  skip-files:
+    - ".*\\.pb\\.go$"
+    - ".*_generated\\.go$"
+    - ".*_stub\\.go$"
+    - ".*missing_types.*\\.go$"
+    - "vendor/.*"
+    
+  skip-dirs:
+    - vendor
+    - .cache
+    - bin
+    - testdata
+    - hack/tools
+
+# 2025 linter selection - fast but comprehensive
+linters:
+  enable:
+    # Essential for 2025
+    - errcheck      # Check for unchecked errors
+    - gosimple      # Simplify code
+    - govet         # Go static analysis
+    - ineffassign   # Detect ineffective assignments
+    - staticcheck   # Advanced static analysis
+    - unused        # Find unused code
+    - gofmt         # Format check
+    - goimports     # Import organization
+    - misspell      # Spelling
+    - revive        # Replacement for golint
+    
+    # Security and reliability (2025 focus)
+    - gosec         # Security issues
+    - exportloopref # Loop variable references
+    - rowserrcheck  # SQL row error checking
+    
+    # Performance (critical for 2025)
+    - prealloc      # Slice preallocation
+    - bodyclose     # HTTP response body closing
+    
+    # Code quality
+    - unconvert     # Unnecessary conversions
+    - wastedassign  # Wasted assignments
+    - whitespace    # Leading/trailing whitespace
+    
+  disable:
+    # Disabled for speed in 2025
+    - gocognit      # Cognitive complexity (slow)
+    - gocyclo       # Cyclomatic complexity (slow) 
+    - lll           # Line length (formatting only)
+    - dupl          # Code duplication (very slow)
+    - funlen        # Function length (opinion)
+    - gochecknoinits # Init functions (legacy)
+    - gomnd         # Magic numbers (too noisy)
+    - wsl           # Whitespace (too strict)
+    - nlreturn      # Return formatting (opinion)
+
+# 2025 performance tuning
+linters-settings:
+  errcheck:
+    check-type-assertions: false  # Speed optimization
+    check-blank: false           # Speed optimization
+    
+  gosec:
+    confidence: medium  # Balance speed vs coverage
+    severity: medium
+    
+  revive:
+    confidence: 0.8
+    rules:
+      # Only essential rules for speed
+      - name: blank-imports
+      - name: context-as-argument
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: exported
+      - name: increment-decrement
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: var-declaration
+      
+  staticcheck:
+    checks: ["all", "-ST1000", "-ST1003", "-ST1016", "-ST1020", "-ST1021", "-ST1022"]
+    
+  unused:
+    check-exported: false  # Speed optimization for large codebases
+
+# Issue filtering for 2025
+issues:
+  max-issues-per-linter: 50
+  max-same-issues: 10
+  
+  exclude-rules:
+    # Test files - relaxed rules for speed
+    - path: _test\.go
+      linters:
+        - gosec
+        - errcheck
+        - revive
+        
+    # Generated files - skip linting
+    - path: ".*\\.pb\\.go"
+      linters:
+        - all
+        
+    # Stub files - skip linting  
+    - path: ".*_stub\\.go"
+      linters:
+        - all
+        
+    # Missing types - skip linting (migration artifacts)
+    - path: ".*missing_types.*\\.go"
+      linters:
+        - all
+        
+    # Specific exclusions for known migration issues
+    - text: "should have a package comment"
+      linters:
+        - revive
+        
+    - text: "exported .* should have comment"
+      linters:
+        - revive
+        
+    - text: "don't use underscores in Go names"
+      linters:
+        - revive
+
+# 2025 severity mapping
+severity:
+  default-severity: warning
+  rules:
+    - linters: [errcheck, gosec, govet]
+      severity: error
+    - linters: [staticcheck, ineffassign, unused]  
+      severity: error
+    - linters: [gosimple, revive, gofmt, goimports]
+      severity: warning
+
+# Output optimization for 2025 CI/CD
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+  uniq-by-line: true
+  sort-results: true
+  
+# Fast mode for 2025 - skip slow checks  
+fast: false  # Set to true for ultra-fast mode

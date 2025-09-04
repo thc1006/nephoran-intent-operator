@@ -64,6 +64,58 @@ spec:
           spec:
             description: E2NodeSetSpec defines the desired state of E2NodeSet
             properties:
+              e2InterfaceVersion:
+                description: E2InterfaceVersion specifies the E2 interface version
+                enum:
+                - v1.0
+                - v1.1
+                - v2.0
+                - v2.1
+                - v3.0
+                type: string
+              heartbeatInterval:
+                default: 10s
+                description: HeartbeatInterval specifies the interval for heartbeat
+                  messages
+                pattern: ^([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$
+                type: string
+              ranFunctions:
+                description: RANFunctions lists the RAN functions supported by nodes
+                  in this set
+                items:
+                  description: RANFunction defines a RAN function supported by E2
+                    nodes
+                  properties:
+                    description:
+                      description: Description provides a human-readable description
+                        of the RAN function
+                      maxLength: 256
+                      type: string
+                    functionID:
+                      description: FunctionID is the unique identifier for the RAN
+                        function (0-4095)
+                      format: int32
+                      maximum: 4095
+                      minimum: 0
+                      type: integer
+                    oid:
+                      description: OID is the ASN.1 Object Identifier for the RAN
+                        function
+                      pattern: ^[0-9]+(\.[0-9]+)*$
+                      type: string
+                    revision:
+                      description: Revision is the revision of the RAN function (0-255)
+                      format: int32
+                      maximum: 255
+                      minimum: 0
+                      type: integer
+                  required:
+                  - description
+                  - functionID
+                  - oid
+                  - revision
+                  type: object
+                type: array
               replicas:
                 default: 1
                 description: Replicas is the number of simulated E2 Nodes to run.
@@ -115,6 +167,11 @@ spec:
                   RicEndpoint is the Near-RT RIC endpoint for E2 connections.
                   DEPRECATED: Use ricConfiguration.ricEndpoint instead
                   If not specified, defaults to "http://near-rt-ric:38080".
+                pattern: ^https?://[a-zA-Z0-9.-]+:[0-9]+$
+                type: string
+              ricEndpointAlt:
+                description: RICEndpoint specifies the RIC endpoint URL (alternative
+                  naming)
                 pattern: ^https?://[a-zA-Z0-9.-]+:[0-9]+$
                 type: string
               simulationConfig:
@@ -261,6 +318,11 @@ spec:
                   - type
                   type: object
                 type: array
+              currentNodes:
+                description: CurrentNodes is the current number of nodes (alias for
+                  CurrentReplicas)
+                format: int32
+                type: integer
               currentReplicas:
                 description: CurrentReplicas is the current number of E2 Node replicas
                 format: int32
@@ -314,9 +376,21 @@ spec:
                   recently observed E2NodeSet
                 format: int64
                 type: integer
+              phase:
+                description: Phase represents the current phase of the E2NodeSet
+                type: string
+              readyNodes:
+                description: ReadyNodes is the number of ready nodes (alias for ReadyReplicas)
+                format: int32
+                type: integer
               readyReplicas:
                 description: ReadyReplicas is the number of E2 Nodes that are ready
                   and connected
+                format: int32
+                type: integer
+              replicas:
+                description: Replicas is the current number of replicas (for scale
+                  subresource)
                 format: int32
                 type: integer
               totalSubscriptions:

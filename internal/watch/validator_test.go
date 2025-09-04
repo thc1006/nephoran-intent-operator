@@ -11,7 +11,7 @@ func TestValidator(t *testing.T) {
 	// Create temporary schema file
 	tempDir := t.TempDir()
 	schemaPath := filepath.Join(tempDir, "test-schema.json")
-	
+
 	schemaContent := `{
 		"$schema": "https://json-schema.org/draft/2020-12/schema",
 		"type": "object",
@@ -27,8 +27,8 @@ func TestValidator(t *testing.T) {
 		},
 		"additionalProperties": false
 	}`
-	
-	if err := os.WriteFile(schemaPath, []byte(schemaContent), 0644); err != nil {
+
+	if err := os.WriteFile(schemaPath, []byte(schemaContent), 0o644); err != nil {
 		t.Fatalf("Failed to write test schema: %v", err)
 	}
 
@@ -127,7 +127,7 @@ func TestValidatorReload(t *testing.T) {
 	// Create temporary schema file
 	tempDir := t.TempDir()
 	schemaPath := filepath.Join(tempDir, "reload-schema.json")
-	
+
 	// Initial schema
 	initialSchema := `{
 		"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -137,8 +137,8 @@ func TestValidatorReload(t *testing.T) {
 			"name": {"type": "string"}
 		}
 	}`
-	
-	if err := os.WriteFile(schemaPath, []byte(initialSchema), 0644); err != nil {
+
+	if err := os.WriteFile(schemaPath, []byte(initialSchema), 0o644); err != nil {
 		t.Fatalf("Failed to write initial schema: %v", err)
 	}
 
@@ -164,8 +164,8 @@ func TestValidatorReload(t *testing.T) {
 			"age": {"type": "integer"}
 		}
 	}`
-	
-	if err := os.WriteFile(schemaPath, []byte(updatedSchema), 0644); err != nil {
+
+	if err := os.WriteFile(schemaPath, []byte(updatedSchema), 0o644); err != nil {
 		t.Fatalf("Failed to write updated schema: %v", err)
 	}
 
@@ -190,7 +190,7 @@ func TestValidatorConcurrency(t *testing.T) {
 	// Create temporary schema file
 	tempDir := t.TempDir()
 	schemaPath := filepath.Join(tempDir, "concurrent-schema.json")
-	
+
 	schemaContent := `{
 		"$schema": "https://json-schema.org/draft/2020-12/schema",
 		"type": "object",
@@ -199,8 +199,8 @@ func TestValidatorConcurrency(t *testing.T) {
 			"value": {"type": "integer"}
 		}
 	}`
-	
-	if err := os.WriteFile(schemaPath, []byte(schemaContent), 0644); err != nil {
+
+	if err := os.WriteFile(schemaPath, []byte(schemaContent), 0o644); err != nil {
 		t.Fatalf("Failed to write schema: %v", err)
 	}
 

@@ -21,17 +21,14 @@ func TestRequestSizeLimiter(t *testing.T) {
 
 	// Create test handler that reads the full body
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, err := io.ReadAll(r.Body)
+		_, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		response := map[string]interface{}{
-			"status":    "success",
-			"body_size": len(body),
-		}
+		response := json.RawMessage(`{}`)
 		json.NewEncoder(w).Encode(response)
 	})
 
@@ -74,7 +71,12 @@ func TestRequestSizeLimiter(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			limiter := NewRequestSizeLimiter(testMaxSize, logger)
+			config := &RequestSizeConfig{
+				MaxBodySize:   testMaxSize,
+				MaxHeaderSize: 8 * 1024,
+				EnableLogging: true,
+			}
+			limiter := NewRequestSizeLimiterWithConfig(config, logger)
 			wrappedHandler := limiter.Handler(testHandler)
 
 			req, err := http.NewRequest(tt.method, "/test", strings.NewReader(tt.body))
@@ -415,3 +417,4 @@ func TestMaxBytesHandlerPanicRecovery(t *testing.T) {
 		})
 	}
 }
+

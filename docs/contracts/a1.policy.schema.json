@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.com/schemas/a1.policy.schema.json",
+  "$id": "https://github.com/thc1006/nephoran-intent-operator/schemas/a1.policy.schema.json",
   "title": "ScalingThresholdPolicy",
   "type": "object",
   "additionalProperties": false,

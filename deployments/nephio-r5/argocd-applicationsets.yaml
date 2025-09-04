@@ -1,0 +1,595 @@
+# ArgoCD ApplicationSets for Nephio R5 Multi-cluster Deployment
+# Primary GitOps engine for Nephio R5
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: nephio-r5-conductor-loop
+  namespace: argocd
+  labels:
+    project: nephio-r5
+    component: conductor-loop
+spec:
+  description: Nephio R5 Conductor Loop deployment project
+  sourceRepos:
+  - 'https://github.com/nephio-project/catalog.git'
+  - 'https://github.com/thc1006/nephoran-intent-operator.git'
+  destinations:
+  - namespace: 'nephoran-conductor'
+    server: '*'
+  - namespace: 'o-cloud'
+    server: '*'
+  - namespace: 'nephio-system'
+    server: '*'
+  clusterResourceWhitelist:
+  - group: ''
+    kind: Namespace
+  - group: 'apiextensions.k8s.io'
+    kind: CustomResourceDefinition
+  - group: 'rbac.authorization.k8s.io'
+    kind: ClusterRole
+  - group: 'rbac.authorization.k8s.io'
+    kind: ClusterRoleBinding
+  namespaceResourceWhitelist:
+  - group: '*'
+    kind: '*'
+  roles:
+  - name: admin
+    description: Full access to nephio-r5-conductor-loop project
+    policies:
+    - p, proj:nephio-r5-conductor-loop:admin, applications, *, nephio-r5-conductor-loop/*, allow
+    - p, proj:nephio-r5-conductor-loop:admin, repositories, *, *, allow
+    groups:
+    - nephio-admins
+
+---
+# ApplicationSet for Management Cluster Core Components
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: nephio-r5-management-core
+  namespace: argocd
+  labels:
+    cluster-type: management
+    nephio-version: r5
+spec:
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          cluster-type: management
+          nephio-version: r5
+  template:
+    metadata:
+      name: '{{name}}-core-components'
+      labels:
+        cluster-type: management
+        nephio-version: r5
+    spec:
+      project: nephio-r5-conductor-loop
+      source:
+        repoURL: https://github.com/thc1006/nephoran-intent-operator.git
+        targetRevision: feat/conductor-loop
+        path: 'deployments/nephio-r5/core'
+        plugin:
+          name: kustomize-build-with-kpt
+          env:
+          - name: CLUSTER_NAME
+            value: '{{name}}'
+          - name: CLUSTER_TYPE
+            value: management
+          - name: NEPHIO_VERSION
+            value: r5
+          - name: ORAN_RELEASE
+            value: l-release
+      destination:
+        server: '{{server}}'
+        namespace: nephio-system
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+          allowEmpty: false
+        syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+        - RespectIgnoreDifferences=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+
+---
+# ApplicationSet for Conductor Loop Deployment across all clusters
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: nephio-r5-conductor-loop-deployment
+  namespace: argocd
+  labels:
+    component: conductor-loop
+    nephio-version: r5
+spec:
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          nephio-version: r5
+          ocloud: enabled
+      values:
+        revision: feat/conductor-loop
+  template:
+    metadata:
+      name: '{{name}}-conductor-loop'
+      labels:
+        cluster-name: '{{name}}'
+        cluster-type: '{{metadata.labels.cluster-type}}'
+        nephio-version: r5
+    spec:
+      project: nephio-r5-conductor-loop
+      source:
+        repoURL: https://github.com/thc1006/nephoran-intent-operator.git
+        targetRevision: '{{values.revision}}'
+        path: 'deployments/nephio-r5/conductor-loop'
+        plugin:
+          name: kustomize-build-with-helm
+          env:
+          - name: CLUSTER_NAME
+            value: '{{name}}'
+          - name: CLUSTER_TYPE
+            value: '{{metadata.labels.cluster-type}}'
+          - name: CLUSTER_LOCATION
+            value: '{{metadata.labels.cluster-location}}'
+          - name: OCLOUD_PROFILE
+            value: '{{metadata.annotations.ocloud\.oran\.org/profile}}'
+          - name: EDGE_FUNCTION
+            value: '{{metadata.labels.edge\.oran\.org/function}}'
+          - name: HELM_VALUES_FILE
+            value: 'values-{{metadata.labels.cluster-type}}.yaml'
+      destination:
+        server: '{{server}}'
+        namespace: nephoran-conductor
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+          allowEmpty: false
+        syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+        - RespectIgnoreDifferences=true
+        - Replace=true
+        managedNamespaceMetadata:
+          labels:
+            name: nephoran-conductor
+            cluster-type: '{{metadata.labels.cluster-type}}'
+            nephio-version: r5
+            ocloud: enabled
+          annotations:
+            pod-security.kubernetes.io/enforce: restricted
+            pod-security.kubernetes.io/audit: restricted
+            pod-security.kubernetes.io/warn: restricted
+        retry:
+          limit: 5
+          backoff:
+            duration: 10s
+            factor: 2
+            maxDuration: 5m
+
+---
+# ApplicationSet for Edge Cluster Network Functions
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: nephio-r5-edge-network-functions
+  namespace: argocd
+  labels:
+    component: network-functions
+    nephio-version: r5
+spec:
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          cluster-type: edge
+          nephio-version: r5
+      values:
+        du_functions: |
+          - name: cu-cp
+            namespace: cu-cp
+            profile: cu-control-plane
+          - name: cu-up
+            namespace: cu-up
+            profile: cu-user-plane
+          - name: du
+            namespace: du
+            profile: distributed-unit
+  template:
+    metadata:
+      name: '{{name}}-network-functions'
+      labels:
+        cluster-name: '{{name}}'
+        cluster-type: edge
+        nephio-version: r5
+    spec:
+      project: nephio-r5-conductor-loop
+      source:
+        repoURL: https://github.com/nephio-project/catalog.git
+        targetRevision: r5.0.0
+        path: 'workloads/oai-ran'
+        plugin:
+          name: kpt-render
+          env:
+          - name: CLUSTER_NAME
+            value: '{{name}}'
+          - name: CLUSTER_TYPE
+            value: edge
+          - name: EDGE_FUNCTION
+            value: '{{metadata.labels.edge\.oran\.org/function}}'
+          - name: EDGE_LOCATION
+            value: '{{metadata.labels.cluster-location}}'
+      destination:
+        server: '{{server}}'
+        namespace: ran-functions
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+        retry:
+          limit: 3
+          backoff:
+            duration: 30s
+            factor: 2
+            maxDuration: 10m
+
+---
+# ApplicationSet for Monitoring and Observability
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: nephio-r5-monitoring-stack
+  namespace: argocd
+  labels:
+    component: monitoring
+    nephio-version: r5
+spec:
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          nephio-version: r5
+      values:
+        monitoring_components: |
+          - name: prometheus
+            enabled: true
+            namespace: monitoring
+          - name: grafana
+            enabled: true
+            namespace: monitoring
+          - name: alertmanager
+            enabled: true
+            namespace: monitoring
+          - name: ves-collector
+            enabled: true
+            namespace: ves
+          - name: nwdaf-analytics
+            enabled: true
+            namespace: analytics
+  template:
+    metadata:
+      name: '{{name}}-monitoring'
+      labels:
+        cluster-name: '{{name}}'
+        component: monitoring
+        nephio-version: r5
+    spec:
+      project: nephio-r5-conductor-loop
+      sources:
+      - repoURL: https://prometheus-community.github.io/helm-charts
+        chart: kube-prometheus-stack
+        targetRevision: 55.5.0
+        helm:
+          releaseName: prometheus-stack
+          valueFiles:
+          - '$values/deployments/nephio-r5/monitoring/prometheus-values.yaml'
+          - '$values/deployments/nephio-r5/monitoring/prometheus-values-{{metadata.labels.cluster-type}}.yaml'
+      - repoURL: https://github.com/thc1006/nephoran-intent-operator.git
+        targetRevision: feat/conductor-loop
+        ref: values
+      destination:
+        server: '{{server}}'
+        namespace: monitoring
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+        retry:
+          limit: 3
+          backoff:
+            duration: 30s
+            maxDuration: 5m
+
+---
+# ApplicationSet for Security and Compliance
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: nephio-r5-security-compliance
+  namespace: argocd
+  labels:
+    component: security
+    nephio-version: r5
+spec:
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          nephio-version: r5
+      values:
+        security_components: |
+          - name: opa-gatekeeper
+            enabled: true
+            namespace: gatekeeper-system
+          - name: falco
+            enabled: true
+            namespace: falco-system
+          - name: cert-manager
+            enabled: true
+            namespace: cert-manager
+          - name: spiffe-spire
+            enabled: true
+            namespace: spire-system
+  template:
+    metadata:
+      name: '{{name}}-security'
+      labels:
+        cluster-name: '{{name}}'
+        component: security
+        nephio-version: r5
+    spec:
+      project: nephio-r5-conductor-loop
+      source:
+        repoURL: https://github.com/thc1006/nephoran-intent-operator.git
+        targetRevision: feat/conductor-loop
+        path: 'deployments/nephio-r5/security'
+        plugin:
+          name: kustomize-build
+          env:
+          - name: CLUSTER_NAME
+            value: '{{name}}'
+          - name: CLUSTER_TYPE
+            value: '{{metadata.labels.cluster-type}}'
+          - name: SECURITY_PROFILE
+            value: 'o-ran-wg11-compliant'
+      destination:
+        server: '{{server}}'
+        namespace: security-system
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+        retry:
+          limit: 3
+          backoff:
+            duration: 30s
+            maxDuration: 5m
+
+---
+# ApplicationSet for Service Mesh (Istio Ambient)
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: nephio-r5-service-mesh
+  namespace: argocd
+  labels:
+    component: service-mesh
+    nephio-version: r5
+spec:
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          nephio-version: r5
+          cluster-type: management
+  - clusters:
+      selector:
+        matchLabels:
+          nephio-version: r5
+          cluster-type: edge
+          cluster-location: near-edge
+  template:
+    metadata:
+      name: '{{name}}-istio-ambient'
+      labels:
+        cluster-name: '{{name}}'
+        component: service-mesh
+        nephio-version: r5
+    spec:
+      project: nephio-r5-conductor-loop
+      sources:
+      - repoURL: https://istio-release.storage.googleapis.com/charts
+        chart: base
+        targetRevision: 1.21.0
+        helm:
+          releaseName: istio-base
+      - repoURL: https://istio-release.storage.googleapis.com/charts
+        chart: istiod
+        targetRevision: 1.21.0
+        helm:
+          releaseName: istiod
+          valueFiles:
+          - '$values/deployments/nephio-r5/service-mesh/istio-values.yaml'
+          values: |
+            pilot:
+              env:
+                EXTERNAL_ISTIOD: true
+                PILOT_ENABLE_AMBIENT: true
+      - repoURL: https://istio-release.storage.googleapis.com/charts
+        chart: ztunnel
+        targetRevision: 1.21.0
+        helm:
+          releaseName: ztunnel
+      - repoURL: https://github.com/thc1006/nephoran-intent-operator.git
+        targetRevision: feat/conductor-loop
+        ref: values
+      destination:
+        server: '{{server}}'
+        namespace: istio-system
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+        retry:
+          limit: 3
+          backoff:
+            duration: 30s
+            maxDuration: 5m
+
+---
+# ApplicationSet for Disaster Recovery
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: nephio-r5-disaster-recovery
+  namespace: argocd
+  labels:
+    component: disaster-recovery
+    nephio-version: r5
+spec:
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          nephio-version: r5
+          cluster-type: management
+  template:
+    metadata:
+      name: '{{name}}-disaster-recovery'
+      labels:
+        cluster-name: '{{name}}'
+        component: disaster-recovery
+        nephio-version: r5
+    spec:
+      project: nephio-r5-conductor-loop
+      source:
+        repoURL: https://github.com/thc1006/nephoran-intent-operator.git
+        targetRevision: feat/conductor-loop
+        path: 'deployments/nephio-r5/disaster-recovery'
+        plugin:
+          name: kustomize-build
+          env:
+          - name: CLUSTER_NAME
+            value: '{{name}}'
+          - name: BACKUP_STORAGE_CLASS
+            value: 'fast-ssd'
+          - name: VELERO_BUCKET
+            value: 'nephio-r5-backups'
+      destination:
+        server: '{{server}}'
+        namespace: velero
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true
+        retry:
+          limit: 3
+          backoff:
+            duration: 30s
+            maxDuration: 5m
+
+---
+# Plugin Configuration for Kpt and Kustomize
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cmp-kpt-kustomize
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-cmp-kpt-kustomize
+data:
+  plugin.yaml: |
+    apiVersion: argoproj.io/v1alpha1
+    kind: ConfigManagementPlugin
+    metadata:
+      name: kpt-render
+    spec:
+      version: v1.0
+      init:
+        command: [sh, -c]
+        args:
+        - |
+          echo "Initializing kpt package..."
+          if [ -f "Kptfile" ]; then
+            kpt fn render .
+          else
+            echo "No Kptfile found, skipping kpt render"
+          fi
+      generate:
+        command: [sh, -c]
+        args:
+        - |
+          echo "Generating manifests..."
+          if [ -f "kustomization.yaml" ] || [ -f "kustomization.yml" ]; then
+            kustomize build .
+          else
+            cat *.yaml
+          fi
+      discover:
+        find:
+          glob: "**/Kptfile"
+
+---
+# Plugin Configuration for Kustomize with Helm
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cmp-kustomize-helm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-cmp-kustomize-helm
+data:
+  plugin.yaml: |
+    apiVersion: argoproj.io/v1alpha1
+    kind: ConfigManagementPlugin
+    metadata:
+      name: kustomize-build-with-helm
+    spec:
+      version: v1.0
+      init:
+        command: [sh, -c]
+        args:
+        - |
+          echo "Initializing Helm charts..."
+          if [ -f "Chart.yaml" ]; then
+            helm dependency update
+          fi
+      generate:
+        command: [sh, -c]
+        args:
+        - |
+          echo "Building with Kustomize and Helm..."
+          if [ -n "$HELM_VALUES_FILE" ] && [ -f "$HELM_VALUES_FILE" ]; then
+            kustomize build . --load_restrictor=none --enable-helm
+          else
+            kustomize build . --load_restrictor=none
+          fi
+      discover:
+        find:
+          glob: "**/kustomization.yaml"

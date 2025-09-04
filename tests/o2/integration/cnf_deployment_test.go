@@ -1,4 +1,4 @@
-package integration_test
+package o2_integration_tests_test
 
 import (
 	"context"
@@ -6,8 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -661,7 +659,7 @@ func (suite *CNFDeploymentTestSuite) TestCNFScaling() {
 			},
 		}
 
-		deploymentStatus, err := suite.o2Manager.DeployVNF(ctx, simpleDescriptor)
+		_, err := suite.o2Manager.DeployVNF(ctx, simpleDescriptor)
 		suite.Require().NoError(err)
 
 		// Wait for initial deployment
@@ -843,7 +841,7 @@ func (suite *CNFDeploymentTestSuite) TestCNFHealthMonitoring() {
 			},
 		}
 
-		deploymentStatus, err := suite.o2Manager.DeployVNF(ctx, healthyDescriptor)
+		_, err := suite.o2Manager.DeployVNF(ctx, healthyDescriptor)
 		suite.Require().NoError(err)
 
 		// Verify deployment has health checks configured
@@ -867,6 +865,13 @@ func (suite *CNFDeploymentTestSuite) TestCNFHealthMonitoring() {
 		suite.Assert().Equal("healthy-cnf", vnfInstance.Name)
 		suite.Assert().Equal("INSTANTIATED", vnfInstance.Status.State)
 	})
+}
+
+func (suite *CNFDeploymentTestSuite) TearDownSuite() {
+	// Clean up test resources
+	if suite.o2Manager != nil {
+		// Graceful shutdown if needed
+	}
 }
 
 func TestCNFDeployment(t *testing.T) {

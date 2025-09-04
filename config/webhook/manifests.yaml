@@ -10,14 +10,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-intent-nephoran-com-v1alpha1-networkintent
+      path: /mutate-nephoran-io-v1-networkintent
   failurePolicy: Fail
-  name: mnetworkintent.kb.io
+  name: mnetworkintent-v1.kb.io
   rules:
   - apiGroups:
-    - intent.nephoran.com
+    - nephoran.io
     apiVersions:
-    - v1alpha1
+    - v1
     operations:
     - CREATE
     - UPDATE
@@ -36,14 +36,34 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-intent-nephoran-com-v1alpha1-networkintent
+      path: /validate-nephoran-io-v1-networkintent
   failurePolicy: Fail
-  name: vnetworkintent.kb.io
+  name: vnetworkintent-v1.kb.io
   rules:
   - apiGroups:
-    - intent.nephoran.com
+    - nephoran.io
     apiVersions:
-    - v1alpha1
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - networkintents
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-nephoran-io-v1-networkintent
+  failurePolicy: Fail
+  name: vnetworkintentkb.io
+  rules:
+  - apiGroups:
+    - nephoranio
+    apiVersions:
+    - v1
     operations:
     - CREATE
     - UPDATE

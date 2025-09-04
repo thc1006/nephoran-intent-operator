@@ -1,10 +1,11 @@
-package performance
+package performance_tests
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"math/rand"
 	"sync"
 	"sync/atomic"
@@ -66,8 +67,8 @@ type RequestTemplate struct {
 	QueryType      string                 `json:"query_type"`
 	QueryTemplates []string               `json:"query_templates"`
 	IntentTypes    []string               `json:"intent_types"`
-	Parameters     map[string]interface{} `json:"parameters"`
-	ContextData    map[string]interface{} `json:"context_data"`
+	Parameters     json.RawMessage `json:"parameters"`
+	ContextData    json.RawMessage `json:"context_data"`
 }
 
 // LoadTestResults contains comprehensive load test results
@@ -520,10 +521,9 @@ func (lts *LoadTestSuite) loadTestWorker(ctx context.Context, requests <-chan Lo
 func (lts *LoadTestSuite) executeRequest(ctx context.Context, request LoadTestRequest) LoadTestResult {
 	start := time.Now()
 
-	response, err := lts.ragService.ProcessQuery(ctx, &rag.QueryRequest{
+	response, err := lts.ragService.ProcessQuery(ctx, &rag.RAGRequest{
 		Query:      request.Query,
 		IntentType: request.IntentType,
-		Context:    request.Context,
 	})
 
 	latency := time.Since(start)
@@ -698,7 +698,8 @@ func (lts *LoadTestSuite) collectFinalMetrics(ctx context.Context) {
 // collectResourceMetrics collects resource utilization metrics
 func (lts *LoadTestSuite) collectResourceMetrics(ctx context.Context) {
 	// Query Prometheus for resource metrics during test period
-	queries := map[string]string{
+	// TODO: Implement actual Prometheus queries when monitoring is available
+	_ = map[string]string{
 		"cpu_avg":    `avg_over_time(rate(container_cpu_usage_seconds_total{namespace="nephoran-system"}[5m])[` + lts.config.Duration.String() + `:30s])`,
 		"memory_avg": `avg_over_time(container_memory_usage_bytes{namespace="nephoran-system"}[` + lts.config.Duration.String() + `:30s])`,
 	}
@@ -805,7 +806,7 @@ type LoadTestRequest struct {
 	Scenario   string                 `json:"scenario"`
 	Query      string                 `json:"query"`
 	IntentType string                 `json:"intent_type"`
-	Context    map[string]interface{} `json:"context"`
+	Context    json.RawMessage `json:"context"`
 	Timestamp  time.Time              `json:"timestamp"`
 }
 

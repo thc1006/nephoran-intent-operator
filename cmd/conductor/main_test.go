@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/go-logr/logr"
 )
 
 func TestIsIntentFile(t *testing.T) {
@@ -46,9 +48,9 @@ func TestIsIntentFile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := isIntentFile(tt.filename)
+			got := IsIntentFile(tt.filename)
 			if got != tt.want {
-				t.Errorf("isIntentFile(%q) = %v, want %v", tt.filename, got, tt.want)
+				t.Errorf("IsIntentFile(%q) = %v, want %v", tt.filename, got, tt.want)
 			}
 		})
 	}
@@ -94,13 +96,14 @@ func TestExtractCorrelationID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create test file
 			testFile := filepath.Join(tempDir, "test-intent.json")
-			err := os.WriteFile(testFile, []byte(tt.jsonContent), 0644)
+			err := os.WriteFile(testFile, []byte(tt.jsonContent), 0o644)
 			if err != nil {
 				t.Fatalf("Failed to create test file: %v", err)
 			}
 
 			// Test extraction
-			gotID := extractCorrelationID(testFile)
+			logger := logr.Discard()
+			gotID := extractCorrelationID(logger, testFile)
 			if gotID != tt.wantID {
 				t.Errorf("extractCorrelationID() = %q, want %q", gotID, tt.wantID)
 			}
@@ -112,7 +115,8 @@ func TestExtractCorrelationID(t *testing.T) {
 
 	// Test with non-existent file
 	t.Run("non-existent file", func(t *testing.T) {
-		gotID := extractCorrelationID("/non/existent/file.json")
+		logger := logr.Discard()
+		gotID := extractCorrelationID(logger, "/non/existent/file.json")
 		if gotID != "" {
 			t.Errorf("extractCorrelationID(non-existent) = %q, want empty string", gotID)
 		}
@@ -123,23 +127,23 @@ func TestExtractCorrelationID(t *testing.T) {
 func TestCommandConstruction(t *testing.T) {
 	// This test validates that the command would be built correctly
 	// In a real scenario, we'd mock exec.Command, but for MVP this demonstrates intent
-	
+
 	intentPath := "/handoff/intent-test.json"
 	outDir := "examples/packages/scaling"
-	
+
 	// The expected command components
 	expectedCmd := "go"
 	expectedArgs := []string{"run", "./cmd/porch-publisher", "-intent", intentPath, "-out", outDir}
-	
+
 	// Verify these are the values we'd use (conceptual test)
 	if expectedCmd != "go" {
 		t.Errorf("Expected command to be 'go'")
 	}
-	
+
 	if len(expectedArgs) != 6 {
 		t.Errorf("Expected 6 command arguments, got %d", len(expectedArgs))
 	}
-	
+
 	if expectedArgs[1] != "./cmd/porch-publisher" {
 		t.Errorf("Expected porch-publisher path to be './cmd/porch-publisher', got %s", expectedArgs[1])
 	}

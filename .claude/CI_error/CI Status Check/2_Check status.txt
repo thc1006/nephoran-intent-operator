@@ -1,0 +1,38 @@
+﻿2025-08-19T13:08:48.9515056Z ##[group]Run echo "Test: failure"
+2025-08-19T13:08:48.9515833Z [36;1mecho "Test: failure"[0m
+2025-08-19T13:08:48.9516508Z [36;1mecho "Build: cancelled"[0m
+2025-08-19T13:08:48.9517105Z [36;1mecho "Security: cancelled"[0m
+2025-08-19T13:08:48.9517719Z [36;1mecho "Docker: cancelled"[0m
+2025-08-19T13:08:48.9518528Z [36;1m[0m
+2025-08-19T13:08:48.9519022Z [36;1mif [[ "failure" != "success" ]]; then[0m
+2025-08-19T13:08:48.9519673Z [36;1m  echo "❌ Tests failed"[0m
+2025-08-19T13:08:48.9520429Z [36;1m  exit 1[0m
+2025-08-19T13:08:48.9520998Z [36;1mfi[0m
+2025-08-19T13:08:48.9521419Z [36;1m[0m
+2025-08-19T13:08:48.9521934Z [36;1mif [[ "cancelled" != "success" ]]; then[0m
+2025-08-19T13:08:48.9522661Z [36;1m  echo "❌ Build failed"[0m
+2025-08-19T13:08:48.9523176Z [36;1m  exit 1[0m
+2025-08-19T13:08:48.9523678Z [36;1mfi[0m
+2025-08-19T13:08:48.9524099Z [36;1m[0m
+2025-08-19T13:08:48.9524597Z [36;1mif [[ "cancelled" != "success" ]]; then[0m
+2025-08-19T13:08:48.9525301Z [36;1m  echo "⚠️  Security scan had issues (non-blocking)"[0m
+2025-08-19T13:08:48.9526104Z [36;1mfi[0m
+2025-08-19T13:08:48.9526560Z [36;1m[0m
+2025-08-19T13:08:48.9527277Z [36;1mif [[ "cancelled" != "success" ]]; then[0m
+2025-08-19T13:08:48.9527937Z [36;1m  echo "❌ Docker build failed"[0m
+2025-08-19T13:08:48.9528541Z [36;1m  exit 1[0m
+2025-08-19T13:08:48.9529071Z [36;1mfi[0m
+2025-08-19T13:08:48.9529540Z [36;1m[0m
+2025-08-19T13:08:48.9530015Z [36;1mecho "✅ Conductor Loop CI Pipeline Passed"[0m
+2025-08-19T13:08:48.9820502Z shell: /usr/bin/bash -e {0}
+2025-08-19T13:08:48.9821674Z env:
+2025-08-19T13:08:48.9822171Z   REGISTRY: ghcr.io
+2025-08-19T13:08:48.9822709Z   IMAGE_NAME: conductor-loop
+2025-08-19T13:08:48.9823218Z   GO_VERSION: 1.24.x
+2025-08-19T13:08:48.9823831Z ##[endgroup]
+2025-08-19T13:08:49.0025500Z Test: failure
+2025-08-19T13:08:49.0026501Z Build: cancelled
+2025-08-19T13:08:49.0027348Z Security: cancelled
+2025-08-19T13:08:49.0028103Z Docker: cancelled
+2025-08-19T13:08:49.0159129Z ❌ Tests failed
+2025-08-19T13:08:49.0185930Z ##[error]Process completed with exit code 1.

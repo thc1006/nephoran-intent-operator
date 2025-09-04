@@ -1,0 +1,926 @@
+---
+# DDoS Protection and Rate Limiting for Nephoran Intent Operator
+# Implements comprehensive protection against Distributed Denial of Service attacks
+# Uses multiple layers: Envoy rate limiting, Istio policies, and custom controllers
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nephoran-ddos-protection
+  labels:
+    name: nephoran-ddos-protection
+    security.nephoran.io/zone: dmz
+    istio-injection: enabled
+
+---
+# Rate Limiting Service using Envoy
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rate-limit-service
+  namespace: nephoran-ddos-protection
+  labels:
+    app.kubernetes.io/name: rate-limit-service
+    app.kubernetes.io/component: security
+    app.kubernetes.io/part-of: nephoran-ddos-protection
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: rate-limit-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: rate-limit-service
+        app.kubernetes.io/component: security
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/stats/prometheus"
+    spec:
+      serviceAccountName: rate-limit-service
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: rate-limit
+        image: envoyproxy/ratelimit:master
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        env:
+        - name: LOG_LEVEL
+          value: "info"
+        - name: REDIS_SOCKET_TYPE
+          value: "tcp"
+        - name: REDIS_URL
+          value: "redis.nephoran-ddos-protection.svc.cluster.local:6379"
+        - name: USE_STATSD
+          value: "false"
+        - name: RUNTIME_ROOT
+          value: "/data"
+        - name: RUNTIME_SUBDIRECTORY
+          value: "ratelimit"
+        - name: RUNTIME_WATCH_ROOT
+          value: "false"
+        - name: RUNTIME_IGNOREDOTFILES
+          value: "true"
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8081
+          name: grpc
+        - containerPort: 6070
+          name: debug
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        volumeMounts:
+        - name: rate-limit-config
+          mountPath: /data/ratelimit/config
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        livenessProbe:
+          httpGet:
+            path: /healthcheck
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /healthcheck
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: rate-limit-config
+        configMap:
+          name: rate-limit-config
+      - name: tmp
+        emptyDir:
+          sizeLimit: 100Mi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - rate-limit-service
+              topologyKey: kubernetes.io/hostname
+
+---
+# Redis for Rate Limiting State
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: nephoran-ddos-protection
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: redis
+        app.kubernetes.io/component: database
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: redis
+        image: redis:7.2-alpine
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        ports:
+        - containerPort: 6379
+          name: redis
+        command:
+        - redis-server
+        - --maxmemory
+        - 256mb
+        - --maxmemory-policy
+        - allkeys-lru
+        - --save
+        - ""
+        - --appendonly
+        - "no"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+        livenessProbe:
+          tcpSocket:
+            port: 6379
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: redis-data
+        emptyDir:
+          sizeLimit: 1Gi
+
+---
+# DDoS Detection Controller
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ddos-detector
+  namespace: nephoran-ddos-protection
+  labels:
+    app.kubernetes.io/name: ddos-detector
+    app.kubernetes.io/component: security
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ddos-detector
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ddos-detector
+        app.kubernetes.io/component: security
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      serviceAccountName: ddos-detector
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: detector
+        image: curlimages/curl:8.4.0
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        command:
+        - /bin/sh
+        - -c
+        - |
+          #!/bin/sh
+          set -e
+          
+          echo "Starting DDoS Detection Controller..."
+          
+          # Function to query Prometheus metrics
+          query_prometheus() {
+            local query="$1"
+            curl -s "http://prometheus.monitoring.svc.cluster.local:9090/api/v1/query?query=${query}" \
+              | jq -r '.data.result[0].value[1] // "0"'
+          }
+          
+          # Function to trigger rate limiting
+          trigger_rate_limit() {
+            local severity="$1"
+            local duration="$2"
+            echo "Triggering DDoS protection: severity=${severity}, duration=${duration}"
+            
+            # Update rate limit configuration
+            kubectl patch configmap rate-limit-config -n nephoran-ddos-protection --type merge -p '{
+              "data": {
+                "config.yaml": "domain: nephoran_rate_limit\ndescriptors:\n  - key: header_match\n    value: api_request\n    rate_limit:\n      unit: second\n      requests_per_unit: '${severity}'\n  - key: header_match\n    value: admin_request\n    rate_limit:\n      unit: second\n      requests_per_unit: 1"
+              }
+            }'
+            
+            # Send alert to monitoring system
+            cat <<EOF | curl -X POST -H "Content-Type: application/json" \
+              -d @- "http://alertmanager.monitoring.svc.cluster.local:9093/api/v1/alerts" || true
+          [{
+            "labels": {
+              "alertname": "DDoSAttackDetected",
+              "severity": "critical",
+              "instance": "nephoran-intent-operator",
+              "service": "ddos-protection"
+            },
+            "annotations": {
+              "summary": "DDoS attack detected and mitigation activated",
+              "description": "DDoS protection triggered with severity ${severity} for ${duration} seconds"
+            },
+            "generatorURL": "http://ddos-detector.nephoran-ddos-protection.svc.cluster.local:8080/"
+          }]
+          EOF
+          }
+          
+          # Main monitoring loop
+          while true; do
+            echo "Checking for DDoS patterns..."
+            
+            # Query request rate (requests per second)
+            request_rate=$(query_prometheus "sum(rate(istio_requests_total{destination_service_name=~\".*nephoran.*\"}[1m]))")
+            
+            # Query error rate
+            error_rate=$(query_prometheus "sum(rate(istio_requests_total{destination_service_name=~\".*nephoran.*\",response_code!~\"2.*\"}[1m]))")
+            
+            # Query P99 latency (in milliseconds)
+            p99_latency=$(query_prometheus "histogram_quantile(0.99, sum(rate(istio_request_duration_milliseconds_bucket{destination_service_name=~\".*nephoran.*\"}[5m])) by (le))")
+            
+            # Query unique source IPs
+            unique_ips=$(query_prometheus "count(count by (source_ip)(rate(istio_requests_total{destination_service_name=~\".*nephoran.*\"}[1m])))")
+            
+            echo "Metrics: request_rate=${request_rate}, error_rate=${error_rate}, p99_latency=${p99_latency}, unique_ips=${unique_ips}"
+            
+            # DDoS detection logic
+            request_rate_int=$(echo "$request_rate" | cut -d. -f1)
+            error_rate_int=$(echo "$error_rate" | cut -d. -f1)
+            p99_latency_int=$(echo "$p99_latency" | cut -d. -f1)
+            unique_ips_int=$(echo "$unique_ips" | cut -d. -f1)
+            
+            # Critical DDoS conditions
+            if [ "$request_rate_int" -gt 1000 ] || [ "$p99_latency_int" -gt 30000 ]; then
+              echo "CRITICAL: DDoS attack detected - high volume or extreme latency"
+              trigger_rate_limit 5 3600  # 5 requests per second for 1 hour
+              sleep 300  # Wait 5 minutes before next check during attack
+              
+            # Moderate DDoS conditions
+            elif [ "$request_rate_int" -gt 500 ] || [ "$error_rate_int" -gt 100 ] || [ "$p99_latency_int" -gt 10000 ]; then
+              echo "WARNING: Potential DDoS attack detected - elevated metrics"
+              trigger_rate_limit 20 1800  # 20 requests per second for 30 minutes
+              sleep 120  # Wait 2 minutes before next check
+              
+            # Low-level suspicious activity
+            elif [ "$request_rate_int" -gt 200 ] || [ "$unique_ips_int" -gt 100 ]; then
+              echo "INFO: Elevated traffic detected - monitoring closely"
+              trigger_rate_limit 50 300  # 50 requests per second for 5 minutes
+              sleep 60   # Wait 1 minute before next check
+              
+            else
+              echo "INFO: Traffic levels normal"
+              sleep 30   # Normal monitoring interval
+            fi
+            
+          done
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 50Mi
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rate-limit-service
+  namespace: nephoran-ddos-protection
+  labels:
+    app.kubernetes.io/name: rate-limit-service
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ddos-detector
+  namespace: nephoran-ddos-protection
+  labels:
+    app.kubernetes.io/name: ddos-detector
+
+---
+# RBAC for DDoS Detector
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ddos-detector
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "patch", "update"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create"]
+- apiGroups: ["networking.istio.io"]
+  resources: ["envoyfilters", "destinationrules"]
+  verbs: ["get", "list", "patch", "update"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ddos-detector
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: ddos-detector
+subjects:
+- kind: ServiceAccount
+  name: ddos-detector
+  namespace: nephoran-ddos-protection
+
+---
+# Services
+apiVersion: v1
+kind: Service
+metadata:
+  name: rate-limit-service
+  namespace: nephoran-ddos-protection
+  labels:
+    app.kubernetes.io/name: rate-limit-service
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+spec:
+  selector:
+    app.kubernetes.io/name: rate-limit-service
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  - name: grpc
+    port: 8081
+    targetPort: 8081
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: nephoran-ddos-protection
+  labels:
+    app.kubernetes.io/name: redis
+spec:
+  selector:
+    app.kubernetes.io/name: redis
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: 6379
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ddos-detector
+  namespace: nephoran-ddos-protection
+  labels:
+    app.kubernetes.io/name: ddos-detector
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+spec:
+  selector:
+    app.kubernetes.io/name: ddos-detector
+  ports:
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+  type: ClusterIP
+
+---
+# Rate Limiting Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rate-limit-config
+  namespace: nephoran-ddos-protection
+  labels:
+    app.kubernetes.io/name: rate-limit-service
+data:
+  config.yaml: |
+    domain: nephoran_rate_limit
+    descriptors:
+      # API endpoints rate limiting
+      - key: header_match
+        value: api_request
+        rate_limit:
+          unit: second
+          requests_per_unit: 100
+      
+      # Admin endpoints (more restrictive)
+      - key: header_match
+        value: admin_request
+        rate_limit:
+          unit: second
+          requests_per_unit: 10
+      
+      # Per-user rate limiting
+      - key: remote_address
+        rate_limit:
+          unit: minute
+          requests_per_unit: 1000
+      
+      # Per-user burst limiting
+      - key: remote_address
+        rate_limit:
+          unit: second
+          requests_per_unit: 50
+      
+      # Global rate limiting
+      - key: generic_key
+        value: global_rate_limit
+        rate_limit:
+          unit: second
+          requests_per_unit: 2000
+      
+      # Health check endpoints (higher limits)
+      - key: header_match
+        value: health_check
+        rate_limit:
+          unit: second
+          requests_per_unit: 200
+      
+      # Webhook endpoints
+      - key: header_match
+        value: webhook_request
+        rate_limit:
+          unit: second
+          requests_per_unit: 20
+      
+      # LLM processing endpoints (lower limits due to cost)
+      - key: header_match
+        value: llm_request
+        rate_limit:
+          unit: minute
+          requests_per_unit: 100
+      
+      # Vector database queries
+      - key: header_match
+        value: vector_query
+        rate_limit:
+          unit: second
+          requests_per_unit: 30
+
+---
+# Istio EnvoyFilter for Rate Limiting Integration
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: nephoran-rate-limit-filter
+  namespace: istio-system
+spec:
+  workloadSelector:
+    labels:
+      istio: ingressgateway
+  configPatches:
+  - applyTo: HTTP_FILTER
+    match:
+      context: GATEWAY
+      listener:
+        filterChain:
+          filter:
+            name: "envoy.filters.network.http_connection_manager"
+    patch:
+      operation: INSERT_BEFORE
+      value:
+        name: envoy.filters.http.ratelimit
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.http.ratelimit.v3.RateLimit
+          domain: nephoran_rate_limit
+          stage: 0
+          request_type: external
+          timeout: 1s
+          failure_mode_deny: false
+          rate_limit_service:
+            grpc_service:
+              envoy_grpc:
+                cluster_name: rate_limit_service_cluster
+            transport_api_version: V3
+  - applyTo: CLUSTER
+    match:
+      context: GATEWAY
+    patch:
+      operation: ADD
+      value:
+        name: rate_limit_service_cluster
+        type: STRICT_DNS
+        connect_timeout: 1s
+        lb_policy: ROUND_ROBIN
+        load_assignment:
+          cluster_name: rate_limit_service_cluster
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: rate-limit-service.nephoran-ddos-protection.svc.cluster.local
+                    port_value: 8081
+        http2_protocol_options: {}
+
+---
+# Istio VirtualService with Rate Limiting Actions
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: nephoran-rate-limit-vs
+  namespace: nephoran-system
+spec:
+  hosts:
+  - "api.nephoran.io"
+  - "intent.nephoran.io"
+  gateways:
+  - nephoran-gateway
+  http:
+  # Health check endpoints
+  - match:
+    - uri:
+        exact: /health
+    - uri:
+        exact: /healthz
+    - uri:
+        exact: /ready
+    route:
+    - destination:
+        host: llm-processor
+        port:
+          number: 8080
+    headers:
+      request:
+        add:
+          x-rate-limit-descriptor: "header_match=health_check"
+  
+  # Admin endpoints (most restrictive)
+  - match:
+    - uri:
+        prefix: /admin
+    route:
+    - destination:
+        host: llm-processor
+        port:
+          number: 8080
+    headers:
+      request:
+        add:
+          x-rate-limit-descriptor: "header_match=admin_request"
+  
+  # LLM processing endpoints
+  - match:
+    - uri:
+        prefix: /v1/intent
+    - uri:
+        prefix: /v1/process
+    route:
+    - destination:
+        host: llm-processor
+        port:
+          number: 8080
+    headers:
+      request:
+        add:
+          x-rate-limit-descriptor: "header_match=llm_request"
+    timeout: 60s
+    retries:
+      attempts: 2
+      perTryTimeout: 30s
+      retryOn: 5xx,reset,connect-failure,refused-stream
+  
+  # Vector database queries
+  - match:
+    - uri:
+        prefix: /v1/query
+    - uri:
+        prefix: /v1/embed
+    route:
+    - destination:
+        host: rag-api
+        port:
+          number: 8080
+    headers:
+      request:
+        add:
+          x-rate-limit-descriptor: "header_match=vector_query"
+  
+  # Webhook endpoints
+  - match:
+    - uri:
+        prefix: /webhook
+    route:
+    - destination:
+        host: llm-processor
+        port:
+          number: 8080
+    headers:
+      request:
+        add:
+          x-rate-limit-descriptor: "header_match=webhook_request"
+  
+  # Default API endpoints
+  - match:
+    - uri:
+        prefix: /v1/
+    route:
+    - destination:
+        host: llm-processor
+        port:
+          number: 8080
+    headers:
+      request:
+        add:
+          x-rate-limit-descriptor: "header_match=api_request"
+
+---
+# Istio DestinationRule for Circuit Breaking
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: nephoran-circuit-breaker
+  namespace: nephoran-system
+spec:
+  host: "*.nephoran-system.svc.cluster.local"
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+        connectTimeout: 30s
+        tcpKeepalive:
+          time: 7200s
+          interval: 75s
+      http:
+        http1MaxPendingRequests: 50
+        http2MaxRequests: 100
+        maxRequestsPerConnection: 10
+        maxRetries: 3
+        consecutiveGatewayErrors: 5
+        interval: 30s
+        baseEjectionTime: 30s
+        maxEjectionPercent: 50
+        minHealthPercent: 50
+    outlierDetection:
+      consecutiveGatewayErrors: 5
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 30
+      splitExternalLocalOriginErrors: false
+  portLevelSettings:
+  - port:
+      number: 8080
+    connectionPool:
+      tcp:
+        maxConnections: 50
+      http:
+        http1MaxPendingRequests: 25
+        maxRequestsPerConnection: 5
+
+---
+# PodDisruptionBudget for Rate Limit Service
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: rate-limit-service-pdb
+  namespace: nephoran-ddos-protection
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: rate-limit-service
+
+---
+# HorizontalPodAutoscaler for Rate Limit Service
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: rate-limit-service-hpa
+  namespace: nephoran-ddos-protection
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: rate-limit-service
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  - type: Pods
+    pods:
+      metric:
+        name: requests_per_second
+      target:
+        type: AverageValue
+        averageValue: "100"
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 30
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+
+---
+# ServiceMonitor for Prometheus Integration
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ddos-protection-servicemonitor
+  namespace: nephoran-ddos-protection
+  labels:
+    app.kubernetes.io/name: ddos-protection
+spec:
+  selector:
+    matchLabels:
+      prometheus.io/scrape: "true"
+  endpoints:
+  - port: http
+    interval: 30s
+    path: /stats/prometheus
+    targetPort: 8080
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    targetPort: 8080
+
+---
+# NetworkPolicy for DDoS Protection Components
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ddos-protection-netpol
+  namespace: nephoran-ddos-protection
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow Istio sidecar communication
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: istio-system
+    ports:
+    - protocol: TCP
+      port: 8081  # Rate limit gRPC
+  # Allow monitoring
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8080  # Metrics
+  # Internal communication
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran-ddos-protection
+    ports:
+    - protocol: TCP
+      port: 6379  # Redis
+    - protocol: TCP
+      port: 8080  # HTTP
+    - protocol: TCP
+      port: 8081  # gRPC
+  egress:
+  # Allow DNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow Prometheus queries
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9090
+  # Allow alertmanager
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9093
+  # Allow Kubernetes API
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 443
+  # Internal communication
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran-ddos-protection
+    ports:
+    - protocol: TCP
+      port: 6379
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8081

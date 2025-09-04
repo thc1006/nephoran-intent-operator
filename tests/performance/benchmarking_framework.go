@@ -1,4 +1,4 @@
-package performance
+package performance_tests
 
 import (
 	"context"
@@ -75,12 +75,12 @@ type ResourceTargets struct {
 
 // TestQuery represents a benchmark query
 type TestQuery struct {
-	ID         string                 `json:"id"`
-	Query      string                 `json:"query"`
-	IntentType string                 `json:"intent_type"`
-	Context    map[string]interface{} `json:"context"`
-	Weight     float64                `json:"weight"`
-	Expected   ExpectedResult         `json:"expected"`
+	ID         string          `json:"id"`
+	Query      string          `json:"query"`
+	IntentType string          `json:"intent_type"`
+	Context    json.RawMessage `json:"context"`
+	Weight     float64         `json:"weight"`
+	Expected   ExpectedResult  `json:"expected"`
 }
 
 // ExpectedResult defines expected benchmark results
@@ -220,14 +220,14 @@ type BaselineMetrics struct {
 
 // EnvironmentInfo contains test environment information
 type EnvironmentInfo struct {
-	OS                string                 `json:"os"`
-	Architecture      string                 `json:"architecture"`
-	CPUCores          int                    `json:"cpu_cores"`
-	Memory            int64                  `json:"memory_mb"`
-	GoVersion         string                 `json:"go_version"`
-	KubernetesVersion string                 `json:"kubernetes_version"`
-	ClusterNodes      int                    `json:"cluster_nodes"`
-	Configuration     map[string]interface{} `json:"configuration"`
+	OS                string          `json:"os"`
+	Architecture      string          `json:"architecture"`
+	CPUCores          int             `json:"cpu_cores"`
+	Memory            int64           `json:"memory_mb"`
+	GoVersion         string          `json:"go_version"`
+	KubernetesVersion string          `json:"kubernetes_version"`
+	ClusterNodes      int             `json:"cluster_nodes"`
+	Configuration     json.RawMessage `json:"configuration"`
 }
 
 // TimePoint represents a data point in time series
@@ -390,10 +390,9 @@ func (bf *BenchmarkFramework) benchmarkWorker(ctx context.Context, requests <-ch
 	for query := range requests {
 		start := time.Now()
 
-		response, err := bf.ragService.ProcessQuery(ctx, &rag.QueryRequest{
+		response, err := bf.ragService.ProcessQuery(ctx, &rag.RAGRequest{
 			Query:      query.Query,
 			IntentType: query.IntentType,
-			Context:    query.Context,
 		})
 
 		latency := time.Since(start)
@@ -635,7 +634,7 @@ func (bf *BenchmarkFramework) saveResults() error {
 	if err != nil {
 		return fmt.Errorf("failed to create results file: %w", err)
 	}
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
@@ -654,14 +653,12 @@ func (bf *BenchmarkFramework) collectEnvironmentInfo() EnvironmentInfo {
 	runtime.ReadMemStats(&memStats)
 
 	return EnvironmentInfo{
-		OS:           runtime.GOOS,
-		Architecture: runtime.GOARCH,
-		CPUCores:     runtime.NumCPU(),
-		Memory:       int64(memStats.Sys / 1024 / 1024), // MB
-		GoVersion:    runtime.Version(),
-		Configuration: map[string]interface{}{
-			"max_procs": runtime.GOMAXPROCS(0),
-		},
+		OS:            runtime.GOOS,
+		Architecture:  runtime.GOARCH,
+		CPUCores:      runtime.NumCPU(),
+		Memory:        int64(memStats.Sys / 1024 / 1024), // MB
+		GoVersion:     runtime.Version(),
+		Configuration: json.RawMessage(`{}`),
 	}
 }
 
@@ -703,8 +700,8 @@ type RequestResult struct {
 
 // ComponentDataPoint represents a data point for component metrics
 type ComponentDataPoint struct {
-	Timestamp time.Time              `json:"timestamp"`
-	Metrics   map[string]interface{} `json:"metrics"`
+	Timestamp time.Time       `json:"timestamp"`
+	Metrics   json.RawMessage `json:"metrics"`
 }
 
 // loadBaselineMetrics loads baseline metrics from file
@@ -713,7 +710,7 @@ func loadBaselineMetrics(path string) (*BaselineMetrics, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	var baseline BaselineMetrics
 	if err := json.NewDecoder(file).Decode(&baseline); err != nil {

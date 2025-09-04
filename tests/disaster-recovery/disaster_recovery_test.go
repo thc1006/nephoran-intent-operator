@@ -2,6 +2,7 @@ package disaster_recovery
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -34,7 +35,6 @@ type DisasterRecoveryTestSuite struct {
 	testData  *TestDataSet
 	scenarios []*DisasterScenario
 }
-
 
 func (suite *DisasterRecoveryTestSuite) SetupSuite() {
 	suite.ctx, suite.cancel = context.WithCancel(context.TODO())
@@ -592,7 +592,7 @@ func (suite *DisasterRecoveryTestSuite) cleanupBackupCorruption(s *DisasterRecov
 
 func (suite *DisasterRecoveryTestSuite) createBackup(backupID string, components []string) error {
 	backupPath := filepath.Join(suite.backupDir, backupID)
-	if err := os.MkdirAll(backupPath, 0755); err != nil {
+	if err := os.MkdirAll(backupPath, 0o755); err != nil {
 		return fmt.Errorf("failed to create backup directory: %w", err)
 	}
 
@@ -638,10 +638,6 @@ func (suite *DisasterRecoveryTestSuite) waitForDeploymentReady(name, namespace s
 			time.Sleep(1 * time.Second)
 		}
 	}
-}
-
-func int32Ptr(i int32) *int32 {
-	return &i
 }
 
 // Comprehensive disaster recovery testing
@@ -733,20 +729,10 @@ func (suite *DisasterRecoveryTestSuite) estimateRecoveryTime(scenario *DisasterS
 func (suite *DisasterRecoveryTestSuite) generateDisasterReport(scenario *DisasterScenario, metrics *RecoveryMetrics) error {
 	reportPath := filepath.Join(suite.backupDir, fmt.Sprintf("disaster-report-%s.json", scenario.Name))
 
-	report := map[string]interface{}{
-		"scenario_name":       scenario.Name,
-		"disaster_type":       scenario.DisasterType,
-		"recovery_strategy":   scenario.RecoveryStrategy,
-		"expected_rto":        scenario.ExpectedRTO.String(),
-		"actual_rto":          metrics.ActualRTO.String(),
-		"expected_rpo":        scenario.ExpectedRPO.String(),
-		"recovery_success":    metrics.RecoverySuccess,
-		"error_messages":      metrics.ErrorMessages,
-		"affected_components": scenario.AffectedComponents,
-		"timestamp":           time.Now().Format(time.RFC3339),
-	}
+	report := json.RawMessage(`{}`)
 
 	suite.T().Logf("Generated disaster recovery report: %s", reportPath)
 	_ = report // In real implementation, would write to file
 	return nil
 }
+

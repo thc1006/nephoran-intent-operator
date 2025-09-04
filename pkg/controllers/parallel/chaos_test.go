@@ -18,6 +18,7 @@ package parallel
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -32,8 +33,8 @@ import (
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/thc1006/nephoran-intent-operator/api/v1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/resilience"
+	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	resilience "github.com/thc1006/nephoran-intent-operator/pkg/controllers/resilience"
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 )
 
@@ -51,7 +52,7 @@ type ChaosTestSuite struct {
 
 func (suite *ChaosTestSuite) SetupSuite() {
 	zapLogger, _ := zap.NewDevelopment()
-	suite.logger = zapr.New(zapLogger)
+	suite.logger = zapr.NewLogger(zapLogger)
 	suite.random = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	suite.ctx, suite.cancel = context.WithCancel(context.Background())
@@ -145,15 +146,15 @@ func (suite *ChaosTestSuite) TestRandomFailureInjection() {
 		go func(intentNum int) {
 			defer wg.Done()
 
-			intent := &v1alpha1.NetworkIntent{
+			intent := &v1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      fmt.Sprintf("chaos-intent-%d", intentNum),
 					Namespace: "chaos-test",
 				},
-				Spec: v1alpha1.NetworkIntentSpec{
+				Spec: v1.NetworkIntentSpec{
 					IntentType: "chaos_test_deployment",
 					Intent:     fmt.Sprintf("Chaos test intent %d with potential failures", intentNum),
-					Priority:   "medium",
+					Priority:   v1.NetworkPriorityNormal,
 				},
 			}
 
@@ -222,15 +223,15 @@ func (suite *ChaosTestSuite) TestResourceExhaustion() {
 		go func(intentNum int) {
 			defer wg.Done()
 
-			intent := &v1alpha1.NetworkIntent{
+			intent := &v1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      fmt.Sprintf("burst-intent-%d", intentNum),
 					Namespace: "chaos-test",
 				},
-				Spec: v1alpha1.NetworkIntentSpec{
+				Spec: v1.NetworkIntentSpec{
 					IntentType: "resource_intensive",
 					Intent:     fmt.Sprintf("Resource intensive intent %d", intentNum),
-					Priority:   "high",
+					Priority:   v1.NetworkPriorityHigh,
 				},
 			}
 
@@ -279,15 +280,15 @@ func (suite *ChaosTestSuite) TestNetworkPartitions() {
 		go func(intentNum int) {
 			defer wg.Done()
 
-			intent := &v1alpha1.NetworkIntent{
+			intent := &v1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      fmt.Sprintf("partition-intent-%d", intentNum),
 					Namespace: "chaos-test",
 				},
-				Spec: v1alpha1.NetworkIntentSpec{
+				Spec: v1.NetworkIntentSpec{
 					IntentType: "network_partition_test",
 					Intent:     fmt.Sprintf("Intent during network partition %d", intentNum),
-					Priority:   "medium",
+					Priority:   v1.NetworkPriorityNormal,
 				},
 			}
 
@@ -319,7 +320,7 @@ func (suite *ChaosTestSuite) TestNetworkPartitions() {
 					Type:      TaskTypeLLMProcessing,
 					Priority:  10, // Very high priority
 					Status:    TaskStatusPending,
-					InputData: map[string]interface{}{"intent": "chaos"},
+					InputData: json.RawMessage(`{"intent":"chaos"}`),
 					Timeout:   1 * time.Second, // Short timeout to create instability
 				}
 
@@ -349,15 +350,15 @@ func (suite *ChaosTestSuite) TestCascadingFailures() {
 	suite.T().Log("Starting cascading failure chaos test")
 
 	// Create intents with complex dependencies to trigger cascading failures
-	baseIntent := &v1alpha1.NetworkIntent{
+	baseIntent := &v1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "cascading-base-intent",
 			Namespace: "chaos-test",
 		},
-		Spec: v1alpha1.NetworkIntentSpec{
+		Spec: v1.NetworkIntentSpec{
 			IntentType: "cascading_failure_test",
 			Intent:     "Base intent that will trigger cascading failures in dependent components",
-			Priority:   "critical",
+			Priority:   v1.NetworkPriorityCritical,
 		},
 	}
 
@@ -376,15 +377,15 @@ func (suite *ChaosTestSuite) TestCascadingFailures() {
 		go func(intentNum int) {
 			defer wg.Done()
 
-			dependentIntent := &v1alpha1.NetworkIntent{
+			dependentIntent := &v1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      fmt.Sprintf("cascading-dependent-%d", intentNum),
 					Namespace: "chaos-test",
 				},
-				Spec: v1alpha1.NetworkIntentSpec{
+				Spec: v1.NetworkIntentSpec{
 					IntentType: "dependent_service",
 					Intent:     fmt.Sprintf("Dependent intent %d that may fail due to base failure", intentNum),
-					Priority:   "high",
+					Priority:   v1.NetworkPriorityHigh,
 				},
 			}
 
@@ -429,15 +430,15 @@ func (suite *ChaosTestSuite) TestRecoveryAfterChaos() {
 		go func(intentNum int) {
 			defer chaosWg.Done()
 
-			intent := &v1alpha1.NetworkIntent{
+			intent := &v1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      fmt.Sprintf("chaos-condition-%d", intentNum),
 					Namespace: "chaos-test",
 				},
-				Spec: v1alpha1.NetworkIntentSpec{
+				Spec: v1.NetworkIntentSpec{
 					IntentType: "chaos_inducer",
 					Intent:     fmt.Sprintf("Chaos inducing intent %d", intentNum),
-					Priority:   "medium",
+					Priority:   v1.NetworkPriorityNormal,
 				},
 			}
 
@@ -469,15 +470,15 @@ func (suite *ChaosTestSuite) TestRecoveryAfterChaos() {
 		go func(intentNum int) {
 			defer recoveryWg.Done()
 
-			intent := &v1alpha1.NetworkIntent{
+			intent := &v1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      fmt.Sprintf("recovery-intent-%d", intentNum),
 					Namespace: "chaos-test",
 				},
-				Spec: v1alpha1.NetworkIntentSpec{
+				Spec: v1.NetworkIntentSpec{
 					IntentType: "recovery_test",
 					Intent:     fmt.Sprintf("Recovery test intent %d", intentNum),
-					Priority:   "normal",
+					Priority:   v1.NetworkPriorityNormal,
 				},
 			}
 

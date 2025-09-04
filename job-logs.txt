@@ -1,0 +1,967 @@
+﻿2025-09-03T10:30:28.7851536Z Current runner version: '2.328.0'
+2025-09-03T10:30:28.7873866Z ##[group]Runner Image Provisioner
+2025-09-03T10:30:28.7874799Z Hosted Compute Agent
+2025-09-03T10:30:28.7875319Z Version: 20250829.383
+2025-09-03T10:30:28.7875903Z Commit: 27cb235aab5b0e52e153a26cd86b4742e89dac5d
+2025-09-03T10:30:28.7876685Z Build Date: 2025-08-29T13:48:48Z
+2025-09-03T10:30:28.7877279Z ##[endgroup]
+2025-09-03T10:30:28.7877769Z ##[group]Operating System
+2025-09-03T10:30:28.7878380Z Ubuntu
+2025-09-03T10:30:28.7878854Z 24.04.3
+2025-09-03T10:30:28.7879281Z LTS
+2025-09-03T10:30:28.7879815Z ##[endgroup]
+2025-09-03T10:30:28.7880280Z ##[group]Runner Image
+2025-09-03T10:30:28.7880825Z Image: ubuntu-24.04
+2025-09-03T10:30:28.7881332Z Version: 20250831.1.0
+2025-09-03T10:30:28.7882359Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250831.1/images/ubuntu/Ubuntu2404-Readme.md
+2025-09-03T10:30:28.7884019Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250831.1
+2025-09-03T10:30:28.7885106Z ##[endgroup]
+2025-09-03T10:30:28.7886231Z ##[group]GITHUB_TOKEN Permissions
+2025-09-03T10:30:28.7888096Z Checks: write
+2025-09-03T10:30:28.7888646Z Contents: read
+2025-09-03T10:30:28.7889244Z Metadata: read
+2025-09-03T10:30:28.7889732Z PullRequests: read
+2025-09-03T10:30:28.7890241Z ##[endgroup]
+2025-09-03T10:30:28.7892139Z Secret source: Actions
+2025-09-03T10:30:28.7892947Z Prepare workflow directory
+2025-09-03T10:30:28.8440860Z Prepare all required actions
+2025-09-03T10:30:28.8479637Z Getting action download info
+2025-09-03T10:30:29.3327417Z Download action repository 'actions/checkout@v4.2.1' (SHA:eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871)
+2025-09-03T10:30:29.4929544Z Download action repository 'actions/setup-go@v5.0.2' (SHA:0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32)
+2025-09-03T10:30:30.1029771Z Download action repository 'securego/gosec@master' (SHA:5af1117217e476b56a63eaa9ea28eeeb91fbc5ff)
+2025-09-03T10:30:30.8406208Z Download action repository 'github/codeql-action@v3' (SHA:2d92b76c45b91eb80fc44c74ce3fce0ee94e8f9d)
+2025-09-03T10:30:31.8347684Z Complete job name: Security Scan
+2025-09-03T10:30:31.8710923Z ##[group]Pull down action image 'securego/gosec:2.22.8'
+2025-09-03T10:30:31.8759625Z ##[command]/usr/bin/docker pull securego/gosec:2.22.8
+2025-09-03T10:30:32.9448261Z 2.22.8: Pulling from securego/gosec
+2025-09-03T10:30:33.2292680Z 9824c27679d3: Pulling fs layer
+2025-09-03T10:30:33.2293250Z ec7d4ca09441: Pulling fs layer
+2025-09-03T10:30:33.2293917Z 8286cb4ece30: Pulling fs layer
+2025-09-03T10:30:33.2294437Z 18414ed0f666: Pulling fs layer
+2025-09-03T10:30:33.2294930Z 4f4fb700ef54: Pulling fs layer
+2025-09-03T10:30:33.2295401Z 569708497dee: Pulling fs layer
+2025-09-03T10:30:33.2295870Z a80240abfd6d: Pulling fs layer
+2025-09-03T10:30:33.2296443Z 02ee09d3c771: Pulling fs layer
+2025-09-03T10:30:33.2296923Z 18414ed0f666: Waiting
+2025-09-03T10:30:33.2297332Z a80240abfd6d: Waiting
+2025-09-03T10:30:33.2297759Z 569708497dee: Waiting
+2025-09-03T10:30:33.2298172Z 4f4fb700ef54: Waiting
+2025-09-03T10:30:33.2298601Z 02ee09d3c771: Waiting
+2025-09-03T10:30:33.5286093Z 9824c27679d3: Verifying Checksum
+2025-09-03T10:30:33.5286556Z 9824c27679d3: Download complete
+2025-09-03T10:30:33.5387962Z ec7d4ca09441: Verifying Checksum
+2025-09-03T10:30:33.5390755Z ec7d4ca09441: Download complete
+2025-09-03T10:30:33.6368903Z 9824c27679d3: Pull complete
+2025-09-03T10:30:33.7680797Z ec7d4ca09441: Pull complete
+2025-09-03T10:30:33.8041286Z 4f4fb700ef54: Verifying Checksum
+2025-09-03T10:30:33.8043067Z 4f4fb700ef54: Download complete
+2025-09-03T10:30:33.8096424Z 18414ed0f666: Verifying Checksum
+2025-09-03T10:30:33.8101717Z 18414ed0f666: Download complete
+2025-09-03T10:30:34.1689537Z a80240abfd6d: Verifying Checksum
+2025-09-03T10:30:34.1690381Z a80240abfd6d: Download complete
+2025-09-03T10:30:34.1813678Z 8286cb4ece30: Verifying Checksum
+2025-09-03T10:30:34.4198250Z 8286cb4ece30: Download complete
+2025-09-03T10:30:34.4198975Z 02ee09d3c771: Verifying Checksum
+2025-09-03T10:30:35.7494078Z 02ee09d3c771: Download complete
+2025-09-03T10:30:35.7494983Z 569708497dee: Verifying Checksum
+2025-09-03T10:30:35.7495420Z 569708497dee: Download complete
+2025-09-03T10:30:39.0108447Z 8286cb4ece30: Pull complete
+2025-09-03T10:30:39.0233523Z 18414ed0f666: Pull complete
+2025-09-03T10:30:39.0371722Z 4f4fb700ef54: Pull complete
+2025-09-03T10:30:40.4159028Z 569708497dee: Pull complete
+2025-09-03T10:30:40.5284047Z a80240abfd6d: Pull complete
+2025-09-03T10:30:40.5391493Z 02ee09d3c771: Pull complete
+2025-09-03T10:30:40.5432094Z Digest: sha256:5af1dca4d010f449eddfc3f6f39c9147bdb7e64fd7b953317ea793a78c95b90c
+2025-09-03T10:30:40.5455831Z Status: Downloaded newer image for securego/gosec:2.22.8
+2025-09-03T10:30:40.5467922Z docker.io/securego/gosec:2.22.8
+2025-09-03T10:30:40.5489293Z ##[endgroup]
+2025-09-03T10:30:40.5727260Z ##[group]Run actions/checkout@v4.2.1
+2025-09-03T10:30:40.5727823Z with:
+2025-09-03T10:30:40.5728071Z   repository: thc1006/nephoran-intent-operator
+2025-09-03T10:30:40.5728481Z   token: ***
+2025-09-03T10:30:40.5728668Z   ssh-strict: true
+2025-09-03T10:30:40.5728869Z   ssh-user: git
+2025-09-03T10:30:40.5729075Z   persist-credentials: true
+2025-09-03T10:30:40.5729284Z   clean: true
+2025-09-03T10:30:40.5729483Z   sparse-checkout-cone-mode: true
+2025-09-03T10:30:40.5729709Z   fetch-depth: 1
+2025-09-03T10:30:40.5729890Z   fetch-tags: false
+2025-09-03T10:30:40.5730093Z   show-progress: true
+2025-09-03T10:30:40.5730303Z   lfs: false
+2025-09-03T10:30:40.5730463Z   submodules: false
+2025-09-03T10:30:40.5730650Z   set-safe-directory: true
+2025-09-03T10:30:40.5731035Z env:
+2025-09-03T10:30:40.5731211Z   GO_VERSION: 1.25.0
+2025-09-03T10:30:40.5731442Z   GOPROXY: https://proxy.golang.org,direct
+2025-09-03T10:30:40.5731716Z   GOSUMDB: sum.golang.org
+2025-09-03T10:30:40.5731964Z   GOPRIVATE: github.com/thc1006/*
+2025-09-03T10:30:40.5732183Z   CGO_ENABLED: 0
+2025-09-03T10:30:40.5732358Z   GOMAXPROCS: 4
+2025-09-03T10:30:40.5732531Z   GOMEMLIMIT: 3GiB
+2025-09-03T10:30:40.5732701Z   SKIP_TESTS: false
+2025-09-03T10:30:40.5732878Z ##[endgroup]
+2025-09-03T10:30:40.6809952Z Syncing repository: thc1006/nephoran-intent-operator
+2025-09-03T10:30:40.6811260Z ##[group]Getting Git version info
+2025-09-03T10:30:40.6811753Z Working directory is '/home/runner/work/nephoran-intent-operator/nephoran-intent-operator'
+2025-09-03T10:30:40.6812403Z [command]/usr/bin/git version
+2025-09-03T10:30:40.6851188Z git version 2.51.0
+2025-09-03T10:30:40.6877286Z ##[endgroup]
+2025-09-03T10:30:40.6891195Z Temporarily overriding HOME='/home/runner/work/_temp/e63e7422-4db6-4e89-a30b-545057b1974b' before making global git config changes
+2025-09-03T10:30:40.6892114Z Adding repository directory to the temporary git global config as a safe directory
+2025-09-03T10:30:40.6896529Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-09-03T10:30:40.6929162Z Deleting the contents of '/home/runner/work/nephoran-intent-operator/nephoran-intent-operator'
+2025-09-03T10:30:40.6932189Z ##[group]Initializing the repository
+2025-09-03T10:30:40.6936446Z [command]/usr/bin/git init /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-09-03T10:30:40.6991981Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-09-03T10:30:40.6992867Z hint: is subject to change. To configure the initial branch name to use in all
+2025-09-03T10:30:40.6993774Z hint: of your new repositories, which will suppress this warning, call:
+2025-09-03T10:30:40.6994116Z hint:
+2025-09-03T10:30:40.6994415Z hint: 	git config --global init.defaultBranch <name>
+2025-09-03T10:30:40.6994711Z hint:
+2025-09-03T10:30:40.6995237Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-09-03T10:30:40.6995964Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-09-03T10:30:40.6996318Z hint:
+2025-09-03T10:30:40.6996503Z hint: 	git branch -m <name>
+2025-09-03T10:30:40.6996720Z hint:
+2025-09-03T10:30:40.6997011Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-09-03T10:30:40.6997844Z Initialized empty Git repository in /home/runner/work/nephoran-intent-operator/nephoran-intent-operator/.git/
+2025-09-03T10:30:40.7006157Z [command]/usr/bin/git remote add origin https://github.com/thc1006/nephoran-intent-operator
+2025-09-03T10:30:40.7035971Z ##[endgroup]
+2025-09-03T10:30:40.7036374Z ##[group]Disabling automatic garbage collection
+2025-09-03T10:30:40.7040131Z [command]/usr/bin/git config --local gc.auto 0
+2025-09-03T10:30:40.7067545Z ##[endgroup]
+2025-09-03T10:30:40.7068242Z ##[group]Setting up auth
+2025-09-03T10:30:40.7075146Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-09-03T10:30:40.7104622Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-09-03T10:30:40.7359208Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-09-03T10:30:40.7387531Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-09-03T10:30:40.7605154Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-09-03T10:30:40.7638356Z ##[endgroup]
+2025-09-03T10:30:40.7638793Z ##[group]Fetching the repository
+2025-09-03T10:30:40.7646983Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +05221d63980512a9f511b53aba34769d4ff004b2:refs/remotes/pull/169/merge
+2025-09-03T10:30:41.7798607Z From https://github.com/thc1006/nephoran-intent-operator
+2025-09-03T10:30:41.7799673Z  * [new ref]         05221d63980512a9f511b53aba34769d4ff004b2 -> pull/169/merge
+2025-09-03T10:30:41.7829095Z ##[endgroup]
+2025-09-03T10:30:41.7829496Z ##[group]Determining the checkout info
+2025-09-03T10:30:41.7831614Z ##[endgroup]
+2025-09-03T10:30:41.7836959Z [command]/usr/bin/git sparse-checkout disable
+2025-09-03T10:30:41.7874247Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-09-03T10:30:41.7903320Z ##[group]Checking out the ref
+2025-09-03T10:30:41.7907882Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/169/merge
+2025-09-03T10:30:42.2110024Z Note: switching to 'refs/remotes/pull/169/merge'.
+2025-09-03T10:30:42.2110597Z 
+2025-09-03T10:30:42.2110947Z You are in 'detached HEAD' state. You can look around, make experimental
+2025-09-03T10:30:42.2179528Z changes and commit them, and you can discard any commits you make in this
+2025-09-03T10:30:42.2180392Z state without impacting any branches by switching back to a branch.
+2025-09-03T10:30:42.2180832Z 
+2025-09-03T10:30:42.2181068Z If you want to create a new branch to retain commits you create, you may
+2025-09-03T10:30:42.2181487Z do so (now or later) by using -c with the switch command. Example:
+2025-09-03T10:30:42.2181715Z 
+2025-09-03T10:30:42.2181823Z   git switch -c <new-branch-name>
+2025-09-03T10:30:42.2181983Z 
+2025-09-03T10:30:42.2182074Z Or undo this operation with:
+2025-09-03T10:30:42.2182231Z 
+2025-09-03T10:30:42.2182306Z   git switch -
+2025-09-03T10:30:42.2182430Z 
+2025-09-03T10:30:42.2182626Z Turn off this advice by setting config variable advice.detachedHead to false
+2025-09-03T10:30:42.2182900Z 
+2025-09-03T10:30:42.2183212Z HEAD is now at 05221d6 Merge 06b71bda65b996ca6d46544b6d75f736e1b68348 into 2df4daabf9ad1380fba095e241e91bd12ea5c39a
+2025-09-03T10:30:42.2184544Z ##[endgroup]
+2025-09-03T10:30:42.2185384Z [command]/usr/bin/git log -1 --format=%H
+2025-09-03T10:30:42.2200736Z 05221d63980512a9f511b53aba34769d4ff004b2
+2025-09-03T10:30:42.2413697Z ##[group]Run actions/setup-go@v5.0.2
+2025-09-03T10:30:42.2413988Z with:
+2025-09-03T10:30:42.2414152Z   go-version: 1.25.0
+2025-09-03T10:30:42.2414345Z   check-latest: true
+2025-09-03T10:30:42.2414515Z   cache: true
+2025-09-03T10:30:42.2414802Z   token: ***
+2025-09-03T10:30:42.2414966Z env:
+2025-09-03T10:30:42.2415298Z   GO_VERSION: 1.25.0
+2025-09-03T10:30:42.2415522Z   GOPROXY: https://proxy.golang.org,direct
+2025-09-03T10:30:42.2415782Z   GOSUMDB: sum.golang.org
+2025-09-03T10:30:42.2415996Z   GOPRIVATE: github.com/thc1006/*
+2025-09-03T10:30:42.2416212Z   CGO_ENABLED: 0
+2025-09-03T10:30:42.2416383Z   GOMAXPROCS: 4
+2025-09-03T10:30:42.2416547Z   GOMEMLIMIT: 3GiB
+2025-09-03T10:30:42.2416721Z   SKIP_TESTS: false
+2025-09-03T10:30:42.2416892Z ##[endgroup]
+2025-09-03T10:30:42.3897676Z Setup go version spec 1.25.0
+2025-09-03T10:30:42.3901265Z Attempting to resolve the latest version from the manifest...
+2025-09-03T10:30:43.0018804Z matching 1.25.0...
+2025-09-03T10:30:43.0044789Z Resolved as '1.25.0'
+2025-09-03T10:30:43.0161342Z Attempting to download 1.25.0...
+2025-09-03T10:30:43.5698064Z matching 1.25.0...
+2025-09-03T10:30:43.5707271Z Acquiring 1.25.0 from https://github.com/actions/go-versions/releases/download/1.25.0-16925932082/go-1.25.0-linux-x64.tar.gz
+2025-09-03T10:30:44.1172914Z Extracting Go...
+2025-09-03T10:30:44.1298037Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/c10d0273-0933-4903-9e4e-acdc6b1224b6 -f /home/runner/work/_temp/c990d80f-f611-4f22-876a-c2a749c96801
+2025-09-03T10:30:45.5667436Z Successfully extracted go to /home/runner/work/_temp/c10d0273-0933-4903-9e4e-acdc6b1224b6
+2025-09-03T10:30:45.5667930Z Adding to the cache ...
+2025-09-03T10:30:50.2308652Z Successfully cached go to /opt/hostedtoolcache/go/1.25.0/x64
+2025-09-03T10:30:50.2310827Z Added go to the path
+2025-09-03T10:30:50.2313848Z Successfully set up Go version 1.25.0
+2025-09-03T10:30:50.2572133Z [command]/opt/hostedtoolcache/go/1.25.0/x64/bin/go env GOMODCACHE
+2025-09-03T10:30:50.2602230Z [command]/opt/hostedtoolcache/go/1.25.0/x64/bin/go env GOCACHE
+2025-09-03T10:30:50.2636018Z /home/runner/go/pkg/mod
+2025-09-03T10:30:50.2652072Z /home/runner/.cache/go-build
+2025-09-03T10:30:50.3329920Z ##[warning]Failed to restore: Cache service responded with 400
+2025-09-03T10:30:50.3337207Z Cache is not found
+2025-09-03T10:30:50.3352025Z go version go1.25.0 linux/amd64
+2025-09-03T10:30:50.3352217Z 
+2025-09-03T10:30:50.3352463Z ##[group]go env
+2025-09-03T10:30:50.8120559Z AR='ar'
+2025-09-03T10:30:50.8120909Z CC='gcc'
+2025-09-03T10:30:50.8121413Z CGO_CFLAGS='-O2 -g'
+2025-09-03T10:30:50.8121779Z CGO_CPPFLAGS=''
+2025-09-03T10:30:50.8122140Z CGO_CXXFLAGS='-O2 -g'
+2025-09-03T10:30:50.8122487Z CGO_ENABLED='0'
+2025-09-03T10:30:50.8122817Z CGO_FFLAGS='-O2 -g'
+2025-09-03T10:30:50.8123134Z CGO_LDFLAGS='-O2 -g'
+2025-09-03T10:30:50.8123664Z CXX='g++'
+2025-09-03T10:30:50.8123956Z GCCGO='gccgo'
+2025-09-03T10:30:50.8124258Z GO111MODULE=''
+2025-09-03T10:30:50.8124548Z GOAMD64='v1'
+2025-09-03T10:30:50.8124869Z GOARCH='amd64'
+2025-09-03T10:30:50.8125186Z GOAUTH='netrc'
+2025-09-03T10:30:50.8125508Z GOBIN=''
+2025-09-03T10:30:50.8125826Z GOCACHE='/home/runner/.cache/go-build'
+2025-09-03T10:30:50.8126249Z GOCACHEPROG=''
+2025-09-03T10:30:50.8126590Z GODEBUG=''
+2025-09-03T10:30:50.8126940Z GOENV='/home/runner/.config/go/env'
+2025-09-03T10:30:50.8127354Z GOEXE=''
+2025-09-03T10:30:50.8127665Z GOEXPERIMENT=''
+2025-09-03T10:30:50.8127984Z GOFIPS140='off'
+2025-09-03T10:30:50.8128311Z GOFLAGS=''
+2025-09-03T10:30:50.8129336Z GOGCCFLAGS='-fPIC -m64 -Wl,--no-gc-sections -fmessage-length=0 -ffile-prefix-map=/tmp/go-build2025430755=/tmp/go-build -gno-record-gcc-switches'
+2025-09-03T10:30:50.8130355Z GOHOSTARCH='amd64'
+2025-09-03T10:30:50.8130806Z GOHOSTOS='linux'
+2025-09-03T10:30:50.8131134Z GOINSECURE=''
+2025-09-03T10:30:50.8131789Z GOMOD='/home/runner/work/nephoran-intent-operator/nephoran-intent-operator/go.mod'
+2025-09-03T10:30:50.8132480Z GOMODCACHE='/home/runner/go/pkg/mod'
+2025-09-03T10:30:50.8133186Z GONOPROXY='github.com/thc1006/*'
+2025-09-03T10:30:50.8133769Z GONOSUMDB='github.com/thc1006/*'
+2025-09-03T10:30:50.8134136Z GOOS='linux'
+2025-09-03T10:30:50.8134431Z GOPATH='/home/runner/go'
+2025-09-03T10:30:50.8134777Z GOPRIVATE='github.com/thc1006/*'
+2025-09-03T10:30:50.8135182Z GOPROXY='https://proxy.golang.org,direct'
+2025-09-03T10:30:50.8135870Z GOROOT='/opt/hostedtoolcache/go/1.25.0/x64'
+2025-09-03T10:30:50.8136334Z GOSUMDB='sum.golang.org'
+2025-09-03T10:30:50.8136667Z GOTELEMETRY='local'
+2025-09-03T10:30:50.8137076Z GOTELEMETRYDIR='/home/runner/.config/go/telemetry'
+2025-09-03T10:30:50.8137550Z GOTMPDIR=''
+2025-09-03T10:30:50.8137832Z GOTOOLCHAIN='auto'
+2025-09-03T10:30:50.8138325Z GOTOOLDIR='/opt/hostedtoolcache/go/1.25.0/x64/pkg/tool/linux_amd64'
+2025-09-03T10:30:50.8138867Z GOVCS=''
+2025-09-03T10:30:50.8139232Z GOVERSION='go1.25.0'
+2025-09-03T10:30:50.8139542Z GOWORK=''
+2025-09-03T10:30:50.8139829Z PKG_CONFIG='pkg-config'
+2025-09-03T10:30:50.8140035Z 
+2025-09-03T10:30:50.8140461Z ##[endgroup]
+2025-09-03T10:30:50.8294346Z ##[group]Run securego/gosec@master
+2025-09-03T10:30:50.8294615Z with:
+2025-09-03T10:30:50.8294836Z   args: -no-fail -fmt sarif -out gosec.sarif ./...
+2025-09-03T10:30:50.8295104Z env:
+2025-09-03T10:30:50.8295255Z   GO_VERSION: 1.25.0
+2025-09-03T10:30:50.8295485Z   GOPROXY: https://proxy.golang.org,direct
+2025-09-03T10:30:50.8295775Z   GOSUMDB: sum.golang.org
+2025-09-03T10:30:50.8295984Z   GOPRIVATE: github.com/thc1006/*
+2025-09-03T10:30:50.8296202Z   CGO_ENABLED: 0
+2025-09-03T10:30:50.8296368Z   GOMAXPROCS: 4
+2025-09-03T10:30:50.8296544Z   GOMEMLIMIT: 3GiB
+2025-09-03T10:30:50.8296713Z   SKIP_TESTS: false
+2025-09-03T10:30:50.8296885Z ##[endgroup]
+2025-09-03T10:30:50.8395907Z ##[command]/usr/bin/docker run --name securegogosec2228_79ca53 --label 8017f3 --workdir /github/workspace --rm -e "GO_VERSION" -e "GOPROXY" -e "GOSUMDB" -e "GOPRIVATE" -e "CGO_ENABLED" -e "GOMAXPROCS" -e "GOMEMLIMIT" -e "SKIP_TESTS" -e "INPUT_ARGS" -e "HOME" -e "GITHUB_JOB" -e "GITHUB_REF" -e "GITHUB_SHA" -e "GITHUB_REPOSITORY" -e "GITHUB_REPOSITORY_OWNER" -e "GITHUB_REPOSITORY_OWNER_ID" -e "GITHUB_RUN_ID" -e "GITHUB_RUN_NUMBER" -e "GITHUB_RETENTION_DAYS" -e "GITHUB_RUN_ATTEMPT" -e "GITHUB_ACTOR_ID" -e "GITHUB_ACTOR" -e "GITHUB_WORKFLOW" -e "GITHUB_HEAD_REF" -e "GITHUB_BASE_REF" -e "GITHUB_EVENT_NAME" -e "GITHUB_SERVER_URL" -e "GITHUB_API_URL" -e "GITHUB_GRAPHQL_URL" -e "GITHUB_REF_NAME" -e "GITHUB_REF_PROTECTED" -e "GITHUB_REF_TYPE" -e "GITHUB_WORKFLOW_REF" -e "GITHUB_WORKFLOW_SHA" -e "GITHUB_REPOSITORY_ID" -e "GITHUB_TRIGGERING_ACTOR" -e "GITHUB_WORKSPACE" -e "GITHUB_ACTION" -e "GITHUB_EVENT_PATH" -e "GITHUB_ACTION_REPOSITORY" -e "GITHUB_ACTION_REF" -e "GITHUB_PATH" -e "GITHUB_ENV" -e "GITHUB_STEP_SUMMARY" -e "GITHUB_STATE" -e "GITHUB_OUTPUT" -e "RUNNER_OS" -e "RUNNER_ARCH" -e "RUNNER_NAME" -e "RUNNER_ENVIRONMENT" -e "RUNNER_TOOL_CACHE" -e "RUNNER_TEMP" -e "RUNNER_WORKSPACE" -e "ACTIONS_RUNTIME_URL" -e "ACTIONS_RUNTIME_TOKEN" -e "ACTIONS_CACHE_URL" -e "ACTIONS_RESULTS_URL" -e GITHUB_ACTIONS=true -e CI=true -v "/var/run/docker.sock":"/var/run/docker.sock" -v "/home/runner/work/_temp/_github_home":"/github/home" -v "/home/runner/work/_temp/_github_workflow":"/github/workflow" -v "/home/runner/work/_temp/_runner_file_commands":"/github/file_commands" -v "/home/runner/work/nephoran-intent-operator/nephoran-intent-operator":"/github/workspace" securego/gosec:2.22.8  "-no-fail -fmt sarif -out gosec.sarif ./..."
+2025-09-03T10:30:51.8592759Z [gosec] 2025/09/03 10:30:51 Including rules: default
+2025-09-03T10:30:51.8593327Z [gosec] 2025/09/03 10:30:51 Excluding rules: default
+2025-09-03T10:30:51.8594189Z [gosec] 2025/09/03 10:30:51 Including analyzers: default
+2025-09-03T10:30:51.8594737Z [gosec] 2025/09/03 10:30:51 Excluding analyzers: default
+2025-09-03T10:30:51.8997362Z [gosec] 2025/09/03 10:30:51 Import directory: /github/workspace/internal/a1sim
+2025-09-03T10:30:51.8999259Z [gosec] 2025/09/03 10:30:51 Import directory: /github/workspace/internal/ves
+2025-09-03T10:30:51.9000701Z [gosec] 2025/09/03 10:30:51 Import directory: /github/workspace/pkg/nephio/testutil
+2025-09-03T10:30:51.9002489Z [gosec] 2025/09/03 10:30:51 Import directory: /github/workspace/cmd/porch-publisher
+2025-09-03T10:30:56.7927567Z [gosec] 2025/09/03 10:30:56 Import directory: /github/workspace/pkg/injection
+2025-09-03T10:30:56.7928920Z [gosec] 2025/09/03 10:30:56 Checking package: ves
+2025-09-03T10:30:56.7930464Z [gosec] 2025/09/03 10:30:56 Checking file: /github/workspace/internal/ves/event.go
+2025-09-03T10:31:10.6890411Z [gosec] 2025/09/03 10:31:10 Import directory: /github/workspace/pkg/oran/metrics
+2025-09-03T10:31:10.6891158Z [gosec] 2025/09/03 10:31:10 Checking package: main
+2025-09-03T10:31:10.6891875Z [gosec] 2025/09/03 10:31:10 Checking file: /github/workspace/cmd/porch-publisher/main.go
+2025-09-03T10:31:57.2020953Z [gosec] 2025/09/03 10:31:57 Import directory: /github/workspace/pkg/shared
+2025-09-03T10:31:57.2021710Z [gosec] 2025/09/03 10:31:57 Checking package: testutil
+2025-09-03T10:31:57.2023791Z [gosec] 2025/09/03 10:31:57 Checking file: /github/workspace/pkg/nephio/testutil/porch_fixtures.go
+2025-09-03T10:31:57.3346469Z [gosec] 2025/09/03 10:31:57 Checking file: /github/workspace/pkg/nephio/testutil/porch_mocks.go
+2025-09-03T10:31:58.1010487Z [gosec] 2025/09/03 10:31:58 Checking package: a1sim
+2025-09-03T10:31:58.1011252Z [gosec] 2025/09/03 10:31:58 Checking file: /github/workspace/internal/a1sim/handler.go
+2025-09-03T10:31:58.1011862Z [gosec] 2025/09/03 10:31:58 Import directory: /github/workspace/pkg/testing/racetest
+2025-09-03T10:31:58.1435158Z [gosec] 2025/09/03 10:31:58 Checking package: metrics
+2025-09-03T10:31:58.1436007Z [gosec] 2025/09/03 10:31:58 Checking file: /github/workspace/pkg/oran/metrics/oran_metrics.go
+2025-09-03T10:31:58.1436863Z [gosec] 2025/09/03 10:31:58 Import directory: /github/workspace/demo
+2025-09-03T10:32:14.4077226Z [gosec] 2025/09/03 10:32:14 Import directory: /github/workspace/internal/conductor
+2025-09-03T10:32:14.4078677Z [gosec] 2025/09/03 10:32:14 Checking package: injection
+2025-09-03T10:32:14.4081784Z [gosec] 2025/09/03 10:32:14 Checking file: /github/workspace/pkg/injection/container.go
+2025-09-03T10:32:14.6800383Z [gosec] 2025/09/03 10:32:14 Checking file: /github/workspace/pkg/injection/interfaces.go
+2025-09-03T10:32:14.6802009Z [gosec] 2025/09/03 10:32:14 Checking file: /github/workspace/pkg/injection/providers.go
+2025-09-03T10:32:15.2538989Z [gosec] 2025/09/03 10:32:15 Import directory: /github/workspace/pkg/git/fake
+2025-09-03T10:32:15.2539759Z [gosec] 2025/09/03 10:32:15 Checking package: shared
+2025-09-03T10:32:15.2540534Z [gosec] 2025/09/03 10:32:15 Checking file: /github/workspace/pkg/shared/client_interfaces.go
+2025-09-03T10:32:15.2548398Z [gosec] 2025/09/03 10:32:15 Checking file: /github/workspace/pkg/shared/configuration_manager.go
+2025-09-03T10:32:15.7287299Z [gosec] 2025/09/03 10:32:15 Checking file: /github/workspace/pkg/shared/coordination_manager.go
+2025-09-03T10:32:16.2790957Z [gosec] 2025/09/03 10:32:16 Checking file: /github/workspace/pkg/shared/enhanced_event_bus.go
+2025-09-03T10:32:16.9104233Z [gosec] 2025/09/03 10:32:16 Checking file: /github/workspace/pkg/shared/event_bus_interface.go
+2025-09-03T10:32:16.9105333Z [gosec] 2025/09/03 10:32:16 Checking file: /github/workspace/pkg/shared/event_components.go
+2025-09-03T10:32:17.6871251Z [gosec] 2025/09/03 10:32:17 Checking file: /github/workspace/pkg/shared/execution_queue.go
+2025-09-03T10:32:18.3583647Z [gosec] 2025/09/03 10:32:18 Checking file: /github/workspace/pkg/shared/go124_patterns.go
+2025-09-03T10:32:18.5092084Z [gosec] 2025/09/03 10:32:18 Checking file: /github/workspace/pkg/shared/integration_manager.go
+2025-09-03T10:32:19.6828079Z [gosec] 2025/09/03 10:32:19 Checking file: /github/workspace/pkg/shared/lock_manager.go
+2025-09-03T10:32:20.1956839Z [gosec] 2025/09/03 10:32:20 Checking file: /github/workspace/pkg/shared/main_integration.go
+2025-09-03T10:32:20.2186664Z [gosec] 2025/09/03 10:32:20 Checking file: /github/workspace/pkg/shared/math_utils.go
+2025-09-03T10:32:20.3054430Z [gosec] 2025/09/03 10:32:20 Checking file: /github/workspace/pkg/shared/performance_optimizer.go
+2025-09-03T10:32:20.9337939Z [gosec] 2025/09/03 10:32:20 Checking file: /github/workspace/pkg/shared/phase_conversion.go
+2025-09-03T10:32:21.0673608Z [gosec] 2025/09/03 10:32:21 Checking file: /github/workspace/pkg/shared/rag_types.go
+2025-09-03T10:32:21.0702768Z [gosec] 2025/09/03 10:32:21 Checking file: /github/workspace/pkg/shared/recovery_manager.go
+2025-09-03T10:32:21.6719613Z [gosec] 2025/09/03 10:32:21 Checking file: /github/workspace/pkg/shared/state_cache.go
+2025-09-03T10:32:21.8826766Z [gosec] 2025/09/03 10:32:21 Checking file: /github/workspace/pkg/shared/state_manager.go
+2025-09-03T10:32:22.2312377Z [gosec] 2025/09/03 10:32:22 Checking file: /github/workspace/pkg/shared/state_metrics.go
+2025-09-03T10:32:22.3555316Z [gosec] 2025/09/03 10:32:22 Checking file: /github/workspace/pkg/shared/state_types.go
+2025-09-03T10:32:22.3608699Z [gosec] 2025/09/03 10:32:22 Checking file: /github/workspace/pkg/shared/types.go
+2025-09-03T10:32:22.3821599Z [gosec] 2025/09/03 10:32:22 Checking package: fake
+2025-09-03T10:32:22.3823025Z [gosec] 2025/09/03 10:32:22 Checking file: /github/workspace/pkg/git/fake/client.go
+2025-09-03T10:32:22.3824361Z [gosec] 2025/09/03 10:32:22 Import directory: /github/workspace/pkg/ml
+2025-09-03T10:32:22.5224346Z [gosec] 2025/09/03 10:32:22 Checking package: racetest
+2025-09-03T10:32:22.5225286Z [gosec] 2025/09/03 10:32:22 Checking file: /github/workspace/pkg/testing/racetest/framework.go
+2025-09-03T10:32:22.5226164Z [gosec] 2025/09/03 10:32:22 Import directory: /github/workspace/pkg/llm
+2025-09-03T10:32:22.7037905Z [gosec] 2025/09/03 10:32:22 Checking package: main
+2025-09-03T10:32:22.7038567Z [gosec] 2025/09/03 10:32:22 Checking file: /github/workspace/demo/performance_demo.go
+2025-09-03T10:32:22.7039061Z [gosec] 2025/09/03 10:32:22 Import directory: /github/workspace/pkg/webhooks
+2025-09-03T10:32:22.7182195Z [gosec] 2025/09/03 10:32:22 Checking package: conductor
+2025-09-03T10:32:22.7184318Z [gosec] 2025/09/03 10:32:22 Checking file: /github/workspace/internal/conductor/reconciler.go
+2025-09-03T10:32:22.7185210Z [gosec] 2025/09/03 10:32:22 Import directory: /github/workspace/cmd/o1-ves-sim
+2025-09-03T10:32:22.8677897Z [gosec] 2025/09/03 10:32:22 Checking file: /github/workspace/internal/conductor/watch_reconciler.go
+2025-09-03T10:32:23.1484653Z [gosec] 2025/09/03 10:32:23 Import directory: /github/workspace/demo/simple
+2025-09-03T10:32:23.1496162Z [gosec] 2025/09/03 10:32:23 Checking package: ml
+2025-09-03T10:32:23.1497916Z [gosec] 2025/09/03 10:32:23 Checking file: /github/workspace/pkg/ml/optimization_engine.go
+2025-09-03T10:32:24.6277263Z [gosec] 2025/09/03 10:32:24 Import directory: /github/workspace/pkg/monitoring/availability
+2025-09-03T10:32:24.6280426Z [gosec] 2025/09/03 10:32:24 Checking package: llm
+2025-09-03T10:32:25.0438730Z [gosec] 2025/09/03 10:32:24 Checking file: /github/workspace/pkg/llm/advanced_circuit_breaker.go
+2025-09-03T10:32:25.0439780Z [gosec] 2025/09/03 10:32:25 Checking file: /github/workspace/pkg/llm/batch_processor.go
+2025-09-03T10:32:25.3164687Z [gosec] 2025/09/03 10:32:25 Checking file: /github/workspace/pkg/llm/cache.go
+2025-09-03T10:32:25.7706160Z [gosec] 2025/09/03 10:32:25 Checking file: /github/workspace/pkg/llm/circuit_breaker.go
+2025-09-03T10:32:26.1742381Z [gosec] 2025/09/03 10:32:26 Checking file: /github/workspace/pkg/llm/client.go
+2025-09-03T10:32:26.1857184Z [gosec] 2025/09/03 10:32:26 Checking file: /github/workspace/pkg/llm/client_consolidated.go
+2025-09-03T10:32:26.6347752Z [gosec] 2025/09/03 10:32:26 Checking file: /github/workspace/pkg/llm/client_test_consolidated.go
+2025-09-03T10:32:26.6869439Z [gosec] 2025/09/03 10:32:26 Checking file: /github/workspace/pkg/llm/common_types.go
+2025-09-03T10:32:26.7007564Z [gosec] 2025/09/03 10:32:26 Checking file: /github/workspace/pkg/llm/dynamic_context_manager.go
+2025-09-03T10:32:27.0994910Z [gosec] 2025/09/03 10:32:27 Checking file: /github/workspace/pkg/llm/enhanced_model_cache.go
+2025-09-03T10:32:27.5167532Z [gosec] 2025/09/03 10:32:27 Checking file: /github/workspace/pkg/llm/enhanced_performance_client.go
+2025-09-03T10:32:27.7126532Z [gosec] 2025/09/03 10:32:27 Checking file: /github/workspace/pkg/llm/gpu_accelerator.go
+2025-09-03T10:32:28.0231498Z [gosec] 2025/09/03 10:32:28 Checking file: /github/workspace/pkg/llm/gpu_memory_manager.go
+2025-09-03T10:32:28.3930470Z [gosec] 2025/09/03 10:32:28 Checking file: /github/workspace/pkg/llm/gpu_memory_metrics.go
+2025-09-03T10:32:28.4423322Z [gosec] 2025/09/03 10:32:28 Checking file: /github/workspace/pkg/llm/gpu_metrics.go
+2025-09-03T10:32:28.4641415Z [gosec] 2025/09/03 10:32:28 Checking file: /github/workspace/pkg/llm/handler_compatibility.go
+2025-09-03T10:32:28.4740051Z [gosec] 2025/09/03 10:32:28 Checking file: /github/workspace/pkg/llm/integration_test_consolidated.go
+2025-09-03T10:32:28.6076651Z [gosec] 2025/09/03 10:32:28 Checking file: /github/workspace/pkg/llm/intelligent_cache.go
+2025-09-03T10:32:28.9149306Z [gosec] 2025/09/03 10:32:28 Checking file: /github/workspace/pkg/llm/interface.go
+2025-09-03T10:32:28.9199597Z [gosec] 2025/09/03 10:32:28 Checking file: /github/workspace/pkg/llm/interface_consolidated.go
+2025-09-03T10:32:28.9203115Z [gosec] 2025/09/03 10:32:28 Checking file: /github/workspace/pkg/llm/llm.go
+2025-09-03T10:32:29.6460513Z [gosec] 2025/09/03 10:32:29 Checking file: /github/workspace/pkg/llm/metrics.go
+2025-09-03T10:32:29.7867784Z [gosec] 2025/09/03 10:32:29 Checking file: /github/workspace/pkg/llm/missing_types.go
+2025-09-03T10:32:29.8600782Z [gosec] 2025/09/03 10:32:29 Checking file: /github/workspace/pkg/llm/mock_llm_client.go
+2025-09-03T10:32:29.9082875Z [gosec] 2025/09/03 10:32:29 Checking file: /github/workspace/pkg/llm/multi_level_cache.go
+2025-09-03T10:32:30.1887230Z [gosec] 2025/09/03 10:32:30 Checking file: /github/workspace/pkg/llm/optimized_controller.go
+2025-09-03T10:32:30.4775120Z [gosec] 2025/09/03 10:32:30 Checking file: /github/workspace/pkg/llm/optimized_http_client.go
+2025-09-03T10:32:30.7046658Z [gosec] 2025/09/03 10:32:30 Checking file: /github/workspace/pkg/llm/performance_benchmarks.go
+2025-09-03T10:32:30.8993167Z [gosec] 2025/09/03 10:32:30 Checking file: /github/workspace/pkg/llm/performance_optimizer.go
+2025-09-03T10:32:31.0566346Z [gosec] 2025/09/03 10:32:31 Checking file: /github/workspace/pkg/llm/processing.go
+2025-09-03T10:32:31.3476598Z [gosec] 2025/09/03 10:32:31 Checking file: /github/workspace/pkg/llm/processing_pipeline.go
+2025-09-03T10:32:31.6767948Z [gosec] 2025/09/03 10:32:31 Checking file: /github/workspace/pkg/llm/processing_result.go
+2025-09-03T10:32:31.7296960Z [gosec] 2025/09/03 10:32:31 Checking file: /github/workspace/pkg/llm/prometheus_example.go
+2025-09-03T10:32:31.7316249Z [gosec] 2025/09/03 10:32:31 Checking file: /github/workspace/pkg/llm/prometheus_metrics.go
+2025-09-03T10:32:31.8778470Z [gosec] 2025/09/03 10:32:31 Checking file: /github/workspace/pkg/llm/prompt_engine.go
+2025-09-03T10:32:32.0454567Z [gosec] 2025/09/03 10:32:32 Checking file: /github/workspace/pkg/llm/rag_aware_prompt_builder.go
+2025-09-03T10:32:32.4726217Z [gosec] 2025/09/03 10:32:32 Checking file: /github/workspace/pkg/llm/rag_enhanced_processor.go
+2025-09-03T10:32:32.7114875Z [gosec] 2025/09/03 10:32:32 Checking file: /github/workspace/pkg/llm/relevance_scorer.go
+2025-09-03T10:32:33.0105388Z [gosec] 2025/09/03 10:32:33 Checking file: /github/workspace/pkg/llm/retry_engine.go
+2025-09-03T10:32:33.2533648Z [gosec] 2025/09/03 10:32:33 Checking file: /github/workspace/pkg/llm/security_validator.go
+2025-09-03T10:32:33.6358987Z [gosec] 2025/09/03 10:32:33 Checking file: /github/workspace/pkg/llm/simple_relevance_scorer.go
+2025-09-03T10:32:33.8214878Z [gosec] 2025/09/03 10:32:33 Checking file: /github/workspace/pkg/llm/streaming_processor.go
+2025-09-03T10:32:34.1887823Z [gosec] 2025/09/03 10:32:34 Checking file: /github/workspace/pkg/llm/streaming_processor_handle_request.go
+2025-09-03T10:32:34.1983559Z [gosec] 2025/09/03 10:32:34 Checking file: /github/workspace/pkg/llm/telecom_prompt_templates.go
+2025-09-03T10:32:34.2967179Z [gosec] 2025/09/03 10:32:34 Checking file: /github/workspace/pkg/llm/token_manager.go
+2025-09-03T10:32:34.7040804Z [gosec] 2025/09/03 10:32:34 Checking file: /github/workspace/pkg/llm/token_manager_default.go
+2025-09-03T10:32:34.8285977Z [gosec] 2025/09/03 10:32:34 Checking file: /github/workspace/pkg/llm/types.go
+2025-09-03T10:32:34.8617364Z [gosec] 2025/09/03 10:32:34 Checking file: /github/workspace/pkg/llm/types_consolidated.go
+2025-09-03T10:32:34.9458470Z [gosec] 2025/09/03 10:32:34 Checking file: /github/workspace/pkg/llm/utils.go
+2025-09-03T10:32:35.0585721Z [gosec] 2025/09/03 10:32:35 Checking file: /github/workspace/pkg/llm/vector_search_accelerator.go
+2025-09-03T10:32:35.3902807Z [gosec] 2025/09/03 10:32:35 Checking file: /github/workspace/pkg/llm/vector_search_metrics.go
+2025-09-03T10:32:35.4686300Z [gosec] 2025/09/03 10:32:35 Checking file: /github/workspace/pkg/llm/worker_pool.go
+2025-09-03T10:32:35.9208854Z [gosec] 2025/09/03 10:32:35 Checking package: main
+2025-09-03T10:32:35.9210160Z [gosec] 2025/09/03 10:32:35 Checking file: /github/workspace/cmd/o1-ves-sim/main.go
+2025-09-03T10:32:35.9211853Z [gosec] 2025/09/03 10:32:35 Import directory: /github/workspace/pkg/oran/o2/ims
+2025-09-03T10:32:35.9306440Z [gosec] 2025/09/03 10:32:35 Checking package: webhooks
+2025-09-03T10:32:35.9308379Z [gosec] 2025/09/03 10:32:35 Checking file: /github/workspace/pkg/webhooks/networkintent_webhook.go
+2025-09-03T10:32:35.9312860Z [gosec] 2025/09/03 10:32:35 Import directory: /github/workspace/api/v1/common
+2025-09-03T10:32:36.4260728Z [gosec] 2025/09/03 10:32:36 Checking package: main
+2025-09-03T10:32:36.4261639Z [gosec] 2025/09/03 10:32:36 Checking file: /github/workspace/demo/simple/performance_demo_simple.go
+2025-09-03T10:32:36.4262496Z [gosec] 2025/09/03 10:32:36 Import directory: /github/workspace/tests/o2/mocks
+2025-09-03T10:32:36.4285935Z [gosec] 2025/09/03 10:32:36 Checking package: availability
+2025-09-03T10:32:36.4287802Z [gosec] 2025/09/03 10:32:36 Checking file: /github/workspace/pkg/monitoring/availability/calculator.go
+2025-09-03T10:32:36.4477585Z [gosec] 2025/09/03 10:32:36 Import directory: /github/workspace/tests/benchmarks
+2025-09-03T10:32:37.0450562Z [gosec] 2025/09/03 10:32:37 Checking file: /github/workspace/pkg/monitoring/availability/dependency.go
+2025-09-03T10:32:37.7081275Z [gosec] 2025/09/03 10:32:37 Checking file: /github/workspace/pkg/monitoring/availability/dependency_tracker.go
+2025-09-03T10:32:37.8343086Z [gosec] 2025/09/03 10:32:37 Checking file: /github/workspace/pkg/monitoring/availability/executors.go
+2025-09-03T10:32:37.9894393Z [gosec] 2025/09/03 10:32:37 Checking file: /github/workspace/pkg/monitoring/availability/reporter.go
+2025-09-03T10:32:38.4457072Z [gosec] 2025/09/03 10:32:38 Checking file: /github/workspace/pkg/monitoring/availability/synthetic.go
+2025-09-03T10:32:38.7052283Z [gosec] 2025/09/03 10:32:38 Checking file: /github/workspace/pkg/monitoring/availability/tracker.go
+2025-09-03T10:32:39.2205648Z [gosec] 2025/09/03 10:32:39 Checking package: ims
+2025-09-03T10:32:39.2206656Z [gosec] 2025/09/03 10:32:39 Checking file: /github/workspace/pkg/oran/o2/ims/catalog.go
+2025-09-03T10:32:39.2247282Z [gosec] 2025/09/03 10:32:39 Import directory: /github/workspace/pkg/handlers
+2025-09-03T10:32:39.9305285Z [gosec] 2025/09/03 10:32:39 Checking file: /github/workspace/pkg/oran/o2/ims/ims_services.go
+2025-09-03T10:32:40.0668115Z [gosec] 2025/09/03 10:32:40 Checking package: common
+2025-09-03T10:32:40.0669029Z [gosec] 2025/09/03 10:32:40 Checking file: /github/workspace/api/v1/common/types.go
+2025-09-03T10:32:40.0669748Z [gosec] 2025/09/03 10:32:40 Import directory: /github/workspace/tests/cnf
+2025-09-03T10:32:40.0670343Z [gosec] 2025/09/03 10:32:40 Checking package: mocks
+2025-09-03T10:32:40.0671010Z [gosec] 2025/09/03 10:32:40 Checking file: /github/workspace/tests/o2/mocks/cloud_providers.go
+2025-09-03T10:32:40.0671787Z [gosec] 2025/09/03 10:32:40 Import directory: /github/workspace/tests/race
+2025-09-03T10:32:41.3457855Z [gosec] 2025/09/03 10:32:41 Import directory: /github/workspace/pkg/monitoring/reporting
+2025-09-03T10:32:48.3926543Z [gosec] 2025/09/03 10:32:48 Import directory: /github/workspace/cmd/porch-structured-patch
+2025-09-03T10:32:48.3927441Z [gosec] 2025/09/03 10:32:48 Checking package: handlers
+2025-09-03T10:32:48.3930042Z [gosec] 2025/09/03 10:32:48 Checking file: /github/workspace/pkg/handlers/auth_integration.go
+2025-09-03T10:32:48.4432553Z [gosec] 2025/09/03 10:32:48 Checking file: /github/workspace/pkg/handlers/llm_processor.go
+2025-09-03T10:32:48.6246566Z [gosec] 2025/09/03 10:32:48 Checking package: main
+2025-09-03T10:32:48.6247436Z [gosec] 2025/09/03 10:32:48 Checking file: /github/workspace/cmd/porch-structured-patch/main.go
+2025-09-03T10:32:48.6248365Z [gosec] 2025/09/03 10:32:48 Import directory: /github/workspace/cmd/llm-processor
+2025-09-03T10:32:48.6249174Z [gosec] 2025/09/03 10:32:48 Import directory: /github/workspace/pkg/optimization
+2025-09-03T10:32:48.8680987Z [gosec] 2025/09/03 10:32:48 Import directory: /github/workspace/tests/unit
+2025-09-03T10:32:49.1877645Z [gosec] 2025/09/03 10:32:49 Import directory: /github/workspace/tests/chaos
+2025-09-03T10:32:49.1884624Z [gosec] 2025/09/03 10:32:49 Checking package: reporting
+2025-09-03T10:32:49.1887090Z [gosec] 2025/09/03 10:32:49 Checking file: /github/workspace/pkg/monitoring/reporting/compliance_reporter.go
+2025-09-03T10:32:50.0020099Z [gosec] 2025/09/03 10:32:50 Checking file: /github/workspace/pkg/monitoring/reporting/dashboard_manager.go
+2025-09-03T10:32:50.4857808Z [gosec] 2025/09/03 10:32:50 Checking file: /github/workspace/pkg/monitoring/reporting/metrics_exporter.go
+2025-09-03T10:32:51.2980914Z [gosec] 2025/09/03 10:32:51 Checking file: /github/workspace/pkg/monitoring/reporting/performance_reporter.go
+2025-09-03T10:32:51.5518582Z [gosec] 2025/09/03 10:32:51 Checking file: /github/workspace/pkg/monitoring/reporting/sla_reporter.go
+2025-09-03T10:32:52.0980662Z [gosec] 2025/09/03 10:32:52 Checking file: /github/workspace/pkg/monitoring/reporting/types.go
+2025-09-03T10:32:52.0982754Z [gosec] 2025/09/03 10:32:52 Checking file: /github/workspace/pkg/monitoring/reporting/webhook_integration.go
+2025-09-03T10:32:52.5743724Z [gosec] 2025/09/03 10:32:52 Checking package: chaos
+2025-09-03T10:32:52.5744639Z [gosec] 2025/09/03 10:32:52 Checking file: /github/workspace/tests/chaos/sla_chaos_helpers.go
+2025-09-03T10:32:52.5745623Z [gosec] 2025/09/03 10:32:52 Import directory: /github/workspace/cmd/webhook-manager
+2025-09-03T10:32:52.7208100Z [gosec] 2025/09/03 10:32:52 Checking file: /github/workspace/tests/chaos/sla_chaos_methods.go
+2025-09-03T10:32:53.0022128Z [gosec] 2025/09/03 10:32:53 Checking file: /github/workspace/tests/chaos/sla_chaos_types.go
+2025-09-03T10:32:53.1138468Z [gosec] 2025/09/03 10:32:53 Checking package: main
+2025-09-03T10:32:53.1139242Z [gosec] 2025/09/03 10:32:53 Checking file: /github/workspace/cmd/llm-processor/main.go
+2025-09-03T10:32:53.1140073Z [gosec] 2025/09/03 10:32:53 Import directory: /github/workspace/hack/testing
+2025-09-03T10:32:53.3955651Z [gosec] 2025/09/03 10:32:53 Checking file: /github/workspace/cmd/llm-processor/service_manager.go
+2025-09-03T10:32:53.7706538Z [gosec] 2025/09/03 10:32:53 Checking package: optimization
+2025-09-03T10:32:53.7708733Z [gosec] 2025/09/03 10:32:53 Checking file: /github/workspace/pkg/optimization/ai_configuration_tuner.go
+2025-09-03T10:32:53.7710940Z [gosec] 2025/09/03 10:32:53 Import directory: /github/workspace/pkg/cnf/templates
+2025-09-03T10:32:53.7711834Z [gosec] 2025/09/03 10:32:53 Import directory: /github/workspace/pkg/nephio/orchestrator
+2025-09-03T10:32:54.2904456Z [gosec] 2025/09/03 10:32:54 Checking file: /github/workspace/pkg/optimization/automated_optimization_pipeline.go
+2025-09-03T10:32:54.6770483Z [gosec] 2025/09/03 10:32:54 Checking file: /github/workspace/pkg/optimization/component_optimizers.go
+2025-09-03T10:32:55.0531396Z [gosec] 2025/09/03 10:32:55 Checking file: /github/workspace/pkg/optimization/ml_models.go
+2025-09-03T10:32:55.2196820Z [gosec] 2025/09/03 10:32:55 Checking file: /github/workspace/pkg/optimization/ml_optimization_engine.go
+2025-09-03T10:32:55.3501816Z [gosec] 2025/09/03 10:32:55 Checking file: /github/workspace/pkg/optimization/optimization_dashboard.go
+2025-09-03T10:32:55.7003353Z [gosec] 2025/09/03 10:32:55 Checking file: /github/workspace/pkg/optimization/performance_analysis_engine.go
+2025-09-03T10:32:56.2984949Z [gosec] 2025/09/03 10:32:56 Checking file: /github/workspace/pkg/optimization/recommendation_helpers.go
+2025-09-03T10:32:56.3457506Z [gosec] 2025/09/03 10:32:56 Checking file: /github/workspace/pkg/optimization/telecom_optimizer.go
+2025-09-03T10:32:56.5569778Z [gosec] 2025/09/03 10:32:56 Checking file: /github/workspace/pkg/optimization/types.go
+2025-09-03T10:32:56.7238038Z [gosec] 2025/09/03 10:32:56 Checking package: main
+2025-09-03T10:32:56.7238853Z [gosec] 2025/09/03 10:32:56 Checking file: /github/workspace/cmd/webhook-manager/main.go
+2025-09-03T10:32:56.7239707Z [gosec] 2025/09/03 10:32:56 Import directory: /github/workspace/pkg/oran/o1
+2025-09-03T10:32:56.7649849Z [gosec] 2025/09/03 10:32:56 Checking package: templates
+2025-09-03T10:32:56.7681513Z [gosec] 2025/09/03 10:32:56 Checking file: /github/workspace/pkg/cnf/templates/helm_templates.go
+2025-09-03T10:32:56.7682763Z [gosec] 2025/09/03 10:32:56 Import directory: /github/workspace/pkg/resilience
+2025-09-03T10:32:56.7683922Z [gosec] 2025/09/03 10:32:56 Import directory: /github/workspace/pkg/testutil/porch
+2025-09-03T10:32:56.9904700Z [gosec] 2025/09/03 10:32:56 Checking package: orchestrator
+2025-09-03T10:32:56.9906223Z [gosec] 2025/09/03 10:32:56 Checking file: /github/workspace/pkg/nephio/orchestrator/service_lifecycle_manager.go
+2025-09-03T10:32:56.9907577Z [gosec] 2025/09/03 10:32:56 Import directory: /github/workspace/security
+2025-09-03T10:32:58.1630092Z [gosec] 2025/09/03 10:32:58 Import directory: /github/workspace/tests/performance
+2025-09-03T10:32:58.1634831Z [gosec] 2025/09/03 10:32:58 Checking package: o1
+2025-09-03T10:32:58.1635967Z [gosec] 2025/09/03 10:32:58 Checking file: /github/workspace/pkg/oran/o1/accounting_manager.go
+2025-09-03T10:32:58.8167022Z [gosec] 2025/09/03 10:32:58 Checking file: /github/workspace/pkg/oran/o1/adapter.go
+2025-09-03T10:32:59.0969958Z [gosec] 2025/09/03 10:32:58 Checking file: /github/workspace/pkg/oran/o1/client.go
+2025-09-03T10:32:59.0970892Z [gosec] 2025/09/03 10:32:59 Checking file: /github/workspace/pkg/oran/o1/common_types.go
+2025-09-03T10:32:59.2858862Z [gosec] 2025/09/03 10:32:59 Checking file: /github/workspace/pkg/oran/o1/config.go
+2025-09-03T10:32:59.3757710Z [gosec] 2025/09/03 10:32:59 Checking file: /github/workspace/pkg/oran/o1/config_manager.go
+2025-09-03T10:33:00.0254105Z [gosec] 2025/09/03 10:33:00 Checking file: /github/workspace/pkg/oran/o1/fault_manager.go
+2025-09-03T10:33:00.1536253Z [gosec] 2025/09/03 10:33:00 Checking file: /github/workspace/pkg/oran/o1/fault_types.go
+2025-09-03T10:33:00.2012806Z [gosec] 2025/09/03 10:33:00 Checking file: /github/workspace/pkg/oran/o1/netconf_client.go
+2025-09-03T10:33:00.5031006Z [gosec] 2025/09/03 10:33:00 Checking file: /github/workspace/pkg/oran/o1/netconf_server.go
+2025-09-03T10:33:00.9121571Z [gosec] 2025/09/03 10:33:00 Checking file: /github/workspace/pkg/oran/o1/o1_adaptor.go
+2025-09-03T10:33:01.3859143Z [gosec] 2025/09/03 10:33:01 Checking file: /github/workspace/pkg/oran/o1/o1_controller.go
+2025-09-03T10:33:01.8658066Z [gosec] 2025/09/03 10:33:01 Checking file: /github/workspace/pkg/oran/o1/o1_helpers.go
+2025-09-03T10:33:02.0290025Z [gosec] 2025/09/03 10:33:02 Checking file: /github/workspace/pkg/oran/o1/o1_streaming.go
+2025-09-03T10:33:02.3359005Z [gosec] 2025/09/03 10:33:02 Checking file: /github/workspace/pkg/oran/o1/performance_manager.go
+2025-09-03T10:33:02.8810319Z [gosec] 2025/09/03 10:33:02 Checking file: /github/workspace/pkg/oran/o1/prometheus_stubs.go
+2025-09-03T10:33:02.8811313Z [gosec] 2025/09/03 10:33:02 Checking file: /github/workspace/pkg/oran/o1/security_manager.go
+2025-09-03T10:33:03.3038756Z [gosec] 2025/09/03 10:33:03 Checking file: /github/workspace/pkg/oran/o1/shared_types.go
+2025-09-03T10:33:03.3274259Z [gosec] 2025/09/03 10:33:03 Checking file: /github/workspace/pkg/oran/o1/smo_integration.go
+2025-09-03T10:33:03.4551786Z [gosec] 2025/09/03 10:33:03 Checking file: /github/workspace/pkg/oran/o1/ssh_conn_wrapper.go
+2025-09-03T10:33:03.5060088Z [gosec] 2025/09/03 10:33:03 Checking file: /github/workspace/pkg/oran/o1/stream_types.go
+2025-09-03T10:33:03.5074000Z [gosec] 2025/09/03 10:33:03 Checking file: /github/workspace/pkg/oran/o1/types.go
+2025-09-03T10:33:03.5075764Z [gosec] 2025/09/03 10:33:03 Checking file: /github/workspace/pkg/oran/o1/yang_models.go
+2025-09-03T10:33:04.0135742Z [gosec] 2025/09/03 10:33:04 Checking file: /github/workspace/pkg/oran/o1/yang_models_extended.go
+2025-09-03T10:33:04.2737733Z [gosec] 2025/09/03 10:33:04 Checking package: resilience
+2025-09-03T10:33:04.2739570Z [gosec] 2025/09/03 10:33:04 Checking file: /github/workspace/pkg/resilience/circuit_breaker.go
+2025-09-03T10:33:04.2742294Z [gosec] 2025/09/03 10:33:04 Import directory: /github/workspace/pkg/testutils
+2025-09-03T10:33:04.2743299Z [gosec] 2025/09/03 10:33:04 Import directory: /github/workspace/cmd/nephio-bridge
+2025-09-03T10:33:04.4598746Z [gosec] 2025/09/03 10:33:04 Checking file: /github/workspace/pkg/resilience/monitoring.go
+2025-09-03T10:33:04.4990755Z [gosec] 2025/09/03 10:33:04 Checking file: /github/workspace/pkg/resilience/timeout_manager.go
+2025-09-03T10:33:04.7722588Z [gosec] 2025/09/03 10:33:04 Checking package: porch
+2025-09-03T10:33:04.7724716Z [gosec] 2025/09/03 10:33:04 Checking file: /github/workspace/pkg/testutil/porch/fixtures.go
+2025-09-03T10:33:04.7725607Z [gosec] 2025/09/03 10:33:04 Import directory: /github/workspace/internal/config
+2025-09-03T10:33:05.2377859Z [gosec] 2025/09/03 10:33:05 Checking file: /github/workspace/pkg/testutil/porch/mocks.go
+2025-09-03T10:33:06.0603165Z [gosec] 2025/09/03 10:33:06 Checking package: performance_tests
+2025-09-03T10:33:06.0604226Z [gosec] 2025/09/03 10:33:06 Checking file: /github/workspace/tests/performance/benchmarking_framework.go
+2025-09-03T10:33:06.0605174Z [gosec] 2025/09/03 10:33:06 Import directory: /github/workspace/pkg/audit/compliance
+2025-09-03T10:33:06.2438003Z [gosec] 2025/09/03 10:33:06 Checking file: /github/workspace/tests/performance/load_testing_suite.go
+2025-09-03T10:33:06.5277219Z [gosec] 2025/09/03 10:33:06 Checking file: /github/workspace/tests/performance/rag_performance_tests.go
+2025-09-03T10:33:06.8892683Z [gosec] 2025/09/03 10:33:06 Checking file: /github/workspace/tests/performance/rag_service_stubs.go
+2025-09-03T10:33:06.9156142Z [gosec] 2025/09/03 10:33:06 Checking file: /github/workspace/tests/performance/types.go
+2025-09-03T10:33:18.9444668Z [gosec] 2025/09/03 10:33:18 Import directory: /github/workspace/pkg/chaos
+2025-09-03T10:33:18.9445508Z [gosec] 2025/09/03 10:33:18 Checking package: main
+2025-09-03T10:33:18.9446279Z [gosec] 2025/09/03 10:33:18 Checking file: /github/workspace/cmd/nephio-bridge/main.go
+2025-09-03T10:33:19.8551318Z [gosec] 2025/09/03 10:33:19 Import directory: /github/workspace/pkg/servicemesh/istio
+2025-09-03T10:33:19.8552601Z [gosec] 2025/09/03 10:33:19 Checking package: chaos
+2025-09-03T10:33:19.8553857Z [gosec] 2025/09/03 10:33:19 Checking file: /github/workspace/pkg/chaos/engine.go
+2025-09-03T10:33:20.5088704Z [gosec] 2025/09/03 10:33:20 Checking file: /github/workspace/pkg/chaos/experiments.go
+2025-09-03T10:33:21.3037998Z [gosec] 2025/09/03 10:33:21 Checking file: /github/workspace/pkg/chaos/failure_injection.go
+2025-09-03T10:33:22.1466790Z [gosec] 2025/09/03 10:33:22 Checking file: /github/workspace/pkg/chaos/recovery_tester.go
+2025-09-03T10:33:23.0275214Z [gosec] 2025/09/03 10:33:23 Checking file: /github/workspace/pkg/chaos/resilience_validator.go
+2025-09-03T10:33:23.5189477Z [gosec] 2025/09/03 10:33:23 Checking package: testutils
+2025-09-03T10:33:23.5191064Z [gosec] 2025/09/03 10:33:23 Checking file: /github/workspace/pkg/testutils/fixtures.go
+2025-09-03T10:33:23.5193998Z [gosec] 2025/09/03 10:33:23 Import directory: /github/workspace/cmd/quality-metrics
+2025-09-03T10:33:23.6000808Z [gosec] 2025/09/03 10:33:23 Checking file: /github/workspace/pkg/testutils/helpers.go
+2025-09-03T10:33:24.2376853Z [gosec] 2025/09/03 10:33:24 Checking file: /github/workspace/pkg/testutils/migration_guide.go
+2025-09-03T10:33:24.2714114Z [gosec] 2025/09/03 10:33:24 Checking file: /github/workspace/pkg/testutils/mocks.go
+2025-09-03T10:33:24.8576096Z [gosec] 2025/09/03 10:33:24 Checking file: /github/workspace/pkg/testutils/optimized_runner.go
+2025-09-03T10:33:25.0245818Z [gosec] 2025/09/03 10:33:25 Checking file: /github/workspace/pkg/testutils/windows_performance.go
+2025-09-03T10:33:25.2613117Z [gosec] 2025/09/03 10:33:25 Checking package: config
+2025-09-03T10:33:25.2614149Z [gosec] 2025/09/03 10:33:25 Checking file: /github/workspace/internal/config/security.go
+2025-09-03T10:33:25.2615031Z [gosec] 2025/09/03 10:33:25 Import directory: /github/workspace/internal/patch
+2025-09-03T10:33:25.4072512Z [gosec] 2025/09/03 10:33:25 Checking package: compliance
+2025-09-03T10:33:25.4073615Z [gosec] 2025/09/03 10:33:25 Checking file: /github/workspace/pkg/audit/compliance/compliance.go
+2025-09-03T10:33:25.4075391Z [gosec] 2025/09/03 10:33:25 Import directory: /github/workspace/pkg/blueprints
+2025-09-03T10:33:25.6492534Z [gosec] 2025/09/03 10:33:25 Checking file: /github/workspace/pkg/audit/compliance/retention.go
+2025-09-03T10:33:25.7344801Z [gosec] 2025/09/03 10:33:25 Checking file: /github/workspace/pkg/audit/compliance/trackers.go
+2025-09-03T10:33:25.7905523Z [gosec] 2025/09/03 10:33:25 Checking package: istio
+2025-09-03T10:33:25.7906455Z [gosec] 2025/09/03 10:33:25 Checking file: /github/workspace/pkg/servicemesh/istio/certificate.go
+2025-09-03T10:33:25.7907343Z [gosec] 2025/09/03 10:33:25 Import directory: /github/workspace/pkg/edge
+2025-09-03T10:33:25.9973748Z [gosec] 2025/09/03 10:33:25 Checking file: /github/workspace/pkg/servicemesh/istio/istio.go
+2025-09-03T10:33:26.6663851Z [gosec] 2025/09/03 10:33:26 Checking file: /github/workspace/pkg/servicemesh/istio/metrics.go
+2025-09-03T10:33:26.7137216Z [gosec] 2025/09/03 10:33:26 Checking package: main
+2025-09-03T10:33:26.7138098Z [gosec] 2025/09/03 10:33:26 Checking file: /github/workspace/cmd/quality-metrics/main.go
+2025-09-03T10:33:26.7139013Z [gosec] 2025/09/03 10:33:26 Import directory: /github/workspace/scripts/quality-metrics
+2025-09-03T10:33:26.8032398Z [gosec] 2025/09/03 10:33:26 Checking package: patch
+2025-09-03T10:33:26.8033187Z [gosec] 2025/09/03 10:33:26 Checking file: /github/workspace/internal/patch/generator.go
+2025-09-03T10:33:26.8045442Z [gosec] 2025/09/03 10:33:26 Import directory: /github/workspace/tests/utils
+2025-09-03T10:33:26.9002419Z [gosec] 2025/09/03 10:33:26 Checking file: /github/workspace/internal/patch/intent.go
+2025-09-03T10:33:26.9712520Z [gosec] 2025/09/03 10:33:26 Checking package: blueprints
+2025-09-03T10:33:26.9713830Z [gosec] 2025/09/03 10:33:26 Checking file: /github/workspace/pkg/blueprints/blueprint_rendering_engine.go
+2025-09-03T10:33:26.9714786Z [gosec] 2025/09/03 10:33:26 Import directory: /github/workspace/tests/validation
+2025-09-03T10:33:27.7753694Z [gosec] 2025/09/03 10:33:27 Checking file: /github/workspace/pkg/blueprints/oran_blueprint_manager.go
+2025-09-03T10:33:28.1345950Z [gosec] 2025/09/03 10:33:28 Checking file: /github/workspace/pkg/blueprints/types.go
+2025-09-03T10:33:28.3350026Z [gosec] 2025/09/03 10:33:28 Checking package: edge
+2025-09-03T10:33:28.3361213Z [gosec] 2025/09/03 10:33:28 Checking file: /github/workspace/pkg/edge/edge_controller.go
+2025-09-03T10:33:28.3434857Z [gosec] 2025/09/03 10:33:28 Import directory: /github/workspace/pkg/testutil
+2025-09-03T10:33:28.7747644Z [gosec] 2025/09/03 10:33:28 Checking file: /github/workspace/pkg/edge/edge_controller_methods.go
+2025-09-03T10:33:29.5347056Z [gosec] 2025/09/03 10:33:29 Checking file: /github/workspace/pkg/edge/types.go
+2025-09-03T10:33:29.5509295Z [gosec] 2025/09/03 10:33:29 Checking package: testutils
+2025-09-03T10:33:29.5510240Z [gosec] 2025/09/03 10:33:29 Checking file: /github/workspace/tests/utils/mocks.go
+2025-09-03T10:33:29.5511160Z [gosec] 2025/09/03 10:33:29 Import directory: /github/workspace/internal/planner
+2025-09-03T10:33:29.5512195Z [gosec] 2025/09/03 10:33:29 Import directory: /github/workspace/pkg/validation/yang
+2025-09-03T10:33:30.2954570Z [gosec] 2025/09/03 10:33:30 Checking file: /github/workspace/tests/utils/modern_test_utilities.go
+2025-09-03T10:33:30.5170516Z [gosec] 2025/09/03 10:33:30 Checking file: /github/workspace/tests/utils/security_helpers.go
+2025-09-03T10:33:30.9309133Z [gosec] 2025/09/03 10:33:30 Checking file: /github/workspace/tests/utils/test_config.go
+2025-09-03T10:33:31.0310161Z [gosec] 2025/09/03 10:33:31 Checking file: /github/workspace/tests/utils/test_fixtures.go
+2025-09-03T10:33:32.2307306Z [gosec] 2025/09/03 10:33:32 Import directory: /github/workspace/pkg/auth/providers
+2025-09-03T10:33:32.2311727Z [gosec] 2025/09/03 10:33:32 Checking package: test_validation
+2025-09-03T10:33:32.2313019Z [gosec] 2025/09/03 10:33:32 Checking file: /github/workspace/tests/validation/alert_system.go
+2025-09-03T10:33:32.6955082Z [gosec] 2025/09/03 10:33:32 Checking file: /github/workspace/tests/validation/baseline_manager.go
+2025-09-03T10:33:33.1171626Z [gosec] 2025/09/03 10:33:33 Checking file: /github/workspace/tests/validation/chaos_engineering_validator.go
+2025-09-03T10:33:33.5346460Z [gosec] 2025/09/03 10:33:33 Checking file: /github/workspace/tests/validation/comprehensive_validation_suite.go
+2025-09-03T10:33:33.6784740Z [gosec] 2025/09/03 10:33:33 Checking file: /github/workspace/tests/validation/deployment_scenarios_validator.go
+2025-09-03T10:33:34.0744417Z [gosec] 2025/09/03 10:33:34 Checking file: /github/workspace/tests/validation/disaster_recovery_validator.go
+2025-09-03T10:33:34.3868654Z [gosec] 2025/09/03 10:33:34 Checking file: /github/workspace/tests/validation/monitoring_observability_validator.go
+2025-09-03T10:33:34.6859485Z [gosec] 2025/09/03 10:33:34 Checking file: /github/workspace/tests/validation/oran_integration_example.go
+2025-09-03T10:33:34.7919157Z [gosec] 2025/09/03 10:33:34 Checking file: /github/workspace/tests/validation/oran_interface_test_suite.go
+2025-09-03T10:33:35.0391283Z [gosec] 2025/09/03 10:33:35 Checking file: /github/workspace/tests/validation/oran_interface_validator.go
+2025-09-03T10:33:36.1210842Z [gosec] 2025/09/03 10:33:36 Checking file: /github/workspace/tests/validation/oran_interface_validator_helpers.go
+2025-09-03T10:33:36.2218686Z [gosec] 2025/09/03 10:33:36 Checking file: /github/workspace/tests/validation/oran_performance_benchmarks.go
+2025-09-03T10:33:36.2512709Z [gosec] 2025/09/03 10:33:36 Checking file: /github/workspace/tests/validation/oran_test_factories.go
+2025-09-03T10:33:36.3233923Z [gosec] 2025/09/03 10:33:36 Checking file: /github/workspace/tests/validation/performance_benchmarker.go
+2025-09-03T10:33:36.6101315Z [gosec] 2025/09/03 10:33:36 Checking file: /github/workspace/tests/validation/performance_load_generator.go
+2025-09-03T10:33:36.6405193Z [gosec] 2025/09/03 10:33:36 Checking file: /github/workspace/tests/validation/production_deployment_validator.go
+2025-09-03T10:33:37.3921592Z [gosec] 2025/09/03 10:33:37 Checking file: /github/workspace/tests/validation/production_readiness_checklist.go
+2025-09-03T10:33:37.5356063Z [gosec] 2025/09/03 10:33:37 Checking file: /github/workspace/tests/validation/production_validation_runner.go
+2025-09-03T10:33:37.6052891Z [gosec] 2025/09/03 10:33:37 Checking file: /github/workspace/tests/validation/regression_dashboard.go
+2025-09-03T10:33:37.9530167Z [gosec] 2025/09/03 10:33:37 Checking file: /github/workspace/tests/validation/regression_detection_engine.go
+2025-09-03T10:33:38.2588080Z [gosec] 2025/09/03 10:33:38 Checking file: /github/workspace/tests/validation/regression_framework.go
+2025-09-03T10:33:38.3870192Z [gosec] 2025/09/03 10:33:38 Checking file: /github/workspace/tests/validation/regression_test_suite.go
+2025-09-03T10:33:38.4845426Z [gosec] 2025/09/03 10:33:38 Checking file: /github/workspace/tests/validation/reliability_validator.go
+2025-09-03T10:33:38.9835752Z [gosec] 2025/09/03 10:33:38 Checking file: /github/workspace/tests/validation/security_mock_services.go
+2025-09-03T10:33:39.3598128Z [gosec] 2025/09/03 10:33:39 Checking file: /github/workspace/tests/validation/security_validator.go
+2025-09-03T10:33:40.1564731Z [gosec] 2025/09/03 10:33:40 Checking file: /github/workspace/tests/validation/sla_methods.go
+2025-09-03T10:33:40.5293374Z [gosec] 2025/09/03 10:33:40 Checking file: /github/workspace/tests/validation/sla_types.go
+2025-09-03T10:33:40.5605379Z [gosec] 2025/09/03 10:33:40 Checking file: /github/workspace/tests/validation/system_validator.go
+2025-09-03T10:33:40.7960815Z [gosec] 2025/09/03 10:33:40 Checking file: /github/workspace/tests/validation/test_factories.go
+2025-09-03T10:33:41.0078497Z [gosec] 2025/09/03 10:33:41 Checking file: /github/workspace/tests/validation/trend_analyzer.go
+2025-09-03T10:33:41.5750367Z [gosec] 2025/09/03 10:33:41 Checking file: /github/workspace/tests/validation/validation_scorer.go
+2025-09-03T10:33:41.7746183Z [gosec] 2025/09/03 10:33:41 Checking file: /github/workspace/tests/validation/validator_interfaces.go
+2025-09-03T10:33:41.9625856Z [gosec] 2025/09/03 10:33:41 Checking package: testutil
+2025-09-03T10:33:41.9627364Z [gosec] 2025/09/03 10:33:41 Checking file: /github/workspace/pkg/testutil/guards.go
+2025-09-03T10:33:41.9657104Z [gosec] 2025/09/03 10:33:41 Import directory: /github/workspace/pkg/monitoring/health
+2025-09-03T10:33:42.2280512Z [gosec] 2025/09/03 10:33:42 Checking package: providers
+2025-09-03T10:33:42.2281348Z [gosec] 2025/09/03 10:33:42 Checking file: /github/workspace/pkg/auth/providers/azuread.go
+2025-09-03T10:33:42.2282217Z [gosec] 2025/09/03 10:33:42 Import directory: /github/workspace/pkg/oran/common
+2025-09-03T10:33:42.8602061Z [gosec] 2025/09/03 10:33:42 Checking file: /github/workspace/pkg/auth/providers/github.go
+2025-09-03T10:33:43.2751361Z [gosec] 2025/09/03 10:33:43 Checking file: /github/workspace/pkg/auth/providers/google.go
+2025-09-03T10:33:43.7905840Z [gosec] 2025/09/03 10:33:43 Checking file: /github/workspace/pkg/auth/providers/interfaces.go
+2025-09-03T10:33:43.8734988Z [gosec] 2025/09/03 10:33:43 Checking file: /github/workspace/pkg/auth/providers/ldap.go
+2025-09-03T10:33:44.2115078Z [gosec] 2025/09/03 10:33:44 Checking file: /github/workspace/pkg/auth/providers/ldap_pool.go
+2025-09-03T10:33:44.5698452Z [gosec] 2025/09/03 10:33:44 Checking package: yang
+2025-09-03T10:33:44.5699267Z [gosec] 2025/09/03 10:33:44 Checking file: /github/workspace/pkg/validation/yang/validator.go
+2025-09-03T10:33:44.5700184Z [gosec] 2025/09/03 10:33:44 Import directory: /github/workspace/pkg/oran/security
+2025-09-03T10:33:44.7070657Z [gosec] 2025/09/03 10:33:44 Checking package: planner
+2025-09-03T10:33:44.7071891Z [gosec] 2025/09/03 10:33:44 Checking file: /github/workspace/internal/planner/planner.go
+2025-09-03T10:33:44.7072914Z [gosec] 2025/09/03 10:33:44 Import directory: /github/workspace/pkg/services
+2025-09-03T10:33:44.7376947Z [gosec] 2025/09/03 10:33:44 Checking package: health
+2025-09-03T10:33:44.7377962Z [gosec] 2025/09/03 10:33:44 Checking file: /github/workspace/pkg/monitoring/health/dependency_health.go
+2025-09-03T10:33:44.7378946Z [gosec] 2025/09/03 10:33:44 Import directory: /github/workspace/cmd/intent-ingest
+2025-09-03T10:33:45.2216090Z [gosec] 2025/09/03 10:33:45 Checking file: /github/workspace/pkg/monitoring/health/enhanced_checker.go
+2025-09-03T10:33:45.5969778Z [gosec] 2025/09/03 10:33:45 Checking file: /github/workspace/pkg/monitoring/health/health_aggregator.go
+2025-09-03T10:33:46.1283327Z [gosec] 2025/09/03 10:33:46 Checking file: /github/workspace/pkg/monitoring/health/health_predictor.go
+2025-09-03T10:33:46.6409293Z [gosec] 2025/09/03 10:33:46 Checking file: /github/workspace/pkg/monitoring/health/integration_bridge.go
+2025-09-03T10:33:47.0384869Z [gosec] 2025/09/03 10:33:47 Checking file: /github/workspace/pkg/monitoring/health/types.go
+2025-09-03T10:33:47.1084117Z [gosec] 2025/09/03 10:33:47 Checking package: common
+2025-09-03T10:33:47.1084906Z [gosec] 2025/09/03 10:33:47 Checking file: /github/workspace/pkg/oran/common/types.go
+2025-09-03T10:33:47.1085759Z [gosec] 2025/09/03 10:33:47 Import directory: /github/workspace/pkg/oran/o2/models
+2025-09-03T10:33:47.1906376Z [gosec] 2025/09/03 10:33:47 Checking package: security
+2025-09-03T10:33:47.1907475Z [gosec] 2025/09/03 10:33:47 Checking file: /github/workspace/pkg/oran/security/security.go
+2025-09-03T10:33:47.1908429Z [gosec] 2025/09/03 10:33:47 Import directory: /github/workspace/tests/security/penetration
+2025-09-03T10:33:47.6267669Z [gosec] 2025/09/03 10:33:47 Checking package: services
+2025-09-03T10:33:47.6269869Z [gosec] 2025/09/03 10:33:47 Checking file: /github/workspace/pkg/services/llm_processor.go
+2025-09-03T10:33:47.6270787Z [gosec] 2025/09/03 10:33:47 Import directory: /github/workspace/pkg/testutil/auth
+2025-09-03T10:33:47.8872790Z [gosec] 2025/09/03 10:33:47 Checking package: main
+2025-09-03T10:33:47.8877354Z [gosec] 2025/09/03 10:33:47 Checking file: /github/workspace/cmd/intent-ingest/main.go
+2025-09-03T10:33:47.8878307Z [gosec] 2025/09/03 10:33:47 Import directory: /github/workspace/internal/patchgen
+2025-09-03T10:33:47.8950271Z [gosec] 2025/09/03 10:33:47 Checking package: models
+2025-09-03T10:33:47.8951582Z [gosec] 2025/09/03 10:33:47 Checking file: /github/workspace/pkg/oran/o2/models/deployment_instances.go
+2025-09-03T10:33:47.8952540Z [gosec] 2025/09/03 10:33:47 Import directory: /github/workspace/pkg/performance
+2025-09-03T10:33:47.8957041Z [gosec] 2025/09/03 10:33:47 Checking file: /github/workspace/pkg/oran/o2/models/deployments.go
+2025-09-03T10:33:47.9000128Z [gosec] 2025/09/03 10:33:47 Checking file: /github/workspace/pkg/oran/o2/models/instances.go
+2025-09-03T10:33:47.9008063Z [gosec] 2025/09/03 10:33:47 Checking file: /github/workspace/pkg/oran/o2/models/notifications.go
+2025-09-03T10:33:47.9028501Z [gosec] 2025/09/03 10:33:47 Checking file: /github/workspace/pkg/oran/o2/models/resource_types.go
+2025-09-03T10:33:47.9169797Z [gosec] 2025/09/03 10:33:47 Checking file: /github/workspace/pkg/oran/o2/models/resources.go
+2025-09-03T10:33:47.9245626Z [gosec] 2025/09/03 10:33:47 Checking file: /github/workspace/pkg/oran/o2/models/runtime.go
+2025-09-03T10:33:47.9246618Z [gosec] 2025/09/03 10:33:47 Checking file: /github/workspace/pkg/oran/o2/models/subscriptions.go
+2025-09-03T10:33:47.9841056Z [gosec] 2025/09/03 10:33:47 Import directory: /github/workspace/cmd/secure-porch-patch
+2025-09-03T10:33:47.9845584Z [gosec] 2025/09/03 10:33:47 Checking package: penetration
+2025-09-03T10:33:47.9846812Z [gosec] 2025/09/03 10:33:47 Checking file: /github/workspace/tests/security/penetration/penetration_test_suite.go
+2025-09-03T10:33:48.3036884Z [gosec] 2025/09/03 10:33:48 Checking package: main
+2025-09-03T10:33:48.3038035Z [gosec] 2025/09/03 10:33:48 Checking file: /github/workspace/cmd/secure-porch-patch/main.go
+2025-09-03T10:33:48.3038700Z [gosec] 2025/09/03 10:33:48 Import directory: /github/workspace/internal/kpm
+2025-09-03T10:33:48.4543183Z [gosec] 2025/09/03 10:33:48 Checking package: patchgen
+2025-09-03T10:33:48.4544246Z [gosec] 2025/09/03 10:33:48 Checking file: /github/workspace/internal/patchgen/generator.go
+2025-09-03T10:33:48.4545199Z [gosec] 2025/09/03 10:33:48 Import directory: /github/workspace/pkg/monitoring/throughput
+2025-09-03T10:33:48.5770561Z [gosec] 2025/09/03 10:33:48 Checking file: /github/workspace/internal/patchgen/types.go
+2025-09-03T10:33:48.5771585Z [gosec] 2025/09/03 10:33:48 Checking file: /github/workspace/internal/patchgen/validator.go
+2025-09-03T10:33:48.7537900Z [gosec] 2025/09/03 10:33:48 Checking package: auth
+2025-09-03T10:33:48.7539090Z [gosec] 2025/09/03 10:33:48 Checking file: /github/workspace/pkg/testutil/auth/contracts.go
+2025-09-03T10:33:48.7540274Z [gosec] 2025/09/03 10:33:48 Import directory: /github/workspace/tests/o2/integration
+2025-09-03T10:33:48.7546530Z [gosec] 2025/09/03 10:33:48 Checking file: /github/workspace/pkg/testutil/auth/fixtures.go
+2025-09-03T10:33:49.4339689Z [gosec] 2025/09/03 10:33:49 Checking file: /github/workspace/pkg/testutil/auth/mocks.go
+2025-09-03T10:33:49.8775915Z [gosec] 2025/09/03 10:33:49 Checking file: /github/workspace/pkg/testutil/auth/testing.go
+2025-09-03T10:33:50.1365291Z [gosec] 2025/09/03 10:33:50 Checking package: performance
+2025-09-03T10:33:50.1366154Z [gosec] 2025/09/03 10:33:50 Checking file: /github/workspace/pkg/performance/benchmarks.go
+2025-09-03T10:33:50.1366967Z [gosec] 2025/09/03 10:33:50 Import directory: /github/workspace/pkg/global
+2025-09-03T10:33:50.7397021Z [gosec] 2025/09/03 10:33:50 Checking file: /github/workspace/pkg/performance/config.go
+2025-09-03T10:33:50.8418701Z [gosec] 2025/09/03 10:33:50 Checking file: /github/workspace/pkg/performance/metrics.go
+2025-09-03T10:33:50.8815715Z [gosec] 2025/09/03 10:33:50 Checking file: /github/workspace/pkg/performance/middleware.go
+2025-09-03T10:33:50.9914012Z [gosec] 2025/09/03 10:33:50 Checking package: kpm
+2025-09-03T10:33:50.9914958Z [gosec] 2025/09/03 10:33:50 Checking file: /github/workspace/internal/kpm/generator.go
+2025-09-03T10:33:50.9915983Z [gosec] 2025/09/03 10:33:50 Import directory: /github/workspace/pkg/nephio/porch
+2025-09-03T10:33:51.0587757Z [gosec] 2025/09/03 10:33:51 Checking package: throughput
+2025-09-03T10:33:51.0590626Z [gosec] 2025/09/03 10:33:51 Checking file: /github/workspace/pkg/monitoring/throughput/capacity_analyzer.go
+2025-09-03T10:33:51.0591806Z [gosec] 2025/09/03 10:33:51 Import directory: /github/workspace/scripts/performance-comparison
+2025-09-03T10:33:51.1258867Z [gosec] 2025/09/03 10:33:51 Checking file: /github/workspace/pkg/monitoring/throughput/error_classifier.go
+2025-09-03T10:33:51.2728997Z [gosec] 2025/09/03 10:33:51 Checking file: /github/workspace/pkg/monitoring/throughput/load_tester.go
+2025-09-03T10:33:51.4218795Z [gosec] 2025/09/03 10:33:51 Checking file: /github/workspace/pkg/monitoring/throughput/queue_monitor.go
+2025-09-03T10:33:51.5977806Z [gosec] 2025/09/03 10:33:51 Checking file: /github/workspace/pkg/monitoring/throughput/tracker.go
+2025-09-03T10:33:51.7169118Z [gosec] 2025/09/03 10:33:51 Checking package: global
+2025-09-03T10:33:51.7170076Z [gosec] 2025/09/03 10:33:51 Checking file: /github/workspace/pkg/global/traffic_controller.go
+2025-09-03T10:33:51.7170931Z [gosec] 2025/09/03 10:33:51 Import directory: /github/workspace/pkg/monitoring
+2025-09-03T10:33:51.7171804Z [gosec] 2025/09/03 10:33:51 Import directory: /github/workspace/pkg/nephio/krm/functions
+2025-09-03T10:33:52.1729460Z [gosec] 2025/09/03 10:33:52 Checking package: porch
+2025-09-03T10:33:52.1735955Z [gosec] 2025/09/03 10:33:52 Checking file: /github/workspace/pkg/nephio/porch/client.go
+2025-09-03T10:33:52.1736789Z [gosec] 2025/09/03 10:33:52 Import directory: /github/workspace/tests/compliance
+2025-09-03T10:33:54.8557178Z [gosec] 2025/09/03 10:33:54 Checking file: /github/workspace/pkg/nephio/porch/config.go
+2025-09-03T10:33:55.3043949Z [gosec] 2025/09/03 10:33:55 Checking file: /github/workspace/pkg/nephio/porch/content_manager.go
+2025-09-03T10:33:55.7314059Z [gosec] 2025/09/03 10:33:55 Checking file: /github/workspace/pkg/nephio/porch/deepcopy.go
+2025-09-03T10:33:55.9824444Z [gosec] 2025/09/03 10:33:55 Checking file: /github/workspace/pkg/nephio/porch/dependency_context_selector.go
+2025-09-03T10:33:56.3491868Z [gosec] 2025/09/03 10:33:56 Checking file: /github/workspace/pkg/nephio/porch/dependency_sat_solver.go
+2025-09-03T10:33:56.7788268Z [gosec] 2025/09/03 10:33:56 Checking file: /github/workspace/pkg/nephio/porch/dependency_types.go
+2025-09-03T10:33:57.0088757Z [gosec] 2025/09/03 10:33:57 Checking file: /github/workspace/pkg/nephio/porch/package_revision.go
+2025-09-03T10:33:57.5430905Z [gosec] 2025/09/03 10:33:57 Checking file: /github/workspace/pkg/nephio/porch/resource.go
+2025-09-03T10:33:57.5482312Z [gosec] 2025/09/03 10:33:57 Checking file: /github/workspace/pkg/nephio/porch/types.go
+2025-09-03T10:33:57.9001980Z [gosec] 2025/09/03 10:33:57 Checking package: functions
+2025-09-03T10:33:57.9003140Z [gosec] 2025/09/03 10:33:57 Checking file: /github/workspace/pkg/nephio/krm/functions/function_sdk.go
+2025-09-03T10:33:57.9005632Z [gosec] 2025/09/03 10:33:57 Import directory: /github/workspace/tests/o2/compliance
+2025-09-03T10:33:57.9006456Z [gosec] 2025/09/03 10:33:57 Import directory: /github/workspace/pkg/context
+2025-09-03T10:33:58.4998136Z [gosec] 2025/09/03 10:33:58 Checking file: /github/workspace/pkg/nephio/krm/functions/network-slice-config.go
+2025-09-03T10:33:58.7915936Z [gosec] 2025/09/03 10:33:58 Checking file: /github/workspace/pkg/nephio/krm/functions/o-ran-interface.go
+2025-09-03T10:33:59.0219759Z [gosec] 2025/09/03 10:33:59 Checking file: /github/workspace/pkg/nephio/krm/functions/oran_optimizers.go
+2025-09-03T10:33:59.5411178Z [gosec] 2025/09/03 10:33:59 Checking file: /github/workspace/pkg/nephio/krm/functions/oran_validators.go
+2025-09-03T10:33:59.8903653Z [gosec] 2025/09/03 10:33:59 Checking package: monitoring
+2025-09-03T10:33:59.8904507Z [gosec] 2025/09/03 10:33:59 Checking file: /github/workspace/pkg/monitoring/alert_router.go
+2025-09-03T10:33:59.8905398Z [gosec] 2025/09/03 10:33:59 Import directory: /github/workspace/pkg/controllers/parallel
+2025-09-03T10:34:00.3754788Z [gosec] 2025/09/03 10:34:00 Checking file: /github/workspace/pkg/monitoring/alerting.go
+2025-09-03T10:34:00.6984913Z [gosec] 2025/09/03 10:34:00 Checking file: /github/workspace/pkg/monitoring/collector_implementations.go
+2025-09-03T10:34:00.7619905Z [gosec] 2025/09/03 10:34:00 Checking file: /github/workspace/pkg/monitoring/controller_instrumentation.go
+2025-09-03T10:34:00.8776156Z [gosec] 2025/09/03 10:34:00 Checking file: /github/workspace/pkg/monitoring/distributed_tracing.go
+2025-09-03T10:34:00.9495979Z [gosec] 2025/09/03 10:34:00 Checking file: /github/workspace/pkg/monitoring/error_tracker.go
+2025-09-03T10:34:01.1631765Z [gosec] 2025/09/03 10:34:01 Checking file: /github/workspace/pkg/monitoring/health_checker_impl.go
+2025-09-03T10:34:01.3955973Z [gosec] 2025/09/03 10:34:01 Checking file: /github/workspace/pkg/monitoring/health_checks.go
+2025-09-03T10:34:01.6060873Z [gosec] 2025/09/03 10:34:01 Checking file: /github/workspace/pkg/monitoring/latency_tracker.go
+2025-09-03T10:34:01.6925903Z [gosec] 2025/09/03 10:34:01 Checking file: /github/workspace/pkg/monitoring/metrics.go
+2025-09-03T10:34:02.0480589Z [gosec] 2025/09/03 10:34:02 Checking file: /github/workspace/pkg/monitoring/nwdaf_analytics_engine.go
+2025-09-03T10:34:02.1911577Z [gosec] 2025/09/03 10:34:02 Checking file: /github/workspace/pkg/monitoring/opentelemetry.go
+2025-09-03T10:34:02.3982941Z [gosec] 2025/09/03 10:34:02 Checking file: /github/workspace/pkg/monitoring/performance_reporter.go
+2025-09-03T10:34:02.5715014Z [gosec] 2025/09/03 10:34:02 Checking file: /github/workspace/pkg/monitoring/predictive_analyzer.go
+2025-09-03T10:34:02.6754934Z [gosec] 2025/09/03 10:34:02 Checking file: /github/workspace/pkg/monitoring/scheme.go
+2025-09-03T10:34:02.6941302Z [gosec] 2025/09/03 10:34:02 Checking file: /github/workspace/pkg/monitoring/simple_metrics_collector.go
+2025-09-03T10:34:02.8787947Z [gosec] 2025/09/03 10:34:02 Checking file: /github/workspace/pkg/monitoring/sla_monitoring_architecture.go
+2025-09-03T10:34:03.0052600Z [gosec] 2025/09/03 10:34:03 Checking file: /github/workspace/pkg/monitoring/structured_logging.go
+2025-09-03T10:34:03.2282181Z [gosec] 2025/09/03 10:34:03 Checking file: /github/workspace/pkg/monitoring/synthetic_monitor.go
+2025-09-03T10:34:03.4221453Z [gosec] 2025/09/03 10:34:03 Checking file: /github/workspace/pkg/monitoring/types.go
+2025-09-03T10:34:03.4343282Z [gosec] 2025/09/03 10:34:03 Checking file: /github/workspace/pkg/monitoring/types_missing.go
+2025-09-03T10:34:03.4547903Z [gosec] 2025/09/03 10:34:03 Checking package: context
+2025-09-03T10:34:03.4549781Z [gosec] 2025/09/03 10:34:03 Checking file: /github/workspace/pkg/context/enhanced_context.go
+2025-09-03T10:34:03.4552254Z [gosec] 2025/09/03 10:34:03 Import directory: /github/workspace/pkg/templates
+2025-09-03T10:34:03.4556728Z [gosec] 2025/09/03 10:34:03 Import directory: /github/workspace/cmd/fcaps-reducer
+2025-09-03T10:34:03.8399446Z [gosec] 2025/09/03 10:34:03 Checking package: parallel
+2025-09-03T10:34:03.8400335Z [gosec] 2025/09/03 10:34:03 Checking file: /github/workspace/pkg/controllers/parallel/backpressure.go
+2025-09-03T10:34:03.8401621Z [gosec] 2025/09/03 10:34:03 Checking file: /github/workspace/pkg/controllers/parallel/backpressure_manager.go
+2025-09-03T10:34:03.8402520Z [gosec] 2025/09/03 10:34:03 Import directory: /github/workspace/pkg/controllers/interfaces
+2025-09-03T10:34:03.8403013Z [gosec] 2025/09/03 10:34:03 Import directory: /github/workspace/pkg/oran/a1
+2025-09-03T10:34:03.8948394Z [gosec] 2025/09/03 10:34:03 Checking file: /github/workspace/pkg/controllers/parallel/engine.go
+2025-09-03T10:34:04.6158474Z [gosec] 2025/09/03 10:34:04 Checking file: /github/workspace/pkg/controllers/parallel/engine_config.go
+2025-09-03T10:34:04.6273239Z [gosec] 2025/09/03 10:34:04 Checking file: /github/workspace/pkg/controllers/parallel/processor.go
+2025-09-03T10:34:05.0042648Z [gosec] 2025/09/03 10:34:05 Checking file: /github/workspace/pkg/controllers/parallel/task_evolution.go
+2025-09-03T10:34:05.2117801Z [gosec] 2025/09/03 10:34:05 Checking file: /github/workspace/pkg/controllers/parallel/task_processors.go
+2025-09-03T10:34:05.3554382Z [gosec] 2025/09/03 10:34:05 Checking file: /github/workspace/pkg/controllers/parallel/task_scheduler.go
+2025-09-03T10:34:05.9264277Z [gosec] 2025/09/03 10:34:05 Checking file: /github/workspace/pkg/controllers/parallel/types.go
+2025-09-03T10:34:06.0628401Z [gosec] 2025/09/03 10:34:06 Checking file: /github/workspace/pkg/controllers/parallel/worker_pool.go
+2025-09-03T10:34:06.3257998Z [gosec] 2025/09/03 10:34:06 Checking package: templates
+2025-09-03T10:34:06.3258939Z [gosec] 2025/09/03 10:34:06 Checking file: /github/workspace/pkg/templates/engine.go
+2025-09-03T10:34:06.3260011Z [gosec] 2025/09/03 10:34:06 Import directory: /github/workspace/planner/internal/security
+2025-09-03T10:34:07.0618871Z [gosec] 2025/09/03 10:34:07 Checking package: main
+2025-09-03T10:34:07.0619557Z [gosec] 2025/09/03 10:34:07 Checking file: /github/workspace/cmd/fcaps-reducer/main.go
+2025-09-03T10:34:07.0620330Z [gosec] 2025/09/03 10:34:07 Import directory: /github/workspace/tests/unit/controllers
+2025-09-03T10:34:07.1991267Z [gosec] 2025/09/03 10:34:07 Checking package: interfaces
+2025-09-03T10:34:07.1992267Z [gosec] 2025/09/03 10:34:07 Checking file: /github/workspace/pkg/controllers/interfaces/controller_interfaces.go
+2025-09-03T10:34:07.1993278Z [gosec] 2025/09/03 10:34:07 Import directory: /github/workspace/cmd/conductor
+2025-09-03T10:34:07.2049416Z [gosec] 2025/09/03 10:34:07 Checking file: /github/workspace/pkg/controllers/interfaces/types.go
+2025-09-03T10:34:07.2072716Z [gosec] 2025/09/03 10:34:07 Checking package: a1
+2025-09-03T10:34:07.2073750Z [gosec] 2025/09/03 10:34:07 Checking file: /github/workspace/pkg/oran/a1/a1_adaptor.go
+2025-09-03T10:34:07.2074776Z [gosec] 2025/09/03 10:34:07 Import directory: /github/workspace/cmd/test-performance-engine
+2025-09-03T10:34:08.4208454Z [gosec] 2025/09/03 10:34:08 Checking file: /github/workspace/pkg/oran/a1/a1_compliant_adaptor.go
+2025-09-03T10:34:08.6940994Z [gosec] 2025/09/03 10:34:08 Checking file: /github/workspace/pkg/oran/a1/a1_consumer_interface.go
+2025-09-03T10:34:08.9509466Z [gosec] 2025/09/03 10:34:08 Checking file: /github/workspace/pkg/oran/a1/a1_ei_interface.go
+2025-09-03T10:34:09.3225249Z [gosec] 2025/09/03 10:34:09 Checking file: /github/workspace/pkg/oran/a1/errors.go
+2025-09-03T10:34:09.6344408Z [gosec] 2025/09/03 10:34:09 Checking file: /github/workspace/pkg/oran/a1/handlers.go
+2025-09-03T10:34:10.0332313Z [gosec] 2025/09/03 10:34:10 Checking file: /github/workspace/pkg/oran/a1/server.go
+2025-09-03T10:34:10.2832616Z [gosec] 2025/09/03 10:34:10 Checking file: /github/workspace/pkg/oran/a1/types.go
+2025-09-03T10:34:10.3858352Z [gosec] 2025/09/03 10:34:10 Checking file: /github/workspace/pkg/oran/a1/validation.go
+2025-09-03T10:34:11.0246860Z [gosec] 2025/09/03 10:34:11 Checking package: security
+2025-09-03T10:34:11.0274496Z [gosec] 2025/09/03 10:34:11 Checking file: /github/workspace/planner/internal/security/validation.go
+2025-09-03T10:34:11.0280651Z [gosec] 2025/09/03 10:34:11 Import directory: /github/workspace/controllers
+2025-09-03T10:34:11.3814338Z [gosec] 2025/09/03 10:34:11 Checking package: main
+2025-09-03T10:34:11.3815222Z [gosec] 2025/09/03 10:34:11 Checking file: /github/workspace/cmd/conductor/main.go
+2025-09-03T10:34:11.3816206Z [gosec] 2025/09/03 10:34:11 Import directory: /github/workspace/internal/generator
+2025-09-03T10:34:11.3817087Z [gosec] 2025/09/03 10:34:11 Import directory: /github/workspace/pkg/audit/backends
+2025-09-03T10:34:11.5321339Z [gosec] 2025/09/03 10:34:11 Import directory: /github/workspace/pkg/monitoring/alerting
+2025-09-03T10:34:11.6288907Z [gosec] 2025/09/03 10:34:11 Import directory: /github/workspace/scripts/quick-db-check
+2025-09-03T10:34:11.6290530Z [gosec] 2025/09/03 10:34:11 Checking package: controllers
+2025-09-03T10:34:11.6291713Z [gosec] 2025/09/03 10:34:11 Checking file: /github/workspace/controllers/networkintent_controller.go
+2025-09-03T10:34:11.7682560Z [gosec] 2025/09/03 10:34:11 Import directory: /github/workspace/tests
+2025-09-03T10:34:11.8743370Z [gosec] 2025/09/03 10:34:11 Import directory: /github/workspace/internal/loop
+2025-09-03T10:34:11.8744341Z [gosec] 2025/09/03 10:34:11 Checking package: generator
+2025-09-03T10:34:11.8745454Z [gosec] 2025/09/03 10:34:11 Checking file: /github/workspace/internal/generator/deployment.go
+2025-09-03T10:34:12.0219017Z [gosec] 2025/09/03 10:34:12 Checking file: /github/workspace/internal/generator/kptfile.go
+2025-09-03T10:34:12.0925091Z [gosec] 2025/09/03 10:34:12 Checking file: /github/workspace/internal/generator/package.go
+2025-09-03T10:34:12.2223112Z [gosec] 2025/09/03 10:34:12 Checking package: backends
+2025-09-03T10:34:12.2224200Z [gosec] 2025/09/03 10:34:12 Checking file: /github/workspace/pkg/audit/backends/backend.go
+2025-09-03T10:34:12.2225082Z [gosec] 2025/09/03 10:34:12 Import directory: /github/workspace/pkg/audit/types
+2025-09-03T10:34:12.3737557Z [gosec] 2025/09/03 10:34:12 Checking file: /github/workspace/pkg/audit/backends/elasticsearch.go
+2025-09-03T10:34:12.9103173Z [gosec] 2025/09/03 10:34:12 Checking file: /github/workspace/pkg/audit/backends/splunk.go
+2025-09-03T10:34:13.2300587Z [gosec] 2025/09/03 10:34:13 Checking package: tests
+2025-09-03T10:34:13.2301395Z [gosec] 2025/09/03 10:34:13 Checking file: /github/workspace/tests/test_runner.go
+2025-09-03T10:34:13.2302165Z [gosec] 2025/09/03 10:34:13 Import directory: /github/workspace/pkg/clients
+2025-09-03T10:34:13.3807845Z [gosec] 2025/09/03 10:34:13 Checking package: alerting
+2025-09-03T10:34:13.3809164Z [gosec] 2025/09/03 10:34:13 Checking file: /github/workspace/pkg/monitoring/alerting/alert_router.go
+2025-09-03T10:34:13.3811153Z [gosec] 2025/09/03 10:34:13 Import directory: /github/workspace/tests/performance/controllers
+2025-09-03T10:34:14.1592041Z [gosec] 2025/09/03 10:34:14 Checking file: /github/workspace/pkg/monitoring/alerting/alert_router_fixes.go
+2025-09-03T10:34:14.2100319Z [gosec] 2025/09/03 10:34:14 Checking file: /github/workspace/pkg/monitoring/alerting/burn_rate_calculator.go
+2025-09-03T10:34:14.8669430Z [gosec] 2025/09/03 10:34:14 Checking file: /github/workspace/pkg/monitoring/alerting/escalation_engine.go
+2025-09-03T10:34:15.2419382Z [gosec] 2025/09/03 10:34:15 Checking file: /github/workspace/pkg/monitoring/alerting/predictive_alerting.go
+2025-09-03T10:34:16.0078481Z [gosec] 2025/09/03 10:34:16 Checking file: /github/workspace/pkg/monitoring/alerting/sla_alert_manager.go
+2025-09-03T10:34:17.0947903Z [gosec] 2025/09/03 10:34:17 Import directory: /github/workspace/tests/security
+2025-09-03T10:34:17.0951160Z [gosec] 2025/09/03 10:34:17 Checking package: loop
+2025-09-03T10:34:17.0952157Z [gosec] 2025/09/03 10:34:17 Checking file: /github/workspace/internal/loop/adaptive_worker_pool.go
+2025-09-03T10:34:17.3796767Z [gosec] 2025/09/03 10:34:17 Checking file: /github/workspace/internal/loop/async_io.go
+2025-09-03T10:34:17.7017406Z [gosec] 2025/09/03 10:34:17 Checking file: /github/workspace/internal/loop/bounded_stats.go
+2025-09-03T10:34:18.0173053Z [gosec] 2025/09/03 10:34:18 Checking file: /github/workspace/internal/loop/defer_patterns.go
+2025-09-03T10:34:18.1131482Z [gosec] 2025/09/03 10:34:18 Checking file: /github/workspace/internal/loop/energy_optimizer.go
+2025-09-03T10:34:18.4172204Z [gosec] 2025/09/03 10:34:18 Checking file: /github/workspace/internal/loop/errors.go
+2025-09-03T10:34:18.4173899Z [gosec] 2025/09/03 10:34:18 Checking file: /github/workspace/internal/loop/example_metrics_usage.go
+2025-09-03T10:34:18.5073738Z [gosec] 2025/09/03 10:34:18 Checking file: /github/workspace/internal/loop/filename_sanitizer.go
+2025-09-03T10:34:18.5231171Z [gosec] 2025/09/03 10:34:18 Checking file: /github/workspace/internal/loop/filter.go
+2025-09-03T10:34:18.5278246Z [gosec] 2025/09/03 10:34:18 Checking file: /github/workspace/internal/loop/fsync_unix.go
+2025-09-03T10:34:18.7617819Z [gosec] 2025/09/03 10:34:18 Checking file: /github/workspace/internal/loop/longpath_helper_other.go
+2025-09-03T10:34:18.7771358Z [gosec] 2025/09/03 10:34:18 Checking file: /github/workspace/internal/loop/lru_cache.go
+2025-09-03T10:34:18.8340823Z [gosec] 2025/09/03 10:34:18 Checking file: /github/workspace/internal/loop/manager.go
+2025-09-03T10:34:19.0620124Z [gosec] 2025/09/03 10:34:19 Checking file: /github/workspace/internal/loop/metrics_server.go
+2025-09-03T10:34:19.1304273Z [gosec] 2025/09/03 10:34:19 Checking file: /github/workspace/internal/loop/ml_optimizer.go
+2025-09-03T10:34:19.5236155Z [gosec] 2025/09/03 10:34:19 Checking file: /github/workspace/internal/loop/once_mode_sync.go
+2025-09-03T10:34:19.9600807Z [gosec] 2025/09/03 10:34:19 Checking file: /github/workspace/internal/loop/optimized_watcher.go
+2025-09-03T10:34:20.2623906Z [gosec] 2025/09/03 10:34:20 Checking file: /github/workspace/internal/loop/processor.go
+2025-09-03T10:34:20.6290614Z [gosec] 2025/09/03 10:34:20 Checking file: /github/workspace/internal/loop/safe_map.go
+2025-09-03T10:34:20.6807416Z [gosec] 2025/09/03 10:34:20 Checking file: /github/workspace/internal/loop/shutdown.go
+2025-09-03T10:34:20.7320079Z [gosec] 2025/09/03 10:34:20 Checking file: /github/workspace/internal/loop/state.go
+2025-09-03T10:34:21.0152792Z [gosec] 2025/09/03 10:34:21 Checking file: /github/workspace/internal/loop/status_naming.go
+2025-09-03T10:34:21.0201725Z [gosec] 2025/09/03 10:34:21 Checking file: /github/workspace/internal/loop/test_security_helpers.go
+2025-09-03T10:34:21.0485934Z [gosec] 2025/09/03 10:34:21 Checking file: /github/workspace/internal/loop/test_sync_helpers.go
+2025-09-03T10:34:21.3507416Z [gosec] 2025/09/03 10:34:21 Checking file: /github/workspace/internal/loop/unix_path_security.go
+2025-09-03T10:34:21.5074869Z [gosec] 2025/09/03 10:34:21 Checking file: /github/workspace/internal/loop/watcher.go
+2025-09-03T10:34:23.3144642Z [gosec] 2025/09/03 10:34:23 Checking file: /github/workspace/internal/loop/watcher_safe.go
+2025-09-03T10:34:23.3954486Z [gosec] 2025/09/03 10:34:23 Checking package: security
+2025-09-03T10:34:23.3955888Z [gosec] 2025/09/03 10:34:23 Checking file: /github/workspace/tests/security/automated_security_validation.go
+2025-09-03T10:34:23.3988609Z [gosec] 2025/09/03 10:34:23 Import directory: /github/workspace/internal/writer
+2025-09-03T10:34:23.7615673Z [gosec] 2025/09/03 10:34:23 Checking file: /github/workspace/tests/security/comprehensive_security_test_suite.go
+2025-09-03T10:34:23.9475706Z [gosec] 2025/09/03 10:34:23 Checking file: /github/workspace/tests/security/continuous_monitoring.go
+2025-09-03T10:34:24.1623303Z [gosec] 2025/09/03 10:34:24 Checking file: /github/workspace/tests/security/regression_pipeline.go
+2025-09-03T10:34:24.4959036Z [gosec] 2025/09/03 10:34:24 Checking file: /github/workspace/tests/security/tls_test_runner.go
+2025-09-03T10:34:24.6084324Z [gosec] 2025/09/03 10:34:24 Checking file: /github/workspace/tests/security/types.go
+2025-09-03T10:34:24.6227723Z [gosec] 2025/09/03 10:34:24 Checking package: types
+2025-09-03T10:34:24.6229306Z [gosec] 2025/09/03 10:34:24 Checking file: /github/workspace/pkg/audit/types/events.go
+2025-09-03T10:34:24.6230288Z [gosec] 2025/09/03 10:34:24 Import directory: /github/workspace/pkg/servicemesh
+2025-09-03T10:34:24.6231168Z [gosec] 2025/09/03 10:34:24 Import directory: /github/workspace/tests/mocks
+2025-09-03T10:34:25.2176915Z [gosec] 2025/09/03 10:34:25 Checking file: /github/workspace/pkg/audit/types/interfaces.go
+2025-09-03T10:34:25.2664307Z [gosec] 2025/09/03 10:34:25 Checking package: clients
+2025-09-03T10:34:25.2669477Z [gosec] 2025/09/03 10:34:25 Checking file: /github/workspace/pkg/clients/mtls_client_factory.go
+2025-09-03T10:34:25.2675523Z [gosec] 2025/09/03 10:34:25 Import directory: /github/workspace/cmd/performance-regression-test
+2025-09-03T10:34:25.6994304Z [gosec] 2025/09/03 10:34:25 Checking file: /github/workspace/pkg/clients/mtls_git_client.go
+2025-09-03T10:34:25.9775029Z [gosec] 2025/09/03 10:34:25 Checking file: /github/workspace/pkg/clients/mtls_llm_client.go
+2025-09-03T10:34:26.4398756Z [gosec] 2025/09/03 10:34:26 Checking file: /github/workspace/pkg/clients/mtls_monitoring_client.go
+2025-09-03T10:34:26.6701795Z [gosec] 2025/09/03 10:34:26 Checking file: /github/workspace/pkg/clients/mtls_rag_client.go
+2025-09-03T10:34:26.9528865Z [gosec] 2025/09/03 10:34:26 Checking package: writer
+2025-09-03T10:34:26.9529716Z [gosec] 2025/09/03 10:34:26 Checking file: /github/workspace/internal/writer/filesystem.go
+2025-09-03T10:34:26.9530901Z [gosec] 2025/09/03 10:34:26 Import directory: /github/workspace/api/v1alpha1
+2025-09-03T10:34:27.1498599Z [gosec] 2025/09/03 10:34:27 Checking package: servicemesh
+2025-09-03T10:34:27.1499443Z [gosec] 2025/09/03 10:34:27 Checking file: /github/workspace/pkg/servicemesh/controller.go
+2025-09-03T10:34:27.1500384Z [gosec] 2025/09/03 10:34:27 Import directory: /github/workspace/cmd/performance-comparison
+2025-09-03T10:34:27.4727662Z [gosec] 2025/09/03 10:34:27 Checking package: test_mocks
+2025-09-03T10:34:27.4728440Z [gosec] 2025/09/03 10:34:27 Checking file: /github/workspace/tests/mocks/client.go
+2025-09-03T10:34:27.4729216Z [gosec] 2025/09/03 10:34:27 Import directory: /github/workspace/pkg/oran
+2025-09-03T10:34:27.6885696Z [gosec] 2025/09/03 10:34:27 Checking package: main
+2025-09-03T10:34:27.6886632Z [gosec] 2025/09/03 10:34:27 Checking file: /github/workspace/cmd/performance-regression-test/main.go
+2025-09-03T10:34:27.6887572Z [gosec] 2025/09/03 10:34:27 Import directory: /github/workspace/tools
+2025-09-03T10:34:27.7631465Z [gosec] 2025/09/03 10:34:27 Checking package: v1alpha1
+2025-09-03T10:34:27.7635454Z [gosec] 2025/09/03 10:34:27 Checking file: /github/workspace/api/v1alpha1/networkintent_types.go
+2025-09-03T10:34:27.7637102Z [gosec] 2025/09/03 10:34:27 Checking file: /github/workspace/api/v1alpha1/zz_generated.deepcopy.go
+2025-09-03T10:34:27.7639276Z [gosec] 2025/09/03 10:34:27 Import directory: /github/workspace/examples/auth
+2025-09-03T10:34:27.9252242Z [gosec] 2025/09/03 10:34:27 Checking package: main
+2025-09-03T10:34:27.9264539Z [gosec] 2025/09/03 10:34:27 Checking file: /github/workspace/cmd/performance-comparison/main.go
+2025-09-03T10:34:27.9265520Z [gosec] 2025/09/03 10:34:27 Import directory: /github/workspace/tools/flaky-detector
+2025-09-03T10:34:28.1678376Z [gosec] 2025/09/03 10:34:28 Checking package: oran
+2025-09-03T10:34:28.1679102Z [gosec] 2025/09/03 10:34:28 Checking file: /github/workspace/pkg/oran/common.go
+2025-09-03T10:34:28.1679761Z [gosec] 2025/09/03 10:34:28 Import directory: /github/workspace/hack/testtools
+2025-09-03T10:34:28.1866379Z [gosec] 2025/09/03 10:34:28 Checking file: /github/workspace/pkg/oran/smo_manager.go
+2025-09-03T10:34:28.7754681Z [gosec] 2025/09/03 10:34:28 Checking file: /github/workspace/pkg/oran/tls_helper.go
+2025-09-03T10:34:28.8719237Z [gosec] 2025/09/03 10:34:28 Checking package: main
+2025-09-03T10:34:28.8720134Z [gosec] 2025/09/03 10:34:28 Checking file: /github/workspace/tools/test_import_cycle.go
+2025-09-03T10:34:28.8722304Z [gosec] 2025/09/03 10:34:28 Import directory: /github/workspace/pkg/oran/e2
+2025-09-03T10:34:28.8736944Z [gosec] 2025/09/03 10:34:28 Checking package: main
+2025-09-03T10:34:28.8754079Z [gosec] 2025/09/03 10:34:28 Checking file: /github/workspace/examples/auth/ldap_integration_example.go
+2025-09-03T10:34:28.8755099Z [gosec] 2025/09/03 10:34:28 Import directory: /github/workspace/pkg/servicemesh/linkerd
+2025-09-03T10:34:29.1331643Z [gosec] 2025/09/03 10:34:29 Checking package: main
+2025-09-03T10:34:29.1339453Z [gosec] 2025/09/03 10:34:29 Checking file: /github/workspace/tools/flaky-detector/main.go
+2025-09-03T10:34:29.1345516Z [gosec] 2025/09/03 10:34:29 Import directory: /github/workspace/scripts/performance-regression
+2025-09-03T10:34:29.7079292Z [gosec] 2025/09/03 10:34:29 Import directory: /github/workspace/pkg/controllers/testutil
+2025-09-03T10:34:29.7085189Z [gosec] 2025/09/03 10:34:29 Checking package: testtools
+2025-09-03T10:34:29.7086897Z [gosec] 2025/09/03 10:34:29 Checking file: /github/workspace/hack/testtools/envtest_binaries.go
+2025-09-03T10:34:30.0025757Z [gosec] 2025/09/03 10:34:30 Checking file: /github/workspace/hack/testtools/envtest_setup.go
+2025-09-03T10:34:31.2077921Z [gosec] 2025/09/03 10:34:31 Checking file: /github/workspace/hack/testtools/envtest_setup_fixed.go
+2025-09-03T10:34:31.4067339Z [gosec] 2025/09/03 10:34:31 Checking file: /github/workspace/hack/testtools/test_config.go
+2025-09-03T10:34:31.5028643Z [gosec] 2025/09/03 10:34:31 Checking package: linkerd
+2025-09-03T10:34:31.5030235Z [gosec] 2025/09/03 10:34:31 Checking file: /github/workspace/pkg/servicemesh/linkerd/linkerd.go
+2025-09-03T10:34:31.5031185Z [gosec] 2025/09/03 10:34:31 Import directory: /github/workspace/scripts
+2025-09-03T10:34:31.7193647Z [gosec] 2025/09/03 10:34:31 Checking package: e2
+2025-09-03T10:34:31.7194445Z [gosec] 2025/09/03 10:34:31 Checking file: /github/workspace/pkg/oran/e2/asn1_codec.go
+2025-09-03T10:34:31.7194959Z [gosec] 2025/09/03 10:34:31 Import directory: /github/workspace/tests/e2e
+2025-09-03T10:34:33.5755767Z [gosec] 2025/09/03 10:34:33 Checking file: /github/workspace/pkg/oran/e2/e2_adaptor.go
+2025-09-03T10:34:34.3329767Z [gosec] 2025/09/03 10:34:34 Checking file: /github/workspace/pkg/oran/e2/e2_manager.go
+2025-09-03T10:34:34.8129930Z [gosec] 2025/09/03 10:34:34 Checking file: /github/workspace/pkg/oran/e2/e2ap_codecs.go
+2025-09-03T10:34:35.9095922Z [gosec] 2025/09/03 10:34:35 Checking file: /github/workspace/pkg/oran/e2/e2ap_messages.go
+2025-09-03T10:34:36.1652027Z [gosec] 2025/09/03 10:34:36 Checking file: /github/workspace/pkg/oran/e2/e2ap_types.go
+2025-09-03T10:34:36.1655026Z [gosec] 2025/09/03 10:34:36 Checking file: /github/workspace/pkg/oran/e2/sctp_transport.go
+2025-09-03T10:34:36.5824149Z [gosec] 2025/09/03 10:34:36 Checking file: /github/workspace/pkg/oran/e2/service_models.go
+2025-09-03T10:34:37.1473870Z [gosec] 2025/09/03 10:34:37 Checking file: /github/workspace/pkg/oran/e2/types.go
+2025-09-03T10:34:37.3131932Z [gosec] 2025/09/03 10:34:37 Checking file: /github/workspace/pkg/oran/e2/xapp_sdk.go
+2025-09-03T10:34:37.5708384Z [gosec] 2025/09/03 10:34:37 Checking package: testutil
+2025-09-03T10:34:37.5709515Z [gosec] 2025/09/03 10:34:37 Checking file: /github/workspace/pkg/controllers/testutil/condition_helpers.go
+2025-09-03T10:34:37.5710744Z [gosec] 2025/09/03 10:34:37 Import directory: /github/workspace/cmd/oran-adaptor
+2025-09-03T10:34:37.6679110Z [gosec] 2025/09/03 10:34:37 Checking file: /github/workspace/pkg/controllers/testutil/constants.go
+2025-09-03T10:34:37.6736303Z [gosec] 2025/09/03 10:34:37 Checking file: /github/workspace/pkg/controllers/testutil/doc.go
+2025-09-03T10:34:37.6737423Z [gosec] 2025/09/03 10:34:37 Checking file: /github/workspace/pkg/controllers/testutil/fake_e2_manager.go
+2025-09-03T10:34:37.8813311Z [gosec] 2025/09/03 10:34:37 Checking file: /github/workspace/pkg/controllers/testutil/test_helpers.go
+2025-09-03T10:34:38.0334354Z [gosec] 2025/09/03 10:34:38 Checking package: main
+2025-09-03T10:34:38.0340510Z [gosec] 2025/09/03 10:34:38 Checking file: /github/workspace/scripts/fix-gosec-issues.go
+2025-09-03T10:34:38.0355055Z [gosec] 2025/09/03 10:34:38 Import directory: /github/workspace/pkg/nephio/patchgen
+2025-09-03T10:34:38.0360031Z [gosec] 2025/09/03 10:34:38 Import directory: /github/workspace/cmd/webhook
+2025-09-03T10:34:38.1970466Z [gosec] 2025/09/03 10:34:38 Import directory: /github/workspace/pkg/oran/o2/providers
+2025-09-03T10:34:38.3554612Z [gosec] 2025/09/03 10:34:38 Import directory: /github/workspace/pkg/servicemesh/policies
+2025-09-03T10:34:38.3556869Z [gosec] 2025/09/03 10:34:38 Checking package: main
+2025-09-03T10:34:38.3558760Z [gosec] 2025/09/03 10:34:38 Checking file: /github/workspace/cmd/oran-adaptor/main.go
+2025-09-03T10:34:38.7140788Z [gosec] 2025/09/03 10:34:38 Import directory: /github/workspace/security/compliance
+2025-09-03T10:34:38.7142446Z [gosec] 2025/09/03 10:34:38 Checking package: policies
+2025-09-03T10:34:38.7143882Z [gosec] 2025/09/03 10:34:38 Checking file: /github/workspace/pkg/servicemesh/policies/manager.go
+2025-09-03T10:34:39.1139280Z [gosec] 2025/09/03 10:34:39 Checking file: /github/workspace/pkg/servicemesh/policies/types.go
+2025-09-03T10:34:39.4287123Z [gosec] 2025/09/03 10:34:39 Checking package: patchgen
+2025-09-03T10:34:39.4288293Z [gosec] 2025/09/03 10:34:39 Checking file: /github/workspace/pkg/nephio/patchgen/generator.go
+2025-09-03T10:34:39.4290371Z [gosec] 2025/09/03 10:34:39 Import directory: /github/workspace/tests/fixtures
+2025-09-03T10:34:47.5693236Z [gosec] 2025/09/03 10:34:47 Import directory: /github/workspace/tests/scripts
+2025-09-03T10:34:47.5694991Z [gosec] 2025/09/03 10:34:47 Checking package: main
+2025-09-03T10:34:47.5696818Z [gosec] 2025/09/03 10:34:47 Checking file: /github/workspace/cmd/webhook/main.go
+2025-09-03T10:35:37.9969825Z ##[error]The operation was canceled.
+2025-09-03T10:35:38.0081569Z ##[group]Run github/codeql-action/upload-sarif@v3
+2025-09-03T10:35:38.0082077Z with:
+2025-09-03T10:35:38.0082369Z   sarif_file: gosec.sarif
+2025-09-03T10:35:38.0083024Z   checkout_path: /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-09-03T10:35:38.0084118Z   token: ***
+2025-09-03T10:35:38.0084416Z   matrix: null
+2025-09-03T10:35:38.0084738Z   wait-for-processing: true
+2025-09-03T10:35:38.0085088Z env:
+2025-09-03T10:35:38.0085350Z   GO_VERSION: 1.25.0
+2025-09-03T10:35:38.0085736Z   GOPROXY: https://proxy.golang.org,direct
+2025-09-03T10:35:38.0086196Z   GOSUMDB: sum.golang.org
+2025-09-03T10:35:38.0086563Z   GOPRIVATE: github.com/thc1006/*
+2025-09-03T10:35:38.0086941Z   CGO_ENABLED: 0
+2025-09-03T10:35:38.0087248Z   GOMAXPROCS: 4
+2025-09-03T10:35:38.0087545Z   GOMEMLIMIT: 3GiB
+2025-09-03T10:35:38.0087853Z   SKIP_TESTS: false
+2025-09-03T10:35:38.0088152Z ##[endgroup]
+2025-09-03T10:35:39.1251905Z ##[error]Path does not exist: gosec.sarif
+2025-09-03T10:35:39.4208526Z Post job cleanup.
+2025-09-03T10:35:39.7557402Z ##[group]Uploading combined SARIF debug artifact
+2025-09-03T10:35:39.7562988Z ##[endgroup]
+2025-09-03T10:35:39.7956533Z Post job cleanup.
+2025-09-03T10:35:39.9744905Z [command]/usr/bin/git version
+2025-09-03T10:35:39.9821661Z git version 2.51.0
+2025-09-03T10:35:39.9924847Z Temporarily overriding HOME='/home/runner/work/_temp/9b1a3722-6ca4-434d-901b-c68669a9b348' before making global git config changes
+2025-09-03T10:35:39.9927555Z Adding repository directory to the temporary git global config as a safe directory
+2025-09-03T10:35:39.9932828Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-09-03T10:35:40.0047034Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-09-03T10:35:40.0129197Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-09-03T10:35:40.0786158Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-09-03T10:35:40.0835684Z http.https://github.com/.extraheader
+2025-09-03T10:35:40.0855517Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-09-03T10:35:40.0910823Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-09-03T10:35:40.1695638Z Cleaning up orphan processes

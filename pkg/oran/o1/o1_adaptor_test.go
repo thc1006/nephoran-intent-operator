@@ -4,13 +4,14 @@ import (
 	"context"
 	"testing"
 	"time"
+	"encoding/json"
 
 	"github.com/stretchr/testify/assert"
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestNewO1Adaptor(t *testing.T) {
+func TestNewO1AdaptorConstruction(t *testing.T) {
 	tests := []struct {
 		name   string
 		config *O1Config
@@ -237,11 +238,7 @@ func TestO1Adaptor_convertEventToAlarm(t *testing.T) {
 				Type:      "notification",
 				Timestamp: time.Now(),
 				Source:    "test-source",
-				Data: map[string]interface{}{
-					"event_type":  "alarm",
-					"severity":    "major",
-					"description": "Test alarm event",
-				},
+				Data: json.RawMessage(`{}`),
 			},
 			managedElementID: "test-element",
 			expectedAlarm:    true,
@@ -459,3 +456,4 @@ func BenchmarkO1Adaptor_parseMetricValue(b *testing.B) {
 		_, _ = adaptor.parseMetricValue(xmlData, "cpu_usage")
 	}
 }
+

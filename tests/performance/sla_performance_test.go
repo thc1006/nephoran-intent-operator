@@ -1,11 +1,12 @@
-package performance
+package performance_tests
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"math"
-	"runtime"
-	"sort"
+	"net/http"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -13,8 +14,6 @@ import (
 
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
@@ -102,6 +101,21 @@ type LoadGeneratorConfig struct {
 	RequestTimeout     time.Duration
 	KeepAliveInterval  time.Duration
 	ConnectionPoolSize int
+}
+
+// TestClient represents a mock client for SLA testing
+type TestClient struct {
+	baseURL        string
+	httpClient     *http.Client
+	requestCounter int64
+}
+
+// NewTestClient creates a new test client
+func NewTestClient(baseURL string) *TestClient {
+	return &TestClient{
+		baseURL:    baseURL,
+		httpClient: &http.Client{Timeout: 30 * time.Second},
+	}
 }
 
 // LoadWorker represents a worker generating load
@@ -215,7 +229,7 @@ type LatencyStats struct {
 }
 
 // LatencyDataPoint represents a latency measurement over time
-type LatencyDataPoint struct {
+type SLALatencyDataPoint struct {
 	Timestamp time.Time `json:"timestamp"`
 	P95       float64   `json:"p95"`
 	P99       float64   `json:"p99"`
@@ -247,7 +261,7 @@ type ResourceBreakdown struct {
 }
 
 // ResourceDataPoint represents resource usage over time
-type ResourceDataPoint struct {
+type SLAResourceDataPoint struct {
 	Timestamp time.Time `json:"timestamp"`
 	Value     float64   `json:"value"`
 }
@@ -267,6 +281,47 @@ type LatencyRecorder struct {
 	mutex        sync.RWMutex
 	histogram    map[time.Duration]int64
 	startTime    time.Time
+}
+
+// CPUProfiler provides CPU profiling capabilities
+type CPUProfiler struct {
+	enabled bool
+}
+
+// MemoryProfiler provides memory profiling capabilities
+type MemoryProfiler struct {
+	enabled bool
+}
+
+// TraceProfiler provides trace profiling capabilities
+type TraceProfiler struct {
+	enabled bool
+}
+
+// Stats types for performance monitoring
+type MemoryStats struct {
+	HeapUsed  int64
+	HeapTotal int64
+	StackUsed int64
+}
+
+type CPUStats struct {
+	UserTime   int64
+	SystemTime int64
+	Percentage float64
+}
+
+type GoroutineStats struct {
+	Count   int
+	Running int
+	Waiting int
+}
+
+type GCStats struct {
+	NumGC       uint32
+	TotalPause  int64
+	LastGCTime  int64
+	MemoryFreed int64
 }
 
 // RealtimeMetrics tracks metrics in real-time during testing
@@ -294,7 +349,7 @@ type ProfileData struct {
 	Type      string                 `json:"type"`
 	StartTime time.Time              `json:"start_time"`
 	EndTime   time.Time              `json:"end_time"`
-	Data      map[string]interface{} `json:"data"`
+	Data      json.RawMessage `json:"data"`
 }
 
 // ResourceMonitor monitors system resource usage

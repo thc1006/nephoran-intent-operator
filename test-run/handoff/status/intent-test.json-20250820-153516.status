@@ -1,0 +1,10 @@
+{
+  "intent_file": "intent-test.json",
+  "message": "JSON validation failed: failed to stat file: CreateFile C:\\Users\\tingy\\dev\\_worktrees\\nephoran\\feat-conductor-loop\\test-run\\handoff\\intent-test.json: The system cannot find the file specified.",
+  "mode": "direct",
+  "porch_path": "echo",
+  "processed_by": "conductor-loop",
+  "status": "failed",
+  "timestamp": "2025-08-20T15:35:16+08:00",
+  "worker_id": "worker-2"
+}

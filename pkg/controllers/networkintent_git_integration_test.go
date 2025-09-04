@@ -1,14 +1,13 @@
+//go:build integration
+
 package controllers
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
 	"path/filepath"
-	"testing"
-	"time"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
@@ -18,14 +17,10 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
-	ctrl "sigs.k8s.io/controller-runtime"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	gitclient "github.com/thc1006/nephoran-intent-operator/pkg/git"
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 var _ = Describe("NetworkIntent Controller (GitOps Integration)", func() {

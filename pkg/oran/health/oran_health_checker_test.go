@@ -1,19 +1,16 @@
-package health
+package oranhealth
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/health"
-	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/a1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/e2"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2"
 )
 
 func TestNewORANHealthChecker(t *testing.T) {
@@ -112,7 +109,7 @@ func TestORANHealthChecker_InterfaceHealthChecks(t *testing.T) {
 	a1Adaptor, _ := a1.NewA1Adaptor(nil)
 	e2Adaptor, _ := e2.NewE2Adaptor(nil)
 
-	checker := NewORANHealthChecker(
+	_ = NewORANHealthChecker(
 		healthChecker,
 		a1Adaptor,
 		e2Adaptor,
@@ -309,11 +306,7 @@ func TestHealthSnapshot_Structure(t *testing.T) {
 		DependencyStatus: map[string]health.Status{
 			"ric": health.StatusHealthy,
 		},
-		CircuitBreakerStats: map[string]interface{}{
-			"a1": map[string]interface{}{
-				"state": "closed",
-			},
-		},
+		CircuitBreakerStats: json.RawMessage(`{"state": "closed"}`),
 		Metrics: HealthMetrics{
 			TotalChecks:         10,
 			HealthyChecks:       9,

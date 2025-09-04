@@ -1,0 +1,532 @@
+# Security Metrics Dashboard Configuration for Nephoran Intent Operator
+# Comprehensive security monitoring and metrics visualization
+
+metadata:
+  name: "nephoran-security-metrics-dashboard"
+  version: "1.1.0"
+  description: "Security metrics dashboard for comprehensive monitoring"
+  updated: "2025-01-24T00:00:00Z"
+  maintainer: "security-team@nephoran.io"
+
+# Grafana Dashboard Configuration
+grafana:
+  dashboard:
+    id: 10001
+    title: "Nephoran Security Metrics Dashboard"
+    tags: ["security", "compliance", "vulnerabilities", "nephoran"]
+    timezone: "UTC"
+    refresh: "30s"
+    time_range:
+      from: "now-24h"
+      to: "now"
+    
+    panels:
+      # Security Overview Panel
+      - id: 1
+        title: "Security Overview"
+        type: "stat"
+        gridPos:
+          h: 8
+          w: 24
+          x: 0
+          y: 0
+        targets:
+          - expr: 'sum(security_vulnerabilities_total{namespace="nephoran-system"})'
+            legend: "Total Vulnerabilities"
+          - expr: 'sum(security_vulnerabilities_total{namespace="nephoran-system", severity="critical"})'
+            legend: "Critical Vulnerabilities"
+          - expr: 'sum(security_vulnerabilities_total{namespace="nephoran-system", severity="high"})'
+            legend: "High Vulnerabilities"
+          - expr: 'sum(security_incidents_active{namespace="nephoran-system"})'
+            legend: "Active Incidents"
+        fieldConfig:
+          defaults:
+            color:
+              mode: "palette-classic"
+            thresholds:
+              steps:
+                - color: "green"
+                  value: null
+                - color: "yellow"
+                  value: 10
+                - color: "red"
+                  value: 50
+        
+      # Vulnerability Trends
+      - id: 2
+        title: "Vulnerability Trends (Last 7 Days)"
+        type: "graph"
+        gridPos:
+          h: 8
+          w: 12
+          x: 0
+          y: 8
+        targets:
+          - expr: 'sum(rate(security_vulnerabilities_discovered_total{namespace="nephoran-system"}[1h])) by (severity)'
+            legend: "{{severity}} Vulnerabilities"
+        yAxes:
+          - label: "Vulnerabilities per Hour"
+            min: 0
+        legend:
+          show: true
+          values: true
+          
+      # Security Score Gauge
+      - id: 3
+        title: "Overall Security Score"
+        type: "gauge"
+        gridPos:
+          h: 8
+          w: 12
+          x: 12
+          y: 8
+        targets:
+          - expr: 'security_compliance_score{namespace="nephoran-system", framework="overall"}'
+        fieldConfig:
+          defaults:
+            min: 0
+            max: 100
+            thresholds:
+              steps:
+                - color: "red"
+                  value: 0
+                - color: "yellow"
+                  value: 70
+                - color: "green"
+                  value: 90
+        
+      # Container Security Status
+      - id: 4
+        title: "Container Security Status"
+        type: "table"
+        gridPos:
+          h: 8
+          w: 12
+          x: 0
+          y: 16
+        targets:
+          - expr: 'container_security_scan_results{namespace="nephoran-system"}'
+            format: "table"
+        transformations:
+          - id: "organize"
+            options:
+              excludeByName: {}
+              indexByName:
+                container: 0
+                image: 1
+                vulnerabilities: 2
+                last_scan: 3
+                status: 4
+        
+      # Network Policy Compliance
+      - id: 5
+        title: "Network Policy Compliance"
+        type: "piechart"
+        gridPos:
+          h: 8
+          w: 12
+          x: 12
+          y: 16
+        targets:
+          - expr: 'network_policy_compliance{namespace="nephoran-system"}'
+            legend: "{{policy_type}}"
+        
+      # Incident Response Metrics
+      - id: 6
+        title: "Incident Response Metrics"
+        type: "graph"
+        gridPos:
+          h: 8
+          w: 24
+          x: 0
+          y: 24
+        targets:
+          - expr: 'avg(security_incident_response_time{namespace="nephoran-system"}) by (severity)'
+            legend: "Mean Response Time - {{severity}}"
+          - expr: 'avg(security_incident_resolution_time{namespace="nephoran-system"}) by (severity)'
+            legend: "Mean Resolution Time - {{severity}}"
+        yAxes:
+          - label: "Time (minutes)"
+            min: 0
+            
+      # Compliance Framework Status
+      - id: 7
+        title: "Compliance Framework Status"
+        type: "bargauge"
+        gridPos:
+          h: 8
+          w: 12
+          x: 0
+          y: 32
+        targets:
+          - expr: 'compliance_score{namespace="nephoran-system"}'
+            legend: "{{framework}}"
+        fieldConfig:
+          defaults:
+            min: 0
+            max: 100
+            thresholds:
+              steps:
+                - color: "red"
+                  value: 0
+                - color: "yellow"
+                  value: 70
+                - color: "green"
+                  value: 90
+        
+      # Security Tool Status
+      - id: 8
+        title: "Security Tool Status"
+        type: "stat"
+        gridPos:
+          h: 8
+          w: 12
+          x: 12
+          y: 32
+        targets:
+          - expr: 'security_tool_status{namespace="nephoran-system"}'
+            legend: "{{tool}}"
+        fieldConfig:
+          defaults:
+            mappings:
+              - options:
+                  "0": 
+                    text: "DOWN"
+                    color: "red"
+                  "1": 
+                    text: "UP"
+                    color: "green"
+                type: "value"
+                
+      # Top Vulnerabilities by CVSS Score
+      - id: 9
+        title: "Top Vulnerabilities by CVSS Score"
+        type: "table"
+        gridPos:
+          h: 8
+          w: 24
+          x: 0
+          y: 40
+        targets:
+          - expr: 'topk(10, vulnerability_cvss_score{namespace="nephoran-system"})'
+            format: "table"
+        transformations:
+          - id: "organize"
+            options:
+              indexByName:
+                cve_id: 0
+                cvss_score: 1
+                severity: 2
+                component: 3
+                description: 4
+                
+      # Security Events Timeline
+      - id: 10
+        title: "Security Events Timeline"
+        type: "logs"
+        gridPos:
+          h: 8
+          w: 24
+          x: 0
+          y: 48
+        targets:
+          - expr: '{namespace="nephoran-system", level=~"warn|error|critical"} |= "security"'
+        options:
+          showTime: true
+          sortOrder: "Descending"
+          
+# Prometheus Metrics Configuration
+prometheus:
+  metrics:
+    # Vulnerability Metrics
+    vulnerability_metrics:
+      - name: "security_vulnerabilities_total"
+        help: "Total number of security vulnerabilities"
+        type: "gauge"
+        labels: ["namespace", "severity", "component", "tool"]
+        
+      - name: "security_vulnerabilities_discovered_total"
+        help: "Total number of vulnerabilities discovered"
+        type: "counter"
+        labels: ["namespace", "severity", "component", "tool"]
+        
+      - name: "vulnerability_cvss_score"
+        help: "CVSS score of vulnerabilities"
+        type: "gauge"
+        labels: ["namespace", "cve_id", "component", "severity"]
+        
+      - name: "vulnerability_age_days"
+        help: "Age of unresolved vulnerabilities in days"
+        type: "gauge"
+        labels: ["namespace", "cve_id", "severity"]
+    
+    # Compliance Metrics
+    compliance_metrics:
+      - name: "compliance_score"
+        help: "Compliance score for security frameworks"
+        type: "gauge"
+        labels: ["namespace", "framework", "control_family"]
+        
+      - name: "compliance_controls_passed"
+        help: "Number of compliance controls passed"
+        type: "gauge"
+        labels: ["namespace", "framework"]
+        
+      - name: "compliance_controls_failed"
+        help: "Number of compliance controls failed"
+        type: "gauge"
+        labels: ["namespace", "framework"]
+        
+      - name: "compliance_last_assessment_timestamp"
+        help: "Timestamp of last compliance assessment"
+        type: "gauge"
+        labels: ["namespace", "framework"]
+    
+    # Security Incident Metrics
+    incident_metrics:
+      - name: "security_incidents_total"
+        help: "Total number of security incidents"
+        type: "counter"
+        labels: ["namespace", "severity", "type", "status"]
+        
+      - name: "security_incidents_active"
+        help: "Number of active security incidents"
+        type: "gauge"
+        labels: ["namespace", "severity", "type"]
+        
+      - name: "security_incident_response_time"
+        help: "Time to respond to security incidents"
+        type: "histogram"
+        labels: ["namespace", "severity", "type"]
+        buckets: [1, 5, 15, 30, 60, 180, 360, 720, 1440]  # minutes
+        
+      - name: "security_incident_resolution_time"
+        help: "Time to resolve security incidents"
+        type: "histogram"
+        labels: ["namespace", "severity", "type"]
+        buckets: [60, 240, 480, 720, 1440, 2880, 7200, 14400]  # minutes
+    
+    # Container Security Metrics
+    container_metrics:
+      - name: "container_security_scan_results"
+        help: "Results of container security scans"
+        type: "gauge"
+        labels: ["namespace", "container", "image", "scanner", "status"]
+        
+      - name: "container_vulnerabilities_by_severity"
+        help: "Container vulnerabilities grouped by severity"
+        type: "gauge"
+        labels: ["namespace", "container", "image", "severity"]
+        
+      - name: "container_last_scan_timestamp"
+        help: "Timestamp of last container scan"
+        type: "gauge"
+        labels: ["namespace", "container", "image"]
+    
+    # Network Security Metrics
+    network_metrics:
+      - name: "network_policy_compliance"
+        help: "Network policy compliance status"
+        type: "gauge"
+        labels: ["namespace", "policy_type", "status"]
+        
+      - name: "network_security_violations"
+        help: "Network security policy violations"
+        type: "counter"
+        labels: ["namespace", "source", "destination", "policy"]
+        
+      - name: "tls_certificate_expiry_days"
+        help: "Days until TLS certificate expiry"
+        type: "gauge"
+        labels: ["namespace", "service", "certificate_name"]
+    
+    # Authentication and Authorization Metrics
+    auth_metrics:
+      - name: "authentication_failures"
+        help: "Number of authentication failures"
+        type: "counter"
+        labels: ["namespace", "service", "user", "reason"]
+        
+      - name: "authorization_denials"
+        help: "Number of authorization denials"
+        type: "counter"
+        labels: ["namespace", "service", "user", "resource", "action"]
+        
+      - name: "rbac_policy_violations"
+        help: "RBAC policy violations"
+        type: "counter"
+        labels: ["namespace", "user", "resource", "action"]
+    
+    # Security Tool Metrics
+    tool_metrics:
+      - name: "security_tool_status"
+        help: "Status of security tools"
+        type: "gauge"
+        labels: ["namespace", "tool", "version"]
+        
+      - name: "security_scan_duration"
+        help: "Duration of security scans"
+        type: "histogram"
+        labels: ["namespace", "tool", "scan_type"]
+        buckets: [10, 30, 60, 300, 600, 1800, 3600]  # seconds
+        
+      - name: "security_scan_errors"
+        help: "Number of security scan errors"
+        type: "counter"
+        labels: ["namespace", "tool", "error_type"]
+
+# Alerting Rules Configuration
+alerting:
+  rules:
+    # Critical Vulnerability Alerts
+    - alert: "CriticalVulnerabilityDetected"
+      expr: 'sum(security_vulnerabilities_total{severity="critical", namespace="nephoran-system"}) > 0'
+      for: "0m"
+      labels:
+        severity: "critical"
+        team: "security"
+      annotations:
+        summary: "Critical vulnerabilities detected in Nephoran system"
+        description: "{{ $value }} critical vulnerabilities found in {{ $labels.namespace }}"
+        runbook_url: "https://docs.nephoran.io/runbooks/critical-vulnerabilities"
+        
+    - alert: "HighSeverityIncident"
+      expr: 'sum(security_incidents_active{severity=~"critical|high", namespace="nephoran-system"}) > 0'
+      for: "0m"
+      labels:
+        severity: "critical"
+        team: "security"
+      annotations:
+        summary: "High severity security incident active"
+        description: "{{ $value }} high/critical severity incidents active in {{ $labels.namespace }}"
+        
+    - alert: "ComplianceScoreLow"
+      expr: 'security_compliance_score{namespace="nephoran-system"} < 70'
+      for: "5m"
+      labels:
+        severity: "warning"
+        team: "security"
+      annotations:
+        summary: "Security compliance score below threshold"
+        description: "Compliance score for {{ $labels.framework }} is {{ $value }}% (threshold: 70%)"
+        
+    - alert: "SecurityToolDown"
+      expr: 'security_tool_status{namespace="nephoran-system"} == 0'
+      for: "2m"
+      labels:
+        severity: "warning"
+        team: "security"
+      annotations:
+        summary: "Security tool unavailable"
+        description: "Security tool {{ $labels.tool }} is down in {{ $labels.namespace }}"
+        
+    - alert: "TLSCertificateExpiring"
+      expr: 'tls_certificate_expiry_days{namespace="nephoran-system"} < 30'
+      for: "1h"
+      labels:
+        severity: "warning"
+        team: "security"
+      annotations:
+        summary: "TLS certificate expiring soon"
+        description: "TLS certificate {{ $labels.certificate_name }} expires in {{ $value }} days"
+        
+    - alert: "ExcessiveAuthenticationFailures"
+      expr: 'rate(authentication_failures{namespace="nephoran-system"}[5m]) > 10'
+      for: "2m"
+      labels:
+        severity: "warning"
+        team: "security"
+      annotations:
+        summary: "High rate of authentication failures"
+        description: "{{ $value }} authentication failures per second in {{ $labels.namespace }}"
+        
+    - alert: "NetworkPolicyViolation"
+      expr: 'rate(network_security_violations{namespace="nephoran-system"}[5m]) > 1'
+      for: "1m"
+      labels:
+        severity: "warning"
+        team: "security"
+      annotations:
+        summary: "Network policy violations detected"
+        description: "{{ $value }} network policy violations per second in {{ $labels.namespace }}"
+
+# Security KPIs and SLIs Configuration
+kpis:
+  security_kpis:
+    # Security Posture KPIs
+    - name: "overall_security_score"
+      description: "Overall security posture score"
+      target: 90
+      warning_threshold: 80
+      critical_threshold: 70
+      calculation: "weighted_average(compliance_scores)"
+      
+    - name: "vulnerability_remediation_time"
+      description: "Mean time to remediate vulnerabilities"
+      target: "72h"
+      warning_threshold: "168h"  # 1 week
+      critical_threshold: "336h"  # 2 weeks
+      calculation: "avg(vulnerability_resolution_time)"
+      
+    - name: "incident_response_time"
+      description: "Mean time to respond to security incidents"
+      target: "15m"
+      warning_threshold: "60m"
+      critical_threshold: "240m"
+      calculation: "avg(security_incident_response_time)"
+      
+    - name: "security_scan_coverage"
+      description: "Percentage of assets covered by security scans"
+      target: 95
+      warning_threshold: 90
+      critical_threshold: 80
+      calculation: "scanned_assets / total_assets * 100"
+      
+    - name: "false_positive_rate"
+      description: "Rate of false positive security alerts"
+      target: 5
+      warning_threshold: 10
+      critical_threshold: 20
+      calculation: "false_positives / total_alerts * 100"
+
+# Dashboard Automation Configuration
+automation:
+  refresh_intervals:
+    real_time_panels: "30s"
+    trend_panels: "5m"
+    compliance_panels: "1h"
+    
+  data_retention:
+    metrics: "90d"
+    logs: "30d"
+    incidents: "365d"
+    
+  export_schedules:
+    daily_summary: "0 8 * * *"  # 8 AM daily
+    weekly_report: "0 8 * * 1"  # 8 AM Monday
+    monthly_report: "0 8 1 * *" # 8 AM 1st of month
+    
+  integrations:
+    slack:
+      webhook_url: "${SLACK_WEBHOOK_URL}"
+      channels:
+        critical: "#security-critical"
+        warnings: "#security-alerts"
+        reports: "#security-reports"
+        
+    email:
+      smtp_server: "${SMTP_SERVER}"
+      recipients:
+        executives: ["ciso@nephoran.io", "cto@nephoran.io"]
+        security_team: ["security-team@nephoran.io"]
+        ops_team: ["devops-team@nephoran.io"]
+        
+    jira:
+      server_url: "${JIRA_SERVER_URL}"
+      project_key: "SEC"
+      auto_create_tickets: true
+      severity_mapping:
+        critical: "Highest"
+        high: "High"
+        medium: "Medium"
+        low: "Low"

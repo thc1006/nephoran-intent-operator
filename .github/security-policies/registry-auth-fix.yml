@@ -1,0 +1,185 @@
+# Registry Authentication Fix Configuration
+# Addresses GitHub Container Registry authentication issues
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: registry-auth-config
+  namespace: ci-security
+
+data:
+  # GitHub Container Registry Configuration
+  ghcr-config.json: |
+    {
+      "auths": {
+        "ghcr.io": {
+          "auth": "{{ .Env.GITHUB_TOKEN | b64enc }}"
+        }
+      },
+      "credsStore": "github",
+      "experimental": "enabled",
+      "features": {
+        "buildkit": true
+      }
+    }
+  
+  # Docker Buildx Configuration for Security
+  buildx-config.toml: |
+    [worker.oci]
+      max-parallelism = 2
+      gc-policy = [
+        {keep-duration = "24h"},
+        {keep-bytes = "1GB"}
+      ]
+    
+    [registry."ghcr.io"]
+      http = false
+      insecure = false
+      ca = "/etc/ssl/certs/ca-certificates.crt"
+      
+    [registry."docker.io"]
+      http = false
+      insecure = false
+      mirrors = ["mirror.gcr.io"]
+      
+  # Security Environment Variables
+  security-env.sh: |
+    #!/bin/bash
+    # Security environment setup for CI/CD
+    
+    export DOCKER_CONTENT_TRUST=1
+    export DOCKER_CONTENT_TRUST_SERVER=https://notary.docker.io
+    export COSIGN_EXPERIMENTAL=1
+    export SIGSTORE_NO_DEFAULT_OID=false
+    
+    # FIPS 140-3 Configuration
+    export GODEBUG=fips140=on
+    export OPENSSL_FIPS=1
+    export GO_FIPS=1
+    
+    # Registry Security
+    export REGISTRY_HTTP_TLS_CERTIFICATE=/etc/ssl/certs/registry.crt
+    export REGISTRY_HTTP_TLS_KEY=/etc/ssl/certs/registry.key
+    export REGISTRY_HTTP_TLS_CLIENTCAS=["/etc/ssl/certs/ca-certificates.crt"]
+    
+    # BuildKit Security
+    export BUILDKIT_HOST=docker-container://buildkitd
+    export BUILDKIT_TLS_SERVERNAME=buildkitd
+    export BUILDKIT_TLS_CACERT=/etc/ssl/certs/ca-certificates.crt
+    
+    echo "Security environment configured"
+    
+  # Token Permission Validation Script
+  validate-permissions.sh: |
+    #!/bin/bash
+    # Validate GitHub token permissions
+    
+    set -euo pipefail
+    
+    echo "=== GitHub Token Permission Validation ==="
+    
+    # Check required permissions
+    REQUIRED_PERMISSIONS=(
+      "contents:read"
+      "packages:write"
+      "attestations:write"
+      "security-events:write"
+      "id-token:write"
+    )
+    
+    # Validate token exists
+    if [[ -z "${GITHUB_TOKEN:-}" ]]; then
+      echo "ERROR: GITHUB_TOKEN not set" >&2
+      exit 1
+    fi
+    
+    echo "Token length: ${#GITHUB_TOKEN}"
+    echo "Token prefix: ${GITHUB_TOKEN:0:10}..."
+    
+    # Test registry access
+    echo "Testing registry authentication..."
+    echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin || {
+      echo "ERROR: Registry authentication failed" >&2
+      echo "This may be due to:" >&2
+      echo "1. Insufficient token permissions" >&2
+      echo "2. Registry service unavailable" >&2
+      echo "3. Network connectivity issues" >&2
+      exit 1
+    }
+    
+    echo "[OK] Registry authentication successful"
+    
+    # Test package write access
+    echo "Testing package write permissions..."
+    REPO_LOWER=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
+    TEST_IMAGE="ghcr.io/${REPO_LOWER}/test:${GITHUB_SHA}"
+    
+    # Create minimal test image
+    cat > Dockerfile.test << 'EOF'
+    FROM alpine:latest
+    CMD ["echo", "test"]
+    EOF
+    
+    docker build -t "$TEST_IMAGE" -f Dockerfile.test . || {
+      echo "ERROR: Test image build failed" >&2
+      exit 1
+    }
+    
+    docker push "$TEST_IMAGE" || {
+      echo "ERROR: Package write permission failed" >&2
+      echo "Ensure GITHUB_TOKEN has packages:write permission" >&2
+      exit 1
+    }
+    
+    # Clean up test image
+    rm -f Dockerfile.test
+    docker rmi "$TEST_IMAGE" 2>/dev/null || true
+    
+    echo "[OK] All permission validations passed"
+    
+  # Registry Error Handler
+  handle-registry-errors.sh: |
+    #!/bin/bash
+    # Handle common registry authentication errors
+    
+    set -euo pipefail
+    
+    ERROR_CODE=${1:-0}
+    ERROR_MESSAGE=${2:-"Unknown error"}
+    
+    echo "=== Registry Error Handler ==="
+    echo "Error code: $ERROR_CODE"
+    echo "Error message: $ERROR_MESSAGE"
+    
+    case $ERROR_CODE in
+      403)
+        echo "ERROR: 403 Forbidden - Authentication/Authorization issue"
+        echo "Solutions:"
+        echo "1. Check GITHUB_TOKEN has packages:write permission"
+        echo "2. Verify repository access permissions"
+        echo "3. Ensure token is not expired"
+        echo "4. Check if repository is private and token has access"
+        ;;
+      401)
+        echo "ERROR: 401 Unauthorized - Invalid credentials"
+        echo "Solutions:"
+        echo "1. Regenerate GITHUB_TOKEN"
+        echo "2. Check token format and encoding"
+        echo "3. Verify token scope includes required permissions"
+        ;;
+      500|502|503|504)
+        echo "ERROR: Registry service error - Temporary issue"
+        echo "Solutions:"
+        echo "1. Retry the operation after a delay"
+        echo "2. Check GitHub status page for service issues"
+        echo "3. Use alternative registry mirrors if available"
+        ;;
+      *)
+        echo "ERROR: Unexpected error code"
+        echo "Check logs for detailed error information"
+        ;;
+    esac
+    
+    echo ""
+    echo "Registry troubleshooting completed"
+    exit $ERROR_CODE

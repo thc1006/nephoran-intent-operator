@@ -4,7 +4,7 @@ This document defines the branch protection rules for the Nephoran Intent Operat
 
 ## Protected Branches
 
-### main
+### Main
 Primary production branch with the following protections:
 
 **Status Checks Required:**

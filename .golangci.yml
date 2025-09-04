@@ -1,82 +1,195 @@
-# golangci-lint config (v2). This file is designed to pass in CI for MVP.
-# It uses the new schema/keys so config verification won't fail.
-# Ref: https://golangci-lint.run/docs/configuration/file/
-
-version: "2"
+# golangci-lint configuration for Nephoran Intent Operator
+# Comprehensive linting with performance optimizations for CI/CD
 
 run:
-  # Total timeout for the whole run.
-  timeout: 5m
-  # Make paths relative to go.mod so filters work the same locally/CI.
-  relative-path-mode: gomod
-  # Avoid modifying go.mod/go.sum during lint.
-  modules-download-mode: readonly
-  # 🚦 IMPORTANT: do not fail CI because of linter findings during MVP.
-  # 0 means: exit code 0 even if issues are found.
-  issues-exit-code: 0
-  # Keep tests included (some linters look at *_test.go).
+  timeout: 45m
+  go: '1.24'
   tests: true
-  # Allow multiple runners on CI to reduce flakiness.
-  allow-parallel-runners: true
-  allow-serial-runners: true
+  build-tags:
+    - integration
+    - netgo
+    - osusergo
 
 linters:
-  # Start minimal: enable a few safe/default linters.
-  # You can add more later without breaking CI.
-  default: none
-  enable:
-    - govet
-    - staticcheck
-    - errcheck
-    - revive
+  enable-all: true
+  disable:
+    # Disable only the most problematic linters
+    - unused        # Too many false positives in interface implementations
+    - unparam       # Too aggressive for interface implementations
+    - dupl          # Too many false positives
+    - varnamelen    # Short variable names are OK in Go idioms
+    - exhaustive    # Not always needed for non-critical switches
 
 linters-settings:
+  errcheck:
+    check-type-assertions: false
+    check-blank: false
+    exclude-functions:
+      - io.Copy
+      - io.WriteString
+      - fmt.Print
+      - fmt.Printf
+      - fmt.Println
+      - fmt.Fprint
+      - fmt.Fprintf
+      - fmt.Fprintln
+
+  govet:
+    enable-all: true
+    disable:
+      - shadow
+      - fieldalignment  # Struct field alignment optimization not critical
+
+  gosec:
+    excludes:
+      - G104  # Errors unhandled - covered by errcheck
+      - G307  # Deferring unsafe method - false positives
+      - G601  # Implicit memory aliasing - too many false positives
+    # Security settings - strict mode for v1.64.3+
+    severity: high
+    confidence: medium
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+    disabled-checks:
+      - hugeParam      # Large params are sometimes necessary
+      - rangeValCopy   # Range value copies are sometimes OK
+      - appendAssign   # Append assignments are clear enough
+      - commentedOutCode # Sometimes useful for debugging
+
   revive:
-    # A gentle ruleset; strict ones can be added later.
-    severity: warning
     rules:
-      - name: blank-imports
-      - name: context-as-argument
       - name: exported
-        arguments: ["disableStutteringCheck"]
-      - name: receiver-naming
-      - name: increment-decrement
+        disabled: true  # Too many false positives
+      - name: var-naming
+        disabled: true  # Too strict for some cases
+      - name: if-return
+        disabled: true  # Sometimes clearer with if
+      - name: max-public-structs
+        disabled: true  # Not relevant
+      - name: cognitive-complexity
+        disabled: true  # Sometimes complexity is needed
 
-# All issue-related filters and exclusions live under "issues" in v2.
+  staticcheck:
+    checks: ["all", "-ST1000", "-ST1003", "-ST1016", "-ST1020", "-ST1021", "-ST1022"]
+
+  stylecheck:
+    checks: ["all", "-ST1000", "-ST1003", "-ST1016", "-ST1020", "-ST1021", "-ST1022"]
+    initialisms: ["ACL", "API", "ASCII", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", 
+                  "HTTP", "HTTPS", "ID", "IP", "JSON", "JWT", "LHS", "QPS", "RAM", 
+                  "RHS", "RPC", "SLA", "SMTP", "SQL", "SSH", "TCP", "TLS", "TTL", 
+                  "UDP", "UI", "UID", "UUID", "URI", "URL", "UTF8", "VM", "XML", 
+                  "XMPP", "XSRF", "XSS", "CNF", "VNF", "AMF", "SMF", "UPF", "RIC",
+                  "O1", "O2", "E2", "A1", "ORAN", "KPM", "FCAPS", "VES", "LLM", "RAG"]
+
+  prealloc:
+    simple: false
+    range-loops: false
+    for-loops: false
+
+  gci:
+    sections:
+      - standard
+      - default
+      - prefix(github.com/thc1006/nephoran-intent-operator)
+
+# Issue handling configuration
 issues:
-  # Only flag problems introduced in this branch by default.
-  # （在大型既有專案中非常好用，不會一次炸出歷史債）
-  new: false
-  # 如果要只看 PR 相對於 integrate/mvp 的新問題，可把上面改回 true，
-  # 並設 new-from-merge-base: integrate/mvp
-  # new-from-merge-base: integrate/mvp
-
-  # Don’t limit counts while we’re stabilizing the codebase.
-  max-issues-per-linter: 0
   max-same-issues: 0
-  uniq-by-line: true
+  max-issues-per-linter: 0
+  
+  # Use default exclude patterns (vendor, third_party, etc.)
+  exclude-use-default: true
 
-  # v2：請用 exclusions/paths 來取代 run.skip-files / run.skip-dirs
-  exclusions:
-    generated: lax
-    warn-unused: true
-    # 針對特定訊息或特定 linter 的例外可在這裡新增 rules
-    rules: []
+  # Files to exclude from linting
+  exclude-files:
+    - ".*\\.pb\\.go$"
+    - ".*_generated\\.go$"
+    - "zz_generated.*.go$"
 
-  # 這些 path 仍會被分析，但不會回報 issue（取代舊 skip-*）
-  # 使用相對 go.mod 的路徑；Windows/CI 皆適用（/ 會自動換成系統分隔符）
-  paths:
-    - "^docs/.*"
-    - "^examples/.*"
-    - "^deployments/.*"
-    - "^testdata/.*"
-    - "^vendor/.*"
-  # 若要取消前述某些排除，可放在 paths-except
-  paths-except: []
+  # Directories to exclude from linting  
+  exclude-dirs:
+    - vendor
+    - third_party
+    - testdata
+    - examples
+    - docs
+    - _examples
+    - tools
+    - .git
+    - bin
+    - deployments
 
-# Optional: 未來若你要輸出 JUnit/SARIF 報告，可在這裡加上。
+  exclude-rules:
+    # Exclude test files from certain linters
+    - path: "_test\\.go"
+      linters:
+        - errcheck
+        - gosec
+        - dupl
+        - funlen
+        - goconst
+        - unparam
+
+    # Exclude generated files
+    - path: "_generated\\.go"
+      linters:
+        - all
+
+    # Exclude certain patterns
+    - path: "api/.*\\.go"
+      linters:
+        - revive
+      text: "exported"
+
+    # Allow TODO comments
+    - text: "TODO"
+      linters:
+        - godot
+
+    # Allow large functions in main packages
+    - path: "cmd/.*/main\\.go"
+      linters:
+        - funlen
+        - gocyclo
+        - gocognit
+
+    # Allow unused parameters in interface implementations
+    - path: ".*"
+      text: "unused-parameter"
+      linters:
+        - revive
+
+    # Allow certain gosec issues in non-critical code
+    - path: "internal/.*"
+      linters:
+        - gosec
+      text: "G115"
+
+    # Contextcheck exceptions for background workers
+    - path: ".*"
+      text: "Non-inherited new context"
+      linters:
+        - contextcheck
+
+  exclude:
+    # Common false positives
+    - "Error return value of .((Close|Write|Flush|Remove|Rollback)|(.*\\.Wait)) is not checked"
+    - "exported (type|method|function|const|var) .* should have comment or be unexported"
+    - "should have a package comment"
+    - "(comment on exported (method|function|type|const)|should have( a package)? comment|comment should be of the form)"
+    - "at least one file in a package should have a package comment"
+
+# Output format configuration
 output:
-  # 預設 text 輸出即可；CI Action 會轉成 annotation。
   formats:
-    text:
+    - format: colored-line-number
       path: stdout
+    - format: sarif
+      path: golangci-lint-report.sarif  
+  print-issued-lines: true
+  print-linter-name: true
+  sort-results: true

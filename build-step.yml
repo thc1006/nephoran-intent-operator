@@ -1,0 +1,126 @@
+      - name: Build and push container image with smart infrastructure-aware strategy
+        id: build
+        env:
+          DOCKER_BUILDKIT: 1
+          BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+          DOCKER_CLI_EXPERIMENTAL: enabled
+          BUILDKIT_PROGRESS: plain
+        run: |
+          echo "=== Smart Docker build with infrastructure-aware resilience ==="
+          
+          # Build configuration
+          IMAGE_NAME="ghcr.io/${{ github.repository_owner }}/nephoran-intent-operator"
+          PLATFORMS="${{ env.PLATFORMS }}"
+          SERVICE_NAME="conductor-loop"
+          BUILD_VERSION="${{ github.sha }}"
+          SHOULD_PUSH="${{ github.event_name != 'pull_request' }}"
+          
+          echo "Build configuration:"
+          echo "  Image: $IMAGE_NAME"
+          echo "  Platforms: $PLATFORMS"
+          echo "  Service: $SERVICE_NAME"
+          echo "  Version: $BUILD_VERSION"
+          echo "  Push: $SHOULD_PUSH"
+          echo "  Infrastructure status:"
+          echo "    GHA Cache: ${GHA_CACHE_AVAILABLE:-unknown}"
+          echo "    Available registries: ${AVAILABLE_REGISTRIES:-unknown}"
+          
+          # Use the smart build script for infrastructure-aware building
+          echo "Executing smart build script..."
+          
+          if ./scripts/smart-docker-build.sh \
+               "$SERVICE_NAME" \
+               "$IMAGE_NAME" \
+               "$BUILD_VERSION" \
+               "$PLATFORMS" \
+               "$SHOULD_PUSH"; then
+            echo "Smart build completed successfully!"
+            
+            # Try to capture build digest
+            if [ "$SHOULD_PUSH" = "true" ]; then
+              sleep 5
+              digest=$(docker buildx imagetools inspect "$IMAGE_NAME:$BUILD_VERSION" --format '{{.Manifest.Digest}}' 2>/dev/null || echo "")
+              if [ -n "$digest" ]; then
+                echo "digest=$digest" >> $GITHUB_OUTPUT
+                echo "Build digest: $digest"
+              fi
+            fi
+            
+            echo "status=success" >> $GITHUB_OUTPUT
+          else
+            echo "Smart build failed - check infrastructure status"
+            echo "status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Generate build summary
+        id: build-summary
+        if: always()
+        run: |
+          echo "## Build Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          build_status="${{ steps.build.outputs.status }}"
+          image_digest="${{ steps.build.outputs.digest }}"
+          
+          # Check binary builds
+          if [ -f "dist/manager-linux-amd64" ] && [ -f "dist/manager-linux-arm64" ]; then
+            echo "**Binaries built successfully**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Architecture | Size | Status |" >> $GITHUB_STEP_SUMMARY
+            echo "|-------------|------|--------|" >> $GITHUB_STEP_SUMMARY
+            
+            for arch in amd64 arm64; do
+              binary="dist/manager-linux-$arch"
+              if [ -f "$binary" ]; then
+                size=$(stat -c%s "$binary" | awk '{printf "%.1f MB", $1/1024/1024}')
+                echo "| linux/$arch | $size | Built |" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "| linux/$arch | - | Failed |" >> $GITHUB_STEP_SUMMARY
+              fi
+            done
+            
+            build_status="binaries_ok"
+          else
+            echo "**Binary build failed**" >> $GITHUB_STEP_SUMMARY
+            build_status="binaries_failed"
+          fi
+          
+          # Check container build
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -n "$image_digest" ]; then
+            echo "**Container image built successfully**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Image Details:**" >> $GITHUB_STEP_SUMMARY
+            echo "- Digest: \`$image_digest\`" >> $GITHUB_STEP_SUMMARY
+            echo "- Platforms: ${{ env.PLATFORMS }}" >> $GITHUB_STEP_SUMMARY
+            echo "- Registry: \`${{ env.REGISTRY_BASE }}/nephoran-intent-operator\`" >> $GITHUB_STEP_SUMMARY
+            
+            if [ "$build_status" = "binaries_ok" ]; then
+              build_status="complete"
+            else
+              build_status="container_ok"
+            fi
+          else
+            echo "**Container image build status unclear**" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Infrastructure health summary
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Infrastructure Health During Build:**" >> $GITHUB_STEP_SUMMARY
+          echo "- GHA Cache: ${GHA_CACHE_AVAILABLE:-unknown}" >> $GITHUB_STEP_SUMMARY
+          echo "- Available Registries: ${AVAILABLE_REGISTRIES:-unknown}" >> $GITHUB_STEP_SUMMARY
+          
+          echo "status=$build_status" >> $GITHUB_OUTPUT
+          echo "digest=$image_digest" >> $GITHUB_OUTPUT
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            dist/
+            /tmp/cache/
+          if-no-files-found: ignore
+          retention-days: 7

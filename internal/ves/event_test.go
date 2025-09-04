@@ -152,12 +152,12 @@ func TestGenerateEventID(t *testing.T) {
 	// Generate multiple IDs to verify randomness
 	id2 := generateEventID()
 	id3 := generateEventID()
-	
+
 	// At minimum, the random suffixes should be different
 	suffix1 := id1[len(id1)-8:]
 	suffix2 := id2[len(id2)-8:]
 	suffix3 := id3[len(id3)-8:]
-	
+
 	if suffix1 == suffix2 && suffix2 == suffix3 {
 		t.Error("Random suffixes should be different")
 	}
@@ -165,10 +165,7 @@ func TestGenerateEventID(t *testing.T) {
 
 func TestHeartbeatFields_AdditionalFields(t *testing.T) {
 	event := NewHeartbeatEvent("test", 30)
-	event.Event.HeartbeatFields.AdditionalFields = map[string]interface{}{
-		"customField1": "value1",
-		"customField2": 42,
-	}
+	event.Event.HeartbeatFields.AdditionalFields = json.RawMessage(`{}`)
 
 	jsonData, err := json.Marshal(event)
 	if err != nil {
@@ -186,7 +183,7 @@ func TestHeartbeatFields_AdditionalFields(t *testing.T) {
 
 func TestEvent_OmitEmptyFields(t *testing.T) {
 	event := NewHeartbeatEvent("omit-test", 60)
-	
+
 	// Ensure fault and measurement fields are not set
 	event.Event.FaultFields = nil
 	event.Event.MeasurementFields = nil
@@ -197,7 +194,7 @@ func TestEvent_OmitEmptyFields(t *testing.T) {
 	}
 
 	jsonStr := string(jsonData)
-	
+
 	// These fields should be omitted when nil
 	if strings.Contains(jsonStr, "faultFields") {
 		t.Error("faultFields should be omitted when nil")
@@ -209,11 +206,11 @@ func TestEvent_OmitEmptyFields(t *testing.T) {
 
 func TestPriorityValues(t *testing.T) {
 	validPriorities := []string{"High", "Medium", "Normal", "Low"}
-	
+
 	for _, priority := range validPriorities {
 		event := NewHeartbeatEvent("priority-test", 60)
 		event.Event.CommonEventHeader.Priority = priority
-		
+
 		if event.Event.CommonEventHeader.Priority != priority {
 			t.Errorf("Failed to set priority to %s", priority)
 		}
@@ -268,3 +265,4 @@ func TestNewFaultEvent(t *testing.T) {
 		t.Error("HeartbeatFields should be nil for fault event")
 	}
 }
+

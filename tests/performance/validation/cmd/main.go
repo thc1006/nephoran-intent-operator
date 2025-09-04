@@ -7,15 +7,22 @@ import (
 	validation "github.com/thc1006/nephoran-intent-operator/tests/performance/validation"
 )
 
-// main provides a CLI entry point for the validation suite
+// main provides a CLI entry point for the validation suite.
+
 func main() {
-	// Set up logging
+	// Set up logging.
+
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	// Create and execute the validation command
+	// Create and execute the validation command.
+
 	cmd := validation.NewValidationCommand()
+
 	if err := cmd.Execute(); err != nil {
+
 		log.Printf("Command failed: %v", err)
+
 		os.Exit(1)
+
 	}
 }

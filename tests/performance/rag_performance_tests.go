@@ -1,12 +1,12 @@
-package performance
+package performance_tests
 
 import (
-	"context"
+	
 	"encoding/json"
+"context"
 	"fmt"
 	"log"
 	"math"
-	"math/rand"
 	"sort"
 	"sync"
 	"testing"
@@ -207,10 +207,11 @@ type CacheStats struct {
 }
 
 type CacheEfficiencyMetrics struct {
-	CostSavings      float64 `json:"cost_savings"`
-	LatencyReduction float64 `json:"latency_reduction"`
-	ThroughputGain   float64 `json:"throughput_gain"`
-	MemoryEfficiency float64 `json:"memory_efficiency"`
+	CostSavings      float64       `json:"cost_savings"`
+	LatencyReduction float64       `json:"latency_reduction"`
+	ThroughputGain   float64       `json:"throughput_gain"`
+	MemoryEfficiency float64       `json:"memory_efficiency"`
+	AverageLatency   time.Duration `json:"average_latency"`
 }
 
 type CacheInvalidationStats struct {
@@ -304,7 +305,7 @@ type TestDocument struct {
 	Category   string                 `json:"category"`
 	Complexity string                 `json:"complexity"`
 	Size       int                    `json:"size"`
-	Metadata   map[string]interface{} `json:"metadata"`
+	Metadata   json.RawMessage `json:"metadata"`
 }
 
 // NewRAGPerformanceTestSuite creates a new RAG performance test suite
@@ -479,9 +480,9 @@ func (rpts *RAGPerformanceTestSuite) runRetrievalTests(ctx context.Context) (*Re
 			for i := 0; i < 50; i++ {
 				start := time.Now()
 
-				response, err := rpts.ragService.ProcessQuery(ctx, &rag.QueryRequest{
-					Query: query,
-					Limit: 10,
+				response, err := rpts.ragService.ProcessQuery(ctx, &rag.RAGRequest{
+					Query:      query,
+					MaxResults: 10,
 				})
 
 				latency := time.Since(start)
@@ -499,8 +500,8 @@ func (rpts *RAGPerformanceTestSuite) runRetrievalTests(ctx context.Context) (*Re
 					complexityAccuracies = append(complexityAccuracies, accuracy)
 
 					// Collect similarity scores
-					for _, doc := range response.Documents {
-						similarities = append(similarities, doc.Similarity)
+					for _, doc := range response.SourceDocuments {
+						similarities = append(similarities, float64(doc.Score))
 					}
 				}
 				results.TotalQueries++
@@ -541,10 +542,10 @@ func (rpts *RAGPerformanceTestSuite) runContextTests(ctx context.Context) (*Cont
 			start := time.Now()
 
 			// Simulate context assembly
-			response, err := rpts.ragService.ProcessQuery(ctx, &rag.QueryRequest{
+			response, err := rpts.ragService.ProcessQuery(ctx, &rag.RAGRequest{
 				Query:      query.Query,
 				IntentType: query.IntentType,
-				Context:    query.Context,
+				// Context not supported in RAGRequest
 			})
 
 			assemblyLatency := time.Since(start)
@@ -556,7 +557,7 @@ func (rpts *RAGPerformanceTestSuite) runContextTests(ctx context.Context) (*Cont
 				results.SuccessfulAssemblies++
 
 				// Collect token utilization data
-				tokenCount := len(response.Context) / 4 // Rough token estimation
+				tokenCount := len(response.Answer) / 4 // Rough token estimation
 				tokenCounts = append(tokenCounts, tokenCount)
 
 				// Calculate context quality (placeholder)
@@ -588,7 +589,7 @@ func (rpts *RAGPerformanceTestSuite) runCachingTests(ctx context.Context) (*Cach
 	// First round - populate cache (cache misses)
 	for i := 0; i < 100; i++ {
 		start := time.Now()
-		_, err := rpts.ragService.ProcessQuery(ctx, &rag.QueryRequest{
+		_, err := rpts.ragService.ProcessQuery(ctx, &rag.RAGRequest{
 			Query: fmt.Sprintf("%s variation %d", testQuery, i%10),
 		})
 		latency := time.Since(start)
@@ -602,7 +603,7 @@ func (rpts *RAGPerformanceTestSuite) runCachingTests(ctx context.Context) (*Cach
 	// Second round - cache hits
 	for i := 0; i < 100; i++ {
 		start := time.Now()
-		_, err := rpts.ragService.ProcessQuery(ctx, &rag.QueryRequest{
+		_, err := rpts.ragService.ProcessQuery(ctx, &rag.RAGRequest{
 			Query: fmt.Sprintf("%s variation %d", testQuery, i%10),
 		})
 		latency := time.Since(start)
@@ -641,6 +642,7 @@ func (rpts *RAGPerformanceTestSuite) runCachingTests(ctx context.Context) (*Cach
 		ThroughputGain:   4.0,  // 4x throughput improvement
 		CostSavings:      0.60, // 60% cost savings
 		MemoryEfficiency: 0.85, // 85% memory efficiency
+		AverageLatency:   avgLatency,
 	}
 
 	return results, nil
@@ -697,7 +699,7 @@ func (rpts *RAGPerformanceTestSuite) runConcurrencyTest(ctx context.Context, con
 					return
 				default:
 					queryStart := time.Now()
-					_, err := rpts.ragService.ProcessQuery(ctx, &rag.QueryRequest{
+					_, err := rpts.ragService.ProcessQuery(ctx, &rag.RAGRequest{
 						Query: "Test scalability query",
 					})
 					latency := time.Since(queryStart)
@@ -986,17 +988,17 @@ func calculateThroughputStatistics(latencies []time.Duration, duration time.Dura
 
 func calculateRetrievalAccuracy(response *rag.RAGResponse) float64 {
 	// Placeholder accuracy calculation
-	if response == nil || len(response.Documents) == 0 {
+	if response == nil || len(response.SourceDocuments) == 0 {
 		return 0.0
 	}
 
 	// Simple accuracy based on similarity scores
 	totalSimilarity := 0.0
-	for _, doc := range response.Documents {
-		totalSimilarity += doc.Similarity
+	for _, doc := range response.SourceDocuments {
+		totalSimilarity += float64(doc.Score)
 	}
 
-	return totalSimilarity / float64(len(response.Documents))
+	return totalSimilarity / float64(len(response.SourceDocuments))
 }
 
 func calculateAccuracyMetrics(accuracyScores []float64) RetrievalAccuracyMetrics {
@@ -1065,8 +1067,8 @@ func calculateContextQuality(response *rag.RAGResponse) float64 {
 	}
 
 	// Base quality on context length and document diversity
-	contextLength := len(response.Context)
-	documentCount := len(response.Documents)
+	contextLength := len(response.Answer)
+	documentCount := len(response.SourceDocuments)
 
 	qualityScore := 0.5
 	if contextLength > 1000 {

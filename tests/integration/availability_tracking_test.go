@@ -1,14 +1,13 @@
-package integration
+package integration_tests
 
 import (
 	"context"
+	"net/http"
 	"testing"
 	"time"
+	"encoding/json"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring/availability"
 )
@@ -25,7 +24,7 @@ type AvailabilityTrackingTestSuite struct {
 	reporter          *availability.AvailabilityReporter
 
 	// Test infrastructure
-	mockLLMService    *MockLLMService
+	mockLLMService    *MockLLMHttpService
 	mockRAGService    *MockRAGService
 	mockNephioService *MockNephioService
 	mockPrometheus    *MockPrometheusServer
@@ -56,7 +55,7 @@ func (suite *AvailabilityTrackingTestSuite) TearDownSuite() {
 
 func (suite *AvailabilityTrackingTestSuite) setupMockServices() {
 	// Setup mock LLM service
-	suite.mockLLMService = NewMockLLMService("localhost:8080")
+	suite.mockLLMService = NewMockLLMHttpService("localhost:8080")
 	go suite.mockLLMService.Start()
 
 	// Setup mock RAG service
@@ -328,7 +327,7 @@ func (suite *AvailabilityTrackingTestSuite) TestMultiDimensionalTracking() {
 		case availability.DimensionService:
 			hasSevice = true
 		case availability.DimensionComponent:
-			hasComponent = true
+			_ = true // hasComponent check
 		case availability.DimensionUserJourney:
 			hasUserJourney = true
 		}
@@ -396,14 +395,12 @@ func (suite *AvailabilityTrackingTestSuite) TestSyntheticMonitoring() {
 			BusinessImpact: availability.ImpactCritical,
 			Region:         "test-region",
 			Config: availability.CheckConfig{
-				IntentPayload: map[string]interface{}{
-					"intent": "Deploy a 5G AMF with high availability",
-				},
+				IntentPayload: json.RawMessage(`{}`),
 				FlowSteps: []availability.IntentFlowStep{
 					{
 						Name:           "create-intent",
 						Action:         "create_intent",
-						Payload:        map[string]interface{}{"type": "amf"},
+						Payload:        json.RawMessage(`{"type":"amf"}`),
 						ExpectedStatus: "processing",
 						MaxWaitTime:    10 * time.Second,
 					},
@@ -710,7 +707,7 @@ func (suite *AvailabilityTrackingTestSuite) TestPerformanceRequirements() {
 
 	// Test sub-50ms availability calculation latency
 	start := time.Now()
-	state := suite.tracker.GetCurrentState()
+	_ = suite.tracker.GetCurrentState()
 	latency := time.Since(start)
 
 	suite.T().Logf("Availability calculation latency: %s", latency)
@@ -799,16 +796,16 @@ func (suite *AvailabilityTrackingTestSuite) teardownMockServices() {
 
 // Mock implementations for testing
 
-type MockLLMService struct {
+type MockLLMHttpService struct {
 	address string
 	server  *http.Server
 }
 
-func NewMockLLMService(address string) *MockLLMService {
-	return &MockLLMService{address: address}
+func NewMockLLMHttpService(address string) *MockLLMHttpService {
+	return &MockLLMHttpService{address: address}
 }
 
-func (m *MockLLMService) Start() {
+func (m *MockLLMHttpService) Start() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -823,7 +820,7 @@ func (m *MockLLMService) Start() {
 	m.server.ListenAndServe()
 }
 
-func (m *MockLLMService) Stop() {
+func (m *MockLLMHttpService) Stop() {
 	if m.server != nil {
 		m.server.Close()
 	}
@@ -947,3 +944,4 @@ func (m *MockAlertManager) EvaluateThresholds(ctx context.Context, check *availa
 	}
 	return false, nil
 }
+

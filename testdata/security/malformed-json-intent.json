@@ -1,0 +1,9 @@
+{
+  "intent_type": "scaling",
+  "target": "my-app",
+  "namespace": "default",
+  "replicas": "not-a-number",
+  "invalid_json": {{{
+    "broken": true
+  }
+}
