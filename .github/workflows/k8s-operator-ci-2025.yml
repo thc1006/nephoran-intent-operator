@@ -198,10 +198,58 @@ jobs:
           # Remove any existing invalid kubebuilder
           sudo rm -f /usr/local/bin/kubebuilder
           
-          # Download and install kubebuilder
-          curl -L -o kubebuilder.tar.gz https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${{ env.KUBEBUILDER_VERSION }}/kubebuilder_linux_amd64.tar.gz
-          tar -zxvf kubebuilder.tar.gz
-          sudo mv kubebuilder/bin/kubebuilder /usr/local/bin/kubebuilder
+          # Download kubebuilder archive with proper error handling
+          echo "📥 Downloading kubebuilder archive..."
+          DOWNLOAD_URL="https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${{ env.KUBEBUILDER_VERSION }}/kubebuilder_linux_amd64.tar.gz"
+          echo "Download URL: $DOWNLOAD_URL"
+          
+          if ! curl -L -f -o kubebuilder.tar.gz "$DOWNLOAD_URL"; then
+            echo "❌ Failed to download kubebuilder archive"
+            echo "🔍 Checking available releases..."
+            curl -s "https://api.github.com/repos/kubernetes-sigs/kubebuilder/releases" | grep -o '"tag_name": "[^"]*"' | head -5
+            exit 1
+          fi
+          
+          # Verify download size (should be > 1MB for a valid archive)
+          echo "📏 Checking downloaded file size..."
+          ls -lh kubebuilder.tar.gz
+          if [[ $(stat -c%s kubebuilder.tar.gz) -lt 1000000 ]]; then
+            echo "❌ Downloaded file is too small, likely an error page"
+            head -20 kubebuilder.tar.gz
+            exit 1
+          fi
+          
+          # Check file format and extract accordingly
+          echo "🔍 Checking archive format..."
+          file kubebuilder.tar.gz
+          
+          # Extract archive with proper format detection
+          if file kubebuilder.tar.gz | grep -q "gzip compressed"; then
+            echo "📦 Extracting gzip compressed archive..."
+            tar -zxvf kubebuilder.tar.gz
+          elif file kubebuilder.tar.gz | grep -q "POSIX tar archive"; then
+            echo "📦 Extracting plain tar archive..."
+            tar -xvf kubebuilder.tar.gz
+          else
+            echo "❌ Unsupported archive format"
+            file kubebuilder.tar.gz
+            hexdump -C kubebuilder.tar.gz | head -5
+            exit 1
+          fi
+          
+          # Find and move kubebuilder binary to system path
+          echo "📁 Finding kubebuilder binary..."
+          find . -name "kubebuilder" -type f -executable
+          
+          if [[ -f "kubebuilder/bin/kubebuilder" ]]; then
+            sudo mv kubebuilder/bin/kubebuilder /usr/local/bin/kubebuilder
+          elif [[ -f "kubebuilder" ]]; then
+            sudo mv kubebuilder /usr/local/bin/kubebuilder
+          else
+            echo "❌ Could not find kubebuilder binary"
+            find . -name "*kubebuilder*" -type f
+            exit 1
+          fi
           
           # Verify installation
           file /usr/local/bin/kubebuilder
