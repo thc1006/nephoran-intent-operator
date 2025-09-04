@@ -484,7 +484,8 @@ spec:
                 format: int32
                 type: integer
               resourceUtilization:
-                additionalProperties: {}
+                additionalProperties:
+                  type: number
                 type: object
               serviceEndpoints:
                 items:

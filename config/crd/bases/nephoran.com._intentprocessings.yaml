@@ -306,6 +306,9 @@ spec:
                     properties:
                       confidenceScore:
                         description: ConfidenceScore confidence in the response (0.0-1.0)
+                        maximum: 1
+                        minimum: 0
+                        type: number
                       model:
                         description: Model the LLM model used
                         type: string
@@ -341,6 +344,9 @@ spec:
                       averageRelevanceScore:
                         description: AverageRelevanceScore average relevance score
                           of retrieved documents (0.0-1.0)
+                        maximum: 1
+                        minimum: 0
+                        type: number
                       cacheHits:
                         description: CacheHits number of cache hits
                         format: int64
@@ -371,6 +377,9 @@ spec:
                         type: array
                       topRelevanceScore:
                         description: TopRelevanceScore highest relevance score (0.0-1.0)
+                        maximum: 1
+                        minimum: 0
+                        type: number
                     type: object
                   startTime:
                     description: StartTime when processing started
@@ -929,6 +938,9 @@ spec:
                   averageRelevanceScore:
                     description: AverageRelevanceScore average relevance score of
                       retrieved documents (0.0-1.0)
+                    maximum: 1
+                    minimum: 0
+                    type: number
                   cacheHits:
                     description: CacheHits number of cache hits
                     format: int64
@@ -959,6 +971,9 @@ spec:
                     type: array
                   topRelevanceScore:
                     description: TopRelevanceScore highest relevance score (0.0-1.0)
+                    maximum: 1
+                    minimum: 0
+                    type: number
                 type: object
               retryCount:
                 description: RetryCount number of retries attempted

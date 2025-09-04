@@ -9,7 +9,7 @@ API_PACKAGES = ./api/v1 ./api/v1alpha1 ./api/intent/v1alpha1
 .PHONY: manifests
 manifests: controller-gen
 	@echo "🔧 Generating CRDs and manifests..."
-	$(CONTROLLER_GEN) crd:allowDangerousTypes=true paths="$(API_PACKAGES)" output:crd:dir=$(CRD_OUTPUT_DIR)
+	$(CONTROLLER_GEN) crd:allowDangerousTypes=true paths=./api/v1 paths=./api/v1alpha1 paths=./api/intent/v1alpha1 output:crd:dir=$(CRD_OUTPUT_DIR)
 	$(CONTROLLER_GEN) rbac:roleName=nephoran-manager paths="./controllers/..." output:rbac:dir=config/rbac
 	$(CONTROLLER_GEN) webhook paths="./..." output:webhook:dir=config/webhook
 	@echo "✅ Manifests generated successfully"

@@ -413,7 +413,9 @@ spec:
                       type: array
                     description:
                       type: string
-                    improvementPercent: {}
+                    improvementPercent:
+                      maximum: 100
+                      type: number
                     manifestName:
                       type: string
                     optimizationType:
@@ -430,7 +432,9 @@ spec:
                 type: array
               phase:
                 type: string
-              qualityScore: {}
+              qualityScore:
+                maximum: 1
+                type: number
               resourceReferences:
                 items:
                   properties:
@@ -469,7 +473,9 @@ spec:
                       properties:
                         compliant:
                           type: boolean
-                        score: {}
+                        score:
+                          maximum: 1
+                          type: number
                         standard:
                           type: string
                         version:
@@ -483,7 +489,9 @@ spec:
                       - standard
                       type: object
                     type: array
-                  overallScore: {}
+                  overallScore:
+                    maximum: 1
+                    type: number
                   recommendations:
                     items:
                       type: string
@@ -495,7 +503,9 @@ spec:
                           items:
                             type: string
                           type: array
-                        cvssScore: {}
+                        cvssScore:
+                          maximum: 10
+                          type: number
                         description:
                           type: string
                         remediation:
