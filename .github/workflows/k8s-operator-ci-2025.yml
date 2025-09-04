@@ -73,7 +73,7 @@ jobs:
   preflight:
     name: "🚀 Pre-flight Setup"
     runs-on: ubuntu-24.04  # 2025 Ubuntu LTS
-    timeout-minutes: 5
+    timeout-minutes: 10
     outputs:
       go-cache-key: ${{ steps.cache-setup.outputs.cache-key }}
       should-build: ${{ steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true' }}
@@ -149,7 +149,6 @@ jobs:
             nephoran-k8s-op-v3-v2-${{ runner.os }}-go${{ env.GO_VERSION }}-k8s${{ env.KUBERNETES_VERSION }}-
             nephoran-k8s-op-v3-v2-${{ runner.os }}-go${{ env.GO_VERSION }}-
           fail-on-cache-miss: false
-          save-always: true
             
       - name: Smoke test Go cache
         if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
@@ -167,6 +166,15 @@ jobs:
           go mod download
           go mod verify
           echo "✅ Dependencies verified"
+          
+      - name: Save Go cache
+        if: always() && (steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true')
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ env.GOCACHE }}
+            ${{ env.GOMODCACHE }}
+          key: ${{ steps.cache-setup.outputs.cache-key }}
           
       - name: Integration test check
         id: integration-check
