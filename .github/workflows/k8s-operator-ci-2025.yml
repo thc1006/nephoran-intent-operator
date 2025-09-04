@@ -55,6 +55,7 @@ env:
   GOARCH: "amd64"
   GOMAXPROCS: "4"
   GOMEMLIMIT: "4GiB"
+  GOTOOLCHAIN: "go1.23.3"
   
   # Cache configuration
   GOCACHE: "/tmp/go-cache"
@@ -133,8 +134,8 @@ jobs:
       - name: Clean Go cache directories
         if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
         run: |
-          rm -rf ${{ env.GOMODCACHE }}/*
-          rm -rf ${{ env.GOCACHE }}/*
+          sudo rm -rf ${{ env.GOMODCACHE }}/* || echo "Cache cleanup failed, continuing..."
+          sudo rm -rf ${{ env.GOCACHE }}/* || echo "Cache cleanup failed, continuing..."
             
       - name: Restore Go cache
         if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
