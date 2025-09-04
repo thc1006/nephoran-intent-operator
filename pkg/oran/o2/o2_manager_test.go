@@ -174,7 +174,7 @@ func TestO2Manager_DiscoverResources(t *testing.T) {
 				assert.Len(t, rm.Nodes, 0)
 				assert.Len(t, rm.Namespaces, 0)
 				assert.NotNil(t, rm.Metrics)
-				assert.Equal(t, int32(0), rm.Metrics.TotalNodes)
+				assert.Equal(t, int32(0), rm.Metrics.ReadyNodes)
 			},
 		},
 	}

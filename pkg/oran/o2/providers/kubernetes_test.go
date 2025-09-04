@@ -205,16 +205,20 @@ func TestKubernetesProviderGetSecret(t *testing.T) {
 	}
 
 	// Verify data keys are exposed but not actual data
-	spec := response.Specification
-	if spec == nil {
+	if response.Specification == nil {
 		t.Error("Expected specification to be present")
 	} else {
-		if dataKeys, ok := spec["dataKeys"].([]string); ok {
-			if len(dataKeys) != 2 {
-				t.Errorf("Expected 2 data keys, got %d", len(dataKeys))
-			}
+		var spec map[string]interface{}
+		if err := json.Unmarshal(response.Specification, &spec); err != nil {
+			t.Errorf("Failed to unmarshal specification: %v", err)
 		} else {
-			t.Error("Expected dataKeys in specification")
+			if dataKeys, ok := spec["dataKeys"].([]interface{}); ok {
+				if len(dataKeys) != 2 {
+					t.Errorf("Expected 2 data keys, got %d", len(dataKeys))
+				}
+			} else {
+				t.Error("Expected dataKeys in specification")
+			}
 		}
 	}
 }

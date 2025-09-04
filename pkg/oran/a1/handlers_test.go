@@ -1097,6 +1097,11 @@ func (m *MockA1Service) CreateEIType(ctx context.Context, eiTypeID string, eiTyp
 	return args.Error(0)
 }
 
+func (m *MockA1Service) DeleteEIType(ctx context.Context, eiTypeID string) error {
+	args := m.Called(ctx, eiTypeID)
+	return args.Error(0)
+}
+
 func (m *MockA1Service) CreateEIJob(ctx context.Context, eiTypeID string, job *EnrichmentInfoJob) error {
 	args := m.Called(ctx, eiTypeID, job)
 	return args.Error(0)

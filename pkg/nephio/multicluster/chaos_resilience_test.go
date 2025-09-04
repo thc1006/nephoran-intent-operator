@@ -14,12 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//go:build ignore
+// DISABLED: This file depends on external porch and nephio dependencies that are not available
+
 package multicluster
 
 import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"math/rand/v2"
 	"sync"
 	"sync/atomic"
 	"testing"

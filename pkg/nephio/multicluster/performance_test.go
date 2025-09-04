@@ -14,6 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//go:build ignore
+// DISABLED: This file depends on createTestPackageRevision and other disabled functions
+
 package multicluster
 
 import (

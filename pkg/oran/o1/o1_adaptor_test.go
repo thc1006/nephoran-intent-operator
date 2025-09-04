@@ -8,13 +8,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestNewO1AdaptorConstruction(t *testing.T) {
 	tests := []struct {
 		name   string
-		config *O1Config
+		config *oran.O1Config
 		want   *O1Adaptor
 	}{
 		{
@@ -29,12 +30,10 @@ func TestNewO1AdaptorConstruction(t *testing.T) {
 		},
 		{
 			name: "with custom config",
-			config: &O1Config{
-				DefaultPort:    830,
-				ConnectTimeout: 30 * time.Second,
-				RequestTimeout: 60 * time.Second,
-				MaxRetries:     5,
-				RetryInterval:  10 * time.Second,
+			config: &oran.O1Config{
+				Endpoint:      "localhost:830",
+				Timeout:       60 * time.Second,
+				RetryAttempts: 5,
 			},
 			want: &O1Adaptor{
 				clients:          make(map[string]*NetconfClient),

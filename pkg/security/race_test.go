@@ -360,7 +360,7 @@ func TestCryptoKeyPoolRace(t *testing.T) {
 func TestAuditLogRace(t *testing.T) {
 	channelTest := racetest.NewChannelRaceTest(t)
 
-	auditChan := make(chan *auditEntry, 100)
+	auditChan := make(chan interface{}, 100)
 	channelTest.TestConcurrentSendReceive(auditChan, 10, 5)
 
 	// Test audit log writer

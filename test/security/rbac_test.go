@@ -6,7 +6,6 @@ Kubernetes operator following 2025 security best practices.
 package security
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
