@@ -5,6 +5,7 @@ package performance_tests
 import (
 	"crypto/rand"
 	"fmt"
+	"math/rand"
 	"runtime"
 	"sync"
 	"sync/atomic"
