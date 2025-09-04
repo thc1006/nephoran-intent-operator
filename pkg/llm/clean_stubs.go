@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"strings"
 	"time"
+	"encoding/json"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )

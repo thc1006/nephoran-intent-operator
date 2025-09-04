@@ -883,3 +883,86 @@ func getDefaultModelConfigs() map[string]*TokenModelConfig {
 		},
 	}
 }
+
+// CountTokens is an alias for GetTokenCount for consistency
+func (tm *OAuth2TokenManager) CountTokens(text string) int {
+	return tm.GetTokenCount(text)
+}
+
+// CalculateTokenBudgetAdvanced calculates advanced token budget with detailed context analysis
+func (tm *OAuth2TokenManager) CalculateTokenBudgetAdvanced(ctx context.Context, model, systemPrompt, userQuery, contextData string) (*TokenBudget, error) {
+	// Estimate tokens for each component using model-specific estimation
+	systemTokens, _ := tm.EstimateTokensForModel(model, systemPrompt)
+	userTokens, _ := tm.EstimateTokensForModel(model, userQuery)
+	contextTokens, _ := tm.EstimateTokensForModel(model, contextData)
+	
+	// Get model configuration for limits
+	config, exists := tm.modelConfigs[model]
+	maxTokens := 4096 // Default
+	if exists {
+		maxTokens = config.ContextWindow
+	}
+	
+	totalUsed := systemTokens + userTokens + contextTokens
+	responseBudget := maxTokens - totalUsed
+	
+	// Check if we can accommodate the request
+	canAccommodate := responseBudget > 100 // Need at least 100 tokens for response
+	
+	// Calculate context budget (80% of remaining tokens after system and user)
+	contextBudget := int(float64(maxTokens-systemTokens-userTokens) * 0.8)
+	if contextBudget < 0 {
+		contextBudget = 0
+	}
+	
+	return &TokenBudget{
+		CanAccommodate: canAccommodate,
+		ContextBudget:  contextBudget,
+		SystemTokens:   systemTokens,
+		UserTokens:     userTokens,
+		ContextTokens:  contextTokens,
+		ResponseBudget: responseBudget,
+		TotalUsed:      totalUsed,
+		MaxTokens:      maxTokens,
+	}, nil
+}
+
+// OptimizeContext optimizes contexts to fit within token limits using model-specific estimation
+func (tm *OAuth2TokenManager) OptimizeContext(contexts []string, maxTokens int, model string) string {
+	if len(contexts) == 0 {
+		return ""
+	}
+	
+	// Start with all contexts concatenated
+	combined := strings.Join(contexts, "\n\n")
+	
+	// If it fits within limits, return as-is
+	currentTokens, _ := tm.EstimateTokensForModel(model, combined)
+	if currentTokens <= maxTokens {
+		return combined
+	}
+	
+	// Otherwise, truncate contexts from the end until we fit
+	totalContexts := len(contexts)
+	for i := totalContexts - 1; i >= 0; i-- {
+		reduced := strings.Join(contexts[:i+1], "\n\n")
+		tokens, _ := tm.EstimateTokensForModel(model, reduced)
+		if tokens <= maxTokens {
+			if i < totalContexts-1 {
+				reduced += "\n\n[... additional context truncated ...]"
+			}
+			return reduced
+		}
+	}
+	
+	// If even a single context is too large, truncate it
+	if len(contexts) > 0 {
+		truncated, err := tm.TruncateToFit(contexts[0], maxTokens-50, model) // Reserve 50 tokens for truncation message
+		if err != nil {
+			return "[Context too large to process]"
+		}
+		return truncated
+	}
+	
+	return ""
+}

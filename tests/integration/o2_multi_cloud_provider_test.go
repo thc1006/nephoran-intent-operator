@@ -36,7 +36,7 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 	)
 
 	BeforeEach(func() {
-		namespace = CreateTestNamespace()
+		namespace = CreateO2TestNamespace()
 		var cancel context.CancelFunc
 		testCtx, cancel = context.WithTimeout(ctx, 15*time.Minute)
 		DeferCleanup(cancel)

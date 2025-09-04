@@ -62,6 +62,7 @@ package dependencies
 
 import (
 	"context"
+	"encoding/json"
 )
 
 // Stub implementations for missing methods and types

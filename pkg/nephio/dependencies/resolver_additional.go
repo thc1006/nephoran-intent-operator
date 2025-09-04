@@ -37,6 +37,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"time"
+	"encoding/json"
 )
 
 // Note: VersionRequirement type is already defined in types.go to avoid duplicate declarations

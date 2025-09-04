@@ -39,6 +39,7 @@ type MockLLMClient struct {
 	response  string
 	error     error
 	CallCount int
+	failCount int
 	Mutex     sync.Mutex
 }
 
@@ -46,6 +47,12 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (strin
 	m.Mutex.Lock()
 	defer m.Mutex.Unlock()
 	m.CallCount++
+	
+	// Handle fail count for retry scenarios
+	if m.failCount > 0 && m.CallCount <= m.failCount {
+		return "", m.error
+	}
+	
 	return m.response, m.error
 }
 
@@ -1045,7 +1052,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			Expect(errorRecoveryClient.Create(errorRecoveryCtx, invalidCM)).To(Succeed())
 
 			By("E2NodeSet reconciliation should handle the invalid ConfigMap")
-			result, err = e2nodeSetReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
+			result, err := e2nodeSetReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: e2nsNamespacedName,
 			})
 			// Should fail due to conflicting ConfigMap

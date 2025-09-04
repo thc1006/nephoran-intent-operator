@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -127,7 +126,6 @@ func (pm *PerformanceMetrics) GetStatistics() map[string]interface{} {
 
 var _ = Describe("O2 Performance and Load Testing Suite", func() {
 	var (
-		namespace       *corev1.Namespace
 		testCtx         context.Context
 		o2Server        *o2.O2APIServer
 		httpTestServer  *httptest.Server
@@ -137,9 +135,8 @@ var _ = Describe("O2 Performance and Load Testing Suite", func() {
 	)
 
 	BeforeEach(func() {
-		namespace = CreateTestNamespace()
 		var cancel context.CancelFunc
-		testCtx, cancel = context.WithTimeout(ctx, 30*time.Minute)
+		testCtx, cancel = context.WithTimeout(context.Background(), 30*time.Minute)
 		DeferCleanup(cancel)
 
 		testLogger = logging.NewLogger("o2-performance-test", "info") // Less verbose for performance tests
@@ -151,7 +148,6 @@ var _ = Describe("O2 Performance and Load Testing Suite", func() {
 			ServerPort:    0,
 			TLSEnabled:    false,
 			DatabaseConfig: json.RawMessage(`{}`),
-			PerformanceConfig: json.RawMessage(`{}`),
 		}
 
 		var err error
@@ -641,7 +637,7 @@ var _ = Describe("O2 Performance and Load Testing Suite", func() {
 							}
 						}
 					}
-					Expect(memoryTestPools).To(BeNumerically(">=", numResources*0.9)) // Allow some tolerance
+					Expect(memoryTestPools).To(BeNumerically(">=", int(float64(numResources)*0.9))) // Allow some tolerance
 				}
 
 				metrics.RecordRequest(listDuration, success)

@@ -9,6 +9,7 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"encoding/json"
 
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"

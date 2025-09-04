@@ -17,27 +17,27 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
+	// "k8s.io/client-go/kubernetes" // Removed - imported but not used
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/thc1006/nephoran-intent-operator/tests/utils"
+	testutils "github.com/thc1006/nephoran-intent-operator/tests/utils"
 )
 
 var _ = Describe("TLS/mTLS Security Tests", func() {
 	var (
 		ctx       context.Context
 		k8sClient client.Client
-		clientset *kubernetes.Clientset
+		// clientset *kubernetes.Clientset // Removed - declared but not used
 		namespace string
-		timeout   time.Duration
+		// timeout   time.Duration // Removed - declared but not used
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		k8sClient = utils.GetK8sClient()
-		clientset = utils.GetClientset()
-		namespace = utils.GetTestNamespace()
-		timeout = 30 * time.Second
+		k8sClient = testutils.GetK8sClient()
+		// clientset = testutils.GetClientset() // Removed - declared but not used
+		namespace = testutils.GetTestNamespace()
+		// timeout = 30 * time.Second // Removed - declared but not used
 	})
 
 	Context("TLS Certificate Validation", func() {

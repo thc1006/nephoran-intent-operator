@@ -15,11 +15,7 @@ import (
 // TestEnvironment provides access to envtest environment
 var TestEnv *testtools.TestEnvironment
 
-// k8sClient provides access to the Kubernetes client
-var k8sClient client.Client
-
-// ctx provides the base context for tests
-var ctx context.Context
+// Note: k8sClient and ctx are defined in suite_test.go as package-level globals
 
 // CreateTestNamespace creates a test namespace using envtest patterns for 2025 Go testing best practices
 func CreateTestNamespace() *corev1.Namespace {
@@ -65,9 +61,8 @@ func SetupTestEnvironment() error {
 		return fmt.Errorf("failed to setup test environment: %w", err)
 	}
 
-	k8sClient = TestEnv.K8sClient
-	ctx = TestEnv.GetContext()
-
+	// Note: Global k8sClient and ctx should be set in suite_test.go
+	
 	return nil
 }
 

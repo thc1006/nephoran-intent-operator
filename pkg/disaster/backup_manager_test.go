@@ -344,7 +344,12 @@ func (suite *BackupManagerTestSuite) TestBackupWeaviate_Success() {
 	assert.Greater(suite.T(), component.Size, int64(0))
 	assert.NotEmpty(suite.T(), component.Path)
 	assert.NotEmpty(suite.T(), component.Checksum)
-	assert.Equal(suite.T(), "rest_api", component.Metadata["backup_method"])
+	
+	// Parse the metadata JSON to check backup_method
+	var metadata map[string]interface{}
+	err = json.Unmarshal(component.Metadata, &metadata)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "rest_api", metadata["backup_method"])
 }
 
 func (suite *BackupManagerTestSuite) TestBackupGitRepositories_Success() {

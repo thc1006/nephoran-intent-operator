@@ -1,6 +1,7 @@
 package controllers
 
 import (
+t"context"
 	"context"
 	"errors"
 	"fmt"
@@ -12,10 +13,16 @@ import (
 	. "github.com/onsi/gomega"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+		"github.com/thc1006/nephoran-intent-operator/pkg/testutils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+		"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+n// Constants used in cleanup tests
+const (
+	NetworkIntentFinalizer = "networkintent.nephoran.com/finalizer"
 )
 
 var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
@@ -32,12 +39,12 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 
 	BeforeEach(func() {
 		By("Creating a new isolated namespace for edge case tests")
-		namespaceName = CreateIsolatedNamespace("cleanup-edge-cases")
+		namespaceName = testutils.CreateIsolatedNamespace("cleanup-edge-cases")
 
 		By("Setting up the reconciler with mock dependencies")
 		mockDeps = &MockDependencies{
-			gitClient:        &MockGitClientInterface{},
-			llmClient:        &MockLLMClientInterface{},
+			gitClient:        &testutils.MockGitClient{},
+			llmClient:        &testutils.MockLLMClient{},
 			packageGenerator: nil,
 			httpClient:       &http.Client{Timeout: 30 * time.Second},
 			eventRecorder:    &record.FakeRecorder{Events: make(chan string, 100)},
@@ -61,15 +68,15 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 
 	AfterEach(func() {
 		By("Cleaning up the test namespace")
-		CleanupIsolatedNamespace(namespaceName)
+		testutils.CleanupIsolatedNamespace(namespaceName)
 	})
 
 	Context("Edge cases in cleanupGitOpsPackages", func() {
 		var networkIntent *nephoranv1.NetworkIntent
 
 		BeforeEach(func() {
-			networkIntent = CreateTestNetworkIntent(
-				GetUniqueName("gitops-edge-test"),
+			networkIntent = testutils.CreateTestNetworkIntent(
+				testutils.GetUniqueName("gitops-edge-test"),
 				namespaceName,
 				"Test GitOps cleanup edge cases",
 			)
@@ -84,7 +91,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			networkIntent.Namespace = longNamespace
 
 			By("Setting up Git client expectations")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
+			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", longNamespace, longName)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", longNamespace, longName)
 
@@ -105,7 +112,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			networkIntent.Namespace = "test-namespace-123"
 
 			By("Setting up Git client expectations")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
+			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 
@@ -136,7 +143,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			cancel() // Immediately cancel the context
 
 			By("Setting up Git client to detect context cancellation")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
+			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 
@@ -153,7 +160,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 
 		It("Should handle intermittent Git repository locks", func() {
 			By("Setting up Git client to simulate repository lock contention")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
+			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 
@@ -174,8 +181,8 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 		var networkIntent *nephoranv1.NetworkIntent
 
 		BeforeEach(func() {
-			networkIntent = CreateTestNetworkIntent(
-				GetUniqueName("resource-edge-test"),
+			networkIntent = testutils.CreateTestNetworkIntent(
+				testutils.GetUniqueName("resource-edge-test"),
 				namespaceName,
 				"Test resource cleanup edge cases",
 			)
@@ -289,8 +296,8 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 		var networkIntent *nephoranv1.NetworkIntent
 
 		BeforeEach(func() {
-			networkIntent = CreateTestNetworkIntent(
-				GetUniqueName("deletion-edge-test"),
+			networkIntent = testutils.CreateTestNetworkIntent(
+				testutils.GetUniqueName("deletion-edge-test"),
 				namespaceName,
 				"Test deletion edge cases",
 			)
@@ -321,7 +328,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
 			By("Setting up successful Git cleanup")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
+			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 			mockGitClient.On("RemoveDirectory", expectedPath, expectedMessage).Return(nil)
@@ -355,7 +362,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
 			By("Setting up Git client to simulate already cleaned resources")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
+			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 
@@ -380,7 +387,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
 			By("Setting up successful Git cleanup")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
+			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 			mockGitClient.On("RemoveDirectory", expectedPath, expectedMessage).Return(nil)
@@ -411,8 +418,8 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 	Context("Resource cleanup with complex scenarios", func() {
 		It("Should handle cleanup when Kubernetes API is slow", func() {
 			By("Creating NetworkIntent for slow API test")
-			networkIntent := CreateTestNetworkIntent(
-				GetUniqueName("slow-api-test"),
+			networkIntent := testutils.CreateTestNetworkIntent(
+				testutils.GetUniqueName("slow-api-test"),
 				namespaceName,
 				"Test cleanup with slow Kubernetes API",
 			)
@@ -436,7 +443,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			}
 
 			By("Setting up Git cleanup expectations")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
+			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 			mockGitClient.On("RemoveDirectory", expectedPath, expectedMessage).Return(nil)
@@ -452,8 +459,8 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 
 		It("Should handle cleanup with resource deletion protection", func() {
 			By("Creating NetworkIntent for protection test")
-			networkIntent := CreateTestNetworkIntent(
-				GetUniqueName("protection-test"),
+			networkIntent := testutils.CreateTestNetworkIntent(
+				testutils.GetUniqueName("protection-test"),
 				namespaceName,
 				"Test cleanup with protected resources",
 			)
@@ -487,8 +494,8 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 		var networkIntent *nephoranv1.NetworkIntent
 
 		BeforeEach(func() {
-			networkIntent = CreateTestNetworkIntent(
-				GetUniqueName("cache-edge-test"),
+			networkIntent = testutils.CreateTestNetworkIntent(
+				testutils.GetUniqueName("cache-edge-test"),
 				namespaceName,
 				"Test cache cleanup edge cases",
 			)

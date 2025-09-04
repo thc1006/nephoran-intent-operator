@@ -20,7 +20,7 @@ import (
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/thc1006/nephoran-intent-operator/tests/utils"
+	testutils "github.com/thc1006/nephoran-intent-operator/tests/utils"
 )
 
 // mTLSSecurityTestSuite provides comprehensive testing for mTLS implementation
@@ -52,8 +52,8 @@ var _ = Describe("mTLS Security Test Suite", func() {
 	BeforeEach(func() {
 		suite = &mTLSSecurityTestSuite{
 			ctx:       context.Background(),
-			k8sClient: utils.GetK8sClient(),
-			namespace: utils.GetTestNamespace(),
+			k8sClient: testutils.GetK8sClient(),
+			namespace: testutils.GetTestNamespace(),
 		}
 
 		// Initialize test certificates and CA

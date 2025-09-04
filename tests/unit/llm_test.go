@@ -81,7 +81,7 @@ func (suite *LLMTestSuite) setupLLMMocks() {
 // TestTokenManager tests the token management functionality
 func (suite *LLMTestSuite) TestTokenManager() {
 	ginkgo.Describe("Token Manager", func() {
-		var tokenManager *llm.TokenManager
+		var tokenManager llm.TokenManager
 
 		ginkgo.BeforeEach(func() {
 			tokenManager = llm.NewTokenManager()
@@ -108,7 +108,7 @@ func (suite *LLMTestSuite) TestTokenManager() {
 				models := []string{"gpt-4o", "gpt-4o-mini", "claude-3-haiku"}
 
 				for _, model := range models {
-					budget, err := tokenManager.CalculateTokenBudget(
+					budget, err := tokenManager.CalculateTokenBudgetAdvanced(
 						context.Background(),
 						model,
 						"System prompt for network automation",
@@ -131,7 +131,7 @@ func (suite *LLMTestSuite) TestTokenManager() {
 					longContext += "This is a very long context that should exceed token limits. "
 				}
 
-				budget, err := tokenManager.CalculateTokenBudget(
+				budget, err := tokenManager.CalculateTokenBudgetAdvanced(
 					context.Background(),
 					"gpt-4o-mini",
 					"System prompt",
@@ -277,11 +277,11 @@ func (suite *LLMTestSuite) TestContextBuilder() {
 
 				query := "Deploy 5G core network functions"
 
-				context, err := contextBuilder.BuildContext(context.Background(), query, documents)
+				builtContext, err := contextBuilder.BuildContext(context.Background(), query, documents)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				gomega.Expect(context.Context).NotTo(gomega.BeEmpty())
-				gomega.Expect(len(context.UsedDocuments)).To(gomega.BeNumerically(">", 0))
-				gomega.Expect(context.QualityScore).To(gomega.BeNumerically(">", 0.5))
+				gomega.Expect(builtContext.Context).NotTo(gomega.BeEmpty())
+				gomega.Expect(len(builtContext.UsedDocuments)).To(gomega.BeNumerically(">", 0))
+				gomega.Expect(builtContext.QualityScore).To(gomega.BeNumerically(">", 0.5))
 			})
 
 			ginkgo.It("should respect token budget", func() {
@@ -299,12 +299,12 @@ func (suite *LLMTestSuite) TestContextBuilder() {
 				// Set very low token budget
 				contextBuilder.Config.MaxContextTokens = 100
 
-				context, err := contextBuilder.BuildContext(context.Background(), query, documents)
+				builtContext, err := contextBuilder.BuildContext(context.Background(), query, documents)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 				// Verify context respects token budget
 				tokenManager := llm.NewTokenManager()
-				tokens := tokenManager.CountTokens(context.Context)
+				tokens := tokenManager.CountTokens(builtContext.Context)
 				gomega.Expect(tokens).To(gomega.BeNumerically("<=", 100))
 			})
 		})
@@ -324,11 +324,11 @@ func (suite *LLMTestSuite) TestContextBuilder() {
 				query := "Network function deployment"
 
 				start := time.Now()
-				context, err := contextBuilder.BuildContext(context.Background(), query, documents)
+				builtContext, err := contextBuilder.BuildContext(context.Background(), query, documents)
 				duration := time.Since(start)
 
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				gomega.Expect(context.Context).NotTo(gomega.BeEmpty())
+				gomega.Expect(builtContext.Context).NotTo(gomega.BeEmpty())
 
 				suite.GetMetrics().RecordLatency("context_building", duration)
 

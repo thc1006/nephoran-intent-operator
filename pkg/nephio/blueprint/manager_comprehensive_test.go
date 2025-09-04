@@ -23,6 +23,7 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"encoding/json"
 
 	"github.com/go-logr/logr"
 	"github.com/rogpeppe/go-internal/cache"

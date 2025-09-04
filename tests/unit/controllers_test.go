@@ -11,7 +11,6 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -63,7 +62,7 @@ func (suite *ControllerTestSuite) setupControllerMocks() {
 
 	// Setup Weaviate mock for RAG queries
 	weaviateMock := suite.GetMocks().GetWeaviateMock()
-	weaviateMock.On("Query").Return(&graphQLMock{}, nil)
+	weaviateMock.On("Query").Return(&MockGraphQLResponse{}, nil)
 }
 
 // TestNetworkIntentController tests the NetworkIntent controller comprehensively
@@ -495,11 +494,10 @@ func (suite *ControllerTestSuite) TestChaosEngineering() {
 	})
 }
 
-// Mock GraphQL client for testing
-type graphQLMock struct{}
-
-func (g *graphQLMock) Get() *weaviate.GraphQLResponse {
-	return &weaviate.GraphQLResponse{}
+// MockGraphQLResponse provides a simple mock for GraphQL responses
+type MockGraphQLResponse struct {
+	Data   interface{} `json:"data,omitempty"`
+	Errors interface{} `json:"errors,omitempty"`
 }
 
 var _ = ginkgo.Describe("Controller Integration", func() {

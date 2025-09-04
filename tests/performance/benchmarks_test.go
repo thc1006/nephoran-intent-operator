@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+	"encoding/json"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"

@@ -20,12 +20,12 @@ import (
 
 var _ = Describe("TLS Security Validation Suite", func() {
 	var (
-		ctx    context.Context
+		// ctx    context.Context // Commented out - declared but not used in current tests
 		cancel context.CancelFunc
 	)
 
 	BeforeEach(func() {
-		ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
+		_, cancel = context.WithTimeout(context.Background(), 30*time.Second)
 	})
 
 	AfterEach(func() {

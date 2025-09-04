@@ -2,9 +2,10 @@ package security
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/json"
+	// cryptorand "crypto/rand" // Removed - imported but not used
+	// "encoding/json" // Removed - imported but not used
 	"fmt"
+	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -68,7 +69,7 @@ type ActiveFault struct {
 	Type        string
 	StartTime   time.Time
 	Duration    time.Duration
-	Parameters  map[string]interface{}
+	Parameters  map[string]interface{} `json:"parameters"`
 	StopChannel chan bool
 }
 
@@ -660,7 +661,10 @@ func (f *FaultInjector) injectIntermittentCAFailure(duration time.Duration, inte
 		Type:        "INTERMITTENT_CA_FAILURE",
 		StartTime:   time.Now(),
 		Duration:    duration,
-		Parameters:  json.RawMessage(`{}`),
+		Parameters:  map[string]interface{}{
+			"interval":    interval,
+			"failureRate": failureRate,
+		},
 		StopChannel: make(chan bool),
 	}
 
@@ -701,7 +705,9 @@ func (f *FaultInjector) injectNetworkPartition(target string, duration time.Dura
 		Type:        "NETWORK_PARTITION",
 		StartTime:   time.Now(),
 		Duration:    duration,
-		Parameters:  json.RawMessage(`{}`),
+		Parameters:  map[string]interface{}{
+			"target": target,
+		},
 		StopChannel: make(chan bool),
 	}
 
@@ -722,7 +728,9 @@ func (f *FaultInjector) injectNetworkDegradation(packetLoss int, latency time.Du
 		Type:        "NETWORK_DEGRADATION",
 		StartTime:   time.Now(),
 		Duration:    duration,
-		Parameters:  json.RawMessage(`{}`),
+		Parameters:  map[string]interface{}{
+			"degradationType": "latency",
+		},
 		StopChannel: make(chan bool),
 	}
 

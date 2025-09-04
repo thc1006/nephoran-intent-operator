@@ -38,7 +38,7 @@ var _ = Describe("O2 Infrastructure Management Service Integration Tests", func(
 	)
 
 	BeforeEach(func() {
-		namespace = CreateTestNamespace()
+		namespace = CreateO2TestNamespace()
 		var cancel context.CancelFunc
 		testCtx, cancel = context.WithTimeout(ctx, 10*time.Minute)
 		DeferCleanup(cancel)
@@ -663,20 +663,5 @@ var _ = Describe("O2 Infrastructure Management Service Integration Tests", func(
 	})
 })
 
-// Test helper functions
-
-func CreateTestNamespace() *corev1.Namespace {
-	namespace := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "o2-ims-integration-test-",
-		},
-	}
-	Expect(k8sClient.Create(context.Background(), namespace)).To(Succeed())
-
-	DeferCleanup(func() {
-		k8sClient.Delete(context.Background(), namespace)
-	})
-
-	return namespace
-}
+// Test helper functions are now in o2_test_utils.go
 

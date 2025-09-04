@@ -176,8 +176,8 @@ var _ = Describe("LLM Processor Service Tests", func() {
 		By("Setting up test LLM processor service")
 		// Create mock LLM client for service testing
 		mockClient := &MockLLMClient{
-			Response: `{"action": "test", "result": "success"}`,
-			Error:    nil,
+			response: `{"action": "test", "result": "success"}`,
+			error:    nil,
 		}
 		service = NewLLMProcessorService(mockClient)
 		testServer = httptest.NewServer(service.SetupHandler())
@@ -374,8 +374,8 @@ var _ = Describe("LLM Processor Service Tests", func() {
 		It("Should handle LLM processing failures", func() {
 			By("Setting up service with failing LLM client")
 			failingClient := &MockLLMClient{
-				Response: "",
-				Error:    fmt.Errorf("LLM service unavailable"),
+				response: "",
+				error:    fmt.Errorf("LLM service unavailable"),
 			}
 			failingService := NewLLMProcessorService(failingClient)
 			failingServer := httptest.NewServer(failingService.SetupHandler())
@@ -460,8 +460,8 @@ var _ = Describe("LLM Processor Service Tests", func() {
 			complexResponseBytes, _ := json.Marshal(complexResponse)
 
 			complexClient := &MockLLMClient{
-				Response: string(complexResponseBytes),
-				Error:    nil,
+				response: string(complexResponseBytes),
+				error:    nil,
 			}
 			complexService := NewLLMProcessorService(complexClient)
 			complexServer := httptest.NewServer(complexService.SetupHandler())
@@ -502,9 +502,9 @@ var _ = Describe("LLM Processor Service Tests", func() {
 		It("Should handle retry scenarios with LLM client", func() {
 			By("Setting up service with retry-capable LLM client")
 			retryClient := &MockLLMClient{
-				Response:  `{"action": "retry_success", "attempt": 3}`,
-				Error:     fmt.Errorf("temporary failure"),
-				FailCount: 2, // Fail first 2 attempts, succeed on 3rd
+				response:  `{"action": "retry_success", "attempt": 3}`,
+				error:     fmt.Errorf("temporary failure"),
+				failCount: 2, // Fail first 2 attempts, succeed on 3rd
 				CallCount: 0,
 			}
 			retryService := NewLLMProcessorService(retryClient)
@@ -542,7 +542,7 @@ var _ = Describe("LLM Processor Service Tests", func() {
 			Expect(resp2.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			// Third request should succeed
-			retryClient.Error = nil // Clear error for success
+			retryClient.error = nil // Clear error for success
 			resp3, err := http.Post(
 				retryServer.URL+"/process",
 				"application/json",

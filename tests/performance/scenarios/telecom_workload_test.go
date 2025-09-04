@@ -107,21 +107,21 @@ func TestRealisticTelecomWorkload(t *testing.T) {
 				{
 					Name: "Create eMBB Slice",
 					Execute: func() error {
-						return createNetworkSlice(ctx, "eMBB", json.RawMessage(`{}`))
+						return createNetworkSlice(ctx, "eMBB", map[string]interface{}{})
 					},
 					Delay: 1 * time.Second,
 				},
 				{
 					Name: "Create URLLC Slice",
 					Execute: func() error {
-						return createNetworkSlice(ctx, "URLLC", json.RawMessage(`{}`))
+						return createNetworkSlice(ctx, "URLLC", map[string]interface{}{})
 					},
 					Delay: 1 * time.Second,
 				},
 				{
 					Name: "Create mMTC Slice",
 					Execute: func() error {
-						return createNetworkSlice(ctx, "mMTC", json.RawMessage(`{}`))
+						return createNetworkSlice(ctx, "mMTC", map[string]interface{}{})
 					},
 					Delay: 1 * time.Second,
 				},
@@ -260,11 +260,7 @@ func TestComplexIntentProcessing(t *testing.T) {
 			},
 			Spec: nephoranv1.NetworkIntentSpec{
 				Intent: "Deploy complete 5G network with AMF, SMF, UPF, configure network slicing for eMBB and URLLC, enable auto-scaling, setup monitoring and alerting, configure security policies, and integrate with existing OSS/BSS systems",
-				TargetClusters: []string{
-					"production-cluster-1",
-					"production-cluster-2",
-					"edge-cluster-1",
-				},
+				TargetCluster: "production-cluster-1",
 			},
 		}
 
@@ -392,8 +388,8 @@ func generateRandomIntent() *nephoranv1.NetworkIntent {
 			Namespace: "default",
 		},
 		Spec: nephoranv1.NetworkIntentSpec{
-			Intent:         intents[time.Now().UnixNano()%int64(len(intents))],
-			TargetClusters: []string{"cluster-1"},
+			Intent:        intents[time.Now().UnixNano()%int64(len(intents))],
+			TargetCluster: "cluster-1",
 		},
 	}
 }

@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+	"encoding/json"
 )
 
 // LoadTestConfig defines configuration for load testing

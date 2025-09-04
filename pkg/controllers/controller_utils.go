@@ -1,16 +1,28 @@
 package controllers
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"math/rand"
 	"strconv"
+	"strings"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	configPkg "github.com/thc1006/nephoran-intent-operator/pkg/config"
+)
+
+// Git operation error constants used by cleanup tests
+var (
+	ErrGitAuthenticationFailed  = errors.New("SSH key authentication failed")
+	ErrGitNetworkTimeout       = errors.New("network timeout during Git operation")
+	ErrGitRepositoryCorrupted  = errors.New("repository is corrupted or locked")
+	ErrGitDirectoryNotFound    = errors.New("directory not found in repository")
+	ErrGitPushRejected        = errors.New("push rejected by remote repository")
+	ErrGitNoChangesToCommit   = errors.New("no changes to commit")
 )
 
 // BackoffConfig holds configuration for exponential backoff
@@ -337,4 +349,38 @@ func isConditionTrue(conditions []metav1.Condition, conditionType string) bool {
 		}
 	}
 	return false
+}
+
+// createLabelSelector creates a label selector string from a map of labels
+func createLabelSelector(labels map[string]string) string {
+	if len(labels) == 0 {
+		return ""
+	}
+
+	var selectors []string
+	for key, value := range labels {
+		selectors = append(selectors, fmt.Sprintf("%s=%s", key, value))
+	}
+	return strings.Join(selectors, ",")
+}
+
+// containsFinalizer checks if a finalizer is present in the finalizers slice
+func containsFinalizer(finalizers []string, finalizer string) bool {
+	for _, f := range finalizers {
+		if f == finalizer {
+			return true
+		}
+	}
+	return false
+}
+
+// removeFinalizer removes all instances of a finalizer from the finalizers slice
+func removeFinalizer(finalizers []string, finalizer string) []string {
+	var result []string
+	for _, f := range finalizers {
+		if f != finalizer {
+			result = append(result, f)
+		}
+	}
+	return result
 }

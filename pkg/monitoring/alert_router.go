@@ -397,13 +397,13 @@ func (ar *AlertRouter) GetStats() *AlertStats {
 
 // formatAlertMessage formats the alert message
 func (ar *AlertRouter) formatAlertMessage(rule *AlertRule, value float64) string {
-	return fmt.Sprintf("%s alert: %s (value: %.2f, threshold: %.2f)",
+	return fmt.Sprintf("%s alert: %s (value: %.2f, threshold: %s)",
 		rule.Severity, rule.Name, value, rule.Threshold)
 }
 
 // formatAlertDescription formats the alert description
 func (ar *AlertRouter) formatAlertDescription(rule *AlertRule, labels map[string]string, value float64) string {
-	desc := fmt.Sprintf("Alert triggered for rule '%s' in component '%s'. Current value %.2f vs threshold %.2f.",
+	desc := fmt.Sprintf("Alert triggered for rule '%s' in component '%s'. Current value %.2f vs threshold %s.",
 		rule.Name, rule.Component, value, rule.Threshold)
 
 	if len(labels) > 0 {

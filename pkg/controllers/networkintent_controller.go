@@ -763,29 +763,7 @@ func parseLabels(labelSelector string) map[string]string {
 	return labels
 }
 
-// Finalizer helper functions.
-
-func containsFinalizer(finalizers []string, finalizer string) bool {
-	for _, f := range finalizers {
-		if f == finalizer {
-			return true
-		}
-	}
-
-	return false
-}
-
-func removeFinalizer(finalizers []string, finalizer string) []string {
-	var result []string
-
-	for _, f := range finalizers {
-		if f != finalizer {
-			result = append(result, f)
-		}
-	}
-
-	return result
-}
+// Finalizer helper functions are now in controller_utils.go
 
 // Safe client operation wrappers.
 
@@ -1015,19 +993,4 @@ func (r *NetworkIntentReconciler) cleanupCachedData(ctx context.Context, network
 	return nil
 }
 
-// createLabelSelector creates a label selector string from a map of labels.
-
-func createLabelSelector(labels map[string]string) string {
-	if len(labels) == 0 {
-		return ""
-	}
-
-	// Pre-allocate slice with known capacity for better performance
-	pairs := make([]string, 0, len(labels))
-
-	for key, value := range labels {
-		pairs = append(pairs, fmt.Sprintf("%s=%s", key, value))
-	}
-
-	return strings.Join(pairs, ",")
-}
+// createLabelSelector function is now in controller_utils.go

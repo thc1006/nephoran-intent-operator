@@ -27,10 +27,14 @@ type TokenManager interface {
 	TruncateToFit(text string, maxTokens int, model string) (string, error)
 	// Additional methods for compatibility
 	GetTokenCount(text string) int
+	CountTokens(text string) int // Alias for GetTokenCount for consistency
 	ValidateModel(model string) error
 	GetSupportedModels() []string
-	// Budget calculation method
+	// Budget calculation methods
 	CalculateTokenBudget(context string, requirements map[string]interface{}) (int, error)
+	CalculateTokenBudgetAdvanced(ctx context.Context, model, systemPrompt, userQuery, contextData string) (*TokenBudget, error)
+	// Context optimization
+	OptimizeContext(contexts []string, maxTokens int, model string) string
 }
 
 // RelevanceScorer interface for backwards compatibility with handlers
@@ -133,6 +137,18 @@ type TokenUsageInfo struct {
 	PromptTokens     int `json:"prompt_tokens"`
 	CompletionTokens int `json:"completion_tokens"`
 	TotalTokens      int `json:"total_tokens"`
+}
+
+// TokenBudget represents token allocation and budget information
+type TokenBudget struct {
+	CanAccommodate  bool `json:"can_accommodate"`
+	ContextBudget   int  `json:"context_budget"`
+	SystemTokens    int  `json:"system_tokens"`
+	UserTokens      int  `json:"user_tokens"`
+	ContextTokens   int  `json:"context_tokens"`
+	ResponseBudget  int  `json:"response_budget"`
+	TotalUsed       int  `json:"total_used"`
+	MaxTokens       int  `json:"max_tokens"`
 }
 
 // generateRequestID function is defined elsewhere

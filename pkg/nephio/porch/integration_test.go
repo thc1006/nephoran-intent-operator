@@ -25,6 +25,7 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"encoding/json"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

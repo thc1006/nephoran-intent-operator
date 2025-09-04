@@ -26,7 +26,7 @@ func TestMetricsCollectorRaceConditions(t *testing.T) {
 
 	collector := &metricsCollector{
 		mu:          sync.RWMutex{},
-		metrics:     make(map[string]*metric),
+		metrics:     make(map[string]*testMetric),
 		aggregates:  &sync.Map{},
 		updateCount: atomic.Int64{},
 		errorCount:  atomic.Int64{},
@@ -51,7 +51,7 @@ func TestMetricsCollectorRaceConditions(t *testing.T) {
 			}
 		} else {
 			// Create new metric
-			collector.metrics[metricName] = &metric{
+			collector.metrics[metricName] = &testMetric{
 				name:    metricName,
 				count:   1,
 				sumBits: math.Float64bits(value),
@@ -143,7 +143,7 @@ func TestHealthCheckerDeadlockDetection(t *testing.T) {
 		}()
 	}
 
-	group.Wait()
+	wg.Wait()
 	t.Logf("Health checks: %d, Deadlocks detected: %d",
 		healthChecker.checkCount.Load(), healthChecker.deadlockCount.Load())
 }
@@ -229,7 +229,7 @@ func TestDistributedTracingRace(t *testing.T) {
 	tracer := &distributedTracer{
 		spans:       &sync.Map{},
 		spanCounter: atomic.Int64{},
-		traces:      make(map[string]*trace),
+		traces:      make(map[string]*testTrace),
 		traceMu:     sync.RWMutex{},
 	}
 
@@ -262,7 +262,7 @@ func TestDistributedTracingRace(t *testing.T) {
 			trace.spans = append(trace.spans, spanID)
 			trace.mu.Unlock()
 		} else {
-			tracer.traces[traceID] = &trace{
+			tracer.traces[traceID] = &testTrace{
 				id:    traceID,
 				spans: []int64{spanID},
 			}
@@ -299,7 +299,7 @@ func TestDistributedTracingRace(t *testing.T) {
 func TestAlertManagerConcurrency(t *testing.T) {
 	channelTest := racetest.NewChannelRaceTest(t)
 
-	alertChan := make(chan *alert, 100)
+	alertChan := make(chan interface{}, 100)
 	channelTest.TestConcurrentSendReceive(alertChan, 20, 10)
 
 	alertManager := &alertManager{
@@ -387,7 +387,9 @@ func TestSLAMonitoringRace(t *testing.T) {
 		checks:     atomic.Int64{},
 	}
 
-	mutexTest.TestCriticalSection(&slaMonitor.mu, &slaMonitor.metrics)
+	// Create a simple map for testing critical sections
+	testCounters := make(map[string]int)
+	mutexTest.TestCriticalSection(&slaMonitor.mu, &testCounters)
 
 	runner := racetest.NewRunner(t, racetest.DefaultConfig())
 
@@ -477,13 +479,13 @@ func BenchmarkMonitoringConcurrency(b *testing.B) {
 // Helper functions and types
 type metricsCollector struct {
 	mu          sync.RWMutex
-	metrics     map[string]*metric
+	metrics     map[string]*testMetric
 	aggregates  *sync.Map
 	updateCount atomic.Int64
 	errorCount  atomic.Int64
 }
 
-type metric struct {
+type testMetric struct {
 	name    string
 	count   int64
 	sumBits uint64 // Float64 as bits for atomic operations
@@ -515,7 +517,7 @@ type prometheusExporter struct {
 type distributedTracer struct {
 	spans       *sync.Map
 	spanCounter atomic.Int64
-	traces      map[string]*trace
+	traces      map[string]*testTrace
 	traceMu     sync.RWMutex
 }
 
@@ -527,7 +529,7 @@ type span struct {
 	tags      *sync.Map
 }
 
-type trace struct {
+type testTrace struct {
 	id    string
 	spans []int64
 	mu    sync.RWMutex

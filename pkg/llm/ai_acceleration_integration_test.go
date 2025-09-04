@@ -8,6 +8,7 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"encoding/json"
 )
 
 // TestGPUAcceleratorIntegration tests the complete GPU accelerator integration

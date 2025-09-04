@@ -6,6 +6,8 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -854,39 +856,53 @@ func (jsm *JWTManagerMock) IsTokenBlacklisted(ctx context.Context, token string)
 }
 
 // SetSigningKey sets the signing key (mock implementation)
-func (jsm *JWTManagerMock) SetSigningKey(key interface{}) error {
+func (jsm *JWTManagerMock) SetSigningKey(key interface{}, keyID string) error {
 	// Mock implementation - just return success
 	return nil
 }
 
 // ValidateToken validates a JWT token (mock implementation)
-func (jsm *JWTManagerMock) ValidateToken(ctx context.Context, tokenString string) (jwt.MapClaims, error) {
+func (jsm *JWTManagerMock) ValidateToken(ctx context.Context, tokenString string) (*auth.NephoranJWTClaims, error) {
 	// Simple validation for testing
 	if tokenString == "invalid" {
 		return nil, fmt.Errorf("invalid token")
 	}
 	
 	// Return basic claims for valid tokens
-	return jwt.MapClaims{
-		"sub": "test-user",
-		"iss": "test-issuer",
-		"exp": time.Now().Add(time.Hour).Unix(),
-		"iat": time.Now().Unix(),
+	now := time.Now()
+	return &auth.NephoranJWTClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   "test-user",
+			Issuer:    "test-issuer",
+			ExpiresAt: jwt.NewNumericDate(now.Add(time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(now),
+		},
+		Email:         "test@example.com",
+		EmailVerified: true,
+		Name:          "Test User",
+		Roles:         []string{"user"},
 	}, nil
 }
 
 // RefreshToken refreshes a JWT token (mock implementation)
-func (jsm *JWTManagerMock) RefreshToken(ctx context.Context, refreshToken string) (string, error) {
+func (jsm *JWTManagerMock) RefreshToken(refreshToken string) (string, string, error) {
 	if refreshToken == "" {
-		return "", fmt.Errorf("empty refresh token")
+		return "", "", fmt.Errorf("empty refresh token")
 	}
 	
 	// Generate a new access token
-	return jsm.GenerateToken("test-user", nil)
+	accessToken, err := jsm.GenerateToken("test-user", nil)
+	if err != nil {
+		return "", "", err
+	}
+	
+	// Generate a new refresh token
+	newRefreshToken := fmt.Sprintf("refresh-%s", accessToken)
+	return accessToken, newRefreshToken, nil
 }
 
 // BlacklistToken adds a token to the blacklist
-func (jsm *JWTManagerMock) BlacklistToken(ctx context.Context, tokenString string) error {
+func (jsm *JWTManagerMock) BlacklistToken(tokenString string) error {
 	if jsm.blacklistedTokens == nil {
 		jsm.blacklistedTokens = make(map[string]bool)
 	}
@@ -931,6 +947,100 @@ func (jsm *JWTManagerMock) GenerateTokenWithTTL(userInfo interface{}, claims int
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwtClaims)
 	// Use a simple secret for testing
 	return token.SignedString([]byte("test-secret"))
+}
+
+// GetPublicKey returns a public key by key ID (mock implementation)
+func (jsm *JWTManagerMock) GetPublicKey(keyID string) (*rsa.PublicKey, error) {
+	// Mock implementation - return a test public key
+	if keyID == "" {
+		return nil, fmt.Errorf("empty key ID")
+	}
+	
+	// For testing, we'll return a dummy RSA public key
+	// In a real implementation, this would retrieve the actual public key
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return nil, err
+	}
+	return &privateKey.PublicKey, nil
+}
+
+// GetJWKS returns the JSON Web Key Set (mock implementation)
+func (jsm *JWTManagerMock) GetJWKS() (map[string]interface{}, error) {
+	// Mock implementation - return a test JWKS
+	return map[string]interface{}{
+		"keys": []map[string]interface{}{
+			{
+				"kty": "RSA",
+				"kid": "test-key-id",
+				"use": "sig",
+				"alg": "RS256",
+				"n":   "mock-modulus",
+				"e":   "AQAB",
+			},
+		},
+	}, nil
+}
+
+// GetKeyID returns the current key ID (mock implementation)
+func (jsm *JWTManagerMock) GetKeyID() string {
+	return "test-key-id"
+}
+
+// RotateKeys rotates the signing keys (mock implementation)
+func (jsm *JWTManagerMock) RotateKeys() error {
+	// Mock implementation - just return success
+	return nil
+}
+
+// ExtractClaims extracts claims from a JWT token without validation (mock implementation)
+func (jsm *JWTManagerMock) ExtractClaims(tokenString string) (jwt.MapClaims, error) {
+	if tokenString == "" {
+		return nil, fmt.Errorf("empty token")
+	}
+	
+	// Mock implementation - return basic claims
+	now := time.Now()
+	return jwt.MapClaims{
+		"sub": "test-user",
+		"iss": "test-issuer",
+		"exp": now.Add(time.Hour).Unix(),
+		"iat": now.Unix(),
+		"email": "test@example.com",
+		"roles": []interface{}{"admin", "user"},
+	}, nil
+}
+
+// CleanupBlacklist removes expired tokens from the blacklist (mock implementation)
+func (jsm *JWTManagerMock) CleanupBlacklist() error {
+	// Mock implementation - just return success
+	// In a real implementation, this would clean up expired blacklisted tokens
+	return nil
+}
+
+// GetIssuer returns the JWT issuer (mock implementation)
+func (jsm *JWTManagerMock) GetIssuer() string {
+	return "test-issuer"
+}
+
+// GetDefaultTTL returns the default token TTL (mock implementation)
+func (jsm *JWTManagerMock) GetDefaultTTL() time.Duration {
+	return time.Hour
+}
+
+// GetRefreshTTL returns the refresh token TTL (mock implementation)
+func (jsm *JWTManagerMock) GetRefreshTTL() time.Duration {
+	return 24 * time.Hour
+}
+
+// GetRequireSecureCookies returns whether secure cookies are required (mock implementation)
+func (jsm *JWTManagerMock) GetRequireSecureCookies() bool {
+	return false
+}
+
+// Close cleans up the JWT manager (mock implementation)
+func (jsm *JWTManagerMock) Close() {
+	// Mock implementation - nothing to clean up
 }
 
 // SessionResult represents a session with an ID field

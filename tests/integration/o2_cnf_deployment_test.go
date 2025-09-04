@@ -31,7 +31,7 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 	)
 
 	BeforeEach(func() {
-		namespace = CreateTestNamespace()
+		namespace = CreateO2TestNamespace()
 		var cancel context.CancelFunc
 		testCtx, cancel = context.WithTimeout(ctx, 20*time.Minute)
 		DeferCleanup(cancel)

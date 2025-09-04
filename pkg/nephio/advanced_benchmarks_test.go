@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+	"encoding/json"
 )
 
 // BenchmarkNephioSystemSuite provides comprehensive Nephio package benchmarks using Go 1.24+ features

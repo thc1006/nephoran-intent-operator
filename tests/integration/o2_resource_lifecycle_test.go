@@ -32,7 +32,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 	)
 
 	BeforeEach(func() {
-		namespace = CreateTestNamespace()
+		namespace = CreateO2TestNamespace()
 		var cancel context.CancelFunc
 		testCtx, cancel = context.WithTimeout(ctx, 25*time.Minute)
 		DeferCleanup(cancel)

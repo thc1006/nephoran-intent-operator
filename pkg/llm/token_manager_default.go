@@ -3,6 +3,7 @@
 package llm
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync"
@@ -135,6 +136,11 @@ func (dtm *DefaultTokenManager) GetTokenCount(text string) int {
 	return dtm.EstimateTokens(text)
 }
 
+// CountTokens is an alias for GetTokenCount for consistency
+func (dtm *DefaultTokenManager) CountTokens(text string) int {
+	return dtm.GetTokenCount(text)
+}
+
 // ValidateModel validates if a model is supported
 func (dtm *DefaultTokenManager) ValidateModel(model string) error {
 	if model == "" {
@@ -195,4 +201,88 @@ func (dtm *DefaultTokenManager) CalculateTokenBudget(context string, requirement
 	}
 
 	return budget, nil
+}
+
+// CalculateTokenBudgetAdvanced calculates advanced token budget with detailed context analysis
+func (dtm *DefaultTokenManager) CalculateTokenBudgetAdvanced(ctx context.Context, model, systemPrompt, userQuery, contextData string) (*TokenBudget, error) {
+	// Estimate tokens for each component
+	systemTokens := dtm.EstimateTokens(systemPrompt)
+	userTokens := dtm.EstimateTokens(userQuery)
+	contextTokens := dtm.EstimateTokens(contextData)
+	
+	// Default model limits (conservative estimates)
+	maxTokens := 4096
+	if model != "" {
+		// Adjust for specific models if needed
+		switch model {
+		case "gpt-4":
+			maxTokens = 8192
+		case "gpt-3.5-turbo":
+			maxTokens = 4096
+		default:
+			maxTokens = 4096
+		}
+	}
+	
+	totalUsed := systemTokens + userTokens + contextTokens
+	responseBudget := maxTokens - totalUsed
+	
+	// Check if we can accommodate the request
+	canAccommodate := responseBudget > 100 // Need at least 100 tokens for response
+	
+	// Calculate context budget (80% of remaining tokens)
+	contextBudget := int(float64(maxTokens-systemTokens-userTokens) * 0.8)
+	if contextBudget < 0 {
+		contextBudget = 0
+	}
+	
+	return &TokenBudget{
+		CanAccommodate: canAccommodate,
+		ContextBudget:  contextBudget,
+		SystemTokens:   systemTokens,
+		UserTokens:     userTokens,
+		ContextTokens:  contextTokens,
+		ResponseBudget: responseBudget,
+		TotalUsed:      totalUsed,
+		MaxTokens:      maxTokens,
+	}, nil
+}
+
+// OptimizeContext optimizes contexts to fit within token limits
+func (dtm *DefaultTokenManager) OptimizeContext(contexts []string, maxTokens int, model string) string {
+	if len(contexts) == 0 {
+		return ""
+	}
+	
+	// Start with all contexts concatenated
+	combined := strings.Join(contexts, "\n\n")
+	
+	// If it fits within limits, return as-is
+	currentTokens := dtm.EstimateTokens(combined)
+	if currentTokens <= maxTokens {
+		return combined
+	}
+	
+	// Otherwise, truncate contexts from the end until we fit
+	totalContexts := len(contexts)
+	for i := totalContexts - 1; i >= 0; i-- {
+		reduced := strings.Join(contexts[:i+1], "\n\n")
+		if dtm.EstimateTokens(reduced) <= maxTokens {
+			if i < totalContexts-1 {
+				reduced += "\n\n[... additional context truncated ...]"
+			}
+			return reduced
+		}
+	}
+	
+	// If even a single context is too large, truncate it
+	if len(contexts) > 0 {
+		truncated, err := dtm.TruncateToFit(contexts[0], maxTokens-50, model) // Reserve 50 tokens for truncation message
+		if err != nil {
+			return "[Context too large to process]"
+		}
+		return truncated
+	}
+	
+	return ""
 }

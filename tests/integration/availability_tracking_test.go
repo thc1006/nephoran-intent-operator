@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"testing"
 	"time"
+	"encoding/json"
 
 	"github.com/stretchr/testify/suite"
 
@@ -23,7 +24,7 @@ type AvailabilityTrackingTestSuite struct {
 	reporter          *availability.AvailabilityReporter
 
 	// Test infrastructure
-	mockLLMService    *MockLLMService
+	mockLLMService    *MockLLMHttpService
 	mockRAGService    *MockRAGService
 	mockNephioService *MockNephioService
 	mockPrometheus    *MockPrometheusServer
@@ -54,7 +55,7 @@ func (suite *AvailabilityTrackingTestSuite) TearDownSuite() {
 
 func (suite *AvailabilityTrackingTestSuite) setupMockServices() {
 	// Setup mock LLM service
-	suite.mockLLMService = NewMockLLMService("localhost:8080")
+	suite.mockLLMService = NewMockLLMHttpService("localhost:8080")
 	go suite.mockLLMService.Start()
 
 	// Setup mock RAG service
@@ -795,16 +796,16 @@ func (suite *AvailabilityTrackingTestSuite) teardownMockServices() {
 
 // Mock implementations for testing
 
-type MockLLMService struct {
+type MockLLMHttpService struct {
 	address string
 	server  *http.Server
 }
 
-func NewMockLLMService(address string) *MockLLMService {
-	return &MockLLMService{address: address}
+func NewMockLLMHttpService(address string) *MockLLMHttpService {
+	return &MockLLMHttpService{address: address}
 }
 
-func (m *MockLLMService) Start() {
+func (m *MockLLMHttpService) Start() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -819,7 +820,7 @@ func (m *MockLLMService) Start() {
 	m.server.ListenAndServe()
 }
 
-func (m *MockLLMService) Stop() {
+func (m *MockLLMHttpService) Stop() {
 	if m.server != nil {
 		m.server.Close()
 	}

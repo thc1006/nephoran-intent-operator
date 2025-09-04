@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+	"encoding/json"
 
 	"github.com/stretchr/testify/suite"
 	"github.com/testcontainers/testcontainers-go"

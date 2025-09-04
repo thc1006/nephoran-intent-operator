@@ -64,7 +64,7 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 			k8sClient:         testutils.GetK8sClient(),
 			namespace:         testutils.GetTestNamespace(),
 			testSuite:         baseSuite,
-			complianceResults: make(map[string]*ComplianceResult),
+			complianceResults: make(map[string]*MTLSComplianceResult),
 		}
 	})
 
@@ -77,7 +77,7 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 
 	Context("O-RAN Security Requirements Compliance", func() {
 		It("should validate O-RAN A1 interface security requirements", func() {
-			result := &ComplianceResult{
+			result := &MTLSComplianceResult{
 				Standard:     "O-RAN",
 				Version:      "7.0.0",
 				Requirements: []*MTLSRequirementResult{},
@@ -160,7 +160,7 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 		})
 
 		It("should validate O-RAN O1 interface security requirements", func() {
-			result := &ComplianceResult{
+			result := &MTLSComplianceResult{
 				Standard:     "O-RAN",
 				Version:      "7.0.0",
 				Requirements: []*MTLSRequirementResult{},
@@ -210,7 +210,7 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 		})
 
 		It("should validate O-RAN E2 interface security requirements", func() {
-			result := &ComplianceResult{
+			result := &MTLSComplianceResult{
 				Standard:     "O-RAN",
 				Version:      "7.0.0",
 				Requirements: []*MTLSRequirementResult{},
@@ -261,7 +261,7 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 
 	Context("NIST Cybersecurity Framework Compliance", func() {
 		It("should validate NIST CSF Identity (ID) requirements", func() {
-			result := &ComplianceResult{
+			result := &MTLSComplianceResult{
 				Standard:     "NIST CSF",
 				Version:      "1.1",
 				Requirements: []*MTLSRequirementResult{},
@@ -309,7 +309,7 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 		})
 
 		It("should validate NIST CSF Protect (PR) requirements", func() {
-			result := &ComplianceResult{
+			result := &MTLSComplianceResult{
 				Standard:     "NIST CSF",
 				Version:      "1.1",
 				Requirements: []*MTLSRequirementResult{},
@@ -359,7 +359,7 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 		})
 
 		It("should validate NIST CSF Detect (DE) requirements", func() {
-			result := &ComplianceResult{
+			result := &MTLSComplianceResult{
 				Standard:     "NIST CSF",
 				Version:      "1.1",
 				Requirements: []*MTLSRequirementResult{},
@@ -391,7 +391,7 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 
 	Context("TLS 1.3 Compliance Validation", func() {
 		It("should validate TLS 1.3 protocol compliance", func() {
-			result := &ComplianceResult{
+			result := &MTLSComplianceResult{
 				Standard:     "TLS",
 				Version:      "1.3",
 				Requirements: []*MTLSRequirementResult{},
@@ -513,7 +513,7 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 
 	Context("Industry-Specific Compliance", func() {
 		It("should validate telecommunications security standards", func() {
-			result := &ComplianceResult{
+			result := &MTLSComplianceResult{
 				Standard:     "3GPP",
 				Version:      "Release 16",
 				Requirements: []*MTLSRequirementResult{},
@@ -543,7 +543,7 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 		})
 
 		It("should validate cloud security standards", func() {
-			result := &ComplianceResult{
+			result := &MTLSComplianceResult{
 				Standard:     "CSA CCM",
 				Version:      "4.0",
 				Requirements: []*MTLSRequirementResult{},

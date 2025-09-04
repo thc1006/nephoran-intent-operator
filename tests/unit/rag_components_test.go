@@ -2,6 +2,7 @@ package unit
 
 import (
 	"context"
+	"encoding/json"
 	"math"
 	"testing"
 	"time"
@@ -437,20 +438,18 @@ func (suite *RAGComponentsTestSuite) testSemanticSearch() {
 	// Mock Weaviate client
 	mockWeaviate := &MockWeaviateClient{}
 	mockWeaviate.On("SearchSimilar", mock.Anything, mock.Anything, mock.Anything).Return(
-		[]rag.RetrievedDocument{
+		[]*rag.SearchResult{
 			{
-				DocumentID:     "doc1",
-				Title:          "5G Network Architecture",
-				Content:        "5G networks use a service-based architecture...",
-				Score:          0.95,
-				RelevanceScore: 0.95,
+				ID:      "doc1",
+				Title:   "5G Network Architecture",
+				Content: "5G networks use a service-based architecture...",
+				Score:   0.95,
 			},
 			{
-				DocumentID:     "doc2",
-				Title:          "Network Slicing",
-				Content:        "Network slicing enables multiple virtual networks...",
-				Score:          0.87,
-				RelevanceScore: 0.87,
+				ID:      "doc2",
+				Title:   "Network Slicing",
+				Content: "Network slicing enables multiple virtual networks...",
+				Score:   0.87,
 			},
 		}, nil)
 
@@ -486,9 +485,9 @@ func (suite *RAGComponentsTestSuite) testSemanticSearch() {
 func (suite *RAGComponentsTestSuite) testHybridSearch() {
 	mockWeaviate := &MockWeaviateClient{}
 	mockWeaviate.On("SearchSimilar", mock.Anything, mock.Anything, mock.Anything).Return(
-		[]rag.RetrievedDocument{
-			{DocumentID: "doc1", Score: 0.9},
-			{DocumentID: "doc2", Score: 0.8},
+		[]*rag.SearchResult{
+			{ID: "doc1", Score: 0.9},
+			{ID: "doc2", Score: 0.8},
 		}, nil)
 
 	service := rag.NewEnhancedRetrievalService(&rag.RetrievalConfig{
@@ -521,11 +520,11 @@ func (suite *RAGComponentsTestSuite) testHybridSearch() {
 func (suite *RAGComponentsTestSuite) testFilterByScore() {
 	mockWeaviate := &MockWeaviateClient{}
 	mockWeaviate.On("SearchSimilar", mock.Anything, mock.Anything, mock.Anything).Return(
-		[]rag.RetrievedDocument{
-			{DocumentID: "doc1", Score: 0.95},
-			{DocumentID: "doc2", Score: 0.75},
-			{DocumentID: "doc3", Score: 0.45}, // Below threshold
-			{DocumentID: "doc4", Score: 0.35}, // Below threshold
+		[]*rag.SearchResult{
+			{ID: "doc1", Score: 0.95},
+			{ID: "doc2", Score: 0.75},
+			{ID: "doc3", Score: 0.45}, // Below threshold
+			{ID: "doc4", Score: 0.35}, // Below threshold
 		}, nil)
 
 	service := rag.NewEnhancedRetrievalService(&rag.RetrievalConfig{
@@ -553,10 +552,10 @@ func (suite *RAGComponentsTestSuite) testFilterByScore() {
 func (suite *RAGComponentsTestSuite) testReRanking() {
 	mockWeaviate := &MockWeaviateClient{}
 	mockWeaviate.On("SearchSimilar", mock.Anything, mock.Anything, mock.Anything).Return(
-		[]rag.RetrievedDocument{
-			{DocumentID: "doc1", Content: "5G network configuration guide", Score: 0.8},
-			{DocumentID: "doc2", Content: "Network slicing implementation", Score: 0.9},
-			{DocumentID: "doc3", Content: "Legacy network protocols", Score: 0.7},
+		[]*rag.SearchResult{
+			{ID: "doc1", Content: "5G network configuration guide", Score: 0.8},
+			{ID: "doc2", Content: "Network slicing implementation", Score: 0.9},
+			{ID: "doc3", Content: "Legacy network protocols", Score: 0.7},
 		}, nil)
 
 	service := rag.NewEnhancedRetrievalService(&rag.RetrievalConfig{
@@ -575,10 +574,10 @@ func (suite *RAGComponentsTestSuite) testReRanking() {
 	suite.Len(results, 3)
 
 	// Re-ranking should potentially change order based on query relevance
-	// Verify that re-ranking scores are set
+	// Verify that scores are set (using Score since RelevanceScore doesn't exist in SearchResult)
 	for _, result := range results {
-		suite.GreaterOrEqual(result.RelevanceScore, 0.0)
-		suite.LessOrEqual(result.RelevanceScore, 1.0)
+		suite.GreaterOrEqual(result.Score, 0.0)
+		suite.LessOrEqual(result.Score, 1.0)
 	}
 
 	mockWeaviate.AssertExpectations(suite.T())
@@ -587,11 +586,11 @@ func (suite *RAGComponentsTestSuite) testReRanking() {
 func (suite *RAGComponentsTestSuite) testSearchWithMetadata() {
 	mockWeaviate := &MockWeaviateClient{}
 	mockWeaviate.On("SearchSimilar", mock.Anything, mock.Anything, mock.Anything).Return(
-		[]rag.RetrievedDocument{
+		[]*rag.SearchResult{
 			{
-				DocumentID: "doc1",
-				Score:      0.9,
-				Metadata: json.RawMessage(`{}`),
+				ID:       "doc1",
+				Score:    0.9,
+				Metadata: json.RawMessage(`{"category":"5g_core","standard":"3gpp","version":"17.0"}`),
 			},
 		}, nil)
 
@@ -610,9 +609,12 @@ func (suite *RAGComponentsTestSuite) testSearchWithMetadata() {
 	suite.Len(results, 1)
 
 	result := results[0]
-	suite.Equal("5g_core", result.Metadata["category"])
-	suite.Equal("3gpp", result.Metadata["standard"])
-	suite.Equal("17.0", result.Metadata["version"])
+	var metadata map[string]interface{}
+	err = json.Unmarshal(result.Metadata, &metadata)
+	suite.NoError(err)
+	suite.Equal("5g_core", metadata["category"])
+	suite.Equal("3gpp", metadata["standard"])
+	suite.Equal("17.0", metadata["version"])
 
 	mockWeaviate.AssertExpectations(suite.T())
 }
@@ -627,9 +629,9 @@ type MockWeaviateClient struct {
 	mock.Mock
 }
 
-func (m *MockWeaviateClient) SearchSimilar(ctx context.Context, query string, limit int) ([]rag.RetrievedDocument, error) {
+func (m *MockWeaviateClient) SearchSimilar(ctx context.Context, query string, limit int) ([]*rag.SearchResult, error) {
 	args := m.Called(ctx, query, limit)
-	return args.Get(0).([]rag.RetrievedDocument), args.Error(1)
+	return args.Get(0).([]*rag.SearchResult), args.Error(1)
 }
 
 func (m *MockWeaviateClient) StoreDocument(ctx context.Context, doc rag.Document) error {
