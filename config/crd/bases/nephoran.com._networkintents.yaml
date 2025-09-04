@@ -19,8 +19,19 @@ spec:
       openAPIV3Schema:
         properties:
           apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -39,75 +50,107 @@ spec:
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
               priority:
+                description: NetworkPriority represents the priority level for network
+                  operations.
                 type: string
               processedParameters:
+                description: ProcessedParameters contains structured parameters extracted
+                  from the intent
                 properties:
                   custom:
                     additionalProperties:
                       type: string
+                    description: Custom parameters as key-value pairs
                     type: object
                   customParameters:
                     additionalProperties:
                       type: string
+                    description: CustomParameters as separate field
                     type: object
                   metadata:
+                    description: Metadata for additional information
                     properties:
                       annotations:
                         additionalProperties:
                           type: string
+                        description: Annotations for additional metadata
                         type: object
                       confidenceScore:
+                        description: ConfidenceScore indicates confidence in parameter
+                          extraction (as string to avoid float issues)
                         pattern: ^(0(\.\d+)?|1(\.0+)?)$
                         type: string
                       default:
+                        description: Default value
                         type: string
                       description:
+                        description: Description of the parameter
                         type: string
                       name:
+                        description: Name of the parameter
                         type: string
                       processedAt:
+                        description: ProcessedAt indicates when the parameter was
+                          processed
                         format: date-time
                         type: string
                       required:
+                        description: Whether the parameter is required
                         type: boolean
                       type:
+                        description: Type of the parameter
                         type: string
                     required:
                     - name
                     - type
                     type: object
                   network:
+                    description: Network parameters
                     properties:
                       loadBalancer:
+                        description: Load balancer settings
                         properties:
                           healthCheck:
+                            description: Health check configuration
                             properties:
                               intervalSeconds:
+                                description: Check interval in seconds
                                 format: int32
                                 type: integer
                               path:
+                                description: Health check path
                                 type: string
                               port:
+                                description: Health check port
                                 format: int32
                                 type: integer
                               timeoutSeconds:
+                                description: Timeout in seconds
                                 format: int32
                                 type: integer
                             type: object
                           type:
+                            description: Load balancer type
                             type: string
                         type: object
                       ports:
+                        description: Service ports
                         items:
+                          description: ServicePortConfig defines a service port configuration
+                            for common use
                           properties:
                             name:
+                              description: Port name
                               type: string
                             port:
+                              description: Port number
                               format: int32
                               type: integer
                             protocol:
+                              description: Protocol (TCP, UDP)
                               type: string
                             targetPort:
+                              description: Target port
                               format: int32
                               type: integer
                           required:
@@ -115,44 +158,61 @@ spec:
                           type: object
                         type: array
                       serviceType:
+                        description: Service type
                         type: string
                     type: object
                   networkFunction:
+                    description: NetworkFunction specifies the target network function
                     type: string
                   raw:
                     additionalProperties:
                       type: string
+                    description: Raw parameters for backup
                     type: object
                   region:
+                    description: Region specifies the deployment region
                     type: string
                   resources:
+                    description: Resource parameters
                     properties:
                       cpu:
+                        description: CPU requirements
                         type: string
                       memory:
+                        description: Memory requirements
                         type: string
                       storage:
+                        description: Storage requirements
                         type: string
                     type: object
                   scaleParameters:
+                    description: ScaleParameters for scaling-related parameters
                     properties:
                       maxReplicas:
+                        description: Maximum replicas
                         format: int32
                         type: integer
                       minReplicas:
+                        description: Minimum replicas
                         format: int32
                         type: integer
                       targetReplicas:
+                        description: Target replicas
                         format: int32
                         type: integer
                       triggers:
+                        description: Scaling triggers
                         items:
+                          description: ScalingTrigger defines a scaling trigger condition
                           properties:
                             metric:
+                              description: Metric name
                               type: string
                             operator:
+                              description: Comparison operator (>, <, >=, <=, ==)
                               type: string
                             targetValue:
+                              description: Target value
                               type: string
                           required:
                           - metric
@@ -162,24 +222,33 @@ spec:
                         type: array
                     type: object
                   scaling:
+                    description: Scaling parameters
                     properties:
                       maxReplicas:
+                        description: Maximum replicas
                         format: int32
                         type: integer
                       minReplicas:
+                        description: Minimum replicas
                         format: int32
                         type: integer
                       targetReplicas:
+                        description: Target replicas
                         format: int32
                         type: integer
                       triggers:
+                        description: Scaling triggers
                         items:
+                          description: ScalingTrigger defines a scaling trigger condition
                           properties:
                             metric:
+                              description: Metric name
                               type: string
                             operator:
+                              description: Comparison operator (>, <, >=, <=, ==)
                               type: string
                             targetValue:
+                              description: Target value
                               type: string
                           required:
                           - metric
@@ -189,26 +258,37 @@ spec:
                         type: array
                     type: object
                   securityParameters:
+                    description: SecurityParameters for security-related settings
                     properties:
                       encryption:
+                        description: Encryption configuration
                         properties:
                           algorithm:
+                            description: Encryption algorithm
                             type: string
                           enabled:
+                            description: Whether encryption is enabled
                             type: boolean
                           keySize:
+                            description: Key size in bits
                             type: integer
                         type: object
                       networkPolicies:
+                        description: Network policies configuration
                         items:
+                          description: NetworkPolicyConfig defines network policy
+                            settings
                           properties:
                             name:
+                              description: Name of the network policy
                               type: string
                             rules:
+                              description: Rules for the policy
                               items:
                                 type: string
                               type: array
                             type:
+                              description: Type of policy (ingress, egress, or both)
                               enum:
                               - ingress
                               - egress
@@ -220,74 +300,104 @@ spec:
                           type: object
                         type: array
                       serviceMesh:
+                        description: Service mesh configuration
                         type: boolean
                       tlsEnabled:
+                        description: TLS configuration
                         type: boolean
                     type: object
                   structured:
                     additionalProperties:
                       type: string
+                    description: Structured parameters
                     type: object
                 type: object
               region:
                 type: string
               resourceConstraints:
+                description: ResourceConstraints defines resource limits and requests
                 properties:
                   bandwidth:
+                    description: Bandwidth constraints
                     properties:
                       limit:
+                        description: Limit amount
                         type: string
                       max:
+                        description: Maximum allowed amount
                         type: string
                       min:
+                        description: Minimum required amount
                         type: string
                       request:
+                        description: Requested amount
                         type: string
                     type: object
                   cpu:
+                    description: CPU constraints
                     properties:
                       limit:
+                        description: Limit amount
                         type: string
                       max:
+                        description: Maximum allowed amount
                         type: string
                       min:
+                        description: Minimum required amount
                         type: string
                       request:
+                        description: Requested amount
                         type: string
                     type: object
                   customResources:
                     additionalProperties:
+                      description: ResourceConstraint defines a single resource constraint
                       properties:
                         limit:
+                          description: Limit amount
                           type: string
                         max:
+                          description: Maximum allowed amount
                           type: string
                         min:
+                          description: Minimum required amount
                           type: string
                         request:
+                          description: Requested amount
                           type: string
                       type: object
+                    description: CustomResources for custom resource constraints
                     type: object
                   memory:
+                    description: Memory constraints
                     properties:
                       limit:
+                        description: Limit amount
                         type: string
                       max:
+                        description: Maximum allowed amount
                         type: string
                       min:
+                        description: Minimum required amount
                         type: string
                       request:
+                        description: Requested amount
                         type: string
                     type: object
                   storage:
+                    description: Storage constraints
                     properties:
                       limit:
+                        description: Limit amount
                         type: string
                       max:
+                        description: Maximum allowed amount
                         type: string
                       min:
+                        description: Minimum required amount
                         type: string
                       request:
+                        description: Requested amount
                         type: string
                     type: object
                 type: object
@@ -295,6 +405,8 @@ spec:
                 type: string
               targetComponents:
                 items:
+                  description: NetworkTargetComponent represents target network components
+                    for intents.
                   type: string
                 type: array
               targetNamespace:
@@ -306,29 +418,49 @@ spec:
             properties:
               conditions:
                 items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
                   properties:
                     lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
                       maxLength: 32768
                       type: string
                     observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
                       format: int64
                       minimum: 0
                       type: integer
                     reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
                       maxLength: 1024
                       minLength: 1
                       pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
                       type: string
                     status:
+                      description: status of the condition, one of True, False, Unknown.
                       enum:
                       - "True"
                       - "False"
                       - Unknown
                       type: string
                     type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
                       maxLength: 316
                       pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                       type: string
@@ -343,16 +475,21 @@ spec:
                 x-kubernetes-list-type: atomic
               deployedComponents:
                 items:
+                  description: TargetComponent defines a target component
                   properties:
                     labels:
                       additionalProperties:
                         type: string
+                      description: Labels for component selection
                       type: object
                     name:
+                      description: Name of the component
                       type: string
                     namespace:
+                      description: Namespace of the component
                       type: string
                     type:
+                      description: Type of the component
                       type: string
                   required:
                   - name
@@ -366,6 +503,8 @@ spec:
                   type: object
                   x-kubernetes-preserve-unknown-fields: true
                 type: object
+              gitCommitHash:
+                type: string
               lastMessage:
                 type: string
               lastUpdateTime:
@@ -394,73 +533,103 @@ spec:
                   networkFunctionType:
                     type: string
                   processedParameters:
+                    description: ProcessedParameters contains structured parameters
+                      extracted from the intent
                     properties:
                       custom:
                         additionalProperties:
                           type: string
+                        description: Custom parameters as key-value pairs
                         type: object
                       customParameters:
                         additionalProperties:
                           type: string
+                        description: CustomParameters as separate field
                         type: object
                       metadata:
+                        description: Metadata for additional information
                         properties:
                           annotations:
                             additionalProperties:
                               type: string
+                            description: Annotations for additional metadata
                             type: object
                           confidenceScore:
+                            description: ConfidenceScore indicates confidence in parameter
+                              extraction (as string to avoid float issues)
                             pattern: ^(0(\.\d+)?|1(\.0+)?)$
                             type: string
                           default:
+                            description: Default value
                             type: string
                           description:
+                            description: Description of the parameter
                             type: string
                           name:
+                            description: Name of the parameter
                             type: string
                           processedAt:
+                            description: ProcessedAt indicates when the parameter
+                              was processed
                             format: date-time
                             type: string
                           required:
+                            description: Whether the parameter is required
                             type: boolean
                           type:
+                            description: Type of the parameter
                             type: string
                         required:
                         - name
                         - type
                         type: object
                       network:
+                        description: Network parameters
                         properties:
                           loadBalancer:
+                            description: Load balancer settings
                             properties:
                               healthCheck:
+                                description: Health check configuration
                                 properties:
                                   intervalSeconds:
+                                    description: Check interval in seconds
                                     format: int32
                                     type: integer
                                   path:
+                                    description: Health check path
                                     type: string
                                   port:
+                                    description: Health check port
                                     format: int32
                                     type: integer
                                   timeoutSeconds:
+                                    description: Timeout in seconds
                                     format: int32
                                     type: integer
                                 type: object
                               type:
+                                description: Load balancer type
                                 type: string
                             type: object
                           ports:
+                            description: Service ports
                             items:
+                              description: ServicePortConfig defines a service port
+                                configuration for common use
                               properties:
                                 name:
+                                  description: Port name
                                   type: string
                                 port:
+                                  description: Port number
                                   format: int32
                                   type: integer
                                 protocol:
+                                  description: Protocol (TCP, UDP)
                                   type: string
                                 targetPort:
+                                  description: Target port
                                   format: int32
                                   type: integer
                               required:
@@ -468,44 +637,64 @@ spec:
                               type: object
                             type: array
                           serviceType:
+                            description: Service type
                             type: string
                         type: object
                       networkFunction:
+                        description: NetworkFunction specifies the target network
+                          function
                         type: string
                       raw:
                         additionalProperties:
                           type: string
+                        description: Raw parameters for backup
                         type: object
                       region:
+                        description: Region specifies the deployment region
                         type: string
                       resources:
+                        description: Resource parameters
                         properties:
                           cpu:
+                            description: CPU requirements
                             type: string
                           memory:
+                            description: Memory requirements
                             type: string
                           storage:
+                            description: Storage requirements
                             type: string
                         type: object
                       scaleParameters:
+                        description: ScaleParameters for scaling-related parameters
                         properties:
                           maxReplicas:
+                            description: Maximum replicas
                             format: int32
                             type: integer
                           minReplicas:
+                            description: Minimum replicas
                             format: int32
                             type: integer
                           targetReplicas:
+                            description: Target replicas
                             format: int32
                             type: integer
                           triggers:
+                            description: Scaling triggers
                             items:
+                              description: ScalingTrigger defines a scaling trigger
+                                condition
                               properties:
                                 metric:
+                                  description: Metric name
                                   type: string
                                 operator:
+                                  description: Comparison operator (>, <, >=, <=,
+                                    ==)
                                   type: string
                                 targetValue:
+                                  description: Target value
                                   type: string
                               required:
                               - metric
@@ -515,24 +704,35 @@ spec:
                             type: array
                         type: object
                       scaling:
+                        description: Scaling parameters
                         properties:
                           maxReplicas:
+                            description: Maximum replicas
                             format: int32
                             type: integer
                           minReplicas:
+                            description: Minimum replicas
                             format: int32
                             type: integer
                           targetReplicas:
+                            description: Target replicas
                             format: int32
                             type: integer
                           triggers:
+                            description: Scaling triggers
                             items:
+                              description: ScalingTrigger defines a scaling trigger
+                                condition
                               properties:
                                 metric:
+                                  description: Metric name
                                   type: string
                                 operator:
+                                  description: Comparison operator (>, <, >=, <=,
+                                    ==)
                                   type: string
                                 targetValue:
+                                  description: Target value
                                   type: string
                               required:
                               - metric
@@ -542,26 +742,38 @@ spec:
                             type: array
                         type: object
                       securityParameters:
+                        description: SecurityParameters for security-related settings
                         properties:
                           encryption:
+                            description: Encryption configuration
                             properties:
                               algorithm:
+                                description: Encryption algorithm
                                 type: string
                               enabled:
+                                description: Whether encryption is enabled
                                 type: boolean
                               keySize:
+                                description: Key size in bits
                                 type: integer
                             type: object
                           networkPolicies:
+                            description: Network policies configuration
                             items:
+                              description: NetworkPolicyConfig defines network policy
+                                settings
                               properties:
                                 name:
+                                  description: Name of the network policy
                                   type: string
                                 rules:
+                                  description: Rules for the policy
                                   items:
                                     type: string
                                   type: array
                                 type:
+                                  description: Type of policy (ingress, egress, or
+                                    both)
                                   enum:
                                   - ingress
                                   - egress
@@ -573,13 +785,16 @@ spec:
                               type: object
                             type: array
                           serviceMesh:
+                            description: Service mesh configuration
                             type: boolean
                           tlsEnabled:
+                            description: TLS configuration
                             type: boolean
                         type: object
                       structured:
                         additionalProperties:
                           type: string
+                        description: Structured parameters
                         type: object
                     type: object
                   processingTimestamp:

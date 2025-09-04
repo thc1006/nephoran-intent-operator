@@ -4,7 +4,8 @@ kind: Kustomization
 resources:
 - manifests.yaml
 - service.yaml
-
-patchesStrategicMerge:
-- patches/webhook_patch.yaml
-- patches/cainjection_patch.yaml
+- serviceaccount.yaml
+- deployment.yaml
+- mutating-webhook.yaml
+- validating-webhook.yaml
+- rbac-patch.yaml

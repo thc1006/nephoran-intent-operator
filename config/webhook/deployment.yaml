@@ -79,5 +79,3 @@ spec:
       terminationGracePeriodSeconds: 10
       securityContext:
         runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
