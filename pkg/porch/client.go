@@ -35,7 +35,7 @@ type PorchPackageRevision struct {
 	Name      string            `json:"name"`
 	Namespace string            `json:"namespace"`
 	Revision  string            `json:"revision"`
-	Status    string            `json:"status"`
+	Status    string            `json:"status"` // DRAFT, REVIEW, APPROVED, PUBLISHED
 	Labels    map[string]string `json:"labels,omitempty"`
 }
 
@@ -57,6 +57,37 @@ func NewClient(baseURL string, dryRun bool) *Client {
 		},
 		dryRun: dryRun,
 	}
+}
+
+// NewClientWithAuth creates a new Porch API client with authentication
+func NewClientWithAuth(baseURL, token string, dryRun bool) *Client {
+	client := &Client{
+		baseURL: baseURL,
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+		},
+		dryRun: dryRun,
+	}
+	
+	if token != "" {
+		client.httpClient.Transport = &authTransport{
+			token: token,
+			base:  http.DefaultTransport,
+		}
+	}
+	
+	return client
+}
+
+// authTransport adds authentication to HTTP requests
+type authTransport struct {
+	token string
+	base  http.RoundTripper
+}
+
+func (t *authTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req.Header.Set("Authorization", "Bearer "+t.token)
+	return t.base.RoundTrip(req)
 }
 
 // CreateOrUpdatePackage creates or updates a package in Porch
@@ -134,30 +165,88 @@ func (c *Client) SubmitProposal(revision *PorchPackageRevision) (*Proposal, erro
 	return &proposal, nil
 }
 
-// ApprovePackage approves a package revision
-func (c *Client) ApprovePackage(revision *PorchPackageRevision) error {
+// SubmitForReview moves a package revision from DRAFT to REVIEW state
+func (c *Client) SubmitForReview(revision *PorchPackageRevision) (*PorchPackageRevision, error) {
 	if c.dryRun {
-		return nil
+		return &PorchPackageRevision{
+			Name:      revision.Name,
+			Namespace: revision.Namespace,
+			Revision:  revision.Revision,
+			Status:    "REVIEW",
+			Labels:    revision.Labels,
+		}, nil
 	}
 
-	url := fmt.Sprintf("%s/api/v1/packagerevisions/%s/approve", c.baseURL, revision.Name)
-	req, err := http.NewRequest(http.MethodPost, url, nil)
-	if err != nil {
-		return err
+	return c.updateRevisionStatus(revision, "REVIEW")
+}
+
+// ApprovePackage moves a package revision from REVIEW to APPROVED state
+func (c *Client) ApprovePackage(revision *PorchPackageRevision) (*PorchPackageRevision, error) {
+	if c.dryRun {
+		return &PorchPackageRevision{
+			Name:      revision.Name,
+			Namespace: revision.Namespace,
+			Revision:  revision.Revision,
+			Status:    "APPROVED",
+			Labels:    revision.Labels,
+		}, nil
 	}
+
+	return c.updateRevisionStatus(revision, "APPROVED")
+}
+
+// PublishPackage moves a package revision from APPROVED to PUBLISHED state
+func (c *Client) PublishPackage(revision *PorchPackageRevision) (*PorchPackageRevision, error) {
+	if c.dryRun {
+		return &PorchPackageRevision{
+			Name:      revision.Name,
+			Namespace: revision.Namespace,
+			Revision:  revision.Revision,
+			Status:    "PUBLISHED",
+			Labels:    revision.Labels,
+		}, nil
+	}
+
+	return c.updateRevisionStatus(revision, "PUBLISHED")
+}
+
+// updateRevisionStatus updates the status of a package revision
+func (c *Client) updateRevisionStatus(revision *PorchPackageRevision, status string) (*PorchPackageRevision, error) {
+	url := fmt.Sprintf("%s/api/v1/packagerevisions/%s", c.baseURL, revision.Name)
+	body := map[string]interface{}{
+		"spec": map[string]interface{}{
+			"lifecycle": status,
+		},
+	}
+
+	data, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPatch, url, bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/merge-patch+json")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to approve package: %w", err)
+		return nil, fmt.Errorf("failed to update package revision status: %w", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("failed to approve package: %s", body)
+		return nil, fmt.Errorf("failed to update package revision status: %s", body)
 	}
 
-	return nil
+	var updatedRevision PorchPackageRevision
+	if err := json.NewDecoder(resp.Body).Decode(&updatedRevision); err != nil {
+		return nil, err
+	}
+
+	return &updatedRevision, nil
 }
 
 // Private helper methods
@@ -190,6 +279,10 @@ func (c *Client) getPackage(repo, pkg string) (*PorchPackageRevision, error) {
 func (c *Client) createPackage(req *PackageRequest) (*PorchPackageRevision, error) {
 	url := fmt.Sprintf("%s/api/v1/repositories/%s/packages", c.baseURL, req.Repository)
 	
+	// Generate vNNN revision format
+	revisionNumber := time.Now().Unix() % 1000
+	revisionString := fmt.Sprintf("v%03d", revisionNumber)
+	
 	body := map[string]interface{}{
 		"metadata": map[string]interface{}{
 			"name":      req.Package,
@@ -198,6 +291,7 @@ func (c *Client) createPackage(req *PackageRequest) (*PorchPackageRevision, erro
 		"spec": map[string]interface{}{
 			"workspace": req.Workspace,
 			"intent":    req.Intent,
+			"revision":  revisionString,
 		},
 	}
 
@@ -220,6 +314,11 @@ func (c *Client) createPackage(req *PackageRequest) (*PorchPackageRevision, erro
 	var revision PorchPackageRevision
 	if err := json.NewDecoder(resp.Body).Decode(&revision); err != nil {
 		return nil, err
+	}
+	
+	// Ensure revision format is vNNN if not set by server
+	if revision.Revision == "" {
+		revision.Revision = revisionString
 	}
 
 	return &revision, nil
@@ -364,11 +463,15 @@ func (c *Client) dryRunPackage(req *PackageRequest) (*PorchPackageRevision, erro
 
 	fmt.Printf("[porch-client] Dry-run: Files written to %s/\n", outDir)
 
+	// Generate proper vNNN revision format
+	revisionNumber := time.Now().Unix() % 1000 // Keep it short for demo
+	revision := fmt.Sprintf("v%03d", revisionNumber)
+	
 	return &PorchPackageRevision{
 		Name:      fmt.Sprintf("%s-%s", req.Repository, req.Package),
 		Namespace: req.Namespace,
-		Revision:  "dry-run-v1",
-		Status:    "draft",
+		Revision:  revision,
+		Status:    "DRAFT",
 	}, nil
 }
 

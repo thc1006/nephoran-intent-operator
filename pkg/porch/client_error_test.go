@@ -305,7 +305,7 @@ func TestClient_HTTPErrors(t *testing.T) {
 					Revision:  "v1",
 					Status:    "draft",
 				}
-				err = client.ApprovePackage(revision)
+				_, err = client.ApprovePackage(revision)
 			}
 
 			if tt.expectError == "" {

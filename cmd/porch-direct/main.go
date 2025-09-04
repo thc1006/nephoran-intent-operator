@@ -15,8 +15,8 @@ import (
 func main() {
 	var intentPath, outDir string
 	var dryRun, minimal bool
-	var repo, packageName, workspace, namespace, porchURL string
-	var autoApprove bool
+	var repo, packageName, workspace, namespace, porchURL, tokenFile string
+	var autoApprove, autoPublish bool
 	
 	flag.StringVar(&intentPath, "intent", "", "path to intent JSON (docs/contracts/intent.schema.json)")
 	flag.StringVar(&outDir, "out", "examples/packages/direct", "output directory for generated KRM")
@@ -28,8 +28,10 @@ func main() {
 	flag.StringVar(&packageName, "package", "", "Target package name")
 	flag.StringVar(&workspace, "workspace", "default", "Workspace identifier")
 	flag.StringVar(&namespace, "namespace", "default", "Target namespace")
-	flag.StringVar(&porchURL, "porch", "http://localhost:9443", "Porch API base URL")
+	flag.StringVar(&porchURL, "porch-api", "http://localhost:9443", "Porch API base URL")
+	flag.StringVar(&tokenFile, "token", "", "Path to service account token file")
 	flag.BoolVar(&autoApprove, "auto-approve", false, "Automatically approve package proposals")
+	flag.BoolVar(&autoPublish, "auto-publish", false, "Automatically publish approved packages")
 	
 	flag.Parse()
 
@@ -49,7 +51,9 @@ func main() {
 		Workspace:   workspace,
 		Namespace:   namespace,
 		PorchURL:    porchURL,
+		TokenFile:   tokenFile,
 		AutoApprove: autoApprove,
+		AutoPublish: autoPublish,
 	}
 
 	if err := run(cfg); err != nil {
@@ -68,7 +72,9 @@ type Config struct {
 	Workspace   string
 	Namespace   string
 	PorchURL    string
+	TokenFile   string
 	AutoApprove bool
+	AutoPublish bool
 }
 
 func run(cfg *Config) error {
@@ -174,9 +180,20 @@ func run(cfg *Config) error {
 	return nil
 }
 
-// submitToPorch submits the generated package to Porch API
+// submitToPorch submits the generated package to Porch API with proper lifecycle management
 func submitToPorch(cfg *Config, intent *intent.NetworkIntent, pkg *generator.Package) error {
-	client := porch.NewClient(cfg.PorchURL, cfg.DryRun)
+	// Read authentication token if provided
+	var token string
+	if cfg.TokenFile != "" {
+		tokenBytes, err := os.ReadFile(cfg.TokenFile)
+		if err != nil {
+			return fmt.Errorf("failed to read token file: %w", err)
+		}
+		token = string(tokenBytes)
+	}
+
+	// Create Porch client with auth
+	client := porch.NewClientWithAuth(cfg.PorchURL, token, cfg.DryRun)
 
 	// Create package request
 	packageReq := &porch.PackageRequest{
@@ -188,27 +205,48 @@ func submitToPorch(cfg *Config, intent *intent.NetworkIntent, pkg *generator.Pac
 		Files:      pkg.GetFiles(),
 	}
 
-	// Create or update package revision
+	// Step 1: Create or update package revision (starts in DRAFT state)
 	revision, err := client.CreateOrUpdatePackage(packageReq)
 	if err != nil {
 		return fmt.Errorf("failed to create/update package: %w", err)
 	}
+	
+	// Format: mvp-repo/ran-scale/nf-sim@vNNN
+	packageRef := fmt.Sprintf("%s/%s@%s", cfg.Repo, cfg.Package, revision.Revision)
+	if revision.Revision == "" {
+		packageRef = fmt.Sprintf("%s/%s@v001", cfg.Repo, cfg.Package) // fallback
+	}
+	fmt.Printf("Created packagerevision %s (DRAFT", packageRef)
 
-	fmt.Printf("[porch-direct] Package revision created: %s\n", revision.Name)
+	// Step 2: Submit for review (DRAFT → REVIEW)
+	revision, err = client.SubmitForReview(revision)
+	if err != nil {
+		return fmt.Errorf("failed to submit for review: %w", err)
+	}
+	fmt.Printf("→REVIEW")
 
-	// Submit proposal or auto-approve
+	// Step 3: Approve package (REVIEW → APPROVED) if requested
 	if cfg.AutoApprove {
-		if err := client.ApprovePackage(revision); err != nil {
+		revision, err = client.ApprovePackage(revision)
+		if err != nil {
 			return fmt.Errorf("failed to approve package: %w", err)
 		}
-		fmt.Printf("[porch-direct] Package approved successfully\n")
-	} else {
-		proposal, err := client.SubmitProposal(revision)
-		if err != nil {
-			return fmt.Errorf("failed to submit proposal: %w", err)
+		fmt.Printf("→APPROVED")
+		
+		// Step 4: Publish package (APPROVED → PUBLISHED) if requested
+		if cfg.AutoPublish {
+			revision, err = client.PublishPackage(revision)
+			if err != nil {
+				return fmt.Errorf("failed to publish package: %w", err)
+			}
+			fmt.Printf("→PUBLISHED)\n")
+		} else {
+			fmt.Printf(")\n")
+			fmt.Printf("Package ready for publishing. Use --auto-publish flag to publish automatically\n")
 		}
-		fmt.Printf("[porch-direct] Proposal submitted: %s\n", proposal.ID)
-		fmt.Printf("[porch-direct] Review and approve the proposal in Porch UI or use --auto-approve flag\n")
+	} else {
+		fmt.Printf(")\n")
+		fmt.Printf("Package is in review state. Approve manually or use --auto-approve flag\n")
 	}
 
 	return nil
@@ -216,19 +254,14 @@ func submitToPorch(cfg *Config, intent *intent.NetworkIntent, pkg *generator.Pac
 
 // resolveRepo determines the repository name based on intent
 func resolveRepo(intent *intent.NetworkIntent) string {
-	// Default mapping logic based on intent type
-	if intent.Target == "ran" || intent.Target == "gnb" || intent.Target == "du" || intent.Target == "cu" {
-		return "ran-packages"
-	}
-	if intent.Target == "core" || intent.Target == "smf" || intent.Target == "upf" || intent.Target == "amf" {
-		return "core-packages"
-	}
-	return "nephio-packages"
+	// Default to mvp-repo as specified in requirements
+	return "mvp-repo"
 }
 
 // resolvePackage generates a package name from intent
 func resolvePackage(intent *intent.NetworkIntent) string {
-	return fmt.Sprintf("%s-scaling-%d", intent.Target, intent.Replicas)
+	// Default to ran-scale/nf-sim as specified in requirements
+	return "ran-scale/nf-sim"
 }
 
 // findProjectRoot walks up the directory tree to find the project root (containing go.mod)
