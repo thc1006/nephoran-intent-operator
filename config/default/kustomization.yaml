@@ -43,7 +43,7 @@ patches:
     group: admissionregistration.k8s.io
     version: v1
     kind: MutatingWebhookConfiguration
-    name: nephoran-networkintent-mutating
+    name: mutating-webhook-configuration
   patch: |-
     - op: replace
       path: /webhooks/0/clientConfig/service/namespace
@@ -52,7 +52,7 @@ patches:
     group: admissionregistration.k8s.io
     version: v1
     kind: ValidatingWebhookConfiguration
-    name: nephoran-networkintent-validating
+    name: validating-webhook-configuration
   patch: |-
     - op: replace
       path: /webhooks/0/clientConfig/service/namespace
