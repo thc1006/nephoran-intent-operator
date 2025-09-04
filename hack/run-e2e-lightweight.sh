@@ -352,8 +352,15 @@ spec:
   namespace: ran-a
   target: "nf-sim deployment"
   replicas: 1
-  description: "E2E test intent - mock scaling validation"
 EOF
+    
+    # Validate manifest against CRD schema first (smoke test)
+    log_info "Validating NetworkIntent manifest against CRD schema"
+    if ! kubectl apply --context "$context" --dry-run=server -f /tmp/network-intent.yaml; then
+        log_error "NetworkIntent manifest validation failed (dry-run)"
+        log_error "This indicates a schema mismatch between manifest and CRD"
+        return 1
+    fi
     
     if ! kubectl apply --context "$context" -f /tmp/network-intent.yaml; then
         log_error "Failed to apply NetworkIntent"
