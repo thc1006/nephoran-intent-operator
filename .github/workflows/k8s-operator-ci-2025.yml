@@ -191,14 +191,19 @@ jobs:
           restore-keys: |
             nephoran-k8s-op-v3-${{ runner.os }}-go${{ env.GO_VERSION }}-k8s${{ env.KUBERNETES_VERSION }}-
             
+      - name: Clean up any existing Kubebuilder
+        run: sudo rm -f /usr/local/bin/kubebuilder
+          
       - name: Install Kubebuilder
         run: |
-          echo "🔧 Installing Kubebuilder ${{ env.KUBEBUILDER_VERSION }}..."
-          curl -L -o kubebuilder.tar.gz "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${{ env.KUBEBUILDER_VERSION }}/kubebuilder_linux_amd64.tar.gz"
-          tar -xzf kubebuilder.tar.gz
-          sudo mv kubebuilder_${{ env.KUBEBUILDER_VERSION }}_linux_amd64/bin/* /usr/local/bin/
-          rm -rf kubebuilder.tar.gz kubebuilder_${{ env.KUBEBUILDER_VERSION }}_linux_amd64
-          kubebuilder version
+          echo "🔧 Installing Kubebuilder latest..."
+          curl -L https://go.kubebuilder.io/dl/latest/linux/amd64 | sudo tar -xz -C /usr/local/bin
+          sudo chmod +x /usr/local/bin/kubebuilder
+          
+      - name: Verify Kubebuilder Installation
+        run: |
+          file /usr/local/bin/kubebuilder
+          /usr/local/bin/kubebuilder version
           
       - name: Install additional K8s tools
         run: |
