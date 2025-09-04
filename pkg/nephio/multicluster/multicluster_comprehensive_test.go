@@ -892,7 +892,7 @@ func BenchmarkClusterManager_SelectTargetClusters(b *testing.B) {
 	}
 }
 
-func BenchmarkHealthMonitor_ProcessAlerts(b *testing.B) {
+func BenchmarkHealthMonitor_ProcessAlertsComprehensive(b *testing.B) {
 	hm := createTestHealthMonitor(b)
 	mockHandler := &MockAlertHandler{}
 	hm.RegisterAlertHandler(mockHandler)

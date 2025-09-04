@@ -1057,8 +1057,8 @@ func (m *MockA1Service) DeletePolicyType(ctx context.Context, policyTypeID int) 
 	return args.Error(0)
 }
 
-func (m *MockA1Service) CreatePolicyInstance(ctx context.Context, instance *PolicyInstance) error {
-	args := m.Called(ctx, instance)
+func (m *MockA1Service) CreatePolicyInstance(ctx context.Context, policyTypeID int, policyID string, instance *PolicyInstance) error {
+	args := m.Called(ctx, policyTypeID, policyID, instance)
 	return args.Error(0)
 }
 

@@ -179,7 +179,7 @@ func TestOranAdaptorReconciler_Reconcile(t *testing.T) {
 				assert.Equal(t, 0, a1.callCount, "A1 should not be called when deployment not ready")
 			},
 			expectedStatus: func(t *testing.T, me *nephoranv1.ManagedElement) {
-				readyCondition := getCondition(me.Status.Conditions, typeReadyManagedElement)
+				readyCondition := testutil.GetCondition(me.Status.Conditions, typeReadyManagedElement)
 				assert.NotNil(t, readyCondition, "Ready condition should exist")
 				assert.Equal(t, metav1.ConditionFalse, readyCondition.Status, "Ready condition should be false")
 				assert.Equal(t, "Progressing", readyCondition.Reason, "Ready condition reason should be Progressing")
@@ -209,7 +209,7 @@ func TestOranAdaptorReconciler_Reconcile(t *testing.T) {
 				assert.Equal(t, 0, a1.callCount, "A1 should not be called when deployment not found")
 			},
 			expectedStatus: func(t *testing.T, me *nephoranv1.ManagedElement) {
-				readyCondition := getCondition(me.Status.Conditions, typeReadyManagedElement)
+				readyCondition := testutil.GetCondition(me.Status.Conditions, typeReadyManagedElement)
 				assert.NotNil(t, readyCondition, "Ready condition should exist")
 				assert.Equal(t, metav1.ConditionFalse, readyCondition.Status, "Ready condition should be false")
 				assert.Equal(t, "DeploymentNotFound", readyCondition.Reason, "Ready condition reason should be DeploymentNotFound")
@@ -251,14 +251,14 @@ func TestOranAdaptorReconciler_Reconcile(t *testing.T) {
 				assert.Equal(t, 0, a1.callCount, "A1 should not be called when no policy specified")
 			},
 			expectedStatus: func(t *testing.T, me *nephoranv1.ManagedElement) {
-				readyCondition := getCondition(me.Status.Conditions, typeReadyManagedElement)
+				readyCondition := testutil.GetCondition(me.Status.Conditions, typeReadyManagedElement)
 				assert.Equal(t, metav1.ConditionTrue, readyCondition.Status, "Ready condition should be true")
 
-				o1Condition := getCondition(me.Status.Conditions, O1ConfiguredCondition)
+				o1Condition := testutil.GetCondition(me.Status.Conditions, O1ConfiguredCondition)
 				assert.Equal(t, metav1.ConditionTrue, o1Condition.Status, "O1 condition should be true")
 
 				// A1 condition should not exist
-				a1Condition := getCondition(me.Status.Conditions, A1PolicyAppliedCondition)
+				a1Condition := testutil.GetCondition(me.Status.Conditions, A1PolicyAppliedCondition)
 				assert.Nil(t, a1Condition, "A1 condition should not exist when no policy specified")
 			},
 			description: "Should apply only O1 configuration when A1 policy not specified",
@@ -298,14 +298,14 @@ func TestOranAdaptorReconciler_Reconcile(t *testing.T) {
 				assert.Equal(t, 1, a1.callCount, "A1 should be called")
 			},
 			expectedStatus: func(t *testing.T, me *nephoranv1.ManagedElement) {
-				readyCondition := getCondition(me.Status.Conditions, typeReadyManagedElement)
+				readyCondition := testutil.GetCondition(me.Status.Conditions, typeReadyManagedElement)
 				assert.Equal(t, metav1.ConditionTrue, readyCondition.Status, "Ready condition should be true")
 
 				// O1 condition should not exist
-				o1Condition := getCondition(me.Status.Conditions, O1ConfiguredCondition)
+				o1Condition := testutil.GetCondition(me.Status.Conditions, O1ConfiguredCondition)
 				assert.Nil(t, o1Condition, "O1 condition should not exist when no config specified")
 
-				a1Condition := getCondition(me.Status.Conditions, A1PolicyAppliedCondition)
+				a1Condition := testutil.GetCondition(me.Status.Conditions, A1PolicyAppliedCondition)
 				assert.Equal(t, metav1.ConditionTrue, a1Condition.Status, "A1 condition should be true")
 			},
 			description: "Should apply only A1 policy when O1 config not specified",
@@ -347,14 +347,14 @@ func TestOranAdaptorReconciler_Reconcile(t *testing.T) {
 				assert.Equal(t, 1, a1.callCount, "A1 should still be called after O1 failure")
 			},
 			expectedStatus: func(t *testing.T, me *nephoranv1.ManagedElement) {
-				readyCondition := getCondition(me.Status.Conditions, typeReadyManagedElement)
+				readyCondition := testutil.GetCondition(me.Status.Conditions, typeReadyManagedElement)
 				assert.Equal(t, metav1.ConditionTrue, readyCondition.Status, "Ready condition should still be true")
 
-				o1Condition := getCondition(me.Status.Conditions, O1ConfiguredCondition)
+				o1Condition := testutil.GetCondition(me.Status.Conditions, O1ConfiguredCondition)
 				assert.Equal(t, metav1.ConditionFalse, o1Condition.Status, "O1 condition should be false on failure")
 				assert.Equal(t, "Failed", o1Condition.Reason, "O1 condition reason should be Failed")
 
-				a1Condition := getCondition(me.Status.Conditions, A1PolicyAppliedCondition)
+				a1Condition := testutil.GetCondition(me.Status.Conditions, A1PolicyAppliedCondition)
 				assert.Equal(t, metav1.ConditionTrue, a1Condition.Status, "A1 condition should be true")
 			},
 			description: "Should continue with A1 configuration even if O1 fails",
@@ -396,13 +396,13 @@ func TestOranAdaptorReconciler_Reconcile(t *testing.T) {
 				assert.Equal(t, 1, a1.callCount, "A1 should be called even if it fails")
 			},
 			expectedStatus: func(t *testing.T, me *nephoranv1.ManagedElement) {
-				readyCondition := getCondition(me.Status.Conditions, typeReadyManagedElement)
+				readyCondition := testutil.GetCondition(me.Status.Conditions, typeReadyManagedElement)
 				assert.Equal(t, metav1.ConditionTrue, readyCondition.Status, "Ready condition should be true")
 
-				o1Condition := getCondition(me.Status.Conditions, O1ConfiguredCondition)
+				o1Condition := testutil.GetCondition(me.Status.Conditions, O1ConfiguredCondition)
 				assert.Equal(t, metav1.ConditionTrue, o1Condition.Status, "O1 condition should be true")
 
-				a1Condition := getCondition(me.Status.Conditions, A1PolicyAppliedCondition)
+				a1Condition := testutil.GetCondition(me.Status.Conditions, A1PolicyAppliedCondition)
 				assert.Equal(t, metav1.ConditionFalse, a1Condition.Status, "A1 condition should be false on failure")
 				assert.Equal(t, "Failed", a1Condition.Reason, "A1 condition reason should be Failed")
 			},
@@ -466,10 +466,10 @@ func TestOranAdaptorReconciler_Reconcile(t *testing.T) {
 				assert.Equal(t, 1, a1.callCount, "A1 should be called")
 			},
 			expectedStatus: func(t *testing.T, me *nephoranv1.ManagedElement) {
-				readyCondition := getCondition(me.Status.Conditions, typeReadyManagedElement)
+				readyCondition := testutil.GetCondition(me.Status.Conditions, typeReadyManagedElement)
 				assert.Equal(t, metav1.ConditionTrue, readyCondition.Status, "Ready condition should be true")
 
-				a1Condition := getCondition(me.Status.Conditions, A1PolicyAppliedCondition)
+				a1Condition := testutil.GetCondition(me.Status.Conditions, A1PolicyAppliedCondition)
 				assert.Equal(t, metav1.ConditionTrue, a1Condition.Status, "A1 condition should be true")
 			},
 			description: "Should skip O1 configuration when config is empty",
@@ -509,10 +509,10 @@ func TestOranAdaptorReconciler_Reconcile(t *testing.T) {
 				assert.Equal(t, 0, a1.callCount, "A1 should not be called for nil policy")
 			},
 			expectedStatus: func(t *testing.T, me *nephoranv1.ManagedElement) {
-				readyCondition := getCondition(me.Status.Conditions, typeReadyManagedElement)
+				readyCondition := testutil.GetCondition(me.Status.Conditions, typeReadyManagedElement)
 				assert.Equal(t, metav1.ConditionTrue, readyCondition.Status, "Ready condition should be true")
 
-				o1Condition := getCondition(me.Status.Conditions, O1ConfiguredCondition)
+				o1Condition := testutil.GetCondition(me.Status.Conditions, O1ConfiguredCondition)
 				assert.Equal(t, metav1.ConditionTrue, o1Condition.Status, "O1 condition should be true")
 			},
 			description: "Should skip A1 policy when policy is nil",
@@ -677,7 +677,7 @@ func TestOranAdaptorReconciler_ConcurrentReconciles(t *testing.T) {
 	require.NoError(t, err)
 
 	// Should have Ready condition
-	readyCondition := getCondition(finalME.Status.Conditions, typeReadyManagedElement)
+	readyCondition := testutil.GetCondition(finalME.Status.Conditions, typeReadyManagedElement)
 	assert.NotNil(t, readyCondition, "Ready condition should exist")
 }
 
