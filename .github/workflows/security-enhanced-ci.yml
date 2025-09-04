@@ -570,7 +570,7 @@ jobs:
           fi
           
       - name: 🔍 OSV Scanner
-        uses: google/osv-scanner-action@v1.9.1
+        uses: google/osv-scanner-action@v2.2.2
         with:
           scan-args: |-
             --lockfile=go.mod
