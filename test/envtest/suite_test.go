@@ -17,15 +17,22 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	// Import your API types here
 	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1alpha1"
@@ -57,22 +64,22 @@ var (
 func TestControllers(t *testing.T) {
 	RegisterFailHandler(Fail)
 
-	// Configure Ginkgo for 2025 best practices
-	suiteConfig := GinkgoConfiguration{
-		LabelFilter:         "unit",
-		ParallelTotal:       1, // Sequential for envtest stability
-		FlakeAttempts:       3, // Retry flaky tests
-		Timeout:             5 * time.Minute,
-		GracePeriod:         30 * time.Second,
-		OutputInterceptMode: "none",
-	}
+	// TODO: Configure Ginkgo for 2025 best practices when types are available
+	// suiteConfig := GinkgoConfiguration{
+	//	 LabelFilter:         "unit",
+	//	 ParallelTotal:       1, // Sequential for envtest stability
+	//	 FlakeAttempts:       3, // Retry flaky tests
+	//	 Timeout:             5 * time.Minute,
+	//	 GracePeriod:         30 * time.Second,
+	//	 OutputInterceptMode: "none",
+	// }
 
-	reporterConfig := GinkgoReporterConfiguration{
-		Succinct: true,
-		Verbose:  false,
-	}
+	// reporterConfig := GinkgoReporterConfiguration{
+	//	 Succinct: true,
+	//	 Verbose:  false,
+	// }
 
-	RunSpecs(t, "Nephoran Controller Suite", suiteConfig, reporterConfig)
+	RunSpecs(t, "Nephoran Controller Suite")
 }
 
 var _ = BeforeSuite(func() {
@@ -112,9 +119,9 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
-	// Register API schemes
-	err = intentv1alpha1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
+	// TODO: Register API schemes when AddToScheme is available
+	// err = intentv1alpha1.AddToScheme(scheme.Scheme)
+	// Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme
 
@@ -158,26 +165,29 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(mgr)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = (&controllers.OranClusterReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Log:    ctrl.Log.WithName("controllers").WithName("OranCluster"),
-	}).SetupWithManager(mgr)
-	Expect(err).ToNot(HaveOccurred())
+	// Note: OranCluster controller not available in v1alpha1 API
+	// err = (&controllers.OranClusterReconciler{
+	// 	Client: mgr.GetClient(),
+	// 	Scheme: mgr.GetScheme(),
+	// 	Log:    ctrl.Log.WithName("controllers").WithName("OranCluster"),
+	// }).SetupWithManager(mgr)
+	// Expect(err).ToNot(HaveOccurred())
 
 	// +kubebuilder:scaffold:builder
 
 	By("setting up webhooks")
 	// Setup webhooks if they exist
-	err = (&intentv1alpha1.NetworkIntent{}).SetupWebhookWithManager(mgr)
-	if err != nil {
-		logf.Log.Info("Webhook setup failed, continuing without webhooks", "error", err)
-	}
+	// TODO: Setup webhook when SetupWebhookWithManager is available
+	// err = (&intentv1alpha1.NetworkIntent{}).SetupWebhookWithManager(mgr)
+	// if err != nil {
+	//	 logf.Log.Info("Webhook setup failed, continuing without webhooks", "error", err)
+	// }
 
-	err = (&intentv1alpha1.OranCluster{}).SetupWebhookWithManager(mgr)
-	if err != nil {
-		logf.Log.Info("OranCluster webhook setup failed, continuing without webhooks", "error", err)
-	}
+	// Note: OranCluster webhook not available in v1alpha1 API
+	// err = (&intentv1alpha1.OranCluster{}).SetupWebhookWithManager(mgr)
+	// if err != nil {
+	// 	logf.Log.Info("OranCluster webhook setup failed, continuing without webhooks", "error", err)
+	// }
 
 	By("starting the controller manager")
 	go func() {
@@ -187,10 +197,10 @@ var _ = BeforeSuite(func() {
 	}()
 
 	// Wait for manager to be ready
-	Eventually(func() error {
+	Eventually(func() bool {
 		// Check if manager's cache is synced
 		return mgr.GetCache().WaitForCacheSync(ctx)
-	}, timeout, interval).Should(Succeed())
+	}, timeout, interval).Should(BeTrue())
 
 	By("test environment setup completed successfully")
 })
@@ -219,21 +229,23 @@ func CreateNetworkIntent(name, namespace string, spec intentv1alpha1.NetworkInte
 	}
 }
 
+// Note: CreateOranCluster commented out - OranCluster not available in v1alpha1 API
 // CreateOranCluster creates an OranCluster resource for testing
-func CreateOranCluster(name, namespace string, spec intentv1alpha1.OranClusterSpec) *intentv1alpha1.OranCluster {
-	return &intentv1alpha1.OranCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: spec,
-	}
-}
+// func CreateOranCluster(name, namespace string, spec intentv1alpha1.OranClusterSpec) *intentv1alpha1.OranCluster {
+// 	return &intentv1alpha1.OranCluster{
+// 		ObjectMeta: metav1.ObjectMeta{
+// 			Name:      name,
+// 			Namespace: namespace,
+// 		},
+// 		Spec: spec,
+// 	}
+// }
 
 // WaitForResource waits for a resource to reach a specific condition
 func WaitForResource(ctx context.Context, client client.Client, obj client.Object, conditionFunc func() bool) error {
 	return wait.PollImmediate(interval, timeout, func() (bool, error) {
-		if err := client.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
+		key := types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}
+		if err := client.Get(ctx, key, obj); err != nil {
 			return false, err
 		}
 		return conditionFunc(), nil
@@ -243,20 +255,22 @@ func WaitForResource(ctx context.Context, client client.Client, obj client.Objec
 // AssertResourceEventuallyExists asserts that a resource eventually exists
 func AssertResourceEventuallyExists(ctx context.Context, client client.Client, obj client.Object) {
 	Eventually(func() error {
-		return client.Get(ctx, client.ObjectKeyFromObject(obj), obj)
+		key := types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}
+		return client.Get(ctx, key, obj)
 	}, timeout, interval).Should(Succeed())
 }
 
 // AssertResourceEventuallyDeleted asserts that a resource is eventually deleted
 func AssertResourceEventuallyDeleted(ctx context.Context, client client.Client, obj client.Object) {
 	Eventually(func() bool {
-		err := client.Get(ctx, client.ObjectKeyFromObject(obj), obj)
+		key := types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}
+		err := client.Get(ctx, key, obj)
 		return errors.IsNotFound(err)
 	}, timeout, interval).Should(BeTrue())
 }
 
-// TestContext provides a context for individual tests with timeout
-func TestContext() (context.Context, context.CancelFunc) {
+// NewTestContext provides a context for individual tests with timeout
+func NewTestContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(ctx, timeout)
 }
 
