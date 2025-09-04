@@ -1565,7 +1565,12 @@ func (nwo *NephioWorkflowOrchestrator) executeDeploymentPhase(ctx context.Contex
 
 		// Deploy via Config Sync.
 
-		syncResult, err := nwo.configSync.DeployPackage(ctx, variant.PackageRevision, variant.TargetCluster)
+		// Convert local WorkloadCluster to porch.WorkloadCluster
+		porchCluster := &porch.WorkloadCluster{
+			Name:   variant.TargetCluster.Name,
+			Region: variant.TargetCluster.Region,
+		}
+		syncResult, err := nwo.configSync.DeployPackage(ctx, variant.PackageRevision, porchCluster)
 		if err != nil {
 
 			logger.Error(err, "Failed to deploy package",

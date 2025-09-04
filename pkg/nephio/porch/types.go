@@ -18,15 +18,12 @@ package porch
 
 import (
 	"context"
+	"fmt"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // PorchClient defines the interface for interacting with Porch API
@@ -319,6 +316,28 @@ const (
 
 // Configuration Types
 
+// AuthConfig defines authentication configuration
+type AuthConfig struct {
+	Type       string            `json:"type"` // basic, token, ssh
+	Username   string            `json:"username,omitempty"`
+	Password   string            `json:"password,omitempty"`
+	Token      string            `json:"token,omitempty"`
+	PrivateKey string            `json:"privateKey,omitempty"`
+	SecretRef  *SecretReference  `json:"secretRef,omitempty"`
+	Headers    map[string]string `json:"headers,omitempty"`
+}
+
+// Note: AuthConfig.DeepCopy is defined in deepcopy.go
+
+// VersionInfo contains system version information
+type VersionInfo struct {
+	Version   string `json:"version"`
+	GitCommit string `json:"gitCommit,omitempty"`
+	BuildTime string `json:"buildTime,omitempty"`
+	GoVersion string `json:"goVersion,omitempty"`
+	Platform  string `json:"platform,omitempty"`
+}
+
 // RepositoryConfig defines repository configuration
 type RepositoryConfig struct {
 	Name         string      `json:"name"`
@@ -331,16 +350,7 @@ type RepositoryConfig struct {
 	Capabilities []string    `json:"capabilities,omitempty"`
 }
 
-// GitAuthConfig defines Git authentication configuration
-type GitAuthConfig struct {
-	Type       string            `json:"type"` // basic, token, ssh
-	Username   string            `json:"username,omitempty"`
-	Password   string            `json:"password,omitempty"`
-	Token      string            `json:"token,omitempty"`
-	PrivateKey string            `json:"privateKey,omitempty"`
-	SecretRef  *SecretReference  `json:"secretRef,omitempty"`
-	Headers    map[string]string `json:"headers,omitempty"`
-}
+// Note: GitAuthConfig removed - using AuthConfig instead
 
 // SyncConfig defines synchronization configuration
 type SyncConfig struct {
@@ -505,8 +515,8 @@ type WorkflowSpec struct {
 	RetryPolicy *RetryPolicy      `json:"retryPolicy,omitempty"`
 }
 
-// GeneralWorkflowStatus defines the general observed state of a workflow
-type GeneralWorkflowStatus struct {
+// WorkflowStatus defines the observed state of a workflow
+type WorkflowStatus struct {
 	Phase      WorkflowPhase      `json:"phase"`
 	Stage      string             `json:"stage,omitempty"`
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
@@ -514,6 +524,8 @@ type GeneralWorkflowStatus struct {
 	EndTime    *metav1.Time       `json:"endTime,omitempty"`
 	Results    []WorkflowResult   `json:"results,omitempty"`
 }
+
+// Note: GeneralWorkflowStatus removed - using WorkflowStatus instead
 
 // WorkflowStage represents a workflow stage
 type WorkflowStage struct {
@@ -621,6 +633,16 @@ type SecretReference struct {
 	Name      string `json:"name"`
 	Namespace string `json:"namespace"`
 	Key       string `json:"key"`
+}
+
+// DeepCopy creates a deep copy of SecretReference
+func (sr *SecretReference) DeepCopy() *SecretReference {
+	if sr == nil {
+		return nil
+	}
+	out := new(SecretReference)
+	*out = *sr
+	return out
 }
 
 // Credentials contains authentication credentials
@@ -1115,6 +1137,83 @@ func (rs *RepositoryStatus) DeepCopyInto(out *RepositoryStatus) {
 	}
 }
 
+// PackageRevision DeepCopy methods
+func (pr *PackageRevision) DeepCopy() *PackageRevision {
+	if pr == nil {
+		return nil
+	}
+	out := new(PackageRevision)
+	pr.DeepCopyInto(out)
+	return out
+}
+
+func (pr *PackageRevision) DeepCopyInto(out *PackageRevision) {
+	*out = *pr
+	out.TypeMeta = pr.TypeMeta
+	pr.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	pr.Spec.DeepCopyInto(&out.Spec)
+	pr.Status.DeepCopyInto(&out.Status)
+}
+
+func (prs *PackageRevisionSpec) DeepCopyInto(out *PackageRevisionSpec) {
+	*out = *prs
+	if prs.Resources != nil {
+		out.Resources = make([]KRMResource, len(prs.Resources))
+		for i := range prs.Resources {
+			prs.Resources[i].DeepCopyInto(&out.Resources[i])
+		}
+	}
+	if prs.Functions != nil {
+		out.Functions = make([]FunctionConfig, len(prs.Functions))
+		for i := range prs.Functions {
+			prs.Functions[i].DeepCopyInto(&out.Functions[i])
+		}
+	}
+	if prs.PackageMetadata != nil {
+		out.PackageMetadata = new(PackageMetadata)
+		prs.PackageMetadata.DeepCopyInto(out.PackageMetadata)
+	}
+	if prs.WorkflowLock != nil {
+		out.WorkflowLock = new(WorkflowLock)
+		prs.WorkflowLock.DeepCopyInto(out.WorkflowLock)
+	}
+}
+
+func (prs *PackageRevisionStatus) DeepCopyInto(out *PackageRevisionStatus) {
+	*out = *prs
+	if prs.Conditions != nil {
+		out.Conditions = make([]metav1.Condition, len(prs.Conditions))
+		for i := range prs.Conditions {
+			prs.Conditions[i].DeepCopyInto(&out.Conditions[i])
+		}
+	}
+	if prs.PublishTime != nil {
+		out.PublishTime = prs.PublishTime.DeepCopy()
+	}
+}
+
+// PackageRevisionList DeepCopy methods
+func (prl *PackageRevisionList) DeepCopy() *PackageRevisionList {
+	if prl == nil {
+		return nil
+	}
+	out := new(PackageRevisionList)
+	prl.DeepCopyInto(out)
+	return out
+}
+
+func (prl *PackageRevisionList) DeepCopyInto(out *PackageRevisionList) {
+	*out = *prl
+	out.TypeMeta = prl.TypeMeta
+	prl.ListMeta.DeepCopyInto(&out.ListMeta)
+	if prl.Items != nil {
+		out.Items = make([]PackageRevision, len(prl.Items))
+		for i := range prl.Items {
+			prl.Items[i].DeepCopyInto(&out.Items[i])
+		}
+	}
+}
+
 // Additional DeepCopy methods would follow the same pattern...
 // This provides type-safe deep copying required for Kubernetes client-go
 
@@ -1135,44 +1234,8 @@ type ContentManagerHealth struct {
 	ErrorCount     int       `json:"errorCount"`
 }
 
-// ContentManagerMetrics tracks metrics for content manager operations
-type ContentManagerMetrics struct {
-	TotalRequests   int64 `json:"totalRequests"`
-	SuccessCount    int64 `json:"successCount"`
-	ErrorCount      int64 `json:"errorCount"`
-	CacheHits       int64 `json:"cacheHits"`
-	CacheMisses     int64 `json:"cacheMisses"`
-	AverageLatency  int64 `json:"averageLatency"`
-}
-
-// ContentStore defines the interface for content storage operations
-type ContentStore interface {
-	Get(ctx context.Context, key string) ([]byte, error)
-	Put(ctx context.Context, key string, content []byte) error
-	Delete(ctx context.Context, key string) error
-	List(ctx context.Context, prefix string) ([]string, error)
-	Exists(ctx context.Context, key string) (bool, error)
-}
-
-// TemplateEngine handles template processing for package content
-type TemplateEngine struct {
-	Templates map[string]string `json:"templates"`
-	Functions map[string]interface{} `json:"-"`
-}
-
-// ContentValidator validates package content
-type ContentValidator struct {
-	Rules   []ContentValidationRule `json:"rules"`
-	Strict  bool                    `json:"strict"`
-}
-
-// ContentValidationRule defines a content validation rule
-type ContentValidationRule struct {
-	Name     string `json:"name"`
-	Type     string `json:"type"`
-	Pattern  string `json:"pattern"`
-	Required bool   `json:"required"`
-}
+// Note: ContentManagerMetrics, ContentStore, TemplateEngine, ContentValidator, 
+// and ContentValidationRule are defined in content_manager.go to avoid redeclaration
 
 // Error types for better error handling
 type PorchError struct {

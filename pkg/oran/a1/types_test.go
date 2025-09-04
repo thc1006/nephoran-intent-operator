@@ -123,7 +123,7 @@ func TestPolicyType_Validation_Tags(t *testing.T) {
 			name: "valid policy type",
 			policyType: PolicyType{
 				PolicyTypeID: 1,
-				Schema: json.RawMessage(`{}`),
+				Schema: map[string]interface{}{},
 			},
 			expectValid: true,
 		},
@@ -131,7 +131,7 @@ func TestPolicyType_Validation_Tags(t *testing.T) {
 			name: "missing policy_type_id",
 			policyType: PolicyType{
 				PolicyTypeID: 0, // Invalid: must be >= 1
-				Schema: json.RawMessage(`{}`),
+				Schema: map[string]interface{}{},
 			},
 			expectValid: false,
 			fieldErrors: []string{"policy_type_id"},
@@ -140,7 +140,7 @@ func TestPolicyType_Validation_Tags(t *testing.T) {
 			name: "negative policy_type_id",
 			policyType: PolicyType{
 				PolicyTypeID: -1, // Invalid: must be >= 1
-				Schema: json.RawMessage(`{}`),
+				Schema: map[string]interface{}{},
 			},
 			expectValid: false,
 			fieldErrors: []string{"policy_type_id"},
@@ -166,7 +166,7 @@ func TestPolicyType_Validation_Tags(t *testing.T) {
 func TestPolicyType_EmptyOptionalFields(t *testing.T) {
 	policyType := &PolicyType{
 		PolicyTypeID: 1,
-		Schema: json.RawMessage(`{}`),
+		Schema: map[string]interface{}{},
 		// Optional fields left empty
 		PolicyTypeName: "",
 		Description:    "",
@@ -237,7 +237,7 @@ func TestPolicyInstance_Validation_Tags(t *testing.T) {
 			instance: PolicyInstance{
 				PolicyID:     "valid-policy-id",
 				PolicyTypeID: 1,
-				PolicyData: json.RawMessage(`{}`),
+				PolicyData: map[string]interface{}{},
 			},
 			expectValid: true,
 		},
@@ -246,7 +246,7 @@ func TestPolicyInstance_Validation_Tags(t *testing.T) {
 			instance: PolicyInstance{
 				PolicyID:     "", // Invalid: required
 				PolicyTypeID: 1,
-				PolicyData: json.RawMessage(`{}`),
+				PolicyData: map[string]interface{}{},
 			},
 			expectValid: false,
 			fieldErrors: []string{"policy_id"},
@@ -256,7 +256,7 @@ func TestPolicyInstance_Validation_Tags(t *testing.T) {
 			instance: PolicyInstance{
 				PolicyID:     "valid-policy-id",
 				PolicyTypeID: 0, // Invalid: must be >= 1
-				PolicyData: json.RawMessage(`{}`),
+				PolicyData: map[string]interface{}{},
 			},
 			expectValid: false,
 			fieldErrors: []string{"policy_type_id"},
@@ -437,15 +437,7 @@ func TestEnrichmentInfoType_JSON_Serialization(t *testing.T) {
 			},
 			"required": []string{"interval_seconds", "target_cells"},
 		},
-		EiJobResultSchema: map[string]interface{}{
-			"measurements": map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"throughput": json.RawMessage(`{"type":"number"}`),
-					"timestamp":  json.RawMessage(`{}`),
-				},
-			},
-		},
+		EiJobResultSchema: json.RawMessage(`{"measurements":{"type":"object","properties":{"throughput":{"type":"number"},"timestamp":{}}}}`),
 		CreatedAt:  now,
 		ModifiedAt: now,
 	}
@@ -477,7 +469,7 @@ func TestEnrichmentInfoType_Validation_Tags(t *testing.T) {
 			name: "valid EI type",
 			eiType: EnrichmentInfoType{
 				EiTypeID:        "valid-type-id",
-				EiJobDataSchema: json.RawMessage(`{"type":"object"}`),
+				EiJobDataSchema: map[string]interface{}{"type": "object"},
 			},
 			expectValid: true,
 		},
@@ -485,7 +477,7 @@ func TestEnrichmentInfoType_Validation_Tags(t *testing.T) {
 			name: "empty ei_type_id",
 			eiType: EnrichmentInfoType{
 				EiTypeID:        "", // Required field
-				EiJobDataSchema: json.RawMessage(`{"type":"object"}`),
+				EiJobDataSchema: map[string]interface{}{"type": "object"},
 			},
 			expectValid: false,
 			fieldErrors: []string{"ei_type_id"},
@@ -537,9 +529,7 @@ func TestEnrichmentInfoJob_JSON_Serialization(t *testing.T) {
 				},
 			},
 			JobParameters: json.RawMessage(`{}`),
-			JobResultSchema: map[string]interface{}{
-				"cell_measurements": json.RawMessage(`{}`),
-			},
+			JobResultSchema: json.RawMessage(`{"cell_measurements":{}}`),
 		},
 		CreatedAt:      now,
 		ModifiedAt:     now,
@@ -873,7 +863,7 @@ func TestTypes_ConcurrentAccess(t *testing.T) {
 	instance := &PolicyInstance{
 		PolicyID:     "concurrent-test",
 		PolicyTypeID: 1,
-		PolicyData: json.RawMessage(`{}`),
+		PolicyData: map[string]interface{}{},
 	}
 
 	// Test concurrent read access

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -14,7 +15,7 @@ import (
 func TestNewO1AdaptorConstruction(t *testing.T) {
 	tests := []struct {
 		name   string
-		config *O1Config
+		config *oran.O1Config
 		want   *O1Adaptor
 	}{
 		{
@@ -29,12 +30,9 @@ func TestNewO1AdaptorConstruction(t *testing.T) {
 		},
 		{
 			name: "with custom config",
-			config: &O1Config{
-				DefaultPort:    830,
-				ConnectTimeout: 30 * time.Second,
-				RequestTimeout: 60 * time.Second,
-				MaxRetries:     5,
-				RetryInterval:  10 * time.Second,
+			config: &oran.O1Config{
+				Timeout:       30 * time.Second,
+				RetryAttempts: 5,
 			},
 			want: &O1Adaptor{
 				clients:          make(map[string]*NetconfClient),
@@ -250,7 +248,7 @@ func TestO1Adaptor_convertEventToAlarm(t *testing.T) {
 				Timestamp: time.Now(),
 				Source:    "test-source",
 				XML:       "<alarm><severity>critical</severity></alarm>",
-				Data:      make(map[string]interface{}),
+				Data:      json.RawMessage(`{}`),
 			},
 			managedElementID: "test-element",
 			expectedAlarm:    true,

@@ -13,8 +13,8 @@ import (
 
 // Package-level variables for O2 tests
 var (
-	k8sClient client.Client
-	testEnv   *envtest.Environment
+	o2K8sClient client.Client
+	o2TestEnv   *envtest.Environment
 )
 
 // CreateO2TestNamespace creates a test namespace for O2 integration tests
@@ -24,10 +24,10 @@ func CreateO2TestNamespace() *corev1.Namespace {
 			GenerateName: "o2-integration-test-",
 		},
 	}
-	Expect(k8sClient.Create(context.Background(), namespace)).To(Succeed())
+	Expect(o2K8sClient.Create(context.Background(), namespace)).To(Succeed())
 
 	DeferCleanup(func() {
-		k8sClient.Delete(context.Background(), namespace)
+		o2K8sClient.Delete(context.Background(), namespace)
 	})
 
 	return namespace

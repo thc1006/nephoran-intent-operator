@@ -32,7 +32,6 @@ package testutil
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -204,8 +203,6 @@ func NewTestPackageRevision(name, repository string) *porch.PackageRevision {
 			Revision: "v1.0.0",
 
 			Lifecycle: porch.PackageRevisionLifecyclePublished,
-
-			WorkspaceName: "",
 		},
 	}
 }
@@ -216,7 +213,7 @@ func NewTestFunctionConfig(name string) porch.FunctionConfig {
 	return porch.FunctionConfig{
 		Image: "gcr.io/kpt-fn/test-function:v1.0.0",
 
-		ConfigMap: json.RawMessage(`{}`),
+		ConfigMap: make(map[string]interface{}),
 	}
 }
 

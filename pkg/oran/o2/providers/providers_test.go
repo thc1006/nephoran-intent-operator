@@ -61,9 +61,9 @@ func TestMockProvider(t *testing.T) {
 
 	// Test operations before initialization (should fail)
 	ctx := context.Background()
-	_, err := provider.CreateResource(ctx, ResourceRequest{
+	_, err := provider.CreateResource(ctx, &CreateResourceRequest{
 		Name: "test-resource",
-		Type: ResourceTypeDeployment,
+		Type: string(ResourceTypeDeployment),
 	})
 	if err == nil {
 		t.Error("Expected error for uninitialized provider")
@@ -104,10 +104,10 @@ func TestResourceOperations(t *testing.T) {
 	defer provider.Close() // #nosec G307 - Error handled in defer
 
 	// Test CreateResource
-	req := ResourceRequest{
+	req := &CreateResourceRequest{
 		Name: "test-deployment",
-		Type: ResourceTypeDeployment,
-		Spec: json.RawMessage(`{}`),
+		Type: string(ResourceTypeDeployment),
+		Specification: json.RawMessage(`{}`),
 		Labels: map[string]string{
 			"env": "test",
 		},
@@ -150,10 +150,8 @@ func TestResourceOperations(t *testing.T) {
 	}
 
 	// Test UpdateResource
-	updateReq := ResourceRequest{
-		Name: "updated-deployment",
-		Type: ResourceTypeDeployment,
-		Spec: json.RawMessage(`{}`),
+	updateReq := &UpdateResourceRequest{
+		Specification: json.RawMessage(`{}`),
 		Labels: map[string]string{
 			"env":     "test",
 			"updated": "true",
@@ -170,7 +168,7 @@ func TestResourceOperations(t *testing.T) {
 	}
 
 	// Test ListResources
-	resources, err := provider.ListResources(ctx, ResourceFilter{})
+	resources, err := provider.ListResources(ctx, &ResourceFilter{})
 	if err != nil {
 		t.Fatalf("Failed to list resources: %v", err)
 	}
@@ -180,7 +178,7 @@ func TestResourceOperations(t *testing.T) {
 	}
 
 	// Test ListResources with type filter
-	resources, err = provider.ListResources(ctx, ResourceFilter{
+	resources, err = provider.ListResources(ctx, &ResourceFilter{
 		Types: []string{string(ResourceTypeDeployment)},
 	})
 	if err != nil {
@@ -192,7 +190,7 @@ func TestResourceOperations(t *testing.T) {
 	}
 
 	// Test ListResources with label filter
-	resources, err = provider.ListResources(ctx, ResourceFilter{
+	resources, err = provider.ListResources(ctx, &ResourceFilter{
 		Labels: map[string]string{
 			"env": "test",
 		},

@@ -49,9 +49,7 @@ func (suite *O2APITestSuite) SetupSuite() {
 		ServerPort:     0,
 		TLSEnabled:     false,
 		DatabaseConfig: json.RawMessage(`{}`),
-		ProviderConfigs: map[string]interface{}{
-			"enabled": true,
-		},
+		ProviderConfigs: json.RawMessage(`{"enabled": true}`),
 	}
 
 	var err error
@@ -135,7 +133,7 @@ func (suite *O2APITestSuite) TestResourcePoolCRUD() {
 					Utilization: 20.0,
 				},
 			},
-			Extensions: json.RawMessage(`{}`),
+			Extensions: map[string]interface{}{},
 		}
 
 		poolJSON, err := json.Marshal(pool)
@@ -277,7 +275,7 @@ func (suite *O2APITestSuite) TestResourceTypeCRUD() {
 				},
 			},
 			SupportedActions: []string{"CREATE", "DELETE", "UPDATE", "SCALE", "HEAL"},
-			Capabilities:     json.RawMessage(`{}`),
+			Capabilities:     []models.ResourceCapability{},
 		}
 
 		typeJSON, err := json.Marshal(resourceType)

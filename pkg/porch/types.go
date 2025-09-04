@@ -37,3 +37,14 @@ type Condition struct {
 	Reason             string `json:"reason,omitempty"`
 	Message            string `json:"message,omitempty"`
 }
+
+// WorkloadCluster represents a workload cluster for package deployment
+type WorkloadCluster struct {
+	Name         string            `json:"name"`
+	Endpoint     string            `json:"endpoint"`
+	Region       string            `json:"region"`
+	Zone         string            `json:"zone"`
+	Status       string            `json:"status"`
+	Labels       map[string]string `json:"labels,omitempty"`
+	Annotations  map[string]string `json:"annotations,omitempty"`
+}
