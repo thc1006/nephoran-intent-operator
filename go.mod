@@ -1,9 +1,6 @@
 module github.com/thc1006/nephoran-intent-operator
 
-go 1.24.0
-
-// Build optimization toolchain directive
-toolchain go1.24.6
+go 1.23
 
 require (
 	cloud.google.com/go/compute v1.44.0

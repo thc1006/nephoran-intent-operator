@@ -42,7 +42,7 @@ concurrency:
 
 env:
   # Project-aligned Kubernetes and Go versions
-  GO_VERSION: "1.24.6"
+  GO_VERSION: "1.23.3"
   KUBERNETES_VERSION: "1.32.1"
   CONTROLLER_RUNTIME_VERSION: "v0.19.1"
   KUBEBUILDER_VERSION: "4.4.1"
