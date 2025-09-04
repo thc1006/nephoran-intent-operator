@@ -383,9 +383,11 @@ jobs:
           fi
 
       - name: Upload SARIF file
+        if: always() && hashFiles('gosec.sarif') != ''
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: gosec.sarif
+        continue-on-error: true
 
   # =============================================================================
   # Performance & Load Testing

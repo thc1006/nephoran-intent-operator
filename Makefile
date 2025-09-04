@@ -313,11 +313,7 @@ ci-full: ci-lint ci-test validate-all
 # Image URL to use all building/pushing image targets
 IMG ?= nephoran-operator:latest
 
-.PHONY: docker-build
-docker-build: manager ## Build docker image with the manager
-	@echo "Building Docker image: $(IMG)"
-	@echo "Creating multi-stage Dockerfile for Kubernetes operator..."
-	@cat > Dockerfile.operator <<EOF
+define DOCKERFILE_OPERATOR
 # Build stage
 FROM golang:1.24-alpine AS builder
 WORKDIR /workspace
@@ -339,7 +335,14 @@ COPY --from=builder /workspace/manager .
 USER 65532:65532
 
 ENTRYPOINT ["/manager"]
-EOF
+endef
+export DOCKERFILE_OPERATOR
+
+.PHONY: docker-build
+docker-build: manager ## Build docker image with the manager
+	@echo "Building Docker image: $(IMG)"
+	@echo "Creating multi-stage Dockerfile for Kubernetes operator..."
+	@echo "$$DOCKERFILE_OPERATOR" > Dockerfile.operator
 	@echo "Building Docker image with multi-stage build..."
 	@docker build -f Dockerfile.operator -t $(IMG) .
 	@echo "✅ Docker image built: $(IMG)"
@@ -351,11 +354,7 @@ docker-push: ## Push docker image with the manager
 	docker push $(IMG)
 	@echo "✅ Docker image pushed: $(IMG)"
 
-.PHONY: docker-buildx
-docker-buildx: manager ## Build and push docker image for multiple platforms
-	@echo "Building multi-arch Docker image: $(IMG)"
-	@echo "Creating multi-stage Dockerfile for multi-arch build..."
-	@cat > Dockerfile.multiarch <<'EOF'
+define DOCKERFILE_MULTIARCH
 # Build stage
 FROM golang:1.24-alpine AS builder
 WORKDIR /workspace
@@ -377,7 +376,14 @@ COPY --from=builder /workspace/manager .
 USER 65532:65532
 
 ENTRYPOINT ["/manager"]
-EOF
+endef
+export DOCKERFILE_MULTIARCH
+
+.PHONY: docker-buildx
+docker-buildx: manager ## Build and push docker image for multiple platforms
+	@echo "Building multi-arch Docker image: $(IMG)"
+	@echo "Creating multi-stage Dockerfile for multi-arch build..."
+	@echo "$$DOCKERFILE_MULTIARCH" > Dockerfile.multiarch
 	docker buildx create --use --name=crossplat --node=crossplat || true
 	docker buildx build \
 		--platform linux/amd64,linux/arm64 \
