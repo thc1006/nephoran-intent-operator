@@ -37,6 +37,17 @@ import (
 	// 	nephiov1alpha1 "github.com/nephio-project/nephio/api/v1alpha1" // DISABLED: external dependency not available
 )
 
+// Stub types to replace missing external dependencies
+type porchv1alpha1PackageRevision struct {
+	Name      string
+	Namespace string
+}
+
+type nephiov1alpha1ClusterDeploymentStatus struct {
+	Phase   string
+	Message string
+}
+
 // ChaosScenario defines different types of chaos experiments
 type ChaosScenario struct {
 	Name         string
@@ -76,9 +87,9 @@ func NewMockFailingSyncEngine(baseEngine *SyncEngine, failureRate float64, laten
 
 func (m *MockFailingSyncEngine) SyncPackageToCluster(
 	ctx context.Context,
-	packageRevision *porchv1alpha1.PackageRevision,
+	packageRevision *porchv1alpha1PackageRevision,
 	targetCluster types.NamespacedName,
-) (*nephiov1alpha1.ClusterDeploymentStatus, error) {
+) (*nephiov1alpha1ClusterDeploymentStatus, error) {
 	m.mutex.Lock()
 	m.callCount++
 	callCount := m.callCount
@@ -132,7 +143,7 @@ func (m *MockUnstableClusterManager) SetClusterUnstable(clusterName types.Namesp
 func (m *MockUnstableClusterManager) SelectTargetClusters(
 	ctx context.Context,
 	candidates []types.NamespacedName,
-	packageRevision *porchv1alpha1.PackageRevision,
+	packageRevision *porchv1alpha1PackageRevision,
 ) ([]types.NamespacedName, error) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()

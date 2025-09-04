@@ -53,12 +53,12 @@ type FunctionConfig struct {
 	Image      string                 `json:"image"`
 	ConfigPath string                 `json:"configPath,omitempty"`
 	ConfigMap  json.RawMessage `json:"configMap,omitempty"`
-	Selectors  []ResourceSelector     `json:"selectors,omitempty"`
+	Selectors  []TestResourceSelector     `json:"selectors,omitempty"`
 	Exec       *ExecConfig            `json:"exec,omitempty"`
 }
 
-// ResourceSelector defines resource selection criteria
-type ResourceSelector struct {
+// TestResourceSelector defines resource selection criteria for tests
+type TestResourceSelector struct {
 	APIVersion string            `json:"apiVersion,omitempty"`
 	Kind       string            `json:"kind,omitempty"`
 	Name       string            `json:"name,omitempty"`
@@ -111,8 +111,8 @@ type FunctionContext struct {
 	Environment map[string]string `json:"environment,omitempty"`
 }
 
-// Pipeline defines a sequence of KRM functions
-type Pipeline struct {
+// TestPipeline defines a sequence of KRM functions for tests
+type TestPipeline struct {
 	Name      string                 `json:"name"`
 	Functions []FunctionConfig       `json:"functions"`
 	Metadata  json.RawMessage `json:"metadata,omitempty"`
@@ -120,7 +120,7 @@ type Pipeline struct {
 
 // PipelineRequest represents a pipeline execution request
 type PipelineRequest struct {
-	Pipeline  Pipeline         `json:"pipeline"`
+	Pipeline  TestPipeline         `json:"pipeline"`
 	Resources []KRMResource    `json:"resources"`
 	Context   *FunctionContext `json:"context,omitempty"`
 }
@@ -166,7 +166,7 @@ type FunctionSchema struct {
 }
 
 // SchemaProperty defines a schema property
-type SchemaProperty struct {
+type TestSchemaProperty struct {
 	Type        string        `json:"type"`
 	Description string        `json:"description,omitempty"`
 	Default     interface{}   `json:"default,omitempty"`
@@ -174,7 +174,7 @@ type SchemaProperty struct {
 }
 
 // FunctionExample contains function usage examples
-type FunctionExample struct {
+type TestFunctionExample struct {
 	Name        string          `json:"name"`
 	Description string          `json:"description,omitempty"`
 	Config      *FunctionConfig `json:"config"`

@@ -58,7 +58,7 @@ func (mc *MockCache) List(ctx context.Context, list client.ObjectList, opts ...c
 	return nil
 }
 
-func (mc *MockCache) GetInformer(ctx context.Context, obj client.Object) (cache.Informer, error) {
+func (mc *MockCache) GetInformer(ctx context.Context, obj client.Object, opts ...cache.InformerGetOption) (cache.Informer, error) {
 	return nil, nil
 }
 
@@ -121,6 +121,11 @@ func (m *MockManager) GetEventRecorderFor(string) record.EventRecorder   { retur
 func (m *MockManager) GetRESTMapper() meta.RESTMapper                    { return nil }
 func (m *MockManager) GetControllerOptions() config.Controller {
 	return config.Controller{}
+}
+func (m *MockManager) Elected() <-chan struct{} {
+	ch := make(chan struct{})
+	close(ch) // Always elected for testing
+	return ch
 }
 
 // Helper function to create a mock manager
