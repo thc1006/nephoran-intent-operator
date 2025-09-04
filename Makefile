@@ -118,13 +118,13 @@ test: test-unit test-integration
 .PHONY: test-unit
 test-unit:
 	@echo "Running unit tests..."
-	$(GO) test -v -race -timeout=$(TEST_TIMEOUT) -parallel=$(TEST_PARALLEL) ./...
+	CGO_ENABLED=1 $(GO) test -v -race -timeout=$(TEST_TIMEOUT) -parallel=$(TEST_PARALLEL) ./...
 	@echo "[SUCCESS] Unit tests passed"
 
 .PHONY: test-unit-coverage
 test-unit-coverage:
 	@echo "Running unit tests with coverage..."
-	$(GO) test -v -race -timeout=$(TEST_TIMEOUT) -parallel=$(TEST_PARALLEL) \
+	CGO_ENABLED=1 $(GO) test -v -race -timeout=$(TEST_TIMEOUT) -parallel=$(TEST_PARALLEL) \
 		-coverprofile=coverage.out -covermode=atomic ./...
 	$(GO) tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated: coverage.html"
@@ -134,7 +134,7 @@ test-unit-coverage:
 .PHONY: test-llm-providers
 test-llm-providers:
 	@echo "Running LLM provider tests..."
-	$(GO) test -v -race -timeout=$(TEST_TIMEOUT) \
+	CGO_ENABLED=1 $(GO) test -v -race -timeout=$(TEST_TIMEOUT) \
 		./internal/ingest/... \
 		-run "Test.*Provider"
 	@echo "[SUCCESS] LLM provider tests passed"
@@ -142,7 +142,7 @@ test-llm-providers:
 .PHONY: test-schema-validation
 test-schema-validation:
 	@echo "Running schema validation tests..."
-	$(GO) test -v -race -timeout=$(TEST_TIMEOUT) \
+	CGO_ENABLED=1 $(GO) test -v -race -timeout=$(TEST_TIMEOUT) \
 		./internal/ingest/... \
 		-run "Test.*Schema.*|Test.*Validat.*"
 	@echo "[SUCCESS] Schema validation tests passed"
