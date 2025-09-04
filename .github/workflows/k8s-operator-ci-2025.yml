@@ -804,14 +804,42 @@ jobs:
           retention-days: 30
 
   # =============================================================================
+  # STAGE 6.5: Quick Validation Gate
+  # =============================================================================
+  quick-validation:
+    name: "Quick Validation"
+    runs-on: ubuntu-24.04
+    needs: [preflight]
+    if: always()
+    timeout-minutes: 5
+    
+    steps:
+      - name: Quick environment check
+        run: |
+          echo "Checking individual job results..."
+          echo "Preflight: ${{ needs.preflight.result }}"
+          echo "Should build: ${{ needs.preflight.outputs.should-build }}"
+          
+          if [ "${{ needs.preflight.result }}" == "failure" ]; then
+            echo "CI pipeline failed - preflight stage failed"
+            exit 1
+          fi
+          echo "Quick validation passed!"
+
+  # =============================================================================
   # STAGE 7: Enhanced Final Status Report with Error Diagnostics
   # =============================================================================
   ci-status:
     name: "📊 CI Status Report"
-    needs: [preflight, k8s-validation, security-scan, controller-tests, integration-tests, build-package]
+    needs: [preflight, quick-validation, k8s-validation, security-scan, controller-tests, integration-tests, build-package]
     runs-on: ubuntu-24.04
     if: always()
     timeout-minutes: 10
+    env:
+      GO_VERSION: ${{ env.GO_VERSION }}
+      KUBERNETES_VERSION: ${{ env.KUBERNETES_VERSION }}
+      CONTROLLER_RUNTIME_VERSION: ${{ env.CONTROLLER_RUNTIME_VERSION }}
+      ACTIONS_STEP_DEBUG: true
     
     steps:
       - name: Checkout repository (for log analysis)
@@ -896,6 +924,7 @@ jobs:
           
           # Analyze each job
           analyze_job "preflight" "${{ needs.preflight.result }}" "${{ toJSON(needs.preflight.outputs) }}"
+          analyze_job "quick-validation" "${{ needs.quick-validation.result }}" ""
           analyze_job "k8s-validation" "${{ needs.k8s-validation.result }}" ""
           analyze_job "security-scan" "${{ needs.security-scan.result }}" ""
           analyze_job "controller-tests" "${{ needs.controller-tests.result }}" ""
@@ -1096,11 +1125,15 @@ jobs:
           CRITICAL_FAILURES=""
           
           # Define critical jobs that must pass
-          CRITICAL_JOBS="preflight k8s-validation security-scan controller-tests build-package"
+          CRITICAL_JOBS="preflight quick-validation k8s-validation security-scan controller-tests build-package"
           
           if [[ "${{ needs.preflight.result }}" == "failure" ]]; then
             FAILED_JOBS="$FAILED_JOBS preflight"
             CRITICAL_FAILURES="$CRITICAL_FAILURES preflight"
+          fi
+          if [[ "${{ needs.quick-validation.result }}" == "failure" ]]; then
+            FAILED_JOBS="$FAILED_JOBS quick-validation"
+            CRITICAL_FAILURES="$CRITICAL_FAILURES quick-validation"
           fi
           if [[ "${{ needs.k8s-validation.result }}" == "failure" ]]; then
             FAILED_JOBS="$FAILED_JOBS k8s-validation"
