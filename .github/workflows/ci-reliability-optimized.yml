@@ -82,20 +82,31 @@ jobs:
       - name: Detect changes (optimized)
         id: changes
         run: |
-          # Intelligent change detection
+          # Intelligent change detection - FIXED: Always build for workflow_dispatch and if any Go-related files exist
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "should-build=true" >> $GITHUB_OUTPUT
+            echo "Manual trigger - build forced"
+            exit 0
+          fi
+          
           if [ "${{ github.event_name }}" = "push" ]; then
-            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "force-build")
           elif [ "${{ github.event_name }}" = "pull_request" ]; then
-            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} 2>/dev/null || echo "")
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} 2>/dev/null || echo "force-build")
           else
             CHANGED_FILES="force-build"
           fi
           
           echo "Changed files: $CHANGED_FILES"
           
-          if echo "$CHANGED_FILES" | grep -qE '\.(go|mod|sum)$|^(api|cmd|controllers|pkg|internal)/|Makefile'; then
+          # FIXED: More comprehensive detection - check for ANY Go files or key directories
+          if [ "$CHANGED_FILES" = "force-build" ] || \
+             echo "$CHANGED_FILES" | grep -qE '\.(go|mod|sum)$' || \
+             echo "$CHANGED_FILES" | grep -qE '^(api|cmd|controllers|pkg|internal|config)/' || \
+             echo "$CHANGED_FILES" | grep -qE 'Makefile|Dockerfile|\.github/workflows/' || \
+             [ -f "go.mod" ]; then
             echo "should-build=true" >> $GITHUB_OUTPUT
-            echo "Significant changes detected - build required"
+            echo "Significant changes detected or Go project detected - build required"
           else
             echo "should-build=false" >> $GITHUB_OUTPUT  
             echo "No significant changes - build skipped"
