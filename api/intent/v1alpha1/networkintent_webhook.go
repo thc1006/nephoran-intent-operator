@@ -126,6 +126,19 @@ func (r *NetworkIntent) validateNetworkIntent() (admission.Warnings, error) {
 		allErrs = append(allErrs, fmt.Errorf("spec.replicas must be non-negative, got: %d", r.Spec.Replicas))
 	}
 
+	// Validate source value
+	validSources := []string{"user", "planner", "test"}
+	validSource := false
+	for _, source := range validSources {
+		if r.Spec.Source == source {
+			validSource = true
+			break
+		}
+	}
+	if !validSource {
+		allErrs = append(allErrs, fmt.Errorf("spec.source must be 'user', 'planner', or 'test', got: %s", r.Spec.Source))
+	}
+
 	// Add warning if replicas is very high
 	if r.Spec.Replicas > 100 {
 		warnings = append(warnings, "spec.replicas is set to a very high value, consider reviewing resource requirements")

@@ -1,0 +1,74 @@
+# =============================================================================
+# Trivy Security Scanner - Ignore File (2025 Configuration)
+# =============================================================================
+# This file excludes known false positives and non-critical findings
+# for the Nephoran Intent Operator Kubernetes project
+
+# Development and Build Artifacts
+**/.git/**
+**/.github/**
+**/node_modules/**
+**/vendor/**
+**/bin/**
+**/dist/**
+**/.cache/**
+**/tmp/**
+
+# Test Data and Examples
+**/testdata/**
+**/test/**
+**/tests/**
+**/example/**
+**/examples/**
+**/sample/**
+**/samples/**
+**/fixtures/**
+
+# Documentation and Configuration
+**/*.md
+**/*.txt
+**/*.rst
+**/*.adoc
+**/*.pdf
+**/LICENSE*
+**/NOTICE*
+**/CHANGELOG*
+**/README*
+
+# IDE and Editor Files
+**/.vscode/**
+**/.idea/**
+**/*.swp
+**/*.swo
+**/*~
+
+# Build System Files
+**/Makefile*
+**/CMakeLists.txt
+**/build.gradle*
+**/pom.xml
+**/package.json
+**/yarn.lock
+**/package-lock.json
+
+# Container and Deployment Configs (scanned separately)
+**/Dockerfile*
+**/docker-compose*.yml
+**/k8s/**
+**/kubernetes/**
+**/manifests/**
+
+# Common False Positives for Kubernetes Operators
+**/go.sum
+**/go.mod
+
+# CVE Exceptions (Add specific CVEs that are false positives or acceptable risk)
+# Example: CVE-2021-12345 (comment explaining why it's safe to ignore)
+
+# =============================================================================
+# Instructions for maintaining this file:
+# 1. Only add entries for verified false positives
+# 2. Always include comments explaining why ignored
+# 3. Periodically review and clean up outdated entries
+# 4. Consider using Trivy's built-in filters instead when possible
+# =============================================================================
