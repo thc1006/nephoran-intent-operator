@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -333,7 +334,7 @@ func (hc *HealthChecker) StartHealthCheck(
 
 		"type", session.Type,
 
-		"address", fmt.Sprintf("%s:%d", target.Address, target.Port))
+		"address", net.JoinHostPort(target.Address, strconv.Itoa(target.Port)))
 
 	return session, nil
 }
@@ -494,7 +495,9 @@ func (hc *HealthChecker) performHTTPCheck(session *HealthCheckSession, result *H
 		scheme = "http"
 	}
 
-	url := fmt.Sprintf("%s://%s:%d%s", scheme, session.Target.Address, session.Target.Port, session.Target.Path)
+	// Use net.JoinHostPort for proper IPv4/IPv6 handling
+	hostPort := net.JoinHostPort(session.Target.Address, strconv.Itoa(session.Target.Port))
+	url := fmt.Sprintf("%s://%s%s", scheme, hostPort, session.Target.Path)
 
 	// Create HTTP client with timeout.
 
@@ -582,7 +585,8 @@ func (hc *HealthChecker) performHTTPCheck(session *HealthCheckSession, result *H
 // performGRPCCheck performs gRPC health check.
 
 func (hc *HealthChecker) performGRPCCheck(session *HealthCheckSession, result *HealthCheckResult) error {
-	address := fmt.Sprintf("%s:%d", session.Target.Address, session.Target.Port)
+	// Use net.JoinHostPort for proper IPv4/IPv6 handling
+	address := net.JoinHostPort(session.Target.Address, strconv.Itoa(session.Target.Port))
 
 	timeout := hc.config.DefaultTimeout
 
@@ -638,7 +642,8 @@ func (hc *HealthChecker) performGRPCCheck(session *HealthCheckSession, result *H
 // performTCPCheck performs TCP connectivity check.
 
 func (hc *HealthChecker) performTCPCheck(session *HealthCheckSession, result *HealthCheckResult) error {
-	address := fmt.Sprintf("%s:%d", session.Target.Address, session.Target.Port)
+	// Use net.JoinHostPort for proper IPv4/IPv6 handling
+	address := net.JoinHostPort(session.Target.Address, strconv.Itoa(session.Target.Port))
 
 	timeout := hc.config.DefaultTimeout
 
@@ -663,7 +668,8 @@ func (hc *HealthChecker) performTCPCheck(session *HealthCheckSession, result *He
 // performUDPCheck performs UDP connectivity check.
 
 func (hc *HealthChecker) performUDPCheck(session *HealthCheckSession, result *HealthCheckResult) error {
-	address := fmt.Sprintf("%s:%d", session.Target.Address, session.Target.Port)
+	// Use net.JoinHostPort for proper IPv4/IPv6 handling
+	address := net.JoinHostPort(session.Target.Address, strconv.Itoa(session.Target.Port))
 
 	timeout := hc.config.DefaultTimeout
 

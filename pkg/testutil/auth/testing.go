@@ -6,6 +6,8 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -71,6 +73,29 @@ func (tf *TokenFactory) CreateBasicToken(subject string) jwt.MapClaims {
 		"sub": subject,
 		"exp": now.Add(time.Hour).Unix(),
 		"iat": now.Unix(),
+	}
+}
+
+// CreateExpiredToken creates expired token claims.
+func (tf *TokenFactory) CreateExpiredToken(subject string) jwt.MapClaims {
+	now := time.Now()
+	return jwt.MapClaims{
+		"iss": tf.issuer,
+		"sub": subject,
+		"exp": now.Add(-time.Hour).Unix(), // Expired 1 hour ago
+		"iat": now.Add(-2 * time.Hour).Unix(), // Issued 2 hours ago
+	}
+}
+
+// CreateTokenNotValidYet creates token claims not valid yet (future nbf).
+func (tf *TokenFactory) CreateTokenNotValidYet(subject string) jwt.MapClaims {
+	now := time.Now()
+	return jwt.MapClaims{
+		"iss": tf.issuer,
+		"sub": subject,
+		"exp": now.Add(2 * time.Hour).Unix(),  // Valid for 2 hours from now
+		"iat": now.Unix(),
+		"nbf": now.Add(time.Hour).Unix(), // Not valid until 1 hour from now
 	}
 }
 
@@ -790,3 +815,97 @@ func (ats *AuthTestSuite) GetTestServer() *httptest.Server {
 func (ats *AuthTestSuite) GetTestClient() *http.Client {
 	return ats.testClient
 }
+
+// TestContext provides a comprehensive testing context for authentication scenarios
+type TestContext struct {
+	t           *testing.T
+	fixtures    *AuthFixtures
+	PrivateKey  *rsa.PrivateKey
+	PublicKey   *rsa.PublicKey
+	Logger      TestLogger
+	SlogLogger  interface{}  // For slog.Logger compatibility
+	TokenStore  interface{}  // For JWT manager compatibility
+	Blacklist   interface{}  // For JWT manager compatibility
+	cleanupFns  []func()
+}
+
+// TestLogger provides a simple test logger interface
+type TestLogger interface {
+	Log(args ...interface{})
+	Logf(format string, args ...interface{})
+}
+
+// testLogger implements TestLogger for testing
+type testLogger struct {
+	t *testing.T
+}
+
+func (tl *testLogger) Log(args ...interface{}) {
+	tl.t.Log(args...)
+}
+
+func (tl *testLogger) Logf(format string, args ...interface{}) {
+	tl.t.Logf(format, args...)
+}
+
+// NewTestContext creates a new test context for authentication testing
+func NewTestContext(t *testing.T) *TestContext {
+	// Generate RSA key pair for JWT testing
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err, "Failed to generate RSA private key")
+
+	tc := &TestContext{
+		t:          t,
+		fixtures:   DefaultAuthFixtures(),
+		PrivateKey: privateKey,
+		PublicKey:  &privateKey.PublicKey,
+		Logger:     &testLogger{t: t},
+		SlogLogger: NewMockSlogLogger(),
+		TokenStore: NewMockTokenStore(),
+		Blacklist:  NewMockTokenBlacklist(),
+		cleanupFns: make([]func(), 0),
+	}
+
+	// Generate test certificates
+	err = tc.fixtures.GenerateTestCertificates()
+	require.NoError(t, err, "Failed to generate test certificates")
+
+	return tc
+}
+
+// Cleanup cleans up resources created during testing
+func (tc *TestContext) Cleanup() {
+	for i := len(tc.cleanupFns) - 1; i >= 0; i-- {
+		tc.cleanupFns[i]()
+	}
+	tc.cleanupFns = nil
+}
+
+// AddCleanup adds a cleanup function to be called when the test context is cleaned up
+func (tc *TestContext) AddCleanup(fn func()) {
+	tc.cleanupFns = append(tc.cleanupFns, fn)
+}
+
+// SetupJWTManager creates a JWT manager for testing
+func (tc *TestContext) SetupJWTManager() *JWTManagerMock {
+	return NewJWTManagerMock()
+}
+
+// SetupSessionManager creates a session manager for testing
+func (tc *TestContext) SetupSessionManager() *SessionManagerMock {
+	return NewSessionManagerMock()
+}
+
+// SetupRBACManager creates an RBAC manager for testing
+func (tc *TestContext) SetupRBACManager() *RBACManagerMock {
+	return NewRBACManagerMock()
+}
+
+// CreateTestToken creates a test JWT token with the given claims
+func (tc *TestContext) CreateTestToken(claims jwt.MapClaims) string {
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	tokenString, err := token.SignedString(tc.PrivateKey)
+	require.NoError(tc.t, err, "Failed to sign test token")
+	return tokenString
+}
+

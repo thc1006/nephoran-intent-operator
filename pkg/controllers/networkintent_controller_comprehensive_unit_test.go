@@ -27,13 +27,14 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"github.com/thc1006/nephoran-intent-operator/pkg/telecom"
 	"github.com/thc1006/nephoran-intent-operator/pkg/testutils"
+	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/testutil"
 )
 
 // MockDependenciesComprehensive implements Dependencies interface for testing
 type MockDependenciesComprehensive struct {
 	mock.Mock
-	gitClient            *testutils.MockGitClient
-	llmClient            *testutils.MockLLMClient
+	gitClient            *MockGitClientComprehensive
+	llmClient            *MockLLMClientComprehensive
 	packageGenerator     *nephio.PackageGenerator
 	httpClient           *http.Client
 	eventRecorder        record.EventRecorder
@@ -43,8 +44,8 @@ type MockDependenciesComprehensive struct {
 
 func NewMockDependenciesComprehensive() *MockDependenciesComprehensive {
 	return &MockDependenciesComprehensive{
-		gitClient:            testutils.NewMockGitClient(),
-		llmClient:            testutils.NewMockLLMClient(),
+		gitClient:            NewMockGitClientComprehensive(),
+		llmClient:            NewMockLLMClientComprehensive(),
 		packageGenerator:     &nephio.PackageGenerator{}, // Use real instance for simplicity
 		httpClient:           &http.Client{Timeout: 30 * time.Second},
 		eventRecorder:        record.NewFakeRecorder(100),
@@ -82,7 +83,7 @@ func (m *MockDependenciesComprehensive) GetMetricsCollector() monitoring.Metrics
 }
 
 // MockLLMClientComprehensive for testing LLM integration
-type MockLLMClientComprehensiveComprehensive struct {
+type MockLLMClientComprehensive struct {
 	mock.Mock
 	response  string
 	err       error
@@ -115,8 +116,50 @@ func (m *MockLLMClientComprehensive) SetFailCount(count int) {
 	m.failCount = count
 }
 
+// Complete interface implementation for shared.ClientInterface
+func (m *MockLLMClientComprehensive) ProcessRequest(ctx context.Context, request *shared.LLMRequest) (*shared.LLMResponse, error) {
+	args := m.Called(ctx, request)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*shared.LLMResponse), args.Error(1)
+}
+
+func (m *MockLLMClientComprehensive) ProcessStreamingRequest(ctx context.Context, request *shared.LLMRequest) (<-chan *shared.StreamingChunk, error) {
+	args := m.Called(ctx, request)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(<-chan *shared.StreamingChunk), args.Error(1)
+}
+
+func (m *MockLLMClientComprehensive) HealthCheck(ctx context.Context) error {
+	args := m.Called(ctx)
+	return args.Error(0)
+}
+
+func (m *MockLLMClientComprehensive) GetStatus() shared.ClientStatus {
+	args := m.Called()
+	return args.Get(0).(shared.ClientStatus)
+}
+
+func (m *MockLLMClientComprehensive) GetModelCapabilities() shared.ModelCapabilities {
+	args := m.Called()
+	return args.Get(0).(shared.ModelCapabilities)
+}
+
+func (m *MockLLMClientComprehensive) GetEndpoint() string {
+	args := m.Called()
+	return args.String(0)
+}
+
+func (m *MockLLMClientComprehensive) Close() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
 // MockGitClientComprehensive for testing Git operations
-type MockGitClientComprehensiveComprehensive struct {
+type MockGitClientComprehensive struct {
 	mock.Mock
 	shouldFail bool
 	filePaths  []string
@@ -126,7 +169,7 @@ func NewMockGitClientComprehensive() *MockGitClientComprehensive {
 	return &MockGitClientComprehensive{}
 }
 
-func (m *MockGitClientComprehensive) CommitFiles(files map[string]string, message string) (string, error) {
+func (m *MockGitClientComprehensive) CommitAndPush(files map[string]string, message string) (string, error) {
 	if m.shouldFail {
 		return "", errors.New("git commit failed")
 	}
@@ -154,6 +197,58 @@ func (m *MockGitClientComprehensive) DeleteFiles(filePaths []string) error {
 
 func (m *MockGitClientComprehensive) SetShouldFail(shouldFail bool) {
 	m.shouldFail = shouldFail
+}
+
+// Complete interface implementation for git.ClientInterface
+func (m *MockGitClientComprehensive) CommitAndPushChanges(message string) error {
+	args := m.Called(message)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) InitRepo() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) RemoveDirectory(path string, commitMessage string) error {
+	args := m.Called(path, commitMessage)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) CommitFiles(files []string, msg string) error {
+	args := m.Called(files, msg)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) CreateBranch(name string) error {
+	args := m.Called(name)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) SwitchBranch(name string) error {
+	args := m.Called(name)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) GetCurrentBranch() (string, error) {
+	args := m.Called()
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockGitClientComprehensive) ListBranches() ([]string, error) {
+	args := m.Called()
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]string), args.Error(1)
+}
+
+func (m *MockGitClientComprehensive) GetFileContent(path string) ([]byte, error) {
+	args := m.Called(path)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]byte), args.Error(1)
 }
 
 // MockPackageGenerator for testing Nephio package generation
@@ -192,12 +287,12 @@ func createTestNetworkIntent(name, namespace, intent string) *nephoranv1.Network
 
 func createTestConfig() *Config {
 	return &Config{
-		MaxRetries:      DefaultMaxRetries,
-		RetryDelay:      DefaultRetryDelay,
-		Timeout:         DefaultTimeout,
+		MaxRetries:      testutil.DefaultMaxRetries,
+		RetryDelay:      testutil.DefaultRetryDelay,
+		Timeout:         testutil.DefaultHTTPTimeout,
 		GitRepoURL:      "https://github.com/test/test-repo.git",
 		GitBranch:       "main",
-		GitDeployPath:   DefaultGitDeployPath,
+		GitDeployPath:   testutil.DefaultGitDeployPath,
 		LLMProcessorURL: "http://localhost:8080/process",
 		UseNephioPorch:  false,
 	}
@@ -332,7 +427,7 @@ func TestReconcile(t *testing.T) {
 				deps.llmClient.SetFailCount(1)
 			},
 			enableLLMIntent: "true",
-			expectedResult:  ctrl.Result{RequeueAfter: DefaultRetryDelay},
+			expectedResult:  ctrl.Result{RequeueAfter: testutil.DefaultRetryDelay},
 			expectedError:   false,
 			expectedPhase:   "Error",
 			validationCheck: func(t *testing.T, ni *nephoranv1.NetworkIntent) {
@@ -528,6 +623,7 @@ func TestUpdatePhase(t *testing.T) {
 }
 
 // Test helper functions for conditions
+// Note: isConditionTrue is already defined in controller_utils.go
 
 func isConditionFalse(conditions []metav1.Condition, conditionType string) bool {
 	for _, condition := range conditions {

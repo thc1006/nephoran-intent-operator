@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -673,9 +674,15 @@ var _ = Describe("CNF Orchestrator Error Scenarios", func() {
 				},
 			}
 
+			// Convert json.RawMessage to map[string]interface{}
+			var defaultValues map[string]interface{}
+			if err := json.Unmarshal(json.RawMessage(`{}`), &defaultValues); err != nil {
+				panic(fmt.Sprintf("failed to unmarshal default values: %v", err))
+			}
+
 			template = &CNFTemplate{
 				Function:      nephoranv1.CNFFunctionAMF,
-				DefaultValues: json.RawMessage(`{}`),
+				DefaultValues: defaultValues,
 			}
 		})
 

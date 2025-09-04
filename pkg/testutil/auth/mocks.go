@@ -8,6 +8,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"sync"
 	"time"
 
@@ -790,4 +794,283 @@ func (m *MockAuthenticator) Reset() {
 	m.Mock.ExpectedCalls = nil
 	m.Mock.Calls = nil
 	m.sessions = make(map[string]*UserSession)
+}
+
+// Additional methods for compatibility with security tests
+
+// GenerateToken generates a JWT token for testing
+func (jsm *JWTManagerMock) GenerateToken(userInfo interface{}, claims interface{}) (string, error) {
+	// Extract user information
+	var username string
+	switch ui := userInfo.(type) {
+	case *TestUser:
+		username = ui.Username
+	case string:
+		username = ui
+	default:
+		username = "test-user"
+	}
+
+	// Create JWT claims
+	now := time.Now()
+	jwtClaims := jwt.MapClaims{
+		"sub": username,
+		"iss": "test-issuer",
+		"aud": []string{"test-audience"},
+		"exp": now.Add(time.Hour).Unix(),
+		"iat": now.Unix(),
+		"nbf": now.Unix(),
+		"jti": fmt.Sprintf("test-%d", now.UnixNano()),
+	}
+
+	// Add custom claims if provided
+	if claims != nil {
+		if claimsMap, ok := claims.(map[string]interface{}); ok {
+			for k, v := range claimsMap {
+				jwtClaims[k] = v
+			}
+		}
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwtClaims)
+	// Use a simple secret for testing
+	return token.SignedString([]byte("test-secret"))
+}
+
+// GenerateTokenPair generates both access and refresh tokens
+func (jsm *JWTManagerMock) GenerateTokenPair(userInfo interface{}, claims interface{}) (string, string, error) {
+	accessToken, err := jsm.GenerateToken(userInfo, claims)
+	if err != nil {
+		return "", "", err
+	}
+	refreshToken := fmt.Sprintf("refresh-%s", accessToken)
+	return accessToken, refreshToken, nil
+}
+
+// IsTokenBlacklisted checks if a token is blacklisted
+func (jsm *JWTManagerMock) IsTokenBlacklisted(ctx context.Context, token string) (bool, error) {
+	return jsm.blacklistedTokens[token], nil
+}
+
+// SetSigningKey sets the signing key (mock implementation)
+func (jsm *JWTManagerMock) SetSigningKey(key interface{}) error {
+	// Mock implementation - just return success
+	return nil
+}
+
+// ValidateToken validates a JWT token (mock implementation)
+func (jsm *JWTManagerMock) ValidateToken(ctx context.Context, tokenString string) (jwt.MapClaims, error) {
+	// Simple validation for testing
+	if tokenString == "invalid" {
+		return nil, fmt.Errorf("invalid token")
+	}
+	
+	// Return basic claims for valid tokens
+	return jwt.MapClaims{
+		"sub": "test-user",
+		"iss": "test-issuer",
+		"exp": time.Now().Add(time.Hour).Unix(),
+		"iat": time.Now().Unix(),
+	}, nil
+}
+
+// RefreshToken refreshes a JWT token (mock implementation)
+func (jsm *JWTManagerMock) RefreshToken(ctx context.Context, refreshToken string) (string, error) {
+	if refreshToken == "" {
+		return "", fmt.Errorf("empty refresh token")
+	}
+	
+	// Generate a new access token
+	return jsm.GenerateToken("test-user", nil)
+}
+
+// BlacklistToken adds a token to the blacklist
+func (jsm *JWTManagerMock) BlacklistToken(ctx context.Context, tokenString string) error {
+	if jsm.blacklistedTokens == nil {
+		jsm.blacklistedTokens = make(map[string]bool)
+	}
+	jsm.blacklistedTokens[tokenString] = true
+	return nil
+}
+
+// GenerateTokenWithTTL generates a token with custom TTL
+func (jsm *JWTManagerMock) GenerateTokenWithTTL(userInfo interface{}, claims interface{}, ttl time.Duration) (string, error) {
+	// Extract user information
+	var username string
+	switch ui := userInfo.(type) {
+	case *TestUser:
+		username = ui.Username
+	case string:
+		username = ui
+	default:
+		username = "test-user"
+	}
+
+	// Create JWT claims with custom TTL
+	now := time.Now()
+	jwtClaims := jwt.MapClaims{
+		"sub": username,
+		"iss": "test-issuer",
+		"aud": []string{"test-audience"},
+		"exp": now.Add(ttl).Unix(),
+		"iat": now.Unix(),
+		"nbf": now.Unix(),
+		"jti": fmt.Sprintf("test-%d", now.UnixNano()),
+	}
+
+	// Add custom claims if provided
+	if claims != nil {
+		if claimsMap, ok := claims.(map[string]interface{}); ok {
+			for k, v := range claimsMap {
+				jwtClaims[k] = v
+			}
+		}
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwtClaims)
+	// Use a simple secret for testing
+	return token.SignedString([]byte("test-secret"))
+}
+
+// SessionResult represents a session with an ID field
+type SessionResult struct {
+	ID        string      `json:"id"`
+	User      interface{} `json:"user"`
+	CreatedAt time.Time   `json:"created_at"`
+	ExpiresAt time.Time   `json:"expires_at"`
+}
+
+// CreateSession creates a new session
+func (ssm *SessionManagerMock) CreateSession(ctx context.Context, userInfo interface{}) (*SessionResult, error) {
+	sessionID := fmt.Sprintf("session-%d", time.Now().UnixNano())
+	session := &SessionResult{
+		ID:        sessionID,
+		User:      userInfo,
+		CreatedAt: time.Now(),
+		ExpiresAt: time.Now().Add(24 * time.Hour),
+	}
+	ssm.sessions[sessionID] = session
+	return session, nil
+}
+
+// NewOAuth2MockServer creates a mock OAuth2 server for testing
+func NewOAuth2MockServer(issuer string) *httptest.Server {
+	mux := http.NewServeMux()
+	
+	mux.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		response := map[string]interface{}{
+			"access_token": "mock-access-token",
+			"token_type": "Bearer",
+			"expires_in": 3600,
+		}
+		json.NewEncoder(w).Encode(response)
+	})
+	
+	mux.HandleFunc("/userinfo", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		response := map[string]interface{}{
+			"sub": "test-user",
+			"name": "Test User",
+			"email": "test@example.com",
+		}
+		json.NewEncoder(w).Encode(response)
+	})
+	
+	return httptest.NewServer(mux)
+}
+
+// MockOAuthProvider provides a testify compatible OAuth provider mock
+type MockOAuthProvider struct {
+	mock.Mock
+}
+
+// NewMockOAuthProvider creates a simple mock OAuth provider
+func NewMockOAuthProvider(provider ...string) *MockOAuthProvider {
+	return &MockOAuthProvider{}
+}
+
+// On provides testify mock functionality
+func (m *MockOAuthProvider) On(methodName string, args ...interface{}) *mock.Call {
+	return m.Mock.On(methodName, args...)
+}
+
+// GetAuthURL returns a mock auth URL
+func (m *MockOAuthProvider) GetAuthURL(state string) string {
+	args := m.Called(state)
+	return args.String(0)
+}
+
+// Exchange exchanges code for token
+func (m *MockOAuthProvider) Exchange(code string) (interface{}, error) {
+	args := m.Called(code)
+	return args.Get(0), args.Error(1)
+}
+
+// MockTokenStore provides a mock token store implementation
+type MockTokenStore struct {
+	tokens map[string]interface{}
+}
+
+// NewMockTokenStore creates a new mock token store
+func NewMockTokenStore() *MockTokenStore {
+	return &MockTokenStore{
+		tokens: make(map[string]interface{}),
+	}
+}
+
+// Store stores a token
+func (mts *MockTokenStore) Store(key string, token interface{}) error {
+	mts.tokens[key] = token
+	return nil
+}
+
+// Retrieve retrieves a token
+func (mts *MockTokenStore) Retrieve(key string) (interface{}, error) {
+	token, exists := mts.tokens[key]
+	if !exists {
+		return nil, fmt.Errorf("token not found")
+	}
+	return token, nil
+}
+
+// Delete deletes a token
+func (mts *MockTokenStore) Delete(key string) error {
+	delete(mts.tokens, key)
+	return nil
+}
+
+// CleanupExpired removes expired tokens (mock implementation)
+func (mts *MockTokenStore) CleanupExpired() error {
+	// Mock implementation - don't actually clean up for testing
+	return nil
+}
+
+// MockTokenBlacklist provides a mock token blacklist implementation
+type MockTokenBlacklist struct {
+	blacklist map[string]bool
+}
+
+// NewMockTokenBlacklist creates a new mock token blacklist
+func NewMockTokenBlacklist() *MockTokenBlacklist {
+	return &MockTokenBlacklist{
+		blacklist: make(map[string]bool),
+	}
+}
+
+// BlacklistToken adds a token to the blacklist
+func (mtb *MockTokenBlacklist) BlacklistToken(token string) error {
+	mtb.blacklist[token] = true
+	return nil
+}
+
+// IsBlacklisted checks if a token is blacklisted
+func (mtb *MockTokenBlacklist) IsBlacklisted(token string) bool {
+	return mtb.blacklist[token]
+}
+
+// NewMockSlogLogger creates a mock slog.Logger for testing
+func NewMockSlogLogger() *slog.Logger {
+	// Create a no-op logger for testing
+	return slog.New(slog.NewTextHandler(io.Discard, nil))
 }

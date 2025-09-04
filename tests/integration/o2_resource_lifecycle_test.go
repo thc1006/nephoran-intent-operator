@@ -534,10 +534,9 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 						},
 					},
 					Extensions: map[string]interface{}{
-							"enabled": true,
-							"horizontal": json.RawMessage(`{}`),
-							"vertical": json.RawMessage(`{}`),
-						},
+						"enabled": true,
+						"horizontal": json.RawMessage(`{}`),
+						"vertical": json.RawMessage(`{}`),
 					},
 				}
 
@@ -554,8 +553,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 
 				By("performing horizontal scale out")
 				scaleOutRequest := map[string]interface{}{
-						"targetInstances": 3,
-					},
+					"targetInstances": 3,
 				}
 
 				scaleJSON, err := json.Marshal(scaleOutRequest)
@@ -596,8 +594,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 
 				By("performing vertical scale up")
 				scaleUpRequest := map[string]interface{}{
-						"targetCPU": "20",
-					},
+					"targetCPU": "20",
 				}
 
 				scaleJSON, err = json.Marshal(scaleUpRequest)
@@ -631,8 +628,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 
 				By("testing scaling limits and constraints")
 				excessiveScaleRequest := map[string]interface{}{
-						"targetInstances": 15,
-					},
+					"targetInstances": 15,
 				}
 
 				scaleJSON, err = json.Marshal(excessiveScaleRequest)
@@ -688,8 +684,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 				resp.Body.Close()
 
 				By("creating child resource dependent on parent")
-				childResource := json.RawMessage(`{}`),
-				}
+				childResource := json.RawMessage(`{}`)
 
 				resourceJSON, err := json.Marshal(childResource)
 				Expect(err).NotTo(HaveOccurred())
@@ -760,13 +755,12 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 					Provider:       "kubernetes",
 					OCloudID:       "test-ocloud",
 					Extensions: map[string]interface{}{
-							"gracefulShutdownTimeout": "60s",
-							"preStopHooks": []string{
-								"drain-connections",
-								"save-state",
-							},
-							"forceDeleteAfter": "120s",
+						"gracefulShutdownTimeout": "60s",
+						"preStopHooks": []string{
+							"drain-connections",
+							"save-state",
 						},
+						"forceDeleteAfter": "120s",
 					},
 				}
 
@@ -783,9 +777,8 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 
 				By("initiating graceful deletion")
 				deletionRequest := map[string]interface{}{
-						"drainTimeout":     "15s",
-						"skipPreStopHooks": false,
-					},
+					"drainTimeout":     "15s",
+					"skipPreStopHooks": false,
 				}
 
 				deletionJSON, err := json.Marshal(deletionRequest)
@@ -844,9 +837,8 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 						Health: "UNKNOWN",
 					},
 					Extensions: map[string]interface{}{
-							"enabled":          true,
-							"trackTransitions": true,
-						},
+						"enabled":          true,
+						"trackTransitions": true,
 					},
 				}
 
