@@ -410,6 +410,12 @@ type NetworkIntentStatus struct {
 
 	Extensions map[string]runtime.RawExtension `json:"extensions,omitempty"`
 
+	// GitCommitHash contains the Git commit hash for deployments.
+
+	// +optional
+
+	GitCommitHash string `json:"gitCommitHash,omitempty"`
+
 	// Conditions contains the conditions for the NetworkIntent.
 
 	// +optional

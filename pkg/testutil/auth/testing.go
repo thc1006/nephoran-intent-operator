@@ -11,6 +11,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -822,10 +823,11 @@ type TestContext struct {
 	fixtures    *AuthFixtures
 	PrivateKey  *rsa.PrivateKey
 	PublicKey   *rsa.PublicKey
+	KeyID       string       // Key ID for JWT signing
 	Logger      TestLogger
-	SlogLogger  interface{}  // For slog.Logger compatibility
-	TokenStore  interface{}  // For JWT manager compatibility
-	Blacklist   interface{}  // For JWT manager compatibility
+	SlogLogger  *slog.Logger // For slog.Logger compatibility
+	TokenStore  *MockTokenStore // For JWT manager compatibility
+	Blacklist   *MockTokenBlacklist // For JWT manager compatibility
 	cleanupFns  []func()
 }
 
@@ -859,6 +861,7 @@ func NewTestContext(t *testing.T) *TestContext {
 		fixtures:   DefaultAuthFixtures(),
 		PrivateKey: privateKey,
 		PublicKey:  &privateKey.PublicKey,
+		KeyID:      "test-key-id",
 		Logger:     &testLogger{t: t},
 		SlogLogger: NewMockSlogLogger(),
 		TokenStore: NewMockTokenStore(),

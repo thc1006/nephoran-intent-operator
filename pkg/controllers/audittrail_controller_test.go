@@ -233,7 +233,7 @@ func (suite *AuditTrailControllerTestSuite) TestConfigurationHandling() {
 							Enabled:    true,
 							ServerName: "elasticsearch.local",
 						},
-						Filter: &nephv1.FilterConfig{
+						Filter: &nephv1.FilterConfigSpec{
 							MinSeverity:   "error",
 							EventTypes:    []string{"authentication", "authorization"},
 							Components:    []string{"auth-service"},

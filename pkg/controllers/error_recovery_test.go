@@ -56,7 +56,7 @@ func (m *MockLLMClient) ProcessRequest(ctx context.Context, request *shared.LLMR
 	if m.error != nil {
 		return nil, m.error
 	}
-	return &shared.LLMResponse{Result: m.response}, nil
+	return &shared.LLMResponse{Content: m.response}, nil
 }
 
 func (m *MockLLMClient) ProcessStreamingRequest(ctx context.Context, request *shared.LLMRequest) (<-chan *shared.StreamingChunk, error) {
@@ -69,11 +69,30 @@ func (m *MockLLMClient) HealthCheck(ctx context.Context) error {
 }
 
 func (m *MockLLMClient) GetStatus() shared.ClientStatus {
-	return shared.ClientStatus{Status: "mock"}
+	return shared.ClientStatusHealthy
 }
 
 func (m *MockLLMClient) Close() error {
 	return nil
+}
+
+func (m *MockLLMClient) GetModelCapabilities() shared.ModelCapabilities {
+	return shared.ModelCapabilities{
+		SupportsStreaming:    true,
+		SupportsSystemPrompt: true,
+		SupportsChatFormat:   true,
+		SupportsChat:         true,
+		SupportsFunction:     false,
+		MaxTokens:            4096,
+		CostPerToken:         0.001,
+		SupportedMimeTypes:   []string{"text/plain", "application/json"},
+		ModelVersion:         "mock-1.0",
+		Features:             json.RawMessage(`{"mock": true}`),
+	}
+}
+
+func (m *MockLLMClient) GetEndpoint() string {
+	return "https://mock-llm-endpoint.example.com"
 }
 
 type MockGitClient struct {
@@ -138,6 +157,39 @@ func (m *MockGitClient) CreateBranch(name string) error {
 
 func (m *MockGitClient) SwitchBranch(name string) error {
 	return m.Error
+}
+
+func (m *MockGitClient) GetCurrentBranch() (string, error) {
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+	m.callCount++
+
+	if m.FailCount > 0 && m.callCount <= m.FailCount {
+		return "", m.Error
+	}
+	return "main", nil
+}
+
+func (m *MockGitClient) ListBranches() ([]string, error) {
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+	m.callCount++
+
+	if m.FailCount > 0 && m.callCount <= m.FailCount {
+		return nil, m.Error
+	}
+	return []string{"main", "develop", "feature/test"}, nil
+}
+
+func (m *MockGitClient) GetFileContent(path string) ([]byte, error) {
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+	m.callCount++
+
+	if m.FailCount > 0 && m.callCount <= m.FailCount {
+		return nil, m.Error
+	}
+	return []byte("mock file content for: " + path), nil
 }
 
 // MockDependencies provides mock implementations for Dependencies interface
@@ -277,7 +329,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			By("Creating NetworkIntent with persistently failing LLM")
 			networkIntent := &nephoranv1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      GetUniqueName("persistent-llm-failure"),
+					Name:      testutils.GetUniqueName("persistent-llm-failure"),
 					Namespace: namespaceName,
 					Labels: map[string]string{
 						"test-resource": "true",
@@ -334,7 +386,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			By("Creating NetworkIntent with processed parameters")
 			networkIntent := &nephoranv1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      GetUniqueName("git-failure-recovery"),
+					Name:      testutils.GetUniqueName("git-failure-recovery"),
 					Namespace: namespaceName,
 					Labels: map[string]string{
 						"test-resource": "true",
@@ -422,7 +474,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			By("Creating NetworkIntent for malformed response testing")
 			networkIntent := &nephoranv1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      GetUniqueName("malformed-response"),
+					Name:      testutils.GetUniqueName("malformed-response"),
 					Namespace: namespaceName,
 					Labels: map[string]string{
 						"test-resource": "true",
@@ -486,7 +538,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			for i := 0; i < 5; i++ {
 				ni := &nephoranv1.NetworkIntent{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      GetUniqueName(fmt.Sprintf("concurrent-%d", i)),
+						Name:      testutils.GetUniqueName(fmt.Sprintf("concurrent-%d", i)),
 						Namespace: namespaceName,
 						Labels: map[string]string{
 							"test-resource": "true",
@@ -575,7 +627,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			By("Creating E2NodeSet for conflict testing")
 			e2nodeSet := &nephoranv1.E2NodeSet{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      GetUniqueName("conflict-recovery"),
+					Name:      testutils.GetUniqueName("conflict-recovery"),
 					Namespace: namespaceName,
 					Labels: map[string]string{
 						"test-resource": "true",
@@ -653,7 +705,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			By("Creating E2NodeSet with initial replicas")
 			e2nodeSet := &nephoranv1.E2NodeSet{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      GetUniqueName("partial-deletion"),
+					Name:      testutils.GetUniqueName("partial-deletion"),
 					Namespace: namespaceName,
 					Labels: map[string]string{
 						"test-resource": "true",
@@ -757,7 +809,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			By("Creating E2NodeSet for rapid scaling test")
 			e2nodeSet := &nephoranv1.E2NodeSet{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      GetUniqueName("rapid-scaling"),
+					Name:      testutils.GetUniqueName("rapid-scaling"),
 					Namespace: namespaceName,
 					Labels: map[string]string{
 						"test-resource": "true",
@@ -827,7 +879,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			By("Creating E2NodeSet for corruption testing")
 			e2nodeSet := &nephoranv1.E2NodeSet{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      GetUniqueName("corruption-recovery"),
+					Name:      testutils.GetUniqueName("corruption-recovery"),
 					Namespace: namespaceName,
 					Labels: map[string]string{
 						"test-resource": "true",
@@ -907,8 +959,8 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 	Context("Cross-Controller Error Scenarios", func() {
 		It("Should handle cascading failures across NetworkIntent and E2NodeSet", func() {
 			By("Creating NetworkIntent that will drive E2NodeSet creation")
-			networkIntent := CreateTestNetworkIntent(
-				GetUniqueName("cascading-failure"),
+			networkIntent := testutils.CreateTestNetworkIntent(
+				testutils.GetUniqueName("cascading-failure"),
 				namespaceName,
 				"Deploy E2NodeSet that will experience cascading failures",
 			)

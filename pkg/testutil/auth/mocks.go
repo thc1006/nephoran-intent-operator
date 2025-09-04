@@ -17,6 +17,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/mock"
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 )
 
 // MockAuthenticator provides a mock implementation of authentication services.
@@ -1009,64 +1010,93 @@ func (m *MockOAuthProvider) Exchange(code string) (interface{}, error) {
 
 // MockTokenStore provides a mock token store implementation
 type MockTokenStore struct {
-	tokens map[string]interface{}
+	tokens map[string]*auth.TokenInfo
 }
 
 // NewMockTokenStore creates a new mock token store
 func NewMockTokenStore() *MockTokenStore {
 	return &MockTokenStore{
-		tokens: make(map[string]interface{}),
+		tokens: make(map[string]*auth.TokenInfo),
 	}
 }
 
-// Store stores a token
-func (mts *MockTokenStore) Store(key string, token interface{}) error {
-	mts.tokens[key] = token
+// StoreToken stores a token with expiration
+func (mts *MockTokenStore) StoreToken(ctx context.Context, tokenID string, token *auth.TokenInfo) error {
+	mts.tokens[tokenID] = token
 	return nil
 }
 
-// Retrieve retrieves a token
-func (mts *MockTokenStore) Retrieve(key string) (interface{}, error) {
-	token, exists := mts.tokens[key]
+// GetToken retrieves token info
+func (mts *MockTokenStore) GetToken(ctx context.Context, tokenID string) (*auth.TokenInfo, error) {
+	token, exists := mts.tokens[tokenID]
 	if !exists {
 		return nil, fmt.Errorf("token not found")
 	}
 	return token, nil
 }
 
-// Delete deletes a token
-func (mts *MockTokenStore) Delete(key string) error {
-	delete(mts.tokens, key)
+// UpdateToken updates token info
+func (mts *MockTokenStore) UpdateToken(ctx context.Context, tokenID string, token *auth.TokenInfo) error {
+	mts.tokens[tokenID] = token
 	return nil
 }
 
+// DeleteToken deletes a token
+func (mts *MockTokenStore) DeleteToken(ctx context.Context, tokenID string) error {
+	delete(mts.tokens, tokenID)
+	return nil
+}
+
+// ListUserTokens lists tokens for a user
+func (mts *MockTokenStore) ListUserTokens(ctx context.Context, userID string) ([]*auth.TokenInfo, error) {
+	var userTokens []*auth.TokenInfo
+	for _, token := range mts.tokens {
+		if token.UserID == userID {
+			userTokens = append(userTokens, token)
+		}
+	}
+	return userTokens, nil
+}
+
 // CleanupExpired removes expired tokens (mock implementation)
-func (mts *MockTokenStore) CleanupExpired() error {
+func (mts *MockTokenStore) CleanupExpired(ctx context.Context) error {
 	// Mock implementation - don't actually clean up for testing
 	return nil
 }
 
 // MockTokenBlacklist provides a mock token blacklist implementation
 type MockTokenBlacklist struct {
-	blacklist map[string]bool
+	blacklist map[string]time.Time
 }
 
 // NewMockTokenBlacklist creates a new mock token blacklist
 func NewMockTokenBlacklist() *MockTokenBlacklist {
 	return &MockTokenBlacklist{
-		blacklist: make(map[string]bool),
+		blacklist: make(map[string]time.Time),
 	}
 }
 
 // BlacklistToken adds a token to the blacklist
-func (mtb *MockTokenBlacklist) BlacklistToken(token string) error {
-	mtb.blacklist[token] = true
+func (mtb *MockTokenBlacklist) BlacklistToken(ctx context.Context, tokenID string, expiresAt time.Time) error {
+	mtb.blacklist[tokenID] = expiresAt
 	return nil
 }
 
-// IsBlacklisted checks if a token is blacklisted
-func (mtb *MockTokenBlacklist) IsBlacklisted(token string) bool {
-	return mtb.blacklist[token]
+// IsTokenBlacklisted checks if a token is blacklisted
+func (mtb *MockTokenBlacklist) IsTokenBlacklisted(ctx context.Context, tokenID string) (bool, error) {
+	_, exists := mtb.blacklist[tokenID]
+	return exists, nil
+}
+
+// CleanupExpired removes expired entries
+func (mtb *MockTokenBlacklist) CleanupExpired(ctx context.Context) error {
+	now := time.Now()
+	for tokenID, expiresAt := range mtb.blacklist {
+		if expiresAt.Before(now) {
+			delete(mtb.blacklist, tokenID)
+		}
+	}
+	return nil
 }
 
 // NewMockSlogLogger creates a mock slog.Logger for testing
