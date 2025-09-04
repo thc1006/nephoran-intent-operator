@@ -37,23 +37,3 @@ configMapGenerator:
 # Patches to ensure consistent configuration
 patches:
 - path: webhook-deployment-patch.yaml
-
-# JSON patches for fine-grained modifications
-- target:
-    group: admissionregistration.k8s.io
-    version: v1
-    kind: MutatingWebhookConfiguration
-    name: mutating-webhook-configuration
-  patch: |-
-    - op: replace
-      path: /webhooks/0/clientConfig/service/namespace
-      value: nephoran-system
-- target:
-    group: admissionregistration.k8s.io
-    version: v1
-    kind: ValidatingWebhookConfiguration
-    name: validating-webhook-configuration
-  patch: |-
-    - op: replace
-      path: /webhooks/0/clientConfig/service/namespace
-      value: nephoran-system
