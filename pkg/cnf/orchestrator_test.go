@@ -380,11 +380,11 @@ var _ = Describe("CNF Orchestrator", func() {
 
 			resources := config["resources"].(map[string]interface{})
 			requests := resources["requests"].(map[string]interface{})
-			Expect(requests["cpu"]).To(Equal("1000m"))
+			Expect(requests["cpu"]).To(Equal("1"))  // 1000m = 1 CPU core
 			Expect(requests["memory"]).To(Equal("2Gi"))
 
 			limits := resources["limits"].(map[string]interface{})
-			Expect(limits["cpu"]).To(Equal("2000m"))
+			Expect(limits["cpu"]).To(Equal("2"))    // 2000m = 2 CPU cores
 			Expect(limits["memory"]).To(Equal("4Gi"))
 		})
 
@@ -604,6 +604,10 @@ var _ = Describe("CNF Orchestrator Error Scenarios", func() {
 						Function:           nephoranv1.CNFFunctionAMF,
 						DeploymentStrategy: nephoranv1.CNFDeploymentStrategyGitOps,
 						Replicas:           1,
+						Resources: nephoranv1.CNFResources{
+							CPU:    mustParseQuantity("1000m"), // Meet minimum AMF requirement
+							Memory: mustParseQuantity("2Gi"),   // Meet minimum AMF requirement
+						},
 					},
 				},
 			}
@@ -676,7 +680,7 @@ var _ = Describe("CNF Orchestrator Error Scenarios", func() {
 
 			// Convert json.RawMessage to map[string]interface{}
 			var defaultValues map[string]interface{}
-			if err := json.Unmarshal(json.RawMessage(`{}`), &defaultValues); err != nil {
+			if err := json.Unmarshal([]byte(`{}`), &defaultValues); err != nil {
 				panic(fmt.Sprintf("failed to unmarshal default values: %v", err))
 			}
 
@@ -692,7 +696,7 @@ var _ = Describe("CNF Orchestrator Error Scenarios", func() {
 			Expect(err).NotTo(HaveOccurred())
 			resources := config["resources"].(map[string]interface{})
 			limits := resources["limits"].(map[string]interface{})
-			Expect(limits["cpu"]).To(Equal("1000m"))  // Same as request
+			Expect(limits["cpu"]).To(Equal("1"))    // Same as request (1000m = 1)
 			Expect(limits["memory"]).To(Equal("2Gi")) // Same as request
 		})
 

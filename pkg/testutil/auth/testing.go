@@ -21,6 +21,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// SessionResult represents a session with an ID field
+type SessionResult struct {
+	ID        string      `json:"id"`
+	User      interface{} `json:"user"`
+	CreatedAt time.Time   `json:"created_at"`
+	ExpiresAt time.Time   `json:"expires_at"`
+}
+
 // UserFactory creates test users.
 type UserFactory struct{}
 
@@ -131,7 +139,7 @@ type RBACManagerMock struct {
 
 // SessionManagerMock is a mock session manager for testing.
 type SessionManagerMock struct {
-	sessions map[string]interface{}
+	sessions map[string]*SessionResult
 	config   struct {
 		SessionTTL time.Duration
 	}
@@ -155,10 +163,22 @@ func NewRBACManagerMock() *RBACManagerMock {
 	}
 }
 
+// CreateRole creates a new role (mock implementation)
+func (rbac *RBACManagerMock) CreateRole(ctx context.Context, role interface{}) error {
+	// Mock implementation - just return success
+	return nil
+}
+
+// CreatePermission creates a new permission (mock implementation)  
+func (rbac *RBACManagerMock) CreatePermission(ctx context.Context, permission interface{}) error {
+	// Mock implementation - just return success
+	return nil
+}
+
 // NewSessionManagerMock creates a new session manager mock.
 func NewSessionManagerMock() *SessionManagerMock {
 	mock := &SessionManagerMock{
-		sessions: make(map[string]interface{}),
+		sessions: make(map[string]*SessionResult),
 	}
 	mock.config.SessionTTL = time.Hour
 	return mock
@@ -910,5 +930,48 @@ func (tc *TestContext) CreateTestToken(claims jwt.MapClaims) string {
 	tokenString, err := token.SignedString(tc.PrivateKey)
 	require.NoError(tc.t, err, "Failed to sign test token")
 	return tokenString
+}
+
+// RoleFactory creates test roles
+type RoleFactory struct{}
+
+// NewRoleFactory creates a new role factory
+func NewRoleFactory() *RoleFactory {
+	return &RoleFactory{}
+}
+
+// CreateRole creates a basic test role
+func (rf *RoleFactory) CreateRole(name, description string, permissions []string) *TestRole {
+	return &TestRole{
+		ID:          fmt.Sprintf("role-%s", name),
+		Name:        name,
+		Description: description,
+		Permissions: permissions,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+}
+
+// PermissionFactory creates test permissions
+type PermissionFactory struct{}
+
+// NewPermissionFactory creates a new permission factory
+func NewPermissionFactory() *PermissionFactory {
+	return &PermissionFactory{}
+}
+
+// CreatePermission creates a basic test permission
+func (pf *PermissionFactory) CreatePermission(resource, action, scope string) *TestPermission {
+	name := fmt.Sprintf("%s:%s:%s", resource, action, scope)
+	return &TestPermission{
+		ID:          fmt.Sprintf("perm-%s", name),
+		Name:        name,
+		Description: fmt.Sprintf("Permission to %s %s in %s", action, resource, scope),
+		Resource:    resource,
+		Action:      action,
+		Scope:       scope,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
 }
 

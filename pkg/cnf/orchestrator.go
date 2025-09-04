@@ -632,31 +632,25 @@ func (c *CNFOrchestrator) prepareDeploymentConfig(cnf *nephoranv1.CNFDeployment,
 	}
 
 	// Set resource requirements.
-
-	config["resources"] = map[string]interface{}{
-		"requests": map[string]interface{}{
-			"cpu": cnf.Spec.Resources.CPU.String(),
-			"memory": cnf.Spec.Resources.Memory.String(),
-		},
-		"limits": map[string]interface{}{},
+	limits := map[string]interface{}{
+		"cpu":    cnf.Spec.Resources.CPU.String(),    // Default to request values
+		"memory": cnf.Spec.Resources.Memory.String(), // Default to request values
 	}
 
 	// Override limits if specified.
-
 	if cnf.Spec.Resources.MaxCPU != nil {
-
-		limits := config["resources"].(map[string]interface{})["limits"].(map[string]interface{})
-
 		limits["cpu"] = cnf.Spec.Resources.MaxCPU.String()
-
+	}
+	if cnf.Spec.Resources.MaxMemory != nil {
+		limits["memory"] = cnf.Spec.Resources.MaxMemory.String()
 	}
 
-	if cnf.Spec.Resources.MaxMemory != nil {
-
-		limits := config["resources"].(map[string]interface{})["limits"].(map[string]interface{})
-
-		limits["memory"] = cnf.Spec.Resources.MaxMemory.String()
-
+	config["resources"] = map[string]interface{}{
+		"requests": map[string]interface{}{
+			"cpu":    cnf.Spec.Resources.CPU.String(),
+			"memory": cnf.Spec.Resources.Memory.String(),
+		},
+		"limits": limits,
 	}
 
 	// Set replica count.
@@ -666,13 +660,26 @@ func (c *CNFOrchestrator) prepareDeploymentConfig(cnf *nephoranv1.CNFDeployment,
 	// Configure storage if specified.
 
 	if cnf.Spec.Resources.Storage != nil {
-		config["persistence"] = json.RawMessage(`{}`)
+		config["persistence"] = map[string]interface{}{
+			"enabled": true,
+			"size":    cnf.Spec.Resources.Storage.String(),
+		}
 	}
 
 	// Configure DPDK if specified.
 
 	if cnf.Spec.Resources.DPDK != nil && cnf.Spec.Resources.DPDK.Enabled {
-		config["dpdk"] = json.RawMessage(`{}`)
+		dpdkConfig := map[string]interface{}{
+			"enabled": true,
+			"driver":  cnf.Spec.Resources.DPDK.Driver,
+		}
+		if cnf.Spec.Resources.DPDK.Cores != nil {
+			dpdkConfig["cores"] = *cnf.Spec.Resources.DPDK.Cores
+		}
+		if cnf.Spec.Resources.DPDK.Memory != nil {
+			dpdkConfig["memory"] = *cnf.Spec.Resources.DPDK.Memory
+		}
+		config["dpdk"] = dpdkConfig
 	}
 
 	// Configure hugepages if specified.

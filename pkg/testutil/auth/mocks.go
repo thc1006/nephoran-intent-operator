@@ -774,6 +774,18 @@ func (m *MockAuthorizationProvider) GetUserRoles(ctx context.Context, userID str
 	return user.Roles, nil
 }
 
+// CreateRole creates a new role (mock implementation)
+func (m *MockAuthorizationProvider) CreateRole(ctx context.Context, role interface{}) error {
+	// Mock implementation - just return success
+	return nil
+}
+
+// CreatePermission creates a new permission (mock implementation)
+func (m *MockAuthorizationProvider) CreatePermission(ctx context.Context, permission interface{}) error {
+	// Mock implementation - just return success
+	return nil
+}
+
 // ToJSON serializes mock data to JSON for debugging.
 
 func (m *MockAuthenticator) ToJSON() ([]byte, error) {
@@ -1043,16 +1055,9 @@ func (jsm *JWTManagerMock) Close() {
 	// Mock implementation - nothing to clean up
 }
 
-// SessionResult represents a session with an ID field
-type SessionResult struct {
-	ID        string      `json:"id"`
-	User      interface{} `json:"user"`
-	CreatedAt time.Time   `json:"created_at"`
-	ExpiresAt time.Time   `json:"expires_at"`
-}
 
-// CreateSession creates a new session
-func (ssm *SessionManagerMock) CreateSession(ctx context.Context, userInfo interface{}) (*SessionResult, error) {
+// CreateSession creates a new session (compatible with both interfaces)
+func (ssm *SessionManagerMock) CreateSession(ctx context.Context, userInfo interface{}, metadata ...interface{}) (*SessionResult, error) {
 	sessionID := fmt.Sprintf("session-%d", time.Now().UnixNano())
 	session := &SessionResult{
 		ID:        sessionID,
@@ -1061,6 +1066,20 @@ func (ssm *SessionManagerMock) CreateSession(ctx context.Context, userInfo inter
 		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
 	ssm.sessions[sessionID] = session
+	return session, nil
+}
+
+// ValidateSession validates an existing session
+func (ssm *SessionManagerMock) ValidateSession(ctx context.Context, sessionID string) (*SessionResult, error) {
+	session, exists := ssm.sessions[sessionID]
+	if !exists {
+		return nil, fmt.Errorf("session not found")
+	}
+	
+	if time.Now().After(session.ExpiresAt) {
+		return nil, fmt.Errorf("session expired")
+	}
+	
 	return session, nil
 }
 

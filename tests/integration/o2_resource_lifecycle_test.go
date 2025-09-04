@@ -41,9 +41,9 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 		metricsRegistry = prometheus.NewRegistry()
 
 		config := &o2.O2IMSConfig{
-			ServerAddress: "127.0.0.1",
-			ServerPort:    0,
-			TLSEnabled:    false,
+			ServerAddress:  "127.0.0.1",
+			ServerPort:     0,
+			TLSEnabled:     false,
 			DatabaseConfig: json.RawMessage(`{}`),
 			ProviderConfigs: map[string]interface{}{
 				"enabled": true,
@@ -534,9 +534,9 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 						},
 					},
 					Extensions: map[string]interface{}{
-						"enabled": true,
+						"enabled":    true,
 						"horizontal": json.RawMessage(`{}`),
-						"vertical": json.RawMessage(`{}`),
+						"vertical":   json.RawMessage(`{}`),
 					},
 				}
 
@@ -914,4 +914,3 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 		})
 	})
 })
-
