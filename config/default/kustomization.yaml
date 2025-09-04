@@ -34,6 +34,10 @@ configMapGenerator:
   - WEBHOOK_SERVICE_NAME=webhook-manager
   - CERT_MANAGER_ENABLED=true
 
-# Patches to ensure consistent configuration
+# Strategic merge patches using modern kustomize syntax
 patches:
 - path: webhook-deployment-patch.yaml
+  target:
+    kind: Deployment
+    name: webhook-manager
+    namespace: nephoran-system

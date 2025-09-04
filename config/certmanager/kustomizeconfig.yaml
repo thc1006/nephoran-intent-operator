@@ -8,5 +8,3 @@ nameReference:
 namespace:
 - kind: Certificate
   path: spec/commonName
-- kind: Certificate
-  path: spec/dnsNames
