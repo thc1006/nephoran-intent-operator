@@ -28,7 +28,7 @@ limitations under the License.
 
 */
 
-package testutil
+package porchtest
 
 import (
 	"context"

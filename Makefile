@@ -35,6 +35,48 @@ $(DEMO_HANDOFF_DIR):
 	@mkdir -p $(DEMO_HANDOFF_DIR)
 
 # =============================================================================
+# Security Tools Installation
+# =============================================================================
+
+.PHONY: install-security-tools
+install-security-tools: ## Install all security scanning tools
+	@echo "Installing security scanning tools..."
+	@echo "Installing gosec..."
+	$(GO) install github.com/securego/gosec/v2/cmd/gosec@v2.21.4
+	@echo "Installing govulncheck..."
+	$(GO) install golang.org/x/vuln/cmd/govulncheck@latest
+	@echo "Installing nancy..."
+	$(GO) install github.com/sonatype-nexus-community/nancy@latest
+	@echo "Installing go-licenses..."
+	$(GO) install github.com/google/go-licenses@latest
+	@echo "Installing staticcheck..."
+	$(GO) install honnef.co/go/tools/cmd/staticcheck@latest
+	@echo "[SUCCESS] Security tools installed"
+
+.PHONY: verify-security
+verify-security: ## Verify security scanning setup
+	@echo "Verifying security scanning configuration..."
+	@chmod +x scripts/verify-security-scans.sh
+	@./scripts/verify-security-scans.sh
+
+.PHONY: security-scan
+security-scan: ## Run local security scans
+	@echo "Running security scans..."
+	@echo "Running gosec..."
+	-@gosec -fmt json -out security-results/gosec.json ./... 2>/dev/null || true
+	@echo "Running govulncheck..."
+	-@govulncheck -json ./... > security-results/govulncheck.json 2>&1 || true
+	@echo "Security scan results saved to security-results/"
+
+.PHONY: trivy-scan
+trivy-scan: ## Run Trivy container and filesystem scans
+	@echo "Running Trivy security scans..."
+	@mkdir -p security-results
+	@echo "Scanning filesystem..."
+	-@trivy fs --format json --output security-results/trivy-fs.json . || true
+	@echo "Trivy scan results saved to security-results/"
+
+# =============================================================================
 # Build Targets
 # =============================================================================
 
@@ -241,7 +283,7 @@ verify-llm-pipeline: build-all validate-schema
 	SERVER_PID=$$!; \
 	sleep 1; \
 	kill $$SERVER_PID 2>/dev/null || true; \
-	echo "✓ intent-ingest binary verified"
+	@echo "✓ intent-ingest binary verified"
 	@echo "Verifying LLM processor binary..."
 	@# LLM processor requires config, so just check it can show help
 	./$(BIN_DIR)/llm-processor --help >/dev/null 2>&1 || \

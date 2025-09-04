@@ -266,6 +266,11 @@ func (h *SecureHasher) hash(data []byte) []byte {
 // GenerateSecurePackageName creates a secure, collision-resistant package name.
 
 func (c *CryptoSecureIdentifier) GenerateSecurePackageName(target string) (string, error) {
+	// Validate target name format for Kubernetes compatibility
+	if err := c.validateTargetName(target); err != nil {
+		return "", fmt.Errorf("invalid target name: %w", err)
+	}
+
 	// Generate a secure timestamp.
 
 	timestamp, err := c.GenerateCollisionResistantTimestamp()
@@ -320,6 +325,27 @@ func (c *CryptoSecureIdentifier) GenerateCollisionResistantTimestamp() (string, 
 		entropy)
 
 	return timestamp, nil
+}
+
+// validateTargetName validates that the target name meets Kubernetes naming requirements
+func (c *CryptoSecureIdentifier) validateTargetName(target string) error {
+	if target == "" {
+		return fmt.Errorf("target name cannot be empty")
+	}
+
+	// Check for invalid characters (must be lowercase alphanumeric with hyphens)
+	for _, char := range target {
+		if !((char >= 'a' && char <= 'z') || (char >= '0' && char <= '9') || char == '-') {
+			return fmt.Errorf("target name contains invalid character: %c", char)
+		}
+	}
+
+	// Check for path traversal attempts
+	if strings.Contains(target, "../") || strings.Contains(target, "./") || strings.Contains(target, "/") {
+		return fmt.Errorf("target name contains path traversal sequences")
+	}
+
+	return nil
 }
 
 // RegenerateSalt creates a new salt for the hasher (should be done periodically).

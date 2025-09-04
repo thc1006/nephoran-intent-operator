@@ -494,7 +494,7 @@ func (pg *PackageGenerator) generateKptfile(intent *v1.NetworkIntent) (string, e
 func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent) (map[string]string, error) {
 	resources := make(map[string]string)
 
-	// Parse structured parameters from ProcessedParameters.
+	// Parse structured parameters from ProcessedParameters or Parameters.
 
 	var params map[string]interface{}
 
@@ -511,6 +511,11 @@ func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent
 			return nil, fmt.Errorf("failed to unmarshal parameters: %w", err)
 		}
 
+	} else if intent.Spec.Parameters != nil {
+		// Fallback to Parameters field for backward compatibility
+		if err := json.Unmarshal(intent.Spec.Parameters.Raw, &params); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal parameters: %w", err)
+		}
 	}
 
 	if params == nil {
@@ -571,7 +576,7 @@ func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent
 func (pg *PackageGenerator) generateScalingResources(intent *v1.NetworkIntent) (map[string]string, error) {
 	resources := make(map[string]string)
 
-	// Parse structured parameters from ProcessedParameters.
+	// Parse structured parameters from ProcessedParameters or Parameters.
 
 	var params map[string]interface{}
 
@@ -588,6 +593,11 @@ func (pg *PackageGenerator) generateScalingResources(intent *v1.NetworkIntent) (
 			return nil, fmt.Errorf("failed to unmarshal parameters: %w", err)
 		}
 
+	} else if intent.Spec.Parameters != nil {
+		// Fallback to Parameters field for backward compatibility
+		if err := json.Unmarshal(intent.Spec.Parameters.Raw, &params); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal parameters: %w", err)
+		}
 	}
 
 	if params == nil {
@@ -614,7 +624,7 @@ func (pg *PackageGenerator) generateScalingResources(intent *v1.NetworkIntent) (
 func (pg *PackageGenerator) generatePolicyResources(intent *v1.NetworkIntent) (map[string]string, error) {
 	resources := make(map[string]string)
 
-	// Parse structured parameters from ProcessedParameters.
+	// Parse structured parameters from ProcessedParameters or Parameters.
 
 	var params map[string]interface{}
 
@@ -631,6 +641,11 @@ func (pg *PackageGenerator) generatePolicyResources(intent *v1.NetworkIntent) (m
 			return nil, fmt.Errorf("failed to unmarshal parameters: %w", err)
 		}
 
+	} else if intent.Spec.Parameters != nil {
+		// Fallback to Parameters field for backward compatibility
+		if err := json.Unmarshal(intent.Spec.Parameters.Raw, &params); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal parameters: %w", err)
+		}
 	}
 
 	if params == nil {

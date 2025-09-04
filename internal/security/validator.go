@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -243,11 +244,14 @@ func (pv *PathValidator) ValidatePath(path string) []SecurityViolation {
 		})
 	}
 
-	// Canonical path validation.
+	// Canonical path validation (allow safe relative paths like ./examples/file.json)
 
 	cleanPath := filepath.Clean(path)
 
-	if cleanPath != path {
+	// Only flag as non-canonical if the cleaned path indicates potential traversal
+	// Allow safe relative paths that start with ./ and don't traverse upward
+	isSafeRelative := strings.HasPrefix(path, "./") && !strings.Contains(path, "../")
+	if cleanPath != path && !isSafeRelative {
 		violations = append(violations, SecurityViolation{
 			Field: "file_path",
 
@@ -354,11 +358,12 @@ func (v *OWASPValidator) validateFileSystem(path string) []SecurityViolation {
 		})
 	}
 
-	// Permission validation.
+	// Permission validation (skip on Windows due to different permission model)
 
 	mode := info.Mode()
 
-	if mode.Perm()&0o022 != 0 { // World or group writable
+	// Only validate permissions on Unix-like systems where they have security significance
+	if runtime.GOOS != "windows" && mode.Perm()&0o022 != 0 { // World or group writable
 
 		violations = append(violations, SecurityViolation{
 			Field: "file_permissions",
