@@ -314,7 +314,7 @@ require (
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3 // indirect
 	github.com/shirou/gopsutil/v4 v4.25.5 // indirect
-	github.com/shogo82148/go-shuffle v0.0.0-20170808115208-59829097ff3b // indirect
+	github.com/shogo82148/go-shuffle v1.1.1 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/skeema/knownhosts v1.3.1 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
