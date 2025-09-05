@@ -126,7 +126,7 @@ func TestConfig_Validate(t *testing.T) {
 				MaxRetries: 3,
 			},
 			expectError: true,
-			errorMsg:    "invalid provider type",
+			errorMsg:    "provider type INVALID",
 		},
 		{
 			name: "Missing API key for OPENAI",

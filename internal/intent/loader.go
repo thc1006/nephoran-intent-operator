@@ -178,9 +178,8 @@ func isValidKubernetesName(name string) bool {
 		return false
 	}
 
-	// Must start and end with alphanumeric.
-
-	if !isAlphaNumeric(name[0]) || !isAlphaNumeric(name[len(name)-1]) {
+	// Must start with a letter (not a number) and end with alphanumeric.
+	if !isLetter(name[0]) || !isAlphaNumeric(name[len(name)-1]) {
 		return false
 	}
 
@@ -199,6 +198,11 @@ func isValidKubernetesName(name string) bool {
 
 func isAlphaNumeric(b byte) bool {
 	return (b >= 'a' && b <= 'z') || (b >= '0' && b <= '9')
+}
+
+// isLetter checks if a byte is a lowercase letter.
+func isLetter(b byte) bool {
+	return b >= 'a' && b <= 'z'
 }
 
 // GetProjectRoot returns the project root directory.

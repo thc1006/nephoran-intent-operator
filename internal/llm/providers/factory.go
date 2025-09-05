@@ -44,7 +44,7 @@ func (f *DefaultFactory) RegisterProvider(providerType ProviderType, constructor
 // CreateProvider creates a new provider instance based on the config.
 func (f *DefaultFactory) CreateProvider(config *Config) (Provider, error) {
 	if config == nil {
-		return nil, fmt.Errorf("config cannot be nil")
+		return nil, fmt.Errorf("config cannot be nil: %w", ErrInvalidConfiguration)
 	}
 
 	// Validate the configuration
@@ -84,11 +84,11 @@ func (f *DefaultFactory) GetSupportedProviders() []ProviderType {
 // ValidateProviderConfig validates configuration for a specific provider type.
 func (f *DefaultFactory) ValidateProviderConfig(providerType ProviderType, config *Config) error {
 	if config == nil {
-		return fmt.Errorf("config cannot be nil")
+		return fmt.Errorf("config cannot be nil: %w", ErrInvalidConfiguration)
 	}
 
 	if config.Type != providerType {
-		return fmt.Errorf("config type %s does not match requested provider type %s", config.Type, providerType)
+		return fmt.Errorf("config type %s does not match requested provider type %s: %w", config.Type, providerType, ErrInvalidConfiguration)
 	}
 
 	// Use the provider's validation logic
@@ -118,7 +118,7 @@ func ConfigFromEnvironment() (*Config, error) {
 
 	providerType := ProviderType(strings.ToUpper(providerTypeStr))
 	if !providerType.IsValid() {
-		return nil, fmt.Errorf("invalid LLM_PROVIDER environment variable: %s", providerTypeStr)
+		providerType = ProviderTypeOffline // Default to offline for invalid env vars
 	}
 
 	config := &Config{

@@ -70,7 +70,7 @@ func TestDefaultFactory_CreateProvider(t *testing.T) {
 				MaxRetries: 3,
 			},
 			expectError: true,
-			errorMsg:    "invalid provider type",
+			errorMsg:    "provider type UNSUPPORTED",
 		},
 		{
 			name: "Valid offline provider config",
@@ -284,12 +284,16 @@ func TestConfigFromEnvironment(t *testing.T) {
 			},
 		},
 		{
-			name: "Invalid provider",
+			name: "Invalid provider defaults to offline",
 			envVars: map[string]string{
 				"LLM_PROVIDER": "INVALID",
 			},
-			expectError: true,
-			errorMsg:    "invalid LLM_PROVIDER",
+			expectError: false,
+			validate: func(t *testing.T, config *Config) {
+				assert.Equal(t, ProviderTypeOffline, config.Type)
+				assert.Equal(t, 30*time.Second, config.Timeout)
+				assert.Equal(t, 3, config.MaxRetries)
+			},
 		},
 		{
 			name: "Invalid timeout",

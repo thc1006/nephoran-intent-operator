@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -177,6 +176,19 @@ func (v *Validator) ValidateIntent(intent *ScalingIntent) []ValidationError {
 
 	}
 
+	// Check for nil intent
+	if intent == nil {
+		if metrics != nil {
+			atomic.AddInt64(&metrics.ValidationErrors, 1)
+		}
+
+		return []ValidationError{{
+			Field: "intent",
+
+			Message: "intent cannot be nil",
+		}}
+	}
+
 	// Schema should never be nil if validator was created successfully.
 
 	if v.schema == nil || !v.initialized.Load() {
@@ -205,6 +217,10 @@ func (v *Validator) ValidateIntent(intent *ScalingIntent) []ValidationError {
 
 	data, err := json.Marshal(intent)
 	if err != nil {
+		if metrics != nil {
+			atomic.AddInt64(&metrics.ValidationErrors, 1)
+		}
+
 		return []ValidationError{{
 			Field: "json",
 
@@ -264,6 +280,19 @@ func (v *Validator) ValidateJSON(data []byte) []ValidationError {
 
 		metrics.LastValidationTime = time.Now()
 
+	}
+
+	// Check for nil or empty data
+	if data == nil || len(data) == 0 {
+		if metrics != nil {
+			atomic.AddInt64(&metrics.ValidationErrors, 1)
+		}
+
+		return []ValidationError{{
+			Field: "json",
+
+			Message: "JSON data cannot be nil or empty",
+		}}
 	}
 
 	var obj interface{}
@@ -338,9 +367,8 @@ func (v *Validator) convertValidationError(err error) []ValidationError {
 		var fieldPath string
 
 		if len(validationErr.InstanceLocation) > 0 {
-			// Join without leading slash for compatibility with existing tests.
-
-			fieldPath = strings.Join(validationErr.InstanceLocation, "/")
+			// Use just the last segment for field name - compatible with tests
+			fieldPath = validationErr.InstanceLocation[len(validationErr.InstanceLocation)-1]
 		} else {
 			fieldPath = "/"
 		}
@@ -352,18 +380,16 @@ func (v *Validator) convertValidationError(err error) []ValidationError {
 
 		})
 
-		// Add any nested validation errors.
+		// Add any nested validation errors recursively.
 
 		for _, cause := range validationErr.Causes {
 
 			childErrors := v.convertValidationError(cause)
 
-			// Only add non-duplicate child errors.
-
+			// Add child errors, avoiding duplicates
 			for _, childErr := range childErrors {
-				// Skip the root error if we've already added field-specific errors.
-
-				if childErr.Field != "/" {
+				// Only add if not already present and not root path
+				if childErr.Field != "/" && !containsValidationError(validationErrors, childErr) {
 					validationErrors = append(validationErrors, childErr)
 				}
 			}
@@ -381,6 +407,16 @@ func (v *Validator) convertValidationError(err error) []ValidationError {
 	}
 
 	return validationErrors
+}
+
+// containsValidationError checks if a validation error with the same field already exists
+func containsValidationError(errors []ValidationError, target ValidationError) bool {
+	for _, err := range errors {
+		if err.Field == target.Field {
+			return true
+		}
+	}
+	return false
 }
 
 // GetSchemaURI returns the schema URI used by this validator.

@@ -134,19 +134,22 @@ type Config struct {
 // Validate ensures the configuration is valid for the specified provider type.
 func (c *Config) Validate() error {
 	if !c.Type.IsValid() {
-		return fmt.Errorf("invalid provider type: %s", c.Type)
+		return fmt.Errorf("provider type %s: %w", c.Type, ErrProviderNotSupported)
 	}
 
 	// Validate authenticated providers have API keys
 	if c.Type == ProviderTypeOpenAI || c.Type == ProviderTypeAnthropic {
 		if c.APIKey == "" {
-			return fmt.Errorf("API key is required for provider %s", c.Type)
+			return fmt.Errorf("API key is required for provider %s: %w", c.Type, ErrInvalidConfiguration)
 		}
 	}
 
-	// Validate timeout
-	if c.Timeout <= 0 {
-		c.Timeout = 30 * time.Second // Default timeout
+	// Validate timeout - set default if zero, error if negative
+	if c.Timeout < 0 {
+		return fmt.Errorf("timeout must be positive: %w", ErrInvalidConfiguration)
+	}
+	if c.Timeout == 0 {
+		c.Timeout = 30 * time.Second // Default timeout if not set
 	}
 
 	// Validate max retries

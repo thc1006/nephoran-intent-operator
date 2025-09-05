@@ -18,13 +18,12 @@ func createValidPolicyTypeSchema() map[string]interface{} {
 			"ue_id":   json.RawMessage(`{}`),
 			"cell_id": json.RawMessage(`{}`),
 		},
-		"required": []string{"ue_id"},
 		"statement": map[string]interface{}{
 			"qos_class": json.RawMessage(`{}`),
 			"bitrate":   json.RawMessage(`{}`),
 			"action":    json.RawMessage(`{}`),
 		},
-		"required": []string{"qos_class", "action"},
+		"required": []string{"ue_id", "qos_class", "action"},
 	}
 }
 

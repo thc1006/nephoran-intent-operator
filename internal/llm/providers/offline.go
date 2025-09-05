@@ -18,11 +18,11 @@ type OfflineProvider struct {
 // NewOfflineProvider creates a new offline provider instance.
 func NewOfflineProvider(config *Config) (Provider, error) {
 	if config == nil {
-		return nil, fmt.Errorf("config cannot be nil")
+		return nil, fmt.Errorf("config cannot be nil: %w", ErrInvalidConfiguration)
 	}
 
 	if config.Type != ProviderTypeOffline {
-		return nil, fmt.Errorf("invalid provider type %s for offline provider", config.Type)
+		return nil, fmt.Errorf("invalid provider type %s for offline provider: %w", config.Type, ErrInvalidConfiguration)
 	}
 
 	// Offline provider doesn't need API keys or external configuration
@@ -35,12 +35,38 @@ func NewOfflineProvider(config *Config) (Provider, error) {
 
 // ProcessIntent converts natural language input into structured NetworkIntent JSON using rule-based processing.
 func (p *OfflineProvider) ProcessIntent(ctx context.Context, input string) (*IntentResponse, error) {
+	// Check context cancellation early
+	select {
+	case <-ctx.Done():
+		return nil, fmt.Errorf("context cancelled: %w", ctx.Err())
+	default:
+	}
+
+	// Validate input
+	if input == "" {
+		return nil, fmt.Errorf("input cannot be empty: %w", ErrInvalidInput)
+	}
+
 	startTime := time.Now()
+
+	// Check context cancellation during processing
+	select {
+	case <-ctx.Done():
+		return nil, fmt.Errorf("context cancelled during processing: %w", ctx.Err())
+	default:
+	}
 
 	// Process the input using rule-based logic
 	intent, err := p.parseInputWithRules(input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse input: %w", err)
+	}
+
+	// Final context check before returning
+	select {
+	case <-ctx.Done():
+		return nil, fmt.Errorf("context cancelled before completion: %w", ctx.Err())
+	default:
 	}
 
 	intentJSON, err := json.Marshal(intent)
@@ -357,12 +383,12 @@ func (p *OfflineProvider) GetProviderInfo() ProviderInfo {
 // ValidateConfig validates the offline provider configuration.
 func (p *OfflineProvider) ValidateConfig() error {
 	if p.config == nil {
-		return fmt.Errorf("provider config is nil")
+		return fmt.Errorf("provider config is nil: %w", ErrInvalidConfiguration)
 	}
 
 	// Offline provider has minimal configuration requirements
 	if p.config.Timeout <= 0 {
-		return fmt.Errorf("timeout must be positive")
+		return fmt.Errorf("timeout must be positive: %w", ErrInvalidConfiguration)
 	}
 
 	// No API key or network connectivity required

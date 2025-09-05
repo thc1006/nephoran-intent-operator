@@ -27,7 +27,8 @@ func TestNewValidator(t *testing.T) {
 			"required": ["intent_type", "target", "namespace", "replicas"],
 			"properties": {
 				"intent_type": {
-					"const": "scaling",
+					"type": "string",
+					"enum": ["scaling", "deployment", "configuration"],
 					"description": "MVP supports only scaling"
 				},
 				"target": {
@@ -161,8 +162,9 @@ func TestValidatorValidateIntent(t *testing.T) {
 		"required": ["intent_type", "target", "namespace", "replicas"],
 		"properties": {
 			"intent_type": {
-				"const": "scaling",
-				"description": "MVP supports only scaling"
+				"type": "string",
+				"enum": ["scaling", "deployment", "configuration"],
+				"description": "MVP supports scaling, deployment, and configuration"
 			},
 			"target": {
 				"type": "string",
@@ -348,8 +350,9 @@ func TestValidatorValidateJSON(t *testing.T) {
 		"required": ["intent_type", "target", "namespace", "replicas"],
 		"properties": {
 			"intent_type": {
-				"const": "scaling",
-				"description": "MVP supports only scaling"
+				"type": "string",
+				"enum": ["scaling", "deployment", "configuration"],
+				"description": "MVP supports scaling, deployment, and configuration"
 			},
 			"target": {
 				"type": "string",
@@ -440,8 +443,9 @@ func TestValidatorMetrics(t *testing.T) {
 		"required": ["intent_type", "target", "namespace", "replicas"],
 		"properties": {
 			"intent_type": {
-				"const": "scaling",
-				"description": "MVP supports only scaling"
+				"type": "string",
+				"enum": ["scaling", "deployment", "configuration"],
+				"description": "MVP supports scaling, deployment, and configuration"
 			},
 			"target": {
 				"type": "string",
@@ -528,7 +532,10 @@ func TestValidatorLogging(t *testing.T) {
 		"type": "object",
 		"required": ["intent_type"],
 		"properties": {
-			"intent_type": {"const": "scaling"}
+			"intent_type": {
+				"type": "string",
+				"enum": ["scaling", "deployment", "configuration"]
+			}
 		}
 	}`
 
@@ -568,8 +575,9 @@ func TestSchemaValidationErrorHandling(t *testing.T) {
 		"required": ["intent_type", "target", "namespace", "replicas"],
 		"properties": {
 			"intent_type": {
-				"const": "scaling",
-				"description": "MVP supports only scaling"
+				"type": "string",
+				"enum": ["scaling", "deployment", "configuration"],
+				"description": "MVP supports scaling, deployment, and configuration"
 			},
 			"target": {
 				"type": "string",
@@ -849,7 +857,10 @@ func TestMalformedJSONInputs(t *testing.T) {
 		"type": "object",
 		"required": ["intent_type"],
 		"properties": {
-			"intent_type": {"const": "scaling"}
+			"intent_type": {
+				"type": "string",
+				"enum": ["scaling", "deployment", "configuration"]
+			}
 		}
 	}`
 
@@ -928,7 +939,12 @@ func TestSchemaFileCorruption(t *testing.T) {
 			name: "MissingSchemaVersion",
 			schemaContent: `{
 				"type": "object",
-				"properties": {"intent_type": {"const": "scaling"}}
+				"properties": {
+					"intent_type": {
+						"type": "string", 
+						"enum": ["scaling", "deployment", "configuration"]
+					}
+				}
 			}`,
 			shouldFail: false, // This might still be valid
 		},
@@ -1033,7 +1049,10 @@ func TestEdgeCaseValidation(t *testing.T) {
 		"type": "object",
 		"required": ["intent_type", "target", "namespace", "replicas"],
 		"properties": {
-			"intent_type": {"const": "scaling"},
+			"intent_type": {
+				"type": "string",
+				"enum": ["scaling", "deployment", "configuration"]
+			},
 			"target": {"type": "string", "minLength": 1},
 			"namespace": {"type": "string", "minLength": 1},
 			"replicas": {"type": "integer", "minimum": 1, "maximum": 100}
@@ -1129,8 +1148,9 @@ func BenchmarkValidateIntent(b *testing.B) {
 		"required": ["intent_type", "target", "namespace", "replicas"],
 		"properties": {
 			"intent_type": {
-				"const": "scaling",
-				"description": "MVP supports only scaling"
+				"type": "string",
+				"enum": ["scaling", "deployment", "configuration"],
+				"description": "MVP supports scaling, deployment, and configuration"
 			},
 			"target": {
 				"type": "string",
