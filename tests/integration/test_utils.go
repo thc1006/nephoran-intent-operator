@@ -15,8 +15,8 @@ var TestEnv *testtools.TestEnvironment
 
 // Note: k8sClient and ctx are defined in suite_test.go as package-level globals
 
-// CreateTestNamespace creates a test namespace using envtest patterns for 2025 Go testing best practices
-func CreateTestNamespace() *corev1.Namespace {
+// CreateUtilTestNamespace creates a test namespace using envtest patterns for 2025 Go testing best practices
+func CreateUtilTestNamespace() *corev1.Namespace {
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: fmt.Sprintf("test-integration-%d", time.Now().UnixNano()),

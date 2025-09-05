@@ -26,6 +26,10 @@ type NetworkIntentSpec struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:MinItems=1
 	TargetClusters []string `json:"targetClusters,omitempty"`
+	
+	// ScalingIntent defines the scaling behavior
+	// +kubebuilder:validation:Optional
+	ScalingIntent map[string]interface{} `json:"scalingIntent,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
@@ -35,6 +39,14 @@ type NetworkIntentStatus struct {
 
 	// +kubebuilder:validation:Optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+	
+	// Phase indicates the current phase of the NetworkIntent processing
+	// +kubebuilder:validation:Optional
+	Phase string `json:"phase,omitempty"`
+	
+	// LastUpdated indicates when the status was last updated
+	// +kubebuilder:validation:Optional  
+	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 }
 
 // +kubebuilder:object:root=true

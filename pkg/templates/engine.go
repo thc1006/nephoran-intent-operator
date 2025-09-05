@@ -1990,12 +1990,8 @@ func (e *templateEngine) renderResources(ctx context.Context, template *Blueprin
 			}
 		}
 
-		// Marshal metadata to json.RawMessage
-		metadataBytes, err := json.Marshal(metadataMap)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal metadata for resource %s: %w", resourceTemplate.Kind, err)
-		}
-		resource.Metadata = json.RawMessage(metadataBytes)
+		// Assign metadata directly as map
+		resource.Metadata = metadataMap
 
 		// Render spec using template string if available, otherwise render map directly
 		if resourceTemplate.Template != "" {
@@ -2004,7 +2000,12 @@ func (e *templateEngine) renderResources(ctx context.Context, template *Blueprin
 			if err != nil {
 				return nil, fmt.Errorf("failed to render template string for resource %s: %w", resourceTemplate.Kind, err)
 			}
-			resource.Spec = json.RawMessage(renderedSpec)
+			// Parse the rendered spec back to map[string]interface{}
+			var specMap map[string]interface{}
+			if err := json.Unmarshal([]byte(renderedSpec), &specMap); err != nil {
+				return nil, fmt.Errorf("failed to parse rendered spec for resource %s: %w", resourceTemplate.Kind, err)
+			}
+			resource.Spec = specMap
 		} else if resourceTemplate.Spec != nil {
 			// Render spec map directly
 			renderedSpec, err := e.renderMapInterface(resourceTemplate.Spec, parameters)
@@ -2012,14 +2013,10 @@ func (e *templateEngine) renderResources(ctx context.Context, template *Blueprin
 				return nil, fmt.Errorf("failed to render spec for resource %s: %w", resourceTemplate.Kind, err)
 			}
 			
-			// Marshal spec to json.RawMessage
-			specBytes, err := json.Marshal(renderedSpec)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal spec for resource %s: %w", resourceTemplate.Kind, err)
-			}
-			resource.Spec = json.RawMessage(specBytes)
+			// Assign spec directly as map
+			resource.Spec = renderedSpec
 		} else {
-			resource.Spec = json.RawMessage(`{}`)
+			resource.Spec = make(map[string]interface{})
 		}
 
 		// Render data
@@ -2029,12 +2026,8 @@ func (e *templateEngine) renderResources(ctx context.Context, template *Blueprin
 				return nil, fmt.Errorf("failed to render data for resource %s: %w", resourceTemplate.Kind, err)
 			}
 			
-			// Marshal data to json.RawMessage
-			dataBytes, err := json.Marshal(renderedData)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal data for resource %s: %w", resourceTemplate.Kind, err)
-			}
-			resource.Data = json.RawMessage(dataBytes)
+			// Assign data directly as map
+			resource.Data = renderedData
 		}
 
 		resources = append(resources, resource)

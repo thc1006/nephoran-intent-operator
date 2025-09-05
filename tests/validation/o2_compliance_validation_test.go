@@ -28,7 +28,6 @@ import (
 
 var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 	var (
-		namespace         *corev1.Namespace
 		testCtx           context.Context
 		o2Server          *o2.O2APIServer
 		httpTestServer    *httptest.Server
@@ -39,7 +38,7 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 	)
 
 	BeforeEach(func() {
-		namespace = CreateTestNamespace()
+		_ = CreateTestNamespace() // Create test namespace but don't store reference
 		var cancel context.CancelFunc
 		testCtx, cancel = context.WithTimeout(context.Background(), 15*time.Minute)
 		DeferCleanup(cancel)

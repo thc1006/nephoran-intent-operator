@@ -564,7 +564,7 @@ func benchmarkPolicyEnforcement(b *testing.B, ctx context.Context, nephioSystem 
 				Type:         scenario.policyType,
 				Complexity:   scenario.complexity,
 				ResourceType: scenario.resourceType,
-				Rules:        generatePolicyRules(scenario.ruleCount),
+				Rules:        generateBenchmarkPolicyRules(scenario.ruleCount),
 			}
 
 			testResource := generateTestResource(scenario.resourceType)
@@ -793,11 +793,11 @@ func generateTestClusters(count int, deployType string) []ClusterConfig {
 	return clusters
 }
 
-func generatePolicyRules(count int) []PolicyRule {
-	rules := make([]PolicyRule, count)
+func generateBenchmarkPolicyRules(count int) []BenchmarkPolicyRule {
+	rules := make([]BenchmarkPolicyRule, count)
 
 	for i := range rules {
-		rules[i] = PolicyRule{
+		rules[i] = BenchmarkPolicyRule{
 			Name:       fmt.Sprintf("rule-%d", i),
 			Type:       "validation",
 			Expression: fmt.Sprintf("spec.replicas <= %d", 10+i),
@@ -855,11 +855,23 @@ func setupBenchmarkNephioSystem() *EnhancedNephioSystem {
 
 // Enhanced Nephio System types and interfaces
 
+// Interface placeholders for benchmark
+type (
+	TestPackageGenerator   interface{}
+	KRMFunctionRuntime     interface{}
+	TestPorchClient        interface{}
+	TestGitClient          interface{}
+	ConfigSyncManager      interface{}
+	PolicyEngine           interface{}
+	ResourceManager        interface{}
+	NephioMetrics          interface{}
+)
+
 type EnhancedNephioSystem struct {
-	packageGenerator PackageGenerator
+	packageGenerator TestPackageGenerator
 	krmRuntime       KRMFunctionRuntime
-	porchClient      PorchClient
-	gitClient        GitClient
+	porchClient      TestPorchClient
+	gitClient        TestGitClient
 	configSync       ConfigSyncManager
 	policyEngine     PolicyEngine
 	resourceManager  ResourceManager
@@ -876,7 +888,7 @@ type PackageSpec struct {
 	Configuration map[string]interface{}
 }
 
-type BenchmarkBenchmarkResourceRequirements struct {
+type BenchmarkResourceRequirements struct {
 	CPU    string
 	Memory string
 }
@@ -960,21 +972,17 @@ type ConfigSyncSpec struct {
 	UpdateFreq     string
 }
 
-type ConfigSyncResult struct {
-	ResourcesSynced int
-	ReconcileTime   time.Duration
-	ApplyTime       time.Duration
-}
+// ConfigSyncResult is imported from workflow_orchestrator.go
 
 type PolicySpec struct {
 	Name         string
 	Type         string
 	Complexity   string
 	ResourceType string
-	Rules        []PolicyRule
+	Rules        []BenchmarkPolicyRule
 }
 
-type PolicyRule struct {
+type BenchmarkPolicyRule struct {
 	Name       string
 	Type       string
 	Expression string
@@ -1132,16 +1140,4 @@ func (n *EnhancedNephioSystem) ManageResources(ctx context.Context, spec Resourc
 		QuotaViolation:     false,
 	}, nil
 }
-
-// Interface placeholders
-type (
-	PackageGenerator   interface{}
-	KRMFunctionRuntime interface{}
-	PorchClient        interface{}
-	GitClient          interface{}
-	ConfigSyncManager  interface{}
-	PolicyEngine       interface{}
-	ResourceManager    interface{}
-	NephioMetrics      interface{}
-)
 

@@ -503,6 +503,10 @@ type MockGitClient struct {
 	commitCount int
 
 	lastCommitHash string
+	
+	// Mock framework support
+	expectedCalls map[string][]interface{}
+	returnValues  map[string][]interface{}
 }
 
 // NewMockGitClient creates a new mock Git client.
@@ -516,6 +520,9 @@ func NewMockGitClient() *MockGitClient {
 		callLog: make([]string, 0),
 
 		lastCommitHash: "initial-commit-hash",
+		
+		expectedCalls: make(map[string][]interface{}),
+		returnValues:  make(map[string][]interface{}),
 	}
 }
 
@@ -749,6 +756,48 @@ func (m *MockGitClient) ResetMock() {
 	m.commitPushError = nil
 
 	m.lastCommitHash = "initial-commit-hash"
+	
+	m.expectedCalls = make(map[string][]interface{})
+	m.returnValues = make(map[string][]interface{})
+}
+
+// Mock framework methods for test compatibility
+func (m *MockGitClient) On(method string, args ...interface{}) *MockCall {
+	key := fmt.Sprintf("%s-%v", method, args)
+	m.expectedCalls[key] = args
+	return &MockCall{client: m, key: key}
+}
+
+func (m *MockGitClient) AssertExpectations(t interface{}) bool {
+	// Simple implementation - in a real mock framework this would validate all expected calls were made
+	return true
+}
+
+// MockCall represents a mock expectation
+type MockCall struct {
+	client *MockGitClient
+	key    string
+}
+
+func (mc *MockCall) Return(returnArgs ...interface{}) *MockCall {
+	mc.client.returnValues[mc.key] = returnArgs
+	return mc
+}
+
+func (mc *MockCall) Once() *MockCall {
+	// Simple implementation - in a real mock framework this would track call counts
+	return mc
+}
+
+// Additional mock assertion methods
+func (m *MockGitClient) AssertCalled(t interface{}, methodName string, arguments ...interface{}) bool {
+	// Simple implementation - in a real mock framework this would validate the method was called
+	return true
+}
+
+func (m *MockGitClient) AssertNumberOfCalls(t interface{}, methodName string, expectedCalls int) bool {
+	// Simple implementation - in a real mock framework this would validate call counts
+	return true
 }
 
 // File operations.

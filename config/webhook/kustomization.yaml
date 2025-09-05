@@ -6,6 +6,9 @@ resources:
 - deployment.yaml
 - manifests.yaml
 - service.yaml
+- mutating-webhook.yaml
+- validating-webhook.yaml
+- rbac-patch.yaml
 
 # Image configuration for webhook
 images:

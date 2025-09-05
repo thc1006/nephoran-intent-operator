@@ -1,5 +1,3 @@
-//go:build ignore
-
 /*
 
 Copyright 2025.
@@ -37,7 +35,6 @@ import (
 	"fmt"
 	"sync"
 	"time"
-	"encoding/json"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
@@ -978,7 +975,7 @@ func (lm *lifecycleManager) AcquireLifecycleLock(ctx context.Context, ref *Packa
 
 		Timestamp: time.Now(),
 
-		Metadata: json.RawMessage(`{}`),
+		Metadata: make(map[string]interface{}),
 	}
 
 	lm.TriggerEvent(ctx, lockEvent)
@@ -1036,7 +1033,7 @@ func (lm *lifecycleManager) ReleaseLifecycleLock(ctx context.Context, lockID str
 
 		Timestamp: time.Now(),
 
-		Metadata: json.RawMessage(`{}`),
+		Metadata: make(map[string]interface{}),
 	}
 
 	lm.TriggerEvent(ctx, releaseEvent)
@@ -1462,11 +1459,11 @@ func (lm *lifecycleManager) CleanupFailedTransitions(ctx context.Context, olderT
 	cutoffTime := time.Now().Add(-olderThan)
 
 	result := &CleanupResult{
-		ItemsRemoved: 0,
-
-		Duration: 0,
-
-		Errors: []string{},
+		RemovedCount:     0,
+		RemovedResources: []string{},
+		TotalSize:        0,
+		Duration:         "0s",
+		Errors:           []string{},
 	}
 
 	// In a real implementation, this would query a database or storage.
@@ -1479,7 +1476,7 @@ func (lm *lifecycleManager) CleanupFailedTransitions(ctx context.Context, olderT
 
 		"cutoff_time", cutoffTime,
 
-		"items_removed", result.ItemsRemoved)
+		"items_removed", result.RemovedCount)
 
 	return result, nil
 }
@@ -1490,11 +1487,11 @@ func (lm *lifecycleManager) CleanupRollbackPoints(ctx context.Context, ref *Pack
 	cutoffTime := time.Now().Add(-olderThan)
 
 	result := &CleanupResult{
-		ItemsRemoved: 0,
-
-		Duration: 0,
-
-		Errors: []string{},
+		RemovedCount:     0,
+		RemovedResources: []string{},
+		TotalSize:        0,
+		Duration:         "0s",
+		Errors:           []string{},
 	}
 
 	// In a real implementation, this would query rollback points for this package.
@@ -1507,7 +1504,7 @@ func (lm *lifecycleManager) CleanupRollbackPoints(ctx context.Context, ref *Pack
 
 		"cutoff_time", cutoffTime,
 
-		"items_removed", result.ItemsRemoved)
+		"items_removed", result.RemovedCount)
 
 	return result, nil
 }
@@ -2208,15 +2205,6 @@ type LifecycleManagerHealth struct {
 	LastActivity time.Time
 }
 
-// CleanupResult represents a cleanupresult.
-
-type CleanupResult struct {
-	ItemsRemoved int
-
-	Duration time.Duration
-
-	Errors []string
-}
 
 // ReportOptions represents a reportoptions.
 

@@ -1030,9 +1030,9 @@ func (r *NetworkIntentPackageReconciler) checkDeploymentStatus(ctx context.Conte
 		return "", err
 	}
 
-	// Use DeploymentReady field instead of DeploymentStatus.
+	// Check deployment status.
 
-	if pkg.Status.DeploymentReady {
+	if pkg.Status.DeploymentStatus != nil && pkg.Status.DeploymentStatus.Phase == "Ready" {
 		return "deployed", nil
 	}
 

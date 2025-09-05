@@ -1,0 +1,61 @@
+CI Status	Set up job	﻿2025-09-04T21:17:00.3854060Z Current runner version: '2.328.0'
+CI Status	Set up job	2025-09-04T21:17:00.3879843Z ##[group]Runner Image Provisioner
+CI Status	Set up job	2025-09-04T21:17:00.3880811Z Hosted Compute Agent
+CI Status	Set up job	2025-09-04T21:17:00.3881355Z Version: 20250829.383
+CI Status	Set up job	2025-09-04T21:17:00.3882237Z Commit: 27cb235aab5b0e52e153a26cd86b4742e89dac5d
+CI Status	Set up job	2025-09-04T21:17:00.3883285Z Build Date: 2025-08-29T13:48:48Z
+CI Status	Set up job	2025-09-04T21:17:00.3884135Z ##[endgroup]
+CI Status	Set up job	2025-09-04T21:17:00.3884954Z ##[group]Operating System
+CI Status	Set up job	2025-09-04T21:17:00.3885972Z Ubuntu
+CI Status	Set up job	2025-09-04T21:17:00.3886860Z 24.04.3
+CI Status	Set up job	2025-09-04T21:17:00.3887650Z LTS
+CI Status	Set up job	2025-09-04T21:17:00.3888314Z ##[endgroup]
+CI Status	Set up job	2025-09-04T21:17:00.3889074Z ##[group]Runner Image
+CI Status	Set up job	2025-09-04T21:17:00.3890049Z Image: ubuntu-24.04
+CI Status	Set up job	2025-09-04T21:17:00.3890814Z Version: 20250831.1.0
+CI Status	Set up job	2025-09-04T21:17:00.3892443Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250831.1/images/ubuntu/Ubuntu2404-Readme.md
+CI Status	Set up job	2025-09-04T21:17:00.3894651Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250831.1
+CI Status	Set up job	2025-09-04T21:17:00.3896808Z ##[endgroup]
+CI Status	Set up job	2025-09-04T21:17:00.3898736Z ##[group]GITHUB_TOKEN Permissions
+CI Status	Set up job	2025-09-04T21:17:00.3901866Z Contents: read
+CI Status	Set up job	2025-09-04T21:17:00.3902744Z Metadata: read
+CI Status	Set up job	2025-09-04T21:17:00.3903670Z Packages: read
+CI Status	Set up job	2025-09-04T21:17:00.3904548Z ##[endgroup]
+CI Status	Set up job	2025-09-04T21:17:00.3908029Z Secret source: Actions
+CI Status	Set up job	2025-09-04T21:17:00.3909854Z Prepare workflow directory
+CI Status	Set up job	2025-09-04T21:17:00.4462466Z Prepare all required actions
+CI Status	Set up job	2025-09-04T21:17:00.4539090Z Complete job name: CI Status
+CI Status	Check CI Status	﻿2025-09-04T21:17:00.5615908Z ##[group]Run set -e  # Bash strict mode - fail on any error
+CI Status	Check CI Status	2025-09-04T21:17:00.5617711Z [36;1mset -e  # Bash strict mode - fail on any error[0m
+CI Status	Check CI Status	2025-09-04T21:17:00.5618920Z [36;1mecho "Checking individual job results..."[0m
+CI Status	Check CI Status	2025-09-04T21:17:00.5620079Z [36;1mecho "Quick check: failure"[0m
+CI Status	Check CI Status	2025-09-04T21:17:00.5621158Z [36;1mecho "Build: skipped"[0m
+CI Status	Check CI Status	2025-09-04T21:17:00.5622090Z [36;1mecho "Test: skipped"[0m
+CI Status	Check CI Status	2025-09-04T21:17:00.5623248Z [36;1mecho "Integration: skipped"[0m
+CI Status	Check CI Status	2025-09-04T21:17:00.5624208Z [36;1m[0m
+CI Status	Check CI Status	2025-09-04T21:17:00.5625165Z [36;1mif [ "failure" == "failure" ] || \[0m
+CI Status	Check CI Status	2025-09-04T21:17:00.5626213Z [36;1m   [ "skipped" == "failure" ] || \[0m
+CI Status	Check CI Status	2025-09-04T21:17:00.5627629Z [36;1m   [ "skipped" == "failure" ] || \[0m
+CI Status	Check CI Status	2025-09-04T21:17:00.5628782Z [36;1m   [ "skipped" == "failure" ]; then[0m
+CI Status	Check CI Status	2025-09-04T21:17:00.5629893Z [36;1m  echo "CI pipeline failed - one or more jobs failed"[0m
+CI Status	Check CI Status	2025-09-04T21:17:00.5631173Z [36;1m  exit 1[0m
+CI Status	Check CI Status	2025-09-04T21:17:00.5631950Z [36;1mfi[0m
+CI Status	Check CI Status	2025-09-04T21:17:00.5632877Z [36;1mecho "CI pipeline passed successfully!"[0m
+CI Status	Check CI Status	2025-09-04T21:17:00.6178229Z shell: /usr/bin/bash -e {0}
+CI Status	Check CI Status	2025-09-04T21:17:00.6179197Z env:
+CI Status	Check CI Status	2025-09-04T21:17:00.6179771Z   GO_VERSION: 1.22
+CI Status	Check CI Status	2025-09-04T21:17:00.6180366Z   GOPROXY: https://proxy.golang.org,direct
+CI Status	Check CI Status	2025-09-04T21:17:00.6181003Z   GOSUMDB: sum.golang.org
+CI Status	Check CI Status	2025-09-04T21:17:00.6181590Z   CGO_ENABLED: 0
+CI Status	Check CI Status	2025-09-04T21:17:00.6182087Z   GOMAXPROCS: 4
+CI Status	Check CI Status	2025-09-04T21:17:00.6182519Z   GOMEMLIMIT: 4GiB
+CI Status	Check CI Status	2025-09-04T21:17:00.6183037Z   GOGC: 100
+CI Status	Check CI Status	2025-09-04T21:17:00.6183492Z ##[endgroup]
+CI Status	Check CI Status	2025-09-04T21:17:00.6589689Z Checking individual job results...
+CI Status	Check CI Status	2025-09-04T21:17:00.6590295Z Quick check: failure
+CI Status	Check CI Status	2025-09-04T21:17:00.6590711Z Build: skipped
+CI Status	Check CI Status	2025-09-04T21:17:00.6591090Z Test: skipped
+CI Status	Check CI Status	2025-09-04T21:17:00.6591470Z Integration: skipped
+CI Status	Check CI Status	2025-09-04T21:17:00.6591927Z CI pipeline failed - one or more jobs failed
+CI Status	Check CI Status	2025-09-04T21:17:00.6610700Z ##[error]Process completed with exit code 1.
+CI Status	Complete job	﻿2025-09-04T21:17:00.6719413Z Cleaning up orphan processes

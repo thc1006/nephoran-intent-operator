@@ -2351,13 +2351,7 @@ func (c *Client) updatePackageContentsInternal(ctx context.Context, name, revisi
 
 	// Update the package revision with new resources.
 
-	var interfaceResources []interface{}
-
-	for _, resource := range resources {
-		interfaceResources = append(interfaceResources, convertFromKRMResource(resource))
-	}
-
-	pkg.Spec.Resources = interfaceResources
+	pkg.Spec.Resources = resources
 
 	// Update the package revision.
 
@@ -2718,11 +2712,8 @@ func (c *Client) validatePackageInternal(ctx context.Context, name, revision str
 		// Check if resource has name in metadata
 		hasName := false
 		if len(resource.Metadata) > 0 {
-			var metadataMap map[string]interface{}
-			if err := json.Unmarshal(resource.Metadata, &metadataMap); err == nil {
-				if name, ok := metadataMap["name"].(string); ok && name != "" {
-					hasName = true
-				}
+			if name, ok := resource.Metadata["name"].(string); ok && name != "" {
+				hasName = true
 			}
 		}
 		if !hasName {
@@ -3349,7 +3340,7 @@ func convertToKRMResource(resource interface{}) (KRMResource, error) {
 	if resourceMap, ok := resource.(map[string]interface{}); ok {
 
 		krmRes := KRMResource{
-			Metadata: json.RawMessage(`{}`),
+			Metadata: make(map[string]interface{}),
 		}
 
 		if apiVersion, ok := resourceMap["apiVersion"].(string); ok {
@@ -3361,27 +3352,19 @@ func convertToKRMResource(resource interface{}) (KRMResource, error) {
 		}
 
 		if metadata, ok := resourceMap["metadata"].(map[string]interface{}); ok {
-			if metadataBytes, err := json.Marshal(metadata); err == nil {
-				krmRes.Metadata = metadataBytes
-			}
+			krmRes.Metadata = metadata
 		}
 
 		if spec, ok := resourceMap["spec"].(map[string]interface{}); ok {
-			if specBytes, err := json.Marshal(spec); err == nil {
-				krmRes.Spec = specBytes
-			}
+			krmRes.Spec = spec
 		}
 
 		if status, ok := resourceMap["status"].(map[string]interface{}); ok {
-			if statusBytes, err := json.Marshal(status); err == nil {
-				krmRes.Status = statusBytes
-			}
+			krmRes.Status = status
 		}
 
 		if data, ok := resourceMap["data"].(map[string]interface{}); ok {
-			if dataBytes, err := json.Marshal(data); err == nil {
-				krmRes.Data = dataBytes
-			}
+			krmRes.Data = data
 		}
 
 		return krmRes, nil
@@ -3415,9 +3398,7 @@ func convertToFunctionConfig(function interface{}) (FunctionConfig, error) {
 		}
 
 		if configMap, ok := functionMap["configMap"].(map[string]interface{}); ok {
-			if configMapBytes, err := json.Marshal(configMap); err == nil {
-				funcConfig.ConfigMap = configMapBytes
-			}
+			funcConfig.ConfigMap = configMap
 		}
 
 		return funcConfig, nil
@@ -3438,34 +3419,22 @@ func convertFromKRMResource(resource KRMResource) interface{} {
 
 	// Add metadata if present
 	if len(resource.Metadata) > 0 {
-		var metadata map[string]interface{}
-		if err := json.Unmarshal(resource.Metadata, &metadata); err == nil {
-			resourceMap["metadata"] = metadata
-		}
+		resourceMap["metadata"] = resource.Metadata
 	}
 
 	// Add spec if present
 	if len(resource.Spec) > 0 {
-		var spec map[string]interface{}
-		if err := json.Unmarshal(resource.Spec, &spec); err == nil {
-			resourceMap["spec"] = spec
-		}
+		resourceMap["spec"] = resource.Spec
 	}
 
 	// Add status if present
 	if len(resource.Status) > 0 {
-		var status map[string]interface{}
-		if err := json.Unmarshal(resource.Status, &status); err == nil {
-			resourceMap["status"] = status
-		}
+		resourceMap["status"] = resource.Status
 	}
 
 	// Add data if present
 	if len(resource.Data) > 0 {
-		var data map[string]interface{}
-		if err := json.Unmarshal(resource.Data, &data); err == nil {
-			resourceMap["data"] = data
-		}
+		resourceMap["data"] = resource.Data
 	}
 
 	return resourceMap
@@ -3482,10 +3451,7 @@ func convertFromFunctionConfig(function FunctionConfig) interface{} {
 
 	// Add config data if present
 	if len(function.ConfigMap) > 0 {
-		var configMap map[string]interface{}
-		if err := json.Unmarshal(function.ConfigMap, &configMap); err == nil {
-			functionMap["configMap"] = configMap
-		}
+		functionMap["configMap"] = function.ConfigMap
 	}
 
 	// Add selectors if present
@@ -3514,34 +3480,22 @@ func convertKRMResourceToYAML(resource KRMResource) ([]byte, error) {
 
 	// Add metadata if present
 	if len(resource.Metadata) > 0 {
-		var metadata map[string]interface{}
-		if err := json.Unmarshal(resource.Metadata, &metadata); err == nil {
-			resourceMap["metadata"] = metadata
-		}
+		resourceMap["metadata"] = resource.Metadata
 	}
 
 	// Add spec if present
 	if len(resource.Spec) > 0 {
-		var spec map[string]interface{}
-		if err := json.Unmarshal(resource.Spec, &spec); err == nil {
-			resourceMap["spec"] = spec
-		}
+		resourceMap["spec"] = resource.Spec
 	}
 
 	// Add status if present
 	if len(resource.Status) > 0 {
-		var status map[string]interface{}
-		if err := json.Unmarshal(resource.Status, &status); err == nil {
-			resourceMap["status"] = status
-		}
+		resourceMap["status"] = resource.Status
 	}
 
 	// Add data if present
 	if len(resource.Data) > 0 {
-		var data map[string]interface{}
-		if err := json.Unmarshal(resource.Data, &data); err == nil {
-			resourceMap["data"] = data
-		}
+		resourceMap["data"] = resource.Data
 	}
 
 	// Convert to YAML using JSON marshaling then conversion.
@@ -3580,27 +3534,19 @@ func convertYAMLToKRMResource(yamlData []byte) (*KRMResource, error) {
 	}
 
 	if metadata, ok := resourceMap["metadata"].(map[string]interface{}); ok {
-		if metadataBytes, err := json.Marshal(metadata); err == nil {
-			resource.Metadata = metadataBytes
-		}
+		resource.Metadata = metadata
 	}
 
 	if spec, ok := resourceMap["spec"].(map[string]interface{}); ok {
-		if specBytes, err := json.Marshal(spec); err == nil {
-			resource.Spec = specBytes
-		}
+		resource.Spec = spec
 	}
 
 	if status, ok := resourceMap["status"].(map[string]interface{}); ok {
-		if statusBytes, err := json.Marshal(status); err == nil {
-			resource.Status = statusBytes
-		}
+		resource.Status = status
 	}
 
 	if data, ok := resourceMap["data"].(map[string]interface{}); ok {
-		if dataBytes, err := json.Marshal(data); err == nil {
-			resource.Data = dataBytes
-		}
+		resource.Data = data
 	}
 
 	return resource, nil
@@ -3612,11 +3558,8 @@ func generateResourceFilename(resource KRMResource) string {
 	var name string
 
 	if metadata := resource.Metadata; len(metadata) > 0 {
-		var metadataMap map[string]interface{}
-		if err := json.Unmarshal(metadata, &metadataMap); err == nil {
-			if resourceName, ok := metadataMap["name"].(string); ok && resourceName != "" {
-				name = resourceName
-			}
+		if resourceName, ok := metadata["name"].(string); ok && resourceName != "" {
+			name = resourceName
 		}
 	}
 
@@ -3744,34 +3687,22 @@ func (c *Client) convertResourcesToUnstructured(resources []KRMResource) []inter
 
 		// Add metadata if present
 		if len(resource.Metadata) > 0 {
-			var metadata map[string]interface{}
-			if err := json.Unmarshal(resource.Metadata, &metadata); err == nil {
-				resourceMap["metadata"] = metadata
-			}
+			resourceMap["metadata"] = resource.Metadata
 		}
 
 		// Add spec if present
 		if len(resource.Spec) > 0 {
-			var spec map[string]interface{}
-			if err := json.Unmarshal(resource.Spec, &spec); err == nil {
-				resourceMap["spec"] = spec
-			}
+			resourceMap["spec"] = resource.Spec
 		}
 
 		// Add status if present
 		if len(resource.Status) > 0 {
-			var status map[string]interface{}
-			if err := json.Unmarshal(resource.Status, &status); err == nil {
-				resourceMap["status"] = status
-			}
+			resourceMap["status"] = resource.Status
 		}
 
 		// Add data if present
 		if len(resource.Data) > 0 {
-			var data map[string]interface{}
-			if err := json.Unmarshal(resource.Data, &data); err == nil {
-				resourceMap["data"] = data
-			}
+			resourceMap["data"] = resource.Data
 		}
 
 		result[i] = resourceMap
@@ -3889,27 +3820,19 @@ func (c *Client) extractFunctionResponse(status map[string]interface{}) (*Functi
 				}
 
 				if metadata, ok := resMap["metadata"].(map[string]interface{}); ok {
-					if metadataBytes, err := json.Marshal(metadata); err == nil {
-						resource.Metadata = metadataBytes
-					}
+					resource.Metadata = metadata
 				}
 
 				if spec, ok := resMap["spec"].(map[string]interface{}); ok {
-					if specBytes, err := json.Marshal(spec); err == nil {
-						resource.Spec = specBytes
-					}
+					resource.Spec = spec
 				}
 
 				if statusData, ok := resMap["status"].(map[string]interface{}); ok {
-					if statusBytes, err := json.Marshal(statusData); err == nil {
-						resource.Status = statusBytes
-					}
+					resource.Status = statusData
 				}
 
 				if data, ok := resMap["data"].(map[string]interface{}); ok {
-					if dataBytes, err := json.Marshal(data); err == nil {
-						resource.Data = dataBytes
-					}
+					resource.Data = data
 				}
 
 				response.Resources = append(response.Resources, resource)

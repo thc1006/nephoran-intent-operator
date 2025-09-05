@@ -1,5 +1,3 @@
-//go:build integration
-
 package intent
 
 import (
@@ -10,7 +8,7 @@ import (
 func TestValidatorWithActualSchema(t *testing.T) {
 	// Test with the actual project schema
 	projectRoot := filepath.Join("..", "..")
-
+	
 	t.Run("CreateValidatorWithActualSchema", func(t *testing.T) {
 		validator, err := NewValidator(projectRoot)
 		if err != nil {
@@ -128,7 +126,7 @@ func TestValidatorWithActualSchema(t *testing.T) {
 	t.Run("TestHardErrorBehavior", func(t *testing.T) {
 		// Test with non-existent project root - should fail hard
 		invalidRoot := "/does/not/exist"
-
+		
 		validator, err := NewValidator(invalidRoot)
 		if err == nil {
 			t.Fatal("Expected hard error for non-existent schema file")
