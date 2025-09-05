@@ -401,12 +401,12 @@ docker-buildx: manager ## Build and push docker image for multiple platforms
 manifests: ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects
 	@echo "Generating manifests..."
 	@if command -v controller-gen >/dev/null 2>&1; then \
-		controller-gen rbac:roleName=manager-role crd:allowDangerousTypes=true webhook paths="./..." output:crd:artifacts:config=config/crd/bases; \
+		controller-gen rbac:roleName=manager-role crd:allowDangerousTypes=true webhook paths="./api/v1" paths="./controllers" output:crd:artifacts:config=config/crd/bases; \
 		echo "✅ Manifests generated"; \
 	else \
 		echo "Installing controller-gen..."; \
 		$(GO) install sigs.k8s.io/controller-tools/cmd/controller-gen@latest; \
-		controller-gen rbac:roleName=manager-role crd:allowDangerousTypes=true webhook paths="./..." output:crd:artifacts:config=config/crd/bases; \
+		controller-gen rbac:roleName=manager-role crd:allowDangerousTypes=true webhook paths="./api/v1" paths="./controllers" output:crd:artifacts:config=config/crd/bases; \
 		echo "✅ Manifests generated"; \
 	fi
 
@@ -414,12 +414,12 @@ manifests: ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefin
 generate: ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations
 	@echo "Generating code..."
 	@if command -v controller-gen >/dev/null 2>&1; then \
-		controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."; \
+		controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./api/v1" paths="./controllers"; \
 		echo "✅ Code generated"; \
 	else \
 		echo "Installing controller-gen..."; \
 		$(GO) install sigs.k8s.io/controller-tools/cmd/controller-gen@latest; \
-		controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."; \
+		controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./api/v1" paths="./controllers"; \
 		echo "✅ Code generated"; \
 	fi
 
