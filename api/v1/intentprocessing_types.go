@@ -273,8 +273,8 @@ type LLMMetrics struct {
 
 	// ConfidenceScore confidence in the response (0.0-1.0)
 	// +optional
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=1.0
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=1
 	ConfidenceScore *float64 `json:"confidenceScore,omitempty"`
 }
 
@@ -292,14 +292,14 @@ type RAGMetrics struct {
 
 	// AverageRelevanceScore average relevance score of retrieved documents (0.0-1.0)
 	// +optional
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=1.0
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=1
 	AverageRelevanceScore *float64 `json:"averageRelevanceScore,omitempty"`
 
 	// TopRelevanceScore highest relevance score (0.0-1.0)
 	// +optional
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=1.0
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=1
 	TopRelevanceScore *float64 `json:"topRelevanceScore,omitempty"`
 
 	// SourcesUsed list of knowledge sources used

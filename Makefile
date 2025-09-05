@@ -401,12 +401,12 @@ docker-buildx: manager ## Build and push docker image for multiple platforms
 manifests: ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects
 	@echo "Generating manifests..."
 	@if command -v controller-gen >/dev/null 2>&1; then \
-		controller-gen rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases; \
+		controller-gen rbac:roleName=manager-role crd:allowDangerousTypes=true webhook paths="./..." output:crd:artifacts:config=config/crd/bases; \
 		echo "✅ Manifests generated"; \
 	else \
 		echo "Installing controller-gen..."; \
 		$(GO) install sigs.k8s.io/controller-tools/cmd/controller-gen@latest; \
-		controller-gen rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases; \
+		controller-gen rbac:roleName=manager-role crd:allowDangerousTypes=true webhook paths="./..." output:crd:artifacts:config=config/crd/bases; \
 		echo "✅ Manifests generated"; \
 	fi
 
