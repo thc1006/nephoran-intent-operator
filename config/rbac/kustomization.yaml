@@ -4,6 +4,6 @@ kind: Kustomization
 resources:
 - role.yaml
 - service_account.yaml
-- e2nodeset_admin.yaml
-- e2nodeset_role.yaml
 - networkintent_role.yaml
+- e2nodeset_role.yaml
+- e2nodeset_admin.yaml

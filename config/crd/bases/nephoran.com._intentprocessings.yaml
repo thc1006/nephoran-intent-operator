@@ -306,9 +306,9 @@ spec:
                     properties:
                       confidenceScore:
                         description: ConfidenceScore confidence in the response (0.0-1.0)
-                          as string to avoid float issues
-                        pattern: ^(0(\.[0-9]+)?|1(\.0+)?)$
-                        type: string
+                        maximum: 1
+                        minimum: 0
+                        type: number
                       model:
                         description: Model the LLM model used
                         type: string
@@ -343,10 +343,10 @@ spec:
                     properties:
                       averageRelevanceScore:
                         description: AverageRelevanceScore average relevance score
-                          of retrieved documents (0.0-1.0) as string to avoid float
-                          issues
-                        pattern: ^(0(\.[0-9]+)?|1(\.0+)?)$
-                        type: string
+                          of retrieved documents (0.0-1.0)
+                        maximum: 1
+                        minimum: 0
+                        type: number
                       cacheHits:
                         description: CacheHits number of cache hits
                         format: int64
@@ -377,9 +377,9 @@ spec:
                         type: array
                       topRelevanceScore:
                         description: TopRelevanceScore highest relevance score (0.0-1.0)
-                          as string to avoid float issues
-                        pattern: ^(0(\.[0-9]+)?|1(\.0+)?)$
-                        type: string
+                        maximum: 1
+                        minimum: 0
+                        type: number
                     type: object
                   startTime:
                     description: StartTime when processing started
@@ -937,9 +937,10 @@ spec:
                 properties:
                   averageRelevanceScore:
                     description: AverageRelevanceScore average relevance score of
-                      retrieved documents (0.0-1.0) as string to avoid float issues
-                    pattern: ^(0(\.[0-9]+)?|1(\.0+)?)$
-                    type: string
+                      retrieved documents (0.0-1.0)
+                    maximum: 1
+                    minimum: 0
+                    type: number
                   cacheHits:
                     description: CacheHits number of cache hits
                     format: int64
@@ -970,9 +971,9 @@ spec:
                     type: array
                   topRelevanceScore:
                     description: TopRelevanceScore highest relevance score (0.0-1.0)
-                      as string to avoid float issues
-                    pattern: ^(0(\.[0-9]+)?|1(\.0+)?)$
-                    type: string
+                    maximum: 1
+                    minimum: 0
+                    type: number
                 type: object
               retryCount:
                 description: RetryCount number of retries attempted

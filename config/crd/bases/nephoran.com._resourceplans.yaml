@@ -136,13 +136,15 @@ spec:
                   serviceLevelAgreement:
                     properties:
                       availabilityTarget:
-                        type: string
+                        maximum: 100
+                        type: number
                       maxLatency:
                         format: int32
                         minimum: 1
                         type: integer
                       maxPacketLoss:
-                        type: string
+                        maximum: 100
+                        type: number
                       minThroughput:
                         format: int32
                         minimum: 1
@@ -196,8 +198,8 @@ spec:
                       - energy
                       type: string
                     weight:
-                      pattern: ^(0(\.[0-9]+)?|1(\.0+)?)$
-                      type: string
+                      maximum: 1
+                      type: number
                   required:
                   - priority
                   - type
@@ -571,7 +573,8 @@ spec:
                     default: monthly
                     type: string
                   confidence:
-                    type: string
+                    maximum: 1
+                    type: number
                   costBreakdown:
                     additionalProperties:
                       type: number
@@ -603,7 +606,8 @@ spec:
                     description:
                       type: string
                     improvementPercent:
-                      type: string
+                      maximum: 100
+                      type: number
                     optimizedAt:
                       format: date-time
                       type: string
@@ -624,11 +628,14 @@ spec:
                       type: string
                     type: array
                   expectedAvailability:
-                    type: string
+                    maximum: 100
+                    type: number
                   expectedLatency:
-                    type: string
+                    minimum: 0
+                    type: number
                   expectedThroughput:
-                    type: string
+                    minimum: 0
+                    type: number
                   resourceUtilization:
                     additionalProperties:
                       type: number
@@ -637,7 +644,8 @@ spec:
                     items:
                       properties:
                         confidence:
-                          type: string
+                          maximum: 1
+                          type: number
                         impact:
                           type: string
                         reason:
@@ -694,7 +702,8 @@ spec:
                         type: string
                       type: array
                     estimatedCost:
-                      type: string
+                      minimum: 0
+                      type: number
                     labels:
                       additionalProperties:
                         type: string
@@ -799,7 +808,8 @@ spec:
                 format: date-time
                 type: string
               qualityScore:
-                type: string
+                maximum: 1
+                type: number
               resourceAllocation:
                 type: object
                 x-kubernetes-preserve-unknown-fields: true

@@ -1,5 +1,5 @@
-# Nephoran Intent Operator Build System
-# DevOps-optimized Makefile for comprehensive build, test, and demo automation
+# Nephoran Intent Operator - Comprehensive Makefile
+# Combines LLM demo capabilities with Kubernetes operator functionality
 
 # Go configuration
 GO := go
@@ -27,12 +27,46 @@ DEMO_INTENT := "scale odu-high-phy to 3 in ns oran-odu"
 SCHEMA_FILE := docs/contracts/intent.schema.json
 AJV_CLI := npx ajv-cli
 
+# Kubernetes operator configuration
+CONTROLLER_GEN ?= $(shell go env GOPATH)/bin/controller-gen
+CRD_OUTPUT_DIR = config/crd/bases
+API_PACKAGES = ./api/v1 ./api/v1alpha1 ./api/intent/v1alpha1
+
 # Create directories
 $(BIN_DIR):
 	@mkdir -p $(BIN_DIR)
 
 $(DEMO_HANDOFF_DIR):
 	@mkdir -p $(DEMO_HANDOFF_DIR)
+
+# =============================================================================
+# Kubernetes Operator Targets (Kubebuilder Convention)
+# =============================================================================
+
+# Generate Kubernetes CRDs and related manifests
+.PHONY: manifests
+manifests: controller-gen
+	@echo "🔧 Generating CRDs and manifests..."
+	$(CONTROLLER_GEN) crd:allowDangerousTypes=true paths=./api/v1 paths=./api/v1alpha1 paths=./api/intent/v1alpha1 output:crd:dir=$(CRD_OUTPUT_DIR)
+	$(CONTROLLER_GEN) rbac:roleName=nephoran-manager paths="./controllers/..." output:rbac:dir=config/rbac
+	$(CONTROLLER_GEN) webhook paths="./..." output:webhook:dir=config/webhook
+	@echo "✅ Manifests generated successfully"
+
+# Generate deepcopy code and RBAC
+.PHONY: generate
+generate: controller-gen
+	@echo "🔧 Generating deepcopy code and RBAC..."
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+	$(CONTROLLER_GEN) rbac:roleName=nephoran-manager paths="./controllers/..." output:rbac:dir=config/rbac
+	@echo "✅ Code generation completed"
+
+# Install controller-gen if not present
+.PHONY: controller-gen
+controller-gen:
+	@test -f $(CONTROLLER_GEN) || { \
+		echo "🔨 Installing controller-gen..."; \
+		go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest; \
+	}
 
 # =============================================================================
 # Security Tools Installation
@@ -229,9 +263,34 @@ validate-crds: manifests
 	done
 	@echo "[SUCCESS] All CRDs are valid"
 
+.PHONY: validate-contracts
+validate-contracts:
+	@echo "📝 Validating contract schemas..."
+	@if command -v ajv >/dev/null 2>&1; then \
+		echo "Validating with ajv-cli..."; \
+		ajv compile -s docs/contracts/intent.schema.json || exit 1; \
+		ajv compile -s docs/contracts/a1.policy.schema.json || exit 1; \
+		ajv compile -s docs/contracts/scaling.schema.json || exit 1; \
+		echo "✅ All JSON schemas are valid"; \
+	else \
+		echo "ajv-cli not found - using basic JSON validation"; \
+		for schema in docs/contracts/*.json; do \
+			echo "Checking $$schema..."; \
+			go run -c 'import "encoding/json"; import "os"; import "io"; data, _ := io.ReadAll(os.Stdin); var obj interface{}; if json.Unmarshal(data, &obj) != nil { os.Exit(1) }' < "$$schema" || exit 1; \
+		done; \
+		echo "✅ Basic JSON validation passed"; \
+	fi
+
+.PHONY: validate-examples
+validate-examples: validate-contracts
+	@echo "🧩 Validating example files against schemas..."
+	@echo "Checking FCAPS VES examples structure..."
+	@go run -c 'import "encoding/json"; import "os"; import "io"; data, _ := io.ReadAll(os.Stdin); var obj interface{}; if json.Unmarshal(data, &obj) != nil { os.Exit(1) }' < docs/contracts/fcaps.ves.examples.json || exit 1
+	@echo "✅ All examples are valid JSON"
+
 .PHONY: validate-all
-validate-all: validate-schema validate-crds
-	@echo "[SUCCESS] All validations passed"
+validate-all: validate-schema validate-crds validate-contracts validate-examples
+	@echo "🏆 All validations passed - contracts and manifests are compliant"
 
 # =============================================================================
 # Code Quality and Linting
@@ -394,34 +453,8 @@ docker-buildx: manager ## Build and push docker image for multiple platforms
 	@rm -f Dockerfile.multiarch
 
 # =============================================================================
-# Kubernetes Operator Targets (Kubebuilder Convention)
+# Kubernetes Cluster Operations
 # =============================================================================
-
-.PHONY: manifests
-manifests: ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects
-	@echo "Generating manifests..."
-	@if command -v controller-gen >/dev/null 2>&1; then \
-		controller-gen rbac:roleName=manager-role crd:allowDangerousTypes=true webhook paths="./api/v1" paths="./controllers" output:crd:artifacts:config=config/crd/bases; \
-		echo "✅ Manifests generated"; \
-	else \
-		echo "Installing controller-gen..."; \
-		$(GO) install sigs.k8s.io/controller-tools/cmd/controller-gen@latest; \
-		controller-gen rbac:roleName=manager-role crd:allowDangerousTypes=true webhook paths="./api/v1" paths="./controllers" output:crd:artifacts:config=config/crd/bases; \
-		echo "✅ Manifests generated"; \
-	fi
-
-.PHONY: generate
-generate: ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations
-	@echo "Generating code..."
-	@if command -v controller-gen >/dev/null 2>&1; then \
-		controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./api/v1" paths="./controllers"; \
-		echo "✅ Code generated"; \
-	else \
-		echo "Installing controller-gen..."; \
-		$(GO) install sigs.k8s.io/controller-tools/cmd/controller-gen@latest; \
-		controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./api/v1" paths="./controllers"; \
-		echo "✅ Code generated"; \
-	fi
 
 .PHONY: install
 install: manifests ## Install CRDs into the K8s cluster specified in ~/.kube/config
@@ -473,6 +506,46 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 		exit 1; \
 	fi
 
+# MVP Scaling Operations
+# These targets provide direct scaling operations for MVP demonstrations
+.PHONY: mvp-scale-up
+mvp-scale-up:
+	@echo "🔼 MVP Scale Up: Scaling target workload..."
+	@if [ -z "$(TARGET)" ]; then \
+		echo "Usage: make mvp-scale-up TARGET=<resource> NAMESPACE=<ns> REPLICAS=<count>"; \
+		echo "Example: make mvp-scale-up TARGET=odu-high-phy NAMESPACE=oran-odu REPLICAS=5"; \
+		exit 1; \
+	fi
+	@if command -v kubectl >/dev/null 2>&1; then \
+		echo "Using kubectl to patch $(TARGET) in $(NAMESPACE)..."; \
+		kubectl patch deployment $(TARGET) -n $(NAMESPACE:-default) \
+			-p '{"spec":{"replicas":$(REPLICAS:-3)}}'; \
+	else \
+		echo "kubectl not found - generating scaling intent JSON"; \
+		echo '{"intent_type":"scaling","target":"$(TARGET)","namespace":"$(NAMESPACE:-default)","replicas":$(REPLICAS:-3),"reason":"MVP scale-up operation","source":"make-target"}' > intent-scale-up.json; \
+		echo "Generated: intent-scale-up.json"; \
+	fi
+	@echo "✅ MVP Scale Up completed"
+
+.PHONY: mvp-scale-down  
+mvp-scale-down:
+	@echo "🔽 MVP Scale Down: Reducing target workload..."
+	@if [ -z "$(TARGET)" ]; then \
+		echo "Usage: make mvp-scale-down TARGET=<resource> NAMESPACE=<ns> REPLICAS=<count>"; \
+		echo "Example: make mvp-scale-down TARGET=odu-high-phy NAMESPACE=oran-odu REPLICAS=1"; \
+		exit 1; \
+	fi
+	@if command -v kubectl >/dev/null 2>&1; then \
+		echo "Using kubectl to patch $(TARGET) in $(NAMESPACE)..."; \
+		kubectl patch deployment $(TARGET) -n $(NAMESPACE:-default) \
+			-p '{"spec":{"replicas":$(REPLICAS:-1)}}'; \
+	else \
+		echo "kubectl not found - generating scaling intent JSON"; \
+		echo '{"intent_type":"scaling","target":"$(TARGET)","namespace":"$(NAMESPACE:-default)","replicas":$(REPLICAS:-1),"reason":"MVP scale-down operation","source":"make-target"}' > intent-scale-down.json; \
+		echo "Generated: intent-scale-down.json"; \
+	fi
+	@echo "✅ MVP Scale Down completed"
+
 # =============================================================================
 # Development Utilities
 # =============================================================================
@@ -521,6 +594,8 @@ help:
 	@echo "Validation Targets:"
 	@echo "  validate-schema       - Validate JSON schemas"
 	@echo "  validate-crds         - Validate Kubernetes CRDs"
+	@echo "  validate-contracts    - Validate contract schemas"
+	@echo "  validate-examples     - Validate example files"
 	@echo "  validate-all          - Run all validations"
 	@echo ""
 	@echo "Quality Targets:"
@@ -550,6 +625,10 @@ help:
 	@echo "  uninstall             - Uninstall CRDs from cluster"
 	@echo "  deploy IMG=<image>    - Deploy operator to cluster"
 	@echo "  undeploy              - Remove operator from cluster"
+	@echo ""
+	@echo "MVP Operations:"
+	@echo "  mvp-scale-up TARGET=<resource> NAMESPACE=<ns> REPLICAS=<count>"
+	@echo "  mvp-scale-down TARGET=<resource> NAMESPACE=<ns> REPLICAS=<count>"
 	@echo ""
 	@echo "Development:"
 	@echo "  dev-setup             - Setup development environment"

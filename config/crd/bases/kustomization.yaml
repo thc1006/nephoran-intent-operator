@@ -2,18 +2,17 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-- intent.nephoran.com_networkintents.yaml
-- nephoran.com._audittrails.yaml
-- nephoran.com._backuppolicies.yaml
-- nephoran.com._certificateautomations.yaml
-- nephoran.com._cnfdeployments.yaml
-- nephoran.com._disasterrecoveryplans.yaml
-- nephoran.com._e2nodesets.yaml
-- nephoran.com._failoverpolicies.yaml
-- nephoran.com._gitopsdeployments.yaml
-- nephoran.com._intentprocessings.yaml
-- nephoran.com._managedelements.yaml
-- nephoran.com._manifestgenerations.yaml
-- nephoran.com._networkintents.yaml
-- nephoran.com._o1interfaces.yaml
-- nephoran.com._resourceplans.yaml
+- nephoran.com_networkintents.yaml
+- nephoran.com_audittrails.yaml
+- nephoran.com_backuppolicies.yaml
+- nephoran.com_certificateautomations.yaml
+- nephoran.com_cnfdeployments.yaml
+- nephoran.com_disasterrecoveryplans.yaml
+- nephoran.com_e2nodesets.yaml
+- nephoran.com_failoverpolicies.yaml
+- nephoran.com_gitopsdeployments.yaml
+- nephoran.com_intentprocessings.yaml
+- nephoran.com_managedelements.yaml
+- nephoran.com_manifestgenerations.yaml
+- nephoran.com_o1interfaces.yaml
+- nephoran.com_resourceplans.yaml

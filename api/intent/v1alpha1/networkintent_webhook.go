@@ -139,6 +139,7 @@ func (r *NetworkIntent) validateNetworkIntent() (admission.Warnings, error) {
 		allErrs = append(allErrs, fmt.Errorf("source must be 'user', 'planner', or 'test'"))
 	}
 
+
 	// Add warning if replicas is very high
 	if r.Spec.Replicas > 100 {
 		warnings = append(warnings, "spec.replicas is set to a very high value, consider reviewing resource requirements")

@@ -1,0 +1,499 @@
+Fast PR Validation	UNKNOWN STEP	﻿2025-09-04T15:37:00.4256287Z Current runner version: '2.328.0'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4283384Z ##[group]Runner Image Provisioner
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4284790Z Hosted Compute Agent
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4285681Z Version: 20250829.383
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4286824Z Commit: 27cb235aab5b0e52e153a26cd86b4742e89dac5d
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4288002Z Build Date: 2025-08-29T13:48:48Z
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4289123Z ##[endgroup]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4289737Z ##[group]Operating System
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4290362Z Ubuntu
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4290938Z 24.04.3
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4291415Z LTS
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4292155Z ##[endgroup]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4292881Z ##[group]Runner Image
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4293513Z Image: ubuntu-24.04
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4294028Z Version: 20250831.1.0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4295045Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250831.1/images/ubuntu/Ubuntu2404-Readme.md
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4296685Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250831.1
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4297650Z ##[endgroup]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4299110Z ##[group]GITHUB_TOKEN Permissions
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4300971Z Checks: write
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4301535Z Contents: read
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4302170Z Metadata: read
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4302684Z PullRequests: read
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4303196Z ##[endgroup]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4305222Z Secret source: Actions
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4305936Z Prepare workflow directory
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4857180Z Prepare all required actions
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:00.4894231Z Getting action download info
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:01.0726837Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:01.5384913Z Download action repository 'actions/setup-go@v5' (SHA:d35c59abb061a4a6fb18e82ac0862c26744d6ab5)
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.4502960Z Download action repository 'actions/cache@v4' (SHA:0400d5f644dc74513175e3cd8d07132dd4860809)
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.6847989Z Complete job name: Fast PR Validation
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.7632686Z ##[group]Run actions/checkout@v4
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.7634009Z with:
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.7634723Z   fetch-depth: 1
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.7635624Z   repository: thc1006/nephoran-intent-operator
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.7636996Z   token: ***
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.7637735Z   ssh-strict: true
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.7638686Z   ssh-user: git
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.7639495Z   persist-credentials: true
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.7640379Z   clean: true
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.7641184Z   sparse-checkout-cone-mode: true
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.7642161Z   fetch-tags: false
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.7642985Z   show-progress: true
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.7643780Z   lfs: false
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.7644510Z   submodules: false
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.7645319Z   set-safe-directory: true
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.7646443Z env:
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.7647135Z   GO_VERSION: 1.25.0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.7648069Z   GOPROXY: https://proxy.golang.org,direct
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.7649376Z   GOSUMDB: sum.golang.org
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.7650391Z   GOPRIVATE: github.com/thc1006/*
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.7651345Z   CGO_ENABLED: 0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.7652128Z   GOMAXPROCS: 4
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.7652873Z   GOMEMLIMIT: 3GiB
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.7653653Z   SKIP_TESTS: false
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.7654422Z ##[endgroup]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.8746266Z Syncing repository: thc1006/nephoran-intent-operator
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.8749152Z ##[group]Getting Git version info
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.8750892Z Working directory is '/home/runner/work/nephoran-intent-operator/nephoran-intent-operator'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.8753204Z [command]/usr/bin/git version
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.9692468Z git version 2.51.0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.9720309Z ##[endgroup]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.9736026Z Temporarily overriding HOME='/home/runner/work/_temp/18998017-8287-4757-8c8c-01de6a41a470' before making global git config changes
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.9741037Z Adding repository directory to the temporary git global config as a safe directory
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.9745865Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.9818989Z Deleting the contents of '/home/runner/work/nephoran-intent-operator/nephoran-intent-operator'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.9823207Z ##[group]Initializing the repository
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:02.9827406Z [command]/usr/bin/git init /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.0740083Z hint: Using 'master' as the name for the initial branch. This default branch name
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.0742150Z hint: is subject to change. To configure the initial branch name to use in all
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.0743967Z hint: of your new repositories, which will suppress this warning, call:
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.0745339Z hint:
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.0746291Z hint: 	git config --global init.defaultBranch <name>
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.0747443Z hint:
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.0748710Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.0750546Z hint: 'development'. The just-created branch can be renamed via this command:
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.0751982Z hint:
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.0752710Z hint: 	git branch -m <name>
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.0753583Z hint:
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.0754750Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.0785151Z Initialized empty Git repository in /home/runner/work/nephoran-intent-operator/nephoran-intent-operator/.git/
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.0798050Z [command]/usr/bin/git remote add origin https://github.com/thc1006/nephoran-intent-operator
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.0919356Z ##[endgroup]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.0921852Z ##[group]Disabling automatic garbage collection
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.0924143Z [command]/usr/bin/git config --local gc.auto 0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.0952953Z ##[endgroup]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.0955206Z ##[group]Setting up auth
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.0960554Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.0993246Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.2747863Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.2782448Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.3007867Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.3042212Z ##[endgroup]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.3050923Z ##[group]Fetching the repository
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:03.3055526Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +10e0640250cf21e1d5719b15206179f7fcb660ee:refs/remotes/pull/177/merge
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.3127312Z From https://github.com/thc1006/nephoran-intent-operator
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.3128838Z  * [new ref]         10e0640250cf21e1d5719b15206179f7fcb660ee -> pull/177/merge
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.3206098Z ##[endgroup]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.3206806Z ##[group]Determining the checkout info
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.3207941Z ##[endgroup]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.3213157Z [command]/usr/bin/git sparse-checkout disable
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.3295373Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.3321675Z ##[group]Checking out the ref
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.3325355Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/177/merge
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.7735708Z Note: switching to 'refs/remotes/pull/177/merge'.
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.7736450Z 
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.7757218Z You are in 'detached HEAD' state. You can look around, make experimental
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.7758726Z changes and commit them, and you can discard any commits you make in this
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.7759955Z state without impacting any branches by switching back to a branch.
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.7760630Z 
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.7761775Z If you want to create a new branch to retain commits you create, you may
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.7762780Z do so (now or later) by using -c with the switch command. Example:
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.7763423Z 
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.7763755Z   git switch -c <new-branch-name>
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.7764139Z 
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.7764589Z Or undo this operation with:
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.7765012Z 
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.7765238Z   git switch -
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.7765579Z 
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.7766121Z Turn off this advice by setting config variable advice.detachedHead to false
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.7766805Z 
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.7767758Z HEAD is now at 10e0640 Merge 7b44a01d63505e686792e12ab63e7eb5a6cca0ec into 167eaabfb653086ef04e8e45b639ef6bd3c7d49f
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.7770227Z ##[endgroup]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.7802767Z [command]/usr/bin/git log -1 --format=%H
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.7824287Z 10e0640250cf21e1d5719b15206179f7fcb660ee
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.8051082Z ##[group]Run actions/setup-go@v5
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.8051493Z with:
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.8051813Z   go-version: 1.25.0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.8052082Z   check-latest: true
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.8052408Z   cache: false
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.8052813Z   token: ***
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.8053128Z env:
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.8053446Z   GO_VERSION: 1.25.0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.8053768Z   GOPROXY: https://proxy.golang.org,direct
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.8054145Z   GOSUMDB: sum.golang.org
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.8054417Z   GOPRIVATE: github.com/thc1006/*
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.8054803Z   CGO_ENABLED: 0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.8055081Z   GOMAXPROCS: 4
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.8055355Z   GOMEMLIMIT: 3GiB
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.8055666Z   SKIP_TESTS: false
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.8055952Z ##[endgroup]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.9608653Z Setup go version spec 1.25.0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:06.9611773Z Attempting to resolve the latest version from the manifest...
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:07.7547615Z matching 1.25.0...
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:07.7593832Z Resolved as '1.25.0'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:07.7728949Z Attempting to download 1.25.0...
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:08.5483549Z matching 1.25.0...
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:08.5487949Z Acquiring 1.25.0 from https://github.com/actions/go-versions/releases/download/1.25.0-16925932082/go-1.25.0-linux-x64.tar.gz
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:09.1823139Z Extracting Go...
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:09.1948966Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/15565bff-016f-4afc-af69-e344dc565973 -f /home/runner/work/_temp/6eac98fd-6ee4-49be-8b4a-17c816e0fc1b
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:10.6138671Z Successfully extracted go to /home/runner/work/_temp/15565bff-016f-4afc-af69-e344dc565973
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:10.6139270Z Adding to the cache ...
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:15.4937483Z Successfully cached go to /opt/hostedtoolcache/go/1.25.0/x64
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:15.4940171Z Added go to the path
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:15.4942210Z Successfully set up Go version 1.25.0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:15.5274848Z go version go1.25.0 linux/amd64
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:15.5275043Z 
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:15.5275345Z ##[group]go env
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2004982Z AR='ar'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2005304Z CC='gcc'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2005655Z CGO_CFLAGS='-O2 -g'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2005963Z CGO_CPPFLAGS=''
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2006287Z CGO_CXXFLAGS='-O2 -g'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2006594Z CGO_ENABLED='0'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2006895Z CGO_FFLAGS='-O2 -g'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2007196Z CGO_LDFLAGS='-O2 -g'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2007498Z CXX='g++'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2007776Z GCCGO='gccgo'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2008072Z GO111MODULE=''
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2008581Z GOAMD64='v1'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2008876Z GOARCH='amd64'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2009165Z GOAUTH='netrc'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2009458Z GOBIN=''
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2009772Z GOCACHE='/home/runner/.cache/go-build'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2010177Z GOCACHEPROG=''
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2010469Z GODEBUG=''
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2010798Z GOENV='/home/runner/.config/go/env'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2011207Z GOEXE=''
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2011509Z GOEXPERIMENT=''
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2011868Z GOFIPS140='off'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2012164Z GOFLAGS=''
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2013125Z GOGCCFLAGS='-fPIC -m64 -Wl,--no-gc-sections -fmessage-length=0 -ffile-prefix-map=/tmp/go-build3999933758=/tmp/go-build -gno-record-gcc-switches'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2014438Z GOHOSTARCH='amd64'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2014769Z GOHOSTOS='linux'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2015093Z GOINSECURE=''
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2015729Z GOMOD='/home/runner/work/nephoran-intent-operator/nephoran-intent-operator/go.mod'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2016546Z GOMODCACHE='/home/runner/go/pkg/mod'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2017000Z GONOPROXY='github.com/thc1006/*'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2017454Z GONOSUMDB='github.com/thc1006/*'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2017850Z GOOS='linux'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2018389Z GOPATH='/home/runner/go'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2018824Z GOPRIVATE='github.com/thc1006/*'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2019324Z GOPROXY='https://proxy.golang.org,direct'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2019872Z GOROOT='/opt/hostedtoolcache/go/1.25.0/x64'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2020358Z GOSUMDB='sum.golang.org'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2021050Z GOTELEMETRY='local'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2021542Z GOTELEMETRYDIR='/home/runner/.config/go/telemetry'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2022070Z GOTMPDIR=''
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2022400Z GOTOOLCHAIN='auto'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2022956Z GOTOOLDIR='/opt/hostedtoolcache/go/1.25.0/x64/pkg/tool/linux_amd64'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2023553Z GOVCS=''
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2023878Z GOVERSION='go1.25.0'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2024108Z GOWORK=''
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2024323Z PKG_CONFIG='pkg-config'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2024471Z 
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2024829Z ##[endgroup]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2160126Z ##[group]Run # Clean cache directories to prevent tar extraction errors
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2160670Z [36;1m# Clean cache directories to prevent tar extraction errors[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2161030Z [36;1mecho "Cleaning Go cache directories..."[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2161357Z [36;1msudo rm -rf $HOME/.cache/go-build || true[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2161655Z [36;1msudo rm -rf $HOME/go/pkg/mod || true[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2161901Z [36;1m[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2162141Z [36;1m# Create fresh directories with proper permissions[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2162496Z [36;1mmkdir -p $HOME/.cache/go-build $HOME/go/pkg/mod[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2162835Z [36;1mchmod -R 755 $HOME/.cache/go-build $HOME/go/pkg/mod[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2369585Z shell: /usr/bin/bash -e {0}
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2369920Z env:
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2370145Z   GO_VERSION: 1.25.0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2370472Z   GOPROXY: https://proxy.golang.org,direct
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2370855Z   GOSUMDB: sum.golang.org
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2371195Z   GOPRIVATE: github.com/thc1006/*
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2371494Z   CGO_ENABLED: 0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2371731Z   GOMAXPROCS: 4
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2371968Z   GOMEMLIMIT: 3GiB
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2372284Z   SKIP_TESTS: false
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2372547Z ##[endgroup]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.2442520Z Cleaning Go cache directories...
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7950517Z ##[group]Run # STANDARDIZED cache key generation (matches ci-production.yml)
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7951064Z [36;1m# STANDARDIZED cache key generation (matches ci-production.yml)[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7951612Z [36;1mGO_SUM_HASH="008eb4a61073b8b98cf1b62f6241a4916b695fa923c8ee062bd6b6eaab097c1d"[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7952151Z [36;1mGO_MOD_HASH="e66eb75a7a31aae08617c9d9fb80ef5697f4d90a72a4a09d93a0f29d5bc0c4c3"[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7952525Z [36;1m[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7952728Z [36;1m# Use fallback if hashes are empty[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7953045Z [36;1mif [ -z "$GO_SUM_HASH" ] || [ "$GO_SUM_HASH" = "" ]; then[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7953396Z [36;1m  GO_SUM_HASH="10e0640250cf21e1d5719b15206179f7fcb660ee"[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7953674Z [36;1mfi[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7953899Z [36;1mif [ -z "$GO_MOD_HASH" ] || [ "$GO_MOD_HASH" = "" ]; then[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7954232Z [36;1m  GO_MOD_HASH="10e0640250cf21e1d5719b15206179f7fcb660ee"[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7954556Z [36;1mfi[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7954718Z [36;1m[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7954912Z [36;1m# STANDARDIZED cache key format[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7955276Z [36;1mCACHE_KEY="nephoran-go-v1-Linux-1.25.0-${GO_SUM_HASH}-${GO_MOD_HASH}"[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7955877Z [36;1mecho "Generated STANDARDIZED cache key: $CACHE_KEY"[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7956225Z [36;1mecho "cache-key=$CACHE_KEY" >> $GITHUB_OUTPUT[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7986017Z shell: /usr/bin/bash -e {0}
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7986243Z env:
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7986419Z   GO_VERSION: 1.25.0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7986657Z   GOPROXY: https://proxy.golang.org,direct
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7986942Z   GOSUMDB: sum.golang.org
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7987160Z   GOPRIVATE: github.com/thc1006/*
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7987385Z   CGO_ENABLED: 0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7987562Z   GOMAXPROCS: 4
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7987741Z   GOMEMLIMIT: 3GiB
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7987929Z   SKIP_TESTS: false
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.7988228Z ##[endgroup]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.8037647Z Generated STANDARDIZED cache key: nephoran-go-v1-Linux-1.25.0-008eb4a61073b8b98cf1b62f6241a4916b695fa923c8ee062bd6b6eaab097c1d-e66eb75a7a31aae08617c9d9fb80ef5697f4d90a72a4a09d93a0f29d5bc0c4c3
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.8109188Z ##[group]Run actions/cache@v4
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.8109443Z with:
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.8109638Z   path: ~/.cache/go-build
+Fast PR Validation	UNKNOWN STEP	~/go/pkg/mod
+Fast PR Validation	UNKNOWN STEP	
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.8110396Z   key: nephoran-go-v1-Linux-1.25.0-008eb4a61073b8b98cf1b62f6241a4916b695fa923c8ee062bd6b6eaab097c1d-e66eb75a7a31aae08617c9d9fb80ef5697f4d90a72a4a09d93a0f29d5bc0c4c3
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.8111220Z   restore-keys: nephoran-go-v1-Linux-1.25.0-
+Fast PR Validation	UNKNOWN STEP	nephoran-go-v1-Linux-
+Fast PR Validation	UNKNOWN STEP	
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.8111576Z   enableCrossOsArchive: false
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.8111808Z   fail-on-cache-miss: false
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.8112028Z   lookup-only: false
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.8112223Z   save-always: false
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.8112400Z env:
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.8112565Z   GO_VERSION: 1.25.0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.8112794Z   GOPROXY: https://proxy.golang.org,direct
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.8113084Z   GOSUMDB: sum.golang.org
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.8113309Z   GOPRIVATE: github.com/thc1006/*
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.8113528Z   CGO_ENABLED: 0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.8113739Z   GOMAXPROCS: 4
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.8113922Z   GOMEMLIMIT: 3GiB
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.8114109Z   SKIP_TESTS: false
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:16.8114287Z ##[endgroup]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:17.2083606Z Cache hit for restore-key: nephoran-go-v1-Linux-1.25.0-008eb4a61073b8b98cf1b62f6241a4916b695fa923c8ee062bd6b6eaab097c1d-f142991184b451196bc51cc7fe5d88bb1c932f363dc235b3c209f09fa06e25bd
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:18.5563377Z Received 12582912 of 983577760 (1.3%), 12.0 MBs/sec
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:19.5573106Z Received 130023424 of 983577760 (13.2%), 61.9 MBs/sec
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:20.5575132Z Received 176160768 of 983577760 (17.9%), 56.0 MBs/sec
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:21.5582118Z Received 281018368 of 983577760 (28.6%), 66.9 MBs/sec
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:22.5586140Z Received 398458880 of 983577760 (40.5%), 76.0 MBs/sec
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:23.5588803Z Received 507510784 of 983577760 (51.6%), 80.6 MBs/sec
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:24.5585535Z Received 629145600 of 983577760 (64.0%), 85.7 MBs/sec
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:25.5585871Z Received 759169024 of 983577760 (77.2%), 90.5 MBs/sec
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:26.5585277Z Received 884998144 of 983577760 (90.0%), 93.7 MBs/sec
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:27.4979237Z Received 983577760 of 983577760 (100.0%), 94.3 MBs/sec
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:27.4981902Z Cache Size: ~938 MB (983577760 B)
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:27.5127225Z [command]/usr/bin/tar -xf /home/runner/work/_temp/3cfec9cf-3f24-419c-b527-4fbd69b245e9/cache.tzst -P -C /home/runner/work/nephoran-intent-operator/nephoran-intent-operator --use-compress-program unzstd
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.4302692Z Cache restored successfully
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.6855717Z Cache restored from key: nephoran-go-v1-Linux-1.25.0-008eb4a61073b8b98cf1b62f6241a4916b695fa923c8ee062bd6b6eaab097c1d-f142991184b451196bc51cc7fe5d88bb1c932f363dc235b3c209f09fa06e25bd
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.6970279Z ##[group]Run git config --global url."https://***@github.com/".insteadOf "https://github.com/"
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.6971095Z [36;1mgit config --global url."https://***@github.com/".insteadOf "https://github.com/"[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7000727Z shell: /usr/bin/bash -e {0}
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7001136Z env:
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7001319Z   GO_VERSION: 1.25.0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7001566Z   GOPROXY: https://proxy.golang.org,direct
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7001861Z   GOSUMDB: sum.golang.org
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7002096Z   GOPRIVATE: github.com/thc1006/*
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7002326Z   CGO_ENABLED: 0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7002514Z   GOMAXPROCS: 4
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7002703Z   GOMEMLIMIT: 3GiB
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7002889Z   SKIP_TESTS: false
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7003078Z ##[endgroup]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7092442Z ##[group]Run echo "Downloading Go dependencies..."
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7092907Z [36;1mecho "Downloading Go dependencies..."[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7093244Z [36;1m[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7093566Z [36;1m# Download with explicit timeout and error handling[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7094003Z [36;1mtimeout 150s go mod download -x || {[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7094465Z [36;1m  echo "Warning: Some modules failed to download within timeout"[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7094964Z [36;1m  echo "Continuing with available modules..."[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7095320Z [36;1m}[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7095515Z [36;1m[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7095745Z [36;1m# Verify what we have[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7096173Z [36;1mgo mod verify || echo "Module verification completed with warnings"[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7122647Z shell: /usr/bin/bash -e {0}
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7122925Z env:
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7123130Z   GO_VERSION: 1.25.0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7123483Z   GOPROXY: https://proxy.golang.org,direct
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7123839Z   GOSUMDB: sum.golang.org
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7124131Z   GOPRIVATE: github.com/thc1006/*
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7124420Z   CGO_ENABLED: 0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7124650Z   GOMAXPROCS: 4
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7124879Z   GOMEMLIMIT: 3GiB
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7125120Z   SKIP_TESTS: false
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7125352Z ##[endgroup]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:35.7169322Z Downloading Go dependencies...
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6655339Z all modules verified
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6695263Z ##[group]Run echo "Running quick validation checks..."
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6695698Z [36;1mecho "Running quick validation checks..."[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6695980Z [36;1m[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6696192Z [36;1m# Go vet on critical packages only[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6696510Z [36;1mecho "Running go vet on critical paths..."[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6696987Z [36;1mgo vet ./controllers/... ./api/... || echo "Vet completed with issues (non-fatal for PR validation)"[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6697394Z [36;1m[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6697609Z [36;1m# Build critical components with timeouts[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6697914Z [36;1mecho "Building critical components..."[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6698485Z [36;1m[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6698696Z [36;1m# Build controllers (most critical)[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6699060Z [36;1mtimeout 90s go build -tags="fast_build" ./controllers/... || {[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6699449Z [36;1m  echo "Warning: Some controllers failed to build"[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6699765Z [36;1m}[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6699935Z [36;1m[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6700126Z [36;1m# Build a few key cmd tools[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6700498Z [36;1mfor cmd in cmd/intent-ingest cmd/conductor-loop cmd/llm-processor; do[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6700895Z [36;1m  if [ -d "$cmd" ] && [ -f "$cmd/main.go" ]; then[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6701181Z [36;1m    name=$(basename "$cmd")[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6701434Z [36;1m    echo "Building $name..."[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6701788Z [36;1m    timeout 60s go build -tags="fast_build" -o "/tmp/$name" "./$cmd" || {[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6702153Z [36;1m      echo "Warning: $name build failed"[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6702409Z [36;1m    }[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6702588Z [36;1m  fi[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6702759Z [36;1mdone[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6731998Z shell: /usr/bin/bash -e {0}
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6732232Z env:
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6732409Z   GO_VERSION: 1.25.0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6732674Z   GOPROXY: https://proxy.golang.org,direct
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6732972Z   GOSUMDB: sum.golang.org
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6733204Z   GOPRIVATE: github.com/thc1006/*
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6733602Z   CGO_ENABLED: 0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6733787Z   GOMAXPROCS: 4
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6733966Z   GOMEMLIMIT: 3GiB
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6734157Z   SKIP_TESTS: false
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6734350Z ##[endgroup]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6803030Z Running quick validation checks...
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:40.6803492Z Running go vet on critical paths...
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:41.3225668Z Building critical components...
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:41.5098657Z Building intent-ingest...
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:42.1175948Z Building conductor-loop...
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:42.6890691Z Building llm-processor...
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:42.9947499Z # github.com/thc1006/nephoran-intent-operator/cmd/llm-processor
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:42.9983251Z ##[error]cmd/llm-processor/main_fast.go:23:6: main redeclared in this block
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:42.9992773Z ##[error]	cmd/llm-processor/main.go:161:6: other declaration of main
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:42.9993918Z Warning: llm-processor build failed
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:43.0034860Z ##[group]Run echo "Running essential tests for PR validation..."
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:43.0035341Z [36;1mecho "Running essential tests for PR validation..."[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:43.0035646Z [36;1m[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:43.0035898Z [36;1m# Test only the most critical packages with short timeout[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:43.0036290Z [36;1mtimeout 150s go test -short -timeout=45s -parallel=4 \[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:43.0036615Z [36;1m  ./controllers/... \[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:43.0036837Z [36;1m  ./api/... \[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:43.0037047Z [36;1m  2>&1 | head -100 || {[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:43.0037393Z [36;1m  echo "Essential tests completed with issues (check full CI for details)"[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:43.0037748Z [36;1m}[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:43.0066716Z shell: /usr/bin/bash -e {0}
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:43.0066944Z env:
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:43.0067122Z   GO_VERSION: 1.25.0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:43.0067382Z   GOPROXY: https://proxy.golang.org,direct
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:43.0067706Z   GOSUMDB: sum.golang.org
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:43.0067931Z   GOPRIVATE: github.com/thc1006/*
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:43.0068329Z   CGO_ENABLED: 0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:43.0068524Z   GOMAXPROCS: 4
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:43.0068708Z   GOMEMLIMIT: 3GiB
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:43.0068901Z   SKIP_TESTS: false
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:43.0069092Z ##[endgroup]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:43.0117567Z Running essential tests for PR validation...
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.0951011Z ?   	github.com/thc1006/nephoran-intent-operator/controllers	[no test files]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.0952069Z [38;5;9mGinkgo detected configuration issues:[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.0952675Z [1m[38;5;9mUse of go test -parallel[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.0953411Z   Go test's implementation of parallelization does not actually parallelize
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.0954597Z   Ginkgo specs.  Please use the ginkgo cli and `ginkgo -p` or `ginkgo -procs=N`
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.0955219Z   instead.
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.0955396Z 
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.0955744Z FAIL	github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1	0.013s
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.0956314Z ?   	github.com/thc1006/nephoran-intent-operator/api/v1	[no test files]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.0956850Z ?   	github.com/thc1006/nephoran-intent-operator/api/v1/common	[no test files]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.0957393Z ?   	github.com/thc1006/nephoran-intent-operator/api/v1alpha1	[no test files]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.0957775Z FAIL
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.0984151Z ##[group]Run echo "Checking if go.mod is tidy..."
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.0984519Z [36;1mecho "Checking if go.mod is tidy..."[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.0984797Z [36;1mgo mod tidy[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.0984998Z [36;1m[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.0985220Z [36;1mif git diff --exit-code go.mod go.sum; then[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.0985533Z [36;1m  echo "SUCCESS: go.mod and go.sum are tidy"[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.0985812Z [36;1melse[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.0986064Z [36;1m  echo "ERROR: go.mod or go.sum need to be tidied"[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.0986406Z [36;1m  echo "Run 'go mod tidy' and commit the changes"[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.0986685Z [36;1m  exit 1[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.0986868Z [36;1mfi[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.1016436Z shell: /usr/bin/bash -e {0}
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.1016676Z env:
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.1016848Z   GO_VERSION: 1.25.0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.1017097Z   GOPROXY: https://proxy.golang.org,direct
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.1017385Z   GOSUMDB: sum.golang.org
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.1017659Z   GOPRIVATE: github.com/thc1006/*
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.1017891Z   CGO_ENABLED: 0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.1018077Z   GOMAXPROCS: 4
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.1018398Z   GOMEMLIMIT: 3GiB
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.1018580Z   SKIP_TESTS: false
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.1018770Z ##[endgroup]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.1066766Z Checking if go.mod is tidy...
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3845931Z diff --git a/go.mod b/go.mod
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3846409Z index ab9eaf4..ac168cd 100644
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3846707Z --- a/go.mod
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3846946Z +++ b/go.mod
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3847142Z @@ -1,6 +1,6 @@
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3847427Z  module github.com/thc1006/nephoran-intent-operator
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3847737Z  
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3847916Z -go 1.24
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3848369Z +go 1.24.0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3848668Z  
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3848944Z  require (
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3849351Z  	cloud.google.com/go/compute v1.44.0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3849838Z ERROR: go.mod or go.sum need to be tidied
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3850323Z Run 'go mod tidy' and commit the changes
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3855672Z ##[error]Process completed with exit code 1.
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3884588Z ##[group]Run echo "=== PR Validation Summary ==="
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3884978Z [36;1mecho "=== PR Validation Summary ==="[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3885272Z [36;1mecho "Go Version: $(go version)"[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3886101Z [36;1mecho "Cache Key: nephoran-go-v1-Linux-1.25.0-008eb4a61073b8b98cf1b62f6241a4916b695fa923c8ee062bd6b6eaab097c1d-e66eb75a7a31aae08617c9d9fb80ef5697f4d90a72a4a09d93a0f29d5bc0c4c3"[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3886921Z [36;1mecho "Skip Tests: false"[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3887155Z [36;1m[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3887347Z [36;1m# List any generated binaries[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3887620Z [36;1mecho "Generated test binaries:"[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3888063Z [36;1mls -la /tmp/*-processor /tmp/*-ingest /tmp/*-loop 2>/dev/null || echo "No test binaries found"[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3888876Z [36;1m[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3889055Z [36;1mecho ""[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3889294Z [36;1mecho "SUCCESS: Fast PR validation completed!"[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3889673Z [36;1mecho "READY: Ready for full CI pipeline on merge"[0m
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3919560Z shell: /usr/bin/bash -e {0}
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3919804Z env:
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3919987Z   GO_VERSION: 1.25.0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3920248Z   GOPROXY: https://proxy.golang.org,direct
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3920548Z   GOSUMDB: sum.golang.org
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3920789Z   GOPRIVATE: github.com/thc1006/*
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3921044Z   CGO_ENABLED: 0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3921238Z   GOMAXPROCS: 4
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3921432Z   GOMEMLIMIT: 3GiB
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3921636Z   SKIP_TESTS: false
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3921826Z ##[endgroup]
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3967913Z === PR Validation Summary ===
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.3998521Z Go Version: go version go1.25.0 linux/amd64
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.4000074Z Cache Key: nephoran-go-v1-Linux-1.25.0-008eb4a61073b8b98cf1b62f6241a4916b695fa923c8ee062bd6b6eaab097c1d-e66eb75a7a31aae08617c9d9fb80ef5697f4d90a72a4a09d93a0f29d5bc0c4c3
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.4001508Z Skip Tests: false
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.4001886Z Generated test binaries:
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.4014066Z -rwxr-xr-x 1 runner docker 13743472 Sep  4 15:37 /tmp/conductor-loop
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.4014720Z -rwxr-xr-x 1 runner docker  9915227 Sep  4 15:37 /tmp/intent-ingest
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.4015708Z No test binaries found
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.4015953Z 
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.4016161Z SUCCESS: Fast PR validation completed!
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.4016653Z READY: Ready for full CI pipeline on merge
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.4070672Z Post job cleanup.
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.4995519Z [command]/usr/bin/git version
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.5037403Z git version 2.51.0
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.5074320Z Copying '/home/runner/.gitconfig' to '/home/runner/work/_temp/e0f3da81-c0aa-435b-b82f-f1f473f56510/.gitconfig'
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.5084370Z Temporarily overriding HOME='/home/runner/work/_temp/e0f3da81-c0aa-435b-b82f-f1f473f56510' before making global git config changes
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.5085695Z Adding repository directory to the temporary git global config as a safe directory
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.5090862Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.5123973Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.5155559Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.5425983Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.5445902Z http.https://github.com/.extraheader
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.5459205Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.5489691Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Fast PR Validation	UNKNOWN STEP	2025-09-04T15:37:44.5813234Z Cleaning up orphan processes

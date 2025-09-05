@@ -8,3 +8,10 @@ images:
 - name: controller
   newName: ghcr.io/nephio-project/nephoran-controller
   newTag: v0.1.0
+
+configMapGenerator:
+- name: manager-config
+  files:
+  - controller-manager-config.yaml
+generatorOptions:
+  disableNameSuffixHash: true

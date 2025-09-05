@@ -169,9 +169,8 @@ func (suite *TestBackendIntegrationSuite) TestElasticsearchBackend() {
 			// Mock bulk indexing response
 			w.Header().Set("Content-Type", "application/json")
 			response := map[string]interface{}{
-					{
-						"index": json.RawMessage(`{}`),
-					},
+				"indices": map[string]interface{}{
+					"index": json.RawMessage(`{}`),
 				},
 			}
 			json.NewEncoder(w).Encode(response)

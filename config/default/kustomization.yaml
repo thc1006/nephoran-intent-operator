@@ -14,3 +14,25 @@ namespace: nephoran-system
 commonLabels:
   app.kubernetes.io/name: nephoran-intent-operator
   app.kubernetes.io/part-of: nephoran-intent-operator
+
+# Image settings for webhook manager
+images:
+- name: webhook-manager
+  newName: nephoran/webhook-manager
+  newTag: latest
+
+# Configuration for the deployment
+configMapGenerator:
+- name: webhook-deployment-config
+  literals:
+  - NAMESPACE=nephoran-system
+  - WEBHOOK_SERVICE_NAME=webhook-manager
+  - CERT_MANAGER_ENABLED=true
+
+# Strategic merge patches using modern kustomize syntax
+patches:
+- path: webhook-deployment-patch.yaml
+  target:
+    kind: Deployment
+    name: webhook-manager
+    namespace: nephoran-system

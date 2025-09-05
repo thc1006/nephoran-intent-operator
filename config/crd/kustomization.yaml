@@ -5,4 +5,4 @@ generatorOptions:
   disableNameSuffixHash: true
 
 resources:
-- bases/
+- bases

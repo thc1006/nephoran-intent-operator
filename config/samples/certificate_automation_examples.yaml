@@ -42,7 +42,7 @@ spec:
     - api-gateway.nephoran-system.svc.cluster.local
     - api.nephoran.io
     - gateway.nephoran.io
-    - *.api.nephoran.io
+    - "*.api.nephoran.io"
   ipAddresses:
     - 10.0.1.100
     - 192.168.1.50
