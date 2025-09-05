@@ -54,16 +54,25 @@ func (suite *BenchmarkSuite) setupTestData() {
 
 	// Create test users
 	for i := 0; i < 1000; i++ {
-		user := uf.CreateBasicUser()
-		suite.testUsers = append(suite.testUsers, user)
+		testUser := uf.CreateBasicUser()
+		// Convert TestUser to UserInfo
+		userInfo := &providers.UserInfo{
+			Subject:       testUser.Subject,
+			Email:         testUser.Email,
+			EmailVerified: testUser.EmailVerified,
+			Name:          testUser.Name,
+			Username:      testUser.Username,
+			Provider:      testUser.Provider,
+		}
+		suite.testUsers = append(suite.testUsers, userInfo)
 
 		// Generate tokens for users
-		if token, err := suite.jwtManager.GenerateToken(user, nil); err == nil {
+		if token, err := suite.jwtManager.GenerateToken(userInfo, nil); err == nil {
 			suite.testTokens = append(suite.testTokens, token)
 		}
 
 		// Create sessions for users
-		if session, err := suite.sessionManager.CreateSession(ctx, user, nil); err == nil {
+		if session, err := suite.sessionManager.CreateSession(ctx, userInfo, nil); err == nil {
 			suite.testSessions = append(suite.testSessions, session)
 		}
 	}

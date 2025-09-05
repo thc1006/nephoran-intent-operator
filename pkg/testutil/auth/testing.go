@@ -164,14 +164,32 @@ func NewRBACManagerMock() *RBACManagerMock {
 }
 
 // CreateRole creates a new role (mock implementation)
-func (rbac *RBACManagerMock) CreateRole(ctx context.Context, role interface{}) error {
-	// Mock implementation - just return success
-	return nil
+func (rbac *RBACManagerMock) CreateRole(ctx context.Context, role interface{}) (*TestRole, error) {
+	if testRole, ok := role.(*TestRole); ok {
+		// Store the role and return it
+		rbac.roleStore[testRole.ID] = testRole
+		return testRole, nil
+	}
+	return nil, fmt.Errorf("invalid role type")
 }
 
 // CreatePermission creates a new permission (mock implementation)  
-func (rbac *RBACManagerMock) CreatePermission(ctx context.Context, permission interface{}) error {
+func (rbac *RBACManagerMock) CreatePermission(ctx context.Context, permission interface{}) (*TestPermission, error) {
+	if testPerm, ok := permission.(*TestPermission); ok {
+		// Store the permission and return it
+		rbac.permissionStore[testPerm.ID] = testPerm
+		return testPerm, nil
+	}
+	return nil, fmt.Errorf("invalid permission type")
+}
+
+// AssignRoleToUser assigns a role to a user (mock implementation)
+func (rbac *RBACManagerMock) AssignRoleToUser(ctx context.Context, userID, roleID string) error {
 	// Mock implementation - just return success
+	if rbac.roles == nil {
+		rbac.roles = make(map[string][]string)
+	}
+	rbac.roles[userID] = append(rbac.roles[userID], roleID)
 	return nil
 }
 
@@ -952,6 +970,18 @@ func (rf *RoleFactory) CreateRole(name, description string, permissions []string
 	}
 }
 
+// CreateRoleWithPermissions creates a test role with given permission IDs
+func (rf *RoleFactory) CreateRoleWithPermissions(permissionIDs []string) *TestRole {
+	return &TestRole{
+		ID:          fmt.Sprintf("role-%d", time.Now().UnixNano()),
+		Name:        fmt.Sprintf("test-role-%d", time.Now().UnixNano()),
+		Description: "Test role created with permissions",
+		Permissions: permissionIDs,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+}
+
 // PermissionFactory creates test permissions
 type PermissionFactory struct{}
 
@@ -973,5 +1003,15 @@ func (pf *PermissionFactory) CreatePermission(resource, action, scope string) *T
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
+}
+
+// CreateResourcePermissions creates multiple permissions for a resource with given actions
+func (pf *PermissionFactory) CreateResourcePermissions(resource string, actions []string) []*TestPermission {
+	permissions := make([]*TestPermission, 0, len(actions))
+	for _, action := range actions {
+		permission := pf.CreatePermission(resource, action, "default")
+		permissions = append(permissions, permission)
+	}
+	return permissions
 }
 

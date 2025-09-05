@@ -151,7 +151,7 @@ func TestTLSSessionCacheRace(t *testing.T) {
 		}()
 	}
 
-	group.Wait()
+	wg.Wait()
 	t.Logf("Hits: %d, Misses: %d, Evictions: %d, Current sessions: %d",
 		sessionCache.hits.Load(), sessionCache.misses.Load(),
 		sessionCache.evictions.Load(), countSyncMapEntries(sessionCache.sessions))

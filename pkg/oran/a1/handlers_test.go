@@ -1039,14 +1039,6 @@ func (m *MockA1Storage) ListEITypes(ctx context.Context) ([]*EnrichmentInfoType,
 	return args.Get(0).([]*EnrichmentInfoType), args.Error(1)
 }
 
-func (m *MockA1Storage) GetEIJob(ctx context.Context, eiJobID string) (*EnrichmentInfoJob, error) {
-	args := m.Called(ctx, eiJobID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*EnrichmentInfoJob), args.Error(1)
-}
-
 // Mock service methods for additional operations - moved to mock implementations section below
 
 // Mock types for testing

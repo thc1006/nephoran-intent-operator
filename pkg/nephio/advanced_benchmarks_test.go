@@ -564,7 +564,7 @@ func benchmarkPolicyEnforcement(b *testing.B, ctx context.Context, nephioSystem 
 				Type:         scenario.policyType,
 				Complexity:   scenario.complexity,
 				ResourceType: scenario.resourceType,
-				Rules:        generatePolicyRules(scenario.ruleCount),
+				Rules:        generateBenchmarkPolicyRules(scenario.ruleCount),
 			}
 
 			testResource := generateTestResource(scenario.resourceType)
@@ -793,11 +793,11 @@ func generateTestClusters(count int, deployType string) []ClusterConfig {
 	return clusters
 }
 
-func generatePolicyRules(count int) []PolicyRule {
-	rules := make([]PolicyRule, count)
+func generateBenchmarkPolicyRules(count int) []BenchmarkPolicyRule {
+	rules := make([]BenchmarkPolicyRule, count)
 
 	for i := range rules {
-		rules[i] = PolicyRule{
+		rules[i] = BenchmarkPolicyRule{
 			Name:       fmt.Sprintf("rule-%d", i),
 			Type:       "validation",
 			Expression: fmt.Sprintf("spec.replicas <= %d", 10+i),
@@ -960,21 +960,17 @@ type ConfigSyncSpec struct {
 	UpdateFreq     string
 }
 
-type ConfigSyncResult struct {
-	ResourcesSynced int
-	ReconcileTime   time.Duration
-	ApplyTime       time.Duration
-}
+// ConfigSyncResult is imported from workflow_orchestrator.go
 
 type PolicySpec struct {
 	Name         string
 	Type         string
 	Complexity   string
 	ResourceType string
-	Rules        []PolicyRule
+	Rules        []BenchmarkPolicyRule
 }
 
-type PolicyRule struct {
+type BenchmarkPolicyRule struct {
 	Name       string
 	Type       string
 	Expression string

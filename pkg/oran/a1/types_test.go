@@ -520,12 +520,9 @@ func TestEnrichmentInfoJob_JSON_Serialization(t *testing.T) {
 		JobDefinition: EnrichmentJobDef{
 			DeliveryInfo: []DeliveryInfo{
 				{
-					DeliveryURL:    "http://ei-consumer.example.com/measurements",
-					DeliveryMethod: "POST",
-					Headers: map[string]string{
-						"Content-Type":  "application/json",
-						"Authorization": "Bearer token123",
-					},
+					TopicName:      "measurements-topic",
+					BootStrapServer: "kafka.example.com:9092",
+					AdditionalInfo: json.RawMessage(`{"Content-Type":"application/json","Authorization":"Bearer token123"}`),
 				},
 			},
 			JobParameters: json.RawMessage(`{}`),
@@ -569,7 +566,7 @@ func TestEnrichmentInfoJob_Validation_Tags(t *testing.T) {
 			job: EnrichmentInfoJob{
 				EiJobID:   "valid-job-id",
 				EiTypeID:  "valid-type-id",
-				EiJobData: json.RawMessage(`{"key":"value"}`),
+				EiJobData: map[string]interface{}{"key": "value"},
 				TargetURI: "http://valid.example.com",
 				JobOwner:  "valid-owner",
 			},
@@ -580,7 +577,7 @@ func TestEnrichmentInfoJob_Validation_Tags(t *testing.T) {
 			job: EnrichmentInfoJob{
 				EiJobID:   "", // Required field
 				EiTypeID:  "valid-type-id",
-				EiJobData: json.RawMessage(`{"key":"value"}`),
+				EiJobData: map[string]interface{}{"key": "value"},
 				TargetURI: "http://valid.example.com",
 				JobOwner:  "valid-owner",
 			},
@@ -592,7 +589,7 @@ func TestEnrichmentInfoJob_Validation_Tags(t *testing.T) {
 			job: EnrichmentInfoJob{
 				EiJobID:   "valid-job-id",
 				EiTypeID:  "", // Required field
-				EiJobData: json.RawMessage(`{"key":"value"}`),
+				EiJobData: map[string]interface{}{"key": "value"},
 				TargetURI: "http://valid.example.com",
 				JobOwner:  "valid-owner",
 			},
@@ -604,7 +601,7 @@ func TestEnrichmentInfoJob_Validation_Tags(t *testing.T) {
 			job: EnrichmentInfoJob{
 				EiJobID:   "valid-job-id",
 				EiTypeID:  "valid-type-id",
-				EiJobData: json.RawMessage(`{"key":"value"}`),
+				EiJobData: map[string]interface{}{"key": "value"},
 				TargetURI: "not-a-url", // Invalid URL format
 				JobOwner:  "valid-owner",
 			},
@@ -616,7 +613,7 @@ func TestEnrichmentInfoJob_Validation_Tags(t *testing.T) {
 			job: EnrichmentInfoJob{
 				EiJobID:   "valid-job-id",
 				EiTypeID:  "valid-type-id",
-				EiJobData: json.RawMessage(`{"key":"value"}`),
+				EiJobData: map[string]interface{}{"key": "value"},
 				TargetURI: "http://valid.example.com",
 				JobOwner:  "", // Required field
 			},

@@ -57,14 +57,7 @@ type FunctionConfig struct {
 	Exec       *ExecConfig            `json:"exec,omitempty"`
 }
 
-// ResourceSelector defines resource selection criteria
-type ResourceSelector struct {
-	APIVersion string            `json:"apiVersion,omitempty"`
-	Kind       string            `json:"kind,omitempty"`
-	Name       string            `json:"name,omitempty"`
-	Namespace  string            `json:"namespace,omitempty"`
-	Labels     map[string]string `json:"labels,omitempty"`
-}
+// ResourceSelector is imported from pipeline.go
 
 // ExecConfig defines execution configuration for container functions
 type ExecConfig struct {
@@ -112,7 +105,7 @@ type FunctionContext struct {
 }
 
 // Pipeline defines a sequence of KRM functions
-type Pipeline struct {
+type TestPipeline struct {
 	Name      string                 `json:"name"`
 	Functions []FunctionConfig       `json:"functions"`
 	Metadata  json.RawMessage `json:"metadata,omitempty"`
@@ -120,7 +113,7 @@ type Pipeline struct {
 
 // PipelineRequest represents a pipeline execution request
 type PipelineRequest struct {
-	Pipeline  Pipeline         `json:"pipeline"`
+	Pipeline  TestPipeline         `json:"pipeline"`
 	Resources []KRMResource    `json:"resources"`
 	Context   *FunctionContext `json:"context,omitempty"`
 }
@@ -1045,7 +1038,7 @@ func TestPipelineExecution(t *testing.T) {
 		generateTestResource("v1", "Service", "test-service", "default"),
 	}
 
-	pipeline := Pipeline{
+	pipeline := TestPipeline{
 		Name: "standard-pipeline",
 		Functions: []FunctionConfig{
 			{
@@ -1114,7 +1107,7 @@ func TestPipelineExecutionFailure(t *testing.T) {
 		generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),
 	}
 
-	pipeline := Pipeline{
+	pipeline := TestPipeline{
 		Name: "failing-pipeline",
 		Functions: []FunctionConfig{
 			{
@@ -1450,7 +1443,7 @@ func BenchmarkPipelineExecution(b *testing.B) {
 		generateTestResource("v1", "Service", "test-service", "default"),
 	}
 
-	pipeline := Pipeline{
+	pipeline := TestPipeline{
 		Name: "benchmark-pipeline",
 		Functions: []FunctionConfig{
 			{

@@ -45,22 +45,8 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 				},
 				Spec: intentv1alpha1.NetworkIntentSpec{
 					// 2025 pattern: Use realistic O-RAN scaling scenarios
-					ScalingIntent: intentv1alpha1.ScalingIntent{
-						Action: "scale-up",
-						Target: intentv1alpha1.ScalingTarget{
-							Component: "cu-cp",
-							Replicas:  5,
-							Region:    "us-west-2",
-						},
-						Constraints: intentv1alpha1.ScalingConstraints{
-							MaxReplicas:     10,
-							MinReplicas:     2,
-							ResourceLimits:  map[string]string{"cpu": "4", "memory": "8Gi"},
-							NetworkCapacity: "10Gbps",
-						},
-					},
-					Priority: "high",
-					Source:   "llm-generated",
+					ScalingPriority: "high",
+					TargetClusters:  []string{"cluster-1"},
 				},
 			}
 		})
@@ -83,9 +69,8 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 				}, createdIntent)
 			}, timeout, interval).Should(Succeed())
 
-			Expect(createdIntent.Spec.ScalingIntent.Action).To(Equal("scale-up"))
-			Expect(createdIntent.Spec.ScalingIntent.Target.Component).To(Equal("cu-cp"))
-			Expect(createdIntent.Spec.ScalingIntent.Target.Replicas).To(Equal(int32(5)))
+			Expect(createdIntent.Spec.ScalingPriority).To(Equal("high"))
+			Expect(createdIntent.Spec.TargetClusters).To(ContainElement("cluster-1"))
 		})
 
 		It("should update the NetworkIntent status", func(ctx SpecContext) {
@@ -173,12 +158,12 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 					Namespace: "default",
 				},
 				Spec: intentv1alpha1.NetworkIntentSpec{
-					ScalingIntent: intentv1alpha1.ScalingIntent{
-						Action: "invalid-action", // Invalid action
-						Target: intentv1alpha1.ScalingTarget{
-							Component: "cu-cp",
-							Replicas:  5,
-						},
+					ScalingPriority: "medium",
+					TargetClusters: []string{"cluster-test"},
+					Action: "invalid-action", // Invalid action
+					Target: intentv1alpha1.ScalingTarget{
+						Component: "cu-cp",
+						Replicas:  5,
 					},
 				},
 			}
@@ -202,16 +187,16 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 					Namespace: "default",
 				},
 				Spec: intentv1alpha1.NetworkIntentSpec{
-					ScalingIntent: intentv1alpha1.ScalingIntent{
-						Action: "scale-up",
-						Target: intentv1alpha1.ScalingTarget{
-							Component: "cu-cp",
-							Replicas:  15, // Exceeds max replicas
-						},
-						Constraints: intentv1alpha1.ScalingConstraints{
-							MaxReplicas: 10,
-							MinReplicas: 2,
-						},
+					ScalingPriority: "medium",
+					TargetClusters: []string{"cluster-test"},
+					Action: "scale-up",
+					Target: intentv1alpha1.ScalingTarget{
+						Component: "cu-cp",
+						Replicas:  15, // Exceeds max replicas
+					},
+					Constraints: intentv1alpha1.ScalingConstraints{
+						MaxReplicas: 10,
+						MinReplicas: 2,
 					},
 				},
 			}
@@ -255,13 +240,13 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 						Namespace: "default",
 					},
 					Spec: intentv1alpha1.NetworkIntentSpec{
-						ScalingIntent: intentv1alpha1.ScalingIntent{
-							Action: "scale-up",
-							Target: intentv1alpha1.ScalingTarget{
-								Component: "cu-cp",
-								Replicas:  int32(i + 3), // Different replica counts
-								Region:    fmt.Sprintf("region-%d", i),
-							},
+						ScalingPriority: "medium",
+						TargetClusters: []string{"cluster-test"},
+						Action: "scale-up",
+						Target: intentv1alpha1.ScalingTarget{
+							Component: "cu-cp",
+							Replicas:  int32(i + 3), // Different replica counts
+							Region:    fmt.Sprintf("region-%d", i),
 						},
 						Priority: "medium",
 					},
@@ -307,7 +292,8 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 						Namespace: "default",
 					},
 					Spec: intentv1alpha1.NetworkIntentSpec{
-						ScalingIntent: intentv1alpha1.ScalingIntent{
+						ScalingPriority: "medium",
+					TargetClusters: []string{"cluster-test"},
 							Action: func() string {
 								if targetReplicas > initialReplicas {
 									return "scale-up"

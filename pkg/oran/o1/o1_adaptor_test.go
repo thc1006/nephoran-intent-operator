@@ -56,11 +56,9 @@ func TestNewO1AdaptorConstruction(t *testing.T) {
 				assert.Equal(t, tt.config, got.config)
 			} else {
 				// Check default config values
-				assert.Equal(t, 830, got.config.DefaultPort)
-				assert.Equal(t, 30*time.Second, got.config.ConnectTimeout)
-				assert.Equal(t, 60*time.Second, got.config.RequestTimeout)
-				assert.Equal(t, 3, got.config.MaxRetries)
-				assert.Equal(t, 5*time.Second, got.config.RetryInterval)
+				assert.Equal(t, 30*time.Second, got.config.Timeout)
+				assert.Equal(t, 0, got.config.RetryAttempts)
+				assert.Equal(t, "", got.config.Endpoint)
 			}
 		})
 	}
