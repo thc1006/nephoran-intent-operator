@@ -6,8 +6,7 @@ following 2025 Kubernetes operator testing best practices.
 package envtest
 
 import (
-	"context"
-	"time"
+	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -15,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1alpha1"
+	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
 )
 
 var _ = Describe("NetworkIntent Controller", Ordered, func() {
@@ -24,12 +23,9 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 			networkIntent     *intentv1alpha1.NetworkIntent
 			networkIntentName string
 			testNamespace     string
-			testCtx           context.Context
-			testCancel        context.CancelFunc
 		)
 
 		BeforeAll(func() {
-			testCtx, testCancel = CreateTestContext(nil)
 			testNamespace = "default" // Use default namespace for simplicity
 			networkIntentName = "test-network-intent"
 
@@ -45,14 +41,16 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 				},
 				Spec: intentv1alpha1.NetworkIntentSpec{
 					// 2025 pattern: Use realistic O-RAN scaling scenarios
-					ScalingPriority: "high",
-					TargetClusters:  []string{"cluster-1"},
+					Source:     "test",
+					IntentType: "scaling",
+					Target:     "cluster-1",
+					Replicas:   5,
 				},
 			}
 		})
 
 		AfterAll(func() {
-			testCancel()
+			// Cleanup any resources created during tests
 		})
 
 		It("should create the NetworkIntent successfully", func(ctx SpecContext) {
@@ -69,8 +67,8 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 				}, createdIntent)
 			}, timeout, interval).Should(Succeed())
 
-			Expect(createdIntent.Spec.ScalingPriority).To(Equal("high"))
-			Expect(createdIntent.Spec.TargetClusters).To(ContainElement("cluster-1"))
+			Expect(createdIntent.Spec.Source).To(Equal("test"))
+			Expect(createdIntent.Spec.Target).To(Equal("cluster-1"))
 		})
 
 		It("should update the NetworkIntent status", func(ctx SpecContext) {
@@ -91,7 +89,7 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 
 			// Verify status fields are properly set
 			Expect(updatedIntent.Status.Phase).To(BeElementOf([]string{"Pending", "Processing", "Completed", "Failed"}))
-			Expect(updatedIntent.Status.LastUpdated).NotTo(BeNil())
+			Expect(updatedIntent.Status.Message).NotTo(BeEmpty())
 		})
 
 		It("should handle NetworkIntent updates correctly", func(ctx SpecContext) {
@@ -105,8 +103,8 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 			}, currentIntent)).Should(Succeed())
 
 			// Update the resource
-			currentIntent.Spec.ScalingIntent.Target.Replicas = 8
-			currentIntent.Spec.Priority = "medium"
+			currentIntent.Spec.Replicas = 8
+			currentIntent.Spec.Target = "cluster-updated"
 			
 			Expect(k8sClient.Update(ctx, currentIntent)).Should(Succeed())
 
@@ -120,7 +118,7 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 				if err != nil {
 					return 0
 				}
-				return updatedIntent.Spec.ScalingIntent.Target.Replicas
+				return updatedIntent.Spec.Replicas
 			}, timeout, interval).Should(Equal(int32(8)))
 		})
 
@@ -158,13 +156,10 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 					Namespace: "default",
 				},
 				Spec: intentv1alpha1.NetworkIntentSpec{
-					ScalingPriority: "medium",
-					TargetClusters: []string{"cluster-test"},
-					Action: "invalid-action", // Invalid action
-					Target: intentv1alpha1.ScalingTarget{
-						Component: "cu-cp",
-						Replicas:  5,
-					},
+					Source:     "test",
+					IntentType: "invalid-type", // Invalid type
+					Target:     "cluster-test",
+					Replicas:   5,
 				},
 			}
 
@@ -187,24 +182,17 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 					Namespace: "default",
 				},
 				Spec: intentv1alpha1.NetworkIntentSpec{
-					ScalingPriority: "medium",
-					TargetClusters: []string{"cluster-test"},
-					Action: "scale-up",
-					Target: intentv1alpha1.ScalingTarget{
-						Component: "cu-cp",
-						Replicas:  15, // Exceeds max replicas
-					},
-					Constraints: intentv1alpha1.ScalingConstraints{
-						MaxReplicas: 10,
-						MinReplicas: 2,
-					},
+					Source:     "test",
+					IntentType: "scaling",
+					Target:     "cluster-test",
+					Replicas:   -5, // Invalid negative replicas
 				},
 			}
 
 			err := k8sClient.Create(ctx, constraintViolationIntent)
 			// This should fail validation if webhooks are properly configured
 			if err != nil {
-				Expect(err.Error()).To(ContainSubstring("exceeds"))
+				Expect(err.Error()).To(ContainSubstring("negative"))
 			} else {
 				// If no validation webhook, check controller handles it
 				Eventually(func() string {
@@ -240,15 +228,10 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 						Namespace: "default",
 					},
 					Spec: intentv1alpha1.NetworkIntentSpec{
-						ScalingPriority: "medium",
-						TargetClusters: []string{"cluster-test"},
-						Action: "scale-up",
-						Target: intentv1alpha1.ScalingTarget{
-							Component: "cu-cp",
-							Replicas:  int32(i + 3), // Different replica counts
-							Region:    fmt.Sprintf("region-%d", i),
-						},
-						Priority: "medium",
+						Source:     "test",
+						IntentType: "scaling",
+						Target:     fmt.Sprintf("cluster-test-%d", i),
+						Replicas:   int32(i + 3), // Different replica counts
 					},
 				}
 				
@@ -292,8 +275,10 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 						Namespace: "default",
 					},
 					Spec: intentv1alpha1.NetworkIntentSpec{
-						ScalingPriority: "medium",
-						TargetClusters:  []string{"cluster-test"},
+						Source:     "test",
+						IntentType: "scaling",
+						Target:     component,
+						Replicas:   targetReplicas,
 					},
 				}
 

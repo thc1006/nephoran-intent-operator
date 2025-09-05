@@ -28,11 +28,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	// Import your API types here
-	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1alpha1"
+	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
 	"github.com/thc1006/nephoran-intent-operator/controllers"
 	// +kubebuilder:scaffold:imports
 )
@@ -62,21 +65,7 @@ func TestControllers(t *testing.T) {
 	RegisterFailHandler(Fail)
 
 	// Configure Ginkgo for 2025 best practices
-	suiteConfig := GinkgoConfiguration{
-		LabelFilter:         "unit",
-		ParallelTotal:       1, // Sequential for envtest stability
-		FlakeAttempts:       3, // Retry flaky tests
-		Timeout:             5 * time.Minute,
-		GracePeriod:         30 * time.Second,
-		OutputInterceptMode: "none",
-	}
-
-	reporterConfig := GinkgoReporterConfiguration{
-		Succinct: true,
-		Verbose:  false,
-	}
-
-	RunSpecs(t, "Nephoran Controller Suite", suiteConfig, reporterConfig)
+	RunSpecs(t, "Nephoran Controller Suite")
 }
 
 var _ = BeforeSuite(func() {
@@ -185,10 +174,10 @@ var _ = BeforeSuite(func() {
 	}()
 
 	// Wait for manager to be ready
-	Eventually(func() error {
+	Eventually(func() bool {
 		// Check if manager's cache is synced
 		return mgr.GetCache().WaitForCacheSync(ctx)
-	}, timeout, interval).Should(Succeed())
+	}, timeout, interval).Should(BeTrue())
 
 	By("test environment setup completed successfully")
 })
@@ -222,9 +211,10 @@ func CreateNetworkIntent(name, namespace string, spec intentv1alpha1.NetworkInte
 // func CreateOranCluster(name, namespace string, spec intentv1alpha1.OranClusterSpec) *intentv1alpha1.OranCluster
 
 // WaitForResource waits for a resource to reach a specific condition
-func WaitForResource(ctx context.Context, client client.Client, obj client.Object, conditionFunc func() bool) error {
+func WaitForResource(ctx context.Context, k8sClient client.Client, obj client.Object, conditionFunc func() bool) error {
 	return wait.PollImmediate(interval, timeout, func() (bool, error) {
-		if err := client.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
+		key := types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}
+		if err := k8sClient.Get(ctx, key, obj); err != nil {
 			return false, err
 		}
 		return conditionFunc(), nil
@@ -232,16 +222,18 @@ func WaitForResource(ctx context.Context, client client.Client, obj client.Objec
 }
 
 // AssertResourceEventuallyExists asserts that a resource eventually exists
-func AssertResourceEventuallyExists(ctx context.Context, client client.Client, obj client.Object) {
+func AssertResourceEventuallyExists(ctx context.Context, k8sClient client.Client, obj client.Object) {
 	Eventually(func() error {
-		return client.Get(ctx, client.ObjectKeyFromObject(obj), obj)
+		key := types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}
+		return k8sClient.Get(ctx, key, obj)
 	}, timeout, interval).Should(Succeed())
 }
 
 // AssertResourceEventuallyDeleted asserts that a resource is eventually deleted
-func AssertResourceEventuallyDeleted(ctx context.Context, client client.Client, obj client.Object) {
+func AssertResourceEventuallyDeleted(ctx context.Context, k8sClient client.Client, obj client.Object) {
 	Eventually(func() bool {
-		err := client.Get(ctx, client.ObjectKeyFromObject(obj), obj)
+		key := types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}
+		err := k8sClient.Get(ctx, key, obj)
 		return errors.IsNotFound(err)
 	}, timeout, interval).Should(BeTrue())
 }
