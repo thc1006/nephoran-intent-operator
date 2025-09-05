@@ -82,23 +82,23 @@ jobs:
   # THREAT MODELING: Comprehensive telecommunications threat analysis
   # =============================================================================
   threat-modeling:
-    name: üé≠ Threat Modeling Analysis
-    runs-on: ubuntu-22.04
+    name: ?é≠ Threat Modeling Analysis
+    runs-on: ubuntu-latest
     if: inputs.threat_modeling != 'false'
-    timeout-minutes: 20
+    timeout-minutes: 10
     outputs:
       threat-score: ${{ steps.threat-analysis.outputs.score }}
       risk-level: ${{ steps.risk-assessment.outputs.level }}
       attack-vectors: ${{ steps.attack-vectors.outputs.vectors }}
       
     steps:
-      - name: üì• Checkout
+      - name: ?ì• Checkout
         uses: actions/checkout@v4
         
-      - name: üé≠ STRIDE Threat Modeling
+      - name: ?é≠ STRIDE Threat Modeling
         id: stride-analysis
         run: |
-          echo "üé≠ Performing STRIDE threat modeling for telecommunications components"
+          echo "?é≠ Performing STRIDE threat modeling for telecommunications components"
           
           # STRIDE analysis for telecom-specific threats
           threat_categories=(
@@ -117,80 +117,80 @@ jobs:
             threat_type=$(echo "$category" | cut -d':' -f1)
             threat_desc=$(echo "$category" | cut -d':' -f2)
             
-            echo "üîç Analyzing $threat_type: $threat_desc"
+            echo "?? Analyzing $threat_type: $threat_desc"
             
             case "$threat_type" in
               "Spoofing")
                 # Check for authentication mechanisms
                 if find . -name "*.go" -exec grep -l "authentication\|oauth\|jwt\|x509" {} \; | head -3; then
-                  echo "  ‚úÖ Authentication mechanisms found"
+                  echo "  ??Authentication mechanisms found"
                   stride_score=$((stride_score + 1))
                 else
-                  echo "  ‚ö†Ô∏è Limited authentication mechanisms"
+                  echo "  ?†Ô? Limited authentication mechanisms"
                   high_risk_threats=$((high_risk_threats + 1))
                 fi
                 ;;
               "Tampering")
                 # Check for data integrity protection
                 if find . -name "*.go" -exec grep -l "integrity\|hash\|checksum\|signature" {} \; | head -3; then
-                  echo "  ‚úÖ Data integrity protection found"
+                  echo "  ??Data integrity protection found"
                   stride_score=$((stride_score + 1))
                 else
-                  echo "  ‚ö†Ô∏è Limited data integrity protection"
+                  echo "  ?†Ô? Limited data integrity protection"
                   high_risk_threats=$((high_risk_threats + 1))
                 fi
                 ;;
               "Repudiation")
                 # Check for audit logging
                 if find . -name "*.go" -exec grep -l "audit\|log\|trace" {} \; | head -3; then
-                  echo "  ‚úÖ Audit logging mechanisms found"
+                  echo "  ??Audit logging mechanisms found"
                   stride_score=$((stride_score + 1))
                 else
-                  echo "  ‚ö†Ô∏è Limited audit logging"
+                  echo "  ?†Ô? Limited audit logging"
                   high_risk_threats=$((high_risk_threats + 1))
                 fi
                 ;;
               "Information_Disclosure")
                 # Check for encryption and data protection
                 if find . -name "*.go" -exec grep -l "encrypt\|tls\|aes\|crypto" {} \; | head -3; then
-                  echo "  ‚úÖ Encryption mechanisms found"
+                  echo "  ??Encryption mechanisms found"
                   stride_score=$((stride_score + 1))
                 else
-                  echo "  ‚ö†Ô∏è Limited encryption mechanisms"
+                  echo "  ?†Ô? Limited encryption mechanisms"
                   high_risk_threats=$((high_risk_threats + 1))
                 fi
                 ;;
               "Denial_of_Service")
                 # Check for rate limiting and resilience
                 if find . -name "*.go" -exec grep -l "rate.*limit\|throttle\|circuit.*breaker" {} \; | head -3; then
-                  echo "  ‚úÖ DoS protection mechanisms found"
+                  echo "  ??DoS protection mechanisms found"
                   stride_score=$((stride_score + 1))
                 else
-                  echo "  ‚ö†Ô∏è Limited DoS protection"
+                  echo "  ?†Ô? Limited DoS protection"
                   high_risk_threats=$((high_risk_threats + 1))
                 fi
                 ;;
               "Elevation_of_Privilege")
                 # Check for authorization controls
                 if find . -name "*.go" -exec grep -l "rbac\|authorization\|permission" {} \; | head -3; then
-                  echo "  ‚úÖ Authorization controls found"
+                  echo "  ??Authorization controls found"
                   stride_score=$((stride_score + 1))
                 else
-                  echo "  ‚ö†Ô∏è Limited authorization controls"
+                  echo "  ?†Ô? Limited authorization controls"
                   high_risk_threats=$((high_risk_threats + 1))
                 fi
                 ;;
             esac
           done
           
-          echo "üìä STRIDE Analysis Complete:"
+          echo "?? STRIDE Analysis Complete:"
           echo "  - Covered threats: $stride_score/6"
           echo "  - High risk areas: $high_risk_threats"
           
-      - name: üéØ PASTA Threat Analysis
+      - name: ?éØ PASTA Threat Analysis
         id: pasta-analysis
         run: |
-          echo "üéØ Performing PASTA (Process for Attack Simulation and Threat Analysis)"
+          echo "?éØ Performing PASTA (Process for Attack Simulation and Threat Analysis)"
           
           # Define attack simulation stages for telecommunications
           pasta_stages=(
@@ -209,41 +209,41 @@ jobs:
             stage_num=$(echo "$stage" | cut -d':' -f1)
             stage_desc=$(echo "$stage" | cut -d':' -f2)
             
-            echo "üìã $stage_num: $stage_desc"
+            echo "?? $stage_num: $stage_desc"
             
             case "$stage_num" in
               "Stage1")
                 # Check for business logic documentation
                 if find . -name "*.md" -exec grep -l "business\|objective\|requirement" {} \; | head -2; then
-                  echo "  ‚úÖ Business objectives documented"
+                  echo "  ??Business objectives documented"
                   pasta_coverage=$((pasta_coverage + 1))
                 fi
                 ;;
               "Stage2")
                 # Check for technical architecture documentation
                 if find . -name "*.md" -exec grep -l "architecture\|component\|technical" {} \; | head -2; then
-                  echo "  ‚úÖ Technical scope defined"
+                  echo "  ??Technical scope defined"
                   pasta_coverage=$((pasta_coverage + 1))
                 fi
                 ;;
               "Stage3")
                 # Check for application decomposition
                 if find . -name "*.go" -path "*/api/*" -o -path "*/controllers/*" | head -5; then
-                  echo "  ‚úÖ Application components identified"
+                  echo "  ??Application components identified"
                   pasta_coverage=$((pasta_coverage + 1))
                 fi
                 ;;
               "Stage4"|"Stage5"|"Stage6"|"Stage7")
                 # These stages are covered by our security analysis
-                echo "  ‚úÖ Covered by security analysis"
+                echo "  ??Covered by security analysis"
                 pasta_coverage=$((pasta_coverage + 1))
                 ;;
             esac
           done
           
-          echo "üìä PASTA Coverage: $pasta_coverage/7 stages"
+          echo "?? PASTA Coverage: $pasta_coverage/7 stages"
           
-      - name: üìä Threat Analysis Summary
+      - name: ?? Threat Analysis Summary
         id: threat-analysis
         run: |
           # Calculate overall threat score
@@ -255,7 +255,7 @@ jobs:
           threat_score=$(( (stride_score * 15) + (pasta_coverage * 10) - (high_risk_count * 5) ))
           threat_score=$(( threat_score > 0 ? threat_score : 0 ))
           
-          echo "üìä Comprehensive Threat Analysis Results:"
+          echo "?? Comprehensive Threat Analysis Results:"
           echo "  - STRIDE Coverage: $stride_score/6 threat categories"
           echo "  - PASTA Coverage: $pasta_coverage/7 stages"
           echo "  - High Risk Threats: $high_risk_count"
@@ -263,32 +263,32 @@ jobs:
           
           echo "score=$threat_score" >> $GITHUB_OUTPUT
           
-      - name: ‚ö†Ô∏è Risk Assessment
+      - name: ?†Ô? Risk Assessment
         id: risk-assessment
         run: |
           threat_score=${{ steps.threat-analysis.outputs.score }}
           
           if [[ $threat_score -ge 90 ]]; then
             risk_level="LOW"
-            risk_color="üü¢"
+            risk_color="?ü¢"
           elif [[ $threat_score -ge 70 ]]; then
             risk_level="MODERATE"  
-            risk_color="üü°"
+            risk_color="?ü°"
           elif [[ $threat_score -ge 50 ]]; then
             risk_level="HIGH"
-            risk_color="üü†"
+            risk_color="??"
           else
             risk_level="CRITICAL"
-            risk_color="üî¥"
+            risk_color="?î¥"
           fi
           
           echo "$risk_color Risk Level: $risk_level (Score: $threat_score/120)"
           echo "level=$risk_level" >> $GITHUB_OUTPUT
           
-      - name: üéØ Attack Vector Identification
+      - name: ?éØ Attack Vector Identification
         id: attack-vectors
         run: |
-          echo "üéØ Identifying telecommunications-specific attack vectors"
+          echo "?éØ Identifying telecommunications-specific attack vectors"
           
           # Telecom-specific attack vectors
           attack_vectors='{
@@ -319,125 +319,125 @@ jobs:
           fi
           
           echo "vectors=$attack_vectors" >> $GITHUB_OUTPUT
-          echo "üéØ Attack vectors identified and cataloged"
+          echo "?éØ Attack vectors identified and cataloged"
 
   # =============================================================================
   # NETWORK SECURITY VALIDATION: O-RAN and 5G network security
   # =============================================================================
   network-security-validation:
-    name: üåê Network Security Validation
-    runs-on: ubuntu-22.04
+    name: ?? Network Security Validation
+    runs-on: ubuntu-latest
     if: contains(inputs.security_domains, 'all') || contains(inputs.security_domains, 'network-security')
-    timeout-minutes: 18
+    timeout-minutes: 10
     outputs:
       network-security-score: ${{ steps.network-assessment.outputs.score }}
       
     steps:
-      - name: üì• Checkout
+      - name: ?ì• Checkout
         uses: actions/checkout@v4
         
-      - name: üîê TLS/SSL Security Validation
+      - name: ?? TLS/SSL Security Validation
         run: |
-          echo "üîê Validating TLS/SSL implementation for telecommunications"
+          echo "?? Validating TLS/SSL implementation for telecommunications"
           
           tls_security_score=0
           
           # TLS version compliance (TLS 1.2+ required for telecom)
           if find . -name "*.go" -exec grep -l "tls.*1\.2\|tls.*1\.3\|TLS.*1\.2\|TLS.*1\.3" {} \; | head -3; then
-            echo "  ‚úÖ TLS 1.2/1.3 compliance found"
+            echo "  ??TLS 1.2/1.3 compliance found"
             tls_security_score=$((tls_security_score + 2))
           elif find . -name "*.go" -exec grep -l "tls\|TLS" {} \; | head -3; then
-            echo "  ‚ö†Ô∏è TLS usage found but version not specified"
+            echo "  ?†Ô? TLS usage found but version not specified"
             tls_security_score=$((tls_security_score + 1))
           else
-            echo "  ‚ùå No TLS implementation found"
+            echo "  ??No TLS implementation found"
           fi
           
           # Certificate management
           if find . -name "*.go" -exec grep -l "x509\|certificate\|cert.*manager" {} \; | head -3; then
-            echo "  ‚úÖ Certificate management found"
+            echo "  ??Certificate management found"
             tls_security_score=$((tls_security_score + 2))
           fi
           
           # Mutual TLS (mTLS) for service-to-service communication
           if find . -name "*.go" -exec grep -l "mutual.*tls\|mtls\|mTLS\|client.*cert" {} \; | head -3; then
-            echo "  ‚úÖ Mutual TLS implementation found"
+            echo "  ??Mutual TLS implementation found"
             tls_security_score=$((tls_security_score + 2))
           fi
           
           # Certificate validation
           if find . -name "*.go" -exec grep -l "cert.*valid\|verify.*cert" {} \; | head -3; then
-            echo "  ‚úÖ Certificate validation mechanisms found"
+            echo "  ??Certificate validation mechanisms found"
             tls_security_score=$((tls_security_score + 1))
           fi
           
-          echo "üìä TLS Security Score: $tls_security_score/7"
+          echo "?? TLS Security Score: $tls_security_score/7"
           
-      - name: üö™ Network Access Control
+      - name: ?ö™ Network Access Control
         run: |
-          echo "üö™ Validating network access control mechanisms"
+          echo "?ö™ Validating network access control mechanisms"
           
           access_control_score=0
           
           # Kubernetes Network Policies
           if find . -name "*.yaml" -o -name "*.yml" -exec grep -l "networkpolicy\|NetworkPolicy" {} \; | head -3; then
-            echo "  ‚úÖ Kubernetes Network Policies found"
+            echo "  ??Kubernetes Network Policies found"
             access_control_score=$((access_control_score + 2))
           fi
           
           # Service mesh security policies
           if find . -name "*.yaml" -o -name "*.yml" -exec grep -l "istio.*security\|linkerd.*policy" {} \; | head -3; then
-            echo "  ‚úÖ Service mesh security policies found"
+            echo "  ??Service mesh security policies found"
             access_control_score=$((access_control_score + 2))
           fi
           
           # Firewall rules and ingress controls
           if find . -name "*.yaml" -o -name "*.yml" -exec grep -l "ingress\|egress\|firewall" {} \; | head -3; then
-            echo "  ‚úÖ Network ingress/egress controls found"
+            echo "  ??Network ingress/egress controls found"
             access_control_score=$((access_control_score + 1))
           fi
           
           # Pod Security Standards/Contexts
           if find . -name "*.yaml" -o -name "*.yml" -exec grep -l "securityContext\|runAsNonRoot\|readOnlyRootFilesystem" {} \; | head -3; then
-            echo "  ‚úÖ Pod security contexts found"
+            echo "  ??Pod security contexts found"
             access_control_score=$((access_control_score + 2))
           fi
           
-          echo "üìä Access Control Score: $access_control_score/7"
+          echo "?? Access Control Score: $access_control_score/7"
           
-      - name: üì° O-RAN Interface Security
+      - name: ?ì° O-RAN Interface Security
         run: |
-          echo "üì° Validating O-RAN interface security implementation"
+          echo "?ì° Validating O-RAN interface security implementation"
           
           oran_security_score=0
           
           # A1 interface security
           if find . -name "*.go" -exec grep -l "a1.*auth\|a1.*secure\|a1.*tls" {} \; | head -3; then
-            echo "  ‚úÖ A1 interface security mechanisms found"
+            echo "  ??A1 interface security mechanisms found"
             oran_security_score=$((oran_security_score + 2))
           fi
           
           # E2 interface security  
           if find . -name "*.go" -exec grep -l "e2.*auth\|e2.*secure\|e2.*tls" {} \; | head -3; then
-            echo "  ‚úÖ E2 interface security mechanisms found"
+            echo "  ??E2 interface security mechanisms found"
             oran_security_score=$((oran_security_score + 2))
           fi
           
           # O1 interface security
           if find . -name "*.go" -exec grep -l "o1.*auth\|o1.*secure\|ves.*auth" {} \; | head -3; then
-            echo "  ‚úÖ O1 interface security mechanisms found"
+            echo "  ??O1 interface security mechanisms found"
             oran_security_score=$((oran_security_score + 2))
           fi
           
           # Inter-node authentication
           if find . -name "*.go" -exec grep -l "node.*auth\|inter.*node.*security" {} \; | head -3; then
-            echo "  ‚úÖ Inter-node authentication found"
+            echo "  ??Inter-node authentication found"
             oran_security_score=$((oran_security_score + 1))
           fi
           
-          echo "üìä O-RAN Security Score: $oran_security_score/7"
+          echo "?? O-RAN Security Score: $oran_security_score/7"
           
-      - name: üìä Network Security Assessment
+      - name: ?? Network Security Assessment
         id: network-assessment
         run: |
           # Calculate overall network security score
@@ -449,20 +449,20 @@ jobs:
           max_score=21
           percentage=$((total_score * 100 / max_score))
           
-          echo "üìä Network Security Assessment Complete:"
+          echo "?? Network Security Assessment Complete:"
           echo "  - TLS/SSL Security: $tls_score/7"
           echo "  - Access Control: $access_score/7" 
           echo "  - O-RAN Security: $oran_score/7"
           echo "  - Total Score: $total_score/$max_score ($percentage%)"
           
           if [[ $percentage -ge 85 ]]; then
-            echo "‚úÖ Network Security: EXCELLENT"
+            echo "??Network Security: EXCELLENT"
           elif [[ $percentage -ge 70 ]]; then
-            echo "üü° Network Security: GOOD"
+            echo "?ü° Network Security: GOOD"
           elif [[ $percentage -ge 50 ]]; then
-            echo "‚ö†Ô∏è Network Security: NEEDS IMPROVEMENT"
+            echo "?†Ô? Network Security: NEEDS IMPROVEMENT"
           else
-            echo "‚ùå Network Security: INADEQUATE"
+            echo "??Network Security: INADEQUATE"
           fi
           
           echo "score=$total_score" >> $GITHUB_OUTPUT
@@ -471,146 +471,146 @@ jobs:
   # DATA PROTECTION VALIDATION: Telecommunications data security
   # =============================================================================
   data-protection-validation:
-    name: üîí Data Protection Validation
-    runs-on: ubuntu-22.04
+    name: ?? Data Protection Validation
+    runs-on: ubuntu-latest
     if: contains(inputs.security_domains, 'all') || contains(inputs.security_domains, 'data-protection')
-    timeout-minutes: 15
+    timeout-minutes: 10
     outputs:
       data-protection-score: ${{ steps.data-assessment.outputs.score }}
       
     steps:
-      - name: üì• Checkout
+      - name: ?ì• Checkout
         uses: actions/checkout@v4
         
-      - name: üîê Encryption at Rest Validation
+      - name: ?? Encryption at Rest Validation
         run: |
-          echo "üîê Validating data encryption at rest for telecommunications data"
+          echo "?? Validating data encryption at rest for telecommunications data"
           
           encryption_rest_score=0
           
           # Database encryption
           if find . -name "*.go" -exec grep -l "encrypt.*database\|database.*encrypt\|sql.*encrypt" {} \; | head -3; then
-            echo "  ‚úÖ Database encryption found"
+            echo "  ??Database encryption found"
             encryption_rest_score=$((encryption_rest_score + 2))
           fi
           
           # File system encryption
           if find . -name "*.yaml" -o -name "*.yml" -exec grep -l "encrypt.*volume\|encrypted.*storage" {} \; | head -3; then
-            echo "  ‚úÖ Encrypted storage volumes found"
+            echo "  ??Encrypted storage volumes found"
             encryption_rest_score=$((encryption_rest_score + 2))
           fi
           
           # Configuration encryption
           if find . -name "*.go" -exec grep -l "encrypt.*config\|config.*encrypt\|secret.*encrypt" {} \; | head -3; then
-            echo "  ‚úÖ Configuration encryption found"
+            echo "  ??Configuration encryption found"
             encryption_rest_score=$((encryption_rest_score + 1))
           fi
           
           # Backup encryption
           if find . -name "*.go" -exec grep -l "backup.*encrypt\|encrypt.*backup" {} \; | head -3; then
-            echo "  ‚úÖ Backup encryption found"
+            echo "  ??Backup encryption found"
             encryption_rest_score=$((encryption_rest_score + 1))
           fi
           
-          echo "üìä Encryption at Rest Score: $encryption_rest_score/6"
+          echo "?? Encryption at Rest Score: $encryption_rest_score/6"
           
-      - name: üöö Encryption in Transit Validation
+      - name: ?? Encryption in Transit Validation
         run: |
-          echo "üöö Validating data encryption in transit"
+          echo "?? Validating data encryption in transit"
           
           encryption_transit_score=0
           
           # HTTPS/TLS for web traffic
           if find . -name "*.go" -exec grep -l "https\|tls\.Config\|crypto\/tls" {} \; | head -3; then
-            echo "  ‚úÖ HTTPS/TLS implementation found"
+            echo "  ??HTTPS/TLS implementation found"
             encryption_transit_score=$((encryption_transit_score + 2))
           fi
           
           # gRPC with TLS
           if find . -name "*.go" -exec grep -l "grpc.*tls\|tls.*grpc\|grpc\.WithTransportCredentials" {} \; | head -3; then
-            echo "  ‚úÖ gRPC with TLS found"
+            echo "  ??gRPC with TLS found"
             encryption_transit_score=$((encryption_transit_score + 2))
           fi
           
           # Message queue encryption
           if find . -name "*.go" -exec grep -l "kafka.*ssl\|rabbitmq.*tls\|nats.*tls" {} \; | head -3; then
-            echo "  ‚úÖ Message queue encryption found"
+            echo "  ??Message queue encryption found"
             encryption_transit_score=$((encryption_transit_score + 1))
           fi
           
           # Database connection encryption
           if find . -name "*.go" -exec grep -l "sslmode\|ssl.*true\|tls.*database" {} \; | head -3; then
-            echo "  ‚úÖ Database connection encryption found"
+            echo "  ??Database connection encryption found"
             encryption_transit_score=$((encryption_transit_score + 1))
           fi
           
-          echo "üìä Encryption in Transit Score: $encryption_transit_score/6"
+          echo "?? Encryption in Transit Score: $encryption_transit_score/6"
           
-      - name: üîë Key Management Validation
+      - name: ?? Key Management Validation
         run: |
-          echo "üîë Validating cryptographic key management"
+          echo "?? Validating cryptographic key management"
           
           key_management_score=0
           
           # Key rotation mechanisms
           if find . -name "*.go" -exec grep -l "key.*rotation\|rotate.*key" {} \; | head -3; then
-            echo "  ‚úÖ Key rotation mechanisms found"
+            echo "  ??Key rotation mechanisms found"
             key_management_score=$((key_management_score + 2))
           fi
           
           # Hardware Security Module (HSM) integration
           if find . -name "*.go" -exec grep -l "hsm\|HSM\|pkcs11" {} \; | head -3; then
-            echo "  ‚úÖ HSM integration found"
+            echo "  ??HSM integration found"
             key_management_score=$((key_management_score + 2))
           fi
           
           # Key derivation functions
           if find . -name "*.go" -exec grep -l "kdf\|KDF\|pbkdf2\|scrypt" {} \; | head -3; then
-            echo "  ‚úÖ Key derivation functions found"
+            echo "  ??Key derivation functions found"
             key_management_score=$((key_management_score + 1))
           fi
           
           # Secure key storage
           if find . -name "*.go" -exec grep -l "vault\|keystore\|secret.*manager" {} \; | head -3; then
-            echo "  ‚úÖ Secure key storage found"
+            echo "  ??Secure key storage found"
             key_management_score=$((key_management_score + 2))
           fi
           
-          echo "üìä Key Management Score: $key_management_score/7"
+          echo "?? Key Management Score: $key_management_score/7"
           
-      - name: üë§ PII Protection Validation
+      - name: ?ë§ PII Protection Validation
         run: |
-          echo "üë§ Validating Personally Identifiable Information (PII) protection"
+          echo "?ë§ Validating Personally Identifiable Information (PII) protection"
           
           pii_protection_score=0
           
           # Data classification
           if find . -name "*.go" -exec grep -l "sensitive.*data\|pii\|PII\|personal.*data" {} \; | head -3; then
-            echo "  ‚úÖ Data classification mechanisms found"
+            echo "  ??Data classification mechanisms found"
             pii_protection_score=$((pii_protection_score + 2))
           fi
           
           # Data masking/anonymization
           if find . -name "*.go" -exec grep -l "mask\|anonymiz\|pseudonym" {} \; | head -3; then
-            echo "  ‚úÖ Data masking/anonymization found"
+            echo "  ??Data masking/anonymization found"
             pii_protection_score=$((pii_protection_score + 2))
           fi
           
           # Data retention policies
           if find . -name "*.go" -exec grep -l "retention\|expiry\|ttl\|time.*to.*live" {} \; | head -3; then
-            echo "  ‚úÖ Data retention policies found"
+            echo "  ??Data retention policies found"
             pii_protection_score=$((pii_protection_score + 1))
           fi
           
           # GDPR/Privacy compliance
           if find . -name "*.go" -exec grep -l "gdpr\|GDPR\|privacy\|consent" {} \; | head -3; then
-            echo "  ‚úÖ Privacy compliance mechanisms found"
+            echo "  ??Privacy compliance mechanisms found"
             pii_protection_score=$((pii_protection_score + 1))
           fi
           
-          echo "üìä PII Protection Score: $pii_protection_score/6"
+          echo "?? PII Protection Score: $pii_protection_score/6"
           
-      - name: üìä Data Protection Assessment
+      - name: ?? Data Protection Assessment
         id: data-assessment
         run: |
           # Calculate overall data protection score
@@ -623,7 +623,7 @@ jobs:
           max_score=25
           percentage=$((total_score * 100 / max_score))
           
-          echo "üìä Data Protection Assessment Complete:"
+          echo "?? Data Protection Assessment Complete:"
           echo "  - Encryption at Rest: $rest_score/6"
           echo "  - Encryption in Transit: $transit_score/6"
           echo "  - Key Management: $key_score/7"
@@ -631,13 +631,13 @@ jobs:
           echo "  - Total Score: $total_score/$max_score ($percentage%)"
           
           if [[ $percentage -ge 85 ]]; then
-            echo "‚úÖ Data Protection: EXCELLENT"
+            echo "??Data Protection: EXCELLENT"
           elif [[ $percentage -ge 70 ]]; then
-            echo "üü° Data Protection: GOOD"
+            echo "?ü° Data Protection: GOOD"
           elif [[ $percentage -ge 50 ]]; then
-            echo "‚ö†Ô∏è Data Protection: NEEDS IMPROVEMENT"
+            echo "?†Ô? Data Protection: NEEDS IMPROVEMENT"
           else
-            echo "‚ùå Data Protection: INADEQUATE"
+            echo "??Data Protection: INADEQUATE"
           fi
           
           echo "score=$total_score" >> $GITHUB_OUTPUT
@@ -646,20 +646,20 @@ jobs:
   # PENETRATION TESTING: Simulated security testing
   # =============================================================================
   penetration-testing:
-    name: üéØ Penetration Testing Simulation
-    runs-on: ubuntu-22.04
+    name: ?éØ Penetration Testing Simulation
+    runs-on: ubuntu-latest
     if: inputs.penetration_testing == 'true'
-    timeout-minutes: 25
+    timeout-minutes: 10
     outputs:
       penetration-score: ${{ steps.pentest-summary.outputs.score }}
       
     steps:
-      - name: üì• Checkout
+      - name: ?ì• Checkout
         uses: actions/checkout@v4
         
-      - name: üîß Setup Penetration Testing Environment
+      - name: ?îß Setup Penetration Testing Environment
         run: |
-          echo "üîß Setting up penetration testing simulation environment"
+          echo "?îß Setting up penetration testing simulation environment"
           
           # Install security testing tools
           sudo apt-get update -q
@@ -669,16 +669,16 @@ jobs:
           go install github.com/OJ/gobuster/v3@latest
           go install github.com/projectdiscovery/nuclei/v2/cmd/nuclei@latest
           
-          echo "‚úÖ Penetration testing environment ready"
+          echo "??Penetration testing environment ready"
           
-      - name: üåê Network Reconnaissance Simulation
+      - name: ?? Network Reconnaissance Simulation
         run: |
-          echo "üåê Performing simulated network reconnaissance"
+          echo "?? Performing simulated network reconnaissance"
           
           recon_findings=0
           
           # Port scanning simulation (against localhost only for safety)
-          echo "üì° Port scanning simulation..."
+          echo "?ì° Port scanning simulation..."
           if command -v nmap >/dev/null 2>&1; then
             nmap_results=$(nmap -sS -O 127.0.0.1 2>/dev/null | grep -c "open\|closed\|filtered" || echo "0")
             echo "  - Network scan completed: $nmap_results ports analyzed"
@@ -686,87 +686,87 @@ jobs:
           fi
           
           # Service enumeration
-          echo "üîç Service enumeration simulation..."
+          echo "?? Service enumeration simulation..."
           if find . -name "*.go" -exec grep -l "http\.ListenAndServe\|grpc\.NewServer" {} \; | head -3; then
             echo "  - Network services identified in code"
             recon_findings=$((recon_findings + 1))
           fi
           
           # Information gathering
-          echo "üìã Information gathering simulation..."
+          echo "?? Information gathering simulation..."
           if find . -name "*.yaml" -o -name "*.yml" -exec grep -l "version\|image.*tag" {} \; | head -3; then
             echo "  - Version information found in configurations"
             recon_findings=$((recon_findings + 1))
           fi
           
-          echo "üìä Reconnaissance simulation: $recon_findings/3 phases completed"
+          echo "?? Reconnaissance simulation: $recon_findings/3 phases completed"
           
-      - name: üîç Vulnerability Assessment Simulation
+      - name: ?? Vulnerability Assessment Simulation
         run: |
-          echo "üîç Performing vulnerability assessment simulation"
+          echo "?? Performing vulnerability assessment simulation"
           
           vuln_findings=0
           
           # SQL injection testing patterns
-          echo "üíâ SQL injection pattern analysis..."
+          echo "?? SQL injection pattern analysis..."
           if find . -name "*.go" -exec grep -l "sql\.Query\|db\.Query\|fmt\.Sprintf.*SELECT" {} \; | head -3; then
             echo "  - SQL query patterns found (review for injection risks)"
             vuln_findings=$((vuln_findings + 1))
           fi
           
           # Cross-site scripting (XSS) patterns
-          echo "üìù XSS pattern analysis..."
+          echo "?? XSS pattern analysis..."
           if find . -name "*.go" -exec grep -l "html\/template\|template\.HTML\|template\.JS" {} \; | head -3; then
             echo "  - Template usage found (review for XSS protection)"
             vuln_findings=$((vuln_findings + 1))
           fi
           
           # Authentication bypass patterns
-          echo "üîê Authentication bypass analysis..."
+          echo "?? Authentication bypass analysis..."
           if find . -name "*.go" -exec grep -l "auth.*skip\|bypass.*auth\|no.*auth" {} \; | head -3; then
             echo "  - Authentication bypass patterns found"
             vuln_findings=$((vuln_findings + 1))
           fi
           
           # Insecure direct object references
-          echo "üéØ Direct object reference analysis..."
+          echo "?éØ Direct object reference analysis..."
           if find . -name "*.go" -exec grep -l "\/.*\{id\}\|\/.*\{uuid\}" {} \; | head -3; then
             echo "  - Direct object reference patterns found"
             vuln_findings=$((vuln_findings + 1))
           fi
           
-          echo "üìä Vulnerability assessment: $vuln_findings/4 categories analyzed"
+          echo "?? Vulnerability assessment: $vuln_findings/4 categories analyzed"
           
-      - name: ‚ö° Exploitation Simulation
+      - name: ??Exploitation Simulation
         run: |
-          echo "‚ö° Performing controlled exploitation simulation"
+          echo "??Performing controlled exploitation simulation"
           
           exploit_simulations=0
           
           # Buffer overflow simulation (static analysis)
-          echo "üí• Buffer overflow simulation..."
+          echo "?í• Buffer overflow simulation..."
           if find . -name "*.go" -exec grep -l "unsafe\|reflect\|cgo" {} \; | head -3; then
             echo "  - Unsafe code patterns detected"
             exploit_simulations=$((exploit_simulations + 1))
           fi
           
           # Privilege escalation simulation
-          echo "‚¨ÜÔ∏è Privilege escalation simulation..."
+          echo "‚¨ÜÔ? Privilege escalation simulation..."
           if find . -name "*.yaml" -o -name "*.yml" -exec grep -l "privileged.*true\|hostNetwork.*true" {} \; | head -3; then
             echo "  - Privileged container configurations found"
             exploit_simulations=$((exploit_simulations + 1))
           fi
           
           # Data exfiltration simulation
-          echo "üì§ Data exfiltration simulation..."
+          echo "?ì§ Data exfiltration simulation..."
           if find . -name "*.go" -exec grep -l "http\.Client\|net\/http\|io\.Copy" {} \; | head -3; then
             echo "  - Data transfer capabilities identified"
             exploit_simulations=$((exploit_simulations + 1))
           fi
           
-          echo "üìä Exploitation simulation: $exploit_simulations/3 scenarios tested"
+          echo "?? Exploitation simulation: $exploit_simulations/3 scenarios tested"
           
-      - name: üìä Penetration Testing Summary
+      - name: ?? Penetration Testing Summary
         id: pentest-summary
         run: |
           # Calculate penetration testing score
@@ -782,20 +782,20 @@ jobs:
           security_score=$((security_score > max_score ? max_score : security_score))
           security_score=$((security_score < 0 ? 0 : security_score))
           
-          echo "üìä Penetration Testing Summary:"
+          echo "?? Penetration Testing Summary:"
           echo "  - Reconnaissance findings: $recon_score"
           echo "  - Vulnerability findings: $vuln_score"
           echo "  - Exploitation scenarios: $exploit_score"
           echo "  - Security resilience score: $security_score/$max_score"
           
           if [[ $security_score -ge 8 ]]; then
-            echo "‚úÖ Penetration Testing: HIGH SECURITY RESILIENCE"
+            echo "??Penetration Testing: HIGH SECURITY RESILIENCE"
           elif [[ $security_score -ge 6 ]]; then
-            echo "üü° Penetration Testing: MODERATE SECURITY RESILIENCE"
+            echo "?ü° Penetration Testing: MODERATE SECURITY RESILIENCE"
           elif [[ $security_score -ge 4 ]]; then
-            echo "‚ö†Ô∏è Penetration Testing: LOW SECURITY RESILIENCE"
+            echo "?†Ô? Penetration Testing: LOW SECURITY RESILIENCE"
           else
-            echo "‚ùå Penetration Testing: CRITICAL SECURITY WEAKNESSES"
+            echo "??Penetration Testing: CRITICAL SECURITY WEAKNESSES"
           fi
           
           echo "score=$security_score" >> $GITHUB_OUTPUT
@@ -804,8 +804,8 @@ jobs:
   # COMPLIANCE REPORTING: Generate comprehensive compliance reports
   # =============================================================================
   compliance-reporting:
-    name: üìã Compliance Reporting
-    runs-on: ubuntu-22.04
+    name: ?? Compliance Reporting
+    runs-on: ubuntu-latest
     needs: [
       threat-modeling,
       network-security-validation,
@@ -816,9 +816,9 @@ jobs:
     timeout-minutes: 10
     
     steps:
-      - name: üìä Generate Comprehensive Compliance Report
+      - name: ?? Generate Comprehensive Compliance Report
         run: |
-          echo "# üîê Telecommunications Security Compliance Report" > telecom-security-compliance-report.md
+          echo "# ?? Telecommunications Security Compliance Report" > telecom-security-compliance-report.md
           echo "" >> telecom-security-compliance-report.md
           echo "**Date:** $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> telecom-security-compliance-report.md
           echo "**Compliance Mode:** ${{ env.COMPLIANCE_MODE }}" >> telecom-security-compliance-report.md
@@ -826,7 +826,7 @@ jobs:
           echo "**Threat Profile:** ${{ env.TELECOM_THREAT_PROFILE }}" >> telecom-security-compliance-report.md
           echo "" >> telecom-security-compliance-report.md
           
-          echo "## üéØ Executive Summary" >> telecom-security-compliance-report.md
+          echo "## ?éØ Executive Summary" >> telecom-security-compliance-report.md
           echo "" >> telecom-security-compliance-report.md
           
           # Calculate overall compliance score
@@ -845,18 +845,18 @@ jobs:
           echo "" >> telecom-security-compliance-report.md
           
           if [[ $compliance_percentage -ge 90 ]]; then
-            echo "üü¢ **EXCELLENT COMPLIANCE** - Ready for production telecommunications deployment" >> telecom-security-compliance-report.md
+            echo "?ü¢ **EXCELLENT COMPLIANCE** - Ready for production telecommunications deployment" >> telecom-security-compliance-report.md
           elif [[ $compliance_percentage -ge 80 ]]; then
-            echo "üü° **GOOD COMPLIANCE** - Suitable for most telecommunications environments" >> telecom-security-compliance-report.md
+            echo "?ü° **GOOD COMPLIANCE** - Suitable for most telecommunications environments" >> telecom-security-compliance-report.md
           elif [[ $compliance_percentage -ge 70 ]]; then
-            echo "üü† **MODERATE COMPLIANCE** - Additional security hardening recommended" >> telecom-security-compliance-report.md
+            echo "?? **MODERATE COMPLIANCE** - Additional security hardening recommended" >> telecom-security-compliance-report.md
           else
-            echo "üî¥ **LOW COMPLIANCE** - Significant security improvements required" >> telecom-security-compliance-report.md
+            echo "?î¥ **LOW COMPLIANCE** - Significant security improvements required" >> telecom-security-compliance-report.md
           fi
           
           echo "" >> telecom-security-compliance-report.md
           
-          echo "## üìä Detailed Assessment Results" >> telecom-security-compliance-report.md
+          echo "## ?? Detailed Assessment Results" >> telecom-security-compliance-report.md
           echo "" >> telecom-security-compliance-report.md
           
           echo "### Threat Modeling Analysis" >> telecom-security-compliance-report.md
@@ -882,7 +882,7 @@ jobs:
           echo "- **Testing:** ${{ needs.penetration-testing.result || 'skipped' }}" >> telecom-security-compliance-report.md
           echo "" >> telecom-security-compliance-report.md
           
-          echo "## üìã Standards Compliance Matrix" >> telecom-security-compliance-report.md
+          echo "## ?? Standards Compliance Matrix" >> telecom-security-compliance-report.md
           echo "" >> telecom-security-compliance-report.md
           echo "| Standard | Version | Compliance Level | Notes |" >> telecom-security-compliance-report.md
           echo "|----------|---------|------------------|-------|" >> telecom-security-compliance-report.md
@@ -893,7 +893,7 @@ jobs:
           echo "| Common Criteria | EAL ${{ env.CC_EAL_LEVEL }} | $compliance_percentage% | Security evaluation |" >> telecom-security-compliance-report.md
           echo "" >> telecom-security-compliance-report.md
           
-          echo "## üéØ Security Recommendations" >> telecom-security-compliance-report.md
+          echo "## ?éØ Security Recommendations" >> telecom-security-compliance-report.md
           echo "" >> telecom-security-compliance-report.md
           
           if [[ $compliance_percentage -lt 90 ]]; then
@@ -925,7 +925,7 @@ jobs:
           echo "5. **Compliance Auditing:** Schedule annual compliance audits" >> telecom-security-compliance-report.md
           echo "" >> telecom-security-compliance-report.md
           
-          echo "## üìö References" >> telecom-security-compliance-report.md
+          echo "## ?? References" >> telecom-security-compliance-report.md
           echo "- **O-RAN Alliance:** Working Group 11 Security Specifications" >> telecom-security-compliance-report.md
           echo "- **3GPP:** SA3 Security Architecture and Procedures" >> telecom-security-compliance-report.md
           echo "- **NIST:** Cybersecurity Framework and Special Publications" >> telecom-security-compliance-report.md
@@ -935,27 +935,27 @@ jobs:
           echo "---" >> telecom-security-compliance-report.md
           echo "_Generated by Nephoran Telecommunications Security Compliance Pipeline_" >> telecom-security-compliance-report.md
           
-      - name: üì§ Upload Compliance Report
+      - name: ?ì§ Upload Compliance Report
         uses: actions/upload-artifact@v4
         with:
           name: telecommunications-security-compliance-report
           path: telecom-security-compliance-report.md
           retention-days: 365  # Extended retention for compliance audits
           
-      - name: üéØ Final Compliance Status
+      - name: ?éØ Final Compliance Status
         run: |
           compliance_percentage=$((weighted_score * 100 / max_weighted_score))
           
-          echo "üéØ Telecommunications Security Compliance Assessment Complete"
+          echo "?éØ Telecommunications Security Compliance Assessment Complete"
           echo ""
-          echo "üìä Final Compliance Status: $compliance_percentage%"
+          echo "?? Final Compliance Status: $compliance_percentage%"
           
           if [[ $compliance_percentage -ge 80 ]]; then
-            echo "‚úÖ TELECOMMUNICATIONS SECURITY COMPLIANCE: PASSED"
-            echo "üöÄ Ready for production telecommunications deployment"
+            echo "??TELECOMMUNICATIONS SECURITY COMPLIANCE: PASSED"
+            echo "?? Ready for production telecommunications deployment"
             exit 0
           else
-            echo "‚ùå TELECOMMUNICATIONS SECURITY COMPLIANCE: FAILED"
-            echo "üîß Security improvements required before deployment"
+            echo "??TELECOMMUNICATIONS SECURITY COMPLIANCE: FAILED"
+            echo "?îß Security improvements required before deployment"
             exit 1
           fi

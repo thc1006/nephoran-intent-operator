@@ -52,13 +52,13 @@ jobs:
   gosec-scan:
     name: Gosec Security Analysis
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
@@ -72,30 +72,30 @@ jobs:
             go.mod
 
       - name: Install gosec locally with timeout handling
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
           echo "Installing gosec with proper timeout handling..."
           timeout 300s go install github.com/securego/gosec/v2/cmd/gosec@latest || {
-            echo "âš ï¸ Gosec installation timeout - using cached version if available"
+            echo "? ï? Gosec installation timeout - using cached version if available"
             if ! command -v gosec &> /dev/null; then
-              echo "âŒ Gosec not available, attempting alternative installation"
+              echo "??Gosec not available, attempting alternative installation"
               curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.19.0
             fi
           }
           
           # Verify installation
           gosec --version || {
-            echo "âŒ Gosec installation failed completely"
+            echo "??Gosec installation failed completely"
             exit 1
           }
 
       - name: Run gosec security scanner with optimized settings
-        timeout-minutes: 35
+        timeout-minutes: 10
         continue-on-error: true
         run: |
           set -euo pipefail
           
-          echo "ðŸ” Running gosec security analysis..."
+          echo "?? Running gosec security analysis..."
           echo "Scan depth: ${{ env.SCAN_DEPTH }}"
           
           # Create output directory
@@ -125,9 +125,9 @@ jobs:
               ;;
           esac
           
-          echo "ðŸ“‹ Scan targets: $SCAN_TARGETS"
-          echo "â±ï¸ Timeout: $TIMEOUT_DURATION"
-          echo "ðŸŽ¯ Severity: $SEVERITY"
+          echo "?? Scan targets: $SCAN_TARGETS"
+          echo "?±ï? Timeout: $TIMEOUT_DURATION"
+          echo "?Ž¯ Severity: $SEVERITY"
           
           # Function to run gosec with proper error handling
           run_gosec_scan() {
@@ -135,7 +135,7 @@ jobs:
             local output_file="$2"
             local extra_args="$3"
             
-            echo "ðŸ” Running gosec scan (format: $format)..."
+            echo "?? Running gosec scan (format: $format)..."
             
             timeout "$TIMEOUT_DURATION" gosec \
               -fmt "$format" \
@@ -149,47 +149,47 @@ jobs:
               $extra_args \
               $SCAN_TARGETS 2>&1 || {
               local exit_code=$?
-              echo "âš ï¸ Gosec scan completed with exit code: $exit_code"
+              echo "? ï? Gosec scan completed with exit code: $exit_code"
               
               case $exit_code in
                 124) # timeout
-                  echo "âŒ Gosec scan timed out after $TIMEOUT_DURATION" | tee -a "$output_file"
+                  echo "??Gosec scan timed out after $TIMEOUT_DURATION" | tee -a "$output_file"
                   echo "gosec_timeout" > scan-outputs/gosec-status.txt
                   return 124
                   ;;
                 1) # issues found
-                  echo "âš ï¸ Security issues detected by gosec" | tee -a "$output_file"
+                  echo "? ï? Security issues detected by gosec" | tee -a "$output_file"
                   echo "issues_found" > scan-outputs/gosec-status.txt
                   return 0  # Don't fail the job for security findings
                   ;;
                 *) # other errors
-                  echo "âŒ Gosec scan failed with error code $exit_code" | tee -a "$output_file"
+                  echo "??Gosec scan failed with error code $exit_code" | tee -a "$output_file"
                   echo "scan_error" > scan-outputs/gosec-status.txt
                   return $exit_code
                   ;;
               esac
             }
             
-            echo "âœ… Gosec scan completed successfully"
+            echo "??Gosec scan completed successfully"
             echo "success" > scan-outputs/gosec-status.txt
             return 0
           }
           
           # Run SARIF scan for GitHub integration
-          echo "ðŸ“Š Generating SARIF report for GitHub Security tab..."
+          echo "?? Generating SARIF report for GitHub Security tab..."
           if run_gosec_scan "sarif" "gosec-results.sarif" "-no-fail"; then
-            echo "âœ… SARIF report generated successfully"
+            echo "??SARIF report generated successfully"
             # Validate SARIF file
             if [[ -f "gosec-results.sarif" && -s "gosec-results.sarif" ]]; then
-              echo "âœ… SARIF file validation passed"
+              echo "??SARIF file validation passed"
               # Basic SARIF structure check
               if grep -q '"$schema".*sarif-schema' "gosec-results.sarif"; then
-                echo "âœ… SARIF schema validation passed"
+                echo "??SARIF schema validation passed"
               else
-                echo "âš ï¸ SARIF schema validation failed, but file exists"
+                echo "? ï? SARIF schema validation failed, but file exists"
               fi
             else
-              echo "âŒ SARIF file is empty or missing"
+              echo "??SARIF file is empty or missing"
               # Create minimal valid SARIF file as fallback
               cat > gosec-results.sarif << 'EOF'
           {
@@ -216,24 +216,24 @@ jobs:
             ]
           }
           EOF
-              echo "âš ï¸ Created fallback SARIF file due to scan timeout/failure"
+              echo "? ï? Created fallback SARIF file due to scan timeout/failure"
             fi
           else
-            echo "âŒ SARIF scan failed, creating fallback file"
+            echo "??SARIF scan failed, creating fallback file"
             # Ensure we always have a SARIF file for upload
             echo '{"$schema":"https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json","version":"2.1.0","runs":[{"tool":{"driver":{"name":"gosec","version":"error"}},"results":[]}]}' > gosec-results.sarif
           fi
           
           # Run JSON scan for detailed analysis (only if SARIF succeeded or for comprehensive scans)
           if [[ "${{ env.SCAN_DEPTH }}" == "comprehensive" ]] || [[ -f "gosec-results.sarif" && -s "gosec-results.sarif" ]]; then
-            echo "ðŸ“Š Generating detailed JSON report..."
-            run_gosec_scan "json" "gosec-results.json" "" || echo "âš ï¸ JSON scan failed but continuing"
+            echo "?? Generating detailed JSON report..."
+            run_gosec_scan "json" "gosec-results.json" "" || echo "? ï? JSON scan failed but continuing"
           fi
           
           # Generate text report for human reading (quick scan only for performance)
           if [[ "${{ env.SCAN_DEPTH }}" != "comprehensive" ]]; then
-            echo "ðŸ“„ Generating human-readable text report..."
-            run_gosec_scan "text" "gosec-detailed.txt" "" || echo "âš ï¸ Text scan failed but continuing"
+            echo "?? Generating human-readable text report..."
+            run_gosec_scan "text" "gosec-detailed.txt" "" || echo "? ï? Text scan failed but continuing"
           fi
 
       - name: Upload gosec SARIF results
@@ -249,7 +249,7 @@ jobs:
       - name: Generate gosec summary and reports
         if: always()
         run: |
-          echo "ðŸ“Š Generating gosec analysis summary..."
+          echo "?? Generating gosec analysis summary..."
           
           # Create comprehensive summary
           echo "# Gosec Security Scan Results" > gosec-summary.md
@@ -267,25 +267,25 @@ jobs:
             
             case "$status" in
               success)
-                echo "âœ… **Result:** Gosec scan completed successfully" >> gosec-summary.md
+                echo "??**Result:** Gosec scan completed successfully" >> gosec-summary.md
                 ;;
               issues_found)
-                echo "âš ï¸ **Result:** Security issues detected" >> gosec-summary.md
+                echo "? ï? **Result:** Security issues detected" >> gosec-summary.md
                 ;;
               gosec_timeout)
-                echo "â±ï¸ **Result:** Scan timed out (large codebase)" >> gosec-summary.md
+                echo "?±ï? **Result:** Scan timed out (large codebase)" >> gosec-summary.md
                 echo "" >> gosec-summary.md
                 echo "**Recommendation:** Consider using 'quick' scan depth for faster results" >> gosec-summary.md
                 ;;
               scan_error)
-                echo "âŒ **Result:** Scan encountered errors" >> gosec-summary.md
+                echo "??**Result:** Scan encountered errors" >> gosec-summary.md
                 ;;
               *)
-                echo "â“ **Result:** Unknown scan status" >> gosec-summary.md
+                echo "??**Result:** Unknown scan status" >> gosec-summary.md
                 ;;
             esac
           else
-            echo "â“ **Status:** Unable to determine scan status" >> gosec-summary.md
+            echo "??**Status:** Unable to determine scan status" >> gosec-summary.md
           fi
           
           echo "" >> gosec-summary.md
@@ -339,13 +339,13 @@ jobs:
           
           # List available reports
           if [[ -f "gosec-results.sarif" ]]; then
-            echo "- ðŸ“Š **SARIF Report**: `gosec-results.sarif` (for GitHub Security tab)" >> gosec-summary.md
+            echo "- ?? **SARIF Report**: `gosec-results.sarif` (for GitHub Security tab)" >> gosec-summary.md
           fi
           if [[ -f "gosec-results.json" ]]; then
-            echo "- ðŸ“‹ **JSON Report**: `gosec-results.json` (machine-readable detailed results)" >> gosec-summary.md
+            echo "- ?? **JSON Report**: `gosec-results.json` (machine-readable detailed results)" >> gosec-summary.md
           fi
           if [[ -f "gosec-detailed.txt" ]]; then
-            echo "- ðŸ“„ **Text Report**: `gosec-detailed.txt` (human-readable summary)" >> gosec-summary.md
+            echo "- ?? **Text Report**: `gosec-detailed.txt` (human-readable summary)" >> gosec-summary.md
           fi
           
           echo "" >> gosec-summary.md
@@ -381,7 +381,7 @@ jobs:
   vulnerability-scan:
     name: Vulnerability Assessment
     runs-on: ubuntu-latest
-    timeout-minutes: 70
+    timeout-minutes: 10
     # Continue even if gosec-scan fails
     if: always()
 
@@ -425,25 +425,25 @@ jobs:
         run: |
           echo "Installing govulncheck with timeout handling..."
           timeout 300s go install golang.org/x/vuln/cmd/govulncheck@latest || {
-            echo "âš ï¸ Installation timeout - trying alternative method"
+            echo "? ï? Installation timeout - trying alternative method"
             curl -L https://github.com/golang/vuln/releases/latest/download/govulncheck_linux_amd64.tar.gz | tar -xz -C ~/go/bin/ || {
-              echo "âŒ govulncheck installation failed completely"
+              echo "??govulncheck installation failed completely"
               exit 1
             }
           }
           
           # Verify installation
           govulncheck -version || {
-            echo "âŒ govulncheck verification failed"
+            echo "??govulncheck verification failed"
             exit 1
           }
 
       - name: Run govulncheck with optimized scanning strategy
-        timeout-minutes: 55
+        timeout-minutes: 10
         run: |
           set -euo pipefail
           
-          echo "ðŸ” Running vulnerability scan (scan-type: ${{ matrix.scan-type }})"
+          echo "?? Running vulnerability scan (scan-type: ${{ matrix.scan-type }})"
           
           # Create output directory
           mkdir -p scan-results
@@ -467,8 +467,8 @@ jobs:
               ;;
           esac
           
-          echo "ðŸ“‹ Scan targets: $SCAN_TARGETS"
-          echo "â±ï¸ Timeout: $TIMEOUT_DURATION"
+          echo "?? Scan targets: $SCAN_TARGETS"
+          echo "?±ï? Timeout: $TIMEOUT_DURATION"
           
           # Run govulncheck with timeout and proper error handling
           run_scan() {
@@ -476,7 +476,7 @@ jobs:
             local output_file="$2"
             local format="$3"
             
-            echo "ðŸ” Scanning $target (format: $format)..."
+            echo "?? Scanning $target (format: $format)..."
             
             timeout "$TIMEOUT_DURATION" govulncheck \
               --verbose \
@@ -484,19 +484,19 @@ jobs:
               -C "$(pwd)" \
               "$target" > "$output_file" 2>&1 || {
               local exit_code=$?
-              echo "âš ï¸ Scan completed with exit code: $exit_code"
+              echo "? ï? Scan completed with exit code: $exit_code"
               
               case $exit_code in
                 124) # timeout
-                  echo "âŒ Scan timed out for $target" >> "$output_file"
+                  echo "??Scan timed out for $target" >> "$output_file"
                   echo "scan_timeout" > "scan-results/status-$(basename "$output_file" .txt)"
                   ;;
                 1) # vulnerabilities found
-                  echo "âš ï¸ Vulnerabilities detected in $target" >> "$output_file"
+                  echo "? ï? Vulnerabilities detected in $target" >> "$output_file"
                   echo "vulnerabilities_found" > "scan-results/status-$(basename "$output_file" .txt)"
                   ;;
                 *) # other errors
-                  echo "âŒ Scan failed with error code $exit_code" >> "$output_file"
+                  echo "??Scan failed with error code $exit_code" >> "$output_file"
                   echo "scan_error" > "scan-results/status-$(basename "$output_file" .txt)"
                   ;;
               esac
@@ -505,7 +505,7 @@ jobs:
               return 0
             }
             
-            echo "âœ… Scan completed successfully for $target"
+            echo "??Scan completed successfully for $target"
             echo "success" > "scan-results/status-$(basename "$output_file" .txt)"
           }
           
@@ -534,16 +534,16 @@ jobs:
               
               case "$status" in
                 success)
-                  echo "âœ… $scan_name: Scan completed successfully" >> vulncheck-summary-${{ matrix.scan-type }}.md
+                  echo "??$scan_name: Scan completed successfully" >> vulncheck-summary-${{ matrix.scan-type }}.md
                   ;;
                 vulnerabilities_found)
-                  echo "âš ï¸ $scan_name: Vulnerabilities detected" >> vulncheck-summary-${{ matrix.scan-type }}.md
+                  echo "? ï? $scan_name: Vulnerabilities detected" >> vulncheck-summary-${{ matrix.scan-type }}.md
                   ;;
                 scan_timeout)
-                  echo "â±ï¸ $scan_name: Scan timed out (large codebase)" >> vulncheck-summary-${{ matrix.scan-type }}.md
+                  echo "?±ï? $scan_name: Scan timed out (large codebase)" >> vulncheck-summary-${{ matrix.scan-type }}.md
                   ;;
                 scan_error)
-                  echo "âŒ $scan_name: Scan encountered errors" >> vulncheck-summary-${{ matrix.scan-type }}.md
+                  echo "??$scan_name: Scan encountered errors" >> vulncheck-summary-${{ matrix.scan-type }}.md
                   ;;
               esac
             fi
@@ -583,12 +583,12 @@ jobs:
           cat vulncheck-summary-${{ matrix.scan-type }}.md >> $GITHUB_STEP_SUMMARY
 
       - name: Nancy dependency scan (optimized)
-        timeout-minutes: 8
+        timeout-minutes: 10
         continue-on-error: true
         run: |
           echo "Installing nancy with timeout..."
           timeout 180s go install github.com/sonatype-nexus-community/nancy@latest || {
-            echo "âš ï¸ Nancy installation timeout - skipping dependency scan"
+            echo "? ï? Nancy installation timeout - skipping dependency scan"
             echo "nancy_install_timeout" > scan-results/nancy-status.txt
             exit 0
           }
@@ -598,15 +598,15 @@ jobs:
           # Use go.mod directly instead of full dependency tree for faster scanning
           if timeout 300s go list -json -m all | nancy sleuth > nancy-results-${{ matrix.scan-type }}.txt 2>&1; then
             echo "nancy_success" > scan-results/nancy-status.txt
-            echo "âœ… Nancy dependency scan completed" >> $GITHUB_STEP_SUMMARY
+            echo "??Nancy dependency scan completed" >> $GITHUB_STEP_SUMMARY
           else
             echo "nancy_timeout_or_error" > scan-results/nancy-status.txt
-            echo "âš ï¸ Nancy scan encountered issues (timeout or vulnerabilities)" >> nancy-results-${{ matrix.scan-type }}.txt
+            echo "? ï? Nancy scan encountered issues (timeout or vulnerabilities)" >> nancy-results-${{ matrix.scan-type }}.txt
           fi
           
           # Check for vulnerabilities without failing the job
           if [[ -f nancy-results-${{ matrix.scan-type }}.txt ]] && grep -q "Vulnerable Packages Found" nancy-results-${{ matrix.scan-type }}.txt; then
-            echo "âš ï¸ Vulnerable dependencies detected in ${{ matrix.scan-type }} scan!" >> $GITHUB_STEP_SUMMARY
+            echo "? ï? Vulnerable dependencies detected in ${{ matrix.scan-type }} scan!" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "<details><summary>Click to view vulnerable packages</summary>" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -616,7 +616,7 @@ jobs:
             echo "</details>" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
           else
-            echo "âœ… No vulnerable dependencies found in ${{ matrix.scan-type }} scan" >> $GITHUB_STEP_SUMMARY
+            echo "??No vulnerable dependencies found in ${{ matrix.scan-type }} scan" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Upload vulnerability reports
@@ -639,7 +639,7 @@ jobs:
   license-compliance:
     name: License Compliance Check
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
     if: github.event.inputs.scan_depth == 'comprehensive' || github.event_name == 'schedule'
 
     steps:
@@ -667,7 +667,7 @@ jobs:
           
           # Check for problematic licenses
           go-licenses check ./... > license-check.txt 2>&1 || {
-            echo "âš ï¸ License compliance issues detected"
+            echo "? ï? License compliance issues detected"
             cat license-check.txt
           }
           
@@ -695,7 +695,7 @@ jobs:
   owasp-checks:
     name: OWASP Security Checks
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 10
     if: github.event.inputs.scan_depth != 'quick'
 
     steps:
@@ -724,33 +724,33 @@ jobs:
           # A1: Injection checks
           echo "### A1 - Injection Vulnerabilities" >> owasp-summary.md
           if grep -r "fmt.Sprintf.*SELECT\|UPDATE\|DELETE\|INSERT" --include="*.go" .; then
-            echo "âš ï¸ Potential SQL injection patterns found" >> owasp-summary.md
+            echo "? ï? Potential SQL injection patterns found" >> owasp-summary.md
           else
-            echo "âœ… No obvious SQL injection patterns" >> owasp-summary.md
+            echo "??No obvious SQL injection patterns" >> owasp-summary.md
           fi
           
           # A2: Broken Authentication
           echo "### A2 - Authentication Issues" >> owasp-summary.md
           if grep -r "password.*=.*\"" --include="*.go" .; then
-            echo "âš ï¸ Hardcoded passwords detected" >> owasp-summary.md
+            echo "? ï? Hardcoded passwords detected" >> owasp-summary.md
           else
-            echo "âœ… No hardcoded passwords found" >> owasp-summary.md
+            echo "??No hardcoded passwords found" >> owasp-summary.md
           fi
           
           # A3: Sensitive Data Exposure
           echo "### A3 - Sensitive Data Exposure" >> owasp-summary.md
           if grep -r "http://" --include="*.go" . | grep -v "http://localhost" | grep -v "test"; then
-            echo "âš ï¸ Unencrypted HTTP connections found" >> owasp-summary.md
+            echo "? ï? Unencrypted HTTP connections found" >> owasp-summary.md
           else
-            echo "âœ… No unencrypted external connections" >> owasp-summary.md
+            echo "??No unencrypted external connections" >> owasp-summary.md
           fi
           
           # A5: Security Misconfiguration
           echo "### A5 - Security Misconfiguration" >> owasp-summary.md
           if grep -r "InsecureSkipVerify.*true" --include="*.go" .; then
-            echo "âš ï¸ TLS verification disabled" >> owasp-summary.md
+            echo "? ï? TLS verification disabled" >> owasp-summary.md
           else
-            echo "âœ… TLS verification properly configured" >> owasp-summary.md
+            echo "??TLS verification properly configured" >> owasp-summary.md
           fi
 
       - name: Upload OWASP reports
@@ -773,7 +773,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [gosec-scan, vulnerability-scan, license-compliance, owasp-checks]
     if: always()
-    timeout-minutes: 8
+    timeout-minutes: 10
 
     steps:
       - name: Download all security artifacts
@@ -786,7 +786,7 @@ jobs:
 
       - name: Generate comprehensive security report
         run: |
-          echo "# ðŸ”’ Nephoran Security Scan - Comprehensive Report" >> $GITHUB_STEP_SUMMARY
+          echo "# ?? Nephoran Security Scan - Comprehensive Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Date:** $(date -u +"%Y-%m-%d %H:%M UTC")" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
@@ -794,7 +794,7 @@ jobs:
           echo "**Scan Depth:** ${{ env.SCAN_DEPTH }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "## ðŸ“Š Scan Results Overview" >> $GITHUB_STEP_SUMMARY
+          echo "## ?? Scan Results Overview" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           echo "| Scanner | Status | Details |" >> $GITHUB_STEP_SUMMARY
@@ -805,7 +805,7 @@ jobs:
           echo "| OWASP Checks | ${{ needs.owasp-checks.result }} | OWASP Top 10 patterns |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "## ðŸ” Vulnerability Scan Details" >> $GITHUB_STEP_SUMMARY
+          echo "## ?? Vulnerability Scan Details" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "The vulnerability scan now runs in three tiers:" >> $GITHUB_STEP_SUMMARY
           echo "- **Critical**: Core components (cmd, api, controllers) - 10min timeout" >> $GITHUB_STEP_SUMMARY
@@ -815,7 +815,7 @@ jobs:
           
           # Add key findings if available
           if [ -d "security-artifacts" ]; then
-            echo "## ðŸ” Key Findings" >> $GITHUB_STEP_SUMMARY
+            echo "## ?? Key Findings" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             
             # Check for gosec summary
@@ -867,22 +867,22 @@ jobs:
                 done
                 
                 status_summary=""
-                [ $success_count -gt 0 ] && status_summary="${status_summary}âœ…${success_count} "
-                [ $vuln_count -gt 0 ] && status_summary="${status_summary}âš ï¸${vuln_count} "
-                [ $timeout_count -gt 0 ] && status_summary="${status_summary}â±ï¸${timeout_count} "
-                [ $error_count -gt 0 ] && status_summary="${status_summary}âŒ${error_count} "
+                [ $success_count -gt 0 ] && status_summary="${status_summary}??{success_count} "
+                [ $vuln_count -gt 0 ] && status_summary="${status_summary}? ï?${vuln_count} "
+                [ $timeout_count -gt 0 ] && status_summary="${status_summary}?±ï?${timeout_count} "
+                [ $error_count -gt 0 ] && status_summary="${status_summary}??{error_count} "
                 
                 [ -z "$status_summary" ] && status_summary="No data"
                 
                 echo "| ${scan_type^} | $status_summary | Scanned core components |" >> $GITHUB_STEP_SUMMARY
               else
-                echo "| ${scan_type^} | âŒ Failed | Job may have failed to start |" >> $GITHUB_STEP_SUMMARY
+                echo "| ${scan_type^} | ??Failed | Job may have failed to start |" >> $GITHUB_STEP_SUMMARY
               fi
             done
             echo "" >> $GITHUB_STEP_SUMMARY
           fi
           
-          echo "## ðŸ“‹ Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "## ?? Next Steps" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "1. Review detailed reports in the workflow artifacts" >> $GITHUB_STEP_SUMMARY
           echo "2. Address any critical or high severity findings" >> $GITHUB_STEP_SUMMARY

@@ -38,8 +38,8 @@ func BenchmarkHTTPHandler_IngestEndpoint(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			io.Copy(io.Discard, resp.Body)
-			resp.Body.Close()
+			_, _ = io.Copy(io.Discard, resp.Body) // #nosec G104 - Test discard
+			_ = resp.Body.Close() // #nosec G104 - Test cleanup
 		}
 	})
 }
@@ -59,8 +59,8 @@ func BenchmarkHTTPHandler_HealthEndpoint(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			io.Copy(io.Discard, resp.Body)
-			resp.Body.Close()
+			_, _ = io.Copy(io.Discard, resp.Body) // #nosec G104 - Test discard
+			_ = resp.Body.Close() // #nosec G104 - Test cleanup
 		}
 	})
 }
@@ -80,8 +80,8 @@ func BenchmarkHTTPHandler_MetricsEndpoint(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			io.Copy(io.Discard, resp.Body)
-			resp.Body.Close()
+			_, _ = io.Copy(io.Discard, resp.Body) // #nosec G104 - Test discard
+			_ = resp.Body.Close() // #nosec G104 - Test cleanup
 		}
 	})
 }
@@ -328,7 +328,7 @@ func createBenchmarkServer(tb testing.TB, handoffDir string) *httptest.Server {
 
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"healthy","timestamp":"` + time.Now().Format(time.RFC3339) + `"}`))
+		_, _ = w.Write([]byte(`{"status":"healthy","timestamp":"` + time.Now().Format(time.RFC3339) + `"}`)) // #nosec G104 - Test response
 	})
 
 	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
@@ -354,7 +354,7 @@ intent_ingest_request_duration_seconds_count %d
 			100,                                // Simulated count
 		)
 
-		w.Write([]byte(metrics))
+		_, _ = w.Write([]byte(metrics)) // #nosec G104 - Test response
 	})
 
 	var requestCounter int64

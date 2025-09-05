@@ -59,15 +59,15 @@ jobs:
   # PHASE 1: Repository Security Scanning
   # =============================================================================
   repository-scan:
-    name: ðŸ” Repository Security Scan
+    name: ?? Repository Security Scan
     runs-on: ubuntu-latest
-    timeout-minutes: 60  # Extended timeout for comprehensive scanning
+    timeout-minutes: 10  # Extended timeout for comprehensive scanning
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Full history for better analysis
+          fetch-depth: 1  # Full history for better analysis
           
       - name: Setup Go environment
         uses: actions/setup-go@v5
@@ -87,7 +87,7 @@ jobs:
             
       - name: Install security tools
         run: |
-          echo "ðŸ“¦ Installing security scanning tools..."
+          echo "?“¦ Installing security scanning tools..."
           
           # Create tools directory
           mkdir -p $HOME/.local/bin
@@ -96,7 +96,7 @@ jobs:
           # Install Trivy with retry logic
           for i in {1..3}; do
             if curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b $HOME/.local/bin v${{ env.TRIVY_VERSION }}; then
-              echo "âœ… Trivy installed successfully"
+              echo "??Trivy installed successfully"
               break
             fi
             echo "Retry $i/3 for Trivy installation..."
@@ -118,28 +118,28 @@ jobs:
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b $HOME/.local/bin v${{ env.GRYPE_VERSION }}
           
           # Verify installations
-          echo "ðŸ” Verifying tool installations..."
-          trivy version || echo "âš ï¸ Trivy not found"
-          govulncheck -version || echo "âš ï¸ govulncheck not found"
-          gosec -version || echo "âš ï¸ gosec not found"
-          nancy version || echo "âš ï¸ Nancy not found"
-          syft version || echo "âš ï¸ Syft not found"
-          grype version || echo "âš ï¸ Grype not found"
+          echo "?? Verifying tool installations..."
+          trivy version || echo "? ï? Trivy not found"
+          govulncheck -version || echo "? ï? govulncheck not found"
+          gosec -version || echo "? ï? gosec not found"
+          nancy version || echo "? ï? Nancy not found"
+          syft version || echo "? ï? Syft not found"
+          grype version || echo "? ï? Grype not found"
           
       - name: Update vulnerability databases
         run: |
-          echo "ðŸ“Š Updating vulnerability databases..."
+          echo "?? Updating vulnerability databases..."
           
           # Update Trivy database with extended timeout
-          timeout 10m trivy image --download-db-only || echo "âš ï¸ Trivy DB update failed, using cached"
+          timeout 10m trivy image --download-db-only || echo "? ï? Trivy DB update failed, using cached"
           
           # Update Grype database
-          timeout 10m grype db update || echo "âš ï¸ Grype DB update failed, using cached"
+          timeout 10m grype db update || echo "? ï? Grype DB update failed, using cached"
           
       - name: Go vulnerability check with govulncheck
         id: govulncheck
         run: |
-          echo "ðŸ” Running Go vulnerability check..."
+          echo "?? Running Go vulnerability check..."
           set +e  # Continue on error
           
           # Run govulncheck with proper JSON output
@@ -214,9 +214,9 @@ EOF
           
           # Validate SARIF
           if jq empty govulncheck-results.sarif 2>/dev/null; then
-            echo "âœ… govulncheck SARIF is valid"
+            echo "??govulncheck SARIF is valid"
           else
-            echo "âš ï¸ Creating fallback SARIF"
+            echo "? ï? Creating fallback SARIF"
             cat > govulncheck-results.sarif << 'EOF'
 {
   "version": "2.1.0",
@@ -235,17 +235,17 @@ EOF
           fi
           
           if [[ $GOVULN_EXIT -eq 0 ]]; then
-            echo "âœ… No Go vulnerabilities found"
+            echo "??No Go vulnerabilities found"
             echo "govuln_status=success" >> $GITHUB_OUTPUT
           else
-            echo "âš ï¸ Go vulnerabilities detected (exit: $GOVULN_EXIT)"
+            echo "? ï? Go vulnerabilities detected (exit: $GOVULN_EXIT)"
             echo "govuln_status=warning" >> $GITHUB_OUTPUT
           fi
           
       - name: Static security analysis with gosec
         id: gosec
         run: |
-          echo "ðŸ” Running static security analysis..."
+          echo "?? Running static security analysis..."
           set +e
           
           timeout 20m gosec -fmt sarif -out gosec-results.sarif \
@@ -260,14 +260,14 @@ EOF
           # Validate and fix SARIF
           if [[ -f gosec-results.sarif ]]; then
             if jq empty gosec-results.sarif 2>/dev/null; then
-              echo "âœ… gosec SARIF is valid"
+              echo "??gosec SARIF is valid"
             else
-              echo "âš ï¸ Fixing gosec SARIF"
+              echo "? ï? Fixing gosec SARIF"
               jq '.runs[0].tool.driver.name = "gosec"' gosec-results.sarif > gosec-fixed.sarif || true
               mv gosec-fixed.sarif gosec-results.sarif
             fi
           else
-            echo "âš ï¸ Creating empty gosec SARIF"
+            echo "? ï? Creating empty gosec SARIF"
             cat > gosec-results.sarif << 'EOF'
 {
   "version": "2.1.0",
@@ -290,7 +290,7 @@ EOF
       - name: Filesystem vulnerability scan with Trivy
         id: trivy-fs
         run: |
-          echo "ðŸ” Running filesystem vulnerability scan..."
+          echo "?? Running filesystem vulnerability scan..."
           set +e
           
           timeout 25m trivy fs \
@@ -307,7 +307,7 @@ EOF
           # Validate SARIF
           if [[ -f trivy-fs-results.sarif ]]; then
             if jq empty trivy-fs-results.sarif 2>/dev/null; then
-              echo "âœ… Trivy filesystem SARIF is valid"
+              echo "??Trivy filesystem SARIF is valid"
               # Ensure unique category in SARIF
               jq '.runs[0].tool.driver.name = "trivy-filesystem"' trivy-fs-results.sarif > trivy-fs-fixed.sarif
               mv trivy-fs-fixed.sarif trivy-fs-results.sarif
@@ -335,7 +335,7 @@ EOF
       - name: Dependency vulnerability scan with Nancy
         id: nancy
         run: |
-          echo "ðŸ” Scanning Go dependencies with Nancy..."
+          echo "?? Scanning Go dependencies with Nancy..."
           set +e
           
           go list -json -m all | nancy sleuth > nancy-output.txt 2>&1
@@ -362,7 +362,7 @@ EOF
           
       - name: Generate SBOM with Syft
         run: |
-          echo "ðŸ“¦ Generating Software Bill of Materials..."
+          echo "?“¦ Generating Software Bill of Materials..."
           
           timeout 10m syft . \
             -o spdx-json=sbom-spdx.json \
@@ -370,12 +370,12 @@ EOF
             --exclude ./vendor \
             --exclude ./node_modules
           
-          echo "âœ… SBOM generated"
+          echo "??SBOM generated"
           
       - name: SBOM vulnerability scan with Grype
         id: grype
         run: |
-          echo "ðŸ” Scanning SBOM for vulnerabilities..."
+          echo "?? Scanning SBOM for vulnerabilities..."
           set +e
           
           if [[ -f sbom-spdx.json ]]; then
@@ -385,7 +385,7 @@ EOF
               --only-fixed
             GRYPE_EXIT=$?
           else
-            echo "âš ï¸ No SBOM found, skipping Grype scan"
+            echo "? ï? No SBOM found, skipping Grype scan"
             GRYPE_EXIT=0
           fi
           
@@ -459,26 +459,26 @@ EOF
       - name: Repository scan summary
         if: always()
         run: |
-          echo "## ðŸ” Repository Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## ?? Repository Security Scan Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Tool | Status | Category |" >> $GITHUB_STEP_SUMMARY
           echo "|------|--------|----------|" >> $GITHUB_STEP_SUMMARY
-          echo "| govulncheck | ${{ steps.govulncheck.outputs.govuln_status || 'â­ï¸ skipped' }} | Go vulnerabilities |" >> $GITHUB_STEP_SUMMARY
-          echo "| gosec | ${{ steps.gosec.outputs.gosec_status || 'â­ï¸ skipped' }} | Static analysis |" >> $GITHUB_STEP_SUMMARY
-          echo "| Trivy FS | ${{ steps.trivy-fs.outputs.trivy_fs_status || 'â­ï¸ skipped' }} | Filesystem scan |" >> $GITHUB_STEP_SUMMARY
-          echo "| Nancy | ${{ steps.nancy.outputs.nancy_status || 'â­ï¸ skipped' }} | Dependency scan |" >> $GITHUB_STEP_SUMMARY
-          echo "| Grype | ${{ steps.grype.outputs.grype_status || 'â­ï¸ skipped' }} | SBOM vulnerabilities |" >> $GITHUB_STEP_SUMMARY
+          echo "| govulncheck | ${{ steps.govulncheck.outputs.govuln_status || '?­ï? skipped' }} | Go vulnerabilities |" >> $GITHUB_STEP_SUMMARY
+          echo "| gosec | ${{ steps.gosec.outputs.gosec_status || '?­ï? skipped' }} | Static analysis |" >> $GITHUB_STEP_SUMMARY
+          echo "| Trivy FS | ${{ steps.trivy-fs.outputs.trivy_fs_status || '?­ï? skipped' }} | Filesystem scan |" >> $GITHUB_STEP_SUMMARY
+          echo "| Nancy | ${{ steps.nancy.outputs.nancy_status || '?­ï? skipped' }} | Dependency scan |" >> $GITHUB_STEP_SUMMARY
+          echo "| Grype | ${{ steps.grype.outputs.grype_status || '?­ï? skipped' }} | SBOM vulnerabilities |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Scan Level:** ${{ env.SCAN_LEVEL }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Results:** Available in GitHub Security tab â†’ Code scanning" >> $GITHUB_STEP_SUMMARY
+          echo "**Results:** Available in GitHub Security tab ??Code scanning" >> $GITHUB_STEP_SUMMARY
 
   # =============================================================================
   # PHASE 2: Container Security Scanning
   # =============================================================================
   container-scan:
-    name: ðŸ³ Container Security Scan
+    name: ?³ Container Security Scan
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 10
     if: github.event_name != 'schedule'  # Skip container build on scheduled runs
     
     steps:
@@ -501,7 +501,7 @@ EOF
           
       - name: Install scanning tools
         run: |
-          echo "ðŸ“¦ Installing container scanning tools..."
+          echo "?“¦ Installing container scanning tools..."
           
           # Install Trivy
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v${{ env.TRIVY_VERSION }}
@@ -509,12 +509,12 @@ EOF
           # Install Grype for additional container scanning
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin v${{ env.GRYPE_VERSION }}
           
-          echo "âœ… Container scanning tools installed"
+          echo "??Container scanning tools installed"
           
       - name: Build container image
         id: build
         run: |
-          echo "ðŸ³ Building container image for security scanning..."
+          echo "?³ Building container image for security scanning..."
           
           # Build with security scanning labels
           docker build \
@@ -526,7 +526,7 @@ EOF
             --build-arg GOARCH=amd64 \
             --file Dockerfile \
             . || {
-              echo "âš ï¸ Docker build failed, creating minimal Dockerfile"
+              echo "? ï? Docker build failed, creating minimal Dockerfile"
               cat > Dockerfile.security << 'EOF'
 FROM golang:1.22.7-alpine AS builder
 WORKDIR /workspace
@@ -544,13 +544,13 @@ EOF
               docker build -f Dockerfile.security -t nephoran-security:scan .
             }
           
-          echo "âœ… Container image built"
+          echo "??Container image built"
           echo "image_name=nephoran-security:scan" >> $GITHUB_OUTPUT
           
       - name: Container vulnerability scan with Trivy
         id: trivy-container
         run: |
-          echo "ðŸ” Scanning container image for vulnerabilities..."
+          echo "?? Scanning container image for vulnerabilities..."
           set +e
           
           timeout 20m trivy image \
@@ -570,7 +570,7 @@ EOF
             if jq empty trivy-container-results.sarif 2>/dev/null; then
               jq '.runs[0].tool.driver.name = "trivy-container"' trivy-container-results.sarif > trivy-container-fixed.sarif
               mv trivy-container-fixed.sarif trivy-container-results.sarif
-              echo "âœ… Container scan SARIF is valid"
+              echo "??Container scan SARIF is valid"
             fi
           else
             cat > trivy-container-results.sarif << 'EOF'
@@ -595,7 +595,7 @@ EOF
       - name: Dockerfile security scan
         id: dockerfile-scan
         run: |
-          echo "ðŸ” Scanning Dockerfile for security issues..."
+          echo "?? Scanning Dockerfile for security issues..."
           set +e
           
           # Find Dockerfiles
@@ -647,7 +647,7 @@ EOF
       - name: Container scan with Grype
         id: grype-container
         run: |
-          echo "ðŸ” Additional container scanning with Grype..."
+          echo "?? Additional container scanning with Grype..."
           set +e
           
           timeout 15m grype ${{ steps.build.outputs.image_name }} \
@@ -709,13 +709,13 @@ EOF
       - name: Container scan summary
         if: always()
         run: |
-          echo "## ðŸ³ Container Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## ?³ Container Security Scan Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Tool | Status | Category |" >> $GITHUB_STEP_SUMMARY
           echo "|------|--------|----------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Trivy Image | ${{ steps.trivy-container.outputs.trivy_container_status || 'â­ï¸ skipped' }} | Container vulnerabilities |" >> $GITHUB_STEP_SUMMARY
-          echo "| Dockerfile | ${{ steps.dockerfile-scan.outputs.dockerfile_status || 'â­ï¸ skipped' }} | Dockerfile security |" >> $GITHUB_STEP_SUMMARY
-          echo "| Grype Image | ${{ steps.grype-container.outputs.grype_container_status || 'â­ï¸ skipped' }} | Additional container scan |" >> $GITHUB_STEP_SUMMARY
+          echo "| Trivy Image | ${{ steps.trivy-container.outputs.trivy_container_status || '?­ï? skipped' }} | Container vulnerabilities |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dockerfile | ${{ steps.dockerfile-scan.outputs.dockerfile_status || '?­ï? skipped' }} | Dockerfile security |" >> $GITHUB_STEP_SUMMARY
+          echo "| Grype Image | ${{ steps.grype-container.outputs.grype_container_status || '?­ï? skipped' }} | Additional container scan |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Image:** ${{ steps.build.outputs.image_name }}" >> $GITHUB_STEP_SUMMARY
 
@@ -723,9 +723,9 @@ EOF
   # PHASE 3: CodeQL Analysis
   # =============================================================================
   codeql-analysis:
-    name: ðŸ”¬ CodeQL Security Analysis
+    name: ?”¬ CodeQL Security Analysis
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 10
     permissions:
       contents: read
       security-events: write
@@ -740,7 +740,7 @@ EOF
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -758,7 +758,7 @@ EOF
           
       - name: Autobuild
         uses: github/codeql-action/autobuild@v3
-        timeout-minutes: 30
+        timeout-minutes: 10
         
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
@@ -766,22 +766,22 @@ EOF
           category: "codeql-${{ matrix.language }}"
           output: codeql-results
           upload: true
-        timeout-minutes: 30
+        timeout-minutes: 10
         
       - name: CodeQL summary
         if: always()
         run: |
-          echo "## ðŸ”¬ CodeQL Analysis Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## ?”¬ CodeQL Analysis Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Language:** ${{ matrix.language }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Status:** âœ… Completed" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ??Completed" >> $GITHUB_STEP_SUMMARY
           echo "**Results:** Available in Security tab" >> $GITHUB_STEP_SUMMARY
 
   # =============================================================================
   # PHASE 4: Security Report Aggregation
   # =============================================================================
   security-report:
-    name: ðŸ“Š Security Report
+    name: ?? Security Report
     needs: [repository-scan, container-scan, codeql-analysis]
     if: always()
     runs-on: ubuntu-latest
@@ -790,7 +790,7 @@ EOF
     steps:
       - name: Generate comprehensive security report
         run: |
-          echo "# ðŸ” Comprehensive Security Scan Report" >> $GITHUB_STEP_SUMMARY
+          echo "# ?? Comprehensive Security Scan Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Workflow:** ${{ github.workflow }}" >> $GITHUB_STEP_SUMMARY
           echo "**Run:** ${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
@@ -799,51 +799,51 @@ EOF
           echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "## ðŸ“ˆ Scan Results Overview" >> $GITHUB_STEP_SUMMARY
+          echo "## ?? Scan Results Overview" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           # Repository scan status
           if [[ "${{ needs.repository-scan.result }}" == "success" ]]; then
-            echo "âœ… **Repository Security:** Passed" >> $GITHUB_STEP_SUMMARY
+            echo "??**Repository Security:** Passed" >> $GITHUB_STEP_SUMMARY
           elif [[ "${{ needs.repository-scan.result }}" == "failure" ]]; then
-            echo "âŒ **Repository Security:** Failed" >> $GITHUB_STEP_SUMMARY
+            echo "??**Repository Security:** Failed" >> $GITHUB_STEP_SUMMARY
           elif [[ "${{ needs.repository-scan.result }}" == "skipped" ]]; then
-            echo "â­ï¸ **Repository Security:** Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "?­ï? **Repository Security:** Skipped" >> $GITHUB_STEP_SUMMARY
           else
-            echo "âš ï¸ **Repository Security:** Warning" >> $GITHUB_STEP_SUMMARY
+            echo "? ï? **Repository Security:** Warning" >> $GITHUB_STEP_SUMMARY
           fi
           
           # Container scan status
           if [[ "${{ needs.container-scan.result }}" == "success" ]]; then
-            echo "âœ… **Container Security:** Passed" >> $GITHUB_STEP_SUMMARY
+            echo "??**Container Security:** Passed" >> $GITHUB_STEP_SUMMARY
           elif [[ "${{ needs.container-scan.result }}" == "failure" ]]; then
-            echo "âŒ **Container Security:** Failed" >> $GITHUB_STEP_SUMMARY
+            echo "??**Container Security:** Failed" >> $GITHUB_STEP_SUMMARY
           elif [[ "${{ needs.container-scan.result }}" == "skipped" ]]; then
-            echo "â­ï¸ **Container Security:** Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "?­ï? **Container Security:** Skipped" >> $GITHUB_STEP_SUMMARY
           else
-            echo "âš ï¸ **Container Security:** Warning" >> $GITHUB_STEP_SUMMARY
+            echo "? ï? **Container Security:** Warning" >> $GITHUB_STEP_SUMMARY
           fi
           
           # CodeQL status
           if [[ "${{ needs.codeql-analysis.result }}" == "success" ]]; then
-            echo "âœ… **CodeQL Analysis:** Passed" >> $GITHUB_STEP_SUMMARY
+            echo "??**CodeQL Analysis:** Passed" >> $GITHUB_STEP_SUMMARY
           elif [[ "${{ needs.codeql-analysis.result }}" == "failure" ]]; then
-            echo "âŒ **CodeQL Analysis:** Failed" >> $GITHUB_STEP_SUMMARY
+            echo "??**CodeQL Analysis:** Failed" >> $GITHUB_STEP_SUMMARY
           elif [[ "${{ needs.codeql-analysis.result }}" == "skipped" ]]; then
-            echo "â­ï¸ **CodeQL Analysis:** Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "?­ï? **CodeQL Analysis:** Skipped" >> $GITHUB_STEP_SUMMARY
           else
-            echo "âš ï¸ **CodeQL Analysis:** Warning" >> $GITHUB_STEP_SUMMARY
+            echo "? ï? **CodeQL Analysis:** Warning" >> $GITHUB_STEP_SUMMARY
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## ðŸ” Detailed Results" >> $GITHUB_STEP_SUMMARY
+          echo "## ?? Detailed Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "All security findings have been uploaded to:" >> $GITHUB_STEP_SUMMARY
-          echo "- **GitHub Security tab** â†’ Code scanning alerts" >> $GITHUB_STEP_SUMMARY
-          echo "- **Pull Request** â†’ Security annotations (if applicable)" >> $GITHUB_STEP_SUMMARY
+          echo "- **GitHub Security tab** ??Code scanning alerts" >> $GITHUB_STEP_SUMMARY
+          echo "- **Pull Request** ??Security annotations (if applicable)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "## ðŸ“‹ Security Checklist" >> $GITHUB_STEP_SUMMARY
+          echo "## ?? Security Checklist" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- [x] Vulnerability scanning (Trivy, Grype)" >> $GITHUB_STEP_SUMMARY
           echo "- [x] Go vulnerability check (govulncheck)" >> $GITHUB_STEP_SUMMARY
@@ -855,7 +855,7 @@ EOF
           echo "- [x] SARIF validation and upload" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "## ðŸŽ¯ Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "## ?Ž¯ Next Steps" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "1. Review security findings in GitHub Security tab" >> $GITHUB_STEP_SUMMARY
           echo "2. Address any CRITICAL or HIGH severity issues" >> $GITHUB_STEP_SUMMARY

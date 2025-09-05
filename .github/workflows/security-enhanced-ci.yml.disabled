@@ -80,9 +80,9 @@ jobs:
   # SECURITY CONTEXT: Initialize security scanning environment
   # =============================================================================
   security-context:
-    name: ðŸ” Security Context Initialization
-    runs-on: ubuntu-22.04
-    timeout-minutes: 5
+    name: ?? Security Context Initialization
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       security-matrix: ${{ steps.matrix.outputs.matrix }}
       threat-model: ${{ steps.threat.outputs.model }}
@@ -90,22 +90,22 @@ jobs:
       security-baseline: ${{ steps.baseline.outputs.hash }}
       
     steps:
-      - name: ðŸ”’ Harden Runner
+      - name: ?? Harden Runner
         uses: step-security/harden-runner@v2
         with:
           egress-policy: audit
           disable-sudo: true
           disable-telemetry: false
           
-      - name: ðŸ“¥ Checkout with security verification
+      - name: ?“¥ Checkout with security verification
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           persist-credentials: false
           
-      - name: ðŸ” Verify commit signatures
+      - name: ?? Verify commit signatures
         run: |
-          echo "ðŸ” Verifying Git commit signatures..."
+          echo "?? Verifying Git commit signatures..."
           
           # Configure GPG
           git config --global gpg.program gpg
@@ -116,19 +116,19 @@ jobs:
           
           for commit in $(git rev-list HEAD -n $COMMITS_TO_VERIFY); do
             if git verify-commit $commit 2>/dev/null; then
-              echo "âœ… Commit $commit is signed and verified"
+              echo "??Commit $commit is signed and verified"
               VERIFIED_COUNT=$((VERIFIED_COUNT + 1))
             else
-              echo "âš ï¸ Commit $commit is not signed"
+              echo "? ï? Commit $commit is not signed"
             fi
           done
           
-          echo "ðŸ“Š Signature verification: $VERIFIED_COUNT/$COMMITS_TO_VERIFY commits signed"
+          echo "?? Signature verification: $VERIFIED_COUNT/$COMMITS_TO_VERIFY commits signed"
           
-      - name: ðŸŽ¯ Generate security scanning matrix
+      - name: ?Ž¯ Generate security scanning matrix
         id: matrix
         run: |
-          echo "ðŸŽ¯ Generating comprehensive security scanning matrix..."
+          echo "?Ž¯ Generating comprehensive security scanning matrix..."
           
           case "$SECURITY_LEVEL" in
             "quick")
@@ -190,12 +190,12 @@ jobs:
           esac
           
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
-          echo "ðŸ“‹ Security scanning matrix generated for level: $SECURITY_LEVEL"
+          echo "?? Security scanning matrix generated for level: $SECURITY_LEVEL"
           
-      - name: ðŸŽ­ Load threat model
+      - name: ?Ž­ Load threat model
         id: threat
         run: |
-          echo "ðŸŽ­ Loading threat model for telecommunications operator..."
+          echo "?Ž­ Loading threat model for telecommunications operator..."
           
           threat_model='{
             "attack_vectors": [
@@ -225,10 +225,10 @@ jobs:
           
           echo "model=$threat_model" >> $GITHUB_OUTPUT
           
-      - name: ðŸ“‹ Define compliance requirements
+      - name: ?? Define compliance requirements
         id: compliance
         run: |
-          echo "ðŸ“‹ Loading compliance requirements..."
+          echo "?? Loading compliance requirements..."
           
           requirements='{
             "standards": [
@@ -250,10 +250,10 @@ jobs:
           
           echo "requirements=$requirements" >> $GITHUB_OUTPUT
           
-      - name: ðŸ”’ Generate security baseline
+      - name: ?? Generate security baseline
         id: baseline
         run: |
-          echo "ðŸ”’ Generating security baseline hash..."
+          echo "?? Generating security baseline hash..."
           
           # Create security baseline from critical files
           baseline_files=(
@@ -276,36 +276,36 @@ jobs:
           
           final_hash=$(echo "$baseline_hash" | sha256sum | awk '{print $1}')
           echo "hash=$final_hash" >> $GITHUB_OUTPUT
-          echo "ðŸ”’ Security baseline hash: ${final_hash:0:12}..."
+          echo "?? Security baseline hash: ${final_hash:0:12}..."
 
   # =============================================================================
   # SECRETS SCANNING: Detect hardcoded secrets and credentials
   # =============================================================================
   secrets-scanning:
-    name: ðŸ”‘ Secrets Detection
-    runs-on: ubuntu-22.04
+    name: ?? Secrets Detection
+    runs-on: ubuntu-latest
     needs: security-context
     timeout-minutes: 10
     
     steps:
-      - name: ðŸ”’ Harden Runner
+      - name: ?? Harden Runner
         uses: step-security/harden-runner@v2
         with:
           egress-policy: audit
           
-      - name: ðŸ“¥ Checkout
+      - name: ?“¥ Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           persist-credentials: false
           
-      - name: ðŸ” GitLeaks secrets scan
+      - name: ?? GitLeaks secrets scan
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_ENABLE_SUMMARY: true
           
-      - name: ðŸ” TruffleHog secrets scan
+      - name: ?? TruffleHog secrets scan
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
@@ -313,9 +313,9 @@ jobs:
           head: HEAD
           extra_args: --debug --json
           
-      - name: ðŸ”‘ Custom secrets patterns
+      - name: ?? Custom secrets patterns
         run: |
-          echo "ðŸ”‘ Scanning for custom secret patterns..."
+          echo "?? Scanning for custom secret patterns..."
           
           # Define custom patterns for telecom-specific secrets
           patterns=(
@@ -334,69 +334,69 @@ jobs:
           for pattern in "${patterns[@]}"; do
             echo "  Checking pattern: $pattern"
             if grep -r -E "$pattern" . --exclude-dir={.git,vendor,node_modules} --exclude="*.md" 2>/dev/null; then
-              echo "  âš ï¸ Potential secret found matching: $pattern"
+              echo "  ? ï? Potential secret found matching: $pattern"
               found_secrets=$((found_secrets + 1))
             fi
           done
           
           if [[ $found_secrets -gt 0 ]]; then
-            echo "âŒ Found $found_secrets potential secrets"
+            echo "??Found $found_secrets potential secrets"
             exit 1
           else
-            echo "âœ… No custom secret patterns detected"
+            echo "??No custom secret patterns detected"
           fi
 
   # =============================================================================
   # SAST: Static Application Security Testing
   # =============================================================================
   sast-analysis:
-    name: ðŸ” SAST Analysis
-    runs-on: ubuntu-22.04
+    name: ?? SAST Analysis
+    runs-on: ubuntu-latest
     needs: security-context
-    timeout-minutes: 20
+    timeout-minutes: 10
     
     steps:
-      - name: ðŸ”’ Harden Runner
+      - name: ?? Harden Runner
         uses: step-security/harden-runner@v2
         with:
           egress-policy: audit
           
-      - name: ðŸ“¥ Checkout
+      - name: ?“¥ Checkout
         uses: actions/checkout@v4
         with:
           persist-credentials: false
           
-      - name: ðŸ”§ Setup Go
+      - name: ?”§ Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: false
           
-      - name: ðŸ“¦ Download dependencies
+      - name: ?“¦ Download dependencies
         run: |
           go mod download
           go mod verify
           
-      - name: ðŸ” Gosec security scan
+      - name: ?? Gosec security scan
         uses: securego/gosec@master
         with:
           args: '-no-fail -fmt sarif -out gosec-results.sarif -severity medium -conf .gosec.json -exclude G306,G301,G302,G204,G304 -exclude-dir vendor,testdata,tests,test,examples,docs ./...'
           
-      - name: ðŸ“¤ Upload Gosec results
+      - name: ?“¤ Upload Gosec results
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: gosec-results.sarif
           category: gosec
           
-      - name: ðŸ” Staticcheck analysis
+      - name: ?? Staticcheck analysis
         uses: dominikh/staticcheck-action@v1.3.1
         with:
           version: "2024.1.1"
           install-go: false
           
-      - name: ðŸ” Go vulnerability check
+      - name: ?? Go vulnerability check
         run: |
-          echo "ðŸ” Running Go vulnerability database check..."
+          echo "?? Running Go vulnerability database check..."
           go install golang.org/x/vuln/cmd/govulncheck@latest
           
           govulncheck -format json ./... > govuln-results.json || true
@@ -405,14 +405,14 @@ jobs:
           if [[ -f govuln-results.json ]]; then
             vuln_count=$(grep -c '"OSV"' govuln-results.json || echo "0")
             if [[ $vuln_count -gt 0 ]]; then
-              echo "âš ï¸ Found $vuln_count vulnerabilities in Go dependencies"
+              echo "? ï? Found $vuln_count vulnerabilities in Go dependencies"
               cat govuln-results.json | jq '.OSV' 2>/dev/null || cat govuln-results.json
             else
-              echo "âœ… No known vulnerabilities in Go dependencies"
+              echo "??No known vulnerabilities in Go dependencies"
             fi
           fi
           
-      - name: ðŸ” Semgrep security rules
+      - name: ?? Semgrep security rules
         uses: returntocorp/semgrep-action@v1
         with:
           config: >-
@@ -422,7 +422,7 @@ jobs:
             p/kubernetes
           generateSarif: true
           
-      - name: ðŸ“¤ Upload Semgrep results
+      - name: ?“¤ Upload Semgrep results
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
@@ -433,10 +433,10 @@ jobs:
   # CODEQL: Advanced semantic code analysis
   # =============================================================================
   codeql-analysis:
-    name: ðŸ”¬ CodeQL Analysis
-    runs-on: ubuntu-22.04
+    name: ?”¬ CodeQL Analysis
+    runs-on: ubuntu-latest
     needs: security-context
-    timeout-minutes: 30
+    timeout-minutes: 10
     permissions:
       security-events: write
       actions: read
@@ -448,46 +448,46 @@ jobs:
         language: [ 'go' ]
         
     steps:
-      - name: ðŸ”’ Harden Runner
+      - name: ?? Harden Runner
         uses: step-security/harden-runner@v2
         with:
           egress-policy: audit
           
-      - name: ðŸ“¥ Checkout
+      - name: ?“¥ Checkout
         uses: actions/checkout@v4
         with:
           persist-credentials: false
           
-      - name: ðŸ”§ Setup Go
+      - name: ?”§ Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: false
           
-      - name: ðŸ”¬ Initialize CodeQL
+      - name: ?”¬ Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
           config-file: ./.github/codeql/codeql-config.yml
           queries: +security-and-quality,security-extended,security-experimental
           
-      - name: ðŸ”¨ Build for CodeQL
+      - name: ?”¨ Build for CodeQL
         run: |
-          echo "ðŸ”¨ Building project for CodeQL analysis..."
+          echo "?”¨ Building project for CodeQL analysis..."
           go mod download
           go build -o /tmp/build-output ./...
           
-      - name: ðŸ”¬ Perform CodeQL Analysis
+      - name: ?”¬ Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ matrix.language }}"
           output: codeql-results
           upload: true
           
-      - name: ðŸ“Š Generate CodeQL report
+      - name: ?? Generate CodeQL report
         if: always()
         run: |
-          echo "ðŸ“Š CodeQL Security Analysis Report" > codeql-report.md
+          echo "?? CodeQL Security Analysis Report" > codeql-report.md
           echo "=================================" >> codeql-report.md
           echo "" >> codeql-report.md
           
@@ -502,7 +502,7 @@ jobs:
             done
           fi
           
-      - name: ðŸ“¤ Upload CodeQL report
+      - name: ?“¤ Upload CodeQL report
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -515,31 +515,31 @@ jobs:
   # DEPENDENCY SCANNING: Check for vulnerable dependencies
   # =============================================================================
   dependency-scanning:
-    name: ðŸ“¦ Dependency Security
-    runs-on: ubuntu-22.04
+    name: ?“¦ Dependency Security
+    runs-on: ubuntu-latest
     needs: security-context
-    timeout-minutes: 15
+    timeout-minutes: 10
     
     steps:
-      - name: ðŸ”’ Harden Runner
+      - name: ?? Harden Runner
         uses: step-security/harden-runner@v2
         with:
           egress-policy: audit
           
-      - name: ðŸ“¥ Checkout
+      - name: ?“¥ Checkout
         uses: actions/checkout@v4
         with:
           persist-credentials: false
           
-      - name: ðŸ”§ Setup Go
+      - name: ?”§ Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: false
           
-      - name: ðŸ” Nancy vulnerability scan
+      - name: ?? Nancy vulnerability scan
         run: |
-          echo "ðŸ” Running Nancy dependency vulnerability scan..."
+          echo "?? Running Nancy dependency vulnerability scan..."
           
           # Install Nancy
           go install github.com/sonatype-nexus-community/nancy@v${{ env.NANCY_VERSION }}
@@ -549,7 +549,7 @@ jobs:
           
           # Analyze results
           if grep -q "vulnerable" nancy-report.txt; then
-            echo "âš ï¸ Vulnerabilities found in dependencies:"
+            echo "? ï? Vulnerabilities found in dependencies:"
             cat nancy-report.txt
             
             # Count vulnerabilities by severity
@@ -557,19 +557,19 @@ jobs:
             high_count=$(grep -c "High" nancy-report.txt || echo "0")
             
             if [[ $critical_count -gt $MAX_CRITICAL_VULNS ]]; then
-              echo "âŒ Found $critical_count critical vulnerabilities (max allowed: $MAX_CRITICAL_VULNS)"
+              echo "??Found $critical_count critical vulnerabilities (max allowed: $MAX_CRITICAL_VULNS)"
               exit 1
             fi
             
             if [[ $high_count -gt $MAX_HIGH_VULNS ]]; then
-              echo "âŒ Found $high_count high vulnerabilities (max allowed: $MAX_HIGH_VULNS)"
+              echo "??Found $high_count high vulnerabilities (max allowed: $MAX_HIGH_VULNS)"
               exit 1
             fi
           else
-            echo "âœ… No vulnerabilities found by Nancy"
+            echo "??No vulnerabilities found by Nancy"
           fi
           
-      - name: ðŸ” OSV Scanner
+      - name: ?? OSV Scanner
         uses: google/osv-scanner-action@v1.9.1
         with:
           scan-args: |-
@@ -577,14 +577,14 @@ jobs:
             --format=sarif
             --output=osv-results.sarif
             
-      - name: ðŸ“¤ Upload OSV results
+      - name: ?“¤ Upload OSV results
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: osv-results.sarif
           category: osv-scanner
           
-      - name: ðŸ” Snyk dependency check
+      - name: ?? Snyk dependency check
         uses: snyk/actions/golang@master
         continue-on-error: true
         env:
@@ -592,10 +592,10 @@ jobs:
         with:
           args: --severity-threshold=medium --json-file-output=snyk-results.json
           
-      - name: ðŸ“Š Generate dependency report
+      - name: ?? Generate dependency report
         if: always()
         run: |
-          echo "ðŸ“Š Dependency Security Report" > dependency-report.md
+          echo "?? Dependency Security Report" > dependency-report.md
           echo "=============================" >> dependency-report.md
           echo "" >> dependency-report.md
           echo "## Summary" >> dependency-report.md
@@ -611,7 +611,7 @@ jobs:
             echo '```' >> dependency-report.md
           fi
           
-      - name: ðŸ“¤ Upload reports
+      - name: ?“¤ Upload reports
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -626,32 +626,32 @@ jobs:
   # CONTAINER SCANNING: Scan container images for vulnerabilities
   # =============================================================================
   container-scanning:
-    name: ðŸ³ Container Security
-    runs-on: ubuntu-22.04
+    name: ?³ Container Security
+    runs-on: ubuntu-latest
     needs: security-context
-    timeout-minutes: 20
+    timeout-minutes: 10
     
     steps:
-      - name: ðŸ”’ Harden Runner
+      - name: ?? Harden Runner
         uses: step-security/harden-runner@v2
         with:
           egress-policy: audit
           
-      - name: ðŸ“¥ Checkout
+      - name: ?“¥ Checkout
         uses: actions/checkout@v4
         with:
           persist-credentials: false
           
-      - name: ðŸ”§ Setup Docker Buildx
+      - name: ?”§ Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
           driver-opts: |
             image=moby/buildkit:v0.16.0
             network=host
             
-      - name: ðŸ—ï¸ Build container image
+      - name: ??ï¸?Build container image
         run: |
-          echo "ðŸ—ï¸ Building container image for security scanning..."
+          echo "??ï¸?Building container image for security scanning..."
           
           # Find Dockerfile
           if [[ -f Dockerfile ]]; then
@@ -659,7 +659,7 @@ jobs:
           elif [[ -f build/Dockerfile ]]; then
             DOCKERFILE="build/Dockerfile"
           else
-            echo "âš ï¸ No Dockerfile found, skipping container scan"
+            echo "? ï? No Dockerfile found, skipping container scan"
             echo "skip_container_scan=true" >> $GITHUB_ENV
             exit 0
           fi
@@ -673,7 +673,7 @@ jobs:
             --build-arg BUILDKIT_INLINE_CACHE=1 \
             .
             
-      - name: ðŸ” Trivy container scan
+      - name: ?? Trivy container scan
         if: env.skip_container_scan != 'true'
         uses: aquasecurity/trivy-action@master
         with:
@@ -683,17 +683,17 @@ jobs:
           severity: 'CRITICAL,HIGH,MEDIUM'
           vuln-type: 'os,library'
           
-      - name: ðŸ“¤ Upload Trivy results
+      - name: ?“¤ Upload Trivy results
         if: env.skip_container_scan != 'true'
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-container-results.sarif
           category: trivy-container
           
-      - name: ðŸ” Grype container scan
+      - name: ?? Grype container scan
         if: env.skip_container_scan != 'true'
         run: |
-          echo "ðŸ” Running Grype container vulnerability scan..."
+          echo "?? Running Grype container vulnerability scan..."
           
           # Install Grype
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin v${{ env.GRYPE_VERSION }}
@@ -705,14 +705,14 @@ jobs:
             --fail-on high \
             --only-fixed
             
-      - name: ðŸ“¤ Upload Grype results
+      - name: ?“¤ Upload Grype results
         if: env.skip_container_scan != 'true'
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: grype-results.sarif
           category: grype
           
-      - name: ðŸ” Docker Scout scan
+      - name: ?? Docker Scout scan
         if: env.skip_container_scan != 'true'
         uses: docker/scout-action@v1
         with:
@@ -721,10 +721,10 @@ jobs:
           only-severities: critical,high
           exit-code: true
           
-      - name: ðŸ“‹ Generate SBOM
+      - name: ?? Generate SBOM
         if: env.skip_container_scan != 'true'
         run: |
-          echo "ðŸ“‹ Generating Software Bill of Materials (SBOM)..."
+          echo "?? Generating Software Bill of Materials (SBOM)..."
           
           # Install Syft
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin v${{ env.SYFT_VERSION }}
@@ -734,12 +734,12 @@ jobs:
           syft nephoran:security-scan -o cyclonedx-json > sbom-cyclonedx.json
           syft nephoran:security-scan -o table > sbom-table.txt
           
-          echo "âœ… SBOM generated successfully"
+          echo "??SBOM generated successfully"
           
-      - name: ðŸ” Sign container image
+      - name: ?? Sign container image
         if: env.skip_container_scan != 'true'
         run: |
-          echo "ðŸ” Signing container image with Cosign..."
+          echo "?? Signing container image with Cosign..."
           
           # Install Cosign
           go install github.com/sigstore/cosign/v2/cmd/cosign@v${{ env.COSIGN_VERSION }}
@@ -750,9 +750,9 @@ jobs:
           # Sign the image
           cosign sign --key cosign.key nephoran:security-scan
           
-          echo "âœ… Container image signed"
+          echo "??Container image signed"
           
-      - name: ðŸ“¤ Upload container reports
+      - name: ?“¤ Upload container reports
         if: env.skip_container_scan != 'true' && always()
         uses: actions/upload-artifact@v4
         with:
@@ -767,31 +767,31 @@ jobs:
   # LICENSE COMPLIANCE: Check for license compatibility
   # =============================================================================
   license-compliance:
-    name: ðŸ“œ License Compliance
-    runs-on: ubuntu-22.04
+    name: ?? License Compliance
+    runs-on: ubuntu-latest
     needs: security-context
     timeout-minutes: 10
     
     steps:
-      - name: ðŸ”’ Harden Runner
+      - name: ?? Harden Runner
         uses: step-security/harden-runner@v2
         with:
           egress-policy: audit
           
-      - name: ðŸ“¥ Checkout
+      - name: ?“¥ Checkout
         uses: actions/checkout@v4
         with:
           persist-credentials: false
           
-      - name: ðŸ”§ Setup Go
+      - name: ?”§ Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: false
           
-      - name: ðŸ“œ License detection
+      - name: ?? License detection
         run: |
-          echo "ðŸ“œ Detecting licenses in dependencies..."
+          echo "?? Detecting licenses in dependencies..."
           
           # Install go-licenses
           go install github.com/google/go-licenses@latest
@@ -802,7 +802,7 @@ jobs:
           # Report licenses
           go-licenses report ./... --template '{{.LicensePath}},{{.LicenseType}}' > licenses.csv 2>&1 || true
           
-          echo "ðŸ“Š License summary:"
+          echo "?? License summary:"
           if [[ -f licenses.csv ]]; then
             echo "Total licenses found: $(wc -l < licenses.csv)"
             echo ""
@@ -816,19 +816,19 @@ jobs:
           
           for license in "${problematic_licenses[@]}"; do
             if grep -qi "$license" licenses.csv 2>/dev/null; then
-              echo "âš ï¸ Found potentially problematic license: $license"
+              echo "? ï? Found potentially problematic license: $license"
               found_problematic=true
             fi
           done
           
           if [[ "$found_problematic" == "true" ]]; then
-            echo "âŒ Problematic licenses detected - review required"
+            echo "??Problematic licenses detected - review required"
             exit 1
           else
-            echo "âœ… No problematic licenses detected"
+            echo "??No problematic licenses detected"
           fi
           
-      - name: ðŸ“¤ Upload license report
+      - name: ?“¤ Upload license report
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -841,42 +841,42 @@ jobs:
   # SUPPLY CHAIN SECURITY: Verify supply chain integrity
   # =============================================================================
   supply-chain-security:
-    name: ðŸ”— Supply Chain Security
-    runs-on: ubuntu-22.04
+    name: ?? Supply Chain Security
+    runs-on: ubuntu-latest
     needs: security-context
-    timeout-minutes: 15
+    timeout-minutes: 10
     
     steps:
-      - name: ðŸ”’ Harden Runner
+      - name: ?? Harden Runner
         uses: step-security/harden-runner@v2
         with:
           egress-policy: audit
           
-      - name: ðŸ“¥ Checkout
+      - name: ?“¥ Checkout
         uses: actions/checkout@v4
         with:
           persist-credentials: false
           
-      - name: ðŸ” SLSA verification
+      - name: ?? SLSA verification
         uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.10.0
         with:
           base64-subjects: |
             "${{ github.sha }}:${{ github.ref }}"
             
-      - name: ðŸ“Š OpenSSF Scorecard
+      - name: ?? OpenSSF Scorecard
         uses: ossf/scorecard-action@v2
         with:
           results_file: scorecard-results.sarif
           results_format: sarif
           publish_results: true
           
-      - name: ðŸ“¤ Upload Scorecard results
+      - name: ?“¤ Upload Scorecard results
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: scorecard-results.sarif
           category: scorecard
           
-      - name: ðŸ” Dependency review
+      - name: ?? Dependency review
         if: github.event_name == 'pull_request'
         uses: actions/dependency-review-action@v4
         with:
@@ -884,9 +884,9 @@ jobs:
           deny-licenses: GPL-3.0, AGPL-3.0, SSPL-1.0
           comment-summary-in-pr: always
           
-      - name: ðŸ” Verify dependency checksums
+      - name: ?? Verify dependency checksums
         run: |
-          echo "ðŸ” Verifying Go module checksums..."
+          echo "?? Verifying Go module checksums..."
           
           # Verify all module checksums
           go mod verify
@@ -894,47 +894,47 @@ jobs:
           # Additional verification
           go list -m all | while read -r module version; do
             if [[ ! -z "$version" ]]; then
-              echo "  âœ“ $module@$version"
+              echo "  ??$module@$version"
             fi
           done
           
-          echo "âœ… All module checksums verified"
+          echo "??All module checksums verified"
 
   # =============================================================================
   # COMPLIANCE VALIDATION: Check compliance with security standards
   # =============================================================================
   compliance-validation:
-    name: ðŸ“‹ Compliance Validation
-    runs-on: ubuntu-22.04
+    name: ?? Compliance Validation
+    runs-on: ubuntu-latest
     needs: [secrets-scanning, sast-analysis, dependency-scanning]
-    timeout-minutes: 15
+    timeout-minutes: 10
     
     steps:
-      - name: ðŸ”’ Harden Runner
+      - name: ?? Harden Runner
         uses: step-security/harden-runner@v2
         with:
           egress-policy: audit
           
-      - name: ðŸ“¥ Checkout
+      - name: ?“¥ Checkout
         uses: actions/checkout@v4
         with:
           persist-credentials: false
           
-      - name: ðŸ“‹ OWASP compliance check
+      - name: ?? OWASP compliance check
         run: |
-          echo "ðŸ“‹ Validating OWASP Top 10 compliance..."
+          echo "?? Validating OWASP Top 10 compliance..."
           
           owasp_checks=(
-            "A01:2021 â€“ Broken Access Control"
-            "A02:2021 â€“ Cryptographic Failures"
-            "A03:2021 â€“ Injection"
-            "A04:2021 â€“ Insecure Design"
-            "A05:2021 â€“ Security Misconfiguration"
-            "A06:2021 â€“ Vulnerable Components"
-            "A07:2021 â€“ Authentication Failures"
-            "A08:2021 â€“ Data Integrity Failures"
-            "A09:2021 â€“ Logging Failures"
-            "A10:2021 â€“ SSRF"
+            "A01:2021 ??Broken Access Control"
+            "A02:2021 ??Cryptographic Failures"
+            "A03:2021 ??Injection"
+            "A04:2021 ??Insecure Design"
+            "A05:2021 ??Security Misconfiguration"
+            "A06:2021 ??Vulnerable Components"
+            "A07:2021 ??Authentication Failures"
+            "A08:2021 ??Data Integrity Failures"
+            "A09:2021 ??Logging Failures"
+            "A10:2021 ??SSRF"
           )
           
           compliance_score=0
@@ -947,11 +947,11 @@ jobs:
           done
           
           echo ""
-          echo "ðŸ“Š OWASP Compliance Score: $compliance_score/$total_checks"
+          echo "?? OWASP Compliance Score: $compliance_score/$total_checks"
           
-      - name: ðŸ“‹ CIS Kubernetes Benchmark
+      - name: ?? CIS Kubernetes Benchmark
         run: |
-          echo "ðŸ“‹ Validating CIS Kubernetes Benchmark compliance..."
+          echo "?? Validating CIS Kubernetes Benchmark compliance..."
           
           # Install kube-bench
           curl -L https://github.com/aquasecurity/kube-bench/releases/latest/download/kube-bench_linux_amd64.tar.gz -o kube-bench.tar.gz
@@ -962,26 +962,26 @@ jobs:
           
           # Check for security contexts
           if grep -r "securityContext:" deployments/ 2>/dev/null; then
-            echo "  âœ… Security contexts defined"
+            echo "  ??Security contexts defined"
           else
-            echo "  âš ï¸ Missing security contexts"
+            echo "  ? ï? Missing security contexts"
           fi
           
           # Check for resource limits
           if grep -r "resources:" deployments/ 2>/dev/null; then
-            echo "  âœ… Resource limits defined"
+            echo "  ??Resource limits defined"
           else
-            echo "  âš ï¸ Missing resource limits"
+            echo "  ? ï? Missing resource limits"
           fi
           
           # Check for network policies
           if find . -name "*networkpolicy*.yaml" -o -name "*netpol*.yaml" 2>/dev/null | grep -q .; then
-            echo "  âœ… Network policies found"
+            echo "  ??Network policies found"
           else
-            echo "  âš ï¸ No network policies found"
+            echo "  ? ï? No network policies found"
           fi
           
-      - name: ðŸ“‹ Generate compliance report
+      - name: ?? Generate compliance report
         run: |
           echo "# Security Compliance Report" > compliance-report.md
           echo "Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> compliance-report.md
@@ -1005,7 +1005,7 @@ jobs:
           echo "- [x] License compliance enabled" >> compliance-report.md
           echo "- [x] Supply chain verification enabled" >> compliance-report.md
           
-      - name: ðŸ“¤ Upload compliance report
+      - name: ?“¤ Upload compliance report
         uses: actions/upload-artifact@v4
         with:
           name: compliance-report
@@ -1015,8 +1015,8 @@ jobs:
   # SECURITY REPORTING: Aggregate and report all security findings
   # =============================================================================
   security-reporting:
-    name: ðŸ“Š Security Reporting
-    runs-on: ubuntu-22.04
+    name: ?? Security Reporting
+    runs-on: ubuntu-latest
     needs: [
       secrets-scanning,
       sast-analysis,
@@ -1031,26 +1031,26 @@ jobs:
     timeout-minutes: 10
     
     steps:
-      - name: ðŸ”’ Harden Runner
+      - name: ?? Harden Runner
         uses: step-security/harden-runner@v2
         with:
           egress-policy: audit
           
-      - name: ðŸ“¥ Download all artifacts
+      - name: ?“¥ Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: security-artifacts
           
-      - name: ðŸ“Š Generate consolidated report
+      - name: ?? Generate consolidated report
         run: |
-          echo "# ðŸ” Security Scan Report" > SECURITY-REPORT.md
+          echo "# ?? Security Scan Report" > SECURITY-REPORT.md
           echo "**Date:** $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> SECURITY-REPORT.md
           echo "**Commit:** ${{ github.sha }}" >> SECURITY-REPORT.md
           echo "**Branch:** ${{ github.ref_name }}" >> SECURITY-REPORT.md
           echo "**Security Level:** ${{ env.SECURITY_LEVEL }}" >> SECURITY-REPORT.md
           echo "" >> SECURITY-REPORT.md
           
-          echo "## ðŸ“‹ Executive Summary" >> SECURITY-REPORT.md
+          echo "## ?? Executive Summary" >> SECURITY-REPORT.md
           echo "" >> SECURITY-REPORT.md
           
           # Job status summary
@@ -1071,19 +1071,19 @@ jobs:
           if [[ "${{ needs.secrets-scanning.result }}" == "failure" ]] || \
              [[ "${{ needs.sast-analysis.result }}" == "failure" ]] || \
              [[ "${{ needs.dependency-scanning.result }}" == "failure" ]]; then
-            echo "## ðŸš¨ CRITICAL SECURITY ISSUES DETECTED" >> SECURITY-REPORT.md
+            echo "## ?š¨ CRITICAL SECURITY ISSUES DETECTED" >> SECURITY-REPORT.md
             echo "" >> SECURITY-REPORT.md
             echo "**Action Required:** Review and remediate critical findings before deployment." >> SECURITY-REPORT.md
             overall_status="FAILED"
           else
-            echo "## âœ… Security Scan Passed" >> SECURITY-REPORT.md
+            echo "## ??Security Scan Passed" >> SECURITY-REPORT.md
             echo "" >> SECURITY-REPORT.md
             echo "No critical security issues detected." >> SECURITY-REPORT.md
             overall_status="PASSED"
           fi
           
           echo "" >> SECURITY-REPORT.md
-          echo "## ðŸ“ Detailed Reports" >> SECURITY-REPORT.md
+          echo "## ?? Detailed Reports" >> SECURITY-REPORT.md
           echo "Individual security scan reports are available in the artifacts:" >> SECURITY-REPORT.md
           echo "- CodeQL Analysis Report" >> SECURITY-REPORT.md
           echo "- Dependency Security Report" >> SECURITY-REPORT.md
@@ -1092,7 +1092,7 @@ jobs:
           echo "- Compliance Validation Report" >> SECURITY-REPORT.md
           echo "" >> SECURITY-REPORT.md
           
-          echo "## ðŸ”§ Recommendations" >> SECURITY-REPORT.md
+          echo "## ?”§ Recommendations" >> SECURITY-REPORT.md
           echo "1. Review all HIGH and CRITICAL findings" >> SECURITY-REPORT.md
           echo "2. Update vulnerable dependencies" >> SECURITY-REPORT.md
           echo "3. Apply security patches promptly" >> SECURITY-REPORT.md
@@ -1100,7 +1100,7 @@ jobs:
           echo "5. Schedule regular security assessments" >> SECURITY-REPORT.md
           echo "" >> SECURITY-REPORT.md
           
-          echo "## ðŸ“ Compliance Notes" >> SECURITY-REPORT.md
+          echo "## ?? Compliance Notes" >> SECURITY-REPORT.md
           echo "This scan validates compliance with:" >> SECURITY-REPORT.md
           echo "- OWASP Top 10 (2024)" >> SECURITY-REPORT.md
           echo "- CIS Kubernetes Benchmark v1.8" >> SECURITY-REPORT.md
@@ -1114,13 +1114,13 @@ jobs:
           # Set output
           echo "overall_status=$overall_status" >> $GITHUB_ENV
           
-      - name: ðŸ“¤ Upload final report
+      - name: ?“¤ Upload final report
         uses: actions/upload-artifact@v4
         with:
           name: security-scan-report
           path: SECURITY-REPORT.md
           
-      - name: ðŸ’¬ Comment on PR
+      - name: ?’¬ Comment on PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
@@ -1137,7 +1137,7 @@ jobs:
               body: report
             });
             
-      - name: ðŸš¨ Create security issue if failed
+      - name: ?š¨ Create security issue if failed
         if: env.overall_status == 'FAILED' && github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/github-script@v7
         with:
@@ -1146,15 +1146,15 @@ jobs:
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: 'ðŸš¨ Security Scan Failed - ' + new Date().toISOString().split('T')[0],
+              title: '?š¨ Security Scan Failed - ' + new Date().toISOString().split('T')[0],
               body: 'Critical security issues detected in commit ' + context.sha + '\n\nPlease review the [security scan results](' + context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId + ')',
               labels: ['security', 'critical', 'automated']
             });
             
-      - name: ðŸ“Š Update security metrics
+      - name: ?? Update security metrics
         if: always()
         run: |
-          echo "ðŸ“Š Updating security metrics..."
+          echo "?? Updating security metrics..."
           
           # Create metrics file
           cat > security-metrics.json <<EOF
@@ -1185,10 +1185,10 @@ jobs:
           }
           EOF
           
-          echo "âœ… Security metrics updated"
+          echo "??Security metrics updated"
           
-      - name: ðŸŽ¯ Final status check
+      - name: ?Ž¯ Final status check
         if: env.overall_status == 'FAILED'
         run: |
-          echo "âŒ Security scan failed - blocking pipeline"
+          echo "??Security scan failed - blocking pipeline"
           exit 1

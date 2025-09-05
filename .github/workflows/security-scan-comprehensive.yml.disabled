@@ -38,7 +38,7 @@ jobs:
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
     
     steps:
       - name: Checkout code
@@ -58,11 +58,11 @@ jobs:
           # Install govulncheck
           go install golang.org/x/vuln/cmd/govulncheck@${{ env.GOVULNCHECK_VERSION }}
           
-          echo "✅ Security tools installed"
+          echo "??Security tools installed"
           
       - name: Filesystem security scan
         run: |
-          echo "🔍 Running filesystem security scan..."
+          echo "?? Running filesystem security scan..."
           trivy fs \
             --format sarif \
             --output trivy-fs-results.sarif \
@@ -74,9 +74,9 @@ jobs:
           # Validate SARIF file
           if [[ -f trivy-fs-results.sarif ]]; then
             if jq empty trivy-fs-results.sarif 2>/dev/null; then
-              echo "✅ Filesystem SARIF file is valid"
+              echo "??Filesystem SARIF file is valid"
             else
-              echo "❌ Invalid SARIF file, creating fallback"
+              echo "??Invalid SARIF file, creating fallback"
               cat > trivy-fs-results.sarif << 'EOF'
 {
   "version": "2.1.0",
@@ -99,7 +99,7 @@ EOF
           
       - name: Go vulnerability check
         run: |
-          echo "🔍 Running Go vulnerability check..."
+          echo "?? Running Go vulnerability check..."
           set +e  # Don't fail on vulnerabilities
           
           govulncheck \
@@ -112,7 +112,7 @@ EOF
           # Validate and fix SARIF if needed
           if [[ -f govulncheck-results.sarif ]]; then
             if ! jq empty govulncheck-results.sarif 2>/dev/null; then
-              echo "❌ govulncheck produced invalid JSON, creating fallback SARIF"
+              echo "??govulncheck produced invalid JSON, creating fallback SARIF"
               cat > govulncheck-results.sarif << 'EOF'
 {
   "version": "2.1.0",
@@ -132,7 +132,7 @@ EOF
 EOF
             fi
           else
-            echo "⚠️ govulncheck did not produce output file, creating empty SARIF"
+            echo "?��? govulncheck did not produce output file, creating empty SARIF"
             cat > govulncheck-results.sarif << 'EOF'
 {
   "version": "2.1.0",
@@ -153,9 +153,9 @@ EOF
           fi
           
           if [[ $GOVULN_EXIT -eq 0 ]]; then
-            echo "✅ No Go vulnerabilities found"
+            echo "??No Go vulnerabilities found"
           else
-            echo "⚠️ Go vulnerabilities found (exit code: $GOVULN_EXIT)"
+            echo "?��? Go vulnerabilities found (exit code: $GOVULN_EXIT)"
           fi
           
       # Upload SARIF files with unique categories
@@ -180,19 +180,19 @@ EOF
       - name: Security scan summary
         if: always()
         run: |
-          echo "## 🔐 Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## ?? Security Scan Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           if [[ -f trivy-fs-results.sarif ]]; then
-            echo "✅ Filesystem scan completed" >> $GITHUB_STEP_SUMMARY
+            echo "??Filesystem scan completed" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ Filesystem scan failed" >> $GITHUB_STEP_SUMMARY
+            echo "??Filesystem scan failed" >> $GITHUB_STEP_SUMMARY
           fi
           
           if [[ -f govulncheck-results.sarif ]]; then
-            echo "✅ Go vulnerability check completed" >> $GITHUB_STEP_SUMMARY
+            echo "??Go vulnerability check completed" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ Go vulnerability check failed" >> $GITHUB_STEP_SUMMARY
+            echo "??Go vulnerability check failed" >> $GITHUB_STEP_SUMMARY
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY

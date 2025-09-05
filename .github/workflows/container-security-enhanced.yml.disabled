@@ -32,7 +32,7 @@ jobs:
   container-security:
     name: Container Security
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 10
     
     steps:
       - name: Checkout code
@@ -47,20 +47,20 @@ jobs:
       - name: Install Trivy
         run: |
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v${{ env.TRIVY_VERSION }}
-          echo "✅ Trivy ${{ env.TRIVY_VERSION }} installed"
+          echo "??Trivy ${{ env.TRIVY_VERSION }} installed"
           
       - name: Build container image
         run: |
-          echo "🐳 Building container image for security scan..."
+          echo "?�� Building container image for security scan..."
           
           # Use the new docker-build target we created
           make docker-build IMG=nephoran-operator:security-scan
           
-          echo "✅ Container image built successfully"
+          echo "??Container image built successfully"
           
       - name: Container image security scan
         run: |
-          echo "🔍 Scanning container image for vulnerabilities..."
+          echo "?? Scanning container image for vulnerabilities..."
           
           trivy image \
             --format sarif \
@@ -73,9 +73,9 @@ jobs:
           # Validate SARIF file
           if [[ -f trivy-container-results.sarif ]]; then
             if jq empty trivy-container-results.sarif 2>/dev/null; then
-              echo "✅ Container SARIF file is valid"
+              echo "??Container SARIF file is valid"
             else
-              echo "❌ Invalid SARIF file, creating fallback"
+              echo "??Invalid SARIF file, creating fallback"
               cat > trivy-container-results.sarif << 'EOF'
 {
   "version": "2.1.0",
@@ -95,7 +95,7 @@ jobs:
 EOF
             fi
           else
-            echo "⚠️ Trivy did not create SARIF file, creating empty one"
+            echo "?��? Trivy did not create SARIF file, creating empty one"
             cat > trivy-container-results.sarif << 'EOF'
 {
   "version": "2.1.0",
@@ -115,11 +115,11 @@ EOF
 EOF
           fi
           
-          echo "✅ Container security scan completed"
+          echo "??Container security scan completed"
           
       - name: Dockerfile security scan
         run: |
-          echo "🔍 Scanning Dockerfile for misconfigurations..."
+          echo "?? Scanning Dockerfile for misconfigurations..."
           
           trivy config \
             --format sarif \
@@ -131,9 +131,9 @@ EOF
           # Validate SARIF file
           if [[ -f trivy-dockerfile-results.sarif ]]; then
             if jq empty trivy-dockerfile-results.sarif 2>/dev/null; then
-              echo "✅ Dockerfile SARIF file is valid"
+              echo "??Dockerfile SARIF file is valid"
             else
-              echo "❌ Invalid Dockerfile SARIF, creating fallback"
+              echo "??Invalid Dockerfile SARIF, creating fallback"
               cat > trivy-dockerfile-results.sarif << 'EOF'
 {
   "version": "2.1.0",
@@ -154,7 +154,7 @@ EOF
             fi
           fi
           
-          echo "✅ Dockerfile security scan completed"
+          echo "??Dockerfile security scan completed"
           
       # Upload SARIF files with unique categories  
       - name: Upload container image scan results
@@ -178,20 +178,20 @@ EOF
       - name: Container security summary
         if: always()
         run: |
-          echo "## 🐳 Container Security Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## ?�� Container Security Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           if [[ -f trivy-container-results.sarif ]]; then
-            echo "✅ Container image scan completed" >> $GITHUB_STEP_SUMMARY
+            echo "??Container image scan completed" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ Container image scan failed" >> $GITHUB_STEP_SUMMARY
+            echo "??Container image scan failed" >> $GITHUB_STEP_SUMMARY
           fi
           
           if [[ -f trivy-dockerfile-results.sarif ]]; then
-            echo "✅ Dockerfile scan completed" >> $GITHUB_STEP_SUMMARY
+            echo "??Dockerfile scan completed" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ Dockerfile scan failed" >> $GITHUB_STEP_SUMMARY
+            echo "??Dockerfile scan failed" >> $GITHUB_STEP_SUMMARY
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Security findings uploaded to:** GitHub Security → Code scanning" >> $GITHUB_STEP_SUMMARY
+          echo "**Security findings uploaded to:** GitHub Security ??Code scanning" >> $GITHUB_STEP_SUMMARY

@@ -65,8 +65,8 @@ jobs:
   # CACHE MANAGEMENT: Ultra-reliable cache handling with error recovery
   # =============================================================================
   cache-management:
-    name: üóÇÔ∏è Cache Management
-    runs-on: ubuntu-22.04
+    name: ??Ô∏?Cache Management
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
       cache-hit: ${{ steps.cache.outputs.cache-hit }}
@@ -74,23 +74,23 @@ jobs:
       go-mod-sum: ${{ steps.checksums.outputs.go-mod-sum }}
       
     steps:
-      - name: üì• Checkout with retry
+      - name: ?ì• Checkout with retry
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
           persist-credentials: false
           
-      - name: üîß Setup Go with error handling
+      - name: ?îß Setup Go with error handling
         id: setup-go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: false  # We handle caching manually for better control
           
-      - name: üìä Calculate checksums for cache key
+      - name: ?? Calculate checksums for cache key
         id: checksums
         run: |
-          echo "üîç Calculating file checksums for cache key..."
+          echo "?? Calculating file checksums for cache key..."
           
           # Generate comprehensive checksum including go.mod, go.sum, and Go version
           go_files_hash=$(find . -name "*.go" -type f -exec sha256sum {} \; | sha256sum | cut -d' ' -f1)
@@ -106,12 +106,12 @@ jobs:
           echo "go-mod-sum=$go_sum_hash" >> $GITHUB_OUTPUT
           echo "combined-hash=$combined_hash" >> $GITHUB_OUTPUT
           
-          echo "‚úÖ Cache key components calculated"
+          echo "??Cache key components calculated"
           
-      - name: üóùÔ∏è Generate cache key
+      - name: ??Ô∏?Generate cache key
         id: cache-key
         run: |
-          echo "üóùÔ∏è Generating cache key..."
+          echo "??Ô∏?Generating cache key..."
           
           base_key="go-modules-${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.GO_VERSION }}"
           checksum_key="${base_key}-${{ steps.checksums.outputs.combined-hash }}"
@@ -120,13 +120,13 @@ jobs:
           echo "key=$checksum_key" >> $GITHUB_OUTPUT
           echo "fallback-key=$fallback_key" >> $GITHUB_OUTPUT
           
-          echo "üîë Primary cache key: $checksum_key"
-          echo "üîë Fallback cache key: $fallback_key"
+          echo "?? Primary cache key: $checksum_key"
+          echo "?? Fallback cache key: $fallback_key"
           
-      - name: üóÇÔ∏è Restore Go modules cache with timeout
+      - name: ??Ô∏?Restore Go modules cache with timeout
         id: cache
         uses: actions/cache@v4
-        timeout-minutes: 5
+        timeout-minutes: 10
         continue-on-error: true
         with:
           path: |
@@ -136,10 +136,10 @@ jobs:
           restore-keys: |
             ${{ steps.cache-key.outputs.fallback-key }}
             
-      - name: ‚ö° Handle cache failure
+      - name: ??Handle cache failure
         if: steps.cache.outcome == 'failure'
         run: |
-          echo "‚ö†Ô∏è Cache restore failed, but continuing with fresh downloads"
+          echo "?†Ô? Cache restore failed, but continuing with fresh downloads"
           echo "cache-hit=false" >> $GITHUB_OUTPUT
           
           # Clear any corrupted cache
@@ -148,44 +148,44 @@ jobs:
           # Create clean directories
           mkdir -p ~/go/pkg/mod ~/.cache/go-build
           
-      - name: üîç Verify cache status
+      - name: ?? Verify cache status
         run: |
-          echo "üìä Cache Status Report:"
+          echo "?? Cache Status Report:"
           echo "- Cache hit: ${{ steps.cache.outputs.cache-hit }}"
           echo "- Cache key: ${{ steps.cache-key.outputs.key }}"
           echo "- Go version: ${{ env.GO_VERSION }}"
           
           if [[ "${{ steps.cache.outputs.cache-hit }}" == "true" ]]; then
-            echo "‚úÖ Cache restored successfully"
+            echo "??Cache restored successfully"
             ls -la ~/go/pkg/mod/ 2>/dev/null | head -10 || echo "Cache directory empty"
           else
-            echo "üì¶ Fresh module download required"
+            echo "?ì¶ Fresh module download required"
           fi
 
   # =============================================================================
   # DEPENDENCY DOWNLOAD: Reliable module download with retry logic
   # =============================================================================
   download-dependencies:
-    name: üì¶ Download Dependencies
-    runs-on: ubuntu-22.04
+    name: ?ì¶ Download Dependencies
+    runs-on: ubuntu-latest
     needs: cache-management
-    timeout-minutes: 15
+    timeout-minutes: 10
     outputs:
       modules-ready: ${{ steps.verify.outputs.ready }}
       
     steps:
-      - name: üì• Checkout
+      - name: ?ì• Checkout
         uses: actions/checkout@v4
         with:
           persist-credentials: false
           
-      - name: üîß Setup Go
+      - name: ?îß Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: false
           
-      - name: üóÇÔ∏è Restore cache
+      - name: ??Ô∏?Restore cache
         if: needs.cache-management.outputs.cache-hit == 'true'
         uses: actions/cache@v4
         with:
@@ -194,14 +194,14 @@ jobs:
             ~/.cache/go-build
           key: ${{ needs.cache-management.outputs.cache-key }}
           
-      - name: üì¶ Download modules with retry logic
+      - name: ?ì¶ Download modules with retry logic
         id: download
         run: |
-          echo "üì¶ Downloading Go modules with retry logic..."
+          echo "?ì¶ Downloading Go modules with retry logic..."
           
           download_modules() {
             local attempt=$1
-            echo "üîÑ Download attempt $attempt..."
+            echo "?? Download attempt $attempt..."
             
             # Set timeout for download
             timeout ${{ env.DOWNLOAD_TIMEOUT }}s go mod download -x || return $?
@@ -209,7 +209,7 @@ jobs:
             # Verify downloads
             go mod verify || return $?
             
-            echo "‚úÖ Download attempt $attempt successful"
+            echo "??Download attempt $attempt successful"
             return 0
           }
           
@@ -222,11 +222,11 @@ jobs:
               exit_code=$?
               
               if [[ $attempt -eq ${{ env.MAX_RETRIES }} ]]; then
-                echo "‚ùå All download attempts failed"
+                echo "??All download attempts failed"
                 exit $exit_code
               fi
               
-              echo "‚ö†Ô∏è Download attempt $attempt failed, retrying in ${{ env.RETRY_DELAY }}s..."
+              echo "?†Ô? Download attempt $attempt failed, retrying in ${{ env.RETRY_DELAY }}s..."
               sleep ${{ env.RETRY_DELAY }}
               
               # Clean up on failure
@@ -234,10 +234,10 @@ jobs:
             fi
           done
           
-      - name: üîç Verify module integrity
+      - name: ?? Verify module integrity
         id: verify
         run: |
-          echo "üîç Verifying module integrity..."
+          echo "?? Verifying module integrity..."
           
           # Comprehensive verification
           go mod verify
@@ -245,7 +245,7 @@ jobs:
           
           # Check for any changes (tidy shouldn't change anything)
           if ! git diff --quiet go.mod go.sum 2>/dev/null; then
-            echo "‚ö†Ô∏è go mod tidy made changes - this indicates dependency issues"
+            echo "?†Ô? go mod tidy made changes - this indicates dependency issues"
             git diff go.mod go.sum
             exit 1
           fi
@@ -253,36 +253,36 @@ jobs:
           # Verify all modules are downloaded
           missing_modules=$(go list -m -f '{{if not .Dir}}{{.Path}}{{end}}' all)
           if [[ -n "$missing_modules" ]]; then
-            echo "‚ùå Missing modules detected:"
+            echo "??Missing modules detected:"
             echo "$missing_modules"
             exit 1
           fi
           
           echo "ready=true" >> $GITHUB_OUTPUT
-          echo "‚úÖ All modules verified and ready"
+          echo "??All modules verified and ready"
 
   # =============================================================================
   # SECURITY SCAN: Ultra-reliable gosec scan with comprehensive error handling
   # =============================================================================
   security-scan:
-    name: üîí Security Scan
-    runs-on: ubuntu-22.04
+    name: ?? Security Scan
+    runs-on: ubuntu-latest
     needs: [cache-management, download-dependencies]
-    timeout-minutes: 25
+    timeout-minutes: 10
     
     steps:
-      - name: üì• Checkout
+      - name: ?ì• Checkout
         uses: actions/checkout@v4
         with:
           persist-credentials: false
           
-      - name: üîß Setup Go
+      - name: ?îß Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: false
           
-      - name: üóÇÔ∏è Restore cache
+      - name: ??Ô∏?Restore cache
         uses: actions/cache@v4
         with:
           path: |
@@ -290,41 +290,41 @@ jobs:
             ~/.cache/go-build
           key: ${{ needs.cache-management.outputs.cache-key }}
           
-      - name: üì¶ Verify dependencies
+      - name: ?ì¶ Verify dependencies
         run: |
-          echo "üì¶ Verifying dependencies are available..."
+          echo "?ì¶ Verifying dependencies are available..."
           
           # Quick verification that modules are available
           if ! go list ./... &>/dev/null; then
-            echo "‚ùå Dependencies not available, re-downloading..."
+            echo "??Dependencies not available, re-downloading..."
             go mod download
             go mod verify
           fi
           
-          echo "‚úÖ Dependencies verified"
+          echo "??Dependencies verified"
           
-      - name: üõ†Ô∏è Install gosec with retry
+      - name: ??Ô∏?Install gosec with retry
         id: install-gosec
         run: |
-          echo "üõ†Ô∏è Installing gosec with retry logic..."
+          echo "??Ô∏?Installing gosec with retry logic..."
           
           install_gosec() {
             local attempt=$1
-            echo "üîÑ Gosec installation attempt $attempt..."
+            echo "?? Gosec installation attempt $attempt..."
             
             # Install with timeout
             timeout 180s go install github.com/securego/gosec/v2/cmd/gosec@v${{ env.GOSEC_VERSION }} || return $?
             
             # Verify installation
             if ! command -v gosec &> /dev/null; then
-              echo "‚ùå Gosec installation failed - command not found"
+              echo "??Gosec installation failed - command not found"
               return 1
             fi
             
             # Test gosec
             gosec --version || return $?
             
-            echo "‚úÖ Gosec installation attempt $attempt successful"
+            echo "??Gosec installation attempt $attempt successful"
             return 0
           }
           
@@ -337,19 +337,19 @@ jobs:
               break
             else
               if [[ $attempt -eq ${{ env.MAX_RETRIES }} ]]; then
-                echo "‚ùå Gosec installation failed after ${{ env.MAX_RETRIES }} attempts"
+                echo "??Gosec installation failed after ${{ env.MAX_RETRIES }} attempts"
                 exit 1
               fi
               
-              echo "‚ö†Ô∏è Installation attempt $attempt failed, retrying..."
+              echo "?†Ô? Installation attempt $attempt failed, retrying..."
               sleep ${{ env.RETRY_DELAY }}
             fi
           done
           
-      - name: üîí Run gosec scan with comprehensive error handling
+      - name: ?? Run gosec scan with comprehensive error handling
         id: gosec-scan
         run: |
-          echo "üîí Running gosec security scan..."
+          echo "?? Running gosec security scan..."
           
           # Prepare output directory
           mkdir -p scan-outputs
@@ -370,10 +370,10 @@ jobs:
               ;;
           esac
           
-          echo "üéØ Scan configuration: $SCAN_ARGS (timeout: ${TIMEOUT_SECONDS}s)"
+          echo "?éØ Scan configuration: $SCAN_ARGS (timeout: ${TIMEOUT_SECONDS}s)"
           
           run_gosec_scan() {
-            echo "üîÑ Starting gosec scan..."
+            echo "?? Starting gosec scan..."
             
             # Create empty SARIF file as backup
             cat > scan-outputs/gosec.sarif <<'EOF'
@@ -411,21 +411,21 @@ jobs:
           
           # Execute scan with error handling
           if run_gosec_scan; then
-            echo "‚úÖ Gosec scan completed successfully"
+            echo "??Gosec scan completed successfully"
             scan_status="success"
           else
             exit_code=$?
             case $exit_code in
               124) # timeout
-                echo "‚è±Ô∏è Gosec scan timed out after ${TIMEOUT_SECONDS}s"
+                echo "?±Ô? Gosec scan timed out after ${TIMEOUT_SECONDS}s"
                 scan_status="timeout"
                 ;;
               1) # issues found
-                echo "‚ö†Ô∏è Gosec found security issues"
+                echo "?†Ô? Gosec found security issues"
                 scan_status="issues_found"
                 ;;
               *) # other error
-                echo "‚ùå Gosec scan failed with exit code $exit_code"
+                echo "??Gosec scan failed with exit code $exit_code"
                 scan_status="error"
                 ;;
             esac
@@ -435,10 +435,10 @@ jobs:
           if [[ -f scan-outputs/gosec.sarif ]]; then
             # Check if file is valid JSON
             if jq empty scan-outputs/gosec.sarif 2>/dev/null; then
-              echo "‚úÖ Valid SARIF file generated"
+              echo "??Valid SARIF file generated"
               sarif_valid="true"
             else
-              echo "‚ö†Ô∏è SARIF file is invalid JSON, creating minimal valid file"
+              echo "?†Ô? SARIF file is invalid JSON, creating minimal valid file"
               cat > scan-outputs/gosec.sarif <<'EOF'
           {
             "$schema": "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0.json",
@@ -459,7 +459,7 @@ jobs:
               sarif_valid="false"
             fi
           else
-            echo "‚ùå No SARIF file generated, creating empty valid file"
+            echo "??No SARIF file generated, creating empty valid file"
             cat > scan-outputs/gosec.sarif <<'EOF'
           {
             "$schema": "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0.json",
@@ -504,7 +504,7 @@ jobs:
             echo '```' >> scan-outputs/scan-summary.md
           fi
           
-      - name: üì§ Upload SARIF with retry
+      - name: ?ì§ Upload SARIF with retry
         id: upload-sarif
         uses: github/codeql-action/upload-sarif@v3
         continue-on-error: true
@@ -513,24 +513,24 @@ jobs:
           category: gosec
           wait-for-processing: false
           
-      - name: üîß Handle upload failure
+      - name: ?îß Handle upload failure
         if: steps.upload-sarif.outcome == 'failure'
         run: |
-          echo "‚ö†Ô∏è SARIF upload failed, but scan completed"
+          echo "?†Ô? SARIF upload failed, but scan completed"
           echo "This may be due to GitHub security events API limits or temporary issues"
           
           # Still consider the job successful if we have results
           if [[ "${{ steps.gosec-scan.outputs.sarif-valid }}" == "true" ]]; then
-            echo "‚úÖ Scan results are valid, continuing..."
+            echo "??Scan results are valid, continuing..."
           else
-            echo "‚ùå Invalid scan results, marking as failure"
+            echo "??Invalid scan results, marking as failure"
             exit 1
           fi
           
-      - name: üìä Generate final report
+      - name: ?? Generate final report
         if: always()
         run: |
-          echo "üìä Generating final security scan report..."
+          echo "?? Generating final security scan report..."
           
           cat > SECURITY-SCAN-REPORT.md <<EOF
           # Security Scan Report
@@ -554,19 +554,19 @@ jobs:
           EOF
           
           if [[ "${{ steps.gosec-scan.outputs.scan-status }}" == "success" ]]; then
-            echo "‚úÖ **Security scan completed successfully with no critical issues.**" >> SECURITY-SCAN-REPORT.md
+            echo "??**Security scan completed successfully with no critical issues.**" >> SECURITY-SCAN-REPORT.md
           elif [[ "${{ steps.gosec-scan.outputs.scan-status }}" == "issues_found" ]]; then
-            echo "‚ö†Ô∏è **Security issues detected - review required.**" >> SECURITY-SCAN-REPORT.md
+            echo "?†Ô? **Security issues detected - review required.**" >> SECURITY-SCAN-REPORT.md
           elif [[ "${{ steps.gosec-scan.outputs.scan-status }}" == "timeout" ]]; then
-            echo "‚è±Ô∏è **Scan timed out - consider reducing security level for faster scans.**" >> SECURITY-SCAN-REPORT.md
+            echo "?±Ô? **Scan timed out - consider reducing security level for faster scans.**" >> SECURITY-SCAN-REPORT.md
           else
-            echo "‚ùå **Scan encountered errors - investigation required.**" >> SECURITY-SCAN-REPORT.md
+            echo "??**Scan encountered errors - investigation required.**" >> SECURITY-SCAN-REPORT.md
           fi
           
           echo "" >> SECURITY-SCAN-REPORT.md
           echo "For detailed results, check the uploaded artifacts." >> SECURITY-SCAN-REPORT.md
           
-      - name: üì§ Upload artifacts
+      - name: ?ì§ Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -576,24 +576,24 @@ jobs:
             SECURITY-SCAN-REPORT.md
           retention-days: 30
           
-      - name: üéØ Final status check
+      - name: ?éØ Final status check
         run: |
-          echo "üéØ Final status evaluation..."
+          echo "?éØ Final status evaluation..."
           
           scan_status="${{ steps.gosec-scan.outputs.scan-status }}"
           
           case "$scan_status" in
             "success"|"issues_found")
-              echo "‚úÖ Security scan pipeline completed successfully"
+              echo "??Security scan pipeline completed successfully"
               echo "Status: $scan_status"
               ;;
             "timeout")
-              echo "‚è±Ô∏è Security scan timed out but pipeline is stable"
+              echo "?±Ô? Security scan timed out but pipeline is stable"
               echo "Consider using 'quick' scan level for faster results"
               # Don't fail on timeout - it's a configuration issue, not a failure
               ;;
             "error"|*)
-              echo "‚ùå Security scan encountered errors"
+              echo "??Security scan encountered errors"
               exit 1
               ;;
           esac

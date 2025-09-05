@@ -61,8 +61,8 @@ jobs:
   # =============================================================================
   setup:
     name: Container Setup & Strategy
-    runs-on: ubuntu-22.04
-    timeout-minutes: 8
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       should-build: ${{ steps.changes.outputs.should-build }}
       build-matrix: ${{ steps.matrix.outputs.matrix }}
@@ -74,7 +74,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 1
 
       - name: Detect container-relevant changes
         id: changes
@@ -119,7 +119,7 @@ jobs:
       - name: Generate image tags
         id: tags
         run: |
-          echo "ğŸ·ï¸ Generating image tags..."
+          echo "?·ï¸?Generating image tags..."
           
           # Base tag strategy
           if [[ "${{ github.event_name }}" == "release" ]]; then
@@ -351,10 +351,10 @@ jobs:
   # =============================================================================
   build-binaries:
     name: Build Binaries - ${{ matrix.name }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     needs: setup
     if: needs.setup.outputs.should-build == 'true'
-    timeout-minutes: 15
+    timeout-minutes: 10
     
     strategy:
       fail-fast: false
@@ -377,7 +377,7 @@ jobs:
 
       - name: Build multi-arch binaries
         run: |
-          echo "ğŸ”¨ Building ${{ matrix.binary }} for multiple architectures..."
+          echo "?”¨ Building ${{ matrix.binary }} for multiple architectures..."
           
           # Build flags optimized for containers
           BUILD_FLAGS="-trimpath -ldflags=-s -w -extldflags=-static"
@@ -410,13 +410,13 @@ jobs:
             
             if timeout 600s go build $BUILD_FLAGS -tags="$BUILD_TAGS" \
               -o "$output_dir/${{ matrix.binary }}" "./cmd/${{ matrix.binary }}"; then
-              echo "âœ… Built ${{ matrix.binary }} for $platform"
+              echo "??Built ${{ matrix.binary }} for $platform"
               
               # Verify binary
               file "$output_dir/${{ matrix.binary }}"
               ls -lh "$output_dir/${{ matrix.binary }}"
             else
-              echo "âŒ Failed to build ${{ matrix.binary }} for $platform"
+              echo "??Failed to build ${{ matrix.binary }} for $platform"
               exit 1
             fi
           done
@@ -434,10 +434,10 @@ jobs:
   # =============================================================================
   create-dockerfiles:
     name: Generate Optimized Dockerfiles
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     needs: setup
     if: needs.setup.outputs.should-build == 'true'
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
@@ -445,7 +445,7 @@ jobs:
 
       - name: Generate optimized Dockerfiles
         run: |
-          echo "ğŸ³ Generating optimized Dockerfiles..."
+          echo "?³ Generating optimized Dockerfiles..."
           
           # Create Dockerfiles directory
           mkdir -p .dockerfiles
@@ -538,7 +538,7 @@ jobs:
                 ;;
             esac
             
-            echo "âœ… Generated Dockerfile for $name"
+            echo "??Generated Dockerfile for $name"
           done
 
       - name: Upload Dockerfiles
@@ -553,10 +553,10 @@ jobs:
   # =============================================================================
   build-containers:
     name: Build Container - ${{ matrix.name }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     needs: [setup, build-binaries, create-dockerfiles]
     if: needs.setup.outputs.should-build == 'true'
-    timeout-minutes: 20
+    timeout-minutes: 10
     
     strategy:
       fail-fast: false
@@ -644,7 +644,7 @@ jobs:
   # =============================================================================
   container-security:
     name: Container Security Scan - ${{ matrix.name }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     needs: [setup, build-containers]
     if: needs.setup.outputs.should-build == 'true' && env.BUILD_MODE != 'fast'
     timeout-minutes: 10
@@ -684,15 +684,15 @@ jobs:
   # =============================================================================
   container-summary:
     name: Container Build Summary
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     needs: [setup, build-binaries, build-containers, container-security]
     if: always() && needs.setup.outputs.should-build == 'true'
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     steps:
       - name: Generate comprehensive build summary
         run: |
-          echo "# ğŸ³ Nephoran Container Build Summary - 2025" >> $GITHUB_STEP_SUMMARY
+          echo "# ?³ Nephoran Container Build Summary - 2025" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Build Date:** $(date -u +"%Y-%m-%d %H:%M UTC")" >> $GITHUB_STEP_SUMMARY
           echo "**Build Mode:** ${{ env.BUILD_MODE }}" >> $GITHUB_STEP_SUMMARY
@@ -701,7 +701,7 @@ jobs:
           echo "**Push Enabled:** ${{ env.PUSH_IMAGES }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "## ğŸ“Š Build Results" >> $GITHUB_STEP_SUMMARY
+          echo "## ?? Build Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Component | Binary Build | Container Build | Security Scan |" >> $GITHUB_STEP_SUMMARY
           echo "|-----------|--------------|-----------------|---------------|" >> $GITHUB_STEP_SUMMARY
@@ -717,7 +717,7 @@ jobs:
           
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "## ğŸš€ Deployment Information" >> $GITHUB_STEP_SUMMARY
+          echo "## ?? Deployment Information" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           if [[ "${{ needs.build-containers.result }}" == "success" ]]; then
@@ -753,24 +753,24 @@ jobs:
             echo "- Non-root user execution for security" >> $GITHUB_STEP_SUMMARY
             echo "- SBOM and provenance attestations included" >> $GITHUB_STEP_SUMMARY
           else
-            echo "âŒ **Container build failed**" >> $GITHUB_STEP_SUMMARY
+            echo "??**Container build failed**" >> $GITHUB_STEP_SUMMARY
             echo "Check the build logs for specific errors." >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Determine final status
         run: |
           if [[ "${{ needs.build-binaries.result }}" != "success" ]]; then
-            echo "âŒ Binary build failed"
+            echo "??Binary build failed"
             exit 1
           elif [[ "${{ needs.build-containers.result }}" != "success" ]]; then
-            echo "âŒ Container build failed"
+            echo "??Container build failed"
             exit 1
           else
-            echo "âœ… Container build pipeline completed successfully"
+            echo "??Container build pipeline completed successfully"
             
             if [[ "${{ env.PUSH_IMAGES }}" == "true" ]]; then
-              echo "ğŸš€ Container images are available in ${{ env.REGISTRY }}"
+              echo "?? Container images are available in ${{ env.REGISTRY }}"
             else
-              echo "ğŸ“¦ Container images built locally (push disabled)"
+              echo "?“¦ Container images built locally (push disabled)"
             fi
           fi

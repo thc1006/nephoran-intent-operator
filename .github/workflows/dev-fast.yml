@@ -1,4 +1,4 @@
-name: ‚ö° Development Fast Track - DISABLED
+name: ??Development Fast Track - DISABLED
 # DISABLED: Overlapping with ci-production.yml and pr-validation.yml
 
 # DISABLED - No triggers to prevent conflicts
@@ -37,15 +37,15 @@ env:
 
 jobs:
   lightning-check:
-    name: ‚ö° Lightning Fast Check
+    name: ??Lightning Fast Check
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 10
     
     steps:
-      - name: ‚ö° Checkout
+      - name: ??Checkout
         uses: actions/checkout@v4
         
-      - name: ‚ö° Setup Go
+      - name: ??Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
@@ -54,19 +54,19 @@ jobs:
             go.sum
             **/go.sum
           
-      - name: üîß Quick dependency check
+      - name: ?îß Quick dependency check
         run: |
-          echo "üì¶ Quick module check..."
+          echo "?ì¶ Quick module check..."
           go mod download || echo "Some modules failed"
           go mod verify
           
-      - name: ‚ö° Ultra-fast build check
+      - name: ??Ultra-fast build check
         run: |
-          echo "üèóÔ∏è Testing main packages build..."
+          echo "??Ô∏?Testing main packages build..."
           go build -v ./cmd/... 
           go build -v ./controllers/...
           
-      - name: ‚ö° Critical tests only
+      - name: ??Critical tests only
         run: |
-          echo "üß™ Running critical tests only..."
+          echo "?ß™ Running critical tests only..."
           go test -short -timeout=2m ./...

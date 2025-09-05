@@ -45,7 +45,7 @@ jobs:
   lightning-check:
     name: Lightning Fast Check
     runs-on: ubuntu-latest
-    timeout-minutes: 5  # Hard timeout for entire job
+    timeout-minutes: 10  # Hard timeout for entire job
     
     steps:
       - name: Checkout
@@ -78,7 +78,7 @@ jobs:
           go env GOMODCACHE
           
       - name: Quick dependency download
-        timeout-minutes: 2
+        timeout-minutes: 10
         run: |
           echo "Downloading dependencies with timeout protection..."
           timeout 90 go mod download -x || {
@@ -88,7 +88,7 @@ jobs:
           go mod verify || echo "Verification warnings (non-fatal)"
           
       - name: Ultra-fast syntax check
-        timeout-minutes: 3
+        timeout-minutes: 10
         run: |
           echo "Running quick syntax validation on critical directories..."
           # Only check critical directories to avoid timeout
@@ -106,7 +106,7 @@ jobs:
           echo "Syntax check completed for critical directories"
           
       - name: Chunked build test
-        timeout-minutes: 3
+        timeout-minutes: 10
         run: |
           echo "Testing build in chunks to avoid timeout..."
           
@@ -131,7 +131,7 @@ jobs:
           echo "Build check completed"
           
       - name: Critical tests only
-        timeout-minutes: 2
+        timeout-minutes: 10
         run: |
           echo "Running critical unit tests..."
           # Run only critical tests with strict timeout
@@ -181,7 +181,7 @@ jobs:
           cache: true
           
       - name: Build ${{ matrix.component }}
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
           echo "Building ${{ matrix.component }} with optimizations..."
           

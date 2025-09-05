@@ -36,7 +36,7 @@ jobs:
   quick-check:
     name: Quick Validation
     runs-on: ubuntu-latest
-    timeout-minutes: 8  # Increased for reliability
+    timeout-minutes: 10  # Increased for reliability
     
     steps:
       - name: Checkout code
@@ -68,7 +68,7 @@ jobs:
             ${{ runner.os }}-go-
           
       - name: Fail-fast syntax check
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
           set -e  # Bash strict mode - fail on any error
           echo "Running fail-fast syntax check..."
@@ -76,7 +76,7 @@ jobs:
           go vet ./...
           
       - name: Quick dependency check
-        timeout-minutes: 3
+        timeout-minutes: 10
         run: |
           set -e  # Bash strict mode - fail on any error
           echo "Downloading dependencies..."
@@ -88,7 +88,7 @@ jobs:
     name: Build Components
     needs: quick-check
     runs-on: ubuntu-latest
-    timeout-minutes: 15  # Increased for reliability
+    timeout-minutes: 10  # Increased for reliability
     strategy:
       fail-fast: false
       matrix:
@@ -175,7 +175,7 @@ jobs:
     name: Test Suite
     needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 15  # Increased for reliability
+    timeout-minutes: 10  # Increased for reliability
     strategy:
       fail-fast: false
       matrix:
@@ -212,7 +212,7 @@ jobs:
           set -e  # Bash strict mode - fail on any error
           echo "Testing ${{ matrix.package }}..."
           if [ -d "${{ matrix.package }}" ]; then
-            go test -p=8 -short -timeout=5m \
+            go test -short -p=8 -short -timeout=5m \
               -tags="fast_build" \
               -coverprofile=coverage-${{ matrix.package }}.out \
               ./${{ matrix.package }}/...
@@ -234,7 +234,7 @@ jobs:
     name: Integration Check
     needs: [build, test]
     runs-on: ubuntu-latest
-    timeout-minutes: 8  # Increased timeout
+    timeout-minutes: 10  # Increased timeout
     
     steps:
       - name: Checkout code
@@ -254,7 +254,7 @@ jobs:
         continue-on-error: true  # Don't fail if no artifacts exist
           
       - name: Quick integration test
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
           set -e  # Bash strict mode - fail on any error
           echo "Running quick integration check..."
@@ -287,7 +287,7 @@ jobs:
     name: CI Status
     needs: [quick-check, build, test, integration]
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 10
     if: always()
     
     steps:

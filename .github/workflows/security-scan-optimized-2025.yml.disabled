@@ -54,7 +54,7 @@ jobs:
   setup:
     name: Security Scan Setup
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 10
     outputs:
       scan-strategy: ${{ steps.strategy.outputs.strategy }}
       should-scan: ${{ steps.changes.outputs.should-scan }}
@@ -64,7 +64,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 1
 
       - name: Detect security-relevant changes
         id: changes
@@ -183,7 +183,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: setup
     if: needs.setup.outputs.should-scan == 'true'
-    timeout-minutes: 8
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
@@ -286,7 +286,7 @@ jobs:
 
       - name: Create scan environment
         run: |
-          echo "ðŸ” Setting up vulnerability scan environment"
+          echo "?? Setting up vulnerability scan environment"
           echo "Scan target: ${{ matrix.name }}"
           echo "Scan paths: ${{ matrix.paths }}"
           echo "Priority: ${{ matrix.priority }}"
@@ -306,7 +306,7 @@ jobs:
       - name: Process govulncheck results
         if: always()
         run: |
-          echo "ðŸ“Š Processing govulncheck results for ${{ matrix.name }}..."
+          echo "?? Processing govulncheck results for ${{ matrix.name }}..."
           
           # Create results directory if it doesn't exist
           mkdir -p scan-results
@@ -314,19 +314,19 @@ jobs:
           # Check if govulncheck step succeeded
           if [[ "${{ steps.govulncheck.outcome }}" == "success" ]]; then
             echo "scan_status=success" > scan-results/status.txt
-            echo "âœ… No vulnerabilities found in ${{ matrix.paths }}"
+            echo "??No vulnerabilities found in ${{ matrix.paths }}"
           elif [[ "${{ steps.govulncheck.outcome }}" == "failure" ]]; then
             echo "scan_status=vulnerabilities_found" > scan-results/status.txt
-            echo "âš ï¸ Vulnerabilities found in ${{ matrix.paths }}"
+            echo "? ï? Vulnerabilities found in ${{ matrix.paths }}"
           else
             echo "scan_status=skipped" > scan-results/status.txt
-            echo "â„¹ï¸ Govulncheck scan was skipped or cancelled"
+            echo "?¹ï? Govulncheck scan was skipped or cancelled"
           fi
 
       - name: Process scan results and generate report
         if: always()
         run: |
-          echo "ðŸ“‹ Processing scan results for ${{ matrix.name }}..."
+          echo "?? Processing scan results for ${{ matrix.name }}..."
           
           # Create summary report
           summary_file="scan-results/summary-${{ matrix.name }}.md"
@@ -345,10 +345,10 @@ jobs:
             
             case "$status" in
               "success")
-                echo "âœ… Scan completed successfully with no vulnerabilities" >> "$summary_file"
+                echo "??Scan completed successfully with no vulnerabilities" >> "$summary_file"
                 ;;
               "vulnerabilities_found")
-                echo "âš ï¸ Vulnerabilities detected - review required" >> "$summary_file"
+                echo "? ï? Vulnerabilities detected - review required" >> "$summary_file"
                 
                 # Try to extract vulnerability count from JSON
                 json_file="scan-results/vulnerabilities-${{ matrix.name }}.json"
@@ -358,7 +358,7 @@ jobs:
                 fi
                 ;;
               "timeout")
-                echo "â±ï¸ Scan timed out - partial results may be available" >> "$summary_file"
+                echo "?±ï? Scan timed out - partial results may be available" >> "$summary_file"
                 echo "" >> "$summary_file"
                 echo "**Recommendations:**" >> "$summary_file"
                 echo "- Use more granular scan paths" >> "$summary_file"
@@ -366,17 +366,17 @@ jobs:
                 echo "- Check for proxy/network issues" >> "$summary_file"
                 ;;
               "install_failed")
-                echo "âŒ Tool installation failed" >> "$summary_file"
+                echo "??Tool installation failed" >> "$summary_file"
                 ;;
               "analysis_error")
-                echo "âš ï¸ Analysis encountered build/compilation issues" >> "$summary_file"
+                echo "? ï? Analysis encountered build/compilation issues" >> "$summary_file"
                 ;;
               *)
-                echo "âŒ Scan encountered unexpected issues" >> "$summary_file"
+                echo "??Scan encountered unexpected issues" >> "$summary_file"
                 ;;
             esac
           else
-            echo "â“ Scan status unknown" >> "$summary_file"
+            echo "??Scan status unknown" >> "$summary_file"
           fi
           
           echo "" >> "$summary_file"
@@ -420,24 +420,24 @@ jobs:
           cache: true
 
       - name: Optimized dependency vulnerability scan
-        timeout-minutes: 8
+        timeout-minutes: 10
         run: |
-          echo "ðŸ” Running optimized dependency scan..."
+          echo "?? Running optimized dependency scan..."
           
           mkdir -p dependency-results
           
           # Method 1: Nancy scan (faster, focused on direct dependencies)
-          echo "ðŸ“¦ Running Nancy dependency scan..."
+          echo "?“¦ Running Nancy dependency scan..."
           if timeout 180s go install github.com/sonatype-nexus-community/nancy@latest; then
             echo "Nancy installed successfully"
             
             # Run Nancy with timeout and error handling
             if timeout 240s go list -json -m all | nancy sleuth > dependency-results/nancy-report.txt 2>&1; then
-              echo "âœ… Nancy scan completed"
+              echo "??Nancy scan completed"
               echo "nancy_status=success" > dependency-results/nancy-status.txt
             else
               exit_code=$?
-              echo "âš ï¸ Nancy scan exited with code: $exit_code"
+              echo "? ï? Nancy scan exited with code: $exit_code"
               if [[ $exit_code -eq 124 ]]; then
                 echo "nancy_status=timeout" > dependency-results/nancy-status.txt
                 echo "Nancy scan timed out" >> dependency-results/nancy-report.txt
@@ -447,12 +447,12 @@ jobs:
               fi
             fi
           else
-            echo "âš ï¸ Failed to install Nancy - skipping dependency scan"
+            echo "? ï? Failed to install Nancy - skipping dependency scan"
             echo "nancy_status=install_failed" > dependency-results/nancy-status.txt
           fi
           
           # Method 2: Basic go.mod analysis for known vulnerable patterns
-          echo "ðŸ” Analyzing go.mod for known vulnerable patterns..."
+          echo "?? Analyzing go.mod for known vulnerable patterns..."
           
           # Check for common vulnerable dependencies
           vulnerable_patterns=(
@@ -469,13 +469,13 @@ jobs:
           vulnerable_found=false
           for pattern in "${vulnerable_patterns[@]}"; do
             if grep -E "$pattern" go.mod; then
-              echo "âš ï¸ Found potentially vulnerable dependency: $pattern" >> dependency-results/analysis-report.md
+              echo "? ï? Found potentially vulnerable dependency: $pattern" >> dependency-results/analysis-report.md
               vulnerable_found=true
             fi
           done
           
           if [[ "$vulnerable_found" == "false" ]]; then
-            echo "âœ… No known vulnerable dependencies found in go.mod" >> dependency-results/analysis-report.md
+            echo "??No known vulnerable dependencies found in go.mod" >> dependency-results/analysis-report.md
           fi
           
           # Dependency count and summary
@@ -486,7 +486,7 @@ jobs:
       - name: Process dependency scan results
         if: always()
         run: |
-          echo "ðŸ“‹ Processing dependency scan results..."
+          echo "?? Processing dependency scan results..."
           
           # Create comprehensive summary
           echo "# Dependency Security Scan Results" > dependency-results/summary.md
@@ -502,10 +502,10 @@ jobs:
             
             case "$nancy_status" in
               "success")
-                echo "âœ… Nancy scan completed successfully - no vulnerabilities found" >> dependency-results/summary.md
+                echo "??Nancy scan completed successfully - no vulnerabilities found" >> dependency-results/summary.md
                 ;;
               "vulnerabilities_or_error")
-                echo "âš ï¸ Nancy scan found vulnerabilities or encountered errors" >> dependency-results/summary.md
+                echo "? ï? Nancy scan found vulnerabilities or encountered errors" >> dependency-results/summary.md
                 if [[ -f "dependency-results/nancy-report.txt" ]]; then
                   echo "" >> dependency-results/summary.md
                   echo "<details><summary>Nancy Report Details</summary>" >> dependency-results/summary.md
@@ -517,10 +517,10 @@ jobs:
                 fi
                 ;;
               "timeout")
-                echo "â±ï¸ Nancy scan timed out (large dependency tree)" >> dependency-results/summary.md
+                echo "?±ï? Nancy scan timed out (large dependency tree)" >> dependency-results/summary.md
                 ;;
               "install_failed")
-                echo "âŒ Nancy installation failed" >> dependency-results/summary.md
+                echo "??Nancy installation failed" >> dependency-results/summary.md
                 ;;
             esac
           fi
@@ -552,7 +552,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [setup, gosec-analysis, vulnerability-scan, dependency-scan]
     if: always() && needs.setup.outputs.should-scan == 'true'
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     steps:
       - name: Download all security scan artifacts
@@ -562,7 +562,7 @@ jobs:
 
       - name: Generate comprehensive security report
         run: |
-          echo "# ðŸ”’ Nephoran Security Scan Report - 2025 Optimized" >> $GITHUB_STEP_SUMMARY
+          echo "# ?? Nephoran Security Scan Report - 2025 Optimized" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Report Generated:** $(date -u +"%Y-%m-%d %H:%M UTC")" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
@@ -570,7 +570,7 @@ jobs:
           echo "**Scan Mode:** ${{ env.SCAN_MODE }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "## ðŸ“Š Scan Results Overview" >> $GITHUB_STEP_SUMMARY
+          echo "## ?? Scan Results Overview" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Security Scanner | Status | Notes |" >> $GITHUB_STEP_SUMMARY
           echo "|------------------|--------|-------|" >> $GITHUB_STEP_SUMMARY
@@ -579,7 +579,7 @@ jobs:
           echo "| Dependency Scan | ${{ needs.dependency-scan.result }} | Third-party vulnerability check |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "## ðŸŽ¯ Optimization Benefits" >> $GITHUB_STEP_SUMMARY
+          echo "## ?Ž¯ Optimization Benefits" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "This optimized security pipeline provides:" >> $GITHUB_STEP_SUMMARY
           echo "- **Intelligent Timeouts**: Prevents workflow hanging on large codebases" >> $GITHUB_STEP_SUMMARY
@@ -591,7 +591,7 @@ jobs:
           
           # Process specific scan results if available
           if [[ -d "security-artifacts" ]]; then
-            echo "## ðŸ” Detailed Findings" >> $GITHUB_STEP_SUMMARY
+            echo "## ?? Detailed Findings" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             
             # Gosec findings
@@ -619,7 +619,7 @@ jobs:
             fi
           fi
           
-          echo "## ðŸ“‹ Recommendations" >> $GITHUB_STEP_SUMMARY
+          echo "## ?? Recommendations" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "1. **Review High-Priority Findings**: Focus on critical and high-severity issues first" >> $GITHUB_STEP_SUMMARY
           echo "2. **Update Dependencies**: Keep third-party libraries up to date" >> $GITHUB_STEP_SUMMARY
@@ -629,7 +629,7 @@ jobs:
 
       - name: Create consolidated security report
         run: |
-          echo "ðŸ“„ Creating consolidated security report..."
+          echo "?? Creating consolidated security report..."
           
           report_file="consolidated-security-report.md"
           echo "# Nephoran Security Scan Report - 2025 Optimized" > "$report_file"

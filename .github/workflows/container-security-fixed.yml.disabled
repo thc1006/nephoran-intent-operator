@@ -59,7 +59,7 @@ jobs:
       - name: Find all Dockerfiles
         id: dockerfiles
         run: |
-          echo "ðŸ“ Finding all Dockerfiles..."
+          echo "?? Finding all Dockerfiles..."
           DOCKERFILES=$(find . -name "Dockerfile*" -type f | grep -v node_modules | head -20)
           echo "Found Dockerfiles:"
           echo "$DOCKERFILES"
@@ -69,7 +69,7 @@ jobs:
       
       - name: Run Hadolint on Dockerfiles
         run: |
-          echo "ðŸ” Running Hadolint security checks..."
+          echo "?? Running Hadolint security checks..."
           mkdir -p security-results
           
           # Install hadolint
@@ -184,7 +184,7 @@ jobs:
   trivy-image-scan:
     name: Trivy Container Scan
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     
     strategy:
       fail-fast: false
@@ -205,7 +205,7 @@ jobs:
       
       - name: Setup Trivy
         run: |
-          echo "ðŸ“¦ Setting up Trivy..."
+          echo "?“¦ Setting up Trivy..."
           sudo apt-get update
           sudo apt-get install -y wget apt-transport-https gnupg lsb-release
           wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
@@ -215,7 +215,7 @@ jobs:
           
           # Update vulnerability database
           trivy image --download-db-only
-          echo "âœ… Trivy version: $(trivy version)"
+          echo "??Trivy version: $(trivy version)"
       
       - name: Determine image reference
         id: image
@@ -235,16 +235,16 @@ jobs:
           fi
           
           echo "image_ref=$IMAGE_REF" >> $GITHUB_OUTPUT
-          echo "ðŸ“¦ Scanning image: $IMAGE_REF"
+          echo "?“¦ Scanning image: $IMAGE_REF"
       
       - name: Run Trivy image scan
         run: |
-          echo "ðŸ” Scanning container image: ${{ steps.image.outputs.image_ref }}"
+          echo "?? Scanning container image: ${{ steps.image.outputs.image_ref }}"
           mkdir -p security-results
           
           # Try to pull image (may fail for local builds)
           docker pull "${{ steps.image.outputs.image_ref }}" 2>/dev/null || {
-            echo "âš ï¸ Could not pull image, it may not exist yet"
+            echo "? ï? Could not pull image, it may not exist yet"
             # Create a minimal Dockerfile for scanning
             echo "FROM scratch" > Dockerfile.temp
             docker build -t "${{ steps.image.outputs.image_ref }}" -f Dockerfile.temp .
@@ -259,7 +259,7 @@ jobs:
             --skip-update \
             "${{ steps.image.outputs.image_ref }}" || {
             EXIT_CODE=$?
-            echo "âš ï¸ Trivy scan completed with exit code: $EXIT_CODE"
+            echo "? ï? Trivy scan completed with exit code: $EXIT_CODE"
             
             # Create fallback SARIF if scan failed
             if [ ! -f "security-results/trivy-${{ matrix.name }}.sarif" ]; then
@@ -288,11 +288,11 @@ jobs:
           
           # Validate and fix SARIF if needed
           if jq empty "security-results/trivy-${{ matrix.name }}.sarif" 2>/dev/null; then
-            echo "âœ… Valid SARIF file generated"
+            echo "??Valid SARIF file generated"
             VULN_COUNT=$(jq '.runs[0].results | length' "security-results/trivy-${{ matrix.name }}.sarif")
-            echo "ðŸ“Š Found $VULN_COUNT vulnerabilities"
+            echo "?? Found $VULN_COUNT vulnerabilities"
           else
-            echo "âš ï¸ Invalid SARIF detected, fixing..."
+            echo "? ï? Invalid SARIF detected, fixing..."
             # Fix common SARIF issues
             jq '.' "security-results/trivy-${{ matrix.name }}.sarif" > temp.sarif 2>/dev/null || \
               echo '{"$schema":"https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json","version":"2.1.0","runs":[{"tool":{"driver":{"name":"Trivy"}},"results":[]}]}' > temp.sarif
@@ -327,7 +327,7 @@ jobs:
   grype-scan:
     name: Grype Vulnerability Scan
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     
     steps:
       - name: Checkout code
@@ -335,13 +335,13 @@ jobs:
       
       - name: Install Grype
         run: |
-          echo "ðŸ“¦ Installing Grype..."
+          echo "?“¦ Installing Grype..."
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
-          echo "âœ… Grype version: $(grype version)"
+          echo "??Grype version: $(grype version)"
       
       - name: Run Grype filesystem scan
         run: |
-          echo "ðŸ” Running Grype vulnerability scan..."
+          echo "?? Running Grype vulnerability scan..."
           mkdir -p security-results
           
           # Update vulnerability database
@@ -356,19 +356,19 @@ jobs:
             --exclude ./test \
             --exclude ./testdata || {
             EXIT_CODE=$?
-            echo "âš ï¸ Grype found vulnerabilities (exit code: $EXIT_CODE)"
+            echo "? ï? Grype found vulnerabilities (exit code: $EXIT_CODE)"
           }
           
           # Validate SARIF
           if [ -f security-results/grype.sarif ] && jq empty security-results/grype.sarif 2>/dev/null; then
             VULN_COUNT=$(jq '.runs[0].results | length' security-results/grype.sarif)
-            echo "ðŸ“Š Found $VULN_COUNT vulnerabilities"
+            echo "?? Found $VULN_COUNT vulnerabilities"
             
             echo "## Grype Vulnerability Scan" >> $GITHUB_STEP_SUMMARY
             echo "- **Vulnerabilities Found:** $VULN_COUNT" >> $GITHUB_STEP_SUMMARY
             echo "- **Database Version:** $(grype db status -o json | jq -r .location.built)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "âš ï¸ Invalid or missing SARIF file"
+            echo "? ï? Invalid or missing SARIF file"
           fi
       
       - name: Upload Grype SARIF to GitHub Security
@@ -396,18 +396,18 @@ jobs:
     runs-on: ubuntu-latest
     needs: [dockerfile-scan, trivy-image-scan, grype-scan]
     if: always()
-    timeout-minutes: 5
+    timeout-minutes: 10
     
     steps:
       - name: Generate consolidated report
         run: |
-          echo "# ðŸ³ Container Security Report" >> $GITHUB_STEP_SUMMARY
+          echo "# ?³ Container Security Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Date:** $(date -u +"%Y-%m-%d %H:%M UTC")" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "## ðŸ“Š Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "## ?? Scan Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           echo "| Scanner | Status | Type | Details |" >> $GITHUB_STEP_SUMMARY
@@ -417,13 +417,13 @@ jobs:
           echo "| Grype | ${{ needs.grype-scan.result }} | Filesystem | Vulnerability DB |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "## ðŸ” View Results" >> $GITHUB_STEP_SUMMARY
+          echo "## ?? View Results" >> $GITHUB_STEP_SUMMARY
           echo "1. **GitHub Security Tab** - All SARIF results uploaded" >> $GITHUB_STEP_SUMMARY
           echo "2. **Workflow Artifacts** - Detailed scan reports" >> $GITHUB_STEP_SUMMARY
           echo "3. **Container Registry** - Security scanning enabled" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "## ðŸ“‹ Remediation Steps" >> $GITHUB_STEP_SUMMARY
+          echo "## ?? Remediation Steps" >> $GITHUB_STEP_SUMMARY
           echo "1. Review Dockerfile best practices violations" >> $GITHUB_STEP_SUMMARY
           echo "2. Update base images to latest secure versions" >> $GITHUB_STEP_SUMMARY
           echo "3. Patch vulnerable dependencies in containers" >> $GITHUB_STEP_SUMMARY

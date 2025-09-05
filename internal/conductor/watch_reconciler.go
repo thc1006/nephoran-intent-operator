@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -302,25 +303,33 @@ func (r *WatchReconciler) parseIntentToJSON(ni *nephoranv1.NetworkIntent) (map[s
 
 				target = matches[2]
 
-				replicas, _ = strconv.Atoi(matches[3])
+				if r, err := strconv.Atoi(matches[3]); err == nil && r >= 0 && r <= math.MaxInt32 {
+					replicas = r
+				}
 
 			case "scale_simple":
 
 				target = matches[1]
 
-				replicas, _ = strconv.Atoi(matches[2])
+				if r, err := strconv.Atoi(matches[2]); err == nil && r >= 0 && r <= math.MaxInt32 {
+					replicas = r
+				}
 
 			case "scale_colon":
 
 				target = matches[2]
 
-				replicas, _ = strconv.Atoi(matches[3])
+				if r, err := strconv.Atoi(matches[3]); err == nil && r >= 0 && r <= math.MaxInt32 {
+					replicas = r
+				}
 
 			case "scale_instances":
 
 				target = matches[1]
 
-				replicas, _ = strconv.Atoi(matches[2])
+				if r, err := strconv.Atoi(matches[2]); err == nil && r >= 0 && r <= math.MaxInt32 {
+					replicas = r
+				}
 
 			}
 

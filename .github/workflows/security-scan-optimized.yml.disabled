@@ -71,7 +71,7 @@ jobs:
   analyze-changes:
     name: Analyze Changes & Plan Scans
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 10
     outputs:
       scan_strategy: ${{ steps.strategy.outputs.scan_strategy }}
       changed_files: ${{ steps.changes.outputs.files }}
@@ -86,13 +86,13 @@ jobs:
         id: perf_start
         run: |
           echo "scan_start_time=$(date +%s)" >> $GITHUB_OUTPUT
-          echo "### ðŸš€ Performance Monitoring Started" >> $GITHUB_STEP_SUMMARY
+          echo "### ?? Performance Monitoring Started" >> $GITHUB_STEP_SUMMARY
           echo "**Timestamp:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
 
       - name: Checkout code (sparse for analysis)
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           sparse-checkout: |
             .github
             go.mod
@@ -102,7 +102,7 @@ jobs:
       - name: Analyze changed files
         id: changes
         run: |
-          echo "ðŸ” Analyzing changes for incremental scanning..."
+          echo "?? Analyzing changes for incremental scanning..."
           
           # Get changed files based on event type
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
@@ -128,12 +128,12 @@ jobs:
             AFFECTED_PACKAGES=$(echo "$CHANGED_FILES" | xargs -I {} dirname {} | sort -u | sed 's|^|./|' | paste -sd, -)
             echo "packages=$AFFECTED_PACKAGES" >> $GITHUB_OUTPUT
             
-            echo "ðŸ“ Changed files detected: $(echo "$CHANGED_FILES" | wc -l)"
-            echo "ðŸ“¦ Affected packages: $AFFECTED_PACKAGES"
+            echo "?? Changed files detected: $(echo "$CHANGED_FILES" | wc -l)"
+            echo "?“¦ Affected packages: $AFFECTED_PACKAGES"
           else
             echo "files=" >> $GITHUB_OUTPUT
             echo "packages=./..." >> $GITHUB_OUTPUT
-            echo "ðŸ“ No specific changes detected, will perform standard scan"
+            echo "?? No specific changes detected, will perform standard scan"
           fi
 
       - name: Check scan result cache
@@ -152,7 +152,7 @@ jobs:
       - name: Determine scan strategy
         id: strategy
         run: |
-          echo "ðŸŽ¯ Determining optimal scan strategy..."
+          echo "?Ž¯ Determining optimal scan strategy..."
           
           SCAN_STRATEGY="${{ env.SCAN_DEPTH }}"
           SKIP_GOSEC="false"
@@ -161,30 +161,30 @@ jobs:
           # Force full scan if requested
           if [[ "${{ env.FORCE_FULL_SCAN }}" == "true" ]]; then
             SCAN_STRATEGY="comprehensive"
-            echo "âš ï¸ Force full scan requested"
+            echo "? ï? Force full scan requested"
           # Use incremental scanning for small changes
           elif [[ "${{ env.SCAN_DEPTH }}" == "incremental" ]] && [[ -n "${{ steps.changes.outputs.files }}" ]]; then
             FILE_COUNT=$(echo "${{ steps.changes.outputs.files }}" | wc -l)
             
             if [[ $FILE_COUNT -lt 5 ]]; then
               SCAN_STRATEGY="incremental-minimal"
-              echo "ðŸ“Š Minimal changes detected ($FILE_COUNT files), using minimal incremental scan"
+              echo "?? Minimal changes detected ($FILE_COUNT files), using minimal incremental scan"
             elif [[ $FILE_COUNT -lt 20 ]]; then
               SCAN_STRATEGY="incremental-standard"
-              echo "ðŸ“Š Moderate changes detected ($FILE_COUNT files), using standard incremental scan"
+              echo "?? Moderate changes detected ($FILE_COUNT files), using standard incremental scan"
             else
               SCAN_STRATEGY="quick"
-              echo "ðŸ“Š Significant changes detected ($FILE_COUNT files), using quick full scan"
+              echo "?? Significant changes detected ($FILE_COUNT files), using quick full scan"
             fi
           # Check if we can skip based on cache
           elif [[ "${{ steps.cache_check.outputs.cache-hit }}" == "true" ]]; then
-            echo "âœ… Valid cache found, can use cached results for unchanged code"
+            echo "??Valid cache found, can use cached results for unchanged code"
             if [[ "${{ github.event_name }}" == "schedule" ]]; then
               SCAN_STRATEGY="standard"  # Still run standard scan for scheduled runs
             else
               SKIP_GOSEC="true"
               SKIP_VULNCHECK="true"
-              echo "âš¡ Skipping redundant scans due to valid cache"
+              echo "??Skipping redundant scans due to valid cache"
             fi
           fi
           
@@ -193,7 +193,7 @@ jobs:
           echo "skip_vulncheck=$SKIP_VULNCHECK" >> $GITHUB_OUTPUT
           
           # Report strategy
-          echo "### ðŸ“‹ Scan Strategy: $SCAN_STRATEGY" >> $GITHUB_STEP_SUMMARY
+          echo "### ?? Scan Strategy: $SCAN_STRATEGY" >> $GITHUB_STEP_SUMMARY
           echo "- Skip Gosec: $SKIP_GOSEC" >> $GITHUB_STEP_SUMMARY
           echo "- Skip Vulncheck: $SKIP_VULNCHECK" >> $GITHUB_STEP_SUMMARY
           echo "- Cache available: ${{ steps.cache_check.outputs.cache-hit }}" >> $GITHUB_STEP_SUMMARY
@@ -217,7 +217,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: analyze-changes
     if: needs.analyze-changes.outputs.skip_gosec != 'true' || needs.analyze-changes.outputs.skip_vulncheck != 'true'
-    timeout-minutes: 5
+    timeout-minutes: 10
     
     steps:
       - name: Checkout code
@@ -248,7 +248,7 @@ jobs:
 
       - name: Pre-download and cache dependencies
         run: |
-          echo "ðŸ“¦ Pre-downloading all dependencies for faster scanning..."
+          echo "?“¦ Pre-downloading all dependencies for faster scanning..."
           
           # Set up module cache
           export GOMODCACHE=${{ env.GOMODCACHE }}
@@ -258,17 +258,17 @@ jobs:
           go mod download -x
           
           # Pre-build common packages for faster scanning
-          echo "ðŸ”¨ Pre-building common packages..."
+          echo "?”¨ Pre-building common packages..."
           go build -v ./cmd/... &
           go build -v ./api/... &
           go build -v ./controllers/... &
           wait
           
-          echo "âœ… Dependencies cached successfully"
+          echo "??Dependencies cached successfully"
 
       - name: Install and cache security tools
         run: |
-          echo "ðŸ”§ Installing security scanning tools..."
+          echo "?”§ Installing security scanning tools..."
           
           # Create tools directory
           mkdir -p ~/go/bin
@@ -291,13 +291,13 @@ jobs:
           wait
           
           # Verify installations
-          echo "ðŸ” Verifying tool installations..."
+          echo "?? Verifying tool installations..."
           gosec --version
           govulncheck -version
           nancy -version
           go-licenses help
           
-          echo "âœ… All tools installed successfully"
+          echo "??All tools installed successfully"
 
       - name: Create tool bundle artifact
         run: |
@@ -305,7 +305,7 @@ jobs:
           tar czf security-tools.tar.gz -C ~/go/bin .
           tar czf go-cache.tar.gz -C ~ .cache/go-build || true
           
-          echo "ðŸ“¦ Tool bundle created: $(du -h security-tools.tar.gz)"
+          echo "?“¦ Tool bundle created: $(du -h security-tools.tar.gz)"
 
       - name: Upload tool bundle
         uses: actions/upload-artifact@v4
@@ -325,7 +325,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [analyze-changes, setup-environment]
     if: needs.analyze-changes.outputs.skip_gosec != 'true'
-    timeout-minutes: 15
+    timeout-minutes: 10
     
     strategy:
       fail-fast: false
@@ -373,7 +373,7 @@ jobs:
       - name: Run parallel gosec scan
         id: scan
         run: |
-          echo "ðŸ” Scanning shard ${{ matrix.shard }}: ${{ matrix.focus }}"
+          echo "?? Scanning shard ${{ matrix.shard }}: ${{ matrix.focus }}"
           
           # Performance optimizations
           export GOMAXPROCS=${{ env.GOMAXPROCS }}
@@ -435,26 +435,26 @@ jobs:
             echo "scan_exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
             
             if [[ $EXIT_CODE -eq 124 ]]; then
-              echo "â±ï¸ Scan timed out for shard ${{ matrix.shard }}"
+              echo "?±ï? Scan timed out for shard ${{ matrix.shard }}"
               echo "timeout" > scan-results/status-shard-${{ matrix.shard }}.txt
             elif [[ $EXIT_CODE -eq 1 ]]; then
-              echo "âš ï¸ Issues found in shard ${{ matrix.shard }}"
+              echo "? ï? Issues found in shard ${{ matrix.shard }}"
               echo "issues_found" > scan-results/status-shard-${{ matrix.shard }}.txt
             else
-              echo "âŒ Scan failed for shard ${{ matrix.shard }}"
+              echo "??Scan failed for shard ${{ matrix.shard }}"
               echo "error" > scan-results/status-shard-${{ matrix.shard }}.txt
             fi
           }
           
           # Generate quick summary
           if [[ -f gosec-shard-${{ matrix.shard }}.sarif ]]; then
-            echo "âœ… Scan completed for shard ${{ matrix.shard }}"
+            echo "??Scan completed for shard ${{ matrix.shard }}"
             echo "success" > scan-results/status-shard-${{ matrix.shard }}.txt
             
             # Quick analysis using jq if available
             if command -v jq &> /dev/null; then
               ISSUE_COUNT=$(jq '.runs[0].results | length' gosec-shard-${{ matrix.shard }}.sarif)
-              echo "ðŸ“Š Issues found in shard ${{ matrix.shard }}: $ISSUE_COUNT"
+              echo "?? Issues found in shard ${{ matrix.shard }}: $ISSUE_COUNT"
               echo "$ISSUE_COUNT" > scan-results/issue-count-shard-${{ matrix.shard }}.txt
             fi
           fi
@@ -479,7 +479,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [analyze-changes, setup-environment]
     if: needs.analyze-changes.outputs.skip_vulncheck != 'true'
-    timeout-minutes: 20
+    timeout-minutes: 10
     
     steps:
       - name: Checkout code
@@ -518,7 +518,7 @@ jobs:
 
       - name: Run optimized vulnerability scan
         run: |
-          echo "ðŸ” Running optimized vulnerability scan..."
+          echo "?? Running optimized vulnerability scan..."
           
           # Performance settings
           export GOMAXPROCS=${{ env.GOMAXPROCS }}
@@ -530,10 +530,10 @@ jobs:
           STRATEGY="${{ needs.analyze-changes.outputs.scan_strategy }}"
           
           if [[ "$STRATEGY" == "incremental"* ]] && [[ -n "${{ needs.analyze-changes.outputs.affected_packages }}" ]]; then
-            echo "ðŸ“¦ Incremental scan of affected packages only..."
+            echo "?“¦ Incremental scan of affected packages only..."
             SCAN_TARGETS="${{ needs.analyze-changes.outputs.affected_packages }}"
           else
-            echo "ðŸ“¦ Full vulnerability scan..."
+            echo "?“¦ Full vulnerability scan..."
             SCAN_TARGETS="./..."
           fi
           
@@ -542,23 +542,23 @@ jobs:
           
           # Binary mode is much faster than source mode for initial scan
           timeout 10m govulncheck -mode binary -json $SCAN_TARGETS > vulncheck-binary.json 2>&1 || {
-            echo "âš ï¸ Binary scan completed with exit code: $?"
+            echo "? ï? Binary scan completed with exit code: $?"
           }
           
           # If critical issues found, do source scan for details
           if grep -q '"severity":"HIGH"' vulncheck-binary.json 2>/dev/null || grep -q '"severity":"CRITICAL"' vulncheck-binary.json 2>/dev/null; then
-            echo "âš ï¸ Critical vulnerabilities detected, running detailed source scan..."
+            echo "? ï? Critical vulnerabilities detected, running detailed source scan..."
             timeout 10m govulncheck -format json $SCAN_TARGETS > vulncheck-source.json 2>&1 || true
           fi
           
           # Nancy scan for dependencies (parallel with govulncheck)
-          echo "ðŸ” Running Nancy dependency scan..."
+          echo "?? Running Nancy dependency scan..."
           go list -json -deps ./... | nancy sleuth > nancy-results.txt 2>&1 &
           NANCY_PID=$!
           
           # Wait for Nancy with timeout
           timeout 5m wait $NANCY_PID || {
-            echo "âš ï¸ Nancy scan timeout"
+            echo "? ï? Nancy scan timeout"
             kill $NANCY_PID 2>/dev/null || true
           }
           
@@ -574,9 +574,9 @@ jobs:
           fi
           
           if grep -q "Vulnerable Packages Found" nancy-results.txt 2>/dev/null; then
-            echo "- âš ï¸ Nancy found vulnerable dependencies" >> vuln-summary.md
+            echo "- ? ï? Nancy found vulnerable dependencies" >> vuln-summary.md
           else
-            echo "- âœ… Nancy: No vulnerable dependencies" >> vuln-summary.md
+            echo "- ??Nancy: No vulnerable dependencies" >> vuln-summary.md
           fi
 
       - name: Upload vulnerability results
@@ -601,7 +601,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [analyze-changes, gosec-scan, vulnerability-scan]
     if: always()
-    timeout-minutes: 5
+    timeout-minutes: 10
     
     steps:
       - name: Download all scan artifacts
@@ -612,7 +612,7 @@ jobs:
 
       - name: Merge SARIF results
         run: |
-          echo "ðŸ”„ Merging SARIF results from all shards..."
+          echo "?? Merging SARIF results from all shards..."
           
           # Install jq for JSON processing
           sudo apt-get update && sudo apt-get install -y jq
@@ -638,7 +638,7 @@ jobs:
             fi
           done
           
-          echo "âœ… SARIF results merged successfully"
+          echo "??SARIF results merged successfully"
 
       - name: Upload merged SARIF to GitHub Security
         if: always()
@@ -652,7 +652,7 @@ jobs:
       - name: Calculate performance metrics
         id: metrics
         run: |
-          echo "ðŸ“Š Calculating performance metrics..."
+          echo "?? Calculating performance metrics..."
           
           # Calculate scan duration
           START_TIME=${{ needs.analyze-changes.outputs.scan_start_time || '0' }}
@@ -688,10 +688,10 @@ jobs:
 
       - name: Generate comprehensive report
         run: |
-          echo "# ðŸš€ Optimized Security Scan Report" >> $GITHUB_STEP_SUMMARY
+          echo "# ?? Optimized Security Scan Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "## âš¡ Performance Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "## ??Performance Metrics" >> $GITHUB_STEP_SUMMARY
           echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| Total Duration | ${{ steps.metrics.outputs.scan_duration }}s |" >> $GITHUB_STEP_SUMMARY
@@ -702,7 +702,7 @@ jobs:
           echo "| Cache Hit | ${{ needs.analyze-changes.outputs.cache_hit }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "## ðŸ“Š Scan Results by Component" >> $GITHUB_STEP_SUMMARY
+          echo "## ?? Scan Results by Component" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           echo "### Gosec Analysis (Parallel Shards)" >> $GITHUB_STEP_SUMMARY
@@ -732,11 +732,11 @@ jobs:
             esac
             
             case "$STATUS" in
-              success) STATUS_ICON="âœ…" ;;
-              issues_found) STATUS_ICON="âš ï¸" ;;
-              timeout) STATUS_ICON="â±ï¸" ;;
-              error) STATUS_ICON="âŒ" ;;
-              *) STATUS_ICON="â“" ;;
+              success) STATUS_ICON="?? ;;
+              issues_found) STATUS_ICON="? ï?" ;;
+              timeout) STATUS_ICON="?±ï?" ;;
+              error) STATUS_ICON="?? ;;
+              *) STATUS_ICON="?? ;;
             esac
             
             echo "| $shard | $COMPONENT | $STATUS_ICON $STATUS | $COUNT |" >> $GITHUB_STEP_SUMMARY
@@ -752,15 +752,15 @@ jobs:
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## ðŸŽ¯ Optimization Features Used" >> $GITHUB_STEP_SUMMARY
-          echo "- âœ… Incremental scanning based on changed files" >> $GITHUB_STEP_SUMMARY
-          echo "- âœ… 4-way parallel sharding for gosec" >> $GITHUB_STEP_SUMMARY
-          echo "- âœ… Advanced caching (modules, tools, vulnerability DB)" >> $GITHUB_STEP_SUMMARY
-          echo "- âœ… Binary-mode vulnerability scanning (10x faster)" >> $GITHUB_STEP_SUMMARY
-          echo "- âœ… Shared tool installation across jobs" >> $GITHUB_STEP_SUMMARY
-          echo "- âœ… Maximum artifact compression (level 9)" >> $GITHUB_STEP_SUMMARY
-          echo "- âœ… Smart skip logic based on cache hits" >> $GITHUB_STEP_SUMMARY
-          echo "- âœ… Optimized Go runtime settings (GOMAXPROCS, GOGC)" >> $GITHUB_STEP_SUMMARY
+          echo "## ?Ž¯ Optimization Features Used" >> $GITHUB_STEP_SUMMARY
+          echo "- ??Incremental scanning based on changed files" >> $GITHUB_STEP_SUMMARY
+          echo "- ??4-way parallel sharding for gosec" >> $GITHUB_STEP_SUMMARY
+          echo "- ??Advanced caching (modules, tools, vulnerability DB)" >> $GITHUB_STEP_SUMMARY
+          echo "- ??Binary-mode vulnerability scanning (10x faster)" >> $GITHUB_STEP_SUMMARY
+          echo "- ??Shared tool installation across jobs" >> $GITHUB_STEP_SUMMARY
+          echo "- ??Maximum artifact compression (level 9)" >> $GITHUB_STEP_SUMMARY
+          echo "- ??Smart skip logic based on cache hits" >> $GITHUB_STEP_SUMMARY
+          echo "- ??Optimized Go runtime settings (GOMAXPROCS, GOGC)" >> $GITHUB_STEP_SUMMARY
 
       - name: Save performance metrics
         run: |
@@ -800,14 +800,14 @@ jobs:
             const issues = ${{ steps.metrics.outputs.total_issues }};
             const improvement = '${{ steps.metrics.outputs.performance_improvement }}';
             
-            const body = `## ðŸš€ Security Scan Performance Report
+            const body = `## ?? Security Scan Performance Report
             
             **Scan Duration:** ${duration} seconds
             **Total Issues:** ${issues}
             **Performance Improvement:** ${improvement}
             **Strategy:** ${{ needs.analyze-changes.outputs.scan_strategy }}
             
-            âœ… Optimized scan completed with parallel sharding and incremental analysis.
+            ??Optimized scan completed with parallel sharding and incremental analysis.
             
             [View detailed results](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
             
@@ -838,7 +838,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: merge-and-report
     if: always()
-    timeout-minutes: 2
+    timeout-minutes: 10
     
     steps:
       - name: Delete temporary artifacts

@@ -31,15 +31,15 @@ env:
 
 jobs:
   quick-security:
-    name: ðŸš€ Quick Security Check
+    name: ?? Quick Security Check
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     
     steps:
       - name: Checkout PR code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -50,7 +50,7 @@ jobs:
       - name: Quick vulnerability check
         id: vuln-check
         run: |
-          echo "ðŸ” Running quick vulnerability check..."
+          echo "?? Running quick vulnerability check..."
           
           # Install govulncheck
           go install golang.org/x/vuln/cmd/govulncheck@latest
@@ -62,10 +62,10 @@ jobs:
           
           # Parse results
           if [[ $VULN_EXIT -eq 0 ]]; then
-            echo "âœ… No vulnerabilities found"
+            echo "??No vulnerabilities found"
             echo "status=clean" >> $GITHUB_OUTPUT
           else
-            echo "âš ï¸ Potential vulnerabilities detected"
+            echo "? ï? Potential vulnerabilities detected"
             echo "status=issues" >> $GITHUB_OUTPUT
             
             # Extract vulnerability count if possible
@@ -76,7 +76,7 @@ jobs:
       - name: Dependency check
         id: dep-check
         run: |
-          echo "ðŸ” Checking for outdated dependencies..."
+          echo "?? Checking for outdated dependencies..."
           
           # Check for available updates
           go list -u -m -json all | jq -r 'select(.Update) | "\(.Path): \(.Version) -> \(.Update.Version)"' > updates.txt || true
@@ -85,16 +85,16 @@ jobs:
           echo "updates=$UPDATE_COUNT" >> $GITHUB_OUTPUT
           
           if [[ $UPDATE_COUNT -gt 0 ]]; then
-            echo "ðŸ“¦ $UPDATE_COUNT dependencies have updates available"
+            echo "?“¦ $UPDATE_COUNT dependencies have updates available"
             head -10 updates.txt
           else
-            echo "âœ… All dependencies are up to date"
+            echo "??All dependencies are up to date"
           fi
           
       - name: Secret scanning
         id: secret-scan
         run: |
-          echo "ðŸ” Scanning for secrets..."
+          echo "?? Scanning for secrets..."
           
           # Simple secret patterns check
           set +e
@@ -109,21 +109,21 @@ jobs:
             SECRETS_FOUND=$(echo "$CHANGED_FILES" | xargs -I {} sh -c 'grep -iE "'"$SECRET_PATTERNS"'\s*=\s*[\"'\'']\S+[\"'\'']" {} 2>/dev/null' | wc -l)
             
             if [[ $SECRETS_FOUND -gt 0 ]]; then
-              echo "âš ï¸ Potential secrets found in $SECRETS_FOUND locations"
+              echo "? ï? Potential secrets found in $SECRETS_FOUND locations"
               echo "status=warning" >> $GITHUB_OUTPUT
             else
-              echo "âœ… No obvious secrets detected"
+              echo "??No obvious secrets detected"
               echo "status=clean" >> $GITHUB_OUTPUT
             fi
           else
-            echo "âœ… No files to scan"
+            echo "??No files to scan"
             echo "status=clean" >> $GITHUB_OUTPUT
           fi
           
       - name: Dockerfile security check
         if: contains(github.event.pull_request.files.*.filename, 'Dockerfile')
         run: |
-          echo "ðŸ³ Checking Dockerfile security..."
+          echo "?³ Checking Dockerfile security..."
           
           # Check for security best practices
           DOCKERFILES=$(find . -name "Dockerfile*" -type f)
@@ -133,17 +133,17 @@ jobs:
             
             # Check for non-root user
             if ! grep -q "USER" "$dockerfile"; then
-              echo "âš ï¸ Warning: Dockerfile should specify a non-root USER"
+              echo "? ï? Warning: Dockerfile should specify a non-root USER"
             fi
             
             # Check for latest tag
             if grep -q "FROM.*:latest" "$dockerfile"; then
-              echo "âš ï¸ Warning: Avoid using :latest tag in FROM"
+              echo "? ï? Warning: Avoid using :latest tag in FROM"
             fi
             
             # Check for apt-get update without install
             if grep -q "apt-get update" "$dockerfile" && ! grep -q "apt-get update.*&&.*apt-get install" "$dockerfile"; then
-              echo "âš ï¸ Warning: Combine apt-get update with install"
+              echo "? ï? Warning: Combine apt-get update with install"
             fi
           done
           
@@ -157,34 +157,34 @@ jobs:
             const depUpdates = '${{ steps.dep-check.outputs.updates }}' || '0';
             const secretStatus = '${{ steps.secret-scan.outputs.status }}';
             
-            let comment = '## ðŸ” Security Quick Check Results\n\n';
+            let comment = '## ?? Security Quick Check Results\n\n';
             comment += '| Check | Status | Details |\n';
             comment += '|-------|--------|---------|\\n';
             
             // Vulnerability check
             if (vulnStatus === 'clean') {
-              comment += '| Vulnerabilities | âœ… Clean | No known vulnerabilities |\\n';
+              comment += '| Vulnerabilities | ??Clean | No known vulnerabilities |\\n';
             } else {
-              comment += `| Vulnerabilities | âš ï¸ Issues | ${vulnCount} potential issues found |\\n`;
+              comment += `| Vulnerabilities | ? ï? Issues | ${vulnCount} potential issues found |\\n`;
             }
             
             // Dependency updates
             if (depUpdates === '0') {
-              comment += '| Dependencies | âœ… Current | All up to date |\\n';
+              comment += '| Dependencies | ??Current | All up to date |\\n';
             } else {
-              comment += `| Dependencies | ðŸ“¦ Updates | ${depUpdates} updates available |\\n`;
+              comment += `| Dependencies | ?“¦ Updates | ${depUpdates} updates available |\\n`;
             }
             
             // Secret scan
             if (secretStatus === 'clean') {
-              comment += '| Secrets | âœ… Clean | No secrets detected |\\n';
+              comment += '| Secrets | ??Clean | No secrets detected |\\n';
             } else {
-              comment += '| Secrets | âš ï¸ Warning | Review flagged patterns |\\n';
+              comment += '| Secrets | ? ï? Warning | Review flagged patterns |\\n';
             }
             
             comment += '\\n';
-            comment += '> ðŸ’¡ This is a quick security check. Full security scanning runs on merge.\\n';
-            comment += '> ðŸ“Š View detailed results in the [Actions tab](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\\n';
+            comment += '> ?’¡ This is a quick security check. Full security scanning runs on merge.\\n';
+            comment += '> ?? View detailed results in the [Actions tab](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\\n';
             
             // Find and update or create comment
             const { data: comments } = await github.rest.issues.listComments({
@@ -217,7 +217,7 @@ jobs:
       - name: Status summary
         if: always()
         run: |
-          echo "## ðŸš€ PR Security Quick Check" >> $GITHUB_STEP_SUMMARY
+          echo "## ?? PR Security Quick Check" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**PR:** #${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
           echo "**Title:** ${{ github.event.pull_request.title }}" >> $GITHUB_STEP_SUMMARY

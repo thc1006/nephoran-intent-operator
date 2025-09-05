@@ -55,7 +55,7 @@ jobs:
   # STAGE 1: Environment Setup & Validation
   # ==============================================
   setup:
-    name: "üîß Environment Setup"
+    name: "?îß Environment Setup"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -68,7 +68,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           
       - name: Configure build parameters
         id: config
@@ -115,9 +115,9 @@ jobs:
   # STAGE 2: Dependency Resolution & Caching
   # ==============================================
   dependencies:
-    name: "üì¶ Dependency Resolution"
+    name: "?ì¶ Dependency Resolution"
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 10
     needs: [setup]
     
     steps:
@@ -131,7 +131,7 @@ jobs:
           check-latest: true
           cache: false  # We handle caching manually for better control
           
-      - name: "üéØ Multi-Layer Dependency Cache"
+      - name: "?éØ Multi-Layer Dependency Cache"
         uses: actions/cache@v4
         with:
           path: |
@@ -145,11 +145,11 @@ jobs:
             ${{ runner.os }}-go-
           enableCrossOsArchive: false
           
-      - name: "üîÑ Advanced Dependency Resolution with Retry Logic"
+      - name: "?? Advanced Dependency Resolution with Retry Logic"
         run: |
           set -e
           
-          echo "üöÄ Starting advanced dependency resolution..."
+          echo "?? Starting advanced dependency resolution..."
           
           # Create local cache directory
           mkdir -p .go-build-cache
@@ -162,15 +162,15 @@ jobs:
             local delay=10
             
             while [ $attempt -le $max_attempts ]; do
-              echo "üì• Attempt $attempt/$max_attempts: Downloading dependencies..."
+              echo "?ì• Attempt $attempt/$max_attempts: Downloading dependencies..."
               
               if timeout 600s go mod download -x; then
-                echo "‚úÖ Dependencies downloaded successfully on attempt $attempt"
+                echo "??Dependencies downloaded successfully on attempt $attempt"
                 return 0
               else
-                echo "‚ö†Ô∏è  Attempt $attempt failed"
+                echo "?†Ô?  Attempt $attempt failed"
                 if [ $attempt -lt $max_attempts ]; then
-                  echo "‚è≥ Waiting ${delay}s before retry..."
+                  echo "??Waiting ${delay}s before retry..."
                   sleep $delay
                   delay=$((delay * 2))
                 fi
@@ -178,28 +178,28 @@ jobs:
               fi
             done
             
-            echo "‚ùå All download attempts failed"
+            echo "??All download attempts failed"
             return 1
           }
           
           # Execute with retry logic
           if ! retry_download; then
-            echo "üîÑ Trying alternative proxy configuration..."
+            echo "?? Trying alternative proxy configuration..."
             export GOPROXY="https://goproxy.io,https://proxy.golang.org,direct"
             retry_download
           fi
           
           # Verify dependencies
-          echo "üîç Verifying downloaded dependencies..."
+          echo "?? Verifying downloaded dependencies..."
           go mod verify
           
           # Pre-compile standard packages
-          echo "‚ö° Pre-compiling standard packages..."
+          echo "??Pre-compiling standard packages..."
           go install std
           
-          echo "‚úÖ Dependency resolution completed successfully"
+          echo "??Dependency resolution completed successfully"
           
-      - name: "üìä Cache Statistics"
+      - name: "?? Cache Statistics"
         run: |
           echo "=== Go Module Cache Statistics ==="
           du -sh ~/go/pkg/mod 2>/dev/null || echo "Module cache not found"
@@ -213,9 +213,9 @@ jobs:
   # STAGE 3: Fast Validation & Syntax Check
   # ==============================================
   fast-validation:
-    name: "‚ö° Fast Validation"
+    name: "??Fast Validation"
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     needs: [setup, dependencies]
     
     steps:
@@ -238,39 +238,39 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-${{ env.CACHE_VERSION }}-
             
-      - name: "üîç Fast Syntax & Build Check"
+      - name: "?? Fast Syntax & Build Check"
         run: |
           set -e
           export GOCACHE="$(pwd)/.go-build-cache"
           
-          echo "üîç Running fast syntax validation..."
+          echo "?? Running fast syntax validation..."
           
           # Fast syntax check
-          echo "üìã Checking Go syntax..."
+          echo "?? Checking Go syntax..."
           go vet ./...
           
           # Fast build check (no output)
-          echo "üèóÔ∏è  Fast build verification..."
+          echo "??Ô∏? Fast build verification..."
           go build $BUILD_FLAGS ./...
           
           # Module tidiness check
-          echo "üßπ Checking module tidiness..."
+          echo "?ßπ Checking module tidiness..."
           go mod tidy
           if ! git diff --quiet go.mod go.sum; then
-            echo "‚ùå go.mod or go.sum is not tidy"
+            echo "??go.mod or go.sum is not tidy"
             git diff go.mod go.sum
             exit 1
           fi
           
-          echo "‚úÖ Fast validation completed successfully"
+          echo "??Fast validation completed successfully"
 
   # ==============================================
   # STAGE 4: Component-Based Testing Matrix
   # ==============================================
   component-tests:
-    name: "üß™ Tests (${{ matrix.name }})"
+    name: "?ß™ Tests (${{ matrix.name }})"
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     needs: [setup, dependencies, fast-validation]
     if: ${{ !inputs.skip_tests }}
     
@@ -296,23 +296,23 @@ jobs:
             .go-build-cache
           key: ${{ needs.setup.outputs.cache-key }}
           
-      - name: "üß™ Component Test Suite: ${{ matrix.name }}"
+      - name: "?ß™ Component Test Suite: ${{ matrix.name }}"
         run: |
           set -e
           export GOCACHE="$(pwd)/.go-build-cache"
           
-          echo "üß™ Testing component: ${{ matrix.name }}"
-          echo "üì¶ Test pattern: ${{ matrix.pattern }}"
+          echo "?ß™ Testing component: ${{ matrix.name }}"
+          echo "?ì¶ Test pattern: ${{ matrix.pattern }}"
           
           # Run tests with coverage for this component
-          go test $TEST_FLAGS -coverprofile=coverage-${{ matrix.name }}.out ${{ matrix.pattern }}
+          go test -short $TEST_FLAGS -coverprofile=coverage-${{ matrix.name }}.out ${{ matrix.pattern }}
           
           # Generate coverage report
           if [[ -f "coverage-${{ matrix.name }}.out" ]]; then
             go tool cover -func=coverage-${{ matrix.name }}.out
           fi
           
-          echo "‚úÖ Component tests completed: ${{ matrix.name }}"
+          echo "??Component tests completed: ${{ matrix.name }}"
           
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
@@ -326,9 +326,9 @@ jobs:
   # STAGE 5: Full Build & Integration
   # ==============================================
   full-build:
-    name: "üèóÔ∏è Full Build & Integration"
+    name: "??Ô∏?Full Build & Integration"
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 10
     needs: [setup, dependencies, fast-validation]
     
     steps:
@@ -349,41 +349,41 @@ jobs:
             .go-build-cache
           key: ${{ needs.setup.outputs.cache-key }}
           
-      - name: "üèóÔ∏è Full Project Build"
+      - name: "??Ô∏?Full Project Build"
         run: |
           set -e
           export GOCACHE="$(pwd)/.go-build-cache"
           
-          echo "üèóÔ∏è Starting full project build..."
+          echo "??Ô∏?Starting full project build..."
           
           # Build all binaries
-          echo "üì¶ Building all binaries..."
+          echo "?ì¶ Building all binaries..."
           
           # Build main operator
-          echo "üéØ Building Nephoran Intent Operator..."
+          echo "?éØ Building Nephoran Intent Operator..."
           go build $BUILD_FLAGS -o bin/nephoran-intent-operator ./cmd/nephoran-intent-operator
           
           # Build additional components if they exist
           if [[ -d "cmd" ]]; then
-            echo "üîß Building additional components..."
+            echo "?îß Building additional components..."
             for dir in cmd/*/; do
               if [[ -f "$dir/main.go" ]]; then
                 component=$(basename "$dir")
-                echo "üì¶ Building $component..."
+                echo "?ì¶ Building $component..."
                 go build $BUILD_FLAGS -o "bin/$component" "./$dir"
               fi
             done
           fi
           
           # Verify built binaries
-          echo "üîç Verifying built binaries..."
+          echo "?? Verifying built binaries..."
           ls -la bin/ || echo "No binaries built"
           
           # Build verification
-          echo "‚úÖ Build verification..."
+          echo "??Build verification..."
           file bin/* 2>/dev/null || echo "No binaries to verify"
           
-          echo "‚úÖ Full build completed successfully"
+          echo "??Full build completed successfully"
           
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -396,9 +396,9 @@ jobs:
   # STAGE 6: Security & Quality Scans
   # ==============================================
   security-scan:
-    name: "üîí Security & Quality Scan"
+    name: "?? Security & Quality Scan"
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     needs: [setup, dependencies]
     if: ${{ inputs.build_mode == 'security' || inputs.build_mode == 'full' }}
     
@@ -419,24 +419,24 @@ jobs:
             ~/.cache/go-build
           key: ${{ needs.setup.outputs.cache-key }}
           
-      - name: "üîí Security Vulnerability Scan"
+      - name: "?? Security Vulnerability Scan"
         run: |
-          echo "üîç Running security scans..."
+          echo "?? Running security scans..."
           
           # Install security tools
           go install golang.org/x/vuln/cmd/govulncheck@latest
           
           # Run vulnerability check
-          echo "üîç Checking for vulnerabilities..."
+          echo "?? Checking for vulnerabilities..."
           govulncheck ./...
           
-          echo "‚úÖ Security scan completed"
+          echo "??Security scan completed"
 
   # ==============================================
   # STAGE 7: Final Integration & Status
   # ==============================================
   integration-status:
-    name: "üìä Integration Status"
+    name: "?? Integration Status"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [setup, dependencies, fast-validation, component-tests, full-build]
@@ -453,11 +453,11 @@ jobs:
           TESTS_STATUS="${{ needs.component-tests.result }}"
           BUILD_STATUS="${{ needs.full-build.result }}"
           
-          echo "üîß Setup: $SETUP_STATUS"
-          echo "üì¶ Dependencies: $DEPS_STATUS" 
-          echo "‚ö° Fast Validation: $VALIDATION_STATUS"
-          echo "üß™ Component Tests: $TESTS_STATUS"
-          echo "üèóÔ∏è Full Build: $BUILD_STATUS"
+          echo "?îß Setup: $SETUP_STATUS"
+          echo "?ì¶ Dependencies: $DEPS_STATUS" 
+          echo "??Fast Validation: $VALIDATION_STATUS"
+          echo "?ß™ Component Tests: $TESTS_STATUS"
+          echo "??Ô∏?Full Build: $BUILD_STATUS"
           echo ""
           
           # Determine overall status
@@ -470,38 +470,38 @@ jobs:
           [[ "$BUILD_STATUS" == "failure" ]] && FAILED_JOBS="$FAILED_JOBS build"
           
           if [[ -n "$FAILED_JOBS" ]]; then
-            echo "‚ùå CI Pipeline FAILED - Jobs failed:$FAILED_JOBS"
+            echo "??CI Pipeline FAILED - Jobs failed:$FAILED_JOBS"
             echo ""
-            echo "üîß Troubleshooting Guide:"
+            echo "?îß Troubleshooting Guide:"
             echo "1. Check individual job logs for specific error details"
             echo "2. Verify dependencies are correctly resolved"
             echo "3. Consider re-running with 'force_cache_refresh: true'"
             echo "4. For urgent fixes, use 'skip_tests: true'"
             exit 1
           else
-            echo "‚úÖ CI Pipeline PASSED - All critical jobs completed successfully!"
+            echo "??CI Pipeline PASSED - All critical jobs completed successfully!"
             echo ""
-            echo "üìä Pipeline Statistics:"
-            echo "‚Ä¢ Build Mode: ${{ needs.setup.outputs.build-mode }}"
-            echo "‚Ä¢ Go Version: ${{ needs.setup.outputs.go-version }}"  
-            echo "‚Ä¢ Cache Key: ${{ needs.setup.outputs.cache-key }}"
-            echo "‚Ä¢ Tests Skipped: ${{ inputs.skip_tests }}"
+            echo "?? Pipeline Statistics:"
+            echo "??Build Mode: ${{ needs.setup.outputs.build-mode }}"
+            echo "??Go Version: ${{ needs.setup.outputs.go-version }}"  
+            echo "??Cache Key: ${{ needs.setup.outputs.cache-key }}"
+            echo "??Tests Skipped: ${{ inputs.skip_tests }}"
           fi
           
   # ==============================================
   # STAGE 8: Cleanup & Monitoring
   # ==============================================  
   cleanup:
-    name: "üßπ Cleanup & Monitoring"
+    name: "?ßπ Cleanup & Monitoring"
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     needs: [integration-status]
     if: always()
     
     steps:
       - name: CI Health Monitoring
         run: |
-          echo "üìä CI Health Monitoring Report"
+          echo "?? CI Health Monitoring Report"
           echo "Pipeline completed at: $(date -u)"
           echo "Repository: ${{ github.repository }}"
           echo "Branch: ${{ github.ref_name }}"
@@ -510,4 +510,4 @@ jobs:
           
           # Note: In a production environment, this would send metrics
           # to monitoring systems like Prometheus, DataDog, etc.
-          echo "‚úÖ Monitoring data recorded"
+          echo "??Monitoring data recorded"

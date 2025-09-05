@@ -2,6 +2,7 @@ package providers
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -131,8 +132,8 @@ func ConfigFromEnvironment() (*Config, error) {
 	// Parse timeout
 	if timeoutStr := os.Getenv("LLM_TIMEOUT"); timeoutStr != "" {
 		timeoutSeconds, err := strconv.Atoi(timeoutStr)
-		if err != nil {
-			return nil, fmt.Errorf("invalid LLM_TIMEOUT: %w", err)
+		if err != nil || timeoutSeconds < 0 || timeoutSeconds > math.MaxInt32 {
+			return nil, fmt.Errorf("invalid LLM_TIMEOUT: %s", timeoutStr)
 		}
 		config.Timeout = time.Duration(timeoutSeconds) * time.Second
 	} else {
@@ -142,8 +143,8 @@ func ConfigFromEnvironment() (*Config, error) {
 	// Parse max retries
 	if retriesStr := os.Getenv("LLM_MAX_RETRIES"); retriesStr != "" {
 		maxRetries, err := strconv.Atoi(retriesStr)
-		if err != nil {
-			return nil, fmt.Errorf("invalid LLM_MAX_RETRIES: %w", err)
+		if err != nil || maxRetries < 0 || maxRetries > math.MaxInt32 {
+			return nil, fmt.Errorf("invalid LLM_MAX_RETRIES: %s", retriesStr)
 		}
 		config.MaxRetries = maxRetries
 	} else {

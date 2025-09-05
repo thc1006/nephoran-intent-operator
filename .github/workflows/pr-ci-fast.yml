@@ -44,13 +44,13 @@ jobs:
   ultra-fast-check:
     name: Ultra Fast Validation
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 10
     steps:
-      - name: "⚠️ DEPRECATION WARNING"
+      - name: "?��? DEPRECATION WARNING"
         run: |
-          echo "🚨 WARNING: This workflow is DEPRECATED"
-          echo "🔄 Please use pr-validation.yml instead"
-          echo "📖 See .github/workflows/DEPRECATED-WORKFLOWS.md for migration guide"
+          echo "?�� WARNING: This workflow is DEPRECATED"
+          echo "?? Please use pr-validation.yml instead"
+          echo "?? See .github/workflows/DEPRECATED-WORKFLOWS.md for migration guide"
           echo ""
           echo "This workflow will be removed in 2025-03-XX"
           echo ""
@@ -71,36 +71,36 @@ jobs:
       
       - name: Lightning dependency check
         run: |
-          echo "⚡ Fast dependency verification..."
+          echo "??Fast dependency verification..."
           go mod download || echo "Some modules failed (expected during migration)"
           
       - name: Build verification
         run: |
-          echo "🏗️ Build check..."
-          go build ./cmd/... ./controllers/... || { echo "❌ Build failed"; exit 1; }
-          echo "✅ Build successful!"
+          echo "??�?Build check..."
+          go build ./cmd/... ./controllers/... || { echo "??Build failed"; exit 1; }
+          echo "??Build successful!"
       
       - name: Essential tests
         if: env.SKIP_TESTS != 'true'
         run: |
-          echo "🧪 Essential tests..."
-          go test -short -timeout=3m ./api/... ./controllers/... || echo "⚠️ Some tests failed (non-blocking)"
-          echo "✅ Essential tests completed!"
+          echo "?�� Essential tests..."
+          go test -short -timeout=3m ./api/... ./controllers/... || echo "?��? Some tests failed (non-blocking)"
+          echo "??Essential tests completed!"
       
       - name: Format check
         run: |
-          echo "📝 Format check..."
+          echo "?? Format check..."
           if ! go fmt ./...; then
-            echo "❌ Format issues found"
+            echo "??Format issues found"
             exit 1
           fi
           if ! git diff --exit-code; then
-            echo "❌ Code not formatted"
+            echo "??Code not formatted"
             exit 1
           fi
-          echo "✅ Format check passed!"
+          echo "??Format check passed!"
       
       - name: Success
         run: |
-          echo "🎉 PR CI completed in ~3 minutes!"
-          echo "✅ Ready for review!"
+          echo "?? PR CI completed in ~3 minutes!"
+          echo "??Ready for review!"

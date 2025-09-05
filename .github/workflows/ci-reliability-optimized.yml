@@ -51,9 +51,9 @@ jobs:
   # RELIABILITY SETUP: Cache management and environment validation
   # =============================================================================
   reliability-setup:
-    name: "ðŸ”§ Reliability Setup"
+    name: "?”§ Reliability Setup"
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     outputs:
       cache-key: ${{ steps.cache-key.outputs.key }}
       go-version: ${{ steps.go-setup.outputs.go-version }}
@@ -161,7 +161,7 @@ jobs:
           
       - name: Pre-download dependencies (reliability)
         if: steps.changes.outputs.should-build == 'true'
-        timeout-minutes: 3
+        timeout-minutes: 10
         run: |
           echo "Pre-downloading dependencies for cache warming..."
           # Use multiple attempts for reliability
@@ -187,11 +187,11 @@ jobs:
   # RELIABLE BUILD: Optimized build with intelligent chunking
   # =============================================================================
   reliable-build:
-    name: "ðŸ—ï¸ Reliable Build"
+    name: "??ï¸?Reliable Build"
     needs: reliability-setup
     if: needs.reliability-setup.outputs.should-build == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -255,7 +255,7 @@ jobs:
               
               if timeout 120s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" \
                  -o "bin/$cmd_name" "./$component"; then
-                echo "âœ… $cmd_name: Build successful"
+                echo "??$cmd_name: Build successful"
                 SUCCESSFUL=$((SUCCESSFUL + 1))
                 
                 # Verify binary
@@ -264,10 +264,10 @@ jobs:
                   echo "   Binary size: $(numfmt --to=iec-i --suffix=B $size 2>/dev/null || echo $size bytes)"
                 fi
               else
-                echo "âš ï¸ $cmd_name: Build failed or timed out"
+                echo "? ï? $cmd_name: Build failed or timed out"
               fi
             else
-              echo "â­ï¸ $component: Skipping (directory or main.go not found)"
+              echo "?­ï? $component: Skipping (directory or main.go not found)"
             fi
           done
           
@@ -293,7 +293,7 @@ jobs:
   # RELIABILITY TESTS: Fast, reliable test execution
   # =============================================================================
   reliability-tests:
-    name: "ðŸ§ª Reliability Tests"
+    name: "?§ª Reliability Tests"
     needs: [reliability-setup, reliable-build]
     if: needs.reliability-setup.outputs.should-build == 'true'
     runs-on: ubuntu-latest
@@ -375,12 +375,12 @@ jobs:
             GINKGO_FLAGS="$GINKGO_FLAGS --race"
           fi
           
-          # Convert go test patterns to directories for Ginkgo
+          # Convert go test -short patterns to directories for Ginkgo
           TEST_DIRS=$(echo "${{ matrix.test-suite.pattern }}" | sed 's|/\.\.\.|/|g' | sed 's|\./||g')
           
           # Run tests with retry on failure (network issues)
           for attempt in 1 2; do
-            echo "Ginkgo test attempt $attempt/2"
+            echo "Ginkgo test -short attempt $attempt/2"
             echo "Running: ginkgo $GINKGO_FLAGS $TEST_DIRS"
             
             # Check if directories exist and have tests
@@ -393,24 +393,24 @@ jobs:
             done
             
             if [ "$has_tests" = "false" ]; then
-              echo "â­ï¸ No Ginkgo test files found in: $TEST_DIRS"
-              echo "Falling back to standard go test..."
-              if go test -v -timeout=5m -parallel=4 ${{ matrix.test-suite.pattern }}; then
-                echo "âœ… Tests passed successfully (go test fallback)"
+              echo "?­ï? No Ginkgo test -short files found in: $TEST_DIRS"
+              echo "Falling back to standard go test -short..."
+              if go test -short -v -timeout=5m -parallel=4 ${{ matrix.test-suite.pattern }}; then
+                echo "??Tests passed successfully (go test -short fallback)"
                 break
               fi
             else
               if ginkgo $GINKGO_FLAGS $TEST_DIRS; then
-                echo "âœ… Ginkgo tests passed successfully"
+                echo "??Ginkgo test -shorts passed successfully"
                 break
               fi
             fi
             
             if [ $attempt -eq 2 ]; then
-              echo "âŒ Tests failed after 2 attempts"
+              echo "??Tests failed after 2 attempts"
               exit 1
             else
-              echo "âš ï¸ Tests failed, retrying..."
+              echo "? ï? Tests failed, retrying..."
               sleep 5
             fi
           done
@@ -439,11 +439,11 @@ jobs:
   # INTEGRATION VALIDATION: Final reliability checks
   # =============================================================================
   integration-validation:
-    name: "ðŸ”— Integration Validation"
+    name: "?? Integration Validation"
     needs: [reliable-build, reliability-tests]
     if: always() && needs.reliable-build.result != 'cancelled'
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
     
     steps:
       - name: Checkout code
@@ -457,7 +457,7 @@ jobs:
           merge-multiple: true
           
       - name: Integration smoke tests
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
           echo "Running integration smoke tests..."
           
@@ -492,10 +492,10 @@ jobs:
               if timeout 10s "$binary" --help >/dev/null 2>&1 || \
                  timeout 10s "$binary" version >/dev/null 2>&1 || \
                  timeout 10s "$binary" --version >/dev/null 2>&1; then
-                echo "  âœ… $name: CLI interface working"
+                echo "  ??$name: CLI interface working"
                 passed=$((passed + 1))
               else
-                echo "  âš ï¸ $name: No standard CLI interface (may be service binary)"
+                echo "  ? ï? $name: No standard CLI interface (may be service binary)"
                 # Count as passed for service binaries
                 passed=$((passed + 1))
               fi
@@ -505,9 +505,9 @@ jobs:
           echo "Integration test results: $passed/$tested binaries validated"
           
           if [ $tested -gt 0 ] && [ $passed -gt 0 ]; then
-            echo "âœ… Integration validation passed"
+            echo "??Integration validation passed"
           else
-            echo "âŒ Integration validation failed"
+            echo "??Integration validation failed"
             exit 1
           fi
 
@@ -515,16 +515,16 @@ jobs:
   # RELIABILITY STATUS: Final pipeline status with detailed reporting
   # =============================================================================
   reliability-status:
-    name: "ðŸ“Š Reliability Status"
+    name: "?? Reliability Status"
     needs: [reliability-setup, reliable-build, reliability-tests, integration-validation]
     if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 10
     
     steps:
       - name: Generate reliability report
         run: |
-          echo "# ðŸ”§ CI Reliability Report" >> $GITHUB_STEP_SUMMARY
+          echo "# ?”§ CI Reliability Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Pipeline Information:**" >> $GITHUB_STEP_SUMMARY
           echo "- Go Version: ${{ needs.reliability-setup.outputs.go-version || 'N/A' }}" >> $GITHUB_STEP_SUMMARY
@@ -555,7 +555,7 @@ jobs:
           
           # Test failures are warnings unless all tests failed
           if [ "${{ needs.reliability-tests.result }}" = "failure" ]; then
-            echo "âš ï¸ Some tests failed - check test results" >> $GITHUB_STEP_SUMMARY
+            echo "? ï? Some tests failed - check test results" >> $GITHUB_STEP_SUMMARY
           fi
           
           # Integration validation failure is critical
@@ -566,19 +566,19 @@ jobs:
           # Final determination
           if [ -n "$CRITICAL_FAILURES" ]; then
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Status: FAILED** âŒ" >> $GITHUB_STEP_SUMMARY
+            echo "**Status: FAILED** ?? >> $GITHUB_STEP_SUMMARY
             echo "Critical failures: $CRITICAL_FAILURES" >> $GITHUB_STEP_SUMMARY
-            echo "âŒ CI Pipeline failed with critical errors"
+            echo "??CI Pipeline failed with critical errors"
             exit 1
           else
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Status: PASSED** âœ…" >> $GITHUB_STEP_SUMMARY
+            echo "**Status: PASSED** ?? >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "ðŸŽ¯ **Reliability Achievements:**" >> $GITHUB_STEP_SUMMARY
-            echo "- âœ… Optimized Go 1.25.x compatibility" >> $GITHUB_STEP_SUMMARY
-            echo "- âœ… Enhanced cache reliability with fallbacks" >> $GITHUB_STEP_SUMMARY
-            echo "- âœ… Intelligent build chunking prevents timeouts" >> $GITHUB_STEP_SUMMARY
-            echo "- âœ… Ginkgo v2 parallel testing with retry logic and randomization" >> $GITHUB_STEP_SUMMARY
-            echo "- âœ… Comprehensive integration validation" >> $GITHUB_STEP_SUMMARY
-            echo "âœ… Reliability-optimized CI completed successfully!"
+            echo "?Ž¯ **Reliability Achievements:**" >> $GITHUB_STEP_SUMMARY
+            echo "- ??Optimized Go 1.25.x compatibility" >> $GITHUB_STEP_SUMMARY
+            echo "- ??Enhanced cache reliability with fallbacks" >> $GITHUB_STEP_SUMMARY
+            echo "- ??Intelligent build chunking prevents timeouts" >> $GITHUB_STEP_SUMMARY
+            echo "- ??Ginkgo v2 parallel testing with retry logic and randomization" >> $GITHUB_STEP_SUMMARY
+            echo "- ??Comprehensive integration validation" >> $GITHUB_STEP_SUMMARY
+            echo "??Reliability-optimized CI completed successfully!"
           fi

@@ -66,8 +66,8 @@ func (h *BufferLogHandler) Handle(ctx context.Context, record slog.Record) error
 		return err
 	}
 
-	h.buffer.Write(data)
-	h.buffer.WriteString("\n")
+	_, _ = h.buffer.Write(data) // #nosec G104 - Buffer write in test
+	_, _ = h.buffer.WriteString("\n") // #nosec G104 - Buffer write in test
 	return nil
 }
 
@@ -140,7 +140,7 @@ func (m *MockStreamingProcessor) HandleStreamingRequest(w http.ResponseWriter, r
 	}
 	// Default mock implementation - just return success
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("mock streaming response"))
+	_, _ = w.Write([]byte("mock streaming response")) // #nosec G104 - Mock write in test
 	return nil
 }
 
@@ -250,7 +250,7 @@ func TestStructuredLoggingInStreamingHandler(t *testing.T) {
 						return tt.mockError
 					}
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte("test response"))
+					_, _ = w.Write([]byte("test response")) // #nosec G104 - Test response write
 					return nil
 				},
 			}
