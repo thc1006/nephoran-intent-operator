@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 	"time"
-	"encoding/json"
 
 	"github.com/stretchr/testify/assert"
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
@@ -15,7 +14,7 @@ import (
 func TestNewO1AdaptorConstruction(t *testing.T) {
 	tests := []struct {
 		name   string
-		config *O1Config
+		config *oran.O1Config
 		want   *O1Adaptor
 	}{
 		{
@@ -31,9 +30,14 @@ func TestNewO1AdaptorConstruction(t *testing.T) {
 		{
 			name: "with custom config",
 			config: &oran.O1Config{
-				Endpoint:      "localhost:830",
-				Timeout:       60 * time.Second,
-				RetryAttempts: 5,
+				Endpoint:       "localhost:830",
+				Timeout:        60 * time.Second,
+				RetryAttempts:  5,
+				DefaultPort:    830,
+				ConnectTimeout: 30 * time.Second,
+				RequestTimeout: 60 * time.Second,
+				MaxRetries:     5,
+				RetryInterval:  5 * time.Second,
 			},
 			want: &O1Adaptor{
 				clients:          make(map[string]*NetconfClient),
@@ -237,7 +241,7 @@ func TestO1Adaptor_convertEventToAlarm(t *testing.T) {
 				Type:      "notification",
 				Timestamp: time.Now(),
 				Source:    "test-source",
-				Data: json.RawMessage(`{}`),
+				Data: make(map[string]interface{}),
 			},
 			managedElementID: "test-element",
 			expectedAlarm:    true,
@@ -413,15 +417,15 @@ func TestAlarmStruct(t *testing.T) {
 		Type:             "EQUIPMENT",
 		ProbableCause:    "POWER_SUPPLY_FAILURE",
 		SpecificProblem:  "Power supply redundancy lost",
-		AdditionalInfo:   "Check power supply unit 2",
-		TimeRaised:       time.Now(),
+		AdditionalText:   "Check power supply unit 2",
+		Timestamp:        time.Now(),
 	}
 
 	assert.Equal(t, "alarm-123", alarm.ID)
 	assert.Equal(t, "test-element", alarm.ManagedElementID)
 	assert.Equal(t, "MAJOR", alarm.Severity)
 	assert.Equal(t, "EQUIPMENT", alarm.Type)
-	assert.NotZero(t, alarm.TimeRaised)
+	assert.NotZero(t, alarm.Timestamp)
 }
 
 // Benchmark tests for performance verification

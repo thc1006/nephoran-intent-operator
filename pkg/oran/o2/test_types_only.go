@@ -49,6 +49,10 @@ type VNFDeployRequest struct {
 
 type O2VNFDeployRequest = VNFDeployRequest
 
+// VNFInstance is an alias for O2VNFInstance for test compatibility.
+
+type VNFInstance = O2VNFInstance
+
 // VNFDescriptor describes a VNF for deployment.
 
 type VNFDescriptor struct {

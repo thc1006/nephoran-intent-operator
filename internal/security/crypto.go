@@ -308,17 +308,18 @@ func (c *CryptoSecureIdentifier) GenerateSecurePackageName(target string) (strin
 func (c *CryptoSecureIdentifier) GenerateCollisionResistantTimestamp() (string, error) {
 	now := time.Now().UTC()
 
-	// Add some entropy to prevent collisions in rapid succession.
+	// Add sufficient entropy to prevent collisions in rapid succession.
+	// Using 4 bytes (8 hex chars) provides 4 billion possible values.
 
-	entropy := make([]byte, 2)
+	entropy := make([]byte, 4)
 
 	if _, err := c.entropy.reader.Read(entropy); err != nil {
 		return "", fmt.Errorf("failed to generate entropy for timestamp: %w", err)
 	}
 
-	// Format: YYYYMMDD-HHMMSS-NNNN (where NNNN is entropy-based).
+	// Format: YYYYMMDD-HHMMSS-NNNNNNNN (where NNNNNNNN is entropy-based).
 
-	timestamp := fmt.Sprintf("%s-%04x",
+	timestamp := fmt.Sprintf("%s-%08x",
 
 		now.Format("20060102-150405"),
 

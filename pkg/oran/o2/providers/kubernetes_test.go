@@ -285,8 +285,8 @@ func TestKubernetesProviderUpdateDeployment(t *testing.T) {
 	kProvider := provider.(*KubernetesProvider)
 
 	// Test updateDeployment with replica update
-	updateReq := &UpdateResourceRequest{
-		Specification: json.RawMessage(`{}`),
+	updateReq := &UpdateDeploymentRequest{
+		Parameters: json.RawMessage(`{}`),
 		Labels: map[string]string{
 			"updated": "true",
 		},
