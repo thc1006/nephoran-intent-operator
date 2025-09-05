@@ -4,10 +4,5 @@ kind: Kustomization
 generatorOptions:
   disableNameSuffixHash: true
 
-# Markers for controller-gen CRD generation
-patchesStrategicMerge:
-- patches/webhook_patch.yaml
-
 resources:
-- bases
-- patches
+- bases/
