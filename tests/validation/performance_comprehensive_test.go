@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"math/rand"
+	mathrand "math/rand"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -414,7 +414,7 @@ func (cpt *ComprehensivePerformanceTester) testSustainedThroughput(ctx context.C
 					intentCount++
 
 					// Small delay to prevent overwhelming the system
-					time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
+					time.Sleep(time.Duration(mathrand.Intn(500)) * time.Millisecond)
 				}
 			}
 		}(i)
@@ -818,7 +818,7 @@ func (cpt *ComprehensivePerformanceTester) testLLMPipelineLatency(ctx context.Co
 		// In production, this would call the actual LLM service
 		// For now, simulate with realistic values
 		baseLatency := 200 * time.Millisecond
-		variance := time.Duration(rand.Intn(300)) * time.Millisecond
+		variance := time.Duration(mathrand.Intn(300)) * time.Millisecond
 		latencies[i] = baseLatency + variance
 	}
 
@@ -836,7 +836,7 @@ func (cpt *ComprehensivePerformanceTester) testPackageGenerationLatency(ctx cont
 	for i := 0; i < samples; i++ {
 		// In production, this would measure actual package generation
 		baseLatency := 150 * time.Millisecond
-		variance := time.Duration(rand.Intn(200)) * time.Millisecond
+		variance := time.Duration(mathrand.Intn(200)) * time.Millisecond
 		latencies[i] = baseLatency + variance
 	}
 
@@ -850,13 +850,13 @@ func (cpt *ComprehensivePerformanceTester) testPackageGenerationLatency(ctx cont
 func (cpt *ComprehensivePerformanceTester) testMemoryEfficiencyUnderLoad(ctx context.Context) float64 {
 	// In production, this would query Prometheus for actual memory metrics
 	// For now, return a simulated value
-	return 2048.0 + rand.Float64()*1024 // 2-3 GB
+	return 2048.0 + mathrand.Float64()*1024 // 2-3 GB
 }
 
 func (cpt *ComprehensivePerformanceTester) testCPUEfficiencyUnderLoad(ctx context.Context) float64 {
 	// In production, this would query Prometheus for actual CPU metrics
 	// For now, return a simulated value
-	return 150.0 + rand.Float64()*50 // 150-200%
+	return 150.0 + mathrand.Float64()*50 // 150-200%
 }
 
 func (cpt *ComprehensivePerformanceTester) calculatePercentileAdvanced(durations []time.Duration, percentile int) time.Duration {

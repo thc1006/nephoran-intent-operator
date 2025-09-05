@@ -600,7 +600,7 @@ func (r *ResourcePlanningController) applyCostOptimization(ctx context.Context, 
 
 		Status: "Success",
 
-		ImprovementPercent: &improvementPercent,
+		ImprovementPercent: stringPtr(fmt.Sprintf("%.2f", improvementPercent)),
 
 		Description: fmt.Sprintf("Optimized %d resources for cost reduction", optimizedCount),
 
@@ -672,7 +672,7 @@ func (r *ResourcePlanningController) applyPerformanceOptimization(ctx context.Co
 
 		Status: "Success",
 
-		ImprovementPercent: &improvementPercent,
+		ImprovementPercent: stringPtr(fmt.Sprintf("%.2f", improvementPercent)),
 
 		Description: fmt.Sprintf("Optimized %d resources for performance", optimizedCount),
 
@@ -728,7 +728,7 @@ func (r *ResourcePlanningController) applyResourcePackingOptimization(ctx contex
 
 		Status: "Success",
 
-		ImprovementPercent: &improvementPercent,
+		ImprovementPercent: stringPtr(fmt.Sprintf("%.2f", improvementPercent)),
 
 		Description: fmt.Sprintf("Grouped %d resources into %d packing groups", len(resources), len(packingGroups)),
 

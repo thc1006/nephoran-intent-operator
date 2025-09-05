@@ -115,7 +115,7 @@ func TestRBACManagerMock(t *testing.T) {
 	require.NoError(t, err)
 	
 	// Test permission creation
-	err = rbacManager.CreatePermission(ctx, "test:read:default")
+	_, err = rbacManager.CreatePermission(ctx, "test:read:default")
 	require.NoError(t, err)
 }
 

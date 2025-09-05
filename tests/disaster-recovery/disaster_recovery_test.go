@@ -736,3 +736,8 @@ func (suite *DisasterRecoveryTestSuite) generateDisasterReport(scenario *Disaste
 	return nil
 }
 
+
+// int32Ptr returns a pointer to the given int32 value
+func int32Ptr(i int32) *int32 {
+	return &i
+}

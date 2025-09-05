@@ -133,7 +133,7 @@ func (suite *O2APITestSuite) TestResourcePoolCRUD() {
 					Utilization: 20.0,
 				},
 			},
-			Extensions: json.RawMessage(`{}`),
+			Extensions: map[string]interface{}{},
 		}
 
 		poolJSON, err := json.Marshal(pool)

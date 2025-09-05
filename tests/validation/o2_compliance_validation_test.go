@@ -1106,15 +1106,15 @@ func (cr *ComplianceResults) GenerateReport() {
 	}
 
 	// Log compliance report
-	fmt.Printf("\n" + strings.Repeat("=", 80) + "\n")
+	fmt.Print("\n" + strings.Repeat("=", 80) + "\n")
 	fmt.Printf("O2 IMS O-RAN COMPLIANCE VALIDATION REPORT\n")
-	fmt.Printf(strings.Repeat("=", 80) + "\n")
+	fmt.Print(strings.Repeat("=", 80) + "\n")
 	fmt.Printf("Test Duration: %v\n", time.Since(cr.TestStartTime))
 	fmt.Printf("Total Tests: %d\n", totalTests)
 	fmt.Printf("Passed Tests: %d\n", passedTests)
 	fmt.Printf("Compliance Percentage: %.1f%%\n", compliancePercentage)
 	fmt.Printf("Overall Compliance: %s\n", cr.OverallCompliance)
-	fmt.Printf(strings.Repeat("=", 80) + "\n\n")
+	fmt.Print(strings.Repeat("=", 80) + "\n\n")
 }
 
 func CreateTestNamespace() *corev1.Namespace {

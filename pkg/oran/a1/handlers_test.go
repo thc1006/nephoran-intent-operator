@@ -1082,8 +1082,28 @@ func (m *MockA1Service) GetPolicyStatus(ctx context.Context, policyTypeID int, p
 	return args.Get(0).(*PolicyStatus), args.Error(1)
 }
 
-func (m *MockA1Service) RegisterConsumer(ctx context.Context, consumer *Consumer) error {
-	args := m.Called(ctx, consumer)
+func (m *MockA1Service) RegisterConsumer(ctx context.Context, consumerID string, info *ConsumerInfo) error {
+	args := m.Called(ctx, consumerID, info)
+	return args.Error(0)
+}
+
+func (m *MockA1Service) UnregisterConsumer(ctx context.Context, consumerID string) error {
+	args := m.Called(ctx, consumerID)
+	return args.Error(0)
+}
+
+func (m *MockA1Service) GetConsumer(ctx context.Context, consumerID string) (*ConsumerInfo, error) {
+	args := m.Called(ctx, consumerID)
+	return args.Get(0).(*ConsumerInfo), args.Error(1)
+}
+
+func (m *MockA1Service) ListConsumers(ctx context.Context) ([]*ConsumerInfo, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]*ConsumerInfo), args.Error(1)
+}
+
+func (m *MockA1Service) NotifyConsumer(ctx context.Context, consumerID string, notification *PolicyNotification) error {
+	args := m.Called(ctx, consumerID, notification)
 	return args.Error(0)
 }
 

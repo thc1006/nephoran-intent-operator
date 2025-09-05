@@ -201,7 +201,7 @@ func TestO2Manager_DiscoverResources(t *testing.T) {
 			ctrlClient := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(objects...).Build()
 
 			// Create O2 adaptor and manager
-			adaptor := NewO2Adaptor(ctrlClient, clientset, nil)
+			adaptor, _ := NewO2Adaptor(ctrlClient, clientset, nil)
 			manager := NewO2Manager(adaptor)
 
 			// Execute test
@@ -336,7 +336,7 @@ func TestO2Manager_ScaleWorkload(t *testing.T) {
 			ctrlClient := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(objects...).Build()
 
 			// Create O2 adaptor and manager
-			adaptor := NewO2Adaptor(ctrlClient, clientset, nil)
+			adaptor, _ := NewO2Adaptor(ctrlClient, clientset, nil)
 			manager := NewO2Manager(adaptor)
 
 			// Execute test
@@ -474,7 +474,7 @@ func TestO2Manager_DeployVNF(t *testing.T) {
 			ctrlClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 			// Create O2 adaptor and manager
-			adaptor := NewO2Adaptor(ctrlClient, clientset, nil)
+			adaptor, _ := NewO2Adaptor(ctrlClient, clientset, nil)
 			manager := NewO2Manager(adaptor)
 
 			// Execute test
@@ -555,7 +555,7 @@ func TestO2Adaptor_DeployVNF(t *testing.T) {
 			ctrlClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 			// Create O2 adaptor
-			adaptor := NewO2Adaptor(ctrlClient, clientset, nil)
+			adaptor, _ := NewO2Adaptor(ctrlClient, clientset, nil)
 
 			// Execute test
 			ctx := context.Background()

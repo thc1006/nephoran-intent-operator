@@ -292,7 +292,7 @@ func TestKubernetesProviderUpdateDeployment(t *testing.T) {
 		},
 	}
 
-	response, err := kProvider.UpdateDeployment(context.Background(), "default", "test-deployment", updateReq)
+	response, err := kProvider.UpdateDeployment(context.Background(), "test-deployment", updateReq)
 	if err != nil {
 		t.Fatalf("Failed to update deployment: %v", err)
 	}

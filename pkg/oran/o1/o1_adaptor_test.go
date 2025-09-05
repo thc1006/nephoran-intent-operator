@@ -15,7 +15,7 @@ import (
 func TestNewO1AdaptorConstruction(t *testing.T) {
 	tests := []struct {
 		name   string
-		config *oran.O1Config
+		config *O1Config
 		want   *O1Adaptor
 	}{
 		{
