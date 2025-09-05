@@ -57,7 +57,7 @@ jobs:
           
           # Run check with timeout
           set +e
-          timeout 5m govulncheck -json ./... > vuln-output.json 2>&1
+          timeout 5m govulncheck -format json ./... > vuln-output.json 2>&1
           VULN_EXIT=$?
           
           # Parse results

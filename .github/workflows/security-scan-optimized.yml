@@ -548,7 +548,7 @@ jobs:
           # If critical issues found, do source scan for details
           if grep -q '"severity":"HIGH"' vulncheck-binary.json 2>/dev/null || grep -q '"severity":"CRITICAL"' vulncheck-binary.json 2>/dev/null; then
             echo "⚠️ Critical vulnerabilities detected, running detailed source scan..."
-            timeout 10m govulncheck -json $SCAN_TARGETS > vulncheck-source.json 2>&1 || true
+            timeout 10m govulncheck -format json $SCAN_TARGETS > vulncheck-source.json 2>&1 || true
           fi
           
           # Nancy scan for dependencies (parallel with govulncheck)

@@ -399,7 +399,7 @@ jobs:
           echo "🔍 Running Go vulnerability database check..."
           go install golang.org/x/vuln/cmd/govulncheck@latest
           
-          govulncheck -json ./... > govuln-results.json || true
+          govulncheck -format json ./... > govuln-results.json || true
           
           # Parse and analyze results
           if [[ -f govuln-results.json ]]; then

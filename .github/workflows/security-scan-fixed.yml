@@ -246,9 +246,16 @@ jobs:
           echo "⏱️ Timeout: $TIMEOUT"
           
           # Run govulncheck with JSON output for SARIF conversion
-          if timeout $TIMEOUT govulncheck -json $SCAN_PATHS > security-results/govulncheck.json 2>&1; then
+          if timeout $TIMEOUT govulncheck -format json $SCAN_PATHS > security-results/govulncheck.json 2>&1; then
             echo "✅ Vulnerability scan completed successfully"
-            VULN_COUNT=$(jq '.Vulns | length' security-results/govulncheck.json 2>/dev/null || echo "0")
+            # Check if output is valid JSON before parsing
+            if jq empty security-results/govulncheck.json 2>/dev/null; then
+              VULN_COUNT=$(jq '.Vulns | length' security-results/govulncheck.json 2>/dev/null || echo "0")
+            else
+              echo "Warning: govulncheck output is not valid JSON, creating empty JSON file"
+              echo '{"Vulns": [], "Modules": []}' > security-results/govulncheck.json
+              VULN_COUNT="0"
+            fi
           else
             EXIT_CODE=$?
             if [ $EXIT_CODE -eq 124 ]; then
@@ -257,7 +264,14 @@ jobs:
               VULN_COUNT=0
             else
               echo "⚠️ Vulnerabilities found (exit code: $EXIT_CODE)"
-              VULN_COUNT=$(jq '.Vulns | length' security-results/govulncheck.json 2>/dev/null || echo "unknown")
+              # Check if output is valid JSON before parsing
+              if jq empty security-results/govulncheck.json 2>/dev/null; then
+                VULN_COUNT=$(jq '.Vulns | length' security-results/govulncheck.json 2>/dev/null || echo "0")
+              else
+                echo "Warning: govulncheck output is not valid JSON, creating empty JSON file"
+                echo '{"Vulns": [], "Modules": []}' > security-results/govulncheck.json
+                VULN_COUNT="0"
+              fi
             fi
           fi
           

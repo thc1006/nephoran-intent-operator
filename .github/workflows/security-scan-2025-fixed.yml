@@ -143,7 +143,7 @@ jobs:
           set +e  # Continue on error
           
           # Run govulncheck with proper JSON output
-          timeout 20m govulncheck -json ./... > govulncheck-raw.json 2>&1
+          timeout 20m govulncheck -format json ./... > govulncheck-raw.json 2>&1
           GOVULN_EXIT=$?
           
           # Convert to SARIF format

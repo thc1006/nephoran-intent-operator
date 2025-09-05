@@ -148,7 +148,7 @@ jobs:
           set +e
           
           # Run govulncheck and capture output
-          govulncheck -json ./... > govulncheck-output.json 2>&1
+          govulncheck -format json ./... > govulncheck-output.json 2>&1
           GOVULN_EXIT=$?
           
           # Create SARIF from output

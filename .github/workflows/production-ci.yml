@@ -503,7 +503,7 @@ jobs:
           
           # Production scan: comprehensive but with timeout
           echo "🔍 Comprehensive vulnerability scan for production..."
-          if timeout 20m govulncheck -json ./... > vuln-report.json 2>&1; then
+          if timeout 20m govulncheck -format json ./... > vuln-report.json 2>&1; then
             echo "✅ Production vulnerability scan completed"
             echo "vulnerability_scan_success" > vuln-status.txt
           else

@@ -71,7 +71,7 @@ jobs:
           go install golang.org/x/vuln/cmd/govulncheck@v1.0.4
           
           # Run with timeout and continue on error
-          timeout 180s govulncheck -json ./... 2>&1 | head -500 || {
+          timeout 180s govulncheck -format json ./... 2>&1 | head -500 || {
             echo "⚠️ Vulnerability check completed with warnings"
           }
           
