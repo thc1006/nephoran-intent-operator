@@ -14,6 +14,7 @@ import (
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	configPkg "github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/testutils"
+	"github.com/thc1006/nephoran-intent-operator/hack/testtools"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -30,6 +31,10 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 	const (
 		timeout  = time.Second * 30
 		interval = time.Millisecond * 250
+	)
+	
+	var (
+		testEnv *testtools.TestEnvironment
 	)
 
 	var (

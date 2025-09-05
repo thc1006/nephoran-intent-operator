@@ -13,6 +13,7 @@ import (
 
 	configPkg "github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/testutils"
+	"github.com/thc1006/nephoran-intent-operator/hack/testtools"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -26,6 +27,10 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 	const (
 		timeout  = time.Second * 30
 		interval = time.Millisecond * 250
+	)
+	
+	var (
+		testEnv *testtools.TestEnvironment
 	)
 
 	var (
@@ -103,7 +108,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 				}
 
 				// Set up Git client mock expectations
-				mockGitClient := mockDeps.GetGitClient().(testutils.MockGitClient)
+				mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 				expectedPath := fmt.Sprintf("%s/%s-%s", reconciler.config.GitDeployPath, networkIntent.Namespace, networkIntent.Name)
 				expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 
@@ -372,7 +377,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 				Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
 				// Set up Git client mock based on test case
-				mockGitClient := mockDeps.GetGitClient().(testutils.MockGitClient)
+				mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 				if tc.gitCleanupError != nil {
 					expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 					expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
@@ -484,7 +489,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 					"Table-driven test for Git errors",
 				)
 
-				mockGitClient := mockDeps.GetGitClient().(testutils.MockGitClient)
+				mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 				expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 				expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 

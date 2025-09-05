@@ -91,8 +91,18 @@ func (suite *BenchmarkSuite) setupTestData() {
 	for _, resource := range resources {
 		for _, action := range actions {
 			perms := pf.CreateResourcePermissions(resource, []string{action})
-			if createdPerm, err := suite.rbacManager.CreatePermission(ctx, perms[0]); err == nil {
-				suite.testPerms = append(suite.testPerms, createdPerm)
+			// Convert TestPermission to auth.Permission
+			authPerm := &auth.Permission{
+				ID:          perms[0].ID,
+				Name:        perms[0].Name,
+				Description: perms[0].Description,
+				Resource:    perms[0].Resource,
+				Action:      perms[0].Action,
+				Scope:       perms[0].Scope,
+				Metadata:    perms[0].Metadata,
+			}
+			if err := suite.rbacManager.CreatePermission(ctx, authPerm); err == nil {
+				suite.testPerms = append(suite.testPerms, authPerm)
 			}
 		}
 	}
