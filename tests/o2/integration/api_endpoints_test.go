@@ -403,7 +403,7 @@ func (suite *O2APITestSuite) TestResourceInstanceOperations() {
 
 		// Update resource instance
 		retrieved.OperationalStatus = "DISABLED"
-		retrieved.Metadata["replicas"] = 1
+		retrieved.Metadata["replicas"] = "1"
 
 		updatedJSON, err := json.Marshal(retrieved)
 		suite.Require().NoError(err)
@@ -429,7 +429,7 @@ func (suite *O2APITestSuite) TestResourceInstanceOperations() {
 		resp.Body.Close()
 
 		suite.Assert().Equal("DISABLED", updated.OperationalStatus)
-		suite.Assert().Equal(float64(1), updated.Metadata["replicas"])
+		suite.Assert().Equal("1", updated.Metadata["replicas"])
 
 		// Delete resource instance
 		req, err = http.NewRequest("DELETE",

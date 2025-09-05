@@ -17,9 +17,8 @@ limitations under the License.
 package krm
 
 import (
-	
+	"context"
 	"encoding/json"
-"context"
 	"fmt"
 	"strings"
 	"sync"
@@ -28,6 +27,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
+	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 	"go.uber.org/zap/zaptest"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -158,13 +158,7 @@ type FunctionSchema struct {
 	Required   []string                  `json:"required,omitempty"`
 }
 
-// SchemaProperty defines a schema property
-type SchemaProperty struct {
-	Type        string        `json:"type"`
-	Description string        `json:"description,omitempty"`
-	Default     interface{}   `json:"default,omitempty"`
-	Examples    []interface{} `json:"examples,omitempty"`
-}
+// Using SchemaProperty from pkg/nephio/porch
 
 // FunctionExample contains function usage examples
 type FunctionExample struct {

@@ -205,11 +205,13 @@ func TestKubernetesProviderGetSecret(t *testing.T) {
 	}
 
 	// Verify data keys are exposed but not actual data
-	spec := response.Specification
-	if spec == nil {
+	if len(response.Specification) == 0 {
 		t.Error("Expected specification to be present")
 	} else {
-		if dataKeys, ok := spec["dataKeys"].([]string); ok {
+		var spec map[string]interface{}
+		if err := json.Unmarshal(response.Specification, &spec); err != nil {
+			t.Errorf("Failed to unmarshal specification: %v", err)
+		} else if dataKeys, ok := spec["dataKeys"].([]interface{}); ok {
 			if len(dataKeys) != 2 {
 				t.Errorf("Expected 2 data keys, got %d", len(dataKeys))
 			}
@@ -281,14 +283,14 @@ func TestKubernetesProviderUpdateDeployment(t *testing.T) {
 	kProvider := provider.(*KubernetesProvider)
 
 	// Test updateDeployment with replica update
-	updateReq := &UpdateResourceRequest{
-		Specification: json.RawMessage(`{}`),
+	updateReq := &UpdateDeploymentRequest{
+		Parameters: json.RawMessage(`{}`),
 		Labels: map[string]string{
 			"updated": "true",
 		},
 	}
 
-	response, err := kProvider.UpdateDeployment(context.Background(), "default", "test-deployment", updateReq)
+	response, err := kProvider.UpdateDeployment(context.Background(), "default", updateReq)
 	if err != nil {
 		t.Fatalf("Failed to update deployment: %v", err)
 	}

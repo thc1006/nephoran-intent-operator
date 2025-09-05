@@ -14,7 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 
-	porchclient "github.com/thc1006/nephoran-intent-operator/pkg/porch"
+	porch "github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
 const (
@@ -63,7 +63,11 @@ func TestPorchPerformanceLoad(t *testing.T) {
 	config, err := rest.InClusterConfig()
 	require.NoError(t, err, "Failed to load Kubernetes config")
 
-	porchClient := porchclient.NewClient("http://porch-server:8080", false)
+	porchClient, err := porch.NewClient(porch.ClientOptions{
+		Config: config,
+		Address: "http://porch-server:8080",
+	})
+	require.NoError(t, err, "Failed to create porch client")
 
 	metrics := &performanceMetrics{}
 	var wg sync.WaitGroup
@@ -81,13 +85,18 @@ func TestPorchPerformanceLoad(t *testing.T) {
 
 				startTime := time.Now()
 				pkgName := fmt.Sprintf("perf-package-%d", idx)
-				pkgSpec := &porchclient.PackageSpec{
-					Repository: "performance-test-repo",
-					Package:    pkgName,
-					Workspace:  "performance-workspace",
+				pkgRevision := &porch.PackageRevision{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: pkgName,
+					},
+					Spec: porch.PackageRevisionSpec{
+						Repository: "performance-test-repo",
+						Package:    pkgName,
+						Workspace:  "performance-workspace",
+					},
 				}
 
-				createdPkg, err := porchClient.Create(context.Background(), pkgSpec)
+				createdPkg, err := porchClient.CreatePackageRevision(context.Background(), pkgRevision)
 				mu.Lock()
 				defer mu.Unlock()
 

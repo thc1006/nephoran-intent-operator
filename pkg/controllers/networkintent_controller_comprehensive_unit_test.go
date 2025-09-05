@@ -614,7 +614,7 @@ func TestUpdatePhase(t *testing.T) {
 
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(ni).Build()
 			mockDeps := NewMockDependenciesComprehensive()
-			reconciler, _ := NewNetworkIntentReconciler(fakeClient, scheme, mockDeps, createTestConfig())
+			_, _ = NewNetworkIntentReconciler(fakeClient, scheme, mockDeps, createTestConfig())
 
 			// Test phase transitions manually since updatePhase method doesn't exist
 			if tt.shouldUpdate {

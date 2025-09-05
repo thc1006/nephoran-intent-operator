@@ -28,8 +28,8 @@ import (
 
 // Test suite globals following 2025 Go testing patterns
 var (
-	// testEnv provides the envtest environment
-	testEnv *testtools.TestEnvironment
+	// integrationTestEnv provides the envtest environment for integration tests
+	integrationTestEnv *testtools.TestEnvironment
 
 	// k8sClient provides access to the Kubernetes API
 	k8sClient client.Client
@@ -61,7 +61,7 @@ var _ = BeforeSuite(func() {
 
 	// Setup envtest environment with 2025 patterns
 	var err error
-	testEnv, err = setupEnvtestEnvironment()
+	integrationTestEnv, err = setupEnvtestEnvironment()
 	Expect(err).NotTo(HaveOccurred())
 	Expect(testEnv).NotTo(BeNil())
 
@@ -84,7 +84,7 @@ var _ = AfterSuite(func() {
 
 	// Cleanup test environment
 	if testEnv != nil {
-		testEnv.TeardownTestEnvironment()
+		integrationTestEnv.TeardownTestEnvironment()
 	}
 })
 
