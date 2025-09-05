@@ -107,8 +107,6 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 
 			By("Setting up Git client expectations")
 			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
-			expectedPath := fmt.Sprintf("networkintents/%s-%s", longNamespace, longName)
-			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", longNamespace, longName)
 
 			By("Calling cleanupGitOpsPackages")
 			err := reconciler.cleanupGitOpsPackages(ctx, networkIntent, mockGitClient)
@@ -129,8 +127,6 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 
 			By("Setting up Git client expectations")
 			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
-			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
-			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 
 			// MockGitClient doesn't need setup - it tracks calls automatically
 
@@ -162,8 +158,6 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 
 			By("Setting up Git client to detect context cancellation")
 			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
-			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
-			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 
 			// Set up the mock to return an error
 			mockGitClient.SetCommitPushError(errors.New("context cancelled"))
@@ -183,8 +177,6 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 		It("Should handle intermittent Git repository locks", func() {
 			By("Setting up Git client to simulate repository lock contention")
 			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
-			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
-			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 
 			lockError := errors.New("fatal: Unable to create '/path/to/repo/.git/refs/heads/main.lock': File exists")
 			// Set up the mock to return a lock error
@@ -355,8 +347,6 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 
 			By("Setting up successful Git cleanup")
 			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
-			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
-			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 			// MockGitClient doesn't need setup - it tracks calls automatically
 
 			By("Calling handleDeletion")
@@ -391,8 +381,6 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 
 			By("Setting up Git client to simulate already cleaned resources")
 			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
-			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
-			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 
 			// Simulate that the directory doesn't exist (already cleaned)
 			notFoundError := errors.New("directory not found")
@@ -420,8 +408,6 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 
 			By("Setting up successful Git cleanup")
 			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
-			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
-			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 			// MockGitClient doesn't need setup - it tracks calls automatically
 
 			By("Simulating concurrent modification")
@@ -478,8 +464,6 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 
 			By("Setting up Git cleanup expectations")
 			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
-			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
-			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 			// MockGitClient doesn't need setup - it tracks calls automatically
 
 			By("Performing cleanup")

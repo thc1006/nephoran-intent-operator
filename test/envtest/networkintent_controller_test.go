@@ -293,29 +293,7 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 					},
 					Spec: intentv1alpha1.NetworkIntentSpec{
 						ScalingPriority: "medium",
-					TargetClusters: []string{"cluster-test"},
-							Action: func() string {
-								if targetReplicas > initialReplicas {
-									return "scale-up"
-								}
-								return "scale-down"
-							}(),
-							Target: intentv1alpha1.ScalingTarget{
-								Component: component,
-								Replicas:  targetReplicas,
-								Region:    "us-east-1",
-							},
-							Constraints: intentv1alpha1.ScalingConstraints{
-								MaxReplicas: 20,
-								MinReplicas: 1,
-								ResourceLimits: map[string]string{
-									"cpu":    "2",
-									"memory": "4Gi",
-								},
-							},
-						},
-						Priority: "high",
-						Source:   "automation",
+						TargetClusters:  []string{"cluster-test"},
 					},
 				}
 

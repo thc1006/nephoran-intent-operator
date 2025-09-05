@@ -83,9 +83,7 @@ func (m *MockManager) GetCache() cache.Cache                             { retur
 func (m *MockManager) GetFieldIndexer() client.FieldIndexer              { return nil }
 func (m *MockManager) GetEventRecorderFor(string) record.EventRecorder   { return nil }
 func (m *MockManager) GetRESTMapper() meta.RESTMapper                    { return nil }
-func (m *MockManager) GetControllerOptions() v1alpha1.ControllerConfigurationSpec {
-	return v1alpha1.ControllerConfigurationSpec{}
-}
+// GetControllerOptions method removed - not part of standard manager interface
 
 // Helper function to create a mock manager
 func newMockManager() *MockManager {

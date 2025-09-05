@@ -71,8 +71,15 @@ func (suite *BenchmarkSuite) setupTestData() {
 			suite.testTokens = append(suite.testTokens, token)
 		}
 
-		// Create sessions for users
-		if session, err := suite.sessionManager.CreateSession(ctx, userInfo, nil); err == nil {
+		// Create sessions for users  
+		sessionData := &auth.SessionData{
+			UserID:      userInfo.Subject,
+			Username:    userInfo.Username,
+			Email:       userInfo.Email,
+			DisplayName: userInfo.Name,
+			Provider:    userInfo.Provider,
+		}
+		if session, err := suite.sessionManager.CreateSession(ctx, sessionData); err == nil {
 			suite.testSessions = append(suite.testSessions, session)
 		}
 	}
@@ -237,7 +244,14 @@ func BenchmarkSessionManager_CreateSessionPerf(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_, err := suite.sessionManager.CreateSession(ctx, user, metadata)
+		sessionData := &auth.SessionData{
+			UserID:      user.Subject,
+			Username:    user.Username,
+			Email:       user.Email,
+			DisplayName: user.Name,
+			Provider:    user.Provider,
+		}
+		_, err := suite.sessionManager.CreateSession(ctx, sessionData)
 		if err != nil {
 			b.Fatal(err)
 		}

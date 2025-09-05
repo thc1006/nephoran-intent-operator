@@ -855,11 +855,23 @@ func setupBenchmarkNephioSystem() *EnhancedNephioSystem {
 
 // Enhanced Nephio System types and interfaces
 
+// Interface placeholders for benchmark
+type (
+	TestPackageGenerator   interface{}
+	KRMFunctionRuntime     interface{}
+	TestPorchClient        interface{}
+	TestGitClient          interface{}
+	ConfigSyncManager      interface{}
+	PolicyEngine           interface{}
+	ResourceManager        interface{}
+	NephioMetrics          interface{}
+)
+
 type EnhancedNephioSystem struct {
-	packageGenerator PackageGenerator
+	packageGenerator TestPackageGenerator
 	krmRuntime       KRMFunctionRuntime
-	porchClient      PorchClient
-	gitClient        GitClient
+	porchClient      TestPorchClient
+	gitClient        TestGitClient
 	configSync       ConfigSyncManager
 	policyEngine     PolicyEngine
 	resourceManager  ResourceManager
@@ -1128,16 +1140,4 @@ func (n *EnhancedNephioSystem) ManageResources(ctx context.Context, spec Resourc
 		QuotaViolation:     false,
 	}, nil
 }
-
-// Interface placeholders
-type (
-	PackageGenerator   interface{}
-	KRMFunctionRuntime interface{}
-	PorchClient        interface{}
-	GitClient          interface{}
-	ConfigSyncManager  interface{}
-	PolicyEngine       interface{}
-	ResourceManager    interface{}
-	NephioMetrics      interface{}
-)
 

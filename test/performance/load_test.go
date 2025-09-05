@@ -15,7 +15,6 @@ import (
 	"k8s.io/client-go/rest"
 
 	porchclient "github.com/thc1006/nephoran-intent-operator/pkg/porch"
-	porchv1alpha1 "github.com/thc1006/nephoran-intent-operator/pkg/porch/types"
 )
 
 const (
@@ -82,7 +81,7 @@ func TestPorchPerformanceLoad(t *testing.T) {
 
 				startTime := time.Now()
 				pkgName := fmt.Sprintf("perf-package-%d", idx)
-				pkgSpec := &porchv1alpha1.PackageSpec{
+				pkgSpec := &porchclient.PackageSpec{
 					Repository: "performance-test-repo",
 					Package:    pkgName,
 					Workspace:  "performance-workspace",
