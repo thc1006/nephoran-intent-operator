@@ -116,15 +116,28 @@ func (suite *BenchmarkSuite) setupTestData() {
 			permIDs = append(permIDs, suite.testPerms[j].ID)
 		}
 
-		role := rf.CreateRoleWithPermissions(permIDs)
-		role.Name = fmt.Sprintf("bench-role-%d", i)
+		testRole := rf.CreateRoleWithPermissions(permIDs)
+		testRole.Name = fmt.Sprintf("bench-role-%d", i)
+		
+		// Convert TestRole to auth.Role
+		role := &auth.Role{
+			ID:          testRole.ID,
+			Name:        testRole.Name,
+			Description: testRole.Description,
+			Permissions: testRole.Permissions,
+			ParentRoles: testRole.ParentRoles,
+			ChildRoles:  testRole.ChildRoles,
+			Metadata:    testRole.Metadata,
+			CreatedAt:   testRole.CreatedAt,
+			UpdatedAt:   testRole.UpdatedAt,
+		}
 
-		if createdRole, err := suite.rbacManager.CreateRole(ctx, role); err == nil {
-			suite.testRoles = append(suite.testRoles, createdRole)
+		if err := suite.rbacManager.CreateRole(ctx, role); err == nil {
+			suite.testRoles = append(suite.testRoles, role)
 
 			// Assign role to some users
 			userIdx := i % len(suite.testUsers)
-			suite.rbacManager.AssignRoleToUser(ctx, suite.testUsers[userIdx].Subject, createdRole.ID)
+			suite.rbacManager.GrantRoleToUser(ctx, suite.testUsers[userIdx].Subject, role.ID)
 		}
 	}
 }
@@ -168,12 +181,13 @@ func BenchmarkJWTManager_GenerateTokenWithClaims(b *testing.B) {
 func BenchmarkJWTManager_ValidateTokenPerf(b *testing.B) {
 	suite := NewBenchmarkSuite()
 	token := suite.testTokens[0]
+	ctx := context.Background()
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_, err := suite.jwtManager.ValidateToken(token)
+		_, err := suite.jwtManager.ValidateToken(ctx, token)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -183,12 +197,13 @@ func BenchmarkJWTManager_ValidateTokenPerf(b *testing.B) {
 func BenchmarkJWTManager_GenerateTokenPairPerf(b *testing.B) {
 	suite := NewBenchmarkSuite()
 	user := suite.testUsers[0]
+	ctx := context.Background()
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_, _, err := suite.jwtManager.GenerateTokenPair(user, nil)
+		_, _, err := suite.jwtManager.GenerateTokenPair(ctx, user, "")
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -198,9 +213,10 @@ func BenchmarkJWTManager_GenerateTokenPairPerf(b *testing.B) {
 func BenchmarkJWTManager_RefreshTokenPerf(b *testing.B) {
 	suite := NewBenchmarkSuite()
 	user := suite.testUsers[0]
+	ctx := context.Background()
 
 	// Generate initial token pair
-	_, refreshToken, err := suite.jwtManager.GenerateTokenPair(user, nil)
+	_, refreshToken, err := suite.jwtManager.GenerateTokenPair(ctx, user, "")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -248,7 +264,7 @@ func BenchmarkSessionManager_CreateSessionPerf(b *testing.B) {
 	user := suite.testUsers[0]
 	ctx := context.Background()
 
-	metadata := json.RawMessage(`{}`)
+	_ = json.RawMessage(`{}`) // metadata
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -293,7 +309,7 @@ func BenchmarkSessionManager_RefreshSessionPerf(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_, err := suite.sessionManager.RefreshSession(ctx, session.ID)
+		err := suite.sessionManager.RefreshSession(ctx, session.ID)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -326,10 +342,7 @@ func BenchmarkRBACManager_CheckPermissionPerf(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_, err := suite.rbacManager.CheckPermission(ctx, userID, "api", "read")
-		if err != nil {
-			b.Fatal(err)
-		}
+		_ = suite.rbacManager.CheckPermission(ctx, userID, "api:read")
 	}
 }
 
@@ -342,14 +355,11 @@ func BenchmarkRBACManager_GetUserRolesPerf(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_, err := suite.rbacManager.GetUserRoles(ctx, userID)
-		if err != nil {
-			b.Fatal(err)
-		}
+		_ = suite.rbacManager.GetUserRoles(ctx, userID)
 	}
 }
 
-func BenchmarkRBACManager_AssignRoleToUser(b *testing.B) {
+func BenchmarkRBACManager_GrantRoleToUser(b *testing.B) {
 	suite := NewBenchmarkSuite()
 	ctx := context.Background()
 
@@ -364,11 +374,22 @@ func BenchmarkRBACManager_AssignRoleToUser(b *testing.B) {
 		user := uf.CreateBasicUser()
 		users[i] = user.Subject
 
-		role := rf.CreateBasicRole()
-		role.Name = fmt.Sprintf("bench-assign-role-%d", i)
+		role := rf.CreateRole(fmt.Sprintf("bench-assign-role-%d", i), "Benchmark role", []string{})
 
-		if createdRole, err := suite.rbacManager.CreateRole(ctx, role); err == nil {
-			roles[i] = createdRole.ID
+		// Convert TestRole to auth.Role
+		authRole := &auth.Role{
+			ID:          role.ID,
+			Name:        role.Name,
+			Description: role.Description,
+			Permissions: role.Permissions,
+			ParentRoles: role.ParentRoles,
+			ChildRoles:  role.ChildRoles,
+			Metadata:    role.Metadata,
+			CreatedAt:   role.CreatedAt,
+			UpdatedAt:   role.UpdatedAt,
+		}
+		if err := suite.rbacManager.CreateRole(ctx, authRole); err == nil {
+			roles[i] = authRole.ID
 		}
 	}
 
@@ -376,7 +397,7 @@ func BenchmarkRBACManager_AssignRoleToUser(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		err := suite.rbacManager.AssignRoleToUser(ctx, users[i], roles[i])
+		err := suite.rbacManager.GrantRoleToUser(ctx, users[i], roles[i])
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -388,7 +409,7 @@ func BenchmarkRBACManager_CreateRole(b *testing.B) {
 	ctx := context.Background()
 	rf := authtestutil.NewRoleFactory()
 
-	roles := make([]*Role, b.N)
+	roles := make([]*auth.Role, b.N)
 	for i := 0; i < b.N; i++ {
 		role := rf.CreateBasicRole()
 		role.Name = fmt.Sprintf("bench-create-role-%d", i)
@@ -541,7 +562,7 @@ func BenchmarkJWTManager_ConcurrentValidation(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, err := suite.jwtManager.ValidateToken(token)
+			_, err := suite.jwtManager.ValidateToken(ctx, token)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -676,15 +697,27 @@ func BenchmarkRBACManager_ScaleWithUsers(b *testing.B) {
 			perm := pf.CreateBasicPermission()
 			createdPerm, _ := rbacManager.CreatePermission(ctx, perm)
 
-			role := rf.CreateRoleWithPermissions([]string{createdPerm.ID})
-			createdRole, _ := rbacManager.CreateRole(ctx, role)
+			testRole := rf.CreateRoleWithPermissions([]string{createdPerm.ID})
+			// Convert TestRole to auth.Role
+			role := &Role{
+				ID:          testRole.ID,
+				Name:        testRole.Name,
+				Description: testRole.Description,
+				Permissions: testRole.Permissions,
+				ParentRoles: testRole.ParentRoles,
+				ChildRoles:  testRole.ChildRoles,
+				Metadata:    testRole.Metadata,
+				CreatedAt:   testRole.CreatedAt,
+				UpdatedAt:   testRole.UpdatedAt,
+			}
+			_ = rbacManager.CreateRole(ctx, role)
 
 			// Create users and assign role
 			userIDs := make([]string, userCount)
 			for i := 0; i < userCount; i++ {
 				user := uf.CreateBasicUser()
 				userIDs[i] = user.Subject
-				rbacManager.AssignRoleToUser(ctx, user.Subject, createdRole.ID)
+				rbacManager.GrantRoleToUser(ctx, user.Subject, role.ID)
 			}
 
 			b.ResetTimer()
@@ -796,7 +829,7 @@ func BenchmarkAuthSystem_LatencyMeasurement(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		start := time.Now()
 
-		_, err := suite.jwtManager.ValidateToken(token)
+		_, err := suite.jwtManager.ValidateToken(ctx, token)
 		if err != nil {
 			b.Fatal(err)
 		}
