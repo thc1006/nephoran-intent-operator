@@ -66,6 +66,14 @@
           "items": {
             "type": "string"
           }
+        },
+        "kpt_package_name": {
+          "type": "string",
+          "description": "Target kpt package for Nephio/Porch integration"
+        },
+        "porch_repository": {
+          "type": "string",
+          "description": "Porch repository containing the target package"
         }
       }
     },
@@ -83,6 +91,24 @@
       "type": "string",
       "enum": ["pending", "processing", "completed", "failed"],
       "description": "Current status of intent execution"
+    },
+    "nephio_context": {
+      "type": "object",
+      "description": "Nephio/Porch integration context",
+      "properties": {
+        "package_revision": {
+          "type": "string",
+          "description": "Porch package revision identifier"
+        },
+        "workload_cluster": {
+          "type": "string",
+          "description": "Target workload cluster for deployment"
+        },
+        "blueprint_name": {
+          "type": "string",
+          "description": "Nephio blueprint used for package generation"
+        }
+      }
     }
   },
   "required": [

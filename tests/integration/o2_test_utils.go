@@ -7,14 +7,14 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
 
 // Package-level variables for O2 tests
+// Note: k8sClient is defined in integration_test_fixed.go to avoid redeclaration
 var (
-	k8sClient client.Client
-	testEnv   *envtest.Environment
+	// testEnv is defined here for O2-specific envtest usage
+	o2TestEnv *envtest.Environment
 )
 
 // CreateO2TestNamespace creates a test namespace for O2 integration tests

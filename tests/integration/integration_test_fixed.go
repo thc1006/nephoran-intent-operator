@@ -16,6 +16,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -150,19 +152,6 @@ func CreateTestNamespaceWithContext(testCtx context.Context) *corev1.Namespace {
 	return namespace
 }
 
-// CreateTestNamespace creates a test namespace
-func CreateTestNamespace() *corev1.Namespace {
-	return &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:         fmt.Sprintf("test-ns-%d", time.Now().UnixNano()),
-			GenerateName: "test-",
-			Labels: map[string]string{
-				"test-namespace": "true",
-				"created-by":     "integration-tests",
-			},
-		},
-	}
-}
 
 // CleanupTestNamespaceWithContext cleans up a namespace with proper context handling
 func CleanupTestNamespaceWithContext(testCtx context.Context, namespace *corev1.Namespace) {
