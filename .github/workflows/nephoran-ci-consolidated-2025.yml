@@ -34,7 +34,7 @@ concurrency:
 
 env:
   # Go optimization for large projects
-  GO_VERSION: "1.22"
+  GO_VERSION: "1.22.7"
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   CGO_ENABLED: 0
