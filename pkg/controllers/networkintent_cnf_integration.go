@@ -34,7 +34,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"\n\t"strings"
+	"strconv"
+	"strings"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"

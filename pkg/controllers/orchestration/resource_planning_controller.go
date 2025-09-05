@@ -36,6 +36,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -862,13 +863,16 @@ func (r *ResourcePlanningController) estimatePerformance(ctx context.Context, re
 	expectedAvailability := math.Min(99.99, 95.0+float64(len(resources))*0.5) // More replicas = higher availability
 
 	// Create performance estimate.
+	expectedThroughputStr := fmt.Sprintf("%.2f", expectedThroughput)
+	expectedLatencyStr := fmt.Sprintf("%.2f", expectedLatency)
+	expectedAvailabilityStr := fmt.Sprintf("%.2f", expectedAvailability)
 
 	performanceEstimate := &nephoranv1.PerformanceEstimate{
-		ExpectedThroughput: &expectedThroughput,
+		ExpectedThroughput: &expectedThroughputStr,
 
-		ExpectedLatency: &expectedLatency,
+		ExpectedLatency: &expectedLatencyStr,
 
-		ExpectedAvailability: &expectedAvailability,
+		ExpectedAvailability: &expectedAvailabilityStr,
 
 		ResourceUtilization: map[string]float64{
 			"cpu_utilization": 0.7, // Assume 70% utilization
@@ -904,7 +908,7 @@ func (r *ResourcePlanningController) estimatePerformance(ctx context.Context, re
 
 				Impact: "Improves availability and fault tolerance",
 
-				Confidence: func() *float64 { c := 0.8; return &c }(),
+				Confidence: func() *string { c := "0.8"; return &c }(),
 			}
 
 			performanceEstimate.ScalingRecommendations = append(performanceEstimate.ScalingRecommendations, recommendation)
@@ -1051,8 +1055,10 @@ func (r *ResourcePlanningController) calculateQualityScore(resources []nephoranv
 	// Factor in cost efficiency (20% weight).
 
 	if costEstimate != nil && costEstimate.Confidence != nil {
-
-		costScore := *costEstimate.Confidence
+		costScore, err := strconv.ParseFloat(*costEstimate.Confidence, 64)
+		if err != nil {
+			costScore = 0.5 // Default confidence score
+		}
 
 		score *= (0.8 + 0.2*costScore)
 
@@ -1064,8 +1070,11 @@ func (r *ResourcePlanningController) calculateQualityScore(resources []nephoranv
 
 		performanceScore := 0.8 // Base score
 
-		if performanceEstimate.ExpectedAvailability != nil && *performanceEstimate.ExpectedAvailability >= 99.0 {
-			performanceScore = 1.0
+		if performanceEstimate.ExpectedAvailability != nil {
+			availabilityValue, err := strconv.ParseFloat(*performanceEstimate.ExpectedAvailability, 64)
+			if err == nil && availabilityValue >= 99.0 {
+				performanceScore = 1.0
+			}
 		}
 
 		score *= (0.7 + 0.3*performanceScore)
@@ -1203,8 +1212,8 @@ func (r *ResourcePlanningController) handlePlanningSuccess(ctx context.Context, 
 	resourcePlan.Status.ValidationResults = result.ValidationResults
 
 	// Set quality score.
-
-	resourcePlan.Status.QualityScore = &result.QualityScore
+	qualityScoreStr := fmt.Sprintf("%.2f", result.QualityScore)
+	resourcePlan.Status.QualityScore = &qualityScoreStr
 
 	// Calculate planning duration.
 
@@ -1820,7 +1829,7 @@ func (ces *CostEstimationService) EstimateCosts(ctx context.Context, resources [
 
 	// Create cost estimate.
 
-	confidence := 0.8 // 80% confidence in the estimate
+	confidence := "0.8" // 80% confidence in the estimate
 
 	costEstimate := &nephoranv1.CostEstimate{
 		TotalCost: fmt.Sprintf("%.2f", totalCost),

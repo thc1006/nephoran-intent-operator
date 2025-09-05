@@ -1001,9 +1001,9 @@ func (m *MockA1Storage) GetConsumers(ctx context.Context) ([]Consumer, error) {
 	return args.Get(0).([]Consumer), args.Error(1)
 }
 
-func (m *MockA1Storage) GetConsumer(ctx context.Context, consumerID string) (*Consumer, error) {
+func (m *MockA1Storage) GetConsumer(ctx context.Context, consumerID string) (*ConsumerInfo, error) {
 	args := m.Called(ctx, consumerID)
-	return args.Get(0).(*Consumer), args.Error(1)
+	return args.Get(0).(*ConsumerInfo), args.Error(1)
 }
 
 func (m *MockA1Storage) GetEITypes(ctx context.Context) ([]string, error) {
@@ -1127,6 +1127,11 @@ func (m *MockA1Service) CreateEIJob(ctx context.Context, eiTypeID string, job *E
 	return args.Error(0)
 }
 
+func (m *MockA1Service) GetEIJob(ctx context.Context, eiJobID string) (*EnrichmentInfoJob, error) {
+	args := m.Called(ctx, eiJobID)
+	return args.Get(0).(*EnrichmentInfoJob), args.Error(1)
+}
+
 // MockA1Storage implementations
 func (m *MockA1Storage) StorePolicyType(ctx context.Context, policyType *PolicyType) error {
 	args := m.Called(ctx, policyType)
@@ -1216,6 +1221,11 @@ func (m *MockA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 
 func (m *MockA1Validator) ValidateConsumerInfo(info *ConsumerInfo) *ValidationResult {
 	args := m.Called(info)
+	return args.Get(0).(*ValidationResult)
+}
+
+func (m *MockA1Validator) ValidateEnrichmentInfoJob(job *EnrichmentInfoJob) *ValidationResult {
+	args := m.Called(job)
 	return args.Get(0).(*ValidationResult)
 }
 
