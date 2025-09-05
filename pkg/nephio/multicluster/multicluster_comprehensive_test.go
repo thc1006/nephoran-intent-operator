@@ -124,18 +124,18 @@ func createTestCustomizer(t *testing.T) *Customizer {
 	return NewCustomizer(client, logger)
 }
 
-func createTestPackageRevision(name, revision string) *porchv1alpha1.PackageRevision {
-	return &porchv1alpha1.PackageRevision{
+func createTestPackageRevision(name, revision string) *PackageRevision {
+	return &PackageRevision{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name + "-" + revision,
 			Namespace: "default",
 		},
-		Spec: porchv1alpha1.PackageRevisionSpec{
+		Spec: PackageRevisionSpec{
 			PackageName: name,
 			Revision:    revision,
-			Lifecycle:   porchv1alpha1.PackageRevisionLifecycleDraft,
+			Lifecycle:   PackageRevisionLifecycleDraft,
 		},
-		Status: porchv1alpha1.PackageRevisionStatus{
+		Status: PackageRevisionStatus{
 			Conditions: []metav1.Condition{},
 		},
 	}
@@ -228,7 +228,7 @@ func TestClusterManager_SelectTargetClusters(t *testing.T) {
 	tests := []struct {
 		name             string
 		candidates       []types.NamespacedName
-		packageRevision  *porchv1alpha1.PackageRevision
+		packageRevision  *PackageRevision
 		setupFunc        func(*ClusterManager)
 		expectedClusters int
 		expectedError    bool

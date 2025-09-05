@@ -76,9 +76,9 @@ func NewMockFailingSyncEngine(baseEngine *SyncEngine, failureRate float64, laten
 
 func (m *MockFailingSyncEngine) SyncPackageToCluster(
 	ctx context.Context,
-	packageRevision *porchv1alpha1.PackageRevision,
+	packageRevision *PackageRevision,
 	targetCluster types.NamespacedName,
-) (*nephiov1alpha1.ClusterDeploymentStatus, error) {
+) (*ClusterDeploymentStatus, error) {
 	m.mutex.Lock()
 	m.callCount++
 	callCount := m.callCount
@@ -132,7 +132,7 @@ func (m *MockUnstableClusterManager) SetClusterUnstable(clusterName types.Namesp
 func (m *MockUnstableClusterManager) SelectTargetClusters(
 	ctx context.Context,
 	candidates []types.NamespacedName,
-	packageRevision *porchv1alpha1.PackageRevision,
+	packageRevision *PackageRevision,
 ) ([]types.NamespacedName, error) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()

@@ -25,12 +25,12 @@ import (
 type SecurityTestSuite struct {
 	t              *testing.T
 	tc             *authtestutil.TestContext
-	jwtManager     *auth.JWTManager
-	sessionManager *auth.SessionManager
-	rbacManager    *auth.RBACManager
+	jwtManager     *authtestutil.JWTManagerMock
+	sessionManager *authtestutil.SessionManagerMock
+	rbacManager    *authtestutil.RBACManagerMock
 	server         *httptest.Server
 	handlers       *auth.AuthHandlers
-	testUser       *providers.UserInfo
+	testUser       *authtestutil.TestUser
 	validToken     string
 }
 
@@ -62,15 +62,17 @@ func (suite *SecurityTestSuite) setupTestData() {
 
 func (suite *SecurityTestSuite) setupHTTPServer() {
 	// Create handlers with security features enabled
-	suite.handlers = NewAuthHandlers(&AuthHandlersConfig{
-		JWTManager:      suite.jwtManager,
-		SessionManager:  suite.sessionManager,
-		RBACManager:     suite.rbacManager,
-		EnableCSRF:      true,
-		EnableRateLimit: true,
-		RateLimitRPS:    10,
-		Logger:          suite.tc.Logger,
-	})
+	suite.handlers = auth.NewAuthHandlers(
+		suite.sessionManager,
+		suite.jwtManager,
+		suite.rbacManager,
+		map[string]interface{}{
+			"EnableCSRF":     true,
+			"EnableRateLimit": true,
+			"RateLimitRPS":    10,
+			"Logger":          suite.tc.Logger,
+		},
+	)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/auth/login", suite.handlers.LoginHandler)

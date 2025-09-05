@@ -888,7 +888,7 @@ type PackageSpec struct {
 	Configuration map[string]interface{}
 }
 
-type BenchmarkBenchmarkResourceRequirements struct {
+type BenchmarkResourceRequirements struct {
 	CPU    string
 	Memory string
 }
