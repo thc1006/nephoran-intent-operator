@@ -39,3 +39,4 @@
 | 2025-09-03T23:30:03.6220231+08:00 | feat/e2e | ci/status-reporting-fix | GitHub UI status reporting resolved: fixed Expected waiting for status issue, PR #169 now mergeable with clear CI status communication |
 | 2025-09-04T00:15:00+08:00 | feat/e2e | nephoran-troubleshooter | CRITICAL Go SYNTAX ERRORS RESOLVED: Fixed 8 compilation-blocking issues: syntax error in o2_resource_lifecycle_test.go, 6 missing JSON imports, undefined mock types in controller tests |
 | 2025-09-04T11:25:14+08:00 | feat/e2e | ci/testing-2025 | Updated CI with Go 1.24 testing best practices: race detection, atomic coverage, parallel execution, timeout management |
+2025-09-05T08:45:31+08:00 | feat/llm-provider | api/v1 | Fixed all Kubernetes CRD validation issues
