@@ -1020,5 +1020,7 @@ func (pmc *PerformanceMetricsCollector) getMetrics() map[string]interface{} {
 	pmc.mu.RLock()
 	defer pmc.mu.RUnlock()
 
-	return json.RawMessage(`{}`)
+	var result map[string]interface{}
+	json.Unmarshal(json.RawMessage(`{}`), &result)
+	return result
 }

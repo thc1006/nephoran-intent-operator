@@ -258,8 +258,12 @@ func (suite *RAGComponentsTestSuite) testChunkTelecomContent() {
 		The gNodeB (gNB) is the base station in 5G networks, providing radio access functionality. 
 		Network slicing allows multiple virtual networks to run on a single physical infrastructure. 
 		The Core Network (5GC) includes functions like AMF, SMF, UPF, and PCF for different network operations.`,
-		Type: "technical",
-		Metadata: map[string]interface{}{},
+		Type:     "technical",
+		Metadata: func() map[string]interface{} {
+			var result map[string]interface{}
+			json.Unmarshal(json.RawMessage(`{}`), &result)
+			return result
+		}(),
 	}
 
 	chunks, err := chunker.ChunkDocument(suite.ctx, doc)
@@ -600,8 +604,8 @@ func (suite *RAGComponentsTestSuite) testSearchWithMetadata() {
 	service.SetWeaviateClient(mockWeaviate)
 
 	results, err := service.RetrieveDocuments(suite.ctx, &rag.RetrievalRequest{
-		Query: "5G core network",
-		Filters: json.RawMessage(`{}`),
+		Query:      "5G core network",
+		Filters:    json.RawMessage(`{}`),
 		MaxResults: 5,
 	})
 
@@ -648,4 +652,3 @@ func (m *MockWeaviateClient) DeleteDocument(ctx context.Context, docID string) e
 	args := m.Called(ctx, docID)
 	return args.Error(0)
 }
-

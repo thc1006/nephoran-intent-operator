@@ -58,9 +58,9 @@ func (suite *MultiCloudTestSuite) createTestResourcePool(provider, region string
 			"projectId":              "test-project",
 		},
 		Capacity: &models.ResourceCapacity{
-			CPU:     &models.MetricData{Value: 100, Unit: "cores"},
-			Memory:  &models.MetricData{Value: 256, Unit: "bytes"},
-			Storage: &models.MetricData{Value: 1000, Unit: "bytes"},
+			CPU:     &models.ResourceMetric{Total: "100", Available: "100", Used: "0", Unit: "cores", Utilization: 0.0},
+			Memory:  &models.ResourceMetric{Total: "256", Available: "256", Used: "0", Unit: "GB", Utilization: 0.0},
+			Storage: &models.ResourceMetric{Total: "1000", Available: "1000", Used: "0", Unit: "GB", Utilization: 0.0},
 		},
 	}
 }

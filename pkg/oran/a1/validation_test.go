@@ -553,7 +553,11 @@ func TestValidatePolicyInstance_InvalidFields(t *testing.T) {
 			&PolicyInstance{
 				PolicyID:     "",
 				PolicyTypeID: 1,
-				PolicyData:   json.RawMessage(`{"test":"data"}`),
+				PolicyData:   func() map[string]interface{} {
+					var result map[string]interface{}
+					json.Unmarshal(json.RawMessage(`{"test":"data"}`), &result)
+					return result
+				}(),
 			},
 			"policy_id is required",
 		},
@@ -562,7 +566,11 @@ func TestValidatePolicyInstance_InvalidFields(t *testing.T) {
 			&PolicyInstance{
 				PolicyID:     "   ",
 				PolicyTypeID: 1,
-				PolicyData:   json.RawMessage(`{"test":"data"}`),
+				PolicyData:   func() map[string]interface{} {
+					var result map[string]interface{}
+					json.Unmarshal(json.RawMessage(`{"test":"data"}`), &result)
+					return result
+				}(),
 			},
 			"policy_id is required",
 		},
@@ -571,7 +579,11 @@ func TestValidatePolicyInstance_InvalidFields(t *testing.T) {
 			&PolicyInstance{
 				PolicyID:     "test",
 				PolicyTypeID: 999,
-				PolicyData:   json.RawMessage(`{"test":"data"}`),
+				PolicyData:   func() map[string]interface{} {
+					var result map[string]interface{}
+					json.Unmarshal(json.RawMessage(`{"test":"data"}`), &result)
+					return result
+				}(),
 			},
 			"policy_type_id mismatch",
 		},

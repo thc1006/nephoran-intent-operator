@@ -507,6 +507,12 @@ func TestProcessNetworkIntent(t *testing.T) {
 	logger := zaptest.NewLogger(t)
 	config := DefaultBlueprintConfig()
 
+	// Declare shared mocks for use in setupMocks functions
+	var mockCatalog *MockCatalog
+	var mockGenerator *MockGenerator
+	var mockCustomizer *MockCustomizer
+	var mockValidator *MockValidator
+
 	testCases := []struct {
 		name           string
 		intent         *v1.NetworkIntent
@@ -577,10 +583,10 @@ func TestProcessNetworkIntent(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Create fresh mocks for each test
-			mockCatalog := NewMockCatalog()
-			mockGenerator := NewMockGenerator()
-			mockCustomizer := NewMockCustomizer()
-			mockValidator := NewMockValidator()
+			mockCatalog = NewMockCatalog()
+			mockGenerator = NewMockGenerator()
+			mockCustomizer = NewMockCustomizer()
+			mockValidator = NewMockValidator()
 			
 			manager := &Manager{
 				client:       mockMgr.GetClient(),
