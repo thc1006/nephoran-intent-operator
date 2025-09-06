@@ -201,20 +201,20 @@ func TestRBACMiddleware(t *testing.T) {
 
 	// Create roles
 	createdReadPermTyped := createdReadPerm.(*authtestutil.TestPermission)
-	readerRole := rf.CreateRoleWithPermissions([]string{createdReadPermTyped.ID})
-	readerRole.Name = "reader"
+	readerRole := rf.CreateRoleWithPermissions("reader", []string{createdReadPermTyped.ID})
+	// Name already set in CreateRoleWithPermissions
 	createdReaderRole, err := rbacManager.CreateRole(ctx, readerRole)
 	require.NoError(t, err)
 
 	createdWritePermTyped := createdWritePerm.(*authtestutil.TestPermission)
-	writerRole := rf.CreateRoleWithPermissions([]string{createdReadPermTyped.ID, createdWritePermTyped.ID})
-	writerRole.Name = "writer"
+	writerRole := rf.CreateRoleWithPermissions("writer", []string{createdReadPermTyped.ID, createdWritePermTyped.ID})
+	// Name already set in CreateRoleWithPermissions
 	createdWriterRole, err := rbacManager.CreateRole(ctx, writerRole)
 	require.NoError(t, err)
 
 	createdAdminPermTyped := createdAdminPerm.(*authtestutil.TestPermission)
-	adminRole := rf.CreateRoleWithPermissions([]string{createdAdminPermTyped.ID})
-	adminRole.Name = "admin"
+	adminRole := rf.CreateRoleWithPermissions("admin", []string{createdAdminPermTyped.ID})
+	// Name already set in CreateRoleWithPermissions
 	createdAdminRole, err := rbacManager.CreateRole(ctx, adminRole)
 	require.NoError(t, err)
 
@@ -691,7 +691,7 @@ func TestChainMiddlewares(t *testing.T) {
 	require.NoError(t, err)
 
 	createdPermTyped := createdPerm.(*authtestutil.TestPermission)
-	role := rf.CreateRoleWithPermissions([]string{createdPermTyped.ID})
+	role := rf.CreateRoleWithPermissions("test-role", []string{createdPermTyped.ID})
 	createdRole, err := rbacManager.CreateRole(ctx, role)
 	require.NoError(t, err)
 

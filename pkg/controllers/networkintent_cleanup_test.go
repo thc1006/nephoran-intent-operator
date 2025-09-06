@@ -2,4 +2,4 @@ package controllers
 
 import "testing"
 
-func TestStub(t *testing.T) { t.Skip("Test disabled") }
+func TestStubCleanup(t *testing.T) { t.Skip("Test disabled") }

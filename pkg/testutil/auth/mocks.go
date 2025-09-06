@@ -1426,6 +1426,15 @@ func (rf *RoleFactory) CreateBasicRole() map[string]interface{} {
 	}
 }
 
+// CreateRoleWithPermissions creates a role with specific permissions
+func (rf *RoleFactory) CreateRoleWithPermissions(name string, permissions []string) map[string]interface{} {
+	return map[string]interface{}{
+		"name":        name,
+		"description": fmt.Sprintf("Role %s with specific permissions", name),
+		"permissions": permissions,
+	}
+}
+
 // PermissionFactory provides factory methods for creating test permissions
 type PermissionFactory struct{}
 
@@ -1441,6 +1450,17 @@ func (pf *PermissionFactory) CreateBasicPermission() map[string]interface{} {
 		"description": "Test permission for testing purposes",
 		"resource":    "test-resource",
 		"action":      "read",
+	}
+}
+
+// CreatePermission creates a permission with specific resource and action
+func (pf *PermissionFactory) CreatePermission(resource, action, scope string) map[string]interface{} {
+	return map[string]interface{}{
+		"name":        fmt.Sprintf("%s-%s-%s", resource, action, scope),
+		"description": fmt.Sprintf("Permission to %s on %s in %s", action, resource, scope),
+		"resource":    resource,
+		"action":      action,
+		"scope":       scope,
 	}
 }
 
