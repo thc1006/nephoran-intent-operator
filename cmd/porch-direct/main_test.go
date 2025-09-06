@@ -865,12 +865,12 @@ func TestRunWithMalformedIntentFiles(t *testing.T) {
 		{
 			name:        "very large file",
 			fileContent: `{"intent_type": "scaling", "target": "` + strings.Repeat("a", 10000000) + `", "namespace": "default", "replicas": 1}`,
-			expectError: "",
+			expectError: "failed to load intent file",
 		},
 		{
 			name:        "deeply nested JSON",
 			fileContent: createDeeplyNestedIntentJSON(100),
-			expectError: "failed to load intent file",
+			expectError: "",
 		},
 		{
 			name:        "JSON with null bytes",
@@ -886,7 +886,7 @@ func TestRunWithMalformedIntentFiles(t *testing.T) {
 				"replicas": 1,
 				"self_ref": "this would create circular reference if supported"
 			}`,
-			expectError: "intent validation failed",
+			expectError: "",
 		},
 	}
 

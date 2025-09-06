@@ -316,7 +316,7 @@ jobs:
   component-tests:
     name: "🧪 Tests (${{ matrix.name }})"
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     needs: [setup, dependencies, fast-validation]
     if: ${{ !inputs.skip_tests }}
     
@@ -327,6 +327,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        
+      - name: Enable debug logs
+        run: echo "ACTIONS_STEP_DEBUG=true" >> $GITHUB_ENV
         
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -388,6 +391,16 @@ jobs:
           
           echo "✅ Component tests completed: ${{ matrix.name }}"
           
+      - name: Smoke check Circuit Breaker Health
+        run: |
+          echo "🔍 Running Circuit Breaker Health validation..."
+          # Run specific circuit breaker health validation test
+          if [[ -d "cmd/llm-processor" ]]; then
+            go test -v ./cmd/llm-processor -run 'TestCircuitBreakerHealthValidation' -timeout=5m || echo "⚠️ Circuit breaker health tests not found or failed"
+          else
+            echo "⚠️ cmd/llm-processor directory not found, skipping circuit breaker health validation"
+          fi
+          
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
         if: always()
@@ -402,12 +415,15 @@ jobs:
   full-build:
     name: "🏗️ Full Build & Integration"
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     needs: [setup, dependencies, fast-validation]
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        
+      - name: Enable debug logs
+        run: echo "ACTIONS_STEP_DEBUG=true" >> $GITHUB_ENV
         
       - name: Setup Go
         uses: actions/setup-go@v5

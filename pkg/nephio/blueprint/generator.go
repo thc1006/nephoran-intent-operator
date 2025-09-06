@@ -103,6 +103,7 @@ type GenerationContext struct {
 
 // ClientAdapter adapts the concrete Client to the LLMClient interface
 type ClientAdapter struct {
+	mu     sync.RWMutex
 	client *llm.Client
 }
 
@@ -111,7 +112,12 @@ func (ca *ClientAdapter) ProcessIntent(ctx context.Context, request *llm.Process
 		return nil, fmt.Errorf("request cannot be nil")
 	}
 	
-	if ca.client == nil {
+	// Protect client access with read lock
+	ca.mu.RLock()
+	client := ca.client
+	ca.mu.RUnlock()
+	
+	if client == nil {
 		return nil, fmt.Errorf("LLM client is nil - service may not be available")
 	}
 	
@@ -119,7 +125,7 @@ func (ca *ClientAdapter) ProcessIntent(ctx context.Context, request *llm.Process
 	timeoutCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	
-	response, err := ca.client.ProcessIntent(timeoutCtx, request.Intent)
+	response, err := client.ProcessIntent(timeoutCtx, request.Intent)
 	if err != nil {
 		return nil, fmt.Errorf("LLM client failed to process intent: %w", err)
 	}
