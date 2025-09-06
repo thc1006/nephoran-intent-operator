@@ -3186,13 +3186,47 @@ func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) erro
 		"timestamp":   time.Now().Format(time.RFC3339),
 	}
 
+	// Validate statusInfo before marshaling to prevent empty JSON
+	if statusInfo["intent_file"] == "" {
+		statusInfo["intent_file"] = "unknown"
+	}
+	if statusInfo["status"] == "" {
+		statusInfo["status"] = "unknown"
+	}
+	if statusInfo["message"] == "" {
+		statusInfo["message"] = "No message provided"
+	}
+	if statusInfo["timestamp"] == "" {
+		statusInfo["timestamp"] = time.Now().Format(time.RFC3339)
+	}
+
 	// Use safe JSON marshaling with size limits.
 
 	data, err := w.safeMarshalJSON(statusInfo, MaxStatusSize)
 	if err != nil {
 		log.Printf("Failed to marshal status data: %v", err)
 
-		return fmt.Errorf("failed to marshal status data: %w", err)
+		// Create fallback status data in case of marshaling error
+		fallbackData := fmt.Sprintf(`{
+  "intent_file": "%s",
+  "status": "%s", 
+  "message": "JSON marshaling failed: %v",
+  "timestamp": "%s"
+}`, filepath.Base(intentFile), status, err, time.Now().Format(time.RFC3339))
+		data = []byte(fallbackData)
+		log.Printf("Using fallback status data for %s", filepath.Base(intentFile))
+	}
+
+	// Additional safeguard: ensure data is never empty
+	if len(data) == 0 || string(data) == "{}" {
+		log.Printf("Warning: Empty or minimal JSON detected for %s, generating proper status", filepath.Base(intentFile))
+		fallbackData := fmt.Sprintf(`{
+  "intent_file": "%s",
+  "status": "%s",
+  "message": "%s",
+  "timestamp": "%s"
+}`, filepath.Base(intentFile), status, message, time.Now().Format(time.RFC3339))
+		data = []byte(fallbackData)
 	}
 
 	// Create versioned status filename based on intent filename.

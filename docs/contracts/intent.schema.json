@@ -116,6 +116,15 @@
           "description": "Nephio blueprint used for package generation"
         }
       }
+    },
+    "target_resources": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "List of resources to be scaled",
+      "minItems": 0
     }
   },
   "required": [
