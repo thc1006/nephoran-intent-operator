@@ -182,15 +182,15 @@ type E2NodeSetReconciler struct {
 
 	// Metrics.
 
-	nodesTotal prometheus.GaugeVec
+	nodesTotal *prometheus.GaugeVec
 
-	nodesReady prometheus.GaugeVec
+	nodesReady *prometheus.GaugeVec
 
-	reconcilesTotal prometheus.CounterVec
+	reconcilesTotal *prometheus.CounterVec
 
-	reconcileErrors prometheus.CounterVec
+	reconcileErrors *prometheus.CounterVec
 
-	heartbeatsTotal prometheus.CounterVec
+	heartbeatsTotal *prometheus.CounterVec
 	
 	// Metrics registration state
 	metricsRegistered bool
@@ -212,7 +212,7 @@ func (r *E2NodeSetReconciler) RegisterMetrics() {
 	if r.metricsRegistered {
 		return
 	}
-	r.nodesTotal = *prometheus.NewGaugeVec(
+	r.nodesTotal = prometheus.NewGaugeVec(
 
 		prometheus.GaugeOpts{
 			Name: "e2nodeset_nodes_total",
@@ -223,7 +223,7 @@ func (r *E2NodeSetReconciler) RegisterMetrics() {
 		[]string{"namespace", "name"},
 	)
 
-	r.nodesReady = *prometheus.NewGaugeVec(
+	r.nodesReady = prometheus.NewGaugeVec(
 
 		prometheus.GaugeOpts{
 			Name: "e2nodeset_nodes_ready",
@@ -234,7 +234,7 @@ func (r *E2NodeSetReconciler) RegisterMetrics() {
 		[]string{"namespace", "name"},
 	)
 
-	r.reconcilesTotal = *prometheus.NewCounterVec(
+	r.reconcilesTotal = prometheus.NewCounterVec(
 
 		prometheus.CounterOpts{
 			Name: "e2nodeset_reconciles_total",
@@ -245,7 +245,7 @@ func (r *E2NodeSetReconciler) RegisterMetrics() {
 		[]string{"namespace", "name", "result"},
 	)
 
-	r.reconcileErrors = *prometheus.NewCounterVec(
+	r.reconcileErrors = prometheus.NewCounterVec(
 
 		prometheus.CounterOpts{
 			Name: "e2nodeset_reconcile_errors_total",
@@ -256,7 +256,7 @@ func (r *E2NodeSetReconciler) RegisterMetrics() {
 		[]string{"namespace", "name", "error_type"},
 	)
 
-	r.heartbeatsTotal = *prometheus.NewCounterVec(
+	r.heartbeatsTotal = prometheus.NewCounterVec(
 
 		prometheus.CounterOpts{
 			Name: "e2nodeset_heartbeats_total",
@@ -269,15 +269,15 @@ func (r *E2NodeSetReconciler) RegisterMetrics() {
 
 	metrics.Registry.MustRegister(
 
-		&r.nodesTotal,
+		r.nodesTotal,
 
-		&r.nodesReady,
+		r.nodesReady,
 
-		&r.reconcilesTotal,
+		r.reconcilesTotal,
 
-		&r.reconcileErrors,
+		r.reconcileErrors,
 
-		&r.heartbeatsTotal,
+		r.heartbeatsTotal,
 	)
 	
 	// Mark as registered at both levels
@@ -305,7 +305,9 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	result := "success"
 
 	defer func() {
-		r.reconcilesTotal.WithLabelValues(req.Namespace, req.Name, result).Inc()
+		if r.reconcilesTotal != nil {
+			r.reconcilesTotal.WithLabelValues(req.Namespace, req.Name, result).Inc()
+		}
 
 		logger.Info("Reconciliation completed", "duration", time.Since(startTime), "result", result)
 	}()
@@ -330,7 +332,9 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 		result = "error"
 
-		r.reconcileErrors.WithLabelValues(req.Namespace, req.Name, "fetch_error").Inc()
+		if r.reconcileErrors != nil {
+			r.reconcileErrors.WithLabelValues(req.Namespace, req.Name, "fetch_error").Inc()
+		}
 
 		return ctrl.Result{}, err
 
@@ -364,7 +368,9 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 			result = "error"
 
-			r.reconcileErrors.WithLabelValues(req.Namespace, req.Name, "finalizer_error").Inc()
+			if r.reconcileErrors != nil {
+				r.reconcileErrors.WithLabelValues(req.Namespace, req.Name, "finalizer_error").Inc()
+			}
 
 			return ctrl.Result{}, err
 
@@ -384,7 +390,9 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 		result = "error"
 
-		r.reconcileErrors.WithLabelValues(req.Namespace, req.Name, "reconcile_nodes_error").Inc()
+		if r.reconcileErrors != nil {
+			r.reconcileErrors.WithLabelValues(req.Namespace, req.Name, "reconcile_nodes_error").Inc()
+		}
 
 		// Get retry count and calculate backoff.
 
@@ -1265,9 +1273,13 @@ func (r *E2NodeSetReconciler) updateMetrics(e2nodeSet *nephoranv1.E2NodeSet) {
 		return
 	}
 	
-	r.nodesTotal.WithLabelValues(e2nodeSet.Namespace, e2nodeSet.Name).Set(float64(e2nodeSet.Status.CurrentReplicas))
+	if r.nodesTotal != nil {
+		r.nodesTotal.WithLabelValues(e2nodeSet.Namespace, e2nodeSet.Name).Set(float64(e2nodeSet.Status.CurrentReplicas))
+	}
 
-	r.nodesReady.WithLabelValues(e2nodeSet.Namespace, e2nodeSet.Name).Set(float64(e2nodeSet.Status.ReadyReplicas))
+	if r.nodesReady != nil {
+		r.nodesReady.WithLabelValues(e2nodeSet.Namespace, e2nodeSet.Name).Set(float64(e2nodeSet.Status.ReadyReplicas))
+	}
 }
 
 // simulateHeartbeats simulates heartbeat messages for connected E2 nodes.
@@ -1383,7 +1395,7 @@ func (r *E2NodeSetReconciler) updateNodeHeartbeat(ctx context.Context, configMap
 
 		namespaceName := strings.Split(nodeID, "-")
 
-		if len(namespaceName) >= 2 {
+		if len(namespaceName) >= 2 && r.heartbeatsTotal != nil {
 			r.heartbeatsTotal.WithLabelValues(namespaceName[0], namespaceName[1], nodeID).Inc()
 		}
 

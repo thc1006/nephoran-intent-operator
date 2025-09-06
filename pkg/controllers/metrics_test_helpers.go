@@ -4,6 +4,7 @@ import (
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/e2"
@@ -71,6 +72,7 @@ func NewTestE2NodeSetReconciler(client client.Client, scheme *runtime.Scheme, gi
 		Scheme:    scheme,
 		GitClient: gitClient,
 		E2Manager: e2Manager,
+		Recorder:  &record.FakeRecorder{},
 	}
 	
 	// Initialize metrics to prevent nil pointer panics in tests
