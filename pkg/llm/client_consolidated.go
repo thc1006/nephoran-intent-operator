@@ -396,11 +396,15 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 
 		// Record specific error types for Prometheus metrics.
 
-		if processingError != nil && c.metricsIntegrator != nil {
+		c.mutex.RLock()
+		metricsIntegrator := c.metricsIntegrator
+		c.mutex.RUnlock()
+
+		if processingError != nil && metricsIntegrator != nil {
 
 			errorType := c.categorizeError(processingError)
 
-			c.metricsIntegrator.prometheusMetrics.RecordError(c.modelName, errorType)
+			metricsIntegrator.prometheusMetrics.RecordError(c.modelName, errorType)
 
 		}
 	}()
@@ -432,8 +436,12 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 
 		// Check if this is a circuit breaker error.
 
-		if strings.Contains(err.Error(), "circuit breaker is open") && c.metricsIntegrator != nil {
-			c.metricsIntegrator.RecordCircuitBreakerEvent("llm-client", "rejected", c.modelName)
+		c.mutex.RLock()
+		metricsIntegrator := c.metricsIntegrator
+		c.mutex.RUnlock()
+
+		if strings.Contains(err.Error(), "circuit breaker is open") && metricsIntegrator != nil {
+			metricsIntegrator.RecordCircuitBreakerEvent("llm-client", "rejected", c.modelName)
 		}
 
 		return "", err
@@ -824,8 +832,12 @@ func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit boo
 	c.metrics.RetryAttempts += int64(retryCount)
 
 	// Record Prometheus metrics via integrator.
+	// Protect access to metricsIntegrator with mutex
+	c.mutex.RLock()
+	metricsIntegrator := c.metricsIntegrator
+	c.mutex.RUnlock()
 
-	if c.metricsIntegrator != nil {
+	if metricsIntegrator != nil {
 
 		status := "success"
 
@@ -850,16 +862,16 @@ func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit boo
 
 		// Record LLM request metrics.
 
-		c.metricsIntegrator.RecordLLMRequest(c.modelName, status, latency, totalTokens)
+		metricsIntegrator.RecordLLMRequest(c.modelName, status, latency, totalTokens)
 
 		// Record cache operation.
 
-		c.metricsIntegrator.RecordCacheOperation(c.modelName, "get", cacheHit)
+		metricsIntegrator.RecordCacheOperation(c.modelName, "get", cacheHit)
 
 		// Record retry attempts if any occurred.
 
 		for range retryCount {
-			c.metricsIntegrator.RecordRetryAttempt(c.modelName)
+			metricsIntegrator.RecordRetryAttempt(c.modelName)
 		}
 
 	}
