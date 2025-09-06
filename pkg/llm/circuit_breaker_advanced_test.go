@@ -6,10 +6,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-<<<<<<< HEAD
-	// "encoding/json" // TODO: Remove unused import
-=======
->>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
