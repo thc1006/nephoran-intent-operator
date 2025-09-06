@@ -108,22 +108,22 @@ func (r *NetworkIntent) validateNetworkIntent() (admission.Warnings, error) {
 
 	// Validate intentType
 	if r.Spec.IntentType != "scaling" {
-		allErrs = append(allErrs, fmt.Errorf("spec.intentType must be 'scaling'"))
+		allErrs = append(allErrs, fmt.Errorf("spec.intentType must be 'scaling', got: %s", r.Spec.IntentType))
 	}
 
 	// Validate target is not empty
 	if r.Spec.Target == "" {
-		allErrs = append(allErrs, fmt.Errorf("target cannot be empty"))
+		allErrs = append(allErrs, fmt.Errorf("spec.target cannot be empty"))
 	}
 
 	// Validate namespace is not empty
 	if r.Spec.Namespace == "" {
-		allErrs = append(allErrs, fmt.Errorf("namespace cannot be empty"))
+		allErrs = append(allErrs, fmt.Errorf("spec.namespace cannot be empty"))
 	}
 
 	// Validate replicas is non-negative
 	if r.Spec.Replicas < 0 {
-		allErrs = append(allErrs, fmt.Errorf("replicas must be non-negative"))
+		allErrs = append(allErrs, fmt.Errorf("spec.replicas must be non-negative, got: %d", r.Spec.Replicas))
 	}
 
 	// Validate source
@@ -136,7 +136,7 @@ func (r *NetworkIntent) validateNetworkIntent() (admission.Warnings, error) {
 		}
 	}
 	if !validSource {
-		allErrs = append(allErrs, fmt.Errorf("source must be 'user', 'planner', or 'test'"))
+		allErrs = append(allErrs, fmt.Errorf("spec.source must be 'user', 'planner', or 'test', got: %s", r.Spec.Source))
 	}
 
 
