@@ -630,6 +630,31 @@ func (r *E2NodeSetReconciler) scaleUpE2Nodes(ctx context.Context, e2nodeSet *nep
 
 			"index", nextIndex)
 
+		// Setup E2 connection and register node with E2Manager
+		nodeID := r.generateNodeID(e2nodeSet, nextIndex)
+		ricEndpoint := r.getRICEndpoint(e2nodeSet)
+		
+		if r.E2Manager != nil {
+			// Provision node
+			if err := r.E2Manager.ProvisionNode(ctx, e2nodeSet.Spec); err != nil {
+				logger.Error(err, "Failed to provision E2 node", "nodeId", nodeID)
+			}
+			
+			// Setup E2 connection
+			if err := r.E2Manager.SetupE2Connection(nodeID, ricEndpoint); err != nil {
+				logger.Error(err, "Failed to setup E2 connection", "nodeId", nodeID, "endpoint", ricEndpoint)
+			}
+			
+			// Register E2 node
+			ranFunctions := r.convertRANFunctions(r.buildRANFunctions(e2nodeSet))
+			if err := r.E2Manager.RegisterE2Node(ctx, nodeID, ranFunctions); err != nil {
+				logger.Error(err, "Failed to register E2 node", "nodeId", nodeID)
+			} else {
+				// Update ConfigMap status to Connected on successful registration
+				r.updateE2NodeStatusToConnected(ctx, configMap)
+			}
+		}
+
 		// Record event for node creation.
 
 		r.Recorder.Eventf(e2nodeSet, corev1.EventTypeNormal, "E2NodeCreated",
@@ -906,10 +931,8 @@ func getE2NodeSetRetryCount(e2nodeSet *nephoranv1.E2NodeSet, operation string) i
 	}
 	key := fmt.Sprintf("nephoran.com/%s-retry-count", operation)
 	if countStr, exists := e2nodeSet.Annotations[key]; exists {
-		if count, err := fmt.Sscanf(countStr, "%d", new(int)); err == nil && count == 1 {
-			var result int
-			fmt.Sscanf(countStr, "%d", &result)
-			return result
+		if count, err := strconv.Atoi(countStr); err == nil {
+			return count
 		}
 	}
 	return 0
@@ -1280,6 +1303,62 @@ func (r *E2NodeSetReconciler) updateMetrics(e2nodeSet *nephoranv1.E2NodeSet) {
 	if r.nodesReady != nil {
 		r.nodesReady.WithLabelValues(e2nodeSet.Namespace, e2nodeSet.Name).Set(float64(e2nodeSet.Status.ReadyReplicas))
 	}
+}
+
+// convertRANFunctions converts RANFunctionConfig slice to e2.RanFunction slice
+func (r *E2NodeSetReconciler) convertRANFunctions(ranFunctionConfigs []RANFunctionConfig) []e2.RanFunction {
+	ranFunctions := make([]e2.RanFunction, len(ranFunctionConfigs))
+	for i, config := range ranFunctionConfigs {
+		ranFunctions[i] = e2.RanFunction{
+			FunctionID:          int(config.FunctionID),
+			FunctionDefinition:  config.Description, // Map Description to FunctionDefinition
+			FunctionRevision:    int(config.Revision),
+			FunctionOID:         config.OID,
+			FunctionDescription: config.Description,
+			// ServiceModel will be set to default/empty as it's not in RANFunctionConfig
+		}
+	}
+	return ranFunctions
+}
+
+// updateE2NodeStatusToConnected updates a ConfigMap's E2 node status to Connected
+func (r *E2NodeSetReconciler) updateE2NodeStatusToConnected(ctx context.Context, configMap *corev1.ConfigMap) error {
+	logger := log.FromContext(ctx)
+	
+	// Get current status from ConfigMap
+	statusDataStr, ok := configMap.Data[E2NodeStatusKey]
+	if !ok {
+		return fmt.Errorf("ConfigMap %s missing status data", configMap.Name)
+	}
+
+	var status E2NodeStatusData
+	if err := json.Unmarshal([]byte(statusDataStr), &status); err != nil {
+		return fmt.Errorf("failed to unmarshal status data: %w", err)
+	}
+
+	// Update status to Connected
+	now := time.Now().UTC()
+	status.State = string(nephoranv1.E2NodeLifecycleStateConnected)
+	status.ConnectedSince = &now
+	status.StatusUpdatedAt = now
+
+	// Marshal updated status
+	statusJSON, err := json.Marshal(status)
+	if err != nil {
+		return fmt.Errorf("failed to marshal status data: %w", err)
+	}
+
+	// Update ConfigMap
+	updatedConfigMap := configMap.DeepCopy()
+	updatedConfigMap.Data[E2NodeStatusKey] = string(statusJSON)
+
+	if err := r.Update(ctx, updatedConfigMap); err != nil {
+		logger.Error(err, "Failed to update ConfigMap status to Connected", "configMapName", configMap.Name)
+		return err
+	}
+
+	logger.Info("Updated E2 node status to Connected", "configMapName", configMap.Name, "nodeId", status.NodeID)
+	return nil
 }
 
 // simulateHeartbeats simulates heartbeat messages for connected E2 nodes.

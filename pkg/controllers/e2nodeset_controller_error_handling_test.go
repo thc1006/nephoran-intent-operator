@@ -326,6 +326,12 @@ func TestConfigMapCreationErrorHandling(t *testing.T) {
 
 			reconciler := createTestReconciler(mockClient, mockRecorder)
 
+			// Mock Get calls to return the E2NodeSet from fake client
+			mockClient.On("Get", mock.Anything, mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
+				_, ok := obj.(*nephoranv1.E2NodeSet)
+				return ok
+			}), mock.Anything).Return(nil)
+
 			// Mock ConfigMap creation to fail
 			mockClient.On("Create", mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
 				_, ok := obj.(*corev1.ConfigMap)
@@ -401,6 +407,12 @@ func TestConfigMapUpdateErrorHandling(t *testing.T) {
 
 	reconciler := createTestReconciler(mockClient, mockRecorder)
 
+	// Mock Get calls to return the E2NodeSet from fake client
+	mockClient.On("Get", mock.Anything, mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
+		_, ok := obj.(*nephoranv1.E2NodeSet)
+		return ok
+	}), mock.Anything).Return(nil)
+
 	// Mock ConfigMap update to fail
 	updateError := errors.NewConflict(schema.GroupResource{Resource: "configmaps"}, "test-cm", fmt.Errorf("resource version conflict"))
 	mockClient.On("Update", mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
@@ -445,6 +457,12 @@ func TestE2ProvisioningErrorHandling(t *testing.T) {
 	mockRecorder := &MockEventRecorder{}
 
 	reconciler := createTestReconciler(mockClient, mockRecorder)
+
+	// Mock Get calls to return the E2NodeSet from fake client
+	mockClient.On("Get", mock.Anything, mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
+		_, ok := obj.(*nephoranv1.E2NodeSet)
+		return ok
+	}), mock.Anything).Return(nil)
 
 	// Mock all ConfigMap operations to fail to simulate E2 provisioning failure
 	provisioningError := fmt.Errorf("E2 provisioning failed: network unreachable")
@@ -497,6 +515,12 @@ func TestMaxRetriesExceeded(t *testing.T) {
 	mockRecorder := &MockEventRecorder{}
 
 	reconciler := createTestReconciler(mockClient, mockRecorder)
+
+	// Mock Get calls to return the E2NodeSet from fake client
+	mockClient.On("Get", mock.Anything, mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
+		_, ok := obj.(*nephoranv1.E2NodeSet)
+		return ok
+	}), mock.Anything).Return(nil)
 
 	// Mock ConfigMap creation to fail
 	provisioningError := fmt.Errorf("persistent E2 provisioning failure")
@@ -559,6 +583,12 @@ func TestFinalizerNotRemovedUntilCleanupSuccess(t *testing.T) {
 	mockRecorder := &MockEventRecorder{}
 
 	reconciler := createTestReconciler(mockClient, mockRecorder)
+
+	// Mock Get calls to return the E2NodeSet from fake client
+	mockClient.On("Get", mock.Anything, mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
+		_, ok := obj.(*nephoranv1.E2NodeSet)
+		return ok
+	}), mock.Anything).Return(nil)
 
 	// Mock one ConfigMap deletion to fail
 	deleteError := errors.NewConflict(schema.GroupResource{Resource: "configmaps"}, "test-cm", fmt.Errorf("deletion blocked"))
@@ -638,6 +668,12 @@ func TestFinalizerRemovedAfterMaxCleanupRetries(t *testing.T) {
 	mockRecorder := &MockEventRecorder{}
 
 	reconciler := createTestReconciler(mockClient, mockRecorder)
+
+	// Mock Get calls to return the E2NodeSet from fake client
+	mockClient.On("Get", mock.Anything, mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
+		_, ok := obj.(*nephoranv1.E2NodeSet)
+		return ok
+	}), mock.Anything).Return(nil)
 
 	// Mock ConfigMap deletion to fail
 	deleteError := fmt.Errorf("persistent deletion failure")
@@ -798,6 +834,12 @@ func TestReconcileWithPartialFailures(t *testing.T) {
 	mockRecorder := &MockEventRecorder{}
 
 	reconciler := createTestReconciler(mockClient, mockRecorder)
+
+	// Mock Get calls to return the E2NodeSet from fake client
+	mockClient.On("Get", mock.Anything, mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
+		_, ok := obj.(*nephoranv1.E2NodeSet)
+		return ok
+	}), mock.Anything).Return(nil)
 
 	// Mock some ConfigMap creations to succeed and others to fail
 	var creationCount int
