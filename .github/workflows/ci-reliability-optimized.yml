@@ -405,7 +405,7 @@ jobs:
           
           # Add coverage if requested
           if [ "${{ matrix.test-suite.coverage }}" = "true" ]; then
-            GINKGO_FLAGS="$GINKGO_FLAGS --coverprofile=test-results/coverage-${{ matrix.test-suite.name }}.out --covermode=atomic"
+            GINKGO_FLAGS="$GINKGO_FLAGS --coverprofile=coverage-${{ matrix.test-suite.name }}.out --output-dir=test-results --covermode=atomic"
           fi
           
           # Add race detection for critical tests
