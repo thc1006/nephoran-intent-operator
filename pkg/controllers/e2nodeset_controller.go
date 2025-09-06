@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -29,6 +30,12 @@ import (
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/e2"
+)
+
+var (
+	// Package-level metrics registration state to prevent duplicate registration
+	e2nodeSetMetricsRegistered bool
+	e2nodeSetMetricsMutex      sync.Mutex
 )
 
 const (
@@ -192,7 +199,16 @@ type E2NodeSetReconciler struct {
 // RegisterMetrics registers Prometheus metrics.
 
 func (r *E2NodeSetReconciler) RegisterMetrics() {
-	// Guard against double registration
+	// Guard against double registration at package level
+	e2nodeSetMetricsMutex.Lock()
+	defer e2nodeSetMetricsMutex.Unlock()
+	
+	if e2nodeSetMetricsRegistered {
+		r.metricsRegistered = true
+		return
+	}
+	
+	// Guard against double registration at instance level
 	if r.metricsRegistered {
 		return
 	}
@@ -264,8 +280,9 @@ func (r *E2NodeSetReconciler) RegisterMetrics() {
 		&r.heartbeatsTotal,
 	)
 	
-	// Mark as registered
+	// Mark as registered at both levels
 	r.metricsRegistered = true
+	e2nodeSetMetricsRegistered = true
 }
 
 //+kubebuilder:rbac:groups=nephoran.com,resources=e2nodesets,verbs=get;list;watch;create;update;patch;delete
