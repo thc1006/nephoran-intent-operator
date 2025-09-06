@@ -3,7 +3,6 @@
 package performance_tests
 
 import (
-	"crypto/rand"
 	"fmt"
 	mathrand "math/rand"
 	"runtime"
@@ -162,7 +161,7 @@ func BenchmarkLLMRaceConditions(b *testing.B) {
 
 				switch currentState {
 				case 0: // Closed
-					if rand.Float32() < 0.1 { // 10% failure rate
+					if mathrand.Float32() < 0.1 { // 10% failure rate
 						if failures.Add(1) >= 5 {
 							state.CompareAndSwap(0, 1)
 						}
@@ -171,7 +170,7 @@ func BenchmarkLLMRaceConditions(b *testing.B) {
 					// Check timeout and transition to half-open
 					state.CompareAndSwap(1, 2)
 				case 2: // Half-open
-					if rand.Float32() < 0.5 {
+					if mathrand.Float32() < 0.5 {
 						state.CompareAndSwap(2, 0)
 						failures.Store(0)
 					} else {
@@ -188,7 +187,7 @@ func BenchmarkLLMRaceConditions(b *testing.B) {
 
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				item := fmt.Sprintf("item-%d", rand.Int())
+				item := fmt.Sprintf("item-%d", mathrand.Int())
 
 				batchMu.Lock()
 				batch = append(batch, item)
@@ -252,7 +251,7 @@ func BenchmarkSecurityRaceConditions(b *testing.B) {
 					}
 				} else {
 					// Simulate permission check
-					allowed := rand.Float32() > 0.3
+					allowed := mathrand.Float32() > 0.3
 					permissions.Store(key, allowed)
 					if allowed {
 						authorized.Add(1)
@@ -274,7 +273,7 @@ func BenchmarkSecurityRaceConditions(b *testing.B) {
 			for pb.Next() {
 				secretID := fmt.Sprintf("secret-%d", mathrand.Intn(50))
 
-				if rand.Float32() < 0.1 { // 10% rotation rate
+				if mathrand.Float32() < 0.1 { // 10% rotation rate
 					// Rotate secret
 					secrets.Store(secretID, fmt.Sprintf("value-v%d", version.Add(1)))
 				} else {
@@ -501,10 +500,11 @@ func BenchmarkMemoryOrdering(b *testing.B) {
 		errors := &atomic.Int64{}
 
 		b.RunParallel(func(pb *testing.PB) {
+			counter := 0
 			for pb.Next() {
-				if pb.Next()%2 == 0 {
+				if counter%2 == 0 {
 					// Writer
-					data = int64(rand.Int())
+					data = int64(mathrand.Int())
 					flag.Store(true) // Release
 				} else {
 					// Reader
@@ -514,6 +514,7 @@ func BenchmarkMemoryOrdering(b *testing.B) {
 						}
 					}
 				}
+				counter++
 			}
 		})
 

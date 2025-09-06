@@ -623,8 +623,7 @@ func NewSLAValidator(prometheus v1.API, config *SLAValidationConfig) *SLAValidat
 
 func NewStatisticalAnalyzer(confidenceLevel float64) *StatisticalAnalyzer {
 	return &StatisticalAnalyzer{
-		confidenceLevel: confidenceLevel,
-		analysisResults: make(map[string]*StatisticalAnalysis),
+		ConfidenceLevel: confidenceLevel,
 	}
 }
 
@@ -637,8 +636,7 @@ func NewPrecisionMetricCollector(prometheus v1.API) *PrecisionMetricCollector {
 
 func NewClaimVerifier() *ClaimVerifier {
 	return &ClaimVerifier{
-		claims:        make(map[string]*SLAClaim),
-		verifications: make(map[string]*ClaimVerification),
+		Claims: make(map[string]*SLAClaim),
 	}
 }
 
@@ -648,21 +646,21 @@ func NewClaimVerifier() *ClaimVerifier {
 
 // calculateMeasurementStatistics calculates statistics for a measurement set
 func (s *SLAValidationTestSuiteImpl) calculateMeasurementStatistics(measurements *MeasurementSet) {
-	if len(measurements.Values) == 0 {
+	if len(measurements.Measurements) == 0 {
 		return
 	}
 
 	// Sort values for percentile calculation
-	sortedValues := make([]float64, len(measurements.Values))
-	copy(sortedValues, measurements.Values)
+	sortedValues := make([]float64, len(measurements.Measurements))
+	copy(sortedValues, measurements.Measurements)
 	sort.Float64s(sortedValues)
 
 	// Calculate basic statistics
 	sum := 0.0
-	for _, v := range measurements.Values {
+	for _, v := range measurements.Measurements {
 		sum += v
 	}
-	measurements.Mean = sum / float64(len(measurements.Values))
+	measurements.Mean = sum / float64(len(measurements.Measurements))
 
 	measurements.Min = sortedValues[0]
 	measurements.Max = sortedValues[len(sortedValues)-1]
@@ -670,11 +668,11 @@ func (s *SLAValidationTestSuiteImpl) calculateMeasurementStatistics(measurements
 
 	// Calculate standard deviation
 	sumSquaredDiffs := 0.0
-	for _, v := range measurements.Values {
+	for _, v := range measurements.Measurements {
 		diff := v - measurements.Mean
 		sumSquaredDiffs += diff * diff
 	}
-	measurements.StdDev = math.Sqrt(sumSquaredDiffs / float64(len(measurements.Values)-1))
+	measurements.StdDev = math.Sqrt(sumSquaredDiffs / float64(len(measurements.Measurements)-1))
 
 	// Calculate percentiles
 	measurements.Percentiles = make(map[int]float64)
@@ -721,11 +719,9 @@ func (s *SLAValidationTestSuiteImpl) SetupSuite() {
 	}
 
 	s.statisticalAnalyzer = &StatisticalAnalyzer{}
-	s.metricCollector = &PrecisionMetricCollector{
-		config: s.config,
-	}
+	s.metricCollector = &PrecisionMetricCollector{}
 	s.claimVerifier = &ClaimVerifier{
-		config: s.config,
+		Config: &VerifierConfig{},
 	}
 
 	// Initialize results containers
@@ -776,17 +772,15 @@ func (s *SLAValidationTestSuiteImpl) calibrateMeasurementSystems() error {
 // Stub implementations for missing measurement methods
 func (s *SLAValidationTestSuiteImpl) measureAvailabilityDirect(ctx context.Context) *MeasurementSet {
 	return &MeasurementSet{
-		Name:   "availability-direct",
-		Values: []float64{99.95, 99.96, 99.94, 99.97, 99.93},
-		Mean:   99.95,
-		StdDev: 0.015,
+		Measurements: []float64{99.95, 99.96, 99.94, 99.97, 99.93},
+		Mean:         99.95,
+		StdDev:       0.015,
 	}
 }
 
 func (s *SLAValidationTestSuiteImpl) measureAvailabilityErrorRate(ctx context.Context) *MeasurementSet {
 	return &MeasurementSet{
-		Name:   "availability-error-rate",
-		Values: []float64{99.94, 99.95, 99.96, 99.95, 99.94},
+		Measurements: []float64{99.94, 99.95, 99.96, 99.95, 99.94},
 		Mean:   99.948,
 		StdDev: 0.008,
 	}
@@ -794,8 +788,7 @@ func (s *SLAValidationTestSuiteImpl) measureAvailabilityErrorRate(ctx context.Co
 
 func (s *SLAValidationTestSuiteImpl) measureAvailabilityComponents(ctx context.Context) *MeasurementSet {
 	return &MeasurementSet{
-		Name:   "availability-components",
-		Values: []float64{99.96, 99.94, 99.95, 99.97, 99.93},
+		Measurements: []float64{99.96, 99.94, 99.95, 99.97, 99.93},
 		Mean:   99.95,
 		StdDev: 0.016,
 	}
@@ -805,7 +798,7 @@ func (s *SLAValidationTestSuiteImpl) measureAvailabilityComponents(ctx context.C
 func (s *SLAValidationTestSuiteImpl) crossValidateAvailability(m1, m2, m3 *MeasurementSet) *CrossValidationResult {
 	return &CrossValidationResult{
 		ConsistencyScore: 0.95,
-		MethodsAgreement: true,
+		AgreementRate: 1.0,
 	}
 }
 
@@ -828,8 +821,7 @@ func (s *SLAValidationTestSuiteImpl) verifyAvailabilityClaim(analysis *Statistic
 // Additional missing methods for latency testing
 func (s *SLAValidationTestSuiteImpl) measureLatencyEndToEnd(ctx context.Context) *MeasurementSet {
 	return &MeasurementSet{
-		Name:   "latency-end-to-end",
-		Values: []float64{1.2, 1.3, 1.1, 1.4, 1.0}, // in seconds
+		Measurements: []float64{1.2, 1.3, 1.1, 1.4, 1.0}, // in seconds
 		Mean:   1.2,
 		StdDev: 0.15,
 		Percentiles: map[int]float64{
@@ -841,8 +833,7 @@ func (s *SLAValidationTestSuiteImpl) measureLatencyEndToEnd(ctx context.Context)
 
 func (s *SLAValidationTestSuiteImpl) measureLatencyComponents(ctx context.Context) *MeasurementSet {
 	return &MeasurementSet{
-		Name:   "latency-components",
-		Values: []float64{1.1, 1.2, 1.0, 1.3, 0.9}, // in seconds
+		Measurements: []float64{1.1, 1.2, 1.0, 1.3, 0.9}, // in seconds
 		Mean:   1.1,
 		StdDev: 0.14,
 		Percentiles: map[int]float64{
@@ -854,8 +845,7 @@ func (s *SLAValidationTestSuiteImpl) measureLatencyComponents(ctx context.Contex
 
 func (s *SLAValidationTestSuiteImpl) measureLatencyTracing(ctx context.Context) *MeasurementSet {
 	return &MeasurementSet{
-		Name:   "latency-tracing",
-		Values: []float64{1.15, 1.25, 1.05, 1.35, 0.95}, // in seconds
+		Measurements: []float64{1.15, 1.25, 1.05, 1.35, 0.95}, // in seconds
 		Mean:   1.15,
 		StdDev: 0.16,
 		Percentiles: map[int]float64{
@@ -868,7 +858,7 @@ func (s *SLAValidationTestSuiteImpl) measureLatencyTracing(ctx context.Context) 
 func (s *SLAValidationTestSuiteImpl) crossValidateLatency(m1, m2, m3 *MeasurementSet) *CrossValidationResult {
 	return &CrossValidationResult{
 		ConsistencyScore: 0.92,
-		MethodsAgreement: true,
+		AgreementRate: 1.0,
 	}
 }
 
@@ -896,8 +886,7 @@ func (s *SLAValidationTestSuiteImpl) verifyLatencyClaim(p95Analysis *P95Analysis
 // Additional methods for throughput testing
 func (s *SLAValidationTestSuiteImpl) measureThroughputDirect(ctx context.Context) *MeasurementSet {
 	return &MeasurementSet{
-		Name:   "throughput-direct",
-		Values: []float64{46.2, 47.1, 45.8, 48.0, 44.9}, // intents/minute
+		Measurements: []float64{46.2, 47.1, 45.8, 48.0, 44.9}, // intents/minute
 		Mean:   46.4,
 		StdDev: 1.2,
 	}
@@ -905,8 +894,7 @@ func (s *SLAValidationTestSuiteImpl) measureThroughputDirect(ctx context.Context
 
 func (s *SLAValidationTestSuiteImpl) measureThroughputCounters(ctx context.Context) *MeasurementSet {
 	return &MeasurementSet{
-		Name:   "throughput-counters",
-		Values: []float64{46.0, 47.3, 45.5, 47.8, 45.2}, // intents/minute
+		Measurements: []float64{46.0, 47.3, 45.5, 47.8, 45.2}, // intents/minute
 		Mean:   46.36,
 		StdDev: 1.1,
 	}
@@ -914,8 +902,7 @@ func (s *SLAValidationTestSuiteImpl) measureThroughputCounters(ctx context.Conte
 
 func (s *SLAValidationTestSuiteImpl) measureThroughputQueue(ctx context.Context) *MeasurementSet {
 	return &MeasurementSet{
-		Name:   "throughput-queue",
-		Values: []float64{46.5, 47.0, 46.1, 47.5, 45.8}, // intents/minute
+		Measurements: []float64{46.5, 47.0, 46.1, 47.5, 45.8}, // intents/minute
 		Mean:   46.58,
 		StdDev: 0.7,
 	}
@@ -924,7 +911,7 @@ func (s *SLAValidationTestSuiteImpl) measureThroughputQueue(ctx context.Context)
 func (s *SLAValidationTestSuiteImpl) crossValidateThroughput(m1, m2, m3 *MeasurementSet) *CrossValidationResult {
 	return &CrossValidationResult{
 		ConsistencyScore: 0.94,
-		MethodsAgreement: true,
+		AgreementRate: 1.0,
 	}
 }
 
@@ -1024,97 +1011,7 @@ func (s *SLAValidationTestSuiteImpl) validateCompositeConsistency(method1, metho
 	return consistency
 }
 
-// Add the missing StatisticalAnalyzer methods
-func (s *StatisticalAnalyzer) AnalyzeAvailability(measurements []*MeasurementSet) *StatisticalAnalysis {
-	if len(measurements) == 0 {
-		return &StatisticalAnalysis{}
-	}
-	
-	// Combine all measurements
-	var allValues []float64
-	for _, ms := range measurements {
-		if ms != nil && ms.Values != nil {
-			allValues = append(allValues, ms.Values...)
-		}
-	}
-	
-	if len(allValues) == 0 {
-		return &StatisticalAnalysis{}
-	}
-	
-	// Calculate basic statistics
-	var sum float64
-	for _, v := range allValues {
-		sum += v
-	}
-	mean := sum / float64(len(allValues))
-	
-	return &StatisticalAnalysis{
-		Mean:   mean,
-		StdDev: 0.01, // Mock standard deviation
-		Median: mean,
-	}
-}
-
-func (s *StatisticalAnalyzer) AnalyzeLatency(measurements []*MeasurementSet) *StatisticalAnalysis {
-	if len(measurements) == 0 {
-		return &StatisticalAnalysis{}
-	}
-	
-	// Similar to availability but for latency
-	var allValues []float64
-	for _, ms := range measurements {
-		if ms != nil && ms.Values != nil {
-			allValues = append(allValues, ms.Values...)
-		}
-	}
-	
-	if len(allValues) == 0 {
-		return &StatisticalAnalysis{}
-	}
-	
-	var sum float64
-	for _, v := range allValues {
-		sum += v
-	}
-	mean := sum / float64(len(allValues))
-	
-	return &StatisticalAnalysis{
-		Mean:   mean,
-		StdDev: 0.1, // Mock standard deviation
-		Median: mean,
-	}
-}
-
-func (s *StatisticalAnalyzer) AnalyzeThroughput(measurements []*MeasurementSet) *StatisticalAnalysis {
-	if len(measurements) == 0 {
-		return &StatisticalAnalysis{}
-	}
-	
-	// Similar to others but for throughput
-	var allValues []float64
-	for _, ms := range measurements {
-		if ms != nil && ms.Values != nil {
-			allValues = append(allValues, ms.Values...)
-		}
-	}
-	
-	if len(allValues) == 0 {
-		return &StatisticalAnalysis{}
-	}
-	
-	var sum float64
-	for _, v := range allValues {
-		sum += v
-	}
-	mean := sum / float64(len(allValues))
-	
-	return &StatisticalAnalysis{
-		Mean:   mean,
-		StdDev: 1.0, // Mock standard deviation
-		Median: mean,
-	}
-}
+// StatisticalAnalyzer methods are implemented in sla_methods.go
 
 // TestSuite runner function
 func TestSLAValidationTestSuite(t *testing.T) {

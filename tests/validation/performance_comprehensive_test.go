@@ -3,7 +3,6 @@ package test_validation
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"math"

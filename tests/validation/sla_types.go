@@ -240,7 +240,7 @@ type MeasurementSet struct {
 // StatisticalAnalyzer performs statistical analysis on measurement data
 type StatisticalAnalyzer struct {
 	Config          *AnalyzerConfig `json:"config,omitempty"`
-	confidenceLevel float64         `json:"confidence_level"`
+	ConfidenceLevel float64         `json:"confidence_level"`
 }
 
 // StatisticalAnalysis contains statistical analysis results
@@ -273,7 +273,7 @@ type AnalyzerConfig struct {
 // ClaimVerifier verifies SLA claims against measurements
 type ClaimVerifier struct {
 	Config *VerifierConfig         `json:"config,omitempty"`
-	claims map[string]*SLAClaim    `json:"claims,omitempty"`
+	Claims map[string]*SLAClaim    `json:"claims,omitempty"`
 	mutex  sync.RWMutex           `json:"-"`
 }
 
