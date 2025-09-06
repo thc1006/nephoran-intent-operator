@@ -21,7 +21,7 @@ package multicluster
 
 import (
 	"context"
-	"crypto/rand"
+	"math/rand/v2"
 	"fmt"
 	mathrand "math/rand/v2"
 	"sync"
@@ -115,8 +115,8 @@ func (m *MockFailingSyncEngine) SyncPackageToCluster(
 
 	// Simulate random latency
 	if m.latencyRange > 0 {
-		latency := time.Duration(mathrand.Int63n(int64(m.latencyRange)))
-		time.Sleep(latency)
+latency := time.Duration(rand.Int64N(int64(m.latencyRange)))
+time.Sleep(latency)
 	}
 
 	// Simulate failures based on failure rate
@@ -205,9 +205,9 @@ func setupChaosTestComponents(t *testing.T) *MultiClusterComponents {
 			Name:       clusterName,
 			Kubeconfig: config,
 			ResourceUtilization: ResourceUtilization{
-				CPUTotal:    float64(4 + mathrand.Intn(8)),
-				MemoryTotal: int64((8 + mathrand.Intn(16)) * 1024 * 1024 * 1024),
-			},
+CPUTotal:    float64(4 + rand.IntN(8)),
+				MemoryTotal: int64((8 + rand.IntN(16)) * 1024 * 1024 * 1024),
+},
 			HealthStatus: ClusterHealthStatus{Available: true},
 		}
 
@@ -365,7 +365,7 @@ func TestChaos_ClusterResourceExhaustion(t *testing.T) {
 						CPUTotal:    4.0,
 						CPUUsed:     3.9, // 97.5% utilization
 						MemoryTotal: 8 * 1024 * 1024 * 1024,
-						MemoryUsed:  7.8 * 1024 * 1024 * 1024, // 97.5% utilization
+						MemoryUsed:  7822896358, // 97.5% utilization (7.8 * 1024 * 1024 * 1024)
 					}
 					components.ClusterMgr.clusters[clusterName] = cluster
 

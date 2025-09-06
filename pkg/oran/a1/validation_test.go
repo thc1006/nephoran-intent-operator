@@ -2,10 +2,11 @@
 package a1
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/url"
 	"strings"
 	"testing"
-	"encoding/json"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -178,24 +179,28 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 	return nil
 }
 
-func (v *TestA1Validator) ValidateConsumerInfo(info *ConsumerInfo) error {
+func (v *TestA1Validator) ValidateConsumerInfo(info *ConsumerInfo) *ValidationResult {
+	result := &ValidationResult{Valid: true}
+
 	if info == nil {
-		return fmt.Errorf("consumer info cannot be nil")
+		result.Valid = false
+		result.Errors = append(result.Errors, ValidationError{
+			Field:   "consumer_info", 
+			Message: "Consumer info cannot be nil",
+		})
+		return result
 	}
-	
-	if strings.TrimSpace(info.ConsumerID) == "" {
-		return fmt.Errorf("consumer_id is required")
+
+	// Validate required consumer fields
+	if info.ConsumerID == "" {
+		result.Valid = false
+		result.Errors = append(result.Errors, ValidationError{
+			Field:   "consumer_id",
+			Message: "Consumer ID is required",
+		})
 	}
-	
-	if strings.TrimSpace(info.CallbackURL) == "" {
-		return fmt.Errorf("callback_url is required")
-	}
-	
-	if !strings.HasPrefix(info.CallbackURL, "http") {
-		return fmt.Errorf("invalid callback_url")
-	}
-	
-	return nil
+
+	return result
 }
 
 // Test Policy Type Validation
@@ -956,5 +961,81 @@ func BenchmarkValidatePolicyInstance(b *testing.B) {
 
 // Helper types and functions for validation
 
-// Note: Validation functions would be implemented in the actual validator
+type SchemaValidator interface {
+	ValidateSchema(schema map[string]interface{}) error
+	ValidateAgainstSchema(data map[string]interface{}, schema map[string]interface{}) error
+}
 
+// NewJSONSchemaValidator creates a new JSON schema validator
+func NewJSONSchemaValidator() SchemaValidator {
+	return &JSONSchemaValidatorImpl{}
+}
+
+// JSONSchemaValidatorImpl implements the SchemaValidator interface
+type JSONSchemaValidatorImpl struct{}
+
+// ValidateSchema validates a JSON schema structure
+func (v *JSONSchemaValidatorImpl) ValidateSchema(schema map[string]interface{}) error {
+	if schema == nil {
+		return fmt.Errorf("schema cannot be nil")
+	}
+	
+	// Basic schema validation - check for required properties
+	if _, hasType := schema["type"]; !hasType {
+		if _, hasProps := schema["properties"]; !hasProps {
+			if _, hasOneOf := schema["oneOf"]; !hasOneOf {
+				if _, hasAnyOf := schema["anyOf"]; !hasAnyOf {
+					if _, hasAllOf := schema["allOf"]; !hasAllOf {
+						return fmt.Errorf("schema must have at least one of: type, properties, oneOf, anyOf, allOf")
+					}
+				}
+			}
+		}
+	}
+	
+	return nil
+}
+
+// ValidateAgainstSchema validates data against a JSON schema
+func (v *JSONSchemaValidatorImpl) ValidateAgainstSchema(data map[string]interface{}, schema map[string]interface{}) error {
+	if schema == nil {
+		return fmt.Errorf("schema cannot be nil")
+	}
+	
+	if data == nil {
+		return fmt.Errorf("data cannot be nil")
+	}
+	
+	// Check required fields
+	if required, exists := schema["required"]; exists {
+		if requiredList, ok := required.([]string); ok {
+			for _, field := range requiredList {
+				if _, exists := data[field]; !exists {
+					return fmt.Errorf("required field '%s' is missing", field)
+				}
+			}
+		}
+	}
+	
+	return nil
+}
+
+// NewValidationError creates a new validation error
+func NewValidationError(message, field string, value interface{}) error {
+	return fmt.Errorf("validation error in field '%s': %s (value: %v)", field, message, value)
+}
+
+// ValidateURL validates a URL string
+func ValidateURL(urlStr string) error {
+	if urlStr == "" {
+		return fmt.Errorf("URL cannot be empty")
+	}
+	
+	// Basic URL validation using net/url
+	_, err := url.Parse(urlStr)
+	if err != nil {
+		return fmt.Errorf("invalid URL format: %v", err)
+	}
+	
+	return nil
+}

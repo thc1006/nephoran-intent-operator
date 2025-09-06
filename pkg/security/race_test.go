@@ -305,9 +305,9 @@ func TestCryptoKeyPoolRace(t *testing.T) {
 		generated: atomic.Int64{},
 	}
 
-	// Test critical section protection with a simple counter map
-	testCounter := make(map[string]int)
-	mutexTest.TestCriticalSection(&keyPool.mu, &testCounter)
+	// Test critical section with a compatible map type
+	testData := make(map[string]int)
+	mutexTest.TestCriticalSection(&keyPool.mu, &testData)
 
 	runner := racetest.NewRunner(t, &racetest.RaceTestConfig{
 		Goroutines: 20,
@@ -360,8 +360,9 @@ func TestCryptoKeyPoolRace(t *testing.T) {
 func TestAuditLogRace(t *testing.T) {
 	channelTest := racetest.NewChannelRaceTest(t)
 
-	auditChan := make(chan interface{}, 100)
-	channelTest.TestConcurrentSendReceive(auditChan, 10, 5)
+	// Test generic channel operations for concurrency patterns
+	genericChan := make(chan interface{}, 100)
+	channelTest.TestConcurrentSendReceive(genericChan, 10, 5)
 
 	// Test audit log writer
 	auditLog := &auditLogger{

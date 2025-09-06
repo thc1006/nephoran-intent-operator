@@ -20,7 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
 	configPkg "github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
@@ -281,17 +281,20 @@ func NewMockMetricsCollector() *MockMetricsCollector {
 }
 
 // Test helper functions
-func createTestNetworkIntent(name, namespace, intent string) *nephoranv1.NetworkIntent {
-	return &nephoranv1.NetworkIntent{
+func createTestNetworkIntent(name, namespace, intent string) *intentv1alpha1.NetworkIntent {
+	return &intentv1alpha1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: nephoranv1.NetworkIntentSpec{
-			Intent: intent,
+		Spec: intentv1alpha1.NetworkIntentSpec{
+			Source:     "test",
+			IntentType: "scaling",
+			Target:     "test-target", 
+			Replicas:   5,
 		},
-		Status: nephoranv1.NetworkIntentStatus{
-			Phase: nephoranv1.NetworkIntentPhasePending,
+		Status: intentv1alpha1.NetworkIntentStatus{
+			Phase: "Pending",
 		},
 	}
 }
@@ -383,17 +386,17 @@ func TestNewNetworkIntentReconciler(t *testing.T) {
 
 func TestReconcile(t *testing.T) {
 	scheme := runtime.NewScheme()
-	nephoranv1.AddToScheme(scheme)
+	intentv1alpha1.AddToScheme(scheme)
 
 	tests := []struct {
 		name            string
-		networkIntent   *nephoranv1.NetworkIntent
+		networkIntent   *intentv1alpha1.NetworkIntent
 		mockSetup       func(*MockDependenciesComprehensive)
 		enableLLMIntent string
 		expectedResult  ctrl.Result
 		expectedError   bool
-		expectedPhase   nephoranv1.NetworkIntentPhase
-		validationCheck func(t *testing.T, ni *nephoranv1.NetworkIntent)
+		expectedPhase   string
+		validationCheck func(t *testing.T, ni *intentv1alpha1.NetworkIntent)
 	}{
 		{
 			name:          "successful reconciliation with LLM processing",
@@ -411,12 +414,12 @@ func TestReconcile(t *testing.T) {
 			enableLLMIntent: "true",
 			expectedResult:  ctrl.Result{},
 			expectedError:   false,
-			expectedPhase:   nephoranv1.NetworkIntentPhaseDeployed,
-			validationCheck: func(t *testing.T, ni *nephoranv1.NetworkIntent) {
+			expectedPhase:   "Deployed",
+			validationCheck: func(t *testing.T, ni *intentv1alpha1.NetworkIntent) {
 				// Note: Phase may not be exactly "Processed" as that's not a defined phase
-				assert.True(t, ni.Status.Phase == nephoranv1.NetworkIntentPhaseDeployed || 
-						   ni.Status.Phase == nephoranv1.NetworkIntentPhaseProcessing ||
-						   ni.Status.Phase == nephoranv1.NetworkIntentPhaseActive)
+				assert.True(t, ni.Status.Phase == "Deployed" || 
+						   ni.Status.Phase == "Processing" ||
+						   ni.Status.Phase == "Active")
 			},
 		},
 		{
@@ -428,12 +431,12 @@ func TestReconcile(t *testing.T) {
 			enableLLMIntent: "false",
 			expectedResult:  ctrl.Result{},
 			expectedError:   false,
-			expectedPhase:   nephoranv1.NetworkIntentPhaseProcessing,
-			validationCheck: func(t *testing.T, ni *nephoranv1.NetworkIntent) {
+			expectedPhase:   "Processing",
+			validationCheck: func(t *testing.T, ni *intentv1alpha1.NetworkIntent) {
 				// When LLM is disabled, it may stay in processing or move to active
-				assert.True(t, ni.Status.Phase == nephoranv1.NetworkIntentPhaseProcessing ||
-						   ni.Status.Phase == nephoranv1.NetworkIntentPhaseActive ||
-						   ni.Status.Phase == nephoranv1.NetworkIntentPhaseDeployed)
+				assert.True(t, ni.Status.Phase == "Processing" ||
+						   ni.Status.Phase == "Active" ||
+						   ni.Status.Phase == "Deployed")
 			},
 		},
 		{
@@ -446,9 +449,9 @@ func TestReconcile(t *testing.T) {
 			enableLLMIntent: "true",
 			expectedResult:  ctrl.Result{RequeueAfter: testutil.DefaultRetryDelay},
 			expectedError:   false,
-			expectedPhase:   nephoranv1.NetworkIntentPhaseFailed,
-			validationCheck: func(t *testing.T, ni *nephoranv1.NetworkIntent) {
-				assert.Equal(t, nephoranv1.NetworkIntentPhaseFailed, ni.Status.Phase)
+			expectedPhase:   "Failed",
+			validationCheck: func(t *testing.T, ni *intentv1alpha1.NetworkIntent) {
+				assert.Equal(t, "Failed", ni.Status.Phase)
 			},
 		},
 		{
@@ -458,14 +461,14 @@ func TestReconcile(t *testing.T) {
 			enableLLMIntent: "true",
 			expectedResult:  ctrl.Result{},
 			expectedError:   false,
-			expectedPhase:   nephoranv1.NetworkIntentPhaseFailed,
-			validationCheck: func(t *testing.T, ni *nephoranv1.NetworkIntent) {
-				assert.Equal(t, nephoranv1.NetworkIntentPhaseFailed, ni.Status.Phase)
+			expectedPhase:   "Failed",
+			validationCheck: func(t *testing.T, ni *intentv1alpha1.NetworkIntent) {
+				assert.Equal(t, "Failed", ni.Status.Phase)
 			},
 		},
 		{
 			name: "intent with finalizer deletion",
-			networkIntent: func() *nephoranv1.NetworkIntent {
+			networkIntent: func() *intentv1alpha1.NetworkIntent {
 				ni := createTestNetworkIntent("test-finalizer", "default", "Deploy NSSF")
 				ni.ObjectMeta.Finalizers = []string{configPkg.LoadConstants().NetworkIntentFinalizer}
 				now := metav1.NewTime(time.Now())
@@ -479,8 +482,8 @@ func TestReconcile(t *testing.T) {
 			enableLLMIntent: "true",
 			expectedResult:  ctrl.Result{},
 			expectedError:   false,
-			expectedPhase:   nephoranv1.NetworkIntentPhasePending, // Phase before deletion
-			validationCheck: func(t *testing.T, ni *nephoranv1.NetworkIntent) {
+			expectedPhase:   "Pending", // Phase before deletion
+			validationCheck: func(t *testing.T, ni *intentv1alpha1.NetworkIntent) {
 				// Should handle deletion path
 				assert.NotNil(t, ni.ObjectMeta.DeletionTimestamp)
 			},
@@ -535,7 +538,7 @@ func TestReconcile(t *testing.T) {
 
 			// Get updated NetworkIntent and run validation checks
 			if tt.validationCheck != nil && !tt.expectedError {
-				updatedNI := &nephoranv1.NetworkIntent{}
+				updatedNI := &intentv1alpha1.NetworkIntent{}
 				err = fakeClient.Get(ctx, types.NamespacedName{
 					Name:      tt.networkIntent.Name,
 					Namespace: tt.networkIntent.Namespace,
@@ -550,7 +553,7 @@ func TestReconcile(t *testing.T) {
 
 func TestExtractIntentType(t *testing.T) {
 	scheme := runtime.NewScheme()
-	nephoranv1.AddToScheme(scheme)
+	intentv1alpha1.AddToScheme(scheme)
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 	mockDeps := NewMockDependenciesComprehensive()
 	reconciler, _ := NewNetworkIntentReconciler(fakeClient, scheme, mockDeps, createTestConfig())
@@ -578,33 +581,33 @@ func TestExtractIntentType(t *testing.T) {
 
 func TestUpdatePhase(t *testing.T) {
 	scheme := runtime.NewScheme()
-	nephoranv1.AddToScheme(scheme)
+	intentv1alpha1.AddToScheme(scheme)
 
 	tests := []struct {
 		name          string
-		initialPhase  nephoranv1.NetworkIntentPhase
-		targetPhase   nephoranv1.NetworkIntentPhase
+		initialPhase  string
+		targetPhase   string
 		expectedError bool
 		shouldUpdate  bool
 	}{
 		{
 			name:          "phase change from Pending to Processing",
-			initialPhase:  nephoranv1.NetworkIntentPhasePending,
-			targetPhase:   nephoranv1.NetworkIntentPhaseProcessing,
+			initialPhase:  "Pending",
+			targetPhase:   "Processing",
 			expectedError: false,
 			shouldUpdate:  true,
 		},
 		{
 			name:          "no change needed",
-			initialPhase:  nephoranv1.NetworkIntentPhaseDeployed,
-			targetPhase:   nephoranv1.NetworkIntentPhaseDeployed,
+			initialPhase:  "Deployed",
+			targetPhase:   "Deployed",
 			expectedError: false,
 			shouldUpdate:  false,
 		},
 		{
 			name:          "phase change from Failed to Processing",
-			initialPhase:  nephoranv1.NetworkIntentPhaseFailed,
-			targetPhase:   nephoranv1.NetworkIntentPhaseProcessing,
+			initialPhase:  "Failed",
+			targetPhase:   "Processing",
 			expectedError: false,
 			shouldUpdate:  true,
 		},
@@ -704,7 +707,7 @@ func TestProcessingContext(t *testing.T) {
 // Benchmark tests for performance validation
 func BenchmarkReconcile(b *testing.B) {
 	scheme := runtime.NewScheme()
-	nephoranv1.AddToScheme(scheme)
+	intentv1alpha1.AddToScheme(scheme)
 
 	ni := createTestNetworkIntent("benchmark-intent", "default", "Deploy AMF network function")
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(ni).Build()
@@ -736,7 +739,7 @@ func BenchmarkReconcile(b *testing.B) {
 
 func BenchmarkExtractIntentType(b *testing.B) {
 	scheme := runtime.NewScheme()
-	nephoranv1.AddToScheme(scheme)
+	intentv1alpha1.AddToScheme(scheme)
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 	mockDeps := NewMockDependenciesComprehensive()
 	reconciler, _ := NewNetworkIntentReconciler(fakeClient, scheme, mockDeps, createTestConfig())

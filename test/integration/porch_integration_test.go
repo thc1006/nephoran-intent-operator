@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -18,6 +19,46 @@ import (
 	porchclient "github.com/thc1006/nephoran-intent-operator/pkg/porch"
 	"github.com/thc1006/nephoran-intent-operator/internal/intent"
 )
+
+// Porch v1alpha1 API types - defining locally for integration test compatibility
+var porchv1alpha1 = struct {
+	Package            func() *Package
+	PackageSpec        func() PackageSpec
+	PackageStatus      func() PackageStatus
+	Workspacev1Package func() Workspacev1Package
+}{
+	Package:            func() *Package { return &Package{} },
+	PackageSpec:        func() PackageSpec { return PackageSpec{} },
+	PackageStatus:      func() PackageStatus { return PackageStatus{} },
+	Workspacev1Package: func() Workspacev1Package { return Workspacev1Package{} },
+}
+
+// Package represents a Porch package resource
+type Package struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              PackageSpec   `json:"spec,omitempty"`
+	Status            PackageStatus `json:"status,omitempty"`
+}
+
+// PackageSpec defines the desired state of Package
+type PackageSpec struct {
+	Repository         string             `json:"repository,omitempty"`
+	Workspacev1Package Workspacev1Package `json:"workspacev1Package,omitempty"`
+}
+
+// PackageStatus defines the observed state of Package
+type PackageStatus struct {
+	Phase      string             `json:"phase,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+}
+
+// Workspacev1Package represents workspace package configuration
+type Workspacev1Package struct {
+	Description string                 `json:"description,omitempty"`
+	Keywords    []string               `json:"keywords,omitempty"`
+	Data        map[string]interface{} `json:"data,omitempty"`
+}
 
 const (
 	testNamespace       = "nephio-test"
@@ -58,14 +99,14 @@ func TestPorchIntegration(t *testing.T) {
 	// Test Package Creation
 	t.Run("CreatePackage", func(t *testing.T) {
 		pkgName := fmt.Sprintf("test-package-%d", time.Now().UnixNano())
-		pkg := &porchv1alpha1.Package{
+		pkg := &Package{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      pkgName,
 				Namespace: testNamespace,
 			},
-			Spec: porchv1alpha1.PackageSpec{
+			Spec: PackageSpec{
 				Repository: "test-repo",
-				Workspacev1Package: porchv1alpha1.Workspacev1Package{
+				Workspacev1Package: Workspacev1Package{
 					Description: "Test integration package",
 				},
 			},
@@ -81,19 +122,19 @@ func TestPorchIntegration(t *testing.T) {
 	t.Run("ConcurrentPackageCreation", func(t *testing.T) {
 		var wg sync.WaitGroup
 		var mu sync.Mutex
-		packages := make([]*porchv1alpha1.Package, concurrentIntentNum)
+		packages := make([]*Package, concurrentIntentNum)
 
 		for i := 0; i < concurrentIntentNum; i++ {
 			wg.Add(1)
 			go func(idx int) {
 				defer wg.Done()
 				pkgName := fmt.Sprintf("concurrent-pkg-%d", idx)
-				pkg := &porchv1alpha1.Package{
+				pkg := &Package{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      pkgName,
 						Namespace: testNamespace,
 					},
-					Spec: porchv1alpha1.PackageSpec{
+					Spec: PackageSpec{
 						Repository: "test-concurrent-repo",
 					},
 				}
@@ -115,12 +156,12 @@ func TestPorchIntegration(t *testing.T) {
 	// Test Package Update
 	t.Run("UpdatePackage", func(t *testing.T) {
 		pkgName := fmt.Sprintf("update-package-%d", time.Now().UnixNano())
-		pkg := &porchv1alpha1.Package{
+		pkg := &Package{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      pkgName,
 				Namespace: testNamespace,
 			},
-			Spec: porchv1alpha1.PackageSpec{
+			Spec: PackageSpec{
 				Repository: "test-update-repo",
 			},
 		}
@@ -138,12 +179,12 @@ func TestPorchIntegration(t *testing.T) {
 	// Test Package Deletion
 	t.Run("DeletePackage", func(t *testing.T) {
 		pkgName := fmt.Sprintf("delete-package-%d", time.Now().UnixNano())
-		pkg := &porchv1alpha1.Package{
+		pkg := &Package{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      pkgName,
 				Namespace: testNamespace,
 			},
-			Spec: porchv1alpha1.PackageSpec{
+			Spec: PackageSpec{
 				Repository: "test-delete-repo",
 			},
 		}
@@ -166,12 +207,12 @@ func TestPorchRollbackScenarios(t *testing.T) {
 
 	t.Run("RollbackPackageVersion", func(t *testing.T) {
 		pkgName := fmt.Sprintf("rollback-package-%d", time.Now().UnixNano())
-		pkg := &porchv1alpha1.Package{
+		pkg := &Package{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      pkgName,
 				Namespace: testNamespace,
 			},
-			Spec: porchv1alpha1.PackageSpec{
+			Spec: PackageSpec{
 				Repository: "test-rollback-repo",
 			},
 		}
@@ -181,7 +222,7 @@ func TestPorchRollbackScenarios(t *testing.T) {
 		require.NoError(t, err, "Failed to create package for rollback")
 
 		// Create multiple package versions
-		versions := make([]*porchv1alpha1.Package, 3)
+		versions := make([]*Package, 3)
 		versions[0] = createdPkg
 
 		for i := 1; i < 3; i++ {

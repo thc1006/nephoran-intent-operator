@@ -207,7 +207,7 @@ func (s *ModernTestingSuite) TestResourceCleanup() {
 
 // BenchmarkModernPatterns demonstrates performance testing patterns
 func BenchmarkModernPatterns(b *testing.B) {
-	_ = testutils.NewBenchmarkHelper(b) // Used for setup, can be referenced later if needed
+	_ = testutils.NewBenchmarkHelper(b)
 	
 	// Create test data
 	factory := testutils.NewTestDataFactory()

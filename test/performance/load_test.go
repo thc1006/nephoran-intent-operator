@@ -10,7 +10,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 
@@ -64,8 +63,10 @@ func TestPorchPerformanceLoad(t *testing.T) {
 	require.NoError(t, err, "Failed to load Kubernetes config")
 
 	porchClient, err := porch.NewClient(porch.ClientOptions{
-		Config: config,
-		Address: "http://porch-server:8080",
+		Config: &porch.ClientConfig{
+			Endpoint: "http://porch-server:8080",
+		},
+		KubeConfig: config,
 	})
 	require.NoError(t, err, "Failed to create porch client")
 
@@ -90,9 +91,10 @@ func TestPorchPerformanceLoad(t *testing.T) {
 						Name: pkgName,
 					},
 					Spec: porch.PackageRevisionSpec{
-						Repository: "performance-test-repo",
-						Package:    pkgName,
-						Workspace:  "performance-workspace",
+						Repository:  "performance-test-repo",
+						PackageName: pkgName,
+						Revision:    "v1",
+						Lifecycle:   porch.PackageRevisionLifecycleDraft,
 					},
 				}
 

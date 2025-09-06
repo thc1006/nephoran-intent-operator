@@ -2,6 +2,8 @@ package llm
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -73,26 +75,11 @@ type RAGAwarePromptBuilderStub struct{}
 // ConsolidatedStreamingProcessor provides a stub implementation
 type ConsolidatedStreamingProcessor struct{}
 
-// BuiltContext represents the result of building context
-type BuiltContext struct {
-	Context       string      `json:"context"`
-	UsedDocuments []Document  `json:"used_documents"`
-	QualityScore  float64     `json:"quality_score"`
-}
-
-
-// Document represents a document used in context building
-type Document struct {
-	ID       string `json:"id"`
-	Title    string `json:"title"`
-	Content  string `json:"content"`
-	Source   string `json:"source"`
-	Metadata string `json:"metadata"`
-}
+// Note: BuiltContext and Document types are defined in missing_types.go
 
 // ContextBuilder provides a stub implementation
 type ContextBuilder struct {
-	Config *Config
+	Config *ContextBuilderConfig
 }
 
 // GetMetrics returns metrics for the context builder
@@ -105,27 +92,105 @@ func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
 	}
 }
 
-// NewContextBuilder creates a new ContextBuilder with the given config
-func NewContextBuilder(config *Config) *ContextBuilder {
-	return &ContextBuilder{
-		Config: config,
+// Note: NewContextBuilder is defined in missing_types.go
+// CalculateRelevanceScores calculates relevance scores for documents against a query
+func (cb *ContextBuilder) CalculateRelevanceScores(ctx context.Context, query string, documents []Document) ([]RelevanceScore, error) {
+	scores := make([]RelevanceScore, len(documents))
+	
+	for i, doc := range documents {
+		// Simple scoring based on title and content matching
+		titleRelevance := 0.0
+		if strings.Contains(strings.ToLower(doc.Title), strings.ToLower(query)) {
+			titleRelevance = 0.8
+		}
+		
+		contentRelevance := 0.0
+		if strings.Contains(strings.ToLower(doc.Content), strings.ToLower(query)) {
+			contentRelevance = 0.6
+		}
+		
+		// Authority score based on source
+		authorityScore := 0.5 // Default
+		if strings.Contains(doc.Source, "3GPP") {
+			authorityScore = 0.9
+		} else if strings.Contains(doc.Source, "O-RAN") {
+			authorityScore = 0.8
+		}
+		
+		overallScore := (titleRelevance + contentRelevance + authorityScore) / 3.0
+		
+		// Apply quality threshold if configured
+		if cb.Config != nil && cb.Config.QualityThreshold > 0 && overallScore < cb.Config.QualityThreshold {
+			overallScore = 0.0 // Below threshold documents get 0 score
+		}
+		
+		factorsJSON, _ := json.Marshal(map[string]interface{}{
+			"title_relevance":   titleRelevance,
+			"content_relevance": contentRelevance,
+			"authority_score":   authorityScore,
+		})
+		
+		scores[i] = RelevanceScore{
+			OverallScore:   float32(overallScore),
+			SemanticScore:  float32((titleRelevance + contentRelevance) / 2.0),
+			AuthorityScore: float32(authorityScore),
+			RecencyScore:   0.5,  // Default freshness score
+			DomainScore:    0.7,  // Default quality score
+			IntentScore:    0.6,  // Default intent relevance score
+			Explanation:    fmt.Sprintf("Scored based on title (%f) and content (%f) relevance", titleRelevance, contentRelevance),
+			Factors:        json.RawMessage(factorsJSON),
+			ProcessingTime: time.Since(time.Now()),
+			CacheUsed:      false,
+		}
 	}
+	
+	return scores, nil
 }
 
-// BuildContext builds context from the given documents
+// BuildContext builds a context from documents based on relevance
 func (cb *ContextBuilder) BuildContext(ctx context.Context, query string, documents []Document) (*BuiltContext, error) {
-	// Simple stub implementation for testing
-	var contextText string
-	var usedDocs []Document
+	startTime := time.Now()
 	
-	// Use documents based on relevance (stub implementation)
+	// Calculate relevance scores
+	scores, err := cb.CalculateRelevanceScores(ctx, query, documents)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Sort documents by relevance score
+	documentScoreMap := make(map[string]*RelevanceScore)
+	for i := range scores {
+		documentScoreMap[documents[i].ID] = &scores[i]
+	}
+	
+	// Select best documents for context
+	maxDocs := 5 // Default max documents
+	if cb.Config != nil && cb.Config.MaxDocuments > 0 {
+		maxDocs = cb.Config.MaxDocuments
+	}
+	
+	selectedDocs := make([]Document, 0, maxDocs)
+	contextBuilder := strings.Builder{}
+	
 	for i, doc := range documents {
-		if i >= 3 { // Limit to 3 documents for testing
+		if i >= maxDocs {
 			break
 		}
-		contextText += doc.Title + ": " + doc.Content + "\n"
-		usedDocs = append(usedDocs, doc)
+		
+		score := documentScoreMap[doc.ID]
+		if score != nil && score.OverallScore > 0.3 { // Minimum relevance threshold
+			selectedDocs = append(selectedDocs, doc)
+			
+			// Add document to context
+			if contextBuilder.Len() > 0 {
+				contextBuilder.WriteString("\n\n")
+			}
+			contextBuilder.WriteString(fmt.Sprintf("Document: %s\nSource: %s\nContent: %s", 
+				doc.Title, doc.Source, doc.Content))
+		}
 	}
+	
+	contextText := contextBuilder.String()
 	
 	// Respect MaxContextTokens if configured
 	if cb.Config != nil && cb.Config.MaxContextTokens > 0 {
@@ -140,66 +205,26 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, query string, docume
 		}
 	}
 	
-	return &BuiltContext{
-		Context:       contextText,
-		UsedDocuments: usedDocs,
-		QualityScore:  0.75, // Fixed score for testing
-	}, nil
-}
-
-// CalculateRelevanceScores calculates relevance scores for documents
-func (cb *ContextBuilder) CalculateRelevanceScores(ctx context.Context, query string, documents []Document) ([]RelevanceScore, error) {
-	scores := make([]RelevanceScore, len(documents))
-	
-	// Simple relevance scoring based on keyword matching
-	queryWords := strings.Fields(strings.ToLower(query))
-	
-	for i, doc := range documents {
-		overallScore := 0.0
-		docText := strings.ToLower(doc.Title + " " + doc.Content)
-		
-		// Count matching words
-		matchCount := 0
-		for _, word := range queryWords {
-			if strings.Contains(docText, word) {
-				matchCount++
+	// Calculate overall quality score
+	qualityScore := 0.0
+	if len(selectedDocs) > 0 {
+		totalScore := 0.0
+		for _, doc := range selectedDocs {
+			if score := documentScoreMap[doc.ID]; score != nil {
+				totalScore += float64(score.OverallScore)
 			}
 		}
-		
-		// Calculate overall score as percentage of matching words
-		if len(queryWords) > 0 {
-			overallScore = float64(matchCount) / float64(len(queryWords))
-		}
-		
-		// Calculate authority score based on source
-		authorityScore := 0.5 // Default authority
-		if doc.Source != "" {
-			if strings.Contains(strings.ToLower(doc.Source), "3gpp") {
-				authorityScore = 0.9 // High authority for 3GPP standards
-			} else if strings.Contains(strings.ToLower(doc.Source), "o-ran") {
-				authorityScore = 0.8 // High authority for O-RAN specs
-			}
-		}
-		
-		// Apply quality threshold if configured
-		if cb.Config != nil && overallScore < cb.Config.QualityThreshold {
-			overallScore = 0.0 // Below threshold documents get 0 score
-		}
-		
-		scores[i] = RelevanceScore{
-			OverallScore:   float32(overallScore),
-			SemanticScore:  float32(overallScore),
-			AuthorityScore: float32(authorityScore),
-			RecencyScore:   0.5, // Default recency
-			DomainScore:    0.7, // Default domain relevance
-			IntentScore:    float32(overallScore),
-			Explanation:    "Calculated based on keyword matching and source authority",
-		}
+		qualityScore = totalScore / float64(len(selectedDocs))
 	}
 	
-	return scores, nil
+	return &BuiltContext{
+		Context:       contextText,
+		UsedDocuments: selectedDocs,
+		QualityScore:  qualityScore,
+		TokenCount:    len(strings.Fields(contextText)), // Rough token approximation
+		BuildTime:     time.Since(startTime),
+	}, nil
 }
-
 // StreamingProcessor provides a stub implementation
 type StreamingProcessor struct{}
 
