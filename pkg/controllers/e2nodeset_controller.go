@@ -378,7 +378,7 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 		logger.Info("Added finalizer to E2NodeSet")
 
-		return ctrl.Result{RequeueAfter: time.Second}, nil
+		return ctrl.Result{}, nil
 
 	}
 
@@ -454,6 +454,20 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	r.Update(ctx, &e2nodeSet)
 
+	// Update E2NodeSet status to reflect current state
+	if err := r.updateE2NodeSetStatus(ctx, &e2nodeSet); err != nil {
+		logger.Error(err, "Failed to update E2NodeSet status")
+	}
+
+	// List E2 nodes for monitoring/validation if E2Manager is available
+	if r.E2Manager != nil {
+		if nodes, err := r.E2Manager.ListE2Nodes(ctx); err != nil {
+			logger.Error(err, "Failed to list E2 nodes")
+		} else {
+			logger.Info("Listed E2 nodes", "count", len(nodes))
+		}
+	}
+
 	// Set Ready condition to True.
 
 	r.setReadyCondition(ctx, &e2nodeSet, metav1.ConditionTrue, "E2NodesReady", "All E2 nodes are successfully reconciled")
@@ -466,7 +480,7 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	go r.simulateHeartbeats(ctx, &e2nodeSet)
 
-	return ctrl.Result{RequeueAfter: time.Minute * 5}, nil
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager performs setupwithmanager operation.
@@ -603,6 +617,13 @@ func (r *E2NodeSetReconciler) scaleUpE2Nodes(ctx context.Context, e2nodeSet *nep
 
 	}
 
+	// Provision node once for the E2NodeSet if E2Manager is available
+	if r.E2Manager != nil && len(currentConfigMaps) == 0 {
+		if err := r.E2Manager.ProvisionNode(ctx, e2nodeSet.Spec); err != nil {
+			logger.Error(err, "Failed to provision E2NodeSet")
+		}
+	}
+
 	// Create new ConfigMaps for missing indices.
 
 	var nextIndex int32 = 0
@@ -635,11 +656,6 @@ func (r *E2NodeSetReconciler) scaleUpE2Nodes(ctx context.Context, e2nodeSet *nep
 		ricEndpoint := r.getRICEndpoint(e2nodeSet)
 		
 		if r.E2Manager != nil {
-			// Provision node
-			if err := r.E2Manager.ProvisionNode(ctx, e2nodeSet.Spec); err != nil {
-				logger.Error(err, "Failed to provision E2 node", "nodeId", nodeID)
-			}
-			
 			// Setup E2 connection
 			if err := r.E2Manager.SetupE2Connection(nodeID, ricEndpoint); err != nil {
 				logger.Error(err, "Failed to setup E2 connection", "nodeId", nodeID, "endpoint", ricEndpoint)
@@ -651,7 +667,9 @@ func (r *E2NodeSetReconciler) scaleUpE2Nodes(ctx context.Context, e2nodeSet *nep
 				logger.Error(err, "Failed to register E2 node", "nodeId", nodeID)
 			} else {
 				// Update ConfigMap status to Connected on successful registration
-				r.updateE2NodeStatusToConnected(ctx, configMap)
+				if err := r.updateE2NodeStatusToConnected(ctx, configMap); err != nil {
+					logger.Error(err, "Failed to update node status to Connected", "nodeId", nodeID)
+				}
 			}
 		}
 

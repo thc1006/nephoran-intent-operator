@@ -1021,5 +1021,10 @@ func (pmc *PerformanceMetricsCollector) getMetrics() map[string]interface{} {
 	pmc.mu.RLock()
 	defer pmc.mu.RUnlock()
 
-	return json.RawMessage(`{}`)
+	return map[string]interface{}{
+		"success_count": atomic.LoadInt64(&pmc.successCount),
+		"error_count":   atomic.LoadInt64(&pmc.errorCount),
+		"bytes_processed": atomic.LoadInt64(&pmc.bytesProcessed),
+		"latency_count": len(pmc.latencies),
+	}
 }

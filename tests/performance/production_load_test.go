@@ -2,7 +2,6 @@ package performance_tests
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	mathrand "math/rand"
@@ -115,20 +114,20 @@ var (
 
 // ProductionLoadTester executes production-scale load tests
 type ProductionLoadTester struct {
-	config           *LoadTestConfig
+	config           *ProductionLoadTestConfig
 	httpClient       *http.Client
-	results          *LoadTestResult
+	results          *ProductionLoadTestResult
 	scenarioWeights  []float64
 	totalWeight      float64
 	activeRequests   int64
 	mu               sync.RWMutex
 	ctx              context.Context
 	cancel           context.CancelFunc
-	metricsCollector *MetricsCollector
+	metricsCollector *ProductionMetricsCollector
 }
 
 // NewProductionLoadTester creates a new load tester
-func NewProductionLoadTester(config *LoadTestConfig) *ProductionLoadTester {
+func NewProductionLoadTester(config *ProductionLoadTestConfig) *ProductionLoadTester {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	tester := &ProductionLoadTester{
@@ -141,12 +140,12 @@ func NewProductionLoadTester(config *LoadTestConfig) *ProductionLoadTester {
 				IdleConnTimeout:     90 * time.Second,
 			},
 		},
-		results: &LoadTestResult{
+		results: &ProductionLoadTestResult{
 			ScenarioResults: make(map[string]*ScenarioResult),
 		},
 		ctx:              ctx,
 		cancel:           cancel,
-		metricsCollector: NewMetricsCollector(),
+		metricsCollector: NewProductionMetricsCollector(),
 	}
 
 	// Calculate scenario weights
@@ -162,7 +161,7 @@ func NewProductionLoadTester(config *LoadTestConfig) *ProductionLoadTester {
 }
 
 // RunTest executes the load test
-func (plt *ProductionLoadTester) RunTest() (*LoadTestResult, error) {
+func (plt *ProductionLoadTester) RunTest() (*ProductionLoadTestResult, error) {
 	plt.results.StartTime = time.Now()
 
 	// Start metrics collection
@@ -255,7 +254,7 @@ func (plt *ProductionLoadTester) createTargeter() vegeta.Targeter {
 
 // selectScenario selects a scenario based on weights
 func (plt *ProductionLoadTester) selectScenario() TestScenario {
-	r := mathmathrand.Float64() * plt.totalWeight
+	r := mathrand.Float64() * plt.totalWeight
 	cumulative := 0.0
 
 	for i, weight := range plt.scenarioWeights {
@@ -290,7 +289,7 @@ func (plt *ProductionLoadTester) processResults(results <-chan *vegeta.Result) {
 			scenarioResult.Failures++
 			requestsTotal.WithLabelValues(scenarioName, "failure").Inc()
 
-			errorType := plt.categorizeError(res.Error, res.Code)
+			errorType := plt.categorizeError(res.Error, int(res.Code))
 			scenarioResult.ErrorsByType[errorType]++
 		}
 
@@ -510,25 +509,33 @@ func validateResponseTime(maxDuration time.Duration) ResponseValidator {
 	}
 }
 
-// MetricsCollector collects system metrics during test
-type MetricsCollector struct {
-	resourceMetrics *ResourceMetrics
+// ProductionMetricsCollector collects system metrics during test
+type ProductionMetricsCollector struct {
+	resourceMetrics *ProductionResourceMetrics
 	systemMetrics   *SystemMetrics
 	mu              sync.RWMutex
 }
 
-// NewMetricsCollector creates a new metrics collector
-func NewMetricsCollector() *MetricsCollector {
-	return &MetricsCollector{
-		resourceMetrics: &ResourceMetrics{},
+// MetricsCollector is an alias for backward compatibility
+type MetricsCollector = ProductionMetricsCollector
+
+// NewProductionMetricsCollector creates a new metrics collector
+func NewProductionMetricsCollector() *ProductionMetricsCollector {
+	return &ProductionMetricsCollector{
+		resourceMetrics: &ProductionResourceMetrics{},
 		systemMetrics: &SystemMetrics{
 			CircuitBreakerStatus: make(map[string]string),
 		},
 	}
 }
 
+// NewMetricsCollector creates a new metrics collector (alias for compatibility)
+func NewMetricsCollector() *MetricsCollector {
+	return NewProductionMetricsCollector()
+}
+
 // Start starts metrics collection
-func (mc *MetricsCollector) Start(ctx context.Context, interval time.Duration) {
+func (mc *ProductionMetricsCollector) Start(ctx context.Context, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
@@ -543,7 +550,7 @@ func (mc *MetricsCollector) Start(ctx context.Context, interval time.Duration) {
 }
 
 // collectMetrics collects current metrics
-func (mc *MetricsCollector) collectMetrics() {
+func (mc *ProductionMetricsCollector) collectMetrics() {
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
 
@@ -564,7 +571,7 @@ func (mc *MetricsCollector) collectMetrics() {
 }
 
 // GetResourceMetrics returns current resource metrics
-func (mc *MetricsCollector) GetResourceMetrics() *ResourceMetrics {
+func (mc *ProductionMetricsCollector) GetResourceMetrics() *ProductionResourceMetrics {
 	mc.mu.RLock()
 	defer mc.mu.RUnlock()
 
@@ -573,7 +580,7 @@ func (mc *MetricsCollector) GetResourceMetrics() *ResourceMetrics {
 }
 
 // GetSystemMetrics returns current system metrics
-func (mc *MetricsCollector) GetSystemMetrics() *SystemMetrics {
+func (mc *ProductionMetricsCollector) GetSystemMetrics() *SystemMetrics {
 	mc.mu.RLock()
 	defer mc.mu.RUnlock()
 
@@ -609,7 +616,7 @@ func getQueueDepth() int64 {
 
 // RunProductionLoadTest executes a production-scale load test
 func RunProductionLoadTest() error {
-	config := &LoadTestConfig{
+	config := &ProductionLoadTestConfig{
 		Duration:         30 * time.Minute,
 		RampUpDuration:   5 * time.Minute,
 		TargetRPS:        1000,

@@ -7,15 +7,15 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 
+	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porch/v1alpha1"
 	porchclient "github.com/thc1006/nephoran-intent-operator/pkg/porch"
 )
 
@@ -36,9 +36,6 @@ func TestSystemIntegration(t *testing.T) {
 	porchClient := porchclient.NewClient("http://porch-server:8080", false)
 
 	t.Run("KubernetesAPIServerHealthCheck", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
 		// Check API server version
 		version, err := k8sClient.Discovery().ServerVersion()
 		require.NoError(t, err, "Failed to get Kubernetes server version")
@@ -51,8 +48,7 @@ func TestSystemIntegration(t *testing.T) {
 		require.NoError(t, err, "Failed to get API group resources")
 
 		mapper := restmapper.NewDiscoveryRESTMapper(groupResources)
-		testMapping := &runtime.UnstructuredList{}
-		
+
 		// Find mapping for a known resource type
 		mapping, err := mapper.RESTMapping(porchv1alpha1.SchemeGroupVersion.WithKind("Package").GroupKind())
 		require.NoError(t, err, "Failed to find REST mapping for Package")
@@ -61,16 +57,15 @@ func TestSystemIntegration(t *testing.T) {
 
 	t.Run("GitRepositoryBackendTest", func(t *testing.T) {
 		pkgName := "system-test-package"
-		pkg := &porchv1alpha1.Package{
+		pkg := &porchclient.Package{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      pkgName,
 				Namespace: "nephio-system-test",
 			},
-			Spec: porchv1alpha1.PackageSpec{
+			Spec: porchclient.ClientPackageSpec{
 				Repository: "system-test-repo",
-				GitRepository: porchv1alpha1.GitRepositorySpec{
-					Ref: "main",
-					Directory: "/test-packages",
+				Workspacev1Package: porchclient.Workspacev1Package{
+					Description: "System test package",
 				},
 			},
 		}
@@ -78,7 +73,7 @@ func TestSystemIntegration(t *testing.T) {
 		// Create package with Git repository backend
 		createdPkg, err := porchClient.Create(context.Background(), pkg)
 		require.NoError(t, err, "Failed to create package with Git repository")
-		assert.Equal(t, pkg.Spec.GitRepository.Ref, createdPkg.Spec.GitRepository.Ref)
+		assert.Equal(t, pkg.Spec.Repository, createdPkg.Spec.Repository)
 	})
 
 	t.Run("MonitoringEndpointTest", func(t *testing.T) {
@@ -87,7 +82,7 @@ func TestSystemIntegration(t *testing.T) {
 		defer cancel()
 
 		// Use dynamic client to fetch metrics/health endpoints
-		gvr := metav1.GroupVersionResource{
+		gvr := schema.GroupVersionResource{
 			Group:    "metrics.k8s.io",
 			Version:  "v1beta1",
 			Resource: "pods",
@@ -98,11 +93,10 @@ func TestSystemIntegration(t *testing.T) {
 	})
 
 	t.Run("HealthCheckEndpoint", func(t *testing.T) {
-		healthCheckURL := "/healthz"
-		req, err := rest.NewRequest(k8sClient.CoreV1().RESTClient()).Prefix(healthCheckURL).Do(context.Background())
-		require.NoError(t, err, "Failed to create health check request")
+		restClient := k8sClient.CoreV1().RESTClient()
+		result := restClient.Get().AbsPath("/healthz").Do(context.Background())
 
-		rawResult, err := req.Raw()
+		rawResult, err := result.Raw()
 		require.NoError(t, err, "Failed to get health check response")
 		assert.Equal(t, "ok", string(rawResult), "Health check should return 'ok'")
 	})

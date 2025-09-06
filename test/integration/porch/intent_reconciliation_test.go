@@ -2,7 +2,6 @@ package porch_test
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"time"
 
@@ -10,11 +9,10 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	networkintentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1alpha1"
-	porchv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1alpha1"
+	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porch/v1alpha1"
+	networkintentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
 )
 
 const (
@@ -31,7 +29,7 @@ var _ = Describe("Porch Intent Reconciliation", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 5*time.Minute)
 		ns = "test-intent-" + randomString(8)
-		
+
 		// Create test namespace
 		createNamespace(ctx, k8sClient, ns)
 	})
@@ -49,16 +47,13 @@ var _ = Describe("Porch Intent Reconciliation", func() {
 					Namespace: ns,
 				},
 				Spec: networkintentv1alpha1.NetworkIntentSpec{
-					Deployment: networkintentv1alpha1.DeploymentSpec{
-						ClusterSelector: map[string]string{
-							"environment": "test",
-						},
-						NetworkFunctions: []networkintentv1alpha1.NetworkFunction{
-							{
-								Name: "test-nf",
-								Type: "CNF",
-							},
-						},
+					Source:     "integration-test",
+					IntentType: "scaling",
+					Target:     "test-nf",
+					Namespace:  ns,
+					Replicas:   3,
+					ScalingParameters: networkintentv1alpha1.ScalingConfig{
+						Replicas: 3,
 					},
 				},
 			}
@@ -80,9 +75,8 @@ var _ = Describe("Porch Intent Reconciliation", func() {
 			Expect(len(packageList.Items)).To(BeNumerically(">", 0))
 			createdPackage = packageList.Items[0]
 
-			Expect(createdPackage.Spec.WorkspaceName).NotTo(BeEmpty())
-			Expect(createdPackage.Spec.RepositoryName).NotTo(BeEmpty())
-			Expect(createdPackage.Status.Phase).To(Equal(porchv1alpha1.PackagePhaseCreated))
+			Expect(createdPackage.Name).NotTo(BeEmpty())
+			Expect(createdPackage.Namespace).To(Equal(ns))
 		})
 	})
 

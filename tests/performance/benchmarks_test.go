@@ -9,7 +9,6 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
-	"encoding/json"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -350,7 +349,7 @@ func (suite *BenchmarkTestSuite) TestLoadTesting() {
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 				// Verify load test results
-				loadResults := suite.GetMetrics().loadTestResults
+				loadResults := suite.GetMetrics().GetLoadTestResults()
 				gomega.Expect(len(loadResults)).To(gomega.BeNumerically(">", 0))
 
 				for _, result := range loadResults {

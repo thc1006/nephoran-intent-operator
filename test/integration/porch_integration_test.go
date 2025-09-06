@@ -9,15 +9,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/porch"
-	"github.com/thc1006/nephoran-intent-operator/internal/intent"
 )
 
 // Use porch.Package type from the porch package
@@ -28,7 +26,7 @@ const (
 	concurrentIntentNum = 50
 )
 
-func setupTestEnvironment(t *testing.T) (*rest.Config, *kubernetes.Clientset, *porch.Client) {
+func setupTestEnvironment(t *testing.T) *porch.Client {
 	// Load Kubernetes configuration
 	config, err := rest.InClusterConfig()
 	require.NoError(t, err, "Failed to load Kubernetes config")
@@ -51,12 +49,12 @@ func setupTestEnvironment(t *testing.T) (*rest.Config, *kubernetes.Clientset, *p
 		t.Fatalf("Failed to create test namespace: %v", err)
 	}
 
-	return config, clientset, porchClient
+	return porchClient
 }
 
 func TestPorchIntegration(t *testing.T) {
 	// Setup test environment
-	config, clientset, porchClient := setupTestEnvironment(t)
+	porchClient := setupTestEnvironment(t)
 
 	// Test Package Creation
 	t.Run("CreatePackage", func(t *testing.T) {
@@ -165,7 +163,7 @@ func TestPorchIntegration(t *testing.T) {
 }
 
 func TestPorchRollbackScenarios(t *testing.T) {
-	config, _, porchClient := setupTestEnvironment(t)
+	porchClient := setupTestEnvironment(t)
 
 	t.Run("RollbackPackageVersion", func(t *testing.T) {
 		pkgName := fmt.Sprintf("rollback-package-%d", time.Now().UnixNano())

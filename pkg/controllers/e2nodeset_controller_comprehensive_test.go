@@ -47,8 +47,9 @@ func TestE2NodeSetController_Reconcile(t *testing.T) {
 			name: "successful_creation_with_replicas",
 			e2nodeSet: &nephoranv1.E2NodeSet{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-e2nodeset",
-					Namespace: "default",
+					Name:       "test-e2nodeset",
+					Namespace:  "default",
+					Finalizers: []string{E2NodeSetFinalizer},
 				},
 				Spec: nephoranv1.E2NodeSetSpec{
 					Replicas:    3,

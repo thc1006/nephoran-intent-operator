@@ -401,7 +401,7 @@ func (suite *E2EAuditTestSuite) TestAuditEventSources() {
 		time.Sleep(1 * time.Second)
 
 		// Verify event processing
-		stats := suite.auditSystem.GetStats()
+		stats := suite.auditSystem.GetStats().(audit.AuditStats)
 		suite.Greater(stats.EventsReceived, int64(0))
 	})
 
@@ -553,7 +553,7 @@ func (suite *E2EAuditTestSuite) TestHighLoadAuditing() {
 		// Wait for processing
 		time.Sleep(5 * time.Second)
 
-		stats := suite.auditSystem.GetStats()
+		stats := suite.auditSystem.GetStats().(audit.AuditStats)
 		eventsPerSecond := float64(stats.EventsReceived) / duration.Seconds()
 
 		suite.Greater(stats.EventsReceived, int64(numEvents*0.8)) // Allow for some drops
@@ -638,7 +638,7 @@ func (suite *E2EAuditTestSuite) TestErrorRecovery() {
 		time.Sleep(3 * time.Second)
 
 		// Verify audit system is still running
-		stats := suite.auditSystem.GetStats()
+		stats := suite.auditSystem.GetStats().(audit.AuditStats)
 		suite.Greater(stats.EventsReceived, int64(0))
 
 		// Verify backup file received events (webhook should fail but file should succeed)
@@ -772,7 +772,7 @@ func (suite *E2EAuditTestSuite) TestMonitoringAndHealth() {
 		suite.Require().NotNil(suite.auditSystem)
 
 		// Health check should pass for running system
-		stats := suite.auditSystem.GetStats()
+		stats := suite.auditSystem.GetStats().(audit.AuditStats)
 		suite.Equal(1, stats.BackendCount)
 		suite.True(stats.IntegrityEnabled)
 
@@ -794,14 +794,14 @@ func (suite *E2EAuditTestSuite) TestMonitoringAndHealth() {
 
 		// Wait and verify stats
 		time.Sleep(2 * time.Second)
-		updatedStats := suite.auditSystem.GetStats()
+		updatedStats := suite.auditSystem.GetStats().(audit.AuditStats)
 		suite.Greater(updatedStats.EventsReceived, stats.EventsReceived)
 	})
 
 	suite.Run("verify metrics collection", func() {
 		// In a real implementation, we'd check Prometheus metrics
 		// For now, verify that metrics-related code is being exercised
-		stats := suite.auditSystem.GetStats()
+		stats := suite.auditSystem.GetStats().(audit.AuditStats)
 		suite.GreaterOrEqual(stats.EventsReceived, int64(5))
 		suite.Equal(int64(0), stats.EventsDropped) // No drops expected in normal operation
 	})
@@ -966,7 +966,7 @@ func (suite *E2EAuditTestSuite) TestKubernetesIntegration() {
 		time.Sleep(2 * time.Second)
 
 		// Verify events were processed
-		stats := suite.auditSystem.GetStats()
+		stats := suite.auditSystem.GetStats().(audit.AuditStats)
 		suite.Greater(stats.EventsReceived, int64(0))
 
 		// Verify log file contains Kubernetes-specific fields
