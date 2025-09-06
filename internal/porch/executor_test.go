@@ -584,20 +584,17 @@ func BenchmarkExecutor_Execute(b *testing.B) {
 }
 
 func BenchmarkStatefulExecutor_GetStats(b *testing.B) {
-	// Create mock porch executable for benchmark
 	tempDir := b.TempDir()
-	mockPorchPath, err := CreateCrossPlatformMock(tempDir, CrossPlatformMockOptions{
-		ExitCode: 0,
-		Stdout:   "Mock porch processing completed",
-	})
-	if err != nil {
-		b.Fatalf("Failed to create mock porch: %v", err)
+	outDir := filepath.Join(tempDir, "out")
+	
+	if err := os.MkdirAll(outDir, 0755); err != nil {
+		b.Fatalf("Failed to create output directory: %v", err)
 	}
 
 	config := ExecutorConfig{
-		PorchPath: mockPorchPath,
+		PorchPath: createMockPorch(b, tempDir, 0, "success", ""),
 		Mode:      ModeDirect,
-		OutDir:    "./out",
+		OutDir:    outDir,
 		Timeout:   5 * time.Second,
 	}
 

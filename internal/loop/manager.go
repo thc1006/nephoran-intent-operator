@@ -330,34 +330,18 @@ func (fm *FileManager) GetStats() (ProcessingStats, error) {
 		return ProcessingStats{}, fmt.Errorf("failed to get failed files: %w", err)
 	}
 
-	// For legacy watcher, distinguish real failures from shutdown failures
-	// by checking if error log files contain SHUTDOWN_FAILURE marker
-	realFailedFiles := []string{}
-	shutdownFailedFiles := []string{}
-	
-	for _, failedFile := range failedFiles {
-		errorLogFile := failedFile + ".error.log"
-		if content, readErr := os.ReadFile(errorLogFile); readErr == nil {
-			if strings.Contains(string(content), "SHUTDOWN_FAILURE:") {
-				shutdownFailedFiles = append(shutdownFailedFiles, failedFile)
-			} else {
-				realFailedFiles = append(realFailedFiles, failedFile)
-			}
-		} else {
-			// If we can't read the error log, assume it's a real failure
-			realFailedFiles = append(realFailedFiles, failedFile)
-		}
-	}
+	// Categorize failed files into shutdown vs real failures
+	shutdownFailedFiles, realFailedFiles := fm.categorizeFailedFiles(failedFiles)
 
 	return ProcessingStats{
 		ProcessedCount: len(processedFiles),
 		FailedCount: len(failedFiles),
-		RealFailedCount: len(realFailedFiles),
 		ShutdownFailedCount: len(shutdownFailedFiles),
+		RealFailedCount: len(realFailedFiles),
 		ProcessedFiles: processedFiles,
 		FailedFiles: failedFiles,
-		RealFailedFiles: realFailedFiles,
 		ShutdownFailedFiles: shutdownFailedFiles,
+		RealFailedFiles: realFailedFiles,
 	}, nil
 }
 
@@ -379,6 +363,50 @@ type ProcessingStats struct {
 	ShutdownFailedFiles []string `json:"shutdown_failed_files,omitempty"`
 
 	RealFailedFiles []string `json:"real_failed_files,omitempty"`
+}
+
+// categorizeFailedFiles separates failed files into shutdown failures and real failures.
+func (fm *FileManager) categorizeFailedFiles(failedFiles []string) (shutdownFailed, realFailed []string) {
+	for _, failedFile := range failedFiles {
+		if fm.isShutdownFailure(failedFile) {
+			shutdownFailed = append(shutdownFailed, failedFile)
+		} else {
+			realFailed = append(realFailed, failedFile)
+		}
+	}
+	return shutdownFailed, realFailed
+}
+
+// isShutdownFailure checks if a failed file was caused by graceful shutdown.
+func (fm *FileManager) isShutdownFailure(failedFilePath string) bool {
+	// Look for corresponding error file
+	basename := filepath.Base(failedFilePath)
+	
+	// Remove .json suffix and find .error.log file
+	if strings.HasSuffix(basename, ".json") {
+		baseWithoutExt := strings.TrimSuffix(basename, ".json")
+		errorLogFile := baseWithoutExt + ".json.error.log"
+		errorLogPath := filepath.Join(fm.failedDir, errorLogFile)
+		
+		// Read error log content
+		errorContent, err := os.ReadFile(errorLogPath)
+		if err != nil {
+			// If we can't read the error file, assume it's not a shutdown failure
+			return false
+		}
+		
+		errorMsg := string(errorContent)
+		
+		// Check for shutdown failure patterns
+		return strings.Contains(errorMsg, "SHUTDOWN_FAILURE:") ||
+			strings.Contains(strings.ToLower(errorMsg), "context canceled") ||
+			strings.Contains(strings.ToLower(errorMsg), "context cancelled") ||
+			strings.Contains(strings.ToLower(errorMsg), "signal: killed") ||
+			strings.Contains(strings.ToLower(errorMsg), "signal: interrupt") ||
+			strings.Contains(strings.ToLower(errorMsg), "signal: terminated")
+	}
+	
+	return false
 }
 
 // IsEmpty checks if both processed and failed directories are empty.

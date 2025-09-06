@@ -63,15 +63,44 @@ Write-Host "🔧 Setting up test environment..." -ForegroundColor Cyan
 $env:GO_VERSION = "1.22"
 $env:GOPROXY = "https://proxy.golang.org,direct"
 $env:GOSUMDB = "sum.golang.org"
-$env:CGO_ENABLED = 0
 $env:GOMAXPROCS = 4
 $env:GOMEMLIMIT = "8GiB"
 $env:GOGC = 75
 $env:GO_DISABLE_TELEMETRY = 1
 
+# CGO Configuration - Check if C compiler is available for race detection
+$CCompilerAvailable = $false
+$CGOTestsEnabled = $false
+
+# Check for available C compilers
+$CompilerPaths = @("gcc", "clang", "cl")
+foreach ($compiler in $CompilerPaths) {
+    try {
+        $result = & $compiler --version 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "✅ Found C compiler: $compiler" -ForegroundColor Green
+            $CCompilerAvailable = $true
+            break
+        }
+    }
+    catch {
+        # Compiler not found, continue checking
+    }
+}
+
+if ($CCompilerAvailable) {
+    $env:CGO_ENABLED = 1
+    $CGOTestsEnabled = $true
+    Write-Host "✅ CGO enabled - race detection tests available" -ForegroundColor Green
+} else {
+    $env:CGO_ENABLED = 0
+    Write-Host "⚠️  No C compiler found - race detection tests disabled" -ForegroundColor Yellow
+    Write-Host "   Install TDM-GCC or MinGW to enable race detection tests" -ForegroundColor Gray
+}
+
 # Build flags
 $BuildFlags = "-trimpath -ldflags='-s -w -extldflags=-static'"
-$TestFlags = "-race -count=1 -timeout=15m"
+$TestFlags = if ($CGOTestsEnabled) { "-race -count=1 -timeout=15m" } else { "-count=1 -timeout=15m" }
 
 Write-Host "✅ Environment configured" -ForegroundColor Green
 
@@ -328,11 +357,11 @@ Write-Host ""
 Write-Host "⏱️  Test Durations:" -ForegroundColor Cyan
 foreach ($test in $testResults) {
     if ($test.Duration) {
-        $status = if ($test.Result) { "✅" } else { "❌" }
+        $status = if ($test.Result) { "PASS" } else { "FAIL" }
         $duration = $test.Duration.TotalMinutes.ToString('F2')
         Write-Host "  $status $($test.Name): $duration minutes" -ForegroundColor Gray
     } else {
-        $status = if ($test.Result) { "✅" } else { "❌" }
+        $status = if ($test.Result) { "PASS" } else { "FAIL" }
         Write-Host "  $status $($test.Name): Analysis complete" -ForegroundColor Gray
     }
 }

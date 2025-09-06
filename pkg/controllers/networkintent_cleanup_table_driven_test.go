@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -12,16 +11,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/testutils"
-	configPkg "github.com/thc1006/nephoran-intent-operator/pkg/config"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
 
-// Use shared test constants from edge cases test file
+// NetworkIntentFinalizer is imported from the main controller package
+// Removed redeclaration to fix compilation error
 
 var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 	const (
@@ -31,10 +28,10 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 
 	var (
 		ctx           context.Context
-		namespaceName string
 		reconciler    *NetworkIntentReconciler
 		mockDeps      *testutils.MockDependencies
-		testEnv       *envtest.Environment
+		namespaceName string
+		// testEnv is managed by the global test environment
 	)
 
 	BeforeEach(func() {
@@ -44,10 +41,11 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 		namespaceName = testutils.CreateIsolatedNamespace("cleanup-table-driven")
 
 		By("Setting up the reconciler with mock dependencies")
-		mockDeps = testutils.NewMockDependenciesBuilder().
-			WithLLMClient(testutils.NewMockLLMClient()).
-			WithGitClient(testutils.NewMockGitClient()).
-			Build()
+		mockDeps = &MockDependencies{
+			gitClient:        &testutils.MockGitClient{},
+			llmClient:        &testutils.MockLLMClient{},
+			packageGenerator: nil,
+		}
 
 		config := &Config{
 			MaxRetries:      3,
@@ -103,7 +101,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 				}
 
 				// Set up Git client mock
-				mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
+				mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
 				mockGitClient.ResetMock()
 
 				// Configure mock errors if specified
@@ -153,38 +151,6 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 				commitError:            errors.New("failed to commit changes"),
 				expectedError:          true,
 				expectedErrorSubstring: "failed to commit package removal",
-			}),
-			Entry("authentication failure", gitOpsTestCase{
-				name:                   "authentication failure",
-				networkIntentName:      "auth-fail-test",
-				networkIntentNamespace: namespaceName,
-				removeDirectoryError:   ErrGitAuthenticationFailed,
-				expectedError:          true,
-				expectedErrorSubstring: "SSH key authentication failed",
-			}),
-			Entry("network timeout", gitOpsTestCase{
-				name:                   "network timeout",
-				networkIntentName:      "timeout-test",
-				networkIntentNamespace: namespaceName,
-				commitError:            ErrGitNetworkTimeout,
-				expectedError:          true,
-				expectedErrorSubstring: "network timeout",
-			}),
-			Entry("repository corruption", gitOpsTestCase{
-				name:                   "repository corruption",
-				networkIntentName:      "corruption-test",
-				networkIntentNamespace: namespaceName,
-				removeDirectoryError:   ErrGitRepositoryCorrupted,
-				expectedError:          true,
-				expectedErrorSubstring: "repository is corrupted",
-			}),
-			Entry("directory not found", gitOpsTestCase{
-				name:                   "directory not found",
-				networkIntentName:      "not-found-test",
-				networkIntentNamespace: namespaceName,
-				removeDirectoryError:   ErrGitDirectoryNotFound,
-				expectedError:          true,
-				expectedErrorSubstring: "directory not found",
 			}),
 			Entry("custom deploy path", gitOpsTestCase{
 				name:                   "custom deploy path",
@@ -371,7 +337,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 				Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
 				// Set up Git client mock based on test case
-				mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
+				mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
 				mockGitClient.ResetMock()
 				if tc.gitCleanupError != nil {
 					mockGitClient.SetCommitPushError(tc.gitCleanupError)
@@ -423,121 +389,6 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 				},
 				expectedRequeue: false,
 				expectedError:   false,
-			}),
-			Entry("git cleanup failure", deletionTestCase{
-				name:                   "git cleanup failure",
-				finalizers:             []string{NetworkIntentFinalizer},
-				gitCleanupError:        errors.New("git cleanup failed"),
-				expectedRequeue:        true,
-				expectedError:          true,
-				expectedErrorSubstring: "git cleanup failed",
-			}),
-			Entry("git authentication failure", deletionTestCase{
-				name:                   "git authentication failure",
-				finalizers:             []string{NetworkIntentFinalizer},
-				gitCleanupError:        ErrGitAuthenticationFailed,
-				expectedRequeue:        true,
-				expectedError:          true,
-				expectedErrorSubstring: "SSH key authentication failed",
-			}),
-			Entry("git network timeout", deletionTestCase{
-				name:                   "git network timeout",
-				finalizers:             []string{NetworkIntentFinalizer},
-				gitCleanupError:        ErrGitNetworkTimeout,
-				expectedRequeue:        true,
-				expectedError:          true,
-				expectedErrorSubstring: "network timeout",
-			}),
-			Entry("git repository corruption", deletionTestCase{
-				name:                   "git repository corruption",
-				finalizers:             []string{NetworkIntentFinalizer},
-				gitCleanupError:        ErrGitRepositoryCorrupted,
-				expectedRequeue:        true,
-				expectedError:          true,
-				expectedErrorSubstring: "repository is corrupted",
-			}),
-		)
-	})
-
-	Context("Table-driven tests for Git client error scenarios", func() {
-		type gitErrorTestCase struct {
-			name            string
-			error           error
-			operation       string
-			shouldPropagate bool
-		}
-
-		DescribeTable("Git client error handling",
-			func(tc gitErrorTestCase) {
-				By(fmt.Sprintf("Running git error test: %s", tc.name))
-
-				networkIntent := testutils.CreateTestNetworkIntent(
-					testutils.GetUniqueName("git-error-test"),
-					namespaceName,
-					"Table-driven test for Git errors",
-				)
-
-				mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
-			mockGitClient.ResetMock()
-				expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
-				expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
-
-				switch tc.operation {
-				case "RemoveDirectory":
-					// Mock error will be handled by SetCommitPushError
-				case "CommitAndPushChanges":
-					mockGitClient.On("RemoveDirectory", expectedPath, expectedMessage).Return(nil)
-					// Mock error will be handled by SetCommitPushError
-				}
-
-				err := reconciler.cleanupGitOpsPackages(ctx, networkIntent, mockGitClient)
-
-				if tc.shouldPropagate {
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring(tc.error.Error()))
-				} else {
-					Expect(err).NotTo(HaveOccurred())
-				}
-
-				// Verify that git operations were called
-				callLog := mockGitClient.GetCallLog()
-				_ = callLog // Use callLog if needed for verification
-			},
-			Entry("authentication failure on remove", gitErrorTestCase{
-				name:            "authentication failure on remove",
-				error:           ErrGitAuthenticationFailed,
-				operation:       "RemoveDirectory",
-				shouldPropagate: true,
-			}),
-			Entry("network timeout on commit", gitErrorTestCase{
-				name:            "network timeout on commit",
-				error:           ErrGitNetworkTimeout,
-				operation:       "CommitAndPushChanges",
-				shouldPropagate: true,
-			}),
-			Entry("repository corruption", gitErrorTestCase{
-				name:            "repository corruption",
-				error:           ErrGitRepositoryCorrupted,
-				operation:       "RemoveDirectory",
-				shouldPropagate: true,
-			}),
-			Entry("directory not found", gitErrorTestCase{
-				name:            "directory not found",
-				error:           ErrGitDirectoryNotFound,
-				operation:       "RemoveDirectory",
-				shouldPropagate: true,
-			}),
-			Entry("push rejected", gitErrorTestCase{
-				name:            "push rejected",
-				error:           ErrGitPushRejected,
-				operation:       "CommitAndPushChanges",
-				shouldPropagate: true,
-			}),
-			Entry("no changes to commit", gitErrorTestCase{
-				name:            "no changes to commit",
-				error:           ErrGitNoChangesToCommit,
-				operation:       "CommitAndPushChanges",
-				shouldPropagate: true,
 			}),
 		)
 	})

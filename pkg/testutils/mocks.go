@@ -763,7 +763,7 @@ func (m *MockGitClient) ResetMock() {
 
 // Mock framework methods for test compatibility
 func (m *MockGitClient) On(method string, args ...interface{}) *MockCall {
-	key := fmt.Sprintf("%s-%v", method, args)
+	key := fmt.Sprintf("%s_%v", method, args)
 	m.expectedCalls[key] = args
 	return &MockCall{client: m, key: key}
 }

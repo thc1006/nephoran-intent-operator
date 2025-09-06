@@ -22,9 +22,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// Import the NetworkIntentFinalizer from config package
-// The constant is defined in pkg/config/constants.go
-const NetworkIntentFinalizer = "networkintent.nephoran.com/finalizer"
+// NetworkIntentFinalizer is imported from the main controller package
+// Removed redeclaration to fix compilation error
 
 var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 	const (
@@ -36,8 +35,8 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 		namespaceName string
 		reconciler    *NetworkIntentReconciler
 		mockDeps      *MockDependencies
-		testEnv       *envtest.Environment
 		ctx           context.Context
+		// testEnv is managed by the global test environment
 	)
 
 	BeforeEach(func() {
