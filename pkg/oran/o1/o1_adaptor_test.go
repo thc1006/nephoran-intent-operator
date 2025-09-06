@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 	"time"
-	"encoding/json"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran"

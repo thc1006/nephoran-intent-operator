@@ -775,7 +775,7 @@ func BenchmarkO2Manager_DiscoverResources(b *testing.B) {
 	ctrlClient := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(nodes...).Build()
 
 	adaptor, err := NewO2Adaptor(ctrlClient, clientset, nil)
-	require.NoError(t, err)
+	require.NoError(b, err)
 	manager := NewO2Manager(adaptor)
 
 	ctx := context.Background()
