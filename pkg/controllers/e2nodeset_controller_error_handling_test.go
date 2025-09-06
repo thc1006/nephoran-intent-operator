@@ -139,6 +139,16 @@ func (m *MockE2Manager) Shutdown() error {
 	return args.Error(0)
 }
 
+// setupSuccessfulE2ManagerMocks sets up all common E2Manager method expectations for successful operations
+func setupSuccessfulE2ManagerMocks(mockE2Manager *MockE2Manager) {
+	mockE2Manager.On("ProvisionNode", mock.Anything, mock.Anything).Return(nil)
+	mockE2Manager.On("SetupE2Connection", mock.Anything, mock.Anything).Return(nil)
+	mockE2Manager.On("RegisterE2Node", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	mockE2Manager.On("ListE2Nodes", mock.Anything).Return([]*e2.E2Node{}, nil)
+	mockE2Manager.On("DeregisterE2Node", mock.Anything, mock.Anything).Return(nil).Maybe()
+	mockE2Manager.On("GetMetrics").Return(&e2.E2Metrics{}).Maybe()
+}
+
 // Test helper functions
 
 func createTestE2NodeSet(name, namespace string, replicas int32) *nephoranv1.E2NodeSet {
@@ -385,11 +395,20 @@ func TestConfigMapCreationErrorHandling(t *testing.T) {
 				return ok
 			}), mock.Anything).Return(nil)
 
+			// Mock ConfigMap List call (needed for existing ConfigMap check)
+			mockClient.On("List", mock.Anything, mock.MatchedBy(func(list client.ObjectList) bool {
+				_, ok := list.(*corev1.ConfigMapList)
+				return ok
+			}), mock.Anything).Return(nil)
+
 			// Mock ConfigMap creation to fail
 			mockClient.On("Create", mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
 				_, ok := obj.(*corev1.ConfigMap)
 				return ok
 			}), mock.Anything).Return(tt.simulateError)
+
+			// Mock E2Manager ProvisionNode call
+			mockE2Manager.On("ProvisionNode", mock.Anything, mock.Anything).Return(nil).Maybe()
 
 			// Mock Update calls for retry count and status updates
 			mockClient.On("Update", mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
@@ -467,12 +486,21 @@ func TestConfigMapUpdateErrorHandling(t *testing.T) {
 		return ok
 	}), mock.Anything).Return(nil)
 
+	// Mock ConfigMap List call (needed for existing ConfigMap check)
+	mockClient.On("List", mock.Anything, mock.MatchedBy(func(list client.ObjectList) bool {
+		_, ok := list.(*corev1.ConfigMapList)
+		return ok
+	}), mock.Anything).Return(nil)
+
 	// Mock ConfigMap update to fail
 	updateError := errors.NewConflict(schema.GroupResource{Resource: "configmaps"}, "test-cm", fmt.Errorf("resource version conflict"))
 	mockClient.On("Update", mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
 		_, ok := obj.(*corev1.ConfigMap)
 		return ok
 	}), mock.Anything).Return(updateError)
+
+	// Mock E2Manager ProvisionNode call
+	mockE2Manager.On("ProvisionNode", mock.Anything, mock.Anything).Return(nil).Maybe()
 
 	// Mock E2NodeSet updates for retry count and status
 	mockClient.On("Update", mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
@@ -519,12 +547,21 @@ func TestE2ProvisioningErrorHandling(t *testing.T) {
 		return ok
 	}), mock.Anything).Return(nil)
 
-	// Mock all ConfigMap operations to fail to simulate E2 provisioning failure
+	// Mock ConfigMap List call (needed for existing ConfigMap check)
+	mockClient.On("List", mock.Anything, mock.MatchedBy(func(list client.ObjectList) bool {
+		_, ok := list.(*corev1.ConfigMapList)
+		return ok
+	}), mock.Anything).Return(nil)
+
+	// Mock E2Manager ProvisionNode to fail (this is what should trigger the error)
 	provisioningError := fmt.Errorf("E2 provisioning failed: network unreachable")
+	mockE2Manager.On("ProvisionNode", mock.Anything, mock.Anything).Return(provisioningError)
+
+	// Mock ConfigMap operations (might not be called if ProvisionNode fails first)
 	mockClient.On("Create", mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
 		_, ok := obj.(*corev1.ConfigMap)
 		return ok
-	}), mock.Anything).Return(provisioningError)
+	}), mock.Anything).Return(nil).Maybe()
 
 	// Mock E2NodeSet updates
 	mockClient.On("Update", mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
@@ -578,12 +615,21 @@ func TestMaxRetriesExceeded(t *testing.T) {
 		return ok
 	}), mock.Anything).Return(nil)
 
-	// Mock ConfigMap creation to fail
+	// Mock ConfigMap List call (needed for existing ConfigMap check)
+	mockClient.On("List", mock.Anything, mock.MatchedBy(func(list client.ObjectList) bool {
+		_, ok := list.(*corev1.ConfigMapList)
+		return ok
+	}), mock.Anything).Return(nil)
+
+	// Mock E2Manager ProvisionNode to fail consistently
 	provisioningError := fmt.Errorf("persistent E2 provisioning failure")
+	mockE2Manager.On("ProvisionNode", mock.Anything, mock.Anything).Return(provisioningError)
+
+	// Mock ConfigMap creation (might not be called if ProvisionNode fails first)
 	mockClient.On("Create", mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
 		_, ok := obj.(*corev1.ConfigMap)
 		return ok
-	}), mock.Anything).Return(provisioningError)
+	}), mock.Anything).Return(provisioningError).Maybe()
 
 	// Mock event recording for max retries exceeded
 	mockRecorder.On("Eventf", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return()
@@ -644,6 +690,12 @@ func TestFinalizerNotRemovedUntilCleanupSuccess(t *testing.T) {
 	// Mock Get calls to return the E2NodeSet from fake client
 	mockClient.On("Get", mock.Anything, mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
 		_, ok := obj.(*nephoranv1.E2NodeSet)
+		return ok
+	}), mock.Anything).Return(nil)
+
+	// Mock ConfigMap List call to return existing ConfigMaps
+	mockClient.On("List", mock.Anything, mock.MatchedBy(func(list client.ObjectList) bool {
+		_, ok := list.(*corev1.ConfigMapList)
 		return ok
 	}), mock.Anything).Return(nil)
 
@@ -733,6 +785,12 @@ func TestFinalizerRemovedAfterMaxCleanupRetries(t *testing.T) {
 		return ok
 	}), mock.Anything).Return(nil)
 
+	// Mock ConfigMap List call to return existing ConfigMaps
+	mockClient.On("List", mock.Anything, mock.MatchedBy(func(list client.ObjectList) bool {
+		_, ok := list.(*corev1.ConfigMapList)
+		return ok
+	}), mock.Anything).Return(nil)
+
 	// Mock ConfigMap deletion to fail
 	deleteError := fmt.Errorf("persistent deletion failure")
 	mockClient.On("Delete", mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
@@ -772,6 +830,12 @@ func TestIdempotentReconciliation(t *testing.T) {
 	mockRecorder := &MockEventRecorder{}
 	mockE2Manager := &MockE2Manager{}
 	reconciler := createTestReconciler(fakeClient, mockRecorder, mockE2Manager)
+
+	// Mock all common E2Manager calls for normal operation
+	setupSuccessfulE2ManagerMocks(mockE2Manager)
+
+	// Mock event recording for node creation
+	mockRecorder.On("Eventf", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return()
 
 	ctx := context.Background()
 	namespacedName := types.NamespacedName{Name: e2nodeSet.Name, Namespace: e2nodeSet.Namespace}
@@ -827,6 +891,11 @@ func TestSetReadyCondition(t *testing.T) {
 	mockRecorder := &MockEventRecorder{}
 	mockE2Manager := &MockE2Manager{}
 	reconciler := createTestReconciler(fakeClient, mockRecorder, mockE2Manager)
+
+	// Mock E2Manager calls (might be called during reconciliation)
+	mockE2Manager.On("ProvisionNode", mock.Anything, mock.Anything).Return(nil).Maybe()
+	mockE2Manager.On("SetupE2Connection", mock.Anything, mock.Anything).Return(nil).Maybe()
+	mockE2Manager.On("RegisterE2Node", mock.Anything, mock.Anything, mock.Anything).Return(nil).Maybe()
 
 	ctx := context.Background()
 
@@ -901,6 +970,22 @@ func TestReconcileWithPartialFailures(t *testing.T) {
 		_, ok := obj.(*nephoranv1.E2NodeSet)
 		return ok
 	}), mock.Anything).Return(nil)
+
+	// Mock ConfigMap List call (needed for existing ConfigMap check)
+	mockClient.On("List", mock.Anything, mock.MatchedBy(func(list client.ObjectList) bool {
+		_, ok := list.(*corev1.ConfigMapList)
+		return ok
+	}), mock.Anything).Return(nil)
+
+	// Mock E2Manager ProvisionNode to fail for the second node
+	var provisionCount int
+	mockE2Manager.On("ProvisionNode", mock.Anything, mock.Anything).Return(func(ctx context.Context, spec nephoranv1.E2NodeSetSpec) error {
+		provisionCount++
+		if provisionCount == 2 { // Second provision fails
+			return fmt.Errorf("provisioning failed for second node")
+		}
+		return nil
+	})
 
 	// Mock some ConfigMap creations to succeed and others to fail
 	var creationCount int
