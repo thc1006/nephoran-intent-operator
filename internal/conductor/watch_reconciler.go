@@ -289,7 +289,7 @@ func (r *WatchReconciler) parseIntentToJSON(ni *nephoranv1.NetworkIntent) (map[s
 
 	var target string
 
-	var replicas int
+	var replicas int = -1
 
 	for _, p := range patterns {
 
@@ -339,7 +339,7 @@ func (r *WatchReconciler) parseIntentToJSON(ni *nephoranv1.NetworkIntent) (map[s
 
 	}
 
-	if target == "" || replicas == 0 {
+	if target == "" || replicas <= 0 {
 		return nil, fmt.Errorf("unable to parse intent: %s", intent)
 	}
 
@@ -351,7 +351,17 @@ func (r *WatchReconciler) parseIntentToJSON(ni *nephoranv1.NetworkIntent) (map[s
 
 	// Create intent JSON matching docs/contracts/intent.schema.json.
 
-	return make(map[string]interface{}), nil
+	result := map[string]interface{}{
+		"intent_type":    "scaling",
+		"target":         target,
+		"namespace":      ni.Namespace,
+		"replicas":       replicas,
+		"source":         "conductor-watch",
+		"correlation_id": fmt.Sprintf("%s-%s-%d", ni.Name, ni.Namespace, time.Now().Unix()),
+		"reason":         fmt.Sprintf("Parsed from intent: %s", intent),
+	}
+
+	return result, nil
 }
 
 // writeIntentJSON writes the intent data to a JSON file.

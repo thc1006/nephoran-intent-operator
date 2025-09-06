@@ -40,7 +40,7 @@ permissions:
   pull-requests: write
 
 env:
-  GO_VERSION: "1.22.7"
+  GO_VERSION: "1.24.6"
   TRIVY_VERSION: "0.58.1"
   GOVULNCHECK_VERSION: "v1.1.3"
   CGO_ENABLED: "0"
@@ -52,7 +52,7 @@ jobs:
   # Build and Test
   # =============================================================================
   build-test:
-    name: ?”¨ Build and Test
+    name: ?ï¿½ï¿½ Build and Test
     runs-on: ubuntu-latest
     timeout-minutes: 10
     
@@ -67,29 +67,32 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
+          cache-dependency-path: |
+            go.sum
+            go.mod
           
       - name: Download dependencies
         run: |
-          echo "?“¦ Downloading Go dependencies..."
+          echo "?ï¿½ï¿½ Downloading Go dependencies..."
           go mod download
           go mod verify
           echo "??Dependencies downloaded"
           
       - name: Generate code
         run: |
-          echo "?”§ Generating code..."
-          make generate || echo "? ï? No generate target"
+          echo "?ï¿½ï¿½ Generating code..."
+          make generate || echo "?ï¿½ï¿½? No generate target"
           echo "??Code generation complete"
           
       - name: Build project
         run: |
-          echo "?”¨ Building project..."
+          echo "?ï¿½ï¿½ Building project..."
           make build
           echo "??Build successful"
           
       - name: Run tests
         run: |
-          echo "?§ª Running tests..."
+          echo "?ï¿½ï¿½ Running tests..."
           make test
           echo "??Tests passed"
           
@@ -101,6 +104,16 @@ jobs:
             bin/
             *.out
           retention-days: 7
+          if-no-files-found: warn
+          
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: warn
           
   # =============================================================================
   # Security Scanning
@@ -120,11 +133,14 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-          cache: false
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            go.mod
           
       - name: Install security tools
         run: |
-          echo "?“¦ Installing security tools..."
+          echo "?ï¿½ï¿½ Installing security tools..."
           
           # Install Trivy
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | \
@@ -173,7 +189,7 @@ SARIF
             echo "??No Go vulnerabilities found"
             echo "status=success" >> $GITHUB_OUTPUT
           else
-            echo "? ï? Go vulnerabilities detected"
+            echo "?ï¿½ï¿½? Go vulnerabilities detected"
             echo "status=warning" >> $GITHUB_OUTPUT
           fi
           
@@ -198,7 +214,7 @@ SARIF
             echo "??Trivy scan complete"
             echo "status=success" >> $GITHUB_OUTPUT
           else
-            echo "? ï? Trivy scan had issues"
+            echo "?ï¿½ï¿½? Trivy scan had issues"
             echo "status=warning" >> $GITHUB_OUTPUT
             
             # Create valid empty SARIF
@@ -248,10 +264,68 @@ SARIF
           echo "View detailed results in the Security tab" >> $GITHUB_STEP_SUMMARY
 
   # =============================================================================
+  # CI Status and Integration
+  # =============================================================================
+  ci-status:
+    name: âœ… CI Status
+    runs-on: ubuntu-latest
+    needs: [build-test, security-scan]
+    if: always()
+    timeout-minutes: 5
+    
+    steps:
+      - name: Determine CI Status
+        run: |
+          echo "# ðŸ CI Pipeline Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Build & Test | ${{ needs.build-test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Scan | ${{ needs.security-scan.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Determine overall status
+          if [[ "${{ needs.build-test.result }}" == "success" ]]; then
+            echo "âœ… **CI Pipeline: PASSED**" >> $GITHUB_STEP_SUMMARY
+            echo "All critical jobs completed successfully" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "âŒ **CI Pipeline: FAILED**" >> $GITHUB_STEP_SUMMARY
+            echo "Critical build/test failures detected" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          
+  integration-status:
+    name: ðŸ”„ Integration Status  
+    runs-on: ubuntu-latest
+    needs: [build-test, security-scan, ci-status]
+    if: always()
+    timeout-minutes: 5
+    
+    steps:
+      - name: Integration Status Report
+        run: |
+          echo "# ðŸ”„ Integration Pipeline Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Pipeline Results:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Build & Test: ${{ needs.build-test.result }}" >> $GITHUB_STEP_SUMMARY  
+          echo "- Security Scan: ${{ needs.security-scan.result || 'skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- CI Status: ${{ needs.ci-status.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ needs.ci-status.result }}" == "success" || "${{ needs.ci-status.result }}" == "skipped" ]]; then
+            echo "âœ… **Integration: READY**" >> $GITHUB_STEP_SUMMARY
+            echo "Pipeline ready for integration" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "âŒ **Integration: NOT READY**" >> $GITHUB_STEP_SUMMARY
+            echo "Fix CI issues before integration" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+  # =============================================================================
   # Container Build and Scan
   # =============================================================================
   container:
-    name: ?³ Container Build
+    name: ?ï¿½ï¿½ Container Build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: build-test
@@ -271,7 +345,7 @@ SARIF
           
       - name: Build container image
         run: |
-          echo "?³ Building container image..."
+          echo "?ï¿½ï¿½ Building container image..."
           
           # Try using Makefile first
           if make docker-build IMG=nephoran:ci 2>/dev/null; then
@@ -332,7 +406,7 @@ SARIF
           
       - name: Container summary
         run: |
-          echo "## ?³ Container Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## ?ï¿½ï¿½ Container Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Image:** nephoran:ci" >> $GITHUB_STEP_SUMMARY
           echo "**Status:** ??Built and scanned" >> $GITHUB_STEP_SUMMARY
@@ -343,7 +417,7 @@ SARIF
   # CodeQL Analysis
   # =============================================================================
   codeql:
-    name: ?”¬ CodeQL Analysis
+    name: ?ï¿½ï¿½ CodeQL Analysis
     runs-on: ubuntu-latest
     timeout-minutes: 10
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
@@ -413,7 +487,7 @@ SARIF
       - name: CI Summary Report
         if: always()
         run: |
-          echo "# ?Ž¯ CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "# ?ï¿½ï¿½ CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Workflow:** ${{ github.workflow }}" >> $GITHUB_STEP_SUMMARY
           echo "**Run:** #${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
@@ -432,9 +506,9 @@ SARIF
           elif [[ "${{ needs.build-test.result }}" == "failure" ]]; then
             echo "| Build & Test | ??Failed | - |" >> $GITHUB_STEP_SUMMARY
           elif [[ "${{ needs.build-test.result }}" == "skipped" ]]; then
-            echo "| Build & Test | ?­ï? Skipped | - |" >> $GITHUB_STEP_SUMMARY
+            echo "| Build & Test | ?ï¿½ï¿½? Skipped | - |" >> $GITHUB_STEP_SUMMARY
           else
-            echo "| Build & Test | ? ï? Warning | - |" >> $GITHUB_STEP_SUMMARY
+            echo "| Build & Test | ?ï¿½ï¿½? Warning | - |" >> $GITHUB_STEP_SUMMARY
           fi
           
           # Security scan status
@@ -443,9 +517,9 @@ SARIF
           elif [[ "${{ needs.security-scan.result }}" == "failure" ]]; then
             echo "| Security Scan | ??Failed | - |" >> $GITHUB_STEP_SUMMARY
           elif [[ "${{ needs.security-scan.result }}" == "skipped" ]]; then
-            echo "| Security Scan | ?­ï? Skipped | - |" >> $GITHUB_STEP_SUMMARY
+            echo "| Security Scan | ?ï¿½ï¿½? Skipped | - |" >> $GITHUB_STEP_SUMMARY
           else
-            echo "| Security Scan | ? ï? Warning | - |" >> $GITHUB_STEP_SUMMARY
+            echo "| Security Scan | ?ï¿½ï¿½? Warning | - |" >> $GITHUB_STEP_SUMMARY
           fi
           
           # Container status
@@ -454,9 +528,9 @@ SARIF
           elif [[ "${{ needs.container.result }}" == "failure" ]]; then
             echo "| Container | ??Failed | - |" >> $GITHUB_STEP_SUMMARY
           elif [[ "${{ needs.container.result }}" == "skipped" ]]; then
-            echo "| Container | ?­ï? Skipped | - |" >> $GITHUB_STEP_SUMMARY
+            echo "| Container | ?ï¿½ï¿½? Skipped | - |" >> $GITHUB_STEP_SUMMARY
           else
-            echo "| Container | ? ï? Warning | - |" >> $GITHUB_STEP_SUMMARY
+            echo "| Container | ?ï¿½ï¿½? Warning | - |" >> $GITHUB_STEP_SUMMARY
           fi
           
           # CodeQL status
@@ -465,9 +539,9 @@ SARIF
           elif [[ "${{ needs.codeql.result }}" == "failure" ]]; then
             echo "| CodeQL | ??Failed | - |" >> $GITHUB_STEP_SUMMARY
           elif [[ "${{ needs.codeql.result }}" == "skipped" ]]; then
-            echo "| CodeQL | ?­ï? Skipped | - |" >> $GITHUB_STEP_SUMMARY
+            echo "| CodeQL | ?ï¿½ï¿½? Skipped | - |" >> $GITHUB_STEP_SUMMARY
           else
-            echo "| CodeQL | ? ï? Warning | - |" >> $GITHUB_STEP_SUMMARY
+            echo "| CodeQL | ?ï¿½ï¿½? Warning | - |" >> $GITHUB_STEP_SUMMARY
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY

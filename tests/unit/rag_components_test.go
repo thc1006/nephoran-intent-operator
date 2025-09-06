@@ -259,7 +259,7 @@ func (suite *RAGComponentsTestSuite) testChunkTelecomContent() {
 		Network slicing allows multiple virtual networks to run on a single physical infrastructure. 
 		The Core Network (5GC) includes functions like AMF, SMF, UPF, and PCF for different network operations.`,
 		Type: "technical",
-		Metadata: json.RawMessage(`{}`),
+		Metadata: map[string]interface{}{},
 	}
 
 	chunks, err := chunker.ChunkDocument(suite.ctx, doc)

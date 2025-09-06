@@ -5,7 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"math/rand"
+	mathrand "math/rand"
 	"net/http"
 	"runtime"
 	"sync"
@@ -255,7 +255,7 @@ func (plt *ProductionLoadTester) createTargeter() vegeta.Targeter {
 
 // selectScenario selects a scenario based on weights
 func (plt *ProductionLoadTester) selectScenario() TestScenario {
-	r := rand.Float64() * plt.totalWeight
+	r := mathmathrand.Float64() * plt.totalWeight
 	cumulative := 0.0
 
 	for i, weight := range plt.scenarioWeights {
@@ -443,37 +443,37 @@ func generateNetworkIntentPayload() interface{} {
 
 	specs := []map[string]interface{}{
 		{
-			"intent":   intents[rand.Intn(len(intents))],
+			"intent":   intents[mathrand.Intn(len(intents))],
 			"priority": "high",
 		},
 		{
-			"intent":   intents[rand.Intn(len(intents))],
+			"intent":   intents[mathrand.Intn(len(intents))],
 			"priority": "medium",
 		},
 		{
-			"intent":   intents[rand.Intn(len(intents))],
+			"intent":   intents[mathrand.Intn(len(intents))],
 			"priority": "low",
 		},
 	}
 
 	return map[string]interface{}{
 		"metadata": map[string]interface{}{
-			"name":      fmt.Sprintf("intent-%d", rand.Intn(100000)),
+			"name":      fmt.Sprintf("intent-%d", mathrand.Intn(100000)),
 			"namespace": "default",
 		},
-		"spec": specs[rand.Intn(len(specs))],
+		"spec": specs[mathrand.Intn(len(specs))],
 	}
 }
 
 func generatePolicyPayload() interface{} {
 	return map[string]interface{}{
-		"max_throughput":    rand.Intn(10000) + 1000,
-		"min_throughput":    rand.Intn(1000) + 100,
-		"latency_target_ms": rand.Intn(50) + 10,
-		"reliability":       0.99 + rand.Float64()*0.009,
+		"max_throughput":    mathrand.Intn(10000) + 1000,
+		"min_throughput":    mathrand.Intn(1000) + 100,
+		"latency_target_ms": mathrand.Intn(50) + 10,
+		"reliability":       0.99 + mathrand.Float64()*0.009,
 		"target_cells": []string{
-			fmt.Sprintf("cell-%d", rand.Intn(100)),
-			fmt.Sprintf("cell-%d", rand.Intn(100)),
+			fmt.Sprintf("cell-%d", mathrand.Intn(100)),
+			fmt.Sprintf("cell-%d", mathrand.Intn(100)),
 		},
 	}
 }
@@ -482,14 +482,14 @@ func generateScalingPayload() interface{} {
 	payloads := []map[string]interface{}{
 		{
 			"component": "amf",
-			"replicas":  rand.Intn(10) + 1,
+			"replicas":  mathrand.Intn(10) + 1,
 		},
 		{
 			"component": "smf",
-			"replicas":  rand.Intn(5) + 1,
+			"replicas":  mathrand.Intn(5) + 1,
 		},
 	}
-	return payloads[rand.Intn(len(payloads))]
+	return payloads[mathrand.Intn(len(payloads))]
 }
 
 // Validator functions

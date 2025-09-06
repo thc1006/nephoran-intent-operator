@@ -46,33 +46,7 @@ type SLAValidationTestSuiteImpl struct {
 	evidence          *ValidationEvidence
 }
 
-// SLAValidationConfig defines precise validation parameters for SLA testing
-type SLAValidationConfig struct {
-	// SLA Claims to validate
-	AvailabilityClaim float64       `yaml:"availability_claim"` // 99.95%
-	LatencyP95Claim   time.Duration `yaml:"latency_p95_claim"`  // Sub-2-second
-	ThroughputClaim   float64       `yaml:"throughput_claim"`   // 45 intents/minute
-
-	// Statistical validation parameters
-	ConfidenceLevel      float64 `yaml:"confidence_level"`      // 99.95%
-	SampleSize           int     `yaml:"sample_size"`           // 10000
-	MeasurementPrecision float64 `yaml:"measurement_precision"` // ±0.01% for availability, ±10ms for latency
-
-	// Validation duration and intervals
-	ValidationDuration time.Duration `yaml:"validation_duration"` // 1 hour
-	SamplingInterval   time.Duration `yaml:"sampling_interval"`   // 1 second
-	BatchSize          int           `yaml:"batch_size"`          // 100 measurements per batch
-
-	// Accuracy requirements
-	AvailabilityAccuracy float64       `yaml:"availability_accuracy"` // ±0.01%
-	LatencyAccuracy      time.Duration `yaml:"latency_accuracy"`      // ±10ms
-	ThroughputAccuracy   float64       `yaml:"throughput_accuracy"`   // ±1 intent/minute
-
-	// Cross-validation parameters
-	IndependentMethods int             `yaml:"independent_methods"` // 3 different measurement methods
-	ValidationRounds   int             `yaml:"validation_rounds"`   // 5 validation rounds
-	TimeWindows        []time.Duration `yaml:"time_windows"`        // Different window sizes for validation
-}
+// Note: SLAValidationConfig is now defined in sla_types.go to avoid duplication
 
 // SLAValidator performs comprehensive SLA validation
 type SLAValidator struct {
@@ -87,27 +61,7 @@ type SLAValidator struct {
 	throughputValidators   []ThroughputValidator
 }
 
-// MeasurementSet contains a set of measurements for statistical analysis
-type MeasurementSet struct {
-	Name       string                 `json:"name"`
-	Type       MeasurementType        `json:"type"`
-	Values     []float64              `json:"values"`
-	Timestamps []time.Time            `json:"timestamps"`
-	Metadata   json.RawMessage `json:"metadata"`
-
-	// Statistical properties
-	Mean        float64         `json:"mean"`
-	Median      float64         `json:"median"`
-	StdDev      float64         `json:"std_dev"`
-	Min         float64         `json:"min"`
-	Max         float64         `json:"max"`
-	Percentiles map[int]float64 `json:"percentiles"`
-
-	// Quality metrics
-	OutlierCount int     `json:"outlier_count"`
-	MissingData  int     `json:"missing_data"`
-	QualityScore float64 `json:"quality_score"`
-}
+// Note: MeasurementSet is defined in sla_types.go
 
 // MeasurementType defines the type of measurement
 type MeasurementType string
@@ -119,30 +73,7 @@ const (
 	MeasurementTypeErrorRate    MeasurementType = "error_rate"
 )
 
-// StatisticalAnalyzer performs advanced statistical analysis
-type StatisticalAnalyzer struct {
-	confidenceLevel float64
-	analysisResults map[string]*StatisticalAnalysis
-	mutex           sync.RWMutex
-}
-
-// StatisticalAnalysis contains statistical analysis results
-type StatisticalAnalysis struct {
-	SampleSize         int                 `json:"sample_size"`
-	ConfidenceLevel    float64             `json:"confidence_level"`
-	Mean               float64             `json:"mean"`
-	ConfidenceInterval *ConfidenceInterval `json:"confidence_interval"`
-	HypothesisTest     *HypothesisTest     `json:"hypothesis_test"`
-	TrendAnalysis      *SLATrendAnalysis   `json:"trend_analysis"`
-	OutlierAnalysis    *OutlierAnalysis    `json:"outlier_analysis"`
-}
-
-// ConfidenceInterval represents a statistical confidence interval
-type ConfidenceInterval struct {
-	LowerBound float64 `json:"lower_bound"`
-	UpperBound float64 `json:"upper_bound"`
-	Margin     float64 `json:"margin"`
-}
+// Note: StatisticalAnalyzer, StatisticalAnalysis, and ConfidenceInterval are defined in sla_types.go
 
 // HypothesisTest contains hypothesis testing results
 type HypothesisTest struct {
@@ -199,53 +130,9 @@ type CalibrationData struct {
 	Corrections        map[string]float64 `json:"corrections"`
 }
 
-// ClaimVerifier verifies specific SLA claims against measured data
-type ClaimVerifier struct {
-	claims        map[string]*SLAClaim
-	verifications map[string]*ClaimVerification
-	mutex         sync.RWMutex
-}
+// Note: ClaimVerifier is defined in sla_types.go
 
-// SLAClaim represents an SLA claim to be verified
-type SLAClaim struct {
-	Name               string           `json:"name"`
-	Type               ClaimType        `json:"type"`
-	ClaimedValue       interface{}      `json:"claimed_value"`
-	Tolerance          float64          `json:"tolerance"`
-	VerificationMethod string           `json:"verification_method"`
-	CriticalityLevel   ClaimCriticality `json:"criticality_level"`
-}
-
-// ClaimType defines the type of SLA claim
-type ClaimType string
-
-const (
-	ClaimTypeAvailability ClaimType = "availability"
-	ClaimTypeLatency      ClaimType = "latency"
-	ClaimTypeThroughput   ClaimType = "throughput"
-	ClaimTypeReliability  ClaimType = "reliability"
-)
-
-// ClaimCriticality defines the criticality level of claims
-type ClaimCriticality string
-
-const (
-	CriticalityCritical ClaimCriticality = "critical"
-	CriticalityHigh     ClaimCriticality = "high"
-	CriticalityMedium   ClaimCriticality = "medium"
-	CriticalityLow      ClaimCriticality = "low"
-)
-
-// ClaimVerification contains verification results for a claim
-type ClaimVerification struct {
-	Claim            *SLAClaim            `json:"claim"`
-	MeasuredValue    interface{}          `json:"measured_value"`
-	Verified         bool                 `json:"verified"`
-	ConfidenceLevel  float64              `json:"confidence_level"`
-	Evidence         []interface{} `json:"evidence"`
-	Discrepancy      float64              `json:"discrepancy"`
-	VerificationTime time.Time            `json:"verification_time"`
-}
+// Note: SLAClaim, ClaimType, ClaimCriticality, and ClaimVerification are defined in sla_types.go
 
 // SLAValidationResults contains comprehensive SLA validation results
 type SLAValidationResults struct {

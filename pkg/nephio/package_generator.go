@@ -60,7 +60,7 @@ func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[strin
 
 	packageName := fmt.Sprintf("%s-package", intent.Name)
 
-	packagePath := filepath.Join("packages", intent.Namespace, packageName)
+	packagePath := strings.ReplaceAll(filepath.Join("packages", intent.Namespace, packageName), "\\", "/")
 
 	// Generate Kptfile.
 
@@ -69,7 +69,7 @@ func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[strin
 		return nil, fmt.Errorf("failed to generate Kptfile: %w", err)
 	}
 
-	files[filepath.Join(packagePath, "Kptfile")] = kptfile
+	files[strings.ReplaceAll(filepath.Join(packagePath, "Kptfile"), "\\", "/")] = kptfile
 
 	// Generate package resources based on intent type.
 
@@ -91,7 +91,7 @@ func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[strin
 		}
 
 		for path, content := range resources {
-			files[filepath.Join(packagePath, path)] = content
+			files[strings.ReplaceAll(filepath.Join(packagePath, path), "\\", "/")] = content
 		}
 
 	case "scaling":
@@ -102,7 +102,7 @@ func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[strin
 		}
 
 		for path, content := range resources {
-			files[filepath.Join(packagePath, path)] = content
+			files[strings.ReplaceAll(filepath.Join(packagePath, path), "\\", "/")] = content
 		}
 
 	case "policy":
@@ -113,7 +113,7 @@ func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[strin
 		}
 
 		for path, content := range resources {
-			files[filepath.Join(packagePath, path)] = content
+			files[strings.ReplaceAll(filepath.Join(packagePath, path), "\\", "/")] = content
 		}
 
 	default:
@@ -129,7 +129,7 @@ func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[strin
 		return nil, fmt.Errorf("failed to generate README: %w", err)
 	}
 
-	files[filepath.Join(packagePath, "README.md")] = readme
+	files[strings.ReplaceAll(filepath.Join(packagePath, "README.md"), "\\", "/")] = readme
 
 	// Generate function configuration.
 
@@ -138,7 +138,7 @@ func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[strin
 		return nil, fmt.Errorf("failed to generate function config: %w", err)
 	}
 
-	files[filepath.Join(packagePath, "fn-config.yaml")] = fnConfig
+	files[strings.ReplaceAll(filepath.Join(packagePath, "fn-config.yaml"), "\\", "/")] = fnConfig
 
 	return files, nil
 }
@@ -677,7 +677,29 @@ func (pg *PackageGenerator) generatePolicyResources(intent *v1.NetworkIntent) (m
 // generateReadme generates the README for the package.
 
 func (pg *PackageGenerator) generateReadme(intent *v1.NetworkIntent) (string, error) {
-	data := json.RawMessage(`{}`)
+	data := struct {
+		Name                 string
+		Description          string
+		Intent               string
+		GeneratedAt          string
+		Contents             string
+		ORANDetails          string
+		NetworkSliceDetails  string
+	}{
+		Name:                intent.Name,
+		Description:         fmt.Sprintf("Nephio package generated from NetworkIntent '%s' in namespace '%s'", intent.Name, intent.Namespace),
+		Intent:              intent.Spec.Intent,
+		GeneratedAt:         "auto-generated",
+		Contents:            "This package contains Kubernetes resources generated from the NetworkIntent specification.",
+		ORANDetails:         "No O-RAN specific configuration in this package",
+		NetworkSliceDetails: "No network slice configuration in this package",
+	}
+
+	// Extract O-RAN and network slice details if available
+	if intent.Spec.ProcessedParameters != nil {
+		data.ORANDetails = pg.extractORANDetailsFromProcessed(intent.Spec.ProcessedParameters)
+		data.NetworkSliceDetails = pg.extractNetworkSliceDetailsFromProcessed(intent.Spec.ProcessedParameters)
+	}
 
 	var buf bytes.Buffer
 

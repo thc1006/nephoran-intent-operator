@@ -23,7 +23,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
-	"math/rand/v2"
+	mathrand "math/rand/v2"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -98,12 +98,12 @@ func (m *MockFailingSyncEngine) SyncPackageToCluster(
 
 	// Simulate random latency
 	if m.latencyRange > 0 {
-		latency := time.Duration(rand.Int63n(int64(m.latencyRange)))
+		latency := time.Duration(mathrand.Int63n(int64(m.latencyRange)))
 		time.Sleep(latency)
 	}
 
 	// Simulate failures based on failure rate
-	if rand.Float64() < m.failureRate {
+	if mathrand.Float64() < m.failureRate {
 		m.mutex.Lock()
 		m.failureCount++
 		m.mutex.Unlock()
@@ -188,8 +188,8 @@ func setupChaosTestComponents(t *testing.T) *MultiClusterComponents {
 			Name:       clusterName,
 			Kubeconfig: config,
 			ResourceUtilization: ResourceUtilization{
-				CPUTotal:    float64(4 + rand.Intn(8)),
-				MemoryTotal: int64((8 + rand.Intn(16)) * 1024 * 1024 * 1024),
+				CPUTotal:    float64(4 + mathrand.Intn(8)),
+				MemoryTotal: int64((8 + mathrand.Intn(16)) * 1024 * 1024 * 1024),
 			},
 			HealthStatus: ClusterHealthStatus{Available: true},
 		}
@@ -580,11 +580,11 @@ func TestChaos_AlertStorm(t *testing.T) {
 
 			for i := 0; i < numAlerts; i++ {
 				alerts[i] = Alert{
-					Severity:     severities[rand.Intn(len(severities))],
-					Type:         alertTypes[rand.Intn(len(alertTypes))],
+					Severity:     severities[mathrand.Intn(len(severities))],
+					Type:         alertTypes[mathrand.Intn(len(alertTypes))],
 					Message:      fmt.Sprintf("Storm alert #%d", i),
-					ResourceName: fmt.Sprintf("resource-%d", rand.Intn(100)),
-					Timestamp:    time.Now().Add(time.Duration(rand.Intn(1000)) * time.Millisecond),
+					ResourceName: fmt.Sprintf("resource-%d", mathrand.Intn(100)),
+					Timestamp:    time.Now().Add(time.Duration(mathrand.Intn(1000)) * time.Millisecond),
 				}
 			}
 

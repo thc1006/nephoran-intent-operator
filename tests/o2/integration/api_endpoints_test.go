@@ -275,7 +275,7 @@ func (suite *O2APITestSuite) TestResourceTypeCRUD() {
 				},
 			},
 			SupportedActions: []string{"CREATE", "DELETE", "UPDATE", "SCALE", "HEAL"},
-			Capabilities:     json.RawMessage(`{}`),
+			Capabilities:     []models.ResourceCapability{},
 		}
 
 		typeJSON, err := json.Marshal(resourceType)

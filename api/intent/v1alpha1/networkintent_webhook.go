@@ -108,22 +108,22 @@ func (r *NetworkIntent) validateNetworkIntent() (admission.Warnings, error) {
 
 	// Validate intentType
 	if r.Spec.IntentType != "scaling" {
-		allErrs = append(allErrs, fmt.Errorf("only 'scaling' supported"))
+		allErrs = append(allErrs, fmt.Errorf("spec.intentType must be 'scaling'"))
 	}
 
 	// Validate target is not empty
 	if r.Spec.Target == "" {
-		allErrs = append(allErrs, fmt.Errorf("target must be non-empty"))
+		allErrs = append(allErrs, fmt.Errorf("target cannot be empty"))
 	}
 
 	// Validate namespace is not empty
 	if r.Spec.Namespace == "" {
-		allErrs = append(allErrs, fmt.Errorf("namespace must be non-empty"))
+		allErrs = append(allErrs, fmt.Errorf("namespace cannot be empty"))
 	}
 
 	// Validate replicas is non-negative
 	if r.Spec.Replicas < 0 {
-		allErrs = append(allErrs, fmt.Errorf("replicas must be >= 0"))
+		allErrs = append(allErrs, fmt.Errorf("replicas must be non-negative"))
 	}
 
 	// Validate source

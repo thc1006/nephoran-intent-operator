@@ -5,7 +5,7 @@ package performance_tests
 import (
 	"crypto/rand"
 	"fmt"
-	"math/rand"
+	mathrand "math/rand"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -47,7 +47,7 @@ func BenchmarkControllerRaceConditions(b *testing.B) {
 		b.Run(scenario.name, func(b *testing.B) {
 			b.SetParallelism(scenario.goroutines)
 			b.RunParallel(func(pb *testing.PB) {
-				id := rand.Intn(scenario.goroutines)
+				id := mathrand.Intn(scenario.goroutines)
 				for pb.Next() {
 					scenario.workload(b, id)
 				}
@@ -132,7 +132,7 @@ func BenchmarkLLMRaceConditions(b *testing.B) {
 
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				needed := int64(rand.Intn(100) + 1)
+				needed := int64(mathrand.Intn(100) + 1)
 
 				// Try to acquire tokens
 				for {
@@ -211,7 +211,7 @@ func BenchmarkSecurityRaceConditions(b *testing.B) {
 
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				certID := fmt.Sprintf("cert-%d", rand.Intn(100))
+				certID := fmt.Sprintf("cert-%d", mathrand.Intn(100))
 
 				// Check if rotation needed
 				if val, ok := certs.Load(certID); ok {
@@ -237,9 +237,9 @@ func BenchmarkSecurityRaceConditions(b *testing.B) {
 
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				user := fmt.Sprintf("user-%d", rand.Intn(10))
-				resource := fmt.Sprintf("resource-%d", rand.Intn(100))
-				action := []string{"read", "write", "delete"}[rand.Intn(3)]
+				user := fmt.Sprintf("user-%d", mathrand.Intn(10))
+				resource := fmt.Sprintf("resource-%d", mathrand.Intn(100))
+				action := []string{"read", "write", "delete"}[mathrand.Intn(3)]
 
 				key := fmt.Sprintf("%s:%s:%s", user, resource, action)
 
@@ -272,7 +272,7 @@ func BenchmarkSecurityRaceConditions(b *testing.B) {
 
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				secretID := fmt.Sprintf("secret-%d", rand.Intn(50))
+				secretID := fmt.Sprintf("secret-%d", mathrand.Intn(50))
 
 				if rand.Float32() < 0.1 { // 10% rotation rate
 					// Rotate secret
@@ -297,8 +297,8 @@ func BenchmarkMonitoringRaceConditions(b *testing.B) {
 
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				metricName := fmt.Sprintf("metric-%d", rand.Intn(100))
-				value := rand.Float64() * 100
+				metricName := fmt.Sprintf("metric-%d", mathrand.Intn(100))
+				value := mathrand.Float64() * 100
 
 				// Update metric
 				if current, ok := metrics.Load(metricName); ok {
@@ -341,8 +341,8 @@ func BenchmarkMonitoringRaceConditions(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
 				alert := &mockAlert{
-					id:       fmt.Sprintf("alert-%d", rand.Intn(50)),
-					severity: rand.Intn(3),
+					id:       fmt.Sprintf("alert-%d", mathrand.Intn(50)),
+					severity: mathrand.Intn(3),
 				}
 
 				select {
@@ -364,7 +364,7 @@ func BenchmarkMonitoringRaceConditions(b *testing.B) {
 
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				traceID := fmt.Sprintf("trace-%d", rand.Intn(100))
+				traceID := fmt.Sprintf("trace-%d", mathrand.Intn(100))
 				spanID := spanCounter.Add(1)
 
 				// Add span to trace

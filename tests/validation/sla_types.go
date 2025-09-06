@@ -180,21 +180,40 @@ type ThroughputScore struct {
 
 // Core types needed by sla_methods.go
 
-// SLAValidationTestSuite provides method definitions for SLA validation
-// The test suite implementation with additional fields is in sla_validation_test.go
-type SLAValidationTestSuite struct {
-	// Basic fields needed for method compilation
-	config *SLAValidationConfig
+// SLAValidationConfig defines precise validation parameters for SLA testing
+type SLAValidationConfig struct {
+	// SLA Claims to validate
+	AvailabilityClaim float64       `yaml:"availability_claim"` // 99.95%
+	LatencyP95Claim   time.Duration `yaml:"latency_p95_claim"`  // Sub-2-second
+	ThroughputClaim   float64       `yaml:"throughput_claim"`   // 45 intents/minute
+
+	// Statistical validation parameters
+	ConfidenceLevel      float64 `yaml:"confidence_level"`      // 99.95%
+	SampleSize           int     `yaml:"sample_size"`           // 10000
+	MeasurementPrecision float64 `yaml:"measurement_precision"` // ±0.01% for availability, ±10ms for latency
+
+	// Validation duration and intervals
+	ValidationDuration time.Duration `yaml:"validation_duration"` // 1 hour
+	SamplingInterval   time.Duration `yaml:"sampling_interval"`   // 1 second
+	BatchSize          int           `yaml:"batch_size"`          // 100 measurements per batch
+
+	// Accuracy requirements
+	AvailabilityAccuracy float64       `yaml:"availability_accuracy"` // ±0.01%
+	LatencyAccuracy      time.Duration `yaml:"latency_accuracy"`      // ±10ms
+	ThroughputAccuracy   float64       `yaml:"throughput_accuracy"`   // ±1 intent/minute
+
+	// Cross-validation parameters
+	IndependentMethods int             `yaml:"independent_methods"` // 3 different measurement methods
+	ValidationRounds   int             `yaml:"validation_rounds"`   // 5 validation rounds
+	TimeWindows        []time.Duration `yaml:"time_windows"`        // Different window sizes for validation
 }
 
-// SLAValidationConfig placeholder for compilation
-type SLAValidationConfig struct {
-	AvailabilityClaim    float64       `json:"availability_claim"`
-	AvailabilityAccuracy float64       `json:"availability_accuracy"`
-	LatencyP95Claim      time.Duration `json:"latency_p95_claim"`
-	ThroughputClaim      float64       `json:"throughput_claim"`
-	ThroughputAccuracy   float64       `json:"throughput_accuracy"`
-	ConfidenceLevel      float64       `json:"confidence_level"`
+// SLAValidationTestSuite provides method definitions for SLA validation
+// The full test suite implementation with additional fields is in sla_validation_test.go
+type SLAValidationTestSuite struct {
+	// Basic fields needed for method compilation - the actual implementation
+	// in sla_validation_test.go has many more fields
+	config *SLAValidationConfig
 }
 
 // MeasurementSet contains a collection of measurements for validation

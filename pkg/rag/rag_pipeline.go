@@ -254,7 +254,8 @@ func (p *RAGPipeline) IngestDocument(ctx context.Context, doc *Document) error {
 	}
 	
 	// Step 1: Chunk the document
-	chunks, err := p.chunker.Chunk(ctx, doc.Content, doc.Metadata)
+	metadataBytes, _ := json.Marshal(doc.Metadata)
+	chunks, err := p.chunker.Chunk(ctx, doc.Content, metadataBytes)
 	if err != nil {
 		return fmt.Errorf("failed to chunk document: %w", err)
 	}

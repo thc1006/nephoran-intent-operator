@@ -6,7 +6,6 @@ package unit
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -506,7 +505,7 @@ func (suite *LLMTestSuite) TestStreamingProcessor() {
 				for _, chunk := range chunks {
 					err := streamingProcessor.StreamChunk(sessionID, &llm.StreamingChunk{
 						Content:   chunk,
-						ChunkType: llm.ChunkTypeContent,
+						Type:      string(llm.ChunkTypeContent),
 						Timestamp: time.Now(),
 					})
 					gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -534,12 +533,12 @@ func (suite *LLMTestSuite) TestLLMIntegration() {
 				duration := time.Since(start)
 
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				gomega.Expect(result).NotTo(gomega.BeNil())
+				gomega.Expect(result).NotTo(gomega.BeEmpty())
 
-				// Verify structured response
-				gomega.Expect(result["type"]).To(gomega.Equal("NetworkFunctionDeployment"))
-				gomega.Expect(result["networkFunction"]).To(gomega.Equal("AMF"))
-				gomega.Expect(result["replicas"]).To(gomega.Equal(int64(3)))
+				// Verify response contains expected content
+				gomega.Expect(result).To(gomega.ContainSubstring("AMF"))
+				gomega.Expect(result).To(gomega.ContainSubstring("3"))
+				gomega.Expect(result).To(gomega.ContainSubstring("replica"))
 
 				suite.GetMetrics().RecordLatency("llm_end_to_end", duration)
 

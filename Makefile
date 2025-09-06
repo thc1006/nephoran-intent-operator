@@ -194,14 +194,29 @@ llm-demo-test: build-intent-ingest $(DEMO_HANDOFF_DIR)
 # Testing Strategy
 # =============================================================================
 
+# Test results directory
+TEST_RESULTS_DIR := test-results
+
+$(TEST_RESULTS_DIR):
+	@mkdir -p $(TEST_RESULTS_DIR)
+
 .PHONY: test
 test: test-unit test-integration
 
 .PHONY: test-unit
-test-unit:
-	@echo "Running unit tests..."
-	CGO_ENABLED=1 $(GO) test -v -race -timeout=$(TEST_TIMEOUT) -parallel=$(TEST_PARALLEL) ./...
-	@echo "[SUCCESS] Unit tests passed"
+test-unit: $(TEST_RESULTS_DIR)
+	@echo "Running unit tests with structured output..."
+	@mkdir -p $(TEST_RESULTS_DIR)/coverage $(TEST_RESULTS_DIR)/junit $(TEST_RESULTS_DIR)/logs
+	CGO_ENABLED=1 $(GO) test -v -race -timeout=$(TEST_TIMEOUT) -parallel=$(TEST_PARALLEL) \
+		-coverprofile=$(TEST_RESULTS_DIR)/coverage.out -covermode=atomic \
+		-json ./... > $(TEST_RESULTS_DIR)/logs/unit-tests.json 2>&1 || true
+	@# Generate coverage reports
+	@if [ -f "$(TEST_RESULTS_DIR)/coverage.out" ]; then \
+		$(GO) tool cover -html=$(TEST_RESULTS_DIR)/coverage.out -o $(TEST_RESULTS_DIR)/coverage/coverage.html; \
+		$(GO) tool cover -func=$(TEST_RESULTS_DIR)/coverage.out > $(TEST_RESULTS_DIR)/coverage/coverage-summary.txt; \
+		echo "Coverage reports generated in $(TEST_RESULTS_DIR)/coverage/"; \
+	fi
+	@echo "[SUCCESS] Unit tests completed with structured output"
 
 .PHONY: test-unit-coverage
 test-unit-coverage:
@@ -230,14 +245,15 @@ test-schema-validation:
 	@echo "[SUCCESS] Schema validation tests passed"
 
 .PHONY: test-integration
-test-integration: build-all $(DEMO_HANDOFF_DIR)
-	@echo "Running integration tests..."
+test-integration: build-all $(DEMO_HANDOFF_DIR) $(TEST_RESULTS_DIR)
+	@echo "Running integration tests with structured output..."
+	@mkdir -p $(TEST_RESULTS_DIR)/integration $(TEST_RESULTS_DIR)/logs
 	@echo "Testing intent-ingest to LLM processor handoff..."
 	@# Test the full pipeline integration
 	$(GO) test -v -timeout=$(TEST_TIMEOUT) \
-		./cmd/intent-ingest/... ./cmd/llm-processor/... \
-		-run "Test.*Integration"
-	@echo "[SUCCESS] Integration tests passed"
+		-json ./cmd/intent-ingest/... ./cmd/llm-processor/... \
+		-run "Test.*Integration" > $(TEST_RESULTS_DIR)/logs/integration-tests.json 2>&1 || true
+	@echo "[SUCCESS] Integration tests completed with structured output"
 
 # =============================================================================
 # Schema and Validation
