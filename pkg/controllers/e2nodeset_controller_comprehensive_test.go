@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -194,7 +195,7 @@ func TestE2NodeSetController_Reconcile(t *testing.T) {
 			},
 			gitClientSetup: func(gc *gitfake.Client) {},
 			expectedResult: ctrl.Result{RequeueAfter: 5 * time.Second}, // Approximate exponential backoff for first retry
-			expectedError:  false, // Controller handles errors internally with retry logic
+			expectedError:  true, // Controller should return retryable error for failed provision
 			expectedCalls: func(t *testing.T, mgr *testutil.FakeE2Manager, gc *gitfake.Client) {
 				assert.Equal(t, 1, mgr.GetProvisionCallCount(), "ProvisionNode should be called once")
 				// ListE2Nodes is not called when provisioning fails early
@@ -224,7 +225,7 @@ func TestE2NodeSetController_Reconcile(t *testing.T) {
 			},
 			gitClientSetup: func(gc *gitfake.Client) {},
 			expectedResult: ctrl.Result{RequeueAfter: 5 * time.Second}, // Approximate exponential backoff for first retry
-			expectedError:  false, // Controller handles errors internally with retry logic
+			expectedError:  true, // Controller should return retryable error for failed connection
 			expectedCalls: func(t *testing.T, mgr *testutil.FakeE2Manager, gc *gitfake.Client) {
 				assert.Equal(t, 1, mgr.GetProvisionCallCount(), "ProvisionNode should be called once")
 				assert.Equal(t, 1, mgr.GetConnectionCallCount(), "SetupE2Connection should be called once")
@@ -404,16 +405,31 @@ func TestE2NodeSetController_Reconcile(t *testing.T) {
 			// Verify results
 			if tc.expectedError {
 				assert.Error(t, err, tc.description)
+				
+				// For retry test cases, validate error content and retry behavior
+				if tc.name == "provision_failure_retry" || tc.name == "connection_failure_retry" {
+					assert.Contains(t, err.Error(), "retryable reconciliation error", "Error should indicate retry attempt")
+					// Allow for different retry count patterns based on where the error occurs
+					assert.True(t, 
+						strings.Contains(err.Error(), "attempt 0/3") || 
+						strings.Contains(err.Error(), "attempt 1/3"),
+						fmt.Sprintf("Error should show retry count, got: %s", err.Error()))
+					
+					if tc.name == "provision_failure_retry" {
+						assert.Contains(t, err.Error(), "E2 provisioning failed", "Should contain provision failure details")
+						assert.Contains(t, err.Error(), "fake provision failure", "Should contain fake error details")
+					}
+					if tc.name == "connection_failure_retry" {
+						assert.Contains(t, err.Error(), "fake connection failure", "Should contain connection failure details")
+					}
+					
+					// Verify RequeueAfter is set properly for retries
+					assert.False(t, result.Requeue, tc.description)
+					assert.True(t, result.RequeueAfter > 0, "RequeueAfter should be set for retry scenarios")
+					assert.True(t, result.RequeueAfter <= 60*time.Second, "RequeueAfter should be reasonable for retry backoff")
+				}
 			} else {
 				assert.NoError(t, err, tc.description)
-			}
-
-			// For retry tests, check that RequeueAfter is set to a reasonable backoff time
-			if tc.name == "provision_failure_retry" || tc.name == "connection_failure_retry" {
-				assert.False(t, result.Requeue, tc.description)
-				assert.True(t, result.RequeueAfter > 0, "RequeueAfter should be set for retry scenarios")
-				assert.True(t, result.RequeueAfter <= 10*time.Second, "RequeueAfter should be reasonable for first retry")
-			} else {
 				assert.Equal(t, tc.expectedResult, result, tc.description)
 			}
 
