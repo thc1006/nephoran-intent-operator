@@ -23,6 +23,7 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 			networkIntent     *intentv1alpha1.NetworkIntent
 			networkIntentName string
 			testNamespace     string
+			k8sClient         client.Client // TODO: Initialize in BeforeSuite
 		)
 
 		BeforeAll(func() {

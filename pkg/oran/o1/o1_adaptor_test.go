@@ -246,7 +246,7 @@ func TestO1Adaptor_convertEventToAlarm(t *testing.T) {
 				Timestamp: time.Now(),
 				Source:    "test-source",
 				XML:       "<alarm><severity>critical</severity></alarm>",
-				Data:      json.RawMessage(`{}`),
+				Data:      map[string]interface{}{},
 			},
 			managedElementID: "test-element",
 			expectedAlarm:    true,
