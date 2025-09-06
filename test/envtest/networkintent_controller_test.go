@@ -54,7 +54,7 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 		})
 
 		It("should create the NetworkIntent successfully", func(ctx SpecContext) {
-			LogTestStep("Creating NetworkIntent resource", "name", networkIntentName, "namespace", testNamespace)
+			GinkgoWriter.Printf("Creating NetworkIntent resource: name=%s, namespace=%s\n", networkIntentName, testNamespace)
 			
 			Expect(k8sClient.Create(ctx, networkIntent)).Should(Succeed())
 

@@ -234,7 +234,7 @@ func TestO1Adaptor_convertEventToAlarm(t *testing.T) {
 				Type:      "notification",
 				Timestamp: time.Now(),
 				Source:    "test-source",
-				Data: json.RawMessage(`{}`),
+				Data: map[string]interface{}{},
 			},
 			managedElementID: "test-element",
 			expectedAlarm:    true,

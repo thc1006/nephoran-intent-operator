@@ -511,7 +511,8 @@ func (cpt *ComprehensivePerformanceTester) testThroughputConsistency(ctx context
 	// Calculate variance
 	variance, _ := stats.Variance(throughputs)
 	stdDev, _ := stats.StandardDeviation(throughputs)
-	coefficientOfVariation := stdDev / stats.Mean(throughputs)
+	mean, _ := stats.Mean(throughputs)
+	coefficientOfVariation := stdDev / mean
 
 	result.ThroughputVariance = variance
 

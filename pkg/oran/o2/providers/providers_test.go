@@ -1,6 +1,9 @@
 package providers
 
-import "testing"
+import (
+	"encoding/json"
+	"testing"
+)
 
 func TestProviderFactory(t *testing.T) {
 	factory := NewDefaultProviderFactory()

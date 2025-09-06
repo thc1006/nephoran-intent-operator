@@ -2,4 +2,4 @@ package multicluster
 
 import "testing"
 
-func TestStub(t *testing.T) { t.Skip("Test disabled") }
+func TestStubPerformance(t *testing.T) { t.Skip("Test disabled") }

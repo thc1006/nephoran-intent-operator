@@ -574,7 +574,7 @@ func TestO2Adaptor_DeployVNF(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				require.NotNil(t, instance)
-				tt.validateFunc(t, instance)
+				tt.validateFunc(t, instance.(*VNFInstance))
 			}
 		})
 	}
