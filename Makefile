@@ -284,6 +284,27 @@ test-integration: build-all $(DEMO_HANDOFF_DIR) $(TEST_RESULTS_DIR)
 		-run "Test.*Integration" > $(TEST_RESULTS_DIR)/logs/integration-tests.json 2>&1 || true
 	@echo "[SUCCESS] Integration tests completed with structured output"
 
+# Optimized test runners (ITERATION #4 - Performance Fix)
+.PHONY: test-fast
+test-fast:
+	@echo "Running fast tests (skipping slow integration tests)..."
+	CGO_ENABLED=1 $(GO) test -short -timeout=2m -parallel=$(TEST_PARALLEL) \
+		./api/... ./pkg/generics/... ./pkg/utils/... ./internal/utils/... \
+		./cmd/conductor/... ./cmd/conductor-loop/... ./cmd/conductor-watch/...
+	@echo "[SUCCESS] Fast tests completed"
+
+.PHONY: test-optimized
+test-optimized:
+	@echo "Running optimized test suite..."
+	@pwsh -File scripts/test-optimize.ps1 -Parallel $(TEST_PARALLEL) -Timeout $(TEST_TIMEOUT)
+
+.PHONY: test-parallel
+test-parallel:
+	@echo "Running tests with maximum parallelism..."
+	CGO_ENABLED=1 GOMAXPROCS=$(TEST_PARALLEL) $(GO) test -timeout=$(TEST_TIMEOUT) \
+		-parallel=$(TEST_PARALLEL) -count=1 ./...
+	@echo "[SUCCESS] Parallel tests completed"
+
 # =============================================================================
 # Schema and Validation
 # =============================================================================

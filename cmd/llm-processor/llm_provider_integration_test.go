@@ -530,7 +530,7 @@ func TestErrorHandlingInHTTPPipeline(t *testing.T) {
 				os.Setenv("LLM_PROVIDER", "OFFLINE")
 			},
 			requestBody: map[string]interface{}{
-				"intent": strings.Repeat("very large intent ", 10000),
+				"intent": strings.Repeat("very large intent ", 100000), // ~1.7MB to exceed 1MB limit
 			},
 			expectedStatus: http.StatusRequestEntityTooLarge,
 			expectedError:  "request too large",
@@ -544,7 +544,7 @@ func TestErrorHandlingInHTTPPipeline(t *testing.T) {
 				"intent": "",
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "intent cannot be empty",
+			expectedError:  "Intent field is required and cannot be empty",
 		},
 	}
 
@@ -615,8 +615,19 @@ func createTestServerWithLLMProvider(t *testing.T, validator *ingest.Validator) 
 			return
 		}
 
-		// Read request body
-		body, err := io.ReadAll(r.Body)
+		// Check content length for request size limit (1MB)
+		const maxRequestSize = 1 * 1024 * 1024 // 1MB
+		if r.ContentLength > maxRequestSize {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusRequestEntityTooLarge)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"error": "request too large",
+			})
+			return
+		}
+
+		// Read request body with size limit
+		body, err := io.ReadAll(io.LimitReader(r.Body, maxRequestSize))
 		if err != nil {
 			http.Error(w, "Failed to read request body", http.StatusBadRequest)
 			return

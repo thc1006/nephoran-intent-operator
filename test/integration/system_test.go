@@ -12,25 +12,32 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 
 	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porch/v1alpha1"
 	porchclient "github.com/thc1006/nephoran-intent-operator/pkg/porch"
+	"github.com/thc1006/nephoran-intent-operator/test/testutil"
 )
 
 func TestSystemIntegration(t *testing.T) {
-	config, err := rest.InClusterConfig()
-	require.NoError(t, err, "Failed to load Kubernetes config")
+	// Get test Kubernetes configuration
+	configResult := testutil.GetTestKubernetesConfig(t)
+	require.NotNil(t, configResult.Config, "Failed to get Kubernetes config")
+
+	// Skip test if only mock configuration is available (system integration requires real cluster)
+	if configResult.Source == testutil.ConfigSourceMock {
+		t.Skip("System integration testing requires real cluster connectivity - skipping with mock config")
+		return
+	}
 
 	// Create various clients for comprehensive testing
-	k8sClient, err := kubernetes.NewForConfig(config)
+	k8sClient, err := kubernetes.NewForConfig(configResult.Config)
 	require.NoError(t, err, "Failed to create Kubernetes client")
 
-	dynamicClient, err := dynamic.NewForConfig(config)
+	dynamicClient, err := dynamic.NewForConfig(configResult.Config)
 	require.NoError(t, err, "Failed to create dynamic client")
 
-	discoveryClient, err := discovery.NewDiscoveryClientForConfig(config)
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(configResult.Config)
 	require.NoError(t, err, "Failed to create discovery client")
 
 	porchClient := porchclient.NewClient("http://porch-server:8080", false)

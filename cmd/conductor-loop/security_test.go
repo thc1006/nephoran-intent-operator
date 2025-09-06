@@ -663,8 +663,8 @@ func TestConcurrentFileProcessing(t *testing.T) {
 
 	wg.Wait()
 
-	// Wait for processing to complete
-	time.Sleep(8 * time.Second)
+	// Wait for processing to complete (reduced from 8s for faster tests)
+	time.Sleep(2 * time.Second)
 
 	// Verify all files were processed exactly once
 	processedCount := countFilesInDir(t, filepath.Join(handoffDir, "processed"))

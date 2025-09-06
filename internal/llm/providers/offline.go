@@ -211,22 +211,38 @@ func (p *OfflineProvider) extractTarget(words []string) string {
 
 // extractNamespace looks for namespace indicators in the input.
 func (p *OfflineProvider) extractNamespace(input string, words []string) string {
-	// Look for explicit namespace mentions
+	// Look for explicit namespace mentions - check for "namespace" first
+	inputLower := strings.ToLower(input)
+	
+	// Pattern 1: Look for "... in <namespace> namespace"
+	if idx := strings.Index(inputLower, " namespace"); idx != -1 {
+		beforeNamespace := inputLower[:idx]
+		wordsBeforeNamespace := strings.Fields(beforeNamespace)
+		if len(wordsBeforeNamespace) > 0 {
+			candidate := wordsBeforeNamespace[len(wordsBeforeNamespace)-1]
+			candidate = strings.Trim(candidate, ".,!?;:")
+			if len(candidate) > 0 && isValidNamespaceName(candidate) {
+				return candidate
+			}
+		}
+	}
+	
+	// Pattern 2: Look for "... in <namespace>" without "namespace" keyword
 	namespacePatterns := []string{
-		"namespace", "ns", "in the", "from", "within",
+		" in ", " from ", " within ",
 	}
 
-	inputLower := strings.ToLower(input)
 	for _, pattern := range namespacePatterns {
 		if idx := strings.Index(inputLower, pattern); idx != -1 {
 			// Try to extract the word following the namespace indicator
-			remaining := input[idx+len(pattern):]
+			remaining := inputLower[idx+len(pattern):]
 			words := strings.Fields(strings.TrimSpace(remaining))
 			if len(words) > 0 {
 				candidate := words[0]
 				// Clean up the candidate (remove punctuation)
 				candidate = strings.Trim(candidate, ".,!?;:")
-				if len(candidate) > 0 && isValidNamespaceName(candidate) {
+				// Check if it's not another keyword and is valid
+				if len(candidate) > 0 && candidate != "namespace" && isValidNamespaceName(candidate) {
 					return candidate
 				}
 			}
