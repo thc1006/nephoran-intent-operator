@@ -410,7 +410,7 @@ func TestAlarmStruct(t *testing.T) {
 		Type:             "EQUIPMENT",
 		ProbableCause:    "POWER_SUPPLY_FAILURE",
 		SpecificProblem:  "Power supply redundancy lost",
-		AdditionalInfo:   "Check power supply unit 2",
+		AdditionalInfo:   map[string]interface{}{"note": "Check power supply unit 2"},
 		TimeRaised:       time.Now(),
 	}
 

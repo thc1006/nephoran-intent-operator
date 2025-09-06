@@ -311,3 +311,48 @@ func (mi *MissingMetricsIntegrator) RecordFallbackAttempt(args ...interface{}) {
 // Note: ContextBuilder is defined in clean_stubs.go as ContextBuilderStub
 // We'll create an alias for compatibility
 type MissingContextBuilder = ContextBuilder
+
+// Document represents a document in the knowledge base for RAG operations
+type Document struct {
+	ID          string                 `json:"id"`
+	Title       string                 `json:"title,omitempty"`
+	Content     string                 `json:"content"`
+	Source      string                 `json:"source,omitempty"`
+	Metadata    string                 `json:"metadata,omitempty"`
+	CreatedAt   time.Time              `json:"created_at,omitempty"`
+	UpdatedAt   time.Time              `json:"updated_at,omitempty"`
+	Tags        []string               `json:"tags,omitempty"`
+	Category    string                 `json:"category,omitempty"`
+	Priority    int                    `json:"priority,omitempty"`
+	Embedding   []float32              `json:"embedding,omitempty"`
+	Properties  map[string]interface{} `json:"properties,omitempty"`
+}
+
+// ContextBuilderConfig holds configuration for the context builder
+type ContextBuilderConfig struct {
+	MaxContextTokens   int     `json:"max_context_tokens"`
+	DiversityThreshold float64 `json:"diversity_threshold"`
+	QualityThreshold   float64 `json:"quality_threshold"`
+	RelevanceWeight    float64 `json:"relevance_weight"`
+	AuthorityWeight    float64 `json:"authority_weight"`
+	FreshnessWeight    float64 `json:"freshness_weight"`
+	MaxDocuments       int     `json:"max_documents"`
+}
+
+// RelevanceScore is defined in relevance_scorer.go - no need to redefine
+
+// BuiltContext represents a context built from documents
+type BuiltContext struct {
+	Context       string     `json:"context"`
+	UsedDocuments []Document `json:"used_documents"`
+	QualityScore  float64    `json:"quality_score"`
+	TokenCount    int        `json:"token_count"`
+	BuildTime     time.Duration `json:"build_time"`
+}
+
+// NewContextBuilder creates a new context builder with the given configuration
+func NewContextBuilder(config *ContextBuilderConfig) *ContextBuilder {
+	return &ContextBuilder{
+		Config: config,
+	}
+}

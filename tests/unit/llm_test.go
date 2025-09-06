@@ -360,8 +360,8 @@ func (suite *LLMTestSuite) TestCircuitBreaker() {
 
 		ginkgo.Context("State Management", func() {
 			ginkgo.It("should start in closed state", func() {
-				state := circuitBreaker.GetState()
-				gomega.Expect(state).To(gomega.Equal(llm.StateClosed))
+				stats := circuitBreaker.GetStats()
+				gomega.Expect(stats["state"]).To(gomega.Equal("closed"))
 			})
 
 			ginkgo.It("should open after failure threshold", func() {

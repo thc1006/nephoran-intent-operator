@@ -68,7 +68,7 @@ func (suite *E2EAuditTestSuite) SetupSuite() {
 				ID:        uuid.New().String(),
 				Timestamp: time.Now(),
 				Component: "webhook-receiver",
-				Action:    "received",
+				Type:      "received",
 				Severity:  SeverityInfo,
 			}
 			suite.eventsReceived = append(suite.eventsReceived, &event)

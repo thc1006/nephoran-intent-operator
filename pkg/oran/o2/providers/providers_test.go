@@ -135,7 +135,7 @@ func TestResourceOperations(t *testing.T) {
 		t.Fatalf("Failed to get resource: %v", err)
 	}
 
-	if retrievedResource.Status != StatusReady {
+	if retrievedResource.Status != string(StatusReady) {
 		t.Errorf("Expected status %s, got %s", StatusReady, retrievedResource.Status)
 	}
 

@@ -345,7 +345,7 @@ func TestO2Manager_ScaleWorkload(t *testing.T) {
 
 			// Execute test
 			ctx := context.Background()
-			err := manager.ScaleWorkload(ctx, tt.workloadID, tt.replicas)
+			err = manager.ScaleWorkload(ctx, tt.workloadID, tt.replicas)
 
 			// Validate results
 			if tt.expectedError {

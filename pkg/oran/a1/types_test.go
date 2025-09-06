@@ -10,7 +10,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	validator "github.com/go-playground/validator/v10"
 )
+
+// ValidateStruct validates a struct using the validator package
+func ValidateStruct(s interface{}) error {
+	validate := validator.New()
+	return validate.Struct(s)
+}
 
 // Test A1Interface enum
 func TestA1Interface_String(t *testing.T) {

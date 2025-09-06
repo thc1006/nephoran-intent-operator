@@ -160,14 +160,7 @@ type FunctionSchema struct {
 
 // Using SchemaProperty from pkg/nephio/porch
 
-// FunctionExample contains function usage examples
-type FunctionExample struct {
-	Name        string          `json:"name"`
-	Description string          `json:"description,omitempty"`
-	Config      *FunctionConfig `json:"config"`
-	Input       []KRMResource   `json:"input"`
-	Output      []KRMResource   `json:"output"`
-}
+// FunctionExample is already defined in registry.go - using the existing type
 
 // ExecutionEvent records function execution history
 type ExecutionEvent struct {
@@ -225,18 +218,12 @@ func (r *MockKRMRuntime) registerStandardFunctions() {
 			{
 				Name:        "basic-labels",
 				Description: "Set basic labels on resources",
-				Config: &FunctionConfig{
-					Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-					ConfigMap: json.RawMessage(`{}`),
+				Config: map[string]interface{}{
+					"image": "gcr.io/kpt-fn/set-labels:v0.2.0",
+					"configMap": map[string]interface{}{},
 				},
-				Input: []KRMResource{
+				Input: []interface{}{
 					generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),
-				},
-				Output: []KRMResource{
-					generateTestResourceWithLabels("apps/v1", "Deployment", "test-deployment", "default", map[string]string{
-					"app": "my-app",
-					"env": "production",
-					}),
 				},
 			},
 		},

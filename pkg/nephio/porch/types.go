@@ -1027,6 +1027,11 @@ func (current PackageRevisionLifecycle) CanTransitionTo(target PackageRevisionLi
 	return false
 }
 
+// CanTransitionTo is a package-level function that checks if lifecycle transition is valid
+func CanTransitionTo(current, target PackageRevisionLifecycle) bool {
+	return current.CanTransitionTo(target)
+}
+
 // Helper methods for working with conditions
 func (r *Repository) GetCondition(conditionType string) *metav1.Condition {
 	for _, condition := range r.Status.Conditions {

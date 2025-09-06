@@ -68,9 +68,9 @@ var _ = Describe("Porch Intent Reconciliation", func() {
 
 			// Wait for package to be created
 			Eventually(func() bool {
-				var packages porchv1alpha1.PackageList
-				err := k8sClient.List(ctx, &packages, client.InNamespace(ns))
-				return err == nil && len(packages.Items) > 0
+				packageList := &porchv1alpha1.PackageList{}
+				err := k8sClient.List(ctx, packageList, client.InNamespace(ns))
+				return err == nil && len(packageList.Items) > 0
 			}, 2*time.Minute, 10*time.Second).Should(BeTrue())
 
 			// Verify package details

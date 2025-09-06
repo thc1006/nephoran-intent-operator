@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -79,7 +80,16 @@ func (m *MockManager) AddReadyzCheck(string, healthz.Checker) error      { retur
 func (m *MockManager) Start(context.Context) error                       { return nil }
 func (m *MockManager) GetWebhookServer() *webhook.Server                 { return nil }
 func (m *MockManager) GetAPIReader() client.Reader                       { return m.client }
-func (m *MockManager) GetCache() cache.Cache                             { return nil }
+func (m *MockManager) GetCache() cache.Cache                             { 
+	// Create a temporary cache for testing
+	tempDir := os.TempDir()
+	testCache, err := cache.Open(tempDir + "/test-cache")
+	if err != nil {
+		// Fall back to default cache if temp fails
+		return *cache.Default()
+	}
+	return *testCache
+}
 func (m *MockManager) GetFieldIndexer() client.FieldIndexer              { return nil }
 func (m *MockManager) GetEventRecorderFor(string) record.EventRecorder   { return nil }
 func (m *MockManager) GetRESTMapper() meta.RESTMapper                    { return nil }

@@ -2,6 +2,7 @@ package porch
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,6 +10,10 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/thc1006/nephoran-intent-operator/internal/intent"
 )
@@ -46,6 +51,33 @@ type Proposal struct {
 	Revision  string    `json:"revision"`
 	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"createdAt"`
+}
+
+// Package represents a Porch package resource for client interface
+type Package struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              ClientPackageSpec   `json:"spec,omitempty"`
+	Status            ClientPackageStatus `json:"status,omitempty"`
+}
+
+// ClientPackageSpec defines the desired state of Package for client interface
+type ClientPackageSpec struct {
+	Repository         string             `json:"repository,omitempty"`
+	Workspacev1Package Workspacev1Package `json:"workspacev1Package,omitempty"`
+}
+
+// ClientPackageStatus defines the observed state of Package for client interface
+type ClientPackageStatus struct {
+	Phase      string             `json:"phase,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+}
+
+// Workspacev1Package represents workspace package configuration
+type Workspacev1Package struct {
+	Description string                 `json:"description,omitempty"`
+	Keywords    []string               `json:"keywords,omitempty"`
+	Data        map[string]interface{} `json:"data,omitempty"`
 }
 
 // NewClient creates a new Porch API client
@@ -477,4 +509,199 @@ func (c *Client) dryRunPackage(req *PackageRequest) (*PorchPackageRevision, erro
 
 func isNotFound(err error) bool {
 	return err != nil && err.Error() == "package not found"
+}
+
+// CRUD methods for Package API compatibility
+
+// Create creates a new Package in Porch
+func (c *Client) Create(ctx context.Context, pkg *Package) (*Package, error) {
+	if c.dryRun {
+		// Return a mock package in dry-run mode
+		return &Package{
+			ObjectMeta: pkg.ObjectMeta,
+			Spec:       pkg.Spec,
+			Status: ClientPackageStatus{
+				Phase: "DRAFT",
+			},
+		}, nil
+	}
+
+	url := fmt.Sprintf("%s/api/v1/packages", c.baseURL)
+	data, err := json.Marshal(pkg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal package: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create package: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to create package: status %d, body: %s", resp.StatusCode, body)
+	}
+
+	var createdPkg Package
+	if err := json.NewDecoder(resp.Body).Decode(&createdPkg); err != nil {
+		return nil, fmt.Errorf("failed to decode created package: %w", err)
+	}
+
+	return &createdPkg, nil
+}
+
+// Update updates an existing Package in Porch
+func (c *Client) Update(ctx context.Context, pkg *Package) (*Package, error) {
+	if c.dryRun {
+		// Return the updated package in dry-run mode
+		return pkg, nil
+	}
+
+	url := fmt.Sprintf("%s/api/v1/packages/%s", c.baseURL, pkg.Name)
+	data, err := json.Marshal(pkg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal package: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update package: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to update package: status %d, body: %s", resp.StatusCode, body)
+	}
+
+	var updatedPkg Package
+	if err := json.NewDecoder(resp.Body).Decode(&updatedPkg); err != nil {
+		return nil, fmt.Errorf("failed to decode updated package: %w", err)
+	}
+
+	return &updatedPkg, nil
+}
+
+// Delete deletes a Package from Porch
+func (c *Client) Delete(ctx context.Context, pkg *Package) error {
+	if c.dryRun {
+		// Return success in dry-run mode
+		return nil
+	}
+
+	url := fmt.Sprintf("%s/api/v1/packages/%s", c.baseURL, pkg.Name)
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to delete package: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("failed to delete package: status %d, body: %s", resp.StatusCode, body)
+	}
+
+	return nil
+}
+
+// Get retrieves a Package from Porch
+func (c *Client) Get(ctx context.Context, name, namespace string) (*Package, error) {
+	if c.dryRun {
+		// Return a not found error in dry-run mode
+		gvr := schema.GroupVersionResource{
+			Group:    "porch.kpt.dev",
+			Version:  "v1alpha1",
+			Resource: "packages",
+		}
+		return nil, errors.NewNotFound(gvr.GroupResource(), name)
+	}
+
+	url := fmt.Sprintf("%s/api/v1/packages/%s", c.baseURL, name)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get package: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		gvr := schema.GroupVersionResource{
+			Group:    "porch.kpt.dev",
+			Version:  "v1alpha1",
+			Resource: "packages",
+		}
+		return nil, errors.NewNotFound(gvr.GroupResource(), name)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to get package: status %d, body: %s", resp.StatusCode, body)
+	}
+
+	var pkg Package
+	if err := json.NewDecoder(resp.Body).Decode(&pkg); err != nil {
+		return nil, fmt.Errorf("failed to decode package: %w", err)
+	}
+
+	return &pkg, nil
+}
+
+// Rollback rolls back a Package to a previous version
+func (c *Client) Rollback(ctx context.Context, pkg *Package) (*Package, error) {
+	if c.dryRun {
+		// Return the package as-is in dry-run mode
+		return pkg, nil
+	}
+
+	url := fmt.Sprintf("%s/api/v1/packages/%s/rollback", c.baseURL, pkg.Name)
+	data, err := json.Marshal(pkg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal package: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to rollback package: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to rollback package: status %d, body: %s", resp.StatusCode, body)
+	}
+
+	var rolledBackPkg Package
+	if err := json.NewDecoder(resp.Body).Decode(&rolledBackPkg); err != nil {
+		return nil, fmt.Errorf("failed to decode rolled back package: %w", err)
+	}
+
+	return &rolledBackPkg, nil
 }
