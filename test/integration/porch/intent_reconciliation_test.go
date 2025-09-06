@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -16,7 +17,7 @@ import (
 )
 
 const (
-	letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	letterBytes = "abcdefghijklmnopqrstuvwxyz0123456789"  // RFC 1123 compliant: lowercase letters and digits only
 )
 
 var _ = Describe("Porch Intent Reconciliation", func() {
@@ -120,5 +121,10 @@ func deleteNamespace(ctx context.Context, client client.Client, namespace string
 			Name: namespace,
 		},
 	}
-	Expect(client.Delete(ctx, ns)).Should(Succeed())
+	err := client.Delete(ctx, ns)
+	// Use errors.IsNotFound to ignore "not found" errors during cleanup
+	// namespace may not have been created successfully due to validation errors
+	if err != nil && !errors.IsNotFound(err) {
+		Expect(err).Should(Succeed())
+	}
 }
