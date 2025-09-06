@@ -255,6 +255,20 @@ func NewGeneratorWithClient(config *BlueprintConfig, logger *zap.Logger, llmClie
 // GenerateFromNetworkIntent generates blueprint files from NetworkIntent.
 
 func (g *Generator) GenerateFromNetworkIntent(ctx context.Context, intent *v1.NetworkIntent) (map[string]string, error) {
+	// Defensive nil checks (2025 Go patterns)
+	if g == nil {
+		return nil, fmt.Errorf("generator is nil")
+	}
+	if g.logger == nil {
+		return nil, fmt.Errorf("generator logger is nil")
+	}
+	if intent == nil {
+		return nil, fmt.Errorf("network intent is nil")
+	}
+	if ctx == nil {
+		ctx = context.Background() // Safe default
+	}
+
 	startTime := time.Now()
 
 	g.logger.Info("Generating blueprint from NetworkIntent",

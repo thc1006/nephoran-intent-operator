@@ -79,7 +79,7 @@ func TestLLMProviderHTTPIntegration(t *testing.T) {
 		{
 			name:           "OpenAI Provider - Mock Request",
 			providerType:   "OPENAI",
-			providerAPIKey: "test-api-key",
+			providerAPIKey: "sk-test1234567890abcdefghijklmnopqrstuvwxyz",
 			requestBody: map[string]interface{}{
 				"intent": "Scale RIC xApp to 4 instances in ric-system namespace",
 			},
@@ -91,7 +91,7 @@ func TestLLMProviderHTTPIntegration(t *testing.T) {
 		{
 			name:           "Anthropic Provider - Mock Request",
 			providerType:   "ANTHROPIC",
-			providerAPIKey: "test-api-key",
+			providerAPIKey: "sk-ant-test1234567890abcdefghijklmnopqrstuvwxyzABCDEF",
 			requestBody: map[string]interface{}{
 				"intent": "Configure SMF with 6 replicas in core5g for enhanced session management",
 			},
@@ -190,6 +190,11 @@ func TestLLMProviderHTTPIntegration(t *testing.T) {
 				err = json.Unmarshal(responseBody, &response)
 				assert.NoError(t, err, "Response should be valid JSON")
 
+				// Check for error first to prevent panics
+				if errMsg, exists := response["error"]; exists {
+					t.Fatalf("Expected success but got error: %v", errMsg)
+				}
+
 				// Check for expected response fields
 				assert.Contains(t, response, "intent_processed", "Response should contain intent_processed field")
 				assert.Contains(t, response, "handoff_file", "Response should contain handoff_file field")
@@ -197,7 +202,10 @@ func TestLLMProviderHTTPIntegration(t *testing.T) {
 
 				// Verify handoff file was created
 				if tt.expectValidHandoff {
-					handoffFile := response["handoff_file"].(string)
+					handoffFileRaw, exists := response["handoff_file"]
+					assert.True(t, exists, "Response should contain handoff_file field")
+					handoffFile, ok := handoffFileRaw.(string)
+					assert.True(t, ok, "handoff_file should be a string")
 					assert.NotEmpty(t, handoffFile, "Handoff file path should not be empty")
 
 					// Check file exists

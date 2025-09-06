@@ -535,6 +535,79 @@ func NewManager(mgr manager.Manager, config *BlueprintConfig, logger *zap.Logger
 	return m, nil
 }
 
+// NewManagerWithGenerator creates a new blueprint manager with a provided generator.
+// This is useful for testing with mocked components.
+func NewManagerWithGenerator(mgr manager.Manager, config *BlueprintConfig, logger *zap.Logger, generator *Generator) (*Manager, error) {
+	if config == nil {
+		config = DefaultBlueprintConfig()
+	}
+
+	if logger == nil {
+		logger = zap.NewNop()
+	}
+
+	if generator == nil {
+		return nil, fmt.Errorf("generator cannot be nil")
+	}
+
+	k8sClient, err := kubernetes.NewForConfig(mgr.GetConfig())
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	m := &Manager{
+		client: mgr.GetClient(),
+
+		k8sClient: k8sClient,
+
+		config: config,
+
+		logger: logger,
+
+		metrics: NewBlueprintMetrics(),
+
+		generator: generator,
+
+		operationQueue: make(chan *BlueprintOperation, config.MaxConcurrency*2),
+
+		semaphore: make(chan struct{}, config.MaxConcurrency),
+
+		ctx: ctx,
+
+		cancel: cancel,
+
+		healthStatus: make(map[string]bool),
+	}
+
+	// Initialize remaining components (catalog, customizer, validator).
+
+	if err := m.initializeRemainingComponents(); err != nil {
+
+		cancel()
+
+		return nil, fmt.Errorf("failed to initialize components: %w", err)
+
+	}
+
+	// Start background workers.
+
+	m.startWorkers()
+
+	logger.Info("Blueprint manager initialized successfully with provided generator",
+
+		zap.String("porch_endpoint", config.PorchEndpoint),
+
+		zap.String("llm_endpoint", config.LLMEndpoint),
+
+		zap.Duration("cache_ttl", config.CacheTTL),
+
+		zap.Int("max_concurrency", config.MaxConcurrency))
+
+	return m, nil
+}
+
 // initializeComponents initializes all blueprint manager components.
 
 func (m *Manager) initializeComponents() error {
@@ -552,6 +625,39 @@ func (m *Manager) initializeComponents() error {
 	m.generator, err = NewGenerator(m.config, m.logger.Named("generator"))
 	if err != nil {
 		return fmt.Errorf("failed to initialize generator: %w", err)
+	}
+
+	// Initialize customizer.
+
+	m.customizer, err = NewCustomizer(m.config, m.logger.Named("customizer"))
+	if err != nil {
+		return fmt.Errorf("failed to initialize customizer: %w", err)
+	}
+
+	// Initialize validator if enabled.
+
+	if m.config.EnableValidation {
+
+		m.validator, err = NewValidator(m.config, m.logger.Named("validator"))
+		if err != nil {
+			return fmt.Errorf("failed to initialize validator: %w", err)
+		}
+
+	}
+
+	return nil
+}
+
+// initializeRemainingComponents initializes components other than generator.
+
+func (m *Manager) initializeRemainingComponents() error {
+	var err error
+
+	// Initialize catalog.
+
+	m.catalog, err = NewCatalog(m.config, m.logger.Named("catalog"))
+	if err != nil {
+		return fmt.Errorf("failed to initialize catalog: %w", err)
 	}
 
 	// Initialize customizer.

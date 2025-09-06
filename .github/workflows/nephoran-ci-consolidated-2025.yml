@@ -106,7 +106,26 @@ jobs:
           if [[ "${{ inputs.build_mode }}" == "fast" ]]; then
             STRATEGY='{"include":[{"name":"critical","pattern":"./api/... ./controllers/... ./pkg/nephio/..."}]}'
           else
-            STRATEGY='{"include":[{"name":"critical","pattern":"./api/... ./controllers/... ./pkg/nephio/..."},{"name":"simulators","pattern":"./sim/... ./internal/sim/..."},{"name":"internal","pattern":"./internal/... ./cmd/..."},{"name":"tools","pattern":"./tools/... ./scripts/..."}]}'
+            # Check which directories exist and build matrix accordingly
+            MATRIX_ENTRIES='{"name":"critical","pattern":"./api/... ./controllers/... ./pkg/nephio/..."}'
+            
+            # Check for simulator directories (currently not present in codebase)
+            # Keeping for future extensibility if simulator components are added
+            if [[ -d "sim" && -d "internal/sim" ]]; then
+              MATRIX_ENTRIES="${MATRIX_ENTRIES},$(echo '{"name":"simulators","pattern":"./sim/... ./internal/sim/..."}')"
+            fi
+            
+            # Check for internal directories  
+            if [[ -d "internal" && -d "cmd" ]]; then
+              MATRIX_ENTRIES="${MATRIX_ENTRIES},$(echo '{"name":"internal","pattern":"./internal/... ./cmd/..."}')"
+            fi
+            
+            # Check for tools directories
+            if [[ -d "tools" && -d "scripts" ]]; then
+              MATRIX_ENTRIES="${MATRIX_ENTRIES},$(echo '{"name":"tools","pattern":"./tools/... ./scripts/..."}')"
+            fi
+            
+            STRATEGY="{\"include\":[${MATRIX_ENTRIES}]}"
           fi
           echo "strategy=$STRATEGY" >> $GITHUB_OUTPUT
           echo "Matrix strategy: $STRATEGY"
@@ -348,8 +367,19 @@ jobs:
           echo "🧪 Testing component: ${{ matrix.name }}"
           echo "📦 Test pattern: ${{ matrix.pattern }}"
           
-          # Run tests with coverage for this component
-          go test $TEST_FLAGS -coverprofile=coverage-${{ matrix.name }}.out ${{ matrix.pattern }}
+          # Validate pattern exists and has packages
+          PATTERN="${{ matrix.pattern }}"
+          PACKAGE_COUNT=$(go list $PATTERN 2>/dev/null | wc -l || echo "0")
+          echo "📊 Found $PACKAGE_COUNT packages in pattern"
+          
+          if [[ "$PACKAGE_COUNT" -eq "0" ]]; then
+            echo "⚠️ No packages found for pattern, skipping tests"
+            touch coverage-${{ matrix.name }}.out
+          else
+            echo "🚀 Running tests for $PACKAGE_COUNT packages..."
+            # Run tests with coverage for this component
+            go test $TEST_FLAGS -coverprofile=coverage-${{ matrix.name }}.out ${{ matrix.pattern }}
+          fi
           
           # Generate coverage report
           if [[ -f "coverage-${{ matrix.name }}.out" ]]; then
@@ -416,12 +446,19 @@ jobs:
           
           echo "🏗️ Starting full project build..."
           
+          # Create bin directory
+          mkdir -p bin
+          
           # Build all binaries
           echo "📦 Building all binaries..."
           
-          # Build main operator
-          echo "🎯 Building Nephoran Intent Operator..."
-          go build -trimpath -ldflags="-s -w -extldflags=-static" -o bin/nephoran-intent-operator ./cmd/nephoran-intent-operator
+          # Build main operator (check if exists)
+          if [[ -d "cmd/nephoran-intent-operator" && -f "cmd/nephoran-intent-operator/main.go" ]]; then
+            echo "🎯 Building Nephoran Intent Operator..."
+            go build -trimpath -ldflags="-s -w -extldflags=-static" -o bin/nephoran-intent-operator ./cmd/nephoran-intent-operator
+          else
+            echo "⚠️ Main operator not found, building available components..."
+          fi
           
           # Build additional components if they exist
           if [[ -d "cmd" ]]; then

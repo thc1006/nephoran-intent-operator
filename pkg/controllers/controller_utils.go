@@ -68,6 +68,11 @@ func CalculateExponentialBackoff(retryCount int, config *BackoffConfig) time.Dur
 	if finalDelay < float64(config.BaseDelay) {
 		finalDelay = float64(config.BaseDelay)
 	}
+	
+	// Ensure final delay doesn't exceed max delay even after jitter
+	if finalDelay > float64(config.MaxDelay) {
+		finalDelay = float64(config.MaxDelay)
+	}
 
 	return time.Duration(finalDelay)
 }
@@ -139,7 +144,7 @@ func CalculateExponentialBackoffForE2NodeSetOperation(retryCount int, operation 
 		// Cleanup operations: existing configuration
 		config = &BackoffConfig{
 			BaseDelay:    10 * time.Second,
-			MaxDelay:     5 * time.Minute,
+			MaxDelay:     10 * time.Minute,
 			Multiplier:   2.0,
 			JitterFactor: 0.1,
 		}
@@ -336,6 +341,11 @@ func calculateExponentialBackoffForOperation(retryCount int, operation string) t
 	finalDelay := time.Duration(float64(delay) + randomJitter)
 	if finalDelay < 0 {
 		finalDelay = delay / 2
+	}
+	
+	// Ensure final delay doesn't exceed maxDelay even after jitter
+	if finalDelay > maxDelay {
+		finalDelay = maxDelay
 	}
 
 	return finalDelay
