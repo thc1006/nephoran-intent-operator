@@ -874,10 +874,10 @@ func (r *ResourcePlanningController) estimatePerformance(ctx context.Context, re
 
 		ExpectedAvailability: &expectedAvailabilityStr,
 
-		ResourceUtilization: map[string]float64{
-			"cpu_utilization": 0.7, // Assume 70% utilization
+		ResourceUtilization: map[string]string{
+			"cpu_utilization": strconv.FormatFloat(0.7, 'f', 6, 64), // Assume 70% utilization
 
-			"memory_utilization": 0.8, // Assume 80% utilization
+			"memory_utilization": strconv.FormatFloat(0.8, 'f', 6, 64), // Assume 80% utilization
 
 		},
 	}
@@ -1783,7 +1783,7 @@ func (rps *ResourcePlanningService) getReplicas(pattern nephoranv1.DeploymentPat
 func (ces *CostEstimationService) EstimateCosts(ctx context.Context, resources []nephoranv1.PlannedResource) (*nephoranv1.CostEstimate, error) {
 	totalCost := 0.0
 
-	costBreakdown := make(map[string]float64)
+	costBreakdown := make(map[string]string)
 
 	for _, resource := range resources {
 
@@ -1823,7 +1823,7 @@ func (ces *CostEstimationService) EstimateCosts(ctx context.Context, resources [
 
 		totalCost += monthlyCost
 
-		costBreakdown[resource.Name] = monthlyCost
+		costBreakdown[resource.Name] = strconv.FormatFloat(monthlyCost, 'f', 6, 64)
 
 	}
 
