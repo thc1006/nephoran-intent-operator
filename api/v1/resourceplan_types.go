@@ -734,7 +734,7 @@ type CostEstimate struct {
 
 	// +optional
 
-	CostBreakdown map[string]float64 `json:"costBreakdown,omitempty"`
+	CostBreakdown map[string]string `json:"costBreakdown,omitempty"`
 
 	// EstimatedAt timestamp.
 
@@ -784,7 +784,7 @@ type PerformanceEstimate struct {
 
 	// +optional
 
-	ResourceUtilization map[string]float64 `json:"resourceUtilization,omitempty"`
+	ResourceUtilization map[string]string `json:"resourceUtilization,omitempty"`
 
 	// BottleneckAnalysis identifies potential bottlenecks.
 

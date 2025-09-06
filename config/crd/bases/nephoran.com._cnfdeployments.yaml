@@ -485,7 +485,7 @@ spec:
                 type: integer
               resourceUtilization:
                 additionalProperties:
-                  type: number
+                  type: string
                 type: object
               serviceEndpoints:
                 items:
