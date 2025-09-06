@@ -343,6 +343,7 @@ jobs:
         run: |
           set -e
           export GOCACHE="$(pwd)/.go-build-cache"
+          export CGO_ENABLED=1
           
           echo "🧪 Testing component: ${{ matrix.name }}"
           echo "📦 Test pattern: ${{ matrix.pattern }}"
