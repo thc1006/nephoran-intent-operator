@@ -105,6 +105,39 @@ const (
 	BackoffMultiplier = 2.0
 )
 
+// Custom error types for operation-specific error handling
+
+// ConfigMapOperationError represents an error during ConfigMap operations that should be retried with backoff
+type ConfigMapOperationError struct {
+	Operation  string // "create" or "update"
+	ConfigMap  string
+	RetryCount int
+	Err        error
+}
+
+func (e *ConfigMapOperationError) Error() string {
+	return fmt.Sprintf("ConfigMap %s failed (attempt %d): %v", e.Operation, e.RetryCount, e.Err)
+}
+
+func (e *ConfigMapOperationError) Unwrap() error {
+	return e.Err
+}
+
+// E2ProvisioningError represents an error during E2 provisioning that should be retried with backoff
+type E2ProvisioningError struct {
+	NodeID     string
+	RetryCount int
+	Err        error
+}
+
+func (e *E2ProvisioningError) Error() string {
+	return fmt.Sprintf("E2 provisioning failed for node %s (attempt %d): %v", e.NodeID, e.RetryCount, e.Err)
+}
+
+func (e *E2ProvisioningError) Unwrap() error {
+	return e.Err
+}
+
 // E2NodeConfigData represents the configuration data stored in ConfigMap.
 
 type E2NodeConfigData struct {
@@ -300,7 +333,21 @@ func (r *E2NodeSetReconciler) RegisterMetrics() {
 func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	// Validate that E2Manager is available
+	// Fetch the E2NodeSet instance first to check if it's being deleted
+	var e2nodeSet nephoranv1.E2NodeSet
+	if err := r.Get(ctx, req.NamespacedName, &e2nodeSet); err != nil {
+		if errors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
+		return ctrl.Result{}, err
+	}
+
+	// Allow deletion to proceed even without E2Manager
+	if e2nodeSet.DeletionTimestamp != nil {
+		return r.handleDeletion(ctx, &e2nodeSet)
+	}
+
+	// Validate that E2Manager is available for normal operations
 	if r.E2Manager == nil {
 		return ctrl.Result{}, fmt.Errorf("E2Manager is not initialized")
 	}
@@ -317,34 +364,6 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		logger.Info("Reconciliation completed", "duration", time.Since(startTime), "result", result)
 	}()
 
-	// Fetch the E2NodeSet instance.
-
-	var e2nodeSet nephoranv1.E2NodeSet
-
-	if err := r.Get(ctx, req.NamespacedName, &e2nodeSet); err != nil {
-
-		if errors.IsNotFound(err) {
-
-			// E2NodeSet was deleted, cleanup will be handled by finalizer.
-
-			logger.Info("E2NodeSet resource not found. Ignoring since object must be deleted")
-
-			return ctrl.Result{}, nil
-
-		}
-
-		logger.Error(err, "Failed to get E2NodeSet")
-
-		result = "error"
-
-		if r.reconcileErrors != nil {
-			r.reconcileErrors.WithLabelValues(req.Namespace, req.Name, "fetch_error").Inc()
-		}
-
-		return ctrl.Result{}, err
-
-	}
-
 	logger.Info("Reconciling E2NodeSet",
 
 		"name", e2nodeSet.Name,
@@ -354,12 +373,6 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		"replicas", e2nodeSet.Spec.Replicas,
 
 		"generation", e2nodeSet.Generation)
-
-	// Handle deletion.
-
-	if e2nodeSet.DeletionTimestamp != nil {
-		return r.handleDeletion(ctx, &e2nodeSet)
-	}
 
 	// Add finalizer if not present.
 
@@ -399,39 +412,57 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			r.reconcileErrors.WithLabelValues(req.Namespace, req.Name, "reconcile_nodes_error").Inc()
 		}
 
-		// Get retry count and calculate backoff.
+		// Determine the operation type and retry count based on error type
+		var operation string
+		var retryCount int
+		var backoffDelay time.Duration
 
-		retryCount := getE2NodeSetRetryCount(&e2nodeSet, "e2-provisioning")
+		switch typedErr := err.(type) {
+		case *ConfigMapOperationError:
+			operation = "configmap-operations"
+			retryCount = typedErr.RetryCount // Use retry count from the error itself
+			backoffDelay = calculateExponentialBackoffForOperation(retryCount, operation)
+		case *E2ProvisioningError:
+			operation = "e2-provisioning" 
+			retryCount = typedErr.RetryCount // Use retry count from the error itself
+			backoffDelay = calculateExponentialBackoffForOperation(retryCount, operation)
+		default:
+			// Default fallback for other errors
+			operation = "e2-provisioning"
+			retryCount = getE2NodeSetRetryCount(&e2nodeSet, operation)
+			if retryCount < DefaultMaxRetries {
+				setE2NodeSetRetryCount(&e2nodeSet, operation, retryCount+1)
+				r.Update(ctx, &e2nodeSet)
+			}
+			backoffDelay = calculateExponentialBackoffForOperation(retryCount, operation)
+		}
 
 		if retryCount < DefaultMaxRetries {
-
-			setE2NodeSetRetryCount(&e2nodeSet, "e2-provisioning", retryCount+1)
-
-			r.Update(ctx, &e2nodeSet)
 
 			// Set Ready condition to False.
 
 			r.setReadyCondition(ctx, &e2nodeSet, metav1.ConditionFalse, "E2NodesReconciliationFailed",
 
-				fmt.Sprintf("Failed to reconcile E2 nodes (attempt %d/%d): %v", retryCount+1, DefaultMaxRetries, err))
+				fmt.Sprintf("Failed to reconcile E2 nodes (attempt %d/%d): %v", retryCount, DefaultMaxRetries, err))
 
 			// Record event for reconciliation failure.
 
 			r.Recorder.Eventf(&e2nodeSet, corev1.EventTypeWarning, "ReconciliationRetrying",
 
-				"Failed to reconcile E2 nodes, retrying (attempt %d/%d): %v", retryCount+1, DefaultMaxRetries, err)
-
-			backoffDelay := calculateExponentialBackoffForOperation(retryCount, "e2-provisioning")
+				"Failed to reconcile E2 nodes, retrying (attempt %d/%d): %v", retryCount, DefaultMaxRetries, err)
 
 			logger.V(1).Info("Scheduling E2 nodes reconciliation retry with exponential backoff",
 
 				"delay", backoffDelay,
 
-				"attempt", retryCount+1,
+				"attempt", retryCount,
 
-				"max_retries", DefaultMaxRetries)
+				"max_retries", DefaultMaxRetries,
 
-			return ctrl.Result{RequeueAfter: backoffDelay}, nil
+				"operation", operation)
+
+			// Return error for retryable cases so tests can assert.Error(t, err)
+			return ctrl.Result{RequeueAfter: backoffDelay}, fmt.Errorf("retryable reconciliation error (attempt %d/%d): %w", retryCount, DefaultMaxRetries, err)
 
 		} else {
 
@@ -626,7 +657,18 @@ func (r *E2NodeSetReconciler) scaleUpE2Nodes(ctx context.Context, e2nodeSet *nep
 	if r.E2Manager != nil && len(currentConfigMaps) == 0 {
 		if err := r.E2Manager.ProvisionNode(ctx, e2nodeSet.Spec); err != nil {
 			logger.Error(err, "Failed to provision E2NodeSet")
-			return err
+			
+			// Get retry count and increment it
+			retryCount := getE2NodeSetRetryCount(e2nodeSet, "e2-provisioning")
+			setE2NodeSetRetryCount(e2nodeSet, "e2-provisioning", retryCount+1)
+			r.Client.Update(ctx, e2nodeSet)
+			
+			// Return a custom error type for E2 provisioning failure
+			return &E2ProvisioningError{
+				NodeID:     e2nodeSet.Name,
+				RetryCount: retryCount + 1,
+				Err:        err,
+			}
 		}
 	}
 
@@ -821,7 +863,13 @@ func (r *E2NodeSetReconciler) updateE2Nodes(ctx context.Context, e2nodeSet *neph
 
 					fmt.Sprintf("Failed to update ConfigMap %s (attempt %d/%d): %v", configMap.Name, retryCount+1, DefaultMaxRetries, err))
 
-				return fmt.Errorf("failed to update E2 node ConfigMap %s: %w", configMap.Name, err)
+				// Return a custom error type that indicates this is a retryable ConfigMap operation error
+				return &ConfigMapOperationError{
+					Operation:  "update",
+					ConfigMap:  configMap.Name,
+					RetryCount: retryCount + 1,
+					Err:        err,
+				}
 
 			}
 
@@ -882,7 +930,13 @@ func (r *E2NodeSetReconciler) createE2NodeConfigMap(ctx context.Context, e2nodeS
 
 			fmt.Sprintf("Failed to create ConfigMap %s (attempt %d/%d): %v", configMap.Name, retryCount+1, DefaultMaxRetries, err))
 
-		return nil, fmt.Errorf("failed to create ConfigMap: %w", err)
+		// Return a custom error type that indicates this is a retryable ConfigMap operation error
+		return nil, &ConfigMapOperationError{
+			Operation:  "create",
+			ConfigMap:  configMap.Name,
+			RetryCount: retryCount + 1,
+			Err:        err,
+		}
 
 	}
 

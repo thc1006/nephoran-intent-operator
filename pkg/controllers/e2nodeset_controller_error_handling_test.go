@@ -767,30 +767,63 @@ func TestFinalizerNotRemovedUntilCleanupSuccess(t *testing.T) {
 		return ok
 	}), mock.Anything).Return(nil)
 
-	// Mock ConfigMap List call to return existing ConfigMaps
+	// Mock ConfigMap List call to return existing ConfigMaps from fake client  
 	mockClient.On("List", mock.Anything, mock.MatchedBy(func(list client.ObjectList) bool {
 		_, ok := list.(*corev1.ConfigMapList)
 		return ok
-	}), mock.Anything).Return(nil)
+	}), mock.Anything).Run(func(args mock.Arguments) {
+		ctx := args.Get(0).(context.Context)
+		list := args.Get(1).(client.ObjectList)
+		opts := args.Get(2).([]client.ListOption)
+		err := fakeClient.List(ctx, list, opts...)
+		if cmList, ok := list.(*corev1.ConfigMapList); ok {
+			t.Logf("ConfigMap List found %d items", len(cmList.Items))
+			for _, cm := range cmList.Items {
+				t.Logf("Found ConfigMap: %s with labels: %v", cm.Name, cm.Labels)
+			}
+		}
+		if err != nil {
+			t.Logf("List error: %v", err)
+		}
+	}).Return(nil)
 
-	// Mock one ConfigMap deletion to fail
-	deleteError := errors.NewConflict(schema.GroupResource{Resource: "configmaps"}, "test-cm", fmt.Errorf("deletion blocked"))
+	// Mock all ConfigMap deletions to be intercepted
 	mockClient.On("Delete", mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
 		cm, ok := obj.(*corev1.ConfigMap)
-		return ok && cm.Name == "test-finalizer-e2node-1"
-	}), mock.Anything).Return(deleteError)
+		if ok {
+			t.Logf("Delete mock intercepted: %s", cm.Name)
+		}
+		return ok
+	}), mock.Anything).Run(func(args mock.Arguments) {
+		obj := args.Get(1).(client.Object)
+		if cm, ok := obj.(*corev1.ConfigMap); ok {
+			if cm.Name == "test-finalizer-e2node-1" {
+				// This one should fail - don't delete from fake client
+				t.Logf("Simulating delete failure for %s", cm.Name)
+			} else {
+				// This one succeeds - delete from fake client
+				ctx := args.Get(0).(context.Context)
+				opts := args.Get(2).([]client.DeleteOption)
+				fakeClient.Delete(ctx, obj, opts...)
+				t.Logf("Successfully deleted %s from fake client", cm.Name)
+			}
+		}
+	}).Return(func(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
+		if cm, ok := obj.(*corev1.ConfigMap); ok && cm.Name == "test-finalizer-e2node-1" {
+			return errors.NewConflict(schema.GroupResource{Resource: "configmaps"}, "test-cm", fmt.Errorf("deletion blocked"))
+		}
+		return nil
+	})
 
-	// Mock successful deletion of the other ConfigMap
-	mockClient.On("Delete", mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
-		cm, ok := obj.(*corev1.ConfigMap)
-		return ok && cm.Name == "test-finalizer-e2node-0"
-	}), mock.Anything).Return(nil)
-
-	// Mock E2NodeSet updates for retry count and status
+	// Mock E2NodeSet updates for retry count and status - call through to fake client
 	mockClient.On("Update", mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
 		_, ok := obj.(*nephoranv1.E2NodeSet)
 		return ok
-	}), mock.Anything).Return(nil)
+	}), mock.Anything).Run(func(args mock.Arguments) {
+		ctx := args.Get(0).(context.Context)
+		obj := args.Get(1).(client.Object)
+		fakeClient.Update(ctx, obj)
+	}).Return(nil)
 
 	// Mock ConfigMap updates (for status updates during reconciliation)
 	mockClient.On("Update", mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
@@ -805,6 +838,7 @@ func TestFinalizerNotRemovedUntilCleanupSuccess(t *testing.T) {
 
 	result, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
 
+	t.Logf("Finalizer test - result: %+v, error: %v", result, err)
 	assert.Error(t, err)
 	assert.NotZero(t, result.RequeueAfter, "Should retry cleanup with backoff")
 
@@ -1048,6 +1082,8 @@ func TestReconcileWithPartialFailures(t *testing.T) {
 
 	// Create the test resource
 	e2nodeSet := createTestE2NodeSet("test-partial-failure", "default", 3)
+	// Add finalizer so controller doesn't return early
+	controllerutil.AddFinalizer(e2nodeSet, E2NodeSetFinalizer)
 	err := fakeClient.Create(context.Background(), e2nodeSet)
 	require.NoError(t, err)
 
@@ -1069,25 +1105,39 @@ func TestReconcileWithPartialFailures(t *testing.T) {
 		return ok
 	}), mock.Anything).Return(nil).Maybe()
 
-	// Mock E2Manager ProvisionNode to succeed for all nodes
-	mockE2Manager.On("ProvisionNode", mock.Anything, mock.Anything).Return(nil).Maybe()
+	// Setup successful E2Manager mocks 
+	setupSuccessfulE2ManagerMocks(mockE2Manager)
 
-	// Mock some ConfigMap creations to succeed and others to fail
-	var creationCount int
+	// Mock first ConfigMap creation to succeed
 	mockClient.On("Create", mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
-		_, ok := obj.(*corev1.ConfigMap)
-		return ok
-	}), mock.Anything).Return(func(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
-		creationCount++
-		if creationCount == 2 { // Second creation fails
-			return fmt.Errorf("creation failed for second ConfigMap")
-		}
-		return fakeClient.Create(ctx, obj, opts...)
-	}).Maybe()
+		cm, ok := obj.(*corev1.ConfigMap)
+		return ok && cm.Name == "test-partial-failure-e2node-0"
+	}), mock.Anything).Run(func(args mock.Arguments) {
+		ctx := args.Get(0).(context.Context)
+		obj := args.Get(1).(client.Object)
+		opts := args.Get(2).([]client.CreateOption)
+		fakeClient.Create(ctx, obj, opts...)
+	}).Return(nil).Once()
+	
+	// Mock second ConfigMap creation to fail
+	mockClient.On("Create", mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
+		cm, ok := obj.(*corev1.ConfigMap)
+		return ok && cm.Name == "test-partial-failure-e2node-1"
+	}), mock.Anything).Return(fmt.Errorf("creation failed for second ConfigMap")).Once()
 
-	// Mock E2NodeSet updates
+	// Mock E2NodeSet updates - call through to fake client to persist changes
 	mockClient.On("Update", mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
 		_, ok := obj.(*nephoranv1.E2NodeSet)
+		return ok
+	}), mock.Anything).Run(func(args mock.Arguments) {
+		ctx := args.Get(0).(context.Context)
+		obj := args.Get(1).(client.Object)
+		fakeClient.Update(ctx, obj)
+	}).Return(nil)
+	
+	// Mock ConfigMap updates (for status updates)
+	mockClient.On("Update", mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
+		_, ok := obj.(*corev1.ConfigMap)
 		return ok
 	}), mock.Anything).Return(nil)
 
@@ -1099,6 +1149,7 @@ func TestReconcileWithPartialFailures(t *testing.T) {
 
 	result, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
 
+	t.Logf("Reconcile result: %+v, error: %v", result, err)
 	assert.Error(t, err)
 	assert.NotZero(t, result.RequeueAfter, "Should retry with backoff")
 
