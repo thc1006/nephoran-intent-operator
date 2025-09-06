@@ -722,12 +722,10 @@ func TestValidateEIType_Success(t *testing.T) {
 		EiTypeName:      "Test EI Type",
 		Description:     "Test enrichment information type",
 		EiJobDataSchema: createValidEIJobDataSchema(),
-		EiJobResultSchema: map[string]interface{}{
-			"results": json.RawMessage(`{}`),
-		},
+		EiJobResultSchema: json.RawMessage(`{"results": {}}`),
 	}
 
-	err := validator.ValidateEIType(validEIType)
+	err := validator.ValidateEnrichmentInfoType(validEIType)
 	assert.NoError(t, err)
 }
 
@@ -780,7 +778,7 @@ func TestValidateEIType_InvalidFields(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validator.ValidateEIType(tt.eiType)
+			err := validator.ValidateEnrichmentInfoType(tt.eiType)
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), tt.expectedMsg)
 		})
@@ -791,11 +789,6 @@ func TestValidateEIType_InvalidFields(t *testing.T) {
 
 func TestValidateEIJob_Success(t *testing.T) {
 	validator := NewTestA1Validator()
-
-	eiType := &EnrichmentInfoType{
-		EiTypeID:        "test-ei-type-1",
-		EiJobDataSchema: createValidEIJobDataSchema(),
-	}
 
 	validJob := &EnrichmentInfoJob{
 		EiJobID:  "test-job-1",
@@ -812,43 +805,29 @@ func TestValidateEIJob_Success(t *testing.T) {
 		JobStatusURL: "http://status.example.com/job-status",
 	}
 
-	err := validator.ValidateEIJob(eiType, validJob)
+	err := validator.ValidateEnrichmentInfoJob(validJob)
 	assert.NoError(t, err)
 }
 
 func TestValidateEIJob_InvalidFields(t *testing.T) {
 	validator := NewTestA1Validator()
 
-	eiType := &EnrichmentInfoType{
-		EiTypeID:        "test-ei-type-1",
-		EiJobDataSchema: createValidEIJobDataSchema(),
-	}
-
 	tests := []struct {
 		name        string
-		eiType      *EnrichmentInfoType
 		job         *EnrichmentInfoJob
 		expectedMsg string
 	}{
 		{
-			"nil ei type",
-			nil,
-			&EnrichmentInfoJob{},
-			"enrichment info type cannot be nil",
-		},
-		{
 			"nil ei job",
-			eiType,
 			nil,
 			"enrichment info job cannot be nil",
 		},
 		{
 			"empty ei_job_id",
-			eiType,
 			&EnrichmentInfoJob{
 				EiJobID:   "",
 				EiTypeID:  "test-ei-type-1",
-				EiJobData: json.RawMessage(`{"test":"data"}`),
+				EiJobData: map[string]interface{}{"test": "data"},
 				TargetURI: "http://example.com",
 				JobOwner:  "owner",
 			},
@@ -856,11 +835,10 @@ func TestValidateEIJob_InvalidFields(t *testing.T) {
 		},
 		{
 			"mismatched ei_type_id",
-			eiType,
 			&EnrichmentInfoJob{
 				EiJobID:   "job-1",
 				EiTypeID:  "different-type",
-				EiJobData: json.RawMessage(`{"test":"data"}`),
+				EiJobData: map[string]interface{}{"test": "data"},
 				TargetURI: "http://example.com",
 				JobOwner:  "owner",
 			},
@@ -868,11 +846,10 @@ func TestValidateEIJob_InvalidFields(t *testing.T) {
 		},
 		{
 			"empty target_uri",
-			eiType,
 			&EnrichmentInfoJob{
 				EiJobID:   "job-1",
 				EiTypeID:  "test-ei-type-1",
-				EiJobData: json.RawMessage(`{"test":"data"}`),
+				EiJobData: map[string]interface{}{"test": "data"},
 				TargetURI: "",
 				JobOwner:  "owner",
 			},
@@ -880,11 +857,10 @@ func TestValidateEIJob_InvalidFields(t *testing.T) {
 		},
 		{
 			"empty job_owner",
-			eiType,
 			&EnrichmentInfoJob{
 				EiJobID:   "job-1",
 				EiTypeID:  "test-ei-type-1",
-				EiJobData: json.RawMessage(`{"test":"data"}`),
+				EiJobData: map[string]interface{}{"test": "data"},
 				TargetURI: "http://example.com",
 				JobOwner:  "",
 			},
@@ -894,7 +870,7 @@ func TestValidateEIJob_InvalidFields(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validator.ValidateEIJob(tt.eiType, tt.job)
+			err := validator.ValidateEnrichmentInfoJob(tt.job)
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), tt.expectedMsg)
 		})
@@ -903,11 +879,6 @@ func TestValidateEIJob_InvalidFields(t *testing.T) {
 
 func TestValidateEIJob_InvalidURLs(t *testing.T) {
 	validator := NewTestA1Validator()
-
-	eiType := &EnrichmentInfoType{
-		EiTypeID:        "test-ei-type-1",
-		EiJobDataSchema: createValidEIJobDataSchema(),
-	}
 
 	tests := []struct {
 		name         string
@@ -934,13 +905,13 @@ func TestValidateEIJob_InvalidURLs(t *testing.T) {
 			job := &EnrichmentInfoJob{
 				EiJobID:      "job-1",
 				EiTypeID:     "test-ei-type-1",
-				EiJobData:    json.RawMessage(`{"test":"data"}`),
+				EiJobData:    map[string]interface{}{"test": "data"},
 				TargetURI:    tt.targetURI,
 				JobOwner:     "owner",
 				JobStatusURL: tt.jobStatusURL,
 			}
 
-			err := validator.ValidateEIJob(eiType, job)
+			err := validator.ValidateEnrichmentInfoJob(job)
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), tt.expectedMsg)
 		})

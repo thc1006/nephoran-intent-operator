@@ -43,8 +43,8 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 			ServerAddress:  "127.0.0.1",
 			ServerPort:     0,
 			TLSEnabled:     false,
-			DatabaseConfig: []byte(`{}`),
-			ProviderConfigs: []byte(`{"enabled": true, "config": {}}`),
+			DatabaseConfig: json.RawMessage(`{}`),
+			ProviderConfigs: json.RawMessage(`{"enabled": true, "config": {}}`),
 		}
 
 		var err error

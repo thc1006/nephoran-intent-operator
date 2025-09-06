@@ -22,8 +22,8 @@ type TimePointMetric struct {
 	Value     float64   `json:"value"`
 }
 
-// PerformanceTestConfig holds configuration for performance tests
-type PerformanceTestConfig struct {
+// BasicTestConfig holds basic configuration for simple performance tests
+type BasicTestConfig struct {
 	TestDuration       time.Duration `json:"test_duration"`
 	ConcurrencyLevel   int           `json:"concurrency_level"`
 	RequestsPerSecond  int           `json:"requests_per_second"`
@@ -31,54 +31,54 @@ type PerformanceTestConfig struct {
 	ResourceMonitoring bool          `json:"resource_monitoring"`
 }
 
-// LoadGenerator handles load generation for tests
-type LoadGenerator struct {
-	config    *PerformanceTestConfig
+// BasicLoadGenerator handles simple load generation for tests
+type BasicLoadGenerator struct {
+	config    *BasicTestConfig
 	isRunning bool
 }
 
-func (lg *LoadGenerator) Start() error {
+func (lg *BasicLoadGenerator) Start() error {
 	lg.isRunning = true
 	return nil
 }
 
-func (lg *LoadGenerator) Stop() error {
+func (lg *BasicLoadGenerator) Stop() error {
 	lg.isRunning = false
 	return nil
 }
 
-// PerformanceProfiler handles performance profiling
-type PerformanceProfiler struct {
+// BasicPerformanceProfiler handles simple performance profiling
+type BasicPerformanceProfiler struct {
 	isRunning bool
 }
 
-func (pp *PerformanceProfiler) Start() error {
+func (pp *BasicPerformanceProfiler) Start() error {
 	pp.isRunning = true
 	return nil
 }
 
-func (pp *PerformanceProfiler) Stop() error {
+func (pp *BasicPerformanceProfiler) Stop() error {
 	pp.isRunning = false
 	return nil
 }
 
-// ResourceMonitor monitors system resources
-type ResourceMonitor struct {
+// BasicResourceMonitor monitors system resources
+type BasicResourceMonitor struct {
 	isRunning bool
 }
 
-func (rm *ResourceMonitor) Start() error {
+func (rm *BasicResourceMonitor) Start() error {
 	rm.isRunning = true
 	return nil
 }
 
-func (rm *ResourceMonitor) Stop() error {
+func (rm *BasicResourceMonitor) Stop() error {
 	rm.isRunning = false
 	return nil
 }
 
-// PerformanceTestResults holds test results
-type PerformanceTestResults struct {
+// BasicTestResults holds simple test results
+type BasicTestResults struct {
 	Duration      time.Duration              `json:"duration"`
 	TotalRequests int64                      `json:"total_requests"`
 	SuccessRate   float64                    `json:"success_rate"`
@@ -87,36 +87,36 @@ type PerformanceTestResults struct {
 	Metrics       map[string]TimePointMetric `json:"metrics"`
 }
 
-// RealtimeMetrics tracks real-time metrics
-type RealtimeMetrics struct {
+// BasicRealtimeMetrics tracks real-time metrics
+type BasicRealtimeMetrics struct {
 	isRunning bool
 }
 
-func (rm *RealtimeMetrics) Start(ctx context.Context) error {
+func (rm *BasicRealtimeMetrics) Start(ctx context.Context) error {
 	rm.isRunning = true
 	return nil
 }
 
-func (rm *RealtimeMetrics) Stop() error {
+func (rm *BasicRealtimeMetrics) Stop() error {
 	rm.isRunning = false
 	return nil
 }
 
-// LatencyRecorder records latency metrics
-type LatencyRecorder struct {
+// BasicLatencyRecorder records latency metrics
+type BasicLatencyRecorder struct {
 	measurements []time.Duration
 }
 
-func NewLatencyRecorder() *LatencyRecorder {
-	return &LatencyRecorder{
+func NewBasicLatencyRecorder() *BasicLatencyRecorder {
+	return &BasicLatencyRecorder{
 		measurements: make([]time.Duration, 0),
 	}
 }
 
-func (lr *LatencyRecorder) Record(latency time.Duration) {
+func (lr *BasicLatencyRecorder) Record(latency time.Duration) {
 	lr.measurements = append(lr.measurements, latency)
 }
 
-func NewRealtimeMetrics() *RealtimeMetrics {
-	return &RealtimeMetrics{}
+func NewBasicRealtimeMetrics() *BasicRealtimeMetrics {
+	return &BasicRealtimeMetrics{}
 }

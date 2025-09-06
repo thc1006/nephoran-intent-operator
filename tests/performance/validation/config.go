@@ -50,7 +50,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 			ConcurrencyLevels: []int{1, 5, 10, 25, 50, 100, 150, 200, 250, 300},
 
-			LoadPatterns: []LoadPattern{
+			ValidationLoadPatterns: []ValidationLoadPattern{
 				{
 					Name: "constant_load",
 
@@ -92,7 +92,7 @@ func DefaultValidationConfig() *ValidationConfig {
 				},
 			},
 
-			TestScenarios: []TestScenario{
+			ValidationTestScenarios: []ValidationTestScenario{
 				// Simple Scenarios (20% of tests).
 
 				{
@@ -398,7 +398,7 @@ func ValidateConfig(config *ValidationConfig) error {
 		}
 	}
 
-	if len(config.TestConfig.TestScenarios) == 0 {
+	if len(config.TestConfig.ValidationTestScenarios) == 0 {
 		errors = append(errors, "at least one test scenario must be specified")
 	}
 

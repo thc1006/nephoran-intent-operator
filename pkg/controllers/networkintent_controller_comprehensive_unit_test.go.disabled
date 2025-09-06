@@ -82,7 +82,7 @@ func (m *MockDependenciesComprehensive) GetTelecomKnowledgeBase() *telecom.Telec
 }
 
 func (m *MockDependenciesComprehensive) GetMetricsCollector() monitoring.MetricsCollector {
-	return nil // Return nil for now
+	return m.metricsCollector
 }
 
 // MockLLMClientComprehensive for testing LLM integration
