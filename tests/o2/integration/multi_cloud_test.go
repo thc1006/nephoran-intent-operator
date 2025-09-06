@@ -20,7 +20,11 @@ type MultiCloudTestSuite struct {
 	awsProvider   *mocks.MockAWSProvider
 	azureProvider *mocks.MockAzureProvider
 	gcpProvider   *mocks.MockGCPProvider
+<<<<<<< HEAD
 	// helpers       *mocks.CloudProviderTestHelpers // TODO: Implement CloudProviderTestHelpers
+=======
+	// helpers       *mocks.CloudProviderTestHelpers // TODO: Implement CloudProviderTestHelpers type
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
 	testLogger    *logging.StructuredLogger
 }
 

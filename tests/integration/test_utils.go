@@ -19,6 +19,22 @@ var TestEnv *testtools.TestEnvironment
 func CreateTestNamespace() *corev1.Namespace {
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "test-integration-",
+			Labels: map[string]string{
+				"test-namespace":       "true",
+				"nephoran.com/test":    "integration",
+				"nephoran.com/envtest": "true",
+			},
+		},
+	}
+
+	return namespace
+}
+
+// CreateUtilTestNamespace creates a test namespace using envtest patterns for 2025 Go testing best practices
+func CreateUtilTestNamespace() *corev1.Namespace {
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: fmt.Sprintf("test-integration-%d", time.Now().UnixNano()),
 			Labels: map[string]string{
 				"test-namespace":       "true",
@@ -29,7 +45,7 @@ func CreateTestNamespace() *corev1.Namespace {
 	}
 
 	// If we have a test environment, create the namespace in the cluster
-	if TestEnv != nil && k8sClient != nil {
+	if TestEnv != nil {
 		if err := TestEnv.CreateTestObject(namespace); err != nil {
 			// Fallback to returning the namespace object without creation
 			return namespace

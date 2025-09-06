@@ -1,0 +1,144 @@
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	﻿2025-09-04T22:39:21.0886452Z ##[group]Run set -e
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0886766Z [36;1mset -e[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0887013Z [36;1mexport GOCACHE="$(pwd)/.go-build-cache"[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0887286Z [36;1m[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0887516Z [36;1mecho "🔍 Running fast syntax validation..."[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0887795Z [36;1m[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0887967Z [36;1m# Fast syntax check[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0888195Z [36;1mecho "📋 Checking Go syntax..."[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0888447Z [36;1mgo vet ./...[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0888640Z [36;1m[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0888824Z [36;1m# Fast build check (no output)[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0889108Z [36;1mecho "🏗️  Fast build verification..."[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0889397Z [36;1mgo build $BUILD_FLAGS ./...[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0889619Z [36;1m[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0889808Z [36;1m# Module tidiness check[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0890063Z [36;1mecho "🧹 Checking module tidiness..."[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0890309Z [36;1mgo mod tidy[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0890538Z [36;1mif ! git diff --quiet go.mod go.sum; then[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0890860Z [36;1m  echo "❌ go.mod or go.sum is not tidy"[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0891122Z [36;1m  git diff go.mod go.sum[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0891346Z [36;1m  exit 1[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0891525Z [36;1mfi[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0891682Z [36;1m[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0891900Z [36;1mecho "✅ Fast validation completed successfully"[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0940735Z shell: /usr/bin/bash -e {0}
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0940983Z env:
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0941210Z   GO_VERSION: 1.22
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0941443Z   GOPROXY: https://proxy.golang.org,direct
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0941734Z   GOSUMDB: sum.golang.org
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0942167Z   CGO_ENABLED: 0
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0942366Z   GOMAXPROCS: 4
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0942547Z   GOMEMLIMIT: 8GiB
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0942941Z   GOGC: 75
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0943103Z   GO_DISABLE_TELEMETRY: 1
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0943396Z   BUILD_FLAGS: -trimpath -ldflags='-s -w -extldflags=-static'
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0943732Z   TEST_FLAGS: -race -count=1 -timeout=15m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0943980Z   CACHE_VERSION: v2025-1
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.0944175Z ##[endgroup]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.1017328Z 🔍 Running fast syntax validation...
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:39:21.1017676Z 📋 Checking Go syntax...
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:43:59.4964009Z # github.com/thc1006/nephoran-intent-operator/pkg/auth_test
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:43:59.4968609Z # [github.com/thc1006/nephoran-intent-operator/pkg/auth_test]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:43:59.4977464Z ##[error]vet: pkg/auth/middleware_test.go:190:17: pf.CreateResourcePermissions undefined (type *"github.com/thc1006/nephoran-intent-operator/pkg/testutil/auth".PermissionFactory has no field or method CreateResourcePermissions)
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:00.9981197Z # github.com/thc1006/nephoran-intent-operator/pkg/controllers [github.com/thc1006/nephoran-intent-operator/pkg/controllers.test]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:00.9998675Z ##[error]pkg/controllers/networkintent_cleanup_table_driven_test.go:23:2: NetworkIntentFinalizer redeclared in this block
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:01.0001186Z ##[error]	pkg/controllers/networkintent_cleanup_edge_cases_test.go:25:2: other declaration of NetworkIntentFinalizer
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:01.0012748Z ##[error]pkg/controllers/networkintent_cleanup_test.go:25:2: NetworkIntentFinalizer redeclared in this block
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:01.0016322Z ##[error]	pkg/controllers/networkintent_cleanup_edge_cases_test.go:25:2: other declaration of NetworkIntentFinalizer
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:01.0018628Z ##[error]pkg/controllers/networkintent_controller_comprehensive_unit_test.go:35:2: NetworkIntentFinalizer redeclared in this block
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:01.0020741Z ##[error]	pkg/controllers/networkintent_cleanup_edge_cases_test.go:25:2: other declaration of NetworkIntentFinalizer
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:01.0022721Z ##[error]pkg/controllers/networkintent_cleanup_edge_cases_test.go:65:59: undefined: testEnv
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:01.0025075Z ##[error]pkg/controllers/networkintent_cleanup_edge_cases_test.go:98:18: mockGitClient.On undefined (type *testutils.MockGitClient has no field or method On)
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:01.0028085Z ##[error]pkg/controllers/networkintent_cleanup_edge_cases_test.go:99:18: mockGitClient.On undefined (type *testutils.MockGitClient has no field or method On)
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:01.0030170Z ##[error]pkg/controllers/networkintent_cleanup_edge_cases_test.go:102:44: undefined: ctx
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:01.0063240Z ##[error]pkg/controllers/networkintent_cleanup_edge_cases_test.go:106:18: mockGitClient.AssertExpectations undefined (type *testutils.MockGitClient has no field or method AssertExpectations)
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:01.0066640Z ##[error]pkg/controllers/networkintent_cleanup_edge_cases_test.go:119:18: mockGitClient.On undefined (type *testutils.MockGitClient has no field or method On)
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:01.0069680Z ##[error]pkg/controllers/networkintent_cleanup_edge_cases_test.go:120:18: mockGitClient.On undefined (type *testutils.MockGitClient has no field or method On)
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:01.0072292Z ##[error]pkg/controllers/networkintent_cleanup_edge_cases_test.go:120:18: too many errors
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:16.9456075Z # github.com/thc1006/nephoran-intent-operator/pkg/llm
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:16.9458076Z # [github.com/thc1006/nephoran-intent-operator/pkg/llm]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:16.9460654Z ##[error]vet: pkg/llm/circuit_breaker_advanced_test.go:9:2: "encoding/json" imported and not used
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:19.1650043Z # github.com/thc1006/nephoran-intent-operator/pkg/nephio
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:19.1651356Z # [github.com/thc1006/nephoran-intent-operator/pkg/nephio]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:19.1652990Z ##[error]vet: pkg/nephio/advanced_benchmarks_test.go:963:6: ConfigSyncResult redeclared in this block
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:21.0180589Z # github.com/thc1006/nephoran-intent-operator/pkg/nephio/blueprint
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:21.0181567Z # [github.com/thc1006/nephoran-intent-operator/pkg/nephio/blueprint]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:21.0183809Z ##[error]vet: pkg/nephio/blueprint/manager_comprehensive_test.go:86:46: undefined: v1alpha1
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:21.1271551Z # github.com/thc1006/nephoran-intent-operator/pkg/nephio/multicluster
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:21.1273324Z # [github.com/thc1006/nephoran-intent-operator/pkg/nephio/multicluster]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:21.1275173Z ##[error]vet: pkg/nephio/multicluster/performance_test.go:31:2: runtime redeclared in this block
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:21.2380044Z # github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch [github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch.test]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:21.2432289Z ##[error]pkg/nephio/porch/function_runner_test.go:12:15: cannot use json.RawMessage(`{}`) (value of slice type "encoding/json".RawMessage) as map[string]interface{} value in struct literal
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:21.2435637Z ##[error]pkg/nephio/porch/function_runner_test.go:18:15: cannot use json.RawMessage(`{}`) (value of slice type "encoding/json".RawMessage) as map[string]interface{} value in struct literal
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:21.2438874Z ##[error]pkg/nephio/porch/function_runner_test.go:19:11: cannot use json.RawMessage(`{}`) (value of slice type "encoding/json".RawMessage) as map[string]interface{} value in struct literal
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:22.2110412Z # github.com/thc1006/nephoran-intent-operator/pkg/nephio/krm
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:22.2115869Z # [github.com/thc1006/nephoran-intent-operator/pkg/nephio/krm]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:22.2125209Z ##[error]vet: pkg/nephio/krm/runtime_comprehensive_test.go:61:6: ResourceSelector redeclared in this block
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:22.3980275Z # github.com/thc1006/nephoran-intent-operator/pkg/oran/a1
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:22.4015376Z # [github.com/thc1006/nephoran-intent-operator/pkg/oran/a1]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:22.4021572Z ##[error]vet: pkg/oran/a1/handlers_test.go:1297:25: method MockA1Storage.GetEIJob already declared at pkg/oran/a1/handlers_test.go:1042:25
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:22.8133759Z # github.com/thc1006/nephoran-intent-operator/pkg/oran/o1
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:22.8134925Z # [github.com/thc1006/nephoran-intent-operator/pkg/oran/o1]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:22.8137779Z ##[error]vet: pkg/oran/o1/adapter_test.go:111:12: status.ConnectionStatus undefined (type *"github.com/thc1006/nephoran-intent-operator/api/v1".ManagedElementStatus has no field or method ConnectionStatus)
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:23.2340445Z # github.com/thc1006/nephoran-intent-operator/pkg/oran/o2
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:23.2355177Z # [github.com/thc1006/nephoran-intent-operator/pkg/oran/o2]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:23.2357121Z ##[error]vet: pkg/oran/o2/o2_manager_test.go:163:42: rm.Metrics.TotalNodes undefined (type *ClusterMetrics has no field or method TotalNodes)
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:23.5196926Z # github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:23.5197792Z # [github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:23.5199481Z ##[error]vet: pkg/oran/o2/providers/kubernetes_test.go:212:27: cannot convert "dataKeys" (untyped string constant) to type int
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:23.9188256Z # github.com/thc1006/nephoran-intent-operator/pkg/security
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:23.9189589Z # [github.com/thc1006/nephoran-intent-operator/pkg/security]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:23.9192796Z ##[error]vet: pkg/security/race_test.go:154:2: undefined: group
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:28.3863708Z # github.com/thc1006/nephoran-intent-operator/test/chaos
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:28.3882922Z # [github.com/thc1006/nephoran-intent-operator/test/chaos]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:28.3884679Z ##[error]vet: test/chaos/resilience_test.go:36:50: not enough arguments in call to porchclient.NewClient
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:28.3886060Z 	have (*rest.Config)
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:28.3886386Z 	want (string, bool)
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:28.4528533Z # github.com/thc1006/nephoran-intent-operator/test/envtest
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:28.4529324Z # [github.com/thc1006/nephoran-intent-operator/test/envtest]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:28.4534115Z ##[error]vet: test/envtest/suite_test.go:223:68: undefined: intentv1alpha1.OranClusterSpec
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:28.5474254Z # github.com/thc1006/nephoran-intent-operator/test/integration
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:28.5476054Z # [github.com/thc1006/nephoran-intent-operator/test/integration]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:28.5479000Z ##[error]vet: test/integration/porch_integration_test.go:37:50: not enough arguments in call to porchclient.NewClient
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:28.5480761Z 	have (*rest.Config)
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:28.5481369Z 	want (string, bool)
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:28.5663535Z # github.com/thc1006/nephoran-intent-operator/test/integration/porch_test
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:28.5668918Z # [github.com/thc1006/nephoran-intent-operator/test/integration/porch_test]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:28.5674835Z ##[error]vet: test/integration/porch/intent_reconciliation_test.go:39:17: undefined: metav1
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:28.5819405Z # github.com/thc1006/nephoran-intent-operator/test/performance
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:28.5822919Z # [github.com/thc1006/nephoran-intent-operator/test/performance]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:28.5825373Z ##[error]vet: test/performance/load_test.go:62:17: undefined: rest
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:28.6264735Z # github.com/thc1006/nephoran-intent-operator/test/security
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:28.6265604Z # [github.com/thc1006/nephoran-intent-operator/test/security]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:28.6266797Z ##[error]vet: test/security/rbac_test.go:33:3: declared and not used: ctx
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:28.6921599Z # github.com/thc1006/nephoran-intent-operator/tests/compliance
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:28.6942812Z # [github.com/thc1006/nephoran-intent-operator/tests/compliance]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:28.6944818Z ##[error]vet: tests/compliance/sla_compliance_test.go:10:2: "math/rand/v2" imported as rand and not used
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:29.1135340Z # github.com/thc1006/nephoran-intent-operator/tests/examples
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:29.1139911Z # [github.com/thc1006/nephoran-intent-operator/tests/examples]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:29.1142553Z ##[error]vet: tests/examples/modern_testing_example_test.go:210:2: declared and not used: helper
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:29.6625106Z # github.com/thc1006/nephoran-intent-operator/tests/integration
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:29.6636640Z # [github.com/thc1006/nephoran-intent-operator/tests/integration]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:29.6638294Z ##[error]vet: tests/integration/suite_test.go:32:2: testEnv redeclared in this block
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:29.8415152Z # github.com/thc1006/nephoran-intent-operator/tests/o2/integration_test
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:29.8416439Z # [github.com/thc1006/nephoran-intent-operator/tests/o2/integration_test]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:29.8417838Z ##[error]vet: tests/o2/integration/multi_cloud_test.go:23:23: undefined: mocks.CloudProviderTestHelpers
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:30.7899257Z # github.com/thc1006/nephoran-intent-operator/tests/performance
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:30.7900072Z # [github.com/thc1006/nephoran-intent-operator/tests/performance]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:30.7901701Z ##[error]vet: tests/performance/benchmarks_test.go:156:6: too many arguments in call to tokenManager.CalculateTokenBudget
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:30.7903628Z 	have (context.Context, string, string, string, string)
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:30.7904213Z 	want (string, map[string]interface{})
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:31.8534758Z # github.com/thc1006/nephoran-intent-operator/tests/security
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:31.8536678Z # [github.com/thc1006/nephoran-intent-operator/tests/security]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:31.8541753Z ##[error]tests/security/tls_test_runner.go:206:2: fmt.Println arg list ends with redundant newline
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:32.1368194Z # github.com/thc1006/nephoran-intent-operator/tests/unit
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:32.1373089Z # [github.com/thc1006/nephoran-intent-operator/tests/unit]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:32.1378366Z ##[error]vet: tests/unit/llm_test.go:190:19: undefined: llm.ContextBuilderConfig
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:32.4053554Z # github.com/thc1006/nephoran-intent-operator/tests/validation_test
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:32.4054839Z # [github.com/thc1006/nephoran-intent-operator/tests/validation_test]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:32.4056427Z ##[error]vet: tests/validation/o2_compliance_validation_test.go:31:3: declared and not used: namespace
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:32.7136179Z # github.com/thc1006/nephoran-intent-operator/tests/validation
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:32.7140512Z # [github.com/thc1006/nephoran-intent-operator/tests/validation]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:32.7147800Z ##[error]vet: tests/validation/sla_validation_test.go:25:6: SLAValidationTestSuite redeclared in this block
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-04T22:44:34.6292388Z ##[error]Process completed with exit code 1.

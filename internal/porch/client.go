@@ -1,4 +1,3 @@
-// Package porch provides client interfaces for interacting with Porch package management.
 package porch
 
 import (
@@ -12,42 +11,40 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-// CreateDraftPackageRevision performs createdraftpackagerevision operation.
-
 func CreateDraftPackageRevision(
 	ctx context.Context,
-
 	restcfg *rest.Config,
-
 	namespace string,
-
 	repository string,
-
 	packageName string,
-
 	workspace string,
-
 	labels map[string]string,
-
 	annotations map[string]string,
 ) (*unstructured.Unstructured, error) {
+
 	gvr := schema.GroupVersionResource{
-		Group: "porch.kpt.dev",
-
-		Version: "v1alpha1",
-
+		Group:    "porch.kpt.dev",
+		Version:  "v1alpha1",
 		Resource: "packagerevisions",
 	}
 
 	u := &unstructured.Unstructured{
 		Object: map[string]interface{}{
+			"apiVersion": "porch.kpt.dev/v1alpha1",
+			"kind":       "PackageRevision",
 			"metadata": map[string]interface{}{
 				"generateName": fmt.Sprintf("%s.%s.", repository, packageName),
-				"namespace": namespace,
-				"labels": labels,
-				"annotations": annotations,
+				"namespace":    namespace,
+				"labels":       labels,
+				"annotations":  annotations,
 			},
-			"spec": map[string]interface{}{},
+			"spec": map[string]interface{}{
+				"lifecycle":     "Draft",
+				"repository":    repository,
+				"packageName":   packageName,
+				"workspaceName": workspace,
+				"revision":      0,
+			},
 		},
 	}
 
@@ -55,6 +52,5 @@ func CreateDraftPackageRevision(
 	if err != nil {
 		return nil, err
 	}
-
 	return dc.Resource(gvr).Namespace(namespace).Create(ctx, u, metav1.CreateOptions{})
 }

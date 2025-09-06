@@ -64,7 +64,10 @@ func TestMockProvider(t *testing.T) {
 	_, err := provider.CreateResource(ctx, &CreateResourceRequest{
 		Name: "test-resource",
 		Type: string(ResourceTypeDeployment),
+<<<<<<< HEAD
 		Specification: json.RawMessage(`{}`),
+=======
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
 	})
 	if err == nil {
 		t.Error("Expected error for uninitialized provider")

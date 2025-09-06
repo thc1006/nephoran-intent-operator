@@ -1,0 +1,542 @@
+# =============================================================================
+# CI Pipeline Monitoring & Alerting
+# =============================================================================
+# Monitors the health and performance of the consolidated CI pipeline
+# Provides early warning for issues before they impact development velocity
+# =============================================================================
+
+name: CI Pipeline Monitoring
+
+on:
+  schedule:
+    # Run every 4 hours during business days
+    - cron: '0 */4 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      alert_threshold:
+        description: 'Failure rate threshold for alerts (%)'
+        type: number
+        default: 10
+      lookback_hours:
+        description: 'Hours to look back for analysis'
+        type: number
+        default: 24
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+env:
+  # Monitoring configuration
+  MAX_ACCEPTABLE_DURATION_MINUTES: 25
+  MAX_ACCEPTABLE_FAILURE_RATE: 10
+  CACHE_HIT_RATE_THRESHOLD: 80
+  
+jobs:
+  # =============================================================================
+  # Pipeline Health Analysis
+  # =============================================================================
+  health-check:
+    name: "📊 Pipeline Health Analysis"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      status: ${{ steps.analysis.outputs.status }}
+      alert-needed: ${{ steps.analysis.outputs.alert-needed }}
+      metrics: ${{ steps.analysis.outputs.metrics }}
+      
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+        
+      - name: "📊 Analyze Recent Pipeline Runs"
+        id: analysis
+        run: |
+          echo "📊 Analyzing CI pipeline health..."
+          echo "Lookback period: ${{ github.event.inputs.lookback_hours || 24 }} hours"
+          echo "Failure rate threshold: ${{ github.event.inputs.alert_threshold || env.MAX_ACCEPTABLE_FAILURE_RATE }}%"
+          echo ""
+          
+          # Get recent workflow runs using GitHub CLI
+          LOOKBACK_HOURS="${{ github.event.inputs.lookback_hours || 24 }}"
+          FAILURE_THRESHOLD="${{ github.event.inputs.alert_threshold || env.MAX_ACCEPTABLE_FAILURE_RATE }}"
+          
+          # Calculate cutoff time
+          CUTOFF_TIME=$(date -u -d "$LOOKBACK_HOURS hours ago" +%Y-%m-%dT%H:%M:%SZ)
+          echo "Analyzing runs since: $CUTOFF_TIME"
+          
+          # Fetch recent runs for the main CI workflow
+          echo "Fetching recent workflow runs..."
+          RUNS_JSON=$(gh run list \
+            --workflow="nephoran-ci-2025-production.yml" \
+            --limit 50 \
+            --json status,conclusion,createdAt,updatedAt,number,displayTitle \
+            --jq "map(select(.createdAt > \"$CUTOFF_TIME\"))" 2>/dev/null || echo "[]")
+          
+          # Parse results
+          TOTAL_RUNS=$(echo "$RUNS_JSON" | jq length)
+          
+          if [ "$TOTAL_RUNS" -eq 0 ]; then
+            echo "⚠️ No recent runs found for analysis"
+            echo "status=no-data" >> $GITHUB_OUTPUT
+            echo "alert-needed=false" >> $GITHUB_OUTPUT
+            echo "metrics={\"total\": 0}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          echo "Found $TOTAL_RUNS runs to analyze"
+          
+          # Calculate metrics
+          FAILED_RUNS=$(echo "$RUNS_JSON" | jq '[.[] | select(.conclusion == "failure")] | length')
+          SUCCESS_RUNS=$(echo "$RUNS_JSON" | jq '[.[] | select(.conclusion == "success")] | length')
+          IN_PROGRESS_RUNS=$(echo "$RUNS_JSON" | jq '[.[] | select(.status == "in_progress")] | length')
+          CANCELLED_RUNS=$(echo "$RUNS_JSON" | jq '[.[] | select(.conclusion == "cancelled")] | length')
+          
+          # Calculate failure rate
+          if [ "$TOTAL_RUNS" -gt 0 ]; then
+            FAILURE_RATE=$(echo "scale=2; $FAILED_RUNS * 100 / $TOTAL_RUNS" | bc -l 2>/dev/null || echo "0")
+          else
+            FAILURE_RATE="0"
+          fi
+          
+          # Analyze duration trends (simplified - would need API calls for full data)
+          RECENT_FAILURES=$(echo "$RUNS_JSON" | jq -r '[.[] | select(.conclusion == "failure")] | .[0:3] | .[] | .number' 2>/dev/null || echo "")
+          
+          echo ""
+          echo "📈 Pipeline Metrics Summary:"
+          echo "============================"
+          echo "Total runs: $TOTAL_RUNS"
+          echo "Successful: $SUCCESS_RUNS"
+          echo "Failed: $FAILED_RUNS"
+          echo "In progress: $IN_PROGRESS_RUNS"
+          echo "Cancelled: $CANCELLED_RUNS"
+          echo "Failure rate: ${FAILURE_RATE}%"
+          echo ""
+          
+          # Generate detailed metrics JSON
+          METRICS=$(cat <<EOF
+          {
+            "total_runs": $TOTAL_RUNS,
+            "success_runs": $SUCCESS_RUNS,
+            "failed_runs": $FAILED_RUNS,
+            "in_progress_runs": $IN_PROGRESS_RUNS,
+            "cancelled_runs": $CANCELLED_RUNS,
+            "failure_rate": $FAILURE_RATE,
+            "analysis_period_hours": $LOOKBACK_HOURS,
+            "analysis_timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "recent_failures": [$RECENT_FAILURES]
+          }
+          EOF
+          )
+          
+          echo "metrics=$METRICS" >> $GITHUB_OUTPUT
+          
+          # Determine overall status and alert need
+          STATUS="healthy"
+          ALERT_NEEDED="false"
+          
+          if (( $(echo "$FAILURE_RATE > $FAILURE_THRESHOLD" | bc -l) )); then
+            echo "🚨 HIGH FAILURE RATE: ${FAILURE_RATE}% > ${FAILURE_THRESHOLD}%"
+            STATUS="unhealthy"
+            ALERT_NEEDED="true"
+          elif [ "$FAILED_RUNS" -gt 5 ]; then
+            echo "⚠️ HIGH FAILURE COUNT: $FAILED_RUNS failures"
+            STATUS="degraded" 
+            ALERT_NEEDED="true"
+          elif [ "$SUCCESS_RUNS" -eq 0 ] && [ "$TOTAL_RUNS" -gt 3 ]; then
+            echo "🚨 NO SUCCESSFUL RUNS in recent period"
+            STATUS="critical"
+            ALERT_NEEDED="true"
+          else
+            echo "✅ Pipeline health is good"
+          fi
+          
+          echo ""
+          echo "Overall Status: $STATUS"
+          echo "Alert Needed: $ALERT_NEEDED"
+          
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          echo "alert-needed=$ALERT_NEEDED" >> $GITHUB_OUTPUT
+
+  # =============================================================================
+  # Cache Performance Analysis  
+  # =============================================================================
+  cache-analysis:
+    name: "🗂️ Cache Performance Analysis"
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    outputs:
+      cache-status: ${{ steps.cache-check.outputs.status }}
+      recommendations: ${{ steps.cache-check.outputs.recommendations }}
+      
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+        
+      - name: "🗂️ Analyze Cache Performance"
+        id: cache-check
+        run: |
+          echo "🗂️ Analyzing cache performance..."
+          
+          # Simulate cache analysis (in real implementation, would analyze actual cache metrics)
+          echo "Analyzing cache hit rates and performance..."
+          
+          # Check for cache-related files and configurations
+          CACHE_CONFIGS=$(find .github/workflows/ -name "*.yml" -exec grep -l "actions/cache" {} \;)
+          echo "Workflows using caching: $(echo "$CACHE_CONFIGS" | wc -l)"
+          
+          # Analyze cache key strategies
+          echo ""
+          echo "Cache Key Analysis:"
+          echo "==================="
+          for config in $CACHE_CONFIGS; do
+            echo "File: $config"
+            grep -A 5 -B 2 "actions/cache" "$config" | grep -E "(key:|restore-keys:)" || true
+            echo ""
+          done
+          
+          # Generate recommendations
+          RECOMMENDATIONS=""
+          
+          # Check for cache key best practices
+          if grep -r "hashFiles.*go.sum" .github/workflows/ >/dev/null; then
+            echo "✅ Found go.sum-based cache keys"
+          else
+            echo "⚠️ Missing go.sum-based cache keys"
+            RECOMMENDATIONS="${RECOMMENDATIONS}- Add go.sum-based cache keys for better cache invalidation\\n"
+          fi
+          
+          # Check for restore-keys fallbacks
+          if grep -r "restore-keys:" .github/workflows/ >/dev/null; then
+            echo "✅ Found restore-keys fallbacks"
+          else
+            echo "⚠️ Missing restore-keys fallbacks"
+            RECOMMENDATIONS="${RECOMMENDATIONS}- Add restore-keys for cache fallback strategy\\n"
+          fi
+          
+          # Overall cache status
+          CACHE_STATUS="good"
+          if [ -n "$RECOMMENDATIONS" ]; then
+            CACHE_STATUS="needs-improvement"
+          fi
+          
+          echo ""
+          echo "Cache Status: $CACHE_STATUS"
+          
+          if [ -n "$RECOMMENDATIONS" ]; then
+            echo "Recommendations:"
+            echo -e "$RECOMMENDATIONS"
+          fi
+          
+          echo "status=$CACHE_STATUS" >> $GITHUB_OUTPUT
+          echo "recommendations<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$RECOMMENDATIONS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+  # =============================================================================
+  # Dependency Health Check
+  # =============================================================================  
+  dependency-health:
+    name: "📦 Dependency Health Check"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      dep-status: ${{ steps.dep-check.outputs.status }}
+      dep-count: ${{ steps.dep-check.outputs.count }}
+      security-alerts: ${{ steps.dep-check.outputs.security-alerts }}
+      
+    steps:
+      - name: "📥 Checkout Repository" 
+        uses: actions/checkout@v4
+        
+      - name: "🐹 Setup Go"
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.6'
+          cache: false
+          
+      - name: "📦 Analyze Dependencies"
+        id: dep-check
+        timeout-minutes: 8
+        run: |
+          echo "📦 Analyzing dependency health..."
+          
+          # Count total dependencies
+          echo "Counting dependencies..."
+          if TOTAL_DEPS=$(go list -m all 2>/dev/null | wc -l); then
+            echo "Total dependencies: $TOTAL_DEPS"
+          else
+            echo "⚠️ Unable to count dependencies"
+            TOTAL_DEPS="unknown"
+          fi
+          
+          # Analyze go.mod complexity
+          DIRECT_DEPS=$(grep -c "^\s*[a-zA-Z]" go.mod 2>/dev/null || echo "0")
+          GO_MOD_SIZE=$(wc -l < go.mod 2>/dev/null || echo "0")
+          
+          echo "Direct dependencies: $DIRECT_DEPS"
+          echo "go.mod lines: $GO_MOD_SIZE"
+          
+          # Check for problematic dependency patterns
+          echo ""
+          echo "🔍 Checking for problematic patterns..."
+          
+          PROBLEMATIC_PATTERNS=0
+          
+          # Check for too many AWS/Azure/GCP dependencies
+          CLOUD_DEPS=$(grep -E "(aws-sdk|azure-sdk|cloud\.google)" go.mod | wc -l)
+          if [ "$CLOUD_DEPS" -gt 20 ]; then
+            echo "⚠️ High cloud SDK dependency count: $CLOUD_DEPS"
+            PROBLEMATIC_PATTERNS=$((PROBLEMATIC_PATTERNS + 1))
+          else
+            echo "✅ Cloud SDK dependencies reasonable: $CLOUD_DEPS"
+          fi
+          
+          # Check for Kubernetes ecosystem complexity  
+          K8S_DEPS=$(grep -E "(k8s\.io|sigs\.k8s\.io)" go.mod | wc -l)
+          if [ "$K8S_DEPS" -gt 15 ]; then
+            echo "⚠️ High Kubernetes dependency count: $K8S_DEPS"
+            PROBLEMATIC_PATTERNS=$((PROBLEMATIC_PATTERNS + 1))
+          else
+            echo "✅ Kubernetes dependencies reasonable: $K8S_DEPS"
+          fi
+          
+          # Overall dependency status
+          DEP_STATUS="healthy"
+          if [ "$PROBLEMATIC_PATTERNS" -gt 0 ]; then
+            DEP_STATUS="needs-attention"
+          fi
+          
+          if [ "$TOTAL_DEPS" != "unknown" ] && [ "$TOTAL_DEPS" -gt 1000 ]; then
+            echo "⚠️ Very large dependency tree: $TOTAL_DEPS"
+            DEP_STATUS="complex"
+          fi
+          
+          echo ""
+          echo "Dependency Status: $DEP_STATUS" 
+          
+          # Check for security alerts (basic check)
+          SECURITY_ALERTS="none"
+          if [ -f go.sum ]; then
+            # This is a simplified check - real implementation would use govulncheck
+            echo "📋 Security check placeholder (implement govulncheck in production)"
+          fi
+          
+          echo "count=$TOTAL_DEPS" >> $GITHUB_OUTPUT
+          echo "status=$DEP_STATUS" >> $GITHUB_OUTPUT  
+          echo "security-alerts=$SECURITY_ALERTS" >> $GITHUB_OUTPUT
+
+  # =============================================================================
+  # Alert Generation & Issue Creation
+  # =============================================================================
+  alert-manager:
+    name: "🔔 Alert Manager"
+    runs-on: ubuntu-latest
+    needs: [health-check, cache-analysis, dependency-health]
+    if: needs.health-check.outputs.alert-needed == 'true' || needs.cache-analysis.outputs.cache-status != 'good'
+    timeout-minutes: 8
+    
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+        
+      - name: "🔔 Generate CI Health Alert"
+        if: needs.health-check.outputs.alert-needed == 'true'
+        run: |
+          echo "🚨 GENERATING CI HEALTH ALERT"
+          echo ""
+          echo "Pipeline Status: ${{ needs.health-check.outputs.status }}"
+          echo "Metrics: ${{ needs.health-check.outputs.metrics }}"
+          echo ""
+          
+          # Parse metrics for alert details
+          METRICS='${{ needs.health-check.outputs.metrics }}'
+          
+          FAILURE_RATE=$(echo "$METRICS" | jq -r .failure_rate 2>/dev/null || echo "unknown")
+          TOTAL_RUNS=$(echo "$METRICS" | jq -r .total_runs 2>/dev/null || echo "unknown")
+          FAILED_RUNS=$(echo "$METRICS" | jq -r .failed_runs 2>/dev/null || echo "unknown")
+          
+          echo "Creating GitHub issue for CI health alert..."
+          
+          # Create issue body
+          ISSUE_BODY=$(cat <<EOF
+          # 🚨 CI Pipeline Health Alert
+          
+          **Alert triggered:** $(date -u)
+          **Status:** ${{ needs.health-check.outputs.status }}
+          
+          ## 📊 Metrics Summary
+          - **Total runs:** $TOTAL_RUNS
+          - **Failed runs:** $FAILED_RUNS  
+          - **Failure rate:** ${FAILURE_RATE}%
+          - **Analysis period:** ${{ github.event.inputs.lookback_hours || 24 }} hours
+          
+          ## 🔧 Recommended Actions
+          1. Review recent failed workflow runs
+          2. Check for infrastructure issues or dependency problems
+          3. Verify cache performance is optimal
+          4. Consider adjusting timeout configurations if needed
+          
+          ## 📋 Investigation Steps
+          1. Check GitHub Actions status page for incidents
+          2. Review workflow logs for common failure patterns
+          3. Analyze dependency resolution times
+          4. Validate cache hit rates
+          
+          ## 🔗 Useful Links
+          - [Workflow runs](https://github.com/${{ github.repository }}/actions)
+          - [Pipeline monitoring](https://github.com/${{ github.repository }}/actions/workflows/ci-monitoring.yml)
+          
+          ---
+          *This alert was automatically generated by CI Pipeline Monitoring*
+          *Workflow: \`${{ github.workflow }}\` | Run: \`${{ github.run_id }}\`*
+          EOF
+          )
+          
+          # Create issue using GitHub CLI
+          gh issue create \
+            --title "🚨 CI Pipeline Health Alert - ${FAILURE_RATE}% failure rate" \
+            --body "$ISSUE_BODY" \
+            --label "alert,ci,high-priority" \
+            --assignee "@me" || echo "Failed to create issue"
+
+      - name: "🗂️ Generate Cache Performance Alert"
+        if: needs.cache-analysis.outputs.cache-status != 'good'
+        run: |
+          echo "⚠️ GENERATING CACHE PERFORMANCE ALERT"
+          echo ""
+          echo "Cache Status: ${{ needs.cache-analysis.outputs.cache-status }}"
+          
+          if [ -n "${{ needs.cache-analysis.outputs.recommendations }}" ]; then
+            echo "Creating GitHub issue for cache optimization..."
+            
+            ISSUE_BODY=$(cat <<EOF
+          # 🗂️ CI Cache Performance Alert
+          
+          **Alert triggered:** $(date -u)
+          **Cache status:** ${{ needs.cache-analysis.outputs.cache-status }}
+          
+          ## 🎯 Optimization Recommendations
+          ${{ needs.cache-analysis.outputs.recommendations }}
+          
+          ## 🔧 Implementation Steps
+          1. Review cache key strategies in workflow files
+          2. Add missing restore-keys for fallback scenarios
+          3. Implement multi-layer caching where appropriate
+          4. Test cache performance improvements
+          
+          ## 📊 Expected Benefits
+          - Faster build times through improved cache hits
+          - Reduced dependency download times
+          - More reliable pipeline execution
+          - Lower resource usage
+          
+          ---
+          *This alert was automatically generated by CI Pipeline Monitoring*
+          EOF
+          )
+          
+            gh issue create \
+              --title "🗂️ CI Cache Performance Optimization Needed" \
+              --body "$ISSUE_BODY" \
+              --label "enhancement,ci,performance" || echo "Failed to create cache issue"
+          fi
+
+  # =============================================================================
+  # Monitoring Report Generation
+  # =============================================================================
+  report-generator:
+    name: "📋 Generate Monitoring Report"  
+    runs-on: ubuntu-latest
+    needs: [health-check, cache-analysis, dependency-health]
+    if: always()
+    timeout-minutes: 5
+    
+    steps:
+      - name: "📋 Generate Comprehensive Report"
+        run: |
+          echo "# 📊 CI Pipeline Monitoring Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Generated:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "**Monitoring Period:** ${{ github.event.inputs.lookback_hours || 24 }} hours" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "## 🎯 Health Status Overview" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Pipeline Health | ${{ needs.health-check.outputs.status || 'unknown' }} | ${{ needs.health-check.outputs.alert-needed == 'true' && '🚨 Alert triggered' || '✅ Normal' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Cache Performance | ${{ needs.cache-analysis.outputs.cache-status || 'unknown' }} | ${{ needs.cache-analysis.outputs.cache-status != 'good' && '⚠️ Needs improvement' || '✅ Optimal' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dependencies | ${{ needs.dependency-health.outputs.dep-status || 'unknown' }} | ${{ needs.dependency-health.outputs.dep-count || 'unknown' }} total dependencies |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.health-check.outputs.alert-needed }}" = "true" ]; then
+            echo "## 🚨 Active Alerts" >> $GITHUB_STEP_SUMMARY
+            echo "- **Pipeline Health:** ${{ needs.health-check.outputs.status }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Action Required:** Review failed workflow runs and investigate root causes" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "## 📈 Key Metrics" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ needs.health-check.outputs.metrics }}" ] && [ "${{ needs.health-check.outputs.metrics }}" != "{}" ]; then
+            echo "- **Pipeline metrics available in health-check job output**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **No recent pipeline runs to analyze**" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "## 🔧 Recommended Actions" >> $GITHUB_STEP_SUMMARY
+          
+          ACTION_COUNT=0
+          
+          if [ "${{ needs.health-check.outputs.alert-needed }}" = "true" ]; then
+            echo "1. **Investigate pipeline failures** - Review recent failed runs for patterns" >> $GITHUB_STEP_SUMMARY
+            ACTION_COUNT=$((ACTION_COUNT + 1))
+          fi
+          
+          if [ "${{ needs.cache-analysis.outputs.cache-status }}" != "good" ]; then
+            echo "$((ACTION_COUNT + 1)). **Optimize cache configuration** - Implement recommended cache improvements" >> $GITHUB_STEP_SUMMARY
+            ACTION_COUNT=$((ACTION_COUNT + 1))
+          fi
+          
+          if [ "${{ needs.dependency-health.outputs.dep-status }}" = "needs-attention" ]; then
+            echo "$((ACTION_COUNT + 1)). **Review dependency complexity** - Consider dependency optimization" >> $GITHUB_STEP_SUMMARY
+            ACTION_COUNT=$((ACTION_COUNT + 1))
+          fi
+          
+          if [ "$ACTION_COUNT" -eq 0 ]; then
+            echo "✅ **No immediate actions required** - All systems operating normally" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*Next monitoring check: $(date -u -d '+4 hours' +%Y-%m-%d\ %H:%M\ UTC)*" >> $GITHUB_STEP_SUMMARY
+
+      - name: "📊 Export Metrics for External Systems"
+        run: |
+          echo "📊 Exporting metrics for external monitoring systems..."
+          
+          # Generate metrics in Prometheus format
+          cat > ci-metrics.prom <<EOF
+          # HELP nephoran_ci_pipeline_runs_total Total number of CI pipeline runs
+          # TYPE nephoran_ci_pipeline_runs_total counter
+          nephoran_ci_pipeline_runs_total{status="total"} ${{ fromJson(needs.health-check.outputs.metrics || '{}').total_runs || 0 }}
+          nephoran_ci_pipeline_runs_total{status="success"} ${{ fromJson(needs.health-check.outputs.metrics || '{}').success_runs || 0 }}
+          nephoran_ci_pipeline_runs_total{status="failed"} ${{ fromJson(needs.health-check.outputs.metrics || '{}').failed_runs || 0 }}
+          
+          # HELP nephoran_ci_failure_rate Pipeline failure rate percentage
+          # TYPE nephoran_ci_failure_rate gauge
+          nephoran_ci_failure_rate ${{ fromJson(needs.health-check.outputs.metrics || '{}').failure_rate || 0 }}
+          
+          # HELP nephoran_ci_dependency_count Total dependency count
+          # TYPE nephoran_ci_dependency_count gauge
+          nephoran_ci_dependency_count ${{ needs.dependency-health.outputs.dep-count != 'unknown' && needs.dependency-health.outputs.dep-count || 0 }}
+          
+          # HELP nephoran_ci_monitoring_timestamp Last monitoring check timestamp
+          # TYPE nephoran_ci_monitoring_timestamp gauge
+          nephoran_ci_monitoring_timestamp $(date +%s)
+          EOF
+          
+          echo "✅ Metrics exported to ci-metrics.prom"
+          echo "Metrics preview:"
+          head -10 ci-metrics.prom

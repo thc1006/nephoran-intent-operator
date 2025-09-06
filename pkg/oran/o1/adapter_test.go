@@ -109,6 +109,10 @@ func TestO1Adaptor_GetElementStatus(t *testing.T) {
 	}
 
 	if !status.Ready {
+<<<<<<< HEAD
 		t.Errorf("Expected status Ready to be true, got %v", status.Ready)
+=======
+		t.Errorf("Expected element to be ready, got ready=%t", status.Ready)
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
 	}
 }

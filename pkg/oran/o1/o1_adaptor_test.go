@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,6 +31,7 @@ func TestNewO1AdaptorConstruction(t *testing.T) {
 		{
 			name: "with custom config",
 			config: &oran.O1Config{
+<<<<<<< HEAD
 				Endpoint:       "localhost:830",
 				Timeout:        60 * time.Second,
 				RetryAttempts:  5,
@@ -38,6 +40,10 @@ func TestNewO1AdaptorConstruction(t *testing.T) {
 				RequestTimeout: 60 * time.Second,
 				MaxRetries:     5,
 				RetryInterval:  5 * time.Second,
+=======
+				Timeout:       30 * time.Second,
+				RetryAttempts: 5,
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
 			},
 			want: &O1Adaptor{
 				clients:          make(map[string]*NetconfClient),
@@ -61,11 +67,9 @@ func TestNewO1AdaptorConstruction(t *testing.T) {
 				assert.Equal(t, tt.config, got.config)
 			} else {
 				// Check default config values
-				assert.Equal(t, 830, got.config.DefaultPort)
-				assert.Equal(t, 30*time.Second, got.config.ConnectTimeout)
-				assert.Equal(t, 60*time.Second, got.config.RequestTimeout)
-				assert.Equal(t, 3, got.config.MaxRetries)
-				assert.Equal(t, 5*time.Second, got.config.RetryInterval)
+				assert.Equal(t, 30*time.Second, got.config.Timeout)
+				assert.Equal(t, 0, got.config.RetryAttempts)
+				assert.Equal(t, "", got.config.Endpoint)
 			}
 		})
 	}
@@ -253,7 +257,7 @@ func TestO1Adaptor_convertEventToAlarm(t *testing.T) {
 				Timestamp: time.Now(),
 				Source:    "test-source",
 				XML:       "<alarm><severity>critical</severity></alarm>",
-				Data:      make(map[string]interface{}),
+				Data:      json.RawMessage(`{}`),
 			},
 			managedElementID: "test-element",
 			expectedAlarm:    true,

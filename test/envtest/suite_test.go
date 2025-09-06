@@ -32,10 +32,22 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+<<<<<<< HEAD
 
 	// Import your API types here
 	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
+=======
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
+
+	// Import your API types here
+	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
+	"github.com/thc1006/nephoran-intent-operator/controllers"
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
 	// +kubebuilder:scaffold:imports
 )
 
@@ -62,6 +74,8 @@ var (
 
 func TestControllers(t *testing.T) {
 	RegisterFailHandler(Fail)
+
+	// Configure Ginkgo for 2025 best practices
 	RunSpecs(t, "Nephoran Controller Suite")
 }
 
@@ -144,10 +158,12 @@ var _ = BeforeSuite(func() {
 	err = (&controllers.NetworkIntentReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+		Log:    ctrl.Log.WithName("controllers").WithName("NetworkIntent"),
 	}).SetupWithManager(mgr)
 	Expect(err).ToNot(HaveOccurred())
 
-	// Remove OranCluster controller setup - not implemented yet
+	// OranClusterReconciler setup commented out - type not found
+	// TODO: Add OranClusterReconciler when OranCluster type is implemented
 
 	// +kubebuilder:scaffold:builder
 
@@ -159,7 +175,8 @@ var _ = BeforeSuite(func() {
 	//	 logf.Log.Info("Webhook setup failed, continuing without webhooks", "error", err)
 	// }
 
-	// Remove OranCluster webhook setup - not implemented yet
+	// OranCluster webhook setup commented out - type not found
+	// TODO: Add OranCluster webhook when OranCluster type is implemented
 
 	By("starting the controller manager")
 	go func() {
@@ -201,12 +218,14 @@ func CreateNetworkIntent(name, namespace string, spec intentv1alpha1.NetworkInte
 	}
 }
 
-// CreateOranCluster helper removed - not implemented yet
+// CreateOranCluster commented out - OranCluster type not found
+// TODO: Implement when OranCluster type is added
+// func CreateOranCluster(name, namespace string, spec intentv1alpha1.OranClusterSpec) *intentv1alpha1.OranCluster
 
 // WaitForResource waits for a resource to reach a specific condition
 func WaitForResource(ctx context.Context, k8sClient client.Client, obj client.Object, conditionFunc func() bool) error {
-	key := client.ObjectKeyFromObject(obj)
 	return wait.PollImmediate(interval, timeout, func() (bool, error) {
+		key := types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}
 		if err := k8sClient.Get(ctx, key, obj); err != nil {
 			return false, err
 		}
@@ -216,23 +235,23 @@ func WaitForResource(ctx context.Context, k8sClient client.Client, obj client.Ob
 
 // AssertResourceEventuallyExists asserts that a resource eventually exists
 func AssertResourceEventuallyExists(ctx context.Context, k8sClient client.Client, obj client.Object) {
-	key := client.ObjectKeyFromObject(obj)
 	Eventually(func() error {
+		key := types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}
 		return k8sClient.Get(ctx, key, obj)
 	}, timeout, interval).Should(Succeed())
 }
 
 // AssertResourceEventuallyDeleted asserts that a resource is eventually deleted
 func AssertResourceEventuallyDeleted(ctx context.Context, k8sClient client.Client, obj client.Object) {
-	key := client.ObjectKeyFromObject(obj)
 	Eventually(func() bool {
+		key := types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}
 		err := k8sClient.Get(ctx, key, obj)
 		return errors.IsNotFound(err)
 	}, timeout, interval).Should(BeTrue())
 }
 
-// GetTestContext provides a context for individual tests with timeout
-func GetTestContext() (context.Context, context.CancelFunc) {
+// CreateTestContext provides a context for individual tests with timeout
+func CreateTestContext(t *testing.T) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(ctx, timeout)
 }
 

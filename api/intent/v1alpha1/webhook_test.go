@@ -149,7 +149,7 @@ var _ = Describe("NetworkIntent Webhook", func() {
 				warnings, err := ni.ValidateCreate(ctx, ni)
 				Expect(warnings).To(BeNil())
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("spec.intentType must be 'scaling'"))
+				Expect(err.Error()).To(ContainSubstring("spec.intentType must be 'scaling', got: provisioning"))
 			})
 
 			It("should reject negative replicas", func() {
@@ -166,7 +166,7 @@ var _ = Describe("NetworkIntent Webhook", func() {
 				warnings, err := ni.ValidateCreate(ctx, ni)
 				Expect(warnings).To(BeNil())
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("must be non-negative"))
+				Expect(err.Error()).To(ContainSubstring("spec.replicas must be non-negative, got: -1"))
 			})
 
 			It("should reject empty target", func() {
@@ -183,7 +183,7 @@ var _ = Describe("NetworkIntent Webhook", func() {
 				warnings, err := ni.ValidateCreate(ctx, ni)
 				Expect(warnings).To(BeNil())
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("cannot be empty"))
+				Expect(err.Error()).To(ContainSubstring("spec.target cannot be empty"))
 			})
 
 			It("should reject empty namespace", func() {
@@ -200,7 +200,7 @@ var _ = Describe("NetworkIntent Webhook", func() {
 				warnings, err := ni.ValidateCreate(ctx, ni)
 				Expect(warnings).To(BeNil())
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("cannot be empty"))
+				Expect(err.Error()).To(ContainSubstring("spec.namespace cannot be empty"))
 			})
 
 			It("should reject invalid source value", func() {
@@ -216,8 +216,9 @@ var _ = Describe("NetworkIntent Webhook", func() {
 
 				warnings, err := ni.ValidateCreate(ctx, ni)
 				Expect(warnings).To(BeNil())
+				// Current implementation does validate source values
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("must be 'user', 'planner', or 'test'"))
+				Expect(err.Error()).To(ContainSubstring("spec.source must be 'user', 'planner', or 'test', got: invalid"))
 			})
 
 			It("should report multiple validation errors", func() {
@@ -237,10 +238,11 @@ var _ = Describe("NetworkIntent Webhook", func() {
 
 				// Check for all expected error messages
 				errorMsg := err.Error()
-				Expect(errorMsg).To(ContainSubstring("spec.intentType must be 'scaling'"))
-				Expect(errorMsg).To(ContainSubstring("must be non-negative"))
-				Expect(errorMsg).To(ContainSubstring("cannot be empty"))
-				Expect(errorMsg).To(ContainSubstring("must be 'user', 'planner', or 'test'"))
+				Expect(errorMsg).To(ContainSubstring("spec.intentType must be 'scaling', got: invalid"))
+				Expect(errorMsg).To(ContainSubstring("spec.replicas must be non-negative, got: -5"))
+				Expect(errorMsg).To(ContainSubstring("spec.target cannot be empty"))
+				Expect(errorMsg).To(ContainSubstring("spec.namespace cannot be empty"))
+				Expect(errorMsg).To(ContainSubstring("spec.source must be 'user', 'planner', or 'test', got: invalid"))
 			})
 		})
 
@@ -269,7 +271,7 @@ var _ = Describe("NetworkIntent Webhook", func() {
 				warnings, err := ni.ValidateUpdate(ctx, oldNI, newNI)
 				Expect(warnings).To(BeNil())
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("must be non-negative"))
+				Expect(err.Error()).To(ContainSubstring("spec.replicas must be non-negative, got: -2"))
 			})
 		})
 

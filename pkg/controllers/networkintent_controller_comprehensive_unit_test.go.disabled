@@ -30,7 +30,12 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/testutil"
 )
 
+<<<<<<< HEAD:pkg/controllers/networkintent_controller_comprehensive_unit_test.go.disabled
 // TODO: Remove duplicate constant - use configPkg.Constants.NetworkIntentFinalizer instead
+=======
+// Import constants from config package
+// configPkg.LoadConstants().NetworkIntentFinalizer is accessed via configPkg.LoadConstants().configPkg.LoadConstants().NetworkIntentFinalizer
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871:pkg/controllers/networkintent_controller_comprehensive_unit_test.go
 
 // MockDependenciesComprehensive implements Dependencies interface for testing
 type MockDependenciesComprehensive struct {
@@ -462,7 +467,7 @@ func TestReconcile(t *testing.T) {
 			name: "intent with finalizer deletion",
 			networkIntent: func() *nephoranv1.NetworkIntent {
 				ni := createTestNetworkIntent("test-finalizer", "default", "Deploy NSSF")
-				ni.ObjectMeta.Finalizers = []string{NetworkIntentFinalizer}
+				ni.ObjectMeta.Finalizers = []string{configPkg.LoadConstants().NetworkIntentFinalizer}
 				now := metav1.NewTime(time.Now())
 				ni.ObjectMeta.DeletionTimestamp = &now
 				return ni
@@ -613,7 +618,7 @@ func TestUpdatePhase(t *testing.T) {
 
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(ni).Build()
 			mockDeps := NewMockDependenciesComprehensive()
-			reconciler, _ := NewNetworkIntentReconciler(fakeClient, scheme, mockDeps, createTestConfig())
+			_, _ = NewNetworkIntentReconciler(fakeClient, scheme, mockDeps, createTestConfig())
 
 			// Test phase transitions manually since updatePhase method doesn't exist
 			if tt.shouldUpdate {

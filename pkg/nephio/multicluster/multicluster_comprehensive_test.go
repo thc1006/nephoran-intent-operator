@@ -127,20 +127,25 @@ func createTestCustomizer(t *testing.T) *Customizer {
 	return NewCustomizer(client, logger)
 }
 
+<<<<<<< HEAD
 // createTestPackageRevision creates a test PackageRevision - DISABLED due to missing porch dependency
 /*
 func createTestPackageRevision(name, revision string) *porchv1alpha1.PackageRevision {
 	return &porchv1alpha1.PackageRevision{
+=======
+func createTestPackageRevision(name, revision string) *PackageRevision {
+	return &PackageRevision{
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name + "-" + revision,
 			Namespace: "default",
 		},
-		Spec: porchv1alpha1.PackageRevisionSpec{
+		Spec: PackageRevisionSpec{
 			PackageName: name,
 			Revision:    revision,
-			Lifecycle:   porchv1alpha1.PackageRevisionLifecycleDraft,
+			Lifecycle:   PackageRevisionLifecycleDraft,
 		},
-		Status: porchv1alpha1.PackageRevisionStatus{
+		Status: PackageRevisionStatus{
 			Conditions: []metav1.Condition{},
 		},
 	}
@@ -236,7 +241,7 @@ func TestClusterManager_SelectTargetClusters(t *testing.T) {
 	tests := []struct {
 		name             string
 		candidates       []types.NamespacedName
-		packageRevision  *porchv1alpha1.PackageRevision
+		packageRevision  *PackageRevision
 		setupFunc        func(*ClusterManager)
 		expectedClusters int
 		expectedError    bool

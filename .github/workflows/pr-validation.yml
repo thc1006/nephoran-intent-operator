@@ -8,9 +8,9 @@
 name: PR Validation
 
 on:
-  pull_request:
-    branches: [ main, integrate/mvp ]
-    types: [ opened, synchronize, ready_for_review ]
+  # pull_request: DISABLED - Consolidated into nephoran-ci-consolidated-2025.yml
+  #   branches: [ main, integrate/mvp ]
+  #   types: [ opened, synchronize, ready_for_review ]
   workflow_dispatch:
     inputs:
       skip_tests:

@@ -201,7 +201,12 @@ func TestO2Manager_DiscoverResources(t *testing.T) {
 			ctrlClient := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(objects...).Build()
 
 			// Create O2 adaptor and manager
+<<<<<<< HEAD
 			adaptor, _ := NewO2Adaptor(ctrlClient, clientset, nil)
+=======
+			adaptor, err := NewO2Adaptor(ctrlClient, clientset, nil)
+			require.NoError(t, err)
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
 			manager := NewO2Manager(adaptor)
 
 			// Execute test
@@ -336,7 +341,12 @@ func TestO2Manager_ScaleWorkload(t *testing.T) {
 			ctrlClient := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(objects...).Build()
 
 			// Create O2 adaptor and manager
+<<<<<<< HEAD
 			adaptor, _ := NewO2Adaptor(ctrlClient, clientset, nil)
+=======
+			adaptor, err := NewO2Adaptor(ctrlClient, clientset, nil)
+			require.NoError(t, err)
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
 			manager := NewO2Manager(adaptor)
 
 			// Execute test
@@ -474,7 +484,12 @@ func TestO2Manager_DeployVNF(t *testing.T) {
 			ctrlClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 			// Create O2 adaptor and manager
+<<<<<<< HEAD
 			adaptor, _ := NewO2Adaptor(ctrlClient, clientset, nil)
+=======
+			adaptor, err := NewO2Adaptor(ctrlClient, clientset, nil)
+			require.NoError(t, err)
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
 			manager := NewO2Manager(adaptor)
 
 			// Execute test
@@ -555,7 +570,12 @@ func TestO2Adaptor_DeployVNF(t *testing.T) {
 			ctrlClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 			// Create O2 adaptor
+<<<<<<< HEAD
 			adaptor, _ := NewO2Adaptor(ctrlClient, clientset, nil)
+=======
+			adaptor, err := NewO2Adaptor(ctrlClient, clientset, nil)
+			require.NoError(t, err)
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
 
 			// Execute test
 			ctx := context.Background()

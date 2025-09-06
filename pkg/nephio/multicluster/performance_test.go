@@ -22,7 +22,7 @@ package multicluster
 import (
 	"context"
 	"fmt"
-	"runtime"
+	goruntime "runtime"
 	"sync"
 	"testing"
 	"time"
@@ -93,8 +93,8 @@ func measureLatencies(measurements []LatencyMeasurement) (avg, p95, p99 time.Dur
 }
 
 func getMemoryUsage() float64 {
-	var m runtime.MemStats
-	runtime.ReadMemStats(&m)
+	var m goruntime.MemStats
+	goruntime.ReadMemStats(&m)
 	return float64(m.Alloc) / 1024 / 1024 // Convert to MB
 }
 
@@ -226,8 +226,13 @@ func BenchmarkClusterManager_SelectTargetClusters_1000_Clusters(b *testing.B) {
 	}
 }
 
+<<<<<<< HEAD
 func BenchmarkHealthMonitor_ProcessAlerts(b *testing.B) {
 	scheme := k8sruntime.NewScheme()
+=======
+func BenchmarkHealthMonitorProcessAlerts(b *testing.B) {
+	scheme := runtime.NewScheme()
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
 	require.NoError(b, corev1.AddToScheme(scheme))
 
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
@@ -334,7 +339,7 @@ func TestPerformance_ConcurrentClusterSelection(t *testing.T) {
 	operationsPerSecond := float64(totalOperations) / totalDuration.Seconds()
 	avgLatency, p95Latency, p99Latency := measureLatencies(measurements)
 	memoryUsage := getMemoryUsage()
-	goroutineCount := runtime.NumGoroutine()
+	goroutineCount := goruntime.NumGoroutine()
 
 	metrics := PerformanceMetrics{
 		OperationsPerSecond: operationsPerSecond,

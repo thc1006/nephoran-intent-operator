@@ -28,8 +28,8 @@ import (
 
 // Test suite globals following 2025 Go testing patterns
 var (
-	// testEnv provides the envtest environment
-	testEnv *testtools.TestEnvironment
+	// integrationTestEnv provides the envtest environment for integration tests
+	integrationTestEnv *testtools.TestEnvironment
 
 	// k8sClient provides access to the Kubernetes API
 	k8sClient client.Client
@@ -61,13 +61,13 @@ var _ = BeforeSuite(func() {
 
 	// Setup envtest environment with 2025 patterns
 	var err error
-	testEnv, err = setupEnvtestEnvironment()
+	integrationTestEnv, err = setupEnvtestEnvironment()
 	Expect(err).NotTo(HaveOccurred())
-	Expect(testEnv).NotTo(BeNil())
+	Expect(integrationTestEnv).NotTo(BeNil())
 
 	// Get clients and scheme
-	k8sClient = testEnv.K8sClient
-	testScheme = testEnv.GetScheme()
+	k8sClient = integrationTestEnv.K8sClient
+	testScheme = integrationTestEnv.GetScheme()
 
 	By("verifying test environment is ready")
 	Expect(k8sClient).NotTo(BeNil())
@@ -83,8 +83,8 @@ var _ = AfterSuite(func() {
 	}
 
 	// Cleanup test environment
-	if testEnv != nil {
-		testEnv.TeardownTestEnvironment()
+	if integrationTestEnv != nil {
+		integrationTestEnv.TeardownTestEnvironment()
 	}
 })
 
@@ -159,8 +159,8 @@ func CleanupTestNamespaceWithContext(testCtx context.Context, namespace *corev1.
 
 // WaitForResourceReady waits for a resource to be ready using context patterns
 func WaitForResourceReady(testCtx context.Context, obj client.Object, timeout time.Duration) error {
-	if testEnv != nil {
-		return testEnv.WaitForResourceReady(obj, timeout)
+	if integrationTestEnv != nil {
+		return integrationTestEnv.WaitForResourceReady(obj, timeout)
 	}
 
 	// Fallback to basic ready check

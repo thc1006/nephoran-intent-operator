@@ -26,6 +26,14 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"github.com/thc1006/nephoran-intent-operator/pkg/telecom"
+<<<<<<< HEAD:pkg/controllers/networkintent_controller_comprehensive_test.go.disabled
+=======
+)
+
+// Test constants
+const (
+	NetworkIntentFinalizer = "networkintent.nephoran.io/finalizer"
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871:pkg/controllers/networkintent_controller_comprehensive_test.go
 )
 
 // fakeLLMClient implements shared.ClientInterface for testing
@@ -104,6 +112,72 @@ func (f *fakeLLMClient) Reset() {
 	f.shouldReturnInvalidJSON = false
 	f.response = ""
 	f.callCount = 0
+}
+
+func (f *fakeLLMClient) Close() error {
+	return nil
+}
+
+func (f *fakeLLMClient) GetEndpoint() string {
+	return "http://fake-llm.example.com"
+}
+
+func (f *fakeLLMClient) GetModelCapabilities() shared.ModelCapabilities {
+	return shared.ModelCapabilities{
+		SupportsStreaming:    true,
+		SupportsSystemPrompt: true,
+		SupportsChatFormat:   true,
+		MaxTokens:            4096,
+		ModelVersion:        "fake-llm-v1",
+	}
+}
+
+func (f *fakeLLMClient) GetStatus() shared.ClientStatus {
+	if f.shouldFail {
+		return shared.ClientStatus("error")
+	}
+	return shared.ClientStatus("active")
+}
+
+func (f *fakeLLMClient) HealthCheck(ctx context.Context) error {
+	if f.shouldFail {
+		return fmt.Errorf("fake health check failed")
+	}
+	return nil
+}
+
+func (f *fakeLLMClient) ProcessRequest(ctx context.Context, request *shared.LLMRequest) (*shared.LLMResponse, error) {
+	f.callCount++
+	if f.shouldFail {
+		return nil, fmt.Errorf("fake process request failed")
+	}
+	return &shared.LLMResponse{
+		Content: f.response,
+		Usage: shared.TokenUsage{
+			PromptTokens:     10,
+			CompletionTokens: 90,
+			TotalTokens:      100,
+		},
+	}, nil
+}
+
+func (f *fakeLLMClient) ProcessStreamingRequest(ctx context.Context, request *shared.LLMRequest) (<-chan *shared.StreamingChunk, error) {
+	responseCh := make(chan *shared.StreamingChunk, 1)
+	
+	if f.shouldFail {
+		return nil, fmt.Errorf("fake streaming request failed")
+	}
+	
+	go func() {
+		defer close(responseCh)
+		
+		responseCh <- &shared.StreamingChunk{
+			Content: f.response,
+			Done:    true,
+		}
+	}()
+	
+	return responseCh, nil
 }
 
 // fakePackageGenerator implements nephio.PackageGenerator for testing
@@ -187,12 +261,21 @@ func (f *fakeDependencies) GetEventRecorder() record.EventRecorder {
 	return f.eventRecorder
 }
 
+<<<<<<< HEAD:pkg/controllers/networkintent_controller_comprehensive_test.go.disabled
 func (f *fakeDependencies) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase {
 	return nil  // Return nil for testing
 }
 
 func (f *fakeDependencies) GetMetricsCollector() monitoring.MetricsCollector {
 	return nil  // Return nil for testing
+=======
+func (f *fakeDependencies) GetMetricsCollector() monitoring.MetricsCollector {
+	return nil // Return nil for testing - no metrics collection needed in tests
+}
+
+func (f *fakeDependencies) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase {
+	return nil // Return nil for testing - no telecom knowledge base needed in tests
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871:pkg/controllers/networkintent_controller_comprehensive_test.go
 }
 
 func (f *fakeDependencies) Reset() {

@@ -1016,11 +1016,13 @@ func (npc *NephioPackageCatalog) createSpecializedPackageRevision(ctx context.Co
 		Spec: packageRevision.Spec,
 
 		Status: porch.PackageRevisionStatus{
-			UpstreamLock: nil,
-
-			PublishedBy: "nephoran-intent-operator",
-
-			PublishedAt: &metav1.Time{Time: time.Now()},
+			PublishTime: &metav1.Time{Time: time.Now()},
+			Conditions: []metav1.Condition{{
+				Type:   "Published",
+				Status: metav1.ConditionTrue,
+				Reason: "PackageCreated",
+				Message: "Package created by nephoran-intent-operator",
+			}},
 		},
 	}
 
@@ -1056,14 +1058,9 @@ func (npc *NephioPackageCatalog) generateSpecializedResources(ctx context.Contex
 
 			Kind: template.Kind,
 
-			Metadata: json.RawMessage(`{}`),
+			Metadata: make(map[string]interface{}),
 
-			Spec: func() json.RawMessage {
-				if specBytes, err := json.Marshal(specializedResource); err == nil {
-					return specBytes
-				}
-				return json.RawMessage(`{}`)
-			}(),
+			Spec: specializedResource,
 		}
 
 		resources = append(resources, resource)
@@ -1105,12 +1102,7 @@ func (npc *NephioPackageCatalog) generateSpecializedFunctions(ctx context.Contex
 		
 		functionConfig := porch.FunctionConfig{
 			Image: funcDef.Image,
-			ConfigMap: func() json.RawMessage {
-				if configBytes, err := json.Marshal(mergedConfig); err == nil {
-					return configBytes
-				}
-				return json.RawMessage(`{}`)
-			}(),
+			ConfigMap: mergedConfig,
 		}
 
 		functions = append(functions, functionConfig)
@@ -1124,7 +1116,7 @@ func (npc *NephioPackageCatalog) generateSpecializedFunctions(ctx context.Contex
 		oranFunction := porch.FunctionConfig{
 			Image: "krm/oran-validator:latest",
 
-			ConfigMap: json.RawMessage(`{}`),
+			ConfigMap: make(map[string]interface{}),
 		}
 
 		functions = append(functions, oranFunction)
@@ -1136,7 +1128,7 @@ func (npc *NephioPackageCatalog) generateSpecializedFunctions(ctx context.Contex
 		sliceFunction := porch.FunctionConfig{
 			Image: "krm/network-slice-optimizer:latest",
 
-			ConfigMap: json.RawMessage(`{}`),
+			ConfigMap: make(map[string]interface{}),
 		}
 
 		functions = append(functions, sliceFunction)
@@ -1197,20 +1189,14 @@ func (npc *NephioPackageCatalog) generateClusterSpecificResources(ctx context.Co
 
 		APIVersion: "v1",
 
-		Metadata: func() json.RawMessage {
-			metadata := map[string]interface{}{
-				"labels": map[string]interface{}{
-					"cluster": cluster.Name,
-					"region": cluster.Region,
-					"zone": cluster.Zone,
-					"managed-by": "nephoran-intent-operator",
-				},
-			}
-			if metadataBytes, err := json.Marshal(metadata); err == nil {
-				return metadataBytes
-			}
-			return json.RawMessage(`{}`)
-		}(),
+		Metadata: map[string]interface{}{
+			"labels": map[string]interface{}{
+				"cluster": cluster.Name,
+				"region": cluster.Region,
+				"zone": cluster.Zone,
+				"managed-by": "nephoran-intent-operator",
+			},
+		},
 	}
 
 	resources = append(resources, namespaceResource)
@@ -1222,9 +1208,9 @@ func (npc *NephioPackageCatalog) generateClusterSpecificResources(ctx context.Co
 
 		APIVersion: "v1",
 
-		Metadata: json.RawMessage(`{}`),
+		Metadata: make(map[string]interface{}),
 
-		Data: json.RawMessage(`{}`),
+		Data: make(map[string]interface{}),
 	}
 
 	resources = append(resources, configMapResource)
@@ -1600,25 +1586,13 @@ func (npc *NephioPackageCatalog) initializeStandardBlueprints() error {
 
 // convertResourcesForSpec converts []porch.KRMResource to []interface{} for PackageRevisionSpec.
 
-func (npc *NephioPackageCatalog) convertResourcesForSpec(resources []porch.KRMResource) []interface{} {
-	result := make([]interface{}, len(resources))
-
-	for i, resource := range resources {
-		result[i] = resource
-	}
-
-	return result
+func (npc *NephioPackageCatalog) convertResourcesForSpec(resources []porch.KRMResource) []porch.KRMResource {
+	return resources
 }
 
 // convertFunctionsForSpec converts []porch.FunctionConfig to []interface{} for PackageRevisionSpec.
 
-func (npc *NephioPackageCatalog) convertFunctionsForSpec(functions []porch.FunctionConfig) []interface{} {
-	result := make([]interface{}, len(functions))
-
-	for i, function := range functions {
-		result[i] = function
-	}
-
-	return result
+func (npc *NephioPackageCatalog) convertFunctionsForSpec(functions []porch.FunctionConfig) []porch.FunctionConfig {
+	return functions
 }
 

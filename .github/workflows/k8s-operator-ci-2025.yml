@@ -17,11 +17,11 @@ on:
       - 'PROJECT'
       - 'Makefile*'
       - '.github/workflows/k8s-operator-ci-2025.yml'
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-    branches:
-      - main
-      - integrate/**
+  # pull_request: DISABLED - Consolidated into nephoran-ci-consolidated-2025.yml
+  #   types: [opened, synchronize, reopened, ready_for_review]
+  #   branches:
+  #     - main
+  #     - integrate/**
   workflow_dispatch:
     inputs:
       security_scan:
@@ -41,12 +41,13 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # 2025 Kubernetes and Go versions
+  # 2025 Kubernetes and Go versions - Using our stable CI version
   GO_VERSION: "1.24.6"
-  KUBERNETES_VERSION: "1.32.1"
+  ACTIONS_STEP_DEBUG: true  # Enable verbose step logging for troubleshooting
+  KUBERNETES_VERSION: "1.31.1"
   CONTROLLER_RUNTIME_VERSION: "v0.19.1"
-  KUBEBUILDER_VERSION: "4.8.0"
-  ENVTEST_KUBERNETES_VERSION: "1.32.1"
+  KUBEBUILDER_VERSION: "4.4.1"
+  ENVTEST_KUBERNETES_VERSION: "1.31.1"
   
   # Build optimizations for 2025
   CGO_ENABLED: "0"
@@ -54,6 +55,7 @@ env:
   GOARCH: "amd64"
   GOMAXPROCS: "4"
   GOMEMLIMIT: "4GiB"
+  GOTOOLCHAIN: "go1.25.x"
   
   # Cache configuration
   GOCACHE: "/tmp/go-cache"
@@ -69,9 +71,9 @@ jobs:
   # STAGE 1: Pre-flight Validation & Setup
   # =============================================================================
   preflight:
-    name: "?? Pre-flight Setup"
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    name: "üöÄ Pre-flight Setup"
+    runs-on: ubuntu-24.04  # 2025 Ubuntu LTS
+    timeout-minutes: 15
     outputs:
       go-cache-key: ${{ steps.cache-setup.outputs.cache-key }}
       should-build: ${{ steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true' }}
@@ -114,7 +116,8 @@ jobs:
         if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
         id: cache-setup
         run: |
-          # Generate comprehensive cache key for 2025 standards
+          # Generate cache key with version suffix to force refresh
+          CACHE_VERSION="v2" # bump this to force new cache
           GO_SUM_HASH="${{ hashFiles('**/go.sum') }}"
           GO_MOD_HASH="${{ hashFiles('go.mod') }}"
           CONFIG_HASH="${{ hashFiles('config/**/*.yaml', 'PROJECT') }}"
@@ -124,10 +127,16 @@ jobs:
           if [[ -z "$GO_MOD_HASH" ]]; then GO_MOD_HASH="${{ github.sha }}"; fi
           if [[ -z "$CONFIG_HASH" ]]; then CONFIG_HASH="${{ github.sha }}"; fi
           
-          CACHE_KEY="nephoran-k8s-op-v3-${{ runner.os }}-go${{ env.GO_VERSION }}-k8s${{ env.KUBERNETES_VERSION }}-${GO_SUM_HASH}-${GO_MOD_HASH}-${CONFIG_HASH}"
+          CACHE_KEY="nephoran-k8s-op-v3-${CACHE_VERSION}-${{ runner.os }}-go${{ env.GO_VERSION }}-k8s${{ env.KUBERNETES_VERSION }}-${GO_SUM_HASH}-${GO_MOD_HASH}-${CONFIG_HASH}"
           echo "cache-key=${CACHE_KEY}" >> $GITHUB_OUTPUT
           echo "Generated cache key: $CACHE_KEY"
           
+      - name: Clean Go cache directories
+        if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
+        run: |
+          sudo rm -rf ${{ env.GOMODCACHE }}/* || echo "Cache cleanup failed, continuing..."
+          sudo rm -rf ${{ env.GOCACHE }}/* || echo "Cache cleanup failed, continuing..."
+            
       - name: Restore Go cache
         if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
         uses: actions/cache@v4
@@ -137,16 +146,35 @@ jobs:
             ${{ env.GOMODCACHE }}
           key: ${{ steps.cache-setup.outputs.cache-key }}
           restore-keys: |
-            nephoran-k8s-op-v3-${{ runner.os }}-go${{ env.GO_VERSION }}-k8s${{ env.KUBERNETES_VERSION }}-
-            nephoran-k8s-op-v3-${{ runner.os }}-go${{ env.GO_VERSION }}-
+            nephoran-k8s-op-v3-v2-${{ runner.os }}-go${{ env.GO_VERSION }}-k8s${{ env.KUBERNETES_VERSION }}-
+            nephoran-k8s-op-v3-v2-${{ runner.os }}-go${{ env.GO_VERSION }}-
+          fail-on-cache-miss: false
+            
+      - name: Smoke test Go cache
+        if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
+        run: |
+          echo "Smoke test: checking cache directories"
+          mkdir -p ${{ env.GOCACHE }}
+          mkdir -p ${{ env.GOMODCACHE }}
+          ls -la ${{ env.GOCACHE }} || echo "Cache directory is empty"
+          ls -la ${{ env.GOMODCACHE }} || echo "Module cache directory is empty"
             
       - name: Download dependencies
         if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
         run: |
-          echo "?ì¶ Downloading Go modules..."
+          echo "?ÔøΩÔøΩ Downloading Go modules..."
           go mod download
           go mod verify
           echo "??Dependencies verified"
+          
+      - name: Save Go cache
+        if: always() && (steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true')
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ env.GOCACHE }}
+            ${{ env.GOMODCACHE }}
+          key: ${{ steps.cache-setup.outputs.cache-key }}
           
       - name: Integration test check
         id: integration-check
@@ -165,10 +193,10 @@ jobs:
   # STAGE 2: Kubernetes-specific Validation
   # =============================================================================
   k8s-validation:
-    name: "?∏Ô? Kubernetes Validation"
+    name: "?ÔøΩÔøΩ? Kubernetes Validation"
     needs: preflight
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     if: needs.preflight.outputs.should-build == 'true'
     
     steps:
@@ -193,74 +221,20 @@ jobs:
             
       - name: Install Kubebuilder
         run: |
-          echo "?îß Installing Kubebuilder ${{ env.KUBEBUILDER_VERSION }}..."
+          echo "üîß Installing Kubebuilder ${{ env.KUBEBUILDER_VERSION }}..."
+          curl -L https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${{ env.KUBEBUILDER_VERSION }}/kubebuilder_${{ env.KUBEBUILDER_VERSION }}_linux_amd64.tar.gz | tar -xz
+          sudo mv kubebuilder_${{ env.KUBEBUILDER_VERSION }}_linux_amd64/bin/kubebuilder /usr/local/bin/
+          kubebuilder version
           
-          # Remove any existing invalid kubebuilder
-          sudo rm -f /usr/local/bin/kubebuilder
-          
-          # Download kubebuilder archive with proper error handling and retries
-          echo "?ì• Downloading kubebuilder archive..."
-          DOWNLOAD_URL="https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${{ env.KUBEBUILDER_VERSION }}/kubebuilder_linux_amd64"
-          echo "Download URL: $DOWNLOAD_URL"
-          
-          # Retry download with different approaches
-          for attempt in 1 2 3; do
-            echo "Download attempt $attempt..."
-            if curl -L -f -o kubebuilder "$DOWNLOAD_URL" --connect-timeout 30 --max-time 300; then
-              echo "??Download successful on attempt $attempt"
-              break
-            elif [ $attempt -eq 3 ]; then
-              echo "??Failed to download kubebuilder binary after all attempts"
-              echo "?? Checking available releases..."
-              curl -s "https://api.github.com/repos/kubernetes-sigs/kubebuilder/releases" | grep -o '"tag_name": "[^"]*"' | head -5 || true
-              
-              # Try alternative version as fallback
-              echo "Trying fallback version v4.3.0..."
-              FALLBACK_URL="https://github.com/kubernetes-sigs/kubebuilder/releases/download/v4.3.0/kubebuilder_linux_amd64"
-              if curl -L -f -o kubebuilder "$FALLBACK_URL" --connect-timeout 30 --max-time 300; then
-                echo "??Fallback download successful"
-                break
-              else
-                echo "??All download attempts failed"
-                exit 1
-              fi
-            else
-              echo "?†Ô? Attempt $attempt failed, retrying..."
-              sleep 10
-            fi
-          done
-          
-          # Verify download size (should be > 1MB for a valid binary)
-          echo "?? Checking downloaded file size..."
-          ls -lh kubebuilder
-          if [[ $(stat -c%s kubebuilder) -lt 1000000 ]]; then
-            echo "??Downloaded file is too small, likely an error page"
-            head -20 kubebuilder
-            exit 1
-          fi
-          
-          # Check file format
-          echo "?? Checking binary format..."
-          file kubebuilder
-          
-          # Move kubebuilder binary to system path
-          echo "?? Installing kubebuilder binary..."
-          chmod +x kubebuilder
-          sudo mv kubebuilder /usr/local/bin/kubebuilder
-          
-          # Verify installation
-          file /usr/local/bin/kubebuilder
-          sudo chmod +x /usr/local/bin/kubebuilder
-          
-          # Test kubebuilder with timeout
-          echo "Testing kubebuilder installation..."
-          timeout 30 kubebuilder version || echo "?†Ô? kubebuilder version check timed out (this is sometimes normal)"
-          echo "??Kubebuilder installation completed"
+      - name: Smoke test Kubebuilder
+        run: |
+          which kubebuilder
+          kubebuilder version
           
       - name: Install additional K8s tools
         run: |
           # Install controller-gen for 2025 with retry
-          echo "?îß Installing controller-gen..."
+          echo "?ÔøΩÔøΩ Installing controller-gen..."
           for attempt in 1 2 3; do
             if go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.19.0; then
               echo "??controller-gen installed successfully"
@@ -275,13 +249,13 @@ jobs:
           done
           
           # Install kustomize with retry
-          echo "?îß Installing kustomize..."
+          echo "?ÔøΩÔøΩ Installing kustomize..."
           for attempt in 1 2 3; do
             if curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash && sudo mv kustomize /usr/local/bin/; then
               echo "??kustomize installed successfully"
               break
             elif [ $attempt -eq 3 ]; then
-              echo "?†Ô? Failed to install kustomize, using go install as fallback"
+              echo "?ÔøΩÔøΩ? Failed to install kustomize, using go install as fallback"
               go install sigs.k8s.io/kustomize/kustomize/v5@latest
               break
             else
@@ -291,13 +265,13 @@ jobs:
           done
           
           # Install kubeval with retry (CRD validation)
-          echo "?îß Installing kubeval..."
+          echo "?ÔøΩÔøΩ Installing kubeval..."
           for attempt in 1 2 3; do
             if curl -L https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz | tar xz && sudo mv kubeval /usr/local/bin/; then
               echo "??kubeval installed successfully"
               break
             elif [ $attempt -eq 3 ]; then
-              echo "?†Ô? Failed to install kubeval, continuing without it"
+              echo "?ÔøΩÔøΩ? Failed to install kubeval, continuing without it"
               # Create a dummy kubeval for compatibility
               echo '#!/bin/bash' | sudo tee /usr/local/bin/kubeval > /dev/null
               echo 'echo "kubeval placeholder - validation skipped"' | sudo tee -a /usr/local/bin/kubeval > /dev/null
@@ -311,15 +285,15 @@ jobs:
           
           # Verify installations
           echo "Verifying tool installations..."
-          controller-gen --version || echo "?†Ô? controller-gen version check failed"
-          kustomize version || echo "?†Ô? kustomize version check failed"
-          kubeval --version || echo "?†Ô? kubeval version check failed (using placeholder)"
+          controller-gen --version || echo "?ÔøΩÔøΩ? controller-gen version check failed"
+          kustomize version || echo "?ÔøΩÔøΩ? kustomize version check failed"
+          kubeval --version || echo "?ÔøΩÔøΩ? kubeval version check failed (using placeholder)"
           echo "??All tools installation completed"
           
       - name: Validate CRD generation
         timeout-minutes: 10
         run: |
-          echo "?éØ Generating and validating CRDs..."
+          echo "?ÔøΩÔøΩ Generating and validating CRDs..."
           make manifests
           
           # Validate generated CRDs
@@ -413,15 +387,15 @@ jobs:
       - name: Install security tools
         run: |
           # Install Trivy for comprehensive scanning
-          echo "?îß Installing Trivy ${{ env.TRIVY_VERSION }}..."
+          echo "?ÔøΩÔøΩ Installing Trivy ${{ env.TRIVY_VERSION }}..."
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v${{ env.TRIVY_VERSION }}
           
           # Install govulncheck for Go-specific vulnerability scanning
-          echo "?îß Installing govulncheck..."
+          echo "?ÔøΩÔøΩ Installing govulncheck..."
           go install golang.org/x/vuln/cmd/govulncheck@${{ env.GOVULNCHECK_VERSION }}
           
           # Install cosign for supply chain security
-          echo "?îß Installing cosign ${{ env.COSIGN_VERSION }}..."
+          echo "?ÔøΩÔøΩ Installing cosign ${{ env.COSIGN_VERSION }}..."
           curl -O -L "https://github.com/sigstore/cosign/releases/download/v${{ env.COSIGN_VERSION }}/cosign-linux-amd64"
           sudo mv cosign-linux-amd64 /usr/local/bin/cosign
           sudo chmod +x /usr/local/bin/cosign
@@ -468,11 +442,11 @@ jobs:
           # Check for overprivileged roles
           echo "?? Checking for dangerous RBAC permissions..."
           if grep -r "apiGroups.*\*" config/rbac/ 2>/dev/null; then
-            echo "?†Ô? Warning: Found wildcard API groups in RBAC"
+            echo "?ÔøΩÔøΩ? Warning: Found wildcard API groups in RBAC"
           fi
           
           if grep -r "resources.*\*" config/rbac/ 2>/dev/null; then
-            echo "?†Ô? Warning: Found wildcard resources in RBAC"
+            echo "?ÔøΩÔøΩ? Warning: Found wildcard resources in RBAC"
           fi
           
           if grep -r "verbs.*\*" config/rbac/ 2>/dev/null; then
@@ -486,7 +460,7 @@ jobs:
         if: hashFiles('**/Dockerfile') != ''
         timeout-minutes: 10
         run: |
-          echo "?ê≥ Building and scanning container images..."
+          echo "?ÔøΩÔøΩ Building and scanning container images..."
           
           # Build operator image
           make docker-build IMG=nephoran-operator:security-scan
@@ -521,7 +495,7 @@ jobs:
                 if jq -r '.version' "$sarif_file" 2>/dev/null | grep -q "2.1"; then
                   echo "??$sarif_file has valid SARIF version"
                 else
-                  echo "?†Ô? Warning: $sarif_file may have incorrect SARIF version"
+                  echo "?ÔøΩÔøΩ? Warning: $sarif_file may have incorrect SARIF version"
                 fi
               else
                 echo "??$sarif_file is not valid JSON, removing..."
@@ -582,7 +556,7 @@ jobs:
   # STAGE 4: Controller Testing with envtest
   # =============================================================================
   controller-tests:
-    name: "?éÆ Controller Tests"
+    name: "?ÔøΩÔøΩ Controller Tests"
     needs: [preflight, k8s-validation]
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -616,7 +590,7 @@ jobs:
           
       - name: Setup envtest environment
         run: |
-          echo "?ß™ Setting up envtest for Kubernetes ${{ env.ENVTEST_KUBERNETES_VERSION }}..."
+          echo "?ÔøΩÔøΩ Setting up envtest for Kubernetes ${{ env.ENVTEST_KUBERNETES_VERSION }}..."
           
           # Install setup-envtest with retry
           for attempt in 1 2 3; do
@@ -627,7 +601,7 @@ jobs:
               echo "??Failed to install setup-envtest after 3 attempts"
               exit 1
             else
-              echo "?†Ô? Attempt $attempt failed, retrying..."
+              echo "?ÔøΩÔøΩ? Attempt $attempt failed, retrying..."
               sleep 10
             fi
           done
@@ -647,7 +621,7 @@ jobs:
               echo "KUBEBUILDER_ASSETS=${KUBEBUILDER_ASSETS}" >> $GITHUB_ENV
               export KUBEBUILDER_ASSETS
             else
-              echo "?†Ô? Attempt $attempt failed, retrying..."
+              echo "?ÔøΩÔøΩ? Attempt $attempt failed, retrying..."
               sleep 15
             fi
           done
@@ -659,9 +633,9 @@ jobs:
             
             # Test basic functionality with timeout
             echo "Testing envtest binaries..."
-            timeout 30 "${KUBEBUILDER_ASSETS}/kube-apiserver" --version || echo "?†Ô? kube-apiserver version check failed"
-            timeout 30 "${KUBEBUILDER_ASSETS}/etcd" --version || echo "?†Ô? etcd version check failed"
-            timeout 30 "${KUBEBUILDER_ASSETS}/kubectl" version --client || echo "?†Ô? kubectl version check failed"
+            timeout 30 "${KUBEBUILDER_ASSETS}/kube-apiserver" --version || echo "?ÔøΩÔøΩ? kube-apiserver version check failed"
+            timeout 30 "${KUBEBUILDER_ASSETS}/etcd" --version || echo "?ÔøΩÔøΩ? etcd version check failed"
+            timeout 30 "${KUBEBUILDER_ASSETS}/kubectl" version --client || echo "?ÔøΩÔøΩ? kubectl version check failed"
             echo "??Envtest setup completed"
           else
             echo "??KUBEBUILDER_ASSETS directory not found: ${KUBEBUILDER_ASSETS}"
@@ -671,7 +645,7 @@ jobs:
       - name: Run ${{ matrix.test-suite }} tests
         timeout-minutes: 10
         run: |
-          echo "?ß™ Running ${{ matrix.test-suite }} tests with envtest..."
+          echo "?ÔøΩÔøΩ Running ${{ matrix.test-suite }} tests with envtest..."
           
           # Set test environment variables
           export USE_EXISTING_CLUSTER=false
@@ -765,7 +739,7 @@ jobs:
         uses: helm/kind-action@v1.10.0
         with:
           version: v0.26.0
-          kubernetes_version: v${{ env.KUBERNETES_VERSION }}
+          kubernetes_version: v1.31.0
           cluster_name: nephoran-test
           config: |
             kind: Cluster
@@ -792,19 +766,19 @@ jobs:
           
       - name: Build and load operator image
         run: |
-          echo "?ê≥ Building operator image for integration tests..."
+          echo "?ÔøΩÔøΩ Building operator image for integration tests..."
           make docker-build IMG=localhost:5000/nephoran-operator:integration-test
           
-          echo "?ì§ Pushing to local registry..."
+          echo "?ÔøΩÔøΩ Pushing to local registry..."
           docker push localhost:5000/nephoran-operator:integration-test
           
-          echo "?ì• Loading image to KIND..."
+          echo "?ÔøΩÔøΩ Loading image to KIND..."
           kind load docker-image localhost:5000/nephoran-operator:integration-test --name nephoran-test
           
       - name: Deploy operator to cluster
         timeout-minutes: 10
         run: |
-          echo "?∏Ô? Deploying operator to KIND cluster..."
+          echo "?ÔøΩÔøΩ? Deploying operator to KIND cluster..."
           
           # Install CRDs
           make install
@@ -870,7 +844,7 @@ jobs:
   # STAGE 6: Build & Package
   # =============================================================================
   build-package:
-    name: "?ì¶ Build & Package"
+    name: "?ÔøΩÔøΩ Build & Package"
     needs: [preflight, k8s-validation, security-scan, controller-tests]
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -897,7 +871,7 @@ jobs:
       - name: Build operator binary
         timeout-minutes: 10
         run: |
-          echo "?î® Building operator binary..."
+          echo "?ÔøΩÔøΩ Building operator binary..."
           make build
           
           # Verify binary
@@ -907,7 +881,7 @@ jobs:
       - name: Build container image
         timeout-minutes: 10
         run: |
-          echo "?ê≥ Building container image..."
+          echo "?ÔøΩÔøΩ Building container image..."
           
           # Build using existing Dockerfile with SERVICE argument
           if [ -f "Dockerfile" ]; then
@@ -962,72 +936,396 @@ jobs:
           retention-days: 30
 
   # =============================================================================
-  # STAGE 7: Final Status Report
+  # STAGE 6.5: Quick Validation Gate
   # =============================================================================
-  ci-status:
-    name: "?? CI Status Report"
-    needs: [preflight, k8s-validation, security-scan, controller-tests, integration-tests, build-package]
-    runs-on: ubuntu-latest
+  quick-validation:
+    name: "Quick Validation"
+    runs-on: ubuntu-24.04
+    needs: [preflight]
     if: always()
+    timeout-minutes: 5
     
     steps:
-      - name: Generate comprehensive status report
+      - name: Quick environment check
         run: |
-          echo "# ?éØ Nephoran Kubernetes Operator CI Report" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**?îß Build Information:**" >> $GITHUB_STEP_SUMMARY
-          echo "- Go Version: ${{ env.GO_VERSION }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Kubernetes Version: ${{ env.KUBERNETES_VERSION }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Controller-Runtime: ${{ env.CONTROLLER_RUNTIME_VERSION }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Trigger: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**?? Stage Results:**" >> $GITHUB_STEP_SUMMARY
-          echo "- ?? Pre-flight: ${{ needs.preflight.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- ?∏Ô? K8s Validation: ${{ needs.k8s-validation.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- ?? Security Scan: ${{ needs.security-scan.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- ?éÆ Controller Tests: ${{ needs.controller-tests.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- ?? Integration Tests: ${{ needs.integration-tests.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- ?ì¶ Build & Package: ${{ needs.build-package.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "Checking individual job results..."
+          echo "Preflight: ${{ needs.preflight.result }}"
+          echo "Should build: ${{ needs.preflight.outputs.should-build }}"
           
-      - name: Determine final status
+          if [ "${{ needs.preflight.result }}" == "failure" ]; then
+            echo "CI pipeline failed - preflight stage failed"
+            exit 1
+          fi
+          echo "Quick validation passed!"
+
+  # =============================================================================
+  # STAGE 7: Enhanced Final Status Report with Error Diagnostics
+  # =============================================================================
+  ci-status:
+    name: "üìä CI Status Report"
+    needs: [preflight, quick-validation, k8s-validation, security-scan, controller-tests, integration-tests, build-package]
+    runs-on: ubuntu-24.04
+    if: always()
+    timeout-minutes: 10
+    env:
+      GO_VERSION: ${{ env.GO_VERSION }}
+      KUBERNETES_VERSION: ${{ env.KUBERNETES_VERSION }}
+      CONTROLLER_RUNTIME_VERSION: ${{ env.CONTROLLER_RUNTIME_VERSION }}
+      ACTIONS_STEP_DEBUG: true
+    
+    steps:
+      - name: Checkout repository (for log analysis)
+        uses: actions/checkout@v4
+        if: always()
+        
+      - name: Enable debug logging
+        if: always()
         run: |
-          # Check critical job results
+          echo "ACTIONS_STEP_DEBUG=true" >> $GITHUB_ENV
+          echo "RUNNER_DEBUG=1" >> $GITHUB_ENV
+          
+      - name: Download all workflow artifacts
+        if: always()
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+          merge-multiple: true
+        continue-on-error: true
+        
+      - name: Analyze job failures and collect diagnostics
+        if: always()
+        run: |
+          echo "üîç Analyzing job failures and collecting diagnostics..."
+          
+          # Create detailed analysis files
+          mkdir -p failure-analysis
+          
+          # Function to analyze job status
+          analyze_job() {
+            local job_name="$1"
+            local job_result="$2"
+            local job_outputs="$3"
+            
+            echo "=== Analysis for job: $job_name ===" >> failure-analysis/detailed-report.md
+            echo "Status: $job_result" >> failure-analysis/detailed-report.md
+            echo "Timestamp: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> failure-analysis/detailed-report.md
+            
+            if [[ "$job_result" == "failure" ]]; then
+              echo "‚ùå FAILED: $job_name" >> failure-analysis/failed-jobs.txt
+              echo "" >> failure-analysis/detailed-report.md
+              echo "**Failure Analysis:**" >> failure-analysis/detailed-report.md
+              
+              # Look for common failure patterns
+              case "$job_name" in
+                "preflight")
+                  echo "- Check: Go version compatibility" >> failure-analysis/detailed-report.md
+                  echo "- Check: Dependency downloads" >> failure-analysis/detailed-report.md
+                  echo "- Check: Cache setup" >> failure-analysis/detailed-report.md
+                  ;;
+                "k8s-validation")
+                  echo "- Check: CRD generation issues" >> failure-analysis/detailed-report.md
+                  echo "- Check: RBAC validation errors" >> failure-analysis/detailed-report.md
+                  echo "- Check: Kustomize build failures" >> failure-analysis/detailed-report.md
+                  ;;
+                "security-scan")
+                  echo "- Check: Vulnerability scan results" >> failure-analysis/detailed-report.md
+                  echo "- Check: RBAC security violations" >> failure-analysis/detailed-report.md
+                  echo "- Check: Container image security issues" >> failure-analysis/detailed-report.md
+                  ;;
+                "controller-tests")
+                  echo "- Check: Test failures in controllers" >> failure-analysis/detailed-report.md
+                  echo "- Check: Envtest setup issues" >> failure-analysis/detailed-report.md
+                  echo "- Check: Race conditions or timeouts" >> failure-analysis/detailed-report.md
+                  ;;
+                "build-package")
+                  echo "- Check: Binary compilation errors" >> failure-analysis/detailed-report.md
+                  echo "- Check: Container image build failures" >> failure-analysis/detailed-report.md
+                  echo "- Check: Manifest generation issues" >> failure-analysis/detailed-report.md
+                  ;;
+              esac
+            elif [[ "$job_result" == "success" ]]; then
+              echo "‚úÖ PASSED: $job_name" >> failure-analysis/passed-jobs.txt
+            elif [[ "$job_result" == "skipped" ]]; then
+              echo "‚è≠Ô∏è SKIPPED: $job_name (conditional execution)" >> failure-analysis/skipped-jobs.txt
+            elif [[ "$job_result" == "cancelled" ]]; then
+              echo "üö´ CANCELLED: $job_name" >> failure-analysis/cancelled-jobs.txt
+            fi
+            
+            echo "" >> failure-analysis/detailed-report.md
+          }
+          
+          # Analyze each job
+          analyze_job "preflight" "${{ needs.preflight.result }}" "${{ toJSON(needs.preflight.outputs) }}"
+          analyze_job "quick-validation" "${{ needs.quick-validation.result }}" ""
+          analyze_job "k8s-validation" "${{ needs.k8s-validation.result }}" ""
+          analyze_job "security-scan" "${{ needs.security-scan.result }}" ""
+          analyze_job "controller-tests" "${{ needs.controller-tests.result }}" ""
+          analyze_job "integration-tests" "${{ needs.integration-tests.result }}" ""
+          analyze_job "build-package" "${{ needs.build-package.result }}" ""
+          
+          echo "üìä Job analysis completed"
+          
+      - name: Generate GitHub Actions API logs (if failures detected)
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Check if we have any failures
+          if [[ -f "failure-analysis/failed-jobs.txt" ]] && [[ -s "failure-analysis/failed-jobs.txt" ]]; then
+            echo "üîç Failures detected, attempting to fetch detailed logs..."
+            
+            # Try to get workflow run logs via API (requires additional permissions)
+            # This is a best-effort attempt
+            curl -H "Authorization: token $GITHUB_TOKEN" \
+                 -H "Accept: application/vnd.github.v3+json" \
+                 "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs" \
+                 -o workflow-jobs.json 2>/dev/null || echo "Failed to fetch job details via API"
+            
+            if [[ -f "workflow-jobs.json" ]]; then
+              echo "üìã Retrieved workflow job information"
+              jq -r '.jobs[] | select(.conclusion == "failure") | "Job: \(.name), Conclusion: \(.conclusion), Started: \(.started_at), Completed: \(.completed_at)"' workflow-jobs.json > failure-analysis/failed-job-details.txt 2>/dev/null || echo "Failed to parse job details"
+            fi
+          fi
+          
+      - name: Create comprehensive error summary
+        if: always()
+        run: |
+          echo "üìù Creating comprehensive error summary..."
+          
+          # Initialize counters
+          PASSED_COUNT=0
+          FAILED_COUNT=0
+          SKIPPED_COUNT=0
+          CANCELLED_COUNT=0
+          
+          # Count results
+          [[ -f "failure-analysis/passed-jobs.txt" ]] && PASSED_COUNT=$(wc -l < failure-analysis/passed-jobs.txt)
+          [[ -f "failure-analysis/failed-jobs.txt" ]] && FAILED_COUNT=$(wc -l < failure-analysis/failed-jobs.txt)
+          [[ -f "failure-analysis/skipped-jobs.txt" ]] && SKIPPED_COUNT=$(wc -l < failure-analysis/skipped-jobs.txt)
+          [[ -f "failure-analysis/cancelled-jobs.txt" ]] && CANCELLED_COUNT=$(wc -l < failure-analysis/cancelled-jobs.txt)
+          
+          # Create error summary file
+          cat > failure-analysis/error-summary.md << EOF
+          # üéØ Nephoran Kubernetes Operator CI Report
+          **Generated:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          **Run ID:** ${{ github.run_id }}
+          **Workflow:** ${{ github.workflow }}
+          **Trigger:** ${{ github.event_name }}
+          **Branch:** ${{ github.ref_name }}
+          **Commit:** ${{ github.sha }}
+          
+          ## üìä Job Summary
+          - ‚úÖ **Passed:** $PASSED_COUNT
+          - ‚ùå **Failed:** $FAILED_COUNT  
+          - ‚è≠Ô∏è **Skipped:** $SKIPPED_COUNT
+          - üö´ **Cancelled:** $CANCELLED_COUNT
+          
+          ## üîß Environment Information
+          - **Go Version:** ${{ env.GO_VERSION }}
+          - **Kubernetes Version:** ${{ env.KUBERNETES_VERSION }}
+          - **Controller-Runtime:** ${{ env.CONTROLLER_RUNTIME_VERSION }}
+          - **Runner OS:** ubuntu-24.04
+          - **Debug Mode:** Enabled ($ACTIONS_STEP_DEBUG)
+          
+          EOF
+          
+          # Add detailed job results
+          echo "## üìã Detailed Job Results" >> failure-analysis/error-summary.md
+          
+          if [[ -f "failure-analysis/failed-jobs.txt" ]] && [[ -s "failure-analysis/failed-jobs.txt" ]]; then
+            echo "" >> failure-analysis/error-summary.md
+            echo "### ‚ùå Failed Jobs" >> failure-analysis/error-summary.md
+            echo "\`\`\`" >> failure-analysis/error-summary.md
+            cat failure-analysis/failed-jobs.txt >> failure-analysis/error-summary.md
+            echo "\`\`\`" >> failure-analysis/error-summary.md
+          fi
+          
+          if [[ -f "failure-analysis/passed-jobs.txt" ]] && [[ -s "failure-analysis/passed-jobs.txt" ]]; then
+            echo "" >> failure-analysis/error-summary.md
+            echo "### ‚úÖ Passed Jobs" >> failure-analysis/error-summary.md
+            echo "\`\`\`" >> failure-analysis/error-summary.md
+            cat failure-analysis/passed-jobs.txt >> failure-analysis/error-summary.md
+            echo "\`\`\`" >> failure-analysis/error-summary.md
+          fi
+          
+          if [[ -f "failure-analysis/skipped-jobs.txt" ]] && [[ -s "failure-analysis/skipped-jobs.txt" ]]; then
+            echo "" >> failure-analysis/error-summary.md
+            echo "### ‚è≠Ô∏è Skipped Jobs" >> failure-analysis/error-summary.md
+            echo "\`\`\`" >> failure-analysis/error-summary.md
+            cat failure-analysis/skipped-jobs.txt >> failure-analysis/error-summary.md
+            echo "\`\`\`" >> failure-analysis/error-summary.md
+          fi
+          
+      - name: Analyze artifact contents for errors
+        if: always()
+        run: |
+          echo "üîç Analyzing artifact contents for error patterns..."
+          
+          if [[ -d "./artifacts" ]]; then
+            echo "Found artifacts directory, analyzing contents..."
+            
+            # Look for test results and coverage files
+            find ./artifacts -name "*.out" -o -name "*.txt" -o -name "*.html" | while read -r file; do
+              echo "Analyzing: $file" >> failure-analysis/artifact-analysis.txt
+              
+              # Check for common error patterns in files
+              if [[ "$file" =~ \.txt$ ]] || [[ "$file" =~ \.out$ ]]; then
+                if grep -i "error\|fail\|panic\|fatal" "$file" 2>/dev/null; then
+                  echo "  ‚ùå Error patterns found in $file" >> failure-analysis/artifact-analysis.txt
+                  echo "  Last 10 lines:" >> failure-analysis/artifact-analysis.txt
+                  tail -10 "$file" | sed 's/^/    /' >> failure-analysis/artifact-analysis.txt
+                else
+                  echo "  ‚úÖ No error patterns found in $file" >> failure-analysis/artifact-analysis.txt
+                fi
+              fi
+              echo "" >> failure-analysis/artifact-analysis.txt
+            done
+            
+            # Create artifact inventory
+            echo "## üì¶ Artifact Inventory" >> failure-analysis/error-summary.md
+            echo "" >> failure-analysis/error-summary.md
+            echo "\`\`\`" >> failure-analysis/error-summary.md
+            find ./artifacts -type f | sort >> failure-analysis/error-summary.md
+            echo "\`\`\`" >> failure-analysis/error-summary.md
+          else
+            echo "No artifacts directory found" >> failure-analysis/artifact-analysis.txt
+          fi
+          
+      - name: Generate final status report
+        if: always()
+        run: |
+          echo "üìä Generating final status report..."
+          
+          # Add the error summary to GitHub Step Summary
+          if [[ -f "failure-analysis/error-summary.md" ]]; then
+            cat failure-analysis/error-summary.md >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Add troubleshooting section if there are failures
+          if [[ -f "failure-analysis/failed-jobs.txt" ]] && [[ -s "failure-analysis/failed-jobs.txt" ]]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "## üõ†Ô∏è Troubleshooting Guide" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**For failed jobs, check:**" >> $GITHUB_STEP_SUMMARY
+            echo "1. üìã Job logs in the GitHub Actions UI" >> $GITHUB_STEP_SUMMARY
+            echo "2. üì¶ Downloaded artifacts (uploaded below)" >> $GITHUB_STEP_SUMMARY
+            echo "3. üîç Detailed analysis in failure-analysis artifacts" >> $GITHUB_STEP_SUMMARY
+            echo "4. üêõ Enable ACTIONS_STEP_DEBUG=true for verbose logging" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Common Issues:**" >> $GITHUB_STEP_SUMMARY
+            echo "- **Cache issues:** Clear GitHub Actions cache" >> $GITHUB_STEP_SUMMARY
+            echo "- **Dependency problems:** Check go.mod/go.sum" >> $GITHUB_STEP_SUMMARY
+            echo "- **Test failures:** Review test logs and coverage reports" >> $GITHUB_STEP_SUMMARY
+            echo "- **Security scan failures:** Check SARIF files in artifacts" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Add artifact information
+          if [[ -f "failure-analysis/artifact-analysis.txt" ]]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "## üìã Artifact Analysis" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            cat failure-analysis/artifact-analysis.txt | head -50 >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+      - name: Upload comprehensive failure analysis
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-failure-analysis
+          path: |
+            failure-analysis/
+            workflow-jobs.json
+          retention-days: 30
+          
+      - name: Upload workflow artifacts for debugging
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-workflow-artifacts
+          path: ./artifacts/
+          retention-days: 7
+        continue-on-error: true
+        
+      - name: Determine final status with enhanced reporting
+        if: always()
+        run: |
+          echo "üéØ Determining final CI status..."
+          
+          # Check critical job results with detailed reporting
           FAILED_JOBS=""
+          CRITICAL_FAILURES=""
+          
+          # Define critical jobs that must pass
+          CRITICAL_JOBS="preflight quick-validation k8s-validation security-scan controller-tests build-package"
           
           if [[ "${{ needs.preflight.result }}" == "failure" ]]; then
             FAILED_JOBS="$FAILED_JOBS preflight"
+            CRITICAL_FAILURES="$CRITICAL_FAILURES preflight"
+          fi
+          if [[ "${{ needs.quick-validation.result }}" == "failure" ]]; then
+            FAILED_JOBS="$FAILED_JOBS quick-validation"
+            CRITICAL_FAILURES="$CRITICAL_FAILURES quick-validation"
           fi
           if [[ "${{ needs.k8s-validation.result }}" == "failure" ]]; then
             FAILED_JOBS="$FAILED_JOBS k8s-validation"
+            CRITICAL_FAILURES="$CRITICAL_FAILURES k8s-validation"
           fi
           if [[ "${{ needs.security-scan.result }}" == "failure" ]]; then
             FAILED_JOBS="$FAILED_JOBS security-scan"
+            CRITICAL_FAILURES="$CRITICAL_FAILURES security-scan"
           fi
           if [[ "${{ needs.controller-tests.result }}" == "failure" ]]; then
             FAILED_JOBS="$FAILED_JOBS controller-tests"
+            CRITICAL_FAILURES="$CRITICAL_FAILURES controller-tests"
           fi
           if [[ "${{ needs.build-package.result }}" == "failure" ]]; then
             FAILED_JOBS="$FAILED_JOBS build-package"
+            CRITICAL_FAILURES="$CRITICAL_FAILURES build-package"
           fi
           
-          if [[ -n "$FAILED_JOBS" ]]; then
+          # Integration tests are optional, so they don't cause critical failure
+          if [[ "${{ needs.integration-tests.result }}" == "failure" ]]; then
+            FAILED_JOBS="$FAILED_JOBS integration-tests"
+          fi
+          
+          # Generate final status
+          if [[ -n "$CRITICAL_FAILURES" ]]; then
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**??Status: FAILED**" >> $GITHUB_STEP_SUMMARY
-            echo "**Failed Jobs:** $FAILED_JOBS" >> $GITHUB_STEP_SUMMARY
+            echo "## ‚ùå **CI STATUS: CRITICAL FAILURE**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Critical Failed Jobs:** $CRITICAL_FAILURES" >> $GITHUB_STEP_SUMMARY
+            if [[ -n "$FAILED_JOBS" ]]; then
+              echo "**All Failed Jobs:** $FAILED_JOBS" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "üö® **Action Required:** Review the failure analysis artifacts and job logs above." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
+            echo "1. Download the 'ci-failure-analysis' artifact for detailed diagnostics" >> $GITHUB_STEP_SUMMARY
+            echo "2. Review individual job logs in the GitHub Actions UI" >> $GITHUB_STEP_SUMMARY  
+            echo "3. Check the troubleshooting guide above" >> $GITHUB_STEP_SUMMARY
+            echo "4. Fix the identified issues and re-run the workflow" >> $GITHUB_STEP_SUMMARY
+            
+            # Exit with failure
             exit 1
           else
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**??Status: PASSED**" >> $GITHUB_STEP_SUMMARY
+            echo "## ‚úÖ **CI STATUS: PASSED**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "?? **2025 K8s Operator CI Achievements:**" >> $GITHUB_STEP_SUMMARY
-            echo "- ??Modern Kubernetes ${{ env.KUBERNETES_VERSION }} compatibility verified" >> $GITHUB_STEP_SUMMARY
-            echo "- ??Controller-runtime ${{ env.CONTROLLER_RUNTIME_VERSION }} integration tested" >> $GITHUB_STEP_SUMMARY
-            echo "- ??CRD and RBAC configurations validated" >> $GITHUB_STEP_SUMMARY
-            echo "- ??Enhanced security scanning completed" >> $GITHUB_STEP_SUMMARY
-            echo "- ??envtest-based controller testing passed" >> $GITHUB_STEP_SUMMARY
-            if [[ "${{ needs.integration-tests.result }}" == "success" ]]; then
-              echo "- ??Full integration testing with KIND cluster completed" >> $GITHUB_STEP_SUMMARY
+            
+            if [[ "${{ needs.integration-tests.result }}" == "failure" ]]; then
+              echo "‚ö†Ô∏è **Note:** Integration tests failed but are not blocking" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
             fi
-            echo "- ??Production-ready build artifacts generated" >> $GITHUB_STEP_SUMMARY
+            
+            echo "üéâ **2025 K8s Operator CI Achievements:**" >> $GITHUB_STEP_SUMMARY
+            echo "- ‚úÖ Modern Kubernetes ${{ env.KUBERNETES_VERSION }} compatibility verified" >> $GITHUB_STEP_SUMMARY
+            echo "- ‚úÖ Controller-runtime ${{ env.CONTROLLER_RUNTIME_VERSION }} integration tested" >> $GITHUB_STEP_SUMMARY
+            echo "- ‚úÖ CRD and RBAC configurations validated" >> $GITHUB_STEP_SUMMARY
+            echo "- ‚úÖ Enhanced security scanning completed" >> $GITHUB_STEP_SUMMARY
+            echo "- ‚úÖ envtest-based controller testing passed" >> $GITHUB_STEP_SUMMARY
+            echo "- ‚úÖ Production-ready build artifacts generated" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "üöÄ **Ready for deployment!**" >> $GITHUB_STEP_SUMMARY
           fi

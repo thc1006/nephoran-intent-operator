@@ -33,6 +33,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -43,6 +44,22 @@ import (
 
 // Stub types to replace missing external dependencies
 // porchv1alpha1PackageRevision is defined in compliance_test.go
+
+// createTestPackageRevision helper function for creating test package revisions
+func createTestPackageRevision(name, revision string) *porchv1alpha1PackageRevision {
+	return &porchv1alpha1PackageRevision{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name + "-" + revision,
+			Namespace: "default",
+		},
+		Spec: porchv1alpha1PackageRevisionSpec{
+			PackageName: name,
+			Revision:    revision,
+			Lifecycle:   porchv1alpha1PackageRevisionLifecycleDraft,
+		},
+		Status: porchv1alpha1PackageRevisionStatus{},
+	}
+}
 
 type nephiov1alpha1ClusterDeploymentStatus struct {
 	Phase   string

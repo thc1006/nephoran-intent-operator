@@ -20,9 +20,8 @@ limitations under the License.
 package krm
 
 import (
-	
+	"context"
 	"encoding/json"
-"context"
 	"fmt"
 	"strings"
 	"sync"
@@ -31,6 +30,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
+	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 	"go.uber.org/zap/zaptest"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -60,6 +60,7 @@ type FunctionConfig struct {
 	Exec       *ExecConfig            `json:"exec,omitempty"`
 }
 
+<<<<<<< HEAD
 // TestResourceSelector defines resource selection criteria for tests
 type TestResourceSelector struct {
 	APIVersion string            `json:"apiVersion,omitempty"`
@@ -68,6 +69,9 @@ type TestResourceSelector struct {
 	Namespace  string            `json:"namespace,omitempty"`
 	Labels     map[string]string `json:"labels,omitempty"`
 }
+=======
+// ResourceSelector is imported from pipeline.go
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
 
 // ExecConfig defines execution configuration for container functions
 type ExecConfig struct {
@@ -114,7 +118,11 @@ type FunctionContext struct {
 	Environment map[string]string `json:"environment,omitempty"`
 }
 
+<<<<<<< HEAD
 // TestPipeline defines a sequence of KRM functions for tests
+=======
+// Pipeline defines a sequence of KRM functions
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
 type TestPipeline struct {
 	Name      string                 `json:"name"`
 	Functions []FunctionConfig       `json:"functions"`
@@ -168,6 +176,7 @@ type FunctionSchema struct {
 	Required   []string                  `json:"required,omitempty"`
 }
 
+<<<<<<< HEAD
 // SchemaProperty defines a schema property
 type TestSchemaProperty struct {
 	Type        string        `json:"type"`
@@ -175,6 +184,9 @@ type TestSchemaProperty struct {
 	Default     interface{}   `json:"default,omitempty"`
 	Examples    []interface{} `json:"examples,omitempty"`
 }
+=======
+// Using SchemaProperty from pkg/nephio/porch
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
 
 // FunctionExample contains function usage examples
 type TestFunctionExample struct {
@@ -1072,7 +1084,7 @@ func TestPipelineExecution(t *testing.T) {
 		generateTestResource("v1", "Service", "test-service", "default"),
 	}
 
-	pipeline := Pipeline{
+	pipeline := TestPipeline{
 		Name: "standard-pipeline",
 		Functions: []FunctionConfig{
 			{
@@ -1141,7 +1153,7 @@ func TestPipelineExecutionFailure(t *testing.T) {
 		generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),
 	}
 
-	pipeline := Pipeline{
+	pipeline := TestPipeline{
 		Name: "failing-pipeline",
 		Functions: []FunctionConfig{
 			{
@@ -1477,7 +1489,7 @@ func BenchmarkPipelineExecution(b *testing.B) {
 		generateTestResource("v1", "Service", "test-service", "default"),
 	}
 
-	pipeline := Pipeline{
+	pipeline := TestPipeline{
 		Name: "benchmark-pipeline",
 		Functions: []FunctionConfig{
 			{

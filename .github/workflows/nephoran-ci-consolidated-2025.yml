@@ -33,8 +33,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Go optimization for large projects
-  GO_VERSION: "1.22.7"
+  # Go optimization for large projects - Use our stable CI version
+  GO_VERSION: "1.24.6"
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   CGO_ENABLED: 0
@@ -55,7 +55,7 @@ jobs:
   # STAGE 1: Environment Setup & Validation
   # ==============================================
   setup:
-    name: "?”§ Environment Setup"
+    name: "ðŸ”§ Environment Setup"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -68,7 +68,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
           
       - name: Configure build parameters
         id: config
@@ -115,9 +115,9 @@ jobs:
   # STAGE 2: Dependency Resolution & Caching
   # ==============================================
   dependencies:
-    name: "?“¦ Dependency Resolution"
+    name: "ðŸ“¦ Dependency Resolution"
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
     needs: [setup]
     
     steps:
@@ -131,25 +131,35 @@ jobs:
           check-latest: true
           cache: false  # We handle caching manually for better control
           
-      - name: "?Ž¯ Multi-Layer Dependency Cache"
+      - name: "ðŸ§¹ Pre-Cache Cleanup"
+        run: |
+          echo "ðŸ§¹ Cleaning potential cache conflicts..."
+          # Remove any existing Go toolchain files that might conflict
+          sudo rm -rf ~/go/pkg/mod/golang.org/toolchain* 2>/dev/null || true
+          # Clean any corrupted cache entries
+          sudo rm -rf ~/.cache/go-build/*/golang.org/toolchain* 2>/dev/null || true
+          echo "âœ… Pre-cache cleanup completed"
+          
+      - name: "ðŸŽ¯ Multi-Layer Dependency Cache"
         uses: actions/cache@v4
         with:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
             .go-build-cache
-          key: ${{ needs.setup.outputs.cache-key }}
+          key: ${{ needs.setup.outputs.cache-key }}-toolchain-safe
           restore-keys: |
-            ${{ runner.os }}-go-${{ env.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}-
+            ${{ runner.os }}-go-${{ env.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}-toolchain-safe
             ${{ runner.os }}-go-${{ env.CACHE_VERSION }}-
             ${{ runner.os }}-go-
           enableCrossOsArchive: false
+          fail-on-cache-miss: false
           
-      - name: "?? Advanced Dependency Resolution with Retry Logic"
+      - name: "ðŸ”„ Advanced Dependency Resolution with Retry Logic"
         run: |
           set -e
           
-          echo "?? Starting advanced dependency resolution..."
+          echo "ðŸš€ Starting advanced dependency resolution..."
           
           # Create local cache directory
           mkdir -p .go-build-cache
@@ -162,15 +172,15 @@ jobs:
             local delay=10
             
             while [ $attempt -le $max_attempts ]; do
-              echo "?“¥ Attempt $attempt/$max_attempts: Downloading dependencies..."
+              echo "ðŸ“¥ Attempt $attempt/$max_attempts: Downloading dependencies..."
               
               if timeout 600s go mod download -x; then
-                echo "??Dependencies downloaded successfully on attempt $attempt"
+                echo "âœ… Dependencies downloaded successfully on attempt $attempt"
                 return 0
               else
-                echo "? ï?  Attempt $attempt failed"
+                echo "âš ï¸  Attempt $attempt failed"
                 if [ $attempt -lt $max_attempts ]; then
-                  echo "??Waiting ${delay}s before retry..."
+                  echo "â³ Waiting ${delay}s before retry..."
                   sleep $delay
                   delay=$((delay * 2))
                 fi
@@ -178,28 +188,28 @@ jobs:
               fi
             done
             
-            echo "??All download attempts failed"
+            echo "âŒ All download attempts failed"
             return 1
           }
           
           # Execute with retry logic
           if ! retry_download; then
-            echo "?? Trying alternative proxy configuration..."
+            echo "ðŸ”„ Trying alternative proxy configuration..."
             export GOPROXY="https://goproxy.io,https://proxy.golang.org,direct"
             retry_download
           fi
           
           # Verify dependencies
-          echo "?? Verifying downloaded dependencies..."
+          echo "ðŸ” Verifying downloaded dependencies..."
           go mod verify
           
           # Pre-compile standard packages
-          echo "??Pre-compiling standard packages..."
+          echo "âš¡ Pre-compiling standard packages..."
           go install std
           
-          echo "??Dependency resolution completed successfully"
+          echo "âœ… Dependency resolution completed successfully"
           
-      - name: "?? Cache Statistics"
+      - name: "ðŸ“Š Cache Statistics"
         run: |
           echo "=== Go Module Cache Statistics ==="
           du -sh ~/go/pkg/mod 2>/dev/null || echo "Module cache not found"
@@ -213,9 +223,9 @@ jobs:
   # STAGE 3: Fast Validation & Syntax Check
   # ==============================================
   fast-validation:
-    name: "??Fast Validation"
+    name: "âš¡ Fast Validation"
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     needs: [setup, dependencies]
     
     steps:
@@ -227,6 +237,16 @@ jobs:
         with:
           go-version: ${{ needs.setup.outputs.go-version }}
           
+      - name: "ðŸ§¹ Pre-Cache Cleanup (Fast Validation)"
+        run: |
+          echo "ðŸ§¹ Cleaning potential Go toolchain conflicts..."
+          # Remove any existing Go toolchain files that might conflict during cache restore
+          sudo rm -rf ~/go/pkg/mod/golang.org/toolchain* 2>/dev/null || true
+          sudo rm -rf ~/.cache/go-build/*/golang.org/toolchain* 2>/dev/null || true
+          # Clean any incomplete extractions
+          find ~/go/pkg/mod -name "*.partial~" -delete 2>/dev/null || true
+          echo "âœ… Pre-cache cleanup completed"
+          
       - name: Restore dependency cache
         uses: actions/cache@v4
         with:
@@ -234,15 +254,26 @@ jobs:
             ~/go/pkg/mod
             ~/.cache/go-build
             .go-build-cache
+<<<<<<< HEAD
           key: ${{ needs.setup.outputs.cache-key }}
           restore-keys: |
             ${{ runner.os }}-go-${{ env.CACHE_VERSION }}-
             
       - name: "?? Fast Syntax & Build Check"
+=======
+          key: ${{ needs.setup.outputs.cache-key }}-toolchain-safe
+          restore-keys: |
+            ${{ runner.os }}-go-${{ env.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}-toolchain-safe
+            ${{ runner.os }}-go-${{ env.CACHE_VERSION }}-
+          fail-on-cache-miss: false
+            
+      - name: "ðŸ” Fast Syntax & Build Check"
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
         run: |
           set -e
           export GOCACHE="$(pwd)/.go-build-cache"
           
+<<<<<<< HEAD
           echo "?? Running fast syntax validation..."
           
           # Fast syntax check
@@ -250,27 +281,54 @@ jobs:
           go vet ./...
           
           # Fast build check (no output)
-          echo "??ï¸? Fast build verification..."
+          echo "??ï¿½? Fast build verification..."
           go build $BUILD_FLAGS ./...
           
           # Module tidiness check
-          echo "?§¹ Checking module tidiness..."
+          echo "?ï¿½ï¿½ Checking module tidiness..."
           go mod tidy
           if ! git diff --quiet go.mod go.sum; then
             echo "??go.mod or go.sum is not tidy"
+=======
+          echo "ðŸ” Running fast syntax validation..."
+          
+          # Fast syntax check
+          echo "ðŸ“‹ Checking Go syntax..."
+          go vet ./...
+          
+          # Fast build check (no output)
+          echo "ðŸ—ï¸  Fast build verification..."
+          go build $BUILD_FLAGS ./...
+          
+          # Module tidiness check
+          echo "ðŸ§¹ Checking module tidiness..."
+          go mod tidy
+          if ! git diff --quiet go.mod go.sum; then
+            echo "âŒ go.mod or go.sum is not tidy"
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
             git diff go.mod go.sum
             exit 1
           fi
           
+<<<<<<< HEAD
           echo "??Fast validation completed successfully"
+=======
+          echo "âœ… Fast validation completed successfully"
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
 
   # ==============================================
   # STAGE 4: Component-Based Testing Matrix
   # ==============================================
   component-tests:
-    name: "?§ª Tests (${{ matrix.name }})"
+<<<<<<< HEAD
+    name: "?ï¿½ï¿½ Tests (${{ matrix.name }})"
     runs-on: ubuntu-latest
     timeout-minutes: 10
+=======
+    name: "ðŸ§ª Tests (${{ matrix.name }})"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
     needs: [setup, dependencies, fast-validation]
     if: ${{ !inputs.skip_tests }}
     
@@ -287,6 +345,17 @@ jobs:
         with:
           go-version: ${{ needs.setup.outputs.go-version }}
           
+<<<<<<< HEAD
+=======
+      - name: "ðŸ§¹ Pre-Cache Cleanup (Component Tests)"
+        run: |
+          echo "ðŸ§¹ Cleaning potential Go toolchain conflicts..."
+          sudo rm -rf ~/go/pkg/mod/golang.org/toolchain* 2>/dev/null || true
+          sudo rm -rf ~/.cache/go-build/*/golang.org/toolchain* 2>/dev/null || true
+          find ~/go/pkg/mod -name "*.partial~" -delete 2>/dev/null || true
+          echo "âœ… Pre-cache cleanup completed"
+          
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
       - name: Restore dependency cache
         uses: actions/cache@v4
         with:
@@ -294,25 +363,47 @@ jobs:
             ~/go/pkg/mod
             ~/.cache/go-build
             .go-build-cache
+<<<<<<< HEAD
           key: ${{ needs.setup.outputs.cache-key }}
           
-      - name: "?§ª Component Test Suite: ${{ matrix.name }}"
+      - name: "?ï¿½ï¿½ Component Test Suite: ${{ matrix.name }}"
+=======
+          key: ${{ needs.setup.outputs.cache-key }}-toolchain-safe
+          restore-keys: |
+            ${{ runner.os }}-go-${{ env.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}-toolchain-safe
+            ${{ runner.os }}-go-${{ env.CACHE_VERSION }}-
+          fail-on-cache-miss: false
+          
+      - name: "ðŸ§ª Component Test Suite: ${{ matrix.name }}"
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
         run: |
           set -e
           export GOCACHE="$(pwd)/.go-build-cache"
           
-          echo "?§ª Testing component: ${{ matrix.name }}"
-          echo "?“¦ Test pattern: ${{ matrix.pattern }}"
+<<<<<<< HEAD
+          echo "?ï¿½ï¿½ Testing component: ${{ matrix.name }}"
+          echo "?ï¿½ï¿½ Test pattern: ${{ matrix.pattern }}"
           
           # Run tests with coverage for this component
           go test -short $TEST_FLAGS -coverprofile=coverage-${{ matrix.name }}.out ${{ matrix.pattern }}
+=======
+          echo "ðŸ§ª Testing component: ${{ matrix.name }}"
+          echo "ðŸ“¦ Test pattern: ${{ matrix.pattern }}"
+          
+          # Run tests with coverage for this component
+          go test $TEST_FLAGS -coverprofile=coverage-${{ matrix.name }}.out ${{ matrix.pattern }}
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
           
           # Generate coverage report
           if [[ -f "coverage-${{ matrix.name }}.out" ]]; then
             go tool cover -func=coverage-${{ matrix.name }}.out
           fi
           
+<<<<<<< HEAD
           echo "??Component tests completed: ${{ matrix.name }}"
+=======
+          echo "âœ… Component tests completed: ${{ matrix.name }}"
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
           
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
@@ -326,9 +417,15 @@ jobs:
   # STAGE 5: Full Build & Integration
   # ==============================================
   full-build:
-    name: "??ï¸?Full Build & Integration"
+<<<<<<< HEAD
+    name: "??ï¿½?Full Build & Integration"
     runs-on: ubuntu-latest
     timeout-minutes: 10
+=======
+    name: "ðŸ—ï¸ Full Build & Integration"
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
     needs: [setup, dependencies, fast-validation]
     
     steps:
@@ -340,6 +437,17 @@ jobs:
         with:
           go-version: ${{ needs.setup.outputs.go-version }}
           
+<<<<<<< HEAD
+=======
+      - name: "ðŸ§¹ Pre-Cache Cleanup (Full Build)"
+        run: |
+          echo "ðŸ§¹ Cleaning potential Go toolchain conflicts..."
+          sudo rm -rf ~/go/pkg/mod/golang.org/toolchain* 2>/dev/null || true
+          sudo rm -rf ~/.cache/go-build/*/golang.org/toolchain* 2>/dev/null || true
+          find ~/go/pkg/mod -name "*.partial~" -delete 2>/dev/null || true
+          echo "âœ… Pre-cache cleanup completed"
+          
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
       - name: Restore dependency cache
         uses: actions/cache@v4
         with:
@@ -347,35 +455,64 @@ jobs:
             ~/go/pkg/mod
             ~/.cache/go-build
             .go-build-cache
+<<<<<<< HEAD
           key: ${{ needs.setup.outputs.cache-key }}
           
-      - name: "??ï¸?Full Project Build"
+      - name: "??ï¿½?Full Project Build"
+=======
+          key: ${{ needs.setup.outputs.cache-key }}-toolchain-safe
+          restore-keys: |
+            ${{ runner.os }}-go-${{ env.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}-toolchain-safe
+            ${{ runner.os }}-go-${{ env.CACHE_VERSION }}-
+          fail-on-cache-miss: false
+          
+      - name: "ðŸ—ï¸ Full Project Build"
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
         run: |
           set -e
           export GOCACHE="$(pwd)/.go-build-cache"
           
-          echo "??ï¸?Starting full project build..."
+<<<<<<< HEAD
+          echo "??ï¿½?Starting full project build..."
           
           # Build all binaries
-          echo "?“¦ Building all binaries..."
+          echo "?ï¿½ï¿½ Building all binaries..."
           
           # Build main operator
-          echo "?Ž¯ Building Nephoran Intent Operator..."
+          echo "?ï¿½ï¿½ Building Nephoran Intent Operator..."
+=======
+          echo "ðŸ—ï¸ Starting full project build..."
+          
+          # Build all binaries
+          echo "ðŸ“¦ Building all binaries..."
+          
+          # Build main operator
+          echo "ðŸŽ¯ Building Nephoran Intent Operator..."
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
           go build $BUILD_FLAGS -o bin/nephoran-intent-operator ./cmd/nephoran-intent-operator
           
           # Build additional components if they exist
           if [[ -d "cmd" ]]; then
-            echo "?”§ Building additional components..."
+<<<<<<< HEAD
+            echo "?ï¿½ï¿½ Building additional components..."
             for dir in cmd/*/; do
               if [[ -f "$dir/main.go" ]]; then
                 component=$(basename "$dir")
-                echo "?“¦ Building $component..."
+                echo "?ï¿½ï¿½ Building $component..."
+=======
+            echo "ðŸ”§ Building additional components..."
+            for dir in cmd/*/; do
+              if [[ -f "$dir/main.go" ]]; then
+                component=$(basename "$dir")
+                echo "ðŸ“¦ Building $component..."
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
                 go build $BUILD_FLAGS -o "bin/$component" "./$dir"
               fi
             done
           fi
           
           # Verify built binaries
+<<<<<<< HEAD
           echo "?? Verifying built binaries..."
           ls -la bin/ || echo "No binaries built"
           
@@ -384,6 +521,16 @@ jobs:
           file bin/* 2>/dev/null || echo "No binaries to verify"
           
           echo "??Full build completed successfully"
+=======
+          echo "ðŸ” Verifying built binaries..."
+          ls -la bin/ || echo "No binaries built"
+          
+          # Build verification
+          echo "âœ… Build verification..."
+          file bin/* 2>/dev/null || echo "No binaries to verify"
+          
+          echo "âœ… Full build completed successfully"
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
           
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -396,9 +543,15 @@ jobs:
   # STAGE 6: Security & Quality Scans
   # ==============================================
   security-scan:
+<<<<<<< HEAD
     name: "?? Security & Quality Scan"
     runs-on: ubuntu-latest
     timeout-minutes: 10
+=======
+    name: "ðŸ”’ Security & Quality Scan"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
     needs: [setup, dependencies]
     if: ${{ inputs.build_mode == 'security' || inputs.build_mode == 'full' }}
     
@@ -411,32 +564,66 @@ jobs:
         with:
           go-version: ${{ needs.setup.outputs.go-version }}
           
+<<<<<<< HEAD
+=======
+      - name: "ðŸ§¹ Pre-Cache Cleanup (Security Scan)"
+        run: |
+          echo "ðŸ§¹ Cleaning potential Go toolchain conflicts..."
+          sudo rm -rf ~/go/pkg/mod/golang.org/toolchain* 2>/dev/null || true
+          sudo rm -rf ~/.cache/go-build/*/golang.org/toolchain* 2>/dev/null || true
+          find ~/go/pkg/mod -name "*.partial~" -delete 2>/dev/null || true
+          echo "âœ… Pre-cache cleanup completed"
+          
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
       - name: Restore dependency cache
         uses: actions/cache@v4
         with:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
+<<<<<<< HEAD
           key: ${{ needs.setup.outputs.cache-key }}
           
       - name: "?? Security Vulnerability Scan"
         run: |
           echo "?? Running security scans..."
+=======
+          key: ${{ needs.setup.outputs.cache-key }}-toolchain-safe
+          restore-keys: |
+            ${{ runner.os }}-go-${{ env.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}-toolchain-safe
+            ${{ runner.os }}-go-${{ env.CACHE_VERSION }}-
+          fail-on-cache-miss: false
+          
+      - name: "ðŸ”’ Security Vulnerability Scan"
+        run: |
+          echo "ðŸ” Running security scans..."
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
           
           # Install security tools
           go install golang.org/x/vuln/cmd/govulncheck@latest
           
           # Run vulnerability check
+<<<<<<< HEAD
           echo "?? Checking for vulnerabilities..."
           govulncheck ./...
           
           echo "??Security scan completed"
+=======
+          echo "ðŸ” Checking for vulnerabilities..."
+          govulncheck ./...
+          
+          echo "âœ… Security scan completed"
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
 
   # ==============================================
   # STAGE 7: Final Integration & Status
   # ==============================================
   integration-status:
+<<<<<<< HEAD
     name: "?? Integration Status"
+=======
+    name: "ðŸ“Š Integration Status"
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [setup, dependencies, fast-validation, component-tests, full-build]
@@ -453,11 +640,19 @@ jobs:
           TESTS_STATUS="${{ needs.component-tests.result }}"
           BUILD_STATUS="${{ needs.full-build.result }}"
           
-          echo "?”§ Setup: $SETUP_STATUS"
-          echo "?“¦ Dependencies: $DEPS_STATUS" 
+<<<<<<< HEAD
+          echo "?ï¿½ï¿½ Setup: $SETUP_STATUS"
+          echo "?ï¿½ï¿½ Dependencies: $DEPS_STATUS" 
           echo "??Fast Validation: $VALIDATION_STATUS"
-          echo "?§ª Component Tests: $TESTS_STATUS"
-          echo "??ï¸?Full Build: $BUILD_STATUS"
+          echo "?ï¿½ï¿½ Component Tests: $TESTS_STATUS"
+          echo "??ï¿½?Full Build: $BUILD_STATUS"
+=======
+          echo "ðŸ”§ Setup: $SETUP_STATUS"
+          echo "ðŸ“¦ Dependencies: $DEPS_STATUS" 
+          echo "âš¡ Fast Validation: $VALIDATION_STATUS"
+          echo "ðŸ§ª Component Tests: $TESTS_STATUS"
+          echo "ðŸ—ï¸ Full Build: $BUILD_STATUS"
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
           echo ""
           
           # Determine overall status
@@ -470,15 +665,22 @@ jobs:
           [[ "$BUILD_STATUS" == "failure" ]] && FAILED_JOBS="$FAILED_JOBS build"
           
           if [[ -n "$FAILED_JOBS" ]]; then
+<<<<<<< HEAD
             echo "??CI Pipeline FAILED - Jobs failed:$FAILED_JOBS"
             echo ""
-            echo "?”§ Troubleshooting Guide:"
+            echo "?ï¿½ï¿½ Troubleshooting Guide:"
+=======
+            echo "âŒ CI Pipeline FAILED - Jobs failed:$FAILED_JOBS"
+            echo ""
+            echo "ðŸ”§ Troubleshooting Guide:"
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
             echo "1. Check individual job logs for specific error details"
             echo "2. Verify dependencies are correctly resolved"
             echo "3. Consider re-running with 'force_cache_refresh: true'"
             echo "4. For urgent fixes, use 'skip_tests: true'"
             exit 1
           else
+<<<<<<< HEAD
             echo "??CI Pipeline PASSED - All critical jobs completed successfully!"
             echo ""
             echo "?? Pipeline Statistics:"
@@ -486,22 +688,41 @@ jobs:
             echo "??Go Version: ${{ needs.setup.outputs.go-version }}"  
             echo "??Cache Key: ${{ needs.setup.outputs.cache-key }}"
             echo "??Tests Skipped: ${{ inputs.skip_tests }}"
+=======
+            echo "âœ… CI Pipeline PASSED - All critical jobs completed successfully!"
+            echo ""
+            echo "ðŸ“Š Pipeline Statistics:"
+            echo "â€¢ Build Mode: ${{ needs.setup.outputs.build-mode }}"
+            echo "â€¢ Go Version: ${{ needs.setup.outputs.go-version }}"  
+            echo "â€¢ Cache Key: ${{ needs.setup.outputs.cache-key }}"
+            echo "â€¢ Tests Skipped: ${{ inputs.skip_tests }}"
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
           fi
           
   # ==============================================
   # STAGE 8: Cleanup & Monitoring
   # ==============================================  
   cleanup:
-    name: "?§¹ Cleanup & Monitoring"
+<<<<<<< HEAD
+    name: "?ï¿½ï¿½ Cleanup & Monitoring"
     runs-on: ubuntu-latest
     timeout-minutes: 10
+=======
+    name: "ðŸ§¹ Cleanup & Monitoring"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
     needs: [integration-status]
     if: always()
     
     steps:
       - name: CI Health Monitoring
         run: |
+<<<<<<< HEAD
           echo "?? CI Health Monitoring Report"
+=======
+          echo "ðŸ“Š CI Health Monitoring Report"
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
           echo "Pipeline completed at: $(date -u)"
           echo "Repository: ${{ github.repository }}"
           echo "Branch: ${{ github.ref_name }}"
@@ -510,4 +731,8 @@ jobs:
           
           # Note: In a production environment, this would send metrics
           # to monitoring systems like Prometheus, DataDog, etc.
+<<<<<<< HEAD
           echo "??Monitoring data recorded"
+=======
+          echo "âœ… Monitoring data recorded"
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871

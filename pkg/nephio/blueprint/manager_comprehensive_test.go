@@ -142,6 +142,7 @@ func (m *MockManager) GetCache() cache.Cache                             {
 func (m *MockManager) GetFieldIndexer() client.FieldIndexer              { return nil }
 func (m *MockManager) GetEventRecorderFor(string) record.EventRecorder   { return nil }
 func (m *MockManager) GetRESTMapper() meta.RESTMapper                    { return nil }
+<<<<<<< HEAD
 func (m *MockManager) GetControllerOptions() config.Controller {
 	return config.Controller{}
 }
@@ -150,6 +151,9 @@ func (m *MockManager) Elected() <-chan struct{} {
 	close(ch) // Always elected for testing
 	return ch
 }
+=======
+// GetControllerOptions method removed - not part of standard manager interface
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
 
 // Helper function to create a mock manager
 func newMockManager() *MockManager {

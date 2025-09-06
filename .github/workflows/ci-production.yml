@@ -14,11 +14,11 @@ on:
       - '.github/workflows/ci-production.yml'
       - 'Makefile*'
       - 'scripts/**'
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-    branches:
-      - main
-      - integrate/**
+  # pull_request: DISABLED - Consolidated into nephoran-ci-consolidated-2025.yml
+  #   types: [opened, synchronize, reopened, ready_for_review]
+  #   branches:
+  #     - main
+  #     - integrate/**
   workflow_dispatch:
     inputs:
       build_mode:

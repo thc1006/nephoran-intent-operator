@@ -11,7 +11,7 @@ import (
 func TestSecuritySchemaValidationHardening(t *testing.T) {
 	tempDir := t.TempDir()
 	contractsDir := filepath.Join(tempDir, "docs", "contracts")
-	if err := os.MkdirAll(contractsDir, 0o755); err != nil {
+	if err := os.MkdirAll(contractsDir, 0755); err != nil {
 		t.Fatalf("Failed to create contracts directory: %v", err)
 	}
 
@@ -22,24 +22,24 @@ func TestSecuritySchemaValidationHardening(t *testing.T) {
 			"$schema": "http://json-schema.org/draft-07/schema#",
 			"type": "invalid-type-that-will-fail-compilation"
 		}`
-
+		
 		schemaPath := filepath.Join(contractsDir, "intent.schema.json")
-		if err := os.WriteFile(schemaPath, []byte(invalidSchema), 0o644); err != nil {
+		if err := os.WriteFile(schemaPath, []byte(invalidSchema), 0644); err != nil {
 			t.Fatalf("Failed to write schema file: %v", err)
 		}
 
 		validator, err := NewValidator(tempDir)
-
+		
 		// SECURITY ASSERTION: Schema compilation failure MUST return an error
 		if err == nil {
 			t.Fatal("SECURITY VULNERABILITY: Schema compilation failure did not return error - validation could be bypassed!")
 		}
-
+		
 		// SECURITY ASSERTION: Validator MUST be nil when schema compilation fails
 		if validator != nil {
 			t.Fatal("SECURITY VULNERABILITY: Validator returned despite schema compilation failure - could lead to bypass!")
 		}
-
+		
 		// Verify error message indicates security impact
 		if err.Error() == "" || err.Error() == "nil" {
 			t.Fatal("SECURITY: Error message should clearly indicate validation failure")
@@ -49,18 +49,18 @@ func TestSecuritySchemaValidationHardening(t *testing.T) {
 	t.Run("SECURITY_MalformedSchemaRejection", func(t *testing.T) {
 		// Malformed JSON in schema file should be rejected
 		malformedSchema := `{this is not valid json}`
-
+		
 		schemaPath := filepath.Join(contractsDir, "intent.schema.json")
-		if err := os.WriteFile(schemaPath, []byte(malformedSchema), 0o644); err != nil {
+		if err := os.WriteFile(schemaPath, []byte(malformedSchema), 0644); err != nil {
 			t.Fatalf("Failed to write schema file: %v", err)
 		}
 
 		validator, err := NewValidator(tempDir)
-
+		
 		if err == nil {
 			t.Fatal("SECURITY: Malformed schema JSON should cause initialization failure")
 		}
-
+		
 		if validator != nil {
 			t.Fatal("SECURITY: No validator should be created with malformed schema")
 		}
@@ -69,13 +69,13 @@ func TestSecuritySchemaValidationHardening(t *testing.T) {
 	t.Run("SECURITY_MissingSchemaFileRejection", func(t *testing.T) {
 		// Missing schema file should cause hard failure
 		nonExistentDir := filepath.Join(tempDir, "nonexistent")
-
+		
 		validator, err := NewValidator(nonExistentDir)
-
+		
 		if err == nil {
 			t.Fatal("SECURITY: Missing schema file should cause initialization failure")
 		}
-
+		
 		if validator != nil {
 			t.Fatal("SECURITY: No validator should be created when schema file is missing")
 		}
@@ -95,9 +95,9 @@ func TestSecuritySchemaValidationHardening(t *testing.T) {
 				"replicas": {"type": "integer", "minimum": 1, "maximum": 100}
 			}
 		}`
-
+		
 		schemaPath := filepath.Join(contractsDir, "intent.schema.json")
-		if err := os.WriteFile(schemaPath, []byte(validSchema), 0o644); err != nil {
+		if err := os.WriteFile(schemaPath, []byte(validSchema), 0644); err != nil {
 			t.Fatalf("Failed to write schema file: %v", err)
 		}
 
@@ -105,11 +105,11 @@ func TestSecuritySchemaValidationHardening(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Valid schema should initialize successfully: %v", err)
 		}
-
+		
 		if validator == nil {
 			t.Fatal("Validator should be created with valid schema")
 		}
-
+		
 		// Test that validator is healthy
 		if !validator.IsHealthy() {
 			t.Fatal("SECURITY: Validator should be healthy with valid schema")
@@ -122,7 +122,7 @@ func TestSecuritySchemaValidationHardening(t *testing.T) {
 			Namespace:  "test",
 			Replicas:   5,
 		}
-
+		
 		errors := validator.ValidateIntent(maliciousIntent)
 		if len(errors) == 0 {
 			t.Fatal("SECURITY: Malicious intent_type should be rejected")
@@ -135,7 +135,7 @@ func TestSecuritySchemaValidationHardening(t *testing.T) {
 			Namespace:  "test",
 			Replicas:   9999, // Way over limit
 		}
-
+		
 		errors = validator.ValidateIntent(excessiveIntent)
 		if len(errors) == 0 {
 			t.Fatal("SECURITY: Excessive replicas should be rejected to prevent DoS")
@@ -149,7 +149,7 @@ func TestSecuritySchemaValidationHardening(t *testing.T) {
 			"replicas": 5,
 			"malicious_field": "evil_payload"
 		}`
-
+		
 		errors = validator.ValidateJSON([]byte(maliciousJSON))
 		if len(errors) == 0 {
 			t.Fatal("SECURITY: Additional properties should be rejected to prevent injection")
@@ -166,9 +166,9 @@ func TestSecuritySchemaValidationHardening(t *testing.T) {
 				"intent_type": {"const": "scaling"}
 			}
 		}`
-
+		
 		schemaPath := filepath.Join(contractsDir, "intent.schema.json")
-		if err := os.WriteFile(schemaPath, []byte(validSchema), 0o644); err != nil {
+		if err := os.WriteFile(schemaPath, []byte(validSchema), 0644); err != nil {
 			t.Fatalf("Failed to write schema file: %v", err)
 		}
 
@@ -183,20 +183,20 @@ func TestSecuritySchemaValidationHardening(t *testing.T) {
 		validator.ValidateJSON([]byte(`{invalid json}`))             // Malformed
 
 		metrics := validator.GetMetrics()
-
+		
 		// Security monitoring requirements
 		if metrics.TotalValidations < 3 {
 			t.Error("SECURITY: All validation attempts must be tracked")
 		}
-
+		
 		if metrics.ValidationErrors < 2 {
 			t.Error("SECURITY: Failed validations must be tracked for anomaly detection")
 		}
-
+		
 		if metrics.ValidationSuccesses < 1 {
 			t.Error("SECURITY: Successful validations must be tracked")
 		}
-
+		
 		if metrics.LastValidationTime.IsZero() {
 			t.Error("SECURITY: Validation timestamps required for audit trail")
 		}
@@ -207,7 +207,7 @@ func TestSecuritySchemaValidationHardening(t *testing.T) {
 func TestSecurityValidationBypass(t *testing.T) {
 	tempDir := t.TempDir()
 	contractsDir := filepath.Join(tempDir, "docs", "contracts")
-	if err := os.MkdirAll(contractsDir, 0o755); err != nil {
+	if err := os.MkdirAll(contractsDir, 0755); err != nil {
 		t.Fatalf("Failed to create contracts directory: %v", err)
 	}
 
@@ -223,9 +223,9 @@ func TestSecurityValidationBypass(t *testing.T) {
 			"replicas": {"type": "integer", "minimum": 1, "maximum": 100}
 		}
 	}`
-
+	
 	schemaPath := filepath.Join(contractsDir, "intent.schema.json")
-	if err := os.WriteFile(schemaPath, []byte(validSchema), 0o644); err != nil {
+	if err := os.WriteFile(schemaPath, []byte(validSchema), 0644); err != nil {
 		t.Fatalf("Failed to write schema file: %v", err)
 	}
 
@@ -241,7 +241,7 @@ func TestSecurityValidationBypass(t *testing.T) {
 		"namespace": "test",
 		"replicas": 5
 	}`
-
+	
 	errors := validator.ValidateJSON([]byte(unicodeBypass))
 	if len(errors) == 0 {
 		t.Error("SECURITY: Null bytes in strings should be rejected")
@@ -254,7 +254,7 @@ func TestSecurityValidationBypass(t *testing.T) {
 		"namespace": "test",
 		"replicas": 999999999999999999999
 	}`
-
+	
 	errors = validator.ValidateJSON([]byte(overflowBypass))
 	if len(errors) == 0 {
 		t.Error("SECURITY: Integer overflow attempts should be rejected")
@@ -267,7 +267,7 @@ func TestSecurityValidationBypass(t *testing.T) {
 		"namespace": "test",
 		"replicas": "5"
 	}`
-
+	
 	errors = validator.ValidateJSON([]byte(typeConfusion))
 	if len(errors) == 0 {
 		t.Error("SECURITY: Type confusion (string for integer) should be rejected")
@@ -280,7 +280,7 @@ func TestSecurityValidationBypass(t *testing.T) {
 		"namespace": "test",
 		"replicas": 5
 	}`
-
+	
 	errors = validator.ValidateJSON([]byte(caseBypass))
 	if len(errors) == 0 {
 		t.Error("SECURITY: Case variations in field names should be rejected")
@@ -293,7 +293,7 @@ func TestSecurityValidationBypass(t *testing.T) {
 		"namespace": "test",
 		"replicas": 5
 	}`
-
+	
 	errors = validator.ValidateJSON([]byte(nestedBypass))
 	if len(errors) == 0 {
 		t.Error("SECURITY: Object injection in string fields should be rejected")
@@ -304,7 +304,7 @@ func TestSecurityValidationBypass(t *testing.T) {
 func BenchmarkSecurityValidation(b *testing.B) {
 	tempDir := b.TempDir()
 	contractsDir := filepath.Join(tempDir, "docs", "contracts")
-	if err := os.MkdirAll(contractsDir, 0o755); err != nil {
+	if err := os.MkdirAll(contractsDir, 0755); err != nil {
 		b.Fatalf("Failed to create contracts directory: %v", err)
 	}
 
@@ -316,9 +316,9 @@ func BenchmarkSecurityValidation(b *testing.B) {
 			"intent_type": {"const": "scaling"}
 		}
 	}`
-
+	
 	schemaPath := filepath.Join(contractsDir, "intent.schema.json")
-	if err := os.WriteFile(schemaPath, []byte(validSchema), 0o644); err != nil {
+	if err := os.WriteFile(schemaPath, []byte(validSchema), 0644); err != nil {
 		b.Fatalf("Failed to write schema file: %v", err)
 	}
 
@@ -328,12 +328,12 @@ func BenchmarkSecurityValidation(b *testing.B) {
 	}
 
 	validJSON := []byte(`{"intent_type": "scaling"}`)
-
+	
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		validator.ValidateJSON(validJSON)
 	}
-
+	
 	// Performance should be reasonable to prevent DoS
 	// If validation takes > 1ms per operation, investigate
 	nsPerOp := b.Elapsed().Nanoseconds() / int64(b.N)

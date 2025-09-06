@@ -563,7 +563,7 @@ func benchmarkPolicyEnforcement(b *testing.B, ctx context.Context, nephioSystem 
 				Type:         scenario.policyType,
 				Complexity:   scenario.complexity,
 				ResourceType: scenario.resourceType,
-				Rules:        generatePolicyRules(scenario.ruleCount),
+				Rules:        generateBenchmarkPolicyRules(scenario.ruleCount),
 			}
 
 			testResource := generateTestResource(scenario.resourceType)
@@ -792,7 +792,11 @@ func generateTestClusters(count int, deployType string) []ClusterConfig {
 	return clusters
 }
 
+<<<<<<< HEAD
 func generatePolicyRules(count int) []BenchmarkPolicyRule {
+=======
+func generateBenchmarkPolicyRules(count int) []BenchmarkPolicyRule {
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
 	rules := make([]BenchmarkPolicyRule, count)
 
 	for i := range rules {
@@ -854,11 +858,23 @@ func setupBenchmarkNephioSystem() *EnhancedNephioSystem {
 
 // Enhanced Nephio System types and interfaces
 
+// Interface placeholders for benchmark
+type (
+	TestPackageGenerator   interface{}
+	KRMFunctionRuntime     interface{}
+	TestPorchClient        interface{}
+	TestGitClient          interface{}
+	ConfigSyncManager      interface{}
+	PolicyEngine           interface{}
+	ResourceManager        interface{}
+	NephioMetrics          interface{}
+)
+
 type EnhancedNephioSystem struct {
-	packageGenerator PackageGenerator
+	packageGenerator TestPackageGenerator
 	krmRuntime       KRMFunctionRuntime
-	porchClient      PorchClient
-	gitClient        GitClient
+	porchClient      TestPorchClient
+	gitClient        TestGitClient
 	configSync       ConfigSyncManager
 	policyEngine     PolicyEngine
 	resourceManager  ResourceManager
@@ -959,11 +975,15 @@ type ConfigSyncSpec struct {
 	UpdateFreq     string
 }
 
+<<<<<<< HEAD
 type BenchmarkConfigSyncResult struct {
 	ResourcesSynced int
 	ReconcileTime   time.Duration
 	ApplyTime       time.Duration
 }
+=======
+// ConfigSyncResult is imported from workflow_orchestrator.go
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
 
 type PolicySpec struct {
 	Name         string
@@ -1132,6 +1152,7 @@ func (n *EnhancedNephioSystem) ManageResources(ctx context.Context, spec Resourc
 	}, nil
 }
 
+<<<<<<< HEAD
 // Interface placeholders for benchmarks
 type (
 	BenchmarkPackageGenerator   interface{}
@@ -1144,3 +1165,5 @@ type (
 	NephioMetrics      interface{}
 )
 
+=======
+>>>>>>> 952ff111560c6d3fb50e044fd58002e2e0b4d871
