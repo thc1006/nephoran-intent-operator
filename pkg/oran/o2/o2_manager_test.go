@@ -797,7 +797,7 @@ func BenchmarkO2Adaptor_DeployVNF(b *testing.B) {
 	ctrlClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	adaptor, err := NewO2Adaptor(ctrlClient, clientset, nil)
-	require.NoError(t, err)
+	require.NoError(b, err)
 	ctx := context.Background()
 
 	deployRequest := &VNFDeployRequest{

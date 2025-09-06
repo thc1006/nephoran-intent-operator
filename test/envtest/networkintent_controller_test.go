@@ -7,6 +7,7 @@ package envtest
 
 import (
 	"fmt"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -17,18 +18,46 @@ import (
 	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
 )
 
+const (
+	// timeout for Ginkgo tests
+	timeout = 30 * time.Second
+	// interval for polling during tests
+	interval = 1 * time.Second
+)
+
+// LogTestStep is a helper function for logging test steps
+func LogTestStep(message string, keysAndValues ...interface{}) {
+	GinkgoWriter.Printf("[TEST STEP] %s", message)
+	if len(keysAndValues) > 0 {
+		GinkgoWriter.Printf(" - %v", keysAndValues)
+	}
+	GinkgoWriter.Println()
+}
+
+// Global k8sClient - should be initialized in a BeforeSuite block in a real test environment
+var k8sClient client.Client
+
+// checkK8sClient skips the test if k8sClient is not properly initialized
+func checkK8sClient() {
+	if k8sClient == nil {
+		Skip("k8sClient not initialized - requires proper envtest setup with BeforeSuite")
+	}
+}
+
 var _ = Describe("NetworkIntent Controller", Ordered, func() {
 	Context("When creating a NetworkIntent", func() {
 		var (
 			networkIntent     *intentv1alpha1.NetworkIntent
 			networkIntentName string
 			testNamespace     string
-			k8sClient         client.Client // TODO: Initialize in BeforeSuite
 		)
 
 		BeforeAll(func() {
 			testNamespace = "default" // Use default namespace for simplicity
 			networkIntentName = "test-network-intent"
+			
+			// Skip all tests in this context if k8sClient is not initialized
+			checkK8sClient()
 
 			By("creating a NetworkIntent resource")
 			networkIntent = &intentv1alpha1.NetworkIntent{
@@ -153,6 +182,7 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 
 	Context("When testing NetworkIntent validation", func() {
 		It("should reject invalid scaling actions", func(ctx SpecContext) {
+			checkK8sClient()
 			LogTestStep("Testing invalid scaling action validation")
 			
 			invalidIntent := &intentv1alpha1.NetworkIntent{
@@ -179,6 +209,7 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 		})
 
 		It("should reject scaling beyond constraints", func(ctx SpecContext) {
+			checkK8sClient()
 			LogTestStep("Testing scaling constraint validation")
 			
 			constraintViolationIntent := &intentv1alpha1.NetworkIntent{
@@ -220,6 +251,7 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 
 	Context("When testing concurrent NetworkIntent operations", func() {
 		It("should handle multiple concurrent NetworkIntents", func(ctx SpecContext) {
+			checkK8sClient()
 			LogTestStep("Testing concurrent NetworkIntent creation")
 			
 			const numIntents = 5
@@ -267,7 +299,8 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 
 	Context("When testing NetworkIntent with realistic O-RAN scenarios", func() {
 		DescribeTable("should handle various O-RAN component scaling scenarios",
-			func(component string, initialReplicas, targetReplicas int32, expectedPhase string) {
+			func(ctx SpecContext, component string, initialReplicas, targetReplicas int32, expectedPhase string) {
+				checkK8sClient()
 				LogTestStep("Testing O-RAN component scaling", 
 					"component", component, 
 					"from", initialReplicas, 

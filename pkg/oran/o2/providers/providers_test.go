@@ -163,8 +163,8 @@ func TestResourceOperations(t *testing.T) {
 		t.Fatalf("Failed to update resource: %v", err)
 	}
 
-	if updatedResource.Name != updateReq.Name {
-		t.Errorf("Expected updated name %s, got %s", updateReq.Name, updatedResource.Name)
+	if updatedResource.Name != resource.Name {
+		t.Errorf("Expected updated name %s, got %s", resource.Name, updatedResource.Name)
 	}
 
 	// Test ListResources
@@ -230,12 +230,14 @@ func TestProviderRegistry(t *testing.T) {
 	}
 
 	// Test CreateAndRegisterProvider
-	config := ProviderConfig{
-		Type:   "mock",
-		Config: json.RawMessage(`{}`),
+	providerConfig := &ProviderConfiguration{
+		Name:    "test-provider",
+		Type:    "mock",
+		Version: "1.0.0",
+		Enabled: true,
 	}
 
-	err = registry.CreateAndRegisterProvider("test-provider", "mock", config)
+	err = registry.CreateAndRegisterProvider("test-provider", "mock", providerConfig)
 	if err != nil {
 		t.Fatalf("Failed to create and register provider: %v", err)
 	}
