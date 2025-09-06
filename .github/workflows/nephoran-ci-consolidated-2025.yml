@@ -278,7 +278,7 @@ jobs:
           
           # Fast build check (no output)
           echo "🏗️  Fast build verification..."
-          go build $BUILD_FLAGS ./...
+          go build -trimpath -ldflags="-s -w -extldflags=-static" ./...
           
           # Module tidiness check
           echo "🧹 Checking module tidiness..."
@@ -420,7 +420,7 @@ jobs:
           
           # Build main operator
           echo "🎯 Building Nephoran Intent Operator..."
-          go build $BUILD_FLAGS -o bin/nephoran-intent-operator ./cmd/nephoran-intent-operator
+          go build -trimpath -ldflags="-s -w -extldflags=-static" -o bin/nephoran-intent-operator ./cmd/nephoran-intent-operator
           
           # Build additional components if they exist
           if [[ -d "cmd" ]]; then
@@ -429,7 +429,7 @@ jobs:
               if [[ -f "$dir/main.go" ]]; then
                 component=$(basename "$dir")
                 echo "📦 Building $component..."
-                go build $BUILD_FLAGS -o "bin/$component" "./$dir"
+                go build -trimpath -ldflags="-s -w -extldflags=-static" -o "bin/$component" "./$dir"
               fi
             done
           fi
