@@ -262,7 +262,7 @@ jobs:
           mkdir -p bin/
           
           # Production build flags
-          BUILD_FLAGS="-v -ldflags=-s -w -extldflags=-static -trimpath"
+          BUILD_FLAGS="-v -ldflags='-s -w -extldflags=-static' -trimpath"
           BUILD_TAGS="netgo,osusergo,static_build"
           
           # Parse and build components

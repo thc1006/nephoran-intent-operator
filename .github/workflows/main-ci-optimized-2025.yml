@@ -409,7 +409,7 @@ jobs:
           mkdir -p bin/ dist/
           
           # Optimized build flags for Linux-only deployment
-          BUILD_FLAGS="-trimpath -ldflags=-s -w -extldflags=-static"
+          BUILD_FLAGS="-trimpath -ldflags='-s -w -extldflags=-static'"
           BUILD_TAGS="netgo,osusergo,static_build"
           
           # Set parallelism based on matrix configuration

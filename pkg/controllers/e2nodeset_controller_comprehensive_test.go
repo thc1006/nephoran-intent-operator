@@ -380,10 +380,11 @@ func TestE2NodeSetController_Reconcile(t *testing.T) {
 				objects = append(objects, tc.e2nodeSet)
 			}
 
-			// Create fake client with existing objects
+			// Create fake client with existing objects and status subresource support
 			fakeClient := fake.NewClientBuilder().
 				WithScheme(s).
 				WithObjects(objects...).
+				WithStatusSubresource(&nephoranv1.E2NodeSet{}).
 				Build()
 
 			// Create reconciler
