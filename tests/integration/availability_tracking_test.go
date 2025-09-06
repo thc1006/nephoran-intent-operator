@@ -2,13 +2,14 @@ package integration_tests
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
+	"net/url"
 	"testing"
 	"time"
-	"encoding/json"
 
-	"github.com/stretchr/testify/suite"
 	"github.com/prometheus/client_golang/api"
+	"github.com/stretchr/testify/suite"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring/availability"
 )
@@ -110,9 +111,16 @@ func (suite *AvailabilityTrackingTestSuite) setupAvailabilityTracking() {
 				SLAThreshold:   2 * time.Second,
 			},
 		},
-		// Components: []availability.ComponentConfig{
-		//	// Disabled for testing without k8s client
-		// },
+		Components: []availability.ComponentConfig{
+			{
+				Name:           "test-deployment",
+				Namespace:      "default",
+				ResourceType:   "deployment",
+				Selector:       map[string]string{"app": "test-app"},
+				BusinessImpact: availability.ImpactHigh,
+				Layer:          availability.LayerAPI,
+			},
+		},
 		UserJourneys: []availability.UserJourneyConfig{
 			{
 				Name: "intent-processing",
@@ -190,43 +198,59 @@ func (suite *AvailabilityTrackingTestSuite) setupAvailabilityTracking() {
 	suite.Require().NoError(err)
 
 	// Configure availability calculator
-	calculatorConfig := &availability.AvailabilityCalculatorConfig{
-		DefaultSLATarget: availability.SLA99_95,
-		BusinessHours: availability.BusinessHoursConfig{
-			Enabled:            true,
-			Timezone:          "UTC",
-			StartHour:         6,
-			EndHour:           22,
-			WeekDays:          []time.Weekday{time.Monday, time.Tuesday, time.Wednesday, time.Thursday, time.Friday},
-			Weight:            1.0,
-			NonBusinessWeight: 0.5,
+	calculatorConfig := &availability.CalculatorConfig{
+		SLATargets: map[string]availability.SLATarget{
+			"overall":           availability.SLA99_95,
+			"intent-processing": availability.SLA99_95,
+			"llm-processor":     availability.SLA99_9,
+			"rag-service":       availability.SLA99_5,
 		},
-		CalculationInterval:       30 * time.Second,
-		RetentionPeriod:          24 * time.Hour,
-		EnabledWindows: []availability.TimeWindow{
-			availability.Window1Minute,
-			availability.Window5Minutes,
-			availability.Window1Hour,
-			availability.Window1Day,
+		BusinessHours: availability.BusinessHours{
+			Timezone:     "UTC",
+			StartHour:    6,
+			EndHour:      22,
+			WeekdaysOnly: true,
 		},
-		MaxDataPoints:            1000,
-		SamplingInterval:         10 * time.Second,
-		AvailabilityWeight:       0.6,
-		PerformanceWeight:        0.3,
-		ErrorRateWeight:          0.1,
-		EnableBusinessWeighting:  true,
-		ErrorBudgetAlertThresholds: availability.BudgetAlertThresholds{
-			Warning:   0.5,
-			Critical:  0.8,
-			Emergency: 0.95,
+		ErrorBudgetConfig: availability.ErrorBudgetConfig{
+			CalculationMethod: "weighted_business_impact",
+			TimeWindows: []availability.TimeWindow{
+				availability.Window1Minute,
+				availability.Window5Minutes,
+				availability.Window1Hour,
+				availability.Window1Day,
+			},
 		},
 	}
 
-	suite.calculator, err = availability.NewAvailabilityCalculator(calculatorConfig, suite.tracker)
+	suite.calculator, err = availability.NewAvailabilityCalculator(calculatorConfig)
 	suite.Require().NoError(err)
 
-	// Configure dependency tracker (simplified for stub implementation)
-	suite.dependencyTracker = availability.NewDependencyChainTracker()
+	// Configure dependency tracker
+	depConfig := &availability.DependencyTrackerConfig{
+		Dependencies: []availability.DependencyConfig{
+			{
+				Name:           "mock-llm-api",
+				Type:           availability.DepTypeExternalAPI,
+				Endpoint:       "http://localhost:8080",
+				BusinessImpact: availability.ImpactCritical,
+				FailureMode:    availability.FailModeOpen,
+				CircuitBreaker: availability.CircuitBreakerConfig{
+					FailureThreshold: 3,
+					ResetTimeout:     30 * time.Second,
+					HalfOpenMaxCalls: 2,
+				},
+				HealthCheck: availability.HealthCheckConfig{
+					Interval:       30 * time.Second,
+					Timeout:        5 * time.Second,
+					Path:           "/health",
+					ExpectedStatus: 200,
+				},
+			},
+		},
+	}
+
+	suite.dependencyTracker, err = availability.NewDependencyChainTracker(depConfig)
+	suite.Require().NoError(err)
 
 	// Configure reporter
 	reporterConfig := &availability.ReporterConfig{
@@ -296,19 +320,24 @@ func (suite *AvailabilityTrackingTestSuite) TestMultiDimensionalTracking() {
 	suite.Assert().True(len(state.CurrentMetrics) > 0)
 
 	// Check that we have metrics from different dimensions
-	hasService := false
+	hasSevice := false
+	hasComponent := false
 	hasUserJourney := false
 
 	for _, metric := range state.CurrentMetrics {
 		switch metric.Dimension {
 		case availability.DimensionService:
-			hasService = true
+			hasSevice = true
+		case availability.DimensionComponent:
+			_ = true // hasComponent check
 		case availability.DimensionUserJourney:
 			hasUserJourney = true
 		}
 	}
 
-	suite.Assert().True(hasService, "Should have service metrics")
+	suite.Assert().True(hasSevice, "Should have service metrics")
+	// Component metrics might not be available without k8s client
+	// suite.Assert().True(hasComponent, "Should have component metrics")
 	suite.Assert().True(hasUserJourney, "Should have user journey metrics")
 
 	// Test aggregated status calculation
@@ -351,12 +380,10 @@ func (suite *AvailabilityTrackingTestSuite) TestSyntheticMonitoring() {
 				ExpectedStatus: 200,
 			},
 			AlertThresholds: availability.AlertThresholds{
-				ResponseTimeWarning:  500 * time.Millisecond,
-				ResponseTimeCritical: 1000 * time.Millisecond,
-				ErrorRateWarning:     0.05,
-				ErrorRateCritical:    0.10,
-				AvailabilityWarning:  0.995,
-				AvailabilityCritical: 0.990,
+				ResponseTime:     500 * time.Millisecond,
+				ErrorRate:        0.05,
+				Availability:     0.995,
+				ConsecutiveFails: 3,
 			},
 		},
 		{
@@ -431,38 +458,46 @@ func (suite *AvailabilityTrackingTestSuite) TestAvailabilityCalculation() {
 
 	suite.Assert().NotEmpty(metrics, "Should have historical metrics")
 
-	// Test availability calculation for different time windows using available methods
+	// Test availability calculation for different time windows
 	windows := []availability.TimeWindow{
 		availability.Window1Minute,
 		availability.Window5Minutes,
 		availability.Window1Hour,
 	}
 
-	// Test calculations exist for each window
 	for _, window := range windows {
-		// Check if calculations exist for service entities
-		for _, metric := range metrics {
-			if calculation, exists := suite.calculator.GetCalculation(metric.EntityID, metric.EntityType, window); exists {
-				suite.Assert().GreaterOrEqual(calculation.Availability, 0.0)
-				suite.Assert().LessOrEqual(calculation.Availability, 1.0)
-				
-				// For healthy services, availability should be high
-				if calculation.Availability < 0.99 {
-					suite.T().Logf("Warning: Availability for %s window is %f, expected > 0.99", window, calculation.Availability)
-				}
-				break // Test one calculation per window is sufficient
-			}
+		availability := suite.calculator.CalculateAvailability(
+			suite.ctx,
+			metrics,
+			availability.SLA99_95,
+			window,
+		)
+
+		suite.Assert().GreaterOrEqual(availability, 0.0)
+		suite.Assert().LessOrEqual(availability, 1.0)
+
+		// For healthy services, availability should be high
+		if availability < 0.99 {
+			suite.T().Logf("Warning: Availability for %s window is %f, expected > 0.99", window, availability)
 		}
 	}
 
-	// Test error budget calculation using available SLA compliance method
-	for _, metric := range metrics {
-		if compliance, err := suite.calculator.GetSLACompliance(metric.EntityID, metric.EntityType, availability.Window1Hour); err == nil {
-			suite.T().Logf("Entity %s SLA compliance: %+v", metric.EntityID, compliance)
-			suite.Assert().GreaterOrEqual(compliance.ErrorBudget.BudgetUtilization, 0.0)
-			suite.Assert().LessOrEqual(compliance.ErrorBudget.BudgetUtilization, 1.0)
-			break // Test one compliance check is sufficient
-		}
+	// Test error budget calculation
+	errorBudgets := suite.calculator.CalculateErrorBudgets(
+		suite.ctx,
+		metrics,
+		map[string]availability.SLATarget{
+			"overall": availability.SLA99_95,
+		},
+		availability.Window1Hour,
+	)
+
+	suite.Assert().NotEmpty(errorBudgets)
+
+	for service, budget := range errorBudgets {
+		suite.T().Logf("Service %s error budget: %+v", service, budget)
+		suite.Assert().GreaterOrEqual(budget.BudgetUtilization, 0.0)
+		suite.Assert().LessOrEqual(budget.BudgetUtilization, 1.0)
 	}
 }
 
@@ -471,42 +506,23 @@ func (suite *AvailabilityTrackingTestSuite) TestDependencyTracking() {
 
 	time.Sleep(30 * time.Second)
 
-	// Test dependency tracking with available methods
-	chains := suite.dependencyTracker.GetAllChains()
-	suite.T().Logf("Found %d dependency chains", len(chains))
+	depHealth := suite.dependencyTracker.GetDependencyHealth(suite.ctx)
+	suite.Assert().NotEmpty(depHealth)
 
-	// Test adding and checking a dependency chain
-	testChain := &availability.DependencyChain{
-		ID:   "test-chain",
-		Name: "Test Dependency Chain",
-		Services: []availability.ServiceDependency{
-			{
-				Name:     "llm-service",
-				Type:     "http",
-				Critical: true,
-			},
-		},
-		CriticalPath: true,
-	}
-	
-	err := suite.dependencyTracker.AddChain(testChain)
-	suite.Assert().NoError(err)
-	
-	// Update status and check
-	err = suite.dependencyTracker.UpdateStatus("llm-service", "healthy", 100*time.Millisecond, "")
-	suite.Assert().NoError(err)
-	
-	if status, err := suite.dependencyTracker.GetServiceStatus("llm-service"); err == nil {
-		suite.T().Logf("Service llm-service status: %+v", status)
-		suite.Assert().Equal("llm-service", status.ServiceName)
+	for depName, health := range depHealth {
+		suite.T().Logf("Dependency %s health: %+v", depName, health)
+		suite.Assert().NotEqual(availability.DepStatusUnknown, health.Status)
+
+		// Verify circuit breaker is working
+		if health.CircuitBreakerState == "open" {
+			suite.T().Logf("Circuit breaker is open for dependency %s", depName)
+		}
 	}
 
-	// Test critical path analysis
-	if criticalPath, err := suite.dependencyTracker.GetCriticalPath(); err == nil {
-		suite.T().Logf("Critical path services: %v", criticalPath)
-	} else {
-		suite.T().Logf("Critical path analysis not available: %v", err)
-	}
+	// Test cascade failure detection
+	cascadeEvents := suite.dependencyTracker.GetCascadeEvents(suite.ctx, time.Now().Add(-1*time.Hour))
+	// Cascade events may be empty in healthy test environment
+	suite.T().Logf("Found %d cascade events", len(cascadeEvents))
 }
 
 func (suite *AvailabilityTrackingTestSuite) TestComplianceReporting() {
@@ -877,24 +893,36 @@ func (m *MockNephioService) Stop() {
 }
 
 type MockPrometheusServer struct {
-	address string
-	server  *http.Server
-	client  api.Client
+	address   string
+	server    *http.Server
+	apiClient api.Client
 }
 
 func NewMockPrometheusServer(address string) *MockPrometheusServer {
-	// Create a basic HTTP client
-	httpClient := &http.Client{Timeout: 10 * time.Second}
-	// Create Prometheus API client
-	promClient, _ := api.NewClient(api.Config{
+	client, err := api.NewClient(api.Config{
 		Address: "http://" + address,
-		Client:  httpClient,
 	})
-	
-	return &MockPrometheusServer{
-		address: address,
-		client:  promClient,
+	if err != nil {
+		// For testing, we can use a simplified client
+		client = &mockAPIClient{}
 	}
+	return &MockPrometheusServer{
+		address:   address,
+		apiClient: client,
+	}
+}
+
+// mockAPIClient implements api.Client for testing
+type mockAPIClient struct{}
+
+func (m *mockAPIClient) URL(ep string, args map[string]string) *url.URL {
+	u, _ := url.Parse("http://localhost:9090" + ep)
+	return u
+}
+
+func (m *mockAPIClient) Do(ctx context.Context, req *http.Request) (*http.Response, []byte, error) {
+	// Return a mock response
+	return &http.Response{StatusCode: 200}, []byte(`{"status":"success","data":{}}`), nil
 }
 
 func (m *MockPrometheusServer) Start() {
@@ -914,7 +942,7 @@ func (m *MockPrometheusServer) Start() {
 }
 
 func (m *MockPrometheusServer) Client() api.Client {
-	return m.client
+	return m.apiClient
 }
 
 func (m *MockPrometheusServer) Stop() {
@@ -938,4 +966,3 @@ func (m *MockAlertManager) EvaluateThresholds(ctx context.Context, check *availa
 	}
 	return false, nil
 }
-

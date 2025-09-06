@@ -361,6 +361,25 @@ func (m *MockProvider) GetResourceMetrics(ctx context.Context, resourceID string
 	return make(map[string]interface{}), nil
 }
 
+// GetResourceStatus returns resource status (Provider interface)
+func (m *MockProvider) GetResourceStatus(ctx context.Context, resourceID string) (ResourceStatus, error) {
+	if !m.initialized {
+		return "", fmt.Errorf("provider not initialized")
+	}
+
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	// Check if resource exists in our mock storage
+	for _, resource := range m.resources {
+		if resource.ID == resourceID {
+			return StatusReady, nil
+		}
+	}
+
+	return "", fmt.Errorf("resource %s not found", resourceID)
+}
+
 // GetResourceHealth returns resource health (CloudProvider interface)
 func (m *MockProvider) GetResourceHealth(ctx context.Context, resourceID string) (*HealthStatus, error) {
 	// Mock implementation

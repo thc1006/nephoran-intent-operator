@@ -1,3 +1,5 @@
+//go:build test
+
 package auth_test
 
 import (
@@ -61,16 +63,20 @@ func (suite *SecurityTestSuite) setupTestData() {
 }
 
 func (suite *SecurityTestSuite) setupHTTPServer() {
-	// Create handlers with security features enabled
+	// Create handlers with security features enabled - pass interface{} directly
 	suite.handlers = auth.NewAuthHandlers(
 		suite.sessionManager,
 		suite.jwtManager,
 		suite.rbacManager,
-		map[string]interface{}{
-			"EnableCSRF":     true,
-			"EnableRateLimit": true,
-			"RateLimitRPS":    10,
-			"Logger":          suite.tc.Logger,
+		&auth.HandlersConfig{
+			BaseURL:         "http://localhost:8080",
+			DefaultRedirect: "/dashboard",
+			LoginPath:       "/auth/login",
+			CallbackPath:    "/auth/callback",
+			LogoutPath:      "/auth/logout",
+			UserInfoPath:    "/auth/userinfo",
+			EnableAPITokens: true,
+			TokenPath:       "/auth/token",
 		},
 	)
 

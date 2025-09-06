@@ -18,8 +18,8 @@ package multicluster
 
 import (
 	"context"
-	"crypto/rand"
 	"fmt"
+	"math/rand"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -336,7 +336,7 @@ func TestChaos_ClusterResourceExhaustion(t *testing.T) {
 						CPUTotal:    4.0,
 						CPUUsed:     3.9, // 97.5% utilization
 						MemoryTotal: 8 * 1024 * 1024 * 1024,
-						MemoryUsed:  7.8 * 1024 * 1024 * 1024, // 97.5% utilization
+						MemoryUsed:  7822896358, // 97.5% utilization (7.8 * 1024 * 1024 * 1024)
 					}
 					components.ClusterMgr.clusters[clusterName] = cluster
 
@@ -393,7 +393,7 @@ func TestChaos_RapidClusterFlapping(t *testing.T) {
 		Description: "Simulates clusters rapidly going online/offline",
 		ExecuteFunc: func(t *testing.T, components *MultiClusterComponents) {
 			unstableMgr := NewMockUnstableClusterManager(components.ClusterMgr)
-			components.ClusterMgr = unstableMgr
+			components.ClusterMgr = unstableMgr.ClusterManager
 
 			// Make clusters unstable in a flapping pattern
 			flappingClusters := []types.NamespacedName{

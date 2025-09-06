@@ -15,10 +15,48 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/porch"
+	porchclient "github.com/thc1006/nephoran-intent-operator/pkg/porch"
 )
 
-// Use porch.Package type from the porch package
+// Porch v1alpha1 API types - defining locally for integration test compatibility
+var porchv1alpha1 = struct {
+	Package            func() *Package
+	PackageSpec        func() PackageSpec
+	PackageStatus      func() PackageStatus
+	Workspacev1Package func() Workspacev1Package
+}{
+	Package:            func() *Package { return &Package{} },
+	PackageSpec:        func() PackageSpec { return PackageSpec{} },
+	PackageStatus:      func() PackageStatus { return PackageStatus{} },
+	Workspacev1Package: func() Workspacev1Package { return Workspacev1Package{} },
+}
+
+// Package represents a Porch package resource
+type Package struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              PackageSpec   `json:"spec,omitempty"`
+	Status            PackageStatus `json:"status,omitempty"`
+}
+
+// PackageSpec defines the desired state of Package
+type PackageSpec struct {
+	Repository         string             `json:"repository,omitempty"`
+	Workspacev1Package Workspacev1Package `json:"workspacev1Package,omitempty"`
+}
+
+// PackageStatus defines the observed state of Package
+type PackageStatus struct {
+	Phase      string             `json:"phase,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+}
+
+// Workspacev1Package represents workspace package configuration
+type Workspacev1Package struct {
+	Description string                 `json:"description,omitempty"`
+	Keywords    []string               `json:"keywords,omitempty"`
+	Data        map[string]interface{} `json:"data,omitempty"`
+}
 
 const (
 	testNamespace       = "nephio-test"
@@ -26,7 +64,7 @@ const (
 	concurrentIntentNum = 50
 )
 
-func setupTestEnvironment(t *testing.T) *porch.Client {
+func setupTestEnvironment(t *testing.T) (*rest.Config, *kubernetes.Clientset, *porchclient.Client) {
 	// Load Kubernetes configuration
 	config, err := rest.InClusterConfig()
 	require.NoError(t, err, "Failed to load Kubernetes config")
@@ -36,7 +74,7 @@ func setupTestEnvironment(t *testing.T) *porch.Client {
 	require.NoError(t, err, "Failed to create Kubernetes clientset")
 
 	// Create Porch client
-	porchClient := porch.NewClient("http://porch-server:8080", false)
+	porchClient := porchclient.NewClient("http://porch-server:8080", false)
 
 	// Create test namespace
 	ns := &v1.Namespace{
@@ -49,24 +87,24 @@ func setupTestEnvironment(t *testing.T) *porch.Client {
 		t.Fatalf("Failed to create test namespace: %v", err)
 	}
 
-	return porchClient
+	return config, clientset, porchClient
 }
 
 func TestPorchIntegration(t *testing.T) {
 	// Setup test environment
-	porchClient := setupTestEnvironment(t)
+	_, _, porchClient := setupTestEnvironment(t)
 
 	// Test Package Creation
 	t.Run("CreatePackage", func(t *testing.T) {
 		pkgName := fmt.Sprintf("test-package-%d", time.Now().UnixNano())
-		pkg := &porch.Package{
+		pkg := &porchclient.Package{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      pkgName,
 				Namespace: testNamespace,
 			},
-			Spec: porch.ClientPackageSpec{
+			Spec: porchclient.ClientPackageSpec{
 				Repository: "test-repo",
-				Workspacev1Package: porch.Workspacev1Package{
+				Workspacev1Package: porchclient.Workspacev1Package{
 					Description: "Test integration package",
 				},
 			},
@@ -82,19 +120,19 @@ func TestPorchIntegration(t *testing.T) {
 	t.Run("ConcurrentPackageCreation", func(t *testing.T) {
 		var wg sync.WaitGroup
 		var mu sync.Mutex
-		packages := make([]*porch.Package, concurrentIntentNum)
+		packages := make([]*porchclient.Package, concurrentIntentNum)
 
 		for i := 0; i < concurrentIntentNum; i++ {
 			wg.Add(1)
 			go func(idx int) {
 				defer wg.Done()
 				pkgName := fmt.Sprintf("concurrent-pkg-%d", idx)
-				pkg := &porch.Package{
+				pkg := &porchclient.Package{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      pkgName,
 						Namespace: testNamespace,
 					},
-					Spec: porch.ClientPackageSpec{
+					Spec: porchclient.ClientPackageSpec{
 						Repository: "test-concurrent-repo",
 					},
 				}
@@ -116,12 +154,12 @@ func TestPorchIntegration(t *testing.T) {
 	// Test Package Update
 	t.Run("UpdatePackage", func(t *testing.T) {
 		pkgName := fmt.Sprintf("update-package-%d", time.Now().UnixNano())
-		pkg := &porch.Package{
+		pkg := &porchclient.Package{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      pkgName,
 				Namespace: testNamespace,
 			},
-			Spec: porch.ClientPackageSpec{
+			Spec: porchclient.ClientPackageSpec{
 				Repository: "test-update-repo",
 			},
 		}
@@ -139,12 +177,12 @@ func TestPorchIntegration(t *testing.T) {
 	// Test Package Deletion
 	t.Run("DeletePackage", func(t *testing.T) {
 		pkgName := fmt.Sprintf("delete-package-%d", time.Now().UnixNano())
-		pkg := &porch.Package{
+		pkg := &porchclient.Package{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      pkgName,
 				Namespace: testNamespace,
 			},
-			Spec: porch.ClientPackageSpec{
+			Spec: porchclient.ClientPackageSpec{
 				Repository: "test-delete-repo",
 			},
 		}
@@ -163,16 +201,16 @@ func TestPorchIntegration(t *testing.T) {
 }
 
 func TestPorchRollbackScenarios(t *testing.T) {
-	porchClient := setupTestEnvironment(t)
+	_, _, porchClient := setupTestEnvironment(t)
 
 	t.Run("RollbackPackageVersion", func(t *testing.T) {
 		pkgName := fmt.Sprintf("rollback-package-%d", time.Now().UnixNano())
-		pkg := &porch.Package{
+		pkg := &porchclient.Package{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      pkgName,
 				Namespace: testNamespace,
 			},
-			Spec: porch.ClientPackageSpec{
+			Spec: porchclient.ClientPackageSpec{
 				Repository: "test-rollback-repo",
 			},
 		}
@@ -182,7 +220,7 @@ func TestPorchRollbackScenarios(t *testing.T) {
 		require.NoError(t, err, "Failed to create package for rollback")
 
 		// Create multiple package versions
-		versions := make([]*porch.Package, 3)
+		versions := make([]*porchclient.Package, 3)
 		versions[0] = createdPkg
 
 		for i := 1; i < 3; i++ {

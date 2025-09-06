@@ -31,20 +31,24 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 		reconciler    *NetworkIntentReconciler
 		mockDeps      *testutils.MockDependencies
 		namespaceName string
-		// testEnv is managed by the global test environment
+		testEnv       *envtest.Environment // Local testEnv for this test suite
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
 
+		By("Setting up test environment")
+		testEnv = &envtest.Environment{
+			Scheme: runtime.NewScheme(),
+		}
+
 		By("Creating a new isolated namespace for table-driven tests")
 		namespaceName = testutils.CreateIsolatedNamespace("cleanup-table-driven")
 
 		By("Setting up the reconciler with mock dependencies")
-		mockDeps = &MockDependencies{
-			gitClient:        &testutils.MockGitClient{},
-			llmClient:        &testutils.MockLLMClient{},
-			packageGenerator: nil,
+		mockDeps = &testutils.MockDependencies{
+			GitClient: &testutils.MockGitClient{},
+			LLMClient: &testutils.MockLLMClient{},
 		}
 
 		config := &Config{
@@ -101,7 +105,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 				}
 
 				// Set up Git client mock
-				mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
+				mockGitClient := mockDeps.GitClient
 				mockGitClient.ResetMock()
 
 				// Configure mock errors if specified
@@ -337,7 +341,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 				Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
 				// Set up Git client mock based on test case
-				mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
+				mockGitClient := mockDeps.GitClient
 				mockGitClient.ResetMock()
 				if tc.gitCleanupError != nil {
 					mockGitClient.SetCommitPushError(tc.gitCleanupError)

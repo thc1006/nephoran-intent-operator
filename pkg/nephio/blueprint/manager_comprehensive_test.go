@@ -1,3 +1,19 @@
+/*
+Copyright 2025.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package blueprint
 
 import (
@@ -5,15 +21,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/go-logr/logr"
-	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -22,6 +37,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/config"
@@ -29,9 +45,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	"go.uber.org/mock/gomock"
-	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
-	"github.com/thc1006/nephoran-intent-operator/pkg/llm/mocks"
 	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
@@ -66,26 +79,26 @@ func (m *MockManager) AddMetricsServerExtraHandler(string, http.Handler) error {
 func (m *MockManager) AddHealthzCheck(string, healthz.Checker) error     { return nil }
 func (m *MockManager) AddReadyzCheck(string, healthz.Checker) error      { return nil }
 func (m *MockManager) Start(context.Context) error                       { return nil }
-func (m *MockManager) GetWebhookServer() webhook.Server { 
-	// Return nil for testing - this satisfies the interface
-	return nil 
-}
+func (m *MockManager) GetWebhookServer() webhook.Server                 { return nil }
 func (m *MockManager) GetAPIReader() client.Reader                       { return m.client }
-func (m *MockManager) GetCache() ctrlcache.Cache { 
-	// Return nil for testing - this satisfies the interface
+func (m *MockManager) GetCache() cache.Cache {
+	// Return nil for mock cache - tests don't actually need cache functionality
 	return nil
 }
-func (m *MockManager) GetFieldIndexer() client.FieldIndexer              { return nil }
-func (m *MockManager) GetEventRecorderFor(string) record.EventRecorder   { return nil }
-func (m *MockManager) GetRESTMapper() meta.RESTMapper                    { return nil }
-func (m *MockManager) Elected() <-chan struct{} { 
+func (m *MockManager) GetFieldIndexer() client.FieldIndexer            { return nil }
+func (m *MockManager) GetEventRecorderFor(string) record.EventRecorder { return nil }
+func (m *MockManager) GetRESTMapper() meta.RESTMapper                  { return nil }
+func (m *MockManager) Elected() <-chan struct{}                        { 
 	ch := make(chan struct{})
 	close(ch)
 	return ch
 }
-func (m *MockManager) GetControllerOptions() config.Controller { return config.Controller{} }
-func (m *MockManager) GetHTTPClient() *http.Client { return &http.Client{} }
-// GetControllerOptions method removed - not part of standard manager interface
+func (m *MockManager) GetControllerOptions() config.Controller {
+	return config.Controller{}
+}
+func (m *MockManager) GetHTTPClient() *http.Client {
+	return &http.Client{}
+}
 
 // Helper function to create a mock manager
 func newMockManager() *MockManager {
@@ -104,6 +117,7 @@ func newMockManager() *MockManager {
 
 // MockCatalog provides mock implementation for testing
 type MockCatalog struct {
+	*Catalog // Embed concrete type to satisfy interface
 	templates   map[string]*BlueprintTemplate
 	cacheHits   int
 	cacheMisses int
@@ -111,7 +125,10 @@ type MockCatalog struct {
 }
 
 func NewMockCatalog() *MockCatalog {
+	// Create real catalog for embedded functionality with minimal setup
+	catalog, _ := NewCatalog(DefaultBlueprintConfig(), zap.NewNop())
 	return &MockCatalog{
+		Catalog:   catalog,
 		templates: make(map[string]*BlueprintTemplate),
 	}
 }
@@ -153,12 +170,17 @@ func (c *MockCatalog) HealthCheck(ctx context.Context) bool {
 
 // MockGenerator provides mock implementation for testing
 type MockGenerator struct {
+	*Generator // Embed concrete type to satisfy interface
 	generatedCount int
 	shouldFail     bool
 }
 
 func NewMockGenerator() *MockGenerator {
-	return &MockGenerator{}
+	// Create real generator for embedded functionality with minimal setup
+	generator, _ := NewGenerator(DefaultBlueprintConfig(), zap.NewNop())
+	return &MockGenerator{
+		Generator: generator,
+	}
 }
 
 func (g *MockGenerator) GenerateFromNetworkIntent(ctx context.Context, intent *v1.NetworkIntent) (map[string]string, error) {
@@ -192,12 +214,17 @@ func (g *MockGenerator) HealthCheck(ctx context.Context) bool {
 
 // MockCustomizer provides mock implementation for testing
 type MockCustomizer struct {
+	*Customizer // Embed concrete type to satisfy interface
 	customizedCount int
 	shouldFail      bool
 }
 
 func NewMockCustomizer() *MockCustomizer {
-	return &MockCustomizer{}
+	// Create real customizer for embedded functionality with minimal setup
+	customizer, _ := NewCustomizer(DefaultBlueprintConfig(), zap.NewNop())
+	return &MockCustomizer{
+		Customizer: customizer,
+	}
 }
 
 func (c *MockCustomizer) CustomizeBlueprint(ctx context.Context, intent *v1.NetworkIntent, files map[string]string) (map[string]string, error) {
@@ -235,13 +262,18 @@ func (c *MockCustomizer) HealthCheck(ctx context.Context) bool {
 
 // MockValidator provides mock implementation for testing
 type MockValidator struct {
+	*Validator     // Embed concrete type to satisfy interface
 	validatedCount int
 	shouldFail     bool
 	shouldReject   bool
 }
 
 func NewMockValidator() *MockValidator {
-	return &MockValidator{}
+	// Create real validator for embedded functionality with minimal setup
+	validator, _ := NewValidator(DefaultBlueprintConfig(), zap.NewNop())
+	return &MockValidator{
+		Validator: validator,
+	}
 }
 
 func (v *MockValidator) ValidateBlueprint(ctx context.Context, intent *v1.NetworkIntent, files map[string]string) (*ValidationResult, error) {
@@ -258,10 +290,9 @@ func (v *MockValidator) ValidateBlueprint(ctx context.Context, intent *v1.Networ
 	if v.shouldReject {
 		result.Errors = []ValidationError{
 			{
-				Code:     "VALIDATION_FAILED",
+				Code:     "MISSING_FIELD",
 				Message:  "validation failed: missing required field",
-				Severity: SeverityError,
-				Source:   "mock",
+				Severity: "ERROR",
 			},
 		}
 	}
@@ -312,13 +343,13 @@ func generateDeployment(intent *v1.NetworkIntent) string {
 	}
 
 	replicas := "1"
-	// Parameters is a runtime.RawExtension, need to handle it properly
-	if intent.Spec.Parameters != nil {
-		// For test purposes, we'll assume it contains JSON data
-		var params map[string]string
+	if intent.Spec.Parameters != nil && intent.Spec.Parameters.Raw != nil {
+		var params map[string]interface{}
 		if err := json.Unmarshal(intent.Spec.Parameters.Raw, &params); err == nil {
 			if r, exists := params["replicas"]; exists {
-				replicas = r
+				if replicaStr, ok := r.(string); ok {
+					replicas = replicaStr
+				}
 			}
 		}
 	}
@@ -393,14 +424,18 @@ func createTestNetworkIntent(name string) *v1.NetworkIntent {
 		},
 		Spec: v1.NetworkIntentSpec{
 			IntentType: v1.IntentTypeDeployment,
-			Priority:   v1.NetworkPriorityHigh,
+			Priority:   v1.NetworkPriorityNormal,
 			TargetComponents: []v1.NetworkTargetComponent{
 				v1.NetworkTargetComponentAMF,
 			},
-			Parameters: createTestRawExtension(map[string]string{
-				"replicas": "3",
-				"region":   "us-east-1",
-			}),
+			Parameters: func() *runtime.RawExtension {
+				params := map[string]string{
+					"replicas": "3",
+					"region":   "us-east-1",
+				}
+				rawParams, _ := json.Marshal(params)
+				return &runtime.RawExtension{Raw: rawParams}
+			}(),
 		},
 		Status: v1.NetworkIntentStatus{
 			Phase: v1.NetworkIntentPhaseProcessing,
@@ -472,56 +507,6 @@ func TestProcessNetworkIntent(t *testing.T) {
 	logger := zaptest.NewLogger(t)
 	config := DefaultBlueprintConfig()
 
-	// Create a mock LLM client
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockLLMClient := mocks.NewMockLLMClient(ctrl)
-
-	// Setup mock expectations for successful LLM processing
-	mockLLMClient.EXPECT().
-		ProcessIntent(gomock.Any(), gomock.Any()).
-		Return(&llm.ProcessIntentResponse{
-			StructuredIntent: []byte(`{
-				"deployment_config": {
-					"replicas": 3,
-					"image": "test-image:latest",
-					"resources": {
-						"requests": {"cpu": "100m", "memory": "128Mi"},
-						"limits": {"cpu": "500m", "memory": "512Mi"}
-					}
-				},
-				"network_function": {
-					"type": "AMF",
-					"interfaces": ["N1", "N2"]
-				},
-				"oran_interfaces": {
-					"a1_enabled": true,
-					"o1_enabled": true,
-					"o2_enabled": false,
-					"e2_enabled": true
-				}
-			}`),
-			Confidence: 0.95,
-			Reasoning:  "Successfully processed network intent",
-			Metadata: llm.ResponseMetadata{
-				RequestID:      "test-request-123",
-				ProcessingTime: 250.0,
-				ModelUsed:      "gpt-4",
-			},
-			Timestamp: time.Now(),
-		}, nil).AnyTimes()
-
-	// Create generator with mocked LLM client
-	generator, err := NewGeneratorWithClient(config, logger, mockLLMClient)
-	require.NoError(t, err)
-	require.NotNil(t, generator)
-
-	// Create manager with mocked generator
-	manager, err := NewManagerWithGenerator(mockMgr, config, logger, generator)
-	require.NoError(t, err)
-	require.NotNil(t, manager)
-
 	testCases := []struct {
 		name           string
 		intent         *v1.NetworkIntent
@@ -534,7 +519,7 @@ func TestProcessNetworkIntent(t *testing.T) {
 			name:   "successful_processing",
 			intent: createTestNetworkIntent("success-test"),
 			setupMocks: func() {
-				// Default setup for success case
+				// Default mocks are already set up for success
 			},
 			expectError: false,
 			validateResult: func(result *BlueprintResult) {
@@ -545,12 +530,72 @@ func TestProcessNetworkIntent(t *testing.T) {
 				assert.True(t, result.ValidationResults.IsValid)
 			},
 		},
-		// Note: Failure test cases would require dependency injection or interface-based mocks
-		// which are not currently implemented in the Manager struct
+		{
+			name:   "generator_failure",
+			intent: createTestNetworkIntent("generator-fail"),
+			setupMocks: func() {
+				mockGenerator.SetShouldFail(true)
+			},
+			expectError: true,
+			errorMsg:    "blueprint generation failed",
+		},
+		{
+			name:   "customizer_failure",
+			intent: createTestNetworkIntent("customizer-fail"),
+			setupMocks: func() {
+				mockGenerator.SetShouldFail(false)
+				mockCustomizer.SetShouldFail(true)
+			},
+			expectError: true,
+			errorMsg:    "blueprint customization failed",
+		},
+		{
+			name:   "validator_failure",
+			intent: createTestNetworkIntent("validator-fail"),
+			setupMocks: func() {
+				mockGenerator.SetShouldFail(false)
+				mockCustomizer.SetShouldFail(false)
+				mockValidator.SetShouldFail(true)
+			},
+			expectError: true,
+			errorMsg:    "blueprint validation failed",
+		},
+		{
+			name:   "validation_rejection",
+			intent: createTestNetworkIntent("validation-reject"),
+			setupMocks: func() {
+				mockGenerator.SetShouldFail(false)
+				mockCustomizer.SetShouldFail(false)
+				mockValidator.SetShouldFail(false)
+				mockValidator.SetShouldReject(true)
+			},
+			expectError: true,
+			errorMsg:    "blueprint validation failed",
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			// Create fresh mocks for each test
+			mockCatalog := NewMockCatalog()
+			mockGenerator := NewMockGenerator()
+			mockCustomizer := NewMockCustomizer()
+			mockValidator := NewMockValidator()
+			
+			manager := &Manager{
+				client:       mockMgr.GetClient(),
+				k8sClient:    fake.NewSimpleClientset(),
+				config:       config,
+				logger:       logger,
+				metrics:      NewBlueprintMetrics(),
+				catalog:      mockCatalog.Catalog,
+				generator:    mockGenerator.Generator,
+				customizer:   mockCustomizer.Customizer,
+				validator:    mockValidator.Validator,
+				ctx:          context.Background(),
+				healthStatus: make(map[string]bool),
+			}
+
 			// Setup test-specific mock behavior
 			tc.setupMocks()
 
@@ -580,13 +625,19 @@ func TestConcurrentProcessing(t *testing.T) {
 	config := DefaultBlueprintConfig()
 	config.MaxConcurrency = 5
 
-	// Skip this test for now as it requires real network connectivity
-	// TODO: Implement proper LLM mocking for concurrent testing
-	t.Skip("Skipping concurrent processing test - requires LLM service mocking implementation")
-
-	manager, err := NewManager(mockMgr, config, logger)
-	require.NoError(t, err)
-	require.NotNil(t, manager)
+	manager := &Manager{
+		client:       mockMgr.GetClient(),
+		k8sClient:    fake.NewSimpleClientset(),
+		config:       config,
+		logger:       logger,
+		metrics:      NewBlueprintMetrics(),
+		catalog:      NewMockCatalog().Catalog,
+		generator:    NewMockGenerator().Generator,
+		customizer:   NewMockCustomizer().Customizer,
+		validator:    NewMockValidator().Validator,
+		ctx:          context.Background(),
+		healthStatus: make(map[string]bool),
+	}
 
 	const numIntents = 20
 	const numGoroutines = 10
@@ -631,17 +682,13 @@ func TestConcurrentProcessing(t *testing.T) {
 	}
 
 	errorCount := 0
-	for err := range errors {
-		if err != nil {
-			t.Logf("Concurrent processing error: %v", err)
-		}
+	for range errors {
 		errorCount++
 	}
 
 	assert.Equal(t, numIntents, successCount+errorCount, "All intents should be processed")
-	// Allow some errors in concurrent testing due to circuit breaker behavior
-	assert.GreaterOrEqual(t, successCount, numIntents/2, "At least half of intents should succeed")
-	t.Logf("Concurrent processing: %d successes, %d errors out of %d total", successCount, errorCount, numIntents)
+	assert.Equal(t, 0, errorCount, "No errors expected in concurrent processing")
+	assert.Equal(t, numIntents, successCount, "All intents should succeed")
 }
 
 // TestBlueprintTemplates tests different blueprint templates
@@ -649,18 +696,18 @@ func TestBlueprintTemplates(t *testing.T) {
 	testCases := []struct {
 		name          string
 		intentType    v1.IntentType
-		components    []v1.NetworkTargetComponent
-		parameters    *runtime.RawExtension
+		components    []v1.ComponentType
+		parameters    map[string]string
 		validateFiles func(map[string]string)
 	}{
 		{
 			name:       "amf_deployment",
 			intentType: v1.IntentTypeDeployment,
-			components: []v1.NetworkTargetComponent{v1.NetworkTargetComponentAMF},
-			parameters: createTestRawExtension(map[string]string{
+			components: []v1.ComponentType{v1.ComponentTypeAMF},
+			parameters: map[string]string{
 				"replicas": "3",
 				"region":   "us-east-1",
-			}),
+			},
 			validateFiles: func(files map[string]string) {
 				assert.Contains(t, files, "Kptfile")
 				assert.Contains(t, files, "deployment.yaml")
@@ -673,11 +720,11 @@ func TestBlueprintTemplates(t *testing.T) {
 		{
 			name:       "smf_deployment",
 			intentType: v1.IntentTypeDeployment,
-			components: []v1.NetworkTargetComponent{v1.NetworkTargetComponentSMF},
-			parameters: createTestRawExtension(map[string]string{
+			components: []v1.ComponentType{v1.ComponentTypeSMF},
+			parameters: map[string]string{
 				"replicas": "2",
 				"region":   "us-west-2",
-			}),
+			},
 			validateFiles: func(files map[string]string) {
 				assert.Contains(t, files, "deployment.yaml")
 				assert.Contains(t, files["deployment.yaml"], "smf")
@@ -687,11 +734,11 @@ func TestBlueprintTemplates(t *testing.T) {
 		{
 			name:       "upf_deployment",
 			intentType: v1.IntentTypeDeployment,
-			components: []v1.NetworkTargetComponent{v1.NetworkTargetComponentUPF},
-			parameters: createTestRawExtension(map[string]string{
+			components: []v1.ComponentType{v1.ComponentTypeUPF},
+			parameters: map[string]string{
 				"replicas": "1",
 				"region":   "eu-central-1",
-			}),
+			},
 			validateFiles: func(files map[string]string) {
 				assert.Contains(t, files, "deployment.yaml")
 				assert.Contains(t, files["deployment.yaml"], "upf")
@@ -731,12 +778,20 @@ func TestBlueprintTemplates(t *testing.T) {
 func TestHealthChecks(t *testing.T) {
 	mockMgr := newMockManager()
 	logger := zaptest.NewLogger(t)
-	config := DefaultBlueprintConfig()
 
-	// Create manager with proper components to avoid nil pointer issues
-	manager, err := NewManager(mockMgr, config, logger)
-	require.NoError(t, err)
-	require.NotNil(t, manager)
+	manager := &Manager{
+		client:       mockMgr.GetClient(),
+		k8sClient:    fake.NewSimpleClientset(),
+		config:       DefaultBlueprintConfig(),
+		logger:       logger,
+		metrics:      NewBlueprintMetrics(),
+		catalog:      NewMockCatalog().Catalog,
+		generator:    NewMockGenerator().Generator,
+		customizer:   NewMockCustomizer().Customizer,
+		validator:    NewMockValidator().Validator,
+		ctx:          context.Background(),
+		healthStatus: make(map[string]bool),
+	}
 
 	// Perform health check
 	manager.performHealthCheck()
@@ -744,48 +799,66 @@ func TestHealthChecks(t *testing.T) {
 	// Get health status
 	healthStatus := manager.GetHealthStatus()
 
-	// Verify components have health status (may be true or false, but should exist)
-	assert.Contains(t, healthStatus, "catalog")
-	assert.Contains(t, healthStatus, "generator") 
-	assert.Contains(t, healthStatus, "customizer")
-	assert.Contains(t, healthStatus, "validator")
+	// Verify all components are healthy
+	assert.True(t, healthStatus["catalog"])
+	assert.True(t, healthStatus["generator"])
+	assert.True(t, healthStatus["customizer"])
+	assert.True(t, healthStatus["validator"])
 
-	// Test health check again to ensure consistency
+	// Test with failing component
+	manager.generator.(*MockGenerator).SetShouldFail(true)
 	manager.performHealthCheck()
-	healthStatus2 := manager.GetHealthStatus()
-	
-	// Health status should be consistent across calls
-	assert.Equal(t, healthStatus["catalog"], healthStatus2["catalog"])
-	assert.Equal(t, healthStatus["generator"], healthStatus2["generator"])
-	t.Logf("Health status: %+v", healthStatus)
+
+	healthStatus = manager.GetHealthStatus()
+	assert.False(t, healthStatus["generator"])
+	assert.True(t, healthStatus["catalog"]) // Others should still be healthy
 }
 
 // TestMetricsCollection tests metrics collection
 func TestMetricsCollection(t *testing.T) {
 	mockMgr := newMockManager()
 	logger := zaptest.NewLogger(t)
-	config := DefaultBlueprintConfig()
 
-	// Create manager with proper components to avoid nil pointer issues
-	manager, err := NewManager(mockMgr, config, logger)
-	require.NoError(t, err)
-	require.NotNil(t, manager)
+	manager := &Manager{
+		client:       mockMgr.GetClient(),
+		k8sClient:    fake.NewSimpleClientset(),
+		config:       DefaultBlueprintConfig(),
+		logger:       logger,
+		metrics:      NewBlueprintMetrics(),
+		catalog:      NewMockCatalog().Catalog,
+		generator:    NewMockGenerator().Generator,
+		customizer:   NewMockCustomizer().Customizer,
+		validator:    NewMockValidator().Validator,
+		ctx:          context.Background(),
+		healthStatus: make(map[string]bool),
+	}
 
-	// Test metrics collection without processing - metrics should exist
+	// Process some intents to generate metrics
+	intents := []*v1.NetworkIntent{
+		createTestNetworkIntent("metrics-test-1"),
+		createTestNetworkIntent("metrics-test-2"),
+		createTestNetworkIntent("metrics-test-3"),
+	}
+
+	for _, intent := range intents {
+		_, err := manager.ProcessNetworkIntent(context.Background(), intent)
+		assert.NoError(t, err)
+	}
+
+	// Update metrics manually (normally done by worker)
+	manager.updateMetrics()
+
+	// Get metrics
 	metrics := manager.GetMetrics()
 	assert.NotNil(t, metrics)
-	
-	// Verify metrics map contains expected keys (based on actual output)
-	assert.Contains(t, metrics, "blueprints_count")
-	assert.Contains(t, metrics, "cache_size") 
-	assert.Contains(t, metrics, "last_updated")
-	
-	// Verify metrics values are valid
-	assert.GreaterOrEqual(t, metrics["blueprints_count"], 0)
-	assert.GreaterOrEqual(t, metrics["cache_size"], 0)
-	assert.Greater(t, metrics["last_updated"], int64(0))
-	
-	t.Logf("Metrics: %+v", metrics)
+	assert.Contains(t, metrics, "queue_depth")
+	assert.Contains(t, metrics, "concurrent_operations")
+	assert.Contains(t, metrics, "cache_size")
+
+	// Verify generation metrics
+	assert.Equal(t, 3, manager.generator.(*MockGenerator).GetGeneratedCount())
+	assert.Equal(t, 3, manager.customizer.(*MockCustomizer).GetCustomizedCount())
+	assert.Equal(t, 3, manager.validator.(*MockValidator).GetValidatedCount())
 }
 
 // TestPackageRevisionCreation tests PackageRevision creation
@@ -843,27 +916,27 @@ func TestComponentExtraction(t *testing.T) {
 
 	testCases := []struct {
 		name              string
-		targetComponents  []v1.NetworkTargetComponent
+		targetComponents  []v1.ComponentType
 		expectedComponent string
 	}{
 		{
 			name:              "amf_component",
-			targetComponents:  []v1.NetworkTargetComponent{v1.NetworkTargetComponentAMF},
+			targetComponents:  []v1.ComponentType{v1.ComponentTypeAMF},
 			expectedComponent: "amf",
 		},
 		{
 			name:              "smf_component",
-			targetComponents:  []v1.NetworkTargetComponent{v1.NetworkTargetComponentSMF},
+			targetComponents:  []v1.ComponentType{v1.ComponentTypeSMF},
 			expectedComponent: "smf",
 		},
 		{
 			name:              "multiple_components",
-			targetComponents:  []v1.NetworkTargetComponent{v1.NetworkTargetComponentAMF, v1.NetworkTargetComponentSMF},
+			targetComponents:  []v1.ComponentType{v1.ComponentTypeAMF, v1.ComponentTypeSMF},
 			expectedComponent: "amf", // Should return first component
 		},
 		{
 			name:              "no_components",
-			targetComponents:  []v1.NetworkTargetComponent{},
+			targetComponents:  []v1.ComponentType{},
 			expectedComponent: "unknown",
 		},
 	}
@@ -886,33 +959,31 @@ func TestComponentExtraction(t *testing.T) {
 func TestErrorHandling(t *testing.T) {
 	mockMgr := newMockManager()
 	logger := zaptest.NewLogger(t)
-	config := DefaultBlueprintConfig()
 
-	// Create manager with proper components to avoid nil pointer issues
-	manager, err := NewManager(mockMgr, config, logger)
-	require.NoError(t, err)
-	require.NotNil(t, manager)
+	manager := &Manager{
+		client:       mockMgr.GetClient(),
+		k8sClient:    fake.NewSimpleClientset(),
+		config:       DefaultBlueprintConfig(),
+		logger:       logger,
+		metrics:      NewBlueprintMetrics(),
+		ctx:          context.Background(),
+		healthStatus: make(map[string]bool),
+	}
 
-	t.Run("empty_intent", func(t *testing.T) {
-		// Test with an empty intent
+	t.Run("nil_intent", func(t *testing.T) {
+		// This test would require modifying the actual method to handle nil intents
+		// For now, we'll test with an empty intent
 		intent := &v1.NetworkIntent{}
-		
-		// This should return an error but not panic
-		result, err := manager.ProcessNetworkIntent(context.Background(), intent)
-		
-		// The manager returns both a result and error - check both
-		if err != nil {
-			assert.Error(t, err)
-			// Result might still be returned with error details
-			if result != nil {
-				assert.False(t, result.Success) // Should not succeed with empty intent
-				assert.NotNil(t, result.Error)
-			}
-		} else {
-			// If no error, result should exist but indicate failure
-			assert.NotNil(t, result)
-			assert.False(t, result.Success) // Should not succeed with empty intent
-		}
+
+		manager.catalog = NewMockCatalog()
+		generator := NewMockGenerator()
+		generator.SetShouldFail(true)
+		manager.generator = generator
+		manager.customizer = NewMockCustomizer()
+		manager.validator = NewMockValidator()
+
+		_, err := manager.ProcessNetworkIntent(context.Background(), intent)
+		assert.Error(t, err)
 	})
 
 	t.Run("context_cancellation", func(t *testing.T) {
@@ -922,17 +993,17 @@ func TestErrorHandling(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 
-		// Test processing with cancelled context - should not panic
+		manager.catalog = NewMockCatalog()
+		manager.generator = NewMockGenerator()
+		manager.customizer = NewMockCustomizer()
+		manager.validator = NewMockValidator()
+
+		// The actual implementation would need to check context cancellation
+		// For this mock, we'll just verify it handles the cancelled context gracefully
 		result, err := manager.ProcessNetworkIntent(ctx, intent)
-		
-		// Either should return an error due to cancellation, or complete gracefully
-		if err != nil {
-			assert.Error(t, err)
-			t.Logf("Expected error with cancelled context: %v", err)
-		} else {
-			assert.NotNil(t, result)
-			t.Logf("Completed processing despite cancelled context")
-		}
+
+		// In a real implementation, this might return an error due to context cancellation
+		// For the mock, we'll just ensure it doesn't panic
 		_ = result
 		_ = err
 	})
@@ -953,34 +1024,22 @@ func TestCacheOperations(t *testing.T) {
 		ctx:       context.Background(),
 	}
 
-	// Test cache operations with proper cache entry structure
+	// Test cache operations
 	testKey := "test-key"
-	testData := json.RawMessage(`{}`)
-	
-	// Create cache entry with future expiration (non-expired)
-	testCacheEntry := map[string]interface{}{
-		"data":        testData,
-		"expire_time": time.Now().Add(1 * time.Hour), // Future expiration
-	}
+	testValue := json.RawMessage(`{}`)
 
 	// Store in cache
-	manager.cache.Store(testKey, testCacheEntry)
+	manager.cache.Store(testKey, testValue)
 
 	// Retrieve from cache
 	retrieved, exists := manager.cache.Load(testKey)
 	assert.True(t, exists)
 	assert.NotNil(t, retrieved)
 
-	// Test cache cleanup with expired entry
+	// Test cache cleanup
 	expiredKey := "expired-key"
-	expiredData := json.RawMessage(`{}`)
-	
-	// Create cache entry with past expiration (expired)
-	expiredCacheEntry := map[string]interface{}{
-		"data":        expiredData,
-		"expire_time": time.Now().Add(-1 * time.Hour), // Past expiration
-	}
-	manager.cache.Store(expiredKey, expiredCacheEntry)
+	expiredValue := json.RawMessage(`{}`)
+	manager.cache.Store(expiredKey, expiredValue)
 
 	// Run cleanup
 	manager.cleanupCache()
@@ -1032,10 +1091,10 @@ func BenchmarkBlueprintProcessing(b *testing.B) {
 		config:       DefaultBlueprintConfig(),
 		logger:       logger,
 		metrics:      NewBlueprintMetrics(),
-		catalog:      (*Catalog)(nil),    // Use nil pointer for testing
-		generator:    (*Generator)(nil), // Use nil pointer for testing 
-		customizer:   (*Customizer)(nil), // Use nil pointer for testing
-		validator:    (*Validator)(nil),  // Use nil pointer for testing
+		catalog:      NewMockCatalog().Catalog,
+		generator:    NewMockGenerator().Generator,
+		customizer:   NewMockCustomizer().Customizer,
+		validator:    NewMockValidator().Validator,
 		ctx:          context.Background(),
 		healthStatus: make(map[string]bool),
 	}
@@ -1115,67 +1174,31 @@ func TestComplexScenarios(t *testing.T) {
 	mockMgr := newMockManager()
 	logger := zaptest.NewLogger(t)
 
-	// Create proper mock generator using the existing pattern
-	config := DefaultBlueprintConfig()
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockLLMClient := mocks.NewMockLLMClient(ctrl)
-	
-	// Setup mock expectations for successful LLM processing
-	mockLLMClient.EXPECT().
-		ProcessIntent(gomock.Any(), gomock.Any()).
-		Return(&llm.ProcessIntentResponse{
-			StructuredIntent: []byte(`{
-				"deployment_config": {
-					"replicas": 3,
-					"image": "test-image:latest",
-					"resources": {
-						"requests": {"cpu": "100m", "memory": "128Mi"},
-						"limits": {"cpu": "500m", "memory": "512Mi"}
-					}
-				},
-				"network_function": {
-					"type": "5G_CORE",
-					"interfaces": ["N1", "N2", "N3"]
-				},
-				"parameters": {
-					"region": "us-east-1",
-					"environment": "production"
-				}
-			}`),
-			Confidence: 0.95,
-			Reasoning:  "Successfully processed 5G core deployment intent",
-			Metadata: llm.ResponseMetadata{
-				RequestID:      "test-request-123",
-				ModelUsed:      "test-model",
-				TokensUsed:     150,
-				ProcessingTime: 100.0, // milliseconds as float64
-				Cost:           0.001,
-			},
-			Timestamp: time.Now(),
-		}, nil).AnyTimes()
-	
-	generator, err := NewGeneratorWithClient(config, logger, mockLLMClient)
-	require.NoError(t, err)
-	require.NotNil(t, generator)
-
-	// Create manager with proper generator (following existing test pattern)
-	manager, err := NewManagerWithGenerator(mockMgr, config, logger, generator)
-	require.NoError(t, err)
-	require.NotNil(t, manager)
+	manager := &Manager{
+		client:       mockMgr.GetClient(),
+		k8sClient:    fake.NewSimpleClientset(),
+		config:       DefaultBlueprintConfig(),
+		logger:       logger,
+		metrics:      NewBlueprintMetrics(),
+		catalog:      NewMockCatalog().Catalog,
+		generator:    NewMockGenerator().Generator,
+		customizer:   NewMockCustomizer().Customizer,
+		validator:    NewMockValidator().Validator,
+		ctx:          context.Background(),
+		healthStatus: make(map[string]bool),
+	}
 
 	t.Run("complete_5g_core_deployment", func(t *testing.T) {
 		// Create intents for complete 5G core
 		components := []struct {
 			name      string
-			component v1.NetworkTargetComponent
+			component v1.ComponentType
 			replicas  string
 		}{
-			{"5g-amf", v1.NetworkTargetComponentAMF, "3"},
-			{"5g-smf", v1.NetworkTargetComponentSMF, "2"},
-			{"5g-upf", v1.NetworkTargetComponentUPF, "2"},
-			{"5g-nssf", v1.NetworkTargetComponentNSSF, "1"},
+			{"5g-amf", v1.ComponentTypeAMF, "3"},
+			{"5g-smf", v1.ComponentTypeSMF, "2"},
+			{"5g-upf", v1.ComponentTypeUPF, "2"},
+			{"5g-nssf", v1.ComponentTypeNSSF, "1"},
 		}
 
 		results := make([]*BlueprintResult, len(components))
@@ -1188,48 +1211,30 @@ func TestComplexScenarios(t *testing.T) {
 				},
 				Spec: v1.NetworkIntentSpec{
 					IntentType:       v1.IntentTypeDeployment,
-					Priority:         v1.NetworkPriorityHigh,
-					TargetComponents: []v1.NetworkTargetComponent{comp.component},
-					Parameters: createTestRawExtension(map[string]string{
+					Priority:         v1.PriorityHigh,
+					TargetComponents: []v1.ComponentType{comp.component},
+					Parameters: map[string]string{
 						"replicas":    comp.replicas,
 						"region":      "us-east-1",
 						"environment": "production",
-					}),
+					},
 				},
 			}
 
 			result, err := manager.ProcessNetworkIntent(context.Background(), intent)
-			// Allow some components to fail validation while still testing the flow
-			if err != nil {
-				t.Logf("Component %s failed as expected: %v", comp.name, err)
-				results[i] = &BlueprintResult{Success: false, GeneratedFiles: make(map[string]string)}
-				continue
-			}
+			require.NoError(t, err)
 			require.NotNil(t, result)
+			require.True(t, result.Success)
 
 			results[i] = result
 		}
 
-		// Verify components were processed (some may fail validation, which is acceptable)
-		processedCount := 0
-		successfulCount := 0
-		
+		// Verify all components were processed successfully
 		for i, result := range results {
-			processedCount++
-			componentName := components[i].name
-			
-			if result.Success {
-				successfulCount++
-				assert.NotNil(t, result.PackageRevision, "Successful component %s should have PackageRevision", componentName)
-				assert.True(t, len(result.GeneratedFiles) > 0, "Successful component %s should have generated files", componentName)
-			} else {
-				t.Logf("Component %s processing failed as expected (validation issues)", componentName)
-			}
+			assert.True(t, result.Success, "Component %s should succeed", components[i].name)
+			assert.NotNil(t, result.PackageRevision)
+			assert.True(t, len(result.GeneratedFiles) > 0)
 		}
-		
-		// Ensure all components were processed and at least one succeeded
-		assert.Equal(t, len(components), processedCount, "All components should be processed")
-		assert.True(t, successfulCount > 0, "At least one component should succeed")
 	})
 
 	t.Run("multi_region_deployment", func(t *testing.T) {
@@ -1245,11 +1250,11 @@ func TestComplexScenarios(t *testing.T) {
 					IntentType:       v1.IntentTypeDeployment,
 					Priority:         v1.NetworkPriorityNormal,
 					TargetComponents: []v1.NetworkTargetComponent{v1.NetworkTargetComponentAMF},
-					Parameters: createTestRawExtension(map[string]string{
+					Parameters: map[string]string{
 						"replicas": "2",
 						"region":   region,
 						"zone":     region + "a",
-					}),
+					},
 				},
 			}
 
@@ -1257,24 +1262,8 @@ func TestComplexScenarios(t *testing.T) {
 			require.NoError(t, err)
 			require.True(t, result.Success)
 
-			// Verify region-specific configuration in generated files
-			regionFound := false
-			for _, content := range result.GeneratedFiles {
-				if strings.Contains(content, region) {
-					regionFound = true
-					break
-				}
-			}
-			assert.True(t, regionFound, "Region %s should be present in at least one generated file", region)
+			// Verify region-specific configuration
+			assert.Contains(t, result.GeneratedFiles["configmap.yaml"], region)
 		}
 	})
 }
-
-// createTestRawExtension creates a runtime.RawExtension from a map for testing
-func createTestRawExtension(data map[string]string) *runtime.RawExtension {
-	rawData, _ := json.Marshal(data)
-	return &runtime.RawExtension{Raw: rawData}
-}
-
-
-func TestStub(t *testing.T) { t.Skip("Test disabled") }

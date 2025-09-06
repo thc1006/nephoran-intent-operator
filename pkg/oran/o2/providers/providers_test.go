@@ -105,8 +105,8 @@ func TestResourceOperations(t *testing.T) {
 
 	// Test CreateResource
 	req := &CreateResourceRequest{
-		Name: "test-deployment",
-		Type: string(ResourceTypeDeployment),
+		Name:          "test-deployment",
+		Type:          string(ResourceTypeDeployment),
 		Specification: json.RawMessage(`{}`),
 		Labels: map[string]string{
 			"env": "test",
@@ -151,6 +151,7 @@ func TestResourceOperations(t *testing.T) {
 
 	// Test UpdateResource
 	updateReq := &UpdateResourceRequest{
+		Name:          "updated-test-resource",
 		Specification: json.RawMessage(`{}`),
 		Labels: map[string]string{
 			"env":     "test",
@@ -163,8 +164,8 @@ func TestResourceOperations(t *testing.T) {
 		t.Fatalf("Failed to update resource: %v", err)
 	}
 
-	if updatedResource.Name != resource.Name {
-		t.Errorf("Expected updated name %s, got %s", resource.Name, updatedResource.Name)
+	if updatedResource.Name != updateReq.Name {
+		t.Errorf("Expected updated name %s, got %s", updateReq.Name, updatedResource.Name)
 	}
 
 	// Test ListResources
@@ -230,14 +231,13 @@ func TestProviderRegistry(t *testing.T) {
 	}
 
 	// Test CreateAndRegisterProvider
-	providerConfig := &ProviderConfiguration{
+	config := &ProviderConfiguration{
 		Name:    "test-provider",
 		Type:    "mock",
 		Version: "1.0.0",
-		Enabled: true,
 	}
 
-	err = registry.CreateAndRegisterProvider("test-provider", "mock", providerConfig)
+	err = registry.CreateAndRegisterProvider("test-provider", "mock", config)
 	if err != nil {
 		t.Fatalf("Failed to create and register provider: %v", err)
 	}

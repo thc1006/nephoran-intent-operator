@@ -5,9 +5,8 @@
 package o2
 
 import (
-	
 	"encoding/json"
-"time"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -767,16 +766,16 @@ type TemplateUsageStats struct {
 
 type DeploymentStatus struct {
 	ID string `json:"id"`
-
+	
 	Name string `json:"name"`
-
-	Status string `json:"status"`
-
-	Replicas int32 `json:"replicas,omitempty"`
-
+	
+	Status string `json:"status"` // PENDING, RUNNING, FAILED, SUCCEEDED, DELETING
+	
 	State string `json:"state"` // PENDING, RUNNING, FAILED, SUCCEEDED, DELETING
 
 	Phase string `json:"phase"` // CREATING, UPDATING, SCALING, TERMINATING
+
+	Replicas int32 `json:"replicas"`
 
 	Health string `json:"health"` // HEALTHY, DEGRADED, UNHEALTHY, UNKNOWN
 

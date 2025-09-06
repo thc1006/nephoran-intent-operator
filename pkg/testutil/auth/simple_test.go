@@ -73,7 +73,7 @@ func TestSessionManagerMock(t *testing.T) {
 
 	// Test that the mock is properly initialized
 	assert.NotNil(t, sessionManager.sessions)
-	assert.Equal(t, 1*60*60, int(sessionManager.config.SessionTTL.Seconds())) // 1 hour
+	assert.Equal(t, 1*60*60, int(sessionManager.Config.SessionTTL.Seconds())) // 1 hour
 }
 
 func TestCompleteTestSetup(t *testing.T) {

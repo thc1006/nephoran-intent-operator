@@ -228,6 +228,56 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, query string, docume
 // StreamingProcessor provides a stub implementation
 type StreamingProcessor struct{}
 
+// NewStreamingProcessor creates a new streaming processor stub for testing
+func NewStreamingProcessor(config *StreamingConfig) *StreamingProcessor {
+	return &StreamingProcessor{}
+}
+
+// StreamChunk sends a chunk to an active streaming session
+func (sp *StreamingProcessor) StreamChunk(sessionID string, chunk *StreamingChunk) error {
+	// Stub implementation for testing
+	return nil
+}
+
+// CompleteStream completes an active streaming session
+func (sp *StreamingProcessor) CompleteStream(sessionID string) error {
+	// Stub implementation for testing
+	return nil
+}
+
+// CreateSession creates a mock streaming session for testing
+func (sp *StreamingProcessor) CreateSession(sessionID string, w interface{}, r interface{}) (*MockStreamingSession, error) {
+	return &MockStreamingSession{
+		ID:     sessionID,
+		Status: StreamingStatusActive,
+	}, nil
+}
+
+// GetActiveSessions returns mock active sessions for testing
+func (sp *StreamingProcessor) GetActiveSessions() []string {
+	return []string{}
+}
+
+// MockStreamingSession represents a mock streaming session for testing
+type MockStreamingSession struct {
+	ID     string
+	Status string
+}
+
+// Constants for streaming status
+const (
+	StreamingStatusActive    = "active"
+	StreamingStatusCompleted = "completed"
+	StreamingStatusError     = "error"
+)
+
+// Constants for chunk types
+const (
+	ChunkTypeContent = "content"
+	ChunkTypeError   = "error"
+	ChunkTypeEnd     = "end"
+)
+
 // GetMetrics returns metrics for the streaming processor
 func (sp *StreamingProcessor) GetMetrics() map[string]interface{} {
 	return map[string]interface{}{

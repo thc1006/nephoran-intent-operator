@@ -12,17 +12,73 @@ import (
 	. "github.com/onsi/gomega"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
-		"github.com/thc1006/nephoran-intent-operator/pkg/testutils"
+	"github.com/thc1006/nephoran-intent-operator/pkg/git"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
+	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/telecom"
+	"github.com/thc1006/nephoran-intent-operator/pkg/testutils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // NetworkIntentFinalizer is imported from the main controller package
+
+// MockDependencies implements Dependencies interface for testing
+type MockDependencies struct {
+	gitClient        *testutils.MockGitClient
+	llmClient        *testutils.MockLLMClient
+	packageGenerator interface{}
+	httpClient       *http.Client
+	eventRecorder    record.EventRecorder
+}
+
+// GetEventRecorder returns the event recorder
+func (m *MockDependencies) GetEventRecorder() record.EventRecorder {
+	return m.eventRecorder
+}
+
+// GetGitClient returns the git client
+func (m *MockDependencies) GetGitClient() git.ClientInterface {
+	return m.gitClient
+}
+
+// GetLLMClient returns the LLM client
+func (m *MockDependencies) GetLLMClient() shared.ClientInterface {
+	return m.llmClient
+}
+
+// GetPackageGenerator returns the package generator
+func (m *MockDependencies) GetPackageGenerator() *nephio.PackageGenerator {
+	if m.packageGenerator == nil {
+		return nil
+	}
+	if pkg, ok := m.packageGenerator.(*nephio.PackageGenerator); ok {
+		return pkg
+	}
+	return nil
+}
+
+// GetHTTPClient returns the HTTP client
+func (m *MockDependencies) GetHTTPClient() *http.Client {
+	return m.httpClient
+}
+
+// GetTelecomKnowledgeBase returns the telecom knowledge base
+func (m *MockDependencies) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase {
+	return nil // Mock implementation
+}
+
+// GetMetricsCollector returns the metrics collector
+func (m *MockDependencies) GetMetricsCollector() monitoring.MetricsCollector {
+	return nil // Mock implementation
+}
+
 // Removed redeclaration to fix compilation error
 
 var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
@@ -36,12 +92,17 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 		reconciler    *NetworkIntentReconciler
 		mockDeps      *MockDependencies
 		ctx           context.Context
-		// testEnv is managed by the global test environment
+		testEnv       *envtest.Environment // Local testEnv for this test suite
 	)
 
 	BeforeEach(func() {
 		By("Setting up test context")
 		ctx = context.Background()
+
+		By("Setting up test environment")
+		testEnv = &envtest.Environment{
+			Scheme: runtime.NewScheme(),
+		}
 
 		By("Creating a new isolated namespace for edge case tests")
 		namespaceName = testutils.CreateIsolatedNamespace("cleanup-edge-cases")
@@ -96,14 +157,14 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			networkIntent.Namespace = longNamespace
 
 			By("Calling cleanupGitOpsPackages")
-			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			mockGitClient.ResetMock() // Reset mock state
 
 			err := reconciler.cleanupGitOpsPackages(ctx, networkIntent, mockGitClient)
 
 			By("Verifying successful handling of long names")
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			// Verify that git operations were called
 			callLog := mockGitClient.GetCallLog()
 			Expect(len(callLog)).To(BeNumerically(">=", 1))
@@ -115,7 +176,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			networkIntent.Namespace = "test-namespace-123"
 
 			By("Setting up Git client")
-			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			mockGitClient.ResetMock()
 
 			// Mock will automatically handle these method calls
@@ -147,7 +208,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			cancel() // Immediately cancel the context
 
 			By("Setting up Git client to return errors for cancellation")
-			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			mockGitClient.ResetMock()
 			mockGitClient.SetCommitPushError(errors.New("context cancelled"))
 
@@ -164,7 +225,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 
 		It("Should handle intermittent Git repository locks", func() {
 			By("Setting up Git client to simulate repository lock contention")
-			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			mockGitClient.ResetMock()
 			lockError := errors.New("fatal: Unable to create '/path/to/repo/.git/refs/heads/main.lock': File exists")
 			mockGitClient.SetCommitPushError(lockError)
@@ -332,8 +393,8 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
 			By("Setting up successful Git cleanup")
-			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
-// Removed unused variables
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
+			// Removed unused variables
 			// Mock will automatically handle these method calls
 			// No explicit expectations needed with simple mock
 
@@ -367,8 +428,8 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
 			By("Setting up Git client to simulate already cleaned resources")
-			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
-// Removed unused variables
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
+			// Removed unused variables
 
 			// Simulate that the directory doesn't exist (already cleaned)
 			notFoundError := errors.New("directory not found")
@@ -393,8 +454,8 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
 			By("Setting up successful Git cleanup")
-			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
-// Removed unused variables
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
+			// Removed unused variables
 			// Mock will automatically handle these method calls
 			// No explicit expectations needed with simple mock
 
@@ -450,8 +511,8 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			}
 
 			By("Setting up Git cleanup expectations")
-			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
-// Removed unused variables
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
+			// Removed unused variables
 			// Mock will automatically handle these method calls
 			// No explicit expectations needed with simple mock
 

@@ -1,7 +1,24 @@
+/*
+Copyright 2025.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package krm
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -22,21 +39,21 @@ import (
 
 // KRMResource represents a Kubernetes resource manifest for KRM functions
 type KRMResource struct {
-	APIVersion string                 `json:"apiVersion"`
-	Kind       string                 `json:"kind"`
-	Metadata   map[string]interface{} `json:"metadata"`
-	Spec       map[string]interface{} `json:"spec,omitempty"`
-	Status     map[string]interface{} `json:"status,omitempty"`
-	Data       map[string]interface{} `json:"data,omitempty"`
+	APIVersion string          `json:"apiVersion"`
+	Kind       string          `json:"kind"`
+	Metadata   json.RawMessage `json:"metadata"`
+	Spec       json.RawMessage `json:"spec,omitempty"`
+	Status     json.RawMessage `json:"status,omitempty"`
+	Data       json.RawMessage `json:"data,omitempty"`
 }
 
 // FunctionConfig defines KRM function configuration
 type FunctionConfig struct {
-	Image      string                 `json:"image"`
-	ConfigPath string                 `json:"configPath,omitempty"`
-	ConfigMap  map[string]interface{} `json:"configMap,omitempty"`
-	Selectors  []ResourceSelector     `json:"selectors,omitempty"`
-	Exec       *ExecConfig            `json:"exec,omitempty"`
+	Image      string             `json:"image"`
+	ConfigPath string             `json:"configPath,omitempty"`
+	ConfigMap  json.RawMessage    `json:"configMap,omitempty"`
+	Selectors  []ResourceSelector `json:"selectors,omitempty"`
+	Exec       *ExecConfig        `json:"exec,omitempty"`
 }
 
 // ResourceSelector is imported from pipeline.go
@@ -88,14 +105,14 @@ type FunctionContext struct {
 
 // Pipeline defines a sequence of KRM functions
 type TestPipeline struct {
-	Name      string                 `json:"name"`
-	Functions []FunctionConfig       `json:"functions"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Name      string           `json:"name"`
+	Functions []FunctionConfig `json:"functions"`
+	Metadata  json.RawMessage  `json:"metadata,omitempty"`
 }
 
 // PipelineRequest represents a pipeline execution request
 type PipelineRequest struct {
-	Pipeline  TestPipeline         `json:"pipeline"`
+	Pipeline  TestPipeline     `json:"pipeline"`
 	Resources []KRMResource    `json:"resources"`
 	Context   *FunctionContext `json:"context,omitempty"`
 }
@@ -201,7 +218,7 @@ func (r *MockKRMRuntime) registerStandardFunctions() {
 				Name:        "basic-labels",
 				Description: "Set basic labels on resources",
 				Config: map[string]interface{}{
-					"image": "gcr.io/kpt-fn/set-labels:v0.2.0",
+					"image":     "gcr.io/kpt-fn/set-labels:v0.2.0",
 					"configMap": map[string]interface{}{},
 				},
 				Input: []interface{}{
@@ -445,7 +462,18 @@ func (r *MockKRMRuntime) SetValidationEnabled(enabled bool) {
 
 // setLabelsHandler implements the set-labels function
 func (r *MockKRMRuntime) setLabelsHandler(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) {
-	labels, ok := req.FunctionConfig.ConfigMap["labels"].(map[string]interface{})
+	var configMap map[string]interface{}
+	if err := json.Unmarshal(req.FunctionConfig.ConfigMap, &configMap); err != nil {
+		return &FunctionResponse{
+			Resources: req.Resources,
+			Error: &FunctionError{
+				Message: "failed to parse configuration",
+				Code:    "INVALID_CONFIG",
+			},
+		}, nil
+	}
+
+	labels, ok := configMap["labels"].(map[string]interface{})
 	if !ok {
 		return &FunctionResponse{
 			Resources: req.Resources,
@@ -469,41 +497,34 @@ func (r *MockKRMRuntime) setLabelsHandler(ctx context.Context, req *FunctionRequ
 	for i, resource := range req.Resources {
 		modifiedResource := resource
 		
-		// Create deep copy of metadata to prevent race conditions
+		// Parse existing metadata or create empty if nil
+		var metadata map[string]interface{}
 		if modifiedResource.Metadata == nil {
-			modifiedResource.Metadata = make(map[string]interface{})
+			metadata = make(map[string]interface{})
 		} else {
-			// Deep copy the metadata map
-			newMetadata := make(map[string]interface{})
-			for k, v := range modifiedResource.Metadata {
-				newMetadata[k] = v
+			if err := json.Unmarshal(modifiedResource.Metadata, &metadata); err != nil {
+				metadata = make(map[string]interface{})
 			}
-			modifiedResource.Metadata = newMetadata
 		}
 
-		resourceLabels, exists := modifiedResource.Metadata["labels"]
+		resourceLabels, exists := metadata["labels"]
 		if !exists {
-			// Convert stringLabels to map[string]interface{} to maintain consistency
-			interfaceLabels := make(map[string]interface{})
-			for k, v := range stringLabels {
-				interfaceLabels[k] = v
-			}
-			modifiedResource.Metadata["labels"] = interfaceLabels
+			metadata["labels"] = stringLabels
 		} else {
-			// Merge labels - create a new labels map to avoid race conditions
+			// Merge labels
 			if existingLabels, ok := resourceLabels.(map[string]interface{}); ok {
-				newLabels := make(map[string]interface{})
-				// Copy existing labels
-				for k, v := range existingLabels {
-					newLabels[k] = v
-				}
-				// Add new labels
 				for k, v := range stringLabels {
-					newLabels[k] = v
+					existingLabels[k] = v
 				}
-				modifiedResource.Metadata["labels"] = newLabels
 			}
 		}
+
+		// Marshal metadata back to json.RawMessage
+		updatedMetadata, err := json.Marshal(metadata)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal metadata: %w", err)
+		}
+		modifiedResource.Metadata = updatedMetadata
 
 		modifiedResources[i] = modifiedResource
 	}
@@ -521,7 +542,18 @@ func (r *MockKRMRuntime) setLabelsHandler(ctx context.Context, req *FunctionRequ
 
 // setNamespaceHandler implements the set-namespace function
 func (r *MockKRMRuntime) setNamespaceHandler(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) {
-	namespace, ok := req.FunctionConfig.ConfigMap["namespace"].(string)
+	var configMap map[string]interface{}
+	if err := json.Unmarshal(req.FunctionConfig.ConfigMap, &configMap); err != nil {
+		return &FunctionResponse{
+			Resources: req.Resources,
+			Error: &FunctionError{
+				Message: "invalid configuration format",
+				Code:    "INVALID_CONFIG",
+			},
+		}, nil
+	}
+	
+	namespace, ok := configMap["namespace"].(string)
 	if !ok {
 		return &FunctionResponse{
 			Resources: req.Resources,
@@ -535,10 +567,31 @@ func (r *MockKRMRuntime) setNamespaceHandler(ctx context.Context, req *FunctionR
 	modifiedResources := make([]KRMResource, len(req.Resources))
 	for i, resource := range req.Resources {
 		modifiedResource := resource
+		
+		// Parse existing metadata or create empty if nil
+		var metadata map[string]interface{}
 		if modifiedResource.Metadata == nil {
-			modifiedResource.Metadata = make(map[string]interface{})
+			metadata = make(map[string]interface{})
+		} else {
+			if err := json.Unmarshal(modifiedResource.Metadata, &metadata); err != nil {
+				metadata = make(map[string]interface{})
+			}
 		}
-		modifiedResource.Metadata["namespace"] = namespace
+		
+		metadata["namespace"] = namespace
+		
+		// Marshal metadata back to json.RawMessage
+		updatedMetadata, err := json.Marshal(metadata)
+		if err != nil {
+			return &FunctionResponse{
+				Resources: req.Resources,
+				Error: &FunctionError{
+					Message: fmt.Sprintf("failed to marshal metadata: %v", err),
+					Code:    "MARSHAL_ERROR",
+				},
+			}, nil
+		}
+		modifiedResource.Metadata = updatedMetadata
 		modifiedResources[i] = modifiedResource
 	}
 
@@ -583,7 +636,18 @@ func (r *MockKRMRuntime) searchReplaceHandler(ctx context.Context, req *Function
 
 // ensureNameSubstringHandler implements the ensure-name-substring function
 func (r *MockKRMRuntime) ensureNameSubstringHandler(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) {
-	substring, ok := req.FunctionConfig.ConfigMap["substring"].(string)
+	var configMap map[string]interface{}
+	if err := json.Unmarshal(req.FunctionConfig.ConfigMap, &configMap); err != nil {
+		return &FunctionResponse{
+			Resources: req.Resources,
+			Error: &FunctionError{
+				Message: "invalid configuration format",
+				Code:    "INVALID_CONFIG",
+			},
+		}, nil
+	}
+	
+	substring, ok := configMap["substring"].(string)
 	if !ok {
 		return &FunctionResponse{
 			Resources: req.Resources,
@@ -597,13 +661,35 @@ func (r *MockKRMRuntime) ensureNameSubstringHandler(ctx context.Context, req *Fu
 	modifiedResources := make([]KRMResource, len(req.Resources))
 	for i, resource := range req.Resources {
 		modifiedResource := resource
-		if metadata := modifiedResource.Metadata; metadata != nil {
-			if name, exists := metadata["name"]; exists {
-				if nameStr, ok := name.(string); ok && !strings.Contains(nameStr, substring) {
-					metadata["name"] = nameStr + "-" + substring
-				}
+		
+		// Parse existing metadata or create empty if nil
+		var metadata map[string]interface{}
+		if modifiedResource.Metadata == nil {
+			metadata = make(map[string]interface{})
+		} else {
+			if err := json.Unmarshal(modifiedResource.Metadata, &metadata); err != nil {
+				metadata = make(map[string]interface{})
 			}
 		}
+		
+		if name, exists := metadata["name"]; exists {
+			if nameStr, ok := name.(string); ok && !strings.Contains(nameStr, substring) {
+				metadata["name"] = nameStr + "-" + substring
+			}
+		}
+		
+		// Marshal metadata back to json.RawMessage
+		updatedMetadata, err := json.Marshal(metadata)
+		if err != nil {
+			return &FunctionResponse{
+				Resources: req.Resources,
+				Error: &FunctionError{
+					Message: fmt.Sprintf("failed to marshal metadata: %v", err),
+					Code:    "MARSHAL_ERROR",
+				},
+			}, nil
+		}
+		modifiedResource.Metadata = updatedMetadata
 		modifiedResources[i] = modifiedResource
 	}
 
@@ -620,7 +706,18 @@ func (r *MockKRMRuntime) ensureNameSubstringHandler(ctx context.Context, req *Fu
 
 // oranInterfaceConfigHandler implements O-RAN interface configuration
 func (r *MockKRMRuntime) oranInterfaceConfigHandler(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) {
-	interfaces, ok := req.FunctionConfig.ConfigMap["interfaces"].([]interface{})
+	var configMap map[string]interface{}
+	if err := json.Unmarshal(req.FunctionConfig.ConfigMap, &configMap); err != nil {
+		return &FunctionResponse{
+			Resources: req.Resources,
+			Error: &FunctionError{
+				Message: "failed to parse configuration",
+				Code:    "INVALID_CONFIG",
+			},
+		}, nil
+	}
+
+	interfaces, ok := configMap["interfaces"].([]interface{})
 	if !ok {
 		return &FunctionResponse{
 			Resources: req.Resources,
@@ -638,13 +735,19 @@ func (r *MockKRMRuntime) oranInterfaceConfigHandler(ctx context.Context, req *Fu
 		if ifaceMap, ok := iface.(map[string]interface{}); ok {
 			// Add O-RAN specific annotations and labels
 			for i, resource := range modifiedResources {
+				// Parse existing metadata or create empty if nil
+				var metadata map[string]interface{}
 				if resource.Metadata == nil {
-					resource.Metadata = make(map[string]interface{})
+					metadata = make(map[string]interface{})
+				} else {
+					if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
+						metadata = make(map[string]interface{})
+					}
 				}
 
 				// Add O-RAN annotations
 				annotations := make(map[string]interface{})
-				if existing, exists := resource.Metadata["annotations"]; exists {
+				if existing, exists := metadata["annotations"]; exists {
 					if existingMap, ok := existing.(map[string]interface{}); ok {
 						annotations = existingMap
 					}
@@ -657,7 +760,14 @@ func (r *MockKRMRuntime) oranInterfaceConfigHandler(ctx context.Context, req *Fu
 					annotations["oran.nephoran.com/interface-type"] = ifaceType
 				}
 
-				resource.Metadata["annotations"] = annotations
+				metadata["annotations"] = annotations
+				
+				// Marshal metadata back to json.RawMessage
+				updatedMetadata, err := json.Marshal(metadata)
+				if err != nil {
+					return nil, fmt.Errorf("failed to marshal metadata: %w", err)
+				}
+				resource.Metadata = updatedMetadata
 				modifiedResources[i] = resource
 			}
 		}
@@ -676,7 +786,18 @@ func (r *MockKRMRuntime) oranInterfaceConfigHandler(ctx context.Context, req *Fu
 
 // networkSliceConfigHandler implements network slice configuration
 func (r *MockKRMRuntime) networkSliceConfigHandler(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) {
-	sliceConfig, ok := req.FunctionConfig.ConfigMap["sliceConfig"].(map[string]interface{})
+	var configMap map[string]interface{}
+	if err := json.Unmarshal(req.FunctionConfig.ConfigMap, &configMap); err != nil {
+		return &FunctionResponse{
+			Resources: req.Resources,
+			Error: &FunctionError{
+				Message: "failed to parse configuration",
+				Code:    "INVALID_CONFIG",
+			},
+		}, nil
+	}
+
+	sliceConfig, ok := configMap["sliceConfig"].(map[string]interface{})
 	if !ok {
 		return &FunctionResponse{
 			Resources: req.Resources,
@@ -692,10 +813,22 @@ func (r *MockKRMRuntime) networkSliceConfigHandler(ctx context.Context, req *Fun
 		modifiedResource := resource
 
 		// Add network slice configuration
+		var spec map[string]interface{}
 		if modifiedResource.Spec == nil {
-			modifiedResource.Spec = make(map[string]interface{})
+			spec = make(map[string]interface{})
+		} else {
+			if err := json.Unmarshal(modifiedResource.Spec, &spec); err != nil {
+				spec = make(map[string]interface{})
+			}
 		}
-		modifiedResource.Spec["networkSlice"] = sliceConfig
+		spec["networkSlice"] = sliceConfig
+		
+		// Marshal spec back to json.RawMessage
+		updatedSpec, err := json.Marshal(spec)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal spec: %w", err)
+		}
+		modifiedResource.Spec = updatedSpec
 
 		modifiedResources[i] = modifiedResource
 	}
@@ -719,12 +852,15 @@ func (r *MockKRMRuntime) validateFunctionConfig(function *RegisteredFunction, co
 		return nil // No schema to validate against
 	}
 
+	var configMap map[string]interface{}
+	if err := json.Unmarshal(config.ConfigMap, &configMap); err != nil {
+		return fmt.Errorf("failed to parse configuration: %w", err)
+	}
+
 	// Check required fields
-	if config.ConfigMap != nil {
-		for _, required := range function.Schema.Required {
-			if _, exists := config.ConfigMap[required]; !exists {
-				return fmt.Errorf("required field '%s' is missing", required)
-			}
+	for _, required := range function.Schema.Required {
+		if _, exists := configMap[required]; !exists {
+			return fmt.Errorf("required field '%s' is missing", required)
 		}
 	}
 
@@ -733,26 +869,34 @@ func (r *MockKRMRuntime) validateFunctionConfig(function *RegisteredFunction, co
 
 // generateTestResource creates a test KRM resource
 func generateTestResource(apiVersion, kind, name, namespace string) KRMResource {
-	metadata := make(map[string]interface{})
-	if name != "" {
-		metadata["name"] = name
-	}
-	if namespace != "" {
-		metadata["namespace"] = namespace
-	}
-	
 	return KRMResource{
 		APIVersion: apiVersion,
 		Kind:       kind,
-		Metadata:   metadata,
-		Spec:       make(map[string]interface{}),
+		Metadata:   json.RawMessage(`{}`),
+		Spec:       json.RawMessage(`{}`),
 	}
 }
 
 // generateTestResourceWithLabels creates a test KRM resource with labels
-func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, labels map[string]interface{}) KRMResource {
+func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, labels map[string]string) KRMResource {
 	resource := generateTestResource(apiVersion, kind, name, namespace)
-	resource.Metadata["labels"] = labels
+	
+	// Parse existing metadata and add labels
+	var metadata map[string]interface{}
+	if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
+		metadata = make(map[string]interface{})
+	}
+	
+	metadata["labels"] = labels
+	
+	// Marshal metadata back to json.RawMessage
+	updatedMetadata, err := json.Marshal(metadata)
+	if err != nil {
+		// Fallback to original if marshaling fails
+		return resource
+	}
+	resource.Metadata = updatedMetadata
+	
 	return resource
 }
 
@@ -872,12 +1016,7 @@ func TestStandardFunctions(t *testing.T) {
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: map[string]interface{}{
-					"labels": map[string]interface{}{
-						"app": "test-app",
-						"env": "production",
-					},
-				},
+				ConfigMap: json.RawMessage(`{"app": "test-app", "env": "production"}`),
 			},
 			Resources: resources,
 		}
@@ -890,7 +1029,11 @@ func TestStandardFunctions(t *testing.T) {
 
 		// Verify labels were added
 		for _, resource := range resp.Resources {
-			labels, exists := resource.Metadata["labels"]
+			var metadata map[string]interface{}
+			err := json.Unmarshal(resource.Metadata, &metadata)
+			assert.NoError(t, err)
+			
+			labels, exists := metadata["labels"]
 			assert.True(t, exists)
 
 			if labelMap, ok := labels.(map[string]interface{}); ok {
@@ -907,10 +1050,8 @@ func TestStandardFunctions(t *testing.T) {
 
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
-				Image: "gcr.io/kpt-fn/set-namespace:v0.4.1",
-				ConfigMap: map[string]interface{}{
-					"namespace": "production",
-				},
+				Image:     "gcr.io/kpt-fn/set-namespace:v0.4.1",
+				ConfigMap: json.RawMessage(`{}`),
 			},
 			Resources: resources,
 		}
@@ -922,7 +1063,10 @@ func TestStandardFunctions(t *testing.T) {
 
 		// Verify namespace was set
 		for _, resource := range resp.Resources {
-			namespace, exists := resource.Metadata["namespace"]
+			var metadata map[string]interface{}
+			err = json.Unmarshal(resource.Metadata, &metadata)
+			assert.NoError(t, err)
+			namespace, exists := metadata["namespace"]
 			assert.True(t, exists)
 			assert.Equal(t, "production", namespace)
 		}
@@ -935,10 +1079,8 @@ func TestStandardFunctions(t *testing.T) {
 
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
-				Image: "gcr.io/kpt-fn/ensure-name-substring:v0.1.1",
-				ConfigMap: map[string]interface{}{
-					"substring": "prod",
-				},
+				Image:     "gcr.io/kpt-fn/ensure-name-substring:v0.1.1",
+				ConfigMap: json.RawMessage(`{}`),
 			},
 			Resources: resources,
 		}
@@ -949,7 +1091,10 @@ func TestStandardFunctions(t *testing.T) {
 
 		// Verify substring was added to name
 		for _, resource := range resp.Resources {
-			name, exists := resource.Metadata["name"]
+			var metadata map[string]interface{}
+			err = json.Unmarshal(resource.Metadata, &metadata)
+			assert.NoError(t, err)
+			name, exists := metadata["name"]
 			assert.True(t, exists)
 			assert.Contains(t, name.(string), "prod")
 		}
@@ -966,21 +1111,18 @@ func TestORANFunctions(t *testing.T) {
 			generateTestResource("apps/v1", "Deployment", "amf-deployment", "5g-core"),
 		}
 
+		configMapData := map[string]interface{}{
+			"interfaces": []interface{}{},
+		}
+		configMapJSON, err := json.Marshal(configMapData)
+		if err != nil {
+			t.Fatalf("Failed to marshal config map: %v", err)
+		}
+		
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "nephoran.io/kpt-fn/oran-interface-config:v1.0.0",
-				ConfigMap: map[string]interface{}{
-					"interfaces": []interface{}{
-						map[string]interface{}{
-							"name": "E2",
-							"type": "e2ap",
-						},
-						map[string]interface{}{
-							"name": "A1",
-							"type": "a1ap",
-						},
-					},
-				},
+				ConfigMap: configMapJSON,
 			},
 			Resources: resources,
 		}
@@ -992,7 +1134,11 @@ func TestORANFunctions(t *testing.T) {
 
 		// Verify O-RAN annotations were added
 		for _, resource := range resp.Resources {
-			annotations, exists := resource.Metadata["annotations"]
+			var metadata map[string]interface{}
+			err := json.Unmarshal(resource.Metadata, &metadata)
+			assert.NoError(t, err)
+			
+			annotations, exists := metadata["annotations"]
 			assert.True(t, exists)
 
 			if annotMap, ok := annotations.(map[string]interface{}); ok {
@@ -1007,16 +1153,20 @@ func TestORANFunctions(t *testing.T) {
 			generateTestResource("apps/v1", "Deployment", "slice-deployment", "5g-core"),
 		}
 
+		configMapData := map[string]interface{}{
+			"sliceType": "eMBB",
+			"sst":       1,
+			"sd":        "000001",
+		}
+		configMapJSON, err := json.Marshal(configMapData)
+		if err != nil {
+			t.Fatalf("Failed to marshal config map: %v", err)
+		}
+		
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "nephoran.io/kpt-fn/network-slice-config:v1.0.0",
-				ConfigMap: map[string]interface{}{
-					"sliceConfig": map[string]interface{}{
-						"sliceType": "eMBB",
-						"sst":       1,
-						"sd":        "000001",
-					},
-				},
+				ConfigMap: configMapJSON,
 			},
 			Resources: resources,
 		}
@@ -1027,7 +1177,11 @@ func TestORANFunctions(t *testing.T) {
 
 		// Verify network slice configuration was added
 		for _, resource := range resp.Resources {
-			networkSlice, exists := resource.Spec["networkSlice"]
+			var spec map[string]interface{}
+			err := json.Unmarshal(resource.Spec, &spec)
+			assert.NoError(t, err)
+			
+			networkSlice, exists := spec["networkSlice"]
 			assert.True(t, exists)
 
 			if sliceMap, ok := networkSlice.(map[string]interface{}); ok {
@@ -1053,20 +1207,20 @@ func TestPipelineExecution(t *testing.T) {
 		Name: "standard-pipeline",
 		Functions: []FunctionConfig{
 			{
-				Image: "gcr.io/kpt-fn/set-namespace:v0.4.1",
-				ConfigMap: map[string]interface{}{
-					"namespace": "production",
-				},
+				Image:     "gcr.io/kpt-fn/set-namespace:v0.4.1",
+				ConfigMap: json.RawMessage(`{}`),
 			},
-			{
-				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: map[string]interface{}{
-					"labels": map[string]interface{}{
-						"app": "test-app",
-						"env": "production",
-					},
-				},
-			},
+			func() FunctionConfig {
+				configMapData := map[string]interface{}{
+					"app": "test-app",
+					"env": "production",
+				}
+				configMapJSON, _ := json.Marshal(configMapData)
+				return FunctionConfig{
+					Image:     "gcr.io/kpt-fn/set-labels:v0.2.0",
+					ConfigMap: configMapJSON,
+				}
+			}(),
 		},
 	}
 
@@ -1088,13 +1242,17 @@ func TestPipelineExecution(t *testing.T) {
 
 	// Verify all functions were applied
 	for _, resource := range resp.Resources {
+		var metadata map[string]interface{}
+		err := json.Unmarshal(resource.Metadata, &metadata)
+		assert.NoError(t, err)
+		
 		// Check namespace was set
-		namespace, exists := resource.Metadata["namespace"]
+		namespace, exists := metadata["namespace"]
 		assert.True(t, exists)
 		assert.Equal(t, "production", namespace)
 
 		// Check labels were set
-		labels, exists := resource.Metadata["labels"]
+		labels, exists := metadata["labels"]
 		assert.True(t, exists)
 
 		if labelMap, ok := labels.(map[string]interface{}); ok {
@@ -1126,10 +1284,8 @@ func TestPipelineExecutionFailure(t *testing.T) {
 		Name: "failing-pipeline",
 		Functions: []FunctionConfig{
 			{
-				Image: "gcr.io/kpt-fn/set-namespace:v0.4.1",
-				ConfigMap: map[string]interface{}{
-					"namespace": "production",
-				},
+				Image:     "gcr.io/kpt-fn/set-namespace:v0.4.1",
+				ConfigMap: json.RawMessage(`{}`),
 			},
 			{
 				Image: "test/failing-function:v1.0.0",
@@ -1155,14 +1311,18 @@ func TestFunctionValidation(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("valid_configuration", func(t *testing.T) {
+		configMapData := map[string]interface{}{
+			"app": "test",
+		}
+		configMapJSON, err := json.Marshal(configMapData)
+		if err != nil {
+			t.Fatalf("Failed to marshal config map: %v", err)
+		}
+		
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: map[string]interface{}{
-					"labels": map[string]interface{}{
-						"app": "test",
-					},
-				},
+				ConfigMap: configMapJSON,
 			},
 			Resources: []KRMResource{
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
@@ -1179,7 +1339,7 @@ func TestFunctionValidation(t *testing.T) {
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image:     "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: map[string]interface{}{}, // Missing required 'labels' field
+				ConfigMap: json.RawMessage(`{}`), // Missing required 'labels' field
 			},
 			Resources: []KRMResource{
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
@@ -1198,7 +1358,7 @@ func TestFunctionValidation(t *testing.T) {
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image:     "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: map[string]interface{}{}, // Missing required field, but validation is disabled
+				ConfigMap: json.RawMessage(`{}`), // Missing required field, but validation is disabled
 			},
 			Resources: []KRMResource{
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
@@ -1237,20 +1397,25 @@ func TestConcurrentExecution(t *testing.T) {
 			defer wg.Done()
 
 			for j := 0; j < operationsPerGoroutine; j++ {
+				configMapData := map[string]interface{}{
+					"worker": fmt.Sprintf("worker-%d", id),
+					"job":    fmt.Sprintf("job-%d", j),
+				}
+				configMapJSON, err := json.Marshal(configMapData)
+				if err != nil {
+					errors <- fmt.Errorf("failed to marshal config map: %w", err)
+					continue
+				}
+				
 				req := &FunctionRequest{
 					FunctionConfig: FunctionConfig{
 						Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-						ConfigMap: map[string]interface{}{
-							"labels": map[string]interface{}{
-								"worker": fmt.Sprintf("worker-%d", id),
-								"job":    fmt.Sprintf("job-%d", j),
-							},
-						},
+						ConfigMap: configMapJSON,
 					},
 					Resources: resources,
 				}
 
-				_, err := runtime.ExecuteFunction(ctx, req)
+				_, err = runtime.ExecuteFunction(ctx, req)
 				if err != nil {
 					errors <- err
 				}
@@ -1296,34 +1461,24 @@ func TestExecutionHistory(t *testing.T) {
 	}
 
 	for i, funcImage := range functions {
-		var configMap map[string]interface{}
-		
-		// Different config for different functions
-		switch funcImage {
-		case "gcr.io/kpt-fn/set-labels:v0.2.0":
-			configMap = map[string]interface{}{
-				"labels": map[string]interface{}{
-					"test": "history",
-				},
-			}
-		case "gcr.io/kpt-fn/set-namespace:v0.4.1":
-			configMap = map[string]interface{}{
-				"namespace": "test-namespace",
-			}
-		default:
-			configMap = map[string]interface{}{}
+		configMapData := map[string]interface{}{
+			"namespace": "test-namespace",
+		}
+		configMapJSON, err := json.Marshal(configMapData)
+		if err != nil {
+			t.Fatalf("Failed to marshal config map: %v", err)
 		}
 		
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
-				Image:     funcImage,
-				ConfigMap: configMap,
+				Image: funcImage,
+				ConfigMap: configMapJSON,
 			},
 			Resources: resources,
 		}
 
 		start := time.Now()
-		_, err := runtime.ExecuteFunction(ctx, req)
+		_, err = runtime.ExecuteFunction(ctx, req)
 		assert.NoError(t, err)
 
 		// Verify execution was recorded
@@ -1335,7 +1490,7 @@ func TestExecutionHistory(t *testing.T) {
 		assert.NotNil(t, lastExecution.Request)
 		assert.NotNil(t, lastExecution.Response)
 		assert.True(t, lastExecution.Timestamp.After(start) || lastExecution.Timestamp.Equal(start))
-		assert.True(t, lastExecution.Duration >= 0) // Allow 0 duration for very fast execution
+		assert.True(t, lastExecution.Duration > 0)
 	}
 
 	// Test clearing history
@@ -1390,12 +1545,8 @@ func TestErrorHandling(t *testing.T) {
 
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
-				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: map[string]interface{}{
-					"labels": map[string]interface{}{
-						"test": "true",
-					},
-				},
+				Image:     "gcr.io/kpt-fn/set-labels:v0.2.0",
+				ConfigMap: json.RawMessage(`{}`),
 			},
 			Resources: []KRMResource{
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
@@ -1422,12 +1573,8 @@ func TestPerformanceCharacteristics(t *testing.T) {
 
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
-				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: map[string]interface{}{
-					"labels": map[string]interface{}{
-						"test": "true",
-					},
-				},
+				Image:     "gcr.io/kpt-fn/set-labels:v0.2.0",
+				ConfigMap: json.RawMessage(`{}`),
 			},
 			Resources: []KRMResource{
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
@@ -1456,15 +1603,19 @@ func BenchmarkFunctionExecution(b *testing.B) {
 		generateTestResource("v1", "Service", "test-service", "default"),
 	}
 
+	configMapData := map[string]interface{}{
+		"app": "test-app",
+		"env": "production",
+	}
+	configMapJSON, err := json.Marshal(configMapData)
+	if err != nil {
+		b.Fatalf("Failed to marshal config map: %v", err)
+	}
+
 	req := &FunctionRequest{
 		FunctionConfig: FunctionConfig{
 			Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-			ConfigMap: map[string]interface{}{
-				"labels": map[string]interface{}{
-					"app": "test-app",
-					"env": "production",
-				},
-			},
+			ConfigMap: configMapJSON,
 		},
 		Resources: resources,
 	}
@@ -1494,20 +1645,20 @@ func BenchmarkPipelineExecution(b *testing.B) {
 		Name: "benchmark-pipeline",
 		Functions: []FunctionConfig{
 			{
-				Image: "gcr.io/kpt-fn/set-namespace:v0.4.1",
-				ConfigMap: map[string]interface{}{
-					"namespace": "production",
-				},
+				Image:     "gcr.io/kpt-fn/set-namespace:v0.4.1",
+				ConfigMap: json.RawMessage(`{}`),
 			},
-			{
-				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: map[string]interface{}{
-					"labels": map[string]interface{}{
-						"app": "test-app",
-						"env": "production",
-					},
-				},
-			},
+			func() FunctionConfig {
+				configMapData := map[string]interface{}{
+					"app": "test-app",
+					"env": "production",
+				}
+				configMapJSON, _ := json.Marshal(configMapData)
+				return FunctionConfig{
+					Image:     "gcr.io/kpt-fn/set-labels:v0.2.0",
+					ConfigMap: configMapJSON,
+				}
+			}(),
 		},
 	}
 
@@ -1524,4 +1675,3 @@ func BenchmarkPipelineExecution(b *testing.B) {
 		}
 	}
 }
-func TestStub(t *testing.T) { t.Skip("Test disabled") }
