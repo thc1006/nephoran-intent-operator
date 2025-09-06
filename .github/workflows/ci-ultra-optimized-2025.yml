@@ -101,7 +101,7 @@ jobs:
       estimated-time: ${{ steps.estimate.outputs.estimated-time }}
       
     steps:
-      - name: ?“¥ Checkout with minimal depth
+      - name: ?ï¿½ï¿½ Checkout with minimal depth
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
@@ -144,7 +144,7 @@ jobs:
             echo "??Build required: $GO_CHANGES Go files, $BUILD_CHANGES build files changed"
           else
             echo "should-build=false" >> $GITHUB_OUTPUT
-            echo "?¹ï? No significant changes detected - skipping build"
+            echo "?ï¿½ï¿½? No significant changes detected - skipping build"
           fi
           
           echo "go-changes=$GO_CHANGES" >> $GITHUB_OUTPUT
@@ -168,10 +168,10 @@ jobs:
           echo "estimated-time=$TIME_EST" >> $GITHUB_OUTPUT
           echo "?? Estimated build time: $TIME_EST (mode: $BUILD_MODE)"
           
-      - name: ?§© Generate intelligent build matrix
+      - name: ?ï¿½ï¿½ Generate intelligent build matrix
         id: matrix
         run: |
-          echo "?§© Generating build matrix for mode: $BUILD_MODE"
+          echo "?ï¿½ï¿½ Generating build matrix for mode: $BUILD_MODE"
           
           case "$BUILD_MODE" in
             "minimal")
@@ -226,7 +226,7 @@ jobs:
               }'
               test_matrix='{
                 "include": [
-                  {"name": "unit-critical", "pattern": "./controllers/... ./api/...", "timeout": 6, "parallel": 4},
+                  {"name": "unit-critical", "pattern": "./controllers/... ./pkg/controllers/... ./api/...", "timeout": 6, "parallel": 4},
                   {"name": "unit-core", "pattern": "./pkg/context/... ./pkg/clients/... ./pkg/nephio/...", "timeout": 5, "parallel": 4}
                 ]
               }'
@@ -325,10 +325,10 @@ jobs:
           echo "?? Generated matrices:"
           echo "Build matrix: $build_matrix" | jq '.' 2>/dev/null || echo "$build_matrix"
           
-      - name: ??ï¸?Generate advanced cache keys
+      - name: ??ï¿½?Generate advanced cache keys
         id: cache
         run: |
-          echo "??ï¸?Generating intelligent cache keys..."
+          echo "??ï¿½?Generating intelligent cache keys..."
           
           # Multi-layer cache key generation for maximum hit rates
           GO_VERSION_HASH=$(echo "$GO_VERSION" | sha256sum | cut -c1-8)
@@ -379,7 +379,7 @@ jobs:
       matrix: ${{ fromJSON(needs.plan.outputs.build-matrix) }}
     
     steps:
-      - name: ?“¥ Checkout repository
+      - name: ?ï¿½ï¿½ Checkout repository
         uses: actions/checkout@v4
         
       - name: ??Setup Go 1.25 with optimizations
@@ -389,9 +389,9 @@ jobs:
           cache: false  # Manual cache management for better control
           check-latest: true
           
-      - name: ?”§ Configure ultra-optimized environment
+      - name: ?ï¿½ï¿½ Configure ultra-optimized environment
         run: |
-          echo "?”§ Configuring ultra-optimized build environment..."
+          echo "?ï¿½ï¿½ Configuring ultra-optimized build environment..."
           
           # Create optimized cache directories with proper permissions
           sudo mkdir -p $GOCACHE $GOMODCACHE
@@ -411,7 +411,7 @@ jobs:
           echo "  Module cache: $GOMODCACHE"
           echo "  Matrix config: ${{ matrix.name }} (priority: ${{ matrix.priority }})"
           
-      - name: ??ï¸?Restore ultra-aggressive cache
+      - name: ??ï¿½?Restore ultra-aggressive cache
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -426,17 +426,17 @@ jobs:
             ${{ fromJSON(needs.plan.outputs.cache-keys).fallback }}
             nephoran-ultra-v9-go
             
-      - name: ?“¦ Ultra-fast dependency resolution
+      - name: ?ï¿½ï¿½ Ultra-fast dependency resolution
         timeout-minutes: 10
         run: |
-          echo "?“¦ Ultra-fast dependency download and verification..."
+          echo "?ï¿½ï¿½ Ultra-fast dependency download and verification..."
           
           # Configure private repo access
           git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
           
           # Download with optimized retry logic
           for attempt in {1..3}; do
-            echo "  ?“¥ Download attempt $attempt/3..."
+            echo "  ?ï¿½ï¿½ Download attempt $attempt/3..."
             if timeout 120s go mod download -x; then
               echo "  ??Dependencies downloaded successfully"
               break
@@ -457,10 +457,10 @@ jobs:
           echo "  Total modules: $(go list -m all | wc -l)"
           echo "  Cache size: $(du -sh $GOMODCACHE 2>/dev/null | cut -f1 || echo 'unknown')"
           
-      - name: ??ï¸?Ultra-optimized component build - ${{ matrix.name }}
+      - name: ??ï¿½?Ultra-optimized component build - ${{ matrix.name }}
         timeout-minutes: ${{ matrix.timeout - 2 }}
         run: |
-          echo "??ï¸?Building ${{ matrix.name }} with ${{ matrix.optimization }} optimization"
+          echo "??ï¿½?Building ${{ matrix.name }} with ${{ matrix.optimization }} optimization"
           echo "  Components: ${{ matrix.components }}"
           echo "  Parallelism: ${{ matrix.parallel }}"
           echo "  Priority: ${{ matrix.priority }}"
@@ -497,53 +497,53 @@ jobs:
           esac
           
           export GOMAXPROCS=$PARALLEL_LEVEL
-          echo "  ?”§ Using $PARALLEL_LEVEL parallel processes"
+          echo "  ?ï¿½ï¿½ Using $PARALLEL_LEVEL parallel processes"
           
           # Build function with timeout and error handling
           build_component() {
             local component="$1"
             local timeout_sec="$2"
             
-            echo "    ?”¨ Building: $component"
+            echo "    ?ï¿½ï¿½ Building: $component"
             
             case "$component" in
               "api")
                 timeout ${timeout_sec}s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" ./api/... || {
-                  echo "    ? ï? API build issues (non-fatal)"
+                  echo "    ?ï¿½ï¿½? API build issues (non-fatal)"
                   return 0
                 }
                 ;;
                 
               "controllers")
                 timeout ${timeout_sec}s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" ./controllers/... || {
-                  echo "    ? ï? Controllers build issues (non-fatal)"
+                  echo "    ?ï¿½ï¿½? Controllers build issues (non-fatal)"
                   return 0
                 }
                 ;;
                 
               "pkg")
                 timeout ${timeout_sec}s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" ./pkg/... || {
-                  echo "    ? ï? Package build issues (non-fatal)"
+                  echo "    ?ï¿½ï¿½? Package build issues (non-fatal)"
                   return 0
                 }
                 ;;
                 
               "internal")
                 timeout ${timeout_sec}s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" ./internal/... || {
-                  echo "    ? ï? Internal build issues (non-fatal)"
+                  echo "    ?ï¿½ï¿½? Internal build issues (non-fatal)"
                   return 0
                 }
                 ;;
                 
               "all")
                 # Special case for debug builds
-                echo "    ?”¨ Building all components (debug mode)..."
+                echo "    ?ï¿½ï¿½ Building all components (debug mode)..."
                 
                 # Build in dependency order
-                timeout 180s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" ./api/... || echo "    ? ï? API build issues"
-                timeout 180s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" ./pkg/... || echo "    ? ï? Package build issues"
-                timeout 180s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" ./controllers/... || echo "    ? ï? Controller build issues"
-                timeout 180s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" ./internal/... || echo "    ? ï? Internal build issues"
+                timeout 180s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" ./api/... || echo "    ?ï¿½ï¿½? API build issues"
+                timeout 180s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" ./pkg/... || echo "    ?ï¿½ï¿½? Package build issues"
+                timeout 180s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" ./controllers/... || echo "    ?ï¿½ï¿½? Controller build issues"
+                timeout 180s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" ./internal/... || echo "    ?ï¿½ï¿½? Internal build issues"
                 
                 # Build all cmd directories
                 for cmd_dir in cmd/*/; do
@@ -551,7 +551,7 @@ jobs:
                     cmd_name=$(basename "$cmd_dir")
                     timeout 120s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" \
                       -o "bin/$cmd_name" "./$cmd_dir" || {
-                      echo "    ? ï? $cmd_name build failed (continuing...)"
+                      echo "    ?ï¿½ï¿½? $cmd_name build failed (continuing...)"
                       continue
                     }
                     
@@ -568,7 +568,7 @@ jobs:
                 if [[ -d "cmd/$component" && -f "cmd/$component/main.go" ]]; then
                   timeout ${timeout_sec}s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" \
                     -o "bin/$component" "./cmd/$component" || {
-                    echo "    ? ï? $component build failed (continuing...)"
+                    echo "    ?ï¿½ï¿½? $component build failed (continuing...)"
                     return 0
                   }
                   
@@ -577,7 +577,7 @@ jobs:
                     echo "    ??$component: $size"
                   fi
                 else
-                  echo "    ? ï? Unknown component or missing main.go: $component"
+                  echo "    ?ï¿½ï¿½? Unknown component or missing main.go: $component"
                 fi
                 ;;
             esac
@@ -589,7 +589,7 @@ jobs:
           component_count=${#COMPONENTS[@]}
           component_timeout=$((total_timeout_sec / component_count))
           
-          echo "  ?±ï? Building $component_count components with ${component_timeout}s timeout each"
+          echo "  ?ï¿½ï¿½? Building $component_count components with ${component_timeout}s timeout each"
           
           for component in "${COMPONENTS[@]}"; do
             build_component "$component" "$component_timeout"
@@ -602,17 +602,17 @@ jobs:
             built_count=$(ls -1 bin/ 2>/dev/null | wc -l)
             total_size=$(du -sh bin/ 2>/dev/null | cut -f1 || echo "0")
             echo "  ??Built binaries: $built_count"
-            echo "  ?“¦ Total size: $total_size"
+            echo "  ?ï¿½ï¿½ Total size: $total_size"
             
             if [[ $built_count -gt 0 ]]; then
-              echo "  ??ï¸?Built components:"
+              echo "  ??ï¿½?Built components:"
               ls -la bin/ | head -15
             fi
           else
-            echo "  ?“¦ Library-only build (no binaries)"
+            echo "  ?ï¿½ï¿½ Library-only build (no binaries)"
           fi
           
-      - name: ?’¾ Save ultra-aggressive cache
+      - name: ?ï¿½ï¿½ Save ultra-aggressive cache
         if: always()
         uses: actions/cache/save@v4
         with:
@@ -623,7 +623,7 @@ jobs:
             ~/go/pkg/mod
           key: ${{ fromJSON(needs.plan.outputs.cache-keys).primary }}
           
-      - name: ?“¤ Upload high-priority artifacts
+      - name: ?ï¿½ï¿½ Upload high-priority artifacts
         if: matrix.priority == 'critical' || matrix.priority == 'high'
         uses: actions/upload-artifact@v4
         with:
@@ -637,7 +637,7 @@ jobs:
   # TEST: Progressive testing with smart coverage
   # =============================================================================
   test:
-    name: ?§ª ${{ matrix.name }}
+    name: ?ï¿½ï¿½ ${{ matrix.name }}
     runs-on: ubuntu-latest
     needs: [plan, build]
     if: needs.plan.outputs.should-build == 'true' && env.BUILD_MODE != 'minimal'
@@ -649,7 +649,7 @@ jobs:
       matrix: ${{ fromJSON(needs.plan.outputs.test-matrix) }}
     
     steps:
-      - name: ?“¥ Checkout repository
+      - name: ?ï¿½ï¿½ Checkout repository
         uses: actions/checkout@v4
         
       - name: ??Setup Go 1.25 
@@ -658,9 +658,9 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: false
           
-      - name: ?”§ Configure test environment
+      - name: ?ï¿½ï¿½ Configure test environment
         run: |
-          echo "?§ª Configuring ultra-fast test environment for: ${{ matrix.name }}"
+          echo "?ï¿½ï¿½ Configuring ultra-fast test environment for: ${{ matrix.name }}"
           
           # Create cache directories
           sudo mkdir -p $GOCACHE $GOMODCACHE
@@ -673,7 +673,7 @@ jobs:
           echo "  Parallel test processes: ${{ matrix.parallel || 4 }}"
           echo "  Test pattern: ${{ matrix.pattern }}"
           
-      - name: ??ï¸?Restore test cache
+      - name: ??ï¿½?Restore test cache
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -684,11 +684,11 @@ jobs:
             ${{ fromJSON(needs.plan.outputs.cache-keys).secondary }}
             nephoran-ultra-v9-go
             
-      - name: ??ï¸?Setup Kubernetes test environment  
+      - name: ??ï¿½?Setup Kubernetes test environment  
         if: contains(matrix.pattern, 'controllers') || contains(matrix.pattern, 'api')
         timeout-minutes: 10
         run: |
-          echo "??ï¸?Setting up optimized Kubernetes test environment..."
+          echo "??ï¿½?Setting up optimized Kubernetes test environment..."
           
           # Install and configure envtest for controller testing
           go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
@@ -776,10 +776,10 @@ jobs:
             echo "**Coverage Percentage:** $coverage_pct" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
           else
-            echo "? ï? Coverage file not found: $coverage_file"
+            echo "?ï¿½ï¿½? Coverage file not found: $coverage_file"
           fi
           
-      - name: ?“¤ Upload test artifacts
+      - name: ?ï¿½ï¿½ Upload test artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -801,7 +801,7 @@ jobs:
     timeout-minutes: 10
     
     steps:
-      - name: ?“¥ Checkout repository
+      - name: ?ï¿½ï¿½ Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 1  # Full history for better analysis
@@ -812,13 +812,13 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: false
           
-      - name: ?”§ Configure quality environment
+      - name: ?ï¿½ï¿½ Configure quality environment
         run: |
           echo "?? Configuring ultra-fast quality checks..."
           sudo mkdir -p $GOCACHE $GOMODCACHE
           sudo chown -R $USER:$USER $GOCACHE $GOMODCACHE
           
-      - name: ??ï¸?Restore cache
+      - name: ??ï¿½?Restore cache
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -828,7 +828,7 @@ jobs:
           restore-keys: |
             nephoran-ultra-v9-go
             
-      - name: ?“¦ Fast dependency check
+      - name: ?ï¿½ï¿½ Fast dependency check
         timeout-minutes: 10
         run: |
           git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
@@ -887,17 +887,17 @@ jobs:
     timeout-minutes: 10
     
     steps:
-      - name: ?“¥ Checkout repository
+      - name: ?ï¿½ï¿½ Checkout repository
         uses: actions/checkout@v4
         
-      - name: ?“¤ Download build artifacts
+      - name: ?ï¿½ï¿½ Download build artifacts
         uses: actions/download-artifact@v4
         with:
           pattern: binaries-*
           path: artifacts/
           merge-multiple: true
           
-      - name: ?”§ Prepare integration environment
+      - name: ?ï¿½ï¿½ Prepare integration environment
         run: |
           echo "?? Setting up integration test environment..."
           
@@ -907,13 +907,13 @@ jobs:
           find artifacts/ -type f -executable -exec cp {} bin/ \; 2>/dev/null || true
           chmod +x bin/* 2>/dev/null || true
           
-          echo "?“¦ Available binaries:"
+          echo "?ï¿½ï¿½ Available binaries:"
           ls -la bin/ | head -10 || echo "No binaries found"
           
-      - name: ?”¥ Lightning smoke tests
+      - name: ?ï¿½ï¿½ Lightning smoke tests
         timeout-minutes: 10
         run: |
-          echo "?”¥ Executing lightning-fast smoke tests..."
+          echo "?ï¿½ï¿½ Executing lightning-fast smoke tests..."
           
           test_count=0
           pass_count=0
@@ -921,7 +921,7 @@ jobs:
           for binary in bin/*; do
             if [[ -x "$binary" ]]; then
               name=$(basename "$binary")
-              echo "  ?§ª Testing: $name"
+              echo "  ?ï¿½ï¿½ Testing: $name"
               test_count=$((test_count + 1))
               
               # Basic executable validation
@@ -939,7 +939,7 @@ jobs:
                   echo "    ??--help works"
                   pass_count=$((pass_count + 1))
                 else
-                  echo "    ? ï? No standard CLI (service binary)"
+                  echo "    ?ï¿½ï¿½? No standard CLI (service binary)"
                   pass_count=$((pass_count + 1))  # Count service binaries as pass
                 fi
               else
@@ -980,7 +980,7 @@ jobs:
           echo "# ?? Ultra-Optimized CI Pipeline 2025 - Execution Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "## ?™ï? Pipeline Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "## ?ï¿½ï¿½? Pipeline Configuration" >> $GITHUB_STEP_SUMMARY
           echo "- **Build Mode:** ${{ env.BUILD_MODE }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Go Version:** ${{ env.GO_VERSION }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Target:** ${{ env.GOOS }}/${{ env.GOARCH }}" >> $GITHUB_STEP_SUMMARY
@@ -1002,7 +1002,7 @@ jobs:
           echo "| Integration | ${{ needs.integration.result || 'skipped' }} | ~1-3 min | Smoke tests & validation |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-      - name: ?Ž¯ Final pipeline status determination
+      - name: ?ï¿½ï¿½ Final pipeline status determination
         run: |
           # Critical job failure tracking
           CRITICAL_FAILURES=""
@@ -1026,7 +1026,7 @@ jobs:
           
           # Integration failures are warnings only
           if [[ "${{ needs.integration.result }}" == "failure" ]]; then
-            echo "## ? ï? Integration Warning" >> $GITHUB_STEP_SUMMARY
+            echo "## ?ï¿½ï¿½? Integration Warning" >> $GITHUB_STEP_SUMMARY
             echo "Integration tests experienced issues but are not blocking." >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
           fi
@@ -1036,27 +1036,27 @@ jobs:
             echo "## ??Pipeline Failed" >> $GITHUB_STEP_SUMMARY
             echo "**Failed stages:** $CRITICAL_FAILURES" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "?”§ **Recommended Actions:**" >> $GITHUB_STEP_SUMMARY
+            echo "?ï¿½ï¿½ **Recommended Actions:**" >> $GITHUB_STEP_SUMMARY
             echo "1. Review failed job logs for specific error details" >> $GITHUB_STEP_SUMMARY
             echo "2. Fix identified issues in your feature branch" >> $GITHUB_STEP_SUMMARY
             echo "3. Consider running in 'debug' mode for detailed analysis" >> $GITHUB_STEP_SUMMARY
             echo "4. Verify Go 1.25 compatibility if build issues persist" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             
-            echo "?’¥ Critical pipeline failures detected"
+            echo "?ï¿½ï¿½ Critical pipeline failures detected"
             exit 1
           else
             echo "## ??Pipeline Succeeded" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "?Ž¯ **Key Achievements:**" >> $GITHUB_STEP_SUMMARY
+            echo "?ï¿½ï¿½ **Key Achievements:**" >> $GITHUB_STEP_SUMMARY
             echo "- ??Ultra-fast build completion with Go 1.25 optimizations" >> $GITHUB_STEP_SUMMARY
-            echo "- ??ï¸?All critical components built successfully" >> $GITHUB_STEP_SUMMARY
+            echo "- ??ï¿½?All critical components built successfully" >> $GITHUB_STEP_SUMMARY
             echo "- ?? Code quality standards maintained" >> $GITHUB_STEP_SUMMARY
-            echo "- ?§ Linux-optimized static binaries generated" >> $GITHUB_STEP_SUMMARY
-            echo "- ??ï¸?Intelligent caching system operational" >> $GITHUB_STEP_SUMMARY
+            echo "- ?ï¿½ï¿½ Linux-optimized static binaries generated" >> $GITHUB_STEP_SUMMARY
+            echo "- ??ï¿½?Intelligent caching system operational" >> $GITHUB_STEP_SUMMARY
             
             if [[ "${{ env.BUILD_MODE }}" != "minimal" ]]; then
-              echo "- ?§ª Test suites executed successfully" >> $GITHUB_STEP_SUMMARY
+              echo "- ?ï¿½ï¿½ Test suites executed successfully" >> $GITHUB_STEP_SUMMARY
             fi
             
             if [[ "${{ needs.integration.result }}" == "success" ]]; then

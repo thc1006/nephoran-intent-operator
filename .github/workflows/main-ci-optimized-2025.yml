@@ -131,7 +131,7 @@ jobs:
             echo "pkg-changes=$HAS_PKG_CHANGES" >> $GITHUB_OUTPUT
           else
             echo "should-build=false" >> $GITHUB_OUTPUT
-            echo "?¹ï? No significant changes - skipping build"
+            echo "?ï¿½ï¿½? No significant changes - skipping build"
           fi
 
       - name: Generate optimized cache key
@@ -217,7 +217,7 @@ jobs:
               
               test_matrix='{
                 "include": [
-                  {"name": "unit-critical", "pattern": "./controllers/... ./api/...", "timeout": 8, "coverage": true},
+                  {"name": "unit-critical", "pattern": "./controllers/... ./pkg/controllers/... ./api/...", "timeout": 8, "coverage": true},
                   {"name": "unit-core", "pattern": "./pkg/context/... ./pkg/clients/... ./pkg/nephio/...", "timeout": 6, "coverage": true}
                 ]
               }'
@@ -233,7 +233,7 @@ jobs:
                     "components": "controllers api",
                     "timeout": 18,
                     "parallel": 4,
-                    "test-pattern": "./controllers/... ./api/..."
+                    "test-pattern": "./controllers/... ./pkg/controllers/... ./api/..."
                   },
                   {
                     "name": "core-packages",
@@ -345,7 +345,7 @@ jobs:
 
       - name: Prepare optimized build environment
         run: |
-          echo "?”§ Setting up optimized build environment for: ${{ matrix.name }}"
+          echo "?ï¿½ï¿½ Setting up optimized build environment for: ${{ matrix.name }}"
           
           # Create optimized cache directories
           sudo mkdir -p /tmp/go-build-cache /tmp/go-mod-cache
@@ -376,7 +376,7 @@ jobs:
       - name: Download and verify dependencies (optimized)
         timeout-minutes: 10
         run: |
-          echo "?“¦ Downloading Go dependencies with optimization..."
+          echo "?ï¿½ï¿½ Downloading Go dependencies with optimization..."
           
           # Configure Git for private modules
           git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
@@ -391,7 +391,7 @@ jobs:
               echo "??Failed to download dependencies after 3 attempts"
               exit 1
             else
-              echo "? ï? Download failed, retrying in 10 seconds..."
+              echo "?ï¿½ï¿½? Download failed, retrying in 10 seconds..."
               sleep 10
             fi
           done
@@ -403,7 +403,7 @@ jobs:
       - name: Build components - ${{ matrix.name }}
         timeout-minutes: ${{ matrix.timeout - 3 }}
         run: |
-          echo "??ï¸?Building ${{ matrix.name }} (Priority: ${{ matrix.priority }})"
+          echo "??ï¿½?Building ${{ matrix.name }} (Priority: ${{ matrix.priority }})"
           echo "Components: ${{ matrix.components }}"
           
           mkdir -p bin/ dist/
@@ -419,13 +419,13 @@ jobs:
             local component="$1"
             local timeout_duration="${2:-180}"
             
-            echo "?”¨ Building: $component"
+            echo "?ï¿½ï¿½ Building: $component"
             
             case "$component" in
               "controllers")
                 echo "Building controllers..."
                 timeout ${timeout_duration}s go build $BUILD_FLAGS -tags="$BUILD_TAGS" ./controllers/... || {
-                  echo "? ï? Some controllers failed to build (continuing...)"
+                  echo "?ï¿½ï¿½? Some controllers failed to build (continuing...)"
                   return 0
                 }
                 ;;
@@ -433,7 +433,7 @@ jobs:
               "api"|"api/intent/v1alpha1")
                 echo "Building API packages..."
                 timeout ${timeout_duration}s go build $BUILD_FLAGS -tags="$BUILD_TAGS" ./api/... || {
-                  echo "? ï? Some API packages failed to build (continuing...)"
+                  echo "?ï¿½ï¿½? Some API packages failed to build (continuing...)"
                   return 0
                 }
                 ;;
@@ -444,7 +444,7 @@ jobs:
                   echo "Building command: $cmd_name"
                   timeout ${timeout_duration}s go build $BUILD_FLAGS -tags="$BUILD_TAGS" \
                     -o "bin/$cmd_name" "./$component" || {
-                    echo "? ï? $cmd_name build failed (continuing...)"
+                    echo "?ï¿½ï¿½? $cmd_name build failed (continuing...)"
                     return 0
                   }
                   
@@ -453,7 +453,7 @@ jobs:
                     echo "??$cmd_name: $(ls -lh bin/$cmd_name | awk '{print $5}')"
                   fi
                 else
-                  echo "? ï? Command directory not found or no main.go: $component"
+                  echo "?ï¿½ï¿½? Command directory not found or no main.go: $component"
                 fi
                 ;;
                 
@@ -461,7 +461,7 @@ jobs:
                 if [[ -d "$component" ]]; then
                   echo "Building package: $component"
                   timeout ${timeout_duration}s go build $BUILD_FLAGS -tags="$BUILD_TAGS" "./$component/..." || {
-                    echo "? ï? $component build failed (continuing...)"
+                    echo "?ï¿½ï¿½? $component build failed (continuing...)"
                     return 0
                   }
                 fi
@@ -470,7 +470,7 @@ jobs:
               "internal")
                 echo "Building internal packages..."
                 timeout ${timeout_duration}s go build $BUILD_FLAGS -tags="$BUILD_TAGS" ./internal/... || {
-                  echo "? ï? Some internal packages failed to build (continuing...)"
+                  echo "?ï¿½ï¿½? Some internal packages failed to build (continuing...)"
                   return 0
                 }
                 ;;
@@ -502,7 +502,7 @@ jobs:
                 ;;
                 
               *)
-                echo "? ï? Unknown component: $component"
+                echo "?ï¿½ï¿½? Unknown component: $component"
                 ;;
             esac
           }
@@ -571,7 +571,7 @@ jobs:
 
       - name: Prepare test environment
         run: |
-          echo "?§ª Preparing test environment for: ${{ matrix.name }}"
+          echo "?ï¿½ï¿½ Preparing test environment for: ${{ matrix.name }}"
           
           # Set up cache directories
           sudo mkdir -p /tmp/go-build-cache /tmp/go-mod-cache
@@ -594,7 +594,7 @@ jobs:
         if: contains(matrix.pattern, './controllers/') || contains(matrix.pattern, './api/')
         timeout-minutes: 10
         run: |
-          echo "??ï¸?Setting up Kubernetes test environment..."
+          echo "??ï¿½?Setting up Kubernetes test environment..."
           
           # Install envtest for controller testing
           go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
@@ -672,7 +672,7 @@ jobs:
             echo "**Coverage:** $coverage_pct" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
           else
-            echo "? ï? No coverage file found for ${{ matrix.name }}"
+            echo "?ï¿½ï¿½? No coverage file found for ${{ matrix.name }}"
           fi
 
       - name: Upload test results and coverage
@@ -786,7 +786,7 @@ jobs:
 
       - name: Prepare binaries for testing
         run: |
-          echo "?”§ Preparing binaries for integration tests..."
+          echo "?ï¿½ï¿½ Preparing binaries for integration tests..."
           
           mkdir -p bin/
           
@@ -800,7 +800,7 @@ jobs:
       - name: Binary smoke tests
         timeout-minutes: 10
         run: |
-          echo "?”¥ Running binary smoke tests..."
+          echo "?ï¿½ï¿½ Running binary smoke tests..."
           
           test_count=0
           success_count=0
@@ -829,7 +829,7 @@ jobs:
                   echo "  ??$name: -h works"
                   success_count=$((success_count + 1))
                 else
-                  echo "  ? ï? $name: No standard CLI interface (may be service binary)"
+                  echo "  ?ï¿½ï¿½? $name: No standard CLI interface (may be service binary)"
                   success_count=$((success_count + 1))  # Count as success for service binaries
                 fi
               else
@@ -866,13 +866,13 @@ jobs:
               if python3 -c "import yaml; yaml.safe_load_all(open('$yaml_file', 'r'))" 2>/dev/null; then
                 echo "  ??Valid YAML syntax"
               else
-                echo "  ? ï? YAML syntax issues detected"
+                echo "  ?ï¿½ï¿½? YAML syntax issues detected"
               fi
             fi
           done < <(find . -name "*.yaml" -o -name "*.yml" -print0 2>/dev/null)
           
           if [[ $manifest_count -eq 0 ]]; then
-            echo "?¹ï? No Kubernetes manifests found to validate"
+            echo "?ï¿½ï¿½? No Kubernetes manifests found to validate"
           else
             echo "?? Validated $manifest_count manifest files"
           fi
@@ -903,7 +903,7 @@ jobs:
           echo "- **Tests Skipped:** ${{ env.SKIP_TESTS }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "## ?Ž¯ Job Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## ?ï¿½ï¿½ Job Results Summary" >> $GITHUB_STEP_SUMMARY
           echo "| Job | Status | Notes |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| Setup | ${{ needs.setup.result }} | Change detection & matrix generation |" >> $GITHUB_STEP_SUMMARY
@@ -938,7 +938,7 @@ jobs:
           
           # Integration failures are warnings, not critical
           if [[ "${{ needs.integration.result }}" == "failure" ]]; then
-            echo "## ? ï? Integration Test Warning" >> $GITHUB_STEP_SUMMARY
+            echo "## ?ï¿½ï¿½? Integration Test Warning" >> $GITHUB_STEP_SUMMARY
             echo "Integration tests failed but are not blocking deployment." >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
           fi
@@ -948,17 +948,17 @@ jobs:
             echo "## ??Pipeline Failed" >> $GITHUB_STEP_SUMMARY
             echo "**Critical job failures:** $CRITICAL_FAILURES" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "?”§ **Next Steps:**" >> $GITHUB_STEP_SUMMARY
+            echo "?ï¿½ï¿½ **Next Steps:**" >> $GITHUB_STEP_SUMMARY
             echo "1. Check failed job logs for specific errors" >> $GITHUB_STEP_SUMMARY
             echo "2. Fix identified issues in your branch" >> $GITHUB_STEP_SUMMARY
             echo "3. Re-run the pipeline or push new commits" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "?’¥ CI Pipeline failed - critical jobs must pass"
+            echo "?ï¿½ï¿½ CI Pipeline failed - critical jobs must pass"
             exit 1
           else
             echo "## ??Pipeline Succeeded" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "?Ž¯ **Achievements:**" >> $GITHUB_STEP_SUMMARY
+            echo "?ï¿½ï¿½ **Achievements:**" >> $GITHUB_STEP_SUMMARY
             echo "- ??All critical components built successfully" >> $GITHUB_STEP_SUMMARY
             echo "- ??Code quality standards maintained" >> $GITHUB_STEP_SUMMARY
             echo "- ??Linux-optimized binaries generated" >> $GITHUB_STEP_SUMMARY

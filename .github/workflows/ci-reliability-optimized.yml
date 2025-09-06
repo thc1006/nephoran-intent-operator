@@ -329,7 +329,7 @@ jobs:
       matrix:
         test-suite:
           - name: "unit-critical"
-            pattern: "./controllers/... ./api/..."
+            pattern: "./controllers/... ./pkg/controllers/... ./api/..."
             timeout: 8
             coverage: true
           - name: "unit-core"

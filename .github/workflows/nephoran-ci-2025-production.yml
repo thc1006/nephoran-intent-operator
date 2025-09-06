@@ -207,7 +207,7 @@ jobs:
               {
                 "name": "Critical Path",
                 "components": ["controllers", "api"],
-                "test-pattern": "./controllers/... ./api/...",
+                "test-pattern": "./controllers/... ./pkg/controllers/... ./api/...",
                 "timeout": 25,
                 "priority": "critical",
                 "cache-suffix": "critical"

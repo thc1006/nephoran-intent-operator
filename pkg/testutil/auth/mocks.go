@@ -798,6 +798,12 @@ func (rbac *RBACManagerMock) CreatePermission(ctx context.Context, permission in
 	return permission, nil
 }
 
+// AssignRoleToUser assigns a role to a user (mock implementation) for RBACManagerMock
+func (rbac *RBACManagerMock) AssignRoleToUser(ctx context.Context, userID, roleID string) error {
+	// Mock implementation - just return success
+	return nil
+}
+
 // ToJSON serializes mock data to JSON for debugging.
 
 func (m *MockAuthenticator) ToJSON() ([]byte, error) {

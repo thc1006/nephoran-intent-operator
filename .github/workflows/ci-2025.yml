@@ -144,7 +144,7 @@ jobs:
               {
                 "name": "Critical Components",
                 "components": "cmd/intent-ingest cmd/llm-processor cmd/conductor-loop controllers",
-                "test-pattern": "./controllers/... ./api/...",
+                "test-pattern": "./controllers/... ./pkg/controllers/... ./api/...",
                 "timeout": 15,
                 "priority": "high"
               },
@@ -445,7 +445,7 @@ jobs:
               sort -k3 -nr >> "test-results/coverage-detailed-${{ matrix.name }}.txt"
             
           else
-            echo "? ï? No coverage profile found for ${{ matrix.name }}"
+            echo "?ï¿½ï¿½? No coverage profile found for ${{ matrix.name }}"
             echo "This may indicate that tests did not run or failed"
             touch "test-results/coverage-missing-${{ matrix.name }}.txt"
             echo "No coverage data available" > "test-results/coverage-missing-${{ matrix.name }}.txt"
@@ -664,7 +664,7 @@ jobs:
           
           # Integration tests are important but not critical
           if [ "${{ needs.integration.result }}" = "failure" ]; then
-            echo "? ï? Integration tests failed (non-critical)" >> $GITHUB_STEP_SUMMARY
+            echo "?ï¿½ï¿½? Integration tests failed (non-critical)" >> $GITHUB_STEP_SUMMARY
           fi
           
           # Final status
@@ -672,13 +672,13 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "**Status: FAILED** ?? >> $GITHUB_STEP_SUMMARY
             echo "Failed jobs: $FAILED_JOBS" >> $GITHUB_STEP_SUMMARY
-            echo "?’¥ CI Pipeline failed - check job outputs above"
+            echo "?ï¿½ï¿½ CI Pipeline failed - check job outputs above"
             exit 1
           else
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "**Status: PASSED** ?? >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "?Ž¯ **Achievements:**" >> $GITHUB_STEP_SUMMARY
+            echo "?ï¿½ï¿½ **Achievements:**" >> $GITHUB_STEP_SUMMARY
             echo "- ??All critical components built successfully" >> $GITHUB_STEP_SUMMARY
             echo "- ??Code quality checks passed" >> $GITHUB_STEP_SUMMARY
             echo "- ??Security scans completed" >> $GITHUB_STEP_SUMMARY
