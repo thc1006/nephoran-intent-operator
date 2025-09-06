@@ -304,7 +304,7 @@ func (suite *BenchmarkTestSuite) TestLoadTesting() {
 	ginkgo.Describe("Load Testing", func() {
 		ginkgo.Context("Intent Processing Load", func() {
 			ginkgo.It("should handle 1000 concurrent intents", func() {
-				if !suite.GetConfig().LoadTestEnabled {
+				if !suite.GetTestConfig().LoadTestEnabled {
 					ginkgo.Skip("Load testing disabled")
 				}
 
@@ -374,7 +374,7 @@ func (suite *BenchmarkTestSuite) TestLoadTesting() {
 
 		ginkgo.Context("Memory Pressure Testing", func() {
 			ginkgo.It("should handle memory pressure gracefully", func() {
-				if !suite.GetConfig().LoadTestEnabled {
+				if !suite.GetTestConfig().LoadTestEnabled {
 					ginkgo.Skip("Load testing disabled")
 				}
 
@@ -430,7 +430,7 @@ func (suite *BenchmarkTestSuite) TestLoadTesting() {
 
 		ginkgo.Context("Concurrent Processing", func() {
 			ginkgo.It("should maintain performance under high concurrency", func() {
-				if !suite.GetConfig().LoadTestEnabled {
+				if !suite.GetTestConfig().LoadTestEnabled {
 					ginkgo.Skip("Load testing disabled")
 				}
 

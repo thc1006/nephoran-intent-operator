@@ -590,8 +590,12 @@ func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nep
 func (r *AuditTrailController) updateStatusError(ctx context.Context, auditTrail *nephv1.AuditTrail, err error, log logr.Logger) error {
 	now := metav1.Now()
 
-	auditTrail.Status.Phase = "Failed"
+	// Initialize status if not already initialized to prevent nil pointer panic
+	if auditTrail.Status.Phase == "" && auditTrail.Status.LastUpdate == nil {
+		auditTrail.Status = nephv1.AuditTrailStatus{}
+	}
 
+	auditTrail.Status.Phase = "Failed"
 	auditTrail.Status.LastUpdate = &now
 
 	auditTrail.Status.Conditions = []metav1.Condition{

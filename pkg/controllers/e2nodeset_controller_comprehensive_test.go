@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -18,9 +19,16 @@ import (
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/testutil"
+	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 	gitfake "github.com/thc1006/nephoran-intent-operator/pkg/git/fake"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/e2"
 )
+
+// createTestE2NodeSetReconciler creates a test reconciler with properly initialized metrics
+func createTestE2NodeSetReconciler(client client.Client, scheme *runtime.Scheme, gitClient git.ClientInterface, e2Manager e2.E2ManagerInterface) *E2NodeSetReconciler {
+	// Use the new test helper function for consistent initialization
+	return NewTestE2NodeSetReconciler(client, scheme, gitClient, e2Manager)
+}
 
 func TestE2NodeSetController_Reconcile(t *testing.T) {
 	testCases := []struct {
@@ -357,12 +365,7 @@ func TestE2NodeSetController_Reconcile(t *testing.T) {
 				Build()
 
 			// Create reconciler
-			reconciler := &E2NodeSetReconciler{
-				Client:    fakeClient,
-				Scheme:    s,
-				GitClient: gitClient,
-				E2Manager: e2Manager,
-			}
+			reconciler := createTestE2NodeSetReconciler(fakeClient, s, gitClient, e2Manager)
 
 			// Execute reconcile
 			ctx := context.Background()
@@ -427,12 +430,7 @@ func TestE2NodeSetController_EdgeCases(t *testing.T) {
 					WithObjects(e2nodeSet).
 					Build()
 
-				reconciler := &E2NodeSetReconciler{
-					Client:    fakeClient,
-					Scheme:    s,
-					GitClient: gitfake.NewClient(),
-					E2Manager: nil, // Nil E2Manager
-				}
+				reconciler := createTestE2NodeSetReconciler(fakeClient, s, gitfake.NewClient(), nil)
 
 				return reconciler, e2nodeSet, context.Background()
 			},
@@ -460,12 +458,7 @@ func TestE2NodeSetController_EdgeCases(t *testing.T) {
 					WithObjects(e2nodeSet).
 					Build()
 
-				reconciler := &E2NodeSetReconciler{
-					Client:    fakeClient,
-					Scheme:    s,
-					GitClient: gitfake.NewClient(),
-					E2Manager: testutil.NewFakeE2Manager(),
-				}
+				reconciler := createTestE2NodeSetReconciler(fakeClient, s, gitfake.NewClient(), testutil.NewFakeE2Manager())
 
 				// Create cancelled context
 				ctx, cancel := context.WithCancel(context.Background())
@@ -524,12 +517,7 @@ func TestE2NodeSetController_ConcurrentUpdates(t *testing.T) {
 	e2Manager := testutil.NewFakeE2Manager()
 	gitClient := gitfake.NewClient()
 
-	reconciler := &E2NodeSetReconciler{
-		Client:    fakeClient,
-		Scheme:    s,
-		GitClient: gitClient,
-		E2Manager: e2Manager,
-	}
+	reconciler := createTestE2NodeSetReconciler(fakeClient, s, gitClient, e2Manager)
 
 	ctx := context.Background()
 	req := reconcile.Request{
@@ -625,12 +613,7 @@ func TestE2NodeSetController_FinalizerHandling(t *testing.T) {
 				WithObjects(tc.initialState).
 				Build()
 
-			reconciler := &E2NodeSetReconciler{
-				Client:    fakeClient,
-				Scheme:    s,
-				GitClient: gitfake.NewClient(),
-				E2Manager: testutil.NewFakeE2Manager(),
-			}
+			reconciler := createTestE2NodeSetReconciler(fakeClient, s, gitfake.NewClient(), testutil.NewFakeE2Manager())
 
 			ctx := context.Background()
 			req := reconcile.Request{

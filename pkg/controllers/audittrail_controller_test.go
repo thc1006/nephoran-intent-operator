@@ -92,7 +92,7 @@ func (suite *AuditTrailControllerTestSuite) TestControllerLifecycle() {
 						Enabled: true,
 						Name:    "test-file-backend",
 						Settings: runtime.RawExtension{
-							Raw: []byte(`{"path": "/tmp/test-audit.log"}`),
+							Raw: json.RawMessage(`{"path": "/tmp/test-audit.log"}`),
 						},
 					},
 				},
@@ -144,7 +144,7 @@ func (suite *AuditTrailControllerTestSuite) TestControllerLifecycle() {
 			Enabled: true,
 			Name:    "test-syslog-backend",
 			Settings: runtime.RawExtension{
-				Raw: []byte(`{"network": "udp", "address": "localhost:514"}`),
+				Raw: json.RawMessage(`{"network": "udp", "address": "localhost:514"}`),
 			},
 		})
 
@@ -222,7 +222,7 @@ func (suite *AuditTrailControllerTestSuite) TestConfigurationHandling() {
 						Name:    "es-backend",
 						Format:  "json",
 						Settings: runtime.RawExtension{
-							Raw: []byte(`{"urls": ["http://localhost:9200"], "index": "audit-logs"}`),
+							Raw: json.RawMessage(`{"urls": ["http://localhost:9200"], "index": "audit-logs"}`),
 						},
 						RetryPolicy: &nephv1.RetryPolicySpec{
 							MaxRetries:   5,
@@ -372,7 +372,7 @@ func (suite *AuditTrailControllerTestSuite) TestErrorHandling() {
 						Enabled: true,
 						Name:    "invalid-backend",
 						Settings: runtime.RawExtension{
-							Raw: []byte(`invalid json`),
+							Raw: json.RawMessage(`invalid json`),
 						},
 					},
 				},
@@ -455,7 +455,7 @@ func (suite *AuditTrailControllerTestSuite) TestStatusUpdates() {
 						Enabled: true,
 						Name:    "status-file-backend",
 						Settings: runtime.RawExtension{
-							Raw: []byte(`{"path": "/tmp/status-test.log"}`),
+							Raw: json.RawMessage(`{"path": "/tmp/status-test.log"}`),
 						},
 					},
 				},
@@ -706,7 +706,7 @@ func (suite *AuditTrailControllerTestSuite) TestKubernetesIntegration() {
 						Enabled: true,
 						Name:    "secret-webhook",
 						Settings: runtime.RawExtension{
-							Raw: []byte(`{"url": "https://webhook.example.com/audit", "auth": {"type": "basic", "username_secret": "audit-backend-secret", "password_secret": "audit-backend-secret"}}`),
+							Raw: json.RawMessage(`{"url": "https://webhook.example.com/audit", "auth": {"type": "basic", "username_secret": "audit-backend-secret", "password_secret": "audit-backend-secret"}}`),
 						},
 					},
 				},
@@ -764,7 +764,7 @@ func (suite *AuditTrailControllerTestSuite) TestKubernetesIntegration() {
 						Enabled: true,
 						Name:    "configmap-elasticsearch",
 						Settings: runtime.RawExtension{
-							Raw: []byte(`{"urls": ["http://localhost:9200"], "index": "audit-logs", "config_from_configmap": {"name": "audit-backend-config", "key": "elasticsearch.json"}}`),
+							Raw: json.RawMessage(`{"urls": ["http://localhost:9200"], "index": "audit-logs", "config_from_configmap": {"name": "audit-backend-config", "key": "elasticsearch.json"}}`),
 						},
 					},
 				},
@@ -890,7 +890,7 @@ func TestAuditTrailControllerScenarios(t *testing.T) {
 						Enabled: true,
 						Name:    "main-file",
 						Settings: runtime.RawExtension{
-							Raw: []byte(`{"path": "/var/log/audit.log"}`),
+							Raw: json.RawMessage(`{"path": "/var/log/audit.log"}`),
 						},
 					},
 					{
@@ -898,7 +898,7 @@ func TestAuditTrailControllerScenarios(t *testing.T) {
 						Enabled: true,
 						Name:    "syslog-backend",
 						Settings: runtime.RawExtension{
-							Raw: []byte(`{"network": "tcp", "address": "syslog.local:514"}`),
+							Raw: json.RawMessage(`{"network": "tcp", "address": "syslog.local:514"}`),
 						},
 					},
 				},

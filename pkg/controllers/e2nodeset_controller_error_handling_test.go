@@ -121,11 +121,16 @@ func createTestReconciler(mockClient client.Client, mockRecorder record.EventRec
 	_ = nephoranv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
 
-	return &E2NodeSetReconciler{
+	r := &E2NodeSetReconciler{
 		Client:   mockClient,
 		Scheme:   scheme,
 		Recorder: mockRecorder,
 	}
+	
+	// Initialize metrics to prevent nil pointer panics in tests
+	r.RegisterMetrics()
+	
+	return r
 }
 
 func TestCalculateExponentialBackoffForOperation(t *testing.T) {

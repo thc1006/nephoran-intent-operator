@@ -774,11 +774,11 @@ func (cpt *ComprehensivePerformanceTester) waitForDeployment(ctx context.Context
 				continue
 			}
 
-			if current.Status.Phase == nephranv1.PhaseDeployed {
+			if current.Status.Phase == nephranv1.NetworkIntentPhaseDeployed {
 				return true
 			}
 
-			if current.Status.Phase == nephranv1.PhaseFailed {
+			if current.Status.Phase == nephranv1.NetworkIntentPhaseFailed {
 				return false
 			}
 		}
@@ -805,8 +805,8 @@ func (cpt *ComprehensivePerformanceTester) waitForProcessing(ctx context.Context
 			}
 
 			// Consider it successful if it's past pending phase
-			if current.Status.Phase != "" && current.Status.Phase != nephranv1.PhasePending {
-				return current.Status.Phase != nephranv1.PhaseFailed
+			if current.Status.Phase != "" && current.Status.Phase != nephranv1.NetworkIntentPhasePending {
+				return current.Status.Phase != nephranv1.NetworkIntentPhaseFailed
 			}
 		}
 	}

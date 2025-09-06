@@ -184,11 +184,18 @@ type E2NodeSetReconciler struct {
 	reconcileErrors prometheus.CounterVec
 
 	heartbeatsTotal prometheus.CounterVec
+	
+	// Metrics registration state
+	metricsRegistered bool
 }
 
 // RegisterMetrics registers Prometheus metrics.
 
 func (r *E2NodeSetReconciler) RegisterMetrics() {
+	// Guard against double registration
+	if r.metricsRegistered {
+		return
+	}
 	r.nodesTotal = *prometheus.NewGaugeVec(
 
 		prometheus.GaugeOpts{
@@ -256,6 +263,9 @@ func (r *E2NodeSetReconciler) RegisterMetrics() {
 
 		&r.heartbeatsTotal,
 	)
+	
+	// Mark as registered
+	r.metricsRegistered = true
 }
 
 //+kubebuilder:rbac:groups=nephoran.com,resources=e2nodesets,verbs=get;list;watch;create;update;patch;delete
@@ -1233,6 +1243,11 @@ func (r *E2NodeSetReconciler) configMapNeedsUpdate(configMap *corev1.ConfigMap, 
 // updateMetrics updates Prometheus metrics for the E2NodeSet.
 
 func (r *E2NodeSetReconciler) updateMetrics(e2nodeSet *nephoranv1.E2NodeSet) {
+	// Skip if metrics not registered (safe for tests)
+	if !r.metricsRegistered {
+		return
+	}
+	
 	r.nodesTotal.WithLabelValues(e2nodeSet.Namespace, e2nodeSet.Name).Set(float64(e2nodeSet.Status.CurrentReplicas))
 
 	r.nodesReady.WithLabelValues(e2nodeSet.Namespace, e2nodeSet.Name).Set(float64(e2nodeSet.Status.ReadyReplicas))

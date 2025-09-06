@@ -186,7 +186,7 @@ func (suite *LLMTestSuite) TestContextBuilder() {
 		var contextBuilder *llm.ContextBuilder
 
 		ginkgo.BeforeEach(func() {
-			config := &llm.Config{
+			config := &llm.ContextBuilderConfig{
 				MaxContextTokens:   4000,
 				DiversityThreshold: 0.7,
 				QualityThreshold:   0.8,
