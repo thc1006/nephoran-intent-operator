@@ -134,10 +134,13 @@ jobs:
       - name: "🧹 Pre-Cache Cleanup"
         run: |
           echo "🧹 Cleaning potential cache conflicts..."
-          # Remove any existing Go toolchain files that might conflict
-          sudo rm -rf ~/go/pkg/mod/golang.org/toolchain* 2>/dev/null || true
-          # Clean any corrupted cache entries
-          sudo rm -rf ~/.cache/go-build/*/golang.org/toolchain* 2>/dev/null || true
+          # Remove entire cache directories to prevent file conflicts
+          sudo rm -rf ~/go/pkg/mod ~/.cache/go-build 2>/dev/null || true
+          # Clean any incomplete extractions and partial files
+          find ~/go -name "*.partial~" -delete 2>/dev/null || true
+          # Recreate directories with proper permissions
+          mkdir -p ~/go/pkg/mod ~/.cache/go-build
+          chmod -R 755 ~/go ~/.cache/go-build 2>/dev/null || true
           echo "✅ Pre-cache cleanup completed"
           
       - name: "🎯 Multi-Layer Dependency Cache"
@@ -240,11 +243,13 @@ jobs:
       - name: "🧹 Pre-Cache Cleanup (Fast Validation)"
         run: |
           echo "🧹 Cleaning potential Go toolchain conflicts..."
-          # Remove any existing Go toolchain files that might conflict during cache restore
-          sudo rm -rf ~/go/pkg/mod/golang.org/toolchain* 2>/dev/null || true
-          sudo rm -rf ~/.cache/go-build/*/golang.org/toolchain* 2>/dev/null || true
-          # Clean any incomplete extractions
-          find ~/go/pkg/mod -name "*.partial~" -delete 2>/dev/null || true
+          # Remove entire cache directories to prevent file conflicts
+          sudo rm -rf ~/go/pkg/mod ~/.cache/go-build 2>/dev/null || true
+          # Clean any incomplete extractions and partial files
+          find ~/go -name "*.partial~" -delete 2>/dev/null || true
+          # Recreate directories with proper permissions
+          mkdir -p ~/go/pkg/mod ~/.cache/go-build
+          chmod -R 755 ~/go ~/.cache/go-build 2>/dev/null || true
           echo "✅ Pre-cache cleanup completed"
           
       - name: Restore dependency cache
@@ -312,9 +317,13 @@ jobs:
       - name: "🧹 Pre-Cache Cleanup (Component Tests)"
         run: |
           echo "🧹 Cleaning potential Go toolchain conflicts..."
-          sudo rm -rf ~/go/pkg/mod/golang.org/toolchain* 2>/dev/null || true
-          sudo rm -rf ~/.cache/go-build/*/golang.org/toolchain* 2>/dev/null || true
-          find ~/go/pkg/mod -name "*.partial~" -delete 2>/dev/null || true
+          # Remove entire cache directories to prevent file conflicts
+          sudo rm -rf ~/go/pkg/mod ~/.cache/go-build 2>/dev/null || true
+          # Clean any incomplete extractions and partial files
+          find ~/go -name "*.partial~" -delete 2>/dev/null || true
+          # Recreate directories with proper permissions
+          mkdir -p ~/go/pkg/mod ~/.cache/go-build
+          chmod -R 755 ~/go ~/.cache/go-build 2>/dev/null || true
           echo "✅ Pre-cache cleanup completed"
           
       - name: Restore dependency cache
@@ -377,9 +386,13 @@ jobs:
       - name: "🧹 Pre-Cache Cleanup (Full Build)"
         run: |
           echo "🧹 Cleaning potential Go toolchain conflicts..."
-          sudo rm -rf ~/go/pkg/mod/golang.org/toolchain* 2>/dev/null || true
-          sudo rm -rf ~/.cache/go-build/*/golang.org/toolchain* 2>/dev/null || true
-          find ~/go/pkg/mod -name "*.partial~" -delete 2>/dev/null || true
+          # Remove entire cache directories to prevent file conflicts
+          sudo rm -rf ~/go/pkg/mod ~/.cache/go-build 2>/dev/null || true
+          # Clean any incomplete extractions and partial files
+          find ~/go -name "*.partial~" -delete 2>/dev/null || true
+          # Recreate directories with proper permissions
+          mkdir -p ~/go/pkg/mod ~/.cache/go-build
+          chmod -R 755 ~/go ~/.cache/go-build 2>/dev/null || true
           echo "✅ Pre-cache cleanup completed"
           
       - name: Restore dependency cache
@@ -460,9 +473,13 @@ jobs:
       - name: "🧹 Pre-Cache Cleanup (Security Scan)"
         run: |
           echo "🧹 Cleaning potential Go toolchain conflicts..."
-          sudo rm -rf ~/go/pkg/mod/golang.org/toolchain* 2>/dev/null || true
-          sudo rm -rf ~/.cache/go-build/*/golang.org/toolchain* 2>/dev/null || true
-          find ~/go/pkg/mod -name "*.partial~" -delete 2>/dev/null || true
+          # Remove entire cache directories to prevent file conflicts
+          sudo rm -rf ~/go/pkg/mod ~/.cache/go-build 2>/dev/null || true
+          # Clean any incomplete extractions and partial files
+          find ~/go -name "*.partial~" -delete 2>/dev/null || true
+          # Recreate directories with proper permissions
+          mkdir -p ~/go/pkg/mod ~/.cache/go-build
+          chmod -R 755 ~/go ~/.cache/go-build 2>/dev/null || true
           echo "✅ Pre-cache cleanup completed"
           
       - name: Restore dependency cache
