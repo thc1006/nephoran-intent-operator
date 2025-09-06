@@ -12,7 +12,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/golang-jwt/jwt/v5"
 	
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	authtestutil "github.com/thc1006/nephoran-intent-operator/pkg/testutil/auth"
