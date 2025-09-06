@@ -300,6 +300,11 @@ func (r *E2NodeSetReconciler) RegisterMetrics() {
 func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
+	// Validate that E2Manager is available
+	if r.E2Manager == nil {
+		return ctrl.Result{}, fmt.Errorf("E2Manager is not initialized")
+	}
+
 	startTime := time.Now()
 
 	result := "success"
@@ -621,6 +626,7 @@ func (r *E2NodeSetReconciler) scaleUpE2Nodes(ctx context.Context, e2nodeSet *nep
 	if r.E2Manager != nil && len(currentConfigMaps) == 0 {
 		if err := r.E2Manager.ProvisionNode(ctx, e2nodeSet.Spec); err != nil {
 			logger.Error(err, "Failed to provision E2NodeSet")
+			return err
 		}
 	}
 
@@ -659,6 +665,7 @@ func (r *E2NodeSetReconciler) scaleUpE2Nodes(ctx context.Context, e2nodeSet *nep
 			// Setup E2 connection
 			if err := r.E2Manager.SetupE2Connection(nodeID, ricEndpoint); err != nil {
 				logger.Error(err, "Failed to setup E2 connection", "nodeId", nodeID, "endpoint", ricEndpoint)
+				return err
 			}
 			
 			// Register E2 node
