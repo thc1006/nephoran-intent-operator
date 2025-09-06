@@ -55,7 +55,7 @@ env:
   GO_DISABLE_TELEMETRY: "1"
   
   # Build flags for static linking (Linux only)
-  BUILD_FLAGS: "-trimpath -ldflags='-s -w -extldflags=-static'"
+  BUILD_FLAGS: "-trimpath"
   TEST_FLAGS: "-v -race -count=1 -timeout=30m"
   CACHE_VERSION: "v2025-timeout-fix"
 
