@@ -1,6 +1,7 @@
 package chaos
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -9,8 +10,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	porchclient "github.com/thc1006/nephoran-intent-operator/pkg/porch"
+	porchclient "github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 	"github.com/thc1006/nephoran-intent-operator/test/testutil"
 )
 
@@ -65,12 +67,12 @@ func TestPorchResilienceUnderFailure(t *testing.T) {
 					// Mock porch package creation using the porch client
 					packageRevision := &porchclient.PackageRevision{
 						ObjectMeta: metav1.ObjectMeta{
-							Name: pkgName,
+							Name:      pkgName,
 							Namespace: "nephio-chaos",
 						},
 						Spec: porchclient.PackageRevisionSpec{
-							Repository:  "chaos-test-repo",
 							PackageName: pkgName,
+							Repository:  "chaos-test-repo",
 							Revision:    "v1",
 							Lifecycle:   porchclient.PackageRevisionLifecycleDraft,
 						},
@@ -104,16 +106,25 @@ func TestPorchResilienceUnderFailure(t *testing.T) {
 		pkgName := fmt.Sprintf("slow-response-pkg-%d", time.Now().UnixNano())
 		
 		// Mock porch package creation for slow response test
-		packageReq := &porchclient.PackageRequest{
-			Repository: "slow-response-repo",
-			Package:    pkgName,
-			Workspace:  "main",
-			Namespace:  "nephio-chaos",
+		packageRevision := &porchclient.PackageRevision{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      pkgName,
+				Namespace: "nephio-chaos",
+			},
+			Spec: porchclient.PackageRevisionSpec{
+				PackageName: pkgName,
+				Repository:  "slow-response-repo",
+				Revision:    "v1",
+				Lifecycle:   porchclient.PackageRevisionLifecycleDraft,
+			},
 		}
 
 		// Simulate slow server response
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		
 		startTime := time.Now()
-		createdPkg, err := porchClient.CreatePackageRevision(packageReq)
+		createdPkg, err := porchClient.CreatePackageRevision(ctx, packageRevision)
 		duration := time.Since(startTime)
 
 		require.NoError(t, err, "Failed to create package with slow response")
