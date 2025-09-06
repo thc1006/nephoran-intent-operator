@@ -22,6 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/e2"
 )
 
 // MockClient provides a mock implementation of client.Client for testing error scenarios
@@ -88,6 +89,56 @@ func (m *MockEventRecorder) AnnotatedEventf(object runtime.Object, annotations m
 	m.Called(object, annotations, eventtype, reason, messageFmt, args)
 }
 
+// MockE2Manager provides a mock implementation of e2.E2ManagerInterface for testing
+type MockE2Manager struct {
+	mock.Mock
+}
+
+func (m *MockE2Manager) SetupE2Connection(nodeID, endpoint string) error {
+	args := m.Called(nodeID, endpoint)
+	return args.Error(0)
+}
+
+func (m *MockE2Manager) RegisterE2Node(ctx context.Context, nodeID string, ranFunctions []e2.RanFunction) error {
+	args := m.Called(ctx, nodeID, ranFunctions)
+	return args.Error(0)
+}
+
+func (m *MockE2Manager) DeregisterE2Node(ctx context.Context, nodeID string) error {
+	args := m.Called(ctx, nodeID)
+	return args.Error(0)
+}
+
+func (m *MockE2Manager) ListE2Nodes(ctx context.Context) ([]*e2.E2Node, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]*e2.E2Node), args.Error(1)
+}
+
+func (m *MockE2Manager) ProvisionNode(ctx context.Context, spec nephoranv1.E2NodeSetSpec) error {
+	args := m.Called(ctx, spec)
+	return args.Error(0)
+}
+
+func (m *MockE2Manager) SubscribeE2(req *e2.E2SubscriptionRequest) (*e2.E2Subscription, error) {
+	args := m.Called(req)
+	return args.Get(0).(*e2.E2Subscription), args.Error(1)
+}
+
+func (m *MockE2Manager) SendControlMessage(ctx context.Context, nodeID string, controlReq *e2.RICControlRequest) (*e2.RICControlAcknowledge, error) {
+	args := m.Called(ctx, nodeID, controlReq)
+	return args.Get(0).(*e2.RICControlAcknowledge), args.Error(1)
+}
+
+func (m *MockE2Manager) GetMetrics() *e2.E2Metrics {
+	args := m.Called()
+	return args.Get(0).(*e2.E2Metrics)
+}
+
+func (m *MockE2Manager) Shutdown() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
 // Test helper functions
 
 func createTestE2NodeSet(name, namespace string, replicas int32) *nephoranv1.E2NodeSet {
@@ -116,15 +167,16 @@ func createTestE2NodeSet(name, namespace string, replicas int32) *nephoranv1.E2N
 	}
 }
 
-func createTestReconciler(mockClient client.Client, mockRecorder record.EventRecorder) *E2NodeSetReconciler {
+func createTestReconciler(mockClient client.Client, mockRecorder record.EventRecorder, mockE2Manager e2.E2ManagerInterface) *E2NodeSetReconciler {
 	scheme := runtime.NewScheme()
 	_ = nephoranv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
 
 	r := &E2NodeSetReconciler{
-		Client:   mockClient,
-		Scheme:   scheme,
-		Recorder: mockRecorder,
+		Client:    mockClient,
+		Scheme:    scheme,
+		Recorder:  mockRecorder,
+		E2Manager: mockE2Manager,
 	}
 	
 	// Initialize metrics to prevent nil pointer panics in tests
@@ -323,8 +375,9 @@ func TestConfigMapCreationErrorHandling(t *testing.T) {
 
 			mockClient := &MockClient{Client: fakeClient}
 			mockRecorder := &MockEventRecorder{}
+			mockE2Manager := &MockE2Manager{}
 
-			reconciler := createTestReconciler(mockClient, mockRecorder)
+			reconciler := createTestReconciler(mockClient, mockRecorder, mockE2Manager)
 
 			// Mock Get calls to return the E2NodeSet from fake client
 			mockClient.On("Get", mock.Anything, mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
@@ -404,8 +457,9 @@ func TestConfigMapUpdateErrorHandling(t *testing.T) {
 
 	mockClient := &MockClient{Client: fakeClient}
 	mockRecorder := &MockEventRecorder{}
+	mockE2Manager := &MockE2Manager{}
 
-	reconciler := createTestReconciler(mockClient, mockRecorder)
+	reconciler := createTestReconciler(mockClient, mockRecorder, mockE2Manager)
 
 	// Mock Get calls to return the E2NodeSet from fake client
 	mockClient.On("Get", mock.Anything, mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
@@ -456,7 +510,8 @@ func TestE2ProvisioningErrorHandling(t *testing.T) {
 	mockClient := &MockClient{Client: fakeClient}
 	mockRecorder := &MockEventRecorder{}
 
-	reconciler := createTestReconciler(mockClient, mockRecorder)
+	mockE2Manager := &MockE2Manager{}
+	reconciler := createTestReconciler(mockClient, mockRecorder, mockE2Manager)
 
 	// Mock Get calls to return the E2NodeSet from fake client
 	mockClient.On("Get", mock.Anything, mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
@@ -514,7 +569,8 @@ func TestMaxRetriesExceeded(t *testing.T) {
 	mockClient := &MockClient{Client: fakeClient}
 	mockRecorder := &MockEventRecorder{}
 
-	reconciler := createTestReconciler(mockClient, mockRecorder)
+	mockE2Manager := &MockE2Manager{}
+	reconciler := createTestReconciler(mockClient, mockRecorder, mockE2Manager)
 
 	// Mock Get calls to return the E2NodeSet from fake client
 	mockClient.On("Get", mock.Anything, mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
@@ -582,7 +638,8 @@ func TestFinalizerNotRemovedUntilCleanupSuccess(t *testing.T) {
 	mockClient := &MockClient{Client: fakeClient}
 	mockRecorder := &MockEventRecorder{}
 
-	reconciler := createTestReconciler(mockClient, mockRecorder)
+	mockE2Manager := &MockE2Manager{}
+	reconciler := createTestReconciler(mockClient, mockRecorder, mockE2Manager)
 
 	// Mock Get calls to return the E2NodeSet from fake client
 	mockClient.On("Get", mock.Anything, mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
@@ -667,7 +724,8 @@ func TestFinalizerRemovedAfterMaxCleanupRetries(t *testing.T) {
 	mockClient := &MockClient{Client: fakeClient}
 	mockRecorder := &MockEventRecorder{}
 
-	reconciler := createTestReconciler(mockClient, mockRecorder)
+	mockE2Manager := &MockE2Manager{}
+	reconciler := createTestReconciler(mockClient, mockRecorder, mockE2Manager)
 
 	// Mock Get calls to return the E2NodeSet from fake client
 	mockClient.On("Get", mock.Anything, mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
@@ -712,7 +770,8 @@ func TestIdempotentReconciliation(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(e2nodeSet).Build()
 
 	mockRecorder := &MockEventRecorder{}
-	reconciler := createTestReconciler(fakeClient, mockRecorder)
+	mockE2Manager := &MockE2Manager{}
+	reconciler := createTestReconciler(fakeClient, mockRecorder, mockE2Manager)
 
 	ctx := context.Background()
 	namespacedName := types.NamespacedName{Name: e2nodeSet.Name, Namespace: e2nodeSet.Namespace}
@@ -766,7 +825,8 @@ func TestSetReadyCondition(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(e2nodeSet).Build()
 
 	mockRecorder := &MockEventRecorder{}
-	reconciler := createTestReconciler(fakeClient, mockRecorder)
+	mockE2Manager := &MockE2Manager{}
+	reconciler := createTestReconciler(fakeClient, mockRecorder, mockE2Manager)
 
 	ctx := context.Background()
 
@@ -833,7 +893,8 @@ func TestReconcileWithPartialFailures(t *testing.T) {
 	mockClient := &MockClient{Client: fakeClient}
 	mockRecorder := &MockEventRecorder{}
 
-	reconciler := createTestReconciler(mockClient, mockRecorder)
+	mockE2Manager := &MockE2Manager{}
+	reconciler := createTestReconciler(mockClient, mockRecorder, mockE2Manager)
 
 	// Mock Get calls to return the E2NodeSet from fake client
 	mockClient.On("Get", mock.Anything, mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
@@ -894,7 +955,8 @@ func TestSuccessfulReconciliationClearsRetryCount(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(e2nodeSet).Build()
 	mockRecorder := &MockEventRecorder{}
-	reconciler := createTestReconciler(fakeClient, mockRecorder)
+	mockE2Manager := &MockE2Manager{}
+	reconciler := createTestReconciler(fakeClient, mockRecorder, mockE2Manager)
 
 	ctx := context.Background()
 	namespacedName := types.NamespacedName{Name: e2nodeSet.Name, Namespace: e2nodeSet.Namespace}
