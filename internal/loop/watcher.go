@@ -3178,11 +3178,17 @@ func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) erro
 		log.Printf("Warning: Status message truncated for %s", filepath.Base(intentFile))
 	}
 
-	statusData := json.RawMessage(`{}`)
+	// Create proper status data including intent file name
+	statusInfo := map[string]interface{}{
+		"intent_file": filepath.Base(intentFile),
+		"status":      status,
+		"message":     message,
+		"timestamp":   time.Now().Format(time.RFC3339),
+	}
 
 	// Use safe JSON marshaling with size limits.
 
-	data, err := w.safeMarshalJSON(statusData, MaxStatusSize)
+	data, err := w.safeMarshalJSON(statusInfo, MaxStatusSize)
 	if err != nil {
 		log.Printf("Failed to marshal status data: %v", err)
 

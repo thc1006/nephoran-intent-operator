@@ -1998,7 +1998,11 @@ func (s *WatcherTestSuite) TestWindowsFilenameValidation_StatusFileGeneration() 
 					}
 
 					// Should not be a Windows reserved device name
-					baseName := strings.Split(foundStatusFile, "-")[0]
+					parts := strings.Split(foundStatusFile, "-")
+					if len(parts) == 0 {
+						return // Skip empty split result
+					}
+					baseName := parts[0]
 					upperBaseName := strings.ToUpper(baseName)
 					reservedNames := []string{"CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"}
 					for _, reserved := range reservedNames {

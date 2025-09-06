@@ -345,7 +345,11 @@ func (iv *InputValidator) validateContentType(r *http.Request) error {
 	}
 
 	// Extract base content type (without parameters)
-	baseType := strings.Split(contentType, ";")[0]
+	parts := strings.Split(contentType, ";")
+	if len(parts) == 0 || parts[0] == "" {
+		return fmt.Errorf("invalid content type: %s", contentType)
+	}
+	baseType := parts[0]
 	baseType = strings.TrimSpace(strings.ToLower(baseType))
 
 	// Check against allowed types
