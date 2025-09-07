@@ -374,9 +374,17 @@ func TestIntentSchemaValidator_UpdateSchema(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("updates schema successfully", func(t *testing.T) {
-		// Create an updated schema
+		// Create an updated schema (simplified but valid schema)
 		updatedSchema := map[string]interface{}{
-			"apiVersion": map[string]interface{}{}, // Updated version
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type":    "object",
+			"title":   "Updated NetworkIntent Schema", 
+			"properties": map[string]interface{}{
+				"apiVersion": map[string]interface{}{
+					"type": "string",
+					"const": "intent.nephoran.com/v1alpha1",
+				},
+			},
 			"required":   []string{"apiVersion"},
 		}
 
@@ -394,9 +402,10 @@ func TestIntentSchemaValidator_UpdateSchema(t *testing.T) {
 		schema := validator.GetSchema()
 		assert.Equal(t, "Updated NetworkIntent Schema", schema["title"])
 
-		// Test validation with updated schema
-		var intent map[string]interface{}
-		json.Unmarshal([]byte(`{}`), &intent)
+		// Test validation with updated schema - should pass with apiVersion
+		intent := map[string]interface{}{
+			"apiVersion": "intent.nephoran.com/v1alpha1",
+		}
 
 		err = validator.Validate(intent)
 		assert.NoError(t, err)
@@ -420,8 +429,15 @@ func TestIntentSchemaValidator_ConcurrentAccess(t *testing.T) {
 
 	t.Run("handles concurrent validation requests", func(t *testing.T) {
 		validIntent := map[string]interface{}{
-			"name": "test-intent",
-			"spec": map[string]interface{}{},
+			"apiVersion": "intent.nephoran.com/v1alpha1",
+			"kind":       "NetworkIntent",
+			"metadata": map[string]interface{}{
+				"name": "test-intent",
+			},
+			"spec": map[string]interface{}{
+				"intentType": "scaling",
+				"target":     "nginx-deployment",
+			},
 		}
 
 		// Run multiple validations concurrently
@@ -449,9 +465,16 @@ func BenchmarkIntentSchemaValidator_Validate(b *testing.B) {
 	require.NoError(b, err)
 
 	validIntent := map[string]interface{}{
-		"name":      "test-intent",
-		"namespace": "default",
-		"spec":      map[string]interface{}{},
+		"apiVersion": "intent.nephoran.com/v1alpha1",
+		"kind":       "NetworkIntent",
+		"metadata": map[string]interface{}{
+			"name":      "test-intent",
+			"namespace": "default",
+		},
+		"spec": map[string]interface{}{
+			"intentType": "scaling",
+			"target":     "nginx-deployment",
+		},
 	}
 
 	b.ResetTimer()

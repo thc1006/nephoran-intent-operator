@@ -728,6 +728,13 @@ func TestNewValidator_FileSystemErrors(t *testing.T) {
 					t.Skipf("Cannot modify file permissions on this system: %v", err)
 				}
 				
+				// On Windows, check if the permission change actually worked
+				// If we can still read the file, skip the test as permission changes don't work as expected
+				testData, readErr := os.ReadFile(schemaFile)
+				if readErr == nil && len(testData) > 0 {
+					t.Skipf("File permission changes don't work on this system (likely Windows) - file is still readable")
+				}
+				
 				return schemaFile
 			},
 			expectError: "open schema",

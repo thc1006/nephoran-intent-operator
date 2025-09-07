@@ -368,7 +368,7 @@ func TestConfigMapCreationErrorHandling(t *testing.T) {
 			expectedResult: ctrl.Result{
 				RequeueAfter: time.Duration(0), // Will be set by exponential backoff
 			},
-			expectedError:  false, // Controller handles errors gracefully with retry logic
+			expectedError:  true, // Controller should return retryable error for config creation failures
 			expectedReady:  metav1.ConditionFalse,
 			expectedReason: "ConfigMapCreationFailed",
 		},
@@ -435,6 +435,7 @@ func TestConfigMapCreationErrorHandling(t *testing.T) {
 
 			if tt.expectedError {
 				assert.Error(t, err)
+				assert.True(t, result.RequeueAfter > 0, "Expected requeue with backoff delay when error occurs")
 			} else {
 				assert.NoError(t, err)
 				assert.True(t, result.RequeueAfter > 0, "Expected requeue with backoff delay")
@@ -557,7 +558,7 @@ func TestConfigMapUpdateErrorHandling(t *testing.T) {
 	
 	t.Logf("Reconcile result: %+v, error: %v", result, err)
 
-	require.NoError(t, err, "Expected no error with retry logic, but got: %v", err)
+	assert.Error(t, err, "Expected error with retry logic for ConfigMap update failures")
 	assert.True(t, result.RequeueAfter > 0, "Expected requeue with backoff delay")
 	t.Logf("Requeue delay: %v", result.RequeueAfter)
 

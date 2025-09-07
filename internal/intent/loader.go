@@ -131,8 +131,9 @@ func isValidKubernetesName(name string) bool {
 		return false
 	}
 
-	// Must start and end with alphanumeric (per Kubernetes RFC 1123)
-	if !isAlphaNumeric(name[0]) || !isAlphaNumeric(name[len(name)-1]) {
+	// Must start with lowercase letter (not digit) and end with alphanumeric (per Kubernetes RFC 1123)
+	// DNS-1123 subdomain names require starting with a letter, not a digit
+	if !isLowercaseLetter(name[0]) || !isAlphaNumeric(name[len(name)-1]) {
 		return false
 	}
 
@@ -144,6 +145,11 @@ func isValidKubernetesName(name string) bool {
 	}
 
 	return true
+}
+
+// isLowercaseLetter checks if a byte is a lowercase letter (a-z)
+func isLowercaseLetter(b byte) bool {
+	return b >= 'a' && b <= 'z'
 }
 
 // isAlphaNumeric checks if a byte is alphanumeric lowercase
