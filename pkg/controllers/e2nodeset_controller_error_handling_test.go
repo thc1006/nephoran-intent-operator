@@ -31,12 +31,22 @@ type MockClient struct {
 }
 
 func (m *MockClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
-	args := m.Called(ctx, key, obj, opts)
-	if args.Get(0) != nil {
-		return args.Error(0)
+	// Check if this specific method call was expected
+	for _, call := range m.ExpectedCalls {
+		if call.Method == "Get" {
+			args := m.Called(ctx, key, obj, opts)
+			if args.Get(0) != nil {
+				return args.Error(0)
+			}
+			// If mock returns nil error, still delegate to fake client to populate the object
+			if m.Client != nil {
+				return m.Client.Get(ctx, key, obj, opts...)
+			}
+			return nil
+		}
 	}
-
-	// Call the real client for successful cases
+	
+	// If no mock expectation for Get, just use the underlying client
 	if m.Client != nil {
 		return m.Client.Get(ctx, key, obj, opts...)
 	}
@@ -44,27 +54,70 @@ func (m *MockClient) Get(ctx context.Context, key client.ObjectKey, obj client.O
 }
 
 func (m *MockClient) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
-	args := m.Called(ctx, obj, opts)
-	return args.Error(0)
+	// Check if this specific method call was expected
+	for _, call := range m.ExpectedCalls {
+		if call.Method == "Create" {
+			args := m.Called(ctx, obj, opts)
+			return args.Error(0)
+		}
+	}
+	
+	// If no mock expectation for Create, use the underlying client
+	if m.Client != nil {
+		return m.Client.Create(ctx, obj, opts...)
+	}
+	return nil
 }
 
 func (m *MockClient) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
-	args := m.Called(ctx, obj, opts)
-	return args.Error(0)
+	// Check if this specific method call was expected
+	for _, call := range m.ExpectedCalls {
+		if call.Method == "Update" {
+			args := m.Called(ctx, obj, opts)
+			return args.Error(0)
+		}
+	}
+	
+	// If no mock expectation for Update, use the underlying client
+	if m.Client != nil {
+		return m.Client.Update(ctx, obj, opts...)
+	}
+	return nil
 }
 
 func (m *MockClient) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
-	args := m.Called(ctx, obj, opts)
-	return args.Error(0)
+	// Check if this specific method call was expected
+	for _, call := range m.ExpectedCalls {
+		if call.Method == "Delete" {
+			args := m.Called(ctx, obj, opts)
+			return args.Error(0)
+		}
+	}
+	
+	// If no mock expectation for Delete, use the underlying client
+	if m.Client != nil {
+		return m.Client.Delete(ctx, obj, opts...)
+	}
+	return nil
 }
 
 func (m *MockClient) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
-	args := m.Called(ctx, list, opts)
-	if args.Get(0) != nil {
-		return args.Error(0)
+	// Check if this specific method call was expected
+	for _, call := range m.ExpectedCalls {
+		if call.Method == "List" {
+			args := m.Called(ctx, list, opts)
+			if args.Get(0) != nil {
+				return args.Error(0)
+			}
+			// If mock returns nil error, still delegate to fake client to populate the list
+			if m.Client != nil {
+				return m.Client.List(ctx, list, opts...)
+			}
+			return nil
+		}
 	}
-
-	// Call the real client for successful cases
+	
+	// If no mock expectation for List, use the underlying client
 	if m.Client != nil {
 		return m.Client.List(ctx, list, opts...)
 	}
