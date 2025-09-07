@@ -94,6 +94,7 @@ func TestRequestSizeLimits(t *testing.T) {
 	cfg.AuthEnabled = false     // Disable auth for simpler testing
 	cfg.RAGEnabled = false      // Disable RAG for simpler testing
 	cfg.LLMBackendType = "mock" // Use mock backend
+	cfg.CORSEnabled = false     // Disable CORS for simpler testing
 
 	// Create test logger
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
@@ -319,6 +320,7 @@ func TestConfigurationValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := config.DefaultLLMProcessorConfig()
 			cfg.MaxRequestSize = tt.maxSize
+			cfg.CORSEnabled = false // Disable CORS to focus on request size validation
 
 			err := cfg.Validate()
 
@@ -417,6 +419,7 @@ func TestIntegrationWithRealHandlers(t *testing.T) {
 	cfg.AuthEnabled = false
 	cfg.RAGEnabled = false
 	cfg.LLMBackendType = "mock"
+	cfg.CORSEnabled = false // Disable CORS for simpler testing
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
@@ -678,6 +681,7 @@ func TestTLSServerStartup(t *testing.T) {
 			cfg.AuthEnabled = false
 			cfg.RAGEnabled = false
 			cfg.LLMBackendType = "mock"
+			cfg.CORSEnabled = false // Disable CORS to focus on TLS validation
 
 			// Capture logs
 			var logBuffer bytes.Buffer
@@ -904,6 +908,7 @@ func TestGracefulShutdownWithTLS(t *testing.T) {
 			cfg.TLSKeyPath = keyPath
 			cfg.Port = "0" // Random available port
 			cfg.GracefulShutdown = 2 * time.Second
+			cfg.CORSEnabled = false // Disable CORS for simpler testing
 
 			// Create test server with a handler that can be delayed
 			requestReceived := make(chan bool, 1)

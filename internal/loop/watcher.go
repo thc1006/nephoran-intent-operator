@@ -274,6 +274,8 @@ type WorkerPool struct {
 
 	activeWorkers int64 // atomic counter
 
+	activeTasks int64 // atomic counter for tasks being processed
+
 	closed int32 // atomic flag to prevent double closes
 }
 
@@ -285,6 +287,8 @@ type WorkItem struct {
 	Attempt int
 
 	Ctx context.Context
+
+	Cancel context.CancelFunc // Function to cancel the context when done
 }
 
 // DirectoryManager handles directory creation with sync.Once pattern.
@@ -1327,6 +1331,8 @@ func (w *Watcher) handleIntentFileWithEnhancedDebounce(filePath string, eventOp 
 			Attempt: 1,
 
 			Ctx: workCtx,
+
+			Cancel: cancel,
 		}
 
 		// Queue work item with backpressure handling.
@@ -1334,9 +1340,7 @@ func (w *Watcher) handleIntentFileWithEnhancedDebounce(filePath string, eventOp 
 		select {
 		case w.workerPool.workQueue <- workItem:
 
-			// Successfully queued - defer cancel to ensure cleanup.
-
-			defer cancel()
+			// Successfully queued - cancel will be handled by worker
 
 		case <-w.ctx.Done():
 
@@ -1383,33 +1387,34 @@ func (w *Watcher) processExistingFiles() error {
 		if IsIntentFile(filename) {
 			filePath := filepath.Join(w.dir, filename)
 
-			func() {
-				workCtx, cancel := context.WithTimeout(w.ctx, 60*time.Second)
+			workCtx, cancel := context.WithTimeout(w.ctx, 60*time.Second)
+			// Note: cancel will be called when the work item context is done in processWorkItemWithLocking
 
-				defer cancel() // Ensure cancel is always called
+			workItem := WorkItem{
+				FilePath: filePath,
 
-				workItem := WorkItem{
-					FilePath: filePath,
+				Attempt: 1,
 
-					Attempt: 1,
+				Ctx: workCtx,
 
-					Ctx: workCtx,
-				}
+				Cancel: cancel, // Store cancel function to be called later
+			}
 
-				select {
-				case w.workerPool.workQueue <- workItem:
+			select {
+			case w.workerPool.workQueue <- workItem:
 
-					filesQueued++
+				filesQueued++
 
-				case <-w.ctx.Done():
+			case <-w.ctx.Done():
 
-					return
+				cancel() // Cancel if main context is done
+				return nil
 
-				default:
+			default:
 
-					log.Printf("Warning: work queue full during startup, skipping %s", filename)
-				}
-			}()
+				cancel() // Cancel if queue is full
+				log.Printf("Warning: work queue full during startup, skipping %s", filename)
+			}
 		}
 	}
 
@@ -1507,14 +1512,14 @@ func (w *Watcher) startPolling() error {
 				func() {
 					workCtx, cancel := context.WithTimeout(w.ctx, 60*time.Second)
 
-					defer cancel() // Ensure cancel is always called
-
 					workItem := WorkItem{
 						FilePath: filePath,
 
 						Attempt: 1,
 
 						Ctx: workCtx,
+
+						Cancel: cancel,
 					}
 
 					select {
@@ -1528,6 +1533,7 @@ func (w *Watcher) startPolling() error {
 
 					default:
 
+						cancel() // Cancel if queue is full
 						log.Printf("LOOP:WARNING - Work queue full, skipping file %s", filename)
 					}
 				}()
@@ -1606,9 +1612,14 @@ func (w *Watcher) enhancedWorker(workerID int) {
 // processWorkItemWithLocking processes a work item with file-level locking.
 
 func (w *Watcher) processWorkItemWithLocking(workerID int, workItem WorkItem) {
+	// Increment active task counter when starting processing
+	atomic.AddInt64(&w.workerPool.activeTasks, 1)
+	defer atomic.AddInt64(&w.workerPool.activeTasks, -1) // Decrement when done
+
 	defer func() {
-		if workItem.Ctx != nil {
-			workItem.Ctx.Done()
+		// Cancel the work item's context when processing is complete
+		if workItem.Cancel != nil {
+			workItem.Cancel()
 		}
 	}()
 
@@ -1806,23 +1817,24 @@ func (w *Watcher) cleanupRoutine() {
 func (w *Watcher) waitForWorkersToFinish() {
 	log.Printf("Signaling enhanced workers to stop...")
 
-	// Wait for queue to drain first.
-
+	// Wait for both queue to drain AND all active tasks to finish processing
 	for {
 		queueSize := len(w.workerPool.workQueue)
+		activeTasks := atomic.LoadInt64(&w.workerPool.activeTasks)
 
-		if queueSize == 0 {
+		// Check if both queue is empty AND no tasks are actively being processed
+		if queueSize == 0 && activeTasks == 0 {
 			break
 		}
 
-		log.Printf("Waiting for queue to drain: %d items remaining", queueSize)
+		if queueSize > 0 || activeTasks > 0 {
+			log.Printf("Waiting for workers to finish: %d items in queue, %d active tasks", queueSize, activeTasks)
+		}
 
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond) // Shorter sleep for more responsive checking
 	}
 
-	// Give workers time to finish current processing.
-
-	time.Sleep(200 * time.Millisecond)
+	log.Printf("All work completed - queue drained and all workers idle")
 
 	// Close work queue to signal workers to finish processing and exit (if not already closed).
 

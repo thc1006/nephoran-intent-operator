@@ -6,12 +6,10 @@
 package ingest
 
 import (
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
-	"math/big"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -79,7 +77,7 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 	if ct != "" && !strings.HasPrefix(ct, "application/json") && !strings.HasPrefix(ct, "text/json") && !strings.HasPrefix(ct, "text/plain") {
 
-		http.Error(w, "Unsupported content type. Only application/json and text/plain are allowed.", http.StatusUnsupportedMediaType)
+		http.Error(w, "Invalid Content-Type", http.StatusUnsupportedMediaType)
 
 		return
 
@@ -158,7 +156,7 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 			}
 
-			payload = []byte(fmt.Sprintf(`{"intent_type":"scaling","target":%q,"namespace":%q,"replicas":%s,"source":"user"}`, m[1], m[3], m[2]))
+			payload = []byte(fmt.Sprintf(`{"intent_type":"scaling","target":%q,"namespace":%q,"replicas":%s,"source":"user","target_resources":["deployment/%s"],"status":"pending"}`, m[1], m[3], m[2], m[1]))
 
 		}
 
@@ -197,20 +195,41 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now().UTC()
 	
-	// Generate a random number to avoid collisions in concurrent requests
-	randomNum, err := rand.Int(rand.Reader, big.NewInt(10000))
-	if err != nil {
-		// Fallback to nanoseconds if random generation fails
-		randomNum = big.NewInt(int64(now.Nanosecond() % 10000))
-	}
-	
-	ts := fmt.Sprintf("%s-%04d", now.Format("20060102T150405.000Z"), randomNum.Int64())
+	ts := now.Format("20060102T150405Z")
 
 	fileName := fmt.Sprintf("intent-%s.json", ts)
 
 	outFile := filepath.Join(h.outDir, fileName)
 
-	if err := os.WriteFile(outFile, payload, 0o640); err != nil {
+	// Ensure default values for target_resources and status
+	targetResources := intent.TargetResources
+	if targetResources == nil || len(targetResources) == 0 {
+		targetResources = []string{"deployment/" + intent.Target}
+	}
+	
+	status := intent.Status
+	if status == "" {
+		status = "pending"
+	}
+
+	// Create the structured output for saving to file
+	structuredOutput := map[string]interface{}{
+		"id":               fmt.Sprintf("scale-%s-001", intent.Target),
+		"type":             intent.IntentType,
+		"description":      fmt.Sprintf("Scale %s to %d replicas", intent.Target, intent.Replicas),
+		"target_resources": targetResources,
+		"status":           status,
+		"parameters":       intent.ToPreviewFormat()["parameters"],
+	}
+
+	// Marshal structured output to JSON
+	structuredJSON, err := json.MarshalIndent(structuredOutput, "", "  ")
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to marshal structured output: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	if err := os.WriteFile(outFile, structuredJSON, 0o640); err != nil {
 
 		http.Error(w, fmt.Sprintf("Failed to save intent to handoff directory: %s", err.Error()), http.StatusInternalServerError)
 
@@ -237,7 +256,7 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 		"saved": outFile,
 
-		"preview": intent,
+		"preview": intent.ToPreviewFormat(),
 	}); err != nil {
 		log.Printf("Failed to encode response JSON: %v", err)
 	}

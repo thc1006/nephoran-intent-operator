@@ -58,7 +58,9 @@ func (l *Loader) LoadFromJSON(data []byte, sourcePath string) (*LoadResult, erro
 	schemaErrors := l.validator.ValidateJSON(data)
 	if len(schemaErrors) > 0 {
 		result.Errors = schemaErrors
-		return result, fmt.Errorf("schema validation failed with %d errors", len(schemaErrors))
+		// Return result with validation errors, but don't return error
+		// This allows the caller to handle validation failures through the result
+		return result, nil
 	}
 
 	// Parse into our struct
@@ -68,14 +70,16 @@ func (l *Loader) LoadFromJSON(data []byte, sourcePath string) (*LoadResult, erro
 			Field:   "json",
 			Message: fmt.Sprintf("failed to unmarshal intent: %v", err),
 		}}
-		return result, fmt.Errorf("JSON parsing failed: %w", err)
+		// JSON parsing errors are also validation errors, not system errors
+		return result, nil
 	}
 
 	// Additional business logic validation
 	bizErrors := l.validateBusinessLogic(&intent)
 	if len(bizErrors) > 0 {
 		result.Errors = bizErrors
-		return result, fmt.Errorf("business logic validation failed with %d errors", len(bizErrors))
+		// Business logic validation errors are validation errors, not system errors
+		return result, nil
 	}
 
 	// Success

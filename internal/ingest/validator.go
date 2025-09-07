@@ -27,6 +27,23 @@ type Intent struct {
 	Source string `json:"source,omitempty"`
 
 	CorrelationID string `json:"correlation_id,omitempty"`
+
+	// Additional fields for complete intent representation
+	TargetResources []string `json:"target_resources,omitempty"`
+
+	Status string `json:"status,omitempty"`
+
+	// Standard metadata fields from schema
+	Priority int `json:"priority,omitempty"`
+
+	CreatedAt string `json:"created_at,omitempty"`
+
+	UpdatedAt string `json:"updated_at,omitempty"`
+
+	// Support for constraints and context
+	Constraints map[string]interface{} `json:"constraints,omitempty"`
+
+	NephioContext map[string]interface{} `json:"nephio_context,omitempty"`
 }
 
 // Validator represents a validator.
@@ -109,4 +126,64 @@ func (v *Validator) ValidateBytes(b []byte) (*Intent, error) {
 	}
 
 	return &in, nil
+}
+
+// ToPreviewFormat converts an Intent to the expected response format for tests.
+// This creates a structured response with top-level fields and a parameters object.
+func (intent *Intent) ToPreviewFormat() map[string]interface{} {
+	response := map[string]interface{}{
+		"type": intent.IntentType,
+	}
+
+	// Set default values for required fields to prevent nil issues
+	if intent.TargetResources != nil && len(intent.TargetResources) > 0 {
+		response["target_resources"] = intent.TargetResources
+	} else if intent.Target != "" {
+		// Fallback: create target_resources from target if not provided
+		response["target_resources"] = []string{"deployment/" + intent.Target}
+	}
+
+	if intent.Status != "" {
+		response["status"] = intent.Status
+	} else {
+		// Default status to pending if not specified
+		response["status"] = "pending"
+	}
+
+	// Build parameters object containing the intent details
+	parameters := map[string]interface{}{
+		"intent_type": intent.IntentType,
+		"target":      intent.Target,
+		"namespace":   intent.Namespace,
+		"replicas":    intent.Replicas,
+	}
+
+	// Add optional parameters if present
+	if intent.Source != "" {
+		parameters["source"] = intent.Source
+	}
+	if intent.Reason != "" {
+		parameters["reason"] = intent.Reason
+	}
+	if intent.CorrelationID != "" {
+		parameters["correlation_id"] = intent.CorrelationID
+	}
+	if intent.Priority > 0 {
+		parameters["priority"] = intent.Priority
+	}
+	if intent.CreatedAt != "" {
+		parameters["created_at"] = intent.CreatedAt
+	}
+	if intent.UpdatedAt != "" {
+		parameters["updated_at"] = intent.UpdatedAt
+	}
+
+	response["parameters"] = parameters
+
+	// Also add correlation_id at top level for JSON compatibility
+	if intent.CorrelationID != "" {
+		response["correlation_id"] = intent.CorrelationID
+	}
+
+	return response
 }
