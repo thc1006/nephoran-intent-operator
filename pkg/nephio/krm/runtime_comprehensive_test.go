@@ -468,19 +468,40 @@ func (r *MockKRMRuntime) setLabelsHandler(ctx context.Context, req *FunctionRequ
 	modifiedResources := make([]KRMResource, len(req.Resources))
 	for i, resource := range req.Resources {
 		modifiedResource := resource
+		
+		// Create deep copy of metadata to prevent race conditions
 		if modifiedResource.Metadata == nil {
 			modifiedResource.Metadata = make(map[string]interface{})
+		} else {
+			// Deep copy the metadata map
+			newMetadata := make(map[string]interface{})
+			for k, v := range modifiedResource.Metadata {
+				newMetadata[k] = v
+			}
+			modifiedResource.Metadata = newMetadata
 		}
 
 		resourceLabels, exists := modifiedResource.Metadata["labels"]
 		if !exists {
-			modifiedResource.Metadata["labels"] = stringLabels
+			// Convert stringLabels to map[string]interface{} to maintain consistency
+			interfaceLabels := make(map[string]interface{})
+			for k, v := range stringLabels {
+				interfaceLabels[k] = v
+			}
+			modifiedResource.Metadata["labels"] = interfaceLabels
 		} else {
-			// Merge labels
+			// Merge labels - create a new labels map to avoid race conditions
 			if existingLabels, ok := resourceLabels.(map[string]interface{}); ok {
-				for k, v := range stringLabels {
-					existingLabels[k] = v
+				newLabels := make(map[string]interface{})
+				// Copy existing labels
+				for k, v := range existingLabels {
+					newLabels[k] = v
 				}
+				// Add new labels
+				for k, v := range stringLabels {
+					newLabels[k] = v
+				}
+				modifiedResource.Metadata["labels"] = newLabels
 			}
 		}
 
