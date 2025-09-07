@@ -945,12 +945,14 @@ func TestRegisterHealthChecksIntegration(t *testing.T) {
 		// Register health checks
 		sm.registerHealthChecks()
 
-		// Verify circuit breaker health check was NOT registered
+		// Verify circuit breaker health check handles nil manager correctly
 		ctx := context.Background()
 		result := sm.healthChecker.RunCheck(ctx, "circuit_breaker")
 
-		// Should be nil since the check wasn't registered
-		assert.Nil(t, result)
+		// Should return healthy status with appropriate message for nil manager
+		require.NotNil(t, result)
+		assert.Equal(t, health.StatusHealthy, result.Status)
+		assert.Equal(t, "No circuit breakers registered", result.Message)
 	})
 }
 

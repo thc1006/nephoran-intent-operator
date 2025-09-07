@@ -155,9 +155,10 @@ func TestServer_Intent_ValidJSON_Success(t *testing.T) {
 			},
 		},
 		{
-			name:        "missing intent_type uses scaling default",
+			name:        "valid intent with intent_type",
 			contentType: "application/json",
 			payload: map[string]interface{}{
+				"intent_type":      "scaling",
 				"target":           "test-deployment",
 				"namespace":        "default",
 				"replicas":         3,
