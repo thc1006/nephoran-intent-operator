@@ -337,18 +337,18 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// Fetch the E2NodeSet instance first to check if it's being deleted
 	var e2nodeSet nephoranv1.E2NodeSet
 	if err := r.Get(ctx, req.NamespacedName, &e2nodeSet); err != nil {
+		logger.Error(err, "Failed to get E2NodeSet", "namespacedName", req.NamespacedName)
 		if errors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
 	}
+	logger.V(1).Info("Successfully fetched E2NodeSet", "name", e2nodeSet.Name, "namespace", e2nodeSet.Namespace, "deletionTimestamp", e2nodeSet.DeletionTimestamp)
 
 	// Allow deletion to proceed even without E2Manager
 	if e2nodeSet.DeletionTimestamp != nil {
 		logger.Info("E2NodeSet marked for deletion, calling handleDeletion", "name", e2nodeSet.Name, "deletionTimestamp", e2nodeSet.DeletionTimestamp)
 		return r.handleDeletion(ctx, &e2nodeSet)
-	} else {
-		logger.V(1).Info("E2NodeSet not marked for deletion, proceeding with normal reconciliation", "name", e2nodeSet.Name)
 	}
 
 	// Validate that E2Manager is available for normal operations
@@ -1823,6 +1823,8 @@ func (r *E2NodeSetReconciler) handleDeletion(ctx context.Context, e2nodeSet *nep
 
 		// Continue with cleanup attempt even if we can't list ConfigMaps.
 	}
+	
+	logger.Info("Found ConfigMaps for deletion", "count", len(currentConfigMaps))
 
 	// Delete all ConfigMaps belonging to this E2NodeSet.
 
@@ -1845,6 +1847,9 @@ func (r *E2NodeSetReconciler) handleDeletion(ctx context.Context, e2nodeSet *nep
 
 				cleanupErrors = append(cleanupErrors, fmt.Errorf("failed to delete ConfigMap %s: %w", configMap.Name, err))
 
+			} else {
+				logger.Info("ConfigMap not found, considering as successfully deleted",
+					"configMap", configMap.Name, "nodeID", nodeID)
 			}
 		} else {
 			logger.Info("Successfully deleted E2 node ConfigMap during deletion",
@@ -1894,7 +1899,9 @@ func (r *E2NodeSetReconciler) handleDeletion(ctx context.Context, e2nodeSet *nep
 
 		setE2NodeSetRetryCount(e2nodeSet, "cleanup", retryCount+1)
 
-		r.Update(ctx, e2nodeSet)
+		if err := r.Update(ctx, e2nodeSet); err != nil {
+			logger.Error(err, "Failed to update E2NodeSet with retry count during cleanup")
+		}
 
 		// Set Ready condition to indicate cleanup retry.
 

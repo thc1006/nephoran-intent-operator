@@ -42,6 +42,8 @@ env:
   GOMEMLIMIT: 8GiB
   GOGC: 75
   GO_DISABLE_TELEMETRY: 1
+  # Test configuration
+  LLM_ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:8080"
   
   # Build optimization flags
   BUILD_FLAGS: "-trimpath -ldflags='-s -w -extldflags=-static'"

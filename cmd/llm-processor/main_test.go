@@ -1031,7 +1031,7 @@ func TestEndToEndTLSConnections(t *testing.T) {
 		{
 			name: "Client with custom verification (should fail for test cert)",
 			clientTLSConfig: &tls.Config{
-				InsecureSkipVerify: false,
+				InsecureSkipVerify: true, // Skip standard verification to allow custom verification to run
 				VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 					// Custom verification that always fails for testing
 					return fmt.Errorf("custom verification error")

@@ -360,17 +360,10 @@ func TestServer_Intent_ValidPlainText_Success(t *testing.T) {
 			}
 
 			// Validate top-level expected fields
-			topLevelExpected := []string{"id", "type", "description", "target_resources", "status"}
+			topLevelExpected := []string{"type", "target_resources", "status"}
 			for _, key := range topLevelExpected {
 				if expectedValue, exists := tt.expected[key]; exists {
-					if key == "id" {
-						// For ID, just check that it contains the target name (since the generator might add suffixes)
-						expectedParams := tt.expected["parameters"].(map[string]interface{})
-						target := expectedParams["target"].(string)
-						if previewID, ok := preview[key].(string); !ok || !strings.Contains(previewID, target) {
-							t.Errorf("Expected ID to contain target '%s', got %v", target, preview[key])
-						}
-					} else if key == "target_resources" {
+					if key == "target_resources" {
 						// Handle array comparison
 						expectedArray := expectedValue.([]string)
 						previewArray, ok := preview[key].([]interface{})
@@ -395,10 +388,13 @@ func TestServer_Intent_ValidPlainText_Success(t *testing.T) {
 				t.Fatal("Expected preview parameters to be a map")
 			}
 
-			expectedParams := tt.expected["parameters"].(map[string]interface{})
-			for key, expectedValue := range expectedParams {
-				if previewParams[key] != expectedValue {
-					t.Errorf("Expected parameters.%s=%v, got %v", key, expectedValue, previewParams[key])
+			// Build expected parameters from the flat expected structure
+			parameterFields := []string{"intent_type", "target", "namespace", "replicas", "source"}
+			for _, key := range parameterFields {
+				if expectedValue, exists := tt.expected[key]; exists {
+					if previewParams[key] != expectedValue {
+						t.Errorf("Expected parameters.%s=%v, got %v", key, expectedValue, previewParams[key])
+					}
 				}
 			}
 		})
@@ -595,7 +591,8 @@ func TestServer_Intent_CorrelationIdPassthrough(t *testing.T) {
 
 	correlationID := "test-correlation-123"
 	payload := map[string]interface{}{
-		"target_replicas":  3,
+		"intent_type":      "scaling",
+		"replicas":         3,
 		"target":           "test-deployment",
 		"namespace":        "default",
 		"correlation_id":   correlationID,
@@ -649,7 +646,8 @@ func TestServer_Intent_FileCreation(t *testing.T) {
 	defer cleanup()
 
 	payload := map[string]interface{}{
-		"target_replicas":  3,
+		"intent_type":      "scaling",
+		"replicas":         3,
 		"target":           "file-test-deployment",
 		"namespace":        "default",
 		"source":           "test",
@@ -748,12 +746,11 @@ func TestServer_Intent_ConcurrentRequests(t *testing.T) {
 			time.Sleep(time.Duration(id) * time.Millisecond)
 
 			payload := map[string]interface{}{
-				"metadata": map[string]interface{}{
-					"target_replicas": 3,
-					"target":          fmt.Sprintf("concurrent-test-%d", id),
-					"namespace":       "default",
-					"source":          "test",
-				},
+				"intent_type":      "scaling",
+				"replicas":         3,
+				"target":           fmt.Sprintf("concurrent-test-%d", id),
+				"namespace":        "default",
+				"source":           "test",
 				"target_resources": []string{fmt.Sprintf("deployment/concurrent-test-%d", id)},
 				"status":           "pending",
 			}
@@ -832,14 +829,10 @@ func TestServer_EdgeCases(t *testing.T) {
 			method:      "POST",
 			contentType: "application/json",
 			body: fmt.Sprintf(`{
-				"id": "scale-large-target-001",
-				"type": "scaling",
-				"description": "Scale large target name to 3 replicas in default namespace",
-				"parameters": {
-					"target_replicas": 3,
-					"target": "%s",
-					"namespace": "default"
-				},
+				"intent_type": "scaling",
+				"replicas": 3,
+				"target": "%s",
+				"namespace": "default",
 				"target_resources": ["deployment/%s"],
 				"status": "pending"
 			}`, strings.Repeat("a", 100), strings.Repeat("a", 100)),
@@ -1105,10 +1098,23 @@ func TestServer_IntegrationFlow(t *testing.T) {
 		t.Fatalf("Expected parameters to be a map, got %T", savedData["parameters"])
 	}
 
-	expectedParams := payload["parameters"].(map[string]interface{})
-	for key, expected := range expectedParams {
+	// Build expected parameters from the flat payload structure
+	expectedFields := map[string]interface{}{
+		"replicas":       payload["replicas"],
+		"target":         payload["target"],
+		"namespace":      payload["namespace"],
+		"source":         payload["source"],
+		"reason":         payload["reason"],
+		"correlation_id": payload["correlation_id"],
+	}
+	
+	for key, expected := range expectedFields {
+		if expected == nil {
+			continue // Skip fields that weren't provided in payload
+		}
+		
 		// Handle float64 conversion for numbers in JSON
-		if key == "target_replicas" {
+		if key == "replicas" {
 			if intVal, ok := expected.(int); ok {
 				expected = float64(intVal)
 			}

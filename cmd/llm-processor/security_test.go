@@ -371,10 +371,7 @@ func TestIntegrationSecurityStack(t *testing.T) {
 	// Create router
 	router := mux.NewRouter()
 
-	// Apply security middlewares
-	sizeLimiter := middleware.NewRequestSizeLimiter(1024, logger)
-	router.Use(sizeLimiter.Middleware)
-
+	// Apply security headers middleware first
 	secHeaders := middleware.NewSecurityHeaders(&middleware.SecurityHeadersConfig{
 		EnableHSTS:            false,
 		FrameOptions:          "DENY",
@@ -383,12 +380,16 @@ func TestIntegrationSecurityStack(t *testing.T) {
 	}, logger)
 	router.Use(secHeaders.Middleware)
 
-	// Register endpoints
-	router.HandleFunc("/process", func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
+	// Register endpoints using MaxBytesHandler for proper 413 responses
+	router.HandleFunc("/process", middleware.MaxBytesHandler(1024, logger, func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			// MaxBytesHandler will have already handled the 413 response
+			return
+		}
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]int{"size": len(body)})
-	}).Methods("POST")
+	})).Methods("POST")
 
 	router.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		// Check IP

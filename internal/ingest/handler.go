@@ -6,10 +6,12 @@
 package ingest
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"math/big"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -193,7 +195,16 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	ts := time.Now().UTC().Format("20060102T150405Z")
+	now := time.Now().UTC()
+	
+	// Generate a random number to avoid collisions in concurrent requests
+	randomNum, err := rand.Int(rand.Reader, big.NewInt(10000))
+	if err != nil {
+		// Fallback to nanoseconds if random generation fails
+		randomNum = big.NewInt(int64(now.Nanosecond() % 10000))
+	}
+	
+	ts := fmt.Sprintf("%s-%04d", now.Format("20060102T150405.000Z"), randomNum.Int64())
 
 	fileName := fmt.Sprintf("intent-%s.json", ts)
 

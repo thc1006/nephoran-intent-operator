@@ -70,6 +70,8 @@ env:
   DEBUG: ${{ github.event.inputs.debug_enabled == 'true' }}
   SKIP_TESTS: ${{ github.event.inputs.skip_tests == 'true' }}
   CACHE_RESET: ${{ github.event.inputs.cache_reset == 'true' }}
+  # Test configuration
+  LLM_ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:8080"
 
 jobs:
   # =============================================================================

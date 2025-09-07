@@ -67,6 +67,8 @@ env:
   BUILD_MODE: ${{ github.event.inputs.build_mode || 'fast' }}
   SKIP_TESTS: ${{ github.event.inputs.skip_tests == 'true' }}
   CACHE_RESET: ${{ github.event.inputs.cache_reset == 'true' }}
+  # Test configuration
+  LLM_ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:8080"
 
 jobs:
   # =============================================================================
