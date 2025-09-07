@@ -185,6 +185,22 @@ func NewCircuitBreaker(name string, config *CircuitBreakerConfig) *CircuitBreake
 		config = getDefaultCircuitBreakerConfig()
 	}
 
+	// Fill in zero values with defaults
+	if config.FailureThreshold == 0 {
+		config.FailureThreshold = 5 // Default failure threshold
+	}
+	if config.SuccessThreshold == 0 {
+		config.SuccessThreshold = 1 // Default to 1 for traditional circuit breaker behavior
+	}
+	if config.Timeout == 0 {
+		config.Timeout = 30 * time.Second
+	}
+	if config.HalfOpenMaxRequests == 0 {
+		config.HalfOpenMaxRequests = 5
+	}
+	// Don't set default MinimumRequestCount or FailureRate if not specified
+	// These should remain 0 to indicate they're not being used
+
 	cb := &CircuitBreaker{
 		name: name,
 
@@ -428,8 +444,11 @@ func (cb *CircuitBreaker) recordResult(err error, latency time.Duration) {
 		})
 
 		// Check if we should open the circuit.
-
-		if cb.shouldOpenCircuit() {
+		// In half-open state, any failure should immediately open the circuit
+		if cb.state == StateHalfOpen {
+			cb.transitionToOpen()
+		} else if cb.shouldOpenCircuit() {
+			// Check if we should open the circuit in closed state
 			cb.transitionToOpen()
 		}
 
@@ -484,21 +503,20 @@ func (cb *CircuitBreaker) shouldOpenCircuit() bool {
 	}
 
 	// Check failure threshold.
-
 	if cb.failureCount >= cb.config.FailureThreshold {
 		return true
 	}
 
-	// Check failure rate.
+	// Check failure rate (only if MinimumRequestCount and FailureRate are configured)
+	// Skip this check if either is 0, as 0 means not configured
+	if cb.config.MinimumRequestCount > 0 && cb.config.FailureRate > 0 {
+		if cb.requestCount >= cb.config.MinimumRequestCount {
+			failureRate := float64(cb.failureCount) / float64(cb.requestCount)
 
-	if cb.requestCount >= cb.config.MinimumRequestCount {
-
-		failureRate := float64(cb.failureCount) / float64(cb.requestCount)
-
-		if failureRate >= cb.config.FailureRate {
-			return true
+			if failureRate >= cb.config.FailureRate {
+				return true
+			}
 		}
-
 	}
 
 	return false
@@ -511,8 +529,14 @@ func (cb *CircuitBreaker) shouldCloseCircuit() bool {
 		return false
 	}
 
+	// In half-open state, a single success should close the circuit
+	// This is the traditional circuit breaker behavior
+	// If SuccessThreshold is explicitly set to > 1, use that instead
+	if cb.config.SuccessThreshold <= 1 {
+		return true // First success closes the circuit
+	}
+	
 	// Check success threshold in half-open state.
-
 	recentSuccesses := cb.getRecentSuccesses()
 
 	return recentSuccesses >= cb.config.SuccessThreshold
