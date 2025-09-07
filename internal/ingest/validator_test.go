@@ -4,9 +4,28 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
+
+// compareIntentStructs compares two Intent structs for equality, handling slices and maps properly
+func compareIntentStructs(a, b Intent) bool {
+	return a.IntentType == b.IntentType &&
+		a.Target == b.Target &&
+		a.Namespace == b.Namespace &&
+		a.Replicas == b.Replicas &&
+		a.Reason == b.Reason &&
+		a.Source == b.Source &&
+		a.CorrelationID == b.CorrelationID &&
+		reflect.DeepEqual(a.TargetResources, b.TargetResources) &&
+		a.Status == b.Status &&
+		a.Priority == b.Priority &&
+		a.CreatedAt == b.CreatedAt &&
+		a.UpdatedAt == b.UpdatedAt &&
+		reflect.DeepEqual(a.Constraints, b.Constraints) &&
+		reflect.DeepEqual(a.NephioContext, b.NephioContext)
+}
 
 func TestNewValidator(t *testing.T) {
 	// Create a temporary schema file for testing
@@ -246,7 +265,7 @@ func TestValidateBytes_ValidCases(t *testing.T) {
 				return
 			}
 
-			if *result != tt.expected {
+			if !compareIntentStructs(*result, tt.expected) {
 				t.Errorf("Expected %+v, got %+v", tt.expected, *result)
 			}
 		})
