@@ -36,7 +36,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GO_VERSION: "1.22.7"
+  GO_VERSION: "1.24.6"  # EMERGENCY FIX - Match go.mod toolchain
   GOPRIVATE: "github.com/thc1006/*"
   GONOPROXY: "github.com/thc1006/*" 
   GONOSUMDB: "github.com/thc1006/*"

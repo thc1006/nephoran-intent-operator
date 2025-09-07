@@ -68,7 +68,7 @@ permissions:
 # Nephoran-specific environment optimized for telecommunications
 env:
   # Core versions for telecommunications stack
-  GO_VERSION: "1.22.7"
+  GO_VERSION: "1.24.6"  # EMERGENCY FIX - Match go.mod toolchain
   KUBERNETES_VERSION: "1.31.0"
   HELM_VERSION: "3.16.0"
   ISTIO_VERSION: "1.24.0"
@@ -109,8 +109,8 @@ jobs:
   # =============================================================================
   orchestration-coordinator:
     name: ?Ž¯ Orchestration Coordinator
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    runs-on: ubuntu-22.04
+    timeout-minutes: 8
     outputs:
       pipeline-strategy: ${{ steps.strategy.outputs.strategy }}
       security-matrix: ${{ steps.security.outputs.matrix }}
@@ -130,7 +130,7 @@ jobs:
       - name: ?“¥ Secure Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
           persist-credentials: false
           
       - name: ?Ž¯ Generate Pipeline Strategy
@@ -430,10 +430,10 @@ jobs:
   # =============================================================================
   oran-compliance-validation:
     name: ?“¡ O-RAN Compliance Validation
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [orchestration-coordinator, main-pipeline]
     if: needs.orchestration-coordinator.outputs.o-ran-validation-enabled == 'true'
-    timeout-minutes: 10
+    timeout-minutes: 25
     
     steps:
       - name: ?? Harden Runner
@@ -604,10 +604,10 @@ jobs:
   # =============================================================================
   performance-benchmarks:
     name: ??Performance Benchmarks
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [orchestration-coordinator, main-pipeline]
     if: github.event.inputs.enable_performance_testing == 'true' || needs.orchestration-coordinator.outputs.pipeline-strategy == 'comprehensive-audit'
-    timeout-minutes: 10
+    timeout-minutes: 20
     
     steps:
       - name: ?“¥ Checkout
@@ -626,7 +626,7 @@ jobs:
           merge-multiple: true
           
       - name: ??Telecommunications Performance Benchmarks
-        timeout-minutes: 10
+        timeout-minutes: 15
         run: |
           echo "??Running telecommunications-specific performance benchmarks..."
           
@@ -742,10 +742,10 @@ jobs:
   # =============================================================================
   integration-tests:
     name: ?§ª Integration Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [orchestration-coordinator, main-pipeline, container-build]
     if: needs.orchestration-coordinator.outputs.pipeline-strategy != 'fast-iteration' && env.SKIP_INTEGRATION != 'true'
-    timeout-minutes: 10
+    timeout-minutes: 30
     
     steps:
       - name: ?“¥ Checkout
@@ -777,7 +777,7 @@ jobs:
                 protocol: TCP
                 
       - name: ??ï¸?Deploy Nephoran Intent Operator
-        timeout-minutes: 10
+        timeout-minutes: 15
         run: |
           echo "??ï¸?Deploying Nephoran Intent Operator to test cluster..."
           
@@ -815,7 +815,7 @@ jobs:
           }
           
       - name: ?§ª End-to-End Testing
-        timeout-minutes: 10
+        timeout-minutes: 12
         run: |
           echo "?§ª Running end-to-end integration tests..."
           
@@ -882,7 +882,7 @@ jobs:
   # =============================================================================
   final-orchestration:
     name: ?Ž¯ Final Orchestration
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [
       orchestration-coordinator,
       stability-foundation,

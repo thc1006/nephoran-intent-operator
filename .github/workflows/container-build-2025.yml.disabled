@@ -46,7 +46,7 @@ permissions:
 env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/nephoran
-  GO_VERSION: "1.22.7"
+  GO_VERSION: "1.24.6"  # EMERGENCY FIX - Match go.mod toolchain
   BUILD_MODE: ${{ github.event.inputs.build_mode || 'fast' }}
   PUSH_IMAGES: ${{ github.event.inputs.push_images != 'false' }}
   
@@ -61,8 +61,8 @@ jobs:
   # =============================================================================
   setup:
     name: Container Setup & Strategy
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    runs-on: ubuntu-22.04
+    timeout-minutes: 8
     outputs:
       should-build: ${{ steps.changes.outputs.should-build }}
       build-matrix: ${{ steps.matrix.outputs.matrix }}
@@ -74,7 +74,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 2
 
       - name: Detect container-relevant changes
         id: changes
@@ -119,7 +119,7 @@ jobs:
       - name: Generate image tags
         id: tags
         run: |
-          echo "?ï¿½ï¿½ï¿½?Generating image tags..."
+          echo "?·ï¸?Generating image tags..."
           
           # Base tag strategy
           if [[ "${{ github.event_name }}" == "release" ]]; then
@@ -351,10 +351,10 @@ jobs:
   # =============================================================================
   build-binaries:
     name: Build Binaries - ${{ matrix.name }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: setup
     if: needs.setup.outputs.should-build == 'true'
-    timeout-minutes: 10
+    timeout-minutes: 15
     
     strategy:
       fail-fast: false
@@ -377,10 +377,10 @@ jobs:
 
       - name: Build multi-arch binaries
         run: |
-          echo "?ï¿½ï¿½ Building ${{ matrix.binary }} for multiple architectures..."
+          echo "?”¨ Building ${{ matrix.binary }} for multiple architectures..."
           
           # Build flags optimized for containers
-          BUILD_FLAGS="-trimpath -ldflags='-s -w -extldflags=-static'"
+          BUILD_FLAGS="-trimpath -ldflags=-s -w -extldflags=-static"
           BUILD_TAGS="netgo,osusergo,static_build"
           
           # Parse target platforms
@@ -434,10 +434,10 @@ jobs:
   # =============================================================================
   create-dockerfiles:
     name: Generate Optimized Dockerfiles
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: setup
     if: needs.setup.outputs.should-build == 'true'
-    timeout-minutes: 10
+    timeout-minutes: 5
 
     steps:
       - name: Checkout repository
@@ -445,7 +445,7 @@ jobs:
 
       - name: Generate optimized Dockerfiles
         run: |
-          echo "?ï¿½ï¿½ Generating optimized Dockerfiles..."
+          echo "?³ Generating optimized Dockerfiles..."
           
           # Create Dockerfiles directory
           mkdir -p .dockerfiles
@@ -553,10 +553,10 @@ jobs:
   # =============================================================================
   build-containers:
     name: Build Container - ${{ matrix.name }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [setup, build-binaries, create-dockerfiles]
     if: needs.setup.outputs.should-build == 'true'
-    timeout-minutes: 10
+    timeout-minutes: 20
     
     strategy:
       fail-fast: false
@@ -644,7 +644,7 @@ jobs:
   # =============================================================================
   container-security:
     name: Container Security Scan - ${{ matrix.name }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [setup, build-containers]
     if: needs.setup.outputs.should-build == 'true' && env.BUILD_MODE != 'fast'
     timeout-minutes: 10
@@ -684,15 +684,15 @@ jobs:
   # =============================================================================
   container-summary:
     name: Container Build Summary
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [setup, build-binaries, build-containers, container-security]
     if: always() && needs.setup.outputs.should-build == 'true'
-    timeout-minutes: 10
+    timeout-minutes: 5
 
     steps:
       - name: Generate comprehensive build summary
         run: |
-          echo "# ?ï¿½ï¿½ Nephoran Container Build Summary - 2025" >> $GITHUB_STEP_SUMMARY
+          echo "# ?³ Nephoran Container Build Summary - 2025" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Build Date:** $(date -u +"%Y-%m-%d %H:%M UTC")" >> $GITHUB_STEP_SUMMARY
           echo "**Build Mode:** ${{ env.BUILD_MODE }}" >> $GITHUB_STEP_SUMMARY
@@ -771,6 +771,6 @@ jobs:
             if [[ "${{ env.PUSH_IMAGES }}" == "true" ]]; then
               echo "?? Container images are available in ${{ env.REGISTRY }}"
             else
-              echo "?ï¿½ï¿½ Container images built locally (push disabled)"
+              echo "?“¦ Container images built locally (push disabled)"
             fi
           fi

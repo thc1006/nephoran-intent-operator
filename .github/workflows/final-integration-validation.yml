@@ -55,7 +55,7 @@ env:
   DEPLOYMENT_TARGET: ${{ github.event.inputs.deployment_target || 'local-kind' }}
   
   # System versions
-  GO_VERSION: "1.22.7"
+  GO_VERSION: "1.24.6"  # EMERGENCY FIX - Match go.mod toolchain
   KUBERNETES_VERSION: "1.31.0"
   HELM_VERSION: "3.16.0"
   
@@ -70,7 +70,7 @@ jobs:
   # =============================================================================
   validation-orchestrator:
     name: ?Ž¯ Validation Orchestrator
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 10
     outputs:
       test-matrix: ${{ steps.matrix.outputs.matrix }}
@@ -243,7 +243,7 @@ jobs:
   # =============================================================================
   parallel-validation:
     name: ??Parallel Validation - ${{ matrix.category }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: validation-orchestrator
     timeout-minutes: ${{ matrix.timeout }}
     
@@ -301,7 +301,7 @@ jobs:
             "unit")
               echo "?”¬ Running unit tests..."
               if command -v go >/dev/null 2>&1; then
-                go test -short -v -race -coverprofile=test-results/${{ matrix.category }}/coverage.out ./... \
+                go test -v -race -coverprofile=test-results/${{ matrix.category }}/coverage.out ./... \
                   -timeout=15m 2>&1 | tee test-results/${{ matrix.category }}/output.log
                 
                 # Generate coverage report
@@ -342,11 +342,11 @@ jobs:
               
               if command -v go >/dev/null 2>&1; then
                 # Run Go benchmarks
-                go test -short -bench=. -benchmem ./... 2>&1 | \
+                go test -bench=. -benchmem ./... 2>&1 | \
                   tee test-results/${{ matrix.category }}/benchmarks.log || true
                 
                 # Memory and CPU profiling
-                go test -short -cpuprofile=test-results/${{ matrix.category }}/cpu.prof \
+                go test -cpuprofile=test-results/${{ matrix.category }}/cpu.prof \
                   -memprofile=test-results/${{ matrix.category }}/mem.prof \
                   -bench=. ./... || true
               fi
@@ -454,10 +454,10 @@ jobs:
   # =============================================================================
   sequential-validation:
     name: ?? Sequential Validation
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [validation-orchestrator, parallel-validation]
     if: always()
-    timeout-minutes: 10
+    timeout-minutes: 120
     outputs:
       integration-status: ${{ steps.integration.outputs.status }}
       e2e-status: ${{ steps.e2e.outputs.status }}
@@ -540,7 +540,7 @@ jobs:
           
       - name: ?§ª Integration Tests
         id: integration
-        timeout-minutes: 10
+        timeout-minutes: 45
         run: |
           echo "?§ª Running comprehensive integration tests..."
           
@@ -558,7 +558,7 @@ jobs:
           
           # Run integration tests
           echo "?? Running integration test suite..."
-          if go test -short -v -tags=integration ./... -timeout=30m 2>&1 | tee integration-results/integration-tests.log; then
+          if go test -v -tags=integration ./... -timeout=30m 2>&1 | tee integration-results/integration-tests.log; then
             echo "  ??Integration tests passed"
             integration_status="success"
           else
@@ -568,7 +568,7 @@ jobs:
           
           # Controller tests
           echo "??ï¸?Testing controller functionality..."
-          if find . -name "*controller*" -name "*.go" -exec go test -short -v {} \; 2>&1 | tee integration-results/controller-tests.log; then
+          if find . -name "*controller*" -name "*.go" -exec go test -v {} \; 2>&1 | tee integration-results/controller-tests.log; then
             echo "  ??Controller tests passed"
           else
             echo "  ? ï? Controller tests had issues"
@@ -578,7 +578,7 @@ jobs:
           
       - name: ?? End-to-End Workflow Tests
         id: e2e
-        timeout-minutes: 10
+        timeout-minutes: 60
         run: |
           echo "?? Running end-to-end workflow tests..."
           
@@ -690,7 +690,7 @@ jobs:
   # =============================================================================
   final-validation-report:
     name: ?? Final Validation Report
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [validation-orchestrator, parallel-validation, sequential-validation]
     if: always()
     timeout-minutes: 10

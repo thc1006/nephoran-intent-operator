@@ -46,7 +46,7 @@ permissions:
 # Stability-focused environment configuration
 env:
   # Core versions
-  GO_VERSION: "1.22.7"
+  GO_VERSION: "1.24.6"  # EMERGENCY FIX - Match go.mod toolchain
   NODE_VERSION: "20"
   
   # Stability settings
@@ -77,8 +77,8 @@ jobs:
   # =============================================================================
   stability-assessment:
     name: ?? Stability Assessment
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
     outputs:
       cache-strategy: ${{ steps.assessment.outputs.cache-strategy }}
       timeout-profile: ${{ steps.assessment.outputs.timeout-profile }}
@@ -181,7 +181,7 @@ jobs:
   # =============================================================================
   build-and-test:
     name: ??ï¸?Build & Test Pipeline
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [stability-assessment, cache-management]
     timeout-minutes: ${{ needs.stability-assessment.outputs.timeout-profile == 'quick' && 20 || needs.stability-assessment.outputs.timeout-profile == 'standard' && 30 || 45 }}
     
@@ -259,10 +259,10 @@ jobs:
               execute_with_retry "go build -v ./..." "Go compilation"
               ;;
             "unit-test")
-              execute_with_retry "go test -short -v -race -short ./..." "Unit tests"
+              execute_with_retry "go test -v -race -short ./..." "Unit tests"
               ;;
             "integration-test")
-              execute_with_retry "go test -short -v -race -tags=integration ./..." "Integration tests"
+              execute_with_retry "go test -v -race -tags=integration ./..." "Integration tests"
               ;;
           esac
           
@@ -312,7 +312,7 @@ jobs:
   # =============================================================================
   quality-gates:
     name: ??Quality Gates
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [stability-assessment, cache-management, build-and-test, security-scan]
     if: always()
     timeout-minutes: 10
