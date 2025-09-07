@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -163,26 +162,7 @@ func (r *AuditTrailController) Reconcile(ctx context.Context, req ctrl.Request) 
 
 		controllerutil.AddFinalizer(auditTrail, AuditTrailFinalizer)
 
-		if err := r.Update(ctx, auditTrail); err != nil {
-			if apierrors.IsConflict(err) {
-				// Resource was modified, requeue for retry
-				log.Info("Resource conflict when adding finalizer, requeueing")
-				return ctrl.Result{Requeue: true}, nil
-			}
-			return ctrl.Result{}, err
-		}
-
-		// Re-fetch the resource after finalizer update to ensure we have the latest version
-		if err := r.Get(ctx, req.NamespacedName, auditTrail); err != nil {
-			if apierrors.IsNotFound(err) {
-				log.Info("AuditTrail resource not found after finalizer update, cleaning up")
-				return r.cleanupAuditSystem(req.NamespacedName.String())
-			}
-			log.Error(err, "Unable to re-fetch AuditTrail after finalizer update")
-			return ctrl.Result{}, err
-		}
-
-		// Continue with reconciliation after adding finalizer
+		return ctrl.Result{}, r.Update(ctx, auditTrail)
 
 	}
 
@@ -190,19 +170,12 @@ func (r *AuditTrailController) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	result, err := r.reconcileAuditSystem(ctx, auditTrail, log)
 	if err != nil {
-		log.Error(err, "Failed to reconcile audit system")
 		return result, r.updateStatusError(ctx, auditTrail, err, log)
 	}
 
 	// Update status with current state.
 
-	log.Info("Updating status")
-	statusErr := r.updateStatus(ctx, auditTrail, log)
-	if statusErr != nil {
-		log.Error(statusErr, "Failed to update status")
-	}
-	
-	return result, statusErr
+	return result, r.updateStatus(ctx, auditTrail, log)
 }
 
 // handleDeletion handles the deletion of an AuditTrail resource.
@@ -242,13 +215,7 @@ func (r *AuditTrailController) handleDeletion(ctx context.Context, auditTrail *n
 
 		controllerutil.RemoveFinalizer(auditTrail, AuditTrailFinalizer)
 
-		if err := r.Update(ctx, auditTrail); err != nil {
-			if apierrors.IsConflict(err) {
-				log.Info("Finalizer removal conflict, requeueing")
-				return ctrl.Result{Requeue: true}, nil
-			}
-			return ctrl.Result{}, err
-		}
+		return ctrl.Result{}, r.Update(ctx, auditTrail)
 
 	}
 
@@ -382,17 +349,17 @@ func (r *AuditTrailController) buildAuditSystemConfig(ctx context.Context, audit
 		ComplianceMode: r.convertComplianceMode(auditTrail.Spec.ComplianceMode),
 	}
 
-	// Set defaults and validate values.
+	// Set defaults if not specified.
 
-	if config.BatchSize <= 0 {
+	if config.BatchSize == 0 {
 		config.BatchSize = 100
 	}
 
-	if config.FlushInterval <= 0 {
+	if config.FlushInterval == 0 {
 		config.FlushInterval = 10 * time.Second
 	}
 
-	if config.MaxQueueSize <= 0 {
+	if config.MaxQueueSize == 0 {
 		config.MaxQueueSize = 10000
 	}
 
@@ -449,24 +416,17 @@ func (r *AuditTrailController) buildBackendConfig(ctx context.Context, auditTrai
 		config.Format = "json"
 	}
 
-	// Convert settings from RawExtension with proper JSON validation.
+	// Convert settings from RawExtension.
 
 	if spec.Settings.Raw != nil {
 
 		settings := make(map[string]interface{})
 
-		// Validate and unmarshal the JSON in RawExtension
-		if len(spec.Settings.Raw) > 0 {
-			// First, validate that it's valid JSON
-			if !json.Valid(spec.Settings.Raw) {
-				return nil, fmt.Errorf("invalid JSON in backend settings for %s: %s", spec.Name, string(spec.Settings.Raw))
-			}
+		// In a real implementation, you'd unmarshal the RawExtension properly.
 
-			// Try to unmarshal into a map
-			if err := json.Unmarshal(spec.Settings.Raw, &settings); err != nil {
-				return nil, fmt.Errorf("failed to unmarshal backend settings for %s: %w", spec.Name, err)
-			}
-		}
+		// For now, we'll create a basic settings map.
+
+		settings["raw_config"] = string(spec.Settings.Raw)
 
 		config.Settings = settings
 
@@ -559,11 +519,7 @@ func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nep
 		}
 
 	} else {
-		if auditTrail.Spec.Enabled {
-			phase = "Initializing"
-		} else {
-			phase = "Stopped"
-		}
+		phase = "Initializing"
 	}
 
 	// Build status.
@@ -617,25 +573,12 @@ func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nep
 	status.Conditions = conditions
 
 	// Update status if changed.
+	// Always update the status to ensure it's properly set
+	auditTrail.Status = status
 
-	if !reflect.DeepEqual(auditTrail.Status, status) {
-
-		auditTrail.Status = status
-
-		if err := r.Status().Update(ctx, auditTrail); err != nil {
-			if apierrors.IsNotFound(err) {
-				// Resource was deleted, skip status update
-				log.Info("Resource not found during status update, skipping")
-				return nil
-			}
-			if apierrors.IsConflict(err) {
-				// Resource was modified, but status update conflicts are not critical
-				log.Info("Status update conflict, ignoring")
-				return nil
-			}
-			return err
-		}
-
+	if err := r.Status().Update(ctx, auditTrail); err != nil {
+		log.Error(err, "Failed to update AuditTrail status")
+		return err
 	}
 
 	return nil
@@ -646,12 +589,13 @@ func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nep
 func (r *AuditTrailController) updateStatusError(ctx context.Context, auditTrail *nephv1.AuditTrail, err error, log logr.Logger) error {
 	now := metav1.Now()
 
-	// Initialize status if not already initialized to prevent nil pointer panic
-	if auditTrail.Status.Phase == "" && auditTrail.Status.LastUpdate == nil {
+	// Initialize status if nil
+	if auditTrail.Status.Phase == "" {
 		auditTrail.Status = nephv1.AuditTrailStatus{}
 	}
 
 	auditTrail.Status.Phase = "Failed"
+
 	auditTrail.Status.LastUpdate = &now
 
 	auditTrail.Status.Conditions = []metav1.Condition{
@@ -702,11 +646,11 @@ func (r *AuditTrailController) cleanupAuditSystem(key string) (ctrl.Result, erro
 // hasConfigurationChanged checks if the configuration has changed.
 
 func (r *AuditTrailController) hasConfigurationChanged(auditTrail *nephv1.AuditTrail) bool {
-	// For now, always assume configuration has changed to trigger updates.
+	// This is a simplified implementation.
 
-	// In a production implementation, you'd store and compare the last known configuration.
+	// In practice, you'd store the last known configuration and compare.
 
-	return true
+	return false
 }
 
 // Helper functions for conversion.
