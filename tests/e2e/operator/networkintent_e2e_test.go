@@ -75,7 +75,7 @@ func (suite *E2EOperatorTestSuite) SetupSuite() {
 	}
 
 	// Setup test environment
-	suite.testEnv = &testenv.Environment{
+	suite.testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{
 			"../../../config/crd/bases",
 		},
@@ -534,7 +534,7 @@ var _ = ginkgo.Describe("NetworkIntent E2E Tests", func() {
 		namespace = "ginkgo-e2e-test"
 
 		ginkgo.By("Starting test environment")
-		testEnv := &testenv.Environment{
+		testEnv := &envtest.Environment{
 			CRDDirectoryPaths: []string{
 				"../../../config/crd/bases",
 			},

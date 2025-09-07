@@ -46,7 +46,7 @@ func (suite *DisasterRecoveryTestSuite) SetupSuite() {
 	suite.backupDir = tempDir
 
 	// Setup test environment
-	suite.testEnv = &testenv.Environment{
+	suite.testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{
 			filepath.Join("..", "..", "config", "crd", "bases"),
 		},

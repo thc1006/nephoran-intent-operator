@@ -76,7 +76,7 @@ var _ = BeforeSuite(func() {
 	By("bootstrapping test environment")
 
 	// 2025 envtest configuration with enhanced settings
-	testEnv := &testenv.Environment{
+	testEnv := &envtest.Environment{
 		CRDDirectoryPaths: []string{
 			filepath.Join("..", "..", "config", "crd", "bases"),
 		},
