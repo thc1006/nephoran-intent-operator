@@ -329,25 +329,25 @@ func (cb *CircuitBreaker) Execute(ctx context.Context, operation CircuitOperatio
 // canExecute checks if the circuit breaker allows execution.
 
 func (cb *CircuitBreaker) canExecute() bool {
+	// First check with read lock
 	cb.mutex.RLock()
+	state := cb.state
+	stateChangeTime := cb.stateChangeTime
+	halfOpenRequests := cb.halfOpenRequests
+	cb.mutex.RUnlock()
 
-	switch cb.state {
+	switch state {
 
 	case StateClosed:
-		cb.mutex.RUnlock()
 		return true
 
 	case StateOpen:
 
 		// Check if we should transition to half-open.
 
-		if time.Since(cb.stateChangeTime) >= cb.config.ResetTimeout {
+		if time.Since(stateChangeTime) >= cb.config.ResetTimeout {
 
-			// Need to upgrade to write lock for state transition
-			// Release read lock first
-			cb.mutex.RUnlock()
-
-			// Acquire write lock
+			// Acquire write lock for state transition
 			cb.mutex.Lock()
 			defer cb.mutex.Unlock()
 
@@ -361,18 +361,14 @@ func (cb *CircuitBreaker) canExecute() bool {
 
 		}
 
-		cb.mutex.RUnlock()
 		return false
 
 	case StateHalfOpen:
 
 		// Allow limited requests in half-open state.
-		result := cb.halfOpenRequests < cb.config.HalfOpenMaxRequests
-		cb.mutex.RUnlock()
-		return result
+		return halfOpenRequests < cb.config.HalfOpenMaxRequests
 
 	default:
-		cb.mutex.RUnlock()
 		return false
 
 	}
