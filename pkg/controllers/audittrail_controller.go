@@ -576,6 +576,10 @@ func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nep
 	auditTrail.Status = status
 
 	if err := r.Status().Update(ctx, auditTrail); err != nil {
+		if apierrors.IsNotFound(err) {
+			log.V(1).Info("AuditTrail not found during status update, likely deleted")
+			return nil
+		}
 		log.Error(err, "Failed to update AuditTrail status")
 		return err
 	}
@@ -616,6 +620,10 @@ func (r *AuditTrailController) updateStatusError(ctx context.Context, auditTrail
 		fmt.Sprintf("Failed to reconcile: %v", err))
 
 	if updateErr := r.Status().Update(ctx, auditTrail); updateErr != nil {
+		if apierrors.IsNotFound(updateErr) {
+			log.V(1).Info("AuditTrail not found during error status update, likely deleted")
+			return err // Return original error, not the update error
+		}
 
 		log.Error(updateErr, "Failed to update status")
 

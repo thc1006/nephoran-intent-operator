@@ -860,16 +860,14 @@ func calculateExponentialBackoff(retryCount int, baseDelay, maxDelay time.Durati
 		backoffDuration = maxDelay
 	}
 
-	// Add jitter to prevent thundering herd.
-
+	// Add jitter to prevent thundering herd, but ensure we don't exceed maxDelay
+	
 	jitterRange := float64(backoffDuration) * JitterFactor
-
 	jitter := (rand.Float64()*2 - 1) * jitterRange // Random value between -jitterRange and +jitterRange
 
 	finalDelay := time.Duration(float64(backoffDuration) + jitter)
 
 	// Ensure final delay is positive and doesn't exceed max.
-
 	if finalDelay < 0 {
 		finalDelay = baseDelay
 	}

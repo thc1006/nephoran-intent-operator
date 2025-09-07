@@ -615,7 +615,16 @@ func (suite *AuditTrailControllerTestSuite) TestStatusUpdates() {
 		err := suite.client.Create(context.Background(), auditTrail)
 		suite.NoError(err)
 
-		// Initial reconcile
+		// Initial reconcile - adds finalizer
+		_, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      "status-test",
+				Namespace: "default",
+			},
+		})
+		suite.NoError(err)
+
+		// Second reconcile - sets up audit system and status
 		_, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "status-test",
@@ -668,6 +677,16 @@ func (suite *AuditTrailControllerTestSuite) TestStatusUpdates() {
 		err := suite.client.Create(context.Background(), auditTrail)
 		suite.NoError(err)
 
+		// Initial reconcile - adds finalizer
+		_, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      "disabled-test",
+				Namespace: "default",
+			},
+		})
+		suite.NoError(err)
+
+		// Second reconcile - sets up audit system and status
 		_, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "disabled-test",

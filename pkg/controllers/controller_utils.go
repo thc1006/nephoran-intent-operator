@@ -74,6 +74,11 @@ func CalculateExponentialBackoff(retryCount int, config *BackoffConfig) time.Dur
 		finalDelay = float64(config.MaxDelay)
 	}
 
+	// Ensure maximum delay is not exceeded after jitter
+	if finalDelay > float64(config.MaxDelay) {
+		finalDelay = float64(config.MaxDelay)
+	}
+
 	return time.Duration(finalDelay)
 }
 

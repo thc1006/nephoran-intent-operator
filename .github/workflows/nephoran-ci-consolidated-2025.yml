@@ -44,7 +44,7 @@ env:
   GO_DISABLE_TELEMETRY: 1
   
   # Build optimization flags
-  BUILD_FLAGS: "-trimpath -ldflags='-s -w -extldflags=-static'"
+  BUILD_FLAGS: "-trimpath -ldflags=\"-s -w -extldflags=-static\""
   TEST_FLAGS: "-race -count=1 -timeout=15m"
   
   # Cache optimization
