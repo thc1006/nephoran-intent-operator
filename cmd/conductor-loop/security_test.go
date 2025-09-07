@@ -653,8 +653,6 @@ func TestConcurrentFileProcessing(t *testing.T) {
 	wg.Wait()
 
 	// Start watcher after files are created to process them once
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
 
 	// Start watcher and wait for completion
 	err = watcher.Start()
