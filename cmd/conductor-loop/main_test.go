@@ -153,7 +153,7 @@ func TestMain_EndToEndWorkflow(t *testing.T) {
 				statusContent, err := os.ReadFile(filepath.Join(statusDir, statusFiles[0].Name()))
 				require.NoError(t, err)
 				statusStr := string(statusContent)
-				assert.Contains(t, statusStr, `"intent_file": "intent-scale.json"`)
+				assert.Contains(t, statusStr, `"intent_file":"intent-scale.json"`)
 
 				// Verify original file is gone
 				originalFile := filepath.Join(handoffDir, "intent-scale.json")

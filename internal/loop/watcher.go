@@ -1673,19 +1673,15 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 		return
 	}
 
-	// Check if already processed using state manager.
-
-	processed, err := w.stateManager.IsProcessed(filePath)
-
+	// Atomically check and mark file for processing to prevent race conditions.
+	shouldProcess, err := w.stateManager.TryMarkProcessed(filePath)
 	if err != nil {
-		log.Printf("LOOP:ERROR - Worker %d: Error checking file state for %s: %v",
-
+		log.Printf("LOOP:ERROR - Worker %d: Error checking/marking file state for %s: %v",
 			workerID, filepath.Base(filePath), err)
-	} else if processed {
+		return
+	} else if !shouldProcess {
 		log.Printf("LOOP:SKIP_DUP - Worker %d: File %s already processed",
-
 			workerID, filepath.Base(filePath))
-
 		return
 	}
 
@@ -1704,11 +1700,7 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 	w.recordProcessingLatency(processingDuration)
 
 	if result.Success {
-		// Mark as processed in state manager.
-
-		if err := w.stateManager.MarkProcessed(filePath); err != nil {
-			log.Printf("LOOP:WARNING - Worker %d: Failed to mark file as processed: %v", workerID, err)
-		}
+		// File is already marked as processed atomically above.
 
 		// Move to processed directory.
 
@@ -3193,15 +3185,31 @@ func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) erro
 		log.Printf("Warning: Status message truncated for %s", filepath.Base(intentFile))
 	}
 
-	statusData := json.RawMessage(`{}`)
+	// Create proper status JSON structure
+	statusObj := map[string]interface{}{
+		"intent_file": filepath.Base(intentFile),
+		"status":      status,
+		"message":     message,
+		"timestamp":   time.Now().UTC().Format(time.RFC3339),
+		"processed_by": "conductor-loop",
+	}
 
 	// Use safe JSON marshaling with size limits.
-
-	data, err := w.safeMarshalJSON(statusData, MaxStatusSize)
+	data, err := json.Marshal(statusObj)
 	if err != nil {
 		log.Printf("Failed to marshal status data: %v", err)
-
 		return fmt.Errorf("failed to marshal status data: %w", err)
+	}
+	
+	// Check size limits
+	if len(data) > MaxStatusSize {
+		// Truncate message to fit within limits
+		statusObj["message"] = message[:MaxMessageSize-100] + "... (truncated)"
+		data, err = json.Marshal(statusObj)
+		if err != nil {
+			log.Printf("Failed to marshal truncated status data: %v", err)
+			return fmt.Errorf("failed to marshal status data: %w", err)
+		}
 	}
 
 	// Create versioned status filename based on intent filename.
@@ -3226,7 +3234,7 @@ func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) erro
 
 	tempFile := statusFile + ".tmp"
 
-	if err := os.WriteFile(tempFile, data, 0o640); err != nil {
+	if err := os.WriteFile(tempFile, data, 0o644); err != nil {
 		log.Printf("Failed to write temporary status file: %v", err)
 
 		return fmt.Errorf("failed to write temporary status file: %w", err)

@@ -273,9 +273,21 @@ func TestResourceExhaustionResilience(t *testing.T) {
 		{
 			name: "rapid file creation",
 			setupFunc: func(t *testing.T, handoffDir string) {
+				// Use context to control the rapid file creation goroutine
+				ctx, cancel := context.WithCancel(context.Background())
+				var wg sync.WaitGroup
+				
 				// Rapidly create files during processing
+				wg.Add(1)
 				go func() {
+					defer wg.Done()
 					for i := 0; i < 50; i++ {
+						select {
+						case <-ctx.Done():
+							return
+						default:
+						}
+						
 						content := fmt.Sprintf(`{
 							"intent_type": "scaling",
 							"target": "rapid-%d",
@@ -286,6 +298,13 @@ func TestResourceExhaustionResilience(t *testing.T) {
 						_ = os.WriteFile(file, []byte(content), 0o644)
 						time.Sleep(10 * time.Millisecond)
 					}
+				}()
+				
+				// Stop the goroutine after a short time
+				go func() {
+					time.Sleep(1 * time.Second)
+					cancel()
+					wg.Wait()
 				}()
 
 				// Initial files
