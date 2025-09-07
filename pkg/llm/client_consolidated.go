@@ -16,6 +16,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
@@ -387,12 +388,12 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 
 	var cacheHit bool
 
-	var retryCount int
+	var retryCount atomic.Int64
 
 	var processingError error
 
 	defer func() {
-		c.updateMetrics(success, time.Since(start), cacheHit, retryCount)
+		c.updateMetrics(success, time.Since(start), cacheHit, int(retryCount.Load()))
 
 		// Record specific error types for Prometheus metrics.
 
@@ -461,7 +462,7 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 
 // processWithRetry handles retry logic.
 
-func (c *Client) processWithRetry(ctx context.Context, intent string, retryCount *int) (string, error) {
+func (c *Client) processWithRetry(ctx context.Context, intent string, retryCount *atomic.Int64) (string, error) {
 	var lastErr error
 
 	delay := c.retryConfig.BaseDelay
@@ -496,7 +497,7 @@ func (c *Client) processWithRetry(ctx context.Context, intent string, retryCount
 			}
 		}
 
-		*retryCount = attempt
+		retryCount.Store(int64(attempt))
 
 		result, err := c.processWithBackend(ctx, intent)
 
