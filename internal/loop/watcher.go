@@ -1386,6 +1386,12 @@ func (w *Watcher) processExistingFiles() error {
 			filePath := filepath.Join(w.dir, filename)
 
 			func() {
+				// Check if worker pool is closed before attempting to send
+				if atomic.LoadInt32(&w.workerPool.closed) == 1 {
+					log.Printf("Warning: worker pool is closed, skipping %s", filename)
+					return
+				}
+
 				workCtx, cancel := context.WithTimeout(w.ctx, 60*time.Second)
 
 				defer cancel() // Ensure cancel is always called

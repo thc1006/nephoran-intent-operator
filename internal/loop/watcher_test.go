@@ -943,7 +943,7 @@ func (s *WatcherTestSuite) TestJSONValidation_ValidJSONProcessing() {
 		},
 		{
 			name:    "generic_valid_json",
-			content: `{"apiVersion": "v1", "kind": "NetworkIntent", "action": "scale", "target": "deployment", "count": 3}`,
+			content: `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale", "target": {"name": "deployment"}}}`,
 			valid:   true,
 		},
 	}

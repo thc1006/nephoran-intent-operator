@@ -27,13 +27,16 @@ var _ = Describe("LLM Client Unit Tests", func() {
 	BeforeEach(func() {
 		// Create mock server for testing
 		mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Default successful response
-			response := map[string]interface{}{
-				"replicas": float64(1),
-				"image":    "test:latest",
-			}
+			// Default successful response in OpenAI format
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(response)
+			w.Write([]byte(`{
+				"choices": [{
+					"message": {
+						"content": "{\"type\":\"NetworkFunctionDeployment\",\"name\":\"test\",\"namespace\":\"default\",\"spec\":{\"replicas\":1,\"image\":\"test:latest\"}}"
+					}
+				}],
+				"usage": {"total_tokens": 10}
+			}`))
 		}))
 
 		client = NewClient(mockServer.URL)
@@ -169,16 +172,19 @@ var _ = Describe("LLM Client Unit Tests", func() {
 				attemptCount++
 				if attemptCount <= 2 {
 					w.WriteHeader(http.StatusInternalServerError)
-					w.Write([]byte(`{"error": "internal server error"}`))
+					w.Write([]byte(`internal server error`))
 					return
 				}
 				// Third attempt succeeds
-				response := map[string]interface{}{
-					"replicas": float64(1),
-					"image":    "test:latest",
-				}
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(response)
+				w.Write([]byte(`{
+					"choices": [{
+						"message": {
+							"content": "{\"type\":\"NetworkFunctionDeployment\",\"name\":\"test\",\"namespace\":\"default\",\"spec\":{\"replicas\":1,\"image\":\"test:latest\"}}"
+						}
+					}],
+					"usage": {"total_tokens": 10}
+				}`))
 			}))
 			defer errorServer.Close() // #nosec G307 - Error handled in defer
 
@@ -402,7 +408,7 @@ var _ = Describe("LLM Client Unit Tests", func() {
 			invalidNames := []string{
 				"",                  // Empty
 				"Invalid_Name",      // Underscore
-				"UPPERCASE",         // Uppercase
+				"UPPERCASE",         // All uppercase (k8s names must be lowercase)
 				"-starts-with-dash", // Starts with dash
 				"ends-with-dash-",   // Ends with dash
 				".starts-with-dot",  // Starts with dot
