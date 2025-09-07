@@ -15,6 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"github.com/thc1006/nephoran-intent-operator/test/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	nephoran "github.com/thc1006/nephoran-intent-operator/api/v1"
@@ -115,7 +116,7 @@ func (suite *RAGPipelineIntegrationTestSuite) TearDownSuite() {
 
 // setupTestEnvironment sets up the Kubernetes test environment
 func (suite *RAGPipelineIntegrationTestSuite) setupTestEnvironment() {
-	suite.testEnv = &envtest.Environment{
+	suite.testEnv := testenv.Environment
 		CRDDirectoryPaths: []string{
 			"../../deployments/crds",
 		},

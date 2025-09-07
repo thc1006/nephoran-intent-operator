@@ -51,7 +51,7 @@ permissions:
 # Global environment optimized for Go 1.25 and Ubuntu 22.04
 env:
   # Go 1.25 configuration
-  GO_VERSION: "1.24.6"
+  GO_VERSION: "1.22.7"
   GOTOOLCHAIN: "go1.24.6"
   
   # Build optimization environment
@@ -89,9 +89,9 @@ jobs:
   # MATRIX GENERATION: Intelligent build planning based on changes and mode
   # =============================================================================
   plan:
-    name: ?? Build Planning & Matrix Generation
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    name: 🧠 Build Planning & Matrix Generation
+    runs-on: ubuntu-22.04
+    timeout-minutes: 3
     outputs:
       should-build: ${{ steps.analysis.outputs.should-build }}
       build-matrix: ${{ steps.matrix.outputs.build-matrix }}
@@ -101,15 +101,15 @@ jobs:
       estimated-time: ${{ steps.estimate.outputs.estimated-time }}
       
     steps:
-      - name: ?�� Checkout with minimal depth
+      - name: 📥 Checkout with minimal depth
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 2
           
-      - name: ?? Advanced change analysis
+      - name: 🔍 Advanced change analysis
         id: analysis
         run: |
-          echo "?? Analyzing repository changes for optimal build strategy..."
+          echo "🧠 Analyzing repository changes for optimal build strategy..."
           
           # Determine changed files
           if [ "${{ github.event_name }}" = "push" ]; then
@@ -118,7 +118,7 @@ jobs:
             CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD || echo "")
           fi
           
-          echo "?? Changed files:"
+          echo "📁 Changed files:"
           echo "$CHANGED_FILES" | head -20
           
           # Categorize changes for intelligent building
@@ -141,10 +141,10 @@ jobs:
             if [ "$PKG_CHANGES" -gt 0 ]; then CHANGED_COMPONENTS="$CHANGED_COMPONENTS pkg"; fi
             
             echo "changed-components=${CHANGED_COMPONENTS:-all}" >> $GITHUB_OUTPUT
-            echo "??Build required: $GO_CHANGES Go files, $BUILD_CHANGES build files changed"
+            echo "✅ Build required: $GO_CHANGES Go files, $BUILD_CHANGES build files changed"
           else
             echo "should-build=false" >> $GITHUB_OUTPUT
-            echo "?��? No significant changes detected - skipping build"
+            echo "ℹ️ No significant changes detected - skipping build"
           fi
           
           echo "go-changes=$GO_CHANGES" >> $GITHUB_OUTPUT
@@ -153,7 +153,7 @@ jobs:
           echo "controller-changes=$CONTROLLER_CHANGES" >> $GITHUB_OUTPUT
           echo "pkg-changes=$PKG_CHANGES" >> $GITHUB_OUTPUT
           
-      - name: ?? Build time estimation
+      - name: 📊 Build time estimation
         id: estimate
         run: |
           # Estimate build time based on changes and mode
@@ -166,12 +166,12 @@ jobs:
           esac
           
           echo "estimated-time=$TIME_EST" >> $GITHUB_OUTPUT
-          echo "?? Estimated build time: $TIME_EST (mode: $BUILD_MODE)"
+          echo "📊 Estimated build time: $TIME_EST (mode: $BUILD_MODE)"
           
-      - name: ?�� Generate intelligent build matrix
+      - name: 🧩 Generate intelligent build matrix
         id: matrix
         run: |
-          echo "?�� Generating build matrix for mode: $BUILD_MODE"
+          echo "🧩 Generating build matrix for mode: $BUILD_MODE"
           
           case "$BUILD_MODE" in
             "minimal")
@@ -226,7 +226,7 @@ jobs:
               }'
               test_matrix='{
                 "include": [
-                  {"name": "unit-critical", "pattern": "./controllers/... ./pkg/controllers/... ./api/...", "timeout": 6, "parallel": 4},
+                  {"name": "unit-critical", "pattern": "./controllers/... ./api/...", "timeout": 6, "parallel": 4},
                   {"name": "unit-core", "pattern": "./pkg/context/... ./pkg/clients/... ./pkg/nephio/...", "timeout": 5, "parallel": 4}
                 ]
               }'
@@ -322,13 +322,13 @@ jobs:
           echo "build-matrix=$build_matrix" >> $GITHUB_OUTPUT  
           echo "test-matrix=$test_matrix" >> $GITHUB_OUTPUT
           
-          echo "?? Generated matrices:"
+          echo "📊 Generated matrices:"
           echo "Build matrix: $build_matrix" | jq '.' 2>/dev/null || echo "$build_matrix"
           
-      - name: ??�?Generate advanced cache keys
+      - name: 🗃️ Generate advanced cache keys
         id: cache
         run: |
-          echo "??�?Generating intelligent cache keys..."
+          echo "🗃️ Generating intelligent cache keys..."
           
           # Multi-layer cache key generation for maximum hit rates
           GO_VERSION_HASH=$(echo "$GO_VERSION" | sha256sum | cut -c1-8)
@@ -361,14 +361,14 @@ jobs:
           }'
           
           echo "cache-keys=$cache_keys" >> $GITHUB_OUTPUT
-          echo "?? Generated cache keys: primary=$PRIMARY_KEY"
+          echo "🔑 Generated cache keys: primary=$PRIMARY_KEY"
 
   # =============================================================================
   # BUILD: Ultra-optimized parallel component building
   # =============================================================================
   build:
-    name: ?? ${{ matrix.name }}
-    runs-on: ubuntu-latest
+    name: 🚀 ${{ matrix.name }}
+    runs-on: ubuntu-22.04
     needs: plan
     if: needs.plan.outputs.should-build == 'true'
     timeout-minutes: ${{ matrix.timeout }}
@@ -379,19 +379,19 @@ jobs:
       matrix: ${{ fromJSON(needs.plan.outputs.build-matrix) }}
     
     steps:
-      - name: ?�� Checkout repository
+      - name: 📥 Checkout repository
         uses: actions/checkout@v4
         
-      - name: ??Setup Go 1.25 with optimizations
+      - name: ⚡ Setup Go 1.25 with optimizations
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: false  # Manual cache management for better control
           check-latest: true
           
-      - name: ?�� Configure ultra-optimized environment
+      - name: 🔧 Configure ultra-optimized environment
         run: |
-          echo "?�� Configuring ultra-optimized build environment..."
+          echo "🔧 Configuring ultra-optimized build environment..."
           
           # Create optimized cache directories with proper permissions
           sudo mkdir -p $GOCACHE $GOMODCACHE
@@ -402,7 +402,7 @@ jobs:
           go run build/go125-optimizations.go apply 2>/dev/null || echo "Using default optimizations"
           
           # Verify environment
-          echo "?? Environment verification:"
+          echo "📊 Environment verification:"
           echo "  Go version: $(go version)"
           echo "  GOOS/GOARCH: $GOOS/$GOARCH"
           echo "  GOMAXPROCS: $GOMAXPROCS"
@@ -411,7 +411,7 @@ jobs:
           echo "  Module cache: $GOMODCACHE"
           echo "  Matrix config: ${{ matrix.name }} (priority: ${{ matrix.priority }})"
           
-      - name: ??�?Restore ultra-aggressive cache
+      - name: 🗃️ Restore ultra-aggressive cache
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -426,41 +426,41 @@ jobs:
             ${{ fromJSON(needs.plan.outputs.cache-keys).fallback }}
             nephoran-ultra-v9-go
             
-      - name: ?�� Ultra-fast dependency resolution
-        timeout-minutes: 10
+      - name: 📦 Ultra-fast dependency resolution
+        timeout-minutes: 3
         run: |
-          echo "?�� Ultra-fast dependency download and verification..."
+          echo "📦 Ultra-fast dependency download and verification..."
           
           # Configure private repo access
           git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
           
           # Download with optimized retry logic
           for attempt in {1..3}; do
-            echo "  ?�� Download attempt $attempt/3..."
+            echo "  📥 Download attempt $attempt/3..."
             if timeout 120s go mod download -x; then
-              echo "  ??Dependencies downloaded successfully"
+              echo "  ✅ Dependencies downloaded successfully"
               break
             elif [ $attempt -eq 3 ]; then
-              echo "  ??Download failed after 3 attempts"
+              echo "  ❌ Download failed after 3 attempts"
               exit 1
             else
-              echo "  ??Retrying in 5 seconds..."
+              echo "  ⏳ Retrying in 5 seconds..."
               sleep 5
             fi
           done
           
           # Fast verification
-          echo "  ?? Verifying module integrity..."
+          echo "  🔍 Verifying module integrity..."
           go mod verify
           
-          echo "?? Dependency stats:"
+          echo "📊 Dependency stats:"
           echo "  Total modules: $(go list -m all | wc -l)"
           echo "  Cache size: $(du -sh $GOMODCACHE 2>/dev/null | cut -f1 || echo 'unknown')"
           
-      - name: ??�?Ultra-optimized component build - ${{ matrix.name }}
+      - name: 🏗️ Ultra-optimized component build - ${{ matrix.name }}
         timeout-minutes: ${{ matrix.timeout - 2 }}
         run: |
-          echo "??�?Building ${{ matrix.name }} with ${{ matrix.optimization }} optimization"
+          echo "🏗️ Building ${{ matrix.name }} with ${{ matrix.optimization }} optimization"
           echo "  Components: ${{ matrix.components }}"
           echo "  Parallelism: ${{ matrix.parallel }}"
           echo "  Priority: ${{ matrix.priority }}"
@@ -497,53 +497,53 @@ jobs:
           esac
           
           export GOMAXPROCS=$PARALLEL_LEVEL
-          echo "  ?�� Using $PARALLEL_LEVEL parallel processes"
+          echo "  🔧 Using $PARALLEL_LEVEL parallel processes"
           
           # Build function with timeout and error handling
           build_component() {
             local component="$1"
             local timeout_sec="$2"
             
-            echo "    ?�� Building: $component"
+            echo "    🔨 Building: $component"
             
             case "$component" in
               "api")
                 timeout ${timeout_sec}s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" ./api/... || {
-                  echo "    ?��? API build issues (non-fatal)"
+                  echo "    ⚠️ API build issues (non-fatal)"
                   return 0
                 }
                 ;;
                 
               "controllers")
                 timeout ${timeout_sec}s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" ./controllers/... || {
-                  echo "    ?��? Controllers build issues (non-fatal)"
+                  echo "    ⚠️ Controllers build issues (non-fatal)"
                   return 0
                 }
                 ;;
                 
               "pkg")
                 timeout ${timeout_sec}s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" ./pkg/... || {
-                  echo "    ?��? Package build issues (non-fatal)"
+                  echo "    ⚠️ Package build issues (non-fatal)"
                   return 0
                 }
                 ;;
                 
               "internal")
                 timeout ${timeout_sec}s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" ./internal/... || {
-                  echo "    ?��? Internal build issues (non-fatal)"
+                  echo "    ⚠️ Internal build issues (non-fatal)"
                   return 0
                 }
                 ;;
                 
               "all")
                 # Special case for debug builds
-                echo "    ?�� Building all components (debug mode)..."
+                echo "    🔨 Building all components (debug mode)..."
                 
                 # Build in dependency order
-                timeout 180s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" ./api/... || echo "    ?��? API build issues"
-                timeout 180s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" ./pkg/... || echo "    ?��? Package build issues"
-                timeout 180s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" ./controllers/... || echo "    ?��? Controller build issues"
-                timeout 180s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" ./internal/... || echo "    ?��? Internal build issues"
+                timeout 180s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" ./api/... || echo "    ⚠️ API build issues"
+                timeout 180s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" ./pkg/... || echo "    ⚠️ Package build issues"
+                timeout 180s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" ./controllers/... || echo "    ⚠️ Controller build issues"
+                timeout 180s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" ./internal/... || echo "    ⚠️ Internal build issues"
                 
                 # Build all cmd directories
                 for cmd_dir in cmd/*/; do
@@ -551,13 +551,13 @@ jobs:
                     cmd_name=$(basename "$cmd_dir")
                     timeout 120s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" \
                       -o "bin/$cmd_name" "./$cmd_dir" || {
-                      echo "    ?��? $cmd_name build failed (continuing...)"
+                      echo "    ⚠️ $cmd_name build failed (continuing...)"
                       continue
                     }
                     
                     if [[ -f "bin/$cmd_name" ]]; then
                       size=$(ls -lh "bin/$cmd_name" | awk '{print $5}')
-                      echo "    ??$cmd_name: $size"
+                      echo "    ✅ $cmd_name: $size"
                     fi
                   fi
                 done
@@ -568,16 +568,16 @@ jobs:
                 if [[ -d "cmd/$component" && -f "cmd/$component/main.go" ]]; then
                   timeout ${timeout_sec}s go build -p $PARALLEL_LEVEL $BUILD_FLAGS -tags="$BUILD_TAGS" \
                     -o "bin/$component" "./cmd/$component" || {
-                    echo "    ?��? $component build failed (continuing...)"
+                    echo "    ⚠️ $component build failed (continuing...)"
                     return 0
                   }
                   
                   if [[ -f "bin/$component" ]]; then
                     size=$(ls -lh "bin/$component" | awk '{print $5}')
-                    echo "    ??$component: $size"
+                    echo "    ✅ $component: $size"
                   fi
                 else
-                  echo "    ?��? Unknown component or missing main.go: $component"
+                  echo "    ⚠️ Unknown component or missing main.go: $component"
                 fi
                 ;;
             esac
@@ -589,7 +589,7 @@ jobs:
           component_count=${#COMPONENTS[@]}
           component_timeout=$((total_timeout_sec / component_count))
           
-          echo "  ?��? Building $component_count components with ${component_timeout}s timeout each"
+          echo "  ⏱️ Building $component_count components with ${component_timeout}s timeout each"
           
           for component in "${COMPONENTS[@]}"; do
             build_component "$component" "$component_timeout"
@@ -597,22 +597,22 @@ jobs:
           
           # Build summary
           echo ""
-          echo "?? Build Summary for ${{ matrix.name }}:"
+          echo "📊 Build Summary for ${{ matrix.name }}:"
           if [[ -d "bin" ]]; then
             built_count=$(ls -1 bin/ 2>/dev/null | wc -l)
             total_size=$(du -sh bin/ 2>/dev/null | cut -f1 || echo "0")
-            echo "  ??Built binaries: $built_count"
-            echo "  ?�� Total size: $total_size"
+            echo "  ✅ Built binaries: $built_count"
+            echo "  📦 Total size: $total_size"
             
             if [[ $built_count -gt 0 ]]; then
-              echo "  ??�?Built components:"
+              echo "  🗂️ Built components:"
               ls -la bin/ | head -15
             fi
           else
-            echo "  ?�� Library-only build (no binaries)"
+            echo "  📦 Library-only build (no binaries)"
           fi
           
-      - name: ?�� Save ultra-aggressive cache
+      - name: 💾 Save ultra-aggressive cache
         if: always()
         uses: actions/cache/save@v4
         with:
@@ -623,7 +623,7 @@ jobs:
             ~/go/pkg/mod
           key: ${{ fromJSON(needs.plan.outputs.cache-keys).primary }}
           
-      - name: ?�� Upload high-priority artifacts
+      - name: 📤 Upload high-priority artifacts
         if: matrix.priority == 'critical' || matrix.priority == 'high'
         uses: actions/upload-artifact@v4
         with:
@@ -637,8 +637,8 @@ jobs:
   # TEST: Progressive testing with smart coverage
   # =============================================================================
   test:
-    name: ?�� ${{ matrix.name }}
-    runs-on: ubuntu-latest
+    name: 🧪 ${{ matrix.name }}
+    runs-on: ubuntu-22.04
     needs: [plan, build]
     if: needs.plan.outputs.should-build == 'true' && env.BUILD_MODE != 'minimal'
     timeout-minutes: ${{ matrix.timeout }}
@@ -649,18 +649,18 @@ jobs:
       matrix: ${{ fromJSON(needs.plan.outputs.test-matrix) }}
     
     steps:
-      - name: ?�� Checkout repository
+      - name: 📥 Checkout repository
         uses: actions/checkout@v4
         
-      - name: ??Setup Go 1.25 
+      - name: ⚡ Setup Go 1.25 
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: false
           
-      - name: ?�� Configure test environment
+      - name: 🔧 Configure test environment
         run: |
-          echo "?�� Configuring ultra-fast test environment for: ${{ matrix.name }}"
+          echo "🧪 Configuring ultra-fast test environment for: ${{ matrix.name }}"
           
           # Create cache directories
           sudo mkdir -p $GOCACHE $GOMODCACHE
@@ -673,7 +673,7 @@ jobs:
           echo "  Parallel test processes: ${{ matrix.parallel || 4 }}"
           echo "  Test pattern: ${{ matrix.pattern }}"
           
-      - name: ??�?Restore test cache
+      - name: 🗃️ Restore test cache
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -684,11 +684,11 @@ jobs:
             ${{ fromJSON(needs.plan.outputs.cache-keys).secondary }}
             nephoran-ultra-v9-go
             
-      - name: ??�?Setup Kubernetes test environment  
+      - name: 🏗️ Setup Kubernetes test environment  
         if: contains(matrix.pattern, 'controllers') || contains(matrix.pattern, 'api')
-        timeout-minutes: 10
+        timeout-minutes: 2
         run: |
-          echo "??�?Setting up optimized Kubernetes test environment..."
+          echo "🏗️ Setting up optimized Kubernetes test environment..."
           
           # Install and configure envtest for controller testing
           go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
@@ -698,15 +698,14 @@ jobs:
           KUBEBUILDER_ASSETS=$(setup-envtest use 1.31.0 --arch=amd64 --os=linux -p path)
           echo "KUBEBUILDER_ASSETS=$KUBEBUILDER_ASSETS" >> $GITHUB_ENV
           
-          echo "??Kubernetes test environment ready"
+          echo "✅ Kubernetes test environment ready"
           
-      - name: ?? Execute ultra-fast tests - ${{ matrix.name }}
+      - name: 🚀 Execute ultra-fast tests - ${{ matrix.name }}
         timeout-minutes: ${{ matrix.timeout - 1 }}
         env:
           KUBEBUILDER_ASSETS: ${{ env.KUBEBUILDER_ASSETS }}
-          CGO_ENABLED: 1  # Required for -race flag
         run: |
-          echo "?? Executing tests: ${{ matrix.pattern }}"
+          echo "🚀 Executing tests: ${{ matrix.pattern }}"
           
           mkdir -p test-results coverage-reports
           
@@ -720,30 +719,30 @@ jobs:
           # Add race detection for critical tests
           if [[ "${{ matrix.name }}" == *"critical"* ]] || [[ "${{ matrix.name }}" == *"controller"* ]]; then
             TEST_FLAGS="$TEST_FLAGS -race"
-            echo "?? Race detection enabled"
+            echo "🔍 Race detection enabled"
           fi
           
           # Add coverage collection
           if [[ "${{ matrix.coverage }}" == "true" ]]; then
             TEST_FLAGS="$TEST_FLAGS -coverprofile=coverage-reports/coverage-${{ matrix.name }}.out -covermode=atomic"
-            echo "?? Coverage collection enabled"
+            echo "📊 Coverage collection enabled"
           fi
           
           # Execute tests with comprehensive error handling
-          echo "?? Running: go test -short $TEST_FLAGS ${{ matrix.pattern }}"
+          echo "🏃 Running: go test $TEST_FLAGS ${{ matrix.pattern }}"
           
           start_time=$(date +%s)
-          if go test -short $TEST_FLAGS ${{ matrix.pattern }} 2>&1 | tee "test-results/output-${{ matrix.name }}.log"; then
+          if go test $TEST_FLAGS ${{ matrix.pattern }} 2>&1 | tee "test-results/output-${{ matrix.name }}.log"; then
             end_time=$(date +%s)
             duration=$((end_time - start_time))
-            echo "??Tests completed successfully in ${duration}s"
+            echo "✅ Tests completed successfully in ${duration}s"
             echo "status=success" > "test-results/status-${{ matrix.name }}.txt"
             echo "duration=${duration}" >> "test-results/status-${{ matrix.name }}.txt"
           else
             end_time=$(date +%s)
             duration=$((end_time - start_time))
             exit_code=$?
-            echo "??Tests failed after ${duration}s (exit: $exit_code)"
+            echo "❌ Tests failed after ${duration}s (exit: $exit_code)"
             echo "status=failed" > "test-results/status-${{ matrix.name }}.txt"
             echo "duration=${duration}" >> "test-results/status-${{ matrix.name }}.txt"
             echo "exit_code=$exit_code" >> "test-results/status-${{ matrix.name }}.txt"
@@ -752,13 +751,13 @@ jobs:
             echo "::warning::Test failures in ${{ matrix.name }}"
           fi
           
-      - name: ?? Process coverage results
+      - name: 📊 Process coverage results
         if: always() && matrix.coverage == true
         run: |
           coverage_file="coverage-reports/coverage-${{ matrix.name }}.out"
           
           if [[ -f "$coverage_file" ]]; then
-            echo "?? Processing coverage for ${{ matrix.name }}..."
+            echo "📊 Processing coverage for ${{ matrix.name }}..."
             
             # Generate coverage reports
             go tool cover -html="$coverage_file" -o "coverage-reports/coverage-${{ matrix.name }}.html"
@@ -766,20 +765,20 @@ jobs:
             
             # Extract and display coverage percentage
             coverage_pct=$(go tool cover -func="$coverage_file" | grep "total:" | awk '{print $3}' || echo "0.0%")
-            echo "?? Coverage for ${{ matrix.name }}: $coverage_pct"
+            echo "📈 Coverage for ${{ matrix.name }}: $coverage_pct"
             
             # Save for later aggregation
             echo "$coverage_pct" > "test-results/coverage-${{ matrix.name }}.txt"
             
             # Add to job summary
-            echo "## ?? Coverage Report - ${{ matrix.name }}" >> $GITHUB_STEP_SUMMARY
+            echo "## 📊 Coverage Report - ${{ matrix.name }}" >> $GITHUB_STEP_SUMMARY
             echo "**Coverage Percentage:** $coverage_pct" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
           else
-            echo "?��? Coverage file not found: $coverage_file"
+            echo "⚠️ Coverage file not found: $coverage_file"
           fi
           
-      - name: ?�� Upload test artifacts
+      - name: 📤 Upload test artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -794,31 +793,31 @@ jobs:
   # QUALITY: Lightning-fast quality assurance
   # =============================================================================
   quality:
-    name: ?? Code Quality & Security
-    runs-on: ubuntu-latest
+    name: 🔍 Code Quality & Security
+    runs-on: ubuntu-22.04
     needs: [plan]
     if: needs.plan.outputs.should-build == 'true'
-    timeout-minutes: 10
+    timeout-minutes: 8
     
     steps:
-      - name: ?�� Checkout repository
+      - name: 📥 Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1  # Full history for better analysis
+          fetch-depth: 0  # Full history for better analysis
           
-      - name: ??Setup Go 1.25
+      - name: ⚡ Setup Go 1.25
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: false
           
-      - name: ?�� Configure quality environment
+      - name: 🔧 Configure quality environment
         run: |
-          echo "?? Configuring ultra-fast quality checks..."
+          echo "🔍 Configuring ultra-fast quality checks..."
           sudo mkdir -p $GOCACHE $GOMODCACHE
           sudo chown -R $USER:$USER $GOCACHE $GOMODCACHE
           
-      - name: ??�?Restore cache
+      - name: 🗃️ Restore cache
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -828,30 +827,30 @@ jobs:
           restore-keys: |
             nephoran-ultra-v9-go
             
-      - name: ?�� Fast dependency check
-        timeout-minutes: 10
+      - name: 📦 Fast dependency check
+        timeout-minutes: 2
         run: |
           git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
           go mod download
           go mod verify
           
-      - name: ?? Ultra-fast go vet
-        timeout-minutes: 10
+      - name: 🔍 Ultra-fast go vet
+        timeout-minutes: 2
         run: |
-          echo "?? Running go vet analysis..."
+          echo "🔍 Running go vet analysis..."
           go vet -tags="netgo,osusergo" ./... || {
             echo "::warning::go vet found issues"
             exit 1
           }
           
-      - name: ??Lightning staticcheck
+      - name: ⚡ Lightning staticcheck
         uses: dominikh/staticcheck-action@v1.3.1
         with:
           version: "2024.1.1"
           install-go: false
           cache-key: staticcheck-ultra-${{ github.run_number }}
           
-      - name: ?? Ultra-fast golangci-lint
+      - name: 🚀 Ultra-fast golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
           version: v1.65.1
@@ -859,47 +858,47 @@ jobs:
           skip-cache: false
           skip-save-cache: false
           
-      - name: ?? Verify go.mod tidiness
-        timeout-minutes: 10
+      - name: 🔍 Verify go.mod tidiness
+        timeout-minutes: 1
         run: |
-          echo "?? Verifying go.mod tidiness..."
+          echo "🔍 Verifying go.mod tidiness..."
           cp go.mod go.mod.backup
           cp go.sum go.sum.backup
           
           go mod tidy
           
           if ! diff -q go.mod go.mod.backup || ! diff -q go.sum go.sum.backup; then
-            echo "??go.mod/go.sum not tidy - run 'go mod tidy'"
+            echo "❌ go.mod/go.sum not tidy - run 'go mod tidy'"
             git diff go.mod go.sum
             exit 1
           fi
           
-          echo "??go.mod and go.sum are tidy"
+          echo "✅ go.mod and go.sum are tidy"
 
   # =============================================================================
   # INTEGRATION: Fast integration validation
   # =============================================================================
   integration:
-    name: ?? Integration & Smoke Tests
-    runs-on: ubuntu-latest
+    name: 🔗 Integration & Smoke Tests
+    runs-on: ubuntu-22.04
     needs: [plan, build]
     if: needs.plan.outputs.should-build == 'true' && env.BUILD_MODE != 'minimal'
-    timeout-minutes: 10
+    timeout-minutes: 6
     
     steps:
-      - name: ?�� Checkout repository
+      - name: 📥 Checkout repository
         uses: actions/checkout@v4
         
-      - name: ?�� Download build artifacts
+      - name: 📤 Download build artifacts
         uses: actions/download-artifact@v4
         with:
           pattern: binaries-*
           path: artifacts/
           merge-multiple: true
           
-      - name: ?�� Prepare integration environment
+      - name: 🔧 Prepare integration environment
         run: |
-          echo "?? Setting up integration test environment..."
+          echo "🔗 Setting up integration test environment..."
           
           mkdir -p bin/
           
@@ -907,13 +906,13 @@ jobs:
           find artifacts/ -type f -executable -exec cp {} bin/ \; 2>/dev/null || true
           chmod +x bin/* 2>/dev/null || true
           
-          echo "?�� Available binaries:"
+          echo "📦 Available binaries:"
           ls -la bin/ | head -10 || echo "No binaries found"
           
-      - name: ?�� Lightning smoke tests
-        timeout-minutes: 10
+      - name: 🔥 Lightning smoke tests
+        timeout-minutes: 4
         run: |
-          echo "?�� Executing lightning-fast smoke tests..."
+          echo "🔥 Executing lightning-fast smoke tests..."
           
           test_count=0
           pass_count=0
@@ -921,29 +920,29 @@ jobs:
           for binary in bin/*; do
             if [[ -x "$binary" ]]; then
               name=$(basename "$binary")
-              echo "  ?�� Testing: $name"
+              echo "  🧪 Testing: $name"
               test_count=$((test_count + 1))
               
               # Basic executable validation
               if file "$binary" | grep -q "Linux.*executable"; then
-                echo "    ??Valid Linux executable"
+                echo "    ✅ Valid Linux executable"
                 
                 # Fast CLI tests with 3s timeout
                 if timeout 3s "$binary" --version 2>/dev/null | head -2; then
-                  echo "    ??--version works"
+                  echo "    ✅ --version works"
                   pass_count=$((pass_count + 1))
                 elif timeout 3s "$binary" version 2>/dev/null | head -2; then
-                  echo "    ??version works"
+                  echo "    ✅ version works"
                   pass_count=$((pass_count + 1)) 
                 elif timeout 3s "$binary" --help 2>/dev/null | head -3; then
-                  echo "    ??--help works"
+                  echo "    ✅ --help works"
                   pass_count=$((pass_count + 1))
                 else
-                  echo "    ?��? No standard CLI (service binary)"
+                  echo "    ⚠️ No standard CLI (service binary)"
                   pass_count=$((pass_count + 1))  # Count service binaries as pass
                 fi
               else
-                echo "    ??Invalid executable"
+                echo "    ❌ Invalid executable"
               fi
             fi
             
@@ -952,15 +951,15 @@ jobs:
           done
           
           echo ""
-          echo "?? Integration Results:"
+          echo "📊 Integration Results:"
           echo "  Binaries tested: $test_count"
           echo "  Successful: $pass_count" 
           
           success_rate=$((pass_count * 100 / test_count))
           if [[ $success_rate -ge 80 ]]; then
-            echo "??Integration tests passed ($success_rate% success rate)"
+            echo "✅ Integration tests passed ($success_rate% success rate)"
           else
-            echo "??Integration tests failed ($success_rate% success rate)"
+            echo "❌ Integration tests failed ($success_rate% success rate)"
             exit 1
           fi
 
@@ -968,19 +967,19 @@ jobs:
   # STATUS: Comprehensive pipeline reporting
   # =============================================================================
   status:
-    name: ?? Pipeline Status & Reporting  
-    runs-on: ubuntu-latest
+    name: 📊 Pipeline Status & Reporting  
+    runs-on: ubuntu-22.04
     needs: [plan, build, test, quality, integration]
     if: always()
-    timeout-minutes: 10
+    timeout-minutes: 3
     
     steps:
-      - name: ?? Generate comprehensive status report
+      - name: 📊 Generate comprehensive status report
         run: |
-          echo "# ?? Ultra-Optimized CI Pipeline 2025 - Execution Report" >> $GITHUB_STEP_SUMMARY
+          echo "# 🚀 Ultra-Optimized CI Pipeline 2025 - Execution Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "## ?��? Pipeline Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "## ⚙️ Pipeline Configuration" >> $GITHUB_STEP_SUMMARY
           echo "- **Build Mode:** ${{ env.BUILD_MODE }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Go Version:** ${{ env.GO_VERSION }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Target:** ${{ env.GOOS }}/${{ env.GOARCH }}" >> $GITHUB_STEP_SUMMARY
@@ -992,7 +991,7 @@ jobs:
           echo "- **Changed Components:** ${{ needs.plan.outputs.changed-components }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "## ?? Job Execution Results" >> $GITHUB_STEP_SUMMARY
+          echo "## 📋 Job Execution Results" >> $GITHUB_STEP_SUMMARY
           echo "| Stage | Status | Duration | Notes |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|----------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| Planning | ${{ needs.plan.result }} | ~1-2 min | Change analysis & matrix generation |" >> $GITHUB_STEP_SUMMARY
@@ -1002,7 +1001,7 @@ jobs:
           echo "| Integration | ${{ needs.integration.result || 'skipped' }} | ~1-3 min | Smoke tests & validation |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-      - name: ?�� Final pipeline status determination
+      - name: 🎯 Final pipeline status determination
         run: |
           # Critical job failure tracking
           CRITICAL_FAILURES=""
@@ -1026,55 +1025,55 @@ jobs:
           
           # Integration failures are warnings only
           if [[ "${{ needs.integration.result }}" == "failure" ]]; then
-            echo "## ?��? Integration Warning" >> $GITHUB_STEP_SUMMARY
+            echo "## ⚠️ Integration Warning" >> $GITHUB_STEP_SUMMARY
             echo "Integration tests experienced issues but are not blocking." >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
           fi
           
           # Final status determination
           if [[ -n "$CRITICAL_FAILURES" ]]; then
-            echo "## ??Pipeline Failed" >> $GITHUB_STEP_SUMMARY
+            echo "## ❌ Pipeline Failed" >> $GITHUB_STEP_SUMMARY
             echo "**Failed stages:** $CRITICAL_FAILURES" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "?�� **Recommended Actions:**" >> $GITHUB_STEP_SUMMARY
+            echo "🔧 **Recommended Actions:**" >> $GITHUB_STEP_SUMMARY
             echo "1. Review failed job logs for specific error details" >> $GITHUB_STEP_SUMMARY
             echo "2. Fix identified issues in your feature branch" >> $GITHUB_STEP_SUMMARY
             echo "3. Consider running in 'debug' mode for detailed analysis" >> $GITHUB_STEP_SUMMARY
             echo "4. Verify Go 1.25 compatibility if build issues persist" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             
-            echo "?�� Critical pipeline failures detected"
+            echo "💥 Critical pipeline failures detected"
             exit 1
           else
-            echo "## ??Pipeline Succeeded" >> $GITHUB_STEP_SUMMARY
+            echo "## ✅ Pipeline Succeeded" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "?�� **Key Achievements:**" >> $GITHUB_STEP_SUMMARY
-            echo "- ??Ultra-fast build completion with Go 1.25 optimizations" >> $GITHUB_STEP_SUMMARY
-            echo "- ??�?All critical components built successfully" >> $GITHUB_STEP_SUMMARY
-            echo "- ?? Code quality standards maintained" >> $GITHUB_STEP_SUMMARY
-            echo "- ?�� Linux-optimized static binaries generated" >> $GITHUB_STEP_SUMMARY
-            echo "- ??�?Intelligent caching system operational" >> $GITHUB_STEP_SUMMARY
+            echo "🎯 **Key Achievements:**" >> $GITHUB_STEP_SUMMARY
+            echo "- ⚡ Ultra-fast build completion with Go 1.25 optimizations" >> $GITHUB_STEP_SUMMARY
+            echo "- 🏗️ All critical components built successfully" >> $GITHUB_STEP_SUMMARY
+            echo "- 📊 Code quality standards maintained" >> $GITHUB_STEP_SUMMARY
+            echo "- 🐧 Linux-optimized static binaries generated" >> $GITHUB_STEP_SUMMARY
+            echo "- 🗃️ Intelligent caching system operational" >> $GITHUB_STEP_SUMMARY
             
             if [[ "${{ env.BUILD_MODE }}" != "minimal" ]]; then
-              echo "- ?�� Test suites executed successfully" >> $GITHUB_STEP_SUMMARY
+              echo "- 🧪 Test suites executed successfully" >> $GITHUB_STEP_SUMMARY
             fi
             
             if [[ "${{ needs.integration.result }}" == "success" ]]; then
-              echo "- ?? Integration validation completed" >> $GITHUB_STEP_SUMMARY
+              echo "- 🔗 Integration validation completed" >> $GITHUB_STEP_SUMMARY
             fi
             
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "?? **Performance Highlights:**" >> $GITHUB_STEP_SUMMARY
+            echo "🚀 **Performance Highlights:**" >> $GITHUB_STEP_SUMMARY
             echo "- Build time optimized by 60-80% vs standard builds" >> $GITHUB_STEP_SUMMARY
             echo "- Intelligent dependency caching active" >> $GITHUB_STEP_SUMMARY
             echo "- Progressive testing with smart coverage" >> $GITHUB_STEP_SUMMARY
             echo "- Zero cross-platform overhead (Linux-only)" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "?? **Ready for Next Steps:**" >> $GITHUB_STEP_SUMMARY
+            echo "🎉 **Ready for Next Steps:**" >> $GITHUB_STEP_SUMMARY
             echo "- Artifacts available for containerization" >> $GITHUB_STEP_SUMMARY
             echo "- Binaries optimized for Kubernetes deployment" >> $GITHUB_STEP_SUMMARY
             echo "- Code ready for production pipeline" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             
-            echo "??Ultra-Optimized Nephoran CI Pipeline completed successfully!"
+            echo "✅ Ultra-Optimized Nephoran CI Pipeline completed successfully!"
           fi

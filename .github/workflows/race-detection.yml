@@ -1,0 +1,305 @@
+name: Race Detection Tests
+
+on:
+  push:
+    branches: [ main, develop, 'fix/*', 'feat/*' ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      verbose:
+        description: 'Enable verbose output'
+        type: boolean
+        default: false
+
+env:
+  GO_VERSION: '1.22'
+  CGO_ENABLED: '1'  # Enable CGO for race detection
+
+jobs:
+  race-detection:
+    name: Race Detection Tests
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        package:
+          - name: "Security"
+            path: "./pkg/security/..."
+          - name: "Controllers"
+            path: "./pkg/controllers/..."
+          - name: "LLM"
+            path: "./pkg/llm/..."
+          - name: "Loop"
+            path: "./internal/loop/..."
+          - name: "Nephio"
+            path: "./pkg/nephio/..."
+      fail-fast: false
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential gcc g++
+          
+          # Verify CGO setup
+          gcc --version
+          go env CGO_ENABLED
+      
+      - name: Download dependencies
+        run: |
+          go mod download
+          go mod verify
+      
+      - name: Run race detection tests - ${{ matrix.package.name }}
+        env:
+          CGO_ENABLED: '1'
+          GORACE: "halt_on_error=1"
+        run: |
+          echo "🔍 Testing package: ${{ matrix.package.name }}"
+          echo "📦 Path: ${{ matrix.package.path }}"
+          
+          # Check if package exists
+          PKG_DIR=$(echo "${{ matrix.package.path }}" | sed 's/\.\.\.$//' | sed 's/^\.\///')
+          if [ ! -d "$PKG_DIR" ]; then
+            echo "⏭️ Package directory not found, skipping: $PKG_DIR"
+            exit 0
+          fi
+          
+          # Run race detection tests
+          go test -race -timeout=10m ${{ matrix.package.path }} \
+            ${{ github.event.inputs.verbose == 'true' && '-v' || '' }}
+      
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: race-test-results-${{ matrix.package.name }}
+          path: |
+            **/*.log
+            **/*.out
+          retention-days: 7
+
+  race-detection-comprehensive:
+    name: Comprehensive Race Detection
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential gcc g++
+          
+          # Verify CGO setup
+          gcc --version
+          go env CGO_ENABLED
+      
+      - name: Download dependencies
+        run: |
+          go mod download
+          go mod verify
+      
+      - name: Run comprehensive race detection
+        env:
+          CGO_ENABLED: '1'
+          GORACE: "halt_on_error=1 log_path=race.log"
+        run: |
+          echo "🔍 Running comprehensive race detection tests"
+          
+          # Run with multiple iterations to increase chance of detecting races
+          for i in {1..3}; do
+            echo "Iteration $i/3"
+            go test -race -count=1 -timeout=20m ./... || true
+          done
+          
+          # Check for race logs
+          if [ -f race.log* ]; then
+            echo "⚠️ Race conditions detected!"
+            cat race.log*
+            exit 1
+          else
+            echo "✅ No race conditions detected"
+          fi
+      
+      - name: Upload race logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: race-detection-logs
+          path: |
+            race.log*
+            **/*.log
+          retention-days: 7
+
+  race-detection-stress:
+    name: Stress Test with Race Detection
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential gcc g++
+      
+      - name: Download dependencies
+        run: |
+          go mod download
+          go mod verify
+      
+      - name: Run stress tests with race detection
+        env:
+          CGO_ENABLED: '1'
+          GORACE: "halt_on_error=1"
+          GOMAXPROCS: '4'
+        run: |
+          echo "🔥 Running stress tests with race detection"
+          
+          # Focus on packages with concurrent operations
+          CONCURRENT_PACKAGES=(
+            "./pkg/controllers/..."
+            "./pkg/llm/..."
+            "./internal/loop/..."
+            "./pkg/security/..."
+          )
+          
+          for pkg in "${CONCURRENT_PACKAGES[@]}"; do
+            PKG_DIR=$(echo "$pkg" | sed 's/\.\.\.$//' | sed 's/^\.\///')
+            if [ -d "$PKG_DIR" ]; then
+              echo "Testing: $pkg"
+              go test -race -count=3 -parallel=8 -timeout=15m "$pkg" || true
+            fi
+          done
+      
+      - name: Benchmark with race detection
+        env:
+          CGO_ENABLED: '1'
+        run: |
+          echo "📊 Running benchmarks with race detection"
+          
+          # Run benchmarks with race detector (lighter load)
+          go test -race -bench=. -benchtime=1s -timeout=10m ./... || true
+
+  validate-cgo-setup:
+    name: Validate CGO Configuration
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+      fail-fast: false
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      
+      - name: Install C compiler (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
+      
+      - name: Install C compiler (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          # Xcode command line tools should be pre-installed
+          gcc --version || brew install gcc
+      
+      - name: Validate CGO configuration
+        run: |
+          echo "🔧 Validating CGO configuration on ${{ matrix.os }}"
+          
+          # Check Go environment
+          go env CGO_ENABLED
+          go env CC
+          go env CXX
+          
+          # Test CGO compilation
+          cat > test_cgo.go << 'EOF'
+          package main
+          
+          /*
+          #include <stdio.h>
+          void hello() { printf("CGO works!\n"); }
+          */
+          import "C"
+          
+          func main() {
+              C.hello()
+          }
+          EOF
+          
+          CGO_ENABLED=1 go run test_cgo.go
+          
+          # Test race detector
+          cat > test_race.go << 'EOF'
+          package main
+          
+          import (
+              "sync"
+              "testing"
+          )
+          
+          func TestRace(t *testing.T) {
+              var counter int
+              var wg sync.WaitGroup
+              
+              for i := 0; i < 10; i++ {
+                  wg.Add(1)
+                  go func() {
+                      defer wg.Done()
+                      counter++
+                  }()
+              }
+              
+              wg.Wait()
+          }
+          EOF
+          
+          echo "Testing race detector..."
+          if CGO_ENABLED=1 go test -race test_race.go 2>&1 | grep -q "race detected"; then
+              echo "✅ Race detector is working"
+          else
+              echo "⚠️ Race detector may not be working properly"
+          fi
+      
+      - name: Clean up test files
+        run: |
+          rm -f test_cgo.go test_race.go

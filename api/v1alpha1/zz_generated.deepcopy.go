@@ -212,19 +212,7 @@ func (in *PackageStatus) DeepCopyInto(out *PackageStatus) {
 	}
 	if in.UpstreamLock != nil {
 		in, out := &in.UpstreamLock, &out.UpstreamLock
-		*out = make(map[string]interface{}, len(*in))
-		for key, val := range *in {
-			var outVal interface{}
-			if val == nil {
-				(*out)[key] = nil
-			} else {
-				inVal := (*in)[key]
-				if inVal != nil {
-					outVal = inVal
-				}
-				(*out)[key] = outVal
-			}
-		}
+		*out = (*in).DeepCopy()
 	}
 }
 

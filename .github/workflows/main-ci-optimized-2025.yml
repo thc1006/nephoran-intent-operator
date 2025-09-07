@@ -46,7 +46,7 @@ permissions:
 
 # Optimized environment for Ubuntu Linux-only deployment
 env:
-  GO_VERSION: "1.22.0"
+  GO_VERSION: "1.24.6"
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   GOPRIVATE: "github.com/thc1006/*"
@@ -67,8 +67,6 @@ env:
   BUILD_MODE: ${{ github.event.inputs.build_mode || 'fast' }}
   SKIP_TESTS: ${{ github.event.inputs.skip_tests == 'true' }}
   CACHE_RESET: ${{ github.event.inputs.cache_reset == 'true' }}
-  # Test configuration
-  LLM_ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:8080"
 
 jobs:
   # =============================================================================
@@ -77,7 +75,7 @@ jobs:
   setup:
     name: Setup & Change Detection
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     outputs:
       should-build: ${{ steps.changes.outputs.should-build }}
       build-matrix: ${{ steps.matrix.outputs.matrix }}
@@ -90,13 +88,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1  # Shallow clone for change detection
+          fetch-depth: 2  # Shallow clone for change detection
 
       - name: Setup Go ${{ env.GO_VERSION }}
         id: go-setup
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22.0'
+          go-version: '1.24.6'
           cache: false  # We manage caching manually
           check-latest: true
 
@@ -119,7 +117,7 @@ jobs:
           # Determine if we should build
           if echo "$CHANGED_FILES" | grep -qE '\.(go|mod|sum)$|^(api|cmd|controllers|pkg|internal)/|Makefile'; then
             echo "should-build=true" >> $GITHUB_OUTPUT
-            echo "??Significant Go changes detected - full build required"
+            echo "✅ Significant Go changes detected - full build required"
             
             # Categorize changes for optimized building
             HAS_API_CHANGES=$(echo "$CHANGED_FILES" | grep -c '^api/' || echo "0")
@@ -133,7 +131,7 @@ jobs:
             echo "pkg-changes=$HAS_PKG_CHANGES" >> $GITHUB_OUTPUT
           else
             echo "should-build=false" >> $GITHUB_OUTPUT
-            echo "?��? No significant changes - skipping build"
+            echo "ℹ️ No significant changes - skipping build"
           fi
 
       - name: Generate optimized cache key
@@ -219,7 +217,7 @@ jobs:
               
               test_matrix='{
                 "include": [
-                  {"name": "unit-critical", "pattern": "./controllers/... ./pkg/controllers/... ./api/...", "timeout": 8, "coverage": true},
+                  {"name": "unit-critical", "pattern": "./controllers/... ./api/...", "timeout": 8, "coverage": true},
                   {"name": "unit-core", "pattern": "./pkg/context/... ./pkg/clients/... ./pkg/nephio/...", "timeout": 6, "coverage": true}
                 ]
               }'
@@ -235,7 +233,7 @@ jobs:
                     "components": "controllers api",
                     "timeout": 18,
                     "parallel": 4,
-                    "test-pattern": "./controllers/... ./pkg/controllers/... ./api/..."
+                    "test-pattern": "./controllers/... ./api/..."
                   },
                   {
                     "name": "core-packages",
@@ -342,12 +340,12 @@ jobs:
       - name: Setup Go ${{ needs.setup.outputs.go-version }}
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22.0'
+          go-version: '1.24.6'
           cache: false
 
       - name: Prepare optimized build environment
         run: |
-          echo "?�� Setting up optimized build environment for: ${{ matrix.name }}"
+          echo "🔧 Setting up optimized build environment for: ${{ matrix.name }}"
           
           # Create optimized cache directories
           sudo mkdir -p /tmp/go-build-cache /tmp/go-mod-cache
@@ -376,9 +374,9 @@ jobs:
             nephoran-v7-ubuntu22-go
 
       - name: Download and verify dependencies (optimized)
-        timeout-minutes: 10
+        timeout-minutes: 5
         run: |
-          echo "?�� Downloading Go dependencies with optimization..."
+          echo "📦 Downloading Go dependencies with optimization..."
           
           # Configure Git for private modules
           git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
@@ -387,31 +385,31 @@ jobs:
           for i in {1..3}; do
             echo "Download attempt $i/3..."
             if go mod download -x; then
-              echo "??Dependencies downloaded successfully"
+              echo "✅ Dependencies downloaded successfully"
               break
             elif [ $i -eq 3 ]; then
-              echo "??Failed to download dependencies after 3 attempts"
+              echo "❌ Failed to download dependencies after 3 attempts"
               exit 1
             else
-              echo "?��? Download failed, retrying in 10 seconds..."
+              echo "⚠️ Download failed, retrying in 10 seconds..."
               sleep 10
             fi
           done
           
           # Verify modules
-          echo "?? Verifying module integrity..."
+          echo "🔍 Verifying module integrity..."
           go mod verify
 
       - name: Build components - ${{ matrix.name }}
         timeout-minutes: ${{ matrix.timeout - 3 }}
         run: |
-          echo "??�?Building ${{ matrix.name }} (Priority: ${{ matrix.priority }})"
+          echo "🏗️ Building ${{ matrix.name }} (Priority: ${{ matrix.priority }})"
           echo "Components: ${{ matrix.components }}"
           
           mkdir -p bin/ dist/
           
           # Optimized build flags for Linux-only deployment
-          BUILD_FLAGS="-trimpath -ldflags='-s -w -extldflags=-static'"
+          BUILD_FLAGS="-trimpath -ldflags=-s -w -extldflags=-static"
           BUILD_TAGS="netgo,osusergo,static_build"
           
           # Set parallelism based on matrix configuration
@@ -421,13 +419,13 @@ jobs:
             local component="$1"
             local timeout_duration="${2:-180}"
             
-            echo "?�� Building: $component"
+            echo "🔨 Building: $component"
             
             case "$component" in
               "controllers")
                 echo "Building controllers..."
                 timeout ${timeout_duration}s go build $BUILD_FLAGS -tags="$BUILD_TAGS" ./controllers/... || {
-                  echo "?��? Some controllers failed to build (continuing...)"
+                  echo "⚠️ Some controllers failed to build (continuing...)"
                   return 0
                 }
                 ;;
@@ -435,7 +433,7 @@ jobs:
               "api"|"api/intent/v1alpha1")
                 echo "Building API packages..."
                 timeout ${timeout_duration}s go build $BUILD_FLAGS -tags="$BUILD_TAGS" ./api/... || {
-                  echo "?��? Some API packages failed to build (continuing...)"
+                  echo "⚠️ Some API packages failed to build (continuing...)"
                   return 0
                 }
                 ;;
@@ -446,16 +444,16 @@ jobs:
                   echo "Building command: $cmd_name"
                   timeout ${timeout_duration}s go build $BUILD_FLAGS -tags="$BUILD_TAGS" \
                     -o "bin/$cmd_name" "./$component" || {
-                    echo "?��? $cmd_name build failed (continuing...)"
+                    echo "⚠️ $cmd_name build failed (continuing...)"
                     return 0
                   }
                   
                   # Verify binary
                   if [[ -f "bin/$cmd_name" ]]; then
-                    echo "??$cmd_name: $(ls -lh bin/$cmd_name | awk '{print $5}')"
+                    echo "✅ $cmd_name: $(ls -lh bin/$cmd_name | awk '{print $5}')"
                   fi
                 else
-                  echo "?��? Command directory not found or no main.go: $component"
+                  echo "⚠️ Command directory not found or no main.go: $component"
                 fi
                 ;;
                 
@@ -463,7 +461,7 @@ jobs:
                 if [[ -d "$component" ]]; then
                   echo "Building package: $component"
                   timeout ${timeout_duration}s go build $BUILD_FLAGS -tags="$BUILD_TAGS" "./$component/..." || {
-                    echo "?��? $component build failed (continuing...)"
+                    echo "⚠️ $component build failed (continuing...)"
                     return 0
                   }
                 fi
@@ -472,7 +470,7 @@ jobs:
               "internal")
                 echo "Building internal packages..."
                 timeout ${timeout_duration}s go build $BUILD_FLAGS -tags="$BUILD_TAGS" ./internal/... || {
-                  echo "?��? Some internal packages failed to build (continuing...)"
+                  echo "⚠️ Some internal packages failed to build (continuing...)"
                   return 0
                 }
                 ;;
@@ -504,7 +502,7 @@ jobs:
                 ;;
                 
               *)
-                echo "?��? Unknown component: $component"
+                echo "⚠️ Unknown component: $component"
                 ;;
             esac
           }
@@ -517,7 +515,7 @@ jobs:
           
           # Summary
           echo ""
-          echo "?? Build Summary for ${{ matrix.name }}:"
+          echo "📊 Build Summary for ${{ matrix.name }}:"
           if [[ -d "bin" ]]; then
             echo "Built binaries:"
             ls -la bin/ | head -20
@@ -568,12 +566,12 @@ jobs:
       - name: Setup Go ${{ needs.setup.outputs.go-version }}
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22.0'
+          go-version: '1.24.6'
           cache: false
 
       - name: Prepare test environment
         run: |
-          echo "?�� Preparing test environment for: ${{ matrix.name }}"
+          echo "🧪 Preparing test environment for: ${{ matrix.name }}"
           
           # Set up cache directories
           sudo mkdir -p /tmp/go-build-cache /tmp/go-mod-cache
@@ -594,9 +592,9 @@ jobs:
 
       - name: Setup Kubernetes test environment
         if: contains(matrix.pattern, './controllers/') || contains(matrix.pattern, './api/')
-        timeout-minutes: 10
+        timeout-minutes: 3
         run: |
-          echo "??�?Setting up Kubernetes test environment..."
+          echo "🏗️ Setting up Kubernetes test environment..."
           
           # Install envtest for controller testing
           go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
@@ -606,7 +604,7 @@ jobs:
           export KUBEBUILDER_ASSETS=$(setup-envtest use 1.31.0 --arch=amd64 --os=linux -p path)
           echo "KUBEBUILDER_ASSETS=$KUBEBUILDER_ASSETS" >> $GITHUB_ENV
           
-          echo "??Kubernetes test environment ready"
+          echo "✅ Kubernetes test environment ready"
           echo "KUBEBUILDER_ASSETS: $KUBEBUILDER_ASSETS"
 
       - name: Run optimized tests - ${{ matrix.name }}
@@ -614,7 +612,7 @@ jobs:
         env:
           KUBEBUILDER_ASSETS: ${{ env.KUBEBUILDER_ASSETS }}
         run: |
-          echo "?? Running tests: ${{ matrix.pattern }}"
+          echo "🚀 Running tests: ${{ matrix.pattern }}"
           
           # Create test results directory
           mkdir -p test-results coverage-reports
@@ -625,24 +623,24 @@ jobs:
           # Add race detection for critical tests
           if [[ "${{ matrix.name }}" == *"critical"* ]] || [[ "${{ matrix.name }}" == *"controllers"* ]]; then
             TEST_FLAGS="$TEST_FLAGS -race"
-            echo "?? Race detection enabled for ${{ matrix.name }}"
+            echo "🔍 Race detection enabled for ${{ matrix.name }}"
           fi
           
           # Add coverage for designated tests
           if [[ "${{ matrix.coverage }}" == "true" ]]; then
             TEST_FLAGS="$TEST_FLAGS -coverprofile=coverage-reports/coverage-${{ matrix.name }}.out -covermode=atomic"
-            echo "?? Coverage collection enabled for ${{ matrix.name }}"
+            echo "📊 Coverage collection enabled for ${{ matrix.name }}"
           fi
           
           # Execute tests with error handling
-          echo "Executing: go test -short $TEST_FLAGS ${{ matrix.pattern }}"
+          echo "Executing: go test $TEST_FLAGS ${{ matrix.pattern }}"
           
-          if go test -short $TEST_FLAGS ${{ matrix.pattern }} 2>&1 | tee "test-results/output-${{ matrix.name }}.log"; then
-            echo "??Tests passed for ${{ matrix.name }}"
+          if go test $TEST_FLAGS ${{ matrix.pattern }} 2>&1 | tee "test-results/output-${{ matrix.name }}.log"; then
+            echo "✅ Tests passed for ${{ matrix.name }}"
             echo "test_status=success" > "test-results/status-${{ matrix.name }}.txt"
           else
             test_exit_code=$?
-            echo "??Tests failed for ${{ matrix.name }} (exit code: $test_exit_code)"
+            echo "❌ Tests failed for ${{ matrix.name }} (exit code: $test_exit_code)"
             echo "test_status=failed" > "test-results/status-${{ matrix.name }}.txt"
             echo "exit_code=$test_exit_code" >> "test-results/status-${{ matrix.name }}.txt"
             
@@ -656,7 +654,7 @@ jobs:
           coverage_file="coverage-reports/coverage-${{ matrix.name }}.out"
           
           if [[ -f "$coverage_file" ]]; then
-            echo "?? Processing coverage for ${{ matrix.name }}"
+            echo "📊 Processing coverage for ${{ matrix.name }}"
             
             # Generate HTML coverage report
             go tool cover -html="$coverage_file" -o "coverage-reports/coverage-${{ matrix.name }}.html"
@@ -674,7 +672,7 @@ jobs:
             echo "**Coverage:** $coverage_pct" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
           else
-            echo "?��? No coverage file found for ${{ matrix.name }}"
+            echo "⚠️ No coverage file found for ${{ matrix.name }}"
           fi
 
       - name: Upload test results and coverage
@@ -696,18 +694,18 @@ jobs:
     runs-on: ubuntu-latest
     needs: setup
     if: needs.setup.outputs.should-build == 'true'
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1  # Full history for better analysis
+          fetch-depth: 0  # Full history for better analysis
 
       - name: Setup Go ${{ needs.setup.outputs.go-version }}
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22.0'
+          go-version: '1.24.6'
           cache: false
 
       - name: Restore Go cache
@@ -727,7 +725,7 @@ jobs:
 
       - name: Go vet analysis
         run: |
-          echo "?? Running go vet analysis..."
+          echo "🔍 Running go vet analysis..."
           go vet ./... || {
             echo "::warning::go vet found issues"
             exit 1
@@ -750,20 +748,20 @@ jobs:
 
       - name: Go mod tidy verification
         run: |
-          echo "?? Verifying go.mod is tidy..."
+          echo "🔍 Verifying go.mod is tidy..."
           cp go.mod go.mod.backup
           cp go.sum go.sum.backup
           
           go mod tidy
           
           if ! diff go.mod go.mod.backup || ! diff go.sum go.sum.backup; then
-            echo "??go.mod or go.sum is not tidy"
+            echo "❌ go.mod or go.sum is not tidy"
             echo "Run 'go mod tidy' locally and commit the changes"
             git diff go.mod go.sum
             exit 1
           fi
           
-          echo "??go.mod and go.sum are tidy"
+          echo "✅ go.mod and go.sum are tidy"
 
   # =============================================================================
   # INTEGRATION: Basic integration and smoke tests
@@ -773,7 +771,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [setup, build]
     if: needs.setup.outputs.should-build == 'true' && env.BUILD_MODE != 'fast'
-    timeout-minutes: 10
+    timeout-minutes: 12
 
     steps:
       - name: Checkout repository
@@ -788,7 +786,7 @@ jobs:
 
       - name: Prepare binaries for testing
         run: |
-          echo "?�� Preparing binaries for integration tests..."
+          echo "🔧 Preparing binaries for integration tests..."
           
           mkdir -p bin/
           
@@ -800,9 +798,9 @@ jobs:
           ls -la bin/ || echo "No binaries found"
 
       - name: Binary smoke tests
-        timeout-minutes: 10
+        timeout-minutes: 8
         run: |
-          echo "?�� Running binary smoke tests..."
+          echo "🔥 Running binary smoke tests..."
           
           test_count=0
           success_count=0
@@ -815,46 +813,46 @@ jobs:
               
               # Basic executable test
               if file "$binary" 2>/dev/null | grep -q "executable"; then
-                echo "  ??$name: Valid Linux executable"
+                echo "  ✅ $name: Valid Linux executable"
                 
                 # Try common CLI patterns with short timeout
                 if timeout 8s "$binary" --version 2>/dev/null | head -3; then
-                  echo "  ??$name: --version works"
+                  echo "  ✅ $name: --version works"
                   success_count=$((success_count + 1))
                 elif timeout 8s "$binary" version 2>/dev/null | head -3; then
-                  echo "  ??$name: version works"  
+                  echo "  ✅ $name: version works"  
                   success_count=$((success_count + 1))
                 elif timeout 8s "$binary" --help 2>/dev/null | head -5; then
-                  echo "  ??$name: --help works"
+                  echo "  ✅ $name: --help works"
                   success_count=$((success_count + 1))
                 elif timeout 8s "$binary" -h 2>/dev/null | head -5; then
-                  echo "  ??$name: -h works"
+                  echo "  ✅ $name: -h works"
                   success_count=$((success_count + 1))
                 else
-                  echo "  ?��? $name: No standard CLI interface (may be service binary)"
+                  echo "  ⚠️ $name: No standard CLI interface (may be service binary)"
                   success_count=$((success_count + 1))  # Count as success for service binaries
                 fi
               else
-                echo "  ??$name: Invalid executable format"
+                echo "  ❌ $name: Invalid executable format"
               fi
             fi
           done
           
           echo ""
-          echo "?? Smoke Test Results:"
+          echo "📊 Smoke Test Results:"
           echo "  Binaries tested: $test_count"
           echo "  Successful tests: $success_count"
           
           if [[ $success_count -gt 0 ]]; then
-            echo "??Integration tests passed"
+            echo "✅ Integration tests passed"
           else
-            echo "??No successful binary tests"
+            echo "❌ No successful binary tests"
             exit 1
           fi
 
       - name: Basic Kubernetes manifest validation
         run: |
-          echo "?? Validating Kubernetes manifests..."
+          echo "🔍 Validating Kubernetes manifests..."
           
           manifest_count=0
           
@@ -866,17 +864,17 @@ jobs:
               
               # Basic YAML syntax validation
               if python3 -c "import yaml; yaml.safe_load_all(open('$yaml_file', 'r'))" 2>/dev/null; then
-                echo "  ??Valid YAML syntax"
+                echo "  ✅ Valid YAML syntax"
               else
-                echo "  ?��? YAML syntax issues detected"
+                echo "  ⚠️ YAML syntax issues detected"
               fi
             fi
           done < <(find . -name "*.yaml" -o -name "*.yml" -print0 2>/dev/null)
           
           if [[ $manifest_count -eq 0 ]]; then
-            echo "?��? No Kubernetes manifests found to validate"
+            echo "ℹ️ No Kubernetes manifests found to validate"
           else
-            echo "?? Validated $manifest_count manifest files"
+            echo "📊 Validated $manifest_count manifest files"
           fi
 
   # =============================================================================
@@ -887,15 +885,15 @@ jobs:
     runs-on: ubuntu-latest
     needs: [setup, build, test, quality, integration]
     if: always()
-    timeout-minutes: 10
+    timeout-minutes: 5
 
     steps:
       - name: Generate comprehensive pipeline report
         run: |
-          echo "# ?? Nephoran CI Pipeline 2025 - Execution Report" >> $GITHUB_STEP_SUMMARY
+          echo "# 🚀 Nephoran CI Pipeline 2025 - Execution Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "## ?? Pipeline Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "## 📋 Pipeline Configuration" >> $GITHUB_STEP_SUMMARY
           echo "- **Go Version:** ${{ needs.setup.outputs.go-version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Build Mode:** ${{ env.BUILD_MODE }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Runner OS:** ubuntu-22.04 (Linux only)" >> $GITHUB_STEP_SUMMARY
@@ -905,7 +903,7 @@ jobs:
           echo "- **Tests Skipped:** ${{ env.SKIP_TESTS }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "## ?�� Job Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🎯 Job Results Summary" >> $GITHUB_STEP_SUMMARY
           echo "| Job | Status | Notes |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| Setup | ${{ needs.setup.result }} | Change detection & matrix generation |" >> $GITHUB_STEP_SUMMARY
@@ -940,44 +938,44 @@ jobs:
           
           # Integration failures are warnings, not critical
           if [[ "${{ needs.integration.result }}" == "failure" ]]; then
-            echo "## ?��? Integration Test Warning" >> $GITHUB_STEP_SUMMARY
+            echo "## ⚠️ Integration Test Warning" >> $GITHUB_STEP_SUMMARY
             echo "Integration tests failed but are not blocking deployment." >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
           fi
           
           # Final determination
           if [[ -n "$CRITICAL_FAILURES" ]]; then
-            echo "## ??Pipeline Failed" >> $GITHUB_STEP_SUMMARY
+            echo "## ❌ Pipeline Failed" >> $GITHUB_STEP_SUMMARY
             echo "**Critical job failures:** $CRITICAL_FAILURES" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "?�� **Next Steps:**" >> $GITHUB_STEP_SUMMARY
+            echo "🔧 **Next Steps:**" >> $GITHUB_STEP_SUMMARY
             echo "1. Check failed job logs for specific errors" >> $GITHUB_STEP_SUMMARY
             echo "2. Fix identified issues in your branch" >> $GITHUB_STEP_SUMMARY
             echo "3. Re-run the pipeline or push new commits" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "?�� CI Pipeline failed - critical jobs must pass"
+            echo "💥 CI Pipeline failed - critical jobs must pass"
             exit 1
           else
-            echo "## ??Pipeline Succeeded" >> $GITHUB_STEP_SUMMARY
+            echo "## ✅ Pipeline Succeeded" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "?�� **Achievements:**" >> $GITHUB_STEP_SUMMARY
-            echo "- ??All critical components built successfully" >> $GITHUB_STEP_SUMMARY
-            echo "- ??Code quality standards maintained" >> $GITHUB_STEP_SUMMARY
-            echo "- ??Linux-optimized binaries generated" >> $GITHUB_STEP_SUMMARY
+            echo "🎯 **Achievements:**" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ All critical components built successfully" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Code quality standards maintained" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Linux-optimized binaries generated" >> $GITHUB_STEP_SUMMARY
             
             if [[ "${{ env.SKIP_TESTS }}" != "true" ]]; then
-              echo "- ??Test suites executed and passed" >> $GITHUB_STEP_SUMMARY
+              echo "- ✅ Test suites executed and passed" >> $GITHUB_STEP_SUMMARY
             fi
             
             if [[ "${{ needs.integration.result }}" == "success" ]]; then
-              echo "- ??Integration tests validated" >> $GITHUB_STEP_SUMMARY
+              echo "- ✅ Integration tests validated" >> $GITHUB_STEP_SUMMARY
             fi
             
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "?? **Ready for next steps:**" >> $GITHUB_STEP_SUMMARY
+            echo "🚀 **Ready for next steps:**" >> $GITHUB_STEP_SUMMARY
             echo "- Artifacts available for download" >> $GITHUB_STEP_SUMMARY
             echo "- Binaries ready for containerization" >> $GITHUB_STEP_SUMMARY
             echo "- Code ready for deployment pipeline" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "??Nephoran CI Pipeline 2025 completed successfully!"
+            echo "✅ Nephoran CI Pipeline 2025 completed successfully!"
           fi

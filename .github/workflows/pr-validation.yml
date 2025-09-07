@@ -2,7 +2,7 @@
 # Fast PR Validation - 2025 Edition
 # =============================================================================  
 # Ultra-fast validation for pull requests with essential checks only
-# Optimized for Go 1.25.0, resolves cache key and timeout issues
+# Optimized for Go 1.24.6, resolves cache key and timeout issues
 # =============================================================================
 
 name: PR Validation
@@ -46,7 +46,7 @@ jobs:
   fast-validation:
     name: Fast PR Validation
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 8
 
     steps:
       - name: Checkout PR code
@@ -57,7 +57,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5  # Latest stable
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: '1.24.6'
           check-latest: true
           cache: false  # Manual caching for better control
 
@@ -108,7 +108,7 @@ jobs:
           git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
 
       - name: Download dependencies with timeout protection
-        timeout-minutes: 10
+        timeout-minutes: 3
         run: |
           echo "Downloading Go dependencies..."
           
@@ -122,7 +122,7 @@ jobs:
           go mod verify || echo "Module verification completed with warnings"
 
       - name: Quick syntax and build validation
-        timeout-minutes: 10
+        timeout-minutes: 3
         run: |
           echo "Running quick validation checks..."
           
@@ -151,7 +151,7 @@ jobs:
 
       - name: Essential tests
         if: env.SKIP_TESTS != 'true'
-        timeout-minutes: 10
+        timeout-minutes: 3
         run: |
           echo "Running essential tests for PR validation..."
           
@@ -198,7 +198,7 @@ jobs:
   # security-scan: # EMERGENCY DISABLED FOR DEVELOPMENT VELOCITY
   #   name: Security Scan - DISABLED
   #   runs-on: ubuntu-latest
-  #   timeout-minutes: 10
+  #   timeout-minutes: 12
   #   if: false  # EMERGENCY DISABLED - blocking development
 
   #   steps: # ALL STEPS DISABLED FOR EMERGENCY DEV VELOCITY
@@ -208,7 +208,7 @@ jobs:
   #     - name: Setup Go ${{ env.GO_VERSION }}
   #       uses: actions/setup-go@v5  # Latest stable
   #       with:
-  #         go-version: '1.25.0'
+  #         go-version: '1.24.6'
   #         check-latest: true
   #         cache: true
   # 

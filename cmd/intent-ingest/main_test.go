@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -308,7 +309,7 @@ func TestServer_Intent_ValidPlainText_Success(t *testing.T) {
 				"intent_type":      "scaling",
 				"target":           "my-app",
 				"namespace":        "production",
-				"replicas":         5,
+				"replicas":         float64(5),
 				"source":           "user",
 				"target_resources": []string{"deployment/my-app"},
 				"status":           "pending",
@@ -321,7 +322,7 @@ func TestServer_Intent_ValidPlainText_Success(t *testing.T) {
 				"intent_type":      "scaling",
 				"target":           "nf-sim",
 				"namespace":        "ran-a",
-				"replicas":         10,
+				"replicas":         float64(10),
 				"source":           "user",
 				"target_resources": []string{"deployment/nf-sim"},
 				"status":           "pending",
@@ -334,7 +335,7 @@ func TestServer_Intent_ValidPlainText_Success(t *testing.T) {
 				"intent_type":      "scaling",
 				"target":           "MY-SERVICE",
 				"namespace":        "DEFAULT",
-				"replicas":         3,
+				"replicas":         float64(3),
 				"source":           "user",
 				"target_resources": []string{"deployment/MY-SERVICE"},
 				"status":           "pending",
@@ -410,6 +411,9 @@ func TestServer_Intent_ValidPlainText_Success(t *testing.T) {
 				"target": expectedParams["target"],
 				"namespace": expectedParams["namespace"],
 				"replicas": expectedParams["replicas"],
+				"source": expectedParams["source"],
+				"status": expectedParams["status"],
+				"intent_type": expectedParams["intent_type"],
 			}
 
 			for key, expectedValue := range expectedParams {
@@ -458,15 +462,15 @@ func TestServer_Intent_BadRequest_Scenarios(t *testing.T) {
 			method:         "POST",
 			contentType:    "application/json",
 			body:           `{"intent_type": "scaling"`,
-			// expectedStatus: http.StatusBadRequest,
+			expectedStatus: http.StatusBadRequest,
 			expectsError:   "validation failed",
 		},
 		{
 			name:           "missing required fields",
 			method:         "POST",
 			contentType:    "application/json",
-			body:           `{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 3}`,
-			// expectedStatus: http.StatusBadRequest,
+			body:           `{"intent_type": "scaling"}`,
+			expectedStatus: http.StatusBadRequest,
 			expectsError:   "validation failed",
 		},
 		{
@@ -474,7 +478,7 @@ func TestServer_Intent_BadRequest_Scenarios(t *testing.T) {
 			method:         "POST",
 			contentType:    "application/json",
 			body:           `{"intent_type": "invalid", "target": "test", "namespace": "default", "replicas": 3}`,
-			// expectedStatus: http.StatusBadRequest,
+			expectedStatus: http.StatusBadRequest,
 			expectsError:   "validation failed",
 		},
 		{
@@ -482,7 +486,7 @@ func TestServer_Intent_BadRequest_Scenarios(t *testing.T) {
 			method:         "POST",
 			contentType:    "application/json",
 			body:           `{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 0}`,
-			// expectedStatus: http.StatusBadRequest,
+			expectedStatus: http.StatusBadRequest,
 			expectsError:   "validation failed",
 		},
 		{
@@ -490,7 +494,7 @@ func TestServer_Intent_BadRequest_Scenarios(t *testing.T) {
 			method:         "POST",
 			contentType:    "application/json",
 			body:           `{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 101}`,
-			// expectedStatus: http.StatusBadRequest,
+			expectedStatus: http.StatusBadRequest,
 			expectsError:   "validation failed",
 		},
 		{
@@ -498,7 +502,7 @@ func TestServer_Intent_BadRequest_Scenarios(t *testing.T) {
 			method:         "POST",
 			contentType:    "application/json",
 			body:           `{"intent_type": "scaling", "target": "", "namespace": "default", "replicas": 3}`,
-			// expectedStatus: http.StatusBadRequest,
+			expectedStatus: http.StatusBadRequest,
 			expectsError:   "validation failed",
 		},
 		{
@@ -506,7 +510,7 @@ func TestServer_Intent_BadRequest_Scenarios(t *testing.T) {
 			method:         "POST",
 			contentType:    "application/json",
 			body:           `{"intent_type": "scaling", "target": "test", "namespace": "", "replicas": 3}`,
-			// expectedStatus: http.StatusBadRequest,
+			expectedStatus: http.StatusBadRequest,
 			expectsError:   "validation failed",
 		},
 		{
@@ -514,7 +518,7 @@ func TestServer_Intent_BadRequest_Scenarios(t *testing.T) {
 			method:         "POST",
 			contentType:    "application/json",
 			body:           `{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 3, "source": "invalid"}`,
-			// expectedStatus: http.StatusBadRequest,
+			expectedStatus: http.StatusBadRequest,
 			expectsError:   "validation failed",
 		},
 		{
@@ -522,7 +526,7 @@ func TestServer_Intent_BadRequest_Scenarios(t *testing.T) {
 			method:         "POST",
 			contentType:    "application/json",
 			body:           fmt.Sprintf(`{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 3, "reason": "%s"}`, strings.Repeat("a", 513)),
-			// expectedStatus: http.StatusBadRequest,
+			expectedStatus: http.StatusBadRequest,
 			expectsError:   "validation failed",
 		},
 		{
@@ -530,15 +534,15 @@ func TestServer_Intent_BadRequest_Scenarios(t *testing.T) {
 			method:         "POST",
 			contentType:    "application/xml",
 			body:           `{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 3}`,
-			// expectedStatus: http.StatusUnsupportedMediaType,
-			expectsError:   "Invalid Content-Type",
+			expectedStatus: http.StatusUnsupportedMediaType,
+			expectsError:   "Unsupported content type",
 		},
 		{
 			name:           "bad plain text format",
 			method:         "POST",
 			contentType:    "text/plain",
 			body:           "invalid plain text command",
-			// expectedStatus: http.StatusBadRequest,
+			expectedStatus: http.StatusBadRequest,
 			expectsError:   "plain text",
 		},
 		{
@@ -546,7 +550,7 @@ func TestServer_Intent_BadRequest_Scenarios(t *testing.T) {
 			method:         "POST",
 			contentType:    "application/json",
 			body:           "",
-			// expectedStatus: http.StatusBadRequest,
+			expectedStatus: http.StatusBadRequest,
 			expectsError:   "validation failed",
 		},
 	}
@@ -568,9 +572,10 @@ func TestServer_Intent_BadRequest_Scenarios(t *testing.T) {
 			}
 			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
-			if resp.StatusCode != http.StatusAccepted {
+			if resp.StatusCode != tt.expectedStatus {
 				body, _ := io.ReadAll(resp.Body)
-				t.Errorf("Expected status 202, got %d. Body: %s", resp.StatusCode, string(body))
+				t.Errorf("Expected status %d, got %d. Body: %s", tt.expectedStatus, resp.StatusCode, string(body))
+				return // Don't continue with error message check if status is wrong
 			}
 
 			body, err := io.ReadAll(resp.Body)
@@ -723,29 +728,35 @@ func TestServer_Intent_FileCreation(t *testing.T) {
 		t.Fatalf("Failed to parse saved JSON: %v", err)
 	}
 
-	// Check required top-level fields
-	if savedIntent["id"] != "scale-file-test-deployment-001" {
-		t.Errorf("Expected id=scale-file-test-deployment-001, got %v", savedIntent["id"])
+	// Check required fields in the saved intent (raw format, not preview format)
+	if savedIntent["intent_type"] != "scaling" {
+		t.Errorf("Expected intent_type=scaling, got %v", savedIntent["intent_type"])
 	}
-	if savedIntent["type"] != "scaling" {
-		t.Errorf("Expected type=scaling, got %v", savedIntent["type"])
+	if savedIntent["target"] != "file-test-deployment" {
+		t.Errorf("Expected target=file-test-deployment, got %v", savedIntent["target"])
+	}
+	if savedIntent["namespace"] != "default" {
+		t.Errorf("Expected namespace=default, got %v", savedIntent["namespace"])
+	}
+	if savedIntent["replicas"] != float64(3) {
+		t.Errorf("Expected replicas=3, got %v", savedIntent["replicas"])
+	}
+	if savedIntent["source"] != "test" {
+		t.Errorf("Expected source=test, got %v", savedIntent["source"])
 	}
 	if savedIntent["status"] != "pending" {
 		t.Errorf("Expected status=pending, got %v", savedIntent["status"])
 	}
 
-	// Check parameters inside the parameters object
-	params, ok := savedIntent["parameters"].(map[string]interface{})
+	// Check target_resources array
+	targetResources, ok := savedIntent["target_resources"].([]interface{})
 	if !ok {
-		t.Fatalf("Expected parameters to be a map, got %T", savedIntent["parameters"])
+		t.Fatalf("Expected target_resources to be an array, got %T", savedIntent["target_resources"])
 	}
-
-	expectedParams := map[string]interface{}{}
-
-	for key, expected := range expectedParams {
-		if params[key] != expected {
-			t.Errorf("Expected parameters.%s=%v, got %v", key, expected, params[key])
-		}
+	
+	expectedResources := []interface{}{"deployment/file-test-deployment"}
+	if !reflect.DeepEqual(targetResources, expectedResources) {
+		t.Errorf("Expected target_resources=%v, got %v", expectedResources, targetResources)
 	}
 
 	// Verify filename format
@@ -856,14 +867,11 @@ func TestServer_EdgeCases(t *testing.T) {
 			method:      "POST",
 			contentType: "application/json",
 			body: fmt.Sprintf(`{
-				"id": "scale-large-target-001",
-				"type": "scaling",
-				"description": "Scale large target name to 3 replicas in default namespace",
-				"parameters": {
-					"target_replicas": 3,
-					"target": "%s",
-					"namespace": "default"
-				},
+				"intent_type": "scaling",
+				"target": "%s",
+				"namespace": "default",
+				"replicas": 3,
+				"description": "Scale large target name to 3 replicas in default namespace with very long target name",
 				"target_resources": ["deployment/%s"],
 				"status": "pending"
 			}`, strings.Repeat("a", 100), strings.Repeat("a", 100)),
@@ -1019,7 +1027,7 @@ func TestServer_IntegrationFlow(t *testing.T) {
 		"intent_type":      "scaling",
 		"target":           "integration-test-app",
 		"namespace":        "integration",
-		"replicas":         7,
+		"replicas":         float64(7),
 		"source":           "test",
 		"reason":           "Integration test scaling",
 		"correlation_id":   correlationID,
@@ -1119,14 +1127,9 @@ func TestServer_IntegrationFlow(t *testing.T) {
 		}
 	}
 
-	// Verify parameters were saved correctly
-	savedParams, ok := savedData["parameters"].(map[string]interface{})
-	if !ok {
-		t.Fatalf("Expected parameters to be a map, got %T", savedData["parameters"])
-	}
-
-	expectedParams := payload["parameters"].(map[string]interface{})
-	for key, expected := range expectedParams {
+	// Verify parameters were saved correctly in the flat structure
+	// The saved file contains the validated intent directly, not wrapped in "parameters"
+	for key, expected := range payload {
 		// Handle float64 conversion for numbers in JSON
 		if key == "target_replicas" {
 			if intVal, ok := expected.(int); ok {
@@ -1134,8 +1137,13 @@ func TestServer_IntegrationFlow(t *testing.T) {
 			}
 		}
 
-		if savedParams[key] != expected {
-			t.Errorf("Saved parameters mismatch for %s: expected %v, got %v", key, expected, savedParams[key])
+		// Skip target_resources as it may have different slice types after JSON unmarshal
+		if key == "target_resources" {
+			continue
+		}
+
+		if !reflect.DeepEqual(savedData[key], expected) {
+			t.Errorf("Saved parameters mismatch for %s: expected %v, got %v", key, expected, savedData[key])
 		}
 	}
 

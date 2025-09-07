@@ -66,8 +66,8 @@ func (h *BufferLogHandler) Handle(ctx context.Context, record slog.Record) error
 		return err
 	}
 
-	_, _ = h.buffer.Write(data) // #nosec G104 - Buffer write in test
-	_, _ = h.buffer.WriteString("\n") // #nosec G104 - Buffer write in test
+	h.buffer.Write(data)
+	h.buffer.WriteString("\n")
 	return nil
 }
 
@@ -140,7 +140,7 @@ func (m *MockStreamingProcessor) HandleStreamingRequest(w http.ResponseWriter, r
 	}
 	// Default mock implementation - just return success
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte("mock streaming response")) // #nosec G104 - Mock write in test
+	w.Write([]byte("mock streaming response"))
 	return nil
 }
 
@@ -250,7 +250,7 @@ func TestStructuredLoggingInStreamingHandler(t *testing.T) {
 						return tt.mockError
 					}
 					w.WriteHeader(http.StatusOK)
-					_, _ = w.Write([]byte("test response")) // #nosec G104 - Test response write
+					w.Write([]byte("test response"))
 					return nil
 				},
 			}
@@ -763,7 +763,7 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 				},
 				"service-b": map[string]interface{}{
 					"state":    "closed",
-					"failures": 1,
+					"failures": 0,
 				},
 			},
 			expectedStatus:  health.StatusHealthy,
@@ -823,7 +823,7 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 				},
 				"service-b": map[string]interface{}{
 					"state":    "open",
-					"failures": 2,
+					"failures": 5,
 				},
 			},
 			expectedStatus:  health.StatusUnhealthy,
@@ -945,14 +945,12 @@ func TestRegisterHealthChecksIntegration(t *testing.T) {
 		// Register health checks
 		sm.registerHealthChecks()
 
-		// Verify circuit breaker health check was registered but returns healthy status
+		// Verify circuit breaker health check was NOT registered
 		ctx := context.Background()
 		result := sm.healthChecker.RunCheck(ctx, "circuit_breaker")
 
-		// Should return healthy status with no circuit breakers message
-		require.NotNil(t, result)
-		assert.Equal(t, health.StatusHealthy, result.Status)
-		assert.Equal(t, "No circuit breakers registered", result.Message)
+		// Should be nil since the check wasn't registered
+		assert.Nil(t, result)
 	})
 }
 

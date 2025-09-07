@@ -98,6 +98,47 @@ validate-examples: validate-contracts
 	@go run -c 'import "encoding/json"; import "os"; import "io"; data, _ := io.ReadAll(os.Stdin); var obj interface{}; if json.Unmarshal(data, &obj) != nil { os.Exit(1) }' < docs/contracts/fcaps.ves.examples.json || exit 1
 	@echo "✅ All examples are valid JSON"
 
+# Build operator binary
+.PHONY: build
+build:
+	@echo "🔨 Building Nephoran operator binary..."
+	$(BUILD_CMD) -o bin/manager ./cmd/main.go
+	@echo "✅ Binary built: bin/manager"
+
+# Build Docker image
+.PHONY: docker-build
+docker-build:
+	@echo "🐳 Building Docker image: $(IMG)"
+	docker build --build-arg SERVICE=manager --build-arg VERSION=$(GIT_VERSION) --build-arg BUILD_DATE=$(BUILD_TIME) --build-arg VCS_REF=$(GIT_VERSION) -t $(IMG) .
+	@echo "✅ Docker image built: $(IMG)"
+
+# Install CRDs into cluster
+.PHONY: install
+install: manifests kustomize
+	@echo "☸️ Installing CRDs into cluster..."
+	$(KUSTOMIZE) build config/crd | kubectl apply -f -
+	@echo "✅ CRDs installed successfully"
+
+# Deploy manager into cluster
+.PHONY: deploy
+deploy: manifests kustomize
+	@echo "☸️ Deploying operator to cluster..."
+	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
+	$(KUSTOMIZE) build config/default | kubectl apply -f -
+	@echo "✅ Operator deployed successfully"
+
+# Install kustomize
+.PHONY: kustomize
+kustomize:
+	@test -f $(KUSTOMIZE) || { \
+		echo "🔨 Installing kustomize..."; \
+		curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash; \
+		sudo mv kustomize /usr/local/bin/; \
+	}
+
+# kustomize binary path
+KUSTOMIZE ?= /usr/local/bin/kustomize
+
 # Build manager binary with optimized flags
 .PHONY: build
 build: generate

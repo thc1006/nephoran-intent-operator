@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -29,7 +30,8 @@ type NetworkIntentSpec struct {
 	
 	// ScalingIntent defines the scaling behavior
 	// +kubebuilder:validation:Optional
-	ScalingIntent map[string]interface{} `json:"scalingIntent,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
+	ScalingIntent *apiextensionsv1.JSON `json:"scalingIntent,omitempty"`
 
 	// Deployment defines deployment specifications for network functions
 	// +kubebuilder:validation:Optional
@@ -71,7 +73,8 @@ type NetworkFunction struct {
 
 	// Configuration specific to this network function
 	// +kubebuilder:validation:Optional
-	Config map[string]interface{} `json:"config,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
+	Config *apiextensionsv1.JSON `json:"config,omitempty"`
 
 	// Resources required for this network function
 	// +kubebuilder:validation:Optional
@@ -177,7 +180,8 @@ type PackageStatus struct {
 
 	// UpstreamLock contains information about the upstream package lock
 	// +kubebuilder:validation:Optional
-	UpstreamLock map[string]interface{} `json:"upstreamLock,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
+	UpstreamLock *apiextensionsv1.JSON `json:"upstreamLock,omitempty"`
 }
 
 // PackagePhase defines the possible phases of a package

@@ -1,0 +1,149 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/thc1006/nephoran-intent-operator/contracts/intent.schema.json",
+  "title": "NetworkIntent Schema",
+  "description": "Schema for network intent scaling operations in Nephio R5-O-RAN L Release deployments",
+  "version": "1.0.0",
+  "type": "object",
+  "properties": {
+    "intent_type": {
+      "type": "string",
+      "enum": ["scaling", "deployment", "configuration"],
+      "description": "Type of network intent operation"
+    },
+    "target": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Target resource to scale or modify"
+    },
+    "namespace": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Kubernetes namespace for the target resource"
+    },
+    "replicas": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "description": "Desired number of replicas"
+    },
+    "reason": {
+      "type": "string",
+      "maxLength": 512,
+      "description": "Optional reason for the scaling operation"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["user", "planner", "test", ""],
+      "description": "Source of the intent request"
+    },
+    "correlation_id": {
+      "type": "string",
+      "description": "Optional correlation ID for tracking"
+    },
+    "priority": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "default": 5,
+      "description": "Priority level for intent execution (0=lowest, 10=highest)"
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Optional constraints for intent execution",
+      "properties": {
+        "max_replicas": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "min_replicas": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "allowed_namespaces": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "kpt_package_name": {
+          "type": "string",
+          "description": "Target kpt package for Nephio/Porch integration"
+        },
+        "porch_repository": {
+          "type": "string",
+          "description": "Porch repository containing the target package"
+        }
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when intent was created"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when intent was last updated"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "processing", "completed", "failed"],
+      "description": "Current status of intent execution"
+    },
+    "nephio_context": {
+      "type": "object",
+      "description": "Nephio/Porch integration context",
+      "properties": {
+        "package_revision": {
+          "type": "string",
+          "description": "Porch package revision identifier"
+        },
+        "workload_cluster": {
+          "type": "string",
+          "description": "Target workload cluster for deployment"
+        },
+        "blueprint_name": {
+          "type": "string",
+          "description": "Nephio blueprint used for package generation"
+        }
+      }
+    },
+    "target_resources": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "List of resources to be scaled",
+      "minItems": 0
+    }
+  },
+  "required": [
+    "intent_type",
+    "target",
+    "namespace",
+    "replicas"
+  ],
+  "examples": [
+    {
+      "intent_type": "scaling",
+      "target": "odu-high-phy",
+      "namespace": "oran-odu",
+      "replicas": 5,
+      "reason": "Scale O-DU workload based on increased traffic demand in cell sector 123",
+      "source": "planner",
+      "correlation_id": "scale-odu-workload-001",
+      "priority": 8,
+      "constraints": {
+        "max_replicas": 10,
+        "min_replicas": 2,
+        "allowed_namespaces": ["oran-odu", "oran-shared"]
+      },
+      "created_at": "2025-08-28T10:30:00Z",
+      "updated_at": "2025-08-28T10:30:00Z",
+      "status": "pending"
+    }
+  ]
+}

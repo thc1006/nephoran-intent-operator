@@ -19,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"github.com/thc1006/nephoran-intent-operator/test/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	nephoran "github.com/thc1006/nephoran-intent-operator/api/v1"
@@ -45,7 +46,7 @@ func (suite *DisasterRecoveryTestSuite) SetupSuite() {
 	suite.backupDir = tempDir
 
 	// Setup test environment
-	suite.testEnv = &envtest.Environment{
+	suite.testEnv := testenv.Environment
 		CRDDirectoryPaths: []string{
 			filepath.Join("..", "..", "config", "crd", "bases"),
 		},
