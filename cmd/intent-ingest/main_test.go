@@ -144,9 +144,10 @@ func TestServer_Intent_ValidJSON_Success(t *testing.T) {
 			name:        "valid scaling intent",
 			contentType: "application/json",
 			payload: map[string]interface{}{
-				"target_replicas":  3,
+				"intent_type":      "scaling",
 				"target":           "test-deployment",
 				"namespace":        "default",
+				"replicas":         3,
 				"source":           "user",
 				"correlation_id":   "test-123",
 				"target_resources": []string{"deployment/test-deployment"},
@@ -158,11 +159,11 @@ func TestServer_Intent_ValidJSON_Success(t *testing.T) {
 			name:        "minimal valid intent",
 			contentType: "application/json",
 			payload: map[string]interface{}{
-				"target_replicas":  5,
-				"target":           "minimal-app",
-				"namespace":        "production",
-				"target_resources": []string{"deployment/minimal-app"},
-				"status":           "pending",
+				"intent_type": "scaling",
+				"target":      "minimal-app",
+				"namespace":   "production",
+				"replicas":    5,
+				"status":      "pending",
 			},
 			expectedStatus: http.StatusAccepted,
 		},
@@ -170,9 +171,10 @@ func TestServer_Intent_ValidJSON_Success(t *testing.T) {
 			name:        "text/json content type",
 			contentType: "text/json",
 			payload: map[string]interface{}{
-				"target_replicas":  2,
+				"intent_type":      "scaling",
 				"target":           "text-json-app",
 				"namespace":        "staging",
+				"replicas":         2,
 				"target_resources": []string{"deployment/text-json-app"},
 				"status":           "pending",
 			},
@@ -182,9 +184,10 @@ func TestServer_Intent_ValidJSON_Success(t *testing.T) {
 			name:        "application/json with charset",
 			contentType: "application/json; charset=utf-8",
 			payload: map[string]interface{}{
-				"target_replicas":  1,
+				"intent_type":      "scaling",
 				"target":           "charset-app",
 				"namespace":        "testing",
+				"replicas":         1,
 				"target_resources": []string{"deployment/charset-app"},
 				"status":           "pending",
 			},
@@ -292,9 +295,10 @@ func TestServer_Intent_ValidPlainText_Success(t *testing.T) {
 			name:  "basic scaling command",
 			input: "scale my-app to 5 in ns production",
 			expected: map[string]interface{}{
-				"target_replicas":  float64(5),
+				"intent_type":      "scaling",
 				"target":           "my-app",
 				"namespace":        "production",
+				"replicas":         float64(5),
 				"source":           "user",
 				"target_resources": []string{"deployment/my-app"},
 				"status":           "pending",
@@ -304,9 +308,10 @@ func TestServer_Intent_ValidPlainText_Success(t *testing.T) {
 			name:  "hyphenated names",
 			input: "scale nf-sim to 10 in ns ran-a",
 			expected: map[string]interface{}{
-				"target_replicas":  float64(10),
+				"intent_type":      "scaling",
 				"target":           "nf-sim",
 				"namespace":        "ran-a",
+				"replicas":         float64(10),
 				"source":           "user",
 				"target_resources": []string{"deployment/nf-sim"},
 				"status":           "pending",
@@ -316,9 +321,10 @@ func TestServer_Intent_ValidPlainText_Success(t *testing.T) {
 			name:  "case insensitive",
 			input: "SCALE MY-SERVICE TO 3 IN NS DEFAULT",
 			expected: map[string]interface{}{
-				"target_replicas":  float64(3),
+				"intent_type":      "scaling",
 				"target":           "MY-SERVICE",
 				"namespace":        "DEFAULT",
+				"replicas":         float64(3),
 				"source":           "user",
 				"target_resources": []string{"deployment/MY-SERVICE"},
 				"status":           "pending",
@@ -887,14 +893,13 @@ func TestServer_RealSchemaValidation(t *testing.T) {
 		{
 			name: "valid with all optional fields",
 			payload: map[string]interface{}{
-				"metadata": map[string]interface{}{
-					"target_replicas": 50,
-					"target":          "test-deployment",
-					"namespace":       "default",
-					"reason":          "Load balancing optimization",
-					"source":          "planner",
-					"correlation_id":  "req-123-456",
-				},
+				"intent_type":      "scaling",
+				"target":           "test-deployment",
+				"namespace":        "default",
+				"replicas":         50,
+				"reason":           "Load balancing optimization",
+				"source":           "planner",
+				"correlation_id":   "req-123-456",
 				"target_resources": []string{"deployment/test-deployment"},
 				"status":           "pending",
 			},
@@ -904,11 +909,10 @@ func TestServer_RealSchemaValidation(t *testing.T) {
 		{
 			name: "replicas at minimum boundary",
 			payload: map[string]interface{}{
-				"metadata": map[string]interface{}{
-					"target_replicas": 1,
-					"target":          "test-deployment",
-					"namespace":       "default",
-				},
+				"intent_type":      "scaling",
+				"target":           "test-deployment",
+				"namespace":        "default",
+				"replicas":         1,
 				"target_resources": []string{"deployment/test-deployment"},
 				"status":           "pending",
 			},
@@ -918,11 +922,10 @@ func TestServer_RealSchemaValidation(t *testing.T) {
 		{
 			name: "replicas at maximum boundary",
 			payload: map[string]interface{}{
-				"metadata": map[string]interface{}{
-					"target_replicas": 100,
-					"target":          "test-deployment",
-					"namespace":       "default",
-				},
+				"intent_type":      "scaling",
+				"target":           "test-deployment",
+				"namespace":        "default",
+				"replicas":         100,
 				"target_resources": []string{"deployment/test-deployment"},
 				"status":           "pending",
 			},
@@ -932,12 +935,11 @@ func TestServer_RealSchemaValidation(t *testing.T) {
 		{
 			name: "valid source enum values",
 			payload: map[string]interface{}{
-				"metadata": map[string]interface{}{
-					"target_replicas": 5,
-					"target":          "test-deployment",
-					"namespace":       "default",
-					"source":          "test",
-				},
+				"intent_type":      "scaling",
+				"target":           "test-deployment",
+				"namespace":        "default",
+				"replicas":         5,
+				"source":           "test",
 				"target_resources": []string{"deployment/test-deployment"},
 				"status":           "pending",
 			},
@@ -947,12 +949,11 @@ func TestServer_RealSchemaValidation(t *testing.T) {
 		{
 			name: "reason at max length",
 			payload: map[string]interface{}{
-				"metadata": map[string]interface{}{
-					"target_replicas": 5,
-					"target":          "test-deployment",
-					"namespace":       "default",
-					"reason":          strings.Repeat("b", 100), // Reason in parameters
-				},
+				"intent_type":      "scaling",
+				"target":           "test-deployment",
+				"namespace":        "default",
+				"replicas":         5,
+				"reason":           strings.Repeat("b", 500), // Max length is 512 per schema
 				"target_resources": []string{"deployment/test-deployment"},
 				"status":           "pending",
 			},
@@ -995,14 +996,13 @@ func TestServer_IntegrationFlow(t *testing.T) {
 	correlationID := fmt.Sprintf("integration-test-%d", time.Now().Unix())
 
 	payload := map[string]interface{}{
-		"metadata": map[string]interface{}{
-			"target_replicas": 7,
-			"target":          "integration-test-app",
-			"namespace":       "integration",
-			"source":          "test",
-			"reason":          "Integration test scaling",
-			"correlation_id":  correlationID,
-		},
+		"intent_type":      "scaling",
+		"target":           "integration-test-app",
+		"namespace":        "integration",
+		"replicas":         7,
+		"source":           "test",
+		"reason":           "Integration test scaling",
+		"correlation_id":   correlationID,
 		"target_resources": []string{"deployment/integration-test-app"},
 		"status":           "pending",
 	}

@@ -33,25 +33,50 @@ import (
 // createIPAllowlistHandler creates a test handler with IP allowlist functionality
 func createIPAllowlistHandler(next http.Handler, allowedCIDRs []string, logger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Simple IP check for testing purposes
+		// If allowlist is empty, block all traffic
+		if len(allowedCIDRs) == 0 {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		// Get client IP from headers (in order of precedence)
 		remoteIP := r.RemoteAddr
 		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
 			parts := strings.Split(xff, ",")
 			remoteIP = strings.TrimSpace(parts[0])
+		} else if xri := r.Header.Get("X-Real-IP"); xri != "" {
+			remoteIP = strings.TrimSpace(xri)
+		} else if cfip := r.Header.Get("CF-Connecting-IP"); cfip != "" {
+			remoteIP = strings.TrimSpace(cfip)
 		}
 
-		// For testing, allow localhost/127.0.0.1 and common test IPs
-		if strings.Contains(remoteIP, "127.0.0.1") || strings.Contains(remoteIP, "192.168.") ||
-			strings.Contains(remoteIP, "10.0.") || remoteIP == "" {
-			next.ServeHTTP(w, r)
-			return
+		// Clean up remoteIP to handle port numbers
+		if strings.Contains(remoteIP, ":") && !strings.Contains(remoteIP, "::") {
+			host, _, err := net.SplitHostPort(remoteIP)
+			if err == nil {
+				remoteIP = host
+			}
 		}
 
-		// Check against allowed CIDRs for other cases
+		// Check against allowed CIDRs
 		for _, cidr := range allowedCIDRs {
-			if strings.Contains(remoteIP, strings.Split(cidr, "/")[0]) {
-				next.ServeHTTP(w, r)
-				return
+			// Handle simple IP matching for testing
+			if strings.Contains(cidr, "/") {
+				// CIDR notation
+				_, ipnet, err := net.ParseCIDR(cidr)
+				if err == nil {
+					clientIP := net.ParseIP(remoteIP)
+					if clientIP != nil && ipnet.Contains(clientIP) {
+						next.ServeHTTP(w, r)
+						return
+					}
+				}
+			} else {
+				// Simple substring matching for basic cases
+				if strings.Contains(remoteIP, strings.Split(cidr, "/")[0]) {
+					next.ServeHTTP(w, r)
+					return
+				}
 			}
 		}
 
@@ -226,7 +251,7 @@ func TestRequestSizeLimitMiddleware(t *testing.T) {
 			name:           "POST exceeding limit",
 			method:         "POST",
 			body:           strings.Repeat("a", int(testMaxSize)+100),
-			expectedStatus: http.StatusBadRequest, // Will be handled by MaxBytesReader
+			expectedStatus: http.StatusRequestEntityTooLarge, // MaxBytesReader returns 413
 		},
 	}
 
@@ -1009,11 +1034,11 @@ func TestEndToEndTLSConnections(t *testing.T) {
 				InsecureSkipVerify: false,
 				VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 					// Custom verification that always fails for testing
-					return fmt.Errorf("custom verification failed")
+					return fmt.Errorf("custom verification error")
 				},
 			},
 			expectConnectionError: true,
-			errorSubstring:        "custom verification failed",
+			errorSubstring:        "custom verification",
 		},
 	}
 
@@ -1097,9 +1122,11 @@ func TestTLSConfigurationIntegration(t *testing.T) {
 		{
 			name: "TLS enabled with valid certificate paths",
 			envVars: map[string]string{
-				"TLS_ENABLED":   "true",
-				"TLS_CERT_PATH": certPath,
-				"TLS_KEY_PATH":  keyPath,
+				"TLS_ENABLED":         "true",
+				"TLS_CERT_PATH":       certPath,
+				"TLS_KEY_PATH":        keyPath,
+				"LLM_ALLOWED_ORIGINS": "http://localhost:3000",
+				"CORS_ENABLED":        "true",
 			},
 			expectTLSEnabled:  true,
 			expectValidConfig: true,
@@ -1107,7 +1134,9 @@ func TestTLSConfigurationIntegration(t *testing.T) {
 		{
 			name: "TLS disabled (default)",
 			envVars: map[string]string{
-				"TLS_ENABLED": "false",
+				"TLS_ENABLED":         "false",
+				"LLM_ALLOWED_ORIGINS": "http://localhost:3000",
+				"CORS_ENABLED":        "true",
 			},
 			expectTLSEnabled:  false,
 			expectValidConfig: true,
@@ -1115,8 +1144,10 @@ func TestTLSConfigurationIntegration(t *testing.T) {
 		{
 			name: "TLS enabled but missing certificate path",
 			envVars: map[string]string{
-				"TLS_ENABLED":  "true",
-				"TLS_KEY_PATH": keyPath,
+				"TLS_ENABLED":         "true",
+				"TLS_KEY_PATH":        keyPath,
+				"LLM_ALLOWED_ORIGINS": "http://localhost:3000",
+				"CORS_ENABLED":        "true",
 			},
 			expectTLSEnabled:  true,
 			expectValidConfig: false,
@@ -1124,9 +1155,11 @@ func TestTLSConfigurationIntegration(t *testing.T) {
 		{
 			name: "TLS enabled but invalid certificate file",
 			envVars: map[string]string{
-				"TLS_ENABLED":   "true",
-				"TLS_CERT_PATH": "/nonexistent/cert.pem",
-				"TLS_KEY_PATH":  keyPath,
+				"TLS_ENABLED":         "true",
+				"TLS_CERT_PATH":       "/nonexistent/cert.pem",
+				"TLS_KEY_PATH":        keyPath,
+				"LLM_ALLOWED_ORIGINS": "http://localhost:3000",
+				"CORS_ENABLED":        "true",
 			},
 			expectTLSEnabled:  true,
 			expectValidConfig: false,

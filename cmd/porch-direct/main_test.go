@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -676,6 +677,11 @@ func TestRunWithFileSystemErrors(t *testing.T) {
 		{
 			name: "intent file permission denied",
 			setupFunc: func(t *testing.T) (string, string) {
+				// Skip this test on Windows as file permissions work differently
+				if runtime.GOOS == "windows" {
+					t.Skip("File permission tests not reliable on Windows")
+				}
+				
 				tempDir := t.TempDir()
 				intentFile := filepath.Join(tempDir, "intent.json")
 				outDir := filepath.Join(tempDir, "output")
@@ -706,6 +712,11 @@ func TestRunWithFileSystemErrors(t *testing.T) {
 		{
 			name: "output directory permission denied",
 			setupFunc: func(t *testing.T) (string, string) {
+				// Skip this test on Windows as directory permissions work differently
+				if runtime.GOOS == "windows" {
+					t.Skip("Directory permission tests not reliable on Windows")
+				}
+				
 				tempDir := t.TempDir()
 				intentFile := filepath.Join(tempDir, "intent.json")
 				restrictedDir := filepath.Join(tempDir, "restricted")
@@ -771,17 +782,13 @@ func TestRunWithFileSystemErrors(t *testing.T) {
 			expectError: "failed to write package",
 		},
 		{
-			name: "extremely long file path",
+			name: "invalid output directory path",
 			setupFunc: func(t *testing.T) (string, string) {
 				tempDir := t.TempDir()
 				intentFile := filepath.Join(tempDir, "intent.json")
 
-				// Create very long output path
-				longPath := tempDir
-				for i := 0; i < 50; i++ {
-					longPath = filepath.Join(longPath, "very-long-directory-name-that-exceeds-normal-filesystem-limits")
-				}
-				outDir := longPath
+				// Create invalid output path with invalid characters
+				outDir := filepath.Join(tempDir, "invalid-path-\x00-with-null-bytes")
 
 				// Create valid intent file
 				intent := intent.ScalingIntent{

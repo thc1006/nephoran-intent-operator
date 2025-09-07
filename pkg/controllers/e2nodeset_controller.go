@@ -902,6 +902,24 @@ func (r *E2NodeSetReconciler) generateNodeID(e2nodeSet *nephoranv1.E2NodeSet, in
 // createE2NodeConfigMap creates a new ConfigMap representing an E2 node with retry logic.
 
 func (r *E2NodeSetReconciler) createE2NodeConfigMap(ctx context.Context, e2nodeSet *nephoranv1.E2NodeSet, index int32) (*corev1.ConfigMap, error) {
+	configMapName := r.generateConfigMapName(e2nodeSet, index)
+	
+	// Check if ConfigMap already exists (idempotency check)
+	existingConfigMap := &corev1.ConfigMap{}
+	err := r.Get(ctx, types.NamespacedName{
+		Name:      configMapName,
+		Namespace: e2nodeSet.Namespace,
+	}, existingConfigMap)
+	
+	if err == nil {
+		// ConfigMap already exists, return it
+		return existingConfigMap, nil
+	} else if !errors.IsNotFound(err) {
+		// Some other error occurred
+		return nil, fmt.Errorf("failed to check existing ConfigMap: %w", err)
+	}
+	
+	// ConfigMap doesn't exist, create it
 	configMap := r.buildE2NodeConfigMap(e2nodeSet, index)
 
 	if err := controllerutil.SetControllerReference(e2nodeSet, configMap, r.Scheme); err != nil {
@@ -917,6 +935,18 @@ func (r *E2NodeSetReconciler) createE2NodeConfigMap(ctx context.Context, e2nodeS
 	}
 
 	if err := r.Create(ctx, configMap); err != nil {
+		// If ConfigMap already exists, fetch and return it (race condition handling)
+		if errors.IsAlreadyExists(err) {
+			existingConfigMap := &corev1.ConfigMap{}
+			getErr := r.Get(ctx, types.NamespacedName{
+				Name:      configMap.Name,
+				Namespace: configMap.Namespace,
+			}, existingConfigMap)
+			if getErr == nil {
+				return existingConfigMap, nil
+			}
+			// If we can't fetch it, fall through to error handling
+		}
 
 		// Increment retry count on failure.
 
