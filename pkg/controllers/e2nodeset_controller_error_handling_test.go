@@ -34,6 +34,11 @@ type MockClient struct {
 func (m *MockClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 	args := m.Called(ctx, key, obj, opts)
 	if args.Get(0) != nil {
+		// Handle function return values
+		if fn, ok := args.Get(0).(func(context.Context, client.ObjectKey, client.Object, ...client.GetOption) error); ok {
+			return fn(ctx, key, obj, opts...)
+		}
+		// Handle direct error return values
 		return args.Error(0)
 	}
 
@@ -786,11 +791,22 @@ func TestFinalizerNotRemovedUntilCleanupSuccess(t *testing.T) {
 	// Mock E2Manager ListE2Nodes call
 	mockE2Manager.On("ListE2Nodes", mock.Anything).Return([]*e2.E2Node{}, nil)
 
-	// Mock Get calls to return the E2NodeSet from fake client
+	// Mock Get calls to return the E2NodeSet from fake client (call through to get actual object)
 	mockClient.On("Get", mock.Anything, mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
 		_, ok := obj.(*nephoranv1.E2NodeSet)
 		return ok
-	}), mock.Anything).Return(nil)
+	}), mock.Anything).Return(func(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+		// Call through to fake client to get the actual E2NodeSet with deletion timestamp
+		err := fakeClient.Get(ctx, key, obj)
+		if err == nil {
+			if e2ns, ok := obj.(*nephoranv1.E2NodeSet); ok && e2ns.DeletionTimestamp != nil {
+				t.Logf("Retrieved E2NodeSet with deletion timestamp: %v", e2ns.DeletionTimestamp)
+			}
+		} else {
+			t.Logf("Error getting E2NodeSet: %v", err)
+		}
+		return err
+	})
 
 	// Mock ConfigMap List call to return existing ConfigMaps from fake client  
 	mockClient.On("List", mock.Anything, mock.MatchedBy(func(list client.ObjectList) bool {
@@ -800,7 +816,7 @@ func TestFinalizerNotRemovedUntilCleanupSuccess(t *testing.T) {
 		ctx := args.Get(0).(context.Context)
 		list := args.Get(1).(client.ObjectList)
 		opts := args.Get(2).([]client.ListOption)
-		err := fakeClient.List(ctx, list, opts...)
+		fakeClient.List(ctx, list, opts...)
 		if cmList, ok := list.(*corev1.ConfigMapList); ok {
 			t.Logf("ConfigMap List found %d items", len(cmList.Items))
 			for _, cm := range cmList.Items {
@@ -868,6 +884,7 @@ func TestFinalizerNotRemovedUntilCleanupSuccess(t *testing.T) {
 	namespacedName := types.NamespacedName{Name: e2nodeSet.Name, Namespace: e2nodeSet.Namespace}
 
 	// First reconcile attempt (should fail and requeue)
+	t.Log("=== Starting first reconcile attempt ===")
 	result, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
 
 	t.Logf("Finalizer test - first result: %+v, error: %v", result, err)

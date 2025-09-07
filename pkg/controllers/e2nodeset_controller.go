@@ -332,6 +332,7 @@ func (r *E2NodeSetReconciler) RegisterMetrics() {
 
 func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
+	logger.Info("=== E2NodeSetReconciler.Reconcile ENTRY ===", "request", req)
 
 	// Fetch the E2NodeSet instance first to check if it's being deleted
 	var e2nodeSet nephoranv1.E2NodeSet
@@ -344,7 +345,10 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// Allow deletion to proceed even without E2Manager
 	if e2nodeSet.DeletionTimestamp != nil {
+		logger.Info("E2NodeSet marked for deletion, calling handleDeletion", "name", e2nodeSet.Name, "deletionTimestamp", e2nodeSet.DeletionTimestamp)
 		return r.handleDeletion(ctx, &e2nodeSet)
+	} else {
+		logger.V(1).Info("E2NodeSet not marked for deletion, proceeding with normal reconciliation", "name", e2nodeSet.Name)
 	}
 
 	// Validate that E2Manager is available for normal operations
