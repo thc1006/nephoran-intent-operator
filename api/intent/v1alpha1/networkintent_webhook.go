@@ -146,7 +146,7 @@ func (r *NetworkIntent) validateNetworkIntent() (admission.Warnings, error) {
 	}
 
 	if len(allErrs) > 0 {
-		return nil, fmt.Errorf("validation failed: %v", allErrs)
+		return nil, fmt.Errorf("intent validation failed: %v", allErrs)
 	}
 
 	return warnings, nil

@@ -1566,10 +1566,30 @@ func (w *Watcher) enhancedWorker(workerID int) {
 	for {
 		select {
 		case <-w.ctx.Done():
-
-			log.Printf("Enhanced worker %d cancelled", workerID)
-
-			return
+			// Context cancelled, but drain remaining work items to prevent missed files
+			log.Printf("Enhanced worker %d: context cancelled, draining remaining work items", workerID)
+			
+			// Drain the work queue with a reasonable timeout
+			drainTimeout := time.After(5 * time.Second)
+		drainLoop:
+			for {
+				select {
+				case workItem, ok := <-w.workerPool.workQueue:
+					if !ok {
+						log.Printf("Enhanced worker %d: work queue closed during drain, exiting", workerID)
+						return
+					}
+					// Process remaining work items even after context cancellation
+					w.processWorkItemWithLocking(workerID, workItem)
+				case <-drainTimeout:
+					log.Printf("Enhanced worker %d: drain timeout reached, exiting", workerID)
+					return
+				default:
+					// No more work items, exit gracefully
+					log.Printf("Enhanced worker %d: drain complete, exiting", workerID)
+					return
+				}
+			}
 
 		case workItem, ok := <-w.workerPool.workQueue:
 

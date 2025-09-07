@@ -195,7 +195,7 @@ func NewIntentProcessor(config *Config, provider providers.Provider) *IntentProc
 // ProcessIntent processes an intent string and returns the result using the provider interface.
 func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string) (string, error) {
 	if intent == "" {
-		return "", fmt.Errorf("validation failed: intent cannot be empty")
+		return "", fmt.Errorf("intent validation failed: intent cannot be empty")
 	}
 	if len(intent) > 2000 {
 		return "", fmt.Errorf("intent too long: maximum 2000 characters")
