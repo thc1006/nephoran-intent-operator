@@ -392,11 +392,17 @@ func TestConfigMapCreationErrorHandling(t *testing.T) {
 
 			reconciler := createTestReconciler(mockClient, mockRecorder, mockE2Manager)
 
-			// Mock Get calls to return the E2NodeSet from fake client
+			// Mock Get calls to return the E2NodeSet from fake client (allow multiple calls for retry count checks)
 			mockClient.On("Get", mock.Anything, mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
 				_, ok := obj.(*nephoranv1.E2NodeSet)
 				return ok
-			}), mock.Anything).Return(nil)
+			}), mock.Anything).Return(nil).Maybe()
+
+			// Mock ConfigMap Get call (for idempotency check) to return NotFound so creation proceeds
+			mockClient.On("Get", mock.Anything, mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
+				_, ok := obj.(*corev1.ConfigMap)
+				return ok
+			}), mock.Anything).Return(errors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "test-cm"))
 
 			// Mock ConfigMap List call (needed for existing ConfigMap check)
 			mockClient.On("List", mock.Anything, mock.MatchedBy(func(list client.ObjectList) bool {
@@ -493,14 +499,20 @@ func TestConfigMapUpdateErrorHandling(t *testing.T) {
 
 	reconciler := createTestReconciler(mockClient, mockRecorder, mockE2Manager)
 
-	// Mock Get calls to return the E2NodeSet from fake client
+	// Mock Get calls to return the E2NodeSet from fake client (allow multiple calls)
 	mockClient.On("Get", mock.Anything, mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
 		if e2ns, ok := obj.(*nephoranv1.E2NodeSet); ok {
 			t.Logf("E2NodeSet Get called for object type: %T", e2ns)
 			return true
 		}
 		return false
-	}), mock.Anything).Return(nil)
+	}), mock.Anything).Return(nil).Maybe()
+
+	// Mock ConfigMap Get call (for idempotency check) to return NotFound for new ConfigMaps
+	mockClient.On("Get", mock.Anything, mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
+		_, ok := obj.(*corev1.ConfigMap)
+		return ok
+	}), mock.Anything).Return(errors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "test-cm")).Maybe()
 
 	// Mock ConfigMap List call (needed for existing ConfigMap check)
 	mockClient.On("List", mock.Anything, mock.MatchedBy(func(list client.ObjectList) bool {
@@ -590,11 +602,17 @@ func TestE2ProvisioningErrorHandling(t *testing.T) {
 	mockE2Manager := &MockE2Manager{}
 	reconciler := createTestReconciler(mockClient, mockRecorder, mockE2Manager)
 
-	// Mock Get calls to return the E2NodeSet from fake client
+	// Mock Get calls to return the E2NodeSet from fake client (allow multiple calls)
 	mockClient.On("Get", mock.Anything, mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
 		_, ok := obj.(*nephoranv1.E2NodeSet)
 		return ok
-	}), mock.Anything).Return(nil)
+	}), mock.Anything).Return(nil).Maybe()
+
+	// Mock ConfigMap Get call (for idempotency check) to return NotFound for new ConfigMaps
+	mockClient.On("Get", mock.Anything, mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
+		_, ok := obj.(*corev1.ConfigMap)
+		return ok
+	}), mock.Anything).Return(errors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "test-cm")).Maybe()
 
 	// Mock ConfigMap List call (needed for existing ConfigMap check)
 	mockClient.On("List", mock.Anything, mock.MatchedBy(func(list client.ObjectList) bool {
@@ -669,6 +687,12 @@ func TestMaxRetriesExceeded(t *testing.T) {
 		_, ok := obj.(*nephoranv1.E2NodeSet)
 		return ok
 	}), mock.Anything).Return(nil)
+
+	// Mock ConfigMap Get call (for idempotency check) to return NotFound for new ConfigMaps
+	mockClient.On("Get", mock.Anything, mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
+		_, ok := obj.(*corev1.ConfigMap)
+		return ok
+	}), mock.Anything).Return(errors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "test-cm")).Maybe()
 
 	// Mock ConfigMap List call (needed for existing ConfigMap check)
 	mockClient.On("List", mock.Anything, mock.MatchedBy(func(list client.ObjectList) bool {
@@ -1132,6 +1156,12 @@ func TestReconcileWithPartialFailures(t *testing.T) {
 		_, ok := obj.(*nephoranv1.E2NodeSet)
 		return ok
 	}), mock.Anything).Return(nil)
+
+	// Mock ConfigMap Get call (for idempotency check) to return NotFound for new ConfigMaps
+	mockClient.On("Get", mock.Anything, mock.Anything, mock.MatchedBy(func(obj client.Object) bool {
+		_, ok := obj.(*corev1.ConfigMap)
+		return ok
+	}), mock.Anything).Return(errors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "test-cm")).Maybe()
 
 	// Mock ConfigMap List call (needed for existing ConfigMap check)
 	mockClient.On("List", mock.Anything, mock.MatchedBy(func(list client.ObjectList) bool {
