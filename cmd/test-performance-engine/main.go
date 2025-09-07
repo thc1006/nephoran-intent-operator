@@ -1,5 +1,3 @@
-//go:build testperformance
-
 package main
 
 import (

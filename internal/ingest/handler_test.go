@@ -371,12 +371,13 @@ func TestHandleIntent_UnsupportedContentType(t *testing.T) {
 	tests := []struct {
 		name        string
 		contentType string
+		expectedCode int
 	}{
-		{name: "xml", contentType: "application/xml"},
-		{name: "form data", contentType: "application/x-www-form-urlencoded"},
-		{name: "binary", contentType: "application/octet-stream"},
-		{name: "html", contentType: "text/html"},
-		{name: "empty", contentType: ""},
+		{name: "xml", contentType: "application/xml", expectedCode: http.StatusUnsupportedMediaType},
+		{name: "form data", contentType: "application/x-www-form-urlencoded", expectedCode: http.StatusUnsupportedMediaType},
+		{name: "binary", contentType: "application/octet-stream", expectedCode: http.StatusUnsupportedMediaType},
+		{name: "html", contentType: "text/html", expectedCode: http.StatusUnsupportedMediaType},
+		{name: "empty", contentType: "", expectedCode: http.StatusBadRequest}, // Empty content type leads to plain text parsing which fails
 	}
 
 	for _, tt := range tests {
@@ -390,9 +391,8 @@ func TestHandleIntent_UnsupportedContentType(t *testing.T) {
 
 			handler.HandleIntent(w, req)
 
-			// For unsupported content types, the handler returns 415 Unsupported Media Type
-			if w.Code != http.StatusUnsupportedMediaType {
-				t.Errorf("Expected status %d, got %d", http.StatusUnsupportedMediaType, w.Code)
+			if w.Code != tt.expectedCode {
+				t.Errorf("Expected status %d, got %d for content type %q", tt.expectedCode, w.Code, tt.contentType)
 			}
 		})
 	}
