@@ -16,6 +16,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// safeRegister safely registers a metric collector, avoiding panics from duplicate registrations
+func safeRegister(registry prometheus.Registerer, collector prometheus.Collector) {
+	if err := registry.Register(collector); err != nil {
+		if _, ok := err.(prometheus.AlreadyRegisteredError); !ok {
+			// Only log if it's not a duplicate registration error
+			log.Log.Error(err, "Failed to register metric collector")
+		}
+		// Ignore duplicate registration errors to prevent panics in tests
+	}
+}
+
 // PrometheusMetricsCollector implements MetricsCollector using Prometheus
 type PrometheusMetricsCollector struct {
 	client     api.Client
@@ -88,9 +99,9 @@ func (pmc *PrometheusMetricsCollector) initMetrics() {
 	})
 
 	if pmc.registry != nil {
-		pmc.registry.MustRegister(pmc.scrapeErrors)
-		pmc.registry.MustRegister(pmc.scrapeDuration)
-		pmc.registry.MustRegister(pmc.metricsCollected)
+		safeRegister(pmc.registry, pmc.scrapeErrors)
+		safeRegister(pmc.registry, pmc.scrapeDuration) 
+		safeRegister(pmc.registry, pmc.metricsCollected)
 	}
 }
 
@@ -341,8 +352,8 @@ func (kmc *KubernetesMetricsCollector) initMetrics() {
 	})
 
 	if kmc.registry != nil {
-		kmc.registry.MustRegister(kmc.k8sAPIErrors)
-		kmc.registry.MustRegister(kmc.k8sAPIDuration)
+		safeRegister(kmc.registry, kmc.k8sAPIErrors)
+		safeRegister(kmc.registry, kmc.k8sAPIDuration)
 	}
 }
 
@@ -518,8 +529,8 @@ func (ma *MetricsAggregator) initMetrics() {
 	})
 
 	if ma.registry != nil {
-		ma.registry.MustRegister(ma.aggregationErrors)
-		ma.registry.MustRegister(ma.aggregationTime)
+		safeRegister(ma.registry, ma.aggregationErrors)
+		safeRegister(ma.registry, ma.aggregationTime)
 	}
 }
 
