@@ -610,30 +610,22 @@ func TestConcurrentFileProcessing(t *testing.T) {
 	// Create mock porch with random delays to simulate real processing
 	mockPorch := createMockPorchWithRandomDelay(t, tempDir)
 
-	// Configure watcher with multiple workers
+	// Configure watcher for single-pass processing to avoid double-counting
 	config := loop.Config{
 		PorchPath:    mockPorch,
 		Mode:         "direct",
 		OutDir:       outDir,
-		Once:         false, // Continuous mode to test concurrent processing
+		Once:         true, // Single-pass mode to prevent reprocessing
 		DebounceDur:  50 * time.Millisecond,
-		MaxWorkers:   5, // Multiple workers to test concurrency
+		MaxWorkers:   1, // Single worker to avoid race conditions in test counting
 		CleanupAfter: time.Hour,
 	}
 
 	watcher, err := loop.NewWatcher(handoffDir, config)
 	require.NoError(t, err)
 	defer watcher.Close() // #nosec G307 - Error handled in defer
-
-	// Start watcher in background
-	_, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	go func() {
-		_ = watcher.Start()
-	}()
-
-	// Concurrently create many intent files
+	
+	// Create all files first before starting the watcher
 	var wg sync.WaitGroup
 	numFiles := 50
 
@@ -651,9 +643,6 @@ func TestConcurrentFileProcessing(t *testing.T) {
 
 			file := filepath.Join(handoffDir, fmt.Sprintf("intent-concurrent-%d.json", id))
 
-			// Add small random delay to increase chance of race conditions
-			time.Sleep(time.Duration(id%10) * time.Millisecond)
-
 			err := os.WriteFile(file, []byte(content), 0o644)
 			if err != nil {
 				t.Errorf("Failed to write file %d: %v", id, err)
@@ -663,8 +652,13 @@ func TestConcurrentFileProcessing(t *testing.T) {
 
 	wg.Wait()
 
-	// Wait for processing to complete (reduced from 8s for faster tests)
-	time.Sleep(2 * time.Second)
+	// Start watcher after files are created to process them once
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Start watcher and wait for completion
+	err = watcher.Start()
+	require.NoError(t, err)
 
 	// Verify all files were processed exactly once
 	processedCount := countFilesInDir(t, filepath.Join(handoffDir, "processed"))

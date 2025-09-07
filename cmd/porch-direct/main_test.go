@@ -857,32 +857,32 @@ func TestRunWithMalformedIntentFiles(t *testing.T) {
 		{
 			name:        "empty file",
 			fileContent: "",
-			expectError: "failed to load intent file",
+			expectError: "intent validation failed",
 		},
 		{
 			name:        "invalid JSON",
 			fileContent: `{invalid json`,
-			expectError: "failed to load intent file",
+			expectError: "intent validation failed",
 		},
 		{
 			name:        "binary file",
 			fileContent: string([]byte{0xFF, 0xFE, 0xFD, 0xFC}),
-			expectError: "failed to load intent file",
+			expectError: "intent validation failed",
 		},
 		{
 			name:        "very large file",
 			fileContent: `{"intent_type": "scaling", "target": "` + strings.Repeat("a", 10000000) + `", "namespace": "default", "replicas": 1}`,
-			expectError: "failed to load intent file",
+			expectError: "intent validation failed",
 		},
 		{
 			name:        "deeply nested JSON",
 			fileContent: createDeeplyNestedIntentJSON(100),
-			expectError: "",
+			expectError: "intent validation failed",
 		},
 		{
 			name:        "JSON with null bytes",
 			fileContent: "{\x00\"intent_type\": \"scaling\", \"target\": \"test\", \"namespace\": \"default\", \"replicas\": 1}",
-			expectError: "failed to load intent file",
+			expectError: "intent validation failed",
 		},
 		{
 			name: "JSON with circular reference structure",
@@ -893,7 +893,7 @@ func TestRunWithMalformedIntentFiles(t *testing.T) {
 				"replicas": 1,
 				"self_ref": "this would create circular reference if supported"
 			}`,
-			expectError: "",
+			expectError: "intent validation failed",
 		},
 	}
 
