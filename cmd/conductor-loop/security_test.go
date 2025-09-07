@@ -617,7 +617,7 @@ func TestConcurrentFileProcessing(t *testing.T) {
 		OutDir:       outDir,
 		Once:         true, // Single-pass mode to prevent reprocessing
 		DebounceDur:  50 * time.Millisecond,
-		MaxWorkers:   1, // Single worker to avoid race conditions in test counting
+		MaxWorkers:   20, // Sufficient workers to handle queue size for 50 files (20*3=60 queue slots)
 		CleanupAfter: time.Hour,
 	}
 
@@ -812,7 +812,11 @@ func countFilesInDir(t *testing.T, dir string) int {
 	count := 0
 	for _, entry := range entries {
 		if !entry.IsDir() {
-			count++
+			// Only count intent JSON files, not error logs or other artifacts
+			name := entry.Name()
+			if strings.HasSuffix(name, ".json") && !strings.Contains(name, ".error.") {
+				count++
+			}
 		}
 	}
 	return count

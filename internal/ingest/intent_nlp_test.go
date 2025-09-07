@@ -94,34 +94,59 @@ func TestValidateIntent(t *testing.T) {
 	}{
 		{
 			name: "Valid scaling intent",
-			intent: map[string]interface{}{},
+			intent: map[string]interface{}{
+				"intent_type": "scaling",
+				"target":      "test-app",
+				"namespace":   "default",
+				"replicas":    1,
+			},
 			wantErr: false,
 		},
 		{
 			name: "Missing intent_type",
-			intent: map[string]interface{}{},
+			intent: map[string]interface{}{
+				"target":    "test-app",
+				"namespace": "default",
+				"replicas":  1,
+			},
 			wantErr: true,
 		},
 		{
 			name: "Missing target",
-			intent: map[string]interface{}{},
+			intent: map[string]interface{}{
+				"intent_type": "scaling",
+				"namespace":   "default",
+				"replicas":    1,
+			},
 			wantErr: true,
 		},
 		{
 			name: "Invalid replicas (negative)",
-			intent: map[string]interface{}{},
+			intent: map[string]interface{}{
+				"intent_type": "scaling",
+				"target":      "test-app",
+				"namespace":   "default",
+				"replicas":    -1,
+			},
 			wantErr: true,
 		},
 		{
 			name: "Valid deployment intent",
-			intent: map[string]interface{}{},
+			intent: map[string]interface{}{
+				"intent_type": "deployment",
+				"target":      "deploy-app",
+				"namespace":   "default",
+				"replicas":    2,
+			},
 			wantErr: false,
 		},
 		{
 			name: "Valid configuration intent",
 			intent: map[string]interface{}{
-				"replicas":  "5",
-				"namespace": "prod",
+				"intent_type": "configuration",
+				"target":      "config-app",
+				"replicas":    5,
+				"namespace":   "prod",
 			},
 			wantErr: false,
 		},

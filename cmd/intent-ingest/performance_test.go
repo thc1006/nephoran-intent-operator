@@ -25,7 +25,11 @@ func BenchmarkHTTPHandler_IngestEndpoint(b *testing.B) {
 	defer server.Close() // #nosec G307 - Error handled in defer
 
 	intent := map[string]interface{}{
-		"intent": "Deploy nginx with 3 replicas",
+		"intent_type": "scaling",
+		"target": "nginx",
+		"namespace": "default",
+		"replicas": 3,
+		"source": "test",
 	}
 
 	intentJSON, err := json.Marshal(intent)
@@ -146,7 +150,11 @@ func BenchmarkConcurrentRequests(b *testing.B) {
 	defer server.Close() // #nosec G307 - Error handled in defer
 
 	intent := map[string]interface{}{
-		"intent": "Benchmark concurrent processing",
+		"intent_type": "scaling",
+		"target": "benchmark-app",
+		"namespace": "default",
+		"replicas": 2,
+		"source": "test",
 	}
 
 	intentJSON, err := json.Marshal(intent)
@@ -231,7 +239,11 @@ func BenchmarkResponseTime(b *testing.B) {
 	defer server.Close() // #nosec G307 - Error handled in defer
 
 	intent := map[string]interface{}{
-		"intent": "Response time benchmark",
+		"intent_type": "scaling",
+		"target": "response-app",
+		"namespace": "default",
+		"replicas": 1,
+		"source": "test",
 	}
 
 	intentJSON, err := json.Marshal(intent)
@@ -278,7 +290,11 @@ func BenchmarkThroughput(b *testing.B) {
 	defer server.Close() // #nosec G307 - Error handled in defer
 
 	intent := map[string]interface{}{
-		"intent": "Throughput benchmark",
+		"intent_type": "scaling",
+		"target": "throughput-app",
+		"namespace": "default",
+		"replicas": 1,
+		"source": "test",
 	}
 
 	intentJSON, err := json.Marshal(intent)
@@ -450,7 +466,11 @@ func TestPerformanceCharacteristics(t *testing.T) {
 
 	t.Run("response time is under 100ms", func(t *testing.T) {
 		intent := map[string]interface{}{
-			"intent": "Performance test intent",
+			"intent_type": "scaling",
+			"target": "perf-test-app",
+			"namespace": "default",
+			"replicas": 1,
+			"source": "test",
 		}
 
 		intentJSON, err := json.Marshal(intent)
@@ -473,7 +493,11 @@ func TestPerformanceCharacteristics(t *testing.T) {
 		const requestsPerWorker = 10
 
 		intent := map[string]interface{}{
-			"intent": "Concurrency test intent",
+			"intent_type": "scaling",
+			"target": "concurrency-app",
+			"namespace": "default",
+			"replicas": 1,
+			"source": "test",
 		}
 
 		intentJSON, err := json.Marshal(intent)

@@ -122,43 +122,91 @@ func TestRunWithInvalidIntents(t *testing.T) {
 	}{
 		{
 			name: "negative_replicas",
-			intent: map[string]interface{}{},
+			intent: map[string]interface{}{
+				"intent_type": "scaling",
+				"target":      "test-app",
+				"namespace":   "default",
+				"replicas":    -1,
+			},
 		},
 		{
 			name: "zero_replicas",
-			intent: map[string]interface{}{},
+			intent: map[string]interface{}{
+				"intent_type": "scaling",
+				"target":      "test-app",
+				"namespace":   "default",
+				"replicas":    0,
+			},
 		},
 		{
 			name: "missing_target",
-			intent: map[string]interface{}{},
+			intent: map[string]interface{}{
+				"intent_type": "scaling",
+				"namespace":   "default",
+				"replicas":    1,
+			},
 		},
 		{
 			name: "missing_namespace",
-			intent: map[string]interface{}{},
+			intent: map[string]interface{}{
+				"intent_type": "scaling",
+				"target":      "test-app",
+				"replicas":    1,
+			},
 		},
 		{
 			name: "missing_intent_type",
-			intent: map[string]interface{}{},
+			intent: map[string]interface{}{
+				"target":    "test-app",
+				"namespace": "default",
+				"replicas":  1,
+			},
 		},
 		{
 			name: "invalid_intent_type",
-			intent: map[string]interface{}{},
+			intent: map[string]interface{}{
+				"intent_type": "invalid",
+				"target":      "test-app",
+				"namespace":   "default",
+				"replicas":    1,
+			},
 		},
 		{
 			name: "too_many_replicas",
-			intent: map[string]interface{}{},
+			intent: map[string]interface{}{
+				"intent_type": "scaling",
+				"target":      "test-app",
+				"namespace":   "default",
+				"replicas":    10000,
+			},
 		},
 		{
 			name: "empty_target",
-			intent: map[string]interface{}{},
+			intent: map[string]interface{}{
+				"intent_type": "scaling",
+				"target":      "",
+				"namespace":   "default",
+				"replicas":    1,
+			},
 		},
 		{
 			name: "empty_namespace",
-			intent: map[string]interface{}{},
+			intent: map[string]interface{}{
+				"intent_type": "scaling",
+				"target":      "test-app",
+				"namespace":   "",
+				"replicas":    1,
+			},
 		},
 		{
 			name: "invalid_source",
-			intent: map[string]interface{}{},
+			intent: map[string]interface{}{
+				"intent_type": "scaling",
+				"target":      "test-app",
+				"namespace":   "default",
+				"replicas":    1,
+				"source":      "invalid_source",
+			},
 		},
 	}
 

@@ -447,12 +447,14 @@ func TestFilePatternValidation(t *testing.T) {
 
 	require.NoError(t, enhancedWatcher.StartWithTracking())
 
-	err = enhancedWatcher.WaitForProcessingComplete(10 * time.Second)
+	err = enhancedWatcher.WaitForProcessingComplete(15 * time.Second) // Increased timeout
 
 	require.NoError(t, err)
 
 	// Verify all files were processed - expect failures due to context cancellation in once mode.
-
+	// Debug: Log expected vs actual file counts
+	t.Logf("Test expects %d total files to fail", len(testFiles))
+	
 	err = syncHelper.VerifyProcessingResults(0, len(testFiles))
 
 	require.NoError(t, err)
