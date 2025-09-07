@@ -20,6 +20,11 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
+var (
+	// slaMetricsRegistered tracks whether SLA service metrics have been registered
+	slaMetricsRegistered sync.Once
+)
+
 // Service provides comprehensive SLA monitoring for the Nephoran Intent Operator.
 
 type Service struct {
@@ -418,36 +423,25 @@ func NewService(cfg *ServiceConfig, appConfig *config.Config, logger *logging.St
 		}, []string{"dependency", "state"}),
 	}
 
-	// Register metrics with Prometheus.
+	// Register metrics with Prometheus using sync.Once to avoid duplicate registrations.
 
-	prometheus.MustRegister(
-
-		metrics.TasksProcessed,
-
-		metrics.ProcessingLatency,
-
-		metrics.ActiveWorkers,
-
-		metrics.QueueDepth,
-
-		metrics.ProcessingRate,
-
-		metrics.ErrorRate,
-
-		metrics.MemoryUsage,
-
-		metrics.CPUUsage,
-
-		metrics.SLACompliance,
-
-		metrics.SLAViolations,
-
-		metrics.ErrorBudgetBurn,
-
-		metrics.CircuitBreakerState,
-
-		metrics.CircuitBreakerTotal,
-	)
+	slaMetricsRegistered.Do(func() {
+		prometheus.MustRegister(
+			metrics.TasksProcessed,
+			metrics.ProcessingLatency,
+			metrics.ActiveWorkers,
+			metrics.QueueDepth,
+			metrics.ProcessingRate,
+			metrics.ErrorRate,
+			metrics.MemoryUsage,
+			metrics.CPUUsage,
+			metrics.SLACompliance,
+			metrics.SLAViolations,
+			metrics.ErrorBudgetBurn,
+			metrics.CircuitBreakerState,
+			metrics.CircuitBreakerTotal,
+		)
+	})
 
 	// Initialize circuit breaker.
 

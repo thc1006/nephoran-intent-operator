@@ -2036,12 +2036,44 @@ func (e *templateEngine) renderResources(ctx context.Context, template *Blueprin
 	return resources, nil
 }
 
+// getTemplateFuncs returns template functions including the indent function
+func (e *templateEngine) getTemplateFuncs() template.FuncMap {
+	return template.FuncMap{
+		"indent": func(spaces int, v string) string {
+			pad := strings.Repeat(" ", spaces)
+			lines := strings.Split(v, "\n")
+			for i, line := range lines {
+				if len(line) > 0 {
+					lines[i] = pad + line
+				}
+			}
+			return strings.Join(lines, "\n")
+		},
+		// Add other template functions here as needed
+		"toJSON": func(v interface{}) (string, error) {
+			b, err := json.Marshal(v)
+			return string(b), err
+		},
+		"toYAML": func(v interface{}) (string, error) {
+			b, err := json.Marshal(v) // Simple placeholder - in production use a YAML library
+			return string(b), err
+		},
+		"toString": func(v interface{}) string {
+			return fmt.Sprintf("%v", v)
+		},
+		"lower": strings.ToLower,
+		"upper": strings.ToUpper,
+		"title": strings.Title,
+		"trim":  strings.TrimSpace,
+	}
+}
+
 func (e *templateEngine) renderString(templateStr string, parameters map[string]interface{}) string {
 	if !strings.Contains(templateStr, "{{") {
 		return templateStr
 	}
 
-	tmpl, err := template.New("render").Parse(templateStr)
+	tmpl, err := template.New("render").Funcs(e.getTemplateFuncs()).Parse(templateStr)
 	if err != nil {
 		e.logger.Error(err, "Failed to parse template string", "template", templateStr)
 		return templateStr
@@ -2061,7 +2093,7 @@ func (e *templateEngine) renderTemplateString(templateStr string, parameters map
 		return templateStr, nil
 	}
 
-	tmpl, err := template.New("render").Parse(templateStr)
+	tmpl, err := template.New("render").Funcs(e.getTemplateFuncs()).Parse(templateStr)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse template string: %w", err)
 	}

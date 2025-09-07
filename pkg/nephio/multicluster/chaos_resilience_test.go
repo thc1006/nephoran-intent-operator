@@ -304,9 +304,12 @@ func TestChaos_HighSyncFailureRate(t *testing.T) {
 				assert.Greater(t, failures, 0)
 
 				// Should have roughly 50% failure rate (with some variance)
-				failureRate := float64(failures) / float64(calls)
-				assert.True(t, failureRate > 0.3 && failureRate < 0.7,
-					"Expected ~50%% failure rate, got %.2f%%", failureRate*100)
+				// Guard against division by zero
+				if calls > 0 {
+					failureRate := float64(failures) / float64(calls)
+					assert.True(t, failureRate > 0.3 && failureRate < 0.7,
+						"Expected ~50%% failure rate, got %.2f%%", failureRate*100)
+				}
 			}
 		},
 	}

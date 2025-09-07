@@ -1016,7 +1016,7 @@ func TestStandardFunctions(t *testing.T) {
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: json.RawMessage(`{"app": "test-app", "env": "production"}`),
+				ConfigMap: json.RawMessage(`{"labels": {"app": "test-app", "env": "production"}}`),
 			},
 			Resources: resources,
 		}

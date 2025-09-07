@@ -20,6 +20,11 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/health"
 )
 
+var (
+	// healthMetricsRegistered tracks whether health check metrics have been registered
+	healthMetricsRegistered sync.Once
+)
+
 // Note: HealthTier, HealthContext, HealthWeight, EnhancedCheck, and StateTransition.
 
 // are now defined in types.go to avoid duplicates.
@@ -295,26 +300,20 @@ func initializeEnhancedHealthMetrics() *EnhancedHealthMetrics {
 		}, []string{"check_name", "tier"}),
 	}
 
-	// Register metrics.
+	// Register metrics using sync.Once to avoid duplicate registrations.
 
-	prometheus.MustRegister(
-
-		metrics.CheckDuration,
-
-		metrics.CheckSuccess,
-
-		metrics.CheckFailures,
-
-		metrics.HealthScore,
-
-		metrics.StateTransitions,
-
-		metrics.CacheHitRate,
-
-		metrics.ParallelExecution,
-
-		metrics.WeightedScores,
-	)
+	healthMetricsRegistered.Do(func() {
+		prometheus.MustRegister(
+			metrics.CheckDuration,
+			metrics.CheckSuccess,
+			metrics.CheckFailures,
+			metrics.HealthScore,
+			metrics.StateTransitions,
+			metrics.CacheHitRate,
+			metrics.ParallelExecution,
+			metrics.WeightedScores,
+		)
+	})
 
 	return metrics
 }
