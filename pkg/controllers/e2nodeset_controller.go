@@ -358,7 +358,9 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 			result = "error"
 
-			r.reconcileErrors.WithLabelValues(req.Namespace, req.Name, "finalizer_error").Inc()
+			if r.metricsInitialized {
+				r.reconcileErrors.WithLabelValues(req.Namespace, req.Name, "finalizer_error").Inc()
+			}
 
 			return ctrl.Result{}, err
 
@@ -378,7 +380,9 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 		result = "error"
 
-		r.reconcileErrors.WithLabelValues(req.Namespace, req.Name, "reconcile_nodes_error").Inc()
+		if r.metricsInitialized {
+			r.reconcileErrors.WithLabelValues(req.Namespace, req.Name, "reconcile_nodes_error").Inc()
+		}
 
 		// Get retry count and calculate backoff.
 
@@ -1254,6 +1258,10 @@ func (r *E2NodeSetReconciler) configMapNeedsUpdate(configMap *corev1.ConfigMap, 
 // updateMetrics updates Prometheus metrics for the E2NodeSet.
 
 func (r *E2NodeSetReconciler) updateMetrics(e2nodeSet *nephoranv1.E2NodeSet) {
+	if !r.metricsInitialized {
+		return
+	}
+
 	r.nodesTotal.WithLabelValues(e2nodeSet.Namespace, e2nodeSet.Name).Set(float64(e2nodeSet.Status.CurrentReplicas))
 
 	r.nodesReady.WithLabelValues(e2nodeSet.Namespace, e2nodeSet.Name).Set(float64(e2nodeSet.Status.ReadyReplicas))
@@ -1372,7 +1380,7 @@ func (r *E2NodeSetReconciler) updateNodeHeartbeat(ctx context.Context, configMap
 
 		namespaceName := strings.Split(nodeID, "-")
 
-		if len(namespaceName) >= 2 {
+		if len(namespaceName) >= 2 && r.metricsInitialized {
 			r.heartbeatsTotal.WithLabelValues(namespaceName[0], namespaceName[1], nodeID).Inc()
 		}
 
