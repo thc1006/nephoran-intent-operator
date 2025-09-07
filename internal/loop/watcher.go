@@ -1571,7 +1571,6 @@ func (w *Watcher) enhancedWorker(workerID int) {
 			
 			// Drain the work queue with a reasonable timeout
 			drainTimeout := time.After(5 * time.Second)
-		drainLoop:
 			for {
 				select {
 				case workItem, ok := <-w.workerPool.workQueue:
