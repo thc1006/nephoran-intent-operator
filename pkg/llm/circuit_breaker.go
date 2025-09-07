@@ -113,19 +113,19 @@ func (s CircuitState) String() string {
 
 	case StateClosed:
 
-		return "Closed"
+		return "closed"
 
 	case StateOpen:
 
-		return "Open"
+		return "open"
 
 	case StateHalfOpen:
 
-		return "HalfOpen"
+		return "half-open"
 
 	default:
 
-		return "Unknown"
+		return "unknown"
 
 	}
 }
@@ -720,6 +720,7 @@ func (cb *CircuitBreaker) GetStats() map[string]interface{} {
 	defer cb.mutex.RUnlock()
 
 	return map[string]interface{}{
+		"name":               cb.name,
 		"state":              cb.state.String(),
 		"failure_count":      cb.failureCount,
 		"success_count":      cb.successCount,

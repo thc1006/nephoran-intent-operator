@@ -179,20 +179,9 @@ func (sm *StateManager) saveStateUnsafe() error {
 		return fmt.Errorf("failed to marshal state data: %w", err)
 	}
 
-	// Write atomically by using a temporary file.
-
-	tempFile := sm.stateFile + ".tmp"
-
-	if err := os.WriteFile(tempFile, data, 0o644); err != nil {
-		return fmt.Errorf("failed to write temporary state file: %w", err)
-	}
-
-	// Atomic rename on Windows - use os.Rename which handles cross-device moves.
-
-	if err := os.Rename(tempFile, sm.stateFile); err != nil {
-		os.Remove(tempFile) // Clean up temp file on failure
-
-		return fmt.Errorf("failed to rename temporary state file: %w", err)
+	// Write atomically using atomicWriteFile which handles parent directory creation.
+	if err := atomicWriteFile(sm.stateFile, data, 0o640); err != nil {
+		return fmt.Errorf("failed to write state file: %w", err)
 	}
 
 	return nil
@@ -413,60 +402,6 @@ func (sm *StateManager) CalculateFileSHA256(filePath string) (string, error) {
 	}
 
 	return hash, nil
-}
-
-// TryMarkProcessed atomically checks if a file is already processed and marks it as processed if not.
-// Returns true if the file was marked as processed (i.e., it wasn't already processed).
-// Returns false if the file was already processed.
-func (sm *StateManager) TryMarkProcessed(filePath string) (bool, error) {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-
-	// Calculate current file hash and size.
-	hash, size, err := calculateFileHash(filePath)
-	if err != nil {
-		// Handle file gone gracefully - not an error for processing logic.
-		if errors.Is(err, ErrFileGone) {
-			return false, ErrFileGone
-		}
-		return false, fmt.Errorf("failed to calculate file hash: %w", err)
-	}
-
-	// Create absolute path for consistent state keys.
-	absPath, err := filepath.Abs(filePath)
-	if err != nil {
-		return false, fmt.Errorf("failed to get absolute path: %w", err)
-	}
-
-	key := createStateKey(absPath)
-
-	// Check if already processed with same hash and size.
-	if state, exists := sm.states[key]; exists {
-		if state.SHA256 == hash && state.Size == size && state.Status == "processed" {
-			// Already processed - return false indicating we didn't mark it
-			return false, nil
-		}
-	}
-
-	// Not processed yet - mark as processed
-	sm.states[key] = &FileState{
-		FilePath:    absPath,
-		SHA256:      hash,
-		Size:        size,
-		ProcessedAt: time.Now(),
-		Status:      "processed",
-	}
-
-	// Auto-save if enabled.
-	if sm.autoSave {
-		if err := sm.saveStateUnsafe(); err != nil {
-			log.Printf("Warning: failed to save state: %v", err)
-			return false, err
-		}
-	}
-
-	// Successfully marked as processed
-	return true, nil
 }
 
 // IsProcessedBySHA checks if a file with the given SHA256 has been processed.

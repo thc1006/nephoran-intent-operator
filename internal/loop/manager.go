@@ -9,9 +9,11 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 )
 
 // FileManager manages the organization and movement of processed files.
@@ -170,6 +172,32 @@ func (fm *FileManager) copyAndDelete(src, dst string) error {
 	return nil
 }
 
+
+// sanitizeForErrorLog removes or replaces dangerous content specifically for error logs.
+func sanitizeForErrorLog(msg string) string {
+	// First handle patterns that combine control characters with path traversal
+	// This matches control characters (excluding \n, \t, \r) adjacent to path traversal patterns
+	combinedPattern := regexp.MustCompile(`[\x00-\x08\x0B\x0C\x0E-\x1F]*(?:\.\./+)+[\x00-\x08\x0B\x0C\x0E-\x1F]*`)
+	step1 := combinedPattern.ReplaceAllString(msg, "[?]")
+	
+	// Then remove remaining control characters (except newline, tab, and carriage return)
+	var cleanMsg strings.Builder
+	for _, r := range step1 {
+		if r == '\n' || r == '\t' || r == '\r' {
+			// Keep these whitespace characters
+			cleanMsg.WriteRune(r)
+		} else if unicode.IsControl(r) {
+			// Replace other control characters with [?]
+			cleanMsg.WriteString("[?]")
+		} else {
+			// Keep normal characters
+			cleanMsg.WriteRune(r)
+		}
+	}
+	
+	return cleanMsg.String()
+}
+
 // createErrorLog creates an error log file for a failed processing attempt.
 
 func (fm *FileManager) createErrorLog(originalPath, errorMsg string) error {
@@ -179,9 +207,12 @@ func (fm *FileManager) createErrorLog(originalPath, errorMsg string) error {
 
 	logFilePath := filepath.Join(fm.failedDir, logFileName)
 
+	// Sanitize the error message to prevent control characters and path traversal
+	sanitizedErrorMsg := sanitizeForErrorLog(errorMsg)
+
 	logEntry := fmt.Sprintf("File: %s\nFailed at: %s\nError: %s\n\n",
 
-		originalPath, time.Now().Format(time.RFC3339), errorMsg)
+		originalPath, time.Now().Format(time.RFC3339), sanitizedErrorMsg)
 
 	// Append to existing log file or create new one.
 

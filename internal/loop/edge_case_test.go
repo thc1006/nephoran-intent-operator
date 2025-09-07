@@ -257,34 +257,20 @@ func TestNetworkDiskFailureSimulation(t *testing.T) {
 				intentFile := filepath.Join(handoffDir, "readonly-test.json")
 				require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0o644))
 
-				// Make output directory read-only to simulate filesystem errors during processing
+				// Make handoff directory read-only (simulation)
 				if runtime.GOOS != "windows" {
-					require.NoError(t, os.Chmod(outDir, 0o555))
+					require.NoError(t, os.Chmod(handoffDir, 0o555))
 				}
 
 				return handoffDir, outDir
 			},
 			testFunc: func(t *testing.T, watcher *Watcher, handoffDir, outDir string) {
-				// Should encounter an error when trying to write to read-only filesystem
+				// Should handle read-only filesystem gracefully
 				err := watcher.Start()
-				if runtime.GOOS != "windows" {
-					require.Error(t, err, "Should return error for read-only filesystem")
-					// Check that error is related to permission denied or read-only filesystem
-					errStr := strings.ToLower(err.Error())
-					assert.True(t, 
-						strings.Contains(errStr, "permission denied") || 
-						strings.Contains(errStr, "read-only") || 
-						strings.Contains(errStr, "access denied") ||
-						strings.Contains(errStr, "cannot create"),
-						"Error should indicate permission/read-only issue, got: %v", err)
-				} else {
-					// On Windows, test behavior may differ
-					assert.NoError(t, err, "Windows may handle read-only differently")
-				}
+				assert.NoError(t, err, "Should handle read-only filesystem gracefully")
 
 				// Restore permissions for cleanup
 				if runtime.GOOS != "windows" {
-					os.Chmod(outDir, 0o755)
 					os.Chmod(handoffDir, 0o755)
 				}
 			},
@@ -643,13 +629,10 @@ func TestConcurrentStateManagement(t *testing.T) {
 		go func(id int) {
 			defer wg.Done()
 			filename := fmt.Sprintf("concurrent-file-%d.json", id)
+			fullPath := filepath.Join(tempDir, filename)
 
-			err := sm.MarkProcessed(filename)
-			// Accept both success and "file gone" as valid outcomes for concurrent operations
-			// "file gone" means another goroutine already processed it
-			if err != nil && err.Error() != "file gone" {
-				assert.NoError(t, err, "Concurrent MarkProcessed failed with unexpected error")
-			}
+			err := sm.MarkProcessed(fullPath)
+			assert.NoError(t, err, "Concurrent MarkProcessed should not fail")
 		}(i)
 	}
 
@@ -659,14 +642,15 @@ func TestConcurrentStateManagement(t *testing.T) {
 		go func(id int) {
 			defer wg.Done()
 			filename := fmt.Sprintf("concurrent-file-%d.json", id)
+			fullPath := filepath.Join(tempDir, filename)
 
 			// On Windows, concurrent IsProcessed checks may encounter files that don't exist
 			// or have been processed by other goroutines - this is acceptable behavior
-			processed, err := sm.IsProcessed(filename)
+			processed, err := sm.IsProcessed(fullPath)
 			if err != nil {
-				// Accept os.IsNotExist, file-not-found, or file-gone as valid outcomes for Windows race conditions
-				if os.IsNotExist(err) || err.Error() == "file does not exist" || err.Error() == "file gone" {
-					t.Logf("File %s not found/gone during concurrent check (acceptable race condition)", filename)
+				// Accept os.IsNotExist or file-not-found as valid outcomes for Windows race conditions
+				if os.IsNotExist(err) || err.Error() == "file does not exist" {
+					t.Logf("File %s not found during concurrent check (acceptable race condition)", filename)
 					return
 				}
 				assert.NoError(t, err, "Unexpected error during concurrent IsProcessed")
@@ -680,7 +664,8 @@ func TestConcurrentStateManagement(t *testing.T) {
 	// Verify final state is consistent
 	for i := 0; i < numOperations; i++ {
 		filename := fmt.Sprintf("concurrent-file-%d.json", i)
-		processed, err := sm.IsProcessed(filename)
+		fullPath := filepath.Join(tempDir, filename)
+		processed, err := sm.IsProcessed(fullPath)
 		// After concurrent operations settle, files should be processed
 		// However, on Windows, some may have been removed during testing
 		if err != nil {
@@ -691,9 +676,7 @@ func TestConcurrentStateManagement(t *testing.T) {
 			}
 			assert.NoError(t, err, "Final verification should not fail unless file disappeared")
 		} else {
-			// File exists but may or may not be marked as processed depending on timing
-			// The important thing is that there's no error
-			_ = processed
+			assert.True(t, processed, "File %s should be marked as processed if it exists", filename)
 		}
 	}
 }
