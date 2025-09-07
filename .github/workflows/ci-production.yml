@@ -118,6 +118,14 @@ jobs:
           # Set output
           echo "cache-key=${CACHE_KEY}" >> $GITHUB_OUTPUT
           
+      - name: Clean Go module cache
+        if: steps.changes.outputs.go == 'true'
+        run: |
+          echo "🧹 Cleaning Go module cache to prevent extraction errors..."
+          rm -rf /tmp/go-cache /tmp/go-mod
+          mkdir -p /tmp/go-cache /tmp/go-mod
+          echo "✅ Cache directories cleaned and recreated"
+          
       - name: Setup STANDARDIZED Go cache
         if: steps.changes.outputs.go == 'true'
         id: go-cache
@@ -170,6 +178,13 @@ jobs:
         with:
           go-version: '1.24.6'
           cache: false
+          
+      - name: Clean Go module cache
+        run: |
+          echo "🧹 Cleaning Go module cache to prevent extraction errors..."
+          rm -rf /tmp/go-cache /tmp/go-mod
+          mkdir -p /tmp/go-cache /tmp/go-mod
+          echo "✅ Cache directories cleaned and recreated"
           
       - name: Restore STANDARDIZED Go cache
         uses: actions/cache@v4  # LATEST STABLE VERSION
@@ -233,6 +248,13 @@ jobs:
         with:
           go-version: '1.24.6'
           cache: false
+          
+      - name: Clean Go module cache
+        run: |
+          echo "🧹 Cleaning Go module cache to prevent extraction errors..."
+          rm -rf /tmp/go-cache /tmp/go-mod
+          mkdir -p /tmp/go-cache /tmp/go-mod
+          echo "✅ Cache directories cleaned and recreated"
           
       - name: Restore STANDARDIZED Go cache
         uses: actions/cache@v4  # LATEST STABLE VERSION
@@ -346,6 +368,13 @@ jobs:
         with:
           go-version: '1.24.6'
           cache: false
+          
+      - name: Clean Go module cache
+        run: |
+          echo "🧹 Cleaning Go module cache to prevent extraction errors..."
+          rm -rf /tmp/go-cache /tmp/go-mod
+          mkdir -p /tmp/go-cache /tmp/go-mod
+          echo "✅ Cache directories cleaned and recreated"
           
       - name: Restore STANDARDIZED Go cache
         uses: actions/cache@v4  # LATEST STABLE VERSION

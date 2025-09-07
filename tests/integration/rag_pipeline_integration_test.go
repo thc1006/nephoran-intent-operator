@@ -116,7 +116,7 @@ func (suite *RAGPipelineIntegrationTestSuite) TearDownSuite() {
 
 // setupTestEnvironment sets up the Kubernetes test environment
 func (suite *RAGPipelineIntegrationTestSuite) setupTestEnvironment() {
-	suite.testEnv := testenv.Environment
+	suite.testEnv = &testenv.Environment{
 		CRDDirectoryPaths: []string{
 			"../../deployments/crds",
 		},

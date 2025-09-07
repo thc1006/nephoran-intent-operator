@@ -155,11 +155,6 @@ type CircuitMetrics struct {
 
 	LastUpdated time.Time `json:"last_updated"`
 
-	// Additional fields for test compatibility
-	SuccessCount int64 `json:"success_count"`
-
-	FailureCount int64 `json:"failure_count"`
-
 	mutex sync.RWMutex
 }
 
@@ -430,9 +425,6 @@ func (cb *CircuitBreaker) recordResult(err error, latency time.Duration) {
 			m.FailedRequests++
 
 			m.TotalRequests++
-
-			// Update failure count for test compatibility
-			m.FailureCount = cb.failureCount
 		})
 
 		// Check if we should open the circuit.
@@ -451,9 +443,6 @@ func (cb *CircuitBreaker) recordResult(err error, latency time.Duration) {
 			m.SuccessfulRequests++
 
 			m.TotalRequests++
-
-			// Update success count for test compatibility
-			m.SuccessCount = cb.successCount
 
 			// Update average latency.
 
@@ -704,36 +693,6 @@ func (cb *CircuitBreaker) getState() CircuitState {
 	return cb.state
 }
 
-// GetState safely gets the current state (public method for external access).
-
-func (cb *CircuitBreaker) GetState() CircuitState {
-	return cb.getState()
-}
-
-// ForceState forces the circuit breaker to a specific state (for testing purposes).
-
-func (cb *CircuitBreaker) ForceState(state CircuitState) {
-	cb.mutex.Lock()
-	defer cb.mutex.Unlock()
-
-	oldState := cb.state
-	cb.state = state
-	cb.stateChangeTime = time.Now()
-
-	cb.updateMetrics(func(m *CircuitMetrics) {
-		m.StateTransitions++
-		m.CurrentState = state.String()
-		m.LastStateChange = cb.stateChangeTime
-		m.LastUpdated = time.Now()
-	})
-
-	cb.logger.Warn("Circuit breaker state forced", "old_state", oldState.String(), "new_state", state.String())
-
-	if cb.onStateChange != nil {
-		go cb.onStateChange(cb.name, oldState, state)
-	}
-}
-
 // GetStats returns current circuit breaker statistics.
 
 func (cb *CircuitBreaker) GetStats() map[string]interface{} {
@@ -741,13 +700,13 @@ func (cb *CircuitBreaker) GetStats() map[string]interface{} {
 	defer cb.mutex.RUnlock()
 
 	return map[string]interface{}{
-		"state": cb.state,
-		"failure_count": cb.failureCount,
-		"success_count": cb.successCount,
-		"request_count": cb.requestCount,
-		"last_failure_time": cb.lastFailureTime,
-		"last_success_time": cb.lastSuccessTime,
-		"state_change_time": cb.stateChangeTime,
+		"state":              cb.state.String(),
+		"failure_count":      cb.failureCount,
+		"success_count":      cb.successCount,
+		"request_count":      cb.requestCount,
+		"last_failure_time":  cb.lastFailureTime,
+		"last_success_time":  cb.lastSuccessTime,
+		"state_change_time":  cb.stateChangeTime,
 		"half_open_requests": cb.halfOpenRequests,
 	}
 }
@@ -793,11 +752,6 @@ func (cb *CircuitBreaker) GetMetrics() *CircuitMetrics {
 		AverageLatency: cb.metrics.AverageLatency,
 
 		LastUpdated: cb.metrics.LastUpdated,
-
-		// Include additional fields
-		SuccessCount: cb.successCount,
-
-		FailureCount: cb.failureCount,
 	}
 }
 

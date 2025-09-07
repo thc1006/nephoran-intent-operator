@@ -605,7 +605,19 @@ func (iv *InputValidator) AddCustomValidator(validator ValidatorFunc) {
 
 // GetMetrics returns validation metrics for monitoring
 func (iv *InputValidator) GetMetrics() map[string]interface{} {
-	return map[string]interface{}{}
+	return map[string]interface{}{
+		"total_requests":                    int64(0),
+		"blocked_requests":                  int64(0),
+		"sanitized_requests":                int64(0),
+		"suspicious_patterns":               int64(0),
+		"block_rate":                        float64(0),
+		"sql_injection_protection":          iv.config.EnableSQLInjectionProtection,
+		"xss_protection":                    iv.config.EnableXSSProtection,
+		"path_traversal_protection":         iv.config.EnablePathTraversalProtection,
+		"command_injection_protection":      iv.config.EnableCommandInjectionProtection,
+		"max_body_size":                     iv.config.MaxBodySize,
+		"sanitization_enabled":              iv.config.SanitizeInput,
+	}
 }
 
 // ValidateContext adds the validator to the request context

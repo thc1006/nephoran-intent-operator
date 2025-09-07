@@ -39,7 +39,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 		ctx = context.Background()
 
 		By("Setting up test environment")
-		testEnv := testenv.Environment
+		testEnv = &envtest.Environment{
 			Scheme: runtime.NewScheme(),
 		}
 
