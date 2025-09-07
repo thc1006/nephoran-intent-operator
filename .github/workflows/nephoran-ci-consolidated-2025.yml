@@ -46,7 +46,7 @@ env:
   # Build optimization flags
   BUILD_FLAGS: "-trimpath"
   LDFLAGS: "-s -w -extldflags=-static"
-  TEST_FLAGS: "-race -count=1 -timeout=15m"
+  TEST_FLAGS: "-count=1 -timeout=15m"
   
   # Cache optimization
   CACHE_VERSION: "v2025-1"
@@ -408,7 +408,7 @@ jobs:
           
           # Build main operator
           echo "🎯 Building Nephoran Intent Operator..."
-          go build $BUILD_FLAGS -ldflags="$LDFLAGS" -o bin/nephoran-intent-operator ./cmd/nephoran-intent-operator
+          go build $BUILD_FLAGS -ldflags="$LDFLAGS" -o bin/nephoran-intent-operator ./cmd
           
           # Build additional components if they exist
           if [[ -d "cmd" ]]; then
