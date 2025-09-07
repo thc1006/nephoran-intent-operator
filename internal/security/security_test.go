@@ -169,7 +169,9 @@ func TestSecureCommandExecutor(t *testing.T) {
 	t.Run("RejectUnallowedCommand", func(t *testing.T) {
 		_, err := executor.ExecuteSecure(context.Background(), "rm", []string{"-rf", "/"}, ".")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "not in allowed list")
+		if err != nil {
+			assert.Contains(t, err.Error(), "not in allowed list")
+		}
 	})
 
 	t.Run("RejectMaliciousArguments", func(t *testing.T) {

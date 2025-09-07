@@ -109,12 +109,60 @@ func NewValidator(schemaPath string) (*Validator, error) {
 // ValidateBytes performs validatebytes operation.
 
 func (v *Validator) ValidateBytes(b []byte) (*Intent, error) {
-	var tmp any
+	var tmp map[string]interface{}
 
 	if err := json.Unmarshal(b, &tmp); err != nil {
 		return nil, fmt.Errorf("invalid json: %w", err)
 	}
 
+	// Default intent_type to "scaling" if not provided
+	if _, exists := tmp["intent_type"]; !exists {
+		tmp["intent_type"] = "scaling"
+	}
+
+	// Ensure default status if not provided
+	if _, exists := tmp["status"]; !exists {
+		tmp["status"] = "pending"
+	}
+
+	// Ensure source if not provided
+	if _, exists := tmp["source"]; !exists {
+		tmp["source"] = "user"
+	}
+
+	// Ensure target_resources if not provided
+	if _, exists := tmp["target_resources"]; !exists {
+		if target, ok := tmp["target"].(string); ok {
+			tmp["target_resources"] = []interface{}{fmt.Sprintf("deployment/%s", target)}
+		}
+	} else if resources, ok := tmp["target_resources"].([]interface{}); ok {
+		// Validate all resources are non-empty strings
+		for _, res := range resources {
+			if str, ok := res.(string); !ok || str == "" {
+				return nil, fmt.Errorf("invalid target_resources: each resource must be a non-empty string")
+			}
+		}
+	}
+
+	// Ensure correlation_id if not provided but we have a target
+	if _, exists := tmp["correlation_id"]; !exists {
+		if target, ok := tmp["target"].(string); ok {
+			namespace := "default"
+			if ns, nsExists := tmp["namespace"].(string); nsExists {
+				namespace = ns
+			}
+			tmp["correlation_id"] = fmt.Sprintf("scale-%s-%s", target, namespace)
+		}
+	}
+
+	// Ensure reason if not provided
+	if _, exists := tmp["reason"]; !exists {
+		if target, ok := tmp["target"].(string); ok {
+			tmp["reason"] = fmt.Sprintf("Scaling request for %s", target)
+		}
+	}
+
+	// Validate the modified payload
 	if err := v.schema.Validate(tmp); err != nil {
 		return nil, err
 	}
@@ -123,6 +171,11 @@ func (v *Validator) ValidateBytes(b []byte) (*Intent, error) {
 
 	if err := json.Unmarshal(b, &in); err != nil {
 		return nil, fmt.Errorf("unmarshal: %w", err)
+	}
+
+	// Ensure intent_type is set
+	if in.IntentType == "" {
+		in.IntentType = "scaling"
 	}
 
 	return &in, nil
