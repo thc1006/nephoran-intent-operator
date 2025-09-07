@@ -104,6 +104,7 @@ func TestOnceMode_ExitCodes(t *testing.T) {
 			stats, err := watcher.GetStats()
 			require.NoError(t, err)
 
+
 			// Verify failed count matches expectation
 			assert.Equal(t, tt.expectedFailed, stats.FailedCount,
 				"Failed count mismatch. Failed files: %v", stats.FailedFiles)

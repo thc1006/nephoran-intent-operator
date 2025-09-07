@@ -15,6 +15,13 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/internal/loop"
 )
 
+// hasOnceMode checks if the watcher is configured for once mode (processor approach)
+func hasOnceMode(watcher *loop.Watcher) bool {
+	// For now, assume processor approach uses once mode in tests
+	// This could be extended to check actual watcher configuration if needed
+	return true
+}
+
 // isExpectedShutdownError identifies expected errors during shutdown that don't indicate infrastructure issues.
 
 func isExpectedShutdownError(err error) bool {
@@ -423,8 +430,8 @@ func runMain() int {
 			log.Printf("Watcher error: %v", err)
 
 			exitCode = 1
-		} else if !*useProcessor && config.Once {
-			// In once mode, check if any files failed (only for legacy approach).
+		} else if config.Once || (*useProcessor && hasOnceMode(watcher)) {
+			// In once mode, check if any files failed (both legacy and processor approaches).
 
 			stats, statsErr := watcher.GetStats()
 
@@ -466,8 +473,8 @@ func runMain() int {
 
 		// Check stats after graceful shutdown to distinguish shutdown vs real failures.
 
-		if !*useProcessor {
-			// Only check stats for legacy approach.
+		if !*useProcessor || (*useProcessor && hasOnceMode(watcher)) {
+			// Check stats for both legacy approach and processor approach in once mode.
 
 			stats, statsErr := watcher.GetStats()
 

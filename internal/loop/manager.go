@@ -330,14 +330,34 @@ func (fm *FileManager) GetStats() (ProcessingStats, error) {
 		return ProcessingStats{}, fmt.Errorf("failed to get failed files: %w", err)
 	}
 
+	// For legacy watcher, distinguish real failures from shutdown failures
+	// by checking if error log files contain SHUTDOWN_FAILURE marker
+	realFailedFiles := []string{}
+	shutdownFailedFiles := []string{}
+	
+	for _, failedFile := range failedFiles {
+		errorLogFile := failedFile + ".error.log"
+		if content, readErr := os.ReadFile(errorLogFile); readErr == nil {
+			if strings.Contains(string(content), "SHUTDOWN_FAILURE:") {
+				shutdownFailedFiles = append(shutdownFailedFiles, failedFile)
+			} else {
+				realFailedFiles = append(realFailedFiles, failedFile)
+			}
+		} else {
+			// If we can't read the error log, assume it's a real failure
+			realFailedFiles = append(realFailedFiles, failedFile)
+		}
+	}
+
 	return ProcessingStats{
 		ProcessedCount: len(processedFiles),
-
 		FailedCount: len(failedFiles),
-
+		RealFailedCount: len(realFailedFiles),
+		ShutdownFailedCount: len(shutdownFailedFiles),
 		ProcessedFiles: processedFiles,
-
 		FailedFiles: failedFiles,
+		RealFailedFiles: realFailedFiles,
+		ShutdownFailedFiles: shutdownFailedFiles,
 	}, nil
 }
 
