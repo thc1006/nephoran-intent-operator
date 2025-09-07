@@ -409,7 +409,8 @@ jobs:
           mkdir -p bin/ dist/
           
           # Optimized build flags for Linux-only deployment
-          BUILD_FLAGS="-trimpath -ldflags=-s -w -extldflags=-static"
+          BUILD_FLAGS="-trimpath"
+          LDFLAGS="-s -w -extldflags=-static"
           BUILD_TAGS="netgo,osusergo,static_build"
           
           # Set parallelism based on matrix configuration
@@ -424,7 +425,7 @@ jobs:
             case "$component" in
               "controllers")
                 echo "Building controllers..."
-                timeout ${timeout_duration}s go build $BUILD_FLAGS -tags="$BUILD_TAGS" ./controllers/... || {
+                timeout ${timeout_duration}s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" ./controllers/... || {
                   echo "⚠️ Some controllers failed to build (continuing...)"
                   return 0
                 }
@@ -432,7 +433,7 @@ jobs:
                 
               "api"|"api/intent/v1alpha1")
                 echo "Building API packages..."
-                timeout ${timeout_duration}s go build $BUILD_FLAGS -tags="$BUILD_TAGS" ./api/... || {
+                timeout ${timeout_duration}s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" ./api/... || {
                   echo "⚠️ Some API packages failed to build (continuing...)"
                   return 0
                 }
@@ -442,7 +443,7 @@ jobs:
                 if [[ -d "$component" && -f "$component/main.go" ]]; then
                   cmd_name=$(basename "$component")
                   echo "Building command: $cmd_name"
-                  timeout ${timeout_duration}s go build $BUILD_FLAGS -tags="$BUILD_TAGS" \
+                  timeout ${timeout_duration}s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" \
                     -o "bin/$cmd_name" "./$component" || {
                     echo "⚠️ $cmd_name build failed (continuing...)"
                     return 0
@@ -460,7 +461,7 @@ jobs:
               pkg/*)
                 if [[ -d "$component" ]]; then
                   echo "Building package: $component"
-                  timeout ${timeout_duration}s go build $BUILD_FLAGS -tags="$BUILD_TAGS" "./$component/..." || {
+                  timeout ${timeout_duration}s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" "./$component/..." || {
                     echo "⚠️ $component build failed (continuing...)"
                     return 0
                   }
@@ -469,7 +470,7 @@ jobs:
                 
               "internal")
                 echo "Building internal packages..."
-                timeout ${timeout_duration}s go build $BUILD_FLAGS -tags="$BUILD_TAGS" ./internal/... || {
+                timeout ${timeout_duration}s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" ./internal/... || {
                   echo "⚠️ Some internal packages failed to build (continuing...)"
                   return 0
                 }

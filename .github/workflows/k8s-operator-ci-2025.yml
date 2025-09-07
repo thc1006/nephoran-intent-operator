@@ -131,11 +131,26 @@ jobs:
           echo "cache-key=${CACHE_KEY}" >> $GITHUB_OUTPUT
           echo "Generated cache key: $CACHE_KEY"
           
-      - name: Clean Go cache directories
+      - name: Clean Go cache directories (prevent tar extraction errors)
         if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
         run: |
-          sudo rm -rf ${{ env.GOMODCACHE }}/* || echo "Cache cleanup failed, continuing..."
-          sudo rm -rf ${{ env.GOCACHE }}/* || echo "Cache cleanup failed, continuing..."
+          echo "🧹 Cleaning Go cache directories to prevent tar extraction conflicts..."
+          
+          # Complete removal of cache directories to prevent "File exists" errors
+          sudo rm -rf ${{ env.GOMODCACHE }} || true
+          sudo rm -rf ${{ env.GOCACHE }} || true
+          
+          # Recreate clean directories with proper permissions
+          mkdir -p ${{ env.GOMODCACHE }}
+          mkdir -p ${{ env.GOCACHE }}
+          
+          # Ensure proper ownership and permissions
+          sudo chown -R $(whoami):$(whoami) ${{ env.GOMODCACHE }}
+          sudo chown -R $(whoami):$(whoami) ${{ env.GOCACHE }}
+          chmod -R 755 ${{ env.GOMODCACHE }}
+          chmod -R 755 ${{ env.GOCACHE }}
+          
+          echo "✅ Cache directories cleaned and recreated"
             
       - name: Restore Go cache
         if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
@@ -208,6 +223,15 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: false
+          
+      - name: Clean cache directories (prevent tar extraction errors)
+        run: |
+          echo "🧹 Cleaning cache directories to prevent tar extraction conflicts..."
+          sudo rm -rf ${{ env.GOMODCACHE }} ${{ env.GOCACHE }} || true
+          mkdir -p ${{ env.GOMODCACHE }} ${{ env.GOCACHE }}
+          sudo chown -R $(whoami):$(whoami) ${{ env.GOMODCACHE }} ${{ env.GOCACHE }}
+          chmod -R 755 ${{ env.GOMODCACHE }} ${{ env.GOCACHE }}
+          echo "✅ Cache directories prepared"
           
       - name: Restore Go cache
         uses: actions/cache@v4

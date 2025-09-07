@@ -262,7 +262,8 @@ jobs:
           mkdir -p bin/
           
           # Production build flags
-          BUILD_FLAGS="-v -ldflags=-s -w -extldflags=-static -trimpath"
+          BUILD_FLAGS="-v -trimpath"
+          LDFLAGS="-s -w -extldflags=-static"
           BUILD_TAGS="netgo,osusergo,static_build"
           
           # Parse and build components
@@ -273,13 +274,13 @@ jobs:
             case "$component" in
               "controllers")
                 echo "Building controllers..."
-                timeout 300s go build $BUILD_FLAGS -tags="$BUILD_TAGS" ./controllers/... || {
+                timeout 300s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" ./controllers/... || {
                   echo "Warning: Some controllers failed to build"
                 }
                 ;;
               "api") 
                 echo "Building API packages..."
-                timeout 180s go build $BUILD_FLAGS -tags="$BUILD_TAGS" ./api/... || {
+                timeout 180s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" ./api/... || {
                   echo "Warning: Some API packages failed to build"
                 }
                 ;;
@@ -287,7 +288,7 @@ jobs:
                 if [ -d "$component" ] && [ -f "$component/main.go" ]; then
                   cmd_name=$(basename "$component")
                   echo "Building command: $cmd_name"
-                  timeout 240s go build $BUILD_FLAGS -tags="$BUILD_TAGS" \
+                  timeout 240s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" \
                     -o "bin/$cmd_name" "./$component" || {
                     echo "Warning: $cmd_name failed to build"
                   }
@@ -296,14 +297,14 @@ jobs:
               pkg/*)
                 if [ -d "$component" ]; then
                   echo "Building package: $component"
-                  timeout 180s go build $BUILD_FLAGS -tags="$BUILD_TAGS" "./$component/..." || {
+                  timeout 180s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" "./$component/..." || {
                     echo "Warning: $component failed to build"
                   }
                 fi
                 ;;
               "internal")
                 echo "Building internal packages..."
-                timeout 240s go build $BUILD_FLAGS -tags="$BUILD_TAGS" ./internal/... || {
+                timeout 240s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" ./internal/... || {
                   echo "Warning: Some internal packages failed to build"  
                 }
                 ;;
@@ -496,7 +497,7 @@ jobs:
           
           # Install with timeout
           timeout 300s go install golang.org/x/vuln/cmd/govulncheck@latest || {
-            echo "? ï? govulncheck installation timeout"
+            echo "?ï¿½ï¿½? govulncheck installation timeout"
             echo "vulnerability_install_failed" > vuln-status.txt
             exit 0
           }
@@ -510,12 +511,12 @@ jobs:
             exit_code=$?
             case $exit_code in
               124) # timeout
-                echo "? ï? Production vulnerability scan timed out"
+                echo "?ï¿½ï¿½? Production vulnerability scan timed out"
                 echo "vulnerability_scan_timeout" > vuln-status.txt
                 echo "Partial results may be available in vuln-report.json" >> vuln-report.json
                 ;;
               1) # vulnerabilities found
-                echo "? ï? Vulnerabilities found in production scan"
+                echo "?ï¿½ï¿½? Vulnerabilities found in production scan"
                 echo "vulnerabilities_detected" > vuln-status.txt
                 ;;
               *) # other errors
@@ -534,10 +535,10 @@ jobs:
                 echo "??Comprehensive scan completed successfully" >> $GITHUB_STEP_SUMMARY
                 ;;
               vulnerabilities_detected)
-                echo "? ï? Vulnerabilities detected - review required" >> $GITHUB_STEP_SUMMARY
+                echo "?ï¿½ï¿½? Vulnerabilities detected - review required" >> $GITHUB_STEP_SUMMARY
                 ;;
               vulnerability_scan_timeout)
-                echo "?±ï? Scan timed out - partial results available" >> $GITHUB_STEP_SUMMARY
+                echo "?ï¿½ï¿½? Scan timed out - partial results available" >> $GITHUB_STEP_SUMMARY
                 ;;
               *)
                 echo "??Scan encountered issues - check logs" >> $GITHUB_STEP_SUMMARY
@@ -582,7 +583,7 @@ jobs:
     steps:
       - name: Generate production pipeline report
         run: |
-          echo "# ?­ Nephoran Production CI Pipeline - Results" >> $GITHUB_STEP_SUMMARY
+          echo "# ?ï¿½ï¿½ Nephoran Production CI Pipeline - Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Pipeline Configuration:**" >> $GITHUB_STEP_SUMMARY
           echo "- Go Version: ${{ env.GO_VERSION }}" >> $GITHUB_STEP_SUMMARY
@@ -624,13 +625,13 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "**Status: PRODUCTION NOT READY** ?? >> $GITHUB_STEP_SUMMARY
             echo "Critical failures: $FAILED_CRITICAL" >> $GITHUB_STEP_SUMMARY
-            echo "?’¥ Production pipeline failed - manual intervention required"
+            echo "?ï¿½ï¿½ Production pipeline failed - manual intervention required"
             exit 1
           else
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "**Status: PRODUCTION READY** ?? >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "?Ž¯ **Production Quality Gates Passed:**" >> $GITHUB_STEP_SUMMARY
+            echo "?ï¿½ï¿½ **Production Quality Gates Passed:**" >> $GITHUB_STEP_SUMMARY
             echo "- ??All components built successfully with production flags" >> $GITHUB_STEP_SUMMARY
             echo "- ??Comprehensive test suite passed" >> $GITHUB_STEP_SUMMARY
             echo "- ??Security analysis completed" >> $GITHUB_STEP_SUMMARY

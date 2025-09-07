@@ -119,7 +119,7 @@ jobs:
       - name: Generate image tags
         id: tags
         run: |
-          echo "?·ï¸?Generating image tags..."
+          echo "?ï¿½ï¿½ï¿½?Generating image tags..."
           
           # Base tag strategy
           if [[ "${{ github.event_name }}" == "release" ]]; then
@@ -377,10 +377,11 @@ jobs:
 
       - name: Build multi-arch binaries
         run: |
-          echo "?”¨ Building ${{ matrix.binary }} for multiple architectures..."
+          echo "?ï¿½ï¿½ Building ${{ matrix.binary }} for multiple architectures..."
           
           # Build flags optimized for containers
-          BUILD_FLAGS="-trimpath -ldflags=-s -w -extldflags=-static"
+          BUILD_FLAGS="-trimpath"
+          LDFLAGS="-s -w -extldflags=-static"
           BUILD_TAGS="netgo,osusergo,static_build"
           
           # Parse target platforms
@@ -408,7 +409,7 @@ jobs:
             output_dir="bin/$os/$arch"
             mkdir -p "$output_dir"
             
-            if timeout 600s go build $BUILD_FLAGS -tags="$BUILD_TAGS" \
+            if timeout 600s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" \
               -o "$output_dir/${{ matrix.binary }}" "./cmd/${{ matrix.binary }}"; then
               echo "??Built ${{ matrix.binary }} for $platform"
               
@@ -445,7 +446,7 @@ jobs:
 
       - name: Generate optimized Dockerfiles
         run: |
-          echo "?³ Generating optimized Dockerfiles..."
+          echo "?ï¿½ï¿½ Generating optimized Dockerfiles..."
           
           # Create Dockerfiles directory
           mkdir -p .dockerfiles
@@ -692,7 +693,7 @@ jobs:
     steps:
       - name: Generate comprehensive build summary
         run: |
-          echo "# ?³ Nephoran Container Build Summary - 2025" >> $GITHUB_STEP_SUMMARY
+          echo "# ?ï¿½ï¿½ Nephoran Container Build Summary - 2025" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Build Date:** $(date -u +"%Y-%m-%d %H:%M UTC")" >> $GITHUB_STEP_SUMMARY
           echo "**Build Mode:** ${{ env.BUILD_MODE }}" >> $GITHUB_STEP_SUMMARY
@@ -771,6 +772,6 @@ jobs:
             if [[ "${{ env.PUSH_IMAGES }}" == "true" ]]; then
               echo "?? Container images are available in ${{ env.REGISTRY }}"
             else
-              echo "?“¦ Container images built locally (push disabled)"
+              echo "?ï¿½ï¿½ Container images built locally (push disabled)"
             fi
           fi

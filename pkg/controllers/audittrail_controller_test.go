@@ -1148,19 +1148,31 @@ func TestAuditTrailControllerScenarios(t *testing.T) {
 			err = client.Create(context.Background(), auditTrail)
 			require.NoError(t, err)
 
-			// Reconcile
-			result, err := controller.Reconcile(context.Background(), ctrl.Request{
+			// Reconcile - may need multiple passes for finalizer and audit system creation
+			req := ctrl.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      auditTrail.Name,
 					Namespace: auditTrail.Namespace,
 				},
-			})
+			}
+			
+			// First reconcile (usually adds finalizer)
+			result, err := controller.Reconcile(context.Background(), req)
+			if !tt.expectError {
+				assert.NoError(t, err)
+			}
+			
+			// If requeue is requested, run reconcile again (audit system creation)
+			if result.Requeue && !tt.expectError {
+				result, err = controller.Reconcile(context.Background(), req)
+			}
 
 			// Verify results
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
+				// Final result should not require requeue
 				assert.False(t, result.Requeue)
 
 				// Check status

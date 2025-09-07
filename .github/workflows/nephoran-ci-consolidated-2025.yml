@@ -44,7 +44,8 @@ env:
   GO_DISABLE_TELEMETRY: 1
   
   # Build optimization flags
-  BUILD_FLAGS: "-trimpath -ldflags=\"-s -w -extldflags=-static\""
+  BUILD_FLAGS: "-trimpath"
+  LDFLAGS: "-s -w -extldflags=-static"
   TEST_FLAGS: "-race -count=1 -timeout=15m"
   
   # Cache optimization
@@ -273,7 +274,7 @@ jobs:
           
           # Fast build check (no output)
           echo "🏗️  Fast build verification..."
-          go build $BUILD_FLAGS ./...
+          go build $BUILD_FLAGS -ldflags="$LDFLAGS" ./...
           
           # Module tidiness check
           echo "🧹 Checking module tidiness..."
@@ -407,7 +408,7 @@ jobs:
           
           # Build main operator
           echo "🎯 Building Nephoran Intent Operator..."
-          go build $BUILD_FLAGS -o bin/nephoran-intent-operator ./cmd/nephoran-intent-operator
+          go build $BUILD_FLAGS -ldflags="$LDFLAGS" -o bin/nephoran-intent-operator ./cmd/nephoran-intent-operator
           
           # Build additional components if they exist
           if [[ -d "cmd" ]]; then
@@ -416,7 +417,7 @@ jobs:
               if [[ -f "$dir/main.go" ]]; then
                 component=$(basename "$dir")
                 echo "📦 Building $component..."
-                go build $BUILD_FLAGS -o "bin/$component" "./$dir"
+                go build $BUILD_FLAGS -ldflags="$LDFLAGS" -o "bin/$component" "./$dir"
               fi
             done
           fi
