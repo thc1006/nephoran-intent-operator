@@ -188,13 +188,17 @@ var _ = Describe("EventDrivenCoordinator", func() {
 			Expect(coordCtx.Conflicts[0].ID).To(Equal(conflictID))
 
 			// Create conflict resolution event
+			resolutionData := map[string]interface{}{
+				"conflictId": conflictID,
+			}
+			resolutionDataJSON, _ := json.Marshal(resolutionData)
 			resolutionEvent := ProcessingEvent{
 				Type:     EventConflictResolved,
 				Source:   "conflict-resolver",
 				IntentID: intentID,
 				Phase:    interfaces.PhaseResourcePlanning,
 				Success:  true,
-				Data:     json.RawMessage(`{}`),
+				Data:     json.RawMessage(resolutionDataJSON),
 			}
 
 			// Handle conflict resolution

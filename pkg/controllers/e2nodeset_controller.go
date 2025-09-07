@@ -25,7 +25,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
@@ -249,18 +248,13 @@ func (r *E2NodeSetReconciler) RegisterMetrics() {
 		[]string{"namespace", "name", "node_id"},
 	)
 
-	metrics.Registry.MustRegister(
-
-		&r.nodesTotal,
-
-		&r.nodesReady,
-
-		&r.reconcilesTotal,
-
-		&r.reconcileErrors,
-
-		&r.heartbeatsTotal,
-	)
+	// Use prometheus.Register with error handling instead of MustRegister
+	// to avoid panics on duplicate registration
+	_ = prometheus.Register(&r.nodesTotal)
+	_ = prometheus.Register(&r.nodesReady)
+	_ = prometheus.Register(&r.reconcilesTotal)
+	_ = prometheus.Register(&r.reconcileErrors)
+	_ = prometheus.Register(&r.heartbeatsTotal)
 
 	r.metricsInitialized = true
 }
