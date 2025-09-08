@@ -236,9 +236,17 @@ test: test-unit test-integration
 test-unit: $(TEST_RESULTS_DIR)
 	@echo "Running unit tests with structured output..."
 	@mkdir -p $(TEST_RESULTS_DIR)/coverage $(TEST_RESULTS_DIR)/junit $(TEST_RESULTS_DIR)/logs
-	CGO_ENABLED=1 $(GO) test -v -race -timeout=$(TEST_TIMEOUT) -parallel=$(TEST_PARALLEL) \
-		-coverprofile=$(TEST_RESULTS_DIR)/coverage.out -covermode=atomic \
-		-json ./... > $(TEST_RESULTS_DIR)/logs/unit-tests.json 2>&1 || true
+	@if [ "$${CGO_ENABLED}" = "0" ]; then \
+		echo "CGO disabled in environment, running without race detection..."; \
+		$(GO) test -v -timeout=$(TEST_TIMEOUT) -parallel=$(TEST_PARALLEL) \
+			-coverprofile=$(TEST_RESULTS_DIR)/coverage.out -covermode=atomic \
+			-json ./... > $(TEST_RESULTS_DIR)/logs/unit-tests.json 2>&1 || true; \
+	else \
+		echo "CGO enabled, running with race detection..."; \
+		CGO_ENABLED=1 $(GO) test -v -race -timeout=$(TEST_TIMEOUT) -parallel=$(TEST_PARALLEL) \
+			-coverprofile=$(TEST_RESULTS_DIR)/coverage.out -covermode=atomic \
+			-json ./... > $(TEST_RESULTS_DIR)/logs/unit-tests.json 2>&1 || true; \
+	fi
 	@# Generate coverage reports
 	@if [ -f "$(TEST_RESULTS_DIR)/coverage.out" ]; then \
 		$(GO) tool cover -html=$(TEST_RESULTS_DIR)/coverage.out -o $(TEST_RESULTS_DIR)/coverage/coverage.html; \
@@ -250,8 +258,15 @@ test-unit: $(TEST_RESULTS_DIR)
 .PHONY: test-unit-coverage
 test-unit-coverage:
 	@echo "Running unit tests with coverage..."
-	CGO_ENABLED=1 $(GO) test -v -race -timeout=$(TEST_TIMEOUT) -parallel=$(TEST_PARALLEL) \
-		-coverprofile=coverage.out -covermode=atomic ./...
+	@if [ "$${CGO_ENABLED}" = "0" ]; then \
+		echo "CGO disabled in environment, running without race detection..."; \
+		$(GO) test -v -timeout=$(TEST_TIMEOUT) -parallel=$(TEST_PARALLEL) \
+			-coverprofile=coverage.out -covermode=atomic ./...; \
+	else \
+		echo "CGO enabled, running with race detection..."; \
+		CGO_ENABLED=1 $(GO) test -v -race -timeout=$(TEST_TIMEOUT) -parallel=$(TEST_PARALLEL) \
+			-coverprofile=coverage.out -covermode=atomic ./...; \
+	fi
 	$(GO) tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated: coverage.html"
 	@$(GO) tool cover -func=coverage.out | grep total | \
@@ -260,17 +275,33 @@ test-unit-coverage:
 .PHONY: test-llm-providers
 test-llm-providers:
 	@echo "Running LLM provider tests..."
-	CGO_ENABLED=1 $(GO) test -v -race -timeout=$(TEST_TIMEOUT) \
-		./internal/ingest/... \
-		-run "Test.*Provider"
+	@if [ "$${CGO_ENABLED}" = "0" ]; then \
+		echo "CGO disabled, running without race detection..."; \
+		$(GO) test -v -timeout=$(TEST_TIMEOUT) \
+			./internal/ingest/... \
+			-run "Test.*Provider"; \
+	else \
+		echo "CGO enabled, running with race detection..."; \
+		CGO_ENABLED=1 $(GO) test -v -race -timeout=$(TEST_TIMEOUT) \
+			./internal/ingest/... \
+			-run "Test.*Provider"; \
+	fi
 	@echo "[SUCCESS] LLM provider tests passed"
 
 .PHONY: test-schema-validation
 test-schema-validation:
 	@echo "Running schema validation tests..."
-	CGO_ENABLED=1 $(GO) test -v -race -timeout=$(TEST_TIMEOUT) \
-		./internal/ingest/... \
-		-run "Test.*Schema.*|Test.*Validat.*"
+	@if [ "$${CGO_ENABLED}" = "0" ]; then \
+		echo "CGO disabled, running without race detection..."; \
+		$(GO) test -v -timeout=$(TEST_TIMEOUT) \
+			./internal/ingest/... \
+			-run "Test.*Schema.*|Test.*Validat.*"; \
+	else \
+		echo "CGO enabled, running with race detection..."; \
+		CGO_ENABLED=1 $(GO) test -v -race -timeout=$(TEST_TIMEOUT) \
+			./internal/ingest/... \
+			-run "Test.*Schema.*|Test.*Validat.*"; \
+	fi
 	@echo "[SUCCESS] Schema validation tests passed"
 
 .PHONY: test-integration
