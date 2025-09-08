@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
@@ -926,7 +927,22 @@ func NewEscalationEngine(config *EscalationConfig, logger *logging.StructuredLog
 	// Register each metric, ignoring duplicate registration errors.
 
 	for _, metric := range escalationMetrics {
-		if err := prometheus.Register(metric); err != nil {
+		// Use centralized registry with safe registration instead
+		gr := monitoring.GetGlobalRegistry()
+		var componentName string
+		switch metric {
+		case metrics.EscalationsTriggered:
+			componentName = "escalation-triggered"
+		case metrics.EscalationLatency:
+			componentName = "escalation-latency"
+		case metrics.PolicyViolations:
+			componentName = "policy-violations"
+		case metrics.NotificationsSent:
+			componentName = "notifications-sent"
+		default:
+			componentName = "escalation-unknown"
+		}
+		if err := gr.SafeRegister(componentName, metric); err != nil {
 
 			var alreadyRegisteredErr prometheus.AlreadyRegisteredError
 			if !errors.As(err, &alreadyRegisteredErr) {

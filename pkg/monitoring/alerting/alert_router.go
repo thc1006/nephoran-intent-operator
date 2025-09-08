@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
@@ -625,19 +626,13 @@ func NewAlertRouter(config *AlertRouterConfig, logger *logging.StructuredLogger)
 		metrics.QueueDepth,
 	}
 
-	// Register each metric, ignoring duplicate registration errors.
-
-	for _, metric := range routerMetrics {
-		if err := prometheus.Register(metric); err != nil {
-
-			var alreadyRegisteredErr prometheus.AlreadyRegisteredError
-			if !errors.As(err, &alreadyRegisteredErr) {
-				// Only propagate non-duplicate errors.
-
-				logger.Error("Failed to register router metric", "error", err)
-			}
-
-		}
+	// Use centralized registry with safe registration
+	gr := monitoring.GetGlobalRegistry()
+	gr.SafeRegister("alert-router-alerts-processed", metrics.AlertsProcessed)
+	gr.SafeRegister("alert-router-alerts-dropped", metrics.AlertsDropped)
+	gr.SafeRegister("alert-router-processing-duration", metrics.ProcessingDuration)
+	gr.SafeRegister("alert-router-route-latency", metrics.RouteLatency)
+	gr.SafeRegister("alert-router-queue-depth", metrics.QueueDepth)
 	}
 
 	ar := &AlertRouter{

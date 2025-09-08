@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -248,13 +249,13 @@ func (r *E2NodeSetReconciler) RegisterMetrics() {
 		[]string{"namespace", "name", "node_id"},
 	)
 
-	// Use prometheus.Register with error handling instead of MustRegister
-	// to avoid panics on duplicate registration
-	_ = prometheus.Register(&r.nodesTotal)
-	_ = prometheus.Register(&r.nodesReady)
-	_ = prometheus.Register(&r.reconcilesTotal)
-	_ = prometheus.Register(&r.reconcileErrors)
-	_ = prometheus.Register(&r.heartbeatsTotal)
+	// Use centralized registry with safe registration
+	gr := monitoring.GetGlobalRegistry()
+	gr.SafeRegister("e2nodeset-nodes-total", &r.nodesTotal)
+	gr.SafeRegister("e2nodeset-nodes-ready", &r.nodesReady)
+	gr.SafeRegister("e2nodeset-reconciles-total", &r.reconcilesTotal)
+	gr.SafeRegister("e2nodeset-reconcile-errors", &r.reconcileErrors)
+	gr.SafeRegister("e2nodeset-heartbeats-total", &r.heartbeatsTotal)
 
 	r.metricsInitialized = true
 }

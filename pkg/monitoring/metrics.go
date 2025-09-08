@@ -17,6 +17,7 @@ import (
 )
 
 // safeRegister safely registers a metric collector, avoiding panics from duplicate registrations
+// Deprecated: Use monitoring.GetGlobalRegistry().SafeRegister() instead
 func safeRegister(registry prometheus.Registerer, collector prometheus.Collector) {
 	if err := registry.Register(collector); err != nil {
 		if _, ok := err.(prometheus.AlreadyRegisteredError); !ok {
@@ -99,9 +100,11 @@ func (pmc *PrometheusMetricsCollector) initMetrics() {
 	})
 
 	if pmc.registry != nil {
-		safeRegister(pmc.registry, pmc.scrapeErrors)
-		safeRegister(pmc.registry, pmc.scrapeDuration) 
-		safeRegister(pmc.registry, pmc.metricsCollected)
+		// Use centralized registry for better test isolation
+		gr := GetGlobalRegistry()
+		gr.SafeRegister("prometheus-scrape-errors", pmc.scrapeErrors)
+		gr.SafeRegister("prometheus-scrape-duration", pmc.scrapeDuration) 
+		gr.SafeRegister("prometheus-metrics-collected", pmc.metricsCollected)
 	}
 }
 
@@ -352,8 +355,10 @@ func (kmc *KubernetesMetricsCollector) initMetrics() {
 	})
 
 	if kmc.registry != nil {
-		safeRegister(kmc.registry, kmc.k8sAPIErrors)
-		safeRegister(kmc.registry, kmc.k8sAPIDuration)
+		// Use centralized registry for better test isolation
+		gr := GetGlobalRegistry()
+		gr.SafeRegister("k8s-api-errors", kmc.k8sAPIErrors)
+		gr.SafeRegister("k8s-api-duration", kmc.k8sAPIDuration)
 	}
 }
 
@@ -529,8 +534,10 @@ func (ma *MetricsAggregator) initMetrics() {
 	})
 
 	if ma.registry != nil {
-		safeRegister(ma.registry, ma.aggregationErrors)
-		safeRegister(ma.registry, ma.aggregationTime)
+		// Use centralized registry for better test isolation
+		gr := GetGlobalRegistry()
+		gr.SafeRegister("metrics-aggregation-errors", ma.aggregationErrors)
+		gr.SafeRegister("metrics-aggregation-time", ma.aggregationTime)
 	}
 }
 

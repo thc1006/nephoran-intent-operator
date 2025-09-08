@@ -18,6 +18,7 @@ import (
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 	"github.com/sony/gobreaker"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
@@ -781,7 +782,22 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 	// Register each metric, ignoring duplicate registration errors.
 
 	for _, metric := range metricsToRegister {
-		if err := prometheus.Register(metric); err != nil {
+		// Use centralized registry with safe registration instead
+		gr := monitoring.GetGlobalRegistry()
+		var componentName string
+		switch metric {
+		case metrics.SLAViolations:
+			componentName = "sla-violations"
+		case metrics.SLACompliance:
+			componentName = "sla-compliance"
+		case metrics.AlertLatency:
+			componentName = "alert-latency"
+		case metrics.RecoveryTime:
+			componentName = "recovery-time"
+		default:
+			componentName = "sla-unknown"
+		}
+		if err := gr.SafeRegister(componentName, metric); err != nil {
 
 			var alreadyRegisteredErr prometheus.AlreadyRegisteredError
 			if !errors.As(err, &alreadyRegisteredErr) {
