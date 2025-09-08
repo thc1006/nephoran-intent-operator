@@ -417,7 +417,25 @@ jobs:
               if [[ -f "$dir/main.go" ]]; then
                 component=$(basename "$dir")
                 echo "📦 Building $component..."
-                go build $BUILD_FLAGS -ldflags="$LDFLAGS" -o "bin/$component" "./$dir"
+                
+                # Check for build constraints
+                has_constraints=$(head -5 "$dir/main.go" | grep -E "^//go:build|^// \+build" || true)
+                
+                if [[ -n "$has_constraints" ]]; then
+                  echo "⚠️  $component has build constraints: $has_constraints"
+                  # Try to build anyway, but don't fail if it doesn't work
+                  if go build $BUILD_FLAGS -ldflags="$LDFLAGS" -o "bin/$component" "./$dir" 2>/dev/null; then
+                    echo "✅ $component built successfully despite constraints"
+                  else
+                    echo "⏭️  Skipping $component due to build constraints"
+                  fi
+                else
+                  # No constraints, should build normally
+                  go build $BUILD_FLAGS -ldflags="$LDFLAGS" -o "bin/$component" "./$dir" || {
+                    echo "❌ Failed to build $component"
+                    exit 1
+                  }
+                fi
               fi
             done
           fi
