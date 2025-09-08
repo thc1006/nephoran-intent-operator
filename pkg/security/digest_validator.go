@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	distdig "github.com/docker/distribution/digest"
+	"github.com/opencontainers/go-digest"
 )
 
 var (
@@ -39,28 +39,36 @@ func ValidateDigest(s string) error {
 		}
 	}
 	
-	// Parse using the distribution library for format validation
-	d, err := distdig.Parse(s)
+	// Normalize to lowercase for OCI digest library (it only accepts lowercase)
+	normalizedInput := strings.ToLower(s)
+	
+	// Parse using the OCI digest library for format validation
+	d, err := digest.Parse(normalizedInput)
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrInvalidDigest, err)
 	}
 	
 	// Strictly enforce SHA256 only
-	alg := d.Algorithm().String()
-	if alg != "sha256" {
+	alg := d.Algorithm()
+	if alg != digest.SHA256 {
 		return fmt.Errorf("%w: got %s, want sha256", ErrUnsupportedDigest, alg)
 	}
 	
 	// Extract and validate the hex portion
-	hex := strings.TrimPrefix(d.String(), alg+":")
+	hex := d.Encoded()
 	if !hex64.MatchString(hex) {
 		return fmt.Errorf("%w: invalid sha256 hex format (must be 64 characters)", ErrInvalidDigest)
 	}
 	
-	// Additional validation: ensure the original string matches expected format
-	expectedFormat := fmt.Sprintf("sha256:%s", strings.ToLower(hex))
-	if strings.ToLower(s) != expectedFormat {
-		return fmt.Errorf("%w: format mismatch", ErrInvalidDigest)
+	// Verify the format is correct (algorithm:hex)
+	parts := strings.SplitN(s, ":", 2)
+	if len(parts) != 2 || parts[0] != "sha256" {
+		return fmt.Errorf("%w: invalid format", ErrInvalidDigest)
+	}
+	
+	// Validate the hex part matches what we expect (case-insensitive)
+	if !hex64.MatchString(parts[1]) {
+		return fmt.Errorf("%w: invalid sha256 hex format", ErrInvalidDigest)
 	}
 	
 	return nil
@@ -73,6 +81,6 @@ func NormalizeDigest(s string) (string, error) {
 	}
 	
 	// Parse again to get normalized form
-	d, _ := distdig.Parse(s) // Already validated above
-	return strings.ToLower(d.String()), nil
+	d, _ := digest.Parse(s) // Already validated above
+	return strings.ToLower(string(d)), nil
 }

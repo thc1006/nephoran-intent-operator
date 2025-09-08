@@ -50,13 +50,13 @@ func TestValidateDigest(t *testing.T) {
 			name:    "hex too short",
 			digest:  "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b85",
 			wantErr: true,
-			errMsg:  "invalid sha256 hex format",
+			errMsg:  "invalid image digest",
 		},
 		{
 			name:    "hex too long",
 			digest:  "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b8550",
 			wantErr: true,
-			errMsg:  "invalid sha256 hex format",
+			errMsg:  "invalid image digest",
 		},
 		{
 			name:    "invalid hex characters",
