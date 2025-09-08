@@ -16,7 +16,7 @@ import (
 
 // TestSecuritySuiteIntegration tests the complete security suite
 func TestSecuritySuiteIntegration(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 
 	// Create comprehensive security configuration
 	config := &SecuritySuiteConfig{
@@ -71,6 +71,7 @@ func TestSecuritySuiteIntegration(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		// Simulate HTTPS connection for HSTS
 		req.Header.Set("X-Forwarded-Proto", "https")
+		req.RemoteAddr = "192.168.1.1:12345" // Unique IP for this test
 		rec := httptest.NewRecorder()
 
 		securedHandler.ServeHTTP(rec, req)
@@ -86,6 +87,7 @@ func TestSecuritySuiteIntegration(t *testing.T) {
 	t.Run("CORS Allowed Origin", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.Header.Set("Origin", "https://example.com")
+		req.RemoteAddr = "192.168.1.2:12345" // Unique IP for this test
 		rec := httptest.NewRecorder()
 
 		securedHandler.ServeHTTP(rec, req)
@@ -97,6 +99,7 @@ func TestSecuritySuiteIntegration(t *testing.T) {
 	t.Run("CORS Blocked Origin", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.Header.Set("Origin", "https://malicious.com")
+		req.RemoteAddr = "192.168.1.3:12345" // Unique IP for this test
 		rec := httptest.NewRecorder()
 
 		securedHandler.ServeHTTP(rec, req)
@@ -135,6 +138,7 @@ func TestSecuritySuiteIntegration(t *testing.T) {
 
 		req := httptest.NewRequest("POST", "/test", strings.NewReader(largeBody))
 		req.Header.Set("Content-Type", "text/plain")
+		req.RemoteAddr = "192.168.1.4:12345" // Unique IP for this test
 		rec := httptest.NewRecorder()
 
 		securedHandler.ServeHTTP(rec, req)
@@ -464,24 +468,18 @@ func TestCleanupExpiredTokens(t *testing.T) {
 	// Generate tokens
 	token1 := suite.GenerateCSRFToken()
 	token2 := suite.GenerateCSRFToken()
-	t.Logf("Generated token1: %s", token1)
-	t.Logf("Generated token2: %s", token2)
 
 	// Validate tokens exist
-	assert.True(t, suite.ValidateCSRFToken(token1), "token1 should be valid initially")
-	assert.True(t, suite.ValidateCSRFToken(token2), "token2 should be valid initially")
+	assert.True(t, suite.ValidateCSRFToken(token1))
+	assert.True(t, suite.ValidateCSRFToken(token2))
 
 	// Manually expire token1 by setting its expiry to past
-	pastTime := time.Now().Add(-1 * time.Hour)
-	t.Logf("Setting token1 to expire at: %v", pastTime)
-	suite.csrfTokens.Store(token1, pastTime)
+	suite.csrfTokens.Store(token1, time.Now().Add(-1*time.Hour))
 
 	// Cleanup expired tokens
-	t.Log("Running CleanupExpiredTokens")
 	suite.CleanupExpiredTokens()
 
 	// Check that expired token is removed and valid token remains
-	t.Log("Validating final state")
-	assert.False(t, suite.ValidateCSRFToken(token1), "token1 should be invalid after cleanup")
-	assert.True(t, suite.ValidateCSRFToken(token2), "token2 should still be valid after cleanup")
+	assert.False(t, suite.ValidateCSRFToken(token1))
+	assert.True(t, suite.ValidateCSRFToken(token2))
 }

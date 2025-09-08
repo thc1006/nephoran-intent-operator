@@ -648,7 +648,7 @@ func TestContentTypeValidation(t *testing.T) {
 		EnablePathTraversalProtection:    false,
 		EnableCommandInjectionProtection: false,
 		BlockOnViolation:                 true,
-		LogViolations:                    true,
+		LogViolations:                    false,
 	}
 
 	validator, err := NewInputValidator(config, logger)
