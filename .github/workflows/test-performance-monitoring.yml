@@ -183,6 +183,9 @@ jobs:
     name: Performance Benchmarks
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
     
     steps:
       - name: Checkout code
@@ -196,7 +199,8 @@ jobs:
           
       - name: Run benchmarks
         run: |
-          go test -bench=. -benchmem -benchtime=10s -json ./... 2>&1 | tee benchmark-results.json
+          # Run benchmarks only (no tests) with -run=^$ pattern
+          go test -run=^$ -bench=. -benchmem -benchtime=10s -json ./... 2>&1 | tee benchmark-results.json
           
       - name: Parse benchmark results
         run: |
@@ -210,6 +214,8 @@ jobs:
           done
           
       - name: Store benchmark results
+        # Only push results on push events to main or integrate/mvp branches
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/integrate/mvp')
         uses: benchmark-action/github-action-benchmark@v1
         with:
           tool: 'go'
