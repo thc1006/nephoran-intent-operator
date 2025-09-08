@@ -68,6 +68,9 @@ func TestNewInputValidator(t *testing.T) {
 func TestSQLInjectionDetection(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	config := &InputValidationConfig{
+		MaxURLLength:                 2048,
+		MaxParameterCount:            100,
+		MaxParameterLength:           1024,
 		EnableSQLInjectionProtection: true,
 		BlockOnViolation:             true,
 		LogViolations:                false,
@@ -135,7 +138,31 @@ func TestSQLInjectionDetection(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest("GET", "/test?"+tt.query, nil)
+			// Create request with proper URL construction
+			var req *http.Request
+			if tt.query == "" {
+				req = httptest.NewRequest("GET", "/test", nil)
+			} else if tt.query == "id=123&name=john" {
+				// Handle clean query as-is
+				req = httptest.NewRequest("GET", "/test?"+tt.query, nil)
+			} else {
+				// For malicious queries, construct URL with proper parameter encoding
+				u, _ := url.Parse("/test")
+				q := u.Query()
+				
+				// Parse the query and set parameters properly
+				if strings.Contains(tt.query, "=") {
+					parts := strings.SplitN(tt.query, "=", 2)
+					if len(parts) == 2 {
+						q.Set(parts[0], parts[1])
+					}
+				} else {
+					q.Set("param", tt.query)
+				}
+				
+				u.RawQuery = q.Encode()
+				req = httptest.NewRequest("GET", u.String(), nil)
+			}
 			rec := httptest.NewRecorder()
 
 			handler.ServeHTTP(rec, req)
@@ -155,6 +182,9 @@ func TestSQLInjectionDetection(t *testing.T) {
 func TestXSSDetection(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	config := &InputValidationConfig{
+		MaxURLLength:        2048,
+		MaxParameterCount:   100,
+		MaxParameterLength:  1024,
 		EnableXSSProtection: true,
 		BlockOnViolation:    true,
 		LogViolations:       false,
@@ -231,6 +261,11 @@ func TestXSSDetection(t *testing.T) {
 func TestPathTraversalDetection(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	config := &InputValidationConfig{
+		MaxURLLength:                  2048,
+		MaxParameterCount:             100,
+		MaxParameterLength:            1024,
+		MaxHeaderSize:                 8 * 1024,
+		AllowedContentTypes:           []string{"application/json", "text/plain"},
 		EnablePathTraversalProtection: true,
 		BlockOnViolation:              true,
 		LogViolations:                 false,
@@ -297,6 +332,11 @@ func TestPathTraversalDetection(t *testing.T) {
 func TestCommandInjectionDetection(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	config := &InputValidationConfig{
+		MaxURLLength:                     2048,
+		MaxParameterCount:                100,
+		MaxParameterLength:               1024,
+		MaxHeaderSize:                    8 * 1024,
+		AllowedContentTypes:              []string{"application/json", "text/plain"},
 		EnableCommandInjectionProtection: true,
 		BlockOnViolation:                 true,
 		LogViolations:                    false,
@@ -397,6 +437,12 @@ func TestBodyValidation(t *testing.T) {
 
 	t.Run("JSON validation", func(t *testing.T) {
 		config := &InputValidationConfig{
+			MaxBodySize:         10 * 1024 * 1024,
+			MaxURLLength:        2048,
+			MaxParameterCount:   100,
+			MaxParameterLength:  1024,
+			MaxHeaderSize:       8 * 1024,
+			AllowedContentTypes: []string{"application/json", "text/plain"},
 			EnableXSSProtection: true,
 			BlockOnViolation:    true,
 			LogViolations:       false,
@@ -591,9 +637,18 @@ func TestQueryParameterValidation(t *testing.T) {
 func TestContentTypeValidation(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	config := &InputValidationConfig{
-		AllowedContentTypes: []string{"application/json", "text/plain"},
-		BlockOnViolation:    true,
-		LogViolations:       false,
+		MaxBodySize:                      10 * 1024 * 1024,
+		MaxURLLength:                     2048,
+		MaxParameterCount:                100,
+		MaxParameterLength:               1024,
+		MaxHeaderSize:                    8 * 1024,
+		AllowedContentTypes:              []string{"application/json", "text/plain"},
+		EnableSQLInjectionProtection:     false,
+		EnableXSSProtection:              false,
+		EnablePathTraversalProtection:    false,
+		EnableCommandInjectionProtection: false,
+		BlockOnViolation:                 true,
+		LogViolations:                    true,
 	}
 
 	validator, err := NewInputValidator(config, logger)
@@ -639,7 +694,12 @@ func TestContentTypeValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(tt.method, "/test", strings.NewReader("test"))
+			// Use appropriate body content based on content type
+			body := "hello"
+			if strings.Contains(tt.contentType, "application/json") {
+				body = `{"message": "hello"}`
+			}
+			req := httptest.NewRequest(tt.method, "/test", strings.NewReader(body))
 			if tt.contentType != "" {
 				req.Header.Set("Content-Type", tt.contentType)
 			}
@@ -660,6 +720,12 @@ func TestContentTypeValidation(t *testing.T) {
 func TestInputSanitization(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	config := &InputValidationConfig{
+		MaxBodySize:                      10 * 1024 * 1024,
+		MaxURLLength:                     2048,
+		MaxParameterCount:                100,
+		MaxParameterLength:               1024,
+		MaxHeaderSize:                    8 * 1024,
+		AllowedContentTypes:              []string{"application/json", "text/plain"},
 		SanitizeInput:                    true,
 		EnableXSSProtection:              false, // Disable to test sanitization without blocking
 		EnableSQLInjectionProtection:     false,

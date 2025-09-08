@@ -16,7 +16,7 @@ import (
 
 // TestSecuritySuiteIntegration tests the complete security suite
 func TestSecuritySuiteIntegration(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
 	// Create comprehensive security configuration
 	config := &SecuritySuiteConfig{
@@ -29,14 +29,22 @@ func TestSecuritySuiteIntegration(t *testing.T) {
 			ReferrerPolicy:        "strict-origin-when-cross-origin",
 		},
 		InputValidation: &InputValidationConfig{
-			EnableSQLInjectionProtection: false,       // Disabled for testing
-			EnableXSSProtection:          false,       // Disabled for testing
-			BlockOnViolation:             false,       // Disabled for testing
 			MaxBodySize:                  1024 * 1024, // 1MB
+			MaxURLLength:                 2048,
+			MaxParameterCount:            100,
+			MaxParameterLength:           1024,
+			MaxHeaderSize:                8 * 1024,
+			AllowedContentTypes:          []string{"application/json", "text/plain"},
+			EnableSQLInjectionProtection: false, // Disabled for testing
+			EnableXSSProtection:          false, // Disabled for testing
+			EnablePathTraversalProtection:    false, // Disabled for testing
+			EnableCommandInjectionProtection: false, // Disabled for testing
+			BlockOnViolation:             false, // Disabled for testing
+			LogViolations:                false, // Reduce noise
 		},
 		RateLimit: &RateLimiterConfig{
-			QPS:   10,
-			Burst: 20,
+			QPS:   1,
+			Burst: 2,
 		},
 		RequestSize: nil, // RequestSizeLimiter will be created by NewSecuritySuite
 		CORS: &CORSConfig{
@@ -98,26 +106,27 @@ func TestSecuritySuiteIntegration(t *testing.T) {
 	})
 
 	t.Run("Rate Limiting", func(t *testing.T) {
-		// Make requests up to the burst limit
-		for i := 0; i < 20; i++ {
+		// Verify rate limiter is configured
+		require.NotNil(t, config.RateLimit, "RateLimit config should not be nil")
+		assert.Equal(t, 1, config.RateLimit.QPS, "QPS should be 1")
+		assert.Equal(t, 2, config.RateLimit.Burst, "Burst should be 2")
+		
+		// Make requests to exhaust the burst limit (2) + exceed QPS (1)
+		// First exhaust the burst limit
+		for i := 0; i < 3; i++ {
 			req := httptest.NewRequest("GET", "/test", nil)
 			req.RemoteAddr = "192.168.1.100:12345"
 			rec := httptest.NewRecorder()
 
 			securedHandler.ServeHTTP(rec, req)
 
-			if i < 20 {
+			if i < 2 {
 				assert.Equal(t, http.StatusOK, rec.Code, "Request %d should succeed", i+1)
+			} else {
+				// The 3rd request should be rate limited
+				assert.Equal(t, http.StatusTooManyRequests, rec.Code, "Request %d should be rate limited", i+1)
 			}
 		}
-
-		// Next request should be rate limited
-		req := httptest.NewRequest("GET", "/test", nil)
-		req.RemoteAddr = "192.168.1.100:12345"
-		rec := httptest.NewRecorder()
-
-		securedHandler.ServeHTTP(rec, req)
-		assert.Equal(t, http.StatusTooManyRequests, rec.Code)
 	})
 
 	t.Run("Request Size Limit", func(t *testing.T) {
@@ -455,18 +464,24 @@ func TestCleanupExpiredTokens(t *testing.T) {
 	// Generate tokens
 	token1 := suite.GenerateCSRFToken()
 	token2 := suite.GenerateCSRFToken()
+	t.Logf("Generated token1: %s", token1)
+	t.Logf("Generated token2: %s", token2)
 
 	// Validate tokens exist
-	assert.True(t, suite.ValidateCSRFToken(token1))
-	assert.True(t, suite.ValidateCSRFToken(token2))
+	assert.True(t, suite.ValidateCSRFToken(token1), "token1 should be valid initially")
+	assert.True(t, suite.ValidateCSRFToken(token2), "token2 should be valid initially")
 
 	// Manually expire token1 by setting its expiry to past
-	suite.csrfTokens.Store(token1, time.Now().Add(-1*time.Hour))
+	pastTime := time.Now().Add(-1 * time.Hour)
+	t.Logf("Setting token1 to expire at: %v", pastTime)
+	suite.csrfTokens.Store(token1, pastTime)
 
 	// Cleanup expired tokens
+	t.Log("Running CleanupExpiredTokens")
 	suite.CleanupExpiredTokens()
 
 	// Check that expired token is removed and valid token remains
-	assert.False(t, suite.ValidateCSRFToken(token1))
-	assert.True(t, suite.ValidateCSRFToken(token2))
+	t.Log("Validating final state")
+	assert.False(t, suite.ValidateCSRFToken(token1), "token1 should be invalid after cleanup")
+	assert.True(t, suite.ValidateCSRFToken(token2), "token2 should still be valid after cleanup")
 }

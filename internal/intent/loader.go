@@ -1,11 +1,19 @@
 package intent
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"time"
+)
+
+const (
+	// MaxFileSize is the maximum allowed file size (5MB)
+	MaxFileSize = 5 * 1024 * 1024
+	// UTF8BOM is the UTF-8 Byte Order Mark
+	UTF8BOM = "\xef\xbb\xbf"
 )
 
 // Loader handles loading and validating intent files
@@ -30,16 +38,29 @@ func NewLoader(projectRoot string) (*Loader, error) {
 // LoadFromFile loads and validates an intent from a JSON file
 func (l *Loader) LoadFromFile(filePath string) (*LoadResult, error) {
 	startTime := time.Now()
+	result := &LoadResult{
+		LoadedAt: startTime,
+		FilePath: filePath,
+		IsValid:  false,
+	}
+
+	// Check file size before reading
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		result.Errors = []ValidationError{{Field: "file", Message: fmt.Sprintf("failed to stat file: %v", err)}}
+		return result, err
+	}
+
+	if fileInfo.Size() > MaxFileSize {
+		result.Errors = []ValidationError{{Field: "file", Message: fmt.Sprintf("file too large: %d bytes exceeds maximum of %d bytes", fileInfo.Size(), MaxFileSize)}}
+		return result, fmt.Errorf("file too large")
+	}
 
 	// Read the file
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		return &LoadResult{
-			Errors:   []ValidationError{{Field: "file", Message: fmt.Sprintf("failed to read file: %v", err)}},
-			LoadedAt: startTime,
-			FilePath: filePath,
-			IsValid:  false,
-		}, err
+		result.Errors = []ValidationError{{Field: "file", Message: fmt.Sprintf("failed to read file: %v", err)}}
+		return result, err
 	}
 
 	return l.LoadFromJSON(data, filePath)
@@ -54,12 +75,13 @@ func (l *Loader) LoadFromJSON(data []byte, sourcePath string) (*LoadResult, erro
 		IsValid:  false,
 	}
 
+	// Strip UTF-8 BOM if present
+	data = stripBOM(data)
+
 	// First validate against the schema
 	schemaErrors := l.validator.ValidateJSON(data)
 	if len(schemaErrors) > 0 {
 		result.Errors = schemaErrors
-		// Return result with validation errors, but don't return error
-		// This allows the caller to handle validation failures through the result
 		return result, nil
 	}
 
@@ -70,7 +92,6 @@ func (l *Loader) LoadFromJSON(data []byte, sourcePath string) (*LoadResult, erro
 			Field:   "json",
 			Message: fmt.Sprintf("failed to unmarshal intent: %v", err),
 		}}
-		// JSON parsing errors are also validation errors, not system errors
 		return result, nil
 	}
 
@@ -78,7 +99,6 @@ func (l *Loader) LoadFromJSON(data []byte, sourcePath string) (*LoadResult, erro
 	bizErrors := l.validateBusinessLogic(&intent)
 	if len(bizErrors) > 0 {
 		result.Errors = bizErrors
-		// Business logic validation errors are validation errors, not system errors
 		return result, nil
 	}
 
@@ -135,9 +155,13 @@ func isValidKubernetesName(name string) bool {
 		return false
 	}
 
-	// Must start with lowercase letter (not digit) and end with alphanumeric (per Kubernetes RFC 1123)
-	// DNS-1123 subdomain names require starting with a letter, not a digit
-	if !isLowercaseLetter(name[0]) || !isAlphaNumeric(name[len(name)-1]) {
+	// Must start with a letter (a-z), not a digit
+	if !isLetter(name[0]) {
+		return false
+	}
+
+	// Must end with alphanumeric (letter or digit)
+	if !isAlphaNumeric(name[len(name)-1]) {
 		return false
 	}
 
@@ -151,8 +175,8 @@ func isValidKubernetesName(name string) bool {
 	return true
 }
 
-// isLowercaseLetter checks if a byte is a lowercase letter (a-z)
-func isLowercaseLetter(b byte) bool {
+// isLetter checks if a byte is a lowercase letter
+func isLetter(b byte) bool {
 	return b >= 'a' && b <= 'z'
 }
 
@@ -169,4 +193,13 @@ func (l *Loader) GetProjectRoot() string {
 // GetSchemaPath returns the path to the intent schema file
 func (l *Loader) GetSchemaPath() string {
 	return filepath.Join(l.projectRoot, "docs", "contracts", "intent.schema.json")
+}
+
+// stripBOM removes UTF-8 BOM from the beginning of data if present
+func stripBOM(data []byte) []byte {
+	bomBytes := []byte(UTF8BOM)
+	if bytes.HasPrefix(data, bomBytes) {
+		return data[len(bomBytes):]
+	}
+	return data
 }
