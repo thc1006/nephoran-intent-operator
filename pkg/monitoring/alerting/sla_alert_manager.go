@@ -786,14 +786,22 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 		gr := monitoring.GetGlobalRegistry()
 		var componentName string
 		switch metric {
-		case metrics.SLAViolations:
-			componentName = "sla-violations"
+		case metrics.AlertsGenerated:
+			componentName = "sla-alerts-generated"
+		case metrics.AlertsResolved:
+			componentName = "sla-alerts-resolved"
+		case metrics.AlertsFalsePositive:
+			componentName = "sla-alerts-false-positive"
 		case metrics.SLACompliance:
 			componentName = "sla-compliance"
-		case metrics.AlertLatency:
-			componentName = "alert-latency"
-		case metrics.RecoveryTime:
-			componentName = "recovery-time"
+		case metrics.ErrorBudgetBurn:
+			componentName = "sla-error-budget-burn"
+		case metrics.ActiveAlerts:
+			componentName = "sla-active-alerts"
+		case metrics.BusinessImpactScore:
+			componentName = "sla-business-impact"
+		case metrics.RevenueAtRisk:
+			componentName = "sla-revenue-at-risk"
 		default:
 			componentName = "sla-unknown"
 		}

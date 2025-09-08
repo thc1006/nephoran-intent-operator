@@ -7,7 +7,6 @@ package alerting
 import (
 	"context"
 	"crypto/sha256"
-	"errors"
 	"fmt"
 	"log/slog"
 	"sort"
@@ -628,11 +627,8 @@ func NewAlertRouter(config *AlertRouterConfig, logger *logging.StructuredLogger)
 
 	// Use centralized registry with safe registration
 	gr := monitoring.GetGlobalRegistry()
-	gr.SafeRegister("alert-router-alerts-processed", metrics.AlertsProcessed)
-	gr.SafeRegister("alert-router-alerts-dropped", metrics.AlertsDropped)
-	gr.SafeRegister("alert-router-processing-duration", metrics.ProcessingDuration)
-	gr.SafeRegister("alert-router-route-latency", metrics.RouteLatency)
-	gr.SafeRegister("alert-router-queue-depth", metrics.QueueDepth)
+	for _, collector := range routerMetrics {
+		gr.SafeRegister("alert-router", collector)
 	}
 
 	ar := &AlertRouter{

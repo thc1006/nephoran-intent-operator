@@ -931,14 +931,14 @@ func NewEscalationEngine(config *EscalationConfig, logger *logging.StructuredLog
 		gr := monitoring.GetGlobalRegistry()
 		var componentName string
 		switch metric {
-		case metrics.EscalationsTriggered:
-			componentName = "escalation-triggered"
-		case metrics.EscalationLatency:
-			componentName = "escalation-latency"
-		case metrics.PolicyViolations:
-			componentName = "policy-violations"
-		case metrics.NotificationsSent:
-			componentName = "notifications-sent"
+		case metrics.EscalationsStarted:
+			componentName = "escalation-started"
+		case metrics.EscalationsResolved:
+			componentName = "escalation-resolved"
+		case metrics.EscalationDuration:
+			componentName = "escalation-duration"
+		case metrics.ActiveEscalations:
+			componentName = "escalation-active"
 		default:
 			componentName = "escalation-unknown"
 		}
