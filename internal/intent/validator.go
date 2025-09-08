@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -31,6 +32,7 @@ type Validator struct {
 	logger       *slog.Logger
 	metrics      atomic.Pointer[ValidatorMetrics]
 	initialized  atomic.Bool
+	mu           sync.RWMutex // Protects concurrent access to validator state
 }
 
 // NewValidator creates a new validator using the schema from docs/contracts/intent.schema.json
@@ -109,7 +111,11 @@ func NewValidator(projectRoot string) (*Validator, error) {
 
 // ValidateIntent validates a ScalingIntent against the JSON schema
 func (v *Validator) ValidateIntent(intent *ScalingIntent) []ValidationError {
-	// Update metrics
+	// Protect concurrent access with read lock for validation
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+	
+	// Update metrics - safe to access under read lock
 	metrics := v.metrics.Load()
 	if metrics != nil {
 		atomic.AddInt64(&metrics.TotalValidations, 1)
@@ -184,7 +190,11 @@ func (v *Validator) ValidateIntent(intent *ScalingIntent) []ValidationError {
 
 // ValidateJSON validates raw JSON data against the schema
 func (v *Validator) ValidateJSON(data []byte) []ValidationError {
-	// Update metrics
+	// Protect concurrent access with read lock for validation
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+	
+	// Update metrics - safe to access under read lock
 	metrics := v.metrics.Load()
 	if metrics != nil {
 		atomic.AddInt64(&metrics.TotalValidations, 1)
