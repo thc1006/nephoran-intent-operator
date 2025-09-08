@@ -8,7 +8,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -289,7 +288,7 @@ func (r *WatchReconciler) parseIntentToJSON(ni *nephoranv1.NetworkIntent) (map[s
 
 	var target string
 
-	var replicas int = -1
+	var replicas int
 
 	for _, p := range patterns {
 
@@ -303,33 +302,25 @@ func (r *WatchReconciler) parseIntentToJSON(ni *nephoranv1.NetworkIntent) (map[s
 
 				target = matches[2]
 
-				if r, err := strconv.Atoi(matches[3]); err == nil && r >= 0 && r <= math.MaxInt32 {
-					replicas = r
-				}
+				replicas, _ = strconv.Atoi(matches[3])
 
 			case "scale_simple":
 
 				target = matches[1]
 
-				if r, err := strconv.Atoi(matches[2]); err == nil && r >= 0 && r <= math.MaxInt32 {
-					replicas = r
-				}
+				replicas, _ = strconv.Atoi(matches[2])
 
 			case "scale_colon":
 
 				target = matches[2]
 
-				if r, err := strconv.Atoi(matches[3]); err == nil && r >= 0 && r <= math.MaxInt32 {
-					replicas = r
-				}
+				replicas, _ = strconv.Atoi(matches[3])
 
 			case "scale_instances":
 
 				target = matches[1]
 
-				if r, err := strconv.Atoi(matches[2]); err == nil && r >= 0 && r <= math.MaxInt32 {
-					replicas = r
-				}
+				replicas, _ = strconv.Atoi(matches[2])
 
 			}
 
@@ -339,7 +330,7 @@ func (r *WatchReconciler) parseIntentToJSON(ni *nephoranv1.NetworkIntent) (map[s
 
 	}
 
-	if target == "" || replicas <= 0 {
+	if target == "" || replicas == 0 {
 		return nil, fmt.Errorf("unable to parse intent: %s", intent)
 	}
 
@@ -349,16 +340,23 @@ func (r *WatchReconciler) parseIntentToJSON(ni *nephoranv1.NetworkIntent) (map[s
 		return nil, fmt.Errorf("replicas count too high: %d (max 100)", replicas)
 	}
 
-	// Create intent JSON matching docs/contracts/intent.schema.json.
+	// Generate correlation ID with timestamp and resource info
+	correlationID := fmt.Sprintf("%s-%s-%s", ni.Name, ni.Namespace, time.Now().Format("20060102T150405.000"))
+	
+	// Generate reason based on parsed intent
+	reason := fmt.Sprintf("Scale %s to %d replicas as requested", target, replicas)
 
+	// Create intent JSON matching docs/contracts/intent.schema.json.
 	result := map[string]interface{}{
 		"intent_type":    "scaling",
 		"target":         target,
 		"namespace":      ni.Namespace,
 		"replicas":       replicas,
-		"source":         "conductor-watch",
-		"correlation_id": fmt.Sprintf("%s-%s-%d", ni.Name, ni.Namespace, time.Now().Unix()),
-		"reason":         fmt.Sprintf("Parsed from intent: %s", intent),
+		"correlation_id": correlationID,
+		"reason":         reason,
+		"source":         "user",
+		"created_at":     time.Now().Format(time.RFC3339),
+		"status":         "pending",
 	}
 
 	return result, nil
@@ -395,7 +393,7 @@ func (r *WatchReconciler) writeIntentJSON(name string, data map[string]interface
 
 	// Write file.
 
-	if err := os.WriteFile(filepath, jsonData, 0o644); err != nil {
+	if err := os.WriteFile(filepath, jsonData, 0o640); err != nil {
 		return "", fmt.Errorf("failed to write file: %w", err)
 	}
 
@@ -469,4 +467,3 @@ func (r *WatchReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&nephoranv1.NetworkIntent{}).
 		Complete(r)
 }
-

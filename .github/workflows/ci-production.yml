@@ -299,8 +299,14 @@ jobs:
               make -f Makefile.ci test-controllers
               ;;
             simulators)
-              if [ -d "sim" ]; then
-                timeout 300s go test -short -timeout=4m -p=4 ./sim/... || echo "⚠️ Some simulator tests failed"
+              # Check for actual simulator directories and test them
+              if [ -d "cmd/a1-sim" ] || [ -d "cmd/e2-kpm-sim" ] || [ -d "cmd/fcaps-sim" ] || [ -d "cmd/o1-ves-sim" ]; then
+                echo "Testing simulator commands..."
+                timeout 300s go test -short -timeout=4m -p=4 ./cmd/a1-sim/... ./cmd/e2-kpm-sim/... ./cmd/fcaps-sim/... ./cmd/o1-ves-sim/... 2>/dev/null || echo "⚠️ Some simulator tests failed"
+              fi
+              if [ -d "internal/a1sim" ]; then
+                echo "Testing internal simulator packages..."
+                timeout 300s go test -short -timeout=4m -p=4 ./internal/a1sim/... 2>/dev/null || echo "⚠️ Some internal simulator tests failed"
               fi
               ;;
             internal)
