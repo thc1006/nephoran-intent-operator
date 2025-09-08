@@ -67,7 +67,7 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 		}
 
 		intent := map[string]interface{}{
-			"action": "scale",
+			"intent_type": "scaling",
 			"target": matches[1],
 			"replicas": replicas,
 		}
@@ -89,7 +89,7 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 	if matches := p.patterns["deploy"].FindStringSubmatch(text); matches != nil {
 
 		intent := map[string]interface{}{
-			"action": "deploy",
+			"intent_type": "deployment",
 			"target": matches[1],
 		}
 
@@ -110,7 +110,7 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 	if matches := p.patterns["delete"].FindStringSubmatch(text); matches != nil {
 
 		intent := map[string]interface{}{
-			"action": "delete",
+			"intent_type": "deletion",
 			"target": matches[1],
 		}
 
@@ -131,9 +131,9 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 	if matches := p.patterns["update"].FindStringSubmatch(text); matches != nil {
 
 		intent := map[string]interface{}{
-			"action": "update",
+			"intent_type": "configuration",
 			"target": matches[1],
-			"spec": map[string]interface{}{
+			"config": map[string]interface{}{
 				matches[2]: matches[3],
 			},
 		}

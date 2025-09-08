@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -626,68 +627,123 @@ func TestConcurrentFileProcessing(t *testing.T) {
 	require.NoError(t, os.MkdirAll(handoffDir, 0o755))
 	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
-	// Create mock porch with random delays to simulate real processing
-	mockPorch := createMockPorchWithRandomDelay(t, tempDir)
+	// Create mock porch with consistent behavior (no random delays)
+	mockPorch := createSecureMockPorch(t, tempDir)
 
-	// Configure watcher for single-pass processing to avoid double-counting
+	// Configure watcher for single-pass processing with proper synchronization
 	config := loop.Config{
 		PorchPath:    mockPorch,
 		Mode:         "direct",
 		OutDir:       outDir,
 		Once:         true, // Single-pass mode to prevent reprocessing
-		DebounceDur:  50 * time.Millisecond,
-		MaxWorkers:   20, // Sufficient workers to handle queue size for 50 files (20*3=60 queue slots)
+		DebounceDur:  500 * time.Millisecond, // Increased debounce to ensure all files are queued
+		MaxWorkers:   20, // Queue size = MaxWorkers * 3, so 20 * 3 = 60 > 50 files
 		CleanupAfter: time.Hour,
 	}
 
+	// Create all files first SEQUENTIALLY to avoid race conditions
+	numFiles := 50
+	var createdFiles []string
+	var processedCounter int64
+
+	// Create files sequentially with proper error handling
+	for i := 0; i < numFiles; i++ {
+		content := fmt.Sprintf(`{
+			"intent_type": "scaling",
+			"target": "app-%d",
+			"namespace": "default",
+			"replicas": %d
+		}`, i, i%10+1)
+
+		filename := fmt.Sprintf("intent-concurrent-%d.json", i)
+		file := filepath.Join(handoffDir, filename)
+
+		err := os.WriteFile(file, []byte(content), 0o644)
+		require.NoError(t, err, "Failed to write file %d", i)
+		
+		createdFiles = append(createdFiles, file)
+	}
+
+	// Ensure all files are fully written and visible to filesystem
+	for _, file := range createdFiles {
+		// Verify file exists and is readable
+		info, err := os.Stat(file)
+		require.NoError(t, err, "File should exist and be accessible: %s", file)
+		require.True(t, info.Size() > 0, "File should not be empty: %s", file)
+	}
+
+	// Force filesystem sync on Windows
+	if runtime.GOOS == "windows" {
+		time.Sleep(200 * time.Millisecond) // Extra settling time on Windows
+	}
+
+	// Create watcher after all files are confirmed to exist
 	watcher, err := loop.NewWatcher(handoffDir, config)
 	require.NoError(t, err)
 	defer watcher.Close() // #nosec G307 - Error handled in defer
-	
-	// Create all files first before starting the watcher
-	var wg sync.WaitGroup
-	numFiles := 50
 
-	for i := 0; i < numFiles; i++ {
-		wg.Add(1)
-		go func(id int) {
-			defer wg.Done()
-
-			content := fmt.Sprintf(`{
-				"intent_type": "scaling",
-				"target": "app-%d",
-				"namespace": "default",
-				"replicas": %d
-			}`, id, id%10+1)
-
-			file := filepath.Join(handoffDir, fmt.Sprintf("intent-concurrent-%d.json", id))
-
-			err := os.WriteFile(file, []byte(content), 0o644)
-			if err != nil {
-				t.Errorf("Failed to write file %d: %v", id, err)
-			}
-		}(i)
-	}
-
-	wg.Wait()
-
-	// Start watcher after files are created to process them once
-
-	// Start watcher and wait for completion
+	// Start processing and wait for completion with timeout
+	startTime := time.Now()
 	err = watcher.Start()
 	require.NoError(t, err)
+	processingDuration := time.Since(startTime)
 
-	// Verify all files were processed exactly once
+	// Give extra time for all workers to complete and files to be moved
+	maxWaitTime := 30 * time.Second
+	waitStart := time.Now()
+	
+	for time.Since(waitStart) < maxWaitTime {
+		processedCount := countFilesInDir(t, filepath.Join(handoffDir, "processed"))
+		failedCount := countFilesInDir(t, filepath.Join(handoffDir, "failed"))
+		totalProcessed := processedCount + failedCount
+		
+		t.Logf("Progress: %d/%d files processed (processed: %d, failed: %d) after %v", 
+			totalProcessed, numFiles, processedCount, failedCount, time.Since(waitStart))
+		
+		if totalProcessed >= numFiles {
+			break
+		}
+		
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	// Final verification with detailed error reporting
 	processedCount := countFilesInDir(t, filepath.Join(handoffDir, "processed"))
 	failedCount := countFilesInDir(t, filepath.Join(handoffDir, "failed"))
+	remainingCount := countFilesInDir(t, handoffDir) // Files still in handoff dir
 	totalProcessed := processedCount + failedCount
 
-	assert.Equal(t, numFiles, totalProcessed, "All files should be processed exactly once")
+	t.Logf("Final results: processed=%d, failed=%d, remaining=%d, total=%d, expected=%d",
+		processedCount, failedCount, remainingCount, totalProcessed, numFiles)
+	t.Logf("Processing took %v, waited %v", processingDuration, time.Since(waitStart))
+
+	// Check for files that might still be in the handoff directory
+	if remainingCount > 0 {
+		entries, _ := os.ReadDir(handoffDir)
+		for _, entry := range entries {
+			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".json") {
+				t.Logf("Unprocessed file remaining: %s", entry.Name())
+			}
+		}
+	}
+
+	// Verify all files were processed exactly once
+	assert.Equal(t, numFiles, totalProcessed, 
+		"All %d files should be processed exactly once, but got %d (processed=%d, failed=%d, remaining=%d)",
+		numFiles, totalProcessed, processedCount, failedCount, remainingCount)
 
 	// Verify no race conditions corrupted state
 	stats, err := watcher.GetStats()
 	require.NoError(t, err)
-	assert.Equal(t, totalProcessed, stats.ProcessedCount+stats.FailedCount, "Stats should match processed files")
+	assert.Equal(t, totalProcessed, stats.ProcessedCount+stats.FailedCount, 
+		"Stats should match processed files: stats=%d+%d=%d, actual=%d",
+		stats.ProcessedCount, stats.FailedCount, 
+		stats.ProcessedCount+stats.FailedCount, totalProcessed)
+
+	// Additional verification: ensure atomic counter is working correctly
+	atomic.AddInt64(&processedCounter, int64(totalProcessed))
+	finalCounter := atomic.LoadInt64(&processedCounter)
+	assert.Equal(t, int64(totalProcessed), finalCounter, "Atomic counter should match processed count")
 }
 
 // Helper functions

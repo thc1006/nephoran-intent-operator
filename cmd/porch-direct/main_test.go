@@ -1063,11 +1063,18 @@ func TestRunProjectRootDiscovery(t *testing.T) {
 		}
 	}()
 
-	// Create temporary directory without go.mod
+	// Create an isolated temporary directory structure that prevents finding any parent go.mod
+	// We create a nested directory structure to ensure complete isolation
 	tempDir := t.TempDir()
-	err = os.Chdir(tempDir)
+	isolatedDir := filepath.Join(tempDir, "isolated", "test", "directory")
+	err = os.MkdirAll(isolatedDir, 0o755)
 	if err != nil {
-		t.Fatalf("Failed to change to temp directory: %v", err)
+		t.Fatalf("Failed to create isolated directory: %v", err)
+	}
+	
+	err = os.Chdir(isolatedDir)
+	if err != nil {
+		t.Fatalf("Failed to change to isolated directory: %v", err)
 	}
 
 	// Create valid intent file
@@ -1077,8 +1084,8 @@ func TestRunProjectRootDiscovery(t *testing.T) {
 		Namespace:  "default",
 		Replicas:   1,
 	}
-	intentFile := filepath.Join(tempDir, "intent.json")
-	outDir := filepath.Join(tempDir, "output")
+	intentFile := filepath.Join(isolatedDir, "intent.json")
+	outDir := filepath.Join(isolatedDir, "output")
 
 	intentData, _ := json.MarshalIndent(intent, "", "  ")
 	err = os.WriteFile(intentFile, intentData, 0o644)

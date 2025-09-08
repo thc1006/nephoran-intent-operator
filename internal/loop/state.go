@@ -183,7 +183,7 @@ func (sm *StateManager) saveStateUnsafe() error {
 
 	tempFile := sm.stateFile + ".tmp"
 
-	if err := os.WriteFile(tempFile, data, 0o640); err != nil {
+	if err := os.WriteFile(tempFile, data, 0o644); err != nil {
 		return fmt.Errorf("failed to write temporary state file: %w", err)
 	}
 

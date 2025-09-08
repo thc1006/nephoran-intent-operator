@@ -498,7 +498,7 @@ data:
 
 	yamlPath := filepath.Join(se.config.OutDir, yamlFilename)
 
-	if err := os.WriteFile(yamlPath, []byte(yamlContent), 0o640); err != nil {
+	if err := os.WriteFile(yamlPath, []byte(yamlContent), 0o644); err != nil {
 		return &ExecutionResult{
 			Success: false,
 

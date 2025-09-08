@@ -395,7 +395,7 @@ func (r *WatchReconciler) writeIntentJSON(name string, data map[string]interface
 
 	// Write file.
 
-	if err := os.WriteFile(filepath, jsonData, 0o640); err != nil {
+	if err := os.WriteFile(filepath, jsonData, 0o644); err != nil {
 		return "", fmt.Errorf("failed to write file: %w", err)
 	}
 
