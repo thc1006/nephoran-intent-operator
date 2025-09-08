@@ -16,6 +16,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // ValidatorInterface defines the contract for validation of network intents.
@@ -195,9 +197,8 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now().UTC()
 	
-	ts := now.Format("20060102T150405Z")
-
-	fileName := fmt.Sprintf("intent-%s.json", ts)
+	// Generate collision-proof filename using nanosecond timestamp + UUID
+	fileName := fmt.Sprintf("intent-%d-%s.json", now.UnixNano(), uuid.New().String())
 
 	outFile := filepath.Join(h.outDir, fileName)
 
@@ -229,12 +230,17 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := os.WriteFile(outFile, structuredJSON, 0o640); err != nil {
-
-		http.Error(w, fmt.Sprintf("Failed to save intent to handoff directory: %s", err.Error()), http.StatusInternalServerError)
-
+	// Use secure file creation with exclusive creation flags
+	f, err := os.OpenFile(outFile, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to create intent file: %s", err.Error()), http.StatusInternalServerError)
 		return
+	}
+	defer f.Close()
 
+	if _, err := f.Write(structuredJSON); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to write intent to handoff directory: %s", err.Error()), http.StatusInternalServerError)
+		return
 	}
 
 	// Log with correlation ID if present.
