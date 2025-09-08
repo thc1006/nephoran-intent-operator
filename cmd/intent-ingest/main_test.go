@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -1136,16 +1137,35 @@ func TestServer_IntegrationFlow(t *testing.T) {
 		t.Errorf("Invalid filename format: %s", filename)
 	}
 
-	// Extract and verify timestamp format (YYYYMMDDTHHMMSSZ)
-	timestampPart := strings.TrimPrefix(filename, "intent-")
-	timestampPart = strings.TrimSuffix(timestampPart, ".json")
+	// Extract and verify filename format: intent-<UnixNano>-<UUID>.json
+	filenamePart := strings.TrimPrefix(filename, "intent-")
+	filenamePart = strings.TrimSuffix(filenamePart, ".json")
 
-	if len(timestampPart) != 16 { // 20060102T150405Z format
-		t.Errorf("Invalid timestamp format in filename: %s", timestampPart)
+	// Split by hyphen to get timestamp and UUID parts
+	parts := strings.SplitN(filenamePart, "-", 2)
+	if len(parts) != 2 {
+		t.Errorf("Invalid filename format, expected intent-<timestamp>-<uuid>.json, got: %s", filename)
+		return
 	}
 
-	// Try to parse the timestamp
-	if _, err := time.Parse("20060102T150405Z", timestampPart); err != nil {
-		t.Errorf("Invalid timestamp in filename %s: %v", timestampPart, err)
+	// Verify timestamp is a valid UnixNano timestamp
+	timestampStr := parts[0]
+	timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
+	if err != nil {
+		t.Errorf("Invalid timestamp in filename %s: %v", timestampStr, err)
+		return
+	}
+
+	// Convert UnixNano to time and verify it's reasonable (not in far future or past)
+	parsedTime := time.Unix(0, timestamp)
+	now := time.Now()
+	if parsedTime.Before(now.Add(-24*time.Hour)) || parsedTime.After(now.Add(time.Hour)) {
+		t.Errorf("Timestamp seems unreasonable: %v", parsedTime)
+	}
+
+	// Verify UUID format (basic check for UUID v4 format)
+	uuidPart := parts[1]
+	if len(uuidPart) != 36 {
+		t.Errorf("Invalid UUID format in filename: %s", uuidPart)
 	}
 }
