@@ -72,7 +72,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-          cache: false  # We'll handle caching manually for better control
+          cache: true
           
       - name: Verify Go installation
         run: |
@@ -137,20 +137,6 @@ jobs:
           echo "go-key=$GO_KEY" >> $GITHUB_OUTPUT
           echo "platform-key=$PLATFORM_KEY" >> $GITHUB_OUTPUT
           
-      - name: Cache Go modules (reliability-optimized)
-        if: steps.changes.outputs.should-build == 'true'
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ steps.cache-key.outputs.key }}
-          restore-keys: |
-            ${{ steps.cache-key.outputs.go-key }}-
-            ${{ steps.cache-key.outputs.platform-key }}-
-            nephoran-reliability-v4-${{ runner.os }}-
-          enableCrossOsArchive: false
-          fail-on-cache-miss: false
           
       - name: Pre-download dependencies and generate manifests
         if: steps.changes.outputs.should-build == 'true'
@@ -219,19 +205,8 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ needs.reliability-setup.outputs.go-version }}
-          cache: false
+          cache: true
           
-      - name: Restore dependency cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ needs.reliability-setup.outputs.cache-key }}
-          restore-keys: |
-            nephoran-reliability-v4-${{ runner.os }}-go1.24
-            nephoran-reliability-v4-${{ runner.os }}-
-          fail-on-cache-miss: false
           
       - name: Build ${{ matrix.build-group.name }}
         timeout-minutes: ${{ matrix.build-group.timeout }}
@@ -324,18 +299,8 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ needs.reliability-setup.outputs.go-version }}
-          cache: false
+          cache: true
           
-      - name: Restore dependency cache  
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ needs.reliability-setup.outputs.cache-key }}
-          restore-keys: |
-            nephoran-reliability-v4-${{ runner.os }}-go1.24
-          fail-on-cache-miss: false
           
       - name: Install build dependencies for race detection
         if: matrix.test-suite.name == 'unit-critical'

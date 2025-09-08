@@ -110,7 +110,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-          cache: false  # Manual cache control
+          cache: true  # Manual cache control
           
       - name: Setup advanced Go cache
         if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
@@ -152,18 +152,6 @@ jobs:
           
           echo "✅ Cache directories cleaned and recreated"
             
-      - name: Restore Go cache
-        if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ env.GOCACHE }}
-            ${{ env.GOMODCACHE }}
-          key: ${{ steps.cache-setup.outputs.cache-key }}
-          restore-keys: |
-            nephoran-k8s-op-v3-v2-${{ runner.os }}-go${{ env.GO_VERSION }}-k8s${{ env.KUBERNETES_VERSION }}-
-            nephoran-k8s-op-v3-v2-${{ runner.os }}-go${{ env.GO_VERSION }}-
-          fail-on-cache-miss: false
             
       - name: Smoke test Go cache
         if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
@@ -222,7 +210,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-          cache: false
+          cache: true
           
       - name: Clean cache directories (prevent tar extraction errors)
         run: |
@@ -233,8 +221,6 @@ jobs:
           chmod -R 755 ${{ env.GOMODCACHE }} ${{ env.GOCACHE }}
           echo "✅ Cache directories prepared"
           
-      - name: Restore Go cache
-        uses: actions/cache@v4
         with:
           path: |
             ${{ env.GOCACHE }}
@@ -391,10 +377,8 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-          cache: false
+          cache: true
           
-      - name: Restore Go cache
-        uses: actions/cache@v4
         with:
           path: |
             ${{ env.GOCACHE }}
@@ -718,10 +702,8 @@ EOF
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-          cache: false
+          cache: true
           
-      - name: Restore Go cache
-        uses: actions/cache@v4
         with:
           path: |
             ${{ env.GOCACHE }}
@@ -831,10 +813,8 @@ EOF
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-          cache: false
+          cache: true
           
-      - name: Restore Go cache
-        uses: actions/cache@v4
         with:
           path: |
             ${{ env.GOCACHE }}
@@ -964,10 +944,8 @@ EOF
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-          cache: false
+          cache: true
           
-      - name: Restore Go cache
-        uses: actions/cache@v4
         with:
           path: |
             ${{ env.GOCACHE }}

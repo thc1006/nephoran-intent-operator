@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"testing"
 	"time"
 
@@ -422,7 +421,7 @@ func TestConfig_Validate(t *testing.T) {
 				OutDir:     "/this-path-definitely-does-not-exist-12345/deeply/nested/directory",
 			},
 			wantErr: true,
-			errMsg:  "permission denied|parent does not exist|no such file or directory|cannot create|access denied", // Accept multiple possible error messages
+			errMsg:  "output directory parent does not exist",
 		},
 		{
 			name: "OutDir points to file not directory",
@@ -477,22 +476,7 @@ func TestConfig_Validate(t *testing.T) {
 			if tt.wantErr {
 				assert.Error(t, err)
 				if tt.errMsg != "" && err != nil {
-					errStr := strings.ToLower(err.Error())
-					// Handle multiple possible error messages for cross-platform compatibility
-					if strings.Contains(tt.errMsg, "|") {
-						// Multiple acceptable messages separated by |
-						acceptableMsgs := strings.Split(tt.errMsg, "|")
-						hasAcceptableMsg := false
-						for _, msg := range acceptableMsgs {
-							if strings.Contains(errStr, strings.ToLower(strings.TrimSpace(msg))) {
-								hasAcceptableMsg = true
-								break
-							}
-						}
-						assert.True(t, hasAcceptableMsg, "Expected error message to contain one of %v, got: %s", acceptableMsgs, err.Error())
-					} else {
-						assert.Contains(t, errStr, strings.ToLower(tt.errMsg))
-					}
+					assert.Contains(t, err.Error(), tt.errMsg)
 				}
 			} else {
 				assert.NoError(t, err)
@@ -896,22 +880,7 @@ func TestConfig_EdgeCases(t *testing.T) {
 			if tt.wantErr {
 				assert.Error(t, err)
 				if tt.errMsg != "" && err != nil {
-					errStr := strings.ToLower(err.Error())
-					// Handle multiple possible error messages for cross-platform compatibility
-					if strings.Contains(tt.errMsg, "|") {
-						// Multiple acceptable messages separated by |
-						acceptableMsgs := strings.Split(tt.errMsg, "|")
-						hasAcceptableMsg := false
-						for _, msg := range acceptableMsgs {
-							if strings.Contains(errStr, strings.ToLower(strings.TrimSpace(msg))) {
-								hasAcceptableMsg = true
-								break
-							}
-						}
-						assert.True(t, hasAcceptableMsg, "Expected error message to contain one of %v, got: %s", acceptableMsgs, err.Error())
-					} else {
-						assert.Contains(t, errStr, strings.ToLower(tt.errMsg))
-					}
+					assert.Contains(t, err.Error(), tt.errMsg)
 				}
 			} else {
 				assert.NoError(t, err)

@@ -59,49 +59,10 @@ jobs:
         with:
           go-version: '1.24.6'
           check-latest: true
-          cache: false  # Manual caching for better control
+          cache: true
 
-      - name: Clean Go cache directories
-        run: |
-          # Clean cache directories to prevent tar extraction errors
-          echo "Cleaning Go cache directories..."
-          sudo rm -rf $HOME/.cache/go-build || true
-          sudo rm -rf $HOME/go/pkg/mod || true
-          
-          # Create fresh directories with proper permissions
-          mkdir -p $HOME/.cache/go-build $HOME/go/pkg/mod
-          chmod -R 755 $HOME/.cache/go-build $HOME/go/pkg/mod
 
-      - name: Generate STANDARDIZED cache key
-        id: cache-key
-        run: |
-          # STANDARDIZED cache key generation (matches ci-production.yml)
-          GO_SUM_HASH="${{ hashFiles('**/go.sum') }}"
-          GO_MOD_HASH="${{ hashFiles('go.mod') }}"
-          
-          # Use fallback if hashes are empty
-          if [ -z "$GO_SUM_HASH" ] || [ "$GO_SUM_HASH" = "" ]; then
-            GO_SUM_HASH="${{ github.sha }}"
-          fi
-          if [ -z "$GO_MOD_HASH" ] || [ "$GO_MOD_HASH" = "" ]; then
-            GO_MOD_HASH="${{ github.sha }}"
-          fi
-          
-          # STANDARDIZED cache key format
-          CACHE_KEY="nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-${GO_SUM_HASH}-${GO_MOD_HASH}"
-          echo "Generated STANDARDIZED cache key: $CACHE_KEY"
-          echo "cache-key=$CACHE_KEY" >> $GITHUB_OUTPUT
 
-      - name: Cache Go modules and build cache (STANDARDIZED)
-        uses: actions/cache@v4  # Latest stable version
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ steps.cache-key.outputs.cache-key }}
-          restore-keys: |
-            nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-
-            nephoran-go-v1-${{ runner.os }}-
 
       - name: Configure Git for private modules
         run: |
@@ -181,7 +142,6 @@ jobs:
         run: |
           echo "=== PR Validation Summary ==="
           echo "Go Version: $(go version)"
-          echo "Cache Key: ${{ steps.cache-key.outputs.cache-key }}"
           echo "Skip Tests: ${{ env.SKIP_TESTS }}"
           
           # List any generated binaries

@@ -119,7 +119,7 @@ jobs:
         with:
           go-version: '${{ env.GO_VERSION }}'
           check-latest: true
-          cache: false  # We handle caching manually for better control
+          cache: true
 
       - name: "📊 Collect Go Environment Info"
         if: steps.changes.outputs.go == 'true'
@@ -290,7 +290,7 @@ jobs:
         with:
           go-version: '${{ env.GO_VERSION }}'
           check-latest: true
-          cache: false
+          cache: true
 
       - name: "🧹 Cache Reset (if requested)"
         if: env.CACHE_RESET == 'true'
@@ -481,10 +481,8 @@ jobs:
         with:
           go-version: '${{ env.GO_VERSION }}'
           check-latest: true
-          cache: false
+          cache: true
 
-      - name: "🗂️ Restore Dependency Cache"
-        uses: actions/cache@v4
         with:
           path: ${{ needs.setup.outputs.cache-paths }}
           key: ${{ needs.setup.outputs.cache-key-primary }}
@@ -647,10 +645,8 @@ jobs:
         with:
           go-version: '${{ env.GO_VERSION }}'
           check-latest: true
-          cache: false
+          cache: true
 
-      - name: "🗂️ Restore Dependency Cache"
-        uses: actions/cache@v4
         with:
           path: ${{ needs.setup.outputs.cache-paths }}
           key: ${{ needs.setup.outputs.cache-key-primary }}
@@ -831,10 +827,8 @@ jobs:
         with:
           go-version: '${{ env.GO_VERSION }}'
           check-latest: true
-          cache: false
+          cache: true
 
-      - name: "🗂️ Restore Dependency Cache"
-        uses: actions/cache@v4
         with:
           path: ${{ needs.setup.outputs.cache-paths }}
           key: ${{ needs.setup.outputs.cache-key-primary }}

@@ -81,43 +81,7 @@ jobs:
           check-latest: false
         timeout-minutes: 3
         
-      - name: "🧹 Pre-cache cleanup"
-        timeout-minutes: 2
-        run: |
-          echo "🧹 Cleaning potential Go toolchain conflicts..."
-          # Comprehensive cleanup to prevent tar extraction "File exists" errors
-          # This is a known issue with Go module cache containing files with same names as directories
-          
-          # Remove entire mod cache if it exists to avoid conflicts
-          if [ -d "$HOME/go/pkg/mod" ]; then
-            echo "🔧 Removing existing Go module cache to prevent tar conflicts..."
-            sudo rm -rf "$HOME/go/pkg/mod" 2>/dev/null || true
-          fi
-          
-          # Clean build cache thoroughly
-          if [ -d "$HOME/.cache/go-build" ]; then
-            echo "🔧 Cleaning Go build cache..."
-            sudo rm -rf "$HOME/.cache/go-build" 2>/dev/null || true
-          fi
-          
-          # Create fresh directories with proper permissions
-          mkdir -p "$HOME/go/pkg/mod"
-          mkdir -p "$HOME/.cache/go-build"
-          
-          echo "✅ Pre-cache cleanup completed"
         
-      - name: "🗃️ Restore dependency cache"
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-            .go-build-cache
-          key: Linux-go-${{ env.CACHE_VERSION }}-${{ hashFiles('go.sum', 'go.mod') }}-toolchain-safe
-          restore-keys: |
-            Linux-go-${{ env.CACHE_VERSION }}-${{ hashFiles('go.sum', 'go.mod') }}
-            Linux-go-${{ env.CACHE_VERSION }}-
-        timeout-minutes: 5
         
       - name: "🔍 Fast Syntax & Build Check"
         timeout-minutes: 15  # Extended timeout for syntax check
@@ -181,16 +145,6 @@ jobs:
           cache: true
         timeout-minutes: 3
         
-      - name: "🗃️ Restore dependency cache"
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-            .go-build-cache
-          key: Linux-go-${{ env.CACHE_VERSION }}-${{ hashFiles('go.sum', 'go.mod') }}-toolchain-safe
-          restore-keys: Linux-go-${{ env.CACHE_VERSION }}-
-        timeout-minutes: 5
         
       - name: "🏗️ Setup Kubernetes test environment"
         timeout-minutes: 8   # Extended for K8s setup
@@ -277,16 +231,6 @@ jobs:
           cache: true
         timeout-minutes: 3
         
-      - name: "🗃️ Restore dependency cache"
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-            .go-build-cache
-          key: Linux-go-${{ env.CACHE_VERSION }}-${{ hashFiles('go.sum', 'go.mod') }}-toolchain-safe
-          restore-keys: Linux-go-${{ env.CACHE_VERSION }}-
-        timeout-minutes: 5
         
       - name: "🧪 Run Extended Tests - ${{ matrix.test-group.name }}"
         timeout-minutes: 40  # Very generous timeout
@@ -358,16 +302,6 @@ jobs:
           cache: true
         timeout-minutes: 3
         
-      - name: "🗃️ Restore dependency cache"
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-            .go-build-cache
-          key: Linux-go-${{ env.CACHE_VERSION }}-${{ hashFiles('go.sum', 'go.mod') }}-toolchain-safe
-          restore-keys: Linux-go-${{ env.CACHE_VERSION }}-
-        timeout-minutes: 5
         
       - name: "🏗️ Build ${{ matrix.component-group.name }} components"
         timeout-minutes: 12  # Generous build timeout per group
@@ -441,15 +375,6 @@ jobs:
           cache: true
         timeout-minutes: 3
         
-      - name: "🗃️ Restore dependency cache"
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: Linux-go-${{ env.CACHE_VERSION }}-${{ hashFiles('go.sum', 'go.mod') }}-toolchain-safe
-          restore-keys: Linux-go-${{ env.CACHE_VERSION }}-
-        timeout-minutes: 3
         
       - name: "⚡ golangci-lint"
         uses: golangci/golangci-lint-action@v6

@@ -158,6 +158,14 @@ func TestRapidFileChurn(t *testing.T) {
 
 	var wg sync.WaitGroup
 	stopChan := make(chan struct{})
+	
+	// Use sync.Once to ensure channel is closed only once
+	var stopOnce sync.Once
+	stopFunc := func() {
+		stopOnce.Do(func() {
+			close(stopChan)
+		})
+	}
 
 	// Worker 1: Rapidly create and delete the file
 	wg.Add(1)
@@ -204,7 +212,7 @@ func TestRapidFileChurn(t *testing.T) {
 
 	// Let it run for a bit
 	time.Sleep(500 * time.Millisecond)
-	close(stopChan)
+	stopFunc() // Use safe stop function instead of direct close
 	wg.Wait()
 }
 

@@ -107,7 +107,7 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           check-latest: true
-          cache: false
+          cache: true
 
       - name: Generate production-grade cache key
         if: steps.changes.outputs.should-build == 'true'
@@ -195,44 +195,9 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           check-latest: true
-          cache: false
+          cache: true
 
-      - name: Prepare Go cache directories
-        run: |
-          # Comprehensive cache directory preparation
-          echo "Preparing Go cache directories for production build..."
-          
-          # Remove any existing cache directories
-          sudo rm -rf $HOME/.cache/go-build || true
-          sudo rm -rf $HOME/go/pkg/mod || true
-          sudo rm -rf /tmp/go-build || true
-          
-          # Create fresh directories
-          mkdir -p $HOME/.cache/go-build
-          mkdir -p $HOME/go/pkg/mod
-          mkdir -p /tmp/go-cache
-          
-          # Set proper permissions
-          chmod -R 755 $HOME/.cache/go-build
-          chmod -R 755 $HOME/go/pkg/mod
-          chmod -R 755 /tmp/go-cache
-          
-          # Configure Go to use specific cache locations
-          export GOCACHE="$HOME/.cache/go-build"
-          export GOMODCACHE="$HOME/go/pkg/mod"
-          echo "GOCACHE=$GOCACHE" >> $GITHUB_ENV
-          echo "GOMODCACHE=$GOMODCACHE" >> $GITHUB_ENV
 
-      - name: Restore production cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ needs.setup.outputs.cache-key }}
-          restore-keys: |
-            prod-go-v6-ubuntu-${{ env.GO_VERSION }}-
-            prod-go-v6-ubuntu-
 
       - name: Configure Git authentication
         run: |
@@ -348,22 +313,9 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           check-latest: true
-          cache: false
+          cache: true
 
-      - name: Prepare test environment
-        run: |
-          sudo rm -rf $HOME/.cache/go-build || true
-          sudo rm -rf $HOME/go/pkg/mod || true
-          mkdir -p $HOME/.cache/go-build $HOME/go/pkg/mod
-          chmod -R 755 $HOME/.cache/go-build $HOME/go/pkg/mod
 
-      - name: Restore production cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ needs.setup.outputs.cache-key }}
 
       - name: Setup test dependencies
         timeout-minutes: 5
@@ -444,22 +396,9 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           check-latest: true
-          cache: false
+          cache: true
 
-      - name: Prepare environment
-        run: |
-          sudo rm -rf $HOME/.cache/go-build || true
-          sudo rm -rf $HOME/go/pkg/mod || true
-          mkdir -p $HOME/.cache/go-build $HOME/go/pkg/mod
-          chmod -R 755 $HOME/.cache/go-build $HOME/go/pkg/mod
 
-      - name: Restore cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build  
-            ~/go/pkg/mod
-          key: ${{ needs.setup.outputs.cache-key }}
 
       - name: Download dependencies
         run: |

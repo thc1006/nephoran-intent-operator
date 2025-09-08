@@ -130,31 +130,8 @@ jobs:
         with:
           go-version: ${{ needs.setup.outputs.go-version }}
           check-latest: true
-          cache: false  # We handle caching manually for better control
+          cache: true
           
-      - name: "🧹 Pre-Cache Cleanup"
-        run: |
-          echo "🧹 Cleaning potential cache conflicts..."
-          # Remove any existing Go toolchain files that might conflict
-          sudo rm -rf ~/go/pkg/mod/golang.org/toolchain* 2>/dev/null || true
-          # Clean any corrupted cache entries
-          sudo rm -rf ~/.cache/go-build/*/golang.org/toolchain* 2>/dev/null || true
-          echo "✅ Pre-cache cleanup completed"
-          
-      - name: "🎯 Multi-Layer Dependency Cache"
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-            .go-build-cache
-          key: ${{ needs.setup.outputs.cache-key }}-toolchain-safe
-          restore-keys: |
-            ${{ runner.os }}-go-${{ env.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}-toolchain-safe
-            ${{ runner.os }}-go-${{ env.CACHE_VERSION }}-
-            ${{ runner.os }}-go-
-          enableCrossOsArchive: false
-          fail-on-cache-miss: false
           
       - name: "🔄 Advanced Dependency Resolution with Retry Logic"
         run: |
@@ -162,9 +139,6 @@ jobs:
           
           echo "🚀 Starting advanced dependency resolution..."
           
-          # Create local cache directory
-          mkdir -p .go-build-cache
-          export GOCACHE="$(pwd)/.go-build-cache"
           
           # Retry function with exponential backoff
           retry_download() {
@@ -237,34 +211,12 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ needs.setup.outputs.go-version }}
+          cache: true
           
-      - name: "🧹 Pre-Cache Cleanup (Fast Validation)"
-        run: |
-          echo "🧹 Cleaning potential Go toolchain conflicts..."
-          # Remove any existing Go toolchain files that might conflict during cache restore
-          sudo rm -rf ~/go/pkg/mod/golang.org/toolchain* 2>/dev/null || true
-          sudo rm -rf ~/.cache/go-build/*/golang.org/toolchain* 2>/dev/null || true
-          # Clean any incomplete extractions
-          find ~/go/pkg/mod -name "*.partial~" -delete 2>/dev/null || true
-          echo "✅ Pre-cache cleanup completed"
-          
-      - name: Restore dependency cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-            .go-build-cache
-          key: ${{ needs.setup.outputs.cache-key }}-toolchain-safe
-          restore-keys: |
-            ${{ runner.os }}-go-${{ env.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}-toolchain-safe
-            ${{ runner.os }}-go-${{ env.CACHE_VERSION }}-
-          fail-on-cache-miss: false
             
       - name: "🔍 Fast Syntax & Build Check"
         run: |
           set -e
-          export GOCACHE="$(pwd)/.go-build-cache"
           
           echo "🔍 Running fast syntax validation..."
           
@@ -309,32 +261,12 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ needs.setup.outputs.go-version }}
+          cache: true
           
-      - name: "🧹 Pre-Cache Cleanup (Component Tests)"
-        run: |
-          echo "🧹 Cleaning potential Go toolchain conflicts..."
-          sudo rm -rf ~/go/pkg/mod/golang.org/toolchain* 2>/dev/null || true
-          sudo rm -rf ~/.cache/go-build/*/golang.org/toolchain* 2>/dev/null || true
-          find ~/go/pkg/mod -name "*.partial~" -delete 2>/dev/null || true
-          echo "✅ Pre-cache cleanup completed"
-          
-      - name: Restore dependency cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-            .go-build-cache
-          key: ${{ needs.setup.outputs.cache-key }}-toolchain-safe
-          restore-keys: |
-            ${{ runner.os }}-go-${{ env.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}-toolchain-safe
-            ${{ runner.os }}-go-${{ env.CACHE_VERSION }}-
-          fail-on-cache-miss: false
           
       - name: "🧪 Component Test Suite: ${{ matrix.name }}"
         run: |
           set -e
-          export GOCACHE="$(pwd)/.go-build-cache"
           
           echo "🧪 Testing component: ${{ matrix.name }}"
           echo "📦 Test pattern: ${{ matrix.pattern }}"
@@ -374,32 +306,12 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ needs.setup.outputs.go-version }}
+          cache: true
           
-      - name: "🧹 Pre-Cache Cleanup (Full Build)"
-        run: |
-          echo "🧹 Cleaning potential Go toolchain conflicts..."
-          sudo rm -rf ~/go/pkg/mod/golang.org/toolchain* 2>/dev/null || true
-          sudo rm -rf ~/.cache/go-build/*/golang.org/toolchain* 2>/dev/null || true
-          find ~/go/pkg/mod -name "*.partial~" -delete 2>/dev/null || true
-          echo "✅ Pre-cache cleanup completed"
-          
-      - name: Restore dependency cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-            .go-build-cache
-          key: ${{ needs.setup.outputs.cache-key }}-toolchain-safe
-          restore-keys: |
-            ${{ runner.os }}-go-${{ env.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}-toolchain-safe
-            ${{ runner.os }}-go-${{ env.CACHE_VERSION }}-
-          fail-on-cache-miss: false
           
       - name: "🏗️ Full Project Build"
         run: |
           set -e
-          export GOCACHE="$(pwd)/.go-build-cache"
           
           echo "🏗️ Starting full project build..."
           
@@ -475,26 +387,8 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ needs.setup.outputs.go-version }}
+          cache: true
           
-      - name: "🧹 Pre-Cache Cleanup (Security Scan)"
-        run: |
-          echo "🧹 Cleaning potential Go toolchain conflicts..."
-          sudo rm -rf ~/go/pkg/mod/golang.org/toolchain* 2>/dev/null || true
-          sudo rm -rf ~/.cache/go-build/*/golang.org/toolchain* 2>/dev/null || true
-          find ~/go/pkg/mod -name "*.partial~" -delete 2>/dev/null || true
-          echo "✅ Pre-cache cleanup completed"
-          
-      - name: Restore dependency cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: ${{ needs.setup.outputs.cache-key }}-toolchain-safe
-          restore-keys: |
-            ${{ runner.os }}-go-${{ env.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}-toolchain-safe
-            ${{ runner.os }}-go-${{ env.CACHE_VERSION }}-
-          fail-on-cache-miss: false
           
       - name: "🔒 Security Vulnerability Scan"
         run: |

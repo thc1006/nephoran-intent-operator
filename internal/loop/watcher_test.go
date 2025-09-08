@@ -1435,8 +1435,8 @@ func (s *WatcherTestSuite) TestIntegration_StatusFileGenerationWithVersioning() 
 	for _, file := range statusFiles {
 		s.T().Logf("Status file name: %s", file.Name())
 		s.Assert().Contains(file.Name(), ".status", "Should have .status extension")
-		// The pattern should match: intent-version-test-{id}-{timestamp}.status
-		s.Assert().Regexp(`intent-version-test-\d+-\d{8}-\d{6}\.status`, file.Name(),
+		// The pattern should match: intent-version-test-{id}.json-{timestamp}.status
+		s.Assert().Regexp(`intent-version-test-\d+\.json-\d{8}-\d{6}\.status`, file.Name(),
 			"Status file should have timestamp versioning")
 	}
 }

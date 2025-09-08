@@ -14,36 +14,36 @@ import (
 // Intent represents a network scaling intent with target deployment and replica configuration.
 
 type Intent struct {
-	IntentType string `json:"intent_type"`
+	IntentType      string    `json:"intent_type"`
+	Target          string    `json:"target"`
+	Namespace       string    `json:"namespace"`
+	Replicas        int       `json:"replicas"`
+	Reason          string    `json:"reason,omitempty"`
+	Source          string    `json:"source,omitempty"`
+	CorrelationID   string    `json:"correlation_id,omitempty"`
+	Priority        int       `json:"priority,omitempty"`
+	CreatedAt       string    `json:"created_at,omitempty"`
+	UpdatedAt       string    `json:"updated_at,omitempty"`
+	Status          string    `json:"status,omitempty"`
+	TargetResources []string  `json:"target_resources,omitempty"`
+	Constraints     *Constraints `json:"constraints,omitempty"`
+	NephioContext   *NephioContext `json:"nephio_context,omitempty"`
+}
 
-	Target string `json:"target"`
+// Constraints represents optional constraints for intent execution
+type Constraints struct {
+	MaxReplicas        int      `json:"max_replicas,omitempty"`
+	MinReplicas        int      `json:"min_replicas,omitempty"`
+	AllowedNamespaces  []string `json:"allowed_namespaces,omitempty"`
+	KptPackageName     string   `json:"kpt_package_name,omitempty"`
+	PorchRepository    string   `json:"porch_repository,omitempty"`
+}
 
-	Namespace string `json:"namespace"`
-
-	Replicas int `json:"replicas"`
-
-	Reason string `json:"reason,omitempty"`
-
-	Source string `json:"source,omitempty"`
-
-	CorrelationID string `json:"correlation_id,omitempty"`
-
-	// Additional fields for complete intent representation
-	TargetResources []string `json:"target_resources,omitempty"`
-
-	Status string `json:"status,omitempty"`
-
-	// Standard metadata fields from schema
-	Priority int `json:"priority,omitempty"`
-
-	CreatedAt string `json:"created_at,omitempty"`
-
-	UpdatedAt string `json:"updated_at,omitempty"`
-
-	// Support for constraints and context
-	Constraints map[string]interface{} `json:"constraints,omitempty"`
-
-	NephioContext map[string]interface{} `json:"nephio_context,omitempty"`
+// NephioContext represents Nephio/Porch integration context
+type NephioContext struct {
+	PackageRevision  string `json:"package_revision,omitempty"`
+	WorkloadCluster  string `json:"workload_cluster,omitempty"`
+	BlueprintName    string `json:"blueprint_name,omitempty"`
 }
 
 // Validator represents a validator.
@@ -115,128 +115,16 @@ func (v *Validator) ValidateBytes(b []byte) (*Intent, error) {
 		return nil, fmt.Errorf("invalid json: %w", err)
 	}
 
-	// Default intent_type to "scaling" if not provided
-	if _, exists := tmp["intent_type"]; !exists {
-		tmp["intent_type"] = "scaling"
-	}
-
-	// Ensure default status if not provided
-	if _, exists := tmp["status"]; !exists {
-		tmp["status"] = "pending"
-	}
-
-	// Ensure source if not provided
-	if _, exists := tmp["source"]; !exists {
-		tmp["source"] = "user"
-	}
-
-	// Ensure target_resources if not provided
-	if _, exists := tmp["target_resources"]; !exists {
-		if target, ok := tmp["target"].(string); ok {
-			tmp["target_resources"] = []interface{}{fmt.Sprintf("deployment/%s", target)}
-		}
-	} else if resources, ok := tmp["target_resources"].([]interface{}); ok {
-		// Validate all resources are non-empty strings
-		for _, res := range resources {
-			if str, ok := res.(string); !ok || str == "" {
-				return nil, fmt.Errorf("invalid target_resources: each resource must be a non-empty string")
-			}
-		}
-	}
-
-	// Ensure correlation_id if not provided but we have a target
-	if _, exists := tmp["correlation_id"]; !exists {
-		if target, ok := tmp["target"].(string); ok {
-			namespace := "default"
-			if ns, nsExists := tmp["namespace"].(string); nsExists {
-				namespace = ns
-			}
-			tmp["correlation_id"] = fmt.Sprintf("scale-%s-%s", target, namespace)
-		}
-	}
-
-	// Ensure reason if not provided
-	if _, exists := tmp["reason"]; !exists {
-		if target, ok := tmp["target"].(string); ok {
-			tmp["reason"] = fmt.Sprintf("Scaling request for %s", target)
-		}
-	}
-
-	// Validate the modified payload
+	// Validate the raw payload first - no modifications
 	if err := v.schema.Validate(tmp); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("jsonschema validation failed: %w", err)
 	}
 
+	// After validation passes, unmarshal into the Intent struct
 	var in Intent
-
 	if err := json.Unmarshal(b, &in); err != nil {
 		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
-	// Ensure intent_type is set
-	if in.IntentType == "" {
-		in.IntentType = "scaling"
-	}
-
 	return &in, nil
-}
-
-// ToPreviewFormat converts an Intent to the expected response format for tests.
-// This creates a structured response with top-level fields and a parameters object.
-func (intent *Intent) ToPreviewFormat() map[string]interface{} {
-	response := map[string]interface{}{
-		"type": intent.IntentType,
-	}
-
-	// Set default values for required fields to prevent nil issues
-	if intent.TargetResources != nil && len(intent.TargetResources) > 0 {
-		response["target_resources"] = intent.TargetResources
-	} else if intent.Target != "" {
-		// Fallback: create target_resources from target if not provided
-		response["target_resources"] = []string{"deployment/" + intent.Target}
-	}
-
-	if intent.Status != "" {
-		response["status"] = intent.Status
-	} else {
-		// Default status to pending if not specified
-		response["status"] = "pending"
-	}
-
-	// Build parameters object containing the intent details
-	parameters := map[string]interface{}{
-		"intent_type": intent.IntentType,
-		"target":      intent.Target,
-		"namespace":   intent.Namespace,
-		"replicas":    intent.Replicas,
-	}
-
-	// Add optional parameters if present
-	if intent.Source != "" {
-		parameters["source"] = intent.Source
-	}
-	if intent.Reason != "" {
-		parameters["reason"] = intent.Reason
-	}
-	if intent.CorrelationID != "" {
-		parameters["correlation_id"] = intent.CorrelationID
-	}
-	if intent.Priority > 0 {
-		parameters["priority"] = intent.Priority
-	}
-	if intent.CreatedAt != "" {
-		parameters["created_at"] = intent.CreatedAt
-	}
-	if intent.UpdatedAt != "" {
-		parameters["updated_at"] = intent.UpdatedAt
-	}
-
-	response["parameters"] = parameters
-
-	// Also add correlation_id at top level for JSON compatibility
-	if intent.CorrelationID != "" {
-		response["correlation_id"] = intent.CorrelationID
-	}
-
-	return response
 }

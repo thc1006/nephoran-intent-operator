@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -293,6 +294,10 @@ func (sm *StateManager) markWithStatus(filePath, status string) error {
 
 	absPath, err := filepath.Abs(filePath)
 	if err != nil {
+		// Handle file name too long errors gracefully
+		if isFileNameTooLongError(err) {
+			return fmt.Errorf("file path too long to process: %w", err)
+		}
 		return fmt.Errorf("failed to get absolute path: %w", err)
 	}
 
@@ -577,4 +582,24 @@ func (sm *StateManager) Close() error {
 	}
 
 	return nil
+}
+
+// isFileNameTooLongError checks if an error is due to file name being too long
+func isFileNameTooLongError(err error) bool {
+	if err == nil {
+		return false
+	}
+	
+	// Check for Windows ERROR_FILENAME_EXCESSIVELY_LONG (206)
+	if pathErr, ok := err.(*os.PathError); ok {
+		if errno, ok := pathErr.Err.(syscall.Errno); ok {
+			return errno == 206 // ERROR_FILENAME_EXCESSIVELY_LONG
+		}
+	}
+	
+	// Check for string patterns that indicate filename too long
+	errStr := strings.ToLower(err.Error())
+	return strings.Contains(errStr, "file name too long") ||
+		strings.Contains(errStr, "filename too long") ||
+		strings.Contains(errStr, "name too long")
 }
