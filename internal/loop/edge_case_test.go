@@ -257,20 +257,34 @@ func TestNetworkDiskFailureSimulation(t *testing.T) {
 				intentFile := filepath.Join(handoffDir, "readonly-test.json")
 				require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0o644))
 
-				// Make handoff directory read-only (simulation)
+				// Make output directory read-only to simulate filesystem errors during processing
 				if runtime.GOOS != "windows" {
-					require.NoError(t, os.Chmod(handoffDir, 0o555))
+					require.NoError(t, os.Chmod(outDir, 0o555))
 				}
 
 				return handoffDir, outDir
 			},
 			testFunc: func(t *testing.T, watcher *Watcher, handoffDir, outDir string) {
-				// Should handle read-only filesystem gracefully
+				// Should encounter an error when trying to write to read-only filesystem
 				err := watcher.Start()
-				assert.NoError(t, err, "Should handle read-only filesystem gracefully")
+				if runtime.GOOS != "windows" {
+					require.Error(t, err, "Should return error for read-only filesystem")
+					// Check that error is related to permission denied or read-only filesystem
+					errStr := strings.ToLower(err.Error())
+					assert.True(t, 
+						strings.Contains(errStr, "permission denied") || 
+						strings.Contains(errStr, "read-only") || 
+						strings.Contains(errStr, "access denied") ||
+						strings.Contains(errStr, "cannot create"),
+						"Error should indicate permission/read-only issue, got: %v", err)
+				} else {
+					// On Windows, test behavior may differ
+					assert.NoError(t, err, "Windows may handle read-only differently")
+				}
 
 				// Restore permissions for cleanup
 				if runtime.GOOS != "windows" {
+					os.Chmod(outDir, 0o755)
 					os.Chmod(handoffDir, 0o755)
 				}
 			},

@@ -50,6 +50,46 @@ func generatePackageName(target string) string {
 	return fmt.Sprintf("%s-scaling-patch-%s", target, timestamp)
 }
 
+// ValidateIntent validates the intent parameters
+func ValidateIntent(intent *Intent) error {
+	if intent == nil {
+		return fmt.Errorf("intent cannot be nil")
+	}
+	
+	if intent.Target == "" {
+		return fmt.Errorf("target cannot be empty")
+	}
+	
+	if intent.Namespace == "" {
+		return fmt.Errorf("namespace cannot be empty")
+	}
+	
+	// Validate namespace format (basic kubernetes naming rules)
+	if !isValidKubernetesName(intent.Namespace) {
+		return fmt.Errorf("namespace must be a valid Kubernetes name (lowercase letters, numbers, and hyphens only)")
+	}
+	
+	// Validate target format
+	if !isValidKubernetesName(intent.Target) {
+		return fmt.Errorf("target must be a valid Kubernetes name (lowercase letters, numbers, and hyphens only)")
+	}
+	
+	if intent.Replicas < 0 {
+		return fmt.Errorf("replicas cannot be negative, got %d", intent.Replicas)
+	}
+	
+	// Add upper limit for replicas
+	if intent.Replicas > 10000 {
+		return fmt.Errorf("replicas cannot exceed 10000, got %d", intent.Replicas)
+	}
+	
+	if intent.IntentType != "scaling" {
+		return fmt.Errorf("only 'scaling' intent type is supported, got %q", intent.IntentType)
+	}
+	
+	return nil
+}
+
 // NewPatchPackage creates a new patch package from an intent.
 
 func NewPatchPackage(intent *Intent, outputDir string) *PatchPackage {
@@ -113,6 +153,11 @@ func NewPatchPackage(intent *Intent, outputDir string) *PatchPackage {
 // Generate creates the patch package files in the output directory.
 
 func (p *PatchPackage) Generate() error {
+	// Validate intent before generating
+	if err := ValidateIntent(p.Intent); err != nil {
+		return fmt.Errorf("validation failed: %w", err)
+	}
+	
 	packageDir := filepath.Join(p.OutputDir, p.Kptfile.Metadata.Name)
 
 	// Ensure output directory is valid and accessible.
@@ -264,4 +309,30 @@ func writeFile(path string, data []byte) error {
 	}
 
 	return os.WriteFile(path, data, 0o640)
+}
+
+// isValidKubernetesName checks if a string is a valid Kubernetes resource name
+func isValidKubernetesName(name string) bool {
+	if len(name) == 0 || len(name) > 63 {
+		return false
+	}
+
+	// Must start with lowercase letter or number and end with lowercase letter or number
+	if !isAlphaNumeric(name[0]) || !isAlphaNumeric(name[len(name)-1]) {
+		return false
+	}
+
+	// Check each character
+	for _, char := range name {
+		if !isAlphaNumeric(byte(char)) && char != '-' {
+			return false
+		}
+	}
+
+	return true
+}
+
+// isAlphaNumeric checks if a byte is alphanumeric lowercase
+func isAlphaNumeric(b byte) bool {
+	return (b >= 'a' && b <= 'z') || (b >= '0' && b <= '9')
 }

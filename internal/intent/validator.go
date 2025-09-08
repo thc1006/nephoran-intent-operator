@@ -19,7 +19,7 @@ type ValidatorMetrics struct {
 	ValidationSuccesses int64
 	ValidationErrors    int64
 	SchemaLoadFailures  int64
-	LastValidationTime  time.Time
+	LastValidationTime  int64 // Unix timestamp stored atomically
 }
 
 // Validator handles JSON schema validation for scaling intents
@@ -113,7 +113,7 @@ func (v *Validator) ValidateIntent(intent *ScalingIntent) []ValidationError {
 	metrics := v.metrics.Load()
 	if metrics != nil {
 		atomic.AddInt64(&metrics.TotalValidations, 1)
-		metrics.LastValidationTime = time.Now()
+		atomic.StoreInt64(&metrics.LastValidationTime, time.Now().Unix())
 	}
 	
 	// Check for nil intent - additional safety validation
@@ -188,7 +188,7 @@ func (v *Validator) ValidateJSON(data []byte) []ValidationError {
 	metrics := v.metrics.Load()
 	if metrics != nil {
 		atomic.AddInt64(&metrics.TotalValidations, 1)
-		metrics.LastValidationTime = time.Now()
+		atomic.StoreInt64(&metrics.LastValidationTime, time.Now().Unix())
 	}
 	
 	// Check for nil or empty data - additional safety validation
@@ -305,7 +305,7 @@ func (v *Validator) GetMetrics() ValidatorMetrics {
 		ValidationSuccesses: atomic.LoadInt64(&metrics.ValidationSuccesses),
 		ValidationErrors:    atomic.LoadInt64(&metrics.ValidationErrors),
 		SchemaLoadFailures:  atomic.LoadInt64(&metrics.SchemaLoadFailures),
-		LastValidationTime:  metrics.LastValidationTime,
+		LastValidationTime:  atomic.LoadInt64(&metrics.LastValidationTime),
 	}
 }
 

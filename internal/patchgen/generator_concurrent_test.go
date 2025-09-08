@@ -2,6 +2,7 @@ package patchgen
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -69,9 +70,17 @@ func TestPackageGenerationStressTest(t *testing.T) {
 			}
 
 			outputDir := filepath.Join(tempDir, fmt.Sprintf("stress-output-%d", id))
+			
+			// Create the output directory before generating the package
+			err := os.MkdirAll(outputDir, 0o755)
+			if err != nil {
+				t.Errorf("Failed to create output directory %s: %v", outputDir, err)
+				return
+			}
+			
 			patchPackage := NewPatchPackage(intent, outputDir)
 
-			err := patchPackage.Generate()
+			err = patchPackage.Generate()
 			assert.NoError(t, err, "Package generation should not fail")
 
 			// Atomic increment of successful package creation

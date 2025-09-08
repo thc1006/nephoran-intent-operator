@@ -197,7 +197,7 @@ func TestSecuritySchemaValidationHardening(t *testing.T) {
 			t.Error("SECURITY: Successful validations must be tracked")
 		}
 		
-		if metrics.LastValidationTime.IsZero() {
+		if metrics.LastValidationTime == 0 {
 			t.Error("SECURITY: Validation timestamps required for audit trail")
 		}
 	})

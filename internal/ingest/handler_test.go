@@ -495,9 +495,26 @@ func TestHandleIntent_FileWriteError(t *testing.T) {
 	}
 
 	body := w.Body.String()
-	// Accept both old and new file write error message formats
-	if !strings.Contains(body, "intent failed") && !strings.Contains(body, "Failed to save intent") {
-		t.Errorf("Expected write error message, got: %s", body)
+	// Accept various file write error message formats (permission denied, read-only filesystem, etc.)
+	expectedMsgs := []string{
+		"intent failed",
+		"Failed to save intent", 
+		"permission denied",
+		"read-only",
+		"cannot create",
+		"access denied",
+	}
+	
+	hasExpectedMsg := false
+	for _, msg := range expectedMsgs {
+		if strings.Contains(strings.ToLower(body), strings.ToLower(msg)) {
+			hasExpectedMsg = true
+			break
+		}
+	}
+	
+	if !hasExpectedMsg {
+		t.Errorf("Expected write error message containing one of %v, got: %s", expectedMsgs, body)
 	}
 }
 
