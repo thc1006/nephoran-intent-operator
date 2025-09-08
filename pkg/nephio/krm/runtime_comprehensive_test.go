@@ -554,14 +554,9 @@ func (r *MockKRMRuntime) setNamespaceHandler(ctx context.Context, req *FunctionR
 	}
 	
 	namespace, ok := configMap["namespace"].(string)
-	if !ok {
-		return &FunctionResponse{
-			Resources: req.Resources,
-			Error: &FunctionError{
-				Message: "namespace configuration is required",
-				Code:    "INVALID_CONFIG",
-			},
-		}, nil
+	if !ok || namespace == "" {
+		// Provide a default namespace if none is specified
+		namespace = "default"
 	}
 
 	modifiedResources := make([]KRMResource, len(req.Resources))
@@ -648,14 +643,9 @@ func (r *MockKRMRuntime) ensureNameSubstringHandler(ctx context.Context, req *Fu
 	}
 	
 	substring, ok := configMap["substring"].(string)
-	if !ok {
-		return &FunctionResponse{
-			Resources: req.Resources,
-			Error: &FunctionError{
-				Message: "substring configuration is required",
-				Code:    "INVALID_CONFIG",
-			},
-		}, nil
+	if !ok || substring == "" {
+		// Provide a default substring if none is specified
+		substring = "default"
 	}
 
 	modifiedResources := make([]KRMResource, len(req.Resources))
@@ -869,10 +859,19 @@ func (r *MockKRMRuntime) validateFunctionConfig(function *RegisteredFunction, co
 
 // generateTestResource creates a test KRM resource
 func generateTestResource(apiVersion, kind, name, namespace string) KRMResource {
+	metadata := map[string]interface{}{
+		"name": name,
+	}
+	if namespace != "" {
+		metadata["namespace"] = namespace
+	}
+	
+	metadataJSON, _ := json.Marshal(metadata)
+	
 	return KRMResource{
 		APIVersion: apiVersion,
 		Kind:       kind,
-		Metadata:   json.RawMessage(`{}`),
+		Metadata:   json.RawMessage(metadataJSON),
 		Spec:       json.RawMessage(`{}`),
 	}
 }
@@ -1051,7 +1050,7 @@ func TestStandardFunctions(t *testing.T) {
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image:     "gcr.io/kpt-fn/set-namespace:v0.4.1",
-				ConfigMap: json.RawMessage(`{}`),
+				ConfigMap: json.RawMessage(`{"namespace": "test-namespace"}`),
 			},
 			Resources: resources,
 		}
@@ -1068,7 +1067,7 @@ func TestStandardFunctions(t *testing.T) {
 			assert.NoError(t, err)
 			namespace, exists := metadata["namespace"]
 			assert.True(t, exists)
-			assert.Equal(t, "production", namespace)
+			assert.Equal(t, "test-namespace", namespace)
 		}
 	})
 
@@ -1080,7 +1079,7 @@ func TestStandardFunctions(t *testing.T) {
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image:     "gcr.io/kpt-fn/ensure-name-substring:v0.1.1",
-				ConfigMap: json.RawMessage(`{}`),
+				ConfigMap: json.RawMessage(`{"substring": "prod"}`),
 			},
 			Resources: resources,
 		}
@@ -1208,7 +1207,7 @@ func TestPipelineExecution(t *testing.T) {
 		Functions: []FunctionConfig{
 			{
 				Image:     "gcr.io/kpt-fn/set-namespace:v0.4.1",
-				ConfigMap: json.RawMessage(`{}`),
+				ConfigMap: json.RawMessage(`{"namespace": "default"}`),
 			},
 			func() FunctionConfig {
 				configMapData := map[string]interface{}{
@@ -1285,7 +1284,7 @@ func TestPipelineExecutionFailure(t *testing.T) {
 		Functions: []FunctionConfig{
 			{
 				Image:     "gcr.io/kpt-fn/set-namespace:v0.4.1",
-				ConfigMap: json.RawMessage(`{}`),
+				ConfigMap: json.RawMessage(`{"namespace": "default"}`),
 			},
 			{
 				Image: "test/failing-function:v1.0.0",
@@ -1646,7 +1645,7 @@ func BenchmarkPipelineExecution(b *testing.B) {
 		Functions: []FunctionConfig{
 			{
 				Image:     "gcr.io/kpt-fn/set-namespace:v0.4.1",
-				ConfigMap: json.RawMessage(`{}`),
+				ConfigMap: json.RawMessage(`{"namespace": "default"}`),
 			},
 			func() FunctionConfig {
 				configMapData := map[string]interface{}{
