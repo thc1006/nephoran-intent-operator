@@ -37,6 +37,8 @@ func TestNewValidator(t *testing.T) {
 	}
 
 	schemaPath := filepath.Join(schemaDir, "intent.schema.json")
+	// Schema matches the actual docs/contracts/intent.schema.json requirements
+	// ValidateBytes adds default values for status and target_resources fields
 	schema := `{
 		"$schema": "https://json-schema.org/draft/2020-12/schema",
 		"$id": "https://example.com/schemas/intent.schema.json",
@@ -71,6 +73,19 @@ func TestNewValidator(t *testing.T) {
 			},
 			"correlation_id": {
 				"type": "string"
+			},
+			"status": {
+				"type": "string",
+				"enum": ["pending", "processing", "completed", "failed"],
+				"description": "Current status of intent execution"
+			},
+			"target_resources": {
+				"type": "array",
+				"items": {
+					"type": "string",
+					"minLength": 1
+				},
+				"description": "List of resources to be scaled"
 			}
 		}
 	}`
@@ -621,6 +636,8 @@ func createTestValidator(t *testing.T) *Validator {
 	}
 
 	schemaPath := filepath.Join(schemaDir, "intent.schema.json")
+	// Schema matches the actual docs/contracts/intent.schema.json requirements
+	// ValidateBytes adds default values for status and target_resources fields
 	schema := `{
 		"$schema": "https://json-schema.org/draft/2020-12/schema",
 		"$id": "https://example.com/schemas/intent.schema.json",
@@ -655,6 +672,19 @@ func createTestValidator(t *testing.T) *Validator {
 			},
 			"correlation_id": {
 				"type": "string"
+			},
+			"status": {
+				"type": "string",
+				"enum": ["pending", "processing", "completed", "failed"],
+				"description": "Current status of intent execution"
+			},
+			"target_resources": {
+				"type": "array",
+				"items": {
+					"type": "string",
+					"minLength": 1
+				},
+				"description": "List of resources to be scaled"
 			}
 		}
 	}`
