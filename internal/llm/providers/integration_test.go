@@ -443,7 +443,7 @@ func TestSchemaValidationErrorHandling(t *testing.T) {
 				"replicas": 3
 			}`,
 			shouldError: true,
-			errorMsg:    "enum",
+			errorMsg:    "value must be one of",
 		},
 		{
 			name: "Invalid Replica Count - Too Low",
