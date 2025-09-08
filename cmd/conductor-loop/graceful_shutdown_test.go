@@ -156,9 +156,24 @@ func TestShutdownFailureDetection(t *testing.T) {
 		t.Fatalf("Failed to create handoff directory: %v", err)
 	}
 
+	// Create mock porch executable for testing
+	mockPorchPath := filepath.Join(tempDir, "mock-porch")
+	if runtime.GOOS == "windows" {
+		mockPorchPath += ".bat"
+		mockScript := "@echo off\necho Mock porch processing...\nexit /b 0\n"
+		err = os.WriteFile(mockPorchPath, []byte(mockScript), 0o755)
+	} else {
+		mockPorchPath += ".sh"
+		mockScript := "#!/bin/bash\necho 'Mock porch processing...'\nexit 0\n"
+		err = os.WriteFile(mockPorchPath, []byte(mockScript), 0o755)
+	}
+	if err != nil {
+		t.Fatalf("Failed to create mock porch: %v", err)
+	}
+
 	// Create watcher
 	config := loop.Config{
-		PorchPath:   "mock-porch",
+		PorchPath:   mockPorchPath,
 		Mode:        "direct",
 		OutDir:      tempDir,
 		MaxWorkers:  3, // Production-like worker count for realistic concurrency testing

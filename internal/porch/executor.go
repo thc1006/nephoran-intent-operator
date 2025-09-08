@@ -250,6 +250,13 @@ func getExitCode(err error) int {
 // ValidatePorchPath checks if the porch executable exists and is executable.
 
 func ValidatePorchPath(porchPath string) error {
+	// Skip validation for obviously invalid paths (security/test scenarios)
+	if strings.Contains(porchPath, "&&") || strings.Contains(porchPath, "||") || 
+		strings.Contains(porchPath, ";") || strings.Contains(porchPath, "|") || 
+		strings.Contains(porchPath, "`") || strings.Contains(porchPath, "$") {
+		return fmt.Errorf("porch validation failed: potentially unsafe path detected: %s", porchPath)
+	}
+
 	// Try to run porch with --help to validate it exists and works.
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -266,6 +273,15 @@ func ValidatePorchPath(porchPath string) error {
 	if err != nil {
 
 		stderrStr := strings.TrimSpace(stderr.String())
+
+		// Provide more specific error messages
+		if strings.Contains(err.Error(), "executable file not found") {
+			if filepath.IsAbs(porchPath) {
+				return fmt.Errorf("porch validation failed: executable not found at path: %s", porchPath)
+			} else {
+				return fmt.Errorf("porch validation failed: executable '%s' not found in PATH", porchPath)
+			}
+		}
 
 		if stderrStr != "" {
 			return fmt.Errorf("porch validation failed: %w (stderr: %s)", err, stderrStr)

@@ -55,6 +55,9 @@ type Config struct {
 	MetricsUser string `json:"metrics_user"` // Basic auth username
 
 	MetricsPass string `json:"metrics_pass"` // Basic auth password
+
+	// SuppressPorchValidation skips porch path validation (useful for testing)
+	SuppressPorchValidation bool `json:"suppress_porch_validation"`
 }
 
 // Validate checks if the configuration is valid and secure.
@@ -580,10 +583,12 @@ func NewWatcherWithConfig(dir string, config Config, processor *IntentProcessor)
 			Timeout: 30 * time.Second,
 		})
 
-		// Validate porch path.
+		// Validate porch path (unless suppressed for testing).
 
-		if err := porch.ValidatePorchPath(config.PorchPath); err != nil {
-			log.Printf("Warning: Porch validation failed: %v", err)
+		if !config.SuppressPorchValidation {
+			if err := porch.ValidatePorchPath(config.PorchPath); err != nil {
+				log.Printf("Warning: Porch validation failed: %v", err)
+			}
 		}
 	}
 
@@ -1614,21 +1619,25 @@ func (w *Watcher) enhancedWorker(workerID int) {
 func (w *Watcher) processWorkItemWithLocking(workerID int, workItem WorkItem) {
 	// Increment active task counter when starting processing
 	atomic.AddInt64(&w.workerPool.activeTasks, 1)
-	defer atomic.AddInt64(&w.workerPool.activeTasks, -1) // Decrement when done
-
+	
+	// Ensure the active task counter is decremented ONLY after all processing is complete
 	defer func() {
 		// Cancel the work item's context when processing is complete
 		if workItem.Cancel != nil {
 			workItem.Cancel()
 		}
+		
+		// Decrement active task counter as the very last operation
+		// This ensures the shutdown logic doesn't see 0 active tasks prematurely
+		atomic.AddInt64(&w.workerPool.activeTasks, -1)
+		log.Printf("LOOP:WORKER - Worker %d finished processing %s, active tasks now: %d", 
+			workerID, filepath.Base(workItem.FilePath), atomic.LoadInt64(&w.workerPool.activeTasks))
 	}()
 
 	// Get or create file-level mutex.
-
 	fileLock := w.getOrCreateFileLock(workItem.FilePath)
 
 	fileLock.Lock()
-
 	defer fileLock.Unlock()
 
 	w.processIntentFileWithContext(workerID, workItem)
@@ -1810,17 +1819,30 @@ func (w *Watcher) waitForWorkersToFinish() {
 	log.Printf("Signaling enhanced workers to stop...")
 
 	// Wait for both queue to drain AND all active tasks to finish processing
+	// Use multiple check cycles to avoid race conditions where a task finishes 
+	// between checking queue and active tasks
+	stableCount := 0
 	for {
+		// Force memory barrier to ensure we see latest atomic updates
+		runtime.Gosched()
+		
 		queueSize := len(w.workerPool.workQueue)
 		activeTasks := atomic.LoadInt64(&w.workerPool.activeTasks)
 
 		// Check if both queue is empty AND no tasks are actively being processed
 		if queueSize == 0 && activeTasks == 0 {
-			break
-		}
-
-		if queueSize > 0 || activeTasks > 0 {
-			log.Printf("Waiting for workers to finish: %d items in queue, %d active tasks", queueSize, activeTasks)
+			stableCount++
+			// Require stable state for 3 consecutive checks to avoid race conditions
+			if stableCount >= 3 {
+				log.Printf("Shutdown confirmed: stable empty state for %d checks", stableCount)
+				break
+			}
+			log.Printf("Empty state detected (%d/3): queue=%d, active=%d", stableCount, queueSize, activeTasks)
+		} else {
+			stableCount = 0 // Reset if work is still happening
+			if queueSize > 0 || activeTasks > 0 {
+				log.Printf("Waiting for workers to finish: %d items in queue, %d active tasks", queueSize, activeTasks)
+			}
 		}
 
 		time.Sleep(50 * time.Millisecond) // Shorter sleep for more responsive checking
