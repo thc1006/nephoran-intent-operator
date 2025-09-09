@@ -486,7 +486,7 @@ func (p *IntentProcessor) handleError(filename string, err error) error {
 
 	errorFile := filepath.Join(p.config.ErrorDir, fmt.Sprintf("%s.%s.error", basename, timestamp))
 
-	if writeErr := atomicWriteFile(errorFile, []byte(errorContent), 0o640); writeErr != nil {
+	if writeErr := atomicWriteFile(errorFile, []byte(errorContent), 0o644); writeErr != nil {
 		log.Printf("Failed to write error file %s: %v", errorFile, writeErr)
 	}
 
@@ -497,7 +497,7 @@ func (p *IntentProcessor) handleError(filename string, err error) error {
 	if origData != nil {
 		origCopy := filepath.Join(p.config.ErrorDir, fmt.Sprintf("%s.%s.json", basename, timestamp))
 
-		if writeErr := atomicWriteFile(origCopy, origData, 0o640); writeErr != nil {
+		if writeErr := atomicWriteFile(origCopy, origData, 0o644); writeErr != nil {
 			log.Printf("Failed to copy original file to error dir: %v", writeErr)
 		}
 	}
@@ -832,50 +832,35 @@ func (p *IntentProcessor) isShutdownFailure(failedFilePath string) bool {
 
 	basename := filepath.Base(failedFilePath)
 
-	// Remove .json suffix and find .error file.
+	// Remove .json suffix and find .error.log file.
 
 	if strings.HasSuffix(basename, ".json") {
 		baseWithoutExt := strings.TrimSuffix(basename, ".json")
 
-		// Find the corresponding .error file.
-
-		entries, err := os.ReadDir(p.config.ErrorDir)
+		// Look for the specific error log file (consistent with FileManager)
+		errorLogFile := baseWithoutExt + ".json.error.log"
+		errorLogPath := filepath.Join(p.config.ErrorDir, errorLogFile)
+		
+		// Read the error log content directly
+		errorContent, err := os.ReadFile(errorLogPath)
 		if err != nil {
 			return false
 		}
 
-		for _, entry := range entries {
-			name := entry.Name()
+		errorMsg := string(errorContent)
 
-			if strings.HasPrefix(name, baseWithoutExt) && strings.HasSuffix(name, ".error") {
-				errorPath := filepath.Join(p.config.ErrorDir, name)
-
-				errorContent, err := os.ReadFile(errorPath)
-				if err != nil {
-					continue
-				}
-
-				errorMsg := string(errorContent)
-
-				// Check for shutdown failure patterns.
-
-				return strings.Contains(errorMsg, "SHUTDOWN_FAILURE:") ||
-
-					strings.Contains(strings.ToLower(errorMsg), "context canceled") ||
-
-					strings.Contains(strings.ToLower(errorMsg), "context cancelled") ||
-
-					strings.Contains(strings.ToLower(errorMsg), "signal: killed") ||
-
-					strings.Contains(strings.ToLower(errorMsg), "signal: interrupt") ||
-
-					strings.Contains(strings.ToLower(errorMsg), "signal: terminated")
-			}
-		}
+		// Check for shutdown failure patterns.
+		return strings.Contains(errorMsg, "SHUTDOWN_FAILURE:") ||
+			strings.Contains(strings.ToLower(errorMsg), "context canceled") ||
+			strings.Contains(strings.ToLower(errorMsg), "context cancelled") ||
+			strings.Contains(strings.ToLower(errorMsg), "signal: killed") ||
+			strings.Contains(strings.ToLower(errorMsg), "signal: interrupt") ||
+			strings.Contains(strings.ToLower(errorMsg), "signal: terminated")
 	}
 
 	return false
 }
+
 
 // MarkGracefulShutdown marks that graceful shutdown has started.
 

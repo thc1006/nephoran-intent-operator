@@ -14,19 +14,36 @@ import (
 // Intent represents a network scaling intent with target deployment and replica configuration.
 
 type Intent struct {
-	IntentType string `json:"intent_type"`
+	IntentType      string    `json:"intent_type"`
+	Target          string    `json:"target"`
+	Namespace       string    `json:"namespace"`
+	Replicas        int       `json:"replicas"`
+	Reason          string    `json:"reason,omitempty"`
+	Source          string    `json:"source,omitempty"`
+	CorrelationID   string    `json:"correlation_id,omitempty"`
+	Priority        int       `json:"priority,omitempty"`
+	CreatedAt       string    `json:"created_at,omitempty"`
+	UpdatedAt       string    `json:"updated_at,omitempty"`
+	Status          string    `json:"status,omitempty"`
+	TargetResources []string  `json:"target_resources,omitempty"`
+	Constraints     *Constraints `json:"constraints,omitempty"`
+	NephioContext   *NephioContext `json:"nephio_context,omitempty"`
+}
 
-	Target string `json:"target"`
+// Constraints represents optional constraints for intent execution
+type Constraints struct {
+	MaxReplicas        int      `json:"max_replicas,omitempty"`
+	MinReplicas        int      `json:"min_replicas,omitempty"`
+	AllowedNamespaces  []string `json:"allowed_namespaces,omitempty"`
+	KptPackageName     string   `json:"kpt_package_name,omitempty"`
+	PorchRepository    string   `json:"porch_repository,omitempty"`
+}
 
-	Namespace string `json:"namespace"`
-
-	Replicas int `json:"replicas"`
-
-	Reason string `json:"reason,omitempty"`
-
-	Source string `json:"source,omitempty"`
-
-	CorrelationID string `json:"correlation_id,omitempty"`
+// NephioContext represents Nephio/Porch integration context
+type NephioContext struct {
+	PackageRevision  string `json:"package_revision,omitempty"`
+	WorkloadCluster  string `json:"workload_cluster,omitempty"`
+	BlueprintName    string `json:"blueprint_name,omitempty"`
 }
 
 // Validator represents a validator.
@@ -92,18 +109,19 @@ func NewValidator(schemaPath string) (*Validator, error) {
 // ValidateBytes performs validatebytes operation.
 
 func (v *Validator) ValidateBytes(b []byte) (*Intent, error) {
-	var tmp any
+	var tmp map[string]interface{}
 
 	if err := json.Unmarshal(b, &tmp); err != nil {
 		return nil, fmt.Errorf("invalid json: %w", err)
 	}
 
+	// Validate the raw payload first - no modifications
 	if err := v.schema.Validate(tmp); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("jsonschema validation failed: %w", err)
 	}
 
+	// After validation passes, unmarshal into the Intent struct
 	var in Intent
-
 	if err := json.Unmarshal(b, &in); err != nil {
 		return nil, fmt.Errorf("unmarshal: %w", err)
 	}

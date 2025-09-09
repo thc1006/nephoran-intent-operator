@@ -1,6 +1,5 @@
 package porch
 
-import "encoding/json"
 
 // Imports are left minimal since this is just a placeholder test file
 
@@ -9,14 +8,14 @@ func createTestFunctionRequest() *FunctionRequest {
 	return &FunctionRequest{
 		FunctionConfig: FunctionConfig{
 			Image: "gcr.io/kpt-fn/apply-setters:v0.1.1",
-			ConfigMap: json.RawMessage(`{}`),
+			ConfigMap: map[string]interface{}{},
 		},
 		Resources: []KRMResource{
 			{
 				APIVersion: "v1",
 				Kind:       "ConfigMap",
-				Metadata: json.RawMessage(`{}`),
-				Data: json.RawMessage(`{}`),
+				Metadata: map[string]interface{}{},
+				Data: map[string]interface{}{},
 			},
 		},
 		Context: &FunctionContext{

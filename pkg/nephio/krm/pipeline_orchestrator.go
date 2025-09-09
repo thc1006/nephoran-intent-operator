@@ -1663,20 +1663,14 @@ func (po *PipelineOrchestrator) resourceMatchesSelector(resource *porch.KRMResou
 		return false
 	}
 
-	// Unmarshal metadata once
-	var metadata map[string]interface{}
-	if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
-		return false
-	}
-
 	if selector.Name != "" {
-		if name, ok := metadata["name"].(string); !ok || name != selector.Name {
+		if name, ok := resource.Metadata["name"].(string); !ok || name != selector.Name {
 			return false
 		}
 	}
 
 	if selector.Namespace != "" {
-		if namespace, ok := metadata["namespace"].(string); !ok || namespace != selector.Namespace {
+		if namespace, ok := resource.Metadata["namespace"].(string); !ok || namespace != selector.Namespace {
 			return false
 		}
 	}
@@ -1684,7 +1678,7 @@ func (po *PipelineOrchestrator) resourceMatchesSelector(resource *porch.KRMResou
 	// Check label selectors.
 
 	for key, value := range selector.Labels {
-		if labels, ok := metadata["labels"].(map[string]interface{}); ok {
+		if labels, ok := resource.Metadata["labels"].(map[string]interface{}); ok {
 			if labelValue, exists := labels[key]; !exists || labelValue != value {
 				return false
 			}

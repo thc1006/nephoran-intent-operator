@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"encoding/json"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -324,7 +323,7 @@ func (m *MockPorchClient) ApprovePackageRevision(ctx context.Context, name strin
 	}
 
 	// Validate lifecycle transition using the CanTransitionTo function
-	if !porch.CanTransitionTo(pkg.Spec.Lifecycle, porch.PackageRevisionLifecyclePublished) {
+	if !pkg.Spec.Lifecycle.CanTransitionTo(porch.PackageRevisionLifecyclePublished) {
 		return fmt.Errorf("cannot transition from %s to Published", pkg.Spec.Lifecycle)
 	}
 
@@ -352,7 +351,7 @@ func (m *MockPorchClient) ProposePackageRevision(ctx context.Context, name strin
 	}
 
 	// Validate lifecycle transition using the CanTransitionTo function
-	if !porch.CanTransitionTo(pkg.Spec.Lifecycle, porch.PackageRevisionLifecycleProposed) {
+	if !pkg.Spec.Lifecycle.CanTransitionTo(porch.PackageRevisionLifecycleProposed) {
 		return fmt.Errorf("cannot transition from %s to Proposed", pkg.Spec.Lifecycle)
 	}
 
@@ -463,12 +462,12 @@ func (m *MockPorchClient) RenderPackage(ctx context.Context, name string, revisi
 		{
 			APIVersion: "apps/v1",
 			Kind:       "Deployment",
-			Metadata: json.RawMessage(`{}`),
+			Metadata: make(map[string]interface{}),
 		},
 		{
 			APIVersion: "v1",
 			Kind:       "Service",
-			Metadata: json.RawMessage(`{}`),
+			Metadata: make(map[string]interface{}),
 		},
 	}
 
@@ -865,13 +864,13 @@ func (m *MockPorchClient) clonePackageRevision(pkg *porch.PackageRevision) *porc
 
 	// Deep copy resources
 	if pkg.Spec.Resources != nil {
-		clone.Spec.Resources = make([]interface{}, len(pkg.Spec.Resources))
+		clone.Spec.Resources = make([]porch.KRMResource, len(pkg.Spec.Resources))
 		copy(clone.Spec.Resources, pkg.Spec.Resources)
 	}
 
 	// Deep copy functions
 	if pkg.Spec.Functions != nil {
-		clone.Spec.Functions = make([]interface{}, len(pkg.Spec.Functions))
+		clone.Spec.Functions = make([]porch.FunctionConfig, len(pkg.Spec.Functions))
 		copy(clone.Spec.Functions, pkg.Spec.Functions)
 	}
 

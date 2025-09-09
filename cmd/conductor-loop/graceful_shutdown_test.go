@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -156,9 +157,24 @@ func TestShutdownFailureDetection(t *testing.T) {
 		t.Fatalf("Failed to create handoff directory: %v", err)
 	}
 
+	// Create mock porch executable with full path
+	var mockPorchPath string
+	if runtime.GOOS == "windows" {
+		mockPorchPath = filepath.Join(tempDir, "mock-porch.bat")
+		mockScript := "@echo off\necho Mock porch help\nexit /b 0\n"
+		err = os.WriteFile(mockPorchPath, []byte(mockScript), 0o755)
+	} else {
+		mockPorchPath = filepath.Join(tempDir, "mock-porch.sh")
+		mockScript := "#!/bin/bash\necho 'Mock porch help'\nexit 0\n"
+		err = os.WriteFile(mockPorchPath, []byte(mockScript), 0o755)
+	}
+	if err != nil {
+		t.Fatalf("Failed to create mock porch: %v", err)
+	}
+
 	// Create watcher
 	config := loop.Config{
-		PorchPath:   "mock-porch",
+		PorchPath:   mockPorchPath, // Use full path instead of just "mock-porch"
 		Mode:        "direct",
 		OutDir:      tempDir,
 		MaxWorkers:  3, // Production-like worker count for realistic concurrency testing
@@ -211,20 +227,25 @@ func TestShutdownFailureDetection(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Create a new watcher instance for clean testing
-			newWatcher, err := loop.NewWatcher(handoffDir, config)
-			if err != nil {
-				t.Fatalf("Failed to create new watcher: %v", err)
-			}
-			defer newWatcher.Close() // #nosec G307 - Error handled in defer
-
-			// Set graceful shutdown state if needed
-			if tc.gracefulShutdown {
-				newWatcher.Close() // This triggers graceful shutdown state
+			// Use the test case's error if provided, otherwise create an error from the message
+			var testErr error
+			if tc.err != nil {
+				testErr = tc.err
+			} else if tc.errorMsg != "" {
+				testErr = fmt.Errorf("%s", tc.errorMsg)
 			}
 
-			// Skip test - method doesn't exist yet
-			t.Skip("IsShutdownFailure method not implemented yet")
+			// Test the IsShutdownFailure function directly
+			result := loop.IsShutdownFailure(tc.gracefulShutdown, testErr)
+
+			// Verify the result matches expectations
+			if result != tc.expectedShutdown {
+				t.Errorf("IsShutdownFailure(%v, %v) = %v, expected %v", 
+					tc.gracefulShutdown, testErr, result, tc.expectedShutdown)
+			}
+
+			t.Logf("✓ Test case '%s': IsShutdownFailure(%v, %v) = %v", 
+				tc.name, tc.gracefulShutdown, testErr, result)
 		})
 	}
 }

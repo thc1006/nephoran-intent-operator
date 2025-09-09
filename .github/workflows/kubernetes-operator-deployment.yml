@@ -95,21 +95,21 @@ jobs:
   # DEPLOYMENT PREPARATION: Environment setup and validation
   # =============================================================================
   deployment-preparation:
-    name: 🚀 Deployment Preparation
-    runs-on: ubuntu-22.04
-    timeout-minutes: 15
+    name: ?? Deployment Preparation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       deployment-config: ${{ steps.config.outputs.config }}
       resource-limits: ${{ steps.resources.outputs.limits }}
       monitoring-config: ${{ steps.monitoring.outputs.config }}
       
     steps:
-      - name: 📥 Checkout
+      - name: ?�� Checkout
         uses: actions/checkout@v4
         
-      - name: 🔧 Setup Kubernetes Tools
+      - name: ?�� Setup Kubernetes Tools
         run: |
-          echo "🔧 Setting up Kubernetes deployment tools..."
+          echo "?�� Setting up Kubernetes deployment tools..."
           
           # Install kubectl
           curl -LO "https://dl.k8s.io/release/v${{ env.KUBERNETES_VERSION }}/bin/linux/amd64/kubectl"
@@ -129,15 +129,15 @@ jobs:
           chmod +x operator-sdk_linux_amd64
           sudo mv operator-sdk_linux_amd64 /usr/local/bin/operator-sdk
           
-          echo "✅ Kubernetes tools installed successfully"
+          echo "??Kubernetes tools installed successfully"
           kubectl version --client
           helm version
           kustomize version
           
-      - name: ⚙️ Generate Deployment Configuration
+      - name: ?��? Generate Deployment Configuration
         id: config
         run: |
-          echo "⚙️ Generating deployment configuration for ${{ env.DEPLOYMENT_ENV }}"
+          echo "?��? Generating deployment configuration for ${{ env.DEPLOYMENT_ENV }}"
           
           case "${{ env.DEPLOYMENT_ENV }}" in
             "development")
@@ -191,12 +191,12 @@ jobs:
           esac
           
           echo "config=$config" >> $GITHUB_OUTPUT
-          echo "🔧 Deployment configuration generated"
+          echo "?�� Deployment configuration generated"
           
-      - name: 📊 Calculate Resource Limits
+      - name: ?? Calculate Resource Limits
         id: resources
         run: |
-          echo "📊 Calculating resource limits for ${{ env.RESOURCE_PROFILE }} profile"
+          echo "?? Calculating resource limits for ${{ env.RESOURCE_PROFILE }} profile"
           
           case "${{ env.RESOURCE_PROFILE }}" in
             "minimal")
@@ -242,13 +242,13 @@ jobs:
           esac
           
           echo "limits=$limits" >> $GITHUB_OUTPUT
-          echo "📊 Resource limits calculated for ${{ env.RESOURCE_PROFILE }} profile"
+          echo "?? Resource limits calculated for ${{ env.RESOURCE_PROFILE }} profile"
           
-      - name: 📊 Configure Monitoring Stack
+      - name: ?? Configure Monitoring Stack
         id: monitoring
         if: env.ENABLE_MONITORING == 'true'
         run: |
-          echo "📊 Configuring monitoring stack for telecommunications"
+          echo "?? Configuring monitoring stack for telecommunications"
           
           monitoring_config='{
             "prometheus": {
@@ -278,31 +278,31 @@ jobs:
           }'
           
           echo "config=$monitoring_config" >> $GITHUB_OUTPUT
-          echo "📊 Monitoring configuration generated"
+          echo "?? Monitoring configuration generated"
 
   # =============================================================================
   # KUBERNETES CLUSTER VALIDATION: Pre-deployment cluster checks
   # =============================================================================
   cluster-validation:
-    name: 🔍 Cluster Validation
-    runs-on: ubuntu-22.04
+    name: ?? Cluster Validation
+    runs-on: ubuntu-latest
     needs: deployment-preparation
-    timeout-minutes: 12
+    timeout-minutes: 10
     outputs:
       cluster-ready: ${{ steps.validation.outputs.ready }}
       cluster-info: ${{ steps.info.outputs.info }}
       
     steps:
-      - name: 📥 Checkout
+      - name: ?�� Checkout
         uses: actions/checkout@v4
         
-      - name: 🔧 Setup kubectl
+      - name: ?�� Setup kubectl
         run: |
           curl -LO "https://dl.k8s.io/release/v${{ env.KUBERNETES_VERSION }}/bin/linux/amd64/kubectl"
           chmod +x kubectl
           sudo mv kubectl /usr/local/bin/
           
-      - name: 🏗️ Create Test Cluster (Kind)
+      - name: ??�?Create Test Cluster (Kind)
         uses: helm/kind-action@v1
         with:
           version: v0.24.0
@@ -334,91 +334,91 @@ jobs:
                   kubeletExtraArgs:
                     node-labels: "nephoran.io/node-type=worker"
                     
-      - name: 🔍 Cluster Validation
+      - name: ?? Cluster Validation
         id: validation
         run: |
-          echo "🔍 Validating Kubernetes cluster for Nephoran deployment..."
+          echo "?? Validating Kubernetes cluster for Nephoran deployment..."
           
           validation_passed=true
           
           # Check cluster connectivity
-          echo "📡 Testing cluster connectivity..."
+          echo "?�� Testing cluster connectivity..."
           if kubectl cluster-info; then
-            echo "  ✅ Cluster connectivity verified"
+            echo "  ??Cluster connectivity verified"
           else
-            echo "  ❌ Cluster connectivity failed"
+            echo "  ??Cluster connectivity failed"
             validation_passed=false
           fi
           
           # Check Kubernetes version
-          echo "📋 Verifying Kubernetes version..."
+          echo "?? Verifying Kubernetes version..."
           k8s_version=$(kubectl version --short | grep Server | awk '{print $3}' | sed 's/v//')
           if [[ "$k8s_version" == "${{ env.KUBERNETES_VERSION }}"* ]]; then
-            echo "  ✅ Kubernetes version compatible: $k8s_version"
+            echo "  ??Kubernetes version compatible: $k8s_version"
           else
-            echo "  ⚠️ Kubernetes version mismatch: expected ${{ env.KUBERNETES_VERSION }}, got $k8s_version"
+            echo "  ?��? Kubernetes version mismatch: expected ${{ env.KUBERNETES_VERSION }}, got $k8s_version"
           fi
           
           # Check RBAC
-          echo "🔐 Verifying RBAC capabilities..."
+          echo "?? Verifying RBAC capabilities..."
           if kubectl auth can-i create clusterroles --as=system:serviceaccount:default:default; then
-            echo "  ✅ RBAC permissions available"
+            echo "  ??RBAC permissions available"
           else
-            echo "  ❌ Insufficient RBAC permissions"
+            echo "  ??Insufficient RBAC permissions"
             validation_passed=false
           fi
           
           # Check Custom Resource Definitions support
-          echo "📋 Testing CRD support..."
+          echo "?? Testing CRD support..."
           if kubectl api-resources | grep -q "customresourcedefinitions"; then
-            echo "  ✅ CRD support available"
+            echo "  ??CRD support available"
           else
-            echo "  ❌ CRD support not available"
+            echo "  ??CRD support not available"
             validation_passed=false
           fi
           
           # Check storage classes
-          echo "💾 Checking storage classes..."
+          echo "?�� Checking storage classes..."
           storage_classes=$(kubectl get storageclass -o name | wc -l)
           if [[ $storage_classes -gt 0 ]]; then
-            echo "  ✅ Storage classes available: $storage_classes"
+            echo "  ??Storage classes available: $storage_classes"
           else
-            echo "  ⚠️ No storage classes found"
+            echo "  ?��? No storage classes found"
           fi
           
           # Check network policies support
-          echo "🌐 Testing network policies..."
+          echo "?? Testing network policies..."
           if kubectl api-resources | grep -q "networkpolicies"; then
-            echo "  ✅ Network policies supported"
+            echo "  ??Network policies supported"
           else
-            echo "  ⚠️ Network policies not supported"
+            echo "  ?��? Network policies not supported"
           fi
           
           # Node readiness check
-          echo "🖥️ Checking node readiness..."
+          echo "?���?Checking node readiness..."
           ready_nodes=$(kubectl get nodes --no-headers | grep "Ready" | wc -l)
           total_nodes=$(kubectl get nodes --no-headers | wc -l)
-          echo "  📊 Ready nodes: $ready_nodes/$total_nodes"
+          echo "  ?? Ready nodes: $ready_nodes/$total_nodes"
           
           if [[ $ready_nodes -eq $total_nodes ]] && [[ $ready_nodes -gt 0 ]]; then
-            echo "  ✅ All nodes ready"
+            echo "  ??All nodes ready"
           else
-            echo "  ❌ Not all nodes ready"
+            echo "  ??Not all nodes ready"
             validation_passed=false
           fi
           
           if [[ "$validation_passed" == "true" ]]; then
-            echo "✅ Cluster validation passed"
+            echo "??Cluster validation passed"
             echo "ready=true" >> $GITHUB_OUTPUT
           else
-            echo "❌ Cluster validation failed"
+            echo "??Cluster validation failed"
             echo "ready=false" >> $GITHUB_OUTPUT
           fi
           
-      - name: 📊 Collect Cluster Information
+      - name: ?? Collect Cluster Information
         id: info
         run: |
-          echo "📊 Collecting cluster information..."
+          echo "?? Collecting cluster information..."
           
           info='{
             "version": "'$(kubectl version --short | grep Server | awk '{print $3}')'",
@@ -430,26 +430,26 @@ jobs:
           }'
           
           echo "info=$info" >> $GITHUB_OUTPUT
-          echo "📊 Cluster information collected"
+          echo "?? Cluster information collected"
 
   # =============================================================================
   # OPERATOR DEPLOYMENT: Deploy Nephoran Intent Operator
   # =============================================================================
   operator-deployment:
-    name: 🚀 Operator Deployment
-    runs-on: ubuntu-22.04
+    name: ?? Operator Deployment
+    runs-on: ubuntu-latest
     needs: [deployment-preparation, cluster-validation]
     if: needs.cluster-validation.outputs.cluster-ready == 'true'
-    timeout-minutes: 20
+    timeout-minutes: 10
     outputs:
       deployment-status: ${{ steps.deploy.outputs.status }}
       operator-version: ${{ steps.deploy.outputs.version }}
       
     steps:
-      - name: 📥 Checkout
+      - name: ?�� Checkout
         uses: actions/checkout@v4
         
-      - name: 🔧 Setup Deployment Tools
+      - name: ?�� Setup Deployment Tools
         run: |
           # Install kubectl
           curl -LO "https://dl.k8s.io/release/v${{ env.KUBERNETES_VERSION }}/bin/linux/amd64/kubectl"
@@ -464,7 +464,7 @@ jobs:
           curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
           sudo mv kustomize /usr/local/bin/
           
-      - name: 🏗️ Reconnect to Test Cluster
+      - name: ??�?Reconnect to Test Cluster
         uses: helm/kind-action@v1
         with:
           version: v0.24.0
@@ -472,9 +472,9 @@ jobs:
           cluster_name: nephoran-deployment-test
           install_only: true
           
-      - name: 🏗️ Create Namespace and Prerequisites
+      - name: ??�?Create Namespace and Prerequisites
         run: |
-          echo "🏗️ Creating namespace and prerequisites..."
+          echo "??�?Creating namespace and prerequisites..."
           
           deployment_config='${{ needs.deployment-preparation.outputs.deployment-config }}'
           namespace=$(echo "$deployment_config" | jq -r '.namespace')
@@ -529,11 +529,11 @@ jobs:
             namespace: $namespace
           EOF
           
-          echo "✅ Prerequisites created successfully"
+          echo "??Prerequisites created successfully"
           
-      - name: 📋 Deploy Custom Resource Definitions
+      - name: ?? Deploy Custom Resource Definitions
         run: |
-          echo "📋 Deploying Custom Resource Definitions..."
+          echo "?? Deploying Custom Resource Definitions..."
           
           # Create sample CRDs if they don't exist
           if [[ ! -d "config/crd" ]]; then
@@ -585,20 +585,20 @@ jobs:
             echo "Applying CRDs from config/crd..."
             kubectl apply -f config/crd/
           else
-            echo "⚠️ No CRDs found in config/crd - using sample CRD"
+            echo "?��? No CRDs found in config/crd - using sample CRD"
             kubectl apply -f config/crd/intent_crd.yaml
           fi
           
           # Wait for CRDs to be established
-          echo "⏳ Waiting for CRDs to be established..."
+          echo "??Waiting for CRDs to be established..."
           kubectl wait --for=condition=established crd/intents.nephoran.io --timeout=60s
           
-          echo "✅ CRDs deployed successfully"
+          echo "??CRDs deployed successfully"
           
-      - name: 🚀 Deploy Nephoran Operator
+      - name: ?? Deploy Nephoran Operator
         id: deploy
         run: |
-          echo "🚀 Deploying Nephoran Intent Operator..."
+          echo "?? Deploying Nephoran Intent Operator..."
           
           deployment_config='${{ needs.deployment-preparation.outputs.deployment-config }}'
           resource_limits='${{ needs.deployment-preparation.outputs.resource-limits }}'
@@ -721,7 +721,7 @@ jobs:
           EOF
           
           # Wait for deployment to be ready
-          echo "⏳ Waiting for deployment to be ready..."
+          echo "??Waiting for deployment to be ready..."
           kubectl wait --for=condition=available deployment/nephoran-operator-controller-manager \
             -n "$namespace" --timeout=${{ env.DEPLOYMENT_TIMEOUT }}
           
@@ -729,10 +729,10 @@ jobs:
           deployment_status=$(kubectl get deployment nephoran-operator-controller-manager -n "$namespace" -o jsonpath='{.status.conditions[?(@.type=="Available")].status}')
           
           if [[ "$deployment_status" == "True" ]]; then
-            echo "✅ Nephoran Operator deployed successfully"
+            echo "??Nephoran Operator deployed successfully"
             echo "status=success" >> $GITHUB_OUTPUT
           else
-            echo "❌ Nephoran Operator deployment failed"
+            echo "??Nephoran Operator deployment failed"
             echo "status=failed" >> $GITHUB_OUTPUT
             kubectl describe deployment nephoran-operator-controller-manager -n "$namespace"
             kubectl logs -l app.kubernetes.io/name=nephoran-intent-operator -n "$namespace" --tail=50
@@ -741,15 +741,15 @@ jobs:
           
           echo "version=${{ env.OPERATOR_VERSION }}" >> $GITHUB_OUTPUT
           
-      - name: 🧪 Post-Deployment Testing
+      - name: ?�� Post-Deployment Testing
         run: |
-          echo "🧪 Running post-deployment tests..."
+          echo "?�� Running post-deployment tests..."
           
           deployment_config='${{ needs.deployment-preparation.outputs.deployment-config }}'
           namespace=$(echo "$deployment_config" | jq -r '.namespace')
           
           # Test CRD functionality
-          echo "📋 Testing CRD functionality..."
+          echo "?? Testing CRD functionality..."
           cat <<EOF | kubectl apply -f -
           apiVersion: nephoran.io/v1alpha1
           kind: Intent
@@ -764,47 +764,47 @@ jobs:
           
           # Verify intent was created
           if kubectl get intent test-intent -n "$namespace"; then
-            echo "  ✅ Intent CRD working correctly"
+            echo "  ??Intent CRD working correctly"
           else
-            echo "  ❌ Intent CRD not working"
+            echo "  ??Intent CRD not working"
             exit 1
           fi
           
           # Test operator health endpoints
-          echo "🏥 Testing health endpoints..."
+          echo "?�� Testing health endpoints..."
           pod_name=$(kubectl get pods -n "$namespace" -l app.kubernetes.io/name=nephoran-intent-operator -o jsonpath='{.items[0].metadata.name}')
           
           if kubectl exec -n "$namespace" "$pod_name" -- wget -q -O - http://localhost:8081/healthz | grep -q "ok"; then
-            echo "  ✅ Health endpoint responding"
+            echo "  ??Health endpoint responding"
           else
-            echo "  ⚠️ Health endpoint not responding"
+            echo "  ?��? Health endpoint not responding"
           fi
           
           # Test metrics endpoint
-          echo "📊 Testing metrics endpoint..."
+          echo "?? Testing metrics endpoint..."
           if kubectl exec -n "$namespace" "$pod_name" -- wget -q -O - http://localhost:8080/metrics | head -5; then
-            echo "  ✅ Metrics endpoint responding"
+            echo "  ??Metrics endpoint responding"
           else
-            echo "  ⚠️ Metrics endpoint not responding"
+            echo "  ?��? Metrics endpoint not responding"
           fi
           
-          echo "✅ Post-deployment tests completed"
+          echo "??Post-deployment tests completed"
 
   # =============================================================================
   # MONITORING DEPLOYMENT: Deploy observability stack
   # =============================================================================
   monitoring-deployment:
-    name: 📊 Monitoring Deployment
-    runs-on: ubuntu-22.04
+    name: ?? Monitoring Deployment
+    runs-on: ubuntu-latest
     needs: [deployment-preparation, operator-deployment]
     if: needs.operator-deployment.outputs.deployment-status == 'success' && inputs.enable_monitoring != 'false'
-    timeout-minutes: 15
+    timeout-minutes: 10
     
     steps:
-      - name: 📥 Checkout
+      - name: ?�� Checkout
         uses: actions/checkout@v4
         
-      - name: 🔧 Setup Helm
+      - name: ?�� Setup Helm
         run: |
           curl https://get.helm.sh/helm-v3.16.0-linux-amd64.tar.gz | tar xz
           sudo mv linux-amd64/helm /usr/local/bin/
@@ -815,7 +815,7 @@ jobs:
           helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
           helm repo update
           
-      - name: 🏗️ Reconnect to Test Cluster
+      - name: ??�?Reconnect to Test Cluster
         uses: helm/kind-action@v1
         with:
           version: v0.24.0
@@ -823,9 +823,9 @@ jobs:
           cluster_name: nephoran-deployment-test
           install_only: true
           
-      - name: 📊 Deploy Prometheus Stack
+      - name: ?? Deploy Prometheus Stack
         run: |
-          echo "📊 Deploying Prometheus monitoring stack..."
+          echo "?? Deploying Prometheus monitoring stack..."
           
           monitoring_config='${{ needs.deployment-preparation.outputs.monitoring-config }}'
           deployment_config='${{ needs.deployment-preparation.outputs.deployment-config }}'
@@ -880,11 +880,11 @@ jobs:
           helm install prometheus-stack prometheus-community/kube-prometheus-stack \
             -n monitoring -f prometheus-values.yaml --wait --timeout=10m
           
-          echo "✅ Prometheus stack deployed"
+          echo "??Prometheus stack deployed"
           
-      - name: 📊 Create ServiceMonitor for Nephoran Operator
+      - name: ?? Create ServiceMonitor for Nephoran Operator
         run: |
-          echo "📊 Creating ServiceMonitor for Nephoran Operator..."
+          echo "?? Creating ServiceMonitor for Nephoran Operator..."
           
           deployment_config='${{ needs.deployment-preparation.outputs.deployment-config }}'
           namespace=$(echo "$deployment_config" | jq -r '.namespace')
@@ -911,11 +911,11 @@ jobs:
               path: /metrics
           EOF
           
-          echo "✅ ServiceMonitor created for metrics collection"
+          echo "??ServiceMonitor created for metrics collection"
           
-      - name: 📈 Deploy Grafana Dashboard
+      - name: ?? Deploy Grafana Dashboard
         run: |
-          echo "📈 Deploying Nephoran-specific Grafana dashboard..."
+          echo "?? Deploying Nephoran-specific Grafana dashboard..."
           
           # Create ConfigMap with dashboard JSON
           cat <<EOF | kubectl apply -f -
@@ -966,23 +966,23 @@ jobs:
               }
           EOF
           
-          echo "✅ Grafana dashboard deployed"
+          echo "??Grafana dashboard deployed"
 
   # =============================================================================
   # DEPLOYMENT VALIDATION: Comprehensive post-deployment validation
   # =============================================================================
   deployment-validation:
-    name: ✅ Deployment Validation
-    runs-on: ubuntu-22.04
+    name: ??Deployment Validation
+    runs-on: ubuntu-latest
     needs: [deployment-preparation, operator-deployment, monitoring-deployment]
     if: always() && needs.operator-deployment.outputs.deployment-status == 'success'
     timeout-minutes: 10
     
     steps:
-      - name: 📥 Checkout
+      - name: ?�� Checkout
         uses: actions/checkout@v4
         
-      - name: 🏗️ Reconnect to Test Cluster
+      - name: ??�?Reconnect to Test Cluster
         uses: helm/kind-action@v1
         with:
           version: v0.24.0
@@ -990,9 +990,9 @@ jobs:
           cluster_name: nephoran-deployment-test
           install_only: true
           
-      - name: ✅ Comprehensive Validation
+      - name: ??Comprehensive Validation
         run: |
-          echo "✅ Running comprehensive deployment validation..."
+          echo "??Running comprehensive deployment validation..."
           
           deployment_config='${{ needs.deployment-preparation.outputs.deployment-config }}'
           namespace=$(echo "$deployment_config" | jq -r '.namespace')
@@ -1000,73 +1000,73 @@ jobs:
           validation_passed=true
           
           # Validate operator deployment
-          echo "🔍 Validating operator deployment..."
+          echo "?? Validating operator deployment..."
           if kubectl get deployment nephoran-operator-controller-manager -n "$namespace" | grep -q "1/1"; then
-            echo "  ✅ Operator deployment healthy"
+            echo "  ??Operator deployment healthy"
           else
-            echo "  ❌ Operator deployment unhealthy"
+            echo "  ??Operator deployment unhealthy"
             validation_passed=false
           fi
           
           # Validate CRDs
-          echo "📋 Validating CRDs..."
+          echo "?? Validating CRDs..."
           if kubectl get crd intents.nephoran.io; then
-            echo "  ✅ Intent CRD available"
+            echo "  ??Intent CRD available"
           else
-            echo "  ❌ Intent CRD missing"
+            echo "  ??Intent CRD missing"
             validation_passed=false
           fi
           
           # Validate RBAC
-          echo "🔐 Validating RBAC..."
+          echo "?? Validating RBAC..."
           if kubectl auth can-i create intents --as=system:serviceaccount:$namespace:nephoran-operator -n "$namespace"; then
-            echo "  ✅ RBAC permissions correct"
+            echo "  ??RBAC permissions correct"
           else
-            echo "  ❌ RBAC permissions incorrect"
+            echo "  ??RBAC permissions incorrect"
             validation_passed=false
           fi
           
           # Validate service endpoints
-          echo "🌐 Validating service endpoints..."
+          echo "?? Validating service endpoints..."
           if kubectl get svc nephoran-operator-controller-manager-service -n "$namespace"; then
-            echo "  ✅ Service endpoints available"
+            echo "  ??Service endpoints available"
           else
-            echo "  ❌ Service endpoints missing"
+            echo "  ??Service endpoints missing"
             validation_passed=false
           fi
           
           # Validate monitoring (if enabled)
           if [[ "${{ env.ENABLE_MONITORING }}" == "true" ]]; then
-            echo "📊 Validating monitoring stack..."
+            echo "?? Validating monitoring stack..."
             if kubectl get prometheus -n monitoring; then
-              echo "  ✅ Prometheus deployed"
+              echo "  ??Prometheus deployed"
             else
-              echo "  ⚠️ Prometheus not deployed"
+              echo "  ?��? Prometheus not deployed"
             fi
             
             if kubectl get servicemonitor nephoran-operator-metrics -n monitoring; then
-              echo "  ✅ ServiceMonitor configured"
+              echo "  ??ServiceMonitor configured"
             else
-              echo "  ⚠️ ServiceMonitor missing"
+              echo "  ?��? ServiceMonitor missing"
             fi
           fi
           
           # Performance validation
-          echo "⚡ Performance validation..."
+          echo "??Performance validation..."
           pod_name=$(kubectl get pods -n "$namespace" -l app.kubernetes.io/name=nephoran-intent-operator -o jsonpath='{.items[0].metadata.name}')
           
           cpu_usage=$(kubectl top pod "$pod_name" -n "$namespace" --no-headers | awk '{print $2}' | sed 's/m//' 2>/dev/null || echo "0")
           memory_usage=$(kubectl top pod "$pod_name" -n "$namespace" --no-headers | awk '{print $3}' | sed 's/Mi//' 2>/dev/null || echo "0")
           
-          echo "  📊 Resource usage - CPU: ${cpu_usage}m, Memory: ${memory_usage}Mi"
+          echo "  ?? Resource usage - CPU: ${cpu_usage}m, Memory: ${memory_usage}Mi"
           
           # Final validation result
           if [[ "$validation_passed" == "true" ]]; then
             echo ""
-            echo "🎉 DEPLOYMENT VALIDATION SUCCESSFUL!"
-            echo "✅ Nephoran Intent Operator is ready for production use"
+            echo "?? DEPLOYMENT VALIDATION SUCCESSFUL!"
+            echo "??Nephoran Intent Operator is ready for production use"
             echo ""
-            echo "📊 Deployment Summary:"
+            echo "?? Deployment Summary:"
             echo "  - Environment: ${{ env.DEPLOYMENT_ENV }}"
             echo "  - Strategy: ${{ env.DEPLOYMENT_STRATEGY }}"
             echo "  - Operator Version: ${{ needs.operator-deployment.outputs.operator-version }}"
@@ -1076,16 +1076,16 @@ jobs:
             echo ""
           else
             echo ""
-            echo "❌ DEPLOYMENT VALIDATION FAILED!"
-            echo "🔧 Please check the issues above and retry deployment"
+            echo "??DEPLOYMENT VALIDATION FAILED!"
+            echo "?�� Please check the issues above and retry deployment"
             echo ""
             exit 1
           fi
           
-      - name: 📊 Generate Deployment Report
+      - name: ?? Generate Deployment Report
         if: always()
         run: |
-          echo "# 🚀 Kubernetes Operator Deployment Report" > deployment-report.md
+          echo "# ?? Kubernetes Operator Deployment Report" > deployment-report.md
           echo "" >> deployment-report.md
           echo "**Date:** $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> deployment-report.md
           echo "**Environment:** ${{ env.DEPLOYMENT_ENV }}" >> deployment-report.md
@@ -1093,7 +1093,7 @@ jobs:
           echo "**Operator Version:** ${{ needs.operator-deployment.outputs.operator-version }}" >> deployment-report.md
           echo "" >> deployment-report.md
           
-          echo "## 📊 Deployment Status" >> deployment-report.md
+          echo "## ?? Deployment Status" >> deployment-report.md
           echo "| Component | Status | Notes |" >> deployment-report.md
           echo "|-----------|--------|-------|" >> deployment-report.md
           echo "| Cluster Validation | ${{ needs.cluster-validation.result }} | Pre-deployment checks |" >> deployment-report.md
@@ -1102,19 +1102,19 @@ jobs:
           echo "| Final Validation | success | Comprehensive post-deployment tests |" >> deployment-report.md
           echo "" >> deployment-report.md
           
-          echo "## 🔧 Configuration Applied" >> deployment-report.md
+          echo "## ?�� Configuration Applied" >> deployment-report.md
           echo '```json' >> deployment-report.md
           echo '${{ needs.deployment-preparation.outputs.deployment-config }}' >> deployment-report.md
           echo '```' >> deployment-report.md
           echo "" >> deployment-report.md
           
-          echo "## 📈 Resource Allocation" >> deployment-report.md
+          echo "## ?? Resource Allocation" >> deployment-report.md
           echo '```json' >> deployment-report.md
           echo '${{ needs.deployment-preparation.outputs.resource-limits }}' >> deployment-report.md
           echo '```' >> deployment-report.md
           echo "" >> deployment-report.md
           
-          echo "## 🎯 Next Steps" >> deployment-report.md
+          echo "## ?�� Next Steps" >> deployment-report.md
           echo "1. **Configure Intent Processing**: Submit test intents to validate functionality" >> deployment-report.md
           echo "2. **Monitor Performance**: Check Grafana dashboards for operator metrics" >> deployment-report.md
           echo "3. **Security Review**: Verify RBAC and security contexts are appropriate" >> deployment-report.md
@@ -1124,7 +1124,7 @@ jobs:
           echo "---" >> deployment-report.md
           echo "_Generated by Nephoran Kubernetes Operator Deployment Pipeline_" >> deployment-report.md
           
-      - name: 📤 Upload Deployment Report
+      - name: ?�� Upload Deployment Report
         uses: actions/upload-artifact@v4
         if: always()
         with:

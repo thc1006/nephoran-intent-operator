@@ -32,120 +32,175 @@ spec:
     name: v1
     schema:
       openAPIV3Schema:
+        description: IntentProcessing represents an intent processing request
         properties:
           apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
           spec:
+            description: IntentProcessingSpec defines the desired state of IntentProcessing
             properties:
               intent:
+                description: Intent is the natural language intent to process
                 type: string
               llmConfig:
+                description: LLMConfig configuration for LLM processing
                 properties:
                   maxTokens:
+                    description: MaxTokens maximum tokens in response
                     format: int32
                     maximum: 8192
                     minimum: 1
                     type: integer
                   model:
                     default: gpt-4
+                    description: Model LLM model to use
                     type: string
                   systemPrompt:
+                    description: SystemPrompt custom system prompt
                     type: string
                   temperature:
+                    description: Temperature for text generation (as string to avoid
+                      float issues)
                     pattern: ^([01](\.[0-9]+)?|2(\.0+)?)$
                     type: string
                 type: object
               maxRetries:
                 default: 3
+                description: MaxRetries maximum number of retries
                 format: int32
                 type: integer
               originalIntent:
+                description: OriginalIntent stores the original intent text
                 type: string
               parentIntentRef:
+                description: ParentIntentRef references the parent NetworkIntent
                 properties:
                   apiVersion:
+                    description: API version of the referent
                     type: string
                   kind:
+                    description: Kind of the referent
                     type: string
                   name:
+                    description: Name of the referent
                     type: string
                   namespace:
+                    description: Namespace of the referent
                     type: string
                   uid:
+                    description: UID of the referent
                     type: string
                 type: object
               priority:
                 default: Medium
+                description: Priority processing priority
                 type: string
               processingConfiguration:
+                description: ProcessingConfiguration additional processing configuration
                 properties:
                   maxTokens:
+                    description: MaxTokens maximum tokens in response
                     format: int32
                     maximum: 8192
                     minimum: 1
                     type: integer
                   model:
+                    description: Model specifies the model to use
                     type: string
                   provider:
+                    description: Provider specifies the processing provider
                     type: string
                   ragConfiguration:
+                    description: RAGConfiguration for RAG-specific settings
                     properties:
                       enabled:
+                        description: Enabled whether RAG is enabled
                         type: boolean
                       maxDocuments:
+                        description: MaxDocuments maximum number of documents to retrieve
                         format: int32
                         maximum: 100
                         minimum: 1
                         type: integer
                       maxRetrievalResults:
+                        description: MaxRetrievalResults maximum number of retrieved
+                          results
                         format: int32
                         maximum: 50
                         minimum: 1
                         type: integer
                       retrievalThreshold:
+                        description: RetrievalThreshold threshold for retrieval (as
+                          string to avoid float issues)
                         pattern: ^(0(\.\d+)?|1(\.0+)?)$
                         type: string
                       similarityThreshold:
+                        description: SimilarityThreshold threshold for similarity
+                          matching (as string to avoid float issues)
                         pattern: ^(0(\.\d+)?|1(\.0+)?)$
                         type: string
                       sources:
+                        description: Sources list of knowledge sources
                         items:
                           type: string
                         type: array
                     type: object
                   temperature:
+                    description: Temperature for text generation (as string to avoid
+                      float issues)
                     pattern: ^([01](\.[0-9]+)?|2(\.0+)?)$
                     type: string
                 type: object
               processingTimeout:
                 default: 300
+                description: ProcessingTimeout timeout for processing in seconds
                 format: int32
                 type: integer
               ragConfig:
+                description: RAGConfig configuration for RAG processing
                 properties:
                   enabled:
+                    description: Enabled whether RAG is enabled
                     type: boolean
                   maxDocuments:
+                    description: MaxDocuments maximum number of documents to retrieve
                     format: int32
                     maximum: 100
                     minimum: 1
                     type: integer
                   maxRetrievalResults:
+                    description: MaxRetrievalResults maximum number of retrieved results
                     format: int32
                     maximum: 50
                     minimum: 1
                     type: integer
                   retrievalThreshold:
+                    description: RetrievalThreshold threshold for retrieval (as string
+                      to avoid float issues)
                     pattern: ^(0(\.\d+)?|1(\.0+)?)$
                     type: string
                   similarityThreshold:
+                    description: SimilarityThreshold threshold for similarity matching
+                      (as string to avoid float issues)
                     pattern: ^(0(\.\d+)?|1(\.0+)?)$
                     type: string
                   sources:
+                    description: Sources list of knowledge sources
                     items:
                       type: string
                     type: array
@@ -154,32 +209,54 @@ spec:
             - intent
             type: object
           status:
+            description: IntentProcessingStatus defines the observed state of IntentProcessing
             properties:
               conditions:
+                description: Conditions represents the current conditions
                 items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
                   properties:
                     lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
                       maxLength: 32768
                       type: string
                     observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
                       format: int64
                       minimum: 0
                       type: integer
                     reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
                       maxLength: 1024
                       minLength: 1
                       pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
                       type: string
                     status:
+                      description: status of the condition, one of True, False, Unknown.
                       enum:
                       - "True"
                       - "False"
                       - Unknown
                       type: string
                     type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
                       maxLength: 316
                       pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                       type: string
@@ -192,93 +269,130 @@ spec:
                   type: object
                 type: array
               error:
+                description: Error processing error if any
                 type: string
               extractedEntities:
                 additionalProperties:
                   type: object
                   x-kubernetes-preserve-unknown-fields: true
+                description: ExtractedEntities contains entities extracted from the
+                  intent
                 type: object
               lastRetryTime:
+                description: LastRetryTime timestamp of last retry
                 format: date-time
                 type: string
               lastUpdated:
+                description: LastUpdated timestamp of last update
                 format: date-time
                 type: string
               llmResponse:
+                description: LLMResponse contains the raw LLM response
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
               metrics:
+                description: Metrics processing metrics
                 properties:
                   durationMs:
+                    description: DurationMs processing duration in milliseconds
                     format: int64
                     type: integer
                   endTime:
+                    description: EndTime when processing completed
                     format: date-time
                     type: string
                   llmMetrics:
+                    description: LLMMetrics metrics for LLM processing
                     properties:
                       confidenceScore:
-                        pattern: ^(0(\.\d+)?|1(\.0+)?)$
+                        description: ConfidenceScore confidence in the response (0.0-1.0)
+                          as string to avoid float issues
+                        pattern: ^(0(\.[0-9]+)?|1(\.0+)?)$
                         type: string
                       model:
+                        description: Model the LLM model used
                         type: string
                       responseTimeMs:
+                        description: ResponseTimeMs LLM response time in milliseconds
                         format: int64
                         type: integer
                       tokenUsage:
+                        description: TokenUsage token usage information
                         properties:
                           cost:
+                            description: Cost estimated cost in USD (as string to
+                              avoid float issues)
                             pattern: ^\d+(\.\d{1,4})?$
                             type: string
                           inputTokens:
+                            description: InputTokens number of input tokens
                             format: int32
                             type: integer
                           outputTokens:
+                            description: OutputTokens number of output tokens
                             format: int32
                             type: integer
                           totalTokens:
+                            description: TotalTokens total number of tokens
                             format: int32
                             type: integer
                         type: object
                     type: object
                   ragMetrics:
+                    description: RAGMetrics metrics for RAG processing
                     properties:
                       averageRelevanceScore:
-                        pattern: ^(0(\.\d+)?|1(\.0+)?)$
+                        description: AverageRelevanceScore average relevance score
+                          of retrieved documents (0.0-1.0) as string to avoid float
+                          issues
+                        pattern: ^(0(\.[0-9]+)?|1(\.0+)?)$
                         type: string
                       cacheHits:
+                        description: CacheHits number of cache hits
                         format: int64
                         type: integer
                       documentsRetrieved:
+                        description: DocumentsRetrieved number of documents retrieved
                         format: int32
                         type: integer
                       indexHits:
+                        description: IndexHits number of index hits
                         format: int64
                         type: integer
                       queryEnhancement:
+                        description: QueryEnhancement information about query enhancement
                         type: string
                       retrievalDuration:
+                        description: RetrievalDuration duration of retrieval process
                         format: int64
                         type: integer
                       retrievalTimeMs:
+                        description: RetrievalTimeMs time spent on retrieval in milliseconds
                         format: int64
                         type: integer
                       sourcesUsed:
+                        description: SourcesUsed list of knowledge sources used
                         items:
                           type: string
                         type: array
                       topRelevanceScore:
-                        pattern: ^(0(\.\d+)?|1(\.0+)?)$
+                        description: TopRelevanceScore highest relevance score (0.0-1.0)
+                          as string to avoid float issues
+                        pattern: ^(0(\.[0-9]+)?|1(\.0+)?)$
                         type: string
                     type: object
                   startTime:
+                    description: StartTime when processing started
                     format: date-time
                     type: string
                 type: object
               observedGeneration:
+                description: ObservedGeneration reflects the generation observed by
+                  the controller
                 format: int64
                 type: integer
               phase:
+                description: Phase current processing phase
                 enum:
                 - Pending
                 - Processing
@@ -286,73 +400,102 @@ spec:
                 - Failed
                 type: string
               processedIntent:
+                description: ProcessedIntent structured intent result
                 properties:
                   custom:
                     additionalProperties:
                       type: string
+                    description: Custom parameters as key-value pairs
                     type: object
                   customParameters:
                     additionalProperties:
                       type: string
+                    description: CustomParameters as separate field
                     type: object
                   metadata:
+                    description: Metadata for additional information
                     properties:
                       annotations:
                         additionalProperties:
                           type: string
+                        description: Annotations for additional metadata
                         type: object
                       confidenceScore:
+                        description: ConfidenceScore indicates confidence in parameter
+                          extraction (as string to avoid float issues)
                         pattern: ^(0(\.\d+)?|1(\.0+)?)$
                         type: string
                       default:
+                        description: Default value
                         type: string
                       description:
+                        description: Description of the parameter
                         type: string
                       name:
+                        description: Name of the parameter
                         type: string
                       processedAt:
+                        description: ProcessedAt indicates when the parameter was
+                          processed
                         format: date-time
                         type: string
                       required:
+                        description: Whether the parameter is required
                         type: boolean
                       type:
+                        description: Type of the parameter
                         type: string
                     required:
                     - name
                     - type
                     type: object
                   network:
+                    description: Network parameters
                     properties:
                       loadBalancer:
+                        description: Load balancer settings
                         properties:
                           healthCheck:
+                            description: Health check configuration
                             properties:
                               intervalSeconds:
+                                description: Check interval in seconds
                                 format: int32
                                 type: integer
                               path:
+                                description: Health check path
                                 type: string
                               port:
+                                description: Health check port
                                 format: int32
                                 type: integer
                               timeoutSeconds:
+                                description: Timeout in seconds
                                 format: int32
                                 type: integer
                             type: object
                           type:
+                            description: Load balancer type
                             type: string
                         type: object
                       ports:
+                        description: Service ports
                         items:
+                          description: ServicePortConfig defines a service port configuration
+                            for common use
                           properties:
                             name:
+                              description: Port name
                               type: string
                             port:
+                              description: Port number
                               format: int32
                               type: integer
                             protocol:
+                              description: Protocol (TCP, UDP)
                               type: string
                             targetPort:
+                              description: Target port
                               format: int32
                               type: integer
                           required:
@@ -360,44 +503,61 @@ spec:
                           type: object
                         type: array
                       serviceType:
+                        description: Service type
                         type: string
                     type: object
                   networkFunction:
+                    description: NetworkFunction specifies the target network function
                     type: string
                   raw:
                     additionalProperties:
                       type: string
+                    description: Raw parameters for backup
                     type: object
                   region:
+                    description: Region specifies the deployment region
                     type: string
                   resources:
+                    description: Resource parameters
                     properties:
                       cpu:
+                        description: CPU requirements
                         type: string
                       memory:
+                        description: Memory requirements
                         type: string
                       storage:
+                        description: Storage requirements
                         type: string
                     type: object
                   scaleParameters:
+                    description: ScaleParameters for scaling-related parameters
                     properties:
                       maxReplicas:
+                        description: Maximum replicas
                         format: int32
                         type: integer
                       minReplicas:
+                        description: Minimum replicas
                         format: int32
                         type: integer
                       targetReplicas:
+                        description: Target replicas
                         format: int32
                         type: integer
                       triggers:
+                        description: Scaling triggers
                         items:
+                          description: ScalingTrigger defines a scaling trigger condition
                           properties:
                             metric:
+                              description: Metric name
                               type: string
                             operator:
+                              description: Comparison operator (>, <, >=, <=, ==)
                               type: string
                             targetValue:
+                              description: Target value
                               type: string
                           required:
                           - metric
@@ -407,24 +567,33 @@ spec:
                         type: array
                     type: object
                   scaling:
+                    description: Scaling parameters
                     properties:
                       maxReplicas:
+                        description: Maximum replicas
                         format: int32
                         type: integer
                       minReplicas:
+                        description: Minimum replicas
                         format: int32
                         type: integer
                       targetReplicas:
+                        description: Target replicas
                         format: int32
                         type: integer
                       triggers:
+                        description: Scaling triggers
                         items:
+                          description: ScalingTrigger defines a scaling trigger condition
                           properties:
                             metric:
+                              description: Metric name
                               type: string
                             operator:
+                              description: Comparison operator (>, <, >=, <=, ==)
                               type: string
                             targetValue:
+                              description: Target value
                               type: string
                           required:
                           - metric
@@ -434,26 +603,37 @@ spec:
                         type: array
                     type: object
                   securityParameters:
+                    description: SecurityParameters for security-related settings
                     properties:
                       encryption:
+                        description: Encryption configuration
                         properties:
                           algorithm:
+                            description: Encryption algorithm
                             type: string
                           enabled:
+                            description: Whether encryption is enabled
                             type: boolean
                           keySize:
+                            description: Key size in bits
                             type: integer
                         type: object
                       networkPolicies:
+                        description: Network policies configuration
                         items:
+                          description: NetworkPolicyConfig defines network policy
+                            settings
                           properties:
                             name:
+                              description: Name of the network policy
                               type: string
                             rules:
+                              description: Rules for the policy
                               items:
                                 type: string
                               type: array
                             type:
+                              description: Type of policy (ingress, egress, or both)
                               enum:
                               - ingress
                               - egress
@@ -465,83 +645,116 @@ spec:
                           type: object
                         type: array
                       serviceMesh:
+                        description: Service mesh configuration
                         type: boolean
                       tlsEnabled:
+                        description: TLS configuration
                         type: boolean
                     type: object
                   structured:
                     additionalProperties:
                       type: string
+                    description: Structured parameters
                     type: object
                 type: object
               processedParameters:
+                description: ProcessedParameters contains the processed parameters
+                  from LLM
                 properties:
                   custom:
                     additionalProperties:
                       type: string
+                    description: Custom parameters as key-value pairs
                     type: object
                   customParameters:
                     additionalProperties:
                       type: string
+                    description: CustomParameters as separate field
                     type: object
                   metadata:
+                    description: Metadata for additional information
                     properties:
                       annotations:
                         additionalProperties:
                           type: string
+                        description: Annotations for additional metadata
                         type: object
                       confidenceScore:
+                        description: ConfidenceScore indicates confidence in parameter
+                          extraction (as string to avoid float issues)
                         pattern: ^(0(\.\d+)?|1(\.0+)?)$
                         type: string
                       default:
+                        description: Default value
                         type: string
                       description:
+                        description: Description of the parameter
                         type: string
                       name:
+                        description: Name of the parameter
                         type: string
                       processedAt:
+                        description: ProcessedAt indicates when the parameter was
+                          processed
                         format: date-time
                         type: string
                       required:
+                        description: Whether the parameter is required
                         type: boolean
                       type:
+                        description: Type of the parameter
                         type: string
                     required:
                     - name
                     - type
                     type: object
                   network:
+                    description: Network parameters
                     properties:
                       loadBalancer:
+                        description: Load balancer settings
                         properties:
                           healthCheck:
+                            description: Health check configuration
                             properties:
                               intervalSeconds:
+                                description: Check interval in seconds
                                 format: int32
                                 type: integer
                               path:
+                                description: Health check path
                                 type: string
                               port:
+                                description: Health check port
                                 format: int32
                                 type: integer
                               timeoutSeconds:
+                                description: Timeout in seconds
                                 format: int32
                                 type: integer
                             type: object
                           type:
+                            description: Load balancer type
                             type: string
                         type: object
                       ports:
+                        description: Service ports
                         items:
+                          description: ServicePortConfig defines a service port configuration
+                            for common use
                           properties:
                             name:
+                              description: Port name
                               type: string
                             port:
+                              description: Port number
                               format: int32
                               type: integer
                             protocol:
+                              description: Protocol (TCP, UDP)
                               type: string
                             targetPort:
+                              description: Target port
                               format: int32
                               type: integer
                           required:
@@ -549,44 +762,61 @@ spec:
                           type: object
                         type: array
                       serviceType:
+                        description: Service type
                         type: string
                     type: object
                   networkFunction:
+                    description: NetworkFunction specifies the target network function
                     type: string
                   raw:
                     additionalProperties:
                       type: string
+                    description: Raw parameters for backup
                     type: object
                   region:
+                    description: Region specifies the deployment region
                     type: string
                   resources:
+                    description: Resource parameters
                     properties:
                       cpu:
+                        description: CPU requirements
                         type: string
                       memory:
+                        description: Memory requirements
                         type: string
                       storage:
+                        description: Storage requirements
                         type: string
                     type: object
                   scaleParameters:
+                    description: ScaleParameters for scaling-related parameters
                     properties:
                       maxReplicas:
+                        description: Maximum replicas
                         format: int32
                         type: integer
                       minReplicas:
+                        description: Minimum replicas
                         format: int32
                         type: integer
                       targetReplicas:
+                        description: Target replicas
                         format: int32
                         type: integer
                       triggers:
+                        description: Scaling triggers
                         items:
+                          description: ScalingTrigger defines a scaling trigger condition
                           properties:
                             metric:
+                              description: Metric name
                               type: string
                             operator:
+                              description: Comparison operator (>, <, >=, <=, ==)
                               type: string
                             targetValue:
+                              description: Target value
                               type: string
                           required:
                           - metric
@@ -596,24 +826,33 @@ spec:
                         type: array
                     type: object
                   scaling:
+                    description: Scaling parameters
                     properties:
                       maxReplicas:
+                        description: Maximum replicas
                         format: int32
                         type: integer
                       minReplicas:
+                        description: Minimum replicas
                         format: int32
                         type: integer
                       targetReplicas:
+                        description: Target replicas
                         format: int32
                         type: integer
                       triggers:
+                        description: Scaling triggers
                         items:
+                          description: ScalingTrigger defines a scaling trigger condition
                           properties:
                             metric:
+                              description: Metric name
                               type: string
                             operator:
+                              description: Comparison operator (>, <, >=, <=, ==)
                               type: string
                             targetValue:
+                              description: Target value
                               type: string
                           required:
                           - metric
@@ -623,26 +862,37 @@ spec:
                         type: array
                     type: object
                   securityParameters:
+                    description: SecurityParameters for security-related settings
                     properties:
                       encryption:
+                        description: Encryption configuration
                         properties:
                           algorithm:
+                            description: Encryption algorithm
                             type: string
                           enabled:
+                            description: Whether encryption is enabled
                             type: boolean
                           keySize:
+                            description: Key size in bits
                             type: integer
                         type: object
                       networkPolicies:
+                        description: Network policies configuration
                         items:
+                          description: NetworkPolicyConfig defines network policy
+                            settings
                           properties:
                             name:
+                              description: Name of the network policy
                               type: string
                             rules:
+                              description: Rules for the policy
                               items:
                                 type: string
                               type: array
                             type:
+                              description: Type of policy (ingress, egress, or both)
                               enum:
                               - ingress
                               - egress
@@ -654,79 +904,108 @@ spec:
                           type: object
                         type: array
                       serviceMesh:
+                        description: Service mesh configuration
                         type: boolean
                       tlsEnabled:
+                        description: TLS configuration
                         type: boolean
                     type: object
                   structured:
                     additionalProperties:
                       type: string
+                    description: Structured parameters
                     type: object
                 type: object
               processingCompletionTime:
+                description: ProcessingCompletionTime when processing completed
                 format: date-time
                 type: string
               processingDuration:
+                description: ProcessingDuration total processing duration
                 type: string
               processingStartTime:
+                description: ProcessingStartTime when processing started
                 format: date-time
                 type: string
               qualityScore:
+                description: QualityScore indicates the quality of processing (as
+                  string to avoid float issues)
                 pattern: ^(0(\.\d+)?|1(\.0+)?)$
                 type: string
               ragMetrics:
+                description: RAGMetrics RAG processing metrics
                 properties:
                   averageRelevanceScore:
-                    pattern: ^(0(\.\d+)?|1(\.0+)?)$
+                    description: AverageRelevanceScore average relevance score of
+                      retrieved documents (0.0-1.0) as string to avoid float issues
+                    pattern: ^(0(\.[0-9]+)?|1(\.0+)?)$
                     type: string
                   cacheHits:
+                    description: CacheHits number of cache hits
                     format: int64
                     type: integer
                   documentsRetrieved:
+                    description: DocumentsRetrieved number of documents retrieved
                     format: int32
                     type: integer
                   indexHits:
+                    description: IndexHits number of index hits
                     format: int64
                     type: integer
                   queryEnhancement:
+                    description: QueryEnhancement information about query enhancement
                     type: string
                   retrievalDuration:
+                    description: RetrievalDuration duration of retrieval process
                     format: int64
                     type: integer
                   retrievalTimeMs:
+                    description: RetrievalTimeMs time spent on retrieval in milliseconds
                     format: int64
                     type: integer
                   sourcesUsed:
+                    description: SourcesUsed list of knowledge sources used
                     items:
                       type: string
                     type: array
                   topRelevanceScore:
-                    pattern: ^(0(\.\d+)?|1(\.0+)?)$
+                    description: TopRelevanceScore highest relevance score (0.0-1.0)
+                      as string to avoid float issues
+                    pattern: ^(0(\.[0-9]+)?|1(\.0+)?)$
                     type: string
                 type: object
               retryCount:
+                description: RetryCount number of retries attempted
                 format: int32
                 type: integer
               telecomContext:
                 additionalProperties:
                   type: string
+                description: TelecomContext telecom-specific context
                 type: object
               tokenUsage:
+                description: TokenUsage token usage information
                 properties:
                   cost:
+                    description: Cost estimated cost in USD (as string to avoid float
+                      issues)
                     pattern: ^\d+(\.\d{1,4})?$
                     type: string
                   inputTokens:
+                    description: InputTokens number of input tokens
                     format: int32
                     type: integer
                   outputTokens:
+                    description: OutputTokens number of output tokens
                     format: int32
                     type: integer
                   totalTokens:
+                    description: TotalTokens total number of tokens
                     format: int32
                     type: integer
                 type: object
               validationErrors:
+                description: ValidationErrors validation errors if any
                 items:
                   type: string
                 type: array

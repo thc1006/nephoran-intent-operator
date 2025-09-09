@@ -95,7 +95,7 @@ func TestGeneratePackage_IntentTypeRouting(t *testing.T) {
 				},
 				Spec: v1.NetworkIntentSpec{
 					Intent:     "Test intent for " + tt.intentType,
-					IntentType: tt.intentType,
+					IntentType: v1.IntentType(tt.intentType),
 					Parameters: &runtime.RawExtension{
 						Raw: paramsJSON,
 					},

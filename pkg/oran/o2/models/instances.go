@@ -6,6 +6,18 @@ import (
 "time"
 )
 
+// ComputeInstance represents a compute instance in the O2 IMS inventory
+type ComputeInstance struct {
+	ResourceInstanceID string `json:"resourceInstanceId"`
+	Name               string `json:"name"`
+	InstanceType       string `json:"instanceType"`
+	ResourcePoolID     string `json:"resourcePoolId"`
+	Provider           string `json:"provider"`
+	State              string `json:"state,omitempty"`
+	CreatedAt          time.Time `json:"createdAt"`
+	UpdatedAt          time.Time `json:"updatedAt"`
+}
+
 // ResourceInstance represents a specific instance of a resource type.
 
 type ResourceInstance struct {

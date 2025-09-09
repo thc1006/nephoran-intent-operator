@@ -165,7 +165,7 @@ func TestGenerateEventID(t *testing.T) {
 
 func TestHeartbeatFields_AdditionalFields(t *testing.T) {
 	event := NewHeartbeatEvent("test", 30)
-	event.Event.HeartbeatFields.AdditionalFields = json.RawMessage(`{}`)
+	event.Event.HeartbeatFields.AdditionalFields = json.RawMessage(`{"customField1":"value1","customField2":42}`)
 
 	jsonData, err := json.Marshal(event)
 	if err != nil {

@@ -2,9 +2,9 @@ package providers
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
-	"encoding/json"
 )
 
 func TestProviderFactory(t *testing.T) {
@@ -61,9 +61,9 @@ func TestMockProvider(t *testing.T) {
 
 	// Test operations before initialization (should fail)
 	ctx := context.Background()
-	_, err := provider.CreateResource(ctx, ResourceRequest{
+	_, err := provider.CreateResource(ctx, &CreateResourceRequest{
 		Name: "test-resource",
-		Type: ResourceTypeDeployment,
+		Type: string(ResourceTypeDeployment),
 	})
 	if err == nil {
 		t.Error("Expected error for uninitialized provider")
@@ -104,10 +104,10 @@ func TestResourceOperations(t *testing.T) {
 	defer provider.Close() // #nosec G307 - Error handled in defer
 
 	// Test CreateResource
-	req := ResourceRequest{
-		Name: "test-deployment",
-		Type: ResourceTypeDeployment,
-		Spec: json.RawMessage(`{}`),
+	req := &CreateResourceRequest{
+		Name:          "test-deployment",
+		Type:          string(ResourceTypeDeployment),
+		Specification: json.RawMessage(`{}`),
 		Labels: map[string]string{
 			"env": "test",
 		},
@@ -135,7 +135,7 @@ func TestResourceOperations(t *testing.T) {
 		t.Fatalf("Failed to get resource: %v", err)
 	}
 
-	if retrievedResource.Status != StatusReady {
+	if retrievedResource.Status != string(StatusReady) {
 		t.Errorf("Expected status %s, got %s", StatusReady, retrievedResource.Status)
 	}
 
@@ -150,10 +150,9 @@ func TestResourceOperations(t *testing.T) {
 	}
 
 	// Test UpdateResource
-	updateReq := ResourceRequest{
-		Name: "updated-deployment",
-		Type: ResourceTypeDeployment,
-		Spec: json.RawMessage(`{}`),
+	updateReq := &UpdateResourceRequest{
+		Name:          "updated-test-resource",
+		Specification: json.RawMessage(`{}`),
 		Labels: map[string]string{
 			"env":     "test",
 			"updated": "true",
@@ -170,7 +169,7 @@ func TestResourceOperations(t *testing.T) {
 	}
 
 	// Test ListResources
-	resources, err := provider.ListResources(ctx, ResourceFilter{})
+	resources, err := provider.ListResources(ctx, &ResourceFilter{})
 	if err != nil {
 		t.Fatalf("Failed to list resources: %v", err)
 	}
@@ -180,7 +179,7 @@ func TestResourceOperations(t *testing.T) {
 	}
 
 	// Test ListResources with type filter
-	resources, err = provider.ListResources(ctx, ResourceFilter{
+	resources, err = provider.ListResources(ctx, &ResourceFilter{
 		Types: []string{string(ResourceTypeDeployment)},
 	})
 	if err != nil {
@@ -192,7 +191,7 @@ func TestResourceOperations(t *testing.T) {
 	}
 
 	// Test ListResources with label filter
-	resources, err = provider.ListResources(ctx, ResourceFilter{
+	resources, err = provider.ListResources(ctx, &ResourceFilter{
 		Labels: map[string]string{
 			"env": "test",
 		},
@@ -232,9 +231,10 @@ func TestProviderRegistry(t *testing.T) {
 	}
 
 	// Test CreateAndRegisterProvider
-	config := ProviderConfig{
-		Type:   "mock",
-		Config: json.RawMessage(`{}`),
+	config := &ProviderConfiguration{
+		Name:    "test-provider",
+		Type:    "mock",
+		Version: "1.0.0",
 	}
 
 	err = registry.CreateAndRegisterProvider("test-provider", "mock", config)

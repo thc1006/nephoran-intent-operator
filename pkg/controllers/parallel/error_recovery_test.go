@@ -241,6 +241,8 @@ func (suite *ErrorRecoveryTestSuite) TestRetryMechanismWithBackoff() {
 	}
 
 	intentID := "intent-retry-test"
+	// ITERATION #9 fix: Initialize Task with proper context
+	taskCtx, taskCancel := context.WithCancel(context.Background())
 	task := &Task{
 		ID:        "retry-task-1",
 		IntentID:  intentID,
@@ -249,6 +251,9 @@ func (suite *ErrorRecoveryTestSuite) TestRetryMechanismWithBackoff() {
 		Status:    TaskStatusPending,
 		InputData: json.RawMessage(`{"intent":"test intent"}`),
 		Timeout:   10 * time.Second,
+		Context:   taskCtx,     // Add context
+		Cancel:    taskCancel,  // Add cancel function
+		CreatedAt: time.Now(),  // Add creation timestamp
 		RetryConfig: &TaskRetryConfig{
 			MaxAttempts:   5,
 			InitialDelay:  100 * time.Millisecond,
@@ -276,6 +281,8 @@ func (suite *ErrorRecoveryTestSuite) TestBulkheadIsolation() {
 	intentID := "intent-bulkhead-test"
 
 	// Create tasks for different pools
+	// ITERATION #9 fix: Initialize Task with proper context
+	llmCtx, llmCancel := context.WithCancel(context.Background())
 	llmTask := &Task{
 		ID:        "llm-bulkhead-task",
 		IntentID:  intentID,
@@ -284,8 +291,12 @@ func (suite *ErrorRecoveryTestSuite) TestBulkheadIsolation() {
 		Status:    TaskStatusPending,
 		InputData: json.RawMessage(`{"intent":"test intent"}`),
 		Timeout:   5 * time.Second,
+		Context:   llmCtx,
+		Cancel:    llmCancel,
+		CreatedAt: time.Now(),
 	}
 
+	ragCtx, ragCancel := context.WithCancel(context.Background())
 	ragTask := &Task{
 		ID:        "rag-bulkhead-task",
 		IntentID:  intentID,
@@ -294,6 +305,9 @@ func (suite *ErrorRecoveryTestSuite) TestBulkheadIsolation() {
 		Status:    TaskStatusPending,
 		InputData: json.RawMessage(`{"query":"test query"}`),
 		Timeout:   5 * time.Second,
+		Context:   ragCtx,
+		Cancel:    ragCancel,
+		CreatedAt: time.Now(),
 	}
 
 	// Submit tasks to different pools

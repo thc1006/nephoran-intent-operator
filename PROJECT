@@ -20,19 +20,3 @@ plugins:
   scorecard.sdk.operator.sdk/v2: {}
   # Webhook support
   webhooks.kubebuilder.io/v1: {}
-
-componentConfig:
-  controller-manager:
-    # Enable leader election
-    leaderElection:
-      # Use default config
-      enabled: true
-    # O-RAN specific metrics and telemetry
-    metrics:
-      bindAddress: :8080
-    # Health probes configuration
-    healthProbeBindAddress: :8081
-    # Advanced logging for O-RAN network functions
-    zap:
-      development: false
-      stacktraceLevel: error

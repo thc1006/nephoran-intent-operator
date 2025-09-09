@@ -516,9 +516,9 @@ func (r *IntentProcessingController) enhanceWithRAG(ctx context.Context, intent 
 
 		RetrievalDuration: int64(response.RetrievalTime),
 
-		AverageRelevanceScore: float64Ptr(float64(response.Confidence)),
+		AverageRelevanceScore: stringPtr(fmt.Sprintf("%.3f", float64(response.Confidence))),
 
-		TopRelevanceScore: float64Ptr(float64(response.Confidence)),
+		TopRelevanceScore: stringPtr(fmt.Sprintf("%.3f", float64(response.Confidence))),
 
 		QueryEnhancement: "false", // Default to false as string
 
@@ -1072,3 +1072,8 @@ func float64Ptr(f float64) *float64 {
 	return &f
 }
 
+
+// stringPtr returns a pointer to the given string value
+func stringPtr(s string) *string {
+	return &s
+}

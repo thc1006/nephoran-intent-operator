@@ -24,6 +24,7 @@ import (
 
 	nephv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/audit"
+	audittypes "github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
 )
 
@@ -34,10 +35,10 @@ type E2EAuditTestSuite struct {
 	scheme         *runtime.Scheme
 	recorder       record.EventRecorder
 	controller     *controllers.AuditTrailController
-	auditSystem    *AuditSystem
+	auditSystem    *audit.AuditSystem
 	tempDir        string
 	httpServer     *httptest.Server
-	eventsReceived []*AuditEvent
+	eventsReceived []*audit.AuditEvent
 	eventMutex     sync.RWMutex
 }
 
@@ -59,17 +60,17 @@ func (suite *E2EAuditTestSuite) SetupSuite() {
 		suite.eventMutex.Lock()
 		defer suite.eventMutex.Unlock()
 
-		var event AuditEvent
+		var event audit.AuditEvent
 		_, err := io.ReadAll(r.Body)
 		if err == nil {
 			// In a real implementation, we'd unmarshal the JSON
 			// For testing, we'll create a mock event
-			event = AuditEvent{
+			event = audit.AuditEvent{
 				ID:        uuid.New().String(),
 				Timestamp: time.Now(),
 				Component: "webhook-receiver",
-				Action:    "received",
-				Severity:  SeverityInfo,
+				EventType: audittypes.EventTypeAPICall,
+				Severity:  audittypes.SeverityInfo,
 			}
 			suite.eventsReceived = append(suite.eventsReceived, &event)
 		}
@@ -190,16 +191,16 @@ func (suite *E2EAuditTestSuite) TestCompleteAuditTrailLifecycle() {
 	suite.Run("log events through audit system", func() {
 		suite.Require().NotNil(suite.auditSystem)
 
-		events := []*AuditEvent{
+		events := []*audit.AuditEvent{
 			{
 				ID:        uuid.New().String(),
 				Timestamp: time.Now(),
-				EventType: audit.EventTypeAuthentication,
+				EventType: audittypes.EventTypeAuthentication,
 				Component: "e2e-test",
 				Action:    "login",
-				Severity:  SeverityInfo,
-				Result:    ResultSuccess,
-				UserContext: &UserContext{
+				Severity:  audittypes.SeverityInfo,
+				Result:    audittypes.ResultSuccess,
+				UserContext: &audittypes.UserContext{
 					UserID:   "test-user-1",
 					Username: "testuser1",
 				},
@@ -210,13 +211,13 @@ func (suite *E2EAuditTestSuite) TestCompleteAuditTrailLifecycle() {
 				EventType: audit.EventTypeDataAccess,
 				Component: "e2e-test",
 				Action:    "read_data",
-				Severity:  SeverityInfo,
-				Result:    ResultSuccess,
-				UserContext: &UserContext{
+				Severity:  audittypes.SeverityInfo,
+				Result:    audittypes.ResultSuccess,
+				UserContext: &audittypes.UserContext{
 					UserID:   "test-user-2",
 					Username: "testuser2",
 				},
-				ResourceContext: &ResourceContext{
+				ResourceContext: &audittypes.ResourceContext{
 					ResourceType: "user",
 					ResourceID:   "user123",
 					Operation:    "read",
@@ -228,8 +229,8 @@ func (suite *E2EAuditTestSuite) TestCompleteAuditTrailLifecycle() {
 				EventType: audit.EventTypeSecurityViolation,
 				Component: "e2e-test",
 				Action:    "suspicious_activity",
-				Severity:  SeverityCritical,
-				Result:    ResultFailure,
+				Severity:  audittypes.SeverityCritical,
+				Result:    audittypes.ResultFailure,
 				Data:      map[string]interface{}{},
 			},
 		}
@@ -334,19 +335,19 @@ func (suite *E2EAuditTestSuite) TestAuditEventSources() {
 		suite.Require().NotNil(suite.auditSystem)
 
 		// Simulate controller reconciliation event
-		reconcileEvent := &AuditEvent{
+		reconcileEvent := &audit.AuditEvent{
 			ID:        uuid.New().String(),
 			Timestamp: time.Now(),
 			EventType: audit.EventTypeSystemChange,
 			Component: "networkintent-controller",
 			Action:    "reconcile",
-			Severity:  SeverityInfo,
-			Result:    ResultSuccess,
-			UserContext: &UserContext{
+			Severity:  audittypes.SeverityInfo,
+			Result:    audittypes.ResultSuccess,
+			UserContext: &audittypes.UserContext{
 				UserID:         "system",
 				ServiceAccount: true,
 			},
-			ResourceContext: &ResourceContext{
+			ResourceContext: &audittypes.ResourceContext{
 				ResourceType: "NetworkIntent",
 				ResourceID:   "test-intent",
 				Operation:    "update",
@@ -368,24 +369,24 @@ func (suite *E2EAuditTestSuite) TestAuditEventSources() {
 
 	suite.Run("webhook admission controller events", func() {
 		// Simulate webhook admission controller event
-		admissionEvent := &AuditEvent{
+		admissionEvent := &audit.AuditEvent{
 			ID:        uuid.New().String(),
 			Timestamp: time.Now(),
 			EventType: audit.EventTypeAuthorization,
 			Component: "admission-webhook",
 			Action:    "validate",
-			Severity:  SeverityInfo,
-			Result:    ResultSuccess,
-			UserContext: &UserContext{
+			Severity:  audittypes.SeverityInfo,
+			Result:    audittypes.ResultSuccess,
+			UserContext: &audittypes.UserContext{
 				UserID:   "user@example.com",
 				Username: "developer",
 				Role:     "developer",
 			},
-			NetworkContext: &NetworkContext{
+			NetworkContext: &audittypes.NetworkContext{
 				SourcePort: 8443,
 				UserAgent:  "kubectl/v1.28.0",
 			},
-			ResourceContext: &ResourceContext{
+			ResourceContext: &audittypes.ResourceContext{
 				ResourceType: "NetworkIntent",
 				Operation:    "create",
 				Namespace:    "production",
@@ -399,22 +400,22 @@ func (suite *E2EAuditTestSuite) TestAuditEventSources() {
 
 	suite.Run("API server authentication events", func() {
 		// Simulate API server authentication event
-		authEvent := &AuditEvent{
+		authEvent := &audit.AuditEvent{
 			ID:        uuid.New().String(),
 			Timestamp: time.Now(),
-			EventType: EventTypeAuthentication,
+			EventType: audittypes.EventTypeAuthentication,
 			Component: "api-server",
 			Action:    "authenticate",
-			Severity:  SeverityInfo,
-			Result:    ResultSuccess,
-			UserContext: &UserContext{
+			Severity:  audittypes.SeverityInfo,
+			Result:    audittypes.ResultSuccess,
+			UserContext: &audittypes.UserContext{
 				UserID:       "user@example.com",
 				Username:     "developer",
 				AuthMethod:   "oidc",
 				AuthProvider: "google",
 				Groups:       []string{"developers", "k8s-users"},
 			},
-			NetworkContext: &NetworkContext{
+			NetworkContext: &audittypes.NetworkContext{
 				UserAgent: "kubectl/v1.28.0",
 				RequestID: "req-" + uuid.New().String(),
 			},
@@ -484,15 +485,15 @@ func (suite *E2EAuditTestSuite) TestHighLoadAuditing() {
 				defer wg.Done()
 
 				for i := 0; i < eventsPerGoroutine; i++ {
-					event := &AuditEvent{
+					event := &audit.AuditEvent{
 						ID:        uuid.New().String(),
 						Timestamp: time.Now(),
 						EventType: audit.EventTypeAPICall,
 						Component: "high-load-test",
 						Action:    fmt.Sprintf("api-call-%d-%d", goroutineID, i),
-						Severity:  SeverityInfo,
-						Result:    ResultSuccess,
-						UserContext: &UserContext{
+						Severity:  audittypes.SeverityInfo,
+						Result:    audittypes.ResultSuccess,
+						UserContext: &audittypes.UserContext{
 							UserID: fmt.Sprintf("user-%d", goroutineID),
 						},
 						Data: map[string]interface{}{},
@@ -579,14 +580,14 @@ func (suite *E2EAuditTestSuite) TestErrorRecovery() {
 	suite.Run("verify system continues operating with partial failures", func() {
 		// Log events that will partially fail
 		for i := 0; i < 10; i++ {
-			event := &AuditEvent{
+			event := &audit.AuditEvent{
 				ID:        uuid.New().String(),
 				Timestamp: time.Now(),
 				EventType: audit.EventTypeSystemChange,
 				Component: "error-recovery-test",
 				Action:    fmt.Sprintf("test-action-%d", i),
-				Severity:  SeverityInfo,
-				Result:    ResultSuccess,
+				Severity:  audittypes.SeverityInfo,
+				Result:    audittypes.ResultSuccess,
 			}
 
 			err := suite.auditSystem.LogEvent(event)
@@ -654,17 +655,17 @@ func (suite *E2EAuditTestSuite) TestComplianceIntegration() {
 	})
 
 	suite.Run("log compliance-relevant events", func() {
-		complianceEvents := []*AuditEvent{
+		complianceEvents := []*audit.AuditEvent{
 			{
 				ID:                 uuid.New().String(),
 				Timestamp:          time.Now(),
-				EventType:          EventTypeAuthentication,
+				EventType:          audittypes.EventTypeAuthentication,
 				Component:          "auth-service",
 				Action:             "mfa_verification",
-				Severity:           SeverityInfo,
-				Result:             ResultSuccess,
+				Severity:           audittypes.SeverityInfo,
+				Result:             audittypes.ResultSuccess,
 				DataClassification: "Authentication Data",
-				UserContext: &UserContext{
+				UserContext: &audittypes.UserContext{
 					UserID:     "compliance-user-1",
 					AuthMethod: "mfa",
 				},
@@ -673,13 +674,13 @@ func (suite *E2EAuditTestSuite) TestComplianceIntegration() {
 			{
 				ID:                 uuid.New().String(),
 				Timestamp:          time.Now(),
-				EventType:          EventTypeDataAccess,
+				EventType:          audit.EventTypeDataAccess,
 				Component:          "payment-api",
 				Action:             "cardholder_data_access",
-				Severity:           SeverityNotice,
-				Result:             ResultSuccess,
+				Severity:           audittypes.SeverityNotice,
+				Result:             audittypes.ResultSuccess,
 				DataClassification: "Cardholder Data",
-				UserContext: &UserContext{
+				UserContext: &audittypes.UserContext{
 					UserID: "payment-processor",
 					Role:   "service_account",
 				},
@@ -691,9 +692,9 @@ func (suite *E2EAuditTestSuite) TestComplianceIntegration() {
 				EventType: audit.EventTypeSecurityViolation,
 				Component: "security-monitor",
 				Action:    "pii_access_violation",
-				Severity:  SeverityCritical,
-				Result:    ResultFailure,
-				UserContext: &UserContext{
+				Severity:  audittypes.SeverityCritical,
+				Result:    audittypes.ResultFailure,
+				UserContext: &audittypes.UserContext{
 					UserID: "suspicious-user",
 				},
 				Data: map[string]interface{}{},
@@ -736,14 +737,14 @@ func (suite *E2EAuditTestSuite) TestMonitoringAndHealth() {
 
 		// Log some events to generate activity
 		for i := 0; i < 5; i++ {
-			event := &AuditEvent{
+			event := &audit.AuditEvent{
 				ID:        uuid.New().String(),
 				Timestamp: time.Now(),
 				EventType: audit.EventTypeHealthCheck,
 				Component: "monitoring-test",
 				Action:    fmt.Sprintf("health-check-%d", i),
-				Severity:  SeverityInfo,
-				Result:    ResultSuccess,
+				Severity:  audittypes.SeverityInfo,
+				Result:    audittypes.ResultSuccess,
 			}
 
 			err := suite.auditSystem.LogEvent(event)
@@ -828,24 +829,24 @@ func (suite *E2EAuditTestSuite) TestKubernetesIntegration() {
 	})
 
 	suite.Run("simulate kubernetes API server events", func() {
-		k8sEvents := []*AuditEvent{
+		k8sEvents := []*audit.AuditEvent{
 			{
 				ID:        uuid.New().String(),
 				Timestamp: time.Now(),
 				EventType: audit.EventTypeAPICall,
 				Component: "kube-apiserver",
 				Action:    "create",
-				Severity:  SeverityInfo,
-				Result:    ResultSuccess,
-				UserContext: &UserContext{
+				Severity:  audittypes.SeverityInfo,
+				Result:    audittypes.ResultSuccess,
+				UserContext: &audittypes.UserContext{
 					UserID:   "kubernetes-admin",
 					Username: "kubernetes-admin",
 					Groups:   []string{"system:masters"},
 				},
-				NetworkContext: &NetworkContext{
+				NetworkContext: &audittypes.NetworkContext{
 					UserAgent: "kubectl/v1.28.0",
 				},
-				ResourceContext: &ResourceContext{
+				ResourceContext: &audittypes.ResourceContext{
 					ResourceType: "pods",
 					ResourceID:   "test-pod",
 					Namespace:    "default",
@@ -860,13 +861,13 @@ func (suite *E2EAuditTestSuite) TestKubernetesIntegration() {
 				EventType: audit.EventTypeAPICall,
 				Component: "kube-apiserver",
 				Action:    "get",
-				Severity:  SeverityInfo,
-				Result:    ResultSuccess,
-				UserContext: &UserContext{
+				Severity:  audittypes.SeverityInfo,
+				Result:    audittypes.ResultSuccess,
+				UserContext: &audittypes.UserContext{
 					UserID:         "system:serviceaccount:kube-system:default",
 					ServiceAccount: true,
 				},
-				ResourceContext: &ResourceContext{
+				ResourceContext: &audittypes.ResourceContext{
 					ResourceType: "nodes",
 					ResourceID:   "worker-node-1",
 					Operation:    "get",
@@ -909,14 +910,14 @@ func (suite *E2EAuditTestSuite) TestScalabilityMetrics() {
 		latencies := make([]time.Duration, numEvents)
 
 		for i := 0; i < numEvents; i++ {
-			event := &AuditEvent{
+			event := &audit.AuditEvent{
 				ID:        uuid.New().String(),
 				Timestamp: time.Now(),
 				EventType: audit.EventTypeAPICall,
 				Component: "latency-test",
 				Action:    fmt.Sprintf("action-%d", i),
-				Severity:  SeverityInfo,
-				Result:    ResultSuccess,
+				Severity:  audittypes.SeverityInfo,
+				Result:    audittypes.ResultSuccess,
 			}
 
 			start := time.Now()

@@ -79,10 +79,13 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 		}
 
 		return map[string]interface{}{
-			"action": "scale",
-			"target": m[1],
-			"replicas": replicas,
-			"namespace": ns,
+			"intent_type":      "scaling",
+			"target":           m[1],
+			"replicas":         replicas,
+			"namespace":        ns,
+			"source":           "user",
+			"status":           "pending",
+			"target_resources": []string{fmt.Sprintf("deployment/%s", m[1])},
 		}, nil
 
 	}
@@ -101,10 +104,13 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 		}
 
 		return map[string]interface{}{
-			"action": "scale",
-			"target": m[1],
-			"replicas": replicas,
-			"namespace": "default",
+			"intent_type":      "scaling",
+			"target":           m[1],
+			"replicas":         replicas,
+			"namespace":        "default",
+			"source":           "user",
+			"status":           "pending",
+			"target_resources": []string{fmt.Sprintf("deployment/%s", m[1])},
 		}, nil
 
 	}
@@ -133,9 +139,9 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 		// For MVP, we'll just use the delta as the new replica count.
 
 		return map[string]interface{}{
-			"action": "scale",
-			"target": m[1],
-			"delta": delta,
+			"action":    "scale",
+			"target":    m[1],
+			"delta":     delta,
 			"namespace": ns,
 		}, nil
 
@@ -165,9 +171,9 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 		// For MVP, we'll use 1 as minimum.
 
 		return map[string]interface{}{
-			"action": "scale",
-			"target": m[1],
-			"delta": -delta, // negative delta for scale in
+			"action":    "scale",
+			"target":    m[1],
+			"delta":     -delta, // negative delta for scale in
 			"namespace": ns,
 		}, nil
 

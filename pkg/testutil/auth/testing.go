@@ -21,24 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// SessionResult represents a session with an ID field
-type SessionResult struct {
-	ID        string      `json:"id"`
-	User      interface{} `json:"user"`
-	CreatedAt time.Time   `json:"created_at"`
-	ExpiresAt time.Time   `json:"expires_at"`
-}
-
-// UserFactory creates test users.
-type UserFactory struct{}
-
-// TokenFactory creates test tokens.
-type TokenFactory struct {
-	issuer string
-}
-
-// OAuthResponseFactory creates test OAuth responses.
-type OAuthResponseFactory struct{}
+// Note: SessionResult, UserFactory, TokenFactory, OAuthResponseFactory are defined in mocks.go
 
 // TokenResponse represents an OAuth token response.
 type TokenResponse struct {
@@ -48,189 +31,30 @@ type TokenResponse struct {
 	ExpiresIn    int64  `json:"expires_in"`
 }
 
-// NewUserFactory creates a new user factory.
-func NewUserFactory() *UserFactory {
-	return &UserFactory{}
-}
+// Note: Factory constructors and Mock types are defined in mocks.go
 
-// CreateBasicUser creates a basic test user.
-func (uf *UserFactory) CreateBasicUser() *TestUser {
-	return &TestUser{
-		Username:      "testuser",
-		Password:      "password123",
-		Email:         "test@example.com",
-		Roles:         []string{"user"},
-		Claims:        make(map[string]interface{}),
-		Enabled:       true,
-		Subject:       "test-user-123",
-		Name:          "Test User",
-		EmailVerified: true,
-		Provider:      "test",
-	}
-}
-
-// NewTokenFactory creates a new token factory.
-func NewTokenFactory(issuer string) *TokenFactory {
-	return &TokenFactory{issuer: issuer}
-}
-
-// CreateBasicToken creates basic token claims.
-func (tf *TokenFactory) CreateBasicToken(subject string) jwt.MapClaims {
-	now := time.Now()
-	return jwt.MapClaims{
-		"iss": tf.issuer,
-		"sub": subject,
-		"exp": now.Add(time.Hour).Unix(),
-		"iat": now.Unix(),
-	}
-}
-
-// CreateExpiredToken creates expired token claims.
-func (tf *TokenFactory) CreateExpiredToken(subject string) jwt.MapClaims {
-	now := time.Now()
-	return jwt.MapClaims{
-		"iss": tf.issuer,
-		"sub": subject,
-		"exp": now.Add(-time.Hour).Unix(), // Expired 1 hour ago
-		"iat": now.Add(-2 * time.Hour).Unix(), // Issued 2 hours ago
-	}
-}
-
-// CreateTokenNotValidYet creates token claims not valid yet (future nbf).
-func (tf *TokenFactory) CreateTokenNotValidYet(subject string) jwt.MapClaims {
-	now := time.Now()
-	return jwt.MapClaims{
-		"iss": tf.issuer,
-		"sub": subject,
-		"exp": now.Add(2 * time.Hour).Unix(),  // Valid for 2 hours from now
-		"iat": now.Unix(),
-		"nbf": now.Add(time.Hour).Unix(), // Not valid until 1 hour from now
-	}
-}
-
-// NewOAuthResponseFactory creates a new OAuth response factory.
-func NewOAuthResponseFactory() *OAuthResponseFactory {
-	return &OAuthResponseFactory{}
-}
-
-// CreateTokenResponse creates a test token response.
-func (of *OAuthResponseFactory) CreateTokenResponse() *TokenResponse {
-	return &TokenResponse{
-		AccessToken:  "test-access-token",
-		RefreshToken: "test-refresh-token",
-		TokenType:    "Bearer",
-		ExpiresIn:    3600,
-	}
-}
-
-// JWTManagerMock is a mock JWT manager for testing.
-type JWTManagerMock struct {
-	blacklistedTokens map[string]bool
-	tokenStore        map[string]interface{}
-}
-
-// RBACManagerMock is a mock RBAC manager for testing.
-type RBACManagerMock struct {
-	roles           map[string][]string
-	permissions     map[string][]string
-	roleStore       map[string]interface{}
-	permissionStore map[string]interface{}
-}
-
-// SessionManagerMock is a mock session manager for testing.
-type SessionManagerMock struct {
-	sessions map[string]*SessionResult
-	config   struct {
-		SessionTTL time.Duration
-	}
-}
-
-// NewJWTManagerMock creates a new JWT manager mock.
-func NewJWTManagerMock() *JWTManagerMock {
-	return &JWTManagerMock{
-		blacklistedTokens: make(map[string]bool),
-		tokenStore:        make(map[string]interface{}),
-	}
-}
-
-// NewRBACManagerMock creates a new RBAC manager mock.
-func NewRBACManagerMock() *RBACManagerMock {
-	return &RBACManagerMock{
-		roles:           make(map[string][]string),
-		permissions:     make(map[string][]string),
-		roleStore:       make(map[string]interface{}),
-		permissionStore: make(map[string]interface{}),
-	}
-}
-
-// CreateRole creates a new role (mock implementation)
-func (rbac *RBACManagerMock) CreateRole(ctx context.Context, role interface{}) error {
-	// Mock implementation - just return success
-	return nil
-}
-
-// CreatePermission creates a new permission (mock implementation)  
-func (rbac *RBACManagerMock) CreatePermission(ctx context.Context, permission interface{}) error {
-	// Mock implementation - just return success
-	return nil
-}
-
-// NewSessionManagerMock creates a new session manager mock.
-func NewSessionManagerMock() *SessionManagerMock {
-	mock := &SessionManagerMock{
-		sessions: make(map[string]*SessionResult),
-	}
-	mock.config.SessionTTL = time.Hour
-	return mock
-}
-
-// CreateCompleteTestSetup creates a complete test setup with all factories.
-func CreateCompleteTestSetup() (*UserFactory, *TokenFactory, *OAuthResponseFactory, interface{}, interface{}, interface{}, interface{}) {
-	uf := NewUserFactory()
-	tf := NewTokenFactory("test-issuer")
-	of := NewOAuthResponseFactory()
-	cf := struct{}{} // placeholder
-	rf := struct{}{} // placeholder
-	pf := struct{}{} // placeholder
-	sf := struct{}{} // placeholder
-	return uf, tf, of, cf, rf, pf, sf
-}
-
-// CreateTestData creates test data for authentication scenarios.
-func CreateTestData() map[string]interface{} {
-	return map[string]interface{}{
-		"users": map[string]interface{}{
-			"basic":  map[string]string{"id": "user1", "name": "Basic User"},
-			"admin":  map[string]string{"id": "user2", "name": "Admin User"},
-			"github": map[string]string{"id": "user3", "name": "GitHub User"},
-		},
-		"tokens":      []string{"token1", "token2"},
-		"roles":       []string{"user", "admin"},
-		"permissions": []string{"read", "write"},
-		"sessions":    map[string]string{"session1": "user1"},
-	}
-}
+// Note: CreateCompleteTestSetup and CreateTestData are defined in mocks.go
 
 // AuthTestSuite provides a comprehensive authentication testing framework.
 
 type AuthTestSuite struct {
-	t           *testing.T
-	fixtures    *AuthFixtures
-	mocks       *AuthMocks
-	testServer  *httptest.Server
-	testClient  *http.Client
+	t          *testing.T
+	fixtures   *AuthFixtures
+	mocks      *AuthMocks
+	testServer *httptest.Server
+	testClient *http.Client
 }
 
 // AuthMocks contains all authentication mocks for testing.
 
 type AuthMocks struct {
-	Authenticator     *MockAuthenticator
-	OAuth2Provider    *MockOAuth2Provider
-	SAMLProvider      *MockSAMLProvider
-	LDAPProvider      *MockLDAPProvider
-	CertProvider      *MockCertificateProvider
-	MFAProvider       *MockMultiFactorProvider
-	AuthzProvider     *MockAuthorizationProvider
+	Authenticator  *MockAuthenticator
+	OAuth2Provider *MockOAuth2Provider
+	SAMLProvider   *MockSAMLProvider
+	LDAPProvider   *MockLDAPProvider
+	CertProvider   *MockCertificateProvider
+	MFAProvider    *MockMultiFactorProvider
+	AuthzProvider  *MockAuthorizationProvider
 }
 
 // NewAuthTestSuite creates a new authentication test suite.
@@ -238,13 +62,13 @@ type AuthMocks struct {
 func NewAuthTestSuite(t *testing.T) *AuthTestSuite {
 	fixtures := DefaultAuthFixtures()
 	mocks := &AuthMocks{
-		Authenticator:     NewMockAuthenticator().WithFixtures(fixtures),
-		OAuth2Provider:    NewMockOAuth2Provider(),
-		SAMLProvider:      NewMockSAMLProvider(),
-		LDAPProvider:      NewMockLDAPProvider(),
-		CertProvider:      NewMockCertificateProvider().WithCertificateFixtures(fixtures),
-		MFAProvider:       NewMockMultiFactorProvider(),
-		AuthzProvider:     NewMockAuthorizationProvider().WithAuthorizationFixtures(fixtures),
+		Authenticator:  NewMockAuthenticator().WithFixtures(fixtures),
+		OAuth2Provider: NewMockOAuth2Provider(),
+		SAMLProvider:   NewMockSAMLProvider(),
+		LDAPProvider:   NewMockLDAPProvider(),
+		CertProvider:   NewMockCertificateProvider().WithCertificateFixtures(fixtures),
+		MFAProvider:    NewMockMultiFactorProvider(),
+		AuthzProvider:  NewMockAuthorizationProvider().WithAuthorizationFixtures(fixtures),
 	}
 
 	suite := &AuthTestSuite{
@@ -839,16 +663,16 @@ func (ats *AuthTestSuite) GetTestClient() *http.Client {
 
 // TestContext provides a comprehensive testing context for authentication scenarios
 type TestContext struct {
-	t           *testing.T
-	fixtures    *AuthFixtures
-	PrivateKey  *rsa.PrivateKey
-	PublicKey   *rsa.PublicKey
-	KeyID       string       // Key ID for JWT signing
-	Logger      TestLogger
-	SlogLogger  *slog.Logger // For slog.Logger compatibility
-	TokenStore  *MockTokenStore // For JWT manager compatibility
-	Blacklist   *MockTokenBlacklist // For JWT manager compatibility
-	cleanupFns  []func()
+	t          *testing.T
+	fixtures   *AuthFixtures
+	PrivateKey *rsa.PrivateKey
+	PublicKey  *rsa.PublicKey
+	KeyID      string // Key ID for JWT signing
+	Logger     TestLogger
+	SlogLogger *slog.Logger        // For slog.Logger compatibility
+	TokenStore *MockTokenStore     // For JWT manager compatibility
+	Blacklist  *MockTokenBlacklist // For JWT manager compatibility
+	cleanupFns []func()
 }
 
 // TestLogger provides a simple test logger interface
@@ -932,46 +756,4 @@ func (tc *TestContext) CreateTestToken(claims jwt.MapClaims) string {
 	return tokenString
 }
 
-// RoleFactory creates test roles
-type RoleFactory struct{}
-
-// NewRoleFactory creates a new role factory
-func NewRoleFactory() *RoleFactory {
-	return &RoleFactory{}
-}
-
-// CreateRole creates a basic test role
-func (rf *RoleFactory) CreateRole(name, description string, permissions []string) *TestRole {
-	return &TestRole{
-		ID:          fmt.Sprintf("role-%s", name),
-		Name:        name,
-		Description: description,
-		Permissions: permissions,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
-	}
-}
-
-// PermissionFactory creates test permissions
-type PermissionFactory struct{}
-
-// NewPermissionFactory creates a new permission factory
-func NewPermissionFactory() *PermissionFactory {
-	return &PermissionFactory{}
-}
-
-// CreatePermission creates a basic test permission
-func (pf *PermissionFactory) CreatePermission(resource, action, scope string) *TestPermission {
-	name := fmt.Sprintf("%s:%s:%s", resource, action, scope)
-	return &TestPermission{
-		ID:          fmt.Sprintf("perm-%s", name),
-		Name:        name,
-		Description: fmt.Sprintf("Permission to %s %s in %s", action, resource, scope),
-		Resource:    resource,
-		Action:      action,
-		Scope:       scope,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
-	}
-}
-
+// Note: RoleFactory and PermissionFactory are defined in mocks.go

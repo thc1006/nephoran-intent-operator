@@ -28,7 +28,7 @@ ARG SERVICE_TYPE=go
 FROM --platform=$BUILDPLATFORM gcr.io/distroless/static:${DISTROLESS_VERSION} AS distroless-gcr
 
 # Strategy 2: Docker Hub mirror for distroless
-FROM --platform=$BUILDPLATFORM debian:12-slim AS distroless-debian-fallback
+FROM --platform=$BUILDPLATFORM debian:13-slim AS distroless-debian-fallback
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates && \
     groupadd -g 65532 nonroot && \

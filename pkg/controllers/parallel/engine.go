@@ -551,17 +551,28 @@ func (e *ParallelProcessingEngine) Stop() {
 	}
 
 	e.running = false
-	e.cancel()
-
-	// Stop health ticker
+	
+	// Stop health ticker first
 	if e.healthTicker != nil {
 		e.healthTicker.Stop()
 	}
 
+	// Cancel context to signal all goroutines to stop
+	e.cancel()
+	
+	// Give goroutines a moment to clean up
+	time.Sleep(100 * time.Millisecond)
+
 	// Cancel all workers
 	e.cancelAllWorkers()
 
-	// Close channels
+	// ITERATION #9 fix: Close channels safely
+	// Close taskQueue after workers have stopped to prevent "send on closed channel"
+	select {
+	case <-e.taskQueue:
+		// Drain any remaining tasks
+	default:
+	}
 	close(e.taskQueue)
 
 	e.logger.Info("Parallel processing engine stopped")
@@ -783,9 +794,18 @@ func (e *ParallelProcessingEngine) dispatchTasks(taskType TaskType, workers []*W
 				}
 			} else {
 				// Put back in main queue for other dispatchers
-				select {
-				case e.taskQueue <- task:
-				case <-e.ctx.Done():
+				// ITERATION #9 fix: Add defensive check for closed taskQueue
+				if e.isRunning() {
+					select {
+					case e.taskQueue <- task:
+					case <-e.ctx.Done():
+						return
+					default:
+						// Channel is full or closed, skip this task
+						e.logger.V(2).Info("Task queue full/closed, dropping task", "taskID", task.ID)
+					}
+				} else {
+					// Engine is shutting down, don't try to requeue
 					return
 				}
 			}
@@ -1048,8 +1068,17 @@ func (w *Worker) processTask(task *Task) {
 		"taskID", task.ID,
 		"type", task.Type)
 
-	// Create timeout context
-	ctx, cancel := context.WithTimeout(task.Context, task.Timeout)
+	// Create timeout context with defensive nil check (ITERATION #9 fix)
+	// Prevent "cannot create context from nil parent" panics
+	taskCtx := task.Context
+	if taskCtx == nil {
+		w.Engine.logger.V(1).Info("Task context is nil, using background context",
+			"taskID", task.ID, 
+			"type", task.Type)
+		taskCtx = context.Background()
+	}
+	
+	ctx, cancel := context.WithTimeout(taskCtx, task.Timeout)
 	defer cancel()
 
 	// Execute task based on type

@@ -17,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
@@ -37,7 +38,7 @@ func BenchmarkOptimizedNetworkIntentController(b *testing.B) {
 
 	// Create mock dependencies
 	deps := &mockDependencies{}
-	config := controllers.Config{
+	ctrlConfig := controllers.Config{
 		MaxRetries:      3,
 		RetryDelay:      1 * time.Second,
 		Timeout:         30 * time.Second,
@@ -48,7 +49,10 @@ func BenchmarkOptimizedNetworkIntentController(b *testing.B) {
 		UseNephioPorch:  false,
 	}
 
-	reconciler := NewOptimizedNetworkIntentReconciler(client, s, recorder, config, deps)
+	// Create test constants
+	constants := config.LoadConstants()
+
+	reconciler := NewOptimizedNetworkIntentReconciler(client, s, recorder, ctrlConfig, deps, constants)
 	defer reconciler.Shutdown()
 
 	// Create test NetworkIntent
@@ -445,15 +449,18 @@ func BenchmarkComparison(b *testing.B) {
 		client := fake.NewClientBuilder().WithScheme(s).Build()
 		recorder := record.NewFakeRecorder(100)
 		deps := &mockDependencies{}
-		config := controllers.Config{
+		ctrlConfig := controllers.Config{
 			MaxRetries: 3,
 			RetryDelay: 1 * time.Second,
 		}
 
+		// Create test constants
+		constants := config.LoadConstants()
+
 		b.ReportAllocs()
 
 		for i := 0; i < b.N; i++ {
-			reconciler := NewOptimizedNetworkIntentReconciler(client, s, recorder, config, deps)
+			reconciler := NewOptimizedNetworkIntentReconciler(client, s, recorder, ctrlConfig, deps, constants)
 			reconciler.Shutdown()
 		}
 	})
@@ -484,17 +491,20 @@ func BenchmarkControllerLifecycle(b *testing.B) {
 	client := fake.NewClientBuilder().WithScheme(s).Build()
 	recorder := record.NewFakeRecorder(100)
 	deps := &mockDependencies{}
-	config := controllers.Config{
+	ctrlConfig := controllers.Config{
 		MaxRetries: 3,
 		RetryDelay: 1 * time.Second,
 	}
+
+	// Create test constants
+	constants := config.LoadConstants()
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	b.Run("ControllerCreation", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			reconciler := NewOptimizedNetworkIntentReconciler(client, s, recorder, config, deps)
+			reconciler := NewOptimizedNetworkIntentReconciler(client, s, recorder, ctrlConfig, deps, constants)
 			reconciler.Shutdown()
 		}
 	})
@@ -504,7 +514,7 @@ func BenchmarkControllerLifecycle(b *testing.B) {
 
 		// Create controllers
 		for i := 0; i < b.N; i++ {
-			controllers[i] = NewOptimizedNetworkIntentReconciler(client, s, recorder, config, deps)
+			controllers[i] = NewOptimizedNetworkIntentReconciler(client, s, recorder, ctrlConfig, deps, constants)
 		}
 
 		b.ResetTimer()

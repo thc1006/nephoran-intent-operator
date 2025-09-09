@@ -12,9 +12,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	fakeclientset "k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	fakeclientset "k8s.io/client-go/kubernetes/fake"
 )
 
 func TestO2Manager_DiscoverResources(t *testing.T) {
@@ -203,7 +203,8 @@ func TestO2Manager_DiscoverResources(t *testing.T) {
 			ctrlClient := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(objects...).Build()
 
 			// Create O2 adaptor and manager
-			adaptor := NewO2Adaptor(ctrlClient, clientset, nil)
+			adaptor, err := NewO2Adaptor(ctrlClient, clientset, nil)
+			require.NoError(t, err)
 			manager := NewO2Manager(adaptor)
 
 			// Execute test
@@ -338,12 +339,13 @@ func TestO2Manager_ScaleWorkload(t *testing.T) {
 			ctrlClient := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(objects...).Build()
 
 			// Create O2 adaptor and manager
-			adaptor := NewO2Adaptor(ctrlClient, clientset, nil)
+			adaptor, err := NewO2Adaptor(ctrlClient, clientset, nil)
+			require.NoError(t, err)
 			manager := NewO2Manager(adaptor)
 
 			// Execute test
 			ctx := context.Background()
-			err := manager.ScaleWorkload(ctx, tt.workloadID, tt.replicas)
+			err = manager.ScaleWorkload(ctx, tt.workloadID, tt.replicas)
 
 			// Validate results
 			if tt.expectedError {
@@ -476,7 +478,8 @@ func TestO2Manager_DeployVNF(t *testing.T) {
 			ctrlClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 			// Create O2 adaptor and manager
-			adaptor := NewO2Adaptor(ctrlClient, clientset, nil)
+			adaptor, err := NewO2Adaptor(ctrlClient, clientset, nil)
+			require.NoError(t, err)
 			manager := NewO2Manager(adaptor)
 
 			// Execute test
@@ -557,7 +560,8 @@ func TestO2Adaptor_DeployVNF(t *testing.T) {
 			ctrlClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 			// Create O2 adaptor
-			adaptor := NewO2Adaptor(ctrlClient, clientset, nil)
+			adaptor, err := NewO2Adaptor(ctrlClient, clientset, nil)
+			require.NoError(t, err)
 
 			// Execute test
 			ctx := context.Background()
@@ -570,7 +574,9 @@ func TestO2Adaptor_DeployVNF(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				require.NotNil(t, instance)
-				tt.validateFunc(t, instance)
+				vnfInstance, ok := instance.(*VNFInstance)
+				require.True(t, ok, "expected *VNFInstance, got %T", instance)
+				tt.validateFunc(t, vnfInstance)
 			}
 		})
 	}
@@ -607,7 +613,8 @@ func TestO2Adaptor_ScaleVNF(t *testing.T) {
 	_ = appsv1.AddToScheme(scheme)
 	ctrlClient := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(deployment).Build()
 
-	adaptor := NewO2Adaptor(ctrlClient, clientset, nil)
+	adaptor, err := NewO2Adaptor(ctrlClient, clientset, nil)
+	require.NoError(t, err)
 
 	tests := []struct {
 		name             string
@@ -695,7 +702,8 @@ func TestO2Manager_Integration(t *testing.T) {
 	_ = appsv1.AddToScheme(scheme)
 	ctrlClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 
-	adaptor := NewO2Adaptor(ctrlClient, clientset, nil)
+	adaptor, err := NewO2Adaptor(ctrlClient, clientset, nil)
+	require.NoError(t, err)
 	manager := NewO2Manager(adaptor)
 
 	// Test complete workflow: discover -> deploy -> scale -> terminate
@@ -768,7 +776,8 @@ func BenchmarkO2Manager_DiscoverResources(b *testing.B) {
 	_ = corev1.AddToScheme(scheme)
 	ctrlClient := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(nodes...).Build()
 
-	adaptor := NewO2Adaptor(ctrlClient, clientset, nil)
+	adaptor, err := NewO2Adaptor(ctrlClient, clientset, nil)
+	require.NoError(b, err)
 	manager := NewO2Manager(adaptor)
 
 	ctx := context.Background()
@@ -789,7 +798,8 @@ func BenchmarkO2Adaptor_DeployVNF(b *testing.B) {
 	_ = appsv1.AddToScheme(scheme)
 	ctrlClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 
-	adaptor := NewO2Adaptor(ctrlClient, clientset, nil)
+	adaptor, err := NewO2Adaptor(ctrlClient, clientset, nil)
+	require.NoError(b, err)
 	ctx := context.Background()
 
 	deployRequest := &VNFDeployRequest{

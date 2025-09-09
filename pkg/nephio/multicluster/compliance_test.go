@@ -241,7 +241,7 @@ func TestORanCompliance_5GCoreDeployment(t *testing.T) {
 		TestFunc: func(t *testing.T, components *MultiClusterComponents) {
 			// Test AMF deployment
 			t.Run("AMF_Deployment", func(t *testing.T) {
-				amfPackage := &porchv1alpha1.PackageRevision{
+				amfPackage := &PackageRevision{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "amf-package",
 						Namespace: "default",
@@ -255,10 +255,10 @@ func TestORanCompliance_5GCoreDeployment(t *testing.T) {
 							"nephio.org/deployment-type": "cloud-native",
 						},
 					},
-					Spec: porchv1alpha1.PackageRevisionSpec{
+					Spec: PackageRevisionSpec{
 						PackageName: "amf",
 						Revision:    "v1.0.0",
-						Lifecycle:   porchv1alpha1.PackageRevisionLifecycleDraft,
+						Lifecycle:   PackageRevisionLifecycleDraft,
 					},
 				}
 
@@ -635,8 +635,8 @@ func TestORanCompliance_SecurityRequirements(t *testing.T) {
 }
 
 // Helper functions for creating test packages
-func createTest5GCorePackage(nfType, packageName, version string) *porchv1alpha1.PackageRevision {
-	return &porchv1alpha1.PackageRevision{
+func createTest5GCorePackage(nfType, packageName, version string) *PackageRevision {
+	return &PackageRevision{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-package", packageName),
 			Namespace: "default",
@@ -650,16 +650,16 @@ func createTest5GCorePackage(nfType, packageName, version string) *porchv1alpha1
 				"nephio.org/deployment-type": "cloud-native",
 			},
 		},
-		Spec: porchv1alpha1.PackageRevisionSpec{
+		Spec: PackageRevisionSpec{
 			PackageName: packageName,
 			Revision:    version,
-			Lifecycle:   porchv1alpha1.PackageRevisionLifecycleDraft,
+			Lifecycle:   PackageRevisionLifecycleDraft,
 		},
 	}
 }
 
-func createNetworkSlicePackage(requirements NetworkSliceRequirements) *porchv1alpha1.PackageRevision {
-	return &porchv1alpha1.PackageRevision{
+func createNetworkSlicePackage(requirements NetworkSliceRequirements) *PackageRevision {
+	return &PackageRevision{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("slice-%s-package", requirements.SliceType),
 			Namespace: "default",
@@ -673,16 +673,16 @@ func createNetworkSlicePackage(requirements NetworkSliceRequirements) *porchv1al
 				"nephio.org/isolation-level": string(requirements.IsolationLevel),
 			},
 		},
-		Spec: porchv1alpha1.PackageRevisionSpec{
+		Spec: PackageRevisionSpec{
 			PackageName: fmt.Sprintf("slice-%s", requirements.SliceType),
 			Revision:    "v1.0.0",
-			Lifecycle:   porchv1alpha1.PackageRevisionLifecycleDraft,
+			Lifecycle:   PackageRevisionLifecycleDraft,
 		},
 	}
 }
 
-func createORanInterfacePackage(interfaceType ORanInterface) *porchv1alpha1.PackageRevision {
-	return &porchv1alpha1.PackageRevision{
+func createORanInterfacePackage(interfaceType ORanInterface) *PackageRevision {
+	return &PackageRevision{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-interface-package", interfaceType),
 			Namespace: "default",
@@ -693,16 +693,16 @@ func createORanInterfacePackage(interfaceType ORanInterface) *porchv1alpha1.Pack
 				"nephio.org/oran-release": "D",
 			},
 		},
-		Spec: porchv1alpha1.PackageRevisionSpec{
+		Spec: PackageRevisionSpec{
 			PackageName: fmt.Sprintf("%s-interface", interfaceType),
 			Revision:    "v1.0.0",
-			Lifecycle:   porchv1alpha1.PackageRevisionLifecycleDraft,
+			Lifecycle:   PackageRevisionLifecycleDraft,
 		},
 	}
 }
 
-func createHeavyWorkloadPackage() *porchv1alpha1.PackageRevision {
-	return &porchv1alpha1.PackageRevision{
+func createHeavyWorkloadPackage() *PackageRevision {
+	return &PackageRevision{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "heavy-workload-package",
 			Namespace: "default",
@@ -712,16 +712,16 @@ func createHeavyWorkloadPackage() *porchv1alpha1.PackageRevision {
 				"nephio.org/workload-type":  "compute-intensive",
 			},
 		},
-		Spec: porchv1alpha1.PackageRevisionSpec{
+		Spec: PackageRevisionSpec{
 			PackageName: "heavy-workload",
 			Revision:    "v1.0.0",
-			Lifecycle:   porchv1alpha1.PackageRevisionLifecycleDraft,
+			Lifecycle:   PackageRevisionLifecycleDraft,
 		},
 	}
 }
 
-func createHighBandwidthPackage() *porchv1alpha1.PackageRevision {
-	return &porchv1alpha1.PackageRevision{
+func createHighBandwidthPackage() *PackageRevision {
+	return &PackageRevision{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "high-bandwidth-package",
 			Namespace: "default",
@@ -731,16 +731,16 @@ func createHighBandwidthPackage() *porchv1alpha1.PackageRevision {
 				"nephio.org/workload-type":         "network-intensive",
 			},
 		},
-		Spec: porchv1alpha1.PackageRevisionSpec{
+		Spec: PackageRevisionSpec{
 			PackageName: "high-bandwidth",
 			Revision:    "v1.0.0",
-			Lifecycle:   porchv1alpha1.PackageRevisionLifecycleDraft,
+			Lifecycle:   PackageRevisionLifecycleDraft,
 		},
 	}
 }
 
-func createSecureWorkloadPackage() *porchv1alpha1.PackageRevision {
-	return &porchv1alpha1.PackageRevision{
+func createSecureWorkloadPackage() *PackageRevision {
+	return &PackageRevision{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "secure-workload-package",
 			Namespace: "default",
@@ -750,16 +750,16 @@ func createSecureWorkloadPackage() *porchv1alpha1.PackageRevision {
 				"nephio.org/workload-type":    "security-sensitive",
 			},
 		},
-		Spec: porchv1alpha1.PackageRevisionSpec{
+		Spec: PackageRevisionSpec{
 			PackageName: "secure-workload",
 			Revision:    "v1.0.0",
-			Lifecycle:   porchv1alpha1.PackageRevisionLifecycleDraft,
+			Lifecycle:   PackageRevisionLifecycleDraft,
 		},
 	}
 }
 
-func createNetworkSecurePackage() *porchv1alpha1.PackageRevision {
-	return &porchv1alpha1.PackageRevision{
+func createNetworkSecurePackage() *PackageRevision {
+	return &PackageRevision{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "network-secure-package",
 			Namespace: "default",
@@ -769,10 +769,10 @@ func createNetworkSecurePackage() *porchv1alpha1.PackageRevision {
 				"nephio.org/workload-type":  "network-security",
 			},
 		},
-		Spec: porchv1alpha1.PackageRevisionSpec{
+		Spec: PackageRevisionSpec{
 			PackageName: "network-secure",
 			Revision:    "v1.0.0",
-			Lifecycle:   porchv1alpha1.PackageRevisionLifecycleDraft,
+			Lifecycle:   PackageRevisionLifecycleDraft,
 		},
 	}
 }

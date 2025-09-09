@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	
@@ -186,42 +187,48 @@ func TestRBACMiddleware(t *testing.T) {
 	ctx := context.Background()
 
 	// Create permissions
-	readPerm := pf.CreateResourcePermissions("api", []string{"read"})[0]
+	readPerm := pf.CreatePermission("api", "read", "resource")
 	createdReadPerm, err := rbacManager.CreatePermission(ctx, readPerm)
 	require.NoError(t, err)
 
-	writePerm := pf.CreateResourcePermissions("api", []string{"write"})[0]
+	writePerm := pf.CreatePermission("api", "write", "resource")
 	createdWritePerm, err := rbacManager.CreatePermission(ctx, writePerm)
 	require.NoError(t, err)
 
-	adminPerm := pf.CreateResourcePermissions("admin", []string{"*"})[0]
+	adminPerm := pf.CreatePermission("admin", "*", "resource")
 	createdAdminPerm, err := rbacManager.CreatePermission(ctx, adminPerm)
 	require.NoError(t, err)
 
 	// Create roles
-	readerRole := rf.CreateRoleWithPermissions([]string{createdReadPerm.ID})
-	readerRole.Name = "reader"
+	createdReadPermTyped := createdReadPerm.(*authtestutil.TestPermission)
+	readerRole := rf.CreateRoleWithPermissions("reader", []string{createdReadPermTyped.ID})
+	// Name already set in CreateRoleWithPermissions
 	createdReaderRole, err := rbacManager.CreateRole(ctx, readerRole)
 	require.NoError(t, err)
 
-	writerRole := rf.CreateRoleWithPermissions([]string{createdReadPerm.ID, createdWritePerm.ID})
-	writerRole.Name = "writer"
+	createdWritePermTyped := createdWritePerm.(*authtestutil.TestPermission)
+	writerRole := rf.CreateRoleWithPermissions("writer", []string{createdReadPermTyped.ID, createdWritePermTyped.ID})
+	// Name already set in CreateRoleWithPermissions
 	createdWriterRole, err := rbacManager.CreateRole(ctx, writerRole)
 	require.NoError(t, err)
 
-	adminRole := rf.CreateRoleWithPermissions([]string{createdAdminPerm.ID})
-	adminRole.Name = "admin"
+	createdAdminPermTyped := createdAdminPerm.(*authtestutil.TestPermission)
+	adminRole := rf.CreateRoleWithPermissions("admin", []string{createdAdminPermTyped.ID})
+	// Name already set in CreateRoleWithPermissions
 	createdAdminRole, err := rbacManager.CreateRole(ctx, adminRole)
 	require.NoError(t, err)
 
 	// Assign roles to users
-	err = rbacManager.AssignRoleToUser(ctx, "reader-user", createdReaderRole.ID)
+	createdReaderRoleTyped := createdReaderRole.(*authtestutil.TestRole)
+	err = rbacManager.AssignRoleToUser(ctx, "reader-user", createdReaderRoleTyped.ID)
 	require.NoError(t, err)
 
-	err = rbacManager.AssignRoleToUser(ctx, "writer-user", createdWriterRole.ID)
+	createdWriterRoleTyped := createdWriterRole.(*authtestutil.TestRole)
+	err = rbacManager.AssignRoleToUser(ctx, "writer-user", createdWriterRoleTyped.ID)
 	require.NoError(t, err)
 
-	err = rbacManager.AssignRoleToUser(ctx, "admin-user", createdAdminRole.ID)
+	createdAdminRoleTyped := createdAdminRole.(*authtestutil.TestRole)
+	err = rbacManager.AssignRoleToUser(ctx, "admin-user", createdAdminRoleTyped.ID)
 	require.NoError(t, err)
 
 	// Create RBAC middleware - using a simple test handler for now
@@ -679,15 +686,17 @@ func TestChainMiddlewares(t *testing.T) {
 	pf := authtestutil.NewPermissionFactory()
 	rf := authtestutil.NewRoleFactory()
 
-	perm := pf.CreateResourcePermissions("api", []string{"read"})[0]
+	perm := pf.CreatePermission("api", "read", "resource")
 	createdPerm, err := rbacManager.CreatePermission(ctx, perm)
 	require.NoError(t, err)
 
-	role := rf.CreateRoleWithPermissions([]string{createdPerm.ID})
+	createdPermTyped := createdPerm.(*authtestutil.TestPermission)
+	role := rf.CreateRoleWithPermissions("test-role", []string{createdPermTyped.ID})
 	createdRole, err := rbacManager.CreateRole(ctx, role)
 	require.NoError(t, err)
 
-	err = rbacManager.AssignRoleToUser(ctx, user.Subject, createdRole.ID)
+	createdRoleTyped := createdRole.(*authtestutil.TestRole)
+	err = rbacManager.AssignRoleToUser(ctx, user.Subject, createdRoleTyped.ID)
 	require.NoError(t, err)
 
 	// TODO: Fix type compatibility - mock types don't match expected concrete types

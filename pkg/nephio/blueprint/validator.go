@@ -48,6 +48,12 @@ import (
 	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
+// ValidatorInterface defines the interface for blueprint validation.
+type ValidatorInterface interface {
+	ValidateBlueprint(ctx context.Context, intent *v1.NetworkIntent, files map[string]string) (*ValidationResult, error)
+	HealthCheck(ctx context.Context) bool
+}
+
 // Validator handles blueprint validation and O-RAN compliance checking.
 
 type Validator struct {
@@ -749,42 +755,81 @@ func NewValidator(config *BlueprintConfig, logger *zap.Logger) (*Validator, erro
 }
 
 // ValidateBlueprint validates a blueprint against all configured rules and standards.
-
 func (v *Validator) ValidateBlueprint(ctx context.Context, intent *v1.NetworkIntent, files map[string]string) (*ValidationResult, error) {
+	// Defensive programming: Validate inputs
+	if v == nil {
+		return nil, fmt.Errorf("validator is nil")
+	}
+	if ctx == nil {
+		return nil, fmt.Errorf("context is nil")
+	}
+	if intent == nil {
+		return nil, fmt.Errorf("intent is nil")
+	}
+	if files == nil {
+		files = make(map[string]string)
+	}
+	if v.logger == nil {
+		v.logger = zap.NewNop()
+	}
+	
+	// Add panic recovery
+	defer func() {
+		if r := recover(); r != nil {
+			v.logger.Error("Panic recovered in ValidateBlueprint", 
+				zap.Any("panic", r),
+				zap.Stack("stack"))
+		}
+	}()
+
 	startTime := time.Now()
 
 	v.logger.Info("Validating blueprint",
-
 		zap.String("intent_name", intent.Name),
-
 		zap.String("intent_type", string(intent.Spec.IntentType)),
-
 		zap.Int("files", len(files)))
 
+	// Initialize result with defensive programming
 	result := &ValidationResult{
-		IsValid: true,
-
-		Errors: []ValidationError{},
-
-		Warnings: []ValidationWarning{},
-
-		Recommendations: []ValidationRecommendation{},
-
-		ValidatedFiles: len(files),
-
-		ValidatedResources: 0,
+		IsValid:             true,
+		Errors:              make([]ValidationError, 0),
+		Warnings:            make([]ValidationWarning, 0),
+		Recommendations:     make([]ValidationRecommendation, 0),
+		ValidatedFiles:      len(files),
+		ValidatedResources:  0,
 	}
 
-	// Validate individual files.
-
+	// Validate individual files with defensive programming
 	for filename, content := range files {
-		if err := v.validateFile(ctx, filename, content, result); err != nil {
-			v.logger.Warn("File validation failed",
-
-				zap.String("filename", filename),
-
-				zap.Error(err))
+		if filename == "" {
+			continue // Skip empty filenames
 		}
+		
+		// Validate file with error recovery
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					v.logger.Error("Panic in file validation", 
+						zap.String("filename", filename),
+						zap.Any("panic", r))
+					// Add error to result
+					if result != nil {
+						result.Errors = append(result.Errors, ValidationError{
+							Code:     "FILE_VALIDATION_PANIC",
+							Message:  fmt.Sprintf("Panic during validation of file %s", filename),
+							Severity: SeverityError,
+							Source:   filename,
+						})
+					}
+				}
+			}()
+			
+			if err := v.validateFile(ctx, filename, content, result); err != nil {
+				v.logger.Warn("File validation failed",
+					zap.String("filename", filename),
+					zap.Error(err))
+			}
+		}()
 	}
 
 	// Perform cross-file validations.
@@ -793,24 +838,34 @@ func (v *Validator) ValidateBlueprint(ctx context.Context, intent *v1.NetworkInt
 		v.logger.Warn("Cross-file validation failed", zap.Error(err))
 	}
 
-	// O-RAN compliance validation.
-
-	if v.config.EnableORANCompliance {
-
-		oranResult, err := v.validateORANCompliance(ctx, intent, files)
-
-		if err != nil {
-			v.logger.Warn("O-RAN compliance validation failed", zap.Error(err))
-		} else {
-
-			result.ORANCompliance = oranResult
-
-			if !oranResult.IsCompliant {
-				result.IsValid = false
+	// O-RAN compliance validation with defensive programming
+	if v.config != nil && v.config.EnableORANCompliance {
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					v.logger.Error("Panic in O-RAN compliance validation", 
+						zap.Any("panic", r))
+					if result != nil {
+						result.Errors = append(result.Errors, ValidationError{
+							Code:     "ORAN_VALIDATION_PANIC",
+							Message:  "Panic during O-RAN compliance validation",
+							Severity: SeverityError,
+							Source:   "oran_validator",
+						})
+					}
+				}
+			}()
+			
+			oranResult, err := v.validateORANCompliance(ctx, intent, files)
+			if err != nil {
+				v.logger.Warn("O-RAN compliance validation failed", zap.Error(err))
+			} else if oranResult != nil {
+				result.ORANCompliance = oranResult
+				if !oranResult.IsCompliant {
+					result.IsValid = false
+				}
 			}
-
-		}
-
+		}()
 	}
 
 	// Security compliance validation.
@@ -865,16 +920,12 @@ func (v *Validator) ValidateBlueprint(ctx context.Context, intent *v1.NetworkInt
 
 	v.generateRecommendations(result)
 
-	// Final validation status.
-
-	if len(result.Errors) > 0 {
+	// Final validation status with defensive programming
+	if result != nil && len(result.Errors) > 0 {
 		for _, err := range result.Errors {
 			if err.Severity == SeverityError {
-
 				result.IsValid = false
-
 				break
-
 			}
 		}
 	}
@@ -897,44 +948,69 @@ func (v *Validator) ValidateBlueprint(ctx context.Context, intent *v1.NetworkInt
 }
 
 // validateFile validates an individual file.
-
 func (v *Validator) validateFile(ctx context.Context, filename, content string, result *ValidationResult) error {
-	// Skip non-YAML files.
+	// Defensive programming: Validate inputs
+	if v == nil {
+		return fmt.Errorf("validator is nil")
+	}
+	if ctx == nil {
+		return fmt.Errorf("context is nil")
+	}
+	if result == nil {
+		return fmt.Errorf("result is nil")
+	}
+	if filename == "" {
+		return fmt.Errorf("filename is empty")
+	}
+	
+	// Add panic recovery
+	defer func() {
+		if r := recover(); r != nil {
+			if v.logger != nil {
+				v.logger.Error("Panic recovered in validateFile", 
+					zap.String("filename", filename),
+					zap.Any("panic", r),
+					zap.Stack("stack"))
+			}
+		}
+	}()
 
+	// Skip non-YAML files
 	if !v.isYAMLFile(filename, content) {
 		return nil
 	}
 
-	// Parse YAML content.
-
+	// Parse YAML content with defensive programming
 	var obj map[string]interface{}
-
 	if err := yaml.Unmarshal([]byte(content), &obj); err != nil {
-
+		if result.Errors == nil {
+			result.Errors = make([]ValidationError, 0)
+		}
 		result.Errors = append(result.Errors, ValidationError{
-			Code: "YAML_PARSE_ERROR",
-
-			Message: fmt.Sprintf("Failed to parse YAML: %v", err),
-
+			Code:     "YAML_PARSE_ERROR",
+			Message:  fmt.Sprintf("Failed to parse YAML: %v", err),
 			Severity: SeverityError,
-
-			Source: filename,
+			Source:   filename,
 		})
-
 		return err
-
+	}
+	
+	// Defensive check for parsed object
+	if obj == nil {
+		return fmt.Errorf("parsed YAML object is nil")
 	}
 
 	result.ValidatedResources++
 
-	// Kubernetes validation.
-
-	if err := v.kubernetesValidator.ValidateResource(obj, filename, result); err != nil {
-		v.logger.Debug("Kubernetes validation failed",
-
-			zap.String("file", filename),
-
-			zap.Error(err))
+	// Kubernetes validation with defensive programming
+	if v.kubernetesValidator != nil {
+		if err := v.kubernetesValidator.ValidateResource(obj, filename, result); err != nil {
+			v.logger.Debug("Kubernetes validation failed",
+				zap.String("file", filename),
+				zap.Error(err))
+		}
+	} else {
+		v.logger.Debug("Kubernetes validator not available", zap.String("file", filename))
 	}
 
 	// Component-specific validation.
@@ -1193,22 +1269,31 @@ func (v *Validator) validateComponentSpecific(obj map[string]interface{}, filena
 func (v *Validator) validateDeployment(obj map[string]interface{}, filename string, result *ValidationResult) error {
 	// Validate deployment-specific requirements.
 
-	spec, ok := obj["spec"].(map[interface{}]interface{})
+	spec, ok := obj["spec"].(map[string]interface{})
 
 	if !ok {
+		// Try map[interface{}]interface{} for backward compatibility
+		if specInterface, okInterface := obj["spec"].(map[interface{}]interface{}); okInterface {
+			// Convert interface{} keys to string keys
+			spec = make(map[string]interface{})
+			for k, v := range specInterface {
+				if keyStr, ok := k.(string); ok {
+					spec[keyStr] = v
+				}
+			}
+		} else {
+			result.Errors = append(result.Errors, ValidationError{
+				Code: "DEPLOYMENT_MISSING_SPEC",
 
-		result.Errors = append(result.Errors, ValidationError{
-			Code: "DEPLOYMENT_MISSING_SPEC",
+				Message: "Deployment is missing spec section",
 
-			Message: "Deployment is missing spec section",
+				Severity: SeverityError,
 
-			Severity: SeverityError,
+				Source: filename,
+			})
 
-			Source: filename,
-		})
-
-		return nil
-
+			return nil
+		}
 	}
 
 	// Validate replicas.
@@ -1247,7 +1332,18 @@ func (v *Validator) validateDeployment(obj map[string]interface{}, filename stri
 
 	// Validate template.
 
-	if template, ok := spec["template"].(map[interface{}]interface{}); ok {
+	if template, ok := spec["template"].(map[string]interface{}); ok {
+		if err := v.validatePodTemplate(template, filename, result); err != nil {
+			return err
+		}
+	} else if templateInterface, ok := spec["template"].(map[interface{}]interface{}); ok {
+		// Convert interface{} keys to string keys
+		template := make(map[string]interface{})
+		for k, v := range templateInterface {
+			if keyStr, ok := k.(string); ok {
+				template[keyStr] = v
+			}
+		}
 		if err := v.validatePodTemplate(template, filename, result); err != nil {
 			return err
 		}
@@ -1256,23 +1352,32 @@ func (v *Validator) validateDeployment(obj map[string]interface{}, filename stri
 	return nil
 }
 
-func (v *Validator) validatePodTemplate(template map[interface{}]interface{}, filename string, result *ValidationResult) error {
-	spec, ok := template["spec"].(map[interface{}]interface{})
+func (v *Validator) validatePodTemplate(template map[string]interface{}, filename string, result *ValidationResult) error {
+	spec, ok := template["spec"].(map[string]interface{})
 
 	if !ok {
+		// Try map[interface{}]interface{} for backward compatibility
+		if specInterface, okInterface := template["spec"].(map[interface{}]interface{}); okInterface {
+			// Convert interface{} keys to string keys
+			spec = make(map[string]interface{})
+			for k, v := range specInterface {
+				if keyStr, ok := k.(string); ok {
+					spec[keyStr] = v
+				}
+			}
+		} else {
+			result.Errors = append(result.Errors, ValidationError{
+				Code: "POD_TEMPLATE_MISSING_SPEC",
 
-		result.Errors = append(result.Errors, ValidationError{
-			Code: "POD_TEMPLATE_MISSING_SPEC",
+				Message: "Pod template is missing spec section",
 
-			Message: "Pod template is missing spec section",
+				Severity: SeverityError,
 
-			Severity: SeverityError,
+				Source: filename,
+			})
 
-			Source: filename,
-		})
-
-		return nil
-
+			return nil
+		}
 	}
 
 	// Validate containers.
@@ -1299,9 +1404,20 @@ func (v *Validator) validatePodTemplate(template map[interface{}]interface{}, fi
 }
 
 func (v *Validator) validateContainer(container interface{}, index int, filename string, result *ValidationResult) error {
-	containerMap, ok := container.(map[interface{}]interface{})
-
-	if !ok {
+	var containerMap map[string]interface{}
+	
+	// Try map[string]interface{} first
+	if containerMapStr, ok := container.(map[string]interface{}); ok {
+		containerMap = containerMapStr
+	} else if containerMapInterface, ok := container.(map[interface{}]interface{}); ok {
+		// Convert interface{} keys to string keys
+		containerMap = make(map[string]interface{})
+		for k, v := range containerMapInterface {
+			if keyStr, ok := k.(string); ok {
+				containerMap[keyStr] = v
+			}
+		}
+	} else {
 		return nil
 	}
 
@@ -1329,7 +1445,18 @@ func (v *Validator) validateContainer(container interface{}, index int, filename
 
 	// Validate resource requirements.
 
-	if resources, ok := containerMap["resources"].(map[interface{}]interface{}); ok {
+	if resources, ok := containerMap["resources"].(map[string]interface{}); ok {
+		if err := v.validateContainerResources(resources, index, filename, result); err != nil {
+			return err
+		}
+	} else if resourcesInterface, ok := containerMap["resources"].(map[interface{}]interface{}); ok {
+		// Convert interface{} keys to string keys
+		resources := make(map[string]interface{})
+		for k, v := range resourcesInterface {
+			if keyStr, ok := k.(string); ok {
+				resources[keyStr] = v
+			}
+		}
 		if err := v.validateContainerResources(resources, index, filename, result); err != nil {
 			return err
 		}
@@ -1388,10 +1515,23 @@ func (v *Validator) validateContainerImage(image, filename string, result *Valid
 	return nil
 }
 
-func (v *Validator) validateContainerResources(resources map[interface{}]interface{}, index int, filename string, result *ValidationResult) error {
+func (v *Validator) validateContainerResources(resources map[string]interface{}, index int, filename string, result *ValidationResult) error {
 	// Validate requests.
 
-	if requests, ok := resources["requests"].(map[interface{}]interface{}); ok {
+	var requests map[string]interface{}
+	if requestsStr, ok := resources["requests"].(map[string]interface{}); ok {
+		requests = requestsStr
+	} else if requestsInterface, ok := resources["requests"].(map[interface{}]interface{}); ok {
+		// Convert interface{} keys to string keys
+		requests = make(map[string]interface{})
+		for k, v := range requestsInterface {
+			if keyStr, ok := k.(string); ok {
+				requests[keyStr] = v
+			}
+		}
+	}
+
+	if requests != nil {
 
 		if cpu, ok := requests["cpu"]; ok {
 			if cpuStr, ok := cpu.(string); ok {
@@ -1437,7 +1577,20 @@ func (v *Validator) validateContainerResources(resources map[interface{}]interfa
 
 	// Validate limits.
 
-	if limits, ok := resources["limits"].(map[interface{}]interface{}); ok {
+	var limits map[string]interface{}
+	if limitsStr, ok := resources["limits"].(map[string]interface{}); ok {
+		limits = limitsStr
+	} else if limitsInterface, ok := resources["limits"].(map[interface{}]interface{}); ok {
+		// Convert interface{} keys to string keys
+		limits = make(map[string]interface{})
+		for k, v := range limitsInterface {
+			if keyStr, ok := k.(string); ok {
+				limits[keyStr] = v
+			}
+		}
+	}
+
+	if limits != nil {
 		if cpu, ok := limits["cpu"]; ok {
 			if cpuStr, ok := cpu.(string); ok {
 				if _, err := resource.ParseQuantity(cpuStr); err != nil {
@@ -1462,10 +1615,25 @@ func (v *Validator) validateContainerResources(resources map[interface{}]interfa
 	return nil
 }
 
-func (v *Validator) validateContainerSecurity(container map[interface{}]interface{}, index int, filename string, result *ValidationResult) error {
+func (v *Validator) validateContainerSecurity(container map[string]interface{}, index int, filename string, result *ValidationResult) error {
 	// Check for security context.
 
-	securityContext, hasSecurityContext := container["securityContext"].(map[interface{}]interface{})
+	var securityContext map[string]interface{}
+	var hasSecurityContext bool
+	
+	if securityContextStr, ok := container["securityContext"].(map[string]interface{}); ok {
+		securityContext = securityContextStr
+		hasSecurityContext = true
+	} else if securityContextInterface, ok := container["securityContext"].(map[interface{}]interface{}); ok {
+		// Convert interface{} keys to string keys
+		securityContext = make(map[string]interface{})
+		for k, v := range securityContextInterface {
+			if keyStr, ok := k.(string); ok {
+				securityContext[keyStr] = v
+			}
+		}
+		hasSecurityContext = true
+	}
 
 	// Warn if running as root.
 

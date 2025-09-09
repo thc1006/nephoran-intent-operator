@@ -46,7 +46,7 @@ permissions:
 
 # Optimized environment for Ubuntu Linux-only deployment
 env:
-  GO_VERSION: "1.25.0"
+  GO_VERSION: "1.24.6"
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   GOPRIVATE: "github.com/thc1006/*"
@@ -94,8 +94,8 @@ jobs:
         id: go-setup
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.0'
-          cache: false  # We manage caching manually
+          go-version: '1.24.6'
+          cache: true  # We manage caching manually
           check-latest: true
 
       - name: Detect significant changes
@@ -340,38 +340,10 @@ jobs:
       - name: Setup Go ${{ needs.setup.outputs.go-version }}
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.0'
-          cache: false
+          go-version: '1.24.6'
+          cache: true
 
-      - name: Prepare optimized build environment
-        run: |
-          echo "🔧 Setting up optimized build environment for: ${{ matrix.name }}"
-          
-          # Create optimized cache directories
-          sudo mkdir -p /tmp/go-build-cache /tmp/go-mod-cache
-          sudo chown -R runner:runner /tmp/go-build-cache /tmp/go-mod-cache
-          chmod -R 755 /tmp/go-build-cache /tmp/go-mod-cache
-          
-          # Set up Go environment
-          export GOCACHE="/tmp/go-build-cache"
-          export GOMODCACHE="/tmp/go-mod-cache"
-          echo "GOCACHE=/tmp/go-build-cache" >> $GITHUB_ENV
-          echo "GOMODCACHE=/tmp/go-mod-cache" >> $GITHUB_ENV
-          
-          # Verify Go installation
-          go version
-          go env GOCACHE
-          go env GOMODCACHE
 
-      - name: Restore Go module and build cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ needs.setup.outputs.cache-paths }}
-          key: ${{ needs.setup.outputs.cache-key }}
-          restore-keys: |
-            ${{ needs.setup.outputs.secondary-key }}
-            ${{ needs.setup.outputs.tertiary-key }}
-            nephoran-v7-ubuntu22-go
 
       - name: Download and verify dependencies (optimized)
         timeout-minutes: 5
@@ -409,7 +381,8 @@ jobs:
           mkdir -p bin/ dist/
           
           # Optimized build flags for Linux-only deployment
-          BUILD_FLAGS="-trimpath -ldflags=-s -w -extldflags=-static"
+          BUILD_FLAGS="-trimpath"
+          LDFLAGS="-s -w -extldflags=-static"
           BUILD_TAGS="netgo,osusergo,static_build"
           
           # Set parallelism based on matrix configuration
@@ -424,7 +397,7 @@ jobs:
             case "$component" in
               "controllers")
                 echo "Building controllers..."
-                timeout ${timeout_duration}s go build $BUILD_FLAGS -tags="$BUILD_TAGS" ./controllers/... || {
+                timeout ${timeout_duration}s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" ./controllers/... || {
                   echo "⚠️ Some controllers failed to build (continuing...)"
                   return 0
                 }
@@ -432,7 +405,7 @@ jobs:
                 
               "api"|"api/intent/v1alpha1")
                 echo "Building API packages..."
-                timeout ${timeout_duration}s go build $BUILD_FLAGS -tags="$BUILD_TAGS" ./api/... || {
+                timeout ${timeout_duration}s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" ./api/... || {
                   echo "⚠️ Some API packages failed to build (continuing...)"
                   return 0
                 }
@@ -442,7 +415,7 @@ jobs:
                 if [[ -d "$component" && -f "$component/main.go" ]]; then
                   cmd_name=$(basename "$component")
                   echo "Building command: $cmd_name"
-                  timeout ${timeout_duration}s go build $BUILD_FLAGS -tags="$BUILD_TAGS" \
+                  timeout ${timeout_duration}s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" \
                     -o "bin/$cmd_name" "./$component" || {
                     echo "⚠️ $cmd_name build failed (continuing...)"
                     return 0
@@ -460,7 +433,7 @@ jobs:
               pkg/*)
                 if [[ -d "$component" ]]; then
                   echo "Building package: $component"
-                  timeout ${timeout_duration}s go build $BUILD_FLAGS -tags="$BUILD_TAGS" "./$component/..." || {
+                  timeout ${timeout_duration}s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" "./$component/..." || {
                     echo "⚠️ $component build failed (continuing...)"
                     return 0
                   }
@@ -469,7 +442,7 @@ jobs:
                 
               "internal")
                 echo "Building internal packages..."
-                timeout ${timeout_duration}s go build $BUILD_FLAGS -tags="$BUILD_TAGS" ./internal/... || {
+                timeout ${timeout_duration}s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" ./internal/... || {
                   echo "⚠️ Some internal packages failed to build (continuing...)"
                   return 0
                 }
@@ -527,12 +500,6 @@ jobs:
             echo "No binaries produced (library-only build)"
           fi
 
-      - name: Save Go cache (optimized)
-        if: always()
-        uses: actions/cache@v4
-        with:
-          path: ${{ needs.setup.outputs.cache-paths }}
-          key: ${{ needs.setup.outputs.cache-key }}
 
       - name: Upload build artifacts
         if: matrix.priority == 'critical' || matrix.priority == 'high'
@@ -566,29 +533,10 @@ jobs:
       - name: Setup Go ${{ needs.setup.outputs.go-version }}
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.0'
-          cache: false
+          go-version: '1.24.6'
+          cache: true
 
-      - name: Prepare test environment
-        run: |
-          echo "🧪 Preparing test environment for: ${{ matrix.name }}"
-          
-          # Set up cache directories
-          sudo mkdir -p /tmp/go-build-cache /tmp/go-mod-cache
-          sudo chown -R runner:runner /tmp/go-build-cache /tmp/go-mod-cache
-          export GOCACHE="/tmp/go-build-cache"
-          export GOMODCACHE="/tmp/go-mod-cache"
-          echo "GOCACHE=/tmp/go-build-cache" >> $GITHUB_ENV
-          echo "GOMODCACHE=/tmp/go-mod-cache" >> $GITHUB_ENV
 
-      - name: Restore Go cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ needs.setup.outputs.cache-paths }}
-          key: ${{ needs.setup.outputs.cache-key }}
-          restore-keys: |
-            ${{ needs.setup.outputs.secondary-key }}
-            nephoran-v7-ubuntu22-go
 
       - name: Setup Kubernetes test environment
         if: contains(matrix.pattern, './controllers/') || contains(matrix.pattern, './api/')
@@ -705,17 +653,9 @@ jobs:
       - name: Setup Go ${{ needs.setup.outputs.go-version }}
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.0'
-          cache: false
+          go-version: '1.24.6'
+          cache: true
 
-      - name: Restore Go cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ needs.setup.outputs.cache-paths }}
-          key: ${{ needs.setup.outputs.cache-key }}
-          restore-keys: |
-            ${{ needs.setup.outputs.secondary-key }}
-            nephoran-v7-ubuntu22-go
 
       - name: Download dependencies
         run: |

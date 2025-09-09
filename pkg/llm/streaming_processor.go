@@ -171,9 +171,24 @@ const (
 	// StatusCancelled holds statuscancelled value.
 
 	StatusCancelled StreamingStatus = "cancelled"
+
+	// StreamingStatusActive is an alias for StatusStreaming for test compatibility
+	StreamingStatusActive StreamingStatus = "streaming"
+
+	// StreamingStatusCompleted is an alias for StatusCompleted for test compatibility
+	StreamingStatusCompleted StreamingStatus = "completed"
 )
 
 // StreamingRequest is defined in interface_consolidated.go.
+
+// ChunkType represents the type of streaming chunk
+type ChunkType string
+
+const (
+	ChunkTypeContent ChunkType = "content"
+	ChunkTypeData    ChunkType = "data"
+	ChunkTypeError   ChunkType = "error"
+)
 
 // StreamingChunk represents a chunk of streaming data.
 
@@ -193,6 +208,9 @@ type StreamingChunk struct {
 	IsComplete bool `json:"is_complete,omitempty"`
 
 	Error string `json:"error,omitempty"`
+
+	// Test compatibility field
+	ChunkType ChunkType `json:"chunk_type,omitempty"`
 }
 
 // SSEEvent represents a Server-Sent Event.

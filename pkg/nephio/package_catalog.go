@@ -35,12 +35,14 @@ import (
 	"encoding/json"
 "context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -551,6 +553,189 @@ type TopologySpread struct {
 	LabelSelector map[string]string `json:"labelSelector,omitempty"`
 }
 
+// NephioPackageCatalog manages blueprint catalog and package variants.
+type NephioPackageCatalog struct {
+	client client.Client
+
+	repositories sync.Map
+
+	blueprints sync.Map
+
+	variants sync.Map
+
+	templates sync.Map
+
+	metrics *PackageCatalogMetrics
+
+	tracer trace.Tracer
+
+	config *PackageCatalogConfig
+}
+
+// BlueprintPackage represents a blueprint package in the catalog.
+type BlueprintPackage struct {
+	Name string `json:"name"`
+
+	Repository string `json:"repository"`
+
+	Version string `json:"version"`
+
+	Description string `json:"description"`
+
+	Category string `json:"category"`
+
+	IntentTypes []v1.IntentType `json:"intentTypes"`
+
+	Dependencies []PackageDependency `json:"dependencies"`
+
+	Parameters []ParameterDefinition `json:"parameters"`
+
+	Validations []ValidationRule `json:"validations"`
+
+	Resources []ResourceTemplate `json:"resources"`
+
+	Functions []FunctionDefinition `json:"functions"`
+
+	Specialization *SpecializationSpec `json:"specialization,omitempty"`
+
+	Metadata map[string]string `json:"metadata"`
+
+	CreatedAt time.Time `json:"createdAt"`
+
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// PackageVariant represents a specialized package for a target cluster.
+type PackageVariant struct {
+	Name string `json:"name"`
+
+	Blueprint *BlueprintPackage `json:"blueprint"`
+
+	TargetCluster *WorkloadCluster `json:"targetCluster"`
+
+	Specialization *SpecializationRequest `json:"specialization"`
+
+	Status PackageVariantStatus `json:"status"`
+
+	PackageRevision *porch.PackageRevision `json:"packageRevision"`
+
+	DeploymentStatus *porch.DeploymentStatus `json:"deploymentStatus,omitempty"`
+
+	ValidationResults []*porch.ValidationResult `json:"validationResults,omitempty"`
+
+	Errors []string `json:"errors,omitempty"`
+
+	CreatedAt time.Time `json:"createdAt"`
+
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// SpecializationRequest defines how to specialize a blueprint.
+type SpecializationRequest struct {
+	ClusterContext *ClusterContext `json:"clusterContext"`
+
+	Parameters json.RawMessage `json:"parameters"`
+
+	ResourceOverrides json.RawMessage `json:"resourceOverrides,omitempty"`
+
+	NetworkSlice *NetworkSliceSpec `json:"networkSlice,omitempty"`
+
+	ORANCompliance *ORANComplianceSpec `json:"oranCompliance,omitempty"`
+
+	SecurityPolicy *SecurityPolicySpec `json:"securityPolicy,omitempty"`
+
+	PlacementPolicy *PlacementPolicySpec `json:"placementPolicy,omitempty"`
+}
+
+// PackageVariantStatus represents variant status.
+type PackageVariantStatus string
+
+const (
+	// PackageVariantStatusSpecializing holds packagevariantstatusspecializing value.
+	PackageVariantStatusSpecializing PackageVariantStatus = "Specializing"
+
+	// PackageVariantStatusReady holds packagevariantstatusready value.
+	PackageVariantStatusReady PackageVariantStatus = "Ready"
+
+	// PackageVariantStatusDeploying holds packagevariantstatusdeploying value.
+	PackageVariantStatusDeploying PackageVariantStatus = "Deploying"
+
+	// PackageVariantStatusDeployed holds packagevariantstatusdeployed value.
+	PackageVariantStatusDeployed PackageVariantStatus = "Deployed"
+
+	// PackageVariantStatusFailed holds packagevariantstatusfailed value.
+	PackageVariantStatusFailed PackageVariantStatus = "Failed"
+
+	// PackageVariantStatusTerminating holds packagevariantstatusterminating value.
+	PackageVariantStatusTerminating PackageVariantStatus = "Terminating"
+)
+
+// WorkloadCluster represents a target cluster for deployments.
+type WorkloadCluster struct {
+	Name string `json:"name"`
+
+	Endpoint string `json:"endpoint"`
+
+	Region string `json:"region"`
+
+	Zone string `json:"zone"`
+
+	Capabilities []ClusterCapability `json:"capabilities"`
+
+	Status WorkloadClusterStatus `json:"status"`
+
+	Health *ClusterHealth `json:"health"`
+
+	ConfigSync *ClusterConfigSync `json:"configSync"`
+
+	Resources *ClusterResources `json:"resources"`
+
+	Labels map[string]string `json:"labels"`
+
+	Annotations map[string]string `json:"annotations"`
+
+	CreatedAt time.Time `json:"createdAt"`
+
+	LastHealthCheck *time.Time `json:"lastHealthCheck,omitempty"`
+}
+
+// ClusterCapability defines cluster capabilities.
+type ClusterCapability struct {
+	Name string `json:"name"`
+
+	Type string `json:"type"`
+
+	Version string `json:"version"`
+
+	Config json.RawMessage `json:"config,omitempty"`
+
+	Status string `json:"status"`
+}
+
+// WorkloadClusterStatus represents cluster status.
+type WorkloadClusterStatus string
+
+const (
+	// WorkloadClusterStatusRegistering holds workloadclusterstatusregistering value.
+	WorkloadClusterStatusRegistering WorkloadClusterStatus = "Registering"
+
+	// WorkloadClusterStatusActive holds workloadclusterstatusactive value.
+	WorkloadClusterStatusActive WorkloadClusterStatus = "Active"
+
+	// WorkloadClusterStatusDraining holds workloadclusterstatusdraining value.
+	WorkloadClusterStatusDraining WorkloadClusterStatus = "Draining"
+
+	// WorkloadClusterStatusMaintenance holds workloadclusterstatusmaintenance value.
+	WorkloadClusterStatusMaintenance WorkloadClusterStatus = "Maintenance"
+
+	// WorkloadClusterStatusUnreachable holds workloadclusterstatusunreachable value.
+	WorkloadClusterStatusUnreachable WorkloadClusterStatus = "Unreachable"
+
+	// WorkloadClusterStatusTerminating holds workloadclusterstatusterminating value.
+	WorkloadClusterStatusTerminating WorkloadClusterStatus = "Terminating"
+)
+
+
 // Default configuration.
 
 var DefaultPackageCatalogConfig = &PackageCatalogConfig{
@@ -1016,11 +1201,13 @@ func (npc *NephioPackageCatalog) createSpecializedPackageRevision(ctx context.Co
 		Spec: packageRevision.Spec,
 
 		Status: porch.PackageRevisionStatus{
-			UpstreamLock: nil,
-
-			PublishedBy: "nephoran-intent-operator",
-
-			PublishedAt: &metav1.Time{Time: time.Now()},
+			PublishTime: &metav1.Time{Time: time.Now()},
+			Conditions: []metav1.Condition{{
+				Type:   "Published",
+				Status: metav1.ConditionTrue,
+				Reason: "PackageCreated",
+				Message: "Package created by nephoran-intent-operator",
+			}},
 		},
 	}
 
@@ -1056,14 +1243,9 @@ func (npc *NephioPackageCatalog) generateSpecializedResources(ctx context.Contex
 
 			Kind: template.Kind,
 
-			Metadata: json.RawMessage(`{}`),
+			Metadata: make(map[string]interface{}),
 
-			Spec: func() json.RawMessage {
-				if specBytes, err := json.Marshal(specializedResource); err == nil {
-					return specBytes
-				}
-				return json.RawMessage(`{}`)
-			}(),
+			Spec: specializedResource,
 		}
 
 		resources = append(resources, resource)
@@ -1105,12 +1287,7 @@ func (npc *NephioPackageCatalog) generateSpecializedFunctions(ctx context.Contex
 		
 		functionConfig := porch.FunctionConfig{
 			Image: funcDef.Image,
-			ConfigMap: func() json.RawMessage {
-				if configBytes, err := json.Marshal(mergedConfig); err == nil {
-					return configBytes
-				}
-				return json.RawMessage(`{}`)
-			}(),
+			ConfigMap: mergedConfig,
 		}
 
 		functions = append(functions, functionConfig)
@@ -1124,7 +1301,7 @@ func (npc *NephioPackageCatalog) generateSpecializedFunctions(ctx context.Contex
 		oranFunction := porch.FunctionConfig{
 			Image: "krm/oran-validator:latest",
 
-			ConfigMap: json.RawMessage(`{}`),
+			ConfigMap: make(map[string]interface{}),
 		}
 
 		functions = append(functions, oranFunction)
@@ -1136,7 +1313,7 @@ func (npc *NephioPackageCatalog) generateSpecializedFunctions(ctx context.Contex
 		sliceFunction := porch.FunctionConfig{
 			Image: "krm/network-slice-optimizer:latest",
 
-			ConfigMap: json.RawMessage(`{}`),
+			ConfigMap: make(map[string]interface{}),
 		}
 
 		functions = append(functions, sliceFunction)
@@ -1197,20 +1374,14 @@ func (npc *NephioPackageCatalog) generateClusterSpecificResources(ctx context.Co
 
 		APIVersion: "v1",
 
-		Metadata: func() json.RawMessage {
-			metadata := map[string]interface{}{
-				"labels": map[string]interface{}{
-					"cluster": cluster.Name,
-					"region": cluster.Region,
-					"zone": cluster.Zone,
-					"managed-by": "nephoran-intent-operator",
-				},
-			}
-			if metadataBytes, err := json.Marshal(metadata); err == nil {
-				return metadataBytes
-			}
-			return json.RawMessage(`{}`)
-		}(),
+		Metadata: map[string]interface{}{
+			"labels": map[string]interface{}{
+				"cluster": cluster.Name,
+				"region": cluster.Region,
+				"zone": cluster.Zone,
+				"managed-by": "nephoran-intent-operator",
+			},
+		},
 	}
 
 	resources = append(resources, namespaceResource)
@@ -1222,9 +1393,9 @@ func (npc *NephioPackageCatalog) generateClusterSpecificResources(ctx context.Co
 
 		APIVersion: "v1",
 
-		Metadata: json.RawMessage(`{}`),
+		Metadata: make(map[string]interface{}),
 
-		Data: json.RawMessage(`{}`),
+		Data: make(map[string]interface{}),
 	}
 
 	resources = append(resources, configMapResource)
@@ -1600,25 +1771,13 @@ func (npc *NephioPackageCatalog) initializeStandardBlueprints() error {
 
 // convertResourcesForSpec converts []porch.KRMResource to []interface{} for PackageRevisionSpec.
 
-func (npc *NephioPackageCatalog) convertResourcesForSpec(resources []porch.KRMResource) []interface{} {
-	result := make([]interface{}, len(resources))
-
-	for i, resource := range resources {
-		result[i] = resource
-	}
-
-	return result
+func (npc *NephioPackageCatalog) convertResourcesForSpec(resources []porch.KRMResource) []porch.KRMResource {
+	return resources
 }
 
 // convertFunctionsForSpec converts []porch.FunctionConfig to []interface{} for PackageRevisionSpec.
 
-func (npc *NephioPackageCatalog) convertFunctionsForSpec(functions []porch.FunctionConfig) []interface{} {
-	result := make([]interface{}, len(functions))
-
-	for i, function := range functions {
-		result[i] = function
-	}
-
-	return result
+func (npc *NephioPackageCatalog) convertFunctionsForSpec(functions []porch.FunctionConfig) []porch.FunctionConfig {
+	return functions
 }
 

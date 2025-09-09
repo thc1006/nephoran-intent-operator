@@ -9,9 +9,11 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,7 +26,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
@@ -184,6 +185,10 @@ type E2NodeSetReconciler struct {
 	reconcileErrors prometheus.CounterVec
 
 	heartbeatsTotal prometheus.CounterVec
+
+	// metricsInitialized tracks if metrics have been initialized
+	metricsInitialized bool
+	metricsOnce        sync.Once
 }
 
 // RegisterMetrics registers Prometheus metrics.
@@ -244,18 +249,22 @@ func (r *E2NodeSetReconciler) RegisterMetrics() {
 		[]string{"namespace", "name", "node_id"},
 	)
 
-	metrics.Registry.MustRegister(
+	// Use centralized registry with safe registration
+	gr := monitoring.GetGlobalRegistry()
+	gr.SafeRegister("e2nodeset-nodes-total", &r.nodesTotal)
+	gr.SafeRegister("e2nodeset-nodes-ready", &r.nodesReady)
+	gr.SafeRegister("e2nodeset-reconciles-total", &r.reconcilesTotal)
+	gr.SafeRegister("e2nodeset-reconcile-errors", &r.reconcileErrors)
+	gr.SafeRegister("e2nodeset-heartbeats-total", &r.heartbeatsTotal)
 
-		&r.nodesTotal,
+	r.metricsInitialized = true
+}
 
-		&r.nodesReady,
-
-		&r.reconcilesTotal,
-
-		&r.reconcileErrors,
-
-		&r.heartbeatsTotal,
-	)
+// ensureMetricsInitialized initializes metrics if not already done
+func (r *E2NodeSetReconciler) ensureMetricsInitialized() {
+	r.metricsOnce.Do(func() {
+		r.RegisterMetrics()
+	})
 }
 
 //+kubebuilder:rbac:groups=nephoran.com,resources=e2nodesets,verbs=get;list;watch;create;update;patch;delete
@@ -272,13 +281,19 @@ func (r *E2NodeSetReconciler) RegisterMetrics() {
 
 func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
+	logger.Info("Starting reconcile", "request", req.NamespacedName)
+
+	// Initialize metrics if not already done
+	r.ensureMetricsInitialized()
 
 	startTime := time.Now()
 
 	result := "success"
 
 	defer func() {
-		r.reconcilesTotal.WithLabelValues(req.Namespace, req.Name, result).Inc()
+		if r.metricsInitialized {
+			r.reconcilesTotal.WithLabelValues(req.Namespace, req.Name, result).Inc()
+		}
 
 		logger.Info("Reconciliation completed", "duration", time.Since(startTime), "result", result)
 	}()
@@ -303,7 +318,9 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 		result = "error"
 
-		r.reconcileErrors.WithLabelValues(req.Namespace, req.Name, "fetch_error").Inc()
+		if r.metricsInitialized {
+			r.reconcileErrors.WithLabelValues(req.Namespace, req.Name, "fetch_error").Inc()
+		}
 
 		return ctrl.Result{}, err
 
@@ -337,7 +354,9 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 			result = "error"
 
-			r.reconcileErrors.WithLabelValues(req.Namespace, req.Name, "finalizer_error").Inc()
+			if r.metricsInitialized {
+				r.reconcileErrors.WithLabelValues(req.Namespace, req.Name, "finalizer_error").Inc()
+			}
 
 			return ctrl.Result{}, err
 
@@ -357,7 +376,9 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 		result = "error"
 
-		r.reconcileErrors.WithLabelValues(req.Namespace, req.Name, "reconcile_nodes_error").Inc()
+		if r.metricsInitialized {
+			r.reconcileErrors.WithLabelValues(req.Namespace, req.Name, "reconcile_nodes_error").Inc()
+		}
 
 		// Get retry count and calculate backoff.
 
@@ -419,6 +440,12 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	r.Update(ctx, &e2nodeSet)
 
+	// Update E2NodeSet status first
+	if err := r.updateE2NodeSetStatus(ctx, &e2nodeSet); err != nil {
+		logger.Error(err, "Failed to update E2NodeSet status")
+		// Don't fail reconciliation on status update errors
+	}
+
 	// Set Ready condition to True.
 
 	r.setReadyCondition(ctx, &e2nodeSet, metav1.ConditionTrue, "E2NodesReady", "All E2 nodes are successfully reconciled")
@@ -431,7 +458,16 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	go r.simulateHeartbeats(ctx, &e2nodeSet)
 
-	return ctrl.Result{RequeueAfter: time.Minute * 5}, nil
+	// Also query E2Manager to ensure the nodes are registered
+	if r.E2Manager != nil {
+		if nodes, err := r.E2Manager.ListE2Nodes(ctx); err == nil {
+			logger.V(1).Info("Listed E2 nodes from E2Manager", "nodeCount", len(nodes))
+		} else {
+			logger.Error(err, "Failed to list E2 nodes from E2Manager")
+		}
+	}
+
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager performs setupwithmanager operation.
@@ -451,10 +487,17 @@ func (r *E2NodeSetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-// reconcileE2Nodes manages E2 nodes by creating/deleting ConfigMaps.
+// reconcileE2Nodes manages E2 nodes by creating/deleting ConfigMaps and coordinating with E2Manager.
 
 func (r *E2NodeSetReconciler) reconcileE2Nodes(ctx context.Context, e2nodeSet *nephoranv1.E2NodeSet) error {
 	logger := log.FromContext(ctx)
+
+	// First, call ProvisionNode to ensure E2Manager knows about the desired spec
+	if r.E2Manager != nil {
+		if err := r.E2Manager.ProvisionNode(ctx, e2nodeSet.Spec); err != nil {
+			return fmt.Errorf("failed to provision nodes via E2Manager: %w", err)
+		}
+	}
 
 	// Get current ConfigMaps representing E2 nodes.
 
@@ -587,11 +630,33 @@ func (r *E2NodeSetReconciler) scaleUpE2Nodes(ctx context.Context, e2nodeSet *nep
 			return fmt.Errorf("failed to create E2 node ConfigMap at index %d: %w", nextIndex, err)
 		}
 
+		nodeID := r.generateNodeID(e2nodeSet, nextIndex)
+		ricEndpoint := r.getRICEndpoint(e2nodeSet)
+
+		// Setup E2 connection for the new node
+		if r.E2Manager != nil {
+			if err := r.E2Manager.SetupE2Connection(nodeID, ricEndpoint); err != nil {
+				return fmt.Errorf("failed to setup E2 connection for node %s: %w", nodeID, err)
+			}
+
+			// Register the E2 node with RAN functions
+			ranFunctions := r.convertRANFunctions(r.buildRANFunctions(e2nodeSet))
+			if err := r.E2Manager.RegisterE2Node(ctx, nodeID, ranFunctions); err != nil {
+				return fmt.Errorf("failed to register E2 node %s: %w", nodeID, err)
+			}
+
+			// Update the ConfigMap status to Connected after successful registration
+			if err := r.updateNodeStatusToConnected(ctx, configMap, nodeID); err != nil {
+				logger.Error(err, "Failed to update node status to Connected", "nodeID", nodeID)
+				// Continue with the loop, don't fail the entire operation
+			}
+		}
+
 		logger.Info("Created E2 node ConfigMap",
 
 			"name", configMap.Name,
 
-			"nodeId", r.generateNodeID(e2nodeSet, nextIndex),
+			"nodeId", nodeID,
 
 			"index", nextIndex)
 
@@ -637,6 +702,14 @@ func (r *E2NodeSetReconciler) scaleDownE2Nodes(ctx context.Context, e2nodeSet *n
 		configMap := currentConfigMaps[i]
 
 		nodeID := r.getNodeIDFromConfigMap(configMap)
+
+		// Deregister from E2Manager first
+		if r.E2Manager != nil {
+			if err := r.E2Manager.DeregisterE2Node(ctx, nodeID); err != nil {
+				logger.Error(err, "Failed to deregister E2 node, continuing with ConfigMap deletion", "nodeID", nodeID)
+				// Continue with deletion even if deregistration fails
+			}
+		}
 
 		logger.Info("Deleting E2 node ConfigMap",
 
@@ -841,16 +914,14 @@ func calculateExponentialBackoff(retryCount int, baseDelay, maxDelay time.Durati
 		backoffDuration = maxDelay
 	}
 
-	// Add jitter to prevent thundering herd.
-
+	// Add jitter to prevent thundering herd, but ensure we don't exceed maxDelay
+	
 	jitterRange := float64(backoffDuration) * JitterFactor
-
 	jitter := (rand.Float64()*2 - 1) * jitterRange // Random value between -jitterRange and +jitterRange
 
 	finalDelay := time.Duration(float64(backoffDuration) + jitter)
 
 	// Ensure final delay is positive and doesn't exceed max.
-
 	if finalDelay < 0 {
 		finalDelay = baseDelay
 	}
@@ -1233,6 +1304,10 @@ func (r *E2NodeSetReconciler) configMapNeedsUpdate(configMap *corev1.ConfigMap, 
 // updateMetrics updates Prometheus metrics for the E2NodeSet.
 
 func (r *E2NodeSetReconciler) updateMetrics(e2nodeSet *nephoranv1.E2NodeSet) {
+	if !r.metricsInitialized {
+		return
+	}
+
 	r.nodesTotal.WithLabelValues(e2nodeSet.Namespace, e2nodeSet.Name).Set(float64(e2nodeSet.Status.CurrentReplicas))
 
 	r.nodesReady.WithLabelValues(e2nodeSet.Namespace, e2nodeSet.Name).Set(float64(e2nodeSet.Status.ReadyReplicas))
@@ -1351,7 +1426,7 @@ func (r *E2NodeSetReconciler) updateNodeHeartbeat(ctx context.Context, configMap
 
 		namespaceName := strings.Split(nodeID, "-")
 
-		if len(namespaceName) >= 2 {
+		if len(namespaceName) >= 2 && r.metricsInitialized {
 			r.heartbeatsTotal.WithLabelValues(namespaceName[0], namespaceName[1], nodeID).Inc()
 		}
 
@@ -1386,6 +1461,9 @@ func (r *E2NodeSetReconciler) updateE2NodeSetStatus(ctx context.Context, e2nodeS
 	e2NodeStatuses := make([]nephoranv1.E2NodeStatus, 0, len(configMaps))
 
 	currentReplicas = int32(len(configMaps))
+
+	logger := log.FromContext(ctx)
+	logger.Info("Updating E2NodeSet status", "configMapCount", len(configMaps), "e2nodeSetName", e2nodeSet.Name)
 
 	for _, configMap := range configMaps {
 
@@ -1426,6 +1504,7 @@ func (r *E2NodeSetReconciler) updateE2NodeSetStatus(ctx context.Context, e2nodeS
 		e2NodeStatuses = append(e2NodeStatuses, nodeStatus)
 
 		// Count ready and available replicas.
+		logger.V(2).Info("Node status", "nodeID", statusData.NodeID, "state", statusData.State)
 
 		if statusData.State == string(nephoranv1.E2NodeLifecycleStateConnected) {
 
@@ -1440,6 +1519,7 @@ func (r *E2NodeSetReconciler) updateE2NodeSetStatus(ctx context.Context, e2nodeS
 	}
 
 	// Update status fields.
+	logger.Info("Final status update", "readyReplicas", readyReplicas, "currentReplicas", currentReplicas, "availableReplicas", availableReplicas)
 
 	currentE2NodeSet.Status.CurrentReplicas = currentReplicas
 
@@ -1712,3 +1792,66 @@ func (r *E2NodeSetReconciler) handleDeletion(ctx context.Context, e2nodeSet *nep
 func (r *E2NodeSetReconciler) getNearRTRICEndpoint(e2nodeSet *nephoranv1.E2NodeSet) string {
 	return r.getRICEndpoint(e2nodeSet)
 }
+
+// convertRANFunctions converts internal RAN function config to E2Manager RAN functions.
+func (r *E2NodeSetReconciler) convertRANFunctions(ranFuncs []RANFunctionConfig) []e2.RanFunction {
+	result := make([]e2.RanFunction, len(ranFuncs))
+	for i, rf := range ranFuncs {
+		result[i] = e2.RanFunction{
+			FunctionID:          int(rf.FunctionID),
+			FunctionRevision:    int(rf.Revision),
+			FunctionDescription: rf.Description,
+			FunctionOID:         rf.OID,
+			FunctionDefinition:  rf.Description, // Use description as definition for now
+			ServiceModel: e2.E2ServiceModel{
+				ServiceModelID:      "1.3.6.1.4.1.53148.1.1.2.2",
+				ServiceModelName:    "KPM Service Model",
+				ServiceModelVersion: "2.0",
+				ServiceModelOID:     rf.OID,
+				SupportedProcedures: []string{"REPORT"},
+			},
+		}
+	}
+	return result
+}
+
+// updateNodeStatusToConnected updates the ConfigMap to mark the node as connected.
+func (r *E2NodeSetReconciler) updateNodeStatusToConnected(ctx context.Context, configMap *corev1.ConfigMap, nodeID string) error {
+	logger := log.FromContext(ctx)
+
+	// Parse existing status
+	statusDataStr, ok := configMap.Data[E2NodeStatusKey]
+	if !ok {
+		return fmt.Errorf("missing status data in ConfigMap %s", configMap.Name)
+	}
+
+	var status E2NodeStatusData
+	if err := json.Unmarshal([]byte(statusDataStr), &status); err != nil {
+		return fmt.Errorf("failed to unmarshal status data: %w", err)
+	}
+
+	// Update status to Connected
+	now := time.Now().UTC()
+	status.State = string(nephoranv1.E2NodeLifecycleStateConnected)
+	status.ConnectedSince = &now
+	status.LastHeartbeat = &now
+	status.StatusUpdatedAt = now
+
+	// Update ConfigMap with new status
+	statusJSON, err := json.Marshal(status)
+	if err != nil {
+		return fmt.Errorf("failed to marshal status data: %w", err)
+	}
+
+	updatedConfigMap := configMap.DeepCopy()
+	updatedConfigMap.Data[E2NodeStatusKey] = string(statusJSON)
+
+	if err := r.Update(ctx, updatedConfigMap); err != nil {
+		logger.Error(err, "Failed to update ConfigMap status to Connected", "nodeID", nodeID)
+		return fmt.Errorf("failed to update ConfigMap status: %w", err)
+	}
+
+	logger.V(1).Info("Updated node status to Connected", "nodeID", nodeID)
+	return nil
+}
+

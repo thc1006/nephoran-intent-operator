@@ -5,14 +5,15 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 )
 
 // IntentSchemaValidator validates intents against the JSON schema.
 
 type IntentSchemaValidator struct {
 	schemaPath string
-
-	schema map[string]interface{}
+	schema     map[string]interface{}
+	mu         sync.RWMutex // Protects concurrent access to schema validation
 }
 
 // NewIntentSchemaValidator creates a new schema validator.
@@ -45,10 +46,15 @@ func NewIntentSchemaValidator(schemaPath string) (*IntentSchemaValidator, error)
 }
 
 // ValidateIntent validates an intent against the JSON schema.
-
 // This is a simplified validation that checks the main requirements.
-
 func (v *IntentSchemaValidator) ValidateIntent(intent map[string]interface{}) error {
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+	return v.validateIntentInternal(intent)
+}
+
+// validateIntentInternal performs the actual validation without locking
+func (v *IntentSchemaValidator) validateIntentInternal(intent map[string]interface{}) error {
 	// Get schema properties.
 
 	properties, ok := v.schema["properties"].(map[string]interface{})
@@ -292,11 +298,16 @@ func (v *IntentSchemaValidator) validateField(fieldName string, value interface{
 
 // Validate validates an intent against the JSON schema (alias for ValidateIntent).
 func (v *IntentSchemaValidator) Validate(intent map[string]interface{}) error {
-	return v.ValidateIntent(intent)
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+	return v.validateIntentInternal(intent)
 }
 
 // ValidateJSON validates a JSON string against the schema.
 func (v *IntentSchemaValidator) ValidateJSON(jsonStr string) error {
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+	
 	if jsonStr == "" {
 		return fmt.Errorf("failed to parse JSON: empty string")
 	}
@@ -307,8 +318,8 @@ func (v *IntentSchemaValidator) ValidateJSON(jsonStr string) error {
 		return fmt.Errorf("failed to parse JSON: %w", err)
 	}
 
-	// Validate the parsed intent.
-	if err := v.ValidateIntent(intent); err != nil {
+	// Validate the parsed intent (call internal method to avoid double-locking).
+	if err := v.validateIntentInternal(intent); err != nil {
 		return fmt.Errorf("validation failed: %w", err)
 	}
 
@@ -317,7 +328,15 @@ func (v *IntentSchemaValidator) ValidateJSON(jsonStr string) error {
 
 // GetSchema returns the loaded JSON schema.
 func (v *IntentSchemaValidator) GetSchema() map[string]interface{} {
-	return v.schema
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+	
+	// Return a copy to prevent external modifications
+	schema := make(map[string]interface{})
+	for k, v := range v.schema {
+		schema[k] = v
+	}
+	return schema
 }
 
 // UpdateSchema reloads the schema from the file system.
@@ -333,8 +352,10 @@ func (v *IntentSchemaValidator) UpdateSchema() error {
 		return fmt.Errorf("failed to parse schema: %w", err)
 	}
 
-	// Update the schema.
+	// Update the schema with write lock
+	v.mu.Lock()
 	v.schema = schema
+	v.mu.Unlock()
 	return nil
 }
 

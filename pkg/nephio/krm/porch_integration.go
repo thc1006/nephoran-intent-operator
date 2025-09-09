@@ -869,9 +869,9 @@ func (pim *PorchIntegrationManager) createPackageRevision(ctx context.Context, s
 
 			Lifecycle: spec.Lifecycle,
 
-			Resources: []interface{}{}, // Will be populated by functions
+			Resources: []porch.KRMResource{}, // Will be populated by functions
 
-			Functions: []interface{}{}, // Will be populated by pipeline
+			Functions: []porch.FunctionConfig{}, // Will be populated by pipeline
 
 		},
 	}
@@ -1169,9 +1169,7 @@ func (pim *PorchIntegrationManager) executeFunctionPipeline(ctx context.Context,
 	resources := make([]*porch.KRMResource, 0)
 
 	for _, resource := range packageRevision.Spec.Resources {
-		if krmRes, ok := resource.(porch.KRMResource); ok {
-			resources = append(resources, &krmRes)
-		}
+		resources = append(resources, &resource)
 	}
 
 	// Execute pipeline.
@@ -1242,10 +1240,10 @@ func (pim *PorchIntegrationManager) updatePackageWithResults(ctx context.Context
 
 	// Convert pipeline resources back to package resources.
 
-	updatedResources := make([]interface{}, 0)
+	updatedResources := make([]porch.KRMResource, 0)
 
 	for _, resource := range execution.OutputResources {
-		updatedResources = append(updatedResources, resource)
+		updatedResources = append(updatedResources, *resource)
 	}
 
 	// Update package revision spec.
@@ -1256,11 +1254,14 @@ func (pim *PorchIntegrationManager) updatePackageWithResults(ctx context.Context
 
 	for stageName := range execution.Stages {
 
-		functionConfig := json.RawMessage(fmt.Sprintf(`{
-			"executedAt": "%s",
-			"status": "completed",
-			"stageName": "%s"
-		}`, time.Now().Format(time.RFC3339), stageName))
+		functionConfig := porch.FunctionConfig{
+			Image: fmt.Sprintf("pipeline-stage-%s", stageName),
+			ConfigMap: map[string]interface{}{
+				"executedAt": time.Now().Format(time.RFC3339),
+				"status": "completed",
+				"stageName": stageName,
+			},
+		}
 
 		packageRevision.Spec.Functions = append(packageRevision.Spec.Functions, functionConfig)
 

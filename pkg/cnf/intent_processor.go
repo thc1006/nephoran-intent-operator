@@ -344,7 +344,7 @@ func (p *CNFIntentProcessor) ProcessCNFIntent(ctx context.Context, networkIntent
 
 	if !p.containsCNFKeywords(networkIntent.Spec.Intent) {
 		return &nephoranv1.CNFIntentProcessingResult{
-			ConfidenceScore: 0.0,
+			ConfidenceScore: "0.0",
 
 			Errors: []string{"Intent does not contain CNF deployment keywords"},
 		}, fmt.Errorf("intent does not appear to be CNF-related")
@@ -396,7 +396,8 @@ func (p *CNFIntentProcessor) ProcessCNFIntent(ctx context.Context, networkIntent
 
 	// Calculate confidence score.
 
-	result.ConfidenceScore = p.calculateConfidenceScore(intentContext, result)
+	confidenceValue := p.calculateConfidenceScore(intentContext, result)
+	result.ConfidenceScore = fmt.Sprintf("%.2f", confidenceValue)
 
 	logger.Info("CNF intent processing completed",
 
@@ -740,7 +741,7 @@ func (p *CNFIntentProcessor) extractUsingPatterns(intent string) *nephoranv1.CNF
 
 		RecommendedStrategy: p.Config.DefaultStrategy,
 
-		ConfidenceScore: 0.5, // Lower confidence for pattern matching
+		ConfidenceScore: "0.50", // Lower confidence for pattern matching
 
 	}
 
@@ -1201,7 +1202,7 @@ func (p *CNFIntentProcessor) estimateResourcesAndCosts(result *nephoranv1.CNFInt
 
 	result.EstimatedResources = runtime.RawExtension{Raw: resourceDataBytes}
 
-	result.EstimatedCost = totalCost
+	result.EstimatedCost = fmt.Sprintf("%.2f", totalCost)
 }
 
 func (p *CNFIntentProcessor) estimateDeploymentTimeline(result *nephoranv1.CNFIntentProcessingResult) {

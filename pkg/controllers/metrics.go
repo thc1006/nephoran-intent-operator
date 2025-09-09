@@ -126,6 +126,29 @@ func NewControllerMetrics(controllerName string) *ControllerMetrics {
 	}
 }
 
+// NewControllerMetricsOrNoop creates a new ControllerMetrics instance or returns a no-op instance.
+// This is useful for tests where metrics might not be properly initialized.
+
+func NewControllerMetricsOrNoop(controllerName string) *ControllerMetrics {
+	if controllerName == "" {
+		controllerName = "unknown"
+	}
+	
+	enabled := isMetricsEnabled()
+
+	// Register metrics once globally if enabled.
+
+	if enabled {
+		registerMetricsOnce()
+	}
+
+	return &ControllerMetrics{
+		controllerName: controllerName,
+
+		enabled: enabled,
+	}
+}
+
 // isMetricsEnabled checks if metrics are enabled via environment variable.
 
 func isMetricsEnabled() bool {
@@ -165,7 +188,7 @@ func registerMetricsOnce() {
 // RecordReconcileTotal increments the total reconciliations counter.
 
 func (m *ControllerMetrics) RecordReconcileTotal(namespace, name, result string) {
-	if !m.enabled {
+	if m == nil || !m.enabled || networkIntentReconcilesTotal == nil {
 		return
 	}
 
@@ -175,7 +198,7 @@ func (m *ControllerMetrics) RecordReconcileTotal(namespace, name, result string)
 // RecordReconcileError increments the reconciliation errors counter.
 
 func (m *ControllerMetrics) RecordReconcileError(namespace, name, errorType string) {
-	if !m.enabled {
+	if m == nil || !m.enabled || networkIntentReconcileErrors == nil {
 		return
 	}
 
@@ -185,7 +208,7 @@ func (m *ControllerMetrics) RecordReconcileError(namespace, name, errorType stri
 // RecordProcessingDuration records the duration of a processing phase.
 
 func (m *ControllerMetrics) RecordProcessingDuration(namespace, name, phase string, duration float64) {
-	if !m.enabled {
+	if m == nil || !m.enabled || networkIntentProcessingDuration == nil {
 		return
 	}
 
@@ -195,7 +218,7 @@ func (m *ControllerMetrics) RecordProcessingDuration(namespace, name, phase stri
 // SetStatus sets the current status of a NetworkIntent.
 
 func (m *ControllerMetrics) SetStatus(namespace, name, phase string, status float64) {
-	if !m.enabled {
+	if m == nil || !m.enabled || networkIntentStatus == nil {
 		return
 	}
 
@@ -205,12 +228,18 @@ func (m *ControllerMetrics) SetStatus(namespace, name, phase string, status floa
 // RecordSuccess is a convenience method to record successful reconciliation.
 
 func (m *ControllerMetrics) RecordSuccess(namespace, name string) {
+	if m == nil {
+		return
+	}
 	m.RecordReconcileTotal(namespace, name, "success")
 }
 
 // RecordFailure is a convenience method to record failed reconciliation with error.
 
 func (m *ControllerMetrics) RecordFailure(namespace, name, errorType string) {
+	if m == nil {
+		return
+	}
 	m.RecordReconcileTotal(namespace, name, "error")
 
 	m.RecordReconcileError(namespace, name, errorType)

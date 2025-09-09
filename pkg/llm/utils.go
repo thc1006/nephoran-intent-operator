@@ -140,7 +140,7 @@ func isValidKubernetesName(name string) bool {
 	return true
 }
 
-// isAlphaNumeric checks if a character is alphanumeric
+// isAlphaNumeric checks if a character is lowercase alphanumeric (for Kubernetes names)
 func isAlphaNumeric(char byte) bool {
-	return (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || (char >= '0' && char <= '9')
+	return (char >= 'a' && char <= 'z') || (char >= '0' && char <= '9')
 }
