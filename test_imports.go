@@ -8,19 +8,15 @@
 package main
 
 import (
-	"encoding/json"
-	_ "github.com/thc1006/nephoran-intent-operator/pkg/porch"
-	_ "github.com/thc1006/nephoran-intent-operator/pkg/knowledge" 
-<<<<<<< HEAD
-	_ "github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch/testutil"
-=======
-	_ "github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch/porchtest"
->>>>>>> main
-	_ "github.com/thc1006/nephoran-intent-operator/internal/patch"
+	_ "github.com/onsi/ginkgo/v2"
+	_ "github.com/onsi/gomega"
+	_ "k8s.io/client-go/kubernetes/scheme"
+	_ "sigs.k8s.io/controller-runtime/pkg/client"
+	_ "sigs.k8s.io/controller-runtime/pkg/envtest"
+	
+	_ "github.com/thc1006/nephoran-intent-operator/api/v1alpha1"
 )
 
-// Test imports main function - only compiled with test_imports build tag
 func main() {
-	// Verify json import works
-	var _ json.RawMessage
+	// This is a test-only file for import verification
 }
