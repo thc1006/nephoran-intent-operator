@@ -33,8 +33,8 @@ concurrency:
 
 # Environment optimized for reliability and speed
 env:
-  # Use latest patch version for maximum compatibility
-  GO_VERSION: "1.25.x"
+  # Use version matching go.mod for compatibility
+  GO_VERSION: "1.24.x"
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   GOPRIVATE: ""
@@ -190,7 +190,7 @@ jobs:
             timeout: 8
             priority: "critical"
           - name: "essential-services"
-            components: "cmd/nephio-bridge cmd/webhook cmd/a1-sim"
+            components: "cmd/nephio-bridge cmd/webhook cmd/a1-sim cmd/porch-publisher"
             timeout: 6
             priority: "high"
           - name: "simulators"
@@ -216,7 +216,7 @@ jobs:
             ~/go/pkg/mod
           key: ${{ needs.reliability-setup.outputs.cache-key }}
           restore-keys: |
-            nephoran-reliability-v3-${{ runner.os }}-go1.25
+            nephoran-reliability-v3-${{ runner.os }}-go1.24
             nephoran-reliability-v3-${{ runner.os }}-
           fail-on-cache-miss: false
           
@@ -321,7 +321,7 @@ jobs:
             ~/go/pkg/mod
           key: ${{ needs.reliability-setup.outputs.cache-key }}
           restore-keys: |
-            nephoran-reliability-v3-${{ runner.os }}-go1.25
+            nephoran-reliability-v3-${{ runner.os }}-go1.24
           fail-on-cache-miss: false
           
       - name: Setup test environment
@@ -412,6 +412,13 @@ jobs:
           path: artifacts/
           merge-multiple: true
           
+      - name: List downloaded artifacts (debug)
+        run: |
+          echo "Listing all downloaded artifacts:"
+          ls -lR artifacts/ || echo "No artifacts directory found"
+          echo "\nChecking for any files in artifacts:"
+          find artifacts/ -type f 2>/dev/null | head -20 || echo "No files found in artifacts/"
+          
       - name: Integration smoke tests
         timeout-minutes: 5
         run: |
@@ -419,8 +426,20 @@ jobs:
           
           # Prepare binaries
           mkdir -p bin/
-          find artifacts/ -type f -executable -exec cp {} bin/ \; 2>/dev/null || true
+          echo "Copying binaries from artifacts to bin/"
+          
+          # Copy all files from artifacts, not just executable ones
+          find artifacts/ -type f -exec cp {} bin/ \; 2>/dev/null || true
+          
+          # Make all files in bin executable
           chmod +x bin/* 2>/dev/null || true
+          
+          echo "Files in bin/ after copying:"
+          ls -la bin/ 2>/dev/null || echo "No files in bin/"
+          
+          # Count actual binaries
+          binary_count=$(ls -1 bin/ 2>/dev/null | wc -l || echo "0")
+          echo "Total files in bin/: $binary_count"
           
           # Test each binary
           tested=0
