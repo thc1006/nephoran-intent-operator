@@ -47,70 +47,6 @@ spec:
             type: object
           spec:
             properties:
-              deployment:
-                description: Deployment defines deployment specifications for network
-                  functions
-                properties:
-                  clusterSelector:
-                    additionalProperties:
-                      type: string
-                    description: ClusterSelector defines which clusters to deploy
-                      to
-                    type: object
-                  networkFunctions:
-                    description: NetworkFunctions defines the list of network functions
-                      to deploy
-                    items:
-                      description: NetworkFunction defines a network function configuration
-                      properties:
-                        config:
-                          description: Configuration specific to this network function
-                          x-kubernetes-preserve-unknown-fields: true
-                        name:
-                          description: Name of the network function
-                          type: string
-                        resources:
-                          description: Resources required for this network function
-                          properties:
-                            cpu:
-                              description: CPU requirements
-                              type: string
-                            custom:
-                              additionalProperties:
-                                type: string
-                              description: Custom resource requirements
-                              type: object
-                            memory:
-                              description: Memory requirements
-                              type: string
-                            storage:
-                              description: Storage requirements
-                              type: string
-                          type: object
-                        type:
-                          description: Type of the network function (CNF, VNF, etc.)
-                          enum:
-                          - CNF
-                          - VNF
-                          - PNF
-                          type: string
-                        version:
-                          description: Version of the network function
-                          type: string
-                      required:
-                      - name
-                      - type
-                      type: object
-                    type: array
-                  replicas:
-                    description: Replicas specifies the desired number of replicas
-                    format: int32
-                    minimum: 0
-                    type: integer
-                type: object
-              scalingIntent:
-                description: ScalingIntent defines the scaling behavior
-                x-kubernetes-preserve-unknown-fields: true
               scalingPriority:
                 enum:
                 - low
@@ -183,17 +119,9 @@ spec:
                   - type
                   type: object
                 type: array
-              lastUpdated:
-                description: LastUpdated indicates when the status was last updated
-                format: date-time
-                type: string
               observedGeneration:
                 format: int64
                 type: integer
-              phase:
-                description: Phase indicates the current phase of the NetworkIntent
-                  processing
-                type: string
             type: object
         type: object
     served: true
