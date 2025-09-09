@@ -93,7 +93,7 @@ jobs:
           
           echo "Changed files: $CHANGED_FILES"
           
-          if echo "$CHANGED_FILES" | grep -qE '\.(go|mod|sum)$|^(api|cmd|controllers|pkg|internal)/|Makefile'; then
+          if echo "$CHANGED_FILES" | grep -qE '\.(go|mod|sum|ya?ml)$|^(api|cmd|controllers|pkg|internal)/|Makefile|\.github/workflows/'; then
             echo "should-build=true" >> $GITHUB_OUTPUT
             echo "Significant changes detected - build required"
           else
