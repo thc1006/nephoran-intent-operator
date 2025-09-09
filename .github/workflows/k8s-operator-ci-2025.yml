@@ -128,6 +128,12 @@ jobs:
           echo "cache-key=${CACHE_KEY}" >> $GITHUB_OUTPUT
           echo "Generated cache key: $CACHE_KEY"
           
+      - name: Clean cache directories before restore
+        if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
+        run: |
+          rm -rf ${{ env.GOCACHE }}
+          rm -rf ${{ env.GOMODCACHE }}
+          
       - name: Restore Go cache
         if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
         uses: actions/cache@v4
@@ -181,6 +187,11 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: false
           
+      - name: Clean cache directories before restore
+        run: |
+          rm -rf ${{ env.GOCACHE }}
+          rm -rf ${{ env.GOMODCACHE }}
+          
       - name: Restore Go cache
         uses: actions/cache@v4
         with:
@@ -194,7 +205,7 @@ jobs:
       - name: Install Kubebuilder
         run: |
           echo "🔧 Installing Kubebuilder ${{ env.KUBEBUILDER_VERSION }}..."
-          curl -L -o kubebuilder https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${{ env.KUBEBUILDER_VERSION }}/kubebuilder_linux_amd64
+          curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -L -o kubebuilder https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${{ env.KUBEBUILDER_VERSION }}/kubebuilder_linux_amd64
           chmod +x kubebuilder
           sudo mv kubebuilder /usr/local/bin/
           kubebuilder version
@@ -205,14 +216,17 @@ jobs:
           echo "🔧 Installing controller-gen..."
           go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.13.0
           
-          # Install kustomize
+          # Install kustomize with GitHub token authentication
           echo "🔧 Installing kustomize..."
-          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          KUSTOMIZE_VERSION=$(curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -s https://api.github.com/repos/kubernetes-sigs/kustomize/releases/latest | grep 'tag_name' | cut -d'"' -f4 | sed 's/kustomize\///g')
+          curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -L -o kustomize "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
+          tar -xzf kustomize
           sudo mv kustomize /usr/local/bin/
+          rm -f kustomize_*.tar.gz
           
           # Install CRD validation tools
           echo "🔧 Installing kubeval..."
-          curl -L https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz | tar xz
+          curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -L https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz | tar xz
           sudo mv kubeval /usr/local/bin/
           
           # Verify installations
@@ -306,6 +320,11 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: false
           
+      - name: Clean cache directories before restore
+        run: |
+          rm -rf ${{ env.GOCACHE }}
+          rm -rf ${{ env.GOMODCACHE }}
+          
       - name: Restore Go cache
         uses: actions/cache@v4
         with:
@@ -326,7 +345,7 @@ jobs:
           
           # Install cosign for supply chain security
           echo "🔧 Installing cosign ${{ env.COSIGN_VERSION }}..."
-          curl -O -L "https://github.com/sigstore/cosign/releases/download/v${{ env.COSIGN_VERSION }}/cosign-linux-amd64"
+          curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -O -L "https://github.com/sigstore/cosign/releases/download/v${{ env.COSIGN_VERSION }}/cosign-linux-amd64"
           sudo mv cosign-linux-amd64 /usr/local/bin/cosign
           sudo chmod +x /usr/local/bin/cosign
           
@@ -458,6 +477,11 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: false
           
+      - name: Clean cache directories before restore
+        run: |
+          rm -rf ${{ env.GOCACHE }}
+          rm -rf ${{ env.GOMODCACHE }}
+          
       - name: Restore Go cache
         uses: actions/cache@v4
         with:
@@ -570,6 +594,11 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: false
+          
+      - name: Clean cache directories before restore
+        run: |
+          rm -rf ${{ env.GOCACHE }}
+          rm -rf ${{ env.GOMODCACHE }}
           
       - name: Restore Go cache
         uses: actions/cache@v4
@@ -703,6 +732,11 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: false
+          
+      - name: Clean cache directories before restore
+        run: |
+          rm -rf ${{ env.GOCACHE }}
+          rm -rf ${{ env.GOMODCACHE }}
           
       - name: Restore Go cache
         uses: actions/cache@v4
