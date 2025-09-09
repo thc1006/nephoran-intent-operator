@@ -199,7 +199,7 @@ func (m *MockProvider) CreateResource(ctx context.Context, req *CreateResourceRe
 		m.mu.Lock()
 		defer m.mu.Unlock()
 		// In a real implementation, you would update the resource status in storage
-		response.Status = "active"
+		response.Status = string(StatusReady)
 		response.UpdatedAt = time.Now()
 	}()
 
@@ -220,7 +220,7 @@ func (m *MockProvider) GetResource(ctx context.Context, resourceID string) (*Res
 		ID:        resourceID,
 		Name:      "mock-" + resourceID,
 		Type:      "mock-resource",
-		Status:    "active",
+		Status:    string(StatusReady),
 		Health:    "healthy",
 		CreatedAt: time.Now().Add(-time.Hour),
 		UpdatedAt: time.Now(),
@@ -245,7 +245,7 @@ func (m *MockProvider) ListResources(ctx context.Context, filter *ResourceFilter
 			ID:        fmt.Sprintf("mock-resource-%d", i),
 			Name:      fmt.Sprintf("mock-resource-%d", i),
 			Type:      "mock-resource",
-			Status:    "active",
+			Status:    string(StatusReady),
 			Health:    "healthy",
 			CreatedAt: time.Now().Add(-time.Hour),
 			UpdatedAt: time.Now(),
@@ -282,7 +282,7 @@ func (m *MockProvider) UpdateResource(ctx context.Context, resourceID string, re
 		time.Sleep(50 * time.Millisecond)
 		m.mu.Lock()
 		defer m.mu.Unlock()
-		response.Status = "active"
+		response.Status = string(StatusReady)
 		response.UpdatedAt = time.Now()
 	}()
 
@@ -485,6 +485,20 @@ func (m *MockProvider) ApplyConfiguration(ctx context.Context, config *ProviderC
 
 	// Mock implementation - just store the config if needed
 	return nil
+}
+
+// GetResourceStatus returns the current status of a resource (Provider interface)
+func (m *MockProvider) GetResourceStatus(ctx context.Context, id string) (ResourceStatus, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if !m.initialized {
+		return StatusUnknown, fmt.Errorf("provider not initialized")
+	}
+
+	// Mock implementation - simulate resource status lookup
+	// In a real implementation, this would query the actual resource status
+	return StatusReady, nil
 }
 
 // Close cleans up provider resources

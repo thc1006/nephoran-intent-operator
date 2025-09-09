@@ -7,10 +7,10 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porch/v1alpha1"
 	networkintentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
 )
 
@@ -40,16 +40,13 @@ var _ = Describe("Porch Resilience Scenarios", func() {
 					Namespace: ns,
 				},
 				Spec: networkintentv1alpha1.NetworkIntentSpec{
-					Deployment: networkintentv1alpha1.DeploymentSpec{
-						ClusterSelector: map[string]string{
-							"resilience-test": "true",
-						},
-						NetworkFunctions: []networkintentv1alpha1.NetworkFunction{
-							{
-								Name: "resilient-nf",
-								Type: "CNF",
-							},
-						},
+					Source:     "integration-test",
+					IntentType: "scaling",
+					Target:     "resilient-nf",
+					Namespace:  ns,
+					Replicas:   2,
+					ScalingParameters: networkintentv1alpha1.ScalingConfig{
+						Replicas: 2,
 					},
 				},
 			}
@@ -73,7 +70,7 @@ var _ = Describe("Porch Resilience Scenarios", func() {
 		It("Should recover and recreate packages after Porch server failure", func() {
 			// Create multiple intents
 			intents := generateMultipleIntents(ns, 5)
-			
+
 			for _, intent := range intents {
 				Expect(k8sClient.Create(ctx, intent)).Should(Succeed())
 			}
@@ -98,16 +95,13 @@ var _ = Describe("Porch Resilience Scenarios", func() {
 					Namespace: ns,
 				},
 				Spec: networkintentv1alpha1.NetworkIntentSpec{
-					Deployment: networkintentv1alpha1.DeploymentSpec{
-						ClusterSelector: map[string]string{
-							"circuit-test": "true",
-						},
-						NetworkFunctions: []networkintentv1alpha1.NetworkFunction{
-							{
-								Name: "unstable-nf",
-								Type: "CNF",
-							},
-						},
+					Source:     "integration-test",
+					IntentType: "scaling",
+					Target:     "unstable-nf",
+					Namespace:  ns,
+					Replicas:   1,
+					ScalingParameters: networkintentv1alpha1.ScalingConfig{
+						Replicas: 1,
 					},
 				},
 			}
@@ -121,7 +115,7 @@ var _ = Describe("Porch Resilience Scenarios", func() {
 			Consistently(func() bool {
 				var packages porchv1alpha1.PackageList
 				err := k8sClient.List(ctx, &packages, client.InNamespace(ns))
-				return err == nil && len(packages.Items) <= 3  // Limit retries
+				return err == nil && len(packages.Items) <= 3 // Limit retries
 			}, 3*time.Minute, 30*time.Second).Should(BeTrue())
 		})
 	})
@@ -155,16 +149,13 @@ func generateMultipleIntents(namespace string, count int) []*networkintentv1alph
 				Namespace: namespace,
 			},
 			Spec: networkintentv1alpha1.NetworkIntentSpec{
-				Deployment: networkintentv1alpha1.DeploymentSpec{
-					ClusterSelector: map[string]string{
-						"multi-test": "true",
-					},
-					NetworkFunctions: []networkintentv1alpha1.NetworkFunction{
-						{
-							Name: fmt.Sprintf("multi-nf-%d", i),
-							Type: "CNF",
-						},
-					},
+				Source:     "integration-test",
+				IntentType: "scaling",
+				Target:     fmt.Sprintf("multi-nf-%d", i),
+				Namespace:  namespace,
+				Replicas:   2,
+				ScalingParameters: networkintentv1alpha1.ScalingConfig{
+					Replicas: 2,
 				},
 			},
 		}

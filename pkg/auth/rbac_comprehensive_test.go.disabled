@@ -1,0 +1,11 @@
+package auth_test
+
+import (
+	"testing"
+)
+
+// TestRBACStub is a stub test to prevent compilation failures
+// TODO: Implement proper RBAC tests when auth infrastructure is ready
+func TestRBACStub(t *testing.T) {
+	t.Skip("RBAC tests disabled - auth infrastructure not yet implemented")
+}

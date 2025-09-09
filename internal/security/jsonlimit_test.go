@@ -119,8 +119,8 @@ func TestValidateAndLimitJSON_LargeFile(t *testing.T) {
 	defer os.Remove(tempFile.Name())
 	defer tempFile.Close() // #nosec G307 - Error handled in defer
 
-	// Write 2MB of content
-	largeContent := strings.Repeat("a", 2*1024*1024)
+	// Write 6MB of content (larger than MaxJSONBytes = 5MB)
+	largeContent := strings.Repeat("a", 6*1024*1024)
 	_, err = tempFile.WriteString(largeContent)
 	require.NoError(t, err)
 
@@ -198,9 +198,9 @@ func TestCountingReader(t *testing.T) {
 }
 
 func TestMaxJSONBytesConstant(t *testing.T) {
-	// Verify the constant is set to 1MB
-	assert.Equal(t, int64(1<<20), MaxJSONBytes)
-	assert.Equal(t, int64(1024*1024), MaxJSONBytes)
+	// Verify the constant is set to 5MB as defined
+	assert.Equal(t, int64(MaxJSONBytes), int64(5*1024*1024))
+	assert.Equal(t, int64(MaxJSONBytes), int64(5<<20))
 }
 
 func BenchmarkValidateAndLimitJSON(b *testing.B) {

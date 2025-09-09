@@ -1,6 +1,7 @@
 package chaos
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -9,9 +10,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"k8s.io/client-go/rest"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	porchclient "github.com/thc1006/nephoran-intent-operator/pkg/porch"
+	porchclient "github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
+	"github.com/thc1006/nephoran-intent-operator/test/testutil"
 )
 
 const (
@@ -27,10 +29,26 @@ func simulateNetworkLatency(fn func() error) error {
 }
 
 func TestPorchResilienceUnderFailure(t *testing.T) {
-	_, err := rest.InClusterConfig()
-	require.NoError(t, err, "Failed to load Kubernetes config")
+	// Get test Kubernetes configuration
+	configResult := testutil.GetTestKubernetesConfig(t)
+	require.NotNil(t, configResult.Config, "Failed to get Kubernetes config")
 
-	porchClient := porchclient.NewClient("http://porch-server:8080", false)
+	// Skip test if only mock configuration is available (chaos testing requires real connectivity)
+	if configResult.Source == testutil.ConfigSourceMock {
+		t.Skip("Chaos/resilience testing requires real cluster connectivity - skipping with mock config")
+		return
+	}
+
+	// Create Porch client
+	porchClient, err := testutil.CreateTestPorchClient(t, configResult)
+	if err != nil {
+		t.Skipf("Cannot create Porch client for resilience testing: %v", err)
+		return
+	}
+	if porchClient == nil {
+		t.Skip("Resilience test requires Porch client - skipping")
+		return
+	}
 
 	t.Run("NetworkPartitionAndRecovery", func(t *testing.T) {
 		var wg sync.WaitGroup
@@ -47,15 +65,23 @@ func TestPorchResilienceUnderFailure(t *testing.T) {
 					pkgName := fmt.Sprintf("chaos-pkg-%d", idx)
 					
 					// Mock porch package creation using the porch client
-					packageReq := &porchclient.PackageRequest{
-						Repository: "chaos-test-repo",
-						Package:    pkgName,
-						Workspace:  "main",
-						Namespace:  "nephio-chaos",
+					packageRevision := &porchclient.PackageRevision{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      pkgName,
+							Namespace: "nephio-chaos",
+						},
+						Spec: porchclient.PackageRevisionSpec{
+							PackageName: pkgName,
+							Repository:  "chaos-test-repo",
+							Revision:    "v1",
+							Lifecycle:   porchclient.PackageRevisionLifecycleDraft,
+						},
 					}
 					
-					_, err := porchClient.CreateOrUpdatePackage(packageReq)
-					return err // Mock deletion successful for test
+					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+					defer cancel()
+					_, err := porchClient.CreatePackageRevision(ctx, packageRevision)
+					return err
 				})
 
 				mu.Lock()
@@ -80,16 +106,25 @@ func TestPorchResilienceUnderFailure(t *testing.T) {
 		pkgName := fmt.Sprintf("slow-response-pkg-%d", time.Now().UnixNano())
 		
 		// Mock porch package creation for slow response test
-		packageReq := &porchclient.PackageRequest{
-			Repository: "slow-response-repo",
-			Package:    pkgName,
-			Workspace:  "main",
-			Namespace:  "nephio-chaos",
+		packageRevision := &porchclient.PackageRevision{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      pkgName,
+				Namespace: "nephio-chaos",
+			},
+			Spec: porchclient.PackageRevisionSpec{
+				PackageName: pkgName,
+				Repository:  "slow-response-repo",
+				Revision:    "v1",
+				Lifecycle:   porchclient.PackageRevisionLifecycleDraft,
+			},
 		}
 
 		// Simulate slow server response
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		
 		startTime := time.Now()
-		createdPkg, err := porchClient.CreateOrUpdatePackage(packageReq)
+		createdPkg, err := porchClient.CreatePackageRevision(ctx, packageRevision)
 		duration := time.Since(startTime)
 
 		require.NoError(t, err, "Failed to create package with slow response")

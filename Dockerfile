@@ -277,7 +277,8 @@ RUN --mount=type=cache,target=/go/pkg/mod,sharing=locked \
         "nephio-bridge") CMD_PATH="./cmd/nephio-bridge/main.go" ;; \
         "llm-processor") CMD_PATH="./cmd/llm-processor/main.go" ;; \
         "oran-adaptor") CMD_PATH="./cmd/oran-adaptor/main.go" ;; \
-<<<<<<< HEAD
+        "manager") CMD_PATH="./cmd/main.go" ;; \
+        "controller") CMD_PATH="./cmd/main.go" ;; \
         "porch-publisher") CMD_PATH="./cmd/porch-publisher/main.go" ;; \
         "planner") CMD_PATH="./planner/cmd/planner/main.go" ;; \
         "a1-sim") CMD_PATH="./cmd/a1-sim/main.go" ;; \
@@ -285,15 +286,7 @@ RUN --mount=type=cache,target=/go/pkg/mod,sharing=locked \
         "fcaps-sim") CMD_PATH="./cmd/fcaps-sim/main.go" ;; \
         "o1-ves-sim") CMD_PATH="./cmd/o1-ves-sim/main.go" ;; \
         "conductor") CMD_PATH="./cmd/conductor/main.go" ;; \
-        "rag-api") CMD_PATH="./cmd/rag-api/main.go" ;; \
-        *) echo "ERROR: Unknown service '$SERVICE'" && exit 1 ;; \
-=======
-        "manager") CMD_PATH="./cmd/conductor-loop/main.go" ;; \
-        "controller") CMD_PATH="./cmd/conductor-loop/main.go" ;; \
-        "e2-kpm-sim") CMD_PATH="./cmd/e2-kpm-sim/main.go" ;; \
-        "o1-ves-sim") CMD_PATH="./cmd/o1-ves-sim/main.go" ;; \
-        *) echo "Unknown service: $SERVICE. Valid services: conductor-loop, intent-ingest, nephio-bridge, llm-processor, oran-adaptor, manager, controller, e2-kpm-sim, o1-ves-sim" && exit 1 ;; \
->>>>>>> origin/integrate/mvp
+        *) echo "ERROR: Unknown service '$SERVICE'. Valid services: manager, controller, conductor-loop, intent-ingest, nephio-bridge, llm-processor, oran-adaptor, porch-publisher, planner, a1-sim, e2-kpm-sim, fcaps-sim, o1-ves-sim, conductor" && exit 1 ;; \
     esac; \
     \
     echo "Selected source path: $CMD_PATH"; \

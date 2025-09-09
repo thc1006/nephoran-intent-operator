@@ -402,7 +402,7 @@ jobs:
               
               test_matrix='{
                 "include": [
-                  {"name": "unit-critical", "pattern": "./controllers/... ./api/...", "timeout": 12, "coverage": true, "race": true},
+                  {"name": "unit-critical", "pattern": "./controllers/... ./pkg/controllers/... ./api/...", "timeout": 12, "coverage": true, "race": true},
                   {"name": "unit-core", "pattern": "./pkg/context/... ./pkg/clients/... ./pkg/nephio/...", "timeout": 10, "coverage": true, "race": false}
                 ]
               }'
@@ -412,7 +412,7 @@ jobs:
               # Full mode: Comprehensive parallel build
               build_matrix='{
                 "include": [
-                  {"name": "controllers-api", "priority": "critical", "timeout": 20, "parallel": 4, "components": "controllers api", "test_pattern": "./controllers/... ./api/..."},
+                  {"name": "controllers-api", "priority": "critical", "timeout": 20, "parallel": 4, "components": "controllers api", "test_pattern": "./controllers/... ./pkg/controllers/... ./api/..."},
                   {"name": "core-packages", "priority": "critical", "timeout": 18, "parallel": 4, "components": "pkg/context pkg/clients pkg/nephio pkg/core pkg/security pkg/monitoring", "test_pattern": "./pkg/context/... ./pkg/clients/... ./pkg/nephio/... ./pkg/core/... ./pkg/security/... ./pkg/monitoring/..."},
                   {"name": "cmd-critical", "priority": "high", "timeout": 15, "parallel": 4, "components": "cmd/intent-ingest cmd/conductor-loop cmd/llm-processor cmd/webhook cmd/porch-publisher", "test_pattern": ""},
                   {"name": "cmd-services", "priority": "high", "timeout": 15, "parallel": 3, "components": "cmd/conductor cmd/nephio-bridge cmd/a1-sim cmd/e2-kmp-sim cmd/fcaps-sim", "test_pattern": ""},

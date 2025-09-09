@@ -1,0 +1,49 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    # Optional: Only run on specific file changes
+    # paths:
+    #   - "**/*.go"
+    #   - "**/*.yml"
+    #   - "**/*.yaml"
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  claude-review:
+    # Optional: Filter by PR author
+    # if: |
+    #   github.event.pull_request.user.login == 'external-contributor' ||
+    #   github.event.pull_request.user.login == 'new-developer' ||
+    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
+    
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Fetch full history for better context
+          fetch-depth: 0
+      
+      - name: Claude Code Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          # Add your Anthropic API key as a repository secret
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Optional: Customize Claude's behavior
+          # prompt: |
+          #   Please review this pull request for:
+          #   - Code quality and best practices
+          #   - Potential bugs or issues
+          #   - Performance considerations
+          #   - Security vulnerabilities
+          #   - Documentation completeness
+          
+          # Optional: Configure review scope
+          # claude_args: "--max-tokens 4000 --temperature 0.1"

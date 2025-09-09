@@ -79,10 +79,13 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 		}
 
 		return map[string]interface{}{
-			"action": "scale",
+			"intent_type": "scaling",
 			"target": m[1],
 			"replicas": replicas,
 			"namespace": ns,
+			"source": "user",
+			"target_resources": []string{"deployment/" + m[1]},
+			"status": "pending",
 		}, nil
 
 	}
@@ -101,10 +104,13 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 		}
 
 		return map[string]interface{}{
-			"action": "scale",
+			"intent_type": "scaling",
 			"target": m[1],
 			"replicas": replicas,
 			"namespace": "default",
+			"source": "user",
+			"target_resources": []string{"deployment/" + m[1]},
+			"status": "pending",
 		}, nil
 
 	}
@@ -133,10 +139,13 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 		// For MVP, we'll just use the delta as the new replica count.
 
 		return map[string]interface{}{
-			"action": "scale",
+			"intent_type": "scaling",
 			"target": m[1],
-			"delta": delta,
+			"replicas": delta, // Note: treating delta as absolute replicas for MVP
 			"namespace": ns,
+			"source": "user",
+			"target_resources": []string{"deployment/" + m[1]},
+			"status": "pending",
 		}, nil
 
 	}
@@ -165,10 +174,13 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 		// For MVP, we'll use 1 as minimum.
 
 		return map[string]interface{}{
-			"action": "scale",
+			"intent_type": "scaling",
 			"target": m[1],
-			"delta": -delta, // negative delta for scale in
+			"replicas": 1, // For scale in, set minimum replicas for MVP
 			"namespace": ns,
+			"source": "user",
+			"target_resources": []string{"deployment/" + m[1]},
+			"status": "pending",
 		}, nil
 
 	}

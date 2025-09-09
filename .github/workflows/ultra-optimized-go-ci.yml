@@ -460,7 +460,7 @@ jobs:
       matrix:
         test-category:
           - name: "critical"
-            patterns: "./controllers/... ./api/..."
+            patterns: "./controllers/... ./pkg/controllers/... ./api/..."
             timeout: 6
             parallel: 4
             race: true

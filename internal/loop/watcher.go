@@ -55,6 +55,9 @@ type Config struct {
 	MetricsUser string `json:"metrics_user"` // Basic auth username
 
 	MetricsPass string `json:"metrics_pass"` // Basic auth password
+
+	// SuppressPorchValidation skips porch path validation (useful for testing)
+	SuppressPorchValidation bool `json:"suppress_porch_validation"`
 }
 
 // Validate checks if the configuration is valid and secure.
@@ -274,6 +277,8 @@ type WorkerPool struct {
 
 	activeWorkers int64 // atomic counter
 
+	activeTasks int64 // atomic counter for tasks being processed
+
 	closed int32 // atomic flag to prevent double closes
 }
 
@@ -285,6 +290,8 @@ type WorkItem struct {
 	Attempt int
 
 	Ctx context.Context
+
+	Cancel context.CancelFunc // Function to cancel the context when done
 }
 
 // DirectoryManager handles directory creation with sync.Once pattern.
@@ -576,10 +583,12 @@ func NewWatcherWithConfig(dir string, config Config, processor *IntentProcessor)
 			Timeout: 30 * time.Second,
 		})
 
-		// Validate porch path.
+		// Validate porch path (unless suppressed for testing).
 
-		if err := porch.ValidatePorchPath(config.PorchPath); err != nil {
-			log.Printf("Warning: Porch validation failed: %v", err)
+		if !config.SuppressPorchValidation {
+			if err := porch.ValidatePorchPath(config.PorchPath); err != nil {
+				log.Printf("Warning: Porch validation failed: %v", err)
+			}
 		}
 	}
 
@@ -1327,6 +1336,8 @@ func (w *Watcher) handleIntentFileWithEnhancedDebounce(filePath string, eventOp 
 			Attempt: 1,
 
 			Ctx: workCtx,
+
+			Cancel: cancel,
 		}
 
 		// Queue work item with backpressure handling.
@@ -1334,9 +1345,7 @@ func (w *Watcher) handleIntentFileWithEnhancedDebounce(filePath string, eventOp 
 		select {
 		case w.workerPool.workQueue <- workItem:
 
-			// Successfully queued - defer cancel to ensure cleanup.
-
-			defer cancel()
+			// Successfully queued - cancel will be handled by worker
 
 		case <-w.ctx.Done():
 
@@ -1383,33 +1392,34 @@ func (w *Watcher) processExistingFiles() error {
 		if IsIntentFile(filename) {
 			filePath := filepath.Join(w.dir, filename)
 
-			func() {
-				workCtx, cancel := context.WithTimeout(w.ctx, 60*time.Second)
+			workCtx, cancel := context.WithTimeout(w.ctx, 60*time.Second)
+			// Note: cancel will be called when the work item context is done in processWorkItemWithLocking
 
-				defer cancel() // Ensure cancel is always called
+			workItem := WorkItem{
+				FilePath: filePath,
 
-				workItem := WorkItem{
-					FilePath: filePath,
+				Attempt: 1,
 
-					Attempt: 1,
+				Ctx: workCtx,
 
-					Ctx: workCtx,
-				}
+				Cancel: cancel, // Store cancel function to be called later
+			}
 
-				select {
-				case w.workerPool.workQueue <- workItem:
+			select {
+			case w.workerPool.workQueue <- workItem:
 
-					filesQueued++
+				filesQueued++
 
-				case <-w.ctx.Done():
+			case <-w.ctx.Done():
 
-					return
+				cancel() // Cancel if main context is done
+				return nil
 
-				default:
+			default:
 
-					log.Printf("Warning: work queue full during startup, skipping %s", filename)
-				}
-			}()
+				cancel() // Cancel if queue is full
+				log.Printf("Warning: work queue full during startup, skipping %s", filename)
+			}
 		}
 	}
 
@@ -1507,14 +1517,14 @@ func (w *Watcher) startPolling() error {
 				func() {
 					workCtx, cancel := context.WithTimeout(w.ctx, 60*time.Second)
 
-					defer cancel() // Ensure cancel is always called
-
 					workItem := WorkItem{
 						FilePath: filePath,
 
 						Attempt: 1,
 
 						Ctx: workCtx,
+
+						Cancel: cancel,
 					}
 
 					select {
@@ -1528,6 +1538,7 @@ func (w *Watcher) startPolling() error {
 
 					default:
 
+						cancel() // Cancel if queue is full
 						log.Printf("LOOP:WARNING - Work queue full, skipping file %s", filename)
 					}
 				}()
@@ -1566,10 +1577,29 @@ func (w *Watcher) enhancedWorker(workerID int) {
 	for {
 		select {
 		case <-w.ctx.Done():
-
-			log.Printf("Enhanced worker %d cancelled", workerID)
-
-			return
+			// Context cancelled, but drain remaining work items to prevent missed files
+			log.Printf("Enhanced worker %d: context cancelled, draining remaining work items", workerID)
+			
+			// Drain the work queue with a reasonable timeout
+			drainTimeout := time.After(5 * time.Second)
+			for {
+				select {
+				case workItem, ok := <-w.workerPool.workQueue:
+					if !ok {
+						log.Printf("Enhanced worker %d: work queue closed during drain, exiting", workerID)
+						return
+					}
+					// Process remaining work items even after context cancellation
+					w.processWorkItemWithLocking(workerID, workItem)
+				case <-drainTimeout:
+					log.Printf("Enhanced worker %d: drain timeout reached, exiting", workerID)
+					return
+				default:
+					// No more work items, exit gracefully
+					log.Printf("Enhanced worker %d: drain complete, exiting", workerID)
+					return
+				}
+			}
 
 		case workItem, ok := <-w.workerPool.workQueue:
 
@@ -1587,18 +1617,27 @@ func (w *Watcher) enhancedWorker(workerID int) {
 // processWorkItemWithLocking processes a work item with file-level locking.
 
 func (w *Watcher) processWorkItemWithLocking(workerID int, workItem WorkItem) {
+	// Increment active task counter when starting processing
+	atomic.AddInt64(&w.workerPool.activeTasks, 1)
+	
+	// Ensure the active task counter is decremented ONLY after all processing is complete
 	defer func() {
-		if workItem.Ctx != nil {
-			workItem.Ctx.Done()
+		// Cancel the work item's context when processing is complete
+		if workItem.Cancel != nil {
+			workItem.Cancel()
 		}
+		
+		// Decrement active task counter as the very last operation
+		// This ensures the shutdown logic doesn't see 0 active tasks prematurely
+		atomic.AddInt64(&w.workerPool.activeTasks, -1)
+		log.Printf("LOOP:WORKER - Worker %d finished processing %s, active tasks now: %d", 
+			workerID, filepath.Base(workItem.FilePath), atomic.LoadInt64(&w.workerPool.activeTasks))
 	}()
 
 	// Get or create file-level mutex.
-
 	fileLock := w.getOrCreateFileLock(workItem.FilePath)
 
 	fileLock.Lock()
-
 	defer fileLock.Unlock()
 
 	w.processIntentFileWithContext(workerID, workItem)
@@ -1643,19 +1682,15 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 		return
 	}
 
-	// Check if already processed using state manager.
-
-	processed, err := w.stateManager.IsProcessed(filePath)
-
+	// Atomically check and mark file for processing to prevent race conditions.
+	shouldProcess, err := w.stateManager.TryMarkProcessed(filePath)
 	if err != nil {
-		log.Printf("LOOP:ERROR - Worker %d: Error checking file state for %s: %v",
-
+		log.Printf("LOOP:ERROR - Worker %d: Error checking/marking file state for %s: %v",
 			workerID, filepath.Base(filePath), err)
-	} else if processed {
+		return
+	} else if !shouldProcess {
 		log.Printf("LOOP:SKIP_DUP - Worker %d: File %s already processed",
-
 			workerID, filepath.Base(filePath))
-
 		return
 	}
 
@@ -1674,11 +1709,7 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 	w.recordProcessingLatency(processingDuration)
 
 	if result.Success {
-		// Mark as processed in state manager.
-
-		if err := w.stateManager.MarkProcessed(filePath); err != nil {
-			log.Printf("LOOP:WARNING - Worker %d: Failed to mark file as processed: %v", workerID, err)
-		}
+		// File is already marked as processed atomically above.
 
 		// Move to processed directory.
 
@@ -1787,23 +1818,37 @@ func (w *Watcher) cleanupRoutine() {
 func (w *Watcher) waitForWorkersToFinish() {
 	log.Printf("Signaling enhanced workers to stop...")
 
-	// Wait for queue to drain first.
-
+	// Wait for both queue to drain AND all active tasks to finish processing
+	// Use multiple check cycles to avoid race conditions where a task finishes 
+	// between checking queue and active tasks
+	stableCount := 0
 	for {
+		// Force memory barrier to ensure we see latest atomic updates
+		runtime.Gosched()
+		
 		queueSize := len(w.workerPool.workQueue)
+		activeTasks := atomic.LoadInt64(&w.workerPool.activeTasks)
 
-		if queueSize == 0 {
-			break
+		// Check if both queue is empty AND no tasks are actively being processed
+		if queueSize == 0 && activeTasks == 0 {
+			stableCount++
+			// Require stable state for 3 consecutive checks to avoid race conditions
+			if stableCount >= 3 {
+				log.Printf("Shutdown confirmed: stable empty state for %d checks", stableCount)
+				break
+			}
+			log.Printf("Empty state detected (%d/3): queue=%d, active=%d", stableCount, queueSize, activeTasks)
+		} else {
+			stableCount = 0 // Reset if work is still happening
+			if queueSize > 0 || activeTasks > 0 {
+				log.Printf("Waiting for workers to finish: %d items in queue, %d active tasks", queueSize, activeTasks)
+			}
 		}
 
-		log.Printf("Waiting for queue to drain: %d items remaining", queueSize)
-
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond) // Shorter sleep for more responsive checking
 	}
 
-	// Give workers time to finish current processing.
-
-	time.Sleep(200 * time.Millisecond)
+	log.Printf("All work completed - queue drained and all workers idle")
 
 	// Close work queue to signal workers to finish processing and exit (if not already closed).
 
@@ -3162,15 +3207,31 @@ func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) erro
 		log.Printf("Warning: Status message truncated for %s", filepath.Base(intentFile))
 	}
 
-	statusData := json.RawMessage(`{}`)
+	// Create proper status JSON structure
+	statusObj := map[string]interface{}{
+		"intent_file": filepath.Base(intentFile),
+		"status":      status,
+		"message":     message,
+		"timestamp":   time.Now().UTC().Format(time.RFC3339),
+		"processed_by": "conductor-loop",
+	}
 
 	// Use safe JSON marshaling with size limits.
-
-	data, err := w.safeMarshalJSON(statusData, MaxStatusSize)
+	data, err := json.Marshal(statusObj)
 	if err != nil {
 		log.Printf("Failed to marshal status data: %v", err)
-
 		return fmt.Errorf("failed to marshal status data: %w", err)
+	}
+	
+	// Check size limits
+	if len(data) > MaxStatusSize {
+		// Truncate message to fit within limits
+		statusObj["message"] = message[:MaxMessageSize-100] + "... (truncated)"
+		data, err = json.Marshal(statusObj)
+		if err != nil {
+			log.Printf("Failed to marshal truncated status data: %v", err)
+			return fmt.Errorf("failed to marshal status data: %w", err)
+		}
 	}
 
 	// Create versioned status filename based on intent filename.
@@ -3195,7 +3256,7 @@ func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) erro
 
 	tempFile := statusFile + ".tmp"
 
-	if err := os.WriteFile(tempFile, data, 0o640); err != nil {
+	if err := os.WriteFile(tempFile, data, 0o644); err != nil {
 		log.Printf("Failed to write temporary status file: %v", err)
 
 		return fmt.Errorf("failed to write temporary status file: %w", err)

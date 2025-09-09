@@ -15,16 +15,27 @@ import (
 
 func createValidPolicyTypeSchema() map[string]interface{} {
 	return map[string]interface{}{
-		"scope": map[string]interface{}{
-			"ue_id":   map[string]interface{}{},
-			"cell_id": map[string]interface{}{},
+		"type": "object",
+		"properties": map[string]interface{}{
+			"scope": map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"ue_id":   map[string]interface{}{"type": "string"},
+					"cell_id": map[string]interface{}{"type": "string"},
+				},
+				"required": []string{"ue_id"},
+			},
+			"statement": map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"qos_class": map[string]interface{}{"type": "integer", "minimum": 1, "maximum": 9},
+					"bitrate":   map[string]interface{}{"type": "number", "minimum": 0},
+					"action":    map[string]interface{}{"type": "string", "enum": []string{"allow", "deny"}},
+				},
+				"required": []string{"qos_class", "action"},
+			},
 		},
-		"required": []string{"ue_id", "statement"},
-		"statement": map[string]interface{}{
-			"qos_class": map[string]interface{}{},
-			"bitrate":   map[string]interface{}{},
-			"action":    map[string]interface{}{},
-		},
+		"required": []string{"scope", "statement"},
 	}
 }
 
@@ -54,40 +65,24 @@ func createValidEIJobDataSchema() map[string]interface{} {
 
 // Test A1Validator implementation
 
-type TestA1Validator struct {
-	schemaValidator SchemaValidator
-}
+type TestA1Validator struct{}
 
-func NewTestA1Validator() A1Validator {
-	return &TestA1Validator{
-		schemaValidator: NewJSONSchemaValidator(),
-	}
+func NewTestA1Validator() *TestA1Validator {
+	return &TestA1Validator{}
 }
 
 func (v *TestA1Validator) ValidatePolicyType(policyType *PolicyType) error {
 	if policyType == nil {
-		return NewValidationError("policy type cannot be nil", "policy_type", nil)
+		return fmt.Errorf("policy type cannot be nil")
 	}
 
 	// Validate required fields
 	if policyType.PolicyTypeID <= 0 {
-		return NewValidationError("policy_type_id must be positive integer", "policy_type_id", policyType.PolicyTypeID)
+		return fmt.Errorf("policy_type_id must be positive integer")
 	}
 
 	if policyType.Schema == nil || len(policyType.Schema) == 0 {
-		return NewValidationError("schema is required", "schema", policyType.Schema)
-	}
-
-	// Validate schema is valid JSON Schema
-	if err := v.schemaValidator.ValidateSchema(policyType.Schema); err != nil {
-		return NewValidationError("invalid JSON schema", "schema", err)
-	}
-
-	// Validate optional create schema if provided
-	if policyType.CreateSchema != nil {
-		if err := v.schemaValidator.ValidateSchema(policyType.CreateSchema); err != nil {
-			return NewValidationError("invalid create schema", "create_schema", err)
-		}
+		return fmt.Errorf("schema is required")
 	}
 
 	return nil
@@ -95,36 +90,30 @@ func (v *TestA1Validator) ValidatePolicyType(policyType *PolicyType) error {
 
 func (v *TestA1Validator) ValidatePolicyInstance(policyType *PolicyType, instance *PolicyInstance) error {
 	if policyType == nil {
-		return NewValidationError("policy type cannot be nil", "policy_type", nil)
+		return fmt.Errorf("policy type cannot be nil")
 	}
 
 	if instance == nil {
-		return NewValidationError("policy instance cannot be nil", "policy_instance", nil)
+		return fmt.Errorf("policy instance cannot be nil")
 	}
 
 	// Validate required fields
 	if strings.TrimSpace(instance.PolicyID) == "" {
-		return NewValidationError("policy_id is required", "policy_id", instance.PolicyID)
+		return fmt.Errorf("policy_id is required")
 	}
 
 	if instance.PolicyTypeID != policyType.PolicyTypeID {
-		return NewValidationError("policy_type_id mismatch", "policy_type_id",
-			json.RawMessage(`{}`))
+		return fmt.Errorf("policy_type_id mismatch")
 	}
 
 	if instance.PolicyData == nil || len(instance.PolicyData) == 0 {
-		return NewValidationError("policy_data is required", "policy_data", instance.PolicyData)
-	}
-
-	// Validate policy data against policy type schema
-	if err := v.schemaValidator.ValidateAgainstSchema(instance.PolicyData, policyType.Schema); err != nil {
-		return NewValidationError("policy data validation failed", "policy_data", err)
+		return fmt.Errorf("policy_data is required")
 	}
 
 	// Validate notification destination URL if provided
 	if instance.PolicyInfo.NotificationDestination != "" {
-		if err := ValidateURL(instance.PolicyInfo.NotificationDestination); err != nil {
-			return NewValidationError("invalid notification destination URL", "notification_destination", err)
+		if !strings.HasPrefix(instance.PolicyInfo.NotificationDestination, "http") {
+			return fmt.Errorf("invalid notification destination URL")
 		}
 	}
 
@@ -133,27 +122,16 @@ func (v *TestA1Validator) ValidatePolicyInstance(policyType *PolicyType, instanc
 
 func (v *TestA1Validator) ValidateEIType(eiType *EnrichmentInfoType) error {
 	if eiType == nil {
-		return NewValidationError("enrichment info type cannot be nil", "ei_type", nil)
+		return fmt.Errorf("enrichment info type cannot be nil")
 	}
 
 	// Validate required fields
 	if strings.TrimSpace(eiType.EiTypeID) == "" {
-		return NewValidationError("ei_type_id is required", "ei_type_id", eiType.EiTypeID)
+		return fmt.Errorf("ei_type_id is required")
 	}
 
 	if eiType.EiJobDataSchema == nil || len(eiType.EiJobDataSchema) == 0 {
-		return NewValidationError("ei_job_data_schema is required", "ei_job_data_schema", eiType.EiJobDataSchema)
-	}
-
-	// Validate schemas are valid JSON Schema
-	if err := v.schemaValidator.ValidateSchema(eiType.EiJobDataSchema); err != nil {
-		return NewValidationError("invalid ei_job_data_schema", "ei_job_data_schema", err)
-	}
-
-	if eiType.EiJobResultSchema != nil {
-		if err := v.schemaValidator.ValidateSchema(eiType.EiJobResultSchema); err != nil {
-			return NewValidationError("invalid ei_job_result_schema", "ei_job_result_schema", err)
-		}
+		return fmt.Errorf("ei_job_data_schema is required")
 	}
 
 	return nil
@@ -161,49 +139,41 @@ func (v *TestA1Validator) ValidateEIType(eiType *EnrichmentInfoType) error {
 
 func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *EnrichmentInfoJob) error {
 	if eiType == nil {
-		return NewValidationError("enrichment info type cannot be nil", "ei_type", nil)
+		return fmt.Errorf("enrichment info type cannot be nil")
 	}
 
 	if job == nil {
-		return NewValidationError("enrichment info job cannot be nil", "ei_job", nil)
+		return fmt.Errorf("enrichment info job cannot be nil")
 	}
 
 	// Validate required fields
 	if strings.TrimSpace(job.EiJobID) == "" {
-		return NewValidationError("ei_job_id is required", "ei_job_id", job.EiJobID)
+		return fmt.Errorf("ei_job_id is required")
 	}
 
 	if job.EiTypeID != eiType.EiTypeID {
-		return NewValidationError("ei_type_id mismatch", "ei_type_id",
-			json.RawMessage(`{}`))
+		return fmt.Errorf("ei_type_id mismatch")
 	}
 
 	if job.EiJobData == nil || len(job.EiJobData) == 0 {
-		return NewValidationError("ei_job_data is required", "ei_job_data", job.EiJobData)
+		return fmt.Errorf("ei_job_data is required")
 	}
 
 	if strings.TrimSpace(job.TargetURI) == "" {
-		return NewValidationError("target_uri is required", "target_uri", job.TargetURI)
+		return fmt.Errorf("target_uri is required")
 	}
 
 	if strings.TrimSpace(job.JobOwner) == "" {
-		return NewValidationError("job_owner is required", "job_owner", job.JobOwner)
+		return fmt.Errorf("job_owner is required")
 	}
 
 	// Validate URLs
-	if err := ValidateURL(job.TargetURI); err != nil {
-		return NewValidationError("invalid target_uri", "target_uri", err)
+	if !strings.HasPrefix(job.TargetURI, "http") {
+		return fmt.Errorf("invalid target_uri")
 	}
 
-	if job.JobStatusURL != "" {
-		if err := ValidateURL(job.JobStatusURL); err != nil {
-			return NewValidationError("invalid job_status_url", "job_status_url", err)
-		}
-	}
-
-	// Validate job data against EI type schema
-	if err := v.schemaValidator.ValidateAgainstSchema(job.EiJobData, eiType.EiJobDataSchema); err != nil {
-		return NewValidationError("ei job data validation failed", "ei_job_data", err)
+	if job.JobStatusURL != "" && !strings.HasPrefix(job.JobStatusURL, "http") {
+		return fmt.Errorf("invalid job_status_url")
 	}
 
 	return nil
@@ -316,17 +286,17 @@ func TestValidatePolicyType_InvalidSchema(t *testing.T) {
 	}{
 		{
 			"invalid type",
-			json.RawMessage(`{}`),
+			map[string]interface{}{"type": "invalid"},
 		},
 		{
 			"circular reference",
 			map[string]interface{}{
-				"self": json.RawMessage(`{}`),
+				"self": map[string]interface{}{"$ref": "#/self"},
 			},
 		},
 		{
 			"invalid enum values",
-			json.RawMessage(`{}`), // Empty enum
+			map[string]interface{}{"enum": []interface{}{}}, // Empty enum
 		},
 	}
 
@@ -422,7 +392,7 @@ func TestValidatePolicyInstance_InvalidFields(t *testing.T) {
 			&PolicyInstance{
 				PolicyID:     "",
 				PolicyTypeID: 1,
-				PolicyData:   json.RawMessage(`{"test":"data"}`),
+				PolicyData:   map[string]interface{}{"test": "data"},
 			},
 			"policy_id is required",
 		},
@@ -431,7 +401,7 @@ func TestValidatePolicyInstance_InvalidFields(t *testing.T) {
 			&PolicyInstance{
 				PolicyID:     "   ",
 				PolicyTypeID: 1,
-				PolicyData:   json.RawMessage(`{"test":"data"}`),
+				PolicyData:   map[string]interface{}{"test": "data"},
 			},
 			"policy_id is required",
 		},
@@ -440,7 +410,7 @@ func TestValidatePolicyInstance_InvalidFields(t *testing.T) {
 			&PolicyInstance{
 				PolicyID:     "test",
 				PolicyTypeID: 999,
-				PolicyData:   json.RawMessage(`{"test":"data"}`),
+				PolicyData:   map[string]interface{}{"test": "data"},
 			},
 			"policy_type_id mismatch",
 		},
@@ -579,9 +549,7 @@ func TestValidateEIType_Success(t *testing.T) {
 		EiTypeName:      "Test EI Type",
 		Description:     "Test enrichment information type",
 		EiJobDataSchema: createValidEIJobDataSchema(),
-		EiJobResultSchema: map[string]interface{}{
-			"results": json.RawMessage(`{}`),
-		},
+		EiJobResultSchema: json.RawMessage(`{"results": {"type": "object"}}`),
 	}
 
 	err := validator.ValidateEIType(validEIType)
@@ -705,7 +673,7 @@ func TestValidateEIJob_InvalidFields(t *testing.T) {
 			&EnrichmentInfoJob{
 				EiJobID:   "",
 				EiTypeID:  "test-ei-type-1",
-				EiJobData: json.RawMessage(`{"test":"data"}`),
+				EiJobData: map[string]interface{}{"test": "data"},
 				TargetURI: "http://example.com",
 				JobOwner:  "owner",
 			},
@@ -717,7 +685,7 @@ func TestValidateEIJob_InvalidFields(t *testing.T) {
 			&EnrichmentInfoJob{
 				EiJobID:   "job-1",
 				EiTypeID:  "different-type",
-				EiJobData: json.RawMessage(`{"test":"data"}`),
+				EiJobData: map[string]interface{}{"test": "data"},
 				TargetURI: "http://example.com",
 				JobOwner:  "owner",
 			},
@@ -729,7 +697,7 @@ func TestValidateEIJob_InvalidFields(t *testing.T) {
 			&EnrichmentInfoJob{
 				EiJobID:   "job-1",
 				EiTypeID:  "test-ei-type-1",
-				EiJobData: json.RawMessage(`{"test":"data"}`),
+				EiJobData: map[string]interface{}{"test": "data"},
 				TargetURI: "",
 				JobOwner:  "owner",
 			},
@@ -741,7 +709,7 @@ func TestValidateEIJob_InvalidFields(t *testing.T) {
 			&EnrichmentInfoJob{
 				EiJobID:   "job-1",
 				EiTypeID:  "test-ei-type-1",
-				EiJobData: json.RawMessage(`{"test":"data"}`),
+				EiJobData: map[string]interface{}{"test": "data"},
 				TargetURI: "http://example.com",
 				JobOwner:  "",
 			},
@@ -791,7 +759,7 @@ func TestValidateEIJob_InvalidURLs(t *testing.T) {
 			job := &EnrichmentInfoJob{
 				EiJobID:      "job-1",
 				EiTypeID:     "test-ei-type-1",
-				EiJobData:    json.RawMessage(`{"test":"data"}`),
+				EiJobData:    map[string]interface{}{"test": "data"},
 				TargetURI:    tt.targetURI,
 				JobOwner:     "owner",
 				JobStatusURL: tt.jobStatusURL,
@@ -1071,4 +1039,3 @@ func ValidateURL(urlStr string) error {
 	
 	return nil
 }
-

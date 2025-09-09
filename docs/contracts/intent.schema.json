@@ -92,6 +92,13 @@
       "enum": ["pending", "processing", "completed", "failed"],
       "description": "Current status of intent execution"
     },
+    "target_resources": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of target Kubernetes resources (e.g., deployment/my-app)"
+    },
     "nephio_context": {
       "type": "object",
       "description": "Nephio/Porch integration context",
@@ -117,6 +124,7 @@
     "namespace",
     "replicas"
   ],
+  "additionalProperties": false,
   "examples": [
     {
       "intent_type": "scaling",

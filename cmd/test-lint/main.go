@@ -1,5 +1,3 @@
-//go:build testlint
-
 package main
 
 import "fmt"

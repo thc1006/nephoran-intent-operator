@@ -1,24 +1,19 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-metadata:
-  name: nephoran-intent-operator-webhook-deployment
-  namespace: nephoran-system
-
-# Base resources for the complete webhook deployment
+# Basic resources for operator deployment
 resources:
-- ../certmanager
-- ../webhook
+- ../crd
+- ../rbac
+- ../manager
 
-labels:
-- pairs:
-    app.kubernetes.io/name: nephoran-intent-operator
-    app.kubernetes.io/component: webhook-deployment
-    app.kubernetes.io/part-of: nephoran-intent-operator
-    app.kubernetes.io/version: v1.0.0
-
-# Namespace creation for the entire deployment
+# Set namespace for all resources
 namespace: nephoran-system
+
+# Common labels
+commonLabels:
+  app.kubernetes.io/name: nephoran-intent-operator
+  app.kubernetes.io/part-of: nephoran-intent-operator
 
 # Image settings for webhook manager
 images:

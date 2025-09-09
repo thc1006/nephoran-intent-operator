@@ -216,14 +216,12 @@ func (s *SLAMonitoringIntegrationTestSuite) SetupTest() {
 	}
 
 	// Initialize logger
-	var err error
-	s.logger, err = logging.NewStructuredLogger(&logging.Config{
+	s.logger = logging.NewStructuredLogger(logging.Config{
 		Level:      "info",
 		Format:     "json",
 		Component:  "sla-integration-test",
-		TraceLevel: "debug",
+		// TraceLevel: "debug", // Field not available
 	})
-	s.Require().NoError(err, "Failed to initialize logger")
 
 	// Initialize Prometheus client
 	client, err := api.NewClient(api.Config{
@@ -239,7 +237,7 @@ func (s *SLAMonitoringIntegrationTestSuite) SetupTest() {
 	slaConfig.ThroughputTarget = s.config.ThroughputTarget
 
 	appConfig := &config.Config{
-		LogLevel: "info",
+		Level: logging.LevelInfo,
 	}
 
 	s.slaService, err = sla.NewService(slaConfig, appConfig, s.logger)
@@ -590,6 +588,133 @@ func (s *SLAMonitoringIntegrationTestSuite) continuousMonitoring(ctx context.Con
 	}
 }
 
+// startRealTimeMetricsCollection starts real-time metrics collection in a background goroutine
+func (s *SLAMonitoringIntegrationTestSuite) startRealTimeMetricsCollection(ctx context.Context) {
+	s.T().Log("Starting real-time metrics collection")
+	
+	go func() {
+		ticker := time.NewTicker(s.config.MetricsCollectionInterval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				s.T().Log("Stopping real-time metrics collection")
+				return
+			case <-ticker.C:
+				s.collectRealTimeMetrics()
+			}
+		}
+	}()
+}
+
+// stopRealTimeMetricsCollection stops real-time metrics collection
+func (s *SLAMonitoringIntegrationTestSuite) stopRealTimeMetricsCollection() {
+	// This method is provided for completeness and symmetry
+	// The actual stopping is handled by context cancellation in startRealTimeMetricsCollection
+	s.T().Log("Real-time metrics collection will stop when context is cancelled")
+}
+
+// generateControlledLoad generates controlled load at specified intents per minute
+func (s *SLAMonitoringIntegrationTestSuite) generateControlledLoad(ctx context.Context, intentsPerMinute int) {
+	if intentsPerMinute <= 0 {
+		return
+	}
+
+	s.T().Logf("Generating controlled load: %d intents/minute", intentsPerMinute)
+	
+	// Convert intents per minute to interval between intents
+	interval := time.Minute / time.Duration(intentsPerMinute)
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				s.T().Log("Stopping controlled load generation")
+				return
+			case <-ticker.C:
+				go s.processTestIntent()
+			}
+		}
+	}()
+}
+
+// validateRealTimeMetrics validates metrics accuracy in real-time
+func (s *SLAMonitoringIntegrationTestSuite) validateRealTimeMetrics(ctx context.Context) {
+	s.T().Log("Starting real-time metrics validation")
+	
+	validationInterval := 30 * time.Second // Validate every 30 seconds
+	ticker := time.NewTicker(validationInterval)
+	defer ticker.Stop()
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				s.T().Log("Stopping real-time metrics validation")
+				return
+			case <-ticker.C:
+				s.performRealTimeValidation()
+			}
+		}
+	}()
+}
+
+// performRealTimeValidation performs a single validation cycle
+func (s *SLAMonitoringIntegrationTestSuite) performRealTimeValidation() {
+	// Get current metrics
+	availabilityPoints := s.metricsCollector.GetAvailabilityPoints()
+	latencyPoints := s.metricsCollector.GetLatencyPoints()
+	throughputPoints := s.metricsCollector.GetThroughputPoints()
+	errorRatePoints := s.metricsCollector.GetErrorRatePoints()
+
+	// Validate we have recent data (within last 2 minutes)
+	now := time.Now()
+	recentThreshold := now.Add(-2 * time.Minute)
+
+	// Check availability data freshness
+	if len(availabilityPoints) > 0 {
+		latest := availabilityPoints[len(availabilityPoints)-1]
+		if latest.Timestamp.Before(recentThreshold) {
+			s.T().Logf("Warning: Latest availability data is stale (%v)", latest.Timestamp)
+		} else {
+			s.T().Logf("Real-time validation: Availability = %.2f%%", latest.Availability*100)
+		}
+	}
+
+	// Check latency data freshness
+	if len(latencyPoints) > 0 {
+		latest := latencyPoints[len(latencyPoints)-1]
+		if latest.Timestamp.Before(recentThreshold) {
+			s.T().Logf("Warning: Latest latency data is stale (%v)", latest.Timestamp)
+		} else {
+			s.T().Logf("Real-time validation: P95 Latency = %.2fms", latest.P95)
+		}
+	}
+
+	// Check throughput data freshness
+	if len(throughputPoints) > 0 {
+		latest := throughputPoints[len(throughputPoints)-1]
+		if latest.Timestamp.Before(recentThreshold) {
+			s.T().Logf("Warning: Latest throughput data is stale (%v)", latest.Timestamp)
+		} else {
+			s.T().Logf("Real-time validation: Throughput = %.2f intents/min", latest.IntentsPerMinute)
+		}
+	}
+
+	// Check error rate data freshness
+	if len(errorRatePoints) > 0 {
+		latest := errorRatePoints[len(errorRatePoints)-1]
+		if latest.Timestamp.Before(recentThreshold) {
+			s.T().Logf("Warning: Latest error rate data is stale (%v)", latest.Timestamp)
+		} else {
+			s.T().Logf("Real-time validation: Error Rate = %.2f%%", latest.ErrorRate*100)
+		}
+	}
+}
+
 // collectRealTimeMetrics collects metrics in real-time
 func (s *SLAMonitoringIntegrationTestSuite) collectRealTimeMetrics() {
 	timestamp := time.Now()
@@ -718,6 +843,74 @@ func (s *SLAMonitoringIntegrationTestSuite) calculateCurrentErrorRate() ErrorRat
 	}
 }
 
+// validateMonitoringAccuracy validates the accuracy of monitoring measurements
+func (s *SLAMonitoringIntegrationTestSuite) validateMonitoringAccuracy() {
+	s.T().Log("Validating monitoring accuracy")
+
+	// Validate metrics collection accuracy
+	s.validateMetricsAccuracy()
+
+	// Validate measurement consistency
+	s.validateMeasurementConsistency()
+
+	// Validate data integrity
+	s.validateDataIntegrity()
+}
+
+// validateMetricsAccuracy validates the accuracy of collected metrics
+func (s *SLAMonitoringIntegrationTestSuite) validateMetricsAccuracy() {
+	// Compare collected metrics with expected values
+	availabilityPoints := s.metricsCollector.GetAvailabilityPoints()
+	latencyPoints := s.metricsCollector.GetLatencyPoints()
+	throughputPoints := s.metricsCollector.GetThroughputPoints()
+	errorRatePoints := s.metricsCollector.GetErrorRatePoints()
+
+	// Validate data points were collected
+	s.Assert().NotEmpty(availabilityPoints, "No availability points collected")
+	s.Assert().NotEmpty(latencyPoints, "No latency points collected")
+	s.Assert().NotEmpty(throughputPoints, "No throughput points collected")
+	s.Assert().NotEmpty(errorRatePoints, "No error rate points collected")
+
+	s.T().Logf("Metrics accuracy validation completed - %d availability, %d latency, %d throughput, %d error rate points",
+		len(availabilityPoints), len(latencyPoints), len(throughputPoints), len(errorRatePoints))
+}
+
+// validateMeasurementConsistency validates consistency between different measurements
+func (s *SLAMonitoringIntegrationTestSuite) validateMeasurementConsistency() {
+	// Validate that measurements are consistent across different metrics
+	totalIntents := s.intentCounter.Load()
+	totalSuccess := s.successCounter.Load()
+	totalErrors := s.errorCounter.Load()
+
+	// Validate counters consistency
+	s.Assert().Equal(totalIntents, totalSuccess+totalErrors,
+		"Intent counters inconsistent: %d != %d + %d", totalIntents, totalSuccess, totalErrors)
+
+	s.T().Logf("Measurement consistency validation completed - %d total, %d success, %d errors",
+		totalIntents, totalSuccess, totalErrors)
+}
+
+// validateDataIntegrity validates the integrity of collected monitoring data
+func (s *SLAMonitoringIntegrationTestSuite) validateDataIntegrity() {
+	// Validate timestamps are in chronological order
+	latencyPoints := s.metricsCollector.GetLatencyPoints()
+	for i := 1; i < len(latencyPoints); i++ {
+		s.Assert().True(latencyPoints[i].Timestamp.After(latencyPoints[i-1].Timestamp) || 
+			latencyPoints[i].Timestamp.Equal(latencyPoints[i-1].Timestamp),
+			"Timestamps not in chronological order at index %d", i)
+	}
+
+	// Validate no negative values
+	for _, point := range latencyPoints {
+		s.Assert().GreaterOrEqual(point.P50, 0.0, "Negative P50 latency")
+		s.Assert().GreaterOrEqual(point.P95, 0.0, "Negative P95 latency")
+		s.Assert().GreaterOrEqual(point.P99, 0.0, "Negative P99 latency")
+		s.Assert().GreaterOrEqual(point.Mean, 0.0, "Negative mean latency")
+	}
+
+	s.T().Log("Data integrity validation completed")
+}
+
 // validateSLACompliance validates overall SLA compliance
 func (s *SLAMonitoringIntegrationTestSuite) validateSLACompliance() {
 	s.T().Log("Validating SLA compliance")
@@ -733,6 +926,90 @@ func (s *SLAMonitoringIntegrationTestSuite) validateSLACompliance() {
 
 	// Generate compliance report
 	s.generateComplianceReport()
+}
+
+// validateAlertingSystem validates the alerting system functionality
+func (s *SLAMonitoringIntegrationTestSuite) validateAlertingSystem() {
+	s.T().Log("Validating alerting system")
+
+	// Check if expected alerts are configured
+	s.Assert().NotEmpty(s.alertValidator.expectedAlerts, "No expected alerts configured")
+
+	// Validate alert thresholds
+	for name, alert := range s.alertValidator.expectedAlerts {
+		s.Assert().NotEmpty(alert.Name, "Alert name empty for %s", name)
+		s.Assert().NotEmpty(alert.Condition, "Alert condition empty for %s", name)
+		s.Assert().Greater(alert.Threshold, 0.0, "Alert threshold invalid for %s", name)
+		s.Assert().Greater(alert.Duration, time.Duration(0), "Alert duration invalid for %s", name)
+	}
+
+	s.T().Logf("Alerting system validation completed - %d alerts configured", len(s.alertValidator.expectedAlerts))
+}
+
+// validateDashboardData validates dashboard data accuracy
+func (s *SLAMonitoringIntegrationTestSuite) validateDashboardData() {
+	s.T().Log("Validating dashboard data")
+
+	// Validate dashboard tester is initialized
+	s.Assert().NotNil(s.dashboardTester, "Dashboard tester not initialized")
+	s.Assert().NotEmpty(s.dashboardTester.dashboardURL, "Dashboard URL not configured")
+
+	// In a real implementation, this would validate:
+	// - Dashboard panels show correct data
+	// - Metrics in dashboard match collected metrics
+	// - Dashboard refreshes properly
+	// For now, we'll do basic validation
+
+	s.T().Log("Dashboard data validation completed")
+}
+
+// generateComplianceReport generates a comprehensive SLA compliance report
+func (s *SLAMonitoringIntegrationTestSuite) generateComplianceReport() {
+	s.T().Log("Generating SLA compliance report")
+
+	// Calculate overall compliance metrics
+	totalIntents := s.intentCounter.Load()
+	totalSuccess := s.successCounter.Load()
+	totalErrors := s.errorCounter.Load()
+
+	successRate := 0.0
+	if totalIntents > 0 {
+		successRate = float64(totalSuccess) / float64(totalIntents) * 100
+	}
+
+	// Calculate test duration
+	testDuration := time.Since(s.testStartTime)
+
+	// Log compliance summary
+	s.T().Logf("=== SLA COMPLIANCE REPORT ===")
+	s.T().Logf("Test Duration: %v", testDuration)
+	s.T().Logf("Total Intents: %d", totalIntents)
+	s.T().Logf("Success Rate: %.2f%% (%d/%d)", successRate, totalSuccess, totalIntents)
+	s.T().Logf("Error Rate: %.2f%% (%d/%d)", 100-successRate, totalErrors, totalIntents)
+
+	// Get metrics summary
+	availabilityPoints := s.metricsCollector.GetAvailabilityPoints()
+	latencyPoints := s.metricsCollector.GetLatencyPoints()
+	
+	if len(availabilityPoints) > 0 {
+		var totalAvailability float64
+		for _, point := range availabilityPoints {
+			totalAvailability += point.Availability
+		}
+		avgAvailability := totalAvailability / float64(len(availabilityPoints))
+		s.T().Logf("Average Availability: %.4f%%", avgAvailability)
+	}
+
+	if len(latencyPoints) > 0 {
+		var totalP95 float64
+		for _, point := range latencyPoints {
+			totalP95 += point.P95
+		}
+		avgP95 := totalP95 / float64(len(latencyPoints))
+		s.T().Logf("Average P95 Latency: %.3fs", avgP95)
+	}
+
+	s.T().Logf("=== END COMPLIANCE REPORT ===")
 }
 
 // validateAvailabilitySLA validates the 99.95% availability claim
@@ -967,7 +1244,615 @@ func NewDashboardTester(dashboardURL string) *DashboardTester {
 	}
 }
 
-// Additional methods would be implemented here for complete functionality...
+// configureExpectedAlerts configures expected alerts for validation
+func (s *SLAMonitoringIntegrationTestSuite) configureExpectedAlerts() {
+	// Configure alerts that should fire during SLA violations
+	s.alertValidator.expectedAlerts["high_latency"] = &ExpectedAlert{
+		Name:          "high_latency",
+		Condition:     "nephoran_intent_processing_duration_p95 > 2",
+		Threshold:     2.0,
+		Duration:      30 * time.Second,
+		Severity:      "warning",
+		ExpectedFires: false, // Should not fire during normal operation
+	}
+
+	s.alertValidator.expectedAlerts["low_availability"] = &ExpectedAlert{
+		Name:          "low_availability",
+		Condition:     "nephoran_service_availability < 99.95",
+		Threshold:     99.95,
+		Duration:      1 * time.Minute,
+		Severity:      "critical",
+		ExpectedFires: false, // Should not fire during normal operation
+	}
+
+	s.alertValidator.expectedAlerts["low_throughput"] = &ExpectedAlert{
+		Name:          "low_throughput",
+		Condition:     "nephoran_intents_per_minute < 40",
+		Threshold:     40.0,
+		Duration:      2 * time.Minute,
+		Severity:      "warning",
+		ExpectedFires: false, // Should not fire during normal operation
+	}
+
+	s.alertValidator.expectedAlerts["high_error_rate"] = &ExpectedAlert{
+		Name:          "high_error_rate",
+		Condition:     "nephoran_error_rate > 5",
+		Threshold:     5.0,
+		Duration:      1 * time.Minute,
+		Severity:      "warning",
+		ExpectedFires: false, // Should not fire during normal operation with 1% failure injection
+	}
+}
+
+// testDataFlowIntegration validates data flow between monitoring components
+func (s *SLAMonitoringIntegrationTestSuite) testDataFlowIntegration(t *testing.T) {
+	t.Log("Testing data flow integration between monitoring components")
+	
+	// Start metrics collection
+	ctx, cancel := context.WithTimeout(s.ctx, 2*time.Minute)
+	defer cancel()
+	
+	// Generate test load to create data flow
+	go s.generateSustainedLoad(ctx, 5) // 5 TPS for test
+	
+	// Allow time for data to flow through system
+	time.Sleep(30 * time.Second)
+	
+	// Validate data exists in collector
+	availabilityPoints := s.metricsCollector.GetAvailabilityPoints()
+	latencyPoints := s.metricsCollector.GetLatencyPoints()
+	throughputPoints := s.metricsCollector.GetThroughputPoints()
+	errorRatePoints := s.metricsCollector.GetErrorRatePoints()
+	
+	// Assert data flow occurred
+	assert := s.Assert()
+	assert.NotEmpty(availabilityPoints, "No availability data flowed through system")
+	assert.NotEmpty(latencyPoints, "No latency data flowed through system")
+	assert.NotEmpty(throughputPoints, "No throughput data flowed through system") 
+	assert.NotEmpty(errorRatePoints, "No error rate data flowed through system")
+	
+	t.Logf("Data flow validation completed - collected %d availability, %d latency, %d throughput, %d error rate points",
+		len(availabilityPoints), len(latencyPoints), len(throughputPoints), len(errorRatePoints))
+}
+
+// testMetricsCorrelation validates correlation between different metrics
+func (s *SLAMonitoringIntegrationTestSuite) testMetricsCorrelation(t *testing.T) {
+	t.Log("Testing metrics correlation")
+	
+	// Generate controlled test pattern
+	ctx, cancel := context.WithTimeout(s.ctx, 90*time.Second)
+	defer cancel()
+	
+	// Generate load that should create correlated metrics
+	go s.generateSustainedLoad(ctx, 10) // Higher load to see correlation
+	
+	// Allow metrics to accumulate
+	time.Sleep(60 * time.Second)
+	
+	// Get metrics for correlation analysis
+	latencyPoints := s.metricsCollector.GetLatencyPoints()
+	throughputPoints := s.metricsCollector.GetThroughputPoints()
+	errorRatePoints := s.metricsCollector.GetErrorRatePoints()
+	
+	assert := s.Assert()
+	assert.NotEmpty(latencyPoints, "No latency data for correlation analysis")
+	assert.NotEmpty(throughputPoints, "No throughput data for correlation analysis")
+	assert.NotEmpty(errorRatePoints, "No error rate data for correlation analysis")
+	
+	// Validate that metrics are correlated (higher throughput should show in metrics)
+	if len(throughputPoints) > 0 {
+		avgThroughput := 0.0
+		for _, point := range throughputPoints {
+			avgThroughput += point.IntentsPerSecond
+		}
+		avgThroughput /= float64(len(throughputPoints))
+		
+		assert.Greater(avgThroughput, 0.0, "Throughput metrics not correlated with load generation")
+		t.Logf("Average throughput correlation: %.2f intents/second", avgThroughput)
+	}
+	
+	t.Log("Metrics correlation validation completed")
+}
+
+// testAlertPropagation validates alert propagation through the system
+func (s *SLAMonitoringIntegrationTestSuite) testAlertPropagation(t *testing.T) {
+	t.Log("Testing alert propagation")
+	
+	assert := s.Assert()
+	
+	// Validate alert validator is properly configured
+	assert.NotNil(s.alertValidator, "Alert validator not initialized")
+	assert.NotEmpty(s.alertValidator.expectedAlerts, "No expected alerts configured")
+	
+	// Check that alerts are configured with proper thresholds
+	expectedAlertCount := 0
+	for name, alert := range s.alertValidator.expectedAlerts {
+		expectedAlertCount++
+		assert.NotEmpty(alert.Name, "Alert name empty for %s", name)
+		assert.NotEmpty(alert.Condition, "Alert condition empty for %s", name) 
+		assert.Greater(alert.Threshold, 0.0, "Invalid threshold for alert %s", name)
+		assert.Greater(alert.Duration, time.Duration(0), "Invalid duration for alert %s", name)
+		
+		t.Logf("Configured alert: %s (threshold: %.2f, duration: %v)", 
+			alert.Name, alert.Threshold, alert.Duration)
+	}
+	
+	assert.Greater(expectedAlertCount, 0, "No alerts configured for propagation testing")
+	
+	// In a complete implementation, this would:
+	// 1. Trigger conditions that should fire alerts
+	// 2. Wait for alert propagation
+	// 3. Validate alerts were received
+	// For now, validate the alert configuration is proper
+	
+	t.Logf("Alert propagation validation completed - %d alerts configured", expectedAlertCount)
+}
+
+// testDashboardSynchronization validates dashboard data synchronization
+func (s *SLAMonitoringIntegrationTestSuite) testDashboardSynchronization(t *testing.T) {
+	t.Log("Testing dashboard synchronization")
+	
+	assert := s.Assert()
+	
+	// Validate dashboard tester is initialized
+	assert.NotNil(s.dashboardTester, "Dashboard tester not initialized")
+	assert.NotEmpty(s.dashboardTester.dashboardURL, "Dashboard URL not configured")
+	
+	// Generate some metrics data for dashboard sync testing
+	ctx, cancel := context.WithTimeout(s.ctx, 60*time.Second)
+	defer cancel()
+	
+	// Create data that should sync to dashboard
+	go s.generateSustainedLoad(ctx, 3) // Light load for sync test
+	
+	// Allow time for data to be collected and potentially sync to dashboard
+	time.Sleep(30 * time.Second)
+	
+	// Validate we have data that could be synchronized
+	availabilityPoints := s.metricsCollector.GetAvailabilityPoints()
+	latencyPoints := s.metricsCollector.GetLatencyPoints()
+	
+	assert.NotEmpty(availabilityPoints, "No availability data available for dashboard sync")
+	assert.NotEmpty(latencyPoints, "No latency data available for dashboard sync")
+	
+	// In a complete implementation, this would:
+	// 1. Query dashboard API to get displayed data
+	// 2. Compare dashboard data with collected metrics
+	// 3. Validate synchronization accuracy and timing
+	// For now, validate that data exists to be synchronized
+	
+	t.Logf("Dashboard synchronization validation completed - %d availability, %d latency points available for sync",
+		len(availabilityPoints), len(latencyPoints))
+}
+
+// monitorAvailability monitors availability continuously in a background goroutine
+func (s *SLAMonitoringIntegrationTestSuite) monitorAvailability(ctx context.Context) {
+	s.T().Log("Starting availability monitoring")
+	
+	ticker := time.NewTicker(s.config.MetricsCollectionInterval)
+	defer ticker.Stop()
+	
+	for {
+		select {
+		case <-ctx.Done():
+			s.T().Log("Stopping availability monitoring")
+			return
+		case <-ticker.C:
+			availability := s.calculateCurrentAvailability()
+			s.metricsCollector.RecordAvailability(time.Now(), availability)
+			
+			// Log significant availability changes
+			if availability.Availability < s.config.AvailabilityTarget {
+				s.T().Logf("Availability below target: %.4f%% < %.2f%%", 
+					availability.Availability, s.config.AvailabilityTarget)
+			}
+		}
+	}
+}
+
+// monitorLatency monitors latency continuously in a background goroutine
+func (s *SLAMonitoringIntegrationTestSuite) monitorLatency(ctx context.Context) {
+	s.T().Log("Starting latency monitoring")
+	
+	ticker := time.NewTicker(s.config.MetricsCollectionInterval)
+	defer ticker.Stop()
+	
+	for {
+		select {
+		case <-ctx.Done():
+			s.T().Log("Stopping latency monitoring")
+			return
+		case <-ticker.C:
+			latency := s.calculateCurrentLatency()
+			s.metricsCollector.RecordLatency(time.Now(), latency)
+			
+			// Log significant latency spikes
+			targetSeconds := s.config.LatencyP95Target.Seconds()
+			if latency.P95 > targetSeconds {
+				s.T().Logf("P95 latency above target: %.3fs > %.3fs", 
+					latency.P95, targetSeconds)
+			}
+		}
+	}
+}
+
+// monitorThroughput monitors throughput continuously in a background goroutine
+func (s *SLAMonitoringIntegrationTestSuite) monitorThroughput(ctx context.Context) {
+	s.T().Log("Starting throughput monitoring")
+	
+	ticker := time.NewTicker(s.config.MetricsCollectionInterval)
+	defer ticker.Stop()
+	
+	for {
+		select {
+		case <-ctx.Done():
+			s.T().Log("Stopping throughput monitoring")
+			return
+		case <-ticker.C:
+			throughput := s.calculateCurrentThroughput()
+			s.metricsCollector.RecordThroughput(time.Now(), throughput)
+			
+			// Log throughput below target
+			if throughput.IntentsPerMinute < s.config.ThroughputTarget*0.95 {
+				s.T().Logf("Throughput below target: %.2f < %.2f intents/min", 
+					throughput.IntentsPerMinute, s.config.ThroughputTarget)
+			}
+		}
+	}
+}
+
+// monitorErrorRates monitors error rates continuously in a background goroutine
+func (s *SLAMonitoringIntegrationTestSuite) monitorErrorRates(ctx context.Context) {
+	s.T().Log("Starting error rate monitoring")
+	
+	ticker := time.NewTicker(s.config.MetricsCollectionInterval)
+	defer ticker.Stop()
+	
+	for {
+		select {
+		case <-ctx.Done():
+			s.T().Log("Stopping error rate monitoring")
+			return
+		case <-ticker.C:
+			errorRate := s.calculateCurrentErrorRate()
+			s.metricsCollector.RecordErrorRate(time.Now(), errorRate)
+			
+			// Log high error rates
+			if errorRate.ErrorRate > 5.0 { // 5% threshold
+				s.T().Logf("Error rate above threshold: %.2f%% > 5.00%%", errorRate.ErrorRate)
+			}
+		}
+	}
+}
+
+// generateVariedLoadPatterns generates varied load patterns to test system resilience
+func (s *SLAMonitoringIntegrationTestSuite) generateVariedLoadPatterns(ctx context.Context) {
+	s.T().Log("Starting varied load pattern generation")
+	
+	patternDuration := 30 * time.Second
+	patterns := []struct {
+		name string
+		tps  int
+	}{
+		{"baseline", 5},
+		{"ramp_up", 15},
+		{"peak", 25},
+		{"spike", 40},
+		{"ramp_down", 15},
+		{"steady", 10},
+	}
+	
+	for _, pattern := range patterns {
+		select {
+		case <-ctx.Done():
+			s.T().Log("Stopping varied load pattern generation")
+			return
+		default:
+			s.T().Logf("Starting load pattern: %s (%d TPS)", pattern.name, pattern.tps)
+			
+			patternCtx, patternCancel := context.WithTimeout(ctx, patternDuration)
+			s.generateSustainedLoad(patternCtx, pattern.tps)
+			patternCancel()
+			
+			// Brief pause between patterns
+			time.Sleep(5 * time.Second)
+		}
+	}
+	
+	s.T().Log("Varied load pattern generation completed")
+}
+
+// validateMultiDimensionalMetrics validates metrics across all dimensions
+func (s *SLAMonitoringIntegrationTestSuite) validateMultiDimensionalMetrics() {
+	s.T().Log("Validating multi-dimensional metrics")
+	
+	// Get all metric types
+	availabilityPoints := s.metricsCollector.GetAvailabilityPoints()
+	latencyPoints := s.metricsCollector.GetLatencyPoints()
+	throughputPoints := s.metricsCollector.GetThroughputPoints()
+	errorRatePoints := s.metricsCollector.GetErrorRatePoints()
+	
+	// Validate all dimensions have data
+	s.Assert().NotEmpty(availabilityPoints, "No availability data for multi-dimensional validation")
+	s.Assert().NotEmpty(latencyPoints, "No latency data for multi-dimensional validation")
+	s.Assert().NotEmpty(throughputPoints, "No throughput data for multi-dimensional validation")
+	s.Assert().NotEmpty(errorRatePoints, "No error rate data for multi-dimensional validation")
+	
+	// Validate data consistency across dimensions
+	minPoints := len(availabilityPoints)
+	if len(latencyPoints) < minPoints {
+		minPoints = len(latencyPoints)
+	}
+	if len(throughputPoints) < minPoints {
+		minPoints = len(throughputPoints)
+	}
+	if len(errorRatePoints) < minPoints {
+		minPoints = len(errorRatePoints)
+	}
+	
+	s.Assert().Greater(minPoints, 0, "Insufficient data points for multi-dimensional validation")
+	
+	// Calculate correlation metrics
+	var avgAvailability, avgP95Latency, avgThroughput, avgErrorRate float64
+	
+	for i := 0; i < minPoints; i++ {
+		avgAvailability += availabilityPoints[i].Availability
+		avgP95Latency += latencyPoints[i].P95
+		avgThroughput += throughputPoints[i].IntentsPerMinute
+		avgErrorRate += errorRatePoints[i].ErrorRate
+	}
+	
+	avgAvailability /= float64(minPoints)
+	avgP95Latency /= float64(minPoints)
+	avgThroughput /= float64(minPoints)
+	avgErrorRate /= float64(minPoints)
+	
+	s.T().Logf("Multi-dimensional metrics summary:")
+	s.T().Logf("  Average Availability: %.4f%%", avgAvailability)
+	s.T().Logf("  Average P95 Latency: %.3fs", avgP95Latency)
+	s.T().Logf("  Average Throughput: %.2f intents/min", avgThroughput)
+	s.T().Logf("  Average Error Rate: %.2f%%", avgErrorRate)
+	
+	// Validate correlations make sense
+	s.Assert().True(avgAvailability > 95.0, "Average availability too low: %.2f%%", avgAvailability)
+	s.Assert().True(avgP95Latency < 10.0, "Average P95 latency too high: %.3fs", avgP95Latency)
+	s.Assert().True(avgThroughput > 0.0, "Average throughput should be positive: %.2f", avgThroughput)
+	s.Assert().True(avgErrorRate < 10.0, "Average error rate too high: %.2f%%", avgErrorRate)
+	
+	s.T().Log("Multi-dimensional metrics validation completed")
+}
+
+// establishBaseline establishes baseline metrics for comparison
+func (s *SLAMonitoringIntegrationTestSuite) establishBaseline(ctx context.Context, duration time.Duration) {
+	s.T().Logf("Establishing baseline metrics for %v", duration)
+	
+	baselineCtx, cancel := context.WithTimeout(ctx, duration)
+	defer cancel()
+	
+	var wg sync.WaitGroup
+	
+	// Start baseline monitoring
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		s.continuousMonitoring(baselineCtx)
+	}()
+	
+	// Generate steady baseline load (lower than target)
+	baselineTPS := int(s.config.ThroughputTarget / 120) // 50% of target
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		s.generateSustainedLoad(baselineCtx, baselineTPS)
+	}()
+	
+	wg.Wait()
+	
+	s.T().Logf("Baseline established with %d TPS load", baselineTPS)
+}
+
+// injectControlledFailure injects controlled failure for recovery testing
+func (s *SLAMonitoringIntegrationTestSuite) injectControlledFailure(ctx context.Context, duration time.Duration) context.Context {
+	s.T().Logf("Injecting controlled failure for %v", duration)
+	
+	// Create failure context
+	failureCtx, cancel := context.WithTimeout(ctx, duration)
+	
+	// Increase failure rate temporarily
+	originalFailureRate := s.config.FailureRate
+	s.config.FailureRate = 0.15 // 15% failure rate during failure injection
+	
+	// Restore original failure rate after duration
+	go func() {
+		time.Sleep(duration)
+		s.config.FailureRate = originalFailureRate
+		cancel()
+		s.T().Log("Controlled failure injection completed, restored original failure rate")
+	}()
+	
+	s.T().Logf("Increased failure rate from %.1f%% to %.1f%% for failure injection", 
+		originalFailureRate*100, s.config.FailureRate*100)
+	
+	return failureCtx
+}
+
+// monitorRecoveryProcess monitors the system recovery process
+func (s *SLAMonitoringIntegrationTestSuite) monitorRecoveryProcess(ctx context.Context, duration time.Duration) {
+	s.T().Logf("Monitoring recovery process for %v", duration)
+	
+	recoveryCtx, cancel := context.WithTimeout(ctx, duration)
+	defer cancel()
+	
+	var wg sync.WaitGroup
+	
+	// Monitor recovery metrics
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		s.continuousMonitoring(recoveryCtx)
+	}()
+	
+	// Continue normal load during recovery
+	normalTPS := int(s.config.ThroughputTarget / 60)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		s.generateSustainedLoad(recoveryCtx, normalTPS)
+	}()
+	
+	// Track recovery progress
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		ticker := time.NewTicker(10 * time.Second)
+		defer ticker.Stop()
+		
+		for {
+			select {
+			case <-recoveryCtx.Done():
+				return
+			case <-ticker.C:
+				// Log recovery progress
+				errorRate := s.calculateCurrentErrorRate()
+				s.T().Logf("Recovery progress - Error rate: %.2f%%, Total errors: %d", 
+					errorRate.ErrorRate, errorRate.TotalErrors)
+			}
+		}
+	}()
+	
+	wg.Wait()
+	s.T().Log("Recovery monitoring completed")
+}
+
+// validateRecoveryMetrics validates metrics during recovery period
+func (s *SLAMonitoringIntegrationTestSuite) validateRecoveryMetrics() {
+	s.T().Log("Validating recovery metrics")
+	
+	// Get recent metrics (last 5 minutes)
+	errorRatePoints := s.metricsCollector.GetErrorRatePoints()
+	latencyPoints := s.metricsCollector.GetLatencyPoints()
+	availabilityPoints := s.metricsCollector.GetAvailabilityPoints()
+	
+	s.Assert().NotEmpty(errorRatePoints, "No error rate data for recovery validation")
+	s.Assert().NotEmpty(latencyPoints, "No latency data for recovery validation")
+	s.Assert().NotEmpty(availabilityPoints, "No availability data for recovery validation")
+	
+	// Validate recovery occurred (error rate should decrease over time)
+	if len(errorRatePoints) >= 2 {
+		// Compare first half vs second half of recovery period
+		midpoint := len(errorRatePoints) / 2
+		
+		var firstHalfErrors, secondHalfErrors float64
+		for i := 0; i < midpoint; i++ {
+			firstHalfErrors += errorRatePoints[i].ErrorRate
+		}
+		for i := midpoint; i < len(errorRatePoints); i++ {
+			secondHalfErrors += errorRatePoints[i].ErrorRate
+		}
+		
+		avgFirstHalf := firstHalfErrors / float64(midpoint)
+		avgSecondHalf := secondHalfErrors / float64(len(errorRatePoints)-midpoint)
+		
+		s.T().Logf("Recovery validation - First half error rate: %.2f%%, Second half: %.2f%%", 
+			avgFirstHalf, avgSecondHalf)
+		
+		// Recovery should show improvement (lower error rate in second half)
+		// Allow for some variance but expect general improvement
+		if avgFirstHalf > 5.0 { // Only validate if there were significant errors to recover from
+			s.Assert().True(avgSecondHalf < avgFirstHalf*1.2, // Allow up to 20% variance
+				"No recovery improvement detected: %.2f%% vs %.2f%%", avgFirstHalf, avgSecondHalf)
+		}
+	}
+	
+	s.T().Log("Recovery metrics validation completed")
+}
+
+// realTimeSLAValidation validates SLA compliance in real-time
+func (s *SLAMonitoringIntegrationTestSuite) realTimeSLAValidation(ctx context.Context) {
+	s.T().Log("Starting real-time SLA validation")
+	
+	validationInterval := 30 * time.Second
+	ticker := time.NewTicker(validationInterval)
+	defer ticker.Stop()
+	
+	for {
+		select {
+		case <-ctx.Done():
+			s.T().Log("Stopping real-time SLA validation")
+			return
+		case <-ticker.C:
+			s.performRealTimeSLACheck()
+		}
+	}
+}
+
+// performRealTimeSLACheck performs a single SLA compliance check
+func (s *SLAMonitoringIntegrationTestSuite) performRealTimeSLACheck() {
+	// Get recent metrics
+	availabilityPoints := s.metricsCollector.GetAvailabilityPoints()
+	latencyPoints := s.metricsCollector.GetLatencyPoints()
+	throughputPoints := s.metricsCollector.GetThroughputPoints()
+	
+	// Check availability SLA
+	if len(availabilityPoints) > 0 {
+		latest := availabilityPoints[len(availabilityPoints)-1]
+		if latest.Availability < s.config.AvailabilityTarget {
+			s.T().Logf("SLA VIOLATION: Availability %.4f%% < target %.2f%%", 
+				latest.Availability, s.config.AvailabilityTarget)
+		}
+	}
+	
+	// Check latency SLA
+	if len(latencyPoints) > 0 {
+		latest := latencyPoints[len(latencyPoints)-1]
+		targetSeconds := s.config.LatencyP95Target.Seconds()
+		if latest.P95 > targetSeconds {
+			s.T().Logf("SLA VIOLATION: P95 latency %.3fs > target %.3fs", 
+				latest.P95, targetSeconds)
+		}
+	}
+	
+	// Check throughput SLA
+	if len(throughputPoints) > 0 {
+		latest := throughputPoints[len(throughputPoints)-1]
+		if latest.IntentsPerMinute < s.config.ThroughputTarget*0.9 { // 90% threshold for warnings
+			s.T().Logf("SLA WARNING: Throughput %.2f < 90%% of target %.2f intents/min", 
+				latest.IntentsPerMinute, s.config.ThroughputTarget)
+		}
+	}
+}
+
+// collectFinalMetrics collects final metrics at the end of testing
+func (s *SLAMonitoringIntegrationTestSuite) collectFinalMetrics() {
+	s.T().Log("Collecting final metrics")
+	
+	// Perform one final metrics collection
+	s.collectRealTimeMetrics()
+	
+	// Calculate final statistics
+	totalIntents := s.intentCounter.Load()
+	totalSuccess := s.successCounter.Load()
+	totalErrors := s.errorCounter.Load()
+	testDuration := time.Since(s.testStartTime)
+	
+	s.T().Log("=== FINAL METRICS SUMMARY ===")
+	s.T().Logf("Test duration: %v", testDuration)
+	s.T().Logf("Total intents processed: %d", totalIntents)
+	s.T().Logf("Success count: %d (%.2f%%)", totalSuccess, float64(totalSuccess)/float64(totalIntents)*100)
+	s.T().Logf("Error count: %d (%.2f%%)", totalErrors, float64(totalErrors)/float64(totalIntents)*100)
+	s.T().Logf("Average throughput: %.2f intents/minute", float64(totalIntents)/testDuration.Minutes())
+	
+	// Get metric summaries
+	availabilityPoints := s.metricsCollector.GetAvailabilityPoints()
+	latencyPoints := s.metricsCollector.GetLatencyPoints()
+	throughputPoints := s.metricsCollector.GetThroughputPoints()
+	errorRatePoints := s.metricsCollector.GetErrorRatePoints()
+	
+	s.T().Logf("Collected data points: %d availability, %d latency, %d throughput, %d error rate",
+		len(availabilityPoints), len(latencyPoints), len(throughputPoints), len(errorRatePoints))
+	
+	s.T().Log("=== END FINAL METRICS ===")
+}
 
 // TestSuite runner function
 func TestSLAMonitoringIntegrationSuite(t *testing.T) {

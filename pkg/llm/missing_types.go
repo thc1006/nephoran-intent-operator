@@ -14,12 +14,15 @@ import (
 
 // Config represents the configuration for LLM clients.
 type Config struct {
-	Provider    string        `json:"provider"`
-	Model       string        `json:"model"`
-	APIKey      string        `json:"api_key"`
-	MaxTokens   int           `json:"max_tokens"`
-	Temperature float64       `json:"temperature"`
-	Timeout     time.Duration `json:"timeout"`
+	Provider           string        `json:"provider"`
+	Model              string        `json:"model"`
+	APIKey             string        `json:"api_key"`
+	MaxTokens          int           `json:"max_tokens"`
+	Temperature        float64       `json:"temperature"`
+	Timeout            time.Duration `json:"timeout"`
+	MaxContextTokens   int           `json:"max_context_tokens"`
+	DiversityThreshold float64       `json:"diversity_threshold"`
+	QualityThreshold   float64       `json:"quality_threshold"`
 }
 
 // EnhancedClient is an alias for EnhancedPerformanceClient for backward compatibility.

@@ -108,9 +108,9 @@ jobs:
   # ORCHESTRATION COORDINATOR: Intelligent pipeline coordination
   # =============================================================================
   orchestration-coordinator:
-    name: ðŸŽ¯ Orchestration Coordinator
-    runs-on: ubuntu-22.04
-    timeout-minutes: 8
+    name: ?Ž¯ Orchestration Coordinator
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       pipeline-strategy: ${{ steps.strategy.outputs.strategy }}
       security-matrix: ${{ steps.security.outputs.matrix }}
@@ -120,23 +120,23 @@ jobs:
       artifact-strategy: ${{ steps.artifacts.outputs.strategy }}
       
     steps:
-      - name: ðŸ” Harden Runner Environment
+      - name: ?? Harden Runner Environment
         uses: step-security/harden-runner@v2
         with:
           egress-policy: audit
           disable-sudo: true
           disable-telemetry: false
           
-      - name: ðŸ“¥ Secure Checkout
+      - name: ?“¥ Secure Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           persist-credentials: false
           
-      - name: ðŸŽ¯ Generate Pipeline Strategy
+      - name: ?Ž¯ Generate Pipeline Strategy
         id: strategy
         run: |
-          echo "ðŸŽ¯ Generating Nephoran pipeline strategy..."
+          echo "?Ž¯ Generating Nephoran pipeline strategy..."
           
           # Determine pipeline complexity based on changes and mode
           if [[ "${{ github.event_name }}" == "schedule" ]]; then
@@ -166,12 +166,12 @@ jobs:
           fi
           
           echo "strategy=$STRATEGY" >> $GITHUB_OUTPUT
-          echo "ðŸŽ¯ Pipeline Strategy: $STRATEGY"
+          echo "?Ž¯ Pipeline Strategy: $STRATEGY"
           
-      - name: ðŸ”’ Generate Security Validation Matrix
+      - name: ?? Generate Security Validation Matrix
         id: security
         run: |
-          echo "ðŸ”’ Generating telecommunications security matrix..."
+          echo "?? Generating telecommunications security matrix..."
           
           case "$SECURITY_VALIDATION" in
             "standard")
@@ -219,12 +219,12 @@ jobs:
           esac
           
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
-          echo "ðŸ”’ Security matrix generated for level: $SECURITY_VALIDATION"
+          echo "?? Security matrix generated for level: $SECURITY_VALIDATION"
           
-      - name: ðŸ—ï¸ Generate Deployment Matrix  
+      - name: ??ï¸?Generate Deployment Matrix  
         id: deployment
         run: |
-          echo "ðŸ—ï¸ Generating Kubernetes deployment matrix..."
+          echo "??ï¸?Generating Kubernetes deployment matrix..."
           
           case "$DEPLOYMENT_TARGET" in
             "development")
@@ -260,12 +260,12 @@ jobs:
           esac
           
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
-          echo "ðŸ—ï¸ Deployment matrix: $DEPLOYMENT_TARGET"
+          echo "??ï¸?Deployment matrix: $DEPLOYMENT_TARGET"
           
-      - name: ðŸ“¡ Analyze O-RAN Compliance Requirements
+      - name: ?“¡ Analyze O-RAN Compliance Requirements
         id: oran
         run: |
-          echo "ðŸ“¡ Analyzing O-RAN compliance requirements..."
+          echo "?“¡ Analyzing O-RAN compliance requirements..."
           
           # Check for O-RAN specific components
           ORAN_COMPONENTS=0
@@ -289,20 +289,20 @@ jobs:
           
           if [[ $ORAN_COMPONENTS -gt 0 ]] || [[ "$ORAN_COMPLIANCE_LEVEL" != "basic" ]]; then
             echo "validation-enabled=true" >> $GITHUB_OUTPUT
-            echo "ðŸ“¡ O-RAN validation enabled - detected $ORAN_COMPONENTS interface types"
+            echo "?“¡ O-RAN validation enabled - detected $ORAN_COMPONENTS interface types"
           else
             echo "validation-enabled=false" >> $GITHUB_OUTPUT
-            echo "ðŸ“¡ O-RAN validation disabled - no interfaces detected"
+            echo "?“¡ O-RAN validation disabled - no interfaces detected"
           fi
           
           echo "a1-components=$A1_COMPONENTS" >> $GITHUB_OUTPUT
           echo "e2-components=$E2_COMPONENTS" >> $GITHUB_OUTPUT
           echo "o1-components=$O1_COMPONENTS" >> $GITHUB_OUTPUT
           
-      - name: ðŸ”§ Identify Telecommunications Features
+      - name: ?”§ Identify Telecommunications Features
         id: features
         run: |
-          echo "ðŸ”§ Identifying telecommunications-specific features..."
+          echo "?”§ Identifying telecommunications-specific features..."
           
           features='{
             "cnf_support": false,
@@ -351,12 +351,12 @@ jobs:
           fi
           
           echo "features=$features" >> $GITHUB_OUTPUT
-          echo "ðŸ”§ Telecommunications features identified"
+          echo "?”§ Telecommunications features identified"
           
-      - name: ðŸ“¦ Generate Artifact Strategy
+      - name: ?“¦ Generate Artifact Strategy
         id: artifacts
         run: |
-          echo "ðŸ“¦ Generating artifact retention strategy..."
+          echo "?“¦ Generating artifact retention strategy..."
           
           if [[ "${{ github.ref }}" == "refs/heads/main" ]] || [[ "${{ github.ref }}" == refs/tags/* ]]; then
             strategy='{
@@ -385,13 +385,13 @@ jobs:
           fi
           
           echo "strategy=$strategy" >> $GITHUB_OUTPUT
-          echo "ðŸ“¦ Artifact strategy configured"
+          echo "?“¦ Artifact strategy configured"
 
   # =============================================================================
   # STABILITY & CACHING: Ultra-reliable foundation with intelligent caching
   # =============================================================================
   stability-foundation:
-    name: ðŸ—ï¸ Stability Foundation
+    name: ??ï¸?Stability Foundation
     uses: ./.github/workflows/ci-stability-orchestrator.yml
     needs: orchestration-coordinator
     with:
@@ -404,7 +404,7 @@ jobs:
   # MAIN BUILD & TEST: Optimized parallel pipeline
   # =============================================================================
   main-pipeline:
-    name: ðŸš€ Main Pipeline
+    name: ?? Main Pipeline
     uses: ./.github/workflows/main-ci-optimized-2025.yml
     needs: [orchestration-coordinator, stability-foundation]
     with:
@@ -417,7 +417,7 @@ jobs:
   # SECURITY VALIDATION: Comprehensive security scanning
   # =============================================================================
   security-validation:
-    name: ðŸ”’ Security Validation
+    name: ?? Security Validation
     uses: ./.github/workflows/security-enhanced-ci.yml
     needs: [orchestration-coordinator, stability-foundation]
     with:
@@ -429,63 +429,63 @@ jobs:
   # O-RAN COMPLIANCE: Telecommunications-specific validation
   # =============================================================================
   oran-compliance-validation:
-    name: ðŸ“¡ O-RAN Compliance Validation
-    runs-on: ubuntu-22.04
+    name: ?“¡ O-RAN Compliance Validation
+    runs-on: ubuntu-latest
     needs: [orchestration-coordinator, main-pipeline]
     if: needs.orchestration-coordinator.outputs.o-ran-validation-enabled == 'true'
-    timeout-minutes: 25
+    timeout-minutes: 10
     
     steps:
-      - name: ðŸ” Harden Runner
+      - name: ?? Harden Runner
         uses: step-security/harden-runner@v2
         with:
           egress-policy: audit
           
-      - name: ðŸ“¥ Checkout
+      - name: ?“¥ Checkout
         uses: actions/checkout@v4
         
-      - name: ðŸ“¡ O-RAN Interface Validation
+      - name: ?“¡ O-RAN Interface Validation
         run: |
-          echo "ðŸ“¡ Validating O-RAN interface compliance..."
+          echo "?“¡ Validating O-RAN interface compliance..."
           
           # A1 Policy Management Interface validation
           if [[ "${{ needs.orchestration-coordinator.outputs.a1-components }}" == "1" ]]; then
-            echo "ðŸ” Validating A1 interface compliance..."
+            echo "?? Validating A1 interface compliance..."
             
             # Check for A1 API specifications
             if find . -name "*a1*" -path "*/api/*" -name "*.go" | head -5; then
-              echo "  âœ… A1 API definitions found"
+              echo "  ??A1 API definitions found"
             fi
             
             # Validate A1 policy schema compliance
             if find . -name "*policy*" -name "*.json" -o -name "*.yaml" | head -3; then
-              echo "  âœ… Policy schema definitions found"
+              echo "  ??Policy schema definitions found"
             fi
           fi
           
           # E2 Service Management Interface validation  
           if [[ "${{ needs.orchestration-coordinator.outputs.e2-components }}" == "1" ]]; then
-            echo "ðŸ” Validating E2 interface compliance..."
+            echo "?? Validating E2 interface compliance..."
             
             # Check for E2 service model definitions
             if find . -name "*e2*" -path "*/api/*" | head -5; then
-              echo "  âœ… E2 service models found"
+              echo "  ??E2 service models found"
             fi
           fi
           
           # O1 Fault Management Interface validation
           if [[ "${{ needs.orchestration-coordinator.outputs.o1-components }}" == "1" ]]; then
-            echo "ðŸ” Validating O1 interface compliance..."
+            echo "?? Validating O1 interface compliance..."
             
             # Check for VES event definitions
             if find . -name "*ves*" -o -name "*fault*" -o -name "*alarm*" | head -5; then
-              echo "  âœ… O1/VES event definitions found"
+              echo "  ??O1/VES event definitions found"
             fi
           fi
           
-      - name: ðŸ“‹ 3GPP Compliance Check
+      - name: ?? 3GPP Compliance Check
         run: |
-          echo "ðŸ“‹ Validating 3GPP compliance requirements..."
+          echo "?? Validating 3GPP compliance requirements..."
           
           # Check for 5G Core network function compliance
           compliance_score=0
@@ -493,66 +493,66 @@ jobs:
           
           # 5G NF service registration patterns
           if grep -r "nf-type" . --include="*.go" --include="*.yaml" | head -2; then
-            echo "  âœ… 5G NF service registration patterns found"
+            echo "  ??5G NF service registration patterns found"
             compliance_score=$((compliance_score + 1))
           fi
           
           # Service Based Architecture compliance
           if grep -r "sbi\|service-based" . --include="*.go" | head -2; then
-            echo "  âœ… Service Based Architecture references found"
+            echo "  ??Service Based Architecture references found"
             compliance_score=$((compliance_score + 1))
           fi
           
           # Network slicing support
           if grep -r "slice\|nssai\|s-nssai" . --include="*.go" | head -2; then
-            echo "  âœ… Network slicing support detected"
+            echo "  ??Network slicing support detected"
             compliance_score=$((compliance_score + 1))
           fi
           
           # UDM/UDR data model compliance
           if grep -r "udm\|udr\|subscription" . --include="*.go" | head -2; then
-            echo "  âœ… UDM/UDR data models found"
+            echo "  ??UDM/UDR data models found"
             compliance_score=$((compliance_score + 1))
           fi
           
           # AMF/SMF session management
           if grep -r "amf\|smf\|session" . --include="*.go" | head -2; then
-            echo "  âœ… AMF/SMF session management found"
+            echo "  ??AMF/SMF session management found"
             compliance_score=$((compliance_score + 1))
           fi
           
-          echo "ðŸ“Š 3GPP Compliance Score: $compliance_score/$total_checks"
+          echo "?? 3GPP Compliance Score: $compliance_score/$total_checks"
           
-      - name: ðŸ”§ ETSI NFV Compliance
+      - name: ?”§ ETSI NFV Compliance
         run: |
-          echo "ðŸ”§ Validating ETSI NFV compliance..."
+          echo "?”§ Validating ETSI NFV compliance..."
           
           nfv_compliance=0
           
           # VNF/CNF lifecycle management
           if find . -name "*vnf*" -o -name "*cnf*" | head -3; then
-            echo "  âœ… VNF/CNF lifecycle management found"
+            echo "  ??VNF/CNF lifecycle management found"
             nfv_compliance=$((nfv_compliance + 1))
           fi
           
           # MANO interface compliance
           if grep -r "mano\|vnfm\|nfvo" . --include="*.go" --include="*.yaml" | head -2; then
-            echo "  âœ… MANO interface references found"
+            echo "  ??MANO interface references found"
             nfv_compliance=$((nfv_compliance + 1))
           fi
           
           # Network service descriptors
           if find . -name "*nsd*" -o -name "*vnfd*" | head -2; then
-            echo "  âœ… Network service descriptors found"
+            echo "  ??Network service descriptors found"
             nfv_compliance=$((nfv_compliance + 1))
           fi
           
-          echo "ðŸ“Š ETSI NFV Compliance Elements: $nfv_compliance"
+          echo "?? ETSI NFV Compliance Elements: $nfv_compliance"
           
-      - name: ðŸ“Š Generate O-RAN Compliance Report
+      - name: ?? Generate O-RAN Compliance Report
         run: |
           cat > oran-compliance-report.md <<EOF
-          # ðŸ“¡ O-RAN Compliance Validation Report
+          # ?“¡ O-RAN Compliance Validation Report
           
           **Date:** $(date -u +%Y-%m-%dT%H:%M:%SZ)  
           **Commit:** ${{ github.sha }}  
@@ -562,9 +562,9 @@ jobs:
           
           | Interface | Status | Components Found |
           |-----------|--------|------------------|
-          | A1 Policy | ${{ needs.orchestration-coordinator.outputs.a1-components == '1' && 'âœ… Detected' || 'âš ï¸ Not Found' }} | Policy management, schema validation |
-          | E2 Service | ${{ needs.orchestration-coordinator.outputs.e2-components == '1' && 'âœ… Detected' || 'âš ï¸ Not Found' }} | Service models, KPM reporting |
-          | O1 Fault | ${{ needs.orchestration-coordinator.outputs.o1-components == '1' && 'âœ… Detected' || 'âš ï¸ Not Found' }} | VES events, fault management |
+          | A1 Policy | ${{ needs.orchestration-coordinator.outputs.a1-components == '1' && '??Detected' || '? ï? Not Found' }} | Policy management, schema validation |
+          | E2 Service | ${{ needs.orchestration-coordinator.outputs.e2-components == '1' && '??Detected' || '? ï? Not Found' }} | Service models, KPM reporting |
+          | O1 Fault | ${{ needs.orchestration-coordinator.outputs.o1-components == '1' && '??Detected' || '? ï? Not Found' }} | VES events, fault management |
           
           ## Standards Compliance
           
@@ -592,7 +592,7 @@ jobs:
           echo "- All detected interfaces follow O-RAN specification patterns" >> oran-compliance-report.md
           echo "- Security implementation aligns with O-RAN WG11 guidelines" >> oran-compliance-report.md
           
-      - name: ðŸ“¤ Upload O-RAN Compliance Report
+      - name: ?“¤ Upload O-RAN Compliance Report
         uses: actions/upload-artifact@v4
         with:
           name: oran-compliance-report
@@ -603,37 +603,37 @@ jobs:
   # PERFORMANCE BENCHMARKS: Telecommunications workload validation
   # =============================================================================
   performance-benchmarks:
-    name: âš¡ Performance Benchmarks
-    runs-on: ubuntu-22.04
+    name: ??Performance Benchmarks
+    runs-on: ubuntu-latest
     needs: [orchestration-coordinator, main-pipeline]
     if: github.event.inputs.enable_performance_testing == 'true' || needs.orchestration-coordinator.outputs.pipeline-strategy == 'comprehensive-audit'
-    timeout-minutes: 20
+    timeout-minutes: 10
     
     steps:
-      - name: ðŸ“¥ Checkout
+      - name: ?“¥ Checkout
         uses: actions/checkout@v4
         
-      - name: ðŸ”§ Setup Go
+      - name: ?”§ Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           
-      - name: ðŸ“¥ Download Binaries
+      - name: ?“¥ Download Binaries
         uses: actions/download-artifact@v4
         with:
           pattern: binaries-*
           path: artifacts/
           merge-multiple: true
           
-      - name: âš¡ Telecommunications Performance Benchmarks
-        timeout-minutes: 15
+      - name: ??Telecommunications Performance Benchmarks
+        timeout-minutes: 10
         run: |
-          echo "âš¡ Running telecommunications-specific performance benchmarks..."
+          echo "??Running telecommunications-specific performance benchmarks..."
           
           mkdir -p performance-reports/
           
           # Intent processing latency benchmarks
-          echo "ðŸ”„ Intent Processing Latency Benchmarks"
+          echo "?? Intent Processing Latency Benchmarks"
           if [[ -x "artifacts/intent-ingest" ]]; then
             echo "  Testing intent processing latency..."
             
@@ -648,7 +648,7 @@ jobs:
           fi
           
           # Controller reconciliation performance
-          echo "ðŸŽ›ï¸ Controller Reconciliation Benchmarks"
+          echo "??ï¸?Controller Reconciliation Benchmarks"
           if [[ -x "artifacts/conductor-loop" ]]; then
             echo "  Testing controller startup time..."
             
@@ -660,7 +660,7 @@ jobs:
           fi
           
           # Memory efficiency for telecom workloads
-          echo "ðŸ“Š Memory Efficiency Analysis"
+          echo "?? Memory Efficiency Analysis"
           for binary in artifacts/*; do
             if [[ -x "$binary" ]]; then
               name=$(basename "$binary")
@@ -672,16 +672,16 @@ jobs:
               echo "    Binary size: ${size_mb}MB"
               
               if [[ $size_mb -gt 100 ]]; then
-                echo "    âš ï¸ Large binary detected - consider optimization"
+                echo "    ? ï? Large binary detected - consider optimization"
               else
-                echo "    âœ… Efficient binary size"
+                echo "    ??Efficient binary size"
               fi
             fi
           done
           
           # Generate performance summary
           cat > performance-reports/telecom-performance-summary.md <<EOF
-          # âš¡ Telecommunications Performance Report
+          # ??Telecommunications Performance Report
           
           **Date:** $(date -u +%Y-%m-%dT%H:%M:%SZ)  
           **Environment:** Ubuntu 22.04, Go ${{ env.GO_VERSION }}  
@@ -710,7 +710,7 @@ jobs:
           
           EOF
           
-      - name: ðŸ“¤ Upload Performance Reports
+      - name: ?“¤ Upload Performance Reports
         uses: actions/upload-artifact@v4
         with:
           name: performance-benchmarks
@@ -721,7 +721,7 @@ jobs:
   # CONTAINER BUILD: Production-ready container images
   # =============================================================================
   container-build:
-    name: ðŸ³ Container Build & Security
+    name: ?³ Container Build & Security
     uses: ./.github/workflows/container-build-2025.yml
     needs: [orchestration-coordinator, main-pipeline, security-validation]
     if: always() && needs.main-pipeline.result == 'success'
@@ -741,17 +741,17 @@ jobs:
   # INTEGRATION TESTS: End-to-end validation with Kubernetes
   # =============================================================================
   integration-tests:
-    name: ðŸ§ª Integration Tests
-    runs-on: ubuntu-22.04
+    name: ?§ª Integration Tests
+    runs-on: ubuntu-latest
     needs: [orchestration-coordinator, main-pipeline, container-build]
     if: needs.orchestration-coordinator.outputs.pipeline-strategy != 'fast-iteration' && env.SKIP_INTEGRATION != 'true'
-    timeout-minutes: 30
+    timeout-minutes: 10
     
     steps:
-      - name: ðŸ“¥ Checkout
+      - name: ?“¥ Checkout
         uses: actions/checkout@v4
         
-      - name: ðŸ”§ Setup Kubernetes (Kind)
+      - name: ?”§ Setup Kubernetes (Kind)
         uses: helm/kind-action@v1
         with:
           version: v0.24.0
@@ -776,10 +776,10 @@ jobs:
                 hostPort: 443
                 protocol: TCP
                 
-      - name: ðŸ—ï¸ Deploy Nephoran Intent Operator
-        timeout-minutes: 15
+      - name: ??ï¸?Deploy Nephoran Intent Operator
+        timeout-minutes: 10
         run: |
-          echo "ðŸ—ï¸ Deploying Nephoran Intent Operator to test cluster..."
+          echo "??ï¸?Deploying Nephoran Intent Operator to test cluster..."
           
           # Load container images if available
           if docker images | grep -q nephoran; then
@@ -811,13 +811,13 @@ jobs:
           # Wait for deployments to be ready
           echo "Waiting for deployments..."
           kubectl wait --for=condition=ready pod -l control-plane=controller-manager -n nephoran-system --timeout=300s || {
-            echo "âš ï¸ Controller not ready - continuing with basic validation"
+            echo "? ï? Controller not ready - continuing with basic validation"
           }
           
-      - name: ðŸ§ª End-to-End Testing
-        timeout-minutes: 12
+      - name: ?§ª End-to-End Testing
+        timeout-minutes: 10
         run: |
-          echo "ðŸ§ª Running end-to-end integration tests..."
+          echo "?§ª Running end-to-end integration tests..."
           
           # Test cluster connectivity
           echo "Testing cluster connectivity..."
@@ -826,7 +826,7 @@ jobs:
           
           # Test CRD availability
           echo "Testing CRD availability..."
-          kubectl get crd | grep nephoran || echo "âš ï¸ No Nephoran CRDs found"
+          kubectl get crd | grep nephoran || echo "? ï? No Nephoran CRDs found"
           
           # Test namespace creation
           echo "Testing namespace operations..."
@@ -841,34 +841,34 @@ jobs:
             echo "Found sample intent: $sample_intent"
             
             if kubectl apply -f "$sample_intent" --dry-run=server; then
-              echo "âœ… Intent schema validation passed"
+              echo "??Intent schema validation passed"
             else
-              echo "âš ï¸ Intent schema validation failed"
+              echo "? ï? Intent schema validation failed"
             fi
           fi
           
           # Test service mesh integration (if available)
           if kubectl get crd | grep -q istio; then
-            echo "âœ… Service mesh integration detected"
+            echo "??Service mesh integration detected"
           fi
           
           # Test monitoring integration (if available)
           if kubectl get pods -A | grep -q prometheus; then
-            echo "âœ… Monitoring stack integration detected"
+            echo "??Monitoring stack integration detected"
           fi
           
-          echo "ðŸ“Š Integration test summary:"
+          echo "?? Integration test summary:"
           echo "  - Cluster: Ready"
           echo "  - Namespace: Available"
           echo "  - CRDs: Deployable"
           echo "  - Intent Schema: Validated"
 
-      - name: ðŸ“Š Generate Integration Report  
+      - name: ?? Generate Integration Report  
         run: |
           kubectl get all -n nephoran-system > integration-report.txt || echo "No resources in nephoran-system" > integration-report.txt
           kubectl describe pods -n nephoran-system >> integration-report.txt 2>&1 || true
           
-      - name: ðŸ“¤ Upload Integration Results
+      - name: ?“¤ Upload Integration Results
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -881,8 +881,8 @@ jobs:
   # FINAL ORCHESTRATION: Pipeline completion and reporting
   # =============================================================================
   final-orchestration:
-    name: ðŸŽ¯ Final Orchestration
-    runs-on: ubuntu-22.04
+    name: ?Ž¯ Final Orchestration
+    runs-on: ubuntu-latest
     needs: [
       orchestration-coordinator,
       stability-foundation,
@@ -897,11 +897,11 @@ jobs:
     timeout-minutes: 10
     
     steps:
-      - name: ðŸ“Š Generate Master Orchestration Report
+      - name: ?? Generate Master Orchestration Report
         run: |
-          echo "# ðŸŽ¯ Nephoran Master Orchestration Report" >> $GITHUB_STEP_SUMMARY
+          echo "# ?Ž¯ Nephoran Master Orchestration Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## ðŸ“‹ Pipeline Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "## ?? Pipeline Configuration" >> $GITHUB_STEP_SUMMARY
           echo "- **Strategy:** ${{ needs.orchestration-coordinator.outputs.pipeline-strategy }}" >> $GITHUB_STEP_SUMMARY
           echo "- **O-RAN Compliance:** ${{ env.ORAN_COMPLIANCE_LEVEL }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Security Level:** ${{ env.SECURITY_VALIDATION }}" >> $GITHUB_STEP_SUMMARY
@@ -909,7 +909,7 @@ jobs:
           echo "- **Performance Testing:** ${{ env.ENABLE_PERF_TESTING }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "## ðŸŽ¯ Component Status" >> $GITHUB_STEP_SUMMARY
+          echo "## ?Ž¯ Component Status" >> $GITHUB_STEP_SUMMARY
           echo "| Component | Status | Notes |" >> $GITHUB_STEP_SUMMARY
           echo "|-----------|--------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| Orchestration Coordinator | ${{ needs.orchestration-coordinator.result }} | Pipeline strategy & matrix generation |" >> $GITHUB_STEP_SUMMARY
@@ -922,7 +922,7 @@ jobs:
           echo "| Integration Tests | ${{ needs.integration-tests.result || 'skipped' }} | End-to-end validation |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-      - name: ðŸŽ¯ Final Status Determination
+      - name: ?Ž¯ Final Status Determination
         run: |
           # Critical components that must pass
           CRITICAL_FAILURES=""
@@ -954,10 +954,10 @@ jobs:
           fi
           
           if [[ -n "$CRITICAL_FAILURES" ]]; then
-            echo "## âŒ Nephoran Orchestration Failed" >> $GITHUB_STEP_SUMMARY
+            echo "## ??Nephoran Orchestration Failed" >> $GITHUB_STEP_SUMMARY
             echo "**Critical failures:** $CRITICAL_FAILURES" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "ðŸš¨ **Action Required:**" >> $GITHUB_STEP_SUMMARY
+            echo "?š¨ **Action Required:**" >> $GITHUB_STEP_SUMMARY
             echo "1. Review failed component logs" >> $GITHUB_STEP_SUMMARY
             echo "2. Address critical issues in codebase" >> $GITHUB_STEP_SUMMARY
             echo "3. Ensure telecommunications compliance" >> $GITHUB_STEP_SUMMARY
@@ -965,16 +965,16 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             exit 1
           else
-            echo "## âœ… Nephoran Orchestration Successful" >> $GITHUB_STEP_SUMMARY
+            echo "## ??Nephoran Orchestration Successful" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "ðŸŽ¯ **Achievements:**" >> $GITHUB_STEP_SUMMARY
-            echo "- âœ… All critical components validated" >> $GITHUB_STEP_SUMMARY
-            echo "- âœ… Security hardening completed" >> $GITHUB_STEP_SUMMARY
-            echo "- âœ… O-RAN telecommunications compliance verified" >> $GITHUB_STEP_SUMMARY
-            echo "- âœ… Performance benchmarks validated" >> $GITHUB_STEP_SUMMARY
-            echo "- âœ… Production-ready artifacts generated" >> $GITHUB_STEP_SUMMARY
+            echo "?Ž¯ **Achievements:**" >> $GITHUB_STEP_SUMMARY
+            echo "- ??All critical components validated" >> $GITHUB_STEP_SUMMARY
+            echo "- ??Security hardening completed" >> $GITHUB_STEP_SUMMARY
+            echo "- ??O-RAN telecommunications compliance verified" >> $GITHUB_STEP_SUMMARY
+            echo "- ??Performance benchmarks validated" >> $GITHUB_STEP_SUMMARY
+            echo "- ??Production-ready artifacts generated" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "ðŸš€ **Ready for:**" >> $GITHUB_STEP_SUMMARY
+            echo "?? **Ready for:**" >> $GITHUB_STEP_SUMMARY
             echo "- Kubernetes operator deployment" >> $GITHUB_STEP_SUMMARY
             echo "- O-RAN/5G network integration" >> $GITHUB_STEP_SUMMARY
             echo "- Production telecommunications workloads" >> $GITHUB_STEP_SUMMARY

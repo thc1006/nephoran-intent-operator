@@ -1,0 +1,230 @@
+# =============================================================================
+# PR Security Quick Check - Fast validation for pull requests
+# =============================================================================
+# Lightweight security scanning optimized for speed on PRs
+# Runs in under 10 minutes with essential security checks
+# =============================================================================
+
+name: PR Security Quick Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'Dockerfile*'
+      - '.github/workflows/*.yml'
+
+concurrency:
+  group: pr-security-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+
+env:
+  GO_VERSION: "1.22.7"
+
+jobs:
+  quick-security:
+    name: ?? Quick Security Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout PR code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          
+      - name: Quick vulnerability check
+        id: vuln-check
+        run: |
+          echo "?? Running quick vulnerability check..."
+          
+          # Install govulncheck
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          
+          # Run check with timeout
+          set +e
+          timeout 5m govulncheck -format json ./... > vuln-output.json 2>&1
+          VULN_EXIT=$?
+          
+          # Parse results
+          if [[ $VULN_EXIT -eq 0 ]]; then
+            echo "??No vulnerabilities found"
+            echo "status=clean" >> $GITHUB_OUTPUT
+          else
+            echo "?ая? Potential vulnerabilities detected"
+            echo "status=issues" >> $GITHUB_OUTPUT
+            
+            # Extract vulnerability count if possible
+            VULN_COUNT=$(grep -c '"OSV"' vuln-output.json 2>/dev/null || echo "0")
+            echo "count=$VULN_COUNT" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Dependency check
+        id: dep-check
+        run: |
+          echo "?? Checking for outdated dependencies..."
+          
+          # Check for available updates
+          go list -u -m -json all | jq -r 'select(.Update) | "\(.Path): \(.Version) -> \(.Update.Version)"' > updates.txt || true
+          
+          UPDATE_COUNT=$(wc -l < updates.txt 2>/dev/null || echo "0")
+          echo "updates=$UPDATE_COUNT" >> $GITHUB_OUTPUT
+          
+          if [[ $UPDATE_COUNT -gt 0 ]]; then
+            echo "?Уж $UPDATE_COUNT dependencies have updates available"
+            head -10 updates.txt
+          else
+            echo "??All dependencies are up to date"
+          fi
+          
+      - name: Secret scanning
+        id: secret-scan
+        run: |
+          echo "?? Scanning for secrets..."
+          
+          # Simple secret patterns check
+          set +e
+          
+          # Check for common secret patterns
+          SECRET_PATTERNS='(api[_-]?key|secret|token|password|passwd|pwd|authorization|auth|credentials|creds)'
+          
+          # Scan changed files only
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD 2>/dev/null || git diff --name-only HEAD~1...HEAD)
+          
+          if [[ -n "$CHANGED_FILES" ]]; then
+            SECRETS_FOUND=$(echo "$CHANGED_FILES" | xargs -I {} sh -c 'grep -iE "'"$SECRET_PATTERNS"'\s*=\s*[\"'\'']\S+[\"'\'']" {} 2>/dev/null' | wc -l)
+            
+            if [[ $SECRETS_FOUND -gt 0 ]]; then
+              echo "?ая? Potential secrets found in $SECRETS_FOUND locations"
+              echo "status=warning" >> $GITHUB_OUTPUT
+            else
+              echo "??No obvious secrets detected"
+              echo "status=clean" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "??No files to scan"
+            echo "status=clean" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Dockerfile security check
+        if: contains(github.event.pull_request.files.*.filename, 'Dockerfile')
+        run: |
+          echo "?Р│ Checking Dockerfile security..."
+          
+          # Check for security best practices
+          DOCKERFILES=$(find . -name "Dockerfile*" -type f)
+          
+          for dockerfile in $DOCKERFILES; do
+            echo "Checking: $dockerfile"
+            
+            # Check for non-root user
+            if ! grep -q "USER" "$dockerfile"; then
+              echo "?ая? Warning: Dockerfile should specify a non-root USER"
+            fi
+            
+            # Check for latest tag
+            if grep -q "FROM.*:latest" "$dockerfile"; then
+              echo "?ая? Warning: Avoid using :latest tag in FROM"
+            fi
+            
+            # Check for apt-get update without install
+            if grep -q "apt-get update" "$dockerfile" && ! grep -q "apt-get update.*&&.*apt-get install" "$dockerfile"; then
+              echo "?ая? Warning: Combine apt-get update with install"
+            fi
+          done
+          
+      - name: Generate PR comment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const vulnStatus = '${{ steps.vuln-check.outputs.status }}';
+            const vulnCount = '${{ steps.vuln-check.outputs.count }}' || '0';
+            const depUpdates = '${{ steps.dep-check.outputs.updates }}' || '0';
+            const secretStatus = '${{ steps.secret-scan.outputs.status }}';
+            
+            let comment = '## ?? Security Quick Check Results\n\n';
+            comment += '| Check | Status | Details |\n';
+            comment += '|-------|--------|---------|\\n';
+            
+            // Vulnerability check
+            if (vulnStatus === 'clean') {
+              comment += '| Vulnerabilities | ??Clean | No known vulnerabilities |\\n';
+            } else {
+              comment += `| Vulnerabilities | ?ая? Issues | ${vulnCount} potential issues found |\\n`;
+            }
+            
+            // Dependency updates
+            if (depUpdates === '0') {
+              comment += '| Dependencies | ??Current | All up to date |\\n';
+            } else {
+              comment += `| Dependencies | ?Уж Updates | ${depUpdates} updates available |\\n`;
+            }
+            
+            // Secret scan
+            if (secretStatus === 'clean') {
+              comment += '| Secrets | ??Clean | No secrets detected |\\n';
+            } else {
+              comment += '| Secrets | ?ая? Warning | Review flagged patterns |\\n';
+            }
+            
+            comment += '\\n';
+            comment += '> ?Тб This is a quick security check. Full security scanning runs on merge.\\n';
+            comment += '> ?? View detailed results in the [Actions tab](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\\n';
+            
+            // Find and update or create comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Security Quick Check Results')
+            );
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }
+            
+      - name: Status summary
+        if: always()
+        run: |
+          echo "## ?? PR Security Quick Check" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**PR:** #${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Title:** ${{ github.event.pull_request.title }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Results:" >> $GITHUB_STEP_SUMMARY
+          echo "- Vulnerability Check: ${{ steps.vuln-check.outputs.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Dependency Updates: ${{ steps.dep-check.outputs.updates }} available" >> $GITHUB_STEP_SUMMARY
+          echo "- Secret Scan: ${{ steps.secret-scan.outputs.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "_Quick check completed in under 15 minutes_" >> $GITHUB_STEP_SUMMARY

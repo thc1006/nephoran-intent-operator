@@ -486,7 +486,7 @@ func (p *IntentProcessor) handleError(filename string, err error) error {
 
 	errorFile := filepath.Join(p.config.ErrorDir, fmt.Sprintf("%s.%s.error", basename, timestamp))
 
-	if writeErr := atomicWriteFile(errorFile, []byte(errorContent), 0o640); writeErr != nil {
+	if writeErr := atomicWriteFile(errorFile, []byte(errorContent), 0o644); writeErr != nil {
 		log.Printf("Failed to write error file %s: %v", errorFile, writeErr)
 	}
 
@@ -497,7 +497,7 @@ func (p *IntentProcessor) handleError(filename string, err error) error {
 	if origData != nil {
 		origCopy := filepath.Join(p.config.ErrorDir, fmt.Sprintf("%s.%s.json", basename, timestamp))
 
-		if writeErr := atomicWriteFile(origCopy, origData, 0o640); writeErr != nil {
+		if writeErr := atomicWriteFile(origCopy, origData, 0o644); writeErr != nil {
 			log.Printf("Failed to copy original file to error dir: %v", writeErr)
 		}
 	}

@@ -114,37 +114,36 @@ type countingReader struct {
 // Read implements io.Reader interface with size limit enforcement.
 
 func (c *countingReader) Read(p []byte) (int, error) {
-	// Check if we would exceed the limit with this read.
-
-	remaining := c.max - c.count
-
-	if remaining <= 0 {
-
+	// Check if we already exceeded the limit in previous reads
+	if c.count > c.max {
 		c.exceeded = true
-
 		return 0, ErrMaxSizeExceeded
-
 	}
 
-	// Limit the read size to remaining capacity.
+	// Calculate remaining capacity
+	remaining := c.max - c.count
+	
+	// If we're at exactly the limit, check if the underlying reader has more data
+	if remaining == 0 {
+		// Try to read 1 byte to see if there's more data
+		var testBuf [1]byte
+		n, err := c.r.Read(testBuf[:])
+		if n > 0 {
+			// There's more data, we've exceeded the limit
+			c.exceeded = true
+			return 0, ErrMaxSizeExceeded
+		}
+		// No more data, return EOF
+		return 0, err // This should be EOF
+	}
 
+	// Limit the read size to remaining capacity
 	if int64(len(p)) > remaining {
 		p = p[:remaining]
 	}
 
 	n, err := c.r.Read(p)
-
 	c.count += int64(n)
-
-	// Check if we've now exceeded the limit after this read.
-
-	if c.count > c.max {
-
-		c.exceeded = true
-
-		return n, ErrMaxSizeExceeded
-
-	}
 
 	return n, err
 }

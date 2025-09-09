@@ -346,7 +346,7 @@ func (m *MockOAuth2Provider) ValidateAccessToken(ctx context.Context, token stri
 type OAuth2TokenResponse struct {
 	AccessToken  string   `json:"access_token"`
 	TokenType    string   `json:"token_type"`
-	ExpiresIn    int      `json:"expires_in"`
+	ExpiresIn    int64    `json:"expires_in"`
 	RefreshToken string   `json:"refresh_token,omitempty"`
 	Scopes       []string `json:"scopes,omitempty"`
 }
@@ -786,6 +786,24 @@ func (m *MockAuthorizationProvider) CreatePermission(ctx context.Context, permis
 	return nil
 }
 
+// CreateRole creates a new role (mock implementation) for RBACManagerMock
+func (rbac *RBACManagerMock) CreateRole(ctx context.Context, role interface{}) (interface{}, error) {
+	// Mock implementation - return the role and success
+	return role, nil
+}
+
+// CreatePermission creates a new permission (mock implementation) for RBACManagerMock
+func (rbac *RBACManagerMock) CreatePermission(ctx context.Context, permission interface{}) (interface{}, error) {
+	// Mock implementation - return the permission and success
+	return permission, nil
+}
+
+// AssignRoleToUser assigns a role to a user (mock implementation) for RBACManagerMock
+func (rbac *RBACManagerMock) AssignRoleToUser(ctx context.Context, userID, roleID string) error {
+	// Mock implementation - just return success
+	return nil
+}
+
 // ToJSON serializes mock data to JSON for debugging.
 
 func (m *MockAuthenticator) ToJSON() ([]byte, error) {
@@ -809,6 +827,72 @@ func (m *MockAuthenticator) Reset() {
 	m.Mock.ExpectedCalls = nil
 	m.Mock.Calls = nil
 	m.sessions = make(map[string]*UserSession)
+}
+
+// Missing Mock Type Definitions
+
+// JWTManagerMock provides a mock JWT manager implementation
+type JWTManagerMock struct {
+	mock.Mock
+	blacklistedTokens map[string]bool
+	tokenStore        map[string]interface{}
+}
+
+// NewJWTManagerMock creates a new JWT manager mock
+func NewJWTManagerMock() *JWTManagerMock {
+	return &JWTManagerMock{
+		blacklistedTokens: make(map[string]bool),
+		tokenStore:        make(map[string]interface{}),
+	}
+}
+
+// SessionManagerMock provides a mock session manager implementation
+type SessionManagerMock struct {
+	mock.Mock
+	sessions map[string]*SessionResult
+	config   *SessionConfig
+}
+
+// SessionConfig represents session configuration
+type SessionConfig struct {
+	SessionTTL time.Duration `json:"session_ttl"`
+}
+
+// NewSessionManagerMock creates a new session manager mock
+func NewSessionManagerMock() *SessionManagerMock {
+	return &SessionManagerMock{
+		sessions: make(map[string]*SessionResult),
+		config: &SessionConfig{
+			SessionTTL: time.Hour, // Default to 1 hour
+		},
+	}
+}
+
+// RBACManagerMock provides a mock RBAC manager implementation
+type RBACManagerMock struct {
+	mock.Mock
+	roles           map[string]interface{}
+	permissions     map[string]interface{}
+	roleStore       map[string]interface{}
+	permissionStore map[string]interface{}
+}
+
+// NewRBACManagerMock creates a new RBAC manager mock
+func NewRBACManagerMock() *RBACManagerMock {
+	return &RBACManagerMock{
+		roles:           make(map[string]interface{}),
+		permissions:     make(map[string]interface{}),
+		roleStore:       make(map[string]interface{}),
+		permissionStore: make(map[string]interface{}),
+	}
+}
+
+// SessionResult represents a session creation result
+type SessionResult struct {
+	ID        string      `json:"id"`
+	User      interface{} `json:"user"`
+	CreatedAt time.Time   `json:"created_at"`
+	ExpiresAt time.Time   `json:"expires_at"`
 }
 
 // Additional methods for compatibility with security tests
@@ -1232,4 +1316,214 @@ func (mtb *MockTokenBlacklist) CleanupExpired(ctx context.Context) error {
 func NewMockSlogLogger() *slog.Logger {
 	// Create a no-op logger for testing
 	return slog.New(slog.NewTextHandler(io.Discard, nil))
+}
+
+// Factory Functions for Test Data Generation
+
+// UserFactory provides factory methods for creating test users
+type UserFactory struct{}
+
+// NewUserFactory creates a new user factory
+func NewUserFactory() *UserFactory {
+	return &UserFactory{}
+}
+
+// CreateBasicUser creates a basic test user
+func (uf *UserFactory) CreateBasicUser() *TestUser {
+	return &TestUser{
+		Username:      "testuser",
+		Password:      "password123",
+		Email:         "test@example.com",
+		Roles:         []string{"user"},
+		Claims:        map[string]interface{}{"test": true},
+		Enabled:       true,
+		Subject:       "test-user-123",
+		Name:          "Test User",
+		EmailVerified: true,
+		Provider:      "test",
+	}
+}
+
+// TokenFactory provides factory methods for creating JWT tokens
+type TokenFactory struct {
+	issuer string
+}
+
+// NewTokenFactory creates a new token factory
+func NewTokenFactory(issuer string) *TokenFactory {
+	return &TokenFactory{issuer: issuer}
+}
+
+// CreateBasicToken creates basic JWT claims
+func (tf *TokenFactory) CreateBasicToken(subject string) map[string]interface{} {
+	now := time.Now()
+	return map[string]interface{}{
+		"iss": tf.issuer,
+		"sub": subject,
+		"aud": []string{"test-audience"},
+		"exp": now.Add(time.Hour).Unix(),
+		"iat": now.Unix(),
+		"nbf": now.Unix(),
+		"jti": fmt.Sprintf("token-%d", now.UnixNano()),
+	}
+}
+
+// CreateExpiredToken creates an expired JWT token
+func (tf *TokenFactory) CreateExpiredToken(subject string) map[string]interface{} {
+	now := time.Now()
+	return map[string]interface{}{
+		"iss": tf.issuer,
+		"sub": subject,
+		"aud": []string{"test-audience"},
+		"exp": now.Add(-time.Hour).Unix(), // Expired 1 hour ago
+		"iat": now.Add(-2 * time.Hour).Unix(),
+		"nbf": now.Add(-2 * time.Hour).Unix(),
+		"jti": fmt.Sprintf("expired-token-%d", now.UnixNano()),
+	}
+}
+
+// CreateTokenNotValidYet creates a JWT token not valid yet
+func (tf *TokenFactory) CreateTokenNotValidYet(subject string) map[string]interface{} {
+	now := time.Now()
+	return map[string]interface{}{
+		"iss": tf.issuer,
+		"sub": subject,
+		"aud": []string{"test-audience"},
+		"exp": now.Add(time.Hour).Unix(),
+		"iat": now.Unix(),
+		"nbf": now.Add(time.Hour).Unix(), // Not before 1 hour from now
+		"jti": fmt.Sprintf("future-token-%d", now.UnixNano()),
+	}
+}
+
+// OAuthResponseFactory provides factory methods for OAuth responses
+type OAuthResponseFactory struct{}
+
+// NewOAuthResponseFactory creates a new OAuth response factory
+func NewOAuthResponseFactory() *OAuthResponseFactory {
+	return &OAuthResponseFactory{}
+}
+
+// CreateTokenResponse creates a mock OAuth2 token response
+func (of *OAuthResponseFactory) CreateTokenResponse() *OAuth2TokenResponse {
+	return &OAuth2TokenResponse{
+		AccessToken:  fmt.Sprintf("access-token-%d", time.Now().UnixNano()),
+		TokenType:    "Bearer",
+		ExpiresIn:    3600,
+		RefreshToken: fmt.Sprintf("refresh-token-%d", time.Now().UnixNano()),
+		Scopes:       []string{"read", "write"},
+	}
+}
+
+// RoleFactory provides factory methods for creating test roles
+type RoleFactory struct{}
+
+// NewRoleFactory creates a new role factory
+func NewRoleFactory() *RoleFactory {
+	return &RoleFactory{}
+}
+
+// CreateBasicRole creates a basic test role
+func (rf *RoleFactory) CreateBasicRole() map[string]interface{} {
+	return map[string]interface{}{
+		"name":        "test-role",
+		"description": "Test role for testing purposes",
+		"permissions": []string{"read", "write"},
+	}
+}
+
+// CreateRoleWithPermissions creates a role with specific permissions
+func (rf *RoleFactory) CreateRoleWithPermissions(name string, permissions []string) map[string]interface{} {
+	return map[string]interface{}{
+		"name":        name,
+		"description": fmt.Sprintf("Role %s with specific permissions", name),
+		"permissions": permissions,
+	}
+}
+
+// PermissionFactory provides factory methods for creating test permissions
+type PermissionFactory struct{}
+
+// NewPermissionFactory creates a new permission factory
+func NewPermissionFactory() *PermissionFactory {
+	return &PermissionFactory{}
+}
+
+// CreateBasicPermission creates a basic test permission
+func (pf *PermissionFactory) CreateBasicPermission() map[string]interface{} {
+	return map[string]interface{}{
+		"name":        "test-permission",
+		"description": "Test permission for testing purposes",
+		"resource":    "test-resource",
+		"action":      "read",
+	}
+}
+
+// CreatePermission creates a permission with specific resource and action
+func (pf *PermissionFactory) CreatePermission(resource, action, scope string) map[string]interface{} {
+	return map[string]interface{}{
+		"name":        fmt.Sprintf("%s-%s-%s", resource, action, scope),
+		"description": fmt.Sprintf("Permission to %s on %s in %s", action, resource, scope),
+		"resource":    resource,
+		"action":      action,
+		"scope":       scope,
+	}
+}
+
+// CreateCompleteTestSetup creates all factory instances
+func CreateCompleteTestSetup() (*UserFactory, *TokenFactory, *OAuthResponseFactory, interface{}, interface{}, interface{}, interface{}) {
+	uf := NewUserFactory()
+	tf := NewTokenFactory("test-issuer")
+	of := NewOAuthResponseFactory()
+	rf := NewRoleFactory()
+	pf := NewPermissionFactory()
+	// Return placeholder interfaces for the other factories
+	var cf, sf interface{}
+	cf = &struct{}{}
+	sf = &struct{}{}
+	return uf, tf, of, cf, rf, pf, sf
+}
+
+// CreateTestData creates comprehensive test data
+func CreateTestData() map[string]interface{} {
+	return map[string]interface{}{
+		"users": map[string]interface{}{
+			"basic": map[string]interface{}{
+				"username":       "basic-user",
+				"email":          "basic@nephoran.local",
+				"email_verified": true,
+			},
+			"admin": map[string]interface{}{
+				"username":       "admin-user",
+				"email":          "admin@nephoran.local",
+				"email_verified": true,
+				"roles":          []string{"admin"},
+			},
+			"github": map[string]interface{}{
+				"username":       "github-user",
+				"email":          "github@example.com",
+				"email_verified": true,
+				"provider":       "github",
+			},
+		},
+		"tokens": map[string]interface{}{
+			"valid":   "valid-test-token",
+			"expired": "expired-test-token",
+			"invalid": "invalid-test-token",
+		},
+		"roles": map[string]interface{}{
+			"admin": []string{"create", "read", "update", "delete"},
+			"user":  []string{"read"},
+		},
+		"permissions": map[string]interface{}{
+			"create": "permission to create resources",
+			"read":   "permission to read resources",
+			"update": "permission to update resources",
+			"delete": "permission to delete resources",
+		},
+		"sessions": map[string]interface{}{
+			"active":  "active-session-id",
+			"expired": "expired-session-id",
+		},
+	}
 }

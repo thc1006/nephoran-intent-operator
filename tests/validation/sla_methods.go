@@ -313,7 +313,7 @@ func (sa *StatisticalAnalyzer) AnalyzeAvailability(measurements []*MeasurementSe
 		Confidence: &ConfidenceInterval{
 			Lower: mean - 0.01,
 			Upper: mean + 0.01,
-			Level: sa.confidenceLevel,
+			Level: sa.ConfidenceLevel,
 			MarginOfError: 0.01,
 		},
 	}
@@ -340,7 +340,7 @@ func (sa *StatisticalAnalyzer) AnalyzeLatency(measurements []*MeasurementSet) *S
 		Confidence: &ConfidenceInterval{
 			Lower: mean - 0.05,
 			Upper: mean + 0.05,
-			Level: sa.confidenceLevel,
+			Level: sa.ConfidenceLevel,
 			MarginOfError: 0.05,
 		},
 	}
@@ -365,7 +365,7 @@ func (sa *StatisticalAnalyzer) AnalyzeThroughput(measurements []*MeasurementSet)
 		Confidence: &ConfidenceInterval{
 			Lower: mean - 2.0,
 			Upper: mean + 2.0,
-			Level: sa.confidenceLevel,
+			Level: sa.ConfidenceLevel,
 			MarginOfError: 2.0,
 		},
 	}
@@ -479,10 +479,10 @@ func (s *SLAValidationTestSuite) verifyThroughputClaim(sustainedThroughput *Sust
 
 func (cv *ClaimVerifier) AddClaim(claim *SLAClaim) {
 	// Simplified stub implementation without mutex for compilation
-	if cv.claims == nil {
-		cv.claims = make(map[string]*SLAClaim)
+	if cv.Claims == nil {
+		cv.Claims = make(map[string]*SLAClaim)
 	}
-	cv.claims[claim.Metric] = claim
+	cv.Claims[claim.Metric] = claim
 }
 
 // Additional helper methods for error budget and burn rate testing

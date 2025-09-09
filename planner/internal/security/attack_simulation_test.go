@@ -29,7 +29,7 @@ func TestPathTraversalAttacks(t *testing.T) {
 	testStructure := []string{
 		"safe/data/file1.json",
 		"safe/config/settings.yaml",
-		"restricted/secrets.txt",
+		"restricted/secrets.json",
 		"logs/access.log",
 	}
 
@@ -54,14 +54,14 @@ func TestPathTraversalAttacks(t *testing.T) {
 		{
 			name:        "Basic directory traversal",
 			basePath:    filepath.Join(tempDir, "safe"),
-			requestPath: "../restricted/secrets.txt",
+			requestPath: "../restricted/secrets.json",
 			expectBlock: true,
 			description: "Attempts to access files outside safe directory",
 		},
 		{
 			name:        "Multiple level traversal",
 			basePath:    filepath.Join(tempDir, "safe", "data"),
-			requestPath: "../../restricted/secrets.txt",
+			requestPath: "../../restricted/secrets.json",
 			expectBlock: true,
 			description: "Multiple directory levels up",
 		},
@@ -82,28 +82,28 @@ func TestPathTraversalAttacks(t *testing.T) {
 		{
 			name:        "Mixed separator traversal",
 			basePath:    tempDir,
-			requestPath: "../..\\../restricted/secrets.txt",
+			requestPath: "../..\\../restricted/secrets.json",
 			expectBlock: true,
 			description: "Mixed Unix and Windows path separators",
 		},
 		{
 			name:        "Encoded traversal - URL encoding",
 			basePath:    tempDir,
-			requestPath: "..%2F..%2Frestricted%2Fsecrets.txt",
-			expectBlock: false, // Basic validation doesn't decode URLs
+			requestPath: "..%2F..%2Frestricted%2Fsecrets.json",
+			expectBlock: true, // URL decoding now implemented
 			description: "URL-encoded path traversal",
 		},
 		{
 			name:        "Double encoded traversal",
 			basePath:    tempDir,
-			requestPath: "..%252F..%252Frestricted%252Fsecrets.txt",
-			expectBlock: false,
+			requestPath: "..%252F..%252Frestricted%252Fsecrets.json",
+			expectBlock: true, // Double URL decoding now implemented
 			description: "Double URL-encoded path traversal",
 		},
 		{
 			name:        "Null byte truncation",
 			basePath:    tempDir,
-			requestPath: "safe/data/file1.json\x00../../restricted/secrets.txt",
+			requestPath: "safe/data/file1.json\x00../../restricted/secrets.json",
 			expectBlock: true,
 			description: "Null byte to truncate path validation",
 		},
@@ -785,7 +785,7 @@ func TestResourceExhaustionAttacks(t *testing.T) {
 
 	// Test excessive recursion through deeply nested paths
 	t.Run("DeepRecursion", func(t *testing.T) {
-		deepPath := strings.Repeat("a/", 10000) + "file.txt"
+		deepPath := strings.Repeat("a/", 10000) + "file.json"
 
 		start := time.Now()
 		err := validator.ValidateFilePath(deepPath, "deep recursion test")

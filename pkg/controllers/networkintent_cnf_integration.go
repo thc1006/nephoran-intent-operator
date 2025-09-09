@@ -34,6 +34,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -503,8 +504,8 @@ func (m *CNFIntegrationManager) validateProcessingResults(result *nephoranv1.CNF
 		return fmt.Errorf("no CNF deployment specifications generated")
 	}
 
-	if result.ConfidenceScore < 0.5 {
-		return fmt.Errorf("confidence score too low: %f", result.ConfidenceScore)
+	if confidenceScore, err := strconv.ParseFloat(result.ConfidenceScore, 64); err != nil || confidenceScore < 0.5 {
+		return fmt.Errorf("confidence score too low or invalid: %s", result.ConfidenceScore)
 	}
 
 	if len(result.Errors) > 0 {

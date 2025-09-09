@@ -95,7 +95,7 @@ var _ = Describe("NetworkIntent Webhook", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("should accept large replicas values", func() {
+			It("should accept large replicas values with warning", func() {
 				ni := &NetworkIntent{
 					Spec: NetworkIntentSpec{
 						IntentType: "scaling",
@@ -107,9 +107,10 @@ var _ = Describe("NetworkIntent Webhook", func() {
 				}
 
 				warnings, err := ni.ValidateCreate(ctx, ni)
-				Expect(warnings).NotTo(BeNil()) // Expect warning for high replicas > 100
-				Expect(warnings).To(ContainElement("spec.replicas is set to a very high value, consider reviewing resource requirements"))
 				Expect(err).NotTo(HaveOccurred())
+				Expect(warnings).NotTo(BeNil()) // Expect warning for high replicas
+				Expect(len(warnings)).To(Equal(1))
+				Expect(warnings[0]).To(ContainSubstring("very high value"))
 			})
 
 			It("should accept all valid source values", func() {

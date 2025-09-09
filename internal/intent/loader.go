@@ -58,6 +58,8 @@ func (l *Loader) LoadFromJSON(data []byte, sourcePath string) (*LoadResult, erro
 	schemaErrors := l.validator.ValidateJSON(data)
 	if len(schemaErrors) > 0 {
 		result.Errors = schemaErrors
+		// Return result with validation errors, but don't return error
+		// This allows the caller to handle validation failures through the result
 		return result, nil
 	}
 
@@ -68,6 +70,7 @@ func (l *Loader) LoadFromJSON(data []byte, sourcePath string) (*LoadResult, erro
 			Field:   "json",
 			Message: fmt.Sprintf("failed to unmarshal intent: %v", err),
 		}}
+		// JSON parsing errors are also validation errors, not system errors
 		return result, nil
 	}
 
@@ -75,6 +78,7 @@ func (l *Loader) LoadFromJSON(data []byte, sourcePath string) (*LoadResult, erro
 	bizErrors := l.validateBusinessLogic(&intent)
 	if len(bizErrors) > 0 {
 		result.Errors = bizErrors
+		// Business logic validation errors are validation errors, not system errors
 		return result, nil
 	}
 
@@ -131,8 +135,9 @@ func isValidKubernetesName(name string) bool {
 		return false
 	}
 
-	// Must start and end with alphanumeric
-	if !isAlphaNumeric(name[0]) || !isAlphaNumeric(name[len(name)-1]) {
+	// Must start with lowercase letter (not digit) and end with alphanumeric (per Kubernetes RFC 1123)
+	// DNS-1123 subdomain names require starting with a letter, not a digit
+	if !isLowercaseLetter(name[0]) || !isAlphaNumeric(name[len(name)-1]) {
 		return false
 	}
 
@@ -144,6 +149,11 @@ func isValidKubernetesName(name string) bool {
 	}
 
 	return true
+}
+
+// isLowercaseLetter checks if a byte is a lowercase letter (a-z)
+func isLowercaseLetter(b byte) bool {
+	return b >= 'a' && b <= 'z'
 }
 
 // isAlphaNumeric checks if a byte is alphanumeric lowercase

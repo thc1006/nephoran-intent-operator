@@ -16,6 +16,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // ValidatorInterface defines the contract for validation of network intents.
@@ -77,7 +79,7 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 	if ct != "" && !strings.HasPrefix(ct, "application/json") && !strings.HasPrefix(ct, "text/json") && !strings.HasPrefix(ct, "text/plain") {
 
-		http.Error(w, "Unsupported content type. Only application/json and text/plain are allowed.", http.StatusUnsupportedMediaType)
+		http.Error(w, "Invalid Content-Type", http.StatusUnsupportedMediaType)
 
 		return
 
@@ -156,7 +158,7 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 			}
 
-			payload = []byte(fmt.Sprintf(`{"intent_type":"scaling","target":%q,"namespace":%q,"replicas":%s,"source":"user"}`, m[1], m[3], m[2]))
+			payload = []byte(fmt.Sprintf(`{"intent_type":"scaling","target":%q,"namespace":%q,"replicas":%s,"source":"user","target_resources":["deployment/%s"],"status":"pending"}`, m[1], m[3], m[2], m[1]))
 
 		}
 
@@ -193,18 +195,52 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	ts := time.Now().UTC().Format("20060102T150405Z")
-
-	fileName := fmt.Sprintf("intent-%s.json", ts)
+	now := time.Now().UTC()
+	
+	// Generate collision-proof filename using nanosecond timestamp + UUID
+	fileName := fmt.Sprintf("intent-%d-%s.json", now.UnixNano(), uuid.New().String())
 
 	outFile := filepath.Join(h.outDir, fileName)
 
-	if err := os.WriteFile(outFile, payload, 0o640); err != nil {
+	// Ensure default values for target_resources and status
+	targetResources := intent.TargetResources
+	if targetResources == nil || len(targetResources) == 0 {
+		targetResources = []string{"deployment/" + intent.Target}
+	}
+	
+	status := intent.Status
+	if status == "" {
+		status = "pending"
+	}
 
-		http.Error(w, fmt.Sprintf("Failed to save intent to handoff directory: %s", err.Error()), http.StatusInternalServerError)
+	// Create the structured output for saving to file
+	structuredOutput := map[string]interface{}{
+		"id":               fmt.Sprintf("scale-%s-001", intent.Target),
+		"type":             intent.IntentType,
+		"description":      fmt.Sprintf("Scale %s to %d replicas", intent.Target, intent.Replicas),
+		"target_resources": targetResources,
+		"status":           status,
+		"parameters":       intent.ToPreviewFormat()["parameters"],
+	}
 
+	// Marshal structured output to JSON
+	structuredJSON, err := json.MarshalIndent(structuredOutput, "", "  ")
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to marshal structured output: %s", err.Error()), http.StatusInternalServerError)
 		return
+	}
 
+	// Use secure file creation with exclusive creation flags
+	f, err := os.OpenFile(outFile, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to create intent file: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+	defer f.Close()
+
+	if _, err := f.Write(structuredJSON); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to write intent to handoff directory: %s", err.Error()), http.StatusInternalServerError)
+		return
 	}
 
 	// Log with correlation ID if present.
@@ -226,7 +262,7 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 		"saved": outFile,
 
-		"preview": intent,
+		"preview": intent.ToPreviewFormat(),
 	}); err != nil {
 		log.Printf("Failed to encode response JSON: %v", err)
 	}

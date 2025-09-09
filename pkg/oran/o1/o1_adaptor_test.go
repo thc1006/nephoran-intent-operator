@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 	"time"
-	"encoding/json"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
@@ -234,7 +233,7 @@ func TestO1Adaptor_convertEventToAlarm(t *testing.T) {
 				Type:      "notification",
 				Timestamp: time.Now(),
 				Source:    "test-source",
-				Data: json.RawMessage(`{}`),
+				Data: map[string]interface{}{},
 			},
 			managedElementID: "test-element",
 			expectedAlarm:    true,
@@ -246,7 +245,7 @@ func TestO1Adaptor_convertEventToAlarm(t *testing.T) {
 				Timestamp: time.Now(),
 				Source:    "test-source",
 				XML:       "<alarm><severity>critical</severity></alarm>",
-				Data:      json.RawMessage(`{}`),
+				Data:      map[string]interface{}{},
 			},
 			managedElementID: "test-element",
 			expectedAlarm:    true,
@@ -452,4 +451,3 @@ func BenchmarkO1Adaptor_parseMetricValue(b *testing.B) {
 		_, _ = adaptor.parseMetricValue(xmlData, "cpu_usage")
 	}
 }
-

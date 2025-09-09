@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -288,7 +289,7 @@ func (r *WatchReconciler) parseIntentToJSON(ni *nephoranv1.NetworkIntent) (map[s
 
 	var target string
 
-	var replicas int
+	var replicas int = -1
 
 	for _, p := range patterns {
 
@@ -302,25 +303,33 @@ func (r *WatchReconciler) parseIntentToJSON(ni *nephoranv1.NetworkIntent) (map[s
 
 				target = matches[2]
 
-				replicas, _ = strconv.Atoi(matches[3])
+				if r, err := strconv.Atoi(matches[3]); err == nil && r >= 0 && r <= math.MaxInt32 {
+					replicas = r
+				}
 
 			case "scale_simple":
 
 				target = matches[1]
 
-				replicas, _ = strconv.Atoi(matches[2])
+				if r, err := strconv.Atoi(matches[2]); err == nil && r >= 0 && r <= math.MaxInt32 {
+					replicas = r
+				}
 
 			case "scale_colon":
 
 				target = matches[2]
 
-				replicas, _ = strconv.Atoi(matches[3])
+				if r, err := strconv.Atoi(matches[3]); err == nil && r >= 0 && r <= math.MaxInt32 {
+					replicas = r
+				}
 
 			case "scale_instances":
 
 				target = matches[1]
 
-				replicas, _ = strconv.Atoi(matches[2])
+				if r, err := strconv.Atoi(matches[2]); err == nil && r >= 0 && r <= math.MaxInt32 {
+					replicas = r
+				}
 
 			}
 
@@ -330,7 +339,7 @@ func (r *WatchReconciler) parseIntentToJSON(ni *nephoranv1.NetworkIntent) (map[s
 
 	}
 
-	if target == "" || replicas == 0 {
+	if target == "" || replicas <= 0 {
 		return nil, fmt.Errorf("unable to parse intent: %s", intent)
 	}
 
@@ -342,7 +351,17 @@ func (r *WatchReconciler) parseIntentToJSON(ni *nephoranv1.NetworkIntent) (map[s
 
 	// Create intent JSON matching docs/contracts/intent.schema.json.
 
-	return make(map[string]interface{}), nil
+	result := map[string]interface{}{
+		"intent_type":    "scaling",
+		"target":         target,
+		"namespace":      ni.Namespace,
+		"replicas":       replicas,
+		"source":         "conductor-watch",
+		"correlation_id": fmt.Sprintf("%s-%s-%d", ni.Name, ni.Namespace, time.Now().Unix()),
+		"reason":         fmt.Sprintf("Parsed from intent: %s", intent),
+	}
+
+	return result, nil
 }
 
 // writeIntentJSON writes the intent data to a JSON file.
@@ -376,7 +395,7 @@ func (r *WatchReconciler) writeIntentJSON(name string, data map[string]interface
 
 	// Write file.
 
-	if err := os.WriteFile(filepath, jsonData, 0o640); err != nil {
+	if err := os.WriteFile(filepath, jsonData, 0o644); err != nil {
 		return "", fmt.Errorf("failed to write file: %w", err)
 	}
 

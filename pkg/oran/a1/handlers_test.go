@@ -1,4 +1,3 @@
-// Package a1 provides comprehensive unit tests for A1 HTTP handlers
 package a1
 
 import (
@@ -9,12 +8,9 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"strings"
-	"sync"
 	"testing"
 	"time"
 
-	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"

@@ -22,7 +22,7 @@ import (
 
 var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 	var (
-		namespace       *corev1.Namespace
+		_       *corev1.Namespace // namespace unused
 		testCtx         context.Context
 		o2Server        *o2.O2APIServer
 		httpTestServer  *httptest.Server
@@ -32,7 +32,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 	)
 
 	BeforeEach(func() {
-		namespace = CreateO2TestNamespace()
+		_ = CreateO2TestNamespace() // namespace unused
 		var cancel context.CancelFunc
 		testCtx, cancel = context.WithTimeout(ctx, 25*time.Minute)
 		DeferCleanup(cancel)
@@ -45,16 +45,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 			ServerPort:     0,
 			TLSEnabled:     false,
 			DatabaseConfig: json.RawMessage(`{}`),
-			ProviderConfigs: map[string]interface{}{
-				"enabled": true,
-				"config":  json.RawMessage(`{}`),
-			},
-			LifecycleConfig: map[string]interface{}{
-				"maxRetries":       3,
-				"backoffFactor":    1.5,
-				"initialDelay":     "5s",
-				"stateTransitions": json.RawMessage(`{}`),
-			},
+			ProviderConfigs: []byte(`{"enabled": true}`),
 		}
 
 		var err error
@@ -131,10 +122,8 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 							"cpu":    "16",
 							"memory": "64Gi",
 						},
-						Properties: map[string]interface{}{
-							"architecture": "x86_64",
-						},
-						SupportedActions: []string{"CREATE", "DELETE", "UPDATE", "SCALE"},
+						Properties: []byte(`{"architecture": "x86_64"}`),
+						// SupportedActions: []string{"CREATE", "DELETE", "UPDATE", "SCALE"}, // Field not available
 					},
 				}
 
@@ -233,7 +222,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 
 			It("should prevent creation of resources with unresolved dependencies", func() {
 				By("attempting to create resource with non-existent dependency")
-				resourceID := fmt.Sprintf("orphan-resource-%d", time.Now().UnixNano())
+				_ = fmt.Sprintf("orphan-resource-%d", time.Now().UnixNano()) // resourceID unused
 				orphanResource := json.RawMessage(`{}`)
 
 				resourceJSON, err := json.Marshal(orphanResource)
@@ -302,7 +291,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 				resp.Body.Close()
 
 				By("updating resource pool capacity")
-				updatedCapacity := map[string]interface{}{
+				_ = map[string]interface{}{ // updatedCapacity unused
 					"cpu": map[string]interface{}{
 						"total":       "100",
 						"available":   "80",

@@ -75,6 +75,8 @@ type RAGAwarePromptBuilderStub struct{}
 // ConsolidatedStreamingProcessor provides a stub implementation
 type ConsolidatedStreamingProcessor struct{}
 
+// Note: BuiltContext and Document types are defined in missing_types.go
+
 // ContextBuilder provides a stub implementation
 type ContextBuilder struct {
 	Config *ContextBuilderConfig
@@ -90,6 +92,7 @@ func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
 	}
 }
 
+// Note: NewContextBuilder is defined in missing_types.go
 // CalculateRelevanceScores calculates relevance scores for documents against a query
 func (cb *ContextBuilder) CalculateRelevanceScores(ctx context.Context, query string, documents []Document) ([]RelevanceScore, error) {
 	scores := make([]RelevanceScore, len(documents))
@@ -115,6 +118,11 @@ func (cb *ContextBuilder) CalculateRelevanceScores(ctx context.Context, query st
 		}
 		
 		overallScore := (titleRelevance + contentRelevance + authorityScore) / 3.0
+		
+		// Apply quality threshold if configured
+		if cb.Config != nil && cb.Config.QualityThreshold > 0 && overallScore < cb.Config.QualityThreshold {
+			overallScore = 0.0 // Below threshold documents get 0 score
+		}
 		
 		factorsJSON, _ := json.Marshal(map[string]interface{}{
 			"title_relevance":   titleRelevance,
@@ -182,7 +190,20 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, query string, docume
 		}
 	}
 	
-	context := contextBuilder.String()
+	contextText := contextBuilder.String()
+	
+	// Respect MaxContextTokens if configured
+	if cb.Config != nil && cb.Config.MaxContextTokens > 0 {
+		// Simple token counting by word count approximation
+		words := len(strings.Fields(contextText))
+		if words > cb.Config.MaxContextTokens {
+			// Truncate to fit token budget
+			wordSlice := strings.Fields(contextText)
+			if len(wordSlice) > cb.Config.MaxContextTokens {
+				contextText = strings.Join(wordSlice[:cb.Config.MaxContextTokens], " ")
+			}
+		}
+	}
 	
 	// Calculate overall quality score
 	qualityScore := 0.0
@@ -197,14 +218,13 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, query string, docume
 	}
 	
 	return &BuiltContext{
-		Context:       context,
+		Context:       contextText,
 		UsedDocuments: selectedDocs,
 		QualityScore:  qualityScore,
-		TokenCount:    len(strings.Fields(context)), // Rough token approximation
+		TokenCount:    len(strings.Fields(contextText)), // Rough token approximation
 		BuildTime:     time.Since(startTime),
 	}, nil
 }
-
 // StreamingProcessor provides a stub implementation
 type StreamingProcessor struct{}
 
@@ -217,6 +237,36 @@ func (sp *StreamingProcessor) GetMetrics() map[string]interface{} {
 		"throughput":        0.0,
 	}
 }
+
+// CreateSession creates a new streaming session
+func (sp *StreamingProcessor) CreateSession(sessionID string, w interface{}, r interface{}) (*StreamingSession, error) {
+	return &StreamingSession{
+		ID:     sessionID,
+		Status: StreamingStatusActive,
+	}, nil
+}
+
+// GetActiveSessions returns list of active sessions
+func (sp *StreamingProcessor) GetActiveSessions() []string {
+	return []string{}
+}
+
+// StreamChunk streams a chunk to the session
+func (sp *StreamingProcessor) StreamChunk(sessionID string, chunk *StreamingChunk) error {
+	return nil
+}
+
+// CompleteStream completes the streaming session
+func (sp *StreamingProcessor) CompleteStream(sessionID string) error {
+	return nil
+}
+
+// NewStreamingProcessor creates a new streaming processor
+func NewStreamingProcessor(config *StreamingConfig) *StreamingProcessor {
+	return &StreamingProcessor{}
+}
+
+// Streaming constants are defined in streaming_processor.go
 
 // InMemoryStreamingContextManager is a stub implementation
 type InMemoryStreamingContextManager struct{}
@@ -241,6 +291,7 @@ func (m *InMemoryStreamingContextManager) Close() error {
 	return nil
 }
 
+// StreamingSession and StreamingChunk are defined in streaming_processor.go
 // StreamingContext is defined in interface_consolidated.go
 
 // Methods for ConsolidatedStreamingProcessor

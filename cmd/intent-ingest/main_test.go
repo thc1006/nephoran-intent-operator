@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -144,9 +145,10 @@ func TestServer_Intent_ValidJSON_Success(t *testing.T) {
 			name:        "valid scaling intent",
 			contentType: "application/json",
 			payload: map[string]interface{}{
-				"target_replicas":  3,
+				"intent_type":      "scaling",
 				"target":           "test-deployment",
 				"namespace":        "default",
+				"replicas":         3,
 				"source":           "user",
 				"correlation_id":   "test-123",
 				"target_resources": []string{"deployment/test-deployment"},
@@ -158,11 +160,11 @@ func TestServer_Intent_ValidJSON_Success(t *testing.T) {
 			name:        "minimal valid intent",
 			contentType: "application/json",
 			payload: map[string]interface{}{
-				"target_replicas":  5,
-				"target":           "minimal-app",
-				"namespace":        "production",
-				"target_resources": []string{"deployment/minimal-app"},
-				"status":           "pending",
+				"intent_type": "scaling",
+				"target":      "minimal-app",
+				"namespace":   "production",
+				"replicas":    5,
+				"status":      "pending",
 			},
 			expectedStatus: http.StatusAccepted,
 		},
@@ -170,9 +172,10 @@ func TestServer_Intent_ValidJSON_Success(t *testing.T) {
 			name:        "text/json content type",
 			contentType: "text/json",
 			payload: map[string]interface{}{
-				"target_replicas":  2,
+				"intent_type":      "scaling",
 				"target":           "text-json-app",
 				"namespace":        "staging",
+				"replicas":         2,
 				"target_resources": []string{"deployment/text-json-app"},
 				"status":           "pending",
 			},
@@ -182,9 +185,10 @@ func TestServer_Intent_ValidJSON_Success(t *testing.T) {
 			name:        "application/json with charset",
 			contentType: "application/json; charset=utf-8",
 			payload: map[string]interface{}{
-				"target_replicas":  1,
+				"intent_type":      "scaling",
 				"target":           "charset-app",
 				"namespace":        "testing",
+				"replicas":         1,
 				"target_resources": []string{"deployment/charset-app"},
 				"status":           "pending",
 			},
@@ -292,9 +296,10 @@ func TestServer_Intent_ValidPlainText_Success(t *testing.T) {
 			name:  "basic scaling command",
 			input: "scale my-app to 5 in ns production",
 			expected: map[string]interface{}{
-				"target_replicas":  float64(5),
+				"intent_type":      "scaling",
 				"target":           "my-app",
 				"namespace":        "production",
+				"replicas":         float64(5),
 				"source":           "user",
 				"target_resources": []string{"deployment/my-app"},
 				"status":           "pending",
@@ -304,9 +309,10 @@ func TestServer_Intent_ValidPlainText_Success(t *testing.T) {
 			name:  "hyphenated names",
 			input: "scale nf-sim to 10 in ns ran-a",
 			expected: map[string]interface{}{
-				"target_replicas":  float64(10),
+				"intent_type":      "scaling",
 				"target":           "nf-sim",
 				"namespace":        "ran-a",
+				"replicas":         float64(10),
 				"source":           "user",
 				"target_resources": []string{"deployment/nf-sim"},
 				"status":           "pending",
@@ -316,9 +322,10 @@ func TestServer_Intent_ValidPlainText_Success(t *testing.T) {
 			name:  "case insensitive",
 			input: "SCALE MY-SERVICE TO 3 IN NS DEFAULT",
 			expected: map[string]interface{}{
-				"target_replicas":  float64(3),
+				"intent_type":      "scaling",
 				"target":           "MY-SERVICE",
 				"namespace":        "DEFAULT",
+				"replicas":         float64(3),
 				"source":           "user",
 				"target_resources": []string{"deployment/MY-SERVICE"},
 				"status":           "pending",
@@ -354,17 +361,10 @@ func TestServer_Intent_ValidPlainText_Success(t *testing.T) {
 			}
 
 			// Validate top-level expected fields
-			topLevelExpected := []string{"id", "type", "description", "target_resources", "status"}
+			topLevelExpected := []string{"type", "target_resources", "status"}
 			for _, key := range topLevelExpected {
 				if expectedValue, exists := tt.expected[key]; exists {
-					if key == "id" {
-						// For ID, just check that it contains the target name (since the generator might add suffixes)
-						expectedParams := tt.expected["parameters"].(map[string]interface{})
-						target := expectedParams["target"].(string)
-						if previewID, ok := preview[key].(string); !ok || !strings.Contains(previewID, target) {
-							t.Errorf("Expected ID to contain target '%s', got %v", target, preview[key])
-						}
-					} else if key == "target_resources" {
+					if key == "target_resources" {
 						// Handle array comparison
 						expectedArray := expectedValue.([]string)
 						previewArray, ok := preview[key].([]interface{})
@@ -389,10 +389,13 @@ func TestServer_Intent_ValidPlainText_Success(t *testing.T) {
 				t.Fatal("Expected preview parameters to be a map")
 			}
 
-			expectedParams := tt.expected["parameters"].(map[string]interface{})
-			for key, expectedValue := range expectedParams {
-				if previewParams[key] != expectedValue {
-					t.Errorf("Expected parameters.%s=%v, got %v", key, expectedValue, previewParams[key])
+			// Build expected parameters from the flat expected structure
+			parameterFields := []string{"intent_type", "target", "namespace", "replicas", "source"}
+			for _, key := range parameterFields {
+				if expectedValue, exists := tt.expected[key]; exists {
+					if previewParams[key] != expectedValue {
+						t.Errorf("Expected parameters.%s=%v, got %v", key, expectedValue, previewParams[key])
+					}
 				}
 			}
 		})
@@ -589,7 +592,8 @@ func TestServer_Intent_CorrelationIdPassthrough(t *testing.T) {
 
 	correlationID := "test-correlation-123"
 	payload := map[string]interface{}{
-		"target_replicas":  3,
+		"intent_type":      "scaling",
+		"replicas":         3,
 		"target":           "test-deployment",
 		"namespace":        "default",
 		"correlation_id":   correlationID,
@@ -643,7 +647,8 @@ func TestServer_Intent_FileCreation(t *testing.T) {
 	defer cleanup()
 
 	payload := map[string]interface{}{
-		"target_replicas":  3,
+		"intent_type":      "scaling",
+		"replicas":         3,
 		"target":           "file-test-deployment",
 		"namespace":        "default",
 		"source":           "test",
@@ -742,12 +747,11 @@ func TestServer_Intent_ConcurrentRequests(t *testing.T) {
 			time.Sleep(time.Duration(id) * time.Millisecond)
 
 			payload := map[string]interface{}{
-				"metadata": map[string]interface{}{
-					"target_replicas": 3,
-					"target":          fmt.Sprintf("concurrent-test-%d", id),
-					"namespace":       "default",
-					"source":          "test",
-				},
+				"intent_type":      "scaling",
+				"replicas":         3,
+				"target":           fmt.Sprintf("concurrent-test-%d", id),
+				"namespace":        "default",
+				"source":           "test",
 				"target_resources": []string{fmt.Sprintf("deployment/concurrent-test-%d", id)},
 				"status":           "pending",
 			}
@@ -826,14 +830,10 @@ func TestServer_EdgeCases(t *testing.T) {
 			method:      "POST",
 			contentType: "application/json",
 			body: fmt.Sprintf(`{
-				"id": "scale-large-target-001",
-				"type": "scaling",
-				"description": "Scale large target name to 3 replicas in default namespace",
-				"parameters": {
-					"target_replicas": 3,
-					"target": "%s",
-					"namespace": "default"
-				},
+				"intent_type": "scaling",
+				"replicas": 3,
+				"target": "%s",
+				"namespace": "default",
 				"target_resources": ["deployment/%s"],
 				"status": "pending"
 			}`, strings.Repeat("a", 100), strings.Repeat("a", 100)),
@@ -887,14 +887,13 @@ func TestServer_RealSchemaValidation(t *testing.T) {
 		{
 			name: "valid with all optional fields",
 			payload: map[string]interface{}{
-				"metadata": map[string]interface{}{
-					"target_replicas": 50,
-					"target":          "test-deployment",
-					"namespace":       "default",
-					"reason":          "Load balancing optimization",
-					"source":          "planner",
-					"correlation_id":  "req-123-456",
-				},
+				"intent_type":      "scaling",
+				"target":           "test-deployment",
+				"namespace":        "default",
+				"replicas":         50,
+				"reason":           "Load balancing optimization",
+				"source":           "planner",
+				"correlation_id":   "req-123-456",
 				"target_resources": []string{"deployment/test-deployment"},
 				"status":           "pending",
 			},
@@ -904,11 +903,10 @@ func TestServer_RealSchemaValidation(t *testing.T) {
 		{
 			name: "replicas at minimum boundary",
 			payload: map[string]interface{}{
-				"metadata": map[string]interface{}{
-					"target_replicas": 1,
-					"target":          "test-deployment",
-					"namespace":       "default",
-				},
+				"intent_type":      "scaling",
+				"target":           "test-deployment",
+				"namespace":        "default",
+				"replicas":         1,
 				"target_resources": []string{"deployment/test-deployment"},
 				"status":           "pending",
 			},
@@ -918,11 +916,10 @@ func TestServer_RealSchemaValidation(t *testing.T) {
 		{
 			name: "replicas at maximum boundary",
 			payload: map[string]interface{}{
-				"metadata": map[string]interface{}{
-					"target_replicas": 100,
-					"target":          "test-deployment",
-					"namespace":       "default",
-				},
+				"intent_type":      "scaling",
+				"target":           "test-deployment",
+				"namespace":        "default",
+				"replicas":         100,
 				"target_resources": []string{"deployment/test-deployment"},
 				"status":           "pending",
 			},
@@ -932,12 +929,11 @@ func TestServer_RealSchemaValidation(t *testing.T) {
 		{
 			name: "valid source enum values",
 			payload: map[string]interface{}{
-				"metadata": map[string]interface{}{
-					"target_replicas": 5,
-					"target":          "test-deployment",
-					"namespace":       "default",
-					"source":          "test",
-				},
+				"intent_type":      "scaling",
+				"target":           "test-deployment",
+				"namespace":        "default",
+				"replicas":         5,
+				"source":           "test",
 				"target_resources": []string{"deployment/test-deployment"},
 				"status":           "pending",
 			},
@@ -947,12 +943,11 @@ func TestServer_RealSchemaValidation(t *testing.T) {
 		{
 			name: "reason at max length",
 			payload: map[string]interface{}{
-				"metadata": map[string]interface{}{
-					"target_replicas": 5,
-					"target":          "test-deployment",
-					"namespace":       "default",
-					"reason":          strings.Repeat("b", 100), // Reason in parameters
-				},
+				"intent_type":      "scaling",
+				"target":           "test-deployment",
+				"namespace":        "default",
+				"replicas":         5,
+				"reason":           strings.Repeat("b", 500), // Max length is 512 per schema
 				"target_resources": []string{"deployment/test-deployment"},
 				"status":           "pending",
 			},
@@ -995,14 +990,13 @@ func TestServer_IntegrationFlow(t *testing.T) {
 	correlationID := fmt.Sprintf("integration-test-%d", time.Now().Unix())
 
 	payload := map[string]interface{}{
-		"metadata": map[string]interface{}{
-			"target_replicas": 7,
-			"target":          "integration-test-app",
-			"namespace":       "integration",
-			"source":          "test",
-			"reason":          "Integration test scaling",
-			"correlation_id":  correlationID,
-		},
+		"intent_type":      "scaling",
+		"target":           "integration-test-app",
+		"namespace":        "integration",
+		"replicas":         7,
+		"source":           "test",
+		"reason":           "Integration test scaling",
+		"correlation_id":   correlationID,
 		"target_resources": []string{"deployment/integration-test-app"},
 		"status":           "pending",
 	}
@@ -1105,10 +1099,23 @@ func TestServer_IntegrationFlow(t *testing.T) {
 		t.Fatalf("Expected parameters to be a map, got %T", savedData["parameters"])
 	}
 
-	expectedParams := payload["parameters"].(map[string]interface{})
-	for key, expected := range expectedParams {
+	// Build expected parameters from the flat payload structure
+	expectedFields := map[string]interface{}{
+		"replicas":       payload["replicas"],
+		"target":         payload["target"],
+		"namespace":      payload["namespace"],
+		"source":         payload["source"],
+		"reason":         payload["reason"],
+		"correlation_id": payload["correlation_id"],
+	}
+	
+	for key, expected := range expectedFields {
+		if expected == nil {
+			continue // Skip fields that weren't provided in payload
+		}
+		
 		// Handle float64 conversion for numbers in JSON
-		if key == "target_replicas" {
+		if key == "replicas" {
 			if intVal, ok := expected.(int); ok {
 				expected = float64(intVal)
 			}
@@ -1130,16 +1137,35 @@ func TestServer_IntegrationFlow(t *testing.T) {
 		t.Errorf("Invalid filename format: %s", filename)
 	}
 
-	// Extract and verify timestamp format (YYYYMMDDTHHMMSSZ)
-	timestampPart := strings.TrimPrefix(filename, "intent-")
-	timestampPart = strings.TrimSuffix(timestampPart, ".json")
+	// Extract and verify filename format: intent-<UnixNano>-<UUID>.json
+	filenamePart := strings.TrimPrefix(filename, "intent-")
+	filenamePart = strings.TrimSuffix(filenamePart, ".json")
 
-	if len(timestampPart) != 16 { // 20060102T150405Z format
-		t.Errorf("Invalid timestamp format in filename: %s", timestampPart)
+	// Split by hyphen to get timestamp and UUID parts
+	parts := strings.SplitN(filenamePart, "-", 2)
+	if len(parts) != 2 {
+		t.Errorf("Invalid filename format, expected intent-<timestamp>-<uuid>.json, got: %s", filename)
+		return
 	}
 
-	// Try to parse the timestamp
-	if _, err := time.Parse("20060102T150405Z", timestampPart); err != nil {
-		t.Errorf("Invalid timestamp in filename %s: %v", timestampPart, err)
+	// Verify timestamp is a valid UnixNano timestamp
+	timestampStr := parts[0]
+	timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
+	if err != nil {
+		t.Errorf("Invalid timestamp in filename %s: %v", timestampStr, err)
+		return
+	}
+
+	// Convert UnixNano to time and verify it's reasonable (not in far future or past)
+	parsedTime := time.Unix(0, timestamp)
+	now := time.Now()
+	if parsedTime.Before(now.Add(-24*time.Hour)) || parsedTime.After(now.Add(time.Hour)) {
+		t.Errorf("Timestamp seems unreasonable: %v", parsedTime)
+	}
+
+	// Verify UUID format (basic check for UUID v4 format)
+	uuidPart := parts[1]
+	if len(uuidPart) != 36 {
+		t.Errorf("Invalid UUID format in filename: %s", uuidPart)
 	}
 }

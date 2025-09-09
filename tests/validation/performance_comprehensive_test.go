@@ -3,10 +3,10 @@ package test_validation
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"math"
+	mathrand "math/rand"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -16,6 +16,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
@@ -413,7 +414,7 @@ func (cpt *ComprehensivePerformanceTester) testSustainedThroughput(ctx context.C
 					intentCount++
 
 					// Small delay to prevent overwhelming the system
-					time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
+					time.Sleep(time.Duration(mathrand.Intn(500)) * time.Millisecond)
 				}
 			}
 		}(i)
@@ -510,7 +511,8 @@ func (cpt *ComprehensivePerformanceTester) testThroughputConsistency(ctx context
 	// Calculate variance
 	variance, _ := stats.Variance(throughputs)
 	stdDev, _ := stats.StandardDeviation(throughputs)
-	coefficientOfVariation := stdDev / stats.Mean(throughputs)
+	mean, _ := stats.Mean(throughputs)
+	coefficientOfVariation := stdDev / mean
 
 	result.ThroughputVariance = variance
 
@@ -771,11 +773,11 @@ func (cpt *ComprehensivePerformanceTester) waitForDeployment(ctx context.Context
 				continue
 			}
 
-			if current.Status.Phase == nephranv1.PhaseDeployed {
+			if current.Status.Phase == nephranv1.NetworkIntentPhaseDeployed {
 				return true
 			}
 
-			if current.Status.Phase == nephranv1.PhaseFailed {
+			if current.Status.Phase == nephranv1.NetworkIntentPhaseFailed {
 				return false
 			}
 		}
@@ -802,8 +804,8 @@ func (cpt *ComprehensivePerformanceTester) waitForProcessing(ctx context.Context
 			}
 
 			// Consider it successful if it's past pending phase
-			if current.Status.Phase != "" && current.Status.Phase != nephranv1.PhasePending {
-				return current.Status.Phase != nephranv1.PhaseFailed
+			if current.Status.Phase != "" && current.Status.Phase != nephranv1.NetworkIntentPhasePending {
+				return current.Status.Phase != nephranv1.NetworkIntentPhaseFailed
 			}
 		}
 	}
@@ -817,7 +819,7 @@ func (cpt *ComprehensivePerformanceTester) testLLMPipelineLatency(ctx context.Co
 		// In production, this would call the actual LLM service
 		// For now, simulate with realistic values
 		baseLatency := 200 * time.Millisecond
-		variance := time.Duration(rand.Intn(300)) * time.Millisecond
+		variance := time.Duration(mathrand.Intn(300)) * time.Millisecond
 		latencies[i] = baseLatency + variance
 	}
 
@@ -835,7 +837,7 @@ func (cpt *ComprehensivePerformanceTester) testPackageGenerationLatency(ctx cont
 	for i := 0; i < samples; i++ {
 		// In production, this would measure actual package generation
 		baseLatency := 150 * time.Millisecond
-		variance := time.Duration(rand.Intn(200)) * time.Millisecond
+		variance := time.Duration(mathrand.Intn(200)) * time.Millisecond
 		latencies[i] = baseLatency + variance
 	}
 
@@ -849,13 +851,13 @@ func (cpt *ComprehensivePerformanceTester) testPackageGenerationLatency(ctx cont
 func (cpt *ComprehensivePerformanceTester) testMemoryEfficiencyUnderLoad(ctx context.Context) float64 {
 	// In production, this would query Prometheus for actual memory metrics
 	// For now, return a simulated value
-	return 2048.0 + rand.Float64()*1024 // 2-3 GB
+	return 2048.0 + mathrand.Float64()*1024 // 2-3 GB
 }
 
 func (cpt *ComprehensivePerformanceTester) testCPUEfficiencyUnderLoad(ctx context.Context) float64 {
 	// In production, this would query Prometheus for actual CPU metrics
 	// For now, return a simulated value
-	return 150.0 + rand.Float64()*50 // 150-200%
+	return 150.0 + mathrand.Float64()*50 // 150-200%
 }
 
 func (cpt *ComprehensivePerformanceTester) calculatePercentileAdvanced(durations []time.Duration, percentile int) time.Duration {
@@ -1018,5 +1020,10 @@ func (pmc *PerformanceMetricsCollector) getMetrics() map[string]interface{} {
 	pmc.mu.RLock()
 	defer pmc.mu.RUnlock()
 
-	return json.RawMessage(`{}`)
+	return map[string]interface{}{
+		"success_count": atomic.LoadInt64(&pmc.successCount),
+		"error_count":   atomic.LoadInt64(&pmc.errorCount),
+		"bytes_processed": atomic.LoadInt64(&pmc.bytesProcessed),
+		"latency_count": len(pmc.latencies),
+	}
 }

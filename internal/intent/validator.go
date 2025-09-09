@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -19,7 +20,7 @@ type ValidatorMetrics struct {
 	ValidationSuccesses int64
 	ValidationErrors    int64
 	SchemaLoadFailures  int64
-	LastValidationTime  time.Time
+	LastValidationTime  int64 // Unix timestamp stored atomically
 }
 
 // Validator handles JSON schema validation for scaling intents
@@ -31,6 +32,7 @@ type Validator struct {
 	logger       *slog.Logger
 	metrics      atomic.Pointer[ValidatorMetrics]
 	initialized  atomic.Bool
+	mu           sync.RWMutex // Protects concurrent access to validator state
 }
 
 // NewValidator creates a new validator using the schema from docs/contracts/intent.schema.json
@@ -109,13 +111,28 @@ func NewValidator(projectRoot string) (*Validator, error) {
 
 // ValidateIntent validates a ScalingIntent against the JSON schema
 func (v *Validator) ValidateIntent(intent *ScalingIntent) []ValidationError {
-	// Update metrics
+	// Protect concurrent access with read lock for validation
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+	
+	// Update metrics - safe to access under read lock
 	metrics := v.metrics.Load()
 	if metrics != nil {
 		atomic.AddInt64(&metrics.TotalValidations, 1)
-		metrics.LastValidationTime = time.Now()
+		atomic.StoreInt64(&metrics.LastValidationTime, time.Now().Unix())
 	}
 	
+	// Check for nil intent - additional safety validation
+	if intent == nil {
+		if metrics != nil {
+			atomic.AddInt64(&metrics.ValidationErrors, 1)
+		}
+		return []ValidationError{{
+			Field:   "intent",
+			Message: "intent cannot be nil",
+		}}
+	}
+
 	// Schema should never be nil if validator was created successfully
 	if v.schema == nil || !v.initialized.Load() {
 		// This should never happen if NewValidator succeeded
@@ -134,6 +151,10 @@ func (v *Validator) ValidateIntent(intent *ScalingIntent) []ValidationError {
 	// Convert intent to JSON for validation
 	data, err := json.Marshal(intent)
 	if err != nil {
+		if metrics != nil {
+			atomic.AddInt64(&metrics.ValidationErrors, 1)
+		}
+
 		return []ValidationError{{
 			Field:   "json",
 			Message: fmt.Sprintf("failed to marshal intent: %v", err),
@@ -169,11 +190,26 @@ func (v *Validator) ValidateIntent(intent *ScalingIntent) []ValidationError {
 
 // ValidateJSON validates raw JSON data against the schema
 func (v *Validator) ValidateJSON(data []byte) []ValidationError {
-	// Update metrics
+	// Protect concurrent access with read lock for validation
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+	
+	// Update metrics - safe to access under read lock
 	metrics := v.metrics.Load()
 	if metrics != nil {
 		atomic.AddInt64(&metrics.TotalValidations, 1)
-		metrics.LastValidationTime = time.Now()
+		atomic.StoreInt64(&metrics.LastValidationTime, time.Now().Unix())
+	}
+	
+	// Check for nil or empty data - additional safety validation
+	if data == nil || len(data) == 0 {
+		if metrics != nil {
+			atomic.AddInt64(&metrics.ValidationErrors, 1)
+		}
+		return []ValidationError{{
+			Field:   "json",
+			Message: "JSON data cannot be nil or empty",
+		}}
 	}
 	
 	var obj interface{}
@@ -279,7 +315,7 @@ func (v *Validator) GetMetrics() ValidatorMetrics {
 		ValidationSuccesses: atomic.LoadInt64(&metrics.ValidationSuccesses),
 		ValidationErrors:    atomic.LoadInt64(&metrics.ValidationErrors),
 		SchemaLoadFailures:  atomic.LoadInt64(&metrics.SchemaLoadFailures),
-		LastValidationTime:  metrics.LastValidationTime,
+		LastValidationTime:  atomic.LoadInt64(&metrics.LastValidationTime),
 	}
 }
 

@@ -1,5 +1,3 @@
-//go:build go1.24
-
 package nephio
 
 import (
@@ -1147,4 +1145,3 @@ func (n *EnhancedNephioSystem) ManageResources(ctx context.Context, spec Resourc
 		QuotaViolation:     false,
 	}, nil
 }
-

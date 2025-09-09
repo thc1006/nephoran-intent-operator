@@ -42,7 +42,7 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
 )
 
 // TestEnvironmentOptions configures the test environment setup.
@@ -1118,28 +1118,7 @@ func (te *TestEnvironment) cleanupTestResources() {
 
 func (te *TestEnvironment) cleanupE2NodeSets(ctx context.Context, namespace string) error {
 
-	e2nodesetList := &nephoranv1.E2NodeSetList{}
-
-	if err := te.K8sClient.List(ctx, e2nodesetList, client.InNamespace(namespace)); err != nil {
-
-		return client.IgnoreNotFound(err)
-
-	}
-
-	for i := range e2nodesetList.Items {
-
-		if err := te.K8sClient.Delete(ctx, &e2nodesetList.Items[i]); err != nil {
-
-			if !errors.IsNotFound(err) {
-
-				GinkgoLogr.Error(err, "Failed to delete E2NodeSet", "name", e2nodesetList.Items[i].Name)
-
-			}
-
-		}
-
-	}
-
+	// E2NodeSet type not defined in API, skip cleanup
 	return nil
 
 }
@@ -1174,28 +1153,7 @@ func (te *TestEnvironment) cleanupNetworkIntents(ctx context.Context, namespace 
 
 func (te *TestEnvironment) cleanupManagedElements(ctx context.Context, namespace string) error {
 
-	managedElementList := &nephoranv1.ManagedElementList{}
-
-	if err := te.K8sClient.List(ctx, managedElementList, client.InNamespace(namespace)); err != nil {
-
-		return client.IgnoreNotFound(err)
-
-	}
-
-	for i := range managedElementList.Items {
-
-		if err := te.K8sClient.Delete(ctx, &managedElementList.Items[i]); err != nil {
-
-			if !errors.IsNotFound(err) {
-
-				GinkgoLogr.Error(err, "Failed to delete ManagedElement", "name", managedElementList.Items[i].Name)
-
-			}
-
-		}
-
-	}
-
+	// ManagedElement type not defined in API, skip cleanup
 	return nil
 
 }
@@ -1372,35 +1330,11 @@ func (te *TestEnvironment) waitForNamespaceCleanup(ctx context.Context, namespac
 
 		// Check if custom resources are gone.
 
-		e2nodesetList := &nephoranv1.E2NodeSetList{}
-
-		if err := te.K8sClient.List(ctx, e2nodesetList, client.InNamespace(namespace)); err == nil {
-
-			if len(e2nodesetList.Items) > 0 {
-
-				return false
-
-			}
-
-		}
-
 		networkIntentList := &nephoranv1.NetworkIntentList{}
 
 		if err := te.K8sClient.List(ctx, networkIntentList, client.InNamespace(namespace)); err == nil {
 
 			if len(networkIntentList.Items) > 0 {
-
-				return false
-
-			}
-
-		}
-
-		managedElementList := &nephoranv1.ManagedElementList{}
-
-		if err := te.K8sClient.List(ctx, managedElementList, client.InNamespace(namespace)); err == nil {
-
-			if len(managedElementList.Items) > 0 {
 
 				return false
 
@@ -1591,9 +1525,9 @@ func (te *TestEnvironment) VerifyCRDInstallation() error {
 
 		"networkintents.nephoran.com",
 
-		"e2nodesets.nephoran.com",
+		// "e2nodesets.nephoran.com", // Not implemented yet
 
-		"managedelements.nephoran.com",
+		// "managedelements.nephoran.com", // Not implemented yet
 	}
 
 	ctx, cancel := te.GetContextWithTimeout(60 * time.Second)
@@ -1636,19 +1570,13 @@ func (te *TestEnvironment) verifySingleCRD(ctx context.Context, crdName string) 
 
 		case strings.Contains(crdName, "e2nodesets"):
 
-			e2nsList := &nephoranv1.E2NodeSetList{}
-
-			err := te.K8sClient.List(ctx, e2nsList)
-
-			return err == nil || !errors.IsNotFound(err)
+			// E2NodeSet type not defined, skip verification
+			return true
 
 		case strings.Contains(crdName, "managedelements"):
 
-			meList := &nephoranv1.ManagedElementList{}
-
-			err := te.K8sClient.List(ctx, meList)
-
-			return err == nil || !errors.IsNotFound(err)
+			// ManagedElement type not defined, skip verification
+			return true
 
 		}
 
@@ -2008,7 +1936,8 @@ func (te *TestEnvironment) CreateTestNetworkIntent(name, namespace, intent strin
 
 		Spec: nephoranv1.NetworkIntentSpec{
 
-			Intent: intent,
+			// Intent field doesn't exist in NetworkIntentSpec, using IntentType instead
+			IntentType: intent,
 		},
 	}
 
@@ -2024,60 +1953,17 @@ func (te *TestEnvironment) CreateTestNetworkIntent(name, namespace, intent strin
 
 // CreateTestE2NodeSet creates an E2NodeSet for testing.
 
-func (te *TestEnvironment) CreateTestE2NodeSet(name, namespace string, replicas int32) (*nephoranv1.E2NodeSet, error) {
+func (te *TestEnvironment) CreateTestE2NodeSet(name, namespace string, replicas int32) (interface{}, error) {
 
-	e2ns := &nephoranv1.E2NodeSet{
-
-		ObjectMeta: metav1.ObjectMeta{
-
-			Name: name,
-
-			Namespace: namespace,
-		},
-
-		Spec: nephoranv1.E2NodeSetSpec{
-
-			Replicas: replicas,
-		},
-	}
-
-	if err := te.CreateTestObject(e2ns); err != nil {
-
-		return nil, err
-
-	}
-
-	return e2ns, nil
+	return nil, fmt.Errorf("E2NodeSet type not implemented")
 
 }
 
 // CreateTestManagedElement creates a ManagedElement for testing.
 
-func (te *TestEnvironment) CreateTestManagedElement(name, namespace string) (*nephoranv1.ManagedElement, error) {
+func (te *TestEnvironment) CreateTestManagedElement(name, namespace string) (interface{}, error) {
 
-	me := &nephoranv1.ManagedElement{
-
-		ObjectMeta: metav1.ObjectMeta{
-
-			Name: name,
-
-			Namespace: namespace,
-		},
-
-		Spec: nephoranv1.ManagedElementSpec{
-
-			// Add default spec fields as needed.
-
-		},
-	}
-
-	if err := te.CreateTestObject(me); err != nil {
-
-		return nil, err
-
-	}
-
-	return me, nil
+	return nil, fmt.Errorf("ManagedElement type not implemented")
 
 }
 
@@ -2111,23 +1997,7 @@ func (te *TestEnvironment) WaitForNetworkIntentReady(namespacedName types.Namesp
 
 func (te *TestEnvironment) WaitForE2NodeSetReady(namespacedName types.NamespacedName, expectedReplicas int32) error {
 
-	e2ns := &nephoranv1.E2NodeSet{}
-
-	te.Eventually(func() bool {
-
-		err := te.GetTestObject(namespacedName, e2ns)
-
-		if err != nil {
-
-			return false
-
-		}
-
-		return e2ns.Status.ReadyReplicas == expectedReplicas
-
-	}, "E2NodeSet should have expected ready replicas")
-
-	return nil
+	return fmt.Errorf("E2NodeSet type not implemented")
 
 }
 
@@ -2135,35 +2005,7 @@ func (te *TestEnvironment) WaitForE2NodeSetReady(namespacedName types.Namespaced
 
 func (te *TestEnvironment) WaitForManagedElementReady(namespacedName types.NamespacedName) error {
 
-	me := &nephoranv1.ManagedElement{}
-
-	te.Eventually(func() bool {
-
-		err := te.GetTestObject(namespacedName, me)
-
-		if err != nil {
-
-			return false
-
-		}
-
-		// Check if ManagedElement has Ready condition.
-
-		for _, condition := range me.Status.Conditions {
-
-			if condition.Type == "Ready" && condition.Status == metav1.ConditionTrue {
-
-				return true
-
-			}
-
-		}
-
-		return false
-
-	}, "ManagedElement should be ready")
-
-	return nil
+	return fmt.Errorf("ManagedElement type not implemented")
 
 }
 

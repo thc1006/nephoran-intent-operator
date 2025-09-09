@@ -142,6 +142,18 @@ deps-download: ## Download dependencies with timeout
 	}
 	@echo "✅ Dependencies downloaded"
 
+.PHONY: ci-status
+ci-status: ## Check CI build status
+	@echo "📊 CI Build Status:"
+	@if [ -d "$(BIN_DIR)" ]; then \
+		echo "  ✅ Binary directory exists"; \
+		echo "  📦 Built binaries:"; \
+		ls -la $(BIN_DIR)/ 2>/dev/null | head -10 || echo "    No binaries found"; \
+	else \
+		echo "  ⚠️ No binaries built yet"; \
+	fi
+	@echo "✅ CI status check completed"
+
 .PHONY: debug-build
 debug-build: ## Debug build issues with verbose output
 	@echo "🐛 Debug build process..."

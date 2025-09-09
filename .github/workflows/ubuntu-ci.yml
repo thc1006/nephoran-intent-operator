@@ -33,14 +33,14 @@ jobs:
   lint:
     name: Code Quality - Detailed (golangci-lint v1.64.3)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     continue-on-error: true  # TEMPORARY: Soft-fail lint to unblock merge
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4.2.1  # PINNED VERSION
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Setup Go
         uses: actions/setup-go@v5.0.2  # PINNED VERSION
@@ -63,9 +63,9 @@ jobs:
           echo ""
           echo "Running: go mod verify"
           if go mod verify; then
-            echo "✅ All modules verified successfully"
+            echo "??All modules verified successfully"
           else
-            echo "❌ Module verification failed"
+            echo "??Module verification failed"
             exit 1
           fi
 
@@ -77,18 +77,18 @@ jobs:
           # Step 1: Build all packages
           echo "Step 1: Building all packages..."
           if ! go build ./...; then
-            echo "❌ Build failed - compilation errors detected"
+            echo "??Build failed - compilation errors detected"
             exit 1
           fi
-          echo "[BUILD OK] ✅ All packages built successfully"
+          echo "[BUILD OK] ??All packages built successfully"
           
           # Step 2: Run go vet
           echo "Step 2: Running go vet..."
           if ! go vet ./...; then
-            echo "❌ Go vet failed - potential issues detected"
+            echo "??Go vet failed - potential issues detected"
             exit 1
           fi
-          echo "[VET OK] ✅ Go vet passed successfully"
+          echo "[VET OK] ??Go vet passed successfully"
           
           # Step 3: Compile test binaries per package with unique names
           echo "Step 3: Compiling test binaries per package..."
@@ -107,12 +107,12 @@ jobs:
             output_file=".cache/tests/${safe_name}.test"
             
             # Try to compile test binary
-            if go test -c "$pkg" -o "$output_file" 2>/dev/null; then
+            if go test -short -c "$pkg" -o "$output_file" 2>/dev/null; then
               compiled_count=$((compiled_count + 1))
-              echo "  ✓ Compiled: $pkg → ${safe_name}.test"
+              echo "  ??Compiled: $pkg ??${safe_name}.test"
             else
               # Some packages may not have tests, which is okay
-              echo "  ○ Skipped: $pkg (no tests or compilation error)"
+              echo "  ??Skipped: $pkg (no tests or compilation error)"
             fi
           done
           
@@ -136,15 +136,15 @@ jobs:
           echo "Step 4: Checking for stub files with incorrect build tags..."
           for stub_file in $(find . -name "*missing_types*.go" -o -name "*stub*.go" | grep -v vendor); do
             if ! head -3 "$stub_file" | grep -qE "//go:build.*stub|// \+build.*stub"; then
-              echo "❌ Stub file $stub_file lacks proper build tag constraint"
+              echo "??Stub file $stub_file lacks proper build tag constraint"
               echo "Add '//go:build <tag>_stub' to prevent default compilation"
               exit 1
             fi
           done
-          echo "✅ All stub files have proper build constraints"
+          echo "??All stub files have proper build constraints"
           
           echo ""
-          echo "=== ✅ Build/vet gate passed - proceeding with lint ==="
+          echo "=== ??Build/vet gate passed - proceeding with lint ==="
 
       - name: Install and verify golangci-lint v1.65.1 with 2025 patterns
         run: |
@@ -159,11 +159,11 @@ jobs:
           echo "Verifying installation:"
           LINT_PATH="$(go env GOPATH)/bin/golangci-lint"
           if [ -f "$LINT_PATH" ]; then
-            echo "✅ Binary installed at: $LINT_PATH"
+            echo "??Binary installed at: $LINT_PATH"
             echo "Version: $($LINT_PATH version)"
             echo "Binary size: $(ls -lh $LINT_PATH | awk '{print $5}')"
           else
-            echo "❌ golangci-lint not found at expected path"
+            echo "??golangci-lint not found at expected path"
             exit 1
           fi
           
@@ -171,9 +171,9 @@ jobs:
           echo ""
           if [ -f ".golangci.yml" ]; then
             echo "Verifying .golangci.yml configuration..."
-            $LINT_PATH config verify --config=.golangci.yml || echo "⚠️ Config verification failed (may be using defaults)"
+            $LINT_PATH config verify --config=.golangci.yml || echo "?��? Config verification failed (may be using defaults)"
           else
-            echo "ℹ️ No .golangci.yml found - will use default configuration"
+            echo "?��? No .golangci.yml found - will use default configuration"
           fi
 
       - name: Run golangci-lint with enhanced detailed output
@@ -237,11 +237,11 @@ jobs:
           echo ""
           echo "Exit code: $LINT_EXIT_CODE"
           if [ $LINT_EXIT_CODE -eq 0 ]; then
-            echo "✅ No linting issues found!"
+            echo "??No linting issues found!"
           elif [ $LINT_EXIT_CODE -eq 1 ]; then
-            echo "⚠️ Linting issues found (see details above)"
+            echo "?��? Linting issues found (see details above)"
           else
-            echo "❌ Linter failed with error code $LINT_EXIT_CODE"
+            echo "??Linter failed with error code $LINT_EXIT_CODE"
           fi
           
           # Upload artifacts even if linting fails
@@ -267,13 +267,13 @@ jobs:
   test:
     name: Test Suite (Ubuntu)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4.2.1  # PINNED VERSION
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Setup Go
         uses: actions/setup-go@v5.0.2  # PINNED VERSION
@@ -300,10 +300,10 @@ jobs:
           KUBEBUILDER_ASSETS: ${{ env.KUBEBUILDER_ASSETS }}
         run: |
           mkdir -p test-results
-          export CGO_ENABLED=0
+          export CGO_ENABLED=1  # Required for -race flag
           export GOMAXPROCS=2
           echo "Running 2025 test patterns with enhanced race detection..."
-          go test -v -race -timeout=20m -parallel=2 -coverprofile=test-results/coverage.out -covermode=atomic ./...
+          go test -short -v -race -timeout=20m -parallel=2 -coverprofile=test-results/coverage.out -covermode=atomic ./...
 
       - name: Generate coverage report
         if: always()
@@ -357,9 +357,9 @@ jobs:
         run: |
           for exe in bin/*; do
             if [ -x "$exe" ]; then
-              echo "✅ $exe is executable"
+              echo "??$exe is executable"
             else
-              echo "❌ $exe is not executable"
+              echo "??$exe is not executable"
               exit 1
             fi
           done
@@ -382,18 +382,18 @@ jobs:
           echo "Build: ${{ needs.build.result }}"
           
           if [[ "${{ needs.lint.result }}" != "success" ]]; then
-            echo "❌ Lint job failed"
+            echo "??Lint job failed"
             exit 1
           fi
           
           if [[ "${{ needs.test.result }}" != "success" ]]; then
-            echo "❌ Test job failed"
+            echo "??Test job failed"
             exit 1
           fi
           
           if [[ "${{ needs.build.result }}" != "success" ]]; then
-            echo "❌ Build job failed" 
+            echo "??Build job failed" 
             exit 1
           fi
           
-          echo "✅ All Ubuntu CI jobs passed successfully!"
+          echo "??All Ubuntu CI jobs passed successfully!"

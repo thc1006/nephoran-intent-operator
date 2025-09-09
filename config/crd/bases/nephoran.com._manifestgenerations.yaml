@@ -414,8 +414,8 @@ spec:
                     description:
                       type: string
                     improvementPercent:
-                      maximum: 100
-                      type: number
+                      pattern: ^(100(\.0+)?|[0-9]?[0-9](\.[0-9]+)?)$
+                      type: string
                     manifestName:
                       type: string
                     optimizationType:
@@ -433,8 +433,8 @@ spec:
               phase:
                 type: string
               qualityScore:
-                maximum: 1
-                type: number
+                pattern: ^(0(\.[0-9]+)?|1(\.0+)?)$
+                type: string
               resourceReferences:
                 items:
                   properties:
@@ -474,8 +474,8 @@ spec:
                         compliant:
                           type: boolean
                         score:
-                          maximum: 1
-                          type: number
+                          pattern: ^(0(\.[0-9]+)?|1(\.0+)?)$
+                          type: string
                         standard:
                           type: string
                         version:
@@ -490,8 +490,8 @@ spec:
                       type: object
                     type: array
                   overallScore:
-                    maximum: 1
-                    type: number
+                    pattern: ^(0(\.[0-9]+)?|1(\.0+)?)$
+                    type: string
                   recommendations:
                     items:
                       type: string
@@ -504,8 +504,8 @@ spec:
                             type: string
                           type: array
                         cvssScore:
-                          maximum: 10
-                          type: number
+                          pattern: ^(10(\.0+)?|[0-9](\.[0-9]+)?)$
+                          type: string
                         description:
                           type: string
                         remediation:

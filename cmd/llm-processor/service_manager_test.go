@@ -66,8 +66,8 @@ func (h *BufferLogHandler) Handle(ctx context.Context, record slog.Record) error
 		return err
 	}
 
-	h.buffer.Write(data)
-	h.buffer.WriteString("\n")
+	_, _ = h.buffer.Write(data) // #nosec G104 - Buffer write in test
+	_, _ = h.buffer.WriteString("\n") // #nosec G104 - Buffer write in test
 	return nil
 }
 
@@ -140,7 +140,7 @@ func (m *MockStreamingProcessor) HandleStreamingRequest(w http.ResponseWriter, r
 	}
 	// Default mock implementation - just return success
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("mock streaming response"))
+	_, _ = w.Write([]byte("mock streaming response")) // #nosec G104 - Mock write in test
 	return nil
 }
 
@@ -250,7 +250,7 @@ func TestStructuredLoggingInStreamingHandler(t *testing.T) {
 						return tt.mockError
 					}
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte("test response"))
+					_, _ = w.Write([]byte("test response")) // #nosec G104 - Test response write
 					return nil
 				},
 			}
@@ -757,9 +757,14 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 		{
 			name: "All circuit breakers operational (closed)",
 			stats: map[string]interface{}{
-				"state":     "closed",
-				"failures":  0,
-				"service-b": make(map[string]interface{}),
+				"service-a": map[string]interface{}{
+					"state":    "closed",
+					"failures": 0,
+				},
+				"service-b": map[string]interface{}{
+					"state":    "closed",
+					"failures": 1,
+				},
 			},
 			expectedStatus:  health.StatusHealthy,
 			expectedMessage: "All circuit breakers operational",
@@ -768,8 +773,10 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 		{
 			name: "All circuit breakers half-open (should be operational)",
 			stats: map[string]interface{}{
-				"state":    "half-open",
-				"failures": 2,
+				"service-a": map[string]interface{}{
+					"state":    "half-open",
+					"failures": 2,
+				},
 			},
 			expectedStatus:  health.StatusHealthy,
 			expectedMessage: "All circuit breakers operational",
@@ -778,8 +785,10 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 		{
 			name: "Single circuit breaker open",
 			stats: map[string]interface{}{
-				"state":    "open",
-				"failures": 5,
+				"service-a": map[string]interface{}{
+					"state":    "open",
+					"failures": 5,
+				},
 			},
 			expectedStatus:  health.StatusUnhealthy,
 			expectedMessage: "Circuit breakers in open state: [service-a]",
@@ -788,10 +797,18 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 		{
 			name: "Multiple circuit breakers with one open",
 			stats: map[string]interface{}{
-				"state":     "closed",
-				"failures":  0,
-				"service-b": make(map[string]interface{}),
-				"service-c": make(map[string]interface{}),
+				"service-a": map[string]interface{}{
+					"state":    "closed",
+					"failures": 0,
+				},
+				"service-b": map[string]interface{}{
+					"state":    "open",
+					"failures": 3,
+				},
+				"service-c": map[string]interface{}{
+					"state":    "closed",
+					"failures": 0,
+				},
 			},
 			expectedStatus:  health.StatusUnhealthy,
 			expectedMessage: "Circuit breakers in open state: [service-b]",
@@ -804,7 +821,10 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 					"state":    "open",
 					"failures": 3,
 				},
-				"service-b": make(map[string]interface{}),
+				"service-b": map[string]interface{}{
+					"state":    "open",
+					"failures": 2,
+				},
 			},
 			expectedStatus:  health.StatusUnhealthy,
 			expectedMessage: "Circuit breakers in open state: [service-a, service-b]",
@@ -925,12 +945,14 @@ func TestRegisterHealthChecksIntegration(t *testing.T) {
 		// Register health checks
 		sm.registerHealthChecks()
 
-		// Verify circuit breaker health check was NOT registered
+		// Verify circuit breaker health check was registered but returns healthy status
 		ctx := context.Background()
 		result := sm.healthChecker.RunCheck(ctx, "circuit_breaker")
 
-		// Should be nil since the check wasn't registered
-		assert.Nil(t, result)
+		// Should return healthy status with no circuit breakers message
+		require.NotNil(t, result)
+		assert.Equal(t, health.StatusHealthy, result.Status)
+		assert.Equal(t, "No circuit breakers registered", result.Message)
 	})
 }
 

@@ -4,9 +4,28 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
+
+// compareIntentStructs compares two Intent structs for equality, handling slices and maps properly
+func compareIntentStructs(a, b Intent) bool {
+	return a.IntentType == b.IntentType &&
+		a.Target == b.Target &&
+		a.Namespace == b.Namespace &&
+		a.Replicas == b.Replicas &&
+		a.Reason == b.Reason &&
+		a.Source == b.Source &&
+		a.CorrelationID == b.CorrelationID &&
+		reflect.DeepEqual(a.TargetResources, b.TargetResources) &&
+		a.Status == b.Status &&
+		a.Priority == b.Priority &&
+		a.CreatedAt == b.CreatedAt &&
+		a.UpdatedAt == b.UpdatedAt &&
+		reflect.DeepEqual(a.Constraints, b.Constraints) &&
+		reflect.DeepEqual(a.NephioContext, b.NephioContext)
+}
 
 func TestNewValidator(t *testing.T) {
 	// Create a temporary schema file for testing
@@ -246,7 +265,7 @@ func TestValidateBytes_ValidCases(t *testing.T) {
 				return
 			}
 
-			if *result != tt.expected {
+			if !compareIntentStructs(*result, tt.expected) {
 				t.Errorf("Expected %+v, got %+v", tt.expected, *result)
 			}
 		})
@@ -726,6 +745,13 @@ func TestNewValidator_FileSystemErrors(t *testing.T) {
 				err = os.Chmod(schemaFile, 0000)
 				if err != nil {
 					t.Skipf("Cannot modify file permissions on this system: %v", err)
+				}
+				
+				// On Windows, check if the permission change actually worked
+				// If we can still read the file, skip the test as permission changes don't work as expected
+				testData, readErr := os.ReadFile(schemaFile)
+				if readErr == nil && len(testData) > 0 {
+					t.Skipf("File permission changes don't work on this system (likely Windows) - file is still readable")
 				}
 				
 				return schemaFile

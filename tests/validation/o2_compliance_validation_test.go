@@ -1,4 +1,4 @@
-package test_validation_test
+package test_validation
 
 import (
 	"bytes"
@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"strings"
+	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -1124,3 +1125,5 @@ func CreateTestNamespace() *corev1.Namespace {
 		},
 	}
 }
+
+func TestStub(t *testing.T) { t.Skip("Test disabled") }

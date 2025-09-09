@@ -57,13 +57,13 @@ jobs:
           WORKFLOW_PATH=".github/workflows/$TARGET_WORKFLOW"
           
           if [ ! -f "$WORKFLOW_PATH" ]; then
-            echo "âŒ Workflow file not found: $WORKFLOW_PATH"
+            echo "??Workflow file not found: $WORKFLOW_PATH"
             echo "Available workflows:"
             ls -la .github/workflows/*.yml
             exit 1
           fi
           
-          echo "âœ… Target workflow validated: $TARGET_WORKFLOW"
+          echo "??Target workflow validated: $TARGET_WORKFLOW"
           echo "workflow_path=$WORKFLOW_PATH" >> $GITHUB_OUTPUT
           
           # Extract workflow name from file
@@ -92,7 +92,7 @@ jobs:
           }
           EOF
           
-          echo "âœ… Disable marker created: $DISABLE_FILE"
+          echo "??Disable marker created: $DISABLE_FILE"
 
       - name: Modify workflow file
         run: |
@@ -101,12 +101,12 @@ jobs:
           
           # Create backup
           cp "$WORKFLOW_PATH" "$BACKUP_PATH"
-          echo "âœ… Backup created: $BACKUP_PATH"
+          echo "??Backup created: $BACKUP_PATH"
           
           # Add disable check at the top of the workflow
           cat > "$WORKFLOW_PATH.tmp" << 'EOF'
           # =============================================================================
-          # ðŸš¨ EMERGENCY DISABLED ðŸš¨
+          # ?š¨ EMERGENCY DISABLED ?š¨
           # =============================================================================
           # Workflow: ${{ steps.validate.outputs.workflow_name }}
           # Reason: ${{ inputs.reason }}
@@ -129,17 +129,17 @@ jobs:
           sed -i '/^jobs:/a\
             emergency_disable_check:\
               name: Emergency Disable Check\
-              runs-on: ubuntu-latest\
+              runs-on: ubuntu-latest
               steps:\
                 - name: Check if workflow is disabled\
                   run: |\
-                    echo "ðŸš¨ WORKFLOW EMERGENCY DISABLED ðŸš¨"\
+                    echo "?š¨ WORKFLOW EMERGENCY DISABLED ?š¨"\
                     echo "Reason: ${{ inputs.reason }}"\
                     echo "Disabled by: ${{ github.actor }}"\
                     echo "Contact: ${{ env.EMERGENCY_CONTACT }}"\
                     exit 1' "$WORKFLOW_PATH"
           
-          echo "âœ… Workflow modified with disable check"
+          echo "??Workflow modified with disable check"
 
       - name: Create emergency issue
         if: inputs.notification_required
@@ -147,7 +147,7 @@ jobs:
         with:
           script: |
             const issueBody = `
-            ## ðŸš¨ EMERGENCY WORKFLOW DISABLE ALERT
+            ## ?š¨ EMERGENCY WORKFLOW DISABLE ALERT
 
             **Workflow Disabled**: \`${{ inputs.target_workflow }}\`  
             **Workflow Name**: ${{ steps.validate.outputs.workflow_name }}  
@@ -157,9 +157,9 @@ jobs:
             **Expires**: $(date -u -d '+${{ inputs.disable_duration }} hours' +%Y-%m-%dT%H:%M:%SZ)
 
             ### Impact
-            - âš ï¸ The specified workflow is now disabled and will fail immediately if triggered
-            - âš ï¸ Any automatic triggers for this workflow will result in failed runs
-            - âš ï¸ Manual workflow runs will also fail with the disable message
+            - ? ï? The specified workflow is now disabled and will fail immediately if triggered
+            - ? ï? Any automatic triggers for this workflow will result in failed runs
+            - ? ï? Manual workflow runs will also fail with the disable message
 
             ### Recovery Steps
             1. Address the underlying issue that caused the emergency disable
@@ -169,9 +169,9 @@ jobs:
             5. Restore from backup if needed: \`${{ inputs.target_workflow }}.emergency-backup-*\`
 
             ### Files Modified
-            - âœï¸ \`${{ steps.validate.outputs.workflow_path }}\` (disable check added)
-            - ðŸ“ \`${{ env.DISABLE_MARKER_DIR }}/${{ inputs.target_workflow }}.disabled\` (marker created)
-            - ðŸ’¾ Backup created with timestamp
+            - ?ï? \`${{ steps.validate.outputs.workflow_path }}\` (disable check added)
+            - ?? \`${{ env.DISABLE_MARKER_DIR }}/${{ inputs.target_workflow }}.disabled\` (marker created)
+            - ?’¾ Backup created with timestamp
 
             ### Contact
             Emergency contact: ${{ env.EMERGENCY_CONTACT }}
@@ -183,7 +183,7 @@ jobs:
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `ðŸš¨ EMERGENCY: Workflow "${{ steps.validate.outputs.workflow_name }}" Disabled`,
+              title: `?š¨ EMERGENCY: Workflow "${{ steps.validate.outputs.workflow_name }}" Disabled`,
               body: issueBody,
               labels: ['emergency', 'workflow-disabled', 'needs-attention']
             });
@@ -194,7 +194,7 @@ jobs:
           git config --local user.name "Emergency Disable System"
           
           git add .
-          git commit -m "ðŸš¨ EMERGENCY: Disable workflow ${{ inputs.target_workflow }}
+          git commit -m "?š¨ EMERGENCY: Disable workflow ${{ inputs.target_workflow }}
 
           Reason: ${{ inputs.reason }}
           Duration: ${{ inputs.disable_duration }} hours
@@ -213,7 +213,7 @@ jobs:
       - name: Push changes
         run: |
           git push origin ${{ github.ref_name }}
-          echo "âœ… Emergency disable changes pushed to repository"
+          echo "??Emergency disable changes pushed to repository"
 
       - name: Schedule re-enable reminder
         if: inputs.disable_duration > 0
@@ -225,7 +225,7 @@ jobs:
             const reminderTime = Math.max(disableDuration - 1, 0.5); // At least 30 minutes
             
             const reminderBody = `
-            ## ðŸ”” WORKFLOW RE-ENABLE REMINDER
+            ## ?? WORKFLOW RE-ENABLE REMINDER
 
             **Workflow**: \`${{ inputs.target_workflow }}\`  
             **Originally Disabled**: $(date -u +%Y-%m-%dT%H:%M:%SZ)  
@@ -234,11 +234,11 @@ jobs:
             This workflow was emergency disabled and is scheduled to need re-enabling soon.
 
             ### Actions Required
-            1. âœ… Verify the original issue has been resolved
-            2. âœ… Test the workflow in a safe environment
-            3. âœ… Remove disable marker: \`.github/workflows/.disabled/${{ inputs.target_workflow }}.disabled\`
-            4. âœ… Remove emergency disable comments from workflow file
-            5. âœ… Close this reminder issue
+            1. ??Verify the original issue has been resolved
+            2. ??Test the workflow in a safe environment
+            3. ??Remove disable marker: \`.github/workflows/.disabled/${{ inputs.target_workflow }}.disabled\`
+            4. ??Remove emergency disable comments from workflow file
+            5. ??Close this reminder issue
 
             ### Original Disable Reason
             ${{ inputs.reason }}
@@ -250,14 +250,14 @@ jobs:
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `ðŸ”” Reminder: Re-enable workflow "${{ steps.validate.outputs.workflow_name }}" in ${reminderTime} hours`,
+              title: `?? Reminder: Re-enable workflow "${{ steps.validate.outputs.workflow_name }}" in ${reminderTime} hours`,
               body: reminderBody,
               labels: ['reminder', 'workflow-disabled', 'scheduled-action']
             });
 
       - name: Summary
         run: |
-          echo "# ðŸš¨ Emergency Disable Completed" >> $GITHUB_STEP_SUMMARY
+          echo "# ?š¨ Emergency Disable Completed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Workflow**: \`${{ inputs.target_workflow }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Name**: ${{ steps.validate.outputs.workflow_name }}" >> $GITHUB_STEP_SUMMARY
@@ -266,11 +266,11 @@ jobs:
           echo "**Disabled By**: @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## Status" >> $GITHUB_STEP_SUMMARY
-          echo "- âœ… Workflow file modified with disable check" >> $GITHUB_STEP_SUMMARY
-          echo "- âœ… Disable marker created" >> $GITHUB_STEP_SUMMARY
-          echo "- âœ… Backup created with timestamp" >> $GITHUB_STEP_SUMMARY
-          echo "- âœ… Emergency issue created" >> $GITHUB_STEP_SUMMARY
-          echo "- âœ… Changes committed and pushed" >> $GITHUB_STEP_SUMMARY
+          echo "- ??Workflow file modified with disable check" >> $GITHUB_STEP_SUMMARY
+          echo "- ??Disable marker created" >> $GITHUB_STEP_SUMMARY
+          echo "- ??Backup created with timestamp" >> $GITHUB_STEP_SUMMARY
+          echo "- ??Emergency issue created" >> $GITHUB_STEP_SUMMARY
+          echo "- ??Changes committed and pushed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## Next Steps" >> $GITHUB_STEP_SUMMARY
           echo "1. Address the underlying issue" >> $GITHUB_STEP_SUMMARY

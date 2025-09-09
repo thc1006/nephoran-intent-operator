@@ -574,7 +574,7 @@ func TestO2Adaptor_DeployVNF(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				require.NotNil(t, instance)
-				tt.validateFunc(t, instance)
+				tt.validateFunc(t, instance.(*VNFInstance))
 			}
 		})
 	}
@@ -611,7 +611,8 @@ func TestO2Adaptor_ScaleVNF(t *testing.T) {
 	_ = appsv1.AddToScheme(scheme)
 	ctrlClient := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(deployment).Build()
 
-	adaptor := NewO2Adaptor(ctrlClient, clientset, nil)
+	adaptor, err := NewO2Adaptor(ctrlClient, clientset, nil)
+	require.NoError(t, err)
 
 	tests := []struct {
 		name             string
@@ -699,7 +700,8 @@ func TestO2Manager_Integration(t *testing.T) {
 	_ = appsv1.AddToScheme(scheme)
 	ctrlClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 
-	adaptor := NewO2Adaptor(ctrlClient, clientset, nil)
+	adaptor, err := NewO2Adaptor(ctrlClient, clientset, nil)
+	require.NoError(t, err)
 	manager := NewO2Manager(adaptor)
 
 	// Test complete workflow: discover -> deploy -> scale -> terminate
@@ -772,7 +774,8 @@ func BenchmarkO2Manager_DiscoverResources(b *testing.B) {
 	_ = corev1.AddToScheme(scheme)
 	ctrlClient := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(nodes...).Build()
 
-	adaptor := NewO2Adaptor(ctrlClient, clientset, nil)
+	adaptor, err := NewO2Adaptor(ctrlClient, clientset, nil)
+	require.NoError(b, err)
 	manager := NewO2Manager(adaptor)
 
 	ctx := context.Background()
@@ -793,7 +796,8 @@ func BenchmarkO2Adaptor_DeployVNF(b *testing.B) {
 	_ = appsv1.AddToScheme(scheme)
 	ctrlClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 
-	adaptor := NewO2Adaptor(ctrlClient, clientset, nil)
+	adaptor, err := NewO2Adaptor(ctrlClient, clientset, nil)
+	require.NoError(b, err)
 	ctx := context.Background()
 
 	deployRequest := &VNFDeployRequest{

@@ -135,7 +135,7 @@ timeout 180s go build ./controllers/... || {
 ### Build Optimization
 ```yaml
 # Production-grade build flags
-BUILD_FLAGS="-v -ldflags=-s -w -extldflags=-static -trimpath"
+BUILD_FLAGS="-v -ldflags='-s -w -extldflags=-static' -trimpath"
 BUILD_TAGS="netgo,osusergo,static_build"
 
 # Memory and performance optimization

@@ -1,13 +1,9 @@
-// Package a1 provides comprehensive unit tests for A1 type definitions, serialization, and validation
 package a1
 
 import (
-	"encoding/json"
-	"fmt"
-	"strings"
 	"testing"
+	"encoding/json"
 	"time"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	validator "github.com/go-playground/validator/v10"

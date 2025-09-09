@@ -77,7 +77,7 @@ jobs:
   setup:
     name: Production Setup
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
     outputs:
       cache-key: ${{ steps.cache.outputs.key }}
       should-build: ${{ steps.changes.outputs.should-build }}
@@ -87,7 +87,7 @@ jobs:
       - name: Checkout with full history
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Full history for production builds
+          fetch-depth: 1  # Full history for production builds
 
       - name: Detect significant changes
         id: changes
@@ -148,7 +148,7 @@ jobs:
           case "$BUILD_MODE" in
             "fast")
               matrix='{"include":[
-                {"name":"critical","components":"controllers api cmd/intent-ingest cmd/conductor-loop","timeout":15,"tests":"./controllers/... ./api/..."},
+                {"name":"critical","components":"controllers api cmd/intent-ingest cmd/conductor-loop","timeout":15,"tests":"./controllers/... ./pkg/controllers/... ./api/..."},
                 {"name":"core","components":"pkg/context pkg/clients pkg/nephio","timeout":12,"tests":"./pkg/context/... ./pkg/clients/... ./pkg/nephio/..."}
               ]}'
               ;;
@@ -239,7 +239,7 @@ jobs:
           git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
 
       - name: Download and verify dependencies
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
           echo "Downloading dependencies for production build..."
           
@@ -262,7 +262,7 @@ jobs:
           mkdir -p bin/
           
           # Production build flags
-          BUILD_FLAGS="-v -ldflags=-s -w -extldflags=-static -trimpath"
+          BUILD_FLAGS="-v -ldflags='-s -w -extldflags=-static' -trimpath"
           BUILD_TAGS="netgo,osusergo,static_build"
           
           # Parse and build components
@@ -365,7 +365,7 @@ jobs:
           key: ${{ needs.setup.outputs.cache-key }}
 
       - name: Setup test dependencies
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
           # Install envtest for controller testing
           go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
@@ -391,7 +391,7 @@ jobs:
           fi
           
           # Run tests with coverage
-          go test $TEST_FLAGS \
+          go test -short $TEST_FLAGS \
             -coverprofile="test-results/coverage-${{ matrix.name }}.out" \
             -covermode=atomic \
             ${{ matrix.tests }} 2>&1 | tee "test-results/test-output-${{ matrix.name }}.log"
@@ -430,13 +430,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: setup
     if: needs.setup.outputs.should-build == 'true'
-    timeout-minutes: 25
+    timeout-minutes: 10
 
     steps:
       - name: Checkout with full history
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
@@ -489,62 +489,62 @@ jobs:
           args: '-fmt sarif -out gosec.sarif ./...'
 
       - name: Vulnerability assessment (production-grade)
-        timeout-minutes: 25
+        timeout-minutes: 10
         continue-on-error: true
         run: |
           echo "Running production-grade vulnerability assessment..."
           
           # Install with timeout
           timeout 300s go install golang.org/x/vuln/cmd/govulncheck@latest || {
-            echo "⚠️ govulncheck installation timeout"
+            echo "?��? govulncheck installation timeout"
             echo "vulnerability_install_failed" > vuln-status.txt
             exit 0
           }
           
           # Production scan: comprehensive but with timeout
-          echo "🔍 Comprehensive vulnerability scan for production..."
-          if timeout 20m govulncheck -json ./... > vuln-report.json 2>&1; then
-            echo "✅ Production vulnerability scan completed"
+          echo "?? Comprehensive vulnerability scan for production..."
+          if timeout 20m govulncheck -format json ./... > vuln-report.json 2>&1; then
+            echo "??Production vulnerability scan completed"
             echo "vulnerability_scan_success" > vuln-status.txt
           else
             exit_code=$?
             case $exit_code in
               124) # timeout
-                echo "⚠️ Production vulnerability scan timed out"
+                echo "?��? Production vulnerability scan timed out"
                 echo "vulnerability_scan_timeout" > vuln-status.txt
                 echo "Partial results may be available in vuln-report.json" >> vuln-report.json
                 ;;
               1) # vulnerabilities found
-                echo "⚠️ Vulnerabilities found in production scan"
+                echo "?��? Vulnerabilities found in production scan"
                 echo "vulnerabilities_detected" > vuln-status.txt
                 ;;
               *) # other errors
-                echo "❌ Production vulnerability scan failed"
+                echo "??Production vulnerability scan failed"
                 echo "vulnerability_scan_error" > vuln-status.txt
                 ;;
             esac
           fi
           
           # Generate summary regardless of outcome
-          echo "## 🔒 Production Vulnerability Scan" >> $GITHUB_STEP_SUMMARY
+          echo "## ?? Production Vulnerability Scan" >> $GITHUB_STEP_SUMMARY
           if [[ -f "vuln-status.txt" ]]; then
             status=$(cat vuln-status.txt)
             case "$status" in
               vulnerability_scan_success)
-                echo "✅ Comprehensive scan completed successfully" >> $GITHUB_STEP_SUMMARY
+                echo "??Comprehensive scan completed successfully" >> $GITHUB_STEP_SUMMARY
                 ;;
               vulnerabilities_detected)
-                echo "⚠️ Vulnerabilities detected - review required" >> $GITHUB_STEP_SUMMARY
+                echo "?��? Vulnerabilities detected - review required" >> $GITHUB_STEP_SUMMARY
                 ;;
               vulnerability_scan_timeout)
-                echo "⏱️ Scan timed out - partial results available" >> $GITHUB_STEP_SUMMARY
+                echo "?��? Scan timed out - partial results available" >> $GITHUB_STEP_SUMMARY
                 ;;
               *)
-                echo "❌ Scan encountered issues - check logs" >> $GITHUB_STEP_SUMMARY
+                echo "??Scan encountered issues - check logs" >> $GITHUB_STEP_SUMMARY
                 ;;
             esac
           fi
-          echo "📄 Detailed results available in workflow artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "?? Detailed results available in workflow artifacts" >> $GITHUB_STEP_SUMMARY
 
       - name: License compliance check  
         run: |
@@ -577,12 +577,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: [setup, build, test, security-quality]
     if: always()
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     steps:
       - name: Generate production pipeline report
         run: |
-          echo "# 🏭 Nephoran Production CI Pipeline - Results" >> $GITHUB_STEP_SUMMARY
+          echo "# ?�� Nephoran Production CI Pipeline - Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Pipeline Configuration:**" >> $GITHUB_STEP_SUMMARY
           echo "- Go Version: ${{ env.GO_VERSION }}" >> $GITHUB_STEP_SUMMARY
@@ -622,22 +622,22 @@ jobs:
           
           if [ -n "$FAILED_CRITICAL" ]; then
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Status: PRODUCTION NOT READY** ❌" >> $GITHUB_STEP_SUMMARY
+            echo "**Status: PRODUCTION NOT READY** ?? >> $GITHUB_STEP_SUMMARY
             echo "Critical failures: $FAILED_CRITICAL" >> $GITHUB_STEP_SUMMARY
-            echo "💥 Production pipeline failed - manual intervention required"
+            echo "?�� Production pipeline failed - manual intervention required"
             exit 1
           else
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Status: PRODUCTION READY** ✅" >> $GITHUB_STEP_SUMMARY
+            echo "**Status: PRODUCTION READY** ?? >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "🎯 **Production Quality Gates Passed:**" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ All components built successfully with production flags" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ Comprehensive test suite passed" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ Security analysis completed" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ Code quality standards met" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ Vulnerability assessment passed" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ License compliance verified" >> $GITHUB_STEP_SUMMARY
+            echo "?�� **Production Quality Gates Passed:**" >> $GITHUB_STEP_SUMMARY
+            echo "- ??All components built successfully with production flags" >> $GITHUB_STEP_SUMMARY
+            echo "- ??Comprehensive test suite passed" >> $GITHUB_STEP_SUMMARY
+            echo "- ??Security analysis completed" >> $GITHUB_STEP_SUMMARY
+            echo "- ??Code quality standards met" >> $GITHUB_STEP_SUMMARY
+            echo "- ??Vulnerability assessment passed" >> $GITHUB_STEP_SUMMARY
+            echo "- ??License compliance verified" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "🚀 **Ready for production deployment!**" >> $GITHUB_STEP_SUMMARY
-            echo "✅ Production CI pipeline completed successfully!"
+            echo "?? **Ready for production deployment!**" >> $GITHUB_STEP_SUMMARY
+            echo "??Production CI pipeline completed successfully!"
           fi

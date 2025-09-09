@@ -31,8 +31,6 @@ limitations under the License.
 package v1
 
 import (
-	"fmt"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -692,15 +690,13 @@ type ManifestGenerationStatus struct {
 
 	RetryCount int32 `json:"retryCount,omitempty"`
 
-	// QualityScore represents the quality of generated manifests (0.0-1.0).
+	// QualityScore represents the quality of generated manifests (0.0-1.0) as string to avoid float issues.
 
 	// +optional
 
-	// +kubebuilder:validation:Minimum=0.0
+	// +kubebuilder:validation:Pattern=`^(0(\.[0-9]+)?|1(\.0+)?)$`
 
-	// +kubebuilder:validation:Maximum=1.0
-
-	QualityScore *float64 `json:"qualityScore,omitempty"`
+	QualityScore *string `json:"qualityScore,omitempty"`
 
 	// ObservedGeneration reflects the generation observed.
 
@@ -804,15 +800,13 @@ type ManifestOptimizationResult struct {
 
 	Description string `json:"description,omitempty"`
 
-	// ImprovementPercent quantifies the improvement (0.0-100.0).
+	// ImprovementPercent quantifies the improvement (0.0-100.0) as string to avoid float issues.
 
 	// +optional
 
-	// +kubebuilder:validation:Minimum=0.0
+	// +kubebuilder:validation:Pattern=`^(100(\.0+)?|[0-9]?[0-9](\.[0-9]+)?)$`
 
-	// +kubebuilder:validation:Maximum=100.0
-
-	ImprovementPercent *float64 `json:"improvementPercent,omitempty"`
+	ImprovementPercent *string `json:"improvementPercent,omitempty"`
 
 	// Changes lists the changes made.
 
@@ -828,13 +822,11 @@ type ManifestOptimizationResult struct {
 // SecurityAnalysisResult contains security analysis results.
 
 type SecurityAnalysisResult struct {
-	// OverallScore is the overall security score (0.0-1.0).
+	// OverallScore is the overall security score (0.0-1.0) as string to avoid float issues.
 
-	// +kubebuilder:validation:Minimum=0.0
+	// +kubebuilder:validation:Pattern=`^(0(\.[0-9]+)?|1(\.0+)?)$`
 
-	// +kubebuilder:validation:Maximum=1.0
-
-	OverallScore *float64 `json:"overallScore"`
+	OverallScore *string `json:"overallScore"`
 
 	// SecurityIssues lists identified security issues.
 
@@ -886,15 +878,13 @@ type SecurityIssue struct {
 
 	Remediation string `json:"remediation,omitempty"`
 
-	// CVSS score if applicable (0.0-10.0).
+	// CVSS score if applicable (0.0-10.0) as string to avoid float issues.
 
 	// +optional
 
-	// +kubebuilder:validation:Minimum=0.0
+	// +kubebuilder:validation:Pattern=`^(10(\.0+)?|[0-9](\.[0-9]+)?)$`
 
-	// +kubebuilder:validation:Maximum=10.0
-
-	CVSSScore *float64 `json:"cvssScore,omitempty"`
+	CVSSScore *string `json:"cvssScore,omitempty"`
 }
 
 // SecurityComplianceResult represents compliance check results.
@@ -920,15 +910,13 @@ type SecurityComplianceResult struct {
 
 	Violations []string `json:"violations,omitempty"`
 
-	// Score represents compliance score (0.0-1.0).
+	// Score represents compliance score (0.0-1.0) as string to avoid float issues.
 
 	// +optional
 
-	// +kubebuilder:validation:Minimum=0.0
+	// +kubebuilder:validation:Pattern=`^(0(\.[0-9]+)?|1(\.0+)?)$`
 
-	// +kubebuilder:validation:Maximum=1.0
-
-	Score *float64 `json:"score,omitempty"`
+	Score *string `json:"score,omitempty"`
 }
 
 // GeneratedResourceReference represents a reference to a generated resource.
@@ -1109,7 +1097,7 @@ func (mg *ManifestGeneration) HasValidationErrors() bool {
 
 func (mg *ManifestGeneration) GetSecurityScore() string {
 	if mg.Status.SecurityAnalysis != nil && mg.Status.SecurityAnalysis.OverallScore != nil {
-		return fmt.Sprintf("%.2f", *mg.Status.SecurityAnalysis.OverallScore)
+		return *mg.Status.SecurityAnalysis.OverallScore
 	}
 
 	return "0.0"

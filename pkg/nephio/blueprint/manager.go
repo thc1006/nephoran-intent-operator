@@ -197,106 +197,117 @@ type BlueprintMetrics struct {
 	ProcessingLatency prometheus.Histogram
 }
 
-// NewBlueprintMetrics creates new blueprint metrics.
+var (
+	// Singleton metrics instance
+	globalBlueprintMetrics *BlueprintMetrics
+	metricsOnce            sync.Once
+)
+
+// NewBlueprintMetrics returns the global blueprint metrics instance.
+// Uses sync.Once to ensure metrics are only registered once to prevent
+// "duplicate metrics collector registration attempted" panics in tests.
 
 func NewBlueprintMetrics() *BlueprintMetrics {
-	return &BlueprintMetrics{
-		GenerationDuration: promauto.NewHistogram(prometheus.HistogramOpts{
-			Name: "nephoran_blueprint_generation_duration_seconds",
+	metricsOnce.Do(func() {
+		globalBlueprintMetrics = &BlueprintMetrics{
+			GenerationDuration: promauto.NewHistogram(prometheus.HistogramOpts{
+				Name: "nephoran_blueprint_generation_duration_seconds",
 
-			Help: "Duration of blueprint generation operations",
+				Help: "Duration of blueprint generation operations",
 
-			Buckets: prometheus.DefBuckets,
-		}),
+				Buckets: prometheus.DefBuckets,
+			}),
 
-		GenerationTotal: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "nephoran_blueprint_generation_total",
+			GenerationTotal: promauto.NewCounter(prometheus.CounterOpts{
+				Name: "nephoran_blueprint_generation_total",
 
-			Help: "Total number of blueprint generation operations",
-		}),
+				Help: "Total number of blueprint generation operations",
+			}),
 
-		GenerationErrors: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "nephoran_blueprint_generation_errors_total",
+			GenerationErrors: promauto.NewCounter(prometheus.CounterOpts{
+				Name: "nephoran_blueprint_generation_errors_total",
 
-			Help: "Total number of blueprint generation errors",
-		}),
+				Help: "Total number of blueprint generation errors",
+			}),
 
-		TemplateHits: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "nephoran_blueprint_template_hits_total",
+			TemplateHits: promauto.NewCounter(prometheus.CounterOpts{
+				Name: "nephoran_blueprint_template_hits_total",
 
-			Help: "Total number of blueprint template cache hits",
-		}),
+				Help: "Total number of blueprint template cache hits",
+			}),
 
-		TemplateMisses: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "nephoran_blueprint_template_misses_total",
+			TemplateMisses: promauto.NewCounter(prometheus.CounterOpts{
+				Name: "nephoran_blueprint_template_misses_total",
 
-			Help: "Total number of blueprint template cache misses",
-		}),
+				Help: "Total number of blueprint template cache misses",
+			}),
 
-		TemplateErrors: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "nephoran_blueprint_template_errors_total",
+			TemplateErrors: promauto.NewCounter(prometheus.CounterOpts{
+				Name: "nephoran_blueprint_template_errors_total",
 
-			Help: "Total number of blueprint template errors",
-		}),
+				Help: "Total number of blueprint template errors",
+			}),
 
-		ValidationDuration: promauto.NewHistogram(prometheus.HistogramOpts{
-			Name: "nephoran_blueprint_validation_duration_seconds",
+			ValidationDuration: promauto.NewHistogram(prometheus.HistogramOpts{
+				Name: "nephoran_blueprint_validation_duration_seconds",
 
-			Help: "Duration of blueprint validation operations",
+				Help: "Duration of blueprint validation operations",
 
-			Buckets: prometheus.DefBuckets,
-		}),
+				Buckets: prometheus.DefBuckets,
+			}),
 
-		ValidationTotal: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "nephoran_blueprint_validation_total",
+			ValidationTotal: promauto.NewCounter(prometheus.CounterOpts{
+				Name: "nephoran_blueprint_validation_total",
 
-			Help: "Total number of blueprint validation operations",
-		}),
+				Help: "Total number of blueprint validation operations",
+			}),
 
-		ValidationErrors: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "nephoran_blueprint_validation_errors_total",
+			ValidationErrors: promauto.NewCounter(prometheus.CounterOpts{
+				Name: "nephoran_blueprint_validation_errors_total",
 
-			Help: "Total number of blueprint validation errors",
-		}),
+				Help: "Total number of blueprint validation errors",
+			}),
 
-		CacheSize: promauto.NewGauge(prometheus.GaugeOpts{
-			Name: "nephoran_blueprint_cache_size",
+			CacheSize: promauto.NewGauge(prometheus.GaugeOpts{
+				Name: "nephoran_blueprint_cache_size",
 
-			Help: "Current size of blueprint template cache",
-		}),
+				Help: "Current size of blueprint template cache",
+			}),
 
-		CacheHitRatio: promauto.NewGauge(prometheus.GaugeOpts{
-			Name: "nephoran_blueprint_cache_hit_ratio",
+			CacheHitRatio: promauto.NewGauge(prometheus.GaugeOpts{
+				Name: "nephoran_blueprint_cache_hit_ratio",
 
-			Help: "Cache hit ratio for blueprint templates",
-		}),
+				Help: "Cache hit ratio for blueprint templates",
+			}),
 
-		CacheEvictions: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "nephoran_blueprint_cache_evictions_total",
+			CacheEvictions: promauto.NewCounter(prometheus.CounterOpts{
+				Name: "nephoran_blueprint_cache_evictions_total",
 
-			Help: "Total number of blueprint template cache evictions",
-		}),
+				Help: "Total number of blueprint template cache evictions",
+			}),
 
-		ConcurrentOperations: promauto.NewGauge(prometheus.GaugeOpts{
-			Name: "nephoran_blueprint_concurrent_operations",
+			ConcurrentOperations: promauto.NewGauge(prometheus.GaugeOpts{
+				Name: "nephoran_blueprint_concurrent_operations",
 
-			Help: "Current number of concurrent blueprint operations",
-		}),
+				Help: "Current number of concurrent blueprint operations",
+			}),
 
-		QueueDepth: promauto.NewGauge(prometheus.GaugeOpts{
-			Name: "nephoran_blueprint_queue_depth",
+			QueueDepth: promauto.NewGauge(prometheus.GaugeOpts{
+				Name: "nephoran_blueprint_queue_depth",
 
-			Help: "Current depth of blueprint operation queue",
-		}),
+				Help: "Current depth of blueprint operation queue",
+			}),
 
-		ProcessingLatency: promauto.NewHistogram(prometheus.HistogramOpts{
-			Name: "nephoran_blueprint_processing_latency_seconds",
+			ProcessingLatency: promauto.NewHistogram(prometheus.HistogramOpts{
+				Name: "nephoran_blueprint_processing_latency_seconds",
 
-			Help: "Latency of blueprint processing operations",
+				Help: "Latency of blueprint processing operations",
 
-			Buckets: []float64{0.1, 0.25, 0.5, 1, 2.5, 5, 10},
-		}),
-	}
+				Buckets: []float64{0.1, 0.25, 0.5, 1, 2.5, 5, 10},
+			}),
+		}
+	})
+	return globalBlueprintMetrics
 }
 
 // BlueprintConfig contains configuration for the blueprint manager.
@@ -524,6 +535,79 @@ func NewManager(mgr manager.Manager, config *BlueprintConfig, logger *zap.Logger
 	return m, nil
 }
 
+// NewManagerWithGenerator creates a new blueprint manager with a provided generator.
+// This is useful for testing with mocked components.
+func NewManagerWithGenerator(mgr manager.Manager, config *BlueprintConfig, logger *zap.Logger, generator *Generator) (*Manager, error) {
+	if config == nil {
+		config = DefaultBlueprintConfig()
+	}
+
+	if logger == nil {
+		logger = zap.NewNop()
+	}
+
+	if generator == nil {
+		return nil, fmt.Errorf("generator cannot be nil")
+	}
+
+	k8sClient, err := kubernetes.NewForConfig(mgr.GetConfig())
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	m := &Manager{
+		client: mgr.GetClient(),
+
+		k8sClient: k8sClient,
+
+		config: config,
+
+		logger: logger,
+
+		metrics: NewBlueprintMetrics(),
+
+		generator: generator,
+
+		operationQueue: make(chan *BlueprintOperation, config.MaxConcurrency*2),
+
+		semaphore: make(chan struct{}, config.MaxConcurrency),
+
+		ctx: ctx,
+
+		cancel: cancel,
+
+		healthStatus: make(map[string]bool),
+	}
+
+	// Initialize remaining components (catalog, customizer, validator).
+
+	if err := m.initializeRemainingComponents(); err != nil {
+
+		cancel()
+
+		return nil, fmt.Errorf("failed to initialize components: %w", err)
+
+	}
+
+	// Start background workers.
+
+	m.startWorkers()
+
+	logger.Info("Blueprint manager initialized successfully with provided generator",
+
+		zap.String("porch_endpoint", config.PorchEndpoint),
+
+		zap.String("llm_endpoint", config.LLMEndpoint),
+
+		zap.Duration("cache_ttl", config.CacheTTL),
+
+		zap.Int("max_concurrency", config.MaxConcurrency))
+
+	return m, nil
+}
+
 // initializeComponents initializes all blueprint manager components.
 
 func (m *Manager) initializeComponents() error {
@@ -541,6 +625,39 @@ func (m *Manager) initializeComponents() error {
 	m.generator, err = NewGenerator(m.config, m.logger.Named("generator"))
 	if err != nil {
 		return fmt.Errorf("failed to initialize generator: %w", err)
+	}
+
+	// Initialize customizer.
+
+	m.customizer, err = NewCustomizer(m.config, m.logger.Named("customizer"))
+	if err != nil {
+		return fmt.Errorf("failed to initialize customizer: %w", err)
+	}
+
+	// Initialize validator if enabled.
+
+	if m.config.EnableValidation {
+
+		m.validator, err = NewValidator(m.config, m.logger.Named("validator"))
+		if err != nil {
+			return fmt.Errorf("failed to initialize validator: %w", err)
+		}
+
+	}
+
+	return nil
+}
+
+// initializeRemainingComponents initializes components other than generator.
+
+func (m *Manager) initializeRemainingComponents() error {
+	var err error
+
+	// Initialize catalog.
+
+	m.catalog, err = NewCatalog(m.config, m.logger.Named("catalog"))
+	if err != nil {
+		return fmt.Errorf("failed to initialize catalog: %w", err)
 	}
 
 	// Initialize customizer.
