@@ -2,7 +2,7 @@
 # Fast PR Validation - 2025 Edition
 # =============================================================================  
 # Ultra-fast validation for pull requests with essential checks only
-# Optimized for Go 1.25.0, resolves cache key and timeout issues
+# Optimized for Go 1.24.6, resolves cache key and timeout issues
 # =============================================================================
 
 name: PR Validation
@@ -46,7 +46,7 @@ jobs:
   fast-validation:
     name: Fast PR Validation
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 8
 
     steps:
       - name: Checkout PR code
@@ -57,58 +57,19 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5  # Latest stable
         with:
-          go-version: ${{ env.GO_VERSION }}
-          check-latest: true
-          cache: false  # Manual caching for better control
+          go-version: '1.24.6'
+          check-latest: false  # Ensure exact version
+          cache: true
 
-      - name: Clean Go cache directories
-        run: |
-          # Clean cache directories to prevent tar extraction errors
-          echo "Cleaning Go cache directories..."
-          sudo rm -rf $HOME/.cache/go-build || true
-          sudo rm -rf $HOME/go/pkg/mod || true
-          
-          # Create fresh directories with proper permissions
-          mkdir -p $HOME/.cache/go-build $HOME/go/pkg/mod
-          chmod -R 755 $HOME/.cache/go-build $HOME/go/pkg/mod
 
-      - name: Generate STANDARDIZED cache key
-        id: cache-key
-        run: |
-          # STANDARDIZED cache key generation (matches ci-production.yml)
-          GO_SUM_HASH="${{ hashFiles('**/go.sum') }}"
-          GO_MOD_HASH="${{ hashFiles('go.mod') }}"
-          
-          # Use fallback if hashes are empty
-          if [ -z "$GO_SUM_HASH" ] || [ "$GO_SUM_HASH" = "" ]; then
-            GO_SUM_HASH="${{ github.sha }}"
-          fi
-          if [ -z "$GO_MOD_HASH" ] || [ "$GO_MOD_HASH" = "" ]; then
-            GO_MOD_HASH="${{ github.sha }}"
-          fi
-          
-          # STANDARDIZED cache key format
-          CACHE_KEY="nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-${GO_SUM_HASH}-${GO_MOD_HASH}"
-          echo "Generated STANDARDIZED cache key: $CACHE_KEY"
-          echo "cache-key=$CACHE_KEY" >> $GITHUB_OUTPUT
 
-      - name: Cache Go modules and build cache (STANDARDIZED)
-        uses: actions/cache@v4  # Latest stable version
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ steps.cache-key.outputs.cache-key }}
-          restore-keys: |
-            nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-
-            nephoran-go-v1-${{ runner.os }}-
 
       - name: Configure Git for private modules
         run: |
           git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
 
       - name: Download dependencies with timeout protection
-        timeout-minutes: 10
+        timeout-minutes: 3
         run: |
           echo "Downloading Go dependencies..."
           
@@ -122,7 +83,7 @@ jobs:
           go mod verify || echo "Module verification completed with warnings"
 
       - name: Quick syntax and build validation
-        timeout-minutes: 10
+        timeout-minutes: 3
         run: |
           echo "Running quick validation checks..."
           
@@ -151,7 +112,7 @@ jobs:
 
       - name: Essential tests
         if: env.SKIP_TESTS != 'true'
-        timeout-minutes: 10
+        timeout-minutes: 3
         run: |
           echo "Running essential tests for PR validation..."
           
@@ -181,7 +142,6 @@ jobs:
         run: |
           echo "=== PR Validation Summary ==="
           echo "Go Version: $(go version)"
-          echo "Cache Key: ${{ steps.cache-key.outputs.cache-key }}"
           echo "Skip Tests: ${{ env.SKIP_TESTS }}"
           
           # List any generated binaries
@@ -198,7 +158,7 @@ jobs:
   # security-scan: # EMERGENCY DISABLED FOR DEVELOPMENT VELOCITY
   #   name: Security Scan - DISABLED
   #   runs-on: ubuntu-latest
-  #   timeout-minutes: 10
+  #   timeout-minutes: 12
   #   if: false  # EMERGENCY DISABLED - blocking development
 
   #   steps: # ALL STEPS DISABLED FOR EMERGENCY DEV VELOCITY
@@ -208,7 +168,7 @@ jobs:
   #     - name: Setup Go ${{ env.GO_VERSION }}
   #       uses: actions/setup-go@v5  # Latest stable
   #       with:
-  #         go-version: '1.25.0'
+  #         go-version: '1.24.6'
   #         check-latest: true
   #         cache: true
   # 

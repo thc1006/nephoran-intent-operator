@@ -504,6 +504,20 @@ type ValidationResult struct {
 	Warnings []ValidationWarning `json:"warnings,omitempty"`
 }
 
+// Error implements the error interface for ValidationResult.
+func (vr *ValidationResult) Error() string {
+	if vr.Valid {
+		return ""
+	}
+	
+	if len(vr.Errors) == 0 {
+		return "validation failed"
+	}
+	
+	// Return the first error's message
+	return vr.Errors[0].Message
+}
+
 // ValidationError represents a validation error with detailed information.
 
 type ValidationError struct {

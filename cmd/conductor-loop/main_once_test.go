@@ -28,7 +28,7 @@ func TestOnceMode_ExitCodes(t *testing.T) {
 					filepath.Join(handoffDir, "intent-test1.json"),
 					[]byte(content), 0o644))
 			},
-			expectedFailed: 0,
+			expectedFailed: 0, // Real failures (not shutdown failures)
 			expectedExit:   0,
 		},
 		{
@@ -104,10 +104,10 @@ func TestOnceMode_ExitCodes(t *testing.T) {
 			stats, err := watcher.GetStats()
 			require.NoError(t, err)
 
-
-			// Verify failed count matches expectation
-			assert.Equal(t, tt.expectedFailed, stats.FailedCount,
-				"Failed count mismatch. Failed files: %v", stats.FailedFiles)
+			// Verify real failed count matches expectation (shutdown failures don't count)
+			assert.Equal(t, tt.expectedFailed, stats.RealFailedCount,
+				"Real failed count mismatch. Real failed files: %v, Shutdown failed files: %v", 
+				stats.RealFailedFiles, stats.ShutdownFailedFiles)
 
 			// Simulate what main.go would do - only real failures should affect exit code
 			var exitCode int

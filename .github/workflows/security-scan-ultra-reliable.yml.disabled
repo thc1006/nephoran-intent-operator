@@ -36,7 +36,7 @@ permissions:
 
 # Reliability-focused environment
 env:
-  GO_VERSION: "1.22.7"
+  GO_VERSION: "1.24.6"  # EMERGENCY FIX - Match go.mod toolchain
   GOSEC_VERSION: "2.20.0"
   
   # Timeout configurations (in seconds)
@@ -66,7 +66,7 @@ jobs:
   # =============================================================================
   cache-management:
     name: ??ï¸?Cache Management
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 10
     outputs:
       cache-hit: ${{ steps.cache.outputs.cache-hit }}
@@ -126,7 +126,7 @@ jobs:
       - name: ??ï¸?Restore Go modules cache with timeout
         id: cache
         uses: actions/cache@v4
-        timeout-minutes: 10
+        timeout-minutes: 5
         continue-on-error: true
         with:
           path: |
@@ -167,9 +167,9 @@ jobs:
   # =============================================================================
   download-dependencies:
     name: ?“¦ Download Dependencies
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: cache-management
-    timeout-minutes: 10
+    timeout-minutes: 15
     outputs:
       modules-ready: ${{ steps.verify.outputs.ready }}
       
@@ -266,9 +266,9 @@ jobs:
   # =============================================================================
   security-scan:
     name: ?? Security Scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [cache-management, download-dependencies]
-    timeout-minutes: 10
+    timeout-minutes: 25
     
     steps:
       - name: ?“¥ Checkout

@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -314,8 +315,8 @@ func TestLoader_FileSystemEdgeCases(t *testing.T) {
 				}
 				return filePath
 			},
-			expectError: true,
-			description: "Files with BOM should be handled",
+			expectError: false,
+			description: "Files with BOM should be stripped and succeed",
 		},
 		{
 			name: "file with different line endings",
@@ -386,11 +387,16 @@ func TestLoader_FileSystemEdgeCases(t *testing.T) {
 				return filePath
 			},
 			expectError: true,
-			description: "Very large files should be handled gracefully",
+			description: "Very large files should fail fast with size limit error",
 		},
 		{
 			name: "file with symlink",
 			setupFunc: func(t *testing.T) string {
+				// Skip symlink test on Windows entirely due to privilege requirements
+				if runtime.GOOS == "windows" {
+					t.Skip("Skipping symlink test on Windows due to privilege requirements")
+				}
+
 				tempDir := t.TempDir()
 				originalFile := filepath.Join(tempDir, "original.json")
 				symlinkFile := filepath.Join(tempDir, "symlink.json")
@@ -409,7 +415,26 @@ func TestLoader_FileSystemEdgeCases(t *testing.T) {
 				return symlinkFile
 			},
 			expectError: false,
-			description: "Symlinks should be followed and handled",
+			description: "Symlinks should be followed and handled (skip on Windows)",
+		},
+		{
+			name: "extremely long file path",
+			setupFunc: func(t *testing.T) string {
+				// Create a path that definitely exceeds Windows path limits (260 characters)
+				baseDir := "C:\\"
+				if runtime.GOOS != "windows" {
+					baseDir = "/tmp/"
+				}
+				
+				// Create an extremely long path that exceeds OS limits
+				longDir := strings.Repeat("a", 300) // Very long directory name
+				longPath := filepath.Join(baseDir, longDir, "intent.json")
+				
+				// Don't try to create this path - just return it to test error handling
+				return longPath
+			},
+			expectError: true,
+			description: "Extremely long file paths should properly fail with OS error",
 		},
 	}
 

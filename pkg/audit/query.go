@@ -13,6 +13,7 @@ import (
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/audit/backends"
 	"github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 )
 
 // QueryEngine provides advanced audit log querying and analysis capabilities.
@@ -372,18 +373,13 @@ func NewQueryEngine(system *AuditSystem, backends map[string]backends.Backend, l
 		),
 	}
 
-	prometheus.MustRegister(
-
-		metrics.queriesTotal,
-
-		metrics.queryDuration,
-
-		metrics.queryComplexity,
-
-		metrics.resultsReturned,
-
-		metrics.queryErrors,
-	)
+	// Use centralized registry with safe registration
+	gr := monitoring.GetGlobalRegistry()
+	gr.SafeRegister("audit-query-queries", metrics.queriesTotal)
+	gr.SafeRegister("audit-query-duration", metrics.queryDuration)
+	gr.SafeRegister("audit-query-complexity", metrics.queryComplexity)
+	gr.SafeRegister("audit-query-results", metrics.resultsReturned)
+	gr.SafeRegister("audit-query-errors", metrics.queryErrors)
 
 	return &QueryEngine{
 		system: system,

@@ -16,8 +16,6 @@ import (
 	"regexp"
 	"strings"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 // ValidatorInterface defines the contract for validation of network intents.
@@ -79,7 +77,7 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 	if ct != "" && !strings.HasPrefix(ct, "application/json") && !strings.HasPrefix(ct, "text/json") && !strings.HasPrefix(ct, "text/plain") {
 
-		http.Error(w, "Invalid Content-Type", http.StatusUnsupportedMediaType)
+		http.Error(w, "Unsupported content type. Only application/json and text/plain are allowed.", http.StatusUnsupportedMediaType)
 
 		return
 
@@ -158,7 +156,13 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 			}
 
-			payload = []byte(fmt.Sprintf(`{"intent_type":"scaling","target":%q,"namespace":%q,"replicas":%s,"source":"user","target_resources":["deployment/%s"],"status":"pending"}`, m[1], m[3], m[2], m[1]))
+			defaultSource := "user"
+			targetResource := fmt.Sprintf("deployment/%s", m[1])
+			correlationID := fmt.Sprintf("plain-text-scale-%s-%s", m[1], m[3])
+			reason := fmt.Sprintf("Plain text scaling request for %s", m[1])
+			payload = []byte(fmt.Sprintf(`{"intent_type":"scaling","target":%q,"namespace":%q,"replicas":%s,"source":%q,"status":"pending","target_resources":[%q],"correlation_id":%q,"reason":%q}`, 
+				m[1], m[3], m[2], defaultSource, 
+				targetResource, correlationID, reason))
 
 		}
 
@@ -195,52 +199,18 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	now := time.Now().UTC()
-	
-	// Generate collision-proof filename using nanosecond timestamp + UUID
-	fileName := fmt.Sprintf("intent-%d-%s.json", now.UnixNano(), uuid.New().String())
+	ts := time.Now().UTC().Format("20060102T150405Z")
+
+	fileName := fmt.Sprintf("intent-%s.json", ts)
 
 	outFile := filepath.Join(h.outDir, fileName)
 
-	// Ensure default values for target_resources and status
-	targetResources := intent.TargetResources
-	if targetResources == nil || len(targetResources) == 0 {
-		targetResources = []string{"deployment/" + intent.Target}
-	}
-	
-	status := intent.Status
-	if status == "" {
-		status = "pending"
-	}
+	if err := os.WriteFile(outFile, payload, 0o640); err != nil {
 
-	// Create the structured output for saving to file
-	structuredOutput := map[string]interface{}{
-		"id":               fmt.Sprintf("scale-%s-001", intent.Target),
-		"type":             intent.IntentType,
-		"description":      fmt.Sprintf("Scale %s to %d replicas", intent.Target, intent.Replicas),
-		"target_resources": targetResources,
-		"status":           status,
-		"parameters":       intent.ToPreviewFormat()["parameters"],
-	}
+		http.Error(w, fmt.Sprintf("Failed to save intent to handoff directory: %s", err.Error()), http.StatusInternalServerError)
 
-	// Marshal structured output to JSON
-	structuredJSON, err := json.MarshalIndent(structuredOutput, "", "  ")
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to marshal structured output: %s", err.Error()), http.StatusInternalServerError)
 		return
-	}
 
-	// Use secure file creation with exclusive creation flags
-	f, err := os.OpenFile(outFile, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to create intent file: %s", err.Error()), http.StatusInternalServerError)
-		return
-	}
-	defer f.Close()
-
-	if _, err := f.Write(structuredJSON); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to write intent to handoff directory: %s", err.Error()), http.StatusInternalServerError)
-		return
 	}
 
 	// Log with correlation ID if present.
@@ -257,12 +227,62 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusAccepted)
 
+	var intentMap map[string]interface{}
+	intentBytes, _ := json.Marshal(intent)
+	json.Unmarshal(intentBytes, &intentMap)
+
+	if intentMap == nil {
+		intentMap = make(map[string]interface{})
+	}
+
+	// Ensure required fields are in the preview
+	if _, exists := intentMap["intent_type"]; !exists {
+		intentMap["intent_type"] = "scaling"
+	}
+	if _, exists := intentMap["target"]; !exists {
+		intentMap["target"] = ""
+	}
+	if _, exists := intentMap["namespace"]; !exists {
+		intentMap["namespace"] = ""
+	}
+	if _, exists := intentMap["replicas"]; !exists {
+		intentMap["replicas"] = 1
+	}
+	if _, exists := intentMap["status"]; !exists {
+		intentMap["status"] = "pending"
+	}
+	if _, exists := intentMap["target_resources"]; !exists {
+		intentMap["target_resources"] = []string{fmt.Sprintf("deployment/%s", intentMap["target"])}
+	}
+
+	// Convert intent to a parameter map for preview
+	intentParams := make(map[string]interface{})
+	for k, v := range intentMap {
+		intentParams[k] = v
+	}
+
+	if intent.CorrelationID != "" {
+		intentParams["correlation_id"] = intent.CorrelationID
+	}
+
+	preview := map[string]interface{}{
+		"id":              fmt.Sprintf("scale-%s-001", intentMap["target"]),
+		"type":            "scaling",
+		"description":     fmt.Sprintf("Scale %s to %v replicas in %s namespace", intentMap["target"], intentMap["replicas"], intentMap["namespace"]),
+		"target_resources": intentMap["target_resources"],
+		"status":          intentMap["status"],
+		"parameters":      intentParams,
+	}
+
+	// If explicit correlation_id is present, add it to parameters
+	if correlationID, exists := intentParams["correlation_id"]; exists {
+		preview["correlation_id"] = correlationID
+	}
+
 	if err := json.NewEncoder(w).Encode(map[string]any{
 		"status": "accepted",
-
-		"saved": outFile,
-
-		"preview": intent.ToPreviewFormat(),
+		"saved":  outFile,
+		"preview": preview,
 	}); err != nil {
 		log.Printf("Failed to encode response JSON: %v", err)
 	}

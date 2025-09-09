@@ -163,7 +163,7 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Add metadata.
 
-	intentData.Source = "user"
+	intentData.Source = "conductor-watch"
 
 	intentData.CorrelationID = fmt.Sprintf("%s-%s-%d",
 

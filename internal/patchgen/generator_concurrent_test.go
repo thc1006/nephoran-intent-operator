@@ -55,11 +55,43 @@ func TestPackageGenerationStressTest(t *testing.T) {
 	var mutex sync.Mutex
 	packagesCreated := 0
 	var wg sync.WaitGroup
+	
+	// Use sync.Once to ensure base directory structure is created safely
+	var dirCreationOnce sync.Once
+	dirCreationError := make(chan error, 1)
+	
+	// Pre-create all output directories to avoid race conditions
+	for i := 0; i < numPackages; i++ {
+		outputDir := filepath.Join(tempDir, fmt.Sprintf("stress-output-%d", i))
+		if err := os.MkdirAll(outputDir, 0o755); err != nil {
+			t.Fatalf("Failed to create output directory %s: %v", outputDir, err)
+		}
+	}
 
 	for i := 0; i < numPackages; i++ {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
+			
+			// Ensure base directory creation happens only once
+			dirCreationOnce.Do(func() {
+				// This ensures any shared directory creation is thread-safe
+				if err := os.MkdirAll(tempDir, 0o755); err != nil {
+					select {
+					case dirCreationError <- err:
+					default:
+					}
+				}
+			})
+			
+			// Check for directory creation errors
+			select {
+			case err := <-dirCreationError:
+				assert.NoError(t, err, "Directory creation should not fail")
+				return
+			default:
+			}
+			
 			intent := &Intent{
 				IntentType: "scaling",
 				Target:     fmt.Sprintf("stress-app-%d", id),

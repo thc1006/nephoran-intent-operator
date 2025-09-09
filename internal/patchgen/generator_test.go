@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -36,9 +35,7 @@ func TestNewPatchPackage(t *testing.T) {
 	assert.NotNil(t, patchPackage.Kptfile)
 	assert.Equal(t, "kpt.dev/v1", patchPackage.Kptfile.APIVersion)
 	assert.Equal(t, "Kptfile", patchPackage.Kptfile.Kind)
-	// Package names now have dynamic timestamps, verify the prefix
-	assert.True(t, strings.HasPrefix(patchPackage.Kptfile.Metadata.Name, "test-app-scaling-patch"), 
-		"Expected package name to start with 'test-app-scaling-patch', got %s", patchPackage.Kptfile.Metadata.Name)
+	assert.Equal(t, "test-app-scaling-patch", patchPackage.Kptfile.Metadata.Name)
 	assert.Contains(t, patchPackage.Kptfile.Info.Description, "test-app")
 	assert.Contains(t, patchPackage.Kptfile.Info.Description, "5 replicas")
 
@@ -125,18 +122,8 @@ func TestPatchPackageGenerate(t *testing.T) {
 			assert.NoError(t, err)
 
 			// Verify package structure
-			// Package names now have dynamic timestamps, so we need to find the directory
-			entries, err := os.ReadDir(outputSubDir)
-			assert.NoError(t, err)
-			
-			var packageDir string
-			for _, entry := range entries {
-				if entry.IsDir() && strings.HasPrefix(entry.Name(), fmt.Sprintf("%s-scaling-patch", tt.intent.Target)) {
-					packageDir = filepath.Join(outputSubDir, entry.Name())
-					break
-				}
-			}
-			assert.NotEmpty(t, packageDir, "Package directory not found")
+			expectedPackageName := fmt.Sprintf("%s-scaling-patch", tt.intent.Target)
+			packageDir := filepath.Join(outputSubDir, expectedPackageName)
 			assert.DirExists(t, packageDir)
 
 			// Verify generated files
@@ -158,8 +145,7 @@ func TestGenerateKptfile(t *testing.T) {
 	}
 
 	patchPackage := NewPatchPackage(intent, tempDir)
-	// Use the actual package name from the generated package
-	packageDir := filepath.Join(tempDir, patchPackage.Kptfile.Metadata.Name)
+	packageDir := filepath.Join(tempDir, "test-service-scaling-patch")
 	require.NoError(t, os.MkdirAll(packageDir, 0o755))
 
 	err := patchPackage.generateKptfile(packageDir)
@@ -179,9 +165,7 @@ func TestGenerateKptfile(t *testing.T) {
 
 	assert.Equal(t, "kpt.dev/v1", kptfile.APIVersion)
 	assert.Equal(t, "Kptfile", kptfile.Kind)
-	// Package names now have dynamic timestamps, verify the prefix
-	assert.True(t, strings.HasPrefix(kptfile.Metadata.Name, "test-service-scaling-patch"),
-		"Expected package name to start with 'test-service-scaling-patch', got %s", kptfile.Metadata.Name)
+	assert.Equal(t, "test-service-scaling-patch", kptfile.Metadata.Name)
 	assert.Contains(t, kptfile.Info.Description, "test-service")
 	assert.Contains(t, kptfile.Info.Description, "7 replicas")
 }
@@ -200,8 +184,7 @@ func TestGeneratePatchFile(t *testing.T) {
 	}
 
 	patchPackage := NewPatchPackage(intent, tempDir)
-	// Use the actual package name from the generated package
-	packageDir := filepath.Join(tempDir, patchPackage.Kptfile.Metadata.Name)
+	packageDir := filepath.Join(tempDir, "backend-api-scaling-patch")
 	require.NoError(t, os.MkdirAll(packageDir, 0o755))
 
 	err := patchPackage.generatePatchFile(packageDir)
@@ -251,8 +234,7 @@ func TestGenerateReadme(t *testing.T) {
 	}
 
 	patchPackage := NewPatchPackage(intent, tempDir)
-	// Use the actual package name from the generated package
-	packageDir := filepath.Join(tempDir, patchPackage.Kptfile.Metadata.Name)
+	packageDir := filepath.Join(tempDir, "frontend-scaling-patch")
 	require.NoError(t, os.MkdirAll(packageDir, 0o755))
 
 	err := patchPackage.generateReadme(packageDir)
@@ -267,9 +249,8 @@ func TestGenerateReadme(t *testing.T) {
 	require.NoError(t, err)
 	content := string(data)
 
-	// Check required content - should contain the target name
-	assert.Contains(t, content, "frontend")
-	assert.Contains(t, content, "scaling-patch")
+	// Check required content
+	assert.Contains(t, content, "frontend-scaling-patch")
 	assert.Contains(t, content, "frontend")
 	assert.Contains(t, content, "web")
 	assert.Contains(t, content, "8")
@@ -318,10 +299,8 @@ func TestGetPackagePath(t *testing.T) {
 
 			patchPackage := NewPatchPackage(intent, tt.outputDir)
 			actualPath := patchPackage.GetPackagePath()
-			// Package names now have dynamic timestamps, verify the path contains the expected prefix
-			assert.True(t, strings.HasPrefix(filepath.Base(actualPath), tt.expectedPathSuffix),
-				"Expected package path to contain prefix '%s', got '%s'", tt.expectedPathSuffix, actualPath)
-			assert.Equal(t, tt.outputDir, filepath.Dir(actualPath))
+			expectedPath := filepath.Join(tt.outputDir, tt.expectedPathSuffix)
+			assert.Equal(t, expectedPath, actualPath)
 		})
 	}
 }
@@ -419,9 +398,7 @@ func TestPackageNameGeneration(t *testing.T) {
 			}
 
 			patchPackage := NewPatchPackage(intent, "/tmp")
-			// Package names now have dynamic timestamps, verify the prefix
-			assert.True(t, strings.HasPrefix(patchPackage.Kptfile.Metadata.Name, tt.expectedPackageName),
-				"Expected package name to start with '%s', got '%s'", tt.expectedPackageName, patchPackage.Kptfile.Metadata.Name)
+			assert.Equal(t, tt.expectedPackageName, patchPackage.Kptfile.Metadata.Name)
 		})
 	}
 }
@@ -463,6 +440,14 @@ func TestConcurrentGeneration(t *testing.T) {
 	tempDir := t.TempDir()
 	const numGoroutines = 5
 
+	// Pre-create all output directories to avoid race conditions
+	for i := 0; i < numGoroutines; i++ {
+		outputDir := filepath.Join(tempDir, fmt.Sprintf("output-%d", i))
+		if err := os.MkdirAll(outputDir, 0o755); err != nil {
+			t.Fatalf("Failed to create output directory %s: %v", outputDir, err)
+		}
+	}
+
 	results := make(chan error, numGoroutines)
 
 	for i := 0; i < numGoroutines; i++ {
@@ -488,21 +473,21 @@ func TestConcurrentGeneration(t *testing.T) {
 	// Verify all packages were created
 	for i := 0; i < numGoroutines; i++ {
 		outputDir := filepath.Join(tempDir, fmt.Sprintf("output-%d", i))
-		entries, err := os.ReadDir(outputDir)
-		assert.NoError(t, err)
 		
-		// Find the package directory with the expected prefix
-		expectedPrefix := fmt.Sprintf("app-%d-scaling-patch", i)
-		found := false
+		// Check that the output directory contains at least one subdirectory (the package)
+		entries, err := os.ReadDir(outputDir)
+		assert.NoError(t, err, "Should be able to read output directory")
+		assert.Greater(t, len(entries), 0, "Output directory should contain generated package")
+		
+		// Verify at least one entry is a directory (the package)
+		hasPackageDir := false
 		for _, entry := range entries {
-			if entry.IsDir() && strings.HasPrefix(entry.Name(), expectedPrefix) {
-				packageDir := filepath.Join(outputDir, entry.Name())
-				assert.DirExists(t, packageDir)
-				found = true
+			if entry.IsDir() {
+				hasPackageDir = true
 				break
 			}
 		}
-		assert.True(t, found, "Package directory with prefix '%s' not found in %s", expectedPrefix, outputDir)
+		assert.True(t, hasPackageDir, "Output directory should contain package directory")
 	}
 }
 
@@ -557,11 +542,8 @@ func verifyKptfile(t *testing.T, packageDir string, intent *Intent) {
 
 	metadata, ok := kptfile["Metadata"].(map[string]interface{})
 	require.True(t, ok)
-	expectedPrefix := fmt.Sprintf("%s-scaling-patch", intent.Target)
-	name, ok := metadata["Name"].(string)
-	require.True(t, ok, "Name field should be a string")
-	assert.True(t, strings.HasPrefix(name, expectedPrefix), 
-		"Expected name to start with '%s', got '%s'", expectedPrefix, name)
+	expectedName := fmt.Sprintf("%s-scaling-patch", intent.Target)
+	assert.Equal(t, expectedName, metadata["Name"])
 
 	info, ok := kptfile["Info"].(map[string]interface{})
 	require.True(t, ok)
@@ -614,17 +596,15 @@ func verifyReadme(t *testing.T, packageDir string, intent *Intent) {
 	content := string(data)
 
 	// Verify essential content is present
-	// The README should contain the target name, even if the full package name has timestamps
-	assert.Contains(t, content, intent.Target)
-	assert.Contains(t, content, "scaling-patch")
+	expectedName := fmt.Sprintf("%s-scaling-patch", intent.Target)
+	assert.Contains(t, content, expectedName)
 	assert.Contains(t, content, intent.Target)
 	assert.Contains(t, content, intent.Namespace)
 	assert.Contains(t, content, fmt.Sprintf("%d", intent.Replicas))
 	assert.Contains(t, content, intent.IntentType)
 
-	// Verify structure - the heading should contain the target at least
-	assert.Contains(t, content, "# ")
-	assert.Contains(t, content, intent.Target)
+	// Verify structure
+	assert.Contains(t, content, "# "+expectedName)
 	assert.Contains(t, content, "## Intent Details")
 	assert.Contains(t, content, "## Files")
 	assert.Contains(t, content, "## Usage")

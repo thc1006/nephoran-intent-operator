@@ -95,9 +95,16 @@
     "target_resources": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "string",
+        "minLength": 1
       },
-      "description": "List of target Kubernetes resources (e.g., deployment/my-app)"
+      "description": "List of resources to be scaled",
+      "minItems": 0
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1024,
+      "description": "Optional description of the intent operation"
     },
     "nephio_context": {
       "type": "object",
@@ -120,7 +127,7 @@
   },
   "required": [
     "intent_type",
-    "target",
+    "target", 
     "namespace",
     "replicas"
   ],

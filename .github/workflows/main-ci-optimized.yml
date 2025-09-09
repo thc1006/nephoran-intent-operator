@@ -24,7 +24,7 @@ permissions:
   security-events: write
 
 env:
-  GO_VERSION: "1.22.7"  # Updated to latest stable version (released Aug 2025)
+  GO_VERSION: "1.24.6"  # EMERGENCY FIX - Match go.mod toolchain  # Updated to latest stable version (released Aug 2025)
   GO_CACHE_KEY: "nephoran-go-cache-v2"
   GOPROXY: "https://proxy.golang.org,direct"
   FAST_MODE: ${{ github.event.inputs.fast_mode == 'true' || contains(github.event.head_commit.message, '[fast]') }}

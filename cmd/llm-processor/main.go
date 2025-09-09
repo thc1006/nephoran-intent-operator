@@ -1092,44 +1092,37 @@ func createIPRestrictedHandler(handler http.HandlerFunc, allowedIPs []string, lo
 }
 
 // getClientIP extracts the client IP address from the request.
-
+// Follows priority order to match existing codebase: X-Forwarded-For > X-Real-IP > CF-Connecting-IP > RemoteAddr
 func getClientIP(r *http.Request) string {
-	// Check X-Forwarded-For header (common with proxies/load balancers).
-
+	// Check X-Forwarded-For header first (most common with proxies/load balancers)
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-
-		// X-Forwarded-For can contain multiple IPs, take the first one.
-
+		// X-Forwarded-For can contain multiple IPs, take the first one
 		parts := strings.Split(xff, ",")
-
 		if len(parts) > 0 {
-
 			ip := strings.TrimSpace(parts[0])
-
 			if ip != "" {
 				return ip
 			}
-
 		}
-
 	}
 
-	// Check X-Real-IP header (nginx).
-
+	// Check X-Real-IP header (nginx and other proxies)
 	if xri := r.Header.Get("X-Real-IP"); xri != "" {
-		return xri
+		return strings.TrimSpace(xri)
 	}
 
-	// Fall back to RemoteAddr.
+	// Check CF-Connecting-IP header (Cloudflare)
+	if cfip := r.Header.Get("CF-Connecting-IP"); cfip != "" {
+		return strings.TrimSpace(cfip)
+	}
 
-	// RemoteAddr might be in the format "IP:port", so we need to extract just the IP.
-
+	// Fall back to RemoteAddr
+	// RemoteAddr might be in the format "IP:port", so we need to extract just the IP
 	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
 		return host
 	}
 
-	// If SplitHostPort fails, it might already be just an IP.
-
+	// If SplitHostPort fails, it might already be just an IP
 	return r.RemoteAddr
 }
 

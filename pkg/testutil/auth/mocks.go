@@ -1153,6 +1153,15 @@ func (ssm *SessionManagerMock) CreateSession(ctx context.Context, userInfo inter
 	return session, nil
 }
 
+// GetSession retrieves a session by ID
+func (ssm *SessionManagerMock) GetSession(ctx context.Context, sessionID string) (*SessionResult, error) {
+	session, exists := ssm.sessions[sessionID]
+	if !exists {
+		return nil, fmt.Errorf("session not found")
+	}
+	return session, nil
+}
+
 // ValidateSession validates an existing session
 func (ssm *SessionManagerMock) ValidateSession(ctx context.Context, sessionID string) (*SessionResult, error) {
 	session, exists := ssm.sessions[sessionID]
@@ -1165,6 +1174,123 @@ func (ssm *SessionManagerMock) ValidateSession(ctx context.Context, sessionID st
 	}
 	
 	return session, nil
+}
+
+// RefreshSession refreshes an existing session
+func (ssm *SessionManagerMock) RefreshSession(ctx context.Context, sessionID string) (*SessionResult, error) {
+	session, exists := ssm.sessions[sessionID]
+	if !exists {
+		return nil, fmt.Errorf("session not found")
+	}
+
+	if time.Now().After(session.ExpiresAt) {
+		return nil, fmt.Errorf("session expired")
+	}
+
+	// Extend the expiration time
+	session.ExpiresAt = time.Now().Add(24 * time.Hour)
+	ssm.sessions[sessionID] = session
+	return session, nil
+}
+
+// RevokeSession revokes/deletes a session
+func (ssm *SessionManagerMock) RevokeSession(ctx context.Context, sessionID string) error {
+	_, exists := ssm.sessions[sessionID]
+	if !exists {
+		return fmt.Errorf("session not found")
+	}
+
+	delete(ssm.sessions, sessionID)
+	return nil
+}
+
+// RevokeAllUserSessions revokes all sessions for a user
+func (ssm *SessionManagerMock) RevokeAllUserSessions(ctx context.Context, userID string) error {
+	if userID == "" {
+		return fmt.Errorf("empty user ID")
+	}
+
+	// For simplicity, remove all sessions (in a real implementation, we'd check user association)
+	for sessionID, session := range ssm.sessions {
+		if user, ok := session.User.(*TestUser); ok && user.Subject == userID {
+			delete(ssm.sessions, sessionID)
+		}
+	}
+	return nil
+}
+
+// CleanupExpiredSessions removes expired sessions
+func (ssm *SessionManagerMock) CleanupExpiredSessions() error {
+	now := time.Now()
+	for sessionID, session := range ssm.sessions {
+		if now.After(session.ExpiresAt) {
+			delete(ssm.sessions, sessionID)
+		}
+	}
+	return nil
+}
+
+// GetUserSessions returns all sessions for a user
+func (ssm *SessionManagerMock) GetUserSessions(ctx context.Context, userID string) ([]*SessionResult, error) {
+	if userID == "" {
+		return nil, fmt.Errorf("empty user ID")
+	}
+
+	var userSessions []*SessionResult
+	for _, session := range ssm.sessions {
+		if user, ok := session.User.(*TestUser); ok && user.Subject == userID {
+			userSessions = append(userSessions, session)
+		}
+	}
+	return userSessions, nil
+}
+
+// UpdateSessionMetadata updates session metadata
+func (ssm *SessionManagerMock) UpdateSessionMetadata(ctx context.Context, sessionID string, metadata map[string]interface{}) (*SessionResult, error) {
+	session, exists := ssm.sessions[sessionID]
+	if !exists {
+		return nil, fmt.Errorf("session not found")
+	}
+
+	if time.Now().After(session.ExpiresAt) {
+		return nil, fmt.Errorf("session expired")
+	}
+
+	// For simplicity, just return the session (metadata updates would be stored in a real implementation)
+	return session, nil
+}
+
+// SetSessionCookie sets a session cookie (mock implementation)
+func (ssm *SessionManagerMock) SetSessionCookie(w http.ResponseWriter, sessionID string) {
+	cookie := http.Cookie{
+		Name:     "test-session",
+		Value:    sessionID,
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+		Path:     "/",
+	}
+	http.SetCookie(w, &cookie)
+}
+
+// ClearSessionCookie clears the session cookie
+func (ssm *SessionManagerMock) ClearSessionCookie(w http.ResponseWriter) {
+	cookie := http.Cookie{
+		Name:     "test-session",
+		Value:    "",
+		MaxAge:   -1,
+		Expires:  time.Unix(0, 0),
+		Path:     "/",
+	}
+	http.SetCookie(w, &cookie)
+}
+
+// GetSessionFromCookie retrieves session ID from cookie
+func (ssm *SessionManagerMock) GetSessionFromCookie(r *http.Request) (string, error) {
+	cookie, err := r.Cookie("test-session")
+	if err != nil {
+		return "", fmt.Errorf("session cookie not found")
+	}
+	return cookie.Value, nil
 }
 
 // NewOAuth2MockServer creates a mock OAuth2 server for testing

@@ -258,8 +258,12 @@ func (suite *RAGComponentsTestSuite) testChunkTelecomContent() {
 		The gNodeB (gNB) is the base station in 5G networks, providing radio access functionality. 
 		Network slicing allows multiple virtual networks to run on a single physical infrastructure. 
 		The Core Network (5GC) includes functions like AMF, SMF, UPF, and PCF for different network operations.`,
-		Type: "technical",
-		Metadata: map[string]interface{}{},
+		Type:     "technical",
+		Metadata: func() map[string]interface{} {
+			var result map[string]interface{}
+			json.Unmarshal(json.RawMessage(`{}`), &result)
+			return result
+		}(),
 	}
 
 	chunks, err := chunker.ChunkDocument(suite.ctx, doc)
@@ -465,7 +469,6 @@ func (suite *RAGComponentsTestSuite) testSemanticSearch() {
 	results, err := service.RetrieveDocuments(suite.ctx, &rag.RetrievalRequest{
 		Query:      "5G network architecture",
 		MaxResults: 5,
-		SearchType: "semantic",
 		MinScore:   0.8,
 	})
 
@@ -501,7 +504,6 @@ func (suite *RAGComponentsTestSuite) testHybridSearch() {
 
 	results, err := service.RetrieveDocuments(suite.ctx, &rag.RetrievalRequest{
 		Query:      "network slicing configuration",
-		SearchType: "hybrid",
 		MaxResults: 10,
 	})
 
@@ -566,7 +568,6 @@ func (suite *RAGComponentsTestSuite) testReRanking() {
 
 	results, err := service.RetrieveDocuments(suite.ctx, &rag.RetrievalRequest{
 		Query:      "5G configuration",
-		SearchType: "semantic",
 		MaxResults: 3,
 	})
 
@@ -600,8 +601,8 @@ func (suite *RAGComponentsTestSuite) testSearchWithMetadata() {
 	service.SetWeaviateClient(mockWeaviate)
 
 	results, err := service.RetrieveDocuments(suite.ctx, &rag.RetrievalRequest{
-		Query: "5G core network",
-		Filters: json.RawMessage(`{}`),
+		Query:      "5G core network",
+		Filters:    json.RawMessage(`{}`),
 		MaxResults: 5,
 	})
 
@@ -649,3 +650,38 @@ func (m *MockWeaviateClient) DeleteDocument(ctx context.Context, docID string) e
 	return args.Error(0)
 }
 
+func (m *MockWeaviateClient) AddDocument(ctx context.Context, doc *rag.Document) error {
+	args := m.Called(ctx, doc)
+	return args.Error(0)
+}
+
+func (m *MockWeaviateClient) Search(ctx context.Context, query *rag.SearchQuery) (*rag.SearchResponse, error) {
+	args := m.Called(ctx, query)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*rag.SearchResponse), args.Error(1)
+}
+
+func (m *MockWeaviateClient) IndexDocument(ctx context.Context, doc *rag.Document) error {
+	args := m.Called(ctx, doc)
+	return args.Error(0)
+}
+
+func (m *MockWeaviateClient) GetHealthStatus() map[string]interface{} {
+	args := m.Called()
+	if args.Get(0) == nil {
+		return nil
+	}
+	return args.Get(0).(map[string]interface{})
+}
+
+func (m *MockWeaviateClient) HealthCheck(ctx context.Context) error {
+	args := m.Called(ctx)
+	return args.Error(0)
+}
+
+func (m *MockWeaviateClient) Close() error {
+	args := m.Called()
+	return args.Error(0)
+}

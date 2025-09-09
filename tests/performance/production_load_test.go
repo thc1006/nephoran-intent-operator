@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	mathrand "math/rand"
+	"math/rand"
 	"net/http"
 	"runtime"
 	"sync"
@@ -123,7 +123,7 @@ type ProductionLoadTester struct {
 	mu               sync.RWMutex
 	ctx              context.Context
 	cancel           context.CancelFunc
-	metricsCollector *ProductionMetricsCollector
+	metricsCollector *MetricsCollector
 }
 
 // NewProductionLoadTester creates a new load tester
@@ -145,7 +145,7 @@ func NewProductionLoadTester(config *ProductionLoadTestConfig) *ProductionLoadTe
 		},
 		ctx:              ctx,
 		cancel:           cancel,
-		metricsCollector: NewProductionMetricsCollector(),
+		metricsCollector: NewMetricsCollector(),
 	}
 
 	// Calculate scenario weights
@@ -254,7 +254,7 @@ func (plt *ProductionLoadTester) createTargeter() vegeta.Targeter {
 
 // selectScenario selects a scenario based on weights
 func (plt *ProductionLoadTester) selectScenario() TestScenario {
-	r := mathrand.Float64() * plt.totalWeight
+	r := rand.Float64() * plt.totalWeight
 	cumulative := 0.0
 
 	for i, weight := range plt.scenarioWeights {
@@ -442,37 +442,37 @@ func generateNetworkIntentPayload() interface{} {
 
 	specs := []map[string]interface{}{
 		{
-			"intent":   intents[mathrand.Intn(len(intents))],
+			"intent":   intents[rand.Intn(len(intents))],
 			"priority": "high",
 		},
 		{
-			"intent":   intents[mathrand.Intn(len(intents))],
+			"intent":   intents[rand.Intn(len(intents))],
 			"priority": "medium",
 		},
 		{
-			"intent":   intents[mathrand.Intn(len(intents))],
+			"intent":   intents[rand.Intn(len(intents))],
 			"priority": "low",
 		},
 	}
 
 	return map[string]interface{}{
 		"metadata": map[string]interface{}{
-			"name":      fmt.Sprintf("intent-%d", mathrand.Intn(100000)),
+			"name":      fmt.Sprintf("intent-%d", rand.Intn(100000)),
 			"namespace": "default",
 		},
-		"spec": specs[mathrand.Intn(len(specs))],
+		"spec": specs[rand.Intn(len(specs))],
 	}
 }
 
 func generatePolicyPayload() interface{} {
 	return map[string]interface{}{
-		"max_throughput":    mathrand.Intn(10000) + 1000,
-		"min_throughput":    mathrand.Intn(1000) + 100,
-		"latency_target_ms": mathrand.Intn(50) + 10,
-		"reliability":       0.99 + mathrand.Float64()*0.009,
+		"max_throughput":    rand.Intn(10000) + 1000,
+		"min_throughput":    rand.Intn(1000) + 100,
+		"latency_target_ms": rand.Intn(50) + 10,
+		"reliability":       0.99 + rand.Float64()*0.009,
 		"target_cells": []string{
-			fmt.Sprintf("cell-%d", mathrand.Intn(100)),
-			fmt.Sprintf("cell-%d", mathrand.Intn(100)),
+			fmt.Sprintf("cell-%d", rand.Intn(100)),
+			fmt.Sprintf("cell-%d", rand.Intn(100)),
 		},
 	}
 }
@@ -481,14 +481,14 @@ func generateScalingPayload() interface{} {
 	payloads := []map[string]interface{}{
 		{
 			"component": "amf",
-			"replicas":  mathrand.Intn(10) + 1,
+			"replicas":  rand.Intn(10) + 1,
 		},
 		{
 			"component": "smf",
-			"replicas":  mathrand.Intn(5) + 1,
+			"replicas":  rand.Intn(5) + 1,
 		},
 	}
-	return payloads[mathrand.Intn(len(payloads))]
+	return payloads[rand.Intn(len(payloads))]
 }
 
 // Validator functions
@@ -509,19 +509,16 @@ func validateResponseTime(maxDuration time.Duration) ResponseValidator {
 	}
 }
 
-// ProductionMetricsCollector collects system metrics during test
-type ProductionMetricsCollector struct {
+// MetricsCollector collects system metrics during test
+type MetricsCollector struct {
 	resourceMetrics *ProductionResourceMetrics
 	systemMetrics   *SystemMetrics
 	mu              sync.RWMutex
 }
 
-// MetricsCollector is an alias for backward compatibility
-type MetricsCollector = ProductionMetricsCollector
-
-// NewProductionMetricsCollector creates a new metrics collector
-func NewProductionMetricsCollector() *ProductionMetricsCollector {
-	return &ProductionMetricsCollector{
+// NewMetricsCollector creates a new metrics collector
+func NewMetricsCollector() *MetricsCollector {
+	return &MetricsCollector{
 		resourceMetrics: &ProductionResourceMetrics{},
 		systemMetrics: &SystemMetrics{
 			CircuitBreakerStatus: make(map[string]string),
@@ -529,13 +526,8 @@ func NewProductionMetricsCollector() *ProductionMetricsCollector {
 	}
 }
 
-// NewMetricsCollector creates a new metrics collector (alias for compatibility)
-func NewMetricsCollector() *MetricsCollector {
-	return NewProductionMetricsCollector()
-}
-
 // Start starts metrics collection
-func (mc *ProductionMetricsCollector) Start(ctx context.Context, interval time.Duration) {
+func (mc *MetricsCollector) Start(ctx context.Context, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
@@ -550,7 +542,7 @@ func (mc *ProductionMetricsCollector) Start(ctx context.Context, interval time.D
 }
 
 // collectMetrics collects current metrics
-func (mc *ProductionMetricsCollector) collectMetrics() {
+func (mc *MetricsCollector) collectMetrics() {
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
 
@@ -571,7 +563,7 @@ func (mc *ProductionMetricsCollector) collectMetrics() {
 }
 
 // GetResourceMetrics returns current resource metrics
-func (mc *ProductionMetricsCollector) GetResourceMetrics() *ProductionResourceMetrics {
+func (mc *MetricsCollector) GetResourceMetrics() *ProductionResourceMetrics {
 	mc.mu.RLock()
 	defer mc.mu.RUnlock()
 
@@ -580,7 +572,7 @@ func (mc *ProductionMetricsCollector) GetResourceMetrics() *ProductionResourceMe
 }
 
 // GetSystemMetrics returns current system metrics
-func (mc *ProductionMetricsCollector) GetSystemMetrics() *SystemMetrics {
+func (mc *MetricsCollector) GetSystemMetrics() *SystemMetrics {
 	mc.mu.RLock()
 	defer mc.mu.RUnlock()
 

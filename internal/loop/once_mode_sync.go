@@ -527,7 +527,22 @@ func (eos *EnhancedOnceState) IncrementFailed() {
 // GetStats returns current state statistics.
 
 func (eos *EnhancedOnceState) GetStats() map[string]interface{} {
-	return make(map[string]interface{})
+	stats := make(map[string]interface{})
+	
+	// Get atomic values safely
+	scanned := atomic.LoadInt64(&eos.scannedFiles)
+	processed := atomic.LoadInt64(&eos.processedFiles)
+	failed := atomic.LoadInt64(&eos.failedFiles)
+	
+	// Return the actual statistics
+	stats["files_scanned"] = scanned
+	stats["files_processed"] = processed
+	stats["files_failed"] = failed
+	stats["processing_done"] = eos.processingDone.Load()
+	stats["processing_started"] = eos.processingStarted.Load()
+	stats["scan_complete"] = eos.filesScanned.Load()
+	
+	return stats
 }
 
 // IsComplete returns true if processing is complete.

@@ -44,7 +44,7 @@ permissions:
   pull-requests: write  # For PR comments with performance metrics
 
 env:
-  GO_VERSION: "1.22.7"
+  GO_VERSION: "1.24.6"  # EMERGENCY FIX - Match go.mod toolchain
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   CGO_ENABLED: "0"
@@ -71,7 +71,7 @@ jobs:
   analyze-changes:
     name: Analyze Changes & Plan Scans
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 3
     outputs:
       scan_strategy: ${{ steps.strategy.outputs.scan_strategy }}
       changed_files: ${{ steps.changes.outputs.files }}
@@ -92,7 +92,7 @@ jobs:
       - name: Checkout code (sparse for analysis)
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
           sparse-checkout: |
             .github
             go.mod
@@ -217,7 +217,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: analyze-changes
     if: needs.analyze-changes.outputs.skip_gosec != 'true' || needs.analyze-changes.outputs.skip_vulncheck != 'true'
-    timeout-minutes: 10
+    timeout-minutes: 5
     
     steps:
       - name: Checkout code
@@ -325,7 +325,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [analyze-changes, setup-environment]
     if: needs.analyze-changes.outputs.skip_gosec != 'true'
-    timeout-minutes: 10
+    timeout-minutes: 15
     
     strategy:
       fail-fast: false
@@ -479,7 +479,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [analyze-changes, setup-environment]
     if: needs.analyze-changes.outputs.skip_vulncheck != 'true'
-    timeout-minutes: 10
+    timeout-minutes: 20
     
     steps:
       - name: Checkout code
@@ -548,7 +548,7 @@ jobs:
           # If critical issues found, do source scan for details
           if grep -q '"severity":"HIGH"' vulncheck-binary.json 2>/dev/null || grep -q '"severity":"CRITICAL"' vulncheck-binary.json 2>/dev/null; then
             echo "?ая? Critical vulnerabilities detected, running detailed source scan..."
-            timeout 10m govulncheck -format json $SCAN_TARGETS > vulncheck-source.json 2>&1 || true
+            timeout 10m govulncheck -json $SCAN_TARGETS > vulncheck-source.json 2>&1 || true
           fi
           
           # Nancy scan for dependencies (parallel with govulncheck)
@@ -601,7 +601,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [analyze-changes, gosec-scan, vulnerability-scan]
     if: always()
-    timeout-minutes: 10
+    timeout-minutes: 5
     
     steps:
       - name: Download all scan artifacts
@@ -838,7 +838,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: merge-and-report
     if: always()
-    timeout-minutes: 10
+    timeout-minutes: 2
     
     steps:
       - name: Delete temporary artifacts

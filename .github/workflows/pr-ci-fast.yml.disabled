@@ -5,7 +5,7 @@
 # Please migrate to pr-validation.yml which addresses:
 # - Cache key generation failures
 # - Tar extraction errors  
-# - Better Go 1.25.0 optimization
+# - Better Go 1.24.6 optimization
 # - Enhanced error handling and reliability
 # =============================================================================
 
@@ -36,7 +36,7 @@ permissions:
   contents: read
 
 env:
-  GO_VERSION: "1.22.7"
+  GO_VERSION: "1.24.6"  # EMERGENCY FIX - Match go.mod toolchain
   GOPRIVATE: "github.com/thc1006/*"
   SKIP_TESTS: ${{ github.event.inputs.skip_tests == 'true' || contains(github.event.head_commit.message, '[skip-tests]') }}
 

@@ -20,7 +20,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
+	_ "github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers" // Imported for future use
 )
 
 var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
@@ -32,7 +32,7 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 		testClient      *http.Client
 		metricsRegistry *prometheus.Registry
 		testLogger      *logging.StructuredLogger
-		_ *providers.IntegrationManager // unused
+		// providerManager *providers.IntegrationManager // TODO: unused since GetProviderManager doesn't exist
 	)
 
 	BeforeEach(func() {
@@ -46,18 +46,76 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 
 		// Setup O2 IMS service with multi-cloud provider configuration
 		config := &o2.O2IMSConfig{
-			ServerAddress: "127.0.0.1",
-			ServerPort:    0,
-			TLSEnabled:    false,
+			ServerAddress:  "127.0.0.1",
+			ServerPort:     0,
+			TLSEnabled:     false,
 			DatabaseConfig: json.RawMessage(`{}`),
-			ProviderConfigs: []byte(`{"enabled": true}`),
+			ProviderConfigs: json.RawMessage(`{"enabled": true}`),
+			// Simplified config instead of complex map structure
+			/*
+			Previous complex config removed for go vet compliance
+				"enabled": true,
+				"config":  json.RawMessage(`{}`),
+				"openstack": map[string]interface{}{
+					"auth_url":  "http://mock-openstack.test:5000/v3",
+					"username":  "test-user",
+					"password":  "test-password",
+					"project":   "test-project",
+					"region":    "RegionOne",
+					"mock_mode": true,
+				},
+				"aws": map[string]interface{}{
+					"region":            "us-west-2",
+					"access_key_id":     "test-access-key",
+					"secret_access_key": "test-secret-key",
+					"mock_mode":         true,
+				},
+				"azure": map[string]interface{}{
+					"subscription_id": "test-subscription",
+					"tenant_id":       "test-tenant",
+					"client_id":       "test-client",
+					"client_secret":   "test-secret",
+					"mock_mode":       true,
+				},
+				"gcp": map[string]interface{}{
+					"project":     "test-project",
+					"region":      "us-central1",
+					"zone":        "us-central1-a",
+					"credentials": "test-credentials.json",
+					"mock_mode":   true,
+				},
+				"vmware": map[string]interface{}{
+					"vcenter_url": "https://mock-vcenter.test",
+					"username":    "administrator@vsphere.local",
+					"password":    "test-password",
+					"datacenter":  "test-datacenter",
+					"mock_mode":   true,
+				},
+				"edge": map[string]interface{}{
+					"edge_nodes": []map[string]interface{}{
+						{
+							"name":     "edge-node-1",
+							"location": "cell-tower-1",
+							"endpoint": "http://edge-node-1.test:8080",
+						},
+						{
+							"name":     "edge-node-2",
+							"location": "cell-tower-2",
+							"endpoint": "http://edge-node-2.test:8080",
+						},
+					},
+					"mock_mode": true,
+				},
+			},
+			*/
 		}
 
 		var err error
 		o2Server, err = o2.NewO2APIServer(config, testLogger, metricsRegistry)
 		Expect(err).NotTo(HaveOccurred())
 
-		// providerManager = o2Server.GetProviderManager() // Method not available
+		// TODO: GetProviderManager method doesn't exist on O2APIServer
+		// providerManager = o2Server.GetProviderManager()
 		// Expect(providerManager).NotTo(BeNil())
 
 		httpTestServer = httptest.NewServer(o2Server.GetRouter())
@@ -468,21 +526,21 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 				hybridDeployment := map[string]interface{}{
 					"services": []map[string]interface{}{
 						{
-							"name":     "core-services",
-							"provider": "kubernetes",
-							"region":   "us-west-2",
+							"name":      "core-services",
+							"provider":  "kubernetes",
+							"region":    "us-west-2",
 							"resources": json.RawMessage(`{}`),
 						},
 						{
-							"name":     "data-processing",
-							"provider": "aws",
-							"region":   "us-west-2",
+							"name":      "data-processing",
+							"provider":  "aws",
+							"region":    "us-west-2",
 							"resources": json.RawMessage(`{}`),
 						},
 						{
-							"name":     "edge-functions",
-							"provider": "edge",
-							"location": "cell-tower-sites",
+							"name":      "edge-functions",
+							"provider":  "edge",
+							"location":  "cell-tower-sites",
 							"resources": json.RawMessage(`{}`),
 						},
 					},
@@ -601,4 +659,3 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 		})
 	})
 })
-

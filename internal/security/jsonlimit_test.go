@@ -131,7 +131,9 @@ func TestValidateAndLimitJSON_LargeFile(t *testing.T) {
 	t.Run("large file exceeds MaxJSONBytes", func(t *testing.T) {
 		data, err := ValidateAndLimitJSON(tempFile, MaxJSONBytes)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "exceeds maximum JSON size limit")
+		if err != nil {
+			assert.Contains(t, err.Error(), "exceeds maximum JSON size limit")
+		}
 		assert.Nil(t, data)
 	})
 }

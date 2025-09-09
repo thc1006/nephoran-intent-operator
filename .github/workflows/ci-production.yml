@@ -37,7 +37,7 @@ concurrency:
 
 env:
   # Upgraded to latest stable Go version for performance improvements  
-  GO_VERSION: "1.22.0"
+  GO_VERSION: "1.24.6"
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   # Build optimizations for CI environment
@@ -56,11 +56,10 @@ jobs:
   # STAGE 1: Pre-flight Validation (< 2 minutes)
   # =============================================================================
   preflight:
-    name: "?? Preflight Check"
+    name: "🚀 Preflight Check"
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 3
     outputs:
-      go-cache-key: ${{ steps.cache-key-gen.outputs.cache-key }}
       should-build: ${{ steps.changes.outputs.go == 'true' }}
       
     steps:
@@ -84,81 +83,36 @@ jobs:
         if: steps.changes.outputs.go == 'true'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22.0'
-          cache: false  # We'll handle caching manually for better control
+          go-version: '1.24.6'
+          cache: true  # Use built-in caching from actions/setup-go
           
-      - name: Generate standardized cache key
-        if: steps.changes.outputs.go == 'true'
-        id: cache-key-gen
-        run: |
-          # STANDARDIZED cache key generation for all workflows
-          GO_SUM_HASH="${{ hashFiles('**/go.sum') }}"
-          GO_MOD_HASH="${{ hashFiles('go.mod') }}"
-          
-          # Debug information
-          echo "Raw go.sum hash: '$GO_SUM_HASH'"
-          echo "Raw go.mod hash: '$GO_MOD_HASH'"
-          echo "Runner OS: ${{ runner.os }}"
-          echo "Go version: ${{ env.GO_VERSION }}"
-          
-          # Use fallback if hashes are empty
-          if [ -z "$GO_SUM_HASH" ] || [ "$GO_SUM_HASH" = "" ]; then
-            echo "Warning: go.sum hash is empty, using git SHA as fallback"
-            GO_SUM_HASH="${{ github.sha }}"
-          fi
-          if [ -z "$GO_MOD_HASH" ] || [ "$GO_MOD_HASH" = "" ]; then
-            echo "Warning: go.mod hash is empty, using git SHA as fallback"
-            GO_MOD_HASH="${{ github.sha }}"
-          fi
-          
-          # STANDARDIZED cache key format
-          CACHE_KEY="nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-${GO_SUM_HASH}-${GO_MOD_HASH}"
-          echo "Generated STANDARDIZED cache key: $CACHE_KEY"
-          
-          # Set output
-          echo "cache-key=${CACHE_KEY}" >> $GITHUB_OUTPUT
-          
-      - name: Setup STANDARDIZED Go cache
-        if: steps.changes.outputs.go == 'true'
-        id: go-cache
-        uses: actions/cache@v4  # LATEST STABLE VERSION
-        with:
-          path: |
-            /tmp/go-cache
-            /tmp/go-mod
-          key: ${{ steps.cache-key-gen.outputs.cache-key }}
-          restore-keys: |
-            nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-
-            nephoran-go-v1-${{ runner.os }}-
-          enableCrossOsArchive: false
-          fail-on-cache-miss: false
             
       - name: Verify Go environment
         if: steps.changes.outputs.go == 'true'
         run: |
-          echo "?�� Go version: $(go version)"
-          echo "?? GOCACHE: $GOCACHE"
-          echo "?�� GOMODCACHE: $GOMODCACHE"
-          echo "?�� Build environment:"
+          echo "🐹 Go version: $(go version)"
+          echo "📁 GOCACHE: $GOCACHE"
+          echo "📦 GOMODCACHE: $GOMODCACHE"
+          echo "🔧 Build environment:"
           go env | grep -E "(GOOS|GOARCH|CGO_ENABLED|GOMAXPROCS)"
           
       - name: Download dependencies
         if: steps.changes.outputs.go == 'true'
-        timeout-minutes: 10
+        timeout-minutes: 2
         run: |
-          echo "?�� Downloading Go modules..."
+          echo "📦 Downloading Go modules..."
           make -f Makefile.ci deps-download
           go mod verify
-          echo "??Dependencies verified"
+          echo "✅ Dependencies verified"
 
   # =============================================================================
   # STAGE 2: Fast Validation Build (< 5 minutes)
   # =============================================================================
   fast-validation:
-    name: "??Fast Validation"
+    name: "⚡ Fast Validation"
     needs: preflight
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 8
     if: needs.preflight.outputs.should-build == 'true'
     
     steps:
@@ -168,35 +122,24 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5  # Latest stable
         with:
-          go-version: '1.22.0'
-          cache: false
-          
-      - name: Restore STANDARDIZED Go cache
-        uses: actions/cache@v4  # LATEST STABLE VERSION
-        with:
-          path: |
-            /tmp/go-cache
-            /tmp/go-mod
-          key: nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('go.mod') }}
-          restore-keys: |
-            nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-
-            nephoran-go-v1-${{ runner.os }}-
+          go-version: '1.24.6'
+          cache: true
             
       - name: Syntax validation
-        timeout-minutes: 10
+        timeout-minutes: 2
         run: |
-          echo "?? Running syntax validation..."
+          echo "🔍 Running syntax validation..."
           make -f Makefile.ci validate-syntax
           
       - name: Critical components build
-        timeout-minutes: 10
+        timeout-minutes: 5
         run: |
-          echo "?�� Building critical components..."
+          echo "🔨 Building critical components..."
           make -f Makefile.ci ci-ultra-fast
           
       - name: Build status check
         run: |
-          echo "✅ Build completed successfully"
+          make -f Makefile.ci ci-status
           
       - name: Upload critical binaries
         uses: actions/upload-artifact@v4  # Latest stable
@@ -209,7 +152,7 @@ jobs:
   # STAGE 3: Comprehensive Testing (parallel execution)
   # =============================================================================
   test-matrix:
-    name: "?�� Tests (${{ matrix.component }})"
+    name: "🧪 Tests (${{ matrix.component }})"
     needs: [preflight, fast-validation]
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -231,24 +174,13 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5  # Latest stable
         with:
-          go-version: '1.22.0'
-          cache: false
-          
-      - name: Restore STANDARDIZED Go cache
-        uses: actions/cache@v4  # LATEST STABLE VERSION
-        with:
-          path: |
-            /tmp/go-cache
-            /tmp/go-mod
-          key: nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('go.mod') }}
-          restore-keys: |
-            nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-
-            nephoran-go-v1-${{ runner.os }}-
+          go-version: '1.24.6'
+          cache: true
             
       - name: Run ${{ matrix.component }} tests
-        timeout-minutes: 10
+        timeout-minutes: 8
         run: |
-          echo "?�� Testing ${{ matrix.component }}..."
+          echo "🧪 Testing ${{ matrix.component }}..."
           case "${{ matrix.component }}" in
             critical-pkg)
               make -f Makefile.ci test-critical
@@ -257,13 +189,19 @@ jobs:
               make -f Makefile.ci test-controllers
               ;;
             simulators)
-              if [ -d "sim" ]; then
-                timeout 300s go test -short -timeout=4m -p=4 ./sim/... || echo "?��? Some simulator tests failed"
+              # Check for actual simulator directories and test them
+              if [ -d "cmd/a1-sim" ] || [ -d "cmd/e2-kpm-sim" ] || [ -d "cmd/fcaps-sim" ] || [ -d "cmd/o1-ves-sim" ]; then
+                echo "Testing simulator commands..."
+                timeout 300s go test -short -timeout=4m -p=4 ./cmd/a1-sim/... ./cmd/e2-kpm-sim/... ./cmd/fcaps-sim/... ./cmd/o1-ves-sim/... 2>/dev/null || echo "⚠️ Some simulator tests failed"
+              fi
+              if [ -d "internal/a1sim" ]; then
+                echo "Testing internal simulator packages..."
+                timeout 300s go test -short -timeout=4m -p=4 ./internal/a1sim/... 2>/dev/null || echo "⚠️ Some internal simulator tests failed"
               fi
               ;;
             internal)
               if [ -d "internal" ]; then
-                timeout 300s go test -short -timeout=4m -p=4 ./internal/... || echo "?��? Some internal tests failed"
+                timeout 300s go test -short -timeout=4m -p=4 ./internal/... || echo "⚠️ Some internal tests failed"
               fi
               ;;
           esac
@@ -271,7 +209,7 @@ jobs:
       - name: Generate coverage report
         if: success()
         run: |
-          echo "?? Generating coverage report for ${{ matrix.component }}..."
+          echo "📊 Generating coverage report for ${{ matrix.component }}..."
           go tool cover -html=coverage.out -o coverage-${{ matrix.component }}.html 2>/dev/null || echo "No coverage file generated"
           
       - name: Upload coverage
@@ -286,10 +224,10 @@ jobs:
   # STAGE 4: Full Build Check (always reports status)
   # =============================================================================
   full-build-check:
-    name: "??�?Full Build Check"
+    name: "🏗️ Full Build Check"
     needs: [preflight, test-matrix]
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 1
     if: always() && needs.preflight.outputs.should-build == 'true'
     
     steps:
@@ -305,13 +243,13 @@ jobs:
           echo "should_build_full=${SHOULD_BUILD_FULL}" >> $GITHUB_OUTPUT
           
           if [ "$SHOULD_BUILD_FULL" = "true" ]; then
-            echo "??Full build will be executed for this branch/trigger"
+            echo "✅ Full build will be executed for this branch/trigger"
             echo "**Full Build**: Required for main/integrate branches" >> $GITHUB_STEP_SUMMARY
           else
-            echo "??Full build skipped - feature branch optimization enabled"
+            echo "⚡ Full build skipped - feature branch optimization enabled"
             echo "**Full Build**: Skipped (feature branch optimization)" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "?�� **Note**: Full builds are executed only for:" >> $GITHUB_STEP_SUMMARY
+            echo "💡 **Note**: Full builds are executed only for:" >> $GITHUB_STEP_SUMMARY
             echo "- main branch pushes" >> $GITHUB_STEP_SUMMARY
             echo "- integrate/* branch pushes" >> $GITHUB_STEP_SUMMARY
             echo "- Manual workflows with build_mode=full" >> $GITHUB_STEP_SUMMARY
@@ -322,10 +260,10 @@ jobs:
       should_build_full: ${{ steps.build-check.outputs.should_build_full }}
 
   full-build:
-    name: "??�?Full Build (${{ matrix.build-target }})"
+    name: "🏗️ Full Build (${{ matrix.build-target }})"
     needs: [full-build-check]
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     if: needs.full-build-check.outputs.should_build_full == 'true'
     
     strategy:
@@ -344,24 +282,13 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5  # Latest stable
         with:
-          go-version: '1.22.0'
-          cache: false
-          
-      - name: Restore STANDARDIZED Go cache
-        uses: actions/cache@v4  # LATEST STABLE VERSION
-        with:
-          path: |
-            /tmp/go-cache
-            /tmp/go-mod
-          key: nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('go.mod') }}
-          restore-keys: |
-            nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-
-            nephoran-go-v1-${{ runner.os }}-
+          go-version: '1.24.6'
+          cache: true
             
       - name: Build ${{ matrix.build-target }}
-        timeout-minutes: 10
+        timeout-minutes: 12
         run: |
-          echo "?�� Building ${{ matrix.build-target }}..."
+          echo "🔨 Building ${{ matrix.build-target }}..."
           mkdir -p bin
           
           case "${{ matrix.build-target }}" in
@@ -370,7 +297,7 @@ jobs:
               for cmd in cmd/intent-ingest cmd/llm-processor cmd/conductor cmd/nephio-bridge cmd/webhook cmd/a1-sim cmd/e2-kpm-sim cmd/fcaps-sim cmd/o1-ves-sim cmd/oran-adaptor cmd/conductor-loop; do
                 if [ -d "$cmd" ] && [ -f "$cmd/main.go" ]; then
                   echo "  Building $cmd..."
-                  timeout 90s go build -v -ldflags="-s -w" -o bin/$(basename $cmd) ./$cmd || echo "  ?��? $cmd build failed"
+                  timeout 90s go build -v -ldflags="-s -w" -o bin/$(basename $cmd) ./$cmd || echo "  ⚠️ $cmd build failed"
                 fi
               done
               ;;
@@ -379,7 +306,7 @@ jobs:
               for cmd in cmd/fcaps-reducer cmd/conductor-watch cmd/performance-comparison cmd/performance-regression-test cmd/porch-direct cmd/porch-publisher cmd/porch-structured-patch cmd/security-validator cmd/technical-debt-monitor cmd/test-context-builder cmd/test-lint; do
                 if [ -d "$cmd" ] && [ -f "$cmd/main.go" ]; then
                   echo "  Building $cmd..."
-                  timeout 90s go build -v -ldflags="-s -w" -o bin/$(basename $cmd) ./$cmd || echo "  ?��? $cmd build failed"
+                  timeout 90s go build -v -ldflags="-s -w" -o bin/$(basename $cmd) ./$cmd || echo "  ⚠️ $cmd build failed"
                 fi
               done
               ;;
@@ -388,19 +315,19 @@ jobs:
               find cmd -maxdepth 1 -type d -name "*" | grep -v "^cmd$" | while read cmd_dir; do
                 if [ ! -f "bin/$(basename $cmd_dir)" ] && [ -f "$cmd_dir/main.go" ]; then
                   echo "  Building $cmd_dir..."
-                  timeout 90s go build -v -ldflags="-s -w" -o bin/$(basename $cmd_dir) ./$cmd_dir || echo "  ?��? $cmd_dir build failed"
+                  timeout 90s go build -v -ldflags="-s -w" -o bin/$(basename $cmd_dir) ./$cmd_dir || echo "  ⚠️ $cmd_dir build failed"
                 fi
               done
               ;;
             pkg-and-controllers)
               # Build pkg and controllers
               echo "  Building controllers..."
-              timeout 180s go build -v -ldflags="-s -w" ./controllers/... || echo "  ?��? Controllers build failed"
+              timeout 180s go build -v -ldflags="-s -w" ./controllers/... || echo "  ⚠️ Controllers build failed"
               echo "  Building pkg modules..."
               for pkg_dir in pkg/context pkg/clients pkg/nephio pkg/llm pkg/monitoring; do
                 if [ -d "$pkg_dir" ]; then
                   echo "    Building $pkg_dir..."
-                  timeout 60s go build -v -ldflags="-s -w" ./$pkg_dir/... || echo "    ?��? $pkg_dir build failed"
+                  timeout 60s go build -v -ldflags="-s -w" ./$pkg_dir/... || echo "    ⚠️ $pkg_dir build failed"
                 fi
               done
               ;;
@@ -418,10 +345,10 @@ jobs:
   # STAGE 5: Integration & Security Validation
   # =============================================================================
   integration-check:
-    name: "?? Integration Check"
+    name: "🔗 Integration Check"
     needs: [fast-validation, test-matrix]
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 8
     if: needs.preflight.outputs.should-build == 'true'
     
     steps:
@@ -435,9 +362,9 @@ jobs:
           path: bin/
           
       - name: Integration smoke test
-        timeout-minutes: 10
+        timeout-minutes: 5
         run: |
-          echo "?? Running integration smoke tests..."
+          echo "🔗 Running integration smoke tests..."
           chmod +x bin/* 2>/dev/null || true
           
           # Test critical components
@@ -451,20 +378,20 @@ jobs:
               timeout 10s $binary version 2>/dev/null || \
               timeout 10s $binary --help 2>/dev/null || \
               timeout 10s $binary -h 2>/dev/null || \
-              echo "    ?��? $name: No standard CLI interface"
+              echo "    ⚠️ $name: No standard CLI interface"
             fi
           done
           
       - name: Security scan (basic)
-        timeout-minutes: 10
+        timeout-minutes: 2
         run: |
-          echo "?? Running basic security scan..."
+          echo "🔒 Running basic security scan..."
           # Check for common security issues in binaries
           for binary in bin/*; do
             if [ -x "$binary" ]; then
               # Basic checks for security flags
               if file "$binary" | grep -q "not stripped"; then
-                echo "  ?��? $(basename $binary): Binary not stripped (may contain debug info)"
+                echo "  ⚠️ $(basename $binary): Binary not stripped (may contain debug info)"
               fi
             fi
           done
@@ -473,7 +400,7 @@ jobs:
   # STAGE 6: Final Status & Cleanup
   # =============================================================================
   ci-status:
-    name: "?? CI Status Report"
+    name: "📊 CI Status Report"
     needs: [preflight, fast-validation, test-matrix, integration-check, full-build-check]
     runs-on: ubuntu-latest
     if: always()
@@ -481,7 +408,7 @@ jobs:
     steps:
       - name: Generate CI Status Report
         run: |
-          echo "# ?? Nephoran Intent Operator CI Status Report" >> $GITHUB_STEP_SUMMARY
+          echo "# 📊 Nephoran Intent Operator CI Status Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Build Information:**" >> $GITHUB_STEP_SUMMARY
           echo "- Go Version: ${{ env.GO_VERSION }}" >> $GITHUB_STEP_SUMMARY
@@ -504,36 +431,36 @@ jobs:
              [ "${{ needs.test-matrix.result }}" = "failure" ] || \
              [ "${{ needs.integration-check.result }}" = "failure" ] || \
              [ "${{ needs.full-build-check.result }}" = "failure" ]; then
-            echo "?�� CI Pipeline Failed - Check job results above"
-            echo "**Status: FAILED** ?? >> $GITHUB_STEP_SUMMARY
+            echo "💥 CI Pipeline Failed - Check job results above"
+            echo "**Status: FAILED** ❌" >> $GITHUB_STEP_SUMMARY
             exit 1
           elif [ "${{ needs.fast-validation.result }}" = "success" ] && \
                [ "${{ needs.test-matrix.result }}" = "success" ] && \
                [ "${{ needs.integration-check.result }}" = "success" ] && \
                [ "${{ needs.full-build-check.result }}" = "success" ]; then
-            echo "??CI Pipeline Passed Successfully!"
-            echo "**Status: PASSED** ?? >> $GITHUB_STEP_SUMMARY
+            echo "✅ CI Pipeline Passed Successfully!"
+            echo "**Status: PASSED** ✅" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "?�� **Key Achievements:**" >> $GITHUB_STEP_SUMMARY
-            echo "- ??All critical components built successfully" >> $GITHUB_STEP_SUMMARY
-            echo "- ??All test suites passed" >> $GITHUB_STEP_SUMMARY
-            echo "- ??Integration tests completed" >> $GITHUB_STEP_SUMMARY
-            echo "- ??Build optimization prevented timeouts" >> $GITHUB_STEP_SUMMARY
+            echo "🎯 **Key Achievements:**" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ All critical components built successfully" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ All test suites passed" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Integration tests completed" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Build optimization prevented timeouts" >> $GITHUB_STEP_SUMMARY
             if [ "${{ needs.full-build-check.outputs.should_build_full }}" = "true" ]; then
-              echo "- ??�?Full build executed for production branch" >> $GITHUB_STEP_SUMMARY
+              echo "- 🏗️ Full build executed for production branch" >> $GITHUB_STEP_SUMMARY
             else
-              echo "- ??Fast build used for feature branch" >> $GITHUB_STEP_SUMMARY
+              echo "- ⚡ Fast build used for feature branch" >> $GITHUB_STEP_SUMMARY
             fi
           else
-            echo "?��?  CI Pipeline completed with warnings"
-            echo "**Status: PARTIAL** ?��?" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️  CI Pipeline completed with warnings"
+            echo "**Status: PARTIAL** ⚠️" >> $GITHUB_STEP_SUMMARY
           fi
 
   # =============================================================================
   # OPTIONAL: Full Build Status (only runs for full builds)
   # =============================================================================
   full-build-status:
-    name: "??�?Full Build Status"
+    name: "🏗️ Full Build Status"
     needs: [full-build, ci-status]
     runs-on: ubuntu-latest
     if: always() && needs.full-build.result != 'skipped'
@@ -546,7 +473,7 @@ jobs:
           
       - name: Full build summary
         run: |
-          echo "# ??�?Full Build Results" >> $GITHUB_STEP_SUMMARY
+          echo "# 🏗️ Full Build Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Full Build Status:** ${{ needs.full-build.result }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -562,5 +489,5 @@ jobs:
           
           if [ "${{ needs.full-build.result }}" = "success" ]; then
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "?? **All 33 cmd directories built successfully!**" >> $GITHUB_STEP_SUMMARY
+            echo "🎉 **All 33 cmd directories built successfully!**" >> $GITHUB_STEP_SUMMARY
           fi

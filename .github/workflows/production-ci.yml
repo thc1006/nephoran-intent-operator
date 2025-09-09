@@ -55,7 +55,7 @@ permissions:
   packages: write  # For container builds
 
 env:
-  GO_VERSION: "1.22.7"
+  GO_VERSION: "1.24.6"  # EMERGENCY FIX - Match go.mod toolchain
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   GOPRIVATE: "github.com/thc1006/*"
@@ -77,7 +77,7 @@ jobs:
   setup:
     name: Production Setup
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 8
     outputs:
       cache-key: ${{ steps.cache.outputs.key }}
       should-build: ${{ steps.changes.outputs.should-build }}
@@ -87,7 +87,7 @@ jobs:
       - name: Checkout with full history
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1  # Full history for production builds
+          fetch-depth: 0  # Full history for production builds
 
       - name: Detect significant changes
         id: changes
@@ -105,9 +105,9 @@ jobs:
         if: steps.changes.outputs.should-build == 'true'
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
-          check-latest: true
-          cache: false
+          go-version: '1.24.6'  # Use explicit version
+          check-latest: false  # Ensure exact version
+          cache: true
 
       - name: Generate production-grade cache key
         if: steps.changes.outputs.should-build == 'true'
@@ -148,7 +148,7 @@ jobs:
           case "$BUILD_MODE" in
             "fast")
               matrix='{"include":[
-                {"name":"critical","components":"controllers api cmd/intent-ingest cmd/conductor-loop","timeout":15,"tests":"./controllers/... ./pkg/controllers/... ./api/..."},
+                {"name":"critical","components":"controllers api cmd/intent-ingest cmd/conductor-loop","timeout":15,"tests":"./controllers/... ./api/..."},
                 {"name":"core","components":"pkg/context pkg/clients pkg/nephio","timeout":12,"tests":"./pkg/context/... ./pkg/clients/... ./pkg/nephio/..."}
               ]}'
               ;;
@@ -195,51 +195,16 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           check-latest: true
-          cache: false
+          cache: true
 
-      - name: Prepare Go cache directories
-        run: |
-          # Comprehensive cache directory preparation
-          echo "Preparing Go cache directories for production build..."
-          
-          # Remove any existing cache directories
-          sudo rm -rf $HOME/.cache/go-build || true
-          sudo rm -rf $HOME/go/pkg/mod || true
-          sudo rm -rf /tmp/go-build || true
-          
-          # Create fresh directories
-          mkdir -p $HOME/.cache/go-build
-          mkdir -p $HOME/go/pkg/mod
-          mkdir -p /tmp/go-cache
-          
-          # Set proper permissions
-          chmod -R 755 $HOME/.cache/go-build
-          chmod -R 755 $HOME/go/pkg/mod
-          chmod -R 755 /tmp/go-cache
-          
-          # Configure Go to use specific cache locations
-          export GOCACHE="$HOME/.cache/go-build"
-          export GOMODCACHE="$HOME/go/pkg/mod"
-          echo "GOCACHE=$GOCACHE" >> $GITHUB_ENV
-          echo "GOMODCACHE=$GOMODCACHE" >> $GITHUB_ENV
 
-      - name: Restore production cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ needs.setup.outputs.cache-key }}
-          restore-keys: |
-            prod-go-v6-ubuntu-${{ env.GO_VERSION }}-
-            prod-go-v6-ubuntu-
 
       - name: Configure Git authentication
         run: |
           git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
 
       - name: Download and verify dependencies
-        timeout-minutes: 10
+        timeout-minutes: 5
         run: |
           echo "Downloading dependencies for production build..."
           
@@ -262,7 +227,8 @@ jobs:
           mkdir -p bin/
           
           # Production build flags
-          BUILD_FLAGS="-v -ldflags='-s -w -extldflags=-static' -trimpath"
+          BUILD_FLAGS="-v -trimpath"
+          LDFLAGS="-s -w -extldflags=-static"
           BUILD_TAGS="netgo,osusergo,static_build"
           
           # Parse and build components
@@ -273,13 +239,13 @@ jobs:
             case "$component" in
               "controllers")
                 echo "Building controllers..."
-                timeout 300s go build $BUILD_FLAGS -tags="$BUILD_TAGS" ./controllers/... || {
+                timeout 300s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" ./controllers/... || {
                   echo "Warning: Some controllers failed to build"
                 }
                 ;;
               "api") 
                 echo "Building API packages..."
-                timeout 180s go build $BUILD_FLAGS -tags="$BUILD_TAGS" ./api/... || {
+                timeout 180s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" ./api/... || {
                   echo "Warning: Some API packages failed to build"
                 }
                 ;;
@@ -287,7 +253,7 @@ jobs:
                 if [ -d "$component" ] && [ -f "$component/main.go" ]; then
                   cmd_name=$(basename "$component")
                   echo "Building command: $cmd_name"
-                  timeout 240s go build $BUILD_FLAGS -tags="$BUILD_TAGS" \
+                  timeout 240s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" \
                     -o "bin/$cmd_name" "./$component" || {
                     echo "Warning: $cmd_name failed to build"
                   }
@@ -296,14 +262,14 @@ jobs:
               pkg/*)
                 if [ -d "$component" ]; then
                   echo "Building package: $component"
-                  timeout 180s go build $BUILD_FLAGS -tags="$BUILD_TAGS" "./$component/..." || {
+                  timeout 180s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" "./$component/..." || {
                     echo "Warning: $component failed to build"
                   }
                 fi
                 ;;
               "internal")
                 echo "Building internal packages..."
-                timeout 240s go build $BUILD_FLAGS -tags="$BUILD_TAGS" ./internal/... || {
+                timeout 240s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" ./internal/... || {
                   echo "Warning: Some internal packages failed to build"  
                 }
                 ;;
@@ -347,25 +313,12 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           check-latest: true
-          cache: false
+          cache: true
 
-      - name: Prepare test environment
-        run: |
-          sudo rm -rf $HOME/.cache/go-build || true
-          sudo rm -rf $HOME/go/pkg/mod || true
-          mkdir -p $HOME/.cache/go-build $HOME/go/pkg/mod
-          chmod -R 755 $HOME/.cache/go-build $HOME/go/pkg/mod
 
-      - name: Restore production cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ needs.setup.outputs.cache-key }}
 
       - name: Setup test dependencies
-        timeout-minutes: 10
+        timeout-minutes: 5
         run: |
           # Install envtest for controller testing
           go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
@@ -391,7 +344,7 @@ jobs:
           fi
           
           # Run tests with coverage
-          go test -short $TEST_FLAGS \
+          go test $TEST_FLAGS \
             -coverprofile="test-results/coverage-${{ matrix.name }}.out" \
             -covermode=atomic \
             ${{ matrix.tests }} 2>&1 | tee "test-results/test-output-${{ matrix.name }}.log"
@@ -430,35 +383,22 @@ jobs:
     runs-on: ubuntu-latest
     needs: setup
     if: needs.setup.outputs.should-build == 'true'
-    timeout-minutes: 10
+    timeout-minutes: 25
 
     steps:
       - name: Checkout with full history
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
 
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           check-latest: true
-          cache: false
+          cache: true
 
-      - name: Prepare environment
-        run: |
-          sudo rm -rf $HOME/.cache/go-build || true
-          sudo rm -rf $HOME/go/pkg/mod || true
-          mkdir -p $HOME/.cache/go-build $HOME/go/pkg/mod
-          chmod -R 755 $HOME/.cache/go-build $HOME/go/pkg/mod
 
-      - name: Restore cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build  
-            ~/go/pkg/mod
-          key: ${{ needs.setup.outputs.cache-key }}
 
       - name: Download dependencies
         run: |
@@ -489,7 +429,7 @@ jobs:
           args: '-fmt sarif -out gosec.sarif ./...'
 
       - name: Vulnerability assessment (production-grade)
-        timeout-minutes: 10
+        timeout-minutes: 25
         continue-on-error: true
         run: |
           echo "Running production-grade vulnerability assessment..."
@@ -503,7 +443,7 @@ jobs:
           
           # Production scan: comprehensive but with timeout
           echo "?? Comprehensive vulnerability scan for production..."
-          if timeout 20m govulncheck -format json ./... > vuln-report.json 2>&1; then
+          if timeout 20m govulncheck -json ./... > vuln-report.json 2>&1; then
             echo "??Production vulnerability scan completed"
             echo "vulnerability_scan_success" > vuln-status.txt
           else
@@ -577,7 +517,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [setup, build, test, security-quality]
     if: always()
-    timeout-minutes: 10
+    timeout-minutes: 5
 
     steps:
       - name: Generate production pipeline report

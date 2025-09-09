@@ -45,10 +45,10 @@ func (suite *O2APITestSuite) SetupSuite() {
 
 	// Setup O2 API server
 	config := &o2.O2IMSConfig{
-		ServerAddress:  "127.0.0.1",
-		ServerPort:     0,
-		TLSEnabled:     false,
-		DatabaseConfig: json.RawMessage(`{}`),
+		ServerAddress:   "127.0.0.1",
+		ServerPort:      0,
+		TLSEnabled:      false,
+		DatabaseConfig:  json.RawMessage(`{}`),
 		ProviderConfigs: json.RawMessage(`{"enabled": true}`),
 	}
 
@@ -403,14 +403,12 @@ func (suite *O2APITestSuite) TestResourceInstanceOperations() {
 
 		// Update resource instance
 		retrieved.OperationalStatus = "DISABLED"
-		
-		// Update metadata by creating a proper JSON structure
-		metadataMap := map[string]interface{}{
+		metadata := map[string]interface{}{
 			"replicas": 1,
 		}
-		metadataJSON, err := json.Marshal(metadataMap)
+		metadataJSON, err := json.Marshal(metadata)
 		suite.Require().NoError(err)
-		retrieved.Metadata = json.RawMessage(metadataJSON)
+		retrieved.Metadata = metadataJSON
 
 		updatedJSON, err := json.Marshal(retrieved)
 		suite.Require().NoError(err)
@@ -437,24 +435,11 @@ func (suite *O2APITestSuite) TestResourceInstanceOperations() {
 
 		suite.Assert().Equal("DISABLED", updated.OperationalStatus)
 		
-		// Verify metadata contains the replicas field
+		// Check metadata - unmarshal and verify replicas
 		var updatedMetadata map[string]interface{}
 		err = json.Unmarshal(updated.Metadata, &updatedMetadata)
 		suite.Require().NoError(err)
-		
-		replicas, exists := updatedMetadata["replicas"]
-		suite.Assert().True(exists, "replicas field should exist in metadata")
-		if exists {
-			// Handle potential type conversion from JSON (could be float64)
-			switch v := replicas.(type) {
-			case int:
-				suite.Assert().Equal(1, v)
-			case float64:
-				suite.Assert().Equal(1.0, v)
-			default:
-				suite.Fail(fmt.Sprintf("unexpected replicas type: %T", v))
-			}
-		}
+		suite.Assert().Equal(1, updatedMetadata["replicas"])
 
 		// Delete resource instance
 		req, err = http.NewRequest("DELETE",

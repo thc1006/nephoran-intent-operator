@@ -198,9 +198,12 @@ exit %d`, failOnPatternCmd, sleepCmd, stdoutCmd, stderrCmd, opts.ExitCode)
 	}
 
 	// Then set appropriate permissions for the platform
-	// Security: Use 0755 for executable scripts on both platforms
+	// Security: Use 0755 for executable scripts on both Unix and Windows
 	// This two-step approach ensures secure initial write with restrictive permissions
-	chmod := 0o755 // Both Unix and Windows need executable permissions for scripts
+	chmod := 0o755 // Both Unix and Windows need executable permissions
+	if runtime.GOOS == "windows" {
+		chmod = 0o755 // Windows needs executable permissions
+	}
 	if err := os.Chmod(mockPath, os.FileMode(chmod)); err != nil {
 		return "", fmt.Errorf("failed to make mock script executable: %w", err)
 	}

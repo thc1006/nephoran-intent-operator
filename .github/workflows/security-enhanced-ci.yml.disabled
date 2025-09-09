@@ -70,7 +70,7 @@ env:
   AUDIT_LOGGING: "true"
   
   # Go security settings
-  GO_VERSION: "1.22.7"
+  GO_VERSION: "1.24.6"  # EMERGENCY FIX - Match go.mod toolchain
   CGO_ENABLED: "0"
   GOFLAGS: "-mod=readonly -buildvcs=true"
   GOSUMDB: "sum.golang.org"
@@ -81,8 +81,8 @@ jobs:
   # =============================================================================
   security-context:
     name: ?? Security Context Initialization
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
     outputs:
       security-matrix: ${{ steps.matrix.outputs.matrix }}
       threat-model: ${{ steps.threat.outputs.model }}
@@ -100,7 +100,7 @@ jobs:
       - name: ?ì• Checkout with security verification
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
           persist-credentials: false
           
       - name: ?? Verify commit signatures
@@ -283,7 +283,7 @@ jobs:
   # =============================================================================
   secrets-scanning:
     name: ?? Secrets Detection
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: security-context
     timeout-minutes: 10
     
@@ -296,7 +296,7 @@ jobs:
       - name: ?ì• Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
           persist-credentials: false
           
       - name: ?? GitLeaks secrets scan
@@ -351,9 +351,9 @@ jobs:
   # =============================================================================
   sast-analysis:
     name: ?? SAST Analysis
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: security-context
-    timeout-minutes: 10
+    timeout-minutes: 20
     
     steps:
       - name: ?? Harden Runner
@@ -399,7 +399,7 @@ jobs:
           echo "?? Running Go vulnerability database check..."
           go install golang.org/x/vuln/cmd/govulncheck@latest
           
-          govulncheck -format json ./... > govuln-results.json || true
+          govulncheck -json ./... > govuln-results.json || true
           
           # Parse and analyze results
           if [[ -f govuln-results.json ]]; then
@@ -434,9 +434,9 @@ jobs:
   # =============================================================================
   codeql-analysis:
     name: ?î¨ CodeQL Analysis
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: security-context
-    timeout-minutes: 10
+    timeout-minutes: 30
     permissions:
       security-events: write
       actions: read
@@ -516,9 +516,9 @@ jobs:
   # =============================================================================
   dependency-scanning:
     name: ?ì¶ Dependency Security
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: security-context
-    timeout-minutes: 10
+    timeout-minutes: 15
     
     steps:
       - name: ?? Harden Runner
@@ -627,9 +627,9 @@ jobs:
   # =============================================================================
   container-scanning:
     name: ?ê≥ Container Security
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: security-context
-    timeout-minutes: 10
+    timeout-minutes: 20
     
     steps:
       - name: ?? Harden Runner
@@ -768,7 +768,7 @@ jobs:
   # =============================================================================
   license-compliance:
     name: ?? License Compliance
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: security-context
     timeout-minutes: 10
     
@@ -842,9 +842,9 @@ jobs:
   # =============================================================================
   supply-chain-security:
     name: ?? Supply Chain Security
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: security-context
-    timeout-minutes: 10
+    timeout-minutes: 15
     
     steps:
       - name: ?? Harden Runner
@@ -905,9 +905,9 @@ jobs:
   # =============================================================================
   compliance-validation:
     name: ?? Compliance Validation
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [secrets-scanning, sast-analysis, dependency-scanning]
-    timeout-minutes: 10
+    timeout-minutes: 15
     
     steps:
       - name: ?? Harden Runner
@@ -1016,7 +1016,7 @@ jobs:
   # =============================================================================
   security-reporting:
     name: ?? Security Reporting
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [
       secrets-scanning,
       sast-analysis,

@@ -963,6 +963,10 @@ func (ps *PersistentEventStore) GetEventsForIntent(ctx context.Context, intentID
 		Namespace: ps.namespace,
 	}, configMap)
 	if err != nil {
+		// If ConfigMap doesn't exist, return empty events list (no events to replay)
+		if client.IgnoreNotFound(err) == nil {
+			return []ProcessingEvent{}, nil
+		}
 		return nil, fmt.Errorf("failed to get events ConfigMap: %w", err)
 	}
 

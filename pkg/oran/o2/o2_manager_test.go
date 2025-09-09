@@ -12,9 +12,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	fakeclientset "k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	fakeclientset "k8s.io/client-go/kubernetes/fake"
 )
 
 func TestO2Manager_DiscoverResources(t *testing.T) {
@@ -574,7 +574,9 @@ func TestO2Adaptor_DeployVNF(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				require.NotNil(t, instance)
-				tt.validateFunc(t, instance.(*VNFInstance))
+				vnfInstance, ok := instance.(*VNFInstance)
+				require.True(t, ok, "expected *VNFInstance, got %T", instance)
+				tt.validateFunc(t, vnfInstance)
 			}
 		})
 	}

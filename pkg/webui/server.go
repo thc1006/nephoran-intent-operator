@@ -56,6 +56,25 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/services"
 )
 
+var (
+	// metricsRegistered tracks whether metrics have been registered
+	metricsRegistered sync.Once
+)
+
+// safeRegisterMetrics safely registers metrics collectors, avoiding panics from duplicate registrations
+func safeRegisterMetrics(collectors ...prometheus.Collector) {
+	metricsRegistered.Do(func() {
+		for _, collector := range collectors {
+			if err := prometheus.Register(collector); err != nil {
+				if _, ok := err.(prometheus.AlreadyRegisteredError); !ok {
+					// Only log if it's not a duplicate registration error
+					log.Log.Error(err, "Failed to register metric collector")
+				}
+			}
+		}
+	})
+}
+
 // NephoranAPIServer provides comprehensive Web UI integration for the Nephoran Intent Operator.
 
 type NephoranAPIServer struct {
@@ -357,24 +376,18 @@ func NewNephoranAPIServer(
 
 	logger := log.Log.WithName("nephoran-api-server")
 
-	// Initialize metrics.
+	// Initialize metrics with safe registration.
 
 	metrics := initServerMetrics()
 
-	prometheus.MustRegister(
-
+	// Use a safe registration function to avoid panics from duplicate registrations
+	safeRegisterMetrics(
 		metrics.RequestsTotal,
-
 		metrics.RequestDuration,
-
 		metrics.WSConnectionsActive,
-
 		metrics.SSEConnectionsActive,
-
 		metrics.CacheHits,
-
 		metrics.CacheMisses,
-
 		metrics.RateLimitExceeded,
 	)
 
