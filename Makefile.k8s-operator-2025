@@ -16,7 +16,7 @@ SHELL := /bin/bash
 # =============================================================================
 # 2025 VERSION MATRIX
 # =============================================================================
-GO_VERSION ?= 1.25.0
+GO_VERSION ?= 1.24.6
 KUBERNETES_VERSION ?= 1.32.1
 CONTROLLER_RUNTIME_VERSION ?= v0.19.1
 KUBEBUILDER_VERSION ?= 4.4.1

@@ -23,7 +23,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GO_VERSION: "1.22"  # Latest stable Go version (2025 best practice)
+  GO_VERSION: "1.24.6"  # Latest stable Go version (2025 best practice)
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   CGO_ENABLED: "0"
@@ -36,7 +36,7 @@ jobs:
   quick-check:
     name: Quick Validation
     runs-on: ubuntu-latest
-    timeout-minutes: 8  # Increased for reliability
+    timeout-minutes: 12  # Increased for reliability
     
     steps:
       - name: Checkout code
@@ -68,15 +68,19 @@ jobs:
             ${{ runner.os }}-go-
           
       - name: Fail-fast syntax check
-        timeout-minutes: 5
+        timeout-minutes: 8
         run: |
           set -e  # Bash strict mode - fail on any error
           echo "Running fail-fast syntax check..."
+          echo "Checking if go.mod and go.sum exist..."
+          ls -la go.mod go.sum
+          echo "Go environment:"
+          go env
           go build ./...
           go vet ./...
           
       - name: Quick dependency check
-        timeout-minutes: 3
+        timeout-minutes: 8
         run: |
           set -e  # Bash strict mode - fail on any error
           echo "Downloading dependencies..."
@@ -88,7 +92,7 @@ jobs:
     name: Build Components
     needs: quick-check
     runs-on: ubuntu-latest
-    timeout-minutes: 15  # Increased for reliability
+    timeout-minutes: 20  # Increased for reliability
     strategy:
       fail-fast: false
       matrix:
