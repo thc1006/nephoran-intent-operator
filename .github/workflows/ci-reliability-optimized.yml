@@ -408,8 +408,9 @@ jobs:
       - name: Verify build artifacts exist
         run: |
           echo "Verifying build artifacts..."
-          echo "Artifacts directory contents:"
+          echo "Listing all downloaded artifacts:"
           ls -lR artifacts/ || echo "No artifacts directory found"
+          echo "\nChecking for any files in artifacts:"
           find artifacts/ -type f 2>/dev/null | head -20 || echo "No artifacts found"
           
           # Count total files
@@ -437,22 +438,23 @@ jobs:
           
           # Prepare binaries directory
           mkdir -p bin/
+          echo "Copying binaries from artifacts to bin/"
           
-          # Copy all files from artifacts and make them executable
-          echo "📦 Copying artifacts to bin directory..."
+          # Copy all files from artifacts, not just executable ones
           find artifacts/ -type f -exec cp {} bin/ \; 2>/dev/null || true
           
           # Make all files in bin executable
           chmod +x bin/* 2>/dev/null || true
           
-          # List what we found
-          echo "📋 Artifacts found:"
-          ls -la artifacts/ 2>/dev/null || echo "  No artifacts directory"
-          echo "📋 Files in bin directory:"
-          ls -la bin/ 2>/dev/null || echo "  No files in bin"
+          echo "Files in bin/ after copying:"
+          ls -la bin/ 2>/dev/null || echo "No files in bin/"
           
-          # Count binaries (any file in bin directory)
-          tested=$(find bin/ -type f | wc -l)
+          # Count actual binaries
+          binary_count=$(ls -1 bin/ 2>/dev/null | wc -l || echo "0")
+          echo "Total files in bin/: $binary_count"
+          
+          # Test each binary
+          tested=0
           passed=0
           
           echo "📊 Found $tested potential binaries to test"
