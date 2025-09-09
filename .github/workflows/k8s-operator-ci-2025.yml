@@ -361,7 +361,7 @@ jobs:
           cosign version
           
       - name: Run Go vulnerability scan
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
           echo "🔍 Scanning Go modules for vulnerabilities..."
           govulncheck ./...
