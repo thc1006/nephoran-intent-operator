@@ -226,7 +226,7 @@ jobs:
           
           # Fast build check (no output)
           echo "🏗️  Fast build verification..."
-          go build $BUILD_FLAGS -ldflags="$LDFLAGS" ./...
+          go build ${{ env.BUILD_FLAGS }} -ldflags="${{ env.LDFLAGS }}" ./...
           
           # Module tidiness check
           echo "🧹 Checking module tidiness..."
@@ -340,7 +340,7 @@ jobs:
           
           # Build main operator
           echo "🎯 Building Nephoran Intent Operator..."
-          go build $BUILD_FLAGS -ldflags="$LDFLAGS" -o bin/nephoran-intent-operator ./cmd
+          go build ${{ env.BUILD_FLAGS }} -ldflags="${{ env.LDFLAGS }}" -o bin/nephoran-intent-operator ./cmd
           
           # Build additional components if they exist
           if [[ -d "cmd" ]]; then
@@ -356,14 +356,14 @@ jobs:
                 if [[ -n "$has_constraints" ]]; then
                   echo "⚠️  $component has build constraints: $has_constraints"
                   # Try to build anyway, but don't fail if it doesn't work
-                  if go build $BUILD_FLAGS -ldflags="$LDFLAGS" -o "bin/$component" "./$dir" 2>/dev/null; then
+                  if go build ${{ env.BUILD_FLAGS }} -ldflags="${{ env.LDFLAGS }}" -o "bin/$component" "./$dir" 2>/dev/null; then
                     echo "✅ $component built successfully despite constraints"
                   else
                     echo "⏭️  Skipping $component due to build constraints"
                   fi
                 else
                   # No constraints, should build normally
-                  go build $BUILD_FLAGS -ldflags="$LDFLAGS" -o "bin/$component" "./$dir" || {
+                  go build ${{ env.BUILD_FLAGS }} -ldflags="${{ env.LDFLAGS }}" -o "bin/$component" "./$dir" || {
                     echo "❌ Failed to build $component"
                     exit 1
                   }

@@ -97,7 +97,7 @@ jobs:
           
           # Fast build check (no output)
           echo "🏗️ Fast build verification..."
-          go build $BUILD_FLAGS ./...
+          go build ${{ env.BUILD_FLAGS }} ./...
           
           # Module tidiness check
           echo "🧹 Checking module tidiness..."
@@ -318,7 +318,7 @@ jobs:
             cmd_path="./cmd/$component"
             if [[ -d "$cmd_path" && -f "$cmd_path/main.go" ]]; then
               # Build with timeout
-              if timeout 300s go build $BUILD_FLAGS -o "bin/$component" "$cmd_path"; then
+              if timeout 300s go build ${{ env.BUILD_FLAGS }} -o "bin/$component" "$cmd_path"; then
                 if [[ -f "bin/$component" ]]; then
                   size=$(ls -lh "bin/$component" | awk '{print $5}')
                   echo "    ✅ $component: $size"
