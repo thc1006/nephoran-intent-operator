@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GO_VERSION: "1.22.0"  # Unified Go version matching base branch
+  GO_VERSION: "1.23.3"  # Unified Go version matching base branch
   CGO_ENABLED: "0"
   GOOS: "linux"
   GOARCH: "amd64"
