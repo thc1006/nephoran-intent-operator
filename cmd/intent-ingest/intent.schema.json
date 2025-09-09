@@ -118,6 +118,11 @@
       },
       "description": "List of resources to be scaled",
       "minItems": 0
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1024,
+      "description": "Optional description of the intent operation"
     }
   },
   "required": [
