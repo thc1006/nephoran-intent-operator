@@ -430,11 +430,17 @@ jobs:
             
           echo "✅ Container image security scan completed"
           
+      - name: List generated SARIF files
+        if: always()
+        run: |
+          echo "📋 Generated SARIF files:"
+          ls -la *.sarif 2>/dev/null || echo "No SARIF files found"
+          
       - name: Upload security scan results
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: always() && (hashFiles('*.sarif') != '')
         with:
-          sarif_file: '.'
+          sarif_file: '*.sarif'
           
       - name: Security scan summary
         if: always()
