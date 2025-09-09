@@ -34,8 +34,8 @@ concurrency:
 
 # Environment optimized for reliability and speed
 env:
-  # Use latest patch version for maximum compatibility
-  GO_VERSION: "1.24.6"
+  # Use version matching go.mod for compatibility
+  GO_VERSION: "1.24.x"
   ACTIONS_STEP_DEBUG: true  # Enable verbose step logging for troubleshooting
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
@@ -189,7 +189,7 @@ jobs:
             timeout: 8
             priority: "critical"
           - name: "essential-services"
-            components: "cmd/nephio-bridge cmd/webhook cmd/a1-sim"
+            components: "cmd/nephio-bridge cmd/webhook cmd/a1-sim cmd/porch-publisher"
             timeout: 6
             priority: "high"
           - name: "simulators"
@@ -409,6 +409,7 @@ jobs:
         run: |
           echo "Verifying build artifacts..."
           echo "Artifacts directory contents:"
+          ls -lR artifacts/ || echo "No artifacts directory found"
           find artifacts/ -type f 2>/dev/null | head -20 || echo "No artifacts found"
           
           # Count total files
@@ -439,7 +440,7 @@ jobs:
           
           # Copy all files from artifacts and make them executable
           echo "📦 Copying artifacts to bin directory..."
-          find artifacts/ -type f -name "*" -exec cp {} bin/ \; 2>/dev/null || true
+          find artifacts/ -type f -exec cp {} bin/ \; 2>/dev/null || true
           
           # Make all files in bin executable
           chmod +x bin/* 2>/dev/null || true
