@@ -518,7 +518,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [setup, dependencies]
-    if: ${{ inputs.build_mode == 'security' || inputs.build_mode == 'full' }}
+    if: ${{ needs.setup.outputs.build-mode == 'security' || needs.setup.outputs.build-mode == 'full' }}
     
     steps:
       - name: Checkout code
@@ -623,13 +623,74 @@ jobs:
           fi
           
   # ==============================================
-  # STAGE 8: Cleanup & Monitoring
+  # STAGE 8: CI Status (Required Check)
+  # ==============================================
+  ci-status:
+    name: "CI Status"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [setup, dependencies, fast-validation, component-tests, full-build, security-scan, integration-status]
+    if: always()
+    
+    steps:
+      - name: Check CI Status
+        run: |
+          echo "=== CI Status Check ==="
+          echo "Checking overall CI pipeline status..."
+          
+          # Check all job statuses
+          SETUP="${{ needs.setup.result }}"
+          DEPS="${{ needs.dependencies.result }}"
+          VALIDATION="${{ needs.fast-validation.result }}"
+          TESTS="${{ needs.component-tests.result }}"
+          BUILD="${{ needs.full-build.result }}"
+          SECURITY="${{ needs.security-scan.result }}"
+          INTEGRATION="${{ needs.integration-status.result }}"
+          
+          echo "Setup: $SETUP"
+          echo "Dependencies: $DEPS"
+          echo "Validation: $VALIDATION"
+          echo "Tests: $TESTS"
+          echo "Build: $BUILD"
+          echo "Security: $SECURITY"
+          echo "Integration: $INTEGRATION"
+          
+          # Determine overall status
+          # Allow skipped for optional jobs (security, tests when skip_tests is true)
+          if [[ "$SETUP" == "failure" || "$SETUP" == "cancelled" ]]; then
+            echo "❌ CI Failed: Setup failed"
+            exit 1
+          elif [[ "$DEPS" == "failure" || "$DEPS" == "cancelled" ]]; then
+            echo "❌ CI Failed: Dependencies failed"
+            exit 1
+          elif [[ "$VALIDATION" == "failure" || "$VALIDATION" == "cancelled" ]]; then
+            echo "❌ CI Failed: Validation failed"
+            exit 1
+          elif [[ "$BUILD" == "failure" || "$BUILD" == "cancelled" ]]; then
+            echo "❌ CI Failed: Build failed"
+            exit 1
+          elif [[ "$INTEGRATION" == "failure" || "$INTEGRATION" == "cancelled" ]]; then
+            echo "❌ CI Failed: Integration status failed"
+            exit 1
+          elif [[ "$TESTS" == "failure" && "${{ inputs.skip_tests }}" != "true" ]]; then
+            echo "❌ CI Failed: Tests failed"
+            exit 1
+          else
+            echo "✅ CI Status: All required checks passed"
+            echo "Repository: ${{ github.repository }}"
+            echo "Branch: ${{ github.ref_name }}"
+            echo "Commit: ${{ github.sha }}"
+            exit 0
+          fi
+
+  # ==============================================
+  # STAGE 9: Cleanup & Monitoring
   # ==============================================  
   cleanup:
     name: "🧹 Cleanup & Monitoring"
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [integration-status]
+    needs: [ci-status]
     if: always()
     
     steps:
