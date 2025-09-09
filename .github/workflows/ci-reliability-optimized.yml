@@ -34,7 +34,7 @@ concurrency:
 # Environment optimized for reliability and speed
 env:
   # Use stable Go version for maximum compatibility
-  GO_VERSION: "1.23.x"
+  GO_VERSION: "1.24.x"
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   GOPRIVATE: ""

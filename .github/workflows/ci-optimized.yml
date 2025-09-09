@@ -23,7 +23,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GO_VERSION: "1.23.3"  # Latest stable Go version (2025 best practice)
+  GO_VERSION: "1.24.0"  # Latest stable Go version (2025 best practice)
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   CGO_ENABLED: "0"
