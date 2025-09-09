@@ -99,8 +99,6 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 
 				// Set up Git client mock expectations
 				mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
-				expectedPath := fmt.Sprintf("%s/%s-%s", reconciler.config.GitDeployPath, networkIntent.Namespace, networkIntent.Name)
-				expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 
 				if tc.removeDirectoryError != nil {
 					// Configure mock - removed .On() calls"RemoveDirectory", expectedPath, expectedMessage).Return(tc.removeDirectoryError)
@@ -369,14 +367,10 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 				// Set up Git client mock based on test case
 				mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 				if tc.gitCleanupError != nil {
-					expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
-					expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 					// Configure mock - removed .On() calls"RemoveDirectory", expectedPath, expectedMessage).Return(tc.gitCleanupError)
 				} else {
 					// Only set up successful expectations if we have the NetworkIntent finalizer
 					if containsFinalizer(tc.finalizers, config.GetDefaults().NetworkIntentFinalizer) {
-						expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
-						expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 						// Configure mock - removed .On() calls"RemoveDirectory", expectedPath, expectedMessage).Return(nil)
 						// Configure mock - removed .On() calls"CommitAndPushChanges", expectedMessage).Return(nil)
 					}
@@ -480,8 +474,6 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 				)
 
 				mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
-				expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
-				expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 
 				switch tc.operation {
 				case "RemoveDirectory":

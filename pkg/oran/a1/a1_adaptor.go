@@ -687,8 +687,21 @@ func (a *A1Adaptor) ListPolicyInstances(ctx context.Context, policyTypeID int) (
 
 func (a *A1Adaptor) UpdatePolicyInstance(ctx context.Context, policyTypeID int, instanceID string, instance *A1PolicyInstance) error {
 	// Same as create in A1 API.
+	// Convert A1PolicyInstance to PolicyInstance
+	var policyData map[string]interface{}
+	if err := json.Unmarshal(instance.PolicyData, &policyData); err != nil {
+		return fmt.Errorf("failed to unmarshal policy data: %w", err)
+	}
+	
+	policyInstance := &PolicyInstance{
+		PolicyID:     instance.PolicyInstanceID,
+		PolicyTypeID: instance.PolicyTypeID,
+		PolicyData:   policyData,
+		CreatedAt:    instance.CreatedAt,
+		ModifiedAt:   instance.UpdatedAt,
+	}
 
-	return a.CreatePolicyInstance(ctx, policyTypeID, instance)
+	return a.CreatePolicyInstance(ctx, policyTypeID, instanceID, policyInstance)
 }
 
 // DeletePolicyInstance deletes a policy instance.
@@ -814,8 +827,16 @@ func (a *A1Adaptor) ApplyPolicy(ctx context.Context, me *nephoranv1.ManagedEleme
 	}
 
 	// Apply the policy.
+	// Convert A1PolicyInstance to PolicyInstance
+	policyInstance := &PolicyInstance{
+		PolicyID:     instance.PolicyInstanceID,
+		PolicyTypeID: instance.PolicyTypeID,
+		PolicyData:   policyData,
+		CreatedAt:    instance.CreatedAt,
+		ModifiedAt:   instance.UpdatedAt,
+	}
 
-	if err := a.CreatePolicyInstance(ctx, int(policyTypeID), instance); err != nil {
+	if err := a.CreatePolicyInstance(ctx, int(policyTypeID), instanceID, policyInstance); err != nil {
 		return fmt.Errorf("failed to create policy instance: %w", err)
 	}
 
@@ -1243,7 +1264,16 @@ func (o *SMOPolicyOrchestrator) handlePolicyCreate(ctx context.Context, event *P
 		return fmt.Errorf("A1 adaptor not found for RIC: %s", event.Target)
 	}
 
-	if err := adaptor.CreatePolicyInstance(ctx, int(policyTypeID), instance); err != nil {
+	// Convert A1PolicyInstance to PolicyInstance
+	policyInstance := &PolicyInstance{
+		PolicyID:     instance.PolicyInstanceID,
+		PolicyTypeID: instance.PolicyTypeID,
+		PolicyData:   policyData,
+		CreatedAt:    instance.CreatedAt,
+		ModifiedAt:   instance.UpdatedAt,
+	}
+
+	if err := adaptor.CreatePolicyInstance(ctx, int(policyTypeID), instanceID, policyInstance); err != nil {
 
 		// Notify SMO of failure.
 

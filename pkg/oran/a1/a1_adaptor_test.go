@@ -132,7 +132,18 @@ func TestA1AdaptorPolicyInstanceOperations(t *testing.T) {
 				"throughput_mbps": 100
 			}`),
 		}
-		err := adaptor.CreatePolicyInstance(ctx, 1000, instance)
+		// Convert A1PolicyInstance to PolicyInstance
+		var policyData map[string]interface{}
+		err := json.Unmarshal(instance.PolicyData, &policyData)
+		assert.NoError(t, err)
+		
+		policyInstance := &PolicyInstance{
+			PolicyID:     instance.PolicyInstanceID,
+			PolicyTypeID: instance.PolicyTypeID,
+			PolicyData:   policyData,
+		}
+		
+		err = adaptor.CreatePolicyInstance(ctx, 1000, "test-instance", policyInstance)
 		assert.NoError(t, err)
 	})
 

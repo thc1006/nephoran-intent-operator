@@ -960,12 +960,6 @@ type ConfigSyncSpec struct {
 	UpdateFreq     string
 }
 
-type ConfigSyncResult struct {
-	ResourcesSynced int
-	ReconcileTime   time.Duration
-	ApplyTime       time.Duration
-}
-
 type PolicySpec struct {
 	Name         string
 	Type         string

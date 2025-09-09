@@ -421,6 +421,21 @@ func (te *TestEnvironment) CreateNamespace(name string) error {
 	return nil
 }
 
+// CreateTestObject creates a test object in the cluster.
+func (te *TestEnvironment) CreateTestObject(obj client.Object) error {
+	ctx, cancel := context.WithTimeout(te.ctx, 30*time.Second)
+	defer cancel()
+
+	if err := te.K8sClient.Create(ctx, obj); err != nil {
+		if errors.IsAlreadyExists(err) {
+			return nil // Object already exists, which is fine for tests
+		}
+		return fmt.Errorf("failed to create test object %s/%s: %w", obj.GetNamespace(), obj.GetName(), err)
+	}
+
+	return nil
+}
+
 // Helper functions for path resolution and environment setup
 func resolveCRDPaths(paths []string) []string {
 	var validPaths []string
@@ -477,4 +492,30 @@ func IsRunningInCI() bool {
 	}
 
 	return false
+}
+
+// GetRecommendedOptions returns the recommended test environment options based on the current environment.
+// It automatically detects CI vs development mode and configures appropriate settings.
+func GetRecommendedOptions() TestEnvironmentOptions {
+	opts := DefaultTestEnvironmentOptions()
+	
+	if IsRunningInCI() {
+		opts.CIMode = true
+		opts.DevelopmentMode = false
+		opts.AttachControlPlaneOutput = false
+		opts.VerboseLogging = false
+		opts.ControlPlaneStartTimeout = 30 * time.Second
+		opts.ControlPlaneStopTimeout = 30 * time.Second
+		opts.APIServerReadyTimeout = 20 * time.Second
+		opts.MemoryLimit = "1Gi"
+		opts.CPULimit = "500m"
+	} else {
+		opts.CIMode = false
+		opts.DevelopmentMode = true
+		opts.VerboseLogging = true
+		opts.MemoryLimit = "2Gi"
+		opts.CPULimit = "1000m"
+	}
+	
+	return opts
 }
