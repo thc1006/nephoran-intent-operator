@@ -7,7 +7,6 @@ package envtest
 
 import (
 	"fmt"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -18,24 +17,7 @@ import (
 	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
 )
 
-const (
-	// timeout for Ginkgo tests
-	timeout = 30 * time.Second
-	// interval for polling during tests
-	interval = 1 * time.Second
-)
-
-// LogTestStep is a helper function for logging test steps
-func LogTestStep(message string, keysAndValues ...interface{}) {
-	GinkgoWriter.Printf("[TEST STEP] %s", message)
-	if len(keysAndValues) > 0 {
-		GinkgoWriter.Printf(" - %v", keysAndValues)
-	}
-	GinkgoWriter.Println()
-}
-
-// Global k8sClient - should be initialized in a BeforeSuite block in a real test environment
-var k8sClient client.Client
+// Note: timeout, interval, k8sClient, and LogTestStep are already defined in suite_test.go
 
 // checkK8sClient skips the test if k8sClient is not properly initialized
 func checkK8sClient() {

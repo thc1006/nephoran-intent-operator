@@ -20,7 +20,6 @@ import (
 	"context"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 	"go.uber.org/zap"
@@ -45,21 +44,11 @@ func TestClientAdapterConcurrentAccess(t *testing.T) {
 		go func(id int) {
 			defer wg.Done()
 			for j := 0; j < numCallsPerGoroutine; j++ {
-				request := &llm.ProcessIntentRequest{
-					Intent: "test intent",
-					Context: map[string]string{
-						"goroutine": string(rune(id)),
-						"call":      string(rune(j)),
-					},
-					Metadata: llm.RequestMetadata{
-						RequestID: "test-request",
-					},
-					Timestamp: time.Now(),
-				}
+				intent := "test intent"
 
 				// This will fail because there's no actual LLM service,
 				// but we're testing for race conditions, not functionality
-				_, err := adapter.ProcessIntent(ctx, request)
+				_, err := adapter.ProcessIntent(ctx, intent)
 				if err != nil {
 					// Expected to fail, but shouldn't race
 					continue

@@ -71,7 +71,7 @@ func TestNewJWTManager(t *testing.T) {
 			tc := authtestutil.NewTestContext(t)
 			defer tc.Cleanup()
 
-			manager, err := auth.NewJWTManager(context.Background(), tt.config, tc.TokenStore(), tc.Blacklist(), tc.SlogLogger())
+			manager, err := auth.NewJWTManager(context.Background(), tt.config, tc.TokenStore, tc.Blacklist, tc.SlogLogger)
 
 			if tt.expectError {
 				assert.Error(t, err)

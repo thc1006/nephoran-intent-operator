@@ -511,7 +511,7 @@ func (suite *LLMTestSuite) TestStreamingProcessor() {
 				for _, chunk := range chunks {
 					err := streamingProcessor.StreamChunk(sessionID, &llm.StreamingChunk{
 						Content:   chunk,
-						Type:      llm.ChunkTypeContent,
+						Type:      string(llm.ChunkTypeContent),
 						Timestamp: time.Now(),
 					})
 					gomega.Expect(err).NotTo(gomega.HaveOccurred())

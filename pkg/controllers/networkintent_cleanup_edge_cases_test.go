@@ -27,7 +27,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
 
-// NetworkIntentFinalizer is imported from the main controller package
+// NetworkIntentFinalizer is the finalizer used by the NetworkIntent controller
+const NetworkIntentFinalizer = "networkintent.nephoran.io/finalizer"
 
 // MockDependencies implements Dependencies interface for testing
 type MockDependencies struct {
