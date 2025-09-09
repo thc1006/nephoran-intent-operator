@@ -1,7 +1,7 @@
 # =============================================================================
 # CI Reliability Optimized Pipeline - DevOps Best Practices 2025
 # =============================================================================
-# Purpose: Ultra-reliable CI with optimized caching, Go 1.25.x compatibility,
+# Purpose: Ultra-reliable CI with optimized caching, Go 1.23.x compatibility,
 #          and enterprise-grade timeout management
 # =============================================================================
 
@@ -207,7 +207,7 @@ jobs:
             ~/go/pkg/mod
           key: ${{ needs.reliability-setup.outputs.cache-key }}
           restore-keys: |
-            nephoran-reliability-v3-${{ runner.os }}-go1.25
+            nephoran-reliability-v3-${{ runner.os }}-go123
             nephoran-reliability-v3-${{ runner.os }}-
           fail-on-cache-miss: false
           
@@ -312,7 +312,7 @@ jobs:
             ~/go/pkg/mod
           key: ${{ needs.reliability-setup.outputs.cache-key }}
           restore-keys: |
-            nephoran-reliability-v3-${{ runner.os }}-go1.25
+            nephoran-reliability-v3-${{ runner.os }}-go123
           fail-on-cache-miss: false
           
       - name: Setup test environment
@@ -510,7 +510,7 @@ jobs:
             echo "**Status: PASSED** ✅" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "🎯 **Reliability Achievements:**" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ Optimized Go 1.25.x compatibility" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Optimized Go 1.23.x compatibility" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ Enhanced cache reliability with fallbacks" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ Intelligent build chunking prevents timeouts" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ Parallel testing with retry logic" >> $GITHUB_STEP_SUMMARY

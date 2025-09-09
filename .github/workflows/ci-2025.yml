@@ -1,7 +1,7 @@
 # =============================================================================
 # Nephoran Intent Operator - 2025 CI Pipeline
 # =============================================================================
-# Optimized for Go 1.24.6, Ubuntu Linux only, with modern security practices
+# Optimized for Go 1.23.4, Ubuntu Linux only, with modern security practices
 # Addresses: cache key failures, tar extraction errors, timeout issues
 # =============================================================================
 
@@ -51,7 +51,7 @@ permissions:
   checks: write
   pull-requests: read
 
-# Environment optimized for Go 1.24.6 and Ubuntu Linux
+# Environment optimized for Go 1.23.4 and Ubuntu Linux
 env:
   GO_VERSION: "1.23.4"
   GOPROXY: "https://proxy.golang.org,direct"
@@ -543,7 +543,7 @@ jobs:
       # - name: Go vulnerability check (using govulncheck-action)
       #   uses: golang/govulncheck-action@v1
       #   with:
-      #     go-version-input: '1.24.6'
+      #     go-version-input: '1.23.4'
       #     go-package: './cmd/... ./api/... ./controllers/...'
       #   continue-on-error: true  # Don't fail CI for vulnerabilities
 
