@@ -30,10 +30,6 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/testutil"
 )
 
-// Test constants
-const (
-	NetworkIntentFinalizer = "networkintent.nephoran.com/finalizer"
-)
 
 // MockDependenciesComprehensive implements Dependencies interface for testing
 type MockDependenciesComprehensive struct {
@@ -465,7 +461,7 @@ func TestReconcile(t *testing.T) {
 			name: "intent with finalizer deletion",
 			networkIntent: func() *nephoranv1.NetworkIntent {
 				ni := createTestNetworkIntent("test-finalizer", "default", "Deploy NSSF")
-				ni.ObjectMeta.Finalizers = []string{NetworkIntentFinalizer}
+				ni.ObjectMeta.Finalizers = []string{configPkg.GetDefaults().NetworkIntentFinalizer}
 				now := metav1.NewTime(time.Now())
 				ni.ObjectMeta.DeletionTimestamp = &now
 				return ni

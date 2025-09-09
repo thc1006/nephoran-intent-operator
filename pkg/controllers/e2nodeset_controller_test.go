@@ -22,10 +22,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/testutils"
 )
 
-// Package-level variables needed for controller tests
-var (
-	k8sClient client.Client
-)
+// Package-level variables are declared in controllers_suite_test.go
 
 func init() {
 	// Initialize the scheme

@@ -12,17 +12,13 @@ import (
 	. "github.com/onsi/gomega"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
-		"github.com/thc1006/nephoran-intent-operator/pkg/testutils"
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
+	"github.com/thc1006/nephoran-intent-operator/pkg/testutils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-		"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-)
-
-// Constants used in cleanup tests
-const (
-	NetworkIntentFinalizer = "networkintent.nephoran.com/finalizer"
 )
 
 var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
@@ -320,7 +316,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 		It("Should handle NetworkIntent with multiple finalizers", func() {
 			By("Creating NetworkIntent with multiple finalizers")
 			networkIntent.Finalizers = []string{
-				NetworkIntentFinalizer,
+				config.GetDefaults().NetworkIntentFinalizer,
 				"other.controller/finalizer",
 				"third.controller/finalizer",
 			}
@@ -348,7 +344,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 				if err != nil {
 					return false
 				}
-				return !containsFinalizer(updated.Finalizers, NetworkIntentFinalizer) &&
+				return !containsFinalizer(updated.Finalizers, config.GetDefaults().NetworkIntentFinalizer) &&
 					containsFinalizer(updated.Finalizers, "other.controller/finalizer")
 			}, timeout, interval).Should(BeTrue())
 
@@ -357,7 +353,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 
 		It("Should handle deletion of already deleted resources", func() {
 			By("Creating and immediately deleting NetworkIntent")
-			networkIntent.Finalizers = []string{NetworkIntentFinalizer}
+			networkIntent.Finalizers = []string{config.GetDefaults().NetworkIntentFinalizer}
 			networkIntent.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
@@ -382,7 +378,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 
 		It("Should handle update conflicts during finalizer removal", func() {
 			By("Creating NetworkIntent for conflict test")
-			networkIntent.Finalizers = []string{NetworkIntentFinalizer}
+			networkIntent.Finalizers = []string{config.GetDefaults().NetworkIntentFinalizer}
 			networkIntent.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
@@ -423,7 +419,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 				namespaceName,
 				"Test cleanup with slow Kubernetes API",
 			)
-			networkIntent.Finalizers = []string{NetworkIntentFinalizer}
+			networkIntent.Finalizers = []string{config.GetDefaults().NetworkIntentFinalizer}
 
 			By("Creating resources that might be slow to list/delete")
 			for i := 0; i < 10; i++ {
@@ -590,7 +586,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 	Context("Finalizer management edge cases", func() {
 		It("Should handle containsFinalizer with empty slice", func() {
 			By("Testing containsFinalizer with empty finalizers")
-			result := containsFinalizer([]string{}, NetworkIntentFinalizer)
+			result := containsFinalizer([]string{}, config.GetDefaults().NetworkIntentFinalizer)
 
 			By("Verifying empty slice returns false")
 			Expect(result).To(BeFalse())
@@ -598,7 +594,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 
 		It("Should handle containsFinalizer with nil slice", func() {
 			By("Testing containsFinalizer with nil finalizers")
-			result := containsFinalizer(nil, NetworkIntentFinalizer)
+			result := containsFinalizer(nil, config.GetDefaults().NetworkIntentFinalizer)
 
 			By("Verifying nil slice returns false")
 			Expect(result).To(BeFalse())
@@ -607,24 +603,24 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 		It("Should handle removeFinalizer with duplicate finalizers", func() {
 			By("Testing removeFinalizer with duplicates")
 			finalizers := []string{
-				NetworkIntentFinalizer,
+				config.GetDefaults().NetworkIntentFinalizer,
 				"other.finalizer",
-				NetworkIntentFinalizer, // Duplicate
+				config.GetDefaults().NetworkIntentFinalizer, // Duplicate
 				"third.finalizer",
 			}
-			result := removeFinalizer(finalizers, NetworkIntentFinalizer)
+			result := removeFinalizer(finalizers, config.GetDefaults().NetworkIntentFinalizer)
 
 			By("Verifying all instances are removed")
 			Expect(result).To(HaveLen(2))
 			Expect(result).To(ContainElement("other.finalizer"))
 			Expect(result).To(ContainElement("third.finalizer"))
-			Expect(result).NotTo(ContainElement(NetworkIntentFinalizer))
+			Expect(result).NotTo(ContainElement(config.GetDefaults().NetworkIntentFinalizer))
 		})
 
 		It("Should handle removeFinalizer with non-existent finalizer", func() {
 			By("Testing removeFinalizer with non-existent finalizer")
 			finalizers := []string{"other.finalizer", "third.finalizer"}
-			result := removeFinalizer(finalizers, NetworkIntentFinalizer)
+			result := removeFinalizer(finalizers, config.GetDefaults().NetworkIntentFinalizer)
 
 			By("Verifying original slice is preserved")
 			Expect(result).To(HaveLen(2))

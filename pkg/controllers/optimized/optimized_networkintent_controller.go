@@ -17,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
 )
 
@@ -25,10 +26,6 @@ const (
 	// OptimizedNetworkIntentController holds optimizednetworkintentcontroller value.
 
 	OptimizedNetworkIntentController = "optimized-networkintent"
-
-	// NetworkIntentFinalizer holds networkintentfinalizer value.
-
-	NetworkIntentFinalizer = "networkintent.nephoran.com/finalizer"
 )
 
 // OptimizedNetworkIntentReconciler implements an optimized version of the NetworkIntent controller.
@@ -39,6 +36,9 @@ type OptimizedNetworkIntentReconciler struct {
 	Scheme *runtime.Scheme
 
 	Recorder record.EventRecorder
+
+	// Configuration
+	constants *config.Constants
 
 	// Optimization components.
 
@@ -277,7 +277,7 @@ func (r *OptimizedNetworkIntentReconciler) Reconcile(ctx context.Context, req ct
 
 	// Ensure finalizer exists (batched operation).
 
-	if !r.hasFinalizer(networkIntent, NetworkIntentFinalizer) {
+	if !r.hasFinalizer(networkIntent, r.constants.NetworkIntentFinalizer) {
 
 		if err := r.addFinalizerOptimized(ctx, networkIntent); err != nil {
 
@@ -751,7 +751,7 @@ func (r *OptimizedNetworkIntentReconciler) hasFinalizer(networkIntent *nephoranv
 }
 
 func (r *OptimizedNetworkIntentReconciler) addFinalizerOptimized(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) error {
-	networkIntent.Finalizers = append(networkIntent.Finalizers, NetworkIntentFinalizer)
+	networkIntent.Finalizers = append(networkIntent.Finalizers, r.constants.NetworkIntentFinalizer)
 
 	timer := r.metrics.NewAPICallTimer(OptimizedNetworkIntentController, "update", "NetworkIntent")
 
@@ -782,7 +782,7 @@ func (r *OptimizedNetworkIntentReconciler) handleDeletionOptimized(ctx context.C
 	finalizers := make([]string, 0)
 
 	for _, f := range networkIntent.Finalizers {
-		if f != NetworkIntentFinalizer {
+		if f != r.constants.NetworkIntentFinalizer {
 			finalizers = append(finalizers, f)
 		}
 	}

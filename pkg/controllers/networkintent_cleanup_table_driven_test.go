@@ -11,16 +11,12 @@ import (
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/testutils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-)
-
-// Constants used in cleanup tests
-const (
-	NetworkIntentFinalizer = "networkintent.nephoran.com/finalizer"
 )
 
 var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
@@ -378,7 +374,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 					mockGitClient.On("RemoveDirectory", expectedPath, expectedMessage).Return(tc.gitCleanupError)
 				} else {
 					// Only set up successful expectations if we have the NetworkIntent finalizer
-					if containsFinalizer(tc.finalizers, NetworkIntentFinalizer) {
+					if containsFinalizer(tc.finalizers, config.GetDefaults().NetworkIntentFinalizer) {
 						expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 						expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 						mockGitClient.On("RemoveDirectory", expectedPath, expectedMessage).Return(nil)
@@ -410,7 +406,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 			},
 			Entry("successful deletion with finalizer", deletionTestCase{
 				name:            "successful deletion with finalizer",
-				finalizers:      []string{NetworkIntentFinalizer},
+				finalizers:      []string{config.GetDefaults().NetworkIntentFinalizer},
 				expectedRequeue: false,
 				expectedError:   false,
 			}),
@@ -423,7 +419,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 			Entry("deletion with multiple finalizers", deletionTestCase{
 				name: "deletion with multiple finalizers",
 				finalizers: []string{
-					NetworkIntentFinalizer,
+					config.GetDefaults().NetworkIntentFinalizer,
 					"other.controller/finalizer",
 					"third.controller/finalizer",
 				},
@@ -432,7 +428,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 			}),
 			Entry("git cleanup failure", deletionTestCase{
 				name:                   "git cleanup failure",
-				finalizers:             []string{NetworkIntentFinalizer},
+				finalizers:             []string{config.GetDefaults().NetworkIntentFinalizer},
 				gitCleanupError:        errors.New("git cleanup failed"),
 				expectedRequeue:        true,
 				expectedError:          true,
@@ -440,7 +436,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 			}),
 			Entry("git authentication failure", deletionTestCase{
 				name:                   "git authentication failure",
-				finalizers:             []string{NetworkIntentFinalizer},
+				finalizers:             []string{config.GetDefaults().NetworkIntentFinalizer},
 				gitCleanupError:        ErrGitAuthenticationFailed,
 				expectedRequeue:        true,
 				expectedError:          true,
@@ -448,7 +444,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 			}),
 			Entry("git network timeout", deletionTestCase{
 				name:                   "git network timeout",
-				finalizers:             []string{NetworkIntentFinalizer},
+				finalizers:             []string{config.GetDefaults().NetworkIntentFinalizer},
 				gitCleanupError:        ErrGitNetworkTimeout,
 				expectedRequeue:        true,
 				expectedError:          true,
@@ -456,7 +452,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 			}),
 			Entry("git repository corruption", deletionTestCase{
 				name:                   "git repository corruption",
-				finalizers:             []string{NetworkIntentFinalizer},
+				finalizers:             []string{config.GetDefaults().NetworkIntentFinalizer},
 				gitCleanupError:        ErrGitRepositoryCorrupted,
 				expectedRequeue:        true,
 				expectedError:          true,
@@ -629,44 +625,44 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 			},
 			Entry("contains existing finalizer", finalizerTestCase{
 				name:              "contains existing finalizer",
-				initialFinalizers: []string{NetworkIntentFinalizer, "other.finalizer"},
-				finalizerToCheck:  NetworkIntentFinalizer,
+				initialFinalizers: []string{config.GetDefaults().NetworkIntentFinalizer, "other.finalizer"},
+				finalizerToCheck:  config.GetDefaults().NetworkIntentFinalizer,
 				expectedContains:  true,
 			}),
 			Entry("does not contain non-existent finalizer", finalizerTestCase{
 				name:              "does not contain non-existent finalizer",
 				initialFinalizers: []string{"other.finalizer"},
-				finalizerToCheck:  NetworkIntentFinalizer,
+				finalizerToCheck:  config.GetDefaults().NetworkIntentFinalizer,
 				expectedContains:  false,
 			}),
 			Entry("empty finalizers list", finalizerTestCase{
 				name:              "empty finalizers list",
 				initialFinalizers: []string{},
-				finalizerToCheck:  NetworkIntentFinalizer,
+				finalizerToCheck:  config.GetDefaults().NetworkIntentFinalizer,
 				expectedContains:  false,
 			}),
 			Entry("remove existing finalizer", finalizerTestCase{
 				name:              "remove existing finalizer",
-				initialFinalizers: []string{NetworkIntentFinalizer, "other.finalizer"},
-				finalizerToRemove: NetworkIntentFinalizer,
+				initialFinalizers: []string{config.GetDefaults().NetworkIntentFinalizer, "other.finalizer"},
+				finalizerToRemove: config.GetDefaults().NetworkIntentFinalizer,
 				expectedRemaining: []string{"other.finalizer"},
 			}),
 			Entry("remove non-existent finalizer", finalizerTestCase{
 				name:              "remove non-existent finalizer",
 				initialFinalizers: []string{"other.finalizer"},
-				finalizerToRemove: NetworkIntentFinalizer,
+				finalizerToRemove: config.GetDefaults().NetworkIntentFinalizer,
 				expectedRemaining: []string{"other.finalizer"},
 			}),
 			Entry("remove all finalizers", finalizerTestCase{
 				name:              "remove all finalizers",
-				initialFinalizers: []string{NetworkIntentFinalizer},
-				finalizerToRemove: NetworkIntentFinalizer,
+				initialFinalizers: []string{config.GetDefaults().NetworkIntentFinalizer},
+				finalizerToRemove: config.GetDefaults().NetworkIntentFinalizer,
 				expectedRemaining: []string{},
 			}),
 			Entry("remove with duplicates", finalizerTestCase{
 				name:              "remove with duplicates",
-				initialFinalizers: []string{NetworkIntentFinalizer, "other", NetworkIntentFinalizer},
-				finalizerToRemove: NetworkIntentFinalizer,
+				initialFinalizers: []string{config.GetDefaults().NetworkIntentFinalizer, "other", config.GetDefaults().NetworkIntentFinalizer},
+				finalizerToRemove: config.GetDefaults().NetworkIntentFinalizer,
 				expectedRemaining: []string{"other"},
 			}),
 		)

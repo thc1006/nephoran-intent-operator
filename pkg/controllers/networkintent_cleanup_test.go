@@ -12,17 +12,13 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/testutils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-)
-
-// Constants used in cleanup tests
-const (
-	NetworkIntentFinalizer = "networkintent.nephoran.com/finalizer"
 )
 
 var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
@@ -279,7 +275,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 				"Test complete deletion flow",
 			)
 			// Add finalizer to simulate real scenario
-			networkIntent.Finalizers = []string{NetworkIntentFinalizer}
+			networkIntent.Finalizers = []string{config.GetDefaults().NetworkIntentFinalizer}
 		})
 
 		It("Should handle complete deletion flow successfully", func() {
@@ -308,7 +304,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 				if err != nil {
 					return false
 				}
-				return !containsFinalizer(updated.Finalizers, NetworkIntentFinalizer)
+				return !containsFinalizer(updated.Finalizers, config.GetDefaults().NetworkIntentFinalizer)
 			}, timeout, interval).Should(BeTrue())
 
 			mockGitClient.AssertExpectations(GinkgoT())
@@ -336,7 +332,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 			By("Verifying finalizer is still present on error")
 			updated := &nephoranv1.NetworkIntent{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updated)).To(Succeed())
-			Expect(containsFinalizer(updated.Finalizers, NetworkIntentFinalizer)).To(BeTrue())
+			Expect(containsFinalizer(updated.Finalizers, config.GetDefaults().NetworkIntentFinalizer)).To(BeTrue())
 
 			mockGitClient.AssertExpectations(GinkgoT())
 		})
@@ -391,7 +387,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 				if err != nil {
 					return false
 				}
-				return !containsFinalizer(updated.Finalizers, NetworkIntentFinalizer)
+				return !containsFinalizer(updated.Finalizers, config.GetDefaults().NetworkIntentFinalizer)
 			}, timeout, interval).Should(BeTrue())
 		})
 
@@ -606,7 +602,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 				"Test reconcileDelete with Git failures",
 			)
 			// Add finalizer to simulate real scenario
-			networkIntent.Finalizers = []string{NetworkIntentFinalizer}
+			networkIntent.Finalizers = []string{config.GetDefaults().NetworkIntentFinalizer}
 			networkIntent.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 		})
 
@@ -632,7 +628,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 			By("Verifying finalizer is retained")
 			updatedIntent := &nephoranv1.NetworkIntent{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updatedIntent)).To(Succeed())
-			Expect(containsFinalizer(updatedIntent.Finalizers, NetworkIntentFinalizer)).To(BeTrue())
+			Expect(containsFinalizer(updatedIntent.Finalizers, config.GetDefaults().NetworkIntentFinalizer)).To(BeTrue())
 
 			By("Verifying Ready condition is set to false with CleanupRetrying reason")
 			readyCondition := testGetConditionCleanup(updatedIntent.Status.Conditions, "Ready")
@@ -670,7 +666,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 			By("Verifying finalizer is removed")
 			updatedIntent := &nephoranv1.NetworkIntent{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updatedIntent)).To(Succeed())
-			Expect(containsFinalizer(updatedIntent.Finalizers, NetworkIntentFinalizer)).To(BeFalse())
+			Expect(containsFinalizer(updatedIntent.Finalizers, config.GetDefaults().NetworkIntentFinalizer)).To(BeFalse())
 
 			By("Verifying Ready condition is set to false with CleanupCompleted reason")
 			readyCondition := testGetConditionCleanup(updatedIntent.Status.Conditions, "Ready")
@@ -747,7 +743,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 			updatedIntent := &nephoranv1.NetworkIntent{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updatedIntent)).To(Succeed())
-			Expect(containsFinalizer(updatedIntent.Finalizers, NetworkIntentFinalizer)).To(BeFalse())
+			Expect(containsFinalizer(updatedIntent.Finalizers, config.GetDefaults().NetworkIntentFinalizer)).To(BeFalse())
 
 			By("Verifying Ready condition indicates max retry failure")
 			readyCondition := testGetConditionCleanup(updatedIntent.Status.Conditions, "Ready")
@@ -781,7 +777,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 			By("Verifying finalizer is removed")
 			updatedIntent := &nephoranv1.NetworkIntent{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updatedIntent)).To(Succeed())
-			Expect(containsFinalizer(updatedIntent.Finalizers, NetworkIntentFinalizer)).To(BeFalse())
+			Expect(containsFinalizer(updatedIntent.Finalizers, config.GetDefaults().NetworkIntentFinalizer)).To(BeFalse())
 
 			fakeGitClient.AssertExpectations(GinkgoT())
 		})

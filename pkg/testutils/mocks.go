@@ -498,6 +498,8 @@ type MockGitClient struct {
 
 	commitPushError error
 
+	removeDirectoryError error
+
 	callLog []string
 
 	commitCount int
@@ -598,8 +600,8 @@ func (m *MockGitClient) RemoveDirectory(path, commitMessage string) error {
 
 	m.commitCount++
 
-	if m.commitPushError != nil {
-		return m.commitPushError
+	if m.removeDirectoryError != nil {
+		return m.removeDirectoryError
 	}
 
 	// Remove files that start with the path.
@@ -627,6 +629,12 @@ func (m *MockGitClient) SetInitError(err error) {
 
 func (m *MockGitClient) SetCommitPushError(err error) {
 	m.commitPushError = err
+}
+
+// SetRemoveDirectoryError sets an error to be returned by RemoveDirectory operations.
+
+func (m *MockGitClient) SetRemoveDirectoryError(err error) {
+	m.removeDirectoryError = err
 }
 
 // GetCallLog returns the log of all method calls.
@@ -747,6 +755,8 @@ func (m *MockGitClient) ResetMock() {
 	m.initError = nil
 
 	m.commitPushError = nil
+
+	m.removeDirectoryError = nil
 
 	m.lastCommitHash = "initial-commit-hash"
 }

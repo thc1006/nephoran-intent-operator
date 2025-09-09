@@ -32,6 +32,7 @@ package porchtest
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -210,10 +211,14 @@ func NewTestPackageRevision(name, repository string) *porch.PackageRevision {
 // TestFunctionConfig creates a test function configuration.
 
 func NewTestFunctionConfig(name string) porch.FunctionConfig {
+	// Create an empty map and marshal it to JSON
+	configMap := make(map[string]interface{})
+	configMapBytes, _ := json.Marshal(configMap)
+	
 	return porch.FunctionConfig{
 		Image: "gcr.io/kpt-fn/test-function:v1.0.0",
 
-		ConfigMap: make(map[string]interface{}),
+		ConfigMap: json.RawMessage(configMapBytes),
 	}
 }
 

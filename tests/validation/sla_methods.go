@@ -1,3 +1,5 @@
+//go:build test
+
 package test_validation
 
 import (
