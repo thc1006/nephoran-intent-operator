@@ -71,9 +71,10 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 		var networkIntent *nephoranv1.NetworkIntent
 
 		BeforeEach(func() {
-			networkIntent = testutils.testutils.CreateTestNetworkIntent(
-				testutils.testutils.GetUniqueName("cleanup-gitops-test"),
+			networkIntent = testutils.CreateTestNetworkIntent(
+				testutils.GetUniqueName("cleanup-gitops-test"),
 				namespaceName,
+				"scaling",
 			)
 		})
 
