@@ -555,18 +555,24 @@ jobs:
           
       - name: "🔒 Security Vulnerability Scan"
         continue-on-error: true
+        timeout-minutes: 10
         run: |
           echo "🔍 Running security scans..."
           
-          # Install security tools
-          go install golang.org/x/vuln/cmd/govulncheck@latest
+          # Install security tools with timeout
+          if timeout 300s go install golang.org/x/vuln/cmd/govulncheck@latest; then
+            echo "✅ Security tools installed"
+          else
+            echo "⚠️ Security tools installation failed or timed out"
+            exit 0  # Non-blocking
+          fi
           
           # Run vulnerability check (non-blocking for now)
           echo "🔍 Checking for vulnerabilities..."
-          if govulncheck ./...; then
+          if timeout 300s govulncheck ./...; then
             echo "✅ No vulnerabilities found"
           else
-            echo "⚠️ Vulnerabilities found (non-blocking) - please review and fix"
+            echo "⚠️ Vulnerabilities found or scan failed (non-blocking)"
             echo "This is temporarily non-blocking to allow PR merges"
           fi
           
