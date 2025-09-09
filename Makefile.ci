@@ -182,26 +182,7 @@ debug-build: ## Debug build issues with verbose output
 	@echo "Critical commands to build:"
 	@for cmd in $(CRITICAL_CMDS); do echo "  - $$cmd"; done
 
-.PHONY: ci-status
-ci-status: ## Show CI build status
-	@echo "📊 CI Build Status Report"
-	@echo "=========================="
-	@echo "Binary directory: $(BIN_DIR)"
-	@if [ -d "$(BIN_DIR)" ]; then \
-		echo "Built binaries:"; \
-		ls -la $(BIN_DIR)/ 2>/dev/null || echo "  None"; \
-	else \
-		echo "No binary directory found"; \
-	fi
-	@echo "Critical commands status:"
-	@for cmd in $(CRITICAL_CMDS); do \
-		binary_name=$$(basename $$cmd); \
-		if [ -f "$(BIN_DIR)/$$binary_name" ]; then \
-			echo "  ✅ $$cmd -> $$binary_name"; \
-		else \
-			echo "  ❌ $$cmd (not built)"; \
-		fi \
-	done
+# Removed duplicate ci-status target (already defined above at line 160)
 
 # Advanced targets for debugging timeout issues
 .PHONY: build-with-profiling
