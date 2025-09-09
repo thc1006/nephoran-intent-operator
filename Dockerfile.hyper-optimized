@@ -240,7 +240,7 @@ RUN --mount=type=cache,target=/tmp/.cache/go-build,sharing=locked \
 # =============================================================================
 # STAGE 3: Optimized Runtime Dependencies
 # =============================================================================
-FROM alpine:3.21 AS runtime-deps
+FROM alpine:3.22 AS runtime-deps
 
 # Install runtime dependencies with verification
 RUN set -eux; \
