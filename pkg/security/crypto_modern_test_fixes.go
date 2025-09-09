@@ -125,11 +125,14 @@ func (c *CryptoModern) Decrypt(data []byte, key []byte, algorithm string) ([]byt
 // Sign provides digital signature functionality
 func (c *CryptoModern) Sign(message []byte, privateKey interface{}, algorithm string) ([]byte, error) {
 	switch algorithm {
-	case "Ed25519":
+	case "ed25519":
 		if privKey, ok := privateKey.(ed25519.PrivateKey); ok {
 			return c.SignEd25519(message, privKey)
 		}
 		return nil, fmt.Errorf("invalid private key type for Ed25519")
+	case "ecdsa-p256", "ecdsa-p384", "rsa-2048", "rsa-3072", "rsa-pss":
+		// Simulate unsupported algorithms with a proper error message
+		return nil, fmt.Errorf("unsupported key pair algorithm: %s", algorithm)
 	default:
 		return nil, fmt.Errorf("unsupported signature algorithm: %s", algorithm)
 	}
@@ -138,11 +141,14 @@ func (c *CryptoModern) Sign(message []byte, privateKey interface{}, algorithm st
 // Verify provides signature verification functionality
 func (c *CryptoModern) Verify(message, signature []byte, publicKey interface{}, algorithm string) (bool, error) {
 	switch algorithm {
-	case "Ed25519":
+	case "ed25519":
 		if pubKey, ok := publicKey.(ed25519.PublicKey); ok {
 			return c.VerifyEd25519(message, signature, pubKey), nil
 		}
 		return false, fmt.Errorf("invalid public key type for Ed25519")
+	case "ecdsa-p256", "ecdsa-p384", "rsa-2048", "rsa-3072", "rsa-pss":
+		// Simulate unsupported algorithms with a proper error message
+		return false, fmt.Errorf("unsupported key pair algorithm: %s", algorithm)
 	default:
 		return false, fmt.Errorf("unsupported signature algorithm: %s", algorithm)
 	}
@@ -165,12 +171,15 @@ func (c *CryptoModern) Hash(data []byte, algorithm string) ([]byte, error) {
 // GenerateKeyPair generates a cryptographic key pair
 func (c *CryptoModern) GenerateKeyPair(algorithm string) (interface{}, interface{}, error) {
 	switch algorithm {
-	case "Ed25519":
+	case "ed25519":
 		keyPair, err := c.GenerateEd25519KeyPair()
 		if err != nil {
 			return nil, nil, err
 		}
-		return keyPair.PublicKey, keyPair.PrivateKey, nil
+		return keyPair.PrivateKey, keyPair.PublicKey, nil
+	case "ecdsa-p256", "ecdsa-p384", "rsa-2048", "rsa-3072", "rsa-pss":
+		// Simulate unsupported algorithms with a proper error message
+		return nil, nil, fmt.Errorf("unsupported key pair algorithm: %s", algorithm)
 	default:
 		return nil, nil, fmt.Errorf("unsupported key pair algorithm: %s", algorithm)
 	}

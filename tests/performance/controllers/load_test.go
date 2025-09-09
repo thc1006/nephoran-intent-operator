@@ -22,8 +22,8 @@ import (
 	testutils "github.com/thc1006/nephoran-intent-operator/tests/utils"
 )
 
-// PerformanceMetrics captures various performance measurements
-type PerformanceMetrics struct {
+// ControllerPerformanceMetrics captures various performance measurements
+type ControllerPerformanceMetrics struct {
 	TotalRequests      int
 	SuccessfulRequests int
 	FailedRequests     int
@@ -40,14 +40,14 @@ type PerformanceMetrics struct {
 	mu                 sync.RWMutex
 }
 
-func NewPerformanceMetrics() *PerformanceMetrics {
-	return &PerformanceMetrics{
+func NewControllerPerformanceMetrics() *ControllerPerformanceMetrics {
+	return &ControllerPerformanceMetrics{
 		MinDuration: time.Hour, // Initialize to high value
 		Durations:   make([]time.Duration, 0),
 	}
 }
 
-func (pm *PerformanceMetrics) RecordRequest(duration time.Duration, success bool) {
+func (pm *ControllerPerformanceMetrics) RecordRequest(duration time.Duration, success bool) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
@@ -69,7 +69,7 @@ func (pm *PerformanceMetrics) RecordRequest(duration time.Duration, success bool
 	}
 }
 
-func (pm *PerformanceMetrics) Calculate() {
+func (pm *ControllerPerformanceMetrics) Calculate() {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
@@ -112,7 +112,7 @@ func (pm *PerformanceMetrics) Calculate() {
 	pm.MemoryUsageMB = float64(memStats.Alloc) / 1024 / 1024
 }
 
-func (pm *PerformanceMetrics) Print() {
+func (pm *ControllerPerformanceMetrics) Print() {
 	pm.Calculate()
 	fmt.Printf("\n=== Performance Metrics ===\n")
 	fmt.Printf("Total Requests: %d\n", pm.TotalRequests)
@@ -197,7 +197,7 @@ var _ = Describe("Load Testing Suite", func() {
 				requestsPerUser := 5
 				totalRequests := concurrentUsers * requestsPerUser
 
-				metrics := NewPerformanceMetrics()
+				metrics := NewControllerPerformanceMetrics()
 				var wg sync.WaitGroup
 
 				By(fmt.Sprintf("executing %d requests with %d concurrent users", totalRequests, concurrentUsers))
@@ -273,7 +273,7 @@ var _ = Describe("Load Testing Suite", func() {
 				requestsPerUser := 3
 				totalRequests := concurrentUsers * requestsPerUser
 
-				metrics := NewPerformanceMetrics()
+				metrics := NewControllerPerformanceMetrics()
 				var wg sync.WaitGroup
 
 				By(fmt.Sprintf("executing %d requests with %d concurrent users", totalRequests, concurrentUsers))
@@ -342,7 +342,7 @@ var _ = Describe("Load Testing Suite", func() {
 				requestsPerUser := 2
 				totalRequests := concurrentUsers * requestsPerUser
 
-				metrics := NewPerformanceMetrics()
+				metrics := NewControllerPerformanceMetrics()
 				var wg sync.WaitGroup
 
 				By(fmt.Sprintf("executing %d requests with %d concurrent users", totalRequests, concurrentUsers))
@@ -420,7 +420,7 @@ var _ = Describe("Load Testing Suite", func() {
 				testDuration := 30 * time.Second
 				_ = int(targetThroughput * testDuration.Seconds())
 
-				metrics := NewPerformanceMetrics()
+				metrics := NewControllerPerformanceMetrics()
 				var wg sync.WaitGroup
 				var requestCount int64
 
@@ -709,7 +709,7 @@ var _ = Describe("Load Testing Suite", func() {
 	Describe("E2NodeSet Performance", func() {
 		It("should handle large scale E2NodeSet operations efficiently", func() {
 			scalingSizes := []int32{10, 25, 50, 75, 100}
-			metrics := NewPerformanceMetrics()
+			metrics := NewControllerPerformanceMetrics()
 
 			for _, size := range scalingSizes {
 				By(fmt.Sprintf("testing E2NodeSet scaling to %d nodes", size))

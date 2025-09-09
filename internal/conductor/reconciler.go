@@ -163,7 +163,7 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Add metadata.
 
-	intentData.Source = "user"
+	intentData.Source = "conductor-watch"
 
 	intentData.CorrelationID = fmt.Sprintf("%s-%s-%d",
 
@@ -358,7 +358,7 @@ func (r *NetworkIntentReconciler) createIntentFile(intentData *IntentJSON, name 
 
 	// Write to file.
 
-	if err := os.WriteFile(filepath, jsonData, 0o640); err != nil {
+	if err := os.WriteFile(filepath, jsonData, 0o644); err != nil {
 		return "", fmt.Errorf("failed to write intent file: %w", err)
 	}
 

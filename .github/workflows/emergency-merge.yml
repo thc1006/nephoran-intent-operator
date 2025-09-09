@@ -23,7 +23,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GO_VERSION: "1.22.7"  # Updated to latest stable version
+  GO_VERSION: "1.24.6"  # EMERGENCY FIX - Match go.mod toolchain  # Updated to latest stable version
   CGO_ENABLED: "0"
   GOPROXY: "https://proxy.golang.org,direct"
 
@@ -31,7 +31,7 @@ jobs:
   emergency-gate:
     name: Emergency Gate
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 10
     outputs:
       is_emergency: ${{ steps.check-emergency.outputs.emergency }}
       emergency_type: ${{ steps.check-emergency.outputs.type }}
@@ -39,7 +39,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4.2.1  # PINNED VERSION
         with:
-          fetch-depth: 2
+          fetch-depth: 1
 
       - name: Check for emergency keywords
         id: check-emergency
@@ -52,7 +52,7 @@ jobs:
     name: Ultra Fast Safety
     runs-on: ubuntu-latest
     needs: emergency-gate
-    timeout-minutes: 8
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.1  # PINNED VERSION

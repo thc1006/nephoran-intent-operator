@@ -42,7 +42,7 @@ type IntentClient interface {
 type RAGClient interface {
 	Query(ctx context.Context, query string) (*RAGResponse, error)
 
-	GetCacheStats() *CacheStats
+	GetValidationCacheStats() *ValidationCacheStats
 
 	HealthCheck() error
 }
@@ -103,9 +103,9 @@ type RAGResult struct {
 	Metadata json.RawMessage `json:"metadata"`
 }
 
-// CacheStats represents cache statistics.
+// ValidationCacheStats represents cache statistics.
 
-type CacheStats struct {
+type ValidationCacheStats struct {
 	Hits int64 `json:"hits"`
 
 	Misses int64 `json:"misses"`
@@ -154,7 +154,7 @@ func NewTestRunner(config *TestConfiguration) *TestRunner {
 // RunIntentLatencyTest performs comprehensive intent processing latency testing.
 
 func (tr *TestRunner) RunIntentLatencyTest(ctx context.Context) ([]float64, error) {
-	log.Printf("Starting intent latency test with %d scenarios", len(tr.config.TestScenarios))
+	log.Printf("Starting intent latency test with %d scenarios", len(tr.config.ValidationTestScenarios))
 
 	var measurements []float64
 

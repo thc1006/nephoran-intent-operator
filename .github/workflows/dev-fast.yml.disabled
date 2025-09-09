@@ -1,0 +1,72 @@
+name: ??Development Fast Track - DISABLED
+# DISABLED: Overlapping with ci-production.yml and pr-validation.yml
+
+# DISABLED - No triggers to prevent conflicts
+on:
+  # DISABLED: This workflow is consolidated into ci-production.yml
+  workflow_dispatch: {}
+
+# ORIGINAL TRIGGERS - DISABLED
+# on:
+#   push:
+#     branches: 
+#       - 'feat/**'
+#       - 'fix/**' 
+#       - 'chore/**'
+#       - 'dev/**'
+#     paths:
+#       - '**.go'
+#       - '**.mod'
+#       - '**.sum'
+#   workflow_dispatch:
+#     inputs:
+#       force_run:
+#         description: 'Force run on any branch'
+#         type: boolean
+#         default: false
+
+concurrency:
+  group: dev-fast-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GO_VERSION: "1.24.6"  # EMERGENCY FIX - Match go.mod toolchain  # Updated to latest stable version
+  GOPROXY: "https://proxy.golang.org,direct"
+  CGO_ENABLED: "0"
+  FORCE_RUN: ${{ github.event.inputs.force_run || 'false' }}
+
+jobs:
+  lightning-check:
+    name: ??Lightning Fast Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: ??Checkout
+        uses: actions/checkout@v4
+        
+      - name: ??Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            **/go.sum
+          
+      - name: ?”§ Quick dependency check
+        run: |
+          echo "?“¦ Quick module check..."
+          go mod download || echo "Some modules failed"
+          go mod verify
+          
+      - name: ??Ultra-fast build check
+        run: |
+          echo "??ï¸?Testing main packages build..."
+          go build -v ./cmd/... 
+          go build -v ./controllers/...
+          
+      - name: ??Critical tests only
+        run: |
+          echo "?§ª Running critical tests only..."
+          go test -short -timeout=2m ./...

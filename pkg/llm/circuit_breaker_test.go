@@ -381,7 +381,7 @@ func TestCircuitBreaker_GetMetrics(t *testing.T) {
 
 	metrics := cb.GetMetrics()
 
-	assert.Equal(t, "Closed", metrics.CurrentState)
+	assert.Equal(t, "closed", metrics.CurrentState)
 	assert.Equal(t, int64(2), metrics.TotalRequests)
 	assert.Equal(t, int64(1), metrics.FailedRequests)
 	assert.Equal(t, int64(1), metrics.SuccessfulRequests)

@@ -199,7 +199,7 @@ func (m *MockProvider) CreateResource(ctx context.Context, req *CreateResourceRe
 		m.mu.Lock()
 		defer m.mu.Unlock()
 		// In a real implementation, you would update the resource status in storage
-		response.Status = "active"
+		response.Status = string(StatusReady)
 		response.UpdatedAt = time.Now()
 	}()
 
@@ -220,7 +220,7 @@ func (m *MockProvider) GetResource(ctx context.Context, resourceID string) (*Res
 		ID:        resourceID,
 		Name:      "mock-" + resourceID,
 		Type:      "mock-resource",
-		Status:    "active",
+		Status:    string(StatusReady),
 		Health:    "healthy",
 		CreatedAt: time.Now().Add(-time.Hour),
 		UpdatedAt: time.Now(),
@@ -245,7 +245,7 @@ func (m *MockProvider) ListResources(ctx context.Context, filter *ResourceFilter
 			ID:        fmt.Sprintf("mock-resource-%d", i),
 			Name:      fmt.Sprintf("mock-resource-%d", i),
 			Type:      "mock-resource",
-			Status:    "active",
+			Status:    string(StatusReady),
 			Health:    "healthy",
 			CreatedAt: time.Now().Add(-time.Hour),
 			UpdatedAt: time.Now(),
@@ -282,7 +282,7 @@ func (m *MockProvider) UpdateResource(ctx context.Context, resourceID string, re
 		time.Sleep(50 * time.Millisecond)
 		m.mu.Lock()
 		defer m.mu.Unlock()
-		response.Status = "active"
+		response.Status = string(StatusReady)
 		response.UpdatedAt = time.Now()
 	}()
 
@@ -359,6 +359,25 @@ func (m *MockProvider) GetMetrics(ctx context.Context) (map[string]interface{}, 
 func (m *MockProvider) GetResourceMetrics(ctx context.Context, resourceID string) (map[string]interface{}, error) {
 	// Mock implementation
 	return make(map[string]interface{}), nil
+}
+
+// GetResourceStatus returns resource status (Provider interface)
+func (m *MockProvider) GetResourceStatus(ctx context.Context, resourceID string) (ResourceStatus, error) {
+	if !m.initialized {
+		return "", fmt.Errorf("provider not initialized")
+	}
+
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	// Check if resource exists in our mock storage
+	for _, resource := range m.resources {
+		if resource.ID == resourceID {
+			return StatusReady, nil
+		}
+	}
+
+	return "", fmt.Errorf("resource %s not found", resourceID)
 }
 
 // GetResourceHealth returns resource health (CloudProvider interface)
@@ -486,6 +505,8 @@ func (m *MockProvider) ApplyConfiguration(ctx context.Context, config *ProviderC
 	// Mock implementation - just store the config if needed
 	return nil
 }
+
+// Note: GetResourceStatus is already defined above - removed duplicate
 
 // Close cleans up provider resources
 func (m *MockProvider) Close() error {

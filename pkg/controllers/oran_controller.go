@@ -37,9 +37,9 @@ type OranAdaptorReconciler struct {
 
 	Scheme *runtime.Scheme
 
-	O1Adaptor *o1.O1Adaptor
+	O1Adaptor o1.O1AdaptorInterface
 
-	A1Adaptor *a1.A1Adaptor
+	A1Adaptor a1.A1AdaptorInterface
 }
 
 //+kubebuilder:rbac:groups=nephoran.com,resources=managedelements,verbs=get;list;watch;create;update;patch;delete

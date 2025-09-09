@@ -14,11 +14,11 @@ on:
       - '.github/workflows/ci-production.yml'
       - 'Makefile*'
       - 'scripts/**'
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-    branches:
-      - main
-      - integrate/**
+  # pull_request: DISABLED - Consolidated into nephoran-ci-consolidated-2025.yml
+  #   types: [opened, synchronize, reopened, ready_for_review]
+  #   branches:
+  #     - main
+  #     - integrate/**
   workflow_dispatch:
     inputs:
       build_mode:
@@ -37,7 +37,7 @@ concurrency:
 
 env:
   # Upgraded to latest stable Go version for performance improvements  
-  GO_VERSION: "1.25.0"
+  GO_VERSION: "1.24.6"
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   # Build optimizations for CI environment
@@ -60,7 +60,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     outputs:
-      go-cache-key: ${{ steps.cache-key-gen.outputs.cache-key }}
       should-build: ${{ steps.changes.outputs.go == 'true' }}
       
     steps:
@@ -84,54 +83,9 @@ jobs:
         if: steps.changes.outputs.go == 'true'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.0'
-          cache: false  # We'll handle caching manually for better control
+          go-version: '1.24.6'
+          cache: true  # Use built-in caching from actions/setup-go
           
-      - name: Generate standardized cache key
-        if: steps.changes.outputs.go == 'true'
-        id: cache-key-gen
-        run: |
-          # STANDARDIZED cache key generation for all workflows
-          GO_SUM_HASH="${{ hashFiles('**/go.sum') }}"
-          GO_MOD_HASH="${{ hashFiles('go.mod') }}"
-          
-          # Debug information
-          echo "Raw go.sum hash: '$GO_SUM_HASH'"
-          echo "Raw go.mod hash: '$GO_MOD_HASH'"
-          echo "Runner OS: ${{ runner.os }}"
-          echo "Go version: ${{ env.GO_VERSION }}"
-          
-          # Use fallback if hashes are empty
-          if [ -z "$GO_SUM_HASH" ] || [ "$GO_SUM_HASH" = "" ]; then
-            echo "Warning: go.sum hash is empty, using git SHA as fallback"
-            GO_SUM_HASH="${{ github.sha }}"
-          fi
-          if [ -z "$GO_MOD_HASH" ] || [ "$GO_MOD_HASH" = "" ]; then
-            echo "Warning: go.mod hash is empty, using git SHA as fallback"
-            GO_MOD_HASH="${{ github.sha }}"
-          fi
-          
-          # STANDARDIZED cache key format
-          CACHE_KEY="nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-${GO_SUM_HASH}-${GO_MOD_HASH}"
-          echo "Generated STANDARDIZED cache key: $CACHE_KEY"
-          
-          # Set output
-          echo "cache-key=${CACHE_KEY}" >> $GITHUB_OUTPUT
-          
-      - name: Setup STANDARDIZED Go cache
-        if: steps.changes.outputs.go == 'true'
-        id: go-cache
-        uses: actions/cache@v4  # LATEST STABLE VERSION
-        with:
-          path: |
-            /tmp/go-cache
-            /tmp/go-mod
-          key: ${{ steps.cache-key-gen.outputs.cache-key }}
-          restore-keys: |
-            nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-
-            nephoran-go-v1-${{ runner.os }}-
-          enableCrossOsArchive: false
-          fail-on-cache-miss: false
             
       - name: Verify Go environment
         if: steps.changes.outputs.go == 'true'
@@ -168,19 +122,8 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5  # Latest stable
         with:
-          go-version: '1.25.0'
-          cache: false
-          
-      - name: Restore STANDARDIZED Go cache
-        uses: actions/cache@v4  # LATEST STABLE VERSION
-        with:
-          path: |
-            /tmp/go-cache
-            /tmp/go-mod
-          key: nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('go.mod') }}
-          restore-keys: |
-            nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-
-            nephoran-go-v1-${{ runner.os }}-
+          go-version: '1.24.6'
+          cache: true
             
       - name: Syntax validation
         timeout-minutes: 2
@@ -231,19 +174,8 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5  # Latest stable
         with:
-          go-version: '1.25.0'
-          cache: false
-          
-      - name: Restore STANDARDIZED Go cache
-        uses: actions/cache@v4  # LATEST STABLE VERSION
-        with:
-          path: |
-            /tmp/go-cache
-            /tmp/go-mod
-          key: nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('go.mod') }}
-          restore-keys: |
-            nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-
-            nephoran-go-v1-${{ runner.os }}-
+          go-version: '1.24.6'
+          cache: true
             
       - name: Run ${{ matrix.component }} tests
         timeout-minutes: 8
@@ -257,8 +189,14 @@ jobs:
               make -f Makefile.ci test-controllers
               ;;
             simulators)
-              if [ -d "sim" ]; then
-                timeout 300s go test -short -timeout=4m -p=4 ./sim/... || echo "⚠️ Some simulator tests failed"
+              # Check for actual simulator directories and test them
+              if [ -d "cmd/a1-sim" ] || [ -d "cmd/e2-kpm-sim" ] || [ -d "cmd/fcaps-sim" ] || [ -d "cmd/o1-ves-sim" ]; then
+                echo "Testing simulator commands..."
+                timeout 300s go test -short -timeout=4m -p=4 ./cmd/a1-sim/... ./cmd/e2-kpm-sim/... ./cmd/fcaps-sim/... ./cmd/o1-ves-sim/... 2>/dev/null || echo "⚠️ Some simulator tests failed"
+              fi
+              if [ -d "internal/a1sim" ]; then
+                echo "Testing internal simulator packages..."
+                timeout 300s go test -short -timeout=4m -p=4 ./internal/a1sim/... 2>/dev/null || echo "⚠️ Some internal simulator tests failed"
               fi
               ;;
             internal)
@@ -344,19 +282,8 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5  # Latest stable
         with:
-          go-version: '1.25.0'
-          cache: false
-          
-      - name: Restore STANDARDIZED Go cache
-        uses: actions/cache@v4  # LATEST STABLE VERSION
-        with:
-          path: |
-            /tmp/go-cache
-            /tmp/go-mod
-          key: nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('go.mod') }}
-          restore-keys: |
-            nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-
-            nephoran-go-v1-${{ runner.os }}-
+          go-version: '1.24.6'
+          cache: true
             
       - name: Build ${{ matrix.build-target }}
         timeout-minutes: 12

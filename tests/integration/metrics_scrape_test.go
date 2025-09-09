@@ -461,8 +461,6 @@ func (suite *MetricsScrapeTestSuite) parsePrometheusMetrics(resp *http.Response)
 	scanner := bufio.NewScanner(resp.Body)
 	metrics := make(map[string]PrometheusMetric)
 
-	var currentMetric *PrometheusMetric
-
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 

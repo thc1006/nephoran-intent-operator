@@ -1,0 +1,22 @@
+# Go Build Configuration
+# Generated: 2025-09-06 23:18:19
+
+cgo:
+  enabled: true
+  compiler_available: false
+  compiler_type: ""
+  compiler_path: ""
+
+race_detection:
+  enabled: false
+
+test:
+  flags: ["-count=1", "-timeout=15m"]
+
+build:
+  flags: ["-trimpath", "-ldflags='-s -w'"]
+
+environment:
+  GOMAXPROCS: "12"
+  GOMEMLIMIT: "8GiB"
+  GOGC: "75"

@@ -66,18 +66,22 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 			return nil, fmt.Errorf("replica count %d out of valid range (0-%d)", replicas, math.MaxInt32)
 		}
 
-		intent := map[string]interface{}{
-			"action": "scale",
-			"target": matches[1],
-			"replicas": replicas,
+		target := matches[1]
+		namespace := "default"
+		if len(matches) > 3 && matches[3] != "" {
+			namespace = matches[3]
 		}
 
-		// Add namespace if provided.
-
-		if len(matches) > 3 && matches[3] != "" {
-			intent["namespace"] = matches[3]
-		} else {
-			intent["namespace"] = "default"
+		intent := map[string]interface{}{
+			"intent_type": "scaling",
+			"target": target,
+			"namespace": namespace,
+			"replicas": replicas,
+			"source": "user",
+			"status": "pending",
+			"target_resources": []interface{}{fmt.Sprintf("deployment/%s", target)},
+			"correlation_id": fmt.Sprintf("scale-%s-%s", target, namespace),
+			"reason": fmt.Sprintf("Scaling request for %s", target),
 		}
 
 		return intent, nil
@@ -88,17 +92,19 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 
 	if matches := p.patterns["deploy"].FindStringSubmatch(text); matches != nil {
 
-		intent := map[string]interface{}{
-			"action": "deploy",
-			"target": matches[1],
+		target := matches[1]
+		namespace := "default"
+		if len(matches) > 2 && matches[2] != "" {
+			namespace = matches[2]
 		}
 
-		// Add namespace if provided.
-
-		if len(matches) > 2 && matches[2] != "" {
-			intent["namespace"] = matches[2]
-		} else {
-			intent["namespace"] = "default"
+		intent := map[string]interface{}{
+			"intent_type": "deployment",
+			"target": target,
+			"namespace": namespace,
+			"source": "user",
+			"status": "pending",
+			"target_resources": []string{fmt.Sprintf("deployment/%s", target)},
 		}
 
 		return intent, nil
@@ -109,17 +115,19 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 
 	if matches := p.patterns["delete"].FindStringSubmatch(text); matches != nil {
 
-		intent := map[string]interface{}{
-			"action": "delete",
-			"target": matches[1],
+		target := matches[1]
+		namespace := "default"
+		if len(matches) > 2 && matches[2] != "" {
+			namespace = matches[2]
 		}
 
-		// Add namespace if provided.
-
-		if len(matches) > 2 && matches[2] != "" {
-			intent["namespace"] = matches[2]
-		} else {
-			intent["namespace"] = "default"
+		intent := map[string]interface{}{
+			"intent_type": "deletion",
+			"target": target,
+			"namespace": namespace,
+			"source": "user",
+			"status": "pending",
+			"target_resources": []string{fmt.Sprintf("deployment/%s", target)},
 		}
 
 		return intent, nil
@@ -130,20 +138,22 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 
 	if matches := p.patterns["update"].FindStringSubmatch(text); matches != nil {
 
-		intent := map[string]interface{}{
-			"action": "update",
-			"target": matches[1],
-			"spec": map[string]interface{}{
-				matches[2]: matches[3],
-			},
+		target := matches[1]
+		namespace := "default"
+		if len(matches) > 4 && matches[4] != "" {
+			namespace = matches[4]
 		}
 
-		// Add namespace if provided.
-
-		if len(matches) > 4 && matches[4] != "" {
-			intent["namespace"] = matches[4]
-		} else {
-			intent["namespace"] = "default"
+		intent := map[string]interface{}{
+			"intent_type": "configuration",
+			"target": target,
+			"namespace": namespace,
+			"source": "user",
+			"status": "pending",
+			"target_resources": []string{fmt.Sprintf("deployment/%s", target)},
+			"config": map[string]interface{}{
+				matches[2]: matches[3],
+			},
 		}
 
 		return intent, nil

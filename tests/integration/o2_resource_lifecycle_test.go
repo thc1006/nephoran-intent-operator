@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/prometheus/client_golang/prometheus"
-	corev1 "k8s.io/api/core/v1"
+	_ "k8s.io/api/core/v1" // Imported for future namespace handling
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2"
@@ -22,7 +22,6 @@ import (
 
 var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 	var (
-		namespace       *corev1.Namespace
 		testCtx         context.Context
 		o2Server        *o2.O2APIServer
 		httpTestServer  *httptest.Server
@@ -32,7 +31,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 	)
 
 	BeforeEach(func() {
-		namespace = CreateO2TestNamespace()
+		_ = CreateO2TestNamespace() // namespace creation for test setup
 		var cancel context.CancelFunc
 		testCtx, cancel = context.WithTimeout(ctx, 25*time.Minute)
 		DeferCleanup(cancel)
@@ -45,16 +44,8 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 			ServerPort:     0,
 			TLSEnabled:     false,
 			DatabaseConfig: json.RawMessage(`{}`),
-			ProviderConfigs: map[string]interface{}{
-				"enabled": true,
-				"config":  json.RawMessage(`{}`),
-			},
-			LifecycleConfig: map[string]interface{}{
-				"maxRetries":       3,
-				"backoffFactor":    1.5,
-				"initialDelay":     "5s",
-				"stateTransitions": json.RawMessage(`{}`),
-			},
+			ProviderConfigs: json.RawMessage(`{"enabled": true, "config": {}}`),
+			// LifecycleConfig field doesn't exist on O2IMSConfig struct
 		}
 
 		var err error
@@ -131,11 +122,15 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 							"cpu":    "16",
 							"memory": "64Gi",
 						},
-						Properties: map[string]interface{}{
-							"architecture": "x86_64",
-						},
-						SupportedActions: []string{"CREATE", "DELETE", "UPDATE", "SCALE"},
+						Properties: func() json.RawMessage {
+							props := map[string]interface{}{
+								"architecture": "x86_64",
+							}
+							propsJSON, _ := json.Marshal(props)
+							return propsJSON
+						}(),
 					},
+					SupportedActions: []string{"CREATE", "DELETE", "UPDATE", "SCALE"},
 				}
 
 				typeJSON, err := json.Marshal(computeType)
@@ -233,7 +228,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 
 			It("should prevent creation of resources with unresolved dependencies", func() {
 				By("attempting to create resource with non-existent dependency")
-				resourceID := fmt.Sprintf("orphan-resource-%d", time.Now().UnixNano())
+				_ = fmt.Sprintf("orphan-resource-%d", time.Now().UnixNano()) // resource ID for orphan test
 				orphanResource := json.RawMessage(`{}`)
 
 				resourceJSON, err := json.Marshal(orphanResource)
@@ -302,7 +297,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 				resp.Body.Close()
 
 				By("updating resource pool capacity")
-				updatedCapacity := map[string]interface{}{
+				_ = map[string]interface{}{ // updated capacity for test
 					"cpu": map[string]interface{}{
 						"total":       "100",
 						"available":   "80",

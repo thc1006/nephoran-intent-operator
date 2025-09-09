@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -1744,7 +1745,7 @@ func TestClient_FilePermissions(t *testing.T) {
 	// This will fail at push, but files should be created
 	_, _ = client.CommitAndPush(files, "Add files")
 
-	// Verify file permissions (should be 0644)
+	// Verify file permissions (should be 0640 for security)
 	for filePath := range files {
 		fullPath := filepath.Join(repoPath, filePath)
 		info, statErr := os.Stat(fullPath)
@@ -1755,9 +1756,10 @@ func TestClient_FilePermissions(t *testing.T) {
 		assert.True(t, mode.IsRegular())
 
 		// On Unix systems, check specific permissions
-		if mode&fs.ModePerm != 0 {
+		// Skip on Windows as it handles permissions differently
+		if runtime.GOOS != "windows" && mode&fs.ModePerm != 0 {
 			perm := mode & fs.ModePerm
-			assert.Equal(t, fs.FileMode(0o644), perm, "File should have 0644 permissions: %s", filePath)
+			assert.Equal(t, fs.FileMode(0o640), perm, "File should have 0640 permissions (security hardened): %s", filePath)
 		}
 	}
 }

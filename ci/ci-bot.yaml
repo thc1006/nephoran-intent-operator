@@ -1,0 +1,36 @@
+# CI Bot Configuration
+pre_push:
+  local_checks:
+    - "go mod tidy"
+    - "go fmt ./..."
+    - "go vet ./..."
+    - "go build ./..."
+    - "go test -count=1 ./..."
+  alt:
+    - "make lint"
+    - "make test"
+    - "make build"
+
+act:
+  enabled: false  # Will auto-detect act availability
+
+ci:
+  required_checks_hint:
+    - "fast-validation"
+    - "integration-status"
+    - "build"
+    - "test"
+
+limits:
+  max_iters: 5
+  wait_timeout_min: 30
+  local_repro_timeout_min: 10
+  max_files_per_fix: 8
+
+language: go
+go_version: "1.24.x"
+
+# Environment defaults for tests
+test_env:
+  LLM_ALLOWED_ORIGINS: "http://localhost:3000,http://127.0.0.1:3000"
+  CORS_ENABLED: "true"

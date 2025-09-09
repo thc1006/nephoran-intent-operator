@@ -1,9 +1,7 @@
 package o1
 
 import (
-	
-	"encoding/json"
-"crypto/tls"
+	"crypto/tls"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -96,7 +94,7 @@ type NetconfEvent struct {
 
 	Source string `json:"source"`
 
-	Data json.RawMessage `json:"data"`
+	Data map[string]interface{} `json:"data"`
 
 	XML string `json:"xml,omitempty"`
 }
@@ -681,11 +679,6 @@ func (nc *NetconfClient) notificationListener(callback EventCallback) {
 				dataMap["event_type"] = "config-change"
 			}
 
-			dataJSON, err := json.Marshal(dataMap)
-			if err != nil {
-				continue
-			}
-
 			event := &NetconfEvent{
 				Type: "notification",
 
@@ -695,7 +688,7 @@ func (nc *NetconfClient) notificationListener(callback EventCallback) {
 
 				XML: notificationXML,
 
-				Data: json.RawMessage(dataJSON),
+				Data: dataMap,
 			}
 
 			callback(event)

@@ -176,7 +176,7 @@ func NewTestSuite(config *TestConfig) *TestSuite {
 func (ts *TestSuite) SetupSuite() {
 	logf.SetLogger(crzap.New(crzap.UseDevMode(true)))
 
-	ginkgo.By("Bootstrapping test environment")
+	fmt.Println("Bootstrapping test environment")
 
 	// Setup test environment.
 
@@ -220,13 +220,13 @@ func (ts *TestSuite) SetupSuite() {
 
 	ts.metrics.Initialize()
 
-	ginkgo.By("Test environment ready")
+	fmt.Println("Test environment ready")
 }
 
 // TearDownSuite cleans up the test environment.
 
 func (ts *TestSuite) TearDownSuite() {
-	ginkgo.By("Tearing down test environment")
+	fmt.Println("Tearing down test environment")
 
 	// Cancel context.
 
@@ -320,7 +320,7 @@ func (ts *TestSuite) RunLoadTest(testFunc func() error) error {
 		return nil
 	}
 
-	ginkgo.By(fmt.Sprintf("Running load test with %d concurrent operations", ts.config.MaxConcurrency))
+	fmt.Printf("Running load test with %d concurrent operations\n", ts.config.MaxConcurrency)
 
 	return ts.metrics.ExecuteLoadTest(ts.config.MaxConcurrency, ts.config.TestDuration, testFunc)
 }
@@ -332,7 +332,7 @@ func (ts *TestSuite) RunChaosTest(testFunc func() error) error {
 		return nil
 	}
 
-	ginkgo.By(fmt.Sprintf("Running chaos test with %.1f%% failure rate", ts.config.FailureRate*100))
+	fmt.Printf("Running chaos test with %.1f%% failure rate\n", ts.config.FailureRate*100)
 
 	return ts.mocks.InjectChaos(ts.config.FailureRate, testFunc)
 }
@@ -340,7 +340,7 @@ func (ts *TestSuite) RunChaosTest(testFunc func() error) error {
 // generateTestReports creates comprehensive test reports.
 
 func (ts *TestSuite) generateTestReports() {
-	ginkgo.By("Generating test reports")
+	fmt.Println("Generating test reports")
 
 	// Generate coverage report.
 

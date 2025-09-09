@@ -1,0 +1,415 @@
+# =============================================================================
+# Security Policy Configuration - Nephoran Intent Operator
+# =============================================================================
+# Comprehensive security policies and scan configurations
+# OWASP Top 10 compliance and defense-in-depth implementation
+# =============================================================================
+
+version: "1.0"
+metadata:
+  name: "Nephoran Security Policy"
+  description: "Security configuration for Kubernetes operator"
+  compliance:
+    - "OWASP Top 10 2021"
+    - "CIS Kubernetes Benchmark"
+    - "NIST 800-53"
+  last_updated: "2025-01-04"
+
+# =============================================================================
+# VULNERABILITY MANAGEMENT
+# =============================================================================
+vulnerability_management:
+  severity_levels:
+    critical:
+      sla_hours: 24
+      auto_create_issue: true
+      block_deployment: true
+      notify_channels: ["security-team", "ops-team"]
+    
+    high:
+      sla_hours: 72
+      auto_create_issue: true
+      block_deployment: false
+      notify_channels: ["security-team"]
+    
+    medium:
+      sla_hours: 168  # 1 week
+      auto_create_issue: false
+      block_deployment: false
+      notify_channels: ["dev-team"]
+    
+    low:
+      sla_hours: 720  # 30 days
+      auto_create_issue: false
+      block_deployment: false
+      notify_channels: []
+
+  scanning_tools:
+    - name: "gosec"
+      enabled: true
+      fail_on_severity: "high"
+      exclude_rules: ["G306", "G301", "G302", "G204", "G304"]
+      
+    - name: "govulncheck"
+      enabled: true
+      fail_on_severity: "high"
+      check_indirect: true
+      
+    - name: "trivy"
+      enabled: true
+      fail_on_severity: "critical"
+      scan_types: ["vuln", "secret", "config"]
+      
+    - name: "grype"
+      enabled: true
+      fail_on_severity: "high"
+      
+    - name: "codeql"
+      enabled: true
+      queries: ["security-and-quality", "security-experimental"]
+
+# =============================================================================
+# AUTHENTICATION & AUTHORIZATION (OWASP A01, A07)
+# =============================================================================
+authentication:
+  jwt_configuration:
+    algorithm: "RS256"
+    key_rotation_days: 90
+    token_expiry_minutes: 15
+    refresh_token_expiry_days: 7
+    validate_issuer: true
+    validate_audience: true
+    required_claims: ["sub", "iat", "exp", "jti"]
+    
+  oauth2_configuration:
+    providers: ["github", "google", "azure"]
+    required_scopes: ["openid", "profile", "email"]
+    state_parameter_required: true
+    pkce_required: true
+    
+  saml_configuration:
+    enabled: false
+    signature_required: true
+    encryption_required: true
+    
+  password_policy:
+    min_length: 12
+    require_uppercase: true
+    require_lowercase: true
+    require_numbers: true
+    require_special_chars: true
+    prevent_reuse_count: 5
+    max_age_days: 90
+
+authorization:
+  rbac_enabled: true
+  default_deny: true
+  audit_logging: true
+  
+  kubernetes_rbac:
+    use_service_accounts: true
+    least_privilege: true
+    namespace_isolation: true
+    
+  api_authorization:
+    require_api_key: true
+    rate_limiting_enabled: true
+    rate_limit_per_minute: 100
+
+# =============================================================================
+# INPUT VALIDATION (OWASP A03)
+# =============================================================================
+input_validation:
+  json_parsing:
+    max_depth: 10
+    max_array_length: 1000
+    max_string_length: 10000
+    max_object_keys: 100
+    reject_unknown_fields: true
+    
+  sql_injection_prevention:
+    use_prepared_statements: true
+    parameterized_queries_only: true
+    escape_special_characters: true
+    whitelist_allowed_tables: true
+    
+  command_injection_prevention:
+    disable_shell_execution: true
+    use_exec_with_args: true
+    validate_command_paths: true
+    
+  file_upload_validation:
+    allowed_extensions: [".yaml", ".yml", ".json", ".txt"]
+    max_file_size_mb: 10
+    scan_for_malware: true
+    validate_mime_types: true
+    
+  api_input_validation:
+    validate_content_type: true
+    validate_json_schema: true
+    sanitize_html_content: true
+    reject_xml_input: true
+
+# =============================================================================
+# CRYPTOGRAPHY (OWASP A02)
+# =============================================================================
+cryptography:
+  encryption_at_rest:
+    enabled: true
+    algorithm: "AES-256-GCM"
+    key_management: "kubernetes-secrets"
+    key_rotation_days: 30
+    
+  encryption_in_transit:
+    tls_minimum_version: "1.3"
+    allowed_cipher_suites:
+      - "TLS_AES_256_GCM_SHA384"
+      - "TLS_AES_128_GCM_SHA256"
+      - "TLS_CHACHA20_POLY1305_SHA256"
+    certificate_validation: true
+    mutual_tls: false
+    
+  hashing:
+    password_algorithm: "argon2id"
+    api_key_algorithm: "sha256"
+    
+  secrets_management:
+    use_kubernetes_secrets: true
+    use_external_vault: false
+    encrypt_environment_variables: true
+    mask_in_logs: true
+
+# =============================================================================
+# SECURITY HEADERS (OWASP A05)
+# =============================================================================
+security_headers:
+  content_security_policy:
+    enabled: true
+    directives:
+      default-src: ["'self'"]
+      script-src: ["'self'", "'strict-dynamic'"]
+      style-src: ["'self'", "'unsafe-inline'"]
+      img-src: ["'self'", "data:", "https:"]
+      font-src: ["'self'"]
+      connect-src: ["'self'"]
+      frame-ancestors: ["'none'"]
+      base-uri: ["'self'"]
+      form-action: ["'self'"]
+      
+  additional_headers:
+    - name: "X-Frame-Options"
+      value: "DENY"
+    - name: "X-Content-Type-Options"
+      value: "nosniff"
+    - name: "X-XSS-Protection"
+      value: "1; mode=block"
+    - name: "Referrer-Policy"
+      value: "strict-origin-when-cross-origin"
+    - name: "Permissions-Policy"
+      value: "geolocation=(), microphone=(), camera=()"
+    - name: "Strict-Transport-Security"
+      value: "max-age=31536000; includeSubDomains; preload"
+
+# =============================================================================
+# CORS CONFIGURATION (OWASP A05)
+# =============================================================================
+cors:
+  enabled: true
+  allowed_origins:
+    - "https://localhost:3000"
+    - "https://*.nephoran.io"
+  allowed_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+  allowed_headers: ["Content-Type", "Authorization", "X-Request-ID"]
+  exposed_headers: ["X-Request-ID", "X-Rate-Limit-Remaining"]
+  allow_credentials: true
+  max_age_seconds: 3600
+  validate_origin: true
+
+# =============================================================================
+# LOGGING & MONITORING (OWASP A09)
+# =============================================================================
+logging:
+  security_events:
+    enabled: true
+    include_stack_traces: false
+    mask_sensitive_data: true
+    
+    events_to_log:
+      - authentication_success
+      - authentication_failure
+      - authorization_failure
+      - input_validation_failure
+      - rate_limit_exceeded
+      - suspicious_activity
+      - configuration_change
+      - privilege_escalation
+      
+  audit_logging:
+    enabled: true
+    include_request_body: false
+    include_response_body: false
+    retention_days: 90
+    
+  log_sanitization:
+    remove_passwords: true
+    remove_tokens: true
+    remove_api_keys: true
+    mask_emails: true
+    mask_ip_addresses: false
+
+# =============================================================================
+# RATE LIMITING & DOS PROTECTION (OWASP A05)
+# =============================================================================
+rate_limiting:
+  enabled: true
+  
+  global_limits:
+    requests_per_second: 100
+    requests_per_minute: 1000
+    burst_size: 50
+    
+  endpoint_limits:
+    - path: "/api/v1/auth/login"
+      requests_per_minute: 5
+      burst_size: 2
+      
+    - path: "/api/v1/intent"
+      requests_per_minute: 100
+      burst_size: 20
+      
+  ip_based_limiting: true
+  user_based_limiting: true
+  
+  ddos_protection:
+    enabled: true
+    max_connections_per_ip: 100
+    connection_timeout_seconds: 30
+    slowloris_protection: true
+
+# =============================================================================
+# CONTAINER SECURITY
+# =============================================================================
+container_security:
+  image_scanning:
+    enabled: true
+    fail_on_critical: true
+    fail_on_high: false
+    scan_on_push: true
+    
+  runtime_security:
+    read_only_root_filesystem: true
+    run_as_non_root: true
+    drop_capabilities: ["ALL"]
+    add_capabilities: ["NET_BIND_SERVICE"]
+    no_new_privileges: true
+    
+  pod_security_policies:
+    enforce_security_context: true
+    require_security_context: true
+    fsgroup_range: "1000-2000"
+    runasuser_range: "1000-2000"
+    
+  network_policies:
+    default_deny_all: true
+    allow_dns: true
+    allow_kubernetes_api: false
+    
+  resource_limits:
+    memory_limit: "1Gi"
+    cpu_limit: "1000m"
+    memory_request: "256Mi"
+    cpu_request: "100m"
+
+# =============================================================================
+# DEPENDENCY MANAGEMENT
+# =============================================================================
+dependency_management:
+  vulnerability_scanning:
+    enabled: true
+    check_on_commit: true
+    check_on_pr: true
+    fail_on_critical: true
+    
+  update_policy:
+    auto_update_patch: true
+    auto_update_minor: false
+    auto_update_major: false
+    
+  license_compliance:
+    enabled: true
+    allowed_licenses:
+      - "Apache-2.0"
+      - "MIT"
+      - "BSD-3-Clause"
+      - "BSD-2-Clause"
+    denied_licenses:
+      - "GPL-3.0"
+      - "AGPL-3.0"
+      - "LGPL-3.0"
+
+# =============================================================================
+# INCIDENT RESPONSE
+# =============================================================================
+incident_response:
+  enabled: true
+  
+  severity_levels:
+    critical:
+      response_time_minutes: 15
+      escalation_required: true
+      notify_executives: true
+      
+    high:
+      response_time_minutes: 60
+      escalation_required: true
+      notify_executives: false
+      
+    medium:
+      response_time_minutes: 240
+      escalation_required: false
+      notify_executives: false
+      
+    low:
+      response_time_minutes: 1440
+      escalation_required: false
+      notify_executives: false
+      
+  automated_responses:
+    block_suspicious_ip: true
+    disable_compromised_accounts: true
+    rotate_exposed_secrets: true
+    trigger_backup: true
+    
+  contact_information:
+    security_team: "security@nephoran.io"
+    ops_team: "ops@nephoran.io"
+    ciso: "ciso@nephoran.io"
+
+# =============================================================================
+# COMPLIANCE & REPORTING
+# =============================================================================
+compliance:
+  frameworks:
+    - name: "OWASP Top 10"
+      version: "2021"
+      enabled: true
+      
+    - name: "CIS Kubernetes"
+      version: "1.8"
+      enabled: true
+      
+    - name: "PCI DSS"
+      version: "4.0"
+      enabled: false
+      
+  reporting:
+    frequency: "weekly"
+    format: "json"
+    include_vulnerabilities: true
+    include_compliance_status: true
+    include_metrics: true
+    
+  attestation:
+    software_bill_of_materials: true
+    vulnerability_disclosure: true
+    security_testing_evidence: true

@@ -9,7 +9,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -25,7 +27,11 @@ func BenchmarkHTTPHandler_IngestEndpoint(b *testing.B) {
 	defer server.Close() // #nosec G307 - Error handled in defer
 
 	intent := map[string]interface{}{
-		"intent": "Deploy nginx with 3 replicas",
+		"intent_type": "scaling",
+		"target": "nginx",
+		"namespace": "default",
+		"replicas": 3,
+		"source": "test",
 	}
 
 	intentJSON, err := json.Marshal(intent)
@@ -38,8 +44,8 @@ func BenchmarkHTTPHandler_IngestEndpoint(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			io.Copy(io.Discard, resp.Body)
-			resp.Body.Close()
+			_, _ = io.Copy(io.Discard, resp.Body) // #nosec G104 - Test discard
+			_ = resp.Body.Close() // #nosec G104 - Test cleanup
 		}
 	})
 }
@@ -59,8 +65,8 @@ func BenchmarkHTTPHandler_HealthEndpoint(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			io.Copy(io.Discard, resp.Body)
-			resp.Body.Close()
+			_, _ = io.Copy(io.Discard, resp.Body) // #nosec G104 - Test discard
+			_ = resp.Body.Close() // #nosec G104 - Test cleanup
 		}
 	})
 }
@@ -80,8 +86,8 @@ func BenchmarkHTTPHandler_MetricsEndpoint(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			io.Copy(io.Discard, resp.Body)
-			resp.Body.Close()
+			_, _ = io.Copy(io.Discard, resp.Body) // #nosec G104 - Test discard
+			_ = resp.Body.Close() // #nosec G104 - Test cleanup
 		}
 	})
 }
@@ -146,7 +152,11 @@ func BenchmarkConcurrentRequests(b *testing.B) {
 	defer server.Close() // #nosec G307 - Error handled in defer
 
 	intent := map[string]interface{}{
-		"intent": "Benchmark concurrent processing",
+		"intent_type": "scaling",
+		"target": "benchmark-app",
+		"namespace": "default",
+		"replicas": 2,
+		"source": "test",
 	}
 
 	intentJSON, err := json.Marshal(intent)
@@ -196,11 +206,14 @@ func BenchmarkMemoryUsage(b *testing.B) {
 
 	// Create large intent payload to test memory usage
 	largeIntent := map[string]interface{}{
-		"intent":   "Large intent for memory testing",
-		"metadata": make(map[string]interface{}),
+		"intent": "Large intent for memory testing",
+		"spec": map[string]interface{}{
+			"metadata": make(map[string]interface{}),
+		},
 	}
 
 	// Add many fields to create a large payload
+	// Fixed: properly access the nested metadata field
 	metadata := largeIntent["spec"].(map[string]interface{})["metadata"].(map[string]interface{})
 	for i := 0; i < 1000; i++ {
 		metadata[fmt.Sprintf("field_%d", i)] = fmt.Sprintf("value_%d", i)
@@ -231,7 +244,11 @@ func BenchmarkResponseTime(b *testing.B) {
 	defer server.Close() // #nosec G307 - Error handled in defer
 
 	intent := map[string]interface{}{
-		"intent": "Response time benchmark",
+		"intent_type": "scaling",
+		"target": "response-app",
+		"namespace": "default",
+		"replicas": 1,
+		"source": "test",
 	}
 
 	intentJSON, err := json.Marshal(intent)
@@ -278,7 +295,11 @@ func BenchmarkThroughput(b *testing.B) {
 	defer server.Close() // #nosec G307 - Error handled in defer
 
 	intent := map[string]interface{}{
-		"intent": "Throughput benchmark",
+		"intent_type": "scaling",
+		"target": "throughput-app",
+		"namespace": "default",
+		"replicas": 1,
+		"source": "test",
 	}
 
 	intentJSON, err := json.Marshal(intent)
@@ -307,7 +328,8 @@ func BenchmarkThroughput(b *testing.B) {
 					}
 					io.Copy(io.Discard, resp.Body)
 					resp.Body.Close()
-					requestCount++
+					// Use atomic operation to safely increment counter across goroutines
+					atomic.AddInt64(&requestCount, 1)
 				}
 			}
 		}()
@@ -315,26 +337,46 @@ func BenchmarkThroughput(b *testing.B) {
 
 	wg.Wait()
 
-	throughput := float64(requestCount) / 5.0 // requests per second
+	// Use atomic Load to safely read the final value
+	finalCount := atomic.LoadInt64(&requestCount)
+	throughput := float64(finalCount) / 5.0 // requests per second
 	b.ReportMetric(throughput, "req/sec")
 }
 
 // createBenchmarkServer creates a lightweight server for benchmarking
+// 
+// Thread Safety: This function creates handlers that may be called concurrently.
+// The requestCounter variable is protected using atomic operations (atomic.AddInt64
+// and atomic.LoadInt64) to prevent race conditions when multiple goroutines
+// increment or read the counter simultaneously.
+//
+// Race Detection: To run tests with race detection enabled:
+//   - Linux CI: CGO_ENABLED=1 go test -race ./...
+//   - The CI workflows already have CGO_ENABLED=1 configured for race detection
 func createBenchmarkServer(tb testing.TB, handoffDir string) *httptest.Server {
 	tb.Helper()
 
 	// Create a more realistic server for benchmarking
 	mux := http.NewServeMux()
 
+	// Declare request counter as an atomic variable at the top
+	// to be accessible from all handlers
+	// IMPORTANT: Use atomic operations (atomic.AddInt64, atomic.LoadInt64) 
+	// when accessing this variable to prevent race conditions
+	var requestCounter int64
+
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"healthy","timestamp":"` + time.Now().Format(time.RFC3339) + `"}`))
+		_, _ = w.Write([]byte(`{"status":"healthy","timestamp":"` + time.Now().Format(time.RFC3339) + `"}`)) // #nosec G104 - Test response
 	})
 
 	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
 
+		// Use atomic Load to safely read the current request count
+		currentCount := atomic.LoadInt64(&requestCounter)
+		
 		metrics := fmt.Sprintf(`# HELP intent_ingest_requests_total Total number of ingested intents
 # TYPE intent_ingest_requests_total counter
 intent_ingest_requests_total %d
@@ -348,16 +390,15 @@ intent_ingest_request_duration_seconds_bucket{le="+Inf"} %d
 intent_ingest_request_duration_seconds_sum %f
 intent_ingest_request_duration_seconds_count %d
 `,
-			time.Now().Unix(), // Simulated counter
+			currentCount, // Use actual request counter value
 			10, 50, 100, 100,  // Simulated histogram buckets
 			float64(time.Now().UnixNano())/1e9, // Simulated sum
 			100,                                // Simulated count
 		)
 
-		w.Write([]byte(metrics))
+		_, _ = w.Write([]byte(metrics)) // #nosec G104 - Test response
 	})
 
-	var requestCounter int64
 	mux.HandleFunc("/ingest", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			w.WriteHeader(http.StatusMethodNotAllowed)
@@ -379,8 +420,9 @@ intent_ingest_request_duration_seconds_count %d
 			return
 		}
 
-		// Simulate file creation without actually writing to disk for performance
-		requestCounter++
+		// Use atomic operation to safely increment counter across goroutines
+		// This prevents race conditions in high concurrency scenarios
+		atomic.AddInt64(&requestCounter, 1)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -440,6 +482,112 @@ func FuzzHTTPIngest(f *testing.F) {
 	})
 }
 
+// TestConcurrentCounterAccess verifies that request counter is thread-safe
+func TestConcurrentCounterAccess(t *testing.T) {
+	tempDir := t.TempDir()
+	handoffDir := filepath.Join(tempDir, "handoff")
+	
+	server := createBenchmarkServer(t, handoffDir)
+	defer server.Close()
+	
+	const numGoroutines = 50
+	const requestsPerGoroutine = 20
+	
+	var wg sync.WaitGroup
+	
+	// Test concurrent POST requests to /ingest
+	wg.Add(numGoroutines)
+	for i := 0; i < numGoroutines; i++ {
+		go func(id int) {
+			defer wg.Done()
+			
+			intent := map[string]interface{}{
+				"intent_type": "scaling",
+				"target":      fmt.Sprintf("app-%d", id),
+				"namespace":   "default",
+				"replicas":    1,
+				"source":      "test",
+			}
+			
+			intentJSON, _ := json.Marshal(intent)
+			
+			for j := 0; j < requestsPerGoroutine; j++ {
+				resp, err := http.Post(server.URL+"/ingest", "application/json", bytes.NewBuffer(intentJSON))
+				if err != nil {
+					// Don't fail the test for connection errors in high concurrency
+					continue
+				}
+				io.Copy(io.Discard, resp.Body)
+				resp.Body.Close()
+			}
+		}(i)
+	}
+	
+	// Test concurrent GET requests to /metrics (which reads the counter)
+	// Run these in parallel to test race conditions between reads and writes
+	wg.Add(10)
+	for i := 0; i < 10; i++ {
+		go func() {
+			defer wg.Done()
+			
+			for j := 0; j < 5; j++ {
+				resp, err := http.Get(server.URL + "/metrics")
+				if err != nil {
+					// Don't fail the test for connection errors
+					continue
+				}
+				io.Copy(io.Discard, resp.Body)
+				resp.Body.Close()
+				
+				// Small delay to spread out requests
+				time.Sleep(time.Millisecond * 10)
+			}
+		}()
+	}
+	
+	wg.Wait()
+	
+	// Give a small delay to ensure all requests are processed
+	time.Sleep(time.Millisecond * 100)
+	
+	// Verify final counter value through metrics endpoint
+	resp, err := http.Get(server.URL + "/metrics")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	
+	// The metrics should contain a reasonable request count
+	// Due to potential connection failures, we check that the counter is > 0
+	// and that it doesn't exceed the maximum possible value
+	metricsStr := string(body)
+	maxCount := numGoroutines * requestsPerGoroutine
+	
+	// Parse the actual count from metrics
+	if strings.Contains(metricsStr, "intent_ingest_requests_total") {
+		// Extract the number after "intent_ingest_requests_total "
+		lines := strings.Split(metricsStr, "\n")
+		for _, line := range lines {
+			if strings.HasPrefix(line, "intent_ingest_requests_total ") {
+				var count int64
+				_, err := fmt.Sscanf(line, "intent_ingest_requests_total %d", &count)
+				if err == nil {
+					if count > 0 && count <= int64(maxCount) {
+						t.Logf("Counter value is %d (max possible: %d)", count, maxCount)
+					} else {
+						t.Errorf("Counter value %d is outside expected range (1-%d)", count, maxCount)
+					}
+				}
+				break
+			}
+		}
+	} else {
+		t.Error("Metrics endpoint did not return request counter")
+		t.Logf("Metrics output:\n%s", metricsStr)
+	}
+}
+
 // Test specific performance characteristics
 func TestPerformanceCharacteristics(t *testing.T) {
 	tempDir := t.TempDir()
@@ -450,7 +598,11 @@ func TestPerformanceCharacteristics(t *testing.T) {
 
 	t.Run("response time is under 100ms", func(t *testing.T) {
 		intent := map[string]interface{}{
-			"intent": "Performance test intent",
+			"intent_type": "scaling",
+			"target": "perf-test-app",
+			"namespace": "default",
+			"replicas": 1,
+			"source": "test",
 		}
 
 		intentJSON, err := json.Marshal(intent)
@@ -473,7 +625,11 @@ func TestPerformanceCharacteristics(t *testing.T) {
 		const requestsPerWorker = 10
 
 		intent := map[string]interface{}{
-			"intent": "Concurrency test intent",
+			"intent_type": "scaling",
+			"target": "concurrency-app",
+			"namespace": "default",
+			"replicas": 1,
+			"source": "test",
 		}
 
 		intentJSON, err := json.Marshal(intent)

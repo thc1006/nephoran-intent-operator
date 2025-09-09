@@ -244,7 +244,7 @@ func NewConfigSyncClient(client client.Client, config *ConfigSyncConfig) (*Confi
 
 // DeployPackage deploys a package using Config Sync.
 
-func (csc *ConfigSyncClient) DeployPackage(ctx context.Context, pkg *porch.PackageRevision, cluster *WorkloadCluster) (*SyncResult, error) {
+func (csc *ConfigSyncClient) DeployPackage(ctx context.Context, pkg *porch.PackageRevision, cluster *porch.WorkloadCluster) (*SyncResult, error) {
 	ctx, span := csc.tracer.Start(ctx, "deploy-package")
 
 	defer span.End()
@@ -382,7 +382,7 @@ type KrmResource struct {
 
 // preparePackageContent prepares package content for Config Sync deployment.
 
-func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *porch.PackageRevision, cluster *WorkloadCluster) (map[string][]byte, error) {
+func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *porch.PackageRevision, cluster *porch.WorkloadCluster) (map[string][]byte, error) {
 	_, span := csc.tracer.Start(ctx, "prepare-package-content")
 
 	defer span.End()
@@ -391,33 +391,30 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 
 	// Convert KRM resources to YAML files.
 
-	for i, resourceInterface := range pkg.Spec.Resources {
+	for i, resource := range pkg.Spec.Resources {
 
-		// Try to handle resource as a map first.
-
-		resourceMap, ok := resourceInterface.(map[string]interface{})
-
-		if !ok {
-
-			// Try to marshal and unmarshal to get a map.
-
-			resourceData, err := yaml.Marshal(resourceInterface)
-			if err != nil {
-
-				span.RecordError(err)
-
-				return nil, fmt.Errorf("failed to marshal resource %d: %w", i, err)
-
-			}
-
-			if err := yaml.Unmarshal(resourceData, &resourceMap); err != nil {
-
-				span.RecordError(err)
-
-				return nil, fmt.Errorf("failed to unmarshal resource %d: %w", i, err)
-
-			}
-
+		// SECURITY: Validate resource structure before processing
+		// Resources are porch.KRMResource structs, not interfaces
+		resourceMap := make(map[string]interface{})
+		
+		// Build resource map from KRMResource fields
+		resourceMap["apiVersion"] = resource.APIVersion
+		resourceMap["kind"] = resource.Kind
+		
+		if resource.Metadata != nil {
+			resourceMap["metadata"] = resource.Metadata
+		}
+		
+		if resource.Spec != nil {
+			resourceMap["spec"] = resource.Spec
+		}
+		
+		if resource.Status != nil {
+			resourceMap["status"] = resource.Status
+		}
+		
+		if resource.Data != nil {
+			resourceMap["data"] = resource.Data
 		}
 
 		// Extract kind and name from the resource map.
@@ -612,7 +609,7 @@ func (csc *ConfigSyncClient) setupRepository(ctx context.Context) error {
 
 // commitAndPush commits and pushes changes to the Git repository.
 
-func (csc *ConfigSyncClient) commitAndPush(ctx context.Context, pkg *porch.PackageRevision, cluster *WorkloadCluster) error {
+func (csc *ConfigSyncClient) commitAndPush(ctx context.Context, pkg *porch.PackageRevision, cluster *porch.WorkloadCluster) error {
 	ctx, span := csc.tracer.Start(ctx, "commit-and-push")
 
 	defer span.End()

@@ -1,0 +1,34 @@
+# Controller Manager Configuration for O-RAN Nephoran Intent Operator
+# Note: This configuration was previously in PROJECT file as componentConfig,
+# but was removed due to kubebuilder v3 compatibility issues.
+# 
+# These settings can be applied via:
+# 1. Command line flags in main.go
+# 2. ConfigMap mounted to the controller manager
+# 3. Environment variables
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: controller-manager-config
+  namespace: nephoran-system
+data:
+  controller-manager-config.yaml: |
+    # Enable leader election for high availability
+    leaderElection:
+      enabled: true
+      # Use default lease duration and retry period
+    
+    # O-RAN specific metrics and telemetry
+    metrics:
+      bindAddress: :8080
+    
+    # Health probes configuration
+    healthProbeBindAddress: :8081
+    
+    # Advanced logging for O-RAN network functions
+    zap:
+      development: false
+      stacktraceLevel: error
+      # Enable structured logging for better observability
+      encoder: json

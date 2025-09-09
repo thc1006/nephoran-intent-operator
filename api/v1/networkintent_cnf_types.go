@@ -431,7 +431,7 @@ type PerformanceIntent struct {
 
 	// +optional
 
-	PacketLossTolerance *float64 `json:"packetLossTolerance,omitempty"`
+	PacketLossTolerance *string `json:"packetLossTolerance,omitempty"`
 
 	// Jitter tolerance (in milliseconds).
 
@@ -533,7 +533,7 @@ type CNFIntentProcessingResult struct {
 
 	// Cost estimation.
 
-	EstimatedCost float64 `json:"estimatedCost,omitempty"`
+	EstimatedCost string `json:"estimatedCost,omitempty"`
 
 	// Deployment timeline estimation (in minutes).
 
@@ -541,7 +541,7 @@ type CNFIntentProcessingResult struct {
 
 	// Confidence score (0.0 - 1.0).
 
-	ConfidenceScore float64 `json:"confidenceScore,omitempty"`
+	ConfidenceScore string `json:"confidenceScore,omitempty"`
 
 	// Processing warnings.
 
@@ -1031,7 +1031,7 @@ func (c *PerformanceIntent) DeepCopyInto(out *PerformanceIntent) {
 
 		in, out := &c.PacketLossTolerance, &out.PacketLossTolerance
 
-		*out = new(float64)
+		*out = new(string)
 
 		**out = **in
 

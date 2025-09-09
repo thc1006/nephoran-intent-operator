@@ -1,7 +1,3 @@
-//go:build !disable_rag
-// +build !disable_rag
-
-// Package performance provides comprehensive performance testing and benchmarking
 package performance_tests
 
 import (
@@ -13,7 +9,6 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
-	"encoding/json"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -151,11 +146,11 @@ func BenchmarkLLMTokenManagement(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
 				budget, err := tokenManager.CalculateTokenBudget(
-					context.Background(),
-					"gpt-4o-mini",
-					"System prompt for network automation",
-					"Deploy network function",
-					"Context from knowledge base...",
+					"System prompt for network automation. Deploy network function. Context from knowledge base...",
+					map[string]interface{}{
+						"model": "gpt-4o-mini",
+						"max_tokens": 2048,
+					},
 				)
 				if err != nil {
 					b.Errorf("Budget calculation failed: %v", err)
@@ -199,7 +194,7 @@ func BenchmarkContextBuilding(b *testing.B) {
 			Title:   fmt.Sprintf("Telecom Document %d", i),
 			Content: fmt.Sprintf("This is document %d about network functions, AMF, SMF, UPF deployment procedures and 5G SA network configuration details...", i),
 			Source:  "3GPP TS 23.501",
-			Metadata: json.RawMessage(`{}`),
+			Metadata: string(`{}`),
 		}
 	}
 
@@ -308,7 +303,7 @@ func (suite *BenchmarkTestSuite) TestLoadTesting() {
 	ginkgo.Describe("Load Testing", func() {
 		ginkgo.Context("Intent Processing Load", func() {
 			ginkgo.It("should handle 1000 concurrent intents", func() {
-				if !suite.GetConfig().LoadTestEnabled {
+				if !suite.GetTestConfig().LoadTestEnabled {
 					ginkgo.Skip("Load testing disabled")
 				}
 
@@ -354,7 +349,7 @@ func (suite *BenchmarkTestSuite) TestLoadTesting() {
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 				// Verify load test results
-				loadResults := suite.GetMetrics().loadTestResults
+				loadResults := suite.GetMetrics().GetLoadTestResults()
 				gomega.Expect(len(loadResults)).To(gomega.BeNumerically(">", 0))
 
 				for _, result := range loadResults {
@@ -378,7 +373,7 @@ func (suite *BenchmarkTestSuite) TestLoadTesting() {
 
 		ginkgo.Context("Memory Pressure Testing", func() {
 			ginkgo.It("should handle memory pressure gracefully", func() {
-				if !suite.GetConfig().LoadTestEnabled {
+				if !suite.GetTestConfig().LoadTestEnabled {
 					ginkgo.Skip("Load testing disabled")
 				}
 
@@ -434,7 +429,7 @@ func (suite *BenchmarkTestSuite) TestLoadTesting() {
 
 		ginkgo.Context("Concurrent Processing", func() {
 			ginkgo.It("should maintain performance under high concurrency", func() {
-				if !suite.GetConfig().LoadTestEnabled {
+				if !suite.GetTestConfig().LoadTestEnabled {
 					ginkgo.Skip("Load testing disabled")
 				}
 
@@ -692,3 +687,4 @@ var _ = ginkgo.Describe("Performance Benchmarks", func() {
 	})
 })
 
+func TestStub(t *testing.T) { t.Skip("Test disabled") }

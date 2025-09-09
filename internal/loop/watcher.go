@@ -274,6 +274,8 @@ type WorkerPool struct {
 
 	activeWorkers int64 // atomic counter
 
+	processingItems int64 // atomic counter for items currently being processed
+
 	closed int32 // atomic flag to prevent double closes
 }
 
@@ -1384,6 +1386,12 @@ func (w *Watcher) processExistingFiles() error {
 			filePath := filepath.Join(w.dir, filename)
 
 			func() {
+				// Check if worker pool is closed before attempting to send
+				if atomic.LoadInt32(&w.workerPool.closed) == 1 {
+					log.Printf("Warning: worker pool is closed, skipping %s", filename)
+					return
+				}
+
 				workCtx, cancel := context.WithTimeout(w.ctx, 60*time.Second)
 
 				defer cancel() // Ensure cancel is always called
@@ -1587,6 +1595,10 @@ func (w *Watcher) enhancedWorker(workerID int) {
 // processWorkItemWithLocking processes a work item with file-level locking.
 
 func (w *Watcher) processWorkItemWithLocking(workerID int, workItem WorkItem) {
+	// Increment processing counter
+	atomic.AddInt64(&w.workerPool.processingItems, 1)
+	defer atomic.AddInt64(&w.workerPool.processingItems, -1)
+
 	defer func() {
 		if workItem.Ctx != nil {
 			workItem.Ctx.Done()
@@ -1787,23 +1799,33 @@ func (w *Watcher) cleanupRoutine() {
 func (w *Watcher) waitForWorkersToFinish() {
 	log.Printf("Signaling enhanced workers to stop...")
 
-	// Wait for queue to drain first.
+	// Wait for queue to drain and all workers to finish their current processing.
+	// This prevents premature context cancellation in once mode.
+
+	// Give workers a moment to pick up queued items before starting drain check
+	time.Sleep(50 * time.Millisecond)
 
 	for {
 		queueSize := len(w.workerPool.workQueue)
+		processingItems := int(atomic.LoadInt64(&w.workerPool.processingItems))
 
-		if queueSize == 0 {
-			break
+		if queueSize == 0 && processingItems == 0 {
+			// Additional grace period to ensure any very quick processing completes
+			time.Sleep(200 * time.Millisecond)
+			
+			// Check one more time after grace period
+			queueSize = len(w.workerPool.workQueue)
+			processingItems = int(atomic.LoadInt64(&w.workerPool.processingItems))
+			
+			if queueSize == 0 && processingItems == 0 {
+				break
+			}
 		}
 
-		log.Printf("Waiting for queue to drain: %d items remaining", queueSize)
+		log.Printf("Waiting for processing to complete: %d items in queue, %d items being processed", queueSize, processingItems)
 
 		time.Sleep(100 * time.Millisecond)
 	}
-
-	// Give workers time to finish current processing.
-
-	time.Sleep(200 * time.Millisecond)
 
 	// Close work queue to signal workers to finish processing and exit (if not already closed).
 
@@ -3162,15 +3184,55 @@ func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) erro
 		log.Printf("Warning: Status message truncated for %s", filepath.Base(intentFile))
 	}
 
-	statusData := json.RawMessage(`{}`)
+	// Create proper status data including intent file name
+	statusInfo := map[string]interface{}{
+		"intent_file": filepath.Base(intentFile),
+		"status":      status,
+		"message":     message,
+		"timestamp":   time.Now().Format(time.RFC3339),
+	}
+
+	// Validate statusInfo before marshaling to prevent empty JSON
+	if statusInfo["intent_file"] == "" {
+		statusInfo["intent_file"] = "unknown"
+	}
+	if statusInfo["status"] == "" {
+		statusInfo["status"] = "unknown"
+	}
+	if statusInfo["message"] == "" {
+		statusInfo["message"] = "No message provided"
+	}
+	if statusInfo["timestamp"] == "" {
+		statusInfo["timestamp"] = time.Now().Format(time.RFC3339)
+	}
 
 	// Use safe JSON marshaling with size limits.
 
-	data, err := w.safeMarshalJSON(statusData, MaxStatusSize)
+	data, err := w.safeMarshalJSON(statusInfo, MaxStatusSize)
 	if err != nil {
 		log.Printf("Failed to marshal status data: %v", err)
 
-		return fmt.Errorf("failed to marshal status data: %w", err)
+		// Create fallback status data in case of marshaling error
+		fallbackData := fmt.Sprintf(`{
+  "intent_file": "%s",
+  "status": "%s", 
+  "message": "JSON marshaling failed: %v",
+  "timestamp": "%s"
+}`, filepath.Base(intentFile), status, err, time.Now().Format(time.RFC3339))
+		data = []byte(fallbackData)
+		log.Printf("Using fallback status data for %s", filepath.Base(intentFile))
+	}
+
+	// Additional safeguard: ensure data is never empty
+	if len(data) == 0 || string(data) == "{}" {
+		log.Printf("Warning: Empty or minimal JSON detected for %s, generating proper status", filepath.Base(intentFile))
+		fallbackData := fmt.Sprintf(`{
+  "intent_file": "%s",
+  "status": "%s",
+  "message": "%s",
+  "timestamp": "%s"
+}`, filepath.Base(intentFile), status, message, time.Now().Format(time.RFC3339))
+		data = []byte(fallbackData)
 	}
 
 	// Create versioned status filename based on intent filename.
