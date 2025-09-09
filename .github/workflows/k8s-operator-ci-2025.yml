@@ -128,9 +128,16 @@ jobs:
           echo "cache-key=${CACHE_KEY}" >> $GITHUB_OUTPUT
           echo "Generated cache key: $CACHE_KEY"
           
-      - name: Clean cache directories before restore
+      - name: Fix permissions and clean cache directories before restore
         if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
         run: |
+          # Fix permissions before cleanup to avoid "Permission denied" errors
+          sudo chown -R $(id -u):$(id -g) ${{ env.GOCACHE }} || true
+          sudo chmod -R u+rw ${{ env.GOCACHE }} || true
+          sudo chown -R $(id -u):$(id -g) ${{ env.GOMODCACHE }} || true
+          sudo chmod -R u+rw ${{ env.GOMODCACHE }} || true
+          
+          # Clean cache directories
           rm -rf ${{ env.GOCACHE }}
           rm -rf ${{ env.GOMODCACHE }}
           
@@ -153,6 +160,15 @@ jobs:
           go mod download
           go mod verify
           echo "✅ Dependencies verified"
+          
+      - name: Final cleanup
+        if: always()
+        run: |
+          # Final cleanup with permission fixes
+          sudo chown -R $(id -u):$(id -g) ${{ env.GOCACHE }} || true
+          sudo chmod -R u+rw ${{ env.GOCACHE }} || true
+          sudo chown -R $(id -u):$(id -g) ${{ env.GOMODCACHE }} || true
+          sudo chmod -R u+rw ${{ env.GOMODCACHE }} || true
           
       - name: Integration test check
         id: integration-check
@@ -187,8 +203,15 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: false
           
-      - name: Clean cache directories before restore
+      - name: Fix permissions and clean cache directories before restore
         run: |
+          # Fix permissions before cleanup to avoid "Permission denied" errors
+          sudo chown -R $(id -u):$(id -g) ${{ env.GOCACHE }} || true
+          sudo chmod -R u+rw ${{ env.GOCACHE }} || true
+          sudo chown -R $(id -u):$(id -g) ${{ env.GOMODCACHE }} || true
+          sudo chmod -R u+rw ${{ env.GOMODCACHE }} || true
+          
+          # Clean cache directories
           rm -rf ${{ env.GOCACHE }}
           rm -rf ${{ env.GOMODCACHE }}
           
@@ -320,8 +343,15 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: false
           
-      - name: Clean cache directories before restore
+      - name: Fix permissions and clean cache directories before restore
         run: |
+          # Fix permissions before cleanup to avoid "Permission denied" errors
+          sudo chown -R $(id -u):$(id -g) ${{ env.GOCACHE }} || true
+          sudo chmod -R u+rw ${{ env.GOCACHE }} || true
+          sudo chown -R $(id -u):$(id -g) ${{ env.GOMODCACHE }} || true
+          sudo chmod -R u+rw ${{ env.GOMODCACHE }} || true
+          
+          # Clean cache directories
           rm -rf ${{ env.GOCACHE }}
           rm -rf ${{ env.GOMODCACHE }}
           
@@ -477,8 +507,15 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: false
           
-      - name: Clean cache directories before restore
+      - name: Fix permissions and clean cache directories before restore
         run: |
+          # Fix permissions before cleanup to avoid "Permission denied" errors
+          sudo chown -R $(id -u):$(id -g) ${{ env.GOCACHE }} || true
+          sudo chmod -R u+rw ${{ env.GOCACHE }} || true
+          sudo chown -R $(id -u):$(id -g) ${{ env.GOMODCACHE }} || true
+          sudo chmod -R u+rw ${{ env.GOMODCACHE }} || true
+          
+          # Clean cache directories
           rm -rf ${{ env.GOCACHE }}
           rm -rf ${{ env.GOMODCACHE }}
           
@@ -595,8 +632,15 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: false
           
-      - name: Clean cache directories before restore
+      - name: Fix permissions and clean cache directories before restore
         run: |
+          # Fix permissions before cleanup to avoid "Permission denied" errors
+          sudo chown -R $(id -u):$(id -g) ${{ env.GOCACHE }} || true
+          sudo chmod -R u+rw ${{ env.GOCACHE }} || true
+          sudo chown -R $(id -u):$(id -g) ${{ env.GOMODCACHE }} || true
+          sudo chmod -R u+rw ${{ env.GOMODCACHE }} || true
+          
+          # Clean cache directories
           rm -rf ${{ env.GOCACHE }}
           rm -rf ${{ env.GOMODCACHE }}
           
@@ -733,8 +777,15 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: false
           
-      - name: Clean cache directories before restore
+      - name: Fix permissions and clean cache directories before restore
         run: |
+          # Fix permissions before cleanup to avoid "Permission denied" errors
+          sudo chown -R $(id -u):$(id -g) ${{ env.GOCACHE }} || true
+          sudo chmod -R u+rw ${{ env.GOCACHE }} || true
+          sudo chown -R $(id -u):$(id -g) ${{ env.GOMODCACHE }} || true
+          sudo chmod -R u+rw ${{ env.GOMODCACHE }} || true
+          
+          # Clean cache directories
           rm -rf ${{ env.GOCACHE }}
           rm -rf ${{ env.GOMODCACHE }}
           
@@ -794,6 +845,15 @@ jobs:
           
           echo "Generated manifests:"
           ls -la dist/
+          
+      - name: Final cleanup
+        if: always()
+        run: |
+          # Final cleanup with permission fixes to prevent CI cleanup failures
+          sudo chown -R $(id -u):$(id -g) ${{ env.GOCACHE }} || true
+          sudo chmod -R u+rw ${{ env.GOCACHE }} || true
+          sudo chown -R $(id -u):$(id -g) ${{ env.GOMODCACHE }} || true
+          sudo chmod -R u+rw ${{ env.GOMODCACHE }} || true
           
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

@@ -190,7 +190,7 @@ jobs:
             timeout: 8
             priority: "critical"
           - name: "essential-services"
-            components: "cmd/nephio-bridge cmd/webhook cmd/a1-sim"
+            components: "cmd/nephio-bridge cmd/a1-sim cmd/porch-publisher"
             timeout: 6
             priority: "high"
           - name: "simulators"
@@ -247,9 +247,12 @@ jobs:
                 SUCCESSFUL=$((SUCCESSFUL + 1))
                 
                 # Verify binary
-                if [ -x "bin/$cmd_name" ]; then
+                if [ -f "bin/$cmd_name" ]; then
                   size=$(stat -c%s "bin/$cmd_name" 2>/dev/null || echo "0")
                   echo "   Binary size: $(numfmt --to=iec-i --suffix=B $size 2>/dev/null || echo $size bytes)"
+                  
+                  # Make binary executable
+                  chmod +x "bin/$cmd_name"
                 fi
               else
                 echo "⚠️ $cmd_name: Build failed or timed out"
@@ -260,6 +263,16 @@ jobs:
           done
           
           echo "Build summary: $SUCCESSFUL/$TOTAL components built successfully"
+          
+          # List all built binaries
+          if [ -d "bin" ] && [ "$(ls -A bin/)" ]; then
+            echo "Built binaries:"
+            ls -la bin/
+          else
+            echo "⚠️ Warning: No binaries were built for ${{ matrix.build-group.name }}"
+            # Create a placeholder to ensure artifact upload doesn't fail
+            echo "No binaries built for ${{ matrix.build-group.name }}" > bin/.placeholder
+          fi
           
           # For critical components, require at least 60% success
           if [ "${{ matrix.build-group.priority }}" = "critical" ] && [ $SUCCESSFUL -eq 0 ]; then
@@ -276,6 +289,7 @@ jobs:
           retention-days: 7
           compression-level: 6
           if-no-files-found: warn
+          include-hidden-files: true
 
   # =============================================================================
   # RELIABILITY TESTS: Fast, reliable test execution
@@ -419,18 +433,39 @@ jobs:
           
           # Prepare binaries
           mkdir -p bin/
-          find artifacts/ -type f -executable -exec cp {} bin/ \; 2>/dev/null || true
+          
+          # Copy all files from artifacts (regardless of executable flag)
+          find artifacts/ -type f -name "*" -exec cp {} bin/ \; 2>/dev/null || true
+          
+          # Make all files in bin/ executable
           chmod +x bin/* 2>/dev/null || true
+          
+          # Validate binaries were found
+          if [ ! "$(ls -A bin/)" ]; then
+            echo "❌ No binaries found in bin/. Check build and artifact upload steps."
+            echo "Available artifacts:"
+            find artifacts/ -type f -ls 2>/dev/null || echo "No artifacts found"
+            exit 1
+          fi
+          
+          echo "✅ Found binaries in bin/ directory:"
+          ls -la bin/
           
           # Test each binary
           tested=0
           passed=0
           
           for binary in bin/*; do
-            if [ -x "$binary" ]; then
+            if [ -f "$binary" ]; then
               name=$(basename "$binary")
               echo "Testing $name..."
               tested=$((tested + 1))
+              
+              # Verify binary is not empty
+              if [ ! -s "$binary" ]; then
+                echo "  ⚠️ $name: Binary file is empty"
+                continue
+              fi
               
               # Test basic CLI functionality
               if timeout 10s "$binary" --help >/dev/null 2>&1 || \
@@ -451,7 +486,7 @@ jobs:
           if [ $tested -gt 0 ] && [ $passed -gt 0 ]; then
             echo "✅ Integration validation passed"
           else
-            echo "❌ Integration validation failed"
+            echo "❌ Integration validation failed - no valid binaries found"
             exit 1
           fi
 
