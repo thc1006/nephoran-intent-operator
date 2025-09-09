@@ -1,0 +1,11 @@
+APIVersion: kpt.dev/v1
+Info:
+  Description: Structured patch to scale web-app deployment to 5 replicas
+Kind: Kptfile
+Metadata:
+  Name: web-app-scaling-patch-20250908-100430-5086
+Pipeline:
+  Mutators:
+  - ConfigMap:
+      apply-replacements: "true"
+    Image: gcr.io/kpt-fn/apply-replacements:v0.1.1

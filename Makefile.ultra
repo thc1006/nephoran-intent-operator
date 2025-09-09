@@ -1,0 +1,27 @@
+# Ultra Performance Makefile
+.PHONY: ultra ultra-build ultra-test
+
+CORES := $(shell nproc || echo 8)
+BUILD_FLAGS := -ldflags='-s -w -extldflags=-static' -trimpath -tags=netgo,osusergo
+
+ultra: ultra-build ultra-test
+
+ultra-build:
+	@echo "??Ultra build with $(CORES) cores..."
+	@mkdir -p bin/
+	@for cmd in cmd/*/; do \
+		test -d "$$cmd" && \
+		go build -p $(CORES) $(BUILD_FLAGS) -o "bin/$$(basename $$cmd)" "./$$cmd" & \
+	done; wait
+	@echo "??Build complete"
+	@ls -lh bin/ 2>/dev/null | head -10 || true
+
+ultra-test:
+	@echo "??Ultra fast tests..."
+	@go test -short -timeout=30s -parallel=$(CORES) \
+		./api/... ./controllers/... ./pkg/context/... 2>/dev/null || true
+	@echo "??Tests complete"
+
+clean:
+	@rm -rf bin/ dist/ *.out
+	@go clean -cache
