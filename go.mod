@@ -6,7 +6,7 @@ toolchain go1.24.6
 
 require (
 	cloud.google.com/go/compute v1.44.0
-	cloud.google.com/go/container v1.43.0
+	cloud.google.com/go/container v1.44.0
 	cloud.google.com/go/monitoring v1.24.2
 	cloud.google.com/go/storage v1.55.0
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.19.0
