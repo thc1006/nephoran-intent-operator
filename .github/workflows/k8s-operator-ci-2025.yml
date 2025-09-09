@@ -41,12 +41,12 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # 2025 Kubernetes and Go versions
-  GO_VERSION: "1.25.0"
-  KUBERNETES_VERSION: "1.32.1"
-  CONTROLLER_RUNTIME_VERSION: "v0.19.1"
-  KUBEBUILDER_VERSION: "4.4.1"
-  ENVTEST_KUBERNETES_VERSION: "1.32.1"
+  # Stable Kubernetes and Go versions
+  GO_VERSION: "1.23.3"
+  KUBERNETES_VERSION: "1.28.0"
+  CONTROLLER_RUNTIME_VERSION: "v0.16.3"
+  KUBEBUILDER_VERSION: "3.12.0"
+  ENVTEST_KUBERNETES_VERSION: "1.28.0"
   
   # Build optimizations for 2025
   CGO_ENABLED: "0"
@@ -60,8 +60,8 @@ env:
   GOMODCACHE: "/tmp/go-mod"
   
   # Security scanning tools versions
-  TRIVY_VERSION: "0.58.1"
-  COSIGN_VERSION: "2.4.1"
+  TRIVY_VERSION: "0.45.1"
+  COSIGN_VERSION: "2.0.0"
   GOVULNCHECK_VERSION: "latest"
 
 jobs:
@@ -70,7 +70,7 @@ jobs:
   # =============================================================================
   preflight:
     name: "🚀 Pre-flight Setup"
-    runs-on: ubuntu-24.04  # 2025 Ubuntu LTS
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       go-cache-key: ${{ steps.cache-setup.outputs.cache-key }}
@@ -167,7 +167,7 @@ jobs:
   k8s-validation:
     name: "☸️ Kubernetes Validation"
     needs: preflight
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     if: needs.preflight.outputs.should-build == 'true'
     
@@ -201,9 +201,9 @@ jobs:
           
       - name: Install additional K8s tools
         run: |
-          # Install controller-gen for 2025
+          # Install controller-gen 
           echo "🔧 Installing controller-gen..."
-          go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.19.0
+          go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.13.0
           
           # Install kustomize
           echo "🔧 Installing kustomize..."
@@ -290,7 +290,7 @@ jobs:
   security-scan:
     name: "🔒 Security Scan"
     needs: preflight
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     if: needs.preflight.outputs.should-build == 'true'
     
@@ -436,7 +436,7 @@ jobs:
   controller-tests:
     name: "🎮 Controller Tests"
     needs: [preflight, k8s-validation]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     if: needs.preflight.outputs.should-build == 'true'
     
@@ -551,7 +551,7 @@ jobs:
   integration-tests:
     name: "🔗 Integration Tests"
     needs: [preflight, controller-tests]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     if: needs.preflight.outputs.should-test-integration == 'true'
     
@@ -690,7 +690,7 @@ jobs:
   build-package:
     name: "📦 Build & Package"
     needs: [preflight, k8s-validation, security-scan, controller-tests]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     if: needs.preflight.outputs.should-build == 'true'
     
@@ -777,7 +777,7 @@ jobs:
   ci-status:
     name: "📊 CI Status Report"
     needs: [preflight, k8s-validation, security-scan, controller-tests, integration-tests, build-package]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     if: always()
     
     steps:
