@@ -45,3 +45,11 @@ func (a *AuditSystem) LogEvent(event AuditEvent) {
 func (a *AuditSystem) GetEvents() []AuditEvent {
 	return a.events
 }
+<<<<<<< HEAD
+=======
+
+// Stop stops the audit system (no-op for mock)
+func (a *AuditSystem) Stop() {
+	// Mock implementation - no-op for testing
+}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

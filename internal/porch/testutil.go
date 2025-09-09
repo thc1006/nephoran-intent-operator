@@ -198,9 +198,15 @@ exit %d`, failOnPatternCmd, sleepCmd, stdoutCmd, stderrCmd, opts.ExitCode)
 	}
 
 	// Then set appropriate permissions for the platform
+<<<<<<< HEAD
 	// Security: Use 0640 on Unix, 0755 on Windows for executability
 	// This two-step approach ensures secure initial write with restrictive permissions
 	chmod := 0o640
+=======
+	// Security: Use 0755 for executable scripts on both Unix and Windows
+	// This two-step approach ensures secure initial write with restrictive permissions
+	chmod := 0o755 // Both Unix and Windows need executable permissions
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if runtime.GOOS == "windows" {
 		chmod = 0o755 // Windows needs executable permissions
 	}

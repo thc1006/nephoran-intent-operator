@@ -49,6 +49,10 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 				EventRecorder: &record.FakeRecorder{},
 				MaxRetries:    3,
 				RetryDelay:    time.Second * 2,
+<<<<<<< HEAD
+=======
+				metrics:       NewTestControllerMetrics("networkintent"), // Use safe test metrics
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			}
 		})
 
@@ -523,7 +527,11 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 						DeploymentName: fmt.Sprintf("%s-deployment", elementType),
 						O1Config:       fmt.Sprintf("%s-o1-configuration", elementType),
 						A1Policy: runtime.RawExtension{
+<<<<<<< HEAD
 							Raw: []byte(fmt.Sprintf(`{"type": "%s", "id": %d}`, elementType, i)),
+=======
+							Raw: json.RawMessage(fmt.Sprintf(`{"type": "%s", "id": %d}`, elementType, i)),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 						},
 					},
 				}

@@ -1105,6 +1105,7 @@ func (n *MultiVendorNormalizer) detectVendor(resource *porch.KRMResource) string
 
 	// Check spec fields for vendor-specific patterns.
 	if resource.Spec != nil {
+<<<<<<< HEAD
 		var spec map[string]interface{}
 		if err := json.Unmarshal(resource.Spec, &spec); err == nil {
 			// Ericsson patterns.
@@ -1123,6 +1124,23 @@ func (n *MultiVendorNormalizer) detectVendor(resource *porch.KRMResource) string
 			}
 		}
 
+=======
+		spec := resource.Spec
+		// Ericsson patterns.
+		if _, exists := spec["ericsson"]; exists {
+			return "ericsson"
+		}
+
+		// Nokia patterns.
+		if _, exists := spec["nokia"]; exists {
+			return "nokia"
+		}
+
+		// Huawei patterns.
+		if _, exists := spec["huawei"]; exists {
+			return "huawei"
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	return "unknown"
@@ -1169,6 +1187,7 @@ func (n *MultiVendorNormalizer) normalizeFromEricsson(ctx context.Context, resou
 			// Remove vendor-specific section.
 
 			if resource.Spec != nil {
+<<<<<<< HEAD
 				var spec map[string]interface{}
 				if err := json.Unmarshal(resource.Spec, &spec); err == nil {
 					delete(spec, "ericsson")
@@ -1177,6 +1196,11 @@ func (n *MultiVendorNormalizer) normalizeFromEricsson(ctx context.Context, resou
 						resource.Spec = json.RawMessage(specBytes)
 					}
 				}
+=======
+				spec := resource.Spec
+				delete(spec, "ericsson")
+				resource.Spec = spec
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			}
 
 			results = append(results, CreateInfo("Converted Ericsson-specific configuration"))

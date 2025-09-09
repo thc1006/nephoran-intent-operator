@@ -4,6 +4,10 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+<<<<<<< HEAD
+=======
+	"encoding/json"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"fmt"
 	"regexp"
 	"strings"
@@ -361,10 +365,28 @@ func (s *LLMSanitizer) ValidateOutput(ctx context.Context, output string) (strin
 
 	// Validate JSON structure if it appears to be JSON.
 
+<<<<<<< HEAD
 	if strings.TrimSpace(output)[0] == '{' || strings.TrimSpace(output)[0] == '[' {
 		if err := s.validateJSONStructure(output); err != nil {
 			return "", fmt.Errorf("invalid JSON structure in output: %w", err)
 		}
+=======
+	trimmedOutput := strings.TrimSpace(output)
+	if len(trimmedOutput) > 0 && (trimmedOutput[0] == '{' || trimmedOutput[0] == '[') {
+		if err := s.validateJSONStructure(output); err != nil {
+			return "", fmt.Errorf("invalid JSON structure in output: %w", err)
+		}
+		
+		// Parse JSON to detect malicious content more reliably
+		var jsonData interface{}
+		if err := json.Unmarshal([]byte(trimmedOutput), &jsonData); err == nil {
+			if s.hasDangerousManifestFields(jsonData) {
+				s.recordMetric("malicious_manifest_json")
+				logger.Info("Blocked potentially malicious manifest via JSON analysis")
+				return "", fmt.Errorf("potentially malicious content detected in output: dangerous manifest configuration")
+			}
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	logger.V(1).Info("Output validated successfully", "length", len(output))
@@ -454,6 +476,289 @@ func (s *LLMSanitizer) detectMaliciousManifest(output string) (string, bool) {
 	return "", false
 }
 
+<<<<<<< HEAD
+=======
+// hasDangerousManifestFields checks for dangerous fields in parsed JSON data
+func (s *LLMSanitizer) hasDangerousManifestFields(data interface{}) bool {
+	switch v := data.(type) {
+	case map[string]interface{}:
+		return s.checkMapForDangerousFields(v)
+	case []interface{}:
+		for _, item := range v {
+			if s.hasDangerousManifestFields(item) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// checkMapForDangerousFields recursively checks a map for dangerous configuration fields
+func (s *LLMSanitizer) checkMapForDangerousFields(m map[string]interface{}) bool {
+	// Check for securityContext fields
+	if secCtx, ok := m["securityContext"].(map[string]interface{}); ok {
+		if privileged, ok := secCtx["privileged"].(bool); ok && privileged {
+			return true
+		}
+		if allowPrivEsc, ok := secCtx["allowPrivilegeEscalation"].(bool); ok && allowPrivEsc {
+			return true
+		}
+		if runAsUser, ok := secCtx["runAsUser"].(float64); ok && runAsUser == 0 {
+			return true
+		}
+		if runAsUserInt, ok := secCtx["runAsUser"].(int); ok && runAsUserInt == 0 {
+			return true
+		}
+		if capabilities, ok := secCtx["capabilities"].(map[string]interface{}); ok {
+			if adds, ok := capabilities["add"].([]interface{}); ok {
+				for _, cap := range adds {
+					if capStr, ok := cap.(string); ok {
+						// Check for dangerous capabilities
+						dangerousCaps := []string{"SYS_ADMIN", "NET_ADMIN", "ALL", "SYS_MODULE", "SYS_RAWIO", "SYS_PTRACE"}
+						for _, dangerous := range dangerousCaps {
+							if strings.EqualFold(capStr, dangerous) {
+								return true
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	// Check for spec fields
+	if spec, ok := m["spec"].(map[string]interface{}); ok {
+		if hostNetwork, ok := spec["hostNetwork"].(bool); ok && hostNetwork {
+			return true
+		}
+		if hostPID, ok := spec["hostPID"].(bool); ok && hostPID {
+			return true
+		}
+		if hostIPC, ok := spec["hostIPC"].(bool); ok && hostIPC {
+			return true
+		}
+		
+		// Check containers within spec
+		if containers, ok := spec["containers"].([]interface{}); ok {
+			for _, container := range containers {
+				if containerMap, ok := container.(map[string]interface{}); ok {
+					if s.checkMapForDangerousFields(containerMap) {
+						return true
+					}
+				}
+			}
+		}
+		
+		// Check volumes for dangerous host paths
+		if volumes, ok := spec["volumes"].([]interface{}); ok {
+			for _, volume := range volumes {
+				if volMap, ok := volume.(map[string]interface{}); ok {
+					if hostPath, ok := volMap["hostPath"].(map[string]interface{}); ok {
+						if path, ok := hostPath["path"].(string); ok {
+							dangerousPaths := []string{"/var/run/docker.sock", "/var/run/crio.sock", "/etc", "/root", "/sys", "/proc"}
+							for _, dangerous := range dangerousPaths {
+								if path == dangerous || strings.HasPrefix(path, dangerous+"/") {
+									return true
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	// Also check volumes at root level (not just in spec)
+	if volumes, ok := m["volumes"].([]interface{}); ok {
+		for _, volume := range volumes {
+			if volMap, ok := volume.(map[string]interface{}); ok {
+				if hostPath, ok := volMap["hostPath"].(map[string]interface{}); ok {
+					if path, ok := hostPath["path"].(string); ok {
+						dangerousPaths := []string{"/var/run/docker.sock", "/var/run/crio.sock", "/etc", "/root", "/sys", "/proc"}
+						for _, dangerous := range dangerousPaths {
+							if path == dangerous || strings.HasPrefix(path, dangerous+"/") {
+								return true
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	// Check for container fields at current level
+	if privileged, ok := m["privileged"].(bool); ok && privileged {
+		return true
+	}
+	if allowPrivEsc, ok := m["allowPrivilegeEscalation"].(bool); ok && allowPrivEsc {
+		return true
+	}
+	
+	// Check for dangerous volume mounts
+	if volumeMounts, ok := m["volumeMounts"].([]interface{}); ok {
+		for _, mount := range volumeMounts {
+			if mountMap, ok := mount.(map[string]interface{}); ok {
+				if mountPath, ok := mountMap["mountPath"].(string); ok {
+					dangerousPaths := []string{"/etc", "/root", "/var/run/docker.sock", "/var/run/crio.sock", "/sys", "/proc"}
+					for _, dangerous := range dangerousPaths {
+						if strings.HasPrefix(mountPath, dangerous) {
+							return true
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	// Check for cryptocurrency mining indicators in environment variables or args
+	if env, ok := m["env"].([]interface{}); ok {
+		for _, envVar := range env {
+			if envMap, ok := envVar.(map[string]interface{}); ok {
+				if value, ok := envMap["value"].(string); ok {
+					if s.containsCryptoMiningIndicators(value) {
+						return true
+					}
+				}
+			}
+		}
+	}
+	
+	if args, ok := m["args"].([]interface{}); ok {
+		for _, arg := range args {
+			if argStr, ok := arg.(string); ok {
+				if s.containsCryptoMiningIndicators(argStr) {
+					return true
+				}
+			}
+		}
+	}
+	
+	if command, ok := m["command"].([]interface{}); ok {
+		for i, cmd := range command {
+			if cmdStr, ok := cmd.(string); ok {
+				if s.containsCryptoMiningIndicators(cmdStr) {
+					return true
+				}
+				// Check for suspicious command patterns
+				if s.containsSuspiciousCommands(cmdStr) {
+					return true
+				}
+				// Check for suspicious command combinations (e.g., "sh -c curl...")
+				if i > 0 && cmdStr == "-c" {
+					if prevCmd, ok := command[i-1].(string); ok && (prevCmd == "sh" || prevCmd == "bash") {
+						if i+1 < len(command) {
+							if nextCmd, ok := command[i+1].(string); ok {
+								if s.containsSuspiciousCommands(nextCmd) || s.containsDataExfiltration(nextCmd) {
+									return true
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	// Recursively check nested objects
+	for _, value := range m {
+		if s.hasDangerousManifestFields(value) {
+			return true
+		}
+	}
+	
+	return false
+}
+
+// containsCryptoMiningIndicators checks for cryptocurrency mining related strings
+func (s *LLMSanitizer) containsCryptoMiningIndicators(str string) bool {
+	lowerStr := strings.ToLower(str)
+	indicators := []string{
+		"xmrig", "cgminer", "ethminer", "nicehash", "minergate",
+		"stratum+tcp://", "monero", "bitcoin", "ethereum",
+		"wallet", "mining", "pool.minergate", "nanopool",
+	}
+	for _, indicator := range indicators {
+		if strings.Contains(lowerStr, indicator) {
+			return true
+		}
+	}
+	return false
+}
+
+// containsSuspiciousCommands checks for suspicious command patterns
+func (s *LLMSanitizer) containsSuspiciousCommands(str string) bool {
+	lowerStr := strings.ToLower(str)
+	
+	// Check for suspicious network commands
+	suspiciousPatterns := []string{
+		"nc ", "netcat ", "socat ", "ncat ",  // Network tools often used for backdoors
+		"reverse", "bind", "shell",           // Shell-related terms
+		"/dev/tcp/", "/dev/udp/",            // Bash network redirections
+	}
+	
+	for _, pattern := range suspiciousPatterns {
+		if strings.Contains(lowerStr, pattern) {
+			return true
+		}
+	}
+	
+	return false
+}
+
+// containsDataExfiltration checks for data exfiltration attempts
+func (s *LLMSanitizer) containsDataExfiltration(str string) bool {
+	lowerStr := strings.ToLower(str)
+	
+	// Check for data exfiltration patterns
+	exfilPatterns := []string{
+		"curl ", "wget ", "curl.exe", "wget.exe",
+	}
+	
+	sensitiveFiles := []string{
+		"/etc/passwd", "/etc/shadow", ".ssh/", ".aws/", ".kube/",
+		"id_rsa", "credentials", "secret", "token",
+	}
+	
+	// Check if command contains both a network tool and a sensitive file reference
+	hasNetworkTool := false
+	for _, pattern := range exfilPatterns {
+		if strings.Contains(lowerStr, pattern) {
+			hasNetworkTool = true
+			break
+		}
+	}
+	
+	if hasNetworkTool {
+		// Check for suspicious URLs or sensitive files
+		if strings.Contains(lowerStr, "http://") || strings.Contains(lowerStr, "https://") {
+			// Check if it's trying to send data (common exfiltration patterns)
+			if strings.Contains(lowerStr, " -d ") || strings.Contains(lowerStr, "--data") ||
+			   strings.Contains(lowerStr, " -f ") || strings.Contains(lowerStr, "--form") ||
+			   strings.Contains(lowerStr, " -x post") || strings.Contains(lowerStr, " -x put") {
+				return true
+			}
+			
+			// Check for references to sensitive files
+			for _, sensitive := range sensitiveFiles {
+				if strings.Contains(lowerStr, sensitive) {
+					return true
+				}
+			}
+			
+			// Check for suspicious domains
+			suspiciousDomains := []string{"evil.com", "malicious.com", "attacker.com", "c2server", "pastebin.com"}
+			for _, domain := range suspiciousDomains {
+				if strings.Contains(lowerStr, domain) {
+					return true
+				}
+			}
+		}
+	}
+	
+	return false
+}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // detectSuspiciousURLs checks for suspicious URLs in the output.
 
 func (s *LLMSanitizer) detectSuspiciousURLs(output string) (string, bool) {
@@ -702,10 +1007,36 @@ func (s *LLMSanitizer) recordMetric(metricType string) {
 
 func (s *LLMSanitizer) GetMetrics() map[string]interface{} {
 	s.mutex.RLock()
+<<<<<<< HEAD
 
 	defer s.mutex.RUnlock()
 
 	return make(map[string]interface{})
+=======
+	defer s.mutex.RUnlock()
+
+	metrics := make(map[string]interface{})
+	metrics["total_requests"] = s.metrics.totalRequests
+	metrics["blocked_requests"] = s.metrics.blockedRequests
+	metrics["sanitized_requests"] = s.metrics.sanitizedRequests
+	
+	// Copy suspicious patterns map
+	patterns := make(map[string]int64)
+	for k, v := range s.metrics.suspiciousPatterns {
+		patterns[k] = v
+	}
+	metrics["suspicious_patterns"] = patterns
+	
+	// Calculate block rate
+	if s.metrics.totalRequests > 0 {
+		blockRate := float64(s.metrics.blockedRequests) / float64(s.metrics.totalRequests)
+		metrics["block_rate"] = blockRate
+	} else {
+		metrics["block_rate"] = float64(0)
+	}
+	
+	return metrics
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // ValidateSystemPromptIntegrity verifies the system prompt hasn't been tampered with.

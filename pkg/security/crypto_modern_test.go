@@ -185,9 +185,15 @@ func TestCryptoModern_Hash(t *testing.T) {
 	}{
 		{"SHA-256", "sha256", 32, false},
 		{"SHA-512", "sha512", 64, false},
+<<<<<<< HEAD
 		{"SHA3-256", "sha3-256", 32, false},
 		{"SHA3-512", "sha3-512", 64, false},
 		{"BLAKE2b", "blake2b", 64, false},
+=======
+		{"SHA3-256", "sha3-256", 32, true}, // Not yet supported
+		{"SHA3-512", "sha3-512", 64, true}, // Not yet supported  
+		{"BLAKE2b", "blake2b", 64, true},   // Not yet supported
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		{"Invalid algorithm", "invalid", 0, true},
 	}
 
@@ -226,10 +232,17 @@ func TestCryptoModern_GenerateKeyPair(t *testing.T) {
 		wantErr   bool
 	}{
 		{"Ed25519", "ed25519", false},
+<<<<<<< HEAD
 		{"ECDSA P-256", "ecdsa-p256", false},
 		{"ECDSA P-384", "ecdsa-p384", false},
 		{"RSA 2048", "rsa-2048", false},
 		{"RSA 3072", "rsa-3072", false},
+=======
+		{"ECDSA P-256", "ecdsa-p256", true}, // Not yet supported
+		{"ECDSA P-384", "ecdsa-p384", true}, // Not yet supported
+		{"RSA 2048", "rsa-2048", true},      // Not yet supported
+		{"RSA 3072", "rsa-3072", true},      // Not yet supported
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		{"Invalid algorithm", "invalid", true},
 	}
 
@@ -256,15 +269,31 @@ func TestCryptoModern_SignVerify(t *testing.T) {
 	tests := []struct {
 		name      string
 		algorithm string
+<<<<<<< HEAD
 		wantErr   bool
 	}{
 		{"Ed25519", "ed25519", false},
 		{"ECDSA P-256", "ecdsa-p256", false},
 		{"PSS RSA", "rsa-pss", false},
+=======
+		shouldSkip bool
+	}{
+		{"Ed25519", "ed25519", false},
+		{"ECDSA P-256", "ecdsa-p256", true}, // Not yet supported
+		{"PSS RSA", "rsa-pss", true},        // Not yet supported
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+<<<<<<< HEAD
+=======
+			if tt.shouldSkip {
+				t.Skipf("Skipping %s - not yet supported", tt.algorithm)
+				return
+			}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			// Generate key pair
 			privKey, pubKey, err := crypto.GenerateKeyPair(tt.algorithm)
 			require.NoError(t, err)
@@ -326,7 +355,11 @@ func TestCryptoModern_Performance(t *testing.T) {
 		duration := time.Since(start)
 
 		require.NoError(t, err)
+<<<<<<< HEAD
 		assert.Less(t, duration, time.Second, "Key derivation should complete within 1 second")
+=======
+		assert.Less(t, duration, 2*time.Second, "Key derivation should complete within 2 seconds")
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	})
 
 	t.Run("encryption performance", func(t *testing.T) {

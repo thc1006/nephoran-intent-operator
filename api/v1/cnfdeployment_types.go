@@ -795,7 +795,11 @@ type CNFDeploymentStatus struct {
 
 	// +optional
 
+<<<<<<< HEAD
 	ResourceUtilization map[string]float64 `json:"resourceUtilization,omitempty"`
+=======
+	ResourceUtilization map[string]string `json:"resourceUtilization,omitempty"`
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// Health status.
 

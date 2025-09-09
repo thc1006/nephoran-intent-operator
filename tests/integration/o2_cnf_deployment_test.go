@@ -44,6 +44,7 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 			ServerPort:     0,
 			TLSEnabled:     false,
 			DatabaseConfig: json.RawMessage(`{}`),
+<<<<<<< HEAD
 			ProviderConfigs: map[string]interface{}{
 				"enabled": true,
 				"config":  json.RawMessage(`{}`),
@@ -62,6 +63,9 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 				"defaultTimeout": "10m",
 				"retryPolicy":    json.RawMessage(`{}`),
 			},
+=======
+			ProviderConfigs: json.RawMessage(`{"enabled": true, "config": {}}`),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 
 		var err error

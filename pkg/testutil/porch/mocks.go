@@ -18,7 +18,10 @@ package porch
 
 import (
 	"context"
+<<<<<<< HEAD
 	"encoding/json"
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"fmt"
 	"sync"
 	"time"
@@ -456,12 +459,20 @@ func (m *MockPorchClient) RenderPackage(ctx context.Context, name string, revisi
 		{
 			APIVersion: "apps/v1",
 			Kind:       "Deployment",
+<<<<<<< HEAD
 			Metadata: json.RawMessage(`{}`),
+=======
+			Metadata: make(map[string]interface{}),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 		{
 			APIVersion: "v1",
 			Kind:       "Service",
+<<<<<<< HEAD
 			Metadata: json.RawMessage(`{}`),
+=======
+			Metadata: make(map[string]interface{}),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 	}
 
@@ -859,13 +870,21 @@ func (m *MockPorchClient) clonePackageRevision(pkg *porch.PackageRevision) *porc
 
 	// Deep copy resources
 	if pkg.Spec.Resources != nil {
+<<<<<<< HEAD
 		clone.Spec.Resources = make([]interface{}, len(pkg.Spec.Resources))
+=======
+		clone.Spec.Resources = make([]porch.KRMResource, len(pkg.Spec.Resources))
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		copy(clone.Spec.Resources, pkg.Spec.Resources)
 	}
 
 	// Deep copy functions
 	if pkg.Spec.Functions != nil {
+<<<<<<< HEAD
 		clone.Spec.Functions = make([]interface{}, len(pkg.Spec.Functions))
+=======
+		clone.Spec.Functions = make([]porch.FunctionConfig, len(pkg.Spec.Functions))
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		copy(clone.Spec.Functions, pkg.Spec.Functions)
 	}
 

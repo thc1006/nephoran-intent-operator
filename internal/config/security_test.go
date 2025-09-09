@@ -552,42 +552,66 @@ func TestAdvancedSecurityVulnerabilities(t *testing.T) {
 			target:        "../../../etc/passwd",
 			attackType:    "path_traversal",
 			expectError:   true,
+<<<<<<< HEAD
 			errorContains: "path traversal",
+=======
+			errorContains: "target name contains invalid characters",
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 		{
 			name:          "Path Traversal - Windows Style",
 			target:        "..\\..\\..\\windows\\system32\\config\\sam",
 			attackType:    "path_traversal",
 			expectError:   true,
+<<<<<<< HEAD
 			errorContains: "path traversal",
+=======
+			errorContains: "target name contains invalid characters",
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 		{
 			name:          "Path Traversal - URL Encoded",
 			target:        "gnb%2e%2e%2f%2e%2e%2fetc%2fpasswd",
 			attackType:    "path_traversal",
 			expectError:   true,
+<<<<<<< HEAD
 			errorContains: "path traversal",
+=======
+			errorContains: "target name contains invalid characters",
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 		{
 			name:          "Path Traversal - Double URL Encoded",
 			target:        "gnb%252e%252e%252f%252e%252e%252fetc%252fpasswd",
 			attackType:    "path_traversal",
 			expectError:   true,
+<<<<<<< HEAD
 			errorContains: "path traversal",
+=======
+			errorContains: "target name contains invalid characters",
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 		{
 			name:          "Path Traversal - Unicode Encoding",
 			target:        "gnb\\u002e\\u002e\\u002f",
 			attackType:    "path_traversal",
 			expectError:   true,
+<<<<<<< HEAD
 			errorContains: "path traversal",
+=======
+			errorContains: "target name contains invalid characters",
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 		{
 			name:          "Path Traversal - Mixed Encoding",
 			target:        "gnb/../%2e%2e/./..%2f",
 			attackType:    "path_traversal",
 			expectError:   true,
+<<<<<<< HEAD
 			errorContains: "path traversal",
+=======
+			errorContains: "target name contains invalid characters",
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 
 		// Command Injection Attempts (detected as SQL injection due to semicolons)

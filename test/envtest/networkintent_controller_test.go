@@ -6,8 +6,12 @@ following 2025 Kubernetes operator testing best practices.
 package envtest
 
 import (
+<<<<<<< HEAD
 	"context"
 	"time"
+=======
+	"fmt"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -15,15 +19,31 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+<<<<<<< HEAD
 	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1alpha1"
 )
 
+=======
+	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
+)
+
+// Note: timeout, interval, k8sClient, and LogTestStep are already defined in suite_test.go
+
+// checkK8sClient skips the test if k8sClient is not properly initialized
+func checkK8sClient() {
+	if k8sClient == nil {
+		Skip("k8sClient not initialized - requires proper envtest setup with BeforeSuite")
+	}
+}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 var _ = Describe("NetworkIntent Controller", Ordered, func() {
 	Context("When creating a NetworkIntent", func() {
 		var (
 			networkIntent     *intentv1alpha1.NetworkIntent
 			networkIntentName string
 			testNamespace     string
+<<<<<<< HEAD
 			testCtx           context.Context
 			testCancel        context.CancelFunc
 		)
@@ -32,6 +52,16 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 			testCtx, testCancel = TestContext()
 			testNamespace = "default" // Use default namespace for simplicity
 			networkIntentName = "test-network-intent"
+=======
+		)
+
+		BeforeAll(func() {
+			testNamespace = "default" // Use default namespace for simplicity
+			networkIntentName = "test-network-intent"
+			
+			// Skip all tests in this context if k8sClient is not initialized
+			checkK8sClient()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 			By("creating a NetworkIntent resource")
 			networkIntent = &intentv1alpha1.NetworkIntent{
@@ -45,6 +75,7 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 				},
 				Spec: intentv1alpha1.NetworkIntentSpec{
 					// 2025 pattern: Use realistic O-RAN scaling scenarios
+<<<<<<< HEAD
 					ScalingIntent: intentv1alpha1.ScalingIntent{
 						Action: "scale-up",
 						Target: intentv1alpha1.ScalingTarget{
@@ -61,16 +92,30 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 					},
 					Priority: "high",
 					Source:   "llm-generated",
+=======
+					Source:     "test",
+					IntentType: "scaling",
+					Target:     "cluster-1",
+					Replicas:   5,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				},
 			}
 		})
 
 		AfterAll(func() {
+<<<<<<< HEAD
 			testCancel()
 		})
 
 		It("should create the NetworkIntent successfully", func(ctx SpecContext) {
 			LogTestStep("Creating NetworkIntent resource", "name", networkIntentName, "namespace", testNamespace)
+=======
+			// Cleanup any resources created during tests
+		})
+
+		It("should create the NetworkIntent successfully", func(ctx SpecContext) {
+			GinkgoWriter.Printf("Creating NetworkIntent resource: name=%s, namespace=%s\n", networkIntentName, testNamespace)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			
 			Expect(k8sClient.Create(ctx, networkIntent)).Should(Succeed())
 
@@ -83,9 +128,14 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 				}, createdIntent)
 			}, timeout, interval).Should(Succeed())
 
+<<<<<<< HEAD
 			Expect(createdIntent.Spec.ScalingIntent.Action).To(Equal("scale-up"))
 			Expect(createdIntent.Spec.ScalingIntent.Target.Component).To(Equal("cu-cp"))
 			Expect(createdIntent.Spec.ScalingIntent.Target.Replicas).To(Equal(int32(5)))
+=======
+			Expect(createdIntent.Spec.Source).To(Equal("test"))
+			Expect(createdIntent.Spec.Target).To(Equal("cluster-1"))
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		})
 
 		It("should update the NetworkIntent status", func(ctx SpecContext) {
@@ -101,12 +151,24 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 				if err != nil {
 					return ""
 				}
+<<<<<<< HEAD
 				return updatedIntent.Status.Phase
+=======
+				// Check if conditions exist and return a status
+				if len(updatedIntent.Status.Conditions) > 0 {
+					return updatedIntent.Status.Conditions[0].Type
+				}
+				return "NoConditions"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			}, timeout, interval).Should(Not(BeEmpty()))
 
 			// Verify status fields are properly set
 			Expect(updatedIntent.Status.Phase).To(BeElementOf([]string{"Pending", "Processing", "Completed", "Failed"}))
+<<<<<<< HEAD
 			Expect(updatedIntent.Status.LastUpdated).NotTo(BeNil())
+=======
+			Expect(updatedIntent.Status.Message).NotTo(BeEmpty())
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		})
 
 		It("should handle NetworkIntent updates correctly", func(ctx SpecContext) {
@@ -120,8 +182,13 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 			}, currentIntent)).Should(Succeed())
 
 			// Update the resource
+<<<<<<< HEAD
 			currentIntent.Spec.ScalingIntent.Target.Replicas = 8
 			currentIntent.Spec.Priority = "medium"
+=======
+			currentIntent.Spec.Replicas = 8
+			currentIntent.Spec.Target = "cluster-updated"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			
 			Expect(k8sClient.Update(ctx, currentIntent)).Should(Succeed())
 
@@ -135,7 +202,11 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 				if err != nil {
 					return 0
 				}
+<<<<<<< HEAD
 				return updatedIntent.Spec.ScalingIntent.Target.Replicas
+=======
+				return updatedIntent.Spec.Replicas
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			}, timeout, interval).Should(Equal(int32(8)))
 		})
 
@@ -165,6 +236,10 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 
 	Context("When testing NetworkIntent validation", func() {
 		It("should reject invalid scaling actions", func(ctx SpecContext) {
+<<<<<<< HEAD
+=======
+			checkK8sClient()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			LogTestStep("Testing invalid scaling action validation")
 			
 			invalidIntent := &intentv1alpha1.NetworkIntent{
@@ -173,6 +248,7 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 					Namespace: "default",
 				},
 				Spec: intentv1alpha1.NetworkIntentSpec{
+<<<<<<< HEAD
 					ScalingIntent: intentv1alpha1.ScalingIntent{
 						Action: "invalid-action", // Invalid action
 						Target: intentv1alpha1.ScalingTarget{
@@ -180,6 +256,12 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 							Replicas:  5,
 						},
 					},
+=======
+					Source:     "test",
+					IntentType: "invalid-type", // Invalid type
+					Target:     "cluster-test",
+					Replicas:   5,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				},
 			}
 
@@ -194,6 +276,10 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 		})
 
 		It("should reject scaling beyond constraints", func(ctx SpecContext) {
+<<<<<<< HEAD
+=======
+			checkK8sClient()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			LogTestStep("Testing scaling constraint validation")
 			
 			constraintViolationIntent := &intentv1alpha1.NetworkIntent{
@@ -202,6 +288,7 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 					Namespace: "default",
 				},
 				Spec: intentv1alpha1.NetworkIntentSpec{
+<<<<<<< HEAD
 					ScalingIntent: intentv1alpha1.ScalingIntent{
 						Action: "scale-up",
 						Target: intentv1alpha1.ScalingTarget{
@@ -213,13 +300,23 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 							MinReplicas: 2,
 						},
 					},
+=======
+					Source:     "test",
+					IntentType: "scaling",
+					Target:     "cluster-test",
+					Replicas:   -5, // Invalid negative replicas
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				},
 			}
 
 			err := k8sClient.Create(ctx, constraintViolationIntent)
 			// This should fail validation if webhooks are properly configured
 			if err != nil {
+<<<<<<< HEAD
 				Expect(err.Error()).To(ContainSubstring("exceeds"))
+=======
+				Expect(err.Error()).To(ContainSubstring("negative"))
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			} else {
 				// If no validation webhook, check controller handles it
 				Eventually(func() string {
@@ -242,6 +339,10 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 
 	Context("When testing concurrent NetworkIntent operations", func() {
 		It("should handle multiple concurrent NetworkIntents", func(ctx SpecContext) {
+<<<<<<< HEAD
+=======
+			checkK8sClient()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			LogTestStep("Testing concurrent NetworkIntent creation")
 			
 			const numIntents = 5
@@ -255,6 +356,7 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 						Namespace: "default",
 					},
 					Spec: intentv1alpha1.NetworkIntentSpec{
+<<<<<<< HEAD
 						ScalingIntent: intentv1alpha1.ScalingIntent{
 							Action: "scale-up",
 							Target: intentv1alpha1.ScalingTarget{
@@ -264,6 +366,12 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 							},
 						},
 						Priority: "medium",
+=======
+						Source:     "test",
+						IntentType: "scaling",
+						Target:     fmt.Sprintf("cluster-test-%d", i),
+						Replicas:   int32(i + 3), // Different replica counts
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 					},
 				}
 				
@@ -294,7 +402,12 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 
 	Context("When testing NetworkIntent with realistic O-RAN scenarios", func() {
 		DescribeTable("should handle various O-RAN component scaling scenarios",
+<<<<<<< HEAD
 			func(component string, initialReplicas, targetReplicas int32, expectedPhase string) {
+=======
+			func(ctx SpecContext, component string, initialReplicas, targetReplicas int32, expectedPhase string) {
+				checkK8sClient()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				LogTestStep("Testing O-RAN component scaling", 
 					"component", component, 
 					"from", initialReplicas, 
@@ -307,6 +420,7 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 						Namespace: "default",
 					},
 					Spec: intentv1alpha1.NetworkIntentSpec{
+<<<<<<< HEAD
 						ScalingIntent: intentv1alpha1.ScalingIntent{
 							Action: func() string {
 								if targetReplicas > initialReplicas {
@@ -330,6 +444,12 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 						},
 						Priority: "high",
 						Source:   "automation",
+=======
+						Source:     "test",
+						IntentType: "scaling",
+						Target:     component,
+						Replicas:   targetReplicas,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 					},
 				}
 

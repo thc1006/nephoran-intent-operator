@@ -1,0 +1,471 @@
+﻿2025-09-04T15:37:03.3180241Z Current runner version: '2.328.0'
+2025-09-04T15:37:03.3202669Z ##[group]Runner Image Provisioner
+2025-09-04T15:37:03.3203614Z Hosted Compute Agent
+2025-09-04T15:37:03.3204136Z Version: 20250829.383
+2025-09-04T15:37:03.3204719Z Commit: 27cb235aab5b0e52e153a26cd86b4742e89dac5d
+2025-09-04T15:37:03.3205376Z Build Date: 2025-08-29T13:48:48Z
+2025-09-04T15:37:03.3206031Z ##[endgroup]
+2025-09-04T15:37:03.3206510Z ##[group]Operating System
+2025-09-04T15:37:03.3207053Z Ubuntu
+2025-09-04T15:37:03.3207557Z 24.04.3
+2025-09-04T15:37:03.3208239Z LTS
+2025-09-04T15:37:03.3208703Z ##[endgroup]
+2025-09-04T15:37:03.3209224Z ##[group]Runner Image
+2025-09-04T15:37:03.3209752Z Image: ubuntu-24.04
+2025-09-04T15:37:03.3210200Z Version: 20250831.1.0
+2025-09-04T15:37:03.3211240Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250831.1/images/ubuntu/Ubuntu2404-Readme.md
+2025-09-04T15:37:03.3212775Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250831.1
+2025-09-04T15:37:03.3213794Z ##[endgroup]
+2025-09-04T15:37:03.3214769Z ##[group]GITHUB_TOKEN Permissions
+2025-09-04T15:37:03.3216570Z Contents: read
+2025-09-04T15:37:03.3217111Z Metadata: read
+2025-09-04T15:37:03.3217598Z Packages: read
+2025-09-04T15:37:03.3218496Z ##[endgroup]
+2025-09-04T15:37:03.3220432Z Secret source: Actions
+2025-09-04T15:37:03.3221097Z Prepare workflow directory
+2025-09-04T15:37:03.3533367Z Prepare all required actions
+2025-09-04T15:37:03.3572474Z Getting action download info
+2025-09-04T15:37:03.8882295Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
+2025-09-04T15:37:03.9653118Z Download action repository 'actions/setup-go@v5' (SHA:d35c59abb061a4a6fb18e82ac0862c26744d6ab5)
+2025-09-04T15:37:04.5510066Z Download action repository 'helm/kind-action@v1' (SHA:a1b0e391336a6ee6713a0583f8c6240d70863de3)
+2025-09-04T15:37:04.9471186Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2025-09-04T15:37:05.1611057Z Complete job name: Lightweight E2E Test
+2025-09-04T15:37:05.2419811Z ##[group]Run actions/checkout@v4
+2025-09-04T15:37:05.2421075Z with:
+2025-09-04T15:37:05.2421791Z   fetch-depth: 0
+2025-09-04T15:37:05.2422689Z   repository: thc1006/nephoran-intent-operator
+2025-09-04T15:37:05.2424029Z   token: ***
+2025-09-04T15:37:05.2424768Z   ssh-strict: true
+2025-09-04T15:37:05.2425529Z   ssh-user: git
+2025-09-04T15:37:05.2426335Z   persist-credentials: true
+2025-09-04T15:37:05.2427205Z   clean: true
+2025-09-04T15:37:05.2428229Z   sparse-checkout-cone-mode: true
+2025-09-04T15:37:05.2429208Z   fetch-tags: false
+2025-09-04T15:37:05.2429999Z   show-progress: true
+2025-09-04T15:37:05.2430780Z   lfs: false
+2025-09-04T15:37:05.2431511Z   submodules: false
+2025-09-04T15:37:05.2432301Z   set-safe-directory: true
+2025-09-04T15:37:05.2433430Z ##[endgroup]
+2025-09-04T15:37:05.3570869Z Syncing repository: thc1006/nephoran-intent-operator
+2025-09-04T15:37:05.3575145Z ##[group]Getting Git version info
+2025-09-04T15:37:05.3577261Z Working directory is '/home/runner/work/nephoran-intent-operator/nephoran-intent-operator'
+2025-09-04T15:37:05.3579849Z [command]/usr/bin/git version
+2025-09-04T15:37:05.3665308Z git version 2.51.0
+2025-09-04T15:37:05.3693331Z ##[endgroup]
+2025-09-04T15:37:05.3710224Z Temporarily overriding HOME='/home/runner/work/_temp/32f56cb1-c1b7-4d8e-b9de-05dade345ef6' before making global git config changes
+2025-09-04T15:37:05.3714960Z Adding repository directory to the temporary git global config as a safe directory
+2025-09-04T15:37:05.3719707Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-09-04T15:37:05.3759221Z Deleting the contents of '/home/runner/work/nephoran-intent-operator/nephoran-intent-operator'
+2025-09-04T15:37:05.3763296Z ##[group]Initializing the repository
+2025-09-04T15:37:05.3768329Z [command]/usr/bin/git init /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-09-04T15:37:05.3866371Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-09-04T15:37:05.3870179Z hint: is subject to change. To configure the initial branch name to use in all
+2025-09-04T15:37:05.3872821Z hint: of your new repositories, which will suppress this warning, call:
+2025-09-04T15:37:05.3874154Z hint:
+2025-09-04T15:37:05.3875116Z hint: 	git config --global init.defaultBranch <name>
+2025-09-04T15:37:05.3876385Z hint:
+2025-09-04T15:37:05.3877433Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-09-04T15:37:05.3879916Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-09-04T15:37:05.3881615Z hint:
+2025-09-04T15:37:05.3882338Z hint: 	git branch -m <name>
+2025-09-04T15:37:05.3883189Z hint:
+2025-09-04T15:37:05.3884335Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-09-04T15:37:05.3886902Z Initialized empty Git repository in /home/runner/work/nephoran-intent-operator/nephoran-intent-operator/.git/
+2025-09-04T15:37:05.3891425Z [command]/usr/bin/git remote add origin https://github.com/thc1006/nephoran-intent-operator
+2025-09-04T15:37:05.3935807Z ##[endgroup]
+2025-09-04T15:37:05.3937165Z ##[group]Disabling automatic garbage collection
+2025-09-04T15:37:05.3941456Z [command]/usr/bin/git config --local gc.auto 0
+2025-09-04T15:37:05.3974952Z ##[endgroup]
+2025-09-04T15:37:05.3976226Z ##[group]Setting up auth
+2025-09-04T15:37:05.3985277Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-09-04T15:37:05.4021684Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-09-04T15:37:05.4392260Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-09-04T15:37:05.4424632Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-09-04T15:37:05.4646748Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-09-04T15:37:05.4683302Z ##[endgroup]
+2025-09-04T15:37:05.4685602Z ##[group]Fetching the repository
+2025-09-04T15:37:05.4695926Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/* +10e0640250cf21e1d5719b15206179f7fcb660ee:refs/remotes/pull/177/merge
+2025-09-04T15:37:16.6466128Z From https://github.com/thc1006/nephoran-intent-operator
+2025-09-04T15:37:16.6468450Z  * [new branch]        chore/ci-autofix-setup                   -> origin/chore/ci-autofix-setup
+2025-09-04T15:37:16.6469785Z  * [new branch]        chore/claude-commands-and-hooks          -> origin/chore/claude-commands-and-hooks
+2025-09-04T15:37:16.6471346Z  * [new branch]        chore/conductor-governance               -> origin/chore/conductor-governance
+2025-09-04T15:37:16.6472661Z  * [new branch]        chore/conductor-setup                    -> origin/chore/conductor-setup
+2025-09-04T15:37:16.6475483Z  * [new branch]        chore/repo-hygiene                       -> origin/chore/repo-hygiene
+2025-09-04T15:37:16.6478911Z  * [new branch]        ci/fix-safety-docs-scan                  -> origin/ci/fix-safety-docs-scan
+2025-09-04T15:37:16.6479965Z  * [new branch]        claude/issue-99-20250824-0007            -> origin/claude/issue-99-20250824-0007
+2025-09-04T15:37:16.6480947Z  * [new branch]        clean-feat-conductor-loop                -> origin/clean-feat-conductor-loop
+2025-09-04T15:37:16.6482061Z  * [new branch]        dependabot-github_actions-actions-download-artifact-5 -> origin/dependabot-github_actions-actions-download-artifact-5
+2025-09-04T15:37:16.6482992Z  * [new branch]        dependabot-github_actions-docker-build-push-action-6 -> origin/dependabot-github_actions-docker-build-push-action-6
+2025-09-04T15:37:16.6483922Z  * [new branch]        dependabot-github_actions-google-osv-scanner-action-2.2.2 -> origin/dependabot-github_actions-google-osv-scanner-action-2.2.2
+2025-09-04T15:37:16.6485215Z  * [new branch]        dependabot-go_modules-github.com-aws-aws-sdk-go-v2-service-ec2-1.250.0 -> origin/dependabot-go_modules-github.com-aws-aws-sdk-go-v2-service-ec2-1.250.0
+2025-09-04T15:37:16.6486218Z  * [new branch]        dependabot-go_modules-github.com-boombuler-barcode-1.1.0 -> origin/dependabot-go_modules-github.com-boombuler-barcode-1.1.0
+2025-09-04T15:37:16.6487237Z  * [new branch]        dependabot-go_modules-github.com-sagikazarmark-locafero-0.10.0 -> origin/dependabot-go_modules-github.com-sagikazarmark-locafero-0.10.0
+2025-09-04T15:37:16.6488424Z  * [new branch]        dependabot-go_modules-github.com-sergi-go-diff-1.4.0 -> origin/dependabot-go_modules-github.com-sergi-go-diff-1.4.0
+2025-09-04T15:37:16.6489323Z  * [new branch]        dependabot-go_modules-github.com-shogo82148-go-shuffle-1.1.1 -> origin/dependabot-go_modules-github.com-shogo82148-go-shuffle-1.1.1
+2025-09-04T15:37:16.6490413Z  * [new branch]        dependabot-go_modules-go.opentelemetry.io-proto-otlp-1.8.0 -> origin/dependabot-go_modules-go.opentelemetry.io-proto-otlp-1.8.0
+2025-09-04T15:37:16.6491223Z  * [new branch]        dependabot-go_modules-kubernetes-783461134c -> origin/dependabot-go_modules-kubernetes-783461134c
+2025-09-04T15:37:16.6491911Z  * [new branch]        dependabot-go_modules-security-f42c0da95e -> origin/dependabot-go_modules-security-f42c0da95e
+2025-09-04T15:37:16.6492585Z  * [new branch]        dependabot-go_modules-testing-7502c235b3 -> origin/dependabot-go_modules-testing-7502c235b3
+2025-09-04T15:37:16.6493190Z  * [new branch]        dependabot/docker/alpine-3.22            -> origin/dependabot/docker/alpine-3.22
+2025-09-04T15:37:16.6493749Z  * [new branch]        dependabot/docker/debian-13-slim         -> origin/dependabot/docker/debian-13-slim
+2025-09-04T15:37:16.6494531Z  * [new branch]        dependabot/docker/fluent/fluent-bit-4.0.8 -> origin/dependabot/docker/fluent/fluent-bit-4.0.8
+2025-09-04T15:37:16.6495171Z  * [new branch]        dependabot/docker/golang-1.25-alpine     -> origin/dependabot/docker/golang-1.25-alpine
+2025-09-04T15:37:16.6495736Z  * [new branch]        dependabot/docker/ubuntu-24.04           -> origin/dependabot/docker/ubuntu-24.04
+2025-09-04T15:37:16.6496360Z  * [new branch]        dependabot/github_actions/actions/checkout-5 -> origin/dependabot/github_actions/actions/checkout-5
+2025-09-04T15:37:16.6497151Z  * [new branch]        dependabot/github_actions/golangci/golangci-lint-action-8 -> origin/dependabot/github_actions/golangci/golangci-lint-action-8
+2025-09-04T15:37:16.6498224Z  * [new branch]        dependabot/go_modules/cloud.google.com/go/container-1.44.0 -> origin/dependabot/go_modules/cloud.google.com/go/container-1.44.0
+2025-09-04T15:37:16.6499002Z  * [new branch]        feat/a1-policy-sim                       -> origin/feat/a1-policy-sim
+2025-09-04T15:37:16.6499528Z  * [new branch]        feat/admission-webhook                   -> origin/feat/admission-webhook
+2025-09-04T15:37:16.6499995Z  * [new branch]        feat/ci-guard                            -> origin/feat/ci-guard
+2025-09-04T15:37:16.6500495Z  * [new branch]        feat/conductor-file-watcher              -> origin/feat/conductor-file-watcher
+2025-09-04T15:37:16.6501009Z  * [new branch]        feat/conductor-loop                      -> origin/feat/conductor-loop
+2025-09-04T15:37:16.6501463Z  * [new branch]        feat/e2-kpm-sim                          -> origin/feat/e2-kpm-sim
+2025-09-04T15:37:16.6501870Z  * [new branch]        feat/e2e                                 -> origin/feat/e2e
+2025-09-04T15:37:16.6502346Z  * [new branch]        feat/examples-mvp                        -> origin/feat/examples-mvp
+2025-09-04T15:37:16.6502841Z  * [new branch]        feat/ingest-llm                          -> origin/feat/ingest-llm
+2025-09-04T15:37:16.6503409Z  * [new branch]        feat/ingest-tests-and-errors             -> origin/feat/ingest-tests-and-errors
+2025-09-04T15:37:16.6504184Z  * [new branch]        feat/llm-provider                        -> origin/feat/llm-provider
+2025-09-04T15:37:16.6504688Z  * [new branch]        feat/o1-ves-sim                          -> origin/feat/o1-ves-sim
+2025-09-04T15:37:16.6505168Z  * [new branch]        feat/planner                             -> origin/feat/planner
+2025-09-04T15:37:16.6505662Z  * [new branch]        feat/porch-direct                        -> origin/feat/porch-direct
+2025-09-04T15:37:16.6506199Z  * [new branch]        feat/porch-publisher                     -> origin/feat/porch-publisher
+2025-09-04T15:37:16.6506791Z  * [new branch]        feat/porch-structured-patch              -> origin/feat/porch-structured-patch
+2025-09-04T15:37:16.6507380Z  * [new branch]        feat/sim-fcaps-to-intent                 -> origin/feat/sim-fcaps-to-intent
+2025-09-04T15:37:16.6508106Z  * [new branch]        feat/test-harness                        -> origin/feat/test-harness
+2025-09-04T15:37:16.6508720Z  * [new branch]        fix/graceful-shutdown-exit-codes         -> origin/fix/graceful-shutdown-exit-codes
+2025-09-04T15:37:16.6509355Z  * [new branch]        fix/unused-import-lint-ci                -> origin/fix/unused-import-lint-ci
+2025-09-04T15:37:16.6509887Z  * [new branch]        integrate/mvp                            -> origin/integrate/mvp
+2025-09-04T15:37:16.6510324Z  * [new branch]        main                                     -> origin/main
+2025-09-04T15:37:16.6510859Z  * [new branch]        wip/keep-local-20250820-164908           -> origin/wip/keep-local-20250820-164908
+2025-09-04T15:37:16.6511467Z  * [new tag]           backup/pre-cleanup-20250813234213        -> backup/pre-cleanup-20250813234213
+2025-09-04T15:37:16.6512014Z  * [new tag]           pre-workflow-cleanup                     -> pre-workflow-cleanup
+2025-09-04T15:37:16.6512485Z  * [new tag]           v0.1.0-mvp                               -> v0.1.0-mvp
+2025-09-04T15:37:16.6512864Z  * [new tag]           v0.3.0                                   -> v0.3.0
+2025-09-04T15:37:16.6513435Z  * [new ref]           10e0640250cf21e1d5719b15206179f7fcb660ee -> pull/177/merge
+2025-09-04T15:37:16.6581434Z ##[endgroup]
+2025-09-04T15:37:16.6582013Z ##[group]Determining the checkout info
+2025-09-04T15:37:16.6582844Z ##[endgroup]
+2025-09-04T15:37:16.6588885Z [command]/usr/bin/git sparse-checkout disable
+2025-09-04T15:37:16.6632467Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-09-04T15:37:16.6658587Z ##[group]Checking out the ref
+2025-09-04T15:37:16.6663155Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/177/merge
+2025-09-04T15:37:17.1451310Z Note: switching to 'refs/remotes/pull/177/merge'.
+2025-09-04T15:37:17.1455590Z 
+2025-09-04T15:37:17.1456317Z You are in 'detached HEAD' state. You can look around, make experimental
+2025-09-04T15:37:17.1457336Z changes and commit them, and you can discard any commits you make in this
+2025-09-04T15:37:17.1458403Z state without impacting any branches by switching back to a branch.
+2025-09-04T15:37:17.1458833Z 
+2025-09-04T15:37:17.1459088Z If you want to create a new branch to retain commits you create, you may
+2025-09-04T15:37:17.1459593Z do so (now or later) by using -c with the switch command. Example:
+2025-09-04T15:37:17.1459863Z 
+2025-09-04T15:37:17.1459973Z   git switch -c <new-branch-name>
+2025-09-04T15:37:17.1460167Z 
+2025-09-04T15:37:17.1460280Z Or undo this operation with:
+2025-09-04T15:37:17.1460453Z 
+2025-09-04T15:37:17.1460547Z   git switch -
+2025-09-04T15:37:17.1460676Z 
+2025-09-04T15:37:17.1460915Z Turn off this advice by setting config variable advice.detachedHead to false
+2025-09-04T15:37:17.1461257Z 
+2025-09-04T15:37:17.1461666Z HEAD is now at 10e06402 Merge 7b44a01d63505e686792e12ab63e7eb5a6cca0ec into 167eaabfb653086ef04e8e45b639ef6bd3c7d49f
+2025-09-04T15:37:17.1503760Z ##[endgroup]
+2025-09-04T15:37:17.1546785Z [command]/usr/bin/git log -1 --format=%H
+2025-09-04T15:37:17.1571076Z 10e0640250cf21e1d5719b15206179f7fcb660ee
+2025-09-04T15:37:17.1839170Z ##[group]Run actions/setup-go@v5
+2025-09-04T15:37:17.1839585Z with:
+2025-09-04T15:37:17.1839762Z   go-version-file: go.mod
+2025-09-04T15:37:17.1839957Z   cache: true
+2025-09-04T15:37:17.1840126Z   check-latest: false
+2025-09-04T15:37:17.1840495Z   token: ***
+2025-09-04T15:37:17.1840663Z ##[endgroup]
+2025-09-04T15:37:17.3407143Z Setup go version spec 1.24
+2025-09-04T15:37:17.3654375Z Found in cache @ /opt/hostedtoolcache/go/1.24.6/x64
+2025-09-04T15:37:17.3659128Z Added go to the path
+2025-09-04T15:37:17.3662767Z Successfully set up Go version 1.24
+2025-09-04T15:37:18.1518092Z [command]/opt/hostedtoolcache/go/1.24.6/x64/bin/go env GOMODCACHE
+2025-09-04T15:37:18.1548571Z [command]/opt/hostedtoolcache/go/1.24.6/x64/bin/go env GOCACHE
+2025-09-04T15:37:18.1571564Z /home/runner/go/pkg/mod
+2025-09-04T15:37:18.1601562Z /home/runner/.cache/go-build
+2025-09-04T15:37:18.4546395Z Cache hit for: setup-go-Linux-x64-ubuntu24-go-1.24.6-008eb4a61073b8b98cf1b62f6241a4916b695fa923c8ee062bd6b6eaab097c1d
+2025-09-04T15:37:19.7430897Z Received 4194304 of 317685984 (1.3%), 4.0 MBs/sec
+2025-09-04T15:37:20.7432765Z Received 113246208 of 317685984 (35.6%), 54.0 MBs/sec
+2025-09-04T15:37:21.7433666Z Received 184549376 of 317685984 (58.1%), 58.6 MBs/sec
+2025-09-04T15:37:22.7439992Z Received 293601280 of 317685984 (92.4%), 70.0 MBs/sec
+2025-09-04T15:37:22.9976030Z Received 317685984 of 317685984 (100.0%), 71.2 MBs/sec
+2025-09-04T15:37:22.9977230Z Cache Size: ~303 MB (317685984 B)
+2025-09-04T15:37:23.0035340Z [command]/usr/bin/tar -xf /home/runner/work/_temp/d33d5f3f-d89c-4a37-a479-acc660055b32/cache.tzst -P -C /home/runner/work/nephoran-intent-operator/nephoran-intent-operator --use-compress-program unzstd
+2025-09-04T15:37:25.3318552Z Cache restored successfully
+2025-09-04T15:37:25.3950878Z Cache restored from key: setup-go-Linux-x64-ubuntu24-go-1.24.6-008eb4a61073b8b98cf1b62f6241a4916b695fa923c8ee062bd6b6eaab097c1d
+2025-09-04T15:37:25.3970350Z go version go1.24.6 linux/amd64
+2025-09-04T15:37:25.3970535Z 
+2025-09-04T15:37:25.3970828Z ##[group]go env
+2025-09-04T15:37:25.4165818Z AR='ar'
+2025-09-04T15:37:25.4166168Z CC='gcc'
+2025-09-04T15:37:25.4166523Z CGO_CFLAGS='-O2 -g'
+2025-09-04T15:37:25.4166877Z CGO_CPPFLAGS=''
+2025-09-04T15:37:25.4167145Z CGO_CXXFLAGS='-O2 -g'
+2025-09-04T15:37:25.4167381Z CGO_ENABLED='1'
+2025-09-04T15:37:25.4167601Z CGO_FFLAGS='-O2 -g'
+2025-09-04T15:37:25.4168060Z CGO_LDFLAGS='-O2 -g'
+2025-09-04T15:37:25.4168288Z CXX='g++'
+2025-09-04T15:37:25.4168493Z GCCGO='gccgo'
+2025-09-04T15:37:25.4168696Z GO111MODULE=''
+2025-09-04T15:37:25.4168902Z GOAMD64='v1'
+2025-09-04T15:37:25.4169105Z GOARCH='amd64'
+2025-09-04T15:37:25.4169302Z GOAUTH='netrc'
+2025-09-04T15:37:25.4169500Z GOBIN=''
+2025-09-04T15:37:25.4169728Z GOCACHE='/home/runner/.cache/go-build'
+2025-09-04T15:37:25.4170018Z GOCACHEPROG=''
+2025-09-04T15:37:25.4170225Z GODEBUG=''
+2025-09-04T15:37:25.4170445Z GOENV='/home/runner/.config/go/env'
+2025-09-04T15:37:25.4170708Z GOEXE=''
+2025-09-04T15:37:25.4170905Z GOEXPERIMENT=''
+2025-09-04T15:37:25.4171135Z GOFIPS140='off'
+2025-09-04T15:37:25.4171463Z GOFLAGS=''
+2025-09-04T15:37:25.4172183Z GOGCCFLAGS='-fPIC -m64 -pthread -Wl,--no-gc-sections -fmessage-length=0 -ffile-prefix-map=/tmp/go-build488309593=/tmp/go-build -gno-record-gcc-switches'
+2025-09-04T15:37:25.4172981Z GOHOSTARCH='amd64'
+2025-09-04T15:37:25.4173220Z GOHOSTOS='linux'
+2025-09-04T15:37:25.4173447Z GOINSECURE=''
+2025-09-04T15:37:25.4173911Z GOMOD='/home/runner/work/nephoran-intent-operator/nephoran-intent-operator/go.mod'
+2025-09-04T15:37:25.4174459Z GOMODCACHE='/home/runner/go/pkg/mod'
+2025-09-04T15:37:25.4174764Z GONOPROXY=''
+2025-09-04T15:37:25.4174981Z GONOSUMDB=''
+2025-09-04T15:37:25.4175203Z GOOS='linux'
+2025-09-04T15:37:25.4175427Z GOPATH='/home/runner/go'
+2025-09-04T15:37:25.4175685Z GOPRIVATE=''
+2025-09-04T15:37:25.4175981Z GOPROXY='https://proxy.golang.org,direct'
+2025-09-04T15:37:25.4176369Z GOROOT='/opt/hostedtoolcache/go/1.24.6/x64'
+2025-09-04T15:37:25.4176714Z GOSUMDB='sum.golang.org'
+2025-09-04T15:37:25.4176982Z GOTELEMETRY='local'
+2025-09-04T15:37:25.4177542Z GOTELEMETRYDIR='/home/runner/.config/go/telemetry'
+2025-09-04T15:37:25.4178278Z GOTMPDIR=''
+2025-09-04T15:37:25.4178510Z GOTOOLCHAIN='auto'
+2025-09-04T15:37:25.4178906Z GOTOOLDIR='/opt/hostedtoolcache/go/1.24.6/x64/pkg/tool/linux_amd64'
+2025-09-04T15:37:25.4179329Z GOVCS=''
+2025-09-04T15:37:25.4179545Z GOVERSION='go1.24.6'
+2025-09-04T15:37:25.4179789Z GOWORK=''
+2025-09-04T15:37:25.4180015Z PKG_CONFIG='pkg-config'
+2025-09-04T15:37:25.4180192Z 
+2025-09-04T15:37:25.4180475Z ##[endgroup]
+2025-09-04T15:37:25.4332303Z ##[group]Run helm/kind-action@v1
+2025-09-04T15:37:25.4332553Z with:
+2025-09-04T15:37:25.4332721Z   install_only: true
+2025-09-04T15:37:25.4332911Z   version: v0.29.0
+2025-09-04T15:37:25.4333103Z   cluster_name: chart-testing
+2025-09-04T15:37:25.4333306Z   wait: 60s
+2025-09-04T15:37:25.4333471Z   verbosity: 0
+2025-09-04T15:37:25.4333651Z   kubectl_version: v1.31.4
+2025-09-04T15:37:25.4333857Z   registry: false
+2025-09-04T15:37:25.4334047Z   registry_image: registry:2
+2025-09-04T15:37:25.4334269Z   registry_name: kind-registry
+2025-09-04T15:37:25.4334488Z   registry_port: 5000
+2025-09-04T15:37:25.4334689Z   registry_enable_delete: false
+2025-09-04T15:37:25.4334933Z   ignore_failed_clean: false
+2025-09-04T15:37:25.4335162Z ##[endgroup]
+2025-09-04T15:37:25.4647963Z Installing kind...
+2025-09-04T15:37:25.4662782Z /opt/hostedtoolcache/kind/v0.29.0/amd64/kind/bin ~/work/nephoran-intent-operator/nephoran-intent-operator
+2025-09-04T15:37:25.7699184Z kind-linux-amd64: OK
+2025-09-04T15:37:25.7736739Z ~/work/nephoran-intent-operator/nephoran-intent-operator
+2025-09-04T15:37:25.7737375Z Adding kind directory to PATH...
+2025-09-04T15:37:25.7738067Z Installing kubectl...
+2025-09-04T15:37:26.6320344Z Adding kubectl directory to PATH...
+2025-09-04T15:37:26.6340777Z kind v0.29.0 go1.24.2 linux/amd64
+2025-09-04T15:37:26.6694008Z Client Version: v1.31.4
+2025-09-04T15:37:26.6695182Z Kustomize Version: v5.4.2
+2025-09-04T15:37:26.6791853Z ##[group]Run hack/check-e2e-prereqs.sh
+2025-09-04T15:37:26.6792223Z [36;1mhack/check-e2e-prereqs.sh[0m
+2025-09-04T15:37:26.6855523Z shell: /usr/bin/bash -e {0}
+2025-09-04T15:37:26.6855772Z ##[endgroup]
+2025-09-04T15:37:26.6948092Z [0;34m🔍 Checking E2E Test Prerequisites[0m
+2025-09-04T15:37:26.6948479Z ==================================
+2025-09-04T15:37:26.6948653Z 
+2025-09-04T15:37:26.6948804Z [0;34mRequired Tools:[0m
+2025-09-04T15:37:26.6979604Z ✅ [0;32mkind[0m: kind version 0.29.0
+2025-09-04T15:37:26.7338095Z ✅ [0;32mkubectl[0m: error: unknown flag: --version
+2025-09-04T15:37:26.7373908Z ✅ [0;32mgo[0m: go version go1.24.6 linux/amd64
+2025-09-04T15:37:26.7374270Z 
+2025-09-04T15:37:26.7374506Z [0;34mOptional Tools:[0m
+2025-09-04T15:37:26.8254243Z ✅ [0;32mdocker[0m: Docker version 28.0.4, build b8034c0
+2025-09-04T15:37:26.8254706Z 
+2025-09-04T15:37:26.8254942Z [0;34mRequired Files:[0m
+2025-09-04T15:37:26.8255496Z ✅ [0;32mNetworkIntent CRD[0m: Found
+2025-09-04T15:37:26.8256205Z ✅ [0;32mScale verifier tool[0m: Found
+2025-09-04T15:37:26.8256555Z 
+2025-09-04T15:37:26.8256781Z [0;34mCluster Access:[0m
+2025-09-04T15:37:26.8708404Z ℹ️  [0;34mNo active cluster[0m (will create kind cluster)
+2025-09-04T15:37:26.8708825Z 
+2025-09-04T15:37:26.8709035Z [0;34mSummary:[0m
+2025-09-04T15:37:26.8709344Z ========
+2025-09-04T15:37:26.8709797Z 🎉 [0;32mAll prerequisites are met![0m
+2025-09-04T15:37:26.8710452Z    Run: [0;34mhack/run-e2e-lightweight.sh[0m
+2025-09-04T15:37:26.8763277Z ##[group]Run # Set debug mode from workflow input
+2025-09-04T15:37:26.8763661Z [36;1m# Set debug mode from workflow input[0m
+2025-09-04T15:37:26.8763940Z [36;1mexport DEBUG="false"[0m
+2025-09-04T15:37:26.8764149Z [36;1m[0m
+2025-09-04T15:37:26.8764351Z [36;1m# Run the test with timeout protection[0m
+2025-09-04T15:37:26.8764667Z [36;1mtimeout 900 hack/run-e2e-lightweight.sh || {[0m
+2025-09-04T15:37:26.8764977Z [36;1m  echo "❌ E2E test failed or timed out"[0m
+2025-09-04T15:37:26.8765229Z [36;1m  exit 1[0m
+2025-09-04T15:37:26.8765400Z [36;1m}[0m
+2025-09-04T15:37:26.8795427Z shell: /usr/bin/bash -e {0}
+2025-09-04T15:37:26.8795841Z ##[endgroup]
+2025-09-04T15:37:26.8909653Z [0;34m🚀 Starting Lightweight E2E Test for Nephoran Intent Operator[0m
+2025-09-04T15:37:26.8910684Z [0;34m   Mode: Mock Scaling (1 replica) - Focus on Core Validation[0m
+2025-09-04T15:37:26.8911571Z [0;34m═══════════════════════════════════════════[0m
+2025-09-04T15:37:26.8911912Z 
+2025-09-04T15:37:26.8912219Z [0;34mℹ️  Checking prerequisites[0m
+2025-09-04T15:37:26.8912766Z [0;32m✅ All prerequisites available[0m
+2025-09-04T15:37:26.8913381Z [0;34mℹ️  Creating kind cluster: nephoran-e2e[0m
+2025-09-04T15:37:26.9184050Z No kind clusters found.
+2025-09-04T15:37:29.7910512Z Creating cluster "nephoran-e2e" ...
+2025-09-04T15:37:29.7911445Z  • Ensuring node image (kindest/node:v1.33.1) 🖼  ...
+2025-09-04T15:37:41.8860361Z  ✓ Ensuring node image (kindest/node:v1.33.1) 🖼
+2025-09-04T15:37:41.8860781Z  • Preparing nodes 📦   ...
+2025-09-04T15:37:44.0581414Z  ✓ Preparing nodes 📦 
+2025-09-04T15:37:44.0843679Z  • Writing configuration 📜  ...
+2025-09-04T15:37:44.2591772Z  ✓ Writing configuration 📜
+2025-09-04T15:37:44.2592254Z  • Starting control-plane 🕹️  ...
+2025-09-04T15:37:55.6354249Z  ✓ Starting control-plane 🕹️
+2025-09-04T15:37:55.6354752Z  • Installing CNI 🔌  ...
+2025-09-04T15:37:55.9085814Z  ✓ Installing CNI 🔌
+2025-09-04T15:37:55.9086358Z  • Installing StorageClass 💾  ...
+2025-09-04T15:37:56.2326322Z  ✓ Installing StorageClass 💾
+2025-09-04T15:37:56.3853038Z Set kubectl context to "kind-nephoran-e2e"
+2025-09-04T15:37:56.3853585Z You can now use your cluster with:
+2025-09-04T15:37:56.3853869Z 
+2025-09-04T15:37:56.3854101Z kubectl cluster-info --context kind-nephoran-e2e
+2025-09-04T15:37:56.3854453Z 
+2025-09-04T15:37:56.3855349Z Have a question, bug, or feature request? Let us know! https://kind.sigs.k8s.io/#community 🙂
+2025-09-04T15:37:56.4419084Z [0;32mKubernetes control plane[0m is running at [0;33mhttps://127.0.0.1:35621[0m
+2025-09-04T15:37:56.4420480Z [0;32mCoreDNS[0m is running at [0;33mhttps://127.0.0.1:35621/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy[0m
+2025-09-04T15:37:56.4422483Z 
+2025-09-04T15:37:56.4422950Z To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
+2025-09-04T15:37:56.4438699Z [0;34mℹ️  Waiting for: Cluster nodes ready (timeout: 180s)[0m
+2025-09-04T15:37:56.4911436Z [0;32m✅ Cluster nodes ready - ready![0m
+2025-09-04T15:37:56.4912108Z [0;32m✅ Kind cluster created and ready[0m
+2025-09-04T15:37:56.4912688Z [0;34mℹ️  Setting up namespaces[0m
+2025-09-04T15:37:56.5862628Z namespace/nephoran-system created
+2025-09-04T15:37:56.6810301Z namespace/ran-a created
+2025-09-04T15:37:56.7315407Z namespace/ran-a labeled
+2025-09-04T15:37:56.7812843Z namespace/nephoran-system labeled
+2025-09-04T15:37:56.7830499Z [0;34mℹ️  Waiting for: Namespaces active (timeout: 30s)[0m
+2025-09-04T15:37:56.8294520Z [0;32m✅ Namespaces active - ready![0m
+2025-09-04T15:37:56.8295114Z [0;32m✅ Namespaces ready[0m
+2025-09-04T15:37:56.8295600Z [0;34mℹ️  Installing core CRDs[0m
+2025-09-04T15:37:56.8934348Z customresourcedefinition.apiextensions.k8s.io/networkintents.intent.nephoran.com created
+2025-09-04T15:37:56.8962063Z [0;34mℹ️  Waiting for: NetworkIntent CRD established (timeout: 60s)[0m
+2025-09-04T15:37:56.9634064Z [0;32m✅ NetworkIntent CRD established - ready![0m
+2025-09-04T15:37:57.0304395Z [0;32m✅ NetworkIntent CRD is functional[0m
+2025-09-04T15:37:57.0305421Z [0;32m✅ CRDs installed and validated[0m
+2025-09-04T15:37:57.0306040Z [0;34mℹ️  Deploying lightweight test workload[0m
+2025-09-04T15:37:57.1152177Z deployment.apps/nf-sim created
+2025-09-04T15:37:57.1171954Z [0;34mℹ️  Waiting for: Test deployment ready (timeout: 120s)[0m
+2025-09-04T15:38:30.0210907Z ................[0;32m✅ Test deployment ready - ready![0m
+2025-09-04T15:38:30.0685751Z [0;32m✅ Test workload deployed and running (1 pod ready)[0m
+2025-09-04T15:38:30.0686241Z [0;32m✅ Test workload deployed successfully[0m
+2025-09-04T15:38:30.0687035Z [0;34mℹ️  Creating NetworkIntent resource[0m
+2025-09-04T15:38:30.0700672Z [0;34mℹ️  Validating NetworkIntent manifest against CRD schema[0m
+2025-09-04T15:38:30.1220394Z networkintent.intent.nephoran.com/scale-test created (server dry run)
+2025-09-04T15:38:30.1753778Z networkintent.intent.nephoran.com/scale-test created
+2025-09-04T15:38:30.2687911Z apiVersion: intent.nephoran.com/v1alpha1
+2025-09-04T15:38:30.2689023Z kind: NetworkIntent
+2025-09-04T15:38:30.2689461Z metadata:
+2025-09-04T15:38:30.2689661Z   annotations:
+2025-09-04T15:38:30.2689994Z     kubectl.kubernetes.io/last-applied-configuration: |
+2025-09-04T15:38:30.2692448Z       {"apiVersion":"intent.nephoran.com/v1alpha1","kind":"NetworkIntent","metadata":{"annotations":{},"labels":{"intent-type":"scaling","test":"e2e"},"name":"scale-test","namespace":"ran-a"},"spec":{"intentType":"scaling","namespace":"ran-a","replicas":1,"target":"nf-sim deployment"}}
+2025-09-04T15:38:30.2694109Z   creationTimestamp: "2025-09-04T15:38:30Z"
+2025-09-04T15:38:30.2694542Z   generation: 1
+2025-09-04T15:38:30.2694780Z   labels:
+2025-09-04T15:38:30.2694998Z     intent-type: scaling
+2025-09-04T15:38:30.2695208Z     test: e2e
+2025-09-04T15:38:30.2695388Z   name: scale-test
+2025-09-04T15:38:30.2695585Z   namespace: ran-a
+2025-09-04T15:38:30.2695790Z   resourceVersion: "554"
+2025-09-04T15:38:30.2696037Z   uid: 7e5af8a7-ec68-4189-89d1-5d34498e1a52
+2025-09-04T15:38:30.2696281Z spec:
+2025-09-04T15:38:30.2696478Z   intentType: scaling
+2025-09-04T15:38:30.2696693Z   namespace: ran-a
+2025-09-04T15:38:30.2696873Z   replicas: 1
+2025-09-04T15:38:30.2697049Z   source: user
+2025-09-04T15:38:30.2705511Z [0;32m✅ NetworkIntent created and validated[0m
+2025-09-04T15:38:30.2706430Z [0;34mℹ️  Simulating scaling operation (mock: maintain 1 replica)[0m
+2025-09-04T15:38:30.3198570Z deployment.apps/nf-sim patched (no change)
+2025-09-04T15:38:30.3712269Z deployment.apps/nf-sim annotated
+2025-09-04T15:38:30.3732062Z [0;32m✅ Mock scaling operation applied (maintaining 1 replica for stability)[0m
+2025-09-04T15:38:30.3732940Z [0;34mℹ️  Verifying mock scaling results[0m
+2025-09-04T15:38:30.3733613Z [0;34mℹ️  Using Go verification tool[0m
+2025-09-04T15:38:34.1051999Z go: updates to go.mod needed; to update it:
+2025-09-04T15:38:34.1052508Z 	go mod tidy
+2025-09-04T15:38:34.1065339Z [0;31m❌ ❌ Scaling verification FAILED (Go tool)[0m
+2025-09-04T15:38:34.1066109Z 
+2025-09-04T15:38:34.1066524Z [0;34m═══════════════════════════════════════════[0m
+2025-09-04T15:38:34.1067079Z [0;34m           CLEANUP & SUMMARY[0m
+2025-09-04T15:38:34.1067622Z [0;34m═══════════════════════════════════════════[0m
+2025-09-04T15:38:34.1068210Z [0;34mℹ️  Cleaning up cluster: nephoran-e2e[0m
+2025-09-04T15:38:35.5392146Z [0;32m✅ Cluster deleted successfully[0m
+2025-09-04T15:38:35.5392518Z 
+2025-09-04T15:38:35.5392895Z [0;34m═══════════════════════════════════════════[0m
+2025-09-04T15:38:35.5393477Z [0;31m        ⚠️  E2E TEST FAILED ⚠️[0m
+2025-09-04T15:38:35.5394121Z [0;34m═══════════════════════════════════════════[0m
+2025-09-04T15:38:35.5394434Z 
+2025-09-04T15:38:35.5398318Z ❌ E2E test failed or timed out
+2025-09-04T15:38:35.5411653Z ##[error]Process completed with exit code 1.
+2025-09-04T15:38:35.5470746Z ##[group]Run actions/upload-artifact@v4
+2025-09-04T15:38:35.5471011Z with:
+2025-09-04T15:38:35.5471186Z   name: e2e-debug-logs
+2025-09-04T15:38:35.5471525Z   path: /tmp/kind-config.yaml
+/tmp/test-deployment.yaml
+/tmp/network-intent.yaml
+
+2025-09-04T15:38:35.5471885Z   retention-days: 3
+2025-09-04T15:38:35.5472077Z   if-no-files-found: warn
+2025-09-04T15:38:35.5472282Z   compression-level: 6
+2025-09-04T15:38:35.5472471Z   overwrite: false
+2025-09-04T15:38:35.5472658Z   include-hidden-files: false
+2025-09-04T15:38:35.5472867Z ##[endgroup]
+2025-09-04T15:38:35.7622105Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2025-09-04T15:38:35.7650134Z The least common ancestor is /tmp. This will be the root directory of the artifact
+2025-09-04T15:38:35.7651338Z With the provided path, there will be 3 files uploaded
+2025-09-04T15:38:35.7652706Z Artifact name is valid!
+2025-09-04T15:38:35.7654250Z Root directory input is valid!
+2025-09-04T15:38:36.0483273Z Beginning upload of artifact content to blob storage
+2025-09-04T15:38:36.3751572Z Uploaded bytes 1081
+2025-09-04T15:38:36.4783156Z Finished uploading artifact content to blob storage!
+2025-09-04T15:38:36.4786219Z SHA256 digest of uploaded artifact zip is 63255ff23523644596c8be05d11c593872efd9fa0d3066f7cea02eaf14eec471
+2025-09-04T15:38:36.4788053Z Finalizing artifact upload
+2025-09-04T15:38:36.6467167Z Artifact e2e-debug-logs.zip successfully finalized. Artifact ID 3928805649
+2025-09-04T15:38:36.6468477Z Artifact e2e-debug-logs has been successfully uploaded! Final size is 1081 bytes. Artifact ID is 3928805649
+2025-09-04T15:38:36.6475132Z Artifact download URL: https://github.com/thc1006/nephoran-intent-operator/actions/runs/17469138009/artifacts/3928805649
+2025-09-04T15:38:36.6572048Z ##[group]Run echo "🧹 Cleaning up failed test resources"
+2025-09-04T15:38:36.6572436Z [36;1mecho "🧹 Cleaning up failed test resources"[0m
+2025-09-04T15:38:36.6572901Z [36;1mkind get clusters | grep nephoran-e2e | xargs -r kind delete cluster --name || true[0m
+2025-09-04T15:38:36.6573316Z [36;1mdocker system prune -f || true[0m
+2025-09-04T15:38:36.6606216Z shell: /usr/bin/bash -e {0}
+2025-09-04T15:38:36.6606456Z ##[endgroup]
+2025-09-04T15:38:36.6657274Z 🧹 Cleaning up failed test resources
+2025-09-04T15:38:36.6898004Z No kind clusters found.
+2025-09-04T15:38:36.8682566Z Deleted Networks:
+2025-09-04T15:38:36.8682955Z kind
+2025-09-04T15:38:36.8683143Z 
+2025-09-04T15:38:37.2462007Z Deleted Images:
+2025-09-04T15:38:37.2462703Z untagged: kindest/node@sha256:050072256b9a903bd914c0b2866828150cb229cea0efe5892e2b644d5dd3b34f
+2025-09-04T15:38:37.2463683Z deleted: sha256:d6b20550c77b11385dd30115ba29dbf9a9bfc98c2f28ff7d162a6ad7c9686251
+2025-09-04T15:38:37.2464691Z deleted: sha256:fd27bccbea999fc6d9105b8b1c9821c61a63eab7318393b6f2473065008f3fbe
+2025-09-04T15:38:37.2465254Z deleted: sha256:f13bb3f5a0b612fa8b3ee54536cff9a57cc76a084b6a399d7762283e52393778
+2025-09-04T15:38:37.2465579Z 
+2025-09-04T15:38:37.2529678Z Total reclaimed space: 1.071GB
+2025-09-04T15:38:37.2596305Z Post job cleanup.
+2025-09-04T15:38:37.3030318Z Error response from daemon: No such container: kind-registry
+2025-09-04T15:38:37.3175142Z Deleting cluster "chart-testing" ...
+2025-09-04T15:38:37.3390770Z Post job cleanup.
+2025-09-04T15:38:37.4331035Z [command]/usr/bin/git version
+2025-09-04T15:38:37.4374903Z git version 2.51.0
+2025-09-04T15:38:37.4419972Z Temporarily overriding HOME='/home/runner/work/_temp/c2acef24-8a51-4ec9-80b9-c6603f763b15' before making global git config changes
+2025-09-04T15:38:37.4421346Z Adding repository directory to the temporary git global config as a safe directory
+2025-09-04T15:38:37.4426368Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-09-04T15:38:37.4461145Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-09-04T15:38:37.4494221Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-09-04T15:38:37.4744158Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-09-04T15:38:37.4768811Z http.https://github.com/.extraheader
+2025-09-04T15:38:37.4782411Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-09-04T15:38:37.4816061Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-09-04T15:38:37.5179809Z Cleaning up orphan processes

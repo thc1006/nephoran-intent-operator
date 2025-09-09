@@ -93,7 +93,11 @@ func (v *Validator) Validate(data []byte) error {
 	// Validate against schema.
 
 	if err := v.schema.Validate(jsonData); err != nil {
+<<<<<<< HEAD
 		return fmt.Errorf("schema validation failed: %w", err)
+=======
+		return fmt.Errorf("intent validation failed: schema validation failed: %w", err)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	return nil

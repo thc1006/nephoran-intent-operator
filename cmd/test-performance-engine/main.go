@@ -1,5 +1,8 @@
+<<<<<<< HEAD
 //go:build testperformance
 
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 package main
 
 import (

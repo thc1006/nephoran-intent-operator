@@ -16,10 +16,22 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+<<<<<<< HEAD
+=======
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/health"
 )
 
+<<<<<<< HEAD
+=======
+var (
+	// healthMetricsRegistered tracks whether health check metrics have been registered
+	healthMetricsRegistered sync.Once
+)
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // Note: HealthTier, HealthContext, HealthWeight, EnhancedCheck, and StateTransition.
 
 // are now defined in types.go to avoid duplicates.
@@ -295,6 +307,7 @@ func initializeEnhancedHealthMetrics() *EnhancedHealthMetrics {
 		}, []string{"check_name", "tier"}),
 	}
 
+<<<<<<< HEAD
 	// Register metrics.
 
 	prometheus.MustRegister(
@@ -315,6 +328,22 @@ func initializeEnhancedHealthMetrics() *EnhancedHealthMetrics {
 
 		metrics.WeightedScores,
 	)
+=======
+	// Register metrics using sync.Once to avoid duplicate registrations.
+
+	healthMetricsRegistered.Do(func() {
+		// Use centralized registry with safe registration
+		gr := monitoring.GetGlobalRegistry()
+		gr.SafeRegister("health-check-duration", metrics.CheckDuration)
+		gr.SafeRegister("health-check-success", metrics.CheckSuccess)
+		gr.SafeRegister("health-check-failures", metrics.CheckFailures)
+		gr.SafeRegister("health-score", metrics.HealthScore)
+		gr.SafeRegister("health-state-transitions", metrics.StateTransitions)
+		gr.SafeRegister("health-cache-hit-rate", metrics.CacheHitRate)
+		gr.SafeRegister("health-parallel-execution", metrics.ParallelExecution)
+		gr.SafeRegister("health-weighted-scores", metrics.WeightedScores)
+	})
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	return metrics
 }

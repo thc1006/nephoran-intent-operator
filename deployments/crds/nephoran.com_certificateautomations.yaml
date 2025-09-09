@@ -12,10 +12,15 @@ spec:
     listKind: CertificateAutomationList
     plural: certificateautomations
 <<<<<<< HEAD
+<<<<<<< HEAD
     shortNames:
     - certauto
 =======
 >>>>>>> origin/integrate/mvp
+=======
+    shortNames:
+    - certauto
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
     singular: certificateautomation
   scope: Namespaced
   versions:
@@ -27,14 +32,20 @@ spec:
       name: Service
       type: string
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
     - jsonPath: .status.expiresAt
       name: Expires At
       type: string
     - jsonPath: .spec.autoRenewal
       name: Auto Renewal
       type: boolean
+<<<<<<< HEAD
 =======
 >>>>>>> origin/integrate/mvp
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -65,6 +76,7 @@ spec:
             description: CertificateAutomationSpec defines the desired state of CertificateAutomation
             properties:
 <<<<<<< HEAD
+<<<<<<< HEAD
               autoRenewal:
                 description: AutoRenewal enables automatic certificate renewal
                 type: boolean
@@ -74,12 +86,22 @@ spec:
                 type: string
               autoRenew:
                 description: AutoRenew enables automatic certificate renewal
+=======
+              algorithm:
+                description: Algorithm specifies the signing algorithm
+                type: string
+              autoRenewal:
+                description: AutoRenewal enables automatic certificate renewal
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                 type: boolean
               certType:
                 description: CertType specifies the type of certificate (TLS, mTLS,
                   etc.)
                 type: string
+<<<<<<< HEAD
 >>>>>>> origin/integrate/mvp
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
               dnsNames:
                 description: DNSNames specifies additional DNS names for the certificate
                 items:
@@ -91,31 +113,47 @@ spec:
                   type: string
                 type: array
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
               keySize:
                 description: KeySize specifies the private key size
                 type: integer
 >>>>>>> origin/integrate/mvp
+=======
+              keySize:
+                description: KeySize specifies the private key size
+                type: integer
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
               namespace:
                 description: Namespace specifies the target namespace
                 type: string
               priority:
+<<<<<<< HEAD
 <<<<<<< HEAD
                 description: Priority specifies provisioning priority
                 type: string
               secretName:
                 description: SecretName specifies the target secret name
 =======
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                 description: Priority specifies the priority of this automation
                 type: string
               renewalThreshold:
                 description: RenewalThreshold specifies when to renew (e.g., "30d"
                   before expiry)
+<<<<<<< HEAD
 >>>>>>> origin/integrate/mvp
+=======
+                type: string
+              secretName:
+                description: SecretName specifies the target secret name
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                 type: string
               serviceName:
                 description: ServiceName specifies the target service name
                 type: string
+<<<<<<< HEAD
 <<<<<<< HEAD
               template:
                 description: Template specifies the certificate template to use
@@ -126,6 +164,13 @@ spec:
               validityPeriod:
                 description: ValidityPeriod specifies the certificate validity period
 >>>>>>> origin/integrate/mvp
+=======
+              template:
+                description: Template specifies the certificate template to use
+                type: string
+              validityPeriod:
+                description: ValidityPeriod specifies the certificate validity period
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                 type: string
             required:
             - namespace
@@ -147,6 +192,7 @@ spec:
                   properties:
                     lastTransitionTime:
 <<<<<<< HEAD
+<<<<<<< HEAD
                       description: Last time the condition transitioned
                       format: date-time
                       type: string
@@ -156,6 +202,8 @@ spec:
                     reason:
                       description: Reason for the condition's last transition
 =======
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                       description: LastTransitionTime is the last time the condition
                         transitioned
                       format: date-time
@@ -167,7 +215,10 @@ spec:
                     reason:
                       description: Reason contains a programmatic identifier indicating
                         the reason for the condition
+<<<<<<< HEAD
 >>>>>>> origin/integrate/mvp
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                       type: string
                     status:
                       description: Status of the condition
@@ -177,13 +228,18 @@ spec:
                       type: string
                   required:
 <<<<<<< HEAD
+<<<<<<< HEAD
                   - lastTransitionTime
 =======
 >>>>>>> origin/integrate/mvp
+=======
+                  - lastTransitionTime
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                   - status
                   - type
                   type: object
                 type: array
+<<<<<<< HEAD
 <<<<<<< HEAD
               expiresAt:
                 description: ExpiresAt contains the certificate expiration time
@@ -192,18 +248,27 @@ spec:
               lastRenewalTime:
                 description: LastRenewalTime contains the last renewal time
 =======
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
               expirationTime:
                 description: ExpirationTime contains the certificate expiration time
                 format: date-time
                 type: string
               expiresAt:
+<<<<<<< HEAD
                 description: ExpiresAt contains the certificate expiration time (alternative
                   name)
+=======
+                description: ExpiresAt contains the certificate expiration time
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                 format: date-time
                 type: string
               lastRenewalTime:
                 description: LastRenewalTime contains the last renewal timestamp
+<<<<<<< HEAD
 >>>>>>> origin/integrate/mvp
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                 format: date-time
                 type: string
               nextRenewalTime:
@@ -212,21 +277,36 @@ spec:
                 type: string
               observedGeneration:
 <<<<<<< HEAD
+<<<<<<< HEAD
                 description: ObservedGeneration represents the generation observed
                   by the controller
 =======
                 description: ObservedGeneration reflects the generation observed by
                   the controller
 >>>>>>> origin/integrate/mvp
+=======
+                description: ObservedGeneration reflects the generation observed by
+                  the controller
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                 format: int64
                 type: integer
               phase:
                 description: Phase represents the current phase of certificate automation
                 type: string
 <<<<<<< HEAD
+<<<<<<< HEAD
               revocationStatus:
                 description: RevocationStatus contains certificate revocation status
                 type: string
+=======
+              revocationStatus:
+                description: RevocationStatus contains certificate revocation status
+                type: string
+              secretName:
+                description: SecretName contains the name of the secret storing the
+                  certificate
+                type: string
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
               secretRef:
                 description: SecretRef contains reference to the created secret
                 properties:
@@ -272,6 +352,7 @@ spec:
                 required:
                 - valid
                 type: object
+<<<<<<< HEAD
 =======
               secretName:
                 description: SecretName contains the name of the secret storing the
@@ -282,6 +363,8 @@ spec:
                   status
                 type: string
 >>>>>>> origin/integrate/mvp
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             type: object
         type: object
     served: true

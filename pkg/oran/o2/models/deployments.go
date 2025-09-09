@@ -1047,6 +1047,17 @@ type DeploymentInstance struct {
 // DeploymentStatus represents the status of a deployment.
 
 type DeploymentStatus struct {
+<<<<<<< HEAD
+=======
+	ID string `json:"id"`
+
+	Name string `json:"name"`
+
+	Status string `json:"status"`
+
+	Replicas int32 `json:"replicas,omitempty"`
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	State string `json:"state"` // PENDING, RUNNING, FAILED, SUCCEEDED, DELETING
 
 	Phase string `json:"phase"` // CREATING, UPDATING, SCALING, TERMINATING

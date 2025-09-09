@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # BUILD-RUN-TEST - Conductor Loop
 
 ## Overview
@@ -184,6 +185,8 @@ The conductor tracks:
 - Queue depth
 - Worker utilization
 =======
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 # BUILD-RUN-TEST Guide for porch-direct
 
 ## Overview
@@ -333,12 +336,16 @@ EOF
 # 4. Verify package creation
 # Check Porch UI or use kpt CLI
 ```
+<<<<<<< HEAD
 >>>>>>> origin/integrate/mvp
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 ## Troubleshooting
 
 ### Common Issues
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 1. **"porch: executable file not found"**
    - Install porch or use mock script
@@ -378,6 +385,8 @@ EOF
 - Atomic file operations prevent corruption
 - Windows-specific path handling for cross-platform compatibility
 =======
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 1. **"go.mod not found" error**
    - Ensure you're running from the project root
    - Check that go.mod exists in the repository
@@ -456,5 +465,9 @@ done
 - Use environment variables for sensitive data
 - Validate all intent JSON inputs
 - Run with minimal permissions
+<<<<<<< HEAD
 - Review generated KRM for security implications
 >>>>>>> origin/integrate/mvp
+=======
+- Review generated KRM for security implications
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

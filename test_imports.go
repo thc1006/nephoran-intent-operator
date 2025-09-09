@@ -11,7 +11,11 @@ import (
 	"encoding/json"
 	_ "github.com/thc1006/nephoran-intent-operator/pkg/porch"
 	_ "github.com/thc1006/nephoran-intent-operator/pkg/knowledge" 
+<<<<<<< HEAD
 	_ "github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch/testutil"
+=======
+	_ "github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch/porchtest"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	_ "github.com/thc1006/nephoran-intent-operator/internal/patch"
 )
 

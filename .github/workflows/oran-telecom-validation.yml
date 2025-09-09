@@ -81,9 +81,15 @@ jobs:
   # O-RAN INTERFACE VALIDATION: A1, E2, O1 interface compliance
   # =============================================================================
   oran-interface-validation:
+<<<<<<< HEAD
     name: ðŸ“¡ O-RAN Interface Validation
     runs-on: ubuntu-22.04
     timeout-minutes: 20
+=======
+    name: ?“¡ O-RAN Interface Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
     outputs:
       a1-compliance: ${{ steps.a1-validation.outputs.compliant }}
       e2-compliance: ${{ steps.e2-validation.outputs.compliant }}
@@ -91,6 +97,7 @@ jobs:
       interface-summary: ${{ steps.summary.outputs.summary }}
       
     steps:
+<<<<<<< HEAD
       - name: ðŸ“¥ Checkout
         uses: actions/checkout@v4
         
@@ -104,11 +111,27 @@ jobs:
         if: contains(env.INTERFACE_VALIDATION, 'all') || contains(env.INTERFACE_VALIDATION, 'a1')
         run: |
           echo "ðŸ“¡ Validating A1 Policy Management Interface (O-RAN WG2)"
+=======
+      - name: ?“¥ Checkout
+        uses: actions/checkout@v4
+        
+      - name: ?”§ Setup Go for O-RAN validation
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.6'
+          
+      - name: ?“¡ A1 Policy Management Interface Validation
+        id: a1-validation
+        if: contains(env.INTERFACE_VALIDATION, 'all') || contains(env.INTERFACE_VALIDATION, 'a1')
+        run: |
+          echo "?“¡ Validating A1 Policy Management Interface (O-RAN WG2)"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           a1_compliant="false"
           a1_issues=0
           
           # Check for A1 interface implementation
+<<<<<<< HEAD
           echo "ðŸ” Searching for A1 interface implementation..."
           
           # A1 API endpoint definitions
@@ -116,36 +139,64 @@ jobs:
             echo "  âœ… A1 policy management code found"
           else
             echo "  âš ï¸ No A1 policy management implementation found"
+=======
+          echo "?? Searching for A1 interface implementation..."
+          
+          # A1 API endpoint definitions
+          if find . -name "*.go" -exec grep -l "a1.*policy\|policy.*a1" {} \; | head -5; then
+            echo "  ??A1 policy management code found"
+          else
+            echo "  ? ï? No A1 policy management implementation found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             a1_issues=$((a1_issues + 1))
           fi
           
           # A1 REST API compliance (OpenAPI/Swagger)
           if find . -name "*.yaml" -o -name "*.json" -exec grep -l "a1.*api\|/a1/" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… A1 API specifications found"
           else
             echo "  âš ï¸ A1 API specifications missing"
+=======
+            echo "  ??A1 API specifications found"
+          else
+            echo "  ? ï? A1 API specifications missing"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             a1_issues=$((a1_issues + 1))
           fi
           
           # Policy schema validation
           if find . -name "*.go" -exec grep -l "PolicyType\|PolicySchema" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… Policy schema definitions found"
           else
             echo "  âš ï¸ Policy schema definitions missing"
+=======
+            echo "  ??Policy schema definitions found"
+          else
+            echo "  ? ï? Policy schema definitions missing"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             a1_issues=$((a1_issues + 1))
           fi
           
           # A1 interface message patterns
           if find . -name "*.go" -exec grep -l "PUT.*policy\|GET.*policy\|DELETE.*policy" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… A1 REST interface patterns found"
           else
             echo "  âš ï¸ A1 REST interface patterns missing"
+=======
+            echo "  ??A1 REST interface patterns found"
+          else
+            echo "  ? ï? A1 REST interface patterns missing"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             a1_issues=$((a1_issues + 1))
           fi
           
           # Determine A1 compliance
           if [[ $a1_issues -eq 0 ]]; then
             a1_compliant="true"
+<<<<<<< HEAD
             echo "âœ… A1 interface: COMPLIANT"
           elif [[ $a1_issues -le 2 ]]; then
             a1_compliant="partial"
@@ -153,21 +204,39 @@ jobs:
           else
             a1_compliant="false"
             echo "âŒ A1 interface: NON-COMPLIANT ($a1_issues issues)"
+=======
+            echo "??A1 interface: COMPLIANT"
+          elif [[ $a1_issues -le 2 ]]; then
+            a1_compliant="partial"
+            echo "? ï? A1 interface: PARTIALLY COMPLIANT ($a1_issues issues)"
+          else
+            a1_compliant="false"
+            echo "??A1 interface: NON-COMPLIANT ($a1_issues issues)"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           fi
           
           echo "compliant=$a1_compliant" >> $GITHUB_OUTPUT
           echo "issues=$a1_issues" >> $GITHUB_OUTPUT
           
+<<<<<<< HEAD
       - name: ðŸ“Š E2 Service Management Interface Validation
         id: e2-validation
         if: contains(env.INTERFACE_VALIDATION, 'all') || contains(env.INTERFACE_VALIDATION, 'e2')
         run: |
           echo "ðŸ“Š Validating E2 Service Management Interface (O-RAN WG3)"
+=======
+      - name: ?? E2 Service Management Interface Validation
+        id: e2-validation
+        if: contains(env.INTERFACE_VALIDATION, 'all') || contains(env.INTERFACE_VALIDATION, 'e2')
+        run: |
+          echo "?? Validating E2 Service Management Interface (O-RAN WG3)"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           e2_compliant="false"
           e2_issues=0
           
           # Check for E2 interface implementation
+<<<<<<< HEAD
           echo "ðŸ” Searching for E2 interface implementation..."
           
           # E2 service model definitions
@@ -175,36 +244,64 @@ jobs:
             echo "  âœ… E2 service model implementation found"
           else
             echo "  âš ï¸ No E2 service model implementation found"
+=======
+          echo "?? Searching for E2 interface implementation..."
+          
+          # E2 service model definitions
+          if find . -name "*.go" -exec grep -l "e2.*service\|service.*e2\|E2SM" {} \; | head -5; then
+            echo "  ??E2 service model implementation found"
+          else
+            echo "  ? ï? No E2 service model implementation found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             e2_issues=$((e2_issues + 1))
           fi
           
           # KPM (Key Performance Measurement) service model
           if find . -name "*.go" -exec grep -l "KPM\|kpm\|measurement" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… KPM service model found"
           else
             echo "  âš ï¸ KPM service model missing"
+=======
+            echo "  ??KPM service model found"
+          else
+            echo "  ? ï? KPM service model missing"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             e2_issues=$((e2_issues + 1))
           fi
           
           # E2 node management
           if find . -name "*.go" -exec grep -l "E2Node\|e2node\|RanFunction" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… E2 node management found"
           else
             echo "  âš ï¸ E2 node management missing"
+=======
+            echo "  ??E2 node management found"
+          else
+            echo "  ? ï? E2 node management missing"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             e2_issues=$((e2_issues + 1))
           fi
           
           # E2AP (E2 Application Protocol) patterns
           if find . -name "*.go" -exec grep -l "E2AP\|e2ap\|subscription\|indication" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… E2AP protocol patterns found"
           else
             echo "  âš ï¸ E2AP protocol patterns missing"
+=======
+            echo "  ??E2AP protocol patterns found"
+          else
+            echo "  ? ï? E2AP protocol patterns missing"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             e2_issues=$((e2_issues + 1))
           fi
           
           # Determine E2 compliance
           if [[ $e2_issues -eq 0 ]]; then
             e2_compliant="true"
+<<<<<<< HEAD
             echo "âœ… E2 interface: COMPLIANT"
           elif [[ $e2_issues -le 2 ]]; then
             e2_compliant="partial"
@@ -212,21 +309,39 @@ jobs:
           else
             e2_compliant="false"
             echo "âŒ E2 interface: NON-COMPLIANT ($e2_issues issues)"
+=======
+            echo "??E2 interface: COMPLIANT"
+          elif [[ $e2_issues -le 2 ]]; then
+            e2_compliant="partial"
+            echo "? ï? E2 interface: PARTIALLY COMPLIANT ($e2_issues issues)"
+          else
+            e2_compliant="false"
+            echo "??E2 interface: NON-COMPLIANT ($e2_issues issues)"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           fi
           
           echo "compliant=$e2_compliant" >> $GITHUB_OUTPUT
           echo "issues=$e2_issues" >> $GITHUB_OUTPUT
           
+<<<<<<< HEAD
       - name: ðŸš¨ O1 Fault Management Interface Validation
         id: o1-validation
         if: contains(env.INTERFACE_VALIDATION, 'all') || contains(env.INTERFACE_VALIDATION, 'o1')
         run: |
           echo "ðŸš¨ Validating O1 Fault Management Interface (O-RAN WG10)"
+=======
+      - name: ?š¨ O1 Fault Management Interface Validation
+        id: o1-validation
+        if: contains(env.INTERFACE_VALIDATION, 'all') || contains(env.INTERFACE_VALIDATION, 'o1')
+        run: |
+          echo "?š¨ Validating O1 Fault Management Interface (O-RAN WG10)"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           o1_compliant="false"
           o1_issues=0
           
           # Check for O1 interface implementation
+<<<<<<< HEAD
           echo "ðŸ” Searching for O1 interface implementation..."
           
           # VES (Virtual Event Streaming) implementation
@@ -234,35 +349,63 @@ jobs:
             echo "  âœ… VES event streaming implementation found"
           else
             echo "  âš ï¸ No VES event streaming implementation found"
+=======
+          echo "?? Searching for O1 interface implementation..."
+          
+          # VES (Virtual Event Streaming) implementation
+          if find . -name "*.go" -exec grep -l "VES\|ves\|event.*streaming" {} \; | head -5; then
+            echo "  ??VES event streaming implementation found"
+          else
+            echo "  ? ï? No VES event streaming implementation found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             o1_issues=$((o1_issues + 1))
           fi
           
           # Fault management and alarms
           if find . -name "*.go" -exec grep -l "fault\|alarm\|notification" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… Fault management implementation found"
           else
             echo "  âš ï¸ Fault management implementation missing"
+=======
+            echo "  ??Fault management implementation found"
+          else
+            echo "  ? ï? Fault management implementation missing"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             o1_issues=$((o1_issues + 1))
           fi
           
           # Performance monitoring
           if find . -name "*.go" -exec grep -l "performance\|monitoring\|metrics" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… Performance monitoring found"
           else
             echo "  âš ï¸ Performance monitoring missing"
+=======
+            echo "  ??Performance monitoring found"
+          else
+            echo "  ? ï? Performance monitoring missing"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             o1_issues=$((o1_issues + 1))
           fi
           
           # NETCONF/YANG model support
           if find . -name "*.go" -exec grep -l "NETCONF\|netconf\|YANG\|yang" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… NETCONF/YANG model support found"
           else
             echo "  âš ï¸ NETCONF/YANG model support missing (optional)"
+=======
+            echo "  ??NETCONF/YANG model support found"
+          else
+            echo "  ? ï? NETCONF/YANG model support missing (optional)"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           fi
           
           # Determine O1 compliance
           if [[ $o1_issues -eq 0 ]]; then
             o1_compliant="true"
+<<<<<<< HEAD
             echo "âœ… O1 interface: COMPLIANT"
           elif [[ $o1_issues -le 2 ]]; then
             o1_compliant="partial"
@@ -270,15 +413,31 @@ jobs:
           else
             o1_compliant="false"
             echo "âŒ O1 interface: NON-COMPLIANT ($o1_issues issues)"
+=======
+            echo "??O1 interface: COMPLIANT"
+          elif [[ $o1_issues -le 2 ]]; then
+            o1_compliant="partial"
+            echo "? ï? O1 interface: PARTIALLY COMPLIANT ($o1_issues issues)"
+          else
+            o1_compliant="false"
+            echo "??O1 interface: NON-COMPLIANT ($o1_issues issues)"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           fi
           
           echo "compliant=$o1_compliant" >> $GITHUB_OUTPUT
           echo "issues=$o1_issues" >> $GITHUB_OUTPUT
           
+<<<<<<< HEAD
       - name: ðŸ“‹ Generate Interface Compliance Summary
         id: summary
         run: |
           echo "ðŸ“‹ Generating O-RAN interface compliance summary..."
+=======
+      - name: ?? Generate Interface Compliance Summary
+        id: summary
+        run: |
+          echo "?? Generating O-RAN interface compliance summary..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           # Collect results
           A1_STATUS="${{ steps.a1-validation.outputs.compliant || 'skipped' }}"
@@ -328,22 +487,34 @@ jobs:
           summary=$(echo "$summary" | jq --arg overall "$overall" '.overall_compliance = $overall')
           
           echo "summary=$summary" >> $GITHUB_OUTPUT
+<<<<<<< HEAD
           echo "ðŸ“Š Interface validation complete: $overall ($compliant_count/$total_interfaces)"
+=======
+          echo "?? Interface validation complete: $overall ($compliant_count/$total_interfaces)"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
   # =============================================================================
   # 3GPP STANDARDS VALIDATION: 5G Core network function compliance
   # =============================================================================
   threegpp-standards-validation:
+<<<<<<< HEAD
     name: ðŸŒ 3GPP Standards Validation
     runs-on: ubuntu-22.04
     if: inputs.enable_3gpp_validation != 'false'
     timeout-minutes: 15
+=======
+    name: ?? 3GPP Standards Validation
+    runs-on: ubuntu-latest
+    if: inputs.enable_3gpp_validation != 'false'
+    timeout-minutes: 10
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
     outputs:
       nf-compliance: ${{ steps.nf-validation.outputs.compliant }}
       sbi-compliance: ${{ steps.sbi-validation.outputs.compliant }}
       security-compliance: ${{ steps.security-validation.outputs.compliant }}
       
     steps:
+<<<<<<< HEAD
       - name: ðŸ“¥ Checkout
         uses: actions/checkout@v4
         
@@ -351,42 +522,72 @@ jobs:
         id: nf-validation
         run: |
           echo "ðŸŒ Validating 3GPP 5G Core Network Function compliance"
+=======
+      - name: ?“¥ Checkout
+        uses: actions/checkout@v4
+        
+      - name: ?? 5G Network Function (NF) Validation
+        id: nf-validation
+        run: |
+          echo "?? Validating 3GPP 5G Core Network Function compliance"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           nf_compliant="false"
           nf_patterns_found=0
           
           # 5G Core NF service registration patterns
           if find . -name "*.go" -exec grep -l "nf-type\|nfType\|NfType" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… 5G NF service registration patterns found"
+=======
+            echo "  ??5G NF service registration patterns found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             nf_patterns_found=$((nf_patterns_found + 1))
           fi
           
           # Network function profiles
           if find . -name "*.go" -exec grep -l "nf-profile\|nfProfile\|NfProfile" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… Network function profile management found"
+=======
+            echo "  ??Network function profile management found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             nf_patterns_found=$((nf_patterns_found + 1))
           fi
           
           # Service Based Architecture (SBA) patterns
           if find . -name "*.go" -exec grep -l "sbi\|service-based\|ServiceBased" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… Service Based Architecture patterns found"
+=======
+            echo "  ??Service Based Architecture patterns found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             nf_patterns_found=$((nf_patterns_found + 1))
           fi
           
           # 5G service operations
           if find . -name "*.go" -exec grep -l "Namf\|Nsmf\|Nausf\|Nudm\|Nudr\|Npcf" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… 5G Core service operations found"
+=======
+            echo "  ??5G Core service operations found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             nf_patterns_found=$((nf_patterns_found + 1))
           fi
           
           # Network slicing support
           if find . -name "*.go" -exec grep -l "slice\|nssai\|s-nssai\|NSSAI" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… Network slicing support detected"
+=======
+            echo "  ??Network slicing support detected"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             nf_patterns_found=$((nf_patterns_found + 1))
           fi
           
           if [[ $nf_patterns_found -ge 3 ]]; then
             nf_compliant="true"
+<<<<<<< HEAD
             echo "âœ… 3GPP 5G NF compliance: COMPLIANT ($nf_patterns_found/5 patterns)"
           elif [[ $nf_patterns_found -ge 1 ]]; then
             nf_compliant="partial"
@@ -394,44 +595,77 @@ jobs:
           else
             nf_compliant="false"
             echo "âŒ 3GPP 5G NF compliance: NON-COMPLIANT"
+=======
+            echo "??3GPP 5G NF compliance: COMPLIANT ($nf_patterns_found/5 patterns)"
+          elif [[ $nf_patterns_found -ge 1 ]]; then
+            nf_compliant="partial"
+            echo "? ï? 3GPP 5G NF compliance: PARTIAL ($nf_patterns_found/5 patterns)"
+          else
+            nf_compliant="false"
+            echo "??3GPP 5G NF compliance: NON-COMPLIANT"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           fi
           
           echo "compliant=$nf_compliant" >> $GITHUB_OUTPUT
           
+<<<<<<< HEAD
       - name: ðŸ”— Service Based Interface (SBI) Validation
         id: sbi-validation
         run: |
           echo "ðŸ”— Validating 3GPP Service Based Interface compliance"
+=======
+      - name: ?? Service Based Interface (SBI) Validation
+        id: sbi-validation
+        run: |
+          echo "?? Validating 3GPP Service Based Interface compliance"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           sbi_compliant="false"
           sbi_features=0
           
           # HTTP/2 REST API patterns
           if find . -name "*.go" -exec grep -l "http2\|HTTP/2\|REST.*api" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… HTTP/2 REST API support found"
+=======
+            echo "  ??HTTP/2 REST API support found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             sbi_features=$((sbi_features + 1))
           fi
           
           # OAuth2 authentication
           if find . -name "*.go" -exec grep -l "oauth\|OAuth\|bearer.*token" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… OAuth2 authentication support found"
+=======
+            echo "  ??OAuth2 authentication support found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             sbi_features=$((sbi_features + 1))
           fi
           
           # JSON data format
           if find . -name "*.go" -exec grep -l "json.*marshal\|json.*unmarshal" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… JSON data format support found"
+=======
+            echo "  ??JSON data format support found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             sbi_features=$((sbi_features + 1))
           fi
           
           # Service discovery
           if find . -name "*.go" -exec grep -l "service.*discovery\|nrf\|NRF" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… Service discovery mechanisms found"
+=======
+            echo "  ??Service discovery mechanisms found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             sbi_features=$((sbi_features + 1))
           fi
           
           if [[ $sbi_features -ge 3 ]]; then
             sbi_compliant="true"
+<<<<<<< HEAD
             echo "âœ… SBI compliance: COMPLIANT ($sbi_features/4 features)"
           elif [[ $sbi_features -ge 1 ]]; then
             sbi_compliant="partial"
@@ -439,44 +673,77 @@ jobs:
           else
             sbi_compliant="false"
             echo "âŒ SBI compliance: NON-COMPLIANT"
+=======
+            echo "??SBI compliance: COMPLIANT ($sbi_features/4 features)"
+          elif [[ $sbi_features -ge 1 ]]; then
+            sbi_compliant="partial"
+            echo "? ï? SBI compliance: PARTIAL ($sbi_features/4 features)"
+          else
+            sbi_compliant="false"
+            echo "??SBI compliance: NON-COMPLIANT"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           fi
           
           echo "compliant=$sbi_compliant" >> $GITHUB_OUTPUT
           
+<<<<<<< HEAD
       - name: ðŸ” 3GPP Security Architecture Validation
         id: security-validation
         run: |
           echo "ðŸ” Validating 3GPP SA3 Security Architecture compliance"
+=======
+      - name: ?? 3GPP Security Architecture Validation
+        id: security-validation
+        run: |
+          echo "?? Validating 3GPP SA3 Security Architecture compliance"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           security_compliant="false"
           security_features=0
           
           # Authentication and key agreement (AKA)
           if find . -name "*.go" -exec grep -l "aka\|AKA\|authentication" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… Authentication mechanisms found"
+=======
+            echo "  ??Authentication mechanisms found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             security_features=$((security_features + 1))
           fi
           
           # Security context management
           if find . -name "*.go" -exec grep -l "security.*context\|secc\|SECC" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… Security context management found"
+=======
+            echo "  ??Security context management found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             security_features=$((security_features + 1))
           fi
           
           # Integrity and encryption
           if find . -name "*.go" -exec grep -l "integrity\|encryption\|cipher" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… Integrity and encryption support found"
+=======
+            echo "  ??Integrity and encryption support found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             security_features=$((security_features + 1))
           fi
           
           # Key management
           if find . -name "*.go" -exec grep -l "key.*management\|kdf\|KDF" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… Key management mechanisms found"
+=======
+            echo "  ??Key management mechanisms found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             security_features=$((security_features + 1))
           fi
           
           if [[ $security_features -ge 3 ]]; then
             security_compliant="true"
+<<<<<<< HEAD
             echo "âœ… 3GPP Security compliance: COMPLIANT ($security_features/4 features)"
           elif [[ $security_features -ge 1 ]]; then
             security_compliant="partial"
@@ -484,6 +751,15 @@ jobs:
           else
             security_compliant="false"
             echo "âŒ 3GPP Security compliance: NON-COMPLIANT"
+=======
+            echo "??3GPP Security compliance: COMPLIANT ($security_features/4 features)"
+          elif [[ $security_features -ge 1 ]]; then
+            security_compliant="partial"
+            echo "? ï? 3GPP Security compliance: PARTIAL ($security_features/4 features)"
+          else
+            security_compliant="false"
+            echo "??3GPP Security compliance: NON-COMPLIANT"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           fi
           
           echo "compliant=$security_compliant" >> $GITHUB_OUTPUT
@@ -492,15 +768,23 @@ jobs:
   # TELECOMMUNICATIONS SECURITY VALIDATION: O-RAN WG11 compliance
   # =============================================================================
   telecom-security-validation:
+<<<<<<< HEAD
     name: ðŸ” Telecommunications Security
     runs-on: ubuntu-22.04
     if: inputs.enable_security_validation != 'false'
     timeout-minutes: 18
+=======
+    name: ?? Telecommunications Security
+    runs-on: ubuntu-latest
+    if: inputs.enable_security_validation != 'false'
+    timeout-minutes: 10
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
     outputs:
       oran-wg11-compliance: ${{ steps.oran-security.outputs.compliant }}
       zero-trust-compliance: ${{ steps.zero-trust.outputs.compliant }}
       
     steps:
+<<<<<<< HEAD
       - name: ðŸ“¥ Checkout
         uses: actions/checkout@v4
         
@@ -508,48 +792,82 @@ jobs:
         id: oran-security
         run: |
           echo "ðŸ” Validating O-RAN WG11 security requirements"
+=======
+      - name: ?“¥ Checkout
+        uses: actions/checkout@v4
+        
+      - name: ?? O-RAN WG11 Security Validation
+        id: oran-security
+        run: |
+          echo "?? Validating O-RAN WG11 security requirements"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           oran_security_compliant="false"
           security_controls=0
           
           # Secure inter-node communication
           if find . -name "*.go" -exec grep -l "tls\|TLS\|secure.*communication" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… Secure inter-node communication found"
+=======
+            echo "  ??Secure inter-node communication found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             security_controls=$((security_controls + 1))
           fi
           
           # Certificate-based authentication
           if find . -name "*.go" -exec grep -l "certificate\|x509\|PKI\|pki" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… Certificate-based authentication found"
+=======
+            echo "  ??Certificate-based authentication found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             security_controls=$((security_controls + 1))
           fi
           
           # Access control and authorization
           if find . -name "*.go" -exec grep -l "rbac\|RBAC\|authorization\|access.*control" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… Access control mechanisms found"
+=======
+            echo "  ??Access control mechanisms found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             security_controls=$((security_controls + 1))
           fi
           
           # Security monitoring and logging
           if find . -name "*.go" -exec grep -l "audit\|security.*log\|monitoring" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… Security monitoring and logging found"
+=======
+            echo "  ??Security monitoring and logging found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             security_controls=$((security_controls + 1))
           fi
           
           # Data encryption at rest and in transit
           if find . -name "*.go" -exec grep -l "encrypt\|aes\|AES\|crypto" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… Data encryption mechanisms found"
+=======
+            echo "  ??Data encryption mechanisms found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             security_controls=$((security_controls + 1))
           fi
           
           # Secure software deployment
           if find . -name "*.yaml" -o -name "*.yml" -exec grep -l "securityContext\|runAsNonRoot" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… Secure software deployment configurations found"
+=======
+            echo "  ??Secure software deployment configurations found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             security_controls=$((security_controls + 1))
           fi
           
           if [[ $security_controls -ge 5 ]]; then
             oran_security_compliant="true"
+<<<<<<< HEAD
             echo "âœ… O-RAN WG11 Security: COMPLIANT ($security_controls/6 controls)"
           elif [[ $security_controls -ge 3 ]]; then
             oran_security_compliant="partial"
@@ -557,50 +875,87 @@ jobs:
           else
             oran_security_compliant="false"
             echo "âŒ O-RAN WG11 Security: NON-COMPLIANT ($security_controls/6 controls)"
+=======
+            echo "??O-RAN WG11 Security: COMPLIANT ($security_controls/6 controls)"
+          elif [[ $security_controls -ge 3 ]]; then
+            oran_security_compliant="partial"
+            echo "? ï? O-RAN WG11 Security: PARTIAL ($security_controls/6 controls)"
+          else
+            oran_security_compliant="false"
+            echo "??O-RAN WG11 Security: NON-COMPLIANT ($security_controls/6 controls)"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           fi
           
           echo "compliant=$oran_security_compliant" >> $GITHUB_OUTPUT
           
+<<<<<<< HEAD
       - name: ðŸ›¡ï¸ Zero Trust Architecture Validation
         id: zero-trust
         run: |
           echo "ðŸ›¡ï¸ Validating Zero Trust architecture implementation"
+=======
+      - name: ?›¡ï¸?Zero Trust Architecture Validation
+        id: zero-trust
+        run: |
+          echo "?›¡ï¸?Validating Zero Trust architecture implementation"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           zero_trust_compliant="false"
           zt_principles=0
           
           # Identity and device authentication
           if find . -name "*.go" -exec grep -l "identity\|device.*auth\|mTLS\|mutual.*tls" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… Identity and device authentication found"
+=======
+            echo "  ??Identity and device authentication found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             zt_principles=$((zt_principles + 1))
           fi
           
           # Least privilege access
           if find . -name "*.go" -exec grep -l "least.*privilege\|minimal.*permission" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… Least privilege access patterns found"
+=======
+            echo "  ??Least privilege access patterns found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             zt_principles=$((zt_principles + 1))
           fi
           
           # Micro-segmentation
           if find . -name "*.yaml" -o -name "*.yml" -exec grep -l "networkpolicy\|NetworkPolicy" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… Network micro-segmentation found"
+=======
+            echo "  ??Network micro-segmentation found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             zt_principles=$((zt_principles + 1))
           fi
           
           # Continuous monitoring
           if find . -name "*.go" -exec grep -l "continuous.*monitor\|real.*time.*monitor" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… Continuous monitoring capabilities found"
+=======
+            echo "  ??Continuous monitoring capabilities found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             zt_principles=$((zt_principles + 1))
           fi
           
           # Data encryption everywhere
           if find . -name "*.go" -exec grep -l "encrypt.*everywhere\|e2e.*encrypt\|end.*to.*end" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… End-to-end encryption found"
+=======
+            echo "  ??End-to-end encryption found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             zt_principles=$((zt_principles + 1))
           fi
           
           if [[ $zt_principles -ge 4 ]]; then
             zero_trust_compliant="true"
+<<<<<<< HEAD
             echo "âœ… Zero Trust Architecture: COMPLIANT ($zt_principles/5 principles)"
           elif [[ $zt_principles -ge 2 ]]; then
             zero_trust_compliant="partial"
@@ -608,6 +963,15 @@ jobs:
           else
             zero_trust_compliant="false"
             echo "âŒ Zero Trust Architecture: NON-COMPLIANT ($zt_principles/5 principles)"
+=======
+            echo "??Zero Trust Architecture: COMPLIANT ($zt_principles/5 principles)"
+          elif [[ $zt_principles -ge 2 ]]; then
+            zero_trust_compliant="partial"
+            echo "? ï? Zero Trust Architecture: PARTIAL ($zt_principles/5 principles)"
+          else
+            zero_trust_compliant="false"
+            echo "??Zero Trust Architecture: NON-COMPLIANT ($zt_principles/5 principles)"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           fi
           
           echo "compliant=$zero_trust_compliant" >> $GITHUB_OUTPUT
@@ -616,14 +980,21 @@ jobs:
   # CNF/VNF LIFECYCLE VALIDATION: Cloud-native and virtualized network functions
   # =============================================================================
   cnf-vnf-lifecycle-validation:
+<<<<<<< HEAD
     name: ðŸ”§ CNF/VNF Lifecycle Validation
     runs-on: ubuntu-22.04
     timeout-minutes: 12
+=======
+    name: ?”§ CNF/VNF Lifecycle Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
     outputs:
       cnf-compliance: ${{ steps.cnf-validation.outputs.compliant }}
       vnf-compliance: ${{ steps.vnf-validation.outputs.compliant }}
       
     steps:
+<<<<<<< HEAD
       - name: ðŸ“¥ Checkout
         uses: actions/checkout@v4
         
@@ -631,42 +1002,72 @@ jobs:
         id: cnf-validation
         run: |
           echo "â˜ï¸ Validating CNF lifecycle management compliance"
+=======
+      - name: ?“¥ Checkout
+        uses: actions/checkout@v4
+        
+      - name: ?ï? Cloud-Native Network Function (CNF) Validation
+        id: cnf-validation
+        run: |
+          echo "?ï? Validating CNF lifecycle management compliance"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           cnf_compliant="false"
           cnf_features=0
           
           # Kubernetes-native design
           if find . -name "*.go" -exec grep -l "kubernetes\|k8s\|controller\|operator" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… Kubernetes-native design patterns found"
+=======
+            echo "  ??Kubernetes-native design patterns found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             cnf_features=$((cnf_features + 1))
           fi
           
           # Helm chart packaging
           if find . -name "Chart.yaml" -o -name "values.yaml" | head -3; then
+<<<<<<< HEAD
             echo "  âœ… Helm chart packaging found"
+=======
+            echo "  ??Helm chart packaging found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             cnf_features=$((cnf_features + 1))
           fi
           
           # Container lifecycle management
           if find . -name "*.go" -exec grep -l "container\|pod\|deployment" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… Container lifecycle management found"
+=======
+            echo "  ??Container lifecycle management found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             cnf_features=$((cnf_features + 1))
           fi
           
           # Service mesh integration
           if find . -name "*.yaml" -o -name "*.yml" -exec grep -l "istio\|linkerd\|service.*mesh" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… Service mesh integration found"
+=======
+            echo "  ??Service mesh integration found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             cnf_features=$((cnf_features + 1))
           fi
           
           # Cloud-native monitoring
           if find . -name "*.yaml" -o -name "*.yml" -exec grep -l "prometheus\|grafana\|jaeger" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… Cloud-native monitoring found"
+=======
+            echo "  ??Cloud-native monitoring found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             cnf_features=$((cnf_features + 1))
           fi
           
           if [[ $cnf_features -ge 4 ]]; then
             cnf_compliant="true"
+<<<<<<< HEAD
             echo "âœ… CNF Lifecycle: COMPLIANT ($cnf_features/5 features)"
           elif [[ $cnf_features -ge 2 ]]; then
             cnf_compliant="partial"
@@ -674,44 +1075,77 @@ jobs:
           else
             cnf_compliant="false"
             echo "âŒ CNF Lifecycle: NON-COMPLIANT ($cnf_features/5 features)"
+=======
+            echo "??CNF Lifecycle: COMPLIANT ($cnf_features/5 features)"
+          elif [[ $cnf_features -ge 2 ]]; then
+            cnf_compliant="partial"
+            echo "? ï? CNF Lifecycle: PARTIAL ($cnf_features/5 features)"
+          else
+            cnf_compliant="false"
+            echo "??CNF Lifecycle: NON-COMPLIANT ($cnf_features/5 features)"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           fi
           
           echo "compliant=$cnf_compliant" >> $GITHUB_OUTPUT
           
+<<<<<<< HEAD
       - name: ðŸ–¥ï¸ Virtual Network Function (VNF) Validation
         id: vnf-validation
         run: |
           echo "ðŸ–¥ï¸ Validating VNF lifecycle management compliance"
+=======
+      - name: ?–¥ï¸?Virtual Network Function (VNF) Validation
+        id: vnf-validation
+        run: |
+          echo "?–¥ï¸?Validating VNF lifecycle management compliance"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           vnf_compliant="false"
           vnf_features=0
           
           # VNF descriptor support
           if find . -name "*.go" -exec grep -l "vnfd\|VNFD\|vnf.*descriptor" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… VNF descriptor support found"
+=======
+            echo "  ??VNF descriptor support found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             vnf_features=$((vnf_features + 1))
           fi
           
           # ETSI NFV MANO integration
           if find . -name "*.go" -exec grep -l "mano\|MANO\|vnfm\|VNFM" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… ETSI NFV MANO integration found"
+=======
+            echo "  ??ETSI NFV MANO integration found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             vnf_features=$((vnf_features + 1))
           fi
           
           # VNF lifecycle operations
           if find . -name "*.go" -exec grep -l "instantiate\|scale\|terminate\|vnf.*lifecycle" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… VNF lifecycle operations found"
+=======
+            echo "  ??VNF lifecycle operations found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             vnf_features=$((vnf_features + 1))
           fi
           
           # Performance monitoring
           if find . -name "*.go" -exec grep -l "performance\|vnf.*monitor" {} \; | head -3; then
+<<<<<<< HEAD
             echo "  âœ… VNF performance monitoring found"
+=======
+            echo "  ??VNF performance monitoring found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             vnf_features=$((vnf_features + 1))
           fi
           
           if [[ $vnf_features -ge 3 ]]; then
             vnf_compliant="true"
+<<<<<<< HEAD
             echo "âœ… VNF Lifecycle: COMPLIANT ($vnf_features/4 features)"
           elif [[ $vnf_features -ge 1 ]]; then
             vnf_compliant="partial"
@@ -719,6 +1153,15 @@ jobs:
           else
             vnf_compliant="false"
             echo "âŒ VNF Lifecycle: NON-COMPLIANT ($vnf_features/4 features)"
+=======
+            echo "??VNF Lifecycle: COMPLIANT ($vnf_features/4 features)"
+          elif [[ $vnf_features -ge 1 ]]; then
+            vnf_compliant="partial"
+            echo "? ï? VNF Lifecycle: PARTIAL ($vnf_features/4 features)"
+          else
+            vnf_compliant="false"
+            echo "??VNF Lifecycle: NON-COMPLIANT ($vnf_features/4 features)"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           fi
           
           echo "compliant=$vnf_compliant" >> $GITHUB_OUTPUT
@@ -727,8 +1170,13 @@ jobs:
   # FINAL REPORT: Comprehensive O-RAN telecommunications validation report
   # =============================================================================
   final-telecom-report:
+<<<<<<< HEAD
     name: ðŸ“Š O-RAN Validation Report
     runs-on: ubuntu-22.04
+=======
+    name: ?? O-RAN Validation Report
+    runs-on: ubuntu-latest
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
     needs: [
       oran-interface-validation,
       threegpp-standards-validation,
@@ -736,12 +1184,21 @@ jobs:
       cnf-vnf-lifecycle-validation
     ]
     if: always()
+<<<<<<< HEAD
     timeout-minutes: 8
     
     steps:
       - name: ðŸ“Š Generate Comprehensive O-RAN Validation Report
         run: |
           echo "# ðŸ“¡ O-RAN Telecommunications Validation Report" > oran-validation-report.md
+=======
+    timeout-minutes: 10
+    
+    steps:
+      - name: ?? Generate Comprehensive O-RAN Validation Report
+        run: |
+          echo "# ?“¡ O-RAN Telecommunications Validation Report" > oran-validation-report.md
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           echo "" >> oran-validation-report.md
           echo "**Date:** $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> oran-validation-report.md
           echo "**Compliance Level:** ${{ env.COMPLIANCE_LEVEL }}" >> oran-validation-report.md
@@ -749,7 +1206,11 @@ jobs:
           echo "**Validation Scope:** ${{ env.INTERFACE_VALIDATION }}" >> oran-validation-report.md
           echo "" >> oran-validation-report.md
           
+<<<<<<< HEAD
           echo "## ðŸŽ¯ Executive Summary" >> oran-validation-report.md
+=======
+          echo "## ?Ž¯ Executive Summary" >> oran-validation-report.md
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           echo "" >> oran-validation-report.md
           
           # O-RAN Interface Compliance Summary
@@ -787,7 +1248,11 @@ jobs:
           echo "" >> oran-validation-report.md
           
           # Overall Assessment
+<<<<<<< HEAD
           echo "## ðŸ“ˆ Overall Assessment" >> oran-validation-report.md
+=======
+          echo "## ?? Overall Assessment" >> oran-validation-report.md
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           echo "" >> oran-validation-report.md
           
           # Determine overall compliance status
@@ -812,6 +1277,7 @@ jobs:
           COMPLIANCE_PERCENTAGE=$((COMPLIANT_COMPONENTS * 100 / TOTAL_COMPONENTS))
           
           if [[ $COMPLIANCE_PERCENTAGE -ge 90 ]]; then
+<<<<<<< HEAD
             echo "ðŸŸ¢ **EXCELLENT COMPLIANCE** ($COMPLIANCE_PERCENTAGE%)" >> oran-validation-report.md
             echo "Ready for production O-RAN/5G deployment" >> oran-validation-report.md
           elif [[ $COMPLIANCE_PERCENTAGE -ge 75 ]]; then
@@ -822,13 +1288,29 @@ jobs:
             echo "Additional development needed for full O-RAN compliance" >> oran-validation-report.md
           else
             echo "ðŸ”´ **LOW COMPLIANCE** ($COMPLIANCE_PERCENTAGE%)" >> oran-validation-report.md
+=======
+            echo "?Ÿ¢ **EXCELLENT COMPLIANCE** ($COMPLIANCE_PERCENTAGE%)" >> oran-validation-report.md
+            echo "Ready for production O-RAN/5G deployment" >> oran-validation-report.md
+          elif [[ $COMPLIANCE_PERCENTAGE -ge 75 ]]; then
+            echo "?Ÿ¡ **GOOD COMPLIANCE** ($COMPLIANCE_PERCENTAGE%)" >> oran-validation-report.md
+            echo "Suitable for most O-RAN deployment scenarios" >> oran-validation-report.md
+          elif [[ $COMPLIANCE_PERCENTAGE -ge 50 ]]; then
+            echo "?? **MODERATE COMPLIANCE** ($COMPLIANCE_PERCENTAGE%)" >> oran-validation-report.md
+            echo "Additional development needed for full O-RAN compliance" >> oran-validation-report.md
+          else
+            echo "?”´ **LOW COMPLIANCE** ($COMPLIANCE_PERCENTAGE%)" >> oran-validation-report.md
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             echo "Significant development required for O-RAN compliance" >> oran-validation-report.md
           fi
           
           echo "" >> oran-validation-report.md
           
           # Recommendations
+<<<<<<< HEAD
           echo "## ðŸ’¡ Recommendations" >> oran-validation-report.md
+=======
+          echo "## ?’¡ Recommendations" >> oran-validation-report.md
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           echo "" >> oran-validation-report.md
           
           if [[ "${{ needs.oran-interface-validation.outputs.a1-compliance }}" != "true" ]]; then
@@ -852,7 +1334,11 @@ jobs:
           fi
           
           echo "" >> oran-validation-report.md
+<<<<<<< HEAD
           echo "## ðŸ“š Standards References" >> oran-validation-report.md
+=======
+          echo "## ?? Standards References" >> oran-validation-report.md
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           echo "- **O-RAN Alliance**: Working Group specifications (WG1-WG11)" >> oran-validation-report.md
           echo "- **3GPP**: Release ${{ env.THREEGPP_RELEASE }} specifications" >> oran-validation-report.md
           echo "- **ETSI NFV**: Network Functions Virtualisation standards" >> oran-validation-report.md
@@ -861,18 +1347,30 @@ jobs:
           echo "---" >> oran-validation-report.md
           echo "_Generated by Nephoran O-RAN Telecommunications Validation Pipeline_" >> oran-validation-report.md
           
+<<<<<<< HEAD
       - name: ðŸ“¤ Upload O-RAN Validation Report
+=======
+      - name: ?“¤ Upload O-RAN Validation Report
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         uses: actions/upload-artifact@v4
         with:
           name: oran-telecommunications-validation-report
           path: oran-validation-report.md
           retention-days: 180
           
+<<<<<<< HEAD
       - name: ðŸŽ¯ Final Validation Status
         run: |
           echo "ðŸŽ¯ O-RAN Telecommunications Validation Complete"
           echo ""
           echo "ðŸ“Š Validation Summary:"
+=======
+      - name: ?Ž¯ Final Validation Status
+        run: |
+          echo "?Ž¯ O-RAN Telecommunications Validation Complete"
+          echo ""
+          echo "?? Validation Summary:"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           echo "  - Interface Validation: ${{ needs.oran-interface-validation.result }}"
           echo "  - 3GPP Standards: ${{ needs.threegpp-standards-validation.result }}"
           echo "  - Security Validation: ${{ needs.telecom-security-validation.result }}"
@@ -884,10 +1382,18 @@ jobs:
                 "${{ needs.threegpp-standards-validation.result }}" != "failure" && \
                 "${{ needs.telecom-security-validation.result }}" != "failure" && \
                 "${{ needs.cnf-vnf-lifecycle-validation.result }}" != "failure" ]]; then
+<<<<<<< HEAD
             echo "âœ… O-RAN Telecommunications Validation: PASSED"
             echo "ðŸš€ Ready for telecommunications deployment"
           else
             echo "âŒ O-RAN Telecommunications Validation: FAILED"
             echo "ðŸ”§ Review validation report and address compliance gaps"
+=======
+            echo "??O-RAN Telecommunications Validation: PASSED"
+            echo "?? Ready for telecommunications deployment"
+          else
+            echo "??O-RAN Telecommunications Validation: FAILED"
+            echo "?”§ Review validation report and address compliance gaps"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             exit 1
           fi

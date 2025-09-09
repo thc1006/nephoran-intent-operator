@@ -869,9 +869,15 @@ func (pim *PorchIntegrationManager) createPackageRevision(ctx context.Context, s
 
 			Lifecycle: spec.Lifecycle,
 
+<<<<<<< HEAD
 			Resources: []interface{}{}, // Will be populated by functions
 
 			Functions: []interface{}{}, // Will be populated by pipeline
+=======
+			Resources: []porch.KRMResource{}, // Will be populated by functions
+
+			Functions: []porch.FunctionConfig{}, // Will be populated by pipeline
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 		},
 	}
@@ -1169,9 +1175,13 @@ func (pim *PorchIntegrationManager) executeFunctionPipeline(ctx context.Context,
 	resources := make([]*porch.KRMResource, 0)
 
 	for _, resource := range packageRevision.Spec.Resources {
+<<<<<<< HEAD
 		if krmRes, ok := resource.(porch.KRMResource); ok {
 			resources = append(resources, &krmRes)
 		}
+=======
+		resources = append(resources, &resource)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	// Execute pipeline.
@@ -1242,10 +1252,17 @@ func (pim *PorchIntegrationManager) updatePackageWithResults(ctx context.Context
 
 	// Convert pipeline resources back to package resources.
 
+<<<<<<< HEAD
 	updatedResources := make([]interface{}, 0)
 
 	for _, resource := range execution.OutputResources {
 		updatedResources = append(updatedResources, resource)
+=======
+	updatedResources := make([]porch.KRMResource, 0)
+
+	for _, resource := range execution.OutputResources {
+		updatedResources = append(updatedResources, *resource)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	// Update package revision spec.
@@ -1256,11 +1273,22 @@ func (pim *PorchIntegrationManager) updatePackageWithResults(ctx context.Context
 
 	for stageName := range execution.Stages {
 
+<<<<<<< HEAD
 		functionConfig := json.RawMessage(fmt.Sprintf(`{
 			"executedAt": "%s",
 			"status": "completed",
 			"stageName": "%s"
 		}`, time.Now().Format(time.RFC3339), stageName))
+=======
+		functionConfig := porch.FunctionConfig{
+			Image: fmt.Sprintf("pipeline-stage-%s", stageName),
+			ConfigMap: map[string]interface{}{
+				"executedAt": time.Now().Format(time.RFC3339),
+				"status": "completed",
+				"stageName": stageName,
+			},
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 		packageRevision.Spec.Functions = append(packageRevision.Spec.Functions, functionConfig)
 

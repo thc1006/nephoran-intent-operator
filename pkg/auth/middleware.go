@@ -1,3 +1,8 @@
+<<<<<<< HEAD
+=======
+//go:build !stub && !test
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 package auth
 
 import (

@@ -1,5 +1,8 @@
+<<<<<<< HEAD
 //go:build integration
 
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 package intent
 
 import (
@@ -10,7 +13,11 @@ import (
 func TestValidatorWithActualSchema(t *testing.T) {
 	// Test with the actual project schema
 	projectRoot := filepath.Join("..", "..")
+<<<<<<< HEAD
 
+=======
+	
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	t.Run("CreateValidatorWithActualSchema", func(t *testing.T) {
 		validator, err := NewValidator(projectRoot)
 		if err != nil {
@@ -128,7 +135,11 @@ func TestValidatorWithActualSchema(t *testing.T) {
 	t.Run("TestHardErrorBehavior", func(t *testing.T) {
 		// Test with non-existent project root - should fail hard
 		invalidRoot := "/does/not/exist"
+<<<<<<< HEAD
 
+=======
+		
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		validator, err := NewValidator(invalidRoot)
 		if err == nil {
 			t.Fatal("Expected hard error for non-existent schema file")
@@ -142,4 +153,8 @@ func TestValidatorWithActualSchema(t *testing.T) {
 			t.Logf("Correctly received hard error: %v", err)
 		}
 	})
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

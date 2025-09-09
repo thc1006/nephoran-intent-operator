@@ -199,7 +199,11 @@ func (m *MockProvider) CreateResource(ctx context.Context, req *CreateResourceRe
 		m.mu.Lock()
 		defer m.mu.Unlock()
 		// In a real implementation, you would update the resource status in storage
+<<<<<<< HEAD
 		response.Status = "active"
+=======
+		response.Status = string(StatusReady)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		response.UpdatedAt = time.Now()
 	}()
 
@@ -220,7 +224,11 @@ func (m *MockProvider) GetResource(ctx context.Context, resourceID string) (*Res
 		ID:        resourceID,
 		Name:      "mock-" + resourceID,
 		Type:      "mock-resource",
+<<<<<<< HEAD
 		Status:    "active",
+=======
+		Status:    string(StatusReady),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		Health:    "healthy",
 		CreatedAt: time.Now().Add(-time.Hour),
 		UpdatedAt: time.Now(),
@@ -245,7 +253,11 @@ func (m *MockProvider) ListResources(ctx context.Context, filter *ResourceFilter
 			ID:        fmt.Sprintf("mock-resource-%d", i),
 			Name:      fmt.Sprintf("mock-resource-%d", i),
 			Type:      "mock-resource",
+<<<<<<< HEAD
 			Status:    "active",
+=======
+			Status:    string(StatusReady),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			Health:    "healthy",
 			CreatedAt: time.Now().Add(-time.Hour),
 			UpdatedAt: time.Now(),
@@ -282,7 +294,11 @@ func (m *MockProvider) UpdateResource(ctx context.Context, resourceID string, re
 		time.Sleep(50 * time.Millisecond)
 		m.mu.Lock()
 		defer m.mu.Unlock()
+<<<<<<< HEAD
 		response.Status = "active"
+=======
+		response.Status = string(StatusReady)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		response.UpdatedAt = time.Now()
 	}()
 
@@ -361,6 +377,28 @@ func (m *MockProvider) GetResourceMetrics(ctx context.Context, resourceID string
 	return make(map[string]interface{}), nil
 }
 
+<<<<<<< HEAD
+=======
+// GetResourceStatus returns resource status (Provider interface)
+func (m *MockProvider) GetResourceStatus(ctx context.Context, resourceID string) (ResourceStatus, error) {
+	if !m.initialized {
+		return "", fmt.Errorf("provider not initialized")
+	}
+
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	// Check if resource exists in our mock storage
+	for _, resource := range m.resources {
+		if resource.ID == resourceID {
+			return StatusReady, nil
+		}
+	}
+
+	return "", fmt.Errorf("resource %s not found", resourceID)
+}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // GetResourceHealth returns resource health (CloudProvider interface)
 func (m *MockProvider) GetResourceHealth(ctx context.Context, resourceID string) (*HealthStatus, error) {
 	// Mock implementation
@@ -487,6 +525,11 @@ func (m *MockProvider) ApplyConfiguration(ctx context.Context, config *ProviderC
 	return nil
 }
 
+<<<<<<< HEAD
+=======
+// Note: GetResourceStatus is already defined above - removed duplicate
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // Close cleans up provider resources
 func (m *MockProvider) Close() error {
 	m.mu.Lock()

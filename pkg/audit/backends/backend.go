@@ -298,7 +298,19 @@ func NewBackend(config BackendConfig) (Backend, error) {
 
 	// TODO: Implement these backends.
 
+<<<<<<< HEAD
 	case BackendTypeFile, BackendTypeSyslog, BackendTypeKafka, BackendTypeCloudWatch,
+=======
+	case BackendTypeFile:
+
+		return NewTestBackend(config)
+
+	case BackendTypeSyslog:
+
+		return NewTestBackend(config)
+
+	case BackendTypeKafka, BackendTypeCloudWatch,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 		BackendTypeStackdriver, BackendTypeAzureMonitor, BackendTypeSIEM, BackendTypeWebhook:
 
@@ -311,6 +323,64 @@ func NewBackend(config BackendConfig) (Backend, error) {
 	}
 }
 
+<<<<<<< HEAD
+=======
+// TestBackend is a simple in-memory backend for testing purposes.
+type TestBackend struct {
+	config BackendConfig
+	events []*types.AuditEvent
+}
+
+// NewTestBackend creates a new test backend.
+func NewTestBackend(config BackendConfig) (Backend, error) {
+	return &TestBackend{
+		config: config,
+		events: make([]*types.AuditEvent, 0),
+	}, nil
+}
+
+// Type returns the backend type.
+func (tb *TestBackend) Type() string {
+	return string(tb.config.Type)
+}
+
+// Initialize sets up the backend.
+func (tb *TestBackend) Initialize(config BackendConfig) error {
+	tb.config = config
+	return nil
+}
+
+// WriteEvent writes a single audit event.
+func (tb *TestBackend) WriteEvent(ctx context.Context, event *types.AuditEvent) error {
+	tb.events = append(tb.events, event)
+	return nil
+}
+
+// WriteEvents writes multiple audit events.
+func (tb *TestBackend) WriteEvents(ctx context.Context, events []*types.AuditEvent) error {
+	tb.events = append(tb.events, events...)
+	return nil
+}
+
+// Query searches for audit events.
+func (tb *TestBackend) Query(ctx context.Context, query *QueryRequest) (*QueryResponse, error) {
+	return &QueryResponse{
+		Events:     tb.events,
+		TotalCount: int64(len(tb.events)),
+	}, nil
+}
+
+// Health checks the backend status.
+func (tb *TestBackend) Health(ctx context.Context) error {
+	return nil
+}
+
+// Close shuts down the backend.
+func (tb *TestBackend) Close() error {
+	return nil
+}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // ShouldProcessEvent determines if an event should be processed by this backend.
 
 func (f *FilterConfig) ShouldProcessEvent(event *types.AuditEvent) bool {

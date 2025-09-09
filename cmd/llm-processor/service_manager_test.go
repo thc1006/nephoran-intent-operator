@@ -757,9 +757,20 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 		{
 			name: "All circuit breakers operational (closed)",
 			stats: map[string]interface{}{
+<<<<<<< HEAD
 				"state":     "closed",
 				"failures":  0,
 				"service-b": make(map[string]interface{}),
+=======
+				"service-a": map[string]interface{}{
+					"state":    "closed",
+					"failures": 0,
+				},
+				"service-b": map[string]interface{}{
+					"state":    "closed",
+					"failures": 0,
+				},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			},
 			expectedStatus:  health.StatusHealthy,
 			expectedMessage: "All circuit breakers operational",
@@ -768,8 +779,15 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 		{
 			name: "All circuit breakers half-open (should be operational)",
 			stats: map[string]interface{}{
+<<<<<<< HEAD
 				"state":    "half-open",
 				"failures": 2,
+=======
+				"service-a": map[string]interface{}{
+					"state":    "half-open",
+					"failures": 2,
+				},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			},
 			expectedStatus:  health.StatusHealthy,
 			expectedMessage: "All circuit breakers operational",
@@ -778,8 +796,15 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 		{
 			name: "Single circuit breaker open",
 			stats: map[string]interface{}{
+<<<<<<< HEAD
 				"state":    "open",
 				"failures": 5,
+=======
+				"service-a": map[string]interface{}{
+					"state":    "open",
+					"failures": 5,
+				},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			},
 			expectedStatus:  health.StatusUnhealthy,
 			expectedMessage: "Circuit breakers in open state: [service-a]",
@@ -788,10 +813,25 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 		{
 			name: "Multiple circuit breakers with one open",
 			stats: map[string]interface{}{
+<<<<<<< HEAD
 				"state":     "closed",
 				"failures":  0,
 				"service-b": make(map[string]interface{}),
 				"service-c": make(map[string]interface{}),
+=======
+				"service-a": map[string]interface{}{
+					"state":    "closed",
+					"failures": 0,
+				},
+				"service-b": map[string]interface{}{
+					"state":    "open",
+					"failures": 3,
+				},
+				"service-c": map[string]interface{}{
+					"state":    "closed",
+					"failures": 0,
+				},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			},
 			expectedStatus:  health.StatusUnhealthy,
 			expectedMessage: "Circuit breakers in open state: [service-b]",
@@ -804,7 +844,14 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 					"state":    "open",
 					"failures": 3,
 				},
+<<<<<<< HEAD
 				"service-b": make(map[string]interface{}),
+=======
+				"service-b": map[string]interface{}{
+					"state":    "open",
+					"failures": 5,
+				},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			},
 			expectedStatus:  health.StatusUnhealthy,
 			expectedMessage: "Circuit breakers in open state: [service-a, service-b]",
@@ -925,12 +972,23 @@ func TestRegisterHealthChecksIntegration(t *testing.T) {
 		// Register health checks
 		sm.registerHealthChecks()
 
+<<<<<<< HEAD
 		// Verify circuit breaker health check was NOT registered
 		ctx := context.Background()
 		result := sm.healthChecker.RunCheck(ctx, "circuit_breaker")
 
 		// Should be nil since the check wasn't registered
 		assert.Nil(t, result)
+=======
+		// Verify circuit breaker health check handles nil manager correctly
+		ctx := context.Background()
+		result := sm.healthChecker.RunCheck(ctx, "circuit_breaker")
+
+		// Should return healthy status with appropriate message for nil manager
+		require.NotNil(t, result)
+		assert.Equal(t, health.StatusHealthy, result.Status)
+		assert.Equal(t, "No circuit breakers registered", result.Message)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	})
 }
 

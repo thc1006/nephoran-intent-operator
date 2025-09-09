@@ -81,11 +81,19 @@ type LLMResponse struct {
 	Error string `json:"error,omitempty"`
 }
 
+<<<<<<< HEAD
 //+kubebuilder:rbac:groups=nephoran.io,resources=networkintents,verbs=get;list;watch;create;update;patch;delete
 
 //+kubebuilder:rbac:groups=nephoran.io,resources=networkintents/status,verbs=get;update;patch
 
 //+kubebuilder:rbac:groups=nephoran.io,resources=networkintents/finalizers,verbs=update
+=======
+//+kubebuilder:rbac:groups=intent.nephio.org,resources=networkintents,verbs=get;list;watch;create;update;patch;delete
+
+//+kubebuilder:rbac:groups=intent.nephio.org,resources=networkintents/status,verbs=get;update;patch
+
+//+kubebuilder:rbac:groups=intent.nephio.org,resources=networkintents/finalizers,verbs=update
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to.
 

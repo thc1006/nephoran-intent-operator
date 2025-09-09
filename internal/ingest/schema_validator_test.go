@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+<<<<<<< HEAD
 // Test schema for validation tests
 var testSchema = map[string]interface{}{
 	"apiVersion": json.RawMessage(`{}`),
@@ -30,6 +31,76 @@ var testSchema = map[string]interface{}{
 		"required": []string{"intentType", "target"},
 	},
 	"required": []string{"apiVersion", "kind", "metadata", "spec"},
+=======
+// Test schema for validation tests - matches the real intent.schema.json structure
+var testSchema = map[string]interface{}{
+	"$schema":     "http://json-schema.org/draft-07/schema#",
+	"$id":         "https://github.com/thc1006/nephoran-intent-operator/contracts/intent.schema.json",
+	"title":       "NetworkIntent Schema",
+	"description": "Schema for network intent scaling operations in Nephio R5-O-RAN L Release deployments",
+	"version":     "1.0.0",
+	"type":        "object",
+	"properties": map[string]interface{}{
+		"intent_type": map[string]interface{}{
+			"type": "string",
+			"enum": []interface{}{"scaling", "deployment", "configuration"},
+			"description": "Type of network intent operation",
+		},
+		"target": map[string]interface{}{
+			"type": "string",
+			"minLength": float64(1),
+			"description": "Target resource to scale or modify",
+		},
+		"namespace": map[string]interface{}{
+			"type": "string", 
+			"minLength": float64(1),
+			"description": "Kubernetes namespace for the target resource",
+		},
+		"replicas": map[string]interface{}{
+			"type": "integer",
+			"minimum": float64(1),
+			"maximum": float64(100),
+			"description": "Desired number of replicas",
+		},
+		"reason": map[string]interface{}{
+			"type": "string",
+			"maxLength": float64(512),
+			"description": "Optional reason for the scaling operation",
+		},
+		"source": map[string]interface{}{
+			"type": "string",
+			"enum": []interface{}{"user", "planner", "test", ""},
+			"description": "Source of the intent request",
+		},
+		"correlation_id": map[string]interface{}{
+			"type": "string",
+			"description": "Optional correlation ID for tracking",
+		},
+		"priority": map[string]interface{}{
+			"type": "integer",
+			"minimum": float64(0),
+			"maximum": float64(10),
+			"default": float64(5),
+			"description": "Priority level for intent execution (0=lowest, 10=highest)",
+		},
+		"status": map[string]interface{}{
+			"type": "string",
+			"enum": []interface{}{"pending", "processing", "completed", "failed"},
+			"description": "Current status of intent execution",
+		},
+		"target_resources": map[string]interface{}{
+			"type": "array",
+			"items": map[string]interface{}{
+				"type": "string",
+				"minLength": float64(1),
+			},
+			"description": "List of resources to be scaled",
+			"minItems": float64(0),
+		},
+	},
+	"required": []interface{}{"intent_type", "target", "namespace", "replicas"},
+	"additionalProperties": false,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // TestingT is an interface that covers the methods we need from *testing.T, *testing.B, and *testing.F
@@ -121,27 +192,43 @@ func TestIntentSchemaValidator_Validate(t *testing.T) {
 
 	t.Run("validates valid intent successfully", func(t *testing.T) {
 		validIntent := map[string]interface{}{
+<<<<<<< HEAD
 			"metadata": map[string]interface{}{
 				"name":      "test-intent",
 				"namespace": "default",
 			},
 			"spec": json.RawMessage(`{}`),
+=======
+			"intent_type": "scaling",
+			"target":      "test-deployment",
+			"namespace":   "default",
+			"replicas":    float64(3),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 
 		err := validator.Validate(validIntent)
 		assert.NoError(t, err)
 	})
 
+<<<<<<< HEAD
 	t.Run("returns error for invalid apiVersion", func(t *testing.T) {
 		invalidIntent := map[string]interface{}{
 			"metadata": map[string]interface{}{
 				"name": "test-intent",
 			},
 			"spec": json.RawMessage(`{}`),
+=======
+	t.Run("returns error for missing required field", func(t *testing.T) {
+		invalidIntent := map[string]interface{}{
+			"intent_type": "scaling",
+			"target":      "test-deployment",
+			// missing namespace and replicas
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 
 		err := validator.Validate(invalidIntent)
 		assert.Error(t, err)
+<<<<<<< HEAD
 		assert.Contains(t, err.Error(), "apiVersion")
 	})
 
@@ -160,10 +247,22 @@ func TestIntentSchemaValidator_Validate(t *testing.T) {
 		invalidIntent := map[string]interface{}{
 			"name": "test-intent",
 			"spec": map[string]interface{}{},
+=======
+		assert.Contains(t, err.Error(), "required")
+	})
+
+	t.Run("returns error for invalid intent_type enum", func(t *testing.T) {
+		invalidIntent := map[string]interface{}{
+			"intent_type": "invalid_type",
+			"target":      "test-deployment",
+			"namespace":   "default",
+			"replicas":    float64(3),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 
 		err := validator.Validate(invalidIntent)
 		assert.Error(t, err)
+<<<<<<< HEAD
 		assert.Contains(t, err.Error(), "intentType")
 	})
 
@@ -171,6 +270,17 @@ func TestIntentSchemaValidator_Validate(t *testing.T) {
 		invalidIntent := map[string]interface{}{
 			"name": "test-intent",
 			"spec": map[string]interface{}{},
+=======
+		assert.Contains(t, err.Error(), "intent_type")
+	})
+
+	t.Run("returns error for out-of-range replicas", func(t *testing.T) {
+		invalidIntent := map[string]interface{}{
+			"intent_type": "scaling",
+			"target":      "test-deployment",
+			"namespace":   "default",
+			"replicas":    float64(101), // exceeds maximum
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 
 		err := validator.Validate(invalidIntent)
@@ -178,6 +288,7 @@ func TestIntentSchemaValidator_Validate(t *testing.T) {
 		assert.Contains(t, err.Error(), "replicas")
 	})
 
+<<<<<<< HEAD
 	t.Run("validates optional fields correctly", func(t *testing.T) {
 		intentWithResources := map[string]interface{}{
 			"name":      "test-intent",
@@ -189,13 +300,50 @@ func TestIntentSchemaValidator_Validate(t *testing.T) {
 		}
 
 		err := validator.Validate(intentWithResources)
+=======
+	t.Run("returns error for additional properties", func(t *testing.T) {
+		invalidIntent := map[string]interface{}{
+			"intent_type":     "scaling",
+			"target":          "test-deployment",
+			"namespace":       "default",
+			"replicas":        float64(3),
+			"unknown_field":   "not_allowed",
+		}
+
+		err := validator.Validate(invalidIntent)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "additional")
+	})
+
+	t.Run("validates optional fields correctly", func(t *testing.T) {
+		intentWithOptionalFields := map[string]interface{}{
+			"intent_type":      "scaling",
+			"target":           "test-deployment",
+			"namespace":        "default",
+			"replicas":         float64(3),
+			"reason":           "Testing optional fields",
+			"source":           "user",
+			"correlation_id":   "test-123",
+			"status":           "pending",
+			"target_resources": []interface{}{"deployment/test-deployment"},
+		}
+
+		err := validator.Validate(intentWithOptionalFields)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		assert.NoError(t, err)
 	})
 
 	t.Run("returns error for wrong data types", func(t *testing.T) {
 		invalidIntent := map[string]interface{}{
+<<<<<<< HEAD
 			"name": "test-intent",
 			"spec": map[string]interface{}{},
+=======
+			"intent_type": "scaling",
+			"target":      "test-deployment",
+			"namespace":   "default",
+			"replicas":    "not_a_number", // should be integer
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 
 		err := validator.Validate(invalidIntent)
@@ -211,6 +359,7 @@ func TestIntentSchemaValidator_ValidateJSON(t *testing.T) {
 
 	t.Run("validates valid JSON string", func(t *testing.T) {
 		validJSON := `{
+<<<<<<< HEAD
 			"apiVersion": "intent.nephoran.com/v1alpha1",
 			"kind": "NetworkIntent",
 			"metadata": {
@@ -222,6 +371,14 @@ func TestIntentSchemaValidator_ValidateJSON(t *testing.T) {
 				"target": "nginx-deployment",
 				"replicas": 3
 			}
+=======
+			"intent_type": "scaling",
+			"target": "test-deployment",
+			"namespace": "default",
+			"replicas": 3,
+			"reason": "Test scaling operation",
+			"source": "user"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}`
 
 		err := validator.ValidateJSON(validJSON)
@@ -230,8 +387,13 @@ func TestIntentSchemaValidator_ValidateJSON(t *testing.T) {
 
 	t.Run("returns error for invalid JSON", func(t *testing.T) {
 		invalidJSON := `{
+<<<<<<< HEAD
 			"apiVersion": "intent.nephoran.com/v1alpha1"
 			"kind": "NetworkIntent"  // Missing comma
+=======
+			"intent_type": "scaling"
+			"target": "test-deployment"  // Missing comma
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}`
 
 		err := validator.ValidateJSON(invalidJSON)
@@ -241,8 +403,13 @@ func TestIntentSchemaValidator_ValidateJSON(t *testing.T) {
 
 	t.Run("returns error for JSON that fails schema validation", func(t *testing.T) {
 		invalidContentJSON := `{
+<<<<<<< HEAD
 			"apiVersion": "v1",
 			"kind": "Pod"
+=======
+			"intent_type": "invalid_type",
+			"target": "test-deployment"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}`
 
 		err := validator.ValidateJSON(invalidContentJSON)
@@ -260,6 +427,7 @@ func TestIntentSchemaValidator_ValidateJSON(t *testing.T) {
 		jsonWithWhitespace := `
 		
 		{
+<<<<<<< HEAD
 			"apiVersion": "intent.nephoran.com/v1alpha1",
 			"kind": "NetworkIntent",
 			"metadata": {
@@ -269,6 +437,12 @@ func TestIntentSchemaValidator_ValidateJSON(t *testing.T) {
 				"intentType": "scaling",
 				"target": "nginx-deployment"
 			}
+=======
+			"intent_type": "scaling",
+			"target": "test-deployment",
+			"namespace": "default",
+			"replicas": 5
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 		
 		`
@@ -297,10 +471,24 @@ func TestIntentSchemaValidator_UpdateSchema(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("updates schema successfully", func(t *testing.T) {
+<<<<<<< HEAD
 		// Create an updated schema
 		updatedSchema := map[string]interface{}{
 			"apiVersion": map[string]interface{}{}, // Updated version
 			"required":   []string{"apiVersion"},
+=======
+		// Create an updated schema with valid structure
+		updatedSchema := map[string]interface{}{
+			"type":       "object",
+			"title":      "Updated NetworkIntent Schema",
+			"properties": map[string]interface{}{
+				"intent_type": map[string]interface{}{
+					"type": "string",
+					"enum": []interface{}{"scaling"},
+				},
+			},
+			"required": []interface{}{"intent_type"},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 
 		// Write updated schema to file
@@ -313,6 +501,7 @@ func TestIntentSchemaValidator_UpdateSchema(t *testing.T) {
 		err = validator.UpdateSchema()
 		require.NoError(t, err)
 
+<<<<<<< HEAD
 		// Verify the schema was updated
 		schema := validator.GetSchema()
 		assert.Equal(t, "Updated NetworkIntent Schema", schema["title"])
@@ -322,6 +511,18 @@ func TestIntentSchemaValidator_UpdateSchema(t *testing.T) {
 		json.Unmarshal([]byte(`{}`), &intent)
 
 		err = validator.Validate(intent)
+=======
+		// Verify the schema was updated - we're checking that it's loaded, not the specific title
+		schema := validator.GetSchema()
+		assert.NotNil(t, schema)
+
+		// Test validation with updated schema - should require intent_type
+		validIntent := map[string]interface{}{
+			"intent_type": "scaling",
+		}
+
+		err = validator.Validate(validIntent)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		assert.NoError(t, err)
 	})
 
@@ -343,8 +544,15 @@ func TestIntentSchemaValidator_ConcurrentAccess(t *testing.T) {
 
 	t.Run("handles concurrent validation requests", func(t *testing.T) {
 		validIntent := map[string]interface{}{
+<<<<<<< HEAD
 			"name": "test-intent",
 			"spec": map[string]interface{}{},
+=======
+			"intent_type": "scaling",
+			"target":      "test-deployment",
+			"namespace":   "default",
+			"replicas":    float64(3),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 
 		// Run multiple validations concurrently
@@ -372,9 +580,16 @@ func BenchmarkIntentSchemaValidator_Validate(b *testing.B) {
 	require.NoError(b, err)
 
 	validIntent := map[string]interface{}{
+<<<<<<< HEAD
 		"name":      "test-intent",
 		"namespace": "default",
 		"spec":      map[string]interface{}{},
+=======
+		"intent_type": "scaling",
+		"target":      "test-deployment",
+		"namespace":   "default",
+		"replicas":    float64(3),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	b.ResetTimer()

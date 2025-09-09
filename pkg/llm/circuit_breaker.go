@@ -113,6 +113,7 @@ func (s CircuitState) String() string {
 
 	case StateClosed:
 
+<<<<<<< HEAD
 		return "Closed"
 
 	case StateOpen:
@@ -126,6 +127,21 @@ func (s CircuitState) String() string {
 	default:
 
 		return "Unknown"
+=======
+		return "closed"
+
+	case StateOpen:
+
+		return "open"
+
+	case StateHalfOpen:
+
+		return "half-open"
+
+	default:
+
+		return "unknown"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	}
 }
@@ -185,6 +201,25 @@ func NewCircuitBreaker(name string, config *CircuitBreakerConfig) *CircuitBreake
 		config = getDefaultCircuitBreakerConfig()
 	}
 
+<<<<<<< HEAD
+=======
+	// Fill in zero values with defaults
+	if config.FailureThreshold == 0 {
+		config.FailureThreshold = 5 // Default failure threshold
+	}
+	if config.SuccessThreshold == 0 {
+		config.SuccessThreshold = 1 // Default to 1 for traditional circuit breaker behavior
+	}
+	if config.Timeout == 0 {
+		config.Timeout = 30 * time.Second
+	}
+	if config.HalfOpenMaxRequests == 0 {
+		config.HalfOpenMaxRequests = 5
+	}
+	// Don't set default MinimumRequestCount or FailureRate if not specified
+	// These should remain 0 to indicate they're not being used
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	cb := &CircuitBreaker{
 		name: name,
 
@@ -313,18 +348,32 @@ func (cb *CircuitBreaker) Execute(ctx context.Context, operation CircuitOperatio
 // canExecute checks if the circuit breaker allows execution.
 
 func (cb *CircuitBreaker) canExecute() bool {
+<<<<<<< HEAD
 	cb.mutex.RLock()
 
 	switch cb.state {
 
 	case StateClosed:
 		cb.mutex.RUnlock()
+=======
+	// First check with read lock
+	cb.mutex.RLock()
+	state := cb.state
+	stateChangeTime := cb.stateChangeTime
+	halfOpenRequests := cb.halfOpenRequests
+	cb.mutex.RUnlock()
+
+	switch state {
+
+	case StateClosed:
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		return true
 
 	case StateOpen:
 
 		// Check if we should transition to half-open.
 
+<<<<<<< HEAD
 		if time.Since(cb.stateChangeTime) >= cb.config.ResetTimeout {
 
 			// Need to upgrade to write lock for state transition
@@ -332,6 +381,11 @@ func (cb *CircuitBreaker) canExecute() bool {
 			cb.mutex.RUnlock()
 
 			// Acquire write lock
+=======
+		if time.Since(stateChangeTime) >= cb.config.ResetTimeout {
+
+			// Acquire write lock for state transition
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			cb.mutex.Lock()
 			defer cb.mutex.Unlock()
 
@@ -345,18 +399,27 @@ func (cb *CircuitBreaker) canExecute() bool {
 
 		}
 
+<<<<<<< HEAD
 		cb.mutex.RUnlock()
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		return false
 
 	case StateHalfOpen:
 
 		// Allow limited requests in half-open state.
+<<<<<<< HEAD
 		result := cb.halfOpenRequests < cb.config.HalfOpenMaxRequests
 		cb.mutex.RUnlock()
 		return result
 
 	default:
 		cb.mutex.RUnlock()
+=======
+		return halfOpenRequests < cb.config.HalfOpenMaxRequests
+
+	default:
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		return false
 
 	}
@@ -428,8 +491,16 @@ func (cb *CircuitBreaker) recordResult(err error, latency time.Duration) {
 		})
 
 		// Check if we should open the circuit.
+<<<<<<< HEAD
 
 		if cb.shouldOpenCircuit() {
+=======
+		// In half-open state, any failure should immediately open the circuit
+		if cb.state == StateHalfOpen {
+			cb.transitionToOpen()
+		} else if cb.shouldOpenCircuit() {
+			// Check if we should open the circuit in closed state
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			cb.transitionToOpen()
 		}
 
@@ -484,11 +555,15 @@ func (cb *CircuitBreaker) shouldOpenCircuit() bool {
 	}
 
 	// Check failure threshold.
+<<<<<<< HEAD
 
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if cb.failureCount >= cb.config.FailureThreshold {
 		return true
 	}
 
+<<<<<<< HEAD
 	// Check failure rate.
 
 	if cb.requestCount >= cb.config.MinimumRequestCount {
@@ -499,6 +574,18 @@ func (cb *CircuitBreaker) shouldOpenCircuit() bool {
 			return true
 		}
 
+=======
+	// Check failure rate (only if MinimumRequestCount and FailureRate are configured)
+	// Skip this check if either is 0, as 0 means not configured
+	if cb.config.MinimumRequestCount > 0 && cb.config.FailureRate > 0 {
+		if cb.requestCount >= cb.config.MinimumRequestCount {
+			failureRate := float64(cb.failureCount) / float64(cb.requestCount)
+
+			if failureRate >= cb.config.FailureRate {
+				return true
+			}
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	return false
@@ -511,8 +598,19 @@ func (cb *CircuitBreaker) shouldCloseCircuit() bool {
 		return false
 	}
 
+<<<<<<< HEAD
 	// Check success threshold in half-open state.
 
+=======
+	// In half-open state, a single success should close the circuit
+	// This is the traditional circuit breaker behavior
+	// If SuccessThreshold is explicitly set to > 1, use that instead
+	if cb.config.SuccessThreshold <= 1 {
+		return true // First success closes the circuit
+	}
+	
+	// Check success threshold in half-open state.
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	recentSuccesses := cb.getRecentSuccesses()
 
 	return recentSuccesses >= cb.config.SuccessThreshold
@@ -700,6 +798,7 @@ func (cb *CircuitBreaker) GetStats() map[string]interface{} {
 	defer cb.mutex.RUnlock()
 
 	return map[string]interface{}{
+<<<<<<< HEAD
 		"state": cb.state,
 		"failure_count": cb.failureCount,
 		"success_count": cb.successCount,
@@ -707,6 +806,16 @@ func (cb *CircuitBreaker) GetStats() map[string]interface{} {
 		"last_failure_time": cb.lastFailureTime,
 		"last_success_time": cb.lastSuccessTime,
 		"state_change_time": cb.stateChangeTime,
+=======
+		"name":               cb.name,
+		"state":              cb.state.String(),
+		"failure_count":      cb.failureCount,
+		"success_count":      cb.successCount,
+		"request_count":      cb.requestCount,
+		"last_failure_time":  cb.lastFailureTime,
+		"last_success_time":  cb.lastSuccessTime,
+		"state_change_time":  cb.stateChangeTime,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		"half_open_requests": cb.halfOpenRequests,
 	}
 }

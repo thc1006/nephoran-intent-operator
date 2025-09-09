@@ -36,7 +36,11 @@ func (r *NetworkIntent) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
+<<<<<<< HEAD
 //+kubebuilder:webhook:path=/mutate-intent-nephoran-com-v1alpha1-networkintent,mutating=true,failurePolicy=fail,sideEffects=None,groups=intent.nephoran.com,resources=networkintents,verbs=create;update,versions=v1alpha1,name=mnetworkintent.kb.io,admissionReviewVersions=v1
+=======
+//+kubebuilder:webhook:path=/mutate-intent-nephio-org-v1alpha1-networkintent,mutating=true,failurePolicy=fail,sideEffects=None,groups=intent.nephio.org,resources=networkintents,verbs=create;update,versions=v1alpha1,name=mnetworkintent.kb.io,admissionReviewVersions=v1
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 var _ admission.CustomDefaulter = &NetworkIntent{}
 
@@ -62,7 +66,11 @@ func (r *NetworkIntent) Default(ctx context.Context, obj runtime.Object) error {
 	return nil
 }
 
+<<<<<<< HEAD
 //+kubebuilder:webhook:path=/validate-intent-nephoran-com-v1alpha1-networkintent,mutating=false,failurePolicy=fail,sideEffects=None,groups=intent.nephoran.com,resources=networkintents,verbs=create;update,versions=v1alpha1,name=vnetworkintent.kb.io,admissionReviewVersions=v1
+=======
+//+kubebuilder:webhook:path=/validate-intent-nephio-org-v1alpha1-networkintent,mutating=false,failurePolicy=fail,sideEffects=None,groups=intent.nephio.org,resources=networkintents,verbs=create;update,versions=v1alpha1,name=vnetworkintent.kb.io,admissionReviewVersions=v1
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 var _ admission.CustomValidator = &NetworkIntent{}
 
@@ -126,13 +134,34 @@ func (r *NetworkIntent) validateNetworkIntent() (admission.Warnings, error) {
 		allErrs = append(allErrs, fmt.Errorf("spec.replicas must be non-negative, got: %d", r.Spec.Replicas))
 	}
 
+<<<<<<< HEAD
+=======
+	// Validate source
+	validSources := []string{"user", "planner", "test"}
+	validSource := false
+	for _, validSrc := range validSources {
+		if r.Spec.Source == validSrc {
+			validSource = true
+			break
+		}
+	}
+	if !validSource {
+		allErrs = append(allErrs, fmt.Errorf("spec.source must be 'user', 'planner', or 'test', got: %s", r.Spec.Source))
+	}
+
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	// Add warning if replicas is very high
 	if r.Spec.Replicas > 100 {
 		warnings = append(warnings, "spec.replicas is set to a very high value, consider reviewing resource requirements")
 	}
 
 	if len(allErrs) > 0 {
+<<<<<<< HEAD
 		return warnings, fmt.Errorf("validation failed: %v", allErrs)
+=======
+		return nil, fmt.Errorf("intent validation failed: %v", allErrs)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	return warnings, nil

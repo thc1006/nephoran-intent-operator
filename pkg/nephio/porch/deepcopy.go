@@ -31,8 +31,11 @@ limitations under the License.
 package porch
 
 import (
+<<<<<<< HEAD
 	"encoding/json"
 
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -169,6 +172,7 @@ func (kr *KRMResource) DeepCopyInto(out *KRMResource) {
 	*out = *kr
 
 	if kr.Metadata != nil {
+<<<<<<< HEAD
 		// Deep copy json.RawMessage
 		out.Metadata = make(json.RawMessage, len(kr.Metadata))
 		copy(out.Metadata, kr.Metadata)
@@ -190,6 +194,37 @@ func (kr *KRMResource) DeepCopyInto(out *KRMResource) {
 		// Deep copy json.RawMessage
 		out.Data = make(json.RawMessage, len(kr.Data))
 		copy(out.Data, kr.Data)
+=======
+		// Deep copy map[string]interface{}
+		out.Metadata = make(map[string]interface{}, len(kr.Metadata))
+		for k, v := range kr.Metadata {
+			out.Metadata[k] = v
+		}
+	}
+
+	if kr.Spec != nil {
+		// Deep copy map[string]interface{}
+		out.Spec = make(map[string]interface{}, len(kr.Spec))
+		for k, v := range kr.Spec {
+			out.Spec[k] = v
+		}
+	}
+
+	if kr.Status != nil {
+		// Deep copy map[string]interface{}
+		out.Status = make(map[string]interface{}, len(kr.Status))
+		for k, v := range kr.Status {
+			out.Status[k] = v
+		}
+	}
+
+	if kr.Data != nil {
+		// Deep copy map[string]interface{}
+		out.Data = make(map[string]interface{}, len(kr.Data))
+		for k, v := range kr.Data {
+			out.Data[k] = v
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 }
 
@@ -201,9 +236,17 @@ func (fc *FunctionConfig) DeepCopyInto(out *FunctionConfig) {
 	*out = *fc
 
 	if fc.ConfigMap != nil {
+<<<<<<< HEAD
 		// Deep copy json.RawMessage
 		out.ConfigMap = make(json.RawMessage, len(fc.ConfigMap))
 		copy(out.ConfigMap, fc.ConfigMap)
+=======
+		// Deep copy map[string]interface{}
+		out.ConfigMap = make(map[string]interface{}, len(fc.ConfigMap))
+		for k, v := range fc.ConfigMap {
+			out.ConfigMap[k] = v
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	if fc.Selectors != nil {
@@ -436,6 +479,7 @@ func (pm *PackageMetadata) DeepCopyInto(out *PackageMetadata) {
 
 	}
 
+<<<<<<< HEAD
 	if pm.Labels != nil {
 
 		out.Labels = make(map[string]string, len(pm.Labels))
@@ -455,6 +499,9 @@ func (pm *PackageMetadata) DeepCopyInto(out *PackageMetadata) {
 		}
 
 	}
+=======
+	// Note: PackageMetadata doesn't have Labels or Annotations fields
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // DeepCopyInto performs deepcopyinto operation.
@@ -655,9 +702,17 @@ func (wt *WorkflowTrigger) DeepCopyInto(out *WorkflowTrigger) {
 	*out = *wt
 
 	if wt.Condition != nil {
+<<<<<<< HEAD
 		// Deep copy json.RawMessage
 		out.Condition = make(json.RawMessage, len(wt.Condition))
 		copy(out.Condition, wt.Condition)
+=======
+		// Deep copy map[string]interface{}
+		out.Condition = make(map[string]interface{}, len(wt.Condition))
+		for k, v := range wt.Condition {
+			out.Condition[k] = v
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 }
 
@@ -681,9 +736,17 @@ func (wc *WorkflowCondition) DeepCopyInto(out *WorkflowCondition) {
 	*out = *wc
 
 	if wc.Condition != nil {
+<<<<<<< HEAD
 		// Deep copy json.RawMessage
 		out.Condition = make(json.RawMessage, len(wc.Condition))
 		copy(out.Condition, wc.Condition)
+=======
+		// Deep copy map[string]interface{}
+		out.Condition = make(map[string]interface{}, len(wc.Condition))
+		for k, v := range wc.Condition {
+			out.Condition[k] = v
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 }
 
@@ -693,9 +756,17 @@ func (wa *WorkflowAction) DeepCopyInto(out *WorkflowAction) {
 	*out = *wa
 
 	if wa.Config != nil {
+<<<<<<< HEAD
 		// json.RawMessage is a byte slice, so we need to make a proper copy
 		out.Config = make(json.RawMessage, len(wa.Config))
 		copy(out.Config, wa.Config)
+=======
+		// Deep copy map[string]interface{}
+		out.Config = make(map[string]interface{}, len(wa.Config))
+		for k, v := range wa.Config {
+			out.Config[k] = v
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 }
 
@@ -705,9 +776,17 @@ func (fa *FailureAction) DeepCopyInto(out *FailureAction) {
 	*out = *fa
 
 	if fa.Config != nil {
+<<<<<<< HEAD
 		// Deep copy json.RawMessage
 		out.Config = make(json.RawMessage, len(fa.Config))
 		copy(out.Config, fa.Config)
+=======
+		// Deep copy map[string]interface{}
+		out.Config = make(map[string]interface{}, len(fa.Config))
+		for k, v := range fa.Config {
+			out.Config[k] = v
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 }
 
@@ -725,9 +804,17 @@ func (wr *WorkflowResult) DeepCopyInto(out *WorkflowResult) {
 	}
 
 	if wr.Data != nil {
+<<<<<<< HEAD
 		// Deep copy json.RawMessage
 		out.Data = make(json.RawMessage, len(wr.Data))
 		copy(out.Data, wr.Data)
+=======
+		// Deep copy map[string]interface{}
+		out.Data = make(map[string]interface{}, len(wr.Data))
+		for k, v := range wr.Data {
+			out.Data[k] = v
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 }
 

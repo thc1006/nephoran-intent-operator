@@ -56,7 +56,13 @@ func (suite *CNFDeploymentTestSuite) SetupSuite() {
 		},
 	}
 
+<<<<<<< HEAD
 	suite.o2Adaptor = o2.NewO2Adaptor(suite.k8sClient, suite.k8sClientset, config)
+=======
+	var err error
+	suite.o2Adaptor, err = o2.NewO2Adaptor(suite.k8sClient, suite.k8sClientset, config)
+	suite.Require().NoError(err)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	suite.o2Manager = o2.NewO2Manager(suite.o2Adaptor)
 
 	// Create test namespace
@@ -143,7 +149,11 @@ func (suite *CNFDeploymentTestSuite) TestAMFCNFDeployment() {
 					Add:  []corev1.Capability{"NET_BIND_SERVICE"},
 				},
 			},
+<<<<<<< HEAD
 			HealthCheck: &o2.HealthCheckConfig{
+=======
+			HealthCheck: &o2.TestHealthCheckConfig{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				LivenessProbe: &corev1.Probe{
 					ProbeHandler: corev1.ProbeHandler{
 						HTTPGet: &corev1.HTTPGetAction{
@@ -362,7 +372,11 @@ func (suite *CNFDeploymentTestSuite) TestSMFCNFDeployment() {
 					{Name: "metrics", Port: 9090, TargetPort: intstr.FromInt(9090)},
 				},
 			},
+<<<<<<< HEAD
 			HealthCheck: &o2.HealthCheckConfig{
+=======
+			HealthCheck: &o2.TestHealthCheckConfig{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				LivenessProbe: &corev1.Probe{
 					ProbeHandler: corev1.ProbeHandler{
 						TCPSocket: &corev1.TCPSocketAction{
@@ -549,12 +563,20 @@ func (suite *CNFDeploymentTestSuite) TestUPFCNFDeployment() {
 								MatchExpressions: []corev1.NodeSelectorRequirement{
 									{
 										Key:      "node.nephoran.com/dpdk",
+<<<<<<< HEAD
 										Operator: metav1.LabelSelectorOpIn,
+=======
+										Operator: corev1.NodeSelectorOpIn,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 										Values:   []string{"enabled"},
 									},
 									{
 										Key:      "node.nephoran.com/hugepages-1gi",
+<<<<<<< HEAD
 										Operator: metav1.LabelSelectorOpExists,
+=======
+										Operator: corev1.NodeSelectorOpExists,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 									},
 								},
 							},
@@ -631,7 +653,11 @@ func (suite *CNFDeploymentTestSuite) TestUPFCNFDeployment() {
 		// Check for DPDK label requirement
 		dpdkReq := requirements[0]
 		suite.Assert().Equal("node.nephoran.com/dpdk", dpdkReq.Key)
+<<<<<<< HEAD
 		suite.Assert().Equal(metav1.LabelSelectorOpIn, dpdkReq.Operator)
+=======
+		suite.Assert().Equal(corev1.NodeSelectorOpIn, dpdkReq.Operator)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		suite.Assert().Contains(dpdkReq.Values, "enabled")
 	})
 }
@@ -819,7 +845,11 @@ func (suite *CNFDeploymentTestSuite) TestCNFHealthMonitoring() {
 			Ports: []corev1.ContainerPort{
 				{Name: "http", ContainerPort: 80},
 			},
+<<<<<<< HEAD
 			HealthCheck: &o2.HealthCheckConfig{
+=======
+			HealthCheck: &o2.TestHealthCheckConfig{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				LivenessProbe: &corev1.Probe{
 					ProbeHandler: corev1.ProbeHandler{
 						TCPSocket: &corev1.TCPSocketAction{

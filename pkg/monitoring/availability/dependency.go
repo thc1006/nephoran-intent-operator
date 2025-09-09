@@ -151,6 +151,11 @@ type CircuitBreakerConfig struct {
 
 	RecoveryTimeout time.Duration `json:"recovery_timeout"`
 
+<<<<<<< HEAD
+=======
+	ResetTimeout time.Duration `json:"reset_timeout"`
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	HalfOpenMaxCalls int `json:"half_open_max_calls"`
 
 	MinRequestsThreshold int `json:"min_requests_threshold"`
@@ -330,9 +335,42 @@ type CircuitBreakerState struct {
 	ConsecutiveSuccesses int `json:"consecutive_successes"`
 }
 
+<<<<<<< HEAD
 // DependencyTrackerConfig holds configuration for the dependency tracker.
 
 type DependencyTrackerConfig struct {
+=======
+// DependencyConfig represents configuration for a single dependency
+type DependencyConfig struct {
+	Name           string                 `json:"name"`
+	Type           DependencyType         `json:"type"`
+	Endpoint       string                 `json:"endpoint"`
+	BusinessImpact BusinessImpact         `json:"business_impact"`
+	FailureMode    FailureMode           `json:"failure_mode"`
+	CircuitBreaker CircuitBreakerConfig  `json:"circuit_breaker"`
+	HealthCheck    HealthCheckConfig     `json:"health_check"`
+}
+
+// HealthCheckConfig represents health check configuration
+type HealthCheckConfig struct {
+	Interval       time.Duration `json:"interval"`
+	Timeout        time.Duration `json:"timeout"`
+	Path           string        `json:"path"`
+	ExpectedStatus int           `json:"expected_status"`
+}
+
+// Use existing FailureMode constants
+const (
+	FailModeOpen     = FailureModeCircuitBreak
+	FailModeCircuit  = FailureModeCircuitBreak  
+	FailModeFallback = FailureModeSoftFail
+)
+
+// DependencyTrackerConfig holds configuration for the dependency tracker.
+
+type DependencyTrackerConfig struct {
+	Dependencies []DependencyConfig `json:"dependencies"`
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	MonitoringInterval time.Duration `json:"monitoring_interval"`
 
 	HealthCheckTimeout time.Duration `json:"health_check_timeout"`

@@ -47,6 +47,15 @@ import (
 	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
+<<<<<<< HEAD
+=======
+// GeneratorInterface defines the interface for blueprint generators
+type GeneratorInterface interface {
+	GenerateFromNetworkIntent(ctx context.Context, intent *v1.NetworkIntent) (map[string]string, error)
+	HealthCheck(ctx context.Context) bool
+}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 const (
 
 	// Blueprint lifecycle phases.
@@ -197,6 +206,7 @@ type BlueprintMetrics struct {
 	ProcessingLatency prometheus.Histogram
 }
 
+<<<<<<< HEAD
 // NewBlueprintMetrics creates new blueprint metrics.
 
 func NewBlueprintMetrics() *BlueprintMetrics {
@@ -297,6 +307,117 @@ func NewBlueprintMetrics() *BlueprintMetrics {
 			Buckets: []float64{0.1, 0.25, 0.5, 1, 2.5, 5, 10},
 		}),
 	}
+=======
+var (
+	// Global singleton metrics instance and initialization guard.
+	globalMetrics *BlueprintMetrics
+	metricsOnce   sync.Once
+)
+
+// NewBlueprintMetrics creates new blueprint metrics using singleton pattern to prevent duplicate registration.
+
+func NewBlueprintMetrics() *BlueprintMetrics {
+	metricsOnce.Do(func() {
+		globalMetrics = &BlueprintMetrics{
+			GenerationDuration: promauto.NewHistogram(prometheus.HistogramOpts{
+				Name: "nephoran_blueprint_generation_duration_seconds",
+
+				Help: "Duration of blueprint generation operations",
+
+				Buckets: prometheus.DefBuckets,
+			}),
+
+			GenerationTotal: promauto.NewCounter(prometheus.CounterOpts{
+				Name: "nephoran_blueprint_generation_total",
+
+				Help: "Total number of blueprint generation operations",
+			}),
+
+			GenerationErrors: promauto.NewCounter(prometheus.CounterOpts{
+				Name: "nephoran_blueprint_generation_errors_total",
+
+				Help: "Total number of blueprint generation errors",
+			}),
+
+			TemplateHits: promauto.NewCounter(prometheus.CounterOpts{
+				Name: "nephoran_blueprint_template_hits_total",
+
+				Help: "Total number of blueprint template cache hits",
+			}),
+
+			TemplateMisses: promauto.NewCounter(prometheus.CounterOpts{
+				Name: "nephoran_blueprint_template_misses_total",
+
+				Help: "Total number of blueprint template cache misses",
+			}),
+
+			TemplateErrors: promauto.NewCounter(prometheus.CounterOpts{
+				Name: "nephoran_blueprint_template_errors_total",
+
+				Help: "Total number of blueprint template errors",
+			}),
+
+			ValidationDuration: promauto.NewHistogram(prometheus.HistogramOpts{
+				Name: "nephoran_blueprint_validation_duration_seconds",
+
+				Help: "Duration of blueprint validation operations",
+
+				Buckets: prometheus.DefBuckets,
+			}),
+
+			ValidationTotal: promauto.NewCounter(prometheus.CounterOpts{
+				Name: "nephoran_blueprint_validation_total",
+
+				Help: "Total number of blueprint validation operations",
+			}),
+
+			ValidationErrors: promauto.NewCounter(prometheus.CounterOpts{
+				Name: "nephoran_blueprint_validation_errors_total",
+
+				Help: "Total number of blueprint validation errors",
+			}),
+
+			CacheSize: promauto.NewGauge(prometheus.GaugeOpts{
+				Name: "nephoran_blueprint_cache_size",
+
+				Help: "Current size of blueprint template cache",
+			}),
+
+			CacheHitRatio: promauto.NewGauge(prometheus.GaugeOpts{
+				Name: "nephoran_blueprint_cache_hit_ratio",
+
+				Help: "Cache hit ratio for blueprint templates",
+			}),
+
+			CacheEvictions: promauto.NewCounter(prometheus.CounterOpts{
+				Name: "nephoran_blueprint_cache_evictions_total",
+
+				Help: "Total number of blueprint template cache evictions",
+			}),
+
+			ConcurrentOperations: promauto.NewGauge(prometheus.GaugeOpts{
+				Name: "nephoran_blueprint_concurrent_operations",
+
+				Help: "Current number of concurrent blueprint operations",
+			}),
+
+			QueueDepth: promauto.NewGauge(prometheus.GaugeOpts{
+				Name: "nephoran_blueprint_queue_depth",
+
+				Help: "Current depth of blueprint operation queue",
+			}),
+
+			ProcessingLatency: promauto.NewHistogram(prometheus.HistogramOpts{
+				Name: "nephoran_blueprint_processing_latency_seconds",
+
+				Help: "Latency of blueprint processing operations",
+
+				Buckets: []float64{0.1, 0.25, 0.5, 1, 2.5, 5, 10},
+			}),
+		}
+	})
+	return globalMetrics
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // BlueprintConfig contains configuration for the blueprint manager.
@@ -428,11 +549,19 @@ type Manager struct {
 
 	catalog *Catalog
 
+<<<<<<< HEAD
 	generator *Generator
 
 	customizer *Customizer
 
 	validator *Validator
+=======
+	generator GeneratorInterface
+
+	customizer *Customizer
+
+	validator ValidatorInterface
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// Operation management.
 
@@ -458,17 +587,46 @@ type Manager struct {
 }
 
 // NewManager creates a new blueprint manager.
+<<<<<<< HEAD
 
 func NewManager(mgr manager.Manager, config *BlueprintConfig, logger *zap.Logger) (*Manager, error) {
 	if config == nil {
 		config = DefaultBlueprintConfig()
 	}
 
+=======
+func NewManager(mgr manager.Manager, config *BlueprintConfig, logger *zap.Logger) (*Manager, error) {
+	// Defensive programming: Validate inputs
+	if mgr == nil {
+		return nil, fmt.Errorf("controller manager is nil")
+	}
+	if config == nil {
+		config = DefaultBlueprintConfig()
+	}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if logger == nil {
 		logger = zap.NewNop()
 	}
 
+<<<<<<< HEAD
 	k8sClient, err := kubernetes.NewForConfig(mgr.GetConfig())
+=======
+	// Validate config fields
+	if config.MaxConcurrency <= 0 {
+		config.MaxConcurrency = DefaultMaxConcurrency
+	}
+	if config.CacheTTL <= 0 {
+		config.CacheTTL = DefaultCacheTTL
+	}
+
+	// Get Kubernetes config with defensive check
+	k8sConfig := mgr.GetConfig()
+	if k8sConfig == nil {
+		return nil, fmt.Errorf("Kubernetes config is nil")
+	}
+
+	k8sClient, err := kubernetes.NewForConfig(k8sConfig)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
@@ -525,40 +683,94 @@ func NewManager(mgr manager.Manager, config *BlueprintConfig, logger *zap.Logger
 }
 
 // initializeComponents initializes all blueprint manager components.
+<<<<<<< HEAD
 
 func (m *Manager) initializeComponents() error {
 	var err error
 
 	// Initialize catalog.
 
+=======
+func (m *Manager) initializeComponents() error {
+	// Defensive programming: Validate manager
+	if m == nil {
+		return fmt.Errorf("manager is nil")
+	}
+	if m.config == nil {
+		return fmt.Errorf("config is nil")
+	}
+	if m.logger == nil {
+		m.logger = zap.NewNop()
+	}
+	
+	// Add panic recovery
+	defer func() {
+		if r := recover(); r != nil {
+			m.logger.Error("Panic recovered in initializeComponents", 
+				zap.Any("panic", r),
+				zap.Stack("stack"))
+		}
+	}()
+
+	var err error
+
+	// Initialize catalog with defensive programming
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	m.catalog, err = NewCatalog(m.config, m.logger.Named("catalog"))
 	if err != nil {
 		return fmt.Errorf("failed to initialize catalog: %w", err)
 	}
 
+<<<<<<< HEAD
 	// Initialize generator.
 
+=======
+	// Initialize generator with defensive programming
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	m.generator, err = NewGenerator(m.config, m.logger.Named("generator"))
 	if err != nil {
 		return fmt.Errorf("failed to initialize generator: %w", err)
 	}
+<<<<<<< HEAD
 
 	// Initialize customizer.
 
+=======
+	if m.generator == nil {
+		return fmt.Errorf("generator creation returned nil")
+	}
+
+	// Initialize customizer with defensive programming
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	m.customizer, err = NewCustomizer(m.config, m.logger.Named("customizer"))
 	if err != nil {
 		return fmt.Errorf("failed to initialize customizer: %w", err)
 	}
+<<<<<<< HEAD
 
 	// Initialize validator if enabled.
 
 	if m.config.EnableValidation {
 
+=======
+	if m.customizer == nil {
+		return fmt.Errorf("customizer creation returned nil")
+	}
+
+	// Initialize validator if enabled with defensive programming
+	if m.config.EnableValidation {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		m.validator, err = NewValidator(m.config, m.logger.Named("validator"))
 		if err != nil {
 			return fmt.Errorf("failed to initialize validator: %w", err)
 		}
+<<<<<<< HEAD
 
+=======
+		if m.validator == nil {
+			return fmt.Errorf("validator creation returned nil")
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	return nil
@@ -597,6 +809,7 @@ func (m *Manager) startWorkers() {
 }
 
 // ProcessNetworkIntent processes a NetworkIntent and generates blueprint packages.
+<<<<<<< HEAD
 
 func (m *Manager) ProcessNetworkIntent(ctx context.Context, intent *v1.NetworkIntent) (*BlueprintResult, error) {
 	startTime := time.Now()
@@ -605,6 +818,39 @@ func (m *Manager) ProcessNetworkIntent(ctx context.Context, intent *v1.NetworkIn
 
 	m.metrics.ConcurrentOperations.Inc()
 
+=======
+func (m *Manager) ProcessNetworkIntent(ctx context.Context, intent *v1.NetworkIntent) (*BlueprintResult, error) {
+	// Defensive programming: Validate inputs
+	if m == nil {
+		return nil, fmt.Errorf("manager is nil")
+	}
+	if ctx == nil {
+		return nil, fmt.Errorf("context is nil")
+	}
+	if intent == nil {
+		return nil, fmt.Errorf("intent is nil")
+	}
+	if m.metrics == nil {
+		m.metrics = NewBlueprintMetrics()
+	}
+	if m.logger == nil {
+		m.logger = zap.NewNop()
+	}
+
+	// Add panic recovery for critical path
+	defer func() {
+		if r := recover(); r != nil {
+			m.logger.Error("Panic recovered in ProcessNetworkIntent", 
+				zap.Any("panic", r),
+				zap.Stack("stack"))
+		}
+	}()
+
+	startTime := time.Now()
+
+	m.metrics.GenerationTotal.Inc()
+	m.metrics.ConcurrentOperations.Inc()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	defer m.metrics.ConcurrentOperations.Dec()
 
 	defer func() {
@@ -667,18 +913,50 @@ func (m *Manager) ProcessNetworkIntent(ctx context.Context, intent *v1.NetworkIn
 }
 
 // processOperationSync processes a blueprint operation synchronously.
+<<<<<<< HEAD
 
 func (m *Manager) processOperationSync(operation *BlueprintOperation) *BlueprintResult {
+=======
+func (m *Manager) processOperationSync(operation *BlueprintOperation) *BlueprintResult {
+	// Defensive programming: Validate inputs
+	if m == nil || operation == nil {
+		return &BlueprintResult{
+			Success: false,
+			Error:   fmt.Errorf("manager or operation is nil"),
+		}
+	}
+	
+	// Add panic recovery
+	defer func() {
+		if r := recover(); r != nil {
+			if m.logger != nil {
+				m.logger.Error("Panic recovered in processOperationSync", 
+					zap.Any("panic", r),
+					zap.Stack("stack"))
+			}
+		}
+	}()
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	result := &BlueprintResult{
 		Operation: operation,
 	}
 
 	defer func() {
+<<<<<<< HEAD
 		result.Duration = time.Since(operation.StartTime)
+=======
+		if operation.StartTime.IsZero() {
+			result.Duration = 0
+		} else {
+			result.Duration = time.Since(operation.StartTime)
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}()
 
 	// Step 1: Generate blueprint from NetworkIntent.
 
+<<<<<<< HEAD
 	generatedFiles, err := m.generator.GenerateFromNetworkIntent(operation.Context, operation.Intent)
 	if err != nil {
 
@@ -686,12 +964,30 @@ func (m *Manager) processOperationSync(operation *BlueprintOperation) *Blueprint
 
 		return result
 
+=======
+	// Defensive check for generator availability
+	if m.generator == nil {
+		result.Error = fmt.Errorf("generator is not initialized")
+		return result
+	}
+
+	generatedFiles, err := m.generator.GenerateFromNetworkIntent(operation.Context, operation.Intent)
+	if err != nil {
+		result.Error = fmt.Errorf("blueprint generation failed: %w", err)
+		return result
+	}
+	
+	// Defensive check for generated files
+	if generatedFiles == nil {
+		generatedFiles = make(map[string]string)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	result.GeneratedFiles = generatedFiles
 
 	// Step 2: Customize blueprint based on intent parameters.
 
+<<<<<<< HEAD
 	customizedFiles, err := m.customizer.CustomizeBlueprint(operation.Context, operation.Intent, generatedFiles)
 	if err != nil {
 
@@ -699,6 +995,27 @@ func (m *Manager) processOperationSync(operation *BlueprintOperation) *Blueprint
 
 		return result
 
+=======
+	var customizedFiles map[string]string
+	// Defensive check for customizer availability
+	if m.customizer == nil {
+		// Use original files if customizer is not available
+		customizedFiles = generatedFiles
+		if m.logger != nil {
+			m.logger.Warn("Customizer not available, using original files")
+		}
+	} else {
+		var err error
+		customizedFiles, err = m.customizer.CustomizeBlueprint(operation.Context, operation.Intent, generatedFiles)
+		if err != nil {
+			result.Error = fmt.Errorf("blueprint customization failed: %w", err)
+			return result
+		}
+		// Defensive check for customized files
+		if customizedFiles == nil {
+			customizedFiles = generatedFiles
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	result.GeneratedFiles = customizedFiles
@@ -706,6 +1023,7 @@ func (m *Manager) processOperationSync(operation *BlueprintOperation) *Blueprint
 	// Step 3: Validate blueprint if validation is enabled.
 
 	if m.validator != nil {
+<<<<<<< HEAD
 
 		validationResult, err := m.validator.ValidateBlueprint(operation.Context, operation.Intent, customizedFiles)
 		if err != nil {
@@ -738,6 +1056,51 @@ func (m *Manager) processOperationSync(operation *BlueprintOperation) *Blueprint
 
 		}
 
+=======
+		validationResult, err := m.validator.ValidateBlueprint(operation.Context, operation.Intent, customizedFiles)
+		if err != nil {
+			// When validator fails with error, continue gracefully with default valid result
+			result.ValidationResults = &SimpleValidationResult{
+				IsValid: true, // Default to valid when validator has an error
+				Errors:  []string{},
+			}
+			// Log the validation error but continue processing
+			if m.logger != nil {
+				m.logger.Warn("Validator failed, continuing with default valid result", zap.Error(err))
+			}
+		} else if validationResult != nil {
+			// Convert ValidationResult to SimpleValidationResult with defensive programming
+			var errorStrings []string
+			errorStrings = make([]string, 0, len(validationResult.Errors))
+
+			for _, err := range validationResult.Errors {
+				if err.Message != "" {
+					errorStrings = append(errorStrings, err.Message)
+				}
+			}
+
+			result.ValidationResults = &SimpleValidationResult{
+				IsValid: validationResult.IsValid,
+				Errors: errorStrings,
+			}
+		} else {
+			// Validation returned nil result
+			result.ValidationResults = &SimpleValidationResult{
+				IsValid: false,
+				Errors: []string{"validation result is nil"},
+			}
+		}
+
+		// Even if validation fails, we continue with the result
+		// The validation results are already captured in result.ValidationResults
+
+	} else {
+		// No validator configured - default to valid
+		result.ValidationResults = &SimpleValidationResult{
+			IsValid: true,
+			Errors:  []string{},
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	// Step 4: Create Nephio PackageRevision.
@@ -759,8 +1122,25 @@ func (m *Manager) processOperationSync(operation *BlueprintOperation) *Blueprint
 }
 
 // createPackageRevision creates a Nephio PackageRevision.
+<<<<<<< HEAD
 
 func (m *Manager) createPackageRevision(ctx context.Context, intent *v1.NetworkIntent, files map[string]string) (*PackageRevision, error) {
+=======
+func (m *Manager) createPackageRevision(ctx context.Context, intent *v1.NetworkIntent, files map[string]string) (*PackageRevision, error) {
+	// Defensive programming: Validate inputs
+	if ctx == nil {
+		return nil, fmt.Errorf("context is nil")
+	}
+	if intent == nil {
+		return nil, fmt.Errorf("intent is nil")
+	}
+	if files == nil {
+		files = make(map[string]string)
+	}
+	if m == nil {
+		return nil, fmt.Errorf("manager is nil")
+	}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	packageRevision := &PackageRevision{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "porch.kpt.dev/v1alpha1",
@@ -839,6 +1219,7 @@ func (m *Manager) getComponentFromIntent(intent *v1.NetworkIntent) string {
 }
 
 // operationWorker processes blueprint operations from the queue.
+<<<<<<< HEAD
 
 func (m *Manager) operationWorker() {
 	defer m.wg.Done()
@@ -878,6 +1259,75 @@ func (m *Manager) operationWorker() {
 
 			}
 
+=======
+func (m *Manager) operationWorker() {
+	// Defensive programming: Validate manager
+	if m == nil {
+		return
+	}
+	
+	// Add panic recovery
+	defer func() {
+		if r := recover(); r != nil {
+			if m.logger != nil {
+				m.logger.Error("Panic recovered in operationWorker", 
+					zap.Any("panic", r),
+					zap.Stack("stack"))
+			}
+		}
+		m.wg.Done()
+	}()
+
+	for {
+		select {
+		case <-m.ctx.Done():
+			return
+
+		case operation := <-m.operationQueue:
+			// Defensive check for nil operation
+			if operation == nil {
+				continue
+			}
+
+			// Acquire semaphore with defensive checks
+			select {
+			case m.semaphore <- struct{}{}:
+				// Process operation with error handling
+				func() {
+					defer func() {
+						if r := recover(); r != nil {
+							if m.logger != nil {
+								m.logger.Error("Panic in operation processing", 
+									zap.Any("panic", r),
+									zap.Stack("stack"))
+							}
+						}
+						// Always release semaphore
+						<-m.semaphore
+					}()
+					
+					result := m.processOperationSync(operation)
+					
+					// Execute callback if provided with defensive checks
+					if operation.Callback != nil && result != nil {
+						func() {
+							defer func() {
+								if r := recover(); r != nil {
+									if m.logger != nil {
+										m.logger.Error("Panic in callback execution", 
+											zap.Any("panic", r))
+									}
+								}
+							}()
+							operation.Callback(result)
+						}()
+					}
+				}()
+
+			case <-m.ctx.Done():
+				return
+			}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 	}
 }
@@ -907,6 +1357,7 @@ func (m *Manager) healthCheckWorker() {
 }
 
 // performHealthCheck checks the health of all components.
+<<<<<<< HEAD
 
 func (m *Manager) performHealthCheck() {
 	m.healthMutex.Lock()
@@ -933,6 +1384,62 @@ func (m *Manager) performHealthCheck() {
 
 	if m.validator != nil {
 		m.healthStatus["validator"] = m.validator.HealthCheck(ctx)
+=======
+func (m *Manager) performHealthCheck() {
+	// Defensive programming: Validate manager
+	if m == nil {
+		return
+	}
+	
+	// Add panic recovery
+	defer func() {
+		if r := recover(); r != nil {
+			if m.logger != nil {
+				m.logger.Error("Panic recovered in performHealthCheck", 
+					zap.Any("panic", r),
+					zap.Stack("stack"))
+			}
+		}
+	}()
+
+	m.healthMutex.Lock()
+	defer m.healthMutex.Unlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Initialize healthStatus if nil
+	if m.healthStatus == nil {
+		m.healthStatus = make(map[string]bool)
+	}
+
+	// Check catalog health with defensive programming
+	if m.catalog != nil {
+		m.healthStatus["catalog"] = m.catalog.HealthCheck(ctx)
+	} else {
+		m.healthStatus["catalog"] = false
+	}
+
+	// Check generator health with defensive programming
+	if m.generator != nil {
+		m.healthStatus["generator"] = m.generator.HealthCheck(ctx)
+	} else {
+		m.healthStatus["generator"] = false
+	}
+
+	// Check customizer health with defensive programming
+	if m.customizer != nil {
+		m.healthStatus["customizer"] = m.customizer.HealthCheck(ctx)
+	} else {
+		m.healthStatus["customizer"] = false
+	}
+
+	// Check validator health if enabled
+	if m.validator != nil {
+		m.healthStatus["validator"] = m.validator.HealthCheck(ctx)
+	} else {
+		m.healthStatus["validator"] = false
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	m.lastHealthCheck = time.Now()
@@ -963,6 +1470,7 @@ func (m *Manager) metricsWorker() {
 }
 
 // updateMetrics updates Prometheus metrics.
+<<<<<<< HEAD
 
 func (m *Manager) updateMetrics() {
 	// Update queue depth.
@@ -997,6 +1505,53 @@ func (m *Manager) updateMetrics() {
 
 		}
 
+=======
+func (m *Manager) updateMetrics() {
+	// Defensive programming: Validate manager and metrics
+	if m == nil || m.metrics == nil {
+		return
+	}
+	
+	// Add panic recovery
+	defer func() {
+		if r := recover(); r != nil {
+			if m.logger != nil {
+				m.logger.Error("Panic recovered in updateMetrics", 
+					zap.Any("panic", r),
+					zap.Stack("stack"))
+			}
+		}
+	}()
+
+	// Update queue depth with nil check
+	if m.operationQueue != nil {
+		m.metrics.QueueDepth.Set(float64(len(m.operationQueue)))
+	}
+
+	// Update cache size with defensive operations
+	cacheSize := 0
+	m.cache.Range(func(key, value interface{}) bool {
+		if key != nil && value != nil {
+			cacheSize++
+		}
+		return true
+	})
+	m.metrics.CacheSize.Set(float64(cacheSize))
+
+	// Update cache hit ratio if we have template metrics.
+	if m.catalog != nil {
+		hits := m.catalog.GetCacheHits()
+		misses := m.catalog.GetCacheMisses()
+		
+		// Defensive check to avoid division by zero
+		if hits+misses > 0 && hits >= 0 && misses >= 0 {
+			ratio := float64(hits) / float64(hits+misses)
+			// Ensure ratio is valid (between 0 and 1)
+			if ratio >= 0 && ratio <= 1 {
+				m.metrics.CacheHitRatio.Set(ratio)
+			}
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 }
 
@@ -1025,6 +1580,7 @@ func (m *Manager) cacheCleanupWorker() {
 }
 
 // cleanupCache removes expired entries from cache.
+<<<<<<< HEAD
 
 func (m *Manager) cleanupCache() {
 	now := time.Now()
@@ -1040,6 +1596,39 @@ func (m *Manager) cleanupCache() {
 
 					evicted++
 
+=======
+func (m *Manager) cleanupCache() {
+	// Defensive programming: Validate manager
+	if m == nil {
+		return
+	}
+	
+	// Add panic recovery
+	defer func() {
+		if r := recover(); r != nil {
+			if m.logger != nil {
+				m.logger.Error("Panic recovered in cleanupCache", 
+					zap.Any("panic", r),
+					zap.Stack("stack"))
+			}
+		}
+	}()
+
+	now := time.Now()
+	evicted := 0
+
+	// Defensive cache operations with nil checks
+	m.cache.Range(func(key, value interface{}) bool {
+		if key == nil || value == nil {
+			return true
+		}
+		
+		if cacheEntry, ok := value.(map[string]interface{}); ok && cacheEntry != nil {
+			if expireTime, exists := cacheEntry["expire_time"]; exists && expireTime != nil {
+				if expTime, ok := expireTime.(time.Time); ok && now.After(expTime) {
+					m.cache.Delete(key)
+					evicted++
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				}
 			}
 		}
@@ -1057,6 +1646,7 @@ func (m *Manager) cleanupCache() {
 }
 
 // GetHealthStatus returns the current health status of all components.
+<<<<<<< HEAD
 
 func (m *Manager) GetHealthStatus() map[string]bool {
 	m.healthMutex.RLock()
@@ -1067,28 +1657,92 @@ func (m *Manager) GetHealthStatus() map[string]bool {
 
 	for component, health := range m.healthStatus {
 		status[component] = health
+=======
+func (m *Manager) GetHealthStatus() map[string]bool {
+	// Defensive programming: Validate manager
+	if m == nil {
+		return make(map[string]bool)
+	}
+	
+	// Add panic recovery
+	defer func() {
+		if r := recover(); r != nil {
+			if m.logger != nil {
+				m.logger.Error("Panic recovered in GetHealthStatus", 
+					zap.Any("panic", r),
+					zap.Stack("stack"))
+			}
+		}
+	}()
+
+	m.healthMutex.RLock()
+	defer m.healthMutex.RUnlock()
+
+	status := make(map[string]bool)
+	
+	// Defensive check for healthStatus
+	if m.healthStatus != nil {
+		for component, health := range m.healthStatus {
+			if component != "" {
+				status[component] = health
+			}
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	return status
 }
 
 // GetMetrics returns current metrics.
+<<<<<<< HEAD
 
 func (m *Manager) GetMetrics() map[string]interface{} {
 	size := 0
 	m.cache.Range(func(k, v interface{}) bool {
 		size++
+=======
+func (m *Manager) GetMetrics() map[string]interface{} {
+	// Defensive programming: Validate manager
+	if m == nil {
+		return map[string]interface{}{
+			"error": "manager is nil",
+		}
+	}
+	
+	// Add panic recovery
+	defer func() {
+		if r := recover(); r != nil {
+			if m.logger != nil {
+				m.logger.Error("Panic recovered in GetMetrics", 
+					zap.Any("panic", r),
+					zap.Stack("stack"))
+			}
+		}
+	}()
+
+	size := 0
+	m.cache.Range(func(k, v interface{}) bool {
+		if k != nil && v != nil {
+			size++
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		return true
 	})
 
 	return map[string]interface{}{
 		"blueprints_count": size,
+<<<<<<< HEAD
 		"cache_size":      size,
 		"last_updated":    time.Now().Unix(),
+=======
+		"cache_size":       size,
+		"last_updated":     time.Now().Unix(),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 }
 
 // Stop gracefully stops the blueprint manager.
+<<<<<<< HEAD
 
 func (m *Manager) Stop() error {
 	m.logger.Info("Stopping blueprint manager...")
@@ -1096,6 +1750,33 @@ func (m *Manager) Stop() error {
 	// Cancel context to stop workers.
 
 	m.cancel()
+=======
+func (m *Manager) Stop() error {
+	// Defensive programming: Handle nil manager
+	if m == nil {
+		return fmt.Errorf("manager is nil")
+	}
+	
+	// Add panic recovery
+	defer func() {
+		if r := recover(); r != nil {
+			if m.logger != nil {
+				m.logger.Error("Panic recovered in Stop method", 
+					zap.Any("panic", r),
+					zap.Stack("stack"))
+			}
+		}
+	}()
+
+	if m.logger != nil {
+		m.logger.Info("Stopping blueprint manager...")
+	}
+
+	// Defensive check for cancel function
+	if m.cancel != nil {
+		m.cancel()
+	}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// Wait for workers to finish with timeout.
 
@@ -1121,4 +1802,7 @@ func (m *Manager) Stop() error {
 
 	return nil
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

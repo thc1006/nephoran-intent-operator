@@ -44,38 +44,63 @@ on:
         default: 'go-modules'
 
 env:
+<<<<<<< HEAD
   GO_VERSION: "1.22.7"
+=======
+  GO_VERSION: "1.24.6"  # EMERGENCY FIX - Match go.mod toolchain
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
   CACHE_VERSION: "v4"
   MAX_CACHE_SIZE_MB: "2048"  # 2GB limit
   CACHE_VALIDATION_TIMEOUT: "60"  # seconds
 
 jobs:
   cache-recovery:
+<<<<<<< HEAD
     name: ðŸ—‚ï¸ Cache Recovery & Validation
     runs-on: ubuntu-22.04
     timeout-minutes: 15
+=======
+    name: ??ï¸?Cache Recovery & Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
     outputs:
       cache-hit: ${{ steps.final-status.outputs.cache-hit }}
       cache-key: ${{ steps.final-status.outputs.cache-key }}
       recovery-performed: ${{ steps.final-status.outputs.recovery-performed }}
       
     steps:
+<<<<<<< HEAD
       - name: ðŸ“¥ Checkout
+=======
+      - name: ?“¥ Checkout
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
           persist-credentials: false
           
+<<<<<<< HEAD
       - name: ðŸ”§ Setup Go
+=======
+      - name: ?”§ Setup Go
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: false
           
+<<<<<<< HEAD
       - name: ðŸ” Analyze cache requirements
         id: cache-analysis
         run: |
           echo "ðŸ” Analyzing cache requirements..."
+=======
+      - name: ?? Analyze cache requirements
+        id: cache-analysis
+        run: |
+          echo "?? Analyzing cache requirements..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           # Calculate file hashes for cache key
           go_mod_hash=""
@@ -84,21 +109,35 @@ jobs:
           
           if [[ -f go.mod ]]; then
             go_mod_hash=$(sha256sum go.mod | cut -d' ' -f1)
+<<<<<<< HEAD
             echo "âœ… go.mod hash: ${go_mod_hash:0:12}..."
           else
             echo "âŒ No go.mod found"
+=======
+            echo "??go.mod hash: ${go_mod_hash:0:12}..."
+          else
+            echo "??No go.mod found"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             exit 1
           fi
           
           if [[ -f go.sum ]]; then
             go_sum_hash=$(sha256sum go.sum | cut -d' ' -f1)
+<<<<<<< HEAD
             echo "âœ… go.sum hash: ${go_sum_hash:0:12}..."
+=======
+            echo "??go.sum hash: ${go_sum_hash:0:12}..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           fi
           
           # Hash critical Go files for more precise caching
           if find . -name "*.go" -type f | head -100 | xargs sha256sum 2>/dev/null; then
             go_files_hash=$(find . -name "*.go" -type f | head -100 | xargs sha256sum 2>/dev/null | sha256sum | cut -d' ' -f1)
+<<<<<<< HEAD
             echo "âœ… Go files hash: ${go_files_hash:0:12}..."
+=======
+            echo "??Go files hash: ${go_files_hash:0:12}..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           fi
           
           # Create comprehensive cache key
@@ -125,6 +164,7 @@ jobs:
           echo "fallback-key2=$fallback_key2" >> $GITHUB_OUTPUT
           echo "base-key=$base_key" >> $GITHUB_OUTPUT
           
+<<<<<<< HEAD
           echo "ðŸ”‘ Primary cache key: $primary_key"
           echo "ðŸ”‘ Fallback 1: $fallback_key1"
           echo "ðŸ”‘ Fallback 2: $fallback_key2"
@@ -132,6 +172,15 @@ jobs:
       - name: ðŸ§¹ Pre-cache cleanup
         run: |
           echo "ðŸ§¹ Performing pre-cache cleanup..."
+=======
+          echo "?? Primary cache key: $primary_key"
+          echo "?? Fallback 1: $fallback_key1"
+          echo "?? Fallback 2: $fallback_key2"
+          
+      - name: ?§¹ Pre-cache cleanup
+        run: |
+          echo "?§¹ Performing pre-cache cleanup..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           # Remove any existing Go cache to prevent conflicts
           rm -rf ~/go/pkg/mod ~/.cache/go-build || true
@@ -145,9 +194,15 @@ jobs:
           go env -w GOMODCACHE="$HOME/go/pkg/mod"
           go env -w GOCACHE="$HOME/.cache/go-build"
           
+<<<<<<< HEAD
           echo "âœ… Pre-cache cleanup completed"
           
       - name: ðŸ—‚ï¸ Attempt primary cache restore
+=======
+          echo "??Pre-cache cleanup completed"
+          
+      - name: ??ï¸?Attempt primary cache restore
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         id: primary-cache
         if: inputs.force_refresh != true
         uses: actions/cache@v4
@@ -158,7 +213,11 @@ jobs:
             ~/.cache/go-build
           key: ${{ steps.cache-analysis.outputs.primary-key }}
           
+<<<<<<< HEAD
       - name: ðŸ”„ Fallback cache restore (level 1)
+=======
+      - name: ?? Fallback cache restore (level 1)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         id: fallback-cache1
         if: steps.primary-cache.outputs.cache-hit != 'true' && inputs.force_refresh != true
         uses: actions/cache@v4
@@ -171,7 +230,11 @@ jobs:
           restore-keys: |
             ${{ steps.cache-analysis.outputs.fallback-key1 }}
             
+<<<<<<< HEAD
       - name: ðŸ”„ Fallback cache restore (level 2)
+=======
+      - name: ?? Fallback cache restore (level 2)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         id: fallback-cache2
         if: steps.primary-cache.outputs.cache-hit != 'true' && steps.fallback-cache1.outputs.cache-hit != 'true' && inputs.force_refresh != true
         uses: actions/cache@v4
@@ -184,10 +247,17 @@ jobs:
           restore-keys: |
             ${{ steps.cache-analysis.outputs.base-key }}
             
+<<<<<<< HEAD
       - name: ðŸ” Validate cache integrity
         id: cache-validation
         run: |
           echo "ðŸ” Validating cache integrity..."
+=======
+      - name: ?? Validate cache integrity
+        id: cache-validation
+        run: |
+          echo "?? Validating cache integrity..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           cache_valid=true
           cache_source="none"
@@ -202,10 +272,17 @@ jobs:
             cache_source="fallback2"
           fi
           
+<<<<<<< HEAD
           echo "ðŸ“Š Cache source: $cache_source"
           
           if [[ "$cache_source" != "none" ]]; then
             echo "ðŸ” Validating restored cache..."
+=======
+          echo "?? Cache source: $cache_source"
+          
+          if [[ "$cache_source" != "none" ]]; then
+            echo "?? Validating restored cache..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             
             # Check if cache directories exist and are accessible
             if [[ ! -d ~/go/pkg/mod ]]; then
@@ -245,13 +322,18 @@ jobs:
               cache_valid=false
             fi
             
+<<<<<<< HEAD
             echo "ðŸ“Š Cache size: ${cache_size_mb}MB"
+=======
+            echo "?? Cache size: ${cache_size_mb}MB"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           fi
           
           echo "cache-valid=$cache_valid" >> $GITHUB_OUTPUT
           echo "cache-source=$cache_source" >> $GITHUB_OUTPUT
           
           if [[ "$cache_valid" == "true" ]]; then
+<<<<<<< HEAD
             echo "âœ… Cache validation passed"
           else
             echo "âŒ Cache validation failed:"
@@ -264,16 +346,37 @@ jobs:
         if: steps.cache-validation.outputs.cache-valid != 'true' || inputs.force_refresh == true
         run: |
           echo "ðŸš¨ Performing cache recovery..."
+=======
+            echo "??Cache validation passed"
+          else
+            echo "??Cache validation failed:"
+            printf '%s\n' "${validation_errors[@]}"
+            echo "?? Cache recovery required"
+          fi
+          
+      - name: ?š¨ Cache recovery
+        id: cache-recovery
+        if: steps.cache-validation.outputs.cache-valid != 'true' || inputs.force_refresh == true
+        run: |
+          echo "?š¨ Performing cache recovery..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           recovery_reason="validation_failed"
           if [[ "${{ inputs.force_refresh }}" == "true" ]]; then
             recovery_reason="force_refresh"
           fi
           
+<<<<<<< HEAD
           echo "ðŸ”§ Recovery reason: $recovery_reason"
           
           # Complete cleanup of corrupted cache
           echo "ðŸ§¹ Removing corrupted/old cache..."
+=======
+          echo "?”§ Recovery reason: $recovery_reason"
+          
+          # Complete cleanup of corrupted cache
+          echo "?§¹ Removing corrupted/old cache..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           rm -rf ~/go/pkg/mod ~/.cache/go-build || true
           
           # Recreate clean directories
@@ -286,13 +389,18 @@ jobs:
           go env GOMODCACHE GOCACHE
           
           # Download modules with error handling
+<<<<<<< HEAD
           echo "ðŸ“¦ Downloading Go modules..."
+=======
+          echo "?“¦ Downloading Go modules..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           download_with_retry() {
             local max_attempts=3
             local attempt=1
             
             while [[ $attempt -le $max_attempts ]]; do
+<<<<<<< HEAD
               echo "ðŸ”„ Download attempt $attempt..."
               
               if timeout 600s go mod download -x; then
@@ -301,6 +409,16 @@ jobs:
               else
                 exit_code=$?
                 echo "âŒ Download attempt $attempt failed (exit code: $exit_code)"
+=======
+              echo "?? Download attempt $attempt..."
+              
+              if timeout 600s go mod download -x; then
+                echo "??Module download successful"
+                return 0
+              else
+                exit_code=$?
+                echo "??Download attempt $attempt failed (exit code: $exit_code)"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                 
                 if [[ $attempt -eq $max_attempts ]]; then
                   return $exit_code
@@ -318,6 +436,7 @@ jobs:
             # Verify download integrity
             if go mod verify; then
               echo "recovery-successful=true" >> $GITHUB_OUTPUT
+<<<<<<< HEAD
               echo "âœ… Cache recovery completed successfully"
             else
               echo "âŒ Module verification failed after recovery"
@@ -329,6 +448,19 @@ jobs:
           fi
           
       - name: ðŸ’¾ Save recovered cache
+=======
+              echo "??Cache recovery completed successfully"
+            else
+              echo "??Module verification failed after recovery"
+              exit 1
+            fi
+          else
+            echo "??Cache recovery failed - module download unsuccessful"
+            exit 1
+          fi
+          
+      - name: ?’¾ Save recovered cache
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         if: steps.cache-recovery.outputs.recovery-successful == 'true' || (steps.cache-validation.outputs.cache-valid == 'true' && steps.cache-validation.outputs.cache-source == 'none')
         uses: actions/cache/save@v4
         with:
@@ -337,10 +469,17 @@ jobs:
             ~/.cache/go-build
           key: ${{ steps.cache-analysis.outputs.primary-key }}
           
+<<<<<<< HEAD
       - name: ðŸ“Š Generate cache report
         id: cache-report
         run: |
           echo "ðŸ“Š Generating cache management report..."
+=======
+      - name: ?? Generate cache report
+        id: cache-report
+        run: |
+          echo "?? Generating cache management report..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           cat > cache-report.md <<EOF
           # Cache Management Report
@@ -353,22 +492,38 @@ jobs:
           
           | Component | Status | Details |
           |-----------|--------|---------|
+<<<<<<< HEAD
           | Primary Cache | ${{ steps.primary-cache.outputs.cache-hit == 'true' && 'âœ… Hit' || 'âŒ Miss' }} | Key: ${{ steps.cache-analysis.outputs.primary-key }} |
           | Fallback Cache 1 | ${{ steps.fallback-cache1.outputs.cache-hit == 'true' && 'âœ… Hit' || 'âŒ Miss' }} | Key: ${{ steps.cache-analysis.outputs.fallback-key1 }} |
           | Fallback Cache 2 | ${{ steps.fallback-cache2.outputs.cache-hit == 'true' && 'âœ… Hit' || 'âŒ Miss' }} | Key: ${{ steps.cache-analysis.outputs.fallback-key2 }} |
           | Validation | ${{ steps.cache-validation.outputs.cache-valid == 'true' && 'âœ… Valid' || 'âŒ Invalid' }} | Source: ${{ steps.cache-validation.outputs.cache-source }} |
           | Recovery | ${{ steps.cache-recovery.outputs.recovery-successful == 'true' && 'âœ… Performed' || 'â­ï¸ Not needed' }} | - |
+=======
+          | Primary Cache | ${{ steps.primary-cache.outputs.cache-hit == 'true' && '??Hit' || '??Miss' }} | Key: ${{ steps.cache-analysis.outputs.primary-key }} |
+          | Fallback Cache 1 | ${{ steps.fallback-cache1.outputs.cache-hit == 'true' && '??Hit' || '??Miss' }} | Key: ${{ steps.cache-analysis.outputs.fallback-key1 }} |
+          | Fallback Cache 2 | ${{ steps.fallback-cache2.outputs.cache-hit == 'true' && '??Hit' || '??Miss' }} | Key: ${{ steps.cache-analysis.outputs.fallback-key2 }} |
+          | Validation | ${{ steps.cache-validation.outputs.cache-valid == 'true' && '??Valid' || '??Invalid' }} | Source: ${{ steps.cache-validation.outputs.cache-source }} |
+          | Recovery | ${{ steps.cache-recovery.outputs.recovery-successful == 'true' && '??Performed' || '?­ï? Not needed' }} | - |
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           ## Summary
           
           EOF
           
           if [[ "${{ steps.cache-validation.outputs.cache-valid }}" == "true" ]]; then
+<<<<<<< HEAD
             echo "âœ… **Cache is healthy and ready for use.**" >> cache-report.md
           elif [[ "${{ steps.cache-recovery.outputs.recovery-successful }}" == "true" ]]; then
             echo "ðŸ”§ **Cache was corrupted but successfully recovered.**" >> cache-report.md
           else
             echo "âŒ **Cache issues detected - manual intervention may be required.**" >> cache-report.md
+=======
+            echo "??**Cache is healthy and ready for use.**" >> cache-report.md
+          elif [[ "${{ steps.cache-recovery.outputs.recovery-successful }}" == "true" ]]; then
+            echo "?”§ **Cache was corrupted but successfully recovered.**" >> cache-report.md
+          else
+            echo "??**Cache issues detected - manual intervention may be required.**" >> cache-report.md
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           fi
           
           # Cache statistics
@@ -382,10 +537,17 @@ jobs:
             echo "- **Total size:** ${cache_size}" >> cache-report.md
           fi
           
+<<<<<<< HEAD
       - name: ðŸŽ¯ Final status determination
         id: final-status
         run: |
           echo "ðŸŽ¯ Determining final cache status..."
+=======
+      - name: ?Ž¯ Final status determination
+        id: final-status
+        run: |
+          echo "?Ž¯ Determining final cache status..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           # Determine if we have a working cache
           cache_hit="false"
@@ -394,6 +556,7 @@ jobs:
           
           if [[ "${{ steps.cache-validation.outputs.cache-valid }}" == "true" ]]; then
             cache_hit="true"
+<<<<<<< HEAD
             echo "âœ… Cache is valid and ready"
           elif [[ "${{ steps.cache-recovery.outputs.recovery-successful }}" == "true" ]]; then
             cache_hit="true"
@@ -401,18 +564,35 @@ jobs:
             echo "ðŸ”§ Cache recovered and ready"
           else
             echo "âŒ No valid cache available"
+=======
+            echo "??Cache is valid and ready"
+          elif [[ "${{ steps.cache-recovery.outputs.recovery-successful }}" == "true" ]]; then
+            cache_hit="true"
+            recovery_performed="true"
+            echo "?”§ Cache recovered and ready"
+          else
+            echo "??No valid cache available"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           fi
           
           echo "cache-hit=$cache_hit" >> $GITHUB_OUTPUT
           echo "cache-key=$actual_cache_key" >> $GITHUB_OUTPUT
           echo "recovery-performed=$recovery_performed" >> $GITHUB_OUTPUT
           
+<<<<<<< HEAD
           echo "ðŸ“Š Final Status:"
+=======
+          echo "?? Final Status:"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           echo "  - Cache Hit: $cache_hit"
           echo "  - Recovery Performed: $recovery_performed" 
           echo "  - Cache Key: $actual_cache_key"
           
+<<<<<<< HEAD
       - name: ðŸ“¤ Upload cache report
+=======
+      - name: ?“¤ Upload cache report
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         uses: actions/upload-artifact@v4
         if: always()
         with:

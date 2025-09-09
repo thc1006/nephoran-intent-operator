@@ -2,9 +2,15 @@ package performance_tests
 
 import (
 	"context"
+<<<<<<< HEAD
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+=======
+	"encoding/json"
+	"fmt"
+	"math/rand"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"net/http"
 	"runtime"
 	"sync"
@@ -114,9 +120,15 @@ var (
 
 // ProductionLoadTester executes production-scale load tests
 type ProductionLoadTester struct {
+<<<<<<< HEAD
 	config           *LoadTestConfig
 	httpClient       *http.Client
 	results          *LoadTestResult
+=======
+	config           *ProductionLoadTestConfig
+	httpClient       *http.Client
+	results          *ProductionLoadTestResult
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	scenarioWeights  []float64
 	totalWeight      float64
 	activeRequests   int64
@@ -127,7 +139,11 @@ type ProductionLoadTester struct {
 }
 
 // NewProductionLoadTester creates a new load tester
+<<<<<<< HEAD
 func NewProductionLoadTester(config *LoadTestConfig) *ProductionLoadTester {
+=======
+func NewProductionLoadTester(config *ProductionLoadTestConfig) *ProductionLoadTester {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	ctx, cancel := context.WithCancel(context.Background())
 
 	tester := &ProductionLoadTester{
@@ -140,7 +156,11 @@ func NewProductionLoadTester(config *LoadTestConfig) *ProductionLoadTester {
 				IdleConnTimeout:     90 * time.Second,
 			},
 		},
+<<<<<<< HEAD
 		results: &LoadTestResult{
+=======
+		results: &ProductionLoadTestResult{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			ScenarioResults: make(map[string]*ScenarioResult),
 		},
 		ctx:              ctx,
@@ -161,7 +181,11 @@ func NewProductionLoadTester(config *LoadTestConfig) *ProductionLoadTester {
 }
 
 // RunTest executes the load test
+<<<<<<< HEAD
 func (plt *ProductionLoadTester) RunTest() (*LoadTestResult, error) {
+=======
+func (plt *ProductionLoadTester) RunTest() (*ProductionLoadTestResult, error) {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	plt.results.StartTime = time.Now()
 
 	// Start metrics collection
@@ -289,7 +313,11 @@ func (plt *ProductionLoadTester) processResults(results <-chan *vegeta.Result) {
 			scenarioResult.Failures++
 			requestsTotal.WithLabelValues(scenarioName, "failure").Inc()
 
+<<<<<<< HEAD
 			errorType := plt.categorizeError(res.Error, res.Code)
+=======
+			errorType := plt.categorizeError(res.Error, int(res.Code))
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			scenarioResult.ErrorsByType[errorType]++
 		}
 
@@ -511,7 +539,11 @@ func validateResponseTime(maxDuration time.Duration) ResponseValidator {
 
 // MetricsCollector collects system metrics during test
 type MetricsCollector struct {
+<<<<<<< HEAD
 	resourceMetrics *ResourceMetrics
+=======
+	resourceMetrics *ProductionResourceMetrics
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	systemMetrics   *SystemMetrics
 	mu              sync.RWMutex
 }
@@ -519,7 +551,11 @@ type MetricsCollector struct {
 // NewMetricsCollector creates a new metrics collector
 func NewMetricsCollector() *MetricsCollector {
 	return &MetricsCollector{
+<<<<<<< HEAD
 		resourceMetrics: &ResourceMetrics{},
+=======
+		resourceMetrics: &ProductionResourceMetrics{},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		systemMetrics: &SystemMetrics{
 			CircuitBreakerStatus: make(map[string]string),
 		},
@@ -563,7 +599,11 @@ func (mc *MetricsCollector) collectMetrics() {
 }
 
 // GetResourceMetrics returns current resource metrics
+<<<<<<< HEAD
 func (mc *MetricsCollector) GetResourceMetrics() *ResourceMetrics {
+=======
+func (mc *MetricsCollector) GetResourceMetrics() *ProductionResourceMetrics {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	mc.mu.RLock()
 	defer mc.mu.RUnlock()
 
@@ -608,7 +648,11 @@ func getQueueDepth() int64 {
 
 // RunProductionLoadTest executes a production-scale load test
 func RunProductionLoadTest() error {
+<<<<<<< HEAD
 	config := &LoadTestConfig{
+=======
+	config := &ProductionLoadTestConfig{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		Duration:         30 * time.Minute,
 		RampUpDuration:   5 * time.Minute,
 		TargetRPS:        1000,

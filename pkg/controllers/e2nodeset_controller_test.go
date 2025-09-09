@@ -65,6 +65,12 @@ var _ = Describe("E2NodeSet Controller", func() {
 			Scheme:    k8sClient.Scheme(),
 			E2Manager: fakeManager,
 		}
+<<<<<<< HEAD
+=======
+		
+		// Initialize metrics for testing (this prevents nil pointer panics)
+		reconciler.RegisterMetrics()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	})
 
 	AfterEach(func() {

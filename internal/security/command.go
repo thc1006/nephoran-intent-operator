@@ -126,7 +126,11 @@ func (e *SecureCommandExecutor) ExecuteSecure(ctx context.Context, binaryName st
 
 		result.Error = fmt.Errorf("command validation failed: %w", err)
 
+<<<<<<< HEAD
 		return result, nil
+=======
+		return result, result.Error
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	}
 
@@ -140,7 +144,11 @@ func (e *SecureCommandExecutor) ExecuteSecure(ctx context.Context, binaryName st
 
 		result.Error = fmt.Errorf("environment hardening failed: %w", err)
 
+<<<<<<< HEAD
 		return result, nil
+=======
+		return result, result.Error
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	}
 

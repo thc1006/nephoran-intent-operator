@@ -106,10 +106,20 @@ func TestCircuitBreakerRaceConditions(t *testing.T) {
 					case stateClosed:
 						// Simulate request
 						if workerID%3 == 0 {
+<<<<<<< HEAD
 							// Failure
 							if cb.failures.Add(1) >= cb.threshold {
 								cb.state.CompareAndSwap(stateClosed, stateOpen)
 								cb.lastFailTime.Store(time.Now().UnixNano())
+=======
+							// Failure - use atomic add and check
+							newFailures := cb.failures.Add(1)
+							// Only the goroutine that pushes failures to threshold should transition
+							if newFailures == cb.threshold {
+								if cb.state.CompareAndSwap(stateClosed, stateOpen) {
+									cb.lastFailTime.Store(time.Now().UnixNano())
+								}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 							}
 						} else {
 							// Success

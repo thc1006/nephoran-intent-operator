@@ -38,6 +38,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+<<<<<<< HEAD
+=======
+	"github.com/thc1006/nephoran-intent-operator/test/envtest"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -533,7 +537,11 @@ var _ = ginkgo.Describe("NetworkIntent E2E Tests", func() {
 		namespace = "ginkgo-e2e-test"
 
 		ginkgo.By("Starting test environment")
+<<<<<<< HEAD
 		testEnv = &envtest.Environment{
+=======
+		testEnv := &envtest.Environment{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			CRDDirectoryPaths: []string{
 				"../../../config/crd/bases",
 			},

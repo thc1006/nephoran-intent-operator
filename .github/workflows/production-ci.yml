@@ -55,7 +55,11 @@ permissions:
   packages: write  # For container builds
 
 env:
+<<<<<<< HEAD
   GO_VERSION: "1.22.7"
+=======
+  GO_VERSION: "1.24.6"  # EMERGENCY FIX - Match go.mod toolchain
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   GOPRIVATE: "github.com/thc1006/*"
@@ -105,9 +109,15 @@ jobs:
         if: steps.changes.outputs.should-build == 'true'
         uses: actions/setup-go@v5
         with:
+<<<<<<< HEAD
           go-version: ${{ env.GO_VERSION }}
           check-latest: true
           cache: false
+=======
+          go-version: '1.24.6'  # Use explicit version
+          check-latest: false  # Ensure exact version
+          cache: true
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
       - name: Generate production-grade cache key
         if: steps.changes.outputs.should-build == 'true'
@@ -195,6 +205,7 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           check-latest: true
+<<<<<<< HEAD
           cache: false
 
       - name: Prepare Go cache directories
@@ -233,6 +244,11 @@ jobs:
           restore-keys: |
             prod-go-v6-ubuntu-${{ env.GO_VERSION }}-
             prod-go-v6-ubuntu-
+=======
+          cache: true
+
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
       - name: Configure Git authentication
         run: |
@@ -262,7 +278,12 @@ jobs:
           mkdir -p bin/
           
           # Production build flags
+<<<<<<< HEAD
           BUILD_FLAGS="-v -ldflags=-s -w -extldflags=-static -trimpath"
+=======
+          BUILD_FLAGS="-v -trimpath"
+          LDFLAGS="-s -w -extldflags=-static"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           BUILD_TAGS="netgo,osusergo,static_build"
           
           # Parse and build components
@@ -273,13 +294,21 @@ jobs:
             case "$component" in
               "controllers")
                 echo "Building controllers..."
+<<<<<<< HEAD
                 timeout 300s go build $BUILD_FLAGS -tags="$BUILD_TAGS" ./controllers/... || {
+=======
+                timeout 300s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" ./controllers/... || {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                   echo "Warning: Some controllers failed to build"
                 }
                 ;;
               "api") 
                 echo "Building API packages..."
+<<<<<<< HEAD
                 timeout 180s go build $BUILD_FLAGS -tags="$BUILD_TAGS" ./api/... || {
+=======
+                timeout 180s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" ./api/... || {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                   echo "Warning: Some API packages failed to build"
                 }
                 ;;
@@ -287,7 +316,11 @@ jobs:
                 if [ -d "$component" ] && [ -f "$component/main.go" ]; then
                   cmd_name=$(basename "$component")
                   echo "Building command: $cmd_name"
+<<<<<<< HEAD
                   timeout 240s go build $BUILD_FLAGS -tags="$BUILD_TAGS" \
+=======
+                  timeout 240s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" \
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                     -o "bin/$cmd_name" "./$component" || {
                     echo "Warning: $cmd_name failed to build"
                   }
@@ -296,14 +329,22 @@ jobs:
               pkg/*)
                 if [ -d "$component" ]; then
                   echo "Building package: $component"
+<<<<<<< HEAD
                   timeout 180s go build $BUILD_FLAGS -tags="$BUILD_TAGS" "./$component/..." || {
+=======
+                  timeout 180s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" "./$component/..." || {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                     echo "Warning: $component failed to build"
                   }
                 fi
                 ;;
               "internal")
                 echo "Building internal packages..."
+<<<<<<< HEAD
                 timeout 240s go build $BUILD_FLAGS -tags="$BUILD_TAGS" ./internal/... || {
+=======
+                timeout 240s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" ./internal/... || {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                   echo "Warning: Some internal packages failed to build"  
                 }
                 ;;
@@ -347,6 +388,7 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           check-latest: true
+<<<<<<< HEAD
           cache: false
 
       - name: Prepare test environment
@@ -363,6 +405,11 @@ jobs:
             ~/.cache/go-build
             ~/go/pkg/mod
           key: ${{ needs.setup.outputs.cache-key }}
+=======
+          cache: true
+
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
       - name: Setup test dependencies
         timeout-minutes: 5
@@ -443,6 +490,7 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           check-latest: true
+<<<<<<< HEAD
           cache: false
 
       - name: Prepare environment
@@ -459,6 +507,11 @@ jobs:
             ~/.cache/go-build  
             ~/go/pkg/mod
           key: ${{ needs.setup.outputs.cache-key }}
+=======
+          cache: true
+
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
       - name: Download dependencies
         run: |
@@ -496,41 +549,68 @@ jobs:
           
           # Install with timeout
           timeout 300s go install golang.org/x/vuln/cmd/govulncheck@latest || {
+<<<<<<< HEAD
             echo "⚠️ govulncheck installation timeout"
+=======
+            echo "?��? govulncheck installation timeout"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             echo "vulnerability_install_failed" > vuln-status.txt
             exit 0
           }
           
           # Production scan: comprehensive but with timeout
+<<<<<<< HEAD
           echo "🔍 Comprehensive vulnerability scan for production..."
           if timeout 20m govulncheck -json ./... > vuln-report.json 2>&1; then
             echo "✅ Production vulnerability scan completed"
+=======
+          echo "?? Comprehensive vulnerability scan for production..."
+          if timeout 20m govulncheck -json ./... > vuln-report.json 2>&1; then
+            echo "??Production vulnerability scan completed"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             echo "vulnerability_scan_success" > vuln-status.txt
           else
             exit_code=$?
             case $exit_code in
               124) # timeout
+<<<<<<< HEAD
                 echo "⚠️ Production vulnerability scan timed out"
+=======
+                echo "?��? Production vulnerability scan timed out"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                 echo "vulnerability_scan_timeout" > vuln-status.txt
                 echo "Partial results may be available in vuln-report.json" >> vuln-report.json
                 ;;
               1) # vulnerabilities found
+<<<<<<< HEAD
                 echo "⚠️ Vulnerabilities found in production scan"
                 echo "vulnerabilities_detected" > vuln-status.txt
                 ;;
               *) # other errors
                 echo "❌ Production vulnerability scan failed"
+=======
+                echo "?��? Vulnerabilities found in production scan"
+                echo "vulnerabilities_detected" > vuln-status.txt
+                ;;
+              *) # other errors
+                echo "??Production vulnerability scan failed"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                 echo "vulnerability_scan_error" > vuln-status.txt
                 ;;
             esac
           fi
           
           # Generate summary regardless of outcome
+<<<<<<< HEAD
           echo "## 🔒 Production Vulnerability Scan" >> $GITHUB_STEP_SUMMARY
+=======
+          echo "## ?? Production Vulnerability Scan" >> $GITHUB_STEP_SUMMARY
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           if [[ -f "vuln-status.txt" ]]; then
             status=$(cat vuln-status.txt)
             case "$status" in
               vulnerability_scan_success)
+<<<<<<< HEAD
                 echo "✅ Comprehensive scan completed successfully" >> $GITHUB_STEP_SUMMARY
                 ;;
               vulnerabilities_detected)
@@ -545,6 +625,22 @@ jobs:
             esac
           fi
           echo "📄 Detailed results available in workflow artifacts" >> $GITHUB_STEP_SUMMARY
+=======
+                echo "??Comprehensive scan completed successfully" >> $GITHUB_STEP_SUMMARY
+                ;;
+              vulnerabilities_detected)
+                echo "?��? Vulnerabilities detected - review required" >> $GITHUB_STEP_SUMMARY
+                ;;
+              vulnerability_scan_timeout)
+                echo "?��? Scan timed out - partial results available" >> $GITHUB_STEP_SUMMARY
+                ;;
+              *)
+                echo "??Scan encountered issues - check logs" >> $GITHUB_STEP_SUMMARY
+                ;;
+            esac
+          fi
+          echo "?? Detailed results available in workflow artifacts" >> $GITHUB_STEP_SUMMARY
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
       - name: License compliance check  
         run: |
@@ -582,7 +678,11 @@ jobs:
     steps:
       - name: Generate production pipeline report
         run: |
+<<<<<<< HEAD
           echo "# 🏭 Nephoran Production CI Pipeline - Results" >> $GITHUB_STEP_SUMMARY
+=======
+          echo "# ?�� Nephoran Production CI Pipeline - Results" >> $GITHUB_STEP_SUMMARY
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Pipeline Configuration:**" >> $GITHUB_STEP_SUMMARY
           echo "- Go Version: ${{ env.GO_VERSION }}" >> $GITHUB_STEP_SUMMARY
@@ -622,6 +722,7 @@ jobs:
           
           if [ -n "$FAILED_CRITICAL" ]; then
             echo "" >> $GITHUB_STEP_SUMMARY
+<<<<<<< HEAD
             echo "**Status: PRODUCTION NOT READY** ❌" >> $GITHUB_STEP_SUMMARY
             echo "Critical failures: $FAILED_CRITICAL" >> $GITHUB_STEP_SUMMARY
             echo "💥 Production pipeline failed - manual intervention required"
@@ -640,4 +741,24 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "🚀 **Ready for production deployment!**" >> $GITHUB_STEP_SUMMARY
             echo "✅ Production CI pipeline completed successfully!"
+=======
+            echo "**Status: PRODUCTION NOT READY** ?? >> $GITHUB_STEP_SUMMARY
+            echo "Critical failures: $FAILED_CRITICAL" >> $GITHUB_STEP_SUMMARY
+            echo "?�� Production pipeline failed - manual intervention required"
+            exit 1
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Status: PRODUCTION READY** ?? >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "?�� **Production Quality Gates Passed:**" >> $GITHUB_STEP_SUMMARY
+            echo "- ??All components built successfully with production flags" >> $GITHUB_STEP_SUMMARY
+            echo "- ??Comprehensive test suite passed" >> $GITHUB_STEP_SUMMARY
+            echo "- ??Security analysis completed" >> $GITHUB_STEP_SUMMARY
+            echo "- ??Code quality standards met" >> $GITHUB_STEP_SUMMARY
+            echo "- ??Vulnerability assessment passed" >> $GITHUB_STEP_SUMMARY
+            echo "- ??License compliance verified" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "?? **Ready for production deployment!**" >> $GITHUB_STEP_SUMMARY
+            echo "??Production CI pipeline completed successfully!"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           fi

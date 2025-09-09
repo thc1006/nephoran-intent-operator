@@ -66,6 +66,17 @@
           "items": {
             "type": "string"
           }
+<<<<<<< HEAD
+=======
+        },
+        "kpt_package_name": {
+          "type": "string",
+          "description": "Target kpt package for Nephio/Porch integration"
+        },
+        "porch_repository": {
+          "type": "string",
+          "description": "Porch repository containing the target package"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         }
       }
     },
@@ -83,14 +94,57 @@
       "type": "string",
       "enum": ["pending", "processing", "completed", "failed"],
       "description": "Current status of intent execution"
+<<<<<<< HEAD
+=======
+    },
+    "target_resources": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "List of resources to be scaled",
+      "minItems": 0
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1024,
+      "description": "Optional description of the intent operation"
+    },
+    "nephio_context": {
+      "type": "object",
+      "description": "Nephio/Porch integration context",
+      "properties": {
+        "package_revision": {
+          "type": "string",
+          "description": "Porch package revision identifier"
+        },
+        "workload_cluster": {
+          "type": "string",
+          "description": "Target workload cluster for deployment"
+        },
+        "blueprint_name": {
+          "type": "string",
+          "description": "Nephio blueprint used for package generation"
+        }
+      }
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
     }
   },
   "required": [
     "intent_type",
+<<<<<<< HEAD
     "target",
     "namespace",
     "replicas"
   ],
+=======
+    "target", 
+    "namespace",
+    "replicas"
+  ],
+  "additionalProperties": false,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
   "examples": [
     {
       "intent_type": "scaling",

@@ -12,6 +12,10 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+<<<<<<< HEAD
+=======
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"go.uber.org/zap"
 )
 
@@ -322,6 +326,7 @@ func NewDynamicContextManager(logger *zap.Logger) *DynamicContextManager {
 
 	// Register metrics.
 
+<<<<<<< HEAD
 	prometheus.MustRegister(
 
 		metrics.requestsTotal,
@@ -336,6 +341,16 @@ func NewDynamicContextManager(logger *zap.Logger) *DynamicContextManager {
 
 		metrics.processingDuration,
 	)
+=======
+	// Use centralized registry with safe registration
+	gr := monitoring.GetGlobalRegistry()
+	gr.SafeRegister("llm-dcm-requests", metrics.requestsTotal)
+	gr.SafeRegister("llm-dcm-tokens", metrics.tokensUsed)
+	gr.SafeRegister("llm-dcm-levels", metrics.contextLevels)
+	gr.SafeRegister("llm-dcm-compression", metrics.compressionUsed)
+	gr.SafeRegister("llm-dcm-budget", metrics.budgetExceeded)
+	gr.SafeRegister("llm-dcm-duration", metrics.processingDuration)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	manager := &DynamicContextManager{
 		logger: logger,

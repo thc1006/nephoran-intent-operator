@@ -46,7 +46,11 @@ permissions:
 
 # Optimized environment for Ubuntu Linux-only deployment
 env:
+<<<<<<< HEAD
   GO_VERSION: "1.25.0"
+=======
+  GO_VERSION: "1.24.6"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   GOPRIVATE: "github.com/thc1006/*"
@@ -94,8 +98,13 @@ jobs:
         id: go-setup
         uses: actions/setup-go@v5
         with:
+<<<<<<< HEAD
           go-version: '1.25.0'
           cache: false  # We manage caching manually
+=======
+          go-version: '1.24.6'
+          cache: true  # We manage caching manually
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           check-latest: true
 
       - name: Detect significant changes
@@ -340,6 +349,7 @@ jobs:
       - name: Setup Go ${{ needs.setup.outputs.go-version }}
         uses: actions/setup-go@v5
         with:
+<<<<<<< HEAD
           go-version: '1.25.0'
           cache: false
 
@@ -372,6 +382,12 @@ jobs:
             ${{ needs.setup.outputs.secondary-key }}
             ${{ needs.setup.outputs.tertiary-key }}
             nephoran-v7-ubuntu22-go
+=======
+          go-version: '1.24.6'
+          cache: true
+
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
       - name: Download and verify dependencies (optimized)
         timeout-minutes: 5
@@ -409,7 +425,12 @@ jobs:
           mkdir -p bin/ dist/
           
           # Optimized build flags for Linux-only deployment
+<<<<<<< HEAD
           BUILD_FLAGS="-trimpath -ldflags=-s -w -extldflags=-static"
+=======
+          BUILD_FLAGS="-trimpath"
+          LDFLAGS="-s -w -extldflags=-static"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           BUILD_TAGS="netgo,osusergo,static_build"
           
           # Set parallelism based on matrix configuration
@@ -424,7 +445,11 @@ jobs:
             case "$component" in
               "controllers")
                 echo "Building controllers..."
+<<<<<<< HEAD
                 timeout ${timeout_duration}s go build $BUILD_FLAGS -tags="$BUILD_TAGS" ./controllers/... || {
+=======
+                timeout ${timeout_duration}s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" ./controllers/... || {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                   echo "⚠️ Some controllers failed to build (continuing...)"
                   return 0
                 }
@@ -432,7 +457,11 @@ jobs:
                 
               "api"|"api/intent/v1alpha1")
                 echo "Building API packages..."
+<<<<<<< HEAD
                 timeout ${timeout_duration}s go build $BUILD_FLAGS -tags="$BUILD_TAGS" ./api/... || {
+=======
+                timeout ${timeout_duration}s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" ./api/... || {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                   echo "⚠️ Some API packages failed to build (continuing...)"
                   return 0
                 }
@@ -442,7 +471,11 @@ jobs:
                 if [[ -d "$component" && -f "$component/main.go" ]]; then
                   cmd_name=$(basename "$component")
                   echo "Building command: $cmd_name"
+<<<<<<< HEAD
                   timeout ${timeout_duration}s go build $BUILD_FLAGS -tags="$BUILD_TAGS" \
+=======
+                  timeout ${timeout_duration}s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" \
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                     -o "bin/$cmd_name" "./$component" || {
                     echo "⚠️ $cmd_name build failed (continuing...)"
                     return 0
@@ -460,7 +493,11 @@ jobs:
               pkg/*)
                 if [[ -d "$component" ]]; then
                   echo "Building package: $component"
+<<<<<<< HEAD
                   timeout ${timeout_duration}s go build $BUILD_FLAGS -tags="$BUILD_TAGS" "./$component/..." || {
+=======
+                  timeout ${timeout_duration}s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" "./$component/..." || {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                     echo "⚠️ $component build failed (continuing...)"
                     return 0
                   }
@@ -469,7 +506,11 @@ jobs:
                 
               "internal")
                 echo "Building internal packages..."
+<<<<<<< HEAD
                 timeout ${timeout_duration}s go build $BUILD_FLAGS -tags="$BUILD_TAGS" ./internal/... || {
+=======
+                timeout ${timeout_duration}s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" ./internal/... || {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                   echo "⚠️ Some internal packages failed to build (continuing...)"
                   return 0
                 }
@@ -527,12 +568,15 @@ jobs:
             echo "No binaries produced (library-only build)"
           fi
 
+<<<<<<< HEAD
       - name: Save Go cache (optimized)
         if: always()
         uses: actions/cache@v4
         with:
           path: ${{ needs.setup.outputs.cache-paths }}
           key: ${{ needs.setup.outputs.cache-key }}
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
       - name: Upload build artifacts
         if: matrix.priority == 'critical' || matrix.priority == 'high'
@@ -566,6 +610,7 @@ jobs:
       - name: Setup Go ${{ needs.setup.outputs.go-version }}
         uses: actions/setup-go@v5
         with:
+<<<<<<< HEAD
           go-version: '1.25.0'
           cache: false
 
@@ -589,6 +634,12 @@ jobs:
           restore-keys: |
             ${{ needs.setup.outputs.secondary-key }}
             nephoran-v7-ubuntu22-go
+=======
+          go-version: '1.24.6'
+          cache: true
+
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
       - name: Setup Kubernetes test environment
         if: contains(matrix.pattern, './controllers/') || contains(matrix.pattern, './api/')
@@ -705,6 +756,7 @@ jobs:
       - name: Setup Go ${{ needs.setup.outputs.go-version }}
         uses: actions/setup-go@v5
         with:
+<<<<<<< HEAD
           go-version: '1.25.0'
           cache: false
 
@@ -716,6 +768,11 @@ jobs:
           restore-keys: |
             ${{ needs.setup.outputs.secondary-key }}
             nephoran-v7-ubuntu22-go
+=======
+          go-version: '1.24.6'
+          cache: true
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
       - name: Download dependencies
         run: |

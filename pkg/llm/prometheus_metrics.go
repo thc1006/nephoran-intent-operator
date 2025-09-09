@@ -11,6 +11,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
+<<<<<<< HEAD
+=======
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 )
 
 var (
@@ -95,10 +99,22 @@ func SetTestMode(enabled bool) {
 	defer testMutex.Unlock()
 	testMode = enabled
 	if enabled {
+<<<<<<< HEAD
 		// Create a new registry for test isolation
 		metricsRegistry = prometheus.NewRegistry()
 	} else {
 		metricsRegistry = prometheus.DefaultRegisterer
+=======
+		// Use centralized registry system for better test isolation
+		gr := monitoring.GetGlobalRegistry()
+		gr.SetTestMode(true)
+		metricsRegistry = gr.GetRegistry()
+	} else {
+		// Use centralized registry system for production
+		gr := monitoring.GetGlobalRegistry()
+		gr.SetTestMode(false)
+		metricsRegistry = gr.GetRegistry()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 }
 
@@ -107,8 +123,15 @@ func ResetMetricsForTest() {
 	testMutex.Lock()
 	defer testMutex.Unlock()
 	if testMode {
+<<<<<<< HEAD
 		// Create new test registry
 		metricsRegistry = prometheus.NewRegistry()
+=======
+		// Use centralized registry reset
+		gr := monitoring.GetGlobalRegistry()
+		gr.ResetForTest()
+		metricsRegistry = gr.GetRegistry()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		prometheusMetrics = nil
 		prometheusOnce = sync.Once{}
 	}

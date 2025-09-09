@@ -177,3 +177,108 @@ func TestCalculateExponentialBackoffWithConstants(t *testing.T) {
 		t.Errorf("Expected delay >= %v, got %v", customBaseDelay, delay)
 	}
 }
+<<<<<<< HEAD
+=======
+
+func TestCalculateBackoffDelayMaxCap(t *testing.T) {
+	// Test E2NodeSet operations
+	e2Tests := []struct {
+		name      string
+		operation string
+		retry     int
+		maxDelay  time.Duration
+	}{
+		{
+			name:      "e2-provisioning should cap at 5 minutes even with jitter",
+			operation: "e2-provisioning",
+			retry:     10, // High retry count to trigger max delay
+			maxDelay:  5 * time.Minute,
+		},
+		{
+			name:      "cleanup should cap at 10 minutes even with jitter",
+			operation: "cleanup",
+			retry:     15,
+			maxDelay:  10 * time.Minute,
+		},
+		{
+			name:      "configmap-operations should cap at 2 minutes even with jitter",
+			operation: "configmap-operations",
+			retry:     8,
+			maxDelay:  2 * time.Minute,
+		},
+	}
+
+	for _, tt := range e2Tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Run multiple times to account for jitter randomness
+			for i := 0; i < 100; i++ {
+				delay := CalculateExponentialBackoffForE2NodeSetOperation(tt.retry, tt.operation)
+				if delay > tt.maxDelay {
+					t.Errorf("Expected delay <= %v, got %v (iteration %d)", tt.maxDelay, delay, i)
+				}
+				// Also ensure delay is positive
+				if delay <= 0 {
+					t.Errorf("Expected positive delay, got %v (iteration %d)", delay, i)
+				}
+			}
+		})
+	}
+	
+	// Test NetworkIntent operations  
+	constants := &configPkg.Constants{
+		BaseBackoffDelay:  1 * time.Second,
+		MaxBackoffDelay:   10 * time.Minute,
+		BackoffMultiplier: 2.0,
+		JitterFactor:      0.1,
+		// Set operation-specific delays to match constants.go defaults
+		LLMProcessingBaseDelay:    2 * time.Second,
+		LLMProcessingMaxDelay:     2 * time.Minute,
+		GitOperationsBaseDelay:    1 * time.Second,
+		GitOperationsMaxDelay:     3 * time.Minute,
+		ResourcePlanningBaseDelay: 3 * time.Second,
+		ResourcePlanningMaxDelay:  1 * time.Minute,
+	}
+	
+	networkTests := []struct {
+		name      string
+		operation string
+		retry     int
+		maxDelay  time.Duration
+	}{
+		{
+			name:      "llm-processing should cap at configured max delay even with jitter",
+			operation: "llm-processing",
+			retry:     10,
+			maxDelay:  2 * time.Minute, // From constants.go line 159
+		},
+		{
+			name:      "git-operations should cap at configured max delay even with jitter",
+			operation: "git-operations",
+			retry:     10,
+			maxDelay:  3 * time.Minute, // From constants.go line 163
+		},
+		{
+			name:      "resource-planning should cap at configured max delay even with jitter",
+			operation: "resource-planning",
+			retry:     12,
+			maxDelay:  1 * time.Minute, // From constants.go line 167
+		},
+	}
+
+	for _, tt := range networkTests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Run multiple times to account for jitter randomness
+			for i := 0; i < 100; i++ {
+				delay := CalculateExponentialBackoffForNetworkIntentOperation(tt.retry, tt.operation, constants)
+				if delay > tt.maxDelay {
+					t.Errorf("Expected delay <= %v, got %v (iteration %d)", tt.maxDelay, delay, i)
+				}
+				// Also ensure delay is positive
+				if delay <= 0 {
+					t.Errorf("Expected positive delay, got %v (iteration %d)", delay, i)
+				}
+			}
+		})
+	}
+}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

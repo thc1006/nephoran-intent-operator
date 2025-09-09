@@ -9,6 +9,10 @@ import (
 	"testing"
 	"time"
 
+<<<<<<< HEAD
+=======
+	"github.com/golang-jwt/jwt/v5"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	
@@ -186,6 +190,7 @@ func TestRBACMiddleware(t *testing.T) {
 	ctx := context.Background()
 
 	// Create permissions
+<<<<<<< HEAD
 	readPerm := pf.CreateResourcePermissions("api", []string{"read"})[0]
 	createdReadPerm, err := rbacManager.CreatePermission(ctx, readPerm)
 	require.NoError(t, err)
@@ -195,10 +200,22 @@ func TestRBACMiddleware(t *testing.T) {
 	require.NoError(t, err)
 
 	adminPerm := pf.CreateResourcePermissions("admin", []string{"*"})[0]
+=======
+	readPerm := pf.CreatePermission("api", "read", "resource")
+	createdReadPerm, err := rbacManager.CreatePermission(ctx, readPerm)
+	require.NoError(t, err)
+
+	writePerm := pf.CreatePermission("api", "write", "resource")
+	createdWritePerm, err := rbacManager.CreatePermission(ctx, writePerm)
+	require.NoError(t, err)
+
+	adminPerm := pf.CreatePermission("admin", "*", "resource")
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	createdAdminPerm, err := rbacManager.CreatePermission(ctx, adminPerm)
 	require.NoError(t, err)
 
 	// Create roles
+<<<<<<< HEAD
 	readerRole := rf.CreateRoleWithPermissions([]string{createdReadPerm.ID})
 	readerRole.Name = "reader"
 	createdReaderRole, err := rbacManager.CreateRole(ctx, readerRole)
@@ -211,10 +228,28 @@ func TestRBACMiddleware(t *testing.T) {
 
 	adminRole := rf.CreateRoleWithPermissions([]string{createdAdminPerm.ID})
 	adminRole.Name = "admin"
+=======
+	createdReadPermTyped := createdReadPerm.(*authtestutil.TestPermission)
+	readerRole := rf.CreateRoleWithPermissions("reader", []string{createdReadPermTyped.ID})
+	// Name already set in CreateRoleWithPermissions
+	createdReaderRole, err := rbacManager.CreateRole(ctx, readerRole)
+	require.NoError(t, err)
+
+	createdWritePermTyped := createdWritePerm.(*authtestutil.TestPermission)
+	writerRole := rf.CreateRoleWithPermissions("writer", []string{createdReadPermTyped.ID, createdWritePermTyped.ID})
+	// Name already set in CreateRoleWithPermissions
+	createdWriterRole, err := rbacManager.CreateRole(ctx, writerRole)
+	require.NoError(t, err)
+
+	createdAdminPermTyped := createdAdminPerm.(*authtestutil.TestPermission)
+	adminRole := rf.CreateRoleWithPermissions("admin", []string{createdAdminPermTyped.ID})
+	// Name already set in CreateRoleWithPermissions
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	createdAdminRole, err := rbacManager.CreateRole(ctx, adminRole)
 	require.NoError(t, err)
 
 	// Assign roles to users
+<<<<<<< HEAD
 	err = rbacManager.AssignRoleToUser(ctx, "reader-user", createdReaderRole.ID)
 	require.NoError(t, err)
 
@@ -222,6 +257,18 @@ func TestRBACMiddleware(t *testing.T) {
 	require.NoError(t, err)
 
 	err = rbacManager.AssignRoleToUser(ctx, "admin-user", createdAdminRole.ID)
+=======
+	createdReaderRoleTyped := createdReaderRole.(*authtestutil.TestRole)
+	err = rbacManager.AssignRoleToUser(ctx, "reader-user", createdReaderRoleTyped.ID)
+	require.NoError(t, err)
+
+	createdWriterRoleTyped := createdWriterRole.(*authtestutil.TestRole)
+	err = rbacManager.AssignRoleToUser(ctx, "writer-user", createdWriterRoleTyped.ID)
+	require.NoError(t, err)
+
+	createdAdminRoleTyped := createdAdminRole.(*authtestutil.TestRole)
+	err = rbacManager.AssignRoleToUser(ctx, "admin-user", createdAdminRoleTyped.ID)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	require.NoError(t, err)
 
 	// Create RBAC middleware - using a simple test handler for now
@@ -679,6 +726,7 @@ func TestChainMiddlewares(t *testing.T) {
 	pf := authtestutil.NewPermissionFactory()
 	rf := authtestutil.NewRoleFactory()
 
+<<<<<<< HEAD
 	perm := pf.CreateResourcePermissions("api", []string{"read"})[0]
 	createdPerm, err := rbacManager.CreatePermission(ctx, perm)
 	require.NoError(t, err)
@@ -688,6 +736,19 @@ func TestChainMiddlewares(t *testing.T) {
 	require.NoError(t, err)
 
 	err = rbacManager.AssignRoleToUser(ctx, user.Subject, createdRole.ID)
+=======
+	perm := pf.CreatePermission("api", "read", "resource")
+	createdPerm, err := rbacManager.CreatePermission(ctx, perm)
+	require.NoError(t, err)
+
+	createdPermTyped := createdPerm.(*authtestutil.TestPermission)
+	role := rf.CreateRoleWithPermissions("test-role", []string{createdPermTyped.ID})
+	createdRole, err := rbacManager.CreateRole(ctx, role)
+	require.NoError(t, err)
+
+	createdRoleTyped := createdRole.(*authtestutil.TestRole)
+	err = rbacManager.AssignRoleToUser(ctx, user.Subject, createdRoleTyped.ID)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	require.NoError(t, err)
 
 	// TODO: Fix type compatibility - mock types don't match expected concrete types

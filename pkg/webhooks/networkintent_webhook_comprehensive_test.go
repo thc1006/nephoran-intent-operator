@@ -666,7 +666,11 @@ func TestValidatorEdgeCases(t *testing.T) {
 						UID:       "test-uid",
 						Operation: admissionv1.Create,
 						Object: runtime.RawExtension{
+<<<<<<< HEAD
 							Raw: []byte(`{invalid json`),
+=======
+							Raw: []byte(`{"apiVersion":"nephoran.io/v1","kind":"NetworkIntent","metadata":{"name":"invalid-test"},"spec":{"intentType":"invalid"}}`),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 						},
 					},
 				}

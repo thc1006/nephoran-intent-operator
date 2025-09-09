@@ -12,7 +12,10 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
+<<<<<<< HEAD
 	"github.com/stretchr/testify/mock"
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"github.com/stretchr/testify/require"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"

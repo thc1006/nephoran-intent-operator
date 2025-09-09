@@ -12,12 +12,21 @@ func TestNewValidator(t *testing.T) {
 	// Create a temporary schema file for testing
 	tempDir := t.TempDir()
 	schemaDir := filepath.Join(tempDir, "docs", "contracts")
+<<<<<<< HEAD
 	err := os.MkdirAll(schemaDir, 0o755)
+=======
+	err := os.MkdirAll(schemaDir, 0755)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if err != nil {
 		t.Fatalf("Failed to create temp schema dir: %v", err)
 	}
 
 	schemaPath := filepath.Join(schemaDir, "intent.schema.json")
+<<<<<<< HEAD
+=======
+	// Schema matches the actual docs/contracts/intent.schema.json requirements
+	// ValidateBytes adds default values for status and target_resources fields
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	schema := `{
 		"$schema": "https://json-schema.org/draft/2020-12/schema",
 		"$id": "https://example.com/schemas/intent.schema.json",
@@ -27,7 +36,12 @@ func TestNewValidator(t *testing.T) {
 		"required": ["intent_type", "target", "namespace", "replicas"],
 		"properties": {
 			"intent_type": {
+<<<<<<< HEAD
 				"const": "scaling"
+=======
+				"type": "string",
+				"enum": ["scaling", "deployment", "configuration"]
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			},
 			"target": {
 				"type": "string",
@@ -48,15 +62,39 @@ func TestNewValidator(t *testing.T) {
 			},
 			"source": {
 				"type": "string",
+<<<<<<< HEAD
 				"enum": ["user", "planner", "test"]
 			},
 			"correlation_id": {
 				"type": "string"
+=======
+				"enum": ["user", "planner", "test", ""]
+			},
+			"correlation_id": {
+				"type": "string"
+			},
+			"status": {
+				"type": "string",
+				"enum": ["pending", "processing", "completed", "failed"],
+				"description": "Current status of intent execution"
+			},
+			"target_resources": {
+				"type": "array",
+				"items": {
+					"type": "string",
+					"minLength": 1
+				},
+				"description": "List of resources to be scaled"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			}
 		}
 	}`
 
+<<<<<<< HEAD
 	err = os.WriteFile(schemaPath, []byte(schema), 0o644)
+=======
+	err = os.WriteFile(schemaPath, []byte(schema), 0644)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if err != nil {
 		t.Fatalf("Failed to write temp schema file: %v", err)
 	}
@@ -112,7 +150,11 @@ func TestNewValidator(t *testing.T) {
 
 func createInvalidSchemaFile(t *testing.T, dir string) string {
 	invalidSchemaPath := filepath.Join(dir, "invalid.json")
+<<<<<<< HEAD
 	err := os.WriteFile(invalidSchemaPath, []byte(`{invalid json`), 0o644)
+=======
+	err := os.WriteFile(invalidSchemaPath, []byte(`{invalid json`), 0644)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if err != nil {
 		t.Fatalf("Failed to write invalid schema file: %v", err)
 	}
@@ -246,7 +288,18 @@ func TestValidateBytes_ValidCases(t *testing.T) {
 				return
 			}
 
+<<<<<<< HEAD
 			if *result != tt.expected {
+=======
+			// Compare main fields since slices can't be compared directly
+			if result.IntentType != tt.expected.IntentType ||
+			   result.Target != tt.expected.Target ||
+			   result.Namespace != tt.expected.Namespace ||
+			   result.Replicas != tt.expected.Replicas ||
+			   result.Reason != tt.expected.Reason ||
+			   result.Source != tt.expected.Source ||
+			   result.CorrelationID != tt.expected.CorrelationID {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				t.Errorf("Expected %+v, got %+v", tt.expected, *result)
 			}
 		})
@@ -596,12 +649,21 @@ func TestValidateBytes_EdgeCases(t *testing.T) {
 func createTestValidator(t *testing.T) *Validator {
 	tempDir := t.TempDir()
 	schemaDir := filepath.Join(tempDir, "docs", "contracts")
+<<<<<<< HEAD
 	err := os.MkdirAll(schemaDir, 0o755)
+=======
+	err := os.MkdirAll(schemaDir, 0755)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if err != nil {
 		t.Fatalf("Failed to create temp schema dir: %v", err)
 	}
 
 	schemaPath := filepath.Join(schemaDir, "intent.schema.json")
+<<<<<<< HEAD
+=======
+	// Schema matches the actual docs/contracts/intent.schema.json requirements
+	// ValidateBytes adds default values for status and target_resources fields
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	schema := `{
 		"$schema": "https://json-schema.org/draft/2020-12/schema",
 		"$id": "https://example.com/schemas/intent.schema.json",
@@ -611,7 +673,12 @@ func createTestValidator(t *testing.T) *Validator {
 		"required": ["intent_type", "target", "namespace", "replicas"],
 		"properties": {
 			"intent_type": {
+<<<<<<< HEAD
 				"const": "scaling"
+=======
+				"type": "string",
+				"enum": ["scaling", "deployment", "configuration"]
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			},
 			"target": {
 				"type": "string",
@@ -632,15 +699,39 @@ func createTestValidator(t *testing.T) *Validator {
 			},
 			"source": {
 				"type": "string",
+<<<<<<< HEAD
 				"enum": ["user", "planner", "test"]
 			},
 			"correlation_id": {
 				"type": "string"
+=======
+				"enum": ["user", "planner", "test", ""]
+			},
+			"correlation_id": {
+				"type": "string"
+			},
+			"status": {
+				"type": "string",
+				"enum": ["pending", "processing", "completed", "failed"],
+				"description": "Current status of intent execution"
+			},
+			"target_resources": {
+				"type": "array",
+				"items": {
+					"type": "string",
+					"minLength": 1
+				},
+				"description": "List of resources to be scaled"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			}
 		}
 	}`
 
+<<<<<<< HEAD
 	err = os.WriteFile(schemaPath, []byte(schema), 0o644)
+=======
+	err = os.WriteFile(schemaPath, []byte(schema), 0644)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if err != nil {
 		t.Fatalf("Failed to write temp schema file: %v", err)
 	}
@@ -717,13 +808,21 @@ func TestNewValidator_FileSystemErrors(t *testing.T) {
 
 				// Create file with valid content first
 				content := `{"$schema": "https://json-schema.org/draft/2020-12/schema"}`
+<<<<<<< HEAD
 				err := os.WriteFile(schemaFile, []byte(content), 0o644)
+=======
+				err := os.WriteFile(schemaFile, []byte(content), 0644)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				if err != nil {
 					t.Fatalf("Failed to create schema file: %v", err)
 				}
 
 				// Remove read permissions (simulation - actual effect depends on OS)
+<<<<<<< HEAD
 				err = os.Chmod(schemaFile, 0o000)
+=======
+				err = os.Chmod(schemaFile, 0000)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				if err != nil {
 					t.Skipf("Cannot modify file permissions on this system: %v", err)
 				}
@@ -737,7 +836,11 @@ func TestNewValidator_FileSystemErrors(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				tempDir := t.TempDir()
 				dirPath := filepath.Join(tempDir, "schema.json")
+<<<<<<< HEAD
 				err := os.Mkdir(dirPath, 0o755)
+=======
+				err := os.Mkdir(dirPath, 0755)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				if err != nil {
 					t.Fatalf("Failed to create directory: %v", err)
 				}
@@ -753,7 +856,11 @@ func TestNewValidator_FileSystemErrors(t *testing.T) {
 
 				// Write binary data that's not valid JSON
 				corruptData := []byte{0xFF, 0xFE, 0xFD, 0xFC, 0xFB}
+<<<<<<< HEAD
 				err := os.WriteFile(schemaFile, corruptData, 0o644)
+=======
+				err := os.WriteFile(schemaFile, corruptData, 0644)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				if err != nil {
 					t.Fatalf("Failed to create corrupt file: %v", err)
 				}
@@ -767,7 +874,11 @@ func TestNewValidator_FileSystemErrors(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				tempDir := t.TempDir()
 				schemaFile := filepath.Join(tempDir, "empty.json")
+<<<<<<< HEAD
 				err := os.WriteFile(schemaFile, []byte{}, 0o644)
+=======
+				err := os.WriteFile(schemaFile, []byte{}, 0644)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				if err != nil {
 					t.Fatalf("Failed to create empty file: %v", err)
 				}
@@ -783,7 +894,11 @@ func TestNewValidator_FileSystemErrors(t *testing.T) {
 
 				// Valid JSON but invalid schema
 				invalidSchema := `{"not": "a valid schema structure"}`
+<<<<<<< HEAD
 				err := os.WriteFile(schemaFile, []byte(invalidSchema), 0o644)
+=======
+				err := os.WriteFile(schemaFile, []byte(invalidSchema), 0644)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				if err != nil {
 					t.Fatalf("Failed to create invalid schema file: %v", err)
 				}
@@ -801,7 +916,11 @@ func TestNewValidator_FileSystemErrors(t *testing.T) {
 			// Ensure cleanup happens even if test fails
 			defer func() {
 				// Restore permissions for cleanup
+<<<<<<< HEAD
 				os.Chmod(schemaPath, 0o644)
+=======
+				os.Chmod(schemaPath, 0644)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			}()
 
 			validator, err := NewValidator(schemaPath)

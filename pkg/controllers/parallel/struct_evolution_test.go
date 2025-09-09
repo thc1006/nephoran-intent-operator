@@ -1,6 +1,10 @@
 package parallel
 
 import (
+<<<<<<< HEAD
+=======
+	"context"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"encoding/json"
 	"testing"
 	"time"
@@ -35,12 +39,26 @@ func TestTaskStructEvolution(t *testing.T) {
 
 	t.Run("Legacy Task compatibility", func(t *testing.T) {
 		// Create a task in legacy format (without using builder)
+<<<<<<< HEAD
 		task := &Task{
 			ID:       "legacy-task-1",
 			IntentID: "intent-456",
 			Type:     TaskTypeResourcePlanning,
 			Priority: 50,
 			Timeout:  15 * time.Second,
+=======
+		// ITERATION #9 fix: Initialize Task with proper context
+		taskCtx, taskCancel := context.WithCancel(context.Background())
+		task := &Task{
+			ID:        "legacy-task-1",
+			IntentID:  "intent-456",
+			Type:      TaskTypeResourcePlanning,
+			Priority:  50,
+			Timeout:   15 * time.Second,
+			Context:   taskCtx,      // Add context
+			Cancel:    taskCancel,   // Add cancel function
+			CreatedAt: time.Now(),   // Add creation timestamp
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			// Note: No CorrelationID set, no Version set
 		}
 
@@ -148,10 +166,21 @@ func TestRetryConfigEvolution(t *testing.T) {
 
 	t.Run("Legacy retry count compatibility", func(t *testing.T) {
 		// Legacy task with only RetryCount field
+<<<<<<< HEAD
+=======
+		// ITERATION #9 fix: Initialize Task with proper context
+		taskCtx, taskCancel := context.WithCancel(context.Background())
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		task := &Task{
 			ID:         "legacy-retry-task-1",
 			IntentID:   "intent-legacy-retry-1",
 			RetryCount: 3,
+<<<<<<< HEAD
+=======
+			Context:    taskCtx,      // Add context
+			Cancel:     taskCancel,   // Add cancel function
+			CreatedAt:  time.Now(),   // Add creation timestamp
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 
 		effectiveConfig := task.GetEffectiveRetryConfig()

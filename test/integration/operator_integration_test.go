@@ -1,11 +1,20 @@
+<<<<<<< HEAD
+=======
+//go:build integration
+// +build integration
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 /*
 Package integration provides end-to-end integration testing for the Nephoran
 Kubernetes operator in real cluster environments following 2025 best practices.
 */
 
+<<<<<<< HEAD
 //go:build integration
 // +build integration
 
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 package integration
 
 import (
@@ -37,26 +46,46 @@ import (
 
 const (
 	// Integration test timeouts (longer than unit tests)
+<<<<<<< HEAD
 	operatorTimeout    = 5 * time.Minute
 	resourceTimeout    = 2 * time.Minute
 	deploymentTimeout  = 3 * time.Minute
 	pollInterval       = 10 * time.Second
 	shortPollInterval  = 2 * time.Second
+=======
+	operatorTimeout   = 5 * time.Minute
+	resourceTimeout   = 2 * time.Minute
+	deploymentTimeout = 3 * time.Minute
+	pollInterval      = 10 * time.Second
+	shortPollInterval = 2 * time.Second
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// Operator deployment details
 	operatorNamespace = "nephoran-system"
 	operatorName      = "nephoran-controller-manager"
+<<<<<<< HEAD
 	
+=======
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	// Test namespace
 	testNamespace = "nephoran-integration-test"
 )
 
 var (
+<<<<<<< HEAD
 	cfg         *rest.Config
 	k8sClient   client.Client
 	clientset   *kubernetes.Clientset
 	ctx         context.Context
 	cancel      context.CancelFunc
+=======
+	cfg       *rest.Config
+	k8sClient client.Client
+	clientset *kubernetes.Clientset
+	ctx       context.Context
+	cancel    context.CancelFunc
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 )
 
 func TestIntegration(t *testing.T) {
@@ -195,7 +224,11 @@ var _ = Describe("Nephoran Operator Integration Tests", func() {
 			By("checking operator pod health")
 			pods := &corev1.PodList{}
 			Eventually(func() error {
+<<<<<<< HEAD
 				return k8sClient.List(ctx, pods, client.InNamespace(operatorNamespace), 
+=======
+				return k8sClient.List(ctx, pods, client.InNamespace(operatorNamespace),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 					client.MatchingLabels{"control-plane": "controller-manager"})
 			}, resourceTimeout, pollInterval).Should(Succeed())
 
@@ -332,9 +365,15 @@ var _ = Describe("Nephoran Operator Integration Tests", func() {
 		It("should handle operator pod restart gracefully", func() {
 			By("getting current operator pod")
 			pods := &corev1.PodList{}
+<<<<<<< HEAD
 			Expect(k8sClient.List(ctx, pods, client.InNamespace(operatorNamespace), 
 				client.MatchingLabels{"control-plane": "controller-manager"})).Should(Succeed())
 			
+=======
+			Expect(k8sClient.List(ctx, pods, client.InNamespace(operatorNamespace),
+				client.MatchingLabels{"control-plane": "controller-manager"})).Should(Succeed())
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			Expect(pods.Items).To(HaveLen(1))
 			originalPod := pods.Items[0]
 
@@ -344,7 +383,11 @@ var _ = Describe("Nephoran Operator Integration Tests", func() {
 			By("waiting for new pod to be created and ready")
 			Eventually(func() bool {
 				newPods := &corev1.PodList{}
+<<<<<<< HEAD
 				err := k8sClient.List(ctx, newPods, client.InNamespace(operatorNamespace), 
+=======
+				err := k8sClient.List(ctx, newPods, client.InNamespace(operatorNamespace),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 					client.MatchingLabels{"control-plane": "controller-manager"})
 				if err != nil {
 					return false
@@ -355,7 +398,11 @@ var _ = Describe("Nephoran Operator Integration Tests", func() {
 				}
 
 				newPod := newPods.Items[0]
+<<<<<<< HEAD
 				return newPod.UID != originalPod.UID && 
+=======
+				return newPod.UID != originalPod.UID &&
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 					newPod.Status.Phase == corev1.PodRunning &&
 					isPodReady(newPod)
 			}, deploymentTimeout, pollInterval).Should(BeTrue())
@@ -508,4 +555,8 @@ func isPodReady(pod corev1.Pod) bool {
 		}
 	}
 	return false
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

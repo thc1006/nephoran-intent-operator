@@ -17,6 +17,15 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+<<<<<<< HEAD
+=======
+// normalizePath converts Windows-style paths to Unix-style paths for cross-platform compatibility
+// Since this is a Kubernetes operator that only runs on Linux, we normalize to forward slashes
+func normalizePath(path string) string {
+	return strings.ReplaceAll(path, "\\", "/")
+}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // PackageGenerator generates Nephio KRM packages from NetworkIntent resources.
 
 // It supports the following intent types:.
@@ -69,7 +78,11 @@ func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[strin
 		return nil, fmt.Errorf("failed to generate Kptfile: %w", err)
 	}
 
+<<<<<<< HEAD
 	files[filepath.Join(packagePath, "Kptfile")] = kptfile
+=======
+	files[normalizePath(filepath.Join(packagePath, "Kptfile"))] = kptfile
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// Generate package resources based on intent type.
 
@@ -91,7 +104,11 @@ func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[strin
 		}
 
 		for path, content := range resources {
+<<<<<<< HEAD
 			files[filepath.Join(packagePath, path)] = content
+=======
+			files[normalizePath(filepath.Join(packagePath, path))] = content
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 
 	case "scaling":
@@ -102,7 +119,11 @@ func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[strin
 		}
 
 		for path, content := range resources {
+<<<<<<< HEAD
 			files[filepath.Join(packagePath, path)] = content
+=======
+			files[normalizePath(filepath.Join(packagePath, path))] = content
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 
 	case "policy":
@@ -113,7 +134,11 @@ func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[strin
 		}
 
 		for path, content := range resources {
+<<<<<<< HEAD
 			files[filepath.Join(packagePath, path)] = content
+=======
+			files[normalizePath(filepath.Join(packagePath, path))] = content
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 
 	default:
@@ -129,7 +154,11 @@ func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[strin
 		return nil, fmt.Errorf("failed to generate README: %w", err)
 	}
 
+<<<<<<< HEAD
 	files[filepath.Join(packagePath, "README.md")] = readme
+=======
+	files[normalizePath(filepath.Join(packagePath, "README.md"))] = readme
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// Generate function configuration.
 
@@ -138,7 +167,11 @@ func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[strin
 		return nil, fmt.Errorf("failed to generate function config: %w", err)
 	}
 
+<<<<<<< HEAD
 	files[filepath.Join(packagePath, "fn-config.yaml")] = fnConfig
+=======
+	files[normalizePath(filepath.Join(packagePath, "fn-config.yaml"))] = fnConfig
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	return files, nil
 }
@@ -146,6 +179,23 @@ func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[strin
 // initTemplates initializes all package templates.
 
 func (pg *PackageGenerator) initTemplates() error {
+<<<<<<< HEAD
+=======
+	// Create FuncMap with indent function
+	funcMap := template.FuncMap{
+		"indent": func(spaces int, v string) string {
+			pad := strings.Repeat(" ", spaces)
+			lines := strings.Split(v, "\n")
+			for i, line := range lines {
+				if len(line) > 0 {
+					lines[i] = pad + line
+				}
+			}
+			return strings.Join(lines, "\n")
+		},
+	}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	// Kptfile template.
 
 	kptfileTmpl := `
@@ -194,7 +244,11 @@ pipeline:
 
 `
 
+<<<<<<< HEAD
 	tmpl, err := template.New("kptfile").Parse(kptfileTmpl)
+=======
+	tmpl, err := template.New("kptfile").Funcs(funcMap).Parse(kptfileTmpl)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if err != nil {
 		return fmt.Errorf("failed to parse kptfile template: %w", err)
 	}
@@ -289,7 +343,11 @@ spec:
 
 `
 
+<<<<<<< HEAD
 	tmpl, err = template.New("deployment").Parse(deploymentTmpl)
+=======
+	tmpl, err = template.New("deployment").Funcs(funcMap).Parse(deploymentTmpl)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if err != nil {
 		return fmt.Errorf("failed to parse deployment template: %w", err)
 	}
@@ -340,7 +398,11 @@ spec:
 
 `
 
+<<<<<<< HEAD
 	tmpl, err = template.New("service").Parse(serviceTmpl)
+=======
+	tmpl, err = template.New("service").Funcs(funcMap).Parse(serviceTmpl)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if err != nil {
 		return fmt.Errorf("failed to parse service template: %w", err)
 	}
@@ -379,7 +441,11 @@ data:
 
 `
 
+<<<<<<< HEAD
 	tmpl, err = template.New("configmap").Parse(configMapTmpl)
+=======
+	tmpl, err = template.New("configmap").Funcs(funcMap).Parse(configMapTmpl)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if err != nil {
 		return fmt.Errorf("failed to parse configmap template: %w", err)
 	}
@@ -444,6 +510,7 @@ data:
 
 `
 
+<<<<<<< HEAD
 	tmpl, err = template.New("readme").Funcs(template.FuncMap{
 		"indent": func(n int, s string) string {
 			pad := strings.Repeat(" ", n)
@@ -451,6 +518,9 @@ data:
 			return pad + strings.ReplaceAll(s, "\n", "\n"+pad)
 		},
 	}).Parse(readmeTmpl)
+=======
+	tmpl, err = template.New("readme").Funcs(funcMap).Parse(readmeTmpl)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if err != nil {
 		return fmt.Errorf("failed to parse readme template: %w", err)
 	}
@@ -463,7 +533,16 @@ data:
 // generateKptfile generates the Kptfile for the package.
 
 func (pg *PackageGenerator) generateKptfile(intent *v1.NetworkIntent) (string, error) {
+<<<<<<< HEAD
 	data := json.RawMessage(`{}`)
+=======
+	data := map[string]interface{}{
+		"Name":        intent.Name,
+		"Namespace":   intent.Namespace,
+		"Description": fmt.Sprintf("Generated from NetworkIntent: %s", intent.Name),
+		"Intent":      intent.Spec.Intent,
+	}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	var buf bytes.Buffer
 
@@ -479,7 +558,11 @@ func (pg *PackageGenerator) generateKptfile(intent *v1.NetworkIntent) (string, e
 func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent) (map[string]string, error) {
 	resources := make(map[string]string)
 
+<<<<<<< HEAD
 	// Parse structured parameters from ProcessedParameters.
+=======
+	// Parse structured parameters from ProcessedParameters or Parameters (fallback).
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	var params map[string]interface{}
 
@@ -496,6 +579,14 @@ func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent
 			return nil, fmt.Errorf("failed to unmarshal parameters: %w", err)
 		}
 
+<<<<<<< HEAD
+=======
+	} else if intent.Spec.Parameters != nil {
+		// Fallback to Parameters field
+		if err := json.Unmarshal(intent.Spec.Parameters.Raw, &params); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal raw parameters: %w", err)
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	if params == nil {
@@ -556,7 +647,11 @@ func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent
 func (pg *PackageGenerator) generateScalingResources(intent *v1.NetworkIntent) (map[string]string, error) {
 	resources := make(map[string]string)
 
+<<<<<<< HEAD
 	// Parse structured parameters from ProcessedParameters.
+=======
+	// Parse structured parameters from ProcessedParameters or Parameters (fallback).
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	var params map[string]interface{}
 
@@ -573,6 +668,14 @@ func (pg *PackageGenerator) generateScalingResources(intent *v1.NetworkIntent) (
 			return nil, fmt.Errorf("failed to unmarshal parameters: %w", err)
 		}
 
+<<<<<<< HEAD
+=======
+	} else if intent.Spec.Parameters != nil {
+		// Fallback to Parameters field
+		if err := json.Unmarshal(intent.Spec.Parameters.Raw, &params); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal raw parameters: %w", err)
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	if params == nil {
@@ -599,7 +702,11 @@ func (pg *PackageGenerator) generateScalingResources(intent *v1.NetworkIntent) (
 func (pg *PackageGenerator) generatePolicyResources(intent *v1.NetworkIntent) (map[string]string, error) {
 	resources := make(map[string]string)
 
+<<<<<<< HEAD
 	// Parse structured parameters from ProcessedParameters.
+=======
+	// Parse structured parameters from ProcessedParameters or Parameters (fallback).
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	var params map[string]interface{}
 
@@ -616,6 +723,14 @@ func (pg *PackageGenerator) generatePolicyResources(intent *v1.NetworkIntent) (m
 			return nil, fmt.Errorf("failed to unmarshal parameters: %w", err)
 		}
 
+<<<<<<< HEAD
+=======
+	} else if intent.Spec.Parameters != nil {
+		// Fallback to Parameters field
+		if err := json.Unmarshal(intent.Spec.Parameters.Raw, &params); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal raw parameters: %w", err)
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	if params == nil {
@@ -647,7 +762,19 @@ func (pg *PackageGenerator) generatePolicyResources(intent *v1.NetworkIntent) (m
 // generateReadme generates the README for the package.
 
 func (pg *PackageGenerator) generateReadme(intent *v1.NetworkIntent) (string, error) {
+<<<<<<< HEAD
 	data := json.RawMessage(`{}`)
+=======
+	data := map[string]interface{}{
+		"Name":                 intent.Name,
+		"Description":          fmt.Sprintf("Generated from NetworkIntent: %s", intent.Name),
+		"Intent":               intent.Spec.Intent,
+		"GeneratedAt":          "{{ timestamp }}",
+		"Contents":             "This package contains Kubernetes resources generated from the NetworkIntent.",
+		"ORANDetails":          pg.extractORANDetailsFromProcessed(intent.Spec.ProcessedParameters),
+		"NetworkSliceDetails":  pg.extractNetworkSliceDetailsFromProcessed(intent.Spec.ProcessedParameters),
+	}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	var buf bytes.Buffer
 
@@ -892,7 +1019,11 @@ func (pg *PackageGenerator) GeneratePatchAndPublishToPorch(ctx context.Context, 
 		return fmt.Errorf("porch client not configured")
 	}
 
+<<<<<<< HEAD
 	// Parse structured parameters from ProcessedParameters.
+=======
+	// Parse structured parameters from ProcessedParameters or Parameters (fallback).
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	var params map[string]interface{}
 
@@ -909,6 +1040,14 @@ func (pg *PackageGenerator) GeneratePatchAndPublishToPorch(ctx context.Context, 
 			return fmt.Errorf("failed to unmarshal parameters: %w", err)
 		}
 
+<<<<<<< HEAD
+=======
+	} else if intent.Spec.Parameters != nil {
+		// Fallback to Parameters field
+		if err := json.Unmarshal(intent.Spec.Parameters.Raw, &params); err != nil {
+			return fmt.Errorf("failed to unmarshal raw parameters: %w", err)
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	if params == nil {

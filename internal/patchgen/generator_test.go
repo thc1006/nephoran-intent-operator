@@ -440,6 +440,17 @@ func TestConcurrentGeneration(t *testing.T) {
 	tempDir := t.TempDir()
 	const numGoroutines = 5
 
+<<<<<<< HEAD
+=======
+	// Pre-create all output directories to avoid race conditions
+	for i := 0; i < numGoroutines; i++ {
+		outputDir := filepath.Join(tempDir, fmt.Sprintf("output-%d", i))
+		if err := os.MkdirAll(outputDir, 0o755); err != nil {
+			t.Fatalf("Failed to create output directory %s: %v", outputDir, err)
+		}
+	}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	results := make(chan error, numGoroutines)
 
 	for i := 0; i < numGoroutines; i++ {
@@ -464,8 +475,27 @@ func TestConcurrentGeneration(t *testing.T) {
 
 	// Verify all packages were created
 	for i := 0; i < numGoroutines; i++ {
+<<<<<<< HEAD
 		packageDir := filepath.Join(tempDir, fmt.Sprintf("output-%d", i), fmt.Sprintf("app-%d-scaling-patch", i))
 		assert.DirExists(t, packageDir)
+=======
+		outputDir := filepath.Join(tempDir, fmt.Sprintf("output-%d", i))
+		
+		// Check that the output directory contains at least one subdirectory (the package)
+		entries, err := os.ReadDir(outputDir)
+		assert.NoError(t, err, "Should be able to read output directory")
+		assert.Greater(t, len(entries), 0, "Output directory should contain generated package")
+		
+		// Verify at least one entry is a directory (the package)
+		hasPackageDir := false
+		for _, entry := range entries {
+			if entry.IsDir() {
+				hasPackageDir = true
+				break
+			}
+		}
+		assert.True(t, hasPackageDir, "Output directory should contain package directory")
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 }
 

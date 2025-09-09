@@ -29,6 +29,7 @@ func TestSecuritySuiteIntegration(t *testing.T) {
 			ReferrerPolicy:        "strict-origin-when-cross-origin",
 		},
 		InputValidation: &InputValidationConfig{
+<<<<<<< HEAD
 			EnableSQLInjectionProtection: false,       // Disabled for testing
 			EnableXSSProtection:          false,       // Disabled for testing
 			BlockOnViolation:             false,       // Disabled for testing
@@ -37,6 +38,24 @@ func TestSecuritySuiteIntegration(t *testing.T) {
 		RateLimit: &RateLimiterConfig{
 			QPS:   10,
 			Burst: 20,
+=======
+			MaxBodySize:                  1024 * 1024, // 1MB
+			MaxURLLength:                 2048,
+			MaxParameterCount:            100,
+			MaxParameterLength:           1024,
+			MaxHeaderSize:                8 * 1024,
+			AllowedContentTypes:          []string{"application/json", "text/plain"},
+			EnableSQLInjectionProtection: false, // Disabled for testing
+			EnableXSSProtection:          false, // Disabled for testing
+			EnablePathTraversalProtection:    false, // Disabled for testing
+			EnableCommandInjectionProtection: false, // Disabled for testing
+			BlockOnViolation:             false, // Disabled for testing
+			LogViolations:                false, // Reduce noise
+		},
+		RateLimit: &RateLimiterConfig{
+			QPS:   1,
+			Burst: 2,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 		RequestSize: nil, // RequestSizeLimiter will be created by NewSecuritySuite
 		CORS: &CORSConfig{
@@ -63,6 +82,10 @@ func TestSecuritySuiteIntegration(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		// Simulate HTTPS connection for HSTS
 		req.Header.Set("X-Forwarded-Proto", "https")
+<<<<<<< HEAD
+=======
+		req.RemoteAddr = "192.168.1.1:12345" // Unique IP for this test
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		rec := httptest.NewRecorder()
 
 		securedHandler.ServeHTTP(rec, req)
@@ -78,6 +101,10 @@ func TestSecuritySuiteIntegration(t *testing.T) {
 	t.Run("CORS Allowed Origin", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.Header.Set("Origin", "https://example.com")
+<<<<<<< HEAD
+=======
+		req.RemoteAddr = "192.168.1.2:12345" // Unique IP for this test
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		rec := httptest.NewRecorder()
 
 		securedHandler.ServeHTTP(rec, req)
@@ -89,6 +116,10 @@ func TestSecuritySuiteIntegration(t *testing.T) {
 	t.Run("CORS Blocked Origin", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.Header.Set("Origin", "https://malicious.com")
+<<<<<<< HEAD
+=======
+		req.RemoteAddr = "192.168.1.3:12345" // Unique IP for this test
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		rec := httptest.NewRecorder()
 
 		securedHandler.ServeHTTP(rec, req)
@@ -98,14 +129,26 @@ func TestSecuritySuiteIntegration(t *testing.T) {
 	})
 
 	t.Run("Rate Limiting", func(t *testing.T) {
+<<<<<<< HEAD
 		// Make requests up to the burst limit
 		for i := 0; i < 20; i++ {
+=======
+		// Verify rate limiter is configured
+		require.NotNil(t, config.RateLimit, "RateLimit config should not be nil")
+		assert.Equal(t, 1, config.RateLimit.QPS, "QPS should be 1")
+		assert.Equal(t, 2, config.RateLimit.Burst, "Burst should be 2")
+		
+		// Make requests to exhaust the burst limit (2) + exceed QPS (1)
+		// First exhaust the burst limit
+		for i := 0; i < 3; i++ {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			req := httptest.NewRequest("GET", "/test", nil)
 			req.RemoteAddr = "192.168.1.100:12345"
 			rec := httptest.NewRecorder()
 
 			securedHandler.ServeHTTP(rec, req)
 
+<<<<<<< HEAD
 			if i < 20 {
 				assert.Equal(t, http.StatusOK, rec.Code, "Request %d should succeed", i+1)
 			}
@@ -118,6 +161,15 @@ func TestSecuritySuiteIntegration(t *testing.T) {
 
 		securedHandler.ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusTooManyRequests, rec.Code)
+=======
+			if i < 2 {
+				assert.Equal(t, http.StatusOK, rec.Code, "Request %d should succeed", i+1)
+			} else {
+				// The 3rd request should be rate limited
+				assert.Equal(t, http.StatusTooManyRequests, rec.Code, "Request %d should be rate limited", i+1)
+			}
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	})
 
 	t.Run("Request Size Limit", func(t *testing.T) {
@@ -126,6 +178,10 @@ func TestSecuritySuiteIntegration(t *testing.T) {
 
 		req := httptest.NewRequest("POST", "/test", strings.NewReader(largeBody))
 		req.Header.Set("Content-Type", "text/plain")
+<<<<<<< HEAD
+=======
+		req.RemoteAddr = "192.168.1.4:12345" // Unique IP for this test
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		rec := httptest.NewRecorder()
 
 		securedHandler.ServeHTTP(rec, req)

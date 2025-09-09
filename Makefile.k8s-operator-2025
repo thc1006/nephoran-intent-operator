@@ -16,10 +16,17 @@ SHELL := /bin/bash
 # =============================================================================
 # 2025 VERSION MATRIX
 # =============================================================================
+<<<<<<< HEAD
 GO_VERSION ?= 1.24.6
 KUBERNETES_VERSION ?= 1.32.1
 CONTROLLER_RUNTIME_VERSION ?= v0.19.1
 KUBEBUILDER_VERSION ?= 4.4.1
+=======
+GO_VERSION ?= 1.25.0
+KUBERNETES_VERSION ?= 1.32.1
+CONTROLLER_RUNTIME_VERSION ?= v0.19.1
+KUBEBUILDER_VERSION ?= 4.7.1
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 ENVTEST_K8S_VERSION ?= 1.32.1
 
 # =============================================================================

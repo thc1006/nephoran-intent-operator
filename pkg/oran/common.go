@@ -26,6 +26,19 @@ type O1Config struct {
 
 	RetryAttempts int `json:"retryAttempts"`
 
+<<<<<<< HEAD
+=======
+	DefaultPort int `json:"defaultPort"`
+
+	ConnectTimeout time.Duration `json:"connectTimeout"`
+
+	RequestTimeout time.Duration `json:"requestTimeout"`
+
+	MaxRetries int `json:"maxRetries"`
+
+	RetryInterval time.Duration `json:"retryInterval"`
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	TLSConfig *TLSConfig `json:"tlsConfig,omitempty"`
 
 	Authentication *AuthConfig `json:"authentication,omitempty"`

@@ -27,6 +27,7 @@ var _ = Describe("LLM Client Unit Tests", func() {
 	BeforeEach(func() {
 		// Create mock server for testing
 		mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+<<<<<<< HEAD
 			// Default successful response
 			response := map[string]interface{}{
 				"replicas": float64(1),
@@ -34,6 +35,18 @@ var _ = Describe("LLM Client Unit Tests", func() {
 			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(response)
+=======
+			// Default successful response in OpenAI format
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`{
+				"choices": [{
+					"message": {
+						"content": "{\"type\":\"NetworkFunctionDeployment\",\"name\":\"test\",\"namespace\":\"default\",\"spec\":{\"replicas\":1,\"image\":\"test:latest\"}}"
+					}
+				}],
+				"usage": {"total_tokens": 10}
+			}`))
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}))
 
 		client = NewClient(mockServer.URL)
@@ -169,6 +182,7 @@ var _ = Describe("LLM Client Unit Tests", func() {
 				attemptCount++
 				if attemptCount <= 2 {
 					w.WriteHeader(http.StatusInternalServerError)
+<<<<<<< HEAD
 					w.Write([]byte(`{"error": "internal server error"}`))
 					return
 				}
@@ -179,6 +193,21 @@ var _ = Describe("LLM Client Unit Tests", func() {
 				}
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(response)
+=======
+					w.Write([]byte(`internal server error`))
+					return
+				}
+				// Third attempt succeeds
+				w.Header().Set("Content-Type", "application/json")
+				w.Write([]byte(`{
+					"choices": [{
+						"message": {
+							"content": "{\"type\":\"NetworkFunctionDeployment\",\"name\":\"test\",\"namespace\":\"default\",\"spec\":{\"replicas\":1,\"image\":\"test:latest\"}}"
+						}
+					}],
+					"usage": {"total_tokens": 10}
+				}`))
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			}))
 			defer errorServer.Close() // #nosec G307 - Error handled in defer
 
@@ -402,7 +431,11 @@ var _ = Describe("LLM Client Unit Tests", func() {
 			invalidNames := []string{
 				"",                  // Empty
 				"Invalid_Name",      // Underscore
+<<<<<<< HEAD
 				"UPPERCASE",         // Uppercase
+=======
+				"UPPERCASE",         // All uppercase (k8s names must be lowercase)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				"-starts-with-dash", // Starts with dash
 				"ends-with-dash-",   // Ends with dash
 				".starts-with-dot",  // Starts with dot

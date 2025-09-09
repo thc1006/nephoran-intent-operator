@@ -1,5 +1,8 @@
+<<<<<<< HEAD
 //go:build ignore
 
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 /*
 
 Copyright 2025.
@@ -37,7 +40,10 @@ import (
 	"fmt"
 	"sync"
 	"time"
+<<<<<<< HEAD
 	"encoding/json"
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
@@ -978,7 +984,11 @@ func (lm *lifecycleManager) AcquireLifecycleLock(ctx context.Context, ref *Packa
 
 		Timestamp: time.Now(),
 
+<<<<<<< HEAD
 		Metadata: json.RawMessage(`{}`),
+=======
+		Metadata: make(map[string]interface{}),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	lm.TriggerEvent(ctx, lockEvent)
@@ -1036,7 +1046,11 @@ func (lm *lifecycleManager) ReleaseLifecycleLock(ctx context.Context, lockID str
 
 		Timestamp: time.Now(),
 
+<<<<<<< HEAD
 		Metadata: json.RawMessage(`{}`),
+=======
+		Metadata: make(map[string]interface{}),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	lm.TriggerEvent(ctx, releaseEvent)
@@ -1462,11 +1476,19 @@ func (lm *lifecycleManager) CleanupFailedTransitions(ctx context.Context, olderT
 	cutoffTime := time.Now().Add(-olderThan)
 
 	result := &CleanupResult{
+<<<<<<< HEAD
 		ItemsRemoved: 0,
 
 		Duration: 0,
 
 		Errors: []string{},
+=======
+		RemovedCount:     0,
+		RemovedResources: []string{},
+		TotalSize:        0,
+		Duration:         "0s",
+		Errors:           []string{},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	// In a real implementation, this would query a database or storage.
@@ -1479,7 +1501,11 @@ func (lm *lifecycleManager) CleanupFailedTransitions(ctx context.Context, olderT
 
 		"cutoff_time", cutoffTime,
 
+<<<<<<< HEAD
 		"items_removed", result.ItemsRemoved)
+=======
+		"items_removed", result.RemovedCount)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	return result, nil
 }
@@ -1490,11 +1516,19 @@ func (lm *lifecycleManager) CleanupRollbackPoints(ctx context.Context, ref *Pack
 	cutoffTime := time.Now().Add(-olderThan)
 
 	result := &CleanupResult{
+<<<<<<< HEAD
 		ItemsRemoved: 0,
 
 		Duration: 0,
 
 		Errors: []string{},
+=======
+		RemovedCount:     0,
+		RemovedResources: []string{},
+		TotalSize:        0,
+		Duration:         "0s",
+		Errors:           []string{},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	// In a real implementation, this would query rollback points for this package.
@@ -1507,7 +1541,11 @@ func (lm *lifecycleManager) CleanupRollbackPoints(ctx context.Context, ref *Pack
 
 		"cutoff_time", cutoffTime,
 
+<<<<<<< HEAD
 		"items_removed", result.ItemsRemoved)
+=======
+		"items_removed", result.RemovedCount)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	return result, nil
 }
@@ -2208,6 +2246,7 @@ type LifecycleManagerHealth struct {
 	LastActivity time.Time
 }
 
+<<<<<<< HEAD
 // CleanupResult represents a cleanupresult.
 
 type CleanupResult struct {
@@ -2217,6 +2256,8 @@ type CleanupResult struct {
 
 	Errors []string
 }
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 // ReportOptions represents a reportoptions.
 

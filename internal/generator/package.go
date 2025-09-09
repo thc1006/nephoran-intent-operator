@@ -7,6 +7,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/internal/intent"
 )
 
+<<<<<<< HEAD
 // Package represents a generated KRM package.
 
 type Package struct {
@@ -62,12 +63,55 @@ func (g *PackageGenerator) GeneratePackage(intent *intent.ScalingIntent, outputD
 
 	// Generate Kptfile.
 
+=======
+// Package represents a generated KRM package
+type Package struct {
+	Name      string
+	Directory string
+	Files     []PackageFile
+}
+
+// PackageFile represents a file in the package
+type PackageFile struct {
+	Name    string
+	Content []byte
+	Path    string // Relative path within the package
+}
+
+// PackageGenerator orchestrates the generation of complete KRM packages
+type PackageGenerator struct {
+	deploymentGen *DeploymentGenerator
+	kptfileGen    *KptfileGenerator
+}
+
+// NewPackageGenerator creates a new package generator
+func NewPackageGenerator() *PackageGenerator {
+	return &PackageGenerator{
+		deploymentGen: NewDeploymentGenerator(),
+		kptfileGen:    NewKptfileGenerator(),
+	}
+}
+
+// GeneratePackage creates a complete KRM package from a scaling intent
+func (g *PackageGenerator) GeneratePackage(intent *intent.ScalingIntent, outputDir string) (*Package, error) {
+	packageName := fmt.Sprintf("%s-scaling", intent.Target)
+	packageDir := filepath.Join(outputDir, packageName)
+
+	pkg := &Package{
+		Name:      packageName,
+		Directory: packageDir,
+		Files:     make([]PackageFile, 0),
+	}
+
+	// Generate Kptfile
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	kptfileContent, err := g.kptfileGen.Generate(intent)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate Kptfile: %w", err)
 	}
 
 	pkg.Files = append(pkg.Files, PackageFile{
+<<<<<<< HEAD
 		Name: "Kptfile",
 
 		Content: kptfileContent,
@@ -77,12 +121,21 @@ func (g *PackageGenerator) GeneratePackage(intent *intent.ScalingIntent, outputD
 
 	// Generate Deployment.
 
+=======
+		Name:    "Kptfile",
+		Content: kptfileContent,
+		Path:    "Kptfile",
+	})
+
+	// Generate Deployment
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	deploymentContent, err := g.deploymentGen.Generate(intent)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate deployment: %w", err)
 	}
 
 	pkg.Files = append(pkg.Files, PackageFile{
+<<<<<<< HEAD
 		Name: "deployment.yaml",
 
 		Content: deploymentContent,
@@ -92,12 +145,21 @@ func (g *PackageGenerator) GeneratePackage(intent *intent.ScalingIntent, outputD
 
 	// Generate Service.
 
+=======
+		Name:    "deployment.yaml",
+		Content: deploymentContent,
+		Path:    "deployment.yaml",
+	})
+
+	// Generate Service
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	serviceContent, err := g.deploymentGen.GenerateService(intent)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate service: %w", err)
 	}
 
 	pkg.Files = append(pkg.Files, PackageFile{
+<<<<<<< HEAD
 		Name: "service.yaml",
 
 		Content: serviceContent,
@@ -115,11 +177,25 @@ func (g *PackageGenerator) GeneratePackage(intent *intent.ScalingIntent, outputD
 		Content: readmeContent,
 
 		Path: "README.md",
+=======
+		Name:    "service.yaml",
+		Content: serviceContent,
+		Path:    "service.yaml",
+	})
+
+	// Generate README
+	readmeContent := g.generateReadme(intent)
+	pkg.Files = append(pkg.Files, PackageFile{
+		Name:    "README.md",
+		Content: readmeContent,
+		Path:    "README.md",
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	})
 
 	return pkg, nil
 }
 
+<<<<<<< HEAD
 // GenerateMinimalPackage creates a minimal KRM package with just Deployment and Kptfile.
 
 func (g *PackageGenerator) GenerateMinimalPackage(intent *intent.ScalingIntent, outputDir string) (*Package, error) {
@@ -137,12 +213,27 @@ func (g *PackageGenerator) GenerateMinimalPackage(intent *intent.ScalingIntent, 
 
 	// Generate minimal Kptfile.
 
+=======
+// GenerateMinimalPackage creates a minimal KRM package with just Deployment and Kptfile
+func (g *PackageGenerator) GenerateMinimalPackage(intent *intent.ScalingIntent, outputDir string) (*Package, error) {
+	packageName := fmt.Sprintf("%s-minimal", intent.Target)
+	packageDir := filepath.Join(outputDir, packageName)
+
+	pkg := &Package{
+		Name:      packageName,
+		Directory: packageDir,
+		Files:     make([]PackageFile, 0),
+	}
+
+	// Generate minimal Kptfile
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	kptfileContent, err := g.kptfileGen.GenerateMinimal(intent)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate minimal Kptfile: %w", err)
 	}
 
 	pkg.Files = append(pkg.Files, PackageFile{
+<<<<<<< HEAD
 		Name: "Kptfile",
 
 		Content: kptfileContent,
@@ -152,22 +243,37 @@ func (g *PackageGenerator) GenerateMinimalPackage(intent *intent.ScalingIntent, 
 
 	// Generate Deployment only.
 
+=======
+		Name:    "Kptfile",
+		Content: kptfileContent,
+		Path:    "Kptfile",
+	})
+
+	// Generate Deployment only
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	deploymentContent, err := g.deploymentGen.Generate(intent)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate deployment: %w", err)
 	}
 
 	pkg.Files = append(pkg.Files, PackageFile{
+<<<<<<< HEAD
 		Name: "deployment.yaml",
 
 		Content: deploymentContent,
 
 		Path: "deployment.yaml",
+=======
+		Name:    "deployment.yaml",
+		Content: deploymentContent,
+		Path:    "deployment.yaml",
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	})
 
 	return pkg, nil
 }
 
+<<<<<<< HEAD
 // generateReadme creates a README.md file for the package.
 
 func (g *PackageGenerator) generateReadme(intent *intent.ScalingIntent) []byte {
@@ -255,6 +361,52 @@ kpt live apply
 
 
 
+=======
+// generateReadme creates a README.md file for the package
+func (g *PackageGenerator) generateReadme(intent *intent.ScalingIntent) []byte {
+	readme := fmt.Sprintf(`# %s Scaling Package
+
+This KRM package was generated by the Nephoran Intent Operator porch-direct tool.
+
+## Package Information
+
+- **Target**: %s
+- **Namespace**: %s  
+- **Replicas**: %d
+- **Intent Type**: %s
+- **Source**: %s
+
+## Contents
+
+- ` + "`Kptfile`" + ` - Package metadata and pipeline configuration
+- ` + "`deployment.yaml`" + ` - Kubernetes Deployment for the CNF simulator
+- ` + "`service.yaml`" + ` - Service to expose the deployment
+
+## Usage
+
+This package can be applied directly to a Kubernetes cluster or used with Porch
+for GitOps-based package management.
+
+### Direct Application
+
+` + "```bash" + `
+kubectl apply -f .
+` + "```" + `
+
+### With Porch
+
+` + "```bash" + `
+kpt live init
+kpt live apply
+` + "```" + `
+
+## Generated Metadata
+
+- **Generated At**: %s
+- **Generator**: porch-direct
+- **Schema**: docs/contracts/intent.schema.json
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 `, intent.Target, intent.Target, intent.Namespace, intent.Replicas, intent.IntentType, intent.Source, "TODO: timestamp")
 
 	if intent.Reason != "" {
@@ -268,30 +420,46 @@ kpt live apply
 	return []byte(readme)
 }
 
+<<<<<<< HEAD
 // GetPackageFiles returns all files in the package.
 
+=======
+// GetPackageFiles returns all files in the package
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 func (pkg *Package) GetPackageFiles() []PackageFile {
 	return pkg.Files
 }
 
+<<<<<<< HEAD
 // GetFile returns a specific file by name.
 
+=======
+// GetFile returns a specific file by name
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 func (pkg *Package) GetFile(name string) (*PackageFile, error) {
 	for _, file := range pkg.Files {
 		if file.Name == name {
 			return &file, nil
 		}
 	}
+<<<<<<< HEAD
 
 	return nil, fmt.Errorf("file %s not found in package", name)
 }
 
 // GetFileCount returns the number of files in the package.
 
+=======
+	return nil, fmt.Errorf("file %s not found in package", name)
+}
+
+// GetFileCount returns the number of files in the package
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 func (pkg *Package) GetFileCount() int {
 	return len(pkg.Files)
 }
 
+<<<<<<< HEAD
 // GetFiles returns the files as a map for Porch API.
 
 func (pkg *Package) GetFiles() map[string]interface{} {
@@ -303,3 +471,13 @@ func (pkg *Package) GetFiles() map[string]interface{} {
 
 	return files
 }
+=======
+// GetFiles returns the files as a map for Porch API
+func (pkg *Package) GetFiles() map[string]interface{} {
+	files := make(map[string]interface{})
+	for _, file := range pkg.Files {
+		files[file.Path] = string(file.Content)
+	}
+	return files
+}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

@@ -45,6 +45,7 @@ func (suite *O2APITestSuite) SetupSuite() {
 
 	// Setup O2 API server
 	config := &o2.O2IMSConfig{
+<<<<<<< HEAD
 		ServerAddress:  "127.0.0.1",
 		ServerPort:     0,
 		TLSEnabled:     false,
@@ -52,6 +53,13 @@ func (suite *O2APITestSuite) SetupSuite() {
 		ProviderConfigs: map[string]interface{}{
 			"enabled": true,
 		},
+=======
+		ServerAddress:   "127.0.0.1",
+		ServerPort:      0,
+		TLSEnabled:      false,
+		DatabaseConfig:  json.RawMessage(`{}`),
+		ProviderConfigs: json.RawMessage(`{"enabled": true}`),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	var err error
@@ -135,7 +143,11 @@ func (suite *O2APITestSuite) TestResourcePoolCRUD() {
 					Utilization: 20.0,
 				},
 			},
+<<<<<<< HEAD
 			Extensions: json.RawMessage(`{}`),
+=======
+			Extensions: map[string]interface{}{},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 
 		poolJSON, err := json.Marshal(pool)
@@ -277,7 +289,11 @@ func (suite *O2APITestSuite) TestResourceTypeCRUD() {
 				},
 			},
 			SupportedActions: []string{"CREATE", "DELETE", "UPDATE", "SCALE", "HEAL"},
+<<<<<<< HEAD
 			Capabilities:     json.RawMessage(`{}`),
+=======
+			Capabilities:     []models.ResourceCapability{},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 
 		typeJSON, err := json.Marshal(resourceType)
@@ -405,7 +421,16 @@ func (suite *O2APITestSuite) TestResourceInstanceOperations() {
 
 		// Update resource instance
 		retrieved.OperationalStatus = "DISABLED"
+<<<<<<< HEAD
 		retrieved.Metadata["replicas"] = 1
+=======
+		metadata := map[string]interface{}{
+			"replicas": 1,
+		}
+		metadataJSON, err := json.Marshal(metadata)
+		suite.Require().NoError(err)
+		retrieved.Metadata = metadataJSON
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 		updatedJSON, err := json.Marshal(retrieved)
 		suite.Require().NoError(err)
@@ -431,7 +456,16 @@ func (suite *O2APITestSuite) TestResourceInstanceOperations() {
 		resp.Body.Close()
 
 		suite.Assert().Equal("DISABLED", updated.OperationalStatus)
+<<<<<<< HEAD
 		suite.Assert().Equal(float64(1), updated.Metadata["replicas"])
+=======
+		
+		// Check metadata - unmarshal and verify replicas
+		var updatedMetadata map[string]interface{}
+		err = json.Unmarshal(updated.Metadata, &updatedMetadata)
+		suite.Require().NoError(err)
+		suite.Assert().Equal(1, updatedMetadata["replicas"])
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 		// Delete resource instance
 		req, err = http.NewRequest("DELETE",

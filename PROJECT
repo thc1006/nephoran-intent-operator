@@ -19,6 +19,7 @@ plugins:
   manifests.sdk.operator.sdk/v2: {}
   scorecard.sdk.operator.sdk/v2: {}
   # Webhook support
+<<<<<<< HEAD
   webhooks.kubebuilder.io/v1: {}
 
 componentConfig:
@@ -36,3 +37,6 @@ componentConfig:
     zap:
       development: false
       stacktraceLevel: error
+=======
+  webhooks.kubebuilder.io/v1: {}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

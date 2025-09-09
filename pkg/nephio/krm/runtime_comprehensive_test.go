@@ -17,9 +17,14 @@ limitations under the License.
 package krm
 
 import (
+<<<<<<< HEAD
 	
 	"encoding/json"
 "context"
+=======
+	"context"
+	"encoding/json"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"fmt"
 	"strings"
 	"sync"
@@ -36,6 +41,7 @@ import (
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+<<<<<<< HEAD
 )
 
 // KRMResource represents a Kubernetes resource manifest for KRM functions
@@ -130,6 +136,18 @@ type PipelineResponse struct {
 	Resources []KRMResource     `json:"resources"`
 	Results   []*FunctionResult `json:"results,omitempty"`
 	Error     *FunctionError    `json:"error,omitempty"`
+=======
+	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
+)
+
+// Using types from the porch package to avoid redefinition
+
+// TestPipeline defines a sequence of KRM functions for testing
+type TestPipeline struct {
+	Name      string                `json:"name"`
+	Functions []porch.FunctionConfig `json:"functions"`
+	Metadata  json.RawMessage       `json:"metadata,omitempty"`
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // MockKRMRuntime provides a mock implementation of KRM function runtime
@@ -152,6 +170,7 @@ type RegisteredFunction struct {
 	Description string
 	Version     string
 	Handler     FunctionHandler
+<<<<<<< HEAD
 	Schema      *FunctionSchema
 	Examples    []FunctionExample
 }
@@ -181,12 +200,25 @@ type FunctionExample struct {
 	Input       []KRMResource   `json:"input"`
 	Output      []KRMResource   `json:"output"`
 }
+=======
+	Schema      *porch.FunctionSchema
+	Examples    []porch.FunctionExample
+}
+
+// FunctionHandler defines the signature for function handlers
+type FunctionHandler func(ctx context.Context, req *porch.FunctionRequest) (*porch.FunctionResponse, error)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 // ExecutionEvent records function execution history
 type ExecutionEvent struct {
 	FunctionName string
+<<<<<<< HEAD
 	Request      *FunctionRequest
 	Response     *FunctionResponse
+=======
+	Request      *porch.FunctionRequest
+	Response     *porch.FunctionResponse
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	Error        error
 	Timestamp    time.Time
 	Duration     time.Duration
@@ -225,8 +257,13 @@ func (r *MockKRMRuntime) registerStandardFunctions() {
 		Description: "Sets labels on Kubernetes resources",
 		Version:     "v0.2.0",
 		Handler:     r.setLabelsHandler,
+<<<<<<< HEAD
 		Schema: &FunctionSchema{
 			Properties: map[string]SchemaProperty{
+=======
+		Schema: &porch.FunctionSchema{
+			Properties: map[string]porch.SchemaProperty{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				"labels": {
 					Type:        "object",
 					Description: "Labels to set on resources",
@@ -234,6 +271,7 @@ func (r *MockKRMRuntime) registerStandardFunctions() {
 			},
 			Required: []string{"labels"},
 		},
+<<<<<<< HEAD
 		Examples: []FunctionExample{
 			{
 				Name:        "basic-labels",
@@ -251,6 +289,19 @@ func (r *MockKRMRuntime) registerStandardFunctions() {
 					"env": "production",
 					}),
 				},
+=======
+		Examples: []porch.FunctionExample{
+			{
+				Name:        "basic-labels",
+				Description: "Set basic labels on resources",
+				Config: &porch.FunctionConfig{
+					Image:     "gcr.io/kpt-fn/set-labels:v0.2.0",
+					ConfigMap: map[string]interface{}{"labels": map[string]string{"app": "test", "env": "test"}},
+				},
+				Input: []porch.KRMResource{
+					generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),
+				},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			},
 		},
 	})
@@ -262,8 +313,13 @@ func (r *MockKRMRuntime) registerStandardFunctions() {
 		Description: "Sets namespace on Kubernetes resources",
 		Version:     "v0.4.1",
 		Handler:     r.setNamespaceHandler,
+<<<<<<< HEAD
 		Schema: &FunctionSchema{
 			Properties: map[string]SchemaProperty{
+=======
+		Schema: &porch.FunctionSchema{
+			Properties: map[string]porch.SchemaProperty{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				"namespace": {
 					Type:        "string",
 					Description: "Target namespace for resources",
@@ -307,8 +363,13 @@ func (r *MockKRMRuntime) registerStandardFunctions() {
 		Description: "Configures O-RAN interfaces",
 		Version:     "v1.0.0",
 		Handler:     r.oranInterfaceConfigHandler,
+<<<<<<< HEAD
 		Schema: &FunctionSchema{
 			Properties: map[string]SchemaProperty{
+=======
+		Schema: &porch.FunctionSchema{
+			Properties: map[string]porch.SchemaProperty{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				"interfaces": {
 					Type:        "array",
 					Description: "List of O-RAN interfaces to configure",
@@ -345,7 +406,11 @@ func (r *MockKRMRuntime) RegisterFunction(function *RegisteredFunction) error {
 }
 
 // ExecuteFunction executes a single KRM function
+<<<<<<< HEAD
 func (r *MockKRMRuntime) ExecuteFunction(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) {
+=======
+func (r *MockKRMRuntime) ExecuteFunction(ctx context.Context, req *porch.FunctionRequest) (*porch.FunctionResponse, error) {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	start := time.Now()
 
 	if r.simulateLatency > 0 {
@@ -399,6 +464,7 @@ func (r *MockKRMRuntime) ExecuteFunction(ctx context.Context, req *FunctionReque
 }
 
 // ExecutePipeline executes a pipeline of KRM functions
+<<<<<<< HEAD
 func (r *MockKRMRuntime) ExecutePipeline(ctx context.Context, req *PipelineRequest) (*PipelineResponse, error) {
 	resources := req.Resources
 	var allResults []*FunctionResult
@@ -410,6 +476,19 @@ func (r *MockKRMRuntime) ExecutePipeline(ctx context.Context, req *PipelineReque
 		r.logger.Info("Executing function in pipeline", zap.Int("step", i+1), zap.String("image", funcConfig.Image))
 
 		funcReq := &FunctionRequest{
+=======
+func (r *MockKRMRuntime) ExecutePipeline(ctx context.Context, req *porch.PipelineRequest) (*porch.PipelineResponse, error) {
+	resources := req.Resources
+	var allResults []*porch.FunctionResult
+
+	r.logger.Info("Executing pipeline", zap.Int("mutators", len(req.Pipeline.Mutators)), zap.Int("validators", len(req.Pipeline.Validators)))
+
+	// Execute mutators first
+	for i, funcConfig := range req.Pipeline.Mutators {
+		r.logger.Info("Executing function in pipeline", zap.Int("step", i+1), zap.String("image", funcConfig.Image))
+
+		funcReq := &porch.FunctionRequest{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			FunctionConfig: funcConfig,
 			Resources:      resources,
 			Context:        req.Context,
@@ -417,10 +496,17 @@ func (r *MockKRMRuntime) ExecutePipeline(ctx context.Context, req *PipelineReque
 
 		funcResp, err := r.ExecuteFunction(ctx, funcReq)
 		if err != nil {
+<<<<<<< HEAD
 			return &PipelineResponse{
 				Resources: resources,
 				Results:   allResults,
 				Error: &FunctionError{
+=======
+			return &porch.PipelineResponse{
+				Resources: resources,
+				Results:   allResults,
+				Error: &porch.FunctionError{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 					Message: fmt.Sprintf("pipeline failed at step %d: %v", i+1, err),
 					Code:    "PIPELINE_EXECUTION_FAILED",
 					Details: fmt.Sprintf("Function: %s", funcConfig.Image),
@@ -438,7 +524,11 @@ func (r *MockKRMRuntime) ExecutePipeline(ctx context.Context, req *PipelineReque
 
 		// Check for function errors
 		if funcResp.Error != nil {
+<<<<<<< HEAD
 			return &PipelineResponse{
+=======
+			return &porch.PipelineResponse{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				Resources: resources,
 				Results:   allResults,
 				Error:     funcResp.Error,
@@ -446,7 +536,11 @@ func (r *MockKRMRuntime) ExecutePipeline(ctx context.Context, req *PipelineReque
 		}
 	}
 
+<<<<<<< HEAD
 	return &PipelineResponse{
+=======
+	return &porch.PipelineResponse{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		Resources: resources,
 		Results:   allResults,
 	}, nil
@@ -488,18 +582,51 @@ func (r *MockKRMRuntime) SetValidationEnabled(enabled bool) {
 // Function handlers
 
 // setLabelsHandler implements the set-labels function
+<<<<<<< HEAD
 func (r *MockKRMRuntime) setLabelsHandler(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) {
 	labels, ok := req.FunctionConfig.ConfigMap["labels"].(map[string]interface{})
 	if !ok {
 		return &FunctionResponse{
 			Resources: req.Resources,
 			Error: &FunctionError{
+=======
+func (r *MockKRMRuntime) setLabelsHandler(ctx context.Context, req *porch.FunctionRequest) (*porch.FunctionResponse, error) {
+	configMap := req.FunctionConfig.ConfigMap
+	if configMap == nil {
+		return &porch.FunctionResponse{
+			Resources: req.Resources,
+			Error: &porch.FunctionError{
+				Message: "failed to parse configuration",
+				Code:    "INVALID_CONFIG",
+			},
+		}, nil
+	}
+
+	var stringLabels map[string]string
+	
+	// Try to get labels as map[string]string first
+	if labelsStr, ok := configMap["labels"].(map[string]string); ok {
+		stringLabels = labelsStr
+	} else if labelsIface, ok := configMap["labels"].(map[string]interface{}); ok {
+		// Convert from map[string]interface{} to map[string]string
+		stringLabels = make(map[string]string)
+		for k, v := range labelsIface {
+			if str, ok := v.(string); ok {
+				stringLabels[k] = str
+			}
+		}
+	} else {
+		return &porch.FunctionResponse{
+			Resources: req.Resources,
+			Error: &porch.FunctionError{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				Message: "labels configuration is required",
 				Code:    "INVALID_CONFIG",
 			},
 		}, nil
 	}
 
+<<<<<<< HEAD
 	// Convert to string map
 	stringLabels := make(map[string]string)
 	for k, v := range labels {
@@ -512,6 +639,14 @@ func (r *MockKRMRuntime) setLabelsHandler(ctx context.Context, req *FunctionRequ
 	modifiedResources := make([]KRMResource, len(req.Resources))
 	for i, resource := range req.Resources {
 		modifiedResource := resource
+=======
+	// Apply labels to all resources
+	modifiedResources := make([]porch.KRMResource, len(req.Resources))
+	for i, resource := range req.Resources {
+		modifiedResource := resource
+		
+		// Initialize metadata if nil
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		if modifiedResource.Metadata == nil {
 			modifiedResource.Metadata = make(map[string]interface{})
 		}
@@ -531,9 +666,15 @@ func (r *MockKRMRuntime) setLabelsHandler(ctx context.Context, req *FunctionRequ
 		modifiedResources[i] = modifiedResource
 	}
 
+<<<<<<< HEAD
 	return &FunctionResponse{
 		Resources: modifiedResources,
 		Results: []*FunctionResult{
+=======
+	return &porch.FunctionResponse{
+		Resources: modifiedResources,
+		Results: []*porch.FunctionResult{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			{
 				Message:  fmt.Sprintf("Applied labels to %d resources", len(modifiedResources)),
 				Severity: "info",
@@ -543,6 +684,7 @@ func (r *MockKRMRuntime) setLabelsHandler(ctx context.Context, req *FunctionRequ
 }
 
 // setNamespaceHandler implements the set-namespace function
+<<<<<<< HEAD
 func (r *MockKRMRuntime) setNamespaceHandler(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) {
 	namespace, ok := req.FunctionConfig.ConfigMap["namespace"].(string)
 	if !ok {
@@ -550,10 +692,20 @@ func (r *MockKRMRuntime) setNamespaceHandler(ctx context.Context, req *FunctionR
 			Resources: req.Resources,
 			Error: &FunctionError{
 				Message: "namespace configuration is required",
+=======
+func (r *MockKRMRuntime) setNamespaceHandler(ctx context.Context, req *porch.FunctionRequest) (*porch.FunctionResponse, error) {
+	configMap := req.FunctionConfig.ConfigMap
+	if configMap == nil {
+		return &porch.FunctionResponse{
+			Resources: req.Resources,
+			Error: &porch.FunctionError{
+				Message: "invalid configuration format",
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				Code:    "INVALID_CONFIG",
 			},
 		}, nil
 	}
+<<<<<<< HEAD
 
 	modifiedResources := make([]KRMResource, len(req.Resources))
 	for i, resource := range req.Resources {
@@ -561,13 +713,37 @@ func (r *MockKRMRuntime) setNamespaceHandler(ctx context.Context, req *FunctionR
 		if modifiedResource.Metadata == nil {
 			modifiedResource.Metadata = make(map[string]interface{})
 		}
+=======
+	
+	namespace, ok := configMap["namespace"].(string)
+	if !ok || namespace == "" {
+		// Provide a default namespace if none is specified
+		namespace = "default"
+	}
+
+	modifiedResources := make([]porch.KRMResource, len(req.Resources))
+	for i, resource := range req.Resources {
+		modifiedResource := resource
+		
+		// Initialize metadata if nil
+		if modifiedResource.Metadata == nil {
+			modifiedResource.Metadata = make(map[string]interface{})
+		}
+		
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		modifiedResource.Metadata["namespace"] = namespace
 		modifiedResources[i] = modifiedResource
 	}
 
+<<<<<<< HEAD
 	return &FunctionResponse{
 		Resources: modifiedResources,
 		Results: []*FunctionResult{
+=======
+	return &porch.FunctionResponse{
+		Resources: modifiedResources,
+		Results: []*porch.FunctionResult{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			{
 				Message:  fmt.Sprintf("Set namespace to %s for %d resources", namespace, len(modifiedResources)),
 				Severity: "info",
@@ -577,11 +753,19 @@ func (r *MockKRMRuntime) setNamespaceHandler(ctx context.Context, req *FunctionR
 }
 
 // applyReplacementsHandler implements the apply-replacements function
+<<<<<<< HEAD
 func (r *MockKRMRuntime) applyReplacementsHandler(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) {
 	// Simulate apply-replacements logic
 	return &FunctionResponse{
 		Resources: req.Resources,
 		Results: []*FunctionResult{
+=======
+func (r *MockKRMRuntime) applyReplacementsHandler(ctx context.Context, req *porch.FunctionRequest) (*porch.FunctionResponse, error) {
+	// Simulate apply-replacements logic
+	return &porch.FunctionResponse{
+		Resources: req.Resources,
+		Results: []*porch.FunctionResult{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			{
 				Message:  "Applied replacements to resources",
 				Severity: "info",
@@ -591,11 +775,19 @@ func (r *MockKRMRuntime) applyReplacementsHandler(ctx context.Context, req *Func
 }
 
 // searchReplaceHandler implements the search-replace function
+<<<<<<< HEAD
 func (r *MockKRMRuntime) searchReplaceHandler(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) {
 	// Simulate search-replace logic
 	return &FunctionResponse{
 		Resources: req.Resources,
 		Results: []*FunctionResult{
+=======
+func (r *MockKRMRuntime) searchReplaceHandler(ctx context.Context, req *porch.FunctionRequest) (*porch.FunctionResponse, error) {
+	// Simulate search-replace logic
+	return &porch.FunctionResponse{
+		Resources: req.Resources,
+		Results: []*porch.FunctionResult{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			{
 				Message:  "Performed search and replace operations",
 				Severity: "info",
@@ -605,6 +797,7 @@ func (r *MockKRMRuntime) searchReplaceHandler(ctx context.Context, req *Function
 }
 
 // ensureNameSubstringHandler implements the ensure-name-substring function
+<<<<<<< HEAD
 func (r *MockKRMRuntime) ensureNameSubstringHandler(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) {
 	substring, ok := req.FunctionConfig.ConfigMap["substring"].(string)
 	if !ok {
@@ -612,10 +805,20 @@ func (r *MockKRMRuntime) ensureNameSubstringHandler(ctx context.Context, req *Fu
 			Resources: req.Resources,
 			Error: &FunctionError{
 				Message: "substring configuration is required",
+=======
+func (r *MockKRMRuntime) ensureNameSubstringHandler(ctx context.Context, req *porch.FunctionRequest) (*porch.FunctionResponse, error) {
+	configMap := req.FunctionConfig.ConfigMap
+	if configMap == nil {
+		return &porch.FunctionResponse{
+			Resources: req.Resources,
+			Error: &porch.FunctionError{
+				Message: "invalid configuration format",
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				Code:    "INVALID_CONFIG",
 			},
 		}, nil
 	}
+<<<<<<< HEAD
 
 	modifiedResources := make([]KRMResource, len(req.Resources))
 	for i, resource := range req.Resources {
@@ -633,6 +836,36 @@ func (r *MockKRMRuntime) ensureNameSubstringHandler(ctx context.Context, req *Fu
 	return &FunctionResponse{
 		Resources: modifiedResources,
 		Results: []*FunctionResult{
+=======
+	
+	substring, ok := configMap["substring"].(string)
+	if !ok || substring == "" {
+		// Provide a default substring if none is specified
+		substring = "default"
+	}
+
+	modifiedResources := make([]porch.KRMResource, len(req.Resources))
+	for i, resource := range req.Resources {
+		modifiedResource := resource
+		
+		// Initialize metadata if nil
+		if modifiedResource.Metadata == nil {
+			modifiedResource.Metadata = make(map[string]interface{})
+		}
+		
+		if name, exists := modifiedResource.Metadata["name"]; exists {
+			if nameStr, ok := name.(string); ok && !strings.Contains(nameStr, substring) {
+				modifiedResource.Metadata["name"] = nameStr + "-" + substring
+			}
+		}
+		
+		modifiedResources[i] = modifiedResource
+	}
+
+	return &porch.FunctionResponse{
+		Resources: modifiedResources,
+		Results: []*porch.FunctionResult{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			{
 				Message:  fmt.Sprintf("Ensured substring '%s' in resource names", substring),
 				Severity: "info",
@@ -642,12 +875,32 @@ func (r *MockKRMRuntime) ensureNameSubstringHandler(ctx context.Context, req *Fu
 }
 
 // oranInterfaceConfigHandler implements O-RAN interface configuration
+<<<<<<< HEAD
 func (r *MockKRMRuntime) oranInterfaceConfigHandler(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) {
 	interfaces, ok := req.FunctionConfig.ConfigMap["interfaces"].([]interface{})
 	if !ok {
 		return &FunctionResponse{
 			Resources: req.Resources,
 			Error: &FunctionError{
+=======
+func (r *MockKRMRuntime) oranInterfaceConfigHandler(ctx context.Context, req *porch.FunctionRequest) (*porch.FunctionResponse, error) {
+	configMap := req.FunctionConfig.ConfigMap
+	if configMap == nil {
+		return &porch.FunctionResponse{
+			Resources: req.Resources,
+			Error: &porch.FunctionError{
+				Message: "failed to parse configuration",
+				Code:    "INVALID_CONFIG",
+			},
+		}, nil
+	}
+
+	interfaces, ok := configMap["interfaces"].([]interface{})
+	if !ok {
+		return &porch.FunctionResponse{
+			Resources: req.Resources,
+			Error: &porch.FunctionError{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				Message: "interfaces configuration is required",
 				Code:    "INVALID_CONFIG",
 			},
@@ -661,6 +914,10 @@ func (r *MockKRMRuntime) oranInterfaceConfigHandler(ctx context.Context, req *Fu
 		if ifaceMap, ok := iface.(map[string]interface{}); ok {
 			// Add O-RAN specific annotations and labels
 			for i, resource := range modifiedResources {
+<<<<<<< HEAD
+=======
+				// Initialize metadata if nil
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				if resource.Metadata == nil {
 					resource.Metadata = make(map[string]interface{})
 				}
@@ -686,9 +943,15 @@ func (r *MockKRMRuntime) oranInterfaceConfigHandler(ctx context.Context, req *Fu
 		}
 	}
 
+<<<<<<< HEAD
 	return &FunctionResponse{
 		Resources: modifiedResources,
 		Results: []*FunctionResult{
+=======
+	return &porch.FunctionResponse{
+		Resources: modifiedResources,
+		Results: []*porch.FunctionResult{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			{
 				Message:  fmt.Sprintf("Configured %d O-RAN interfaces", len(interfaces)),
 				Severity: "info",
@@ -698,19 +961,43 @@ func (r *MockKRMRuntime) oranInterfaceConfigHandler(ctx context.Context, req *Fu
 }
 
 // networkSliceConfigHandler implements network slice configuration
+<<<<<<< HEAD
 func (r *MockKRMRuntime) networkSliceConfigHandler(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) {
 	sliceConfig, ok := req.FunctionConfig.ConfigMap["sliceConfig"].(map[string]interface{})
 	if !ok {
 		return &FunctionResponse{
 			Resources: req.Resources,
 			Error: &FunctionError{
+=======
+func (r *MockKRMRuntime) networkSliceConfigHandler(ctx context.Context, req *porch.FunctionRequest) (*porch.FunctionResponse, error) {
+	configMap := req.FunctionConfig.ConfigMap
+	if configMap == nil {
+		return &porch.FunctionResponse{
+			Resources: req.Resources,
+			Error: &porch.FunctionError{
+				Message: "failed to parse configuration",
+				Code:    "INVALID_CONFIG",
+			},
+		}, nil
+	}
+
+	sliceConfig, ok := configMap["sliceConfig"].(map[string]interface{})
+	if !ok {
+		return &porch.FunctionResponse{
+			Resources: req.Resources,
+			Error: &porch.FunctionError{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				Message: "sliceConfig is required",
 				Code:    "INVALID_CONFIG",
 			},
 		}, nil
 	}
 
+<<<<<<< HEAD
 	modifiedResources := make([]KRMResource, len(req.Resources))
+=======
+	modifiedResources := make([]porch.KRMResource, len(req.Resources))
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	for i, resource := range req.Resources {
 		modifiedResource := resource
 
@@ -723,9 +1010,15 @@ func (r *MockKRMRuntime) networkSliceConfigHandler(ctx context.Context, req *Fun
 		modifiedResources[i] = modifiedResource
 	}
 
+<<<<<<< HEAD
 	return &FunctionResponse{
 		Resources: modifiedResources,
 		Results: []*FunctionResult{
+=======
+	return &porch.FunctionResponse{
+		Resources: modifiedResources,
+		Results: []*porch.FunctionResult{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			{
 				Message:  "Applied network slice configuration",
 				Severity: "info",
@@ -737,14 +1030,29 @@ func (r *MockKRMRuntime) networkSliceConfigHandler(ctx context.Context, req *Fun
 // Helper functions
 
 // validateFunctionConfig validates function configuration against schema
+<<<<<<< HEAD
 func (r *MockKRMRuntime) validateFunctionConfig(function *RegisteredFunction, config *FunctionConfig) error {
+=======
+func (r *MockKRMRuntime) validateFunctionConfig(function *RegisteredFunction, config *porch.FunctionConfig) error {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if function.Schema == nil {
 		return nil // No schema to validate against
 	}
 
+<<<<<<< HEAD
 	// Check required fields
 	for _, required := range function.Schema.Required {
 		if _, exists := config.ConfigMap[required]; !exists {
+=======
+	configMap := config.ConfigMap
+	if configMap == nil {
+		configMap = make(map[string]interface{})
+	}
+
+	// Check required fields
+	for _, required := range function.Schema.Required {
+		if _, exists := configMap[required]; !exists {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			return fmt.Errorf("required field '%s' is missing", required)
 		}
 	}
@@ -753,19 +1061,48 @@ func (r *MockKRMRuntime) validateFunctionConfig(function *RegisteredFunction, co
 }
 
 // generateTestResource creates a test KRM resource
+<<<<<<< HEAD
 func generateTestResource(apiVersion, kind, name, namespace string) KRMResource {
 	return KRMResource{
 		APIVersion: apiVersion,
 		Kind:       kind,
 		Metadata: json.RawMessage(`{}`),
 		Spec: json.RawMessage(`{}`),
+=======
+func generateTestResource(apiVersion, kind, name, namespace string) porch.KRMResource {
+	metadata := map[string]interface{}{
+		"name": name,
+	}
+	if namespace != "" {
+		metadata["namespace"] = namespace
+	}
+	
+	return porch.KRMResource{
+		APIVersion: apiVersion,
+		Kind:       kind,
+		Metadata:   metadata,
+		Spec:       map[string]interface{}{},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 }
 
 // generateTestResourceWithLabels creates a test KRM resource with labels
+<<<<<<< HEAD
 func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, labels map[string]string) KRMResource {
 	resource := generateTestResource(apiVersion, kind, name, namespace)
 	resource.Metadata["labels"] = labels
+=======
+func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, labels map[string]string) porch.KRMResource {
+	resource := generateTestResource(apiVersion, kind, name, namespace)
+	
+	// Add labels to existing metadata
+	if resource.Metadata == nil {
+		resource.Metadata = make(map[string]interface{})
+	}
+	
+	resource.Metadata["labels"] = labels
+	
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	return resource
 }
 
@@ -791,10 +1128,17 @@ func TestFunctionRegistration(t *testing.T) {
 		Name:        "test-function",
 		Image:       "test/test-function:v1.0.0",
 		Description: "Test function",
+<<<<<<< HEAD
 		Handler: func(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) {
 			return &FunctionResponse{
 				Resources: req.Resources,
 				Results: []*FunctionResult{
+=======
+		Handler: func(ctx context.Context, req *porch.FunctionRequest) (*porch.FunctionResponse, error) {
+			return &porch.FunctionResponse{
+				Resources: req.Resources,
+				Results: []*porch.FunctionResult{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 					{Message: "test function executed", Severity: "info"},
 				},
 			}, nil
@@ -828,7 +1172,11 @@ func TestFunctionRegistrationValidation(t *testing.T) {
 			name: "missing_name",
 			function: &RegisteredFunction{
 				Image:   "test/function:v1.0.0",
+<<<<<<< HEAD
 				Handler: func(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) { return nil, nil },
+=======
+				Handler: func(ctx context.Context, req *porch.FunctionRequest) (*porch.FunctionResponse, error) { return nil, nil },
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			},
 			expectError: true,
 			errorMsg:    "function name is required",
@@ -847,8 +1195,13 @@ func TestFunctionRegistrationValidation(t *testing.T) {
 			function: &RegisteredFunction{
 				Name:  "valid-function",
 				Image: "test/function:v1.0.0",
+<<<<<<< HEAD
 				Handler: func(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) {
 					return &FunctionResponse{Resources: req.Resources}, nil
+=======
+				Handler: func(ctx context.Context, req *porch.FunctionRequest) (*porch.FunctionResponse, error) {
+					return &porch.FunctionResponse{Resources: req.Resources}, nil
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				},
 			},
 			expectError: false,
@@ -877,11 +1230,16 @@ func TestStandardFunctions(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("set_labels", func(t *testing.T) {
+<<<<<<< HEAD
 		resources := []KRMResource{
+=======
+		resources := []porch.KRMResource{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),
 			generateTestResource("v1", "Service", "test-service", "default"),
 		}
 
+<<<<<<< HEAD
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
@@ -889,6 +1247,14 @@ func TestStandardFunctions(t *testing.T) {
 					"app": "test-app",
 					"env": "production",
 				},
+=======
+		req := &porch.FunctionRequest{
+			FunctionConfig: porch.FunctionConfig{
+				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
+				ConfigMap: map[string]interface{}{
+				"labels": map[string]string{"app": "test-app", "env": "production"},
+			},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			},
 			Resources: resources,
 		}
@@ -912,6 +1278,7 @@ func TestStandardFunctions(t *testing.T) {
 	})
 
 	t.Run("set_namespace", func(t *testing.T) {
+<<<<<<< HEAD
 		resources := []KRMResource{
 			generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),
 		}
@@ -920,6 +1287,18 @@ func TestStandardFunctions(t *testing.T) {
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-namespace:v0.4.1",
 				ConfigMap: json.RawMessage(`{}`),
+=======
+		resources := []porch.KRMResource{
+			generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),
+		}
+
+		req := &porch.FunctionRequest{
+			FunctionConfig: porch.FunctionConfig{
+				Image:     "gcr.io/kpt-fn/set-namespace:v0.4.1",
+				ConfigMap: map[string]interface{}{
+				"namespace": "test-namespace",
+			},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			},
 			Resources: resources,
 		}
@@ -933,11 +1312,16 @@ func TestStandardFunctions(t *testing.T) {
 		for _, resource := range resp.Resources {
 			namespace, exists := resource.Metadata["namespace"]
 			assert.True(t, exists)
+<<<<<<< HEAD
 			assert.Equal(t, "production", namespace)
+=======
+			assert.Equal(t, "test-namespace", namespace)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 	})
 
 	t.Run("ensure_name_substring", func(t *testing.T) {
+<<<<<<< HEAD
 		resources := []KRMResource{
 			generateTestResource("apps/v1", "Deployment", "deployment", "default"),
 		}
@@ -946,6 +1330,18 @@ func TestStandardFunctions(t *testing.T) {
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/ensure-name-substring:v0.1.1",
 				ConfigMap: json.RawMessage(`{}`),
+=======
+		resources := []porch.KRMResource{
+			generateTestResource("apps/v1", "Deployment", "deployment", "default"),
+		}
+
+		req := &porch.FunctionRequest{
+			FunctionConfig: porch.FunctionConfig{
+				Image:     "gcr.io/kpt-fn/ensure-name-substring:v0.1.1",
+				ConfigMap: map[string]interface{}{
+				"substring": "prod",
+			},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			},
 			Resources: resources,
 		}
@@ -969,6 +1365,7 @@ func TestORANFunctions(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("oran_interface_config", func(t *testing.T) {
+<<<<<<< HEAD
 		resources := []KRMResource{
 			generateTestResource("apps/v1", "Deployment", "amf-deployment", "5g-core"),
 		}
@@ -978,6 +1375,22 @@ func TestORANFunctions(t *testing.T) {
 				Image: "nephoran.io/kpt-fn/oran-interface-config:v1.0.0",
 				ConfigMap: map[string]interface{}{
 					"interfaces": []interface{}{},
+=======
+		resources := []porch.KRMResource{
+			generateTestResource("apps/v1", "Deployment", "amf-deployment", "5g-core"),
+		}
+
+		req := &porch.FunctionRequest{
+			FunctionConfig: porch.FunctionConfig{
+				Image: "nephoran.io/kpt-fn/oran-interface-config:v1.0.0",
+				ConfigMap: map[string]interface{}{
+					"interfaces": []interface{}{
+						map[string]interface{}{
+							"name": "A1-interface",
+							"type": "A1",
+						},
+					},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				},
 			},
 			Resources: resources,
@@ -1001,6 +1414,7 @@ func TestORANFunctions(t *testing.T) {
 	})
 
 	t.Run("network_slice_config", func(t *testing.T) {
+<<<<<<< HEAD
 		resources := []KRMResource{
 			generateTestResource("apps/v1", "Deployment", "slice-deployment", "5g-core"),
 		}
@@ -1012,6 +1426,21 @@ func TestORANFunctions(t *testing.T) {
 					"sliceType": "eMBB",
 					"sst":       1,
 					"sd":        "000001",
+=======
+		resources := []porch.KRMResource{
+			generateTestResource("apps/v1", "Deployment", "slice-deployment", "5g-core"),
+		}
+
+		req := &porch.FunctionRequest{
+			FunctionConfig: porch.FunctionConfig{
+				Image: "nephoran.io/kpt-fn/network-slice-config:v1.0.0",
+				ConfigMap: map[string]interface{}{
+					"sliceConfig": map[string]interface{}{
+						"sliceType": "eMBB",
+						"sst":       1,
+						"sd":        "000001",
+					},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				},
 			},
 			Resources: resources,
@@ -1040,34 +1469,67 @@ func TestPipelineExecution(t *testing.T) {
 	runtime := NewMockKRMRuntime()
 	ctx := context.Background()
 
+<<<<<<< HEAD
 	resources := []KRMResource{
+=======
+	resources := []porch.KRMResource{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),
 		generateTestResource("v1", "Service", "test-service", "default"),
 	}
 
+<<<<<<< HEAD
 	pipeline := Pipeline{
 		Name: "standard-pipeline",
 		Functions: []FunctionConfig{
 			{
 				Image: "gcr.io/kpt-fn/set-namespace:v0.4.1",
 				ConfigMap: json.RawMessage(`{}`),
+=======
+	pipeline := TestPipeline{
+		Name: "standard-pipeline",
+		Functions: []porch.FunctionConfig{
+			{
+				Image:     "gcr.io/kpt-fn/set-namespace:v0.4.1",
+				ConfigMap: map[string]interface{}{"namespace": "production"},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			},
 			{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
 				ConfigMap: map[string]interface{}{
+<<<<<<< HEAD
 					"app": "test-app",
 					"env": "production",
+=======
+					"labels": map[string]string{
+						"app": "test-app",
+						"env": "production",
+					},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				},
 			},
 		},
 	}
 
+<<<<<<< HEAD
 	req := &PipelineRequest{
 		Pipeline:  pipeline,
 		Resources: resources,
 		Context: &FunctionContext{
 			PackagePath: "/test/package",
 			Namespace:   "test",
+=======
+	req := &porch.PipelineRequest{
+		Pipeline: porch.Pipeline{
+			Mutators: pipeline.Functions,
+		},
+		Resources: resources,
+		Context: &porch.FunctionContext{
+			Environment: map[string]string{
+				"PACKAGE_PATH": "/test/package",
+				"NAMESPACE":    "test",
+			},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 	}
 
@@ -1105,11 +1567,16 @@ func TestPipelineExecutionFailure(t *testing.T) {
 	runtime.RegisterFunction(&RegisteredFunction{
 		Name:  "failing-function",
 		Image: "test/failing-function:v1.0.0",
+<<<<<<< HEAD
 		Handler: func(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) {
+=======
+		Handler: func(ctx context.Context, req *porch.FunctionRequest) (*porch.FunctionResponse, error) {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			return nil, fmt.Errorf("function failed")
 		},
 	})
 
+<<<<<<< HEAD
 	resources := []KRMResource{
 		generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),
 	}
@@ -1120,6 +1587,18 @@ func TestPipelineExecutionFailure(t *testing.T) {
 			{
 				Image: "gcr.io/kpt-fn/set-namespace:v0.4.1",
 				ConfigMap: json.RawMessage(`{}`),
+=======
+	resources := []porch.KRMResource{
+		generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),
+	}
+
+	pipeline := TestPipeline{
+		Name: "failing-pipeline",
+		Functions: []porch.FunctionConfig{
+			{
+				Image:     "gcr.io/kpt-fn/set-namespace:v0.4.1",
+				ConfigMap: map[string]interface{}{"namespace": "default"},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			},
 			{
 				Image: "test/failing-function:v1.0.0",
@@ -1127,8 +1606,15 @@ func TestPipelineExecutionFailure(t *testing.T) {
 		},
 	}
 
+<<<<<<< HEAD
 	req := &PipelineRequest{
 		Pipeline:  pipeline,
+=======
+	req := &porch.PipelineRequest{
+		Pipeline: porch.Pipeline{
+			Mutators: pipeline.Functions,
+		},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		Resources: resources,
 	}
 
@@ -1145,6 +1631,7 @@ func TestFunctionValidation(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("valid_configuration", func(t *testing.T) {
+<<<<<<< HEAD
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
@@ -1153,6 +1640,18 @@ func TestFunctionValidation(t *testing.T) {
 				},
 			},
 			Resources: []KRMResource{
+=======
+		req := &porch.FunctionRequest{
+			FunctionConfig: porch.FunctionConfig{
+				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
+				ConfigMap: map[string]interface{}{
+					"labels": map[string]string{
+						"app": "test",
+					},
+				},
+			},
+			Resources: []porch.KRMResource{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
 			},
 		}
@@ -1164,12 +1663,21 @@ func TestFunctionValidation(t *testing.T) {
 	})
 
 	t.Run("invalid_configuration", func(t *testing.T) {
+<<<<<<< HEAD
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image:     "gcr.io/kpt-fn/set-labels:v0.2.0",
 				ConfigMap: json.RawMessage(`{}`), // Missing required 'labels' field
 			},
 			Resources: []KRMResource{
+=======
+		req := &porch.FunctionRequest{
+			FunctionConfig: porch.FunctionConfig{
+				Image:     "gcr.io/kpt-fn/set-labels:v0.2.0",
+				ConfigMap: map[string]interface{}{}, // Missing required 'labels' field
+			},
+			Resources: []porch.KRMResource{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
 			},
 		}
@@ -1183,12 +1691,21 @@ func TestFunctionValidation(t *testing.T) {
 	t.Run("validation_disabled", func(t *testing.T) {
 		runtime.SetValidationEnabled(false)
 
+<<<<<<< HEAD
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image:     "gcr.io/kpt-fn/set-labels:v0.2.0",
 				ConfigMap: json.RawMessage(`{}`), // Missing required field, but validation is disabled
 			},
 			Resources: []KRMResource{
+=======
+		req := &porch.FunctionRequest{
+			FunctionConfig: porch.FunctionConfig{
+				Image:     "gcr.io/kpt-fn/set-labels:v0.2.0",
+				ConfigMap: map[string]interface{}{}, // Missing required field, but validation is disabled
+			},
+			Resources: []porch.KRMResource{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
 			},
 		}
@@ -1212,7 +1729,11 @@ func TestConcurrentExecution(t *testing.T) {
 	const numGoroutines = 10
 	const operationsPerGoroutine = 5
 
+<<<<<<< HEAD
 	resources := []KRMResource{
+=======
+	resources := []porch.KRMResource{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),
 	}
 
@@ -1225,12 +1746,23 @@ func TestConcurrentExecution(t *testing.T) {
 			defer wg.Done()
 
 			for j := 0; j < operationsPerGoroutine; j++ {
+<<<<<<< HEAD
 				req := &FunctionRequest{
 					FunctionConfig: FunctionConfig{
 						Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
 						ConfigMap: map[string]interface{}{
 							"worker": fmt.Sprintf("worker-%d", id),
 							"job":    fmt.Sprintf("job-%d", j),
+=======
+				req := &porch.FunctionRequest{
+					FunctionConfig: porch.FunctionConfig{
+						Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
+						ConfigMap: map[string]interface{}{
+							"labels": map[string]string{
+								"worker": fmt.Sprintf("worker-%d", id),
+								"job":    fmt.Sprintf("job-%d", j),
+							},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 						},
 					},
 					Resources: resources,
@@ -1271,7 +1803,11 @@ func TestExecutionHistory(t *testing.T) {
 	// Clear any existing history
 	runtime.ClearExecutionHistory()
 
+<<<<<<< HEAD
 	resources := []KRMResource{
+=======
+	resources := []porch.KRMResource{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),
 	}
 
@@ -1282,12 +1818,33 @@ func TestExecutionHistory(t *testing.T) {
 	}
 
 	for i, funcImage := range functions {
+<<<<<<< HEAD
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: funcImage,
 				ConfigMap: map[string]interface{}{
 					"namespace": "test-namespace",
 				},
+=======
+		var configMap map[string]interface{}
+		if strings.Contains(funcImage, "set-labels") {
+			configMap = map[string]interface{}{
+				"labels": map[string]string{
+					"app": "test",
+					"env": "production",
+				},
+			}
+		} else {
+			configMap = map[string]interface{}{
+				"namespace": "test-namespace",
+			}
+		}
+		
+		req := &porch.FunctionRequest{
+			FunctionConfig: porch.FunctionConfig{
+				Image: funcImage,
+				ConfigMap: configMap,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			},
 			Resources: resources,
 		}
@@ -1305,7 +1862,11 @@ func TestExecutionHistory(t *testing.T) {
 		assert.NotNil(t, lastExecution.Request)
 		assert.NotNil(t, lastExecution.Response)
 		assert.True(t, lastExecution.Timestamp.After(start) || lastExecution.Timestamp.Equal(start))
+<<<<<<< HEAD
 		assert.True(t, lastExecution.Duration > 0)
+=======
+		assert.True(t, lastExecution.Duration >= 0, "Duration should be non-negative, got: %v", lastExecution.Duration)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	// Test clearing history
@@ -1320,11 +1881,19 @@ func TestErrorHandling(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("unknown_function", func(t *testing.T) {
+<<<<<<< HEAD
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "unknown/function:v1.0.0",
 			},
 			Resources: []KRMResource{
+=======
+		req := &porch.FunctionRequest{
+			FunctionConfig: porch.FunctionConfig{
+				Image: "unknown/function:v1.0.0",
+			},
+			Resources: []porch.KRMResource{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
 			},
 		}
@@ -1337,11 +1906,19 @@ func TestErrorHandling(t *testing.T) {
 	t.Run("simulated_failure", func(t *testing.T) {
 		runtime.SetSimulateFailure(true)
 
+<<<<<<< HEAD
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
 			},
 			Resources: []KRMResource{
+=======
+		req := &porch.FunctionRequest{
+			FunctionConfig: porch.FunctionConfig{
+				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
+			},
+			Resources: []porch.KRMResource{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
 			},
 		}
@@ -1358,12 +1935,21 @@ func TestErrorHandling(t *testing.T) {
 		cancelCtx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
 
+<<<<<<< HEAD
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
 				ConfigMap: json.RawMessage(`{}`),
 			},
 			Resources: []KRMResource{
+=======
+		req := &porch.FunctionRequest{
+			FunctionConfig: porch.FunctionConfig{
+				Image:     "gcr.io/kpt-fn/set-labels:v0.2.0",
+				ConfigMap: map[string]interface{}{},
+			},
+			Resources: []porch.KRMResource{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
 			},
 		}
@@ -1386,12 +1972,25 @@ func TestPerformanceCharacteristics(t *testing.T) {
 		latency := 100 * time.Millisecond
 		runtime.SetSimulateLatency(latency)
 
+<<<<<<< HEAD
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
 				ConfigMap: json.RawMessage(`{}`),
 			},
 			Resources: []KRMResource{
+=======
+		req := &porch.FunctionRequest{
+			FunctionConfig: porch.FunctionConfig{
+				Image:     "gcr.io/kpt-fn/set-labels:v0.2.0",
+				ConfigMap: map[string]interface{}{
+					"labels": map[string]string{
+						"app": "test",
+					},
+				},
+			},
+			Resources: []porch.KRMResource{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
 			},
 		}
@@ -1413,17 +2012,32 @@ func BenchmarkFunctionExecution(b *testing.B) {
 	runtime := NewMockKRMRuntime()
 	ctx := context.Background()
 
+<<<<<<< HEAD
 	resources := []KRMResource{
+=======
+	resources := []porch.KRMResource{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),
 		generateTestResource("v1", "Service", "test-service", "default"),
 	}
 
+<<<<<<< HEAD
 	req := &FunctionRequest{
 		FunctionConfig: FunctionConfig{
 			Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
 			ConfigMap: map[string]interface{}{
 				"app": "test-app",
 				"env": "production",
+=======
+	req := &porch.FunctionRequest{
+		FunctionConfig: porch.FunctionConfig{
+			Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
+			ConfigMap: map[string]interface{}{
+				"labels": map[string]string{
+					"app": "test-app",
+					"env": "production",
+				},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			},
 		},
 		Resources: resources,
@@ -1445,30 +2059,57 @@ func BenchmarkPipelineExecution(b *testing.B) {
 	runtime := NewMockKRMRuntime()
 	ctx := context.Background()
 
+<<<<<<< HEAD
 	resources := []KRMResource{
+=======
+	resources := []porch.KRMResource{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),
 		generateTestResource("v1", "Service", "test-service", "default"),
 	}
 
+<<<<<<< HEAD
 	pipeline := Pipeline{
 		Name: "benchmark-pipeline",
 		Functions: []FunctionConfig{
 			{
 				Image: "gcr.io/kpt-fn/set-namespace:v0.4.1",
 				ConfigMap: json.RawMessage(`{}`),
+=======
+	pipeline := TestPipeline{
+		Name: "benchmark-pipeline",
+		Functions: []porch.FunctionConfig{
+			{
+				Image:     "gcr.io/kpt-fn/set-namespace:v0.4.1",
+				ConfigMap: map[string]interface{}{"namespace": "default"},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			},
 			{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
 				ConfigMap: map[string]interface{}{
+<<<<<<< HEAD
 					"app": "test-app",
 					"env": "production",
+=======
+					"labels": map[string]string{
+						"app": "test-app",
+						"env": "production",
+					},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				},
 			},
 		},
 	}
 
+<<<<<<< HEAD
 	req := &PipelineRequest{
 		Pipeline:  pipeline,
+=======
+	req := &porch.PipelineRequest{
+		Pipeline: porch.Pipeline{
+			Mutators: pipeline.Functions,
+		},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		Resources: resources,
 	}
 
@@ -1480,4 +2121,7 @@ func BenchmarkPipelineExecution(b *testing.B) {
 		}
 	}
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

@@ -244,6 +244,11 @@ func BenchmarkTaskSubmission(b *testing.B) {
 
 	// Benchmark task submission rate
 	for i := 0; i < b.N; i++ {
+<<<<<<< HEAD
+=======
+		// ITERATION #9 fix: Initialize Task with proper context for benchmarking
+		taskCtx, taskCancel := context.WithCancel(context.Background())
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		task := &Task{
 			ID:        fmt.Sprintf("bench-task-%d", i),
 			IntentID:  "benchmark-intent",
@@ -252,6 +257,12 @@ func BenchmarkTaskSubmission(b *testing.B) {
 			Status:    TaskStatusPending,
 			InputData: json.RawMessage(`{"intent":"benchmark task"}`),
 			Timeout:   10 * time.Second,
+<<<<<<< HEAD
+=======
+			Context:   taskCtx,
+			Cancel:    taskCancel,
+			CreatedAt: time.Now(),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 
 		err := engine.SubmitTask(task)

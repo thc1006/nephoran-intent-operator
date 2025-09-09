@@ -64,7 +64,11 @@ func TestRequestSizeLimiter(t *testing.T) {
 			name:           "POST request exceeding limit",
 			method:         "POST",
 			body:           strings.Repeat("x", int(testMaxSize)+100),
+<<<<<<< HEAD
 			expectedStatus: http.StatusBadRequest, // MaxBytesReader will cause this
+=======
+			expectedStatus: http.StatusRequestEntityTooLarge, // MaxBytesReader returns 413
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			expectError:    true,
 		},
 	}

@@ -17,6 +17,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+<<<<<<< HEAD
+=======
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
@@ -37,7 +41,11 @@ func BenchmarkOptimizedNetworkIntentController(b *testing.B) {
 
 	// Create mock dependencies
 	deps := &mockDependencies{}
+<<<<<<< HEAD
 	config := controllers.Config{
+=======
+	ctrlConfig := controllers.Config{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		MaxRetries:      3,
 		RetryDelay:      1 * time.Second,
 		Timeout:         30 * time.Second,
@@ -48,7 +56,14 @@ func BenchmarkOptimizedNetworkIntentController(b *testing.B) {
 		UseNephioPorch:  false,
 	}
 
+<<<<<<< HEAD
 	reconciler := NewOptimizedNetworkIntentReconciler(client, s, recorder, config, deps)
+=======
+	// Create test constants
+	constants := config.LoadConstants()
+
+	reconciler := NewOptimizedNetworkIntentReconciler(client, s, recorder, ctrlConfig, deps, constants)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	defer reconciler.Shutdown()
 
 	// Create test NetworkIntent
@@ -445,15 +460,29 @@ func BenchmarkComparison(b *testing.B) {
 		client := fake.NewClientBuilder().WithScheme(s).Build()
 		recorder := record.NewFakeRecorder(100)
 		deps := &mockDependencies{}
+<<<<<<< HEAD
 		config := controllers.Config{
+=======
+		ctrlConfig := controllers.Config{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			MaxRetries: 3,
 			RetryDelay: 1 * time.Second,
 		}
 
+<<<<<<< HEAD
 		b.ReportAllocs()
 
 		for i := 0; i < b.N; i++ {
 			reconciler := NewOptimizedNetworkIntentReconciler(client, s, recorder, config, deps)
+=======
+		// Create test constants
+		constants := config.LoadConstants()
+
+		b.ReportAllocs()
+
+		for i := 0; i < b.N; i++ {
+			reconciler := NewOptimizedNetworkIntentReconciler(client, s, recorder, ctrlConfig, deps, constants)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			reconciler.Shutdown()
 		}
 	})
@@ -484,17 +513,31 @@ func BenchmarkControllerLifecycle(b *testing.B) {
 	client := fake.NewClientBuilder().WithScheme(s).Build()
 	recorder := record.NewFakeRecorder(100)
 	deps := &mockDependencies{}
+<<<<<<< HEAD
 	config := controllers.Config{
+=======
+	ctrlConfig := controllers.Config{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		MaxRetries: 3,
 		RetryDelay: 1 * time.Second,
 	}
 
+<<<<<<< HEAD
+=======
+	// Create test constants
+	constants := config.LoadConstants()
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	b.Run("ControllerCreation", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
+<<<<<<< HEAD
 			reconciler := NewOptimizedNetworkIntentReconciler(client, s, recorder, config, deps)
+=======
+			reconciler := NewOptimizedNetworkIntentReconciler(client, s, recorder, ctrlConfig, deps, constants)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			reconciler.Shutdown()
 		}
 	})
@@ -504,7 +547,11 @@ func BenchmarkControllerLifecycle(b *testing.B) {
 
 		// Create controllers
 		for i := 0; i < b.N; i++ {
+<<<<<<< HEAD
 			controllers[i] = NewOptimizedNetworkIntentReconciler(client, s, recorder, config, deps)
+=======
+			controllers[i] = NewOptimizedNetworkIntentReconciler(client, s, recorder, ctrlConfig, deps, constants)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 
 		b.ResetTimer()

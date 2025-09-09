@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 package test_validation_test
+=======
+package test_validation
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 import (
 	"bytes"
@@ -10,6 +14,10 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"strings"
+<<<<<<< HEAD
+=======
+	"testing"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -28,7 +36,10 @@ import (
 
 var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 	var (
+<<<<<<< HEAD
 		namespace         *corev1.Namespace
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		testCtx           context.Context
 		o2Server          *o2.O2APIServer
 		httpTestServer    *httptest.Server
@@ -39,7 +50,11 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 	)
 
 	BeforeEach(func() {
+<<<<<<< HEAD
 		namespace = CreateTestNamespace()
+=======
+		_ = CreateTestNamespace() // Create test namespace but don't store reference
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		var cancel context.CancelFunc
 		testCtx, cancel = context.WithTimeout(context.Background(), 15*time.Minute)
 		DeferCleanup(cancel)
@@ -1107,15 +1122,25 @@ func (cr *ComplianceResults) GenerateReport() {
 	}
 
 	// Log compliance report
+<<<<<<< HEAD
 	fmt.Printf("\n" + strings.Repeat("=", 80) + "\n")
 	fmt.Printf("O2 IMS O-RAN COMPLIANCE VALIDATION REPORT\n")
 	fmt.Printf(strings.Repeat("=", 80) + "\n")
+=======
+	fmt.Printf("\n%s\n", strings.Repeat("=", 80))
+	fmt.Printf("O2 IMS O-RAN COMPLIANCE VALIDATION REPORT\n")
+	fmt.Printf("%s\n", strings.Repeat("=", 80))
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	fmt.Printf("Test Duration: %v\n", time.Since(cr.TestStartTime))
 	fmt.Printf("Total Tests: %d\n", totalTests)
 	fmt.Printf("Passed Tests: %d\n", passedTests)
 	fmt.Printf("Compliance Percentage: %.1f%%\n", compliancePercentage)
 	fmt.Printf("Overall Compliance: %s\n", cr.OverallCompliance)
+<<<<<<< HEAD
 	fmt.Printf(strings.Repeat("=", 80) + "\n\n")
+=======
+	fmt.Printf("%s\n\n", strings.Repeat("=", 80))
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 func CreateTestNamespace() *corev1.Namespace {
@@ -1125,3 +1150,8 @@ func CreateTestNamespace() *corev1.Namespace {
 		},
 	}
 }
+<<<<<<< HEAD
+=======
+
+func TestStub(t *testing.T) { t.Skip("Test disabled") }
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

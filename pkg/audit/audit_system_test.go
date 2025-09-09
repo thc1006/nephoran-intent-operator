@@ -15,12 +15,20 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/audit/backends"
+<<<<<<< HEAD
+=======
+	"github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 )
 
 // MockBackend is a mock implementation of the Backend interface for testing
 type MockBackend struct {
 	mock.Mock
+<<<<<<< HEAD
 	receivedEvents []*AuditEvent
+=======
+	receivedEvents []*types.AuditEvent
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	mutex          sync.RWMutex
 	shouldFail     bool
 	latency        time.Duration
@@ -28,7 +36,11 @@ type MockBackend struct {
 
 func NewMockBackend() *MockBackend {
 	return &MockBackend{
+<<<<<<< HEAD
 		receivedEvents: make([]*AuditEvent, 0),
+=======
+		receivedEvents: make([]*types.AuditEvent, 0),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 }
 
@@ -42,7 +54,11 @@ func (m *MockBackend) Initialize(config backends.BackendConfig) error {
 	return args.Error(0)
 }
 
+<<<<<<< HEAD
 func (m *MockBackend) WriteEvent(ctx context.Context, event *AuditEvent) error {
+=======
+func (m *MockBackend) WriteEvent(ctx context.Context, event *types.AuditEvent) error {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if m.latency > 0 {
 		time.Sleep(m.latency)
 	}
@@ -59,7 +75,11 @@ func (m *MockBackend) WriteEvent(ctx context.Context, event *AuditEvent) error {
 	return args.Error(0)
 }
 
+<<<<<<< HEAD
 func (m *MockBackend) WriteEvents(ctx context.Context, events []*AuditEvent) error {
+=======
+func (m *MockBackend) WriteEvents(ctx context.Context, events []*types.AuditEvent) error {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if m.latency > 0 {
 		time.Sleep(m.latency)
 	}
@@ -91,10 +111,17 @@ func (m *MockBackend) Close() error {
 	return args.Error(0)
 }
 
+<<<<<<< HEAD
 func (m *MockBackend) GetReceivedEvents() []*AuditEvent {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 	events := make([]*AuditEvent, len(m.receivedEvents))
+=======
+func (m *MockBackend) GetReceivedEvents() []*types.AuditEvent {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	events := make([]*types.AuditEvent, len(m.receivedEvents))
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	copy(events, m.receivedEvents)
 	return events
 }
@@ -138,12 +165,20 @@ func (suite *AuditSystemTestSuite) SetupTest() {
 	// Create a test configuration
 	suite.config = &AuditSystemConfig{
 		Enabled:         true,
+<<<<<<< HEAD
 		LogLevel:        SeverityInfo,
+=======
+		LogLevel:        types.SeverityInfo,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		BatchSize:       3,
 		FlushInterval:   100 * time.Millisecond,
 		MaxQueueSize:    10,
 		EnableIntegrity: false, // Disabled for unit tests
+<<<<<<< HEAD
 		ComplianceMode:  []ComplianceStandard{ComplianceSOC2},
+=======
+		ComplianceMode:  []types.ComplianceStandard{types.ComplianceSOC2},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		Backends:        []backends.BackendConfig{},
 	}
 
@@ -209,12 +244,21 @@ func (suite *AuditSystemTestSuite) TestLogEventDisabled() {
 	auditSystem, err := NewAuditSystem(suite.config)
 	suite.Require().NoError(err)
 
+<<<<<<< HEAD
 	event := &AuditEvent{
 		ID:        uuid.New().String(),
 		EventType: EventTypeAuthentication,
 		Component: "test",
 		Action:    "test",
 		Severity:  SeverityInfo,
+=======
+	event := &types.AuditEvent{
+		ID:        uuid.New().String(),
+		EventType: types.EventTypeAuthentication,
+		Component: "test",
+		Action:    "test",
+		Severity:  types.SeverityInfo,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		Timestamp: time.Now(),
 	}
 
@@ -224,7 +268,11 @@ func (suite *AuditSystemTestSuite) TestLogEventDisabled() {
 }
 
 func (suite *AuditSystemTestSuite) TestLogEventBelowMinimumSeverity() {
+<<<<<<< HEAD
 	suite.config.LogLevel = SeverityError
+=======
+	suite.config.LogLevel = types.SeverityError
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	auditSystem, err := NewAuditSystem(suite.config)
 	suite.Require().NoError(err)
 	auditSystem.backends = []backends.Backend{suite.mockBackend}
@@ -233,12 +281,21 @@ func (suite *AuditSystemTestSuite) TestLogEventBelowMinimumSeverity() {
 	suite.Require().NoError(err)
 	defer auditSystem.Stop()
 
+<<<<<<< HEAD
 	event := &AuditEvent{
 		ID:        uuid.New().String(),
 		EventType: EventTypeAuthentication,
 		Component: "test",
 		Action:    "test",
 		Severity:  SeverityInfo, // Below minimum
+=======
+	event := &types.AuditEvent{
+		ID:        uuid.New().String(),
+		EventType: types.EventTypeAuthentication,
+		Component: "test",
+		Action:    "test",
+		Severity:  types.SeverityInfo, // Below minimum
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		Timestamp: time.Now(),
 	}
 
@@ -258,8 +315,15 @@ func (suite *AuditSystemTestSuite) TestLogEventValidation() {
 	suite.Require().NoError(err)
 	defer suite.auditSystem.Stop()
 
+<<<<<<< HEAD
 	// Test invalid event (missing required fields)
 	invalidEvent := &AuditEvent{}
+=======
+	// Test invalid event (missing required fields but with sufficient severity)
+	invalidEvent := &types.AuditEvent{
+		Severity: types.SeverityInfo, // Set severity to pass the filter
+	}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	err = suite.auditSystem.LogEvent(invalidEvent)
 	suite.Error(err)
 	suite.Contains(err.Error(), "invalid audit event")
@@ -270,11 +334,19 @@ func (suite *AuditSystemTestSuite) TestEventEnrichment() {
 	suite.Require().NoError(err)
 	defer suite.auditSystem.Stop()
 
+<<<<<<< HEAD
 	event := &AuditEvent{
 		EventType: EventTypeAuthentication,
 		Component: "test",
 		Action:    "test",
 		Severity:  SeverityInfo,
+=======
+	event := &types.AuditEvent{
+		EventType: types.EventTypeAuthentication,
+		Component: "test",
+		Action:    "test",
+		Severity:  types.SeverityInfo,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	err = suite.auditSystem.LogEvent(event)
@@ -289,7 +361,11 @@ func (suite *AuditSystemTestSuite) TestEventEnrichment() {
 	enrichedEvent := receivedEvents[0]
 	suite.NotEmpty(enrichedEvent.ID)
 	suite.NotZero(enrichedEvent.Timestamp)
+<<<<<<< HEAD
 	suite.Equal(AuditFormatVersion, enrichedEvent.Version)
+=======
+	suite.Equal("1.0", enrichedEvent.Version)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	suite.NotNil(enrichedEvent.SystemContext)
 }
 
@@ -300,12 +376,21 @@ func (suite *AuditSystemTestSuite) TestBatchProcessing() {
 
 	// Send exactly batch size events
 	for i := 0; i < suite.config.BatchSize; i++ {
+<<<<<<< HEAD
 		event := &AuditEvent{
 			ID:        uuid.New().String(),
 			EventType: EventTypeAuthentication,
 			Component: "test",
 			Action:    fmt.Sprintf("test-%d", i),
 			Severity:  SeverityInfo,
+=======
+		event := &types.AuditEvent{
+			ID:        uuid.New().String(),
+			EventType: types.EventTypeAuthentication,
+			Component: "test",
+			Action:    fmt.Sprintf("test-%d", i),
+			Severity:  types.SeverityInfo,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			Timestamp: time.Now(),
 		}
 
@@ -326,12 +411,21 @@ func (suite *AuditSystemTestSuite) TestTimerBasedFlushing() {
 	defer suite.auditSystem.Stop()
 
 	// Send one event (less than batch size)
+<<<<<<< HEAD
 	event := &AuditEvent{
 		ID:        uuid.New().String(),
 		EventType: EventTypeAuthentication,
 		Component: "test",
 		Action:    "test",
 		Severity:  SeverityInfo,
+=======
+	event := &types.AuditEvent{
+		ID:        uuid.New().String(),
+		EventType: types.EventTypeAuthentication,
+		Component: "test",
+		Action:    "test",
+		Severity:  types.SeverityInfo,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		Timestamp: time.Now(),
 	}
 
@@ -365,12 +459,21 @@ func (suite *AuditSystemTestSuite) TestQueueOverflow() {
 
 	// Fill queue and then overflow
 	for i := 0; i < 5; i++ {
+<<<<<<< HEAD
 		event := &AuditEvent{
 			ID:        uuid.New().String(),
 			EventType: EventTypeAuthentication,
 			Component: "test",
 			Action:    fmt.Sprintf("test-%d", i),
 			Severity:  SeverityInfo,
+=======
+		event := &types.AuditEvent{
+			ID:        uuid.New().String(),
+			EventType: types.EventTypeAuthentication,
+			Component: "test",
+			Action:    fmt.Sprintf("test-%d", i),
+			Severity:  types.SeverityInfo,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			Timestamp: time.Now(),
 		}
 
@@ -392,12 +495,21 @@ func (suite *AuditSystemTestSuite) TestStats() {
 
 	// Log some events
 	for i := 0; i < 5; i++ {
+<<<<<<< HEAD
 		event := &AuditEvent{
 			ID:        uuid.New().String(),
 			EventType: EventTypeAuthentication,
 			Component: "test",
 			Action:    fmt.Sprintf("test-%d", i),
 			Severity:  SeverityInfo,
+=======
+		event := &types.AuditEvent{
+			ID:        uuid.New().String(),
+			EventType: types.EventTypeAuthentication,
+			Component: "test",
+			Action:    fmt.Sprintf("test-%d", i),
+			Severity:  types.SeverityInfo,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			Timestamp: time.Now(),
 		}
 
@@ -412,8 +524,13 @@ func (suite *AuditSystemTestSuite) TestStats() {
 	suite.Equal(int64(5), stats.EventsReceived)
 	suite.Equal(int64(0), stats.EventsDropped)
 	suite.Equal(1, stats.BackendCount)
+<<<<<<< HEAD
 	suite.True(stats.IntegrityEnabled)
 	suite.Contains(stats.ComplianceMode, ComplianceSOC2)
+=======
+	suite.False(stats.IntegrityEnabled)
+	suite.Contains(stats.ComplianceMode, types.ComplianceSOC2)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 func (suite *AuditSystemTestSuite) TestBackendFailure() {
@@ -424,12 +541,21 @@ func (suite *AuditSystemTestSuite) TestBackendFailure() {
 	suite.Require().NoError(err)
 	defer suite.auditSystem.Stop()
 
+<<<<<<< HEAD
 	event := &AuditEvent{
 		ID:        uuid.New().String(),
 		EventType: EventTypeAuthentication,
 		Component: "test",
 		Action:    "test",
 		Severity:  SeverityInfo,
+=======
+	event := &types.AuditEvent{
+		ID:        uuid.New().String(),
+		EventType: types.EventTypeAuthentication,
+		Component: "test",
+		Action:    "test",
+		Severity:  types.SeverityInfo,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		Timestamp: time.Now(),
 	}
 
@@ -444,9 +570,31 @@ func (suite *AuditSystemTestSuite) TestBackendFailure() {
 }
 
 func (suite *AuditSystemTestSuite) TestConcurrentEventLogging() {
+<<<<<<< HEAD
 	err := suite.auditSystem.Start()
 	suite.Require().NoError(err)
 	defer suite.auditSystem.Stop()
+=======
+	// Create a separate audit system with larger queue for concurrent testing
+	concurrentConfig := &AuditSystemConfig{
+		Enabled:         true,
+		LogLevel:        types.SeverityInfo,
+		BatchSize:       3,
+		FlushInterval:   100 * time.Millisecond,
+		MaxQueueSize:    500, // Larger queue for concurrent testing
+		EnableIntegrity: false,
+		ComplianceMode:  []types.ComplianceStandard{types.ComplianceSOC2},
+		Backends:        []backends.BackendConfig{},
+	}
+
+	concurrentSystem, err := NewAuditSystem(concurrentConfig)
+	suite.Require().NoError(err)
+	concurrentSystem.backends = []backends.Backend{suite.mockBackend}
+
+	err = concurrentSystem.Start()
+	suite.Require().NoError(err)
+	defer concurrentSystem.Stop()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	const numGoroutines = 10
 	const eventsPerGoroutine = 20
@@ -459,6 +607,7 @@ func (suite *AuditSystemTestSuite) TestConcurrentEventLogging() {
 			defer wg.Done()
 
 			for i := 0; i < eventsPerGoroutine; i++ {
+<<<<<<< HEAD
 				event := &AuditEvent{
 					ID:        uuid.New().String(),
 					EventType: EventTypeAuthentication,
@@ -469,6 +618,18 @@ func (suite *AuditSystemTestSuite) TestConcurrentEventLogging() {
 				}
 
 				err := suite.auditSystem.LogEvent(event)
+=======
+				event := &types.AuditEvent{
+					ID:        uuid.New().String(),
+					EventType: types.EventTypeAuthentication,
+					Component: "test",
+					Action:    fmt.Sprintf("goroutine-%d-event-%d", goroutineID, i),
+					Severity:  types.SeverityInfo,
+					Timestamp: time.Now(),
+				}
+
+				err := concurrentSystem.LogEvent(event)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				suite.NoError(err)
 			}
 		}(g)
@@ -496,7 +657,11 @@ func TestAuditSystemScenarios(t *testing.T) {
 	tests := []struct {
 		name        string
 		config      func() *AuditSystemConfig
+<<<<<<< HEAD
 		events      []*AuditEvent
+=======
+		events      []*types.AuditEvent
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		expectCount int
 		expectError bool
 	}{
@@ -505,13 +670,18 @@ func TestAuditSystemScenarios(t *testing.T) {
 			config: func() *AuditSystemConfig {
 				return &AuditSystemConfig{
 					Enabled:       true,
+<<<<<<< HEAD
 					LogLevel:      SeverityInfo,
+=======
+					LogLevel:      types.SeverityInfo,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 					BatchSize:     2,
 					FlushInterval: 50 * time.Millisecond,
 					MaxQueueSize:  10,
 					Backends:      []backends.BackendConfig{},
 				}
 			},
+<<<<<<< HEAD
 			events: []*AuditEvent{
 				{
 					ID:        uuid.New().String(),
@@ -519,6 +689,15 @@ func TestAuditSystemScenarios(t *testing.T) {
 					Component: "test",
 					Action:    "login",
 					Severity:  SeverityInfo,
+=======
+			events: []*types.AuditEvent{
+				{
+					ID:        uuid.New().String(),
+					EventType: types.EventTypeAuthentication,
+					Component: "test",
+					Action:    "login",
+					Severity:  types.SeverityInfo,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 					Timestamp: time.Now(),
 				},
 			},
@@ -530,13 +709,18 @@ func TestAuditSystemScenarios(t *testing.T) {
 			config: func() *AuditSystemConfig {
 				return &AuditSystemConfig{
 					Enabled:       true,
+<<<<<<< HEAD
 					LogLevel:      SeverityError,
+=======
+					LogLevel:      types.SeverityError,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 					BatchSize:     2,
 					FlushInterval: 50 * time.Millisecond,
 					MaxQueueSize:  10,
 					Backends:      []backends.BackendConfig{},
 				}
 			},
+<<<<<<< HEAD
 			events: []*AuditEvent{
 				{
 					ID:        uuid.New().String(),
@@ -544,6 +728,15 @@ func TestAuditSystemScenarios(t *testing.T) {
 					Component: "test",
 					Action:    "login",
 					Severity:  SeverityInfo, // Below threshold
+=======
+			events: []*types.AuditEvent{
+				{
+					ID:        uuid.New().String(),
+					EventType: types.EventTypeAuthentication,
+					Component: "test",
+					Action:    "login",
+					Severity:  types.SeverityInfo, // Below threshold
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 					Timestamp: time.Now(),
 				},
 			},
@@ -555,17 +748,29 @@ func TestAuditSystemScenarios(t *testing.T) {
 			config: func() *AuditSystemConfig {
 				return &AuditSystemConfig{
 					Enabled:       true,
+<<<<<<< HEAD
 					LogLevel:      SeverityInfo,
+=======
+					LogLevel:      types.SeverityInfo,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 					BatchSize:     2,
 					FlushInterval: 50 * time.Millisecond,
 					MaxQueueSize:  10,
 					Backends:      []backends.BackendConfig{},
 				}
 			},
+<<<<<<< HEAD
 			events: []*AuditEvent{
 				{
 					// Missing required fields
 					ID: "invalid-id",
+=======
+			events: []*types.AuditEvent{
+				{
+					// Missing required fields but with sufficient severity
+					ID: "invalid-id",
+					Severity: types.SeverityInfo, // Set severity to pass the filter
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				},
 			},
 			expectCount: 0,
@@ -621,7 +826,11 @@ func BenchmarkAuditSystemLogEvent(b *testing.B) {
 
 	config := &AuditSystemConfig{
 		Enabled:       true,
+<<<<<<< HEAD
 		LogLevel:      SeverityInfo,
+=======
+		LogLevel:      types.SeverityInfo,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		BatchSize:     100,
 		FlushInterval: 1 * time.Second,
 		MaxQueueSize:  10000,
@@ -640,12 +849,21 @@ func BenchmarkAuditSystemLogEvent(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
+<<<<<<< HEAD
 			event := &AuditEvent{
 				ID:        uuid.New().String(),
 				EventType: EventTypeAuthentication,
 				Component: "benchmark",
 				Action:    "test",
 				Severity:  SeverityInfo,
+=======
+			event := &types.AuditEvent{
+				ID:        uuid.New().String(),
+				EventType: types.EventTypeAuthentication,
+				Component: "benchmark",
+				Action:    "test",
+				Severity:  types.SeverityInfo,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				Timestamp: time.Now(),
 			}
 
@@ -655,6 +873,7 @@ func BenchmarkAuditSystemLogEvent(b *testing.B) {
 }
 
 func BenchmarkEventValidation(b *testing.B) {
+<<<<<<< HEAD
 	event := &AuditEvent{
 		ID:        uuid.New().String(),
 		EventType: EventTypeAuthentication,
@@ -663,15 +882,33 @@ func BenchmarkEventValidation(b *testing.B) {
 		Severity:  SeverityInfo,
 		Timestamp: time.Now(),
 		UserContext: &UserContext{
+=======
+	event := &types.AuditEvent{
+		ID:        uuid.New().String(),
+		EventType: types.EventTypeAuthentication,
+		Component: "benchmark",
+		Action:    "test",
+		Severity:  types.SeverityInfo,
+		Timestamp: time.Now(),
+		UserContext: &types.UserContext{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			UserID:   "user123",
 			Username: "testuser",
 			Email:    "test@example.com",
 		},
+<<<<<<< HEAD
 		NetworkContext: &NetworkContext{
 			SourcePort:      8080,
 			DestinationPort: 443,
 		},
 		ResourceContext: &ResourceContext{
+=======
+		NetworkContext: &types.NetworkContext{
+			SourcePort:      8080,
+			DestinationPort: 443,
+		},
+		ResourceContext: &types.ResourceContext{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			ResourceType: "deployment",
 			Operation:    "create",
 		},
@@ -688,11 +925,19 @@ func BenchmarkEventEnrichment(b *testing.B) {
 	auditSystem, err := NewAuditSystem(config)
 	require.NoError(b, err)
 
+<<<<<<< HEAD
 	event := &AuditEvent{
 		EventType: EventTypeAuthentication,
 		Component: "benchmark",
 		Action:    "test",
 		Severity:  SeverityInfo,
+=======
+	event := &types.AuditEvent{
+		EventType: types.EventTypeAuthentication,
+		Component: "benchmark",
+		Action:    "test",
+		Severity:  types.SeverityInfo,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	b.ResetTimer()
@@ -706,14 +951,24 @@ func BenchmarkEventEnrichment(b *testing.B) {
 func TestComplianceMetadataEnrichment(t *testing.T) {
 	tests := []struct {
 		name           string
+<<<<<<< HEAD
 		complianceMode []ComplianceStandard
 		eventType      EventType
+=======
+		complianceMode []types.ComplianceStandard
+		eventType      types.EventType
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		expectedFields map[string]string
 	}{
 		{
 			name:           "SOC2 authentication event",
+<<<<<<< HEAD
 			complianceMode: []ComplianceStandard{ComplianceSOC2},
 			eventType:      EventTypeAuthentication,
+=======
+			complianceMode: []types.ComplianceStandard{ComplianceSOC2},
+			eventType:      types.EventTypeAuthentication,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			expectedFields: map[string]string{
 				"soc2_control_id":    "CC6.1",
 				"soc2_trust_service": "Security",
@@ -721,8 +976,13 @@ func TestComplianceMetadataEnrichment(t *testing.T) {
 		},
 		{
 			name:           "ISO27001 data access event",
+<<<<<<< HEAD
 			complianceMode: []ComplianceStandard{ComplianceISO27001},
 			eventType:      EventTypeDataAccess,
+=======
+			complianceMode: []types.ComplianceStandard{types.ComplianceISO27001},
+			eventType:      types.EventTypeDataAccess,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			expectedFields: map[string]string{
 				"iso27001_control": "A.12.4.1",
 				"iso27001_annex":   "A.12 - Operations Security",
@@ -730,8 +990,13 @@ func TestComplianceMetadataEnrichment(t *testing.T) {
 		},
 		{
 			name:           "PCI DSS authentication event",
+<<<<<<< HEAD
 			complianceMode: []ComplianceStandard{CompliancePCIDSS},
 			eventType:      EventTypeAuthentication,
+=======
+			complianceMode: []types.ComplianceStandard{types.CompliancePCIDSS},
+			eventType:      types.EventTypeAuthentication,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			expectedFields: map[string]string{
 				"pci_requirement":         "8.1.1",
 				"pci_data_classification": "Non-CHD",
@@ -749,12 +1014,20 @@ func TestComplianceMetadataEnrichment(t *testing.T) {
 			auditSystem, err := NewAuditSystem(config)
 			require.NoError(t, err)
 
+<<<<<<< HEAD
 			event := &AuditEvent{
+=======
+			event := &types.AuditEvent{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				ID:        uuid.New().String(),
 				EventType: tt.eventType,
 				Component: "test",
 				Action:    "test",
+<<<<<<< HEAD
 				Severity:  SeverityInfo,
+=======
+				Severity:  types.SeverityInfo,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				Timestamp: time.Now(),
 			}
 
@@ -786,7 +1059,11 @@ func TestMetricsCollection(t *testing.T) {
 
 	config := &AuditSystemConfig{
 		Enabled:       true,
+<<<<<<< HEAD
 		LogLevel:      SeverityInfo,
+=======
+		LogLevel:      types.SeverityInfo,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		BatchSize:     2,
 		FlushInterval: 50 * time.Millisecond,
 		MaxQueueSize:  10,
@@ -804,12 +1081,21 @@ func TestMetricsCollection(t *testing.T) {
 
 	// Log events
 	for i := 0; i < 3; i++ {
+<<<<<<< HEAD
 		event := &AuditEvent{
 			ID:        uuid.New().String(),
 			EventType: EventTypeAuthentication,
 			Component: "test",
 			Action:    fmt.Sprintf("test-%d", i),
 			Severity:  SeverityInfo,
+=======
+		event := &types.AuditEvent{
+			ID:        uuid.New().String(),
+			EventType: types.EventTypeAuthentication,
+			Component: "test",
+			Action:    fmt.Sprintf("test-%d", i),
+			Severity:  types.SeverityInfo,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			Timestamp: time.Now(),
 		}
 

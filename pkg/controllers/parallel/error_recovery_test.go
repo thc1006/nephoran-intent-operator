@@ -241,6 +241,11 @@ func (suite *ErrorRecoveryTestSuite) TestRetryMechanismWithBackoff() {
 	}
 
 	intentID := "intent-retry-test"
+<<<<<<< HEAD
+=======
+	// ITERATION #9 fix: Initialize Task with proper context
+	taskCtx, taskCancel := context.WithCancel(context.Background())
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	task := &Task{
 		ID:        "retry-task-1",
 		IntentID:  intentID,
@@ -249,6 +254,12 @@ func (suite *ErrorRecoveryTestSuite) TestRetryMechanismWithBackoff() {
 		Status:    TaskStatusPending,
 		InputData: json.RawMessage(`{"intent":"test intent"}`),
 		Timeout:   10 * time.Second,
+<<<<<<< HEAD
+=======
+		Context:   taskCtx,     // Add context
+		Cancel:    taskCancel,  // Add cancel function
+		CreatedAt: time.Now(),  // Add creation timestamp
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		RetryConfig: &TaskRetryConfig{
 			MaxAttempts:   5,
 			InitialDelay:  100 * time.Millisecond,
@@ -276,6 +287,11 @@ func (suite *ErrorRecoveryTestSuite) TestBulkheadIsolation() {
 	intentID := "intent-bulkhead-test"
 
 	// Create tasks for different pools
+<<<<<<< HEAD
+=======
+	// ITERATION #9 fix: Initialize Task with proper context
+	llmCtx, llmCancel := context.WithCancel(context.Background())
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	llmTask := &Task{
 		ID:        "llm-bulkhead-task",
 		IntentID:  intentID,
@@ -284,8 +300,17 @@ func (suite *ErrorRecoveryTestSuite) TestBulkheadIsolation() {
 		Status:    TaskStatusPending,
 		InputData: json.RawMessage(`{"intent":"test intent"}`),
 		Timeout:   5 * time.Second,
+<<<<<<< HEAD
 	}
 
+=======
+		Context:   llmCtx,
+		Cancel:    llmCancel,
+		CreatedAt: time.Now(),
+	}
+
+	ragCtx, ragCancel := context.WithCancel(context.Background())
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	ragTask := &Task{
 		ID:        "rag-bulkhead-task",
 		IntentID:  intentID,
@@ -294,6 +319,12 @@ func (suite *ErrorRecoveryTestSuite) TestBulkheadIsolation() {
 		Status:    TaskStatusPending,
 		InputData: json.RawMessage(`{"query":"test query"}`),
 		Timeout:   5 * time.Second,
+<<<<<<< HEAD
+=======
+		Context:   ragCtx,
+		Cancel:    ragCancel,
+		CreatedAt: time.Now(),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	// Submit tasks to different pools

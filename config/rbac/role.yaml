@@ -2,10 +2,17 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+<<<<<<< HEAD
   name: manager-role
 rules:
 - apiGroups:
   - nephoran.io
+=======
+  name: nephoran-manager
+rules:
+- apiGroups:
+  - intent.nephio.org
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
   resources:
   - networkintents
   verbs:
@@ -17,13 +24,21 @@ rules:
   - update
   - watch
 - apiGroups:
+<<<<<<< HEAD
   - nephoran.io
+=======
+  - intent.nephio.org
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
   resources:
   - networkintents/finalizers
   verbs:
   - update
 - apiGroups:
+<<<<<<< HEAD
   - nephoran.io
+=======
+  - intent.nephio.org
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
   resources:
   - networkintents/status
   verbs:

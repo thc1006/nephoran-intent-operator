@@ -9,6 +9,10 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+<<<<<<< HEAD
+=======
+	"sync/atomic"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"testing"
 	"time"
 
@@ -273,9 +277,27 @@ func TestResourceExhaustionResilience(t *testing.T) {
 		{
 			name: "rapid file creation",
 			setupFunc: func(t *testing.T, handoffDir string) {
+<<<<<<< HEAD
 				// Rapidly create files during processing
 				go func() {
 					for i := 0; i < 50; i++ {
+=======
+				// Use context to control the rapid file creation goroutine
+				ctx, cancel := context.WithCancel(context.Background())
+				var wg sync.WaitGroup
+				
+				// Rapidly create files during processing
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					for i := 0; i < 50; i++ {
+						select {
+						case <-ctx.Done():
+							return
+						default:
+						}
+						
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 						content := fmt.Sprintf(`{
 							"intent_type": "scaling",
 							"target": "rapid-%d",
@@ -287,6 +309,16 @@ func TestResourceExhaustionResilience(t *testing.T) {
 						time.Sleep(10 * time.Millisecond)
 					}
 				}()
+<<<<<<< HEAD
+=======
+				
+				// Stop the goroutine after a short time
+				go func() {
+					time.Sleep(1 * time.Second)
+					cancel()
+					wg.Wait()
+				}()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 				// Initial files
 				for i := 0; i < 10; i++ {
@@ -607,24 +639,78 @@ func TestConcurrentFileProcessing(t *testing.T) {
 	require.NoError(t, os.MkdirAll(handoffDir, 0o755))
 	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
+<<<<<<< HEAD
 	// Create mock porch with random delays to simulate real processing
 	mockPorch := createMockPorchWithRandomDelay(t, tempDir)
 
 	// Configure watcher with multiple workers
+=======
+	// Create mock porch with consistent behavior (no random delays)
+	mockPorch := createSecureMockPorch(t, tempDir)
+
+	// Configure watcher for single-pass processing with proper synchronization
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	config := loop.Config{
 		PorchPath:    mockPorch,
 		Mode:         "direct",
 		OutDir:       outDir,
+<<<<<<< HEAD
 		Once:         false, // Continuous mode to test concurrent processing
 		DebounceDur:  50 * time.Millisecond,
 		MaxWorkers:   5, // Multiple workers to test concurrency
 		CleanupAfter: time.Hour,
 	}
 
+=======
+		Once:         true, // Single-pass mode to prevent reprocessing
+		DebounceDur:  500 * time.Millisecond, // Increased debounce to ensure all files are queued
+		MaxWorkers:   20, // Queue size = MaxWorkers * 3, so 20 * 3 = 60 > 50 files
+		CleanupAfter: time.Hour,
+	}
+
+	// Create all files first SEQUENTIALLY to avoid race conditions
+	numFiles := 50
+	var createdFiles []string
+	var processedCounter int64
+
+	// Create files sequentially with proper error handling
+	for i := 0; i < numFiles; i++ {
+		content := fmt.Sprintf(`{
+			"intent_type": "scaling",
+			"target": "app-%d",
+			"namespace": "default",
+			"replicas": %d
+		}`, i, i%10+1)
+
+		filename := fmt.Sprintf("intent-concurrent-%d.json", i)
+		file := filepath.Join(handoffDir, filename)
+
+		err := os.WriteFile(file, []byte(content), 0o644)
+		require.NoError(t, err, "Failed to write file %d", i)
+		
+		createdFiles = append(createdFiles, file)
+	}
+
+	// Ensure all files are fully written and visible to filesystem
+	for _, file := range createdFiles {
+		// Verify file exists and is readable
+		info, err := os.Stat(file)
+		require.NoError(t, err, "File should exist and be accessible: %s", file)
+		require.True(t, info.Size() > 0, "File should not be empty: %s", file)
+	}
+
+	// Force filesystem sync on Windows
+	if runtime.GOOS == "windows" {
+		time.Sleep(200 * time.Millisecond) // Extra settling time on Windows
+	}
+
+	// Create watcher after all files are confirmed to exist
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	watcher, err := loop.NewWatcher(handoffDir, config)
 	require.NoError(t, err)
 	defer watcher.Close() // #nosec G307 - Error handled in defer
 
+<<<<<<< HEAD
 	// Start watcher in background
 	_, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -672,11 +758,74 @@ func TestConcurrentFileProcessing(t *testing.T) {
 	totalProcessed := processedCount + failedCount
 
 	assert.Equal(t, numFiles, totalProcessed, "All files should be processed exactly once")
+=======
+	// Start processing and wait for completion with timeout
+	startTime := time.Now()
+	err = watcher.Start()
+	require.NoError(t, err)
+	processingDuration := time.Since(startTime)
+
+	// Give extra time for all workers to complete and files to be moved
+	maxWaitTime := 30 * time.Second
+	waitStart := time.Now()
+	
+	for time.Since(waitStart) < maxWaitTime {
+		processedCount := countFilesInDir(t, filepath.Join(handoffDir, "processed"))
+		failedCount := countFilesInDir(t, filepath.Join(handoffDir, "failed"))
+		totalProcessed := processedCount + failedCount
+		
+		t.Logf("Progress: %d/%d files processed (processed: %d, failed: %d) after %v", 
+			totalProcessed, numFiles, processedCount, failedCount, time.Since(waitStart))
+		
+		if totalProcessed >= numFiles {
+			break
+		}
+		
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	// Final verification with detailed error reporting
+	processedCount := countFilesInDir(t, filepath.Join(handoffDir, "processed"))
+	failedCount := countFilesInDir(t, filepath.Join(handoffDir, "failed"))
+	remainingCount := countFilesInDir(t, handoffDir) // Files still in handoff dir
+	totalProcessed := processedCount + failedCount
+
+	t.Logf("Final results: processed=%d, failed=%d, remaining=%d, total=%d, expected=%d",
+		processedCount, failedCount, remainingCount, totalProcessed, numFiles)
+	t.Logf("Processing took %v, waited %v", processingDuration, time.Since(waitStart))
+
+	// Check for files that might still be in the handoff directory
+	if remainingCount > 0 {
+		entries, _ := os.ReadDir(handoffDir)
+		for _, entry := range entries {
+			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".json") {
+				t.Logf("Unprocessed file remaining: %s", entry.Name())
+			}
+		}
+	}
+
+	// Verify all files were processed exactly once
+	assert.Equal(t, numFiles, totalProcessed, 
+		"All %d files should be processed exactly once, but got %d (processed=%d, failed=%d, remaining=%d)",
+		numFiles, totalProcessed, processedCount, failedCount, remainingCount)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// Verify no race conditions corrupted state
 	stats, err := watcher.GetStats()
 	require.NoError(t, err)
+<<<<<<< HEAD
 	assert.Equal(t, totalProcessed, stats.ProcessedCount+stats.FailedCount, "Stats should match processed files")
+=======
+	assert.Equal(t, totalProcessed, stats.ProcessedCount+stats.FailedCount, 
+		"Stats should match processed files: stats=%d+%d=%d, actual=%d",
+		stats.ProcessedCount, stats.FailedCount, 
+		stats.ProcessedCount+stats.FailedCount, totalProcessed)
+
+	// Additional verification: ensure atomic counter is working correctly
+	atomic.AddInt64(&processedCounter, int64(totalProcessed))
+	finalCounter := atomic.LoadInt64(&processedCounter)
+	assert.Equal(t, int64(totalProcessed), finalCounter, "Atomic counter should match processed count")
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // Helper functions
@@ -820,7 +969,15 @@ func countFilesInDir(t *testing.T, dir string) int {
 	count := 0
 	for _, entry := range entries {
 		if !entry.IsDir() {
+<<<<<<< HEAD
 			count++
+=======
+			// Only count intent JSON files, not error logs or other artifacts
+			name := entry.Name()
+			if strings.HasSuffix(name, ".json") && !strings.Contains(name, ".error.") {
+				count++
+			}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 	}
 	return count

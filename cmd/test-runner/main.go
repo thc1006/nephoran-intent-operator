@@ -4,6 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+<<<<<<< HEAD
+=======
+	"math"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -113,13 +117,21 @@ Features:
 	// Environment variable overrides.
 
 	if envIndex := os.Getenv("SHARD_INDEX"); envIndex != "" {
+<<<<<<< HEAD
 		if i, err := strconv.Atoi(envIndex); err == nil {
+=======
+		if i, err := strconv.Atoi(envIndex); err == nil && i >= 0 && i <= math.MaxInt32 {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			runner.ShardIndex = i
 		}
 	}
 
 	if envTotal := os.Getenv("TOTAL_SHARDS"); envTotal != "" {
+<<<<<<< HEAD
 		if t, err := strconv.Atoi(envTotal); err == nil {
+=======
+		if t, err := strconv.Atoi(envTotal); err == nil && t >= 0 && t <= math.MaxInt32 {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			runner.TotalShards = t
 		}
 	}

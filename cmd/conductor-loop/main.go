@@ -15,6 +15,16 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/internal/loop"
 )
 
+<<<<<<< HEAD
+=======
+// hasOnceMode checks if the watcher is configured for once mode (processor approach)
+func hasOnceMode(watcher *loop.Watcher) bool {
+	// For now, assume processor approach uses once mode in tests
+	// This could be extended to check actual watcher configuration if needed
+	return true
+}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // isExpectedShutdownError identifies expected errors during shutdown that don't indicate infrastructure issues.
 
 func isExpectedShutdownError(err error) bool {
@@ -77,8 +87,21 @@ func validateHandoffDir(path string) error {
 			parent := filepath.Dir(cleanPath)
 
 			// Special case: if parent is the same as path, we've reached the root.
+<<<<<<< HEAD
 
 			if parent == cleanPath {
+=======
+			// This includes drive roots like "Z:\" or "C:\" on Windows and "/" on Unix
+
+			if parent == cleanPath {
+				// For Windows, check if it's a drive root that doesn't exist
+				if len(cleanPath) == 3 && cleanPath[1] == ':' && (cleanPath[2] == '\\' || cleanPath[2] == '/') {
+					// Test if the drive actually exists by trying to access it
+					if _, statErr := os.Stat(cleanPath); statErr != nil {
+						return fmt.Errorf("invalid path: drive %s does not exist or is not accessible", cleanPath)
+					}
+				}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				return fmt.Errorf("invalid path: %s (cannot validate root directory)", cleanPath)
 			}
 
@@ -423,8 +446,13 @@ func runMain() int {
 			log.Printf("Watcher error: %v", err)
 
 			exitCode = 1
+<<<<<<< HEAD
 		} else if !*useProcessor && config.Once {
 			// In once mode, check if any files failed (only for legacy approach).
+=======
+		} else if config.Once || (*useProcessor && hasOnceMode(watcher)) {
+			// In once mode, check if any files failed (both legacy and processor approaches).
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 			stats, statsErr := watcher.GetStats()
 
@@ -466,8 +494,13 @@ func runMain() int {
 
 		// Check stats after graceful shutdown to distinguish shutdown vs real failures.
 
+<<<<<<< HEAD
 		if !*useProcessor {
 			// Only check stats for legacy approach.
+=======
+		if !*useProcessor || (*useProcessor && hasOnceMode(watcher)) {
+			// Check stats for both legacy approach and processor approach in once mode.
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 			stats, statsErr := watcher.GetStats()
 

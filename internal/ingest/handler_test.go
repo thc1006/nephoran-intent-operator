@@ -371,12 +371,22 @@ func TestHandleIntent_UnsupportedContentType(t *testing.T) {
 	tests := []struct {
 		name        string
 		contentType string
+<<<<<<< HEAD
 	}{
 		{name: "xml", contentType: "application/xml"},
 		{name: "form data", contentType: "application/x-www-form-urlencoded"},
 		{name: "binary", contentType: "application/octet-stream"},
 		{name: "html", contentType: "text/html"},
 		{name: "empty", contentType: ""},
+=======
+		expectedCode int
+	}{
+		{name: "xml", contentType: "application/xml", expectedCode: http.StatusUnsupportedMediaType},
+		{name: "form data", contentType: "application/x-www-form-urlencoded", expectedCode: http.StatusUnsupportedMediaType},
+		{name: "binary", contentType: "application/octet-stream", expectedCode: http.StatusUnsupportedMediaType},
+		{name: "html", contentType: "text/html", expectedCode: http.StatusUnsupportedMediaType},
+		{name: "empty", contentType: "", expectedCode: http.StatusBadRequest}, // Empty content type leads to plain text parsing which fails
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	for _, tt := range tests {
@@ -390,9 +400,14 @@ func TestHandleIntent_UnsupportedContentType(t *testing.T) {
 
 			handler.HandleIntent(w, req)
 
+<<<<<<< HEAD
 			// For unsupported content types, the handler returns 415 Unsupported Media Type
 			if w.Code != http.StatusUnsupportedMediaType {
 				t.Errorf("Expected status %d, got %d", http.StatusUnsupportedMediaType, w.Code)
+=======
+			if w.Code != tt.expectedCode {
+				t.Errorf("Expected status %d, got %d for content type %q", tt.expectedCode, w.Code, tt.contentType)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			}
 		})
 	}
@@ -495,9 +510,32 @@ func TestHandleIntent_FileWriteError(t *testing.T) {
 	}
 
 	body := w.Body.String()
+<<<<<<< HEAD
 	// Accept both old and new file write error message formats
 	if !strings.Contains(body, "intent failed") && !strings.Contains(body, "Failed to save intent") {
 		t.Errorf("Expected write error message, got: %s", body)
+=======
+	// Accept various file write error message formats (permission denied, read-only filesystem, etc.)
+	expectedMsgs := []string{
+		"intent failed",
+		"Failed to save intent", 
+		"permission denied",
+		"read-only",
+		"cannot create",
+		"access denied",
+	}
+	
+	hasExpectedMsg := false
+	for _, msg := range expectedMsgs {
+		if strings.Contains(strings.ToLower(body), strings.ToLower(msg)) {
+			hasExpectedMsg = true
+			break
+		}
+	}
+	
+	if !hasExpectedMsg {
+		t.Errorf("Expected write error message containing one of %v, got: %s", expectedMsgs, body)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 }
 

@@ -2351,6 +2351,7 @@ func (c *Client) updatePackageContentsInternal(ctx context.Context, name, revisi
 
 	// Update the package revision with new resources.
 
+<<<<<<< HEAD
 	var interfaceResources []interface{}
 
 	for _, resource := range resources {
@@ -2358,6 +2359,9 @@ func (c *Client) updatePackageContentsInternal(ctx context.Context, name, revisi
 	}
 
 	pkg.Spec.Resources = interfaceResources
+=======
+	pkg.Spec.Resources = resources
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// Update the package revision.
 
@@ -2718,11 +2722,16 @@ func (c *Client) validatePackageInternal(ctx context.Context, name, revision str
 		// Check if resource has name in metadata
 		hasName := false
 		if len(resource.Metadata) > 0 {
+<<<<<<< HEAD
 			var metadataMap map[string]interface{}
 			if err := json.Unmarshal(resource.Metadata, &metadataMap); err == nil {
 				if name, ok := metadataMap["name"].(string); ok && name != "" {
 					hasName = true
 				}
+=======
+			if name, ok := resource.Metadata["name"].(string); ok && name != "" {
+				hasName = true
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			}
 		}
 		if !hasName {
@@ -3349,7 +3358,11 @@ func convertToKRMResource(resource interface{}) (KRMResource, error) {
 	if resourceMap, ok := resource.(map[string]interface{}); ok {
 
 		krmRes := KRMResource{
+<<<<<<< HEAD
 			Metadata: json.RawMessage(`{}`),
+=======
+			Metadata: make(map[string]interface{}),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 
 		if apiVersion, ok := resourceMap["apiVersion"].(string); ok {
@@ -3361,6 +3374,7 @@ func convertToKRMResource(resource interface{}) (KRMResource, error) {
 		}
 
 		if metadata, ok := resourceMap["metadata"].(map[string]interface{}); ok {
+<<<<<<< HEAD
 			if metadataBytes, err := json.Marshal(metadata); err == nil {
 				krmRes.Metadata = metadataBytes
 			}
@@ -3382,6 +3396,21 @@ func convertToKRMResource(resource interface{}) (KRMResource, error) {
 			if dataBytes, err := json.Marshal(data); err == nil {
 				krmRes.Data = dataBytes
 			}
+=======
+			krmRes.Metadata = metadata
+		}
+
+		if spec, ok := resourceMap["spec"].(map[string]interface{}); ok {
+			krmRes.Spec = spec
+		}
+
+		if status, ok := resourceMap["status"].(map[string]interface{}); ok {
+			krmRes.Status = status
+		}
+
+		if data, ok := resourceMap["data"].(map[string]interface{}); ok {
+			krmRes.Data = data
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 
 		return krmRes, nil
@@ -3415,9 +3444,13 @@ func convertToFunctionConfig(function interface{}) (FunctionConfig, error) {
 		}
 
 		if configMap, ok := functionMap["configMap"].(map[string]interface{}); ok {
+<<<<<<< HEAD
 			if configMapBytes, err := json.Marshal(configMap); err == nil {
 				funcConfig.ConfigMap = configMapBytes
 			}
+=======
+			funcConfig.ConfigMap = configMap
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 
 		return funcConfig, nil
@@ -3438,34 +3471,50 @@ func convertFromKRMResource(resource KRMResource) interface{} {
 
 	// Add metadata if present
 	if len(resource.Metadata) > 0 {
+<<<<<<< HEAD
 		var metadata map[string]interface{}
 		if err := json.Unmarshal(resource.Metadata, &metadata); err == nil {
 			resourceMap["metadata"] = metadata
 		}
+=======
+		resourceMap["metadata"] = resource.Metadata
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	// Add spec if present
 	if len(resource.Spec) > 0 {
+<<<<<<< HEAD
 		var spec map[string]interface{}
 		if err := json.Unmarshal(resource.Spec, &spec); err == nil {
 			resourceMap["spec"] = spec
 		}
+=======
+		resourceMap["spec"] = resource.Spec
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	// Add status if present
 	if len(resource.Status) > 0 {
+<<<<<<< HEAD
 		var status map[string]interface{}
 		if err := json.Unmarshal(resource.Status, &status); err == nil {
 			resourceMap["status"] = status
 		}
+=======
+		resourceMap["status"] = resource.Status
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	// Add data if present
 	if len(resource.Data) > 0 {
+<<<<<<< HEAD
 		var data map[string]interface{}
 		if err := json.Unmarshal(resource.Data, &data); err == nil {
 			resourceMap["data"] = data
 		}
+=======
+		resourceMap["data"] = resource.Data
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	return resourceMap
@@ -3482,10 +3531,14 @@ func convertFromFunctionConfig(function FunctionConfig) interface{} {
 
 	// Add config data if present
 	if len(function.ConfigMap) > 0 {
+<<<<<<< HEAD
 		var configMap map[string]interface{}
 		if err := json.Unmarshal(function.ConfigMap, &configMap); err == nil {
 			functionMap["configMap"] = configMap
 		}
+=======
+		functionMap["configMap"] = function.ConfigMap
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	// Add selectors if present
@@ -3514,34 +3567,50 @@ func convertKRMResourceToYAML(resource KRMResource) ([]byte, error) {
 
 	// Add metadata if present
 	if len(resource.Metadata) > 0 {
+<<<<<<< HEAD
 		var metadata map[string]interface{}
 		if err := json.Unmarshal(resource.Metadata, &metadata); err == nil {
 			resourceMap["metadata"] = metadata
 		}
+=======
+		resourceMap["metadata"] = resource.Metadata
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	// Add spec if present
 	if len(resource.Spec) > 0 {
+<<<<<<< HEAD
 		var spec map[string]interface{}
 		if err := json.Unmarshal(resource.Spec, &spec); err == nil {
 			resourceMap["spec"] = spec
 		}
+=======
+		resourceMap["spec"] = resource.Spec
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	// Add status if present
 	if len(resource.Status) > 0 {
+<<<<<<< HEAD
 		var status map[string]interface{}
 		if err := json.Unmarshal(resource.Status, &status); err == nil {
 			resourceMap["status"] = status
 		}
+=======
+		resourceMap["status"] = resource.Status
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	// Add data if present
 	if len(resource.Data) > 0 {
+<<<<<<< HEAD
 		var data map[string]interface{}
 		if err := json.Unmarshal(resource.Data, &data); err == nil {
 			resourceMap["data"] = data
 		}
+=======
+		resourceMap["data"] = resource.Data
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	// Convert to YAML using JSON marshaling then conversion.
@@ -3580,6 +3649,7 @@ func convertYAMLToKRMResource(yamlData []byte) (*KRMResource, error) {
 	}
 
 	if metadata, ok := resourceMap["metadata"].(map[string]interface{}); ok {
+<<<<<<< HEAD
 		if metadataBytes, err := json.Marshal(metadata); err == nil {
 			resource.Metadata = metadataBytes
 		}
@@ -3601,6 +3671,21 @@ func convertYAMLToKRMResource(yamlData []byte) (*KRMResource, error) {
 		if dataBytes, err := json.Marshal(data); err == nil {
 			resource.Data = dataBytes
 		}
+=======
+		resource.Metadata = metadata
+	}
+
+	if spec, ok := resourceMap["spec"].(map[string]interface{}); ok {
+		resource.Spec = spec
+	}
+
+	if status, ok := resourceMap["status"].(map[string]interface{}); ok {
+		resource.Status = status
+	}
+
+	if data, ok := resourceMap["data"].(map[string]interface{}); ok {
+		resource.Data = data
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	return resource, nil
@@ -3612,11 +3697,16 @@ func generateResourceFilename(resource KRMResource) string {
 	var name string
 
 	if metadata := resource.Metadata; len(metadata) > 0 {
+<<<<<<< HEAD
 		var metadataMap map[string]interface{}
 		if err := json.Unmarshal(metadata, &metadataMap); err == nil {
 			if resourceName, ok := metadataMap["name"].(string); ok && resourceName != "" {
 				name = resourceName
 			}
+=======
+		if resourceName, ok := metadata["name"].(string); ok && resourceName != "" {
+			name = resourceName
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 	}
 
@@ -3744,34 +3834,50 @@ func (c *Client) convertResourcesToUnstructured(resources []KRMResource) []inter
 
 		// Add metadata if present
 		if len(resource.Metadata) > 0 {
+<<<<<<< HEAD
 			var metadata map[string]interface{}
 			if err := json.Unmarshal(resource.Metadata, &metadata); err == nil {
 				resourceMap["metadata"] = metadata
 			}
+=======
+			resourceMap["metadata"] = resource.Metadata
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 
 		// Add spec if present
 		if len(resource.Spec) > 0 {
+<<<<<<< HEAD
 			var spec map[string]interface{}
 			if err := json.Unmarshal(resource.Spec, &spec); err == nil {
 				resourceMap["spec"] = spec
 			}
+=======
+			resourceMap["spec"] = resource.Spec
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 
 		// Add status if present
 		if len(resource.Status) > 0 {
+<<<<<<< HEAD
 			var status map[string]interface{}
 			if err := json.Unmarshal(resource.Status, &status); err == nil {
 				resourceMap["status"] = status
 			}
+=======
+			resourceMap["status"] = resource.Status
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 
 		// Add data if present
 		if len(resource.Data) > 0 {
+<<<<<<< HEAD
 			var data map[string]interface{}
 			if err := json.Unmarshal(resource.Data, &data); err == nil {
 				resourceMap["data"] = data
 			}
+=======
+			resourceMap["data"] = resource.Data
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 
 		result[i] = resourceMap
@@ -3889,6 +3995,7 @@ func (c *Client) extractFunctionResponse(status map[string]interface{}) (*Functi
 				}
 
 				if metadata, ok := resMap["metadata"].(map[string]interface{}); ok {
+<<<<<<< HEAD
 					if metadataBytes, err := json.Marshal(metadata); err == nil {
 						resource.Metadata = metadataBytes
 					}
@@ -3910,6 +4017,21 @@ func (c *Client) extractFunctionResponse(status map[string]interface{}) (*Functi
 					if dataBytes, err := json.Marshal(data); err == nil {
 						resource.Data = dataBytes
 					}
+=======
+					resource.Metadata = metadata
+				}
+
+				if spec, ok := resMap["spec"].(map[string]interface{}); ok {
+					resource.Spec = spec
+				}
+
+				if statusData, ok := resMap["status"].(map[string]interface{}); ok {
+					resource.Status = statusData
+				}
+
+				if data, ok := resMap["data"].(map[string]interface{}); ok {
+					resource.Data = data
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				}
 
 				response.Resources = append(response.Resources, resource)

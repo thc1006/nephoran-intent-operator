@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // TaskBuilder provides Go 1.24+ struct evolution patterns for Task construction
 type TaskBuilder struct {
 	task *Task

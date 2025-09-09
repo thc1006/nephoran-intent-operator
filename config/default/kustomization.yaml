@@ -1,6 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+<<<<<<< HEAD
 metadata:
   name: nephoran-intent-operator-webhook-deployment
   namespace: nephoran-system
@@ -20,6 +21,22 @@ labels:
 # Namespace creation for the entire deployment
 namespace: nephoran-system
 
+=======
+# Basic resources for operator deployment
+resources:
+- ../crd
+- ../rbac
+- ../manager
+
+# Set namespace for all resources
+namespace: nephoran-system
+
+# Common labels
+commonLabels:
+  app.kubernetes.io/name: nephoran-intent-operator
+  app.kubernetes.io/part-of: nephoran-intent-operator
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 # Image settings for webhook manager
 images:
 - name: webhook-manager
@@ -34,6 +51,7 @@ configMapGenerator:
   - WEBHOOK_SERVICE_NAME=webhook-manager
   - CERT_MANAGER_ENABLED=true
 
+<<<<<<< HEAD
 # Patches to ensure consistent configuration
 patches:
 - path: webhook-deployment-patch.yaml
@@ -57,3 +75,12 @@ patches:
     - op: replace
       path: /webhooks/0/clientConfig/service/namespace
       value: nephoran-system
+=======
+# Strategic merge patches using modern kustomize syntax
+patches:
+- path: webhook-deployment-patch.yaml
+  target:
+    kind: Deployment
+    name: webhook-manager
+    namespace: nephoran-system
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

@@ -2,15 +2,25 @@
 # Fast PR Validation - 2025 Edition
 # =============================================================================  
 # Ultra-fast validation for pull requests with essential checks only
+<<<<<<< HEAD
 # Optimized for Go 1.25.0, resolves cache key and timeout issues
+=======
+# Optimized for Go 1.24.6, resolves cache key and timeout issues
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 # =============================================================================
 
 name: PR Validation
 
 on:
+<<<<<<< HEAD
   pull_request:
     branches: [ main, integrate/mvp ]
     types: [ opened, synchronize, ready_for_review ]
+=======
+  # pull_request: DISABLED - Consolidated into nephoran-ci-consolidated-2025.yml
+  #   branches: [ main, integrate/mvp ]
+  #   types: [ opened, synchronize, ready_for_review ]
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
   workflow_dispatch:
     inputs:
       skip_tests:
@@ -30,7 +40,11 @@ permissions:
   checks: write
 
 env:
+<<<<<<< HEAD
   GO_VERSION: "1.25.0"
+=======
+  GO_VERSION: "1.24.6"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
   GOPROXY: "https://proxy.golang.org,direct" 
   GOSUMDB: "sum.golang.org"
   GOPRIVATE: "github.com/thc1006/*"
@@ -57,6 +71,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5  # Latest stable
         with:
+<<<<<<< HEAD
           go-version: '1.25.0'
           check-latest: true
           cache: false  # Manual caching for better control
@@ -102,6 +117,14 @@ jobs:
           restore-keys: |
             nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-
             nephoran-go-v1-${{ runner.os }}-
+=======
+          go-version: '1.24.6'
+          check-latest: false  # Ensure exact version
+          cache: true
+
+
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
       - name: Configure Git for private modules
         run: |
@@ -181,7 +204,10 @@ jobs:
         run: |
           echo "=== PR Validation Summary ==="
           echo "Go Version: $(go version)"
+<<<<<<< HEAD
           echo "Cache Key: ${{ steps.cache-key.outputs.cache-key }}"
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           echo "Skip Tests: ${{ env.SKIP_TESTS }}"
           
           # List any generated binaries
@@ -208,7 +234,11 @@ jobs:
   #     - name: Setup Go ${{ env.GO_VERSION }}
   #       uses: actions/setup-go@v5  # Latest stable
   #       with:
+<<<<<<< HEAD
   #         go-version: '1.25.0'
+=======
+  #         go-version: '1.24.6'
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
   #         check-latest: true
   #         cache: true
   # 

@@ -421,7 +421,11 @@ func TestConfig_Validate(t *testing.T) {
 				OutDir:     "/this-path-definitely-does-not-exist-12345/deeply/nested/directory",
 			},
 			wantErr: true,
+<<<<<<< HEAD
 			errMsg:  "permission denied",
+=======
+			errMsg:  "output directory parent does not exist",
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 		{
 			name: "OutDir points to file not directory",

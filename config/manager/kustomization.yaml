@@ -4,9 +4,12 @@ kind: Kustomization
 resources:
 - manager.yaml
 
+<<<<<<< HEAD
 patchesStrategicMerge:
 - patches/resource_patch.yaml
 
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 images:
 - name: controller
   newName: ghcr.io/nephio-project/nephoran-controller
@@ -15,6 +18,12 @@ images:
 configMapGenerator:
 - name: manager-config
   files:
+<<<<<<< HEAD
   - controller_manager_config.yaml
 generatorOptions:
   disableNameSuffixHash: true
+=======
+  - controller-manager-config.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

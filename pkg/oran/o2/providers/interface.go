@@ -230,6 +230,11 @@ type CreateResourceRequest struct {
 // UpdateResourceRequest represents a request to update a resource.
 
 type UpdateResourceRequest struct {
+<<<<<<< HEAD
+=======
+	Name string `json:"name,omitempty"`
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	Specification json.RawMessage `json:"specification,omitempty"`
 
 	Labels map[string]string `json:"labels,omitempty"`

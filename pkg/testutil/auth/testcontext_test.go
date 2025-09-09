@@ -111,11 +111,19 @@ func TestRBACManagerMock(t *testing.T) {
 	ctx := context.Background()
 	
 	// Test role creation
+<<<<<<< HEAD
 	err := rbacManager.CreateRole(ctx, "test-role")
 	require.NoError(t, err)
 	
 	// Test permission creation
 	err = rbacManager.CreatePermission(ctx, "test:read:default")
+=======
+	_, err := rbacManager.CreateRole(ctx, "test-role")
+	require.NoError(t, err)
+	
+	// Test permission creation
+	_, err = rbacManager.CreatePermission(ctx, "test:read:default")
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	require.NoError(t, err)
 }
 

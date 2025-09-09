@@ -16,6 +16,10 @@ import (
 	"os"
 	"strings"
 	"sync"
+<<<<<<< HEAD
+=======
+	"sync/atomic"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
@@ -387,11 +391,16 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 
 	var cacheHit bool
 
+<<<<<<< HEAD
 	var retryCount int
+=======
+	var retryCount atomic.Int64
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	var processingError error
 
 	defer func() {
+<<<<<<< HEAD
 		c.updateMetrics(success, time.Since(start), cacheHit, retryCount)
 
 		// Record specific error types for Prometheus metrics.
@@ -401,6 +410,21 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 			errorType := c.categorizeError(processingError)
 
 			c.metricsIntegrator.prometheusMetrics.RecordError(c.modelName, errorType)
+=======
+		c.updateMetrics(success, time.Since(start), cacheHit, int(retryCount.Load()))
+
+		// Record specific error types for Prometheus metrics.
+
+		c.mutex.RLock()
+		metricsIntegrator := c.metricsIntegrator
+		c.mutex.RUnlock()
+
+		if processingError != nil && metricsIntegrator != nil {
+
+			errorType := c.categorizeError(processingError)
+
+			metricsIntegrator.prometheusMetrics.RecordError(c.modelName, errorType)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 		}
 	}()
@@ -432,8 +456,17 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 
 		// Check if this is a circuit breaker error.
 
+<<<<<<< HEAD
 		if strings.Contains(err.Error(), "circuit breaker is open") && c.metricsIntegrator != nil {
 			c.metricsIntegrator.RecordCircuitBreakerEvent("llm-client", "rejected", c.modelName)
+=======
+		c.mutex.RLock()
+		metricsIntegrator := c.metricsIntegrator
+		c.mutex.RUnlock()
+
+		if strings.Contains(err.Error(), "circuit breaker is open") && metricsIntegrator != nil {
+			metricsIntegrator.RecordCircuitBreakerEvent("llm-client", "rejected", c.modelName)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 
 		return "", err
@@ -453,7 +486,11 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 
 // processWithRetry handles retry logic.
 
+<<<<<<< HEAD
 func (c *Client) processWithRetry(ctx context.Context, intent string, retryCount *int) (string, error) {
+=======
+func (c *Client) processWithRetry(ctx context.Context, intent string, retryCount *atomic.Int64) (string, error) {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	var lastErr error
 
 	delay := c.retryConfig.BaseDelay
@@ -488,7 +525,11 @@ func (c *Client) processWithRetry(ctx context.Context, intent string, retryCount
 			}
 		}
 
+<<<<<<< HEAD
 		*retryCount = attempt
+=======
+		retryCount.Store(int64(attempt))
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 		result, err := c.processWithBackend(ctx, intent)
 
@@ -824,8 +865,17 @@ func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit boo
 	c.metrics.RetryAttempts += int64(retryCount)
 
 	// Record Prometheus metrics via integrator.
+<<<<<<< HEAD
 
 	if c.metricsIntegrator != nil {
+=======
+	// Protect access to metricsIntegrator with mutex
+	c.mutex.RLock()
+	metricsIntegrator := c.metricsIntegrator
+	c.mutex.RUnlock()
+
+	if metricsIntegrator != nil {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 		status := "success"
 
@@ -850,16 +900,28 @@ func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit boo
 
 		// Record LLM request metrics.
 
+<<<<<<< HEAD
 		c.metricsIntegrator.RecordLLMRequest(c.modelName, status, latency, totalTokens)
 
 		// Record cache operation.
 
 		c.metricsIntegrator.RecordCacheOperation(c.modelName, "get", cacheHit)
+=======
+		metricsIntegrator.RecordLLMRequest(c.modelName, status, latency, totalTokens)
+
+		// Record cache operation.
+
+		metricsIntegrator.RecordCacheOperation(c.modelName, "get", cacheHit)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 		// Record retry attempts if any occurred.
 
 		for range retryCount {
+<<<<<<< HEAD
 			c.metricsIntegrator.RecordRetryAttempt(c.modelName)
+=======
+			metricsIntegrator.RecordRetryAttempt(c.modelName)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 
 	}

@@ -740,11 +740,20 @@ func TestLoadLLMProcessorConfig_CORSConfiguration(t *testing.T) {
 		{
 			name: "CORS enabled without origins in production",
 			envVars: map[string]string{
+<<<<<<< HEAD
 				"LLM_BACKEND_TYPE": "mock",
 				"MAX_REQUEST_SIZE": "10485760",
 				"AUTH_ENABLED":     "false",
 				"CORS_ENABLED":     "true",
 				"LLM_ENVIRONMENT":  "production",
+=======
+				"LLM_BACKEND_TYPE":    "mock",
+				"MAX_REQUEST_SIZE":    "10485760",
+				"AUTH_ENABLED":        "false",
+				"CORS_ENABLED":        "true",
+				"LLM_ENVIRONMENT":     "production",
+				"LLM_ALLOWED_ORIGINS": "", // Explicitly set to empty to ensure no default
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			},
 			description: "CORS enabled without origins in production should fail validation",
 			wantErr:     true,

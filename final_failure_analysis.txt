@@ -1,0 +1,394 @@
+⚡ Fast Validation	Set up job	﻿2025-09-05T01:48:52.8954257Z Current runner version: '2.328.0'
+⚡ Fast Validation	Set up job	2025-09-05T01:48:52.8978793Z ##[group]Runner Image Provisioner
+⚡ Fast Validation	Set up job	2025-09-05T01:48:52.8979627Z Hosted Compute Agent
+⚡ Fast Validation	Set up job	2025-09-05T01:48:52.8980148Z Version: 20250829.383
+⚡ Fast Validation	Set up job	2025-09-05T01:48:52.8981026Z Commit: 27cb235aab5b0e52e153a26cd86b4742e89dac5d
+⚡ Fast Validation	Set up job	2025-09-05T01:48:52.8981735Z Build Date: 2025-08-29T13:48:48Z
+⚡ Fast Validation	Set up job	2025-09-05T01:48:52.8982325Z ##[endgroup]
+⚡ Fast Validation	Set up job	2025-09-05T01:48:52.8982884Z ##[group]Operating System
+⚡ Fast Validation	Set up job	2025-09-05T01:48:52.8983472Z Ubuntu
+⚡ Fast Validation	Set up job	2025-09-05T01:48:52.8983940Z 24.04.3
+⚡ Fast Validation	Set up job	2025-09-05T01:48:52.8984473Z LTS
+⚡ Fast Validation	Set up job	2025-09-05T01:48:52.8984975Z ##[endgroup]
+⚡ Fast Validation	Set up job	2025-09-05T01:48:52.8985422Z ##[group]Runner Image
+⚡ Fast Validation	Set up job	2025-09-05T01:48:52.8985991Z Image: ubuntu-24.04
+⚡ Fast Validation	Set up job	2025-09-05T01:48:52.8986467Z Version: 20250831.1.0
+⚡ Fast Validation	Set up job	2025-09-05T01:48:52.8987461Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250831.1/images/ubuntu/Ubuntu2404-Readme.md
+⚡ Fast Validation	Set up job	2025-09-05T01:48:52.8988828Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250831.1
+⚡ Fast Validation	Set up job	2025-09-05T01:48:52.8989975Z ##[endgroup]
+⚡ Fast Validation	Set up job	2025-09-05T01:48:52.8991265Z ##[group]GITHUB_TOKEN Permissions
+⚡ Fast Validation	Set up job	2025-09-05T01:48:52.8993082Z Contents: read
+⚡ Fast Validation	Set up job	2025-09-05T01:48:52.8993664Z Metadata: read
+⚡ Fast Validation	Set up job	2025-09-05T01:48:52.8994322Z Packages: read
+⚡ Fast Validation	Set up job	2025-09-05T01:48:52.8994867Z ##[endgroup]
+⚡ Fast Validation	Set up job	2025-09-05T01:48:52.8997050Z Secret source: Actions
+⚡ Fast Validation	Set up job	2025-09-05T01:48:52.8997846Z Prepare workflow directory
+⚡ Fast Validation	Set up job	2025-09-05T01:48:52.9454078Z Prepare all required actions
+⚡ Fast Validation	Set up job	2025-09-05T01:48:52.9492780Z Getting action download info
+⚡ Fast Validation	Set up job	2025-09-05T01:48:53.3163699Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
+⚡ Fast Validation	Set up job	2025-09-05T01:48:53.5091050Z Download action repository 'actions/setup-go@v5' (SHA:d35c59abb061a4a6fb18e82ac0862c26744d6ab5)
+⚡ Fast Validation	Set up job	2025-09-05T01:48:54.1611225Z Download action repository 'actions/cache@v4' (SHA:0400d5f644dc74513175e3cd8d07132dd4860809)
+⚡ Fast Validation	Set up job	2025-09-05T01:48:54.4030254Z Complete job name: ⚡ Fast Validation
+⚡ Fast Validation	Checkout code	﻿2025-09-05T01:48:54.4730790Z ##[group]Run actions/checkout@v4
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4731713Z with:
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4732200Z   repository: thc1006/nephoran-intent-operator
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4733006Z   token: ***
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4733381Z   ssh-strict: true
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4733763Z   ssh-user: git
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4734161Z   persist-credentials: true
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4734597Z   clean: true
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4734985Z   sparse-checkout-cone-mode: true
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4735459Z   fetch-depth: 1
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4735832Z   fetch-tags: false
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4736221Z   show-progress: true
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4736618Z   lfs: false
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4736984Z   submodules: false
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4737386Z   set-safe-directory: true
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4738014Z env:
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4738385Z   GO_VERSION: 1.22
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4738830Z   GOPROXY: https://proxy.golang.org,direct
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4739369Z   GOSUMDB: sum.golang.org
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4739781Z   CGO_ENABLED: 0
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4740153Z   GOMAXPROCS: 4
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4740740Z   GOMEMLIMIT: 8GiB
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4741127Z   GOGC: 75
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4741493Z   GO_DISABLE_TELEMETRY: 1
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4742078Z   BUILD_FLAGS: -trimpath -ldflags='-s -w -extldflags=-static'
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4742700Z   TEST_FLAGS: -race -count=1 -timeout=15m
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4743206Z   CACHE_VERSION: v2025-1
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.4743624Z ##[endgroup]
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.5868336Z Syncing repository: thc1006/nephoran-intent-operator
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.5870244Z ##[group]Getting Git version info
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.5871418Z Working directory is '/home/runner/work/nephoran-intent-operator/nephoran-intent-operator'
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.5872551Z [command]/usr/bin/git version
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.5949604Z git version 2.51.0
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.5977471Z ##[endgroup]
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6000695Z Temporarily overriding HOME='/home/runner/work/_temp/c0deb604-edfc-4546-a462-ded364430550' before making global git config changes
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6006354Z Adding repository directory to the temporary git global config as a safe directory
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6008078Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6045524Z Deleting the contents of '/home/runner/work/nephoran-intent-operator/nephoran-intent-operator'
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6048780Z ##[group]Initializing the repository
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6053692Z [command]/usr/bin/git init /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6162725Z hint: Using 'master' as the name for the initial branch. This default branch name
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6164501Z hint: is subject to change. To configure the initial branch name to use in all
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6165999Z hint: of your new repositories, which will suppress this warning, call:
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6167051Z hint:
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6167777Z hint: 	git config --global init.defaultBranch <name>
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6168406Z hint:
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6169007Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6169896Z hint: 'development'. The just-created branch can be renamed via this command:
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6170843Z hint:
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6171233Z hint: 	git branch -m <name>
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6171670Z hint:
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6172238Z hint: Disable this message with "git config set advice.defaultBranchName false"
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6173844Z Initialized empty Git repository in /home/runner/work/nephoran-intent-operator/nephoran-intent-operator/.git/
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6180241Z [command]/usr/bin/git remote add origin https://github.com/thc1006/nephoran-intent-operator
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6231442Z ##[endgroup]
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6232402Z ##[group]Disabling automatic garbage collection
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6233197Z [command]/usr/bin/git config --local gc.auto 0
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6261964Z ##[endgroup]
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6262714Z ##[group]Setting up auth
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6269989Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6303484Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6673871Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6705134Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6940969Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6989353Z ##[endgroup]
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6990528Z ##[group]Fetching the repository
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:54.6999427Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +97ac57d2b635e814cee9ee0e4e6ecab2f2a98d25:refs/remotes/origin/feat/porch-direct
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:57.5244653Z From https://github.com/thc1006/nephoran-intent-operator
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:57.5246951Z  * [new ref]         97ac57d2b635e814cee9ee0e4e6ecab2f2a98d25 -> origin/feat/porch-direct
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:57.5279512Z ##[endgroup]
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:57.5280633Z ##[group]Determining the checkout info
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:57.5282073Z ##[endgroup]
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:57.5287134Z [command]/usr/bin/git sparse-checkout disable
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:57.5331057Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:57.5361111Z ##[group]Checking out the ref
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:57.5365768Z [command]/usr/bin/git checkout --progress --force -B feat/porch-direct refs/remotes/origin/feat/porch-direct
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:58.0133616Z Switched to a new branch 'feat/porch-direct'
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:58.0134599Z branch 'feat/porch-direct' set up to track 'origin/feat/porch-direct'.
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:58.0153986Z ##[endgroup]
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:58.0201079Z [command]/usr/bin/git log -1 --format=%H
+⚡ Fast Validation	Checkout code	2025-09-05T01:48:58.0227244Z 97ac57d2b635e814cee9ee0e4e6ecab2f2a98d25
+⚡ Fast Validation	Setup Go	﻿2025-09-05T01:48:58.0446452Z ##[group]Run actions/setup-go@v5
+⚡ Fast Validation	Setup Go	2025-09-05T01:48:58.0446783Z with:
+⚡ Fast Validation	Setup Go	2025-09-05T01:48:58.0446958Z   go-version: 1.22
+⚡ Fast Validation	Setup Go	2025-09-05T01:48:58.0447154Z   check-latest: false
+⚡ Fast Validation	Setup Go	2025-09-05T01:48:58.0447480Z   token: ***
+⚡ Fast Validation	Setup Go	2025-09-05T01:48:58.0447665Z   cache: true
+⚡ Fast Validation	Setup Go	2025-09-05T01:48:58.0447833Z env:
+⚡ Fast Validation	Setup Go	2025-09-05T01:48:58.0447987Z   GO_VERSION: 1.22
+⚡ Fast Validation	Setup Go	2025-09-05T01:48:58.0448215Z   GOPROXY: https://proxy.golang.org,direct
+⚡ Fast Validation	Setup Go	2025-09-05T01:48:58.0448487Z   GOSUMDB: sum.golang.org
+⚡ Fast Validation	Setup Go	2025-09-05T01:48:58.0448691Z   CGO_ENABLED: 0
+⚡ Fast Validation	Setup Go	2025-09-05T01:48:58.0448869Z   GOMAXPROCS: 4
+⚡ Fast Validation	Setup Go	2025-09-05T01:48:58.0449050Z   GOMEMLIMIT: 8GiB
+⚡ Fast Validation	Setup Go	2025-09-05T01:48:58.0449217Z   GOGC: 75
+⚡ Fast Validation	Setup Go	2025-09-05T01:48:58.0449403Z   GO_DISABLE_TELEMETRY: 1
+⚡ Fast Validation	Setup Go	2025-09-05T01:48:58.0449703Z   BUILD_FLAGS: -trimpath -ldflags='-s -w -extldflags=-static'
+⚡ Fast Validation	Setup Go	2025-09-05T01:48:58.0450053Z   TEST_FLAGS: -race -count=1 -timeout=15m
+⚡ Fast Validation	Setup Go	2025-09-05T01:48:58.0450499Z   CACHE_VERSION: v2025-1
+⚡ Fast Validation	Setup Go	2025-09-05T01:48:58.0450732Z ##[endgroup]
+⚡ Fast Validation	Setup Go	2025-09-05T01:48:58.2156026Z Setup go version spec 1.22
+⚡ Fast Validation	Setup Go	2025-09-05T01:48:58.3078902Z Found in cache @ /opt/hostedtoolcache/go/1.22.12/x64
+⚡ Fast Validation	Setup Go	2025-09-05T01:48:58.3086150Z Added go to the path
+⚡ Fast Validation	Setup Go	2025-09-05T01:48:58.3090076Z Successfully set up Go version 1.22
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.0087938Z go: downloading go1.24.6 (linux/amd64)
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.0264576Z [command]/opt/hostedtoolcache/go/1.22.12/x64/bin/go env GOMODCACHE
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.0298897Z [command]/opt/hostedtoolcache/go/1.22.12/x64/bin/go env GOCACHE
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.0355125Z /home/runner/go/pkg/mod
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.0381726Z /home/runner/.cache/go-build
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.2814446Z Cache is not found
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.2838145Z go version go1.24.6 linux/amd64
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.2838375Z 
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.2838648Z ##[group]go env
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4834632Z AR='ar'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4834983Z CC='gcc'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4835186Z CGO_CFLAGS='-O2 -g'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4835455Z CGO_CPPFLAGS=''
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4835720Z CGO_CXXFLAGS='-O2 -g'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4835949Z CGO_ENABLED='0'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4836170Z CGO_FFLAGS='-O2 -g'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4836381Z CGO_LDFLAGS='-O2 -g'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4836590Z CXX='g++'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4836771Z GCCGO='gccgo'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4836965Z GO111MODULE=''
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4837159Z GOAMD64='v1'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4837359Z GOARCH='amd64'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4837548Z GOAUTH='netrc'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4837736Z GOBIN=''
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4837947Z GOCACHE='/home/runner/.cache/go-build'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4838234Z GOCACHEPROG=''
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4838420Z GODEBUG=''
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4838657Z GOENV='/home/runner/.config/go/env'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4838909Z GOEXE=''
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4839088Z GOEXPERIMENT=''
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4839287Z GOFIPS140='off'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4839470Z GOFLAGS=''
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4840094Z GOGCCFLAGS='-fPIC -m64 -Wl,--no-gc-sections -fmessage-length=0 -ffile-prefix-map=/tmp/go-build2082275082=/tmp/go-build -gno-record-gcc-switches'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4840984Z GOHOSTARCH='amd64'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4841185Z GOHOSTOS='linux'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4841386Z GOINSECURE=''
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4841756Z GOMOD='/home/runner/work/nephoran-intent-operator/nephoran-intent-operator/go.mod'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4842197Z GOMODCACHE='/home/runner/go/pkg/mod'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4842443Z GONOPROXY=''
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4842621Z GONOSUMDB=''
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4842786Z GOOS='linux'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4842978Z GOPATH='/home/runner/go'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4843180Z GOPRIVATE=''
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4843423Z GOPROXY='https://proxy.golang.org,direct'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4843865Z GOROOT='/home/runner/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.6.linux-amd64'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4844277Z GOSUMDB='sum.golang.org'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4844494Z GOTELEMETRY='local'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4844738Z GOTELEMETRYDIR='/home/runner/.config/go/telemetry'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4845032Z GOTMPDIR=''
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4845212Z GOTOOLCHAIN='auto'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4845920Z GOTOOLDIR='/home/runner/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.6.linux-amd64/pkg/tool/linux_amd64'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4846621Z GOVCS=''
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4846806Z GOVERSION='go1.24.6'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4846997Z GOWORK=''
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4847190Z PKG_CONFIG='pkg-config'
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4847325Z 
+⚡ Fast Validation	Setup Go	2025-09-05T01:49:04.4847666Z ##[endgroup]
+⚡ Fast Validation	🧹 Pre-Cache Cleanup (Fast Validation)	﻿2025-09-05T01:49:04.4938137Z ##[group]Run echo "🧹 Cleaning potential Go toolchain conflicts..."
+⚡ Fast Validation	🧹 Pre-Cache Cleanup (Fast Validation)	2025-09-05T01:49:04.4938662Z [36;1mecho "🧹 Cleaning potential Go toolchain conflicts..."[0m
+⚡ Fast Validation	🧹 Pre-Cache Cleanup (Fast Validation)	2025-09-05T01:49:04.4939144Z [36;1m# Remove any existing Go toolchain files that might conflict during cache restore[0m
+⚡ Fast Validation	🧹 Pre-Cache Cleanup (Fast Validation)	2025-09-05T01:49:04.4939645Z [36;1msudo rm -rf ~/go/pkg/mod/golang.org/toolchain* 2>/dev/null || true[0m
+⚡ Fast Validation	🧹 Pre-Cache Cleanup (Fast Validation)	2025-09-05T01:49:04.4940086Z [36;1msudo rm -rf ~/.cache/go-build/*/golang.org/toolchain* 2>/dev/null || true[0m
+⚡ Fast Validation	🧹 Pre-Cache Cleanup (Fast Validation)	2025-09-05T01:49:04.4940835Z [36;1m# Clean any incomplete extractions[0m
+⚡ Fast Validation	🧹 Pre-Cache Cleanup (Fast Validation)	2025-09-05T01:49:04.4941181Z [36;1mfind ~/go/pkg/mod -name "*.partial~" -delete 2>/dev/null || true[0m
+⚡ Fast Validation	🧹 Pre-Cache Cleanup (Fast Validation)	2025-09-05T01:49:04.4941543Z [36;1mecho "✅ Pre-cache cleanup completed"[0m
+⚡ Fast Validation	🧹 Pre-Cache Cleanup (Fast Validation)	2025-09-05T01:49:04.5002097Z shell: /usr/bin/bash -e {0}
+⚡ Fast Validation	🧹 Pre-Cache Cleanup (Fast Validation)	2025-09-05T01:49:04.5002353Z env:
+⚡ Fast Validation	🧹 Pre-Cache Cleanup (Fast Validation)	2025-09-05T01:49:04.5002520Z   GO_VERSION: 1.22
+⚡ Fast Validation	🧹 Pre-Cache Cleanup (Fast Validation)	2025-09-05T01:49:04.5002772Z   GOPROXY: https://proxy.golang.org,direct
+⚡ Fast Validation	🧹 Pre-Cache Cleanup (Fast Validation)	2025-09-05T01:49:04.5003063Z   GOSUMDB: sum.golang.org
+⚡ Fast Validation	🧹 Pre-Cache Cleanup (Fast Validation)	2025-09-05T01:49:04.5003308Z   CGO_ENABLED: 0
+⚡ Fast Validation	🧹 Pre-Cache Cleanup (Fast Validation)	2025-09-05T01:49:04.5003488Z   GOMAXPROCS: 4
+⚡ Fast Validation	🧹 Pre-Cache Cleanup (Fast Validation)	2025-09-05T01:49:04.5003653Z   GOMEMLIMIT: 8GiB
+⚡ Fast Validation	🧹 Pre-Cache Cleanup (Fast Validation)	2025-09-05T01:49:04.5003824Z   GOGC: 75
+⚡ Fast Validation	🧹 Pre-Cache Cleanup (Fast Validation)	2025-09-05T01:49:04.5003991Z   GO_DISABLE_TELEMETRY: 1
+⚡ Fast Validation	🧹 Pre-Cache Cleanup (Fast Validation)	2025-09-05T01:49:04.5004282Z   BUILD_FLAGS: -trimpath -ldflags='-s -w -extldflags=-static'
+⚡ Fast Validation	🧹 Pre-Cache Cleanup (Fast Validation)	2025-09-05T01:49:04.5004637Z   TEST_FLAGS: -race -count=1 -timeout=15m
+⚡ Fast Validation	🧹 Pre-Cache Cleanup (Fast Validation)	2025-09-05T01:49:04.5004880Z   CACHE_VERSION: v2025-1
+⚡ Fast Validation	🧹 Pre-Cache Cleanup (Fast Validation)	2025-09-05T01:49:04.5005073Z ##[endgroup]
+⚡ Fast Validation	🧹 Pre-Cache Cleanup (Fast Validation)	2025-09-05T01:49:04.5080597Z 🧹 Cleaning potential Go toolchain conflicts...
+⚡ Fast Validation	🧹 Pre-Cache Cleanup (Fast Validation)	2025-09-05T01:49:04.7932911Z ✅ Pre-cache cleanup completed
+⚡ Fast Validation	Restore dependency cache	﻿2025-09-05T01:49:05.3550631Z ##[group]Run actions/cache@v4
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:05.3551048Z with:
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:05.3551325Z   path: ~/go/pkg/mod
+⚡ Fast Validation	Restore dependency cache	~/.cache/go-build
+⚡ Fast Validation	Restore dependency cache	.go-build-cache
+⚡ Fast Validation	Restore dependency cache	
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:05.3552129Z   key: Linux-go-v2025-1-008eb4a61073b8b98cf1b62f6241a4916b695fa923c8ee062bd6b6eaab097c1d-f142991184b451196bc51cc7fe5d88bb1c932f363dc235b3c209f09fa06e25bd-toolchain-safe
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:05.3553205Z   restore-keys: Linux-go-v2025-1-008eb4a61073b8b98cf1b62f6241a4916b695fa923c8ee062bd6b6eaab097c1d-toolchain-safe
+⚡ Fast Validation	Restore dependency cache	Linux-go-v2025-1-
+⚡ Fast Validation	Restore dependency cache	
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:05.3553781Z   fail-on-cache-miss: false
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:05.3553998Z   enableCrossOsArchive: false
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:05.3554211Z   lookup-only: false
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:05.3554389Z   save-always: false
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:05.3554558Z env:
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:05.3554704Z   GO_VERSION: 1.22
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:05.3554922Z   GOPROXY: https://proxy.golang.org,direct
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:05.3555184Z   GOSUMDB: sum.golang.org
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:05.3555376Z   CGO_ENABLED: 0
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:05.3555557Z   GOMAXPROCS: 4
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:05.3555793Z   GOMEMLIMIT: 8GiB
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:05.3555964Z   GOGC: 75
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:05.3556121Z   GO_DISABLE_TELEMETRY: 1
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:05.3556389Z   BUILD_FLAGS: -trimpath -ldflags='-s -w -extldflags=-static'
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:05.3556702Z   TEST_FLAGS: -race -count=1 -timeout=15m
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:05.3556948Z   CACHE_VERSION: v2025-1
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:05.3557142Z ##[endgroup]
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:05.7054997Z Cache hit for: Linux-go-v2025-1-008eb4a61073b8b98cf1b62f6241a4916b695fa923c8ee062bd6b6eaab097c1d-f142991184b451196bc51cc7fe5d88bb1c932f363dc235b3c209f09fa06e25bd-toolchain-safe
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:06.9278844Z Received 33554432 of 671020399 (5.0%), 32.0 MBs/sec
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:07.9281247Z Received 130023424 of 671020399 (19.4%), 62.0 MBs/sec
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:08.9282885Z Received 167772160 of 671020399 (25.0%), 53.3 MBs/sec
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:09.9321988Z Received 293601280 of 671020399 (43.8%), 70.0 MBs/sec
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:10.9299399Z Received 436207616 of 671020399 (65.0%), 83.2 MBs/sec
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:11.9307852Z Received 570425344 of 671020399 (85.0%), 90.6 MBs/sec
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:12.6414508Z Received 671020399 of 671020399 (100.0%), 95.3 MBs/sec
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:12.6417397Z Cache Size: ~640 MB (671020399 B)
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:12.6535137Z [command]/usr/bin/tar -xf /home/runner/work/_temp/d8f871c8-f19a-4e0c-be86-bb116b1c82bb/cache.tzst -P -C /home/runner/work/nephoran-intent-operator/nephoran-intent-operator --use-compress-program unzstd
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:18.9432943Z Cache restored successfully
+⚡ Fast Validation	Restore dependency cache	2025-09-05T01:49:19.0760227Z Cache restored from key: Linux-go-v2025-1-008eb4a61073b8b98cf1b62f6241a4916b695fa923c8ee062bd6b6eaab097c1d-f142991184b451196bc51cc7fe5d88bb1c932f363dc235b3c209f09fa06e25bd-toolchain-safe
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	﻿2025-09-05T01:49:19.0909209Z ##[group]Run set -e
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0909505Z [36;1mset -e[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0909746Z [36;1mexport GOCACHE="$(pwd)/.go-build-cache"[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0910014Z [36;1m[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0910237Z [36;1mecho "🔍 Running fast syntax validation..."[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0910908Z [36;1m[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0911088Z [36;1m# Fast syntax check[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0911319Z [36;1mecho "📋 Checking Go syntax..."[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0911569Z [36;1mgo vet ./...[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0911754Z [36;1m[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0911933Z [36;1m# Fast build check (no output)[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0912212Z [36;1mecho "🏗️  Fast build verification..."[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0912486Z [36;1mgo build $BUILD_FLAGS ./...[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0912706Z [36;1m[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0912881Z [36;1m# Module tidiness check[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0913137Z [36;1mecho "🧹 Checking module tidiness..."[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0913384Z [36;1mgo mod tidy[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0913609Z [36;1mif ! git diff --quiet go.mod go.sum; then[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0913932Z [36;1m  echo "❌ go.mod or go.sum is not tidy"[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0914190Z [36;1m  git diff go.mod go.sum[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0914429Z [36;1m  exit 1[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0914599Z [36;1mfi[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0914755Z [36;1m[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0914973Z [36;1mecho "✅ Fast validation completed successfully"[0m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0945318Z shell: /usr/bin/bash -e {0}
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0945554Z env:
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0945730Z   GO_VERSION: 1.22
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0945963Z   GOPROXY: https://proxy.golang.org,direct
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0946243Z   GOSUMDB: sum.golang.org
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0946452Z   CGO_ENABLED: 0
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0946623Z   GOMAXPROCS: 4
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0946796Z   GOMEMLIMIT: 8GiB
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0946972Z   GOGC: 75
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0947134Z   GO_DISABLE_TELEMETRY: 1
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0947414Z   BUILD_FLAGS: -trimpath -ldflags='-s -w -extldflags=-static'
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0947769Z   TEST_FLAGS: -race -count=1 -timeout=15m
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0948016Z   CACHE_VERSION: v2025-1
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.0948218Z ##[endgroup]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.1004462Z 🔍 Running fast syntax validation...
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:49:19.1005023Z 📋 Checking Go syntax...
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:06.6395248Z # github.com/thc1006/nephoran-intent-operator/pkg/auth_test
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:06.6399492Z # [github.com/thc1006/nephoran-intent-operator/pkg/auth_test]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:06.6434170Z ##[error]vet: pkg/auth/performance_test.go:94:67: cannot use perms[0] (variable of type *"github.com/thc1006/nephoran-intent-operator/pkg/testutil/auth".TestPermission) as *"github.com/thc1006/nephoran-intent-operator/pkg/auth".Permission value in argument to suite.rbacManager.CreatePermission
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:08.0182510Z # github.com/thc1006/nephoran-intent-operator/pkg/controllers [github.com/thc1006/nephoran-intent-operator/pkg/controllers.test]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:08.0225270Z ##[error]pkg/controllers/networkintent_cleanup_edge_cases_test.go:532:60: undefined: testEnv
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:08.0231975Z ##[error]pkg/controllers/networkintent_cleanup_table_driven_test.go:64:59: undefined: testEnv
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:08.0235161Z ##[error]pkg/controllers/networkintent_cleanup_table_driven_test.go:106:22: impossible type assertion: mockDeps.GetGitClient().(testutils.MockGitClient)
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:08.0238540Z 	testutils.MockGitClient does not implement "github.com/thc1006/nephoran-intent-operator/pkg/git".ClientInterface (method CommitAndPush has pointer receiver)
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:08.0252492Z ##[error]pkg/controllers/networkintent_cleanup_table_driven_test.go:111:20: mockGitClient.On undefined (type testutils.MockGitClient has no field or method On)
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:08.0255811Z ##[error]pkg/controllers/networkintent_cleanup_table_driven_test.go:113:20: mockGitClient.On undefined (type testutils.MockGitClient has no field or method On)
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:08.0275735Z ##[error]pkg/controllers/networkintent_cleanup_table_driven_test.go:115:21: mockGitClient.On undefined (type testutils.MockGitClient has no field or method On)
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:08.0280131Z ##[error]pkg/controllers/networkintent_cleanup_table_driven_test.go:117:21: mockGitClient.On undefined (type testutils.MockGitClient has no field or method On)
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:08.0305422Z ##[error]pkg/controllers/networkintent_cleanup_table_driven_test.go:122:65: cannot use mockGitClient (variable of struct type testutils.MockGitClient) as GitClientInterface value in argument to reconciler.cleanupGitOpsPackages: testutils.MockGitClient does not implement "github.com/thc1006/nephoran-intent-operator/pkg/git".ClientInterface (method CommitAndPush has pointer receiver)
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:08.0323268Z ##[error]pkg/controllers/networkintent_cleanup_table_driven_test.go:134:19: mockGitClient.AssertExpectations undefined (type testutils.MockGitClient has no field or method AssertExpectations)
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:08.0326985Z ##[error]pkg/controllers/networkintent_cleanup_table_driven_test.go:375:22: impossible type assertion: mockDeps.GetGitClient().(testutils.MockGitClient)
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:08.0329970Z 	testutils.MockGitClient does not implement "github.com/thc1006/nephoran-intent-operator/pkg/git".ClientInterface (method CommitAndPush has pointer receiver)
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:08.0332138Z ##[error]pkg/controllers/networkintent_cleanup_table_driven_test.go:375:22: too many errors
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:29.0019901Z # github.com/thc1006/nephoran-intent-operator/pkg/nephio
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:29.0021246Z # [github.com/thc1006/nephoran-intent-operator/pkg/nephio]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:29.0024672Z ##[error]vet: pkg/nephio/advanced_benchmarks_test.go:887:16: undefined: BenchmarkResourceRequirements
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:31.1243272Z # github.com/thc1006/nephoran-intent-operator/pkg/nephio/multicluster
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:31.1245463Z # [github.com/thc1006/nephoran-intent-operator/pkg/nephio/multicluster]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:31.1248374Z ##[error]vet: pkg/nephio/multicluster/chaos_resilience_test.go:79:33: porchv1alpha1.PackageRevision is not a type
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:31.2594434Z # github.com/thc1006/nephoran-intent-operator/pkg/nephio/blueprint
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:31.2596818Z # [github.com/thc1006/nephoran-intent-operator/pkg/nephio/blueprint]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:31.2600858Z ##[error]vet: pkg/nephio/blueprint/manager_comprehensive_test.go:82:83: cannot use nil as "github.com/rogpeppe/go-internal/cache".Cache value in return statement
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:32.1568756Z # github.com/thc1006/nephoran-intent-operator/pkg/nephio/krm
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:32.1595873Z # [github.com/thc1006/nephoran-intent-operator/pkg/nephio/krm]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:32.1598082Z ##[error]vet: pkg/nephio/krm/runtime_comprehensive_test.go:162:6: SchemaProperty redeclared in this block
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:32.4358615Z # github.com/thc1006/nephoran-intent-operator/pkg/oran/a1
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:32.4370511Z # [github.com/thc1006/nephoran-intent-operator/pkg/oran/a1]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:32.4372998Z ##[error]vet: pkg/oran/a1/types_test.go:645:3: unknown field DeliveryURL in struct literal of type DeliveryInfo
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:33.4142895Z # github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch_test
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:33.4148068Z # [github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch_test]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:33.4155787Z ##[error]vet: pkg/nephio/porch/client_integration_test.go:115:27: undefined: porch.CanTransitionTo
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:33.5637847Z # github.com/thc1006/nephoran-intent-operator/pkg/oran/o1
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:33.5649205Z # [github.com/thc1006/nephoran-intent-operator/pkg/oran/o1]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:33.5651494Z ##[error]vet: pkg/oran/o1/o1_adaptor_test.go:207:49: alarm.ManagedElementID undefined (type *Alarm has no field or method ManagedElementID)
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:33.9596766Z # github.com/thc1006/nephoran-intent-operator/pkg/oran/o2
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:33.9597555Z # [github.com/thc1006/nephoran-intent-operator/pkg/oran/o2]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:33.9598961Z ##[error]vet: pkg/oran/o2/o2_manager_test.go:348:8: no new variables on left side of :=
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:34.2432012Z # github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:34.2451880Z # [github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:34.2453966Z ##[error]vet: pkg/oran/o2/providers/kubernetes_test.go:212:27: cannot convert "dataKeys" (untyped string constant) to type int
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:34.8691020Z # github.com/thc1006/nephoran-intent-operator/pkg/security
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:34.8691742Z # [github.com/thc1006/nephoran-intent-operator/pkg/security]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:34.8694366Z ##[error]vet: pkg/security/race_test.go:308:45: cannot use &keyPool.keys (value of type *map[string]*"crypto/rsa".PrivateKey) as *map[string]int value in argument to mutexTest.TestCriticalSection
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:39.3822060Z # github.com/thc1006/nephoran-intent-operator/test/envtest
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:39.3824996Z # [github.com/thc1006/nephoran-intent-operator/test/envtest]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:39.3828767Z ##[error]vet: test/envtest/networkintent_controller_test.go:89:33: updatedIntent.Status.Phase undefined (type "github.com/thc1006/nephoran-intent-operator/api/v1alpha1".NetworkIntentStatus has no field or method Phase)
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:39.4743876Z # github.com/thc1006/nephoran-intent-operator/test/integration
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:39.4748879Z # [github.com/thc1006/nephoran-intent-operator/test/integration]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:39.4754269Z ##[error]vet: test/integration/porch_integration_test.go:61:11: undefined: porchv1alpha1
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:39.5220118Z # github.com/thc1006/nephoran-intent-operator/test/performance
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:39.5221465Z # [github.com/thc1006/nephoran-intent-operator/test/performance]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:39.5223522Z ##[error]vet: test/performance/load_test.go:90:36: porchClient.Create undefined (type *porch.Client has no field or method Create)
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:39.5284778Z # github.com/thc1006/nephoran-intent-operator/test/integration/porch_test
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:39.5285744Z # [github.com/thc1006/nephoran-intent-operator/test/integration/porch_test]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:39.5291886Z ##[error]vet: test/integration/porch/suite_test.go:74:5: letterBytes redeclared in this block
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:39.5752516Z # github.com/thc1006/nephoran-intent-operator/test/security
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:39.5754971Z # [github.com/thc1006/nephoran-intent-operator/test/security]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:39.5761205Z ##[error]vet: test/security/rbac_test.go:21:2: "sigs.k8s.io/controller-runtime/pkg/client" imported and not used
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:40.0698888Z # github.com/thc1006/nephoran-intent-operator/tests/examples
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:40.0700220Z # [github.com/thc1006/nephoran-intent-operator/tests/examples]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:40.0703248Z ##[error]vet: tests/examples/modern_testing_example_test.go:210:2: declared and not used: helper
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:40.5091767Z # github.com/thc1006/nephoran-intent-operator/tests/integration
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:40.5092623Z # [github.com/thc1006/nephoran-intent-operator/tests/integration]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:40.5094172Z ##[error]vet: tests/integration/suite_test.go:32:2: testEnv redeclared in this block
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:40.9196341Z # github.com/thc1006/nephoran-intent-operator/tests/o2/integration_test
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:40.9222201Z # [github.com/thc1006/nephoran-intent-operator/tests/o2/integration_test]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:40.9224360Z ##[error]vet: tests/o2/integration/api_endpoints_test.go:406:22: cannot convert "replicas" (untyped string constant) to type int
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:41.7613993Z # github.com/thc1006/nephoran-intent-operator/tests/performance
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:41.7614881Z # [github.com/thc1006/nephoran-intent-operator/tests/performance]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:41.7616782Z ##[error]vet: tests/performance/benchmarks_test.go:187:17: undefined: llm.ContextBuilderConfig
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:43.2912432Z # github.com/thc1006/nephoran-intent-operator/tests/unit
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:43.2913569Z # [github.com/thc1006/nephoran-intent-operator/tests/unit]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:43.2915234Z ##[error]vet: tests/unit/llm_test.go:202:24: undefined: llm.Document
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:43.6811921Z # github.com/thc1006/nephoran-intent-operator/tests/validation_test
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:43.6823168Z # [github.com/thc1006/nephoran-intent-operator/tests/validation_test]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:43.6825829Z ##[error]tests/validation/o2_compliance_validation_test.go:1109:13: non-constant format string in call to fmt.Printf
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:43.6828594Z ##[error]tests/validation/o2_compliance_validation_test.go:1111:13: non-constant format string in call to fmt.Printf
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:43.6831081Z ##[error]tests/validation/o2_compliance_validation_test.go:1117:13: non-constant format string in call to fmt.Printf
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:43.9904415Z # github.com/thc1006/nephoran-intent-operator/tests/validation
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:43.9905247Z # [github.com/thc1006/nephoran-intent-operator/tests/validation]
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:43.9906916Z ##[error]vet: tests/validation/sla_validation_test.go:25:6: SLAValidationTestSuite redeclared in this block
+⚡ Fast Validation	🔍 Fast Syntax & Build Check	2025-09-05T01:54:45.9033435Z ##[error]Process completed with exit code 1.
+⚡ Fast Validation	Post Checkout code	﻿2025-09-05T01:54:45.9143434Z Post job cleanup.
+⚡ Fast Validation	Post Checkout code	2025-09-05T01:54:46.0144784Z [command]/usr/bin/git version
+⚡ Fast Validation	Post Checkout code	2025-09-05T01:54:46.0185016Z git version 2.51.0
+⚡ Fast Validation	Post Checkout code	2025-09-05T01:54:46.0232849Z Temporarily overriding HOME='/home/runner/work/_temp/ad08f238-990c-4522-9f2a-ba3cd9ee71c8' before making global git config changes
+⚡ Fast Validation	Post Checkout code	2025-09-05T01:54:46.0234225Z Adding repository directory to the temporary git global config as a safe directory
+⚡ Fast Validation	Post Checkout code	2025-09-05T01:54:46.0247794Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+⚡ Fast Validation	Post Checkout code	2025-09-05T01:54:46.0291346Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+⚡ Fast Validation	Post Checkout code	2025-09-05T01:54:46.0327914Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+⚡ Fast Validation	Post Checkout code	2025-09-05T01:54:46.0579003Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+⚡ Fast Validation	Post Checkout code	2025-09-05T01:54:46.0605912Z http.https://github.com/.extraheader
+⚡ Fast Validation	Post Checkout code	2025-09-05T01:54:46.0620191Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+⚡ Fast Validation	Post Checkout code	2025-09-05T01:54:46.0655581Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+⚡ Fast Validation	Complete job	﻿2025-09-05T01:54:46.1011647Z Cleaning up orphan processes

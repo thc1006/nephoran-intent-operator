@@ -241,7 +241,11 @@ func TestORanCompliance_5GCoreDeployment(t *testing.T) {
 		TestFunc: func(t *testing.T, components *MultiClusterComponents) {
 			// Test AMF deployment
 			t.Run("AMF_Deployment", func(t *testing.T) {
+<<<<<<< HEAD
 				amfPackage := &porchv1alpha1.PackageRevision{
+=======
+				amfPackage := &PackageRevision{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "amf-package",
 						Namespace: "default",
@@ -255,10 +259,17 @@ func TestORanCompliance_5GCoreDeployment(t *testing.T) {
 							"nephio.org/deployment-type": "cloud-native",
 						},
 					},
+<<<<<<< HEAD
 					Spec: porchv1alpha1.PackageRevisionSpec{
 						PackageName: "amf",
 						Revision:    "v1.0.0",
 						Lifecycle:   porchv1alpha1.PackageRevisionLifecycleDraft,
+=======
+					Spec: PackageRevisionSpec{
+						PackageName: "amf",
+						Revision:    "v1.0.0",
+						Lifecycle:   PackageRevisionLifecycleDraft,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 					},
 				}
 
@@ -635,8 +646,13 @@ func TestORanCompliance_SecurityRequirements(t *testing.T) {
 }
 
 // Helper functions for creating test packages
+<<<<<<< HEAD
 func createTest5GCorePackage(nfType, packageName, version string) *porchv1alpha1.PackageRevision {
 	return &porchv1alpha1.PackageRevision{
+=======
+func createTest5GCorePackage(nfType, packageName, version string) *PackageRevision {
+	return &PackageRevision{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-package", packageName),
 			Namespace: "default",
@@ -650,16 +666,28 @@ func createTest5GCorePackage(nfType, packageName, version string) *porchv1alpha1
 				"nephio.org/deployment-type": "cloud-native",
 			},
 		},
+<<<<<<< HEAD
 		Spec: porchv1alpha1.PackageRevisionSpec{
 			PackageName: packageName,
 			Revision:    version,
 			Lifecycle:   porchv1alpha1.PackageRevisionLifecycleDraft,
+=======
+		Spec: PackageRevisionSpec{
+			PackageName: packageName,
+			Revision:    version,
+			Lifecycle:   PackageRevisionLifecycleDraft,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 	}
 }
 
+<<<<<<< HEAD
 func createNetworkSlicePackage(requirements NetworkSliceRequirements) *porchv1alpha1.PackageRevision {
 	return &porchv1alpha1.PackageRevision{
+=======
+func createNetworkSlicePackage(requirements NetworkSliceRequirements) *PackageRevision {
+	return &PackageRevision{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("slice-%s-package", requirements.SliceType),
 			Namespace: "default",
@@ -673,16 +701,28 @@ func createNetworkSlicePackage(requirements NetworkSliceRequirements) *porchv1al
 				"nephio.org/isolation-level": string(requirements.IsolationLevel),
 			},
 		},
+<<<<<<< HEAD
 		Spec: porchv1alpha1.PackageRevisionSpec{
 			PackageName: fmt.Sprintf("slice-%s", requirements.SliceType),
 			Revision:    "v1.0.0",
 			Lifecycle:   porchv1alpha1.PackageRevisionLifecycleDraft,
+=======
+		Spec: PackageRevisionSpec{
+			PackageName: fmt.Sprintf("slice-%s", requirements.SliceType),
+			Revision:    "v1.0.0",
+			Lifecycle:   PackageRevisionLifecycleDraft,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 	}
 }
 
+<<<<<<< HEAD
 func createORanInterfacePackage(interfaceType ORanInterface) *porchv1alpha1.PackageRevision {
 	return &porchv1alpha1.PackageRevision{
+=======
+func createORanInterfacePackage(interfaceType ORanInterface) *PackageRevision {
+	return &PackageRevision{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-interface-package", interfaceType),
 			Namespace: "default",
@@ -693,16 +733,28 @@ func createORanInterfacePackage(interfaceType ORanInterface) *porchv1alpha1.Pack
 				"nephio.org/oran-release": "D",
 			},
 		},
+<<<<<<< HEAD
 		Spec: porchv1alpha1.PackageRevisionSpec{
 			PackageName: fmt.Sprintf("%s-interface", interfaceType),
 			Revision:    "v1.0.0",
 			Lifecycle:   porchv1alpha1.PackageRevisionLifecycleDraft,
+=======
+		Spec: PackageRevisionSpec{
+			PackageName: fmt.Sprintf("%s-interface", interfaceType),
+			Revision:    "v1.0.0",
+			Lifecycle:   PackageRevisionLifecycleDraft,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 	}
 }
 
+<<<<<<< HEAD
 func createHeavyWorkloadPackage() *porchv1alpha1.PackageRevision {
 	return &porchv1alpha1.PackageRevision{
+=======
+func createHeavyWorkloadPackage() *PackageRevision {
+	return &PackageRevision{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "heavy-workload-package",
 			Namespace: "default",
@@ -712,16 +764,28 @@ func createHeavyWorkloadPackage() *porchv1alpha1.PackageRevision {
 				"nephio.org/workload-type":  "compute-intensive",
 			},
 		},
+<<<<<<< HEAD
 		Spec: porchv1alpha1.PackageRevisionSpec{
 			PackageName: "heavy-workload",
 			Revision:    "v1.0.0",
 			Lifecycle:   porchv1alpha1.PackageRevisionLifecycleDraft,
+=======
+		Spec: PackageRevisionSpec{
+			PackageName: "heavy-workload",
+			Revision:    "v1.0.0",
+			Lifecycle:   PackageRevisionLifecycleDraft,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 	}
 }
 
+<<<<<<< HEAD
 func createHighBandwidthPackage() *porchv1alpha1.PackageRevision {
 	return &porchv1alpha1.PackageRevision{
+=======
+func createHighBandwidthPackage() *PackageRevision {
+	return &PackageRevision{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "high-bandwidth-package",
 			Namespace: "default",
@@ -731,16 +795,28 @@ func createHighBandwidthPackage() *porchv1alpha1.PackageRevision {
 				"nephio.org/workload-type":         "network-intensive",
 			},
 		},
+<<<<<<< HEAD
 		Spec: porchv1alpha1.PackageRevisionSpec{
 			PackageName: "high-bandwidth",
 			Revision:    "v1.0.0",
 			Lifecycle:   porchv1alpha1.PackageRevisionLifecycleDraft,
+=======
+		Spec: PackageRevisionSpec{
+			PackageName: "high-bandwidth",
+			Revision:    "v1.0.0",
+			Lifecycle:   PackageRevisionLifecycleDraft,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 	}
 }
 
+<<<<<<< HEAD
 func createSecureWorkloadPackage() *porchv1alpha1.PackageRevision {
 	return &porchv1alpha1.PackageRevision{
+=======
+func createSecureWorkloadPackage() *PackageRevision {
+	return &PackageRevision{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "secure-workload-package",
 			Namespace: "default",
@@ -750,16 +826,28 @@ func createSecureWorkloadPackage() *porchv1alpha1.PackageRevision {
 				"nephio.org/workload-type":    "security-sensitive",
 			},
 		},
+<<<<<<< HEAD
 		Spec: porchv1alpha1.PackageRevisionSpec{
 			PackageName: "secure-workload",
 			Revision:    "v1.0.0",
 			Lifecycle:   porchv1alpha1.PackageRevisionLifecycleDraft,
+=======
+		Spec: PackageRevisionSpec{
+			PackageName: "secure-workload",
+			Revision:    "v1.0.0",
+			Lifecycle:   PackageRevisionLifecycleDraft,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 	}
 }
 
+<<<<<<< HEAD
 func createNetworkSecurePackage() *porchv1alpha1.PackageRevision {
 	return &porchv1alpha1.PackageRevision{
+=======
+func createNetworkSecurePackage() *PackageRevision {
+	return &PackageRevision{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "network-secure-package",
 			Namespace: "default",
@@ -769,10 +857,17 @@ func createNetworkSecurePackage() *porchv1alpha1.PackageRevision {
 				"nephio.org/workload-type":  "network-security",
 			},
 		},
+<<<<<<< HEAD
 		Spec: porchv1alpha1.PackageRevisionSpec{
 			PackageName: "network-secure",
 			Revision:    "v1.0.0",
 			Lifecycle:   porchv1alpha1.PackageRevisionLifecycleDraft,
+=======
+		Spec: PackageRevisionSpec{
+			PackageName: "network-secure",
+			Revision:    "v1.0.0",
+			Lifecycle:   PackageRevisionLifecycleDraft,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 	}
 }

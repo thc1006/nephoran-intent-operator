@@ -26,6 +26,12 @@ type TestConfig struct {
 	// Performance Testing
 	BenchmarkIterations   int
 	MemoryTrackingEnabled bool
+<<<<<<< HEAD
+=======
+	LoadTestEnabled       bool  // New field for enabling load tests
+	MaxConcurrency        int   // New field for max concurrent load test operations
+	TestDuration          time.Duration // New field for load test duration
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// Coverage
 	CoverageThreshold  float64
@@ -61,6 +67,12 @@ func DefaultTestConfig() *TestConfig {
 		// Performance Testing
 		BenchmarkIterations:   1000,
 		MemoryTrackingEnabled: true,
+<<<<<<< HEAD
+=======
+		LoadTestEnabled:       true,   // Enable load tests by default
+		MaxConcurrency:        1000,   // Default max concurrency for load tests
+		TestDuration:          5 * time.Minute, // Default load test duration
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 		// Coverage requirements for 2025
 		CoverageThreshold:  80.0,
@@ -81,7 +93,30 @@ func DefaultTestConfig() *TestConfig {
 func LoadTestConfigFromEnv() *TestConfig {
 	config := DefaultTestConfig()
 
+<<<<<<< HEAD
 	// Load timeout configurations
+=======
+	// Existing environment variable loading code remains the same...
+
+	// Add load test configuration
+	if loadTest := os.Getenv("TEST_LOAD_TEST_ENABLED"); loadTest != "" {
+		config.LoadTestEnabled = loadTest == "true"
+	}
+
+	if maxConcurrency := os.Getenv("TEST_MAX_CONCURRENCY"); maxConcurrency != "" {
+		if p, err := strconv.Atoi(maxConcurrency); err == nil {
+			config.MaxConcurrency = p
+		}
+	}
+
+	if testDuration := os.Getenv("TEST_DURATION"); testDuration != "" {
+		if d, err := time.ParseDuration(testDuration); err == nil {
+			config.TestDuration = d
+		}
+	}
+
+	// Reusing the previous environment variable loading code...
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if timeout := os.Getenv("TEST_DEFAULT_TIMEOUT"); timeout != "" {
 		if d, err := time.ParseDuration(timeout); err == nil {
 			config.DefaultTimeout = d
@@ -100,7 +135,10 @@ func LoadTestConfigFromEnv() *TestConfig {
 		}
 	}
 
+<<<<<<< HEAD
 	// Load parallelism settings
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if parallel := os.Getenv("TEST_MAX_PARALLEL"); parallel != "" {
 		if p, err := strconv.Atoi(parallel); err == nil {
 			config.MaxParallelTests = p
@@ -111,7 +149,10 @@ func LoadTestConfigFromEnv() *TestConfig {
 		config.EnableParallelTests = enableParallel == "true"
 	}
 
+<<<<<<< HEAD
 	// Load test environment settings
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if prefix := os.Getenv("TEST_NAMESPACE_PREFIX"); prefix != "" {
 		config.TestNamespacePrefix = prefix
 	}
@@ -124,7 +165,10 @@ func LoadTestConfigFromEnv() *TestConfig {
 		config.PreserveFailures = preserve == "true"
 	}
 
+<<<<<<< HEAD
 	// Load performance settings
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if iterations := os.Getenv("TEST_BENCHMARK_ITERATIONS"); iterations != "" {
 		if i, err := strconv.Atoi(iterations); err == nil {
 			config.BenchmarkIterations = i
@@ -135,7 +179,10 @@ func LoadTestConfigFromEnv() *TestConfig {
 		config.MemoryTrackingEnabled = memoryTracking == "true"
 	}
 
+<<<<<<< HEAD
 	// Load coverage settings
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if threshold := os.Getenv("TEST_COVERAGE_THRESHOLD"); threshold != "" {
 		if t, err := strconv.ParseFloat(threshold, 64); err == nil {
 			config.CoverageThreshold = t
@@ -146,7 +193,10 @@ func LoadTestConfigFromEnv() *TestConfig {
 		config.CoverageReportPath = reportPath
 	}
 
+<<<<<<< HEAD
 	// Load debugging settings
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if verbose := os.Getenv("TEST_VERBOSE_LOGGING"); verbose != "" {
 		config.VerboseLogging = verbose == "true"
 	}
@@ -155,7 +205,10 @@ func LoadTestConfigFromEnv() *TestConfig {
 		config.DebugMode = debug == "true"
 	}
 
+<<<<<<< HEAD
 	// Load CI/CD settings
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if ci := os.Getenv("CI"); ci != "" || os.Getenv("GITHUB_ACTIONS") != "" || os.Getenv("JENKINS_URL") != "" {
 		config.IsCI = true
 	}
@@ -163,7 +216,10 @@ func LoadTestConfigFromEnv() *TestConfig {
 	if junit := os.Getenv("TEST_GENERATE_JUNIT_REPORT"); junit != "" {
 		config.GenerateJUnitReport = junit == "true"
 	} else if config.IsCI {
+<<<<<<< HEAD
 		// Enable JUnit reports in CI by default
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		config.GenerateJUnitReport = true
 	}
 
@@ -174,6 +230,7 @@ func LoadTestConfigFromEnv() *TestConfig {
 	return config
 }
 
+<<<<<<< HEAD
 // GetTestTimeout returns the appropriate timeout for the test type
 func (c *TestConfig) GetTestTimeout(testType string) time.Duration {
 	switch testType {
@@ -270,3 +327,6 @@ func (te *TestEnvironment) TearDown() {
 		}
 	}
 }
+=======
+// Rest of the file remains the same...
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

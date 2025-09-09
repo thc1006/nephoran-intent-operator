@@ -9,9 +9,17 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+<<<<<<< HEAD
 	"strings"
 	"sync"
 	"time"
+=======
+	"regexp"
+	"strings"
+	"sync"
+	"time"
+	"unicode"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 )
 
 // FileManager manages the organization and movement of processed files.
@@ -170,6 +178,35 @@ func (fm *FileManager) copyAndDelete(src, dst string) error {
 	return nil
 }
 
+<<<<<<< HEAD
+=======
+
+// sanitizeForErrorLog removes or replaces dangerous content specifically for error logs.
+func sanitizeForErrorLog(msg string) string {
+	// First handle patterns that combine control characters with path traversal
+	// This matches control characters (excluding \n, \t, \r) adjacent to path traversal patterns
+	combinedPattern := regexp.MustCompile(`[\x00-\x08\x0B\x0C\x0E-\x1F]*(?:\.\./+)+[\x00-\x08\x0B\x0C\x0E-\x1F]*`)
+	step1 := combinedPattern.ReplaceAllString(msg, "[?]")
+	
+	// Then remove remaining control characters (except newline, tab, and carriage return)
+	var cleanMsg strings.Builder
+	for _, r := range step1 {
+		if r == '\n' || r == '\t' || r == '\r' {
+			// Keep these whitespace characters
+			cleanMsg.WriteRune(r)
+		} else if unicode.IsControl(r) {
+			// Replace other control characters with [?]
+			cleanMsg.WriteString("[?]")
+		} else {
+			// Keep normal characters
+			cleanMsg.WriteRune(r)
+		}
+	}
+	
+	return cleanMsg.String()
+}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // createErrorLog creates an error log file for a failed processing attempt.
 
 func (fm *FileManager) createErrorLog(originalPath, errorMsg string) error {
@@ -179,9 +216,18 @@ func (fm *FileManager) createErrorLog(originalPath, errorMsg string) error {
 
 	logFilePath := filepath.Join(fm.failedDir, logFileName)
 
+<<<<<<< HEAD
 	logEntry := fmt.Sprintf("File: %s\nFailed at: %s\nError: %s\n\n",
 
 		originalPath, time.Now().Format(time.RFC3339), errorMsg)
+=======
+	// Sanitize the error message to prevent control characters and path traversal
+	sanitizedErrorMsg := sanitizeForErrorLog(errorMsg)
+
+	logEntry := fmt.Sprintf("File: %s\nFailed at: %s\nError: %s\n\n",
+
+		originalPath, time.Now().Format(time.RFC3339), sanitizedErrorMsg)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// Append to existing log file or create new one.
 
@@ -330,6 +376,7 @@ func (fm *FileManager) GetStats() (ProcessingStats, error) {
 		return ProcessingStats{}, fmt.Errorf("failed to get failed files: %w", err)
 	}
 
+<<<<<<< HEAD
 	return ProcessingStats{
 		ProcessedCount: len(processedFiles),
 
@@ -338,6 +385,20 @@ func (fm *FileManager) GetStats() (ProcessingStats, error) {
 		ProcessedFiles: processedFiles,
 
 		FailedFiles: failedFiles,
+=======
+	// Categorize failed files into shutdown vs real failures
+	shutdownFailedFiles, realFailedFiles := fm.categorizeFailedFiles(failedFiles)
+
+	return ProcessingStats{
+		ProcessedCount: len(processedFiles),
+		FailedCount: len(failedFiles),
+		ShutdownFailedCount: len(shutdownFailedFiles),
+		RealFailedCount: len(realFailedFiles),
+		ProcessedFiles: processedFiles,
+		FailedFiles: failedFiles,
+		ShutdownFailedFiles: shutdownFailedFiles,
+		RealFailedFiles: realFailedFiles,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}, nil
 }
 
@@ -361,6 +422,53 @@ type ProcessingStats struct {
 	RealFailedFiles []string `json:"real_failed_files,omitempty"`
 }
 
+<<<<<<< HEAD
+=======
+// categorizeFailedFiles separates failed files into shutdown failures and real failures.
+func (fm *FileManager) categorizeFailedFiles(failedFiles []string) (shutdownFailed, realFailed []string) {
+	for _, failedFile := range failedFiles {
+		if fm.isShutdownFailure(failedFile) {
+			shutdownFailed = append(shutdownFailed, failedFile)
+		} else {
+			realFailed = append(realFailed, failedFile)
+		}
+	}
+	return shutdownFailed, realFailed
+}
+
+// isShutdownFailure checks if a failed file was caused by graceful shutdown.
+func (fm *FileManager) isShutdownFailure(failedFilePath string) bool {
+	// Look for corresponding error file
+	basename := filepath.Base(failedFilePath)
+	
+	// Remove .json suffix and find .error.log file
+	if strings.HasSuffix(basename, ".json") {
+		baseWithoutExt := strings.TrimSuffix(basename, ".json")
+		errorLogFile := baseWithoutExt + ".json.error.log"
+		errorLogPath := filepath.Join(fm.failedDir, errorLogFile)
+		
+		// Read error log content
+		errorContent, err := os.ReadFile(errorLogPath)
+		if err != nil {
+			// If we can't read the error file, assume it's not a shutdown failure
+			return false
+		}
+		
+		errorMsg := string(errorContent)
+		
+		// Check for shutdown failure patterns
+		return strings.Contains(errorMsg, "SHUTDOWN_FAILURE:") ||
+			strings.Contains(strings.ToLower(errorMsg), "context canceled") ||
+			strings.Contains(strings.ToLower(errorMsg), "context cancelled") ||
+			strings.Contains(strings.ToLower(errorMsg), "signal: killed") ||
+			strings.Contains(strings.ToLower(errorMsg), "signal: interrupt") ||
+			strings.Contains(strings.ToLower(errorMsg), "signal: terminated")
+	}
+	
+	return false
+}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // IsEmpty checks if both processed and failed directories are empty.
 
 func (fm *FileManager) IsEmpty() (bool, error) {

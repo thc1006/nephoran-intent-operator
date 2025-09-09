@@ -1,9 +1,14 @@
 package performance_tests
 
 import (
+<<<<<<< HEAD
 	
 	"encoding/json"
 "context"
+=======
+	"context"
+	"encoding/json"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"fmt"
 	"math"
 	"net/http"
@@ -190,6 +195,10 @@ type PerformanceTestResults struct {
 	MedianLatency      float64 `json:"median_latency"`
 	P99Latency         float64 `json:"p99_latency"`
 	MaxLatency         float64 `json:"max_latency"`
+<<<<<<< HEAD
+=======
+	PeakThroughput     float64 `json:"peak_throughput"`
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// Resource usage
 	PeakMemoryUsageMB      float64 `json:"peak_memory_usage_mb"`
@@ -210,6 +219,18 @@ type PerformanceTestResults struct {
 	SLAViolations []SLAViolation `json:"sla_violations"`
 }
 
+<<<<<<< HEAD
+=======
+// SLAViolation represents an SLA violation event
+type SLAViolation struct {
+	Timestamp   time.Time `json:"timestamp"`
+	Type        string    `json:"type"`
+	Description string    `json:"description"`
+	Value       float64   `json:"value"`
+	Threshold   float64   `json:"threshold"`
+}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // LatencyBreakdown provides detailed latency analysis
 type LatencyBreakdown struct {
 	ComponentLatencies  map[string]LatencyStats `json:"component_latencies"`
@@ -229,7 +250,11 @@ type LatencyStats struct {
 }
 
 // LatencyDataPoint represents a latency measurement over time
+<<<<<<< HEAD
 type SLALatencyDataPoint struct {
+=======
+type LatencyDataPoint struct {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	Timestamp time.Time `json:"timestamp"`
 	P95       float64   `json:"p95"`
 	P99       float64   `json:"p99"`
@@ -261,7 +286,11 @@ type ResourceBreakdown struct {
 }
 
 // ResourceDataPoint represents resource usage over time
+<<<<<<< HEAD
 type SLAResourceDataPoint struct {
+=======
+type ResourceDataPoint struct {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	Timestamp time.Time `json:"timestamp"`
 	Value     float64   `json:"value"`
 }
@@ -346,9 +375,15 @@ type PerformanceProfiler struct {
 
 // ProfileData stores profiling information
 type ProfileData struct {
+<<<<<<< HEAD
 	Type      string                 `json:"type"`
 	StartTime time.Time              `json:"start_time"`
 	EndTime   time.Time              `json:"end_time"`
+=======
+	Type      string          `json:"type"`
+	StartTime time.Time       `json:"start_time"`
+	EndTime   time.Time       `json:"end_time"`
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	Data      json.RawMessage `json:"data"`
 }
 
@@ -363,6 +398,53 @@ type ResourceMonitor struct {
 	ctx            context.Context
 }
 
+<<<<<<< HEAD
+=======
+// Start starts the resource monitor
+func (rm *ResourceMonitor) Start() {
+	go func() {
+		for {
+			select {
+			case <-rm.ctx.Done():
+				return
+			case <-rm.ticker.C:
+				rm.collectResourceStats()
+			}
+		}
+	}()
+}
+
+// collectResourceStats collects resource usage statistics
+func (rm *ResourceMonitor) collectResourceStats() {
+	rm.mutex.Lock()
+	defer rm.mutex.Unlock()
+	
+	// Collect memory stats
+	memStats := MemoryStats{
+		HeapUsed:  0, // Implementation would collect actual stats
+		HeapTotal: 0,
+		StackUsed: 0,
+	}
+	rm.memoryStats = append(rm.memoryStats, memStats)
+	
+	// Collect CPU stats
+	cpuStats := CPUStats{
+		UserTime:   0, // Implementation would collect actual stats
+		SystemTime: 0,
+		Percentage: 0,
+	}
+	rm.cpuStats = append(rm.cpuStats, cpuStats)
+	
+	// Collect goroutine stats
+	goroutineStats := GoroutineStats{
+		Count:   0, // Implementation would collect actual stats
+		Running: 0,
+		Waiting: 0,
+	}
+	rm.goroutineStats = append(rm.goroutineStats, goroutineStats)
+}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // SetupTest initializes the performance test suite
 func (s *SLAPerformanceTestSuite) SetupTest() {
 	s.ctx, s.cancel = context.WithTimeout(context.Background(), 2*time.Hour)
@@ -397,6 +479,7 @@ func (s *SLAPerformanceTestSuite) SetupTest() {
 	}
 
 	// Initialize logger
+<<<<<<< HEAD
 	var err error
 	s.logger, err = logging.NewStructuredLogger(&logging.Config{
 		Level:      "info",
@@ -405,6 +488,13 @@ func (s *SLAPerformanceTestSuite) SetupTest() {
 		TraceLevel: "debug",
 	})
 	s.Require().NoError(err, "Failed to initialize logger")
+=======
+	s.logger = logging.NewStructuredLogger(logging.Config{
+		Level:     "info",
+		Format:    "json",
+		Component: "sla-performance-test",
+	})
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// Initialize Prometheus client
 	client, err := api.NewClient(api.Config{
@@ -420,7 +510,11 @@ func (s *SLAPerformanceTestSuite) SetupTest() {
 	slaConfig.ThroughputTarget = s.config.ThroughputTarget
 
 	appConfig := &config.Config{
+<<<<<<< HEAD
 		LogLevel: "info",
+=======
+		Level: "info",
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	s.slaService, err = sla.NewService(slaConfig, appConfig, s.logger)
@@ -763,6 +857,23 @@ func NewLoadGenerator(config *LoadGeneratorConfig, ctx context.Context) *LoadGen
 	}
 }
 
+<<<<<<< HEAD
+=======
+// Stop stops the load generator
+func (lg *LoadGenerator) Stop() {
+	// Stop all workers
+	lg.activeWorkers.Store(0)
+	close(lg.workQueue)
+	close(lg.resultQueue)
+}
+
+// StartLoad starts load generation with the given pattern
+func (lg *LoadGenerator) StartLoad(ctx context.Context, pattern *LoadPattern) error {
+	// Implementation would start load generation based on pattern
+	return nil
+}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 func NewPerformanceProfiler() *PerformanceProfiler {
 	return &PerformanceProfiler{
 		profiles:  make(map[string]*ProfileData),
@@ -770,6 +881,29 @@ func NewPerformanceProfiler() *PerformanceProfiler {
 	}
 }
 
+<<<<<<< HEAD
+=======
+// StartCPUProfile starts CPU profiling
+func (pp *PerformanceProfiler) StartCPUProfile(name string) {
+	// Implementation would start CPU profiling
+}
+
+// StopCPUProfile stops CPU profiling
+func (pp *PerformanceProfiler) StopCPUProfile() {
+	// Implementation would stop CPU profiling
+}
+
+// StartMemoryProfile starts memory profiling
+func (pp *PerformanceProfiler) StartMemoryProfile(name string) {
+	// Implementation would start memory profiling
+}
+
+// StopMemoryProfile stops memory profiling
+func (pp *PerformanceProfiler) StopMemoryProfile() {
+	// Implementation would stop memory profiling
+}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 func NewResourceMonitor(ctx context.Context) *ResourceMonitor {
 	return &ResourceMonitor{
 		ctx:    ctx,
@@ -814,6 +948,116 @@ func (rm *RealtimeMetrics) collectMetrics() {
 
 // Additional helper method implementations would continue here...
 
+<<<<<<< HEAD
+=======
+// Missing method implementations for compilation
+
+// monitorPerformanceRealtime monitors performance in real-time
+func (s *SLAPerformanceTestSuite) monitorPerformanceRealtime(ctx context.Context, testName string) {
+	// Implementation stub
+}
+
+// analyzeHighThroughputResults analyzes high throughput test results
+func (s *SLAPerformanceTestSuite) analyzeHighThroughputResults() *PerformanceTestResults {
+	return s.testResults
+}
+
+// validateHighThroughputSLAs validates high throughput SLAs
+func (s *SLAPerformanceTestSuite) validateHighThroughputSLAs(results *PerformanceTestResults) {
+	// Implementation stub
+}
+
+// monitorForMemoryLeaks monitors for memory leaks
+func (s *SLAPerformanceTestSuite) monitorForMemoryLeaks(ctx context.Context) {
+	// Implementation stub
+}
+
+// monitorForPerformanceDegradation monitors for performance degradation
+func (s *SLAPerformanceTestSuite) monitorForPerformanceDegradation(ctx context.Context) {
+	// Implementation stub
+}
+
+// validateRealTimeSLACompliance validates real-time SLA compliance
+func (s *SLAPerformanceTestSuite) validateRealTimeSLACompliance() {
+	// Implementation stub
+}
+
+// analyzeSustainedLoadResults analyzes sustained load results
+func (s *SLAPerformanceTestSuite) analyzeSustainedLoadResults() *PerformanceTestResults {
+	return s.testResults
+}
+
+// validateSustainedLoadSLAs validates sustained load SLAs
+func (s *SLAPerformanceTestSuite) validateSustainedLoadSLAs(results *PerformanceTestResults) {
+	// Implementation stub
+}
+
+// calculateMemoryGrowthRate calculates memory growth rate
+func (s *SLAPerformanceTestSuite) calculateMemoryGrowthRate() float64 {
+	return 0.0
+}
+
+// measureBaselinePerformance measures baseline performance
+func (s *SLAPerformanceTestSuite) measureBaselinePerformance() *PerformanceTestResults {
+	return s.testResults
+}
+
+// measureMonitoringPerformance measures monitoring performance
+func (s *SLAPerformanceTestSuite) measureMonitoringPerformance() *PerformanceTestResults {
+	return s.testResults
+}
+
+// calculateMonitoringOverhead calculates monitoring overhead
+func (s *SLAPerformanceTestSuite) calculateMonitoringOverhead(baseline, monitoring *PerformanceTestResults) *MonitoringOverhead {
+	return &MonitoringOverhead{}
+}
+
+// simulateDashboardUser simulates a dashboard user
+func (s *SLAPerformanceTestSuite) simulateDashboardUser(ctx context.Context, userID int, tester *DashboardTester, responseTimes chan<- time.Duration) {
+	// Implementation stub
+}
+
+// analyzeDashboardPerformance analyzes dashboard performance
+func (s *SLAPerformanceTestSuite) analyzeDashboardPerformance(responseTimes <-chan time.Duration) *DashboardPerformanceResults {
+	return &DashboardPerformanceResults{}
+}
+
+// testConcurrentUsers tests concurrent users
+func (s *SLAPerformanceTestSuite) testConcurrentUsers(t *testing.T, userCount int) {
+	// Implementation stub
+}
+
+// validateLongTermStability validates long-term stability
+func (s *SLAPerformanceTestSuite) validateLongTermStability(results *StabilityResults) {
+	// Implementation stub
+}
+
+// DashboardTester represents a dashboard tester
+type DashboardTester struct {
+	baseURL string
+}
+
+// NewDashboardTester creates a new dashboard tester
+func NewDashboardTester(baseURL string) *DashboardTester {
+	return &DashboardTester{baseURL: baseURL}
+}
+
+// StabilityMonitor monitors system stability
+type StabilityMonitor struct {
+	ctx context.Context
+}
+
+// NewStabilityMonitor creates a new stability monitor
+func NewStabilityMonitor(ctx context.Context) *StabilityMonitor {
+	return &StabilityMonitor{ctx: ctx}
+}
+
+// Monitor monitors stability
+func (sm *StabilityMonitor) Monitor(ctx context.Context) *StabilityResults {
+	return &StabilityResults{}
+}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // TestSuite runner function
 func TestSLAPerformanceTestSuite(t *testing.T) {
 	suite.Run(t, new(SLAPerformanceTestSuite))

@@ -2,7 +2,14 @@ package llm
 
 import (
 	"context"
+<<<<<<< HEAD
 	"net/http"
+=======
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"strings"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"time"
 )
 
@@ -72,8 +79,17 @@ type RAGAwarePromptBuilderStub struct{}
 // ConsolidatedStreamingProcessor provides a stub implementation
 type ConsolidatedStreamingProcessor struct{}
 
+<<<<<<< HEAD
 // ContextBuilder provides a stub implementation
 type ContextBuilder struct{}
+=======
+// Note: BuiltContext and Document types are defined in missing_types.go
+
+// ContextBuilder provides a stub implementation
+type ContextBuilder struct {
+	Config *ContextBuilderConfig
+}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 // GetMetrics returns metrics for the context builder
 func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
@@ -85,9 +101,184 @@ func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
 	}
 }
 
+<<<<<<< HEAD
 // StreamingProcessor provides a stub implementation
 type StreamingProcessor struct{}
 
+=======
+// Note: NewContextBuilder is defined in missing_types.go
+// CalculateRelevanceScores calculates relevance scores for documents against a query
+func (cb *ContextBuilder) CalculateRelevanceScores(ctx context.Context, query string, documents []Document) ([]RelevanceScore, error) {
+	scores := make([]RelevanceScore, len(documents))
+	
+	for i, doc := range documents {
+		// Simple scoring based on title and content matching
+		titleRelevance := 0.0
+		if strings.Contains(strings.ToLower(doc.Title), strings.ToLower(query)) {
+			titleRelevance = 0.8
+		}
+		
+		contentRelevance := 0.0
+		if strings.Contains(strings.ToLower(doc.Content), strings.ToLower(query)) {
+			contentRelevance = 0.6
+		}
+		
+		// Authority score based on source
+		authorityScore := 0.5 // Default
+		if strings.Contains(doc.Source, "3GPP") {
+			authorityScore = 0.9
+		} else if strings.Contains(doc.Source, "O-RAN") {
+			authorityScore = 0.8
+		}
+		
+		overallScore := (titleRelevance + contentRelevance + authorityScore) / 3.0
+		
+		// Apply quality threshold if configured
+		if cb.Config != nil && cb.Config.QualityThreshold > 0 && overallScore < cb.Config.QualityThreshold {
+			overallScore = 0.0 // Below threshold documents get 0 score
+		}
+		
+		factorsJSON, _ := json.Marshal(map[string]interface{}{
+			"title_relevance":   titleRelevance,
+			"content_relevance": contentRelevance,
+			"authority_score":   authorityScore,
+		})
+		
+		scores[i] = RelevanceScore{
+			OverallScore:   float32(overallScore),
+			SemanticScore:  float32((titleRelevance + contentRelevance) / 2.0),
+			AuthorityScore: float32(authorityScore),
+			RecencyScore:   0.5,  // Default freshness score
+			DomainScore:    0.7,  // Default quality score
+			IntentScore:    0.6,  // Default intent relevance score
+			Explanation:    fmt.Sprintf("Scored based on title (%f) and content (%f) relevance", titleRelevance, contentRelevance),
+			Factors:        json.RawMessage(factorsJSON),
+			ProcessingTime: time.Since(time.Now()),
+			CacheUsed:      false,
+		}
+	}
+	
+	return scores, nil
+}
+
+// BuildContext builds a context from documents based on relevance
+func (cb *ContextBuilder) BuildContext(ctx context.Context, query string, documents []Document) (*BuiltContext, error) {
+	startTime := time.Now()
+	
+	// Calculate relevance scores
+	scores, err := cb.CalculateRelevanceScores(ctx, query, documents)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Sort documents by relevance score
+	documentScoreMap := make(map[string]*RelevanceScore)
+	for i := range scores {
+		documentScoreMap[documents[i].ID] = &scores[i]
+	}
+	
+	// Select best documents for context
+	maxDocs := 5 // Default max documents
+	if cb.Config != nil && cb.Config.MaxDocuments > 0 {
+		maxDocs = cb.Config.MaxDocuments
+	}
+	
+	selectedDocs := make([]Document, 0, maxDocs)
+	contextBuilder := strings.Builder{}
+	
+	for i, doc := range documents {
+		if i >= maxDocs {
+			break
+		}
+		
+		score := documentScoreMap[doc.ID]
+		if score != nil && score.OverallScore > 0.3 { // Minimum relevance threshold
+			selectedDocs = append(selectedDocs, doc)
+			
+			// Add document to context
+			if contextBuilder.Len() > 0 {
+				contextBuilder.WriteString("\n\n")
+			}
+			contextBuilder.WriteString(fmt.Sprintf("Document: %s\nSource: %s\nContent: %s", 
+				doc.Title, doc.Source, doc.Content))
+		}
+	}
+	
+	contextText := contextBuilder.String()
+	
+	// Respect MaxContextTokens if configured
+	if cb.Config != nil && cb.Config.MaxContextTokens > 0 {
+		// Simple token counting by word count approximation
+		words := len(strings.Fields(contextText))
+		if words > cb.Config.MaxContextTokens {
+			// Truncate to fit token budget
+			wordSlice := strings.Fields(contextText)
+			if len(wordSlice) > cb.Config.MaxContextTokens {
+				contextText = strings.Join(wordSlice[:cb.Config.MaxContextTokens], " ")
+			}
+		}
+	}
+	
+	// Calculate overall quality score
+	qualityScore := 0.0
+	if len(selectedDocs) > 0 {
+		totalScore := 0.0
+		for _, doc := range selectedDocs {
+			if score := documentScoreMap[doc.ID]; score != nil {
+				totalScore += float64(score.OverallScore)
+			}
+		}
+		qualityScore = totalScore / float64(len(selectedDocs))
+	}
+	
+	return &BuiltContext{
+		Context:       contextText,
+		UsedDocuments: selectedDocs,
+		QualityScore:  qualityScore,
+		TokenCount:    len(strings.Fields(contextText)), // Rough token approximation
+		BuildTime:     time.Since(startTime),
+	}, nil
+}
+// StreamingProcessor provides a stub implementation
+type StreamingProcessor struct{}
+
+// NewStreamingProcessor creates a new streaming processor stub for testing
+func NewStreamingProcessor(config *StreamingConfig) *StreamingProcessor {
+	return &StreamingProcessor{}
+}
+
+// StreamChunk sends a chunk to an active streaming session
+func (sp *StreamingProcessor) StreamChunk(sessionID string, chunk *StreamingChunk) error {
+	// Stub implementation for testing
+	return nil
+}
+
+// CompleteStream completes an active streaming session
+func (sp *StreamingProcessor) CompleteStream(sessionID string) error {
+	// Stub implementation for testing
+	return nil
+}
+
+// CreateSession creates a mock streaming session for testing
+func (sp *StreamingProcessor) CreateSession(sessionID string, w interface{}, r interface{}) (*MockStreamingSession, error) {
+	return &MockStreamingSession{
+		ID:     sessionID,
+		Status: string(StreamingStatusActive),
+	}, nil
+}
+
+// GetActiveSessions returns mock active sessions for testing
+func (sp *StreamingProcessor) GetActiveSessions() []string {
+	return []string{}
+}
+
+// MockStreamingSession represents a mock streaming session for testing
+type MockStreamingSession struct {
+	ID     string
+	Status string
+}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // GetMetrics returns metrics for the streaming processor
 func (sp *StreamingProcessor) GetMetrics() map[string]interface{} {
 	return map[string]interface{}{
@@ -98,6 +289,11 @@ func (sp *StreamingProcessor) GetMetrics() map[string]interface{} {
 	}
 }
 
+<<<<<<< HEAD
+=======
+// Streaming constants are defined in streaming_processor.go
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // InMemoryStreamingContextManager is a stub implementation
 type InMemoryStreamingContextManager struct{}
 
@@ -121,6 +317,10 @@ func (m *InMemoryStreamingContextManager) Close() error {
 	return nil
 }
 
+<<<<<<< HEAD
+=======
+// StreamingSession and StreamingChunk are defined in streaming_processor.go
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // StreamingContext is defined in interface_consolidated.go
 
 // Methods for ConsolidatedStreamingProcessor

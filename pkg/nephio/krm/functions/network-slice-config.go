@@ -872,9 +872,14 @@ func (f *NetworkSliceConfigFunction) processNetworkIntent(resource porch.KRMReso
 
 	var spec map[string]interface{}
 	if resource.Spec != nil {
+<<<<<<< HEAD
 		if err := json.Unmarshal(resource.Spec, &spec); err != nil {
 			spec = make(map[string]interface{})
 		}
+=======
+		// SECURITY: Spec is already a map, no need to unmarshal
+		spec = resource.Spec
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	} else {
 		spec = make(map[string]interface{})
 	}
@@ -882,6 +887,7 @@ func (f *NetworkSliceConfigFunction) processNetworkIntent(resource porch.KRMReso
 	// Add network slice specification.
 	spec["networkSlice"] = map[string]interface{}{}
 
+<<<<<<< HEAD
 	// Marshal back to JSON
 	marshaled, err := json.Marshal(spec)
 	if err != nil {
@@ -891,13 +897,23 @@ func (f *NetworkSliceConfigFunction) processNetworkIntent(resource porch.KRMReso
 		}
 	}
 	resource.Spec = json.RawMessage(marshaled)
+=======
+	// SECURITY: Direct assignment since Spec is map[string]interface{}
+	// No marshaling needed - prevents JSON injection
+	resource.Spec = spec
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// Add labels for slice identification.
 	var metadata map[string]interface{}
 	if resource.Metadata != nil {
+<<<<<<< HEAD
 		if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
 			metadata = make(map[string]interface{})
 		}
+=======
+		// SECURITY: Metadata is already a map, no need to unmarshal
+		metadata = resource.Metadata
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	} else {
 		metadata = make(map[string]interface{})
 	}
@@ -910,6 +926,7 @@ func (f *NetworkSliceConfigFunction) processNetworkIntent(resource porch.KRMReso
 	labels["nephoran.com/network-slice-id"] = config.SliceID
 	labels["nephoran.com/network-slice-type"] = config.SliceType
 
+<<<<<<< HEAD
 	// Marshal back to JSON
 	metadataMarshaled, err := json.Marshal(metadata)
 	if err != nil {
@@ -919,6 +936,10 @@ func (f *NetworkSliceConfigFunction) processNetworkIntent(resource porch.KRMReso
 		}
 	}
 	resource.Metadata = json.RawMessage(metadataMarshaled)
+=======
+	// SECURITY: Direct assignment since Metadata is map[string]interface{}
+	resource.Metadata = metadata
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	return resource, &porch.FunctionResult{
 		Message: fmt.Sprintf("Configured NetworkIntent for slice %s", config.SliceID),
@@ -979,9 +1000,14 @@ func (f *NetworkSliceConfigFunction) processConfigMap(resource porch.KRMResource
 	// Add slice configuration to ConfigMap data.
 	var data map[string]interface{}
 	if resource.Data != nil {
+<<<<<<< HEAD
 		if err := json.Unmarshal(resource.Data, &data); err != nil {
 			data = make(map[string]interface{})
 		}
+=======
+		// SECURITY: Data is already a map, no need to unmarshal
+		data = resource.Data
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	} else {
 		data = make(map[string]interface{})
 	}
@@ -1012,6 +1038,7 @@ func (f *NetworkSliceConfigFunction) processConfigMap(resource porch.KRMResource
 		data["sla-config.json"] = string(slaData)
 	}
 
+<<<<<<< HEAD
 	// Marshal back to JSON
 	marshaled, err := json.Marshal(data)
 	if err != nil {
@@ -1021,6 +1048,10 @@ func (f *NetworkSliceConfigFunction) processConfigMap(resource porch.KRMResource
 		}
 	}
 	resource.Data = json.RawMessage(marshaled)
+=======
+	// SECURITY: Direct assignment since Data is map[string]interface{}
+	resource.Data = data
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	return resource, &porch.FunctionResult{
 		Message:  fmt.Sprintf("Configured ConfigMap for slice %s", config.SliceID),
@@ -1107,9 +1138,14 @@ func (f *NetworkSliceConfigFunction) generateAdditionalResources(ctx context.Con
 func (f *NetworkSliceConfigFunction) applyResourceRequirements(resource *porch.KRMResource, resourceConfig *SliceResourceAllocation) {
 	var spec map[string]interface{}
 	if resource.Spec != nil {
+<<<<<<< HEAD
 		if err := json.Unmarshal(resource.Spec, &spec); err != nil {
 			spec = make(map[string]interface{})
 		}
+=======
+		// SECURITY: Spec is already a map, no need to unmarshal
+		spec = resource.Spec
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	} else {
 		spec = make(map[string]interface{})
 	}
@@ -1203,21 +1239,31 @@ func (f *NetworkSliceConfigFunction) applyResourceRequirements(resource *porch.K
 		}
 	}
 
+<<<<<<< HEAD
 	// Marshal back to JSON
 	marshaled, err := json.Marshal(spec)
 	if err != nil {
 		return // Silent fail for now
 	}
 	resource.Spec = json.RawMessage(marshaled)
+=======
+	// SECURITY: Direct assignment since Spec is map[string]interface{}
+	resource.Spec = spec
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 func (f *NetworkSliceConfigFunction) addSliceLabelsAndAnnotations(resource *porch.KRMResource, config *NetworkSliceConfig) {
 	// Add labels.
 	var metadata map[string]interface{}
 	if resource.Metadata != nil {
+<<<<<<< HEAD
 		if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
 			metadata = make(map[string]interface{})
 		}
+=======
+		// SECURITY: Metadata is already a map, no need to unmarshal
+		metadata = resource.Metadata
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	} else {
 		metadata = make(map[string]interface{})
 	}
@@ -1259,20 +1305,30 @@ func (f *NetworkSliceConfigFunction) addSliceLabelsAndAnnotations(resource *porc
 		}
 	}
 
+<<<<<<< HEAD
 	// Marshal back to JSON
 	metadataMarshaled, err := json.Marshal(metadata)
 	if err != nil {
 		return // Silent fail for now
 	}
 	resource.Metadata = json.RawMessage(metadataMarshaled)
+=======
+	// SECURITY: Direct assignment since Metadata is map[string]interface{}
+	resource.Metadata = metadata
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 func (f *NetworkSliceConfigFunction) addQoSAnnotations(resource *porch.KRMResource, qos *QoSConfiguration) {
 	var metadata map[string]interface{}
 	if resource.Metadata != nil {
+<<<<<<< HEAD
 		if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
 			metadata = make(map[string]interface{})
 		}
+=======
+		// SECURITY: Metadata is already a map, no need to unmarshal
+		metadata = resource.Metadata
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	} else {
 		metadata = make(map[string]interface{})
 	}
@@ -1299,12 +1355,17 @@ func (f *NetworkSliceConfigFunction) addQoSAnnotations(resource *porch.KRMResour
 		annotations["nephoran.com/qos-class"] = qos.QoSClass
 	}
 
+<<<<<<< HEAD
 	// Marshal back to JSON
 	metadataMarshaled, err := json.Marshal(metadata)
 	if err != nil {
 		return // Silent fail for now
 	}
 	resource.Metadata = json.RawMessage(metadataMarshaled)
+=======
+	// SECURITY: Direct assignment since Metadata is map[string]interface{}
+	resource.Metadata = metadata
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 func (f *NetworkSliceConfigFunction) configureNetworkFunctions(resource *porch.KRMResource, nfConfigs []*NetworkFunctionConfig) {
@@ -1313,9 +1374,14 @@ func (f *NetworkSliceConfigFunction) configureNetworkFunctions(resource *porch.K
 	// For now, add metadata to indicate which NFs should be deployed.
 	var metadata map[string]interface{}
 	if resource.Metadata != nil {
+<<<<<<< HEAD
 		if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
 			metadata = make(map[string]interface{})
 		}
+=======
+		// SECURITY: Metadata is already a map, no need to unmarshal
+		metadata = resource.Metadata
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	} else {
 		metadata = make(map[string]interface{})
 	}
@@ -1334,17 +1400,23 @@ func (f *NetworkSliceConfigFunction) configureNetworkFunctions(resource *porch.K
 
 	annotations["nephoran.com/required-network-functions"] = strings.Join(nfTypes, ",")
 
+<<<<<<< HEAD
 	// Marshal back to JSON
 	metadataMarshaled, err := json.Marshal(metadata)
 	if err != nil {
 		return // Silent fail for now
 	}
 	resource.Metadata = json.RawMessage(metadataMarshaled)
+=======
+	// SECURITY: Direct assignment since Metadata is map[string]interface{}
+	resource.Metadata = metadata
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // Resource generation methods.
 
 func (f *NetworkSliceConfigFunction) generateResourceQuota(config *NetworkSliceConfig) porch.KRMResource {
+<<<<<<< HEAD
 	return porch.KRMResource{
 		APIVersion: "v1",
 
@@ -1365,10 +1437,31 @@ func (f *NetworkSliceConfigFunction) generateResourceQuota(config *NetworkSliceC
 				"limits.memory": "` + config.Resources.Memory + `"
 			}
 		}`),
+=======
+	// SECURITY: Use map[string]interface{} instead of raw JSON to prevent injection
+	return porch.KRMResource{
+		APIVersion: "v1",
+		Kind: "ResourceQuota",
+		Metadata: map[string]interface{}{
+			"name": config.SliceID + "-quota",
+			"labels": map[string]interface{}{
+				"nephoran.com/network-slice-id": config.SliceID,
+			},
+		},
+		Spec: map[string]interface{}{
+			"hard": map[string]interface{}{
+				"requests.cpu":    config.Resources.CPU,
+				"requests.memory": config.Resources.Memory,
+				"limits.cpu":      config.Resources.CPU,
+				"limits.memory":   config.Resources.Memory,
+			},
+		},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 }
 
 func (f *NetworkSliceConfigFunction) generateNetworkPolicy(config *NetworkSliceConfig) porch.KRMResource {
+<<<<<<< HEAD
 	return porch.KRMResource{
 		APIVersion: "networking.k8s.io/v1",
 
@@ -1391,10 +1484,33 @@ func (f *NetworkSliceConfigFunction) generateNetworkPolicy(config *NetworkSliceC
 			"ingress": [{}],
 			"egress": [{}]
 		}`),
+=======
+	// SECURITY: Use map[string]interface{} instead of raw JSON to prevent injection
+	return porch.KRMResource{
+		APIVersion: "networking.k8s.io/v1",
+		Kind: "NetworkPolicy",
+		Metadata: map[string]interface{}{
+			"name": config.SliceID + "-netpol",
+			"labels": map[string]interface{}{
+				"nephoran.com/network-slice-id": config.SliceID,
+			},
+		},
+		Spec: map[string]interface{}{
+			"podSelector": map[string]interface{}{
+				"matchLabels": map[string]interface{}{
+					"nephoran.com/network-slice-id": config.SliceID,
+				},
+			},
+			"policyTypes": []string{"Ingress", "Egress"},
+			"ingress":     []map[string]interface{}{{}},
+			"egress":      []map[string]interface{}{{}},
+		},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 }
 
 func (f *NetworkSliceConfigFunction) generateServiceMonitor(config *NetworkSliceConfig) porch.KRMResource {
+<<<<<<< HEAD
 	return porch.KRMResource{
 		APIVersion: "monitoring.coreos.com/v1",
 
@@ -1417,20 +1533,49 @@ func (f *NetworkSliceConfigFunction) generateServiceMonitor(config *NetworkSlice
 				"port": "metrics"
 			}]
 		}`),
+=======
+	// SECURITY: Use map[string]interface{} instead of raw JSON to prevent injection
+	return porch.KRMResource{
+		APIVersion: "monitoring.coreos.com/v1",
+		Kind: "ServiceMonitor",
+		Metadata: map[string]interface{}{
+			"name": config.SliceID + "-monitor",
+			"labels": map[string]interface{}{
+				"nephoran.com/network-slice-id": config.SliceID,
+			},
+		},
+		Spec: map[string]interface{}{
+			"selector": map[string]interface{}{
+				"matchLabels": map[string]interface{}{
+					"nephoran.com/network-slice-id": config.SliceID,
+				},
+			},
+			"endpoints": []map[string]interface{}{
+				{
+					"port": "metrics",
+				},
+			},
+		},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 }
 
 func (f *NetworkSliceConfigFunction) generatePodDisruptionBudget(config *NetworkSliceConfig) porch.KRMResource {
 	// Calculate minimum available based on availability target.
+<<<<<<< HEAD
 
 	minAvailable := "50%"
 
+=======
+	minAvailable := "50%"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if config.SLA.Availability.Target > 0.999 {
 		minAvailable = "80%"
 	} else if config.SLA.Availability.Target > 0.99 {
 		minAvailable = "66%"
 	}
 
+<<<<<<< HEAD
 	return porch.KRMResource{
 		APIVersion: "policy/v1",
 
@@ -1451,6 +1596,26 @@ func (f *NetworkSliceConfigFunction) generatePodDisruptionBudget(config *Network
 			},
 			"minAvailable": "` + minAvailable + `"
 		}`),
+=======
+	// SECURITY: Use map[string]interface{} instead of raw JSON to prevent injection
+	return porch.KRMResource{
+		APIVersion: "policy/v1",
+		Kind: "PodDisruptionBudget",
+		Metadata: map[string]interface{}{
+			"name": config.SliceID + "-pdb",
+			"labels": map[string]interface{}{
+				"nephoran.com/network-slice-id": config.SliceID,
+			},
+		},
+		Spec: map[string]interface{}{
+			"selector": map[string]interface{}{
+				"matchLabels": map[string]interface{}{
+					"nephoran.com/network-slice-id": config.SliceID,
+				},
+			},
+			"minAvailable": minAvailable,
+		},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 }
 

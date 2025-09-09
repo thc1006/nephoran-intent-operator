@@ -10,6 +10,29 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+<<<<<<< HEAD
+=======
+      path: /mutate-intent-nephoran-com-v1alpha1-networkintent
+  failurePolicy: Fail
+  name: mnetworkintent.kb.io
+  rules:
+  - apiGroups:
+    - intent.nephoran.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - networkintents
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
       path: /mutate-nephoran-io-v1-networkintent
   failurePolicy: Fail
   name: mnetworkintent-v1.kb.io
@@ -36,6 +59,29 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+<<<<<<< HEAD
+=======
+      path: /validate-intent-nephoran-com-v1alpha1-networkintent
+  failurePolicy: Fail
+  name: vnetworkintent.kb.io
+  rules:
+  - apiGroups:
+    - intent.nephoran.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - networkintents
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
       path: /validate-nephoran-io-v1-networkintent
   failurePolicy: Fail
   name: vnetworkintent-v1.kb.io

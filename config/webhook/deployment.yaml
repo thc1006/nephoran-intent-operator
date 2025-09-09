@@ -63,6 +63,11 @@ spec:
         - mountPath: /tmp/k8s-webhook-server/serving-certs
           name: cert
           readOnly: true
+<<<<<<< HEAD
+=======
+        - mountPath: /tmp
+          name: tmp
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -71,13 +76,30 @@ spec:
           readOnlyRootFilesystem: true
           runAsNonRoot: true
           runAsUser: 65532
+<<<<<<< HEAD
+=======
+          runAsGroup: 65532
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
       volumes:
       - name: cert
         secret:
           defaultMode: 420
           secretName: webhook-serving-cert
+<<<<<<< HEAD
       terminationGracePeriodSeconds: 10
       securityContext:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+=======
+      - name: tmp
+        emptyDir: {}
+      terminationGracePeriodSeconds: 10
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

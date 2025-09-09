@@ -365,8 +365,14 @@ func (as *AuditSystem) LogEvent(event *types.AuditEvent) error {
 	}
 
 	// Check minimum severity level.
+<<<<<<< HEAD
 
 	if event.Severity < as.config.LogLevel {
+=======
+	// Lower severity values are more urgent (Emergency=0, Info=6)
+	// Only process events that are at least as urgent as the configured level
+	if event.Severity > as.config.LogLevel {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		return nil
 	}
 

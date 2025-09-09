@@ -266,6 +266,14 @@ func (h *SecureHasher) hash(data []byte) []byte {
 // GenerateSecurePackageName creates a secure, collision-resistant package name.
 
 func (c *CryptoSecureIdentifier) GenerateSecurePackageName(target string) (string, error) {
+<<<<<<< HEAD
+=======
+	// Validate target name format for Kubernetes compatibility
+	if err := c.validateTargetName(target); err != nil {
+		return "", fmt.Errorf("invalid target name: %w", err)
+	}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	// Generate a secure timestamp.
 
 	timestamp, err := c.GenerateCollisionResistantTimestamp()
@@ -303,17 +311,30 @@ func (c *CryptoSecureIdentifier) GenerateSecurePackageName(target string) (strin
 func (c *CryptoSecureIdentifier) GenerateCollisionResistantTimestamp() (string, error) {
 	now := time.Now().UTC()
 
+<<<<<<< HEAD
 	// Add some entropy to prevent collisions in rapid succession.
 
 	entropy := make([]byte, 2)
+=======
+	// Add sufficient entropy to prevent collisions in rapid succession.
+	// Using 4 bytes (8 hex chars) provides 4 billion possible values.
+
+	entropy := make([]byte, 4)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	if _, err := c.entropy.reader.Read(entropy); err != nil {
 		return "", fmt.Errorf("failed to generate entropy for timestamp: %w", err)
 	}
 
+<<<<<<< HEAD
 	// Format: YYYYMMDD-HHMMSS-NNNN (where NNNN is entropy-based).
 
 	timestamp := fmt.Sprintf("%s-%04x",
+=======
+	// Format: YYYYMMDD-HHMMSS-NNNNNNNN (where NNNNNNNN is entropy-based).
+
+	timestamp := fmt.Sprintf("%s-%08x",
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 		now.Format("20060102-150405"),
 
@@ -322,6 +343,30 @@ func (c *CryptoSecureIdentifier) GenerateCollisionResistantTimestamp() (string, 
 	return timestamp, nil
 }
 
+<<<<<<< HEAD
+=======
+// validateTargetName validates that the target name meets Kubernetes naming requirements
+func (c *CryptoSecureIdentifier) validateTargetName(target string) error {
+	if target == "" {
+		return fmt.Errorf("target name cannot be empty")
+	}
+
+	// Check for invalid characters (must be lowercase alphanumeric with hyphens)
+	for _, char := range target {
+		if !((char >= 'a' && char <= 'z') || (char >= '0' && char <= '9') || char == '-') {
+			return fmt.Errorf("target name contains invalid character: %c", char)
+		}
+	}
+
+	// Check for path traversal attempts
+	if strings.Contains(target, "../") || strings.Contains(target, "./") || strings.Contains(target, "/") {
+		return fmt.Errorf("target name contains path traversal sequences")
+	}
+
+	return nil
+}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // RegenerateSalt creates a new salt for the hasher (should be done periodically).
 
 func (h *SecureHasher) RegenerateSalt() error {

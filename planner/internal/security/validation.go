@@ -580,6 +580,30 @@ func (v *Validator) ValidateFilePath(path, context string) error {
 
 	}
 
+<<<<<<< HEAD
+=======
+	// Check for null bytes that could be used for path truncation attacks
+	if strings.Contains(path, "\x00") {
+		return ValidationError{
+			Field: "file_path",
+			Value: path,
+			Reason: "file path contains null bytes",
+			Context: context,
+		}
+	}
+
+	// Decode any URL encoding to catch encoded traversal attacks
+	decodedPath, err := url.QueryUnescape(path)
+	if err != nil {
+		// If decoding fails, continue with original path but log the issue
+		decodedPath = path
+	}
+	// Decode again to catch double-encoded attacks
+	if doubleDecoded, err := url.QueryUnescape(decodedPath); err == nil {
+		decodedPath = doubleDecoded
+	}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	// Length validation.
 
 	if len(path) > v.config.MaxPathLength {
@@ -597,9 +621,15 @@ func (v *Validator) ValidateFilePath(path, context string) error {
 
 	}
 
+<<<<<<< HEAD
 	// Clean the path to resolve any relative components.
 
 	cleanPath := filepath.Clean(path)
+=======
+	// Clean the decoded path to resolve any relative components.
+
+	cleanPath := filepath.Clean(decodedPath)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// Prevent directory traversal attacks.
 
@@ -618,6 +648,7 @@ func (v *Validator) ValidateFilePath(path, context string) error {
 
 	}
 
+<<<<<<< HEAD
 	// Prevent absolute paths pointing to sensitive system directories.
 
 	if filepath.IsAbs(cleanPath) {
@@ -654,6 +685,40 @@ func (v *Validator) ValidateFilePath(path, context string) error {
 					Context: context,
 				}
 
+=======
+	// Prevent paths pointing to sensitive system directories.
+	// Check both absolute paths and Unix-style paths that might not be absolute on Windows
+
+	lowerPath := strings.ToLower(cleanPath)
+
+	sensitiveDirectories := []string{
+
+		// Unix/Linux sensitive directories.
+
+		"/etc", "/proc", "/sys", "/dev", "/root", "/var/log", "/boot",
+		"\\etc", "\\proc", "\\sys", "\\dev", "\\root", "\\var\\log", "\\boot", // Windows path equivalents
+
+		// Windows sensitive directories.
+
+		"c:\\windows", "c:\\system32", "c:\\program files", "c:\\programdata",
+
+		"c:\\users\\all users", "c:\\users\\default", "c:\\boot",
+	}
+
+	for _, sensitive := range sensitiveDirectories {
+
+		if strings.HasPrefix(lowerPath, sensitive) {
+
+			return ValidationError{
+
+				Field: "file_path",
+
+				Value: path,
+
+				Reason: "file path points to sensitive system directory",
+
+				Context: context,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			}
 
 		}
@@ -790,6 +855,13 @@ func (v *Validator) SanitizeForLogging(value string) string {
 
 	sanitized = strings.ReplaceAll(sanitized, "\t", "\\t")
 
+<<<<<<< HEAD
+=======
+	// Remove dangerous control characters that should not appear in logs
+	sanitized = strings.ReplaceAll(sanitized, "\x00", "") // null byte
+	sanitized = strings.ReplaceAll(sanitized, "\x08", "") // backspace
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	// Truncate long values to prevent log flooding.
 
 	if len(sanitized) > 256 {

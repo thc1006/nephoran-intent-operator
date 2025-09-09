@@ -5,7 +5,10 @@ import (
 	"testing"
 	"time"
 
+<<<<<<< HEAD
 	"github.com/google/uuid"
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"github.com/stretchr/testify/suite"
 	"github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
 )
@@ -46,7 +49,12 @@ func (suite *IntegrityTestSuite) TestHashChainGeneration() {
 		chain := suite.integrityChain
 
 		suite.NotNil(chain)
+<<<<<<< HEAD
 		suite.NotEmpty(chain.GetCurrentHash())
+=======
+		// Initial chain has no hash yet
+		suite.Empty(chain.GetCurrentHash())
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		suite.Equal(int64(0), chain.GetSequenceNumber())
 	})
 
@@ -560,9 +568,19 @@ func (suite *IntegrityTestSuite) TestForensicAnalysis() {
 // Helper functions and mock implementations
 
 func createIntegrityTestEvent(action string) *types.AuditEvent {
+<<<<<<< HEAD
 	return &types.AuditEvent{
 		ID:        uuid.New().String(),
 		Timestamp: time.Now(),
+=======
+	// Use deterministic values for consistent hashing in tests
+	// Fixed timestamp for reproducible tests
+	fixedTime := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+	
+	return &types.AuditEvent{
+		ID:        fmt.Sprintf("test-event-%s", action), // Deterministic ID based on action
+		Timestamp: fixedTime,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		EventType: types.EventTypeAuthentication,
 		Component: "test-component",
 		Action:    action,

@@ -6,6 +6,10 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+<<<<<<< HEAD
+=======
+	"runtime"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -36,7 +40,11 @@ func TestLoader_MalformedJSONEdgeCases(t *testing.T) {
 		},
 		{
 			name:        "JSON with unicode characters",
+<<<<<<< HEAD
 			jsonData:    []byte(`{"intent_type": "scaling", "target": "测试-应用", "namespace": "名称空间", "replicas": 3}`),
+=======
+			jsonData:    []byte(`{"intent_type": "scaling", "target": "测试-应用", "namespace": "命名空间", "replicas": 3}`),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			expectError: true,
 			description: "Unicode characters should be handled properly",
 		},
@@ -111,7 +119,11 @@ func TestLoader_MalformedJSONEdgeCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := loader.LoadFromJSON(tt.jsonData, "test.json")
+<<<<<<< HEAD
 
+=======
+			
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			if tt.expectError {
 				if err == nil && result.IsValid {
 					t.Errorf("Expected error but got valid result: %s", tt.description)
@@ -176,7 +188,11 @@ func TestLoader_ExtremeValueEdgeCases(t *testing.T) {
 			name: "target with emoji",
 			intent: ScalingIntent{
 				IntentType: "scaling",
+<<<<<<< HEAD
 				Target:     "test-app-??",
+=======
+				Target:     "test-app-😀",
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				Namespace:  "default",
 				Replicas:   3,
 			},
@@ -272,7 +288,11 @@ func TestLoader_ExtremeValueEdgeCases(t *testing.T) {
 			}
 
 			result, err := loader.LoadFromJSON(jsonData, "test.json")
+<<<<<<< HEAD
 
+=======
+			
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			if tt.expectError {
 				if err == nil && result.IsValid {
 					t.Errorf("Expected error but got valid result: %s", tt.description)
@@ -305,27 +325,46 @@ func TestLoader_FileSystemEdgeCases(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				tempDir := t.TempDir()
 				filePath := filepath.Join(tempDir, "intent-bom.json")
+<<<<<<< HEAD
 
 				// Add UTF-8 BOM to the beginning
 				content := "\xEF\xBB\xBF" + `{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 3}`
 				err := os.WriteFile(filePath, []byte(content), 0o644)
+=======
+				
+				// Add UTF-8 BOM to the beginning
+				content := "\xEF\xBB\xBF" + `{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 3}`
+				err := os.WriteFile(filePath, []byte(content), 0644)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				if err != nil {
 					t.Fatalf("Failed to write file: %v", err)
 				}
 				return filePath
 			},
+<<<<<<< HEAD
 			expectError: true,
 			description: "Files with BOM should be handled",
+=======
+			expectError: false,
+			description: "Files with BOM should be stripped and succeed",
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 		{
 			name: "file with different line endings",
 			setupFunc: func(t *testing.T) string {
 				tempDir := t.TempDir()
 				filePath := filepath.Join(tempDir, "intent-crlf.json")
+<<<<<<< HEAD
 
 				// Use Windows line endings
 				content := "{\r\n  \"intent_type\": \"scaling\",\r\n  \"target\": \"test\",\r\n  \"namespace\": \"default\",\r\n  \"replicas\": 3\r\n}"
 				err := os.WriteFile(filePath, []byte(content), 0o644)
+=======
+				
+				// Use Windows line endings
+				content := "{\r\n  \"intent_type\": \"scaling\",\r\n  \"target\": \"test\",\r\n  \"namespace\": \"default\",\r\n  \"replicas\": 3\r\n}"
+				err := os.WriteFile(filePath, []byte(content), 0644)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				if err != nil {
 					t.Fatalf("Failed to write file: %v", err)
 				}
@@ -339,9 +378,15 @@ func TestLoader_FileSystemEdgeCases(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				tempDir := t.TempDir()
 				filePath := filepath.Join(tempDir, "whitespace.json")
+<<<<<<< HEAD
 
 				content := "   \t\n\r   "
 				err := os.WriteFile(filePath, []byte(content), 0o644)
+=======
+				
+				content := "   \t\n\r   "
+				err := os.WriteFile(filePath, []byte(content), 0644)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				if err != nil {
 					t.Fatalf("Failed to write file: %v", err)
 				}
@@ -355,14 +400,23 @@ func TestLoader_FileSystemEdgeCases(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				tempDir := t.TempDir()
 				filePath := filepath.Join(tempDir, "mixed-encoding.json")
+<<<<<<< HEAD
 
+=======
+				
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				// Mix of valid UTF-8 and invalid bytes
 				validJSON := `{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 3}`
 				content := []byte(validJSON)
 				// Insert invalid UTF-8 byte sequence
 				content = append(content[:10], append([]byte{0xFF, 0xFE}, content[10:]...)...)
+<<<<<<< HEAD
 
 				err := os.WriteFile(filePath, content, 0o644)
+=======
+				
+				err := os.WriteFile(filePath, content, 0644)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				if err != nil {
 					t.Fatalf("Failed to write file: %v", err)
 				}
@@ -376,21 +430,33 @@ func TestLoader_FileSystemEdgeCases(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				tempDir := t.TempDir()
 				filePath := filepath.Join(tempDir, "large.json")
+<<<<<<< HEAD
 
 				// Create 10MB JSON file
 				largeContent := `{"intent_type": "scaling", "target": "` + strings.Repeat("a", 10*1024*1024) + `", "namespace": "default", "replicas": 3}`
 				err := os.WriteFile(filePath, []byte(largeContent), 0o644)
+=======
+				
+				// Create 10MB JSON file
+				largeContent := `{"intent_type": "scaling", "target": "` + strings.Repeat("a", 10*1024*1024) + `", "namespace": "default", "replicas": 3}`
+				err := os.WriteFile(filePath, []byte(largeContent), 0644)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				if err != nil {
 					t.Fatalf("Failed to write large file: %v", err)
 				}
 				return filePath
 			},
 			expectError: true,
+<<<<<<< HEAD
 			description: "Very large files should be handled gracefully",
+=======
+			description: "Very large files should fail fast with size limit error",
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 		{
 			name: "file with symlink",
 			setupFunc: func(t *testing.T) string {
+<<<<<<< HEAD
 				tempDir := t.TempDir()
 				originalFile := filepath.Join(tempDir, "original.json")
 				symlinkFile := filepath.Join(tempDir, "symlink.json")
@@ -401,24 +467,74 @@ func TestLoader_FileSystemEdgeCases(t *testing.T) {
 					t.Fatalf("Failed to write original file: %v", err)
 				}
 
+=======
+				// Skip symlink test on Windows entirely due to privilege requirements
+				if runtime.GOOS == "windows" {
+					t.Skip("Skipping symlink test on Windows due to privilege requirements")
+				}
+
+				tempDir := t.TempDir()
+				originalFile := filepath.Join(tempDir, "original.json")
+				symlinkFile := filepath.Join(tempDir, "symlink.json")
+				
+				content := `{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 3}`
+				err := os.WriteFile(originalFile, []byte(content), 0644)
+				if err != nil {
+					t.Fatalf("Failed to write original file: %v", err)
+				}
+				
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				err = os.Symlink(originalFile, symlinkFile)
 				if err != nil {
 					t.Skipf("Cannot create symlink on this system: %v", err)
 				}
+<<<<<<< HEAD
 
 				return symlinkFile
 			},
 			expectError: false,
 			description: "Symlinks should be followed and handled",
+=======
+				
+				return symlinkFile
+			},
+			expectError: false,
+			description: "Symlinks should be followed and handled (skip on Windows)",
+		},
+		{
+			name: "extremely long file path",
+			setupFunc: func(t *testing.T) string {
+				// Create a path that definitely exceeds Windows path limits (260 characters)
+				baseDir := "C:\\"
+				if runtime.GOOS != "windows" {
+					baseDir = "/tmp/"
+				}
+				
+				// Create an extremely long path that exceeds OS limits
+				longDir := strings.Repeat("a", 300) // Very long directory name
+				longPath := filepath.Join(baseDir, longDir, "intent.json")
+				
+				// Don't try to create this path - just return it to test error handling
+				return longPath
+			},
+			expectError: true,
+			description: "Extremely long file paths should properly fail with OS error",
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			filePath := tt.setupFunc(t)
+<<<<<<< HEAD
 
 			result, err := loader.LoadFromFile(filePath)
 
+=======
+			
+			result, err := loader.LoadFromFile(filePath)
+			
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			if tt.expectError {
 				if err == nil && result.IsValid {
 					t.Errorf("Expected error but got valid result: %s", tt.description)
@@ -454,7 +570,11 @@ func TestLoader_ConcurrencyEdgeCases(t *testing.T) {
 			for j := 0; j < numIterations; j++ {
 				var data []byte
 				var expectValid bool
+<<<<<<< HEAD
 
+=======
+				
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				if (id+j)%2 == 0 {
 					data = validJSON
 					expectValid = true
@@ -462,9 +582,15 @@ func TestLoader_ConcurrencyEdgeCases(t *testing.T) {
 					data = invalidJSON
 					expectValid = false
 				}
+<<<<<<< HEAD
 
 				result, err := loader.LoadFromJSON(data, fmt.Sprintf("concurrent-%d-%d.json", id, j))
 
+=======
+				
+				result, err := loader.LoadFromJSON(data, fmt.Sprintf("concurrent-%d-%d.json", id, j))
+				
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				if expectValid {
 					if err != nil || !result.IsValid {
 						done <- fmt.Errorf("goroutine %d iteration %d: expected valid result but got error: %v", id, j, err)
@@ -476,7 +602,11 @@ func TestLoader_ConcurrencyEdgeCases(t *testing.T) {
 						return
 					}
 				}
+<<<<<<< HEAD
 
+=======
+				
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				done <- nil
 			}
 		}(i)
@@ -553,9 +683,15 @@ func TestLoader_MemoryExhaustionEdgeCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			data := tt.dataFunc()
+<<<<<<< HEAD
 
 			result, err := loader.LoadFromJSON(data, "memory-test.json")
 
+=======
+			
+			result, err := loader.LoadFromJSON(data, "memory-test.json")
+			
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			if tt.expectError {
 				if err == nil && result.IsValid {
 					t.Errorf("Expected error but got valid result: %s", tt.description)
@@ -574,10 +710,17 @@ func TestLoader_MemoryExhaustionEdgeCases(t *testing.T) {
 // createTestLoader creates a test loader with proper cleanup
 func createTestLoader(t *testing.T) (*Loader, func()) {
 	t.Helper()
+<<<<<<< HEAD
 
 	tempDir := t.TempDir()
 	schemaDir := filepath.Join(tempDir, "docs", "contracts")
 	err := os.MkdirAll(schemaDir, 0o755)
+=======
+	
+	tempDir := t.TempDir()
+	schemaDir := filepath.Join(tempDir, "docs", "contracts")
+	err := os.MkdirAll(schemaDir, 0755)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if err != nil {
 		t.Fatalf("Failed to create schema directory: %v", err)
 	}
@@ -621,7 +764,11 @@ func createTestLoader(t *testing.T) (*Loader, func()) {
 		}
 	}`
 
+<<<<<<< HEAD
 	err = os.WriteFile(schemaPath, []byte(schema), 0o644)
+=======
+	err = os.WriteFile(schemaPath, []byte(schema), 0644)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if err != nil {
 		t.Fatalf("Failed to write schema file: %v", err)
 	}
@@ -641,7 +788,11 @@ func createTestLoader(t *testing.T) (*Loader, func()) {
 // createLargeJSON creates a large JSON payload for testing
 func createLargeJSON(t *testing.T, size int) []byte {
 	t.Helper()
+<<<<<<< HEAD
 
+=======
+	
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	// Create a JSON with a very large target name
 	largeString := strings.Repeat("a", size)
 	json := fmt.Sprintf(`{"intent_type": "scaling", "target": "%s", "namespace": "default", "replicas": 3}`, largeString)
@@ -651,9 +802,15 @@ func createLargeJSON(t *testing.T, size int) []byte {
 // createDeeplyNestedJSON creates deeply nested JSON for testing
 func createDeeplyNestedJSON(t *testing.T, depth int) []byte {
 	t.Helper()
+<<<<<<< HEAD
 
 	json := `{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 3, "nested":`
 
+=======
+	
+	json := `{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 3, "nested":`
+	
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	for i := 0; i < depth; i++ {
 		json += `{"level": `
 	}
@@ -662,7 +819,11 @@ func createDeeplyNestedJSON(t *testing.T, depth int) []byte {
 		json += `}`
 	}
 	json += `}`
+<<<<<<< HEAD
 
+=======
+	
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	return []byte(json)
 }
 
@@ -723,7 +884,11 @@ func TestLoader_UnicodeEdgeCases(t *testing.T) {
 			}
 
 			result, err := loader.LoadFromJSON([]byte(tt.jsonData), "unicode-test.json")
+<<<<<<< HEAD
 
+=======
+			
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			if tt.expectError {
 				if err == nil && result.IsValid {
 					t.Errorf("Expected error but got valid result: %s", tt.description)
@@ -738,4 +903,8 @@ func TestLoader_UnicodeEdgeCases(t *testing.T) {
 			}
 		})
 	}
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

@@ -513,12 +513,16 @@ func GetResourceName(resource *porch.KRMResource) (string, error) {
 		return "", fmt.Errorf("resource metadata is nil")
 	}
 
+<<<<<<< HEAD
 	var metadata map[string]interface{}
 	if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
 		return "", fmt.Errorf("failed to unmarshal metadata: %w", err)
 	}
 
 	name, ok := metadata["name"].(string)
+=======
+	name, ok := resource.Metadata["name"].(string)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if !ok {
 		return "", fmt.Errorf("resource name not found or not a string")
 	}
@@ -533,12 +537,16 @@ func GetResourceNamespace(resource *porch.KRMResource) string {
 		return ""
 	}
 
+<<<<<<< HEAD
 	var metadata map[string]interface{}
 	if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
 		return ""
 	}
 
 	namespace, ok := metadata["namespace"].(string)
+=======
+	namespace, ok := resource.Metadata["namespace"].(string)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if !ok {
 		return ""
 	}
@@ -551,11 +559,18 @@ func GetResourceNamespace(resource *porch.KRMResource) string {
 func SetResourceAnnotation(resource *porch.KRMResource, key, value string) {
 	var metadata map[string]interface{}
 	if resource.Metadata != nil {
+<<<<<<< HEAD
 		if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
 			metadata = make(map[string]interface{})
 		}
 	} else {
 		metadata = make(map[string]interface{})
+=======
+		metadata = resource.Metadata
+	} else {
+		metadata = make(map[string]interface{})
+		resource.Metadata = metadata
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	annotations, ok := metadata["annotations"].(map[string]interface{})
@@ -566,12 +581,17 @@ func SetResourceAnnotation(resource *porch.KRMResource, key, value string) {
 
 	annotations[key] = value
 
+<<<<<<< HEAD
 	// Marshal back to JSON
 	marshaled, err := json.Marshal(metadata)
 	if err != nil {
 		return // Silent fail for now
 	}
 	resource.Metadata = json.RawMessage(marshaled)
+=======
+	// Update the resource metadata directly
+	resource.Metadata = metadata
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // GetResourceAnnotation gets an annotation from a resource.
@@ -581,10 +601,14 @@ func GetResourceAnnotation(resource *porch.KRMResource, key string) (string, boo
 		return "", false
 	}
 
+<<<<<<< HEAD
 	var metadata map[string]interface{}
 	if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
 		return "", false
 	}
+=======
+	metadata := resource.Metadata
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	annotations, ok := metadata["annotations"].(map[string]interface{})
 	if !ok {
@@ -600,11 +624,18 @@ func GetResourceAnnotation(resource *porch.KRMResource, key string) (string, boo
 func SetResourceLabel(resource *porch.KRMResource, key, value string) {
 	var metadata map[string]interface{}
 	if resource.Metadata != nil {
+<<<<<<< HEAD
 		if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
 			metadata = make(map[string]interface{})
 		}
 	} else {
 		metadata = make(map[string]interface{})
+=======
+		metadata = resource.Metadata
+	} else {
+		metadata = make(map[string]interface{})
+		resource.Metadata = metadata
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	labels, ok := metadata["labels"].(map[string]interface{})
@@ -615,12 +646,17 @@ func SetResourceLabel(resource *porch.KRMResource, key, value string) {
 
 	labels[key] = value
 
+<<<<<<< HEAD
 	// Marshal back to JSON
 	marshaled, err := json.Marshal(metadata)
 	if err != nil {
 		return // Silent fail for now
 	}
 	resource.Metadata = json.RawMessage(marshaled)
+=======
+	// Update the resource metadata directly
+	resource.Metadata = metadata
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // GetResourceLabel gets a label from a resource.
@@ -630,10 +666,14 @@ func GetResourceLabel(resource *porch.KRMResource, key string) (string, bool) {
 		return "", false
 	}
 
+<<<<<<< HEAD
 	var metadata map[string]interface{}
 	if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
 		return "", false
 	}
+=======
+	metadata := resource.Metadata
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	labels, ok := metadata["labels"].(map[string]interface{})
 	if !ok {
@@ -769,10 +809,14 @@ func ValidateKRMResource(resource *porch.KRMResource) error {
 		return fmt.Errorf("metadata is required")
 	}
 
+<<<<<<< HEAD
 	var metadata map[string]interface{}
 	if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
 		return fmt.Errorf("invalid metadata JSON: %w", err)
 	}
+=======
+	metadata := resource.Metadata
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	name, ok := metadata["name"].(string)
 	if !ok || name == "" {
@@ -855,9 +899,15 @@ func GetSpecField(resource *porch.KRMResource, fieldPath string) (interface{}, e
 		return nil, fmt.Errorf("resource spec is nil")
 	}
 
+<<<<<<< HEAD
 	var spec map[string]interface{}
 	if err := json.Unmarshal(resource.Spec, &spec); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal spec: %w", err)
+=======
+	spec := resource.Spec
+	if spec == nil {
+		return nil, fmt.Errorf("resource spec is nil")
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	return getNestedField(spec, fieldPath)
@@ -868,11 +918,18 @@ func GetSpecField(resource *porch.KRMResource, fieldPath string) (interface{}, e
 func SetSpecField(resource *porch.KRMResource, fieldPath string, value interface{}) error {
 	var spec map[string]interface{}
 	if resource.Spec != nil {
+<<<<<<< HEAD
 		if err := json.Unmarshal(resource.Spec, &spec); err != nil {
 			spec = make(map[string]interface{})
 		}
 	} else {
 		spec = make(map[string]interface{})
+=======
+		spec = resource.Spec
+	} else {
+		spec = make(map[string]interface{})
+		resource.Spec = spec
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	if err := setNestedField(spec, fieldPath, value); err != nil {
@@ -880,11 +937,15 @@ func SetSpecField(resource *porch.KRMResource, fieldPath string, value interface
 	}
 
 	// Marshal back to JSON
+<<<<<<< HEAD
 	marshaled, err := json.Marshal(spec)
 	if err != nil {
 		return fmt.Errorf("failed to marshal spec: %w", err)
 	}
 	resource.Spec = json.RawMessage(marshaled)
+=======
+	resource.Spec = spec
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	return nil
 }
 
@@ -895,10 +956,14 @@ func GetStatusField(resource *porch.KRMResource, fieldPath string) (interface{},
 		return nil, fmt.Errorf("resource status is nil")
 	}
 
+<<<<<<< HEAD
 	var status map[string]interface{}
 	if err := json.Unmarshal(resource.Status, &status); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal status: %w", err)
 	}
+=======
+	status := resource.Status
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	return getNestedField(status, fieldPath)
 }
@@ -908,11 +973,18 @@ func GetStatusField(resource *porch.KRMResource, fieldPath string) (interface{},
 func SetStatusField(resource *porch.KRMResource, fieldPath string, value interface{}) error {
 	var status map[string]interface{}
 	if resource.Status != nil {
+<<<<<<< HEAD
 		if err := json.Unmarshal(resource.Status, &status); err != nil {
 			status = make(map[string]interface{})
 		}
 	} else {
 		status = make(map[string]interface{})
+=======
+		status = resource.Status
+	} else {
+		status = make(map[string]interface{})
+		resource.Status = status
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	if err := setNestedField(status, fieldPath, value); err != nil {
@@ -920,11 +992,15 @@ func SetStatusField(resource *porch.KRMResource, fieldPath string, value interfa
 	}
 
 	// Marshal back to JSON
+<<<<<<< HEAD
 	marshaled, err := json.Marshal(status)
 	if err != nil {
 		return fmt.Errorf("failed to marshal status: %w", err)
 	}
 	resource.Status = json.RawMessage(marshaled)
+=======
+	resource.Status = status
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	return nil
 }
 

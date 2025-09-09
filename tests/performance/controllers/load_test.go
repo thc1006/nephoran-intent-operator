@@ -22,8 +22,13 @@ import (
 	testutils "github.com/thc1006/nephoran-intent-operator/tests/utils"
 )
 
+<<<<<<< HEAD
 // PerformanceMetrics captures various performance measurements
 type PerformanceMetrics struct {
+=======
+// ControllerPerformanceMetrics captures various performance measurements
+type ControllerPerformanceMetrics struct {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	TotalRequests      int
 	SuccessfulRequests int
 	FailedRequests     int
@@ -40,14 +45,23 @@ type PerformanceMetrics struct {
 	mu                 sync.RWMutex
 }
 
+<<<<<<< HEAD
 func NewPerformanceMetrics() *PerformanceMetrics {
 	return &PerformanceMetrics{
+=======
+func NewControllerPerformanceMetrics() *ControllerPerformanceMetrics {
+	return &ControllerPerformanceMetrics{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		MinDuration: time.Hour, // Initialize to high value
 		Durations:   make([]time.Duration, 0),
 	}
 }
 
+<<<<<<< HEAD
 func (pm *PerformanceMetrics) RecordRequest(duration time.Duration, success bool) {
+=======
+func (pm *ControllerPerformanceMetrics) RecordRequest(duration time.Duration, success bool) {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
@@ -69,7 +83,11 @@ func (pm *PerformanceMetrics) RecordRequest(duration time.Duration, success bool
 	}
 }
 
+<<<<<<< HEAD
 func (pm *PerformanceMetrics) Calculate() {
+=======
+func (pm *ControllerPerformanceMetrics) Calculate() {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
@@ -112,7 +130,11 @@ func (pm *PerformanceMetrics) Calculate() {
 	pm.MemoryUsageMB = float64(memStats.Alloc) / 1024 / 1024
 }
 
+<<<<<<< HEAD
 func (pm *PerformanceMetrics) Print() {
+=======
+func (pm *ControllerPerformanceMetrics) Print() {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	pm.Calculate()
 	fmt.Printf("\n=== Performance Metrics ===\n")
 	fmt.Printf("Total Requests: %d\n", pm.TotalRequests)
@@ -197,7 +219,11 @@ var _ = Describe("Load Testing Suite", func() {
 				requestsPerUser := 5
 				totalRequests := concurrentUsers * requestsPerUser
 
+<<<<<<< HEAD
 				metrics := NewPerformanceMetrics()
+=======
+				metrics := NewControllerPerformanceMetrics()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				var wg sync.WaitGroup
 
 				By(fmt.Sprintf("executing %d requests with %d concurrent users", totalRequests, concurrentUsers))
@@ -273,7 +299,11 @@ var _ = Describe("Load Testing Suite", func() {
 				requestsPerUser := 3
 				totalRequests := concurrentUsers * requestsPerUser
 
+<<<<<<< HEAD
 				metrics := NewPerformanceMetrics()
+=======
+				metrics := NewControllerPerformanceMetrics()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				var wg sync.WaitGroup
 
 				By(fmt.Sprintf("executing %d requests with %d concurrent users", totalRequests, concurrentUsers))
@@ -342,7 +372,11 @@ var _ = Describe("Load Testing Suite", func() {
 				requestsPerUser := 2
 				totalRequests := concurrentUsers * requestsPerUser
 
+<<<<<<< HEAD
 				metrics := NewPerformanceMetrics()
+=======
+				metrics := NewControllerPerformanceMetrics()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				var wg sync.WaitGroup
 
 				By(fmt.Sprintf("executing %d requests with %d concurrent users", totalRequests, concurrentUsers))
@@ -420,7 +454,11 @@ var _ = Describe("Load Testing Suite", func() {
 				testDuration := 30 * time.Second
 				_ = int(targetThroughput * testDuration.Seconds())
 
+<<<<<<< HEAD
 				metrics := NewPerformanceMetrics()
+=======
+				metrics := NewControllerPerformanceMetrics()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				var wg sync.WaitGroup
 				var requestCount int64
 
@@ -709,7 +747,11 @@ var _ = Describe("Load Testing Suite", func() {
 	Describe("E2NodeSet Performance", func() {
 		It("should handle large scale E2NodeSet operations efficiently", func() {
 			scalingSizes := []int32{10, 25, 50, 75, 100}
+<<<<<<< HEAD
 			metrics := NewPerformanceMetrics()
+=======
+			metrics := NewControllerPerformanceMetrics()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 			for _, size := range scalingSizes {
 				By(fmt.Sprintf("testing E2NodeSet scaling to %d nodes", size))

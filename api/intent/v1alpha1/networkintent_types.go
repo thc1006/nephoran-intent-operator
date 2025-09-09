@@ -130,3 +130,10 @@ type NetworkIntentList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []NetworkIntent `json:"items"`
 }
+<<<<<<< HEAD
+=======
+
+func init() {
+	SchemeBuilder.Register(&NetworkIntent{}, &NetworkIntentList{})
+}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

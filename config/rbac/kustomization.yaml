@@ -3,9 +3,16 @@ kind: Kustomization
 
 resources:
 - role.yaml
+<<<<<<< HEAD
 - role_binding.yaml
 - service_account.yaml
 
 # Optional: leader election role
 patchesStrategicMerge:
 - patches/leader_election_role.yaml
+=======
+- service_account.yaml
+- networkintent_role.yaml
+- e2nodeset_role.yaml
+- e2nodeset_admin.yaml
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

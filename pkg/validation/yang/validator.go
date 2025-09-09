@@ -305,6 +305,7 @@ func (v *yangValidator) ValidatePackageRevision(ctx context.Context, pkg *porch.
 
 		var res PackageResource
 
+<<<<<<< HEAD
 		switch r := resource.(type) {
 
 		case PackageResource:
@@ -353,6 +354,26 @@ func (v *yangValidator) ValidatePackageRevision(ctx context.Context, pkg *porch.
 
 			continue
 
+=======
+		// Since resource is of type porch.KRMResource, directly access its fields
+		if resource.Kind != "" {
+			res = PackageResource{
+				Kind: resource.Kind,
+				Data: map[string]interface{}{
+					"apiVersion": resource.APIVersion,
+					"kind":       resource.Kind,
+					"metadata":   resource.Metadata,
+					"spec":       resource.Spec,
+					"status":     resource.Status,
+				},
+			}
+		} else {
+			result.Errors = append(result.Errors, &ValidationError{
+				Code: "MISSING_KIND",
+				Message: "Resource missing kind field",
+			})
+			continue
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 
 		if res.Kind == "ConfigMap" {

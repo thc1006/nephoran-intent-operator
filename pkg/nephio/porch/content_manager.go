@@ -32,7 +32,10 @@ package porch
 
 import (
 	"context"
+<<<<<<< HEAD
 	"encoding/json"
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"fmt"
 	"strings"
 	"sync"
@@ -1735,7 +1738,13 @@ func (cm *contentManager) CreateContent(ctx context.Context, ref *PackageReferen
 
 			Kind: "Kptfile",
 
+<<<<<<< HEAD
 			Metadata: json.RawMessage(fmt.Sprintf(`{"name":"%s"}`, ref.PackageName)),
+=======
+			Metadata: map[string]interface{}{
+				"name": ref.PackageName,
+			},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 			Info: &PackageMetadata{
 				Description: fmt.Sprintf("Package %s revision %s", ref.PackageName, ref.Revision),

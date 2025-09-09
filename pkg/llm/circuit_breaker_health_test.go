@@ -1,7 +1,10 @@
 package llm
 
 import (
+<<<<<<< HEAD
 	"encoding/json"
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"fmt"
 	"sync"
 	"testing"
@@ -116,7 +119,11 @@ func TestCircuitBreakerManagerGetAllStats(t *testing.T) {
 			openBreakers := make([]string, 0)
 			for name, cbStats := range stats {
 				if statsMap, ok := cbStats.(map[string]interface{}); ok {
+<<<<<<< HEAD
 					if state, exists := statsMap["state"]; exists && state == "Open" {
+=======
+					if state, exists := statsMap["state"]; exists && state == "open" {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 						openBreakers = append(openBreakers, name)
 					}
 				}
@@ -180,7 +187,11 @@ func TestCircuitBreakerHealthCheckLogic(t *testing.T) {
 		// This is the exact logic from the service manager health check
 		for name, state := range stats {
 			if cbStats, ok := state.(map[string]interface{}); ok {
+<<<<<<< HEAD
 				if cbState, exists := cbStats["state"]; exists && cbState == "Open" {
+=======
+				if cbState, exists := cbStats["state"]; exists && cbState == "open" {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 					openBreakers = append(openBreakers, name)
 				}
 			}
@@ -253,7 +264,11 @@ func TestCircuitBreakerHealthCheckLogic(t *testing.T) {
 				var openBreakers []string
 				for name, state := range stats {
 					if cbStats, ok := state.(map[string]interface{}); ok {
+<<<<<<< HEAD
 						if cbState, exists := cbStats["state"]; exists && cbState == "Open" {
+=======
+						if cbState, exists := cbStats["state"]; exists && cbState == "open" {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 							openBreakers = append(openBreakers, name)
 						}
 					}
@@ -365,7 +380,11 @@ func TestCircuitBreakerConcurrentHealthChecks(t *testing.T) {
 		resultCount++
 
 		// Each result should be valid
+<<<<<<< HEAD
 		assert.IsType(t, json.RawMessage(`{}`), stats)
+=======
+		assert.IsType(t, map[string]interface{}{}, stats)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		assert.LessOrEqual(t, len(stats), numBreakers,
 			"Should not have more stats than breakers")
 

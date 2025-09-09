@@ -46,7 +46,11 @@ permissions:
 # Stability-focused environment configuration
 env:
   # Core versions
+<<<<<<< HEAD
   GO_VERSION: "1.22.7"
+=======
+  GO_VERSION: "1.24.6"  # EMERGENCY FIX - Match go.mod toolchain
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
   NODE_VERSION: "20"
   
   # Stability settings
@@ -76,7 +80,11 @@ jobs:
   # STABILITY ASSESSMENT: Analyze repository and determine optimal CI strategy
   # =============================================================================
   stability-assessment:
+<<<<<<< HEAD
     name: ðŸ“Š Stability Assessment
+=======
+    name: ?? Stability Assessment
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
     runs-on: ubuntu-22.04
     timeout-minutes: 5
     outputs:
@@ -86,16 +94,27 @@ jobs:
       reliability-level: ${{ steps.assessment.outputs.reliability-level }}
       
     steps:
+<<<<<<< HEAD
       - name: ðŸ“¥ Checkout for assessment
+=======
+      - name: ?“¥ Checkout for assessment
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
           persist-credentials: false
           
+<<<<<<< HEAD
       - name: ðŸ” Analyze repository complexity
         id: assessment
         run: |
           echo "ðŸ” Analyzing repository for optimal CI strategy..."
+=======
+      - name: ?? Analyze repository complexity
+        id: assessment
+        run: |
+          echo "?? Analyzing repository for optimal CI strategy..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           # Count different types of files for complexity assessment
           go_files=$(find . -name "*.go" -type f | wc -l)
@@ -111,7 +130,11 @@ jobs:
             direct_deps=$(grep -c "^require" go.mod || echo "0")
           fi
           
+<<<<<<< HEAD
           echo "ðŸ“Š Repository Analysis:"
+=======
+          echo "?? Repository Analysis:"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           echo "  - Go files: $go_files"
           echo "  - YAML files: $yaml_files"  
           echo "  - Dockerfiles: $dockerfile_count"
@@ -159,7 +182,11 @@ jobs:
           echo "security-complexity=$security_complexity" >> $GITHUB_OUTPUT
           echo "reliability-level=$reliability_level" >> $GITHUB_OUTPUT
           
+<<<<<<< HEAD
           echo "ðŸŽ¯ CI Strategy:"
+=======
+          echo "?Ž¯ CI Strategy:"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           echo "  - Cache strategy: $cache_strategy"
           echo "  - Timeout profile: $timeout_profile"
           echo "  - Security complexity: $security_complexity"
@@ -169,7 +196,11 @@ jobs:
   # CACHE MANAGEMENT: Ultra-reliable cache handling with recovery
   # =============================================================================
   cache-management:
+<<<<<<< HEAD
     name: ðŸ—‚ï¸ Cache Management
+=======
+    name: ??ï¸?Cache Management
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
     uses: ./.github/workflows/cache-recovery-system.yml
     needs: stability-assessment
     with:
@@ -180,7 +211,11 @@ jobs:
   # BUILD & TEST: Comprehensive build and test pipeline with retry logic
   # =============================================================================
   build-and-test:
+<<<<<<< HEAD
     name: ðŸ—ï¸ Build & Test Pipeline
+=======
+    name: ??ï¸?Build & Test Pipeline
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
     runs-on: ubuntu-22.04
     needs: [stability-assessment, cache-management]
     timeout-minutes: ${{ needs.stability-assessment.outputs.timeout-profile == 'quick' && 20 || needs.stability-assessment.outputs.timeout-profile == 'standard' && 30 || 45 }}
@@ -191,18 +226,30 @@ jobs:
         stage: [compile, unit-test, integration-test]
         
     steps:
+<<<<<<< HEAD
       - name: ðŸ“¥ Checkout
+=======
+      - name: ?“¥ Checkout
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         uses: actions/checkout@v4
         with:
           persist-credentials: false
           
+<<<<<<< HEAD
       - name: ðŸ”§ Setup Go with caching
+=======
+      - name: ?”§ Setup Go with caching
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: false  # We use our own cache management
           
+<<<<<<< HEAD
       - name: ðŸ—‚ï¸ Restore managed cache
+=======
+      - name: ??ï¸?Restore managed cache
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         if: needs.cache-management.outputs.cache-hit == 'true'
         uses: actions/cache@v4
         with:
@@ -211,6 +258,7 @@ jobs:
             ~/.cache/go-build
           key: ${{ needs.cache-management.outputs.cache-key }}
           
+<<<<<<< HEAD
       - name: ðŸ“¦ Verify dependencies
         run: |
           echo "ðŸ“¦ Verifying Go dependencies..."
@@ -218,16 +266,34 @@ jobs:
           # Ensure modules are available
           if ! go list ./... &>/dev/null; then
             echo "ðŸ”„ Dependencies missing, downloading..."
+=======
+      - name: ?“¦ Verify dependencies
+        run: |
+          echo "?“¦ Verifying Go dependencies..."
+          
+          # Ensure modules are available
+          if ! go list ./... &>/dev/null; then
+            echo "?? Dependencies missing, downloading..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             go mod download
             go mod verify
           fi
           
+<<<<<<< HEAD
           echo "âœ… Dependencies verified"
           
       - name: ðŸ—ï¸ Execute build stage
         id: build-stage
         run: |
           echo "ðŸ—ï¸ Executing build stage: ${{ matrix.stage }}"
+=======
+          echo "??Dependencies verified"
+          
+      - name: ??ï¸?Execute build stage
+        id: build-stage
+        run: |
+          echo "??ï¸?Executing build stage: ${{ matrix.stage }}"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           execute_with_retry() {
             local command="$1"
@@ -235,20 +301,35 @@ jobs:
             local max_attempts=${{ env.MAX_RETRY_ATTEMPTS }}
             
             for attempt in $(seq 1 $max_attempts); do
+<<<<<<< HEAD
               echo "ðŸ”„ $stage_name - Attempt $attempt..."
               
               if eval "$command"; then
                 echo "âœ… $stage_name completed successfully"
+=======
+              echo "?? $stage_name - Attempt $attempt..."
+              
+              if eval "$command"; then
+                echo "??$stage_name completed successfully"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                 return 0
               else
                 exit_code=$?
                 
                 if [[ $attempt -eq $max_attempts ]]; then
+<<<<<<< HEAD
                   echo "âŒ $stage_name failed after $max_attempts attempts"
                   return $exit_code
                 fi
                 
                 echo "âš ï¸ $stage_name attempt $attempt failed, retrying in ${{ env.RETRY_DELAY_SECONDS }}s..."
+=======
+                  echo "??$stage_name failed after $max_attempts attempts"
+                  return $exit_code
+                fi
+                
+                echo "? ï? $stage_name attempt $attempt failed, retrying in ${{ env.RETRY_DELAY_SECONDS }}s..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                 sleep ${{ env.RETRY_DELAY_SECONDS }}
               fi
             done
@@ -266,10 +347,17 @@ jobs:
               ;;
           esac
           
+<<<<<<< HEAD
       - name: ðŸ“Š Generate stage report
         if: always()
         run: |
           echo "ðŸ“Š Build stage report for: ${{ matrix.stage }}"
+=======
+      - name: ?? Generate stage report
+        if: always()
+        run: |
+          echo "?? Build stage report for: ${{ matrix.stage }}"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           stage_status="${{ steps.build-stage.outcome }}"
           
@@ -283,12 +371,21 @@ jobs:
           EOF
           
           if [[ "$stage_status" == "success" ]]; then
+<<<<<<< HEAD
             echo "âœ… Stage completed successfully without issues." >> stage-report-${{ matrix.stage }}.md
           else
             echo "âŒ Stage failed - check logs for details." >> stage-report-${{ matrix.stage }}.md
           fi
           
       - name: ðŸ“¤ Upload stage artifacts
+=======
+            echo "??Stage completed successfully without issues." >> stage-report-${{ matrix.stage }}.md
+          else
+            echo "??Stage failed - check logs for details." >> stage-report-${{ matrix.stage }}.md
+          fi
+          
+      - name: ?“¤ Upload stage artifacts
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -300,7 +397,11 @@ jobs:
   # SECURITY SCAN: Ultra-reliable security scanning with comprehensive recovery
   # =============================================================================
   security-scan:
+<<<<<<< HEAD
     name: ðŸ”’ Security Scan
+=======
+    name: ?? Security Scan
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
     uses: ./.github/workflows/security-scan-ultra-reliable.yml
     needs: [stability-assessment, cache-management, build-and-test]
     with:
@@ -311,29 +412,48 @@ jobs:
   # QUALITY GATES: Comprehensive quality and stability validation
   # =============================================================================
   quality-gates:
+<<<<<<< HEAD
     name: âœ… Quality Gates
+=======
+    name: ??Quality Gates
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
     runs-on: ubuntu-22.04
     needs: [stability-assessment, cache-management, build-and-test, security-scan]
     if: always()
     timeout-minutes: 10
     
     steps:
+<<<<<<< HEAD
       - name: ðŸ“¥ Download all artifacts
+=======
+      - name: ?“¥ Download all artifacts
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         uses: actions/download-artifact@v4
         with:
           path: all-artifacts
           
+<<<<<<< HEAD
       - name: ðŸ” Analyze pipeline results
         id: analysis
         run: |
           echo "ðŸ” Analyzing overall pipeline results..."
+=======
+      - name: ?? Analyze pipeline results
+        id: analysis
+        run: |
+          echo "?? Analyzing overall pipeline results..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           # Check individual job results
           cache_status="${{ needs.cache-management.result }}"
           build_status="${{ needs.build-and-test.result }}"
           security_status="${{ needs.security-scan.result }}"
           
+<<<<<<< HEAD
           echo "ðŸ“Š Pipeline Component Status:"
+=======
+          echo "?? Pipeline Component Status:"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           echo "  - Cache Management: $cache_status"
           echo "  - Build & Test: $build_status"
           echo "  - Security Scan: $security_status"
@@ -344,21 +464,36 @@ jobs:
           
           if [[ "$cache_status" == "failure" ]]; then
             if [[ "${{ needs.cache-management.outputs.recovery-performed }}" == "true" ]]; then
+<<<<<<< HEAD
               echo "âš ï¸ Cache recovery was performed - monitoring required"
               warnings=$((warnings + 1))
             else
               echo "âŒ Cache management failed completely"
+=======
+              echo "? ï? Cache recovery was performed - monitoring required"
+              warnings=$((warnings + 1))
+            else
+              echo "??Cache management failed completely"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
               critical_failures=$((critical_failures + 1))
             fi
           fi
           
           if [[ "$build_status" == "failure" ]]; then
+<<<<<<< HEAD
             echo "âŒ Build pipeline failed"
+=======
+            echo "??Build pipeline failed"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             critical_failures=$((critical_failures + 1))
           fi
           
           if [[ "$security_status" == "failure" ]]; then
+<<<<<<< HEAD
             echo "âŒ Security scan failed"
+=======
+            echo "??Security scan failed"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             critical_failures=$((critical_failures + 1))
           fi
           
@@ -377,6 +512,7 @@ jobs:
           echo "critical-failures=$critical_failures" >> $GITHUB_OUTPUT
           echo "warnings=$warnings" >> $GITHUB_OUTPUT
           
+<<<<<<< HEAD
           echo "ðŸŽ¯ Overall Pipeline Health: $pipeline_health"
           
       - name: ðŸ“Š Generate comprehensive report
@@ -385,19 +521,37 @@ jobs:
           
           cat > CI-STABILITY-REPORT.md <<EOF
           # ðŸ—ï¸ CI Stability Report
+=======
+          echo "?Ž¯ Overall Pipeline Health: $pipeline_health"
+          
+      - name: ?? Generate comprehensive report
+        run: |
+          echo "?? Generating comprehensive CI stability report..."
+          
+          cat > CI-STABILITY-REPORT.md <<EOF
+          # ??ï¸?CI Stability Report
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           **Date:** $(date -u +%Y-%m-%dT%H:%M:%SZ)  
           **Commit:** ${{ github.sha }}  
           **Branch:** ${{ github.ref_name }}  
           **Stability Mode:** ${{ env.STABILITY_MODE }}  
           
+<<<<<<< HEAD
           ## ðŸŽ¯ Executive Summary
+=======
+          ## ?Ž¯ Executive Summary
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           **Pipeline Health:** ${{ steps.analysis.outputs.pipeline-health }}  
           **Critical Failures:** ${{ steps.analysis.outputs.critical-failures }}  
           **Warnings:** ${{ steps.analysis.outputs.warnings }}  
           
+<<<<<<< HEAD
           ## ðŸ“Š Component Status
+=======
+          ## ?? Component Status
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           | Component | Status | Details |
           |-----------|--------|---------|
@@ -406,20 +560,29 @@ jobs:
           | Build & Test | ${{ needs.build-and-test.result }} | Multi-stage pipeline |
           | Security Scan | ${{ needs.security-scan.result }} | Level: ${{ env.SECURITY_SCAN_LEVEL }} |
           
+<<<<<<< HEAD
           ## ðŸ”§ Configuration Applied
+=======
+          ## ?”§ Configuration Applied
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           - **Timeout Profile:** ${{ needs.stability-assessment.outputs.timeout-profile }}
           - **Security Complexity:** ${{ needs.stability-assessment.outputs.security-complexity }}
           - **Reliability Level:** ${{ needs.stability-assessment.outputs.reliability-level }}
           - **Cache Strategy:** ${{ needs.stability-assessment.outputs.cache-strategy }}
           
+<<<<<<< HEAD
           ## ðŸ“ˆ Stability Metrics
+=======
+          ## ?? Stability Metrics
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           EOF
           
           # Add health assessment
           case "${{ steps.analysis.outputs.pipeline-health }}" in
             "excellent")
+<<<<<<< HEAD
               echo "âœ… **Excellent:** All systems operating optimally with no issues detected." >> CI-STABILITY-REPORT.md
               ;;
             "good")
@@ -430,10 +593,23 @@ jobs:
               ;;
             "critical")
               echo "ðŸ”´ **Critical:** Multiple failures detected - immediate attention required." >> CI-STABILITY-REPORT.md
+=======
+              echo "??**Excellent:** All systems operating optimally with no issues detected." >> CI-STABILITY-REPORT.md
+              ;;
+            "good")
+              echo "?Ÿ¢ **Good:** Systems operating well with minor warnings that were automatically resolved." >> CI-STABILITY-REPORT.md
+              ;;
+            "degraded")
+              echo "?Ÿ¡ **Degraded:** One component experienced issues but pipeline remained functional." >> CI-STABILITY-REPORT.md
+              ;;
+            "critical")
+              echo "?”´ **Critical:** Multiple failures detected - immediate attention required." >> CI-STABILITY-REPORT.md
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
               ;;
           esac
           
           echo "" >> CI-STABILITY-REPORT.md
+<<<<<<< HEAD
           echo "## ðŸŽ¯ Recommendations" >> CI-STABILITY-REPORT.md
           
           if [[ "${{ steps.analysis.outputs.critical-failures }}" -gt "0" ]]; then
@@ -450,11 +626,33 @@ jobs:
           fi
           
           echo "- ðŸ“ˆ **Performance:** Current configuration is optimal for your repository size and complexity" >> CI-STABILITY-REPORT.md
+=======
+          echo "## ?Ž¯ Recommendations" >> CI-STABILITY-REPORT.md
+          
+          if [[ "${{ steps.analysis.outputs.critical-failures }}" -gt "0" ]]; then
+            echo "- ?š¨ **Immediate Action Required:** Investigate and resolve critical failures" >> CI-STABILITY-REPORT.md
+            echo "- ?? Review component logs for detailed error information" >> CI-STABILITY-REPORT.md
+          fi
+          
+          if [[ "${{ steps.analysis.outputs.warnings }}" -gt "0" ]]; then
+            echo "- ? ï? **Monitor:** Keep an eye on components that required recovery" >> CI-STABILITY-REPORT.md
+          fi
+          
+          if [[ "${{ needs.cache-management.outputs.recovery-performed }}" == "true" ]]; then
+            echo "- ??ï¸?**Cache Health:** Cache recovery was performed - consider investigating root cause" >> CI-STABILITY-REPORT.md
+          fi
+          
+          echo "- ?? **Performance:** Current configuration is optimal for your repository size and complexity" >> CI-STABILITY-REPORT.md
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           echo "" >> CI-STABILITY-REPORT.md
           echo "---" >> CI-STABILITY-REPORT.md
           echo "_Generated by CI Stability Orchestrator v1.0 - Built for 100% reliability_" >> CI-STABILITY-REPORT.md
           
+<<<<<<< HEAD
       - name: ðŸ’¬ Comment on PR
+=======
+      - name: ?’¬ Comment on PR
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
@@ -475,7 +673,11 @@ jobs:
               console.log('Failed to post comment:', error.message);
             }
             
+<<<<<<< HEAD
       - name: ðŸ“¤ Upload final report
+=======
+      - name: ?“¤ Upload final report
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -483,19 +685,30 @@ jobs:
           path: CI-STABILITY-REPORT.md
           retention-days: 30
           
+<<<<<<< HEAD
       - name: ðŸŽ¯ Final stability check
         run: |
           echo "ðŸŽ¯ Final CI stability validation..."
+=======
+      - name: ?Ž¯ Final stability check
+        run: |
+          echo "?Ž¯ Final CI stability validation..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           pipeline_health="${{ steps.analysis.outputs.pipeline-health }}"
           critical_failures="${{ steps.analysis.outputs.critical-failures }}"
           
+<<<<<<< HEAD
           echo "ðŸ“Š Final Status:"
+=======
+          echo "?? Final Status:"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           echo "  - Pipeline Health: $pipeline_health"
           echo "  - Critical Failures: $critical_failures"
           
           case "$pipeline_health" in
             "excellent"|"good")
+<<<<<<< HEAD
               echo "âœ… CI pipeline completed successfully with high stability"
               exit 0
               ;;
@@ -511,6 +724,23 @@ jobs:
               ;;
             *)
               echo "â“ Unknown pipeline health status"
+=======
+              echo "??CI pipeline completed successfully with high stability"
+              exit 0
+              ;;
+            "degraded")
+              echo "? ï? CI pipeline completed with degraded performance"
+              echo "?’¡ Consider reviewing warnings and optimizing configuration"
+              exit 0
+              ;;
+            "critical")
+              echo "??CI pipeline failed due to critical issues"
+              echo "?š¨ Immediate investigation and resolution required"
+              exit 1
+              ;;
+            *)
+              echo "??Unknown pipeline health status"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
               exit 1
               ;;
           esac

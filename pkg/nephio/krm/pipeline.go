@@ -1472,12 +1472,20 @@ func (p *Pipeline) executeFunction(ctx context.Context, execution *PipelineExecu
 		FunctionConfig: porch.FunctionConfig{
 			Image: function.Image,
 
+<<<<<<< HEAD
 			ConfigMap: func() json.RawMessage {
 				if function.Config != nil {
 					data, _ := json.Marshal(function.Config)
 					return json.RawMessage(data)
 				}
 				return json.RawMessage(`{}`)
+=======
+			ConfigMap: func() map[string]interface{} {
+				if function.Config != nil {
+					return function.Config
+				}
+				return make(map[string]interface{})
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			}(),
 
 			Selectors: convertResourceSelectors(function.Selectors),
@@ -1897,11 +1905,16 @@ func (p *Pipeline) evaluateCondition(condition *Condition, variables map[string]
 		for _, resource := range resources {
 			if resource.APIVersion == apiVersion && resource.Kind == kind {
 				// Extract name from Metadata
+<<<<<<< HEAD
 				var metadata map[string]interface{}
 				if err := json.Unmarshal(resource.Metadata, &metadata); err == nil {
 					if resourceName, ok := metadata["name"].(string); ok && resourceName == name {
 						return !condition.Negate
 					}
+=======
+				if resourceName, ok := resource.Metadata["name"].(string); ok && resourceName == name {
+					return !condition.Negate
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				}
 			}
 		}
@@ -1944,6 +1957,7 @@ func (p *Pipeline) resourceMatches(resource porch.KRMResource, selector Resource
 		return false
 	}
 
+<<<<<<< HEAD
 	// Unmarshal metadata once
 	var metadata map[string]interface{}
 	if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
@@ -1952,12 +1966,20 @@ func (p *Pipeline) resourceMatches(resource porch.KRMResource, selector Resource
 
 	if selector.Name != "" {
 		if name, ok := metadata["name"].(string); !ok || name != selector.Name {
+=======
+	if selector.Name != "" {
+		if name, ok := resource.Metadata["name"].(string); !ok || name != selector.Name {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			return false
 		}
 	}
 
 	if selector.Namespace != "" {
+<<<<<<< HEAD
 		if namespace, ok := metadata["namespace"].(string); !ok || namespace != selector.Namespace {
+=======
+		if namespace, ok := resource.Metadata["namespace"].(string); !ok || namespace != selector.Namespace {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			return false
 		}
 	}
@@ -1965,7 +1987,11 @@ func (p *Pipeline) resourceMatches(resource porch.KRMResource, selector Resource
 	// Check labels.
 
 	for key, value := range selector.Labels {
+<<<<<<< HEAD
 		if labels, ok := metadata["labels"].(map[string]interface{}); ok {
+=======
+		if labels, ok := resource.Metadata["labels"].(map[string]interface{}); ok {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			if labelValue, exists := labels[key]; !exists || labelValue != value {
 				return false
 			}

@@ -54,6 +54,43 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 
 	retryCount := getNetworkIntentRetryCount(networkIntent, "llm-processing")
 
+<<<<<<< HEAD
+=======
+	// Check if config is available
+	if p.config == nil {
+		err := fmt.Errorf("controller configuration is not available")
+		logger.Error(err, "Controller configuration validation failed")
+		
+		condition := metav1.Condition{
+			Type: "Processed",
+			Status: metav1.ConditionFalse,
+			Reason: "ConfigurationError",
+			Message: "Controller configuration is missing",
+			LastTransitionTime: metav1.Now(),
+		}
+		updateCondition(&networkIntent.Status.Conditions, condition)
+		
+		return ctrl.Result{}, err
+	}
+
+	// Check if dependencies are available
+	if p.deps == nil {
+		err := fmt.Errorf("controller dependencies are not available")
+		logger.Error(err, "Controller dependencies validation failed")
+		
+		condition := metav1.Condition{
+			Type: "Processed",
+			Status: metav1.ConditionFalse,
+			Reason: "DependenciesError",
+			Message: "Controller dependencies are missing",
+			LastTransitionTime: metav1.Now(),
+		}
+		updateCondition(&networkIntent.Status.Conditions, condition)
+		
+		return ctrl.Result{}, err
+	}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if retryCount >= p.config.MaxRetries {
 
 		err := fmt.Errorf("max retries (%d) exceeded for LLM processing", p.config.MaxRetries)
@@ -436,6 +473,14 @@ func (p *LLMProcessor) buildTelecomEnhancedPrompt(ctx context.Context, intent st
 
 	_ = logger // Suppress unused warning
 
+<<<<<<< HEAD
+=======
+	// Check if dependencies are available
+	if p.deps == nil {
+		return "", fmt.Errorf("controller dependencies not available")
+	}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	// Get telecom knowledge base.
 
 	kb := p.deps.GetTelecomKnowledgeBase()
@@ -730,6 +775,14 @@ func (p *LLMProcessor) BuildTelecomEnhancedPrompt(ctx context.Context, intent st
 // ExtractTelecomContext implements LLMProcessorInterface (expose existing method).
 
 func (p *LLMProcessor) ExtractTelecomContext(intent string) map[string]interface{} {
+<<<<<<< HEAD
+=======
+	// Check if dependencies are available
+	if p.deps == nil {
+		return make(map[string]interface{})
+	}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	kb := p.deps.GetTelecomKnowledgeBase()
 
 	if kb == nil {

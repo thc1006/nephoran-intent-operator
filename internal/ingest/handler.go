@@ -156,7 +156,17 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 			}
 
+<<<<<<< HEAD
 			payload = []byte(fmt.Sprintf(`{"intent_type":"scaling","target":%q,"namespace":%q,"replicas":%s,"source":"user"}`, m[1], m[3], m[2]))
+=======
+			defaultSource := "user"
+			targetResource := fmt.Sprintf("deployment/%s", m[1])
+			correlationID := fmt.Sprintf("plain-text-scale-%s-%s", m[1], m[3])
+			reason := fmt.Sprintf("Plain text scaling request for %s", m[1])
+			payload = []byte(fmt.Sprintf(`{"intent_type":"scaling","target":%q,"namespace":%q,"replicas":%s,"source":%q,"status":"pending","target_resources":[%q],"correlation_id":%q,"reason":%q}`, 
+				m[1], m[3], m[2], defaultSource, 
+				targetResource, correlationID, reason))
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 		}
 
@@ -221,12 +231,71 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusAccepted)
 
+<<<<<<< HEAD
 	if err := json.NewEncoder(w).Encode(map[string]any{
 		"status": "accepted",
 
 		"saved": outFile,
 
 		"preview": intent,
+=======
+	var intentMap map[string]interface{}
+	intentBytes, _ := json.Marshal(intent)
+	json.Unmarshal(intentBytes, &intentMap)
+
+	if intentMap == nil {
+		intentMap = make(map[string]interface{})
+	}
+
+	// Ensure required fields are in the preview
+	if _, exists := intentMap["intent_type"]; !exists {
+		intentMap["intent_type"] = "scaling"
+	}
+	if _, exists := intentMap["target"]; !exists {
+		intentMap["target"] = ""
+	}
+	if _, exists := intentMap["namespace"]; !exists {
+		intentMap["namespace"] = ""
+	}
+	if _, exists := intentMap["replicas"]; !exists {
+		intentMap["replicas"] = 1
+	}
+	if _, exists := intentMap["status"]; !exists {
+		intentMap["status"] = "pending"
+	}
+	if _, exists := intentMap["target_resources"]; !exists {
+		intentMap["target_resources"] = []string{fmt.Sprintf("deployment/%s", intentMap["target"])}
+	}
+
+	// Convert intent to a parameter map for preview
+	intentParams := make(map[string]interface{})
+	for k, v := range intentMap {
+		intentParams[k] = v
+	}
+
+	if intent.CorrelationID != "" {
+		intentParams["correlation_id"] = intent.CorrelationID
+	}
+
+	preview := map[string]interface{}{
+		"id":              fmt.Sprintf("scale-%s-001", intentMap["target"]),
+		"type":            "scaling",
+		"description":     fmt.Sprintf("Scale %s to %v replicas in %s namespace", intentMap["target"], intentMap["replicas"], intentMap["namespace"]),
+		"target_resources": intentMap["target_resources"],
+		"status":          intentMap["status"],
+		"parameters":      intentParams,
+	}
+
+	// If explicit correlation_id is present, add it to parameters
+	if correlationID, exists := intentParams["correlation_id"]; exists {
+		preview["correlation_id"] = correlationID
+	}
+
+	if err := json.NewEncoder(w).Encode(map[string]any{
+		"status": "accepted",
+		"saved":  outFile,
+		"preview": preview,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}); err != nil {
 		log.Printf("Failed to encode response JSON: %v", err)
 	}

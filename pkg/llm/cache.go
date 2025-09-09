@@ -240,7 +240,15 @@ func NewResponseCacheWithConfig(config *CacheConfig) *ResponseCache {
 // Get retrieves a response from cache with semantic similarity fallback.
 
 func (c *ResponseCache) Get(key string) (string, bool) {
+<<<<<<< HEAD
 	if c.stopped {
+=======
+	c.l1Mutex.RLock()
+	stopped := c.stopped
+	c.l1Mutex.RUnlock()
+	
+	if stopped {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		return "", false
 	}
 
@@ -300,7 +308,15 @@ func (c *ResponseCache) Get(key string) (string, bool) {
 // Set stores a response in the appropriate cache level.
 
 func (c *ResponseCache) Set(key, response string) {
+<<<<<<< HEAD
 	if c.stopped {
+=======
+	c.l1Mutex.RLock()
+	stopped := c.stopped
+	c.l1Mutex.RUnlock()
+	
+	if stopped {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		return
 	}
 
@@ -555,6 +571,7 @@ func (c *ResponseCache) evictFromL1WithLock() {
 	}
 
 	if oldestKey != "" {
+<<<<<<< HEAD
 		// Move to L2 before evicting from L1, only if L2 is enabled
 		if c.l2MaxSize > 0 {
 			if entry, exists := c.l1Entries[oldestKey]; exists {
@@ -562,11 +579,36 @@ func (c *ResponseCache) evictFromL1WithLock() {
 				c.l2Mutex.Lock()
 				c.setInL2WithLock(oldestKey, entry)
 				c.l2Mutex.Unlock()
+=======
+		// Copy entry before releasing L1 lock to avoid race
+		var entryToMove *CacheEntry
+		if c.l2MaxSize > 0 {
+			if entry, exists := c.l1Entries[oldestKey]; exists {
+				// Create a copy of the entry
+				entryCopy := *entry
+				entryToMove = &entryCopy
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			}
 		}
 
 		delete(c.l1Entries, oldestKey)
 
+<<<<<<< HEAD
+=======
+		// Release L1 lock before acquiring L2 lock to prevent deadlock
+		c.l1Mutex.Unlock()
+		
+		// Move to L2 if needed
+		if entryToMove != nil {
+			c.l2Mutex.Lock()
+			c.setInL2WithLock(oldestKey, entryToMove)
+			c.l2Mutex.Unlock()
+		}
+		
+		// Re-acquire L1 lock to maintain lock state for caller
+		c.l1Mutex.Lock()
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		c.updateMetrics(func(m *CacheMetrics) {
 			m.Evictions++
 		})
@@ -912,7 +954,15 @@ func (c *ResponseCache) cleanup() {
 
 		case <-ticker.C:
 
+<<<<<<< HEAD
 			if c.stopped {
+=======
+			c.l1Mutex.RLock()
+			stopped := c.stopped
+			c.l1Mutex.RUnlock()
+			
+			if stopped {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				return
 			}
 
@@ -963,8 +1013,28 @@ func (c *ResponseCache) performCleanup() {
 // cleanupSemanticIndex removes references to deleted cache entries.
 
 func (c *ResponseCache) cleanupSemanticIndex() {
+<<<<<<< HEAD
 	c.semanticMutex.Lock()
 
+=======
+	// First, collect all keys from L1 and L2 caches
+	c.l1Mutex.RLock()
+	l1Keys := make(map[string]bool, len(c.l1Entries))
+	for key := range c.l1Entries {
+		l1Keys[key] = true
+	}
+	c.l1Mutex.RUnlock()
+
+	c.l2Mutex.RLock()
+	l2Keys := make(map[string]bool, len(c.l2Entries))
+	for key := range c.l2Entries {
+		l2Keys[key] = true
+	}
+	c.l2Mutex.RUnlock()
+
+	// Now clean up semantic index with only semantic mutex held
+	c.semanticMutex.Lock()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	defer c.semanticMutex.Unlock()
 
 	for keyword, cacheKeys := range c.semanticIndex {
@@ -975,6 +1045,7 @@ func (c *ResponseCache) cleanupSemanticIndex() {
 
 			// Check if key still exists in either cache level.
 
+<<<<<<< HEAD
 			c.l1Mutex.RLock()
 
 			_, existsL1 := c.l1Entries[key]
@@ -986,6 +1057,11 @@ func (c *ResponseCache) cleanupSemanticIndex() {
 			_, existsL2 := c.l2Entries[key]
 
 			c.l2Mutex.RUnlock()
+=======
+			_, existsL1 := l1Keys[key]
+
+			_, existsL2 := l2Keys[key]
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 			if existsL1 || existsL2 {
 				validKeys = append(validKeys, key)

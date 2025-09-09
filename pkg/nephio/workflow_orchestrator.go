@@ -281,6 +281,7 @@ type WorkloadClusterRegistry struct {
 	config *WorkloadClusterConfig
 }
 
+<<<<<<< HEAD
 // WorkloadCluster represents a registered workload cluster.
 
 type WorkloadCluster struct {
@@ -485,6 +486,8 @@ const (
 	PackageVariantStatusTerminating PackageVariantStatus = "Terminating"
 )
 
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // NephioWorkflowEngine manages workflow definitions and execution.
 
 type NephioWorkflowEngine struct {
@@ -1565,7 +1568,16 @@ func (nwo *NephioWorkflowOrchestrator) executeDeploymentPhase(ctx context.Contex
 
 		// Deploy via Config Sync.
 
+<<<<<<< HEAD
 		syncResult, err := nwo.configSync.DeployPackage(ctx, variant.PackageRevision, variant.TargetCluster)
+=======
+		// Convert local WorkloadCluster to porch.WorkloadCluster
+		porchCluster := &porch.WorkloadCluster{
+			Name:   variant.TargetCluster.Name,
+			Region: variant.TargetCluster.Region,
+		}
+		syncResult, err := nwo.configSync.DeployPackage(ctx, variant.PackageRevision, porchCluster)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		if err != nil {
 
 			logger.Error(err, "Failed to deploy package",
@@ -1868,8 +1880,11 @@ func (nwo *NephioWorkflowOrchestrator) updateIntentWithWorkflowStatus(ctx contex
 
 		pr := execution.PackageVariants[0].PackageRevision
 
+<<<<<<< HEAD
 		_ = json.RawMessage(`{}`)
 
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		packageInfoJSON := fmt.Sprintf(`{"repository":"%s","packageName":"%s","revision":"%s"}`, pr.Spec.Repository, pr.Spec.PackageName, pr.Spec.Revision)
 
 		intent.Status.Extensions["packageRevision"] = runtime.RawExtension{Raw: []byte(packageInfoJSON)}

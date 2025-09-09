@@ -47,6 +47,11 @@ import (
 
 func TestGetNodeIndexFromConfigMapIntegerOverflow(t *testing.T) {
 	r := &E2NodeSetReconciler{}
+<<<<<<< HEAD
+=======
+	// Initialize metrics to prevent nil panics
+	InitializeE2NodeSetReconcilerForTesting(r)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	tests := []struct {
 		name string
@@ -177,6 +182,11 @@ func TestGetNodeIndexFromConfigMapIntegerOverflow(t *testing.T) {
 
 func TestGetNodeIndexFromConfigMapMissingLabel(t *testing.T) {
 	r := &E2NodeSetReconciler{}
+<<<<<<< HEAD
+=======
+	// Initialize metrics to prevent nil panics
+	InitializeE2NodeSetReconcilerForTesting(r)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -259,6 +269,11 @@ func TestIntegerBoundsValidation(t *testing.T) {
 
 func BenchmarkGetNodeIndexFromConfigMap(b *testing.B) {
 	r := &E2NodeSetReconciler{}
+<<<<<<< HEAD
+=======
+	// Initialize metrics to prevent nil panics
+	InitializeE2NodeSetReconcilerForTesting(r)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{

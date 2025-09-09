@@ -4,9 +4,15 @@ import (
 	"context"
 	"testing"
 	"time"
+<<<<<<< HEAD
 	"encoding/json"
 
 	"github.com/stretchr/testify/assert"
+=======
+
+	"github.com/stretchr/testify/assert"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -14,7 +20,11 @@ import (
 func TestNewO1AdaptorConstruction(t *testing.T) {
 	tests := []struct {
 		name   string
+<<<<<<< HEAD
 		config *O1Config
+=======
+		config *oran.O1Config
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		want   *O1Adaptor
 	}{
 		{
@@ -29,12 +39,18 @@ func TestNewO1AdaptorConstruction(t *testing.T) {
 		},
 		{
 			name: "with custom config",
+<<<<<<< HEAD
 			config: &O1Config{
 				DefaultPort:    830,
 				ConnectTimeout: 30 * time.Second,
 				RequestTimeout: 60 * time.Second,
 				MaxRetries:     5,
 				RetryInterval:  10 * time.Second,
+=======
+			config: &oran.O1Config{
+				Timeout:       30 * time.Second,
+				RetryAttempts: 5,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			},
 			want: &O1Adaptor{
 				clients:          make(map[string]*NetconfClient),
@@ -58,11 +74,17 @@ func TestNewO1AdaptorConstruction(t *testing.T) {
 				assert.Equal(t, tt.config, got.config)
 			} else {
 				// Check default config values
+<<<<<<< HEAD
 				assert.Equal(t, 830, got.config.DefaultPort)
 				assert.Equal(t, 30*time.Second, got.config.ConnectTimeout)
 				assert.Equal(t, 60*time.Second, got.config.RequestTimeout)
 				assert.Equal(t, 3, got.config.MaxRetries)
 				assert.Equal(t, 5*time.Second, got.config.RetryInterval)
+=======
+				assert.Equal(t, 30*time.Second, got.config.Timeout)
+				assert.Equal(t, 0, got.config.RetryAttempts)
+				assert.Equal(t, "", got.config.Endpoint)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			}
 		})
 	}
@@ -238,7 +260,11 @@ func TestO1Adaptor_convertEventToAlarm(t *testing.T) {
 				Type:      "notification",
 				Timestamp: time.Now(),
 				Source:    "test-source",
+<<<<<<< HEAD
 				Data: json.RawMessage(`{}`),
+=======
+				Data: map[string]interface{}{},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			},
 			managedElementID: "test-element",
 			expectedAlarm:    true,
@@ -250,7 +276,11 @@ func TestO1Adaptor_convertEventToAlarm(t *testing.T) {
 				Timestamp: time.Now(),
 				Source:    "test-source",
 				XML:       "<alarm><severity>critical</severity></alarm>",
+<<<<<<< HEAD
 				Data:      make(map[string]interface{}),
+=======
+				Data:      map[string]interface{}{},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			},
 			managedElementID: "test-element",
 			expectedAlarm:    true,
@@ -414,7 +444,11 @@ func TestAlarmStruct(t *testing.T) {
 		Type:             "EQUIPMENT",
 		ProbableCause:    "POWER_SUPPLY_FAILURE",
 		SpecificProblem:  "Power supply redundancy lost",
+<<<<<<< HEAD
 		AdditionalInfo:   "Check power supply unit 2",
+=======
+		AdditionalInfo:   map[string]interface{}{"note": "Check power supply unit 2"},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		TimeRaised:       time.Now(),
 	}
 
@@ -456,4 +490,7 @@ func BenchmarkO1Adaptor_parseMetricValue(b *testing.B) {
 		_, _ = adaptor.parseMetricValue(xmlData, "cpu_usage")
 	}
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

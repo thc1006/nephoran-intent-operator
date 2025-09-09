@@ -151,7 +151,11 @@ func TestTLSSessionCacheRace(t *testing.T) {
 		}()
 	}
 
+<<<<<<< HEAD
 	group.Wait()
+=======
+	wg.Wait()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	t.Logf("Hits: %d, Misses: %d, Evictions: %d, Current sessions: %d",
 		sessionCache.hits.Load(), sessionCache.misses.Load(),
 		sessionCache.evictions.Load(), countSyncMapEntries(sessionCache.sessions))
@@ -305,7 +309,13 @@ func TestCryptoKeyPoolRace(t *testing.T) {
 		generated: atomic.Int64{},
 	}
 
+<<<<<<< HEAD
 	mutexTest.TestCriticalSection(&keyPool.mu, &keyPool.keys)
+=======
+	// Test critical section with a compatible map type
+	testData := make(map[string]int)
+	mutexTest.TestCriticalSection(&keyPool.mu, &testData)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	runner := racetest.NewRunner(t, &racetest.RaceTestConfig{
 		Goroutines: 20,
@@ -358,8 +368,14 @@ func TestCryptoKeyPoolRace(t *testing.T) {
 func TestAuditLogRace(t *testing.T) {
 	channelTest := racetest.NewChannelRaceTest(t)
 
+<<<<<<< HEAD
 	auditChan := make(chan *auditEntry, 100)
 	channelTest.TestConcurrentSendReceive(auditChan, 10, 5)
+=======
+	// Test generic channel operations for concurrency patterns
+	genericChan := make(chan interface{}, 100)
+	channelTest.TestConcurrentSendReceive(genericChan, 10, 5)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// Test audit log writer
 	auditLog := &auditLogger{

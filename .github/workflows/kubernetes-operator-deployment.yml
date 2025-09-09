@@ -95,21 +95,36 @@ jobs:
   # DEPLOYMENT PREPARATION: Environment setup and validation
   # =============================================================================
   deployment-preparation:
+<<<<<<< HEAD
     name: ðŸš€ Deployment Preparation
     runs-on: ubuntu-22.04
     timeout-minutes: 15
+=======
+    name: ?? Deployment Preparation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
     outputs:
       deployment-config: ${{ steps.config.outputs.config }}
       resource-limits: ${{ steps.resources.outputs.limits }}
       monitoring-config: ${{ steps.monitoring.outputs.config }}
       
     steps:
+<<<<<<< HEAD
       - name: ðŸ“¥ Checkout
         uses: actions/checkout@v4
         
       - name: ðŸ”§ Setup Kubernetes Tools
         run: |
           echo "ðŸ”§ Setting up Kubernetes deployment tools..."
+=======
+      - name: ?“¥ Checkout
+        uses: actions/checkout@v4
+        
+      - name: ?”§ Setup Kubernetes Tools
+        run: |
+          echo "?”§ Setting up Kubernetes deployment tools..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           # Install kubectl
           curl -LO "https://dl.k8s.io/release/v${{ env.KUBERNETES_VERSION }}/bin/linux/amd64/kubectl"
@@ -129,15 +144,26 @@ jobs:
           chmod +x operator-sdk_linux_amd64
           sudo mv operator-sdk_linux_amd64 /usr/local/bin/operator-sdk
           
+<<<<<<< HEAD
           echo "âœ… Kubernetes tools installed successfully"
+=======
+          echo "??Kubernetes tools installed successfully"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           kubectl version --client
           helm version
           kustomize version
           
+<<<<<<< HEAD
       - name: âš™ï¸ Generate Deployment Configuration
         id: config
         run: |
           echo "âš™ï¸ Generating deployment configuration for ${{ env.DEPLOYMENT_ENV }}"
+=======
+      - name: ?™ï? Generate Deployment Configuration
+        id: config
+        run: |
+          echo "?™ï? Generating deployment configuration for ${{ env.DEPLOYMENT_ENV }}"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           case "${{ env.DEPLOYMENT_ENV }}" in
             "development")
@@ -191,12 +217,21 @@ jobs:
           esac
           
           echo "config=$config" >> $GITHUB_OUTPUT
+<<<<<<< HEAD
           echo "ðŸ”§ Deployment configuration generated"
           
       - name: ðŸ“Š Calculate Resource Limits
         id: resources
         run: |
           echo "ðŸ“Š Calculating resource limits for ${{ env.RESOURCE_PROFILE }} profile"
+=======
+          echo "?”§ Deployment configuration generated"
+          
+      - name: ?? Calculate Resource Limits
+        id: resources
+        run: |
+          echo "?? Calculating resource limits for ${{ env.RESOURCE_PROFILE }} profile"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           case "${{ env.RESOURCE_PROFILE }}" in
             "minimal")
@@ -242,6 +277,7 @@ jobs:
           esac
           
           echo "limits=$limits" >> $GITHUB_OUTPUT
+<<<<<<< HEAD
           echo "ðŸ“Š Resource limits calculated for ${{ env.RESOURCE_PROFILE }} profile"
           
       - name: ðŸ“Š Configure Monitoring Stack
@@ -249,6 +285,15 @@ jobs:
         if: env.ENABLE_MONITORING == 'true'
         run: |
           echo "ðŸ“Š Configuring monitoring stack for telecommunications"
+=======
+          echo "?? Resource limits calculated for ${{ env.RESOURCE_PROFILE }} profile"
+          
+      - name: ?? Configure Monitoring Stack
+        id: monitoring
+        if: env.ENABLE_MONITORING == 'true'
+        run: |
+          echo "?? Configuring monitoring stack for telecommunications"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           monitoring_config='{
             "prometheus": {
@@ -278,31 +323,53 @@ jobs:
           }'
           
           echo "config=$monitoring_config" >> $GITHUB_OUTPUT
+<<<<<<< HEAD
           echo "ðŸ“Š Monitoring configuration generated"
+=======
+          echo "?? Monitoring configuration generated"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
   # =============================================================================
   # KUBERNETES CLUSTER VALIDATION: Pre-deployment cluster checks
   # =============================================================================
   cluster-validation:
+<<<<<<< HEAD
     name: ðŸ” Cluster Validation
     runs-on: ubuntu-22.04
     needs: deployment-preparation
     timeout-minutes: 12
+=======
+    name: ?? Cluster Validation
+    runs-on: ubuntu-latest
+    needs: deployment-preparation
+    timeout-minutes: 10
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
     outputs:
       cluster-ready: ${{ steps.validation.outputs.ready }}
       cluster-info: ${{ steps.info.outputs.info }}
       
     steps:
+<<<<<<< HEAD
       - name: ðŸ“¥ Checkout
         uses: actions/checkout@v4
         
       - name: ðŸ”§ Setup kubectl
+=======
+      - name: ?“¥ Checkout
+        uses: actions/checkout@v4
+        
+      - name: ?”§ Setup kubectl
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         run: |
           curl -LO "https://dl.k8s.io/release/v${{ env.KUBERNETES_VERSION }}/bin/linux/amd64/kubectl"
           chmod +x kubectl
           sudo mv kubectl /usr/local/bin/
           
+<<<<<<< HEAD
       - name: ðŸ—ï¸ Create Test Cluster (Kind)
+=======
+      - name: ??ï¸?Create Test Cluster (Kind)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         uses: helm/kind-action@v1
         with:
           version: v0.24.0
@@ -334,23 +401,39 @@ jobs:
                   kubeletExtraArgs:
                     node-labels: "nephoran.io/node-type=worker"
                     
+<<<<<<< HEAD
       - name: ðŸ” Cluster Validation
         id: validation
         run: |
           echo "ðŸ” Validating Kubernetes cluster for Nephoran deployment..."
+=======
+      - name: ?? Cluster Validation
+        id: validation
+        run: |
+          echo "?? Validating Kubernetes cluster for Nephoran deployment..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           validation_passed=true
           
           # Check cluster connectivity
+<<<<<<< HEAD
           echo "ðŸ“¡ Testing cluster connectivity..."
           if kubectl cluster-info; then
             echo "  âœ… Cluster connectivity verified"
           else
             echo "  âŒ Cluster connectivity failed"
+=======
+          echo "?“¡ Testing cluster connectivity..."
+          if kubectl cluster-info; then
+            echo "  ??Cluster connectivity verified"
+          else
+            echo "  ??Cluster connectivity failed"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             validation_passed=false
           fi
           
           # Check Kubernetes version
+<<<<<<< HEAD
           echo "ðŸ“‹ Verifying Kubernetes version..."
           k8s_version=$(kubectl version --short | grep Server | awk '{print $3}' | sed 's/v//')
           if [[ "$k8s_version" == "${{ env.KUBERNETES_VERSION }}"* ]]; then
@@ -365,19 +448,44 @@ jobs:
             echo "  âœ… RBAC permissions available"
           else
             echo "  âŒ Insufficient RBAC permissions"
+=======
+          echo "?? Verifying Kubernetes version..."
+          k8s_version=$(kubectl version --short | grep Server | awk '{print $3}' | sed 's/v//')
+          if [[ "$k8s_version" == "${{ env.KUBERNETES_VERSION }}"* ]]; then
+            echo "  ??Kubernetes version compatible: $k8s_version"
+          else
+            echo "  ? ï? Kubernetes version mismatch: expected ${{ env.KUBERNETES_VERSION }}, got $k8s_version"
+          fi
+          
+          # Check RBAC
+          echo "?? Verifying RBAC capabilities..."
+          if kubectl auth can-i create clusterroles --as=system:serviceaccount:default:default; then
+            echo "  ??RBAC permissions available"
+          else
+            echo "  ??Insufficient RBAC permissions"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             validation_passed=false
           fi
           
           # Check Custom Resource Definitions support
+<<<<<<< HEAD
           echo "ðŸ“‹ Testing CRD support..."
           if kubectl api-resources | grep -q "customresourcedefinitions"; then
             echo "  âœ… CRD support available"
           else
             echo "  âŒ CRD support not available"
+=======
+          echo "?? Testing CRD support..."
+          if kubectl api-resources | grep -q "customresourcedefinitions"; then
+            echo "  ??CRD support available"
+          else
+            echo "  ??CRD support not available"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             validation_passed=false
           fi
           
           # Check storage classes
+<<<<<<< HEAD
           echo "ðŸ’¾ Checking storage classes..."
           storage_classes=$(kubectl get storageclass -o name | wc -l)
           if [[ $storage_classes -gt 0 ]]; then
@@ -404,10 +512,39 @@ jobs:
             echo "  âœ… All nodes ready"
           else
             echo "  âŒ Not all nodes ready"
+=======
+          echo "?’¾ Checking storage classes..."
+          storage_classes=$(kubectl get storageclass -o name | wc -l)
+          if [[ $storage_classes -gt 0 ]]; then
+            echo "  ??Storage classes available: $storage_classes"
+          else
+            echo "  ? ï? No storage classes found"
+          fi
+          
+          # Check network policies support
+          echo "?? Testing network policies..."
+          if kubectl api-resources | grep -q "networkpolicies"; then
+            echo "  ??Network policies supported"
+          else
+            echo "  ? ï? Network policies not supported"
+          fi
+          
+          # Node readiness check
+          echo "?–¥ï¸?Checking node readiness..."
+          ready_nodes=$(kubectl get nodes --no-headers | grep "Ready" | wc -l)
+          total_nodes=$(kubectl get nodes --no-headers | wc -l)
+          echo "  ?? Ready nodes: $ready_nodes/$total_nodes"
+          
+          if [[ $ready_nodes -eq $total_nodes ]] && [[ $ready_nodes -gt 0 ]]; then
+            echo "  ??All nodes ready"
+          else
+            echo "  ??Not all nodes ready"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             validation_passed=false
           fi
           
           if [[ "$validation_passed" == "true" ]]; then
+<<<<<<< HEAD
             echo "âœ… Cluster validation passed"
             echo "ready=true" >> $GITHUB_OUTPUT
           else
@@ -419,6 +556,19 @@ jobs:
         id: info
         run: |
           echo "ðŸ“Š Collecting cluster information..."
+=======
+            echo "??Cluster validation passed"
+            echo "ready=true" >> $GITHUB_OUTPUT
+          else
+            echo "??Cluster validation failed"
+            echo "ready=false" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: ?? Collect Cluster Information
+        id: info
+        run: |
+          echo "?? Collecting cluster information..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           info='{
             "version": "'$(kubectl version --short | grep Server | awk '{print $3}')'",
@@ -430,26 +580,45 @@ jobs:
           }'
           
           echo "info=$info" >> $GITHUB_OUTPUT
+<<<<<<< HEAD
           echo "ðŸ“Š Cluster information collected"
+=======
+          echo "?? Cluster information collected"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
   # =============================================================================
   # OPERATOR DEPLOYMENT: Deploy Nephoran Intent Operator
   # =============================================================================
   operator-deployment:
+<<<<<<< HEAD
     name: ðŸš€ Operator Deployment
     runs-on: ubuntu-22.04
     needs: [deployment-preparation, cluster-validation]
     if: needs.cluster-validation.outputs.cluster-ready == 'true'
     timeout-minutes: 20
+=======
+    name: ?? Operator Deployment
+    runs-on: ubuntu-latest
+    needs: [deployment-preparation, cluster-validation]
+    if: needs.cluster-validation.outputs.cluster-ready == 'true'
+    timeout-minutes: 10
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
     outputs:
       deployment-status: ${{ steps.deploy.outputs.status }}
       operator-version: ${{ steps.deploy.outputs.version }}
       
     steps:
+<<<<<<< HEAD
       - name: ðŸ“¥ Checkout
         uses: actions/checkout@v4
         
       - name: ðŸ”§ Setup Deployment Tools
+=======
+      - name: ?“¥ Checkout
+        uses: actions/checkout@v4
+        
+      - name: ?”§ Setup Deployment Tools
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         run: |
           # Install kubectl
           curl -LO "https://dl.k8s.io/release/v${{ env.KUBERNETES_VERSION }}/bin/linux/amd64/kubectl"
@@ -464,7 +633,11 @@ jobs:
           curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
           sudo mv kustomize /usr/local/bin/
           
+<<<<<<< HEAD
       - name: ðŸ—ï¸ Reconnect to Test Cluster
+=======
+      - name: ??ï¸?Reconnect to Test Cluster
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         uses: helm/kind-action@v1
         with:
           version: v0.24.0
@@ -472,9 +645,15 @@ jobs:
           cluster_name: nephoran-deployment-test
           install_only: true
           
+<<<<<<< HEAD
       - name: ðŸ—ï¸ Create Namespace and Prerequisites
         run: |
           echo "ðŸ—ï¸ Creating namespace and prerequisites..."
+=======
+      - name: ??ï¸?Create Namespace and Prerequisites
+        run: |
+          echo "??ï¸?Creating namespace and prerequisites..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           deployment_config='${{ needs.deployment-preparation.outputs.deployment-config }}'
           namespace=$(echo "$deployment_config" | jq -r '.namespace')
@@ -529,11 +708,19 @@ jobs:
             namespace: $namespace
           EOF
           
+<<<<<<< HEAD
           echo "âœ… Prerequisites created successfully"
           
       - name: ðŸ“‹ Deploy Custom Resource Definitions
         run: |
           echo "ðŸ“‹ Deploying Custom Resource Definitions..."
+=======
+          echo "??Prerequisites created successfully"
+          
+      - name: ?? Deploy Custom Resource Definitions
+        run: |
+          echo "?? Deploying Custom Resource Definitions..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           # Create sample CRDs if they don't exist
           if [[ ! -d "config/crd" ]]; then
@@ -585,11 +772,16 @@ jobs:
             echo "Applying CRDs from config/crd..."
             kubectl apply -f config/crd/
           else
+<<<<<<< HEAD
             echo "âš ï¸ No CRDs found in config/crd - using sample CRD"
+=======
+            echo "? ï? No CRDs found in config/crd - using sample CRD"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             kubectl apply -f config/crd/intent_crd.yaml
           fi
           
           # Wait for CRDs to be established
+<<<<<<< HEAD
           echo "â³ Waiting for CRDs to be established..."
           kubectl wait --for=condition=established crd/intents.nephoran.io --timeout=60s
           
@@ -599,6 +791,17 @@ jobs:
         id: deploy
         run: |
           echo "ðŸš€ Deploying Nephoran Intent Operator..."
+=======
+          echo "??Waiting for CRDs to be established..."
+          kubectl wait --for=condition=established crd/intents.nephoran.io --timeout=60s
+          
+          echo "??CRDs deployed successfully"
+          
+      - name: ?? Deploy Nephoran Operator
+        id: deploy
+        run: |
+          echo "?? Deploying Nephoran Intent Operator..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           deployment_config='${{ needs.deployment-preparation.outputs.deployment-config }}'
           resource_limits='${{ needs.deployment-preparation.outputs.resource-limits }}'
@@ -721,7 +924,11 @@ jobs:
           EOF
           
           # Wait for deployment to be ready
+<<<<<<< HEAD
           echo "â³ Waiting for deployment to be ready..."
+=======
+          echo "??Waiting for deployment to be ready..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           kubectl wait --for=condition=available deployment/nephoran-operator-controller-manager \
             -n "$namespace" --timeout=${{ env.DEPLOYMENT_TIMEOUT }}
           
@@ -729,10 +936,17 @@ jobs:
           deployment_status=$(kubectl get deployment nephoran-operator-controller-manager -n "$namespace" -o jsonpath='{.status.conditions[?(@.type=="Available")].status}')
           
           if [[ "$deployment_status" == "True" ]]; then
+<<<<<<< HEAD
             echo "âœ… Nephoran Operator deployed successfully"
             echo "status=success" >> $GITHUB_OUTPUT
           else
             echo "âŒ Nephoran Operator deployment failed"
+=======
+            echo "??Nephoran Operator deployed successfully"
+            echo "status=success" >> $GITHUB_OUTPUT
+          else
+            echo "??Nephoran Operator deployment failed"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             echo "status=failed" >> $GITHUB_OUTPUT
             kubectl describe deployment nephoran-operator-controller-manager -n "$namespace"
             kubectl logs -l app.kubernetes.io/name=nephoran-intent-operator -n "$namespace" --tail=50
@@ -741,15 +955,25 @@ jobs:
           
           echo "version=${{ env.OPERATOR_VERSION }}" >> $GITHUB_OUTPUT
           
+<<<<<<< HEAD
       - name: ðŸ§ª Post-Deployment Testing
         run: |
           echo "ðŸ§ª Running post-deployment tests..."
+=======
+      - name: ?§ª Post-Deployment Testing
+        run: |
+          echo "?§ª Running post-deployment tests..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           deployment_config='${{ needs.deployment-preparation.outputs.deployment-config }}'
           namespace=$(echo "$deployment_config" | jq -r '.namespace')
           
           # Test CRD functionality
+<<<<<<< HEAD
           echo "ðŸ“‹ Testing CRD functionality..."
+=======
+          echo "?? Testing CRD functionality..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           cat <<EOF | kubectl apply -f -
           apiVersion: nephoran.io/v1alpha1
           kind: Intent
@@ -764,13 +988,20 @@ jobs:
           
           # Verify intent was created
           if kubectl get intent test-intent -n "$namespace"; then
+<<<<<<< HEAD
             echo "  âœ… Intent CRD working correctly"
           else
             echo "  âŒ Intent CRD not working"
+=======
+            echo "  ??Intent CRD working correctly"
+          else
+            echo "  ??Intent CRD not working"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             exit 1
           fi
           
           # Test operator health endpoints
+<<<<<<< HEAD
           echo "ðŸ¥ Testing health endpoints..."
           pod_name=$(kubectl get pods -n "$namespace" -l app.kubernetes.io/name=nephoran-intent-operator -o jsonpath='{.items[0].metadata.name}')
           
@@ -789,11 +1020,32 @@ jobs:
           fi
           
           echo "âœ… Post-deployment tests completed"
+=======
+          echo "?¥ Testing health endpoints..."
+          pod_name=$(kubectl get pods -n "$namespace" -l app.kubernetes.io/name=nephoran-intent-operator -o jsonpath='{.items[0].metadata.name}')
+          
+          if kubectl exec -n "$namespace" "$pod_name" -- wget -q -O - http://localhost:8081/healthz | grep -q "ok"; then
+            echo "  ??Health endpoint responding"
+          else
+            echo "  ? ï? Health endpoint not responding"
+          fi
+          
+          # Test metrics endpoint
+          echo "?? Testing metrics endpoint..."
+          if kubectl exec -n "$namespace" "$pod_name" -- wget -q -O - http://localhost:8080/metrics | head -5; then
+            echo "  ??Metrics endpoint responding"
+          else
+            echo "  ? ï? Metrics endpoint not responding"
+          fi
+          
+          echo "??Post-deployment tests completed"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
   # =============================================================================
   # MONITORING DEPLOYMENT: Deploy observability stack
   # =============================================================================
   monitoring-deployment:
+<<<<<<< HEAD
     name: ðŸ“Š Monitoring Deployment
     runs-on: ubuntu-22.04
     needs: [deployment-preparation, operator-deployment]
@@ -805,6 +1057,19 @@ jobs:
         uses: actions/checkout@v4
         
       - name: ðŸ”§ Setup Helm
+=======
+    name: ?? Monitoring Deployment
+    runs-on: ubuntu-latest
+    needs: [deployment-preparation, operator-deployment]
+    if: needs.operator-deployment.outputs.deployment-status == 'success' && inputs.enable_monitoring != 'false'
+    timeout-minutes: 10
+    
+    steps:
+      - name: ?“¥ Checkout
+        uses: actions/checkout@v4
+        
+      - name: ?”§ Setup Helm
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         run: |
           curl https://get.helm.sh/helm-v3.16.0-linux-amd64.tar.gz | tar xz
           sudo mv linux-amd64/helm /usr/local/bin/
@@ -815,7 +1080,11 @@ jobs:
           helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
           helm repo update
           
+<<<<<<< HEAD
       - name: ðŸ—ï¸ Reconnect to Test Cluster
+=======
+      - name: ??ï¸?Reconnect to Test Cluster
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         uses: helm/kind-action@v1
         with:
           version: v0.24.0
@@ -823,9 +1092,15 @@ jobs:
           cluster_name: nephoran-deployment-test
           install_only: true
           
+<<<<<<< HEAD
       - name: ðŸ“Š Deploy Prometheus Stack
         run: |
           echo "ðŸ“Š Deploying Prometheus monitoring stack..."
+=======
+      - name: ?? Deploy Prometheus Stack
+        run: |
+          echo "?? Deploying Prometheus monitoring stack..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           monitoring_config='${{ needs.deployment-preparation.outputs.monitoring-config }}'
           deployment_config='${{ needs.deployment-preparation.outputs.deployment-config }}'
@@ -880,11 +1155,19 @@ jobs:
           helm install prometheus-stack prometheus-community/kube-prometheus-stack \
             -n monitoring -f prometheus-values.yaml --wait --timeout=10m
           
+<<<<<<< HEAD
           echo "âœ… Prometheus stack deployed"
           
       - name: ðŸ“Š Create ServiceMonitor for Nephoran Operator
         run: |
           echo "ðŸ“Š Creating ServiceMonitor for Nephoran Operator..."
+=======
+          echo "??Prometheus stack deployed"
+          
+      - name: ?? Create ServiceMonitor for Nephoran Operator
+        run: |
+          echo "?? Creating ServiceMonitor for Nephoran Operator..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           deployment_config='${{ needs.deployment-preparation.outputs.deployment-config }}'
           namespace=$(echo "$deployment_config" | jq -r '.namespace')
@@ -911,11 +1194,19 @@ jobs:
               path: /metrics
           EOF
           
+<<<<<<< HEAD
           echo "âœ… ServiceMonitor created for metrics collection"
           
       - name: ðŸ“ˆ Deploy Grafana Dashboard
         run: |
           echo "ðŸ“ˆ Deploying Nephoran-specific Grafana dashboard..."
+=======
+          echo "??ServiceMonitor created for metrics collection"
+          
+      - name: ?? Deploy Grafana Dashboard
+        run: |
+          echo "?? Deploying Nephoran-specific Grafana dashboard..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           # Create ConfigMap with dashboard JSON
           cat <<EOF | kubectl apply -f -
@@ -966,23 +1257,39 @@ jobs:
               }
           EOF
           
+<<<<<<< HEAD
           echo "âœ… Grafana dashboard deployed"
+=======
+          echo "??Grafana dashboard deployed"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
   # =============================================================================
   # DEPLOYMENT VALIDATION: Comprehensive post-deployment validation
   # =============================================================================
   deployment-validation:
+<<<<<<< HEAD
     name: âœ… Deployment Validation
     runs-on: ubuntu-22.04
+=======
+    name: ??Deployment Validation
+    runs-on: ubuntu-latest
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
     needs: [deployment-preparation, operator-deployment, monitoring-deployment]
     if: always() && needs.operator-deployment.outputs.deployment-status == 'success'
     timeout-minutes: 10
     
     steps:
+<<<<<<< HEAD
       - name: ðŸ“¥ Checkout
         uses: actions/checkout@v4
         
       - name: ðŸ—ï¸ Reconnect to Test Cluster
+=======
+      - name: ?“¥ Checkout
+        uses: actions/checkout@v4
+        
+      - name: ??ï¸?Reconnect to Test Cluster
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         uses: helm/kind-action@v1
         with:
           version: v0.24.0
@@ -990,9 +1297,15 @@ jobs:
           cluster_name: nephoran-deployment-test
           install_only: true
           
+<<<<<<< HEAD
       - name: âœ… Comprehensive Validation
         run: |
           echo "âœ… Running comprehensive deployment validation..."
+=======
+      - name: ??Comprehensive Validation
+        run: |
+          echo "??Running comprehensive deployment validation..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           deployment_config='${{ needs.deployment-preparation.outputs.deployment-config }}'
           namespace=$(echo "$deployment_config" | jq -r '.namespace')
@@ -1000,43 +1313,76 @@ jobs:
           validation_passed=true
           
           # Validate operator deployment
+<<<<<<< HEAD
           echo "ðŸ” Validating operator deployment..."
           if kubectl get deployment nephoran-operator-controller-manager -n "$namespace" | grep -q "1/1"; then
             echo "  âœ… Operator deployment healthy"
           else
             echo "  âŒ Operator deployment unhealthy"
+=======
+          echo "?? Validating operator deployment..."
+          if kubectl get deployment nephoran-operator-controller-manager -n "$namespace" | grep -q "1/1"; then
+            echo "  ??Operator deployment healthy"
+          else
+            echo "  ??Operator deployment unhealthy"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             validation_passed=false
           fi
           
           # Validate CRDs
+<<<<<<< HEAD
           echo "ðŸ“‹ Validating CRDs..."
           if kubectl get crd intents.nephoran.io; then
             echo "  âœ… Intent CRD available"
           else
             echo "  âŒ Intent CRD missing"
+=======
+          echo "?? Validating CRDs..."
+          if kubectl get crd intents.nephoran.io; then
+            echo "  ??Intent CRD available"
+          else
+            echo "  ??Intent CRD missing"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             validation_passed=false
           fi
           
           # Validate RBAC
+<<<<<<< HEAD
           echo "ðŸ” Validating RBAC..."
           if kubectl auth can-i create intents --as=system:serviceaccount:$namespace:nephoran-operator -n "$namespace"; then
             echo "  âœ… RBAC permissions correct"
           else
             echo "  âŒ RBAC permissions incorrect"
+=======
+          echo "?? Validating RBAC..."
+          if kubectl auth can-i create intents --as=system:serviceaccount:$namespace:nephoran-operator -n "$namespace"; then
+            echo "  ??RBAC permissions correct"
+          else
+            echo "  ??RBAC permissions incorrect"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             validation_passed=false
           fi
           
           # Validate service endpoints
+<<<<<<< HEAD
           echo "ðŸŒ Validating service endpoints..."
           if kubectl get svc nephoran-operator-controller-manager-service -n "$namespace"; then
             echo "  âœ… Service endpoints available"
           else
             echo "  âŒ Service endpoints missing"
+=======
+          echo "?? Validating service endpoints..."
+          if kubectl get svc nephoran-operator-controller-manager-service -n "$namespace"; then
+            echo "  ??Service endpoints available"
+          else
+            echo "  ??Service endpoints missing"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             validation_passed=false
           fi
           
           # Validate monitoring (if enabled)
           if [[ "${{ env.ENABLE_MONITORING }}" == "true" ]]; then
+<<<<<<< HEAD
             echo "ðŸ“Š Validating monitoring stack..."
             if kubectl get prometheus -n monitoring; then
               echo "  âœ… Prometheus deployed"
@@ -1048,25 +1394,53 @@ jobs:
               echo "  âœ… ServiceMonitor configured"
             else
               echo "  âš ï¸ ServiceMonitor missing"
+=======
+            echo "?? Validating monitoring stack..."
+            if kubectl get prometheus -n monitoring; then
+              echo "  ??Prometheus deployed"
+            else
+              echo "  ? ï? Prometheus not deployed"
+            fi
+            
+            if kubectl get servicemonitor nephoran-operator-metrics -n monitoring; then
+              echo "  ??ServiceMonitor configured"
+            else
+              echo "  ? ï? ServiceMonitor missing"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             fi
           fi
           
           # Performance validation
+<<<<<<< HEAD
           echo "âš¡ Performance validation..."
+=======
+          echo "??Performance validation..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           pod_name=$(kubectl get pods -n "$namespace" -l app.kubernetes.io/name=nephoran-intent-operator -o jsonpath='{.items[0].metadata.name}')
           
           cpu_usage=$(kubectl top pod "$pod_name" -n "$namespace" --no-headers | awk '{print $2}' | sed 's/m//' 2>/dev/null || echo "0")
           memory_usage=$(kubectl top pod "$pod_name" -n "$namespace" --no-headers | awk '{print $3}' | sed 's/Mi//' 2>/dev/null || echo "0")
           
+<<<<<<< HEAD
           echo "  ðŸ“Š Resource usage - CPU: ${cpu_usage}m, Memory: ${memory_usage}Mi"
+=======
+          echo "  ?? Resource usage - CPU: ${cpu_usage}m, Memory: ${memory_usage}Mi"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           # Final validation result
           if [[ "$validation_passed" == "true" ]]; then
             echo ""
+<<<<<<< HEAD
             echo "ðŸŽ‰ DEPLOYMENT VALIDATION SUCCESSFUL!"
             echo "âœ… Nephoran Intent Operator is ready for production use"
             echo ""
             echo "ðŸ“Š Deployment Summary:"
+=======
+            echo "?? DEPLOYMENT VALIDATION SUCCESSFUL!"
+            echo "??Nephoran Intent Operator is ready for production use"
+            echo ""
+            echo "?? Deployment Summary:"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             echo "  - Environment: ${{ env.DEPLOYMENT_ENV }}"
             echo "  - Strategy: ${{ env.DEPLOYMENT_STRATEGY }}"
             echo "  - Operator Version: ${{ needs.operator-deployment.outputs.operator-version }}"
@@ -1076,16 +1450,28 @@ jobs:
             echo ""
           else
             echo ""
+<<<<<<< HEAD
             echo "âŒ DEPLOYMENT VALIDATION FAILED!"
             echo "ðŸ”§ Please check the issues above and retry deployment"
+=======
+            echo "??DEPLOYMENT VALIDATION FAILED!"
+            echo "?”§ Please check the issues above and retry deployment"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             echo ""
             exit 1
           fi
           
+<<<<<<< HEAD
       - name: ðŸ“Š Generate Deployment Report
         if: always()
         run: |
           echo "# ðŸš€ Kubernetes Operator Deployment Report" > deployment-report.md
+=======
+      - name: ?? Generate Deployment Report
+        if: always()
+        run: |
+          echo "# ?? Kubernetes Operator Deployment Report" > deployment-report.md
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           echo "" >> deployment-report.md
           echo "**Date:** $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> deployment-report.md
           echo "**Environment:** ${{ env.DEPLOYMENT_ENV }}" >> deployment-report.md
@@ -1093,7 +1479,11 @@ jobs:
           echo "**Operator Version:** ${{ needs.operator-deployment.outputs.operator-version }}" >> deployment-report.md
           echo "" >> deployment-report.md
           
+<<<<<<< HEAD
           echo "## ðŸ“Š Deployment Status" >> deployment-report.md
+=======
+          echo "## ?? Deployment Status" >> deployment-report.md
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           echo "| Component | Status | Notes |" >> deployment-report.md
           echo "|-----------|--------|-------|" >> deployment-report.md
           echo "| Cluster Validation | ${{ needs.cluster-validation.result }} | Pre-deployment checks |" >> deployment-report.md
@@ -1102,19 +1492,31 @@ jobs:
           echo "| Final Validation | success | Comprehensive post-deployment tests |" >> deployment-report.md
           echo "" >> deployment-report.md
           
+<<<<<<< HEAD
           echo "## ðŸ”§ Configuration Applied" >> deployment-report.md
+=======
+          echo "## ?”§ Configuration Applied" >> deployment-report.md
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           echo '```json' >> deployment-report.md
           echo '${{ needs.deployment-preparation.outputs.deployment-config }}' >> deployment-report.md
           echo '```' >> deployment-report.md
           echo "" >> deployment-report.md
           
+<<<<<<< HEAD
           echo "## ðŸ“ˆ Resource Allocation" >> deployment-report.md
+=======
+          echo "## ?? Resource Allocation" >> deployment-report.md
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           echo '```json' >> deployment-report.md
           echo '${{ needs.deployment-preparation.outputs.resource-limits }}' >> deployment-report.md
           echo '```' >> deployment-report.md
           echo "" >> deployment-report.md
           
+<<<<<<< HEAD
           echo "## ðŸŽ¯ Next Steps" >> deployment-report.md
+=======
+          echo "## ?Ž¯ Next Steps" >> deployment-report.md
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           echo "1. **Configure Intent Processing**: Submit test intents to validate functionality" >> deployment-report.md
           echo "2. **Monitor Performance**: Check Grafana dashboards for operator metrics" >> deployment-report.md
           echo "3. **Security Review**: Verify RBAC and security contexts are appropriate" >> deployment-report.md
@@ -1124,7 +1526,11 @@ jobs:
           echo "---" >> deployment-report.md
           echo "_Generated by Nephoran Kubernetes Operator Deployment Pipeline_" >> deployment-report.md
           
+<<<<<<< HEAD
       - name: ðŸ“¤ Upload Deployment Report
+=======
+      - name: ?“¤ Upload Deployment Report
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -16,6 +16,21 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+<<<<<<< HEAD
+=======
+// safeRegister safely registers a metric collector, avoiding panics from duplicate registrations
+// Deprecated: Use monitoring.GetGlobalRegistry().SafeRegister() instead
+func safeRegister(registry prometheus.Registerer, collector prometheus.Collector) {
+	if err := registry.Register(collector); err != nil {
+		if _, ok := err.(prometheus.AlreadyRegisteredError); !ok {
+			// Only log if it's not a duplicate registration error
+			log.Log.Error(err, "Failed to register metric collector")
+		}
+		// Ignore duplicate registration errors to prevent panics in tests
+	}
+}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // PrometheusMetricsCollector implements MetricsCollector using Prometheus
 type PrometheusMetricsCollector struct {
 	client     api.Client
@@ -88,9 +103,17 @@ func (pmc *PrometheusMetricsCollector) initMetrics() {
 	})
 
 	if pmc.registry != nil {
+<<<<<<< HEAD
 		pmc.registry.MustRegister(pmc.scrapeErrors)
 		pmc.registry.MustRegister(pmc.scrapeDuration)
 		pmc.registry.MustRegister(pmc.metricsCollected)
+=======
+		// Use centralized registry for better test isolation
+		gr := GetGlobalRegistry()
+		gr.SafeRegister("prometheus-scrape-errors", pmc.scrapeErrors)
+		gr.SafeRegister("prometheus-scrape-duration", pmc.scrapeDuration) 
+		gr.SafeRegister("prometheus-metrics-collected", pmc.metricsCollected)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 }
 
@@ -341,8 +364,15 @@ func (kmc *KubernetesMetricsCollector) initMetrics() {
 	})
 
 	if kmc.registry != nil {
+<<<<<<< HEAD
 		kmc.registry.MustRegister(kmc.k8sAPIErrors)
 		kmc.registry.MustRegister(kmc.k8sAPIDuration)
+=======
+		// Use centralized registry for better test isolation
+		gr := GetGlobalRegistry()
+		gr.SafeRegister("k8s-api-errors", kmc.k8sAPIErrors)
+		gr.SafeRegister("k8s-api-duration", kmc.k8sAPIDuration)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 }
 
@@ -518,8 +548,15 @@ func (ma *MetricsAggregator) initMetrics() {
 	})
 
 	if ma.registry != nil {
+<<<<<<< HEAD
 		ma.registry.MustRegister(ma.aggregationErrors)
 		ma.registry.MustRegister(ma.aggregationTime)
+=======
+		// Use centralized registry for better test isolation
+		gr := GetGlobalRegistry()
+		gr.SafeRegister("metrics-aggregation-errors", ma.aggregationErrors)
+		gr.SafeRegister("metrics-aggregation-time", ma.aggregationTime)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 }
 

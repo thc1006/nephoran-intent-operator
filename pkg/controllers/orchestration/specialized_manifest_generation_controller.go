@@ -1997,6 +1997,21 @@ func NewKubernetesTemplateEngine(logger logr.Logger, config ManifestGenerationCo
 			"lower": strings.ToLower,
 
 			"join": strings.Join,
+<<<<<<< HEAD
+=======
+
+			// Add indent function for template compatibility
+			"indent": func(spaces int, v string) string {
+				prefix := strings.Repeat(" ", spaces)
+				lines := strings.Split(v, "\n")
+				for i, line := range lines {
+					if line != "" {
+						lines[i] = prefix + line
+					}
+				}
+				return strings.Join(lines, "\n")
+			},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 	}
 

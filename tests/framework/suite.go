@@ -176,7 +176,11 @@ func NewTestSuite(config *TestConfig) *TestSuite {
 func (ts *TestSuite) SetupSuite() {
 	logf.SetLogger(crzap.New(crzap.UseDevMode(true)))
 
+<<<<<<< HEAD
 	ginkgo.By("Bootstrapping test environment")
+=======
+	fmt.Println("Bootstrapping test environment")
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// Setup test environment.
 
@@ -220,13 +224,21 @@ func (ts *TestSuite) SetupSuite() {
 
 	ts.metrics.Initialize()
 
+<<<<<<< HEAD
 	ginkgo.By("Test environment ready")
+=======
+	fmt.Println("Test environment ready")
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // TearDownSuite cleans up the test environment.
 
 func (ts *TestSuite) TearDownSuite() {
+<<<<<<< HEAD
 	ginkgo.By("Tearing down test environment")
+=======
+	fmt.Println("Tearing down test environment")
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// Cancel context.
 
@@ -320,7 +332,11 @@ func (ts *TestSuite) RunLoadTest(testFunc func() error) error {
 		return nil
 	}
 
+<<<<<<< HEAD
 	ginkgo.By(fmt.Sprintf("Running load test with %d concurrent operations", ts.config.MaxConcurrency))
+=======
+	fmt.Printf("Running load test with %d concurrent operations\n", ts.config.MaxConcurrency)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	return ts.metrics.ExecuteLoadTest(ts.config.MaxConcurrency, ts.config.TestDuration, testFunc)
 }
@@ -332,7 +348,11 @@ func (ts *TestSuite) RunChaosTest(testFunc func() error) error {
 		return nil
 	}
 
+<<<<<<< HEAD
 	ginkgo.By(fmt.Sprintf("Running chaos test with %.1f%% failure rate", ts.config.FailureRate*100))
+=======
+	fmt.Printf("Running chaos test with %.1f%% failure rate\n", ts.config.FailureRate*100)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	return ts.mocks.InjectChaos(ts.config.FailureRate, testFunc)
 }
@@ -340,7 +360,11 @@ func (ts *TestSuite) RunChaosTest(testFunc func() error) error {
 // generateTestReports creates comprehensive test reports.
 
 func (ts *TestSuite) generateTestReports() {
+<<<<<<< HEAD
 	ginkgo.By("Generating test reports")
+=======
+	fmt.Println("Generating test reports")
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// Generate coverage report.
 

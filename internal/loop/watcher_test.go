@@ -943,7 +943,11 @@ func (s *WatcherTestSuite) TestJSONValidation_ValidJSONProcessing() {
 		},
 		{
 			name:    "generic_valid_json",
+<<<<<<< HEAD
 			content: `{"apiVersion": "v1", "kind": "NetworkIntent", "action": "scale", "target": "deployment", "count": 3}`,
+=======
+			content: `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale", "target": {"name": "deployment"}}}`,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			valid:   true,
 		},
 	}
@@ -1435,8 +1439,13 @@ func (s *WatcherTestSuite) TestIntegration_StatusFileGenerationWithVersioning() 
 	for _, file := range statusFiles {
 		s.T().Logf("Status file name: %s", file.Name())
 		s.Assert().Contains(file.Name(), ".status", "Should have .status extension")
+<<<<<<< HEAD
 		// The pattern should match: intent-version-test-{id}-{timestamp}.status
 		s.Assert().Regexp(`intent-version-test-\d+-\d{8}-\d{6}\.status`, file.Name(),
+=======
+		// The pattern should match: intent-version-test-{id}.json-{timestamp}.status
+		s.Assert().Regexp(`intent-version-test-\d+\.json-\d{8}-\d{6}\.status`, file.Name(),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			"Status file should have timestamp versioning")
 	}
 }
@@ -1998,7 +2007,15 @@ func (s *WatcherTestSuite) TestWindowsFilenameValidation_StatusFileGeneration() 
 					}
 
 					// Should not be a Windows reserved device name
+<<<<<<< HEAD
 					baseName := strings.Split(foundStatusFile, "-")[0]
+=======
+					parts := strings.Split(foundStatusFile, "-")
+					if len(parts) == 0 {
+						return // Skip empty split result
+					}
+					baseName := parts[0]
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 					upperBaseName := strings.ToUpper(baseName)
 					reservedNames := []string{"CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"}
 					for _, reserved := range reservedNames {

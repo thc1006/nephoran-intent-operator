@@ -46,6 +46,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+<<<<<<< HEAD
+=======
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 	"github.com/thc1006/nephoran-intent-operator/pkg/templates"
 	"github.com/thc1006/nephoran-intent-operator/pkg/validation/yang"
@@ -77,6 +81,11 @@ type NetworkIntentPackageReconciler struct {
 	// Configuration.
 
 	Config *IntegrationConfig
+<<<<<<< HEAD
+=======
+
+	Constants *config.Constants
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // IntegrationConfig contains configuration for NetworkIntent-PackageRevision integration.
@@ -274,9 +283,15 @@ func (r *NetworkIntentPackageReconciler) Reconcile(ctx context.Context, req ctrl
 
 	// Add finalizer if not present.
 
+<<<<<<< HEAD
 	if !controllerutil.ContainsFinalizer(&intent, NetworkIntentFinalizer) {
 
 		controllerutil.AddFinalizer(&intent, NetworkIntentFinalizer)
+=======
+	if !controllerutil.ContainsFinalizer(&intent, r.Constants.NetworkIntentFinalizer) {
+
+		controllerutil.AddFinalizer(&intent, r.Constants.NetworkIntentFinalizer)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 		if err := r.Update(ctx, &intent); err != nil {
 			return ctrl.Result{}, err
@@ -818,7 +833,11 @@ func (r *NetworkIntentPackageReconciler) handleIntentDeletion(ctx context.Contex
 
 	// Remove finalizer.
 
+<<<<<<< HEAD
 	controllerutil.RemoveFinalizer(&intent, NetworkIntentFinalizer)
+=======
+	controllerutil.RemoveFinalizer(&intent, r.Constants.NetworkIntentFinalizer)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	if err := r.Update(ctx, &intent); err != nil {
 		return ctrl.Result{}, err
@@ -1030,9 +1049,15 @@ func (r *NetworkIntentPackageReconciler) checkDeploymentStatus(ctx context.Conte
 		return "", err
 	}
 
+<<<<<<< HEAD
 	// Use DeploymentReady field instead of DeploymentStatus.
 
 	if pkg.Status.DeploymentReady {
+=======
+	// Check deployment status.
+
+	if pkg.Status.DeploymentStatus != nil && pkg.Status.DeploymentStatus.Phase == "Ready" {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		return "deployed", nil
 	}
 
@@ -1047,12 +1072,15 @@ func (r *NetworkIntentPackageReconciler) checkDeploymentStatus(ctx context.Conte
 
 // Constants and helper types.
 
+<<<<<<< HEAD
 const (
 
 	// NetworkIntentFinalizer holds networkintentfinalizer value.
 
 	NetworkIntentFinalizer = "networkintent.nephoran.com/package-revision"
 )
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 // GetDefaultIntegrationConfig returns default integration configuration.
 

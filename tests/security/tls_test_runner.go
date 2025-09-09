@@ -203,7 +203,11 @@ func TestAuditReportGeneration(t *testing.T) {
 
 // RunInteractiveDemo runs an interactive demo of TLS security features
 func RunInteractiveDemo() {
+<<<<<<< HEAD
 	fmt.Println("=== Nephoran TLS Security Demo ===\n")
+=======
+	fmt.Println("=== Nephoran TLS Security Demo ===")
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	fmt.Println("1. Creating O-RAN Compliant TLS Configurations...")
 

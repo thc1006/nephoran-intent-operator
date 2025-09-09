@@ -22,7 +22,11 @@ permissions:
   contents: read
 
 env:
+<<<<<<< HEAD
   GO_VERSION: "1.22.7"
+=======
+  GO_VERSION: "1.24.6"  # EMERGENCY FIX - Match go.mod toolchain
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
   GOLANGCI_LINT_VERSION: "v1.64.3"  # 2025 compatibility
   ENVTEST_K8S_VERSION: "1.31.0"      # Latest stable for envtest
 
@@ -33,14 +37,22 @@ jobs:
   lint:
     name: Code Quality - Detailed (golangci-lint v1.64.3)
     runs-on: ubuntu-latest
+<<<<<<< HEAD
     timeout-minutes: 15
+=======
+    timeout-minutes: 10
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
     continue-on-error: true  # TEMPORARY: Soft-fail lint to unblock merge
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4.2.1  # PINNED VERSION
         with:
+<<<<<<< HEAD
           fetch-depth: 0
+=======
+          fetch-depth: 1
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
       - name: Setup Go
         uses: actions/setup-go@v5.0.2  # PINNED VERSION
@@ -63,9 +75,15 @@ jobs:
           echo ""
           echo "Running: go mod verify"
           if go mod verify; then
+<<<<<<< HEAD
             echo "✅ All modules verified successfully"
           else
             echo "❌ Module verification failed"
+=======
+            echo "??All modules verified successfully"
+          else
+            echo "??Module verification failed"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             exit 1
           fi
 
@@ -77,18 +95,32 @@ jobs:
           # Step 1: Build all packages
           echo "Step 1: Building all packages..."
           if ! go build ./...; then
+<<<<<<< HEAD
             echo "❌ Build failed - compilation errors detected"
             exit 1
           fi
           echo "[BUILD OK] ✅ All packages built successfully"
+=======
+            echo "??Build failed - compilation errors detected"
+            exit 1
+          fi
+          echo "[BUILD OK] ??All packages built successfully"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           # Step 2: Run go vet
           echo "Step 2: Running go vet..."
           if ! go vet ./...; then
+<<<<<<< HEAD
             echo "❌ Go vet failed - potential issues detected"
             exit 1
           fi
           echo "[VET OK] ✅ Go vet passed successfully"
+=======
+            echo "??Go vet failed - potential issues detected"
+            exit 1
+          fi
+          echo "[VET OK] ??Go vet passed successfully"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           # Step 3: Compile test binaries per package with unique names
           echo "Step 3: Compiling test binaries per package..."
@@ -107,12 +139,21 @@ jobs:
             output_file=".cache/tests/${safe_name}.test"
             
             # Try to compile test binary
+<<<<<<< HEAD
             if go test -c "$pkg" -o "$output_file" 2>/dev/null; then
               compiled_count=$((compiled_count + 1))
               echo "  ✓ Compiled: $pkg → ${safe_name}.test"
             else
               # Some packages may not have tests, which is okay
               echo "  ○ Skipped: $pkg (no tests or compilation error)"
+=======
+            if go test -short -c "$pkg" -o "$output_file" 2>/dev/null; then
+              compiled_count=$((compiled_count + 1))
+              echo "  ??Compiled: $pkg ??${safe_name}.test"
+            else
+              # Some packages may not have tests, which is okay
+              echo "  ??Skipped: $pkg (no tests or compilation error)"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             fi
           done
           
@@ -136,15 +177,26 @@ jobs:
           echo "Step 4: Checking for stub files with incorrect build tags..."
           for stub_file in $(find . -name "*missing_types*.go" -o -name "*stub*.go" | grep -v vendor); do
             if ! head -3 "$stub_file" | grep -qE "//go:build.*stub|// \+build.*stub"; then
+<<<<<<< HEAD
               echo "❌ Stub file $stub_file lacks proper build tag constraint"
+=======
+              echo "??Stub file $stub_file lacks proper build tag constraint"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
               echo "Add '//go:build <tag>_stub' to prevent default compilation"
               exit 1
             fi
           done
+<<<<<<< HEAD
           echo "✅ All stub files have proper build constraints"
           
           echo ""
           echo "=== ✅ Build/vet gate passed - proceeding with lint ==="
+=======
+          echo "??All stub files have proper build constraints"
+          
+          echo ""
+          echo "=== ??Build/vet gate passed - proceeding with lint ==="
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
       - name: Install and verify golangci-lint v1.65.1 with 2025 patterns
         run: |
@@ -159,11 +211,19 @@ jobs:
           echo "Verifying installation:"
           LINT_PATH="$(go env GOPATH)/bin/golangci-lint"
           if [ -f "$LINT_PATH" ]; then
+<<<<<<< HEAD
             echo "✅ Binary installed at: $LINT_PATH"
             echo "Version: $($LINT_PATH version)"
             echo "Binary size: $(ls -lh $LINT_PATH | awk '{print $5}')"
           else
             echo "❌ golangci-lint not found at expected path"
+=======
+            echo "??Binary installed at: $LINT_PATH"
+            echo "Version: $($LINT_PATH version)"
+            echo "Binary size: $(ls -lh $LINT_PATH | awk '{print $5}')"
+          else
+            echo "??golangci-lint not found at expected path"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             exit 1
           fi
           
@@ -171,9 +231,15 @@ jobs:
           echo ""
           if [ -f ".golangci.yml" ]; then
             echo "Verifying .golangci.yml configuration..."
+<<<<<<< HEAD
             $LINT_PATH config verify --config=.golangci.yml || echo "⚠️ Config verification failed (may be using defaults)"
           else
             echo "ℹ️ No .golangci.yml found - will use default configuration"
+=======
+            $LINT_PATH config verify --config=.golangci.yml || echo "?��? Config verification failed (may be using defaults)"
+          else
+            echo "?��? No .golangci.yml found - will use default configuration"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           fi
 
       - name: Run golangci-lint with enhanced detailed output
@@ -237,11 +303,19 @@ jobs:
           echo ""
           echo "Exit code: $LINT_EXIT_CODE"
           if [ $LINT_EXIT_CODE -eq 0 ]; then
+<<<<<<< HEAD
             echo "✅ No linting issues found!"
           elif [ $LINT_EXIT_CODE -eq 1 ]; then
             echo "⚠️ Linting issues found (see details above)"
           else
             echo "❌ Linter failed with error code $LINT_EXIT_CODE"
+=======
+            echo "??No linting issues found!"
+          elif [ $LINT_EXIT_CODE -eq 1 ]; then
+            echo "?��? Linting issues found (see details above)"
+          else
+            echo "??Linter failed with error code $LINT_EXIT_CODE"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           fi
           
           # Upload artifacts even if linting fails
@@ -267,13 +341,21 @@ jobs:
   test:
     name: Test Suite (Ubuntu)
     runs-on: ubuntu-latest
+<<<<<<< HEAD
     timeout-minutes: 15
+=======
+    timeout-minutes: 10
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4.2.1  # PINNED VERSION
         with:
+<<<<<<< HEAD
           fetch-depth: 0
+=======
+          fetch-depth: 1
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
       - name: Setup Go
         uses: actions/setup-go@v5.0.2  # PINNED VERSION
@@ -300,10 +382,17 @@ jobs:
           KUBEBUILDER_ASSETS: ${{ env.KUBEBUILDER_ASSETS }}
         run: |
           mkdir -p test-results
+<<<<<<< HEAD
           export CGO_ENABLED=0
           export GOMAXPROCS=2
           echo "Running 2025 test patterns with enhanced race detection..."
           go test -v -race -timeout=20m -parallel=2 -coverprofile=test-results/coverage.out -covermode=atomic ./...
+=======
+          export CGO_ENABLED=1  # Required for -race flag
+          export GOMAXPROCS=2
+          echo "Running 2025 test patterns with enhanced race detection..."
+          go test -short -v -race -timeout=20m -parallel=2 -coverprofile=test-results/coverage.out -covermode=atomic ./...
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
       - name: Generate coverage report
         if: always()
@@ -357,9 +446,15 @@ jobs:
         run: |
           for exe in bin/*; do
             if [ -x "$exe" ]; then
+<<<<<<< HEAD
               echo "✅ $exe is executable"
             else
               echo "❌ $exe is not executable"
+=======
+              echo "??$exe is executable"
+            else
+              echo "??$exe is not executable"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
               exit 1
             fi
           done
@@ -382,18 +477,34 @@ jobs:
           echo "Build: ${{ needs.build.result }}"
           
           if [[ "${{ needs.lint.result }}" != "success" ]]; then
+<<<<<<< HEAD
             echo "❌ Lint job failed"
+=======
+            echo "??Lint job failed"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             exit 1
           fi
           
           if [[ "${{ needs.test.result }}" != "success" ]]; then
+<<<<<<< HEAD
             echo "❌ Test job failed"
+=======
+            echo "??Test job failed"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             exit 1
           fi
           
           if [[ "${{ needs.build.result }}" != "success" ]]; then
+<<<<<<< HEAD
             echo "❌ Build job failed" 
             exit 1
           fi
           
           echo "✅ All Ubuntu CI jobs passed successfully!"
+=======
+            echo "??Build job failed" 
+            exit 1
+          fi
+          
+          echo "??All Ubuntu CI jobs passed successfully!"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

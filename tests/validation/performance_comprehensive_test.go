@@ -3,10 +3,17 @@ package test_validation
 
 import (
 	"context"
+<<<<<<< HEAD
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"math"
+=======
+	"encoding/json"
+	"fmt"
+	"math"
+	"math/rand"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -16,6 +23,10 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+<<<<<<< HEAD
+=======
+	"k8s.io/apimachinery/pkg/types"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
@@ -510,7 +521,12 @@ func (cpt *ComprehensivePerformanceTester) testThroughputConsistency(ctx context
 	// Calculate variance
 	variance, _ := stats.Variance(throughputs)
 	stdDev, _ := stats.StandardDeviation(throughputs)
+<<<<<<< HEAD
 	coefficientOfVariation := stdDev / stats.Mean(throughputs)
+=======
+	mean, _ := stats.Mean(throughputs)
+	coefficientOfVariation := stdDev / mean
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	result.ThroughputVariance = variance
 
@@ -771,11 +787,19 @@ func (cpt *ComprehensivePerformanceTester) waitForDeployment(ctx context.Context
 				continue
 			}
 
+<<<<<<< HEAD
 			if current.Status.Phase == nephranv1.PhaseDeployed {
 				return true
 			}
 
 			if current.Status.Phase == nephranv1.PhaseFailed {
+=======
+			if current.Status.Phase == nephranv1.NetworkIntentPhaseDeployed {
+				return true
+			}
+
+			if current.Status.Phase == nephranv1.NetworkIntentPhaseFailed {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				return false
 			}
 		}
@@ -802,8 +826,13 @@ func (cpt *ComprehensivePerformanceTester) waitForProcessing(ctx context.Context
 			}
 
 			// Consider it successful if it's past pending phase
+<<<<<<< HEAD
 			if current.Status.Phase != "" && current.Status.Phase != nephranv1.PhasePending {
 				return current.Status.Phase != nephranv1.PhaseFailed
+=======
+			if current.Status.Phase != "" && current.Status.Phase != nephranv1.NetworkIntentPhasePending {
+				return current.Status.Phase != nephranv1.NetworkIntentPhaseFailed
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			}
 		}
 	}
@@ -1018,5 +1047,11 @@ func (pmc *PerformanceMetricsCollector) getMetrics() map[string]interface{} {
 	pmc.mu.RLock()
 	defer pmc.mu.RUnlock()
 
+<<<<<<< HEAD
 	return json.RawMessage(`{}`)
+=======
+	var result map[string]interface{}
+	json.Unmarshal(json.RawMessage(`{}`), &result)
+	return result
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }

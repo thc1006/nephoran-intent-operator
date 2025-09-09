@@ -90,6 +90,15 @@ type ResourceCapacity struct {
 	CustomResources map[string]*ResourceMetric `json:"customResources,omitempty"`
 }
 
+<<<<<<< HEAD
+=======
+// MetricData represents basic metric data with value and unit
+type MetricData struct {
+	Value float64 `json:"value"`
+	Unit  string  `json:"unit"`
+}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // ResourceMetric represents a resource metric with total, available, and used values.
 
 type ResourceMetric struct {

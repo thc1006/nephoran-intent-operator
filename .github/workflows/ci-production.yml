@@ -14,11 +14,19 @@ on:
       - '.github/workflows/ci-production.yml'
       - 'Makefile*'
       - 'scripts/**'
+<<<<<<< HEAD
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - main
       - integrate/**
+=======
+  # pull_request: DISABLED - Consolidated into nephoran-ci-consolidated-2025.yml
+  #   types: [opened, synchronize, reopened, ready_for_review]
+  #   branches:
+  #     - main
+  #     - integrate/**
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
   workflow_dispatch:
     inputs:
       build_mode:
@@ -37,7 +45,11 @@ concurrency:
 
 env:
   # Upgraded to latest stable Go version for performance improvements  
+<<<<<<< HEAD
   GO_VERSION: "1.25.0"
+=======
+  GO_VERSION: "1.24.6"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   # Build optimizations for CI environment
@@ -60,7 +72,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     outputs:
+<<<<<<< HEAD
       go-cache-key: ${{ steps.cache-key-gen.outputs.cache-key }}
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
       should-build: ${{ steps.changes.outputs.go == 'true' }}
       
     steps:
@@ -84,6 +99,7 @@ jobs:
         if: steps.changes.outputs.go == 'true'
         uses: actions/setup-go@v5
         with:
+<<<<<<< HEAD
           go-version: '1.25.0'
           cache: false  # We'll handle caching manually for better control
           
@@ -132,6 +148,11 @@ jobs:
             nephoran-go-v1-${{ runner.os }}-
           enableCrossOsArchive: false
           fail-on-cache-miss: false
+=======
+          go-version: '1.24.6'
+          cache: true  # Use built-in caching from actions/setup-go
+          
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             
       - name: Verify Go environment
         if: steps.changes.outputs.go == 'true'
@@ -168,6 +189,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5  # Latest stable
         with:
+<<<<<<< HEAD
           go-version: '1.25.0'
           cache: false
           
@@ -181,6 +203,10 @@ jobs:
           restore-keys: |
             nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-
             nephoran-go-v1-${{ runner.os }}-
+=======
+          go-version: '1.24.6'
+          cache: true
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             
       - name: Syntax validation
         timeout-minutes: 2
@@ -231,6 +257,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5  # Latest stable
         with:
+<<<<<<< HEAD
           go-version: '1.25.0'
           cache: false
           
@@ -244,6 +271,10 @@ jobs:
           restore-keys: |
             nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-
             nephoran-go-v1-${{ runner.os }}-
+=======
+          go-version: '1.24.6'
+          cache: true
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             
       - name: Run ${{ matrix.component }} tests
         timeout-minutes: 8
@@ -257,8 +288,19 @@ jobs:
               make -f Makefile.ci test-controllers
               ;;
             simulators)
+<<<<<<< HEAD
               if [ -d "sim" ]; then
                 timeout 300s go test -short -timeout=4m -p=4 ./sim/... || echo "⚠️ Some simulator tests failed"
+=======
+              # Check for actual simulator directories and test them
+              if [ -d "cmd/a1-sim" ] || [ -d "cmd/e2-kpm-sim" ] || [ -d "cmd/fcaps-sim" ] || [ -d "cmd/o1-ves-sim" ]; then
+                echo "Testing simulator commands..."
+                timeout 300s go test -short -timeout=4m -p=4 ./cmd/a1-sim/... ./cmd/e2-kpm-sim/... ./cmd/fcaps-sim/... ./cmd/o1-ves-sim/... 2>/dev/null || echo "⚠️ Some simulator tests failed"
+              fi
+              if [ -d "internal/a1sim" ]; then
+                echo "Testing internal simulator packages..."
+                timeout 300s go test -short -timeout=4m -p=4 ./internal/a1sim/... 2>/dev/null || echo "⚠️ Some internal simulator tests failed"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
               fi
               ;;
             internal)
@@ -344,6 +386,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5  # Latest stable
         with:
+<<<<<<< HEAD
           go-version: '1.25.0'
           cache: false
           
@@ -357,6 +400,10 @@ jobs:
           restore-keys: |
             nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-
             nephoran-go-v1-${{ runner.os }}-
+=======
+          go-version: '1.24.6'
+          cache: true
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             
       - name: Build ${{ matrix.build-target }}
         timeout-minutes: 12

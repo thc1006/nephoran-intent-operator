@@ -138,7 +138,11 @@ func (h *TestSyncHelper) CreateIntentFile(filename, content string) string {
 
 	tempPath := filePath + ".tmp"
 
+<<<<<<< HEAD
 	require.NoError(h.t, os.WriteFile(tempPath, []byte(content), 0o640))
+=======
+	require.NoError(h.t, os.WriteFile(tempPath, []byte(content), 0o644))
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	require.NoError(h.t, os.Rename(tempPath, filePath))
 

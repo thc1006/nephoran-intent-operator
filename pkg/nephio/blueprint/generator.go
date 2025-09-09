@@ -35,6 +35,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+<<<<<<< HEAD
+=======
+	"regexp"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"strings"
 	"sync"
 	"text/template"
@@ -47,6 +51,15 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 )
 
+<<<<<<< HEAD
+=======
+// LLMClientInterface defines the interface that the Generator expects from the LLM client
+type LLMClientInterface interface {
+	ProcessIntent(ctx context.Context, intent string) (string, error)
+	HealthCheck(ctx context.Context) bool
+}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // Generator handles blueprint package generation from NetworkIntents.
 
 type Generator struct {
@@ -54,7 +67,11 @@ type Generator struct {
 
 	logger *zap.Logger
 
+<<<<<<< HEAD
 	llmClient *llm.Client
+=======
+	llmClient LLMClientInterface
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	httpClient *http.Client
 
@@ -151,6 +168,7 @@ func NewGenerator(config *BlueprintConfig, logger *zap.Logger) (*Generator, erro
 	return generator, nil
 }
 
+<<<<<<< HEAD
 // GenerateFromNetworkIntent generates blueprint files from NetworkIntent.
 
 func (g *Generator) GenerateFromNetworkIntent(ctx context.Context, intent *v1.NetworkIntent) (map[string]string, error) {
@@ -169,6 +187,89 @@ func (g *Generator) GenerateFromNetworkIntent(ctx context.Context, intent *v1.Ne
 	llmOutput, err := g.processIntentWithLLM(ctx, intent)
 	if err != nil {
 		return nil, fmt.Errorf("LLM processing failed: %w", err)
+=======
+// NewGeneratorWithLLMClient creates a new blueprint generator with a custom LLM client (for testing)
+func NewGeneratorWithLLMClient(config *BlueprintConfig, logger *zap.Logger, llmClient LLMClientInterface) (*Generator, error) {
+	if config == nil {
+		config = DefaultBlueprintConfig()
+	}
+
+	if logger == nil {
+		logger = zap.NewNop()
+	}
+
+	if llmClient == nil {
+		return nil, fmt.Errorf("LLM client cannot be nil")
+	}
+
+	generator := &Generator{
+		config: config,
+		logger: logger,
+		llmClient: llmClient,
+		httpClient: &http.Client{Timeout: 30 * time.Second},
+		oranTemplates: make(map[string]*template.Template),
+		coreTemplates: make(map[string]*template.Template),
+		edgeTemplates: make(map[string]*template.Template),
+		sliceTemplates: make(map[string]*template.Template),
+		serviceMeshTemplates: make(map[string]*template.Template),
+		resourcePool: sync.Pool{
+			New: func() interface{} {
+				return make(map[string]interface{})
+			},
+		},
+	}
+
+	// Initialize templates.
+	if err := generator.initializeTemplates(); err != nil {
+		return nil, fmt.Errorf("failed to initialize templates: %w", err)
+	}
+
+	return generator, nil
+}
+
+// GenerateFromNetworkIntent generates blueprint files from NetworkIntent.
+func (g *Generator) GenerateFromNetworkIntent(ctx context.Context, intent *v1.NetworkIntent) (map[string]string, error) {
+	// Defensive programming: Validate inputs
+	if g == nil {
+		return nil, fmt.Errorf("generator is nil")
+	}
+	if ctx == nil {
+		return nil, fmt.Errorf("context is nil")
+	}
+	if intent == nil {
+		return nil, fmt.Errorf("intent is nil")
+	}
+	if g.logger == nil {
+		g.logger = zap.NewNop()
+	}
+	
+	// Add panic recovery for critical path
+	defer func() {
+		if r := recover(); r != nil {
+			g.logger.Error("Panic recovered in GenerateFromNetworkIntent", 
+				zap.Any("panic", r),
+				zap.Stack("stack"))
+		}
+	}()
+
+	startTime := time.Now()
+
+	g.logger.Info("Generating blueprint from NetworkIntent",
+		zap.String("intent_name", intent.Name),
+		zap.String("intent_type", string(intent.Spec.IntentType)),
+		zap.Strings("target_components", networkTargetComponentsToStrings(intent.Spec.TargetComponents)))
+
+	// Step 1: Process intent with LLM to extract parameters.
+	llmOutput, err := g.processIntentWithLLM(ctx, intent)
+	if err != nil {
+		// Try fallback processing if LLM fails
+		if fallbackOutput := g.getFallbackLLMOutput(intent); fallbackOutput != nil {
+			g.logger.Warn("LLM processing failed, using fallback", zap.Error(err))
+			llmOutput = fallbackOutput
+		} else {
+			return nil, fmt.Errorf("LLM processing failed: %w", err)
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	// Step 2: Create generation context.
@@ -254,21 +355,87 @@ func (g *Generator) GenerateFromNetworkIntent(ctx context.Context, intent *v1.Ne
 }
 
 // processIntentWithLLM processes the NetworkIntent with LLM to extract structured parameters.
+<<<<<<< HEAD
 
 func (g *Generator) processIntentWithLLM(ctx context.Context, intent *v1.NetworkIntent) (map[string]interface{}, error) {
 	prompt := g.buildLLMPrompt(intent)
 
 	response, err := g.llmClient.ProcessIntent(ctx, prompt)
+=======
+func (g *Generator) processIntentWithLLM(ctx context.Context, intent *v1.NetworkIntent) (map[string]interface{}, error) {
+	// Defensive programming: Validate inputs
+	if g == nil {
+		return nil, fmt.Errorf("generator is nil")
+	}
+	if ctx == nil {
+		return nil, fmt.Errorf("context is nil")
+	}
+	if intent == nil {
+		return nil, fmt.Errorf("intent is nil")
+	}
+	if g.llmClient == nil {
+		return nil, fmt.Errorf("llmClient is nil")
+	}
+
+	// Add panic recovery
+	defer func() {
+		if r := recover(); r != nil {
+			if g.logger != nil {
+				g.logger.Error("Panic recovered in processIntentWithLLM", 
+					zap.Any("panic", r),
+					zap.Stack("stack"))
+			}
+		}
+	}()
+
+	prompt := g.buildLLMPrompt(intent)
+	if prompt == "" {
+		return nil, fmt.Errorf("failed to build LLM prompt")
+	}
+
+	// Add timeout to context if not already present
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	response, err := g.llmClient.ProcessIntent(ctxWithTimeout, prompt)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if err != nil {
 		return nil, fmt.Errorf("LLM processing failed: %w", err)
 	}
 
+<<<<<<< HEAD
 	// Parse LLM response as JSON.
 
 	var llmOutput map[string]interface{}
 
 	if err := json.Unmarshal([]byte(response), &llmOutput); err != nil {
 		return nil, fmt.Errorf("failed to parse LLM response as JSON: %w", err)
+=======
+	// Defensive programming: Validate response
+	if response == "" {
+		return nil, fmt.Errorf("LLM returned empty response")
+	}
+	if len(response) > 1024*1024 { // 1MB max
+		return nil, fmt.Errorf("LLM response too large: %d bytes", len(response))
+	}
+
+	// Parse LLM response as JSON with defensive handling
+	var llmOutput map[string]interface{}
+	if err := json.Unmarshal([]byte(response), &llmOutput); err != nil {
+		// Try to clean malformed JSON
+		cleanedResponse := g.cleanMalformedJSON(response)
+		if err := json.Unmarshal([]byte(cleanedResponse), &llmOutput); err != nil {
+			return nil, fmt.Errorf("failed to parse LLM response as JSON: %w (original response: %s)", err, response)
+		}
+		if g.logger != nil {
+			g.logger.Warn("Had to clean malformed JSON from LLM response")
+		}
+	}
+
+	// Defensive programming: Validate llmOutput structure
+	if llmOutput == nil {
+		return make(map[string]interface{}), nil
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	return llmOutput, nil
@@ -1235,7 +1402,16 @@ func (g *Generator) executeTemplate(tmpl *template.Template, data interface{}) (
 // Configuration extraction helpers.
 
 func (g *Generator) extractDeploymentConfig(llmOutput map[string]interface{}) map[string]interface{} {
+<<<<<<< HEAD
 	if config, ok := llmOutput["deployment_config"].(map[string]interface{}); ok {
+=======
+	// Defensive programming: Validate input
+	if llmOutput == nil {
+		return make(map[string]interface{})
+	}
+	
+	if config, ok := llmOutput["deployment_config"].(map[string]interface{}); ok && config != nil {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		return config
 	}
 
@@ -1243,8 +1419,18 @@ func (g *Generator) extractDeploymentConfig(llmOutput map[string]interface{}) ma
 }
 
 func (g *Generator) extractSecurityProfile(llmOutput map[string]interface{}) string {
+<<<<<<< HEAD
 	if security, ok := llmOutput["security_policies"].(map[string]interface{}); ok {
 		if profile, ok := security["profile"].(string); ok {
+=======
+	// Defensive programming: Validate input
+	if llmOutput == nil {
+		return "default"
+	}
+	
+	if security, ok := llmOutput["security_policies"].(map[string]interface{}); ok && security != nil {
+		if profile, ok := security["profile"].(string); ok && profile != "" {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			return profile
 		}
 	}
@@ -1253,8 +1439,18 @@ func (g *Generator) extractSecurityProfile(llmOutput map[string]interface{}) str
 }
 
 func (g *Generator) extractResourceProfile(llmOutput map[string]interface{}) string {
+<<<<<<< HEAD
 	if perf, ok := llmOutput["performance_requirements"].(map[string]interface{}); ok {
 		if profile, ok := perf["profile"].(string); ok {
+=======
+	// Defensive programming: Validate input
+	if llmOutput == nil {
+		return "medium"
+	}
+	
+	if perf, ok := llmOutput["performance_requirements"].(map[string]interface{}); ok && perf != nil {
+		if profile, ok := perf["profile"].(string); ok && profile != "" {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			return profile
 		}
 	}
@@ -1263,8 +1459,18 @@ func (g *Generator) extractResourceProfile(llmOutput map[string]interface{}) str
 }
 
 func (g *Generator) extractDeploymentMode(llmOutput map[string]interface{}) string {
+<<<<<<< HEAD
 	if config, ok := llmOutput["deployment_config"].(map[string]interface{}); ok {
 		if mode, ok := config["mode"].(string); ok {
+=======
+	// Defensive programming: Validate input
+	if llmOutput == nil {
+		return "kubernetes"
+	}
+	
+	if config, ok := llmOutput["deployment_config"].(map[string]interface{}); ok && config != nil {
+		if mode, ok := config["mode"].(string); ok && mode != "" {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			return mode
 		}
 	}
@@ -1671,10 +1877,17 @@ func (g *Generator) extractEnvironment(deployConfig map[string]interface{}) []ma
 func (g *Generator) buildAMFConfig(genCtx *GenerationContext) map[string]interface{} {
 	config := map[string]interface{}{
 		"sbi": map[string]interface{}{
+<<<<<<< HEAD
 			"scheme":         "http",
 			"registerIPv4":   "127.0.0.1",
 			"bindingIPv4":    "0.0.0.0",
 			"port":           8080,
+=======
+			"scheme":       "http",
+			"registerIPv4": "127.0.0.1",
+			"bindingIPv4":  "0.0.0.0",
+			"port":         8080,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 		"serviceNameList": []string{
 			"namf-comm",
@@ -1696,10 +1909,17 @@ func (g *Generator) buildAMFConfig(genCtx *GenerationContext) map[string]interfa
 func (g *Generator) buildSMFConfig(genCtx *GenerationContext) map[string]interface{} {
 	return map[string]interface{}{
 		"sbi": map[string]interface{}{
+<<<<<<< HEAD
 			"scheme":         "http",
 			"registerIPv4":   "127.0.0.1",
 			"bindingIPv4":    "0.0.0.0",
 			"port":           8000,
+=======
+			"scheme":       "http",
+			"registerIPv4": "127.0.0.1",
+			"bindingIPv4":  "0.0.0.0",
+			"port":         8000,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 		"serviceNameList": []string{
 			"nsmf-pdusession",
@@ -1715,9 +1935,15 @@ func (g *Generator) buildUPFNetworkConfig(genCtx *GenerationContext) map[string]
 		"gtpu": map[string]interface{}{
 			"ifList": []map[string]interface{}{
 				{
+<<<<<<< HEAD
 					"name":    "N3",
 					"addr":    "192.168.1.1",
 					"type":    "N3",
+=======
+					"name": "N3",
+					"addr": "192.168.1.1",
+					"type": "N3",
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				},
 			},
 		},
@@ -1728,3 +1954,93 @@ func (g *Generator) buildUPFNetworkConfig(genCtx *GenerationContext) map[string]
 	}
 }
 
+<<<<<<< HEAD
+=======
+// getFallbackLLMOutput provides fallback LLM output when LLM service fails
+func (g *Generator) getFallbackLLMOutput(intent *v1.NetworkIntent) map[string]interface{} {
+	if intent == nil {
+		return nil
+	}
+	
+	// Return basic fallback configuration
+	fallback := map[string]interface{}{
+		"deployment_config": map[string]interface{}{
+			"replicas": 1,
+			"image": "default:latest",
+			"resources": map[string]interface{}{
+				"requests": map[string]interface{}{
+					"cpu":    "100m",
+					"memory": "128Mi",
+				},
+				"limits": map[string]interface{}{
+					"cpu":    "500m",
+					"memory": "512Mi",
+				},
+			},
+		},
+		"network_function": map[string]interface{}{
+			"type":       "generic",
+			"interfaces": []string{},
+		},
+		"oran_interfaces": map[string]interface{}{
+			"a1_enabled": false,
+			"o1_enabled": false,
+			"o2_enabled": false,
+			"e2_enabled": false,
+		},
+		"performance_requirements": map[string]interface{}{
+			"throughput": "default",
+			"latency":    "default",
+			"profile":    "medium",
+		},
+		"security_policies": map[string]interface{}{
+			"encryption":    false,
+			"authentication": "none",
+			"profile":       "default",
+		},
+		"service_mesh": map[string]interface{}{
+			"enabled":        false,
+			"mtls_enabled":   false,
+			"ingress_enabled": false,
+		},
+	}
+	
+	if g.logger != nil {
+		g.logger.Info("Using fallback LLM output", zap.String("intent", intent.Name))
+	}
+	
+	return fallback
+}
+
+// cleanMalformedJSON attempts to clean malformed JSON responses from LLM
+func (g *Generator) cleanMalformedJSON(response string) string {
+	if response == "" {
+		return "{}"
+	}
+	
+	// Remove common JSON malformations
+	cleaned := strings.TrimSpace(response)
+	
+	// Ensure it starts and ends with braces
+	if !strings.HasPrefix(cleaned, "{") {
+		if idx := strings.Index(cleaned, "{"); idx != -1 {
+			cleaned = cleaned[idx:]
+		} else {
+			return "{}"
+		}
+	}
+	
+	if !strings.HasSuffix(cleaned, "}") {
+		if idx := strings.LastIndex(cleaned, "}"); idx != -1 {
+			cleaned = cleaned[:idx+1]
+		} else {
+			return "{}"
+		}
+	}
+	
+	// Remove trailing commas before closing braces/brackets
+	cleaned = regexp.MustCompile(`,(\s*[}\]])`).ReplaceAllString(cleaned, "$1")
+	
+	return cleaned
+}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

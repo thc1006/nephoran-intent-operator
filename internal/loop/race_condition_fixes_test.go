@@ -280,7 +280,16 @@ func TestSynchronizationPrimitives(t *testing.T) {
 		assert.Equal(t, int64(3), stats["files_scanned"])
 		assert.Equal(t, int64(2), stats["files_processed"])
 		assert.Equal(t, int64(1), stats["files_failed"])
+<<<<<<< HEAD
 		assert.True(t, stats["processing_done"].(bool))
+=======
+		// Fix: Check if value exists before type assertion to prevent panic
+		if val, ok := stats["processing_done"]; ok {
+			assert.True(t, val.(bool))
+		} else {
+			t.Error("processing_done not found in stats")
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	})
 }
 

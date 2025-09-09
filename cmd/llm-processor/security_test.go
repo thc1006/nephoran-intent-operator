@@ -385,7 +385,29 @@ func TestIntegrationSecurityStack(t *testing.T) {
 
 	// Register endpoints
 	router.HandleFunc("/process", func(w http.ResponseWriter, r *http.Request) {
+<<<<<<< HEAD
 		body, _ := io.ReadAll(r.Body)
+=======
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			// Check if this is a MaxBytesReader error (request too large)
+			if strings.Contains(err.Error(), "http: request body too large") ||
+				strings.Contains(err.Error(), "request body too large") {
+				w.WriteHeader(http.StatusRequestEntityTooLarge)
+				json.NewEncoder(w).Encode(map[string]string{
+					"error": "Request payload too large",
+					"code":  "413",
+				})
+				return
+			}
+			// Other read errors
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "Failed to read request body",
+			})
+			return
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]int{"size": len(body)})
 	}).Methods("POST")
@@ -424,9 +446,21 @@ func TestIntegrationSecurityStack(t *testing.T) {
 		require.NoError(t, err)
 		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
+<<<<<<< HEAD
 		// Note: The actual 413 handling depends on the server implementation
 		// This test verifies the middleware is working
 		assert.NotEqual(t, http.StatusOK, resp.StatusCode)
+=======
+		// Should return 413 Request Entity Too Large
+		assert.Equal(t, http.StatusRequestEntityTooLarge, resp.StatusCode)
+		
+		// Verify the error response is properly formatted
+		var response map[string]string
+		err = json.NewDecoder(resp.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Contains(t, response["error"], "too large")
+		assert.Equal(t, "413", response["code"])
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	})
 
 	t.Run("Metrics with allowed IP", func(t *testing.T) {

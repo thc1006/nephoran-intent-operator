@@ -106,7 +106,11 @@ type CNFIntentMetadata struct {
 
 	// ConfidenceScore overall confidence in processing results.
 
+<<<<<<< HEAD
 	ConfidenceScore float64 `json:"confidenceScore,omitempty"`
+=======
+	ConfidenceScore string `json:"confidenceScore,omitempty"`
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// ProcessingVersion version of the processing pipeline.
 
@@ -142,7 +146,11 @@ type CNFDeploymentPlan struct {
 
 	// EstimatedCost total estimated cost for the plan.
 
+<<<<<<< HEAD
 	EstimatedCost float64 `json:"estimatedCost"`
+=======
+	EstimatedCost string `json:"estimatedCost"`
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// EstimatedDeploymentTime total estimated deployment time in minutes.
 
@@ -490,7 +498,11 @@ type IndividualCNFDeploymentStatus struct {
 
 	// ResourceUtilization current resource utilization.
 
+<<<<<<< HEAD
 	ResourceUtilization map[string]float64 `json:"resourceUtilization,omitempty"`
+=======
+	ResourceUtilization map[string]string `json:"resourceUtilization,omitempty"`
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// Errors any errors related to this CNF deployment.
 

@@ -2,6 +2,10 @@ package patchgen
 
 import (
 	"fmt"
+<<<<<<< HEAD
+=======
+	"os"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"path/filepath"
 	"sync"
 	"testing"
@@ -54,11 +58,49 @@ func TestPackageGenerationStressTest(t *testing.T) {
 	var mutex sync.Mutex
 	packagesCreated := 0
 	var wg sync.WaitGroup
+<<<<<<< HEAD
+=======
+	
+	// Use sync.Once to ensure base directory structure is created safely
+	var dirCreationOnce sync.Once
+	dirCreationError := make(chan error, 1)
+	
+	// Pre-create all output directories to avoid race conditions
+	for i := 0; i < numPackages; i++ {
+		outputDir := filepath.Join(tempDir, fmt.Sprintf("stress-output-%d", i))
+		if err := os.MkdirAll(outputDir, 0o755); err != nil {
+			t.Fatalf("Failed to create output directory %s: %v", outputDir, err)
+		}
+	}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	for i := 0; i < numPackages; i++ {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
+<<<<<<< HEAD
+=======
+			
+			// Ensure base directory creation happens only once
+			dirCreationOnce.Do(func() {
+				// This ensures any shared directory creation is thread-safe
+				if err := os.MkdirAll(tempDir, 0o755); err != nil {
+					select {
+					case dirCreationError <- err:
+					default:
+					}
+				}
+			})
+			
+			// Check for directory creation errors
+			select {
+			case err := <-dirCreationError:
+				assert.NoError(t, err, "Directory creation should not fail")
+				return
+			default:
+			}
+			
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			intent := &Intent{
 				IntentType: "scaling",
 				Target:     fmt.Sprintf("stress-app-%d", id),
@@ -69,9 +111,23 @@ func TestPackageGenerationStressTest(t *testing.T) {
 			}
 
 			outputDir := filepath.Join(tempDir, fmt.Sprintf("stress-output-%d", id))
+<<<<<<< HEAD
 			patchPackage := NewPatchPackage(intent, outputDir)
 
 			err := patchPackage.Generate()
+=======
+			
+			// Create the output directory before generating the package
+			err := os.MkdirAll(outputDir, 0o755)
+			if err != nil {
+				t.Errorf("Failed to create output directory %s: %v", outputDir, err)
+				return
+			}
+			
+			patchPackage := NewPatchPackage(intent, outputDir)
+
+			err = patchPackage.Generate()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			assert.NoError(t, err, "Package generation should not fail")
 
 			// Atomic increment of successful package creation

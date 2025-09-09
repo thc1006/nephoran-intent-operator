@@ -4,11 +4,22 @@ package security
 import (
 	"encoding/json"
 	"fmt"
+<<<<<<< HEAD
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
+=======
+	"net/url"
+	"os"
+	"path/filepath"
+	"regexp"
+	"runtime"
+	"strings"
+	"time"
+	"unicode/utf8"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 )
@@ -203,9 +214,15 @@ func (pv *PathValidator) ValidatePath(path string) []SecurityViolation {
 		})
 	}
 
+<<<<<<< HEAD
 	// Path traversal detection.
 
 	if strings.Contains(path, "..") || strings.Contains(path, "~") {
+=======
+	// Path traversal detection - comprehensive check for various encoding methods
+
+	if pv.containsPathTraversal(path) {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		violations = append(violations, SecurityViolation{
 			Field: "file_path",
 
@@ -225,7 +242,11 @@ func (pv *PathValidator) ValidatePath(path string) []SecurityViolation {
 
 	// Null byte injection.
 
+<<<<<<< HEAD
 	if strings.Contains(path, "\x00") {
+=======
+	if pv.containsNullByte(path) {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		violations = append(violations, SecurityViolation{
 			Field: "file_path",
 
@@ -243,11 +264,22 @@ func (pv *PathValidator) ValidatePath(path string) []SecurityViolation {
 		})
 	}
 
+<<<<<<< HEAD
 	// Canonical path validation.
 
 	cleanPath := filepath.Clean(path)
 
 	if cleanPath != path {
+=======
+	// Canonical path validation (allow safe relative paths like ./examples/file.json)
+
+	cleanPath := filepath.Clean(path)
+
+	// Only flag as non-canonical if the cleaned path indicates potential traversal
+	// Allow safe relative paths that start with ./ and don't traverse upward
+	isSafeRelative := strings.HasPrefix(path, "./") && !strings.Contains(path, "../")
+	if cleanPath != path && !isSafeRelative {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		violations = append(violations, SecurityViolation{
 			Field: "file_path",
 
@@ -354,11 +386,20 @@ func (v *OWASPValidator) validateFileSystem(path string) []SecurityViolation {
 		})
 	}
 
+<<<<<<< HEAD
 	// Permission validation.
 
 	mode := info.Mode()
 
 	if mode.Perm()&0o022 != 0 { // World or group writable
+=======
+	// Permission validation (skip on Windows due to different permission model)
+
+	mode := info.Mode()
+
+	// Only validate permissions on Unix-like systems where they have security significance
+	if runtime.GOOS != "windows" && mode.Perm()&0o022 != 0 { // World or group writable
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 		violations = append(violations, SecurityViolation{
 			Field: "file_permissions",
@@ -668,6 +709,85 @@ func getAllowedBasePaths() []string {
 	}
 }
 
+<<<<<<< HEAD
+=======
+// containsPathTraversal performs comprehensive path traversal detection
+func (pv *PathValidator) containsPathTraversal(path string) bool {
+	// Check for literal path traversal sequences
+	if strings.Contains(path, "..") || strings.Contains(path, "~") {
+		return true
+	}
+
+	// Check for URL-encoded sequences (like %2e%2e%2f)
+	decoded, err := url.QueryUnescape(path)
+	if err == nil && decoded != path {
+		// If decoding changes the path, check the decoded version
+		if strings.Contains(decoded, "..") || strings.Contains(decoded, "~") {
+			return true
+		}
+	}
+
+	// Check for double-encoded sequences
+	doubleDecoded, err := url.QueryUnescape(decoded)
+	if err == nil && doubleDecoded != decoded {
+		if strings.Contains(doubleDecoded, "..") || strings.Contains(doubleDecoded, "~") {
+			return true
+		}
+	}
+
+	// Check for various obfuscated patterns
+	obfuscatedPatterns := []string{
+		"....//",    // Attempts to bypass simple filters
+		"..../",     // Alternative separator combinations
+		"../.",      // Mixed with current directory references
+		"..\\",      // Windows-style separators
+		"..;",       // Alternative separators
+		".../",      // Triple dots
+	}
+
+	for _, pattern := range obfuscatedPatterns {
+		if strings.Contains(path, pattern) {
+			return true
+		}
+	}
+
+	// Check for Unicode normalization attacks
+	if !utf8.ValidString(path) {
+		return true
+	}
+
+	return false
+}
+
+// containsNullByte checks for null bytes in various encodings
+func (pv *PathValidator) containsNullByte(path string) bool {
+	// Check for literal null bytes
+	if strings.Contains(path, "\x00") {
+		return true
+	}
+
+	// Check for URL-encoded null bytes
+	if strings.Contains(path, "%00") {
+		return true
+	}
+
+	// Check for Unicode null characters
+	if strings.Contains(path, "\u0000") {
+		return true
+	}
+
+	// Try URL decoding and check for null bytes in decoded version
+	decoded, err := url.QueryUnescape(path)
+	if err == nil && decoded != path {
+		if strings.Contains(decoded, "\x00") {
+			return true
+		}
+	}
+
+	return false
+}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // generateSecureTimestamp creates a secure timestamp for audit trails.
 
 func generateSecureTimestamp() string {

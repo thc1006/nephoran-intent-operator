@@ -17,10 +17,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+<<<<<<< HEAD
+=======
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
 )
 
 const (
+<<<<<<< HEAD
 
 	// OptimizedNetworkIntentController holds optimizednetworkintentcontroller value.
 
@@ -29,6 +34,10 @@ const (
 	// NetworkIntentFinalizer holds networkintentfinalizer value.
 
 	NetworkIntentFinalizer = "networkintent.nephoran.com/finalizer"
+=======
+	// OptimizedNetworkIntentController holds optimizednetworkintentcontroller value.
+	OptimizedNetworkIntentController = "optimized-networkintent"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 )
 
 // OptimizedNetworkIntentReconciler implements an optimized version of the NetworkIntent controller.
@@ -54,6 +63,11 @@ type OptimizedNetworkIntentReconciler struct {
 
 	deps controllers.Dependencies
 
+<<<<<<< HEAD
+=======
+	constants *config.Constants
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	// Performance tracking.
 
 	activeReconcilers int64
@@ -85,6 +99,11 @@ func NewOptimizedNetworkIntentReconciler(
 	config controllers.Config,
 
 	deps controllers.Dependencies,
+<<<<<<< HEAD
+=======
+
+	constants *config.Constants,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 ) *OptimizedNetworkIntentReconciler {
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -115,6 +134,11 @@ func NewOptimizedNetworkIntentReconciler(
 
 		deps: deps,
 
+<<<<<<< HEAD
+=======
+		constants: constants,
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		apiCallBatcher: apiCallBatcher,
 
 		ctx: ctx,
@@ -277,7 +301,11 @@ func (r *OptimizedNetworkIntentReconciler) Reconcile(ctx context.Context, req ct
 
 	// Ensure finalizer exists (batched operation).
 
+<<<<<<< HEAD
 	if !r.hasFinalizer(networkIntent, NetworkIntentFinalizer) {
+=======
+	if !r.hasFinalizer(networkIntent, r.constants.NetworkIntentFinalizer) {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 		if err := r.addFinalizerOptimized(ctx, networkIntent); err != nil {
 
@@ -751,7 +779,11 @@ func (r *OptimizedNetworkIntentReconciler) hasFinalizer(networkIntent *nephoranv
 }
 
 func (r *OptimizedNetworkIntentReconciler) addFinalizerOptimized(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) error {
+<<<<<<< HEAD
 	networkIntent.Finalizers = append(networkIntent.Finalizers, NetworkIntentFinalizer)
+=======
+	networkIntent.Finalizers = append(networkIntent.Finalizers, r.constants.NetworkIntentFinalizer)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	timer := r.metrics.NewAPICallTimer(OptimizedNetworkIntentController, "update", "NetworkIntent")
 
@@ -782,7 +814,11 @@ func (r *OptimizedNetworkIntentReconciler) handleDeletionOptimized(ctx context.C
 	finalizers := make([]string, 0)
 
 	for _, f := range networkIntent.Finalizers {
+<<<<<<< HEAD
 		if f != NetworkIntentFinalizer {
+=======
+		if f != r.constants.NetworkIntentFinalizer {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			finalizers = append(finalizers, f)
 		}
 	}

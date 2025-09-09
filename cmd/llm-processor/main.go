@@ -4,6 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+<<<<<<< HEAD
+=======
+	"io"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"log"
 	"log/slog"
 	"net"
@@ -16,6 +20,10 @@ import (
 
 	"github.com/gorilla/mux"
 
+<<<<<<< HEAD
+=======
+	"github.com/thc1006/nephoran-intent-operator/internal/llm/providers"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/handlers"
@@ -23,6 +31,131 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/services"
 )
 
+<<<<<<< HEAD
+=======
+// ProviderAdapter adapts the new Provider interface to work with the existing LLMClient interface
+type ProviderAdapter struct {
+	provider providers.Provider
+	logger   *slog.Logger
+}
+
+// NewProviderAdapter creates a new adapter for the provider
+func NewProviderAdapter(provider providers.Provider, logger *slog.Logger) *ProviderAdapter {
+	return &ProviderAdapter{
+		provider: provider,
+		logger:   logger,
+	}
+}
+
+// ProcessIntent adapts the provider interface to the expected LLMClient interface
+func (a *ProviderAdapter) ProcessIntent(ctx context.Context, intent string) (string, error) {
+	response, err := a.provider.ProcessIntent(ctx, intent)
+	if err != nil {
+		return "", err
+	}
+
+	// Return the structured JSON from the provider
+	return string(response.JSON), nil
+}
+
+// createProviderIntentHandler creates a new HTTP handler that uses the provider directly
+func createProviderIntentHandler(provider providers.Provider, logger *slog.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "Method not allowed",
+				"message": "Only POST requests are supported",
+			})
+			return
+		}
+
+		// Read request body
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			logger.Error("Failed to read request body", slog.String("error", err.Error()))
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "Invalid request body",
+				"message": err.Error(),
+			})
+			return
+		}
+
+		// Parse request
+		var req ProcessIntentRequest
+		if err := json.Unmarshal(body, &req); err != nil {
+			logger.Error("Failed to parse request JSON", slog.String("error", err.Error()))
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "Invalid JSON",
+				"message": err.Error(),
+			})
+			return
+		}
+
+		// Validate input
+		if req.Intent == "" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "Validation failed",
+				"message": "Intent field is required",
+			})
+			return
+		}
+
+		// Process intent using provider
+		ctx := r.Context()
+		startTime := time.Now()
+		response, err := provider.ProcessIntent(ctx, req.Intent)
+		processingTime := time.Since(startTime)
+
+		if err != nil {
+			logger.Error("Provider processing failed", 
+				slog.String("error", err.Error()),
+				slog.String("intent", req.Intent[:min(100, len(req.Intent))]))
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "Processing failed",
+				"message": err.Error(),
+			})
+			return
+		}
+
+		// Create success response
+		successResponse := map[string]interface{}{
+			"status": "success",
+			"result": json.RawMessage(response.JSON),
+			"processing_time": processingTime.String(),
+			"provider_metadata": map[string]interface{}{
+				"provider": response.Metadata.Provider,
+				"model": response.Metadata.Model,
+				"tokens_used": response.Metadata.TokensUsed,
+				"confidence": response.Metadata.Confidence,
+				"warnings": response.Metadata.Warnings,
+			},
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+		}
+
+		// Return response
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(successResponse)
+
+		logger.Info("Provider intent processed successfully",
+			slog.String("provider", response.Metadata.Provider),
+			slog.String("model", response.Metadata.Model),
+			slog.Duration("processing_time", processingTime),
+			slog.String("intent_preview", req.Intent[:min(50, len(req.Intent))]))
+	}
+}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // Config is a simplified configuration struct for testing compatibility.
 // Production code uses config.LLMProcessorConfig.
 type Config struct {
@@ -56,6 +189,7 @@ type Config struct {
 // IntentProcessor is a simplified processor for testing compatibility.
 // Production code uses handlers.IntentProcessor.
 type IntentProcessor struct {
+<<<<<<< HEAD
 	Config    *Config
 	LLMClient interface {
 		ProcessIntent(ctx context.Context, intent string) (string, error)
@@ -73,11 +207,30 @@ func NewIntentProcessor(config *Config) *IntentProcessor {
 func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string) (string, error) {
 	if intent == "" {
 		return "", fmt.Errorf("validation failed: intent cannot be empty")
+=======
+	Config   *Config
+	Provider providers.Provider
+}
+
+// NewIntentProcessor creates a new IntentProcessor with provider.
+func NewIntentProcessor(config *Config, provider providers.Provider) *IntentProcessor {
+	return &IntentProcessor{
+		Config:   config,
+		Provider: provider,
+	}
+}
+
+// ProcessIntent processes an intent string and returns the result using the provider interface.
+func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string) (string, error) {
+	if intent == "" {
+		return "", fmt.Errorf("intent validation failed: intent cannot be empty")
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 	if len(intent) > 2000 {
 		return "", fmt.Errorf("intent too long: maximum 2000 characters")
 	}
 
+<<<<<<< HEAD
 	if p.LLMClient == nil {
 		return "", fmt.Errorf("LLM client not configured")
 	}
@@ -107,6 +260,113 @@ func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string) (str
 	return string(jsonBytes), nil
 }
 
+=======
+	if p.Provider == nil {
+		return "", fmt.Errorf("provider not configured")
+	}
+
+	// Use the new provider interface to process intent
+	intentResponse, err := p.Provider.ProcessIntent(ctx, intent)
+	if err != nil {
+		return "", fmt.Errorf("provider processing failed: %w", err)
+	}
+
+	// Create response with provider metadata and structured intent
+	response := map[string]interface{}{
+		"type":             "NetworkIntent",
+		"original_intent":  intent,
+		"intent_json":      intentResponse.JSON,
+		"processing_metadata": map[string]interface{}{
+			"provider":         intentResponse.Metadata.Provider,
+			"model":            intentResponse.Metadata.Model,
+			"processing_time":  intentResponse.Metadata.ProcessingTime.String(),
+			"tokens_used":      intentResponse.Metadata.TokensUsed,
+			"confidence":       intentResponse.Metadata.Confidence,
+			"warnings":         intentResponse.Metadata.Warnings,
+		},
+	}
+
+	// Convert to JSON string
+	jsonBytes, err := json.Marshal(response)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal response: %w", err)
+	}
+	return string(jsonBytes), nil
+}
+
+// createHandoffIntentHandler creates an HTTP handler that accepts plain text intent,
+// processes it with the LLM provider, and writes the result to handoff directory
+func createHandoffIntentHandler(provider providers.Provider, logger *slog.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Set security headers
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Content-Type", "application/json")
+
+		// Read request body
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			logger.Error("Failed to read request body", slog.String("error", err.Error()))
+			http.Error(w, "Failed to read request body", http.StatusBadRequest)
+			return
+		}
+		defer r.Body.Close()
+
+		intentText := strings.TrimSpace(string(body))
+		if intentText == "" {
+			http.Error(w, "Intent text cannot be empty", http.StatusBadRequest)
+			return
+		}
+
+		logger.Info("Processing handoff intent", slog.String("intent", intentText))
+
+		// Process with LLM provider
+		ctx := r.Context()
+		response, err := provider.ProcessIntent(ctx, intentText)
+		if err != nil {
+			logger.Error("Provider processing failed", slog.String("error", err.Error()))
+			http.Error(w, "Intent processing failed", http.StatusInternalServerError)
+			return
+		}
+
+		// Create handoff directory if it doesn't exist
+		handoffDir := "./handoff"
+		if err := os.MkdirAll(handoffDir, 0755); err != nil {
+			logger.Error("Failed to create handoff directory", slog.String("error", err.Error()))
+			http.Error(w, "Failed to create handoff directory", http.StatusInternalServerError)
+			return
+		}
+
+		// Create handoff filename with timestamp
+		timestamp := time.Now().Format("20060102-150405")
+		filename := fmt.Sprintf("intent-%s.json", timestamp)
+		filepath := fmt.Sprintf("%s/%s", handoffDir, filename)
+
+		// Write JSON to handoff file
+		if err := os.WriteFile(filepath, []byte(response.JSON), 0644); err != nil {
+			logger.Error("Failed to write handoff file", 
+				slog.String("file", filepath),
+				slog.String("error", err.Error()))
+			http.Error(w, "Failed to write handoff file", http.StatusInternalServerError)
+			return
+		}
+
+		logger.Info("Handoff file created",
+			slog.String("file", filepath),
+			slog.String("provider", response.Metadata.Provider))
+
+		// Return success response
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "success",
+			"handoff_file": filename,
+			"provider": response.Metadata.Provider,
+			"timestamp": time.Now().Format(time.RFC3339),
+		})
+	}
+}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // NetworkIntentRequest represents a request for processing network intents.
 // Used for test compatibility with the intent processing pipeline.
 type NetworkIntentRequest struct {
@@ -143,6 +403,15 @@ type ErrorResponse struct {
 	Message   string `json:"message"`
 }
 
+<<<<<<< HEAD
+=======
+// ProcessIntentRequest represents a request for processing intents using the provider
+type ProcessIntentRequest struct {
+	Intent   string            `json:"intent"`
+	Metadata map[string]string `json:"metadata,omitempty"`
+}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 var (
 	cfg *config.LLMProcessorConfig
 
@@ -215,6 +484,31 @@ func main() {
 		slog.Int("rate_limit_burst", cfg.RateLimitBurstTokens),
 	)
 
+<<<<<<< HEAD
+=======
+	// Initialize LLM provider from environment.
+	provider, err := providers.CreateFromEnvironment()
+	if err != nil {
+		logger.Error("Failed to create LLM provider", slog.String("error", err.Error()))
+		log.Fatal(1)
+	}
+	defer func() {
+		if closeErr := provider.Close(); closeErr != nil {
+			logger.Warn("Failed to close provider", slog.String("error", closeErr.Error()))
+		}
+	}()
+
+	// Log provider information.
+	providerInfo := provider.GetProviderInfo()
+	logger.Info("LLM Provider initialized",
+		slog.String("provider", providerInfo.Name),
+		slog.String("version", providerInfo.Version),
+		slog.String("description", providerInfo.Description),
+		slog.Bool("requires_auth", providerInfo.RequiresAuth),
+		slog.Any("supported_features", providerInfo.SupportedFeatures),
+	)
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	// Initialize service components.
 
 	service = services.NewLLMProcessorService(cfg, logger)
@@ -246,7 +540,11 @@ func main() {
 
 	// Set up HTTP server.
 
+<<<<<<< HEAD
 	server := setupHTTPServer()
+=======
+	server := setupHTTPServer(provider, providerInfo)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// Mark service as ready.
 
@@ -505,7 +803,11 @@ func createLoggerWithLevel(level string) *slog.Logger {
 
 // setupHTTPServer configures and returns the HTTP server.
 
+<<<<<<< HEAD
 func setupHTTPServer() *http.Server {
+=======
+func setupHTTPServer(provider providers.Provider, providerInfo providers.ProviderInfo) *http.Server {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	router := mux.NewRouter()
 
 	// Initialize request size limiter middleware (uses HTTP_MAX_BODY env var via config).
@@ -755,6 +1057,12 @@ func setupHTTPServer() *http.Server {
 		Metrics: metricsHandler,
 	}
 
+<<<<<<< HEAD
+=======
+	// Create provider-based intent handler
+	providerIntentHandler := createProviderIntentHandler(provider, logger)
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	// Prepare protected route handlers.
 
 	protectedHandlers := &auth.ProtectedRouteHandlers{
@@ -777,6 +1085,24 @@ func setupHTTPServer() *http.Server {
 
 	}
 
+<<<<<<< HEAD
+=======
+	// Add provider-based intent processing endpoint
+	// This endpoint uses the new provider interface directly
+	router.HandleFunc("/api/v2/process-intent", providerIntentHandler).Methods("POST")
+
+	// Add handoff directory endpoint for acceptance testing
+	// This endpoint accepts plain text and writes to handoff directory
+	handoffHandler := createHandoffIntentHandler(provider, logger)
+	router.HandleFunc("/intent", handoffHandler).Methods("POST")
+
+	logger.Info("Provider-based endpoints configured",
+		slog.String("endpoint1", "/api/v2/process-intent"),
+		slog.String("endpoint2", "/intent"),
+		slog.String("method", "POST"),
+		slog.String("provider", providerInfo.Name))
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	return &http.Server{
 		Addr: ":" + cfg.Port,
 
@@ -847,6 +1173,7 @@ func createIPRestrictedHandler(handler http.HandlerFunc, allowedIPs []string, lo
 }
 
 // getClientIP extracts the client IP address from the request.
+<<<<<<< HEAD
 
 func getClientIP(r *http.Request) string {
 	// Check X-Forwarded-For header (common with proxies/load balancers).
@@ -879,12 +1206,55 @@ func getClientIP(r *http.Request) string {
 
 	// RemoteAddr might be in the format "IP:port", so we need to extract just the IP.
 
+=======
+// Follows priority order to match existing codebase: X-Forwarded-For > X-Real-IP > CF-Connecting-IP > RemoteAddr
+func getClientIP(r *http.Request) string {
+	// Check X-Forwarded-For header first (most common with proxies/load balancers)
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		// X-Forwarded-For can contain multiple IPs, take the first one
+		parts := strings.Split(xff, ",")
+		if len(parts) > 0 {
+			ip := strings.TrimSpace(parts[0])
+			if ip != "" {
+				return ip
+			}
+		}
+	}
+
+	// Check X-Real-IP header (nginx and other proxies)
+	if xri := r.Header.Get("X-Real-IP"); xri != "" {
+		return strings.TrimSpace(xri)
+	}
+
+	// Check CF-Connecting-IP header (Cloudflare)
+	if cfip := r.Header.Get("CF-Connecting-IP"); cfip != "" {
+		return strings.TrimSpace(cfip)
+	}
+
+	// Fall back to RemoteAddr
+	// RemoteAddr might be in the format "IP:port", so we need to extract just the IP
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
 		return host
 	}
 
+<<<<<<< HEAD
 	// If SplitHostPort fails, it might already be just an IP.
 
 	return r.RemoteAddr
 }
 
+=======
+	// If SplitHostPort fails, it might already be just an IP
+	return r.RemoteAddr
+}
+
+// min returns the minimum of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

@@ -31,8 +31,11 @@ limitations under the License.
 package v1
 
 import (
+<<<<<<< HEAD
 	"fmt"
 
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -692,6 +695,7 @@ type ManifestGenerationStatus struct {
 
 	RetryCount int32 `json:"retryCount,omitempty"`
 
+<<<<<<< HEAD
 	// QualityScore represents the quality of generated manifests (0.0-1.0).
 
 	// +optional
@@ -701,6 +705,15 @@ type ManifestGenerationStatus struct {
 	// +kubebuilder:validation:Maximum=1.0
 
 	QualityScore *float64 `json:"qualityScore,omitempty"`
+=======
+	// QualityScore represents the quality of generated manifests (0.0-1.0) as string to avoid float issues.
+
+	// +optional
+
+	// +kubebuilder:validation:Pattern=`^(0(\.[0-9]+)?|1(\.0+)?)$`
+
+	QualityScore *string `json:"qualityScore,omitempty"`
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// ObservedGeneration reflects the generation observed.
 
@@ -804,6 +817,7 @@ type ManifestOptimizationResult struct {
 
 	Description string `json:"description,omitempty"`
 
+<<<<<<< HEAD
 	// ImprovementPercent quantifies the improvement (0.0-100.0).
 
 	// +optional
@@ -813,6 +827,15 @@ type ManifestOptimizationResult struct {
 	// +kubebuilder:validation:Maximum=100.0
 
 	ImprovementPercent *float64 `json:"improvementPercent,omitempty"`
+=======
+	// ImprovementPercent quantifies the improvement (0.0-100.0) as string to avoid float issues.
+
+	// +optional
+
+	// +kubebuilder:validation:Pattern=`^(100(\.0+)?|[0-9]?[0-9](\.[0-9]+)?)$`
+
+	ImprovementPercent *string `json:"improvementPercent,omitempty"`
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// Changes lists the changes made.
 
@@ -828,6 +851,7 @@ type ManifestOptimizationResult struct {
 // SecurityAnalysisResult contains security analysis results.
 
 type SecurityAnalysisResult struct {
+<<<<<<< HEAD
 	// OverallScore is the overall security score (0.0-1.0).
 
 	// +kubebuilder:validation:Minimum=0.0
@@ -835,6 +859,13 @@ type SecurityAnalysisResult struct {
 	// +kubebuilder:validation:Maximum=1.0
 
 	OverallScore *float64 `json:"overallScore"`
+=======
+	// OverallScore is the overall security score (0.0-1.0) as string to avoid float issues.
+
+	// +kubebuilder:validation:Pattern=`^(0(\.[0-9]+)?|1(\.0+)?)$`
+
+	OverallScore *string `json:"overallScore"`
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// SecurityIssues lists identified security issues.
 
@@ -886,6 +917,7 @@ type SecurityIssue struct {
 
 	Remediation string `json:"remediation,omitempty"`
 
+<<<<<<< HEAD
 	// CVSS score if applicable (0.0-10.0).
 
 	// +optional
@@ -895,6 +927,15 @@ type SecurityIssue struct {
 	// +kubebuilder:validation:Maximum=10.0
 
 	CVSSScore *float64 `json:"cvssScore,omitempty"`
+=======
+	// CVSS score if applicable (0.0-10.0) as string to avoid float issues.
+
+	// +optional
+
+	// +kubebuilder:validation:Pattern=`^(10(\.0+)?|[0-9](\.[0-9]+)?)$`
+
+	CVSSScore *string `json:"cvssScore,omitempty"`
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // SecurityComplianceResult represents compliance check results.
@@ -920,6 +961,7 @@ type SecurityComplianceResult struct {
 
 	Violations []string `json:"violations,omitempty"`
 
+<<<<<<< HEAD
 	// Score represents compliance score (0.0-1.0).
 
 	// +optional
@@ -929,6 +971,15 @@ type SecurityComplianceResult struct {
 	// +kubebuilder:validation:Maximum=1.0
 
 	Score *float64 `json:"score,omitempty"`
+=======
+	// Score represents compliance score (0.0-1.0) as string to avoid float issues.
+
+	// +optional
+
+	// +kubebuilder:validation:Pattern=`^(0(\.[0-9]+)?|1(\.0+)?)$`
+
+	Score *string `json:"score,omitempty"`
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // GeneratedResourceReference represents a reference to a generated resource.
@@ -1109,7 +1160,11 @@ func (mg *ManifestGeneration) HasValidationErrors() bool {
 
 func (mg *ManifestGeneration) GetSecurityScore() string {
 	if mg.Status.SecurityAnalysis != nil && mg.Status.SecurityAnalysis.OverallScore != nil {
+<<<<<<< HEAD
 		return fmt.Sprintf("%.2f", *mg.Status.SecurityAnalysis.OverallScore)
+=======
+		return *mg.Status.SecurityAnalysis.OverallScore
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	return "0.0"

@@ -3,7 +3,10 @@ package controllers
 import (
 	"context"
 	"fmt"
+<<<<<<< HEAD
 	"reflect"
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"strconv"
 	"time"
 
@@ -155,6 +158,7 @@ func (r *AuditTrailController) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// Add finalizer if not present.
+<<<<<<< HEAD
 
 	if !controllerutil.ContainsFinalizer(auditTrail, AuditTrailFinalizer) {
 
@@ -168,13 +172,35 @@ func (r *AuditTrailController) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Initialize or update the audit system.
 
+=======
+	if !controllerutil.ContainsFinalizer(auditTrail, AuditTrailFinalizer) {
+		log.Info("Adding finalizer to AuditTrail")
+		controllerutil.AddFinalizer(auditTrail, AuditTrailFinalizer)
+		
+		// Update the resource with the finalizer
+		if err := r.Update(ctx, auditTrail); err != nil {
+			return ctrl.Result{}, err
+		}
+		
+		// Update status to show current phase even with just finalizer added
+		_ = r.updateStatus(ctx, auditTrail, log) // Best effort status update
+		
+		// Requeue to continue with audit system creation
+		return ctrl.Result{Requeue: true}, nil
+	}
+
+	// Initialize or update the audit system.
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	result, err := r.reconcileAuditSystem(ctx, auditTrail, log)
 	if err != nil {
 		return result, r.updateStatusError(ctx, auditTrail, err, log)
 	}
 
 	// Update status with current state.
+<<<<<<< HEAD
 
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	return result, r.updateStatus(ctx, auditTrail, log)
 }
 
@@ -262,6 +288,7 @@ func (r *AuditTrailController) reconcileAuditSystem(ctx context.Context, auditTr
 	}
 
 	if !exists || needsRecreation {
+<<<<<<< HEAD
 
 		// Create new audit system.
 
@@ -269,27 +296,46 @@ func (r *AuditTrailController) reconcileAuditSystem(ctx context.Context, auditTr
 
 		// Convert AuditTrail spec to audit system configuration.
 
+=======
+		// Create new audit system.
+		log.Info("Creating new audit system")
+
+		// Convert AuditTrail spec to audit system configuration.
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		config, err := r.buildAuditSystemConfig(ctx, auditTrail, log)
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to build audit system config: %w", err)
 		}
 
+<<<<<<< HEAD
 		// Create audit system.
 
+=======
+		// Create audit system - always create it even with minimal config.
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		auditSystem, err := audit.NewAuditSystem(config)
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to create audit system: %w", err)
 		}
 
+<<<<<<< HEAD
 		// Start audit system if enabled.
 
 		if auditTrail.Spec.Enabled {
 
+=======
+		// Store audit system immediately after creation
+		r.auditSystems[key] = auditSystem
+
+		// Start audit system if enabled.
+		if auditTrail.Spec.Enabled {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			if err := auditSystem.Start(); err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to start audit system: %w", err)
 			}
 
 			r.Recorder.Event(auditTrail, corev1.EventTypeNormal, EventReasonStarted,
+<<<<<<< HEAD
 
 				"Audit system started successfully")
 
@@ -321,6 +367,39 @@ func (r *AuditTrailController) reconcileAuditSystem(ctx context.Context, auditTr
 		} else {
 			// Stop system if it's running.
 
+=======
+				"Audit system started successfully")
+				
+			// Immediately update status to Running after starting the audit system
+			if updateErr := r.updateStatus(ctx, auditTrail, log); updateErr != nil {
+				log.Error(updateErr, "Failed to update status after starting audit system")
+			}
+		}
+
+		r.Recorder.Event(auditTrail, corev1.EventTypeNormal, EventReasonCreated,
+			"Audit system created successfully")
+
+	} else {
+		// Handle enable/disable changes for existing system.
+		if auditTrail.Spec.Enabled {
+			// Ensure system is started - check if it's actually running.
+			stats := existingSystem.GetStats()
+			// Simple heuristic: if no events processed and system should be running, try to start it
+			if stats.EventsReceived == 0 && stats.EventsDropped == 0 {
+				log.V(1).Info("Starting existing audit system")
+				if err := existingSystem.Start(); err != nil {
+					log.Error(err, "Failed to start existing audit system")
+					return ctrl.Result{}, fmt.Errorf("failed to start existing audit system: %w", err)
+				}
+				// Immediately update status after starting
+				if updateErr := r.updateStatus(ctx, auditTrail, log); updateErr != nil {
+					log.Error(updateErr, "Failed to update status after starting existing audit system")
+				}
+			}
+		} else {
+			// Stop system if it's running.
+			log.V(1).Info("Stopping audit system")
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			if err := existingSystem.Stop(); err != nil {
 				log.Error(err, "Failed to stop audit system")
 			}
@@ -364,6 +443,7 @@ func (r *AuditTrailController) buildAuditSystemConfig(ctx context.Context, audit
 	}
 
 	// Build backend configurations.
+<<<<<<< HEAD
 
 	backendConfigs := make([]backends.BackendConfig, 0, len(auditTrail.Spec.Backends))
 
@@ -376,6 +456,21 @@ func (r *AuditTrailController) buildAuditSystemConfig(ctx context.Context, audit
 
 		backendConfigs = append(backendConfigs, *backendConfig)
 
+=======
+	backendConfigs := make([]backends.BackendConfig, 0, len(auditTrail.Spec.Backends))
+
+	// Handle cases where no backends are specified - create minimal configuration for tests
+	if len(auditTrail.Spec.Backends) == 0 {
+		log.V(1).Info("No backends specified, audit system will run with empty backend list")
+	} else {
+		for _, backend := range auditTrail.Spec.Backends {
+			backendConfig, err := r.buildBackendConfig(ctx, auditTrail, backend, log)
+			if err != nil {
+				return nil, fmt.Errorf("failed to build backend config for %s: %w", backend.Name, err)
+			}
+			backendConfigs = append(backendConfigs, *backendConfig)
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	config.Backends = backendConfigs
@@ -503,6 +598,7 @@ func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nep
 	key := fmt.Sprintf("%s/%s", auditTrail.Namespace, auditTrail.Name)
 
 	// Get current status from audit system.
+<<<<<<< HEAD
 
 	var stats audit.AuditStats
 
@@ -512,11 +608,19 @@ func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nep
 
 		stats = auditSystem.GetStats()
 
+=======
+	var stats audit.AuditStats
+	var phase string
+
+	if auditSystem, exists := r.auditSystems[key]; exists {
+		stats = auditSystem.GetStats()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		if auditTrail.Spec.Enabled {
 			phase = "Running"
 		} else {
 			phase = "Stopped"
 		}
+<<<<<<< HEAD
 
 	} else {
 		phase = "Initializing"
@@ -541,6 +645,44 @@ func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nep
 			QueueSize: stats.QueueSize,
 
 			BackendCount: stats.BackendCount,
+=======
+	} else if auditTrail.Spec.Enabled {
+		// If enabled but system doesn't exist yet, mark as initializing
+		phase = "Initializing"
+		// Provide default stats when system is initializing
+		stats = audit.AuditStats{
+			EventsReceived:   0,
+			EventsDropped:    0,
+			QueueSize:       0,
+			BackendCount:    len(auditTrail.Spec.Backends),
+			IntegrityEnabled: auditTrail.Spec.EnableIntegrity,
+			ComplianceMode:   r.convertComplianceMode(auditTrail.Spec.ComplianceMode),
+		}
+	} else {
+		phase = "Disabled"
+		// Provide zero stats when disabled
+		stats = audit.AuditStats{
+			EventsReceived:   0,
+			EventsDropped:    0,
+			QueueSize:       0,
+			BackendCount:    0,
+			IntegrityEnabled: false,
+		}
+	}
+
+	// Build status - always ensure Phase, LastUpdate, and Stats are set
+	now := metav1.Now()
+
+	status := nephv1.AuditTrailStatus{
+		Phase:      phase,
+		LastUpdate: &now,
+		Stats: &nephv1.AuditTrailStats{
+			EventsReceived:  stats.EventsReceived,
+			EventsProcessed: stats.EventsReceived - stats.EventsDropped,
+			EventsDropped:   stats.EventsDropped,
+			QueueSize:      stats.QueueSize,
+			BackendCount:   stats.BackendCount,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 	}
 
@@ -572,6 +714,7 @@ func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nep
 
 	status.Conditions = conditions
 
+<<<<<<< HEAD
 	// Update status if changed.
 
 	if !reflect.DeepEqual(auditTrail.Status, status) {
@@ -580,6 +723,29 @@ func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nep
 
 		return r.Status().Update(ctx, auditTrail)
 
+=======
+	// Get the latest version to ensure we have the most up-to-date resource version
+	latestAuditTrail := &nephv1.AuditTrail{}
+	if err := r.Get(ctx, client.ObjectKeyFromObject(auditTrail), latestAuditTrail); err != nil {
+		if apierrors.IsNotFound(err) {
+			log.V(1).Info("AuditTrail not found during status update, likely deleted")
+			return nil
+		}
+		log.Error(err, "Failed to get latest AuditTrail for status update")
+		return err
+	}
+
+	// Update status on the latest version
+	latestAuditTrail.Status = status
+
+	if err := r.Status().Update(ctx, latestAuditTrail); err != nil {
+		if apierrors.IsNotFound(err) {
+			log.V(1).Info("AuditTrail not found during status update, likely deleted")
+			return nil
+		}
+		log.Error(err, "Failed to update AuditTrail status")
+		return err
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	return nil
@@ -590,6 +756,7 @@ func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nep
 func (r *AuditTrailController) updateStatusError(ctx context.Context, auditTrail *nephv1.AuditTrail, err error, log logr.Logger) error {
 	now := metav1.Now()
 
+<<<<<<< HEAD
 	auditTrail.Status.Phase = "Failed"
 
 	auditTrail.Status.LastUpdate = &now
@@ -605,10 +772,32 @@ func (r *AuditTrailController) updateStatusError(ctx context.Context, auditTrail
 			Message: err.Error(),
 
 			LastTransitionTime: now,
+=======
+	// Initialize status with error state and ensure stats are set
+	auditTrail.Status = nephv1.AuditTrailStatus{
+		Phase:      "Failed",
+		LastUpdate: &now,
+		Stats: &nephv1.AuditTrailStats{
+			EventsReceived:  0,
+			EventsProcessed: 0,
+			EventsDropped:   0,
+			QueueSize:       0,
+			BackendCount:    0,
+		},
+		Conditions: []metav1.Condition{
+			{
+				Type:               ConditionTypeReady,
+				Status:             metav1.ConditionFalse,
+				Reason:             "Error",
+				Message:            err.Error(),
+				LastTransitionTime: now,
+			},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 	}
 
 	r.Recorder.Event(auditTrail, corev1.EventTypeWarning, "ReconcileError",
+<<<<<<< HEAD
 
 		fmt.Sprintf("Failed to reconcile: %v", err))
 
@@ -618,6 +807,31 @@ func (r *AuditTrailController) updateStatusError(ctx context.Context, auditTrail
 
 		return updateErr
 
+=======
+		fmt.Sprintf("Failed to reconcile: %v", err))
+
+	// Get the latest version before status update
+	latestAuditTrail := &nephv1.AuditTrail{}
+	if getErr := r.Get(ctx, client.ObjectKeyFromObject(auditTrail), latestAuditTrail); getErr != nil {
+		if apierrors.IsNotFound(getErr) {
+			log.V(1).Info("AuditTrail not found during error status update, likely deleted")
+			return err // Return original error
+		}
+		log.Error(getErr, "Failed to get latest AuditTrail for error status update")
+		return err // Return original error
+	}
+
+	// Apply error status to latest version
+	latestAuditTrail.Status = auditTrail.Status
+
+	if updateErr := r.Status().Update(ctx, latestAuditTrail); updateErr != nil {
+		if apierrors.IsNotFound(updateErr) {
+			log.V(1).Info("AuditTrail not found during error status update, likely deleted")
+			return err // Return original error, not the update error
+		}
+		log.Error(updateErr, "Failed to update status")
+		return updateErr
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	return err

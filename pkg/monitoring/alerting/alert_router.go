@@ -7,7 +7,10 @@ package alerting
 import (
 	"context"
 	"crypto/sha256"
+<<<<<<< HEAD
 	"errors"
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"fmt"
 	"log/slog"
 	"sort"
@@ -16,6 +19,10 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+<<<<<<< HEAD
+=======
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
@@ -625,6 +632,7 @@ func NewAlertRouter(config *AlertRouterConfig, logger *logging.StructuredLogger)
 		metrics.QueueDepth,
 	}
 
+<<<<<<< HEAD
 	// Register each metric, ignoring duplicate registration errors.
 
 	for _, metric := range routerMetrics {
@@ -638,6 +646,12 @@ func NewAlertRouter(config *AlertRouterConfig, logger *logging.StructuredLogger)
 			}
 
 		}
+=======
+	// Use centralized registry with safe registration
+	gr := monitoring.GetGlobalRegistry()
+	for _, collector := range routerMetrics {
+		gr.SafeRegister("alert-router", collector)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	ar := &AlertRouter{

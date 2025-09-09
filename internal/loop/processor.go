@@ -486,7 +486,11 @@ func (p *IntentProcessor) handleError(filename string, err error) error {
 
 	errorFile := filepath.Join(p.config.ErrorDir, fmt.Sprintf("%s.%s.error", basename, timestamp))
 
+<<<<<<< HEAD
 	if writeErr := atomicWriteFile(errorFile, []byte(errorContent), 0o640); writeErr != nil {
+=======
+	if writeErr := atomicWriteFile(errorFile, []byte(errorContent), 0o644); writeErr != nil {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		log.Printf("Failed to write error file %s: %v", errorFile, writeErr)
 	}
 
@@ -497,7 +501,11 @@ func (p *IntentProcessor) handleError(filename string, err error) error {
 	if origData != nil {
 		origCopy := filepath.Join(p.config.ErrorDir, fmt.Sprintf("%s.%s.json", basename, timestamp))
 
+<<<<<<< HEAD
 		if writeErr := atomicWriteFile(origCopy, origData, 0o640); writeErr != nil {
+=======
+		if writeErr := atomicWriteFile(origCopy, origData, 0o644); writeErr != nil {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			log.Printf("Failed to copy original file to error dir: %v", writeErr)
 		}
 	}
@@ -832,18 +840,32 @@ func (p *IntentProcessor) isShutdownFailure(failedFilePath string) bool {
 
 	basename := filepath.Base(failedFilePath)
 
+<<<<<<< HEAD
 	// Remove .json suffix and find .error file.
+=======
+	// Remove .json suffix and find .error.log file.
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	if strings.HasSuffix(basename, ".json") {
 		baseWithoutExt := strings.TrimSuffix(basename, ".json")
 
+<<<<<<< HEAD
 		// Find the corresponding .error file.
 
 		entries, err := os.ReadDir(p.config.ErrorDir)
+=======
+		// Look for the specific error log file (consistent with FileManager)
+		errorLogFile := baseWithoutExt + ".json.error.log"
+		errorLogPath := filepath.Join(p.config.ErrorDir, errorLogFile)
+		
+		// Read the error log content directly
+		errorContent, err := os.ReadFile(errorLogPath)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		if err != nil {
 			return false
 		}
 
+<<<<<<< HEAD
 		for _, entry := range entries {
 			name := entry.Name()
 
@@ -872,11 +894,26 @@ func (p *IntentProcessor) isShutdownFailure(failedFilePath string) bool {
 					strings.Contains(strings.ToLower(errorMsg), "signal: terminated")
 			}
 		}
+=======
+		errorMsg := string(errorContent)
+
+		// Check for shutdown failure patterns.
+		return strings.Contains(errorMsg, "SHUTDOWN_FAILURE:") ||
+			strings.Contains(strings.ToLower(errorMsg), "context canceled") ||
+			strings.Contains(strings.ToLower(errorMsg), "context cancelled") ||
+			strings.Contains(strings.ToLower(errorMsg), "signal: killed") ||
+			strings.Contains(strings.ToLower(errorMsg), "signal: interrupt") ||
+			strings.Contains(strings.ToLower(errorMsg), "signal: terminated")
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	return false
 }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // MarkGracefulShutdown marks that graceful shutdown has started.
 
 func (p *IntentProcessor) MarkGracefulShutdown() {

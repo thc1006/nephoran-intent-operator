@@ -19,11 +19,19 @@ package multicluster
 import (
 	"context"
 	"fmt"
+<<<<<<< HEAD
 	"runtime"
+=======
+	goruntime "runtime"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"sync"
 	"testing"
 	"time"
 
+<<<<<<< HEAD
+=======
+	"github.com/go-logr/logr"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"github.com/go-logr/logr/testr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,6 +39,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
+<<<<<<< HEAD
+=======
+	"sigs.k8s.io/controller-runtime/pkg/client"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	// 	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porchapi/v1alpha1" // DISABLED: external dependency not available
 )
@@ -90,6 +102,7 @@ func measureLatencies(measurements []LatencyMeasurement) (avg, p95, p99 time.Dur
 }
 
 func getMemoryUsage() float64 {
+<<<<<<< HEAD
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	return float64(m.Alloc) / 1024 / 1024 // Convert to MB
@@ -101,6 +114,49 @@ func setupPerformanceTestEnvironment(t *testing.T, numClusters int) *ClusterMana
 
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
 	logger := testr.New(t)
+=======
+	var m goruntime.MemStats
+	goruntime.ReadMemStats(&m)
+	return float64(m.Alloc) / 1024 / 1024 // Convert to MB
+}
+
+// TestingTB is a minimal interface that both *testing.T and *testing.B implement
+type TestingTB interface {
+	Errorf(format string, args ...interface{})
+	Fatalf(format string, args ...interface{})
+	Helper()
+}
+
+func setupPerformanceTestEnvironment(t TestingTB, numClusters int) *ClusterManager {
+	scheme := runtime.NewScheme()
+	
+	// Handle both *testing.T and *testing.B
+	if tt, ok := t.(*testing.T); ok {
+		require.NoError(tt, corev1.AddToScheme(scheme))
+		client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
+		logger := testr.New(tt)
+		return setupClusterManager(client, logger, numClusters)
+	} else if tb, ok := t.(*testing.B); ok {
+		if err := corev1.AddToScheme(scheme); err != nil {
+			tb.Fatalf("Failed to add scheme: %v", err)
+		}
+		client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
+		// Use a discard logger for benchmarks to avoid logging overhead
+		logger := logr.Discard()
+		return setupClusterManager(client, logger, numClusters)
+	}
+	
+	// Fallback for other testing types
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("Failed to add scheme: %v", err)
+	}
+	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
+	logger := logr.Discard()
+	return setupClusterManager(client, logger, numClusters)
+}
+
+func setupClusterManager(client client.Client, logger logr.Logger, numClusters int) *ClusterManager {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	clusterMgr := NewClusterManager(client, logger)
 	config := &rest.Config{Host: "https://test-cluster.example.com"}
@@ -131,10 +187,20 @@ func setupPerformanceTestEnvironment(t *testing.T, numClusters int) *ClusterMana
 // Benchmark Tests
 func BenchmarkClusterManager_RegisterCluster(b *testing.B) {
 	scheme := runtime.NewScheme()
+<<<<<<< HEAD
 	require.NoError(b, corev1.AddToScheme(scheme))
 
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
 	logger := testr.New(b)
+=======
+	if err := corev1.AddToScheme(scheme); err != nil {
+		b.Fatalf("Failed to add scheme: %v", err)
+	}
+
+	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
+	// Use a discard logger for benchmarks to avoid logging overhead
+	logger := logr.Discard()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	clusterMgr := NewClusterManager(client, logger)
 
 	config := &rest.Config{Host: "https://benchmark-cluster.example.com"}
@@ -223,12 +289,24 @@ func BenchmarkClusterManager_SelectTargetClusters_1000_Clusters(b *testing.B) {
 	}
 }
 
+<<<<<<< HEAD
 func BenchmarkHealthMonitor_ProcessAlerts(b *testing.B) {
 	scheme := runtime.NewScheme()
 	require.NoError(b, corev1.AddToScheme(scheme))
 
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
 	logger := testr.New(b)
+=======
+func BenchmarkHealthMonitorProcessAlerts(b *testing.B) {
+	scheme := runtime.NewScheme()
+	if err := corev1.AddToScheme(scheme); err != nil {
+		b.Fatalf("Failed to add scheme: %v", err)
+	}
+
+	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
+	// Use a discard logger for benchmarks to avoid logging overhead
+	logger := logr.Discard()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	healthMonitor := NewHealthMonitor(client, logger)
 	mockHandler := &MockAlertHandler{}
@@ -257,10 +335,20 @@ func BenchmarkHealthMonitor_ProcessAlerts(b *testing.B) {
 
 func BenchmarkSyncEngine_SyncPackageToCluster(b *testing.B) {
 	scheme := runtime.NewScheme()
+<<<<<<< HEAD
 	require.NoError(b, corev1.AddToScheme(scheme))
 
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
 	logger := testr.New(b)
+=======
+	if err := corev1.AddToScheme(scheme); err != nil {
+		b.Fatalf("Failed to add scheme: %v", err)
+	}
+
+	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
+	// Use a discard logger for benchmarks to avoid logging overhead
+	logger := logr.Discard()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	syncEngine := NewSyncEngine(client, logger)
 	packageRevision := createTestPackageRevision("bench-sync-package", "v1.0.0")
@@ -331,7 +419,11 @@ func TestPerformance_ConcurrentClusterSelection(t *testing.T) {
 	operationsPerSecond := float64(totalOperations) / totalDuration.Seconds()
 	avgLatency, p95Latency, p99Latency := measureLatencies(measurements)
 	memoryUsage := getMemoryUsage()
+<<<<<<< HEAD
 	goroutineCount := runtime.NumGoroutine()
+=======
+	goroutineCount := goruntime.NumGoroutine()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	metrics := PerformanceMetrics{
 		OperationsPerSecond: operationsPerSecond,
@@ -477,7 +569,11 @@ func TestPerformance_AlertProcessingThroughput(t *testing.T) {
 
 func TestPerformance_MemoryLeaks(t *testing.T) {
 	// Monitor memory usage during prolonged operations
+<<<<<<< HEAD
 	runtime.GC()
+=======
+	goruntime.GC()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	initialMemory := getMemoryUsage()
 
 	clusterMgr := setupPerformanceTestEnvironment(t, 10)
@@ -501,14 +597,24 @@ func TestPerformance_MemoryLeaks(t *testing.T) {
 
 		// Force GC periodically
 		if i%100 == 0 {
+<<<<<<< HEAD
 			runtime.GC()
+=======
+			goruntime.GC()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		}
 	}
 
 	// Final GC and memory check
+<<<<<<< HEAD
 	runtime.GC()
 	time.Sleep(100 * time.Millisecond) // Allow GC to complete
 	runtime.GC()
+=======
+	goruntime.GC()
+	time.Sleep(100 * time.Millisecond) // Allow GC to complete
+	goruntime.GC()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	finalMemory := getMemoryUsage()
 	memoryGrowth := finalMemory - initialMemory

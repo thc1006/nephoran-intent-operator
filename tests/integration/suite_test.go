@@ -28,8 +28,13 @@ import (
 
 // Test suite globals following 2025 Go testing patterns
 var (
+<<<<<<< HEAD
 	// testEnv provides the envtest environment
 	testEnv *testtools.TestEnvironment
+=======
+	// integrationTestEnv provides the envtest environment for integration tests
+	integrationTestEnv *testtools.TestEnvironment
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// k8sClient provides access to the Kubernetes API
 	k8sClient client.Client
@@ -61,6 +66,7 @@ var _ = BeforeSuite(func() {
 
 	// Setup envtest environment with 2025 patterns
 	var err error
+<<<<<<< HEAD
 	testEnv, err = setupEnvtestEnvironment()
 	Expect(err).NotTo(HaveOccurred())
 	Expect(testEnv).NotTo(BeNil())
@@ -68,6 +74,15 @@ var _ = BeforeSuite(func() {
 	// Get clients and scheme
 	k8sClient = testEnv.K8sClient
 	testScheme = testEnv.GetScheme()
+=======
+	integrationTestEnv, err = setupEnvtestEnvironment()
+	Expect(err).NotTo(HaveOccurred())
+	Expect(integrationTestEnv).NotTo(BeNil())
+
+	// Get clients and scheme
+	k8sClient = integrationTestEnv.K8sClient
+	testScheme = integrationTestEnv.GetScheme()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	By("verifying test environment is ready")
 	Expect(k8sClient).NotTo(BeNil())
@@ -83,8 +98,13 @@ var _ = AfterSuite(func() {
 	}
 
 	// Cleanup test environment
+<<<<<<< HEAD
 	if testEnv != nil {
 		testEnv.TeardownTestEnvironment()
+=======
+	if integrationTestEnv != nil {
+		integrationTestEnv.TeardownTestEnvironment()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 })
 
@@ -159,8 +179,13 @@ func CleanupTestNamespaceWithContext(testCtx context.Context, namespace *corev1.
 
 // WaitForResourceReady waits for a resource to be ready using context patterns
 func WaitForResourceReady(testCtx context.Context, obj client.Object, timeout time.Duration) error {
+<<<<<<< HEAD
 	if testEnv != nil {
 		return testEnv.WaitForResourceReady(obj, timeout)
+=======
+	if integrationTestEnv != nil {
+		return integrationTestEnv.WaitForResourceReady(obj, timeout)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	// Fallback to basic ready check

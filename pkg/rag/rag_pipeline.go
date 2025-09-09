@@ -10,6 +10,7 @@ import (
 
 // RAGPipeline represents a modern 2025 RAG pipeline with advanced features
 type RAGPipeline struct {
+<<<<<<< HEAD
 	embedder   EmbeddingServiceInterface
 	vectorDB   VectorDatabase
 	reranker   Reranker
@@ -17,11 +18,21 @@ type RAGPipeline struct {
 	config     *PipelineConfig
 	metrics    *PipelineMetrics
 	mu         sync.RWMutex
+=======
+	embedder EmbeddingServiceInterface
+	vectorDB VectorDatabase
+	reranker Reranker
+	chunker  ChunkingStrategy
+	config   *PipelineConfig
+	metrics  *PipelineMetrics
+	mu       sync.RWMutex
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // PipelineConfig contains configuration for the RAG pipeline
 type PipelineConfig struct {
 	// Chunking configuration
+<<<<<<< HEAD
 	ChunkSize       int     `json:"chunk_size"`
 	ChunkOverlap    int     `json:"chunk_overlap"`
 	ChunkingMethod  string  `json:"chunking_method"` // "semantic", "fixed", "sliding", "recursive"
@@ -45,10 +56,36 @@ type PipelineConfig struct {
 	UseHybridSearch bool    `json:"use_hybrid_search"`
 	UseQueryExpansion bool  `json:"use_query_expansion"`
 	UseSelfQuery    bool    `json:"use_self_query"`
+=======
+	ChunkSize      int    `json:"chunk_size"`
+	ChunkOverlap   int    `json:"chunk_overlap"`
+	ChunkingMethod string `json:"chunking_method"` // "semantic", "fixed", "sliding", "recursive"
+
+	// Retrieval configuration
+	TopK        int     `json:"top_k"`
+	MinScore    float64 `json:"min_score"`
+	HybridAlpha float64 `json:"hybrid_alpha"` // Balance between dense and sparse retrieval
+
+	// Reranking configuration
+	EnableReranking bool   `json:"enable_reranking"`
+	RerankTopK      int    `json:"rerank_top_k"`
+	RerankModel     string `json:"rerank_model"`
+
+	// Optimization
+	CacheEnabled   bool `json:"cache_enabled"`
+	CacheTTL       int  `json:"cache_ttl_seconds"`
+	MaxConcurrency int  `json:"max_concurrency"`
+
+	// Advanced features
+	UseHybridSearch   bool `json:"use_hybrid_search"`
+	UseQueryExpansion bool `json:"use_query_expansion"`
+	UseSelfQuery      bool `json:"use_self_query"`
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // PipelineMetrics tracks RAG pipeline performance
 type PipelineMetrics struct {
+<<<<<<< HEAD
 	TotalQueries        int64         `json:"total_queries"`
 	AverageLatency      time.Duration `json:"average_latency"`
 	CacheHitRate        float64       `json:"cache_hit_rate"`
@@ -56,6 +93,15 @@ type PipelineMetrics struct {
 	RetrievalPrecision  float64       `json:"retrieval_precision"`
 	TokensProcessed     int64         `json:"tokens_processed"`
 	EstimatedCost       float64       `json:"estimated_cost_usd"`
+=======
+	TotalQueries       int64         `json:"total_queries"`
+	AverageLatency     time.Duration `json:"average_latency"`
+	CacheHitRate       float64       `json:"cache_hit_rate"`
+	RetrievalRecall    float64       `json:"retrieval_recall"`
+	RetrievalPrecision float64       `json:"retrieval_precision"`
+	TokensProcessed    int64         `json:"tokens_processed"`
+	EstimatedCost      float64       `json:"estimated_cost_usd"`
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // VectorDatabase interface for vector storage operations
@@ -64,6 +110,7 @@ type VectorDatabase interface {
 	Upsert(ctx context.Context, vectors []Vector) error
 	Search(ctx context.Context, query Vector, k int, filters json.RawMessage) ([]VectorSearchResult, error)
 	Delete(ctx context.Context, ids []string) error
+<<<<<<< HEAD
 	
 	// Hybrid search combining dense and sparse vectors
 	HybridSearch(ctx context.Context, dense Vector, sparse SparseVector, k int, alpha float64) ([]VectorSearchResult, error)
@@ -71,6 +118,15 @@ type VectorDatabase interface {
 	// Batch operations
 	BatchUpsert(ctx context.Context, vectors []Vector, batchSize int) error
 	
+=======
+
+	// Hybrid search combining dense and sparse vectors
+	HybridSearch(ctx context.Context, dense Vector, sparse SparseVector, k int, alpha float64) ([]VectorSearchResult, error)
+
+	// Batch operations
+	BatchUpsert(ctx context.Context, vectors []Vector, batchSize int) error
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	// Management
 	CreateIndex(ctx context.Context, config IndexConfig) error
 	GetStats() (*VectorDBStats, error)
@@ -101,20 +157,36 @@ type VectorSearchResult struct {
 
 // IndexConfig for vector index configuration
 type IndexConfig struct {
+<<<<<<< HEAD
 	Name       string `json:"name"`
 	Dimension  int    `json:"dimension"`
 	Metric     string `json:"metric"` // "cosine", "euclidean", "dot_product"
 	IndexType  string `json:"index_type"` // "hnsw", "ivf", "flat"
 	Replicas   int    `json:"replicas"`
 	Shards     int    `json:"shards"`
+=======
+	Name      string `json:"name"`
+	Dimension int    `json:"dimension"`
+	Metric    string `json:"metric"`     // "cosine", "euclidean", "dot_product"
+	IndexType string `json:"index_type"` // "hnsw", "ivf", "flat"
+	Replicas  int    `json:"replicas"`
+	Shards    int    `json:"shards"`
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // VectorDBStats contains vector database statistics
 type VectorDBStats struct {
+<<<<<<< HEAD
 	VectorCount    int64     `json:"vector_count"`
 	IndexSize      int64     `json:"index_size_bytes"`
 	Dimension      int       `json:"dimension"`
 	LastUpdated    time.Time `json:"last_updated"`
+=======
+	VectorCount int64     `json:"vector_count"`
+	IndexSize   int64     `json:"index_size_bytes"`
+	Dimension   int       `json:"dimension"`
+	LastUpdated time.Time `json:"last_updated"`
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // Reranker interface for result reranking
@@ -145,7 +217,11 @@ func NewRAGPipeline(config *PipelineConfig) (*RAGPipeline, error) {
 	if config == nil {
 		config = DefaultPipelineConfig()
 	}
+<<<<<<< HEAD
 	
+=======
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	return &RAGPipeline{
 		embedder: NewNoopEmbeddingService(),
 		vectorDB: NewNoopVectorDB(),
@@ -178,6 +254,7 @@ func DefaultPipelineConfig() *PipelineConfig {
 // Process executes the full RAG pipeline
 func (p *RAGPipeline) Process(ctx context.Context, query string, options ...ProcessOption) (*RAGProcessResponse, error) {
 	startTime := time.Now()
+<<<<<<< HEAD
 	
 	// Apply process options
 	opts := &processOptions{
@@ -185,23 +262,44 @@ func (p *RAGPipeline) Process(ctx context.Context, query string, options ...Proc
 		minScore:  p.config.MinScore,
 		useCache:  p.config.CacheEnabled,
 		filters:   nil,
+=======
+
+	// Apply process options
+	opts := &processOptions{
+		topK:     p.config.TopK,
+		minScore: p.config.MinScore,
+		useCache: p.config.CacheEnabled,
+		filters:  nil,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 	for _, opt := range options {
 		opt(opts)
 	}
+<<<<<<< HEAD
 	
+=======
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	// Step 1: Query embedding
 	queryEmbedding, err := p.embedder.GetEmbedding(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate query embedding: %w", err)
 	}
+<<<<<<< HEAD
 	
+=======
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	// Convert to Vector
 	vector := Vector{
 		ID:     fmt.Sprintf("query-%d", time.Now().UnixNano()),
 		Values: float64ToFloat32(queryEmbedding),
 	}
+<<<<<<< HEAD
 	
+=======
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	// Step 2: Vector search (with optional hybrid search)
 	var searchResults []VectorSearchResult
 	if p.config.UseHybridSearch && p.vectorDB != nil {
@@ -211,6 +309,7 @@ func (p *RAGPipeline) Process(ctx context.Context, query string, options ...Proc
 	} else if p.vectorDB != nil {
 		searchResults, err = p.vectorDB.Search(ctx, vector, opts.topK, opts.filters)
 	}
+<<<<<<< HEAD
 	
 	if err != nil {
 		return nil, fmt.Errorf("vector search failed: %w", err)
@@ -219,6 +318,16 @@ func (p *RAGPipeline) Process(ctx context.Context, query string, options ...Proc
 	// Step 3: Convert to SearchResult format
 	retrievedDocs := convertVectorResultsToSearchResults(searchResults)
 	
+=======
+
+	if err != nil {
+		return nil, fmt.Errorf("vector search failed: %w", err)
+	}
+
+	// Step 3: Convert to SearchResult format
+	retrievedDocs := convertVectorResultsToSearchResults(searchResults)
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	// Step 4: Reranking (if enabled)
 	if p.config.EnableReranking && p.reranker != nil && len(retrievedDocs) > 0 {
 		retrievedDocs, err = p.reranker.Rerank(ctx, query, retrievedDocs, p.config.RerankTopK)
@@ -227,6 +336,7 @@ func (p *RAGPipeline) Process(ctx context.Context, query string, options ...Proc
 			fmt.Printf("Reranking failed: %v, using original results\n", err)
 		}
 	}
+<<<<<<< HEAD
 	
 	// Step 5: Generate response
 	response := &RAGProcessResponse{
@@ -244,6 +354,25 @@ func (p *RAGPipeline) Process(ctx context.Context, query string, options ...Proc
 	// Update metrics
 	p.updateMetrics(response)
 	
+=======
+
+	// Step 5: Generate response
+	response := &RAGProcessResponse{
+		Answer:         generateAnswer(query, retrievedDocs),
+		Confidence:     calculateConfidence(retrievedDocs),
+		Sources:        convertToSearchResultPointers(retrievedDocs),
+		Query:          query,
+		ProcessingTime: time.Since(startTime),
+		RetrievalTime:  time.Millisecond * 50,  // Placeholder
+		GenerationTime: time.Millisecond * 100, // Placeholder
+		TotalTime:      time.Since(startTime),
+		UsedCache:      false,
+	}
+
+	// Update metrics
+	p.updateMetrics(response)
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	return response, nil
 }
 
@@ -252,6 +381,7 @@ func (p *RAGPipeline) IngestDocument(ctx context.Context, doc *Document) error {
 	if doc == nil {
 		return fmt.Errorf("document cannot be nil")
 	}
+<<<<<<< HEAD
 	
 	// Step 1: Chunk the document
 	chunks, err := p.chunker.Chunk(ctx, doc.Content, doc.Metadata)
@@ -259,6 +389,17 @@ func (p *RAGPipeline) IngestDocument(ctx context.Context, doc *Document) error {
 		return fmt.Errorf("failed to chunk document: %w", err)
 	}
 	
+=======
+
+	// Step 1: Chunk the document
+	// Convert Document.Metadata (map[string]interface{}) to json.RawMessage
+	metadataBytes, _ := json.Marshal(doc.Metadata)
+	chunks, err := p.chunker.Chunk(ctx, doc.Content, metadataBytes)
+	if err != nil {
+		return fmt.Errorf("failed to chunk document: %w", err)
+	}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	// Step 2: Generate embeddings for each chunk
 	vectors := make([]Vector, 0, len(chunks))
 	for _, chunk := range chunks {
@@ -266,7 +407,11 @@ func (p *RAGPipeline) IngestDocument(ctx context.Context, doc *Document) error {
 		if err != nil {
 			return fmt.Errorf("failed to generate embedding for chunk: %w", err)
 		}
+<<<<<<< HEAD
 		
+=======
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		// Create metadata combining document and chunk metadata
 		metadata := map[string]interface{}{
 			"doc_id":       doc.ID,
@@ -275,23 +420,37 @@ func (p *RAGPipeline) IngestDocument(ctx context.Context, doc *Document) error {
 			"start_offset": chunk.StartOffset,
 			"end_offset":   chunk.EndOffset,
 		}
+<<<<<<< HEAD
 		
 		metadataBytes, _ := json.Marshal(metadata)
 		
+=======
+
+		metadataBytes, _ := json.Marshal(metadata)
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		vectors = append(vectors, Vector{
 			ID:       fmt.Sprintf("%s-%s", doc.ID, chunk.ID),
 			Values:   float64ToFloat32(embedding),
 			Metadata: metadataBytes,
 		})
 	}
+<<<<<<< HEAD
 	
+=======
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	// Step 3: Upsert vectors to database
 	if p.vectorDB != nil {
 		if err := p.vectorDB.BatchUpsert(ctx, vectors, 100); err != nil {
 			return fmt.Errorf("failed to upsert vectors: %w", err)
 		}
 	}
+<<<<<<< HEAD
 	
+=======
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	return nil
 }
 
@@ -306,18 +465,30 @@ func (p *RAGPipeline) GetMetrics() *PipelineMetrics {
 func (p *RAGPipeline) updateMetrics(response *RAGProcessResponse) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+<<<<<<< HEAD
 	
 	p.metrics.TotalQueries++
 	
+=======
+
+	p.metrics.TotalQueries++
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	// Update average latency
 	if p.metrics.AverageLatency == 0 {
 		p.metrics.AverageLatency = response.TotalTime
 	} else {
 		p.metrics.AverageLatency = (p.metrics.AverageLatency + response.TotalTime) / 2
 	}
+<<<<<<< HEAD
 	
 	// Estimate tokens and cost (simplified)
 	p.metrics.TokensProcessed += int64(len(response.Query) / 4) // Rough token estimate
+=======
+
+	// Estimate tokens and cost (simplified)
+	p.metrics.TokensProcessed += int64(len(response.Query) / 4)             // Rough token estimate
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	p.metrics.EstimatedCost += float64(p.metrics.TokensProcessed) * 0.00001 // Example rate
 }
 
@@ -401,7 +572,11 @@ func calculateConfidence(docs []SearchResult) float32 {
 	if len(docs) == 0 {
 		return 0.0
 	}
+<<<<<<< HEAD
 	
+=======
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	var totalScore float32
 	for _, doc := range docs {
 		totalScore += doc.Score
@@ -487,13 +662,21 @@ func (c *NoopChunker) Chunk(ctx context.Context, content string, metadata json.R
 	// Simple fixed-size chunking
 	chunkSize := 500
 	chunks := []Chunk{}
+<<<<<<< HEAD
 	
+=======
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	for i := 0; i < len(content); i += chunkSize {
 		end := i + chunkSize
 		if end > len(content) {
 			end = len(content)
 		}
+<<<<<<< HEAD
 		
+=======
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		chunks = append(chunks, Chunk{
 			ID:          fmt.Sprintf("chunk-%d", i/chunkSize),
 			Content:     content[i:end],
@@ -501,10 +684,18 @@ func (c *NoopChunker) Chunk(ctx context.Context, content string, metadata json.R
 			EndOffset:   end,
 		})
 	}
+<<<<<<< HEAD
 	
+=======
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	return chunks, nil
 }
 
 func (c *NoopChunker) GetMethod() string {
 	return "fixed-size"
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

@@ -150,6 +150,13 @@ type UserSession struct {
 
 	Attributes json.RawMessage `json:"attributes,omitempty"`
 
+<<<<<<< HEAD
+=======
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
+
+	UpdatedAt time.Time `json:"updated_at"`
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	// SSO state.
 
 	SSOEnabled bool `json:"sso_enabled"`

@@ -2,9 +2,15 @@ package providers
 
 import (
 	"context"
+<<<<<<< HEAD
 	"testing"
 	"time"
 	"encoding/json"
+=======
+	"encoding/json"
+	"testing"
+	"time"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 )
 
 func TestProviderFactory(t *testing.T) {
@@ -61,9 +67,15 @@ func TestMockProvider(t *testing.T) {
 
 	// Test operations before initialization (should fail)
 	ctx := context.Background()
+<<<<<<< HEAD
 	_, err := provider.CreateResource(ctx, ResourceRequest{
 		Name: "test-resource",
 		Type: ResourceTypeDeployment,
+=======
+	_, err := provider.CreateResource(ctx, &CreateResourceRequest{
+		Name: "test-resource",
+		Type: string(ResourceTypeDeployment),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	})
 	if err == nil {
 		t.Error("Expected error for uninitialized provider")
@@ -104,10 +116,17 @@ func TestResourceOperations(t *testing.T) {
 	defer provider.Close() // #nosec G307 - Error handled in defer
 
 	// Test CreateResource
+<<<<<<< HEAD
 	req := ResourceRequest{
 		Name: "test-deployment",
 		Type: ResourceTypeDeployment,
 		Spec: json.RawMessage(`{}`),
+=======
+	req := &CreateResourceRequest{
+		Name:          "test-deployment",
+		Type:          string(ResourceTypeDeployment),
+		Specification: json.RawMessage(`{}`),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		Labels: map[string]string{
 			"env": "test",
 		},
@@ -135,7 +154,11 @@ func TestResourceOperations(t *testing.T) {
 		t.Fatalf("Failed to get resource: %v", err)
 	}
 
+<<<<<<< HEAD
 	if retrievedResource.Status != StatusReady {
+=======
+	if retrievedResource.Status != string(StatusReady) {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		t.Errorf("Expected status %s, got %s", StatusReady, retrievedResource.Status)
 	}
 
@@ -150,10 +173,16 @@ func TestResourceOperations(t *testing.T) {
 	}
 
 	// Test UpdateResource
+<<<<<<< HEAD
 	updateReq := ResourceRequest{
 		Name: "updated-deployment",
 		Type: ResourceTypeDeployment,
 		Spec: json.RawMessage(`{}`),
+=======
+	updateReq := &UpdateResourceRequest{
+		Name:          "updated-test-resource",
+		Specification: json.RawMessage(`{}`),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		Labels: map[string]string{
 			"env":     "test",
 			"updated": "true",
@@ -170,7 +199,11 @@ func TestResourceOperations(t *testing.T) {
 	}
 
 	// Test ListResources
+<<<<<<< HEAD
 	resources, err := provider.ListResources(ctx, ResourceFilter{})
+=======
+	resources, err := provider.ListResources(ctx, &ResourceFilter{})
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if err != nil {
 		t.Fatalf("Failed to list resources: %v", err)
 	}
@@ -180,7 +213,11 @@ func TestResourceOperations(t *testing.T) {
 	}
 
 	// Test ListResources with type filter
+<<<<<<< HEAD
 	resources, err = provider.ListResources(ctx, ResourceFilter{
+=======
+	resources, err = provider.ListResources(ctx, &ResourceFilter{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		Types: []string{string(ResourceTypeDeployment)},
 	})
 	if err != nil {
@@ -192,7 +229,11 @@ func TestResourceOperations(t *testing.T) {
 	}
 
 	// Test ListResources with label filter
+<<<<<<< HEAD
 	resources, err = provider.ListResources(ctx, ResourceFilter{
+=======
+	resources, err = provider.ListResources(ctx, &ResourceFilter{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		Labels: map[string]string{
 			"env": "test",
 		},
@@ -232,9 +273,16 @@ func TestProviderRegistry(t *testing.T) {
 	}
 
 	// Test CreateAndRegisterProvider
+<<<<<<< HEAD
 	config := ProviderConfig{
 		Type:   "mock",
 		Config: json.RawMessage(`{}`),
+=======
+	config := &ProviderConfiguration{
+		Name:    "test-provider",
+		Type:    "mock",
+		Version: "1.0.0",
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	err = registry.CreateAndRegisterProvider("test-provider", "mock", config)

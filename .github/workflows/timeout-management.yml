@@ -73,25 +73,42 @@ env:
 
 jobs:
   timeout-calculator:
+<<<<<<< HEAD
     name: â° Timeout Calculator
     runs-on: ubuntu-22.04
     timeout-minutes: 5
+=======
+    name: ??Timeout Calculator
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
     outputs:
       timeout-minutes: ${{ steps.calculate.outputs.timeout-minutes }}
       cleanup-required: ${{ steps.calculate.outputs.cleanup-required }}
       timeout-strategy: ${{ steps.calculate.outputs.timeout-strategy }}
       
     steps:
+<<<<<<< HEAD
       - name: ðŸ”§ Calculate adaptive timeout
         id: calculate
         run: |
           echo "â° Calculating adaptive timeout for operation..."
+=======
+      - name: ?”§ Calculate adaptive timeout
+        id: calculate
+        run: |
+          echo "??Calculating adaptive timeout for operation..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           operation_type="${{ inputs.operation_type }}"
           complexity_level="${{ inputs.complexity_level || 'standard' }}"
           resource_tier="${{ inputs.resource_tier || 'medium' }}"
           
+<<<<<<< HEAD
           echo "ðŸ“Š Input Parameters:"
+=======
+          echo "?? Input Parameters:"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           echo "  - Operation: $operation_type"
           echo "  - Complexity: $complexity_level"
           echo "  - Resources: $resource_tier"
@@ -181,7 +198,11 @@ jobs:
           echo "cleanup-required=$cleanup_required" >> $GITHUB_OUTPUT
           echo "timeout-strategy=$timeout_strategy" >> $GITHUB_OUTPUT
           
+<<<<<<< HEAD
           echo "ðŸ“Š Calculated Timeout:"
+=======
+          echo "?? Calculated Timeout:"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           echo "  - Base timeout: ${base_timeout} minutes"
           echo "  - Complexity multiplier: ${complexity_mult}x"
           echo "  - Resource multiplier: ${resource_mult}x"
@@ -189,9 +210,15 @@ jobs:
           echo "  - Strategy: $timeout_strategy"
           echo "  - Cleanup required: $cleanup_required"
           
+<<<<<<< HEAD
       - name: ðŸ“‹ Generate timeout configuration
         run: |
           echo "ðŸ“‹ Generating timeout configuration file..."
+=======
+      - name: ?? Generate timeout configuration
+        run: |
+          echo "?? Generating timeout configuration file..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           cat > timeout-config.json <<EOF
           {
@@ -211,10 +238,17 @@ jobs:
           }
           EOF
           
+<<<<<<< HEAD
           echo "âœ… Timeout configuration generated:"
           cat timeout-config.json | jq '.'
           
       - name: ðŸ“¤ Upload timeout configuration
+=======
+          echo "??Timeout configuration generated:"
+          cat timeout-config.json | jq '.'
+          
+      - name: ?“¤ Upload timeout configuration
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         uses: actions/upload-artifact@v4
         with:
           name: timeout-configuration
@@ -222,32 +256,56 @@ jobs:
           retention-days: 1
 
   timeout-demonstration:
+<<<<<<< HEAD
     name: ðŸ§ª Timeout Demonstration
     runs-on: ubuntu-22.04
+=======
+    name: ?§ª Timeout Demonstration
+    runs-on: ubuntu-latest
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
     needs: timeout-calculator
     timeout-minutes: ${{ fromJSON(needs.timeout-calculator.outputs.timeout-minutes) }}
     if: github.event_name == 'workflow_dispatch'
     
     steps:
+<<<<<<< HEAD
       - name: ðŸ“Š Display calculated timeout
         run: |
           echo "ðŸ§ª Timeout Demonstration"
+=======
+      - name: ?? Display calculated timeout
+        run: |
+          echo "?§ª Timeout Demonstration"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           echo "========================"
           echo "Calculated timeout: ${{ needs.timeout-calculator.outputs.timeout-minutes }} minutes"
           echo "Timeout strategy: ${{ needs.timeout-calculator.outputs.timeout-strategy }}"
           echo "Cleanup required: ${{ needs.timeout-calculator.outputs.cleanup-required }}"
           
+<<<<<<< HEAD
       - name: â° Simulate operation with timeout handling
         id: simulate
         continue-on-error: true
         run: |
           echo "â° Simulating operation with timeout handling..."
+=======
+      - name: ??Simulate operation with timeout handling
+        id: simulate
+        continue-on-error: true
+        run: |
+          echo "??Simulating operation with timeout handling..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           timeout_seconds=$(( ${{ needs.timeout-calculator.outputs.timeout-minutes }} * 60 ))
           warning_time=$(( timeout_seconds - 120 ))  # 2 minutes before timeout
           
+<<<<<<< HEAD
           echo "ðŸŽ¯ Operation will timeout in ${timeout_seconds} seconds"
           echo "âš ï¸ Warning will be shown at ${warning_time} seconds"
+=======
+          echo "?Ž¯ Operation will timeout in ${timeout_seconds} seconds"
+          echo "? ï? Warning will be shown at ${warning_time} seconds"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           # Simulate work with periodic status updates
           start_time=$(date +%s)
@@ -256,7 +314,11 @@ jobs:
             local duration=$1
             local work_type="$2"
             
+<<<<<<< HEAD
             echo "ðŸ”„ Starting $work_type (duration: ${duration}s)..."
+=======
+            echo "?? Starting $work_type (duration: ${duration}s)..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             
             for i in $(seq 1 $duration); do
               current_time=$(date +%s)
@@ -264,20 +326,34 @@ jobs:
               
               # Show warning near timeout
               if [[ $elapsed -eq $warning_time ]]; then
+<<<<<<< HEAD
                 echo "âš ï¸ WARNING: Approaching timeout in 2 minutes!"
                 echo "âš ï¸ Current operation: $work_type"
                 echo "âš ï¸ Elapsed time: ${elapsed}s / ${timeout_seconds}s"
+=======
+                echo "? ï? WARNING: Approaching timeout in 2 minutes!"
+                echo "? ï? Current operation: $work_type"
+                echo "? ï? Elapsed time: ${elapsed}s / ${timeout_seconds}s"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
               fi
               
               # Show periodic progress
               if [[ $((i % 10)) -eq 0 ]]; then
+<<<<<<< HEAD
                 echo "ðŸ“Š Progress: ${i}/${duration}s (total elapsed: ${elapsed}s)"
+=======
+                echo "?? Progress: ${i}/${duration}s (total elapsed: ${elapsed}s)"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
               fi
               
               sleep 1
             done
             
+<<<<<<< HEAD
             echo "âœ… $work_type completed successfully"
+=======
+            echo "??$work_type completed successfully"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           }
           
           # Simulate different types of work based on operation type
@@ -307,6 +383,7 @@ jobs:
               ;;
           esac
           
+<<<<<<< HEAD
           echo "âœ… All simulation tasks completed successfully"
           
       - name: ðŸ§¹ Cleanup on timeout
@@ -331,6 +408,32 @@ jobs:
         if: always()
         run: |
           echo "ðŸ“Š Generating timeout management report..."
+=======
+          echo "??All simulation tasks completed successfully"
+          
+      - name: ?§¹ Cleanup on timeout
+        if: steps.simulate.outcome == 'cancelled' && needs.timeout-calculator.outputs.cleanup-required == 'true'
+        run: |
+          echo "?§¹ Performing cleanup after timeout..."
+          echo "? ï? Operation was cancelled due to timeout"
+          
+          # Simulate cleanup operations
+          echo "?? Cleaning up temporary files..."
+          sleep 2
+          
+          echo "?? Releasing resources..."
+          sleep 2
+          
+          echo "?? Notifying monitoring systems..."
+          sleep 1
+          
+          echo "??Cleanup completed"
+          
+      - name: ?? Generate timeout report
+        if: always()
+        run: |
+          echo "?? Generating timeout management report..."
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           
           outcome="${{ steps.simulate.outcome }}"
           cleanup_performed="false"
@@ -368,10 +471,17 @@ jobs:
           
           case "$outcome" in
             "success")
+<<<<<<< HEAD
               echo "âœ… **Operation completed successfully within timeout limits.**" >> timeout-report.md
               ;;
             "cancelled")
               echo "â° **Operation was cancelled due to timeout.**" >> timeout-report.md
+=======
+              echo "??**Operation completed successfully within timeout limits.**" >> timeout-report.md
+              ;;
+            "cancelled")
+              echo "??**Operation was cancelled due to timeout.**" >> timeout-report.md
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
               echo "" >> timeout-report.md
               echo "**Recommendations:**" >> timeout-report.md
               echo "- Consider reducing complexity level" >> timeout-report.md
@@ -379,6 +489,7 @@ jobs:
               echo "- Split operation into smaller chunks" >> timeout-report.md
               ;;
             "failure")
+<<<<<<< HEAD
               echo "âŒ **Operation failed before timeout.**" >> timeout-report.md
               ;;
             *)
@@ -387,6 +498,16 @@ jobs:
           esac
           
       - name: ðŸ“¤ Upload timeout report
+=======
+              echo "??**Operation failed before timeout.**" >> timeout-report.md
+              ;;
+            *)
+              echo "??**Operation completed with unknown status.**" >> timeout-report.md
+              ;;
+          esac
+          
+      - name: ?“¤ Upload timeout report
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
         uses: actions/upload-artifact@v4
         if: always()
         with:

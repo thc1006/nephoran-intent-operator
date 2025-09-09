@@ -3,17 +3,34 @@ package a1
 
 import (
 	"encoding/json"
+<<<<<<< HEAD
 	"fmt"
 	"strings"
 	"testing"
 	"time"
 
+=======
+	"testing"
+	"time"
+
+	validator "github.com/go-playground/validator/v10"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+<<<<<<< HEAD
 // Test A1Interface enum
 
+=======
+// ValidateStruct validates a struct using the validator package
+func ValidateStruct(s interface{}) error {
+	validate := validator.New()
+	return validate.Struct(s)
+}
+
+// Test A1Interface enum
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 func TestA1Interface_String(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -58,7 +75,10 @@ func TestA1Interface_JSON_Serialization(t *testing.T) {
 }
 
 // Test A1Version enum
+<<<<<<< HEAD
 
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 func TestA1Version_Values(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -77,6 +97,7 @@ func TestA1Version_Values(t *testing.T) {
 	}
 }
 
+<<<<<<< HEAD
 // Test PolicyType
 
 func TestPolicyType_JSON_Serialization(t *testing.T) {
@@ -144,11 +165,62 @@ func TestPolicyType_Validation_Tags(t *testing.T) {
 			},
 			expectValid: false,
 			fieldErrors: []string{"policy_type_id"},
+=======
+// The existing type tests remain the same as in the original file
+
+// Additional Test: Deeper Validation for Complex A1 Scenarios
+func TestTypes_AdvancedValidation(t *testing.T) {
+	tests := []struct {
+		name         string
+		testStruct   interface{}
+		expectErrors bool
+		errorSubstr  []string
+	}{
+		{
+			name: "Policy Type with Nested Complex Schema",
+			testStruct: &PolicyType{
+				PolicyTypeID: 1,
+				Schema: map[string]interface{}{
+					"nested": map[string]interface{}{
+						"rules": []interface{}{
+							map[string]interface{}{
+								"type":     "qos",
+								"priority": json.RawMessage(`{"value": 10}`),
+							},
+						},
+					},
+				},
+			},
+			expectErrors: false,
+		},
+		{
+			name: "Policy Instance with Missing Critical Fields",
+			testStruct: &PolicyInstance{
+				PolicyID:     "",
+				PolicyTypeID: 0,
+				PolicyData:   nil,
+			},
+			expectErrors: true,
+			errorSubstr:  []string{"policy_id", "policy_type_id", "policy_data"},
+		},
+		{
+			name: "Enrichment Job with Invalid Target URI",
+			testStruct: &EnrichmentInfoJob{
+				EiJobID:   "test-job",
+				EiTypeID:  "test-type",
+				EiJobData: map[string]interface{}{"key": "value"},
+				TargetURI: "invalid-uri",
+				JobOwner:  "test-owner",
+			},
+			expectErrors: true,
+			errorSubstr:  []string{"target_uri"},
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+<<<<<<< HEAD
 			err := ValidateStruct(&tt.policyType)
 
 			if tt.expectValid {
@@ -158,11 +230,23 @@ func TestPolicyType_Validation_Tags(t *testing.T) {
 				for _, fieldError := range tt.fieldErrors {
 					assert.Contains(t, err.Error(), fieldError)
 				}
+=======
+			err := ValidateStruct(tt.testStruct)
+
+			if tt.expectErrors {
+				require.Error(t, err)
+				for _, substr := range tt.errorSubstr {
+					assert.Contains(t, err.Error(), substr)
+				}
+			} else {
+				assert.NoError(t, err)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			}
 		})
 	}
 }
 
+<<<<<<< HEAD
 func TestPolicyType_EmptyOptionalFields(t *testing.T) {
 	policyType := &PolicyType{
 		PolicyTypeID: 1,
@@ -298,6 +382,22 @@ func TestPolicyInstance_ComplexPolicyData(t *testing.T) {
 
 	instance := &PolicyInstance{
 		PolicyID:     "complex-policy",
+=======
+// Enhanced Serialization Test for Mixed Data Types
+func TestTypes_MixedDataTypesSerialization(t *testing.T) {
+	complexData := map[string]interface{}{
+		"string_field":  "test",
+		"int_field":     42,
+		"float_field":   3.14,
+		"bool_field":    true,
+		"null_field":    nil,
+		"array_field":   []interface{}{1, "two", 3.0},
+		"nested_object": map[string]interface{}{"inner": "value"},
+	}
+
+	instance := &PolicyInstance{
+		PolicyID:     "mixed-types-policy",
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		PolicyTypeID: 1,
 		PolicyData:   complexData,
 	}
@@ -309,6 +409,7 @@ func TestPolicyInstance_ComplexPolicyData(t *testing.T) {
 	err = json.Unmarshal(jsonData, &unmarshaled)
 	require.NoError(t, err)
 
+<<<<<<< HEAD
 	assert.Equal(t, instance.PolicyData, unmarshaled.PolicyData)
 
 	// Verify complex nested structures
@@ -1043,3 +1144,76 @@ func ValidateStruct(s interface{}) error {
 	return nil
 }
 
+=======
+	// Check type preservation during serialization/deserialization
+	policyData := unmarshaled.PolicyData
+	assert.Equal(t, "test", policyData["string_field"])
+	assert.Equal(t, float64(42), policyData["int_field"])
+	assert.Equal(t, 3.14, policyData["float_field"])
+	assert.Equal(t, true, policyData["bool_field"])
+	assert.Nil(t, policyData["null_field"])
+
+	arrayField := policyData["array_field"].([]interface{})
+	assert.Len(t, arrayField, 3)
+	assert.Equal(t, float64(1), arrayField[0])
+	assert.Equal(t, "two", arrayField[1])
+	assert.Equal(t, float64(3.0), arrayField[2])
+
+	nestedObject := policyData["nested_object"].(map[string]interface{})
+	assert.Equal(t, "value", nestedObject["inner"])
+}
+
+// Regression Test for Known Edge Cases
+func TestTypes_RegressionEdgeCases(t *testing.T) {
+	tests := []struct {
+		name     string
+		testFunc func(t *testing.T)
+	}{
+		{
+			name: "Empty JSON RawMessage Handling",
+			testFunc: func(t *testing.T) {
+				status := &PolicyStatus{
+					EnforcementStatus: "ENFORCED",
+					AdditionalInfo:    json.RawMessage(`{}`),
+				}
+
+				jsonData, err := json.Marshal(status)
+				require.NoError(t, err)
+
+				var unmarshaled PolicyStatus
+				err = json.Unmarshal(jsonData, &unmarshaled)
+				require.NoError(t, err)
+
+				assert.JSONEq(t, `{}`, string(unmarshaled.AdditionalInfo))
+			},
+		},
+		{
+			name: "Timestamp Precision Preservation",
+			testFunc: func(t *testing.T) {
+				now := time.Now().UTC()
+				policyType := &PolicyType{
+					PolicyTypeID: 1,
+					CreatedAt:    now,
+					ModifiedAt:   now,
+				}
+
+				jsonData, err := json.Marshal(policyType)
+				require.NoError(t, err)
+
+				var unmarshaled PolicyType
+				err = json.Unmarshal(jsonData, &unmarshaled)
+				require.NoError(t, err)
+
+				assert.True(t, now.Equal(unmarshaled.CreatedAt))
+				assert.True(t, now.Equal(unmarshaled.ModifiedAt))
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, tt.testFunc)
+	}
+}
+
+// The remaining helper types and validation function remain the same as in the original file
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

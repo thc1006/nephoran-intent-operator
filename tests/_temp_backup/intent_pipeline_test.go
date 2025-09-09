@@ -16,6 +16,10 @@ import (
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+<<<<<<< HEAD
+=======
+	"github.com/thc1006/nephoran-intent-operator/test/envtest"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -45,7 +49,11 @@ var _ = BeforeSuite(func() {
 	ctx, cancel = context.WithCancel(context.TODO())
 
 	By("bootstrapping test environment")
+<<<<<<< HEAD
 	testEnv = &envtest.Environment{
+=======
+	testEnv := testenv.Environment
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "..", "deployments", "crds")},
 		ErrorIfCRDPathMissing: false, // Set to false for flexibility in CI environments
 	}

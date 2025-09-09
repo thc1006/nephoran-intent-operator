@@ -6,7 +6,10 @@ Kubernetes operator following 2025 security best practices.
 package security
 
 import (
+<<<<<<< HEAD
 	"context"
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -19,7 +22,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
+<<<<<<< HEAD
 	"sigs.k8s.io/controller-runtime/pkg/client"
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 )
 
 func TestRBACValidation(t *testing.T) {
@@ -30,11 +36,17 @@ func TestRBACValidation(t *testing.T) {
 var _ = Describe("RBAC Security Validation", func() {
 	var (
 		rbacManifests []string
+<<<<<<< HEAD
 		ctx           context.Context
 	)
 
 	BeforeEach(func() {
 		ctx = context.TODO()
+=======
+	)
+
+	BeforeEach(func() {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		
 		// Load all RBAC manifests from config/rbac
 		rbacDir := filepath.Join("..", "..", "config", "rbac")

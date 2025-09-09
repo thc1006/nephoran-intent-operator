@@ -19,8 +19,24 @@ spec:
       openAPIV3Schema:
         properties:
           apiVersion:
+<<<<<<< HEAD
             type: string
           kind:
+=======
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
             type: string
           metadata:
             type: object
@@ -64,6 +80,7 @@ spec:
                 default: true
                 type: boolean
               intentProcessingRef:
+<<<<<<< HEAD
                 properties:
                   apiVersion:
                     type: string
@@ -74,6 +91,25 @@ spec:
                   namespace:
                     type: string
                   uid:
+=======
+                description: ObjectReference represents a reference to a Kubernetes
+                  object
+                properties:
+                  apiVersion:
+                    description: API version of the referent
+                    type: string
+                  kind:
+                    description: Kind of the referent
+                    type: string
+                  name:
+                    description: Name of the referent
+                    type: string
+                  namespace:
+                    description: Namespace of the referent
+                    type: string
+                  uid:
+                    description: UID of the referent
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                     type: string
                 type: object
               networkSlice:
@@ -118,13 +154,21 @@ spec:
                   serviceLevelAgreement:
                     properties:
                       availabilityTarget:
+<<<<<<< HEAD
                         type: number
+=======
+                        type: string
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                       maxLatency:
                         format: int32
                         minimum: 1
                         type: integer
                       maxPacketLoss:
+<<<<<<< HEAD
                         type: number
+=======
+                        type: string
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                       minThroughput:
                         format: int32
                         minimum: 1
@@ -178,13 +222,19 @@ spec:
                       - energy
                       type: string
                     weight:
+<<<<<<< HEAD
                       type: number
+=======
+                      pattern: ^(0(\.[0-9]+)?|1(\.0+)?)$
+                      type: string
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                   required:
                   - priority
                   - type
                   type: object
                 type: array
               parentIntentRef:
+<<<<<<< HEAD
                 properties:
                   apiVersion:
                     type: string
@@ -195,15 +245,39 @@ spec:
                   namespace:
                     type: string
                   uid:
+=======
+                description: ObjectReference represents a reference to a Kubernetes
+                  object
+                properties:
+                  apiVersion:
+                    description: API version of the referent
+                    type: string
+                  kind:
+                    description: Kind of the referent
+                    type: string
+                  name:
+                    description: Name of the referent
+                    type: string
+                  namespace:
+                    description: Namespace of the referent
+                    type: string
+                  uid:
+                    description: UID of the referent
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                     type: string
                 type: object
               priority:
                 default: medium
+<<<<<<< HEAD
+=======
+                description: Priority defines processing priority levels
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                 type: string
               requirementsInput:
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
               resourceConstraints:
+<<<<<<< HEAD
                 properties:
                   bandwidth:
                     properties:
@@ -225,10 +299,45 @@ spec:
                       min:
                         type: string
                       request:
+=======
+                description: ResourceConstraints defines resource limits and requests
+                properties:
+                  bandwidth:
+                    description: Bandwidth constraints
+                    properties:
+                      limit:
+                        description: Limit amount
+                        type: string
+                      max:
+                        description: Maximum allowed amount
+                        type: string
+                      min:
+                        description: Minimum required amount
+                        type: string
+                      request:
+                        description: Requested amount
+                        type: string
+                    type: object
+                  cpu:
+                    description: CPU constraints
+                    properties:
+                      limit:
+                        description: Limit amount
+                        type: string
+                      max:
+                        description: Maximum allowed amount
+                        type: string
+                      min:
+                        description: Minimum required amount
+                        type: string
+                      request:
+                        description: Requested amount
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                         type: string
                     type: object
                   customResources:
                     additionalProperties:
+<<<<<<< HEAD
                       properties:
                         limit:
                           type: string
@@ -260,6 +369,55 @@ spec:
                       min:
                         type: string
                       request:
+=======
+                      description: ResourceConstraint defines a single resource constraint
+                      properties:
+                        limit:
+                          description: Limit amount
+                          type: string
+                        max:
+                          description: Maximum allowed amount
+                          type: string
+                        min:
+                          description: Minimum required amount
+                          type: string
+                        request:
+                          description: Requested amount
+                          type: string
+                      type: object
+                    description: CustomResources for custom resource constraints
+                    type: object
+                  memory:
+                    description: Memory constraints
+                    properties:
+                      limit:
+                        description: Limit amount
+                        type: string
+                      max:
+                        description: Maximum allowed amount
+                        type: string
+                      min:
+                        description: Minimum required amount
+                        type: string
+                      request:
+                        description: Requested amount
+                        type: string
+                    type: object
+                  storage:
+                    description: Storage constraints
+                    properties:
+                      limit:
+                        description: Limit amount
+                        type: string
+                      max:
+                        description: Maximum allowed amount
+                        type: string
+                      min:
+                        description: Minimum required amount
+                        type: string
+                      request:
+                        description: Requested amount
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                         type: string
                     type: object
                 type: object
@@ -290,6 +448,7 @@ spec:
                     region:
                       type: string
                     resourceLimits:
+<<<<<<< HEAD
                       properties:
                         bandwidth:
                           properties:
@@ -311,10 +470,46 @@ spec:
                             min:
                               type: string
                             request:
+=======
+                      description: ResourceConstraints defines resource limits and
+                        requests
+                      properties:
+                        bandwidth:
+                          description: Bandwidth constraints
+                          properties:
+                            limit:
+                              description: Limit amount
+                              type: string
+                            max:
+                              description: Maximum allowed amount
+                              type: string
+                            min:
+                              description: Minimum required amount
+                              type: string
+                            request:
+                              description: Requested amount
+                              type: string
+                          type: object
+                        cpu:
+                          description: CPU constraints
+                          properties:
+                            limit:
+                              description: Limit amount
+                              type: string
+                            max:
+                              description: Maximum allowed amount
+                              type: string
+                            min:
+                              description: Minimum required amount
+                              type: string
+                            request:
+                              description: Requested amount
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                               type: string
                           type: object
                         customResources:
                           additionalProperties:
+<<<<<<< HEAD
                             properties:
                               limit:
                                 type: string
@@ -346,6 +541,56 @@ spec:
                             min:
                               type: string
                             request:
+=======
+                            description: ResourceConstraint defines a single resource
+                              constraint
+                            properties:
+                              limit:
+                                description: Limit amount
+                                type: string
+                              max:
+                                description: Maximum allowed amount
+                                type: string
+                              min:
+                                description: Minimum required amount
+                                type: string
+                              request:
+                                description: Requested amount
+                                type: string
+                            type: object
+                          description: CustomResources for custom resource constraints
+                          type: object
+                        memory:
+                          description: Memory constraints
+                          properties:
+                            limit:
+                              description: Limit amount
+                              type: string
+                            max:
+                              description: Maximum allowed amount
+                              type: string
+                            min:
+                              description: Minimum required amount
+                              type: string
+                            request:
+                              description: Requested amount
+                              type: string
+                          type: object
+                        storage:
+                          description: Storage constraints
+                          properties:
+                            limit:
+                              description: Limit amount
+                              type: string
+                            max:
+                              description: Maximum allowed amount
+                              type: string
+                            min:
+                              description: Minimum required amount
+                              type: string
+                            request:
+                              description: Requested amount
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                               type: string
                           type: object
                       type: object
@@ -357,16 +602,33 @@ spec:
                 type: array
               targetComponents:
                 items:
+<<<<<<< HEAD
+=======
+                  description: TargetComponent defines a target component
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                   properties:
                     labels:
                       additionalProperties:
                         type: string
+<<<<<<< HEAD
                       type: object
                     name:
                       type: string
                     namespace:
                       type: string
                     type:
+=======
+                      description: Labels for component selection
+                      type: object
+                    name:
+                      description: Name of the component
+                      type: string
+                    namespace:
+                      description: Namespace of the component
+                      type: string
+                    type:
+                      description: Type of the component
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                       type: string
                   required:
                   - name
@@ -422,6 +684,7 @@ spec:
                 type: array
               conditions:
                 items:
+<<<<<<< HEAD
                   properties:
                     lastTransitionTime:
                       format: date-time
@@ -430,21 +693,60 @@ spec:
                       maxLength: 32768
                       type: string
                     observedGeneration:
+=======
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                       format: int64
                       minimum: 0
                       type: integer
                     reason:
+<<<<<<< HEAD
+=======
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                       maxLength: 1024
                       minLength: 1
                       pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
                       type: string
                     status:
+<<<<<<< HEAD
+=======
+                      description: status of the condition, one of True, False, Unknown.
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                       enum:
                       - "True"
                       - "False"
                       - Unknown
                       type: string
                     type:
+<<<<<<< HEAD
+=======
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                       maxLength: 316
                       pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                       type: string
@@ -463,10 +765,17 @@ spec:
                     default: monthly
                     type: string
                   confidence:
+<<<<<<< HEAD
                     type: number
                   costBreakdown:
                     additionalProperties:
                       type: number
+=======
+                    type: string
+                  costBreakdown:
+                    additionalProperties:
+                      type: string
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                     type: object
                   currency:
                     default: USD
@@ -475,7 +784,11 @@ spec:
                     format: date-time
                     type: string
                   totalCost:
+<<<<<<< HEAD
                     type: number
+=======
+                    type: string
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                 required:
                 - billingPeriod
                 - currency
@@ -495,7 +808,11 @@ spec:
                     description:
                       type: string
                     improvementPercent:
+<<<<<<< HEAD
                       type: number
+=======
+                      type: string
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                     optimizedAt:
                       format: date-time
                       type: string
@@ -516,6 +833,7 @@ spec:
                       type: string
                     type: array
                   expectedAvailability:
+<<<<<<< HEAD
                     type: number
                   expectedLatency:
                     type: number
@@ -524,12 +842,26 @@ spec:
                   resourceUtilization:
                     additionalProperties:
                       type: number
+=======
+                    type: string
+                  expectedLatency:
+                    type: string
+                  expectedThroughput:
+                    type: string
+                  resourceUtilization:
+                    additionalProperties:
+                      type: string
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                     type: object
                   scalingRecommendations:
                     items:
                       properties:
                         confidence:
+<<<<<<< HEAD
                           type: number
+=======
+                          type: string
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                         impact:
                           type: string
                         reason:
@@ -558,16 +890,33 @@ spec:
                     cluster:
                       type: string
                     component:
+<<<<<<< HEAD
+=======
+                      description: TargetComponent defines a target component
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                       properties:
                         labels:
                           additionalProperties:
                             type: string
+<<<<<<< HEAD
                           type: object
                         name:
                           type: string
                         namespace:
                           type: string
                         type:
+=======
+                          description: Labels for component selection
+                          type: object
+                        name:
+                          description: Name of the component
+                          type: string
+                        namespace:
+                          description: Namespace of the component
+                          type: string
+                        type:
+                          description: Type of the component
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                           type: string
                       required:
                       - name
@@ -581,7 +930,11 @@ spec:
                         type: string
                       type: array
                     estimatedCost:
+<<<<<<< HEAD
                       type: number
+=======
+                      type: string
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                     labels:
                       additionalProperties:
                         type: string
@@ -686,7 +1039,11 @@ spec:
                 format: date-time
                 type: string
               qualityScore:
+<<<<<<< HEAD
                 type: number
+=======
+                type: string
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
               resourceAllocation:
                 type: object
                 x-kubernetes-preserve-unknown-fields: true

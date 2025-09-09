@@ -94,9 +94,15 @@ type TestConfiguration struct {
 
 	ConcurrencyLevels []int `json:"concurrency_levels"`
 
+<<<<<<< HEAD
 	LoadPatterns []LoadPattern `json:"load_patterns"`
 
 	TestScenarios []TestScenario `json:"test_scenarios"`
+=======
+	ValidationLoadPatterns []ValidationLoadPattern `json:"load_patterns"`
+
+	ValidationTestScenarios []ValidationTestScenario `json:"test_scenarios"`
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	EnvironmentVariants []EnvVariant `json:"environment_variants"`
 }
@@ -117,9 +123,15 @@ type EvidenceRequirements struct {
 	HypothesisTests bool `json:"hypothesis_tests"` // Formal hypothesis testing
 }
 
+<<<<<<< HEAD
 // LoadPattern defines different load testing patterns.
 
 type LoadPattern struct {
+=======
+// ValidationLoadPattern defines different load testing patterns.
+
+type ValidationLoadPattern struct {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	Name string `json:"name"`
 
 	Pattern string `json:"pattern"` // "constant", "ramp", "spike", "burst"
@@ -129,9 +141,15 @@ type LoadPattern struct {
 	Parameters json.RawMessage `json:"parameters"`
 }
 
+<<<<<<< HEAD
 // TestScenario represents a telecommunications-specific test scenario.
 
 type TestScenario struct {
+=======
+// ValidationTestScenario represents a telecommunications-specific test scenario.
+
+type ValidationTestScenario struct {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	Name string `json:"name"`
 
 	Description string `json:"description"`
@@ -395,7 +413,11 @@ func (vs *ValidationSuite) ValidateAllClaims(ctx context.Context) (*ValidationRe
 	vs.results.Metadata = &ValidationMetadata{
 		StartTime: startTime,
 
+<<<<<<< HEAD
 		Environment: vs.gatherEnvironmentInfo(),
+=======
+		Environment: vs.gatherValidationEnvironmentInfo(),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 		TestConfig: vs.config.TestConfig,
 	}
@@ -956,10 +978,17 @@ func (vs *ValidationSuite) generateQQPlotData(data []float64, distType string) [
 	return points
 }
 
+<<<<<<< HEAD
 // gatherEnvironmentInfo collects environment information for metadata.
 
 func (vs *ValidationSuite) gatherEnvironmentInfo() *EnvironmentInfo {
 	return &EnvironmentInfo{
+=======
+// gatherValidationEnvironmentInfo collects environment information for metadata.
+
+func (vs *ValidationSuite) gatherValidationEnvironmentInfo() *ValidationEnvironmentInfo {
+	return &ValidationEnvironmentInfo{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		Platform: "linux",
 
 		Architecture: "amd64",

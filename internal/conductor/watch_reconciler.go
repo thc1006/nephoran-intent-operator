@@ -340,9 +340,32 @@ func (r *WatchReconciler) parseIntentToJSON(ni *nephoranv1.NetworkIntent) (map[s
 		return nil, fmt.Errorf("replicas count too high: %d (max 100)", replicas)
 	}
 
+<<<<<<< HEAD
 	// Create intent JSON matching docs/contracts/intent.schema.json.
 
 	return make(map[string]interface{}), nil
+=======
+	// Generate correlation ID with timestamp and resource info
+	correlationID := fmt.Sprintf("%s-%s-%s", ni.Name, ni.Namespace, time.Now().Format("20060102T150405.000"))
+	
+	// Generate reason based on parsed intent
+	reason := fmt.Sprintf("Scale %s to %d replicas as requested", target, replicas)
+
+	// Create intent JSON matching docs/contracts/intent.schema.json.
+	result := map[string]interface{}{
+		"intent_type":    "scaling",
+		"target":         target,
+		"namespace":      ni.Namespace,
+		"replicas":       replicas,
+		"correlation_id": correlationID,
+		"reason":         reason,
+		"source":         "user",
+		"created_at":     time.Now().Format(time.RFC3339),
+		"status":         "pending",
+	}
+
+	return result, nil
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // writeIntentJSON writes the intent data to a JSON file.
@@ -450,4 +473,7 @@ func (r *WatchReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&nephoranv1.NetworkIntent{}).
 		Complete(r)
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

@@ -5,14 +5,23 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+<<<<<<< HEAD
+=======
+	"sync"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 )
 
 // IntentSchemaValidator validates intents against the JSON schema.
 
 type IntentSchemaValidator struct {
 	schemaPath string
+<<<<<<< HEAD
 
 	schema map[string]interface{}
+=======
+	schema     map[string]interface{}
+	mu         sync.RWMutex // Protects concurrent access to schema validation
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // NewIntentSchemaValidator creates a new schema validator.
@@ -45,10 +54,22 @@ func NewIntentSchemaValidator(schemaPath string) (*IntentSchemaValidator, error)
 }
 
 // ValidateIntent validates an intent against the JSON schema.
+<<<<<<< HEAD
 
 // This is a simplified validation that checks the main requirements.
 
 func (v *IntentSchemaValidator) ValidateIntent(intent map[string]interface{}) error {
+=======
+// This is a simplified validation that checks the main requirements.
+func (v *IntentSchemaValidator) ValidateIntent(intent map[string]interface{}) error {
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+	return v.validateIntentInternal(intent)
+}
+
+// validateIntentInternal performs the actual validation without locking
+func (v *IntentSchemaValidator) validateIntentInternal(intent map[string]interface{}) error {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	// Get schema properties.
 
 	properties, ok := v.schema["properties"].(map[string]interface{})
@@ -292,11 +313,23 @@ func (v *IntentSchemaValidator) validateField(fieldName string, value interface{
 
 // Validate validates an intent against the JSON schema (alias for ValidateIntent).
 func (v *IntentSchemaValidator) Validate(intent map[string]interface{}) error {
+<<<<<<< HEAD
 	return v.ValidateIntent(intent)
+=======
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+	return v.validateIntentInternal(intent)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // ValidateJSON validates a JSON string against the schema.
 func (v *IntentSchemaValidator) ValidateJSON(jsonStr string) error {
+<<<<<<< HEAD
+=======
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+	
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if jsonStr == "" {
 		return fmt.Errorf("failed to parse JSON: empty string")
 	}
@@ -307,8 +340,13 @@ func (v *IntentSchemaValidator) ValidateJSON(jsonStr string) error {
 		return fmt.Errorf("failed to parse JSON: %w", err)
 	}
 
+<<<<<<< HEAD
 	// Validate the parsed intent.
 	if err := v.ValidateIntent(intent); err != nil {
+=======
+	// Validate the parsed intent (call internal method to avoid double-locking).
+	if err := v.validateIntentInternal(intent); err != nil {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		return fmt.Errorf("validation failed: %w", err)
 	}
 
@@ -317,7 +355,19 @@ func (v *IntentSchemaValidator) ValidateJSON(jsonStr string) error {
 
 // GetSchema returns the loaded JSON schema.
 func (v *IntentSchemaValidator) GetSchema() map[string]interface{} {
+<<<<<<< HEAD
 	return v.schema
+=======
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+	
+	// Return a copy to prevent external modifications
+	schema := make(map[string]interface{})
+	for k, v := range v.schema {
+		schema[k] = v
+	}
+	return schema
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // UpdateSchema reloads the schema from the file system.
@@ -333,8 +383,15 @@ func (v *IntentSchemaValidator) UpdateSchema() error {
 		return fmt.Errorf("failed to parse schema: %w", err)
 	}
 
+<<<<<<< HEAD
 	// Update the schema.
 	v.schema = schema
+=======
+	// Update the schema with write lock
+	v.mu.Lock()
+	v.schema = schema
+	v.mu.Unlock()
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	return nil
 }
 

@@ -6,6 +6,10 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+<<<<<<< HEAD
+=======
+	mathrand "math/rand"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -115,7 +119,11 @@ func (lt *LoadTester) Run(ctx context.Context) (*LoadTestResults, error) {
 func (lt *LoadTester) executeRequest(ctx context.Context) {
 	// Generate random intent
 	intent := &NetworkIntent{
+<<<<<<< HEAD
 		ID:          fmt.Sprintf("load-test-%d", rand.Int63()),
+=======
+		ID:          fmt.Sprintf("load-test-%d", mathrand.Int63()),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		Description: "Load test intent",
 		Priority:    randomPriority(),
 		Parameters:  json.RawMessage(`{}`),
@@ -179,12 +187,20 @@ func (lt *LoadTester) calculatePercentiles() {
 // Helper functions
 func randomPriority() string {
 	priorities := []string{"low", "medium", "high", "critical"}
+<<<<<<< HEAD
 	return priorities[rand.Intn(len(priorities))]
+=======
+	return priorities[mathrand.Intn(len(priorities))]
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 func randomQoS() string {
 	qosLevels := []string{"best-effort", "guaranteed", "premium"}
+<<<<<<< HEAD
 	return qosLevels[rand.Intn(len(qosLevels))]
+=======
+	return qosLevels[mathrand.Intn(len(qosLevels))]
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 func sortInt64s(a []int64) {
@@ -194,7 +210,11 @@ func sortInt64s(a []int64) {
 	}
 
 	left, right := 0, len(a)-1
+<<<<<<< HEAD
 	pivot := rand.Intn(right)
+=======
+	pivot := mathrand.Intn(right)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	a[pivot], a[right] = a[right], a[pivot]
 

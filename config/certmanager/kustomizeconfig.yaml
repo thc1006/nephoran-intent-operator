@@ -7,6 +7,10 @@ nameReference:
 
 namespace:
 - kind: Certificate
+<<<<<<< HEAD
   path: spec/commonName
 - kind: Certificate
   path: spec/dnsNames
+=======
+  path: spec/commonName
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

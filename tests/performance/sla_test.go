@@ -46,7 +46,11 @@ type SLATestResults struct {
 	ResourceEfficiency  float64
 	TelecomKPIs         TelecomKPIs
 	AIMLPerformance     AIMLPerformance
+<<<<<<< HEAD
 	Violations          []SLAViolation
+=======
+	Violations          []BasicSLAViolation
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // TelecomKPIs represents telecommunications-specific performance indicators
@@ -70,8 +74,13 @@ type AIMLPerformance struct {
 	EmbeddingLatency    float64 // Embedding generation latency in milliseconds
 }
 
+<<<<<<< HEAD
 // SLAViolation represents a specific SLA violation
 type SLAViolation struct {
+=======
+// BasicSLAViolation represents a specific SLA violation
+type BasicSLAViolation struct {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	Metric    string
 	Current   float64
 	Target    float64
@@ -139,7 +148,11 @@ func (s *SLATestSuite) testAvailabilitySLA(t *testing.T) {
 	s.results.Availability = availability
 
 	if availability < AvailabilityTarget {
+<<<<<<< HEAD
 		violation := SLAViolation{
+=======
+		violation := BasicSLAViolation{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			Metric:    "Availability",
 			Current:   availability,
 			Target:    AvailabilityTarget,
@@ -174,7 +187,11 @@ func (s *SLATestSuite) testIntentProcessingSLA(t *testing.T) {
 		case "p95":
 			s.results.IntentProcessingP95 = result
 			if result > IntentProcessingP95Target {
+<<<<<<< HEAD
 				violation := SLAViolation{
+=======
+				violation := BasicSLAViolation{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 					Metric:    "Intent Processing P95",
 					Current:   result,
 					Target:    IntentProcessingP95Target,
@@ -187,7 +204,11 @@ func (s *SLATestSuite) testIntentProcessingSLA(t *testing.T) {
 		case "p99":
 			s.results.IntentProcessingP99 = result
 			if result > IntentProcessingP99Target {
+<<<<<<< HEAD
 				violation := SLAViolation{
+=======
+				violation := BasicSLAViolation{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 					Metric:    "Intent Processing P99",
 					Current:   result,
 					Target:    IntentProcessingP99Target,
@@ -214,7 +235,11 @@ func (s *SLATestSuite) testErrorRateSLA(t *testing.T) {
 	s.results.ErrorRate = errorRate
 
 	if errorRate > ErrorRateTarget {
+<<<<<<< HEAD
 		violation := SLAViolation{
+=======
+		violation := BasicSLAViolation{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			Metric:    "Error Rate",
 			Current:   errorRate,
 			Target:    ErrorRateTarget,
@@ -242,7 +267,11 @@ func (s *SLATestSuite) testResourceOptimizationSLA(t *testing.T) {
 	s.results.ResourceEfficiency = efficiency
 
 	if efficiency < ResourceOptimizationTarget {
+<<<<<<< HEAD
 		violation := SLAViolation{
+=======
+		violation := BasicSLAViolation{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			Metric:    "Resource Optimization",
 			Current:   efficiency,
 			Target:    ResourceOptimizationTarget,

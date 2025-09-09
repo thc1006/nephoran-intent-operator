@@ -1,5 +1,6 @@
 package providers
 
+<<<<<<< HEAD
 import (
 	"context"
 	"testing"
@@ -355,3 +356,8 @@ func int32Ptr(i int32) *int32 {
 	return &i
 }
 
+=======
+import "testing"
+
+func TestStub(t *testing.T) { t.Skip("Test disabled") }
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

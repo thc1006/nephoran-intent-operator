@@ -35,7 +35,11 @@ on:
 
 # Aggressive concurrency control - manual-only mode
 concurrency:
+<<<<<<< HEAD
   group: ultra-ci-${{ github.ref }}-manual
+=======
+  group: nephoran-ci-${{ github.workflow }}-${{ github.ref }}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
   cancel-in-progress: true
 
 # Minimal permissions following zero-trust principles
@@ -50,9 +54,15 @@ permissions:
 
 # Global environment optimized for Go 1.25 and Ubuntu 22.04
 env:
+<<<<<<< HEAD
   # Go 1.25 configuration
   GO_VERSION: "1.22.7"
   GOTOOLCHAIN: "go1.25.0"
+=======
+  # Go 1.24.6 configuration - EMERGENCY FIX for CI failures
+  GO_VERSION: "1.24.6"
+  GOTOOLCHAIN: "go1.24.6"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
   
   # Build optimization environment
   CGO_ENABLED: "0"

@@ -30,7 +30,11 @@ type EvidenceReport struct {
 
 	TestConfiguration *TestConfiguration `json:"test_configuration"`
 
+<<<<<<< HEAD
 	Environment *EnvironmentInfo `json:"environment"`
+=======
+	Environment *ValidationEnvironmentInfo `json:"environment"`
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	ClaimEvidence map[string]*DetailedEvidence `json:"claim_evidence"`
 
@@ -746,7 +750,11 @@ type BaselineData struct {
 
 	Statistics *DescriptiveStats `json:"statistics"`
 
+<<<<<<< HEAD
 	Environment *EnvironmentInfo `json:"environment"`
+=======
+	Environment *ValidationEnvironmentInfo `json:"environment"`
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	TestConfig *TestConfiguration `json:"test_config"`
 
@@ -755,9 +763,15 @@ type BaselineData struct {
 	Metadata json.RawMessage `json:"metadata"`
 }
 
+<<<<<<< HEAD
 // EnvironmentInfo contains environment information.
 
 type EnvironmentInfo struct {
+=======
+// ValidationEnvironmentInfo contains environment information.
+
+type ValidationEnvironmentInfo struct {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	Platform string `json:"platform"`
 
 	Architecture string `json:"architecture"`
@@ -782,7 +796,11 @@ type ValidationMetadata struct {
 
 	Duration time.Duration `json:"duration"`
 
+<<<<<<< HEAD
 	Environment *EnvironmentInfo `json:"environment"`
+=======
+	Environment *ValidationEnvironmentInfo `json:"environment"`
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	TestConfig TestConfiguration `json:"test_config"`
 
@@ -829,7 +847,11 @@ func (ec *EvidenceCollector) GenerateEvidenceReport(results *ValidationResults) 
 
 		TestConfiguration: &TestConfiguration{}, // This would be populated from actual config
 
+<<<<<<< HEAD
 		Environment: ec.gatherEnvironmentInfo(),
+=======
+		Environment: ec.gatherValidationEnvironmentInfo(),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	// Generate detailed evidence for each claim.
@@ -1311,10 +1333,17 @@ func (ec *EvidenceCollector) calculateQualityScore(result *ClaimResult) float64 
 	return 85.0 // Placeholder
 }
 
+<<<<<<< HEAD
 func (ec *EvidenceCollector) gatherEnvironmentInfo() *EnvironmentInfo {
 	// This would gather actual environment information.
 
 	return &EnvironmentInfo{
+=======
+func (ec *EvidenceCollector) gatherValidationEnvironmentInfo() *ValidationEnvironmentInfo {
+	// This would gather actual environment information.
+
+	return &ValidationEnvironmentInfo{
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		Platform: "kubernetes",
 
 		Architecture: "amd64",
