@@ -78,7 +78,7 @@ type A1AdaptorInterface interface {
 
 	// Policy Instance Management.
 
-	CreatePolicyInstance(ctx context.Context, policyTypeID int, instance *A1PolicyInstance) error
+	CreatePolicyInstance(ctx context.Context, policyTypeID int, policyID string, instance *PolicyInstance) error
 
 	GetPolicyInstance(ctx context.Context, policyTypeID int, instanceID string) (*A1PolicyInstance, error)
 
@@ -542,12 +542,12 @@ func (a *A1Adaptor) DeletePolicyType(ctx context.Context, policyTypeID int) erro
 
 // CreatePolicyInstance creates a new policy instance.
 
-func (a *A1Adaptor) CreatePolicyInstance(ctx context.Context, policyTypeID int, instance *A1PolicyInstance) error {
+func (a *A1Adaptor) CreatePolicyInstance(ctx context.Context, policyTypeID int, policyID string, instance *PolicyInstance) error {
 	logger := log.FromContext(ctx)
 
 	url := fmt.Sprintf("%s/a1-p/%s/policytypes/%d/policies/%s",
 
-		a.ricURL, a.apiVersion, policyTypeID, instance.PolicyInstanceID)
+		a.ricURL, a.apiVersion, policyTypeID, policyID)
 
 	body, err := json.Marshal(instance.PolicyData)
 	if err != nil {
@@ -580,7 +580,7 @@ func (a *A1Adaptor) CreatePolicyInstance(ctx context.Context, policyTypeID int, 
 
 		"policyTypeID", policyTypeID,
 
-		"instanceID", instance.PolicyInstanceID)
+		"instanceID", policyID)
 
 	return nil
 }
