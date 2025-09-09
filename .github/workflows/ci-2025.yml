@@ -1,7 +1,7 @@
 # =============================================================================
 # Nephoran Intent Operator - 2025 CI Pipeline
 # =============================================================================
-# Optimized for Go 1.23.4, Ubuntu Linux only, with modern security practices
+# Optimized for Go 1.24, Ubuntu Linux only, with modern security practices
 # Addresses: cache key failures, tar extraction errors, timeout issues
 # =============================================================================
 
@@ -51,9 +51,9 @@ permissions:
   checks: write
   pull-requests: read
 
-# Environment optimized for Go 1.23.4 and Ubuntu Linux
+# Environment optimized for Go 1.24 and Ubuntu Linux
 env:
-  GO_VERSION: "1.23.4"
+  GO_VERSION: "1.24"
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   GOPRIVATE: "github.com/thc1006/*"
@@ -109,7 +109,7 @@ jobs:
         if: steps.changes.outputs.go == 'true'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23.4'
+          go-version: '1.24'
           check-latest: true
           cache: false  # We handle caching manually
 
@@ -210,7 +210,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23.4'
+          go-version: '1.24'
           check-latest: true
           cache: false
 
@@ -330,7 +330,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23.4'
+          go-version: '1.24'
           check-latest: true
           cache: false
 
@@ -501,7 +501,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23.4'
+          go-version: '1.24'
           check-latest: true
           cache: false
 
@@ -558,7 +558,7 @@ jobs:
       # - name: Go vulnerability check (using govulncheck-action)
       #   uses: golang/govulncheck-action@v1
       #   with:
-      #     go-version-input: '1.23.4'
+      #     go-version-input: '1.24'
       #     go-package: './cmd/... ./api/... ./controllers/...'
       #   continue-on-error: true  # Don't fail CI for vulnerabilities
 
