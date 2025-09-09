@@ -1,0 +1,683 @@
+# =============================================================================
+# Security Scanning Pipeline - 2025 Optimized Edition
+# =============================================================================
+# Addresses timeout issues with intelligent scanning strategies
+# Optimized for large codebases (1,338+ Go files, 381 dependencies)
+# =============================================================================
+
+name: Security Scan - 2025 Optimized - DISABLED
+
+# EMERGENCY CI CONSOLIDATION: DISABLED to reduce 75%+ CI job overhead
+# This workflow is redundant with security-scan.yml which serves as primary security scan
+# CONVERTED TO MANUAL-ONLY: Auto-triggering disabled to prevent CI conflicts
+# Original triggers preserved in comments for reference:
+# - push: [ main, integrate/mvp ] with path filters  
+# - pull_request: [ main, integrate/mvp ]
+# - schedule: Daily at 2 AM UTC
+
+on:
+  workflow_dispatch:
+    inputs:
+      scan_mode:
+        description: 'Security scan mode'
+        type: choice
+        options: ['quick', 'standard', 'comprehensive', 'critical-only']
+        default: 'standard'
+      force_full_scan:
+        description: 'Force full vulnerability scan (ignore timeouts)'
+        type: boolean
+        default: false
+
+# Concurrency control - manual-only mode
+concurrency:
+  group: security-scan-${{ github.ref }}-manual
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+  pull-requests: write
+
+env:
+  GO_VERSION: "1.24.6"
+  SCAN_MODE: ${{ github.event.inputs.scan_mode || 'standard' }}
+  FORCE_FULL_SCAN: ${{ github.event.inputs.force_full_scan == 'true' }}
+  CGO_ENABLED: "0"
+  GOOS: "linux"
+  GOARCH: "amd64"
+
+jobs:
+  # =============================================================================
+  # SETUP: Scan strategy determination
+  # =============================================================================
+  setup:
+    name: Security Scan Setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      scan-strategy: ${{ steps.strategy.outputs.strategy }}
+      should-scan: ${{ steps.changes.outputs.should-scan }}
+      scan-matrix: ${{ steps.matrix.outputs.matrix }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Detect security-relevant changes
+        id: changes
+        run: |
+          if [[ "${{ github.event_name }}" == "schedule" ]] || [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "should-scan=true" >> $GITHUB_OUTPUT
+            echo "Scheduled/manual scan - full security analysis"
+          else
+            # Check for security-relevant changes
+            changed_files=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git diff --name-only HEAD~1 2>/dev/null || echo "")
+            
+            if echo "$changed_files" | grep -qE '\.(go|mod|sum)$|security|auth|crypto|tls'; then
+              echo "should-scan=true" >> $GITHUB_OUTPUT
+              echo "Security-relevant changes detected"
+            else
+              echo "should-scan=false" >> $GITHUB_OUTPUT
+              echo "No security-relevant changes - skipping scan"
+            fi
+          fi
+
+      - name: Determine scan strategy
+        id: strategy
+        run: |
+          case "$SCAN_MODE" in
+            "quick")
+              strategy="quick"
+              echo "Using quick scan strategy (critical components only)"
+              ;;
+            "standard")
+              strategy="standard"
+              echo "Using standard scan strategy (balanced coverage)"
+              ;;
+            "comprehensive")
+              strategy="comprehensive" 
+              echo "Using comprehensive scan strategy (full codebase)"
+              ;;
+            "critical-only")
+              strategy="critical-only"
+              echo "Using critical-only scan strategy (essential security checks)"
+              ;;
+            *)
+              strategy="standard"
+              echo "Defaulting to standard scan strategy"
+              ;;
+          esac
+          
+          echo "strategy=$strategy" >> $GITHUB_OUTPUT
+
+      - name: Generate security scan matrix
+        id: matrix
+        run: |
+          case "$SCAN_MODE" in
+            "quick"|"critical-only")
+              matrix='{
+                "include": [
+                  {
+                    "name": "critical-paths",
+                    "paths": "./cmd/... ./api/... ./controllers/...",
+                    "timeout": 8,
+                    "priority": "critical"
+                  }
+                ]
+              }'
+              ;;
+            "standard")
+              matrix='{
+                "include": [
+                  {
+                    "name": "core-components", 
+                    "paths": "./cmd/... ./api/... ./controllers/...",
+                    "timeout": 12,
+                    "priority": "high"
+                  },
+                  {
+                    "name": "packages",
+                    "paths": "./pkg/...",
+                    "timeout": 10,
+                    "priority": "medium"
+                  }
+                ]
+              }'
+              ;;
+            "comprehensive")
+              matrix='{
+                "include": [
+                  {
+                    "name": "critical-core",
+                    "paths": "./cmd/... ./api/... ./controllers/...",
+                    "timeout": 15,
+                    "priority": "critical"
+                  },
+                  {
+                    "name": "packages-internal",
+                    "paths": "./pkg/... ./internal/...",
+                    "timeout": 18,
+                    "priority": "high"
+                  },
+                  {
+                    "name": "extended-scope",
+                    "paths": "./planner/... ./sim/... ./tools/...",
+                    "timeout": 12,
+                    "priority": "medium"
+                  }
+                ]
+              }'
+              ;;
+          esac
+          
+          echo "matrix=$matrix" >> $GITHUB_OUTPUT
+
+  # =============================================================================
+  # GOSEC: Static security analysis
+  # =============================================================================
+  gosec-analysis:
+    name: Gosec Static Analysis
+    runs-on: ubuntu-latest
+    needs: setup
+    if: needs.setup.outputs.should-scan == 'true'
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.6'
+          cache: true
+
+      - name: Run gosec security scanner
+        uses: securego/gosec@master
+        with:
+          args: '-fmt sarif -out gosec-results.sarif -severity medium -conf .gosec.json -exclude G306,G301,G302,G204,G304 -exclude-dir vendor,testdata,tests,test,examples,docs ./...'
+
+      - name: Upload SARIF results to GitHub
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: gosec-results.sarif
+          category: gosec-static-analysis
+        continue-on-error: true
+
+      - name: Generate detailed gosec report
+        if: always()
+        run: |
+          # Install gosec locally for additional reporting
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          
+          # Generate comprehensive reports
+          gosec -fmt json -conf .gosec.json -exclude G306,G301,G302,G204,G304 -exclude-dir vendor,testdata,tests,test,examples,docs -out gosec-detailed.json ./... || true
+          gosec -fmt text -conf .gosec.json -exclude G306,G301,G302,G204,G304 -exclude-dir vendor,testdata,tests,test,examples,docs -severity low ./... > gosec-detailed.txt 2>&1 || true
+          
+          # Create summary
+          echo "# Gosec Static Security Analysis" > gosec-summary.md
+          echo "**Scan Date:** $(date -u +"%Y-%m-%d %H:%M UTC")" >> gosec-summary.md
+          echo "**Scan Mode:** ${{ env.SCAN_MODE }}" >> gosec-summary.md
+          echo "" >> gosec-summary.md
+          
+          if [[ -f gosec-detailed.json ]]; then
+            # Parse JSON results if jq is available
+            if command -v jq &> /dev/null; then
+              total_issues=$(jq '.Issues | length' gosec-detailed.json 2>/dev/null || echo "0")
+              echo "**Total Issues Found:** $total_issues" >> gosec-summary.md
+              echo "" >> gosec-summary.md
+              
+              # Group by severity
+              echo "## Issues by Severity" >> gosec-summary.md
+              jq -r '.Issues | group_by(.severity) | .[] | "- **\(.[0].severity):** \(length) issues"' gosec-detailed.json 2>/dev/null >> gosec-summary.md || true
+              echo "" >> gosec-summary.md
+              
+              # Top vulnerability types
+              echo "## Top Vulnerability Types" >> gosec-summary.md
+              jq -r '.Issues | group_by(.rule_id) | sort_by(length) | reverse | .[:5] | .[] | "- **\(.[0].rule_id):** \(length) occurrences - \(.[0].details)"' gosec-detailed.json 2>/dev/null >> gosec-summary.md || true
+            else
+              echo "**Status:** Scan completed, detailed analysis requires jq" >> gosec-summary.md
+            fi
+          else
+            echo "**Status:** No issues detected or scan failed" >> gosec-summary.md
+          fi
+
+      - name: Upload gosec artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gosec-analysis-results
+          path: |
+            gosec-results.sarif
+            gosec-detailed.json
+            gosec-detailed.txt
+            gosec-summary.md
+          retention-days: 30
+          compression-level: 6
+
+  # =============================================================================
+  # VULNERABILITY SCAN: Optimized multi-tier scanning
+  # =============================================================================
+  vulnerability-scan:
+    name: Vulnerability Scan - ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    needs: setup
+    if: needs.setup.outputs.should-scan == 'true'
+    timeout-minutes: ${{ matrix.timeout }}
+    
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix: ${{ fromJSON(needs.setup.outputs.scan-matrix) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.6'
+          cache: true
+
+      - name: Create scan environment
+        run: |
+          echo "?? Setting up vulnerability scan environment"
+          echo "Scan target: ${{ matrix.name }}"
+          echo "Scan paths: ${{ matrix.paths }}"
+          echo "Priority: ${{ matrix.priority }}"
+          echo "Timeout: ${{ matrix.timeout }} minutes"
+          
+          # Create results directories
+          mkdir -p scan-results logs
+
+      - name: Run govulncheck (using official action)
+        uses: golang/govulncheck-action@v1
+        with:
+          go-version-input: '1.24.6'
+          go-package: '${{ matrix.paths }}'
+        continue-on-error: true
+        id: govulncheck
+
+      - name: Process govulncheck results
+        if: always()
+        run: |
+          echo "?? Processing govulncheck results for ${{ matrix.name }}..."
+          
+          # Create results directory if it doesn't exist
+          mkdir -p scan-results
+          
+          # Check if govulncheck step succeeded
+          if [[ "${{ steps.govulncheck.outcome }}" == "success" ]]; then
+            echo "scan_status=success" > scan-results/status.txt
+            echo "??No vulnerabilities found in ${{ matrix.paths }}"
+          elif [[ "${{ steps.govulncheck.outcome }}" == "failure" ]]; then
+            echo "scan_status=vulnerabilities_found" > scan-results/status.txt
+            echo "?ая? Vulnerabilities found in ${{ matrix.paths }}"
+          else
+            echo "scan_status=skipped" > scan-results/status.txt
+            echo "?╣я? Govulncheck scan was skipped or cancelled"
+          fi
+
+      - name: Process scan results and generate report
+        if: always()
+        run: |
+          echo "?? Processing scan results for ${{ matrix.name }}..."
+          
+          # Create summary report
+          summary_file="scan-results/summary-${{ matrix.name }}.md"
+          echo "# Vulnerability Scan Report - ${{ matrix.name }}" > "$summary_file"
+          echo "" >> "$summary_file"
+          echo "**Scan Date:** $(date -u +"%Y-%m-%d %H:%M UTC")" >> "$summary_file"
+          echo "**Scan Paths:** \`${{ matrix.paths }}\`" >> "$summary_file"
+          echo "**Priority:** ${{ matrix.priority }}" >> "$summary_file"
+          echo "**Timeout:** ${{ matrix.timeout }} minutes" >> "$summary_file"
+          echo "" >> "$summary_file"
+          
+          # Read scan status
+          if [[ -f "scan-results/status.txt" ]]; then
+            status=$(cat scan-results/status.txt)
+            echo "**Scan Status:** $status" >> "$summary_file"
+            
+            case "$status" in
+              "success")
+                echo "??Scan completed successfully with no vulnerabilities" >> "$summary_file"
+                ;;
+              "vulnerabilities_found")
+                echo "?ая? Vulnerabilities detected - review required" >> "$summary_file"
+                
+                # Try to extract vulnerability count from JSON
+                json_file="scan-results/vulnerabilities-${{ matrix.name }}.json"
+                if [[ -f "$json_file" ]] && command -v jq &> /dev/null; then
+                  vuln_count=$(jq -r '.Vulns // [] | length' "$json_file" 2>/dev/null || echo "unknown")
+                  echo "**Vulnerabilities Found:** $vuln_count" >> "$summary_file"
+                fi
+                ;;
+              "timeout")
+                echo "?▒я? Scan timed out - partial results may be available" >> "$summary_file"
+                echo "" >> "$summary_file"
+                echo "**Recommendations:**" >> "$summary_file"
+                echo "- Use more granular scan paths" >> "$summary_file"
+                echo "- Consider running during off-peak hours" >> "$summary_file"
+                echo "- Check for proxy/network issues" >> "$summary_file"
+                ;;
+              "install_failed")
+                echo "??Tool installation failed" >> "$summary_file"
+                ;;
+              "analysis_error")
+                echo "?ая? Analysis encountered build/compilation issues" >> "$summary_file"
+                ;;
+              *)
+                echo "??Scan encountered unexpected issues" >> "$summary_file"
+                ;;
+            esac
+          else
+            echo "??Scan status unknown" >> "$summary_file"
+          fi
+          
+          echo "" >> "$summary_file"
+          echo "## Files Scanned" >> "$summary_file"
+          echo "Paths: ${{ matrix.paths }}" >> "$summary_file"
+          
+          # Add to step summary
+          echo "## Vulnerability Scan - ${{ matrix.name }}" >> $GITHUB_STEP_SUMMARY
+          cat "$summary_file" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload vulnerability scan results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulnerability-scan-${{ matrix.name }}
+          path: |
+            scan-results/
+            logs/
+          retention-days: 30
+          compression-level: 6
+
+  # =============================================================================
+  # DEPENDENCY SCAN: Optimized dependency vulnerability check
+  # =============================================================================
+  dependency-scan:
+    name: Dependency Security Scan
+    runs-on: ubuntu-latest
+    needs: setup
+    if: needs.setup.outputs.should-scan == 'true'
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.6'
+          cache: true
+
+      - name: Optimized dependency vulnerability scan
+        timeout-minutes: 10
+        run: |
+          echo "?? Running optimized dependency scan..."
+          
+          mkdir -p dependency-results
+          
+          # Method 1: Nancy scan (faster, focused on direct dependencies)
+          echo "?Уж Running Nancy dependency scan..."
+          if timeout 180s go install github.com/sonatype-nexus-community/nancy@latest; then
+            echo "Nancy installed successfully"
+            
+            # Run Nancy with timeout and error handling
+            if timeout 240s go list -json -m all | nancy sleuth > dependency-results/nancy-report.txt 2>&1; then
+              echo "??Nancy scan completed"
+              echo "nancy_status=success" > dependency-results/nancy-status.txt
+            else
+              exit_code=$?
+              echo "?ая? Nancy scan exited with code: $exit_code"
+              if [[ $exit_code -eq 124 ]]; then
+                echo "nancy_status=timeout" > dependency-results/nancy-status.txt
+                echo "Nancy scan timed out" >> dependency-results/nancy-report.txt
+              else
+                echo "nancy_status=vulnerabilities_or_error" > dependency-results/nancy-status.txt
+                echo "Nancy scan completed with issues (exit code: $exit_code)" >> dependency-results/nancy-report.txt
+              fi
+            fi
+          else
+            echo "?ая? Failed to install Nancy - skipping dependency scan"
+            echo "nancy_status=install_failed" > dependency-results/nancy-status.txt
+          fi
+          
+          # Method 2: Basic go.mod analysis for known vulnerable patterns
+          echo "?? Analyzing go.mod for known vulnerable patterns..."
+          
+          # Check for common vulnerable dependencies
+          vulnerable_patterns=(
+            "github.com/dgrijalva/jwt-go"
+            "github.com/ghodss/yaml"
+            "gopkg.in/yaml.v2"
+            "github.com/gorilla/websocket.*v1.4.0"
+          )
+          
+          echo "## Dependency Analysis Report" > dependency-results/analysis-report.md
+          echo "**Date:** $(date -u +"%Y-%m-%d %H:%M UTC")" >> dependency-results/analysis-report.md
+          echo "" >> dependency-results/analysis-report.md
+          
+          vulnerable_found=false
+          for pattern in "${vulnerable_patterns[@]}"; do
+            if grep -E "$pattern" go.mod; then
+              echo "?ая? Found potentially vulnerable dependency: $pattern" >> dependency-results/analysis-report.md
+              vulnerable_found=true
+            fi
+          done
+          
+          if [[ "$vulnerable_found" == "false" ]]; then
+            echo "??No known vulnerable dependencies found in go.mod" >> dependency-results/analysis-report.md
+          fi
+          
+          # Dependency count and summary
+          total_deps=$(grep -c "^\s" go.mod || echo "0")
+          echo "" >> dependency-results/analysis-report.md
+          echo "**Total Dependencies:** $total_deps" >> dependency-results/analysis-report.md
+
+      - name: Process dependency scan results
+        if: always()
+        run: |
+          echo "?? Processing dependency scan results..."
+          
+          # Create comprehensive summary
+          echo "# Dependency Security Scan Results" > dependency-results/summary.md
+          echo "" >> dependency-results/summary.md
+          echo "**Scan Date:** $(date -u +"%Y-%m-%d %H:%M UTC")" >> dependency-results/summary.md
+          echo "**Total Dependencies:** $(grep -c '^\s' go.mod || echo '0')" >> dependency-results/summary.md
+          echo "" >> dependency-results/summary.md
+          
+          # Check Nancy results
+          if [[ -f "dependency-results/nancy-status.txt" ]]; then
+            nancy_status=$(cat dependency-results/nancy-status.txt)
+            echo "## Nancy Scan Results" >> dependency-results/summary.md
+            
+            case "$nancy_status" in
+              "success")
+                echo "??Nancy scan completed successfully - no vulnerabilities found" >> dependency-results/summary.md
+                ;;
+              "vulnerabilities_or_error")
+                echo "?ая? Nancy scan found vulnerabilities or encountered errors" >> dependency-results/summary.md
+                if [[ -f "dependency-results/nancy-report.txt" ]]; then
+                  echo "" >> dependency-results/summary.md
+                  echo "<details><summary>Nancy Report Details</summary>" >> dependency-results/summary.md
+                  echo "" >> dependency-results/summary.md
+                  echo "\`\`\`" >> dependency-results/summary.md
+                  head -50 dependency-results/nancy-report.txt >> dependency-results/summary.md
+                  echo "\`\`\`" >> dependency-results/summary.md
+                  echo "</details>" >> dependency-results/summary.md
+                fi
+                ;;
+              "timeout")
+                echo "?▒я? Nancy scan timed out (large dependency tree)" >> dependency-results/summary.md
+                ;;
+              "install_failed")
+                echo "??Nancy installation failed" >> dependency-results/summary.md
+                ;;
+            esac
+          fi
+          
+          # Add manual analysis results
+          echo "" >> dependency-results/summary.md
+          if [[ -f "dependency-results/analysis-report.md" ]]; then
+            cat dependency-results/analysis-report.md >> dependency-results/summary.md
+          fi
+          
+          # Add to GitHub step summary
+          echo "## Dependency Security Scan" >> $GITHUB_STEP_SUMMARY
+          cat dependency-results/summary.md >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload dependency scan results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-scan-results
+          path: dependency-results/
+          retention-days: 30
+
+  # =============================================================================
+  # SECURITY SUMMARY: Aggregate all security scan results
+  # =============================================================================
+  security-summary:
+    name: Security Summary Report
+    runs-on: ubuntu-latest
+    needs: [setup, gosec-analysis, vulnerability-scan, dependency-scan]
+    if: always() && needs.setup.outputs.should-scan == 'true'
+    timeout-minutes: 10
+
+    steps:
+      - name: Download all security scan artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: security-artifacts/
+
+      - name: Generate comprehensive security report
+        run: |
+          echo "# ?? Nephoran Security Scan Report - 2025 Optimized" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Report Generated:** $(date -u +"%Y-%m-%d %H:%M UTC")" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Scan Mode:** ${{ env.SCAN_MODE }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "## ?? Scan Results Overview" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Scanner | Status | Notes |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------------|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Gosec Analysis | ${{ needs.gosec-analysis.result }} | Static code security analysis |" >> $GITHUB_STEP_SUMMARY
+          echo "| Vulnerability Scan | ${{ needs.vulnerability-scan.result }} | CVE detection (tiered approach) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dependency Scan | ${{ needs.dependency-scan.result }} | Third-party vulnerability check |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "## ?Оп Optimization Benefits" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "This optimized security pipeline provides:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Intelligent Timeouts**: Prevents workflow hanging on large codebases" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tiered Scanning**: Prioritizes critical components for faster feedback" >> $GITHUB_STEP_SUMMARY
+          echo "- **Graceful Degradation**: Continues even if individual scans timeout" >> $GITHUB_STEP_SUMMARY
+          echo "- **Comprehensive Coverage**: Multiple tools for defense-in-depth" >> $GITHUB_STEP_SUMMARY
+          echo "- **Resource Optimization**: Efficient use of GitHub Actions minutes" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Process specific scan results if available
+          if [[ -d "security-artifacts" ]]; then
+            echo "## ?? Detailed Findings" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # Gosec findings
+            if [[ -f "security-artifacts/gosec-analysis-results/gosec-summary.md" ]]; then
+              echo "### Static Analysis (Gosec)" >> $GITHUB_STEP_SUMMARY
+              tail -n 20 "security-artifacts/gosec-analysis-results/gosec-summary.md" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            # Vulnerability scan findings
+            echo "### Vulnerability Scans" >> $GITHUB_STEP_SUMMARY
+            for scan_artifact in security-artifacts/vulnerability-scan-*/summary-*.md; do
+              if [[ -f "$scan_artifact" ]]; then
+                echo "#### $(basename "$scan_artifact" .md | sed 's/summary-//')" >> $GITHUB_STEP_SUMMARY
+                cat "$scan_artifact" >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+              fi
+            done
+            
+            # Dependency scan findings
+            if [[ -f "security-artifacts/dependency-scan-results/summary.md" ]]; then
+              echo "### Dependency Analysis" >> $GITHUB_STEP_SUMMARY
+              cat "security-artifacts/dependency-scan-results/summary.md" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+          
+          echo "## ?? Recommendations" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "1. **Review High-Priority Findings**: Focus on critical and high-severity issues first" >> $GITHUB_STEP_SUMMARY
+          echo "2. **Update Dependencies**: Keep third-party libraries up to date" >> $GITHUB_STEP_SUMMARY
+          echo "3. **Implement Security Headers**: Add appropriate security headers to web services" >> $GITHUB_STEP_SUMMARY
+          echo "4. **Regular Scans**: Schedule periodic comprehensive security scans" >> $GITHUB_STEP_SUMMARY
+          echo "5. **Security Training**: Ensure team awareness of secure coding practices" >> $GITHUB_STEP_SUMMARY
+
+      - name: Create consolidated security report
+        run: |
+          echo "?? Creating consolidated security report..."
+          
+          report_file="consolidated-security-report.md"
+          echo "# Nephoran Security Scan Report - 2025 Optimized" > "$report_file"
+          echo "" >> "$report_file"
+          echo "**Generated:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> "$report_file"
+          echo "**Repository:** ${{ github.repository }}" >> "$report_file"
+          echo "**Branch:** ${{ github.ref_name }}" >> "$report_file"
+          echo "**Commit:** ${{ github.sha }}" >> "$report_file"
+          echo "**Workflow Run:** ${{ github.run_id }}" >> "$report_file"
+          echo "" >> "$report_file"
+          
+          echo "## Executive Summary" >> "$report_file"
+          echo "" >> "$report_file"
+          echo "This security scan was optimized for large codebases with the following enhancements:" >> "$report_file"
+          echo "- Intelligent timeout handling to prevent workflow failures" >> "$report_file"
+          echo "- Tiered scanning approach prioritizing critical components" >> "$report_file"
+          echo "- Multiple complementary security tools for comprehensive coverage" >> "$report_file"
+          echo "- Graceful degradation ensuring partial results even with timeouts" >> "$report_file"
+          echo "" >> "$report_file"
+          
+          # Aggregate all findings
+          if [[ -d "security-artifacts" ]]; then
+            echo "## Detailed Security Findings" >> "$report_file"
+            echo "" >> "$report_file"
+            
+            # Include all summary files
+            for summary_file in security-artifacts/*/summary*.md security-artifacts/*/*.md; do
+              if [[ -f "$summary_file" ]]; then
+                echo "### $(basename "$summary_file" .md)" >> "$report_file"
+                echo "" >> "$report_file"
+                cat "$summary_file" >> "$report_file"
+                echo "" >> "$report_file"
+                echo "---" >> "$report_file"
+                echo "" >> "$report_file"
+              fi
+            done
+          fi
+          
+          echo "## Scan Configuration Details" >> "$report_file"
+          echo "- **Scan Mode:** ${{ env.SCAN_MODE }}" >> "$report_file"
+          echo "- **Force Full Scan:** ${{ env.FORCE_FULL_SCAN }}" >> "$report_file"
+          echo "- **Trigger Event:** ${{ github.event_name }}" >> "$report_file"
+          echo "- **Go Version:** ${{ env.GO_VERSION }}" >> "$report_file"
+
+      - name: Upload consolidated security report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report-consolidated-${{ github.run_number }}
+          path: consolidated-security-report.md
+          retention-days: 30

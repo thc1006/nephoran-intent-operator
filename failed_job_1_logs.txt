@@ -1,0 +1,636 @@
+Quick Validation	Set up job	﻿2025-09-04T21:11:32.9372009Z Current runner version: '2.328.0'
+Quick Validation	Set up job	2025-09-04T21:11:32.9394903Z ##[group]Runner Image Provisioner
+Quick Validation	Set up job	2025-09-04T21:11:32.9395727Z Hosted Compute Agent
+Quick Validation	Set up job	2025-09-04T21:11:32.9396498Z Version: 20250829.383
+Quick Validation	Set up job	2025-09-04T21:11:32.9397197Z Commit: 27cb235aab5b0e52e153a26cd86b4742e89dac5d
+Quick Validation	Set up job	2025-09-04T21:11:32.9397927Z Build Date: 2025-08-29T13:48:48Z
+Quick Validation	Set up job	2025-09-04T21:11:32.9398496Z ##[endgroup]
+Quick Validation	Set up job	2025-09-04T21:11:32.9399069Z ##[group]Operating System
+Quick Validation	Set up job	2025-09-04T21:11:32.9399598Z Ubuntu
+Quick Validation	Set up job	2025-09-04T21:11:32.9400072Z 24.04.3
+Quick Validation	Set up job	2025-09-04T21:11:32.9400522Z LTS
+Quick Validation	Set up job	2025-09-04T21:11:32.9401020Z ##[endgroup]
+Quick Validation	Set up job	2025-09-04T21:11:32.9401461Z ##[group]Runner Image
+Quick Validation	Set up job	2025-09-04T21:11:32.9402019Z Image: ubuntu-24.04
+Quick Validation	Set up job	2025-09-04T21:11:32.9402543Z Version: 20250831.1.0
+Quick Validation	Set up job	2025-09-04T21:11:32.9403498Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250831.1/images/ubuntu/Ubuntu2404-Readme.md
+Quick Validation	Set up job	2025-09-04T21:11:32.9404874Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250831.1
+Quick Validation	Set up job	2025-09-04T21:11:32.9406004Z ##[endgroup]
+Quick Validation	Set up job	2025-09-04T21:11:32.9407441Z ##[group]GITHUB_TOKEN Permissions
+Quick Validation	Set up job	2025-09-04T21:11:32.9409197Z Contents: read
+Quick Validation	Set up job	2025-09-04T21:11:32.9409694Z Metadata: read
+Quick Validation	Set up job	2025-09-04T21:11:32.9410335Z Packages: read
+Quick Validation	Set up job	2025-09-04T21:11:32.9410866Z ##[endgroup]
+Quick Validation	Set up job	2025-09-04T21:11:32.9413082Z Secret source: Actions
+Quick Validation	Set up job	2025-09-04T21:11:32.9413838Z Prepare workflow directory
+Quick Validation	Set up job	2025-09-04T21:11:32.9793759Z Prepare all required actions
+Quick Validation	Set up job	2025-09-04T21:11:32.9830486Z Getting action download info
+Quick Validation	Set up job	2025-09-04T21:11:33.3219752Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
+Quick Validation	Set up job	2025-09-04T21:11:33.3892739Z Download action repository 'actions/setup-go@v5' (SHA:d35c59abb061a4a6fb18e82ac0862c26744d6ab5)
+Quick Validation	Set up job	2025-09-04T21:11:33.6669541Z Download action repository 'actions/cache@v4' (SHA:0400d5f644dc74513175e3cd8d07132dd4860809)
+Quick Validation	Set up job	2025-09-04T21:11:33.8763511Z Complete job name: Quick Validation
+Quick Validation	Checkout code	﻿2025-09-04T21:11:33.9440633Z ##[group]Run actions/checkout@v4
+Quick Validation	Checkout code	2025-09-04T21:11:33.9441454Z with:
+Quick Validation	Checkout code	2025-09-04T21:11:33.9441853Z   fetch-depth: 1
+Quick Validation	Checkout code	2025-09-04T21:11:33.9442328Z   repository: thc1006/nephoran-intent-operator
+Quick Validation	Checkout code	2025-09-04T21:11:33.9443074Z   token: ***
+Quick Validation	Checkout code	2025-09-04T21:11:33.9443450Z   ssh-strict: true
+Quick Validation	Checkout code	2025-09-04T21:11:33.9443844Z   ssh-user: git
+Quick Validation	Checkout code	2025-09-04T21:11:33.9444263Z   persist-credentials: true
+Quick Validation	Checkout code	2025-09-04T21:11:33.9444703Z   clean: true
+Quick Validation	Checkout code	2025-09-04T21:11:33.9445094Z   sparse-checkout-cone-mode: true
+Quick Validation	Checkout code	2025-09-04T21:11:33.9445559Z   fetch-tags: false
+Quick Validation	Checkout code	2025-09-04T21:11:33.9445973Z   show-progress: true
+Quick Validation	Checkout code	2025-09-04T21:11:33.9446515Z   lfs: false
+Quick Validation	Checkout code	2025-09-04T21:11:33.9446890Z   submodules: false
+Quick Validation	Checkout code	2025-09-04T21:11:33.9447299Z   set-safe-directory: true
+Quick Validation	Checkout code	2025-09-04T21:11:33.9447964Z env:
+Quick Validation	Checkout code	2025-09-04T21:11:33.9448318Z   GO_VERSION: 1.22
+Quick Validation	Checkout code	2025-09-04T21:11:33.9448774Z   GOPROXY: https://proxy.golang.org,direct
+Quick Validation	Checkout code	2025-09-04T21:11:33.9449311Z   GOSUMDB: sum.golang.org
+Quick Validation	Checkout code	2025-09-04T21:11:33.9449720Z   CGO_ENABLED: 0
+Quick Validation	Checkout code	2025-09-04T21:11:33.9450122Z   GOMAXPROCS: 4
+Quick Validation	Checkout code	2025-09-04T21:11:33.9450527Z   GOMEMLIMIT: 4GiB
+Quick Validation	Checkout code	2025-09-04T21:11:33.9450906Z   GOGC: 100
+Quick Validation	Checkout code	2025-09-04T21:11:33.9451249Z ##[endgroup]
+Quick Validation	Checkout code	2025-09-04T21:11:34.0719666Z Syncing repository: thc1006/nephoran-intent-operator
+Quick Validation	Checkout code	2025-09-04T21:11:34.0722094Z ##[group]Getting Git version info
+Quick Validation	Checkout code	2025-09-04T21:11:34.0723627Z Working directory is '/home/runner/work/nephoran-intent-operator/nephoran-intent-operator'
+Quick Validation	Checkout code	2025-09-04T21:11:34.0725683Z [command]/usr/bin/git version
+Quick Validation	Checkout code	2025-09-04T21:11:34.0761923Z git version 2.51.0
+Quick Validation	Checkout code	2025-09-04T21:11:34.0788412Z ##[endgroup]
+Quick Validation	Checkout code	2025-09-04T21:11:34.0803050Z Temporarily overriding HOME='/home/runner/work/_temp/cb02e1b9-8b98-448e-8565-e329c94fce6b' before making global git config changes
+Quick Validation	Checkout code	2025-09-04T21:11:34.0805430Z Adding repository directory to the temporary git global config as a safe directory
+Quick Validation	Checkout code	2025-09-04T21:11:34.0810323Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+Quick Validation	Checkout code	2025-09-04T21:11:34.0844177Z Deleting the contents of '/home/runner/work/nephoran-intent-operator/nephoran-intent-operator'
+Quick Validation	Checkout code	2025-09-04T21:11:34.0848467Z ##[group]Initializing the repository
+Quick Validation	Checkout code	2025-09-04T21:11:34.0853440Z [command]/usr/bin/git init /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+Quick Validation	Checkout code	2025-09-04T21:11:34.0927218Z hint: Using 'master' as the name for the initial branch. This default branch name
+Quick Validation	Checkout code	2025-09-04T21:11:34.0928784Z hint: is subject to change. To configure the initial branch name to use in all
+Quick Validation	Checkout code	2025-09-04T21:11:34.0930133Z hint: of your new repositories, which will suppress this warning, call:
+Quick Validation	Checkout code	2025-09-04T21:11:34.0930994Z hint:
+Quick Validation	Checkout code	2025-09-04T21:11:34.0931811Z hint: 	git config --global init.defaultBranch <name>
+Quick Validation	Checkout code	2025-09-04T21:11:34.0932850Z hint:
+Quick Validation	Checkout code	2025-09-04T21:11:34.0933828Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Quick Validation	Checkout code	2025-09-04T21:11:34.0935419Z hint: 'development'. The just-created branch can be renamed via this command:
+Quick Validation	Checkout code	2025-09-04T21:11:34.0936993Z hint:
+Quick Validation	Checkout code	2025-09-04T21:11:34.0937652Z hint: 	git branch -m <name>
+Quick Validation	Checkout code	2025-09-04T21:11:34.0938422Z hint:
+Quick Validation	Checkout code	2025-09-04T21:11:34.0939400Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Quick Validation	Checkout code	2025-09-04T21:11:34.0941546Z Initialized empty Git repository in /home/runner/work/nephoran-intent-operator/nephoran-intent-operator/.git/
+Quick Validation	Checkout code	2025-09-04T21:11:34.0944869Z [command]/usr/bin/git remote add origin https://github.com/thc1006/nephoran-intent-operator
+Quick Validation	Checkout code	2025-09-04T21:11:34.0976891Z ##[endgroup]
+Quick Validation	Checkout code	2025-09-04T21:11:34.0978157Z ##[group]Disabling automatic garbage collection
+Quick Validation	Checkout code	2025-09-04T21:11:34.0981686Z [command]/usr/bin/git config --local gc.auto 0
+Quick Validation	Checkout code	2025-09-04T21:11:34.1010065Z ##[endgroup]
+Quick Validation	Checkout code	2025-09-04T21:11:34.1010710Z ##[group]Setting up auth
+Quick Validation	Checkout code	2025-09-04T21:11:34.1016608Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Quick Validation	Checkout code	2025-09-04T21:11:34.1045042Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Quick Validation	Checkout code	2025-09-04T21:11:34.1325159Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Quick Validation	Checkout code	2025-09-04T21:11:34.1353684Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Quick Validation	Checkout code	2025-09-04T21:11:34.1577387Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Quick Validation	Checkout code	2025-09-04T21:11:34.1609433Z ##[endgroup]
+Quick Validation	Checkout code	2025-09-04T21:11:34.1618013Z ##[group]Fetching the repository
+Quick Validation	Checkout code	2025-09-04T21:11:34.1620237Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +5e924cc67d0d25df1d514e311f2f89d2da3154d0:refs/remotes/pull/176/merge
+Quick Validation	Checkout code	2025-09-04T21:11:36.4722932Z From https://github.com/thc1006/nephoran-intent-operator
+Quick Validation	Checkout code	2025-09-04T21:11:36.4724868Z  * [new ref]         5e924cc67d0d25df1d514e311f2f89d2da3154d0 -> pull/176/merge
+Quick Validation	Checkout code	2025-09-04T21:11:36.4755165Z ##[endgroup]
+Quick Validation	Checkout code	2025-09-04T21:11:36.4756774Z ##[group]Determining the checkout info
+Quick Validation	Checkout code	2025-09-04T21:11:36.4758352Z ##[endgroup]
+Quick Validation	Checkout code	2025-09-04T21:11:36.4763540Z [command]/usr/bin/git sparse-checkout disable
+Quick Validation	Checkout code	2025-09-04T21:11:36.4808906Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Quick Validation	Checkout code	2025-09-04T21:11:36.4837122Z ##[group]Checking out the ref
+Quick Validation	Checkout code	2025-09-04T21:11:36.4841073Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/176/merge
+Quick Validation	Checkout code	2025-09-04T21:11:36.9167989Z Note: switching to 'refs/remotes/pull/176/merge'.
+Quick Validation	Checkout code	2025-09-04T21:11:36.9168773Z 
+Quick Validation	Checkout code	2025-09-04T21:11:36.9169246Z You are in 'detached HEAD' state. You can look around, make experimental
+Quick Validation	Checkout code	2025-09-04T21:11:36.9170273Z changes and commit them, and you can discard any commits you make in this
+Quick Validation	Checkout code	2025-09-04T21:11:36.9171321Z state without impacting any branches by switching back to a branch.
+Quick Validation	Checkout code	2025-09-04T21:11:36.9171968Z 
+Quick Validation	Checkout code	2025-09-04T21:11:36.9172437Z If you want to create a new branch to retain commits you create, you may
+Quick Validation	Checkout code	2025-09-04T21:11:36.9173452Z do so (now or later) by using -c with the switch command. Example:
+Quick Validation	Checkout code	2025-09-04T21:11:36.9174405Z 
+Quick Validation	Checkout code	2025-09-04T21:11:36.9174670Z   git switch -c <new-branch-name>
+Quick Validation	Checkout code	2025-09-04T21:11:36.9175093Z 
+Quick Validation	Checkout code	2025-09-04T21:11:36.9175338Z Or undo this operation with:
+Quick Validation	Checkout code	2025-09-04T21:11:36.9175712Z 
+Quick Validation	Checkout code	2025-09-04T21:11:36.9175932Z   git switch -
+Quick Validation	Checkout code	2025-09-04T21:11:36.9176482Z 
+Quick Validation	Checkout code	2025-09-04T21:11:36.9176949Z Turn off this advice by setting config variable advice.detachedHead to false
+Quick Validation	Checkout code	2025-09-04T21:11:36.9177620Z 
+Quick Validation	Checkout code	2025-09-04T21:11:36.9178350Z HEAD is now at 5e924cc Merge 3bb8fbf670d0120b894a0235b1178558749ce5b2 into 167eaabfb653086ef04e8e45b639ef6bd3c7d49f
+Quick Validation	Checkout code	2025-09-04T21:11:36.9185471Z ##[endgroup]
+Quick Validation	Checkout code	2025-09-04T21:11:36.9224039Z [command]/usr/bin/git log -1 --format=%H
+Quick Validation	Checkout code	2025-09-04T21:11:36.9246865Z 5e924cc67d0d25df1d514e311f2f89d2da3154d0
+Quick Validation	Setup Go with cache	﻿2025-09-04T21:11:36.9459574Z ##[group]Run actions/setup-go@v5
+Quick Validation	Setup Go with cache	2025-09-04T21:11:36.9459966Z with:
+Quick Validation	Setup Go with cache	2025-09-04T21:11:36.9460219Z   go-version: 1.22
+Quick Validation	Setup Go with cache	2025-09-04T21:11:36.9460480Z   cache: true
+Quick Validation	Setup Go with cache	2025-09-04T21:11:36.9460742Z   cache-dependency-path: go.sum
+Quick Validation	Setup Go with cache	2025-09-04T21:11:36.9461076Z   check-latest: false
+Quick Validation	Setup Go with cache	2025-09-04T21:11:36.9461509Z   token: ***
+Quick Validation	Setup Go with cache	2025-09-04T21:11:36.9461780Z env:
+Quick Validation	Setup Go with cache	2025-09-04T21:11:36.9462006Z   GO_VERSION: 1.22
+Quick Validation	Setup Go with cache	2025-09-04T21:11:36.9462311Z   GOPROXY: https://proxy.golang.org,direct
+Quick Validation	Setup Go with cache	2025-09-04T21:11:36.9462670Z   GOSUMDB: sum.golang.org
+Quick Validation	Setup Go with cache	2025-09-04T21:11:36.9462952Z   CGO_ENABLED: 0
+Quick Validation	Setup Go with cache	2025-09-04T21:11:36.9463197Z   GOMAXPROCS: 4
+Quick Validation	Setup Go with cache	2025-09-04T21:11:36.9463438Z   GOMEMLIMIT: 4GiB
+Quick Validation	Setup Go with cache	2025-09-04T21:11:36.9463683Z   GOGC: 100
+Quick Validation	Setup Go with cache	2025-09-04T21:11:36.9463903Z ##[endgroup]
+Quick Validation	Setup Go with cache	2025-09-04T21:11:37.1038930Z Setup go version spec 1.22
+Quick Validation	Setup Go with cache	2025-09-04T21:11:37.1541080Z Found in cache @ /opt/hostedtoolcache/go/1.22.12/x64
+Quick Validation	Setup Go with cache	2025-09-04T21:11:37.1546453Z Added go to the path
+Quick Validation	Setup Go with cache	2025-09-04T21:11:37.1549988Z Successfully set up Go version 1.22
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.0633982Z go: downloading go1.24.6 (linux/amd64)
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.0770850Z [command]/opt/hostedtoolcache/go/1.22.12/x64/bin/go env GOMODCACHE
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.0801611Z [command]/opt/hostedtoolcache/go/1.22.12/x64/bin/go env GOCACHE
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.0848019Z /home/runner/go/pkg/mod
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.0878389Z /home/runner/.cache/go-build
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.2058151Z Cache is not found
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.2080392Z go version go1.24.6 linux/amd64
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.2080610Z 
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.2080896Z ##[group]go env
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8168560Z AR='ar'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8168980Z CC='gcc'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8169347Z CGO_CFLAGS='-O2 -g'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8169677Z CGO_CPPFLAGS=''
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8169997Z CGO_CXXFLAGS='-O2 -g'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8170331Z CGO_ENABLED='0'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8170649Z CGO_FFLAGS='-O2 -g'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8170944Z CGO_LDFLAGS='-O2 -g'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8171248Z CXX='g++'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8171525Z GCCGO='gccgo'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8171800Z GO111MODULE=''
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8172171Z GOAMD64='v1'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8172535Z GOARCH='amd64'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8172844Z GOAUTH='netrc'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8173145Z GOBIN=''
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8173491Z GOCACHE='/home/runner/.cache/go-build'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8173983Z GOCACHEPROG=''
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8175396Z GODEBUG=''
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8175752Z GOENV='/home/runner/.config/go/env'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8176441Z GOEXE=''
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8176792Z GOEXPERIMENT=''
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8177161Z GOFIPS140='off'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8177499Z GOFLAGS=''
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8178494Z GOGCCFLAGS='-fPIC -m64 -Wl,--no-gc-sections -fmessage-length=0 -ffile-prefix-map=/tmp/go-build3516888304=/tmp/go-build -gno-record-gcc-switches'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8179534Z GOHOSTARCH='amd64'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8179861Z GOHOSTOS='linux'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8180179Z GOINSECURE=''
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8180796Z GOMOD='/home/runner/work/nephoran-intent-operator/nephoran-intent-operator/go.mod'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8181558Z GOMODCACHE='/home/runner/go/pkg/mod'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8182013Z GONOPROXY=''
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8182322Z GONOSUMDB=''
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8182617Z GOOS='linux'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8182927Z GOPATH='/home/runner/go'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8183677Z GOPRIVATE=''
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8184092Z GOPROXY='https://proxy.golang.org,direct'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8184847Z GOROOT='/home/runner/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.6.linux-amd64'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8185531Z GOSUMDB='sum.golang.org'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8185921Z GOTELEMETRY='local'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8186499Z GOTELEMETRYDIR='/home/runner/.config/go/telemetry'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8186798Z GOTMPDIR=''
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8186979Z GOTOOLCHAIN='auto'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8187426Z GOTOOLDIR='/home/runner/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.6.linux-amd64/pkg/tool/linux_amd64'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8187881Z GOVCS=''
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8188050Z GOVERSION='go1.24.6'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8188239Z GOWORK=''
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8188422Z PKG_CONFIG='pkg-config'
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8188819Z 
+Quick Validation	Setup Go with cache	2025-09-04T21:11:42.8189327Z ##[endgroup]
+Quick Validation	Verify Go installation	﻿2025-09-04T21:11:42.8285802Z ##[group]Run set -e  # Bash strict mode - fail on any error
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8286569Z [36;1mset -e  # Bash strict mode - fail on any error[0m
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8286885Z [36;1mgo version[0m
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8287075Z [36;1mgo env[0m
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8341595Z shell: /usr/bin/bash -e {0}
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8341861Z env:
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8342029Z   GO_VERSION: 1.22
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8342270Z   GOPROXY: https://proxy.golang.org,direct
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8342550Z   GOSUMDB: sum.golang.org
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8342762Z   CGO_ENABLED: 0
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8342961Z   GOMAXPROCS: 4
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8343137Z   GOMEMLIMIT: 4GiB
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8343318Z   GOGC: 100
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8343483Z ##[endgroup]
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8470715Z go version go1.24.6 linux/amd64
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8553573Z AR='ar'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8553955Z CC='gcc'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8554295Z CGO_CFLAGS='-O2 -g'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8554653Z CGO_CPPFLAGS=''
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8555045Z CGO_CXXFLAGS='-O2 -g'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8555438Z CGO_ENABLED='0'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8555744Z CGO_FFLAGS='-O2 -g'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8556228Z CGO_LDFLAGS='-O2 -g'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8556576Z CXX='g++'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8556863Z GCCGO='gccgo'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8557150Z GO111MODULE=''
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8557446Z GOAMD64='v1'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8557732Z GOARCH='amd64'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8558025Z GOAUTH='netrc'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8558304Z GOBIN=''
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8558631Z GOCACHE='/home/runner/.cache/go-build'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8559048Z GOCACHEPROG=''
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8559349Z GODEBUG=''
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8559645Z GOENV='/home/runner/.config/go/env'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8559896Z GOEXE=''
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8560075Z GOEXPERIMENT=''
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8560269Z GOFIPS140='off'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8560448Z GOFLAGS=''
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8560994Z GOGCCFLAGS='-fPIC -m64 -Wl,--no-gc-sections -fmessage-length=0 -ffile-prefix-map=/tmp/go-build1093536361=/tmp/go-build -gno-record-gcc-switches'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8561710Z GOHOSTARCH='amd64'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8562260Z GOHOSTOS='linux'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8562588Z GOINSECURE=''
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8563211Z GOMOD='/home/runner/work/nephoran-intent-operator/nephoran-intent-operator/go.mod'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8563831Z GOMODCACHE='/home/runner/go/pkg/mod'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8564094Z GONOPROXY=''
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8564276Z GONOSUMDB=''
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8564460Z GOOS='linux'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8564647Z GOPATH='/home/runner/go'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8564864Z GOPRIVATE=''
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8565101Z GOPROXY='https://proxy.golang.org,direct'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8565583Z GOROOT='/home/runner/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.6.linux-amd64'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8565979Z GOSUMDB='sum.golang.org'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8566408Z GOTELEMETRY='local'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8566662Z GOTELEMETRYDIR='/home/runner/.config/go/telemetry'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8566935Z GOTMPDIR=''
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8567116Z GOTOOLCHAIN='auto'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8567550Z GOTOOLDIR='/home/runner/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.6.linux-amd64/pkg/tool/linux_amd64'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8568021Z GOVCS=''
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8568410Z GOVERSION='go1.24.6'
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8568608Z GOWORK=''
+Quick Validation	Verify Go installation	2025-09-04T21:11:42.8568791Z PKG_CONFIG='pkg-config'
+Quick Validation	Cache Go modules	﻿2025-09-04T21:11:43.3006906Z ##[group]Run actions/cache@v4
+Quick Validation	Cache Go modules	2025-09-04T21:11:43.3007215Z with:
+Quick Validation	Cache Go modules	2025-09-04T21:11:43.3007420Z   path: ~/.cache/go-build
+Quick Validation	Cache Go modules	~/go/pkg/mod
+Quick Validation	Cache Go modules	
+Quick Validation	Cache Go modules	2025-09-04T21:11:43.3007829Z   key: Linux-go-008eb4a61073b8b98cf1b62f6241a4916b695fa923c8ee062bd6b6eaab097c1d
+Quick Validation	Cache Go modules	2025-09-04T21:11:43.3008214Z   restore-keys: Linux-go-
+Quick Validation	Cache Go modules	
+Quick Validation	Cache Go modules	2025-09-04T21:11:43.3008456Z   enableCrossOsArchive: false
+Quick Validation	Cache Go modules	2025-09-04T21:11:43.3008677Z   fail-on-cache-miss: false
+Quick Validation	Cache Go modules	2025-09-04T21:11:43.3008887Z   lookup-only: false
+Quick Validation	Cache Go modules	2025-09-04T21:11:43.3009071Z   save-always: false
+Quick Validation	Cache Go modules	2025-09-04T21:11:43.3009249Z env:
+Quick Validation	Cache Go modules	2025-09-04T21:11:43.3009414Z   GO_VERSION: 1.22
+Quick Validation	Cache Go modules	2025-09-04T21:11:43.3009656Z   GOPROXY: https://proxy.golang.org,direct
+Quick Validation	Cache Go modules	2025-09-04T21:11:43.3009929Z   GOSUMDB: sum.golang.org
+Quick Validation	Cache Go modules	2025-09-04T21:11:43.3010127Z   CGO_ENABLED: 0
+Quick Validation	Cache Go modules	2025-09-04T21:11:43.3010303Z   GOMAXPROCS: 4
+Quick Validation	Cache Go modules	2025-09-04T21:11:43.3010474Z   GOMEMLIMIT: 4GiB
+Quick Validation	Cache Go modules	2025-09-04T21:11:43.3010670Z   GOGC: 100
+Quick Validation	Cache Go modules	2025-09-04T21:11:43.3010848Z ##[endgroup]
+Quick Validation	Cache Go modules	2025-09-04T21:11:43.5072994Z Cache not found for input keys: Linux-go-008eb4a61073b8b98cf1b62f6241a4916b695fa923c8ee062bd6b6eaab097c1d, Linux-go-
+Quick Validation	Fail-fast syntax check	﻿2025-09-04T21:11:43.5157571Z ##[group]Run set -e  # Bash strict mode - fail on any error
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:43.5157981Z [36;1mset -e  # Bash strict mode - fail on any error[0m
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:43.5158294Z [36;1mecho "Running fail-fast syntax check..."[0m
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:43.5158554Z [36;1mgo build ./...[0m
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:43.5158746Z [36;1mgo vet ./...[0m
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:43.5189611Z shell: /usr/bin/bash -e {0}
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:43.5189826Z env:
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:43.5189991Z   GO_VERSION: 1.22
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:43.5190233Z   GOPROXY: https://proxy.golang.org,direct
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:43.5190507Z   GOSUMDB: sum.golang.org
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:43.5190708Z   CGO_ENABLED: 0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:43.5190877Z   GOMAXPROCS: 4
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:43.5191047Z   GOMEMLIMIT: 4GiB
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:43.5191213Z   GOGC: 100
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:43.5191385Z ##[endgroup]
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:43.5244223Z Running fail-fast syntax check...
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:43.7993604Z go: downloading github.com/onsi/ginkgo/v2 v2.25.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:43.7995912Z go: downloading k8s.io/apimachinery v0.34.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:43.7996792Z go: downloading k8s.io/api v0.34.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:43.7997322Z go: downloading github.com/onsi/gomega v1.38.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:43.9953871Z go: downloading k8s.io/apiextensions-apiserver v0.34.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:44.0749567Z go: downloading sigs.k8s.io/controller-runtime v0.19.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:44.2818198Z go: downloading k8s.io/client-go v0.34.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:44.2880054Z go: downloading github.com/fsnotify/fsnotify v1.9.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:44.2905481Z go: downloading github.com/go-logr/logr v1.4.3
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:44.3355936Z go: downloading github.com/go-logr/zapr v1.3.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:44.3497574Z go: downloading go.uber.org/zap v1.27.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:44.3661049Z go: downloading github.com/gorilla/mux v1.8.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:44.4484499Z go: downloading golang.org/x/text v0.28.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:44.8111432Z go: downloading github.com/spf13/cobra v1.9.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:44.8134883Z go: downloading github.com/prometheus/client_golang v1.23.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:44.8482303Z go: downloading github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:44.8759485Z go: downloading sigs.k8s.io/yaml v1.6.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:44.8905909Z go: downloading github.com/stretchr/testify v1.11.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:44.9048657Z go: downloading github.com/valyala/fastjson v1.6.4
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:44.9299597Z go: downloading golang.org/x/sync v0.16.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:44.9499366Z go: downloading github.com/google/uuid v1.6.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:44.9717247Z go: downloading gonum.org/v1/gonum v0.16.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:44.9820107Z go: downloading go.opentelemetry.io/otel/trace v1.38.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:45.0069228Z go: downloading go.opentelemetry.io/otel v1.38.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:45.0613438Z go: downloading github.com/google/go-cmp v0.7.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:45.0618859Z go: downloading github.com/gogo/protobuf v1.3.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:45.0977757Z go: downloading gopkg.in/inf.v0 v0.9.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:45.1179713Z go: downloading k8s.io/klog/v2 v2.130.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:45.1594770Z go: downloading sigs.k8s.io/structured-merge-diff/v6 v6.3.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:45.2317185Z go: downloading github.com/golang-jwt/jwt/v5 v5.3.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:45.2635689Z go: downloading github.com/pquerna/otp v1.5.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:45.2845772Z go: downloading github.com/redis/go-redis/v9 v9.12.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:45.3155547Z go: downloading golang.org/x/oauth2 v0.30.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:45.3679187Z go: downloading oras.land/oras-go/v2 v2.6.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:45.4315099Z go: downloading k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:45.4473007Z go: downloading sigs.k8s.io/randfill v1.0.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:45.4697529Z go: downloading github.com/go-ldap/ldap/v3 v3.4.11
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:45.4789336Z go: downloading github.com/Masterminds/sprig/v3 v3.3.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:45.4899815Z go: downloading gopkg.in/yaml.v2 v2.4.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:45.5067945Z go: downloading gomodules.xyz/jsonpatch/v2 v2.4.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:45.5146769Z go: downloading github.com/prometheus/common v0.65.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:45.5314205Z go: downloading helm.sh/helm/v3 v3.18.6
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:45.5607753Z go: downloading k8s.io/apiserver v0.34.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:45.8518944Z go: downloading golang.org/x/sys v0.35.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:45.8524159Z go: downloading github.com/go-git/go-git/v5 v5.16.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:45.9653410Z go: downloading go.uber.org/multierr v1.11.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:45.9733363Z go: downloading go.opentelemetry.io/otel/metric v1.38.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:45.9734381Z go: downloading go.uber.org/mock v0.6.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:45.9912655Z go: downloading golang.org/x/time v0.12.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.0048663Z go: downloading go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.38.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.0107808Z go: downloading go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.38.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.0239525Z go: downloading go.opentelemetry.io/otel/exporters/prometheus v0.60.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.0331730Z go: downloading go.opentelemetry.io/otel/sdk v1.38.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.0382912Z go: downloading github.com/sony/gobreaker v1.0.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.0484815Z go: downloading github.com/aws/aws-sdk-go-v2 v1.38.3
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.0562283Z go: downloading github.com/aws/aws-sdk-go-v2/config v1.31.6
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.0664229Z go: downloading github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.6
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.0677004Z go: downloading github.com/aws/aws-sdk-go-v2/service/route53 v1.57.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.1350234Z go: downloading github.com/aws/aws-sdk-go-v2/service/s3 v1.87.3
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.1401905Z go: downloading github.com/hashicorp/vault/api v1.20.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.1403999Z go: downloading github.com/lestrrat-go/jwx/v2 v2.1.6
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.1770404Z go: downloading github.com/microcosm-cc/bluemonday v1.0.27
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.2227737Z go: downloading github.com/spiffe/go-spiffe/v2 v2.6.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.2388382Z go: downloading golang.org/x/crypto v0.41.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.3677409Z go: downloading golang.org/x/mod v0.27.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.3678067Z go: downloading google.golang.org/grpc v1.75.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.4050391Z go: downloading github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.4218845Z go: downloading golang.org/x/net v0.43.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.6484583Z go: downloading github.com/go-playground/validator/v10 v10.27.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.6854164Z go: downloading github.com/spf13/pflag v1.0.7
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.6855726Z go: downloading golang.org/x/term v0.34.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.6858274Z go: downloading github.com/evanphx/json-patch/v5 v5.9.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.6985479Z go: downloading github.com/hashicorp/golang-lru/v2 v2.0.7
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.7042161Z go: downloading github.com/bytedance/sonic v1.14.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.7080340Z go: downloading github.com/evanphx/json-patch v5.9.11+incompatible
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.7191158Z go: downloading github.com/google/gnostic-models v0.7.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.7195355Z go: downloading google.golang.org/protobuf v1.36.8
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.7278155Z go: downloading github.com/beorn7/perks v1.0.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.7489187Z go: downloading github.com/cespare/xxhash/v2 v2.3.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.7606941Z go: downloading github.com/prometheus/client_model v0.6.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.7719823Z go: downloading github.com/prometheus/procfs v0.17.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.8497506Z go: downloading golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.9758598Z go: downloading github.com/sirupsen/logrus v1.9.3
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.9831425Z go: downloading go.yaml.in/yaml/v2 v2.4.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:46.9837969Z go: downloading github.com/ghodss/yaml v1.0.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.0058246Z go: downloading github.com/xeipuuv/gojsonschema v1.2.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.0063366Z go: downloading sigs.k8s.io/kustomize/kyaml v0.20.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.0445544Z go: downloading sigs.k8s.io/kustomize/api v0.20.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.1333308Z go: downloading github.com/Masterminds/semver/v3 v3.4.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.1334045Z go: downloading github.com/go-jose/go-jose/v4 v4.1.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.1365953Z go: downloading github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.1367241Z go: downloading k8s.io/metrics v0.34.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.1563270Z go: downloading cloud.google.com/go/compute v1.44.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.1730597Z go: downloading cloud.google.com/go/container v1.43.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.2420131Z go: downloading cloud.google.com/go/monitoring v1.24.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.2535933Z go: downloading cloud.google.com/go v0.121.4
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.3032006Z go: downloading cloud.google.com/go/storage v1.55.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.3293147Z go: downloading github.com/Azure/azure-sdk-for-go/sdk/azcore v1.19.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.3763859Z go: downloading github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.11.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.3769253Z go: downloading github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute v1.0.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.4150386Z go: downloading github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice/v5 v5.0.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.4392665Z go: downloading github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork v1.1.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.4553284Z go: downloading github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources v1.2.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.4867034Z go: downloading github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/storage/armstorage v1.8.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.5378702Z go: downloading github.com/aws/aws-sdk-go-v2/credentials v1.18.10
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.5391564Z go: downloading github.com/aws/aws-sdk-go-v2/service/cloudformation v1.65.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.5644424Z go: downloading github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.49.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.6477960Z go: downloading github.com/aws/aws-sdk-go-v2/service/ec2 v1.249.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.6479927Z go: downloading github.com/aws/aws-sdk-go-v2/service/ecs v1.63.4
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.6570336Z go: downloading github.com/aws/aws-sdk-go-v2/service/eks v1.73.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.7011552Z go: downloading github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.50.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.7581201Z go: downloading github.com/aws/aws-sdk-go-v2/service/iam v1.47.3
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.7752645Z go: downloading github.com/aws/aws-sdk-go-v2/service/rds v1.104.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.8154256Z go: downloading github.com/aws/aws-sdk-go-v2/service/sts v1.38.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:47.8413487Z go: downloading github.com/gophercloud/gophercloud v1.14.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:48.1958201Z go: downloading github.com/vmware/govmomi v0.52.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:48.6793256Z go: downloading google.golang.org/api v0.246.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:48.6795873Z go: downloading gopkg.in/yaml.v3 v3.0.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:48.6797323Z go: downloading github.com/testcontainers/testcontainers-go v0.38.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:48.7133767Z go: downloading github.com/rs/cors v1.11.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:48.7359530Z go: downloading github.com/pkg/errors v0.9.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:48.7556561Z go: downloading github.com/spf13/viper v1.20.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:48.7852407Z go: downloading go.uber.org/goleak v1.3.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:48.8115353Z go: downloading github.com/tsenart/vegeta v12.7.0+incompatible
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:48.9224016Z go: downloading go.yaml.in/yaml/v3 v3.0.4
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:48.9255657Z go: downloading sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:48.9559457Z go: downloading github.com/json-iterator/go v1.1.12
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:48.9569996Z go: downloading github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:48.9611946Z go: downloading github.com/opencontainers/go-digest v1.0.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:48.9766427Z go: downloading github.com/opencontainers/image-spec v1.1.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.0063955Z go: downloading cloud.google.com/go/compute/metadata v0.7.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.0140780Z go: downloading dario.cat/mergo v1.0.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.0143193Z go: downloading github.com/Masterminds/goutils v1.1.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.0293292Z go: downloading github.com/huandu/xstrings v1.5.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.0364533Z go: downloading github.com/mitchellh/copystructure v1.2.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.0414837Z go: downloading github.com/shopspring/decimal v1.4.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.0478978Z go: downloading github.com/spf13/cast v1.7.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.0580804Z go: downloading github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.0638970Z go: downloading github.com/go-asn1-ber/asn1-ber v1.5.8-0.20250403174932-29230038a667
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.0679375Z go: downloading github.com/gosuri/uitable v0.0.4
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.0780305Z go: downloading k8s.io/cli-runtime v0.33.3
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.1586860Z go: downloading k8s.io/component-base v0.34.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.2237691Z go: downloading k8s.io/kube-openapi v0.0.0-20250710124328-f3f2b991d03b
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.2238455Z go: downloading github.com/ProtonMail/go-crypto v1.1.6
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.3066746Z go: downloading github.com/go-git/go-billy/v5 v5.6.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.3387323Z go: downloading github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.3391751Z go: downloading github.com/kevinburke/ssh_config v1.2.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.3648649Z go: downloading github.com/skeema/knownhosts v1.3.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.3880514Z go: downloading github.com/xanzy/ssh-agent v0.3.3
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.4187848Z go: downloading github.com/emirpasic/gods v1.18.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.4592774Z go: downloading github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.4706341Z go: downloading github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.4781127Z go: downloading github.com/stretchr/objx v0.5.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.4821058Z go: downloading go.opentelemetry.io/proto/otlp v1.7.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.5012996Z go: downloading github.com/prometheus/otlptranslator v0.0.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.5061051Z go: downloading go.opentelemetry.io/otel/sdk/metric v1.38.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.5229849Z go: downloading github.com/aws/smithy-go v1.23.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.5743056Z go: downloading github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.6
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.5745606Z go: downloading github.com/aws/aws-sdk-go-v2/internal/ini v1.8.3
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.5747852Z go: downloading github.com/aws/aws-sdk-go-v2/service/sso v1.29.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.5919972Z go: downloading github.com/aws/aws-sdk-go-v2/service/ssooidc v1.34.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.5954233Z go: downloading gopkg.in/evanphx/json-patch.v4 v4.12.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.6058610Z go: downloading github.com/cenkalti/backoff/v4 v4.3.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.6150878Z go: downloading github.com/hashicorp/errwrap v1.1.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.6170544Z go: downloading github.com/hashicorp/go-cleanhttp v0.5.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.6270762Z go: downloading github.com/hashicorp/go-multierror v1.1.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.6320966Z go: downloading github.com/hashicorp/go-retryablehttp v0.7.7
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.6353036Z go: downloading github.com/hashicorp/go-rootcerts v1.0.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.6451088Z go: downloading github.com/hashicorp/go-secure-stdlib/parseutil v0.1.6
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.6526971Z go: downloading github.com/hashicorp/go-secure-stdlib/strutil v0.1.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.6532712Z go: downloading github.com/hashicorp/hcl v1.0.1-vault-7
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.6894380Z go: downloading github.com/mitchellh/mapstructure v1.5.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.6895087Z go: downloading github.com/aymerick/douceur v0.2.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.6896991Z go: downloading github.com/lestrrat-go/blackmagic v1.0.3
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.7150506Z go: downloading github.com/lestrrat-go/httprc v1.0.6
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.7163606Z go: downloading github.com/lestrrat-go/iter v1.0.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.7340114Z go: downloading github.com/lestrrat-go/option v1.0.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.7341269Z go: downloading github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.7514876Z go: downloading github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.6
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.7541741Z go: downloading github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.7543635Z go: downloading github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.8.6
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.7720040Z go: downloading github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.6
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.7730533Z go: downloading github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.19.6
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.7975023Z go: downloading github.com/fxamacker/cbor/v2 v2.9.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.7997153Z go: downloading github.com/go-playground/universal-translator v0.18.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.7998294Z go: downloading github.com/gabriel-vasile/mimetype v1.4.8
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.8255339Z go: downloading github.com/leodido/go-urn v1.4.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.8378610Z go: downloading github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.8535259Z go: downloading github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:49.8549849Z go: downloading github.com/googleapis/gax-go/v2 v2.15.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:51.3486201Z go: downloading google.golang.org/genproto/googleapis/api v0.0.0-20250825161204-c5933d9347a5
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:51.3488280Z go: downloading cloud.google.com/go/auth v0.16.3
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:51.3490666Z go: downloading cloud.google.com/go/iam v1.5.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:51.3789809Z go: downloading google.golang.org/genproto v0.0.0-20250603155806-513f23925822
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:51.4171095Z go: downloading github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.51.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:51.4172141Z go: downloading go.opentelemetry.io/contrib/detectors/gcp v1.36.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:51.9301893Z go: downloading github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:51.9304770Z go: downloading github.com/AzureAD/microsoft-authentication-library-for-go v1.4.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:51.9787692Z go: downloading github.com/go-viper/mapstructure/v2 v2.2.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:51.9788433Z go: downloading github.com/sagikazarmark/locafero v0.7.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:51.9789055Z go: downloading github.com/spf13/afero v1.12.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:51.9794447Z go: downloading github.com/containerd/errdefs v1.0.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.0186438Z go: downloading github.com/containerd/platforms v0.2.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.0197120Z go: downloading github.com/docker/docker v28.2.2+incompatible
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.0263775Z go: downloading github.com/cpuguy83/dockercfg v0.3.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.0436245Z go: downloading github.com/docker/go-connections v0.5.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.5626472Z go: downloading github.com/moby/go-archive v0.1.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.5628404Z go: downloading github.com/moby/patternmatcher v0.6.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.5629779Z go: downloading github.com/moby/term v0.5.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.5632898Z go: downloading github.com/influxdata/tdigest v0.0.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.5826543Z go: downloading github.com/mailru/easyjson v0.7.7
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.5870736Z go: downloading github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.6102079Z go: downloading github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.6106539Z go: downloading github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.6156975Z go: downloading github.com/mitchellh/reflectwalk v1.0.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.6157665Z go: downloading github.com/cyphar/filepath-securejoin v0.4.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.6279970Z go: downloading github.com/BurntSushi/toml v1.5.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.6301781Z go: downloading github.com/gobwas/glob v0.2.3
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.6382890Z go: downloading k8s.io/kubectl v0.33.3
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.6664135Z go: downloading github.com/containerd/containerd v1.7.27
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.7152319Z go: downloading github.com/Masterminds/squirrel v1.5.4
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.7427488Z go: downloading github.com/jmoiron/sqlx v1.4.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.7644242Z go: downloading github.com/lib/pq v1.10.9
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.7988122Z go: downloading github.com/rubenv/sql-migrate v1.8.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.8267403Z go: downloading github.com/fatih/color v1.18.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.8502287Z go: downloading github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.8705835Z go: downloading github.com/blang/semver/v4 v4.0.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.8970127Z go: downloading github.com/google/cel-go v0.26.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.9866591Z go: downloading github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.9893115Z go: downloading github.com/pjbgf/sha1cd v0.3.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:52.9893886Z go: downloading github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.0041251Z go: downloading github.com/go-logr/stdr v1.2.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.0120066Z go: downloading go.opentelemetry.io/auto/sdk v1.1.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.0130846Z go: downloading github.com/go-openapi/jsonreference v0.20.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.0238101Z go: downloading github.com/go-openapi/swag v0.23.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.0321030Z go: downloading github.com/cenkalti/backoff/v5 v5.0.3
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.0349038Z go: downloading github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.0507994Z go: downloading github.com/grafana/regexp v0.0.0-20240518133315-a468a5bfb3bc
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.0910168Z go: downloading github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.6
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.1094819Z go: downloading github.com/hashicorp/go-sockaddr v1.0.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.1449033Z go: downloading github.com/ryanuber/go-glob v1.0.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.1502271Z go: downloading github.com/gorilla/css v1.0.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.1620103Z go: downloading github.com/lestrrat-go/httpcc v1.0.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.1626533Z go: downloading google.golang.org/genproto/googleapis/rpc v0.0.0-20250825161204-c5933d9347a5
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.1630071Z go: downloading github.com/go-playground/locales v0.14.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.1714787Z go: downloading github.com/x448/float16 v0.8.4
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.1905846Z go: downloading github.com/bytedance/gopkg v0.1.3
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.1916997Z go: downloading github.com/cloudwego/base64x v0.1.6
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.1980974Z go: downloading golang.org/x/arch v0.0.0-20210923205945-b76863e36670
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.2221566Z go: downloading github.com/go-errors/errors v1.4.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.2407866Z go: downloading github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.2604424Z go: downloading github.com/xlab/treeprint v1.2.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.2804272Z go: downloading github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.2982188Z go: downloading cloud.google.com/go/auth/oauth2adapt v0.2.8
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.3171097Z go: downloading go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.61.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.3283205Z go: downloading go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.61.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.3429630Z go: downloading github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.29.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.3518189Z go: downloading github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.51.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.3652494Z go: downloading github.com/kylelemons/godebug v1.1.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.3707065Z go: downloading github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.3860419Z go: downloading github.com/subosito/gotenv v1.6.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.3886503Z go: downloading github.com/pelletier/go-toml/v2 v2.2.3
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.3892560Z go: downloading github.com/sourcegraph/conc v0.3.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.4061181Z go: downloading github.com/containerd/log v0.1.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.4162142Z go: downloading github.com/moby/docker-image-spec v1.3.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.4262361Z go: downloading github.com/docker/go-units v0.5.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.4315678Z go: downloading github.com/morikuni/aec v1.0.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.4356505Z go: downloading github.com/containerd/errdefs/pkg v0.3.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.4448061Z go: downloading github.com/distribution/reference v0.6.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.4499067Z go: downloading github.com/magiconair/properties v1.8.10
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.4549398Z go: downloading github.com/shirou/gopsutil/v4 v4.25.5
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.4650321Z go: downloading github.com/moby/sys/sequential v0.6.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.5084318Z go: downloading github.com/moby/sys/user v0.4.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.5215884Z go: downloading github.com/moby/sys/userns v0.1.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.5320102Z go: downloading github.com/josharian/intern v1.0.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.5429885Z go: downloading github.com/moby/spdystream v0.5.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.5488713Z go: downloading github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.5621981Z go: downloading github.com/lann/builder v0.0.0-20180802200727-47ae307949d0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.5671412Z go: downloading github.com/go-gorp/gorp/v3 v3.1.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.5801473Z go: downloading github.com/mattn/go-colorable v0.1.13
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.5843794Z go: downloading github.com/mattn/go-isatty v0.0.20
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.5960358Z go: downloading github.com/mattn/go-runewidth v0.0.15
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.5995432Z go: downloading github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.6022524Z go: downloading github.com/peterbourgon/diskv v2.0.1+incompatible
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.6155055Z go: downloading github.com/exponent-io/jsonpath v0.0.0-20210407135951-1de76d718b3f
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.6196379Z go: downloading cel.dev/expr v0.24.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.6243822Z go: downloading github.com/cloudflare/circl v1.6.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.9058931Z go: downloading gopkg.in/warnings.v0 v0.1.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.9059963Z go: downloading github.com/go-openapi/jsonpointer v0.21.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.9061254Z go: downloading github.com/emicklei/go-restful/v3 v3.12.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:53.9076648Z go: downloading github.com/google/s2a-go v0.1.9
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:54.1210855Z go: downloading github.com/googleapis/enterprise-certificate-proxy v0.3.6
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:54.1325175Z go: downloading github.com/felixge/httpsnoop v1.0.4
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:54.1556858Z go: downloading github.com/envoyproxy/go-control-plane/envoy v1.32.4
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:54.1978031Z go: downloading github.com/klauspost/compress v1.18.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:54.1986981Z go: downloading github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:54.2462452Z go: downloading github.com/tklauser/go-sysconf v0.3.12
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:54.2780388Z go: downloading github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:54.3020159Z go: downloading github.com/rivo/uniseg v0.2.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:54.3233241Z go: downloading sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:54.3693670Z go: downloading go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.34.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:54.3945279Z go: downloading github.com/chai2010/gettext-go v1.0.2
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:54.5105298Z go: downloading github.com/MakeNowJust/heredoc v1.0.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:54.5509606Z go: downloading github.com/mitchellh/go-wordwrap v1.0.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:54.5997096Z go: downloading github.com/russross/blackfriday/v2 v2.1.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:54.6481897Z go: downloading github.com/google/btree v1.1.3
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:54.7581802Z go: downloading github.com/stoewer/go-strcase v1.3.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:54.7778770Z go: downloading github.com/antlr4-go/antlr/v4 v4.13.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:54.8096962Z go: downloading github.com/klauspost/cpuid/v2 v2.2.9
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:54.8097974Z go: downloading github.com/bytedance/sonic/loader v0.3.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:54.8563144Z go: downloading github.com/twitchyliquid64/golang-asm v0.15.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:54.9077740Z go: downloading github.com/cncf/xds/go v0.0.0-20250501225837-2ac532fd4443
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:54.9515609Z go: downloading github.com/tklauser/numcpus v0.6.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:11:55.0484464Z go: downloading github.com/envoyproxy/protoc-gen-validate v1.2.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:16:30.8822138Z go: downloading github.com/bep/debounce v1.2.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:16:30.8947105Z go: downloading github.com/golang/mock v1.4.4
+Quick Validation	Fail-fast syntax check	2025-09-04T21:16:30.9080992Z go: downloading github.com/rogpeppe/go-internal v1.14.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:16:30.9414395Z go: downloading github.com/tsenart/vegeta/v12 v12.12.0
+Quick Validation	Fail-fast syntax check	2025-09-04T21:16:30.9547347Z go: downloading github.com/montanaflynn/stats v0.7.1
+Quick Validation	Fail-fast syntax check	2025-09-04T21:16:31.3342737Z go: downloading github.com/rs/dnscache v0.0.0-20230804202142-fc85eb664529
+Quick Validation	Fail-fast syntax check	2025-09-04T21:16:56.0519502Z ##[error]The action 'Fail-fast syntax check' has timed out after 5 minutes.
+Quick Validation	Post Checkout code	﻿2025-09-04T21:16:56.0636828Z Post job cleanup.
+Quick Validation	Post Checkout code	2025-09-04T21:16:56.2925964Z [command]/usr/bin/git version
+Quick Validation	Post Checkout code	2025-09-04T21:16:56.3047659Z git version 2.51.0
+Quick Validation	Post Checkout code	2025-09-04T21:16:56.3255295Z Temporarily overriding HOME='/home/runner/work/_temp/e7c89054-f322-4ad2-acda-128771865d95' before making global git config changes
+Quick Validation	Post Checkout code	2025-09-04T21:16:56.3257996Z Adding repository directory to the temporary git global config as a safe directory
+Quick Validation	Post Checkout code	2025-09-04T21:16:56.3262714Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+Quick Validation	Post Checkout code	2025-09-04T21:16:56.3364809Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Quick Validation	Post Checkout code	2025-09-04T21:16:56.3385204Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Quick Validation	Post Checkout code	2025-09-04T21:16:56.4302489Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Quick Validation	Post Checkout code	2025-09-04T21:16:56.4440178Z http.https://github.com/.extraheader
+Quick Validation	Post Checkout code	2025-09-04T21:16:56.4618136Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Quick Validation	Post Checkout code	2025-09-04T21:16:56.4621057Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Quick Validation	Complete job	﻿2025-09-04T21:16:56.6020602Z Cleaning up orphan processes
+Quick Validation	Complete job	2025-09-04T21:16:56.6683450Z Terminate orphan process: pid (18025) (go)
+Quick Validation	Complete job	2025-09-04T21:16:56.6762649Z Terminate orphan process: pid (27398) (vet)

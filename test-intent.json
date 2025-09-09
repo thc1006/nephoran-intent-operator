@@ -1,0 +1,9 @@
+{
+  "intent_type": "scaling",
+  "target": "nf-sim",
+  "namespace": "ran-a",
+  "replicas": 3,
+  "source": "test",
+  "reason": "Testing porch-direct KRM generator implementation",
+  "correlation_id": "test-porch-direct-001"
+}

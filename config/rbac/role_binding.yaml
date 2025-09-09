@@ -1,0 +1,201 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephoran-manager-binding
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/managed-by: kustomize
+subjects:
+- kind: ServiceAccount
+  name: nephoran-operator-controller-manager
+  namespace: nephoran-system
+roleRef:
+  kind: ClusterRole
+  name: nephoran-manager
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nephoran-leader-election-binding
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/managed-by: kustomize
+subjects:
+- kind: ServiceAccount
+  name: nephoran-operator-controller-manager
+  namespace: nephoran-system
+roleRef:
+  kind: Role
+  name: nephoran-leader-election-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Leader election role for controller manager
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nephoran-leader-election-role
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/managed-by: kustomize
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+
+---
+# Webhook-specific RBAC
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-webhook-manager
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: webhook
+    app.kubernetes.io/managed-by: kustomize
+rules:
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - validatingwebhookconfigurations
+  - mutatingwebhookconfigurations
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephoran-webhook-manager-binding
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: webhook
+    app.kubernetes.io/managed-by: kustomize
+subjects:
+- kind: ServiceAccount
+  name: nephoran-webhook-manager
+  namespace: nephoran-system
+roleRef:
+  kind: ClusterRole
+  name: nephoran-webhook-manager
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# CNF Deployer RBAC for managing deployed CNFs
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-cnf-deployer
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: cnf-deployer
+    app.kubernetes.io/managed-by: kustomize
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - services
+  - configmaps
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - statefulsets
+  - daemonsets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  - ingresses
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephoran-cnf-deployer-binding
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: cnf-deployer
+    app.kubernetes.io/managed-by: kustomize
+subjects:
+- kind: ServiceAccount
+  name: nephoran-cnf-deployer
+  namespace: nephoran-system
+roleRef:
+  kind: ClusterRole
+  name: nephoran-cnf-deployer
+  apiGroup: rbac.authorization.k8s.io

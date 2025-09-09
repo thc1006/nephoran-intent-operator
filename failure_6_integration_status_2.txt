@@ -1,0 +1,72 @@
+📊 Integration Status	Evaluate CI Results	﻿2025-09-04T22:44:43.5098965Z ##[group]Run echo "=== CI Pipeline Results Summary ==="
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5100316Z [36;1mecho "=== CI Pipeline Results Summary ==="[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5101018Z [36;1m[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5101485Z [36;1mSETUP_STATUS="success"[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5102152Z [36;1mDEPS_STATUS="success"  [0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5102761Z [36;1mVALIDATION_STATUS="failure"[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5103500Z [36;1mTESTS_STATUS="skipped"[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5104161Z [36;1mBUILD_STATUS="skipped"[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5104711Z [36;1m[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5105192Z [36;1mecho "🔧 Setup: $SETUP_STATUS"[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5105915Z [36;1mecho "📦 Dependencies: $DEPS_STATUS" [0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5106646Z [36;1mecho "⚡ Fast Validation: $VALIDATION_STATUS"[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5107326Z [36;1mecho "🧪 Component Tests: $TESTS_STATUS"[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5108044Z [36;1mecho "🏗️ Full Build: $BUILD_STATUS"[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5108683Z [36;1mecho ""[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5109120Z [36;1m[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5109886Z [36;1m# Determine overall status[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5110516Z [36;1mFAILED_JOBS=""[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5111434Z [36;1m[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5112085Z [36;1m[[ "$SETUP_STATUS" == "failure" ]] && FAILED_JOBS="$FAILED_JOBS setup"[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5113034Z [36;1m[[ "$DEPS_STATUS" == "failure" ]] && FAILED_JOBS="$FAILED_JOBS dependencies"[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5114055Z [36;1m[[ "$VALIDATION_STATUS" == "failure" ]] && FAILED_JOBS="$FAILED_JOBS validation"[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5115027Z [36;1m[[ "$TESTS_STATUS" == "failure" && "" != "true" ]] && FAILED_JOBS="$FAILED_JOBS tests"[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5115943Z [36;1m[[ "$BUILD_STATUS" == "failure" ]] && FAILED_JOBS="$FAILED_JOBS build"[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5116715Z [36;1m[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5117232Z [36;1mif [[ -n "$FAILED_JOBS" ]]; then[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5117961Z [36;1m  echo "❌ CI Pipeline FAILED - Jobs failed:$FAILED_JOBS"[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5118656Z [36;1m  echo ""[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5119242Z [36;1m  echo "🔧 Troubleshooting Guide:"[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5120282Z [36;1m  echo "1. Check individual job logs for specific error details"[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5121240Z [36;1m  echo "2. Verify dependencies are correctly resolved"[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5122061Z [36;1m  echo "3. Consider re-running with 'force_cache_refresh: true'"[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5122878Z [36;1m  echo "4. For urgent fixes, use 'skip_tests: true'"[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5123581Z [36;1m  exit 1[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5124310Z [36;1melse[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5125044Z [36;1m  echo "✅ CI Pipeline PASSED - All critical jobs completed successfully!"[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5125851Z [36;1m  echo ""[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5126400Z [36;1m  echo "📊 Pipeline Statistics:"[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5127021Z [36;1m  echo "• Build Mode: full"[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5127669Z [36;1m  echo "• Go Version: 1.22"  [0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5129152Z [36;1m  echo "• Cache Key: Linux-go-v2025-1-008eb4a61073b8b98cf1b62f6241a4916b695fa923c8ee062bd6b6eaab097c1d-f142991184b451196bc51cc7fe5d88bb1c932f363dc235b3c209f09fa06e25bd"[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5130884Z [36;1m  echo "• Tests Skipped: "[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.5131562Z [36;1mfi[0m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6680694Z shell: /usr/bin/bash -e {0}
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6681699Z env:
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6682211Z   GO_VERSION: 1.22
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6682887Z   GOPROXY: https://proxy.golang.org,direct
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6683535Z   GOSUMDB: sum.golang.org
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6684079Z   CGO_ENABLED: 0
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6684621Z   GOMAXPROCS: 4
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6685131Z   GOMEMLIMIT: 8GiB
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6685576Z   GOGC: 75
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6686092Z   GO_DISABLE_TELEMETRY: 1
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6686732Z   BUILD_FLAGS: -trimpath -ldflags='-s -w -extldflags=-static'
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6687475Z   TEST_FLAGS: -race -count=1 -timeout=15m
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6688094Z   CACHE_VERSION: v2025-1
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6688677Z ##[endgroup]
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6867516Z === CI Pipeline Results Summary ===
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6954685Z 🔧 Setup: success
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6955279Z 📦 Dependencies: success
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6956005Z ⚡ Fast Validation: failure
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6956572Z 🧪 Component Tests: skipped
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6957131Z 🏗️ Full Build: skipped
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6957489Z 
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6957860Z ❌ CI Pipeline FAILED - Jobs failed: validation
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6958315Z 
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6958561Z 🔧 Troubleshooting Guide:
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6959224Z 1. Check individual job logs for specific error details
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6960410Z 2. Verify dependencies are correctly resolved
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6961167Z 3. Consider re-running with 'force_cache_refresh: true'
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6961858Z 4. For urgent fixes, use 'skip_tests: true'
+📊 Integration Status	Evaluate CI Results	2025-09-04T22:44:43.6978920Z ##[error]Process completed with exit code 1.

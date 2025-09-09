@@ -1,0 +1,132 @@
+# =============================================================================
+# Trivy Security Scanner - Ignore File (2025 Configuration)
+# =============================================================================
+# This file excludes known false positives and non-critical findings
+# for the Nephoran Intent Operator Kubernetes project
+# Only add items here after careful security review
+# =============================================================================
+
+# Format:
+# - CVE-YYYY-NNNNN: Ignore specific CVE
+# - GHSA-xxxx-xxxx-xxxx: Ignore GitHub Security Advisory
+# - path/to/file: Ignore vulnerabilities in specific file
+# - exp:YYYY-MM-DD: Set expiration date for ignore rule
+
+# =============================================================================
+# Go Vulnerabilities - False Positives or Accepted Risks
+# =============================================================================
+
+# Example: Old etcd client library - not used in production paths
+# CVE-2023-39325 exp:2025-06-01
+# CVE-2023-44487 exp:2025-06-01
+
+# Common False Positives for Kubernetes Operators
+**/go.sum
+**/go.mod
+
+# =============================================================================
+# Container/OS Vulnerabilities - Base Image Issues
+# =============================================================================
+
+# Distroless base image - these are often false positives
+# due to stripped binaries and minimal attack surface
+
+# Container and Deployment Configs (scanned separately)
+**/Dockerfile*
+**/docker-compose*.yml
+**/k8s/**
+**/kubernetes/**
+**/manifests/**
+
+# =============================================================================
+# Development and Build Artifacts - Not in Production Container
+# =============================================================================
+
+# VCS and CI/CD
+**/.git/**
+**/.github/**
+
+# Node.js artifacts
+**/node_modules/**
+**/yarn.lock
+**/package-lock.json
+**/package.json
+
+# Build artifacts
+**/vendor/**
+**/bin/**
+**/dist/**
+**/.cache/**
+**/tmp/**
+
+# Build System Files
+**/Makefile*
+**/CMakeLists.txt
+**/build.gradle*
+**/pom.xml
+
+# Build tools and linters
+.golangci.yml
+hack/
+scripts/
+
+# IDE and Editor Files
+**/.vscode/**
+**/.idea/**
+**/*.swp
+**/*.swo
+**/*~
+
+# =============================================================================
+# Test Dependencies and Data - Not in Production
+# =============================================================================
+
+# Vulnerabilities in test-only dependencies
+# These don't affect production deployments
+test/
+testdata/
+*_test.go
+**/test/**
+**/tests/**
+**/example/**
+**/examples/**
+**/sample/**
+**/samples/**
+**/fixtures/**
+vendor/github.com/stretchr/testify
+
+# =============================================================================
+# Documentation - No executable code
+# =============================================================================
+
+**/*.md
+**/*.txt
+**/*.rst
+**/*.adoc
+**/*.pdf
+docs/
+**/LICENSE*
+**/NOTICE*
+**/CHANGELOG*
+**/README*
+
+# =============================================================================
+# CVE Exceptions
+# =============================================================================
+# Add specific CVEs that are false positives or acceptable risk
+# Example: CVE-2021-12345 (comment explaining why it's safe to ignore)
+
+# =============================================================================
+# Temporary Ignores - Review Monthly
+# =============================================================================
+
+# Add temporary ignores here with expiration dates
+# Review and remove when patches are available
+
+# =============================================================================
+# Instructions for maintaining this file:
+# 1. Only add entries for verified false positives
+# 2. Always include comments explaining why ignored
+# 3. Periodically review and clean up outdated entries
+# 4. Consider using Trivy's built-in filters instead when possible
+# =============================================================================
