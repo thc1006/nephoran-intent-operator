@@ -194,7 +194,8 @@ jobs:
             ${{ env.GOMODCACHE }}
           key: ${{ needs.preflight.outputs.go-cache-key }}
           restore-keys: |
-            nephoran-k8s-op-v3-${{ runner.os }}-go${{ env.GO_VERSION }}-k8s${{ env.KUBERNETES_VERSION }}-
+            nephoran-k8s-op-v4-${{ runner.os }}-go123-k8s131-
+            nephoran-k8s-op-v4-${{ runner.os }}-go123-
             
       - name: Install Kubebuilder
         run: |

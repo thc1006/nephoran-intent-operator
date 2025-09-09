@@ -5,10 +5,10 @@
 #          and enterprise-grade timeout management
 # =============================================================================
 
-name: CI Reliability Optimized - DISABLED
+name: CI Reliability Optimized - MERGE-READY
 
-# Temporarily disabled to prevent workflow conflicts while fixing CI issues
-# This workflow conflicts with the main ci-2025.yml workflow
+# Workflow updated for merge compatibility
+# Using compatible configurations with main CI workflows
 on:
   workflow_dispatch:
     inputs:

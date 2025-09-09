@@ -344,7 +344,8 @@ jobs:
           path: ${{ needs.setup.outputs.go-cache-path }}
           key: ${{ needs.setup.outputs.go-cache-key }}
           restore-keys: |
-            go-v4-ubuntu-${{ env.GO_VERSION }}-
+            go-v5-ubuntu-1_23_4-
+            go-v5-ubuntu-
 
       - name: Download and verify test dependencies
         timeout-minutes: 3
@@ -408,7 +409,6 @@ jobs:
             -cpu=1,2,4 \
             -count=1 \
             -failfast \
-            -json \
             ${{ matrix.test-pattern }} 2>&1 | tee "test-results/logs/test-output-${{ matrix.name }}.log"
           
           # Check if tests passed (go test returns 0 on success)
@@ -509,7 +509,8 @@ jobs:
           path: ${{ needs.setup.outputs.go-cache-path }}
           key: ${{ needs.setup.outputs.go-cache-key }}
           restore-keys: |
-            go-v4-ubuntu-${{ env.GO_VERSION }}-
+            go-v5-ubuntu-1_23_4-
+            go-v5-ubuntu-
 
       - name: Download and verify dependencies
         timeout-minutes: 5
