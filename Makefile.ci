@@ -230,9 +230,6 @@ troubleshoot: ## Show troubleshooting information
 	@echo "- For fastest CI: make ci-ultra-fast"
 	@echo "- For single component: make build-single CMD=cmd/intent-ingest"
 	@echo "- For debugging: make debug-build"
-<<<<<<< HEAD
-	@echo "- For status check: make ci-status"
-=======
 	@echo "- For status check: make ci-status"
 
 # =============================================================================
@@ -365,4 +362,3 @@ test-performance-monitor: ## Monitor test performance and identify slow tests
 	@echo "Slowest tests (top 20):"
 	@grep -E "(PASS|FAIL).*[0-9]+\.[0-9]+s" test-results/performance.log 2>/dev/null | \
 		sort -k3 -nr | head -20 || echo "No timing data available"
->>>>>>> main
