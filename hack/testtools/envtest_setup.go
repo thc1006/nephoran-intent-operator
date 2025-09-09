@@ -1,5 +1,5 @@
 // Package testtools provides comprehensive testing utilities for controller-runtime based controllers.
-// Fixed version for Nephoran Intent Operator integration tests
+// For Nephoran Intent Operator integration tests
 package testtools
 
 import (
