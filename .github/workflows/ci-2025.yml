@@ -216,13 +216,16 @@ jobs:
 
       - name: Clean cache directories (prevent tar errors)
         run: |
-          echo "Cleaning Go cache directories to prevent conflicts..."
+          echo "Cleaning Go cache directories to prevent tar extraction conflicts..."
+          # Remove existing cache directories completely to prevent "File exists" tar errors
           sudo rm -rf $HOME/.cache/go-build || true
           sudo rm -rf $HOME/go/pkg/mod || true
-          mkdir -p $HOME/.cache/go-build $HOME/go/pkg/mod
           
-          # Set proper permissions
+          # Create fresh directories with proper permissions
+          mkdir -p $HOME/.cache/go-build $HOME/go/pkg/mod
           chmod -R 755 $HOME/.cache/go-build $HOME/go/pkg/mod
+          
+          echo "Cache directories cleaned and ready for fresh extraction"
 
       - name: Restore build cache
         uses: actions/cache@v4
@@ -333,10 +336,16 @@ jobs:
 
       - name: Clean cache directories (prevent tar errors)
         run: |
+          echo "Cleaning Go cache directories to prevent tar extraction conflicts..."
+          # Remove existing cache directories completely to prevent "File exists" tar errors
           sudo rm -rf $HOME/.cache/go-build || true
           sudo rm -rf $HOME/go/pkg/mod || true
+          
+          # Create fresh directories with proper permissions
           mkdir -p $HOME/.cache/go-build $HOME/go/pkg/mod
           chmod -R 755 $HOME/.cache/go-build $HOME/go/pkg/mod
+          
+          echo "Cache directories cleaned and ready for fresh extraction"
 
       - name: Restore build cache
         uses: actions/cache@v4
@@ -496,12 +505,18 @@ jobs:
           check-latest: true
           cache: false
 
-      - name: Clean cache directories
+      - name: Clean cache directories (prevent tar errors)
         run: |
+          echo "Cleaning Go cache directories to prevent tar extraction conflicts..."
+          # Remove existing cache directories completely to prevent "File exists" tar errors
           sudo rm -rf $HOME/.cache/go-build || true
           sudo rm -rf $HOME/go/pkg/mod || true
+          
+          # Create fresh directories with proper permissions
           mkdir -p $HOME/.cache/go-build $HOME/go/pkg/mod
           chmod -R 755 $HOME/.cache/go-build $HOME/go/pkg/mod
+          
+          echo "Cache directories cleaned and ready for fresh extraction"
 
       - name: Restore build cache
         uses: actions/cache@v4

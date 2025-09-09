@@ -133,6 +133,16 @@ jobs:
           echo "cache-key=${CACHE_KEY}" >> $GITHUB_OUTPUT
           echo "Generated cache key: $CACHE_KEY"
           
+      - name: Clean cache directories (prevent tar errors)
+        if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
+        run: |
+          echo "Cleaning Go cache directories to prevent tar extraction conflicts..."
+          sudo rm -rf ${{ env.GOCACHE }} || true
+          sudo rm -rf ${{ env.GOMODCACHE }} || true
+          mkdir -p ${{ env.GOCACHE }} ${{ env.GOMODCACHE }}
+          chmod -R 755 ${{ env.GOCACHE }} ${{ env.GOMODCACHE }}
+          echo "Cache directories cleaned and ready for fresh extraction"
+          
       - name: Restore Go cache
         if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
         uses: actions/cache@v4
@@ -186,6 +196,15 @@ jobs:
           go-version: "1.23.4"
           cache: false
           
+      - name: Clean cache directories (prevent tar errors)
+        run: |
+          echo "Cleaning Go cache directories to prevent tar extraction conflicts..."
+          sudo rm -rf ${{ env.GOCACHE }} || true
+          sudo rm -rf ${{ env.GOMODCACHE }} || true
+          mkdir -p ${{ env.GOCACHE }} ${{ env.GOMODCACHE }}
+          chmod -R 755 ${{ env.GOCACHE }} ${{ env.GOMODCACHE }}
+          echo "Cache directories cleaned and ready for fresh extraction"
+          
       - name: Restore Go cache
         uses: actions/cache@v4
         with:
@@ -232,9 +251,9 @@ jobs:
           echo "🎯 Generating and validating CRDs..."
           make manifests
           
-          # Validate generated CRDs
+          # Validate generated CRDs (ignore missing schemas for custom resources)
           echo "🔍 Validating CRD schemas..."
-          find config/crd/bases -name "*.yaml" -exec kubeval --strict {} \;
+          find config/crd/bases -name "*.yaml" -exec kubeval --strict --ignore-missing-schemas {} \;
           
           # Check for CRD changes (should be committed)
           if ! git diff --quiet config/crd/bases/; then
@@ -251,9 +270,9 @@ jobs:
           echo "🔐 Generating and validating RBAC..."
           make generate
           
-          # Check RBAC files
+          # Check RBAC files (ignore missing schemas for custom resources)
           echo "🔍 Validating RBAC configurations..."
-          find config/rbac -name "*.yaml" -exec kubeval --strict {} \;
+          find config/rbac -name "*.yaml" -exec kubeval --strict --ignore-missing-schemas {} \;
           
           # Check for uncommitted changes
           if ! git diff --quiet config/rbac/; then
@@ -269,7 +288,7 @@ jobs:
         timeout-minutes: 2
         run: |
           echo "🪝 Validating webhook configurations..."
-          find config/webhook -name "*.yaml" -exec kubeval --strict {} \;
+          find config/webhook -name "*.yaml" -exec kubeval --strict --ignore-missing-schemas {} \;
           echo "✅ Webhook configurations are valid"
           
       - name: Kustomize validation
@@ -277,15 +296,15 @@ jobs:
         run: |
           echo "📋 Validating kustomize configurations..."
           
-          # Validate default overlay
+          # Validate default overlay (ignore missing schemas for custom resources)
           echo "🔍 Testing default kustomization..."
           kustomize build config/default > /tmp/default-manifest.yaml
-          kubeval --strict /tmp/default-manifest.yaml
+          kubeval --strict --ignore-missing-schemas /tmp/default-manifest.yaml
           
-          # Validate samples if they exist
+          # Validate samples if they exist (ignore missing schemas for custom resources)
           if [[ -d config/samples ]]; then
             echo "🔍 Validating sample configurations..."
-            find config/samples -name "*.yaml" -exec kubeval --strict {} \;
+            find config/samples -name "*.yaml" -exec kubeval --strict --ignore-missing-schemas {} \;
           fi
           
           echo "✅ All kustomize configurations are valid"
