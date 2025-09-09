@@ -94,7 +94,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 			By("Setting up Git client mock to fail on directory removal")
 			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			gitError := errors.New("failed to remove directory: authentication failed")
-			mockGitClient.On("RemoveDirectory", "networkintents/cleanup-gitops-test", "Remove NetworkIntent package: cleanup-gitops-test").Return(gitError)
+			mockGitClient.SetRemoveDirectoryError(gitError)
 
 			By("Calling cleanupGitOpsPackages")
 			err := reconciler.cleanupGitOpsPackages(ctx, networkIntent, mockGitClient)
@@ -102,15 +102,17 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 			By("Verifying error is propagated")
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("failed to remove GitOps package directory"))
-			mockGitClient.AssertExpectations(GinkgoT())
+			
+			By("Verifying correct method was called")
+			callLog := mockGitClient.GetCallLog()
+			Expect(callLog).To(ContainElement(ContainSubstring("RemoveDirectory(networkintents/cleanup-gitops-test")))
 		})
 
 		It("Should handle Git commit failures", func() {
 			By("Setting up Git client mock to fail on commit")
 			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
-			mockGitClient.On("RemoveDirectory", "networkintents/cleanup-gitops-test", "Remove NetworkIntent package: cleanup-gitops-test").Return(nil)
 			commitError := errors.New("failed to commit: remote repository unavailable")
-			mockGitClient.On("CommitAndPushChanges", "Remove NetworkIntent package: cleanup-gitops-test").Return(commitError)
+			mockGitClient.SetCommitPushError(commitError)
 
 			By("Calling cleanupGitOpsPackages")
 			err := reconciler.cleanupGitOpsPackages(ctx, networkIntent, mockGitClient)
@@ -118,7 +120,11 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 			By("Verifying error is propagated")
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("failed to commit package removal"))
-			mockGitClient.AssertExpectations(GinkgoT())
+			
+			By("Verifying correct methods were called")
+			callLog := mockGitClient.GetCallLog()
+			Expect(callLog).To(ContainElement(ContainSubstring("RemoveDirectory(networkintents/cleanup-gitops-test")))
+			Expect(callLog).To(ContainElement(ContainSubstring("CommitAndPushChanges")))
 		})
 
 		It("Should handle non-existent directories gracefully", func() {
