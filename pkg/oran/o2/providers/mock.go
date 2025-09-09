@@ -506,19 +506,7 @@ func (m *MockProvider) ApplyConfiguration(ctx context.Context, config *ProviderC
 	return nil
 }
 
-// GetResourceStatus returns the current status of a resource (Provider interface)
-func (m *MockProvider) GetResourceStatus(ctx context.Context, id string) (ResourceStatus, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	if !m.initialized {
-		return StatusUnknown, fmt.Errorf("provider not initialized")
-	}
-
-	// Mock implementation - simulate resource status lookup
-	// In a real implementation, this would query the actual resource status
-	return StatusReady, nil
-}
+// Note: GetResourceStatus is already defined above - removed duplicate
 
 // Close cleans up provider resources
 func (m *MockProvider) Close() error {

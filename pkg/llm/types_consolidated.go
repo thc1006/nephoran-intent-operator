@@ -249,7 +249,7 @@ func (sp *StreamingProcessor) CompleteStream(sessionID string) error {
 func (sp *StreamingProcessor) CreateSession(sessionID string, w interface{}, r interface{}) (*MockStreamingSession, error) {
 	return &MockStreamingSession{
 		ID:     sessionID,
-		Status: StreamingStatusActive,
+		Status: string(StreamingStatusActive),
 	}, nil
 }
 
@@ -264,20 +264,6 @@ type MockStreamingSession struct {
 	Status string
 }
 
-// Constants for streaming status
-const (
-	StreamingStatusActive    = "active"
-	StreamingStatusCompleted = "completed"
-	StreamingStatusError     = "error"
-)
-
-// Constants for chunk types
-const (
-	ChunkTypeContent = "content"
-	ChunkTypeError   = "error"
-	ChunkTypeEnd     = "end"
-)
-
 // GetMetrics returns metrics for the streaming processor
 func (sp *StreamingProcessor) GetMetrics() map[string]interface{} {
 	return map[string]interface{}{
@@ -286,34 +272,6 @@ func (sp *StreamingProcessor) GetMetrics() map[string]interface{} {
 		"failed_streams":    0,
 		"throughput":        0.0,
 	}
-}
-
-// CreateSession creates a new streaming session
-func (sp *StreamingProcessor) CreateSession(sessionID string, w interface{}, r interface{}) (*StreamingSession, error) {
-	return &StreamingSession{
-		ID:     sessionID,
-		Status: StreamingStatusActive,
-	}, nil
-}
-
-// GetActiveSessions returns list of active sessions
-func (sp *StreamingProcessor) GetActiveSessions() []string {
-	return []string{}
-}
-
-// StreamChunk streams a chunk to the session
-func (sp *StreamingProcessor) StreamChunk(sessionID string, chunk *StreamingChunk) error {
-	return nil
-}
-
-// CompleteStream completes the streaming session
-func (sp *StreamingProcessor) CompleteStream(sessionID string) error {
-	return nil
-}
-
-// NewStreamingProcessor creates a new streaming processor
-func NewStreamingProcessor(config *StreamingConfig) *StreamingProcessor {
-	return &StreamingProcessor{}
 }
 
 // Streaming constants are defined in streaming_processor.go
