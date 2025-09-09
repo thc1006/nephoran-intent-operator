@@ -97,7 +97,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.24.6'
-          check-latest: true
+          check-latest: false  # Ensure exact version
           cache: true  # We handle caching manually
 
       - name: Generate reliable cache key

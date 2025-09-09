@@ -105,8 +105,8 @@ jobs:
         if: steps.changes.outputs.should-build == 'true'
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
-          check-latest: true
+          go-version: '1.24.6'  # Use explicit version
+          check-latest: false  # Ensure exact version
           cache: true
 
       - name: Generate production-grade cache key

@@ -34,7 +34,7 @@ concurrency:
 
 env:
   # Go optimization for large projects
-  GO_VERSION: "1.24.6"  # EMERGENCY FIX - Match go.mod toolchain
+  GO_VERSION: "1.24.6"  # Match go.mod toolchain exactly
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   CGO_ENABLED: 0
@@ -128,8 +128,8 @@ jobs:
       - name: Setup Go with enhanced configuration
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ needs.setup.outputs.go-version }}
-          check-latest: true
+          go-version: '1.24.6'  # Use explicit version to avoid issues
+          check-latest: false  # Disable to ensure exact version
           cache: true
           
           
