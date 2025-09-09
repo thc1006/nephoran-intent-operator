@@ -55,7 +55,7 @@ jobs:
           echo "This workflow will be removed in 2025-03-XX"
           echo ""
           
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Setup Go with aggressive caching
         uses: actions/setup-go@v5

@@ -61,7 +61,7 @@ jobs:
       
     steps:
       - name: Checkout with optimized fetch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 1  # Minimal fetch for speed
           
@@ -200,7 +200,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: Setup Go (reliability mode)
         uses: actions/setup-go@v5
@@ -305,7 +305,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: Setup Go (test mode)
         uses: actions/setup-go@v5
@@ -403,7 +403,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: Download all build artifacts
         uses: actions/download-artifact@v4

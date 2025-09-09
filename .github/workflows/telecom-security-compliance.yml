@@ -93,7 +93,7 @@ jobs:
       
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: 🎭 STRIDE Threat Modeling
         id: stride-analysis
@@ -334,7 +334,7 @@ jobs:
       
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: 🔐 TLS/SSL Security Validation
         run: |
@@ -480,7 +480,7 @@ jobs:
       
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: 🔐 Encryption at Rest Validation
         run: |
@@ -655,7 +655,7 @@ jobs:
       
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: 🔧 Setup Penetration Testing Environment
         run: |

@@ -79,7 +79,7 @@ jobs:
       
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: 🎯 Generate Validation Matrix
         id: matrix
@@ -257,7 +257,7 @@ jobs:
     
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: 🔧 Setup Test Environment
         run: |
@@ -464,7 +464,7 @@ jobs:
       
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: 🔧 Setup Complete Test Environment
         run: |

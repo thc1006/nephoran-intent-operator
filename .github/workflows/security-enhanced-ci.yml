@@ -98,7 +98,7 @@ jobs:
           disable-telemetry: false
           
       - name: 📥 Checkout with security verification
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -294,7 +294,7 @@ jobs:
           egress-policy: audit
           
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -362,7 +362,7 @@ jobs:
           egress-policy: audit
           
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
           
@@ -454,7 +454,7 @@ jobs:
           egress-policy: audit
           
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
           
@@ -527,7 +527,7 @@ jobs:
           egress-policy: audit
           
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
           
@@ -638,7 +638,7 @@ jobs:
           egress-policy: audit
           
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
           
@@ -779,7 +779,7 @@ jobs:
           egress-policy: audit
           
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
           
@@ -853,7 +853,7 @@ jobs:
           egress-policy: audit
           
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
           
@@ -916,7 +916,7 @@ jobs:
           egress-policy: audit
           
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
           

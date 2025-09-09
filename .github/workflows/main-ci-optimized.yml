@@ -42,7 +42,7 @@ jobs:
     outputs:
       go-changed: ${{ steps.changes.outputs.go }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 2
 
@@ -74,7 +74,7 @@ jobs:
         gate: [build, lint, test]
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Setup Go
         uses: actions/setup-go@v5

@@ -102,7 +102,7 @@ jobs:
       
     steps:
       - name: 📥 Checkout with minimal depth
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 2
           
@@ -380,7 +380,7 @@ jobs:
     
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: ⚡ Setup Go 1.25 with optimizations
         uses: actions/setup-go@v5
@@ -650,7 +650,7 @@ jobs:
     
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: ⚡ Setup Go 1.25 
         uses: actions/setup-go@v5
@@ -801,7 +801,7 @@ jobs:
     
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0  # Full history for better analysis
           
@@ -887,7 +887,7 @@ jobs:
     
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: 📤 Download build artifacts
         uses: actions/download-artifact@v4

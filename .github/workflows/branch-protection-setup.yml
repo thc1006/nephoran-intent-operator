@@ -68,7 +68,7 @@ jobs:
       
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: 📋 Generate Branch Protection Policies
         id: branch-config
@@ -387,7 +387,7 @@ jobs:
       
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: 🛡️ Apply Branch Protection Rules
         id: apply-protection
@@ -497,7 +497,7 @@ jobs:
       
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: 🔐 Configure Security Policies
         id: apply-security
@@ -639,7 +639,7 @@ jobs:
     
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: 📊 Validate Compliance Policies
         run: |

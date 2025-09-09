@@ -37,7 +37,7 @@ jobs:
       emergency_type: ${{ steps.check-emergency.outputs.type }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.1  # PINNED VERSION
+        uses: actions/checkout@v5  # PINNED VERSION
         with:
           fetch-depth: 2
 
@@ -55,7 +55,7 @@ jobs:
     timeout-minutes: 8
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.1  # PINNED VERSION
+        uses: actions/checkout@v5  # PINNED VERSION
         
       - name: Setup Go
         uses: actions/setup-go@v5.0.2  # PINNED VERSION

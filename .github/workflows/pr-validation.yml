@@ -50,7 +50,7 @@ jobs:
 
     steps:
       - name: Checkout PR code
-        uses: actions/checkout@v4  # Latest stable
+        uses: actions/checkout@v5  # Latest stable
         with:
           fetch-depth: 1
 
@@ -203,7 +203,7 @@ jobs:
 
   #   steps: # ALL STEPS DISABLED FOR EMERGENCY DEV VELOCITY
   #     - name: Checkout PR code
-  #       uses: actions/checkout@v4  # Latest stable
+  #       uses: actions/checkout@v5  # Latest stable
   # 
   #     - name: Setup Go ${{ env.GO_VERSION }}
   #       uses: actions/setup-go@v5  # Latest stable

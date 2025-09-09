@@ -92,7 +92,7 @@ jobs:
       
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: 🔧 Setup Go for O-RAN validation
         uses: actions/setup-go@v5
@@ -345,7 +345,7 @@ jobs:
       
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: 🌐 5G Network Function (NF) Validation
         id: nf-validation
@@ -502,7 +502,7 @@ jobs:
       
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: 🔐 O-RAN WG11 Security Validation
         id: oran-security
@@ -625,7 +625,7 @@ jobs:
       
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: ☁️ Cloud-Native Network Function (CNF) Validation
         id: cnf-validation

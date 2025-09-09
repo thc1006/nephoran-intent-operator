@@ -86,7 +86,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 2  # Shallow clone for change detection
 
@@ -335,7 +335,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Go ${{ needs.setup.outputs.go-version }}
         uses: actions/setup-go@v5
@@ -561,7 +561,7 @@ jobs:
 
     steps:
       - name: Checkout repository  
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Go ${{ needs.setup.outputs.go-version }}
         uses: actions/setup-go@v5
@@ -698,7 +698,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0  # Full history for better analysis
 
@@ -775,7 +775,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download build artifacts
         uses: actions/download-artifact@v4

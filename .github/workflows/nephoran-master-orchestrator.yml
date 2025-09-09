@@ -128,7 +128,7 @@ jobs:
           disable-telemetry: false
           
       - name: 📥 Secure Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -442,7 +442,7 @@ jobs:
           egress-policy: audit
           
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: 📡 O-RAN Interface Validation
         run: |
@@ -611,7 +611,7 @@ jobs:
     
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: 🔧 Setup Go
         uses: actions/setup-go@v5
@@ -749,7 +749,7 @@ jobs:
     
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: 🔧 Setup Kubernetes (Kind)
         uses: helm/kind-action@v1
