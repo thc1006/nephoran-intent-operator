@@ -5,15 +5,28 @@
 # Addresses: cache key failures, tar extraction errors, timeout issues
 # =============================================================================
 
-name: CI Pipeline 2025 - DISABLED
+name: CI Pipeline 2025
 
-# EMERGENCY CI CONSOLIDATION: DISABLED to reduce 75%+ CI job overhead
-# CONVERTED TO MANUAL-ONLY: Auto-triggering disabled to prevent CI conflicts
-# Original triggers preserved in comments for reference:
-# - push: [ main, integrate/mvp, "feat/**", "fix/**", "chore/**" ] with path filters
-# - pull_request: [ main, integrate/mvp ]
+# EMERGENCY CI CONSOLIDATION: TEMPORARILY ENABLED FOR FIXING
+# Converting back to active CI after fixing version issues
 
 on:
+  push:
+    branches: [ main, integrate/mvp, "feat/**", "fix/**", "chore/**" ]
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'api/**'
+      - 'cmd/**'
+      - 'controllers/**'
+      - 'pkg/**'
+      - 'internal/**'
+      - 'Makefile*'
+      - '.github/workflows/ci-2025.yml'
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [ main, integrate/mvp ]
   workflow_dispatch:
     inputs:
       debug_enabled:
@@ -40,7 +53,7 @@ permissions:
 
 # Environment optimized for Go 1.24.6 and Ubuntu Linux
 env:
-  GO_VERSION: "1.24.6"
+  GO_VERSION: "1.23.4"
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   GOPRIVATE: "github.com/thc1006/*"
@@ -96,7 +109,7 @@ jobs:
         if: steps.changes.outputs.go == 'true'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24.6'
+          go-version: '1.23.4'
           check-latest: true
           cache: false  # We handle caching manually
 
@@ -104,25 +117,25 @@ jobs:
         if: steps.changes.outputs.go == 'true'
         id: cache-key
         run: |
-          # Generate reliable cache key with fallbacks
-          GO_VERSION_CLEAN=$(echo "${{ env.GO_VERSION }}" | tr '.' '_')
+          # Simplified cache key generation to avoid failures
+          GO_VERSION_CLEAN="1_23_4"
           
           # Get go.sum hash with validation
           if [ -f "go.sum" ]; then
-            GO_SUM_HASH=$(sha256sum go.sum | cut -d' ' -f1 | head -c 16)
+            GO_SUM_HASH=$(sha256sum go.sum | cut -d' ' -f1 | head -c 12)
           else
-            GO_SUM_HASH="no-gosum-$(date +%Y%m%d)"
+            GO_SUM_HASH="fallback"
           fi
           
           # Get go.mod hash for additional validation
           if [ -f "go.mod" ]; then
-            GO_MOD_HASH=$(sha256sum go.mod | cut -d' ' -f1 | head -c 16)
+            GO_MOD_HASH=$(sha256sum go.mod | cut -d' ' -f1 | head -c 12)
           else
-            GO_MOD_HASH="no-gomod"
+            GO_MOD_HASH="fallback"
           fi
           
-          # Construct cache key and paths
-          CACHE_KEY="go-v4-ubuntu-${GO_VERSION_CLEAN}-${GO_SUM_HASH}-${GO_MOD_HASH}"
+          # Construct simplified cache key
+          CACHE_KEY="go-v5-ubuntu-${GO_VERSION_CLEAN}-${GO_SUM_HASH}-${GO_MOD_HASH}"
           CACHE_PATH="${HOME}/.cache/go-build
           ${HOME}/go/pkg/mod"
           
@@ -197,7 +210,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24.6'
+          go-version: '1.23.4'
           check-latest: true
           cache: false
 
@@ -217,8 +230,8 @@ jobs:
           path: ${{ needs.setup.outputs.go-cache-path }}
           key: ${{ needs.setup.outputs.go-cache-key }}
           restore-keys: |
-            go-v4-ubuntu-${{ env.GO_VERSION }}-
-            go-v4-ubuntu-
+            go-v5-ubuntu-1_23_4-
+            go-v5-ubuntu-
 
       - name: GitHub authentication for private modules
         run: |
@@ -314,7 +327,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24.6'
+          go-version: '1.23.4'
           check-latest: true
           cache: false
 
@@ -351,8 +364,8 @@ jobs:
           
           # Setup Kubernetes test environment
           echo "Setting up Kubernetes test environment..."
-          setup-envtest use 1.31.0 --arch=amd64 --os=linux
-          export KUBEBUILDER_ASSETS=$(setup-envtest use 1.31.0 --arch=amd64 --os=linux -p path)
+          setup-envtest use 1.31.x --arch=amd64 --os=linux
+          export KUBEBUILDER_ASSETS=$(setup-envtest use 1.31.x --arch=amd64 --os=linux -p path)
           echo "KUBEBUILDER_ASSETS=$KUBEBUILDER_ASSETS" >> $GITHUB_ENV
           echo "Kubernetes test environment ready"
 
@@ -479,7 +492,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24.6'
+          go-version: '1.23.4'
           check-latest: true
           cache: false
 

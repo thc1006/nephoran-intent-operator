@@ -41,12 +41,12 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # 2025 Kubernetes and Go versions
-  GO_VERSION: "1.25.0"
-  KUBERNETES_VERSION: "1.32.1"
-  CONTROLLER_RUNTIME_VERSION: "v0.19.1"
-  KUBEBUILDER_VERSION: "4.4.1"
-  ENVTEST_KUBERNETES_VERSION: "1.32.1"
+  # Stable Kubernetes and Go versions
+  GO_VERSION: "1.23.4"
+  KUBERNETES_VERSION: "1.31.0"
+  CONTROLLER_RUNTIME_VERSION: "v0.18.4"
+  KUBEBUILDER_VERSION: "3.15.0"
+  ENVTEST_KUBERNETES_VERSION: "1.31.0"
   
   # Build optimizations for 2025
   CGO_ENABLED: "0"
@@ -70,7 +70,7 @@ jobs:
   # =============================================================================
   preflight:
     name: "🚀 Pre-flight Setup"
-    runs-on: ubuntu-24.04  # 2025 Ubuntu LTS
+    runs-on: ubuntu-latest  # Stable Ubuntu LTS
     timeout-minutes: 5
     outputs:
       go-cache-key: ${{ steps.cache-setup.outputs.cache-key }}
@@ -107,24 +107,29 @@ jobs:
         if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: "1.23.4"
           cache: false  # Manual cache control
           
-      - name: Setup advanced Go cache
+      - name: Setup simplified Go cache
         if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
         id: cache-setup
         run: |
-          # Generate comprehensive cache key for 2025 standards
-          GO_SUM_HASH="${{ hashFiles('**/go.sum') }}"
-          GO_MOD_HASH="${{ hashFiles('go.mod') }}"
-          CONFIG_HASH="${{ hashFiles('config/**/*.yaml', 'PROJECT') }}"
+          # Simplified cache key generation to avoid GitHub Actions issues
           
-          # Fallback for empty hashes
-          if [[ -z "$GO_SUM_HASH" ]]; then GO_SUM_HASH="${{ github.sha }}"; fi
-          if [[ -z "$GO_MOD_HASH" ]]; then GO_MOD_HASH="${{ github.sha }}"; fi
-          if [[ -z "$CONFIG_HASH" ]]; then CONFIG_HASH="${{ github.sha }}"; fi
+          # Get file hashes with fallbacks
+          if [ -f "go.sum" ]; then
+            GO_SUM_HASH=$(sha256sum go.sum | cut -d' ' -f1 | head -c 12)
+          else
+            GO_SUM_HASH="nosum"
+          fi
           
-          CACHE_KEY="nephoran-k8s-op-v3-${{ runner.os }}-go${{ env.GO_VERSION }}-k8s${{ env.KUBERNETES_VERSION }}-${GO_SUM_HASH}-${GO_MOD_HASH}-${CONFIG_HASH}"
+          if [ -f "go.mod" ]; then
+            GO_MOD_HASH=$(sha256sum go.mod | cut -d' ' -f1 | head -c 12)
+          else
+            GO_MOD_HASH="nomod"
+          fi
+          
+          CACHE_KEY="nephoran-k8s-op-v4-${{ runner.os }}-go123-k8s131-${GO_SUM_HASH}-${GO_MOD_HASH}"
           echo "cache-key=${CACHE_KEY}" >> $GITHUB_OUTPUT
           echo "Generated cache key: $CACHE_KEY"
           
@@ -137,8 +142,8 @@ jobs:
             ${{ env.GOMODCACHE }}
           key: ${{ steps.cache-setup.outputs.cache-key }}
           restore-keys: |
-            nephoran-k8s-op-v3-${{ runner.os }}-go${{ env.GO_VERSION }}-k8s${{ env.KUBERNETES_VERSION }}-
-            nephoran-k8s-op-v3-${{ runner.os }}-go${{ env.GO_VERSION }}-
+            nephoran-k8s-op-v4-${{ runner.os }}-go123-k8s131-
+            nephoran-k8s-op-v4-${{ runner.os }}-go123-
             
       - name: Download dependencies
         if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
@@ -167,7 +172,7 @@ jobs:
   k8s-validation:
     name: "☸️ Kubernetes Validation"
     needs: preflight
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     if: needs.preflight.outputs.should-build == 'true'
     
@@ -178,7 +183,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: "1.23.4"
           cache: false
           
       - name: Restore Go cache
@@ -290,7 +295,7 @@ jobs:
   security-scan:
     name: "🔒 Security Scan"
     needs: preflight
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     if: needs.preflight.outputs.should-build == 'true'
     
@@ -303,7 +308,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: "1.23.4"
           cache: false
           
       - name: Restore Go cache
@@ -436,7 +441,7 @@ jobs:
   controller-tests:
     name: "🎮 Controller Tests"
     needs: [preflight, k8s-validation]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     if: needs.preflight.outputs.should-build == 'true'
     
@@ -455,7 +460,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: "1.23.4"
           cache: false
           
       - name: Restore Go cache
@@ -474,7 +479,7 @@ jobs:
           go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
           
           # Setup test environment
-          export KUBEBUILDER_ASSETS=$(setup-envtest use ${{ env.ENVTEST_KUBERNETES_VERSION }} --bin-dir /tmp/envtest-bins -p path)
+          export KUBEBUILDER_ASSETS=$(setup-envtest use 1.31.x --bin-dir /tmp/envtest-bins -p path)
           echo "KUBEBUILDER_ASSETS=${KUBEBUILDER_ASSETS}" >> $GITHUB_ENV
           
           # Verify setup
@@ -551,7 +556,7 @@ jobs:
   integration-tests:
     name: "🔗 Integration Tests"
     needs: [preflight, controller-tests]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     if: needs.preflight.outputs.should-test-integration == 'true'
     
@@ -568,7 +573,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: "1.23.4"
           cache: false
           
       - name: Restore Go cache
@@ -583,7 +588,7 @@ jobs:
         uses: helm/kind-action@v1.10.0
         with:
           version: v0.26.0
-          kubernetes_version: v${{ env.KUBERNETES_VERSION }}
+          kubernetes_version: v1.31.0
           cluster_name: nephoran-test
           config: |
             kind: Cluster
@@ -690,7 +695,7 @@ jobs:
   build-package:
     name: "📦 Build & Package"
     needs: [preflight, k8s-validation, security-scan, controller-tests]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     if: needs.preflight.outputs.should-build == 'true'
     
@@ -701,7 +706,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: "1.23.4"
           cache: false
           
       - name: Restore Go cache
@@ -777,7 +782,7 @@ jobs:
   ci-status:
     name: "📊 CI Status Report"
     needs: [preflight, k8s-validation, security-scan, controller-tests, integration-tests, build-package]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     if: always()
     
     steps:
