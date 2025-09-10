@@ -31,8 +31,6 @@ limitations under the License.
 package v1
 
 import (
-	"fmt"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -1099,7 +1097,7 @@ func (mg *ManifestGeneration) HasValidationErrors() bool {
 
 func (mg *ManifestGeneration) GetSecurityScore() string {
 	if mg.Status.SecurityAnalysis != nil && mg.Status.SecurityAnalysis.OverallScore != nil {
-		return fmt.Sprintf("%.2f", *mg.Status.SecurityAnalysis.OverallScore)
+		return *mg.Status.SecurityAnalysis.OverallScore
 	}
 
 	return "0.0"

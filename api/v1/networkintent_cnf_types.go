@@ -1037,7 +1037,7 @@ func (c *PerformanceIntent) DeepCopyInto(out *PerformanceIntent) {
 
 		in, out := &c.PacketLossTolerance, &out.PacketLossTolerance
 
-		*out = new(float64)
+		*out = new(string)
 
 		**out = **in
 
