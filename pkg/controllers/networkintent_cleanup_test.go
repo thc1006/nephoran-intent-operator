@@ -349,10 +349,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 		It("Should handle partial failure scenarios", func() {
 			By("Setting up Git client mock to succeed but with warning")
 			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
-			packagePath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
-			commitMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
-			mockGitClientSetRemoveDirectoryError
-			mockGitClientSetCommitPushError
+			mockGitClient.ResetMock()
 
 			By("Creating the NetworkIntent with deletion timestamp")
 			networkIntent.DeletionTimestamp = &metav1.Time{Time: time.Now()}
@@ -371,13 +368,12 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 		It("Should handle missing Git client gracefully", func() {
 			By("Setting Git client to nil")
-			reconciler.deps = &MockDependencies{
-				gitClient:        nil,
-				llmClient:        mockDeps.llmClient,
-				packageGenerator: nil,
-				httpClient:       mockDeps.httpClient,
-				eventRecorder:    mockDeps.eventRecorder,
+			// Create a mock with nil Git client to test error handling
+			nilGitMockDeps := &testutils.MockDependencies{
+				LLMClient: mockDeps.LLMClient,
+				GitClient: nil,
 			}
+			reconciler.deps = nilGitMockDeps
 
 			By("Creating the NetworkIntent with deletion timestamp")
 			networkIntent.DeletionTimestamp = &metav1.Time{Time: time.Now()}
@@ -405,9 +401,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 			By("Testing error propagation from cleanup operations")
 			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			gitError := errors.New("persistent git failure")
-			packagePath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
-			commitMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
-			mockGitClientSetRemoveDirectoryError
+			mockGitClient.SetRemoveDirectoryError(gitError)
 
 			By("Creating the NetworkIntent with deletion timestamp")
 			networkIntent.DeletionTimestamp = &metav1.Time{Time: time.Now()}
@@ -440,30 +434,27 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 		It("Should verify correct Git commands are called", func() {
 			By("Setting up Git client expectations")
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
-
-			mockGitClientSetRemoveDirectoryError
-			mockGitClientSetCommitPushError
+			mockGitClient.ResetMock()
 
 			By("Calling cleanup function")
 			err := reconciler.cleanupGitOpsPackages(ctx, networkIntent, mockGitClient)
 
 			By("Verifying correct method calls")
 			Expect(err).NotTo(HaveOccurred())
-			// Verify method calls using GetCallLog instead of testify expectations
-		Expect(len(mockGitClient.GetCallLog())).To(BeNumerically(">", 0))
-			// Removed testify AssertCalled. Use GetCallLog instead
-			// Removed testify AssertCalled. Use GetCallLog instead
+			callLog := mockGitClient.GetCallLog()
+			Expect(len(callLog)).To(BeNumerically(">", 0))
+			Expect(callLog).To(ContainElement(ContainSubstring("RemoveDirectory("+expectedPath)))
+			Expect(callLog).To(ContainElement(ContainSubstring("CommitAndPushChanges("+expectedMessage)))
 		})
 
 		It("Should handle authentication failures", func() {
 			By("Setting up authentication failure scenario")
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			authError := errors.New("SSH key authentication failed")
-			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
-			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
-
-			mockGitClientSetRemoveDirectoryError
+			mockGitClient.SetRemoveDirectoryError(authError)
 
 			By("Calling cleanup function")
 			err := reconciler.cleanupGitOpsPackages(ctx, networkIntent, mockGitClient)
@@ -481,8 +472,8 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 
-			mockGitClientSetRemoveDirectoryError
-			mockGitClientSetCommitPushError
+			// Mock setup handled above
+			// Mock setup handled above
 
 			By("Calling cleanup function")
 			err := reconciler.cleanupGitOpsPackages(ctx, networkIntent, mockGitClient)
@@ -500,7 +491,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 
-			mockGitClientSetRemoveDirectoryError
+			// Mock setup handled above
 
 			By("Calling cleanup function")
 			err := reconciler.cleanupGitOpsPackages(ctx, networkIntent, mockGitClient)
@@ -518,8 +509,8 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 
-			mockGitClientSetRemoveDirectoryError
-			mockGitClientSetCommitPushError
+			// Mock setup handled above
+			// Mock setup handled above
 
 			By("Calling cleanup function")
 			err := reconciler.cleanupGitOpsPackages(ctx, networkIntent, mockGitClient)
@@ -570,8 +561,8 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 
 			// Allow multiple calls
-			mockGitClientSetRemoveDirectoryError
-			mockGitClientSetCommitPushError
+			// Mock setup handled above
+			// Mock setup handled above
 
 			By("Calling cleanup multiple times")
 			for i := 0; i < 3; i++ {
