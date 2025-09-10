@@ -52,7 +52,7 @@ permissions:
 env:
   # Go 1.25 configuration
   GO_VERSION: "1.22.7"
-  GOTOOLCHAIN: "go1.25.0"
+  GOTOOLCHAIN: "go1.23.x"
   
   # Build optimization environment
   CGO_ENABLED: "0"

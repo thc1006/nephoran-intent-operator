@@ -40,7 +40,7 @@ permissions:
   pull-requests: write
 
 env:
-  GO_VERSION: "1.25.0"
+  GO_VERSION: "1.23.x"
   SCAN_MODE: ${{ github.event.inputs.scan_mode || 'standard' }}
   FORCE_FULL_SCAN: ${{ github.event.inputs.force_full_scan == 'true' }}
   CGO_ENABLED: "0"
@@ -192,7 +192,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.0'
+          go-version: '1.23.x'
           cache: true
 
       - name: Run gosec security scanner
@@ -281,7 +281,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.0'
+          go-version: '1.23.x'
           cache: true
 
       - name: Create scan environment
@@ -298,7 +298,7 @@ jobs:
       - name: Run govulncheck (using official action)
         uses: golang/govulncheck-action@v1
         with:
-          go-version-input: '1.25.0'
+          go-version-input: '1.23.x'
           go-package: '${{ matrix.paths }}'
         continue-on-error: true
         id: govulncheck
@@ -416,7 +416,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.0'
+          go-version: '1.23.x'
           cache: true
 
       - name: Optimized dependency vulnerability scan

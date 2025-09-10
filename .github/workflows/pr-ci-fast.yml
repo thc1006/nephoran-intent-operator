@@ -5,7 +5,7 @@
 # Please migrate to pr-validation.yml which addresses:
 # - Cache key generation failures
 # - Tar extraction errors  
-# - Better Go 1.25.0 optimization
+# - Better Go 1.23.x optimization
 # - Enhanced error handling and reliability
 # =============================================================================
 
