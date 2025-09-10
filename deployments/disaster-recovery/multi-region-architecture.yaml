@@ -31,7 +31,7 @@ rules:
 # Full access to Nephoran resources for failover operations
 - apiGroups: ["nephoran.com"]
   resources: ["networkintents", "e2nodesets", "managedelements"]
-  verbs: ["*"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 # Access to core Kubernetes resources for cluster management
 - apiGroups: [""]
   resources: ["pods", "services", "endpoints", "configmaps", "secrets", "persistentvolumes", "persistentvolumeclaims"]

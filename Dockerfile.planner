@@ -1,7 +1,7 @@
 # Dockerfile specifically optimized for planner service
 # Addresses dependency resolution issues with minimal dependencies
 
-FROM golang:1.24.1-alpine AS builder
+FROM golang:1.25.1-alpine AS builder
 
 # Install minimal dependencies including tzdata
 # CRITICAL: Keep tzdata for copying to runtime stage
