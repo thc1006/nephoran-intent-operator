@@ -68,10 +68,13 @@ jobs:
             ${{ runner.os }}-go-
           
       - name: Fail-fast syntax check
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
           set -e  # Bash strict mode - fail on any error
           echo "Running fail-fast syntax check..."
+          echo "Downloading dependencies first..."
+          go mod download
+          echo "Running syntax check..."
           go build ./...
           go vet ./...
           
