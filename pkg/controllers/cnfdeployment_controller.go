@@ -33,8 +33,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -289,15 +287,12 @@ func (r *CNFDeploymentReconciler) handlePendingCNF(ctx context.Context, cnfDeplo
 
 	cnfDeployment.Status.ServiceEndpoints = result.ServiceEndpoints
 
-	// Convert ResourceStatus from map[string]string to map[string]float64
+	// Copy ResourceStatus from map[string]string to map[string]string
 	if cnfDeployment.Status.ResourceUtilization == nil {
-		cnfDeployment.Status.ResourceUtilization = make(map[string]float64)
+		cnfDeployment.Status.ResourceUtilization = make(map[string]string)
 	}
 	for key, value := range result.ResourceStatus {
-		// Parse percentage strings to float values
-		if val, err := strconv.ParseFloat(strings.TrimSuffix(value, "%"), 64); err == nil {
-			cnfDeployment.Status.ResourceUtilization[key] = val
-		}
+		cnfDeployment.Status.ResourceUtilization[key] = value
 	}
 
 	cnfDeployment.Status.DeploymentStartTime = &metav1.Time{Time: time.Now()}
@@ -680,12 +675,12 @@ func (r *CNFDeploymentReconciler) updateResourceMetrics(ctx context.Context, cnf
 	// This is a placeholder for actual metrics collection.
 
 	if cnfDeployment.Status.ResourceUtilization == nil {
-		cnfDeployment.Status.ResourceUtilization = make(map[string]float64)
+		cnfDeployment.Status.ResourceUtilization = make(map[string]string)
 	}
 
-	cnfDeployment.Status.ResourceUtilization["cpu"] = 50.0
+	cnfDeployment.Status.ResourceUtilization["cpu"] = "50.0"
 
-	cnfDeployment.Status.ResourceUtilization["memory"] = 60.0
+	cnfDeployment.Status.ResourceUtilization["memory"] = "60.0"
 
 	// Note: lastUpdated should be stored elsewhere as it's not a float value
 	// Consider using cnfDeployment.Status.LastHealthCheckTime or similar

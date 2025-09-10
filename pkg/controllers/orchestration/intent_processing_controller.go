@@ -516,9 +516,9 @@ func (r *IntentProcessingController) enhanceWithRAG(ctx context.Context, intent 
 
 		RetrievalDuration: int64(response.RetrievalTime),
 
-		AverageRelevanceScore: float64Ptr(float64(response.Confidence)),
+		AverageRelevanceScore: stringPtr(strconv.FormatFloat(float64(response.Confidence), 'f', 4, 64)),
 
-		TopRelevanceScore: float64Ptr(float64(response.Confidence)),
+		TopRelevanceScore: stringPtr(strconv.FormatFloat(float64(response.Confidence), 'f', 4, 64)),
 
 		QueryEnhancement: "false", // Default to false as string
 
@@ -1070,5 +1070,10 @@ func convertInterfaceMapToString(m map[string]interface{}) map[string]string {
 // float64Ptr returns a pointer to the given float64 value
 func float64Ptr(f float64) *float64 {
 	return &f
+}
+
+// stringPtr returns a pointer to the given string value
+func stringPtr(s string) *string {
+	return &s
 }
 
