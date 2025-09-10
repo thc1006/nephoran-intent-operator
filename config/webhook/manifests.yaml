@@ -24,6 +24,26 @@ webhooks:
     resources:
     - networkintents
   sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-intent-nephoran-com-v1alpha1-networkintent
+  failurePolicy: Fail
+  name: mnetworkintent.kb.io
+  rules:
+  - apiGroups:
+    - intent.nephoran.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - networkintents
+  sideEffects: None
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
@@ -64,6 +84,26 @@ webhooks:
     - nephoranio
     apiVersions:
     - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - networkintents
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-intent-nephoran-com-v1alpha1-networkintent
+  failurePolicy: Fail
+  name: vnetworkintent.kb.io
+  rules:
+  - apiGroups:
+    - intent.nephoran.com
+    apiVersions:
+    - v1alpha1
     operations:
     - CREATE
     - UPDATE
