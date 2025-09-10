@@ -397,8 +397,13 @@ func (p *CNFIntentProcessor) ProcessCNFIntent(ctx context.Context, networkIntent
 
 	// Calculate confidence score.
 
+<<<<<<< HEAD
 	confidenceScore := p.calculateConfidenceScore(intentContext, result)
 	result.ConfidenceScore = strconv.FormatFloat(confidenceScore, 'f', -1, 64)
+=======
+	confidenceValue := p.calculateConfidenceScore(intentContext, result)
+	result.ConfidenceScore = fmt.Sprintf("%.2f", confidenceValue)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	logger.Info("CNF intent processing completed",
 
@@ -742,7 +747,11 @@ func (p *CNFIntentProcessor) extractUsingPatterns(intent string) *nephoranv1.CNF
 
 		RecommendedStrategy: p.Config.DefaultStrategy,
 
+<<<<<<< HEAD
 		ConfidenceScore: "0.5", // Lower confidence for pattern matching
+=======
+		ConfidenceScore: "0.50", // Lower confidence for pattern matching
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	}
 
@@ -1203,7 +1212,11 @@ func (p *CNFIntentProcessor) estimateResourcesAndCosts(result *nephoranv1.CNFInt
 
 	result.EstimatedResources = runtime.RawExtension{Raw: resourceDataBytes}
 
+<<<<<<< HEAD
 	result.EstimatedCost = strconv.FormatFloat(totalCost, 'f', 2, 64)
+=======
+	result.EstimatedCost = fmt.Sprintf("%.2f", totalCost)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 func (p *CNFIntentProcessor) estimateDeploymentTimeline(result *nephoranv1.CNFIntentProcessingResult) {

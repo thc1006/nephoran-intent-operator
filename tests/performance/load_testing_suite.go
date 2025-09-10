@@ -115,7 +115,7 @@ type LatencyStatistics struct {
 	Max          time.Duration      `json:"max"`
 	StdDev       time.Duration      `json:"std_dev"`
 	Distribution map[string]int64   `json:"distribution"`
-	Timeline     []LatencyDataPoint `json:"timeline"`
+	Timeline     []LoadTestLatencyDataPoint `json:"timeline"`
 }
 
 // ResourceUsageStats contains resource utilization data
@@ -133,7 +133,7 @@ type ResourceTimeSeries struct {
 	Peak     float64             `json:"peak"`
 	Minimum  float64             `json:"minimum"`
 	P95      float64             `json:"p95"`
-	Timeline []ResourceDataPoint `json:"timeline"`
+	Timeline []LoadTestResourceDataPoint `json:"timeline"`
 }
 
 // NetworkStats contains network utilization data
@@ -199,13 +199,13 @@ type PerformanceAnalysis struct {
 }
 
 // Supporting data structures
-type LatencyDataPoint struct {
+type LoadTestLatencyDataPoint struct {
 	Timestamp time.Time     `json:"timestamp"`
 	Latency   time.Duration `json:"latency"`
 	Scenario  string        `json:"scenario"`
 }
 
-type ResourceDataPoint struct {
+type LoadTestResourceDataPoint struct {
 	Timestamp time.Time `json:"timestamp"`
 	Value     float64   `json:"value"`
 	Component string    `json:"component"`

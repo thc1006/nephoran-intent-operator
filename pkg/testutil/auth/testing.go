@@ -21,24 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// SessionResult represents a session with an ID field
-type SessionResult struct {
-	ID        string      `json:"id"`
-	User      interface{} `json:"user"`
-	CreatedAt time.Time   `json:"created_at"`
-	ExpiresAt time.Time   `json:"expires_at"`
-}
-
-// UserFactory creates test users.
-type UserFactory struct{}
-
-// TokenFactory creates test tokens.
-type TokenFactory struct {
-	issuer string
-}
-
-// OAuthResponseFactory creates test OAuth responses.
-type OAuthResponseFactory struct{}
+// Note: SessionResult, UserFactory, TokenFactory, OAuthResponseFactory are defined in mocks.go
 
 // TokenResponse represents an OAuth token response.
 type TokenResponse struct {
@@ -48,11 +31,9 @@ type TokenResponse struct {
 	ExpiresIn    int64  `json:"expires_in"`
 }
 
-// NewUserFactory creates a new user factory.
-func NewUserFactory() *UserFactory {
-	return &UserFactory{}
-}
+// Note: Factory constructors and Mock types are defined in mocks.go
 
+<<<<<<< HEAD
 // CreateBasicUser creates a basic test user.
 func (uf *UserFactory) CreateBasicUser() *TestUser {
 	return &TestUser{
@@ -227,27 +208,30 @@ func CreateTestData() map[string]interface{} {
 		"sessions":    map[string]string{"session1": "user1"},
 	}
 }
+=======
+// Note: CreateCompleteTestSetup and CreateTestData are defined in mocks.go
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 // AuthTestSuite provides a comprehensive authentication testing framework.
 
 type AuthTestSuite struct {
-	t           *testing.T
-	fixtures    *AuthFixtures
-	mocks       *AuthMocks
-	testServer  *httptest.Server
-	testClient  *http.Client
+	t          *testing.T
+	fixtures   *AuthFixtures
+	mocks      *AuthMocks
+	testServer *httptest.Server
+	testClient *http.Client
 }
 
 // AuthMocks contains all authentication mocks for testing.
 
 type AuthMocks struct {
-	Authenticator     *MockAuthenticator
-	OAuth2Provider    *MockOAuth2Provider
-	SAMLProvider      *MockSAMLProvider
-	LDAPProvider      *MockLDAPProvider
-	CertProvider      *MockCertificateProvider
-	MFAProvider       *MockMultiFactorProvider
-	AuthzProvider     *MockAuthorizationProvider
+	Authenticator  *MockAuthenticator
+	OAuth2Provider *MockOAuth2Provider
+	SAMLProvider   *MockSAMLProvider
+	LDAPProvider   *MockLDAPProvider
+	CertProvider   *MockCertificateProvider
+	MFAProvider    *MockMultiFactorProvider
+	AuthzProvider  *MockAuthorizationProvider
 }
 
 // NewAuthTestSuite creates a new authentication test suite.
@@ -255,13 +239,13 @@ type AuthMocks struct {
 func NewAuthTestSuite(t *testing.T) *AuthTestSuite {
 	fixtures := DefaultAuthFixtures()
 	mocks := &AuthMocks{
-		Authenticator:     NewMockAuthenticator().WithFixtures(fixtures),
-		OAuth2Provider:    NewMockOAuth2Provider(),
-		SAMLProvider:      NewMockSAMLProvider(),
-		LDAPProvider:      NewMockLDAPProvider(),
-		CertProvider:      NewMockCertificateProvider().WithCertificateFixtures(fixtures),
-		MFAProvider:       NewMockMultiFactorProvider(),
-		AuthzProvider:     NewMockAuthorizationProvider().WithAuthorizationFixtures(fixtures),
+		Authenticator:  NewMockAuthenticator().WithFixtures(fixtures),
+		OAuth2Provider: NewMockOAuth2Provider(),
+		SAMLProvider:   NewMockSAMLProvider(),
+		LDAPProvider:   NewMockLDAPProvider(),
+		CertProvider:   NewMockCertificateProvider().WithCertificateFixtures(fixtures),
+		MFAProvider:    NewMockMultiFactorProvider(),
+		AuthzProvider:  NewMockAuthorizationProvider().WithAuthorizationFixtures(fixtures),
 	}
 
 	suite := &AuthTestSuite{
@@ -856,16 +840,16 @@ func (ats *AuthTestSuite) GetTestClient() *http.Client {
 
 // TestContext provides a comprehensive testing context for authentication scenarios
 type TestContext struct {
-	t           *testing.T
-	fixtures    *AuthFixtures
-	PrivateKey  *rsa.PrivateKey
-	PublicKey   *rsa.PublicKey
-	KeyID       string       // Key ID for JWT signing
-	Logger      TestLogger
-	SlogLogger  *slog.Logger // For slog.Logger compatibility
-	TokenStore  *MockTokenStore // For JWT manager compatibility
-	Blacklist   *MockTokenBlacklist // For JWT manager compatibility
-	cleanupFns  []func()
+	t          *testing.T
+	fixtures   *AuthFixtures
+	PrivateKey *rsa.PrivateKey
+	PublicKey  *rsa.PublicKey
+	KeyID      string // Key ID for JWT signing
+	Logger     TestLogger
+	SlogLogger *slog.Logger        // For slog.Logger compatibility
+	TokenStore *MockTokenStore     // For JWT manager compatibility
+	Blacklist  *MockTokenBlacklist // For JWT manager compatibility
+	cleanupFns []func()
 }
 
 // TestLogger provides a simple test logger interface
@@ -949,6 +933,7 @@ func (tc *TestContext) CreateTestToken(claims jwt.MapClaims) string {
 	return tokenString
 }
 
+<<<<<<< HEAD
 // RoleFactory creates test roles
 type RoleFactory struct{}
 
@@ -1013,3 +998,6 @@ func (pf *PermissionFactory) CreateResourcePermissions(resource string, actions 
 	return permissions
 }
 
+=======
+// Note: RoleFactory and PermissionFactory are defined in mocks.go
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

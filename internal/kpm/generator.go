@@ -88,7 +88,7 @@ func (g *Generator) GenerateMetric() error {
 
 	metricPath := filepath.Join(g.outputDir, filename)
 
-	if err := os.WriteFile(metricPath, data, 0o640); err != nil {
+	if err := os.WriteFile(metricPath, data, 0o600); err != nil {
 		return fmt.Errorf("write file: %w", err)
 	}
 

@@ -12,7 +12,11 @@ import (
 	. "github.com/onsi/gomega"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+<<<<<<< HEAD
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
+=======
+	configPkg "github.com/thc1006/nephoran-intent-operator/pkg/config"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"github.com/thc1006/nephoran-intent-operator/pkg/testutils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,6 +24,12 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+<<<<<<< HEAD
+=======
+
+// Using the shared NetworkIntentFinalizer constant from the config package
+// Access via configPkg.DefaultConstants().NetworkIntentFinalizer
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
 	const (
@@ -74,7 +84,11 @@ var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
 			)
 
 			// Add finalizer and set processed state
+<<<<<<< HEAD
 			networkIntent.Finalizers = []string{config.GetDefaults().NetworkIntentFinalizer}
+=======
+			networkIntent.Finalizers = []string{configPkg.DefaultConstants().NetworkIntentFinalizer}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			networkIntent.Status.Phase = "Completed"
 			networkIntent.Status.Conditions = []metav1.Condition{
 				{
@@ -141,7 +155,11 @@ var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
 			Eventually(func() bool {
 				updated := &nephoranv1.NetworkIntent{}
 				err := k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updated)
+<<<<<<< HEAD
 				return client.IgnoreNotFound(err) == nil && !containsFinalizer(updated.Finalizers, config.GetDefaults().NetworkIntentFinalizer)
+=======
+				return client.IgnoreNotFound(err) == nil && !containsFinalizer(updated.Finalizers, configPkg.DefaultConstants().NetworkIntentFinalizer)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			}, timeout, interval).Should(BeTrue())
 
 			By("Verifying Git cleanup was called")
@@ -155,7 +173,11 @@ var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
 				namespaceName,
 				"Test cascading failure handling",
 			)
+<<<<<<< HEAD
 			networkIntent.Finalizers = []string{config.GetDefaults().NetworkIntentFinalizer}
+=======
+			networkIntent.Finalizers = []string{configPkg.DefaultConstants().NetworkIntentFinalizer}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
 			By("Setting up Git cleanup to fail")
@@ -185,7 +207,11 @@ var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
 			By("Verifying finalizer is still present")
 			updated := &nephoranv1.NetworkIntent{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updated)).To(Succeed())
+<<<<<<< HEAD
 			Expect(containsFinalizer(updated.Finalizers, config.GetDefaults().NetworkIntentFinalizer)).To(BeTrue())
+=======
+			Expect(containsFinalizer(updated.Finalizers, configPkg.DefaultConstants().NetworkIntentFinalizer)).To(BeTrue())
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 			mockGitClient.AssertExpectations(GinkgoT())
 		})
@@ -199,7 +225,11 @@ var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
 				namespaceName,
 				"Test comprehensive resource cleanup",
 			)
+<<<<<<< HEAD
 			networkIntent.Finalizers = []string{config.GetDefaults().NetworkIntentFinalizer}
+=======
+			networkIntent.Finalizers = []string{configPkg.DefaultConstants().NetworkIntentFinalizer}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
 			By("Creating multiple associated resources")
@@ -275,7 +305,11 @@ var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
 				namespaceName,
 				"Test recovery from transient failures",
 			)
+<<<<<<< HEAD
 			networkIntent.Finalizers = []string{config.GetDefaults().NetworkIntentFinalizer}
+=======
+			networkIntent.Finalizers = []string{configPkg.DefaultConstants().NetworkIntentFinalizer}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
 			By("Setting up Git client with transient failures")
@@ -329,7 +363,11 @@ var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
 				namespaceName,
 				"Test mixed success/failure scenarios",
 			)
+<<<<<<< HEAD
 			networkIntent.Finalizers = []string{config.GetDefaults().NetworkIntentFinalizer}
+=======
+			networkIntent.Finalizers = []string{configPkg.DefaultConstants().NetworkIntentFinalizer}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
 			By("Setting up scenario where RemoveDirectory succeeds but CommitAndPushChanges fails")
@@ -373,7 +411,11 @@ var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
 					namespaceName,
 					fmt.Sprintf("Concurrent deletion test %d", i),
 				)
+<<<<<<< HEAD
 				ni.Finalizers = []string{config.GetDefaults().NetworkIntentFinalizer}
+=======
+				ni.Finalizers = []string{configPkg.DefaultConstants().NetworkIntentFinalizer}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 				Expect(k8sClient.Create(ctx, ni)).To(Succeed())
 				networkIntents = append(networkIntents, ni)
 			}
@@ -431,7 +473,11 @@ var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
 				namespaceName,
 				"Test cleanup performance",
 			)
+<<<<<<< HEAD
 			networkIntent.Finalizers = []string{config.GetDefaults().NetworkIntentFinalizer}
+=======
+			networkIntent.Finalizers = []string{configPkg.DefaultConstants().NetworkIntentFinalizer}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
 			By("Setting up Git client with simulated latency")

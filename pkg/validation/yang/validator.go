@@ -305,54 +305,24 @@ func (v *yangValidator) ValidatePackageRevision(ctx context.Context, pkg *porch.
 
 		var res PackageResource
 
-		switch r := resource.(type) {
-
-		case PackageResource:
-
-			res = r
-
-		case map[string]interface{}:
-
-			if kind, exists := r["kind"]; exists {
-				if kindStr, ok := kind.(string); ok {
-					res = PackageResource{
-						Kind: kindStr,
-
-						Data: r["data"],
-					}
-				} else {
-
-					result.Errors = append(result.Errors, &ValidationError{
-						Code: "INVALID_KIND_TYPE",
-
-						Message: "Resource kind is not a string",
-					})
-
-					continue
-
-				}
-			} else {
-
-				result.Errors = append(result.Errors, &ValidationError{
-					Code: "MISSING_KIND",
-
-					Message: "Resource missing kind field",
-				})
-
-				continue
-
+		// Since resource is of type porch.KRMResource, directly access its fields
+		if resource.Kind != "" {
+			res = PackageResource{
+				Kind: resource.Kind,
+				Data: map[string]interface{}{
+					"apiVersion": resource.APIVersion,
+					"kind":       resource.Kind,
+					"metadata":   resource.Metadata,
+					"spec":       resource.Spec,
+					"status":     resource.Status,
+				},
 			}
-
-		default:
-
+		} else {
 			result.Errors = append(result.Errors, &ValidationError{
-				Code: "INVALID_RESOURCE_TYPE",
-
-				Message: "Unable to parse resource type",
+				Code: "MISSING_KIND",
+				Message: "Resource missing kind field",
 			})
-
 			continue
-
 		}
 
 		if res.Kind == "ConfigMap" {

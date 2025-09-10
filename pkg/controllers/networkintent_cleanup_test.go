@@ -17,10 +17,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"k8s.io/client-go/kubernetes/scheme"
 )
 
+<<<<<<< HEAD
+=======
+// Use shared test constants from edge cases test file
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 	const (
 		timeout  = time.Second * 30
@@ -58,7 +62,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 		}
 
 		var err error
-		reconciler, err = NewNetworkIntentReconciler(k8sClient, testEnv.Scheme, mockDeps, config)
+		reconciler, err = NewNetworkIntentReconciler(k8sClient, scheme.Scheme, mockDeps, config)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -74,7 +78,11 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 			networkIntent = testutils.CreateTestNetworkIntent(
 				testutils.GetUniqueName("cleanup-gitops-test"),
 				namespaceName,
+<<<<<<< HEAD
 				"scaling",
+=======
+				"Test cleanup of gitops packages",
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			)
 		})
 
@@ -368,10 +376,19 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 		It("Should handle missing Git client gracefully", func() {
 			By("Setting Git client to nil")
+<<<<<<< HEAD
 			// Create a mock with nil Git client to test error handling
 			nilGitMockDeps := &testutils.MockDependencies{
 				LLMClient: mockDeps.LLMClient,
 				GitClient: nil,
+=======
+			reconciler.deps = &MockDependencies{
+				gitClient:        nil,
+				llmClient:        mockDeps.GetLLMClient().(*testutils.MockLLMClient),
+				packageGenerator: nil,
+				httpClient:       &http.Client{},
+				eventRecorder:    mockDeps.GetEventRecorder(),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			}
 			reconciler.deps = nilGitMockDeps
 
@@ -601,9 +618,19 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 		})
 
 		It("Should retain finalizer when Git operation fails", func() {
+<<<<<<< HEAD
 			By("Setting up Git client mock to fail")
 			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			mockGitClient.SetRemoveDirectoryError(errors.New("fake Git operation failed"))
+=======
+			By("Setting up fake Git client to fail")
+			fakeGitClient := &testutils.MockGitClient{}
+			fakeGitClient.On("InitRepo").Return(nil)
+			fakeGitClient.On("RemoveDirectory", mock.Anything, mock.Anything).Return(errors.New("fake Git operation failed"))
+
+			// Replace the git client in dependencies
+			mockDeps.GitClient = fakeGitClient
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 			By("Creating the NetworkIntent in the cluster")
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
@@ -634,10 +661,20 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 		})
 
 		It("Should remove finalizer when Git operation succeeds", func() {
+<<<<<<< HEAD
 			By("Setting up Git client mock for success scenario")
 			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			// Reset any previous errors for success scenario
 			mockGitClient.ResetMock()
+=======
+			By("Setting up fake Git client to succeed")
+			fakeGitClient := &testutils.MockGitClient{}
+			fakeGitClient.On("InitRepo").Return(nil)
+			fakeGitClient.On("RemoveDirectory", mock.Anything, mock.Anything).Return(nil)
+
+			// Replace the git client in dependencies
+			mockDeps.GitClient = fakeGitClient
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 			By("Creating the NetworkIntent in the cluster")
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
@@ -669,9 +706,19 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 		})
 
 		It("Should retry with exponential backoff on Git failures", func() {
+<<<<<<< HEAD
 			By("Setting up Git client mock to fail consistently")
 			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			mockGitClient.SetRemoveDirectoryError(errors.New("persistent Git failure"))
+=======
+			By("Setting up fake Git client to fail consistently")
+			fakeGitClient := &testutils.MockGitClient{}
+			fakeGitClient.On("InitRepo").Return(nil)
+			fakeGitClient.On("RemoveDirectory", mock.Anything, mock.Anything).Return(errors.New("persistent Git failure"))
+
+			// Replace the git client in dependencies
+			mockDeps.GitClient = fakeGitClient
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 			By("Creating the NetworkIntent in the cluster")
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
@@ -702,9 +749,19 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 		})
 
 		It("Should remove finalizer after max retries to prevent stuck resources", func() {
+<<<<<<< HEAD
 			By("Setting up Git client mock to always fail")
 			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			mockGitClient.SetRemoveDirectoryError(errors.New("permanent Git failure"))
+=======
+			By("Setting up fake Git client to always fail")
+			fakeGitClient := &testutils.MockGitClient{}
+			fakeGitClient.On("InitRepo").Return(nil)
+			fakeGitClient.On("RemoveDirectory", mock.Anything, mock.Anything).Return(errors.New("permanent Git failure"))
+
+			// Replace the git client in dependencies
+			mockDeps.GitClient = fakeGitClient
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 			By("Creating the NetworkIntent in the cluster")
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
@@ -731,6 +788,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 			Expect(readyCondition.Reason).To(Equal("CleanupFailedMaxRetries"))
 
 			// Git operations should not be called when max retries exceeded
+<<<<<<< HEAD
 			// Verify no git calls were made
 			Expect(len(mockGitClient.GetCallLog())).To(Equal(0))
 		})
@@ -741,6 +799,19 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 			// Cannot set InitRepo error with current mock interface
 			// Using RemoveDirectory error as proxy for Git operation failures
 			mockGitClient.SetRemoveDirectoryError(errors.New("fake Git operation failed"))
+=======
+			// Note: AssertNotCalled method doesn't exist, using AssertNumberOfCalls with 0 instead
+			fakeGitClient.AssertNumberOfCalls(GinkgoT(), "RemoveDirectory", 0)
+		})
+
+		It("Should handle InitRepo failures gracefully", func() {
+			By("Setting up fake Git client to fail on InitRepo")
+			fakeGitClient := &testutils.MockGitClient{}
+			fakeGitClient.On("InitRepo").Return(errors.New("failed to initialize repository"))
+
+			// Replace the git client in dependencies
+			mockDeps.GitClient = fakeGitClient
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 			By("Creating the NetworkIntent in the cluster")
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())

@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -179,20 +180,9 @@ func (sm *StateManager) saveStateUnsafe() error {
 		return fmt.Errorf("failed to marshal state data: %w", err)
 	}
 
-	// Write atomically by using a temporary file.
-
-	tempFile := sm.stateFile + ".tmp"
-
-	if err := os.WriteFile(tempFile, data, 0o640); err != nil {
-		return fmt.Errorf("failed to write temporary state file: %w", err)
-	}
-
-	// Atomic rename on Windows - use os.Rename which handles cross-device moves.
-
-	if err := os.Rename(tempFile, sm.stateFile); err != nil {
-		os.Remove(tempFile) // Clean up temp file on failure
-
-		return fmt.Errorf("failed to rename temporary state file: %w", err)
+	// Write atomically using atomicWriteFile which handles parent directory creation.
+	if err := atomicWriteFile(sm.stateFile, data, 0o640); err != nil {
+		return fmt.Errorf("failed to write state file: %w", err)
 	}
 
 	return nil
@@ -304,6 +294,10 @@ func (sm *StateManager) markWithStatus(filePath, status string) error {
 
 	absPath, err := filepath.Abs(filePath)
 	if err != nil {
+		// Handle file name too long errors gracefully
+		if isFileNameTooLongError(err) {
+			return fmt.Errorf("file path too long to process: %w", err)
+		}
 		return fmt.Errorf("failed to get absolute path: %w", err)
 	}
 
@@ -588,4 +582,24 @@ func (sm *StateManager) Close() error {
 	}
 
 	return nil
+}
+
+// isFileNameTooLongError checks if an error is due to file name being too long
+func isFileNameTooLongError(err error) bool {
+	if err == nil {
+		return false
+	}
+	
+	// Check for Windows ERROR_FILENAME_EXCESSIVELY_LONG (206)
+	if pathErr, ok := err.(*os.PathError); ok {
+		if errno, ok := pathErr.Err.(syscall.Errno); ok {
+			return errno == 206 // ERROR_FILENAME_EXCESSIVELY_LONG
+		}
+	}
+	
+	// Check for string patterns that indicate filename too long
+	errStr := strings.ToLower(err.Error())
+	return strings.Contains(errStr, "file name too long") ||
+		strings.Contains(errStr, "filename too long") ||
+		strings.Contains(errStr, "name too long")
 }

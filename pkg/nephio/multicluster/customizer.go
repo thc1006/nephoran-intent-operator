@@ -3,6 +3,8 @@ package multicluster
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/types"
@@ -258,12 +260,31 @@ func (c *Customizer) createTempWorkspace(
 	packageRevision *PackageRevision,
 ) (string, error) {
 	// Create a temporary workspace for package processing.
+	tmpDir, err := os.MkdirTemp("", fmt.Sprintf("pkg-%s-%s-*", packageRevision.Spec.PackageName, packageRevision.Spec.Revision))
+	if err != nil {
+		return "", fmt.Errorf("failed to create temporary directory: %w", err)
+	}
+	
+	// Create a basic kustomization.yaml file in the temp directory for testing
+	kustomizationPath := filepath.Join(tmpDir, "kustomization.yaml")
+	kustomizationContent := `apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
 
-	return "", nil
+resources: []
+`
+	if err := os.WriteFile(kustomizationPath, []byte(kustomizationContent), 0644); err != nil {
+		os.RemoveAll(tmpDir)
+		return "", fmt.Errorf("failed to write kustomization file: %w", err)
+	}
+
+	return tmpDir, nil
 }
 
 func (c *Customizer) cleanupWorkspace(dir string) {
 	// Clean up temporary workspace.
+	if dir != "" {
+		os.RemoveAll(dir)
+	}
 }
 
 func (c *Customizer) generateKustomizationFile(

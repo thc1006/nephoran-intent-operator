@@ -158,17 +158,17 @@ func TestWriteIntent_FileSystemErrors(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				tmpDir := t.TempDir()
 				restrictedDir := filepath.Join(tmpDir, "restricted")
-				err := os.Mkdir(restrictedDir, 0o755)
+				err := os.Mkdir(restrictedDir, 0755)
 				if err != nil {
 					t.Fatalf("Failed to create restricted directory: %v", err)
 				}
-
+				
 				// Remove write permissions
-				err = os.Chmod(restrictedDir, 0o444)
+				err = os.Chmod(restrictedDir, 0444)
 				if err != nil {
 					t.Skipf("Cannot modify directory permissions on this system: %v", err)
 				}
-
+				
 				return restrictedDir
 			},
 			expectError: "failed to write file",
@@ -184,7 +184,7 @@ func TestWriteIntent_FileSystemErrors(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				tmpDir := t.TempDir()
 				filePath := filepath.Join(tmpDir, "not-a-directory")
-				err := os.WriteFile(filePath, []byte("test"), 0o644)
+				err := os.WriteFile(filePath, []byte("test"), 0644)
 				if err != nil {
 					t.Fatalf("Failed to create file: %v", err)
 				}
@@ -205,7 +205,7 @@ func TestWriteIntent_FileSystemErrors(t *testing.T) {
 				// We'll create a directory that exists but can't be written to
 				tmpDir := t.TempDir()
 				targetDir := filepath.Join(tmpDir, "diskfull")
-				err := os.Mkdir(targetDir, 0o755)
+				err := os.Mkdir(targetDir, 0755)
 				if err != nil {
 					t.Fatalf("Failed to create target directory: %v", err)
 				}
@@ -243,26 +243,26 @@ func TestWriteIntent_FileSystemErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			outDir := tt.setupFunc(t)
-
+			
 			// Ensure cleanup happens even if test fails
 			defer func() {
 				// Restore permissions for cleanup
-				os.Chmod(outDir, 0o755)
+				os.Chmod(outDir, 0755)
 			}()
-
+			
 			err := WriteIntent(tt.intent, outDir, "full")
-
+			
 			if tt.expectError == "" {
 				// For disk full simulation, just verify it completed
 				// (actual disk full is hard to simulate reliably)
 				return
 			}
-
+			
 			if err == nil {
 				t.Errorf("Expected error but got nil")
 				return
 			}
-
+			
 			if !strings.Contains(err.Error(), tt.expectError) {
 				t.Errorf("Expected error containing '%s' but got: %v", tt.expectError, err)
 			}
@@ -293,8 +293,8 @@ func TestWriteIntent_InvalidIntentData(t *testing.T) {
 			name: "intent with circular reference",
 			intent: func() interface{} {
 				type circular struct {
-					Name string    `json:"name"`
-					Ref  *circular `json:"ref"`
+					Name string     `json:"name"`
+					Ref  *circular  `json:"ref"`
 				}
 				c := &circular{Name: "test"}
 				c.Ref = c // circular reference
@@ -304,12 +304,20 @@ func TestWriteIntent_InvalidIntentData(t *testing.T) {
 		},
 		{
 			name: "intent missing required fields",
-			intent: json.RawMessage(`{}`),
+			intent: map[string]interface{}{
+				"target": "test",
+				// missing intent_type, namespace, replicas
+			},
 			expectError: "failed to unmarshal intent",
 		},
 		{
 			name: "intent with wrong field types",
-			intent: json.RawMessage(`{}`),
+			intent: map[string]interface{}{
+				"intent_type": 123, // should be string
+				"target":      "test",
+				"namespace":   "default",
+				"replicas":    "three", // should be int
+			},
 			expectError: "failed to unmarshal intent",
 		},
 	}
@@ -317,12 +325,12 @@ func TestWriteIntent_InvalidIntentData(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := WriteIntent(tt.intent, tmpDir, "full")
-
+			
 			if err == nil {
 				t.Errorf("Expected error but got nil")
 				return
 			}
-
+			
 			if !strings.Contains(err.Error(), tt.expectError) {
 				t.Errorf("Expected error containing '%s' but got: %v", tt.expectError, err)
 			}
@@ -412,7 +420,7 @@ func TestWriteIntent_EdgeCases(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			subDir := filepath.Join(tmpDir, tt.name)
 			err := WriteIntent(tt.intent, subDir, tt.format)
-
+			
 			if tt.expectError != "" {
 				if err == nil {
 					t.Errorf("Expected error but got nil")
@@ -426,7 +434,7 @@ func TestWriteIntent_EdgeCases(t *testing.T) {
 					t.Errorf("Expected no error but got: %v", err)
 					return
 				}
-
+				
 				// Verify file was created
 				var expectedFile string
 				if tt.format == "smp" {
@@ -434,7 +442,7 @@ func TestWriteIntent_EdgeCases(t *testing.T) {
 				} else {
 					expectedFile = "scaling-patch.yaml"
 				}
-
+				
 				filePath := filepath.Join(subDir, expectedFile)
 				if _, err := os.Stat(filePath); os.IsNotExist(err) {
 					t.Errorf("Expected file %s was not created", expectedFile)
@@ -512,4 +520,3 @@ func TestWriteIntent_LargeIntentData(t *testing.T) {
 		t.Error("Large target name not found in output file")
 	}
 }
-

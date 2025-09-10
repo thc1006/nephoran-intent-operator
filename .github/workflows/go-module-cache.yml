@@ -10,10 +10,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Set up Go 1.25.0
+      - name: Set up Go 1.24.6
         uses: actions/setup-go@v5
         with:
+<<<<<<< HEAD
           go-version: '1.24.0'
+=======
+          go-version: '1.24.6'
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           cache: false  # Disable default caching mechanism
       
       - name: Configure Go Module Cache
@@ -34,6 +38,20 @@ jobs:
           go env -w GOMODCACHE=$GOMODCACHE
           go env -w GOCACHE=$GOCACHE
       
+      - name: Pre-cache cleanup (prevent tar extraction errors)
+        run: |
+          echo "🧹 Cleaning existing cache directories to prevent tar extraction conflicts..."
+          
+          # Remove existing directories completely to prevent "File exists" errors
+          sudo rm -rf ~/.cache/go-mod ~/.cache/go-build || true
+          
+          # Recreate clean directories with proper ownership
+          mkdir -p ~/.cache/go-mod ~/.cache/go-build
+          sudo chown -R $(whoami):$(whoami) ~/.cache/go-mod ~/.cache/go-build
+          chmod -R 755 ~/.cache/go-mod ~/.cache/go-build
+          
+          echo "✅ Cache directories prepared for clean extraction"
+          
       - name: Restore Go Modules Cache
         uses: actions/cache@v4
         with:
@@ -43,6 +61,9 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
+          # Enable safer extraction mode
+          enableCrossOsArchive: false
+          fail-on-cache-miss: false
       
       - name: Verify Module Cache Permissions
         run: |
@@ -65,29 +86,51 @@ jobs:
           # Verify module integrity
           go mod verify
       
-      - name: Tar Extraction Safeguards
+      - name: Enhanced Tar Extraction Safeguards
         run: |
-          # Detect and handle existing files during tar extraction
-          cat > safe-tar-extract.sh <<'EOF'
+          echo "🛡️ Setting up enhanced tar extraction safeguards for Go cache..."
+          
+          # Create enhanced safe extraction script
+          cat > /tmp/safe-go-cache-extract.sh <<'EOF'
           #!/bin/bash
           set -euo pipefail
           
-          # Custom safe tar extraction with overwrite protection
-          safe_extract() {
+          # Enhanced safe tar extraction specifically for Go caches
+          safe_go_cache_extract() {
             local tarfile="$1"
             local target="$2"
             
-            # Remove existing files to prevent conflicts
-            find "$target" -type f -delete 2>/dev/null || true
+            echo "Preparing to extract $tarfile to $target"
             
-            # Extract with verbose logging
-            tar -xvf "$tarfile" -C "$target" --keep-old-files
+            # Remove existing files and directories to prevent conflicts
+            if [ -d "$target" ]; then
+              echo "Removing existing cache directory: $target"
+              rm -rf "$target" || true
+            fi
+            
+            # Create clean target directory
+            mkdir -p "$target"
+            
+            # Extract with overwrite protection and verbose logging
+            echo "Extracting cache archive..."
+            tar -xf "$tarfile" -C "$target" --overwrite --no-same-owner || {
+              echo "Standard extraction failed, trying alternative method..."
+              # Alternative: Extract to temporary location and move
+              temp_dir=$(mktemp -d)
+              tar -xf "$tarfile" -C "$temp_dir" --no-same-owner
+              rsync -av "$temp_dir/" "$target/"
+              rm -rf "$temp_dir"
+            }
+            
+            echo "Cache extraction completed successfully"
           }
           
-          safe_extract "$@"
+          # Make script executable
+          safe_go_cache_extract "$@"
           EOF
           
-          chmod +x safe-tar-extract.sh
+          chmod +x /tmp/safe-go-cache-extract.sh
+          echo "✅ Enhanced tar extraction script created"
       
       - name: Final Verification
         run: |

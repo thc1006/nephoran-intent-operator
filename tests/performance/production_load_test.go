@@ -2,9 +2,9 @@ package performance_tests
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"runtime"
 	"sync"
@@ -114,9 +114,9 @@ var (
 
 // ProductionLoadTester executes production-scale load tests
 type ProductionLoadTester struct {
-	config           *LoadTestConfig
+	config           *ProductionLoadTestConfig
 	httpClient       *http.Client
-	results          *LoadTestResult
+	results          *ProductionLoadTestResult
 	scenarioWeights  []float64
 	totalWeight      float64
 	activeRequests   int64
@@ -127,7 +127,7 @@ type ProductionLoadTester struct {
 }
 
 // NewProductionLoadTester creates a new load tester
-func NewProductionLoadTester(config *LoadTestConfig) *ProductionLoadTester {
+func NewProductionLoadTester(config *ProductionLoadTestConfig) *ProductionLoadTester {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	tester := &ProductionLoadTester{
@@ -140,7 +140,7 @@ func NewProductionLoadTester(config *LoadTestConfig) *ProductionLoadTester {
 				IdleConnTimeout:     90 * time.Second,
 			},
 		},
-		results: &LoadTestResult{
+		results: &ProductionLoadTestResult{
 			ScenarioResults: make(map[string]*ScenarioResult),
 		},
 		ctx:              ctx,
@@ -161,7 +161,7 @@ func NewProductionLoadTester(config *LoadTestConfig) *ProductionLoadTester {
 }
 
 // RunTest executes the load test
-func (plt *ProductionLoadTester) RunTest() (*LoadTestResult, error) {
+func (plt *ProductionLoadTester) RunTest() (*ProductionLoadTestResult, error) {
 	plt.results.StartTime = time.Now()
 
 	// Start metrics collection
@@ -289,7 +289,7 @@ func (plt *ProductionLoadTester) processResults(results <-chan *vegeta.Result) {
 			scenarioResult.Failures++
 			requestsTotal.WithLabelValues(scenarioName, "failure").Inc()
 
-			errorType := plt.categorizeError(res.Error, res.Code)
+			errorType := plt.categorizeError(res.Error, int(res.Code))
 			scenarioResult.ErrorsByType[errorType]++
 		}
 
@@ -511,7 +511,7 @@ func validateResponseTime(maxDuration time.Duration) ResponseValidator {
 
 // MetricsCollector collects system metrics during test
 type MetricsCollector struct {
-	resourceMetrics *ResourceMetrics
+	resourceMetrics *ProductionResourceMetrics
 	systemMetrics   *SystemMetrics
 	mu              sync.RWMutex
 }
@@ -519,7 +519,7 @@ type MetricsCollector struct {
 // NewMetricsCollector creates a new metrics collector
 func NewMetricsCollector() *MetricsCollector {
 	return &MetricsCollector{
-		resourceMetrics: &ResourceMetrics{},
+		resourceMetrics: &ProductionResourceMetrics{},
 		systemMetrics: &SystemMetrics{
 			CircuitBreakerStatus: make(map[string]string),
 		},
@@ -563,7 +563,7 @@ func (mc *MetricsCollector) collectMetrics() {
 }
 
 // GetResourceMetrics returns current resource metrics
-func (mc *MetricsCollector) GetResourceMetrics() *ResourceMetrics {
+func (mc *MetricsCollector) GetResourceMetrics() *ProductionResourceMetrics {
 	mc.mu.RLock()
 	defer mc.mu.RUnlock()
 
@@ -608,7 +608,7 @@ func getQueueDepth() int64 {
 
 // RunProductionLoadTest executes a production-scale load test
 func RunProductionLoadTest() error {
-	config := &LoadTestConfig{
+	config := &ProductionLoadTestConfig{
 		Duration:         30 * time.Minute,
 		RampUpDuration:   5 * time.Minute,
 		TargetRPS:        1000,

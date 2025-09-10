@@ -44,24 +44,7 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 			ServerPort:     0,
 			TLSEnabled:     false,
 			DatabaseConfig: json.RawMessage(`{}`),
-			ProviderConfigs: map[string]interface{}{
-				"enabled": true,
-				"config":  json.RawMessage(`{}`),
-			},
-			CNFConfig: map[string]interface{}{
-				"repositories": []map[string]interface{}{
-					{
-						"name": "nephoran-charts",
-						"url":  "https://charts.nephoran.io",
-					},
-					{
-						"name": "bitnami",
-						"url":  "https://charts.bitnami.com/bitnami",
-					},
-				},
-				"defaultTimeout": "10m",
-				"retryPolicy":    json.RawMessage(`{}`),
-			},
+			ProviderConfigs: json.RawMessage(`{"enabled": true, "config": {}}`),
 		}
 
 		var err error

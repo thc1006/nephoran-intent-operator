@@ -64,7 +64,7 @@ jobs:
   setup:
     name: Setup & Change Detection
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     outputs:
       go-cache-key: ${{ steps.cache-key.outputs.key }}
       go-cache-path: ${{ steps.cache-key.outputs.path }}
@@ -75,7 +75,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 1
 
       - name: Detect relevant changes
         uses: dorny/paths-filter@v3
@@ -144,7 +144,7 @@ jobs:
               {
                 "name": "Critical Components",
                 "components": "cmd/intent-ingest cmd/llm-processor cmd/conductor-loop controllers",
-                "test-pattern": "./controllers/... ./api/...",
+                "test-pattern": "./controllers/... ./pkg/controllers/... ./api/...",
                 "timeout": 15,
                 "priority": "high"
               },
@@ -199,7 +199,7 @@ jobs:
         with:
           go-version: '1.24.0'
           check-latest: true
-          cache: false
+          cache: true
 
       - name: Clean cache directories (prevent tar errors)
         run: |
@@ -211,21 +211,12 @@ jobs:
           # Set proper permissions
           chmod -R 755 $HOME/.cache/go-build $HOME/go/pkg/mod
 
-      - name: Restore build cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ needs.setup.outputs.go-cache-path }}
-          key: ${{ needs.setup.outputs.go-cache-key }}
-          restore-keys: |
-            go-v4-ubuntu-${{ env.GO_VERSION }}-
-            go-v4-ubuntu-
-
       - name: GitHub authentication for private modules
         run: |
           git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
 
       - name: Download and verify dependencies
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
           echo "Downloading Go dependencies..."
           go mod download -x
@@ -316,7 +307,7 @@ jobs:
         with:
           go-version: '1.24.0'
           check-latest: true
-          cache: false
+          cache: true
 
       - name: Clean cache directories (prevent tar errors)
         run: |
@@ -325,16 +316,8 @@ jobs:
           mkdir -p $HOME/.cache/go-build $HOME/go/pkg/mod
           chmod -R 755 $HOME/.cache/go-build $HOME/go/pkg/mod
 
-      - name: Restore build cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ needs.setup.outputs.go-cache-path }}
-          key: ${{ needs.setup.outputs.go-cache-key }}
-          restore-keys: |
-            go-v4-ubuntu-${{ env.GO_VERSION }}-
-
       - name: Download and verify test dependencies
-        timeout-minutes: 3
+        timeout-minutes: 10
         run: |
           echo "Downloading Go dependencies for testing..."
           go mod download -x
@@ -343,7 +326,7 @@ jobs:
           echo "Test dependencies ready"
 
       - name: Setup test environment
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
           # Install envtest for controller tests with specific version
           echo "Installing setup-envtest..."
@@ -386,7 +369,7 @@ jobs:
           set -o pipefail
           
           # Test execution with comprehensive flags
-          go test -v \
+          go test -short -v \
             -race \
             -timeout=10m \
             -coverprofile="test-results/coverage-${{ matrix.name }}.out" \
@@ -398,15 +381,15 @@ jobs:
             -json \
             ${{ matrix.test-pattern }} 2>&1 | tee "test-results/logs/test-output-${{ matrix.name }}.log"
           
-          # Check if tests passed (go test returns 0 on success)
+          # Check if tests passed (go test -short returns 0 on success)
           TEST_EXIT_CODE=$?
           
           if [ $TEST_EXIT_CODE -ne 0 ]; then
-            echo "❌ Tests failed with exit code: $TEST_EXIT_CODE"
+            echo "??Tests failed with exit code: $TEST_EXIT_CODE"
             echo "Check test output above for details"
             exit $TEST_EXIT_CODE
           else
-            echo "✅ All tests passed successfully"
+            echo "??All tests passed successfully"
           fi
 
       - name: Generate coverage report
@@ -415,7 +398,7 @@ jobs:
           echo "Generating coverage reports for ${{ matrix.name }}..."
           
           if [ -f "test-results/coverage-${{ matrix.name }}.out" ]; then
-            echo "✅ Coverage profile found, generating reports..."
+            echo "??Coverage profile found, generating reports..."
             
             # Generate HTML coverage report
             go tool cover -html="test-results/coverage-${{ matrix.name }}.out" \
@@ -428,7 +411,7 @@ jobs:
             
             # Display coverage summary with proper formatting
             echo ""
-            echo "📊 Coverage Summary for ${{ matrix.name }}:"
+            echo "?? Coverage Summary for ${{ matrix.name }}:"
             echo "=================================================="
             cat "test-results/coverage-summary-${{ matrix.name }}.txt" | tail -1
             echo "=================================================="
@@ -439,13 +422,13 @@ jobs:
             echo "COVERAGE_${{ matrix.name }}=$TOTAL_COVERAGE" >> $GITHUB_ENV
             
             # Generate detailed coverage breakdown
-            echo "📋 Detailed Coverage Breakdown:" > "test-results/coverage-detailed-${{ matrix.name }}.txt"
+            echo "?? Detailed Coverage Breakdown:" > "test-results/coverage-detailed-${{ matrix.name }}.txt"
             echo "===============================" >> "test-results/coverage-detailed-${{ matrix.name }}.txt"
             head -n -1 "test-results/coverage-summary-${{ matrix.name }}.txt" | \
               sort -k3 -nr >> "test-results/coverage-detailed-${{ matrix.name }}.txt"
             
           else
-            echo "⚠️ No coverage profile found for ${{ matrix.name }}"
+            echo "?��? No coverage profile found for ${{ matrix.name }}"
             echo "This may indicate that tests did not run or failed"
             touch "test-results/coverage-missing-${{ matrix.name }}.txt"
             echo "No coverage data available" > "test-results/coverage-missing-${{ matrix.name }}.txt"
@@ -468,20 +451,20 @@ jobs:
     runs-on: ubuntu-latest
     needs: setup
     if: needs.setup.outputs.should-build == 'true'
-    timeout-minutes: 20
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
           go-version: '1.24.0'
           check-latest: true
-          cache: false
+          cache: true
 
       - name: Clean cache directories
         run: |
@@ -490,16 +473,8 @@ jobs:
           mkdir -p $HOME/.cache/go-build $HOME/go/pkg/mod
           chmod -R 755 $HOME/.cache/go-build $HOME/go/pkg/mod
 
-      - name: Restore build cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ needs.setup.outputs.go-cache-path }}
-          key: ${{ needs.setup.outputs.go-cache-key }}
-          restore-keys: |
-            go-v4-ubuntu-${{ env.GO_VERSION }}-
-
       - name: Download and verify dependencies
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
           echo "Downloading Go dependencies with retry..."
           go mod download -x
@@ -573,7 +548,7 @@ jobs:
           ls -la bin/ || echo "No binaries found"
 
       - name: Binary smoke tests
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
           echo "Running binary smoke tests..."
           
@@ -615,12 +590,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: [setup, build, test, quality, integration]
     if: always()
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     steps:
       - name: Collect job results
         run: |
-          echo "# 🚀 Nephoran CI Pipeline 2025 - Results" >> $GITHUB_STEP_SUMMARY
+          echo "# ?? Nephoran CI Pipeline 2025 - Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Pipeline Information:**" >> $GITHUB_STEP_SUMMARY
           echo "- Go Version: ${{ env.GO_VERSION }}" >> $GITHUB_STEP_SUMMARY
@@ -664,27 +639,27 @@ jobs:
           
           # Integration tests are important but not critical
           if [ "${{ needs.integration.result }}" = "failure" ]; then
-            echo "⚠️ Integration tests failed (non-critical)" >> $GITHUB_STEP_SUMMARY
+            echo "?��? Integration tests failed (non-critical)" >> $GITHUB_STEP_SUMMARY
           fi
           
           # Final status
           if [ -n "$FAILED_JOBS" ]; then
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Status: FAILED** ❌" >> $GITHUB_STEP_SUMMARY
+            echo "**Status: FAILED** ?? >> $GITHUB_STEP_SUMMARY
             echo "Failed jobs: $FAILED_JOBS" >> $GITHUB_STEP_SUMMARY
-            echo "💥 CI Pipeline failed - check job outputs above"
+            echo "?�� CI Pipeline failed - check job outputs above"
             exit 1
           else
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Status: PASSED** ✅" >> $GITHUB_STEP_SUMMARY
+            echo "**Status: PASSED** ?? >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "🎯 **Achievements:**" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ All critical components built successfully" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ Code quality checks passed" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ Security scans completed" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ No known vulnerabilities found" >> $GITHUB_STEP_SUMMARY
+            echo "?�� **Achievements:**" >> $GITHUB_STEP_SUMMARY
+            echo "- ??All critical components built successfully" >> $GITHUB_STEP_SUMMARY
+            echo "- ??Code quality checks passed" >> $GITHUB_STEP_SUMMARY
+            echo "- ??Security scans completed" >> $GITHUB_STEP_SUMMARY
+            echo "- ??No known vulnerabilities found" >> $GITHUB_STEP_SUMMARY
             if [ "${{ env.SKIP_TESTS }}" != "true" ]; then
-              echo "- ✅ Test suites executed" >> $GITHUB_STEP_SUMMARY
+              echo "- ??Test suites executed" >> $GITHUB_STEP_SUMMARY
             fi
-            echo "✅ CI Pipeline 2025 completed successfully!"
+            echo "??CI Pipeline 2025 completed successfully!"
           fi

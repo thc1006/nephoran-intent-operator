@@ -30,7 +30,7 @@ type EvidenceReport struct {
 
 	TestConfiguration *TestConfiguration `json:"test_configuration"`
 
-	Environment *EnvironmentInfo `json:"environment"`
+	Environment *ValidationEnvironmentInfo `json:"environment"`
 
 	ClaimEvidence map[string]*DetailedEvidence `json:"claim_evidence"`
 
@@ -746,7 +746,7 @@ type BaselineData struct {
 
 	Statistics *DescriptiveStats `json:"statistics"`
 
-	Environment *EnvironmentInfo `json:"environment"`
+	Environment *ValidationEnvironmentInfo `json:"environment"`
 
 	TestConfig *TestConfiguration `json:"test_config"`
 
@@ -755,9 +755,9 @@ type BaselineData struct {
 	Metadata json.RawMessage `json:"metadata"`
 }
 
-// EnvironmentInfo contains environment information.
+// ValidationEnvironmentInfo contains environment information.
 
-type EnvironmentInfo struct {
+type ValidationEnvironmentInfo struct {
 	Platform string `json:"platform"`
 
 	Architecture string `json:"architecture"`
@@ -782,7 +782,7 @@ type ValidationMetadata struct {
 
 	Duration time.Duration `json:"duration"`
 
-	Environment *EnvironmentInfo `json:"environment"`
+	Environment *ValidationEnvironmentInfo `json:"environment"`
 
 	TestConfig TestConfiguration `json:"test_config"`
 
@@ -829,7 +829,7 @@ func (ec *EvidenceCollector) GenerateEvidenceReport(results *ValidationResults) 
 
 		TestConfiguration: &TestConfiguration{}, // This would be populated from actual config
 
-		Environment: ec.gatherEnvironmentInfo(),
+		Environment: ec.gatherValidationEnvironmentInfo(),
 	}
 
 	// Generate detailed evidence for each claim.
@@ -1311,10 +1311,10 @@ func (ec *EvidenceCollector) calculateQualityScore(result *ClaimResult) float64 
 	return 85.0 // Placeholder
 }
 
-func (ec *EvidenceCollector) gatherEnvironmentInfo() *EnvironmentInfo {
+func (ec *EvidenceCollector) gatherValidationEnvironmentInfo() *ValidationEnvironmentInfo {
 	// This would gather actual environment information.
 
-	return &EnvironmentInfo{
+	return &ValidationEnvironmentInfo{
 		Platform: "kubernetes",
 
 		Architecture: "amd64",

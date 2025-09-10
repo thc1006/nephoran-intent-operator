@@ -3,7 +3,11 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
+<<<<<<< HEAD
     controller-gen.kubebuilder.io/version: v0.14.0
+=======
+    controller-gen.kubebuilder.io/version: v0.19.0
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
   name: networkintents.intent.nephio.org
 spec:
   group: intent.nephio.org
@@ -124,6 +128,7 @@ spec:
               conditions:
                 description: Conditions represent the current conditions
                 items:
+<<<<<<< HEAD
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource.\n---\nThis struct is intended for
                     direct use as an array at the field path .status.conditions.  For
@@ -134,6 +139,10 @@ spec:
                     \   // +listMapKey=type\n\t    Conditions []metav1.Condition `json:\"conditions,omitempty\"
                     patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"`\n\n\n\t
                     \   // other fields\n\t}"
+=======
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                   properties:
                     lastTransitionTime:
                       description: |-
@@ -174,12 +183,16 @@ spec:
                       - Unknown
                       type: string
                     type:
+<<<<<<< HEAD
                       description: |-
                         type of condition in CamelCase or in foo.example.com/CamelCase.
                         ---
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be
                         useful (see .node.status.conditions), the ability to deconflict is important.
                         The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+=======
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
                       maxLength: 316
                       pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                       type: string

@@ -136,7 +136,7 @@ func (suite *DisasterRecoveryTestSuite) setupTestData() {
 					Namespace: "nephoran-system",
 				},
 				Spec: appsv1.DeploymentSpec{
-					Replicas: int32Ptr(3),
+					Replicas: &[]int32{3}[0],
 					Selector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{"app": "nephoran-controller"},
 					},

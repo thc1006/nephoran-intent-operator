@@ -57,12 +57,22 @@ func TestPackageRevisionLifecycle(t *testing.T) {
 	})
 
 	t.Run("ApprovePackage", func(t *testing.T) {
+<<<<<<< HEAD
 		err := client.ApprovePackage(revision)
 		if err != nil {
 			t.Errorf("ApprovePackage failed: %v", err)
 		}
 		// Note: ApprovePackage doesn't return the updated revision object
 		// In a real scenario, you would fetch the revision again to verify status
+=======
+		updated, err := client.ApprovePackage(revision)
+		if err != nil {
+			t.Errorf("ApprovePackage failed: %v", err)
+		}
+		if updated.Status != "APPROVED" {
+			t.Errorf("Expected status APPROVED, got %s", updated.Status)
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	})
 
 	t.Run("PublishPackage", func(t *testing.T) {
@@ -98,12 +108,22 @@ func TestPackageRevisionLifecycleDryRun(t *testing.T) {
 	})
 
 	t.Run("DryRunApprovePackage", func(t *testing.T) {
+<<<<<<< HEAD
 		err := client.ApprovePackage(revision)
 		if err != nil {
 			t.Errorf("Dry-run ApprovePackage failed: %v", err)
 		}
 		// Note: ApprovePackage doesn't return the updated revision object
 		// In dry-run mode, no actual changes are made
+=======
+		updated, err := client.ApprovePackage(revision)
+		if err != nil {
+			t.Errorf("Dry-run ApprovePackage failed: %v", err)
+		}
+		if updated.Status != "APPROVED" {
+			t.Errorf("Expected status APPROVED, got %s", updated.Status)
+		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	})
 
 	t.Run("DryRunPublishPackage", func(t *testing.T) {

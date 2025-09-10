@@ -180,25 +180,39 @@ type ThroughputScore struct {
 
 // Core types needed by sla_methods.go
 
+<<<<<<< HEAD
+=======
+// SLAValidationTestSuite is the main test suite (forward declaration)
+// The actual implementation is in sla_validation_test.go
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // SLAValidationTestSuite is defined in sla_validation_test.go
 
 // SLAValidationConfig placeholder for compilation
 type SLAValidationConfig struct {
-	AvailabilityClaim    float64       `json:"availability_claim"`
-	AvailabilityAccuracy float64       `json:"availability_accuracy"`
-	LatencyP95Claim      time.Duration `json:"latency_p95_claim"`
-	ThroughputClaim      float64       `json:"throughput_claim"`
-	ThroughputAccuracy   float64       `json:"throughput_accuracy"`
-	ConfidenceLevel      float64       `json:"confidence_level"`
+	AvailabilityClaim    float64         `json:"availability_claim"`
+	AvailabilityAccuracy float64         `json:"availability_accuracy"`
+	LatencyP95Claim      time.Duration   `json:"latency_p95_claim"`
+	LatencyAccuracy      time.Duration   `json:"latency_accuracy"`
+	ThroughputClaim      float64         `json:"throughput_claim"`
+	ThroughputAccuracy   float64         `json:"throughput_accuracy"`
+	ConfidenceLevel      float64         `json:"confidence_level"`
+	SampleSize           int             `json:"sample_size"`
+	MeasurementPrecision float64         `json:"measurement_precision"`
+	ValidationDuration   time.Duration   `json:"validation_duration"`
+	SamplingInterval     time.Duration   `json:"sampling_interval"`
+	BatchSize            int             `json:"batch_size"`
+	IndependentMethods   int             `json:"independent_methods"`
+	ValidationRounds     int             `json:"validation_rounds"`
+	TimeWindows          []time.Duration `json:"time_windows"`
 }
 
 // MeasurementSet contains a collection of measurements for validation
 type MeasurementSet struct {
-	Measurements   []float64 `json:"measurements"`
-	Timestamps     []int64   `json:"timestamps"`
-	Labels         []string  `json:"labels,omitempty"`
+	Measurements   []float64       `json:"measurements"`
+	Timestamps     []int64         `json:"timestamps"`
+	Labels         []string        `json:"labels,omitempty"`
 	AggregatedData json.RawMessage `json:"aggregated_data,omitempty"`
-	
+
 	// Statistical properties (calculated by calculateMeasurementStatistics)
 	Mean        float64         `json:"mean"`
 	Median      float64         `json:"median"`
@@ -215,8 +229,9 @@ type MeasurementSet struct {
 
 // StatisticalAnalyzer performs statistical analysis on measurement data
 type StatisticalAnalyzer struct {
-	Config          *AnalyzerConfig `json:"config,omitempty"`
-	confidenceLevel float64         `json:"confidence_level"`
+	Config          *AnalyzerConfig                  `json:"config,omitempty"`
+	confidenceLevel float64                          
+	analysisResults map[string]*StatisticalAnalysis
 }
 
 // StatisticalAnalysis contains statistical analysis results
@@ -232,25 +247,25 @@ type StatisticalAnalysis struct {
 
 // ConfidenceInterval represents a statistical confidence interval
 type ConfidenceInterval struct {
-	Lower      float64 `json:"lower"`
-	Upper      float64 `json:"upper"`
-	Level      float64 `json:"level"`
+	Lower         float64 `json:"lower"`
+	Upper         float64 `json:"upper"`
+	Level         float64 `json:"level"`
 	MarginOfError float64 `json:"margin_of_error"`
 }
 
 // AnalyzerConfig holds configuration for statistical analysis
 type AnalyzerConfig struct {
-	ConfidenceLevel  float64 `json:"confidence_level"`
+	ConfidenceLevel   float64 `json:"confidence_level"`
 	SignificanceLevel float64 `json:"significance_level"`
-	SampleSize       int     `json:"sample_size"`
-	Method           string  `json:"method"`
+	SampleSize        int     `json:"sample_size"`
+	Method            string  `json:"method"`
 }
 
 // ClaimVerifier verifies SLA claims against measurements
 type ClaimVerifier struct {
-	Config *VerifierConfig         `json:"config,omitempty"`
-	claims map[string]*SLAClaim    `json:"claims,omitempty"`
-	mutex  sync.RWMutex           `json:"-"`
+	Config *VerifierConfig      `json:"config,omitempty"`
+	claims map[string]*SLAClaim
+	mutex  sync.RWMutex         `json:"-"`
 }
 
 // ClaimVerification contains claim verification results
@@ -264,9 +279,9 @@ type ClaimVerification struct {
 
 // VerifierConfig holds configuration for claim verification
 type VerifierConfig struct {
-	Threshold   float64 `json:"threshold"`
-	Method      string  `json:"method"`
-	StrictMode  bool    `json:"strict_mode"`
+	Threshold  float64 `json:"threshold"`
+	Method     string  `json:"method"`
+	StrictMode bool    `json:"strict_mode"`
 }
 
 // SLAClaim represents an SLA claim to be validated
@@ -296,3 +311,21 @@ type mockThroughputValidator struct{}
 func (m *mockThroughputValidator) ValidateThroughput(ctx context.Context) (*MeasurementSet, error) {
 	return &MeasurementSet{}, nil
 }
+
+// Additional missing types
+type ThroughputCapability struct {
+	Value float64 `json:"value"`
+}
+
+type ErrorBudgetConsumption struct {
+	ConsumedPercentage  float64 `json:"consumed_percentage"`
+	RemainingPercentage float64 `json:"remaining_percentage"`
+}
+
+type ClaimVerificationResult struct {
+	Verified        bool    `json:"verified"`
+	ConfidenceLevel float64 `json:"confidence_level"`
+}
+
+// Note: AvailabilityValidator, LatencyValidator, ThroughputValidator interfaces 
+// are already defined in validator_interfaces.go with different signatures

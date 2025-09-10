@@ -1,5 +1,3 @@
-//go:build go1.24
-
 package nephio
 
 import (
@@ -10,7 +8,6 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
-	"encoding/json"
 )
 
 // BenchmarkNephioSystemSuite provides comprehensive Nephio package benchmarks using Go 1.24+ features
@@ -83,7 +80,7 @@ func benchmarkPackageGeneration(b *testing.B, ctx context.Context, nephioSystem 
 					CPU:    "500m",
 					Memory: "1Gi",
 				},
-				Configuration: json.RawMessage(`{}`),
+				Configuration: make(map[string]interface{}),
 			}
 
 			var totalGenTime, validationTime int64
@@ -178,7 +175,7 @@ func benchmarkKRMFunctionExecution(b *testing.B, ctx context.Context, nephioSyst
 				Name:    scenario.functionType,
 				Version: "v1.0.0",
 				Image:   fmt.Sprintf("nephio/%s:latest", scenario.functionType),
-				Config: json.RawMessage(`{}`),
+				Config: make(map[string]interface{}),
 			}
 
 			// Generate test input resources
@@ -507,8 +504,8 @@ func benchmarkConfigSyncPerformance(b *testing.B, ctx context.Context, nephioSys
 
 				result, err := nephioSystem.PerformConfigSync(ctx, configSyncSpec)
 
-				syncLatency := time.Since(syncStart)
-				atomic.AddInt64(&syncLatency, syncLatency.Nanoseconds())
+				syncDuration := time.Since(syncStart)
+				atomic.AddInt64(&syncLatency, syncDuration.Nanoseconds())
 
 				if err != nil {
 					atomic.AddInt64(&syncErrors, 1)
@@ -564,7 +561,7 @@ func benchmarkPolicyEnforcement(b *testing.B, ctx context.Context, nephioSystem 
 				Type:         scenario.policyType,
 				Complexity:   scenario.complexity,
 				ResourceType: scenario.resourceType,
-				Rules:        generatePolicyRules(scenario.ruleCount),
+				Rules:        generateBenchmarkPolicyRules(scenario.ruleCount),
 			}
 
 			testResource := generateTestResource(scenario.resourceType)
@@ -716,7 +713,7 @@ func generateKRMTestResources(size string, count int) []KRMResource {
 		resources[i] = KRMResource{
 			APIVersion: "apps/v1",
 			Kind:       "Deployment",
-			Metadata: json.RawMessage(`{}`),
+			Metadata: make(map[string]interface{}),
 			Spec: generateResourceSpec(baseSize),
 		}
 	}
@@ -743,7 +740,9 @@ func generateResourceSpec(sizeBytes int) map[string]interface{} {
 					{
 						"name":  "main",
 						"image": "nginx:latest",
-						"ports": []json.RawMessage{json.RawMessage(`{}`)},
+						"ports": []map[string]interface{}{
+							{"containerPort": 8080},
+						},
 					},
 				},
 			},
@@ -793,7 +792,11 @@ func generateTestClusters(count int, deployType string) []ClusterConfig {
 	return clusters
 }
 
+<<<<<<< HEAD
 func generatePolicyRules(count int) []BenchmarkPolicyRule {
+=======
+func generateBenchmarkPolicyRules(count int) []BenchmarkPolicyRule {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	rules := make([]BenchmarkPolicyRule, count)
 
 	for i := range rules {
@@ -814,14 +817,14 @@ func generateTestResource(resourceType string) KRMResource {
 		return KRMResource{
 			APIVersion: "apps/v1",
 			Kind:       "Deployment",
-			Metadata: json.RawMessage(`{}`),
-			Spec: json.RawMessage(`{}`),
+			Metadata: make(map[string]interface{}),
+			Spec: make(map[string]interface{}),
 		}
 	case "service":
 		return KRMResource{
 			APIVersion: "v1",
 			Kind:       "Service",
-			Metadata: json.RawMessage(`{}`),
+			Metadata: make(map[string]interface{}),
 			Spec: map[string]interface{}{
 				"ports": []map[string]interface{}{
 					{"port": 80, "targetPort": 8080},
@@ -832,7 +835,7 @@ func generateTestResource(resourceType string) KRMResource {
 		return KRMResource{
 			APIVersion: "v1",
 			Kind:       "ConfigMap",
-			Metadata: json.RawMessage(`{}`),
+			Metadata: make(map[string]interface{}),
 			Data: map[string]string{
 				"key": "value",
 			},
@@ -855,11 +858,23 @@ func setupBenchmarkNephioSystem() *EnhancedNephioSystem {
 
 // Enhanced Nephio System types and interfaces
 
+// Interface placeholders for benchmark
+type (
+	TestPackageGenerator   interface{}
+	KRMFunctionRuntime     interface{}
+	TestPorchClient        interface{}
+	TestGitClient          interface{}
+	ConfigSyncManager      interface{}
+	PolicyEngine           interface{}
+	ResourceManager        interface{}
+	NephioMetrics          interface{}
+)
+
 type EnhancedNephioSystem struct {
-	packageGenerator PackageGenerator
+	packageGenerator TestPackageGenerator
 	krmRuntime       KRMFunctionRuntime
-	porchClient      PorchClient
-	gitClient        GitClient
+	porchClient      TestPorchClient
+	gitClient        TestGitClient
 	configSync       ConfigSyncManager
 	policyEngine     PolicyEngine
 	resourceManager  ResourceManager
@@ -960,6 +975,11 @@ type ConfigSyncSpec struct {
 	UpdateFreq     string
 }
 
+<<<<<<< HEAD
+=======
+// ConfigSyncResult is imported from workflow_orchestrator.go
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 type PolicySpec struct {
 	Name         string
 	Type         string
@@ -1013,7 +1033,13 @@ func (n *EnhancedNephioSystem) Cleanup() {}
 
 func (n *EnhancedNephioSystem) GeneratePackage(ctx context.Context, spec PackageSpec) (*PackageResult, error) {
 	// Simulate package generation latency based on complexity
-	time.Sleep(time.Duration(50+spec.Configuration["resourceCount"].(int)*5) * time.Millisecond)
+	resourceCount := 3 // default value
+	if val, ok := spec.Configuration["resourceCount"]; ok {
+		if count, ok := val.(int); ok {
+			resourceCount = count
+		}
+	}
+	time.Sleep(time.Duration(50+resourceCount*5) * time.Millisecond)
 	return &PackageResult{Manifests: []string{"deployment.yaml", "service.yaml"}}, nil
 }
 
@@ -1126,6 +1152,7 @@ func (n *EnhancedNephioSystem) ManageResources(ctx context.Context, spec Resourc
 		QuotaViolation:     false,
 	}, nil
 }
+<<<<<<< HEAD
 
 // Interface placeholders for benchmarking
 type (
@@ -1139,3 +1166,5 @@ type (
 	NephioMetrics      interface{}
 )
 
+=======
+>>>>>>> 6835433495e87288b95961af7173d866977175ff

@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/go-logr/logr/testr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -94,12 +95,40 @@ func createTestPackagePropagator(t *testing.T) *PackagePropagator {
 	return NewPackagePropagator(client, logger, clusterMgr, syncEngine, customizer)
 }
 
-func createTestHealthMonitor(t *testing.T) *HealthMonitor {
-	scheme := runtime.NewScheme()
-	require.NoError(t, corev1.AddToScheme(scheme))
+// TestingT is a minimal interface that both *testing.T and *testing.B implement
+type TestingT interface {
+	Errorf(format string, args ...interface{})
+	FailNow()
+	Helper()
+}
 
+func createTestHealthMonitor(t TestingT) *HealthMonitor {
+	scheme := runtime.NewScheme()
+	
+	// For *testing.T, use require; for *testing.B, handle manually
+	if tt, ok := t.(*testing.T); ok {
+		require.NoError(tt, corev1.AddToScheme(scheme))
+		client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
+		logger := testr.New(tt)
+		return NewHealthMonitor(client, logger)
+	} else if tb, ok := t.(*testing.B); ok {
+		if err := corev1.AddToScheme(scheme); err != nil {
+			tb.Fatalf("Failed to add scheme: %v", err)
+		}
+		client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
+		// Use a discard logger for benchmarks to avoid logging overhead
+		logger := logr.Discard()
+		return NewHealthMonitor(client, logger)
+	}
+	
+	// Fallback for other testing types
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Errorf("Failed to add scheme: %v", err)
+		t.FailNow()
+	}
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
-	logger := testr.New(t)
+	// Use a basic logger for unknown testing types
+	logger := logr.Discard()
 
 	return NewHealthMonitor(client, logger)
 }
@@ -124,18 +153,18 @@ func createTestCustomizer(t *testing.T) *Customizer {
 	return NewCustomizer(client, logger)
 }
 
-func createTestPackageRevision(name, revision string) *porchv1alpha1.PackageRevision {
-	return &porchv1alpha1.PackageRevision{
+func createTestPackageRevision(name, revision string) *PackageRevision {
+	return &PackageRevision{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name + "-" + revision,
 			Namespace: "default",
 		},
-		Spec: porchv1alpha1.PackageRevisionSpec{
+		Spec: PackageRevisionSpec{
 			PackageName: name,
 			Revision:    revision,
-			Lifecycle:   porchv1alpha1.PackageRevisionLifecycleDraft,
+			Lifecycle:   PackageRevisionLifecycleDraft,
 		},
-		Status: porchv1alpha1.PackageRevisionStatus{
+		Status: PackageRevisionStatus{
 			Conditions: []metav1.Condition{},
 		},
 	}
@@ -228,7 +257,7 @@ func TestClusterManager_SelectTargetClusters(t *testing.T) {
 	tests := []struct {
 		name             string
 		candidates       []types.NamespacedName
-		packageRevision  *porchv1alpha1.PackageRevision
+		packageRevision  *PackageRevision
 		setupFunc        func(*ClusterManager)
 		expectedClusters int
 		expectedError    bool
@@ -353,6 +382,7 @@ func TestPackagePropagator_DeployPackage_Sequential(t *testing.T) {
 	ctx := context.Background()
 	config := createTestClusterConfig()
 
+	clusters := make(map[types.NamespacedName]*ClusterInfo)
 	for _, clusterName := range targetClusters {
 		clusterInfo := &ClusterInfo{
 			Name:            clusterName,
@@ -364,8 +394,9 @@ func TestPackagePropagator_DeployPackage_Sequential(t *testing.T) {
 				MemoryTotal: 16 * 1024 * 1024 * 1024,
 			},
 		}
-		propagator.clusterMgr.clusters[clusterName] = clusterInfo
+		clusters[clusterName] = clusterInfo
 	}
+	propagator.clusterMgr.SetClusters(clusters)
 
 	deploymentOptions := DeploymentOptions{
 		Strategy:          StrategySequential,
@@ -396,6 +427,7 @@ func TestPackagePropagator_DeployPackage_Parallel(t *testing.T) {
 	ctx := context.Background()
 	config := createTestClusterConfig()
 
+	clusters := make(map[types.NamespacedName]*ClusterInfo)
 	for _, clusterName := range targetClusters {
 		clusterInfo := &ClusterInfo{
 			Name:            clusterName,
@@ -407,8 +439,9 @@ func TestPackagePropagator_DeployPackage_Parallel(t *testing.T) {
 				MemoryTotal: 16 * 1024 * 1024 * 1024,
 			},
 		}
-		propagator.clusterMgr.clusters[clusterName] = clusterInfo
+		clusters[clusterName] = clusterInfo
 	}
+	propagator.clusterMgr.SetClusters(clusters)
 
 	deploymentOptions := DeploymentOptions{
 		Strategy:          StrategyParallel,

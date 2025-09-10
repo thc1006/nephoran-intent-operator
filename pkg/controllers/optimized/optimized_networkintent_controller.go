@@ -22,9 +22,7 @@ import (
 )
 
 const (
-
 	// OptimizedNetworkIntentController holds optimizednetworkintentcontroller value.
-
 	OptimizedNetworkIntentController = "optimized-networkintent"
 )
 
@@ -53,6 +51,8 @@ type OptimizedNetworkIntentReconciler struct {
 	config controllers.Config
 
 	deps controllers.Dependencies
+
+	constants *config.Constants
 
 	// Performance tracking.
 
@@ -85,6 +85,8 @@ func NewOptimizedNetworkIntentReconciler(
 	config controllers.Config,
 
 	deps controllers.Dependencies,
+
+	constants *config.Constants,
 ) *OptimizedNetworkIntentReconciler {
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -114,6 +116,8 @@ func NewOptimizedNetworkIntentReconciler(
 		config: config,
 
 		deps: deps,
+
+		constants: constants,
 
 		apiCallBatcher: apiCallBatcher,
 

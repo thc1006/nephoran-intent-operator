@@ -250,9 +250,13 @@ type YANGModels struct {
 func NewO1Adaptor(config *oran.O1Config, kubeClient client.Client) *O1Adaptor {
 	if config == nil {
 		config = &oran.O1Config{
-			Timeout: 30 * time.Second,
-
-			RetryAttempts: 3,
+			Timeout:        30 * time.Second,
+			RetryAttempts:  3,
+			DefaultPort:    830,
+			ConnectTimeout: 30 * time.Second,
+			RequestTimeout: 60 * time.Second,
+			MaxRetries:     3,
+			RetryInterval:  5 * time.Second,
 		}
 	}
 

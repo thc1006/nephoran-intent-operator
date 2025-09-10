@@ -84,7 +84,11 @@ func TestBuildKRMPackage(t *testing.T) {
 		Target:        "test-deployment",
 		Namespace:     "test-ns",
 		Replicas:      5,
+<<<<<<< HEAD
 		Reason:        reasonStr,
+=======
+		Reason:        &reasonStr,
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 		Source:        &sourceStr,
 		CorrelationID: &correlationStr,
 	}

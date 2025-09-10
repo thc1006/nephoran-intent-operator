@@ -305,7 +305,11 @@ func TestClient_HTTPErrors(t *testing.T) {
 					Revision:  "v1",
 					Status:    "draft",
 				}
+<<<<<<< HEAD
 				err = client.ApprovePackage(revision)
+=======
+				_, err = client.ApprovePackage(revision)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			}
 
 			if tt.expectError == "" {

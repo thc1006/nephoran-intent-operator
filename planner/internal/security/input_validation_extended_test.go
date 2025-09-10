@@ -273,13 +273,13 @@ func TestFilePathValidation_SecurityVulnerabilities(t *testing.T) {
 		{
 			name:          "Directory traversal - encoded",
 			path:          "..%2F..%2F..%2Fetc%2Fpasswd",
-			expectError:   false, // URL decoding not handled at validation level
+			expectError:   true, // URL decoding now handled at validation level
 			vulnerability: "Encoded directory traversal",
 		},
 		{
 			name:          "Directory traversal - double encoded",
 			path:          "..%252F..%252F..%252Fetc%252Fpasswd",
-			expectError:   false,
+			expectError:   true, // Double URL decoding now handled
 			vulnerability: "Double encoded directory traversal",
 		},
 		{
@@ -302,7 +302,7 @@ func TestFilePathValidation_SecurityVulnerabilities(t *testing.T) {
 		},
 		{
 			name:          "Unicode normalization - different representations",
-			path:          "/tmp/test\u2044file.txt", // Unicode fraction slash
+			path:          "/tmp/test\u2044file.json", // Unicode fraction slash
 			expectError:   false,
 			vulnerability: "Unicode normalization",
 		},
@@ -344,13 +344,13 @@ func TestFilePathValidation_SecurityVulnerabilities(t *testing.T) {
 		},
 		{
 			name:          "Windows device name",
-			path:          "CON.txt",
+			path:          "CON.json",
 			expectError:   false, // Device name validation is Windows-specific
 			vulnerability: "Windows device name",
 		},
 		{
 			name:          "UNC path - Windows",
-			path:          "\\\\server\\share\\file.txt",
+			path:          "\\\\server\\share\\file.json",
 			expectError:   false, // UNC paths are valid on Windows
 			vulnerability: "UNC path access",
 		},

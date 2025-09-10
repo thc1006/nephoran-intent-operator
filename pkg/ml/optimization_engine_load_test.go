@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	mathrand "math/rand"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -115,7 +116,7 @@ func (lt *LoadTester) Run(ctx context.Context) (*LoadTestResults, error) {
 func (lt *LoadTester) executeRequest(ctx context.Context) {
 	// Generate random intent
 	intent := &NetworkIntent{
-		ID:          fmt.Sprintf("load-test-%d", rand.Int63()),
+		ID:          fmt.Sprintf("load-test-%d", mathrand.Int63()),
 		Description: "Load test intent",
 		Priority:    randomPriority(),
 		Parameters:  json.RawMessage(`{}`),
@@ -179,12 +180,12 @@ func (lt *LoadTester) calculatePercentiles() {
 // Helper functions
 func randomPriority() string {
 	priorities := []string{"low", "medium", "high", "critical"}
-	return priorities[rand.Intn(len(priorities))]
+	return priorities[mathrand.Intn(len(priorities))]
 }
 
 func randomQoS() string {
 	qosLevels := []string{"best-effort", "guaranteed", "premium"}
-	return qosLevels[rand.Intn(len(qosLevels))]
+	return qosLevels[mathrand.Intn(len(qosLevels))]
 }
 
 func sortInt64s(a []int64) {
@@ -194,7 +195,7 @@ func sortInt64s(a []int64) {
 	}
 
 	left, right := 0, len(a)-1
-	pivot := rand.Intn(right)
+	pivot := mathrand.Intn(right)
 
 	a[pivot], a[right] = a[right], a[pivot]
 

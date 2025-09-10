@@ -3,6 +3,7 @@ package middleware
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -506,8 +507,12 @@ func GetSecuritySuite(ctx context.Context) *SecuritySuite {
 // GenerateCSRFToken generates a new CSRF token
 func (ss *SecuritySuite) GenerateCSRFToken() string {
 	token := make([]byte, 32)
-	for i := range token {
-		token[i] = byte(time.Now().UnixNano() & 0xFF)
+	_, err := rand.Read(token)
+	if err != nil {
+		// Fallback to time-based generation if crypto/rand fails
+		for i := range token {
+			token[i] = byte((time.Now().UnixNano() + int64(i)) & 0xFF)
+		}
 	}
 	h := sha256.Sum256(token)
 	tokenStr := hex.EncodeToString(h[:])

@@ -214,6 +214,21 @@ type MaintenanceWindow struct {
 	ExcludeFromSLA bool `json:"exclude_from_sla"`
 }
 
+// ErrorBudgetConfig holds error budget configuration
+type ErrorBudgetConfig struct {
+	CalculationMethod string       `json:"calculation_method"`
+	TimeWindows      []TimeWindow `json:"time_windows"`
+}
+
+// CalculatorConfig represents configuration for the availability calculator 
+type CalculatorConfig struct {
+	SLATargets        map[string]SLATarget  `json:"sla_targets"`
+	BusinessHours     BusinessHours         `json:"business_hours"`
+	ErrorBudgetConfig ErrorBudgetConfig     `json:"error_budget_config"`
+}
+
+// BusinessHours is defined in reporter.go to avoid duplication
+
 // AvailabilityCalculatorConfig holds configuration for the calculator.
 
 type AvailabilityCalculatorConfig struct {
@@ -288,9 +303,30 @@ type AvailabilityCalculator struct {
 	tracker *MultiDimensionalTracker
 }
 
-// NewAvailabilityCalculator creates a new availability calculator.
+// NewAvailabilityCalculatorFromConfig creates a new availability calculator from simple config
+func NewAvailabilityCalculator(config *CalculatorConfig) (*AvailabilityCalculator, error) {
+	if config == nil {
+		return nil, fmt.Errorf("config cannot be nil")
+	}
 
-func NewAvailabilityCalculator(
+	// Create a new calculator with simplified configuration
+	calculator := &AvailabilityCalculator{
+		config: &AvailabilityCalculatorConfig{
+			DefaultSLATarget: SLA99_95,
+			EnabledWindows: []TimeWindow{Window1Minute, Window5Minutes, Window1Hour, Window1Day},
+		},
+		calculations:       make(map[string]*AvailabilityCalculation),
+		calculationHistory: make([]AvailabilityCalculation, 0),
+	}
+
+	return calculator, nil
+}
+
+// Start/Stop methods are implemented later in the file
+
+// NewAvailabilityCalculatorAdvanced creates a new availability calculator with full configuration.
+
+func NewAvailabilityCalculatorAdvanced(
 	config *AvailabilityCalculatorConfig,
 
 	tracker *MultiDimensionalTracker,

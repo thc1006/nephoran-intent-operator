@@ -271,9 +271,15 @@ type LLMMetrics struct {
 	// Model the LLM model used
 	Model string `json:"model,omitempty"`
 
+<<<<<<< HEAD
 	// ConfidenceScore confidence in the response (0.0-1.0) as string
 	// +optional
 	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
+=======
+	// ConfidenceScore confidence in the response (0.0-1.0) as string to avoid float issues
+	// +optional
+	// +kubebuilder:validation:Pattern=`^(0(\.[0-9]+)?|1(\.0+)?)$`
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	ConfidenceScore *string `json:"confidenceScore,omitempty"`
 }
 
@@ -289,6 +295,7 @@ type RAGMetrics struct {
 	// DocumentsRetrieved number of documents retrieved
 	DocumentsRetrieved int32 `json:"documentsRetrieved,omitempty"`
 
+<<<<<<< HEAD
 	// AverageRelevanceScore average relevance score of retrieved documents (0.0-1.0) as string
 	// +optional
 	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
@@ -297,6 +304,16 @@ type RAGMetrics struct {
 	// TopRelevanceScore highest relevance score (0.0-1.0) as string
 	// +optional
 	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
+=======
+	// AverageRelevanceScore average relevance score of retrieved documents (0.0-1.0) as string to avoid float issues
+	// +optional
+	// +kubebuilder:validation:Pattern=`^(0(\.[0-9]+)?|1(\.0+)?)$`
+	AverageRelevanceScore *string `json:"averageRelevanceScore,omitempty"`
+
+	// TopRelevanceScore highest relevance score (0.0-1.0) as string to avoid float issues
+	// +optional
+	// +kubebuilder:validation:Pattern=`^(0(\.[0-9]+)?|1(\.0+)?)$`
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	TopRelevanceScore *string `json:"topRelevanceScore,omitempty"`
 
 	// SourcesUsed list of knowledge sources used
