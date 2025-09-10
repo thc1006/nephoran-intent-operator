@@ -272,11 +272,15 @@ func (m *O2Manager) DeployVNF(ctx context.Context, vnfSpec *VNFDescriptor) (*Dep
 // ClusterMetrics represents cluster metrics.
 
 type ClusterMetrics struct {
+	TotalNodes int32 `json:"totalNodes"`
+	
 	ReadyNodes int32 `json:"readyNodes"`
 
 	TotalCPU string `json:"totalCPU"`
 
 	TotalMemory string `json:"totalMemory"`
+	
+	TotalPods int32 `json:"totalPods"`
 }
 
 // VNFDeploymentStatus represents the status of a VNF deployment.

@@ -793,11 +793,11 @@ func generateTestClusters(count int, deployType string) []ClusterConfig {
 	return clusters
 }
 
-func generatePolicyRules(count int) []PolicyRule {
-	rules := make([]PolicyRule, count)
+func generatePolicyRules(count int) []BenchmarkPolicyRule {
+	rules := make([]BenchmarkPolicyRule, count)
 
 	for i := range rules {
-		rules[i] = PolicyRule{
+		rules[i] = BenchmarkPolicyRule{
 			Name:       fmt.Sprintf("rule-%d", i),
 			Type:       "validation",
 			Expression: fmt.Sprintf("spec.replicas <= %d", 10+i),
@@ -965,10 +965,10 @@ type PolicySpec struct {
 	Type         string
 	Complexity   string
 	ResourceType string
-	Rules        []PolicyRule
+	Rules        []BenchmarkPolicyRule
 }
 
-type PolicyRule struct {
+type BenchmarkPolicyRule struct {
 	Name       string
 	Type       string
 	Expression string

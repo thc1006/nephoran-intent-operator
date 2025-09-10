@@ -366,15 +366,12 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 
 				// Set up Git client mock based on test case
 				mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
+				mockGitClient.ResetMock() // Reset mock state for each test case
 				if tc.gitCleanupError != nil {
-					// Configure mock - removed .On() calls"RemoveDirectory", expectedPath, expectedMessage).Return(tc.gitCleanupError)
-				} else {
-					// Only set up successful expectations if we have the NetworkIntent finalizer
-					if containsFinalizer(tc.finalizers, config.GetDefaults().NetworkIntentFinalizer) {
-						// Configure mock - removed .On() calls"RemoveDirectory", expectedPath, expectedMessage).Return(nil)
-						// Configure mock - removed .On() calls"CommitAndPushChanges", expectedMessage).Return(nil)
-					}
+					// Configure mock to return error on directory removal
+					mockGitClient.SetRemoveDirectoryError(tc.gitCleanupError)
 				}
+				// Note: For successful cases, the mock will work normally without errors
 
 				// Call the function under test
 				result, err := reconciler.handleDeletion(ctx, networkIntent)

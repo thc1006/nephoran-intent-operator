@@ -53,12 +53,12 @@ type FunctionConfig struct {
 	Image      string                 `json:"image"`
 	ConfigPath string                 `json:"configPath,omitempty"`
 	ConfigMap  json.RawMessage `json:"configMap,omitempty"`
-	Selectors  []ResourceSelector     `json:"selectors,omitempty"`
+	Selectors  []TestResourceSelector     `json:"selectors,omitempty"`
 	Exec       *ExecConfig            `json:"exec,omitempty"`
 }
 
-// ResourceSelector defines resource selection criteria
-type ResourceSelector struct {
+// TestResourceSelector defines resource selection criteria for testing
+type TestResourceSelector struct {
 	APIVersion string            `json:"apiVersion,omitempty"`
 	Kind       string            `json:"kind,omitempty"`
 	Name       string            `json:"name,omitempty"`
