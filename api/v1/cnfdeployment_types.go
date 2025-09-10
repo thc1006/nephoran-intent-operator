@@ -45,8 +45,7 @@ import (
 )
 
 // CNFType defines the type of Cloud Native Function.
-
-// +kubebuilder:validation:Enum="5G-Core";"O-RAN";"Edge";"Custom"
+// +kubebuilder:validation:Enum=Core5G;ORAN;Edge;Custom
 
 type CNFType string
 
