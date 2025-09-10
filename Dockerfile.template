@@ -7,7 +7,7 @@
 # =============================================================================
 # Stage 1: Builder
 # =============================================================================
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 # Security: Install CA certificates and create non-root user
 RUN apk add --no-cache \
@@ -121,7 +121,7 @@ CMD ["--config=/config", "--data=/data"]
 # =============================================================================
 # Development Stage (Optional)
 # =============================================================================
-FROM golang:1.24-alpine AS dev
+FROM golang:1.25-alpine AS dev
 
 # Install development tools
 RUN apk add --no-cache \

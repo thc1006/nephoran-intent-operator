@@ -13,7 +13,7 @@ ARG SERVICE
 # =============================================================================
 # STAGE 1: Binary Stage (if not pre-built)
 # =============================================================================
-FROM golang:1.24.1-alpine AS builder
+FROM golang:1.25.1-alpine AS builder
 ARG SERVICE
 ARG TARGETARCH=amd64
 
