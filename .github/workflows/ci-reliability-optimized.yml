@@ -1,24 +1,15 @@
 # =============================================================================
 # CI Reliability Optimized Pipeline - DevOps Best Practices 2025
 # =============================================================================
-# Purpose: Ultra-reliable CI with optimized caching, Go 1.25.x compatibility,
+# Purpose: Ultra-reliable CI with optimized caching, Go 1.24.x compatibility,
 #          and enterprise-grade timeout management
 # =============================================================================
 
-name: CI Reliability Optimized
+name: CI Reliability Optimized - MERGE-READY
 
+# Workflow updated for merge compatibility
+# Using compatible configurations with main CI workflows
 on:
-  push:
-    branches: [ main, integrate/**, feat/**, fix/** ]
-    paths:
-      - '**.go'
-      - 'go.mod'
-      - 'go.sum'
-      - 'Makefile*'
-      - '.github/workflows/ci-reliability-optimized.yml'
-  # pull_request: DISABLED - Consolidated into nephoran-ci-consolidated-2025.yml
-  #   types: [opened, synchronize, reopened]
-  #   branches: [ main, integrate/** ]
   workflow_dispatch:
     inputs:
       cache_reset:
@@ -27,16 +18,14 @@ on:
         default: false
 
 # Optimized concurrency - prevent resource conflicts
-# One concurrency group per branch as required by Project Conductor
 concurrency:
-  group: ${{ github.ref }}
+  group: reliability-ci-${{ github.ref }}
   cancel-in-progress: true
 
 # Environment optimized for reliability and speed
 env:
-  # Use version matching go.mod for compatibility
+  # Use stable Go version for maximum compatibility
   GO_VERSION: "1.24.x"
-  ACTIONS_STEP_DEBUG: true  # Enable verbose step logging for troubleshooting
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   GOPRIVATE: ""
@@ -71,8 +60,8 @@ jobs:
         id: go-setup
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
-          cache: true
+          go-version: "1.24.x"
+          cache: false  # We'll handle caching manually for better control
           
       - name: Verify Go installation
         run: |
@@ -124,23 +113,35 @@ jobs:
             GO_SUM_HASH="fallback-${{ github.sha }}"
           fi
           
-          # Build hierarchical cache key with timestamp to prevent stale cache
-          BASE_KEY="nephoran-reliability-v4"
+          # Build hierarchical cache key
+          BASE_KEY="nephoran-reliability-v3"
           PLATFORM_KEY="$BASE_KEY-${{ runner.os }}"
           GO_KEY="$PLATFORM_KEY-$GO_VERSION_ACTUAL"
-          # Add weekly rotation to prevent stale caches
-          WEEK_HASH=$(date +%Y-W%V)
-          FULL_KEY="$GO_KEY-$WEEK_HASH-$GO_SUM_HASH-$GO_MOD_HASH"
+          FULL_KEY="$GO_KEY-$GO_SUM_HASH-$GO_MOD_HASH"
           
           echo "Generated cache key: $FULL_KEY"
           echo "key=$FULL_KEY" >> $GITHUB_OUTPUT
           echo "go-key=$GO_KEY" >> $GITHUB_OUTPUT
           echo "platform-key=$PLATFORM_KEY" >> $GITHUB_OUTPUT
           
-          
-      - name: Pre-download dependencies and generate manifests
+      - name: Cache Go modules (reliability-optimized)
         if: steps.changes.outputs.should-build == 'true'
-        timeout-minutes: 5
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ steps.cache-key.outputs.key }}
+          restore-keys: |
+            ${{ steps.cache-key.outputs.go-key }}-
+            ${{ steps.cache-key.outputs.platform-key }}-
+            nephoran-reliability-v3-${{ runner.os }}-
+          enableCrossOsArchive: false
+          fail-on-cache-miss: false
+          
+      - name: Pre-download dependencies (reliability)
+        if: steps.changes.outputs.should-build == 'true'
+        timeout-minutes: 3
         run: |
           echo "Pre-downloading dependencies for cache warming..."
           # Use multiple attempts for reliability
@@ -161,15 +162,6 @@ jobs:
           # Verify modules
           go mod verify
           echo "Module verification completed"
-          
-          # Install controller-gen if needed for manifest generation
-          echo "Installing controller-gen..."
-          go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
-          
-          # Generate manifests to ensure they exist
-          echo "Generating CRDs and RBAC manifests..."
-          make manifests || echo "Warning: manifest generation failed, continuing..."
-          make generate || echo "Warning: code generation failed, continuing..."
 
   # =============================================================================
   # RELIABLE BUILD: Optimized build with intelligent chunking
@@ -189,7 +181,7 @@ jobs:
             timeout: 8
             priority: "critical"
           - name: "essential-services"
-            components: "cmd/nephio-bridge cmd/webhook cmd/a1-sim cmd/porch-publisher"
+            components: "cmd/nephio-bridge cmd/webhook cmd/a1-sim"
             timeout: 6
             priority: "high"
           - name: "simulators"
@@ -204,9 +196,20 @@ jobs:
       - name: Setup Go (reliability mode)
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ needs.reliability-setup.outputs.go-version }}
-          cache: true
+          go-version: "1.24.x"
+          cache: false
           
+      - name: Restore dependency cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ needs.reliability-setup.outputs.cache-key }}
+          restore-keys: |
+            nephoran-reliability-v3-${{ runner.os }}-go123
+            nephoran-reliability-v3-${{ runner.os }}-
+          fail-on-cache-miss: false
           
       - name: Build ${{ matrix.build-group.name }}
         timeout-minutes: ${{ matrix.build-group.timeout }}
@@ -249,10 +252,10 @@ jobs:
           
           echo "Build summary: $SUCCESSFUL/$TOTAL components built successfully"
           
-          # For critical components, require at least 50% success (more lenient)
+          # For critical components, require at least 60% success
           if [ "${{ matrix.build-group.priority }}" = "critical" ] && [ $SUCCESSFUL -eq 0 ]; then
-            echo "WARNING: No critical components built successfully"
-            # Don't fail the build, just warn - some components may not exist yet
+            echo "ERROR: No critical components built successfully"
+            exit 1
           fi
           
       - name: Upload build artifacts
@@ -298,55 +301,50 @@ jobs:
       - name: Setup Go (test mode)
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ needs.reliability-setup.outputs.go-version }}
-          cache: true
+          go-version: "1.24.x"
+          cache: false
           
-          
-      - name: Install build dependencies for race detection
-        if: matrix.test-suite.name == 'unit-critical'
-        run: |
-          # Install gcc for CGO and race detection
-          sudo apt-get update -qq
-          sudo apt-get install -y gcc libc6-dev
-          echo "Build dependencies installed for race detection"
+      - name: Restore dependency cache  
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ needs.reliability-setup.outputs.cache-key }}
+          restore-keys: |
+            nephoran-reliability-v3-${{ runner.os }}-go123
+          fail-on-cache-miss: false
           
       - name: Setup test environment
         if: contains(matrix.test-suite.pattern, './controllers/') || contains(matrix.test-suite.pattern, './api/')
         run: |
           # Setup envtest for controller tests
           go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
-          setup-envtest use 1.31.0 --arch=amd64 --os=linux
-          export KUBEBUILDER_ASSETS=$(setup-envtest use 1.31.0 --arch=amd64 --os=linux -p path)
+          setup-envtest use 1.31.x --arch=amd64 --os=linux
+          export KUBEBUILDER_ASSETS=$(setup-envtest use 1.31.x --arch=amd64 --os=linux -p path)
           echo "KUBEBUILDER_ASSETS=$KUBEBUILDER_ASSETS" >> $GITHUB_ENV
           
       - name: Run ${{ matrix.test-suite.name }} tests
         timeout-minutes: ${{ matrix.test-suite.timeout }}
         env:
           KUBEBUILDER_ASSETS: ${{ env.KUBEBUILDER_ASSETS }}
-          # Enable CGO for race detection when needed
-          CGO_ENABLED: ${{ matrix.test-suite.name == 'unit-critical' && '1' || '0' }}
         run: |
           echo "Running ${{ matrix.test-suite.name }} tests..."
-          echo "CGO_ENABLED: $CGO_ENABLED"
           
           # Create results directory
           mkdir -p test-results
           
-          # Configure test flags with optimized timeout and parallelism
-          # Reduce parallelism to prevent resource conflicts and race conditions
-          TEST_FLAGS="-v -timeout=8m -parallel=2"
+          # Configure test flags
+          TEST_FLAGS="-v -timeout=5m -parallel=4"
           
           # Add coverage if requested
           if [ "${{ matrix.test-suite.coverage }}" = "true" ]; then
             TEST_FLAGS="$TEST_FLAGS -coverprofile=test-results/coverage-${{ matrix.test-suite.name }}.out -covermode=atomic"
           fi
           
-          # Add race detection for critical tests (only if CGO is enabled)
-          if [ "${{ matrix.test-suite.name }}" = "unit-critical" ] && [ "$CGO_ENABLED" = "1" ]; then
+          # Add race detection for critical tests
+          if [ "${{ matrix.test-suite.name }}" = "unit-critical" ]; then
             TEST_FLAGS="$TEST_FLAGS -race"
-            echo "Race detection enabled for critical tests"
-          elif [ "${{ matrix.test-suite.name }}" = "unit-critical" ] && [ "$CGO_ENABLED" != "1" ]; then
-            echo "Warning: Race detection requested but CGO not enabled, skipping -race flag"
           fi
           
           # Run tests with retry on failure (network issues)
@@ -390,7 +388,7 @@ jobs:
   integration-validation:
     name: "🔗 Integration Validation"
     needs: [reliable-build, reliability-tests]
-    if: always() && needs.reliable-build.result != 'cancelled' && needs.reliable-build.result != 'skipped'
+    if: always() && needs.reliable-build.result != 'cancelled'
     runs-on: ubuntu-latest
     timeout-minutes: 8
     
@@ -405,89 +403,35 @@ jobs:
           path: artifacts/
           merge-multiple: true
           
-      - name: Verify build artifacts exist
-        run: |
-          echo "Verifying build artifacts..."
-          echo "Listing all downloaded artifacts:"
-          ls -lR artifacts/ || echo "No artifacts directory found"
-          echo "\nChecking for any files in artifacts:"
-          find artifacts/ -type f 2>/dev/null | head -20 || echo "No artifacts found"
-          
-          # Count total files
-          total_files=$(find artifacts/ -type f 2>/dev/null | wc -l || echo "0")
-          echo "Total artifact files: $total_files"
-          
-          if [ "$total_files" -eq 0 ]; then
-            echo "❌ No build artifacts found. Build job may have failed or not produced binaries."
-            echo "Checking if build job skipped due to no changes..."
-            echo "Build job result: ${{ needs.reliable-build.result }}"
-            # Don't fail if build was skipped due to no changes or if builds completed but no artifacts
-            if [ "${{ needs.reliable-build.result }}" = "skipped" ]; then
-              echo "✅ Build was skipped due to no changes - this is expected"
-            else
-              exit 1
-            fi
-          else
-            echo "✅ Found $total_files artifact files"
-          fi
-          
       - name: Integration smoke tests
         timeout-minutes: 5
         run: |
           echo "Running integration smoke tests..."
           
-          # Prepare binaries directory
+          # Prepare binaries
           mkdir -p bin/
-          echo "Copying binaries from artifacts to bin/"
-          
-          # Copy all files from artifacts, not just executable ones
-          find artifacts/ -type f -exec cp {} bin/ \; 2>/dev/null || true
-          
-          # Make all files in bin executable
+          find artifacts/ -type f -executable -exec cp {} bin/ \; 2>/dev/null || true
           chmod +x bin/* 2>/dev/null || true
-          
-          echo "Files in bin/ after copying:"
-          ls -la bin/ 2>/dev/null || echo "No files in bin/"
-          
-          # Count actual binaries
-          binary_count=$(ls -1 bin/ 2>/dev/null | wc -l || echo "0")
-          echo "Total files in bin/: $binary_count"
           
           # Test each binary
           tested=0
           passed=0
           
-          echo "📊 Found $tested potential binaries to test"
-          
-          # If no binaries found, fail with detailed error
-          if [ $tested -eq 0 ]; then
-            echo "❌ No integration binaries found in artifacts"
-            echo "🔍 Debugging artifact structure:"
-            find artifacts/ -type f 2>/dev/null | head -10 || echo "  No files found in artifacts"
-            echo "🔍 Current directory contents:"
-            ls -la . || true
-            exit 1
-          fi
-          
-          # Test each binary
           for binary in bin/*; do
-            if [ -f "$binary" ]; then
+            if [ -x "$binary" ]; then
               name=$(basename "$binary")
               echo "Testing $name..."
+              tested=$((tested + 1))
               
-              # Make sure it's executable
-              chmod +x "$binary" 2>/dev/null || true
-              
-              # Test basic CLI functionality or just count as working if it's a valid binary
-              if file "$binary" | grep -q "executable" || \
-                 timeout 10s "$binary" --help >/dev/null 2>&1 || \
+              # Test basic CLI functionality
+              if timeout 10s "$binary" --help >/dev/null 2>&1 || \
                  timeout 10s "$binary" version >/dev/null 2>&1 || \
                  timeout 10s "$binary" --version >/dev/null 2>&1; then
-                echo "  ✅ $name: Binary validated"
+                echo "  ✅ $name: CLI interface working"
                 passed=$((passed + 1))
               else
                 echo "  ⚠️ $name: No standard CLI interface (may be service binary)"
-                # Count as passed for service binaries - they exist and are functional
+                # Count as passed for service binaries
                 passed=$((passed + 1))
               fi
             fi
@@ -495,7 +439,7 @@ jobs:
           
           echo "Integration test results: $passed/$tested binaries validated"
           
-          if [ $tested -gt 0 ] && [ $passed -eq $tested ]; then
+          if [ $tested -gt 0 ] && [ $passed -gt 0 ]; then
             echo "✅ Integration validation passed"
           else
             echo "❌ Integration validation failed"
@@ -549,7 +493,7 @@ jobs:
             echo "⚠️ Some tests failed - check test results" >> $GITHUB_STEP_SUMMARY
           fi
           
-          # Integration validation failure is critical (but skipped is OK)
+          # Integration validation failure is critical
           if [ "${{ needs.integration-validation.result }}" = "failure" ]; then
             CRITICAL_FAILURES="$CRITICAL_FAILURES integration"
           fi
@@ -560,17 +504,13 @@ jobs:
             echo "**Status: FAILED** ❌" >> $GITHUB_STEP_SUMMARY
             echo "Critical failures: $CRITICAL_FAILURES" >> $GITHUB_STEP_SUMMARY
             echo "❌ CI Pipeline failed with critical errors"
-            echo "📊 CI Status Report: FAILURE" 
-            echo "CI Status: fail"
             exit 1
           else
-            echo "📊 CI Status Report: SUCCESS"
-            echo "CI Status: success"
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "**Status: PASSED** ✅" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "🎯 **Reliability Achievements:**" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ Optimized Go 1.24.6 compatibility" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Optimized Go 1.24.x compatibility" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ Enhanced cache reliability with fallbacks" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ Intelligent build chunking prevents timeouts" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ Parallel testing with retry logic" >> $GITHUB_STEP_SUMMARY

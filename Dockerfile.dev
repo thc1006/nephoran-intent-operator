@@ -57,38 +57,38 @@ RUN go mod download && go mod verify
 COPY . .
 
 # Create air configuration for hot reload
-RUN cat > .air.toml << 'EOF'
-root = "."
-tmp_dir = "tmp"
-
-[build]
-  cmd = "go build -gcflags='all=-N -l' -o ./tmp/main {{.BuildArgs}}"
-  bin = "tmp/main"
-  full_bin = "dlv exec ./tmp/main --listen=:40000 --headless=true --api-version=2 --accept-multiclient"
-  delay = 1000
-  exclude_dir = ["tmp", "vendor", ".git", "scripts", "deployments"]
-  exclude_regex = ["_test.go"]
-  exclude_unchanged = false
-  follow_symlink = false
-  include_ext = ["go", "yaml", "yml", "toml"]
-  kill_delay = "0s"
-  log = "build-errors.log"
-  send_interrupt = false
-  stop_on_error = true
-
-[color]
-  app = "
-  build = "yellow"
-  main = "magenta"
-  runner = "green"
-  watcher = "cyan"
-
-[log]
-  time = true
-
-[misc]
-  clean_on_exit = true
-EOF
+RUN printf '%s\n' \
+    'root = "."' \
+    'tmp_dir = "tmp"' \
+    '' \
+    '[build]' > .air.toml && \
+    printf '%s\n' \
+    '  cmd = "go build -gcflags='"'"'all=-N -l'"'"' -o ./tmp/main {{.BuildArgs}}"' \
+    '  bin = "tmp/main"' \
+    '  full_bin = "dlv exec ./tmp/main --listen=:40000 --headless=true --api-version=2 --accept-multiclient"' \
+    '  delay = 1000' \
+    '  exclude_dir = ["tmp", "vendor", ".git", "scripts", "deployments"]' \
+    '  exclude_regex = ["_test.go"]' \
+    '  exclude_unchanged = false' \
+    '  follow_symlink = false' \
+    '  include_ext = ["go", "yaml", "yml", "toml"]' \
+    '  kill_delay = "0s"' \
+    '  log = "build-errors.log"' \
+    '  send_interrupt = false' \
+    '  stop_on_error = true' \
+    '' \
+    '[color]' \
+    '  app = ""' \
+    '  build = "yellow"' \
+    '  main = "magenta"' \
+    '  runner = "green"' \
+    '  watcher = "cyan"' \
+    '' \
+    '[log]' \
+    '  time = true' \
+    '' \
+    '[misc]' \
+    '  clean_on_exit = true' >> .air.toml
 
 # Development environment variables
 ENV GO_ENV=development \
@@ -101,54 +101,53 @@ ENV GO_ENV=development \
     DELVE_PORT=40000
 
 # Create development script
-RUN cat > /usr/local/bin/dev-entrypoint.sh << 'EOF'
-#!/bin/bash
-set -e
-
-SERVICE=${SERVICE:-"llm-processor"}
-echo "Starting development environment for: $SERVICE"
-
-# Set build args based on service
-case "$SERVICE" in
-    "llm-processor")
-        export BUILD_ARGS="./cmd/llm-processor/main.go"
-        export PORT=8080
-        ;;
-    "nephio-bridge")
-        export BUILD_ARGS="./cmd/nephio-bridge/main.go"
-        export PORT=8081
-        ;;
-    "oran-adaptor")
-        export BUILD_ARGS="./cmd/oran-adaptor/main.go"
-        export PORT=8082
-        ;;
-    "manager"|"controller")
-        export BUILD_ARGS="./main.go"
-        export PORT=8080
-        ;;
-    *)
-        echo "Unknown service: $SERVICE"
-        exit 1
-        ;;
-esac
-
-# Update air config with correct build args
-sed -i "s|{{.BuildArgs}}|$BUILD_ARGS|g" .air.toml
-
-echo "Port: $PORT"
-echo "Debug port: $DELVE_PORT"
-echo "Hot reload: enabled"
-echo "
-
-# Start with air for hot reload or dlv for debugging
-if [ "$DEBUG_MODE" = "true" ]; then
-    echo "Starting in debug mode..."
-    dlv debug $BUILD_ARGS --listen=:$DELVE_PORT --headless=true --api-version=2 --accept-multiclient
-else
-    echo "Starting with hot reload..."
-    air -c .air.toml
-fi
-EOF
+RUN printf '%s\n' \
+    '#!/bin/bash' \
+    'set -e' \
+    '' \
+    'SERVICE=${SERVICE:-"llm-processor"}' \
+    'echo "Starting development environment for: $SERVICE"' \
+    '' \
+    '# Set build args based on service' \
+    'case "$SERVICE" in' \
+    '    "llm-processor")' \
+    '        export BUILD_ARGS="./cmd/llm-processor/main.go"' \
+    '        export PORT=8080' \
+    '        ;;' \
+    '    "nephio-bridge")' \
+    '        export BUILD_ARGS="./cmd/nephio-bridge/main.go"' \
+    '        export PORT=8081' \
+    '        ;;' \
+    '    "oran-adaptor")' \
+    '        export BUILD_ARGS="./cmd/oran-adaptor/main.go"' \
+    '        export PORT=8082' \
+    '        ;;' \
+    '    "manager"|"controller")' \
+    '        export BUILD_ARGS="./main.go"' \
+    '        export PORT=8080' \
+    '        ;;' \
+    '    *)' \
+    '        echo "Unknown service: $SERVICE"' \
+    '        exit 1' \
+    '        ;;' \
+    'esac' \
+    '' \
+    '# Update air config with correct build args' \
+    'sed -i "s|{{.BuildArgs}}|$BUILD_ARGS|g" .air.toml' \
+    '' \
+    'echo "Port: $PORT"' \
+    'echo "Debug port: $DELVE_PORT"' \
+    'echo "Hot reload: enabled"' \
+    'echo ""' \
+    '' \
+    '# Start with air for hot reload or dlv for debugging' \
+    'if [ "$DEBUG_MODE" = "true" ]; then' \
+    '    echo "Starting in debug mode..."' \
+    '    dlv debug $BUILD_ARGS --listen=:$DELVE_PORT --headless=true --api-version=2 --accept-multiclient' \
+    'else' \
+    '    echo "Starting with hot reload..."' \
+    '    air -c .air.toml' \
+    'fi' > /usr/local/bin/dev-entrypoint.sh
 
 RUN chmod +x /usr/local/bin/dev-entrypoint.sh
 
@@ -210,30 +209,29 @@ ENV FLASK_ENV=development \
     DEBUGPY_PORT=5678
 
 # Create development startup script
-RUN cat > /usr/local/bin/dev-entrypoint.sh << 'EOF'
-#!/bin/bash
-set -e
-
-echo "Starting Python development environment"
-echo "Port: $PORT"
-echo "Debug port: $DEBUGPY_PORT"
-echo "Flask environment: $FLASK_ENV"
-echo "
-
-# Install any new requirements
-if [ -f "/app/requirements-rag.txt" ]; then
-    pip install -q -r /app/requirements-rag.txt
-fi
-
-# Start with debugpy or watchdog based on mode
-if [ "$DEBUG_MODE" = "true" ]; then
-    echo "Starting with debugpy..."
-    python -m debugpy --listen 0.0.0.0:$DEBUGPY_PORT --wait-for-client api.py
-else
-    echo "Starting with hot reload..."
-    watchmedo auto-restart --recursive --patterns="*.py" --ignore-patterns="*test*.py" python api.py
-fi
-EOF
+RUN printf '%s\n' \
+    '#!/bin/bash' \
+    'set -e' \
+    '' \
+    'echo "Starting Python development environment"' \
+    'echo "Port: $PORT"' \
+    'echo "Debug port: $DEBUGPY_PORT"' \
+    'echo "Flask environment: $FLASK_ENV"' \
+    'echo ""' \
+    '' \
+    '# Install any new requirements' \
+    'if [ -f "/app/requirements-rag.txt" ]; then' \
+    '    pip install -q -r /app/requirements-rag.txt' \
+    'fi' \
+    '' \
+    '# Start with debugpy or watchdog based on mode' \
+    'if [ "$DEBUG_MODE" = "true" ]; then' \
+    '    echo "Starting with debugpy..."' \
+    '    python -m debugpy --listen 0.0.0.0:$DEBUGPY_PORT --wait-for-client api.py' \
+    'else' \
+    '    echo "Starting with hot reload..."' \
+    '    watchmedo auto-restart --recursive --patterns="*.py" --ignore-patterns="*test*.py" python api.py' \
+    'fi' > /usr/local/bin/dev-entrypoint.sh
 
 RUN chmod +x /usr/local/bin/dev-entrypoint.sh
 
@@ -273,19 +271,18 @@ RUN wget -q https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_a
     rm k9s_Linux_amd64.tar.gz
 
 # Create utility script
-RUN cat > /usr/local/bin/dev-utils << 'EOF'
-#!/bin/bash
-echo "Nephoran Development Tools Container"
-echo "====================================="
-echo "Available tools:"
-echo "  kubectl, helm, docker   - Container orchestration"
-echo "  k9s                     - Kubernetes TUI"
-echo "  curl, wget, jq, yq      - Data manipulation"
-echo "  vim, tmux               - Editors and terminal"
-echo "  htop, tcpdump, netcat   - System monitoring"
-echo "
-echo "Run 'bash' to start interactive shell"
-EOF
+RUN printf '%s\n' \
+    '#!/bin/bash' \
+    'echo "Nephoran Development Tools Container"' \
+    'echo "======================================"' \
+    'echo "Available tools:"' \
+    'echo "  kubectl, helm, docker   - Container orchestration"' \
+    'echo "  k9s                     - Kubernetes TUI"' \
+    'echo "  curl, wget, jq, yq      - Data manipulation"' \
+    'echo "  vim, tmux               - Editors and terminal"' \
+    'echo "  htop, tcpdump, netcat   - System monitoring"' \
+    'echo ""' \
+    'echo "Run '\''bash'\'' to start interactive shell"' > /usr/local/bin/dev-utils
 
 RUN chmod +x /usr/local/bin/dev-utils
 

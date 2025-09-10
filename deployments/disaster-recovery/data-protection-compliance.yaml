@@ -566,25 +566,25 @@ spec:
               
             # Analyze for anomalies
             python3 << 'PYTHON'
-import json
-import datetime
+            import json
+            import datetime
 
-try:
-    with open('/tmp/access_patterns.json', 'r') as f:
-        data = json.load(f)
-        
-    total_hits = data.get('hits', {}).get('total', {}).get('value', 0)
-    print(f"📊 Total data access events in last hour: {total_hits}")
-    
-    # Check for unusual access patterns
-    user_buckets = data.get('aggregations', {}).get('users', {}).get('buckets', [])
-    for user in user_buckets:
-        if user['doc_count'] > 100:  # High access threshold
-            print(f"⚠️ High access volume detected for user: {user['key']} ({user['doc_count']} events)")
-            
-except Exception as e:
-    print(f"❌ Error analyzing access patterns: {e}")
-PYTHON
+            try:
+                with open('/tmp/access_patterns.json', 'r') as f:
+                    data = json.load(f)
+                    
+                total_hits = data.get('hits', {}).get('total', {}).get('value', 0)
+                print(f"📊 Total data access events in last hour: {total_hits}")
+                
+                # Check for unusual access patterns
+                user_buckets = data.get('aggregations', {}).get('users', {}).get('buckets', [])
+                for user in user_buckets:
+                    if user['doc_count'] > 100:  # High access threshold
+                        print(f"⚠️ High access volume detected for user: {user['key']} ({user['doc_count']} events)")
+                        
+            except Exception as e:
+                print(f"❌ Error analyzing access patterns: {e}")
+            PYTHON
           }
           
           # Function to check compliance violations
@@ -626,25 +626,25 @@ PYTHON
             report_date=$(date +%Y-%m-%d)
             
             cat > /tmp/compliance-report-${report_date}.json << EOF
-{
-  "report_date": "${report_date}",
-  "compliance_framework": "SOX, GDPR, CCPA, FCC",
-  "audit_period": "24_hours",
-  "metrics": {
-    "total_audit_events": $(curl -s "http://elasticsearch-audit:9200/audit-logs-*/_count" | jq -r '.count'),
-    "data_access_events": $(curl -s -X GET "http://elasticsearch-audit:9200/audit-logs-*/_search" -H "Content-Type: application/json" -d '{"query":{"bool":{"must":[{"range":{"@timestamp":{"gte":"now-24h"}}},{"terms":{"audit_action":["get","list","watch"]}}]}},"track_total_hits":true}' | jq -r '.hits.total.value'),
-    "data_modification_events": $(curl -s -X GET "http://elasticsearch-audit:9200/audit-logs-*/_search" -H "Content-Type: application/json" -d '{"query":{"bool":{"must":[{"range":{"@timestamp":{"gte":"now-24h"}}},{"terms":{"audit_action":["create","update","delete"]}}]}},"track_total_hits":true}' | jq -r '.hits.total.value'),
-    "compliance_violations": 0,
-    "encryption_coverage": "100%",
-    "data_retention_compliance": "100%"
-  },
-  "recommendations": [
-    "Continue monitoring data access patterns",
-    "Ensure regular key rotation schedule",
-    "Maintain audit log retention for 7 years"
-  ]
-}
-EOF
+            {
+              "report_date": "${report_date}",
+              "compliance_framework": "SOX, GDPR, CCPA, FCC",
+              "audit_period": "24_hours",
+              "metrics": {
+                "total_audit_events": $(curl -s "http://elasticsearch-audit:9200/audit-logs-*/_count" | jq -r '.count'),
+                "data_access_events": $(curl -s -X GET "http://elasticsearch-audit:9200/audit-logs-*/_search" -H "Content-Type: application/json" -d '{"query":{"bool":{"must":[{"range":{"@timestamp":{"gte":"now-24h"}}},{"terms":{"audit_action":["get","list","watch"]}}]}},"track_total_hits":true}' | jq -r '.hits.total.value'),
+                "data_modification_events": $(curl -s -X GET "http://elasticsearch-audit:9200/audit-logs-*/_search" -H "Content-Type: application/json" -d '{"query":{"bool":{"must":[{"range":{"@timestamp":{"gte":"now-24h"}}},{"terms":{"audit_action":["create","update","delete"]}}]}},"track_total_hits":true}' | jq -r '.hits.total.value'),
+                "compliance_violations": 0,
+                "encryption_coverage": "100%",
+                "data_retention_compliance": "100%"
+              },
+              "recommendations": [
+                "Continue monitoring data access patterns",
+                "Ensure regular key rotation schedule",
+                "Maintain audit log retention for 7 years"
+              ]
+            }
+              EOF
             
             # Store report
             kubectl create configmap compliance-report-${report_date} \
@@ -722,24 +722,24 @@ spec:
                 
                 # Archive old data before deletion
                 psql -h postgres.nephoran-system.svc.cluster.local -U postgres -d nephoran << EOF
--- Create archive table if not exists
-CREATE TABLE IF NOT EXISTS ${table_name}_archive (LIKE ${table_name} INCLUDING ALL);
+                -- Create archive table if not exists
+                CREATE TABLE IF NOT EXISTS ${table_name}_archive (LIKE ${table_name} INCLUDING ALL);
 
--- Move old data to archive
-INSERT INTO ${table_name}_archive 
-SELECT * FROM ${table_name} 
-WHERE created_at < '$cutoff_date' 
-AND id NOT IN (SELECT id FROM ${table_name}_archive);
+                -- Move old data to archive
+                INSERT INTO ${table_name}_archive 
+                SELECT * FROM ${table_name} 
+                WHERE created_at < '$cutoff_date' 
+                AND id NOT IN (SELECT id FROM ${table_name}_archive);
 
--- Delete old data from main table
-DELETE FROM ${table_name} WHERE created_at < '$cutoff_date';
+                -- Delete old data from main table
+                DELETE FROM ${table_name} WHERE created_at < '$cutoff_date';
 
--- Log retention action
-INSERT INTO retention_log (table_name, retention_days, cutoff_date, records_archived, records_deleted, executed_at)
-VALUES ('${table_name}', ${retention_days}, '$cutoff_date', 
-        (SELECT COUNT(*) FROM ${table_name}_archive WHERE created_at < '$cutoff_date'),
-        0, NOW());
-EOF
+                -- Log retention action
+                INSERT INTO retention_log (table_name, retention_days, cutoff_date, records_archived, records_deleted, executed_at)
+                VALUES ('${table_name}', ${retention_days}, '$cutoff_date', 
+                        (SELECT COUNT(*) FROM ${table_name}_archive WHERE created_at < '$cutoff_date'),
+                        0, NOW());
+              EOF
                 
                 echo "✅ Retention policy enforced for $data_type"
               }
@@ -755,16 +755,16 @@ EOF
                 purge_date=$(date -d "$purge_days days ago" '+%Y-%m-%d')
                 
                 psql -h postgres.nephoran-system.svc.cluster.local -U postgres -d nephoran << EOF
--- Count records to be purged
-\set purge_count (SELECT COUNT(*) FROM ${table_name}_archive WHERE created_at < '$purge_date')
+                -- Count records to be purged
+                \set purge_count (SELECT COUNT(*) FROM ${table_name}_archive WHERE created_at < '$purge_date')
 
--- Purge old archived data
-DELETE FROM ${table_name}_archive WHERE created_at < '$purge_date';
+                -- Purge old archived data
+                DELETE FROM ${table_name}_archive WHERE created_at < '$purge_date';
 
--- Log purge action
-INSERT INTO retention_log (table_name, retention_days, cutoff_date, records_archived, records_deleted, executed_at)
-VALUES ('${table_name}_archive', ${purge_days}, '$purge_date', 0, :purge_count, NOW());
-EOF
+                -- Log purge action
+                INSERT INTO retention_log (table_name, retention_days, cutoff_date, records_archived, records_deleted, executed_at)
+                VALUES ('${table_name}_archive', ${purge_days}, '$purge_date', 0, :purge_count, NOW());
+              EOF
                 
                 echo "✅ Archived data purged for $data_type"
               }
@@ -794,16 +794,16 @@ EOF
               
               # Initialize retention log table
               psql -h postgres.nephoran-system.svc.cluster.local -U postgres -d nephoran << 'EOF'
-CREATE TABLE IF NOT EXISTS retention_log (
-  id SERIAL PRIMARY KEY,
-  table_name VARCHAR(255) NOT NULL,
-  retention_days INTEGER NOT NULL,
-  cutoff_date DATE NOT NULL,
-  records_archived INTEGER DEFAULT 0,
-  records_deleted INTEGER DEFAULT 0,
-  executed_at TIMESTAMP DEFAULT NOW()
-);
-EOF
+              CREATE TABLE IF NOT EXISTS retention_log (
+                id SERIAL PRIMARY KEY,
+                table_name VARCHAR(255) NOT NULL,
+                retention_days INTEGER NOT NULL,
+                cutoff_date DATE NOT NULL,
+                records_archived INTEGER DEFAULT 0,
+                records_deleted INTEGER DEFAULT 0,
+                executed_at TIMESTAMP DEFAULT NOW()
+              );
+              EOF
               
               # Enforce retention policies based on configuration
               echo "📋 Enforcing data retention policies..."
