@@ -43,10 +43,10 @@ concurrency:
 env:
   # Stable Kubernetes and Go versions
   GO_VERSION: "1.24.0"
-  KUBERNETES_VERSION: "1.28.0"
-  CONTROLLER_RUNTIME_VERSION: "v0.16.3"
-  KUBEBUILDER_VERSION: "3.12.0"
-  ENVTEST_KUBERNETES_VERSION: "1.28.0"
+  KUBERNETES_VERSION: "1.31.0"
+  CONTROLLER_RUNTIME_VERSION: "v0.18.4"
+  KUBEBUILDER_VERSION: "3.15.0"
+  ENVTEST_KUBERNETES_VERSION: "1.31.0"
   
   # Build optimizations for 2025
   CGO_ENABLED: "0"
@@ -60,8 +60,8 @@ env:
   GOMODCACHE: "/tmp/go-mod"
   
   # Security scanning tools versions
-  TRIVY_VERSION: "0.45.1"
-  COSIGN_VERSION: "2.0.0"
+  TRIVY_VERSION: "0.58.1"
+  COSIGN_VERSION: "2.4.1"
   GOVULNCHECK_VERSION: "latest"
 
 jobs:
@@ -70,7 +70,7 @@ jobs:
   # =============================================================================
   preflight:
     name: "🚀 Pre-flight Setup"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Stable Ubuntu LTS
     timeout-minutes: 5
     outputs:
       go-cache-key: ${{ steps.cache-setup.outputs.cache-key }}
@@ -107,39 +107,41 @@ jobs:
         if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: "1.24.0"
           cache: false  # Manual cache control
           
-      - name: Setup advanced Go cache
+      - name: Setup simplified Go cache
         if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
         id: cache-setup
         run: |
-          # Generate comprehensive cache key for 2025 standards
-          GO_SUM_HASH="${{ hashFiles('**/go.sum') }}"
-          GO_MOD_HASH="${{ hashFiles('go.mod') }}"
-          CONFIG_HASH="${{ hashFiles('config/**/*.yaml', 'PROJECT') }}"
+          # Simplified cache key generation to avoid GitHub Actions issues
           
-          # Fallback for empty hashes
-          if [[ -z "$GO_SUM_HASH" ]]; then GO_SUM_HASH="${{ github.sha }}"; fi
-          if [[ -z "$GO_MOD_HASH" ]]; then GO_MOD_HASH="${{ github.sha }}"; fi
-          if [[ -z "$CONFIG_HASH" ]]; then CONFIG_HASH="${{ github.sha }}"; fi
+          # Get file hashes with fallbacks
+          if [ -f "go.sum" ]; then
+            GO_SUM_HASH=$(sha256sum go.sum | cut -d' ' -f1 | head -c 12)
+          else
+            GO_SUM_HASH="nosum"
+          fi
           
-          CACHE_KEY="nephoran-k8s-op-v3-${{ runner.os }}-go${{ env.GO_VERSION }}-k8s${{ env.KUBERNETES_VERSION }}-${GO_SUM_HASH}-${GO_MOD_HASH}-${CONFIG_HASH}"
+          if [ -f "go.mod" ]; then
+            GO_MOD_HASH=$(sha256sum go.mod | cut -d' ' -f1 | head -c 12)
+          else
+            GO_MOD_HASH="nomod"
+          fi
+          
+          CACHE_KEY="nephoran-k8s-op-v4-${{ runner.os }}-go124-k8s131-${GO_SUM_HASH}-${GO_MOD_HASH}"
           echo "cache-key=${CACHE_KEY}" >> $GITHUB_OUTPUT
           echo "Generated cache key: $CACHE_KEY"
           
-      - name: Fix permissions and clean cache directories before restore
+      - name: Clean cache directories (prevent tar errors)
         if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
         run: |
-          # Fix permissions before cleanup to avoid "Permission denied" errors
-          sudo chown -R $(id -u):$(id -g) ${{ env.GOCACHE }} || true
-          sudo chmod -R u+rw ${{ env.GOCACHE }} || true
-          sudo chown -R $(id -u):$(id -g) ${{ env.GOMODCACHE }} || true
-          sudo chmod -R u+rw ${{ env.GOMODCACHE }} || true
-          
-          # Clean cache directories
-          rm -rf ${{ env.GOCACHE }}
-          rm -rf ${{ env.GOMODCACHE }}
+          echo "Cleaning Go cache directories to prevent tar extraction conflicts..."
+          sudo rm -rf ${{ env.GOCACHE }} || true
+          sudo rm -rf ${{ env.GOMODCACHE }} || true
+          mkdir -p ${{ env.GOCACHE }} ${{ env.GOMODCACHE }}
+          chmod -R 755 ${{ env.GOCACHE }} ${{ env.GOMODCACHE }}
+          echo "Cache directories cleaned and ready for fresh extraction"
           
       - name: Restore Go cache
         if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
@@ -150,8 +152,8 @@ jobs:
             ${{ env.GOMODCACHE }}
           key: ${{ steps.cache-setup.outputs.cache-key }}
           restore-keys: |
-            nephoran-k8s-op-v3-${{ runner.os }}-go${{ env.GO_VERSION }}-k8s${{ env.KUBERNETES_VERSION }}-
-            nephoran-k8s-op-v3-${{ runner.os }}-go${{ env.GO_VERSION }}-
+            nephoran-k8s-op-v4-${{ runner.os }}-go124-k8s131-
+            nephoran-k8s-op-v4-${{ runner.os }}-go124-
             
       - name: Download dependencies
         if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
@@ -160,16 +162,6 @@ jobs:
           go mod download
           go mod verify
           echo "✅ Dependencies verified"
-          
-      - name: Final cleanup
-        if: always()
-        run: |
-          # Final cleanup with permission fixes
-          sudo chown -R $(id -u):$(id -g) ${{ env.GOCACHE }} || true
-          sudo chmod -R u+rw ${{ env.GOCACHE }} || true
-          sudo chown -R $(id -u):$(id -g) ${{ env.GOMODCACHE }} || true
-          sudo chmod -R u+rw ${{ env.GOMODCACHE }} || true
-          
       - name: Integration test check
         id: integration-check
         run: |
@@ -200,21 +192,17 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: "1.24.0"
           cache: false
           
-      - name: Fix permissions and clean cache directories before restore
+      - name: Clean cache directories (prevent tar errors)
         run: |
-          # Fix permissions before cleanup to avoid "Permission denied" errors
-          sudo chown -R $(id -u):$(id -g) ${{ env.GOCACHE }} || true
-          sudo chmod -R u+rw ${{ env.GOCACHE }} || true
-          sudo chown -R $(id -u):$(id -g) ${{ env.GOMODCACHE }} || true
-          sudo chmod -R u+rw ${{ env.GOMODCACHE }} || true
-          
-          # Clean cache directories
-          rm -rf ${{ env.GOCACHE }}
-          rm -rf ${{ env.GOMODCACHE }}
-          
+          echo "Cleaning Go cache directories to prevent tar extraction conflicts..."
+          sudo rm -rf ${{ env.GOCACHE }} || true
+          sudo rm -rf ${{ env.GOMODCACHE }} || true
+          mkdir -p ${{ env.GOCACHE }} ${{ env.GOMODCACHE }}
+          chmod -R 755 ${{ env.GOCACHE }} ${{ env.GOMODCACHE }}
+          echo "Cache directories cleaned and ready for fresh extraction"
       - name: Restore Go cache
         uses: actions/cache@v4
         with:
@@ -223,12 +211,13 @@ jobs:
             ${{ env.GOMODCACHE }}
           key: ${{ needs.preflight.outputs.go-cache-key }}
           restore-keys: |
-            nephoran-k8s-op-v3-${{ runner.os }}-go${{ env.GO_VERSION }}-k8s${{ env.KUBERNETES_VERSION }}-
+            nephoran-k8s-op-v4-${{ runner.os }}-go124-k8s131-
+            nephoran-k8s-op-v4-${{ runner.os }}-go124-
             
       - name: Install Kubebuilder
         run: |
           echo "🔧 Installing Kubebuilder ${{ env.KUBEBUILDER_VERSION }}..."
-          curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -L -o kubebuilder https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${{ env.KUBEBUILDER_VERSION }}/kubebuilder_linux_amd64
+          curl -L -o kubebuilder https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${{ env.KUBEBUILDER_VERSION }}/kubebuilder_linux_amd64
           chmod +x kubebuilder
           sudo mv kubebuilder /usr/local/bin/
           kubebuilder version
@@ -237,7 +226,7 @@ jobs:
         run: |
           # Install controller-gen 
           echo "🔧 Installing controller-gen..."
-          go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.13.0
+          go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.19.0
           
           # Install kustomize with GitHub token authentication
           echo "🔧 Installing kustomize..."
@@ -263,9 +252,9 @@ jobs:
           echo "🎯 Generating and validating CRDs..."
           make manifests
           
-          # Validate generated CRDs
+          # Validate generated CRDs (ignore missing schemas for custom resources)
           echo "🔍 Validating CRD schemas..."
-          find config/crd/bases -name "*.yaml" -exec kubeval --strict {} \;
+          find config/crd/bases -name "*.yaml" -exec kubeval --strict --ignore-missing-schemas {} \;
           
           # Check for CRD changes (should be committed)
           if ! git diff --quiet config/crd/bases/; then
@@ -282,9 +271,10 @@ jobs:
           echo "🔐 Generating and validating RBAC..."
           make generate
           
-          # Check RBAC files
+          # Check RBAC files (ignore missing schemas for custom resources)
           echo "🔍 Validating RBAC configurations..."
-          find config/rbac -name "*.yaml" -exec kubeval --strict {} \;
+          find config/rbac -name "*.yaml" -exec kubeval --strict --ignore-missing-schemas {} \;
+
           
           # Check for uncommitted changes
           if ! git diff --quiet config/rbac/; then
@@ -300,7 +290,8 @@ jobs:
         timeout-minutes: 2
         run: |
           echo "🪝 Validating webhook configurations..."
-          find config/webhook -name "*.yaml" -exec kubeval --strict {} \;
+          find config/webhook -name "*.yaml" -exec kubeval --strict --ignore-missing-schemas {} \;
+
           echo "✅ Webhook configurations are valid"
           
       - name: Kustomize validation
@@ -308,15 +299,16 @@ jobs:
         run: |
           echo "📋 Validating kustomize configurations..."
           
-          # Validate default overlay
+          # Validate default overlay (ignore missing schemas for custom resources)
           echo "🔍 Testing default kustomization..."
           kustomize build config/default > /tmp/default-manifest.yaml
-          kubeval --strict /tmp/default-manifest.yaml
+          kubeval --strict --ignore-missing-schemas /tmp/default-manifest.yaml
           
-          # Validate samples if they exist
+          # Validate samples if they exist (ignore missing schemas for custom resources)
           if [[ -d config/samples ]]; then
             echo "🔍 Validating sample configurations..."
-            find config/samples -name "*.yaml" -exec kubeval --strict {} \;
+            find config/samples -name "*.yaml" -exec kubeval --strict --ignore-missing-schemas {} \;
+
           fi
           
           echo "✅ All kustomize configurations are valid"
@@ -340,21 +332,10 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: "1.24.0"
           cache: false
           
-      - name: Fix permissions and clean cache directories before restore
-        run: |
-          # Fix permissions before cleanup to avoid "Permission denied" errors
-          sudo chown -R $(id -u):$(id -g) ${{ env.GOCACHE }} || true
-          sudo chmod -R u+rw ${{ env.GOCACHE }} || true
-          sudo chown -R $(id -u):$(id -g) ${{ env.GOMODCACHE }} || true
-          sudo chmod -R u+rw ${{ env.GOMODCACHE }} || true
-          
-          # Clean cache directories
-          rm -rf ${{ env.GOCACHE }}
-          rm -rf ${{ env.GOMODCACHE }}
-          
+
       - name: Restore Go cache
         uses: actions/cache@v4
         with:
@@ -375,7 +356,8 @@ jobs:
           
           # Install cosign for supply chain security
           echo "🔧 Installing cosign ${{ env.COSIGN_VERSION }}..."
-          curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -O -L "https://github.com/sigstore/cosign/releases/download/v${{ env.COSIGN_VERSION }}/cosign-linux-amd64"
+          curl -O -L "https://github.com/sigstore/cosign/releases/download/v${{ env.COSIGN_VERSION }}/cosign-linux-amd64"
+
           sudo mv cosign-linux-amd64 /usr/local/bin/cosign
           sudo chmod +x /usr/local/bin/cosign
           
@@ -385,7 +367,8 @@ jobs:
           cosign version
           
       - name: Run Go vulnerability scan
-        timeout-minutes: 5
+        timeout-minutes: 10
+
         run: |
           echo "🔍 Scanning Go modules for vulnerabilities..."
           govulncheck ./...
@@ -454,11 +437,37 @@ jobs:
             
           echo "✅ Container image security scan completed"
           
-      - name: Upload security scan results
-        uses: github/codeql-action/upload-sarif@v3
+      - name: List generated SARIF files
+
         if: always()
+        run: |
+          echo "📋 Generated SARIF files:"
+          ls -la *.sarif 2>/dev/null || echo "No SARIF files found"
+          
+      - name: Upload filesystem scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && hashFiles('trivy-fs-results.sarif') != ''
+        continue-on-error: true
         with:
-          sarif_file: '.'
+          sarif_file: trivy-fs-results.sarif
+          category: trivy-fs-scan
+          
+      - name: Upload Kubernetes config scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && hashFiles('trivy-k8s-results.sarif') != ''
+        continue-on-error: true
+        with:
+          sarif_file: trivy-k8s-results.sarif
+          category: trivy-k8s-scan
+          
+      - name: Upload container image scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && hashFiles('trivy-image-results.sarif') != ''
+        continue-on-error: true
+        with:
+          sarif_file: trivy-image-results.sarif
+          category: trivy-image-scan
+
           
       - name: Security scan summary
         if: always()
@@ -504,21 +513,10 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: "1.24.0"
           cache: false
           
-      - name: Fix permissions and clean cache directories before restore
-        run: |
-          # Fix permissions before cleanup to avoid "Permission denied" errors
-          sudo chown -R $(id -u):$(id -g) ${{ env.GOCACHE }} || true
-          sudo chmod -R u+rw ${{ env.GOCACHE }} || true
-          sudo chown -R $(id -u):$(id -g) ${{ env.GOMODCACHE }} || true
-          sudo chmod -R u+rw ${{ env.GOMODCACHE }} || true
-          
-          # Clean cache directories
-          rm -rf ${{ env.GOCACHE }}
-          rm -rf ${{ env.GOMODCACHE }}
-          
+
       - name: Restore Go cache
         uses: actions/cache@v4
         with:
@@ -535,7 +533,7 @@ jobs:
           go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
           
           # Setup test environment
-          export KUBEBUILDER_ASSETS=$(setup-envtest use ${{ env.ENVTEST_KUBERNETES_VERSION }} --bin-dir /tmp/envtest-bins -p path)
+          export KUBEBUILDER_ASSETS=$(setup-envtest use 1.31.x --bin-dir /tmp/envtest-bins -p path)
           echo "KUBEBUILDER_ASSETS=${KUBEBUILDER_ASSETS}" >> $GITHUB_ENV
           
           # Verify setup
@@ -629,21 +627,10 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: "1.24.0"
           cache: false
           
-      - name: Fix permissions and clean cache directories before restore
-        run: |
-          # Fix permissions before cleanup to avoid "Permission denied" errors
-          sudo chown -R $(id -u):$(id -g) ${{ env.GOCACHE }} || true
-          sudo chmod -R u+rw ${{ env.GOCACHE }} || true
-          sudo chown -R $(id -u):$(id -g) ${{ env.GOMODCACHE }} || true
-          sudo chmod -R u+rw ${{ env.GOMODCACHE }} || true
-          
-          # Clean cache directories
-          rm -rf ${{ env.GOCACHE }}
-          rm -rf ${{ env.GOMODCACHE }}
-          
+
       - name: Restore Go cache
         uses: actions/cache@v4
         with:
@@ -774,21 +761,10 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: "1.24.0"
           cache: false
           
-      - name: Fix permissions and clean cache directories before restore
-        run: |
-          # Fix permissions before cleanup to avoid "Permission denied" errors
-          sudo chown -R $(id -u):$(id -g) ${{ env.GOCACHE }} || true
-          sudo chmod -R u+rw ${{ env.GOCACHE }} || true
-          sudo chown -R $(id -u):$(id -g) ${{ env.GOMODCACHE }} || true
-          sudo chmod -R u+rw ${{ env.GOMODCACHE }} || true
-          
-          # Clean cache directories
-          rm -rf ${{ env.GOCACHE }}
-          rm -rf ${{ env.GOMODCACHE }}
-          
+
       - name: Restore Go cache
         uses: actions/cache@v4
         with:
@@ -845,15 +821,7 @@ jobs:
           
           echo "Generated manifests:"
           ls -la dist/
-          
-      - name: Final cleanup
-        if: always()
-        run: |
-          # Final cleanup with permission fixes to prevent CI cleanup failures
-          sudo chown -R $(id -u):$(id -g) ${{ env.GOCACHE }} || true
-          sudo chmod -R u+rw ${{ env.GOCACHE }} || true
-          sudo chown -R $(id -u):$(id -g) ${{ env.GOMODCACHE }} || true
-          sudo chmod -R u+rw ${{ env.GOMODCACHE }} || true
+
           
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

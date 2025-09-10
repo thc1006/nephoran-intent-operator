@@ -15,4 +15,3 @@ metadata:
     name: nephoran-auth
     nephoran.com/managed-by: nephoran-operator
     nephoran.com/component: authentication
-EOF < /dev/null

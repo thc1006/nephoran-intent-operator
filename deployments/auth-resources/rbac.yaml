@@ -9,7 +9,7 @@ metadata:
 rules:
 - apiGroups: ["nephoran.com"]
   resources: ["*"]
-  verbs: ["*"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 - apiGroups: [""]
   resources: ["events", "configmaps", "secrets"]
   verbs: ["create", "get", "list", "watch", "update", "patch"]
@@ -74,4 +74,3 @@ subjects:
 - kind: ServiceAccount
   name: nephoran-auth-service
   namespace: nephoran-auth
-EOF < /dev/null

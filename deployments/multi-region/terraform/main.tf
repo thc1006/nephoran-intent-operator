@@ -212,18 +212,18 @@ resource "google_kms_crypto_key" "regional" {
   }
 }
 
-# Global resources
-module "global_resources" {
-  source = "./modules/global"
-
-  project_id     = var.project_id
-  environment    = var.environment
-  regions        = local.regions
-  edge_regions   = local.edge_regions
-  common_labels  = local.common_labels
-  domain_name    = var.domain_name
-  dns_zone_name  = var.dns_zone_name
-}
+# Global resources (commented out - module not implemented)
+# module "global_resources" {
+#   source = "./modules/global"
+#
+#   project_id     = var.project_id
+#   environment    = var.environment
+#   regions        = local.regions
+#   edge_regions   = local.edge_regions
+#   common_labels  = local.common_labels
+#   domain_name    = var.domain_name
+#   dns_zone_name  = var.dns_zone_name
+# }
 
 # VPC and networking
 module "networking" {
@@ -307,144 +307,144 @@ module "edge_gke_clusters" {
   ]
 }
 
-# Multi-cluster ingress
-module "multi_cluster_ingress" {
-  source = "./modules/mci"
+# Multi-cluster ingress (commented out - module not implemented)
+# module "multi_cluster_ingress" {
+#   source = "./modules/mci"
+#
+#   project_id     = var.project_id
+#   environment    = var.environment
+#   config_cluster = module.gke_clusters["primary"].cluster_id
+#   
+#   member_clusters = {
+#     for k, v in module.gke_clusters : k => {
+#       cluster_id   = v.cluster_id
+#       cluster_name = v.cluster_name
+#       region       = local.regions[k].name
+#       priority     = local.regions[k].priority
+#     }
+#   }
+#
+#   common_labels = local.common_labels
+#   domain_name   = var.domain_name
+#
+#   depends_on = [module.gke_clusters]
+# }
 
-  project_id     = var.project_id
-  environment    = var.environment
-  config_cluster = module.gke_clusters["primary"].cluster_id
-  
-  member_clusters = {
-    for k, v in module.gke_clusters : k => {
-      cluster_id   = v.cluster_id
-      cluster_name = v.cluster_name
-      region       = local.regions[k].name
-      priority     = local.regions[k].priority
-    }
-  }
+# Weaviate clusters (commented out - module not implemented)
+# module "weaviate" {
+#   source = "./modules/weaviate"
+#
+#   project_id    = var.project_id
+#   environment   = var.environment
+#   regions       = local.regions
+#   vpc_id        = module.networking.vpc_id
+#   subnet_ids    = module.networking.subnet_ids
+#   common_labels = local.common_labels
+#
+#   # Weaviate configuration
+#   weaviate_config = {
+#     version              = "1.24.1"
+#     replicas            = 3
+#     storage_size        = "100Gi"
+#     memory_limit        = "8Gi"
+#     cpu_limit           = "4"
+#     enable_persistence  = true
+#     enable_backup       = true
+#     backup_schedule     = "0 2 * * *"  # Daily at 2 AM
+#   }
+#
+#   depends_on = [module.gke_clusters]
+# }
 
-  common_labels = local.common_labels
-  domain_name   = var.domain_name
+# Cloud SQL for metadata (commented out - module not implemented)
+# module "cloud_sql" {
+#   source = "./modules/cloud-sql"
+#
+#   project_id     = var.project_id
+#   environment    = var.environment
+#   primary_region = local.regions.primary.name
+#   replica_regions = [
+#     local.regions.secondary.name,
+#     local.regions.tertiary.name
+#   ]
+#   
+#   vpc_id                = module.networking.vpc_id
+#   private_ip_address    = module.networking.sql_private_ip
+#   common_labels         = local.common_labels
+#
+#   # Database configuration
+#   database_version      = "POSTGRES_15"
+#   tier                 = "db-custom-4-16384"
+#   disk_size            = 100
+#   disk_type            = "PD_SSD"
+#   backup_configuration = {
+#     enabled                        = true
+#     start_time                    = "03:00"
+#     point_in_time_recovery_enabled = true
+#     transaction_log_retention_days = 7
+#     retained_backups              = 30
+#   }
+#
+#   depends_on = [module.networking]
+# }
 
-  depends_on = [module.gke_clusters]
-}
+# Redis clusters for caching (commented out - module not implemented)
+# module "redis" {
+#   source = "./modules/redis"
+#
+#   for_each = local.regions
+#
+#   project_id    = var.project_id
+#   environment   = var.environment
+#   region        = each.value.name
+#   vpc_id        = module.networking.vpc_id
+#   common_labels = local.common_labels
+#
+#   # Redis configuration
+#   tier           = "STANDARD_HA"
+#   memory_size_gb = 5
+#   version        = "REDIS_7_0"
+#   
+#   # Enable auth and transit encryption
+#   auth_enabled            = true
+#   transit_encryption_mode = "SERVER_AUTHENTICATION"
+#
+#   depends_on = [module.networking]
+# }
 
-# Weaviate clusters
-module "weaviate" {
-  source = "./modules/weaviate"
-
-  project_id    = var.project_id
-  environment   = var.environment
-  regions       = local.regions
-  vpc_id        = module.networking.vpc_id
-  subnet_ids    = module.networking.subnet_ids
-  common_labels = local.common_labels
-
-  # Weaviate configuration
-  weaviate_config = {
-    version              = "1.24.1"
-    replicas            = 3
-    storage_size        = "100Gi"
-    memory_limit        = "8Gi"
-    cpu_limit           = "4"
-    enable_persistence  = true
-    enable_backup       = true
-    backup_schedule     = "0 2 * * *"  # Daily at 2 AM
-  }
-
-  depends_on = [module.gke_clusters]
-}
-
-# Cloud SQL for metadata
-module "cloud_sql" {
-  source = "./modules/cloud-sql"
-
-  project_id     = var.project_id
-  environment    = var.environment
-  primary_region = local.regions.primary.name
-  replica_regions = [
-    local.regions.secondary.name,
-    local.regions.tertiary.name
-  ]
-  
-  vpc_id                = module.networking.vpc_id
-  private_ip_address    = module.networking.sql_private_ip
-  common_labels         = local.common_labels
-
-  # Database configuration
-  database_version      = "POSTGRES_15"
-  tier                 = "db-custom-4-16384"
-  disk_size            = 100
-  disk_type            = "PD_SSD"
-  backup_configuration = {
-    enabled                        = true
-    start_time                    = "03:00"
-    point_in_time_recovery_enabled = true
-    transaction_log_retention_days = 7
-    retained_backups              = 30
-  }
-
-  depends_on = [module.networking]
-}
-
-# Redis clusters for caching
-module "redis" {
-  source = "./modules/redis"
-
-  for_each = local.regions
-
-  project_id    = var.project_id
-  environment   = var.environment
-  region        = each.value.name
-  vpc_id        = module.networking.vpc_id
-  common_labels = local.common_labels
-
-  # Redis configuration
-  tier           = "STANDARD_HA"
-  memory_size_gb = 5
-  version        = "REDIS_7_0"
-  
-  # Enable auth and transit encryption
-  auth_enabled            = true
-  transit_encryption_mode = "SERVER_AUTHENTICATION"
-
-  depends_on = [module.networking]
-}
-
-# Monitoring and observability
-module "monitoring" {
-  source = "./modules/monitoring"
-
-  project_id    = var.project_id
-  environment   = var.environment
-  regions       = local.regions
-  clusters      = module.gke_clusters
-  common_labels = local.common_labels
-
-  # Monitoring configuration
-  enable_prometheus    = true
-  enable_grafana      = true
-  enable_alerting     = true
-  enable_tracing      = true
-  
-  # Thanos configuration for global metrics
-  thanos_config = {
-    retention_raw      = "7d"
-    retention_5m       = "30d"
-    retention_1h       = "90d"
-    storage_bucket     = google_storage_bucket.global_backup.name
-  }
-
-  # Alerting configuration
-  alert_config = {
-    slack_webhook_url = var.slack_webhook_url
-    pagerduty_key    = var.pagerduty_integration_key
-    email_addresses  = var.alert_email_addresses
-  }
-
-  depends_on = [module.gke_clusters]
-}
+# Monitoring and observability (commented out - module not implemented)
+# module "monitoring" {
+#   source = "./modules/monitoring"
+#
+#   project_id    = var.project_id
+#   environment   = var.environment
+#   regions       = local.regions
+#   clusters      = module.gke_clusters
+#   common_labels = local.common_labels
+#
+#   # Monitoring configuration
+#   enable_prometheus    = true
+#   enable_grafana      = true
+#   enable_alerting     = true
+#   enable_tracing      = true
+#   
+#   # Thanos configuration for global metrics
+#   thanos_config = {
+#     retention_raw      = "7d"
+#     retention_5m       = "30d"
+#     retention_1h       = "90d"
+#     storage_bucket     = google_storage_bucket.global_backup.name
+#   }
+#
+#   # Alerting configuration
+#   alert_config = {
+#     slack_webhook_url = var.slack_webhook_url
+#     pagerduty_key    = var.pagerduty_integration_key
+#     email_addresses  = var.alert_email_addresses
+#   }
+#
+#   depends_on = [module.gke_clusters]
+# }
 
 # Outputs
 output "cluster_endpoints" {
@@ -454,30 +454,30 @@ output "cluster_endpoints" {
   }
 }
 
-output "global_load_balancer_ip" {
-  description = "Global load balancer IP address"
-  value       = module.global_resources.global_load_balancer_ip
-}
+# output "global_load_balancer_ip" {
+#   description = "Global load balancer IP address"
+#   value       = module.global_resources.global_load_balancer_ip
+# }
 
-output "weaviate_endpoints" {
-  description = "Weaviate cluster endpoints"
-  value       = module.weaviate.endpoints
-}
+# output "weaviate_endpoints" {
+#   description = "Weaviate cluster endpoints"
+#   value       = module.weaviate.endpoints
+# }
 
-output "cloud_sql_connection" {
-  description = "Cloud SQL connection details"
-  value       = module.cloud_sql.connection_name
-  sensitive   = true
-}
+# output "cloud_sql_connection" {
+#   description = "Cloud SQL connection details"
+#   value       = module.cloud_sql.connection_name
+#   sensitive   = true
+# }
 
-output "redis_endpoints" {
-  description = "Redis cluster endpoints"
-  value = {
-    for k, v in module.redis : k => v.host
-  }
-}
+# output "redis_endpoints" {
+#   description = "Redis cluster endpoints"
+#   value = {
+#     for k, v in module.redis : k => v.host
+#   }
+# }
 
-output "monitoring_urls" {
-  description = "Monitoring dashboard URLs"
-  value       = module.monitoring.dashboard_urls
-}
+# output "monitoring_urls" {
+#   description = "Monitoring dashboard URLs"
+#   value       = module.monitoring.dashboard_urls
+# }

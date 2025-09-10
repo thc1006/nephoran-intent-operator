@@ -242,8 +242,8 @@ spec:
             alert_type: predictive
             impact: capacity
           annotations:
-            summary: "Capacity exhaustion predicted within {{ $value }} hours"
-            description: "Based on current growth trends, concurrent user capacity will be exhausted in {{ $value }} hours"
+            summary: "Capacity exhaustion predicted within {{ "{{ $value }}" }} hours"
+            description: "Based on current growth trends, concurrent user capacity will be exhausted in {{ "{{ $value }}" }} hours"
             recommended_action: "Scale up infrastructure or implement load balancing"
             
         # High performance degradation risk
@@ -257,7 +257,7 @@ spec:
             impact: performance
           annotations:
             summary: "High risk of performance degradation detected"
-            description: "Performance degradation risk score is {{ $value }}%, indicating high probability of SLA violations"
+            description: "Performance degradation risk score is {{ .Value }}%, indicating high probability of SLA violations"
             recommended_action: "Review resource allocation and optimize performance bottlenecks"
 
     # Business impact alerts

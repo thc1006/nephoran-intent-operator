@@ -13,7 +13,7 @@ ARG SERVICE
 # =============================================================================
 # STAGE 1: Binary Stage (if not pre-built)
 # =============================================================================
-FROM golang:1.24.1-alpine AS builder
+FROM golang:1.25.1-alpine AS builder
 ARG SERVICE
 ARG TARGETARCH=amd64
 
@@ -65,7 +65,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 # =============================================================================
 # STAGE 2: Binary Selector (Alpine with shell for conditional logic)
 # =============================================================================
-FROM alpine:3.21 AS binary-selector
+FROM alpine:3.22 AS binary-selector
 
 # Install binary optimization tools
 RUN apk add --no-cache upx
@@ -96,7 +96,7 @@ RUN PREBUILT_BINARY=${PREBUILT_BINARY:+/build-context/${PREBUILT_BINARY}} /selec
 # =============================================================================
 # STAGE 3: Runtime Dependencies
 # =============================================================================
-FROM alpine:3.21 AS runtime-deps
+FROM alpine:3.22 AS runtime-deps
 
 # Install tzdata and ca-certificates for runtime
 # CRITICAL: Keep tzdata available for copying to final stage

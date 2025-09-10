@@ -1,19 +1,32 @@
 # =============================================================================
 # Nephoran Intent Operator - 2025 CI Pipeline
 # =============================================================================
-# Optimized for Go 1.24.6, Ubuntu Linux only, with modern security practices
+# Optimized for Go 1.24, Ubuntu Linux only, with modern security practices
 # Addresses: cache key failures, tar extraction errors, timeout issues
 # =============================================================================
 
-name: CI Pipeline 2025 - DISABLED
+name: CI Pipeline 2025
 
-# EMERGENCY CI CONSOLIDATION: DISABLED to reduce 75%+ CI job overhead
-# CONVERTED TO MANUAL-ONLY: Auto-triggering disabled to prevent CI conflicts
-# Original triggers preserved in comments for reference:
-# - push: [ main, integrate/mvp, "feat/**", "fix/**", "chore/**" ] with path filters
-# - pull_request: [ main, integrate/mvp ]
+# EMERGENCY CI CONSOLIDATION: TEMPORARILY ENABLED FOR FIXING
+# Converting back to active CI after fixing version issues
 
 on:
+  push:
+    branches: [ main, integrate/mvp, "feat/**", "fix/**", "chore/**" ]
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'api/**'
+      - 'cmd/**'
+      - 'controllers/**'
+      - 'pkg/**'
+      - 'internal/**'
+      - 'Makefile*'
+      - '.github/workflows/ci-2025.yml'
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [ main, integrate/mvp ]
   workflow_dispatch:
     inputs:
       debug_enabled:
@@ -38,7 +51,7 @@ permissions:
   checks: write
   pull-requests: read
 
-# Environment optimized for Go 1.24.6 and Ubuntu Linux
+# Environment optimized for Go 1.24 and Ubuntu Linux
 env:
   GO_VERSION: "1.24.0"
   GOPROXY: "https://proxy.golang.org,direct"
@@ -104,25 +117,25 @@ jobs:
         if: steps.changes.outputs.go == 'true'
         id: cache-key
         run: |
-          # Generate reliable cache key with fallbacks
-          GO_VERSION_CLEAN=$(echo "${{ env.GO_VERSION }}" | tr '.' '_')
+          # Simplified cache key generation to avoid failures
+          GO_VERSION_CLEAN="1_23_4"
           
           # Get go.sum hash with validation
           if [ -f "go.sum" ]; then
-            GO_SUM_HASH=$(sha256sum go.sum | cut -d' ' -f1 | head -c 16)
+            GO_SUM_HASH=$(sha256sum go.sum | cut -d' ' -f1 | head -c 12)
           else
-            GO_SUM_HASH="no-gosum-$(date +%Y%m%d)"
+            GO_SUM_HASH="fallback"
           fi
           
           # Get go.mod hash for additional validation
           if [ -f "go.mod" ]; then
-            GO_MOD_HASH=$(sha256sum go.mod | cut -d' ' -f1 | head -c 16)
+            GO_MOD_HASH=$(sha256sum go.mod | cut -d' ' -f1 | head -c 12)
           else
-            GO_MOD_HASH="no-gomod"
+            GO_MOD_HASH="fallback"
           fi
           
-          # Construct cache key and paths
-          CACHE_KEY="go-v4-ubuntu-${GO_VERSION_CLEAN}-${GO_SUM_HASH}-${GO_MOD_HASH}"
+          # Construct simplified cache key
+          CACHE_KEY="go-v5-ubuntu-${GO_VERSION_CLEAN}-${GO_SUM_HASH}-${GO_MOD_HASH}"
           CACHE_PATH="${HOME}/.cache/go-build
           ${HOME}/go/pkg/mod"
           
@@ -203,13 +216,16 @@ jobs:
 
       - name: Clean cache directories (prevent tar errors)
         run: |
-          echo "Cleaning Go cache directories to prevent conflicts..."
+          echo "Cleaning Go cache directories to prevent tar extraction conflicts..."
+          # Remove existing cache directories completely to prevent "File exists" tar errors
           sudo rm -rf $HOME/.cache/go-build || true
           sudo rm -rf $HOME/go/pkg/mod || true
-          mkdir -p $HOME/.cache/go-build $HOME/go/pkg/mod
           
-          # Set proper permissions
+          # Create fresh directories with proper permissions
+          mkdir -p $HOME/.cache/go-build $HOME/go/pkg/mod
           chmod -R 755 $HOME/.cache/go-build $HOME/go/pkg/mod
+          
+          echo "Cache directories cleaned and ready for fresh extraction"
 
       - name: Restore build cache
         uses: actions/cache@v4
@@ -217,8 +233,8 @@ jobs:
           path: ${{ needs.setup.outputs.go-cache-path }}
           key: ${{ needs.setup.outputs.go-cache-key }}
           restore-keys: |
-            go-v4-ubuntu-${{ env.GO_VERSION }}-
-            go-v4-ubuntu-
+            go-v5-ubuntu-1_23_4-
+            go-v5-ubuntu-
 
       - name: GitHub authentication for private modules
         run: |
@@ -320,10 +336,16 @@ jobs:
 
       - name: Clean cache directories (prevent tar errors)
         run: |
+          echo "Cleaning Go cache directories to prevent tar extraction conflicts..."
+          # Remove existing cache directories completely to prevent "File exists" tar errors
           sudo rm -rf $HOME/.cache/go-build || true
           sudo rm -rf $HOME/go/pkg/mod || true
+          
+          # Create fresh directories with proper permissions
           mkdir -p $HOME/.cache/go-build $HOME/go/pkg/mod
           chmod -R 755 $HOME/.cache/go-build $HOME/go/pkg/mod
+          
+          echo "Cache directories cleaned and ready for fresh extraction"
 
       - name: Restore build cache
         uses: actions/cache@v4
@@ -331,7 +353,8 @@ jobs:
           path: ${{ needs.setup.outputs.go-cache-path }}
           key: ${{ needs.setup.outputs.go-cache-key }}
           restore-keys: |
-            go-v4-ubuntu-${{ env.GO_VERSION }}-
+            go-v5-ubuntu-1_23_4-
+            go-v5-ubuntu-
 
       - name: Download and verify test dependencies
         timeout-minutes: 3
@@ -351,8 +374,8 @@ jobs:
           
           # Setup Kubernetes test environment
           echo "Setting up Kubernetes test environment..."
-          setup-envtest use 1.31.0 --arch=amd64 --os=linux
-          export KUBEBUILDER_ASSETS=$(setup-envtest use 1.31.0 --arch=amd64 --os=linux -p path)
+          setup-envtest use 1.31.x --arch=amd64 --os=linux
+          export KUBEBUILDER_ASSETS=$(setup-envtest use 1.31.x --arch=amd64 --os=linux -p path)
           echo "KUBEBUILDER_ASSETS=$KUBEBUILDER_ASSETS" >> $GITHUB_ENV
           echo "Kubernetes test environment ready"
 
@@ -395,7 +418,6 @@ jobs:
             -cpu=1,2,4 \
             -count=1 \
             -failfast \
-            -json \
             ${{ matrix.test-pattern }} 2>&1 | tee "test-results/logs/test-output-${{ matrix.name }}.log"
           
           # Check if tests passed (go test returns 0 on success)
@@ -483,12 +505,18 @@ jobs:
           check-latest: true
           cache: false
 
-      - name: Clean cache directories
+      - name: Clean cache directories (prevent tar errors)
         run: |
+          echo "Cleaning Go cache directories to prevent tar extraction conflicts..."
+          # Remove existing cache directories completely to prevent "File exists" tar errors
           sudo rm -rf $HOME/.cache/go-build || true
           sudo rm -rf $HOME/go/pkg/mod || true
+          
+          # Create fresh directories with proper permissions
           mkdir -p $HOME/.cache/go-build $HOME/go/pkg/mod
           chmod -R 755 $HOME/.cache/go-build $HOME/go/pkg/mod
+          
+          echo "Cache directories cleaned and ready for fresh extraction"
 
       - name: Restore build cache
         uses: actions/cache@v4
@@ -496,7 +524,8 @@ jobs:
           path: ${{ needs.setup.outputs.go-cache-path }}
           key: ${{ needs.setup.outputs.go-cache-key }}
           restore-keys: |
-            go-v4-ubuntu-${{ env.GO_VERSION }}-
+            go-v5-ubuntu-1_23_4-
+            go-v5-ubuntu-
 
       - name: Download and verify dependencies
         timeout-minutes: 5
@@ -529,7 +558,7 @@ jobs:
       # - name: Go vulnerability check (using govulncheck-action)
       #   uses: golang/govulncheck-action@v1
       #   with:
-      #     go-version-input: '1.24.6'
+      #     go-version-input: '1.24'
       #     go-package: './cmd/... ./api/... ./controllers/...'
       #   continue-on-error: true  # Don't fail CI for vulnerabilities
 
