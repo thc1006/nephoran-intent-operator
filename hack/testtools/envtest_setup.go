@@ -43,6 +43,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	nephoranv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // TestEnvironmentOptions configures the test environment setup.
@@ -255,6 +256,7 @@ func DefaultTestEnvironmentOptions() TestEnvironmentOptions {
 
 		SchemeBuilders: []func(*runtime.Scheme) error{
 
+			nephoranv1alpha1.AddToScheme,
 			nephoranv1.AddToScheme,
 
 			corev1.AddToScheme,
@@ -1146,7 +1148,7 @@ func (te *TestEnvironment) cleanupE2NodeSets(ctx context.Context, namespace stri
 
 func (te *TestEnvironment) cleanupNetworkIntents(ctx context.Context, namespace string) error {
 
-	networkIntentList := &nephoranv1.NetworkIntentList{}
+	networkIntentList := &nephoranv1alpha1.NetworkIntentList{}
 
 	if err := te.K8sClient.List(ctx, networkIntentList, client.InNamespace(namespace)); err != nil {
 
@@ -1384,7 +1386,7 @@ func (te *TestEnvironment) waitForNamespaceCleanup(ctx context.Context, namespac
 
 		}
 
-		networkIntentList := &nephoranv1.NetworkIntentList{}
+		networkIntentList := &nephoranv1alpha1.NetworkIntentList{}
 
 		if err := te.K8sClient.List(ctx, networkIntentList, client.InNamespace(namespace)); err == nil {
 
@@ -1628,7 +1630,7 @@ func (te *TestEnvironment) verifySingleCRD(ctx context.Context, crdName string) 
 
 		case strings.Contains(crdName, "networkintents"):
 
-			niList := &nephoranv1.NetworkIntentList{}
+			niList := &nephoranv1alpha1.NetworkIntentList{}
 
 			err := te.K8sClient.List(ctx, niList)
 
@@ -1995,9 +1997,9 @@ func (te *TestEnvironment) Consistently(f func() bool, msgAndArgs ...interface{}
 
 // CreateTestNetworkIntent creates a NetworkIntent for testing.
 
-func (te *TestEnvironment) CreateTestNetworkIntent(name, namespace, intent string) (*nephoranv1.NetworkIntent, error) {
+func (te *TestEnvironment) CreateTestNetworkIntent(name, namespace, intent string) (*nephoranv1alpha1.NetworkIntent, error) {
 
-	ni := &nephoranv1.NetworkIntent{
+	ni := &nephoranv1alpha1.NetworkIntent{
 
 		ObjectMeta: metav1.ObjectMeta{
 
@@ -2006,9 +2008,11 @@ func (te *TestEnvironment) CreateTestNetworkIntent(name, namespace, intent strin
 			Namespace: namespace,
 		},
 
-		Spec: nephoranv1.NetworkIntentSpec{
+		Spec: nephoranv1alpha1.NetworkIntentSpec{
 
-			Intent: intent,
+			Source: "test",
+			IntentType: "scaling", 
+			Target: intent,
 		},
 	}
 
@@ -2085,7 +2089,7 @@ func (te *TestEnvironment) CreateTestManagedElement(name, namespace string) (*ne
 
 func (te *TestEnvironment) WaitForNetworkIntentReady(namespacedName types.NamespacedName) error {
 
-	ni := &nephoranv1.NetworkIntent{}
+	ni := &nephoranv1alpha1.NetworkIntent{}
 
 	te.Eventually(func() bool {
 
