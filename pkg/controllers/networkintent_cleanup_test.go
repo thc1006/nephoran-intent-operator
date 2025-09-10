@@ -484,11 +484,9 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 		It("Should handle repository corruption scenarios", func() {
 			By("Setting up repository corruption scenario")
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			corruptionError := errors.New("repository is corrupted or locked")
-			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
-			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
-
-			// Mock setup handled above
+			mockGitClient.SetRemoveDirectoryError(corruptionError)
 
 			By("Calling cleanup function")
 			err := reconciler.cleanupGitOpsPackages(ctx, networkIntent, mockGitClient)
