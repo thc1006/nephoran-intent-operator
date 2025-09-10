@@ -257,7 +257,7 @@ spec:
             impact: performance
           annotations:
             summary: "High risk of performance degradation detected"
-            description: "Performance degradation risk score is {{ $value }}%, indicating high probability of SLA violations"
+            description: "Performance degradation risk score is {{ .Value }}%, indicating high probability of SLA violations"
             recommended_action: "Review resource allocation and optimize performance bottlenecks"
 
     # Business impact alerts

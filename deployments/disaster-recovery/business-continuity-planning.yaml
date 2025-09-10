@@ -436,14 +436,14 @@ spec:
             revenue_impact=$(echo "$intent_volume_per_hour * $revenue_per_intent * $duration_hours * $impact_percentage / 100" | bc -l)
             
             cat <<EOF > /tmp/business_impact.json
-{
-  "incident_severity": "$severity",
-  "duration_minutes": $duration_minutes,
-  "revenue_impact_usd": $revenue_impact,
-  "customer_impact": "$customer_impact",
-  "calculated_at": "$(date -Iseconds)"
-}
-EOF
+            {
+              "incident_severity": "$severity",
+              "duration_minutes": $duration_minutes,
+              "revenue_impact_usd": $revenue_impact,
+              "customer_impact": "$customer_impact",
+              "calculated_at": "$(date -Iseconds)"
+            }
+            EOF
             
             echo "📊 Business impact: \$$(printf "%.2f" $revenue_impact) revenue loss, $customer_impact"
           }
@@ -459,23 +459,23 @@ EOF
             
             # Create incident record
             cat <<EOF > /tmp/incident_${incident_id}.json
-{
-  "incident_id": "$incident_id",
-  "severity": "$severity", 
-  "title": "$title",
-  "description": "$description",
-  "status": "investigating",
-  "created_at": "$(date -Iseconds)",
-  "response_team": [],
-  "timeline": [
-    {
-      "timestamp": "$(date -Iseconds)",
-      "event": "incident_created",
-      "description": "Incident automatically created by monitoring system"
-    }
-  ]
-}
-EOF
+            {
+              "incident_id": "$incident_id",
+              "severity": "$severity", 
+              "title": "$title",
+              "description": "$description",
+              "status": "investigating",
+              "created_at": "$(date -Iseconds)",
+              "response_team": [],
+              "timeline": [
+                {
+                  "timestamp": "$(date -Iseconds)",
+                  "event": "incident_created",
+                  "description": "Incident automatically created by monitoring system"
+                }
+              ]
+            }
+            EOF
             
             # Store incident in ConfigMap
             kubectl create configmap incident-${incident_id} \
@@ -582,7 +582,7 @@ spec:
           fi
           
           echo "✅ Automated recovery completed for incident ${incident_id}"
-EOF
+            EOF
             
             echo "✅ Recovery job created for incident $incident_id"
           }
@@ -724,16 +724,16 @@ spec:
             fi
             
             cat <<EOF > /tmp/customer_impact_${incident_id}.json
-{
-  "incident_id": "$incident_id",
-  "assessment_time": "$(date -Iseconds)",
-  "success_rate": $success_rate,
-  "active_users": $active_users,
-  "affected_users": $affected_users,
-  "impact_level": "$impact_level",
-  "impact_description": "$impact_description"
-}
-EOF
+            {
+              "incident_id": "$incident_id",
+              "assessment_time": "$(date -Iseconds)",
+              "success_rate": $success_rate,
+              "active_users": $active_users,
+              "affected_users": $affected_users,
+              "impact_level": "$impact_level",
+              "impact_description": "$impact_description"
+            }
+            EOF
             
             echo "📋 Customer impact: $impact_level - $impact_description"
           }
@@ -766,16 +766,16 @@ EOF
             lost_revenue=$(echo "$intent_volume_per_hour * $revenue_per_intent * $duration_hours * $impact_factor * $peak_multiplier" | bc -l)
             
             cat <<EOF > /tmp/revenue_impact_${incident_id}.json
-{
-  "incident_id": "$incident_id",
-  "assessment_time": "$(date -Iseconds)",
-  "duration_minutes": $duration_minutes,
-  "success_rate": $success_rate,
-  "impact_factor": $impact_factor,
-  "peak_multiplier": $peak_multiplier,
-  "lost_revenue_usd": $lost_revenue
-}
-EOF
+            {
+              "incident_id": "$incident_id",
+              "assessment_time": "$(date -Iseconds)",
+              "duration_minutes": $duration_minutes,
+              "success_rate": $success_rate,
+              "impact_factor": $impact_factor,
+              "peak_multiplier": $peak_multiplier,
+              "lost_revenue_usd": $lost_revenue
+            }
+            EOF
             
             echo "💵 Revenue impact: \$$(printf "%.2f" $lost_revenue) lost revenue"
           }
@@ -810,15 +810,15 @@ EOF
             total_operational_cost=$(echo "$manual_cost + $support_cost + $engineering_cost" | bc -l)
             
             cat <<EOF > /tmp/operational_impact_${incident_id}.json
-{
-  "incident_id": "$incident_id",
-  "assessment_time": "$(date -Iseconds)",
-  "manual_operations_hours": $manual_ops_count,
-  "support_tickets_generated": $support_tickets,
-  "engineering_hours_diverted": 2,
-  "total_operational_cost_usd": $total_operational_cost
-}
-EOF
+            {
+              "incident_id": "$incident_id",
+              "assessment_time": "$(date -Iseconds)",
+              "manual_operations_hours": $manual_ops_count,
+              "support_tickets_generated": $support_tickets,
+              "engineering_hours_diverted": 2,
+              "total_operational_cost_usd": $total_operational_cost
+            }
+            EOF
             
             echo "🔧 Operational impact: \$$(printf "%.2f" $total_operational_cost) operational cost"
           }
@@ -841,20 +841,20 @@ EOF
             operational_impact=$(cat /tmp/operational_impact_${incident_id}.json)
             
             cat <<EOF > /tmp/business_impact_report_${incident_id}.json
-{
-  "incident_id": "$incident_id",
-  "report_generated": "$(date -Iseconds)",
-  "duration_minutes": $duration_minutes,
-  "customer_impact": $customer_impact,
-  "revenue_impact": $revenue_impact,
-  "operational_impact": $operational_impact,
-  "summary": {
-    "total_cost_impact": $(echo "$(echo "$revenue_impact" | jq -r '.lost_revenue_usd') + $(echo "$operational_impact" | jq -r '.total_operational_cost_usd')" | bc -l),
-    "customer_impact_level": "$(echo "$customer_impact" | jq -r '.impact_level')",
-    "business_priority": "high"
-  }
-}
-EOF
+            {
+              "incident_id": "$incident_id",
+              "report_generated": "$(date -Iseconds)",
+              "duration_minutes": $duration_minutes,
+              "customer_impact": $customer_impact,
+              "revenue_impact": $revenue_impact,
+              "operational_impact": $operational_impact,
+              "summary": {
+                "total_cost_impact": $(echo "$(echo "$revenue_impact" | jq -r '.lost_revenue_usd') + $(echo "$operational_impact" | jq -r '.total_operational_cost_usd')" | bc -l),
+                "customer_impact_level": "$(echo "$customer_impact" | jq -r '.impact_level')",
+                "business_priority": "high"
+              }
+            }
+            EOF
             
             # Store report in ConfigMap
             kubectl create configmap business-impact-report-${incident_id} \

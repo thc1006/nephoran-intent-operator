@@ -57,38 +57,38 @@ RUN go mod download && go mod verify
 COPY . .
 
 # Create air configuration for hot reload
-RUN cat > .air.toml << 'EOF'
-root = "."
-tmp_dir = "tmp"
-
-[build]
-  cmd = "go build -gcflags='all=-N -l' -o ./tmp/main {{.BuildArgs}}"
-  bin = "tmp/main"
-  full_bin = "dlv exec ./tmp/main --listen=:40000 --headless=true --api-version=2 --accept-multiclient"
-  delay = 1000
-  exclude_dir = ["tmp", "vendor", ".git", "scripts", "deployments"]
-  exclude_regex = ["_test.go"]
-  exclude_unchanged = false
-  follow_symlink = false
-  include_ext = ["go", "yaml", "yml", "toml"]
-  kill_delay = "0s"
-  log = "build-errors.log"
-  send_interrupt = false
-  stop_on_error = true
-
-[color]
-  app = ""
-  build = "yellow"
-  main = "magenta"
-  runner = "green"
-  watcher = "cyan"
-
-[log]
-  time = true
-
-[misc]
-  clean_on_exit = true
-EOF
+RUN printf '%s\n' \
+    'root = "."' \
+    'tmp_dir = "tmp"' \
+    '' \
+    '[build]' > .air.toml && \
+    printf '%s\n' \
+    '  cmd = "go build -gcflags='"'"'all=-N -l'"'"' -o ./tmp/main {{.BuildArgs}}"' \
+    '  bin = "tmp/main"' \
+    '  full_bin = "dlv exec ./tmp/main --listen=:40000 --headless=true --api-version=2 --accept-multiclient"' \
+    '  delay = 1000' \
+    '  exclude_dir = ["tmp", "vendor", ".git", "scripts", "deployments"]' \
+    '  exclude_regex = ["_test.go"]' \
+    '  exclude_unchanged = false' \
+    '  follow_symlink = false' \
+    '  include_ext = ["go", "yaml", "yml", "toml"]' \
+    '  kill_delay = "0s"' \
+    '  log = "build-errors.log"' \
+    '  send_interrupt = false' \
+    '  stop_on_error = true' \
+    '' \
+    '[color]' \
+    '  app = ""' \
+    '  build = "yellow"' \
+    '  main = "magenta"' \
+    '  runner = "green"' \
+    '  watcher = "cyan"' \
+    '' \
+    '[log]' \
+    '  time = true' \
+    '' \
+    '[misc]' \
+    '  clean_on_exit = true' >> .air.toml
 
 # Development environment variables
 ENV GO_ENV=development \
