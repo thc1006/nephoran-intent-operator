@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.14.0
-  name: networkintents.nephoran.com.
+  name: networkintents.nephoran.io
 spec:
-  group: nephoran.com.
+  group: nephoran.io
   names:
     kind: NetworkIntent
     listKind: NetworkIntentList

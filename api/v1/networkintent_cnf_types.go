@@ -431,7 +431,9 @@ type PerformanceIntent struct {
 
 	// +optional
 
-	PacketLossTolerance *float64 `json:"packetLossTolerance,omitempty"`
+	// +kubebuilder:validation:Pattern=`^([0-9]|[1-9][0-9]|100)(\.\d+)?$`
+
+	PacketLossTolerance *string `json:"packetLossTolerance,omitempty"`
 
 	// Jitter tolerance (in milliseconds).
 
@@ -533,7 +535,9 @@ type CNFIntentProcessingResult struct {
 
 	// Cost estimation.
 
-	EstimatedCost float64 `json:"estimatedCost,omitempty"`
+	// +kubebuilder:validation:Pattern=`^\d+(\.\d{1,4})?$`
+
+	EstimatedCost string `json:"estimatedCost,omitempty"`
 
 	// Deployment timeline estimation (in minutes).
 
@@ -541,7 +545,9 @@ type CNFIntentProcessingResult struct {
 
 	// Confidence score (0.0 - 1.0).
 
-	ConfidenceScore float64 `json:"confidenceScore,omitempty"`
+	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
+
+	ConfidenceScore string `json:"confidenceScore,omitempty"`
 
 	// Processing warnings.
 

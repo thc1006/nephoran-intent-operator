@@ -213,11 +213,9 @@ type OptimizationGoal struct {
 
 	// +optional
 
-	// +kubebuilder:validation:Minimum=0.0
+	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
 
-	// +kubebuilder:validation:Maximum=1.0
-
-	Weight *float64 `json:"weight,omitempty"`
+	Weight *string `json:"weight,omitempty"`
 
 	// Target specifies the target value.
 
@@ -349,11 +347,9 @@ type SLARequirements struct {
 
 	// +optional
 
-	// +kubebuilder:validation:Minimum=0.0
+	// +kubebuilder:validation:Pattern=`^([0-9]|[1-9][0-9]|100)(\.\d+)?$`
 
-	// +kubebuilder:validation:Maximum=100.0
-
-	AvailabilityTarget *float64 `json:"availabilityTarget,omitempty"`
+	AvailabilityTarget *string `json:"availabilityTarget,omitempty"`
 
 	// MaxLatency in milliseconds.
 
@@ -375,11 +371,9 @@ type SLARequirements struct {
 
 	// +optional
 
-	// +kubebuilder:validation:Minimum=0.0
+	// +kubebuilder:validation:Pattern=`^([0-9]|[1-9][0-9]|100)(\.\d+)?$`
 
-	// +kubebuilder:validation:Maximum=100.0
-
-	MaxPacketLoss *float64 `json:"maxPacketLoss,omitempty"`
+	MaxPacketLoss *string `json:"maxPacketLoss,omitempty"`
 
 	// RecoveryTimeObjective in seconds.
 
@@ -572,11 +566,9 @@ type ResourcePlanStatus struct {
 
 	// +optional
 
-	// +kubebuilder:validation:Minimum=0.0
+	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
 
-	// +kubebuilder:validation:Maximum=1.0
-
-	QualityScore *float64 `json:"qualityScore,omitempty"`
+	QualityScore *string `json:"qualityScore,omitempty"`
 
 	// ObservedGeneration reflects the generation observed.
 
@@ -658,9 +650,9 @@ type PlannedResource struct {
 
 	// +optional
 
-	// +kubebuilder:validation:Minimum=0.0
+	// +kubebuilder:validation:Pattern=`^\d+(\.\d{1,4})?$`
 
-	EstimatedCost *float64 `json:"estimatedCost,omitempty"`
+	EstimatedCost *string `json:"estimatedCost,omitempty"`
 }
 
 // ResourceSpec defines resource specifications.
@@ -734,7 +726,7 @@ type CostEstimate struct {
 
 	// +optional
 
-	CostBreakdown map[string]float64 `json:"costBreakdown,omitempty"`
+	CostBreakdown map[string]string `json:"costBreakdown,omitempty"`
 
 	// EstimatedAt timestamp.
 
@@ -744,11 +736,9 @@ type CostEstimate struct {
 
 	// +optional
 
-	// +kubebuilder:validation:Minimum=0.0
+	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
 
-	// +kubebuilder:validation:Maximum=1.0
-
-	Confidence *float64 `json:"confidence,omitempty"`
+	Confidence *string `json:"confidence,omitempty"`
 }
 
 // PerformanceEstimate represents performance estimation.
@@ -758,33 +748,31 @@ type PerformanceEstimate struct {
 
 	// +optional
 
-	// +kubebuilder:validation:Minimum=0.0
+	// +kubebuilder:validation:Pattern=`^\d+(\.\d+)?$`
 
-	ExpectedThroughput *float64 `json:"expectedThroughput,omitempty"`
+	ExpectedThroughput *string `json:"expectedThroughput,omitempty"`
 
 	// ExpectedLatency in milliseconds.
 
 	// +optional
 
-	// +kubebuilder:validation:Minimum=0.0
+	// +kubebuilder:validation:Pattern=`^\d+(\.\d+)?$`
 
-	ExpectedLatency *float64 `json:"expectedLatency,omitempty"`
+	ExpectedLatency *string `json:"expectedLatency,omitempty"`
 
 	// ExpectedAvailability as percentage (0.0-100.0).
 
 	// +optional
 
-	// +kubebuilder:validation:Minimum=0.0
+	// +kubebuilder:validation:Pattern=`^([0-9]|[1-9][0-9]|100)(\.\d+)?$`
 
-	// +kubebuilder:validation:Maximum=100.0
-
-	ExpectedAvailability *float64 `json:"expectedAvailability,omitempty"`
+	ExpectedAvailability *string `json:"expectedAvailability,omitempty"`
 
 	// ResourceUtilization estimates.
 
 	// +optional
 
-	ResourceUtilization map[string]float64 `json:"resourceUtilization,omitempty"`
+	ResourceUtilization map[string]string `json:"resourceUtilization,omitempty"`
 
 	// BottleneckAnalysis identifies potential bottlenecks.
 
@@ -824,11 +812,9 @@ type ScalingRecommendation struct {
 
 	// +optional
 
-	// +kubebuilder:validation:Minimum=0.0
+	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
 
-	// +kubebuilder:validation:Maximum=1.0
-
-	Confidence *float64 `json:"confidence,omitempty"`
+	Confidence *string `json:"confidence,omitempty"`
 }
 
 // ResourceComplianceStatus represents compliance validation status.
@@ -908,11 +894,9 @@ type OptimizationResult struct {
 
 	// +optional
 
-	// +kubebuilder:validation:Minimum=0.0
+	// +kubebuilder:validation:Pattern=`^([0-9]|[1-9][0-9]|100)(\.\d+)?$`
 
-	// +kubebuilder:validation:Maximum=100.0
-
-	ImprovementPercent *float64 `json:"improvementPercent,omitempty"`
+	ImprovementPercent *string `json:"improvementPercent,omitempty"`
 
 	// Description of the optimization.
 

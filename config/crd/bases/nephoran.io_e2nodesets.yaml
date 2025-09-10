@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.14.0
-  name: e2nodesets.nephoran.com.
+  name: e2nodesets.nephoran.io
 spec:
-  group: nephoran.com.
+  group: nephoran.io
   names:
     kind: E2NodeSet
     listKind: E2NodeSetList

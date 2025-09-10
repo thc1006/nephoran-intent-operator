@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.14.0
-  name: certificateautomations.nephoran.com.
+  name: certificateautomations.nephoran.io
 spec:
-  group: nephoran.com.
+  group: nephoran.io
   names:
     kind: CertificateAutomation
     listKind: CertificateAutomationList

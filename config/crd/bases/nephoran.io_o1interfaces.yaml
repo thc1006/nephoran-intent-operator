@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.14.0
-  name: o1interfaces.nephoran.com.
+  name: o1interfaces.nephoran.io
 spec:
-  group: nephoran.com.
+  group: nephoran.io
   names:
     kind: O1Interface
     listKind: O1InterfaceList
@@ -39,18 +39,12 @@ spec:
             properties:
               credentials:
                 properties:
-                  caCertificateRef:
-                    $ref: '#/definitions/k8s.io~1api~1core~1v1~0SecretKeySelector'
-                  clientCertificateRef:
-                    $ref: '#/definitions/k8s.io~1api~1core~1v1~0SecretKeySelector'
-                  clientKeyRef:
-                    $ref: '#/definitions/k8s.io~1api~1core~1v1~0SecretKeySelector'
-                  passwordRef:
-                    $ref: '#/definitions/k8s.io~1api~1core~1v1~0SecretKeySelector'
-                  privateKeyRef:
-                    $ref: '#/definitions/k8s.io~1api~1core~1v1~0SecretKeySelector'
-                  usernameRef:
-                    $ref: '#/definitions/k8s.io~1api~1core~1v1~0SecretKeySelector'
+                  caCertificateRef: {}
+                  clientCertificateRef: {}
+                  clientKeyRef: {}
+                  passwordRef: {}
+                  privateKeyRef: {}
+                  usernameRef: {}
                 type: object
               fcaps:
                 properties:
@@ -218,8 +212,7 @@ spec:
                     properties:
                       clientID:
                         type: string
-                      clientSecretRef:
-                        $ref: '#/definitions/k8s.io~1api~1core~1v1~0SecretKeySelector'
+                      clientSecretRef: {}
                       enabled:
                         default: true
                         type: boolean
@@ -323,8 +316,7 @@ spec:
               yangModels:
                 items:
                   properties:
-                    configMapRef:
-                      $ref: '#/definitions/k8s.io~1api~1core~1v1~0ConfigMapKeySelector'
+                    configMapRef: {}
                     name:
                       type: string
                     source:
