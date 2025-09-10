@@ -10,12 +10,15 @@ package integration_tests
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -334,7 +337,7 @@ var _ = Describe("NetworkIntent Controller Integration Tests", func() {
 			Eventually(func() bool {
 				deletedIntent := &intentv1alpha1.NetworkIntent{}
 				err := k8sClient.Get(testContext, key, deletedIntent)
-				return errors.IsNotFound(err)
+				return apierrors.IsNotFound(err)
 			}).WithTimeout(30 * time.Second).Should(BeTrue())
 		})
 	})
