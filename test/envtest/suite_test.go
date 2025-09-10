@@ -21,7 +21,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1alpha1"
+	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
 )
 
 var cfg *rest.Config
@@ -71,7 +71,7 @@ var _ = AfterSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 })
 
-func TestContext() (context.Context, context.CancelFunc) {
+func ContextForTest() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(ctx, time.Minute*2)
 }
 

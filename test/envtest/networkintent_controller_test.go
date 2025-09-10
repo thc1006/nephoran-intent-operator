@@ -7,16 +7,14 @@ package envtest
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1alpha1"
+	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
 )
 
 var _ = Describe("NetworkIntent Controller", Ordered, func() {
@@ -33,7 +31,7 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 			
 			networkIntent = &intentv1alpha1.NetworkIntent{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: "nephoran.com/v1alpha1",
+					APIVersion: "intent.nephio.org/v1alpha1",
 					Kind:       "NetworkIntent",
 				},
 				ObjectMeta: metav1.ObjectMeta{
@@ -41,8 +39,10 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 					Namespace: testNamespace,
 				},
 				Spec: intentv1alpha1.NetworkIntentSpec{
-					ScalingPriority: "high",
-					TargetClusters:  []string{"cluster-1", "cluster-2"},
+					Source:     "test",
+					IntentType: "scaling",
+					Target:     "test-target",
+					Replicas:   3,
 				},
 			}
 		})
@@ -59,8 +59,10 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 				}, createdIntent)
 			}, time.Second*10, time.Millisecond*250).Should(Succeed())
 			
-			Expect(createdIntent.Spec.ScalingPriority).To(Equal("high"))
-			Expect(createdIntent.Spec.TargetClusters).To(ContainElements("cluster-1", "cluster-2"))
+			Expect(createdIntent.Spec.Source).To(Equal("test"))
+			Expect(createdIntent.Spec.IntentType).To(Equal("scaling"))
+			Expect(createdIntent.Spec.Target).To(Equal("test-target"))
+			Expect(createdIntent.Spec.Replicas).To(Equal(int32(3)))
 		})
 	})
 })
