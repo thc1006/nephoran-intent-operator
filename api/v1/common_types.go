@@ -14,6 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// +k8s:openapi-gen=true
+// +k8s:deepcopy-gen=package
+// +k8s:defaulter-gen=TypeMeta
+// +groupName=nephoran.io
+
 package v1
 
 import (
@@ -66,42 +71,52 @@ type ManagedElementCredentials struct {
 
 	// Password reference for basic authentication
 	// +optional
+	// +kubebuilder:validation:Schemaless
 	PasswordRef *corev1.SecretKeySelector `json:"passwordRef,omitempty"`
 
 	// Certificate reference for certificate-based authentication
 	// +optional
+	// +kubebuilder:validation:Schemaless
 	CertificateRef *corev1.SecretKeySelector `json:"certificateRef,omitempty"`
 
 	// Private key reference for certificate-based authentication
 	// +optional
+	// +kubebuilder:validation:Schemaless
 	PrivateKeyRef *corev1.SecretKeySelector `json:"privateKeyRef,omitempty"`
 
 	// Token reference for token-based authentication
 	// +optional
+	// +kubebuilder:validation:Schemaless
 	TokenRef *corev1.SecretKeySelector `json:"tokenRef,omitempty"`
 
 	// SSH key reference for SSH-based authentication
 	// +optional
+	// +kubebuilder:validation:Schemaless
 	SSHKeyRef *corev1.SecretKeySelector `json:"sshKeyRef,omitempty"`
 
 	// Client certificate reference for mTLS
 	// +optional
+	// +kubebuilder:validation:Schemaless
 	ClientCertRef *corev1.SecretKeySelector `json:"clientCertRef,omitempty"`
 
 	// Client key reference for mTLS
 	// +optional
+	// +kubebuilder:validation:Schemaless
 	ClientKeyRef *corev1.SecretKeySelector `json:"clientKeyRef,omitempty"`
 
 	// CA certificate reference
 	// +optional
+	// +kubebuilder:validation:Schemaless
 	CACertificateRef *corev1.SecretKeySelector `json:"caCertificateRef,omitempty"`
 
 	// Client certificate reference for authentication
 	// +optional
+	// +kubebuilder:validation:Schemaless
 	ClientCertificateRef *corev1.SecretKeySelector `json:"clientCertificateRef,omitempty"`
 
 	// Username reference for basic authentication
 	// +optional
+	// +kubebuilder:validation:Schemaless
 	UsernameRef *corev1.SecretKeySelector `json:"usernameRef,omitempty"`
 }
 

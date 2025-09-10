@@ -35,7 +35,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+<<<<<<< HEAD
 	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
+=======
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 )
 
 // TestEnvironmentOptions configures the test environment setup.
@@ -388,6 +392,719 @@ func (te *TestEnvironment) TeardownTestEnvironment() {
 
 	te.started = false
 	By("test environment teardown completed")
+<<<<<<< HEAD
+=======
+
+}
+
+// GetContext returns the test context.
+
+func (te *TestEnvironment) GetContext() context.Context {
+
+	te.mu.RLock()
+
+	defer te.mu.RUnlock()
+
+	return te.ctx
+
+}
+
+// GetContextWithTimeout returns a context with timeout for operations.
+
+func (te *TestEnvironment) GetContextWithTimeout(timeout time.Duration) (context.Context, context.CancelFunc) {
+
+	te.mu.RLock()
+
+	defer te.mu.RUnlock()
+
+	return context.WithTimeout(te.ctx, timeout)
+
+}
+
+// GetContextWithDeadline returns a context with deadline for operations.
+
+func (te *TestEnvironment) GetContextWithDeadline(deadline time.Time) (context.Context, context.CancelFunc) {
+
+	te.mu.RLock()
+
+	defer te.mu.RUnlock()
+
+	return context.WithDeadline(te.ctx, deadline)
+
+}
+
+// IsStarted returns whether the test environment is started.
+
+func (te *TestEnvironment) IsStarted() bool {
+
+	te.mu.RLock()
+
+	defer te.mu.RUnlock()
+
+	return te.started
+
+}
+
+// GetScheme returns the runtime scheme.
+
+func (te *TestEnvironment) GetScheme() *runtime.Scheme {
+
+	return te.Scheme
+
+}
+
+// GetDiscoveryClient returns the discovery client.
+
+func (te *TestEnvironment) GetDiscoveryClient() discovery.DiscoveryInterface {
+
+	return te.discoveryClient
+
+}
+
+// GetEventRecorder returns the event recorder.
+
+func (te *TestEnvironment) GetEventRecorder() record.EventRecorder {
+
+	return te.eventRecorder
+
+}
+
+// AddCleanupFunc adds a cleanup function to be called during teardown.
+
+func (te *TestEnvironment) AddCleanupFunc(f func() error) {
+
+	te.mu.Lock()
+
+	defer te.mu.Unlock()
+
+	te.cleanupFuncs = append(te.cleanupFuncs, f)
+
+}
+
+// CreateManager creates a controller manager for testing with comprehensive configuration.
+
+func (te *TestEnvironment) CreateManager() (ctrl.Manager, error) {
+
+	return te.CreateManagerWithOptions(ctrl.Options{})
+
+}
+
+// CreateManagerWithOptions creates a controller manager with custom options.
+
+func (te *TestEnvironment) CreateManagerWithOptions(opts ctrl.Options) (ctrl.Manager, error) {
+
+	te.mu.Lock()
+
+	defer te.mu.Unlock()
+
+	if !te.started {
+
+		return nil, fmt.Errorf("test environment not started")
+
+	}
+
+	// Set default options if not provided.
+
+	if opts.Scheme == nil {
+
+		opts.Scheme = te.Scheme
+
+	}
+
+	// Configure metrics server.
+
+	if opts.Metrics.BindAddress == "" {
+
+		if te.options.EnableMetrics {
+
+			te.metricsAddr = "127.0.0.1:8080" // Use available port
+
+			opts.Metrics = metricsserver.Options{BindAddress: te.metricsAddr}
+
+		} else {
+
+			opts.Metrics = metricsserver.Options{BindAddress: "0"} // Disable metrics
+
+		}
+
+	}
+
+	// Configure health checks.
+
+	if te.options.EnableHealthChecks {
+
+		te.healthzAddr = "127.0.0.1:8081"
+
+		opts.HealthProbeBindAddress = te.healthzAddr
+
+	}
+
+	// Configure profiling.
+
+	if te.options.EnableProfiling {
+
+		te.profilingAddr = "127.0.0.1:6060"
+
+		opts.PprofBindAddress = te.profilingAddr
+
+	}
+
+	// Configure leader election.
+
+	if opts.LeaderElection == false {
+
+		opts.LeaderElection = te.options.EnableLeaderElection
+
+	}
+
+	// Configure webhooks.
+
+	if te.options.EnableWebhooks {
+
+		if opts.WebhookServer == nil {
+
+			te.webhookServer = webhook.NewServer(webhook.Options{
+
+				Port: 9443,
+
+				CertDir: te.TestEnv.WebhookInstallOptions.LocalServingCertDir,
+			})
+
+			opts.WebhookServer = te.webhookServer
+
+		}
+
+	}
+
+	// Configure cache options.
+
+	if opts.Cache.DefaultNamespaces == nil && te.options.DefaultNamespace != "" {
+
+		opts.Cache.DefaultNamespaces = map[string]cache.Config{
+
+			te.options.DefaultNamespace: {},
+		}
+
+	}
+
+	// Create the manager.
+
+	mgr, err := ctrl.NewManager(te.Cfg, opts)
+
+	if err != nil {
+
+		return nil, fmt.Errorf("failed to create manager: %w", err)
+
+	}
+
+	// Add health checks if enabled.
+
+	if te.options.EnableHealthChecks {
+
+		if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+
+			return nil, fmt.Errorf("failed to add health check: %w", err)
+
+		}
+
+		if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+
+			return nil, fmt.Errorf("failed to add ready check: %w", err)
+
+		}
+
+	}
+
+	// Create event recorder.
+
+	te.eventRecorder = mgr.GetEventRecorderFor("nephoran-test-controller")
+
+	te.Manager = mgr
+
+	return mgr, nil
+
+}
+
+// StartManager starts the controller manager in the background.
+
+func (te *TestEnvironment) StartManager() error {
+
+	if te.Manager == nil {
+
+		return fmt.Errorf("manager not created, call CreateManager first")
+
+	}
+
+	// Ensure we only start the manager once.
+
+	var startErr error
+
+	te.ManagerOnce.Do(func() {
+
+		te.ManagerCtx, te.ManagerCancel = context.WithCancel(te.ctx)
+
+		go func() {
+
+			defer GinkgoRecover()
+
+			By("starting controller manager")
+
+			if err := te.Manager.Start(te.ManagerCtx); err != nil {
+
+				GinkgoLogr.Error(err, "Failed to start manager")
+
+			}
+
+		}()
+
+		// Wait for the manager to be ready.
+
+		ctx, cancel := context.WithTimeout(te.ctx, 30*time.Second)
+
+		defer cancel()
+
+		if !te.Manager.GetCache().WaitForCacheSync(ctx) {
+
+			startErr = fmt.Errorf("failed to sync cache")
+
+			return
+
+		}
+
+		// Give it a moment to fully initialize.
+
+		time.Sleep(100 * time.Millisecond)
+
+		By("controller manager started successfully")
+
+	})
+
+	return startErr
+
+}
+
+// StopManager stops the controller manager.
+
+func (te *TestEnvironment) StopManager() {
+
+	if te.ManagerCancel != nil {
+
+		By("stopping controller manager")
+
+		te.ManagerCancel()
+
+		te.ManagerCancel = nil
+
+	}
+
+}
+
+// WaitForCacheSync waits for the manager's cache to sync with timeout.
+
+func (te *TestEnvironment) WaitForCacheSync(mgr ctrl.Manager) error {
+
+	return te.WaitForCacheSyncWithTimeout(mgr, 30*time.Second)
+
+}
+
+// WaitForCacheSyncWithTimeout waits for the manager's cache to sync with custom timeout.
+
+func (te *TestEnvironment) WaitForCacheSyncWithTimeout(mgr ctrl.Manager, timeout time.Duration) error {
+
+	ctx, cancel := te.GetContextWithTimeout(timeout)
+
+	defer cancel()
+
+	// Wait for the cache to sync.
+
+	By("waiting for cache to sync")
+
+	synced := mgr.GetCache().WaitForCacheSync(ctx)
+
+	if !synced {
+
+		return fmt.Errorf("cache failed to sync within %v", timeout)
+
+	}
+
+	By("cache synced successfully")
+
+	return nil
+
+}
+
+// WaitForManagerReady waits for the manager to be ready and cache synced.
+
+func (te *TestEnvironment) WaitForManagerReady() error {
+
+	if te.Manager == nil {
+
+		return fmt.Errorf("manager not created")
+
+	}
+
+	return te.WaitForCacheSync(te.Manager)
+
+}
+
+// CleanupNamespace removes all resources from a namespace for clean test runs.
+
+func (te *TestEnvironment) CleanupNamespace(namespace string) error {
+
+	return te.CleanupNamespaceWithTimeout(namespace, 60*time.Second)
+
+}
+
+// CleanupNamespaceWithTimeout removes all resources from a namespace with custom timeout.
+
+func (te *TestEnvironment) CleanupNamespaceWithTimeout(namespace string, timeout time.Duration) error {
+
+	ctx, cancel := te.GetContextWithTimeout(timeout)
+
+	defer cancel()
+
+	By(fmt.Sprintf("cleaning up namespace %s", namespace))
+
+	// Define cleanup order - custom resources first, then standard resources.
+
+	cleanupTasks := []func(context.Context, string) error{
+
+		te.cleanupE2NodeSets,
+
+		te.cleanupNetworkIntents,
+
+		te.cleanupManagedElements,
+
+		te.cleanupDeployments,
+
+		te.cleanupServices,
+
+		te.cleanupConfigMaps,
+
+		te.cleanupSecrets,
+
+		te.cleanupPods,
+	}
+
+	// Execute cleanup tasks.
+
+	for i, task := range cleanupTasks {
+
+		By(fmt.Sprintf("cleanup task %d for namespace %s", i+1, namespace))
+
+		if err := task(ctx, namespace); err != nil {
+
+			GinkgoLogr.Error(err, "Cleanup task failed", "task", i, "namespace", namespace)
+
+			// Continue with other cleanup tasks even if one fails.
+
+		}
+
+	}
+
+	// Wait for all resources to be deleted.
+
+	By(fmt.Sprintf("waiting for resource deletion in namespace %s", namespace))
+
+	if err := te.waitForNamespaceCleanup(ctx, namespace); err != nil {
+
+		return fmt.Errorf("namespace cleanup verification failed: %w", err)
+
+	}
+
+	By(fmt.Sprintf("namespace %s cleaned up successfully", namespace))
+
+	return nil
+
+}
+
+// cleanupTestResources cleans up all test resources across namespaces.
+
+func (te *TestEnvironment) cleanupTestResources() {
+
+	ctx, cancel := te.GetContextWithTimeout(60 * time.Second)
+
+	defer cancel()
+
+	// Get all namespaces with test labels.
+
+	namespaceList := &corev1.NamespaceList{}
+
+	labels := map[string]string{"test-namespace": "true"}
+
+	if err := te.K8sClient.List(ctx, namespaceList, client.MatchingLabels(labels)); err == nil {
+
+		for _, ns := range namespaceList.Items {
+
+			if err := te.CleanupNamespace(ns.Name); err != nil {
+
+				GinkgoLogr.Error(err, "Failed to cleanup test namespace", "namespace", ns.Name)
+
+			}
+
+		}
+
+	}
+
+	// Also cleanup test resources in default namespace.
+
+	if err := te.CleanupNamespace(te.options.DefaultNamespace); err != nil {
+
+		GinkgoLogr.Error(err, "Failed to cleanup default namespace", "namespace", te.options.DefaultNamespace)
+
+	}
+
+}
+
+// Individual resource cleanup functions.
+
+func (te *TestEnvironment) cleanupE2NodeSets(ctx context.Context, namespace string) error {
+
+	// E2NodeSet type not defined in API, skip cleanup
+	return nil
+
+}
+
+func (te *TestEnvironment) cleanupNetworkIntents(ctx context.Context, namespace string) error {
+
+	networkIntentList := &nephoranv1.NetworkIntentList{}
+
+	if err := te.K8sClient.List(ctx, networkIntentList, client.InNamespace(namespace)); err != nil {
+
+		return client.IgnoreNotFound(err)
+
+	}
+
+	for i := range networkIntentList.Items {
+
+		if err := te.K8sClient.Delete(ctx, &networkIntentList.Items[i]); err != nil {
+
+			if !errors.IsNotFound(err) {
+
+				GinkgoLogr.Error(err, "Failed to delete NetworkIntent", "name", networkIntentList.Items[i].Name)
+
+			}
+
+		}
+
+	}
+
+	return nil
+
+}
+
+func (te *TestEnvironment) cleanupManagedElements(ctx context.Context, namespace string) error {
+
+	// ManagedElement type not defined in API, skip cleanup
+	return nil
+
+}
+
+func (te *TestEnvironment) cleanupDeployments(ctx context.Context, namespace string) error {
+
+	deploymentList := &appsv1.DeploymentList{}
+
+	if err := te.K8sClient.List(ctx, deploymentList, client.InNamespace(namespace)); err != nil {
+
+		return client.IgnoreNotFound(err)
+
+	}
+
+	for i := range deploymentList.Items {
+
+		if err := te.K8sClient.Delete(ctx, &deploymentList.Items[i]); err != nil {
+
+			if !errors.IsNotFound(err) {
+
+				GinkgoLogr.Error(err, "Failed to delete Deployment", "name", deploymentList.Items[i].Name)
+
+			}
+
+		}
+
+	}
+
+	return nil
+
+}
+
+func (te *TestEnvironment) cleanupServices(ctx context.Context, namespace string) error {
+
+	serviceList := &corev1.ServiceList{}
+
+	if err := te.K8sClient.List(ctx, serviceList, client.InNamespace(namespace)); err != nil {
+
+		return client.IgnoreNotFound(err)
+
+	}
+
+	for i := range serviceList.Items {
+
+		// Skip default kubernetes service.
+
+		if serviceList.Items[i].Name == "kubernetes" {
+
+			continue
+
+		}
+
+		if err := te.K8sClient.Delete(ctx, &serviceList.Items[i]); err != nil {
+
+			if !errors.IsNotFound(err) {
+
+				GinkgoLogr.Error(err, "Failed to delete Service", "name", serviceList.Items[i].Name)
+
+			}
+
+		}
+
+	}
+
+	return nil
+
+}
+
+func (te *TestEnvironment) cleanupConfigMaps(ctx context.Context, namespace string) error {
+
+	configMapList := &corev1.ConfigMapList{}
+
+	if err := te.K8sClient.List(ctx, configMapList, client.InNamespace(namespace)); err != nil {
+
+		return client.IgnoreNotFound(err)
+
+	}
+
+	for i := range configMapList.Items {
+
+		// Skip system configmaps.
+
+		if strings.HasPrefix(configMapList.Items[i].Name, "kube-") {
+
+			continue
+
+		}
+
+		if err := te.K8sClient.Delete(ctx, &configMapList.Items[i]); err != nil {
+
+			if !errors.IsNotFound(err) {
+
+				GinkgoLogr.Error(err, "Failed to delete ConfigMap", "name", configMapList.Items[i].Name)
+
+			}
+
+		}
+
+	}
+
+	return nil
+
+}
+
+func (te *TestEnvironment) cleanupSecrets(ctx context.Context, namespace string) error {
+
+	secretList := &corev1.SecretList{}
+
+	if err := te.K8sClient.List(ctx, secretList, client.InNamespace(namespace)); err != nil {
+
+		return client.IgnoreNotFound(err)
+
+	}
+
+	for i := range secretList.Items {
+
+		// Skip system secrets.
+
+		if secretList.Items[i].Type == corev1.SecretTypeServiceAccountToken {
+
+			continue
+
+		}
+
+		if err := te.K8sClient.Delete(ctx, &secretList.Items[i]); err != nil {
+
+			if !errors.IsNotFound(err) {
+
+				GinkgoLogr.Error(err, "Failed to delete Secret", "name", secretList.Items[i].Name)
+
+			}
+
+		}
+
+	}
+
+	return nil
+
+}
+
+func (te *TestEnvironment) cleanupPods(ctx context.Context, namespace string) error {
+
+	podList := &corev1.PodList{}
+
+	if err := te.K8sClient.List(ctx, podList, client.InNamespace(namespace)); err != nil {
+
+		return client.IgnoreNotFound(err)
+
+	}
+
+	for i := range podList.Items {
+
+		if err := te.K8sClient.Delete(ctx, &podList.Items[i]); err != nil {
+
+			if !errors.IsNotFound(err) {
+
+				GinkgoLogr.Error(err, "Failed to delete Pod", "name", podList.Items[i].Name)
+
+			}
+
+		}
+
+	}
+
+	return nil
+
+}
+
+// waitForNamespaceCleanup waits for all resources to be deleted from namespace.
+
+func (te *TestEnvironment) waitForNamespaceCleanup(ctx context.Context, namespace string) error {
+
+	Eventually(func() bool {
+
+		// Check if custom resources are gone.
+
+		networkIntentList := &nephoranv1.NetworkIntentList{}
+
+		if err := te.K8sClient.List(ctx, networkIntentList, client.InNamespace(namespace)); err == nil {
+
+			if len(networkIntentList.Items) > 0 {
+
+				return false
+
+			}
+
+		}
+
+		// Check if standard resources are gone (excluding system resources).
+
+		podList := &corev1.PodList{}
+
+		if err := te.K8sClient.List(ctx, podList, client.InNamespace(namespace)); err == nil {
+
+			if len(podList.Items) > 0 {
+
+				return false
+
+			}
+
+		}
+
+		return true
+
+	}, 30*time.Second, 500*time.Millisecond).Should(BeTrue())
+
+	return nil
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // CreateNamespace creates a namespace for testing.
@@ -430,7 +1147,172 @@ func (te *TestEnvironment) CreateTestObject(obj client.Object) error {
 		if errors.IsAlreadyExists(err) {
 			return nil // Object already exists, which is fine for tests
 		}
+<<<<<<< HEAD
 		return fmt.Errorf("failed to create test object %s/%s: %w", obj.GetNamespace(), obj.GetName(), err)
+=======
+
+		return fmt.Errorf("failed to delete namespace %s: %w", name, err)
+
+	}
+
+	// Wait for the namespace to be deleted.
+
+	Eventually(func() bool {
+
+		err := te.K8sClient.Get(ctx, types.NamespacedName{Name: name}, namespace)
+
+		return errors.IsNotFound(err)
+
+	}, 30*time.Second, 1*time.Second).Should(BeTrue(), "namespace %s should be deleted", name)
+
+	By(fmt.Sprintf("deleted namespace %s", name))
+
+	return nil
+
+}
+
+// NamespaceExists checks if a namespace exists.
+
+func (te *TestEnvironment) NamespaceExists(name string) bool {
+
+	ctx, cancel := te.GetContextWithTimeout(10 * time.Second)
+
+	defer cancel()
+
+	namespace := &corev1.Namespace{}
+
+	err := te.K8sClient.Get(ctx, types.NamespacedName{Name: name}, namespace)
+
+	return err == nil
+
+}
+
+// GetDefaultTimeout returns the default timeout for test operations.
+
+func (te *TestEnvironment) GetDefaultTimeout() time.Duration {
+
+	if te.options.CIMode {
+
+		return 20 * time.Second
+
+	}
+
+	return 30 * time.Second
+
+}
+
+// GetDefaultInterval returns the default polling interval for Eventually/Consistently.
+
+func (te *TestEnvironment) GetDefaultInterval() time.Duration {
+
+	if te.options.CIMode {
+
+		return 200 * time.Millisecond
+
+	}
+
+	return 100 * time.Millisecond
+
+}
+
+// GetOptions returns the test environment options.
+
+func (te *TestEnvironment) GetOptions() TestEnvironmentOptions {
+
+	return te.options
+
+}
+
+// VerifyCRDInstallation verifies that all expected CRDs are installed and ready.
+
+func (te *TestEnvironment) VerifyCRDInstallation() error {
+
+	expectedCRDs := []string{
+
+		"networkintents.nephoran.com",
+
+		// "e2nodesets.nephoran.com", // Not implemented yet
+
+		// "managedelements.nephoran.com", // Not implemented yet
+	}
+
+	ctx, cancel := te.GetContextWithTimeout(60 * time.Second)
+
+	defer cancel()
+
+	for _, crdName := range expectedCRDs {
+
+		By(fmt.Sprintf("verifying CRD %s", crdName))
+
+		if err := te.verifySingleCRD(ctx, crdName); err != nil {
+
+			return fmt.Errorf("CRD verification failed for %s: %w", crdName, err)
+
+		}
+
+	}
+
+	By("all CRDs verified successfully")
+
+	return nil
+
+}
+
+// verifySingleCRD verifies a single CRD is available.
+
+func (te *TestEnvironment) verifySingleCRD(ctx context.Context, crdName string) error {
+
+	Eventually(func() bool {
+
+		switch {
+
+		case strings.Contains(crdName, "networkintents"):
+
+			niList := &nephoranv1.NetworkIntentList{}
+
+			err := te.K8sClient.List(ctx, niList)
+
+			return err == nil || !errors.IsNotFound(err)
+
+		case strings.Contains(crdName, "e2nodesets"):
+
+			// E2NodeSet type not defined, skip verification
+			return true
+
+		case strings.Contains(crdName, "managedelements"):
+
+			// ManagedElement type not defined, skip verification
+			return true
+
+		}
+
+		return false
+
+	}, 30*time.Second, 1*time.Second).Should(BeTrue(), "CRD %s should be available", crdName)
+
+	return nil
+
+}
+
+// InstallCRDs installs CRDs from the specified directory.
+
+func (te *TestEnvironment) InstallCRDs(crdPaths ...string) error {
+
+	if len(crdPaths) == 0 {
+
+		crdPaths = te.options.CRDDirectoryPaths
+
+	}
+
+	for _, path := range crdPaths {
+
+		if err := te.installCRDsFromPath(path); err != nil {
+
+			return fmt.Errorf("failed to install CRDs from %s: %w", path, err)
+
+		}
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	return nil
@@ -475,6 +1357,247 @@ func waitForAPIServerReady(cfg *rest.Config, timeout time.Duration) error {
 	return nil
 }
 
+<<<<<<< HEAD
+=======
+// getLogLevel returns the appropriate log level based on verbose flag.
+
+func getLogLevel(verbose bool) zapcore.Level {
+
+	if verbose {
+
+		return zapcore.DebugLevel
+
+	}
+
+	return zapcore.InfoLevel
+
+}
+
+// Utility functions for common test operations.
+
+// CreateTestObject creates a test object with proper labels.
+
+func (te *TestEnvironment) CreateTestObject(obj client.Object) error {
+
+	ctx, cancel := te.GetContextWithTimeout(30 * time.Second)
+
+	defer cancel()
+
+	// Add test labels.
+
+	labels := obj.GetLabels()
+
+	if labels == nil {
+
+		labels = make(map[string]string)
+
+	}
+
+	labels["test-resource"] = "true"
+
+	labels["created-by"] = "envtest-setup"
+
+	obj.SetLabels(labels)
+
+	// Add test annotations.
+
+	annotations := obj.GetAnnotations()
+
+	if annotations == nil {
+
+		annotations = make(map[string]string)
+
+	}
+
+	annotations["test.nephoran.com/created-at"] = time.Now().Format(time.RFC3339)
+
+	obj.SetAnnotations(annotations)
+
+	return te.K8sClient.Create(ctx, obj)
+
+}
+
+// UpdateTestObject updates a test object.
+
+func (te *TestEnvironment) UpdateTestObject(obj client.Object) error {
+
+	ctx, cancel := te.GetContextWithTimeout(30 * time.Second)
+
+	defer cancel()
+
+	return te.K8sClient.Update(ctx, obj)
+
+}
+
+// DeleteTestObject deletes a test object.
+
+func (te *TestEnvironment) DeleteTestObject(obj client.Object) error {
+
+	ctx, cancel := te.GetContextWithTimeout(30 * time.Second)
+
+	defer cancel()
+
+	return client.IgnoreNotFound(te.K8sClient.Delete(ctx, obj))
+
+}
+
+// GetTestObject gets a test object.
+
+func (te *TestEnvironment) GetTestObject(key types.NamespacedName, obj client.Object) error {
+
+	ctx, cancel := te.GetContextWithTimeout(30 * time.Second)
+
+	defer cancel()
+
+	return te.K8sClient.Get(ctx, key, obj)
+
+}
+
+// ListTestObjects lists test objects.
+
+func (te *TestEnvironment) ListTestObjects(list client.ObjectList, opts ...client.ListOption) error {
+
+	ctx, cancel := te.GetContextWithTimeout(30 * time.Second)
+
+	defer cancel()
+
+	return te.K8sClient.List(ctx, list, opts...)
+
+}
+
+// Eventually wrapper for consistent timeout/interval usage.
+
+func (te *TestEnvironment) Eventually(f func() bool, msgAndArgs ...interface{}) AsyncAssertion {
+
+	return Eventually(f).WithTimeout(te.GetDefaultTimeout()).WithPolling(te.GetDefaultInterval())
+
+}
+
+// Consistently wrapper for consistent timeout/interval usage.
+
+func (te *TestEnvironment) Consistently(f func() bool, msgAndArgs ...interface{}) AsyncAssertion {
+
+	if te.options.CIMode {
+
+		return Consistently(f).WithTimeout(3 * time.Second).WithPolling(te.GetDefaultInterval())
+
+	}
+
+	return Consistently(f).WithTimeout(5 * time.Second).WithPolling(te.GetDefaultInterval())
+
+}
+
+// Resource Creation Helpers.
+
+// CreateTestNetworkIntent creates a NetworkIntent for testing.
+
+func (te *TestEnvironment) CreateTestNetworkIntent(name, namespace, intent string) (*nephoranv1.NetworkIntent, error) {
+
+	ni := &nephoranv1.NetworkIntent{
+
+		ObjectMeta: metav1.ObjectMeta{
+
+			Name: name,
+
+			Namespace: namespace,
+		},
+
+		Spec: nephoranv1.NetworkIntentSpec{
+
+			// Intent field doesn't exist in NetworkIntentSpec, using IntentType instead
+			IntentType: intent,
+		},
+	}
+
+	if err := te.CreateTestObject(ni); err != nil {
+
+		return nil, err
+
+	}
+
+	return ni, nil
+
+}
+
+// CreateTestE2NodeSet creates an E2NodeSet for testing.
+
+func (te *TestEnvironment) CreateTestE2NodeSet(name, namespace string, replicas int32) (interface{}, error) {
+
+	return nil, fmt.Errorf("E2NodeSet type not implemented")
+
+}
+
+// CreateTestManagedElement creates a ManagedElement for testing.
+
+func (te *TestEnvironment) CreateTestManagedElement(name, namespace string) (interface{}, error) {
+
+	return nil, fmt.Errorf("ManagedElement type not implemented")
+
+}
+
+// WaitForNetworkIntentReady waits for a NetworkIntent to be ready.
+
+func (te *TestEnvironment) WaitForNetworkIntentReady(namespacedName types.NamespacedName) error {
+
+	ni := &nephoranv1.NetworkIntent{}
+
+	te.Eventually(func() bool {
+
+		err := te.GetTestObject(namespacedName, ni)
+
+		if err != nil {
+
+			return false
+
+		}
+
+		// Add condition checks here based on your NetworkIntent status.
+
+		return ni.Status.Phase == "Ready" // Adjust according to your status structure
+
+	}, "NetworkIntent should be ready")
+
+	return nil
+
+}
+
+// WaitForE2NodeSetReady waits for an E2NodeSet to be ready.
+
+func (te *TestEnvironment) WaitForE2NodeSetReady(namespacedName types.NamespacedName, expectedReplicas int32) error {
+
+	return fmt.Errorf("E2NodeSet type not implemented")
+
+}
+
+// WaitForManagedElementReady waits for a ManagedElement to be ready.
+
+func (te *TestEnvironment) WaitForManagedElementReady(namespacedName types.NamespacedName) error {
+
+	return fmt.Errorf("ManagedElement type not implemented")
+
+}
+
+// Unique Name Generators.
+
+// GetUniqueNamespace generates a unique namespace name for testing.
+
+func GetUniqueNamespace(prefix string) string {
+
+	return fmt.Sprintf("%s-%d", prefix, time.Now().UnixNano())
+
+}
+
+// GetUniqueName generates a unique resource name for testing.
+
+func GetUniqueName(prefix string) string {
+
+	return fmt.Sprintf("%s-%d", prefix, time.Now().UnixNano())
+
+}
+
+// Environment Detection.
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 // IsRunningInCI detects if tests are running in CI environment.
 func IsRunningInCI() bool {
 	ciEnvVars := []string{"CI", "CONTINUOUS_INTEGRATION", "GITHUB_ACTIONS", "GITLAB_CI", "JENKINS_URL"}

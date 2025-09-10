@@ -55,8 +55,13 @@ env:
   DEPLOYMENT_TARGET: ${{ github.event.inputs.deployment_target || 'local-kind' }}
   
   # System versions
+<<<<<<< HEAD
   GO_VERSION: "1.22.7"
   KUBERNETES_VERSION: "1.28.0"
+=======
+  GO_VERSION: "1.24.6"  # EMERGENCY FIX - Match go.mod toolchain
+  KUBERNETES_VERSION: "1.31.0"
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
   HELM_VERSION: "3.16.0"
   
   # Test configuration
@@ -69,7 +74,7 @@ jobs:
   # VALIDATION ORCHESTRATOR: Plan and coordinate all validation activities
   # =============================================================================
   validation-orchestrator:
-    name: ğŸ¯ Validation Orchestrator
+    name: ?¯ Validation Orchestrator
     runs-on: ubuntu-22.04
     timeout-minutes: 10
     outputs:
@@ -78,13 +83,13 @@ jobs:
       expected-duration: ${{ steps.timing.outputs.duration }}
       
     steps:
-      - name: ğŸ“¥ Checkout
+      - name: ?“¥ Checkout
         uses: actions/checkout@v4
         
-      - name: ğŸ¯ Generate Validation Matrix
+      - name: ?¯ Generate Validation Matrix
         id: matrix
         run: |
-          echo "ğŸ¯ Generating validation test matrix for scope: ${{ env.VALIDATION_SCOPE }}"
+          echo "?¯ Generating validation test matrix for scope: ${{ env.VALIDATION_SCOPE }}"
           
           case "${{ env.VALIDATION_SCOPE }}" in
             "quick")
@@ -162,12 +167,12 @@ jobs:
           esac
           
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
-          echo "ğŸ¯ Validation matrix generated with $(echo "$matrix" | jq '.include | length') test categories"
+          echo "?¯ Validation matrix generated with $(echo "$matrix" | jq '.include | length') test categories"
           
-      - name: ğŸ“‹ Create Validation Plan
+      - name: ?? Create Validation Plan
         id: plan
         run: |
-          echo "ğŸ“‹ Creating comprehensive validation plan..."
+          echo "?? Creating comprehensive validation plan..."
           
           test_matrix='${{ steps.matrix.outputs.matrix }}'
           
@@ -206,12 +211,12 @@ jobs:
           }'
           
           echo "plan=$plan" >> $GITHUB_OUTPUT
-          echo "ğŸ“‹ Validation plan created for ${{ env.VALIDATION_SCOPE }} scope"
+          echo "?? Validation plan created for ${{ env.VALIDATION_SCOPE }} scope"
           
-      - name: â±ï¸ Calculate Expected Duration
+      - name: ?±ï? Calculate Expected Duration
         id: timing
         run: |
-          echo "â±ï¸ Calculating expected validation duration..."
+          echo "?±ï? Calculating expected validation duration..."
           
           test_matrix='${{ steps.matrix.outputs.matrix }}'
           
@@ -236,13 +241,13 @@ jobs:
           total_duration=$((10 + parallel_duration + sequential_duration + 15))
           
           echo "duration=$total_duration" >> $GITHUB_OUTPUT
-          echo "â±ï¸ Expected duration: ${total_duration} minutes (${parallel_duration}m parallel + ${sequential_duration}m sequential)"
+          echo "?±ï? Expected duration: ${total_duration} minutes (${parallel_duration}m parallel + ${sequential_duration}m sequential)"
 
   # =============================================================================
   # PARALLEL VALIDATION: Run parallel test suites
   # =============================================================================
   parallel-validation:
-    name: âš¡ Parallel Validation - ${{ matrix.category }}
+    name: ??Parallel Validation - ${{ matrix.category }}
     runs-on: ubuntu-22.04
     needs: validation-orchestrator
     timeout-minutes: ${{ matrix.timeout }}
@@ -256,12 +261,12 @@ jobs:
     if: matrix.parallel == true
     
     steps:
-      - name: ğŸ“¥ Checkout
+      - name: ?“¥ Checkout
         uses: actions/checkout@v4
         
-      - name: ğŸ”§ Setup Test Environment
+      - name: ?”§ Setup Test Environment
         run: |
-          echo "ğŸ”§ Setting up test environment for: ${{ matrix.category }}"
+          echo "?”§ Setting up test environment for: ${{ matrix.category }}"
           
           # Install Go
           if [[ "${{ matrix.category }}" == *"unit"* || "${{ matrix.category }}" == *"api"* ]]; then
@@ -288,18 +293,18 @@ jobs:
               ;;
           esac
           
-          echo "âœ… Test environment setup complete for ${{ matrix.category }}"
+          echo "??Test environment setup complete for ${{ matrix.category }}"
           
-      - name: ğŸ§ª Execute Test Category
+      - name: ?§ª Execute Test Category
         timeout-minutes: ${{ matrix.timeout - 2 }}
         run: |
-          echo "ğŸ§ª Executing ${{ matrix.category }} tests (Priority: ${{ matrix.priority }})"
+          echo "?§ª Executing ${{ matrix.category }} tests (Priority: ${{ matrix.priority }})"
           
           mkdir -p test-results/${{ matrix.category }}
           
           case "${{ matrix.category }}" in
             "unit")
-              echo "ğŸ”¬ Running unit tests..."
+              echo "?”¬ Running unit tests..."
               if command -v go >/dev/null 2>&1; then
                 go test -v -race -coverprofile=test-results/${{ matrix.category }}/coverage.out ./... \
                   -timeout=15m 2>&1 | tee test-results/${{ matrix.category }}/output.log
@@ -310,23 +315,23 @@ jobs:
                 
                 coverage_pct=$(go tool cover -func=test-results/${{ matrix.category }}/coverage.out | \
                   grep "total:" | awk '{print $3}')
-                echo "ğŸ“Š Unit test coverage: $coverage_pct"
+                echo "?? Unit test coverage: $coverage_pct"
               else
-                echo "âš ï¸ Go not available - skipping unit tests"
+                echo "? ï? Go not available - skipping unit tests"
                 exit 1
               fi
               ;;
               
             "api-validation")
-              echo "ğŸŒ Running API validation tests..."
+              echo "?? Running API validation tests..."
               
               # Test API schema validation
               if find . -name "*.go" -path "*/api/*" | head -5; then
-                echo "  âœ… API definitions found"
+                echo "  ??API definitions found"
                 
                 # Validate CRD schemas
                 if find . -name "*.yaml" -o -name "*.yml" -exec grep -l "CustomResourceDefinition" {} \; | head -3; then
-                  echo "  âœ… CRD schemas found"
+                  echo "  ??CRD schemas found"
                   
                   # Basic YAML validation
                   find . -name "*.yaml" -o -name "*.yml" -exec yamllint {} \; 2>&1 | \
@@ -334,11 +339,11 @@ jobs:
                 fi
               fi
               
-              echo "âœ… API validation completed"
+              echo "??API validation completed"
               ;;
               
             "performance")
-              echo "âš¡ Running performance benchmarks..."
+              echo "??Running performance benchmarks..."
               
               if command -v go >/dev/null 2>&1; then
                 # Run Go benchmarks
@@ -351,11 +356,11 @@ jobs:
                   -bench=. ./... || true
               fi
               
-              echo "âœ… Performance benchmarks completed"
+              echo "??Performance benchmarks completed"
               ;;
               
             "security")
-              echo "ğŸ” Running security validation..."
+              echo "?? Running security validation..."
               
               if command -v gosec >/dev/null 2>&1; then
                 # Run Gosec security scanner
@@ -364,46 +369,46 @@ jobs:
               fi
               
               # Check for common security anti-patterns
-              echo "ğŸ” Checking for security anti-patterns..."
+              echo "?? Checking for security anti-patterns..."
               find . -name "*.go" -exec grep -l "os.Getenv.*password\|os.Getenv.*secret\|os.Getenv.*key" {} \; \
                 > test-results/${{ matrix.category }}/env-security-issues.txt || true
               
-              echo "âœ… Security validation completed"
+              echo "??Security validation completed"
               ;;
               
             "compliance")
-              echo "ğŸ“‹ Running compliance validation..."
+              echo "?? Running compliance validation..."
               
               # O-RAN compliance checks
               if find . -name "*.go" -exec grep -l "a1\|e2\|o1\|oran" {} \; | head -5; then
-                echo "  âœ… O-RAN interface implementations found"
+                echo "  ??O-RAN interface implementations found"
               fi
               
               # 3GPP compliance patterns
               if find . -name "*.go" -exec grep -l "3gpp\|5g\|nf.*type\|service.*based" {} \; | head -5; then
-                echo "  âœ… 3GPP patterns found"
+                echo "  ??3GPP patterns found"
               fi
               
               # Kubernetes compliance
               if find . -name "*.yaml" -o -name "*.yml" -exec grep -l "apiVersion.*v1\|kind.*Deployment" {} \; | head -5; then
-                echo "  âœ… Kubernetes resources found"
+                echo "  ??Kubernetes resources found"
               fi
               
-              echo "âœ… Compliance validation completed"
+              echo "??Compliance validation completed"
               ;;
               
             *)
-              echo "ğŸ”§ Running generic validation for ${{ matrix.category }}"
+              echo "?”§ Running generic validation for ${{ matrix.category }}"
               echo "Test category: ${{ matrix.category }}" > test-results/${{ matrix.category }}/info.txt
               echo "Priority: ${{ matrix.priority }}" >> test-results/${{ matrix.category }}/info.txt
               echo "Status: Executed" >> test-results/${{ matrix.category }}/info.txt
               ;;
           esac
           
-      - name: ğŸ“Š Generate Test Summary
+      - name: ?? Generate Test Summary
         if: always()
         run: |
-          echo "ğŸ“Š Generating test summary for ${{ matrix.category }}"
+          echo "?? Generating test summary for ${{ matrix.category }}"
           
           cat > test-results/${{ matrix.category }}/summary.md <<EOF
           # Test Summary: ${{ matrix.category }}
@@ -439,9 +444,9 @@ jobs:
               ;;
           esac
           
-          echo "ğŸ“Š Test summary generated"
+          echo "?? Test summary generated"
           
-      - name: ğŸ“¤ Upload Test Results
+      - name: ?“¤ Upload Test Results
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -453,7 +458,7 @@ jobs:
   # SEQUENTIAL VALIDATION: Run sequential integration tests  
   # =============================================================================
   sequential-validation:
-    name: ğŸ”„ Sequential Validation
+    name: ?? Sequential Validation
     runs-on: ubuntu-22.04
     needs: [validation-orchestrator, parallel-validation]
     if: always()
@@ -463,12 +468,12 @@ jobs:
       e2e-status: ${{ steps.e2e.outputs.status }}
       
     steps:
-      - name: ğŸ“¥ Checkout
+      - name: ?“¥ Checkout
         uses: actions/checkout@v4
         
-      - name: ğŸ”§ Setup Complete Test Environment
+      - name: ?”§ Setup Complete Test Environment
         run: |
-          echo "ğŸ”§ Setting up complete test environment..."
+          echo "?”§ Setting up complete test environment..."
           
           # Install Go
           wget -q https://golang.org/dl/go${{ env.GO_VERSION }}.linux-amd64.tar.gz
@@ -489,11 +494,11 @@ jobs:
           chmod +x ./kind
           sudo mv ./kind /usr/local/bin/kind
           
-          echo "âœ… Complete test environment ready"
+          echo "??Complete test environment ready"
           
-      - name: ğŸ—ï¸ Setup Kubernetes Test Cluster
+      - name: ??ï¸?Setup Kubernetes Test Cluster
         run: |
-          echo "ğŸ—ï¸ Setting up Kubernetes test cluster with Kind..."
+          echo "??ï¸?Setting up Kubernetes test cluster with Kind..."
           
           # Create multi-node cluster for comprehensive testing
           cat <<EOF > kind-config.yaml
@@ -536,58 +541,58 @@ jobs:
           kubectl cluster-info --context kind-nephoran-integration
           kubectl get nodes -o wide
           
-          echo "âœ… Kubernetes test cluster ready"
+          echo "??Kubernetes test cluster ready"
           
-      - name: ğŸ§ª Integration Tests
+      - name: ?§ª Integration Tests
         id: integration
         timeout-minutes: 45
         run: |
-          echo "ğŸ§ª Running comprehensive integration tests..."
+          echo "?§ª Running comprehensive integration tests..."
           
           mkdir -p integration-results
           
           # Build and test all components
-          echo "ğŸ”¨ Building all components..."
+          echo "?”¨ Building all components..."
           if go build ./...; then
-            echo "  âœ… All components built successfully"
+            echo "  ??All components built successfully"
           else
-            echo "  âŒ Build failed"
+            echo "  ??Build failed"
             echo "status=failed" >> $GITHUB_OUTPUT
             exit 1
           fi
           
           # Run integration tests
-          echo "ğŸ”„ Running integration test suite..."
+          echo "?? Running integration test suite..."
           if go test -v -tags=integration ./... -timeout=30m 2>&1 | tee integration-results/integration-tests.log; then
-            echo "  âœ… Integration tests passed"
+            echo "  ??Integration tests passed"
             integration_status="success"
           else
-            echo "  âŒ Integration tests failed"
+            echo "  ??Integration tests failed"
             integration_status="failed"
           fi
           
           # Controller tests
-          echo "ğŸ›ï¸ Testing controller functionality..."
+          echo "??ï¸?Testing controller functionality..."
           if find . -name "*controller*" -name "*.go" -exec go test -v {} \; 2>&1 | tee integration-results/controller-tests.log; then
-            echo "  âœ… Controller tests passed"
+            echo "  ??Controller tests passed"
           else
-            echo "  âš ï¸ Controller tests had issues"
+            echo "  ? ï? Controller tests had issues"
           fi
           
           echo "status=$integration_status" >> $GITHUB_OUTPUT
           
-      - name: ğŸŒ End-to-End Workflow Tests
+      - name: ?? End-to-End Workflow Tests
         id: e2e
         timeout-minutes: 60
         run: |
-          echo "ğŸŒ Running end-to-end workflow tests..."
+          echo "?? Running end-to-end workflow tests..."
           
           mkdir -p e2e-results
           
           e2e_status="success"
           
           # Deploy operator to test cluster
-          echo "ğŸš€ Deploying operator to test cluster..."
+          echo "?? Deploying operator to test cluster..."
           
           # Create namespace
           kubectl create namespace nephoran-system
@@ -636,7 +641,7 @@ jobs:
           kubectl wait --for=condition=established crd/intents.nephoran.io --timeout=60s
           
           # Test intent creation and processing
-          echo "ğŸ“‹ Testing intent lifecycle..."
+          echo "?? Testing intent lifecycle..."
           cat <<EOF | kubectl apply -f -
           apiVersion: nephoran.io/v1alpha1
           kind: Intent
@@ -650,32 +655,32 @@ jobs:
           
           # Verify intent was created
           if kubectl get intent test-intent-e2e -n nephoran-system; then
-            echo "  âœ… Intent creation successful"
+            echo "  ??Intent creation successful"
           else
-            echo "  âŒ Intent creation failed"
+            echo "  ??Intent creation failed"
             e2e_status="failed"
           fi
           
           # Test intent processing (simulation)
-          echo "âš™ï¸ Simulating intent processing..."
+          echo "?™ï? Simulating intent processing..."
           kubectl patch intent test-intent-e2e -n nephoran-system --type='merge' -p='{"status":{"phase":"Processing"}}'
           kubectl patch intent test-intent-e2e -n nephoran-system --type='merge' -p='{"status":{"phase":"Completed"}}'
           
           # Verify final state
           final_phase=$(kubectl get intent test-intent-e2e -n nephoran-system -o jsonpath='{.status.phase}')
           if [[ "$final_phase" == "Completed" ]]; then
-            echo "  âœ… Intent processing simulation successful"
+            echo "  ??Intent processing simulation successful"
           else
-            echo "  âš ï¸ Intent processing simulation incomplete"
+            echo "  ? ï? Intent processing simulation incomplete"
           fi
           
           # Test cleanup
-          echo "ğŸ§¹ Testing cleanup procedures..."
+          echo "?§¹ Testing cleanup procedures..."
           kubectl delete intent test-intent-e2e -n nephoran-system
           
           echo "status=$e2e_status" >> $GITHUB_OUTPUT
           
-      - name: ğŸ“¤ Upload Sequential Test Results
+      - name: ?“¤ Upload Sequential Test Results
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -689,21 +694,21 @@ jobs:
   # FINAL VALIDATION REPORT: Comprehensive validation summary
   # =============================================================================
   final-validation-report:
-    name: ğŸ“Š Final Validation Report
+    name: ?? Final Validation Report
     runs-on: ubuntu-22.04
     needs: [validation-orchestrator, parallel-validation, sequential-validation]
     if: always()
     timeout-minutes: 10
     
     steps:
-      - name: ğŸ“¥ Download All Test Results
+      - name: ?“¥ Download All Test Results
         uses: actions/download-artifact@v4
         with:
           path: all-test-results/
           
-      - name: ğŸ“Š Generate Comprehensive Validation Report
+      - name: ?? Generate Comprehensive Validation Report
         run: |
-          echo "# ğŸ¯ Final Integration Testing & Validation Report" > final-validation-report.md
+          echo "# ?¯ Final Integration Testing & Validation Report" > final-validation-report.md
           echo "" >> final-validation-report.md
           echo "**Date:** $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> final-validation-report.md
           echo "**Validation Scope:** ${{ env.VALIDATION_SCOPE }}" >> final-validation-report.md
@@ -711,7 +716,7 @@ jobs:
           echo "**Deployment Target:** ${{ env.DEPLOYMENT_TARGET }}" >> final-validation-report.md
           echo "" >> final-validation-report.md
           
-          echo "## ğŸ¯ Executive Summary" >> final-validation-report.md
+          echo "## ?¯ Executive Summary" >> final-validation-report.md
           echo "" >> final-validation-report.md
           
           # Analyze results
@@ -743,20 +748,20 @@ jobs:
           
           # Determine overall status
           if [[ $parallel_success_rate -ge 90 && "$integration_status" == "success" && "$e2e_status" == "success" ]]; then
-            overall_status="âœ… EXCELLENT"
-            status_color="ğŸŸ¢"
+            overall_status="??EXCELLENT"
+            status_color="?Ÿ¢"
             deployment_ready="YES"
           elif [[ $parallel_success_rate -ge 80 && "$integration_status" != "failed" ]]; then
-            overall_status="ğŸŸ¡ GOOD"
-            status_color="ğŸŸ¡"
+            overall_status="?Ÿ¡ GOOD"
+            status_color="?Ÿ¡"
             deployment_ready="YES"
           elif [[ $parallel_success_rate -ge 70 ]]; then
-            overall_status="ğŸŸ  ACCEPTABLE"
-            status_color="ğŸŸ " 
+            overall_status="?? ACCEPTABLE"
+            status_color="??" 
             deployment_ready="CONDITIONAL"
           else
-            overall_status="ğŸ”´ NEEDS IMPROVEMENT"
-            status_color="ğŸ”´"
+            overall_status="?”´ NEEDS IMPROVEMENT"
+            status_color="?”´"
             deployment_ready="NO"
           fi
           
@@ -770,7 +775,7 @@ jobs:
           echo "- **End-to-End Tests:** $e2e_status" >> final-validation-report.md
           echo "" >> final-validation-report.md
           
-          echo "## ğŸ“Š Detailed Test Results" >> final-validation-report.md
+          echo "## ?? Detailed Test Results" >> final-validation-report.md
           echo "" >> final-validation-report.md
           
           echo "### Parallel Test Categories" >> final-validation-report.md
@@ -779,7 +784,7 @@ jobs:
           
           for category in "${parallel_results[@]}"; do
             if [[ -f "all-test-results/parallel-test-results-$category/summary.md" ]]; then
-              status="âœ… Pass"
+              status="??Pass"
               # Try to extract more details from summary
               if [[ -f "all-test-results/parallel-test-results-$category/info.txt" ]]; then
                 priority=$(grep "Priority:" "all-test-results/parallel-test-results-$category/info.txt" | cut -d' ' -f2 || echo "unknown")
@@ -787,7 +792,7 @@ jobs:
                 priority="unknown"
               fi
             else
-              status="âŒ Fail"
+              status="??Fail"
               priority="unknown"
             fi
             echo "| $category | $status | $priority | Available |" >> final-validation-report.md
@@ -801,7 +806,7 @@ jobs:
           echo "| End-to-End Workflows | ${{ needs.sequential-validation.outputs.e2e-status || 'unknown' }} | ~60 min | Full system |" >> final-validation-report.md
           echo "" >> final-validation-report.md
           
-          echo "## ğŸ¯ Validation Summary by Scope" >> final-validation-report.md
+          echo "## ?¯ Validation Summary by Scope" >> final-validation-report.md
           echo "" >> final-validation-report.md
           echo "**Validation Scope:** ${{ env.VALIDATION_SCOPE }}" >> final-validation-report.md
           echo "" >> final-validation-report.md
@@ -835,11 +840,11 @@ jobs:
           esac
           echo "" >> final-validation-report.md
           
-          echo "## ğŸš€ Deployment Readiness Assessment" >> final-validation-report.md
+          echo "## ?? Deployment Readiness Assessment" >> final-validation-report.md
           echo "" >> final-validation-report.md
           
           if [[ "$deployment_ready" == "YES" ]]; then
-            echo "âœ… **READY FOR DEPLOYMENT**" >> final-validation-report.md
+            echo "??**READY FOR DEPLOYMENT**" >> final-validation-report.md
             echo "" >> final-validation-report.md
             echo "The Nephoran Intent Operator has successfully passed comprehensive validation and is ready for deployment to the target environment." >> final-validation-report.md
             echo "" >> final-validation-report.md
@@ -849,7 +854,7 @@ jobs:
             echo "3. Plan production rollout" >> final-validation-report.md
             echo "4. Monitor deployment metrics" >> final-validation-report.md
           elif [[ "$deployment_ready" == "CONDITIONAL" ]]; then
-            echo "âš ï¸ **CONDITIONAL DEPLOYMENT**" >> final-validation-report.md
+            echo "? ï? **CONDITIONAL DEPLOYMENT**" >> final-validation-report.md
             echo "" >> final-validation-report.md
             echo "The system passes most validation criteria but has some areas for improvement. Deployment is possible with close monitoring." >> final-validation-report.md
             echo "" >> final-validation-report.md
@@ -859,7 +864,7 @@ jobs:
             echo "3. Plan gradual rollout strategy" >> final-validation-report.md
             echo "4. Prepare rollback procedures" >> final-validation-report.md
           else
-            echo "âŒ **NOT READY FOR DEPLOYMENT**" >> final-validation-report.md
+            echo "??**NOT READY FOR DEPLOYMENT**" >> final-validation-report.md
             echo "" >> final-validation-report.md
             echo "Critical validation failures detected. Deployment should be postponed until issues are resolved." >> final-validation-report.md
             echo "" >> final-validation-report.md
@@ -871,7 +876,7 @@ jobs:
           fi
           echo "" >> final-validation-report.md
           
-          echo "## ğŸ“š Test Artifacts" >> final-validation-report.md
+          echo "## ?? Test Artifacts" >> final-validation-report.md
           echo "" >> final-validation-report.md
           echo "All test results, logs, and reports are available as workflow artifacts:" >> final-validation-report.md
           echo "" >> final-validation-report.md
@@ -882,7 +887,7 @@ jobs:
           done
           echo "" >> final-validation-report.md
           
-          echo "## ğŸ” Quality Metrics" >> final-validation-report.md
+          echo "## ?? Quality Metrics" >> final-validation-report.md
           echo "" >> final-validation-report.md
           
           # Extract quality metrics if available
@@ -902,18 +907,18 @@ jobs:
           echo "---" >> final-validation-report.md
           echo "_Generated by Nephoran Final Integration Testing & Validation Pipeline_" >> final-validation-report.md
           
-      - name: ğŸ“¤ Upload Final Validation Report
+      - name: ?“¤ Upload Final Validation Report
         uses: actions/upload-artifact@v4
         with:
           name: final-validation-report
           path: final-validation-report.md
           retention-days: 90
           
-      - name: ğŸ¯ Final Validation Status
+      - name: ?¯ Final Validation Status
         run: |
-          echo "ğŸ¯ Final Integration Testing & Validation Complete"
+          echo "?¯ Final Integration Testing & Validation Complete"
           echo ""
-          echo "ğŸ“Š Validation Summary:"
+          echo "?? Validation Summary:"
           echo "  - Scope: ${{ env.VALIDATION_SCOPE }}"
           echo "  - Duration: ${{ needs.validation-orchestrator.outputs.expected-duration }} minutes (estimated)"
           echo "  - Integration: ${{ needs.sequential-validation.outputs.integration-status }}"
@@ -923,31 +928,31 @@ jobs:
           # Determine final exit status
           if [[ "${{ needs.sequential-validation.outputs.integration-status }}" == "success" && \
                 "${{ needs.sequential-validation.outputs.e2e-status }}" == "success" ]]; then
-            echo "âœ… FINAL VALIDATION: PASSED"
-            echo "ğŸš€ Nephoran Intent Operator is ready for deployment"
+            echo "??FINAL VALIDATION: PASSED"
+            echo "?? Nephoran Intent Operator is ready for deployment"
             echo ""
-            echo "ğŸ¯ **Key Achievements:**"
-            echo "  - âœ… All critical tests passed"
-            echo "  - âœ… Integration validation successful"
-            echo "  - âœ… End-to-end workflows validated"
-            echo "  - âœ… System ready for production deployment"
+            echo "?¯ **Key Achievements:**"
+            echo "  - ??All critical tests passed"
+            echo "  - ??Integration validation successful"
+            echo "  - ??End-to-end workflows validated"
+            echo "  - ??System ready for production deployment"
             echo ""
             exit 0
           else
-            echo "âŒ FINAL VALIDATION: FAILED"
-            echo "ğŸ”§ Issues detected that need resolution before deployment"
+            echo "??FINAL VALIDATION: FAILED"
+            echo "?”§ Issues detected that need resolution before deployment"
             echo ""
-            echo "ğŸš¨ **Critical Issues:**"
+            echo "?š¨ **Critical Issues:**"
             
             if [[ "${{ needs.sequential-validation.outputs.integration-status }}" != "success" ]]; then
-              echo "  - âŒ Integration test failures"
+              echo "  - ??Integration test failures"
             fi
             
             if [[ "${{ needs.sequential-validation.outputs.e2e-status }}" != "success" ]]; then
-              echo "  - âŒ End-to-end workflow failures"
+              echo "  - ??End-to-end workflow failures"
             fi
             
             echo ""
-            echo "ğŸ“‹ Review the detailed validation report for specific recommendations"
+            echo "?? Review the detailed validation report for specific recommendations"
             exit 1
           fi

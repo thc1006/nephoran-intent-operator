@@ -36,6 +36,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -600,7 +601,11 @@ func (r *ResourcePlanningController) applyCostOptimization(ctx context.Context, 
 
 		Status: "Success",
 
-		ImprovementPercent: &improvementPercent,
+<<<<<<< HEAD
+		ImprovementPercent: stringPtr(strconv.FormatFloat(improvementPercent, 'f', 2, 64)),
+=======
+		ImprovementPercent: stringPtr(fmt.Sprintf("%.2f", improvementPercent)),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 		Description: fmt.Sprintf("Optimized %d resources for cost reduction", optimizedCount),
 
@@ -672,7 +677,11 @@ func (r *ResourcePlanningController) applyPerformanceOptimization(ctx context.Co
 
 		Status: "Success",
 
-		ImprovementPercent: &improvementPercent,
+<<<<<<< HEAD
+		ImprovementPercent: stringPtr(strconv.FormatFloat(improvementPercent, 'f', 2, 64)),
+=======
+		ImprovementPercent: stringPtr(fmt.Sprintf("%.2f", improvementPercent)),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 		Description: fmt.Sprintf("Optimized %d resources for performance", optimizedCount),
 
@@ -728,7 +737,11 @@ func (r *ResourcePlanningController) applyResourcePackingOptimization(ctx contex
 
 		Status: "Success",
 
-		ImprovementPercent: &improvementPercent,
+<<<<<<< HEAD
+		ImprovementPercent: stringPtr(strconv.FormatFloat(improvementPercent, 'f', 2, 64)),
+=======
+		ImprovementPercent: stringPtr(fmt.Sprintf("%.2f", improvementPercent)),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 		Description: fmt.Sprintf("Grouped %d resources into %d packing groups", len(resources), len(packingGroups)),
 
@@ -862,18 +875,34 @@ func (r *ResourcePlanningController) estimatePerformance(ctx context.Context, re
 	expectedAvailability := math.Min(99.99, 95.0+float64(len(resources))*0.5) // More replicas = higher availability
 
 	// Create performance estimate.
+	expectedThroughputStr := fmt.Sprintf("%.2f", expectedThroughput)
+	expectedLatencyStr := fmt.Sprintf("%.2f", expectedLatency)
+	expectedAvailabilityStr := fmt.Sprintf("%.2f", expectedAvailability)
 
 	performanceEstimate := &nephoranv1.PerformanceEstimate{
-		ExpectedThroughput: &expectedThroughput,
+<<<<<<< HEAD
+		ExpectedThroughput: stringPtr(strconv.FormatFloat(expectedThroughput, 'f', 2, 64)),
 
-		ExpectedLatency: &expectedLatency,
+		ExpectedLatency: stringPtr(strconv.FormatFloat(expectedLatency, 'f', 2, 64)),
 
-		ExpectedAvailability: &expectedAvailability,
+		ExpectedAvailability: stringPtr(strconv.FormatFloat(expectedAvailability, 'f', 2, 64)),
 
-		ResourceUtilization: map[string]float64{
-			"cpu_utilization": 0.7, // Assume 70% utilization
+		ResourceUtilization: map[string]string{
+			"cpu_utilization": "70.0", // Assume 70% utilization
 
-			"memory_utilization": 0.8, // Assume 80% utilization
+			"memory_utilization": "80.0", // Assume 80% utilization
+=======
+		ExpectedThroughput: &expectedThroughputStr,
+
+		ExpectedLatency: &expectedLatencyStr,
+
+		ExpectedAvailability: &expectedAvailabilityStr,
+
+		ResourceUtilization: map[string]string{
+			"cpu_utilization": strconv.FormatFloat(0.7, 'f', 6, 64), // Assume 70% utilization
+
+			"memory_utilization": strconv.FormatFloat(0.8, 'f', 6, 64), // Assume 80% utilization
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 		},
 	}
@@ -904,7 +933,11 @@ func (r *ResourcePlanningController) estimatePerformance(ctx context.Context, re
 
 				Impact: "Improves availability and fault tolerance",
 
-				Confidence: func() *float64 { c := 0.8; return &c }(),
+<<<<<<< HEAD
+				Confidence: stringPtr("0.8"),
+=======
+				Confidence: func() *string { c := "0.8"; return &c }(),
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 			}
 
 			performanceEstimate.ScalingRecommendations = append(performanceEstimate.ScalingRecommendations, recommendation)
@@ -1051,11 +1084,19 @@ func (r *ResourcePlanningController) calculateQualityScore(resources []nephoranv
 	// Factor in cost efficiency (20% weight).
 
 	if costEstimate != nil && costEstimate.Confidence != nil {
-
-		costScore := *costEstimate.Confidence
+<<<<<<< HEAD
+		if costScore, err := strconv.ParseFloat(*costEstimate.Confidence, 64); err == nil {
+			score *= (0.8 + 0.2*costScore)
+		}
+=======
+		costScore, err := strconv.ParseFloat(*costEstimate.Confidence, 64)
+		if err != nil {
+			costScore = 0.5 // Default confidence score
+		}
 
 		score *= (0.8 + 0.2*costScore)
 
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	// Factor in performance expectations (30% weight).
@@ -1064,8 +1105,15 @@ func (r *ResourcePlanningController) calculateQualityScore(resources []nephoranv
 
 		performanceScore := 0.8 // Base score
 
-		if performanceEstimate.ExpectedAvailability != nil && *performanceEstimate.ExpectedAvailability >= 99.0 {
-			performanceScore = 1.0
+		if performanceEstimate.ExpectedAvailability != nil {
+<<<<<<< HEAD
+			if availability, err := strconv.ParseFloat(*performanceEstimate.ExpectedAvailability, 64); err == nil && availability >= 99.0 {
+=======
+			availabilityValue, err := strconv.ParseFloat(*performanceEstimate.ExpectedAvailability, 64)
+			if err == nil && availabilityValue >= 99.0 {
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
+				performanceScore = 1.0
+			}
 		}
 
 		score *= (0.7 + 0.3*performanceScore)
@@ -1203,8 +1251,13 @@ func (r *ResourcePlanningController) handlePlanningSuccess(ctx context.Context, 
 	resourcePlan.Status.ValidationResults = result.ValidationResults
 
 	// Set quality score.
+<<<<<<< HEAD
 
-	resourcePlan.Status.QualityScore = &result.QualityScore
+	resourcePlan.Status.QualityScore = stringPtr(strconv.FormatFloat(result.QualityScore, 'f', 4, 64))
+=======
+	qualityScoreStr := fmt.Sprintf("%.2f", result.QualityScore)
+	resourcePlan.Status.QualityScore = &qualityScoreStr
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// Calculate planning duration.
 
@@ -1774,7 +1827,7 @@ func (rps *ResourcePlanningService) getReplicas(pattern nephoranv1.DeploymentPat
 func (ces *CostEstimationService) EstimateCosts(ctx context.Context, resources []nephoranv1.PlannedResource) (*nephoranv1.CostEstimate, error) {
 	totalCost := 0.0
 
-	costBreakdown := make(map[string]float64)
+	costBreakdown := make(map[string]string)
 
 	for _, resource := range resources {
 
@@ -1814,13 +1867,17 @@ func (ces *CostEstimationService) EstimateCosts(ctx context.Context, resources [
 
 		totalCost += monthlyCost
 
-		costBreakdown[resource.Name] = monthlyCost
+<<<<<<< HEAD
+		costBreakdown[resource.Name] = fmt.Sprintf("%.2f", monthlyCost)
+=======
+		costBreakdown[resource.Name] = strconv.FormatFloat(monthlyCost, 'f', 6, 64)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	}
 
 	// Create cost estimate.
 
-	confidence := 0.8 // 80% confidence in the estimate
+	confidence := "0.8" // 80% confidence in the estimate
 
 	costEstimate := &nephoranv1.CostEstimate{
 		TotalCost: fmt.Sprintf("%.2f", totalCost),
@@ -1833,7 +1890,7 @@ func (ces *CostEstimationService) EstimateCosts(ctx context.Context, resources [
 
 		EstimatedAt: metav1.Now(),
 
-		Confidence: &confidence,
+		Confidence: stringPtr(strconv.FormatFloat(confidence, 'f', 2, 64)),
 	}
 
 	return costEstimate, nil
@@ -1892,4 +1949,3 @@ func (cvs *ComplianceValidationService) ValidateRequirement(requirement nephoran
 
 	return status, violations
 }
-

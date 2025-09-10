@@ -373,6 +373,7 @@ type NotificationTemplate struct {
 // Alarm represents a basic alarm structure
 type Alarm struct {
 	ID                string                 `json:"id"`
+	ManagedElementID  string                 `json:"managed_element_id"`
 	Type              string                 `json:"type"`
 	Severity          string                 `json:"severity"`
 	Source            string                 `json:"source"`
@@ -390,6 +391,8 @@ type Alarm struct {
 	AdditionalText    string                 `json:"additional_text,omitempty"`
 	AckState          string                 `json:"ack_state,omitempty"`
 	AlarmState        string                 `json:"alarm_state,omitempty"`
+	AdditionalInfo    map[string]interface{} `json:"additional_info,omitempty"`
+	TimeRaised        time.Time              `json:"time_raised,omitempty"`
 	Metadata          json.RawMessage `json:"metadata,omitempty"`
 }
 

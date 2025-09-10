@@ -45,8 +45,7 @@ import (
 )
 
 // CNFType defines the type of Cloud Native Function.
-
-// +kubebuilder:validation:Enum="5G-Core";"O-RAN";"Edge";"Custom"
+// +kubebuilder:validation:Enum=Core5G;ORAN;Edge;Custom
 
 type CNFType string
 
@@ -795,7 +794,7 @@ type CNFDeploymentStatus struct {
 
 	// +optional
 
-	ResourceUtilization map[string]float64 `json:"resourceUtilization,omitempty"`
+	ResourceUtilization map[string]string `json:"resourceUtilization,omitempty"`
 
 	// Health status.
 
@@ -1069,11 +1068,11 @@ func (cnf *CNFDeployment) validateResources() error {
 
 		Memory int64 // bytes
 	}{
-		CNFFunctionUPF: {CPU: 2000, Memory: 4 << 30}, // 2 CPU, 4Gi memory
+		CNFFunctionUPF: {CPU: 2000, Memory: 4000000000}, // 2 CPU, ~4Gi memory
 
-		CNFFunctionAMF: {CPU: 1000, Memory: 2 << 30}, // 1 CPU, 2Gi memory
+		CNFFunctionAMF: {CPU: 1000, Memory: 2000000000}, // 1 CPU, ~2Gi memory
 
-		CNFFunctionSMF: {CPU: 1000, Memory: 2 << 30}, // 1 CPU, 2Gi memory
+		CNFFunctionSMF: {CPU: 1000, Memory: 2000000000}, // 1 CPU, ~2Gi memory
 
 	}
 

@@ -1,7 +1,6 @@
 package llm
 
 import (
-	"encoding/json"
 	"fmt"
 	"sync"
 	"testing"
@@ -116,7 +115,7 @@ func TestCircuitBreakerManagerGetAllStats(t *testing.T) {
 			openBreakers := make([]string, 0)
 			for name, cbStats := range stats {
 				if statsMap, ok := cbStats.(map[string]interface{}); ok {
-					if state, exists := statsMap["state"]; exists && state == "Open" {
+					if state, exists := statsMap["state"]; exists && state == "open" {
 						openBreakers = append(openBreakers, name)
 					}
 				}
@@ -180,7 +179,7 @@ func TestCircuitBreakerHealthCheckLogic(t *testing.T) {
 		// This is the exact logic from the service manager health check
 		for name, state := range stats {
 			if cbStats, ok := state.(map[string]interface{}); ok {
-				if cbState, exists := cbStats["state"]; exists && cbState == "Open" {
+				if cbState, exists := cbStats["state"]; exists && cbState == "open" {
 					openBreakers = append(openBreakers, name)
 				}
 			}
@@ -253,7 +252,7 @@ func TestCircuitBreakerHealthCheckLogic(t *testing.T) {
 				var openBreakers []string
 				for name, state := range stats {
 					if cbStats, ok := state.(map[string]interface{}); ok {
-						if cbState, exists := cbStats["state"]; exists && cbState == "Open" {
+						if cbState, exists := cbStats["state"]; exists && cbState == "open" {
 							openBreakers = append(openBreakers, name)
 						}
 					}
@@ -365,7 +364,7 @@ func TestCircuitBreakerConcurrentHealthChecks(t *testing.T) {
 		resultCount++
 
 		// Each result should be valid
-		assert.IsType(t, json.RawMessage(`{}`), stats)
+		assert.IsType(t, map[string]interface{}{}, stats)
 		assert.LessOrEqual(t, len(stats), numBreakers,
 			"Should not have more stats than breakers")
 

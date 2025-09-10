@@ -252,7 +252,11 @@ jobs:
         id: go-setup
         uses: actions/setup-go@v5
         with:
+<<<<<<< HEAD
           go-version: '1.24.0'
+=======
+          go-version: '1.24.6'
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           cache: false  # We handle caching manually for better control
           check-latest: true
 
@@ -521,7 +525,11 @@ jobs:
       - name: Setup Go with build optimizations
         uses: actions/setup-go@v5
         with:
+<<<<<<< HEAD
           go-version: '1.24.0'
+=======
+          go-version: '1.24.6'
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           cache: false
 
       - name: Setup optimized build environment
@@ -889,7 +897,11 @@ jobs:
       - name: Setup Go with test optimizations
         uses: actions/setup-go@v5
         with:
+<<<<<<< HEAD
           go-version: '1.24.0'
+=======
+          go-version: '1.24.6'
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           cache: false
 
       - name: Setup comprehensive test environment
@@ -1132,7 +1144,11 @@ jobs:
       - name: Setup Go with security tools
         uses: actions/setup-go@v5
         with:
+<<<<<<< HEAD
           go-version: '1.24.0'
+=======
+          go-version: '1.24.6'
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           cache: false
 
       - name: Restore Go cache for security tools
@@ -1288,7 +1304,11 @@ jobs:
       - name: Setup Go for quality tools
         uses: actions/setup-go@v5
         with:
+<<<<<<< HEAD
           go-version: '1.24.0'
+=======
+          go-version: '1.24.6'
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
           cache: false
 
       - name: Restore Go cache for quality tools

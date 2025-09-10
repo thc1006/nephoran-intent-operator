@@ -107,8 +107,21 @@ func (e *Executor) Execute(ctx context.Context, intentPath string) (*ExecutionRe
 	}
 
 	// Create context with timeout.
-
-	timeoutCtx, cancel := context.WithTimeout(ctx, e.config.Timeout)
+	// CRITICAL FIX: Check if parent context is already cancelled to prevent immediate cancellation
+	// If parent context is cancelled (e.g., during graceful shutdown), use background context
+	// with timeout to allow command to execute properly during shutdown scenarios.
+	var timeoutCtx context.Context
+	var cancel context.CancelFunc
+	
+	if ctx.Err() != nil {
+		// Parent context is already cancelled (graceful shutdown scenario)
+		// Use background context with timeout to allow porch command to complete
+		timeoutCtx, cancel = context.WithTimeout(context.Background(), e.config.Timeout)
+		log.Printf("Parent context cancelled, using background context with %v timeout", e.config.Timeout)
+	} else {
+		// Normal operation - use parent context with timeout
+		timeoutCtx, cancel = context.WithTimeout(ctx, e.config.Timeout)
+	}
 
 	defer cancel()
 
@@ -196,6 +209,17 @@ func (e *Executor) buildCommand(intentPath string) ([]string, error) {
 		return nil, fmt.Errorf("failed to get absolute output directory: %w", err)
 	}
 
+	// Ensure porch path is properly resolved
+	porchPath := e.config.PorchPath
+	if filepath.IsAbs(porchPath) {
+		// Use absolute path as-is for better reliability
+		absPath, err := filepath.Abs(porchPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve absolute porch path: %w", err)
+		}
+		porchPath = absPath
+	}
+
 	// Build command based on mode.
 
 	switch e.config.Mode {
@@ -203,7 +227,7 @@ func (e *Executor) buildCommand(intentPath string) ([]string, error) {
 	case ModeDirect:
 
 		return []string{
-			e.config.PorchPath,
+			porchPath,
 
 			"-intent", absIntentPath,
 
@@ -213,7 +237,7 @@ func (e *Executor) buildCommand(intentPath string) ([]string, error) {
 	case ModeStructured:
 
 		return []string{
-			e.config.PorchPath,
+			porchPath,
 
 			"-intent", absIntentPath,
 
@@ -250,29 +274,45 @@ func getExitCode(err error) int {
 // ValidatePorchPath checks if the porch executable exists and is executable.
 
 func ValidatePorchPath(porchPath string) error {
+	// Handle empty path
+	if porchPath == "" {
+		return fmt.Errorf("porch path cannot be empty")
+	}
+	
+	// If path is absolute, check file existence first
+	if filepath.IsAbs(porchPath) {
+		if _, err := os.Stat(porchPath); err != nil {
+			if os.IsNotExist(err) {
+				return fmt.Errorf("porch executable not found at path: %s", porchPath)
+			}
+			return fmt.Errorf("cannot access porch executable: %w", err)
+		}
+	}
+
 	// Try to run porch with --help to validate it exists and works.
-
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, porchPath, "--help")
+	// For cross-platform compatibility, handle .bat files on Windows and .sh on Unix
+	var cmd *exec.Cmd
+	if filepath.IsAbs(porchPath) {
+		// Use absolute path directly
+		cmd = exec.CommandContext(ctx, porchPath, "--help")
+	} else {
+		// Use relative path (for PATH lookup)
+		cmd = exec.CommandContext(ctx, porchPath, "--help")
+	}
 
 	var stderr bytes.Buffer
-
 	cmd.Stderr = &stderr
 
 	err := cmd.Run()
 	if err != nil {
-
 		stderrStr := strings.TrimSpace(stderr.String())
-
 		if stderrStr != "" {
 			return fmt.Errorf("porch validation failed: %w (stderr: %s)", err, stderrStr)
 		}
-
 		return fmt.Errorf("porch validation failed: %w", err)
-
 	}
 
 	return nil

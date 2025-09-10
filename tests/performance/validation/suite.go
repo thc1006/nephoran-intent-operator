@@ -94,9 +94,9 @@ type TestConfiguration struct {
 
 	ConcurrencyLevels []int `json:"concurrency_levels"`
 
-	LoadPatterns []LoadPattern `json:"load_patterns"`
+	ValidationLoadPatterns []ValidationLoadPattern `json:"load_patterns"`
 
-	TestScenarios []TestScenario `json:"test_scenarios"`
+	ValidationTestScenarios []ValidationTestScenario `json:"test_scenarios"`
 
 	EnvironmentVariants []EnvVariant `json:"environment_variants"`
 }
@@ -117,9 +117,9 @@ type EvidenceRequirements struct {
 	HypothesisTests bool `json:"hypothesis_tests"` // Formal hypothesis testing
 }
 
-// LoadPattern defines different load testing patterns.
+// ValidationLoadPattern defines different load testing patterns.
 
-type LoadPattern struct {
+type ValidationLoadPattern struct {
 	Name string `json:"name"`
 
 	Pattern string `json:"pattern"` // "constant", "ramp", "spike", "burst"
@@ -129,9 +129,9 @@ type LoadPattern struct {
 	Parameters json.RawMessage `json:"parameters"`
 }
 
-// TestScenario represents a telecommunications-specific test scenario.
+// ValidationTestScenario represents a telecommunications-specific test scenario.
 
-type TestScenario struct {
+type ValidationTestScenario struct {
 	Name string `json:"name"`
 
 	Description string `json:"description"`
@@ -395,7 +395,7 @@ func (vs *ValidationSuite) ValidateAllClaims(ctx context.Context) (*ValidationRe
 	vs.results.Metadata = &ValidationMetadata{
 		StartTime: startTime,
 
-		Environment: vs.gatherEnvironmentInfo(),
+		Environment: vs.gatherValidationEnvironmentInfo(),
 
 		TestConfig: vs.config.TestConfig,
 	}
@@ -956,10 +956,10 @@ func (vs *ValidationSuite) generateQQPlotData(data []float64, distType string) [
 	return points
 }
 
-// gatherEnvironmentInfo collects environment information for metadata.
+// gatherValidationEnvironmentInfo collects environment information for metadata.
 
-func (vs *ValidationSuite) gatherEnvironmentInfo() *EnvironmentInfo {
-	return &EnvironmentInfo{
+func (vs *ValidationSuite) gatherValidationEnvironmentInfo() *ValidationEnvironmentInfo {
+	return &ValidationEnvironmentInfo{
 		Platform: "linux",
 
 		Architecture: "amd64",

@@ -50,6 +50,61 @@ type ChaosTestSuite struct {
 	random        *rand.Rand
 }
 
+// ITERATION #9: Test helper functions for proper Task initialization
+// createTestTask creates a properly initialized Task for testing
+func (suite *ChaosTestSuite) createTestTask(id string, taskType TaskType, timeout time.Duration) *Task {
+	ctx, cancel := context.WithCancel(suite.ctx)
+	return &Task{
+		ID:        id,
+		IntentID:  "test-intent",
+		Type:      taskType,
+		Priority:  5,
+		Status:    TaskStatusPending,
+		InputData: json.RawMessage(`{}`),
+		Timeout:   timeout,
+		Context:   ctx,
+		Cancel:    cancel,
+		CreatedAt: time.Now(),
+		Metadata:  map[string]string{"test": "true"},
+	}
+}
+
+// createTestTaskWithContext creates a Task with specific context for testing
+func (suite *ChaosTestSuite) createTestTaskWithContext(id string, taskType TaskType, timeout time.Duration, parentCtx context.Context) *Task {
+	ctx, cancel := context.WithCancel(parentCtx)
+	return &Task{
+		ID:        id,
+		IntentID:  "test-intent",
+		Type:      taskType,
+		Priority:  5,
+		Status:    TaskStatusPending,
+		InputData: json.RawMessage(`{}`),
+		Timeout:   timeout,
+		Context:   ctx,
+		Cancel:    cancel,
+		CreatedAt: time.Now(),
+		Metadata:  map[string]string{"test": "true"},
+	}
+}
+
+// createChaosTask creates a Task specifically for chaos testing scenarios
+func (suite *ChaosTestSuite) createChaosTask(id string, taskType TaskType, priority int, timeout time.Duration) *Task {
+	ctx, cancel := context.WithCancel(suite.ctx)
+	return &Task{
+		ID:        id,
+		IntentID:  "chaos-intent",
+		Type:      taskType,
+		Priority:  priority,
+		Status:    TaskStatusPending,
+		InputData: json.RawMessage(`{"chaos":"true"}`),
+		Timeout:   timeout,
+		Context:   ctx,
+		Cancel:    cancel,
+		CreatedAt: time.Now(),
+		Metadata:  map[string]string{"chaos": "true", "test": "true"},
+	}
+}
+
 func (suite *ChaosTestSuite) SetupSuite() {
 	zapLogger, _ := zap.NewDevelopment()
 	suite.logger = zapr.NewLogger(zapLogger)
@@ -314,15 +369,14 @@ func (suite *ChaosTestSuite) TestNetworkPartitions() {
 		// Create chaos by submitting conflicting high-priority tasks
 		for j := 0; j < 10; j++ {
 			go func(chaosNum int) {
-				task := &Task{
-					ID:        fmt.Sprintf("chaos-task-%d", chaosNum),
-					IntentID:  "partition-chaos",
-					Type:      TaskTypeLLMProcessing,
-					Priority:  10, // Very high priority
-					Status:    TaskStatusPending,
-					InputData: json.RawMessage(`{"intent":"chaos"}`),
-					Timeout:   1 * time.Second, // Short timeout to create instability
-				}
+				// ITERATION #9 fix: Use helper function for proper Task initialization
+				task := suite.createChaosTask(
+					fmt.Sprintf("chaos-task-%d", chaosNum),
+					TaskTypeLLMProcessing,
+					10, // Very high priority
+					1*time.Second, // Short timeout to create instability
+				)
+				task.IntentID = "partition-chaos" // Override for this specific test
 
 				_ = suite.engine.SubmitTask(task)
 			}(j)

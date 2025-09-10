@@ -2,7 +2,6 @@ module github.com/thc1006/nephoran-intent-operator
 
 go 1.24.0
 
-// Build optimization toolchain directive
 toolchain go1.24.6
 
 require (
@@ -45,7 +44,6 @@ require (
 	github.com/go-logr/logr v1.4.3
 	github.com/go-logr/zapr v1.3.0
 	github.com/go-playground/validator/v10 v10.27.0
-	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.6.0
@@ -67,7 +65,6 @@ require (
 	github.com/prometheus/common v0.65.0
 	github.com/redis/go-redis/v9 v9.13.0
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/rogpeppe/go-internal v1.14.1
 	github.com/rs/cors v1.11.1
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
 	github.com/sirupsen/logrus v1.9.3

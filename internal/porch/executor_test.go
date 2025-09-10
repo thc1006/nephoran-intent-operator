@@ -584,10 +584,17 @@ func BenchmarkExecutor_Execute(b *testing.B) {
 }
 
 func BenchmarkStatefulExecutor_GetStats(b *testing.B) {
+	tempDir := b.TempDir()
+	outDir := filepath.Join(tempDir, "out")
+	
+	if err := os.MkdirAll(outDir, 0755); err != nil {
+		b.Fatalf("Failed to create output directory: %v", err)
+	}
+
 	config := ExecutorConfig{
-		PorchPath: "mock-porch",
+		PorchPath: createMockPorch(b, tempDir, 0, "success", ""),
 		Mode:      ModeDirect,
-		OutDir:    "./out",
+		OutDir:    outDir,
 		Timeout:   5 * time.Second,
 	}
 

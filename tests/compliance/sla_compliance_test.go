@@ -7,7 +7,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"math/rand/v2"
 	"sync"
 	"testing"
 	"time"

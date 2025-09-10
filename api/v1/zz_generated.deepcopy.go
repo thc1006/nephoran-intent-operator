@@ -531,7 +531,7 @@ func (in *CNFDeploymentStatus) DeepCopyInto(out *CNFDeploymentStatus) {
 	}
 	if in.ResourceUtilization != nil {
 		in, out := &in.ResourceUtilization, &out.ResourceUtilization
-		*out = make(map[string]float64, len(*in))
+		*out = make(map[string]string, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
@@ -1279,7 +1279,7 @@ func (in *CostEstimate) DeepCopyInto(out *CostEstimate) {
 	*out = *in
 	if in.CostBreakdown != nil {
 		in, out := &in.CostBreakdown, &out.CostBreakdown
-		*out = make(map[string]float64, len(*in))
+		*out = make(map[string]string, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
@@ -1287,7 +1287,7 @@ func (in *CostEstimate) DeepCopyInto(out *CostEstimate) {
 	in.EstimatedAt.DeepCopyInto(&out.EstimatedAt)
 	if in.Confidence != nil {
 		in, out := &in.Confidence, &out.Confidence
-		*out = new(float64)
+		*out = new(string)
 		**out = **in
 	}
 }
@@ -2557,7 +2557,7 @@ func (in *IndividualCNFDeploymentStatus) DeepCopyInto(out *IndividualCNFDeployme
 	}
 	if in.ResourceUtilization != nil {
 		in, out := &in.ResourceUtilization, &out.ResourceUtilization
-		*out = make(map[string]float64, len(*in))
+		*out = make(map[string]string, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
@@ -2834,7 +2834,7 @@ func (in *LLMMetrics) DeepCopyInto(out *LLMMetrics) {
 	}
 	if in.ConfidenceScore != nil {
 		in, out := &in.ConfidenceScore, &out.ConfidenceScore
-		*out = new(float64)
+		*out = new(string)
 		**out = **in
 	}
 }
@@ -3295,7 +3295,7 @@ func (in *ManifestGenerationStatus) DeepCopyInto(out *ManifestGenerationStatus) 
 	}
 	if in.QualityScore != nil {
 		in, out := &in.QualityScore, &out.QualityScore
-		*out = new(float64)
+		*out = new(string)
 		**out = **in
 	}
 }
@@ -3315,7 +3315,7 @@ func (in *ManifestOptimizationResult) DeepCopyInto(out *ManifestOptimizationResu
 	*out = *in
 	if in.ImprovementPercent != nil {
 		in, out := &in.ImprovementPercent, &out.ImprovementPercent
-		*out = new(float64)
+		*out = new(string)
 		**out = **in
 	}
 	if in.Changes != nil {
@@ -4380,7 +4380,7 @@ func (in *OptimizationGoal) DeepCopyInto(out *OptimizationGoal) {
 	*out = *in
 	if in.Weight != nil {
 		in, out := &in.Weight, &out.Weight
-		*out = new(float64)
+		*out = new(string)
 		**out = **in
 	}
 	if in.Target != nil {
@@ -4412,7 +4412,7 @@ func (in *OptimizationResult) DeepCopyInto(out *OptimizationResult) {
 	*out = *in
 	if in.ImprovementPercent != nil {
 		in, out := &in.ImprovementPercent, &out.ImprovementPercent
-		*out = new(float64)
+		*out = new(string)
 		**out = **in
 	}
 	if in.AppliedChanges != nil {
@@ -4469,22 +4469,22 @@ func (in *PerformanceEstimate) DeepCopyInto(out *PerformanceEstimate) {
 	*out = *in
 	if in.ExpectedThroughput != nil {
 		in, out := &in.ExpectedThroughput, &out.ExpectedThroughput
-		*out = new(float64)
+		*out = new(string)
 		**out = **in
 	}
 	if in.ExpectedLatency != nil {
 		in, out := &in.ExpectedLatency, &out.ExpectedLatency
-		*out = new(float64)
+		*out = new(string)
 		**out = **in
 	}
 	if in.ExpectedAvailability != nil {
 		in, out := &in.ExpectedAvailability, &out.ExpectedAvailability
-		*out = new(float64)
+		*out = new(string)
 		**out = **in
 	}
 	if in.ResourceUtilization != nil {
 		in, out := &in.ResourceUtilization, &out.ResourceUtilization
-		*out = make(map[string]float64, len(*in))
+		*out = make(map[string]string, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
@@ -4625,7 +4625,7 @@ func (in *PlannedResource) DeepCopyInto(out *PlannedResource) {
 	}
 	if in.EstimatedCost != nil {
 		in, out := &in.EstimatedCost, &out.EstimatedCost
-		*out = new(float64)
+		*out = new(string)
 		**out = **in
 	}
 }
@@ -4870,12 +4870,12 @@ func (in *RAGMetrics) DeepCopyInto(out *RAGMetrics) {
 	*out = *in
 	if in.AverageRelevanceScore != nil {
 		in, out := &in.AverageRelevanceScore, &out.AverageRelevanceScore
-		*out = new(float64)
+		*out = new(string)
 		**out = **in
 	}
 	if in.TopRelevanceScore != nil {
 		in, out := &in.TopRelevanceScore, &out.TopRelevanceScore
-		*out = new(float64)
+		*out = new(string)
 		**out = **in
 	}
 	if in.SourcesUsed != nil {
@@ -5441,7 +5441,7 @@ func (in *ResourcePlanStatus) DeepCopyInto(out *ResourcePlanStatus) {
 	}
 	if in.QualityScore != nil {
 		in, out := &in.QualityScore, &out.QualityScore
-		*out = new(float64)
+		*out = new(string)
 		**out = **in
 	}
 }
@@ -5744,7 +5744,7 @@ func (in *SLARequirements) DeepCopyInto(out *SLARequirements) {
 	*out = *in
 	if in.AvailabilityTarget != nil {
 		in, out := &in.AvailabilityTarget, &out.AvailabilityTarget
-		*out = new(float64)
+		*out = new(string)
 		**out = **in
 	}
 	if in.MaxLatency != nil {
@@ -5759,7 +5759,7 @@ func (in *SLARequirements) DeepCopyInto(out *SLARequirements) {
 	}
 	if in.MaxPacketLoss != nil {
 		in, out := &in.MaxPacketLoss, &out.MaxPacketLoss
-		*out = new(float64)
+		*out = new(string)
 		**out = **in
 	}
 	if in.RecoveryTimeObjective != nil {
@@ -5863,7 +5863,7 @@ func (in *ScalingRecommendation) DeepCopyInto(out *ScalingRecommendation) {
 	*out = *in
 	if in.Confidence != nil {
 		in, out := &in.Confidence, &out.Confidence
-		*out = new(float64)
+		*out = new(string)
 		**out = **in
 	}
 }
@@ -5913,7 +5913,7 @@ func (in *SecurityAnalysisResult) DeepCopyInto(out *SecurityAnalysisResult) {
 	*out = *in
 	if in.OverallScore != nil {
 		in, out := &in.OverallScore, &out.OverallScore
-		*out = new(float64)
+		*out = new(string)
 		**out = **in
 	}
 	if in.SecurityIssues != nil {
@@ -5958,7 +5958,7 @@ func (in *SecurityComplianceResult) DeepCopyInto(out *SecurityComplianceResult) 
 	}
 	if in.Score != nil {
 		in, out := &in.Score, &out.Score
-		*out = new(float64)
+		*out = new(string)
 		**out = **in
 	}
 }
@@ -5993,7 +5993,7 @@ func (in *SecurityIssue) DeepCopyInto(out *SecurityIssue) {
 	}
 	if in.CVSSScore != nil {
 		in, out := &in.CVSSScore, &out.CVSSScore
-		*out = new(float64)
+		*out = new(string)
 		**out = **in
 	}
 }

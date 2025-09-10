@@ -3,10 +3,10 @@ package test_validation
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"math"
+	"math/rand"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -16,6 +16,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
@@ -510,7 +511,8 @@ func (cpt *ComprehensivePerformanceTester) testThroughputConsistency(ctx context
 	// Calculate variance
 	variance, _ := stats.Variance(throughputs)
 	stdDev, _ := stats.StandardDeviation(throughputs)
-	coefficientOfVariation := stdDev / stats.Mean(throughputs)
+	mean, _ := stats.Mean(throughputs)
+	coefficientOfVariation := stdDev / mean
 
 	result.ThroughputVariance = variance
 
@@ -771,11 +773,11 @@ func (cpt *ComprehensivePerformanceTester) waitForDeployment(ctx context.Context
 				continue
 			}
 
-			if current.Status.Phase == nephranv1.PhaseDeployed {
+			if current.Status.Phase == nephranv1.NetworkIntentPhaseDeployed {
 				return true
 			}
 
-			if current.Status.Phase == nephranv1.PhaseFailed {
+			if current.Status.Phase == nephranv1.NetworkIntentPhaseFailed {
 				return false
 			}
 		}
@@ -802,8 +804,8 @@ func (cpt *ComprehensivePerformanceTester) waitForProcessing(ctx context.Context
 			}
 
 			// Consider it successful if it's past pending phase
-			if current.Status.Phase != "" && current.Status.Phase != nephranv1.PhasePending {
-				return current.Status.Phase != nephranv1.PhaseFailed
+			if current.Status.Phase != "" && current.Status.Phase != nephranv1.NetworkIntentPhasePending {
+				return current.Status.Phase != nephranv1.NetworkIntentPhaseFailed
 			}
 		}
 	}
@@ -1018,5 +1020,7 @@ func (pmc *PerformanceMetricsCollector) getMetrics() map[string]interface{} {
 	pmc.mu.RLock()
 	defer pmc.mu.RUnlock()
 
-	return json.RawMessage(`{}`)
+	var result map[string]interface{}
+	json.Unmarshal(json.RawMessage(`{}`), &result)
+	return result
 }

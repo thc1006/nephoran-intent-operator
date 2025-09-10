@@ -1228,6 +1228,18 @@ func createTemplateFunctionMap() template.FuncMap {
 		return tpl
 	}
 
+	// Add indent function if not already present
+	funcMap["indent"] = func(spaces int, v string) string {
+		prefix := strings.Repeat(" ", spaces)
+		lines := strings.Split(v, "\n")
+		for i, line := range lines {
+			if line != "" {
+				lines[i] = prefix + line
+			}
+		}
+		return strings.Join(lines, "\n")
+	}
+
 	return funcMap
 }
 

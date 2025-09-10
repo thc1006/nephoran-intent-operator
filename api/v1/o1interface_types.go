@@ -76,11 +76,15 @@ type O1Credentials struct {
 
 	// +optional
 
+	// +kubebuilder:validation:Schemaless
+
 	UsernameRef *corev1.SecretKeySelector `json:"usernameRef,omitempty"`
 
 	// Password reference.
 
 	// +optional
+
+	// +kubebuilder:validation:Schemaless
 
 	PasswordRef *corev1.SecretKeySelector `json:"passwordRef,omitempty"`
 
@@ -88,11 +92,15 @@ type O1Credentials struct {
 
 	// +optional
 
+	// +kubebuilder:validation:Schemaless
+
 	PrivateKeyRef *corev1.SecretKeySelector `json:"privateKeyRef,omitempty"`
 
 	// Client certificate reference for mTLS.
 
 	// +optional
+
+	// +kubebuilder:validation:Schemaless
 
 	ClientCertificateRef *corev1.SecretKeySelector `json:"clientCertificateRef,omitempty"`
 
@@ -100,11 +108,15 @@ type O1Credentials struct {
 
 	// +optional
 
+	// +kubebuilder:validation:Schemaless
+
 	ClientKeyRef *corev1.SecretKeySelector `json:"clientKeyRef,omitempty"`
 
 	// CA certificate reference.
 
 	// +optional
+
+	// +kubebuilder:validation:Schemaless
 
 	CACertificateRef *corev1.SecretKeySelector `json:"caCertificateRef,omitempty"`
 }
@@ -450,6 +462,8 @@ type YANGModelRef struct {
 
 	// +optional
 
+	// +kubebuilder:validation:Schemaless
+
 	ConfigMapRef *corev1.ConfigMapKeySelector `json:"configMapRef,omitempty"`
 }
 
@@ -587,6 +601,8 @@ type OAuth2Config struct {
 	ClientID string `json:"clientID"`
 
 	// +optional
+
+	// +kubebuilder:validation:Schemaless
 
 	ClientSecretRef *corev1.SecretKeySelector `json:"clientSecretRef,omitempty"`
 }

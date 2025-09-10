@@ -3,8 +3,8 @@
 package performance_tests
 
 import (
-	"crypto/rand"
 	"fmt"
+	"math/rand"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -500,12 +500,15 @@ func BenchmarkMemoryOrdering(b *testing.B) {
 		errors := &atomic.Int64{}
 
 		b.RunParallel(func(pb *testing.PB) {
+			counter := 0
 			for pb.Next() {
-				if pb.Next()%2 == 0 {
+				if counter%2 == 0 {
+					counter++
 					// Writer
 					data = int64(rand.Int())
 					flag.Store(true) // Release
 				} else {
+					counter++
 					// Reader
 					if flag.Load() { // Acquire
 						if data == 0 {

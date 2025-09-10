@@ -612,7 +612,12 @@ func (ni *NephioIntegration) DeployPackageToCluster(ctx context.Context, pkg *po
 		return nil, fmt.Errorf("Config Sync not enabled")
 	}
 
-	return ni.configSync.DeployPackage(ctx, pkg, cluster)
+	// Convert local WorkloadCluster to porch.WorkloadCluster
+	porchCluster := &porch.WorkloadCluster{
+		Name:   cluster.Name,
+		Region: cluster.Region,
+	}
+	return ni.configSync.DeployPackage(ctx, pkg, porchCluster)
 }
 
 // GetClusterHealth checks the health of a specific cluster.

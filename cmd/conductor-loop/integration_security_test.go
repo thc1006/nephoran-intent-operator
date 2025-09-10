@@ -570,7 +570,7 @@ func (s *SecurityTestSuite) testStateManagementSecurity(t *testing.T) {
 	maliciousState := map[string]interface{}{
 			"../../../etc/passwd": map[string]interface{}{},
 			"$(whoami)": map[string]interface{}{},
-		},
+		}
 	}
 
 	data, _ := json.Marshal(maliciousState)

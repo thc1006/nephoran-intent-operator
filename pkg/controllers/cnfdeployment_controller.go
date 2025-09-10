@@ -33,8 +33,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -289,15 +287,23 @@ func (r *CNFDeploymentReconciler) handlePendingCNF(ctx context.Context, cnfDeplo
 
 	cnfDeployment.Status.ServiceEndpoints = result.ServiceEndpoints
 
-	// Convert ResourceStatus from map[string]string to map[string]float64
+<<<<<<< HEAD
+	// Copy ResourceStatus from map[string]string to map[string]string
+=======
+	// Convert ResourceStatus from map[string]string to map[string]string
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if cnfDeployment.Status.ResourceUtilization == nil {
-		cnfDeployment.Status.ResourceUtilization = make(map[string]float64)
+		cnfDeployment.Status.ResourceUtilization = make(map[string]string)
 	}
 	for key, value := range result.ResourceStatus {
-		// Parse percentage strings to float values
+<<<<<<< HEAD
+		cnfDeployment.Status.ResourceUtilization[key] = value
+=======
+		// Parse percentage strings to float values and convert back to string
 		if val, err := strconv.ParseFloat(strings.TrimSuffix(value, "%"), 64); err == nil {
-			cnfDeployment.Status.ResourceUtilization[key] = val
+			cnfDeployment.Status.ResourceUtilization[key] = strconv.FormatFloat(val, 'f', 6, 64)
 		}
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	cnfDeployment.Status.DeploymentStartTime = &metav1.Time{Time: time.Now()}
@@ -680,12 +686,18 @@ func (r *CNFDeploymentReconciler) updateResourceMetrics(ctx context.Context, cnf
 	// This is a placeholder for actual metrics collection.
 
 	if cnfDeployment.Status.ResourceUtilization == nil {
-		cnfDeployment.Status.ResourceUtilization = make(map[string]float64)
+		cnfDeployment.Status.ResourceUtilization = make(map[string]string)
 	}
 
-	cnfDeployment.Status.ResourceUtilization["cpu"] = 50.0
+<<<<<<< HEAD
+	cnfDeployment.Status.ResourceUtilization["cpu"] = "50.0"
 
-	cnfDeployment.Status.ResourceUtilization["memory"] = 60.0
+	cnfDeployment.Status.ResourceUtilization["memory"] = "60.0"
+=======
+	cnfDeployment.Status.ResourceUtilization["cpu"] = strconv.FormatFloat(50.0, 'f', 6, 64)
+
+	cnfDeployment.Status.ResourceUtilization["memory"] = strconv.FormatFloat(60.0, 'f', 6, 64)
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	// Note: lastUpdated should be stored elsewhere as it's not a float value
 	// Consider using cnfDeployment.Status.LastHealthCheckTime or similar

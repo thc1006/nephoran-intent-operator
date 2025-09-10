@@ -49,6 +49,10 @@ type VNFDeployRequest struct {
 
 type O2VNFDeployRequest = VNFDeployRequest
 
+// VNFInstance is an alias for O2VNFInstance for test compatibility.
+
+type VNFInstance = O2VNFInstance
+
 // VNFDescriptor describes a VNF for deployment.
 
 type VNFDescriptor struct {
@@ -246,7 +250,9 @@ func (m *O2Manager) DiscoverResources(ctx context.Context) (*ResourceMap, error)
 		Nodes: make(map[string]*NodeInfo),
 		Namespaces: make(map[string]*NamespaceInfo),
 		Metrics: &ClusterMetrics{
+			TotalNodes:  2,
 			ReadyNodes:  2,
+			TotalPods:   1,
 			TotalCPU:    "4",
 			TotalMemory: "8Gi",
 		},
@@ -272,11 +278,21 @@ func (m *O2Manager) DeployVNF(ctx context.Context, vnfSpec *VNFDescriptor) (*Dep
 // ClusterMetrics represents cluster metrics.
 
 type ClusterMetrics struct {
+	TotalNodes int32 `json:"totalNodes"`
+<<<<<<< HEAD
+	
+=======
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 	ReadyNodes int32 `json:"readyNodes"`
+
+	TotalPods int32 `json:"totalPods"`
 
 	TotalCPU string `json:"totalCPU"`
 
 	TotalMemory string `json:"totalMemory"`
+	
+	TotalPods int32 `json:"totalPods"`
 }
 
 // VNFDeploymentStatus represents the status of a VNF deployment.

@@ -213,11 +213,13 @@ type OptimizationGoal struct {
 
 	// +optional
 
-	// +kubebuilder:validation:Minimum=0.0
+<<<<<<< HEAD
+	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
+=======
+	// +kubebuilder:validation:Pattern=`^(0(\.[0-9]+)?|1(\.0+)?)$`
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
-	// +kubebuilder:validation:Maximum=1.0
-
-	Weight *float64 `json:"weight,omitempty"`
+	Weight *string `json:"weight,omitempty"`
 
 	// Target specifies the target value.
 
@@ -349,11 +351,16 @@ type SLARequirements struct {
 
 	// +optional
 
-	// +kubebuilder:validation:Minimum=0.0
+<<<<<<< HEAD
+	// +kubebuilder:validation:Pattern=`^([0-9]|[1-9][0-9]|100)(\.\d+)?$`
 
-	// +kubebuilder:validation:Maximum=100.0
+=======
+	
 
-	AvailabilityTarget *float64 `json:"availabilityTarget,omitempty"`
+	
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
+	AvailabilityTarget *string `json:"availabilityTarget,omitempty"`
 
 	// MaxLatency in milliseconds.
 
@@ -375,11 +382,16 @@ type SLARequirements struct {
 
 	// +optional
 
-	// +kubebuilder:validation:Minimum=0.0
+<<<<<<< HEAD
+	// +kubebuilder:validation:Pattern=`^([0-9]|[1-9][0-9]|100)(\.\d+)?$`
 
-	// +kubebuilder:validation:Maximum=100.0
+=======
+	
 
-	MaxPacketLoss *float64 `json:"maxPacketLoss,omitempty"`
+	
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
+	MaxPacketLoss *string `json:"maxPacketLoss,omitempty"`
 
 	// RecoveryTimeObjective in seconds.
 
@@ -458,10 +470,8 @@ type QoSRequirements struct {
 
 type ComplianceRequirement struct {
 	// Standard specifies the compliance standard.
-
 	// +kubebuilder:validation:Required
-
-	// +kubebuilder:validation:Enum="3GPP";"ETSI";"ORAN";"FCC";"CE";"GDPR";"HIPAA";"SOC2";"ISO27001"
+	// +kubebuilder:validation:Enum=ThreeGPP;ETSI;ORAN;FCC;CE;GDPR;HIPAA;SOC2;ISO27001
 
 	Standard string `json:"standard"`
 
@@ -574,11 +584,16 @@ type ResourcePlanStatus struct {
 
 	// +optional
 
-	// +kubebuilder:validation:Minimum=0.0
+<<<<<<< HEAD
+	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
 
-	// +kubebuilder:validation:Maximum=1.0
+=======
+	
 
-	QualityScore *float64 `json:"qualityScore,omitempty"`
+	
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
+	QualityScore *string `json:"qualityScore,omitempty"`
 
 	// ObservedGeneration reflects the generation observed.
 
@@ -660,9 +675,13 @@ type PlannedResource struct {
 
 	// +optional
 
-	// +kubebuilder:validation:Minimum=0.0
+<<<<<<< HEAD
+	// +kubebuilder:validation:Pattern=`^\d+(\.\d{1,4})?$`
+=======
+	
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
-	EstimatedCost *float64 `json:"estimatedCost,omitempty"`
+	EstimatedCost *string `json:"estimatedCost,omitempty"`
 }
 
 // ResourceSpec defines resource specifications.
@@ -736,7 +755,7 @@ type CostEstimate struct {
 
 	// +optional
 
-	CostBreakdown map[string]float64 `json:"costBreakdown,omitempty"`
+	CostBreakdown map[string]string `json:"costBreakdown,omitempty"`
 
 	// EstimatedAt timestamp.
 
@@ -746,11 +765,16 @@ type CostEstimate struct {
 
 	// +optional
 
-	// +kubebuilder:validation:Minimum=0.0
+<<<<<<< HEAD
+	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
 
-	// +kubebuilder:validation:Maximum=1.0
+=======
+	
 
-	Confidence *float64 `json:"confidence,omitempty"`
+	
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
+	Confidence *string `json:"confidence,omitempty"`
 }
 
 // PerformanceEstimate represents performance estimation.
@@ -760,33 +784,46 @@ type PerformanceEstimate struct {
 
 	// +optional
 
-	// +kubebuilder:validation:Minimum=0.0
+<<<<<<< HEAD
+	// +kubebuilder:validation:Pattern=`^\d+(\.\d+)?$`
+=======
+	
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
-	ExpectedThroughput *float64 `json:"expectedThroughput,omitempty"`
+	ExpectedThroughput *string `json:"expectedThroughput,omitempty"`
 
 	// ExpectedLatency in milliseconds.
 
 	// +optional
 
-	// +kubebuilder:validation:Minimum=0.0
+<<<<<<< HEAD
+	// +kubebuilder:validation:Pattern=`^\d+(\.\d+)?$`
+=======
+	
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
 
-	ExpectedLatency *float64 `json:"expectedLatency,omitempty"`
+	ExpectedLatency *string `json:"expectedLatency,omitempty"`
 
 	// ExpectedAvailability as percentage (0.0-100.0).
 
 	// +optional
 
-	// +kubebuilder:validation:Minimum=0.0
+<<<<<<< HEAD
+	// +kubebuilder:validation:Pattern=`^([0-9]|[1-9][0-9]|100)(\.\d+)?$`
 
-	// +kubebuilder:validation:Maximum=100.0
+=======
+	
 
-	ExpectedAvailability *float64 `json:"expectedAvailability,omitempty"`
+	
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
+	ExpectedAvailability *string `json:"expectedAvailability,omitempty"`
 
 	// ResourceUtilization estimates.
 
 	// +optional
 
-	ResourceUtilization map[string]float64 `json:"resourceUtilization,omitempty"`
+	ResourceUtilization map[string]string `json:"resourceUtilization,omitempty"`
 
 	// BottleneckAnalysis identifies potential bottlenecks.
 
@@ -826,11 +863,16 @@ type ScalingRecommendation struct {
 
 	// +optional
 
-	// +kubebuilder:validation:Minimum=0.0
+<<<<<<< HEAD
+	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
 
-	// +kubebuilder:validation:Maximum=1.0
+=======
+	
 
-	Confidence *float64 `json:"confidence,omitempty"`
+	
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
+	Confidence *string `json:"confidence,omitempty"`
 }
 
 // ResourceComplianceStatus represents compliance validation status.
@@ -910,11 +952,16 @@ type OptimizationResult struct {
 
 	// +optional
 
-	// +kubebuilder:validation:Minimum=0.0
+<<<<<<< HEAD
+	// +kubebuilder:validation:Pattern=`^([0-9]|[1-9][0-9]|100)(\.\d+)?$`
 
-	// +kubebuilder:validation:Maximum=100.0
+=======
+	
 
-	ImprovementPercent *float64 `json:"improvementPercent,omitempty"`
+	
+
+>>>>>>> 6835433495e87288b95961af7173d866977175ff
+	ImprovementPercent *string `json:"improvementPercent,omitempty"`
 
 	// Description of the optimization.
 

@@ -37,9 +37,17 @@ E2 interface KPM (Key Performance Metrics) service model documentation.
 
 ## Versioning
 
-- **v1alpha1**: Current development version
-- Breaking changes require new version (v1beta1)
-- All modules must update references when version changes
+- **v1.0.0**: Current stable version for all schemas
+- **intent.schema.json**: v1.0.0 - Network scaling intent operations
+- **a1.policy.schema.json**: v2020-12 - O-RAN A1 policy interface
+- **scaling.schema.json**: v1.0.0 - Direct scaling operations 
+- **fcaps.ves.examples.json**: VES 7.2 compatible examples
+
+**Change Policy:**
+- Breaking changes require new major version (v2.0.0)
+- New optional fields increment minor version (v1.1.0)
+- Bug fixes increment patch version (v1.0.1)
+- All modules must update references when major version changes
 
 ## Usage
 

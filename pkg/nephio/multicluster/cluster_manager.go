@@ -236,6 +236,11 @@ func (cm *ClusterManager) clusterMatchesCriteria(
 
 	criteria ClusterSelectionCriteria,
 ) bool {
+	// Check if cluster is available first
+	if !cluster.HealthStatus.Available {
+		return false
+	}
+
 	// Check resource requirements.
 
 	if cluster.ResourceUtilization.CPUTotal < criteria.MinCPU {

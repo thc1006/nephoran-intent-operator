@@ -163,13 +163,18 @@ var _ = Describe("EventDrivenCoordinator", func() {
 
 			// Create conflict detection event
 			conflictID := "test-conflict-123"
+			conflictData := map[string]interface{}{
+				"conflictId": conflictID,
+				"type":       "resource-overlap",
+			}
+			conflictDataJSON, _ := json.Marshal(conflictData)
 			conflictEvent := ProcessingEvent{
 				Type:     EventConflictDetected,
 				Source:   "conflict-detector",
 				IntentID: intentID,
 				Phase:    interfaces.PhaseResourcePlanning,
 				Success:  true,
-				Data: json.RawMessage(`{}`),
+				Data:     json.RawMessage(conflictDataJSON),
 			}
 
 			// Handle conflict detection
@@ -183,13 +188,17 @@ var _ = Describe("EventDrivenCoordinator", func() {
 			Expect(coordCtx.Conflicts[0].ID).To(Equal(conflictID))
 
 			// Create conflict resolution event
+			resolutionData := map[string]interface{}{
+				"conflictId": conflictID,
+			}
+			resolutionDataJSON, _ := json.Marshal(resolutionData)
 			resolutionEvent := ProcessingEvent{
 				Type:     EventConflictResolved,
 				Source:   "conflict-resolver",
 				IntentID: intentID,
 				Phase:    interfaces.PhaseResourcePlanning,
 				Success:  true,
-				Data: json.RawMessage(`{}`),
+				Data:     json.RawMessage(resolutionDataJSON),
 			}
 
 			// Handle conflict resolution
@@ -211,13 +220,17 @@ var _ = Describe("EventDrivenCoordinator", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Create lock acquisition event
+			lockData := map[string]interface{}{
+				"lockId": lockID,
+			}
+			lockDataJSON, _ := json.Marshal(lockData)
 			lockAcquiredEvent := ProcessingEvent{
 				Type:     EventResourceLockAcquired,
 				Source:   "lock-manager",
 				IntentID: intentID,
 				Phase:    interfaces.PhaseResourcePlanning,
 				Success:  true,
-				Data: json.RawMessage(`{}`),
+				Data:     json.RawMessage(lockDataJSON),
 			}
 
 			// Handle lock acquisition
@@ -230,13 +243,17 @@ var _ = Describe("EventDrivenCoordinator", func() {
 			Expect(coordCtx.Locks).To(ContainElement(lockID))
 
 			// Create lock release event
+			lockReleaseData := map[string]interface{}{
+				"lockId": lockID,
+			}
+			lockReleaseDataJSON, _ := json.Marshal(lockReleaseData)
 			lockReleasedEvent := ProcessingEvent{
 				Type:     EventResourceLockReleased,
 				Source:   "lock-manager",
 				IntentID: intentID,
 				Phase:    interfaces.PhaseResourcePlanning,
 				Success:  true,
-				Data: json.RawMessage(`{}`),
+				Data:     json.RawMessage(lockReleaseDataJSON),
 			}
 
 			// Handle lock release
@@ -263,7 +280,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 				IntentID: intentID,
 				Phase:    interfaces.PhaseLLMProcessing,
 				Success:  true,
-				Data: json.RawMessage(`{}`),
+				Data:     json.RawMessage(`{}`),
 			}
 
 			// Handle recovery initiation
@@ -284,7 +301,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 				IntentID: intentID,
 				Phase:    interfaces.PhaseLLMProcessing,
 				Success:  true,
-				Data: json.RawMessage(`{}`),
+				Data:     json.RawMessage(`{}`),
 			}
 
 			// Handle recovery completion
@@ -570,4 +587,3 @@ func TestEventDrivenCoordinator(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "EventDrivenCoordinator Suite")
 }
-

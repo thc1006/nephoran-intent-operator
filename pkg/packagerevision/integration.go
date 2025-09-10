@@ -46,6 +46,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 	"github.com/thc1006/nephoran-intent-operator/pkg/templates"
 	"github.com/thc1006/nephoran-intent-operator/pkg/validation/yang"
@@ -77,6 +78,8 @@ type NetworkIntentPackageReconciler struct {
 	// Configuration.
 
 	Config *IntegrationConfig
+
+	Constants *config.Constants
 }
 
 // IntegrationConfig contains configuration for NetworkIntent-PackageRevision integration.
@@ -274,9 +277,9 @@ func (r *NetworkIntentPackageReconciler) Reconcile(ctx context.Context, req ctrl
 
 	// Add finalizer if not present.
 
-	if !controllerutil.ContainsFinalizer(&intent, NetworkIntentFinalizer) {
+	if !controllerutil.ContainsFinalizer(&intent, r.Constants.NetworkIntentFinalizer) {
 
-		controllerutil.AddFinalizer(&intent, NetworkIntentFinalizer)
+		controllerutil.AddFinalizer(&intent, r.Constants.NetworkIntentFinalizer)
 
 		if err := r.Update(ctx, &intent); err != nil {
 			return ctrl.Result{}, err
@@ -818,7 +821,7 @@ func (r *NetworkIntentPackageReconciler) handleIntentDeletion(ctx context.Contex
 
 	// Remove finalizer.
 
-	controllerutil.RemoveFinalizer(&intent, NetworkIntentFinalizer)
+	controllerutil.RemoveFinalizer(&intent, r.Constants.NetworkIntentFinalizer)
 
 	if err := r.Update(ctx, &intent); err != nil {
 		return ctrl.Result{}, err
@@ -1030,9 +1033,9 @@ func (r *NetworkIntentPackageReconciler) checkDeploymentStatus(ctx context.Conte
 		return "", err
 	}
 
-	// Use DeploymentReady field instead of DeploymentStatus.
+	// Check deployment status.
 
-	if pkg.Status.DeploymentReady {
+	if pkg.Status.DeploymentStatus != nil && pkg.Status.DeploymentStatus.Phase == "Ready" {
 		return "deployed", nil
 	}
 
@@ -1047,12 +1050,6 @@ func (r *NetworkIntentPackageReconciler) checkDeploymentStatus(ctx context.Conte
 
 // Constants and helper types.
 
-const (
-
-	// NetworkIntentFinalizer holds networkintentfinalizer value.
-
-	NetworkIntentFinalizer = "networkintent.nephoran.com/package-revision"
-)
 
 // GetDefaultIntegrationConfig returns default integration configuration.
 

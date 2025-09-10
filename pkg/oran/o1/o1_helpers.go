@@ -2,7 +2,6 @@ package o1
 
 import (
 	"context"
-	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"strconv"
@@ -178,8 +177,8 @@ func (a *O1Adaptor) convertEventToAlarm(event *NetconfEvent, managedElementID st
 	}
 
 	// Extract more specific information from event data.
-	var eventData map[string]interface{}
-	if err := json.Unmarshal(event.Data, &eventData); err == nil {
+	eventData := event.Data
+	if eventData != nil {
 		if eventType, exists := eventData["event_type"]; exists {
 			if eventTypeStr, ok := eventType.(string); ok {
 				alarm.Type = strings.ToUpper(eventTypeStr)
