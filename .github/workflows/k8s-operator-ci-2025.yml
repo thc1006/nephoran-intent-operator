@@ -438,9 +438,12 @@ jobs:
           
       - name: Upload security scan results
         uses: github/codeql-action/upload-sarif@v3
-        if: always() && (hashFiles('*.sarif') != '')
+        if: always() && (hashFiles('trivy-fs-results.sarif') != '' || hashFiles('trivy-k8s-results.sarif') != '' || hashFiles('trivy-image-results.sarif') != '')
         with:
-          sarif_file: '*.sarif'
+          sarif_file: |
+            trivy-fs-results.sarif
+            trivy-k8s-results.sarif
+            trivy-image-results.sarif
           
       - name: Security scan summary
         if: always()
