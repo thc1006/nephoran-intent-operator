@@ -2,7 +2,7 @@
 # Fast PR Validation - 2025 Edition
 # =============================================================================  
 # Ultra-fast validation for pull requests with essential checks only
-# Optimized for Go 1.25.0, resolves cache key and timeout issues
+# Optimized for Go 1.23.x, resolves cache key and timeout issues
 # =============================================================================
 
 name: PR Validation
@@ -30,7 +30,7 @@ permissions:
   checks: write
 
 env:
-  GO_VERSION: "1.25.0"
+  GO_VERSION: "1.23.x"
   GOPROXY: "https://proxy.golang.org,direct" 
   GOSUMDB: "sum.golang.org"
   GOPRIVATE: "github.com/thc1006/*"
@@ -57,7 +57,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5  # Latest stable
         with:
-          go-version: '1.25.0'
+          go-version: '1.23.x'
           check-latest: true
           cache: false  # Manual caching for better control
 
@@ -208,7 +208,7 @@ jobs:
   #     - name: Setup Go ${{ env.GO_VERSION }}
   #       uses: actions/setup-go@v5  # Latest stable
   #       with:
-  #         go-version: '1.25.0'
+  #         go-version: '1.23.x'
   #         check-latest: true
   #         cache: true
   # 
