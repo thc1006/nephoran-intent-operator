@@ -94,7 +94,7 @@ rules:
 # Full access to all Nephoran resources for backup/restore
 - apiGroups: ["nephoran.com"]
   resources: ["*"]
-  verbs: ["*"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 # Access to standard Kubernetes resources for backup
 - apiGroups: [""]
   resources: ["pods", "services", "configmaps", "secrets", "persistentvolumeclaims"]

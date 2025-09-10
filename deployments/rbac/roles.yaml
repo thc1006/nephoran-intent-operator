@@ -294,10 +294,10 @@ rules:
 # Full access to all Nephoran resources
 - apiGroups: ["intent.nephoran.io"]
   resources: ["*"]
-  verbs: ["*"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 - apiGroups: ["oran.nephoran.io"]
   resources: ["*"]
-  verbs: ["*"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 # Deployment management
 - apiGroups: ["apps"]
   resources: ["deployments", "statefulsets", "daemonsets"]
