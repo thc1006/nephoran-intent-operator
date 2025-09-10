@@ -876,7 +876,7 @@ type PackageSpec struct {
 	Configuration map[string]interface{}
 }
 
-type BenchmarkBenchmarkResourceRequirements struct {
+type BenchmarkResourceRequirements struct {
 	CPU    string
 	Memory string
 }
@@ -1127,9 +1127,9 @@ func (n *EnhancedNephioSystem) ManageResources(ctx context.Context, spec Resourc
 	}, nil
 }
 
-// Interface placeholders
+// Interface placeholders for benchmarking
 type (
-	PackageGenerator   interface{}
+	BenchmarkPackageGenerator   interface{}
 	KRMFunctionRuntime interface{}
 	PorchClient        interface{}
 	GitClient          interface{}

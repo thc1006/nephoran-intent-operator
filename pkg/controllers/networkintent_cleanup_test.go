@@ -468,12 +468,9 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 		It("Should handle network connectivity failures", func() {
 			By("Setting up network failure scenario")
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			networkError := errors.New("failed to connect to remote repository")
-			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
-			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
-
-			// Mock setup handled above
-			// Mock setup handled above
+			mockGitClient.SetCommitPushError(networkError)
 
 			By("Calling cleanup function")
 			err := reconciler.cleanupGitOpsPackages(ctx, networkIntent, mockGitClient)
