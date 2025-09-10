@@ -500,12 +500,8 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 		It("Should handle timeout scenarios", func() {
 			By("Setting up timeout scenario")
-			timeoutError := errors.New("operation timed out")
-			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
-			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
-
-			// Mock setup handled above
-			// Mock setup handled above
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
+			mockGitClient.SetCommitPushError(errors.New("operation timed out"))
 
 			By("Calling cleanup function")
 			err := reconciler.cleanupGitOpsPackages(ctx, networkIntent, mockGitClient)
@@ -552,8 +548,6 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 		It("Should handle cleanup operations idempotently", func() {
 			By("Setting up successful Git client mock")
 			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
-			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
-			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 
 			// Allow multiple calls
 			// Mock setup handled above
@@ -574,8 +568,6 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 		It("Should recover from transient failures", func() {
 			By("Setting up Git client mock with transient failure then success")
 			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
-			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
-			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 
 			// Reset mock and set up failure on first call
 			mockGitClient.ResetMock()
@@ -609,13 +601,9 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 		})
 
 		It("Should retain finalizer when Git operation fails", func() {
-			By("Setting up fake Git client to fail")
-			fakeGitClient := &testutils.MockGitClient{}
-			// Removed testify mock method
-			fakeGitClient.SetRemoveDirectoryError(errors.New("fake Git operation failed"))
-
-			// Replace the git client in dependencies
-			mockDeps.gitClient = fakeGitClient
+			By("Setting up Git client mock to fail")
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
+			mockGitClient.SetRemoveDirectoryError(errors.New("fake Git operation failed"))
 
 			By("Creating the NetworkIntent in the cluster")
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
@@ -646,13 +634,10 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 		})
 
 		It("Should remove finalizer when Git operation succeeds", func() {
-			By("Setting up fake Git client to succeed")
-			fakeGitClient := &testutils.MockGitClient{}
-			// Removed testify mock method
-			// No specific error setting needed for successful scenario
-
-			// Replace the git client in dependencies
-			mockDeps.gitClient = fakeGitClient
+			By("Setting up Git client mock for success scenario")
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
+			// Reset any previous errors for success scenario
+			mockGitClient.ResetMock()
 
 			By("Creating the NetworkIntent in the cluster")
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
@@ -684,13 +669,9 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 		})
 
 		It("Should retry with exponential backoff on Git failures", func() {
-			By("Setting up fake Git client to fail consistently")
-			fakeGitClient := &testutils.MockGitClient{}
-			// Removed testify mock method
-			fakeGitClient.SetRemoveDirectoryError(errors.New("persistent Git failure"))
-
-			// Replace the git client in dependencies
-			mockDeps.gitClient = fakeGitClient
+			By("Setting up Git client mock to fail consistently")
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
+			mockGitClient.SetRemoveDirectoryError(errors.New("persistent Git failure"))
 
 			By("Creating the NetworkIntent in the cluster")
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
@@ -721,13 +702,9 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 		})
 
 		It("Should remove finalizer after max retries to prevent stuck resources", func() {
-			By("Setting up fake Git client to always fail")
-			fakeGitClient := &testutils.MockGitClient{}
-			// Removed testify mock method
-			fakeGitClient.SetRemoveDirectoryError(errors.New("permanent Git failure"))
-
-			// Replace the git client in dependencies
-			mockDeps.gitClient = fakeGitClient
+			By("Setting up Git client mock to always fail")
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
+			mockGitClient.SetRemoveDirectoryError(errors.New("permanent Git failure"))
 
 			By("Creating the NetworkIntent in the cluster")
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
@@ -754,16 +731,16 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 			Expect(readyCondition.Reason).To(Equal("CleanupFailedMaxRetries"))
 
 			// Git operations should not be called when max retries exceeded
-			fakeGitClient.AssertNotCalled(GinkgoT(), "RemoveDirectory")
+			// Verify no git calls were made
+			Expect(len(mockGitClient.GetCallLog())).To(Equal(0))
 		})
 
 		It("Should handle InitRepo failures gracefully", func() {
-			By("Setting up fake Git client to fail on InitRepo")
-			fakeGitClient := &testutils.MockGitClient{}
+			By("Setting up Git client mock for InitRepo failure scenario")
+			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			// Cannot set InitRepo error with current mock interface
-
-			// Replace the git client in dependencies
-			mockDeps.gitClient = fakeGitClient
+			// Using RemoveDirectory error as proxy for Git operation failures
+			mockGitClient.SetRemoveDirectoryError(errors.New("fake Git operation failed"))
 
 			By("Creating the NetworkIntent in the cluster")
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())

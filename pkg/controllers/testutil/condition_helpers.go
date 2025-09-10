@@ -66,6 +66,13 @@ func IsConditionUnknown(conditions []metav1.Condition, conditionType string) boo
 	return condition != nil && condition.Status == metav1.ConditionUnknown
 }
 
+// HasConditionWithStatus checks if a condition of the given type exists with the specified status.
+
+func HasConditionWithStatus(conditions []metav1.Condition, conditionType string, status metav1.ConditionStatus) bool {
+	condition := GetCondition(conditions, conditionType)
+	return condition != nil && condition.Status == status
+}
+
 // GetRetryCount extracts retry count from NetworkIntent conditions.
 
 func GetRetryCount(ni *nephoranv1.NetworkIntent, operation string) int {

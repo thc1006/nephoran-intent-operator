@@ -22,8 +22,15 @@ import (
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 	gitfake "github.com/thc1006/nephoran-intent-operator/pkg/git/fake"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/telecom"
+)
+
+const (
+	// NetworkIntentFinalizer is the finalizer used by NetworkIntent resources
+	NetworkIntentFinalizer = "networkintent.nephoran.io/finalizer"
 )
 
 // fakeLLMClient implements shared.ClientInterface for testing
@@ -59,6 +66,56 @@ func (f *fakeLLMClient) Reset() {
 	f.shouldReturnInvalidJSON = false
 	f.response = ""
 	f.callCount = 0
+}
+
+// Implement remaining methods from shared.ClientInterface
+func (f *fakeLLMClient) ProcessRequest(ctx context.Context, request *shared.LLMRequest) (*shared.LLMResponse, error) {
+	f.callCount++
+	if f.shouldFail {
+		return nil, fmt.Errorf("fake LLM request processing failure")
+	}
+	return &shared.LLMResponse{
+		Content: f.response,
+	}, nil
+}
+
+func (f *fakeLLMClient) ProcessStreamingRequest(ctx context.Context, request *shared.LLMRequest) (<-chan *shared.StreamingChunk, error) {
+	ch := make(chan *shared.StreamingChunk, 1)
+	close(ch)
+	return ch, nil
+}
+
+func (f *fakeLLMClient) HealthCheck(ctx context.Context) error {
+	if f.shouldFail {
+		return fmt.Errorf("fake health check failure")
+	}
+	return nil
+}
+
+func (f *fakeLLMClient) GetStatus() shared.ClientStatus {
+	return shared.ClientStatusHealthy
+}
+
+func (f *fakeLLMClient) GetModelCapabilities() shared.ModelCapabilities {
+	return shared.ModelCapabilities{}
+}
+
+func (f *fakeLLMClient) GetEndpoint() string {
+	return "http://fake-llm-endpoint"
+}
+
+func (f *fakeLLMClient) Close() error {
+	return nil
+}
+
+// SetError configures the fake client to return an error
+func (f *fakeLLMClient) SetError(shouldFail bool) {
+	f.shouldFail = shouldFail
+}
+
+// SetResponse configures the fake client to return a specific response
+func (f *fakeLLMClient) SetResponse(response string) {
+	f.response = response
 }
 
 // fakePackageGenerator implements nephio.PackageGenerator for testing
@@ -140,6 +197,14 @@ func (f *fakeDependencies) GetHTTPClient() *http.Client {
 
 func (f *fakeDependencies) GetEventRecorder() record.EventRecorder {
 	return f.eventRecorder
+}
+
+func (f *fakeDependencies) GetMetricsCollector() monitoring.MetricsCollector {
+	return nil // Return nil for testing purposes
+}
+
+func (f *fakeDependencies) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase {
+	return nil // Return nil for testing purposes
 }
 
 func (f *fakeDependencies) Reset() {

@@ -21,6 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/testutil"
 )
 
 // Table-driven tests for edge cases and error scenarios
@@ -53,7 +54,7 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 			description:      "Should handle empty intent text gracefully",
 			validationChecks: func(t *testing.T, ni *nephoranv1.NetworkIntent, result ctrl.Result) {
 				assert.Equal(t, "Error", ni.Status.Phase)
-				assert.True(t, hasConditionWithStatus(ni.Status.Conditions, "Validated", metav1.ConditionFalse))
+				assert.True(t, testutil.HasConditionWithStatus(ni.Status.Conditions, "Validated", metav1.ConditionFalse))
 				assert.Contains(t, strings.ToLower(getConditionMessage(ni.Status.Conditions, "Validated")), "empty")
 			},
 		},
@@ -69,7 +70,7 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 			description:      "Should handle whitespace-only intent text",
 			validationChecks: func(t *testing.T, ni *nephoranv1.NetworkIntent, result ctrl.Result) {
 				assert.Equal(t, "Error", ni.Status.Phase)
-				assert.True(t, hasConditionWithStatus(ni.Status.Conditions, "Validated", metav1.ConditionFalse))
+				assert.True(t, testutil.HasConditionWithStatus(ni.Status.Conditions, "Validated", metav1.ConditionFalse))
 			},
 		},
 		{
@@ -84,7 +85,7 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 			description:      "Should process intent without LLM when disabled",
 			validationChecks: func(t *testing.T, ni *nephoranv1.NetworkIntent, result ctrl.Result) {
 				assert.Equal(t, "Processed", ni.Status.Phase)
-				assert.True(t, hasConditionWithStatus(ni.Status.Conditions, "Processed", metav1.ConditionTrue))
+				assert.True(t, testutil.HasConditionWithStatus(ni.Status.Conditions, "Processed", metav1.ConditionTrue))
 			},
 		},
 		{
@@ -101,7 +102,7 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 			description:     "Should handle LLM service unavailable with retry",
 			validationChecks: func(t *testing.T, ni *nephoranv1.NetworkIntent, result ctrl.Result) {
 				assert.Equal(t, "Error", ni.Status.Phase)
-				assert.True(t, hasConditionWithStatus(ni.Status.Conditions, "Processed", metav1.ConditionFalse))
+				assert.True(t, testutil.HasConditionWithStatus(ni.Status.Conditions, "Processed", metav1.ConditionFalse))
 				assert.True(t, result.RequeueAfter > 0)
 				assert.Contains(t, strings.ToLower(getConditionMessage(ni.Status.Conditions, "Processed")), "llm")
 			},
@@ -120,7 +121,7 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 			description:     "Should handle invalid JSON response from LLM",
 			validationChecks: func(t *testing.T, ni *nephoranv1.NetworkIntent, result ctrl.Result) {
 				assert.Equal(t, "Error", ni.Status.Phase)
-				assert.True(t, hasConditionWithStatus(ni.Status.Conditions, "Processed", metav1.ConditionFalse))
+				assert.True(t, testutil.HasConditionWithStatus(ni.Status.Conditions, "Processed", metav1.ConditionFalse))
 				assert.True(t, result.RequeueAfter > 0)
 			},
 		},
@@ -201,7 +202,7 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 			validationChecks: func(t *testing.T, ni *nephoranv1.NetworkIntent, result ctrl.Result) {
 				assert.Equal(t, "Error", ni.Status.Phase)
 				// Should fail during validation phase
-				assert.True(t, hasConditionWithStatus(ni.Status.Conditions, "Validated", metav1.ConditionFalse))
+				assert.True(t, testutil.HasConditionWithStatus(ni.Status.Conditions, "Validated", metav1.ConditionFalse))
 			},
 		},
 		{
@@ -245,7 +246,7 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 			description:     "Should handle Unicode characters in intent",
 			validationChecks: func(t *testing.T, ni *nephoranv1.NetworkIntent, result ctrl.Result) {
 				assert.Contains(t, []string{"Processing", "Processed"}, ni.Status.Phase)
-				assert.True(t, hasConditionWithStatus(ni.Status.Conditions, "Validated", metav1.ConditionTrue))
+				assert.True(t, testutil.HasConditionWithStatus(ni.Status.Conditions, "Validated", metav1.ConditionTrue))
 			},
 		},
 		{
@@ -270,7 +271,7 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 			description:     "Should handle maximum retry attempts exceeded",
 			validationChecks: func(t *testing.T, ni *nephoranv1.NetworkIntent, result ctrl.Result) {
 				assert.Equal(t, "Error", ni.Status.Phase)
-				assert.True(t, hasConditionWithStatus(ni.Status.Conditions, "Processed", metav1.ConditionFalse))
+				assert.True(t, testutil.HasConditionWithStatus(ni.Status.Conditions, "Processed", metav1.ConditionFalse))
 				// Should have longer requeue time due to exponential backoff
 				assert.True(t, result.RequeueAfter >= DefaultRetryDelay)
 			},

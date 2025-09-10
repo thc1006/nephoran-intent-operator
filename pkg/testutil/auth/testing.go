@@ -164,14 +164,31 @@ func NewRBACManagerMock() *RBACManagerMock {
 }
 
 // CreateRole creates a new role (mock implementation)
-func (rbac *RBACManagerMock) CreateRole(ctx context.Context, role interface{}) error {
-	// Mock implementation - just return success
-	return nil
+func (rbac *RBACManagerMock) CreateRole(ctx context.Context, role interface{}) (*TestRole, error) {
+	testRole := role.(*TestRole)
+	if testRole.ID == "" {
+		testRole.ID = fmt.Sprintf("role-%d", time.Now().UnixNano())
+	}
+	rbac.roleStore[testRole.ID] = testRole
+	return testRole, nil
 }
 
 // CreatePermission creates a new permission (mock implementation)  
-func (rbac *RBACManagerMock) CreatePermission(ctx context.Context, permission interface{}) error {
-	// Mock implementation - just return success
+func (rbac *RBACManagerMock) CreatePermission(ctx context.Context, permission interface{}) (*TestPermission, error) {
+	testPerm := permission.(*TestPermission)
+	if testPerm.ID == "" {
+		testPerm.ID = fmt.Sprintf("perm-%d", time.Now().UnixNano())
+	}
+	rbac.permissionStore[testPerm.ID] = testPerm
+	return testPerm, nil
+}
+
+// AssignRoleToUser assigns a role to a user (mock implementation)
+func (rbac *RBACManagerMock) AssignRoleToUser(ctx context.Context, userID, roleID string) error {
+	if rbac.roles[userID] == nil {
+		rbac.roles[userID] = []string{}
+	}
+	rbac.roles[userID] = append(rbac.roles[userID], roleID)
 	return nil
 }
 
@@ -952,6 +969,18 @@ func (rf *RoleFactory) CreateRole(name, description string, permissions []string
 	}
 }
 
+// CreateRoleWithPermissions creates a role with the given permission IDs
+func (rf *RoleFactory) CreateRoleWithPermissions(permissionIDs []string) *TestRole {
+	return &TestRole{
+		ID:          fmt.Sprintf("role-%d", time.Now().UnixNano()),
+		Name:        fmt.Sprintf("role-%d", time.Now().UnixNano()),
+		Description: "Auto-generated test role",
+		Permissions: permissionIDs,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+}
+
 // PermissionFactory creates test permissions
 type PermissionFactory struct{}
 
@@ -973,5 +1002,14 @@ func (pf *PermissionFactory) CreatePermission(resource, action, scope string) *T
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
+}
+
+// CreateResourcePermissions creates multiple permissions for a resource with given actions
+func (pf *PermissionFactory) CreateResourcePermissions(resource string, actions []string) []*TestPermission {
+	permissions := make([]*TestPermission, len(actions))
+	for i, action := range actions {
+		permissions[i] = pf.CreatePermission(resource, action, "*")
+	}
+	return permissions
 }
 
