@@ -397,7 +397,7 @@ jobs:
   integration-validation:
     name: "🔗 Integration Validation"
     needs: [reliable-build, reliability-tests]
-    if: always() && needs.reliable-build.result != 'cancelled'
+    if: always() && needs.reliable-build.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 8
     
@@ -417,41 +417,64 @@ jobs:
         run: |
           echo "Running integration smoke tests..."
           
-          # Prepare binaries
+          # Debug: Check what artifacts were downloaded
+          echo "Checking downloaded artifacts..."
+          find artifacts/ -type f 2>/dev/null | head -20 || echo "No artifacts found"
+          
+          # Prepare binaries - more robust approach
           mkdir -p bin/
-          find artifacts/ -type f -executable -exec cp {} bin/ \; 2>/dev/null || true
+          
+          # Copy all files from artifacts, not just executable ones
+          find artifacts/ -type f -name "*" -exec cp {} bin/ \; 2>/dev/null || true
+          
+          # Make all files in bin executable (they should be binaries)
           chmod +x bin/* 2>/dev/null || true
+          
+          # List what we have
+          echo "Files in bin/ directory:"
+          ls -la bin/ 2>/dev/null || echo "No files in bin/ directory"
           
           # Test each binary
           tested=0
           passed=0
           
           for binary in bin/*; do
-            if [ -x "$binary" ]; then
+            if [ -f "$binary" ]; then
               name=$(basename "$binary")
               echo "Testing $name..."
               tested=$((tested + 1))
               
-              # Test basic CLI functionality
+              # Test basic CLI functionality with more lenient checks
               if timeout 10s "$binary" --help >/dev/null 2>&1 || \
                  timeout 10s "$binary" version >/dev/null 2>&1 || \
-                 timeout 10s "$binary" --version >/dev/null 2>&1; then
+                 timeout 10s "$binary" --version >/dev/null 2>&1 || \
+                 timeout 10s "$binary" -h >/dev/null 2>&1; then
                 echo "  ✅ $name: CLI interface working"
                 passed=$((passed + 1))
               else
-                echo "  ⚠️ $name: No standard CLI interface (may be service binary)"
-                # Count as passed for service binaries
-                passed=$((passed + 1))
+                # For binaries that don't respond to standard flags, just check if they're valid executables
+                if file "$binary" | grep -q "executable"; then
+                  echo "  ✅ $name: Valid executable (no standard CLI interface)"
+                  passed=$((passed + 1))
+                else
+                  echo "  ⚠️ $name: Not a valid executable"
+                fi
               fi
             fi
           done
           
           echo "Integration test results: $passed/$tested binaries validated"
           
+          # More lenient validation - pass if we have any working binaries
           if [ $tested -gt 0 ] && [ $passed -gt 0 ]; then
-            echo "✅ Integration validation passed"
+            echo "✅ Integration validation passed ($passed/$tested binaries working)"
+          elif [ $tested -eq 0 ]; then
+            echo "⚠️ No binaries found to test - this may indicate build artifacts were not uploaded"
+            echo "This is likely due to build failures in the reliable-build job"
+            echo "Checking if this is a critical failure..."
+            exit 1
           else
-            echo "❌ Integration validation failed"
+            echo "❌ Integration validation failed - no working binaries found"
             exit 1
           fi
 
