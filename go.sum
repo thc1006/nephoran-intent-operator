@@ -126,8 +126,8 @@ github.com/aws/aws-sdk-go-v2/internal/ini v1.8.3 h1:bIqFDwgGXXN1Kpp99pDOdKMTTb5d
 github.com/aws/aws-sdk-go-v2/internal/ini v1.8.3/go.mod h1:H5O/EsxDWyU+LP/V8i5sm8cxoZgc2fdNR9bxlOFrQTo=
 github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.6 h1:R0tNFJqfjHL3900cqhXuwQ+1K4G0xc9Yf8EDbFXCKEw=
 github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.6/go.mod h1:y/7sDdu+aJvPtGXr4xYosdpq9a6T9Z0jkXfugmti0rI=
-github.com/aws/aws-sdk-go-v2/service/cloudformation v1.65.2 h1:ACR184wcab0r+cS43gE8cwXCp3AtzsCZKTylzSuJW/k=
-github.com/aws/aws-sdk-go-v2/service/cloudformation v1.65.2/go.mod h1:wkKFqGoZf9Asi1eKuWbz7SEx0RtCq4+drWwHKzizP9o=
+github.com/aws/aws-sdk-go-v2/service/cloudformation v1.66.2 h1:NsxbnWtrrFysJ3bjBAaXshvGA4OLtdW/x8gHQ+eYdo0=
+github.com/aws/aws-sdk-go-v2/service/cloudformation v1.66.2/go.mod h1:eTAwEMBFx1uY9cnjh98c1V7GFqftJRb5X3wrUW04BTg=
 github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.50.1 h1:OSye2F+X+KfxEdbrOT3x+p7L3kr5zPtm3BMkNWGVXQ8=
 github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.50.1/go.mod h1:bNNaZaAX81KIuYDaj5ODgZwA1ybBJzpDeKYoNxEGGqw=
 github.com/aws/aws-sdk-go-v2/service/ec2 v1.251.1 h1:DCsvFxkh1mpniU8TC6mBNlCmGIACV9+bZD1Pq/s1dzc=
@@ -876,8 +876,8 @@ golang.org/x/sync v0.0.0-20190423024810-112230192c58/go.mod h1:RxMgew5VJxzue5/jJ
 golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20210220032951-036812b2e83c/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
-golang.org/x/sync v0.16.0 h1:ycBJEhp9p4vXvUZNszeOq0kGTPghopOL8q0fq3vstxw=
-golang.org/x/sync v0.16.0/go.mod h1:1dzgHSNfp02xaA81J2MS99Qcpr2w7fw1gpm99rleRqA=
+golang.org/x/sync v0.17.0 h1:l60nONMj9l5drqw6jlhIELNv9I0A4OFgRsG9k2oT9Ug=
+golang.org/x/sync v0.17.0/go.mod h1:9KTHXmSnoGruLpwFjVSX0lNNA75CykiMECbovNTZqGI=
 golang.org/x/sys v0.0.0-20180823144017-11551d06cbcc/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20190412213103-97732733099d/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
