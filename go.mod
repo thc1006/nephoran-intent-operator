@@ -55,7 +55,7 @@ require (
 	github.com/lestrrat-go/jwx/v2 v2.1.6
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/montanaflynn/stats v0.7.1
-	github.com/onsi/ginkgo/v2 v2.25.1
+	github.com/onsi/ginkgo/v2 v2.25.3
 	github.com/onsi/gomega v1.38.2
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/pkg/errors v0.9.1
