@@ -189,7 +189,7 @@ require (
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/ebitengine/purego v0.8.4 // indirect
 	github.com/ekzhu/minhash-lsh v0.0.0-20190924033628-faac2c6342f8 // indirect
-	github.com/emicklei/go-restful/v3 v3.12.2 // indirect
+	github.com/emicklei/go-restful/v3 v3.13.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.32.4 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect
