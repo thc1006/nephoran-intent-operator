@@ -100,7 +100,7 @@ require (
 	golang.org/x/time v0.12.0
 	golang.org/x/vuln v1.1.4
 	gonum.org/v1/gonum v0.16.0
-	google.golang.org/api v0.247.0
+	google.golang.org/api v0.249.0
 	google.golang.org/grpc v1.75.1
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
