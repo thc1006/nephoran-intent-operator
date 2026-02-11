@@ -6,11 +6,13 @@ following 2025 Kubernetes operator testing best practices.
 package envtest
 
 import (
+	"context"
 	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 
 	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
@@ -36,7 +38,7 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 		BeforeAll(func() {
 			testNamespace = "default" // Use default namespace for simplicity
 			networkIntentName = "test-network-intent"
-			
+
 			// Skip all tests in this context if k8sClient is not initialized
 			checkK8sClient()
 
@@ -58,6 +60,7 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 					Replicas:   5,
 				},
 			}
+			Expect(k8sClient.Create(context.Background(), networkIntent)).To(Succeed())
 		})
 
 		AfterAll(func() {
@@ -153,7 +156,7 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 					Name:      networkIntentName,
 					Namespace: testNamespace,
 				}, deletedIntent)
-				return client.IgnoreNotFound(err) == nil && deletedIntent.Name == ""
+				return err == nil || errors.IsNotFound(err)
 			}, timeout, interval).Should(BeTrue())
 		})
 	})

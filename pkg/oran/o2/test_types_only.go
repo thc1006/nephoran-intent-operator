@@ -287,8 +287,6 @@ type ClusterMetrics struct {
 	TotalCPU string `json:"totalCPU"`
 
 	TotalMemory string `json:"totalMemory"`
-	
-	TotalPods int32 `json:"totalPods"`
 }
 
 // VNFDeploymentStatus represents the status of a VNF deployment.
