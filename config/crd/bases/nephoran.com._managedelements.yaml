@@ -52,34 +52,6 @@ spec:
                 description: Credentials for accessing the managed element
                 properties:
                   caCertificateRef:
-<<<<<<< HEAD
-                    $ref: '#/definitions/k8s.io~1api~1core~1v1~0SecretKeySelector'
-                    description: CA certificate reference
-                  certificateRef:
-                    $ref: '#/definitions/k8s.io~1api~1core~1v1~0SecretKeySelector'
-                    description: Certificate reference for certificate-based authentication
-                  clientCertRef:
-                    $ref: '#/definitions/k8s.io~1api~1core~1v1~0SecretKeySelector'
-                    description: Client certificate reference for mTLS
-                  clientCertificateRef:
-                    $ref: '#/definitions/k8s.io~1api~1core~1v1~0SecretKeySelector'
-                    description: Client certificate reference for authentication
-                  clientKeyRef:
-                    $ref: '#/definitions/k8s.io~1api~1core~1v1~0SecretKeySelector'
-                    description: Client key reference for mTLS
-                  passwordRef:
-                    $ref: '#/definitions/k8s.io~1api~1core~1v1~0SecretKeySelector'
-                    description: Password reference for basic authentication
-                  privateKeyRef:
-                    $ref: '#/definitions/k8s.io~1api~1core~1v1~0SecretKeySelector'
-                    description: Private key reference for certificate-based authentication
-                  sshKeyRef:
-                    $ref: '#/definitions/k8s.io~1api~1core~1v1~0SecretKeySelector'
-                    description: SSH key reference for SSH-based authentication
-                  tokenRef:
-                    $ref: '#/definitions/k8s.io~1api~1core~1v1~0SecretKeySelector'
-                    description: Token reference for token-based authentication
-=======
                     description: CA certificate reference
                     properties:
                       key:
@@ -295,15 +267,10 @@ spec:
                     - key
                     type: object
                     x-kubernetes-map-type: atomic
->>>>>>> 6835433495e87288b95961af7173d866977175ff
                   username:
                     description: Username for basic authentication
                     type: string
                   usernameRef:
-<<<<<<< HEAD
-                    $ref: '#/definitions/k8s.io~1api~1core~1v1~0SecretKeySelector'
-                    description: Username reference for basic authentication
-=======
                     description: Username reference for basic authentication
                     properties:
                       key:
@@ -327,7 +294,6 @@ spec:
                     - key
                     type: object
                     x-kubernetes-map-type: atomic
->>>>>>> 6835433495e87288b95961af7173d866977175ff
                 type: object
               deploymentName:
                 description: DeploymentName specifies the name of the associated Kubernetes
@@ -370,21 +336,8 @@ spec:
               conditions:
                 description: Conditions represent the current conditions
                 items:
-<<<<<<< HEAD
-                  description: "Condition contains details for one aspect of the current
-                    state of this API Resource.\n---\nThis struct is intended for
-                    direct use as an array at the field path .status.conditions.  For
-                    example,\n\n\n\ttype FooStatus struct{\n\t    // Represents the
-                    observations of a foo's current state.\n\t    // Known .status.conditions.type
-                    are: \"Available\", \"Progressing\", and \"Degraded\"\n\t    //
-                    +patchMergeKey=type\n\t    // +patchStrategy=merge\n\t    // +listType=map\n\t
-                    \   // +listMapKey=type\n\t    Conditions []metav1.Condition `json:\"conditions,omitempty\"
-                    patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"`\n\n\n\t
-                    \   // other fields\n\t}"
-=======
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
->>>>>>> 6835433495e87288b95961af7173d866977175ff
                   properties:
                     lastTransitionTime:
                       description: |-
@@ -425,16 +378,7 @@ spec:
                       - Unknown
                       type: string
                     type:
-<<<<<<< HEAD
-                      description: |-
-                        type of condition in CamelCase or in foo.example.com/CamelCase.
-                        ---
-                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be
-                        useful (see .node.status.conditions), the ability to deconflict is important.
-                        The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
-=======
                       description: type of condition in CamelCase or in foo.example.com/CamelCase.
->>>>>>> 6835433495e87288b95961af7173d866977175ff
                       maxLength: 316
                       pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                       type: string

@@ -35,11 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-<<<<<<< HEAD
-	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
-=======
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 )
 
 // TestEnvironmentOptions configures the test environment setup.
@@ -392,8 +388,6 @@ func (te *TestEnvironment) TeardownTestEnvironment() {
 
 	te.started = false
 	By("test environment teardown completed")
-<<<<<<< HEAD
-=======
 
 }
 
@@ -1104,7 +1098,6 @@ func (te *TestEnvironment) waitForNamespaceCleanup(ctx context.Context, namespac
 
 	return nil
 
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // CreateNamespace creates a namespace for testing.
@@ -1147,9 +1140,6 @@ func (te *TestEnvironment) CreateTestObject(obj client.Object) error {
 		if errors.IsAlreadyExists(err) {
 			return nil // Object already exists, which is fine for tests
 		}
-<<<<<<< HEAD
-		return fmt.Errorf("failed to create test object %s/%s: %w", obj.GetNamespace(), obj.GetName(), err)
-=======
 
 		return fmt.Errorf("failed to delete namespace %s: %w", name, err)
 
@@ -1312,7 +1302,6 @@ func (te *TestEnvironment) InstallCRDs(crdPaths ...string) error {
 
 		}
 
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	return nil
@@ -1357,8 +1346,6 @@ func waitForAPIServerReady(cfg *rest.Config, timeout time.Duration) error {
 	return nil
 }
 
-<<<<<<< HEAD
-=======
 // getLogLevel returns the appropriate log level based on verbose flag.
 
 func getLogLevel(verbose bool) zapcore.Level {
@@ -1597,7 +1584,6 @@ func GetUniqueName(prefix string) string {
 
 // Environment Detection.
 
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 // IsRunningInCI detects if tests are running in CI environment.
 func IsRunningInCI() bool {
 	ciEnvVars := []string{"CI", "CONTINUOUS_INTEGRATION", "GITHUB_ACTIONS", "GITLAB_CI", "JENKINS_URL"}

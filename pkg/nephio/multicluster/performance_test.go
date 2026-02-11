@@ -97,18 +97,12 @@ func getMemoryUsage() float64 {
 	return float64(m.Alloc) / 1024 / 1024 // Convert to MB
 }
 
-<<<<<<< HEAD
-func setupPerformanceTestEnvironment(t *testing.T, numClusters int) *ClusterManager {
-	scheme := k8sruntime.NewScheme()
-	require.NoError(t, corev1.AddToScheme(scheme))
-=======
 // TestingTB is a minimal interface that both *testing.T and *testing.B implement
 type TestingTB interface {
 	Errorf(format string, args ...interface{})
 	Fatalf(format string, args ...interface{})
 	Helper()
 }
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 func setupPerformanceTestEnvironment(t TestingTB, numClusters int) *ClusterManager {
 	scheme := runtime.NewScheme()
@@ -168,15 +162,10 @@ func setupClusterManager(client client.Client, logger logr.Logger, numClusters i
 
 // Benchmark Tests
 func BenchmarkClusterManager_RegisterCluster(b *testing.B) {
-<<<<<<< HEAD
-	scheme := k8sruntime.NewScheme()
-	require.NoError(b, corev1.AddToScheme(scheme))
-=======
 	scheme := runtime.NewScheme()
 	if err := corev1.AddToScheme(scheme); err != nil {
 		b.Fatalf("Failed to add scheme: %v", err)
 	}
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
 	// Use a discard logger for benchmarks to avoid logging overhead
@@ -269,17 +258,11 @@ func BenchmarkClusterManager_SelectTargetClusters_1000_Clusters(b *testing.B) {
 	}
 }
 
-<<<<<<< HEAD
-func BenchmarkHealthMonitor_ProcessAlerts(b *testing.B) {
-	scheme := k8sruntime.NewScheme()
-	require.NoError(b, corev1.AddToScheme(scheme))
-=======
 func BenchmarkHealthMonitorProcessAlerts(b *testing.B) {
 	scheme := runtime.NewScheme()
 	if err := corev1.AddToScheme(scheme); err != nil {
 		b.Fatalf("Failed to add scheme: %v", err)
 	}
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
 	// Use a discard logger for benchmarks to avoid logging overhead
@@ -311,15 +294,10 @@ func BenchmarkHealthMonitorProcessAlerts(b *testing.B) {
 }
 
 func BenchmarkSyncEngine_SyncPackageToCluster(b *testing.B) {
-<<<<<<< HEAD
-	scheme := k8sruntime.NewScheme()
-	require.NoError(b, corev1.AddToScheme(scheme))
-=======
 	scheme := runtime.NewScheme()
 	if err := corev1.AddToScheme(scheme); err != nil {
 		b.Fatalf("Failed to add scheme: %v", err)
 	}
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
 	// Use a discard logger for benchmarks to avoid logging overhead

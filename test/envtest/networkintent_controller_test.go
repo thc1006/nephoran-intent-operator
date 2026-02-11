@@ -33,12 +33,6 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 			testNamespace     string
 		)
 
-<<<<<<< HEAD
-		BeforeEach(func() {
-			testNamespace = "default"
-			networkIntentName = "test-network-intent"
-			
-=======
 		BeforeAll(func() {
 			testNamespace = "default" // Use default namespace for simplicity
 			networkIntentName = "test-network-intent"
@@ -47,7 +41,6 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 			checkK8sClient()
 
 			By("creating a NetworkIntent resource")
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 			networkIntent = &intentv1alpha1.NetworkIntent{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "intent.nephio.org/v1alpha1",
@@ -58,34 +51,21 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 					Namespace: testNamespace,
 				},
 				Spec: intentv1alpha1.NetworkIntentSpec{
-<<<<<<< HEAD
-					Source:     "test",
-					IntentType: "scaling",
-					Target:     "test-target",
-					Replicas:   3,
-=======
 					// 2025 pattern: Use realistic O-RAN scaling scenarios
 					Source:     "test",
 					IntentType: "scaling",
 					Target:     "cluster-1",
 					Replicas:   5,
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 				},
 			}
 		})
 
-<<<<<<< HEAD
-		It("Should create NetworkIntent successfully", func() {
-			ctx := context.Background()
-			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
-=======
 		AfterAll(func() {
 			// Cleanup any resources created during tests
 		})
 
 		It("should create the NetworkIntent successfully", func(ctx SpecContext) {
 			GinkgoWriter.Printf("Creating NetworkIntent resource: name=%s, namespace=%s\n", networkIntentName, testNamespace)
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 			
 			createdIntent := &intentv1alpha1.NetworkIntent{}
 			Eventually(func() error {
@@ -93,17 +73,6 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 					Name:      networkIntentName,
 					Namespace: testNamespace,
 				}, createdIntent)
-<<<<<<< HEAD
-			}, time.Second*10, time.Millisecond*250).Should(Succeed())
-			
-			Expect(createdIntent.Spec.Source).To(Equal("test"))
-			Expect(createdIntent.Spec.IntentType).To(Equal("scaling"))
-			Expect(createdIntent.Spec.Target).To(Equal("test-target"))
-			Expect(createdIntent.Spec.Replicas).To(Equal(int32(3)))
-		})
-	})
-})
-=======
 			}, timeout, interval).Should(Succeed())
 
 			Expect(createdIntent.Spec.Source).To(Equal("test"))
@@ -356,4 +325,3 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 		)
 	})
 })
->>>>>>> 6835433495e87288b95961af7173d866977175ff
