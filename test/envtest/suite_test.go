@@ -14,10 +14,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-<<<<<<< HEAD
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
-=======
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -28,15 +24,10 @@ import (
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-<<<<<<< HEAD
-
-	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
-=======
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -45,7 +36,6 @@ import (
 	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
 	"github.com/thc1006/nephoran-intent-operator/controllers"
 	// +kubebuilder:scaffold:imports
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 )
 
 var cfg *rest.Config
@@ -61,13 +51,9 @@ const (
 
 func TestEnvtest(t *testing.T) {
 	RegisterFailHandler(Fail)
-<<<<<<< HEAD
-	RunSpecs(t, "Envtest Suite")
-=======
 
 	// Configure Ginkgo for 2025 best practices
 	RunSpecs(t, "Nephoran Controller Suite")
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 var _ = BeforeSuite(func() {
@@ -76,11 +62,6 @@ var _ = BeforeSuite(func() {
 	ctx, cancel = context.WithCancel(context.TODO())
 
 	By("bootstrapping test environment")
-<<<<<<< HEAD
-	testEnv = &envtest.Environment{
-		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "crd", "bases")},
-		ErrorIfCRDPathMissing: true,
-=======
 
 	// 2025 envtest configuration with enhanced settings
 	testEnv := &envtest.Environment{
@@ -104,7 +85,6 @@ var _ = BeforeSuite(func() {
 
 		// Attach policy for admission controllers
 		AttachControlPlaneOutput: false,
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	var err error
@@ -118,8 +98,6 @@ var _ = BeforeSuite(func() {
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
-<<<<<<< HEAD
-=======
 
 	By("setting up controller manager")
 	// 2025 best practice: Enhanced manager configuration
@@ -185,20 +163,15 @@ var _ = BeforeSuite(func() {
 	}, timeout, interval).Should(BeTrue())
 
 	By("test environment setup completed successfully")
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 })
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
-<<<<<<< HEAD
-	cancel()
-=======
 
 	// Cancel the context to stop the manager
 	cancel()
 
 	// Stop the test environment
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
 })
@@ -207,11 +180,6 @@ func ContextForTest() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(ctx, time.Minute*2)
 }
 
-<<<<<<< HEAD
-func LogTestStep(step string) {
-	By(step)
-}
-=======
 // CreateOranCluster commented out - OranCluster type not found
 // TODO: Implement when OranCluster type is added
 // func CreateOranCluster(name, namespace string, spec intentv1alpha1.OranClusterSpec) *intentv1alpha1.OranCluster
@@ -286,4 +254,3 @@ func AfterEachTest() {
 }
 
 var currentNamespace string
->>>>>>> 6835433495e87288b95961af7173d866977175ff

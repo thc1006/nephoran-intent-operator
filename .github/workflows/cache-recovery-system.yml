@@ -44,18 +44,14 @@ on:
         default: 'go-modules'
 
 env:
-<<<<<<< HEAD
-  GO_VERSION: "1.24.0"
-=======
   GO_VERSION: "1.24.6"  # EMERGENCY FIX - Match go.mod toolchain
->>>>>>> 6835433495e87288b95961af7173d866977175ff
   CACHE_VERSION: "v4"
   MAX_CACHE_SIZE_MB: "2048"  # 2GB limit
   CACHE_VALIDATION_TIMEOUT: "60"  # seconds
 
 jobs:
   cache-recovery:
-    name: ??ï¸?Cache Recovery & Validation
+    name: ??ï¿½?Cache Recovery & Validation
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -64,13 +60,13 @@ jobs:
       recovery-performed: ${{ steps.final-status.outputs.recovery-performed }}
       
     steps:
-      - name: ?“¥ Checkout
+      - name: ?ï¿½ï¿½ Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
           persist-credentials: false
           
-      - name: ?”§ Setup Go
+      - name: ?ï¿½ï¿½ Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
@@ -133,9 +129,9 @@ jobs:
           echo "?? Fallback 1: $fallback_key1"
           echo "?? Fallback 2: $fallback_key2"
           
-      - name: ?§¹ Pre-cache cleanup
+      - name: ?ï¿½ï¿½ Pre-cache cleanup
         run: |
-          echo "?§¹ Performing pre-cache cleanup..."
+          echo "?ï¿½ï¿½ Performing pre-cache cleanup..."
           
           # Remove any existing Go cache to prevent conflicts
           rm -rf ~/go/pkg/mod ~/.cache/go-build || true
@@ -151,7 +147,7 @@ jobs:
           
           echo "??Pre-cache cleanup completed"
           
-      - name: ??ï¸?Attempt primary cache restore
+      - name: ??ï¿½?Attempt primary cache restore
         id: primary-cache
         if: inputs.force_refresh != true
         uses: actions/cache@v4
@@ -263,21 +259,21 @@ jobs:
             echo "?? Cache recovery required"
           fi
           
-      - name: ?š¨ Cache recovery
+      - name: ?ï¿½ï¿½ Cache recovery
         id: cache-recovery
         if: steps.cache-validation.outputs.cache-valid != 'true' || inputs.force_refresh == true
         run: |
-          echo "?š¨ Performing cache recovery..."
+          echo "?ï¿½ï¿½ Performing cache recovery..."
           
           recovery_reason="validation_failed"
           if [[ "${{ inputs.force_refresh }}" == "true" ]]; then
             recovery_reason="force_refresh"
           fi
           
-          echo "?”§ Recovery reason: $recovery_reason"
+          echo "?ï¿½ï¿½ Recovery reason: $recovery_reason"
           
           # Complete cleanup of corrupted cache
-          echo "?§¹ Removing corrupted/old cache..."
+          echo "?ï¿½ï¿½ Removing corrupted/old cache..."
           rm -rf ~/go/pkg/mod ~/.cache/go-build || true
           
           # Recreate clean directories
@@ -290,7 +286,7 @@ jobs:
           go env GOMODCACHE GOCACHE
           
           # Download modules with error handling
-          echo "?“¦ Downloading Go modules..."
+          echo "?ï¿½ï¿½ Downloading Go modules..."
           
           download_with_retry() {
             local max_attempts=3
@@ -332,7 +328,7 @@ jobs:
             exit 1
           fi
           
-      - name: ?’¾ Save recovered cache
+      - name: ?ï¿½ï¿½ Save recovered cache
         if: steps.cache-recovery.outputs.recovery-successful == 'true' || (steps.cache-validation.outputs.cache-valid == 'true' && steps.cache-validation.outputs.cache-source == 'none')
         uses: actions/cache/save@v4
         with:
@@ -361,7 +357,7 @@ jobs:
           | Fallback Cache 1 | ${{ steps.fallback-cache1.outputs.cache-hit == 'true' && '??Hit' || '??Miss' }} | Key: ${{ steps.cache-analysis.outputs.fallback-key1 }} |
           | Fallback Cache 2 | ${{ steps.fallback-cache2.outputs.cache-hit == 'true' && '??Hit' || '??Miss' }} | Key: ${{ steps.cache-analysis.outputs.fallback-key2 }} |
           | Validation | ${{ steps.cache-validation.outputs.cache-valid == 'true' && '??Valid' || '??Invalid' }} | Source: ${{ steps.cache-validation.outputs.cache-source }} |
-          | Recovery | ${{ steps.cache-recovery.outputs.recovery-successful == 'true' && '??Performed' || '?­ï? Not needed' }} | - |
+          | Recovery | ${{ steps.cache-recovery.outputs.recovery-successful == 'true' && '??Performed' || '?ï¿½ï¿½? Not needed' }} | - |
           
           ## Summary
           
@@ -370,7 +366,7 @@ jobs:
           if [[ "${{ steps.cache-validation.outputs.cache-valid }}" == "true" ]]; then
             echo "??**Cache is healthy and ready for use.**" >> cache-report.md
           elif [[ "${{ steps.cache-recovery.outputs.recovery-successful }}" == "true" ]]; then
-            echo "?”§ **Cache was corrupted but successfully recovered.**" >> cache-report.md
+            echo "?ï¿½ï¿½ **Cache was corrupted but successfully recovered.**" >> cache-report.md
           else
             echo "??**Cache issues detected - manual intervention may be required.**" >> cache-report.md
           fi
@@ -386,10 +382,10 @@ jobs:
             echo "- **Total size:** ${cache_size}" >> cache-report.md
           fi
           
-      - name: ?Ž¯ Final status determination
+      - name: ?ï¿½ï¿½ Final status determination
         id: final-status
         run: |
-          echo "?Ž¯ Determining final cache status..."
+          echo "?ï¿½ï¿½ Determining final cache status..."
           
           # Determine if we have a working cache
           cache_hit="false"
@@ -402,7 +398,7 @@ jobs:
           elif [[ "${{ steps.cache-recovery.outputs.recovery-successful }}" == "true" ]]; then
             cache_hit="true"
             recovery_performed="true"
-            echo "?”§ Cache recovered and ready"
+            echo "?ï¿½ï¿½ Cache recovered and ready"
           else
             echo "??No valid cache available"
           fi
@@ -416,7 +412,7 @@ jobs:
           echo "  - Recovery Performed: $recovery_performed" 
           echo "  - Cache Key: $actual_cache_key"
           
-      - name: ?“¤ Upload cache report
+      - name: ?ï¿½ï¿½ Upload cache report
         uses: actions/upload-artifact@v4
         if: always()
         with:

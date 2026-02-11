@@ -4,10 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-<<<<<<< HEAD
-=======
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -30,10 +27,6 @@ func BenchmarkNetworkIntentJSONMarshal(b *testing.B) {
 		Spec: NetworkIntentSpec{
 			ScalingPriority: "high",
 			TargetClusters:  []string{"cluster-1", "cluster-2", "cluster-3"},
-<<<<<<< HEAD
-		},
-		Status: NetworkIntentStatus{
-=======
 			ScalingIntent: &apiextensionsv1.JSON{
 				Raw: []byte(`{"intent_type":"scaling","target":"gnb-simulator","namespace":"ran","replicas":5}`),
 			},
@@ -61,33 +54,22 @@ func BenchmarkNetworkIntentJSONMarshal(b *testing.B) {
 		},
 		Status: NetworkIntentStatus{
 			Phase: "pending",
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 			Conditions: []metav1.Condition{
 				{
 					Type:               "Ready",
 					Status:             metav1.ConditionTrue,
 					LastTransitionTime: metav1.Now(),
-<<<<<<< HEAD
-					Reason:             "NetworkIntentReady",
-					Message:            "NetworkIntent is ready for processing",
-=======
 					Reason:             "Initialized",
 					Message:            "NetworkIntent has been initialized",
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 				},
 			},
 			ObservedGeneration: 1,
 		},
 	}
 
-<<<<<<< HEAD
-	// Run the benchmark
-	b.ResetTimer()
-=======
 	b.ReportAllocs()
 	b.ResetTimer()
 
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 	for i := 0; i < b.N; i++ {
 		_, err := json.Marshal(intent)
 		if err != nil {
@@ -96,71 +78,6 @@ func BenchmarkNetworkIntentJSONMarshal(b *testing.B) {
 	}
 }
 
-<<<<<<< HEAD
-// TestNetworkIntentValidation tests validation of NetworkIntent fields
-func TestNetworkIntentValidation(b *testing.T) {
-	tests := []struct {
-		name    string
-		intent  NetworkIntent
-		wantErr bool
-	}{
-		{
-			name: "valid_intent_with_high_priority",
-			intent: NetworkIntent{
-				Spec: NetworkIntentSpec{
-					ScalingPriority: "high",
-					TargetClusters:  []string{"cluster-1"},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "valid_intent_with_medium_priority",
-			intent: NetworkIntent{
-				Spec: NetworkIntentSpec{
-					ScalingPriority: "medium",
-					TargetClusters:  []string{"cluster-1", "cluster-2"},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "valid_intent_with_low_priority",
-			intent: NetworkIntent{
-				Spec: NetworkIntentSpec{
-					ScalingPriority: "low",
-					TargetClusters:  []string{"cluster-1", "cluster-2", "cluster-3"},
-				},
-			},
-			wantErr: false,
-		},
-	}
-
-	for _, tt := range tests {
-		b.Run(tt.name, func(t *testing.T) {
-			// Test JSON marshaling
-			_, err := json.Marshal(tt.intent)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("JSON Marshal error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-
-			// Test basic field validation
-			if tt.intent.Spec.ScalingPriority != "" {
-				validPriorities := []string{"low", "medium", "high"}
-				valid := false
-				for _, p := range validPriorities {
-					if tt.intent.Spec.ScalingPriority == p {
-						valid = true
-						break
-					}
-				}
-				if !valid {
-					t.Errorf("Invalid ScalingPriority: %s", tt.intent.Spec.ScalingPriority)
-				}
-			}
-		})
-=======
 // BenchmarkNetworkIntentJSONUnmarshal tests JSON unmarshaling performance for NetworkIntent
 func BenchmarkNetworkIntentJSONUnmarshal(b *testing.B) {
 	// Create JSON data that represents a typical NetworkIntent
@@ -282,6 +199,5 @@ func BenchmarkDeploymentSpecJSONRoundTrip(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 }

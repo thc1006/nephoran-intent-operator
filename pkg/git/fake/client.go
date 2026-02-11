@@ -17,9 +17,6 @@ type Client struct {
 	// CallHistory tracks all method calls for pattern matching
 	CallHistory               []string
 
-	// Track call history for comprehensive testing
-	CallHistory []string
-
 	// Control return values
 	ShouldFailCommitAndPush bool
 	ShouldFailInit          bool
@@ -36,11 +33,7 @@ func NewClient() *Client {
 // CommitAndPush implements git.ClientInterface
 func (c *Client) CommitAndPush(files map[string]string, message string) (string, error) {
 	c.CommitAndPushCalls++
-<<<<<<< HEAD
-	c.CallHistory = append(c.CallHistory, "CommitAndPush")
-=======
 	c.CallHistory = append(c.CallHistory, fmt.Sprintf("CommitAndPush(%d files, %s)", len(files), message))
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if c.ShouldFailCommitAndPush {
 		return "", fmt.Errorf("fake commit and push failed")
 	}
@@ -50,11 +43,7 @@ func (c *Client) CommitAndPush(files map[string]string, message string) (string,
 // CommitAndPushChanges implements git.ClientInterface
 func (c *Client) CommitAndPushChanges(message string) error {
 	c.CommitAndPushChangesCalls++
-<<<<<<< HEAD
-	c.CallHistory = append(c.CallHistory, "CommitAndPushChanges")
-=======
 	c.CallHistory = append(c.CallHistory, fmt.Sprintf("CommitAndPushChanges(%s)", message))
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 	if c.ShouldFailCommitAndPush {
 		return fmt.Errorf("fake commit and push changes failed")
 	}
@@ -74,11 +63,7 @@ func (c *Client) InitRepo() error {
 // RemoveDirectory implements git.ClientInterface
 func (c *Client) RemoveDirectory(path string, commitMessage string) error {
 	c.RemoveDirectoryCalls++
-<<<<<<< HEAD
-	c.CallHistory = append(c.CallHistory, "RemoveDirectory")
-=======
 	c.CallHistory = append(c.CallHistory, fmt.Sprintf("RemoveDirectory(%s, %s)", path, commitMessage))
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 	return nil
 }
 

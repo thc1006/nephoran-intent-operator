@@ -47,8 +47,6 @@ spec:
             type: object
           spec:
             properties:
-<<<<<<< HEAD
-=======
               deployment:
                 description: Deployment defines deployment specifications for network
                   functions
@@ -113,7 +111,6 @@ spec:
               scalingIntent:
                 description: ScalingIntent defines the scaling behavior
                 x-kubernetes-preserve-unknown-fields: true
->>>>>>> 6835433495e87288b95961af7173d866977175ff
               scalingPriority:
                 enum:
                 - low
@@ -186,11 +183,6 @@ spec:
                   - type
                   type: object
                 type: array
-<<<<<<< HEAD
-              observedGeneration:
-                format: int64
-                type: integer
-=======
               lastUpdated:
                 description: LastUpdated indicates when the status was last updated
                 format: date-time
@@ -202,7 +194,6 @@ spec:
                 description: Phase indicates the current phase of the NetworkIntent
                   processing
                 type: string
->>>>>>> 6835433495e87288b95961af7173d866977175ff
             type: object
         type: object
     served: true

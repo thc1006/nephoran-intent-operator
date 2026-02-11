@@ -16,26 +16,6 @@ import (
 	. "github.com/onsi/gomega"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-<<<<<<< HEAD
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-)
-
-var _ = Describe("RBAC Security Tests", func() {
-	Context("When validating operator permissions", func() {
-		It("Should have minimal required permissions", func() {
-			ctx := context.Background()
-			
-			// Test that ClusterRole exists and has appropriate permissions
-			clusterRole := &rbacv1.ClusterRole{}
-			err := k8sClient.Get(ctx, types.NamespacedName{
-				Name: "manager-role",
-			}, clusterRole)
-			
-			if err == nil {
-				// Verify permissions are minimal
-				Expect(clusterRole.Rules).ToNot(BeEmpty())
-=======
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
@@ -71,7 +51,6 @@ var _ = Describe("RBAC Security Validation", func() {
 		It("should not contain wildcard permissions in production roles", func() {
 			for _, manifestPath := range rbacManifests {
 				By(fmt.Sprintf("Analyzing RBAC manifest: %s", filepath.Base(manifestPath)))
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 				
 				for _, rule := range clusterRole.Rules {
 					// Ensure no wildcard permissions
