@@ -98,7 +98,7 @@ deploy_infrastructure() {
     helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
     helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
         --namespace nephoran-monitoring \
-        --values configs/monitoring/values-production.yaml \
+        --values config/monitoring/values-production.yaml \
         --timeout=15m
     
     echo "✅ Infrastructure deployment completed"
@@ -171,7 +171,7 @@ data:
 EOF
     
     # Deploy monitoring configuration
-    kubectl apply -f configs/monitoring/
+    kubectl apply -f config/monitoring/
     
     # Deploy RBAC configuration
     kubectl apply -f deployments/rbac/

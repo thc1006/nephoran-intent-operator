@@ -180,11 +180,8 @@ type ThroughputScore struct {
 
 // Core types needed by sla_methods.go
 
-<<<<<<< HEAD
-=======
 // SLAValidationTestSuite is the main test suite (forward declaration)
 // The actual implementation is in sla_validation_test.go
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 // SLAValidationTestSuite is defined in sla_validation_test.go
 
 // SLAValidationConfig placeholder for compilation

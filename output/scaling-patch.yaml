@@ -1,7 +1,0 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: du-simulator
-  namespace: ran-ns
-spec:
-  replicas: 1

@@ -133,7 +133,7 @@ The monitoring stack consists of several interconnected components:
 - No TLS/security hardening
 - SQLite database for Grafana
 
-**Configuration**: `configs/monitoring/values-development.yaml`
+**Configuration**: `config/monitoring/values-development.yaml`
 
 ### Staging Environment
 
@@ -146,7 +146,7 @@ The monitoring stack consists of several interconnected components:
 - Automated load testing
 - CI/CD integration testing
 
-**Configuration**: `configs/monitoring/values-staging.yaml`
+**Configuration**: `config/monitoring/values-staging.yaml`
 
 ### Production Environment
 
@@ -160,7 +160,7 @@ The monitoring stack consists of several interconnected components:
 - Comprehensive alerting (email, Slack, PagerDuty)
 - Backup and disaster recovery
 
-**Configuration**: `configs/monitoring/values-production.yaml`
+**Configuration**: `config/monitoring/values-production.yaml`
 
 ## 🚀 Deployment Instructions
 

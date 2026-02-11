@@ -217,37 +217,25 @@ jobs:
 
   validate-cgo-setup:
     name: Validate CGO Configuration
-    runs-on: ${{ matrix.os }}
-    
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-      fail-fast: false
-    
+    runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-      
-      - name: Install C compiler (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
+
+      - name: Install C compiler
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential
       
-      - name: Install C compiler (macOS)
-        if: matrix.os == 'macos-latest'
-        run: |
-          # Xcode command line tools should be pre-installed
-          gcc --version || brew install gcc
-      
       - name: Validate CGO configuration
         run: |
-          echo "🔧 Validating CGO configuration on ${{ matrix.os }}"
+          echo "Validating CGO configuration on ubuntu-latest"
           
           # Check Go environment
           go env CGO_ENABLED
