@@ -23,7 +23,7 @@ readonly PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 # Configuration
 readonly MONITORING_NAMESPACE="nephoran-monitoring"
 readonly HELM_CHART_PATH="${PROJECT_ROOT}/deployments/helm/nephoran-performance-monitoring"
-readonly CONFIG_DIR="${PROJECT_ROOT}/configs/monitoring"
+readonly CONFIG_DIR="${PROJECT_ROOT}/config/monitoring"
 readonly BACKUP_DIR="/tmp/nephoran-monitoring-backup"
 readonly LOG_FILE="/tmp/nephoran-monitoring-deploy-$(date +%Y%m%d-%H%M%S).log"
 
