@@ -105,7 +105,7 @@ type TestingTB interface {
 }
 
 func setupPerformanceTestEnvironment(t TestingTB, numClusters int) *ClusterManager {
-	scheme := runtime.NewScheme()
+	scheme := k8sruntime.NewScheme()
 	
 	// Handle both *testing.T and *testing.B
 	if tt, ok := t.(*testing.T); ok {
@@ -162,7 +162,7 @@ func setupClusterManager(client client.Client, logger logr.Logger, numClusters i
 
 // Benchmark Tests
 func BenchmarkClusterManager_RegisterCluster(b *testing.B) {
-	scheme := runtime.NewScheme()
+	scheme := k8sruntime.NewScheme()
 	if err := corev1.AddToScheme(scheme); err != nil {
 		b.Fatalf("Failed to add scheme: %v", err)
 	}
@@ -259,7 +259,7 @@ func BenchmarkClusterManager_SelectTargetClusters_1000_Clusters(b *testing.B) {
 }
 
 func BenchmarkHealthMonitorProcessAlerts(b *testing.B) {
-	scheme := runtime.NewScheme()
+	scheme := k8sruntime.NewScheme()
 	if err := corev1.AddToScheme(scheme); err != nil {
 		b.Fatalf("Failed to add scheme: %v", err)
 	}
@@ -294,7 +294,7 @@ func BenchmarkHealthMonitorProcessAlerts(b *testing.B) {
 }
 
 func BenchmarkSyncEngine_SyncPackageToCluster(b *testing.B) {
-	scheme := runtime.NewScheme()
+	scheme := k8sruntime.NewScheme()
 	if err := corev1.AddToScheme(scheme); err != nil {
 		b.Fatalf("Failed to add scheme: %v", err)
 	}

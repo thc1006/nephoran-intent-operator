@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	goruntime "runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -29,11 +30,16 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	"k8s.io/apimachinery/pkg/types"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
 )
@@ -165,7 +171,7 @@ func DefaultTestEnvironmentOptions() TestEnvironmentOptions {
 		DevelopmentMode:            true,
 		VerboseLogging:             false,
 		SchemeBuilders: []func(*runtime.Scheme) error{
-			intentv1alpha1.AddToScheme,
+			nephoranv1.AddToScheme,
 			corev1.AddToScheme,
 			appsv1.AddToScheme,
 			rbacv1.AddToScheme,
@@ -1131,36 +1137,6 @@ func (te *TestEnvironment) CreateNamespace(name string) error {
 	return nil
 }
 
-// CreateTestObject creates a test object in the cluster.
-func (te *TestEnvironment) CreateTestObject(obj client.Object) error {
-	ctx, cancel := context.WithTimeout(te.ctx, 30*time.Second)
-	defer cancel()
-
-	if err := te.K8sClient.Create(ctx, obj); err != nil {
-		if errors.IsAlreadyExists(err) {
-			return nil // Object already exists, which is fine for tests
-		}
-
-		return fmt.Errorf("failed to delete namespace %s: %w", name, err)
-
-	}
-
-	// Wait for the namespace to be deleted.
-
-	Eventually(func() bool {
-
-		err := te.K8sClient.Get(ctx, types.NamespacedName{Name: name}, namespace)
-
-		return errors.IsNotFound(err)
-
-	}, 30*time.Second, 1*time.Second).Should(BeTrue(), "namespace %s should be deleted", name)
-
-	By(fmt.Sprintf("deleted namespace %s", name))
-
-	return nil
-
-}
-
 // NamespaceExists checks if a namespace exists.
 
 func (te *TestEnvironment) NamespaceExists(name string) bool {
@@ -1307,6 +1283,20 @@ func (te *TestEnvironment) InstallCRDs(crdPaths ...string) error {
 	return nil
 }
 
+// installCRDsFromPath installs CRDs from a single directory path.
+func (te *TestEnvironment) installCRDsFromPath(path string) error {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return fmt.Errorf("failed to resolve path %s: %w", path, err)
+	}
+	if _, err := os.Stat(absPath); os.IsNotExist(err) {
+		return fmt.Errorf("CRD path does not exist: %s", absPath)
+	}
+	// CRDs are installed by envtest during setup via CRDDirectoryPaths
+	te.TestEnv.CRDDirectoryPaths = append(te.TestEnv.CRDDirectoryPaths, absPath)
+	return nil
+}
+
 // Helper functions for path resolution and environment setup
 func resolveCRDPaths(paths []string) []string {
 	var validPaths []string
@@ -1344,20 +1334,6 @@ func waitForAPIServerReady(cfg *rest.Config, timeout time.Duration) error {
 	}, timeout, 1*time.Second).Should(BeTrue(), "API server should be ready")
 
 	return nil
-}
-
-// getLogLevel returns the appropriate log level based on verbose flag.
-
-func getLogLevel(verbose bool) zapcore.Level {
-
-	if verbose {
-
-		return zapcore.DebugLevel
-
-	}
-
-	return zapcore.InfoLevel
-
 }
 
 // Utility functions for common test operations.

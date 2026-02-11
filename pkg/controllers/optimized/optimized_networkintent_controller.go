@@ -35,7 +35,12 @@ type OptimizedNetworkIntentReconciler struct {
 
 	Recorder record.EventRecorder
 
-	// Configuration
+	// Configuration.
+
+	config controllers.Config
+
+	deps controllers.Dependencies
+
 	constants *config.Constants
 
 	// Optimization components.
@@ -45,14 +50,6 @@ type OptimizedNetworkIntentReconciler struct {
 	statusBatcher *StatusBatcher
 
 	metrics *ControllerMetrics
-
-	// Configuration.
-
-	config controllers.Config
-
-	deps controllers.Dependencies
-
-	constants *config.Constants
 
 	// Performance tracking.
 

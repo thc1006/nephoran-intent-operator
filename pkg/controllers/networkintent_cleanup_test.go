@@ -376,7 +376,6 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 				httpClient:       &http.Client{},
 				eventRecorder:    mockDeps.GetEventRecorder(),
 			}
-			reconciler.deps = nilGitMockDeps
 
 			By("Creating the NetworkIntent with deletion timestamp")
 			networkIntent.DeletionTimestamp = &metav1.Time{Time: time.Now()}
@@ -606,8 +605,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 		It("Should retain finalizer when Git operation fails", func() {
 			By("Setting up fake Git client to fail")
 			fakeGitClient := &testutils.MockGitClient{}
-			fakeGitClient.On("InitRepo").Return(nil)
-			fakeGitClient.On("RemoveDirectory", mock.Anything, mock.Anything).Return(errors.New("fake Git operation failed"))
+			fakeGitClient.SetRemoveDirectoryError(errors.New("fake Git operation failed"))
 
 			// Replace the git client in dependencies
 			mockDeps.GitClient = fakeGitClient
@@ -643,8 +641,6 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 		It("Should remove finalizer when Git operation succeeds", func() {
 			By("Setting up fake Git client to succeed")
 			fakeGitClient := &testutils.MockGitClient{}
-			fakeGitClient.On("InitRepo").Return(nil)
-			fakeGitClient.On("RemoveDirectory", mock.Anything, mock.Anything).Return(nil)
 
 			// Replace the git client in dependencies
 			mockDeps.GitClient = fakeGitClient
@@ -681,8 +677,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 		It("Should retry with exponential backoff on Git failures", func() {
 			By("Setting up fake Git client to fail consistently")
 			fakeGitClient := &testutils.MockGitClient{}
-			fakeGitClient.On("InitRepo").Return(nil)
-			fakeGitClient.On("RemoveDirectory", mock.Anything, mock.Anything).Return(errors.New("persistent Git failure"))
+			fakeGitClient.SetRemoveDirectoryError(errors.New("persistent Git failure"))
 
 			// Replace the git client in dependencies
 			mockDeps.GitClient = fakeGitClient
@@ -718,8 +713,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 		It("Should remove finalizer after max retries to prevent stuck resources", func() {
 			By("Setting up fake Git client to always fail")
 			fakeGitClient := &testutils.MockGitClient{}
-			fakeGitClient.On("InitRepo").Return(nil)
-			fakeGitClient.On("RemoveDirectory", mock.Anything, mock.Anything).Return(errors.New("permanent Git failure"))
+			fakeGitClient.SetRemoveDirectoryError(errors.New("permanent Git failure"))
 
 			// Replace the git client in dependencies
 			mockDeps.GitClient = fakeGitClient

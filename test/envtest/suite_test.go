@@ -8,7 +8,9 @@ package envtest
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
+	goruntime "runtime"
 	"testing"
 	"time"
 
@@ -43,10 +45,13 @@ var k8sClient client.Client
 var testEnv *envtest.Environment
 var ctx context.Context
 var cancel context.CancelFunc
+var mgr manager.Manager
 
 const (
-	timeout  = time.Second * 10
-	interval = time.Millisecond * 250
+	timeout                  = time.Second * 10
+	interval                 = time.Millisecond * 250
+	controlPlaneStartTimeout = time.Minute * 2
+	controlPlaneStopTimeout  = time.Minute * 1
 )
 
 func TestEnvtest(t *testing.T) {
@@ -219,7 +224,7 @@ func CreateTestContext(t *testing.T) (context.Context, context.CancelFunc) {
 
 // LogTestStep logs a test step for debugging
 func LogTestStep(step string, args ...interface{}) {
-	_, file, line, _ := runtime.Caller(1)
+	_, file, line, _ := goruntime.Caller(1)
 	logf.Log.Info(fmt.Sprintf("TEST STEP [%s:%d]: %s", filepath.Base(file), line, step), args...)
 }
 
