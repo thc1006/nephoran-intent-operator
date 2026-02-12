@@ -74,3 +74,5 @@ Updates are tracked here in append-only format.
 | 2025-09-04T15:30:00Z | feat/porch-direct | ci-pipeline | Consolidated 38+ workflows to fix PR 176 timeout cascade |
 | 2025-09-06T15:07:58Z | fix/ci-compilation-errors | dependency-management | Resolved Kubernetes dependency conflicts for Nephio R5/O-RAN L Release |
 | 2026-02-12T01:30:10Z | main | scripts/docs/events | Phase-2 cleanup: removed 232 obsolete files, 51k lines |
+| 2026-02-12T01:38:05Z | main | scripts | Remove 3 orphaned validate scripts (377 lines) |
+| 2026-02-12T01:40:41Z | chore/remove-orphaned-validate-scripts | scripts | Remove 3 orphaned validate scripts (377 lines) |
