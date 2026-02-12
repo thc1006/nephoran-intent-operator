@@ -76,3 +76,4 @@ Updates are tracked here in append-only format.
 | 2026-02-12T01:30:10Z | main | scripts/docs/events | Phase-2 cleanup: removed 232 obsolete files, 51k lines |
 | 2026-02-12T01:38:05Z | main | scripts | Remove 3 orphaned validate scripts (377 lines) |
 | 2026-02-12T02:02:46Z | chore/docs-phase3-restructure | docs | Phase-3: delete 36 orphans, move 91 md files to subdirs |
+| 2026-02-12T02:08:55Z | chore/docs-phase3-restructure | docs | Restore 7 wrongly-deleted docs; fix 5 broken refs in runbooks/README |

@@ -18,7 +18,7 @@
 ### 📈 Monitoring & Performance
 - [Monitoring & Alerting Runbook](./monitoring-alerting-runbook.md) - Monitoring setup and alert response
 - [Performance Degradation Runbook](./performance-degradation.md) - Performance troubleshooting
-- [SLA Monitoring Guide](../sla-monitoring-system.md) - SLA tracking and validation
+- [SLA Monitoring Guide](../monitoring/sla-monitoring-system.md) - SLA tracking and validation
 
 ### 🔧 Troubleshooting
 - [Troubleshooting Guide](./troubleshooting-guide.md) - Common issues and solutions
@@ -40,7 +40,7 @@
 |----------|----------------|---------------------|
 | Service down/degraded | [Incident Response](./incident-response-runbook.md) | [Troubleshooting Guide](./troubleshooting-guide.md) |
 | Daily health checks | [Master Operational](./operational-runbook-master.md) | [Monitoring & Alerting](./monitoring-alerting-runbook.md) |
-| Performance issues | [Performance Degradation](./performance-degradation.md) | [SLA Monitoring](../sla-monitoring-system.md) |
+| Performance issues | [Performance Degradation](./performance-degradation.md) | [SLA Monitoring](../monitoring/sla-monitoring-system.md) |
 | Security incident | [Security Incident Response](./security-incident-response.md) | [Security Operations](./security-operations-runbook.md) |
 | Disaster recovery | [Disaster Recovery](./disaster-recovery-runbook.md) | [Production Operations](./production-operations-runbook.md) |
 | Weaviate issues | [Weaviate Operations](../../deployments/weaviate/OPERATIONAL-RUNBOOK.md) | [Weaviate Deployment](../../deployments/weaviate/DEPLOYMENT-RUNBOOK.md) |
@@ -130,13 +130,13 @@ Superseded runbooks are archived in `docs/runbooks/archive/` with:
 
 ### Architecture Documentation
 - [System Architecture](../architecture.md)
-- [LLM Processor Specifications](../LLM-Processor-Technical-Specifications.md)
-- [RAG System Architecture](../RAG-System-Architecture.md)
+- [LLM Processor Specifications](../development/LLM-Processor-Technical-Specifications.md)
+- [RAG System Architecture](../knowledge-base/RAG-System-Architecture.md)
 
 ### Compliance & Security
 - [Compliance Audit Documentation](../operations/05-compliance-audit-documentation.md)
-- [Security Implementation](../SECURITY-IMPLEMENTATION.md)
-- [OAuth2 Security Guide](../OAuth2-Authentication-Guide.md)
+- [Security Implementation](../security/SECURITY_IMPLEMENTATION.md)
+- [OAuth2 Security Guide](../security/OAuth2-Security-Guide.md)
 
 ---
 
