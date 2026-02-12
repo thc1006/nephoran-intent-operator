@@ -144,7 +144,7 @@ kubectl delete namespace nephoran-system
 
 - Check logs: `kubectl logs -n nephoran-system deployment/nephoran-operator`
 - Review events: `kubectl get events -n nephoran-system`
-- See troubleshooting guide: [docs/troubleshooting.md](troubleshooting.md)
+- See troubleshooting guide: [docs/runbooks/troubleshooting.md](../runbooks/troubleshooting.md)
 
 ## Next Steps
 

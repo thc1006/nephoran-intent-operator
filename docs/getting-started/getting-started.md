@@ -309,9 +309,9 @@ kubectl get crd networkintents.nephoran.com -o yaml
 
 ### Learn More
 
-- [Integration Patterns](integration-patterns.md) - Common integration scenarios
-- [Troubleshooting Guide](troubleshooting.md) - Detailed problem resolution
-- [API Reference](../docs/API_REFERENCE.md) - Complete API documentation
+- [Integration Patterns](../development/integration-patterns.md) - Common integration scenarios
+- [Troubleshooting Guide](../runbooks/troubleshooting.md) - Detailed problem resolution
+- [API Reference](../api/API_REFERENCE.md) - Complete API documentation
 - [Architecture Overview](../docs/architecture.md) - System design deep dive
 
 ### Join the Community

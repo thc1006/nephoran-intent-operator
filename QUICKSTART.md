@@ -572,8 +572,8 @@ kubectl apply -f examples/networkintent-example.yaml
 - Enable RAG for enhanced processing
 
 #### 3. **Explore Advanced Features**
-- [Network Slicing Guide](docs/getting-started.md#network-slicing)
-- [O-RAN Integration](docs/ORAN-COMPLIANCE-CERTIFICATION.md)
+- [Network Slicing Guide](docs/getting-started/getting-started.md#network-slicing)
+- [O-RAN Integration](docs/operations/ORAN-COMPLIANCE-CERTIFICATION.md)
 - [Multi-cluster Deployments](deployments/multi-region/README.md)
 
 #### 4. **Join the Community**
@@ -626,7 +626,7 @@ Your quickstart deployment should achieve:
 
 If you encounter any issues:
 
-1. Check the [Troubleshooting Guide](docs/troubleshooting.md)
+1. Check the [Troubleshooting Guide](docs/runbooks/troubleshooting.md)
 2. Search [existing issues](https://github.com/thc1006/nephoran-intent-operator/issues)
 3. Join our [Discord community](https://discord.gg/nephoran)
 4. Create a [new issue](https://github.com/thc1006/nephoran-intent-operator/issues/new) with:

@@ -15,7 +15,7 @@
    - `./docs/operations/02-monitoring-alerting-runbooks.md` - Monitoring and alerting procedures
 
 3. **Disaster Recovery Runbooks** (Keep Separate):
-   - `./docs/dr-runbook.md` - Comprehensive DR procedures
+   - `./docs/runbooks/dr-runbook.md` - Comprehensive DR procedures
 
 4. **Production Operations** (Already Consolidated):
    - `./docs/runbooks/production-operations-runbook.md` - Comprehensive production ops
@@ -128,7 +128,7 @@ All runbooks will cross-reference each other with clear navigation:
 
 ### Files to Keep (with updates):
 - `./deployments/weaviate/*.md` → Keep, add references to master runbooks
-- `./docs/dr-runbook.md` → Move to runbooks/, update references
+- `./docs/runbooks/dr-runbook.md` → Already moved to runbooks/, references updated
 - `./docs/runbooks/*.md` → Update with consolidated content
 
 ### New Files to Create:
