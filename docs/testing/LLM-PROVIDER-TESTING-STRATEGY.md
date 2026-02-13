@@ -320,9 +320,9 @@ Comprehensive test runner for local development:
 
 ### Documentation
 - [Project README](../README.md)
-- [Contract Documentation](./contracts/)
-- [CI/CD Best Practices](./.github/workflows/)
-- [Development Guide](../CONTRIBUTING.md)
+- [Contract Documentation](../contracts/README.md)
+- [CI/CD Best Practices](../../.github/workflows/README.md)
+- [Development Guide](../../CONTRIBUTING.md)
 
 ---
 

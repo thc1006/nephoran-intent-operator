@@ -148,6 +148,6 @@ kubectl delete namespace nephoran-system
 
 ## Next Steps
 
-- [Configure GitOps integration](GitOps-Package-Generation.md)
-- [Set up monitoring](monitoring/README.md)
-- [Deploy sample workloads](examples/README.md)
+- [Configure GitOps integration](../operations/GitOps-Package-Generation.md)
+- [Set up monitoring](../../examples/monitoring/README.md)
+- [Deploy sample workloads](../crd-reference/docs/crds/networkintent/examples.md)

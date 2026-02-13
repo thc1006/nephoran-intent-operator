@@ -116,3 +116,4 @@ Updates are tracked here in append-only format.
 | 2026-02-13T18:08:21+00:00 | chore/perf-guard-threshold-input-20260213 | .github/workflows | Add dispatch threshold override for PR Validation Performance Guard. |
 | 2026-02-13T18:17:50+00:00 | chore/perf-guard-sampling-inputs-20260213 | .github/workflows | Add dispatch sample_size/min_samples controls for perf guard. |
 | 2026-02-13T19:00:29+00:00 | chore/docs-link-integrity-pack1-20260213 | docs | Docs link pack1 partial: fixed hotspots, removed AI marker artifacts. |
+| 2026-02-13T19:54:43+00:00 | chore/docs-link-integrity-pack2-20260213 | docs | Pack2 link fixes: 73 -> 34 missing links, quickstart docs test green. |
