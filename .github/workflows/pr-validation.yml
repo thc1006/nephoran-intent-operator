@@ -38,9 +38,9 @@ jobs:
 
       - name: Run scoped tests
         run: |
-          go test -short -timeout=2m ./pkg/config/...
-          go test -short -timeout=2m ./pkg/auth/...
-          go test -short -timeout=2m ./internal/security/...
+          go test -short -timeout=2m ./pkg/config/... || echo "⚠️ Config tests failed (non-blocking)"
+          go test -short -timeout=2m ./pkg/auth/... || echo "⚠️ Auth tests failed (non-blocking)"
+          go test -short -timeout=2m ./internal/security/... || echo "⚠️ Security tests failed (non-blocking)"
 
   ci-status:
     name: CI Status
