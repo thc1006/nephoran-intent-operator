@@ -1100,5 +1100,5 @@ This troubleshooting guide covers the most common issues encountered with the O2
 
 For additional support:
 - Check the [deployment guide](../deployment/production-guide.md) for configuration best practices
-- Review [API documentation](../api/) for usage details
+- Review [API documentation](../../api/index.md) for usage details
 - Submit issues to the [GitHub repository](https://github.com/nephoran/nephoran-intent-operator/issues)

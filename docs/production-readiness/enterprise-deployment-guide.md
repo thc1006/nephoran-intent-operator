@@ -810,6 +810,6 @@ This enterprise deployment guide provides the foundation for production-ready de
 
 - [Operations Handbook](../operations/operations-handbook.md)
 - [Security Hardening Guide](../security/hardening-guide.md)
-- [Monitoring Runbooks](../runbooks/monitoring-operations.md)
+- [Monitoring Runbooks](../runbooks/monitoring-alerting-runbook.md)
 - [Disaster Recovery Procedures](../runbooks/disaster-recovery.md)
 - [Performance Benchmarking](../benchmarks/comprehensive-performance-analysis.md)

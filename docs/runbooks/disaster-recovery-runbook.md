@@ -1177,7 +1177,7 @@ validate_recovery
 ## Related Documentation
 
 - [Master Operational Runbook](./operational-runbook-master.md) - Daily operations
-- [Incident Response Runbook](./incident-response-runbook.md) - Incident procedures
+- [Incident Response Runbook](./incident-response.md) - Incident procedures
 - [Security Operations Runbook](./security-operations-runbook.md) - Security procedures
 - [Backup Recovery Guide](../operations/BACKUP-RECOVERY.md) - Detailed backup procedures
 - [Business Continuity Plan](../enterprise/business-continuity-disaster-recovery.md) - BC/DR strategy

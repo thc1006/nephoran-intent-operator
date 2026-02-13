@@ -291,5 +291,5 @@ The processor can be extended to handle additional VES event domains:
 
 - [Intent Schema](../contracts/intent.schema.json)
 - [FCAPS VES Examples](../contracts/fcaps.ves.examples.json)
-- [Intent Ingest Service](../../cmd/intent-ingest/README.md)
-- [Porch Publisher](../../cmd/porch-publisher/README.md)
+- [Intent Ingest Service](../../cmd/intent-ingest)
+- [Porch Publisher](../../cmd/porch-publisher)

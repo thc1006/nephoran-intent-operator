@@ -713,7 +713,7 @@ This enterprise security compliance framework demonstrates the Nephoran Intent O
 
 ## References
 
-- [Security Implementation Summary](../security/implementation-summary.md)
+- [Security Implementation Summary](../security/security-implementation-summary.md)
 - [Security Hardening Guide](../security/hardening-guide.md)
 - [Security Incident Response Runbook](../runbooks/security-incident-response.md)
 - [Production Operations Runbook](../runbooks/production-operations-runbook.md)

@@ -290,7 +290,7 @@ The documentation is licensed under the [Apache License 2.0](../../LICENSE), sam
 ## Maintainers
 
 - Documentation Lead: [documentation@nephoran.io](mailto:documentation@nephoran.io)
-- Technical Writers: See [CONTRIBUTORS.md](../../CONTRIBUTORS.md)
+- Technical Writers: See [CONTRIBUTING.md](../../CONTRIBUTING.md)
 
 ---
 
