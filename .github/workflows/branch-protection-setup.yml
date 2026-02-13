@@ -83,7 +83,7 @@ jobs:
               policies='{
                 "required_status_checks": {
                   "strict": true,
-                  "contexts": ["build", "test"]
+                  "contexts": ["CI Status"]
                 },
                 "enforce_admins": false,
                 "required_pull_request_reviews": {
@@ -103,7 +103,7 @@ jobs:
               policies='{
                 "required_status_checks": {
                   "strict": true,
-                  "contexts": ["build", "test", "security-scan", "quality-check"]
+                  "contexts": ["CI Status"]
                 },
                 "enforce_admins": false,
                 "required_pull_request_reviews": {
@@ -126,7 +126,7 @@ jobs:
               policies='{
                 "required_status_checks": {
                   "strict": true,
-                  "contexts": ["build", "test", "security-scan", "quality-check", "compliance-check", "performance-test"]
+                  "contexts": ["CI Status"]
                 },
                 "enforce_admins": true,
                 "required_pull_request_reviews": {
@@ -153,7 +153,7 @@ jobs:
               policies='{
                 "required_status_checks": {
                   "strict": true,
-                  "contexts": ["build", "test", "security-scan", "quality-check", "compliance-check", "performance-test", "vulnerability-scan", "license-check"]
+                  "contexts": ["CI Status"]
                 },
                 "enforce_admins": true,
                 "required_pull_request_reviews": {
@@ -180,7 +180,7 @@ jobs:
               policies='{
                 "required_status_checks": {
                   "strict": true,
-                  "contexts": ["build", "test", "security-scan", "quality-check", "compliance-check", "performance-test", "vulnerability-scan", "license-check", "oran-compliance", "telecom-security", "penetration-test"]
+                  "contexts": ["CI Status"]
                 },
                 "enforce_admins": true,
                 "required_pull_request_reviews": {
