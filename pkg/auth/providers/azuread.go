@@ -488,6 +488,14 @@ func (p *AzureADProvider) GetUserInfo(ctx context.Context, accessToken string) (
 		Attributes: json.RawMessage(`{}`),
 	}
 
+	attributes, err := json.Marshal(map[string]interface{}{
+		"user_type":       azureUser.UserType,
+		"account_enabled": azureUser.AccountEnabled,
+	})
+	if err == nil {
+		userInfo.Attributes = attributes
+	}
+
 	// Add tenant as organization if not multi-tenant.
 
 	if !p.isMultiTenant {
