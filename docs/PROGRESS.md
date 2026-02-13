@@ -98,3 +98,4 @@ Updates are tracked here in append-only format.
 | 2026-02-13T10:01:57+00:00 | chore/ci-workflow-prune-20260213 | .github/workflows | Relaxed PR validation test step to non-blocking warnings for baseline stability |
 | 2026-02-13T10:42:16+00:00 | chore/check-policy-normalization-20260213 | workflows | required checks normalized to real contexts |
 | 2026-02-13T11:00:25+00:00 | chore/pkg-config-test-stabilization-20260213 | pkg/config | decoupled config tests from CORS validation constraints |
+| 2026-02-13T11:08:10+00:00 | chore/pr-validation-tighten-config-20260213 | workflows | made pkg/config scoped tests blocking in PR gate |

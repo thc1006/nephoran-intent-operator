@@ -38,9 +38,10 @@ jobs:
 
       - name: Run scoped tests
         run: |
-          go test -short -timeout=2m ./pkg/config/... || echo "⚠️ Config tests failed (non-blocking)"
-          go test -short -timeout=2m ./pkg/auth/... || echo "⚠️ Auth tests failed (non-blocking)"
-          go test -short -timeout=2m ./internal/security/... || echo "⚠️ Security tests failed (non-blocking)"
+          NPROC="$(nproc)"
+          go test -short -timeout=2m -p "$NPROC" ./pkg/config/...
+          go test -short -timeout=2m -p "$NPROC" ./pkg/auth/... || echo "⚠️ Auth tests failed (non-blocking)"
+          go test -short -timeout=2m -p "$NPROC" ./internal/security/... || echo "⚠️ Security tests failed (non-blocking)"
 
   ci-status:
     name: CI Status
