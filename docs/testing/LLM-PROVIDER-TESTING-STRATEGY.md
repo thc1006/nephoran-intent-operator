@@ -174,7 +174,7 @@ The integration tests verify the complete handoff between services:
 
 ## 🚀 CI/CD Integration
 
-### GitHub Workflow (`.github/workflows/llm-provider-ci.yml`)
+### GitHub Workflows (`.github/workflows/ci-production.yml`, `.github/workflows/pr-validation.yml`)
 
 **Ubuntu-Only Focus**: No cross-platform testing overhead
 
@@ -314,7 +314,8 @@ Comprehensive test runner for local development:
 - `Makefile`: Build system and targets
 - `docs/contracts/intent.schema.json`: Schema definition
 - `internal/ingest/provider.go`: Provider implementations
-- `.github/workflows/llm-provider-ci.yml`: CI pipeline
+- `.github/workflows/ci-production.yml`: main/integration CI pipeline
+- `.github/workflows/pr-validation.yml`: fast PR validation pipeline
 - `scripts/test-llm-pipeline.sh`: Test runner
 
 ### Documentation

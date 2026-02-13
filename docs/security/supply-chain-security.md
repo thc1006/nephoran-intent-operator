@@ -112,7 +112,7 @@ Our CI pipeline implements multiple security checkpoints:
 
 ```bash
 # Run comprehensive supply chain security checks
-./scripts/verify-supply-chain.sh
+./scripts/security/verify-supply-chain.sh
 ```
 
 **Verification Steps**:
@@ -394,7 +394,7 @@ storage:
 go get github.com/example/package@v1.2.3
 
 # 2. Run security verification
-./scripts/verify-supply-chain.sh
+./scripts/security/verify-supply-chain.sh
 
 # 3. Update documentation
 # Document why this dependency is needed
@@ -521,7 +521,7 @@ golangci-lint --version
 See `.github/workflows/govulncheck.yml`
 
 **Supply Chain Verification Script**:
-See `scripts/verify-supply-chain.sh`
+See `scripts/security/verify-supply-chain.sh`
 
 **Tool Versions Management**:
 See `tools.go`

@@ -386,7 +386,8 @@ The optimization system provides automated reports:
 - `scripts/optimize-coverage.sh` - Coverage optimization
 
 ### Workflows
-- `.github/workflows/optimized-test-execution.yml` - Main optimization workflow
+- `.github/workflows/ci-production.yml` - Main optimization workflow
+- `.github/workflows/pr-validation.yml` - Fast PR optimization checks
 - `Makefile.ci` - Enhanced build and test targets
 
 ### Documentation

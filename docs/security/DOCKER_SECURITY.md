@@ -84,16 +84,16 @@ make validate-images              # Post-build security validation
 #### 2. Vulnerability Scanning
 ```bash
 # Comprehensive vulnerability scanning
-./scripts/vulnerability-scanner.sh
+./scripts/security/vulnerability-scanner.sh
 
 # Container-specific security
-./scripts/security-config-validator.sh
+./scripts/security/security-config-validator.sh
 ```
 
 #### 3. Security Audit
 ```bash
 # Complete security audit including containers
-./scripts/execute-security-audit.sh
+./scripts/security/execute-security-audit.sh
 ```
 
 ### Security Scanning Tools Integration
@@ -113,7 +113,7 @@ security_scan:
   - name: "Container Scanning"
     command: "docker scout cves --format json"
   - name: "Configuration Security"
-    command: "./scripts/security-config-validator.sh"
+    command: "./scripts/security/security-config-validator.sh"
 ```
 
 ## Security Hardening Measures
@@ -330,7 +330,7 @@ groups:
 #### Automated Compliance Checks
 ```bash
 # Run compliance validation
-./scripts/security-config-validator.sh
+./scripts/security/security-config-validator.sh
 
 # CIS benchmark validation
 ./scripts/cis-docker-benchmark.sh
@@ -346,7 +346,7 @@ groups:
 #### Automated Penetration Testing
 ```bash
 # Security penetration testing
-./scripts/security-penetration-test.sh
+./scripts/security/security-penetration-test.sh
 
 # Container escape testing
 ./scripts/container-escape-test.sh
@@ -360,7 +360,7 @@ groups:
 #### Regular Security Assessments
 ```bash
 # Weekly vulnerability scans
-./scripts/vulnerability-scanner.sh
+./scripts/security/vulnerability-scanner.sh
 
 # Dependency vulnerability check
 make security-scan
@@ -461,6 +461,6 @@ The Nephoran Intent Operator implements comprehensive Docker security measures f
 
 For security questions or incidents:
 1. Review security scan results: `make security-scan`
-2. Check compliance status: `./scripts/security-config-validator.sh`
-3. Run security audit: `./scripts/execute-security-audit.sh`
+2. Check compliance status: `./scripts/security/security-config-validator.sh`
+3. Run security audit: `./scripts/security/execute-security-audit.sh`
 4. Consult security procedures in incident response documentation

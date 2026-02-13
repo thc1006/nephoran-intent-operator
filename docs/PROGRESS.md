@@ -79,3 +79,17 @@ Updates are tracked here in append-only format.
 | 2026-02-12T02:02:46Z | chore/docs-phase3-restructure | docs | Phase-3: delete 36 orphans, move 91 md files to subdirs |
 | 2026-02-12T02:08:55Z | chore/docs-phase3-restructure | docs | Restore 7 wrongly-deleted docs; fix 5 broken refs in runbooks/README |
 | 2026-02-12T02:23:34Z | chore/docs-phase3-restructure | docs | Fix 21 broken cross-refs across README, CONTRIBUTING, QUICKSTART, index, runbooks |
+| 2026-02-12T03:13:20.003Z | main | security/docs | Phase4 remediation kickoff: align statuses and gating requirements doc-only |
+| 2026-02-12T04:24:32.306Z | main | ci/workflows | Disabled auto PR triggers for temp ci-status/test-bypass workflows; added repo map |
+| 2026-02-12T04:28:01.891Z | main | ci/workflows | Added CI allowlist doc/workflow, set branch protection setup to manual-only |
+| 2026-02-12T04:29:19.234Z | main | ci/workflows | Removed 21 legacy workflows per allowlist consolidation |
+| 2026-02-12T04:40:06.745Z | main | scripts | Added scripts/README with category map for consolidation |
+| 2026-02-12T04:39:22.773Z | main | docs/deployments | Added docs status tags and deployments release mapping README |
+| 2026-02-12T04:43:16.705Z | main | scripts/docs | Archived four legacy scripts; updated references |
+| 2026-02-12T04:55:38.362Z | main | scripts/docs/ci | Moved deploy/ops/security scripts into folders; archived docs to docs/archive; added CI placeholders and updated branch protection contexts |
+| 2026-02-13T07:17:02+00:00 | main | pkg/auth+providers | Stabilized target auth/provider failing tests with parallel runs |
+| 2026-02-13T07:36:07+00:00 | main | pkg/auth,pkg/testutil/auth | JWT mocks stabilized; auth+providers suites green with parallel go test |
+| 2026-02-13T08:23:01+00:00 | main | pkg/auth | Unskipped middleware auth/RBAC tests; converted to real managers; auth suites green |
+| 2026-02-13T08:39:50+00:00 | main | docs,scripts,deployments | Path references aligned with reorganized scripts/workflows; parallel verification passed |
+| 2026-02-13T08:57:50+00:00 | feat/auth-structure-cleanup-20260213 | release-flow | Scoped commit pushed and PR opened to integrate/mvp (#303) |
+| 2026-02-13T09:05:02+00:00 | feat/auth-structure-cleanup-20260213 | merge/conflicts | Resolved integrate/mvp conflicts for PR #303 and pushed merge commit |

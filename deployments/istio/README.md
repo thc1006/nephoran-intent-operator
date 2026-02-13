@@ -23,7 +23,7 @@ Deploy the complete Istio service mesh:
 
 ```bash
 # Run the deployment script
-./scripts/deploy-istio-mesh.sh
+./scripts/deploy/deploy-istio-mesh.sh
 
 # Verify deployment
 kubectl get pods -n istio-system

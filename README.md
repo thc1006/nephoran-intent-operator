@@ -28,6 +28,14 @@
 
 The **Nephoran Intent Operator** is a proof-of-concept cloud-native platform that demonstrates the potential of intent-driven telecommunications orchestration. This MVP showcases how natural language intents can be translated into structured network function configurations through AI-powered processing, providing a foundation for future production-ready telecommunications automation.
 
+### 📂 Repository Map (quick orientation)
+- **Core code**: `cmd/`, `api/`, `controllers/`, `pkg/`, `internal/`
+- **Deployable artifacts**: `deployments/`, `kpt-packages/`, `infrastructure/`
+- **Ops & tooling**: `scripts/`, `tools/`, `ci/`, `monitoring/`, `metrics/`
+- **Docs**: `docs/` (ADR, API, runbooks, security, prompts), `CLAUDE.md`
+- **Examples & demo**: `examples/`, `demo/`, `planner/`
+- **Archived / reference**: `archive/`, `knowledge_base/`, `security-reports/`
+
 **🌟 Key Value Proposition (MVP Scope):**
 - **Natural Language Interface**: Translate network intents into structured configurations using AI
 - **Kubernetes-Native**: CRD-based controller for NetworkIntent resource management
@@ -575,7 +583,7 @@ See: **[Complete Prometheus Metrics Documentation](PROMETHEUS_METRICS.md)**
   - **[OAuth2 Security Guide](docs/security/OAuth2-Security-Guide.md)**: Comprehensive OAuth2 implementation
   - **[CORS Configuration](docs/security/CORS-Security-Configuration-Guide.md)**: CORS security setup
 - **[Operational Runbooks](docs/runbooks/README.md)**: Production operations and incident response
-- **[Performance Optimization](docs/reports/performance-optimization.md)**: Tuning and scaling guides
+- **[Performance Optimization](docs/archive/reports/performance-optimization.md)**: Tuning and scaling guides
 - **[Multi-Region Deployment](deployments/multi-region/README.md)**: Global architecture patterns
 
 ### 🎯 Tutorials & Examples

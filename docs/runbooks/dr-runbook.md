@@ -281,8 +281,8 @@ kubectl get events --sort-by=.metadata.creationTimestamp -n nephoran-system | ta
 1. **Assess Situation**
    ```bash
    # Quick health check
-   ./scripts/failover-to-secondary.sh --check-primary
-   ./scripts/failover-to-secondary.sh --check-secondary
+   ./scripts/ops/failover-to-secondary.sh --check-primary
+   ./scripts/ops/failover-to-secondary.sh --check-secondary
    ```
 
 2. **Notify Stakeholders**
@@ -302,7 +302,7 @@ kubectl get events --sort-by=.metadata.creationTimestamp -n nephoran-system | ta
 **Step 1: Initiate Failover (0-2 minutes)**
 ```bash
 # Execute automatic failover
-./scripts/failover-to-secondary.sh --execute
+./scripts/ops/failover-to-secondary.sh --execute
 
 # Monitor failover progress
 tail -f /tmp/failover-$(date +%Y%m%d)*.log
@@ -874,9 +874,9 @@ velero restore describe RESTORE_NAME
 velero restore create emergency-restore --from-backup BACKUP_NAME
 
 # Failover operations
-./scripts/failover-to-secondary.sh --check-primary
-./scripts/failover-to-secondary.sh --check-secondary
-./scripts/failover-to-secondary.sh --execute
+./scripts/ops/failover-to-secondary.sh --check-primary
+./scripts/ops/failover-to-secondary.sh --check-secondary
+./scripts/ops/failover-to-secondary.sh --execute
 
 # Testing
 ./scripts/test-disaster-recovery.sh --quick

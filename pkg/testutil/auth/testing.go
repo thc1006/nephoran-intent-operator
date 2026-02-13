@@ -735,7 +735,16 @@ func (tc *TestContext) AddCleanup(fn func()) {
 
 // SetupJWTManager creates a JWT manager for testing
 func (tc *TestContext) SetupJWTManager() *JWTManagerMock {
-	return NewJWTManagerMock()
+	manager := NewJWTManagerMock()
+	manager.privateKey = tc.PrivateKey
+	manager.publicKey = tc.PublicKey
+	manager.keyID = tc.KeyID
+	manager.issuer = "test-issuer"
+	manager.defaultTTL = time.Hour
+	manager.refreshTTL = 24 * time.Hour
+	manager.requireSecure = false
+
+	return manager
 }
 
 // SetupSessionManager creates a session manager for testing
