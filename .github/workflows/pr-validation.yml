@@ -40,6 +40,7 @@ jobs:
         run: |
           NPROC="$(nproc)"
           go test -short -timeout=2m -p "$NPROC" ./pkg/config/...
+          go test -short -timeout=2m -p "$NPROC" ./pkg/auth/providers -run 'TestGitHubProvider_ExchangeCodeForToken|TestGoogleProvider_ExchangeCodeForToken'
           go test -short -timeout=2m -p "$NPROC" ./pkg/auth/... || echo "⚠️ Auth tests failed (non-blocking)"
           go test -short -timeout=2m -p "$NPROC" ./internal/security/... || echo "⚠️ Security tests failed (non-blocking)"
 
