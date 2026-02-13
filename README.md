@@ -34,7 +34,7 @@ The **Nephoran Intent Operator** is a proof-of-concept cloud-native platform tha
 - **Ops & tooling**: `scripts/`, `tools/`, `ci/`, `monitoring/`, `metrics/`
 - **Docs**: `docs/` (ADR, API, runbooks, security, prompts), `CLAUDE.md`
 - **Examples & demo**: `examples/`, `demo/`, `planner/`
-- **Archived / reference**: `archive/`, `knowledge_base/`, `security-reports/`
+- **Archived / reference**: `archive/`, `knowledge_base/`, `docs/security/reports/`
 
 **🌟 Key Value Proposition (MVP Scope):**
 - **Natural Language Interface**: Translate network intents into structured configurations using AI

@@ -10,7 +10,7 @@ if [[ ! -f "${ALLOWLIST_FILE}" ]]; then
   exit 1
 fi
 
-current_entries="$(git -C "${ROOT_DIR}" ls-tree --name-only HEAD | sort)"
+current_entries="$(git -C "${ROOT_DIR}" ls-files | awk -F'/' '{print $1}' | sort -u)"
 allowed_entries="$(grep -vE '^\s*#|^\s*$' "${ALLOWLIST_FILE}" | sort)"
 
 extra_entries="$(comm -23 <(printf '%s\n' "${current_entries}") <(printf '%s\n' "${allowed_entries}"))"

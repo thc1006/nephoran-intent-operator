@@ -60,7 +60,6 @@ pyproject.toml
 rag-python
 scripts
 security
-security-reports
 test
 testdata
 tests
