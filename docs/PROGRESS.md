@@ -97,3 +97,4 @@ Updates are tracked here in append-only format.
 | 2026-02-13T09:50:04+00:00 | chore/ci-workflow-prune-20260213 | .github/workflows | Pruned deprecated workflows; added pr-validation and CI Status-aligned policies |
 | 2026-02-13T10:01:57+00:00 | chore/ci-workflow-prune-20260213 | .github/workflows | Relaxed PR validation test step to non-blocking warnings for baseline stability |
 | 2026-02-13T10:42:16+00:00 | chore/check-policy-normalization-20260213 | workflows | required checks normalized to real contexts |
+| 2026-02-13T11:00:25+00:00 | chore/pkg-config-test-stabilization-20260213 | pkg/config | decoupled config tests from CORS validation constraints |
