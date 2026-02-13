@@ -101,3 +101,4 @@ Updates are tracked here in append-only format.
 | 2026-02-13T11:08:10+00:00 | chore/pr-validation-tighten-config-20260213 | workflows | made pkg/config scoped tests blocking in PR gate |
 | 2026-02-13T11:19:07+00:00 | chore/pr-validation-auth-smoke-gate-20260213 | workflows | added blocking auth provider smoke tests to PR gate |
 | 2026-02-13T11:47:41+00:00 | chore/auth-fullsuite-stabilization-p1-20260213 | pkg/auth | phase1 stabilized auth suite, providers, and logger nil-safety |
+| 2026-02-13T12:16:38+00:00 | chore/security-suite-stabilization-p1-20260213 | internal/security | fixed JSON limit test and made security scoped tests blocking |
