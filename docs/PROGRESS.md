@@ -75,3 +75,15 @@ Updates are tracked here in append-only format.
 | 2025-09-06T15:07:58Z | fix/ci-compilation-errors | dependency-management | Resolved Kubernetes dependency conflicts for Nephio R5/O-RAN L Release |
 | 2026-02-12T01:30:10Z | main | scripts/docs/events | Phase-2 cleanup: removed 232 obsolete files, 51k lines |
 | 2026-02-12T01:38:05Z | main | scripts | Remove 3 orphaned validate scripts (377 lines) |
+| 2026-02-12T03:13:20.003Z | main | security/docs | Phase4 remediation kickoff: align statuses and gating requirements doc-only |
+| 2026-02-12T04:24:32.306Z | main | ci/workflows | Disabled auto PR triggers for temp ci-status/test-bypass workflows; added repo map |
+| 2026-02-12T04:28:01.891Z | main | ci/workflows | Added CI allowlist doc/workflow, set branch protection setup to manual-only |
+| 2026-02-12T04:29:19.234Z | main | ci/workflows | Removed 21 legacy workflows per allowlist consolidation |
+| 2026-02-12T04:40:06.745Z | main | scripts | Added scripts/README with category map for consolidation |
+| 2026-02-12T04:39:22.773Z | main | docs/deployments | Added docs status tags and deployments release mapping README |
+| 2026-02-12T04:43:16.705Z | main | scripts/docs | Archived four legacy scripts; updated references |
+| 2026-02-12T04:55:38.362Z | main | scripts/docs/ci | Moved deploy/ops/security scripts into folders; archived docs to docs/archive; added CI placeholders and updated branch protection contexts |
+| 2026-02-13T07:17:02+00:00 | main | pkg/auth+providers | Stabilized target auth/provider failing tests with parallel runs |
+| 2026-02-13T07:36:07+00:00 | main | pkg/auth,pkg/testutil/auth | JWT mocks stabilized; auth+providers suites green with parallel go test |
+| 2026-02-13T08:23:01+00:00 | main | pkg/auth | Unskipped middleware auth/RBAC tests; converted to real managers; auth suites green |
+| 2026-02-13T08:39:50+00:00 | main | docs,scripts,deployments | Path references aligned with reorganized scripts/workflows; parallel verification passed |

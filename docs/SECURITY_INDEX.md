@@ -104,12 +104,13 @@ The migration from `internal/patch` to `internal/patchgen` introduced comprehens
 - [x] Comprehensive audit system
 - [x] Compliance framework
 
-### Phase 4: Documentation & Testing (Completed)
+### Phase 4: Documentation & Testing (In Progress — pending runtime evidence)
 - [x] Security architecture documentation
 - [x] Migration guide
 - [x] Best practices guide
 - [x] API security guide
 - [x] Security testing suite
+- [ ] Runtime evidence: Falco->SIEM alerts, weekly vulnerability scan reports, DR drill artifacts
 
 ## Compliance Status
 

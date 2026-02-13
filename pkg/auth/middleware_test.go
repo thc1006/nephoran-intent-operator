@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	
+
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 	authtestutil "github.com/thc1006/nephoran-intent-operator/pkg/testutil/auth"
 )
 
@@ -21,33 +21,74 @@ func TestAuthMiddleware(t *testing.T) {
 	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
-	jwtManager := tc.SetupJWTManager()
-	sessionManager := tc.SetupSessionManager()
+	jwtManager, err := auth.NewJWTManager(context.Background(), &auth.JWTConfig{
+		Issuer:               "test-issuer",
+		KeyRotationPeriod:    24 * time.Hour,
+		DefaultTTL:           time.Hour,
+		RefreshTTL:           24 * time.Hour,
+		RequireSecureCookies: false,
+		CookiePath:           "/",
+		Algorithm:            "RS256",
+	}, tc.TokenStore, tc.Blacklist, tc.SlogLogger)
+	require.NoError(t, err)
+
+	sessionManager := auth.NewSessionManager(&auth.SessionConfig{
+		SessionTimeout:   24 * time.Hour,
+		RefreshThreshold: 15 * time.Minute,
+		MaxSessions:      10,
+		SecureCookies:    false,
+		SameSiteCookies:  "Lax",
+		CookiePath:       "/",
+		EnableCSRF:       false,
+		StateTimeout:     10 * time.Minute,
+		CleanupInterval:  time.Hour,
+	}, jwtManager, nil, tc.SlogLogger)
 	uf := authtestutil.NewUserFactory()
 
-	// Create test user and tokens
 	user := uf.CreateBasicUser()
-	validToken, err := jwtManager.GenerateToken(user, nil)
+	authUser := &providers.UserInfo{
+		Subject:  user.Subject,
+		Username: user.Username,
+		Email:    user.Email,
+		Name:     user.Name,
+		Roles:    user.Roles,
+		Provider: user.Provider,
+	}
+
+	validToken, err := jwtManager.GenerateToken(authUser, nil)
+	require.NoError(t, err)
+	_, refreshToken, err := jwtManager.GenerateTokenPair(context.Background(), authUser, "middleware-test-session")
 	require.NoError(t, err)
 
-	validSession, err := sessionManager.CreateSession(context.Background(), user, nil)
-	require.NoError(t, err)
-
-	// Create middleware - we'll use nil for now and implement handlers directly for testing
-	// middleware := auth.NewAuthMiddleware(&auth.AuthMiddlewareConfig{
-	//	JWTManager:     jwtManager,
-	//	SessionManager: sessionManager,
-	//	RequireAuth:    true,
-	//	AllowedPaths:   []string{"/health", "/public"},
-	//	HeaderName:     "Authorization",
-	//	CookieName:     "session",
-	//	ContextKey:     "user",
-	// })
-	
-	// For now, create a simple test handler
-	middleware := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
+	validSession, err := sessionManager.CreateSession(context.Background(), &auth.SessionData{
+		UserID:      user.Subject,
+		Username:    user.Username,
+		Email:       user.Email,
+		DisplayName: user.Name,
+		Provider:    user.Provider,
+		Roles:       user.Roles,
 	})
+	require.NoError(t, err)
+
+	middleware := auth.NewAuthMiddleware(&auth.AuthMiddlewareConfig{
+		JWTManager:     jwtManager,
+		SessionManager: sessionManager,
+		RequireAuth:    true,
+		AllowedPaths:   []string{"/health", "/public"},
+		HeaderName:     "Authorization",
+		CookieName:     "nephoran_session",
+		ContextKey:     "user",
+	})
+	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		response := map[string]string{"message": "success"}
+		if authCtx := auth.GetAuthContext(r.Context()); authCtx != nil {
+			response["user_id"] = authCtx.UserID
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(response)
+	})
+	handler := middleware.Middleware(testHandler)
 
 	tests := []struct {
 		name          string
@@ -71,7 +112,7 @@ func TestAuthMiddleware(t *testing.T) {
 			setupRequest: func() *http.Request {
 				req := httptest.NewRequest("GET", "/protected", nil)
 				req.AddCookie(&http.Cookie{
-					Name:  "session",
+					Name:  "nephoran_session",
 					Value: validSession.ID,
 				})
 				return req
@@ -86,12 +127,6 @@ func TestAuthMiddleware(t *testing.T) {
 			},
 			expectStatus: http.StatusUnauthorized,
 			expectUser:   false,
-			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
-				var response map[string]string
-				err := json.Unmarshal(w.Body.Bytes(), &response)
-				assert.NoError(t, err)
-				assert.Equal(t, "Missing authentication", response["error"])
-			},
 		},
 		{
 			name: "Invalid JWT token",
@@ -130,16 +165,10 @@ func TestAuthMiddleware(t *testing.T) {
 			expectUser:   false,
 		},
 		{
-			name: "Expired JWT token",
+			name: "Refresh JWT token not allowed for auth",
 			setupRequest: func() *http.Request {
-				// Create expired token
-				expiredClaims := jwt.MapClaims{
-					"exp": time.Now().Add(-time.Hour).Unix(), // Expired 1 hour ago
-				}
-				expiredToken := tc.CreateTestToken(expiredClaims)
-
 				req := httptest.NewRequest("GET", "/protected", nil)
-				req.Header.Set("Authorization", "Bearer "+expiredToken)
+				req.Header.Set("Authorization", "Bearer "+refreshToken)
 				return req
 			},
 			expectStatus: http.StatusUnauthorized,
@@ -147,20 +176,15 @@ func TestAuthMiddleware(t *testing.T) {
 		},
 	}
 
-	// Test handler is defined but not used in this test - middleware handles requests directly
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := tt.setupRequest()
 			w := httptest.NewRecorder()
-
-			// Apply middleware - using simple handler for testing
-			middleware.ServeHTTP(w, req)
+			handler.ServeHTTP(w, req)
 
 			assert.Equal(t, tt.expectStatus, w.Code)
 
 			if tt.expectUser && tt.expectStatus == http.StatusOK {
-				// Verify user context was set
 				var response map[string]string
 				err := json.Unmarshal(w.Body.Bytes(), &response)
 				assert.NoError(t, err)
@@ -179,85 +203,26 @@ func TestRBACMiddleware(t *testing.T) {
 	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
-	rbacManager := tc.SetupRBACManager()
-	rf := authtestutil.NewRoleFactory()
-	pf := authtestutil.NewPermissionFactory()
-
-	// Setup RBAC data
+	rbacManager := auth.NewRBACManager(nil, tc.SlogLogger)
 	ctx := context.Background()
+	require.NoError(t, rbacManager.GrantRoleToUser(ctx, "reader-user", "read-only"))
+	require.NoError(t, rbacManager.GrantRoleToUser(ctx, "writer-user", "intent-operator"))
+	require.NoError(t, rbacManager.GrantRoleToUser(ctx, "admin-user", "system-admin"))
 
-	// Create permissions
-	readPerm := pf.CreatePermission("api", "read", "resource")
-	createdReadPerm, err := rbacManager.CreatePermission(ctx, readPerm)
-	require.NoError(t, err)
-
-	writePerm := pf.CreatePermission("api", "write", "resource")
-	createdWritePerm, err := rbacManager.CreatePermission(ctx, writePerm)
-	require.NoError(t, err)
-
-	adminPerm := pf.CreatePermission("admin", "*", "resource")
-	createdAdminPerm, err := rbacManager.CreatePermission(ctx, adminPerm)
-	require.NoError(t, err)
-
-	// Create roles
-	createdReadPermTyped := createdReadPerm.(*authtestutil.TestPermission)
-	readerRole := rf.CreateRoleWithPermissions("reader", []string{createdReadPermTyped.ID})
-	// Name already set in CreateRoleWithPermissions
-	createdReaderRole, err := rbacManager.CreateRole(ctx, readerRole)
-	require.NoError(t, err)
-
-	createdWritePermTyped := createdWritePerm.(*authtestutil.TestPermission)
-	writerRole := rf.CreateRoleWithPermissions("writer", []string{createdReadPermTyped.ID, createdWritePermTyped.ID})
-	// Name already set in CreateRoleWithPermissions
-	createdWriterRole, err := rbacManager.CreateRole(ctx, writerRole)
-	require.NoError(t, err)
-
-	createdAdminPermTyped := createdAdminPerm.(*authtestutil.TestPermission)
-	adminRole := rf.CreateRoleWithPermissions("admin", []string{createdAdminPermTyped.ID})
-	// Name already set in CreateRoleWithPermissions
-	createdAdminRole, err := rbacManager.CreateRole(ctx, adminRole)
-	require.NoError(t, err)
-
-	// Assign roles to users
-	createdReaderRoleTyped := createdReaderRole.(*authtestutil.TestRole)
-	err = rbacManager.AssignRoleToUser(ctx, "reader-user", createdReaderRoleTyped.ID)
-	require.NoError(t, err)
-
-	createdWriterRoleTyped := createdWriterRole.(*authtestutil.TestRole)
-	err = rbacManager.AssignRoleToUser(ctx, "writer-user", createdWriterRoleTyped.ID)
-	require.NoError(t, err)
-
-	createdAdminRoleTyped := createdAdminRole.(*authtestutil.TestRole)
-	err = rbacManager.AssignRoleToUser(ctx, "admin-user", createdAdminRoleTyped.ID)
-	require.NoError(t, err)
-
-	// Create RBAC middleware - using a simple test handler for now
-	// middleware := auth.NewRBACMiddleware(&auth.RBACMiddlewareConfig{
-	//	RBACManager: rbacManager,
-	
-	// For testing, create a simple handler that simulates RBAC behavior
-	middleware := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-	
-	_ = middleware // Use the variable to avoid unused variable error
-	
-	// Original code with type mismatch:
-	/*
 	middleware := auth.NewRBACMiddleware(&auth.RBACMiddlewareConfig{
 		RBACManager: rbacManager,
 		ResourceExtractor: func(r *http.Request) string {
 			if strings.HasPrefix(r.URL.Path, "/admin") {
-				return "admin"
+				return "system"
 			}
-			return "api"
+			return "intent"
 		},
 		ActionExtractor: func(r *http.Request) string {
 			switch r.Method {
 			case http.MethodGet:
 				return "read"
 			case http.MethodPost, http.MethodPut, http.MethodPatch:
-				return "write"
+				return "create"
 			case http.MethodDelete:
 				return "delete"
 			default:
@@ -270,8 +235,18 @@ func TestRBACMiddleware(t *testing.T) {
 			}
 			return ""
 		},
+		OnAccessDenied: func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusForbidden)
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"error": "Insufficient permissions",
+			})
+		},
 	})
-	*/
+	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	handler := middleware.Middleware(testHandler)
 
 	tests := []struct {
 		name          string
@@ -349,14 +324,12 @@ func TestRBACMiddleware(t *testing.T) {
 		},
 	}
 
-	// Test handler logic is handled by the simple middleware for testing
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := tt.setupRequest()
 			w := httptest.NewRecorder()
 
-			middleware.ServeHTTP(w, req)
+			handler.ServeHTTP(w, req)
 
 			assert.Equal(t, tt.expectStatus, w.Code)
 
@@ -702,37 +675,37 @@ func TestChainMiddlewares(t *testing.T) {
 	// TODO: Fix type compatibility - mock types don't match expected concrete types
 	// Create middleware chain - temporarily disabled due to type mismatch
 	/*
-	authMiddleware := auth.NewAuthMiddleware(&auth.AuthMiddlewareConfig{
-		JWTManager:  jwtManager, // Type mismatch: *JWTManagerMock vs *JWTManager
-		RequireAuth: true,
-		HeaderName:  "Authorization",
-		ContextKey:  "user",
-	})
+		authMiddleware := auth.NewAuthMiddleware(&auth.AuthMiddlewareConfig{
+			JWTManager:  jwtManager, // Type mismatch: *JWTManagerMock vs *JWTManager
+			RequireAuth: true,
+			HeaderName:  "Authorization",
+			ContextKey:  "user",
+		})
 
-	rbacMiddleware := auth.NewRBACMiddleware(&auth.RBACMiddlewareConfig{
-		RBACManager:       rbacManager, // Type mismatch: *RBACManagerMock vs *RBACManager
-		ResourceExtractor: func(r *http.Request) string { return "api" },
-		ActionExtractor:   func(r *http.Request) string { return "read" },
-		UserIDExtractor: func(r *http.Request) string {
-			if userCtx := r.Context().Value("user"); userCtx != nil {
-				return userCtx.(*auth.UserContext).UserID
-			}
-			return ""
-		},
-	})
+		rbacMiddleware := auth.NewRBACMiddleware(&auth.RBACMiddlewareConfig{
+			RBACManager:       rbacManager, // Type mismatch: *RBACManagerMock vs *RBACManager
+			ResourceExtractor: func(r *http.Request) string { return "api" },
+			ActionExtractor:   func(r *http.Request) string { return "read" },
+			UserIDExtractor: func(r *http.Request) string {
+				if userCtx := r.Context().Value("user"); userCtx != nil {
+					return userCtx.(*auth.UserContext).UserID
+				}
+				return ""
+			},
+		})
 	*/
 
 	/*
-	corsMiddleware := auth.NewCORSMiddleware(&auth.CORSConfig{
-		AllowedOrigins: []string{"https://example.com"},
-		AllowedMethods: []string{"GET", "POST"},
-		AllowedHeaders: []string{"Content-Type", "Authorization"},
-	})
+		corsMiddleware := auth.NewCORSMiddleware(&auth.CORSConfig{
+			AllowedOrigins: []string{"https://example.com"},
+			AllowedMethods: []string{"GET", "POST"},
+			AllowedHeaders: []string{"Content-Type", "Authorization"},
+		})
 
-	securityMiddleware := auth.NewSecurityHeadersMiddleware(&auth.SecurityHeadersConfig{
-		XFrameOptions:       "DENY",
-		XContentTypeOptions: "nosniff",
-	})
+		securityMiddleware := auth.NewSecurityHeadersMiddleware(&auth.SecurityHeadersConfig{
+			XFrameOptions:       "DENY",
+			XContentTypeOptions: "nosniff",
+		})
 	*/
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -746,12 +719,12 @@ func TestChainMiddlewares(t *testing.T) {
 
 	// Chain middlewares - temporarily disabled due to type issues
 	/*
-	handler := ChainMiddlewares(testHandler,
-		securityMiddleware.Middleware,
-		corsMiddleware.Middleware,
-		authMiddleware.Middleware,
-		rbacMiddleware.Middleware,
-	)
+		handler := ChainMiddlewares(testHandler,
+			securityMiddleware.Middleware,
+			corsMiddleware.Middleware,
+			authMiddleware.Middleware,
+			rbacMiddleware.Middleware,
+		)
 	*/
 	// Use simple handler for now
 	handler := testHandler
@@ -839,12 +812,12 @@ func BenchmarkAuthMiddleware(b *testing.B) {
 
 	// TODO: Fix type compatibility issue - temporarily commented out
 	/*
-	middleware := auth.NewAuthMiddleware(&auth.AuthMiddlewareConfig{
-		JWTManager:  jwtManager, // Type mismatch: *JWTManagerMock vs *JWTManager
-		RequireAuth: true,
-		HeaderName:  "Authorization",
-		ContextKey:  "user",
-	})
+		middleware := auth.NewAuthMiddleware(&auth.AuthMiddlewareConfig{
+			JWTManager:  jwtManager, // Type mismatch: *JWTManagerMock vs *JWTManager
+			RequireAuth: true,
+			HeaderName:  "Authorization",
+			ContextKey:  "user",
+		})
 	*/
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -872,12 +845,12 @@ func BenchmarkRBACMiddleware(b *testing.B) {
 
 	// TODO: Fix type compatibility issue - temporarily commented out
 	/*
-	middleware := auth.NewRBACMiddleware(&auth.RBACMiddlewareConfig{
-		RBACManager:       rbacManager, // Type mismatch: *RBACManagerMock vs *RBACManager
-		ResourceExtractor: func(r *http.Request) string { return "api" },
-		ActionExtractor:   func(r *http.Request) string { return "read" },
-		UserIDExtractor:   func(r *http.Request) string { return "test-user" },
-	})
+		middleware := auth.NewRBACMiddleware(&auth.RBACMiddlewareConfig{
+			RBACManager:       rbacManager, // Type mismatch: *RBACManagerMock vs *RBACManager
+			ResourceExtractor: func(r *http.Request) string { return "api" },
+			ActionExtractor:   func(r *http.Request) string { return "read" },
+			UserIDExtractor:   func(r *http.Request) string { return "test-user" },
+		})
 	*/
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -906,4 +879,3 @@ func ChainMiddlewares(handler http.Handler, middlewares ...func(http.Handler) ht
 	}
 	return handler
 }
-

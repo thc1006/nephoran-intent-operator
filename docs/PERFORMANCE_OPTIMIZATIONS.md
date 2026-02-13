@@ -132,7 +132,7 @@ go test -p 16 -parallel=16 -short -timeout=2m
 .\scripts\enable-build-cache.ps1
 
 # Linux/Mac
-./scripts/enable-build-cache.sh
+./scripts/deploy/enable-build-cache.sh
 ```
 
 2. **Use ultra-fast commands**:

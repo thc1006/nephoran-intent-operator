@@ -72,7 +72,7 @@ Instead of building everything at once:
 3. **.github/workflows/dev-fast-fixed.yml** - Fixed development workflow
 4. **build/go.build.mk** - Shared build configuration
 5. **scripts/optimize-build.sh** - Diagnostic and optimization script
-6. **scripts/fix-ci-timeout.sh** - Quick fix script
+6. **scripts/archive/fix-ci-timeout.sh** - Quick fix script
 
 ### Key Makefile Targets
 ```bash
@@ -109,7 +109,7 @@ make -f Makefile.optimized test
 bash scripts/optimize-build.sh
 
 # Apply quick CI fixes
-bash scripts/fix-ci-timeout.sh
+bash scripts/archive/fix-ci-timeout.sh
 ```
 
 ## Best Practices Going Forward

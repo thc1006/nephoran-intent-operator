@@ -109,7 +109,7 @@ The CI system automatically uses the resilient build system:
 
 - name: Build and push container image with smart infrastructure-aware strategy
   run: |
-    ./scripts/smart-docker-build.sh \
+    ./scripts/deploy/smart-docker-build.sh \
       "$SERVICE_NAME" \
       "$IMAGE_NAME" \
       "$BUILD_VERSION" \
@@ -121,10 +121,10 @@ The CI system automatically uses the resilient build system:
 
 ```bash
 # Basic usage with automatic strategy selection
-./scripts/smart-docker-build.sh conductor-loop nephoran/conductor-loop v1.0.0
+./scripts/deploy/smart-docker-build.sh conductor-loop nephoran/conductor-loop v1.0.0
 
 # Multi-platform build with push
-./scripts/smart-docker-build.sh \
+./scripts/deploy/smart-docker-build.sh \
   conductor-loop \
   ghcr.io/myorg/nephoran \
   v1.2.3 \
@@ -324,7 +324,7 @@ Enable detailed logging for troubleshooting:
 ```bash
 export DEBUG=1
 export BUILDKIT_PROGRESS=plain
-./scripts/smart-docker-build.sh conductor-loop test latest
+./scripts/deploy/smart-docker-build.sh conductor-loop test latest
 ```
 
 ## Future Enhancements

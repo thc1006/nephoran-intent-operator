@@ -298,11 +298,12 @@ We will implement a GitOps deployment model using Nephio R5 as the package orche
 - Advanced workflows
 - Performance optimization
 
-### Phase 4: Enterprise Scale (Planned)
+### Phase 4: Enterprise Scale (Executing - readiness gated)
 - Multi-region deployment
 - Advanced RBAC
 - Compliance automation
 - Disaster recovery
+- Readiness gate: multi-region ConfigSync/Porch proof with compliance automation, DR failover drill, SIEM/Falco evidence
 
 ## Technical Implementation Details
 

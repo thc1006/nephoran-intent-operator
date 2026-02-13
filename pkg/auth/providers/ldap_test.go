@@ -237,9 +237,9 @@ func TestLDAPProvider_MapGroupsToRoles(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// TODO: mapGroupsToRoles is not part of LDAPProvider interface
-			// roles := provider.mapGroupsToRoles(tt.groups)
-			roles := []string{} // placeholder for test
+			ldapClient, ok := provider.(*LDAPClient)
+			require.True(t, ok)
+			roles := ldapClient.mapGroupsToRoles(tt.groups)
 
 			// Sort both slices for comparison
 			assert.ElementsMatch(t, tt.expectedRoles, roles)
@@ -293,9 +293,9 @@ func TestLDAPProvider_ExtractGroupNameFromDN(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// TODO: extractGroupNameFromDN is not part of LDAPProvider interface
-			// result := provider.extractGroupNameFromDN(tt.dn)
-			result := "mockgroup" // placeholder for test
+			ldapClient, ok := provider.(*LDAPClient)
+			require.True(t, ok)
+			result := ldapClient.extractGroupNameFromDN(tt.dn)
 			assert.Equal(t, tt.expectedName, result)
 		})
 	}
@@ -347,9 +347,9 @@ func TestLDAPProvider_ContainsString(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// TODO: containsString is not part of LDAPProvider interface
-			// result := provider.containsString(tt.slice, tt.item)
-			result := false // placeholder for test
+			ldapClient, ok := provider.(*LDAPClient)
+			require.True(t, ok)
+			result := ldapClient.containsString(tt.slice, tt.item)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -569,9 +569,9 @@ func TestLDAPProvider_ComprehensiveConfiguration(t *testing.T) {
 				assert.NotNil(t, provider)
 
 				// Validate role mappings work correctly
-				// TODO: mapGroupsToRoles is not part of LDAPProvider interface
-				// roles := provider.mapGroupsToRoles([]string{"Enterprise Admins"})
-				roles := []string{"admin"} // placeholder for test
+				ldapClient, ok := provider.(*LDAPClient)
+				require.True(t, ok)
+				roles := ldapClient.mapGroupsToRoles([]string{"Enterprise Admins"})
 				assert.Contains(t, roles, "system-admin")
 				assert.Contains(t, roles, "admin")
 				assert.Contains(t, roles, "user") // default role
@@ -603,9 +603,9 @@ func TestLDAPProvider_ComprehensiveConfiguration(t *testing.T) {
 				assert.NotNil(t, provider)
 
 				// Validate role mappings
-				// TODO: mapGroupsToRoles is not part of LDAPProvider interface
-				// roles := provider.mapGroupsToRoles([]string{"developers", "ops"})
-				roles := []string{"developer", "operator"} // placeholder for test
+				ldapClient, ok := provider.(*LDAPClient)
+				require.True(t, ok)
+				roles := ldapClient.mapGroupsToRoles([]string{"developers", "ops"})
 				assert.Contains(t, roles, "developer")
 				assert.Contains(t, roles, "operator")
 				assert.Contains(t, roles, "user") // default role

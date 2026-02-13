@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 	authtestutil "github.com/thc1006/nephoran-intent-operator/pkg/testutil/auth"
 )
 
@@ -225,15 +224,10 @@ func TestJWTManager_GenerateToken(t *testing.T) {
 			var tokenStr string
 			var err error
 
-			userInfo, ok := tt.userInfo.(*providers.UserInfo)
-			if !ok && tt.userInfo != nil {
-				t.Fatal("userInfo must be *providers.UserInfo")
-			}
-
 			if tt.ttl != nil {
-				tokenStr, err = manager.GenerateTokenWithTTL(userInfo, tt.customClaims, *tt.ttl)
+				tokenStr, err = manager.GenerateTokenWithTTL(tt.userInfo, tt.customClaims, *tt.ttl)
 			} else {
-				tokenStr, err = manager.GenerateToken(userInfo, tt.customClaims)
+				tokenStr, err = manager.GenerateToken(tt.userInfo, tt.customClaims)
 			}
 
 			if tt.expectError {
@@ -677,13 +671,7 @@ func TestJWTManager_GenerateTokenPair(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Type assert userInfo to *providers.UserInfo
-			userInfo, ok := tt.userInfo.(*providers.UserInfo)
-			if !ok && tt.userInfo != nil {
-				t.Fatalf("userInfo must be *providers.UserInfo, got %T", tt.userInfo)
-			}
-			
-			accessToken, refreshToken, err := manager.GenerateTokenPair(userInfo, tt.customClaims)
+			accessToken, refreshToken, err := manager.GenerateTokenPair(tt.userInfo, tt.customClaims)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -894,7 +882,7 @@ func BenchmarkJWTManager_RefreshToken(b *testing.B) {
 	}
 }
 
-// Helper functions for testing  
+// Helper functions for testing
 func createJWTManagerForTest(t *testing.T) (*authtestutil.JWTManagerMock, *authtestutil.TestContext) {
 	tc := authtestutil.NewTestContext(t)
 	manager := tc.SetupJWTManager()

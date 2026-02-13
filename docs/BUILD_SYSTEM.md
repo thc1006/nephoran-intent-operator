@@ -72,10 +72,10 @@ The build system now includes multiple security validation layers:
 make security-scan
 
 # Individual scan types
-./scripts/vulnerability-scanner.sh           # Go vulnerability check
-./scripts/security-config-validator.sh       # Configuration security
-./scripts/security-penetration-test.sh       # Penetration testing
-./scripts/execute-security-audit.sh          # Complete security audit
+./scripts/security/vulnerability-scanner.sh           # Go vulnerability check
+./scripts/security/security-config-validator.sh       # Configuration security
+./scripts/security/security-penetration-test.sh       # Penetration testing
+./scripts/security/execute-security-audit.sh          # Complete security audit
 ```
 
 #### 2. Container Security
@@ -95,10 +95,10 @@ New security scripts have been implemented for comprehensive security validation
 
 | Script | Purpose | Usage |
 |--------|---------|-------|
-| `execute-security-audit.sh` | Complete security audit | `./scripts/execute-security-audit.sh` |
-| `vulnerability-scanner.sh` | Vulnerability scanning | `./scripts/vulnerability-scanner.sh` |
-| `security-config-validator.sh` | Configuration security | `./scripts/security-config-validator.sh` |
-| `security-penetration-test.sh` | Penetration testing | `./scripts/security-penetration-test.sh` |
+| `execute-security-audit.sh` | Complete security audit | `./scripts/security/execute-security-audit.sh` |
+| `vulnerability-scanner.sh` | Vulnerability scanning | `./scripts/security/vulnerability-scanner.sh` |
+| `security-config-validator.sh` | Configuration security | `./scripts/security/security-config-validator.sh` |
+| `security-penetration-test.sh` | Penetration testing | `./scripts/security/security-penetration-test.sh` |
 
 ## API Version Migration
 
@@ -178,7 +178,7 @@ CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=amd64 go build \
 # Performance benchmarking
 make benchmark                    # Run Go benchmarks
 make build-performance           # Monitor build times
-./scripts/performance-benchmark-suite.sh  # Comprehensive benchmarks
+./scripts/ops/performance-benchmark-suite.sh  # Comprehensive benchmarks
 ```
 
 ## Dependency Management
@@ -246,7 +246,7 @@ make docker-build
 make validate-images
 
 # Security scanning
-./scripts/vulnerability-scanner.sh
+./scripts/security/vulnerability-scanner.sh
 ```
 
 ## Validation and Testing
@@ -381,7 +381,7 @@ make generate
 #### 3. Update Security Configuration
 ```bash
 # Run security audit
-./scripts/execute-security-audit.sh
+./scripts/security/execute-security-audit.sh
 
 # Fix identified issues
 ./scripts/fix-critical-errors.sh
@@ -426,13 +426,13 @@ As part of the comprehensive system fixes, the following cleanup was performed:
 ### Security Workflow
 1. **Regular Scans**: `make security-scan`
 2. **Dependency Updates**: `make update-deps`
-3. **Vulnerability Check**: `./scripts/vulnerability-scanner.sh`
-4. **Security Audit**: `./scripts/execute-security-audit.sh`
+3. **Vulnerability Check**: `./scripts/security/vulnerability-scanner.sh`
+4. **Security Audit**: `./scripts/security/execute-security-audit.sh`
 
 ### Performance Monitoring
 1. **Build Performance**: `make build-performance`
 2. **Benchmarking**: `make benchmark`
-3. **Load Testing**: `./scripts/execute-production-load-test.sh`
+3. **Load Testing**: `./scripts/ops/execute-production-load-test.sh`
 
 ## Conclusion
 
