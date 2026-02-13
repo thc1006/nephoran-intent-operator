@@ -57,14 +57,14 @@ jobs:
         NPROC="$(nproc)"
         go test -short -timeout=2m -p "$NPROC" ./internal/security/...
 
-  docs-link-integrity-advisory:
-    name: Docs Link Integrity (Advisory)
+  docs-link-integrity:
+    name: Docs Link Integrity
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Scan markdown relative links (advisory)
+      - name: Scan markdown relative links
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -95,16 +95,17 @@ jobs:
           if not missing:
               print("No missing relative markdown links found.")
           else:
-              print(f"::warning::Found {len(missing)} missing relative markdown links (advisory, non-blocking).")
+              print(f"::error::Found {len(missing)} missing relative markdown links.")
               counts = Counter(src for src, _ in missing)
               for src, n in counts.most_common(15):
                   print(f"{n:3d} {src}")
+              raise SystemExit(1)
           PY
 
   basic-validation:
     name: Basic Validation
     runs-on: ubuntu-latest
-    needs: [build-validation, config-tests, auth-core-tests, auth-provider-tests, security-tests]
+    needs: [build-validation, config-tests, auth-core-tests, auth-provider-tests, security-tests, docs-link-integrity]
     if: always()
     steps:
       - name: Enforce required status outcome
@@ -113,7 +114,8 @@ jobs:
              [ "${{ needs.config-tests.result }}" != "success" ] || \
              [ "${{ needs.auth-core-tests.result }}" != "success" ] || \
              [ "${{ needs.auth-provider-tests.result }}" != "success" ] || \
-             [ "${{ needs.security-tests.result }}" != "success" ]; then
+             [ "${{ needs.security-tests.result }}" != "success" ] || \
+             [ "${{ needs.docs-link-integrity.result }}" != "success" ]; then
             echo "Basic Validation: FAIL"
             exit 1
           fi
