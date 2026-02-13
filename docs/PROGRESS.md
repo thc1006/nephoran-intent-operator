@@ -108,3 +108,4 @@ Updates are tracked here in append-only format.
 | 2026-02-13T13:19:19+00:00 | chore/pr-validation-parallel-blocking-20260213 | workflows | parallelized PR validation jobs under Basic Validation gate |
 | 2026-02-13T14:00:10+00:00 | integrate/mvp | .github/workflows | Sharded auth CI gate into core/providers with single Basic Validation. |
 | 2026-02-13T14:26:59+00:00 | chore/pr-validation-reusable-go-setup-20260213 | .github/workflows | Reused Go CI setup via workflow_call for PR validation shards. |
+| 2026-02-13T14:41:04+00:00 | chore/pr-validation-warmpath-tune-20260213 | .github/workflows | Tuned reusable Go job warm path; skip explicit module prep in PR build job. |
