@@ -121,3 +121,4 @@ Updates are tracked here in append-only format.
 | 2026-02-13T20:27:50+00:00 | chore/ci-markdown-link-guard-20260213 | .github/workflows | Added advisory markdown link integrity scan to PR validation. |
 | 2026-02-13T20:57:08+00:00 | chore/ci-markdown-link-guard-20260213 | .github/workflows | Fixed advisory link scan workflow parse token for GitHub Actions. |
 | 2026-02-13T21:06:52+00:00 | chore/ci-markdown-link-blocking-20260213 | .github/workflows | Promoted markdown link integrity from advisory to blocking PR gate. |
+| 2026-02-13T21:15:35+00:00 | main | root-policy | Added root allowlist validator and Phase 3 candidate registry. |
