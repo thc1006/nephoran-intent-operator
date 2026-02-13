@@ -15,102 +15,48 @@ permissions:
 
 jobs:
   build-validation:
-    name: Build Validation
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.24.0'
-          cache: true
-
-      - name: Download dependencies
-        run: |
-          go mod download
-          go mod verify
-
-      - name: Build critical components
-        run: make -f Makefile.ci ci-ultra-fast
+    uses: ./.github/workflows/_go-ci-job.yml
+    with:
+      job-name: Build Validation
+      timeout-minutes: 10
+      prepare-modules: true
+      run-command: make -f Makefile.ci ci-ultra-fast
 
   config-tests:
-    name: Config Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.24.0'
-          cache: true
-
-      - name: Run config scoped tests
-        run: |
-          NPROC="$(nproc)"
-          go test -short -timeout=2m -p "$NPROC" ./pkg/config/...
+    uses: ./.github/workflows/_go-ci-job.yml
+    with:
+      job-name: Config Tests
+      timeout-minutes: 10
+      run-command: |
+        NPROC="$(nproc)"
+        go test -short -timeout=2m -p "$NPROC" ./pkg/config/...
 
   auth-core-tests:
-    name: Auth Core Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 12
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.24.0'
-          cache: true
-
-      - name: Run auth core scoped tests
-        run: |
-          NPROC="$(nproc)"
-          go test -short -timeout=2m -p "$NPROC" ./pkg/auth
+    uses: ./.github/workflows/_go-ci-job.yml
+    with:
+      job-name: Auth Core Tests
+      timeout-minutes: 12
+      run-command: |
+        NPROC="$(nproc)"
+        go test -short -timeout=2m -p "$NPROC" ./pkg/auth
 
   auth-provider-tests:
-    name: Auth Provider Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.24.0'
-          cache: true
-
-      - name: Run auth provider scoped tests
-        run: |
-          NPROC="$(nproc)"
-          go test -short -timeout=2m -p "$NPROC" ./pkg/auth/providers ./pkg/auth/docker
+    uses: ./.github/workflows/_go-ci-job.yml
+    with:
+      job-name: Auth Provider Tests
+      timeout-minutes: 10
+      run-command: |
+        NPROC="$(nproc)"
+        go test -short -timeout=2m -p "$NPROC" ./pkg/auth/providers ./pkg/auth/docker
 
   security-tests:
-    name: Security Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.24.0'
-          cache: true
-
-      - name: Run internal security scoped tests
-        run: |
-          NPROC="$(nproc)"
-          go test -short -timeout=2m -p "$NPROC" ./internal/security/...
+    uses: ./.github/workflows/_go-ci-job.yml
+    with:
+      job-name: Security Tests
+      timeout-minutes: 10
+      run-command: |
+        NPROC="$(nproc)"
+        go test -short -timeout=2m -p "$NPROC" ./internal/security/...
 
   basic-validation:
     name: Basic Validation

@@ -3,6 +3,7 @@
 ## Active workflows
 - `ci-2025.yml`: primary CI workflow
 - `pr-validation.yml`: PR gate checks (`Basic Validation`)
+- `_go-ci-job.yml`: reusable Ubuntu Go setup job used by PR validation shards
 - `ubuntu-ci.yml`: manual full validation suite
 - `emergency-merge.yml`: manual emergency pipeline
 - `go-module-cache.yml`: reusable cache workflow
@@ -16,4 +17,4 @@
 - Ubuntu-only runners.
 - Per-branch concurrency group: `${{ github.ref }}`.
 - Required gate context for protected branches: `Basic Validation`.
-- `Basic Validation` aggregates parallel blocking jobs for build + `pkg/config` + full `pkg/auth` + `internal/security`.
+- `Basic Validation` aggregates parallel blocking jobs for build + `pkg/config` + auth core/provider shards + `internal/security`.
