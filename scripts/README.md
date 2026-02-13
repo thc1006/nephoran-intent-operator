@@ -15,6 +15,7 @@
 ### CI / Build / Test
 - ci-build.sh, ci-environment-optimizer.sh, ci-performance-monitor.sh, migrate-to-consolidated-pipeline.sh, verify-ci-consolidation.sh
 - run-all-validations.sh, run-comprehensive-tests.sh, run-tests-with-coverage.sh, validate-build.sh, validate-coverage.sh, validate-workflows.sh, validate-ci-fixes.sh
+- validate-root-allowlist.sh（Root Phase 3：檢查根目錄是否符合 allowlist，並輸出候選搬移項）
 - lint-* 系列、apply-lint-fixes-2025.sh, lint-fixes/, lint-commands-guide.md
 - test-* 系列（test-ci-build.sh, test-docker-build*.sh, test-race-detection.sh, test-llm-pipeline.sh, test-security-workflows.sh, test-workflow-*.py 等）
 
