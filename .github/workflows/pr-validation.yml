@@ -19,7 +19,6 @@ jobs:
     with:
       job-name: Build Validation
       timeout-minutes: 10
-      prepare-modules: true
       run-command: make -f Makefile.ci ci-ultra-fast
 
   config-tests:

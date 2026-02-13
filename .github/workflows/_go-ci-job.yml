@@ -17,6 +17,10 @@ on:
         required: false
         type: boolean
         default: false
+      verify-modules:
+        required: false
+        type: boolean
+        default: false
       go-version:
         required: false
         type: string
@@ -39,9 +43,11 @@ jobs:
 
       - name: Download dependencies
         if: ${{ inputs.prepare-modules }}
-        run: |
-          go mod download
-          go mod verify
+        run: go mod download
+
+      - name: Verify dependencies
+        if: ${{ inputs.prepare-modules && inputs.verify-modules }}
+        run: go mod verify
 
       - name: Run command
         run: ${{ inputs.run-command }}
