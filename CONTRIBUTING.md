@@ -626,9 +626,9 @@ Before merging, ensure:
 ### Resources for Learning
 
 **Documentation:**
-- [Developer Guide](docs/DEVELOPER_GUIDE.md)
+- [Developer Guide](docs/development/DEVELOPER_GUIDE.md)
 - [Architecture Overview](docs/architecture.md)
-- [API Reference](docs/API_REFERENCE.md)
+- [API Reference](docs/api/API_REFERENCE.md)
 - [Testing Guide](docs/testing/README.md)
 
 **External Resources:**

@@ -61,7 +61,7 @@ kubectl apply -f test-networkintent.yaml
 These files are referenced by automated setup scripts:
 - Quickstart scripts (`scripts/quickstart.sh`, `scripts/quickstart.ps1`) create `my-first-intent.yaml` dynamically
 - Deployment scripts (`scripts/local-deploy.ps1`, `scripts/deploy-windows.ps1`) reference these examples
-- Setup guides (`docs/COMPLETE-SETUP-GUIDE.md`) use these files for testing
+- Setup guides (`docs/getting-started/COMPLETE-SETUP-GUIDE.md`) use these files for testing
 
 ### Command Examples
 ```bash
@@ -114,7 +114,7 @@ kubectl get pods -w
 ### Documentation References
 - `README.md` - Main project documentation references these examples
 - `QUICKSTART.md` - Uses `my-first-intent.yaml` for getting started
-- `docs/COMPLETE-SETUP-GUIDE.md` - References examples for testing
+- `docs/getting-started/COMPLETE-SETUP-GUIDE.md` - References examples for testing
 
 ### Development and Testing
 These files are essential for:

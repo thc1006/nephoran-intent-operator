@@ -60,7 +60,7 @@ Currently an **MVP/proof-of-concept** demonstrating intent-driven network orches
 - **Intent Controller**: Processes NetworkIntent resources and manages lifecycle
 - **LLM Processor**: Translates natural language to structured network configurations
 - **RAG System**: Optional context enhancement (enabled via build tags)
-- **FCAPS Simulator**: Automated scaling decisions based on telecom events ([docs](docs/FCAPS_SIMULATOR.md))
+- **FCAPS Simulator**: Automated scaling decisions based on telecom events ([docs](docs/operations/FCAPS_SIMULATOR.md))
 
 ### 🏗️ Cloud-Native Architecture
 - **Kubernetes-Native**: Custom resources, operators, and webhooks following K8s best practices
@@ -364,12 +364,12 @@ go run ./cmd/intent-ingest &
 
 ### 🎓 Getting Started
 - **[15-Minute Quickstart](QUICKSTART.md)**: Complete tutorial from zero to deployed network function
-- **[Developer Guide](docs/DEVELOPER_GUIDE.md)**: Architecture deep-dive and contribution guidelines  
-- **[Operator Manual](docs/OPERATOR-MANUAL.md)**: Production deployment and operations
-- **[API Reference](docs/API_REFERENCE.md)**: Complete REST and gRPC API documentation
-- **[Deployment Fixes Guide](docs/DEPLOYMENT_FIXES_GUIDE.md)**: Latest infrastructure improvements and fixes
-- **[CI/CD Infrastructure](docs/CI_CD_INFRASTRUCTURE.md)**: Comprehensive build pipeline documentation
-- **[Enhanced Troubleshooting](docs/troubleshooting.md)**: Updated with recent fixes and solutions
+- **[Developer Guide](docs/development/DEVELOPER_GUIDE.md)**: Architecture deep-dive and contribution guidelines
+- **[Operator Manual](docs/operations/OPERATOR-MANUAL.md)**: Production deployment and operations
+- **[API Reference](docs/api/API_REFERENCE.md)**: Complete REST and gRPC API documentation
+- **[Deployment Fixes Guide](docs/operations/DEPLOYMENT_FIXES_GUIDE.md)**: Latest infrastructure improvements and fixes
+- **[CI/CD Infrastructure](docs/ci/CI_CD_INFRASTRUCTURE.md)**: Comprehensive build pipeline documentation
+- **[Enhanced Troubleshooting](docs/runbooks/troubleshooting.md)**: Updated with recent fixes and solutions
 
 ### 🔍 Technical Reference
 
@@ -468,7 +468,7 @@ For detailed information about all environment variables, including:
 - Troubleshooting guide and common issues
 - Migration guide for version upgrades
 
-See: **[Environment Variables Reference Guide](docs/ENVIRONMENT_VARIABLES.md)**
+See: **[Environment Variables Reference Guide](docs/development/ENVIRONMENT_VARIABLES.md)**
 
 ## 📊 Monitoring & Observability
 
@@ -578,7 +578,7 @@ For complete metrics reference including:
 See: **[Complete Prometheus Metrics Documentation](PROMETHEUS_METRICS.md)**
 
 ### 📖 Advanced Topics
-- **[O-RAN Compliance Certification](docs/ORAN-COMPLIANCE-CERTIFICATION.md)**: Standards compliance details
+- **[O-RAN Compliance Certification](docs/operations/ORAN-COMPLIANCE-CERTIFICATION.md)**: Standards compliance details
 - **[Security Documentation](docs/security/README.md)**: Complete security implementation guide
   - **[OAuth2 Security Guide](docs/security/OAuth2-Security-Guide.md)**: Comprehensive OAuth2 implementation
   - **[CORS Configuration](docs/security/CORS-Security-Configuration-Guide.md)**: CORS security setup
@@ -587,9 +587,9 @@ See: **[Complete Prometheus Metrics Documentation](PROMETHEUS_METRICS.md)**
 - **[Multi-Region Deployment](deployments/multi-region/README.md)**: Global architecture patterns
 
 ### 🎯 Tutorials & Examples
-- **[Network Slicing Guide](docs/NetworkIntent-Controller-Guide.md)**: End-to-end slice deployment with NetworkIntent
-- **[xApp Development](docs/xApp-Development-SDK-Guide.md)**: Custom application integration
-- **[GitOps Workflows](docs/GitOps-Package-Generation.md)**: CI/CD pipeline integration
+- **[Network Slicing Guide](docs/operations/NetworkIntent-Controller-Guide.md)**: End-to-end slice deployment with NetworkIntent
+- **[xApp Development](docs/development/xApp-Development-SDK-Guide.md)**: Custom application integration
+- **[GitOps Workflows](docs/operations/GitOps-Package-Generation.md)**: CI/CD pipeline integration
 - **[Production Examples](examples/production/)**: Real-world deployment configurations
 
 ## 🤝 Community & Contribution
@@ -778,7 +778,7 @@ Licensed under the [Apache License, Version 2.0](LICENSE).
 
 *Transforming telecommunications through intelligent automation*
 
-**[Documentation](https://thc1006.github.io/nephoran-intent-operator)** • **[Getting Started](QUICKSTART.md)** • **[API Reference](docs/API_REFERENCE.md)** • **[GitHub Issues](https://github.com/thc1006/nephoran-intent-operator/issues)**
+**[Documentation](https://thc1006.github.io/nephoran-intent-operator)** • **[Getting Started](QUICKSTART.md)** • **[API Reference](docs/api/API_REFERENCE.md)** • **[GitHub Issues](https://github.com/thc1006/nephoran-intent-operator/issues)**
 
 </div>
 </div>

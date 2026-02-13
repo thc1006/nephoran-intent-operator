@@ -75,6 +75,10 @@ Updates are tracked here in append-only format.
 | 2025-09-06T15:07:58Z | fix/ci-compilation-errors | dependency-management | Resolved Kubernetes dependency conflicts for Nephio R5/O-RAN L Release |
 | 2026-02-12T01:30:10Z | main | scripts/docs/events | Phase-2 cleanup: removed 232 obsolete files, 51k lines |
 | 2026-02-12T01:38:05Z | main | scripts | Remove 3 orphaned validate scripts (377 lines) |
+| 2026-02-12T01:40:41Z | chore/remove-orphaned-validate-scripts | scripts | Remove 3 orphaned validate scripts (377 lines) |
+| 2026-02-12T02:02:46Z | chore/docs-phase3-restructure | docs | Phase-3: delete 36 orphans, move 91 md files to subdirs |
+| 2026-02-12T02:08:55Z | chore/docs-phase3-restructure | docs | Restore 7 wrongly-deleted docs; fix 5 broken refs in runbooks/README |
+| 2026-02-12T02:23:34Z | chore/docs-phase3-restructure | docs | Fix 21 broken cross-refs across README, CONTRIBUTING, QUICKSTART, index, runbooks |
 | 2026-02-12T03:13:20.003Z | main | security/docs | Phase4 remediation kickoff: align statuses and gating requirements doc-only |
 | 2026-02-12T04:24:32.306Z | main | ci/workflows | Disabled auto PR triggers for temp ci-status/test-bypass workflows; added repo map |
 | 2026-02-12T04:28:01.891Z | main | ci/workflows | Added CI allowlist doc/workflow, set branch protection setup to manual-only |
