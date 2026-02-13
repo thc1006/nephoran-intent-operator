@@ -8,6 +8,7 @@
 - `emergency-merge.yml`: manual emergency pipeline
 - `go-module-cache.yml`: reusable cache workflow
 - `ci-monitoring.yml`: scheduled CI health monitoring
+- `pr-validation-performance-guard.yml`: auto-alert on sustained PR validation runtime regression
 - `cache-recovery-system.yml`: manual/cache-recovery helper
 - `branch-protection-setup.yml`: manual branch policy setup
 - `debug-ghcr-auth.yml`: manual GHCR debug

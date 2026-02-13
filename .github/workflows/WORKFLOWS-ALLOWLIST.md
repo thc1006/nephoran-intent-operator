@@ -8,6 +8,7 @@ Allowed active workflows:
 - emergency-merge.yml
 - go-module-cache.yml
 - ci-monitoring.yml
+- pr-validation-performance-guard.yml
 - cache-recovery-system.yml
 - branch-protection-setup.yml
 - debug-ghcr-auth.yml
