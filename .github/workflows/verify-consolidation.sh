@@ -34,11 +34,6 @@ if ! rg -n "name:\s*Basic Validation" .github/workflows/pr-validation.yml >/dev/
   exit 1
 fi
 
-if ! rg -n "name:\s*CI Status" .github/workflows/pr-validation.yml >/dev/null 2>&1; then
-  echo "FAIL: CI Status check missing in pr-validation.yml"
-  exit 1
-fi
-
 if [[ $missing -ne 0 ]]; then
   exit 1
 fi

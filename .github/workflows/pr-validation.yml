@@ -42,18 +42,3 @@ jobs:
           go test -short -timeout=2m -p "$NPROC" ./pkg/config/...
           go test -short -timeout=2m -p "$NPROC" ./pkg/auth/...
           go test -short -timeout=2m -p "$NPROC" ./internal/security/...
-
-  ci-status:
-    name: CI Status
-    runs-on: ubuntu-latest
-    needs: basic-validation
-    if: always()
-    steps:
-      - name: Enforce required status outcome
-        run: |
-          if [ "${{ needs.basic-validation.result }}" = "success" ]; then
-            echo "CI Status: PASS"
-            exit 0
-          fi
-          echo "CI Status: FAIL"
-          exit 1

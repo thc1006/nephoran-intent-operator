@@ -2,7 +2,7 @@
 
 ## Active workflows
 - `ci-2025.yml`: primary CI workflow
-- `pr-validation.yml`: PR gate checks (`Basic Validation`, `CI Status`)
+- `pr-validation.yml`: PR gate checks (`Basic Validation`)
 - `ubuntu-ci.yml`: manual full validation suite
 - `emergency-merge.yml`: manual emergency pipeline
 - `go-module-cache.yml`: reusable cache workflow
@@ -15,5 +15,5 @@
 ## Policy
 - Ubuntu-only runners.
 - Per-branch concurrency group: `${{ github.ref }}`.
-- Required gate contexts for protected branches: `Basic Validation`, `CI Status`.
+- Required gate context for protected branches: `Basic Validation`.
 - `Basic Validation` currently blocks on build + `pkg/config` + full `pkg/auth` + `internal/security`.
