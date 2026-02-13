@@ -928,10 +928,10 @@ velero restore create emergency-restore --from-backup BACKUP_NAME
 
 ### Appendix E: Related Documentation
 
-- [Deployment Guide](./operations/01-production-deployment-guide.md)
-- [Monitoring Guide](./operations/02-monitoring-alerting-runbooks.md)
-- [Security Guidelines](./SECURITY.md)
-- [Performance Tuning](./operations/PERFORMANCE-TUNING.md)
+- [Deployment Guide](../operations/01-production-deployment-guide.md)
+- [Monitoring Guide](../operations/02-monitoring-alerting-runbooks.md)
+- [Security Guidelines](../../SECURITY.md)
+- [Performance Tuning](../operations/PERFORMANCE-TUNING.md)
 
 ---
 

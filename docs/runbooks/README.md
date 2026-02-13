@@ -7,7 +7,7 @@
 ## Quick Navigation
 
 ### 🚨 Emergency Response
-- [Incident Response Runbook](./incident-response-runbook.md) - P0-P3 incident procedures
+- [Incident Response Runbook](./incident-response.md) - P0-P3 incident procedures
 - [Disaster Recovery Runbook](./disaster-recovery-runbook.md) - DR procedures and RTO/RPO targets
 - [Security Incident Response](./security-incident-response.md) - Security breach procedures
 
@@ -38,7 +38,7 @@
 
 | Scenario | Primary Runbook | Supporting Documents |
 |----------|----------------|---------------------|
-| Service down/degraded | [Incident Response](./incident-response-runbook.md) | [Troubleshooting Guide](./troubleshooting-guide.md) |
+| Service down/degraded | [Incident Response](./incident-response.md) | [Troubleshooting Guide](./troubleshooting-guide.md) |
 | Daily health checks | [Master Operational](./operational-runbook-master.md) | [Monitoring & Alerting](./monitoring-alerting-runbook.md) |
 | Performance issues | [Performance Degradation](./performance-degradation.md) | [SLA Monitoring](../monitoring/sla-monitoring-system.md) |
 | Security incident | [Security Incident Response](./security-incident-response.md) | [Security Operations](./security-operations-runbook.md) |
@@ -49,8 +49,8 @@
 
 | Severity | Response Time | Resolution Time | Runbook |
 |----------|--------------|-----------------|---------|
-| P0 - Critical | 15 min | 4 hours | [Incident Response](./incident-response-runbook.md) |
-| P1 - High | 30 min | 8 hours | [Incident Response](./incident-response-runbook.md) |
+| P0 - Critical | 15 min | 4 hours | [Incident Response](./incident-response.md) |
+| P1 - High | 30 min | 8 hours | [Incident Response](./incident-response.md) |
 | P2 - Medium | 1 hour | 24 hours | [Master Operational](./operational-runbook-master.md) |
 | P3 - Low | 4 hours | 72 hours | [Troubleshooting Guide](./troubleshooting-guide.md) |
 
