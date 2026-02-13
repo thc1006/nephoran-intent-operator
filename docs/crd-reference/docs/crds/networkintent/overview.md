@@ -331,6 +331,6 @@ spec:
 ## Next Steps
 
 - [Specification Reference](spec.md) - Detailed field documentation
-- [Status Reference](status.md) - Understanding status fields
+- [Status Reference](spec.md) - Understanding status fields
 - [Examples](examples.md) - Real-world usage patterns
-- [Troubleshooting](troubleshooting.md) - Common issues and solutions
+- [Troubleshooting](../../../../runbooks/troubleshooting.md) - Common issues and solutions

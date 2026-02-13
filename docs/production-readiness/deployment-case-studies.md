@@ -677,6 +677,6 @@ The evidence presented demonstrates that the Nephoran Intent Operator has achiev
 
 - [Enterprise Deployment Guide](enterprise-deployment-guide.md)
 - [Performance Benchmarking Reports](../benchmarks/comprehensive-performance-analysis.md)
-- [Security Validation Documentation](../security/implementation-summary.md)
+- [Security Validation Documentation](../security/security-implementation-summary.md)
 - [Operations Handbook](../operations/operations-handbook.md)
-- [Financial Impact Analysis](../enterprise/roi-business-case-analysis.md)
+- [Financial Impact Analysis](../enterprise/business-continuity-disaster-recovery.md)

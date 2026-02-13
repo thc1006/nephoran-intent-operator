@@ -1079,4 +1079,4 @@ This operations runbook provides comprehensive procedures for managing the Weavi
 For additional support, refer to:
 - [Weaviate Official Documentation](https://docs.weaviate.io/)
 - [Kubernetes Operations Guide](https://kubernetes.io/docs/concepts/cluster-administration/)
-- [Nephoran Intent Operator CLAUDE.md](./CLAUDE.md)
+- [Nephoran Intent Operator CLAUDE.md](../../CLAUDE.md)

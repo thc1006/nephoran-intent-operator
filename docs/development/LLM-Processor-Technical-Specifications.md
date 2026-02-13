@@ -480,12 +480,12 @@ extraction_patterns:
     },
     "name": {
       "type": "string",
-      "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+      "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$",
       "maxLength": 63
     },
     "namespace": {
       "type": "string", 
-      "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+      "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$",
       "maxLength": 63
     },
     "spec": {

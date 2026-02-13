@@ -205,7 +205,7 @@ go mod tidy
 
 **Symptom:**
 ```
-schema validation failed: value does not match pattern "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+schema validation failed: value does not match pattern "^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$"
 ```
 
 **Diagnosis:**
@@ -968,7 +968,7 @@ go test -cover ./internal/patchgen/...
 
 ```go
 // Kubernetes name validation
-var k8sNameRegex = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
+var k8sNameRegex = regexp.MustCompile(`^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$`)
 
 // Correlation ID validation
 var correlationIDRegex = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)
