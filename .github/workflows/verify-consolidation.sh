@@ -6,6 +6,7 @@ echo "Verifying consolidated workflow set..."
 expected=(
   "ci-2025.yml"
   "pr-validation.yml"
+  "_go-ci-job.yml"
   "ubuntu-ci.yml"
   "emergency-merge.yml"
   "go-module-cache.yml"

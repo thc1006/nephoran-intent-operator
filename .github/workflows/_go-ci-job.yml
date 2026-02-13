@@ -1,0 +1,47 @@
+name: Reusable Go CI Job
+
+on:
+  workflow_call:
+    inputs:
+      job-name:
+        required: true
+        type: string
+      run-command:
+        required: true
+        type: string
+      timeout-minutes:
+        required: false
+        type: number
+        default: 10
+      prepare-modules:
+        required: false
+        type: boolean
+        default: false
+      go-version:
+        required: false
+        type: string
+        default: '1.24.0'
+
+jobs:
+  run:
+    name: ${{ inputs.job-name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ inputs.go-version }}
+          cache: true
+
+      - name: Download dependencies
+        if: ${{ inputs.prepare-modules }}
+        run: |
+          go mod download
+          go mod verify
+
+      - name: Run command
+        run: ${{ inputs.run-command }}
