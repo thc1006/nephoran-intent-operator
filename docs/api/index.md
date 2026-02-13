@@ -16,25 +16,25 @@ The Nephoran Intent Operator provides comprehensive APIs for managing intent-dri
 
 <div class="grid cards" markdown>
 
--   :material-api: **[REST APIs](rest-apis.md)**
+-   :material-api: **[REST APIs](API_REFERENCE.md)**
 
     ---
 
     HTTP REST endpoints for intent processing, status queries, and system management.
 
--   :material-kubernetes: **[Custom Resource Definitions](crds.md)**
+-   :material-kubernetes: **[Custom Resource Definitions](../crd-reference/docs/index.md)**
 
     ---
 
     Kubernetes CRDs for NetworkIntent, E2NodeSet, and ManagedElement resources.
 
--   :material-file-document: **[OpenAPI Specification](openapi.md)**
+-   :material-file-document: **[OpenAPI Specification](openapi-spec.yaml)**
 
     ---
 
     Complete OpenAPI 3.0 specifications for all HTTP APIs with examples.
 
--   :material-code-json: **[Examples](examples.md)**
+-   :material-code-json: **[Examples](VECTOR-OPERATIONS-EXAMPLES.md)**
 
     ---
 
@@ -298,6 +298,6 @@ All APIs provide comprehensive monitoring:
 - **Health Checks**: `/healthz` and `/readyz` endpoints
 
 Continue exploring the API documentation:
-- [REST API Details →](rest-apis.md)
-- [CRD Specifications →](crds.md)  
-- [Integration Examples →](examples.md)
+- [REST API Details →](API_REFERENCE.md)
+- [CRD Specifications →](../crd-reference/docs/index.md)  
+- [Integration Examples →](VECTOR-OPERATIONS-EXAMPLES.md)
