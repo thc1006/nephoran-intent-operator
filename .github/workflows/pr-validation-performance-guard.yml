@@ -1,0 +1,179 @@
+name: PR Validation Performance Guard
+
+on:
+  workflow_run:
+    workflows: ["PR Validation"]
+    types: [completed]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+env:
+  TARGET_WORKFLOW_FILE: pr-validation.yml
+  THRESHOLD_SECONDS: "154" # 2m34s
+  SAMPLE_SIZE: "10"
+  MIN_SAMPLES: "5"
+
+jobs:
+  analyze:
+    name: Analyze PR validation runtime
+    runs-on: ubuntu-latest
+    outputs:
+      alert_needed: ${{ steps.analyze.outputs.alert_needed }}
+      current_seconds: ${{ steps.analyze.outputs.current_seconds }}
+      p95_seconds: ${{ steps.analyze.outputs.p95_seconds }}
+      threshold_seconds: ${{ steps.analyze.outputs.threshold_seconds }}
+      sample_count: ${{ steps.analyze.outputs.sample_count }}
+      run_url: ${{ steps.analyze.outputs.run_url }}
+      summary_line: ${{ steps.analyze.outputs.summary_line }}
+    steps:
+      - name: Analyze recent runtime trend
+        id: analyze
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const workflowId = process.env.TARGET_WORKFLOW_FILE;
+            const thresholdSeconds = Number(process.env.THRESHOLD_SECONDS);
+            const sampleSize = Number(process.env.SAMPLE_SIZE);
+            const minSamples = Number(process.env.MIN_SAMPLES);
+
+            const toSeconds = (start, end) => {
+              if (!start || !end) return NaN;
+              return Math.max(0, Math.round((new Date(end) - new Date(start)) / 1000));
+            };
+            const toMMSS = (seconds) => `${Math.floor(seconds / 60)}m${String(seconds % 60).padStart(2, "0")}s`;
+
+            let runId = context.payload.workflow_run?.id;
+            if (!runId) {
+              const latest = await github.rest.actions.listWorkflowRuns({
+                owner, repo, workflow_id: workflowId, event: "pull_request", status: "completed", per_page: 1,
+              });
+              runId = latest.data.workflow_runs?.[0]?.id;
+            }
+
+            if (!runId) {
+              core.setOutput("alert_needed", "false");
+              core.setOutput("summary_line", "No PR Validation run found.");
+              return;
+            }
+
+            const run = (await github.rest.actions.getWorkflowRun({ owner, repo, run_id: runId })).data;
+            const currentSeconds = toSeconds(run.run_started_at || run.created_at, run.updated_at);
+
+            const recent = await github.rest.actions.listWorkflowRuns({
+              owner,
+              repo,
+              workflow_id: workflowId,
+              event: "pull_request",
+              status: "completed",
+              per_page: Math.max(sampleSize, minSamples) + 10,
+            });
+
+            const samples = recent.data.workflow_runs
+              .filter((r) => r.conclusion === "success")
+              .slice(0, sampleSize)
+              .map((r) => ({
+                id: r.id,
+                seconds: toSeconds(r.run_started_at || r.created_at, r.updated_at),
+                url: r.html_url,
+              }))
+              .filter((r) => Number.isFinite(r.seconds));
+
+            if (samples.length < minSamples || !Number.isFinite(currentSeconds)) {
+              core.setOutput("alert_needed", "false");
+              core.setOutput("current_seconds", String(Number.isFinite(currentSeconds) ? currentSeconds : 0));
+              core.setOutput("p95_seconds", "0");
+              core.setOutput("threshold_seconds", String(thresholdSeconds));
+              core.setOutput("sample_count", String(samples.length));
+              core.setOutput("run_url", run.html_url || "");
+              core.setOutput("summary_line", `Insufficient samples (${samples.length}/${minSamples}); skipping alert.`);
+              return;
+            }
+
+            const sorted = samples.map((s) => s.seconds).sort((a, b) => a - b);
+            const p95Index = Math.max(0, Math.ceil(0.95 * sorted.length) - 1);
+            const p95Seconds = sorted[p95Index];
+            const alertNeeded = currentSeconds > thresholdSeconds && p95Seconds > thresholdSeconds;
+            const summaryLine = `current=${toMMSS(currentSeconds)}, p95=${toMMSS(p95Seconds)}, threshold=${toMMSS(thresholdSeconds)}, samples=${samples.length}`;
+
+            core.setOutput("alert_needed", alertNeeded ? "true" : "false");
+            core.setOutput("current_seconds", String(currentSeconds));
+            core.setOutput("p95_seconds", String(p95Seconds));
+            core.setOutput("threshold_seconds", String(thresholdSeconds));
+            core.setOutput("sample_count", String(samples.length));
+            core.setOutput("run_url", run.html_url || "");
+            core.setOutput("summary_line", summaryLine);
+
+            await core.summary
+              .addHeading("PR Validation performance check")
+              .addRaw(`- ${summaryLine}\n`)
+              .addRaw(`- alert_needed=${alertNeeded}\n`)
+              .write();
+
+  alert:
+    name: Alert on sustained regression
+    runs-on: ubuntu-latest
+    needs: analyze
+    if: needs.analyze.outputs.alert_needed == 'true'
+    steps:
+      - name: Create or update regression issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const thresholdSeconds = Number("${{ needs.analyze.outputs.threshold_seconds }}");
+            const currentSeconds = Number("${{ needs.analyze.outputs.current_seconds }}");
+            const p95Seconds = Number("${{ needs.analyze.outputs.p95_seconds }}");
+            const sampleCount = Number("${{ needs.analyze.outputs.sample_count }}");
+            const runUrl = "${{ needs.analyze.outputs.run_url }}";
+            const toMMSS = (seconds) => `${Math.floor(seconds / 60)}m${String(seconds % 60).padStart(2, "0")}s`;
+            const thresholdLabel = toMMSS(thresholdSeconds);
+            const title = `CI regression: PR Validation p95 above ${thresholdLabel}`;
+
+            const body = [
+              `Automated PR Validation performance regression alert.`,
+              ``,
+              `- Current run duration: ${toMMSS(currentSeconds)}`,
+              `- Recent p95 duration: ${toMMSS(p95Seconds)}`,
+              `- Threshold: ${thresholdLabel}`,
+              `- Sample count: ${sampleCount}`,
+              `- Triggered run: ${runUrl}`,
+              ``,
+              `Suggested action: re-balance auth-core shard if this trend persists.`
+            ].join("\n");
+
+            const openIssues = await github.rest.issues.listForRepo({
+              owner, repo, state: "open", labels: "ci,performance", per_page: 100,
+            });
+            const existing = openIssues.data.find((issue) => issue.title === title);
+
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: existing.number, body,
+              });
+              core.info(`Updated existing issue #${existing.number}`);
+              return;
+            }
+
+            try {
+              await github.rest.issues.create({
+                owner,
+                repo,
+                title,
+                body,
+                labels: ["ci", "performance"],
+              });
+            } catch (error) {
+              core.warning(`Issue label attach failed (${error.message}); retrying without labels`);
+              await github.rest.issues.create({ owner, repo, title, body });
+            }
