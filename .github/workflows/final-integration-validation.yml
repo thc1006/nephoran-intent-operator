@@ -38,6 +38,9 @@ on:
     # Weekly comprehensive validation every Sunday at 2 AM UTC
     - cron: '0 2 * * 0'
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
   security-events: write

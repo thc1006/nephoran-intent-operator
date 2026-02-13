@@ -20,6 +20,9 @@ on:
           - race
           - benchmark
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
 env:
   GO_VERSION: '1.24.x'
   RESULTS_RETENTION_DAYS: 30

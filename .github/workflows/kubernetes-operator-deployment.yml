@@ -62,6 +62,9 @@ on:
         options: ['minimal', 'standard', 'production', 'high-performance']
         default: 'standard'
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
   actions: read
@@ -104,12 +107,12 @@ jobs:
       monitoring-config: ${{ steps.monitoring.outputs.config }}
       
     steps:
-      - name: ?“¥ Checkout
+      - name: ? Checkout
         uses: actions/checkout@v4
         
-      - name: ?”§ Setup Kubernetes Tools
+      - name: ? Setup Kubernetes Tools
         run: |
-          echo "?”§ Setting up Kubernetes deployment tools..."
+          echo "? Setting up Kubernetes deployment tools..."
           
           # Install kubectl
           curl -LO "https://dl.k8s.io/release/v${{ env.KUBERNETES_VERSION }}/bin/linux/amd64/kubectl"
@@ -134,10 +137,10 @@ jobs:
           helm version
           kustomize version
           
-      - name: ?™ï? Generate Deployment Configuration
+      - name: ?? Generate Deployment Configuration
         id: config
         run: |
-          echo "?™ï? Generating deployment configuration for ${{ env.DEPLOYMENT_ENV }}"
+          echo "?? Generating deployment configuration for ${{ env.DEPLOYMENT_ENV }}"
           
           case "${{ env.DEPLOYMENT_ENV }}" in
             "development")
@@ -191,7 +194,7 @@ jobs:
           esac
           
           echo "config=$config" >> $GITHUB_OUTPUT
-          echo "?”§ Deployment configuration generated"
+          echo "? Deployment configuration generated"
           
       - name: ?? Calculate Resource Limits
         id: resources
@@ -293,16 +296,16 @@ jobs:
       cluster-info: ${{ steps.info.outputs.info }}
       
     steps:
-      - name: ?“¥ Checkout
+      - name: ? Checkout
         uses: actions/checkout@v4
         
-      - name: ?”§ Setup kubectl
+      - name: ? Setup kubectl
         run: |
           curl -LO "https://dl.k8s.io/release/v${{ env.KUBERNETES_VERSION }}/bin/linux/amd64/kubectl"
           chmod +x kubectl
           sudo mv kubectl /usr/local/bin/
           
-      - name: ??ï¸?Create Test Cluster (Kind)
+      - name: ???Create Test Cluster (Kind)
         uses: helm/kind-action@v1
         with:
           version: v0.24.0
@@ -342,7 +345,7 @@ jobs:
           validation_passed=true
           
           # Check cluster connectivity
-          echo "?“¡ Testing cluster connectivity..."
+          echo "? Testing cluster connectivity..."
           if kubectl cluster-info; then
             echo "  ??Cluster connectivity verified"
           else
@@ -356,7 +359,7 @@ jobs:
           if [[ "$k8s_version" == "${{ env.KUBERNETES_VERSION }}"* ]]; then
             echo "  ??Kubernetes version compatible: $k8s_version"
           else
-            echo "  ? ï? Kubernetes version mismatch: expected ${{ env.KUBERNETES_VERSION }}, got $k8s_version"
+            echo "  ?? Kubernetes version mismatch: expected ${{ env.KUBERNETES_VERSION }}, got $k8s_version"
           fi
           
           # Check RBAC
@@ -378,12 +381,12 @@ jobs:
           fi
           
           # Check storage classes
-          echo "?’¾ Checking storage classes..."
+          echo "? Checking storage classes..."
           storage_classes=$(kubectl get storageclass -o name | wc -l)
           if [[ $storage_classes -gt 0 ]]; then
             echo "  ??Storage classes available: $storage_classes"
           else
-            echo "  ? ï? No storage classes found"
+            echo "  ?? No storage classes found"
           fi
           
           # Check network policies support
@@ -391,11 +394,11 @@ jobs:
           if kubectl api-resources | grep -q "networkpolicies"; then
             echo "  ??Network policies supported"
           else
-            echo "  ? ï? Network policies not supported"
+            echo "  ?? Network policies not supported"
           fi
           
           # Node readiness check
-          echo "?–¥ï¸?Checking node readiness..."
+          echo "??Checking node readiness..."
           ready_nodes=$(kubectl get nodes --no-headers | grep "Ready" | wc -l)
           total_nodes=$(kubectl get nodes --no-headers | wc -l)
           echo "  ?? Ready nodes: $ready_nodes/$total_nodes"
@@ -446,10 +449,10 @@ jobs:
       operator-version: ${{ steps.deploy.outputs.version }}
       
     steps:
-      - name: ?“¥ Checkout
+      - name: ? Checkout
         uses: actions/checkout@v4
         
-      - name: ?”§ Setup Deployment Tools
+      - name: ? Setup Deployment Tools
         run: |
           # Install kubectl
           curl -LO "https://dl.k8s.io/release/v${{ env.KUBERNETES_VERSION }}/bin/linux/amd64/kubectl"
@@ -464,7 +467,7 @@ jobs:
           curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
           sudo mv kustomize /usr/local/bin/
           
-      - name: ??ï¸?Reconnect to Test Cluster
+      - name: ???Reconnect to Test Cluster
         uses: helm/kind-action@v1
         with:
           version: v0.24.0
@@ -472,9 +475,9 @@ jobs:
           cluster_name: nephoran-deployment-test
           install_only: true
           
-      - name: ??ï¸?Create Namespace and Prerequisites
+      - name: ???Create Namespace and Prerequisites
         run: |
-          echo "??ï¸?Creating namespace and prerequisites..."
+          echo "???Creating namespace and prerequisites..."
           
           deployment_config='${{ needs.deployment-preparation.outputs.deployment-config }}'
           namespace=$(echo "$deployment_config" | jq -r '.namespace')
@@ -585,7 +588,7 @@ jobs:
             echo "Applying CRDs from config/crd..."
             kubectl apply -f config/crd/
           else
-            echo "? ï? No CRDs found in config/crd - using sample CRD"
+            echo "?? No CRDs found in config/crd - using sample CRD"
             kubectl apply -f config/crd/intent_crd.yaml
           fi
           
@@ -741,9 +744,9 @@ jobs:
           
           echo "version=${{ env.OPERATOR_VERSION }}" >> $GITHUB_OUTPUT
           
-      - name: ?§ª Post-Deployment Testing
+      - name: ? Post-Deployment Testing
         run: |
-          echo "?§ª Running post-deployment tests..."
+          echo "? Running post-deployment tests..."
           
           deployment_config='${{ needs.deployment-preparation.outputs.deployment-config }}'
           namespace=$(echo "$deployment_config" | jq -r '.namespace')
@@ -771,13 +774,13 @@ jobs:
           fi
           
           # Test operator health endpoints
-          echo "?¥ Testing health endpoints..."
+          echo "? Testing health endpoints..."
           pod_name=$(kubectl get pods -n "$namespace" -l app.kubernetes.io/name=nephoran-intent-operator -o jsonpath='{.items[0].metadata.name}')
           
           if kubectl exec -n "$namespace" "$pod_name" -- wget -q -O - http://localhost:8081/healthz | grep -q "ok"; then
             echo "  ??Health endpoint responding"
           else
-            echo "  ? ï? Health endpoint not responding"
+            echo "  ?? Health endpoint not responding"
           fi
           
           # Test metrics endpoint
@@ -785,7 +788,7 @@ jobs:
           if kubectl exec -n "$namespace" "$pod_name" -- wget -q -O - http://localhost:8080/metrics | head -5; then
             echo "  ??Metrics endpoint responding"
           else
-            echo "  ? ï? Metrics endpoint not responding"
+            echo "  ?? Metrics endpoint not responding"
           fi
           
           echo "??Post-deployment tests completed"
@@ -801,10 +804,10 @@ jobs:
     timeout-minutes: 10
     
     steps:
-      - name: ?“¥ Checkout
+      - name: ? Checkout
         uses: actions/checkout@v4
         
-      - name: ?”§ Setup Helm
+      - name: ? Setup Helm
         run: |
           curl https://get.helm.sh/helm-v3.16.0-linux-amd64.tar.gz | tar xz
           sudo mv linux-amd64/helm /usr/local/bin/
@@ -815,7 +818,7 @@ jobs:
           helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
           helm repo update
           
-      - name: ??ï¸?Reconnect to Test Cluster
+      - name: ???Reconnect to Test Cluster
         uses: helm/kind-action@v1
         with:
           version: v0.24.0
@@ -979,10 +982,10 @@ jobs:
     timeout-minutes: 10
     
     steps:
-      - name: ?“¥ Checkout
+      - name: ? Checkout
         uses: actions/checkout@v4
         
-      - name: ??ï¸?Reconnect to Test Cluster
+      - name: ???Reconnect to Test Cluster
         uses: helm/kind-action@v1
         with:
           version: v0.24.0
@@ -1041,13 +1044,13 @@ jobs:
             if kubectl get prometheus -n monitoring; then
               echo "  ??Prometheus deployed"
             else
-              echo "  ? ï? Prometheus not deployed"
+              echo "  ?? Prometheus not deployed"
             fi
             
             if kubectl get servicemonitor nephoran-operator-metrics -n monitoring; then
               echo "  ??ServiceMonitor configured"
             else
-              echo "  ? ï? ServiceMonitor missing"
+              echo "  ?? ServiceMonitor missing"
             fi
           fi
           
@@ -1077,7 +1080,7 @@ jobs:
           else
             echo ""
             echo "??DEPLOYMENT VALIDATION FAILED!"
-            echo "?”§ Please check the issues above and retry deployment"
+            echo "? Please check the issues above and retry deployment"
             echo ""
             exit 1
           fi
@@ -1102,7 +1105,7 @@ jobs:
           echo "| Final Validation | success | Comprehensive post-deployment tests |" >> deployment-report.md
           echo "" >> deployment-report.md
           
-          echo "## ?”§ Configuration Applied" >> deployment-report.md
+          echo "## ? Configuration Applied" >> deployment-report.md
           echo '```json' >> deployment-report.md
           echo '${{ needs.deployment-preparation.outputs.deployment-config }}' >> deployment-report.md
           echo '```' >> deployment-report.md
@@ -1114,7 +1117,7 @@ jobs:
           echo '```' >> deployment-report.md
           echo "" >> deployment-report.md
           
-          echo "## ?Ž¯ Next Steps" >> deployment-report.md
+          echo "## ? Next Steps" >> deployment-report.md
           echo "1. **Configure Intent Processing**: Submit test intents to validate functionality" >> deployment-report.md
           echo "2. **Monitor Performance**: Check Grafana dashboards for operator metrics" >> deployment-report.md
           echo "3. **Security Review**: Verify RBAC and security contexts are appropriate" >> deployment-report.md
@@ -1124,7 +1127,7 @@ jobs:
           echo "---" >> deployment-report.md
           echo "_Generated by Nephoran Kubernetes Operator Deployment Pipeline_" >> deployment-report.md
           
-      - name: ?“¤ Upload Deployment Report
+      - name: ? Upload Deployment Report
         uses: actions/upload-artifact@v4
         if: always()
         with:

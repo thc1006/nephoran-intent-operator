@@ -34,7 +34,7 @@ on:
 
 # Concurrency control for LLM provider branch
 concurrency:
-  group: llm-provider-ci-${{ github.ref }}
+  group: ${{ github.ref }}
   cancel-in-progress: true
 
 # Minimal security permissions
@@ -88,9 +88,9 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          key: ubuntu-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-go-
+            ubuntu-go-
 
       - name: Download dependencies
         run: go mod download
@@ -139,9 +139,9 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          key: ubuntu-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-go-
+            ubuntu-go-
 
       - name: Run unit tests with coverage
         run: |
@@ -220,9 +220,9 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          key: ubuntu-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-go-
+            ubuntu-go-
 
       - name: Download build artifacts
         uses: actions/download-artifact@v4
@@ -345,9 +345,9 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          key: ubuntu-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-go-
+            ubuntu-go-
 
       - name: Install golangci-lint
         uses: golangci/golangci-lint-action@v4
@@ -369,7 +369,7 @@ jobs:
       - name: Security scan with gosec
         run: |
           # Install gosec directly
-          echo "?”§ Installing gosec..."
+          echo "? Installing gosec..."
           curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s -- -b /usr/local/bin v2.21.4
           
           # Run gosec scan
@@ -415,9 +415,9 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          key: ubuntu-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-go-
+            ubuntu-go-
 
       - name: Run benchmark tests
         run: |
@@ -560,7 +560,7 @@ jobs:
           
           echo "??All LLM Provider CI checks passed!"
           echo ""
-          echo "?Ž¯ Ready for:"
+          echo "? Ready for:"
           echo "  - Integration with main branch"
           echo "  - Production deployment"
           echo "  - Demo presentations"
@@ -570,8 +570,8 @@ jobs:
         run: |
           echo "?? LLM Provider CI Pipeline Completed Successfully!"
           echo "?? Coverage threshold met"
-          echo "?”§ Build verification passed"
-          echo "?§ª Integration tests passed"
+          echo "? Build verification passed"
+          echo "? Integration tests passed"
           echo "?? Schema validation passed"
-          echo "?›¡ï¸?Security scans passed"
+          echo "??Security scans passed"
           echo "??Demo validation passed"

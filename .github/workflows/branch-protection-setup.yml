@@ -35,6 +35,9 @@ on:
         type: boolean
         default: false
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
   security-events: write
@@ -67,7 +70,7 @@ jobs:
       compliance-policies: ${{ steps.compliance-config.outputs.policies }}
       
     steps:
-      - name: ?“¥ Checkout
+      - name: ? Checkout
         uses: actions/checkout@v4
         
       - name: ?? Generate Branch Protection Policies
@@ -378,7 +381,7 @@ jobs:
   # BRANCH PROTECTION APPLICATION: Apply protection rules to branches
   # =============================================================================
   branch-protection-application:
-    name: ?›¡ï¸?Branch Protection Application
+    name: ??Branch Protection Application
     runs-on: ubuntu-latest
     needs: policy-configuration
     timeout-minutes: 10
@@ -386,15 +389,15 @@ jobs:
       protection-status: ${{ steps.apply-protection.outputs.status }}
       
     steps:
-      - name: ?“¥ Checkout
+      - name: ? Checkout
         uses: actions/checkout@v4
         
-      - name: ?›¡ï¸?Apply Branch Protection Rules
+      - name: ??Apply Branch Protection Rules
         id: apply-protection
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "?›¡ï¸?Applying branch protection rules..."
+          echo "??Applying branch protection rules..."
           
           branch_policies='${{ needs.policy-configuration.outputs.branch-policies }}'
           IFS=',' read -ra BRANCHES <<< "${{ env.BRANCHES_TO_PROTECT }}"
@@ -403,7 +406,7 @@ jobs:
           
           for branch in "${BRANCHES[@]}"; do
             branch=$(echo "$branch" | xargs)  # trim whitespace
-            echo "?”§ Configuring protection for branch: $branch"
+            echo "? Configuring protection for branch: $branch"
             
             if [[ "${{ env.DRY_RUN }}" == "true" ]]; then
               echo "  ?? DRY RUN: Would apply protection to $branch"
@@ -435,12 +438,12 @@ jobs:
             
             if echo "$response" | grep -q '"message"'; then
               error_message=$(echo "$response" | jq -r '.message // "Unknown error"')
-              echo "  ? ï? Warning applying protection to $branch: $error_message"
+              echo "  ?? Warning applying protection to $branch: $error_message"
               
               if echo "$error_message" | grep -q "Branch not found"; then
-                echo "  ?¹ï? Branch $branch does not exist yet - will be protected when created"
+                echo "  ?? Branch $branch does not exist yet - will be protected when created"
               elif echo "$error_message" | grep -q "Validation Failed"; then
-                echo "  ? ï? Validation failed for $branch - checking existing protection"
+                echo "  ?? Validation failed for $branch - checking existing protection"
                 protection_status="partial"
               fi
             else
@@ -480,7 +483,7 @@ jobs:
               echo "    - Required reviews: $required_reviews" 
               echo "    - Admin enforcement: $(echo "$protection_status" | jq -r '.enforce_admins.enabled // false')"
             else
-              echo "  ? ï? Protection status unclear for $branch"
+              echo "  ?? Protection status unclear for $branch"
             fi
           done
 
@@ -496,7 +499,7 @@ jobs:
       security-status: ${{ steps.apply-security.outputs.status }}
       
     steps:
-      - name: ?“¥ Checkout
+      - name: ? Checkout
         uses: actions/checkout@v4
         
       - name: ?? Configure Security Policies
@@ -524,14 +527,14 @@ jobs:
             "https://api.github.com/repos/${{ env.REPO_OWNER }}/${{ env.REPO_NAME }}/vulnerability-alerts"
           
           # Enable automated security fixes
-          echo "?”§ Enabling automated security fixes..."
+          echo "? Enabling automated security fixes..."
           curl -s -X PUT \
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github.v3+json" \
             "https://api.github.com/repos/${{ env.REPO_OWNER }}/${{ env.REPO_NAME }}/automated-security-fixes"
           
           # Enable Dependabot alerts
-          echo "?“¦ Configuring Dependabot alerts..."
+          echo "? Configuring Dependabot alerts..."
           dependabot_config='{
             "enabled": true,
             "ecosystem": "go",
@@ -566,7 +569,7 @@ jobs:
           EOF
             echo "  ??Created Dependabot configuration"
           else
-            echo "  ?¹ï? Dependabot configuration already exists"
+            echo "  ?? Dependabot configuration already exists"
           fi
           
           echo "status=$security_status" >> $GITHUB_OUTPUT
@@ -624,7 +627,7 @@ jobs:
           EOF
             echo "  ??Created SECURITY.md policy document"
           else
-            echo "  ?¹ï? SECURITY.md already exists"
+            echo "  ?? SECURITY.md already exists"
           fi
 
   # =============================================================================
@@ -638,7 +641,7 @@ jobs:
     timeout-minutes: 10
     
     steps:
-      - name: ?“¥ Checkout
+      - name: ? Checkout
         uses: actions/checkout@v4
         
       - name: ?? Validate Compliance Policies
@@ -654,11 +657,11 @@ jobs:
           fi
           
           # Validate O-RAN compliance requirements
-          echo "?“¡ Validating O-RAN compliance setup..."
+          echo "? Validating O-RAN compliance setup..."
           if echo "$compliance_policies" | jq -e '.oran_compliance.enabled' > /dev/null; then
             echo "  ??O-RAN compliance policies configured"
           else
-            echo "  ? ï? O-RAN compliance not enabled"
+            echo "  ?? O-RAN compliance not enabled"
           fi
           
           # Validate 3GPP compliance
@@ -666,15 +669,15 @@ jobs:
           if echo "$compliance_policies" | jq -e '.threegpp_compliance.enabled' > /dev/null; then
             echo "  ??3GPP compliance policies configured"
           else
-            echo "  ? ï? 3GPP compliance not enabled"
+            echo "  ?? 3GPP compliance not enabled"
           fi
           
           # Validate NIST framework compliance
-          echo "?›¡ï¸?Validating NIST framework compliance..."
+          echo "??Validating NIST framework compliance..."
           if echo "$compliance_policies" | jq -e '.nist_compliance.enabled' > /dev/null; then
             echo "  ??NIST compliance policies configured"
           else
-            echo "  ? ï? NIST compliance not enabled"
+            echo "  ?? NIST compliance not enabled"
           fi
           
           # Create compliance tracking file
@@ -717,7 +720,7 @@ jobs:
     steps:
       - name: ?? Generate Comprehensive Policy Report
         run: |
-          echo "# ?›¡ï¸?Branch Protection & Security Policies Report" > policy-report.md
+          echo "# ??Branch Protection & Security Policies Report" > policy-report.md
           echo "" >> policy-report.md
           echo "**Date:** $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> policy-report.md
           echo "**Protection Level:** ${{ env.PROTECTION_LEVEL }}" >> policy-report.md
@@ -726,7 +729,7 @@ jobs:
           echo "**Dry Run Mode:** ${{ env.DRY_RUN }}" >> policy-report.md
           echo "" >> policy-report.md
           
-          echo "## ?Ž¯ Executive Summary" >> policy-report.md
+          echo "## ? Executive Summary" >> policy-report.md
           echo "" >> policy-report.md
           
           # Determine overall status
@@ -740,7 +743,7 @@ jobs:
             echo "" >> policy-report.md
             echo "Policy validation completed in dry-run mode. No changes were applied." >> policy-report.md
           else
-            echo "? ï? **PARTIAL SUCCESS**" >> policy-report.md
+            echo "?? **PARTIAL SUCCESS**" >> policy-report.md
             echo "" >> policy-report.md
             echo "Some policies were applied successfully, but there may be issues to address." >> policy-report.md
           fi
@@ -756,7 +759,7 @@ jobs:
           echo "| Compliance Validation | ${{ needs.compliance-validation.result || 'skipped' }} | Validated telecommunications compliance |" >> policy-report.md
           echo "" >> policy-report.md
           
-          echo "## ?›¡ï¸?Branch Protection Configuration" >> policy-report.md
+          echo "## ??Branch Protection Configuration" >> policy-report.md
           echo "" >> policy-report.md
           echo "### Protection Level: ${{ env.PROTECTION_LEVEL }}" >> policy-report.md
           echo "" >> policy-report.md
@@ -817,7 +820,7 @@ jobs:
             echo "" >> policy-report.md
           fi
           
-          echo "## ?Ž¯ Next Steps" >> policy-report.md
+          echo "## ? Next Steps" >> policy-report.md
           echo "" >> policy-report.md
           
           if [[ "${{ env.DRY_RUN }}" == "true" ]]; then
@@ -842,16 +845,16 @@ jobs:
           echo "---" >> policy-report.md
           echo "_Generated by Nephoran Branch Protection & Security Policies Setup_" >> policy-report.md
           
-      - name: ?“¤ Upload Policy Report
+      - name: ? Upload Policy Report
         uses: actions/upload-artifact@v4
         with:
           name: branch-protection-security-policies-report
           path: policy-report.md
           retention-days: 90
           
-      - name: ?Ž¯ Final Status Check
+      - name: ? Final Status Check
         run: |
-          echo "?Ž¯ Branch Protection & Security Policies Setup Complete"
+          echo "? Branch Protection & Security Policies Setup Complete"
           echo ""
           echo "?? Final Status:"
           echo "  - Protection Level: ${{ env.PROTECTION_LEVEL }}"
@@ -871,8 +874,8 @@ jobs:
           elif [[ "${{ needs.branch-protection-application.outputs.protection-status }}" == "success" && \
                   "${{ needs.security-policies-application.outputs.security-status }}" == "success" ]]; then
             echo "??All policies applied successfully"
-            echo "?›¡ï¸?Repository is now protected with enterprise-grade security policies"
+            echo "??Repository is now protected with enterprise-grade security policies"
           else
-            echo "? ï? Some policies may need manual review and application"
+            echo "?? Some policies may need manual review and application"
             echo "?? Check the detailed report for specific recommendations"
           fi

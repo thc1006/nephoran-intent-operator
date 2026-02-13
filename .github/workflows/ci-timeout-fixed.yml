@@ -28,7 +28,7 @@ on:
 
 # Critical: Proper concurrency configuration to prevent job collisions
 concurrency:
-  group: ci-timeout-fixed-${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.ref }}
   cancel-in-progress: true
 
 # Minimal permissions for security
@@ -92,11 +92,11 @@ jobs:
             ~/go/pkg/mod
             .go-build-cache
             .go-mod-cache
-          key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ env.CACHE_VERSION }}
+          key: ubuntu-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ env.CACHE_VERSION }}
           restore-keys: |
-            ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-
-            ${{ runner.os }}-go-${{ env.GO_VERSION }}-
-            ${{ runner.os }}-go-
+            ubuntu-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-
+            ubuntu-go-${{ env.GO_VERSION }}-
+            ubuntu-go-
         timeout-minutes: 5
         
         

@@ -43,7 +43,7 @@ on:
         default: false
 
 concurrency:
-  group: production-ci-${{ github.ref }}
+  group: ${{ github.ref }}
   cancel-in-progress: true
 
 # Enhanced permissions for production workflows

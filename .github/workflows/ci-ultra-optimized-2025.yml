@@ -35,7 +35,7 @@ on:
 
 # Aggressive concurrency control - manual-only mode
 concurrency:
-  group: nephoran-ci-${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.ref }}
   cancel-in-progress: true
 
 # Minimal permissions following zero-trust principles

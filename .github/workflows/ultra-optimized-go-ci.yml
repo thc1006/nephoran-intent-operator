@@ -43,7 +43,7 @@ on:
 
 # Intelligent concurrency control
 concurrency:
-  group: ultra-go-ci-${{ github.ref }}
+  group: ${{ github.ref }}
   cancel-in-progress: true
 
 # Minimal required permissions

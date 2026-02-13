@@ -85,7 +85,7 @@ on:
 
 # Strict concurrency control with branch-level isolation
 concurrency:
-  group: nephoran-consolidated-${{ github.ref }}-${{ github.event_name }}
+  group: ${{ github.ref }}
   cancel-in-progress: true
 
 # Security-first permissions model

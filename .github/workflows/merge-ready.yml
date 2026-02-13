@@ -7,7 +7,7 @@ on:
     branches: [fix/ci-compilation-errors]
 
 concurrency:
-  group: merge-ready-${{ github.ref }}
+  group: ${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
