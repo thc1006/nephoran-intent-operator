@@ -106,3 +106,4 @@ Updates are tracked here in append-only format.
 | 2026-02-13T12:31:32+00:00 | chore/pr-validation-remove-redundant-auth-smoke-20260213 | workflows | removed redundant auth provider smoke step from PR gate |
 | 2026-02-13T13:07:40+00:00 | chore/gate-single-context-normalization-20260213 | workflows | normalized required checks to single Basic Validation context |
 | 2026-02-13T13:19:19+00:00 | chore/pr-validation-parallel-blocking-20260213 | workflows | parallelized PR validation jobs under Basic Validation gate |
+| 2026-02-13T14:00:10+00:00 | integrate/mvp | .github/workflows | Sharded auth CI gate into core/providers with single Basic Validation. |
