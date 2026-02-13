@@ -16,3 +16,4 @@
 - Ubuntu-only runners.
 - Per-branch concurrency group: `${{ github.ref }}`.
 - Required gate contexts for protected branches: `Basic Validation`, `CI Status`.
+- `Basic Validation` currently blocks on build + `pkg/config` tests; `pkg/auth` and `internal/security` remain advisory.
