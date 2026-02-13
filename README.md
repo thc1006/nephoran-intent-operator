@@ -34,7 +34,7 @@ The **Nephoran Intent Operator** is a proof-of-concept cloud-native platform tha
 - **Ops & tooling**: `scripts/`, `tools/`, `ci/`, `monitoring/`, `metrics/`
 - **Docs**: `docs/` (ADR, API, runbooks, security, prompts), `CLAUDE.md`
 - **Examples & demo**: `examples/`, `demo/`, `planner/`
-- **Archived / reference**: `archive/`, `knowledge_base/`, `docs/security/reports/`
+- **Archived / reference**: `examples/archive/`, `knowledge_base/`, `docs/security/reports/`
 
 **🌟 Key Value Proposition (MVP Scope):**
 - **Natural Language Interface**: Translate network intents into structured configurations using AI
@@ -407,7 +407,7 @@ Enhanced security features include:
   - `X-Content-Type-Options` for MIME type sniffing protection
 
 ### 📁 Archive Directory
-The **[archive/](archive/)** directory contains essential example YAML configurations and reference templates actively used throughout the project. Despite its name, these are not deprecated files but rather canonical examples that serve critical purposes:
+The **[examples/archive/](examples/archive/)** directory contains essential example YAML configurations and reference templates actively used throughout the project. Despite its name, these are not deprecated files but rather canonical examples that serve critical purposes:
 - **Reference Templates**: Canonical YAML configurations used by deployment scripts and quickstart guides
 - **Active Examples**: Referenced by 12+ scripts and documentation files for demonstrations
 - **Testing Resources**: Used in continuous integration and system validation workflows
@@ -418,7 +418,7 @@ Key files include:
 - `test-deployment.yaml`: Complete system deployment manifest with LLM Processor and Nephio Bridge
 - `test-networkintent.yaml`: Advanced E2 node deployment example for O-RAN testing
 
-For detailed information about each file and usage instructions, see the comprehensive [archive/README.md](archive/README.md)
+For detailed information about each file and usage instructions, see the comprehensive [examples/archive/README.md](examples/archive/README.md)
 
 ## ⚙️ Configuration
 

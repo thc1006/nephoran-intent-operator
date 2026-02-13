@@ -66,7 +66,7 @@ These files are referenced by automated setup scripts:
 ### Command Examples
 ```bash
 # Apply a NetworkIntent
-kubectl apply -f archive/my-first-intent.yaml
+kubectl apply -f examples/archive/my-first-intent.yaml
 
 # Check intent status
 kubectl get networkintents
