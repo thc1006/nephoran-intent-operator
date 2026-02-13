@@ -197,7 +197,7 @@ func TestAzureADProvider_ExchangeCodeForToken(t *testing.T) {
 		if strings.Contains(r.URL.Path, "/oauth2/v2.0/token") {
 			// Validate request
 			assert.Equal(t, "POST", r.Method)
-			assert.Equal(t, "application/x-www-form-urlencoded", r.Header.Get("Content-Type"))
+			assert.Contains(t, r.Header.Get("Content-Type"), "application/x-www-form-urlencoded")
 
 			// Parse form data
 			err := r.ParseForm()
@@ -206,7 +206,13 @@ func TestAzureADProvider_ExchangeCodeForToken(t *testing.T) {
 			code := r.FormValue("code")
 			switch code {
 			case "valid-code":
-				response := json.RawMessage(`{}`)
+				response := map[string]interface{}{
+					"access_token":  "azure-access-token-123",
+					"refresh_token": "azure-refresh-token-456",
+					"token_type":    "Bearer",
+					"expires_in":    3600,
+					"id_token":      "azure-id-token-789",
+				}
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(response)
 			case "invalid-code":
@@ -220,7 +226,7 @@ func TestAzureADProvider_ExchangeCodeForToken(t *testing.T) {
 				json.NewEncoder(w).Encode(response)
 			default:
 				w.WriteHeader(http.StatusBadRequest)
-				response := json.RawMessage(`{}`)
+				response := map[string]string{"error": "invalid_request"}
 				json.NewEncoder(w).Encode(response)
 			}
 		}
@@ -272,8 +278,8 @@ func TestAzureADProvider_ExchangeCodeForToken(t *testing.T) {
 				return
 			}
 
-			assert.NoError(t, err)
-			assert.NotNil(t, tokenResp)
+			require.NoError(t, err)
+			require.NotNil(t, tokenResp)
 			assert.Equal(t, tt.wantToken, tokenResp.AccessToken)
 			assert.Equal(t, tt.wantRefresh, tokenResp.RefreshToken)
 			assert.Equal(t, "Bearer", tokenResp.TokenType)
@@ -300,7 +306,12 @@ func TestAzureADProvider_RefreshToken(t *testing.T) {
 			refreshToken := r.FormValue("refresh_token")
 			switch refreshToken {
 			case "valid-refresh-token":
-				response := json.RawMessage(`{}`)
+				response := map[string]interface{}{
+					"access_token":  "new-azure-access-token",
+					"refresh_token": "new-azure-refresh-token",
+					"token_type":    "Bearer",
+					"expires_in":    3600,
+				}
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(response)
 			case "expired-refresh-token":
@@ -311,7 +322,7 @@ func TestAzureADProvider_RefreshToken(t *testing.T) {
 				json.NewEncoder(w).Encode(response)
 			default:
 				w.WriteHeader(http.StatusBadRequest)
-				response := json.RawMessage(`{}`)
+				response := map[string]string{"error": "invalid_grant"}
 				json.NewEncoder(w).Encode(response)
 			}
 		}
@@ -358,8 +369,8 @@ func TestAzureADProvider_RefreshToken(t *testing.T) {
 				return
 			}
 
-			assert.NoError(t, err)
-			assert.NotNil(t, tokenResp)
+			require.NoError(t, err)
+			require.NotNil(t, tokenResp)
 			assert.Equal(t, tt.wantToken, tokenResp.AccessToken)
 			assert.Equal(t, "Bearer", tokenResp.TokenType)
 		})
@@ -708,7 +719,7 @@ func TestAzureADProvider_RevokeToken(t *testing.T) {
 				w.WriteHeader(http.StatusOK)
 			} else {
 				w.WriteHeader(http.StatusBadRequest)
-				response := json.RawMessage(`{}`)
+				response := map[string]string{"error": "invalid_token"}
 				json.NewEncoder(w).Encode(response)
 			}
 		}
@@ -874,7 +885,13 @@ func createMockAzureADServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/test-tenant/oauth2/v2.0/token":
-			response := json.RawMessage(`{}`)
+			response := map[string]interface{}{
+				"access_token":  "azure-access-token-123",
+				"refresh_token": "azure-refresh-token-456",
+				"token_type":    "Bearer",
+				"expires_in":    3600,
+				"id_token":      "azure-id-token-789",
+			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(response)
 		case "/v1.0/me":

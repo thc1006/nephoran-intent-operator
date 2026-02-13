@@ -58,6 +58,9 @@ on:
 # IMPLEMENTATION PLAN
 # =============================================================================
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   consolidation-documentation:
     name: "📋 Consolidation Documentation"

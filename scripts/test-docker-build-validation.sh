@@ -170,7 +170,7 @@ test_service_build_commands() {
 test_smart_build_integration() {
     log_info "=== Testing Smart Build Script Integration ==="
     
-    local smart_build="$PROJECT_ROOT/scripts/smart-docker-build.sh"
+    local smart_build="$PROJECT_ROOT/scripts/deploy/smart-docker-build.sh"
     
     if [ ! -f "$smart_build" ]; then
         docker_test_result "SmartBuild-Exists" "FAIL" "Smart build script not found"
@@ -477,7 +477,7 @@ test_resource_optimization() {
 test_error_recovery() {
     log_info "=== Testing Build Error Recovery ==="
     
-    local smart_build="$PROJECT_ROOT/scripts/smart-docker-build.sh"
+    local smart_build="$PROJECT_ROOT/scripts/deploy/smart-docker-build.sh"
     
     if [ ! -f "$smart_build" ]; then
         docker_test_result "ErrorRecovery-SmartBuild" "FAIL" "Smart build script not available"

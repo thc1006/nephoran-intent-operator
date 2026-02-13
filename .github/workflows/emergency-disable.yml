@@ -28,6 +28,9 @@ on:
         type: boolean
         default: true
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: write
   actions: write
@@ -106,7 +109,7 @@ jobs:
           # Add disable check at the top of the workflow
           cat > "$WORKFLOW_PATH.tmp" << 'EOF'
           # =============================================================================
-          # ?š¨ EMERGENCY DISABLED ?š¨
+          # ? EMERGENCY DISABLED ?
           # =============================================================================
           # Workflow: ${{ steps.validate.outputs.workflow_name }}
           # Reason: ${{ inputs.reason }}
@@ -133,7 +136,7 @@ jobs:
               steps:\
                 - name: Check if workflow is disabled\
                   run: |\
-                    echo "?š¨ WORKFLOW EMERGENCY DISABLED ?š¨"\
+                    echo "? WORKFLOW EMERGENCY DISABLED ?"\
                     echo "Reason: ${{ inputs.reason }}"\
                     echo "Disabled by: ${{ github.actor }}"\
                     echo "Contact: ${{ env.EMERGENCY_CONTACT }}"\
@@ -147,7 +150,7 @@ jobs:
         with:
           script: |
             const issueBody = `
-            ## ?š¨ EMERGENCY WORKFLOW DISABLE ALERT
+            ## ? EMERGENCY WORKFLOW DISABLE ALERT
 
             **Workflow Disabled**: \`${{ inputs.target_workflow }}\`  
             **Workflow Name**: ${{ steps.validate.outputs.workflow_name }}  
@@ -157,9 +160,9 @@ jobs:
             **Expires**: $(date -u -d '+${{ inputs.disable_duration }} hours' +%Y-%m-%dT%H:%M:%SZ)
 
             ### Impact
-            - ? ï? The specified workflow is now disabled and will fail immediately if triggered
-            - ? ï? Any automatic triggers for this workflow will result in failed runs
-            - ? ï? Manual workflow runs will also fail with the disable message
+            - ?? The specified workflow is now disabled and will fail immediately if triggered
+            - ?? Any automatic triggers for this workflow will result in failed runs
+            - ?? Manual workflow runs will also fail with the disable message
 
             ### Recovery Steps
             1. Address the underlying issue that caused the emergency disable
@@ -169,9 +172,9 @@ jobs:
             5. Restore from backup if needed: \`${{ inputs.target_workflow }}.emergency-backup-*\`
 
             ### Files Modified
-            - ?ï? \`${{ steps.validate.outputs.workflow_path }}\` (disable check added)
+            - ?? \`${{ steps.validate.outputs.workflow_path }}\` (disable check added)
             - ?? \`${{ env.DISABLE_MARKER_DIR }}/${{ inputs.target_workflow }}.disabled\` (marker created)
-            - ?’¾ Backup created with timestamp
+            - ? Backup created with timestamp
 
             ### Contact
             Emergency contact: ${{ env.EMERGENCY_CONTACT }}
@@ -183,7 +186,7 @@ jobs:
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `?š¨ EMERGENCY: Workflow "${{ steps.validate.outputs.workflow_name }}" Disabled`,
+              title: `? EMERGENCY: Workflow "${{ steps.validate.outputs.workflow_name }}" Disabled`,
               body: issueBody,
               labels: ['emergency', 'workflow-disabled', 'needs-attention']
             });
@@ -194,7 +197,7 @@ jobs:
           git config --local user.name "Emergency Disable System"
           
           git add .
-          git commit -m "?š¨ EMERGENCY: Disable workflow ${{ inputs.target_workflow }}
+          git commit -m "? EMERGENCY: Disable workflow ${{ inputs.target_workflow }}
 
           Reason: ${{ inputs.reason }}
           Duration: ${{ inputs.disable_duration }} hours
@@ -257,7 +260,7 @@ jobs:
 
       - name: Summary
         run: |
-          echo "# ?š¨ Emergency Disable Completed" >> $GITHUB_STEP_SUMMARY
+          echo "# ? Emergency Disable Completed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Workflow**: \`${{ inputs.target_workflow }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Name**: ${{ steps.validate.outputs.workflow_name }}" >> $GITHUB_STEP_SUMMARY

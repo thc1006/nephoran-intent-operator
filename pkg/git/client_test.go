@@ -206,7 +206,7 @@ func TestClient_CommitAndPush_FileCreation(t *testing.T) {
 
 	files := map[string]string{
 		"config/app.yaml":            "app: test",
-		"scripts/deploy.sh":          "#!/bin/bash\necho 'deploying'",
+		"scripts/deploy/deploy.sh":   "#!/bin/bash\necho 'deploying'",
 		"docs/README.md":             "# Documentation",
 		"nested/deep/structure.json": `{"key": "value"}`,
 	}
