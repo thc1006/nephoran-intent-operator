@@ -16,4 +16,4 @@
 - Ubuntu-only runners.
 - Per-branch concurrency group: `${{ github.ref }}`.
 - Required gate context for protected branches: `Basic Validation`.
-- `Basic Validation` currently blocks on build + `pkg/config` + full `pkg/auth` + `internal/security`.
+- `Basic Validation` aggregates parallel blocking jobs for build + `pkg/config` + full `pkg/auth` + `internal/security`.
