@@ -544,9 +544,8 @@ func TestSessionMetrics(t *testing.T) {
 		}
 	}
 
-	ssoEnabled, ok := metrics["sso_enabled"].(bool)
-	if !ok || !ssoEnabled {
-		t.Error("Expected SSO to be enabled")
+	if _, exists := metrics["sso_enabled"]; exists {
+		t.Error("Did not expect deprecated sso_enabled metric key")
 	}
 }
 
