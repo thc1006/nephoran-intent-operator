@@ -251,6 +251,10 @@ func (p *GoogleProvider) GetAuthorizationURL(state, redirectURI string, options 
 		authOpts = append(authOpts, oauth2.SetAuthURLParam("login_hint", opts.LoginHint))
 	}
 
+	if opts.DomainHint != "" {
+		authOpts = append(authOpts, oauth2.SetAuthURLParam("hd", opts.DomainHint))
+	}
+
 	if opts.MaxAge > 0 {
 		authOpts = append(authOpts, oauth2.SetAuthURLParam("max_age", fmt.Sprintf("%d", opts.MaxAge)))
 	}
@@ -515,7 +519,10 @@ func (p *GoogleProvider) ValidateToken(ctx context.Context, accessToken string) 
 // RevokeToken revokes an access token.
 
 func (p *GoogleProvider) RevokeToken(ctx context.Context, token string) error {
-	revokeURL := "https://oauth2.googleapis.com/revoke"
+	revokeURL := p.config.Endpoints.RevokeURL
+	if revokeURL == "" {
+		revokeURL = "https://oauth2.googleapis.com/revoke"
+	}
 
 	data := url.Values{}
 

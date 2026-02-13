@@ -90,7 +90,7 @@ tests/security/
 
 #### Implementation Files:
 - `.github/workflows/security-scan.yml`
-- `scripts/security-scan.sh`
+- `scripts/security/security-scan.sh`
 - `deployments/security/container-scan-policy.yaml`
 - Enhanced `Makefile` with security targets
 
@@ -106,7 +106,7 @@ tests/security/
 #### Implementation Files:
 - `supply-chain-security.md`
 - `.github/workflows/supply-chain.yml`
-- `scripts/verify-supply-chain.sh`
+- `scripts/security/verify-supply-chain.sh`
 
 #### Key Features:
 - **Dependency Verification**: Go mod verification
@@ -134,7 +134,7 @@ tests/security/
 
 #### Implementation Files:
 - `docs/security/docker-security-audit-report.md`
-- `scripts/docker-security-scan.sh`
+- `scripts/security/docker-security-scan.sh`
 - Multiple `Dockerfile.*-secure` variants
 - `deployments/security/pod-security-standards.yaml`
 

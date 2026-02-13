@@ -76,14 +76,14 @@ Data Synchronization:
 **Implementation:**
 ```bash
 # Deploy primary region (US-East)
-./scripts/deploy-multi-region.sh --region us-east-1 --role primary \
+./scripts/deploy/deploy-multi-region.sh --region us-east-1 --role primary \
   --cluster-size 20 --backup-regions "eu-west-1,ap-southeast-1"
 
 # Deploy secondary regions
-./scripts/deploy-multi-region.sh --region eu-west-1 --role secondary \
+./scripts/deploy/deploy-multi-region.sh --region eu-west-1 --role secondary \
   --primary-region us-east-1 --cluster-size 16
 
-./scripts/deploy-multi-region.sh --region ap-southeast-1 --role secondary \
+./scripts/deploy/deploy-multi-region.sh --region ap-southeast-1 --role secondary \
   --primary-region us-east-1 --cluster-size 12
 
 # Validate deployment

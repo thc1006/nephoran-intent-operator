@@ -4,6 +4,9 @@ on:
   workflow_call:
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   cache-modules:
     runs-on: ubuntu-latest
@@ -54,9 +57,9 @@ jobs:
           path: |
             ~/.cache/go-mod
             ~/.cache/go-build
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          key: ubuntu-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-go-
+            ubuntu-go-
           # Enable safer extraction mode
           enableCrossOsArchive: false
           fail-on-cache-miss: false

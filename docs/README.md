@@ -63,6 +63,13 @@ docs/
 ### Architecture Decision Records (ADRs)
 Documents that capture important architectural decisions made during the project lifecycle. These provide context for why certain technical choices were made and serve as reference for future development.
 
+#### Status tags
+- **Active**: current source of truth.
+- **Draft**: under development; verify before use.
+- **Archive**: retained for history only; do not follow without review.
+
+> 建議：新增或修改文件時，於開頭標註狀態（Active/Draft/Archive），過期內容移至 `docs/archive/` 並在此 README 保持索引。
+
 ### API Documentation
 Complete API reference materials including OpenAPI specifications, examples, and integration guides. Essential for developers integrating with the Nephoran Intent Operator.
 
@@ -80,6 +87,9 @@ Comprehensive security documentation including implementation summaries, hardeni
 
 ### Workflow Documentation
 CI/CD pipeline documentation, automation scripts, and workflow management procedures. Essential for maintaining the development and deployment processes.
+
+### Archive (history/legacy)
+Use `docs/archive/`存放過期報告、一次性方案或被取代的流程，並在對應的主分類連結至最新版本；已移動：whitepapers、reports、presentations、knowledge-base。
 
 ## Document Maintenance
 

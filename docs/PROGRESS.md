@@ -75,3 +75,39 @@ Updates are tracked here in append-only format.
 | 2025-09-06T15:07:58Z | fix/ci-compilation-errors | dependency-management | Resolved Kubernetes dependency conflicts for Nephio R5/O-RAN L Release |
 | 2026-02-12T01:30:10Z | main | scripts/docs/events | Phase-2 cleanup: removed 232 obsolete files, 51k lines |
 | 2026-02-12T01:38:05Z | main | scripts | Remove 3 orphaned validate scripts (377 lines) |
+| 2026-02-12T01:40:41Z | chore/remove-orphaned-validate-scripts | scripts | Remove 3 orphaned validate scripts (377 lines) |
+| 2026-02-12T02:02:46Z | chore/docs-phase3-restructure | docs | Phase-3: delete 36 orphans, move 91 md files to subdirs |
+| 2026-02-12T02:08:55Z | chore/docs-phase3-restructure | docs | Restore 7 wrongly-deleted docs; fix 5 broken refs in runbooks/README |
+| 2026-02-12T02:23:34Z | chore/docs-phase3-restructure | docs | Fix 21 broken cross-refs across README, CONTRIBUTING, QUICKSTART, index, runbooks |
+| 2026-02-12T03:13:20.003Z | main | security/docs | Phase4 remediation kickoff: align statuses and gating requirements doc-only |
+| 2026-02-12T04:24:32.306Z | main | ci/workflows | Disabled auto PR triggers for temp ci-status/test-bypass workflows; added repo map |
+| 2026-02-12T04:28:01.891Z | main | ci/workflows | Added CI allowlist doc/workflow, set branch protection setup to manual-only |
+| 2026-02-12T04:29:19.234Z | main | ci/workflows | Removed 21 legacy workflows per allowlist consolidation |
+| 2026-02-12T04:40:06.745Z | main | scripts | Added scripts/README with category map for consolidation |
+| 2026-02-12T04:39:22.773Z | main | docs/deployments | Added docs status tags and deployments release mapping README |
+| 2026-02-12T04:43:16.705Z | main | scripts/docs | Archived four legacy scripts; updated references |
+| 2026-02-12T04:55:38.362Z | main | scripts/docs/ci | Moved deploy/ops/security scripts into folders; archived docs to docs/archive; added CI placeholders and updated branch protection contexts |
+| 2026-02-13T07:17:02+00:00 | main | pkg/auth+providers | Stabilized target auth/provider failing tests with parallel runs |
+| 2026-02-13T07:36:07+00:00 | main | pkg/auth,pkg/testutil/auth | JWT mocks stabilized; auth+providers suites green with parallel go test |
+| 2026-02-13T08:23:01+00:00 | main | pkg/auth | Unskipped middleware auth/RBAC tests; converted to real managers; auth suites green |
+| 2026-02-13T08:39:50+00:00 | main | docs,scripts,deployments | Path references aligned with reorganized scripts/workflows; parallel verification passed |
+| 2026-02-13T08:57:50+00:00 | feat/auth-structure-cleanup-20260213 | release-flow | Scoped commit pushed and PR opened to integrate/mvp (#303) |
+| 2026-02-13T09:05:02+00:00 | feat/auth-structure-cleanup-20260213 | merge/conflicts | Resolved integrate/mvp conflicts for PR #303 and pushed merge commit |
+| 2026-02-13T09:22:14+00:00 | chore/ci-linux-hardening-20260213 | .github/workflows | Enforced ubuntu-only workflow keys and standardized per-branch concurrency |
+| 2026-02-13T09:50:04+00:00 | chore/ci-workflow-prune-20260213 | .github/workflows | Pruned deprecated workflows; added pr-validation and CI Status-aligned policies |
+| 2026-02-13T10:01:57+00:00 | chore/ci-workflow-prune-20260213 | .github/workflows | Relaxed PR validation test step to non-blocking warnings for baseline stability |
+| 2026-02-13T10:42:16+00:00 | chore/check-policy-normalization-20260213 | workflows | required checks normalized to real contexts |
+| 2026-02-13T11:00:25+00:00 | chore/pkg-config-test-stabilization-20260213 | pkg/config | decoupled config tests from CORS validation constraints |
+| 2026-02-13T11:08:10+00:00 | chore/pr-validation-tighten-config-20260213 | workflows | made pkg/config scoped tests blocking in PR gate |
+| 2026-02-13T11:19:07+00:00 | chore/pr-validation-auth-smoke-gate-20260213 | workflows | added blocking auth provider smoke tests to PR gate |
+| 2026-02-13T11:47:41+00:00 | chore/auth-fullsuite-stabilization-p1-20260213 | pkg/auth | phase1 stabilized auth suite, providers, and logger nil-safety |
+| 2026-02-13T12:16:38+00:00 | chore/security-suite-stabilization-p1-20260213 | internal/security | fixed JSON limit test and made security scoped tests blocking |
+| 2026-02-13T12:22:50+00:00 | chore/pr-validation-full-auth-blocking-20260213 | workflows | made full pkg/auth scoped tests blocking in PR gate |
+| 2026-02-13T12:31:32+00:00 | chore/pr-validation-remove-redundant-auth-smoke-20260213 | workflows | removed redundant auth provider smoke step from PR gate |
+| 2026-02-13T13:07:40+00:00 | chore/gate-single-context-normalization-20260213 | workflows | normalized required checks to single Basic Validation context |
+| 2026-02-13T13:19:19+00:00 | chore/pr-validation-parallel-blocking-20260213 | workflows | parallelized PR validation jobs under Basic Validation gate |
+| 2026-02-13T14:00:10+00:00 | integrate/mvp | .github/workflows | Sharded auth CI gate into core/providers with single Basic Validation. |
+| 2026-02-13T14:26:59+00:00 | chore/pr-validation-reusable-go-setup-20260213 | .github/workflows | Reused Go CI setup via workflow_call for PR validation shards. |
+| 2026-02-13T14:41:04+00:00 | chore/pr-validation-warmpath-tune-20260213 | .github/workflows | Tuned reusable Go job warm path; skip explicit module prep in PR build job. |
+| 2026-02-13T15:09:30+00:00 | chore/auth-config-path-validation-fix-20260213 | pkg/auth | Fix config path guard false-positive on /home/*/dev/* repositories. |
+| 2026-02-13T15:19:02+00:00 | chore/pr-validation-performance-guard-20260213 | .github/workflows | Add PR-validation p95 regression guard with automated issue alerts. |
