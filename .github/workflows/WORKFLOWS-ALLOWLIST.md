@@ -12,3 +12,7 @@ Allowed active workflows:
 - debug-ghcr-auth.yml
 - claude.yml
 - emergency-disable.yml
+
+Required protected-branch check contexts:
+- Basic Validation
+- CI Status

@@ -15,4 +15,4 @@
 ## Policy
 - Ubuntu-only runners.
 - Per-branch concurrency group: `${{ github.ref }}`.
-- Required gate context for protected branches: `CI Status`.
+- Required gate contexts for protected branches: `Basic Validation`, `CI Status`.
