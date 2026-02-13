@@ -92,3 +92,4 @@ Updates are tracked here in append-only format.
 | 2026-02-13T08:23:01+00:00 | main | pkg/auth | Unskipped middleware auth/RBAC tests; converted to real managers; auth suites green |
 | 2026-02-13T08:39:50+00:00 | main | docs,scripts,deployments | Path references aligned with reorganized scripts/workflows; parallel verification passed |
 | 2026-02-13T08:57:50+00:00 | feat/auth-structure-cleanup-20260213 | release-flow | Scoped commit pushed and PR opened to integrate/mvp (#303) |
+| 2026-02-13T09:05:02+00:00 | feat/auth-structure-cleanup-20260213 | merge/conflicts | Resolved integrate/mvp conflicts for PR #303 and pushed merge commit |
