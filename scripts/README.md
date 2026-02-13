@@ -38,7 +38,7 @@
 - mcp-helm-server.py, postgres_optimize.sql, env-config-example.sh
 
 ### Archive / One-off / Needs review
-- Archived to `archive/`: benchmark_results.md, format-bypass-check.sh, quick-fix-syntax.sh, fix-ci-timeout.sh
+- Archived to `scripts/`: benchmark_results.md, format-bypass-check.sh, quick-fix-syntax.sh, fix-ci-timeout.sh
 - Still to review: fix-disaster-recovery-test.sh, fix-gosec-issues.go, quickstart.sh, quick-db-check, deployment/ (mixed assets), hooks/, technical-debt/, validation/legacy helpers
 
 ## 後續建議

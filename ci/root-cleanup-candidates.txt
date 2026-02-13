@@ -2,4 +2,4 @@
 CLAUDE_AGENTS_ANALYSIS.md|docs/agents/CLAUDE_AGENTS_ANALYSIS.md|candidate-blocked|Referenced by CLAUDE.md import path; move requires coordinated prompt update.
 QUICKSTART.md|docs/getting-started/quickstart.md|candidate-blocked|Referenced by tests and root README links; move requires test and backlink migration.
 security-reports|docs/security/reports|completed|Tracked SBOM references migrated; runtime report paths in scripts/deployments remain unchanged.
-archive|docs/archive|candidate-review|Large legacy bucket should be split and moved in phased batches.
+archive|examples/archive|completed|Root archive examples moved to examples/archive with reference updates.

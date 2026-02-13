@@ -34,7 +34,6 @@ QUICKSTART.md
 README.md
 SECURITY.md
 api
-archive
 ci
 cmd
 config
