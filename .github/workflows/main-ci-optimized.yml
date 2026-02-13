@@ -15,7 +15,7 @@ on:
 
 # Single runner per branch - no overlapping runs
 concurrency:
-  group: main-ci-optimized-${{ github.ref }}
+  group: ${{ github.ref }}
   cancel-in-progress: true
 
 permissions:

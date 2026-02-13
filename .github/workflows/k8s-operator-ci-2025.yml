@@ -37,7 +37,7 @@ on:
 
 # 2025 CI/CD best practice - branch-specific concurrency
 concurrency:
-  group: nephoran-ci-${{ github.ref }}
+  group: ${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -127,7 +127,7 @@ jobs:
           if [[ -z "$GO_MOD_HASH" ]]; then GO_MOD_HASH="${{ github.sha }}"; fi
           if [[ -z "$CONFIG_HASH" ]]; then CONFIG_HASH="${{ github.sha }}"; fi
           
-          CACHE_KEY="nephoran-k8s-op-v3-${CACHE_VERSION}-${{ runner.os }}-go${{ env.GO_VERSION }}-k8s${{ env.KUBERNETES_VERSION }}-${GO_SUM_HASH}-${GO_MOD_HASH}-${CONFIG_HASH}"
+          CACHE_KEY="nephoran-k8s-op-v3-${CACHE_VERSION}-ubuntu-go${{ env.GO_VERSION }}-k8s${{ env.KUBERNETES_VERSION }}-${GO_SUM_HASH}-${GO_MOD_HASH}-${CONFIG_HASH}"
           echo "cache-key=${CACHE_KEY}" >> $GITHUB_OUTPUT
           echo "Generated cache key: $CACHE_KEY"
           
@@ -229,7 +229,7 @@ jobs:
             ${{ env.GOMODCACHE }}
           key: ${{ needs.preflight.outputs.go-cache-key }}
           restore-keys: |
-            nephoran-k8s-op-v3-${{ runner.os }}-go${{ env.GO_VERSION }}-k8s${{ env.KUBERNETES_VERSION }}-
+            nephoran-k8s-op-v3-ubuntu-go${{ env.GO_VERSION }}-k8s${{ env.KUBERNETES_VERSION }}-
             
       - name: Clean up any existing Kubebuilder
         run: sudo rm -f /usr/local/bin/kubebuilder

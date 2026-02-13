@@ -7,7 +7,7 @@ on:
       - main
 
 concurrency:
-  group: test-bypass-${{ github.ref }}
+  group: ${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

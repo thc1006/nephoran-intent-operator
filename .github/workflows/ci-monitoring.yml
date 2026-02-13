@@ -22,6 +22,9 @@ on:
         type: number
         default: 24
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
   actions: read

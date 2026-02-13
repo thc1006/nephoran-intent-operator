@@ -34,7 +34,7 @@ on:
   #   branches: [ main, integrate/mvp ]
 
 concurrency:
-  group: parallel-tests-${{ github.ref }}
+  group: ${{ github.ref }}
   cancel-in-progress: true
 
 permissions:

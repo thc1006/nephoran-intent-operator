@@ -51,6 +51,9 @@ on:
         options: ['small', 'medium', 'large', 'xlarge']
         default: 'medium'
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
 env:
   # Base timeout configurations (in minutes)
   BASE_TIMEOUT_BUILD: "20"
@@ -82,7 +85,7 @@ jobs:
       timeout-strategy: ${{ steps.calculate.outputs.timeout-strategy }}
       
     steps:
-      - name: ?”§ Calculate adaptive timeout
+      - name: ? Calculate adaptive timeout
         id: calculate
         run: |
           echo "??Calculating adaptive timeout for operation..."
@@ -214,7 +217,7 @@ jobs:
           echo "??Timeout configuration generated:"
           cat timeout-config.json | jq '.'
           
-      - name: ?“¤ Upload timeout configuration
+      - name: ? Upload timeout configuration
         uses: actions/upload-artifact@v4
         with:
           name: timeout-configuration
@@ -222,7 +225,7 @@ jobs:
           retention-days: 1
 
   timeout-demonstration:
-    name: ?§ª Timeout Demonstration
+    name: ? Timeout Demonstration
     runs-on: ubuntu-latest
     needs: timeout-calculator
     timeout-minutes: ${{ fromJSON(needs.timeout-calculator.outputs.timeout-minutes) }}
@@ -231,7 +234,7 @@ jobs:
     steps:
       - name: ?? Display calculated timeout
         run: |
-          echo "?§ª Timeout Demonstration"
+          echo "? Timeout Demonstration"
           echo "========================"
           echo "Calculated timeout: ${{ needs.timeout-calculator.outputs.timeout-minutes }} minutes"
           echo "Timeout strategy: ${{ needs.timeout-calculator.outputs.timeout-strategy }}"
@@ -246,8 +249,8 @@ jobs:
           timeout_seconds=$(( ${{ needs.timeout-calculator.outputs.timeout-minutes }} * 60 ))
           warning_time=$(( timeout_seconds - 120 ))  # 2 minutes before timeout
           
-          echo "?Ž¯ Operation will timeout in ${timeout_seconds} seconds"
-          echo "? ï? Warning will be shown at ${warning_time} seconds"
+          echo "? Operation will timeout in ${timeout_seconds} seconds"
+          echo "?? Warning will be shown at ${warning_time} seconds"
           
           # Simulate work with periodic status updates
           start_time=$(date +%s)
@@ -264,9 +267,9 @@ jobs:
               
               # Show warning near timeout
               if [[ $elapsed -eq $warning_time ]]; then
-                echo "? ï? WARNING: Approaching timeout in 2 minutes!"
-                echo "? ï? Current operation: $work_type"
-                echo "? ï? Elapsed time: ${elapsed}s / ${timeout_seconds}s"
+                echo "?? WARNING: Approaching timeout in 2 minutes!"
+                echo "?? Current operation: $work_type"
+                echo "?? Elapsed time: ${elapsed}s / ${timeout_seconds}s"
               fi
               
               # Show periodic progress
@@ -309,11 +312,11 @@ jobs:
           
           echo "??All simulation tasks completed successfully"
           
-      - name: ?§¹ Cleanup on timeout
+      - name: ? Cleanup on timeout
         if: steps.simulate.outcome == 'cancelled' && needs.timeout-calculator.outputs.cleanup-required == 'true'
         run: |
-          echo "?§¹ Performing cleanup after timeout..."
-          echo "? ï? Operation was cancelled due to timeout"
+          echo "? Performing cleanup after timeout..."
+          echo "?? Operation was cancelled due to timeout"
           
           # Simulate cleanup operations
           echo "?? Cleaning up temporary files..."
@@ -386,7 +389,7 @@ jobs:
               ;;
           esac
           
-      - name: ?“¤ Upload timeout report
+      - name: ? Upload timeout report
         uses: actions/upload-artifact@v4
         if: always()
         with:

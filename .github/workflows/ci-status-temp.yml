@@ -10,7 +10,7 @@ on:
 
 # Single concurrency group to prevent multiple runs
 concurrency:
-  group: ci-status-temp-${{ github.ref }}
+  group: ${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

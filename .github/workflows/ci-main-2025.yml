@@ -28,7 +28,7 @@ on:
 
 # Single concurrency group for main CI
 concurrency:
-  group: main-ci-${{ github.ref }}
+  group: ${{ github.ref }}
   cancel-in-progress: true
 
 permissions:

@@ -43,6 +43,9 @@ on:
         type: string
         default: 'go-modules'
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
 env:
   GO_VERSION: "1.24.6"  # EMERGENCY FIX - Match go.mod toolchain
   CACHE_VERSION: "v4"
@@ -103,7 +106,7 @@ jobs:
           
           # Create comprehensive cache key
           cache_prefix="${{ inputs.cache_prefix || 'go-modules' }}"
-          base_key="${cache_prefix}-${{ env.CACHE_VERSION }}-${{ runner.os }}-go${{ env.GO_VERSION }}"
+          base_key="${cache_prefix}-${{ env.CACHE_VERSION }}-ubuntu-go${{ env.GO_VERSION }}"
           
           # Include all hashes in key
           if [[ -n "$go_sum_hash" ]]; then

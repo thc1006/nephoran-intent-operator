@@ -126,7 +126,7 @@ jobs:
           
           # Build hierarchical cache key with timestamp to prevent stale cache
           BASE_KEY="nephoran-reliability-v4"
-          PLATFORM_KEY="$BASE_KEY-${{ runner.os }}"
+          PLATFORM_KEY="$BASE_KEY-ubuntu"
           GO_KEY="$PLATFORM_KEY-$GO_VERSION_ACTUAL"
           # Add weekly rotation to prevent stale caches
           WEEK_HASH=$(date +%Y-W%V)
@@ -215,8 +215,8 @@ jobs:
             ~/go/pkg/mod
           key: ${{ needs.reliability-setup.outputs.cache-key }}
           restore-keys: |
-            nephoran-reliability-v3-${{ runner.os }}-go1.24
-            nephoran-reliability-v3-${{ runner.os }}-
+            nephoran-reliability-v3-ubuntu-go1.24
+            nephoran-reliability-v3-ubuntu-
           fail-on-cache-miss: false
           
       - name: Build ${{ matrix.build-group.name }}
@@ -334,7 +334,7 @@ jobs:
             ~/go/pkg/mod
           key: ${{ needs.reliability-setup.outputs.cache-key }}
           restore-keys: |
-            nephoran-reliability-v3-${{ runner.os }}-go1.24
+            nephoran-reliability-v3-ubuntu-go1.24
           fail-on-cache-miss: false
           
       - name: Install build dependencies for race detection
