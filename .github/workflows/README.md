@@ -19,3 +19,4 @@
 - Per-branch concurrency group: `${{ github.ref }}`.
 - Required gate context for protected branches: `Basic Validation`.
 - `Basic Validation` aggregates parallel blocking jobs for build + `pkg/config` + auth core/provider shards + `internal/security`.
+- `pr-validation-performance-guard.yml` supports manual threshold tuning via `workflow_dispatch` input `threshold_seconds` (default `154`).

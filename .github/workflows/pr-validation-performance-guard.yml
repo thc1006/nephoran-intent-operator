@@ -5,6 +5,11 @@ on:
     workflows: ["PR Validation"]
     types: [completed]
   workflow_dispatch:
+    inputs:
+      threshold_seconds:
+        description: "Override regression threshold in seconds (default 154 = 2m34s)"
+        required: false
+        default: "154"
 
 concurrency:
   group: ${{ github.ref }}
@@ -42,9 +47,14 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const workflowId = process.env.TARGET_WORKFLOW_FILE;
-            const thresholdSeconds = Number(process.env.THRESHOLD_SECONDS);
+            const thresholdSeconds = Number(context.payload.inputs?.threshold_seconds || process.env.THRESHOLD_SECONDS);
             const sampleSize = Number(process.env.SAMPLE_SIZE);
             const minSamples = Number(process.env.MIN_SAMPLES);
+
+            if (!Number.isFinite(thresholdSeconds) || thresholdSeconds <= 0) {
+              core.setFailed(`Invalid threshold_seconds: ${context.payload.inputs?.threshold_seconds || process.env.THRESHOLD_SECONDS}`);
+              return;
+            }
 
             const toSeconds = (start, end) => {
               if (!start || !end) return NaN;

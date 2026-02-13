@@ -113,3 +113,4 @@ Updates are tracked here in append-only format.
 | 2026-02-13T15:19:02+00:00 | chore/pr-validation-performance-guard-20260213 | .github/workflows | Add PR-validation p95 regression guard with automated issue alerts. |
 | 2026-02-13T17:03:27+00:00 | main | docs | Move three root docs into docs subdirectories; update docs links. |
 | 2026-02-13T17:08:25+00:00 | main | root-config | Remove unused .go-build-config.yaml; keep .controller-gen.yaml and .nancy-ignore. |
+| 2026-02-13T18:08:21+00:00 | chore/perf-guard-threshold-input-20260213 | .github/workflows | Add dispatch threshold override for PR Validation Performance Guard. |
