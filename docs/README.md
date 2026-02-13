@@ -48,6 +48,7 @@ docs/
 - **API Reference**: `api/` directory contains OpenAPI specifications
 - **Architecture Decisions**: `adr/` directory for design rationale
 - **Planner Integration Guide**: [`development/PLANNER-INTEGRATION-GUIDE.md`](development/PLANNER-INTEGRATION-GUIDE.md)
+- **Root Cleanup Policy**: [`development/ROOT-CLEANUP-POLICY.md`](development/ROOT-CLEANUP-POLICY.md) - Repository structure guidelines
 
 ### For Operations Teams
 - **Security Documentation**: `security/` directory for security policies and procedures
@@ -109,6 +110,7 @@ When adding new documentation:
 2. Update this README if adding new categories
 3. Follow existing naming conventions (lowercase, hyphens for spaces)
 4. Include frontmatter with metadata where appropriate
+5. **Avoid adding files to repository root** - see [Root Cleanup Policy](development/ROOT-CLEANUP-POLICY.md) for guidelines
 
 ### Standards
 - Use Markdown format for all documentation

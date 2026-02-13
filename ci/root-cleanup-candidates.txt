@@ -1,5 +1,5 @@
-# entry|proposed_target|status|notes
-CLAUDE_AGENTS_ANALYSIS.md|docs/agents/CLAUDE_AGENTS_ANALYSIS.md|candidate-blocked|Referenced by CLAUDE.md import path; move requires coordinated prompt update.
-QUICKSTART.md|docs/getting-started/quickstart.md|candidate-blocked|Referenced by tests and root README links; move requires test and backlink migration.
+# entry|proposed_target|status|notes|unblock_criteria
+CLAUDE_AGENTS_ANALYSIS.md|docs/agents/CLAUDE_AGENTS_ANALYSIS.md|intentional-root-exception|Core AI agent orchestration manifest referenced by CLAUDE.md boot sequence; root placement ensures reliable discovery during agent initialization.|Revisit when: (1) Agent system refactored to use dedicated CLI discovery mechanism, OR (2) CLAUDE.md imports support path resolution beyond simple @-prefixed references.
+QUICKSTART.md|docs/getting-started/quickstart.md|intentional-root-exception|Primary user entry point optimized for immediate discoverability on GitHub landing page; critical for first-time user onboarding.|Revisit when: (1) Repository adopts CLI-guided onboarding flow that supersedes markdown quick-start, OR (2) GitHub repository templates support custom landing page routing.
 security-reports|docs/security/reports|completed|Tracked SBOM references migrated; runtime report paths in scripts/deployments remain unchanged.
 archive|examples/archive|completed|Root archive examples moved to examples/archive with reference updates.

@@ -43,7 +43,11 @@ fi
 if [[ -f "${CANDIDATES_FILE}" ]]; then
   echo ""
   echo "Phase 3 candidates:"
-  awk -F'|' 'BEGIN { OFS=" | " } !/^\s*#/ && NF>=4 { print "  - " $1, $2, $3, $4 }' "${CANDIDATES_FILE}"
+  awk -F'|' 'BEGIN { OFS=" | " } !/^\s*#/ && NF>=4 && $3 !~ /^intentional-root-exception$/ { print "  - " $1, $2, $3, $4 }' "${CANDIDATES_FILE}"
+
+  echo ""
+  echo "Intentional root exceptions (approved):"
+  awk -F'|' 'BEGIN { OFS=" | " } !/^\s*#/ && NF>=4 && $3 ~ /^intentional-root-exception$/ { print "  - " $1, "[" $4 "]" }' "${CANDIDATES_FILE}"
 fi
 
 exit ${status}
