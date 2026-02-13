@@ -87,3 +87,4 @@ Updates are tracked here in append-only format.
 | 2026-02-13T07:36:07+00:00 | main | pkg/auth,pkg/testutil/auth | JWT mocks stabilized; auth+providers suites green with parallel go test |
 | 2026-02-13T08:23:01+00:00 | main | pkg/auth | Unskipped middleware auth/RBAC tests; converted to real managers; auth suites green |
 | 2026-02-13T08:39:50+00:00 | main | docs,scripts,deployments | Path references aligned with reorganized scripts/workflows; parallel verification passed |
+| 2026-02-13T08:57:50+00:00 | feat/auth-structure-cleanup-20260213 | release-flow | Scoped commit pushed and PR opened to integrate/mvp (#303) |
