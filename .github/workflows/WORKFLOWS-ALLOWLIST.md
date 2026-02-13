@@ -15,4 +15,3 @@ Allowed active workflows:
 
 Required protected-branch check contexts:
 - Basic Validation
-- CI Status

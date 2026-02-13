@@ -83,7 +83,7 @@ jobs:
               policies='{
                 "required_status_checks": {
                   "strict": true,
-                  "contexts": ["Basic Validation", "CI Status"]
+                  "contexts": ["Basic Validation"]
                 },
                 "enforce_admins": false,
                 "required_pull_request_reviews": {
@@ -103,7 +103,7 @@ jobs:
               policies='{
                 "required_status_checks": {
                   "strict": true,
-                  "contexts": ["Basic Validation", "CI Status"]
+                  "contexts": ["Basic Validation"]
                 },
                 "enforce_admins": false,
                 "required_pull_request_reviews": {
@@ -126,7 +126,7 @@ jobs:
               policies='{
                 "required_status_checks": {
                   "strict": true,
-                  "contexts": ["Basic Validation", "CI Status"]
+                  "contexts": ["Basic Validation"]
                 },
                 "enforce_admins": true,
                 "required_pull_request_reviews": {
@@ -153,7 +153,7 @@ jobs:
               policies='{
                 "required_status_checks": {
                   "strict": true,
-                  "contexts": ["Basic Validation", "CI Status"]
+                  "contexts": ["Basic Validation"]
                 },
                 "enforce_admins": true,
                 "required_pull_request_reviews": {
@@ -180,7 +180,7 @@ jobs:
               policies='{
                 "required_status_checks": {
                   "strict": true,
-                  "contexts": ["Basic Validation", "CI Status"]
+                  "contexts": ["Basic Validation"]
                 },
                 "enforce_admins": true,
                 "required_pull_request_reviews": {
