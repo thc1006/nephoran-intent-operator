@@ -119,3 +119,4 @@ Updates are tracked here in append-only format.
 | 2026-02-13T19:54:43+00:00 | chore/docs-link-integrity-pack2-20260213 | docs | Pack2 link fixes: 73 -> 34 missing links, quickstart docs test green. |
 | 2026-02-13T20:05:44+00:00 | chore/docs-link-integrity-pack3-20260213 | docs | Pack3 completed: fixed remaining broken links to zero; docs test green. |
 | 2026-02-13T20:27:50+00:00 | chore/ci-markdown-link-guard-20260213 | .github/workflows | Added advisory markdown link integrity scan to PR validation. |
+| 2026-02-13T20:57:08+00:00 | chore/ci-markdown-link-guard-20260213 | .github/workflows | Fixed advisory link scan workflow parse token for GitHub Actions. |

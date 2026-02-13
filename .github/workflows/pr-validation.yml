@@ -80,7 +80,7 @@ jobs:
               text = f.read_text(encoding="utf-8", errors="ignore")
               for raw in pattern.findall(text):
                   u = raw.strip().strip("<>").split()[0]
-                  if not u or u.startswith(ignored_prefixes) or u.startswith("`") or u.startswith("${{"):
+                  if not u or u.startswith(ignored_prefixes) or u.startswith("`") or u.startswith("$" + "{{"):
                       continue
                   u = u.split("#", 1)[0].split("?", 1)[0]
                   if not u:
