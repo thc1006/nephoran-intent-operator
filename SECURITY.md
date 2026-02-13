@@ -335,11 +335,11 @@ Monitor these security-related metrics:
 
 ## Security Resources
 
-- [Security Best Practices](docs/security/best-practices.md)
-- [Hardening Guide](docs/security/hardening.md)
-- [Threat Model](docs/security/threat-model.md)
-- [Compliance Documentation](docs/security/compliance.md)
-- [Security Audit Report](planner/internal/security/SECURITY_TESTS_SUMMARY.md)
+- [Security Best Practices](docs/security/SECURITY_BEST_PRACTICES.md)
+- [Hardening Guide](docs/security/hardening-guide.md)
+- [Threat Model](docs/security/SECURITY_ARCHITECTURE.md)
+- [Compliance Documentation](docs/compliance/enterprise-security-compliance.md)
+- [Security Audit Report](docs/security/SECURITY_AUDIT_REPORT.md)
 
 ## PGP Key
 

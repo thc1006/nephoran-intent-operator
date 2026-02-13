@@ -355,11 +355,11 @@ The operator performs validation on startup and will:
 
 ## Related Documentation
 
-- [Deployment Guide](./DEPLOYMENT.md) - Deployment procedures and requirements
-- [Security Guide](./SECURITY.md) - Security best practices and configurations
-- [Monitoring Guide](./MONITORING.md) - Metrics and observability setup
-- [API Reference](./API_REFERENCE.md) - REST API documentation
-- [Troubleshooting Guide](./TROUBLESHOOTING.md) - Common issues and solutions
+- [Deployment Guide](../operations/01-production-deployment-guide.md) - Deployment procedures and requirements
+- [Security Guide](../security/hardening-guide.md) - Security best practices and configurations
+- [Monitoring Guide](../operations/02-monitoring-alerting-runbooks.md) - Metrics and observability setup
+- [API Reference](../api/API_REFERENCE.md) - REST API documentation
+- [Troubleshooting Guide](../runbooks/troubleshooting.md) - Common issues and solutions
 
 ## Support
 

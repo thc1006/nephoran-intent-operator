@@ -381,7 +381,7 @@ The latest release includes critical CI/CD and infrastructure improvements:
 - **Quality Gates**: Updated golangci-lint to v1.62.0, fixed gocyclo installation issues
 - **Performance**: Reduced average build time from 5.4 to 3.2 minutes (-41% improvement)
 
-For complete details, see [Deployment Fixes Guide](docs/DEPLOYMENT_FIXES_GUIDE.md) and [CI/CD Infrastructure Documentation](docs/CI_CD_INFRASTRUCTURE.md).
+For complete details, see [Deployment Fixes Guide](docs/operations/DEPLOYMENT_FIXES_GUIDE.md) and [CI/CD Infrastructure Documentation](docs/ci/CI_CD_INFRASTRUCTURE.md).
 
 #### Health and Probes
 The system provides standardized health endpoints for Kubernetes liveness and readiness probes:
@@ -575,7 +575,7 @@ For complete metrics reference including:
 - Advanced Prometheus queries and alerting rules
 - Grafana dashboard configuration and best practices
 
-See: **[Complete Prometheus Metrics Documentation](PROMETHEUS_METRICS.md)**
+See: **[Complete Prometheus Metrics Documentation](docs/monitoring/sla-monitoring-system.md)**
 
 ### 📖 Advanced Topics
 - **[O-RAN Compliance Certification](docs/operations/ORAN-COMPLIANCE-CERTIFICATION.md)**: Standards compliance details
@@ -583,7 +583,7 @@ See: **[Complete Prometheus Metrics Documentation](PROMETHEUS_METRICS.md)**
   - **[OAuth2 Security Guide](docs/security/OAuth2-Security-Guide.md)**: Comprehensive OAuth2 implementation
   - **[CORS Configuration](docs/security/CORS-Security-Configuration-Guide.md)**: CORS security setup
 - **[Operational Runbooks](docs/runbooks/README.md)**: Production operations and incident response
-- **[Performance Optimization](docs/archive/reports/performance-optimization.md)**: Tuning and scaling guides
+- **[Performance Optimization](docs/performance/PERFORMANCE_OPTIMIZATIONS.md)**: Tuning and scaling guides
 - **[Multi-Region Deployment](deployments/multi-region/README.md)**: Global architecture patterns
 
 ### 🎯 Tutorials & Examples
