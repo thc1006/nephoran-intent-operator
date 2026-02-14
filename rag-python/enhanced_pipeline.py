@@ -298,7 +298,7 @@ class EnhancedTelecomRAGPipeline:
             
             # Initialize LLM with structured output
             self.llm = ChatOpenAI(
-                model=self.config.get("model", "gpt-4o-mini"),
+                model=self.config.get("openai_model", "gpt-4o-2024-08-06"),
                 temperature=0,
                 max_tokens=2048,
                 model_kwargs={"response_format": {"type": "json_object"}},
@@ -507,7 +507,7 @@ Generate the appropriate JSON object based on the user command.
                 retrieval_score=retrieval_score,
                 confidence_score=confidence_score,
                 cache_hit=False,
-                model_version=self.config.get("model", "gpt-4o-mini")
+                model_version=self.config.get("openai_model", "gpt-4o-2024-08-06")
             )
             
             # Validate response structure
@@ -663,7 +663,7 @@ Generate the appropriate JSON object based on the user command.
                 "weaviate_ready": weaviate_ready,
                 "knowledge_objects": object_count,
                 "cache_size": len(self.cache.cache),
-                "model": self.config.get("model", "gpt-4o-mini"),
+                "model": self.config.get("openai_model", "gpt-4o-2024-08-06"),
                 "timestamp": time.time()
             }
         except Exception as e:

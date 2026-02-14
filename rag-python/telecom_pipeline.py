@@ -28,7 +28,7 @@ class TelecomRAGPipeline:
                 openai_api_key=config["openai_api_key"]
             )
             self.llm = ChatOpenAI(
-                model="gpt-4o-mini",
+                model=config.get("openai_model", "gpt-4o-2024-08-06"),
                 temperature=0,
                 max_tokens=2048,
                 model_kwargs={"response_format": {"type": "json_object"}},
