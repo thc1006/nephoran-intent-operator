@@ -40,7 +40,6 @@ config
 controllers
 demo
 deployments
-docker-compose.yaml
 docs
 examples
 go.mod
@@ -55,7 +54,6 @@ mkdocs.yml
 monitoring
 pkg
 planner
-pyproject.toml
 rag-python
 scripts
 security
