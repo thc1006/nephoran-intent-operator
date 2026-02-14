@@ -125,3 +125,4 @@ Updates are tracked here in append-only format.
 | 2026-02-13T21:35:06+00:00 | chore/pr-validation-scope-fastlane-20260213 | .github/workflows | Added scope-aware PR fast lane with conditional full gate. |
 | 2026-02-13T21:51:12+00:00 | chore/root-security-reports-move-20260213 | root-cleanup | Moved tracked security-reports SBOM files to docs/security/reports. |
 | 2026-02-13T22:21:17+00:00 | chore/root-archive-move-20260213 | root-cleanup | Moved root archive examples to examples/archive and updated references. |
+| 2026-02-13T23:06:46+00:00 | chore/root-cleanup-phase3d-finalize-exceptions-20260213 | root-policy | Finalized root exceptions with unblock criteria and policy documentation. |
