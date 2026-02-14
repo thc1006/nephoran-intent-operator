@@ -552,42 +552,42 @@ func TestAdvancedSecurityVulnerabilities(t *testing.T) {
 			target:        "../../../etc/passwd",
 			attackType:    "path_traversal",
 			expectError:   true,
-			errorContains: "target name contains invalid characters",
+			errorContains: "potential path traversal pattern",
 		},
 		{
 			name:          "Path Traversal - Windows Style",
 			target:        "..\\..\\..\\windows\\system32\\config\\sam",
 			attackType:    "path_traversal",
 			expectError:   true,
-			errorContains: "target name contains invalid characters",
+			errorContains: "potential path traversal pattern",
 		},
 		{
 			name:          "Path Traversal - URL Encoded",
 			target:        "gnb%2e%2e%2f%2e%2e%2fetc%2fpasswd",
 			attackType:    "path_traversal",
 			expectError:   true,
-			errorContains: "target name contains invalid characters",
+			errorContains: "potential path traversal pattern",
 		},
 		{
 			name:          "Path Traversal - Double URL Encoded",
 			target:        "gnb%252e%252e%252f%252e%252e%252fetc%252fpasswd",
 			attackType:    "path_traversal",
 			expectError:   true,
-			errorContains: "target name contains invalid characters",
+			errorContains: "potential path traversal pattern",
 		},
 		{
 			name:          "Path Traversal - Unicode Encoding",
 			target:        "gnb\\u002e\\u002e\\u002f",
 			attackType:    "path_traversal",
 			expectError:   true,
-			errorContains: "target name contains invalid characters",
+			errorContains: "invalid characters or format", // Backslashes fail pattern validation
 		},
 		{
 			name:          "Path Traversal - Mixed Encoding",
 			target:        "gnb/../%2e%2e/./..%2f",
 			attackType:    "path_traversal",
 			expectError:   true,
-			errorContains: "target name contains invalid characters",
+			errorContains: "potential path traversal pattern",
 		},
 
 		// Command Injection Attempts (detected as SQL injection due to semicolons)
@@ -619,7 +619,7 @@ func TestAdvancedSecurityVulnerabilities(t *testing.T) {
 			target:        "gnb\x00../etc/passwd",
 			attackType:    "pattern_bypass",
 			expectError:   true,
-			errorContains: "invalid characters", // Null byte should fail pattern
+			errorContains: "potential path traversal pattern", // Null byte with path traversal pattern
 		},
 		{
 			name:          "Pattern Bypass - CRLF Injection",
@@ -674,7 +674,7 @@ func TestAdvancedSecurityVulnerabilities(t *testing.T) {
 			target:        "gnb<script>alert('xss')</script>",
 			attackType:    "script_injection",
 			expectError:   true,
-			errorContains: "invalid characters",
+			errorContains: "potential SQL injection pattern", // Single quote triggers SQL injection detection
 		},
 		{
 			name:          "Script Injection - HTML",
