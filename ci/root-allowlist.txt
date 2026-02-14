@@ -50,7 +50,6 @@ internal
 knowledge_base
 kpt-packages
 metrics
-mkdocs.yml
 monitoring
 pkg
 planner

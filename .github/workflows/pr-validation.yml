@@ -47,7 +47,6 @@ jobs:
               "CODE_OF_CONDUCT.md",
               "CHANGELOG.md",
               "QUICKSTART.md",
-              "mkdocs.yml",
               "scripts/README.md",
               "scripts/validate-root-allowlist.sh",
           ]

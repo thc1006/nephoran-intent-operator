@@ -310,4 +310,4 @@ validation:
 # Watch for changes
 watch:
   - docs/
-  - mkdocs.yml
+  - docs/mkdocs.yml
