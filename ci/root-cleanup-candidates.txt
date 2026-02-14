@@ -5,3 +5,4 @@ security-reports|docs/security/reports|completed|Tracked SBOM references migrate
 archive|examples/archive|completed|Root archive examples moved to examples/archive with reference updates.
 docker-compose.yaml|(deleted)|completed|Orphaned file with zero references; not used by Makefile/scripts/CI; superseded by current deployment methods.
 pyproject.toml|(deleted)|completed|Orphaned bandit config; never read by CI (no -c flag in bandit invocations); bandit uses default settings.
+mkdocs.yml|docs/mkdocs.yml|completed|Documentation site config 100% serves docs/ module; moved to docs/ with build script updates (-f flag).
