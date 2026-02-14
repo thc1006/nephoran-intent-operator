@@ -6,3 +6,10 @@ archive|examples/archive|completed|Root archive examples moved to examples/archi
 docker-compose.yaml|(deleted)|completed|Orphaned file with zero references; not used by Makefile/scripts/CI; superseded by current deployment methods.
 pyproject.toml|(deleted)|completed|Orphaned bandit config; never read by CI (no -c flag in bandit invocations); bandit uses default settings.
 mkdocs.yml|docs/mkdocs.yml|completed|Documentation site config 100% serves docs/ module; moved to docs/ with build script updates (-f flag).
+.trivyignore|(deleted)|completed|Trivy scanner ignore list with zero references; CI workflows, Makefile, pre-commit, and scripts never invoke trivy with this config.
+.mcp.json|(deleted)|completed|MCP server config with zero references; not used by any automation or runtime processes.
+.licenserc.yaml|(deleted)|completed|License header checker config with zero references; license validation not integrated into CI/pre-commit hooks.
+.gitleaks.toml|(deleted)|completed|Secret scanner config with zero references; gitleaks not invoked in CI workflows or pre-commit hooks.
+.editorconfig|(deleted)|completed|Editor formatting config with zero references; not enforced by pre-commit hooks or CI validation.
+.controller-gen.yaml|(deleted)|completed|Controller-gen CRD generation config with zero references; CRD generation uses command-line flags in Makefile instead.
+.codecov.yml|(deleted)|completed|Codecov coverage config with zero references; codecov not integrated into CI workflows or test pipelines.

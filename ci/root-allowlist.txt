@@ -1,23 +1,16 @@
 # Top-level tracked entries allowed in repository root (one per line, sorted)
 .claude
-.codecov.yml
-.controller-gen.yaml
 .devcontainer
 .dockerignore
-.editorconfig
 .gitattributes
 .github
 .gitignore
-.gitleaks.toml
 .golangci.yml
 .gosec.json
-.licenserc.yaml
 .markdownlint.json
-.mcp.json
 .nancy-ignore
 .pre-commit-config.yaml
 .sops.yaml
-.trivyignore
 .yamllint.yml
 CHANGELOG.md
 CLAUDE.md
