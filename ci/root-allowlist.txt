@@ -5,6 +5,7 @@
 .gitattributes
 .github
 .gitignore
+.gitmodules
 .golangci.yml
 .gosec.json
 .markdownlint.json
@@ -47,6 +48,7 @@ monitoring
 pkg
 planner
 rag-python
+ric-platform
 scripts
 security
 test
