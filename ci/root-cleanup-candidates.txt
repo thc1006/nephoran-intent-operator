@@ -3,3 +3,5 @@ CLAUDE_AGENTS_ANALYSIS.md|docs/agents/CLAUDE_AGENTS_ANALYSIS.md|intentional-root
 QUICKSTART.md|docs/getting-started/quickstart.md|intentional-root-exception|Primary user entry point optimized for immediate discoverability on GitHub landing page; critical for first-time user onboarding.|Revisit when: (1) Repository adopts CLI-guided onboarding flow that supersedes markdown quick-start, OR (2) GitHub repository templates support custom landing page routing.
 security-reports|docs/security/reports|completed|Tracked SBOM references migrated; runtime report paths in scripts/deployments remain unchanged.
 archive|examples/archive|completed|Root archive examples moved to examples/archive with reference updates.
+docker-compose.yaml|(deleted)|completed|Orphaned file with zero references; not used by Makefile/scripts/CI; superseded by current deployment methods.
+pyproject.toml|(deleted)|completed|Orphaned bandit config; never read by CI (no -c flag in bandit invocations); bandit uses default settings.
