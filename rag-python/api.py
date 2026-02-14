@@ -44,7 +44,9 @@ app.add_middleware(
 config = {
     "weaviate_url": os.environ.get("WEAVIATE_URL", "http://weaviate:8080"),
     "openai_api_key": os.environ.get("OPENAI_API_KEY"),
+    "llm_provider": os.environ.get("LLM_PROVIDER", "openai"),  # "openai" or "ollama"
     "llm_model": os.environ.get("LLM_MODEL", "gpt-4o-mini"),
+    "ollama_base_url": os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434"),
     "cache_max_size": int(os.environ.get("CACHE_MAX_SIZE", "1000")),
     "cache_ttl_seconds": int(os.environ.get("CACHE_TTL_SECONDS", "3600")),
     "chunk_size": int(os.environ.get("CHUNK_SIZE", "1000")),
@@ -94,9 +96,15 @@ async def startup_event():
     """Initialize services on startup"""
     global rag_pipeline, document_processor
 
-    if not config.get("openai_api_key"):
+    provider = config.get("llm_provider", "openai")
+
+    # Check required keys based on provider
+    if provider == "openai" and not config.get("openai_api_key"):
         logger.warning("OPENAI_API_KEY not set. RAG pipeline will not be initialized.")
         return
+    elif provider == "ollama":
+        logger.info(f"Using Ollama provider with model: {config.get('llm_model', 'llama2')}")
+        logger.info(f"Ollama base URL: {config.get('ollama_base_url', 'http://localhost:11434')}")
 
     try:
         # Initialize enhanced pipeline
@@ -373,7 +381,9 @@ async def get_stats():
         stats = {
             "timestamp": time.time(),
             "config": {
-                "model": config.get("llm_model"),
+                "llm_provider": config.get("llm_provider"),
+                "llm_model": config.get("llm_model"),
+                "ollama_base_url": config.get("ollama_base_url") if config.get("llm_provider") == "ollama" else None,
                 "weaviate_url": config.get("weaviate_url"),
                 "cache_enabled": config.get("cache_max_size", 0) > 0,
                 "knowledge_base_path": config.get("knowledge_base_path")

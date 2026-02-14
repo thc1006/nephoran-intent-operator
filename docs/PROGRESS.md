@@ -129,3 +129,5 @@ Updates are tracked here in append-only format.
 | 2026-02-14T00:55:18+00:00 | chore/root-cleanup-phase4a-remove-orphans-20260214 | root-cleanup | Removed orphaned docker-compose.yaml and pyproject.toml (zero refs). |
 | 2026-02-14T01:03:12+00:00 | chore/root-cleanup-phase4b-move-mkdocs-20260214 | root-cleanup | Moved mkdocs.yml to docs/ for module self-containment (62 entries). |
 | 2026-02-14T03:05:12+00:00 | feature/phase1-emergency-hotfix | rag-python,deployments | OpenAI model → gpt-4o-2024-08-06, Flask→FastAPI |
+| 2026-02-14T05:27:27+00:00 | feature/phase1-emergency-hotfix | rag,security,go | FastAPI conversion, PSP removal, Go 1.26 upgrade |
+| 2026-02-14T06:01:09+00:00 | feature/phase1-emergency-hotfix | rag-python,docs,scripts | Ollama integration for local LLM deployment |

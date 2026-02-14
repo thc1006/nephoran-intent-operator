@@ -10,6 +10,14 @@ import logging
 # Import document processor for knowledge base loading
 from document_processor import DocumentProcessor
 
+# Import Ollama support
+try:
+    from langchain_ollama import ChatOllama
+    OLLAMA_AVAILABLE = True
+except ImportError:
+    OLLAMA_AVAILABLE = False
+    logging.warning("langchain-ollama not installed. Ollama support disabled.")
+
 
 class TelecomRAGPipeline:
     """Production-ready RAG pipeline for telecom domain."""
@@ -22,18 +30,16 @@ class TelecomRAGPipeline:
         self.logger = self._setup_logging()
 
         try:
+            # Initialize embeddings (always use OpenAI for consistency)
             self.embeddings = OpenAIEmbeddings(
                 model="text-embedding-3-large",
                 dimensions=3072,
-                openai_api_key=config["openai_api_key"]
+                openai_api_key=config.get("openai_api_key", "not-needed")
             )
-            self.llm = ChatOpenAI(
-                model=config.get("llm_model", "gpt-4o-mini"),
-                temperature=0,
-                max_tokens=2048,
-                model_kwargs={"response_format": {"type": "json_object"}},
-                openai_api_key=config["openai_api_key"]
-            )
+
+            # Initialize LLM based on provider
+            self.llm = self._initialize_llm(config)
+
             self.vector_store = self._setup_vector_store(config)
             self.qa_chain = self._create_qa_chain()
 
@@ -54,6 +60,41 @@ class TelecomRAGPipeline:
             handler.setFormatter(formatter)
             logger.addHandler(handler)
         return logger
+
+    def _initialize_llm(self, config: Dict):
+        """Initialize LLM based on provider configuration"""
+        provider = config.get("llm_provider", "openai").lower()
+
+        if provider == "ollama":
+            if not OLLAMA_AVAILABLE:
+                raise ImportError("langchain-ollama is not installed. Install with: pip install langchain-ollama")
+
+            self.logger.info(f"Initializing Ollama LLM: {config.get('llm_model', 'llama2')}")
+
+            return ChatOllama(
+                model=config.get("llm_model", "llama2"),
+                base_url=config.get("ollama_base_url", "http://localhost:11434"),
+                temperature=0,
+                num_predict=2048,
+                format="json",  # Request JSON output
+            )
+
+        elif provider == "openai":
+            if not config.get("openai_api_key"):
+                raise ValueError("OpenAI API key is required for OpenAI provider")
+
+            self.logger.info(f"Initializing OpenAI LLM: {config.get('llm_model', 'gpt-4o-mini')}")
+
+            return ChatOpenAI(
+                model=config.get("llm_model", "gpt-4o-mini"),
+                temperature=0,
+                max_tokens=2048,
+                model_kwargs={"response_format": {"type": "json_object"}},
+                openai_api_key=config["openai_api_key"]
+            )
+
+        else:
+            raise ValueError(f"Unsupported LLM provider: {provider}. Choose 'openai' or 'ollama'")
 
     def _load_domain_knowledge(self):
         """Load and index telecom domain knowledge from knowledge_base/"""
