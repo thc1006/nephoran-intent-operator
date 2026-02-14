@@ -27,7 +27,7 @@ data:
   chunk_size: "1000"
   chunk_overlap: "200"
   embedding_model: "text-embedding-3-large"
-  llm_model: "gpt-4o-2024-08-06"
+  llm_model: "gpt-4o-mini"
   log_level: "INFO"
 ---
 apiVersion: apps/v1

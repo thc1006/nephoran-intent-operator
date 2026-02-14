@@ -44,7 +44,7 @@ app.add_middleware(
 config = {
     "weaviate_url": os.environ.get("WEAVIATE_URL", "http://weaviate:8080"),
     "openai_api_key": os.environ.get("OPENAI_API_KEY"),
-    "openai_model": os.environ.get("OPENAI_MODEL", "gpt-4o-2024-08-06"),
+    "llm_model": os.environ.get("LLM_MODEL", "gpt-4o-mini"),
     "cache_max_size": int(os.environ.get("CACHE_MAX_SIZE", "1000")),
     "cache_ttl_seconds": int(os.environ.get("CACHE_TTL_SECONDS", "3600")),
     "chunk_size": int(os.environ.get("CHUNK_SIZE", "1000")),
@@ -373,7 +373,7 @@ async def get_stats():
         stats = {
             "timestamp": time.time(),
             "config": {
-                "model": config.get("openai_model"),
+                "model": config.get("llm_model"),
                 "weaviate_url": config.get("weaviate_url"),
                 "cache_enabled": config.get("cache_max_size", 0) > 0,
                 "knowledge_base_path": config.get("knowledge_base_path")

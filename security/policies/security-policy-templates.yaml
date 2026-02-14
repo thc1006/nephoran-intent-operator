@@ -105,39 +105,10 @@ network_policies:
             - protocol: UDP
               port: 53
 
-# Pod Security Policies (PSPs) and Pod Security Standards
+# Pod Security Standards (PSS) - replaces deprecated PodSecurityPolicy
+# NOTE: PodSecurityPolicy (PSP) removed in Kubernetes 1.25+
+# Use Pod Security Standards with namespace labels instead
 pod_security:
-  restricted_psp:
-    apiVersion: policy/v1beta1
-    kind: PodSecurityPolicy
-    metadata:
-      name: nephoran-restricted
-    spec:
-      privileged: false
-      allowPrivilegeEscalation: false
-      requiredDropCapabilities:
-        - ALL
-      volumes:
-        - 'configMap'
-        - 'emptyDir'
-        - 'projected'
-        - 'secret'
-        - 'downwardAPI'
-        - 'persistentVolumeClaim'
-      runAsUser:
-        rule: 'MustRunAsNonRoot'
-      runAsGroup:
-        rule: 'RunAsAny'
-      seLinux:
-        rule: 'RunAsAny'
-      fsGroup:
-        rule: 'RunAsAny'
-      readOnlyRootFilesystem: true
-      seccompProfile:
-        type: RuntimeDefault
-      supplementalGroups:
-        rule: 'RunAsAny'
-        
   pod_security_standards:
     apiVersion: v1
     kind: Namespace
