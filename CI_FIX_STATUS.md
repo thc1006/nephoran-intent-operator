@@ -1,8 +1,8 @@
 # PR #344 CI 修復狀態報告
 
-**最後更新**: 2026-02-14 06:30 UTC
+**最後更新**: 2026-02-14 06:45 UTC
 **PR**: #344 (feature/phase1-emergency-hotfix)
-**CI Run**: https://github.com/thc1006/nephoran-intent-operator/actions/runs/22012375268
+**CI Run (最新)**: https://github.com/thc1006/nephoran-intent-operator/actions/runs/22012490810
 
 ---
 
@@ -10,27 +10,35 @@
 
 ### 1. Root Allowlist 驗證失敗 ✅ FIXED
 
-**問題**: 5 個新增的根目錄檔案不在 allowlist 中
+**問題 1a**: 5 個新增的根目錄檔案不在 allowlist 中
 
-**修復**: 已添加到 `ci/root-allowlist.txt`
+**修復 1a**: 已添加到 `ci/root-allowlist.txt` (Commit 5910dbf06)
 - `.env.ollama.example`
 - `PR_PHASE1_DESCRIPTION.md`
 - `PR_PHASE1_UPDATED.md`
 - `QUICKSTART_OLLAMA.md`
 - `docker-compose.ollama.yml`
 
+**問題 1b**: `CI_FIX_STATUS.md` 不在 allowlist 中（第二次迭代發現）
+
+**修復 1b**: 已添加到 `ci/root-allowlist.txt` (Commit 20eba84f1)
+- `CI_FIX_STATUS.md`
+
 **驗證**:
 ```bash
 $ ./scripts/validate-root-allowlist.sh
 Root allowlist validation
-  current entries: 62
-  allowlist entries: 62
+  current entries: 63
+  allowlist entries: 63
 
 PASS: Root entries match allowlist.
 ```
 
-**Commit**: 5910dbf06
-**狀態**: ✅ 已推送到遠端
+**Commits**:
+- 5910dbf06 - 第一次修復（5 個檔案）
+- 20eba84f1 - 第二次修復（CI_FIX_STATUS.md）
+
+**狀態**: ✅ 已全部推送到遠端
 
 ---
 
@@ -260,7 +268,9 @@ d1ed5ede8 - Initial Phase 1 changes
 804b7b26a - Ollama integration
 c3265d178 - Quick start guide
 d0b340a5e - Progress report
-5910dbf06 - Fix root allowlist ✅
+ddc3655cd - CI fix status documentation
+5910dbf06 - Fix root allowlist (5 files) ✅
+20eba84f1 - Fix root allowlist (CI_FIX_STATUS.md) ✅
 ```
 
 ---
