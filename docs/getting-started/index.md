@@ -11,9 +11,9 @@ The Nephoran Intent Operator transforms how you manage telecommunications networ
 In this getting started guide, you'll learn how to:
 
 1. **[Quick Start](quickstart.md)** - Get the operator running in minutes
-2. **[Installation](installation.md)** - Detailed installation instructions for different environments
-3. **[Configuration](configuration.md)** - Configure the operator for your environment
-4. **[First Intent](first-intent.md)** - Create and deploy your first network intent
+2. **[Installation](INSTALL.md)** - Detailed installation instructions for different environments
+3. **[Configuration](../development/ENVIRONMENT_VARIABLES.md)** - Configure the operator for your environment
+4. **[First Intent](quickstart.md)** - Create and deploy your first network intent
 
 ## Prerequisites
 
@@ -56,18 +56,18 @@ The operator will automatically:
 
 === "I need production deployment"
     
-    Follow our comprehensive [Installation](installation.md) guide with security and scalability considerations.
+    Follow our comprehensive [Installation](INSTALL.md) guide with security and scalability considerations.
 
 === "I'm exploring the technology"
     
-    Start with [Architecture Overview](../architecture/system-architecture.md) to understand how it works.
+    Start with [Architecture Overview](../architecture/ARCHITECTURE_ANALYSIS.md) to understand how it works.
 
 ## Support
 
 If you run into any issues during setup:
 
-- Check our [Troubleshooting Guide](../user-guide/troubleshooting.md)
-- Browse [Frequently Asked Questions](../reference/faq.md)
+- Check our [Troubleshooting Guide](../runbooks/troubleshooting.md)
+- Browse [Frequently Asked Questions](../README.md)
 - Join our [Community Slack](https://nephoran.slack.com)
 - [Report issues on GitHub](https://github.com/nephoran/nephoran-intent-operator/issues)
 

@@ -376,11 +376,11 @@ Security hardening introduces minimal performance overhead:
 
 ## 🤝 Contributing
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for security-related contribution guidelines.
+See [CONTRIBUTING.md](../../CONTRIBUTING.md) for security-related contribution guidelines.
 
 ## 📄 License
 
-This security implementation is licensed under the Apache License 2.0. See [LICENSE](../LICENSE) for details.
+This security implementation is licensed under the Apache License 2.0. See [LICENSE](../../LICENSE) for details.
 
 ---
 

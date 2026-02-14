@@ -14,9 +14,9 @@ GOLANGCI_LINT_TIMEOUT ?= 5m
 
 .PHONY: ci-local ci-fast
 
-# Go build settings aligned with Go 1.24+ (current: 1.24.0)
+# Go build settings aligned with Go 1.26+ (current: 1.26.0)
 # These settings ensure compatibility with the CI build system
-GO_VERSION := 1.24
+GO_VERSION := 1.26
 GOOS := linux
 GOARCH := amd64
 CGO_ENABLED := 0

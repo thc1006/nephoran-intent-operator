@@ -47,16 +47,20 @@ docs/
 - **Getting Started**: See [../QUICKSTART.md](../QUICKSTART.md) in project root
 - **API Reference**: `api/` directory contains OpenAPI specifications
 - **Architecture Decisions**: `adr/` directory for design rationale
+- **Planner Integration Guide**: [`development/PLANNER-INTEGRATION-GUIDE.md`](development/PLANNER-INTEGRATION-GUIDE.md)
+- **Root Cleanup Policy**: [`development/ROOT-CLEANUP-POLICY.md`](development/ROOT-CLEANUP-POLICY.md) - Repository structure guidelines
 
 ### For Operations Teams
 - **Security Documentation**: `security/` directory for security policies and procedures
 - **Workflow Management**: `workflows/` directory for CI/CD documentation
 - **System Operations**: `operations/` directory for runbooks and procedures
+- **LLM Provider Runbook**: [`operations/LLM_PROVIDER_RUNBOOK.md`](operations/LLM_PROVIDER_RUNBOOK.md)
 
 ### For Project Managers
 - **Performance Reports**: `reports/` directory for metrics and analysis
-- **Architecture Overview**: `design/` directory for technical designs
+- **Architecture Overview**: `architecture/` directory for technical designs
 - **Security Compliance**: `security/` directory for compliance documentation
+- **Conductor Loop Design**: [`architecture/CONDUCTOR-LOOP-DESIGN.md`](architecture/CONDUCTOR-LOOP-DESIGN.md)
 
 ## Documentation Categories
 
@@ -106,6 +110,7 @@ When adding new documentation:
 2. Update this README if adding new categories
 3. Follow existing naming conventions (lowercase, hyphens for spaces)
 4. Include frontmatter with metadata where appropriate
+5. **Avoid adding files to repository root** - see [Root Cleanup Policy](development/ROOT-CLEANUP-POLICY.md) for guidelines
 
 ### Standards
 - Use Markdown format for all documentation

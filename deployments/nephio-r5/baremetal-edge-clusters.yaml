@@ -75,7 +75,7 @@ spec:
           feature-gates: "TopologyAwareHints=true,ProxyTerminatingEndpoints=true"
       apiServer:
         extraArgs:
-          enable-admission-plugins: "NodeRestriction,PodSecurityPolicy,ResourceQuota,LimitRanger"
+          enable-admission-plugins: "NodeRestriction,PodSecurity,ResourceQuota,LimitRanger"
           feature-gates: "TopologyAwareHints=true,ProxyTerminatingEndpoints=true"
           audit-log-path: "/var/log/kubernetes/audit.log"
           audit-policy-file: "/etc/kubernetes/audit-policy.yaml"

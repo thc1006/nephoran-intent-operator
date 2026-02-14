@@ -285,9 +285,9 @@ jobs:
 ## Documentation
 
 For detailed documentation, see:
-- [hack/e2e/README.md](../hack/e2e/README.md) - Complete framework documentation
-- [hack/e2e/TESTING_GUIDE.md](../hack/e2e/TESTING_GUIDE.md) - Detailed testing procedures  
-- [hack/e2e/WINDOWS_SETUP.md](../hack/e2e/WINDOWS_SETUP.md) - Windows-specific setup
+- [hack/e2e/README.md](../../hack/e2e/README.md) - Complete framework documentation
+- [hack/e2e/TESTING_GUIDE.md](../../hack/e2e/TESTING_GUIDE.md) - Detailed testing procedures  
+- [hack/e2e/WINDOWS_SETUP.md](../../hack/e2e/WINDOWS_SETUP.md) - Windows-specific setup
 
 ## Support
 

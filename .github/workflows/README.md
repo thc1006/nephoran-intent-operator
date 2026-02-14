@@ -18,4 +18,7 @@
 - Ubuntu-only runners.
 - Per-branch concurrency group: `${{ github.ref }}`.
 - Required gate context for protected branches: `Basic Validation`.
-- `Basic Validation` aggregates parallel blocking jobs for build + `pkg/config` + auth core/provider shards + `internal/security`.
+- `pr-validation.yml` classifies change scope and runs a fast lane for docs/ci-only PRs.
+- `Basic Validation` remains the single required context and conditionally aggregates full blocking jobs for code changes.
+- `pr-validation.yml` always enforces blocking `Docs Link Integrity` and `Root Allowlist` checks.
+- `pr-validation-performance-guard.yml` supports manual tuning via `workflow_dispatch` inputs: `threshold_seconds` (default `154`), `sample_size` (default `10`), `min_samples` (default `5`).

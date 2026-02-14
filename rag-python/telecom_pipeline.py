@@ -5,6 +5,18 @@ from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 import json
 import time
+import logging
+
+# Import document processor for knowledge base loading
+from document_processor import DocumentProcessor
+
+# Import Ollama support
+try:
+    from langchain_ollama import ChatOllama
+    OLLAMA_AVAILABLE = True
+except ImportError:
+    OLLAMA_AVAILABLE = False
+    logging.warning("langchain-ollama not installed. Ollama support disabled.")
 
 
 class TelecomRAGPipeline:
@@ -13,24 +25,103 @@ class TelecomRAGPipeline:
     def __init__(self, config: Dict[str, Any]):
         if not config.get("openai_api_key"):
             raise ValueError("OpenAI API key is required")
-        
+
+        self.config = config
+        self.logger = self._setup_logging()
+
         try:
+            # Initialize embeddings (always use OpenAI for consistency)
             self.embeddings = OpenAIEmbeddings(
                 model="text-embedding-3-large",
                 dimensions=3072,
-                openai_api_key=config["openai_api_key"]
+                openai_api_key=config.get("openai_api_key", "not-needed")
             )
-            self.llm = ChatOpenAI(
-                model="gpt-4o-mini",
+
+            # Initialize LLM based on provider
+            self.llm = self._initialize_llm(config)
+
+            self.vector_store = self._setup_vector_store(config)
+            self.qa_chain = self._create_qa_chain()
+
+            # Load telecom domain knowledge from knowledge_base/
+            self._load_domain_knowledge()
+        except Exception as e:
+            raise RuntimeError(f"Failed to initialize RAG pipeline: {e}")
+
+    def _setup_logging(self) -> logging.Logger:
+        """Setup logging for RAG pipeline"""
+        logger = logging.getLogger(f"{__name__}.TelecomRAGPipeline")
+        logger.setLevel(logging.INFO)
+        if not logger.handlers:
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            )
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
+        return logger
+
+    def _initialize_llm(self, config: Dict):
+        """Initialize LLM based on provider configuration"""
+        provider = config.get("llm_provider", "openai").lower()
+
+        if provider == "ollama":
+            if not OLLAMA_AVAILABLE:
+                raise ImportError("langchain-ollama is not installed. Install with: pip install langchain-ollama")
+
+            self.logger.info(f"Initializing Ollama LLM: {config.get('llm_model', 'llama2')}")
+
+            return ChatOllama(
+                model=config.get("llm_model", "llama2"),
+                base_url=config.get("ollama_base_url", "http://localhost:11434"),
+                temperature=0,
+                num_predict=2048,
+                format="json",  # Request JSON output
+            )
+
+        elif provider == "openai":
+            if not config.get("openai_api_key"):
+                raise ValueError("OpenAI API key is required for OpenAI provider")
+
+            self.logger.info(f"Initializing OpenAI LLM: {config.get('llm_model', 'gpt-4o-mini')}")
+
+            return ChatOpenAI(
+                model=config.get("llm_model", "gpt-4o-mini"),
                 temperature=0,
                 max_tokens=2048,
                 model_kwargs={"response_format": {"type": "json_object"}},
                 openai_api_key=config["openai_api_key"]
             )
-            self.vector_store = self._setup_vector_store(config)
-            self.qa_chain = self._create_qa_chain()
+
+        else:
+            raise ValueError(f"Unsupported LLM provider: {provider}. Choose 'openai' or 'ollama'")
+
+    def _load_domain_knowledge(self):
+        """Load and index telecom domain knowledge from knowledge_base/"""
+        try:
+            self.logger.info("Loading telecom domain knowledge...")
+
+            # Initialize document processor
+            doc_processor = DocumentProcessor(self.config)
+
+            # Load knowledge base documents
+            docs = doc_processor.load_telecom_knowledge()
+
+            if docs:
+                # Add documents to vector store
+                self.vector_store.add_documents(docs)
+                self.logger.info(
+                    f"Successfully indexed {len(docs)} knowledge base documents"
+                )
+            else:
+                self.logger.warning(
+                    "No documents loaded from knowledge_base/. "
+                    "RAG will work but without domain-specific knowledge."
+                )
         except Exception as e:
-            raise RuntimeError(f"Failed to initialize RAG pipeline: {e}")
+            self.logger.error(f"Failed to load domain knowledge: {e}")
+            # Don't fail initialization if knowledge loading fails
+            self.logger.warning("RAG pipeline initialized without domain knowledge")
 
     def _setup_vector_store(self, config: Dict) -> Weaviate:
         """Initialize Weaviate vector database."""

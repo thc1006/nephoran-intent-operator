@@ -5,6 +5,19 @@ on:
     workflows: ["PR Validation"]
     types: [completed]
   workflow_dispatch:
+    inputs:
+      threshold_seconds:
+        description: "Override regression threshold in seconds (default 154 = 2m34s)"
+        required: false
+        default: "154"
+      sample_size:
+        description: "Number of recent successful PR Validation runs to analyze (default 10)"
+        required: false
+        default: "10"
+      min_samples:
+        description: "Minimum successful samples required before evaluating alerts (default 5)"
+        required: false
+        default: "5"
 
 concurrency:
   group: ${{ github.ref }}
@@ -42,9 +55,22 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const workflowId = process.env.TARGET_WORKFLOW_FILE;
-            const thresholdSeconds = Number(process.env.THRESHOLD_SECONDS);
-            const sampleSize = Number(process.env.SAMPLE_SIZE);
-            const minSamples = Number(process.env.MIN_SAMPLES);
+            const thresholdSeconds = Number(context.payload.inputs?.threshold_seconds || process.env.THRESHOLD_SECONDS);
+            const sampleSize = Number(context.payload.inputs?.sample_size || process.env.SAMPLE_SIZE);
+            const minSamples = Number(context.payload.inputs?.min_samples || process.env.MIN_SAMPLES);
+
+            if (!Number.isFinite(thresholdSeconds) || thresholdSeconds <= 0) {
+              core.setFailed(`Invalid threshold_seconds: ${context.payload.inputs?.threshold_seconds || process.env.THRESHOLD_SECONDS}`);
+              return;
+            }
+            if (!Number.isInteger(sampleSize) || sampleSize <= 0) {
+              core.setFailed(`Invalid sample_size: ${context.payload.inputs?.sample_size || process.env.SAMPLE_SIZE}`);
+              return;
+            }
+            if (!Number.isInteger(minSamples) || minSamples <= 0 || minSamples > sampleSize) {
+              core.setFailed(`Invalid min_samples: ${context.payload.inputs?.min_samples || process.env.MIN_SAMPLES}`);
+              return;
+            }
 
             const toSeconds = (start, end) => {
               if (!start || !end) return NaN;

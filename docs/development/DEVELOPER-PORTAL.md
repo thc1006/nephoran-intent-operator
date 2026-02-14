@@ -927,7 +927,7 @@ We welcome contributions! Here's how to get started:
 
 ### Code of Conduct
 
-Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before participating in the community.
+Please read our [Code of Conduct](../../CODE_OF_CONDUCT.md) before participating in the community.
 
 ### Roadmap
 
@@ -942,17 +942,17 @@ Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before participating in th
 
 ### Tutorials
 
-- [Building Your First Intent-Driven Application](tutorials/first-app.md)
-- [Advanced RAG Integration](tutorials/rag-integration.md)
-- [Production Deployment Guide](tutorials/production-deployment.md)
-- [Monitoring and Observability](tutorials/monitoring.md)
+- [Building Your First Intent-Driven Application](../getting-started/quickstart.md)
+- [Advanced RAG Integration](../knowledge-base/RAG-Pipeline-Implementation.md)
+- [Production Deployment Guide](../operations/01-production-deployment-guide.md)
+- [Monitoring and Observability](../operations/02-monitoring-alerting-runbooks.md)
 
 ### API Reference
 
-- [Complete API Documentation](API_REFERENCE.md)
-- [OpenAPI Specification](OPENAPI-SPECIFICATION.yaml)
-- [SDK Documentation](sdk-docs/)
-- [Webhook Integration Guide](webhooks.md)
+- [Complete API Documentation](../api/API_REFERENCE.md)
+- [OpenAPI Specification](../api/openapi-spec.yaml)
+- [SDK Documentation](../api/sdk/)
+- [Webhook Integration Guide](../api/webhook-validation-api.md)
 
 ### Examples Repository
 

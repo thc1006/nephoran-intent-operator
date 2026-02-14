@@ -111,3 +111,23 @@ Updates are tracked here in append-only format.
 | 2026-02-13T14:41:04+00:00 | chore/pr-validation-warmpath-tune-20260213 | .github/workflows | Tuned reusable Go job warm path; skip explicit module prep in PR build job. |
 | 2026-02-13T15:09:30+00:00 | chore/auth-config-path-validation-fix-20260213 | pkg/auth | Fix config path guard false-positive on /home/*/dev/* repositories. |
 | 2026-02-13T15:19:02+00:00 | chore/pr-validation-performance-guard-20260213 | .github/workflows | Add PR-validation p95 regression guard with automated issue alerts. |
+| 2026-02-13T17:03:27+00:00 | main | docs | Move three root docs into docs subdirectories; update docs links. |
+| 2026-02-13T17:08:25+00:00 | main | root-config | Remove unused .go-build-config.yaml; keep .controller-gen.yaml and .nancy-ignore. |
+| 2026-02-13T18:08:21+00:00 | chore/perf-guard-threshold-input-20260213 | .github/workflows | Add dispatch threshold override for PR Validation Performance Guard. |
+| 2026-02-13T18:17:50+00:00 | chore/perf-guard-sampling-inputs-20260213 | .github/workflows | Add dispatch sample_size/min_samples controls for perf guard. |
+| 2026-02-13T19:00:29+00:00 | chore/docs-link-integrity-pack1-20260213 | docs | Docs link pack1 partial: fixed hotspots, removed AI marker artifacts. |
+| 2026-02-13T19:54:43+00:00 | chore/docs-link-integrity-pack2-20260213 | docs | Pack2 link fixes: 73 -> 34 missing links, quickstart docs test green. |
+| 2026-02-13T20:05:44+00:00 | chore/docs-link-integrity-pack3-20260213 | docs | Pack3 completed: fixed remaining broken links to zero; docs test green. |
+| 2026-02-13T20:27:50+00:00 | chore/ci-markdown-link-guard-20260213 | .github/workflows | Added advisory markdown link integrity scan to PR validation. |
+| 2026-02-13T20:57:08+00:00 | chore/ci-markdown-link-guard-20260213 | .github/workflows | Fixed advisory link scan workflow parse token for GitHub Actions. |
+| 2026-02-13T21:06:52+00:00 | chore/ci-markdown-link-blocking-20260213 | .github/workflows | Promoted markdown link integrity from advisory to blocking PR gate. |
+| 2026-02-13T21:15:35+00:00 | main | root-policy | Added root allowlist validator and Phase 3 candidate registry. |
+| 2026-02-13T21:35:06+00:00 | chore/pr-validation-scope-fastlane-20260213 | .github/workflows | Added scope-aware PR fast lane with conditional full gate. |
+| 2026-02-13T21:51:12+00:00 | chore/root-security-reports-move-20260213 | root-cleanup | Moved tracked security-reports SBOM files to docs/security/reports. |
+| 2026-02-13T22:21:17+00:00 | chore/root-archive-move-20260213 | root-cleanup | Moved root archive examples to examples/archive and updated references. |
+| 2026-02-13T23:06:46+00:00 | chore/root-cleanup-phase3d-finalize-exceptions-20260213 | root-policy | Finalized root exceptions with unblock criteria and policy documentation. |
+| 2026-02-14T00:55:18+00:00 | chore/root-cleanup-phase4a-remove-orphans-20260214 | root-cleanup | Removed orphaned docker-compose.yaml and pyproject.toml (zero refs). |
+| 2026-02-14T01:03:12+00:00 | chore/root-cleanup-phase4b-move-mkdocs-20260214 | root-cleanup | Moved mkdocs.yml to docs/ for module self-containment (62 entries). |
+| 2026-02-14T03:05:12+00:00 | feature/phase1-emergency-hotfix | rag-python,deployments | OpenAI model → gpt-4o-2024-08-06, Flask→FastAPI |
+| 2026-02-14T05:27:27+00:00 | feature/phase1-emergency-hotfix | rag,security,go | FastAPI conversion, PSP removal, Go 1.26 upgrade |
+| 2026-02-14T06:01:09+00:00 | feature/phase1-emergency-hotfix | rag-python,docs,scripts | Ollama integration for local LLM deployment |

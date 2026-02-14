@@ -6,7 +6,7 @@
 # =============================================================================
 
 # Build arguments
-ARG GO_VERSION=1.24.6
+ARG GO_VERSION=1.26.0
 ARG ALPINE_VERSION=3.21
 ARG DISTROLESS_VERSION=nonroot
 ARG BUILDPLATFORM=linux/amd64

@@ -13,16 +13,20 @@ from dataclasses import dataclass
 from enum import Enum
 import json
 import yaml
+import os
 
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.document_loaders import (
-    TextLoader, 
+    TextLoader,
     UnstructuredMarkdownLoader,
     PyPDFLoader,
     JSONLoader
 )
 import openai
+
+# Knowledge base directory (relative to this file)
+KNOWLEDGE_BASE_DIR = Path(__file__).parent.parent / "knowledge_base"
 
 
 class DocumentType(Enum):
@@ -123,12 +127,13 @@ class TelecomKeywordExtractor:
 
 class DocumentProcessor:
     """Processes telecom documents for knowledge base ingestion"""
-    
+
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.logger = self._setup_logging()
         self.keyword_extractor = TelecomKeywordExtractor()
-        
+        self.knowledge_base_dir = KNOWLEDGE_BASE_DIR
+
         # Initialize text splitter
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=config.get("chunk_size", 1000),
@@ -151,7 +156,82 @@ class DocumentProcessor:
             logger.addHandler(handler)
         
         return logger
-    
+
+    def load_telecom_knowledge(self) -> List[Document]:
+        """Load 3GPP and O-RAN specifications from knowledge_base/ directory
+
+        This method loads domain-specific telecom documentation to enhance
+        the RAG pipeline with standards-based knowledge.
+
+        Returns:
+            List of Document objects with telecom knowledge content
+        """
+        documents = []
+
+        if not self.knowledge_base_dir.exists():
+            self.logger.warning(
+                f"Knowledge base directory not found: {self.knowledge_base_dir}"
+            )
+            return documents
+
+        self.logger.info(f"Loading telecom knowledge from {self.knowledge_base_dir}")
+
+        # Load 3GPP TS 23.501 specification
+        threegpp_file = self.knowledge_base_dir / "3gpp_ts_23_501.md"
+        if threegpp_file.exists():
+            try:
+                loader = UnstructuredMarkdownLoader(str(threegpp_file))
+                docs = loader.load()
+                for doc in docs:
+                    doc.metadata["type"] = DocumentType.THREEGPP_SPEC.value
+                    doc.metadata["source"] = "3gpp_ts_23_501"
+                    doc.metadata["category"] = "5g_core"
+                    doc.metadata["standard"] = "3GPP"
+                documents.extend(docs)
+                self.logger.info(f"Loaded {len(docs)} chunks from 3GPP TS 23.501")
+            except Exception as e:
+                self.logger.error(f"Failed to load 3GPP spec: {e}")
+
+        # Load O-RAN Use Cases
+        oran_file = self.knowledge_base_dir / "oran_use_cases.md"
+        if oran_file.exists():
+            try:
+                loader = UnstructuredMarkdownLoader(str(oran_file))
+                docs = loader.load()
+                for doc in docs:
+                    doc.metadata["type"] = DocumentType.ORAN_SPEC.value
+                    doc.metadata["source"] = "oran_use_cases"
+                    doc.metadata["category"] = "ran"
+                    doc.metadata["standard"] = "O-RAN"
+                documents.extend(docs)
+                self.logger.info(f"Loaded {len(docs)} chunks from O-RAN use cases")
+            except Exception as e:
+                self.logger.error(f"Failed to load O-RAN spec: {e}")
+
+        # Load all other markdown files in knowledge_base
+        for md_file in self.knowledge_base_dir.glob("*.md"):
+            if md_file.name not in ["3gpp_ts_23_501.md", "oran_use_cases.md"]:
+                try:
+                    loader = UnstructuredMarkdownLoader(str(md_file))
+                    docs = loader.load()
+                    for doc in docs:
+                        doc.metadata["type"] = DocumentType.MARKDOWN_DOC.value
+                        doc.metadata["source"] = md_file.stem
+                    documents.extend(docs)
+                    self.logger.info(f"Loaded {len(docs)} chunks from {md_file.name}")
+                except Exception as e:
+                    self.logger.error(f"Failed to load {md_file.name}: {e}")
+
+        if documents:
+            self.logger.info(
+                f"Successfully loaded {len(documents)} total documents "
+                f"from knowledge base"
+            )
+        else:
+            self.logger.warning("No documents loaded from knowledge base")
+
+        return documents
+
     def detect_document_type(self, file_path: Path) -> DocumentType:
         """Detect document type based on content and filename"""
         filename = file_path.name.lower()

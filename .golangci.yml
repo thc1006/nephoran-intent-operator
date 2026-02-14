@@ -3,7 +3,7 @@
 
 run:
   timeout: 45m
-  go: '1.24'
+  go: '1.26'
   tests: true
   build-tags:
     - integration

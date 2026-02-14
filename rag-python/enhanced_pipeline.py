@@ -23,6 +23,14 @@ from langchain.callbacks import AsyncCallbackHandler
 import weaviate as wv
 import openai
 
+# Import Ollama support
+try:
+    from langchain_ollama import ChatOllama
+    OLLAMA_AVAILABLE = True
+except ImportError:
+    OLLAMA_AVAILABLE = False
+    logging.warning("langchain-ollama not installed. Ollama support disabled.")
+
 
 class ProcessingStatus(Enum):
     """Processing status for intent handling"""
@@ -272,7 +280,7 @@ class EnhancedTelecomRAGPipeline:
         """Setup structured logging"""
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.INFO)
-        
+
         if not logger.handlers:
             handler = logging.StreamHandler()
             formatter = logging.Formatter(
@@ -280,30 +288,56 @@ class EnhancedTelecomRAGPipeline:
             )
             handler.setFormatter(formatter)
             logger.addHandler(handler)
-        
+
         return logger
-    
-    def _initialize_components(self) -> None:
-        """Initialize LLM and vector store components"""
-        if not self.config.get("openai_api_key"):
-            raise ValueError("OpenAI API key is required")
-        
-        try:
-            # Initialize embeddings
-            self.embeddings = OpenAIEmbeddings(
-                model="text-embedding-3-large",
-                dimensions=3072,
-                openai_api_key=self.config["openai_api_key"]
+
+    def _initialize_llm(self):
+        """Initialize LLM based on provider configuration"""
+        provider = self.config.get("llm_provider", "openai").lower()
+
+        if provider == "ollama":
+            if not OLLAMA_AVAILABLE:
+                raise ImportError("langchain-ollama is not installed. Install with: pip install langchain-ollama")
+
+            self.logger.info(f"Initializing Ollama LLM: {self.config.get('llm_model', 'llama2')}")
+
+            return ChatOllama(
+                model=self.config.get("llm_model", "llama2"),
+                base_url=self.config.get("ollama_base_url", "http://localhost:11434"),
+                temperature=0,
+                num_predict=2048,
+                format="json",  # Request JSON output
             )
-            
-            # Initialize LLM with structured output
-            self.llm = ChatOpenAI(
-                model=self.config.get("model", "gpt-4o-mini"),
+
+        elif provider == "openai":
+            if not self.config.get("openai_api_key"):
+                raise ValueError("OpenAI API key is required for OpenAI provider")
+
+            self.logger.info(f"Initializing OpenAI LLM: {self.config.get('llm_model', 'gpt-4o-mini')}")
+
+            return ChatOpenAI(
+                model=self.config.get("llm_model", "gpt-4o-mini"),
                 temperature=0,
                 max_tokens=2048,
                 model_kwargs={"response_format": {"type": "json_object"}},
                 openai_api_key=self.config["openai_api_key"]
             )
+
+        else:
+            raise ValueError(f"Unsupported LLM provider: {provider}. Choose 'openai' or 'ollama'")
+    
+    def _initialize_components(self) -> None:
+        """Initialize LLM and vector store components"""
+        try:
+            # Initialize embeddings (always use OpenAI for consistency)
+            self.embeddings = OpenAIEmbeddings(
+                model="text-embedding-3-large",
+                dimensions=3072,
+                openai_api_key=self.config.get("openai_api_key", "not-needed")
+            )
+
+            # Initialize LLM based on provider
+            self.llm = self._initialize_llm()
             
             # Initialize Weaviate client with authentication
             weaviate_url = self.config.get("weaviate_url", "http://weaviate.nephoran-system.svc.cluster.local:8080")
@@ -507,7 +541,7 @@ Generate the appropriate JSON object based on the user command.
                 retrieval_score=retrieval_score,
                 confidence_score=confidence_score,
                 cache_hit=False,
-                model_version=self.config.get("model", "gpt-4o-mini")
+                model_version=self.config.get("llm_model", "gpt-4o-mini")
             )
             
             # Validate response structure
@@ -663,7 +697,7 @@ Generate the appropriate JSON object based on the user command.
                 "weaviate_ready": weaviate_ready,
                 "knowledge_objects": object_count,
                 "cache_size": len(self.cache.cache),
-                "model": self.config.get("model", "gpt-4o-mini"),
+                "model": self.config.get("llm_model", "gpt-4o-mini"),
                 "timestamp": time.time()
             }
         except Exception as e:

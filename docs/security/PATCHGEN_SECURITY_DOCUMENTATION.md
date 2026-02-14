@@ -121,7 +121,7 @@ func validateOutputPath(outputDir string) error {
 // Strict input validation via JSON Schema
 "target": {
     "type": "string",
-    "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+    "pattern": "^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$",
     "minLength": 1,
     "maxLength": 253
 }
@@ -208,14 +208,14 @@ const IntentSchema = `{
     },
     "target": {
       "type": "string",
-      "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+      "pattern": "^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$",
       "minLength": 1,
       "maxLength": 253,
       "description": "Kubernetes deployment name"
     },
     "namespace": {
       "type": "string",
-      "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+      "pattern": "^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$",
       "minLength": 1,
       "maxLength": 63,
       "description": "Kubernetes namespace"
@@ -239,7 +239,7 @@ All string inputs are validated against strict patterns:
 ```go
 var (
     // DNS-1123 subdomain for Kubernetes names
-    kubernetesNamePattern = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
+    kubernetesNamePattern = regexp.MustCompile(`^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$`)
     
     // Alphanumeric with limited special characters
     correlationIDPattern = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)

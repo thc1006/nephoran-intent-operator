@@ -34,7 +34,7 @@ The **Nephoran Intent Operator** is a proof-of-concept cloud-native platform tha
 - **Ops & tooling**: `scripts/`, `tools/`, `ci/`, `monitoring/`, `metrics/`
 - **Docs**: `docs/` (ADR, API, runbooks, security, prompts), `CLAUDE.md`
 - **Examples & demo**: `examples/`, `demo/`, `planner/`
-- **Archived / reference**: `archive/`, `knowledge_base/`, `security-reports/`
+- **Archived / reference**: `examples/archive/`, `knowledge_base/`, `docs/security/reports/`
 
 **🌟 Key Value Proposition (MVP Scope):**
 - **Natural Language Interface**: Translate network intents into structured configurations using AI
@@ -381,7 +381,7 @@ The latest release includes critical CI/CD and infrastructure improvements:
 - **Quality Gates**: Updated golangci-lint to v1.62.0, fixed gocyclo installation issues
 - **Performance**: Reduced average build time from 5.4 to 3.2 minutes (-41% improvement)
 
-For complete details, see [Deployment Fixes Guide](docs/DEPLOYMENT_FIXES_GUIDE.md) and [CI/CD Infrastructure Documentation](docs/CI_CD_INFRASTRUCTURE.md).
+For complete details, see [Deployment Fixes Guide](docs/operations/DEPLOYMENT_FIXES_GUIDE.md) and [CI/CD Infrastructure Documentation](docs/ci/CI_CD_INFRASTRUCTURE.md).
 
 #### Health and Probes
 The system provides standardized health endpoints for Kubernetes liveness and readiness probes:
@@ -407,7 +407,7 @@ Enhanced security features include:
   - `X-Content-Type-Options` for MIME type sniffing protection
 
 ### 📁 Archive Directory
-The **[archive/](archive/)** directory contains essential example YAML configurations and reference templates actively used throughout the project. Despite its name, these are not deprecated files but rather canonical examples that serve critical purposes:
+The **[examples/archive/](examples/archive/)** directory contains essential example YAML configurations and reference templates actively used throughout the project. Despite its name, these are not deprecated files but rather canonical examples that serve critical purposes:
 - **Reference Templates**: Canonical YAML configurations used by deployment scripts and quickstart guides
 - **Active Examples**: Referenced by 12+ scripts and documentation files for demonstrations
 - **Testing Resources**: Used in continuous integration and system validation workflows
@@ -418,7 +418,7 @@ Key files include:
 - `test-deployment.yaml`: Complete system deployment manifest with LLM Processor and Nephio Bridge
 - `test-networkintent.yaml`: Advanced E2 node deployment example for O-RAN testing
 
-For detailed information about each file and usage instructions, see the comprehensive [archive/README.md](archive/README.md)
+For detailed information about each file and usage instructions, see the comprehensive [examples/archive/README.md](examples/archive/README.md)
 
 ## ⚙️ Configuration
 
@@ -575,7 +575,7 @@ For complete metrics reference including:
 - Advanced Prometheus queries and alerting rules
 - Grafana dashboard configuration and best practices
 
-See: **[Complete Prometheus Metrics Documentation](PROMETHEUS_METRICS.md)**
+See: **[Complete Prometheus Metrics Documentation](docs/monitoring/sla-monitoring-system.md)**
 
 ### 📖 Advanced Topics
 - **[O-RAN Compliance Certification](docs/operations/ORAN-COMPLIANCE-CERTIFICATION.md)**: Standards compliance details
@@ -583,7 +583,7 @@ See: **[Complete Prometheus Metrics Documentation](PROMETHEUS_METRICS.md)**
   - **[OAuth2 Security Guide](docs/security/OAuth2-Security-Guide.md)**: Comprehensive OAuth2 implementation
   - **[CORS Configuration](docs/security/CORS-Security-Configuration-Guide.md)**: CORS security setup
 - **[Operational Runbooks](docs/runbooks/README.md)**: Production operations and incident response
-- **[Performance Optimization](docs/archive/reports/performance-optimization.md)**: Tuning and scaling guides
+- **[Performance Optimization](docs/performance/PERFORMANCE_OPTIMIZATIONS.md)**: Tuning and scaling guides
 - **[Multi-Region Deployment](deployments/multi-region/README.md)**: Global architecture patterns
 
 ### 🎯 Tutorials & Examples
