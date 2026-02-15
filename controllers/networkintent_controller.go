@@ -46,9 +46,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
+)
+
+const (
+	// NetworkIntentFinalizerName is the finalizer added to NetworkIntent resources
+	NetworkIntentFinalizerName = "intent.nephoran.com/a1-policy-cleanup"
 )
 
 // NetworkIntentReconciler reconciles a NetworkIntent object.
@@ -157,14 +163,40 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	}
 
-	// Check if the object is being deleted.
+	// Check if the object is being deleted and handle finalizer
 
 	if !networkIntent.ObjectMeta.DeletionTimestamp.IsZero() {
+		// The object is being deleted
+		if controllerutil.ContainsFinalizer(networkIntent, NetworkIntentFinalizerName) {
+			// Our finalizer is present, so handle A1 policy cleanup
+			log.Info("Deleting A1 policy for NetworkIntent", "name", networkIntent.Name)
 
-		log.Info("NetworkIntent is being deleted", "name", networkIntent.Name)
+			if r.EnableA1Integration {
+				if err := r.deleteA1Policy(ctx, networkIntent); err != nil {
+					log.Error(err, "Failed to delete A1 policy, will retry")
+					return ctrl.Result{RequeueAfter: 5 * time.Second}, err
+				}
+				log.Info("A1 policy deleted successfully", "name", networkIntent.Name)
+			}
 
+			// Remove our finalizer from the list and update it
+			controllerutil.RemoveFinalizer(networkIntent, NetworkIntentFinalizerName)
+			if err := r.Update(ctx, networkIntent); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+
+		// Stop reconciliation as the item is being deleted
 		return ctrl.Result{}, nil
+	}
 
+	// Add finalizer if not present
+	if !controllerutil.ContainsFinalizer(networkIntent, NetworkIntentFinalizerName) {
+		log.Info("Adding finalizer to NetworkIntent", "name", networkIntent.Name)
+		controllerutil.AddFinalizer(networkIntent, NetworkIntentFinalizerName)
+		if err := r.Update(ctx, networkIntent); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	// Validate the intent field.
@@ -179,9 +211,16 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 
-	// If A1 integration is enabled, create A1 policy
+	// If A1 integration is enabled, create/update A1 policy
 	if r.EnableA1Integration {
-		log.Info("Converting NetworkIntent to A1 policy", "name", networkIntent.Name)
+		// Check if this is an update (status already shows Deployed)
+		isUpdate := networkIntent.Status.Phase == "Deployed"
+
+		if isUpdate {
+			log.Info("Updating A1 policy for modified NetworkIntent", "name", networkIntent.Name)
+		} else {
+			log.Info("Converting NetworkIntent to A1 policy", "name", networkIntent.Name)
+		}
 
 		// Convert NetworkIntent to A1 policy
 		a1Policy, err := convertToA1Policy(networkIntent)
@@ -191,16 +230,23 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 				fmt.Sprintf("Failed to convert to A1 policy: %v", err), networkIntent.Generation)
 		}
 
-		// Create A1 policy via A1 Mediator API
+		// Create/Update A1 policy via A1 Mediator API (PUT is idempotent - creates or updates)
 		if err := r.createA1Policy(ctx, networkIntent, a1Policy); err != nil {
-			log.Error(err, "Failed to create A1 policy")
+			log.Error(err, "Failed to create/update A1 policy")
 			return r.updateStatus(ctx, networkIntent, "Error",
-				fmt.Sprintf("Failed to create A1 policy: %v", err), networkIntent.Generation)
+				fmt.Sprintf("Failed to create/update A1 policy: %v", err), networkIntent.Generation)
 		}
 
-		log.Info("A1 policy created successfully", "name", networkIntent.Name)
+		statusMessage := "Intent deployed successfully via A1 policy"
+		if isUpdate {
+			statusMessage = "Intent updated successfully via A1 policy"
+			log.Info("A1 policy updated successfully", "name", networkIntent.Name)
+		} else {
+			log.Info("A1 policy created successfully", "name", networkIntent.Name)
+		}
+
 		if _, err := r.updateStatus(ctx, networkIntent, "Deployed",
-			"Intent deployed successfully via A1 policy", networkIntent.Generation); err != nil {
+			statusMessage, networkIntent.Generation); err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -336,103 +382,46 @@ func (r *NetworkIntentReconciler) updateStatus(ctx context.Context, networkInten
 
 // convertToA1Policy converts a NetworkIntent to an A1 policy conforming to policy type 100
 func convertToA1Policy(networkIntent *intentv1alpha1.NetworkIntent) (*A1Policy, error) {
+	spec := networkIntent.Spec
+
 	policy := &A1Policy{
 		Scope: A1PolicyScope{
-			Target:     getStringField(networkIntent, "target"),
-			Namespace:  getStringField(networkIntent, "namespace"),
-			IntentType: getStringField(networkIntent, "intentType"),
+			Target:     spec.Target,
+			Namespace:  spec.Namespace,
+			IntentType: spec.IntentType,
 		},
 		QoSObjectives: A1QoSObjectives{
-			Replicas: getInt32Field(networkIntent, "replicas"),
+			Replicas: spec.Replicas,
 		},
 	}
 
 	// Extract scaling parameters if present
-	if scalingParams := getObjectField(networkIntent, "scalingParameters"); scalingParams != nil {
-		if autoscalingPolicy := scalingParams["autoscalingPolicy"]; autoscalingPolicy != nil {
-			if asMap, ok := autoscalingPolicy.(map[string]interface{}); ok {
-				if minReplicas, ok := asMap["minReplicas"].(float64); ok {
-					policy.QoSObjectives.MinReplicas = int32(minReplicas)
-				}
-				if maxReplicas, ok := asMap["maxReplicas"].(float64); ok {
-					policy.QoSObjectives.MaxReplicas = int32(maxReplicas)
-				}
-				if metricThresholds, ok := asMap["metricThresholds"].([]interface{}); ok {
-					for _, mt := range metricThresholds {
-						if mtMap, ok := mt.(map[string]interface{}); ok {
-							threshold := A1MetricThreshold{}
-							if metricType, ok := mtMap["type"].(string); ok {
-								threshold.Type = metricType
-							}
-							if value, ok := mtMap["value"].(float64); ok {
-								threshold.Value = int64(value)
-							}
-							policy.QoSObjectives.MetricThresholds = append(policy.QoSObjectives.MetricThresholds, threshold)
-						}
-					}
-				}
+	if spec.ScalingParameters != nil {
+		if spec.ScalingParameters.AutoscalingPolicy != nil {
+			// Copy autoscaling values
+			policy.QoSObjectives.MinReplicas = spec.ScalingParameters.AutoscalingPolicy.MinReplicas
+			policy.QoSObjectives.MaxReplicas = spec.ScalingParameters.AutoscalingPolicy.MaxReplicas
+
+			// Convert metric thresholds
+			for _, mt := range spec.ScalingParameters.AutoscalingPolicy.MetricThresholds {
+				policy.QoSObjectives.MetricThresholds = append(policy.QoSObjectives.MetricThresholds, A1MetricThreshold{
+					Type:  mt.Type,
+					Value: mt.Value,
+				})
 			}
 		}
 	}
 
 	// Extract network parameters if present
-	if networkParams := getObjectField(networkIntent, "networkParameters"); networkParams != nil {
-		if networkSliceID, ok := networkParams["networkSliceId"].(string); ok {
-			policy.QoSObjectives.NetworkSliceID = networkSliceID
-		}
-		if qosProfile := networkParams["qosProfile"]; qosProfile != nil {
-			if qosMap, ok := qosProfile.(map[string]interface{}); ok {
-				if priority, ok := qosMap["priority"].(float64); ok {
-					policy.QoSObjectives.Priority = int32(priority)
-				}
-				if maxDataRate, ok := qosMap["maximumDataRate"].(string); ok {
-					policy.QoSObjectives.MaximumDataRate = maxDataRate
-				}
-			}
+	if spec.NetworkParameters != nil {
+		policy.QoSObjectives.NetworkSliceID = spec.NetworkParameters.NetworkSliceID
+		if spec.NetworkParameters.QoSProfile != nil {
+			policy.QoSObjectives.Priority = spec.NetworkParameters.QoSProfile.Priority
+			policy.QoSObjectives.MaximumDataRate = spec.NetworkParameters.QoSProfile.MaximumDataRate
 		}
 	}
 
 	return policy, nil
-}
-
-// Helper functions to extract fields from NetworkIntent spec (using runtime.RawExtension)
-func getStringField(networkIntent *intentv1alpha1.NetworkIntent, fieldName string) string {
-	spec := networkIntent.Spec
-	// Access spec fields through reflection or type assertion
-	// For now, we'll use a simpler approach assuming the spec is a map
-	if specBytes, err := json.Marshal(spec); err == nil {
-		var specMap map[string]interface{}
-		if err := json.Unmarshal(specBytes, &specMap); err == nil {
-			if val, ok := specMap[fieldName].(string); ok {
-				return val
-			}
-		}
-	}
-	return ""
-}
-
-func getInt32Field(networkIntent *intentv1alpha1.NetworkIntent, fieldName string) int32 {
-	if specBytes, err := json.Marshal(networkIntent.Spec); err == nil {
-		var specMap map[string]interface{}
-		if err := json.Unmarshal(specBytes, &specMap); err == nil {
-			if val, ok := specMap[fieldName].(float64); ok {
-				return int32(val)
-			}
-		}
-	}
-	return 0
-}
-
-func getObjectField(networkIntent *intentv1alpha1.NetworkIntent, fieldName string) map[string]interface{} {
-	if specBytes, err := json.Marshal(networkIntent.Spec); err == nil {
-		var specMap map[string]interface{}
-		if err := json.Unmarshal(specBytes, &specMap); err == nil {
-			if val, ok := specMap[fieldName].(map[string]interface{}); ok {
-				return val
-			}
-		}
-	}
-	return nil
 }
 
 // createA1Policy creates an A1 policy via the A1 Mediator API
@@ -497,6 +486,64 @@ func (r *NetworkIntentReconciler) createA1Policy(ctx context.Context, networkInt
 	}
 
 	log.Info("A1 policy created successfully",
+		"policyInstanceID", policyInstanceID,
+		"statusCode", resp.StatusCode)
+
+	return nil
+}
+
+// deleteA1Policy deletes an A1 policy via the A1 Mediator API
+func (r *NetworkIntentReconciler) deleteA1Policy(ctx context.Context, networkIntent *intentv1alpha1.NetworkIntent) error {
+	log := log.FromContext(ctx)
+
+	// Determine A1 Mediator URL
+	a1URL := r.A1MediatorURL
+	if a1URL == "" {
+		a1URL = "http://service-ricplt-a1mediator-http.ricplt:10000"
+	}
+
+	// Policy type ID and instance ID
+	policyTypeID := "100"
+	policyInstanceID := fmt.Sprintf("policy-%s", networkIntent.Name)
+
+	// Construct A1 v2 API endpoint for deletion
+	apiEndpoint := fmt.Sprintf("%s/A1-P/v2/policytypes/%s/policies/%s",
+		a1URL, policyTypeID, policyInstanceID)
+
+	log.Info("Deleting A1 policy",
+		"endpoint", apiEndpoint,
+		"policyTypeID", policyTypeID,
+		"policyInstanceID", policyInstanceID)
+
+	// Create HTTP client with timeout
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	// Create DELETE request
+	httpReq, err := http.NewRequestWithContext(ctx, "DELETE", apiEndpoint, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create A1 delete request: %w", err)
+	}
+
+	// Send the request
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("failed to send A1 delete request: %w", err)
+	}
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Error(err, "Failed to close A1 response body")
+		}
+	}()
+
+	// Check response status (204 No Content or 404 Not Found are acceptable)
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusNotFound && resp.StatusCode != http.StatusAccepted {
+		bodyBytes, _ := json.Marshal(resp.Body)
+		return fmt.Errorf("A1 API delete returned error status %d: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	log.Info("A1 policy deletion completed",
 		"policyInstanceID", policyInstanceID,
 		"statusCode", resp.StatusCode)
 

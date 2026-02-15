@@ -5,10 +5,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// NetworkIntent represents a high-level network scaling and configuration intent
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:categories=nephio;o-ran
+// +kubebuilder:resource:categories=nephio;o-ran,shortName=ni
 // +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
+// +kubebuilder:printcolumn:name="Target",type=string,JSONPath=`.spec.target`
+// +kubebuilder:printcolumn:name="Replicas",type=integer,JSONPath=`.spec.replicas`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 type NetworkIntent struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -18,190 +21,144 @@ type NetworkIntent struct {
 	Status NetworkIntentStatus `json:"status,omitempty"`
 }
 
+// NetworkIntentSpec defines the desired state of a network intent
 // +kubebuilder:object:generate=true
 type NetworkIntentSpec struct {
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum=low;medium;high
-	ScalingPriority string `json:"scalingPriority"`
+	// Source of the intent (e.g., "user", "automation")
+	// +kubebuilder:validation:Optional
+	Source string `json:"source,omitempty"`
 
+	// IntentType specifies the type of intent (e.g., "scaling", "optimization")
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:MinItems=1
-	TargetClusters []string `json:"targetClusters,omitempty"`
-	
-	// ScalingIntent defines the scaling behavior
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:pruning:PreserveUnknownFields
-	ScalingIntent *apiextensionsv1.JSON `json:"scalingIntent,omitempty"`
+	IntentType string `json:"intentType,omitempty"`
 
-	// Deployment defines deployment specifications for network functions
+	// Target specifies the target component or resource
 	// +kubebuilder:validation:Optional
-	Deployment DeploymentSpec `json:"deployment,omitempty"`
-}
+	Target string `json:"target,omitempty"`
 
-// DeploymentSpec defines the deployment configuration for network functions
-// +kubebuilder:object:generate=true
-type DeploymentSpec struct {
-	// ClusterSelector defines which clusters to deploy to
+	// Namespace specifies the target namespace
 	// +kubebuilder:validation:Optional
-	ClusterSelector map[string]string `json:"clusterSelector,omitempty"`
-
-	// NetworkFunctions defines the list of network functions to deploy
-	// +kubebuilder:validation:Optional
-	NetworkFunctions []NetworkFunction `json:"networkFunctions,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
 
 	// Replicas specifies the desired number of replicas
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Minimum=0
 	Replicas int32 `json:"replicas,omitempty"`
+
+	// ScalingParameters define how network functions should be scaled
+	// +kubebuilder:validation:Optional
+	ScalingParameters *ScalingParameters `json:"scalingParameters,omitempty"`
+
+	// NetworkParameters define network-level configurations
+	// +kubebuilder:validation:Optional
+	NetworkParameters *NetworkParameters `json:"networkParameters,omitempty"`
 }
 
-// NetworkFunction defines a network function configuration
+// ScalingParameters defines scaling configuration
 // +kubebuilder:object:generate=true
-type NetworkFunction struct {
-	// Name of the network function
-	// +kubebuilder:validation:Required
-	Name string `json:"name"`
+type ScalingParameters struct {
+	// Replicas defines the desired number of replicas for network functions
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Minimum=0
+	Replicas int32 `json:"replicas,omitempty"`
 
-	// Type of the network function (CNF, VNF, etc.)
+	// AutoscalingPolicy defines how automatic scaling should occur
+	// +kubebuilder:validation:Optional
+	AutoscalingPolicy *AutoscalingPolicy `json:"autoscalingPolicy,omitempty"`
+}
+
+// AutoscalingPolicy defines autoscaling behavior
+// +kubebuilder:object:generate=true
+type AutoscalingPolicy struct {
+	// MinReplicas is the lower limit of replicas
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Minimum=0
+	MinReplicas int32 `json:"minReplicas,omitempty"`
+
+	// MaxReplicas is the upper limit of replicas
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Minimum=1
+	MaxReplicas int32 `json:"maxReplicas,omitempty"`
+
+	// MetricThresholds define scaling triggers
+	// +kubebuilder:validation:Optional
+	MetricThresholds []MetricThreshold `json:"metricThresholds,omitempty"`
+}
+
+// MetricThreshold defines a condition for scaling
+// +kubebuilder:object:generate=true
+type MetricThreshold struct {
+	// Type of metric (CPU, Memory, Custom)
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum=CNF;VNF;PNF
 	Type string `json:"type"`
 
-	// Version of the network function
-	// +kubebuilder:validation:Optional
-	Version string `json:"version,omitempty"`
-
-	// Configuration specific to this network function
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:pruning:PreserveUnknownFields
-	Config *apiextensionsv1.JSON `json:"config,omitempty"`
-
-	// Resources required for this network function
-	// +kubebuilder:validation:Optional
-	Resources NetworkFunctionResources `json:"resources,omitempty"`
+	// Value at which scaling occurs
+	// +kubebuilder:validation:Required
+	Value int64 `json:"value"`
 }
 
-// NetworkFunctionResources defines resource requirements for a network function
+// NetworkParameters defines network-level configuration
 // +kubebuilder:object:generate=true
-type NetworkFunctionResources struct {
-	// CPU requirements
+type NetworkParameters struct {
+	// NetworkSliceID defines the specific network slice
 	// +kubebuilder:validation:Optional
-	CPU string `json:"cpu,omitempty"`
+	NetworkSliceID string `json:"networkSliceId,omitempty"`
 
-	// Memory requirements
+	// QoSProfile defines Quality of Service settings
 	// +kubebuilder:validation:Optional
-	Memory string `json:"memory,omitempty"`
-
-	// Storage requirements
-	// +kubebuilder:validation:Optional
-	Storage string `json:"storage,omitempty"`
-
-	// Custom resource requirements
-	// +kubebuilder:validation:Optional
-	Custom map[string]string `json:"custom,omitempty"`
+	QoSProfile *QoSProfile `json:"qosProfile,omitempty"`
 }
 
+// QoSProfile defines Quality of Service settings
+// +kubebuilder:object:generate=true
+type QoSProfile struct {
+	// Priority of the network slice
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Minimum=0
+	Priority int32 `json:"priority,omitempty"`
+
+	// MaximumDataRate defines the maximum data transmission rate
+	// +kubebuilder:validation:Optional
+	MaximumDataRate string `json:"maximumDataRate,omitempty"`
+}
+
+// NetworkIntentStatus defines the observed state of a network intent
 // +kubebuilder:object:generate=true
 type NetworkIntentStatus struct {
+	// Phase indicates the current phase of the intent
+	// +kubebuilder:validation:Optional
+	Phase string `json:"phase,omitempty"`
+
+	// Message contains human-readable information about the status
+	// +kubebuilder:validation:Optional
+	Message string `json:"message,omitempty"`
+
+	// Conditions represent the current conditions
 	// +kubebuilder:validation:Optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
+	// ObservedReplicas reflects the current number of replicas
 	// +kubebuilder:validation:Optional
-	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
-	
-	// Phase indicates the current phase of the NetworkIntent processing
+	ObservedReplicas int32 `json:"observedReplicas,omitempty"`
+
+	// ReadyReplicas represents the number of ready instances
 	// +kubebuilder:validation:Optional
-	Phase string `json:"phase,omitempty"`
-	
-	// LastUpdated indicates when the status was last updated
-	// +kubebuilder:validation:Optional  
-	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
+	ReadyReplicas int32 `json:"readyReplicas,omitempty"`
+
+	// LLMResponse contains the LLM processing response
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	LLMResponse *apiextensionsv1.JSON `json:"llmResponse,omitempty"`
 }
 
 // +kubebuilder:object:root=true
+// NetworkIntentList contains a list of NetworkIntent
 type NetworkIntentList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []NetworkIntent `json:"items"`
 }
 
-// Package types for Porch integration
-
-// +kubebuilder:object:root=true
-// +kubebuilder:resource:categories=porch;kpt
-// +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
-// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
-type Package struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   PackageSpec   `json:"spec,omitempty"`
-	Status PackageStatus `json:"status,omitempty"`
-}
-
-// +kubebuilder:object:generate=true
-type PackageSpec struct {
-	// RepositoryName specifies the repository where the package resides
-	// +kubebuilder:validation:Optional
-	RepositoryName string `json:"repositoryName,omitempty"`
-
-	// WorkspaceName specifies the workspace for the package
-	// +kubebuilder:validation:Optional
-	WorkspaceName string `json:"workspaceName,omitempty"`
-
-	// PackageName is the name of the package
-	// +kubebuilder:validation:Optional
-	PackageName string `json:"packageName,omitempty"`
-
-	// Revision specifies the package revision
-	// +kubebuilder:validation:Optional
-	Revision string `json:"revision,omitempty"`
-
-	// Lifecycle indicates the package lifecycle phase
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Enum=Draft;Proposed;Published
-	Lifecycle string `json:"lifecycle,omitempty"`
-}
-
-// +kubebuilder:object:generate=true
-type PackageStatus struct {
-	// Phase indicates the current phase of the package
-	// +kubebuilder:validation:Optional
-	Phase PackagePhase `json:"phase,omitempty"`
-
-	// Conditions represents the current conditions of the package
-	// +kubebuilder:validation:Optional
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
-
-	// ObservedGeneration reflects the generation observed by the controller
-	// +kubebuilder:validation:Optional
-	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
-
-	// UpstreamLock contains information about the upstream package lock
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:pruning:PreserveUnknownFields
-	UpstreamLock *apiextensionsv1.JSON `json:"upstreamLock,omitempty"`
-}
-
-// PackagePhase defines the possible phases of a package
-// +kubebuilder:validation:Enum=Created;Pending;Ready;Failed
-type PackagePhase string
-
-const (
-	// PackagePhaseCreated indicates the package has been created
-	PackagePhaseCreated PackagePhase = "Created"
-	// PackagePhasePending indicates the package is pending
-	PackagePhasePending PackagePhase = "Pending"
-	// PackagePhaseReady indicates the package is ready
-	PackagePhaseReady PackagePhase = "Ready"
-	// PackagePhaseFailed indicates the package has failed
-	PackagePhaseFailed PackagePhase = "Failed"
-)
-
-// +kubebuilder:object:root=true
-type PackageList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Package `json:"items"`
+func init() {
+	SchemeBuilder.Register(&NetworkIntent{}, &NetworkIntentList{})
 }

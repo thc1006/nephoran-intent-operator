@@ -10,26 +10,6 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-intent-nephoran-com-v1alpha1-networkintent
-  failurePolicy: Fail
-  name: mnetworkintent.kb.io
-  rules:
-  - apiGroups:
-    - intent.nephoran.com
-    apiVersions:
-    - v1alpha1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - networkintents
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
       path: /mutate-nephoran-io-v1-networkintent
   failurePolicy: Fail
   name: mnetworkintent-v1.kb.io
@@ -50,12 +30,12 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-intent-nephoran-com-v1alpha1-networkintent
+      path: /mutate-intent-nephio-org-v1alpha1-networkintent
   failurePolicy: Fail
   name: mnetworkintent.kb.io
   rules:
   - apiGroups:
-    - intent.nephoran.com
+    - intent.nephio.org
     apiVersions:
     - v1alpha1
     operations:
@@ -70,26 +50,6 @@ kind: ValidatingWebhookConfiguration
 metadata:
   name: validating-webhook-configuration
 webhooks:
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-intent-nephoran-com-v1alpha1-networkintent
-  failurePolicy: Fail
-  name: vnetworkintent.kb.io
-  rules:
-  - apiGroups:
-    - intent.nephoran.com
-    apiVersions:
-    - v1alpha1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - networkintents
-  sideEffects: None
 - admissionReviewVersions:
   - v1
   clientConfig:
@@ -116,12 +76,32 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-nephoran-io-v1-networkintent
+      path: /validate-intent-nephio-org-v1alpha1-networkintent
   failurePolicy: Fail
-  name: vnetworkintentkb.io
+  name: vnetworkintent.kb.io
   rules:
   - apiGroups:
-    - nephoranio
+    - intent.nephio.org
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - networkintents
+  sideEffects: None
+- admissionReviewVersions:
+  - v1.
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-nephoran-io-v1-networkintent
+  failurePolicy: Fail
+  name: vnetworkintent.kb.io
+  rules:
+  - apiGroups:
+    - nephoran.io
     apiVersions:
     - v1
     operations:
@@ -136,14 +116,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-intent-nephoran-com-v1alpha1-networkintent
+      path: /validate-nephoran-io-v1-networkintent
   failurePolicy: Fail
-  name: vnetworkintent.kb.io
+  name: vnetworkintentkb.io
   rules:
   - apiGroups:
-    - intent.nephoran.com
+    - nephoranio
     apiVersions:
-    - v1alpha1
+    - v1
     operations:
     - CREATE
     - UPDATE
