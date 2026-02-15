@@ -1,0 +1,100 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: e2sim-config
+  namespace: ricxapp
+data:
+  E2TERM_IP: "service-ricplt-e2term-sctp-alpha.ricplt.svc.cluster.local"
+  E2TERM_PORT: "36422"
+  RAN_NAME: "gnb-sim-001"
+  PLMN_ID: "310150"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: e2sim
+  namespace: ricxapp
+  labels:
+    app: e2sim
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: e2sim
+  template:
+    metadata:
+      labels:
+        app: e2sim
+    spec:
+      containers:
+      - name: e2sim
+        image: oranscdoc/ric-plt-e2:6.0.0
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: E2TERM_IP
+          valueFrom:
+            configMapKeyRef:
+              name: e2sim-config
+              key: E2TERM_IP
+        - name: E2TERM_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: e2sim-config
+              key: E2TERM_PORT
+        - name: RAN_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: e2sim-config
+              key: RAN_NAME
+        - name: PLMN_ID
+          valueFrom:
+            configMapKeyRef:
+              name: e2sim-config
+              key: PLMN_ID
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - |
+            echo "E2SIM Starting..."
+            echo "E2 Term IP: $E2TERM_IP"
+            echo "E2 Term Port: $E2TERM_PORT"
+            echo "RAN Name: $RAN_NAME"
+            echo "PLMN ID: $PLMN_ID"
+
+            # Wait for E2 Term to be ready
+            echo "Waiting for E2 Term to be ready..."
+            sleep 10
+
+            # Keep container running for debugging
+            while true; do
+              echo "E2SIM is ready - connect using: /opt/e2sim/e2sim $E2TERM_IP $E2TERM_PORT"
+              sleep 300
+            done
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      restartPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: e2sim
+  namespace: ricxapp
+  labels:
+    app: e2sim
+spec:
+  type: ClusterIP
+  ports:
+  - port: 36422
+    protocol: SCTP
+    targetPort: 36422
+    name: sctp
+  selector:
+    app: e2sim

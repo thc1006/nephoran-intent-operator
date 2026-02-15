@@ -1,0 +1,27 @@
+# ServiceMonitor for the Nephoran Intent Operator (when deployed).
+# The operator exposes metrics at :8443/metrics by default (controller-runtime).
+# Apply this after the operator is deployed.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: intent-operator
+  namespace: monitoring
+  labels:
+    app: nephoran-intent-operator
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: nephoran-intent-operator
+  namespaceSelector:
+    matchNames:
+      - nephoran-system
+      - default
+  endpoints:
+    - port: https
+      interval: 30s
+      path: /metrics
+      scheme: https
+      tlsConfig:
+        insecureSkipVerify: true
+      honorLabels: true

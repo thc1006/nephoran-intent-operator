@@ -1,0 +1,11 @@
+APIVersion: apps/v1
+Kind: Deployment
+Metadata:
+  Annotations:
+    config.kubernetes.io/merge-policy: replace
+    nephoran.io/generated-at: "2026-02-15T12:32:49.117782107Z"
+    nephoran.io/intent-type: scaling
+  Name: web-app
+  Namespace: default
+Spec:
+  Replicas: 5

@@ -1,0 +1,209 @@
+# O-RAN SC RIC Platform - Single-Node K8s 1.35.1 Optimized Values
+# Based on minimal-nearrt-ric.yaml with K8s 1.35+ compatibility adjustments
+
+#--------------------------------------------------------------------------
+# Near RT RIC Controls - Minimal deployment (mandatory components only)
+#--------------------------------------------------------------------------
+nearrtric:
+  installA1Mediator: false        # Optional - disabled for minimal setup
+  installAlarmManager: false
+  installInfluxDB: true           # Required for KPI metrics
+  installJaegerAdapter: false
+  installO1Mediator: false
+  installVespamgr: false
+  installXappOnboarder: false
+
+#--------------------------------------------------------------------------
+# Global Common Settings
+#--------------------------------------------------------------------------
+global:
+  releasePrefix: r4
+
+  # Resource constraints for single-node cluster
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+  # Storage configuration for single-node
+  storageClassName: "local-path"
+  persistence:
+    enabled: true
+    size: "500Mi"
+
+  # Image pull policy
+  pullpolicy: IfNotPresent
+
+  # Namespace configuration
+  namespace:
+    platform: ricplt
+    xapp: ricxapp
+    infra: ricinfra
+
+  # Service port configuration
+  serviceport:
+    submgr:
+      http: 8088
+
+  # External service configuration (single-node)
+  extsvcplt:
+    ricip: "192.168.10.65"
+    auxip: "192.168.10.65"
+
+#--------------------------------------------------------------------------
+# Component-specific configurations
+#--------------------------------------------------------------------------
+
+# Application Manager
+appmgr:
+  appmgr:
+    image:
+      registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+      name: ric-plt-appmgr
+      tag: "0.5.7"
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "200m"
+
+# Database as a Service
+dbaas:
+  dbaas:
+    image:
+      registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+      name: ric-plt-dbaas
+      tag: "0.6.2"
+    enableHighAvailability: false
+    enablePodAntiAffinity: false
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "200m"
+
+# E2 Manager
+e2mgr:
+  e2mgr:
+    image:
+      registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+      name: ric-plt-e2mgr
+      tag: "6.0.1"
+    privilegedmode: false
+    globalRicId:
+      ricId: "AACCE"
+      mcc: "310"
+      mnc: "411"
+    rnibWriter:
+      stateChangeMessageChannel: RAN_CONNECTION_STATUS_CHANGE
+      ranManipulationMessageChannel: RAN_MANIPULATION
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "200m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+
+# E2 Termination
+e2term:
+  loglevel: 4
+  e2term:
+    alpha:
+      image:
+        registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+        name: ric-plt-e2
+        tag: "6.0.3"
+      privilegedmode: false
+      hostnetworkmode: false
+      env:
+        print: "1"
+        messagecollectorfile: "/data/outgoing/"
+      dataVolSize: "100Mi"
+      storageClassName: "local-path"
+      resources:
+        requests:
+          memory: "256Mi"
+          cpu: "100m"
+        limits:
+          memory: "512Mi"
+          cpu: "200m"
+
+# Route Manager
+rtmgr:
+  rtmgr:
+    image:
+      registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+      name: ric-plt-rtmgr
+      tag: "0.9.4"
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "200m"
+
+# Subscription Manager
+submgr:
+  submgr:
+    image:
+      registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+      name: ric-plt-submgr
+      tag: "0.9.5"
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "200m"
+
+# InfluxDB for time-series metrics
+influxdb2:
+  image:
+    registry: "docker.io"
+    name: "library/influxdb"
+    tag: "2.2.0-alpine"
+  fullnameOverride: "ricplt-influxdb"
+  service:
+    port: 8086
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "200m"
+  persistence:
+    enabled: true
+    size: "500Mi"
+    storageClassName: "local-path"
+
+# Prometheus for metrics collection
+prometheus:
+  enabled: true
+  server:
+    persistentVolume:
+      enabled: true
+      size: "500Mi"
+      storageClassName: "local-path"
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "200m"
+
+# Node affinity for single-node (optional)
+nodeSelector: {}
+affinity: {}
+tolerations: []

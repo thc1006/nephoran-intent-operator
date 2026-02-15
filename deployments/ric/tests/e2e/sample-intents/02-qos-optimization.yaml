@@ -1,0 +1,30 @@
+---
+apiVersion: intent.nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: e2e-test-qos-optimization
+  namespace: default
+  labels:
+    test-suite: intent-ric-e2e
+    test-scenario: qos-optimization
+spec:
+  source: "e2e-test"
+  intentType: "optimization"
+  target: "kpimon"
+  namespace: "ricxapp"
+  replicas: 2
+  scalingParameters:
+    replicas: 2
+    autoscalingPolicy:
+      minReplicas: 1
+      maxReplicas: 3
+      metricThresholds:
+        - type: "cpu"
+          value: 70
+        - type: "memory"
+          value: 75
+  networkParameters:
+    networkSliceId: "slice-002"
+    qosProfile:
+      priority: 5
+      maximumDataRate: "500Mbps"

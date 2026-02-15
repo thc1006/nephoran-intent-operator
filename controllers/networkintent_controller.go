@@ -63,6 +63,12 @@ type NetworkIntentReconciler struct {
 	EnableLLMIntent bool
 
 	LLMProcessorURL string
+
+	// A1MediatorURL is the endpoint for the O-RAN A1 Mediator
+	A1MediatorURL string
+
+	// EnableA1Integration enables A1 policy creation
+	EnableA1Integration bool
 }
 
 // LLMRequest represents the request to the LLM processor.
@@ -79,6 +85,36 @@ type LLMResponse struct {
 	Message string `json:"message,omitempty"`
 
 	Error string `json:"error,omitempty"`
+}
+
+// A1Policy represents an A1 policy conforming to policy type 100
+type A1Policy struct {
+	Scope         A1PolicyScope   `json:"scope"`
+	QoSObjectives A1QoSObjectives `json:"qosObjectives"`
+}
+
+// A1PolicyScope defines the target scope for the policy
+type A1PolicyScope struct {
+	Target     string `json:"target"`
+	Namespace  string `json:"namespace"`
+	IntentType string `json:"intentType"`
+}
+
+// A1QoSObjectives defines QoS and scaling objectives
+type A1QoSObjectives struct {
+	Replicas         int32               `json:"replicas"`
+	MinReplicas      int32               `json:"minReplicas,omitempty"`
+	MaxReplicas      int32               `json:"maxReplicas,omitempty"`
+	NetworkSliceID   string              `json:"networkSliceId,omitempty"`
+	Priority         int32               `json:"priority,omitempty"`
+	MaximumDataRate  string              `json:"maximumDataRate,omitempty"`
+	MetricThresholds []A1MetricThreshold `json:"metricThresholds,omitempty"`
+}
+
+// A1MetricThreshold defines a metric-based scaling threshold
+type A1MetricThreshold struct {
+	Type  string `json:"type"`
+	Value int64  `json:"value"`
 }
 
 //+kubebuilder:rbac:groups=intent.nephio.org,resources=networkintents,verbs=get;list;watch;create;update;patch;delete
@@ -141,6 +177,35 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	if _, err := r.updateStatus(ctx, networkIntent, "Validated", "Intent validated successfully", networkIntent.Generation); err != nil {
 		return ctrl.Result{}, err
+	}
+
+	// If A1 integration is enabled, create A1 policy
+	if r.EnableA1Integration {
+		log.Info("Converting NetworkIntent to A1 policy", "name", networkIntent.Name)
+
+		// Convert NetworkIntent to A1 policy
+		a1Policy, err := convertToA1Policy(networkIntent)
+		if err != nil {
+			log.Error(err, "Failed to convert NetworkIntent to A1 policy")
+			return r.updateStatus(ctx, networkIntent, "Error",
+				fmt.Sprintf("Failed to convert to A1 policy: %v", err), networkIntent.Generation)
+		}
+
+		// Create A1 policy via A1 Mediator API
+		if err := r.createA1Policy(ctx, networkIntent, a1Policy); err != nil {
+			log.Error(err, "Failed to create A1 policy")
+			return r.updateStatus(ctx, networkIntent, "Error",
+				fmt.Sprintf("Failed to create A1 policy: %v", err), networkIntent.Generation)
+		}
+
+		log.Info("A1 policy created successfully", "name", networkIntent.Name)
+		if _, err := r.updateStatus(ctx, networkIntent, "Deployed",
+			"Intent deployed successfully via A1 policy", networkIntent.Generation); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		// A1 integration complete, return
+		return ctrl.Result{}, nil
 	}
 
 	// If LLM intent processing is enabled, send to LLM processor.
@@ -269,6 +334,175 @@ func (r *NetworkIntentReconciler) updateStatus(ctx context.Context, networkInten
 	return ctrl.Result{}, nil
 }
 
+// convertToA1Policy converts a NetworkIntent to an A1 policy conforming to policy type 100
+func convertToA1Policy(networkIntent *intentv1alpha1.NetworkIntent) (*A1Policy, error) {
+	policy := &A1Policy{
+		Scope: A1PolicyScope{
+			Target:     getStringField(networkIntent, "target"),
+			Namespace:  getStringField(networkIntent, "namespace"),
+			IntentType: getStringField(networkIntent, "intentType"),
+		},
+		QoSObjectives: A1QoSObjectives{
+			Replicas: getInt32Field(networkIntent, "replicas"),
+		},
+	}
+
+	// Extract scaling parameters if present
+	if scalingParams := getObjectField(networkIntent, "scalingParameters"); scalingParams != nil {
+		if autoscalingPolicy := scalingParams["autoscalingPolicy"]; autoscalingPolicy != nil {
+			if asMap, ok := autoscalingPolicy.(map[string]interface{}); ok {
+				if minReplicas, ok := asMap["minReplicas"].(float64); ok {
+					policy.QoSObjectives.MinReplicas = int32(minReplicas)
+				}
+				if maxReplicas, ok := asMap["maxReplicas"].(float64); ok {
+					policy.QoSObjectives.MaxReplicas = int32(maxReplicas)
+				}
+				if metricThresholds, ok := asMap["metricThresholds"].([]interface{}); ok {
+					for _, mt := range metricThresholds {
+						if mtMap, ok := mt.(map[string]interface{}); ok {
+							threshold := A1MetricThreshold{}
+							if metricType, ok := mtMap["type"].(string); ok {
+								threshold.Type = metricType
+							}
+							if value, ok := mtMap["value"].(float64); ok {
+								threshold.Value = int64(value)
+							}
+							policy.QoSObjectives.MetricThresholds = append(policy.QoSObjectives.MetricThresholds, threshold)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Extract network parameters if present
+	if networkParams := getObjectField(networkIntent, "networkParameters"); networkParams != nil {
+		if networkSliceID, ok := networkParams["networkSliceId"].(string); ok {
+			policy.QoSObjectives.NetworkSliceID = networkSliceID
+		}
+		if qosProfile := networkParams["qosProfile"]; qosProfile != nil {
+			if qosMap, ok := qosProfile.(map[string]interface{}); ok {
+				if priority, ok := qosMap["priority"].(float64); ok {
+					policy.QoSObjectives.Priority = int32(priority)
+				}
+				if maxDataRate, ok := qosMap["maximumDataRate"].(string); ok {
+					policy.QoSObjectives.MaximumDataRate = maxDataRate
+				}
+			}
+		}
+	}
+
+	return policy, nil
+}
+
+// Helper functions to extract fields from NetworkIntent spec (using runtime.RawExtension)
+func getStringField(networkIntent *intentv1alpha1.NetworkIntent, fieldName string) string {
+	spec := networkIntent.Spec
+	// Access spec fields through reflection or type assertion
+	// For now, we'll use a simpler approach assuming the spec is a map
+	if specBytes, err := json.Marshal(spec); err == nil {
+		var specMap map[string]interface{}
+		if err := json.Unmarshal(specBytes, &specMap); err == nil {
+			if val, ok := specMap[fieldName].(string); ok {
+				return val
+			}
+		}
+	}
+	return ""
+}
+
+func getInt32Field(networkIntent *intentv1alpha1.NetworkIntent, fieldName string) int32 {
+	if specBytes, err := json.Marshal(networkIntent.Spec); err == nil {
+		var specMap map[string]interface{}
+		if err := json.Unmarshal(specBytes, &specMap); err == nil {
+			if val, ok := specMap[fieldName].(float64); ok {
+				return int32(val)
+			}
+		}
+	}
+	return 0
+}
+
+func getObjectField(networkIntent *intentv1alpha1.NetworkIntent, fieldName string) map[string]interface{} {
+	if specBytes, err := json.Marshal(networkIntent.Spec); err == nil {
+		var specMap map[string]interface{}
+		if err := json.Unmarshal(specBytes, &specMap); err == nil {
+			if val, ok := specMap[fieldName].(map[string]interface{}); ok {
+				return val
+			}
+		}
+	}
+	return nil
+}
+
+// createA1Policy creates an A1 policy via the A1 Mediator API
+func (r *NetworkIntentReconciler) createA1Policy(ctx context.Context, networkIntent *intentv1alpha1.NetworkIntent, policy *A1Policy) error {
+	log := log.FromContext(ctx)
+
+	// Convert policy to JSON
+	policyJSON, err := json.Marshal(policy)
+	if err != nil {
+		return fmt.Errorf("failed to marshal A1 policy: %w", err)
+	}
+
+	// Determine A1 Mediator URL
+	a1URL := r.A1MediatorURL
+	if a1URL == "" {
+		// Default to in-cluster service
+		a1URL = "http://service-ricplt-a1mediator-http.ricplt:10000"
+	}
+
+	// Policy type ID (using 100 as established in testing)
+	policyTypeID := "100"
+	// Generate policy instance ID from NetworkIntent name
+	policyInstanceID := fmt.Sprintf("policy-%s", networkIntent.Name)
+
+	// Construct A1 v2 API endpoint
+	apiEndpoint := fmt.Sprintf("%s/A1-P/v2/policytypes/%s/policies/%s",
+		a1URL, policyTypeID, policyInstanceID)
+
+	log.Info("Creating A1 policy",
+		"endpoint", apiEndpoint,
+		"policyTypeID", policyTypeID,
+		"policyInstanceID", policyInstanceID)
+
+	// Create HTTP client with timeout
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	// Create PUT request (A1 v2 uses PUT for policy creation)
+	httpReq, err := http.NewRequestWithContext(ctx, "PUT", apiEndpoint, bytes.NewBuffer(policyJSON))
+	if err != nil {
+		return fmt.Errorf("failed to create A1 request: %w", err)
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	// Send the request
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("failed to send A1 request: %w", err)
+	}
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Error(err, "Failed to close A1 response body")
+		}
+	}()
+
+	// Check response status
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		bodyBytes, _ := json.Marshal(resp.Body)
+		return fmt.Errorf("A1 API returned error status %d: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	log.Info("A1 policy created successfully",
+		"policyInstanceID", policyInstanceID,
+		"statusCode", resp.StatusCode)
+
+	return nil
+}
+
 // SetupWithManager sets up the controller with the Manager.
 
 func (r *NetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -282,6 +516,16 @@ func (r *NetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	if url := os.Getenv("LLM_PROCESSOR_URL"); url != "" {
 		r.LLMProcessorURL = url
+	}
+
+	// Check if A1 integration is enabled (default: true)
+	if envVal := os.Getenv("ENABLE_A1_INTEGRATION"); envVal == "" || envVal == "true" {
+		r.EnableA1Integration = true
+	}
+
+	// Get A1 Mediator URL from environment if set
+	if url := os.Getenv("A1_MEDIATOR_URL"); url != "" {
+		r.A1MediatorURL = url
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).

@@ -111,6 +111,16 @@ spec:
               fieldPath: metadata.namespace
         - name: OPERATOR_VERSION
           value: "latest"
+        # A1 Mediator integration configuration
+        - name: ENABLE_A1_INTEGRATION
+          value: "true"
+        - name: A1_MEDIATOR_URL
+          value: "http://service-ricplt-a1mediator-http.ricplt:10000"
+        # LLM integration configuration (optional)
+        - name: ENABLE_LLM_INTENT
+          value: "false"
+        - name: LLM_PROCESSOR_URL
+          value: ""
       - name: kube-rbac-proxy
         securityContext:
           allowPrivilegeEscalation: false

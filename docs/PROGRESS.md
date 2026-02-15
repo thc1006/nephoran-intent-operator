@@ -131,3 +131,18 @@ Updates are tracked here in append-only format.
 | 2026-02-14T03:05:12+00:00 | feature/phase1-emergency-hotfix | rag-python,deployments | OpenAI model → gpt-4o-2024-08-06, Flask→FastAPI |
 | 2026-02-14T05:27:27+00:00 | feature/phase1-emergency-hotfix | rag,security,go | FastAPI conversion, PSP removal, Go 1.26 upgrade |
 | 2026-02-14T06:01:09+00:00 | feature/phase1-emergency-hotfix | rag-python,docs,scripts | Ollama integration for local LLM deployment |
+| 2026-02-14T06:28:25Z | feature/phase1-emergency-hotfix | CI-Fixes | All 9 CI checks passing - fixed root allowlist and test assertions |
+| 2026-02-15T12:01:23+00:00 | feature/phase1-emergency-hotfix | k8s-infrastructure | K8s 1.35.1 + DRA successfully deployed, single-node ready |
+| 2026-02-15T12:10:37+00:00 | feature/phase1-emergency-hotfix | weaviate | Weaviate v1.34.0 deployed via Helm, vector ops validated |
+| 2026-02-15T12:12:00+00:00 | feature/phase1-emergency-hotfix | gpu-operator | GPU Operator v25.10.1 + DRA Driver 25.12.0 deployed, RTX 5080 DRA allocation verified |
+| 2026-02-15T12:16:00+00:00 | feature/phase1-emergency-hotfix | ollama | Ollama v0.16.1 + 4 GPU models deployed; 89-301 tok/s on RTX 5080 |
+| 2026-02-15T12:25:46+00:00 | feature/phase1-emergency-hotfix | container-build | nerdctl v2.2.1 + BuildKit v0.26.3 + buildah installed; image build verified |
+| 2026-02-15T12:30:00+00:00 | feature/phase1-emergency-hotfix | monitoring | Prometheus+Grafana stack deployed; GPU/Weaviate/K8s metrics flowing; 16/16 targets UP |
+| 2026-02-15T12:27:36+00:00 | feature/phase1-emergency-hotfix | rag-service | RAG service deployed to K8s; Ollama+Weaviate E2E verified; intent processing operational |
+| 2026-02-15T12:29:16+00:00 | feature/phase1-emergency-hotfix | tests/e2e | E2E bash test suite: intent-lifecycle, RAG, GPU-DRA, monitoring + master runner + docs |
+| 2026-02-15T12:33:10+00:00 | feature/phase1-emergency-hotfix | benchmarks | Full perf baseline: GPU/LLM/Weaviate/K8s benchmarked; deployment report published |
+| 2026-02-15T13:01:00+00:00 | feature/phase1-emergency-hotfix | operator-deploy | Operator built, containerized, deployed to K8s; NetworkIntent reconciliation verified |
+| 2026-02-15T13:27:55+00:00 | feature/phase1-emergency-hotfix | deployments/ric | A1 interface tested successfully, RIC functional test completed, files cleaned up |
+| 2026-02-15T13:36:39Z | feature/phase1-emergency-hotfix | deployments/ric | E2 test client and KPM xApp deployed successfully |
+| 2026-02-15T15:27:52+00:00 | feature/phase1-emergency-hotfix | tests/e2e | Complete E2E integration test suite: Intent Operator ↔ RIC A1 |
+| 2026-02-15T15:41:52+00:00 | feature/phase1-emergency-hotfix | controllers | Implemented A1 Mediator integration - NetworkIntent to A1 policy conversion working |

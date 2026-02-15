@@ -1,0 +1,24 @@
+# ServiceMonitor for the RAG FastAPI service (when deployed).
+# The RAG service should expose Prometheus metrics at /metrics on port 8000.
+# Apply this after the RAG service is deployed.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: rag-fastapi
+  namespace: monitoring
+  labels:
+    app: rag-fastapi
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: rag-fastapi
+  namespaceSelector:
+    matchNames:
+      - default
+      - nephoran
+  endpoints:
+    - port: http
+      interval: 15s
+      path: /metrics
+      honorLabels: true

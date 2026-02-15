@@ -1,0 +1,63 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: gpu-alerts
+  namespace: monitoring
+  labels:
+    release: prometheus
+    app: kube-prometheus-stack
+spec:
+  groups:
+    - name: gpu.alerts
+      rules:
+        - alert: GPUHighUtilization
+          expr: DCGM_FI_DEV_GPU_UTIL > 95
+          for: 10m
+          labels:
+            severity: warning
+            team: nephoran
+          annotations:
+            summary: "GPU {{ $labels.gpu }} utilization above 95%"
+            description: "GPU {{ $labels.gpu }} ({{ $labels.modelName }}) has been at {{ $value }}% utilization for more than 10 minutes."
+
+        - alert: GPUHighTemperature
+          expr: DCGM_FI_DEV_GPU_TEMP > 85
+          for: 5m
+          labels:
+            severity: critical
+            team: nephoran
+          annotations:
+            summary: "GPU {{ $labels.gpu }} temperature above 85C"
+            description: "GPU {{ $labels.gpu }} ({{ $labels.modelName }}) temperature is {{ $value }}C. Throttling may occur."
+
+        - alert: GPUMemoryAlmostFull
+          expr: (DCGM_FI_DEV_FB_USED / (DCGM_FI_DEV_FB_USED + DCGM_FI_DEV_FB_FREE)) * 100 > 90
+          for: 5m
+          labels:
+            severity: warning
+            team: nephoran
+          annotations:
+            summary: "GPU {{ $labels.gpu }} memory usage above 90%"
+            description: "GPU {{ $labels.gpu }} ({{ $labels.modelName }}) has {{ $value }}% memory utilization. OOM errors possible for new workloads."
+
+        - alert: GPUHighPowerUsage
+          expr: DCGM_FI_DEV_POWER_USAGE > 300
+          for: 10m
+          labels:
+            severity: warning
+            team: nephoran
+          annotations:
+            summary: "GPU {{ $labels.gpu }} power usage above 300W"
+            description: "GPU {{ $labels.gpu }} ({{ $labels.modelName }}) is drawing {{ $value }}W. Check for thermal throttling."
+
+    - name: weaviate.alerts
+      rules:
+        - alert: WeaviateHighConcurrentQueries
+          expr: sum(concurrent_queries_count) > 50
+          for: 5m
+          labels:
+            severity: warning
+            team: nephoran
+          annotations:
+            summary: "Weaviate concurrent queries exceeding threshold"
+            description: "Weaviate has {{ $value }} concurrent queries, which may indicate high load or slow queries."

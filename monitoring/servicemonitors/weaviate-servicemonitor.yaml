@@ -1,0 +1,22 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: weaviate
+  namespace: monitoring
+  labels:
+    app: weaviate
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: weaviate
+  namespaceSelector:
+    matchNames:
+      - weaviate
+  endpoints:
+    # Weaviate exposes Prometheus metrics on port 2112
+    # We need a dedicated service for this; see weaviate-metrics-service.yaml
+    - port: metrics
+      interval: 30s
+      path: /metrics
+      honorLabels: true

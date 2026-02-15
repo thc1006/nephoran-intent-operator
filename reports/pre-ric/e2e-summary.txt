@@ -1,0 +1,13 @@
+Nephoran Intent Operator - E2E Test Suite Results
+=================================================
+Date:     2026-02-15T12:43:37+00:00
+Duration: 5m 23s
+
+TEST                      RESULT     DURATION
+----                      ------     --------
+intent-lifecycle          PASSED     128s
+rag-pipeline              FAILED     11s
+gpu-allocation            TIMEOUT    183s
+monitoring                FAILED     1s
+
+Summary: 1 passed, 2 failed, 1 timed out, 0 skipped

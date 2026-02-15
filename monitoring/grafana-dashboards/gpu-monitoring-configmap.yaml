@@ -1,0 +1,240 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-gpu-monitoring
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+  annotations:
+    grafana_folder: "Nephoran"
+data:
+  gpu-monitoring.json: |
+    {
+      "annotations": { "list": [] },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 1,
+      "id": null,
+      "links": [],
+      "panels": [
+        {
+          "title": "GPU Utilization (%)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "min": 0,
+              "max": 100,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 70 },
+                  { "color": "red", "value": 90 }
+                ]
+              }
+            }
+          },
+          "targets": [
+            {
+              "expr": "DCGM_FI_DEV_GPU_UTIL{gpu=~\"$gpu\"}",
+              "legendFormat": "GPU {{gpu}} - {{modelName}}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "title": "GPU Memory Used (MiB)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "decmbytes"
+            }
+          },
+          "targets": [
+            {
+              "expr": "DCGM_FI_DEV_FB_USED{gpu=~\"$gpu\"}",
+              "legendFormat": "Used - GPU {{gpu}}",
+              "refId": "A"
+            },
+            {
+              "expr": "DCGM_FI_DEV_FB_FREE{gpu=~\"$gpu\"}",
+              "legendFormat": "Free - GPU {{gpu}}",
+              "refId": "B"
+            }
+          ]
+        },
+        {
+          "title": "GPU Temperature (C)",
+          "type": "gauge",
+          "gridPos": { "h": 8, "w": 6, "x": 0, "y": 8 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "celsius",
+              "min": 0,
+              "max": 100,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 70 },
+                  { "color": "red", "value": 85 }
+                ]
+              }
+            }
+          },
+          "targets": [
+            {
+              "expr": "DCGM_FI_DEV_GPU_TEMP{gpu=~\"$gpu\"}",
+              "legendFormat": "GPU {{gpu}}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "title": "GPU Power Usage (W)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 6, "x": 6, "y": 8 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "watt"
+            }
+          },
+          "targets": [
+            {
+              "expr": "DCGM_FI_DEV_POWER_USAGE{gpu=~\"$gpu\"}",
+              "legendFormat": "GPU {{gpu}}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "title": "GPU SM Clock (MHz)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 6, "x": 12, "y": 8 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "rotmhz"
+            }
+          },
+          "targets": [
+            {
+              "expr": "DCGM_FI_DEV_SM_CLOCK{gpu=~\"$gpu\"}",
+              "legendFormat": "SM Clock - GPU {{gpu}}",
+              "refId": "A"
+            },
+            {
+              "expr": "DCGM_FI_DEV_MEM_CLOCK{gpu=~\"$gpu\"}",
+              "legendFormat": "Mem Clock - GPU {{gpu}}",
+              "refId": "B"
+            }
+          ]
+        },
+        {
+          "title": "Tensor Core Activity",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 6, "x": 18, "y": 8 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit",
+              "min": 0,
+              "max": 1
+            }
+          },
+          "targets": [
+            {
+              "expr": "DCGM_FI_PROF_PIPE_TENSOR_ACTIVE{gpu=~\"$gpu\"}",
+              "legendFormat": "Tensor Active - GPU {{gpu}}",
+              "refId": "A"
+            },
+            {
+              "expr": "DCGM_FI_PROF_GR_ENGINE_ACTIVE{gpu=~\"$gpu\"}",
+              "legendFormat": "GR Engine Active - GPU {{gpu}}",
+              "refId": "B"
+            }
+          ]
+        },
+        {
+          "title": "PCIe Bandwidth",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "Bps"
+            }
+          },
+          "targets": [
+            {
+              "expr": "rate(DCGM_FI_PROF_PCIE_TX_BYTES{gpu=~\"$gpu\"}[5m])",
+              "legendFormat": "TX - GPU {{gpu}}",
+              "refId": "A"
+            },
+            {
+              "expr": "rate(DCGM_FI_PROF_PCIE_RX_BYTES{gpu=~\"$gpu\"}[5m])",
+              "legendFormat": "RX - GPU {{gpu}}",
+              "refId": "B"
+            }
+          ]
+        },
+        {
+          "title": "Memory Copy Utilization (%)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "min": 0,
+              "max": 100
+            }
+          },
+          "targets": [
+            {
+              "expr": "DCGM_FI_DEV_MEM_COPY_UTIL{gpu=~\"$gpu\"}",
+              "legendFormat": "Mem Copy Util - GPU {{gpu}}",
+              "refId": "A"
+            },
+            {
+              "expr": "DCGM_FI_DEV_ENC_UTIL{gpu=~\"$gpu\"}",
+              "legendFormat": "Encoder Util - GPU {{gpu}}",
+              "refId": "B"
+            },
+            {
+              "expr": "DCGM_FI_DEV_DEC_UTIL{gpu=~\"$gpu\"}",
+              "legendFormat": "Decoder Util - GPU {{gpu}}",
+              "refId": "C"
+            }
+          ]
+        }
+      ],
+      "refresh": "10s",
+      "schemaVersion": 39,
+      "tags": ["gpu", "nvidia", "dcgm", "nephoran"],
+      "templating": {
+        "list": [
+          {
+            "current": { "selected": true, "text": "All", "value": "$__all" },
+            "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "definition": "label_values(DCGM_FI_DEV_GPU_UTIL, gpu)",
+            "includeAll": true,
+            "multi": true,
+            "name": "gpu",
+            "query": "label_values(DCGM_FI_DEV_GPU_UTIL, gpu)",
+            "refresh": 2,
+            "type": "query"
+          }
+        ]
+      },
+      "time": { "from": "now-1h", "to": "now" },
+      "title": "NVIDIA GPU Monitoring (DCGM)",
+      "uid": "nephoran-gpu-dcgm"
+    }

@@ -1,0 +1,20 @@
+# Weaviate does not expose a metrics service by default.
+# This Service object exposes the Prometheus metrics endpoint (port 2112)
+# so the ServiceMonitor can scrape it.
+apiVersion: v1
+kind: Service
+metadata:
+  name: weaviate-metrics
+  namespace: weaviate
+  labels:
+    app.kubernetes.io/name: weaviate
+    app: weaviate-metrics
+spec:
+  selector:
+    app: weaviate
+  ports:
+    - name: metrics
+      port: 2112
+      targetPort: 2112
+      protocol: TCP
+  type: ClusterIP

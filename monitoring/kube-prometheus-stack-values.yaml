@@ -1,0 +1,207 @@
+# kube-prometheus-stack Helm values
+# Optimized for single-node Kubernetes cluster (thc1006-ubuntu-22)
+# with NVIDIA RTX 5080 GPU and Nephoran Intent Operator workloads
+#
+# Deployed: 2026-02-15
+# Cluster: v1.35.1 single-node (Ubuntu 22.04)
+
+# -- Global settings --
+fullnameOverride: ""
+nameOverride: ""
+
+# -- Prometheus Operator --
+prometheusOperator:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+
+# -- Prometheus --
+prometheus:
+  prometheusSpec:
+    # Retention
+    retention: 7d
+    retentionSize: "10GB"
+
+    # Resource allocation (single-node optimization)
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2Gi
+      limits:
+        cpu: "2"
+        memory: 4Gi
+
+    # Storage - use local-path provisioner
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: local-path
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 20Gi
+
+    # Scrape interval
+    scrapeInterval: 30s
+    evaluationInterval: 30s
+
+    # Enable scraping across all namespaces
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    serviceMonitorNamespaceSelector: {}
+    podMonitorNamespaceSelector: {}
+
+    # Additional scrape configs for services without ServiceMonitor
+    # NOTE: Ollama host scrape config is commented out until Ollama is running
+    # and a Prometheus-compatible metrics exporter is configured.
+    # additionalScrapeConfigs:
+    #   - job_name: 'ollama-host'
+    #     static_configs:
+    #       - targets: ['192.168.10.65:11434']
+    #     metrics_path: /metrics
+    #     scrape_interval: 60s
+
+# -- Grafana --
+grafana:
+  enabled: true
+  adminPassword: "NephoranMonitor2026!"
+
+  service:
+    type: NodePort
+    nodePort: 30300
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  persistence:
+    enabled: true
+    storageClassName: local-path
+    size: 5Gi
+
+  # Sidecar for auto-loading dashboards and datasources
+  sidecar:
+    dashboards:
+      enabled: true
+      searchNamespace: ALL
+      label: grafana_dashboard
+      folderAnnotation: grafana_folder
+      provider:
+        foldersFromFilesStructure: true
+    datasources:
+      enabled: true
+      searchNamespace: ALL
+
+  # Additional datasources (Prometheus is auto-configured)
+  additionalDataSources: []
+
+  # Default dashboards
+  defaultDashboardsEnabled: true
+  defaultDashboardsTimezone: "Asia/Taipei"
+
+  grafana.ini:
+    server:
+      root_url: "%(protocol)s://%(domain)s:%(http_port)s/grafana/"
+    auth.anonymous:
+      enabled: false
+
+# -- Alertmanager --
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi
+
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: local-path
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 2Gi
+
+# -- Node Exporter (critical for single-node monitoring) --
+nodeExporter:
+  enabled: true
+
+prometheus-node-exporter:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 64Mi
+
+# -- kube-state-metrics --
+kubeStateMetrics:
+  enabled: true
+
+kube-state-metrics:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# -- Disable components bound to 127.0.0.1 on kubeadm single-node --
+# These control plane components listen only on localhost, so Prometheus
+# pods cannot reach them. Disable to avoid false-positive alerts.
+kubeEtcd:
+  enabled: false
+
+kubeControllerManager:
+  enabled: false
+
+kubeScheduler:
+  enabled: false
+
+kubeProxy:
+  enabled: false
+
+# -- Default rules --
+defaultRules:
+  create: true
+  rules:
+    alertmanager: true
+    etcd: false
+    configReloaders: true
+    general: true
+    k8s: true
+    kubeApiserverAvailability: true
+    kubeApiserverBurnrate: true
+    kubeApiserverHistogram: true
+    kubeApiserverSlos: true
+    kubeControllerManager: false
+    kubelet: true
+    kubeProxy: false
+    kubePrometheusGeneral: true
+    kubePrometheusNodeRecording: true
+    kubernetesApps: true
+    kubernetesResources: true
+    kubernetesStorage: true
+    kubernetesSystem: true
+    kubeSchedulerAlerting: false
+    kubeSchedulerRecording: false
+    kubeStateMetrics: true
+    network: true
+    node: true
+    nodeExporterAlerting: true
+    nodeExporterRecording: true
+    prometheus: true
+    prometheusOperator: true

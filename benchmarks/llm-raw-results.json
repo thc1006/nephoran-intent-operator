@@ -1,0 +1,170 @@
+{ "benchmarks": [
+  {
+    "model": "llama3.1:8b-instruct-q5_K_M",
+    "prompt_type": "short",
+    "prompt_eval_count": 17,
+    "eval_count": 9,
+    "total_duration_sec": 0.1807,
+    "time_to_first_token_sec": 0.1181,
+    "generation_tokens_per_sec": 156.4,
+    "prompt_tokens_per_sec": 1424.13,
+    "vram_before_mib": "6884",
+    "vram_after_mib": "6884",
+    "timestamp": "2026-02-15T12:24:09+00:00"
+  }
+,
+  {
+    "model": "llama3.1:8b-instruct-q5_K_M",
+    "prompt_type": "medium",
+    "prompt_eval_count": 55,
+    "eval_count": 256,
+    "total_duration_sec": 2.0274,
+    "time_to_first_token_sec": 0.119,
+    "generation_tokens_per_sec": 143.04,
+    "prompt_tokens_per_sec": 3242.12,
+    "vram_before_mib": "6884",
+    "vram_after_mib": "6886",
+    "timestamp": "2026-02-15T12:24:12+00:00"
+  }
+,
+  {
+    "model": "llama3.1:8b-instruct-q5_K_M",
+    "prompt_type": "long",
+    "prompt_eval_count": 230,
+    "eval_count": 256,
+    "total_duration_sec": 2.0582,
+    "time_to_first_token_sec": 0.1389,
+    "generation_tokens_per_sec": 142.41,
+    "prompt_tokens_per_sec": 6194.61,
+    "vram_before_mib": "6886",
+    "vram_after_mib": "6886",
+    "timestamp": "2026-02-15T12:24:14+00:00"
+  }
+,
+  {
+    "model": "deepseek-coder-v2:16b-lite-instruct-q4_K_M",
+    "prompt_type": "short",
+    "prompt_eval_count": 15,
+    "eval_count": 19,
+    "total_duration_sec": 2.2923,
+    "time_to_first_token_sec": 2.2119,
+    "generation_tokens_per_sec": 260.58,
+    "prompt_tokens_per_sec": 6.98,
+    "vram_before_mib": "14704",
+    "vram_after_mib": "14708",
+    "timestamp": "2026-02-15T12:24:32+00:00"
+  }
+,
+  {
+    "model": "deepseek-coder-v2:16b-lite-instruct-q4_K_M",
+    "prompt_type": "medium",
+    "prompt_eval_count": 53,
+    "eval_count": 256,
+    "total_duration_sec": 1.0758,
+    "time_to_first_token_sec": 0.0898,
+    "generation_tokens_per_sec": 291.45,
+    "prompt_tokens_per_sec": 1538.99,
+    "vram_before_mib": "14708",
+    "vram_after_mib": "14708",
+    "timestamp": "2026-02-15T12:24:33+00:00"
+  }
+,
+  {
+    "model": "deepseek-coder-v2:16b-lite-instruct-q4_K_M",
+    "prompt_type": "long",
+    "prompt_eval_count": 239,
+    "eval_count": 256,
+    "total_duration_sec": 1.0802,
+    "time_to_first_token_sec": 0.1032,
+    "generation_tokens_per_sec": 290.04,
+    "prompt_tokens_per_sec": 5358.71,
+    "vram_before_mib": "14708",
+    "vram_after_mib": "14710",
+    "timestamp": "2026-02-15T12:24:35+00:00"
+  }
+,
+  {
+    "model": "mistral-nemo:12b-instruct-2407-q5_K_M",
+    "prompt_type": "short",
+    "prompt_eval_count": 10,
+    "eval_count": 27,
+    "total_duration_sec": 0.4108,
+    "time_to_first_token_sec": 0.1198,
+    "generation_tokens_per_sec": 97.47,
+    "prompt_tokens_per_sec": 473.59,
+    "vram_before_mib": "9962",
+    "vram_after_mib": "9962",
+    "timestamp": "2026-02-15T12:24:47+00:00"
+  }
+,
+  {
+    "model": "mistral-nemo:12b-instruct-2407-q5_K_M",
+    "prompt_type": "medium",
+    "prompt_eval_count": 49,
+    "eval_count": 256,
+    "total_duration_sec": 2.9342,
+    "time_to_first_token_sec": 0.125,
+    "generation_tokens_per_sec": 95.06,
+    "prompt_tokens_per_sec": 2252.1,
+    "vram_before_mib": "9962",
+    "vram_after_mib": "9964",
+    "timestamp": "2026-02-15T12:24:50+00:00"
+  }
+,
+  {
+    "model": "mistral-nemo:12b-instruct-2407-q5_K_M",
+    "prompt_type": "long",
+    "prompt_eval_count": 232,
+    "eval_count": 256,
+    "total_duration_sec": 2.9815,
+    "time_to_first_token_sec": 0.154,
+    "generation_tokens_per_sec": 94.78,
+    "prompt_tokens_per_sec": 4215.71,
+    "vram_before_mib": "9964",
+    "vram_after_mib": "9964",
+    "timestamp": "2026-02-15T12:24:53+00:00"
+  }
+,
+  {
+    "model": "qwen2.5:14b-instruct-q4_K_M",
+    "prompt_type": "short",
+    "prompt_eval_count": 36,
+    "eval_count": 8,
+    "total_duration_sec": 0.209,
+    "time_to_first_token_sec": 0.1187,
+    "generation_tokens_per_sec": 97.62,
+    "prompt_tokens_per_sec": 1069.84,
+    "vram_before_mib": "10552",
+    "vram_after_mib": "10554",
+    "timestamp": "2026-02-15T12:25:05+00:00"
+  }
+,
+  {
+    "model": "qwen2.5:14b-instruct-q4_K_M",
+    "prompt_type": "medium",
+    "prompt_eval_count": 74,
+    "eval_count": 256,
+    "total_duration_sec": 3.1235,
+    "time_to_first_token_sec": 0.1078,
+    "generation_tokens_per_sec": 88.92,
+    "prompt_tokens_per_sec": 2703.66,
+    "vram_before_mib": "10554",
+    "vram_after_mib": "10556",
+    "timestamp": "2026-02-15T12:25:08+00:00"
+  }
+,
+  {
+    "model": "qwen2.5:14b-instruct-q4_K_M",
+    "prompt_type": "long",
+    "prompt_eval_count": 249,
+    "eval_count": 256,
+    "total_duration_sec": 3.1878,
+    "time_to_first_token_sec": 0.156,
+    "generation_tokens_per_sec": 88.63,
+    "prompt_tokens_per_sec": 3904.7,
+    "vram_before_mib": "10556",
+    "vram_after_mib": "10556",
+    "timestamp": "2026-02-15T12:25:11+00:00"
+  }
+
+]}

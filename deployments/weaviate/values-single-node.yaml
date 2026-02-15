@@ -1,0 +1,173 @@
+# ==============================================================================
+# Weaviate Vector Database - Single-Node Kubernetes Configuration
+# ==============================================================================
+# Tailored for the Nephoran Intent Operator RAG system running on a single-node
+# cluster (thc1006-ubuntu-22, 8 CPU, 32 GiB RAM, Ubuntu 22.04.5 LTS).
+#
+# Deployed via:
+#   helm install weaviate weaviate/weaviate \
+#     -n weaviate \
+#     -f deployments/weaviate/values-single-node.yaml
+#
+# Connection from within cluster:
+#   HTTP:  http://weaviate.weaviate.svc.cluster.local:80
+#   gRPC:  weaviate-grpc.weaviate.svc.cluster.local:50051
+# ==============================================================================
+
+# -- Image configuration
+image:
+  registry: cr.weaviate.io
+  tag: 1.34.0
+  repo: semitechnologies/weaviate
+  pullPolicy: IfNotPresent
+
+# -- Single replica (single-node cluster)
+replicas: 1
+
+# -- Resource limits appropriate for single-node (8 CPU / 32 GiB total)
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+  limits:
+    cpu: "2"
+    memory: "4Gi"
+
+# -- Persistent storage using local-path provisioner
+storage:
+  name: "weaviate-data"
+  size: 10Gi
+  storageClassName: "local-path"
+
+# -- Service configuration: ClusterIP for internal-only access
+service:
+  name: weaviate
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+  type: ClusterIP
+  annotations: {}
+
+# -- gRPC service: ClusterIP for internal-only access
+grpcService:
+  enabled: true
+  name: weaviate-grpc
+  ports:
+    - name: grpc
+      protocol: TCP
+      port: 50051
+  type: ClusterIP
+  annotations: {}
+
+# -- Authentication: anonymous access enabled for development simplicity.
+#    API key auth is also enabled so the RAG service can authenticate.
+authentication:
+  anonymous_access:
+    enabled: true
+  apikey:
+    enabled: true
+    allowed_keys:
+      - "nephoran-rag-dev-key"
+    users:
+      - "nephoran-rag-user"
+
+# -- Authorization: admin list for the API key user
+authorization:
+  admin_list:
+    enabled: true
+    users:
+      - "nephoran-rag-user"
+
+# -- Query defaults
+query_defaults:
+  limit: 100
+
+# -- Environment variables
+env:
+  CLUSTER_GOSSIP_BIND_PORT: 7000
+  CLUSTER_DATA_BIND_PORT: 7001
+  RAFT_BOOTSTRAP_TIMEOUT: 120
+  GOGC: 100
+  PROMETHEUS_MONITORING_ENABLED: "true"
+  PROMETHEUS_MONITORING_GROUP: "false"
+  GOMEMLIMIT: "3GiB"
+  QUERY_MAXIMUM_RESULTS: 100000
+  TRACK_VECTOR_DIMENSIONS: "true"
+  LOG_LEVEL: "info"
+  LOG_FORMAT: "json"
+  BACKUP_FILESYSTEM_PATH: "/var/lib/weaviate/backups"
+
+# -- Probes tuned for single-node (faster startup on limited resources)
+startupProbe:
+  enabled: true
+  probeType: httpGet
+  probe:
+    httpGet:
+      path: /v1/.well-known/ready
+      port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  failureThreshold: 30
+  successThreshold: 1
+  timeoutSeconds: 3
+
+livenessProbe:
+  probeType: httpGet
+  probe:
+    httpGet:
+      path: /v1/.well-known/live
+      port: 8080
+  initialDelaySeconds: 120
+  periodSeconds: 30
+  failureThreshold: 5
+  successThreshold: 1
+  timeoutSeconds: 3
+
+readinessProbe:
+  probeType: httpGet
+  probe:
+    httpGet:
+      path: /v1/.well-known/ready
+      port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  failureThreshold: 3
+  successThreshold: 1
+  timeoutSeconds: 3
+
+# -- Graceful shutdown
+terminationGracePeriodSeconds: 60
+
+# -- Init containers
+initContainers:
+  sysctlInitContainer:
+    enabled: true
+    sysctlVmMaxMapCount: 524288
+    image:
+      registry: docker.io
+      repo: alpine
+      tag: "3.20"
+      pullPolicy: IfNotPresent
+
+# -- Modules configuration
+# We enable text2vec-openai and generative-openai as API-based modules.
+# These do NOT deploy sidecar containers -- they simply enable the Weaviate
+# module so that API keys can be passed at query time via request headers.
+# For fully offline/local vectorization, text2vec-gpt4all is also available.
+modules:
+  # -- text2vec-openai: API-based vectorizer (no sidecar, key via header)
+  text2vec-openai:
+    enabled: false
+  # -- generative-openai: API-based generative module (no sidecar, key via header)
+  generative-openai:
+    enabled: false
+
+# -- Prometheus ServiceMonitor (disabled; enable if prometheus-operator is installed)
+serviceMonitor:
+  enabled: false
+
+# -- Offload (disabled for local setup)
+offload:
+  s3:
+    enabled: false

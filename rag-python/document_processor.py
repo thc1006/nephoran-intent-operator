@@ -17,13 +17,12 @@ import os
 
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.document_loaders import (
+from langchain_community.document_loaders import (
     TextLoader,
     UnstructuredMarkdownLoader,
     PyPDFLoader,
     JSONLoader
 )
-import openai
 
 # Knowledge base directory (relative to this file)
 KNOWLEDGE_BASE_DIR = Path(__file__).parent.parent / "knowledge_base"

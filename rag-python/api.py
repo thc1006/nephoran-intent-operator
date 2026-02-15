@@ -42,10 +42,12 @@ app.add_middleware(
 
 # Enhanced configuration with production-ready settings
 config = {
-    "weaviate_url": os.environ.get("WEAVIATE_URL", "http://weaviate:8080"),
+    "weaviate_url": os.environ.get("WEAVIATE_URL", "http://weaviate.weaviate.svc.cluster.local:80"),
+    "weaviate_api_key": os.environ.get("WEAVIATE_API_KEY"),
     "openai_api_key": os.environ.get("OPENAI_API_KEY"),
-    "llm_provider": os.environ.get("LLM_PROVIDER", "openai"),  # "openai" or "ollama"
-    "llm_model": os.environ.get("LLM_MODEL", "gpt-4o-mini"),
+    "llm_provider": os.environ.get("LLM_PROVIDER", "ollama"),  # "openai" or "ollama"
+    "llm_model": os.environ.get("LLM_MODEL", "llama3.1:8b-instruct-q5_K_M"),
+    "embedding_model": os.environ.get("EMBEDDING_MODEL", ""),  # defaults to llm_model if empty
     "ollama_base_url": os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434"),
     "cache_max_size": int(os.environ.get("CACHE_MAX_SIZE", "1000")),
     "cache_ttl_seconds": int(os.environ.get("CACHE_TTL_SECONDS", "3600")),
@@ -54,6 +56,10 @@ config = {
     "max_concurrent_files": int(os.environ.get("MAX_CONCURRENT_FILES", "5")),
     "knowledge_base_path": os.environ.get("KNOWLEDGE_BASE_PATH", "/app/knowledge_base")
 }
+
+# If embedding_model is empty, default to llm_model
+if not config["embedding_model"]:
+    config["embedding_model"] = config["llm_model"]
 
 # Initialize the RAG pipeline (global state)
 rag_pipeline: Optional[EnhancedTelecomRAGPipeline] = None
@@ -96,15 +102,16 @@ async def startup_event():
     """Initialize services on startup"""
     global rag_pipeline, document_processor
 
-    provider = config.get("llm_provider", "openai")
+    provider = config.get("llm_provider", "ollama")
 
     # Check required keys based on provider
     if provider == "openai" and not config.get("openai_api_key"):
         logger.warning("OPENAI_API_KEY not set. RAG pipeline will not be initialized.")
         return
     elif provider == "ollama":
-        logger.info(f"Using Ollama provider with model: {config.get('llm_model', 'llama2')}")
+        logger.info(f"Using Ollama provider with model: {config.get('llm_model', 'llama3.1:8b-instruct-q5_K_M')}")
         logger.info(f"Ollama base URL: {config.get('ollama_base_url', 'http://localhost:11434')}")
+        logger.info(f"Embedding model: {config.get('embedding_model', config.get('llm_model'))}")
 
     try:
         # Initialize enhanced pipeline

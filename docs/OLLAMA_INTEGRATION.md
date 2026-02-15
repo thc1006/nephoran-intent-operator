@@ -48,7 +48,7 @@
 - **Docker**: 20.10+ (如果使用容器化部署)
 - **Python**: 3.11+ (已在 requirements.txt 中)
 
-### 模型大小參考
+### 模型大小參考（已棄用的舊模型清單）
 
 | 模型 | 參數量 | 記憶體需求 | 推理速度 | 適用場景 |
 |------|--------|-----------|---------|---------|
@@ -56,6 +56,19 @@
 | llama2:13b | 13B | ~8 GB | 中等 | 一般生產 |
 | mistral:7b | 7B | ~4 GB | 快 | 高品質輸出 |
 | codellama:7b | 7B | ~4 GB | 快 | 程式碼生成 |
+
+### RTX 5080 已部署模型（2026-02-15 實測）
+
+以下為本機 RTX 5080 (16GB VRAM) 上實際部署並驗證的模型：
+
+| 模型 | 量化 | 磁碟大小 | VRAM 用量 | 推理速度 | 用途 |
+|------|------|---------|-----------|---------|------|
+| llama3.1:8b-instruct-q5_K_M | Q5_K_M | 5.7 GB | ~6.9 GB | 143.9 tok/s | 通用對話、意圖理解 |
+| deepseek-coder-v2:16b-lite-instruct-q4_K_M | Q4_K_M | 10 GB | ~10.5 GB | 300.9 tok/s | 程式碼生成 (Nephoran) |
+| mistral-nemo:12b-instruct-2407-q5_K_M | Q5_K_M | 8.7 GB | ~8.5 GB | 95.3 tok/s | 推理與規劃 |
+| qwen2.5:14b-instruct-q4_K_M | Q4_K_M | 9.0 GB | ~9.0 GB | 89.4 tok/s | 多語言支援 (繁體中文) |
+
+**總磁碟用量**: 33.4 GB | **VRAM 設定**: 同時載入最多 2 個模型 | **總磁碟剩餘**: 48 GB
 
 ---
 
@@ -100,9 +113,74 @@ curl -fsSL https://ollama.com/install.sh | sh
 
 ---
 
+## GPU 加速配置（RTX 5080 實測）
+
+Ollama 安裝後會自動偵測 NVIDIA GPU 並啟用 CUDA 加速。以下為 RTX 5080 優化設定：
+
+### systemd 環境變數覆寫
+
+```bash
+# 建立 systemd override
+sudo mkdir -p /etc/systemd/system/ollama.service.d
+sudo tee /etc/systemd/system/ollama.service.d/override.conf << 'EOF'
+[Service]
+# RTX 5080 optimized settings (16GB VRAM)
+Environment="OLLAMA_NUM_PARALLEL=4"
+Environment="OLLAMA_MAX_LOADED_MODELS=2"
+Environment="OLLAMA_FLASH_ATTENTION=1"
+Environment="OLLAMA_KV_CACHE_TYPE=q8_0"
+EOF
+
+# 套用設定
+sudo systemctl daemon-reload
+sudo systemctl restart ollama
+```
+
+### 環境變數說明
+
+| 變數 | 值 | 說明 |
+|------|---|------|
+| `OLLAMA_NUM_PARALLEL` | 4 | 同時處理 4 個並行請求 |
+| `OLLAMA_MAX_LOADED_MODELS` | 2 | 16GB VRAM 最多載入 2 個模型 |
+| `OLLAMA_FLASH_ATTENTION` | 1 | 啟用 Flash Attention 加速 |
+| `OLLAMA_KV_CACHE_TYPE` | q8_0 | 量化 KV cache 節省 VRAM |
+
+### 驗證 GPU 偵測
+
+```bash
+# 確認 Ollama 偵測到 GPU
+journalctl -u ollama --no-pager | grep -i "inference compute"
+# 預期輸出: inference compute id=GPU-xxx library=CUDA compute=12.0 name=CUDA0
+#           description="NVIDIA GeForce RTX 5080" total="15.9 GiB"
+
+# 推理期間確認 GPU 使用
+nvidia-smi  # 應顯示 ollama 佔用 VRAM
+```
+
+---
+
 ## 下載和配置模型
 
-### 下載推薦模型
+### 下載 RTX 5080 優化模型（當前已部署）
+
+```bash
+# 1. Llama 3.1 8B - 通用對話與意圖理解 (5.7 GB)
+ollama pull llama3.1:8b-instruct-q5_K_M
+
+# 2. DeepSeek Coder V2 16B - 程式碼生成 (10 GB)
+ollama pull deepseek-coder-v2:16b-lite-instruct-q4_K_M
+
+# 3. Mistral Nemo 12B - 推理與規劃 (8.7 GB)
+ollama pull mistral-nemo:12b-instruct-2407-q5_K_M
+
+# 4. Qwen 2.5 14B - 多語言支援/繁體中文 (9.0 GB)
+ollama pull qwen2.5:14b-instruct-q4_K_M
+
+# 查看已下載的模型
+ollama list
+```
+
+### 下載舊版推薦模型（已棄用，保留參考）
 
 ```bash
 # Llama 2 7B (推薦入門使用)
@@ -610,13 +688,29 @@ ollama run llama2:7b "warmup"
 
 ## 與 OpenAI 的效能對比
 
+### RTX 5080 GPU 加速實測結果 (2026-02-15)
+
+| 指標 | OpenAI (gpt-4o) | Llama 3.1 8B | DeepSeek Coder V2 16B | Mistral Nemo 12B | Qwen 2.5 14B |
+|------|-----------------|-------------|----------------------|-----------------|-------------|
+| **推理速度** | ~80 tok/s (API) | 143.9 tok/s | 300.9 tok/s | 95.3 tok/s | 89.4 tok/s |
+| **Prompt 速度** | N/A | 5.1 tok/s* | 3.3 tok/s* | 1889 tok/s | 2170 tok/s |
+| **VRAM 用量** | N/A | ~6.9 GB | ~10.5 GB | ~8.5 GB | ~9.0 GB |
+| **成本** | $2.50/1M tokens | 免費 | 免費 | 免費 | 免費 |
+| **隱私** | 雲端處理 | 完全本地 | 完全本地 | 完全本地 | 完全本地 |
+| **離線** | 否 | 是 | 是 | 是 | 是 |
+| **繁體中文** | 優秀 | 良好 | 良好 | 良好 | 優秀 |
+
+*首次 prompt eval 較慢因為需要載入模型到 GPU；後續請求 prompt eval 速度大幅提升（1800+ tok/s）。
+
+### 舊版對比表（CPU-only 基準）
+
 | 指標 | OpenAI (gpt-4o-mini) | Ollama (llama2:7b) | Ollama (mistral:7b) |
 |------|---------------------|-------------------|-------------------|
 | **延遲** | ~1-2 秒 | ~3-5 秒 | ~3-5 秒 |
 | **成本** | $0.15/1M tokens | 免費 | 免費 |
 | **品質** | 優秀 | 良好 | 良好-優秀 |
 | **隱私** | 雲端處理 | 完全本地 | 完全本地 |
-| **離線** | ❌ | ✅ | ✅ |
+| **離線** | 否 | 是 | 是 |
 | **自定義** | 有限 | 完全可控 | 完全可控 |
 
 ---
@@ -689,6 +783,6 @@ MESSAGE assistant {"type": "NetworkFunctionScale", "name": "upf", "namespace": "
 
 ---
 
-**最後更新**: 2026-02-14
-**版本**: 1.0.0
+**最後更新**: 2026-02-15
+**版本**: 1.1.0 (RTX 5080 GPU 加速部署)
 **維護者**: Nephoran Intent Operator Team
