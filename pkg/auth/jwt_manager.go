@@ -1,13 +1,12 @@
 package auth
 
 import (
-	
-	"encoding/json"
-"context"
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"log/slog"
@@ -235,6 +234,31 @@ type JWTMetrics struct {
 // NewJWTManager creates a new JWT manager.
 
 func NewJWTManager(ctx context.Context, config *JWTConfig, tokenStore TokenStore, blacklist TokenBlacklist, logger *slog.Logger) (*JWTManager, error) {
+	if config == nil {
+		config = &JWTConfig{}
+	}
+	if config.Issuer == "" {
+		config.Issuer = "nephoran-intent-operator"
+	}
+	if config.DefaultTTL == 0 {
+		config.DefaultTTL = time.Hour
+	}
+	if config.RefreshTTL == 0 {
+		config.RefreshTTL = 24 * time.Hour
+	}
+	if config.KeyRotationPeriod == 0 {
+		config.KeyRotationPeriod = 7 * 24 * time.Hour
+	}
+	if config.CookiePath == "" {
+		config.CookiePath = "/"
+	}
+	if config.Algorithm == "" {
+		config.Algorithm = "RS256"
+	}
+	if logger == nil {
+		logger = slog.Default()
+	}
+
 	manager := &JWTManager{
 		issuer: config.Issuer,
 

@@ -690,19 +690,11 @@ type ManifestGenerationStatus struct {
 
 	RetryCount int32 `json:"retryCount,omitempty"`
 
-<<<<<<< HEAD
 	// QualityScore represents the quality of generated manifests (0.0-1.0) as string.
 
 	// +optional
 
 	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
-=======
-	// QualityScore represents the quality of generated manifests (0.0-1.0) as string to avoid float issues.
-
-	// +optional
-
-	// +kubebuilder:validation:Pattern=`^(0(\.[0-9]+)?|1(\.0+)?)$`
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	QualityScore *string `json:"qualityScore,omitempty"`
 
@@ -808,19 +800,11 @@ type ManifestOptimizationResult struct {
 
 	Description string `json:"description,omitempty"`
 
-<<<<<<< HEAD
 	// ImprovementPercent quantifies the improvement (0.0-100.0) as string.
 
 	// +optional
 
 	// +kubebuilder:validation:Pattern=`^([0-9]|[1-9][0-9]|100)(\.\d+)?$`
-=======
-	// ImprovementPercent quantifies the improvement (0.0-100.0) as string to avoid float issues.
-
-	// +optional
-
-	// +kubebuilder:validation:Pattern=`^(100(\.0+)?|[0-9]?[0-9](\.[0-9]+)?)$`
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	ImprovementPercent *string `json:"improvementPercent,omitempty"`
 
@@ -838,15 +822,9 @@ type ManifestOptimizationResult struct {
 // SecurityAnalysisResult contains security analysis results.
 
 type SecurityAnalysisResult struct {
-<<<<<<< HEAD
 	// OverallScore is the overall security score (0.0-1.0) as string.
 
 	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
-=======
-	// OverallScore is the overall security score (0.0-1.0) as string to avoid float issues.
-
-	// +kubebuilder:validation:Pattern=`^(0(\.[0-9]+)?|1(\.0+)?)$`
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	OverallScore *string `json:"overallScore"`
 
@@ -900,19 +878,11 @@ type SecurityIssue struct {
 
 	Remediation string `json:"remediation,omitempty"`
 
-<<<<<<< HEAD
 	// CVSS score if applicable (0.0-10.0) as string.
 
 	// +optional
 
 	// +kubebuilder:validation:Pattern=`^([0-9]|10)(\.\d+)?$`
-=======
-	// CVSS score if applicable (0.0-10.0) as string to avoid float issues.
-
-	// +optional
-
-	// +kubebuilder:validation:Pattern=`^(10(\.0+)?|[0-9](\.[0-9]+)?)$`
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	CVSSScore *string `json:"cvssScore,omitempty"`
 }
@@ -940,19 +910,11 @@ type SecurityComplianceResult struct {
 
 	Violations []string `json:"violations,omitempty"`
 
-<<<<<<< HEAD
 	// Score represents compliance score (0.0-1.0) as string.
 
 	// +optional
 
 	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
-=======
-	// Score represents compliance score (0.0-1.0) as string to avoid float issues.
-
-	// +optional
-
-	// +kubebuilder:validation:Pattern=`^(0(\.[0-9]+)?|1(\.0+)?)$`
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 	Score *string `json:"score,omitempty"`
 }

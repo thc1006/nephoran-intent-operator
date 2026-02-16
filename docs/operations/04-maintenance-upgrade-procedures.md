@@ -168,7 +168,7 @@ success() {
 # Pre-upgrade backup
 create_pre_upgrade_backup() {
     log "Creating pre-upgrade backup..."
-    ./scripts/disaster-recovery-system.sh backup --tag="pre-upgrade-$UPGRADE_ID"
+    ./scripts/ops/disaster-recovery-system.sh backup --tag="pre-upgrade-$UPGRADE_ID"
     if [ $? -ne 0 ]; then
         error "Pre-upgrade backup failed"
     fi
@@ -1156,7 +1156,7 @@ spec:
               /scripts/update-metrics.sh
               
               # 5. Check for security updates
-              /scripts/security-scan.sh --automated
+              /scripts/security/security-scan.sh --automated
               
               echo "Daily maintenance completed"
           restartPolicy: OnFailure

@@ -48,15 +48,15 @@ fi
 
 # Build the documentation
 echo -e "${YELLOW}Building documentation site...${NC}"
-mkdocs build
+mkdocs build -f ../../mkdocs.yml
 
 # Serve locally for preview (optional)
 if [ "$1" = "--serve" ]; then
     echo -e "${GREEN}Starting local server at http://localhost:8000${NC}"
-    mkdocs serve
+    mkdocs serve -f ../../mkdocs.yml
 elif [ "$1" = "--deploy" ]; then
     echo -e "${GREEN}Deploying to GitHub Pages...${NC}"
-    mkdocs gh-deploy --force
+    mkdocs gh-deploy --force -f ../../mkdocs.yml
 else
     echo -e "${GREEN}Documentation built successfully!${NC}"
     echo -e "${GREEN}Output: site/${NC}"

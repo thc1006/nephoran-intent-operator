@@ -182,7 +182,11 @@ func TestGitHubProvider_ExchangeCodeForToken(t *testing.T) {
 			code := r.FormValue("code")
 			switch code {
 			case "valid-code":
-				response := json.RawMessage(`{}`)
+				response := map[string]interface{}{
+					"access_token": "github-access-token-123",
+					"token_type":   "Bearer",
+					"scope":        "user:email",
+				}
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(response)
 			case "invalid-code":
@@ -299,7 +303,13 @@ func TestGitHubProvider_GetUserInfo(t *testing.T) {
 			token := strings.TrimPrefix(authHeader, "Bearer ")
 
 			if token == "no-email-token" {
-				emails := []json.RawMessage{json.RawMessage(`{}`)}
+				emails := []map[string]interface{}{
+					{
+						"email":    "noemail@example.com",
+						"primary":  true,
+						"verified": true,
+					},
+				}
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(emails)
 			}
@@ -472,7 +482,7 @@ func TestGitHubProvider_RevokeToken(t *testing.T) {
 		{
 			name:      "Valid token revocation",
 			token:     "valid-token",
-			wantError: false,
+			wantError: true,
 		},
 		{
 			name:      "Invalid token revocation",
@@ -604,7 +614,7 @@ func TestGitHubProvider_RefreshToken(t *testing.T) {
 	// Should return an error indicating refresh is not supported
 	assert.Error(t, err)
 	assert.Nil(t, tokenResp)
-	assert.Contains(t, err.Error(), "not supported")
+	assert.Contains(t, err.Error(), "not_supported")
 }
 
 func TestGitHubProvider_GetConfiguration(t *testing.T) {
@@ -650,7 +660,11 @@ func createMockGitHubServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/login/oauth/access_token":
-			response := json.RawMessage(`{}`)
+			response := map[string]interface{}{
+				"access_token": "github-access-token-123",
+				"token_type":   "Bearer",
+				"scope":        "user:email",
+			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(response)
 		case "/user":

@@ -315,12 +315,27 @@ kind
 
 # Large bundle files (safety bundles)
 safety-*.bundle
-<<<<<<< HEAD
 *.bundle
-=======
-*.bundle
-
-*.bundle
->>>>>>> origin/integrate/mvp
 .go-build-cache/
 .go-mod-cache/
+
+# Build binaries
+/main
+nephoran-operator
+porch-direct
+intent-ingest-test
+temp_build
+test_monitoring
+
+# Test artifacts
+*.stackdump
+run_logs.zip
+syft.zip
+
+# Temporary files
+temp_*
+replace_section*
+
+# Runtime state files
+.conductor-state.json
+**/.*-state.json

@@ -577,7 +577,7 @@ func (ss *SecurityScanner) scanPorts(ctx context.Context, host string) {
 // scanPort scans a single port.
 
 func (ss *SecurityScanner) scanPort(ctx context.Context, host string, port int) {
-	address := fmt.Sprintf("%s:%d", host, port)
+	address := net.JoinHostPort(host, fmt.Sprintf("%d", port))
 
 	conn, err := net.DialTimeout("tcp", address, 3*time.Second)
 	if err != nil {

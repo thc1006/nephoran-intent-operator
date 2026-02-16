@@ -159,11 +159,6 @@ func CleanupTestNamespaceWithContext(testCtx context.Context, namespace *corev1.
 
 // WaitForResourceReady waits for a resource to be ready using context patterns
 func WaitForResourceReady(testCtx context.Context, obj client.Object, timeout time.Duration) error {
-	if integrationTestEnv != nil {
-		return integrationTestEnv.WaitForResourceReady(obj, timeout)
-	}
-
-	// Fallback to basic ready check
 	key := types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}
 	Eventually(func(g Gomega) {
 		err := k8sClient.Get(testCtx, key, obj)

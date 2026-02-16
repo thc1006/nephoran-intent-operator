@@ -37,10 +37,7 @@ UNIT_TIMEOUT := 4m
 INTEGRATION_TIMEOUT := 10m
 TEST_PARALLEL := 6
 TEST_FLAGS := -v -race -timeout=$(TEST_TIMEOUT) -parallel=$(TEST_PARALLEL) -shuffle=on
-<<<<<<< HEAD
-=======
 
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 .PHONY: help
 help: ## Show this help message
 	@echo "CI-Optimized Build Targets:"
@@ -170,11 +167,8 @@ ci-status: ## Check CI build status
 	else \
 		echo "  ⚠️ No binaries built yet"; \
 	fi
-	@echo "✅ CI status check completed"
-<<<<<<< HEAD
-=======
+	@echo "CI status check completed"
 
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 .PHONY: debug-build
 debug-build: ## Debug build issues with verbose output
 	@echo "🐛 Debug build process..."
@@ -369,8 +363,4 @@ test-performance-monitor: ## Monitor test performance and identify slow tests
 		grep -E "(PASS|FAIL).*[0-9]+\.[0-9]+s" | sort -k3 -nr | head -20 || echo "Performance monitoring completed"
 	@echo "Slowest tests (top 20):"
 	@grep -E "(PASS|FAIL).*[0-9]+\.[0-9]+s" test-results/performance.log 2>/dev/null | \
-<<<<<<< HEAD
 		sort -k3 -nr | head -20 || echo "No timing data available"
-=======
-		sort -k3 -nr | head -20 || echo "No timing data available"
->>>>>>> 6835433495e87288b95961af7173d866977175ff
