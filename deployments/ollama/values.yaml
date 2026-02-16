@@ -1,0 +1,76 @@
+# Ollama Helm Chart Values - FIXED CPU Requirements
+# Adjusted for single-node K8s cluster with limited CPU
+
+image:
+  repository: ollama/ollama
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+resources:
+  requests:
+    cpu: "2000m"      # 2 CPUs (reduced from 8)
+    memory: "8Gi"     # 8GB RAM (reduced from 16, still enough for 70B)
+  limits:
+    cpu: "4000m"      # 4 CPUs max (reduced from 16)
+    memory: "16Gi"    # 16GB max
+    
+# GPU - Disable DRA for now, use standard device plugin
+gpu:
+  enabled: true
+  type: "nvidia"
+  number: 1
+  dra: false        # Disable DRA, use standard device plugin
+
+# Persistent Storage
+persistentVolume:
+  enabled: true
+  size: "50Gi"      # Reduced from 100Gi
+  storageClass: "local-path"
+  accessModes:
+    - ReadWriteOnce
+
+# Models - Start with smaller set
+models:
+  - llama3.2:3b     # Start with smaller model first
+
+# Service
+service:
+  type: ClusterIP
+  port: 11434
+
+# Single replica
+replicaCount: 1
+
+# Environment
+env:
+  - name: OLLAMA_HOST
+    value: "0.0.0.0:11434"
+  - name: OLLAMA_ORIGINS
+    value: "*"
+  - name: OLLAMA_NUM_PARALLEL
+    value: "2"
+  - name: OLLAMA_MAX_LOADED_MODELS
+    value: "1"
+
+# Health Checks
+livenessProbe:
+  httpGet:
+    path: /
+    port: 11434
+  initialDelaySeconds: 120
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /
+    port: 11434
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Pod Annotations
+podAnnotations:
+  sidecar.istio.io/inject: "false"
