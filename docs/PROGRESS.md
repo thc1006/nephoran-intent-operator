@@ -160,3 +160,10 @@ Updates are tracked here in append-only format.
 | 2026-02-16T07:24:01+00:00 | chore/k8s-1.35-controller-runtime-0.23 | tests | Fixed TestQueueOverflow nil pointer and race condition |
 | 2026-02-16T07:40:40+0000 | feature/phase1-emergency-hotfix | planning | Post-PR346 comprehensive roadmap: 6-week plan with Cloud SDKs, Performance opts, O-RAN Phase 1 integration |
 | 2026-02-16T07:55:12+00:00 | chore/k8s-1.35-controller-runtime-0.23 | ci | Fix root allowlist validation - remove out-of-scope files |
+| 2026-02-16T08:13:13+0000 | feat/cloud-sdk-updates | cloud-sdks | Updated CSP/CSP/CSP SDKs for K8s 1.35 compatibility |
+| 2026-02-16T08:13:37Z | feat/oran-phase1-foundation | pkg/oran | O-RAN Phase 1 foundation complete: E2 intent client, RIC unified client, configs |
+| 2026-02-16T08:14:13+00:00 | feat/k8s-135-benchmarks | benchmarks/k8s135 | K8s 1.35 performance benchmark suite |
+| 2026-02-16T09:30:00+00:00 | feat/k8s-135-security-audit | security | K8s 1.35 security audit: 25 findings, webhook/RBAC/netpol/deps reviewed |
+| 2026-02-16T08:48:05+00:00 | feat/oran-phase1-foundation | pkg/nephio,ci,deployments/ric | Fixed P0 bugs: GetCondition logic, API group consistency, envtest version, RIC API migration guide |
+| 2026-02-16T09:36:52+00:00 | feature/phase1-emergency-hotfix | docs/5G | Complete 5G integration plan: Free5GC+OAI+Cilium eBPF, 4 research reports consolidated |
+| 2026-02-16T11:27:33+00:00 | feature/phase1-emergency-hotfix | docs/5G_V2 | SDD 2026 rewrite: Added SMO decision, executable commands, dependency matrix, task DAG, checkpoint validator |

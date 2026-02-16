@@ -1,0 +1,458 @@
+# Implementation Task DAG (Directed Acyclic Graph)
+# Version: 2.0
+# Date: 2026-02-16
+# Purpose: Defines implementation tasks, dependencies, and execution order
+# Total Duration: 40 hours (sequential), 28 hours (parallelized)
+
+---
+
+metadata:
+  project: "5G End-to-End Integration"
+  version: "2.0"
+  total_tasks: 12
+  critical_path: ["T1", "T2", "T4", "T6", "T8", "T9", "T10", "T12"]
+  critical_path_duration: "28h"
+  sequential_duration: "40h"
+
+# Task Definitions
+tasks:
+  # ========================================
+  # Phase 1: Infrastructure (Week 1-2)
+  # ========================================
+
+  - id: "T1"
+    name: "Install Kubernetes 1.35.1"
+    phase: "infrastructure"
+    duration: "4h"
+    priority: "P0"
+    assignee: "@claude-agent-devops"
+    depends_on: []
+    parallel_with: []
+    description: "Deploy single-node Kubernetes cluster with kubeadm"
+    implementation_ref: "docs/5G_INTEGRATION_PLAN_V2.md#task-t1"
+    verification_command: "kubectl version --short | grep 'v1.35.1' && kubectl get nodes | grep Ready"
+    rollback_command: "sudo kubeadm reset -f && sudo rm -rf /etc/kubernetes"
+    success_criteria:
+      - "kubectl version shows v1.35.1"
+      - "Node status is Ready"
+      - "All kube-system pods Running/Completed"
+
+  - id: "T2"
+    name: "Deploy Cilium eBPF CNI"
+    phase: "infrastructure"
+    duration: "2h"
+    priority: "P0"
+    assignee: "@claude-agent-devops"
+    depends_on: ["T1"]
+    parallel_with: ["T3"]
+    description: "Install Cilium CNI with Hubble observability"
+    verification_command: "cilium status | grep 'OK' && cilium connectivity test --test pod-to-pod"
+    rollback_command: "cilium uninstall"
+    success_criteria:
+      - "Cilium status shows all checks OK"
+      - "Pod-to-pod connectivity test passes"
+      - "Hubble relay accessible"
+
+  - id: "T3"
+    name: "Deploy GPU Operator + DRA"
+    phase: "infrastructure"
+    duration: "3h"
+    priority: "P1"
+    assignee: "@claude-agent-devops"
+    depends_on: ["T1"]
+    parallel_with: ["T2"]
+    description: "Install NVIDIA GPU Operator with DRA driver for RTX 5080"
+    verification_command: "kubectl get nodes -o yaml | grep 'nvidia.com/dra' && nvidia-smi"
+    rollback_command: "helm uninstall gpu-operator -n gpu-operator-resources"
+    success_criteria:
+      - "DRA resource plugin running"
+      - "nvidia-smi shows RTX 5080"
+      - "GPU claims can be created"
+
+  # ========================================
+  # Phase 2: Databases (Week 2)
+  # ========================================
+
+  - id: "T4"
+    name: "Deploy MongoDB 7.0"
+    phase: "databases"
+    duration: "1h"
+    priority: "P0"
+    assignee: "@claude-agent-database-admin"
+    depends_on: ["T1", "T2"]
+    parallel_with: ["T5"]
+    description: "Deploy MongoDB for Free5GC data persistence"
+    verification_command: "kubectl exec -n free5gc deploy/mongodb -- mongosh --eval 'db.version()' | grep '7.0'"
+    rollback_command: "helm uninstall mongodb -n free5gc"
+    success_criteria:
+      - "MongoDB pods Running"
+      - "Version 7.0+ confirmed"
+      - "Database ping successful"
+
+  - id: "T5"
+    name: "Deploy Weaviate Vector DB"
+    phase: "databases"
+    duration: "2h"
+    priority: "P1"
+    assignee: "@claude-agent-database-admin"
+    depends_on: ["T1", "T2"]
+    parallel_with: ["T4"]
+    description: "Deploy Weaviate for RAG context retrieval"
+    verification_command: "curl -s http://weaviate:8080/v1/meta | jq '.version' | grep '1.34'"
+    rollback_command: "helm uninstall weaviate -n default"
+    success_criteria:
+      - "Weaviate pods Running"
+      - "/v1/meta endpoint returns 200 OK"
+      - "Vector operations functional"
+
+  # ========================================
+  # Phase 3: Core Services (Week 2-3)
+  # ========================================
+
+  - id: "T6"
+    name: "Deploy Nephio R5 + Porch"
+    phase: "core_services"
+    duration: "3h"
+    priority: "P0"
+    assignee: "@claude-agent-devops"
+    depends_on: ["T1", "T2", "T4"]
+    parallel_with: []
+    description: "Deploy Nephio management cluster with Porch package management"
+    verification_command: "kpt version | grep '1.0.0-beta.56' && kpt alpha rpkg get | grep free5gc"
+    rollback_command: "kubectl delete ns nephio-system porch-system --force"
+    success_criteria:
+      - "Porch API server accessible"
+      - "kpt alpha rpkg get returns packages"
+      - "Config Sync running"
+
+  - id: "T7"
+    name: "Deploy O-RAN SC Near-RT RIC"
+    phase: "core_services"
+    duration: "4h"
+    priority: "P0"
+    assignee: "@claude-agent-oran"
+    depends_on: ["T1", "T2"]
+    parallel_with: []
+    description: "Deploy O-RAN SC RIC platform (Near-RT + Non-RT)"
+    verification_command: "kubectl get pods -n ricplt | grep Running && curl http://nonrtric:8080/a1-policy/v2/health"
+    rollback_command: "helm uninstall ric-plt -n ricplt"
+    success_criteria:
+      - "All RIC pods Running"
+      - "A1 Policy API accessible"
+      - "E2 termination ready"
+
+  # ========================================
+  # Phase 4: Network Functions (Week 3-7)
+  # ========================================
+
+  - id: "T8"
+    name: "Deploy Free5GC Control Plane"
+    phase: "network_functions"
+    duration: "4h"
+    priority: "P0"
+    assignee: "@claude-agent-5g"
+    depends_on: ["T2", "T4", "T6"]
+    parallel_with: []
+    description: "Deploy Free5GC CP NFs (AMF, SMF, NRF, AUSF, UDM, UDR, PCF, NSSF)"
+    verification_command: "./test/e2e/test-free5gc-cp.sh"
+    rollback_command: "kubectl delete ns free5gc --force"
+    success_criteria:
+      - "All CP NFs Running"
+      - "NRF registration successful"
+      - "WebUI accessible"
+    commands:
+      - "kubectl create ns free5gc"
+      - "helm install free5gc-cp nephio/free5gc-cp -n free5gc"
+      - "kubectl wait --for=condition=Ready pod -l app=free5gc-amf -n free5gc --timeout=300s"
+
+  - id: "T9"
+    name: "Deploy Free5GC User Plane (3x UPF)"
+    phase: "network_functions"
+    duration: "2h"
+    priority: "P0"
+    assignee: "@claude-agent-5g"
+    depends_on: ["T8"]
+    parallel_with: []
+    parallelism: 3
+    description: "Deploy 3 UPF replicas for multi-AZ user plane"
+    verification_command: "./test/e2e/test-free5gc-up.sh"
+    rollback_command: "kubectl delete deployment -n free5gc -l nf=upf"
+    success_criteria:
+      - "3 UPF pods Running"
+      - "GTP-U tunnel established"
+      - "N3/N4 interfaces active"
+
+  - id: "T10"
+    name: "Deploy OAI RAN (gNB + CU/DU)"
+    phase: "network_functions"
+    duration: "5h"
+    priority: "P0"
+    assignee: "@claude-agent-ran"
+    depends_on: ["T8", "T9"]
+    parallel_with: []
+    description: "Deploy OpenAirInterface disaggregated gNB (CU-CP, CU-UP, DU)"
+    verification_command: "./test/e2e/test-oai-ran.sh"
+    rollback_command: "kubectl delete ns oai-ran --force"
+    success_criteria:
+      - "gNB connects to AMF (N2)"
+      - "CU-UP connects to UPF (N3)"
+      - "E2 connection to RIC established"
+    commands:
+      - "kubectl create ns oai-ran"
+      - "helm install oai-cu-cp oai/oai-cu-cp -n oai-ran"
+      - "helm install oai-cu-up oai/oai-cu-up -n oai-ran"
+      - "helm install oai-du oai/oai-du -n oai-ran"
+
+  # ========================================
+  # Phase 5: Integration & Testing (Week 7-8)
+  # ========================================
+
+  - id: "T11"
+    name: "Integrate Intent Operator with RIC A1"
+    phase: "integration"
+    duration: "6h"
+    priority: "P0"
+    assignee: "@claude-agent-integration"
+    depends_on: ["T7", "T8"]
+    parallel_with: []
+    description: "Deploy Nephoran Intent Operator and configure A1 policy integration"
+    verification_command: "./test/e2e/test-a1-integration.sh"
+    rollback_command: "make undeploy"
+    success_criteria:
+      - "NetworkIntent CRD registered"
+      - "A1 policy created from NetworkIntent"
+      - "Policy reaches Non-RT RIC"
+    commands:
+      - "make docker-build IMG=nephoran-operator:v2.0"
+      - "make deploy IMG=nephoran-operator:v2.0"
+      - "kubectl apply -f examples/networkintent-demo.yaml"
+      - "kubectl wait --for=condition=Ready networkintent/scale-upf-demo --timeout=60s"
+
+  - id: "T12"
+    name: "E2E Validation Test Suite"
+    phase: "integration"
+    duration: "4h"
+    priority: "P0"
+    assignee: "@claude-agent-qa"
+    depends_on: ["T9", "T10", "T11"]
+    parallel_with: []
+    description: "Run comprehensive end-to-end validation tests"
+    verification_command: "./test/e2e/run-all-tests.sh"
+    rollback_command: "N/A (read-only testing)"
+    success_criteria:
+      - "NetworkIntent → A1 Policy flow works"
+      - "PDU session establishment successful"
+      - "UE data plane functional (ping test)"
+      - "Performance benchmarks met (10+ Gbps Cilium)"
+    test_scenarios:
+      - name: "NetworkIntent to A1 Policy"
+        script: "./test/e2e/test-networkintent-a1.sh"
+      - name: "Free5GC PDU Session"
+        script: "./test/e2e/test-pdu-session.sh"
+      - name: "OAI RAN Connectivity"
+        script: "./test/e2e/test-oai-connectivity.sh"
+      - name: "Cilium Performance"
+        script: "./test/e2e/test-cilium-performance.sh"
+
+# ========================================
+# Dependency Graph (Critical Path)
+# ========================================
+
+critical_path:
+  path: ["T1", "T2", "T4", "T6", "T8", "T9", "T10", "T12"]
+  total_duration: "28h"
+  description: "Longest path through task dependencies"
+  bottlenecks:
+    - task: "T10"
+      duration: "5h"
+      reason: "OAI RAN deployment is most time-consuming"
+    - task: "T11"
+      duration: "6h"
+      reason: "A1 integration requires manual configuration"
+
+# ========================================
+# Parallelization Opportunities
+# ========================================
+
+parallel_groups:
+  group_1:
+    tasks: ["T2", "T3"]
+    depends_on: ["T1"]
+    max_duration: "3h"  # Max of T2 (2h) and T3 (3h)
+    description: "CNI and GPU can be deployed in parallel"
+
+  group_2:
+    tasks: ["T4", "T5"]
+    depends_on: ["T1", "T2"]
+    max_duration: "2h"  # Max of T4 (1h) and T5 (2h)
+    description: "Databases can be deployed in parallel"
+
+# ========================================
+# Phase Checkpoints
+# ========================================
+
+checkpoints:
+  infrastructure:
+    tasks: ["T1", "T2", "T3"]
+    validation_script: "./scripts/checkpoint-validator.sh infrastructure"
+    required_for_next_phase: true
+
+  databases:
+    tasks: ["T4", "T5"]
+    validation_script: "./scripts/checkpoint-validator.sh databases"
+    required_for_next_phase: true
+
+  core_services:
+    tasks: ["T6", "T7"]
+    validation_script: "./scripts/checkpoint-validator.sh core_services"
+    required_for_next_phase: true
+
+  network_functions:
+    tasks: ["T8", "T9", "T10"]
+    validation_script: "./scripts/checkpoint-validator.sh network_functions"
+    required_for_next_phase: true
+
+  integration:
+    tasks: ["T11", "T12"]
+    validation_script: "./scripts/checkpoint-validator.sh integration"
+    required_for_next_phase: false  # Final phase
+
+# ========================================
+# Execution Strategy
+# ========================================
+
+execution_strategy:
+  mode: "sequential_with_parallelization"
+  description: "Execute tasks in DAG order, parallelize where possible"
+  rules:
+    - "Check dependencies before starting task"
+    - "Run verification command after task completion"
+    - "Execute rollback if verification fails"
+    - "Update PROGRESS.md after each completed task"
+    - "Run checkpoint validator at end of each phase"
+
+  failure_handling:
+    strategy: "stop_on_critical_failure"
+    critical_tasks: ["T1", "T2", "T6", "T7", "T8"]
+    rollback_policy: "automatic_rollback_on_verification_failure"
+
+# ========================================
+# Claude Code Session Instructions
+# ========================================
+
+claude_code_instructions: |
+  # How to Execute This DAG
+
+  ## Prerequisites
+  1. Read docs/5G_INTEGRATION_PLAN_V2.md (full context)
+  2. Read docs/dependencies/compatibility-matrix.yaml (versions)
+  3. Verify prerequisites: ./scripts/checkpoint-validator.sh prerequisites
+
+  ## Execution Loop
+  For each task in topological order (respecting dependencies):
+
+  1. **Check Dependencies**
+     ```bash
+     # Example for T8
+     # Ensure T2, T4, T6 are completed
+     ./scripts/task-status-checker.sh T2 T4 T6
+     ```
+
+  2. **Execute Task**
+     ```bash
+     # Follow implementation_ref section in task definition
+     # Example: docs/5G_INTEGRATION_PLAN_V2.md#task-t1
+     ```
+
+  3. **Verify Success**
+     ```bash
+     # Run verification_command
+     eval "$(yq e '.tasks[] | select(.id == "T1") | .verification_command' task-dag.yaml)"
+     ```
+
+  4. **Update Progress**
+     ```bash
+     # Append to docs/PROGRESS.md
+     echo "| $(date -u +%Y-%m-%dT%H:%M:%S+00:00) | $(git rev-parse --abbrev-ref HEAD) | task/T1 | Completed Kubernetes 1.35.1 installation |" >> docs/PROGRESS.md
+     ```
+
+  5. **Run Checkpoint (End of Phase)**
+     ```bash
+     # After completing all tasks in a phase
+     ./scripts/checkpoint-validator.sh infrastructure
+     ```
+
+  ## Example: Execute Task T1
+  ```bash
+  # 1. Check dependencies (T1 has none)
+  # 2. Read implementation
+  cat docs/5G_INTEGRATION_PLAN_V2.md | grep -A 100 "#### Task T1"
+  # 3. Execute commands (copy-paste from document)
+  # 4. Verify
+  kubectl version --short | grep 'v1.35.1'
+  # 5. Update PROGRESS.md
+  ```
+
+  ## Parallel Execution
+  ```bash
+  # For tasks T2 and T3 (both depend on T1, can run in parallel)
+  # Option 1: Use background jobs
+  (execute_task T2) &
+  (execute_task T3) &
+  wait
+
+  # Option 2: Use GNU parallel
+  parallel execute_task ::: T2 T3
+  ```
+
+  ## Failure Recovery
+  ```bash
+  # If verification fails, run rollback
+  TASK_ID="T8"
+  ROLLBACK_CMD=$(yq e ".tasks[] | select(.id == \"$TASK_ID\") | .rollback_command" task-dag.yaml)
+  eval "$ROLLBACK_CMD"
+  ```
+
+# ========================================
+# Visualization (Mermaid Gantt Chart)
+# ========================================
+
+mermaid_gantt: |
+  ```mermaid
+  gantt
+      title 5G Integration Implementation Timeline
+      dateFormat YYYY-MM-DD
+      section Phase 1: Infrastructure
+      Install K8s 1.35.1 (T1)           :t1, 2026-02-17, 4h
+      Deploy Cilium eBPF (T2)           :t2, after t1, 2h
+      Deploy GPU Operator (T3)          :t3, after t1, 3h
+
+      section Phase 2: Databases
+      Deploy MongoDB (T4)               :t4, after t2, 1h
+      Deploy Weaviate (T5)              :t5, after t2, 2h
+
+      section Phase 3: Core Services
+      Deploy Nephio R5 (T6)             :t6, after t4, 3h
+      Deploy O-RAN SC RIC (T7)          :t7, after t2, 4h
+
+      section Phase 4: Network Functions
+      Deploy Free5GC CP (T8)            :crit, t8, after t6, 4h
+      Deploy Free5GC UP (T9)            :crit, t9, after t8, 2h
+      Deploy OAI RAN (T10)              :crit, t10, after t9, 5h
+
+      section Phase 5: Integration
+      Integrate A1 (T11)                :crit, t11, after t7 t8, 6h
+      E2E Validation (T12)              :milestone, t12, after t10 t11, 4h
+  ```
+
+# ========================================
+# References
+# ========================================
+
+references:
+  - name: "Apache Airflow DAG Orchestration"
+    url: "https://softwarefrontier.substack.com/p/mastering-apache-airflow-part-3-dags"
+  - name: "Kubernetes Operator Development Best Practices"
+    url: "https://kubernetes.io/docs/concepts/extend-kubernetes/operator/"
+  - name: "SDD 2026 Task Decomposition Patterns"
+    url: "docs/5G_INTEGRATION_PLAN_V2.md"
