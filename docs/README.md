@@ -47,21 +47,32 @@ docs/
 - **Getting Started**: See [../QUICKSTART.md](../QUICKSTART.md) in project root
 - **API Reference**: `api/` directory contains OpenAPI specifications
 - **Architecture Decisions**: `adr/` directory for design rationale
+- **Planner Integration Guide**: [`development/PLANNER-INTEGRATION-GUIDE.md`](development/PLANNER-INTEGRATION-GUIDE.md)
+- **Root Cleanup Policy**: [`development/ROOT-CLEANUP-POLICY.md`](development/ROOT-CLEANUP-POLICY.md) - Repository structure guidelines
 
 ### For Operations Teams
 - **Security Documentation**: `security/` directory for security policies and procedures
 - **Workflow Management**: `workflows/` directory for CI/CD documentation
 - **System Operations**: `operations/` directory for runbooks and procedures
+- **LLM Provider Runbook**: [`operations/LLM_PROVIDER_RUNBOOK.md`](operations/LLM_PROVIDER_RUNBOOK.md)
 
 ### For Project Managers
 - **Performance Reports**: `reports/` directory for metrics and analysis
-- **Architecture Overview**: `design/` directory for technical designs
+- **Architecture Overview**: `architecture/` directory for technical designs
 - **Security Compliance**: `security/` directory for compliance documentation
+- **Conductor Loop Design**: [`architecture/CONDUCTOR-LOOP-DESIGN.md`](architecture/CONDUCTOR-LOOP-DESIGN.md)
 
 ## Documentation Categories
 
 ### Architecture Decision Records (ADRs)
 Documents that capture important architectural decisions made during the project lifecycle. These provide context for why certain technical choices were made and serve as reference for future development.
+
+#### Status tags
+- **Active**: current source of truth.
+- **Draft**: under development; verify before use.
+- **Archive**: retained for history only; do not follow without review.
+
+> 建議：新增或修改文件時，於開頭標註狀態（Active/Draft/Archive），過期內容移至 `docs/archive/` 並在此 README 保持索引。
 
 ### API Documentation
 Complete API reference materials including OpenAPI specifications, examples, and integration guides. Essential for developers integrating with the Nephoran Intent Operator.
@@ -81,6 +92,9 @@ Comprehensive security documentation including implementation summaries, hardeni
 ### Workflow Documentation
 CI/CD pipeline documentation, automation scripts, and workflow management procedures. Essential for maintaining the development and deployment processes.
 
+### Archive (history/legacy)
+Use `docs/archive/`存放過期報告、一次性方案或被取代的流程，並在對應的主分類連結至最新版本；已移動：whitepapers、reports、presentations、knowledge-base。
+
 ## Document Maintenance
 
 ### Review Schedule
@@ -96,6 +110,7 @@ When adding new documentation:
 2. Update this README if adding new categories
 3. Follow existing naming conventions (lowercase, hyphens for spaces)
 4. Include frontmatter with metadata where appropriate
+5. **Avoid adding files to repository root** - see [Root Cleanup Policy](development/ROOT-CLEANUP-POLICY.md) for guidelines
 
 ### Standards
 - Use Markdown format for all documentation

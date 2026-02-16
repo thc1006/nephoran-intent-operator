@@ -1,9 +1,0 @@
-{
-  "intent_file": "intent-test.json",
-  "message": "exec: \"mock-porch.bat\": cannot run executable found relative to current directory",
-  "mode": "direct",
-  "porch_path": "mock-porch.bat",
-  "processed_by": "conductor-loop",
-  "status": "failed",
-  "timestamp": "2025-08-17T01:39:36+08:00"
-}

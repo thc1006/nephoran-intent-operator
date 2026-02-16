@@ -15,7 +15,7 @@ on:
 
 # STANDARDIZED concurrency group
 concurrency:
-  group: nephoran-ubuntu-ci-${{ github.ref }}
+  group: ${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -171,9 +171,9 @@ jobs:
           echo ""
           if [ -f ".golangci.yml" ]; then
             echo "Verifying .golangci.yml configuration..."
-            $LINT_PATH config verify --config=.golangci.yml || echo "?ая? Config verification failed (may be using defaults)"
+            $LINT_PATH config verify --config=.golangci.yml || echo "?? Config verification failed (may be using defaults)"
           else
-            echo "?╣я? No .golangci.yml found - will use default configuration"
+            echo "?? No .golangci.yml found - will use default configuration"
           fi
 
       - name: Run golangci-lint with enhanced detailed output
@@ -239,7 +239,7 @@ jobs:
           if [ $LINT_EXIT_CODE -eq 0 ]; then
             echo "??No linting issues found!"
           elif [ $LINT_EXIT_CODE -eq 1 ]; then
-            echo "?ая? Linting issues found (see details above)"
+            echo "?? Linting issues found (see details above)"
           else
             echo "??Linter failed with error code $LINT_EXIT_CODE"
           fi

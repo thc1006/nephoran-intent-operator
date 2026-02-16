@@ -272,7 +272,7 @@ kubectl exec -it deployment/weaviate -n nephoran-system -- \
 
 # 3. If corruption detected, restore from backup
 kubectl scale deployment weaviate --replicas=0 -n nephoran-system
-./scripts/disaster-recovery-system.sh restore-weaviate
+./scripts/ops/disaster-recovery-system.sh restore-weaviate
 
 # 4. Restart with clean configuration
 kubectl delete pod -l app=weaviate -n nephoran-system
