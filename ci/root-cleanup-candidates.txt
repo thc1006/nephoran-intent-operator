@@ -1,0 +1,15 @@
+# entry|proposed_target|status|notes|unblock_criteria
+CLAUDE_AGENTS_ANALYSIS.md|docs/agents/CLAUDE_AGENTS_ANALYSIS.md|intentional-root-exception|Core AI agent orchestration manifest referenced by CLAUDE.md boot sequence; root placement ensures reliable discovery during agent initialization.|Revisit when: (1) Agent system refactored to use dedicated CLI discovery mechanism, OR (2) CLAUDE.md imports support path resolution beyond simple @-prefixed references.
+QUICKSTART.md|docs/getting-started/quickstart.md|intentional-root-exception|Primary user entry point optimized for immediate discoverability on GitHub landing page; critical for first-time user onboarding.|Revisit when: (1) Repository adopts CLI-guided onboarding flow that supersedes markdown quick-start, OR (2) GitHub repository templates support custom landing page routing.
+security-reports|docs/security/reports|completed|Tracked SBOM references migrated; runtime report paths in scripts/deployments remain unchanged.
+archive|examples/archive|completed|Root archive examples moved to examples/archive with reference updates.
+docker-compose.yaml|(deleted)|completed|Orphaned file with zero references; not used by Makefile/scripts/CI; superseded by current deployment methods.
+pyproject.toml|(deleted)|completed|Orphaned bandit config; never read by CI (no -c flag in bandit invocations); bandit uses default settings.
+mkdocs.yml|docs/mkdocs.yml|completed|Documentation site config 100% serves docs/ module; moved to docs/ with build script updates (-f flag).
+.trivyignore|(deleted)|completed|Trivy scanner ignore list with zero references; CI workflows, Makefile, pre-commit, and scripts never invoke trivy with this config.
+.mcp.json|(deleted)|completed|MCP server config with zero references; not used by any automation or runtime processes.
+.licenserc.yaml|(deleted)|completed|License header checker config with zero references; license validation not integrated into CI/pre-commit hooks.
+.gitleaks.toml|(deleted)|completed|Secret scanner config with zero references; gitleaks not invoked in CI workflows or pre-commit hooks.
+.editorconfig|(deleted)|completed|Editor formatting config with zero references; not enforced by pre-commit hooks or CI validation.
+.controller-gen.yaml|(deleted)|completed|Controller-gen CRD generation config with zero references; CRD generation uses command-line flags in Makefile instead.
+.codecov.yml|(deleted)|completed|Codecov coverage config with zero references; codecov not integrated into CI workflows or test pipelines.

@@ -7,7 +7,7 @@ Do exactly one small change (≤50 lines). Steps:
 2) List files you will touch (2–4 max).
 3) Apply the change and show unified diffs.
 4) Run the smallest relevant tests/commands; paste outputs.
-5) Append one line to `docs/PROGRESS.md` via `scripts/add-progress.ps1`.
+5) Append one line to `docs/PROGRESS.md` (format: `| <ISO-8601> | <branch> | <module> | <summary> |`).
 6) Stop and await confirmation before the next change.
 
 Guardrails:

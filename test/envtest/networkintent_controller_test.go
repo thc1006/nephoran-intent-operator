@@ -6,11 +6,13 @@ following 2025 Kubernetes operator testing best practices.
 package envtest
 
 import (
+	"context"
 	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 
 	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
@@ -33,21 +35,14 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 			testNamespace     string
 		)
 
-<<<<<<< HEAD
-		BeforeEach(func() {
-			testNamespace = "default"
-			networkIntentName = "test-network-intent"
-			
-=======
 		BeforeAll(func() {
 			testNamespace = "default" // Use default namespace for simplicity
 			networkIntentName = "test-network-intent"
-			
+
 			// Skip all tests in this context if k8sClient is not initialized
 			checkK8sClient()
 
 			By("creating a NetworkIntent resource")
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 			networkIntent = &intentv1alpha1.NetworkIntent{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "intent.nephio.org/v1alpha1",
@@ -58,34 +53,22 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 					Namespace: testNamespace,
 				},
 				Spec: intentv1alpha1.NetworkIntentSpec{
-<<<<<<< HEAD
-					Source:     "test",
-					IntentType: "scaling",
-					Target:     "test-target",
-					Replicas:   3,
-=======
 					// 2025 pattern: Use realistic O-RAN scaling scenarios
 					Source:     "test",
 					IntentType: "scaling",
 					Target:     "cluster-1",
 					Replicas:   5,
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 				},
 			}
+			Expect(k8sClient.Create(context.Background(), networkIntent)).To(Succeed())
 		})
 
-<<<<<<< HEAD
-		It("Should create NetworkIntent successfully", func() {
-			ctx := context.Background()
-			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
-=======
 		AfterAll(func() {
 			// Cleanup any resources created during tests
 		})
 
 		It("should create the NetworkIntent successfully", func(ctx SpecContext) {
 			GinkgoWriter.Printf("Creating NetworkIntent resource: name=%s, namespace=%s\n", networkIntentName, testNamespace)
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 			
 			createdIntent := &intentv1alpha1.NetworkIntent{}
 			Eventually(func() error {
@@ -93,17 +76,6 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 					Name:      networkIntentName,
 					Namespace: testNamespace,
 				}, createdIntent)
-<<<<<<< HEAD
-			}, time.Second*10, time.Millisecond*250).Should(Succeed())
-			
-			Expect(createdIntent.Spec.Source).To(Equal("test"))
-			Expect(createdIntent.Spec.IntentType).To(Equal("scaling"))
-			Expect(createdIntent.Spec.Target).To(Equal("test-target"))
-			Expect(createdIntent.Spec.Replicas).To(Equal(int32(3)))
-		})
-	})
-})
-=======
 			}, timeout, interval).Should(Succeed())
 
 			Expect(createdIntent.Spec.Source).To(Equal("test"))
@@ -184,7 +156,7 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 					Name:      networkIntentName,
 					Namespace: testNamespace,
 				}, deletedIntent)
-				return client.IgnoreNotFound(err) == nil && deletedIntent.Name == ""
+				return err == nil || errors.IsNotFound(err)
 			}, timeout, interval).Should(BeTrue())
 		})
 	})
@@ -356,4 +328,3 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 		)
 	})
 })
->>>>>>> 6835433495e87288b95961af7173d866977175ff

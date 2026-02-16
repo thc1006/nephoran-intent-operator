@@ -19,7 +19,7 @@ on:
 
 # STANDARDIZED concurrency group - Ultra-fast, cancel everything else
 concurrency:
-  group: nephoran-emergency-merge-${{ github.ref }}
+  group: ${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -69,10 +69,10 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('go.mod') }}
+          key: nephoran-go-v1-ubuntu-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('go.mod') }}
           restore-keys: |
-            nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-
-            nephoran-go-v1-${{ runner.os }}-
+            nephoran-go-v1-ubuntu-${{ env.GO_VERSION }}-
+            nephoran-go-v1-ubuntu-
           
       - name: Fast Dependency Check
         run: |

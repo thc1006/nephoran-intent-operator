@@ -1558,7 +1558,7 @@ LIMIT 20;
 This production deployment guide provides comprehensive coverage of deploying and operating the O2 IMS service in production environments. Regular review and updates of these procedures ensure continued operational excellence and system reliability.
 
 For additional support and updates, refer to:
-- [API Documentation](../api/)
+- [API Documentation](../../api/index.md)
 - [Operations Guide](../operations/)
-- [Troubleshooting Guide](../operations/troubleshooting.md)
+- [Troubleshooting Guide](../operations/troubleshooting-guide.md)
 - [GitHub Repository](https://github.com/nephoran/nephoran-intent-operator)

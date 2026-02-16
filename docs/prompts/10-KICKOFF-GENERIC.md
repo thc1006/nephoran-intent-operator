@@ -11,10 +11,10 @@ Context:
 Your task:
 1) State the **module**, **goal**, **explicit in-scope files/dirs**, **out-of-scope**.
 2) Propose the smallest working change (≤100 lines diff) with tests.
-3) List exact commands to build/test/run on Windows PowerShell.
+3) List exact commands to build/test/run on Linux.
 4) Apply changes and show **unified diffs** for each file you touch.
 5) Run tests and paste terminal outputs (trim noise).
-6) Append one line to `docs/PROGRESS.md` via `scripts/add-progress.ps1`.
+6) Append one line to `docs/PROGRESS.md` (format: `| <ISO-8601> | <branch> | <module> | <summary> |`).
 7) Prepare a PR description (title + bullet points + verification steps).
 
 Guardrails:

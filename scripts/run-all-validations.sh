@@ -392,7 +392,7 @@ run_performance_validation() {
     fi
     
     # Test smart build script performance
-    local smart_build="$PROJECT_ROOT/scripts/smart-docker-build.sh"
+    local smart_build="$PROJECT_ROOT/scripts/deploy/smart-docker-build.sh"
     if [ -f "$smart_build" ]; then
         log_info "Testing smart build script performance..."
         
