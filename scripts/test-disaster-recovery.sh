@@ -114,7 +114,7 @@ test_prerequisites() {
     fi
     
     # Check required scripts
-    local required_scripts=("./scripts/setup-secondary-cluster.sh" "./scripts/failover-to-secondary.sh")
+    local required_scripts=("./scripts/setup-secondary-cluster.sh" "./scripts/ops/failover-to-secondary.sh")
     for script in "${required_scripts[@]}"; do
         if [ ! -f "$script" ]; then
             log_error "Required script not found: $script"
@@ -798,7 +798,7 @@ test_failover_script() {
     local start_time=$(date +%s)
     
     # Test script exists and is executable
-    if [ ! -x "./scripts/failover-to-secondary.sh" ]; then
+    if [ ! -x "./scripts/ops/failover-to-secondary.sh" ]; then
         local end_time=$(date +%s)
         local duration=$((end_time - start_time))
         add_test_result "Failover Script" "FAILED" "$duration" "Script not found or not executable"
@@ -807,7 +807,7 @@ test_failover_script() {
     
     # Test dry-run mode
     log_info "Testing failover script dry-run mode..."
-    if ./scripts/failover-to-secondary.sh --dry-run --check-secondary 2>/dev/null; then
+    if ./scripts/ops/failover-to-secondary.sh --dry-run --check-secondary 2>/dev/null; then
         log_success "Dry-run mode works correctly"
     else
         local end_time=$(date +%s)

@@ -22,14 +22,6 @@ import (
 	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1alpha1"
 )
 
-<<<<<<< HEAD
-var _ = Describe("Operator Integration Tests", func() {
-	Context("When deploying NetworkIntent in real cluster", func() {
-		It("Should handle NetworkIntent lifecycle", func() {
-			ctx := context.Background()
-			
-			intent := &intentv1alpha1.NetworkIntent{
-=======
 const (
 	// Integration test timeouts (longer than unit tests)
 	operatorTimeout   = 5 * time.Minute
@@ -212,7 +204,6 @@ var _ = Describe("Nephoran Operator Integration Tests", func() {
 
 		BeforeEach(func() {
 			networkIntent = &intentv1alpha1.NetworkIntent{
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "integration-test-intent",
 					Namespace: "default",
@@ -222,17 +213,6 @@ var _ = Describe("Nephoran Operator Integration Tests", func() {
 					TargetClusters:  []string{"integration-cluster"},
 				},
 			}
-<<<<<<< HEAD
-			
-			By("creating the NetworkIntent")
-			Expect(k8sClient.Create(ctx, intent)).To(Succeed())
-			
-			By("verifying the NetworkIntent exists")
-			Eventually(func() error {
-				return k8sClient.Get(ctx, types.NamespacedName{
-					Name:      "integration-test-intent",
-					Namespace: "default",
-=======
 		})
 
 		AfterEach(func() {
@@ -378,7 +358,6 @@ var _ = Describe("Nephoran Operator Integration Tests", func() {
 				err := k8sClient.Get(ctx, types.NamespacedName{
 					Name:      testIntent.Name,
 					Namespace: testIntent.Namespace,
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 				}, intent)
 			}, time.Second*30, time.Second).Should(Succeed())
 			
@@ -387,8 +366,6 @@ var _ = Describe("Nephoran Operator Integration Tests", func() {
 		})
 	})
 })
-<<<<<<< HEAD
-=======
 
 // Helper functions
 
@@ -404,4 +381,3 @@ func isPodReady(pod corev1.Pod) bool {
 	}
 	return false
 }
->>>>>>> 6835433495e87288b95961af7173d866977175ff

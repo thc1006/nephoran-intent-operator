@@ -41,19 +41,19 @@ deployments/multi-region/
 
 ```bash
 # Deploy global control plane
-./scripts/deploy-multi-region.sh global
+./scripts/deploy/deploy-multi-region.sh global
 
 # Deploy all regions
-./scripts/deploy-multi-region.sh regions
+./scripts/deploy/deploy-multi-region.sh regions
 
 # Deploy specific region
-./scripts/deploy-multi-region.sh us-east-1
+./scripts/deploy/deploy-multi-region.sh us-east-1
 
 # Run complete deployment
-./scripts/deploy-multi-region.sh all
+./scripts/deploy/deploy-multi-region.sh all
 
 # Test multi-region functionality
-./scripts/deploy-multi-region.sh test
+./scripts/deploy/deploy-multi-region.sh test
 ```
 
 ## 🌐 Supported Regions

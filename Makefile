@@ -1,43 +1,3 @@
-<<<<<<< HEAD
-# Makefile for Nephoran Intent Operator
-
-# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
-ifeq (,$(shell go env GOBIN))
-GOBIN=$(shell go env GOPATH)/bin
-else
-GOBIN=$(shell go env GOBIN)
-endif
-
-# Setting SHELL to bash allows bash commands to be executed by recipes.
-# This is a requirement for 'setup-envtest.sh' in the test target.
-# Options are set to exit when a recipe line exits non-zero or a piped command fails.
-SHELL = /bin/bash
-.SHELLFLAGS = -ec
-
-# Tool Binaries
-LOCALBIN ?= $(shell pwd)/bin
-$(LOCALBIN):
-	mkdir -p $(LOCALBIN)
-
-CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
-
-##@ Development
-
-.PHONY: manifests
-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	@echo "📋 Generating Kubernetes manifests..."
-	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./api/..." paths="./controllers/..." output:crd:artifacts:config=config/crd/bases
-
-.PHONY: generate
-generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-	@echo "🔄 Generating deepcopy code..."
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./api/..." paths="./controllers/..."
-
-.PHONY: controller-gen
-controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
-$(CONTROLLER_GEN): $(LOCALBIN)
-	test -s $(LOCALBIN)/controller-gen || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0
-=======
 # Nephoran Intent Operator - Makefile for Kubernetes Operator
 # Optimized for Go 1.24+ with security and performance enhancements
 
@@ -82,28 +42,27 @@ BUILD_CMD = CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) go build \
 # Generate Kubernetes CRDs and related manifests
 .PHONY: manifests
 manifests: controller-gen
-	@echo "🔧 Generating CRDs and manifests (Go $(GO_VERSION))..."
+	@echo "Generating CRDs and manifests (Go $(GO_VERSION))..."
 	$(CONTROLLER_GEN) crd:allowDangerousTypes=true paths=./api/v1 paths=./api/v1alpha1 paths=./api/intent/v1alpha1 output:crd:dir=$(CRD_OUTPUT_DIR)
 	$(CONTROLLER_GEN) rbac:roleName=nephoran-manager paths="./controllers/..." output:rbac:dir=config/rbac
 	$(CONTROLLER_GEN) webhook paths="./..." output:webhook:dir=config/webhook
-	@echo "✅ Manifests generated successfully for API versions: v1, v1alpha1, intent/v1alpha1"
+	@echo "Manifests generated successfully for API versions: v1, v1alpha1, intent/v1alpha1"
 
 # Generate deepcopy code and RBAC
 .PHONY: generate
 generate: controller-gen
-	@echo "🔧 Generating deepcopy code and RBAC..."
+	@echo "Generating deepcopy code and RBAC..."
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 	$(CONTROLLER_GEN) rbac:roleName=nephoran-manager paths="./controllers/..." output:rbac:dir=config/rbac
-	@echo "✅ Code generation completed"
+	@echo "Code generation completed"
 
 # Install controller-gen if not present
 .PHONY: controller-gen
 controller-gen:
 	@test -f $(CONTROLLER_GEN) || { \
-		echo "🔨 Installing controller-gen..."; \
+		echo "Installing controller-gen..."; \
 		go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest; \
 	}
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 .PHONY: validate-crds
 validate-crds: manifests
@@ -139,46 +98,17 @@ validate-examples: validate-contracts
 	@go run -c 'import "encoding/json"; import "os"; import "io"; data, _ := io.ReadAll(os.Stdin); var obj interface{}; if json.Unmarshal(data, &obj) != nil { os.Exit(1) }' < docs/contracts/fcaps.ves.examples.json || exit 1
 	@echo "✅ All examples are valid JSON"
 
-# Build operator binary
-.PHONY: build
-build:
-	@echo "🔨 Building Nephoran operator binary..."
-	$(BUILD_CMD) -o bin/manager ./cmd/main.go
-	@echo "✅ Binary built: bin/manager"
-
-# Build Docker image
-.PHONY: docker-build
-docker-build:
-	@echo "🐳 Building Docker image: $(IMG)"
-	docker build --build-arg SERVICE=manager --build-arg VERSION=$(GIT_VERSION) --build-arg BUILD_DATE=$(BUILD_TIME) --build-arg VCS_REF=$(GIT_VERSION) -t $(IMG) .
-	@echo "✅ Docker image built: $(IMG)"
-
-# Install CRDs into cluster
-.PHONY: install
-install: manifests kustomize
-	@echo "☸️ Installing CRDs into cluster..."
-	$(KUSTOMIZE) build config/crd | kubectl apply -f -
-	@echo "✅ CRDs installed successfully"
-
-# Deploy manager into cluster
-.PHONY: deploy
-deploy: manifests kustomize
-	@echo "☸️ Deploying operator to cluster..."
-	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
-	$(KUSTOMIZE) build config/default | kubectl apply -f -
-	@echo "✅ Operator deployed successfully"
+# kustomize binary path
+KUSTOMIZE ?= /usr/local/bin/kustomize
 
 # Install kustomize
 .PHONY: kustomize
 kustomize:
 	@test -f $(KUSTOMIZE) || { \
-		echo "🔨 Installing kustomize..."; \
+		echo "Installing kustomize..."; \
 		curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash; \
 		sudo mv kustomize /usr/local/bin/; \
 	}
-
-# kustomize binary path
-KUSTOMIZE ?= /usr/local/bin/kustomize
 
 # Build manager binary with optimized flags
 .PHONY: build

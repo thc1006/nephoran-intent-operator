@@ -361,11 +361,11 @@ Cost Management:
 
 ## References
 
-- [Database Operations Runbook](../runbooks/database-operations.md)
+- [Database Operations Runbook](../runbooks/production-operations-runbook.md)
 - [Backup and Recovery Procedures](../operations/BACKUP-RECOVERY.md)
-- [Data Security Implementation](../security/data-protection-guide.md)
+- [Data Security Implementation](../security/security-implementation-summary.md)
 - [Performance Tuning Guide](../operations/PERFORMANCE-TUNING.md)
-- [Disaster Recovery Testing Reports](../reports/disaster-recovery-validation.md)
+- [Disaster Recovery Testing Reports](../runbooks/disaster-recovery-runbook.md)
 
 ## Related ADRs
 - ADR-007: Production Architecture Patterns

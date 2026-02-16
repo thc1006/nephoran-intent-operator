@@ -392,15 +392,15 @@ func (m *MockSAMLProvider) ValidateSAMLResponse(ctx context.Context, samlRespons
 	// Default behavior - simplified SAML validation
 	// In a real implementation, this would parse and validate the XML
 	return &SAMLAssertion{
-		Subject:    "admin@nephoran.local",
-		Issuer:     "https://sso.nephoran.local/saml/idp",
-		Audience:   "https://api.nephoran.local/saml/sp",
-		NotBefore:  time.Now().Add(-5 * time.Minute),
+		Subject:      "admin@nephoran.local",
+		Issuer:       "https://sso.nephoran.local/saml/idp",
+		Audience:     "https://api.nephoran.local/saml/sp",
+		NotBefore:    time.Now().Add(-5 * time.Minute),
 		NotOnOrAfter: time.Now().Add(1 * time.Hour),
 		Attributes: map[string][]string{
-			"email":      {"admin@nephoran.local"},
+			"email":       {"admin@nephoran.local"},
 			"displayName": {"Administrator"},
-			"roles":      {"cluster-admin", "network-admin"},
+			"roles":       {"cluster-admin", "network-admin"},
 		},
 	}, nil
 }
@@ -835,14 +835,36 @@ func (m *MockAuthenticator) Reset() {
 type JWTManagerMock struct {
 	mock.Mock
 	blacklistedTokens map[string]bool
+	blacklistExpiry   map[string]time.Time
 	tokenStore        map[string]interface{}
+	privateKey        *rsa.PrivateKey
+	publicKey         *rsa.PublicKey
+	keyID             string
+	issuer            string
+	defaultTTL        time.Duration
+	refreshTTL        time.Duration
+	requireSecure     bool
 }
 
 // NewJWTManagerMock creates a new JWT manager mock
 func NewJWTManagerMock() *JWTManagerMock {
+	privateKey, _ := rsa.GenerateKey(rand.Reader, 2048) // #nosec G404 - test utility
+
+	var publicKey *rsa.PublicKey
+	if privateKey != nil {
+		publicKey = &privateKey.PublicKey
+	}
+
 	return &JWTManagerMock{
 		blacklistedTokens: make(map[string]bool),
+		blacklistExpiry:   make(map[string]time.Time),
 		tokenStore:        make(map[string]interface{}),
+		privateKey:        privateKey,
+		publicKey:         publicKey,
+		keyID:             "test-key-id",
+		issuer:            "test-issuer",
+		defaultTTL:        time.Hour,
+		refreshTTL:        24 * time.Hour,
 	}
 }
 
@@ -899,30 +921,57 @@ type SessionResult struct {
 
 // GenerateToken generates a JWT token for testing
 func (jsm *JWTManagerMock) GenerateToken(userInfo interface{}, claims interface{}) (string, error) {
-	// Extract user information
-	var username string
+	if userInfo == nil {
+		return "", fmt.Errorf("user info cannot be nil")
+	}
+
+	if jsm.privateKey == nil {
+		return "", fmt.Errorf("signing key is not configured")
+	}
+
+	// Extract user information.
+	var (
+		subject string
+		email   string
+		name    string
+		roles   []string
+	)
 	switch ui := userInfo.(type) {
 	case *TestUser:
-		username = ui.Username
+		subject = ui.Subject
+		email = ui.Email
+		name = ui.Name
+		roles = append([]string{}, ui.Roles...)
+	case *auth.NephoranJWTClaims:
+		subject = ui.Subject
+		email = ui.Email
+		name = ui.Name
+		roles = append([]string{}, ui.Roles...)
 	case string:
-		username = ui
+		subject = ui
 	default:
-		username = "test-user"
+		return "", fmt.Errorf("unsupported user info type: %T", userInfo)
+	}
+	if subject == "" {
+		return "", fmt.Errorf("user subject cannot be empty")
 	}
 
-	// Create JWT claims
+	// Create JWT claims.
 	now := time.Now()
 	jwtClaims := jwt.MapClaims{
-		"sub": username,
-		"iss": "test-issuer",
-		"aud": []string{"test-audience"},
-		"exp": now.Add(time.Hour).Unix(),
-		"iat": now.Unix(),
-		"nbf": now.Unix(),
-		"jti": fmt.Sprintf("test-%d", now.UnixNano()),
+		"sub":   subject,
+		"iss":   jsm.issuer,
+		"aud":   []string{"test-audience"},
+		"exp":   now.Add(jsm.defaultTTL).Unix(),
+		"iat":   now.Unix(),
+		"nbf":   now.Unix(),
+		"jti":   fmt.Sprintf("test-%d", now.UnixNano()),
+		"email": email,
+		"name":  name,
+		"roles": roles,
 	}
 
-	// Add custom claims if provided
+	// Add custom claims if provided.
 	if claims != nil {
 		if claimsMap, ok := claims.(map[string]interface{}); ok {
 			for k, v := range claimsMap {
@@ -931,53 +980,153 @@ func (jsm *JWTManagerMock) GenerateToken(userInfo interface{}, claims interface{
 		}
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwtClaims)
-	// Use a simple secret for testing
-	return token.SignedString([]byte("test-secret"))
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwtClaims)
+	token.Header["kid"] = jsm.keyID
+
+	tokenString, err := token.SignedString(jsm.privateKey)
+	if err != nil {
+		return "", err
+	}
+
+	jsm.tokenStore[tokenString] = jwtClaims
+
+	return tokenString, nil
 }
 
 // GenerateTokenPair generates both access and refresh tokens
 func (jsm *JWTManagerMock) GenerateTokenPair(userInfo interface{}, claims interface{}) (string, string, error) {
+	if userInfo == nil {
+		return "", "", fmt.Errorf("user info cannot be nil")
+	}
+
 	accessToken, err := jsm.GenerateToken(userInfo, claims)
 	if err != nil {
 		return "", "", err
 	}
-	refreshToken := fmt.Sprintf("refresh-%s", accessToken)
+
+	now := time.Now()
+	refreshClaims := map[string]interface{}{
+		"type": "refresh",
+		"exp":  now.Add(jsm.refreshTTL).Unix(),
+		"iat":  now.Unix(),
+		"nbf":  now.Unix(),
+	}
+	if claimsMap, ok := claims.(map[string]interface{}); ok {
+		for k, v := range claimsMap {
+			if _, exists := refreshClaims[k]; !exists {
+				refreshClaims[k] = v
+			}
+		}
+	}
+	refreshToken, err := jsm.GenerateToken(userInfo, refreshClaims)
+	if err != nil {
+		return "", "", err
+	}
+
 	return accessToken, refreshToken, nil
 }
 
 // IsTokenBlacklisted checks if a token is blacklisted
 func (jsm *JWTManagerMock) IsTokenBlacklisted(ctx context.Context, token string) (bool, error) {
-	return jsm.blacklistedTokens[token], nil
+	if ctx != nil && ctx.Err() != nil {
+		return false, ctx.Err()
+	}
+	if !jsm.blacklistedTokens[token] {
+		return false, nil
+	}
+	return true, nil
 }
 
 // SetSigningKey sets the signing key (mock implementation)
 func (jsm *JWTManagerMock) SetSigningKey(key interface{}, keyID string) error {
-	// Mock implementation - just return success
+	if key == nil {
+		return fmt.Errorf("private key cannot be nil")
+	}
+	privateKey, ok := key.(*rsa.PrivateKey)
+	if !ok {
+		return fmt.Errorf("key must be *rsa.PrivateKey")
+	}
+	if privateKey == nil {
+		return fmt.Errorf("private key cannot be nil")
+	}
+	if keyID == "" {
+		return fmt.Errorf("key ID cannot be empty")
+	}
+
+	jsm.privateKey = privateKey
+	jsm.publicKey = &privateKey.PublicKey
+	jsm.keyID = keyID
+
 	return nil
 }
 
 // ValidateToken validates a JWT token (mock implementation)
 func (jsm *JWTManagerMock) ValidateToken(ctx context.Context, tokenString string) (*auth.NephoranJWTClaims, error) {
-	// Simple validation for testing
-	if tokenString == "invalid" {
+	if ctx != nil && ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+
+	if tokenString == "" {
+		return nil, fmt.Errorf("empty token")
+	}
+
+	if isBlacklisted, _ := jsm.IsTokenBlacklisted(ctx, tokenString); isBlacklisted {
+		return nil, fmt.Errorf("token is blacklisted")
+	}
+
+	if jsm.publicKey == nil {
+		return nil, fmt.Errorf("verifying key is not configured")
+	}
+
+	claims := jwt.MapClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		if token.Method != jwt.SigningMethodRS256 {
+			return nil, fmt.Errorf("unexpected signing method")
+		}
+		return jsm.publicKey, nil
+	}, jwt.WithValidMethods([]string{"RS256"}))
+	if err != nil {
+		return nil, err
+	}
+	if token == nil || !token.Valid {
 		return nil, fmt.Errorf("invalid token")
 	}
-	
-	// Return basic claims for valid tokens
-	now := time.Now()
-	return &auth.NephoranJWTClaims{
+	if claims["iss"] != jsm.issuer {
+		return nil, fmt.Errorf("invalid issuer")
+	}
+	subject, _ := claims["sub"].(string)
+	if subject == "" {
+		return nil, fmt.Errorf("missing claims")
+	}
+
+	email, _ := claims["email"].(string)
+	name, _ := claims["name"].(string)
+	tokenType, _ := claims["type"].(string)
+
+	var roles []string
+	switch rawRoles := claims["roles"].(type) {
+	case []interface{}:
+		for _, r := range rawRoles {
+			if role, ok := r.(string); ok && role != "" {
+				roles = append(roles, role)
+			}
+		}
+	case []string:
+		roles = append(roles, rawRoles...)
+	}
+
+	nc := &auth.NephoranJWTClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			Subject:   "test-user",
-			Issuer:    "test-issuer",
-			ExpiresAt: jwt.NewNumericDate(now.Add(time.Hour)),
-			IssuedAt:  jwt.NewNumericDate(now),
+			Subject: subject,
+			Issuer:  jsm.issuer,
 		},
-		Email:         "test@example.com",
-		EmailVerified: true,
-		Name:          "Test User",
-		Roles:         []string{"user"},
-	}, nil
+		Email:     email,
+		Name:      name,
+		Roles:     roles,
+		TokenType: tokenType,
+	}
+
+	return nc, nil
 }
 
 // RefreshToken refreshes a JWT token (mock implementation)
@@ -985,50 +1134,112 @@ func (jsm *JWTManagerMock) RefreshToken(refreshToken string) (string, string, er
 	if refreshToken == "" {
 		return "", "", fmt.Errorf("empty refresh token")
 	}
-	
-	// Generate a new access token
-	accessToken, err := jsm.GenerateToken("test-user", nil)
+
+	claims, err := jsm.ValidateToken(context.Background(), refreshToken)
 	if err != nil {
 		return "", "", err
 	}
-	
-	// Generate a new refresh token
-	newRefreshToken := fmt.Sprintf("refresh-%s", accessToken)
+	if claims.TokenType != "refresh" {
+		return "", "", fmt.Errorf("token is not a refresh token")
+	}
+
+	user := &TestUser{
+		Subject: claims.Subject,
+		Email:   claims.Email,
+		Name:    claims.Name,
+		Roles:   claims.Roles,
+	}
+
+	accessToken, err := jsm.GenerateToken(user, nil)
+	if err != nil {
+		return "", "", err
+	}
+
+	newRefreshToken, err := jsm.GenerateToken(user, map[string]interface{}{
+		"type": "refresh",
+		"exp":  time.Now().Add(jsm.refreshTTL).Unix(),
+	})
+	if err != nil {
+		return "", "", err
+	}
+
 	return accessToken, newRefreshToken, nil
 }
 
 // BlacklistToken adds a token to the blacklist
 func (jsm *JWTManagerMock) BlacklistToken(tokenString string) error {
+	if tokenString == "" {
+		return fmt.Errorf("empty token")
+	}
+	claims, err := jsm.ExtractClaims(tokenString)
+	if err != nil {
+		return err
+	}
+
 	if jsm.blacklistedTokens == nil {
 		jsm.blacklistedTokens = make(map[string]bool)
 	}
+	if jsm.blacklistExpiry == nil {
+		jsm.blacklistExpiry = make(map[string]time.Time)
+	}
 	jsm.blacklistedTokens[tokenString] = true
+
+	if exp, ok := claims["exp"].(float64); ok {
+		jsm.blacklistExpiry[tokenString] = time.Unix(int64(exp), 0)
+	}
+
 	return nil
 }
 
 // GenerateTokenWithTTL generates a token with custom TTL
 func (jsm *JWTManagerMock) GenerateTokenWithTTL(userInfo interface{}, claims interface{}, ttl time.Duration) (string, error) {
-	// Extract user information
-	var username string
-	switch ui := userInfo.(type) {
-	case *TestUser:
-		username = ui.Username
-	case string:
-		username = ui
-	default:
-		username = "test-user"
+	if userInfo == nil {
+		return "", fmt.Errorf("user info cannot be nil")
+	}
+	if jsm.privateKey == nil {
+		return "", fmt.Errorf("signing key is not configured")
 	}
 
-	// Create JWT claims with custom TTL
+	// Extract user information.
+	var (
+		subject string
+		email   string
+		name    string
+		roles   []string
+	)
+	switch ui := userInfo.(type) {
+	case *TestUser:
+		subject = ui.Subject
+		email = ui.Email
+		name = ui.Name
+		roles = append([]string{}, ui.Roles...)
+	case *auth.NephoranJWTClaims:
+		subject = ui.Subject
+		email = ui.Email
+		name = ui.Name
+		roles = append([]string{}, ui.Roles...)
+	case string:
+		subject = ui
+	default:
+		return "", fmt.Errorf("unsupported user info type: %T", userInfo)
+	}
+	if subject == "" {
+		return "", fmt.Errorf("user subject cannot be empty")
+	}
+
+	// Create JWT claims with custom TTL.
 	now := time.Now()
 	jwtClaims := jwt.MapClaims{
-		"sub": username,
-		"iss": "test-issuer",
-		"aud": []string{"test-audience"},
-		"exp": now.Add(ttl).Unix(),
-		"iat": now.Unix(),
-		"nbf": now.Unix(),
-		"jti": fmt.Sprintf("test-%d", now.UnixNano()),
+		"sub":   subject,
+		"iss":   jsm.issuer,
+		"aud":   []string{"test-audience"},
+		"exp":   now.Add(ttl).Unix(),
+		"iat":   now.Unix(),
+		"nbf":   now.Unix(),
+		"jti":   fmt.Sprintf("test-%d", now.UnixNano()),
+		"email": email,
+		"name":  name,
+		"roles": roles,
 	}
 
 	// Add custom claims if provided
@@ -1040,35 +1251,41 @@ func (jsm *JWTManagerMock) GenerateTokenWithTTL(userInfo interface{}, claims int
 		}
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwtClaims)
-	// Use a simple secret for testing
-	return token.SignedString([]byte("test-secret"))
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwtClaims)
+	token.Header["kid"] = jsm.keyID
+
+	tokenString, err := token.SignedString(jsm.privateKey)
+	if err != nil {
+		return "", err
+	}
+
+	jsm.tokenStore[tokenString] = jwtClaims
+
+	return tokenString, nil
 }
 
 // GetPublicKey returns a public key by key ID (mock implementation)
 func (jsm *JWTManagerMock) GetPublicKey(keyID string) (*rsa.PublicKey, error) {
-	// Mock implementation - return a test public key
 	if keyID == "" {
 		return nil, fmt.Errorf("empty key ID")
 	}
-	
-	// For testing, we'll return a dummy RSA public key
-	// In a real implementation, this would retrieve the actual public key
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		return nil, err
+	if keyID != jsm.keyID {
+		return nil, fmt.Errorf("key not found")
 	}
-	return &privateKey.PublicKey, nil
+	if jsm.publicKey == nil {
+		return nil, fmt.Errorf("public key not configured")
+	}
+
+	return jsm.publicKey, nil
 }
 
 // GetJWKS returns the JSON Web Key Set (mock implementation)
 func (jsm *JWTManagerMock) GetJWKS() (map[string]interface{}, error) {
-	// Mock implementation - return a test JWKS
 	return map[string]interface{}{
-		"keys": []map[string]interface{}{
-			{
+		"keys": []interface{}{
+			map[string]interface{}{
 				"kty": "RSA",
-				"kid": "test-key-id",
+				"kid": jsm.keyID,
 				"use": "sig",
 				"alg": "RS256",
 				"n":   "mock-modulus",
@@ -1080,12 +1297,20 @@ func (jsm *JWTManagerMock) GetJWKS() (map[string]interface{}, error) {
 
 // GetKeyID returns the current key ID (mock implementation)
 func (jsm *JWTManagerMock) GetKeyID() string {
-	return "test-key-id"
+	return jsm.keyID
 }
 
 // RotateKeys rotates the signing keys (mock implementation)
 func (jsm *JWTManagerMock) RotateKeys() error {
-	// Mock implementation - just return success
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048) // #nosec G404 - test utility
+	if err != nil {
+		return err
+	}
+
+	jsm.privateKey = privateKey
+	jsm.publicKey = &privateKey.PublicKey
+	jsm.keyID = fmt.Sprintf("test-key-id-%d", time.Now().UnixNano())
+
 	return nil
 }
 
@@ -1094,51 +1319,62 @@ func (jsm *JWTManagerMock) ExtractClaims(tokenString string) (jwt.MapClaims, err
 	if tokenString == "" {
 		return nil, fmt.Errorf("empty token")
 	}
-	
-	// Mock implementation - return basic claims
-	now := time.Now()
-	return jwt.MapClaims{
-		"sub": "test-user",
-		"iss": "test-issuer",
-		"exp": now.Add(time.Hour).Unix(),
-		"iat": now.Unix(),
-		"email": "test@example.com",
-		"roles": []interface{}{"admin", "user"},
-	}, nil
+
+	if jsm.publicKey == nil {
+		return nil, fmt.Errorf("public key not configured")
+	}
+
+	claims := jwt.MapClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return jsm.publicKey, nil
+	}, jwt.WithValidMethods([]string{"RS256"}), jwt.WithoutClaimsValidation())
+	if err != nil {
+		return nil, err
+	}
+	if token == nil || !token.Valid {
+		return nil, fmt.Errorf("invalid token")
+	}
+
+	return claims, nil
 }
 
 // CleanupBlacklist removes expired tokens from the blacklist (mock implementation)
 func (jsm *JWTManagerMock) CleanupBlacklist() error {
-	// Mock implementation - just return success
-	// In a real implementation, this would clean up expired blacklisted tokens
+	now := time.Now()
+	for token, exp := range jsm.blacklistExpiry {
+		if !exp.IsZero() && now.After(exp) {
+			delete(jsm.blacklistExpiry, token)
+			delete(jsm.blacklistedTokens, token)
+		}
+	}
+
 	return nil
 }
 
 // GetIssuer returns the JWT issuer (mock implementation)
 func (jsm *JWTManagerMock) GetIssuer() string {
-	return "test-issuer"
+	return jsm.issuer
 }
 
 // GetDefaultTTL returns the default token TTL (mock implementation)
 func (jsm *JWTManagerMock) GetDefaultTTL() time.Duration {
-	return time.Hour
+	return jsm.defaultTTL
 }
 
 // GetRefreshTTL returns the refresh token TTL (mock implementation)
 func (jsm *JWTManagerMock) GetRefreshTTL() time.Duration {
-	return 24 * time.Hour
+	return jsm.refreshTTL
 }
 
 // GetRequireSecureCookies returns whether secure cookies are required (mock implementation)
 func (jsm *JWTManagerMock) GetRequireSecureCookies() bool {
-	return false
+	return jsm.requireSecure
 }
 
 // Close cleans up the JWT manager (mock implementation)
 func (jsm *JWTManagerMock) Close() {
 	// Mock implementation - nothing to clean up
 }
-
 
 // CreateSession creates a new session (compatible with both interfaces)
 func (ssm *SessionManagerMock) CreateSession(ctx context.Context, userInfo interface{}, metadata ...interface{}) (*SessionResult, error) {
@@ -1168,11 +1404,11 @@ func (ssm *SessionManagerMock) ValidateSession(ctx context.Context, sessionID st
 	if !exists {
 		return nil, fmt.Errorf("session not found")
 	}
-	
+
 	if time.Now().After(session.ExpiresAt) {
 		return nil, fmt.Errorf("session expired")
 	}
-	
+
 	return session, nil
 }
 
@@ -1275,11 +1511,11 @@ func (ssm *SessionManagerMock) SetSessionCookie(w http.ResponseWriter, sessionID
 // ClearSessionCookie clears the session cookie
 func (ssm *SessionManagerMock) ClearSessionCookie(w http.ResponseWriter) {
 	cookie := http.Cookie{
-		Name:     "test-session",
-		Value:    "",
-		MaxAge:   -1,
-		Expires:  time.Unix(0, 0),
-		Path:     "/",
+		Name:    "test-session",
+		Value:   "",
+		MaxAge:  -1,
+		Expires: time.Unix(0, 0),
+		Path:    "/",
 	}
 	http.SetCookie(w, &cookie)
 }
@@ -1296,27 +1532,27 @@ func (ssm *SessionManagerMock) GetSessionFromCookie(r *http.Request) (string, er
 // NewOAuth2MockServer creates a mock OAuth2 server for testing
 func NewOAuth2MockServer(issuer string) *httptest.Server {
 	mux := http.NewServeMux()
-	
+
 	mux.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		response := map[string]interface{}{
 			"access_token": "mock-access-token",
-			"token_type": "Bearer",
-			"expires_in": 3600,
+			"token_type":   "Bearer",
+			"expires_in":   3600,
 		}
 		json.NewEncoder(w).Encode(response)
 	})
-	
+
 	mux.HandleFunc("/userinfo", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		response := map[string]interface{}{
-			"sub": "test-user",
-			"name": "Test User",
+			"sub":   "test-user",
+			"name":  "Test User",
 			"email": "test@example.com",
 		}
 		json.NewEncoder(w).Encode(response)
 	})
-	
+
 	return httptest.NewServer(mux)
 }
 
@@ -1460,7 +1696,7 @@ func (uf *UserFactory) CreateBasicUser() *TestUser {
 		Username:      "testuser",
 		Password:      "password123",
 		Email:         "test@example.com",
-		Roles:         []string{"user"},
+		Roles:         []string{"admin", "user"},
 		Claims:        map[string]interface{}{"test": true},
 		Enabled:       true,
 		Subject:       "test-user-123",

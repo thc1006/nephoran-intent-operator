@@ -210,11 +210,12 @@ We will implement an LLM-driven intent processing pipeline using OpenAI GPT-4o-m
 - Performance tuning
 - Advanced caching
 
-### Phase 4: Production Hardening (In Progress)
+### Phase 4: Production Hardening (Executing - evidence required)
 - Comprehensive monitoring
 - Advanced security measures
 - Disaster recovery procedures
 - Compliance validation
+- Evidence gate: Falco runtime alerts exported to SIEM, weekly vuln scan reports, DR failover drill artifacts
 
 ## Validation and Metrics
 
