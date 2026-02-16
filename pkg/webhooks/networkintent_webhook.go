@@ -452,31 +452,142 @@ func (v *NetworkIntentValidator) validateTelecomRelevance(intent string) error {
 
 	foundKeywords := make([]string, 0)
 
-	// Check for telecommunications keywords.
+	// Track specific telecom keywords found (not just generic infrastructure terms)
+
+	specificTelecomKeywords := []string{
+		// 5G Core components (longer phrases first to match "network function" before "nf")
+
+		"network function", "network slice", "quality of service", "service level",
+
+		"amf", "smf", "upf", "nssf", "nrf", "udm", "udr", "ausf", "pcf", "bsf",
+
+		"nef", "chf", "scp", "sepp", "udsf", "unef", "tngf", "twif", "n3iwf",
+
+		// O-RAN components
+
+		"near-rt-ric", "non-rt-ric", "o-ran", "o-du", "o-cu", "o-ru",
+
+		"xapp", "rapp", "smo",
+
+		// Telco-specific terms
+
+		"vnf", "cnf", "slicing", "qos", "sla", "urllc", "embb", "mmtc",
+
+		// 5G specific
+
+		"5g", "5gc",
+	}
+
+	specificCount := 0
+
+	// Count specific telecom keywords using word boundary checks to avoid false positives
+
+	// (e.g., "ric" in "generic", "a1" in "a1.example.com")
+
+	for _, keyword := range specificTelecomKeywords {
+		keywordLower := strings.ToLower(keyword)
+
+		// Use word boundary check for short keywords (2-3 chars)
+
+		if len(keywordLower) <= 3 {
+			// Check with word boundaries (space, start/end of string, punctuation)
+
+			if containsWholeWord(intentLower, keywordLower) {
+
+				specificCount++
+
+				foundKeywords = append(foundKeywords, keyword)
+
+			}
+
+		} else {
+			// For longer keywords, simple substring match is fine
+
+			if strings.Contains(intentLower, keywordLower) {
+
+				specificCount++
+
+				foundKeywords = append(foundKeywords, keyword)
+
+			}
+
+		}
+	}
+
+	// Require at least one specific telecom keyword to avoid false positives with generic terms
+
+	if specificCount < 1 {
+		return fmt.Errorf("intent does not appear to be telecommunications-related (found no specific 5G/O-RAN components)")
+	}
+
+	// Also check for general telecom keywords (for logging)
 
 	for _, keyword := range TelecomKeywords {
 		if strings.Contains(intentLower, strings.ToLower(keyword)) {
 
 			keywordCount++
 
-			foundKeywords = append(foundKeywords, keyword)
-
 		}
-	}
-
-	if keywordCount < DefaultComplexityRules.MinTelecomKeywords {
-		return fmt.Errorf("intent does not appear to be telecommunications-related (found %d telecom keywords, minimum required: %d)",
-
-			keywordCount, DefaultComplexityRules.MinTelecomKeywords)
 	}
 
 	networkIntentWebhookLog.V(1).Info("Telecommunications validation passed",
 
-		"keywordCount", keywordCount,
+		"specificKeywordCount", specificCount,
+
+		"totalKeywordCount", keywordCount,
 
 		"foundKeywords", foundKeywords[:min(len(foundKeywords), 5)]) // Log first 5 keywords
 
 	return nil
+}
+
+// containsWholeWord checks if a keyword appears as a whole word (with word boundaries)
+
+func containsWholeWord(text, keyword string) bool {
+	// Word boundaries: start/end of string, space, punctuation
+
+	if !strings.Contains(text, keyword) {
+		return false
+	}
+
+	// Find all occurrences
+
+	startIdx := 0
+
+	for {
+		idx := strings.Index(text[startIdx:], keyword)
+
+		if idx == -1 {
+			break
+		}
+
+		absIdx := startIdx + idx
+
+		// Check character before (if exists)
+
+		beforeOk := absIdx == 0 || !isWordChar(rune(text[absIdx-1]))
+
+		// Check character after (if exists)
+
+		afterIdx := absIdx + len(keyword)
+
+		afterOk := afterIdx >= len(text) || !isWordChar(rune(text[afterIdx]))
+
+		if beforeOk && afterOk {
+			return true
+		}
+
+		startIdx = absIdx + 1
+
+	}
+
+	return false
+}
+
+// isWordChar checks if a character is part of a word (alphanumeric or hyphen/underscore)
+
+func isWordChar(r rune) bool {
+	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_'
 }
 
 // validateComplexity checks the complexity and structure of the intent.
@@ -494,6 +605,32 @@ func (v *NetworkIntentValidator) validateComplexity(intent string) error {
 
 	if len(words) == 0 {
 		return fmt.Errorf("intent contains no recognizable words")
+	}
+
+	// Check if words contain actual alphanumeric content (not just punctuation)
+
+	alphanumericWords := 0
+
+	for _, word := range words {
+		hasAlphanumeric := false
+
+		for _, r := range word {
+			if unicode.IsLetter(r) || unicode.IsDigit(r) {
+
+				hasAlphanumeric = true
+
+				break
+
+			}
+		}
+
+		if hasAlphanumeric {
+			alphanumericWords++
+		}
+	}
+
+	if alphanumericWords == 0 {
+		return fmt.Errorf("intent contains no recognizable words (only punctuation)")
 	}
 
 	// Count sentences (approximate).
@@ -636,11 +773,21 @@ func (v *NetworkIntentValidator) validateResourceNaming(ni *nephoranv1.NetworkIn
 		return fmt.Errorf("networkIntent name does not follow Kubernetes naming conventions")
 	}
 
+	// Check for reserved prefixes.
+
+	reservedPrefixes := []string{"system-", "admin-", "kube-", "kubernetes-"}
+
+	nameLower := strings.ToLower(name)
+
+	for _, prefix := range reservedPrefixes {
+		if strings.HasPrefix(nameLower, prefix) {
+			return fmt.Errorf("networkIntent name uses reserved prefix '%s'", prefix)
+		}
+	}
+
 	// Encourage meaningful names by checking for generic patterns to avoid.
 
 	discouragedPatterns := []string{"test", "tmp", "temp", "foo", "bar", "example"}
-
-	nameLower := strings.ToLower(name)
 
 	for _, pattern := range discouragedPatterns {
 		if strings.Contains(nameLower, pattern) {
