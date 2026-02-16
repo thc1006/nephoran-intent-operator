@@ -178,7 +178,7 @@ Scalability Testing:
 - [Monitoring and Alerting Runbooks](../operations/02-monitoring-alerting-runbooks.md)
 - [Performance Benchmarking Report](../benchmarks/comprehensive-performance-analysis.md)
 - [Chaos Engineering Validation](../reports/chaos-testing.md)
-- [Enterprise Deployment Case Studies](../enterprise/deployment-case-studies.md)
+- [Enterprise Deployment Case Studies](../production-readiness/deployment-case-studies.md)
 
 ## Related ADRs
 - ADR-002: Kubernetes Operator Pattern

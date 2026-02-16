@@ -12,12 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
-<<<<<<< HEAD
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
-	"github.com/thc1006/nephoran-intent-operator/pkg/testutils"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-=======
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
@@ -27,15 +22,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
 
-<<<<<<< HEAD
-=======
 // NetworkIntentFinalizer is the finalizer used by the NetworkIntent controller
 const NetworkIntentFinalizer = "networkintent.nephoran.io/finalizer"
 
@@ -91,7 +83,6 @@ func (m *MockDependencies) GetMetricsCollector() monitoring.MetricsCollector {
 
 // Removed redeclaration to fix compilation error
 
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 	const (
 		timeout  = time.Second * 30
@@ -167,18 +158,6 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			networkIntent.Name = longName
 			networkIntent.Namespace = longNamespace
 
-<<<<<<< HEAD
-			By("Setting up Git client expectations")
-			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
-			// Remove unused variables since mock doesn't need exact parameters
-
-			// Configure mock to succeed for RemoveDirectory
-			mockGitClient.SetRemoveDirectoryError(nil)
-			// Configure mock to succeed for CommitAndPushChanges
-			mockGitClient.SetCommitPushError(nil)
-
-=======
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 			By("Calling cleanupGitOpsPackages")
 			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			mockGitClient.ResetMock() // Reset mock state
@@ -187,15 +166,10 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 
 			By("Verifying successful handling of long names")
 			Expect(err).NotTo(HaveOccurred())
-<<<<<<< HEAD
-			// Verify git operations were called
-			Expect(len(mockGitClient.GetCallLog())).To(BeNumerically(">", 0))
-=======
 
 			// Verify that git operations were called
 			callLog := mockGitClient.GetCallLog()
 			Expect(len(callLog)).To(BeNumerically(">=", 1))
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 		})
 
 		It("Should handle special characters in namespace and name", func() {
@@ -203,37 +177,21 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			networkIntent.Name = "test-name-with-dashes"
 			networkIntent.Namespace = "test-namespace-123"
 
-<<<<<<< HEAD
-			By("Setting up Git client expectations")
-			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
-			// Remove unused variables since mock doesn't need exact parameters
-
-			// Configure mock to succeed for RemoveDirectory
-			mockGitClient.SetRemoveDirectoryError(nil)
-			// Configure mock to succeed for CommitAndPushChanges
-			mockGitClient.SetCommitPushError(nil)
-=======
 			By("Setting up Git client")
 			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			mockGitClient.ResetMock()
 
 			// Mock will automatically handle these method calls
 			// No explicit expectations needed with simple mock
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 			By("Calling cleanupGitOpsPackages")
 			err := reconciler.cleanupGitOpsPackages(ctx, networkIntent, mockGitClient)
 
 			By("Verifying successful handling of special characters")
 			Expect(err).NotTo(HaveOccurred())
-<<<<<<< HEAD
-			// Verify git operations were called
-			Expect(len(mockGitClient.GetCallLog())).To(BeNumerically(">", 0))
-=======
 			// Verify that git operations were called
 			callLog := mockGitClient.GetCallLog()
 			Expect(len(callLog)).To(BeNumerically(">=", 1))
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 		})
 
 		It("Should handle nil Git client gracefully", func() {
@@ -251,19 +209,10 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			cancelledCtx, cancel := context.WithCancel(context.Background())
 			cancel() // Immediately cancel the context
 
-<<<<<<< HEAD
-			By("Setting up Git client to detect context cancellation")
-			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
-			// Remove unused variables since mock doesn't need exact parameters
-
-			// Configure mock to fail with context cancelled
-			mockGitClient.SetRemoveDirectoryError(errors.New("context cancelled"))
-=======
 			By("Setting up Git client to return errors for cancellation")
 			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			mockGitClient.ResetMock()
 			mockGitClient.SetCommitPushError(errors.New("context cancelled"))
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 			By("Calling cleanupGitOpsPackages with cancelled context")
 			err := reconciler.cleanupGitOpsPackages(cancelledCtx, networkIntent, mockGitClient)
@@ -271,31 +220,17 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			By("Verifying context cancellation is handled")
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("failed to remove GitOps package directory"))
-<<<<<<< HEAD
-			// Verify git operations were called
-			Expect(len(mockGitClient.GetCallLog())).To(BeNumerically(">", 0))
-=======
 			// Verify that git operations were called
 			callLog := mockGitClient.GetCallLog()
 			Expect(len(callLog)).To(BeNumerically(">=", 1))
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 		})
 
 		It("Should handle intermittent Git repository locks", func() {
 			By("Setting up Git client to simulate repository lock contention")
-<<<<<<< HEAD
-			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
-			// Remove unused variables since mock doesn't need exact parameters
-
-			// Configure mock to fail with lock error
-			lockError := errors.New("fatal: Unable to create '/path/to/repo/.git/refs/heads/main.lock': File exists")
-			mockGitClient.SetRemoveDirectoryError(lockError)
-=======
 			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			mockGitClient.ResetMock()
 			lockError := errors.New("fatal: Unable to create '/path/to/repo/.git/refs/heads/main.lock': File exists")
 			mockGitClient.SetCommitPushError(lockError)
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 			By("Calling cleanupGitOpsPackages")
 			err := reconciler.cleanupGitOpsPackages(ctx, networkIntent, mockGitClient)
@@ -303,14 +238,9 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			By("Verifying repository lock error is handled")
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("failed to remove GitOps package directory"))
-<<<<<<< HEAD
-			// Verify git operations were called
-			Expect(len(mockGitClient.GetCallLog())).To(BeNumerically(">", 0))
-=======
 			// Verify that git operations were called
 			callLog := mockGitClient.GetCallLog()
 			Expect(len(callLog)).To(BeNumerically(">=", 1))
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 		})
 	})
 
@@ -465,19 +395,10 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
 			By("Setting up successful Git cleanup")
-<<<<<<< HEAD
-			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
-			// Remove unused variables since mock doesn't need exact parameters
-			// Configure mock to succeed for RemoveDirectory
-			mockGitClient.SetRemoveDirectoryError(nil)
-			// Configure mock to succeed for CommitAndPushChanges
-			mockGitClient.SetCommitPushError(nil)
-=======
 			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			// Removed unused variables
 			// Mock will automatically handle these method calls
 			// No explicit expectations needed with simple mock
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 			By("Calling handleDeletion")
 			result, err := reconciler.handleDeletion(ctx, networkIntent)
@@ -497,14 +418,9 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 					containsFinalizer(updated.Finalizers, "other.controller/finalizer")
 			}, timeout, interval).Should(BeTrue())
 
-<<<<<<< HEAD
-			// Verify git operations were called
-			Expect(len(mockGitClient.GetCallLog())).To(BeNumerically(">", 0))
-=======
 			// Verify that git operations were called
 			callLog := mockGitClient.GetCallLog()
 			Expect(len(callLog)).To(BeNumerically(">=", 1))
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 		})
 
 		It("Should handle deletion of already deleted resources", func() {
@@ -514,22 +430,13 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
 			By("Setting up Git client to simulate already cleaned resources")
-<<<<<<< HEAD
-			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
-			// Remove unused variables since mock doesn't need exact parameters
-=======
 			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			// Removed unused variables
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 			// Simulate that the directory doesn't exist (already cleaned)
 			// Configure mock to fail with directory not found
 			notFoundError := errors.New("directory not found")
-<<<<<<< HEAD
-			mockGitClient.SetRemoveDirectoryError(notFoundError)
-=======
 			mockGitClient.SetCommitPushError(notFoundError)
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 			By("Calling handleDeletion")
 			result, err := reconciler.handleDeletion(ctx, networkIntent)
@@ -538,14 +445,9 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			Expect(err).To(HaveOccurred()) // Current implementation propagates the error
 			Expect(result.RequeueAfter).To(Equal(time.Minute))
 
-<<<<<<< HEAD
-			// Verify git operations were called
-			Expect(len(mockGitClient.GetCallLog())).To(BeNumerically(">", 0))
-=======
 			// Verify that git operations were called
 			callLog := mockGitClient.GetCallLog()
 			Expect(len(callLog)).To(BeNumerically(">=", 1))
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 		})
 
 		It("Should handle update conflicts during finalizer removal", func() {
@@ -555,19 +457,10 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
 			By("Setting up successful Git cleanup")
-<<<<<<< HEAD
-			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
-			// Remove unused variables since mock doesn't need exact parameters
-			// Configure mock to succeed for RemoveDirectory
-			mockGitClient.SetRemoveDirectoryError(nil)
-			// Configure mock to succeed for CommitAndPushChanges
-			mockGitClient.SetCommitPushError(nil)
-=======
 			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			// Removed unused variables
 			// Mock will automatically handle these method calls
 			// No explicit expectations needed with simple mock
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 			By("Simulating concurrent modification")
 			// Modify the resource to create a version conflict
@@ -587,14 +480,9 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 				Expect(result.Requeue).To(BeFalse())
 			}
 
-<<<<<<< HEAD
-			// Verify git operations were called
-			Expect(len(mockGitClient.GetCallLog())).To(BeNumerically(">", 0))
-=======
 			// Verify that git operations were called
 			callLog := mockGitClient.GetCallLog()
 			Expect(len(callLog)).To(BeNumerically(">=", 1))
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 		})
 	})
 
@@ -626,33 +514,19 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			}
 
 			By("Setting up Git cleanup expectations")
-<<<<<<< HEAD
-			mockGitClient := mockDeps.gitClient.(*testutils.MockGitClient)
-			// Remove unused variables since mock doesn't need exact parameters
-			// Configure mock to succeed for RemoveDirectory
-			mockGitClient.SetRemoveDirectoryError(nil)
-			// Configure mock to succeed for CommitAndPushChanges
-			mockGitClient.SetCommitPushError(nil)
-=======
 			mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
 			// Removed unused variables
 			// Mock will automatically handle these method calls
 			// No explicit expectations needed with simple mock
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 
 			By("Performing cleanup")
 			err := reconciler.cleanupResources(ctx, networkIntent)
 
 			By("Verifying cleanup completes despite many resources")
 			Expect(err).NotTo(HaveOccurred())
-<<<<<<< HEAD
-			// Verify git operations were called
-			Expect(len(mockGitClient.GetCallLog())).To(BeNumerically(">", 0))
-=======
 			// Verify that git operations were called
 			callLog := mockGitClient.GetCallLog()
 			Expect(len(callLog)).To(BeNumerically(">=", 1))
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 		})
 
 		It("Should handle cleanup with resource deletion protection", func() {

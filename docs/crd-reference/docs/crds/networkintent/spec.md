@@ -283,7 +283,7 @@ parametersMap:
 
 **Type:** `string`  
 **Required:** No  
-**Pattern:** `^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`  
+**Pattern:** `^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$`  
 **MaxLength:** 63  
 **Description:** Kubernetes namespace for deployment
 
@@ -299,7 +299,7 @@ targetNamespace: "oran-edge-1"
 
 **Type:** `string`  
 **Required:** No  
-**Pattern:** `^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`  
+**Pattern:** `^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$`  
 **MaxLength:** 253  
 **Description:** Target Kubernetes cluster identifier
 
@@ -335,7 +335,7 @@ networkSlice: "000003-ABC123"  # Custom slice
 
 **Type:** `string`  
 **Required:** No  
-**Pattern:** `^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`  
+**Pattern:** `^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$`  
 **MaxLength:** 64  
 **Description:** Deployment region for geo-distributed deployments
 
@@ -451,6 +451,6 @@ targetCluster: "west-cluster"  # Must match region
 
 ## See Also
 
-- [Status Reference](status.md) - Understanding status fields
+- [Status Reference](overview.md) - Understanding status fields
 - [Examples](examples.md) - Real-world usage patterns
-- [Troubleshooting](troubleshooting.md) - Common validation errors
+- [Troubleshooting](../../../../runbooks/troubleshooting.md) - Common validation errors

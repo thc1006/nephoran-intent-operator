@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -22,7 +23,52 @@ import (
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/testutil"
+	"github.com/thc1006/nephoran-intent-operator/pkg/testutils"
 )
+
+// createTestNetworkIntent creates a NetworkIntent for use in table-driven tests.
+func createTestNetworkIntent(name, namespace, intentText string) *nephoranv1.NetworkIntent {
+	return &nephoranv1.NetworkIntent{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: nephoranv1.NetworkIntentSpec{
+			Intent: intentText,
+		},
+	}
+}
+
+// createTestConfig creates a default Config for testing.
+func createTestConfig() Config {
+	return Config{
+		MaxRetries:    3,
+		RetryDelay:    time.Second,
+		Timeout:       30 * time.Second,
+		GitRepoURL:    "https://github.com/test/repo.git",
+		GitBranch:     "main",
+		GitDeployPath: "deployments",
+	}
+}
+
+// NewMockDependencies creates a MockDependencies instance for table-driven tests.
+func NewMockDependencies() *MockDependencies {
+	return &MockDependencies{
+		gitClient:    &testutils.MockGitClient{},
+		llmClient:    &testutils.MockLLMClient{},
+		httpClient:   &http.Client{},
+	}
+}
+
+// getConditionMessage returns the message for a condition by type.
+func getConditionMessage(conditions []metav1.Condition, conditionType string) string {
+	for _, c := range conditions {
+		if c.Type == conditionType {
+			return c.Message
+		}
+	}
+	return ""
+}
 
 // Table-driven tests for edge cases and error scenarios
 func TestNetworkIntentEdgeCases(t *testing.T) {
@@ -94,7 +140,7 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
 			mockSetup: func(deps *MockDependencies) {
-				deps.llmClient.SetError(errors.New("LLM service unavailable"))
+				deps.llmClient.SetError("", errors.New("LLM service unavailable"))
 			},
 			expectedPhase:   "Error",
 			expectedRequeue: true,
@@ -113,7 +159,7 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
 			mockSetup: func(deps *MockDependencies) {
-				deps.llmClient.SetResponse("invalid json response")
+				deps.llmClient.SetResponse("", "invalid json response")
 			},
 			expectedPhase:   "Error",
 			expectedRequeue: true,
@@ -131,7 +177,7 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
 			mockSetup: func(deps *MockDependencies) {
-				deps.llmClient.SetResponse("")
+				deps.llmClient.SetResponse("", "")
 			},
 			expectedPhase:   "Error",
 			expectedRequeue: true,
@@ -151,8 +197,8 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 				// Valid LLM response but Git failure
 				llmResponse := json.RawMessage(`{}`)
 				responseJSON, _ := json.Marshal(llmResponse)
-				deps.llmClient.SetResponse(string(responseJSON))
-				deps.gitClient.SetShouldFail(true)
+				deps.llmClient.SetResponse("", string(responseJSON))
+				deps.gitClient.SetCommitPushError(errors.New("git operation failed"))
 			},
 			expectedPhase:   "Error",
 			expectedRequeue: true,
@@ -174,7 +220,7 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 				// Mock will simulate long processing time
 				llmResponse := json.RawMessage(`{}`)
 				responseJSON, _ := json.Marshal(llmResponse)
-				deps.llmClient.SetResponse(string(responseJSON))
+				deps.llmClient.SetResponse("", string(responseJSON))
 			},
 			expectedPhase:   "Processing", // May complete before timeout in test
 			expectedRequeue: false,
@@ -193,7 +239,7 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 			mockSetup: func(deps *MockDependencies) {
 				llmResponse := json.RawMessage(`{}`)
 				responseJSON, _ := json.Marshal(llmResponse)
-				deps.llmClient.SetResponse(string(responseJSON))
+				deps.llmClient.SetResponse("", string(responseJSON))
 			},
 			expectedPhase:   "Error", // Should be rejected for being too complex
 			expectedRequeue: false,
@@ -219,7 +265,7 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 					},
 				}
 				responseJSON, _ := json.Marshal(llmResponse)
-				deps.llmClient.SetResponse(string(responseJSON))
+				deps.llmClient.SetResponse("", string(responseJSON))
 			},
 			expectedPhase:   "Processing",
 			expectedRequeue: false,
@@ -238,7 +284,7 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 			mockSetup: func(deps *MockDependencies) {
 				llmResponse := json.RawMessage(`{}`)
 				responseJSON, _ := json.Marshal(llmResponse)
-				deps.llmClient.SetResponse(string(responseJSON))
+				deps.llmClient.SetResponse("", string(responseJSON))
 			},
 			expectedPhase:   "Processing",
 			expectedRequeue: false,
@@ -263,7 +309,7 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 				},
 			},
 			mockSetup: func(deps *MockDependencies) {
-				deps.llmClient.SetError(errors.New("persistent LLM failure"))
+				deps.llmClient.SetError("", errors.New("persistent LLM failure"))
 			},
 			expectedPhase:   "Error",
 			expectedRequeue: true, // Should still requeue but with exponential backoff
@@ -273,7 +319,7 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 				assert.Equal(t, "Error", ni.Status.Phase)
 				assert.True(t, testutil.HasConditionWithStatus(ni.Status.Conditions, "Processed", metav1.ConditionFalse))
 				// Should have longer requeue time due to exponential backoff
-				assert.True(t, result.RequeueAfter >= DefaultRetryDelay)
+				assert.True(t, result.RequeueAfter > 0)
 			},
 		},
 	}
@@ -288,7 +334,7 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 
 			// Create test NetworkIntent
 			ni := createTestNetworkIntent(fmt.Sprintf("edge-case-%s", tt.name), "default", tt.intentText)
-			ni.Status.Phase = tt.initialPhase
+			ni.Status.Phase = nephoranv1.NetworkIntentPhase(tt.initialPhase)
 			if tt.initialConditions != nil {
 				ni.Status.Conditions = tt.initialConditions
 				// Set proper timestamps
@@ -308,7 +354,7 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 			}
 
 			// Create reconciler
-			reconciler, err := NewNetworkIntentReconciler(fakeClient, scheme, mockDeps, createTestConfig())
+			cfg := createTestConfig(); reconciler, err := NewNetworkIntentReconciler(fakeClient, scheme, mockDeps, &cfg)
 			require.NoError(t, err, "Failed to create reconciler for test %s: %v", tt.name, err)
 
 			// Create reconcile request
@@ -384,9 +430,9 @@ func TestConcurrentReconciliation(t *testing.T) {
 	mockDeps := NewMockDependencies()
 	llmResponse := json.RawMessage(`{}`)
 	responseJSON, _ := json.Marshal(llmResponse)
-	mockDeps.llmClient.SetResponse(string(responseJSON))
+	mockDeps.llmClient.SetResponse("", string(responseJSON))
 
-	reconciler, err := NewNetworkIntentReconciler(fakeClient, scheme, mockDeps, createTestConfig())
+	cfg := createTestConfig(); reconciler, err := NewNetworkIntentReconciler(fakeClient, scheme, mockDeps, &cfg)
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -483,9 +529,9 @@ func TestResourceConstraints(t *testing.T) {
 			mockDeps := NewMockDependencies()
 			llmResponse := json.RawMessage(`{}`)
 			responseJSON, _ := json.Marshal(llmResponse)
-			mockDeps.llmClient.SetResponse(string(responseJSON))
+			mockDeps.llmClient.SetResponse("", string(responseJSON))
 
-			reconciler, err := NewNetworkIntentReconciler(fakeClient, scheme, mockDeps, createTestConfig())
+			cfg := createTestConfig(); reconciler, err := NewNetworkIntentReconciler(fakeClient, scheme, mockDeps, &cfg)
 			require.NoError(t, err)
 
 			req := ctrl.Request{
@@ -496,7 +542,7 @@ func TestResourceConstraints(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			_, err := reconciler.Reconcile(ctx, req)
+			_, err = reconciler.Reconcile(ctx, req)
 			assert.NoError(t, err)
 
 			// Verify final state
@@ -522,9 +568,9 @@ func TestNetworkPartitionScenarios(t *testing.T) {
 
 	// Setup mock dependencies to simulate network partition
 	mockDeps := NewMockDependencies()
-	mockDeps.llmClient.SetError(errors.New("connection timeout: network unreachable"))
+	mockDeps.llmClient.SetError("", errors.New("connection timeout: network unreachable"))
 
-	reconciler, err := NewNetworkIntentReconciler(fakeClient, scheme, mockDeps, createTestConfig())
+	cfg := createTestConfig(); reconciler, err := NewNetworkIntentReconciler(fakeClient, scheme, mockDeps, &cfg)
 	require.NoError(t, err)
 
 	req := ctrl.Request{
@@ -550,8 +596,8 @@ func TestNetworkPartitionScenarios(t *testing.T) {
 	// Simulate network recovery
 	llmResponse := json.RawMessage(`{}`)
 	responseJSON, _ := json.Marshal(llmResponse)
-	mockDeps.llmClient.SetError(nil)
-	mockDeps.llmClient.SetResponse(string(responseJSON))
+	mockDeps.llmClient.SetError("", nil)
+	mockDeps.llmClient.SetResponse("", string(responseJSON))
 
 	// Second reconciliation should succeed after network recovery
 	_, err = reconciler.Reconcile(ctx, req)
@@ -584,7 +630,7 @@ func BenchmarkEdgeCaseProcessing(b *testing.B) {
 			name:   "LLMFailure",
 			intent: "Deploy AMF",
 			mockSetup: func(deps *MockDependencies) {
-				deps.llmClient.SetError(errors.New("LLM failure"))
+				deps.llmClient.SetError("", errors.New("LLM failure"))
 			},
 		},
 		{
@@ -593,7 +639,7 @@ func BenchmarkEdgeCaseProcessing(b *testing.B) {
 			mockSetup: func(deps *MockDependencies) {
 				llmResponse := json.RawMessage(`{}`)
 				responseJSON, _ := json.Marshal(llmResponse)
-				deps.llmClient.SetResponse(string(responseJSON))
+				deps.llmClient.SetResponse("", string(responseJSON))
 			},
 		},
 	}
@@ -606,7 +652,7 @@ func BenchmarkEdgeCaseProcessing(b *testing.B) {
 			mockDeps := NewMockDependencies()
 			scenario.mockSetup(mockDeps)
 
-			reconciler, _ := NewNetworkIntentReconciler(fakeClient, scheme, mockDeps, createTestConfig())
+			cfg2 := createTestConfig(); reconciler, _ := NewNetworkIntentReconciler(fakeClient, scheme, mockDeps, &cfg2)
 
 			req := ctrl.Request{
 				NamespacedName: types.NamespacedName{

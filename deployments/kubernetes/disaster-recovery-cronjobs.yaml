@@ -221,7 +221,7 @@ spec:
               mkdir -p $BACKUP_DIR
               
               # Execute disaster recovery system
-              /scripts/disaster-recovery-system.sh
+              /scripts/ops/disaster-recovery-system.sh
               
               echo "Full backup job completed"
             env:
@@ -323,7 +323,7 @@ spec:
               export BACKUP_DIR=/var/nephoran/backups
               
               # Execute incremental backup
-              /scripts/dr-automation-scheduler.sh incremental_backup
+              /scripts/ops/dr-automation-scheduler.sh incremental_backup
               
               echo "Incremental backup job completed"
             env:
@@ -401,7 +401,7 @@ spec:
               export BACKUP_DIR=/var/nephoran/backups
               
               # Execute DR test
-              /scripts/dr-automation-scheduler.sh dr_test
+              /scripts/ops/dr-automation-scheduler.sh dr_test
               
               echo "DR test job completed"
             env:
@@ -479,7 +479,7 @@ spec:
               export BACKUP_DIR=/var/nephoran/backups
               
               # Execute backup verification
-              /scripts/dr-automation-scheduler.sh verify_backups
+              /scripts/ops/dr-automation-scheduler.sh verify_backups
               
               echo "Backup verification job completed"
             env:
@@ -558,7 +558,7 @@ spec:
               export S3_BUCKET=${S3_BUCKET:-nephoran-dr-backups}
               
               # Execute backup cleanup
-              /scripts/dr-automation-scheduler.sh cleanup
+              /scripts/ops/dr-automation-scheduler.sh cleanup
               
               echo "Backup cleanup job completed"
             env:

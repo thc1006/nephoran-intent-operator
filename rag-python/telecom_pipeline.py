@@ -5,6 +5,10 @@ from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 import json
 import time
+import logging
+
+# Import document processor for knowledge base loading
+from document_processor import DocumentProcessor
 
 
 class TelecomRAGPipeline:
@@ -13,7 +17,10 @@ class TelecomRAGPipeline:
     def __init__(self, config: Dict[str, Any]):
         if not config.get("openai_api_key"):
             raise ValueError("OpenAI API key is required")
-        
+
+        self.config = config
+        self.logger = self._setup_logging()
+
         try:
             self.embeddings = OpenAIEmbeddings(
                 model="text-embedding-3-large",
@@ -29,8 +36,51 @@ class TelecomRAGPipeline:
             )
             self.vector_store = self._setup_vector_store(config)
             self.qa_chain = self._create_qa_chain()
+
+            # Load telecom domain knowledge from knowledge_base/
+            self._load_domain_knowledge()
         except Exception as e:
             raise RuntimeError(f"Failed to initialize RAG pipeline: {e}")
+
+    def _setup_logging(self) -> logging.Logger:
+        """Setup logging for RAG pipeline"""
+        logger = logging.getLogger(f"{__name__}.TelecomRAGPipeline")
+        logger.setLevel(logging.INFO)
+        if not logger.handlers:
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            )
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
+        return logger
+
+    def _load_domain_knowledge(self):
+        """Load and index telecom domain knowledge from knowledge_base/"""
+        try:
+            self.logger.info("Loading telecom domain knowledge...")
+
+            # Initialize document processor
+            doc_processor = DocumentProcessor(self.config)
+
+            # Load knowledge base documents
+            docs = doc_processor.load_telecom_knowledge()
+
+            if docs:
+                # Add documents to vector store
+                self.vector_store.add_documents(docs)
+                self.logger.info(
+                    f"Successfully indexed {len(docs)} knowledge base documents"
+                )
+            else:
+                self.logger.warning(
+                    "No documents loaded from knowledge_base/. "
+                    "RAG will work but without domain-specific knowledge."
+                )
+        except Exception as e:
+            self.logger.error(f"Failed to load domain knowledge: {e}")
+            # Don't fail initialization if knowledge loading fails
+            self.logger.warning("RAG pipeline initialized without domain knowledge")
 
     def _setup_vector_store(self, config: Dict) -> Weaviate:
         """Initialize Weaviate vector database."""

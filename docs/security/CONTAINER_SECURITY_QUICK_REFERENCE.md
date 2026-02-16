@@ -293,9 +293,9 @@ kubectl logs -n kube-system deployment/admission-controller
 
 ## Quick Links
 
-- [Security Hardening Report](../../CONTAINER-SECURITY-HARDENING-REPORT.md)
-- [Security Validation Script](../../scripts/security/validate-container-security.ps1)
-- [CI/CD Security Pipeline](../../.github/workflows/container-security-hardening.yml)
+- [Security Hardening Report](./CONTAINER_SECURITY_HARDENING.md)
+- [Security Validation Script](../../scripts/validate-security-hardening.sh)
+- [CI/CD Security Pipeline](../../.github/workflows/ci-2025.yml)
 - [Security Configurations](../../deployments/security/)
 
 ---

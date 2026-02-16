@@ -84,14 +84,6 @@ func (m *MockManager) AddReadyzCheck(string, healthz.Checker) error      { retur
 func (m *MockManager) Start(context.Context) error                       { return nil }
 func (m *MockManager) GetWebhookServer() webhook.Server                 { return nil }
 func (m *MockManager) GetAPIReader() client.Reader                       { return m.client }
-<<<<<<< HEAD
-func (m *MockManager) GetCache() cache.Cache                             { return nil }
-func (m *MockManager) GetFieldIndexer() client.FieldIndexer              { return nil }
-func (m *MockManager) GetEventRecorderFor(string) record.EventRecorder   { return nil }
-func (m *MockManager) GetRESTMapper() meta.RESTMapper                    { return nil }
-func (m *MockManager) GetControllerOptions() config.ControllerConfigurationSpec {
-	return config.ControllerConfigurationSpec{}
-=======
 func (m *MockManager) GetCache() cache.Cache {
 	// Return nil for mock cache - tests don't actually need cache functionality
 	return nil
@@ -109,7 +101,6 @@ func (m *MockManager) GetControllerOptions() config.Controller {
 }
 func (m *MockManager) GetHTTPClient() *http.Client {
 	return &http.Client{}
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // Helper function to create a mock manager

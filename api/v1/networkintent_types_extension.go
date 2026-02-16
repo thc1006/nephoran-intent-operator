@@ -106,11 +106,8 @@ type CNFIntentMetadata struct {
 
 	// ConfidenceScore overall confidence in processing results.
 
-<<<<<<< HEAD
 	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
 
-=======
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 	ConfidenceScore string `json:"confidenceScore,omitempty"`
 
 	// ProcessingVersion version of the processing pipeline.
@@ -147,11 +144,8 @@ type CNFDeploymentPlan struct {
 
 	// EstimatedCost total estimated cost for the plan.
 
-<<<<<<< HEAD
 	// +kubebuilder:validation:Pattern=`^\d+(\.\d{1,4})?$`
 
-=======
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 	EstimatedCost string `json:"estimatedCost"`
 
 	// EstimatedDeploymentTime total estimated deployment time in minutes.

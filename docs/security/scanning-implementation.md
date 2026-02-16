@@ -47,7 +47,7 @@ security-clean              # Clean security scan artifacts
 - Parallel execution for performance
 - Tool auto-installation capabilities
 
-### 3. Comprehensive Security Scanning Script (`scripts/security-scan.sh`)
+### 3. Comprehensive Security Scanning Script (`scripts/security/security-scan.sh`)
 
 **Enhanced Features:**
 - **Multi-tool Integration**: gosec, staticcheck, Trivy, Syft, gitleaks, TruffleHog, Nancy, govulncheck
@@ -60,12 +60,12 @@ security-clean              # Clean security scan artifacts
 
 **Usage:**
 ```bash
-./scripts/security-scan.sh --comprehensive    # Full scan (default)
-./scripts/security-scan.sh --sast            # SAST only
-./scripts/security-scan.sh --dependencies    # Dependency scan only
-./scripts/security-scan.sh --containers      # Container scan only
-./scripts/security-scan.sh --secrets         # Secret scan only
-./scripts/security-scan.sh --compliance      # Compliance check only
+./scripts/security/security-scan.sh --comprehensive    # Full scan (default)
+./scripts/security/security-scan.sh --sast            # SAST only
+./scripts/security/security-scan.sh --dependencies    # Dependency scan only
+./scripts/security/security-scan.sh --containers      # Container scan only
+./scripts/security/security-scan.sh --secrets         # Secret scan only
+./scripts/security/security-scan.sh --compliance      # Compliance check only
 ```
 
 ### 4. Container Scanning Admission Policy (`deployments/security/container-scan-policy.yaml`)
@@ -101,7 +101,7 @@ security-clean              # Clean security scan artifacts
 - Risk-based prioritization
 - Executive summary for management
 
-### 6. Critical Vulnerability Checker (`scripts/check-critical-vulnerabilities.py`)
+### 6. Critical Vulnerability Checker (`scripts/security/check-critical-vulnerabilities.py`)
 
 **Zero Critical Vulnerabilities Policy:**
 - **Blocking Logic**: Fails build on critical vulnerabilities
@@ -117,7 +117,7 @@ security-clean              # Clean security scan artifacts
 - Crypto/TLS misconfigurations
 - Container privilege escalation
 
-### 7. Telecommunications Compliance Checker (`scripts/compliance-checker.py`)
+### 7. Telecommunications Compliance Checker (`scripts/security/compliance-checker.py`)
 
 **Standards Support:**
 - **NIST Cybersecurity Framework**: 5 categories (Identify, Protect, Detect, Respond, Recover)
@@ -224,7 +224,7 @@ open security-reports/consolidated-security-report-*.html
 
 ### Configuration
 
-**Thresholds** (in `scripts/security-scan.sh`):
+**Thresholds** (in `scripts/security/security-scan.sh`):
 ```bash
 CRITICAL_CVE_THRESHOLD=7.0    # CVSS score threshold for critical
 HIGH_CVE_THRESHOLD=4.0        # CVSS score threshold for high
@@ -291,14 +291,14 @@ conftest verify --policy deployments/security/opa-policies/ deployments/
 4. **Compliance Check Failures:**
 ```bash
 # Run individual compliance checks
-python3 scripts/compliance-checker.py --framework nist-csf
-python3 scripts/compliance-checker.py --framework etsi-nfv-sec
+python3 scripts/security/compliance-checker.py --framework nist-csf
+python3 scripts/security/compliance-checker.py --framework etsi-nfv-sec
 ```
 
 ### Debug Commands
 ```bash
 # Verbose security scan
-./scripts/security-scan.sh --comprehensive --verbose
+./scripts/security/security-scan.sh --comprehensive --verbose
 
 # Individual tool testing
 gosec ./...

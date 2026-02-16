@@ -26,10 +26,10 @@ For impatient developers who want to get started immediately:
 cd /path/to/nephoran-intent-operator
 
 # Make deployment script executable
-chmod +x scripts/deploy-monitoring-stack.sh
+chmod +x scripts/deploy/deploy-monitoring-stack.sh
 
 # Deploy to development environment
-./scripts/deploy-monitoring-stack.sh deploy development
+./scripts/deploy/deploy-monitoring-stack.sh deploy development
 
 # Access Grafana (after port-forward)
 kubectl port-forward -n nephoran-monitoring svc/nephoran-performance-monitoring-grafana 3000:3000
@@ -133,7 +133,7 @@ The monitoring stack consists of several interconnected components:
 - No TLS/security hardening
 - SQLite database for Grafana
 
-**Configuration**: `configs/monitoring/values-development.yaml`
+**Configuration**: `config/monitoring/values-development.yaml`
 
 ### Staging Environment
 
@@ -146,7 +146,7 @@ The monitoring stack consists of several interconnected components:
 - Automated load testing
 - CI/CD integration testing
 
-**Configuration**: `configs/monitoring/values-staging.yaml`
+**Configuration**: `config/monitoring/values-staging.yaml`
 
 ### Production Environment
 
@@ -160,7 +160,7 @@ The monitoring stack consists of several interconnected components:
 - Comprehensive alerting (email, Slack, PagerDuty)
 - Backup and disaster recovery
 
-**Configuration**: `configs/monitoring/values-production.yaml`
+**Configuration**: `config/monitoring/values-production.yaml`
 
 ## 🚀 Deployment Instructions
 
@@ -182,39 +182,39 @@ Choose your target environment and review the configuration:
 
 ```bash
 # Development
-./scripts/deploy-monitoring-stack.sh validate development
+./scripts/deploy/deploy-monitoring-stack.sh validate development
 
 # Staging
-./scripts/deploy-monitoring-stack.sh validate staging
+./scripts/deploy/deploy-monitoring-stack.sh validate staging
 
 # Production
-./scripts/deploy-monitoring-stack.sh validate production
+./scripts/deploy/deploy-monitoring-stack.sh validate production
 ```
 
 ### Step 3: Deploy the Stack
 
 ```bash
 # Development deployment
-./scripts/deploy-monitoring-stack.sh deploy development
+./scripts/deploy/deploy-monitoring-stack.sh deploy development
 
 # Staging deployment with custom values
-./scripts/deploy-monitoring-stack.sh deploy staging -f custom-values.yaml
+./scripts/deploy/deploy-monitoring-stack.sh deploy staging -f custom-values.yaml
 
 # Production deployment (with backup)
-./scripts/deploy-monitoring-stack.sh deploy production
+./scripts/deploy/deploy-monitoring-stack.sh deploy production
 
 # Dry run (see what would be deployed)
-./scripts/deploy-monitoring-stack.sh deploy production --dry-run
+./scripts/deploy/deploy-monitoring-stack.sh deploy production --dry-run
 ```
 
 ### Step 4: Verify Deployment
 
 ```bash
 # Check deployment status
-./scripts/deploy-monitoring-stack.sh status <environment>
+./scripts/deploy/deploy-monitoring-stack.sh status <environment>
 
 # Run comprehensive tests
-./scripts/deploy-monitoring-stack.sh test <environment>
+./scripts/deploy/deploy-monitoring-stack.sh test <environment>
 
 # Monitor deployment logs
 kubectl logs -n nephoran-monitoring -l app.kubernetes.io/instance=nephoran-performance-monitoring -f
@@ -457,14 +457,14 @@ kubectl get events -n nephoran-monitoring --sort-by='.lastTimestamp'
 helm list -n nephoran-monitoring
 
 # Backup current configuration
-./scripts/deploy-monitoring-stack.sh backup production
+./scripts/deploy/deploy-monitoring-stack.sh backup production
 
 # Update to latest version
 helm repo update
-./scripts/deploy-monitoring-stack.sh deploy production
+./scripts/deploy/deploy-monitoring-stack.sh deploy production
 
 # Verify update
-./scripts/deploy-monitoring-stack.sh test production
+./scripts/deploy/deploy-monitoring-stack.sh test production
 ```
 
 #### Updating Dashboards
@@ -502,7 +502,7 @@ Automated backups run nightly and include:
 kubectl get cronjobs -n nephoran-monitoring
 
 # Manual backup creation
-./scripts/deploy-monitoring-stack.sh backup production
+./scripts/deploy/deploy-monitoring-stack.sh backup production
 
 # List available backups
 kubectl exec -n nephoran-monitoring deployment/backup-manager -- ls -la /backup/
@@ -512,7 +512,7 @@ kubectl exec -n nephoran-monitoring deployment/backup-manager -- ls -la /backup/
 
 ```bash
 # Restore from backup
-./scripts/deploy-monitoring-stack.sh restore production
+./scripts/deploy/deploy-monitoring-stack.sh restore production
 
 # Or manual restoration
 kubectl apply -f /path/to/backup/manifests.yaml

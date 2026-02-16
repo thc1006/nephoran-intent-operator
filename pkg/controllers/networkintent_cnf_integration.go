@@ -504,13 +504,8 @@ func (m *CNFIntegrationManager) validateProcessingResults(result *nephoranv1.CNF
 		return fmt.Errorf("no CNF deployment specifications generated")
 	}
 
-<<<<<<< HEAD
-	if scoreFloat, err := strconv.ParseFloat(result.ConfidenceScore, 64); err != nil || scoreFloat < 0.5 {
-		return fmt.Errorf("confidence score too low: %s", result.ConfidenceScore)
-=======
 	if confidenceScore, err := strconv.ParseFloat(result.ConfidenceScore, 64); err != nil || confidenceScore < 0.5 {
 		return fmt.Errorf("confidence score too low or invalid: %s", result.ConfidenceScore)
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 	}
 
 	if len(result.Errors) > 0 {
