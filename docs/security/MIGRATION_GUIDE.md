@@ -905,7 +905,7 @@ func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 
 ### Documentation
 - [Security Architecture](./SECURITY_ARCHITECTURE.md)
-- [API Reference](../API_REFERENCE.md)
+- [API Reference](../api/API_REFERENCE.md)
 - [Best Practices](./SECURITY_BEST_PRACTICES.md)
 
 ### Contact

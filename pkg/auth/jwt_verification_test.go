@@ -224,7 +224,10 @@ func TestJWTManagerBackwardCompatibility(t *testing.T) {
 	}
 
 	// Test legacy GenerateToken method
-	customClaims := map[string]interface{}{}
+	customClaims := map[string]interface{}{
+		"custom_field": "custom_value",
+		"admin":        true,
+	}
 
 	tokenString, err := manager.GenerateToken(userInfo, customClaims)
 	require.NoError(t, err)
@@ -252,4 +255,3 @@ func TestJWTManagerBackwardCompatibility(t *testing.T) {
 	assert.True(t, exp > iat, "exp should be after iat")
 	assert.True(t, exp > float64(time.Now().Unix()), "exp should be in the future")
 }
-

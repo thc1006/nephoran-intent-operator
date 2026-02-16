@@ -22,6 +22,9 @@ on:
         type: number
         default: 24
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
   actions: read
@@ -253,11 +256,7 @@ jobs:
       - name: "🐹 Setup Go"
         uses: actions/setup-go@v5
         with:
-<<<<<<< HEAD
-          go-version: '1.24.0'
-=======
           go-version: '1.24.6'
->>>>>>> 6835433495e87288b95961af7173d866977175ff
           cache: false
           
       - name: "📦 Analyze Dependencies"

@@ -20,7 +20,7 @@ assignees: []
 ## Location
 
 **Document/Page:** [e.g., Getting Started Guide, API Reference, etc.]
-**URL/Path:** [e.g., docs/getting-started.md, https://docs.nephoran-project.org/api]
+**URL/Path:** [e.g., docs/getting-started/getting-started.md, https://docs.nephoran-project.org/api]
 **Section:** [e.g., Installation, Configuration, Examples]
 
 ## Issue Description

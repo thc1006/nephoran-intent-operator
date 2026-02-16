@@ -666,11 +666,11 @@ resourceConstraints:
 
 ## Troubleshooting Common Issues
 
-For detailed troubleshooting, see [Troubleshooting Guide](troubleshooting.md).
+For detailed troubleshooting, see [Troubleshooting Guide](overview.md).
 
 ## Next Steps
 
-- [Status Reference](status.md) - Understanding status fields
-- [Troubleshooting](troubleshooting.md) - Debugging failed intents
-- [E2NodeSet Examples](../e2nodeset/examples.md) - O-RAN specific examples
-- [Disaster Recovery](../disaster-recovery/overview.md) - Backup and failover
+- [Status Reference](spec.md) - Understanding status fields
+- [Troubleshooting](overview.md) - Debugging failed intents
+- [E2NodeSet Examples](../e2nodeset/overview.md) - O-RAN specific examples
+- [Disaster Recovery](../../../../runbooks/disaster-recovery.md) - Backup and failover

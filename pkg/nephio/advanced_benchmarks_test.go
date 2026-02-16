@@ -792,11 +792,7 @@ func generateTestClusters(count int, deployType string) []ClusterConfig {
 	return clusters
 }
 
-<<<<<<< HEAD
-func generatePolicyRules(count int) []BenchmarkPolicyRule {
-=======
 func generateBenchmarkPolicyRules(count int) []BenchmarkPolicyRule {
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 	rules := make([]BenchmarkPolicyRule, count)
 
 	for i := range rules {
@@ -975,11 +971,8 @@ type ConfigSyncSpec struct {
 	UpdateFreq     string
 }
 
-<<<<<<< HEAD
-=======
 // ConfigSyncResult is imported from workflow_orchestrator.go
 
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 type PolicySpec struct {
 	Name         string
 	Type         string
@@ -1152,19 +1145,3 @@ func (n *EnhancedNephioSystem) ManageResources(ctx context.Context, spec Resourc
 		QuotaViolation:     false,
 	}, nil
 }
-<<<<<<< HEAD
-
-// Interface placeholders for benchmarking
-type (
-	BenchmarkPackageGenerator   interface{}
-	KRMFunctionRuntime interface{}
-	PorchClient        interface{}
-	GitClient          interface{}
-	ConfigSyncManager  interface{}
-	PolicyEngine       interface{}
-	ResourceManager    interface{}
-	NephioMetrics      interface{}
-)
-
-=======
->>>>>>> 6835433495e87288b95961af7173d866977175ff

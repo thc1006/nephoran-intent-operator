@@ -14,25 +14,25 @@
 - **Triggers**: `main`, `integrate/**`, `feat/**`, `fix/**` branches
 - **Purpose**: Comprehensive CI for production and integration branches
 - **Concurrency**: `nephoran-ci-production-${{ github.ref }}`
-- **Cache Key**: `nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('go.mod') }}`
+- **Cache Key**: `nephoran-go-v1-ubuntu-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('go.mod') }}`
 
 ### 2. `pr-validation.yml` - Pull Request Validation  
 - **Triggers**: Pull requests to `main`, `integrate/mvp`
 - **Purpose**: Fast validation for pull requests with essential checks only
 - **Concurrency**: `nephoran-pr-validation-${{ github.ref }}`
-- **Cache Key**: `nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('go.mod') }}`
+- **Cache Key**: `nephoran-go-v1-ubuntu-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('go.mod') }}`
 
 ### 3. `ubuntu-ci.yml` - Comprehensive Testing
 - **Triggers**: Manual dispatch only (temporarily)
 - **Purpose**: Detailed lint, test, and build verification
 - **Concurrency**: `nephoran-ubuntu-ci-${{ github.ref }}`
-- **Cache Key**: `nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('go.mod') }}`
+- **Cache Key**: `nephoran-go-v1-ubuntu-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('go.mod') }}`
 
 ### 4. `emergency-merge.yml` - Emergency Deployments
 - **Triggers**: Manual dispatch only  
 - **Purpose**: Ultra-fast emergency deployment pipeline
 - **Concurrency**: `nephoran-emergency-merge-${{ github.ref }}`
-- **Cache Key**: `nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('go.mod') }}`
+- **Cache Key**: `nephoran-go-v1-ubuntu-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('go.mod') }}`
 
 ---
 
@@ -59,10 +59,10 @@ The following workflows have been **DISABLED** to prevent resource contention:
 
 ### 1. **Standardized Cache Keys**
 ```yaml
-key: nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('go.mod') }}
+key: nephoran-go-v1-ubuntu-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('go.mod') }}
 restore-keys: |
-  nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-
-  nephoran-go-v1-${{ runner.os }}-
+  nephoran-go-v1-ubuntu-${{ env.GO_VERSION }}-
+  nephoran-go-v1-ubuntu-
 ```
 
 ### 2. **Standardized Concurrency Groups**

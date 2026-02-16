@@ -300,11 +300,11 @@ Operational Metrics:
 
 ## References
 
-- [Security Implementation Guide](../security/implementation-summary.md)
+- [Security Implementation Guide](../security/security-implementation-summary.md)
 - [Security Hardening Guide](../security/hardening-guide.md)
 - [Compliance Audit Documentation](../operations/05-compliance-audit-documentation.md)
 - [Security Runbooks](../runbooks/security-incident-response.md)
-- [Penetration Testing Reports](../security/penetration-testing-reports.md)
+- [Penetration Testing Reports](../security/SECURITY_AUDIT_REPORT.md)
 
 ## Related ADRs
 - ADR-003: Istio Service Mesh Architecture

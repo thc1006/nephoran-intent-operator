@@ -384,8 +384,8 @@ export O2_IMS_LOG_LEVEL=debug
 
 ### Support
 
-- **Documentation**: [Full API documentation](./api/)
-- **Examples**: [Usage examples](./examples/)
+- **Documentation**: [Full API documentation](../api/index.md)
+- **Examples**: [Usage examples](../operations/PRODUCTION-DEPLOYMENT-EXAMPLES.md)
 - **Issues**: [GitHub Issues](https://github.com/nephoran/nephoran-intent-operator/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/nephoran/nephoran-intent-operator/discussions)
 
