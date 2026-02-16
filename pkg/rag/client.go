@@ -41,14 +41,14 @@ func NewClient(cfg Config) *Client {
 	}
 }
 
-// QueryRequest represents a query to the RAG service.
-type QueryRequest struct {
+// HTTPQueryRequest represents a query to the RAG HTTP service.
+type HTTPQueryRequest struct {
 	Question string            `json:"question"`
 	Context  map[string]string `json:"context,omitempty"`
 }
 
-// QueryResponse represents the response from the RAG service.
-type QueryResponse struct {
+// HTTPQueryResponse represents the response from the RAG HTTP service.
+type HTTPQueryResponse struct {
 	Answer   string                 `json:"answer"`
 	Sources  []string               `json:"sources,omitempty"`
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
@@ -72,13 +72,13 @@ type IntentResponse struct {
 }
 
 // Query sends a question to the RAG service and returns the answer.
-func (c *Client) Query(ctx context.Context, question string) (*QueryResponse, error) {
+func (c *Client) Query(ctx context.Context, question string) (*HTTPQueryResponse, error) {
 	return c.QueryWithContext(ctx, question, nil)
 }
 
 // QueryWithContext sends a question with additional context to the RAG service.
-func (c *Client) QueryWithContext(ctx context.Context, question string, contextMap map[string]string) (*QueryResponse, error) {
-	reqBody := QueryRequest{
+func (c *Client) QueryWithContext(ctx context.Context, question string, contextMap map[string]string) (*HTTPQueryResponse, error) {
+	reqBody := HTTPQueryRequest{
 		Question: question,
 		Context:  contextMap,
 	}
@@ -118,7 +118,7 @@ func (c *Client) QueryWithContext(ctx context.Context, question string, contextM
 		return nil, fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(body))
 	}
 
-	var result QueryResponse
+	var result HTTPQueryResponse
 	if err := json.Unmarshal(body, &result); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}

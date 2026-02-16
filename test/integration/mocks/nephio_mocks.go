@@ -476,6 +476,14 @@ func (m *MockStatusWriter) Patch(ctx context.Context, obj client.Object, patch c
 
 }
 
+// Apply performs apply operation.
+
+func (m *MockStatusWriter) Apply(ctx context.Context, obj runtime.ApplyConfiguration, opts ...client.SubResourceApplyOption) error {
+
+	return nil
+
+}
+
 // Mock RESTMapper.
 
 type MockRESTMapper struct{}

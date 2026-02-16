@@ -247,7 +247,8 @@ type RetrievalRequest struct {
 // Doc represents a document (alias for compatibility)
 type Doc = Document
 
-// QueryRequest represents a query request
+// QueryRequest represents an internal RAG query request
+// This is distinct from client.HTTPQueryRequest which is for the HTTP API
 type QueryRequest struct {
 	Query    string          `json:"query"`
 	Context  string          `json:"context,omitempty"`
@@ -256,7 +257,8 @@ type QueryRequest struct {
 	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
-// QueryResponse represents a query response
+// QueryResponse represents an internal RAG query response
+// This is distinct from client.HTTPQueryResponse which is for the HTTP API
 type QueryResponse struct {
 	Results        []*SearchResult `json:"results"`
 	Query          string          `json:"query"`
