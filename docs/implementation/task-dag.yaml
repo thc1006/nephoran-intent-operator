@@ -115,7 +115,7 @@ tasks:
     duration: "3h"
     priority: "P0"
     assignee: "@claude-agent-devops"
-    depends_on: ["T1", "T2", "T4"]
+    depends_on: ["T1", "T2"]  # Fixed: Removed T4 (MongoDB not required for Porch)
     parallel_with: []
     description: "Deploy Nephio management cluster with Porch package management"
     verification_command: "kpt version | grep '1.0.0-beta.56' && kpt alpha rpkg get | grep free5gc"
@@ -188,7 +188,7 @@ tasks:
     duration: "5h"
     priority: "P0"
     assignee: "@claude-agent-ran"
-    depends_on: ["T8", "T9"]
+    depends_on: ["T7", "T8", "T9"]  # Fixed: Added T7 (RIC required for E2 interface)
     parallel_with: []
     description: "Deploy OpenAirInterface disaggregated gNB (CU-CP, CU-UP, DU)"
     verification_command: "./test/e2e/test-oai-ran.sh"
@@ -259,8 +259,8 @@ tasks:
 # ========================================
 
 critical_path:
-  path: ["T1", "T2", "T4", "T6", "T8", "T9", "T10", "T12"]
-  total_duration: "28h"
+  path: ["T1", "T2", "T7", "T8", "T9", "T10", "T12"]  # Fixed: T7→T10 is now critical
+  total_duration: "25h"  # Fixed: 4h+2h+4h+4h+2h+5h+4h = 25h (was incorrectly 28h)
   description: "Longest path through task dependencies"
   bottlenecks:
     - task: "T10"
