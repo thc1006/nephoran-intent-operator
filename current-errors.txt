@@ -1,1 +1,0 @@
-level=warning msg="The linter 'tenv' is deprecated (since v1.64.0) due to: Duplicate feature another linter. Replaced by usetesting."

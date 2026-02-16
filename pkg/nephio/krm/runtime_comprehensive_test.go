@@ -40,96 +40,11 @@ import (
 
 // Using types from the porch package to avoid redefinition
 
-<<<<<<< HEAD
-// FunctionConfig defines KRM function configuration
-type FunctionConfig struct {
-	Image      string                 `json:"image"`
-	ConfigPath string                 `json:"configPath,omitempty"`
-	ConfigMap  json.RawMessage `json:"configMap,omitempty"`
-	Selectors  []TestResourceSelector     `json:"selectors,omitempty"`
-	Exec       *ExecConfig            `json:"exec,omitempty"`
-}
-
-// TestResourceSelector defines resource selection criteria for testing
-type TestResourceSelector struct {
-	APIVersion string            `json:"apiVersion,omitempty"`
-	Kind       string            `json:"kind,omitempty"`
-	Name       string            `json:"name,omitempty"`
-	Namespace  string            `json:"namespace,omitempty"`
-	Labels     map[string]string `json:"labels,omitempty"`
-}
-
-// ExecConfig defines execution configuration for container functions
-type ExecConfig struct {
-	Args    []string          `json:"args,omitempty"`
-	Env     map[string]string `json:"env,omitempty"`
-	WorkDir string            `json:"workDir,omitempty"`
-}
-
-// FunctionRequest represents a function execution request
-type FunctionRequest struct {
-	FunctionConfig FunctionConfig   `json:"functionConfig"`
-	Resources      []KRMResource    `json:"resources"`
-	Context        *FunctionContext `json:"context,omitempty"`
-}
-
-// FunctionResponse represents a function execution response
-type FunctionResponse struct {
-	Resources []KRMResource     `json:"resources"`
-	Results   []*FunctionResult `json:"results,omitempty"`
-	Logs      []string          `json:"logs,omitempty"`
-	Error     *FunctionError    `json:"error,omitempty"`
-}
-
-// FunctionResult represents a function execution result
-type FunctionResult struct {
-	Message  string            `json:"message"`
-	Severity string            `json:"severity"`
-	Field    string            `json:"field,omitempty"`
-	File     string            `json:"file,omitempty"`
-	Tags     map[string]string `json:"tags,omitempty"`
-}
-
-// FunctionError represents a function execution error
-type FunctionError struct {
-	Message string `json:"message"`
-	Code    string `json:"code,omitempty"`
-	Details string `json:"details,omitempty"`
-}
-
-// FunctionContext provides context for function execution
-type FunctionContext struct {
-	PackagePath string            `json:"packagePath,omitempty"`
-	Namespace   string            `json:"namespace,omitempty"`
-	Environment map[string]string `json:"environment,omitempty"`
-}
-
-// Pipeline defines a sequence of KRM functions
-type Pipeline struct {
-	Name      string                 `json:"name"`
-	Functions []FunctionConfig       `json:"functions"`
-	Metadata  json.RawMessage `json:"metadata,omitempty"`
-}
-
-// PipelineRequest represents a pipeline execution request
-type PipelineRequest struct {
-	Pipeline  Pipeline         `json:"pipeline"`
-	Resources []KRMResource    `json:"resources"`
-	Context   *FunctionContext `json:"context,omitempty"`
-}
-
-// PipelineResponse represents a pipeline execution response
-type PipelineResponse struct {
-	Resources []KRMResource     `json:"resources"`
-	Results   []*FunctionResult `json:"results,omitempty"`
-	Error     *FunctionError    `json:"error,omitempty"`
-=======
 // TestPipeline defines a sequence of KRM functions for testing
 type TestPipeline struct {
 	Name      string                `json:"name"`
 	Functions []porch.FunctionConfig `json:"functions"`
 	Metadata  json.RawMessage       `json:"metadata,omitempty"`
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 }
 
 // MockKRMRuntime provides a mock implementation of KRM function runtime

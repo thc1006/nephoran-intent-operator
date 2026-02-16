@@ -200,9 +200,9 @@ func TestCountingReader(t *testing.T) {
 }
 
 func TestMaxJSONBytesConstant(t *testing.T) {
-	// Verify the constant is set to 5MB as defined
-	assert.Equal(t, int64(MaxJSONBytes), int64(5*1024*1024))
-	assert.Equal(t, int64(MaxJSONBytes), int64(5<<20))
+	// Verify the constant is set to 1MB as defined
+	assert.Equal(t, int64(1*1024*1024), int64(MaxJSONBytes))
+	assert.Equal(t, int64(1<<20), int64(MaxJSONBytes))
 }
 
 func BenchmarkValidateAndLimitJSON(b *testing.B) {

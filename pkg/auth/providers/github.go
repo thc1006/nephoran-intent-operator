@@ -290,30 +290,9 @@ func (p *GitHubProvider) ExchangeCodeForToken(ctx context.Context, code, redirec
 // RefreshToken refreshes an access token using refresh token.
 
 func (p *GitHubProvider) RefreshToken(ctx context.Context, refreshToken string) (*TokenResponse, error) {
-	token := &oauth2.Token{
-		RefreshToken: refreshToken,
-	}
+	return nil, NewProviderError(p.GetProviderName(), "not_supported",
 
-	tokenSource := p.oauth2Cfg.TokenSource(ctx, token)
-
-	newToken, err := tokenSource.Token()
-	if err != nil {
-		return nil, NewProviderError(p.GetProviderName(), "token_refresh_failed",
-
-			"Failed to refresh token", err)
-	}
-
-	return &TokenResponse{
-		AccessToken: newToken.AccessToken,
-
-		RefreshToken: newToken.RefreshToken,
-
-		TokenType: newToken.TokenType,
-
-		ExpiresIn: int64(time.Until(newToken.Expiry).Seconds()),
-
-		IssuedAt: time.Now(),
-	}, nil
+		"GitHub does not support refresh tokens", nil)
 }
 
 // GetUserInfo retrieves user information using access token.
@@ -421,7 +400,7 @@ func (p *GitHubProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 // ValidateToken validates an access token.
 
 func (p *GitHubProvider) ValidateToken(ctx context.Context, accessToken string) (*TokenValidation, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/user", http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, "GET", p.config.Endpoints.UserInfoURL, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create validation request: %w", err)
 	}

@@ -238,7 +238,7 @@ customMetric := prometheus.NewCounterVec(
 
 - **[Complete Prometheus Metrics Documentation](../../PROMETHEUS_METRICS.md)**: Detailed metrics reference
 - **[Production Monitoring Guide](../../docs/runbooks/monitoring-alerting-runbook.md)**: Operational procedures
-- **[Performance Optimization](../../docs/reports/performance-optimization.md)**: System tuning guidance
+- **[Performance Optimization](../../docs/archive/reports/performance-optimization.md)**: System tuning guidance
 - **[Troubleshooting Guide](../../docs/runbooks/troubleshooting-guide.md)**: Issue resolution procedures
 
 ## 🤝 Contributing

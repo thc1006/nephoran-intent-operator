@@ -1,2 +1,0 @@
-EUID:1000
-Error: Please run the command with sudo as helm servecm needs to copy a file in location needing privilege

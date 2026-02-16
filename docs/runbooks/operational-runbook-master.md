@@ -741,7 +741,7 @@ optimize_performance() {
 ## Related Runbooks
 
 - [Monitoring & Alerting Runbook](./monitoring-alerting-runbook.md) - Detailed monitoring procedures
-- [Incident Response Runbook](./incident-response-runbook.md) - Emergency response procedures
+- [Incident Response Runbook](./incident-response.md) - Emergency response procedures
 - [Disaster Recovery Runbook](./disaster-recovery-runbook.md) - DR procedures
 - [Security Operations Runbook](./security-operations-runbook.md) - Security procedures
 - [Weaviate Operations](../../deployments/weaviate/OPERATIONAL-RUNBOOK.md) - Weaviate-specific procedures

@@ -1123,7 +1123,7 @@ EOF
 
 ## Related Documentation
 
-- [Incident Response Runbook](./incident-response-runbook.md) - General incident procedures
+- [Incident Response Runbook](./incident-response.md) - General incident procedures
 - [Master Operational Runbook](./operational-runbook-master.md) - Daily operations
 - [Disaster Recovery Runbook](./disaster-recovery-runbook.md) - DR procedures
 - [Security Hardening Guide](../security/hardening-guide.md) - Detailed hardening procedures
