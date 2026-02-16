@@ -1,0 +1,22 @@
+---
+apiVersion: intent.nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: test-scale-odu
+  namespace: default
+spec:
+  source: "user"
+  intentType: "scaling"
+  target: "odu-high-phy"
+  namespace: "oran-odu"
+  replicas: 3
+  scalingParameters:
+    replicas: 3
+    autoscalingPolicy:
+      minReplicas: 1
+      maxReplicas: 10
+  networkParameters:
+    networkSliceId: "slice-001"
+    qosProfile:
+      priority: 1
+      maximumDataRate: "1Gbps"

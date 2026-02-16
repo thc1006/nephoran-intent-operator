@@ -1,6 +1,5 @@
 from typing import Dict, Any
 from langchain_community.vectorstores import Weaviate
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 import json
@@ -10,30 +9,41 @@ import logging
 # Import document processor for knowledge base loading
 from document_processor import DocumentProcessor
 
+# Import Ollama support (primary provider)
+try:
+    from langchain_ollama import ChatOllama, OllamaEmbeddings
+    OLLAMA_AVAILABLE = True
+except ImportError:
+    OLLAMA_AVAILABLE = False
+    logging.warning("langchain-ollama not installed. Ollama support disabled.")
+
+# Import OpenAI support (optional)
+try:
+    from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+    logging.info("langchain-openai not installed. OpenAI support disabled.")
+
 
 class TelecomRAGPipeline:
     """Production-ready RAG pipeline for telecom domain."""
 
     def __init__(self, config: Dict[str, Any]):
-        if not config.get("openai_api_key"):
-            raise ValueError("OpenAI API key is required")
+        provider = config.get("llm_provider", "ollama").lower()
+        if provider == "openai" and not config.get("openai_api_key"):
+            raise ValueError("OpenAI API key is required for OpenAI provider")
 
         self.config = config
         self.logger = self._setup_logging()
 
         try:
-            self.embeddings = OpenAIEmbeddings(
-                model="text-embedding-3-large",
-                dimensions=3072,
-                openai_api_key=config["openai_api_key"]
-            )
-            self.llm = ChatOpenAI(
-                model="gpt-4o-mini",
-                temperature=0,
-                max_tokens=2048,
-                model_kwargs={"response_format": {"type": "json_object"}},
-                openai_api_key=config["openai_api_key"]
-            )
+            # Initialize embeddings based on provider
+            self.embeddings = self._initialize_embeddings(config)
+
+            # Initialize LLM based on provider
+            self.llm = self._initialize_llm(config)
+
             self.vector_store = self._setup_vector_store(config)
             self.qa_chain = self._create_qa_chain()
 
@@ -54,6 +64,65 @@ class TelecomRAGPipeline:
             handler.setFormatter(formatter)
             logger.addHandler(handler)
         return logger
+
+    def _initialize_embeddings(self, config: Dict):
+        """Initialize embeddings based on provider configuration"""
+        provider = config.get("llm_provider", "ollama").lower()
+
+        if provider == "ollama" and OLLAMA_AVAILABLE:
+            ollama_base_url = config.get("ollama_base_url", "http://localhost:11434")
+            embed_model = config.get("embedding_model",
+                                     config.get("llm_model", "llama3.1:8b-instruct-q5_K_M"))
+            self.logger.info(f"Initializing Ollama embeddings: model={embed_model}")
+            return OllamaEmbeddings(
+                model=embed_model,
+                base_url=ollama_base_url,
+            )
+
+        elif provider == "openai" and OPENAI_AVAILABLE:
+            return OpenAIEmbeddings(
+                model="text-embedding-3-large",
+                dimensions=3072,
+                openai_api_key=config.get("openai_api_key", "not-needed")
+            )
+
+        else:
+            raise RuntimeError(f"No embedding provider available for provider='{provider}'")
+
+    def _initialize_llm(self, config: Dict):
+        """Initialize LLM based on provider configuration"""
+        provider = config.get("llm_provider", "ollama").lower()
+
+        if provider == "ollama":
+            if not OLLAMA_AVAILABLE:
+                raise ImportError("langchain-ollama is not installed. Install with: pip install langchain-ollama")
+
+            self.logger.info(f"Initializing Ollama LLM: {config.get('llm_model', 'llama2')}")
+
+            return ChatOllama(
+                model=config.get("llm_model", "llama2"),
+                base_url=config.get("ollama_base_url", "http://localhost:11434"),
+                temperature=0,
+                num_predict=2048,
+                format="json",  # Request JSON output
+            )
+
+        elif provider == "openai":
+            if not config.get("openai_api_key"):
+                raise ValueError("OpenAI API key is required for OpenAI provider")
+
+            self.logger.info(f"Initializing OpenAI LLM: {config.get('llm_model', 'gpt-4o-mini')}")
+
+            return ChatOpenAI(
+                model=config.get("llm_model", "gpt-4o-mini"),
+                temperature=0,
+                max_tokens=2048,
+                model_kwargs={"response_format": {"type": "json_object"}},
+                openai_api_key=config["openai_api_key"]
+            )
+
+        else:
+            raise ValueError(f"Unsupported LLM provider: {provider}. Choose 'openai' or 'ollama'")
 
     def _load_domain_knowledge(self):
         """Load and index telecom domain knowledge from knowledge_base/"""
@@ -85,12 +154,19 @@ class TelecomRAGPipeline:
     def _setup_vector_store(self, config: Dict) -> Weaviate:
         """Initialize Weaviate vector database."""
         try:
+            weaviate_url = config.get("weaviate_url", "http://weaviate.weaviate.svc.cluster.local:80")
+            headers = {}
+
+            # Only add OpenAI header if using OpenAI provider
+            if config.get("llm_provider", "ollama").lower() == "openai" and config.get("openai_api_key"):
+                headers["X-OpenAI-Api-Key"] = config["openai_api_key"]
+
             return Weaviate.from_existing_index(
                 embedding=self.embeddings,
-                index_name="telecom_knowledge",
+                index_name="TelecomKnowledge",
                 text_key="content",
-                weaviate_url=config["weaviate_url"],
-                additional_headers={"X-OpenAI-Api-Key": config["openai_api_key"]}
+                weaviate_url=weaviate_url,
+                additional_headers=headers if headers else None
             )
         except Exception as e:
             raise ConnectionError(f"Failed to connect to Weaviate at {config.get('weaviate_url', 'unknown')}: {e}")

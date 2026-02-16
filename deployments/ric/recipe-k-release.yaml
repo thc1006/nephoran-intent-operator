@@ -1,0 +1,171 @@
+################################################################################
+#   Copyright (c) 2019 AT&T Intellectual Property.                             #
+#   Copyright (c) 2021 HCL Technologies Limited.                               #
+#   Copyright (c) 2022 Samsung Electronics Co., Ltd.                           #
+#                                                                              #
+#   Licensed under the Apache License, Version 2.0 (the "License");            #
+#   you may not use this file except in compliance with the License.           #
+#   You may obtain a copy of the License at                                    #
+#                                                                              #
+#       http://www.apache.org/licenses/LICENSE-2.0                             #
+#                                                                              #
+#   Unless required by applicable law or agreed to in writing, software        #
+#   distributed under the License is distributed on an "AS IS" BASIS,          #
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.   #
+#   See the License for the specific language governing permissions and        #
+#   limitations under the License.                                             #
+###############################################################################
+
+#-------------------------------------------------------------------------
+# Global common setting
+#-------------------------------------------------------------------------
+
+common:
+  releasePrefix: r4
+# If a local docker registry is used, please specify it using the following option
+#  localregistry: nexus3.o-ran-sc.org:10004
+
+# Change the overall image pull policy using the following option
+#  pullpolicy: IfNotPresent
+
+# Change the namespaces using the following options
+#  namespace:
+#    aux: ricaux
+#    platform: ricplt
+#    xapp: ricxapp
+#    infra: ricinfra
+
+# ricip should be the ingress controller listening IP for the platform cluster
+# auxip should be the ingress controller listening IP for the AUX cluster
+extsvcplt:
+  ricip: "10.0.0.1"
+  auxip: "10.0.0.1"
+
+
+# Specify the docker registry credential using the following
+# The release and staging LF repos' credentials have already been included.
+# Please do not create duplicated entries
+#docker-credential:
+#  enabled: true
+#  credential:
+#    SOME_KEY_NAME:
+#      registry: ""
+#      credential:
+#        user: ""
+#        password: ""
+#        email: ""
+
+prometheus:
+  enabled: true
+
+a1mediator:
+  image:
+    registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+    name: ric-plt-a1
+    tag: 3.2.2
+  rmr_timeout_config:
+    a1_rcv_retry_times: 20
+    ins_del_no_resp_ttl: 5
+    ins_del_resp_ttl: 10
+
+appmgr:
+  image:
+   init:
+     registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+     name: it-dep-init
+     tag: 0.0.1
+   appmgr:
+     registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+     name: ric-plt-appmgr
+     tag: 0.5.8
+   chartmuseum:
+     registry: "docker.io"
+     name: chartmuseum/chartmuseum
+     tag: v0.8.2
+
+
+dbaas:
+  image:
+    registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+    name: ric-plt-dbaas
+    tag: 0.6.4
+  enableHighAvailability: false
+  # Enable pod anti affinity only if you have more than 3 k8s nodes
+  enablePodAntiAffinity: false
+
+
+e2mgr:
+  image:
+    registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+    name: ric-plt-e2mgr
+    tag: 6.0.6
+  privilegedmode: false
+  globalRicId:
+    ricId: "AACCE"
+    mcc: "310"
+    mnc: "411"
+  rnibWriter:
+    stateChangeMessageChannel: RAN_CONNECTION_STATUS_CHANGE
+    ranManipulationMessageChannel: RAN_MANIPULATION
+
+e2term:
+  alpha:
+    image:
+      registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+      name: ric-plt-e2
+      tag: 6.0.6
+    privilegedmode: false
+    hostnetworkmode: false
+    env:
+      print: "1"
+      messagecollectorfile: "/data/outgoing/"
+    dataVolSize: 100Mi
+    storageClassName: local-storage
+    pizpub:
+      enabled: false
+
+
+jaegeradapter:
+  image:
+    registry: "docker.io"
+    name: jaegertracing/all-in-one
+    tag: 1.12
+
+
+rtmgr:
+  image:
+    registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+    name: ric-plt-rtmgr
+    tag: 0.9.6
+
+submgr:
+  image:
+    registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+    name: ric-plt-submgr
+    tag: 0.10.2
+
+vespamgr:
+  image:
+    registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+    name: ric-plt-vespamgr
+    tag: 0.7.5
+  prometheusurl: "http://r4-infrastructure-prometheus-server.ricplt"
+
+o1mediator:
+  image:
+    registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+    name: ric-plt-o1
+    tag: 0.6.3
+
+
+alarmmanager:
+  image:
+    registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+    name: ric-plt-alarmmanager
+    tag: 0.5.16
+
+influxdb:
+  image:
+    registry: "influxdb"
+    name: influxdb
+    tag: "2.2.0-alpine"

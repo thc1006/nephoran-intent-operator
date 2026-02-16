@@ -54,7 +54,7 @@ spec:
           feature-gates: "APIResponseCompression=true,APIServerIdentity=true"
       apiServer:
         extraArgs:
-          enable-admission-plugins: "NodeRestriction,PodSecurityPolicy,ResourceQuota"
+          enable-admission-plugins: "NodeRestriction,PodSecurity,ResourceQuota"
           feature-gates: "APIResponseCompression=true,APIServerIdentity=true"
           audit-log-path: "/var/log/kubernetes/audit.log"
           audit-policy-file: "/etc/kubernetes/audit-policy.yaml"
@@ -69,13 +69,13 @@ spec:
       nodeRegistration:
         kubeletExtraArgs:
           node-labels: "nephio.org/role=control-plane,nephio.org/version=r5,ocloud=enabled"
-          feature-gates: "PodSecurityPolicy=true"
+          feature-gates: "GracefulNodeShutdown=true"
           cgroup-driver: "systemd"
     joinConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
           node-labels: "nephio.org/role=control-plane,nephio.org/version=r5,ocloud=enabled"
-          feature-gates: "PodSecurityPolicy=true"
+          feature-gates: "GracefulNodeShutdown=true"
           cgroup-driver: "systemd"
     files:
     - path: /etc/kubernetes/audit-policy.yaml
@@ -177,7 +177,7 @@ spec:
         nodeRegistration:
           kubeletExtraArgs:
             node-labels: "nephio.org/role=worker,nephio.org/version=r5,ocloud=enabled"
-            feature-gates: "PodSecurityPolicy=true"
+            feature-gates: "GracefulNodeShutdown=true"
             cgroup-driver: "systemd"
 
 ---

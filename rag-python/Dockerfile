@@ -4,7 +4,7 @@
 # ============================================================================
 # Stage 1: Builder
 # ============================================================================
-FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
 
 WORKDIR /build
 
@@ -31,8 +31,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 FROM python:3.11-slim
 
 LABEL maintainer="nephoran-team" \
-      version="1.0.0" \
-      description="RAG Service for Nephoran Intent Operator"
+      version="1.1.0" \
+      description="RAG Service for Nephoran Intent Operator (Ollama + Weaviate)"
 
 WORKDIR /app
 
@@ -48,7 +48,9 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy application code
 COPY *.py ./
-COPY ../knowledge_base /knowledge_base
+
+# Create knowledge_base directory (will be populated at runtime or via volume)
+RUN mkdir -p /app/knowledge_base
 
 # Create non-root user
 RUN useradd -m -u 1000 rag-user && \
@@ -59,14 +61,16 @@ USER rag-user
 EXPOSE 8000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/healthz || exit 1
 
 # Environment variables (override in deployment)
-ENV OPENAI_API_KEY="" \
-    WEAVIATE_URL="http://weaviate:8080" \
+ENV LLM_PROVIDER="ollama" \
+    LLM_MODEL="llama3.1:8b-instruct-q5_K_M" \
+    OLLAMA_BASE_URL="http://localhost:11434" \
+    WEAVIATE_URL="http://weaviate.weaviate.svc.cluster.local:80" \
     LOG_LEVEL="INFO" \
-    WORKERS=4
+    KNOWLEDGE_BASE_PATH="/app/knowledge_base"
 
-# Run API server
-CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+# Run API server (single worker for single-node, use lifespan events)
+CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

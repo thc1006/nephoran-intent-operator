@@ -1,0 +1,25 @@
+---
+apiVersion: intent.nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: e2e-test-simple-scale
+  namespace: default
+  labels:
+    test-suite: intent-ric-e2e
+    test-scenario: simple-scale
+spec:
+  source: "e2e-test"
+  intentType: "scaling"
+  target: "odu-high"
+  namespace: "ricxapp"
+  replicas: 3
+  scalingParameters:
+    replicas: 3
+    autoscalingPolicy:
+      minReplicas: 1
+      maxReplicas: 5
+  networkParameters:
+    networkSliceId: "slice-001"
+    qosProfile:
+      priority: 1
+      maximumDataRate: "1Gbps"

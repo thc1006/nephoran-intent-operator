@@ -1,0 +1,143 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: e2-test-scripts
+  namespace: ricxapp
+data:
+  test-e2-connectivity.sh: |
+    #!/bin/bash
+    set -e
+
+    echo "=================================="
+    echo "E2 Connectivity Test Tool"
+    echo "=================================="
+    echo ""
+
+    E2TERM_SERVICE="service-ricplt-e2term-sctp-alpha.ricplt.svc.cluster.local"
+    E2TERM_PORT="36422"
+    E2MGR_SERVICE="service-ricplt-e2mgr-http.ricplt.svc.cluster.local"
+    E2MGR_PORT="3800"
+
+    # Test 1: DNS Resolution
+    echo "Test 1: DNS Resolution"
+    echo "----------------------"
+    nslookup $E2TERM_SERVICE && echo "✓ E2 Term DNS OK" || echo "✗ E2 Term DNS Failed"
+    nslookup $E2MGR_SERVICE && echo "✓ E2 Manager DNS OK" || echo "✗ E2 Manager DNS Failed"
+    echo ""
+
+    # Test 2: E2 Manager HTTP API
+    echo "Test 2: E2 Manager HTTP API"
+    echo "---------------------------"
+    curl -s http://$E2MGR_SERVICE:$E2MGR_PORT/v1/nodeb/states 2>&1 | head -10 && echo "✓ E2 Manager API OK" || echo "✗ E2 Manager API Failed"
+    echo ""
+
+    # Test 3: Network Connectivity to E2 Term
+    echo "Test 3: Network Connectivity to E2 Term SCTP port"
+    echo "-------------------------------------------------"
+    timeout 5 bash -c "cat < /dev/null > /dev/tcp/$E2TERM_SERVICE/36422" 2>/dev/null && echo "✓ E2 Term TCP reachable" || echo "✗ E2 Term TCP not reachable (SCTP port may not respond to TCP)"
+    echo ""
+
+    # Test 4: Check E2 Term Pod
+    echo "Test 4: E2 Term Pod Status"
+    echo "-------------------------"
+    echo "Checking via kubectl (if available)..."
+    echo ""
+
+    echo "=================================="
+    echo "Test Summary"
+    echo "=================================="
+    echo "E2 Term Service: $E2TERM_SERVICE:$E2TERM_PORT"
+    echo "E2 Manager Service: $E2MGR_SERVICE:$E2MGR_PORT"
+    echo ""
+    echo "To manually test E2 Manager API:"
+    echo "  curl http://$E2MGR_SERVICE:$E2MGR_PORT/v1/nodeb/states"
+    echo ""
+    echo "To simulate E2 Setup:"
+    echo "  (Requires E2AP encoder/decoder - not available in this basic test client)"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: e2-test-client
+  namespace: ricxapp
+  labels:
+    app: e2-test-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: e2-test-client
+  template:
+    metadata:
+      labels:
+        app: e2-test-client
+    spec:
+      containers:
+      - name: test-client
+        image: ubuntu:22.04
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/bash"]
+        args:
+          - -c
+          - |
+            set -e
+
+            echo "Installing dependencies..."
+            apt-get update -qq
+            apt-get install -y -qq curl nmap dnsutils netcat-openbsd iproute2 iputils-ping lksctp-tools > /dev/null 2>&1
+
+            echo ""
+            echo "=================================="
+            echo "E2 Test Client Ready"
+            echo "=================================="
+            echo ""
+            echo "Available test tools:"
+            echo "  - curl: HTTP client"
+            echo "  - nmap: Network scanner"
+            echo "  - nslookup: DNS lookup"
+            echo "  - nc: Netcat"
+            echo "  - ping: ICMP ping"
+            echo "  - sctp_test: SCTP testing (lksctp-tools)"
+            echo ""
+            echo "Quick tests:"
+            echo "  1. Test E2 Manager API:"
+            echo "     curl http://service-ricplt-e2mgr-http.ricplt.svc.cluster.local:3800/v1/nodeb/states"
+            echo ""
+            echo "  2. Test DNS:"
+            echo "     nslookup service-ricplt-e2term-sctp-alpha.ricplt.svc.cluster.local"
+            echo ""
+            echo "  3. Scan E2 Term ports:"
+            echo "     nmap -p 36422 service-ricplt-e2term-sctp-alpha.ricplt.svc.cluster.local"
+            echo ""
+            echo "  4. Run test script:"
+            echo "     bash /scripts/test-e2-connectivity.sh"
+            echo ""
+
+            # Run initial connectivity test
+            if [ -f /scripts/test-e2-connectivity.sh ]; then
+              echo "Running initial connectivity test..."
+              echo ""
+              bash /scripts/test-e2-connectivity.sh || true
+            fi
+
+            echo ""
+            echo "Container will remain running. Use 'kubectl exec' to run additional tests."
+            tail -f /dev/null
+        volumeMounts:
+        - name: scripts
+          mountPath: /scripts
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      volumes:
+      - name: scripts
+        configMap:
+          name: e2-test-scripts
+          defaultMode: 0755
+      restartPolicy: Always

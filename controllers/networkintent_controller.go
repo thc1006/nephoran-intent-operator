@@ -46,9 +46,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
+)
+
+const (
+	// NetworkIntentFinalizerName is the finalizer added to NetworkIntent resources
+	NetworkIntentFinalizerName = "intent.nephoran.com/a1-policy-cleanup"
 )
 
 // NetworkIntentReconciler reconciles a NetworkIntent object.
@@ -63,6 +69,12 @@ type NetworkIntentReconciler struct {
 	EnableLLMIntent bool
 
 	LLMProcessorURL string
+
+	// A1MediatorURL is the endpoint for the O-RAN A1 Mediator
+	A1MediatorURL string
+
+	// EnableA1Integration enables A1 policy creation
+	EnableA1Integration bool
 }
 
 // LLMRequest represents the request to the LLM processor.
@@ -79,6 +91,36 @@ type LLMResponse struct {
 	Message string `json:"message,omitempty"`
 
 	Error string `json:"error,omitempty"`
+}
+
+// A1Policy represents an A1 policy conforming to policy type 100
+type A1Policy struct {
+	Scope         A1PolicyScope   `json:"scope"`
+	QoSObjectives A1QoSObjectives `json:"qosObjectives"`
+}
+
+// A1PolicyScope defines the target scope for the policy
+type A1PolicyScope struct {
+	Target     string `json:"target"`
+	Namespace  string `json:"namespace"`
+	IntentType string `json:"intentType"`
+}
+
+// A1QoSObjectives defines QoS and scaling objectives
+type A1QoSObjectives struct {
+	Replicas         int32               `json:"replicas"`
+	MinReplicas      int32               `json:"minReplicas,omitempty"`
+	MaxReplicas      int32               `json:"maxReplicas,omitempty"`
+	NetworkSliceID   string              `json:"networkSliceId,omitempty"`
+	Priority         int32               `json:"priority,omitempty"`
+	MaximumDataRate  string              `json:"maximumDataRate,omitempty"`
+	MetricThresholds []A1MetricThreshold `json:"metricThresholds,omitempty"`
+}
+
+// A1MetricThreshold defines a metric-based scaling threshold
+type A1MetricThreshold struct {
+	Type  string `json:"type"`
+	Value int64  `json:"value"`
 }
 
 //+kubebuilder:rbac:groups=intent.nephio.org,resources=networkintents,verbs=get;list;watch;create;update;patch;delete
@@ -121,14 +163,40 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	}
 
-	// Check if the object is being deleted.
+	// Check if the object is being deleted and handle finalizer
 
 	if !networkIntent.ObjectMeta.DeletionTimestamp.IsZero() {
+		// The object is being deleted
+		if controllerutil.ContainsFinalizer(networkIntent, NetworkIntentFinalizerName) {
+			// Our finalizer is present, so handle A1 policy cleanup
+			log.Info("Deleting A1 policy for NetworkIntent", "name", networkIntent.Name)
 
-		log.Info("NetworkIntent is being deleted", "name", networkIntent.Name)
+			if r.EnableA1Integration {
+				if err := r.deleteA1Policy(ctx, networkIntent); err != nil {
+					log.Error(err, "Failed to delete A1 policy, will retry")
+					return ctrl.Result{RequeueAfter: 5 * time.Second}, err
+				}
+				log.Info("A1 policy deleted successfully", "name", networkIntent.Name)
+			}
 
+			// Remove our finalizer from the list and update it
+			controllerutil.RemoveFinalizer(networkIntent, NetworkIntentFinalizerName)
+			if err := r.Update(ctx, networkIntent); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+
+		// Stop reconciliation as the item is being deleted
 		return ctrl.Result{}, nil
+	}
 
+	// Add finalizer if not present
+	if !controllerutil.ContainsFinalizer(networkIntent, NetworkIntentFinalizerName) {
+		log.Info("Adding finalizer to NetworkIntent", "name", networkIntent.Name)
+		controllerutil.AddFinalizer(networkIntent, NetworkIntentFinalizerName)
+		if err := r.Update(ctx, networkIntent); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	// Validate the intent field.
@@ -141,6 +209,49 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	if _, err := r.updateStatus(ctx, networkIntent, "Validated", "Intent validated successfully", networkIntent.Generation); err != nil {
 		return ctrl.Result{}, err
+	}
+
+	// If A1 integration is enabled, create/update A1 policy
+	if r.EnableA1Integration {
+		// Check if this is an update (status already shows Deployed)
+		isUpdate := networkIntent.Status.Phase == "Deployed"
+
+		if isUpdate {
+			log.Info("Updating A1 policy for modified NetworkIntent", "name", networkIntent.Name)
+		} else {
+			log.Info("Converting NetworkIntent to A1 policy", "name", networkIntent.Name)
+		}
+
+		// Convert NetworkIntent to A1 policy
+		a1Policy, err := convertToA1Policy(networkIntent)
+		if err != nil {
+			log.Error(err, "Failed to convert NetworkIntent to A1 policy")
+			return r.updateStatus(ctx, networkIntent, "Error",
+				fmt.Sprintf("Failed to convert to A1 policy: %v", err), networkIntent.Generation)
+		}
+
+		// Create/Update A1 policy via A1 Mediator API (PUT is idempotent - creates or updates)
+		if err := r.createA1Policy(ctx, networkIntent, a1Policy); err != nil {
+			log.Error(err, "Failed to create/update A1 policy")
+			return r.updateStatus(ctx, networkIntent, "Error",
+				fmt.Sprintf("Failed to create/update A1 policy: %v", err), networkIntent.Generation)
+		}
+
+		statusMessage := "Intent deployed successfully via A1 policy"
+		if isUpdate {
+			statusMessage = "Intent updated successfully via A1 policy"
+			log.Info("A1 policy updated successfully", "name", networkIntent.Name)
+		} else {
+			log.Info("A1 policy created successfully", "name", networkIntent.Name)
+		}
+
+		if _, err := r.updateStatus(ctx, networkIntent, "Deployed",
+			statusMessage, networkIntent.Generation); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		// A1 integration complete, return
+		return ctrl.Result{}, nil
 	}
 
 	// If LLM intent processing is enabled, send to LLM processor.
@@ -269,6 +380,176 @@ func (r *NetworkIntentReconciler) updateStatus(ctx context.Context, networkInten
 	return ctrl.Result{}, nil
 }
 
+// convertToA1Policy converts a NetworkIntent to an A1 policy conforming to policy type 100
+func convertToA1Policy(networkIntent *intentv1alpha1.NetworkIntent) (*A1Policy, error) {
+	spec := networkIntent.Spec
+
+	policy := &A1Policy{
+		Scope: A1PolicyScope{
+			Target:     spec.Target,
+			Namespace:  spec.Namespace,
+			IntentType: spec.IntentType,
+		},
+		QoSObjectives: A1QoSObjectives{
+			Replicas: spec.Replicas,
+		},
+	}
+
+	// Extract scaling parameters if present
+	if spec.ScalingParameters != nil {
+		if spec.ScalingParameters.AutoscalingPolicy != nil {
+			// Copy autoscaling values
+			policy.QoSObjectives.MinReplicas = spec.ScalingParameters.AutoscalingPolicy.MinReplicas
+			policy.QoSObjectives.MaxReplicas = spec.ScalingParameters.AutoscalingPolicy.MaxReplicas
+
+			// Convert metric thresholds
+			for _, mt := range spec.ScalingParameters.AutoscalingPolicy.MetricThresholds {
+				policy.QoSObjectives.MetricThresholds = append(policy.QoSObjectives.MetricThresholds, A1MetricThreshold{
+					Type:  mt.Type,
+					Value: mt.Value,
+				})
+			}
+		}
+	}
+
+	// Extract network parameters if present
+	if spec.NetworkParameters != nil {
+		policy.QoSObjectives.NetworkSliceID = spec.NetworkParameters.NetworkSliceID
+		if spec.NetworkParameters.QoSProfile != nil {
+			policy.QoSObjectives.Priority = spec.NetworkParameters.QoSProfile.Priority
+			policy.QoSObjectives.MaximumDataRate = spec.NetworkParameters.QoSProfile.MaximumDataRate
+		}
+	}
+
+	return policy, nil
+}
+
+// createA1Policy creates an A1 policy via the A1 Mediator API
+func (r *NetworkIntentReconciler) createA1Policy(ctx context.Context, networkIntent *intentv1alpha1.NetworkIntent, policy *A1Policy) error {
+	log := log.FromContext(ctx)
+
+	// Convert policy to JSON
+	policyJSON, err := json.Marshal(policy)
+	if err != nil {
+		return fmt.Errorf("failed to marshal A1 policy: %w", err)
+	}
+
+	// Determine A1 Mediator URL
+	a1URL := r.A1MediatorURL
+	if a1URL == "" {
+		// Default to in-cluster service
+		a1URL = "http://service-ricplt-a1mediator-http.ricplt:10000"
+	}
+
+	// Policy type ID (using 100 as established in testing)
+	policyTypeID := "100"
+	// Generate policy instance ID from NetworkIntent name
+	policyInstanceID := fmt.Sprintf("policy-%s", networkIntent.Name)
+
+	// Construct A1 v2 API endpoint
+	apiEndpoint := fmt.Sprintf("%s/A1-P/v2/policytypes/%s/policies/%s",
+		a1URL, policyTypeID, policyInstanceID)
+
+	log.Info("Creating A1 policy",
+		"endpoint", apiEndpoint,
+		"policyTypeID", policyTypeID,
+		"policyInstanceID", policyInstanceID)
+
+	// Create HTTP client with timeout
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	// Create PUT request (A1 v2 uses PUT for policy creation)
+	httpReq, err := http.NewRequestWithContext(ctx, "PUT", apiEndpoint, bytes.NewBuffer(policyJSON))
+	if err != nil {
+		return fmt.Errorf("failed to create A1 request: %w", err)
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	// Send the request
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("failed to send A1 request: %w", err)
+	}
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Error(err, "Failed to close A1 response body")
+		}
+	}()
+
+	// Check response status
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		bodyBytes, _ := json.Marshal(resp.Body)
+		return fmt.Errorf("A1 API returned error status %d: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	log.Info("A1 policy created successfully",
+		"policyInstanceID", policyInstanceID,
+		"statusCode", resp.StatusCode)
+
+	return nil
+}
+
+// deleteA1Policy deletes an A1 policy via the A1 Mediator API
+func (r *NetworkIntentReconciler) deleteA1Policy(ctx context.Context, networkIntent *intentv1alpha1.NetworkIntent) error {
+	log := log.FromContext(ctx)
+
+	// Determine A1 Mediator URL
+	a1URL := r.A1MediatorURL
+	if a1URL == "" {
+		a1URL = "http://service-ricplt-a1mediator-http.ricplt:10000"
+	}
+
+	// Policy type ID and instance ID
+	policyTypeID := "100"
+	policyInstanceID := fmt.Sprintf("policy-%s", networkIntent.Name)
+
+	// Construct A1 v2 API endpoint for deletion
+	apiEndpoint := fmt.Sprintf("%s/A1-P/v2/policytypes/%s/policies/%s",
+		a1URL, policyTypeID, policyInstanceID)
+
+	log.Info("Deleting A1 policy",
+		"endpoint", apiEndpoint,
+		"policyTypeID", policyTypeID,
+		"policyInstanceID", policyInstanceID)
+
+	// Create HTTP client with timeout
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	// Create DELETE request
+	httpReq, err := http.NewRequestWithContext(ctx, "DELETE", apiEndpoint, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create A1 delete request: %w", err)
+	}
+
+	// Send the request
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("failed to send A1 delete request: %w", err)
+	}
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Error(err, "Failed to close A1 response body")
+		}
+	}()
+
+	// Check response status (204 No Content or 404 Not Found are acceptable)
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusNotFound && resp.StatusCode != http.StatusAccepted {
+		bodyBytes, _ := json.Marshal(resp.Body)
+		return fmt.Errorf("A1 API delete returned error status %d: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	log.Info("A1 policy deletion completed",
+		"policyInstanceID", policyInstanceID,
+		"statusCode", resp.StatusCode)
+
+	return nil
+}
+
 // SetupWithManager sets up the controller with the Manager.
 
 func (r *NetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -282,6 +563,16 @@ func (r *NetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	if url := os.Getenv("LLM_PROCESSOR_URL"); url != "" {
 		r.LLMProcessorURL = url
+	}
+
+	// Check if A1 integration is enabled (default: true)
+	if envVal := os.Getenv("ENABLE_A1_INTEGRATION"); envVal == "" || envVal == "true" {
+		r.EnableA1Integration = true
+	}
+
+	// Get A1 Mediator URL from environment if set
+	if url := os.Getenv("A1_MEDIATOR_URL"); url != "" {
+		r.A1MediatorURL = url
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).

@@ -1,0 +1,254 @@
+---
+# ServiceAccount for the Nephoran Intent Operator
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nephoran-operator-controller-manager
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: manager
+    app.kubernetes.io/managed-by: kubectl
+automountServiceAccountToken: true
+
+---
+# ClusterRole for NetworkIntent resources (intent.nephoran.com group)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-manager
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: rbac
+rules:
+- apiGroups:
+  - intent.nephoran.com
+  resources:
+  - networkintents
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - intent.nephoran.com
+  resources:
+  - networkintents/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - intent.nephoran.com
+  resources:
+  - networkintents/status
+  verbs:
+  - get
+  - patch
+  - update
+# Core resources needed by controller-runtime
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+# Authentication/authorization for metrics
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+
+---
+# ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephoran-manager-binding
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: rbac
+subjects:
+- kind: ServiceAccount
+  name: nephoran-operator-controller-manager
+  namespace: nephoran-system
+roleRef:
+  kind: ClusterRole
+  name: nephoran-manager
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Leader election Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nephoran-leader-election-role
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: rbac
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+
+---
+# Leader election RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nephoran-leader-election-binding
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: rbac
+subjects:
+- kind: ServiceAccount
+  name: nephoran-operator-controller-manager
+  namespace: nephoran-system
+roleRef:
+  kind: Role
+  name: nephoran-leader-election-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Deployment - Single replica for local/dev deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nephoran-operator-controller-manager
+  namespace: nephoran-system
+  labels:
+    control-plane: controller-manager
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: manager
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    app.kubernetes.io/managed-by: kubectl
+spec:
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+      labels:
+        control-plane: controller-manager
+        app.kubernetes.io/name: nephoran-intent-operator
+        app.kubernetes.io/component: manager
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+      containers:
+      - name: manager
+        command:
+        - /manager
+        args:
+        - --leader-elect=false
+        - --health-probe-bind-address=:8081
+        - --metrics-bind-address=0
+        image: nephoran-intent-operator:latest
+        imagePullPolicy: Never
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 65532
+          runAsGroup: 65532
+          capabilities:
+            drop:
+            - "ALL"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+            scheme: HTTP
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        resources:
+          limits:
+            cpu: 200m
+            memory: 256Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        env:
+        - name: OPERATOR_NAME
+          value: "nephoran-intent-operator"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+      serviceAccountName: nephoran-operator-controller-manager
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      # Tolerate control-plane taint on single-node cluster
+      tolerations:
+      - key: "node-role.kubernetes.io/control-plane"
+        operator: "Exists"
+        effect: "NoSchedule"
+      - key: "node-role.kubernetes.io/master"
+        operator: "Exists"
+        effect: "NoSchedule"

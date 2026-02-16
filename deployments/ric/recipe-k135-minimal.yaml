@@ -1,0 +1,116 @@
+################################################################################
+# O-RAN SC RIC Platform - K Release Recipe
+# Customized for Kubernetes 1.35.1 Single-Node Deployment
+################################################################################
+
+common:
+  releasePrefix: r4
+  pullpolicy: IfNotPresent
+  namespace:
+    platform: ricplt
+    xapp: ricxapp
+    infra: ricinfra
+
+extsvcplt:
+  ricip: "192.168.10.65"
+  auxip: "192.168.10.65"
+
+prometheus:
+  enabled: true
+
+# Core RIC Platform Components
+a1mediator:
+  image:
+    registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+    name: ric-plt-a1
+    tag: 3.2.2
+
+appmgr:
+  image:
+   init:
+     registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+     name: it-dep-init
+     tag: 0.0.1
+   appmgr:
+     registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+     name: ric-plt-appmgr
+     tag: 0.5.8
+   chartmuseum:
+     registry: "docker.io"
+     name: chartmuseum/chartmuseum
+     tag: v0.8.2
+
+dbaas:
+  image:
+    registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+    name: ric-plt-dbaas
+    tag: 0.6.4
+  enableHighAvailability: false
+  enablePodAntiAffinity: false
+
+e2mgr:
+  image:
+    registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+    name: ric-plt-e2mgr
+    tag: 6.0.6
+  privilegedmode: false
+  globalRicId:
+    ricId: "AACCE"
+    mcc: "310"
+    mnc: "411"
+  rnibWriter:
+    stateChangeMessageChannel: RAN_CONNECTION_STATUS_CHANGE
+    ranManipulationMessageChannel: RAN_MANIPULATION
+
+e2term:
+  alpha:
+    image:
+      registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+      name: ric-plt-e2
+      tag: 6.0.6
+    privilegedmode: false
+    hostnetworkmode: false
+    env:
+      print: "1"
+      messagecollectorfile: "/data/outgoing/"
+    dataVolSize: 100Mi
+    storageClassName: local-path
+    pizpub:
+      enabled: false
+
+rtmgr:
+  image:
+    registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+    name: ric-plt-rtmgr
+    tag: 0.9.6
+
+submgr:
+  image:
+    registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+    name: ric-plt-submgr
+    tag: 0.10.2
+
+vespamgr:
+  image:
+    registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+    name: ric-plt-vespamgr
+    tag: 0.7.5
+  prometheusurl: "http://r4-infrastructure-prometheus-server.ricplt"
+
+o1mediator:
+  image:
+    registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+    name: ric-plt-o1
+    tag: 0.6.3
+
+alarmmanager:
+  image:
+    registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+    name: ric-plt-alarmmanager
+    tag: 0.5.16
+
+influxdb:
+  image:
+    registry: "influxdb"
+    name: influxdb
+    tag: "2.2.0-alpine"

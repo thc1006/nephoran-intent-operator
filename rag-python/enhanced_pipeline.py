@@ -1,6 +1,7 @@
 """
 Enhanced RAG Pipeline for Nephoran Intent Operator
-Production-ready telecom domain-specific RAG system with advanced features
+Production-ready telecom domain-specific RAG system with advanced features.
+Supports Ollama (local LLM) and OpenAI providers.
 """
 
 import asyncio
@@ -14,14 +15,27 @@ import hashlib
 import uuid
 
 from langchain_community.vectorstores import Weaviate
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.callbacks import AsyncCallbackHandler
 import weaviate as wv
-import openai
+
+# Import Ollama support (primary provider)
+try:
+    from langchain_ollama import ChatOllama, OllamaEmbeddings
+    OLLAMA_AVAILABLE = True
+except ImportError:
+    OLLAMA_AVAILABLE = False
+    logging.warning("langchain-ollama not installed. Ollama support disabled.")
+
+# Import OpenAI support (optional provider)
+try:
+    from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+    logging.info("langchain-openai not installed. OpenAI support disabled.")
 
 
 class ProcessingStatus(Enum):
@@ -58,39 +72,29 @@ class ProcessedIntent:
 
 class TelecomKnowledgeManager:
     """Manages telecom-specific knowledge base operations"""
-    
-    def __init__(self, weaviate_client: wv.Client, embeddings: OpenAIEmbeddings):
+
+    def __init__(self, weaviate_client: wv.Client, embeddings):
         self.client = weaviate_client
         self.embeddings = embeddings
         self.logger = logging.getLogger(__name__)
-        
+
     def initialize_schema(self) -> bool:
-        """Initialize Weaviate schema for telecom knowledge"""
+        """Initialize Weaviate schema for telecom knowledge.
+        Uses vectorizer 'none' so embeddings are computed client-side
+        (works with both Ollama and OpenAI embeddings).
+        """
         try:
             schema = {
                 "classes": [
                     {
                         "class": "TelecomKnowledge",
                         "description": "Telecommunications domain knowledge base",
-                        "vectorizer": "text2vec-openai",
-                        "moduleConfig": {
-                            "text2vec-openai": {
-                                "model": "text-embedding-3-large",
-                                "dimensions": 3072,
-                                "type": "text"
-                            }
-                        },
+                        "vectorizer": "none",
                         "properties": [
                             {
                                 "name": "content",
                                 "dataType": ["text"],
-                                "description": "Document content",
-                                "moduleConfig": {
-                                    "text2vec-openai": {
-                                        "skip": False,
-                                        "vectorizePropertyName": False
-                                    }
-                                }
+                                "description": "Document content"
                             },
                             {
                                 "name": "source",
@@ -121,19 +125,19 @@ class TelecomKnowledgeManager:
                     }
                 ]
             }
-            
+
             # Check if schema already exists
             existing_schema = self.client.schema.get()
             class_names = [c["class"] for c in existing_schema.get("classes", [])]
-            
+
             if "TelecomKnowledge" not in class_names:
                 self.client.schema.create(schema)
-                self.logger.info("Created TelecomKnowledge schema")
+                self.logger.info("Created TelecomKnowledge schema (vectorizer: none)")
             else:
                 self.logger.info("TelecomKnowledge schema already exists")
-            
+
             return True
-            
+
         except Exception as e:
             self.logger.error(f"Failed to initialize schema: {e}")
             return False
@@ -272,7 +276,7 @@ class EnhancedTelecomRAGPipeline:
         """Setup structured logging"""
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.INFO)
-        
+
         if not logger.handlers:
             handler = logging.StreamHandler()
             formatter = logging.Formatter(
@@ -280,44 +284,97 @@ class EnhancedTelecomRAGPipeline:
             )
             handler.setFormatter(formatter)
             logger.addHandler(handler)
-        
+
         return logger
-    
-    def _initialize_components(self) -> None:
-        """Initialize LLM and vector store components"""
-        if not self.config.get("openai_api_key"):
-            raise ValueError("OpenAI API key is required")
-        
-        try:
-            # Initialize embeddings
-            self.embeddings = OpenAIEmbeddings(
-                model="text-embedding-3-large",
-                dimensions=3072,
-                openai_api_key=self.config["openai_api_key"]
+
+    def _initialize_llm(self):
+        """Initialize LLM based on provider configuration"""
+        provider = self.config.get("llm_provider", "openai").lower()
+
+        if provider == "ollama":
+            if not OLLAMA_AVAILABLE:
+                raise ImportError("langchain-ollama is not installed. Install with: pip install langchain-ollama")
+
+            self.logger.info(f"Initializing Ollama LLM: {self.config.get('llm_model', 'llama2')}")
+
+            return ChatOllama(
+                model=self.config.get("llm_model", "llama2"),
+                base_url=self.config.get("ollama_base_url", "http://localhost:11434"),
+                temperature=0,
+                num_predict=2048,
+                format="json",  # Request JSON output
             )
-            
-            # Initialize LLM with structured output
-            self.llm = ChatOpenAI(
-                model=self.config.get("model", "gpt-4o-mini"),
+
+        elif provider == "openai":
+            if not self.config.get("openai_api_key"):
+                raise ValueError("OpenAI API key is required for OpenAI provider")
+
+            self.logger.info(f"Initializing OpenAI LLM: {self.config.get('llm_model', 'gpt-4o-mini')}")
+
+            return ChatOpenAI(
+                model=self.config.get("llm_model", "gpt-4o-mini"),
                 temperature=0,
                 max_tokens=2048,
                 model_kwargs={"response_format": {"type": "json_object"}},
                 openai_api_key=self.config["openai_api_key"]
             )
-            
-            # Initialize Weaviate client with authentication
-            weaviate_url = self.config.get("weaviate_url", "http://weaviate.nephoran-system.svc.cluster.local:8080")
-            weaviate_api_key = self.config.get("weaviate_api_key", "nephoran-rag-key-production")
-            
-            self.weaviate_client = wv.Client(
-                url=weaviate_url,
-                additional_headers={
-                    "X-OpenAI-Api-Key": self.config["openai_api_key"]
-                },
-                auth_client_secret=wv.AuthApiKey(api_key=weaviate_api_key)
+
+        else:
+            raise ValueError(f"Unsupported LLM provider: {provider}. Choose 'openai' or 'ollama'")
+    
+    def _initialize_embeddings(self):
+        """Initialize embeddings based on provider configuration"""
+        provider = self.config.get("llm_provider", "ollama").lower()
+
+        if provider == "ollama" and OLLAMA_AVAILABLE:
+            ollama_base_url = self.config.get("ollama_base_url", "http://localhost:11434")
+            # Use the same model for embeddings - Ollama generates embeddings natively
+            embed_model = self.config.get("embedding_model",
+                                          self.config.get("llm_model", "llama3.1:8b-instruct-q5_K_M"))
+            self.logger.info(f"Initializing Ollama embeddings: model={embed_model}, url={ollama_base_url}")
+            return OllamaEmbeddings(
+                model=embed_model,
+                base_url=ollama_base_url,
             )
-            
-            # Initialize vector store
+
+        elif provider == "openai" and OPENAI_AVAILABLE:
+            self.logger.info("Initializing OpenAI embeddings: text-embedding-3-large")
+            return OpenAIEmbeddings(
+                model="text-embedding-3-large",
+                dimensions=3072,
+                openai_api_key=self.config.get("openai_api_key", "not-needed")
+            )
+
+        else:
+            raise RuntimeError(
+                f"No embedding provider available. Provider='{provider}', "
+                f"ollama_available={OLLAMA_AVAILABLE}, openai_available={OPENAI_AVAILABLE}"
+            )
+
+    def _initialize_components(self) -> None:
+        """Initialize LLM and vector store components"""
+        try:
+            # Initialize embeddings based on provider
+            self.embeddings = self._initialize_embeddings()
+
+            # Initialize LLM based on provider
+            self.llm = self._initialize_llm()
+
+            # Initialize Weaviate client
+            weaviate_url = self.config.get("weaviate_url", "http://weaviate.weaviate.svc.cluster.local:80")
+            weaviate_api_key = self.config.get("weaviate_api_key")
+
+            # Build connection kwargs
+            client_kwargs = {"url": weaviate_url}
+
+            # Add authentication if API key is provided
+            if weaviate_api_key:
+                client_kwargs["auth_client_secret"] = wv.AuthApiKey(api_key=weaviate_api_key)
+
+            self.weaviate_client = wv.Client(**client_kwargs)
+
+            # Initialize vector store using langchain Weaviate integration
+            # with client-side embeddings (vectorizer: none)
             self.vector_store = Weaviate(
                 client=self.weaviate_client,
                 index_name="TelecomKnowledge",
@@ -325,12 +382,12 @@ class EnhancedTelecomRAGPipeline:
                 embedding=self.embeddings,
                 by_text=False
             )
-            
+
             # Create QA chain with enhanced prompt
             self.qa_chain = self._create_enhanced_qa_chain()
-            
+
             self.logger.info("Enhanced RAG pipeline initialized successfully")
-            
+
         except Exception as e:
             self.logger.error(f"Failed to initialize components: {e}")
             raise RuntimeError(f"Failed to initialize RAG pipeline: {e}")
@@ -507,7 +564,7 @@ Generate the appropriate JSON object based on the user command.
                 retrieval_score=retrieval_score,
                 confidence_score=confidence_score,
                 cache_hit=False,
-                model_version=self.config.get("model", "gpt-4o-mini")
+                model_version=self.config.get("llm_model", "gpt-4o-mini")
             )
             
             # Validate response structure
@@ -663,7 +720,7 @@ Generate the appropriate JSON object based on the user command.
                 "weaviate_ready": weaviate_ready,
                 "knowledge_objects": object_count,
                 "cache_size": len(self.cache.cache),
-                "model": self.config.get("model", "gpt-4o-mini"),
+                "model": self.config.get("llm_model", "gpt-4o-mini"),
                 "timestamp": time.time()
             }
         except Exception as e:

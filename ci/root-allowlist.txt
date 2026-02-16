@@ -2,6 +2,7 @@
 .claude
 .devcontainer
 .dockerignore
+.env.ollama.example
 .gitattributes
 .github
 .gitignore
@@ -23,8 +24,11 @@ Dockerfile
 LICENSE
 Makefile
 Makefile.ci
+PR_PHASE1_DESCRIPTION.md
+PR_PHASE1_UPDATED.md
 PROJECT
 QUICKSTART.md
+QUICKSTART_OLLAMA.md
 README.md
 SECURITY.md
 api
@@ -34,6 +38,7 @@ config
 controllers
 demo
 deployments
+docker-compose.ollama.yml
 docs
 examples
 go.mod

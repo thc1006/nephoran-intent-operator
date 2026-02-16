@@ -304,6 +304,10 @@ func (m *mockStatusWriter) Create(ctx context.Context, obj client.Object, subRes
 	return m.client.Create(ctx, obj)
 }
 
+func (m *mockStatusWriter) Apply(ctx context.Context, obj runtime.ApplyConfiguration, opts ...client.SubResourceApplyOption) error {
+	return nil
+}
+
 // AddObject adds an object to the mock client's storage
 func (m *MockClient) AddObject(obj client.Object) {
 	m.mutex.Lock()

@@ -1,0 +1,227 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kpm-xapp-config
+  namespace: ricxapp
+  labels:
+    app: ricxapp-kpimon
+data:
+  config.json: |
+    {
+      "name": "kpimon",
+      "version": "1.0.0",
+      "containers": [
+        {
+          "name": "kpimon",
+          "image": {
+            "registry": "docker.io",
+            "name": "oranscdoc/ric-app-kpimon-go",
+            "tag": "1.0.0"
+          }
+        }
+      ],
+      "messaging": {
+        "ports": [
+          {
+            "name": "rmr-data",
+            "container": "kpimon",
+            "port": 4560,
+            "rxMessages": ["RIC_SUB_RESP", "RIC_INDICATION", "RIC_SUB_FAILURE"],
+            "txMessages": ["RIC_SUB_REQ", "RIC_SUB_DEL_REQ"],
+            "policies": [],
+            "description": "rmr receive data port for kpimon"
+          },
+          {
+            "name": "rmr-route",
+            "container": "kpimon",
+            "port": 4561,
+            "description": "rmr route port for kpimon"
+          }
+        ]
+      },
+      "rmr": {
+        "protPort": "tcp:4560",
+        "maxSize": 2072,
+        "numWorkers": 1,
+        "txMessages": ["RIC_SUB_REQ", "RIC_SUB_DEL_REQ"],
+        "rxMessages": ["RIC_SUB_RESP", "RIC_INDICATION", "RIC_SUB_FAILURE"]
+      },
+      "controls": {
+        "measurement_interval": 10000,
+        "granularity_period": 1000
+      }
+    }
+
+  local.rt: |
+    newrt|start
+    # RIC Subscription Request
+    rte|12010|service-ricplt-submgr-rmr.ricplt:4560
+    # RIC Subscription Response
+    rte|12011|-1|service-ricxapp-kpimon-rmr.ricxapp:4560
+    # RIC Subscription Failure
+    rte|12012|-1|service-ricxapp-kpimon-rmr.ricxapp:4560
+    # RIC Indication
+    rte|12050|-1|service-ricxapp-kpimon-rmr.ricxapp:4560
+    newrt|end
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-ricxapp-kpimon-rmr
+  namespace: ricxapp
+  labels:
+    app: ricxapp-kpimon
+spec:
+  type: ClusterIP
+  ports:
+  - name: rmr-data
+    port: 4560
+    protocol: TCP
+    targetPort: 4560
+  - name: rmr-route
+    port: 4561
+    protocol: TCP
+    targetPort: 4561
+  selector:
+    app: ricxapp-kpimon
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-ricxapp-kpimon-http
+  namespace: ricxapp
+  labels:
+    app: ricxapp-kpimon
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app: ricxapp-kpimon
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ricxapp-kpimon
+  namespace: ricxapp
+  labels:
+    app: ricxapp-kpimon
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ricxapp-kpimon
+  template:
+    metadata:
+      labels:
+        app: ricxapp-kpimon
+    spec:
+      containers:
+      - name: kpimon
+        image: ubuntu:22.04
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/bash"]
+        args:
+          - -c
+          - |
+            set -e
+
+            echo "=================================="
+            echo "KPM xApp (KPI Monitor) - Mock Version"
+            echo "=================================="
+            echo ""
+
+            # Install dependencies
+            echo "Installing dependencies..."
+            apt-get update -qq
+            apt-get install -y -qq curl jq netcat-openbsd > /dev/null 2>&1
+
+            echo ""
+            echo "KPM xApp Configuration:"
+            echo "----------------------"
+            echo "RMR Data Port: 4560"
+            echo "RMR Route Port: 4561"
+            echo "HTTP Port: 8080"
+            echo ""
+            echo "Connected Services:"
+            echo "  - E2 Manager: service-ricplt-e2mgr-http.ricplt.svc.cluster.local:3800"
+            echo "  - Subscription Manager: service-ricplt-submgr-rmr.ricplt.svc.cluster.local:4560"
+            echo ""
+
+            # Check E2 Manager connectivity
+            echo "Testing E2 Manager connectivity..."
+            if curl -s http://service-ricplt-e2mgr-http.ricplt.svc.cluster.local:3800/v1/nodeb/states > /tmp/nodeb-states.json 2>&1; then
+              echo "✓ E2 Manager reachable"
+              echo ""
+              echo "Current E2 NodeB States:"
+              cat /tmp/nodeb-states.json | jq '.' 2>/dev/null || cat /tmp/nodeb-states.json
+            else
+              echo "✗ E2 Manager not reachable"
+            fi
+
+            echo ""
+            echo "=================================="
+            echo "KPM xApp Ready"
+            echo "=================================="
+            echo ""
+            echo "This is a mock KPM xApp for demonstration purposes."
+            echo ""
+            echo "To create a real E2 subscription, you would need:"
+            echo "  1. A connected E2 Node (RAN)"
+            echo "  2. E2AP message encoder/decoder"
+            echo "  3. RMR library for RIC messaging"
+            echo ""
+            echo "Available test commands:"
+            echo "  - Check E2 nodes: curl http://service-ricplt-e2mgr-http.ricplt.svc.cluster.local:3800/v1/nodeb/states"
+            echo "  - Check health: curl http://localhost:8080/health"
+            echo ""
+
+            # Simple HTTP server for health checks
+            echo "Starting simple HTTP server on port 8080..."
+            (
+              while true; do
+                echo -e "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{\"status\":\"healthy\",\"xapp\":\"kpimon\",\"version\":\"1.0.0\"}" | nc -l -p 8080 -q 1 > /dev/null 2>&1
+              done
+            ) &
+
+            echo "Container will remain running. Use 'kubectl exec' for testing."
+            tail -f /dev/null
+        env:
+        - name: RMR_RTG_SVC
+          value: "service-ricplt-rtmgr-rmr.ricplt.svc.cluster.local:4561"
+        - name: RMR_SEED_RT
+          value: "/config/local.rt"
+        - name: CONFIG_FILE
+          value: "/config/config.json"
+        ports:
+        - name: rmr-data
+          containerPort: 4560
+          protocol: TCP
+        - name: rmr-route
+          containerPort: 4561
+          protocol: TCP
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      volumes:
+      - name: config
+        configMap:
+          name: kpm-xapp-config
+      restartPolicy: Always

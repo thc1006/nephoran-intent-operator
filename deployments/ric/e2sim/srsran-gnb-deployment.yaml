@@ -1,0 +1,158 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: srsran-gnb-config
+  namespace: ricxapp
+data:
+  gnb.yaml: |
+    amf:
+      addr: 127.0.0.1                                               # AMF address (not needed for E2 only)
+      bind_addr: 127.0.0.1                                          # Local IP address to bind for AMF connection
+
+    ru_sdr:
+      device_driver: zmq                                            # Use ZMQ for RF-less simulation
+      device_args: tx_port=tcp://127.0.0.1:2000,rx_port=tcp://127.0.0.1:2001,base_srate=11.52e6
+      srate: 11.52                                                  # Sample rate in MHz
+      tx_gain: 50                                                   # Transmit gain
+      rx_gain: 60                                                   # Receive gain
+
+    cell_cfg:
+      dl_arfcn: 368500                                              # ARFCN for band n3 (1800 MHz)
+      band: 3                                                       # NR band
+      channel_bandwidth_MHz: 20                                     # Channel bandwidth
+      common_scs: 15                                                # Subcarrier spacing
+      plmn: "00101"                                                 # Public Land Mobile Network ID
+      tac: 7                                                        # Tracking Area Code
+      pci: 1                                                        # Physical Cell ID
+      nof_antennas_dl: 1
+      nof_antennas_ul: 1
+
+    log:
+      filename: /tmp/gnb.log                                        # Log file path
+      all_level: info                                               # Log level
+
+    e2:
+      enable_du_e2: true                                            # Enable E2 for DU
+      addr: service-ricplt-e2term-sctp-alpha.ricplt.svc.cluster.local # E2 Termination address
+      port: 36422                                                   # E2 Termination port
+      bind_addr: 0.0.0.0                                            # Local bind address
+      sctp_rto_initial: 120                                         # SCTP RTO initial
+      sctp_rto_min: 120                                             # SCTP RTO min
+      sctp_rto_max: 500                                             # SCTP RTO max
+      sctp_init_max_attempts: 3                                     # SCTP init max attempts
+      sctp_max_init_timeo: 500                                      # SCTP max init timeout
+      e2sm_kpm_enabled: true                                        # Enable KPM service model
+      e2sm_rc_enabled: false                                        # Disable RC service model
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: srsran-gnb
+  namespace: ricxapp
+  labels:
+    app: srsran-gnb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: srsran-gnb
+  template:
+    metadata:
+      labels:
+        app: srsran-gnb
+    spec:
+      containers:
+      - name: gnb
+        image: softwareradiosystems/srsran-project:24.10
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/bash"]
+        args:
+          - -c
+          - |
+            set -e
+            echo "==================================="
+            echo "srsRAN gNB E2 Agent Starting..."
+            echo "==================================="
+            echo "E2 Term Service: service-ricplt-e2term-sctp-alpha.ricplt.svc.cluster.local:36422"
+            echo ""
+
+            # Check if E2 Term is reachable (DNS resolution)
+            echo "Checking E2 Term DNS resolution..."
+            nslookup service-ricplt-e2term-sctp-alpha.ricplt.svc.cluster.local || true
+            echo ""
+
+            # Wait for E2 Term to be ready
+            echo "Waiting for E2 Term to be ready..."
+            sleep 5
+
+            # Create config directory
+            mkdir -p /etc/srsran
+
+            # Copy config from ConfigMap
+            if [ -f /config/gnb.yaml ]; then
+              cp /config/gnb.yaml /etc/srsran/gnb.yaml
+              echo "Configuration loaded from ConfigMap"
+            else
+              echo "WARNING: Config file not found, using defaults"
+            fi
+
+            echo ""
+            echo "Starting srsRAN gNB with E2 enabled..."
+            echo "Press Ctrl+C to stop"
+            echo ""
+
+            # For now, just keep container alive for manual testing
+            # Actual gnb command: gnb -c /etc/srsran/gnb.yaml
+
+            echo "Container is ready. To run gNB manually, exec into pod and run:"
+            echo "  gnb -c /etc/srsran/gnb.yaml"
+            echo ""
+            echo "Or test E2 connectivity with:"
+            echo "  nc -zv service-ricplt-e2term-sctp-alpha.ricplt.svc.cluster.local 36422"
+
+            # Keep container running
+            tail -f /dev/null
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        - name: logs
+          mountPath: /tmp
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+          limits:
+            cpu: 2
+            memory: 2Gi
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+            - SYS_NICE
+      volumes:
+      - name: config
+        configMap:
+          name: srsran-gnb-config
+      - name: logs
+        emptyDir: {}
+      restartPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: srsran-gnb
+  namespace: ricxapp
+  labels:
+    app: srsran-gnb
+spec:
+  type: ClusterIP
+  ports:
+  - port: 36422
+    protocol: SCTP
+    targetPort: 36422
+    name: e2-sctp
+  selector:
+    app: srsran-gnb

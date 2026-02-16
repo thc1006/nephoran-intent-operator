@@ -14,43 +14,9 @@ metadata:
     security.nephoran.io/compliance: "O-RAN-WG11-v1.0"
     security.nephoran.io/encryption: "required"
 ---
-# Pod Security Policy (for clusters < 1.25)
-apiVersion: policy/v1beta1
-kind: PodSecurityPolicy
-metadata:
-  name: nephoran-restricted
-  labels:
-    app.kubernetes.io/name: nephoran-operator
-    security.nephoran.io/level: restricted
-  annotations:
-    seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'runtime/default'
-    apparmor.security.beta.kubernetes.io/allowedProfileNames: 'runtime/default'
-    seccomp.security.alpha.kubernetes.io/defaultProfileName: 'runtime/default'
-    apparmor.security.beta.kubernetes.io/defaultProfileName: 'runtime/default'
-spec:
-  privileged: false
-  allowPrivilegeEscalation: false
-  requiredDropCapabilities:
-    - ALL
-  volumes:
-    - 'configMap'
-    - 'emptyDir'
-    - 'projected'
-    - 'secret'
-    - 'downwardAPI'
-    - 'persistentVolumeClaim'
-  hostNetwork: false
-  hostIPC: false
-  hostPID: false
-  runAsUser:
-    rule: 'MustRunAsNonRoot'
-  seLinux:
-    rule: 'RunAsAny'
-  supplementalGroups:
-    rule: 'RunAsAny'
-  fsGroup:
-    rule: 'RunAsAny'
-  readOnlyRootFilesystem: true
+# NOTE: PodSecurityPolicy removed in Kubernetes 1.25+
+# Security is now enforced via Pod Security Standards (PSS) labels on namespace
+# See namespace labels above: pod-security.kubernetes.io/enforce: restricted
 ---
 # Resource Quota for namespace
 apiVersion: v1
