@@ -44,37 +44,37 @@ The system is built around five core architectural layers:
 
 <div class="grid cards" markdown>
 
--   :material-sitemap: **[System Architecture](system-architecture.md)**
+-   :material-sitemap: **[System Architecture](ARCHITECTURE_ANALYSIS.md)**
 
     ---
 
     Detailed technical architecture with component interactions and data flows.
 
--   :material-robot: **[LLM Integration](llm-integration.md)**
+-   :material-robot: **[LLM Integration](../development/LLM-Processor-Technical-Specifications.md)**
 
     ---
 
     AI/ML pipeline architecture, RAG implementation, and language model integration.
 
--   :material-pipe: **[RAG Pipeline](rag-pipeline.md)**
+-   :material-pipe: **[RAG Pipeline](../knowledge-base/RAG-Pipeline-Implementation.md)**
 
     ---
 
     Vector database design, semantic search, and knowledge base management.
 
--   :material-standard-definition: **[O-RAN Compliance](oran-compliance.md)**
+-   :material-standard-definition: **[O-RAN Compliance](../compliance/O1-Standards-Compliance-Report.md)**
 
     ---
 
     Standards implementation, interface specifications, and interoperability.
 
--   :material-cube-outline: **[Microservices](microservices.md)**
+-   :material-cube-outline: **[Microservices](MICROSERVICES_ARCHITECTURE_ANALYSIS.md)**
 
     ---
 
     Service architecture, communication patterns, and deployment strategies.
 
--   :material-shield-check: **[Security](security.md)**
+-   :material-shield-check: **[Security](../security/SECURITY_ARCHITECTURE.md)**
 
     ---
 
@@ -155,6 +155,6 @@ graph LR
 - **Disaster Recovery**: <15 minutes RTO, <1 hour RPO
 
 Continue exploring specific architectural aspects:
-- [System Architecture Details →](system-architecture.md)
-- [LLM Integration Deep Dive →](llm-integration.md)
-- [Security Architecture →](security.md)
+- [System Architecture Details →](ARCHITECTURE_ANALYSIS.md)
+- [LLM Integration Deep Dive →](../development/LLM-Processor-Technical-Specifications.md)
+- [Security Architecture →](../security/SECURITY_ARCHITECTURE.md)

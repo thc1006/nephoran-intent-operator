@@ -323,7 +323,7 @@ validate_vulnerability_scanning() {
         log_warning "GitHub Actions security workflow not found"
     fi
     
-    if [ -f "scripts/security-scan.sh" ]; then
+    if [ -f "scripts/security/security-scan.sh" ]; then
         log_success "Security scanning script exists"
     else
         log_error "Security scanning script missing"

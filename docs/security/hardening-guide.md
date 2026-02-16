@@ -271,7 +271,7 @@ spec:
           containers:
           - name: scanner
             image: aquasec/trivy:latest
-            command: ["/scripts/cve-scan.sh"]
+            command: ["/scripts/security/cve-scan.sh"]
 ```
 
 ## 8. Compliance Achievements
@@ -524,7 +524,7 @@ The Nephoran Intent Operator has achieved comprehensive security hardening with:
 ## Appendix A: Security Tools and Scripts
 
 ### CVE Scanning Script
-Location: `scripts/cve-scan.sh`
+Location: `scripts/security/cve-scan.sh`
 - Comprehensive vulnerability scanning
 - Multiple scanner integration
 - Automated reporting

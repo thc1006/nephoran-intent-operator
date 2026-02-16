@@ -27,7 +27,7 @@ on:
 
 # Single concurrency group per branch - manual-only mode
 concurrency:
-  group: ci-2025-${{ github.ref }}-manual
+  group: ${{ github.ref }}
   cancel-in-progress: true
 
 # 2025 Security: Minimal required permissions

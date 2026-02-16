@@ -39,7 +39,7 @@ This comprehensive documentation provides detailed information about all Custom 
     kind: E2NodeSet
     ```
 
-- :material-server-network: **[ManagedElement](crds/managedelement/overview.md)**
+- :material-server-network: **[ManagedElement](crds/e2nodeset/overview.md)**
   
     Configure O-RAN managed elements with O1, A1, and E2 interfaces for comprehensive network function management.
     
@@ -54,7 +54,7 @@ This comprehensive documentation provides detailed information about all Custom 
 
 <div class="grid cards" markdown>
 
-- :material-shield-check: **[DisasterRecoveryPlan](crds/disaster-recovery/drp/spec.md)**
+- :material-shield-check: **[DisasterRecoveryPlan](../../runbooks/disaster-recovery.md)**
   
     Define comprehensive disaster recovery strategies with automated failover and recovery procedures.
     
@@ -63,7 +63,7 @@ This comprehensive documentation provides detailed information about all Custom 
     kind: DisasterRecoveryPlan
     ```
 
-- :material-backup-restore: **[BackupPolicy](crds/disaster-recovery/backup/spec.md)**
+- :material-backup-restore: **[BackupPolicy](../../operations/BACKUP-RECOVERY.md)**
   
     Automate backup operations with retention policies, encryption, and validation.
     
@@ -72,7 +72,7 @@ This comprehensive documentation provides detailed information about all Custom 
     kind: BackupPolicy
     ```
 
-- :material-swap-horizontal: **[FailoverPolicy](crds/disaster-recovery/failover/spec.md)**
+- :material-swap-horizontal: **[FailoverPolicy](../../runbooks/disaster-recovery-runbook.md)**
   
     Configure automatic regional failover with health checking and traffic management.
     
@@ -213,10 +213,10 @@ graph LR
 ## Getting Help
 
 ### 📚 Resources
-- [Architecture Guide](architecture.md) - System design and components
-- [Operations Guide](operations/index.md) - Deployment and management
-- [API Reference](api/index.md) - REST and gRPC APIs
-- [Examples](examples/index.md) - Real-world usage patterns
+- [Architecture Guide](../../architecture/CONDUCTOR-LOOP-DESIGN.md) - System design and components
+- [Operations Guide](../../operations/README.md) - Deployment and management
+- [API Reference](../../api/API_REFERENCE.md) - REST and gRPC APIs
+- [Examples](crds/networkintent/examples.md) - Real-world usage patterns
 
 ### 🤝 Community
 - [GitHub Issues](https://github.com/nephoran/intent-operator/issues) - Report bugs and request features
@@ -230,7 +230,7 @@ graph LR
 
 ## Contributing
 
-We welcome contributions! See our [Contributing Guide](contributing/index.md) for:
+We welcome contributions! See our [Contributing Guide](../../../CONTRIBUTING.md) for:
 - Development setup
 - Code standards
 - Testing requirements

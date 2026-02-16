@@ -336,7 +336,7 @@ validate_smart_build_script() {
     log_info "=== TEST 5: Smart Build Script Validation ==="
     
     local validation_errors=0
-    local smart_build_script="$PROJECT_ROOT/scripts/smart-docker-build.sh"
+    local smart_build_script="$PROJECT_ROOT/scripts/deploy/smart-docker-build.sh"
     
     # Check if script exists and is executable
     if [ -f "$smart_build_script" ]; then

@@ -447,10 +447,10 @@ kubectl describe networkintent production-validation-test -n nephoran-system
 ```bash
 #!/bin/bash
 # Run performance benchmark
-./scripts/performance-benchmark-suite.sh --environment=production
+./scripts/ops/performance-benchmark-suite.sh --environment=production
 
 # Run load test
-./scripts/execute-production-load-test.sh --duration=300 --concurrent-users=50
+./scripts/ops/execute-production-load-test.sh --duration=300 --concurrent-users=50
 
 # Verify performance metrics meet SLAs
 kubectl port-forward -n nephoran-monitoring svc/grafana 3000:3000 &
@@ -599,7 +599,7 @@ done
 ```bash
 #!/bin/bash
 # Run SOC 2 compliance validation
-./scripts/execute-security-audit.sh --compliance=soc2
+./scripts/security/execute-security-audit.sh --compliance=soc2
 
 # Generate compliance report
 kubectl get events -n nephoran-system --sort-by='.lastTimestamp' > compliance-events.log
@@ -616,7 +616,7 @@ kubectl logs -l app.kubernetes.io/part-of=nephoran-intent-operator \
 
 # Validate GDPR compliance for EU deployments
 if [[ "$REGION" =~ ^eu- ]]; then
-  ./scripts/execute-security-audit.sh --compliance=gdpr
+  ./scripts/security/execute-security-audit.sh --compliance=gdpr
 fi
 ```
 

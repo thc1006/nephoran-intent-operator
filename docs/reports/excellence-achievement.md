@@ -112,10 +112,10 @@ The Nephoran Intent Operator has successfully achieved **absolute excellence** w
 ### 5. COMMUNITY-READY ASSETS AND CONTRIBUTIONS ✅
 
 #### ✅ Comprehensive User Guides and Tutorials
-- ✅ Getting started guide with real examples (`docs/getting-started.md`)
-- ✅ Integration patterns and best practices (`docs/integration-patterns.md`)
-- ✅ Troubleshooting guide for common issues (`docs/troubleshooting.md`)
-- ✅ Migration guide from other systems (`docs/migration-guide.md`)
+- ✅ Getting started guide with real examples (`docs/getting-started/getting-started.md`)
+- ✅ Integration patterns and best practices (`docs/development/integration-patterns.md`)
+- ✅ Troubleshooting guide for common issues (`docs/runbooks/troubleshooting.md`)
+- ✅ Migration guide from other systems (`docs/development/migration-guide.md`)
 
 #### ✅ Example Configurations and Templates
 - ✅ Common deployment patterns (development, staging, production)

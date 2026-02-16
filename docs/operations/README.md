@@ -88,7 +88,7 @@ This directory contains comprehensive operational documentation for production d
 **System Down (P1 Incident):**
 ```bash
 # Immediate response for critical system failure
-./scripts/disaster-recovery-system.sh emergency-response
+./scripts/ops/disaster-recovery-system.sh emergency-response
 kubectl get pods -n nephoran-system | grep -v Running
 kubectl rollout restart deployment -n nephoran-system
 ```
@@ -104,7 +104,7 @@ kubectl scale deployment llm-processor --replicas=5 -n nephoran-system
 **Security Incident (P1 Security):**
 ```bash
 # Security incident response
-./scripts/execute-security-audit.sh --emergency
+./scripts/security/execute-security-audit.sh --emergency
 kubectl apply -f deployments/security/emergency-network-policies.yaml
 ```
 
@@ -132,7 +132,7 @@ kubectl port-forward -n nephoran-monitoring svc/grafana 3000:3000
 # Security status check
 kubectl get networkpolicies -n nephoran-system
 kubectl get secrets -n nephoran-system
-./scripts/security-scan.sh --daily
+./scripts/security/security-scan.sh --daily
 ```
 
 ### Weekly Maintenance Tasks
@@ -140,7 +140,7 @@ kubectl get secrets -n nephoran-system
 **Performance Optimization:**
 ```bash
 # Weekly system optimization
-./scripts/performance-benchmark-suite.sh
+./scripts/ops/performance-benchmark-suite.sh
 kubectl exec deployment/weaviate -n nephoran-system -- \
   curl -X POST http://localhost:8080/v1/schema/optimize
 ```
@@ -148,14 +148,14 @@ kubectl exec deployment/weaviate -n nephoran-system -- \
 **Backup Validation:**
 ```bash
 # Backup system validation
-./scripts/disaster-recovery-system.sh test
+./scripts/ops/disaster-recovery-system.sh test
 aws s3 ls s3://nephoran-production-backups/
 ```
 
 **Compliance Monitoring:**
 ```bash
 # Compliance status check
-./scripts/execute-security-audit.sh --compliance=soc2
+./scripts/security/execute-security-audit.sh --compliance=soc2
 ./scripts/oran-compliance-validator.sh
 ```
 

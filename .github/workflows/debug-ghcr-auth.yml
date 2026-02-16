@@ -11,6 +11,9 @@ on:
         required: false
         default: 'DISABLED - Debug workflow no longer needed'
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
   packages: write

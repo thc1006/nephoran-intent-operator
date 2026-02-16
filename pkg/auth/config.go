@@ -1818,12 +1818,16 @@ func validateConfigFilePath(filePath string) error {
 		return fmt.Errorf("hidden files not allowed as config")
 	}
 
-	// SECURITY: Reject special file names.
+	// SECURITY: Reject system pseudo-filesystem paths and sensitive file names.
+	absPathLower := strings.ToLower(absPath)
+	for _, prefix := range []string{"/dev", "/proc", "/sys"} {
+		if absPathLower == prefix || strings.HasPrefix(absPathLower, prefix+string(filepath.Separator)) {
+			return fmt.Errorf("suspicious file path detected")
+		}
+	}
 
-	dangerousNames := []string{"/dev/", "/proc/", "/sys/", "passwd", "shadow", "sudoers"}
-
-	for _, dangerous := range dangerousNames {
-		if strings.Contains(strings.ToLower(absPath), dangerous) {
+	for _, sensitiveName := range []string{"passwd", "shadow", "sudoers"} {
+		if strings.EqualFold(filename, sensitiveName) {
 			return fmt.Errorf("suspicious file path detected")
 		}
 	}

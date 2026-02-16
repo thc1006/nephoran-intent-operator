@@ -106,7 +106,7 @@ graph TB
 | **O-RAN Adaptor** | Standards-compliant interfaces | A1/O1/O2/E2 protocols |
 | **Network Controller** | Kubernetes-native orchestration | controller-runtime, CRDs |
 
-[Learn More About Architecture →](architecture/system-architecture.md)
+[Learn More About Architecture →](architecture.md)
 
 ---
 
@@ -180,7 +180,7 @@ spec:
 
     Comprehensive guide for operators and network engineers.
 
-    [:octicons-arrow-right-24: User Guide](user-guide/)
+    [:octicons-arrow-right-24: User Guide](operations/)
 
 -   :material-api: **API Reference**
 
@@ -204,7 +204,7 @@ spec:
 
     Contributing, extending, and developing with Nephoran Intent Operator.
 
-    [:octicons-arrow-right-24: Developer Guide](developer/)
+    [:octicons-arrow-right-24: Developer Guide](development/)
 
 </div>
 
