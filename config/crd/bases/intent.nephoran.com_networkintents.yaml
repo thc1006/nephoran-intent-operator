@@ -8,13 +8,31 @@ metadata:
 spec:
   group: intent.nephoran.com
   names:
+    categories:
+    - nephio
+    - o-ran
     kind: NetworkIntent
     listKind: NetworkIntentList
     plural: networkintents
+    shortNames:
+    - ni
     singular: networkintent
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .spec.target
+      name: Target
+      type: string
+    - jsonPath: .spec.replicas
+      name: Replicas
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: NetworkIntent represents a high-level network scaling and configuration
@@ -42,7 +60,8 @@ spec:
               intent
             properties:
               intentType:
-                description: IntentType specifies the type of intent (e.g., "scaling")
+                description: IntentType specifies the type of intent (e.g., "scaling",
+                  "optimization")
                 type: string
               namespace:
                 description: Namespace specifies the target namespace
@@ -63,12 +82,14 @@ spec:
                       priority:
                         description: Priority of the network slice
                         format: int32
+                        minimum: 0
                         type: integer
                     type: object
                 type: object
               replicas:
                 description: Replicas specifies the desired number of replicas
                 format: int32
+                minimum: 0
                 type: integer
               scalingParameters:
                 description: ScalingParameters define how network functions should
@@ -81,6 +102,7 @@ spec:
                       maxReplicas:
                         description: MaxReplicas is the upper limit of replicas
                         format: int32
+                        minimum: 1
                         type: integer
                       metricThresholds:
                         description: MetricThresholds define scaling triggers
@@ -102,12 +124,14 @@ spec:
                       minReplicas:
                         description: MinReplicas is the lower limit of replicas
                         format: int32
+                        minimum: 0
                         type: integer
                     type: object
                   replicas:
                     description: Replicas defines the desired number of replicas for
                       network functions
                     format: int32
+                    minimum: 0
                     type: integer
                 type: object
               source:

@@ -33,8 +33,7 @@ var networkintentlog = logf.Log.WithName("networkintent-v1-resource")
 
 // SetupWebhookWithManager will setup the manager to manage the webhooks
 func (r *NetworkIntent) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
+	return ctrl.NewWebhookManagedBy(mgr, r).
 		Complete()
 }
 
