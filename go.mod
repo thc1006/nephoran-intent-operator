@@ -19,10 +19,10 @@ require (
 	github.com/CycloneDX/cyclonedx-gomod v1.9.0
 	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/Masterminds/sprig/v3 v3.3.0
-	github.com/aws/aws-sdk-go-v2 v1.39.0
+	github.com/aws/aws-sdk-go-v2 v1.39.2
 	github.com/aws/aws-sdk-go-v2/config v1.31.8
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.12
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.7
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.9
 	github.com/aws/aws-sdk-go-v2/service/cloudformation v1.66.2
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.50.1
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.253.0
