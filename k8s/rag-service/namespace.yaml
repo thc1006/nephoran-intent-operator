@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: rag-service
-  labels:
-    app.kubernetes.io/name: nephoran-rag
-    app.kubernetes.io/part-of: nephoran-intent-operator

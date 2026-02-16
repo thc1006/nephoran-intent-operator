@@ -158,3 +158,5 @@ Updates are tracked here in append-only format.
 | 2026-02-16T06:52:44+00:00 | chore/k8s-1.35-controller-runtime-0.23 | webhooks | Fixed all webhook test failures - 81 tests passing, enhanced security validation |
 | 2026-02-16T07:23:56+00:00 | chore/k8s-1.35-controller-runtime-0.23 | build | Fixed P0 build errors - sonic v1.15, RAG types, mock Apply methods |
 | 2026-02-16T07:24:01+00:00 | chore/k8s-1.35-controller-runtime-0.23 | tests | Fixed TestQueueOverflow nil pointer and race condition |
+| 2026-02-16T07:40:40+0000 | feature/phase1-emergency-hotfix | planning | Post-PR346 comprehensive roadmap: 6-week plan with Cloud SDKs, Performance opts, O-RAN Phase 1 integration |
+| 2026-02-16T07:55:12+00:00 | chore/k8s-1.35-controller-runtime-0.23 | ci | Fix root allowlist validation - remove out-of-scope files |
