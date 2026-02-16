@@ -307,19 +307,19 @@ func TestValidateSecurity(t *testing.T) {
 			name:          "suspicious pattern drop table",
 			intent:        "Deploy AMF and drop table configurations",
 			expectedError: true,
-			errorContains: "suspicious pattern",
+			errorContains: "malicious pattern",
 		},
 		{
 			name:          "suspicious pattern delete from",
 			intent:        "Deploy SMF delete from old configurations",
 			expectedError: true,
-			errorContains: "suspicious pattern",
+			errorContains: "malicious pattern",
 		},
 		{
 			name:          "suspicious pattern rm -rf",
 			intent:        "Deploy UPF rm -rf old data",
 			expectedError: true,
-			errorContains: "suspicious pattern",
+			errorContains: "malicious pattern",
 		},
 		{
 			name:          "long alphanumeric sequence",

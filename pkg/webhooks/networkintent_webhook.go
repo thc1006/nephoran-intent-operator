@@ -274,6 +274,20 @@ func (v *NetworkIntentValidator) validateIntentContent(intent string) error {
 		return fmt.Errorf("intent cannot be empty or only whitespace")
 	}
 
+	// Check for excessive line breaks (newlines).
+
+	newlineCount := strings.Count(intent, "\n")
+	if newlineCount > 50 {
+		return fmt.Errorf("intent contains excessive line breaks (%d newlines, maximum allowed: 50)", newlineCount)
+	}
+
+	// Check for excessive tabs.
+
+	tabCount := strings.Count(intent, "\t")
+	if tabCount > 20 {
+		return fmt.Errorf("intent contains excessive tabs (%d tabs, maximum allowed: 20)", tabCount)
+	}
+
 	// SECURITY: Enforce strict character allowlist matching CRD pattern.
 
 	// Only allow: a-zA-Z0-9, spaces, and safe punctuation: - _ . , ; : ( ) [ ].
@@ -281,6 +295,12 @@ func (v *NetworkIntentValidator) validateIntentContent(intent string) error {
 	allowedChars := regexp.MustCompile(`^[a-zA-Z0-9\s\-_.,;:()\[\]]*$`)
 
 	if !allowedChars.MatchString(intent) {
+
+		// Check if it contains characters commonly used in attacks.
+
+		if strings.ContainsAny(intent, "<>\"'`\\$") {
+			return fmt.Errorf("malicious pattern detected: disallowed characters that may be used in injection attacks")
+		}
 
 		// Find the first invalid character for better error reporting.
 
@@ -297,7 +317,7 @@ func (v *NetworkIntentValidator) validateIntentContent(intent string) error {
 	// Additional length check (redundant with CRD but provides defense in depth).
 
 	if len(intent) > 1000 {
-		return fmt.Errorf("intent exceeds maximum length of 1000 characters (got %d)", len(intent))
+		return fmt.Errorf("intent is too complex: exceeds maximum length of 1000 characters (got %d)", len(intent))
 	}
 
 	// Check for suspicious patterns even within allowed characters.
@@ -315,6 +335,22 @@ func (v *NetworkIntentValidator) validateIntentContent(intent string) error {
 	for i, r := range intent {
 		if unicode.IsControl(r) && !unicode.IsSpace(r) {
 			return fmt.Errorf("intent contains control character at position %d", i)
+		}
+	}
+
+	// Check for vague phrases early to provide better error messages.
+
+	intentLower := strings.ToLower(intent)
+
+	vaguePhrases := []string{
+		"do something", "make it work", "fix it", "handle this", "deal with",
+
+		"just do", "somehow", "whatever", "anything", "everything",
+	}
+
+	for _, phrase := range vaguePhrases {
+		if strings.Contains(intentLower, phrase) {
+			return fmt.Errorf("intent is too vague - contains non-specific phrase: %q", phrase)
 		}
 	}
 
@@ -355,26 +391,30 @@ func (v *NetworkIntentValidator) validateSecurity(intent string) error {
 
 		"drop table", "delete from", "insert into", "select from",
 
-		"union select", "exec sp", "exec xp",
+		"union select", "exec sp", "exec xp", "or 1=1", "or 1 =",
 
 		// Command-like patterns.
 
-		"rm -rf", "cat etc", "wget http", "curl http",
+		"rm -rf", "cat /etc", "cat etc", "wget http", "curl http",
+
+		"bash", "sh -c", "cmd.exe", "/bin/",
 
 		// Script-like patterns.
+
+		"<script", "javascript:", "onload=", "onerror=",
 
 		"script type", "javascript void", "onload equals", "onerror equals",
 
 		// Path traversal attempts.
 
-		"dot dot slash", "dot dot backslash",
+		"../", "..\\", "dot dot slash", "dot dot backslash",
 	}
 
 	intentLower := strings.ToLower(intent)
 
 	for _, pattern := range suspiciousPatterns {
 		if strings.Contains(intentLower, pattern) {
-			return fmt.Errorf("intent contains suspicious pattern that might indicate an attack attempt: %s", pattern)
+			return fmt.Errorf("malicious pattern detected: %s", pattern)
 		}
 	}
 
@@ -385,7 +425,7 @@ func (v *NetworkIntentValidator) validateSecurity(intent string) error {
 	alphanumericPattern := regexp.MustCompile(`[A-Za-z0-9]{40,}`)
 
 	if matches := alphanumericPattern.FindAllString(intent, -1); len(matches) > 0 {
-		return fmt.Errorf("intent contains suspiciously long unbroken alphanumeric sequence (possible encoding)")
+		return fmt.Errorf("malicious pattern detected: suspiciously long alphanumeric sequence (possible encoding)")
 	}
 
 	// Check for repeated patterns that might indicate fuzzing or automated attacks.
@@ -436,7 +476,7 @@ func (v *NetworkIntentValidator) validateSecurity(intent string) error {
 
 	for _, pattern := range spacedPatterns {
 		if strings.Contains(intentLower, pattern) {
-			return fmt.Errorf("intent contains suspicious spaced pattern that might be attempting to bypass filters")
+			return fmt.Errorf("malicious pattern detected: spaced pattern attempting to bypass filters")
 		}
 	}
 
@@ -832,7 +872,7 @@ func (v *NetworkIntentValidator) validateIntentCoherence(intent string) error {
 	}
 
 	if !hasActionVerb {
-		return fmt.Errorf("intent does not contain actionable verbs - please specify what action should be performed")
+		return fmt.Errorf("intent is too vague - does not contain actionable verbs")
 	}
 
 	// Check for contradictory statements.
