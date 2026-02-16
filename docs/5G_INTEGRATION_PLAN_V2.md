@@ -856,10 +856,10 @@ kubectl get clusterroles -o yaml | grep -E "resources: \[.*\*.*\]"
 kubectl label namespace nephoran-system pod-security.kubernetes.io/enforce=restricted
 ```
 
-**References**:
-- [K8s 1.32 Security Audit](docs/security/k8s-135-audit.md)
-- [Production Checklist](docs/security/k8s-135-production-checklist.md)
-- [Webhook Security Tests](tests/security/k8s_135_webhook_security_test.go)
+**Security Documentation**:
+- Security audit findings documented in CI/CD security scans
+- Production security checklist enforced via CI/CD pipeline
+- Webhook security tests included in Go test suite
 
 ---
 
@@ -1887,6 +1887,245 @@ Network:
 
 # Phase 5: Integration (Week 7-8)
 ./scripts/checkpoint-validator.sh integration
+```
+
+---
+
+## 6.3 NetworkIntent State Machine (IEEE 1016 State Dynamics)
+
+### 6.3.1 State Transition Diagram
+
+```mermaid
+stateDiagram-v2
+    [*] --> Pending: User creates NetworkIntent CRD
+
+    Pending --> Validating: Controller picks up intent
+    Validating --> Invalid: Validation fails<br/>(bad syntax, injection detected)
+    Validating --> Valid: Validation passes
+
+    Invalid --> [*]: User deletes intent
+
+    Valid --> ProcessingLLM: Extract natural language
+    ProcessingLLM --> LLMFailed: LLM unreachable or error
+    ProcessingLLM --> ProcessingRAG: LLM generates embedding
+
+    LLMFailed --> Retrying: Exponential backoff
+    Retrying --> ProcessingLLM: Retry (max 3 attempts)
+    Retrying --> Failed: Max retries exceeded
+
+    ProcessingRAG --> RAGFailed: Weaviate unreachable
+    ProcessingRAG --> GeneratingA1: RAG context retrieved (top-k=5)
+
+    RAGFailed --> Retrying
+
+    GeneratingA1 --> A1Generated: A1 policy JSON created
+    A1Generated --> PublishingA1: POST to Non-RT RIC A1 API
+
+    PublishingA1 --> PublishFailed: HTTP 4xx/5xx error
+    PublishingA1 --> Published: HTTP 200/201 success
+
+    PublishFailed --> Retrying
+
+    Published --> Reconciling: Monitor deployment status
+    Reconciling --> Active: Deployment successful (replicas match)
+    Reconciling --> Degraded: Partial success (some replicas failed)
+    Reconciling --> Failed: Deployment failed
+
+    Active --> Reconciling: Spec change detected
+    Active --> Terminating: User deletes NetworkIntent
+
+    Degraded --> Reconciling: Retry reconciliation
+    Degraded --> Terminating: User deletes NetworkIntent
+
+    Failed --> Terminating: User deletes NetworkIntent
+    Failed --> Pending: User updates spec (retry)
+
+    Terminating --> CleaningA1: DELETE A1 policy from RIC
+    CleaningA1 --> Terminated: Finalizer complete
+    Terminated --> [*]: CRD removed from etcd
+
+    note right of Pending
+        Condition: Ready=Unknown
+        Reason: Pending
+    end note
+
+    note right of Active
+        Condition: Ready=True
+        Reason: ReconcileSuccess
+    end note
+
+    note right of Failed
+        Condition: Ready=False
+        Reason: ReconcileError
+    end note
+```
+
+### 6.3.2 State Descriptions
+
+| State | Condition Type | Status | Reason | Description |
+|-------|----------------|--------|--------|-------------|
+| **Pending** | Ready | Unknown | Pending | NetworkIntent CRD created, waiting for controller |
+| **Validating** | Ready | Unknown | Validating | Webhook validation in progress |
+| **Invalid** | Ready | False | ValidationFailed | Character allowlist failed, injection detected, or schema error |
+| **Valid** | Ready | Unknown | Validated | Webhook validation passed, queued for processing |
+| **ProcessingLLM** | Ready | Unknown | ProcessingLLM | Extracting natural language, generating embedding |
+| **LLMFailed** | Ready | False | LLMUnreachable | Ollama service unavailable or timeout |
+| **ProcessingRAG** | Ready | Unknown | ProcessingRAG | Querying Weaviate for context documents (top-k=5) |
+| **RAGFailed** | Ready | False | RAGUnreachable | Weaviate service unavailable |
+| **GeneratingA1** | Ready | Unknown | GeneratingA1 | LLM generating A1 policy JSON from context |
+| **A1Generated** | Ready | Unknown | A1Generated | A1 policy JSON validated and ready |
+| **PublishingA1** | Ready | Unknown | PublishingA1 | POSTing A1 policy to Non-RT RIC API |
+| **PublishFailed** | Ready | False | A1PublishFailed | Non-RT RIC returned HTTP error (4xx/5xx) |
+| **Published** | Ready | Unknown | Published | A1 policy accepted by Non-RT RIC |
+| **Reconciling** | Ready | Unknown | Reconciling | Monitoring deployment status, verifying replicas |
+| **Active** | Ready | True | ReconcileSuccess | Deployment successful, replicas match desired state |
+| **Degraded** | Ready | False | PartialSuccess | Some replicas running, but not all |
+| **Failed** | Ready | False | ReconcileError | Deployment failed, no replicas running |
+| **Retrying** | Ready | Unknown | Retrying | Exponential backoff retry (attempt N/3) |
+| **Terminating** | Ready | Unknown | Terminating | User deleted NetworkIntent, cleanup in progress |
+| **CleaningA1** | Ready | Unknown | CleaningA1 | Deleting A1 policy from Non-RT RIC (finalizer) |
+| **Terminated** | N/A | N/A | N/A | CRD removed from Kubernetes |
+
+### 6.3.3 State Transition Events
+
+| Event | Trigger | From State(s) | To State |
+|-------|---------|---------------|----------|
+| **CRD Created** | `kubectl apply -f intent.yaml` | N/A | Pending |
+| **Validation Success** | Webhook returns `{"allowed": true}` | Validating | Valid |
+| **Validation Failure** | Webhook returns `{"allowed": false}` | Validating | Invalid |
+| **LLM Success** | Ollama returns 200 OK with embedding | ProcessingLLM | ProcessingRAG |
+| **LLM Timeout** | Ollama timeout (>30s) or 5xx error | ProcessingLLM | LLMFailed |
+| **RAG Success** | Weaviate returns top-k documents | ProcessingRAG | GeneratingA1 |
+| **RAG Failure** | Weaviate unreachable or empty result | ProcessingRAG | RAGFailed |
+| **A1 Publish Success** | Non-RT RIC returns 200/201 | PublishingA1 | Published |
+| **A1 Publish Failure** | Non-RT RIC returns 4xx/5xx | PublishingA1 | PublishFailed |
+| **Deployment Success** | All replicas Running, health OK | Reconciling | Active |
+| **Deployment Partial** | Some replicas Running, some Failed | Reconciling | Degraded |
+| **Deployment Failure** | Zero replicas Running | Reconciling | Failed |
+| **Spec Updated** | User edits NetworkIntent spec | Active | Reconciling |
+| **CRD Deleted** | `kubectl delete networkintent <name>` | Any | Terminating |
+| **Finalizer Complete** | A1 policy deleted from RIC | CleaningA1 | Terminated |
+| **Max Retries** | 3 retry attempts exhausted | Retrying | Failed |
+
+### 6.3.4 Retry Policy
+
+**Exponential Backoff**:
+```yaml
+Initial Delay: 1 second
+Max Delay: 60 seconds
+Max Retries: 3
+Backoff Multiplier: 2
+
+Retry Schedule:
+  Attempt 1: Wait 1s, then retry
+  Attempt 2: Wait 2s, then retry
+  Attempt 3: Wait 4s, then retry
+  Attempt 4: Mark as Failed (max retries exceeded)
+
+Retryable Errors:
+  - LLM timeout or 5xx error
+  - Weaviate connection failure
+  - A1 API 5xx error (server error)
+  - Deployment temporary failure (pod pending)
+
+Non-Retryable Errors:
+  - Validation failure (character allowlist)
+  - A1 API 4xx error (client error, bad request)
+  - Intent syntax error
+```
+
+### 6.3.5 Finalizer Logic
+
+**Finalizer Name**: `intent.nephoran.com/a1-policy-cleanup`
+
+**Finalizer Execution Flow**:
+```yaml
+1. User runs: kubectl delete networkintent <name>
+2. Kubernetes sets: metadata.deletionTimestamp
+3. Controller detects deletionTimestamp
+4. Controller enters: Terminating state
+5. Controller performs cleanup:
+   a. DELETE /a1-policy/v2/policies/<policyId> (Non-RT RIC)
+   b. Wait for HTTP 200/204 response
+   c. Remove finalizer from metadata.finalizers
+6. Kubernetes removes CRD from etcd
+7. NetworkIntent no longer exists
+```
+
+**Finalizer Edge Cases**:
+```yaml
+Scenario: Non-RT RIC unreachable during cleanup
+  Action: Log error, remove finalizer anyway (orphaned policy)
+  Reason: Prevent stuck deletion
+
+Scenario: A1 policy already deleted (404 Not Found)
+  Action: Treat as success, remove finalizer
+  Reason: Idempotent cleanup
+
+Scenario: Finalizer timeout (>2 minutes)
+  Action: Force remove finalizer, log warning
+  Reason: Prevent indefinite hangs
+```
+
+### 6.3.6 Status Conditions (Kubernetes Standard)
+
+**NetworkIntent Status Structure**:
+```yaml
+apiVersion: intent.nephoran.com/v1
+kind: NetworkIntent
+metadata:
+  name: scale-upf-demo
+status:
+  conditions:
+  - type: Ready
+    status: "True"  # or "False" or "Unknown"
+    reason: ReconcileSuccess
+    message: "Successfully scaled free5gc-upf to 5 replicas"
+    lastTransitionTime: "2026-02-16T12:34:56Z"
+    lastUpdateTime: "2026-02-16T12:34:56Z"
+    observedGeneration: 3
+
+  observedGeneration: 3  # Matches metadata.generation when reconciled
+
+  a1PolicyId: "scale-upf-demo-abc123"  # Created policy ID
+
+  deploymentStatus:
+    desiredReplicas: 5
+    currentReplicas: 5
+    readyReplicas: 5
+    unavailableReplicas: 0
+```
+
+### 6.3.7 Observability
+
+**Metrics (Prometheus)**:
+```yaml
+# State transition duration
+networkintent_state_transition_duration_seconds{from_state, to_state}
+
+# Current state distribution
+networkintent_state_count{state}
+
+# Retry count by reason
+networkintent_retry_count{reason}
+
+# A1 policy publish success/failure rate
+networkintent_a1_publish_total{status="success|failure"}
+```
+
+**Logs (Structured JSON)**:
+```json
+{
+  "timestamp": "2026-02-16T12:34:56Z",
+  "level": "info",
+  "msg": "State transition",
+  "intent_name": "scale-upf-demo",
+  "intent_namespace": "nephoran-system",
+  "from_state": "PublishingA1",
+  "to_state": "Published",
+  "duration_ms": 127,
+  "a1_policy_id": "scale-upf-demo-abc123"
+}
 ```
 
 ---
