@@ -171,3 +171,4 @@ Updates are tracked here in append-only format.
 | 2026-02-16T12:55:19+00:00 | main | docs | Phase 2 complete: Tasks T3-T7, K8s version fix, Security & Data Architecture added (+800 lines) |
 | 2026-02-16T13:33:19+00:00 | main | docs | Phase 3 complete: DAG fixes, State Machine, SBOM guide - 100/100 execution thoroughness achieved! |
 | 2026-02-16T15:13:07+00:00 | main | docs | PR #352 merged: SDD perfection complete, all CI checks passing, production-ready documentation! |
+| 2026-02-16T20:25:46+00:00 | main | docs | CLAUDE.md rewritten: 2026 context, K8s 1.35.1 DRA, actual deployment state documented |
