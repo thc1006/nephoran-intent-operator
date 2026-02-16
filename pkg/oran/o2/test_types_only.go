@@ -279,11 +279,7 @@ func (m *O2Manager) DeployVNF(ctx context.Context, vnfSpec *VNFDescriptor) (*Dep
 
 type ClusterMetrics struct {
 	TotalNodes int32 `json:"totalNodes"`
-<<<<<<< HEAD
-	
-=======
 
->>>>>>> 6835433495e87288b95961af7173d866977175ff
 	ReadyNodes int32 `json:"readyNodes"`
 
 	TotalPods int32 `json:"totalPods"`
@@ -291,8 +287,6 @@ type ClusterMetrics struct {
 	TotalCPU string `json:"totalCPU"`
 
 	TotalMemory string `json:"totalMemory"`
-	
-	TotalPods int32 `json:"totalPods"`
 }
 
 // VNFDeploymentStatus represents the status of a VNF deployment.

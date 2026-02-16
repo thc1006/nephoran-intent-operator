@@ -1,0 +1,15 @@
+[submodule "ric-platform/submodules/rtmgr"]
+	path = ric-platform/submodules/rtmgr
+	url = https://github.com/thc1006/ric-plt-rtmgr
+[submodule "ric-platform/submodules/appmgr"]
+	path = ric-platform/submodules/appmgr
+	url = https://github.com/thc1006/ric-plt-appmgr
+[submodule "ric-platform/submodules/submgr"]
+	path = ric-platform/submodules/submgr
+	url = https://github.com/thc1006/ric-plt-submgr
+[submodule "ric-platform/submodules/e2mgr"]
+	path = ric-platform/submodules/e2mgr
+	url = https://github.com/thc1006/ric-plt-e2mgr
+[submodule "ric-platform/submodules/e2"]
+	path = ric-platform/submodules/e2
+	url = https://github.com/thc1006/ric-plt-e2

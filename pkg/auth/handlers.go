@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 )
 
 // Handlers provides HTTP handlers for authentication endpoints.
@@ -131,6 +133,12 @@ func (ah *Handlers) GetProvidersHandler(w http.ResponseWriter, r *http.Request) 
 // InitiateLoginHandler initiates OAuth2 login flow.
 
 func (ah *Handlers) InitiateLoginHandler(w http.ResponseWriter, r *http.Request) {
+	if ah.sessionManager == nil {
+		ah.writeErrorResponse(w, http.StatusInternalServerError, "service_unavailable", "session manager not configured")
+
+		return
+	}
+
 	vars := mux.Vars(r)
 
 	providerName := vars["provider"]
@@ -202,6 +210,18 @@ func (ah *Handlers) InitiateLoginHandler(w http.ResponseWriter, r *http.Request)
 // CallbackHandler handles OAuth2 callback.
 
 func (ah *Handlers) CallbackHandler(w http.ResponseWriter, r *http.Request) {
+	if ah.sessionManager == nil {
+		ah.writeErrorResponse(w, http.StatusInternalServerError, "service_unavailable", "session manager not configured")
+
+		return
+	}
+
+	if r.Method != http.MethodGet {
+		ah.writeErrorResponse(w, http.StatusMethodNotAllowed, "method_not_allowed", "Method not allowed")
+
+		return
+	}
+
 	vars := mux.Vars(r)
 
 	providerName := vars["provider"]
@@ -226,10 +246,21 @@ func (ah *Handlers) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 
 		errorDesc := r.URL.Query().Get("error_description")
 
-		ah.writeErrorResponse(w, http.StatusBadRequest, errorCode, errorDesc)
+		errorMessage := errorCode
+		if errorDesc != "" {
+			errorMessage = fmt.Sprintf("%s: %s", errorCode, errorDesc)
+		}
+
+		ah.writeErrorResponse(w, http.StatusBadRequest, errorCode, errorMessage)
 
 		return
 
+	}
+
+	if callbackReq.Code == "" {
+		ah.writeErrorResponse(w, http.StatusBadRequest, "missing_code", "missing authorization code")
+
+		return
 	}
 
 	// Process callback.
@@ -266,8 +297,17 @@ func (ah *Handlers) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	// For API requests, return JSON.
 
 	if isAPIRequest(r) {
+		responsePayload := map[string]interface{}{
+			"success":       response.Success,
+			"session_id":    response.SessionID,
+			"access_token":  response.AccessToken,
+			"refresh_token": response.RefreshToken,
+		}
+		if response.UserInfo != nil {
+			responsePayload["user_id"] = response.UserInfo.Subject
+		}
 
-		ah.writeJSONResponse(w, http.StatusOK, response)
+		ah.writeJSONResponse(w, http.StatusOK, responsePayload)
 
 		return
 
@@ -281,37 +321,61 @@ func (ah *Handlers) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 // LogoutHandler logs out the user.
 
 func (ah *Handlers) LogoutHandler(w http.ResponseWriter, r *http.Request) {
-	sessionID := ah.getSessionID(r)
-
-	if sessionID == "" {
-
-		ah.writeErrorResponse(w, http.StatusBadRequest, "no_session", "No active session")
+	if r.Method != http.MethodPost {
+		ah.writeErrorResponse(w, http.StatusMethodNotAllowed, "method_not_allowed", "Method not allowed")
 
 		return
+	}
 
+	sessionID := ah.getSessionID(r)
+
+	authHeader := r.Header.Get("Authorization")
+	if strings.HasPrefix(authHeader, "Bearer ") && ah.jwtManager != nil {
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		if err := ah.jwtManager.RevokeToken(r.Context(), token); err != nil {
+			ah.writeErrorResponse(w, http.StatusInternalServerError, "logout_failed", err.Error())
+
+			return
+		}
 	}
 
 	// Revoke session.
 
-	if err := ah.sessionManager.RevokeSession(r.Context(), sessionID); err != nil {
+	if sessionID != "" && ah.sessionManager != nil {
+		if err := ah.sessionManager.RevokeSession(r.Context(), sessionID); err != nil {
+			ah.writeErrorResponse(w, http.StatusInternalServerError, "logout_failed", err.Error())
 
-		ah.writeErrorResponse(w, http.StatusInternalServerError, "logout_failed", err.Error())
-
-		return
-
+			return
+		}
 	}
 
 	// Clear session cookie.
 
-	ah.sessionManager.ClearSessionCookie(w)
+	if ah.sessionManager != nil {
+		ah.sessionManager.ClearSessionCookie(w)
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session",
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
+		HttpOnly: true,
+	})
 
-	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
+	ah.writeJSONResponse(w, http.StatusOK, map[string]string{"message": "Logged out successfully"})
 }
 
 // GetUserInfoHandler returns current user information.
 
 func (ah *Handlers) GetUserInfoHandler(w http.ResponseWriter, r *http.Request) {
-	authContext := GetAuthContext(r.Context())
+	if r.Method != http.MethodGet {
+		ah.writeErrorResponse(w, http.StatusMethodNotAllowed, "method_not_allowed", "Method not allowed")
+
+		return
+	}
+
+	authContext := ah.resolveAuthContext(r)
 
 	if authContext == nil {
 
@@ -323,7 +387,7 @@ func (ah *Handlers) GetUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Get session info.
 
-	_, err := ah.sessionManager.ValidateSession(r.Context(), authContext.SessionID)
+	sessionInfo, err := ah.sessionManager.ValidateSession(r.Context(), authContext.SessionID)
 	if err != nil {
 
 		ah.writeErrorResponse(w, http.StatusInternalServerError, "session_error", err.Error())
@@ -332,8 +396,13 @@ func (ah *Handlers) GetUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	// Fixed: removed unused sessionInfo variable
-	userInfo := json.RawMessage(`{}`)
+	userInfo := map[string]interface{}{
+		"sub": authContext.UserID,
+	}
+	if sessionInfo.UserInfo != nil {
+		userInfo["email"] = sessionInfo.UserInfo.Email
+		userInfo["name"] = sessionInfo.UserInfo.Name
+	}
 
 	ah.writeJSONResponse(w, http.StatusOK, userInfo)
 }
@@ -518,6 +587,12 @@ func (ah *Handlers) GenerateTokenHandler(w http.ResponseWriter, r *http.Request)
 // RefreshTokenHandler refreshes a token.
 
 func (ah *Handlers) RefreshTokenHandler(w http.ResponseWriter, r *http.Request) {
+	if ah.jwtManager == nil {
+		ah.writeErrorResponse(w, http.StatusInternalServerError, "service_unavailable", "jwt manager not configured")
+
+		return
+	}
+
 	if !ah.config.EnableAPITokens {
 
 		ah.writeErrorResponse(w, http.StatusNotFound, "not_supported", "API tokens not enabled")
@@ -538,7 +613,7 @@ func (ah *Handlers) RefreshTokenHandler(w http.ResponseWriter, r *http.Request) 
 
 	}
 
-	_, _, err := ah.jwtManager.RefreshAccessToken(r.Context(), refreshReq.RefreshToken)
+	claims, err := ah.jwtManager.ValidateToken(r.Context(), refreshReq.RefreshToken)
 	if err != nil {
 
 		ah.writeErrorResponse(w, http.StatusBadRequest, "invalid_grant", err.Error())
@@ -546,9 +621,38 @@ func (ah *Handlers) RefreshTokenHandler(w http.ResponseWriter, r *http.Request) 
 		return
 
 	}
+	if claims.TokenType != "refresh" {
+		ah.writeErrorResponse(w, http.StatusBadRequest, "invalid_grant", "token is not a refresh token")
 
-	// Fixed: removed unused accessToken and tokenInfo variables
-	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
+		return
+	}
+
+	userInfo := &providers.UserInfo{
+		Subject:       claims.Subject,
+		Email:         claims.Email,
+		EmailVerified: claims.EmailVerified,
+		Name:          claims.Name,
+		PreferredName: claims.PreferredName,
+		Picture:       claims.Picture,
+		Groups:        claims.Groups,
+		Roles:         claims.Roles,
+		Permissions:   claims.Permissions,
+		Provider:      claims.Provider,
+		ProviderID:    claims.ProviderID,
+		Attributes:    claims.Attributes,
+	}
+	accessToken, refreshToken, err := ah.jwtManager.GenerateTokenPair(r.Context(), userInfo, claims.SessionID)
+	if err != nil {
+		ah.writeErrorResponse(w, http.StatusInternalServerError, "token_generation_failed", err.Error())
+
+		return
+	}
+	_ = ah.jwtManager.RevokeToken(r.Context(), refreshReq.RefreshToken)
+
+	ah.writeJSONResponse(w, http.StatusOK, map[string]string{
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+	})
 }
 
 // RevokeTokenHandler revokes a token.
@@ -594,7 +698,7 @@ func (ah *Handlers) ListRolesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fixed: removed unused roles variable  
+	// Fixed: removed unused roles variable
 	_ = ah.rbacManager.ListRoles(r.Context())
 
 	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
@@ -818,9 +922,26 @@ func (ah *Handlers) getSessionID(r *http.Request) string {
 		return cookie.Value
 	}
 
+	legacyCookie, err := r.Cookie("session")
+	if err == nil && legacyCookie.Value != "" {
+		return legacyCookie.Value
+	}
+
 	// Try header.
 
-	return r.Header.Get("X-Session-ID")
+	if sessionID := r.Header.Get("X-Session-ID"); sessionID != "" {
+		return sessionID
+	}
+
+	authHeader := r.Header.Get("Authorization")
+	if strings.HasPrefix(authHeader, "Bearer ") && ah.jwtManager != nil {
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		if claims, err := ah.jwtManager.ValidateToken(r.Context(), token); err == nil {
+			return claims.SessionID
+		}
+	}
+
+	return ""
 }
 
 func (ah *Handlers) buildCallbackURL(provider string) string {
@@ -862,7 +983,11 @@ func (ah *Handlers) writeErrorResponse(w http.ResponseWriter, status int, code, 
 
 	w.WriteHeader(status)
 
-	errorResponse := json.RawMessage(`{}`)
+	errorResponse := map[string]string{
+		"error":       message,
+		"error_code":  code,
+		"description": message,
+	}
 
 	json.NewEncoder(w).Encode(errorResponse)
 }
@@ -886,7 +1011,43 @@ func isAPIRequest(r *http.Request) bool {
 
 	accept := r.Header.Get("Accept")
 
-	return accept == "application/json" || r.Header.Get("X-Requested-With") == "XMLHttpRequest"
+	return accept == "" || strings.Contains(accept, "application/json") || r.Header.Get("X-Requested-With") == "XMLHttpRequest"
+}
+
+func (ah *Handlers) resolveAuthContext(r *http.Request) *AuthContext {
+	if authContext := GetAuthContext(r.Context()); authContext != nil {
+		return authContext
+	}
+	if ah.sessionManager != nil {
+		sessionID := ah.getSessionID(r)
+		if sessionID != "" {
+			if sessionInfo, err := ah.sessionManager.ValidateSession(r.Context(), sessionID); err == nil {
+				return &AuthContext{
+					UserID:      sessionInfo.UserID,
+					SessionID:   sessionInfo.ID,
+					Provider:    sessionInfo.Provider,
+					Roles:       sessionInfo.Roles,
+					Permissions: sessionInfo.Roles,
+				}
+			}
+		}
+	}
+
+	authHeader := r.Header.Get("Authorization")
+	if strings.HasPrefix(authHeader, "Bearer ") && ah.jwtManager != nil {
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		if claims, err := ah.jwtManager.ValidateToken(r.Context(), token); err == nil && claims.TokenType == "access" {
+			return &AuthContext{
+				UserID:      claims.Subject,
+				SessionID:   claims.SessionID,
+				Provider:    claims.Provider,
+				Roles:       claims.Roles,
+				Permissions: claims.Permissions,
+			}
+		}
+	}
+
+	return nil
 }
 
 // getClientIP is defined in middleware.go

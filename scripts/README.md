@@ -1,248 +1,49 @@
-# Scripts Directory
-
-This directory contains essential scripts for building, deploying, and managing the Nephoran Intent Operator.
-
-## Build Scripts
-
-### `docker-build.sh`
-Production Docker build script with security scanning and multi-architecture support.
-
-**Usage:**
-```bash
-./docker-build.sh <service> [options]
-```
-
-**Services:**
-- `llm-processor` - Build LLM Processor service
-- `nephio-bridge` - Build Nephio Bridge service  
-- `oran-adaptor` - Build ORAN Adaptor service
-- `all` - Build all services
-
-**Options:**
-- `--push` - Push images to registry after build
-- `--scan` - Run security scan using Trivy
-- `--multi-arch` - Build for multiple architectures
-- `--no-cache` - Build without using Docker cache
-- `--registry` - Set custom registry
-- `--version` - Set version tag
-- `--platforms` - Set target platforms
-
-**Examples:**
-```bash
-./docker-build.sh llm-processor --push --scan
-./docker-build.sh all --multi-arch --push
-```
-
-### `docker-security-scan.sh`
-Comprehensive security validation for container images.
-
-**Usage:**
-```bash
-./docker-security-scan.sh [options] <target>
-```
-
-**Targets:**
-- `image:<name>` - Scan specific container image
-- `dockerfile:<path>` - Scan Dockerfile for security issues
-- `all` - Run comprehensive security scan
-
-**Options:**
-- `--severity` - Set Trivy severity levels (default: HIGH,CRITICAL)
-- `--format` - Output format: table|json|sarif
-- `--docker-bench` - Run Docker Bench Security test
-- `--no-hadolint` - Skip Hadolint Dockerfile scanning
-
-## Deployment Scripts
-
-### `deploy.sh`
-Basic deployment script for local and remote environments.
-
-**Usage:**
-```bash
-./deploy.sh [local|remote]
-```
-
-- `local` - Build images and deploy to current Kubernetes context using 'Never' imagePullPolicy
-- `remote` - Build, push images to Google Artifact Registry, then deploy
-
-### `deploy-optimized.sh`
-Advanced GitOps-friendly deployment script with comprehensive options.
-
-**Usage:**
-```bash
-./deploy-optimized.sh [OPTIONS] COMMAND
-```
-
-**Commands:**
-- `build` - Build container images
-- `deploy` - Deploy to Kubernetes cluster
-- `all` - Build and deploy (default)
-
-**Options:**
-- `-e, --env ENV` - Environment: local, dev, staging, production
-- `-r, --registry REG` - Container registry
-- `-t, --tag TAG` - Image tag
-- `-n, --namespace NS` - Kubernetes namespace
-- `-d, --dry-run` - Show what would be done without executing
-- `-s, --skip-build` - Skip image building phase
-- `-p, --push` - Push images to registry
-
-**Examples:**
-```bash
-./deploy-optimized.sh --env local build
-./deploy-optimized.sh --env staging --tag v1.2.3 deploy
-./deploy-optimized.sh --env production --registry gcr.io/myproject/nephoran all
-```
-
-## Windows Scripts
-
-### `setup-windows.ps1`
-Windows development environment setup script.
-
-**Usage:**
-```powershell
-.\setup-windows.ps1 [options]
-```
-
-**Options:**
-- `-Force` - Force reinstall even if components exist
-- `-SkipKubernetes` - Skip Kubernetes cluster setup
-- `-Help` - Show help message
-
-**Features:**
-- Installs Chocolatey package manager
-- Installs Go, Python, Docker Desktop, kubectl, kind, Git
-- Sets up Python virtual environment
-- Creates Windows-compatible environment script
-- Sets up local Kubernetes cluster with kind
-
-### `local-deploy.ps1`
-PowerShell deployment script for Windows local development.
-
-### `test-comprehensive.ps1`
-Comprehensive test suite runner for Windows.
-
-### `validate-environment.ps1`
-Environment validation script for Windows.
-
-## Utility Scripts
-
-### `mcp-helm-server.py`
-MCP (Model Context Protocol) Helm server for AI-assisted operations.
-
-## RAG and AI Scripts
-
-### `populate_vector_store.py`
-Script to populate the vector database with telecom knowledge base.
-
-### `populate_vector_store_enhanced.py`
-Enhanced version with additional features for vector store population.
-
-### `prompt_ab_testing.py`
-A/B testing framework for prompt optimization.
-
-### `prompt_evaluation_metrics.py`
-Evaluation metrics for prompt performance analysis.
-
-### `prompt_optimization_demo.py`
-Demonstration script for prompt optimization techniques.
-
-## Infrastructure Scripts
-
-### `deploy-istio-mesh.sh`
-Deploy and configure Istio service mesh for the Nephoran system.
-
-### `deploy-multi-region.sh`
-Multi-region deployment automation script.
-
-### `deploy-rag-system.sh`
-Deploy the RAG (Retrieval-Augmented Generation) system components.
-
-### `disaster-recovery-system.sh`
-Disaster recovery automation and orchestration.
-
-### `disaster-recovery.sh`
-Basic disaster recovery operations.
-
-### `dr-automation-scheduler.sh`
-Automated disaster recovery scheduler.
-
-## Validation and Testing Scripts
-
-### `edge-deployment-validation.sh`
-Validate edge computing deployment configurations.
-
-### `execute-production-load-test.sh`
-Execute production-grade load testing scenarios.
-
-### `execute-security-audit.sh`
-Comprehensive security audit execution.
-
-### `oran-compliance-validator.sh`
-Validate ORAN (Open RAN) compliance requirements.
-
-### `performance-benchmark-suite.sh`
-Performance benchmarking and analysis suite.
-
-### `validate-build.sh`
-Build validation and verification.
-
-### `validate-load-test-capability.sh`
-Validate load testing infrastructure and capabilities.
-
-### `validate-security-hardening.sh`
-Security hardening validation script.
-
-## Maintenance Scripts
-
-### `build-fix-summary.sh`
-Generate build fix summaries and reports.
-
-### `fix-critical-errors.sh`
-Automated critical error resolution.
-
-### `monitoring-operations.sh`
-Monitoring system operations and maintenance.
-
-### `setup-enhanced-cicd.sh`
-Enhanced CI/CD pipeline setup and configuration.
-
-### `update-dependencies.sh`
-Automated dependency updates with validation.
-
-## Security Scripts
-
-### `security-config-validator.sh`
-Security configuration validation.
-
-### `security-penetration-test.sh`
-Automated penetration testing framework.
-
-### `security-scan.sh`
-General security scanning operations.
-
-### `vulnerability-scanner.sh`
-Vulnerability assessment and scanning.
-
-## Usage Guidelines
-
-1. **Prerequisites**: Ensure all required tools are installed (Docker, kubectl, Go, Python)
-2. **Permissions**: Make scripts executable: `chmod +x script-name.sh`
-3. **Environment**: Set appropriate environment variables before running deployment scripts
-4. **Testing**: Use `--dry-run` options where available to test operations before execution
-5. **Security**: Review security scan results and address findings before production deployment
-
-## Environment Variables
-
-Common environment variables used across scripts:
-
-- `NEPHORAN_REGISTRY` - Default container registry
-- `NEPHORAN_TAG` - Default image tag
-- `NEPHORAN_NAMESPACE` - Default Kubernetes namespace
-- `KUBECONFIG` - Kubernetes configuration file
-- `DOCKER_BUILDKIT` - Enable Docker BuildKit
-- `TRIVY_SEVERITY` - Trivy scan severity levels
-
-## Support
-
-For issues with any script, check the individual script's help output using `--help` flag, or refer to the main project documentation.
+# Scripts overview (consolidation pass 1)
+
+這份指南先以分類導覽取代大量零散檔案，未移動實體檔案；後續可依此分區搬移或淘汰。
+
+## 主要分區（建議後續實體分組）
+- **ci/**：CI/測試/覆蓋率/規範檢查
+- **security/**：掃描、滲透測試、供應鏈/合規
+- **deploy/**：部署與安裝腳本
+- **ops/**：營運、監控、DR、效能/混沌
+- **tools/**：資料與 prompt 工具
+- **archive/**：一次性/舊版/待淘汰
+
+## 目前檔案導覽（暫未搬移）
+
+### CI / Build / Test
+- ci-build.sh, ci-environment-optimizer.sh, ci-performance-monitor.sh, migrate-to-consolidated-pipeline.sh, verify-ci-consolidation.sh
+- run-all-validations.sh, run-comprehensive-tests.sh, run-tests-with-coverage.sh, validate-build.sh, validate-coverage.sh, validate-workflows.sh, validate-ci-fixes.sh
+- validate-root-allowlist.sh（Root Phase 3：檢查根目錄是否符合 allowlist，並輸出候選搬移項）
+- lint-* 系列、apply-lint-fixes-2025.sh, lint-fixes/, lint-commands-guide.md
+- test-* 系列（test-ci-build.sh, test-docker-build*.sh, test-race-detection.sh, test-llm-pipeline.sh, test-security-workflows.sh, test-workflow-*.py 等）
+
+### Security / Compliance
+- **moved to security/**: security-scan.sh, execute-security-audit.sh, security-penetration-test.sh, docker-security-scan.sh, vulnerability-scanner.sh, cve-scan.sh, check-critical-vulnerabilities.py, security-config-validator.sh, verify-security-scans.sh, verify-supply-chain.sh, daily-compliance-check.sh, compliance-checker.py, security-updates.sh
+- benchmark-security-scan.sh, security-policy-templates.yaml
+
+### Deploy / Install
+- **moved to deploy/**: deploy.sh, deploy-optimized.sh, deploy-istio-mesh.sh, deploy-multi-region.sh, deploy-monitoring-stack.sh, deploy-mtls.sh, deploy-rag-system.sh, deploy-performance-monitoring.sh, deploy-webhook.sh, docker-build*.sh, smart-docker-build.sh, enable-build-cache.sh
+- setup-enhanced-cicd.sh, install-hooks.sh, setup-secondary-cluster.sh, o2-production-readiness-check.sh
+
+### Ops / DR / Monitoring / Performance
+- **moved to ops/**: disaster-recovery.sh, disaster-recovery-system.sh, dr-automation-scheduler.sh, failover-to-secondary.sh, execute-production-load-test.sh, run-chaos-suite.sh, performance-benchmark-suite.sh, performance-monitor.sh
+- edge-deployment-validation.sh, monitor-ci.sh, monitor-sla.sh, monitoring-operations.sh, monitoring/
+- performance-regression/, performance-comparison/, optimize-build.sh, optimize-coverage.sh, optimize-test-execution.sh, quality-gate.sh, quality-metrics/, resource-optimizer.sh
+
+### Tools / Data / Prompts
+- populate_vector_store.py, populate_vector_store_enhanced.py
+- prompt_ab_testing.py, prompt_evaluation_metrics.py, prompt_optimization_demo.py
+- mcp-helm-server.py, postgres_optimize.sql, env-config-example.sh
+
+### Archive / One-off / Needs review
+- Archived to `scripts/`: benchmark_results.md, format-bypass-check.sh, quick-fix-syntax.sh, fix-ci-timeout.sh
+- Still to review: fix-disaster-recovery-test.sh, fix-gosec-issues.go, quickstart.sh, quick-db-check, deployment/ (mixed assets), hooks/, technical-debt/, validation/legacy helpers
+
+## 後續建議
+1) 按上述分區建立子目錄並移動腳本；移動後更新 Makefile/文檔入口。  
+2) 標記一次性或重疊腳本（如多個 docker-build/test 變體）並淘汰，保留「標準慢全量」與「快速增量」各一。  
+3) 為各分區補充簡短 README（用途、依賴、維護狀態）。  
+4) 為主要入口（CI、部署、安全掃描）在根 README 或 Makefile 補連結。  
+5) 在 PROGRESS.md 記錄每次搬移批次，保持可追蹤。

@@ -4,10 +4,25 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/interfaces"
 )
+
+func hasAuditLogger(logger interfaces.AuditLogger) bool {
+	if logger == nil {
+		return false
+	}
+
+	value := reflect.ValueOf(logger)
+	switch value.Kind() {
+	case reflect.Ptr, reflect.Map, reflect.Slice, reflect.Interface, reflect.Func, reflect.Chan:
+		return !value.IsNil()
+	default:
+		return true
+	}
+}
 
 // LoadLLMAPIKeyFromFile loads the LLM API key from file or environment variable.
 
@@ -18,7 +33,7 @@ func LoadLLMAPIKeyFromFile(backendType string, logger interfaces.AuditLogger) (s
 
 	if apiKey := os.Getenv(envVar); apiKey != "" {
 
-		if logger != nil {
+		if hasAuditLogger(logger) {
 			logger.LogSecretAccess("api_key", fmt.Sprintf("env:%s", envVar), "system", "", true, nil)
 		}
 
@@ -41,7 +56,7 @@ func LoadLLMAPIKeyFromFile(backendType string, logger interfaces.AuditLogger) (s
 
 		if apiKey != "" {
 
-			if logger != nil {
+			if hasAuditLogger(logger) {
 				logger.LogSecretAccess("api_key", fmt.Sprintf("file:%s", keyFile), "system", "", true, nil)
 			}
 
@@ -55,7 +70,7 @@ func LoadLLMAPIKeyFromFile(backendType string, logger interfaces.AuditLogger) (s
 
 	if apiKey := os.Getenv("LLM_API_KEY"); apiKey != "" {
 
-		if logger != nil {
+		if hasAuditLogger(logger) {
 			logger.LogSecretAccess("api_key", "env:LLM_API_KEY", "system", "", true, nil)
 		}
 
@@ -65,7 +80,7 @@ func LoadLLMAPIKeyFromFile(backendType string, logger interfaces.AuditLogger) (s
 
 	err = fmt.Errorf("no API key found for backend %s", backendType)
 
-	if logger != nil {
+	if hasAuditLogger(logger) {
 		logger.LogSecretAccess("api_key", backendType, "system", "", false, err)
 	}
 
@@ -79,7 +94,7 @@ func LoadAPIKeyFromFile(logger interfaces.AuditLogger) (string, error) {
 
 	if apiKey := os.Getenv("API_KEY"); apiKey != "" {
 
-		if logger != nil {
+		if hasAuditLogger(logger) {
 			logger.LogAPIKeyValidation("application", "environment", true, nil)
 		}
 
@@ -102,7 +117,7 @@ func LoadAPIKeyFromFile(logger interfaces.AuditLogger) (string, error) {
 
 		if apiKey != "" {
 
-			if logger != nil {
+			if hasAuditLogger(logger) {
 				logger.LogAPIKeyValidation("application", "file", true, nil)
 			}
 
@@ -114,7 +129,7 @@ func LoadAPIKeyFromFile(logger interfaces.AuditLogger) (string, error) {
 
 	err = fmt.Errorf("no API key found")
 
-	if logger != nil {
+	if hasAuditLogger(logger) {
 		logger.LogAPIKeyValidation("application", "none", false, err)
 	}
 
@@ -128,7 +143,7 @@ func LoadJWTSecretKeyFromFile(logger interfaces.AuditLogger) (string, error) {
 
 	if secretKey := os.Getenv("JWT_SECRET_KEY"); secretKey != "" {
 
-		if logger != nil {
+		if hasAuditLogger(logger) {
 			logger.LogSecretAccess("jwt_secret", "env:JWT_SECRET_KEY", "system", "", true, nil)
 		}
 
@@ -151,7 +166,7 @@ func LoadJWTSecretKeyFromFile(logger interfaces.AuditLogger) (string, error) {
 
 		if secretKey != "" {
 
-			if logger != nil {
+			if hasAuditLogger(logger) {
 				logger.LogSecretAccess("jwt_secret", fmt.Sprintf("file:%s", keyFile), "system", "", true, nil)
 			}
 
@@ -165,7 +180,7 @@ func LoadJWTSecretKeyFromFile(logger interfaces.AuditLogger) (string, error) {
 
 	defaultSecret := "default-development-secret-key-change-in-production"
 
-	if logger != nil {
+	if hasAuditLogger(logger) {
 		logger.LogSecretAccess("jwt_secret", "default_generated", "system", "", true, nil)
 	}
 
