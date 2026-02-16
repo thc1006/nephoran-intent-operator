@@ -274,6 +274,20 @@ func (v *NetworkIntentValidator) validateIntentContent(intent string) error {
 		return fmt.Errorf("intent cannot be empty or only whitespace")
 	}
 
+	// Check for excessive line breaks (newlines).
+
+	newlineCount := strings.Count(intent, "\n")
+	if newlineCount > 50 {
+		return fmt.Errorf("intent contains excessive line breaks (%d newlines, maximum allowed: 50)", newlineCount)
+	}
+
+	// Check for excessive tabs.
+
+	tabCount := strings.Count(intent, "\t")
+	if tabCount > 20 {
+		return fmt.Errorf("intent contains excessive tabs (%d tabs, maximum allowed: 20)", tabCount)
+	}
+
 	// SECURITY: Enforce strict character allowlist matching CRD pattern.
 
 	// Only allow: a-zA-Z0-9, spaces, and safe punctuation: - _ . , ; : ( ) [ ].
@@ -281,6 +295,12 @@ func (v *NetworkIntentValidator) validateIntentContent(intent string) error {
 	allowedChars := regexp.MustCompile(`^[a-zA-Z0-9\s\-_.,;:()\[\]]*$`)
 
 	if !allowedChars.MatchString(intent) {
+
+		// Check if it contains characters commonly used in attacks.
+
+		if strings.ContainsAny(intent, "<>\"'`\\$") {
+			return fmt.Errorf("malicious pattern detected: disallowed characters that may be used in injection attacks")
+		}
 
 		// Find the first invalid character for better error reporting.
 
@@ -297,7 +317,7 @@ func (v *NetworkIntentValidator) validateIntentContent(intent string) error {
 	// Additional length check (redundant with CRD but provides defense in depth).
 
 	if len(intent) > 1000 {
-		return fmt.Errorf("intent exceeds maximum length of 1000 characters (got %d)", len(intent))
+		return fmt.Errorf("intent is too complex: exceeds maximum length of 1000 characters (got %d)", len(intent))
 	}
 
 	// Check for suspicious patterns even within allowed characters.
@@ -315,6 +335,22 @@ func (v *NetworkIntentValidator) validateIntentContent(intent string) error {
 	for i, r := range intent {
 		if unicode.IsControl(r) && !unicode.IsSpace(r) {
 			return fmt.Errorf("intent contains control character at position %d", i)
+		}
+	}
+
+	// Check for vague phrases early to provide better error messages.
+
+	intentLower := strings.ToLower(intent)
+
+	vaguePhrases := []string{
+		"do something", "make it work", "fix it", "handle this", "deal with",
+
+		"just do", "somehow", "whatever", "anything", "everything",
+	}
+
+	for _, phrase := range vaguePhrases {
+		if strings.Contains(intentLower, phrase) {
+			return fmt.Errorf("intent is too vague - contains non-specific phrase: %q", phrase)
 		}
 	}
 
@@ -355,26 +391,30 @@ func (v *NetworkIntentValidator) validateSecurity(intent string) error {
 
 		"drop table", "delete from", "insert into", "select from",
 
-		"union select", "exec sp", "exec xp",
+		"union select", "exec sp", "exec xp", "or 1=1", "or 1 =",
 
 		// Command-like patterns.
 
-		"rm -rf", "cat etc", "wget http", "curl http",
+		"rm -rf", "cat /etc", "cat etc", "wget http", "curl http",
+
+		"bash", "sh -c", "cmd.exe", "/bin/",
 
 		// Script-like patterns.
+
+		"<script", "javascript:", "onload=", "onerror=",
 
 		"script type", "javascript void", "onload equals", "onerror equals",
 
 		// Path traversal attempts.
 
-		"dot dot slash", "dot dot backslash",
+		"../", "..\\", "dot dot slash", "dot dot backslash",
 	}
 
 	intentLower := strings.ToLower(intent)
 
 	for _, pattern := range suspiciousPatterns {
 		if strings.Contains(intentLower, pattern) {
-			return fmt.Errorf("intent contains suspicious pattern that might indicate an attack attempt: %s", pattern)
+			return fmt.Errorf("malicious pattern detected: %s", pattern)
 		}
 	}
 
@@ -385,7 +425,7 @@ func (v *NetworkIntentValidator) validateSecurity(intent string) error {
 	alphanumericPattern := regexp.MustCompile(`[A-Za-z0-9]{40,}`)
 
 	if matches := alphanumericPattern.FindAllString(intent, -1); len(matches) > 0 {
-		return fmt.Errorf("intent contains suspiciously long unbroken alphanumeric sequence (possible encoding)")
+		return fmt.Errorf("malicious pattern detected: suspiciously long alphanumeric sequence (possible encoding)")
 	}
 
 	// Check for repeated patterns that might indicate fuzzing or automated attacks.
@@ -436,7 +476,7 @@ func (v *NetworkIntentValidator) validateSecurity(intent string) error {
 
 	for _, pattern := range spacedPatterns {
 		if strings.Contains(intentLower, pattern) {
-			return fmt.Errorf("intent contains suspicious spaced pattern that might be attempting to bypass filters")
+			return fmt.Errorf("malicious pattern detected: spaced pattern attempting to bypass filters")
 		}
 	}
 
@@ -452,31 +492,142 @@ func (v *NetworkIntentValidator) validateTelecomRelevance(intent string) error {
 
 	foundKeywords := make([]string, 0)
 
-	// Check for telecommunications keywords.
+	// Track specific telecom keywords found (not just generic infrastructure terms)
+
+	specificTelecomKeywords := []string{
+		// 5G Core components (longer phrases first to match "network function" before "nf")
+
+		"network function", "network slice", "quality of service", "service level",
+
+		"amf", "smf", "upf", "nssf", "nrf", "udm", "udr", "ausf", "pcf", "bsf",
+
+		"nef", "chf", "scp", "sepp", "udsf", "unef", "tngf", "twif", "n3iwf",
+
+		// O-RAN components
+
+		"near-rt-ric", "non-rt-ric", "o-ran", "o-du", "o-cu", "o-ru",
+
+		"xapp", "rapp", "smo",
+
+		// Telco-specific terms
+
+		"vnf", "cnf", "slicing", "qos", "sla", "urllc", "embb", "mmtc",
+
+		// 5G specific
+
+		"5g", "5gc",
+	}
+
+	specificCount := 0
+
+	// Count specific telecom keywords using word boundary checks to avoid false positives
+
+	// (e.g., "ric" in "generic", "a1" in "a1.example.com")
+
+	for _, keyword := range specificTelecomKeywords {
+		keywordLower := strings.ToLower(keyword)
+
+		// Use word boundary check for short keywords (2-3 chars)
+
+		if len(keywordLower) <= 3 {
+			// Check with word boundaries (space, start/end of string, punctuation)
+
+			if containsWholeWord(intentLower, keywordLower) {
+
+				specificCount++
+
+				foundKeywords = append(foundKeywords, keyword)
+
+			}
+
+		} else {
+			// For longer keywords, simple substring match is fine
+
+			if strings.Contains(intentLower, keywordLower) {
+
+				specificCount++
+
+				foundKeywords = append(foundKeywords, keyword)
+
+			}
+
+		}
+	}
+
+	// Require at least one specific telecom keyword to avoid false positives with generic terms
+
+	if specificCount < 1 {
+		return fmt.Errorf("intent does not appear to be telecommunications-related (found no specific 5G/O-RAN components)")
+	}
+
+	// Also check for general telecom keywords (for logging)
 
 	for _, keyword := range TelecomKeywords {
 		if strings.Contains(intentLower, strings.ToLower(keyword)) {
 
 			keywordCount++
 
-			foundKeywords = append(foundKeywords, keyword)
-
 		}
-	}
-
-	if keywordCount < DefaultComplexityRules.MinTelecomKeywords {
-		return fmt.Errorf("intent does not appear to be telecommunications-related (found %d telecom keywords, minimum required: %d)",
-
-			keywordCount, DefaultComplexityRules.MinTelecomKeywords)
 	}
 
 	networkIntentWebhookLog.V(1).Info("Telecommunications validation passed",
 
-		"keywordCount", keywordCount,
+		"specificKeywordCount", specificCount,
+
+		"totalKeywordCount", keywordCount,
 
 		"foundKeywords", foundKeywords[:min(len(foundKeywords), 5)]) // Log first 5 keywords
 
 	return nil
+}
+
+// containsWholeWord checks if a keyword appears as a whole word (with word boundaries)
+
+func containsWholeWord(text, keyword string) bool {
+	// Word boundaries: start/end of string, space, punctuation
+
+	if !strings.Contains(text, keyword) {
+		return false
+	}
+
+	// Find all occurrences
+
+	startIdx := 0
+
+	for {
+		idx := strings.Index(text[startIdx:], keyword)
+
+		if idx == -1 {
+			break
+		}
+
+		absIdx := startIdx + idx
+
+		// Check character before (if exists)
+
+		beforeOk := absIdx == 0 || !isWordChar(rune(text[absIdx-1]))
+
+		// Check character after (if exists)
+
+		afterIdx := absIdx + len(keyword)
+
+		afterOk := afterIdx >= len(text) || !isWordChar(rune(text[afterIdx]))
+
+		if beforeOk && afterOk {
+			return true
+		}
+
+		startIdx = absIdx + 1
+
+	}
+
+	return false
+}
+
+// isWordChar checks if a character is part of a word (alphanumeric or hyphen/underscore)
+
+func isWordChar(r rune) bool {
+	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_'
 }
 
 // validateComplexity checks the complexity and structure of the intent.
@@ -494,6 +645,32 @@ func (v *NetworkIntentValidator) validateComplexity(intent string) error {
 
 	if len(words) == 0 {
 		return fmt.Errorf("intent contains no recognizable words")
+	}
+
+	// Check if words contain actual alphanumeric content (not just punctuation)
+
+	alphanumericWords := 0
+
+	for _, word := range words {
+		hasAlphanumeric := false
+
+		for _, r := range word {
+			if unicode.IsLetter(r) || unicode.IsDigit(r) {
+
+				hasAlphanumeric = true
+
+				break
+
+			}
+		}
+
+		if hasAlphanumeric {
+			alphanumericWords++
+		}
+	}
+
+	if alphanumericWords == 0 {
+		return fmt.Errorf("intent contains no recognizable words (only punctuation)")
 	}
 
 	// Count sentences (approximate).
@@ -636,11 +813,21 @@ func (v *NetworkIntentValidator) validateResourceNaming(ni *nephoranv1.NetworkIn
 		return fmt.Errorf("networkIntent name does not follow Kubernetes naming conventions")
 	}
 
+	// Check for reserved prefixes.
+
+	reservedPrefixes := []string{"system-", "admin-", "kube-", "kubernetes-"}
+
+	nameLower := strings.ToLower(name)
+
+	for _, prefix := range reservedPrefixes {
+		if strings.HasPrefix(nameLower, prefix) {
+			return fmt.Errorf("networkIntent name uses reserved prefix '%s'", prefix)
+		}
+	}
+
 	// Encourage meaningful names by checking for generic patterns to avoid.
 
 	discouragedPatterns := []string{"test", "tmp", "temp", "foo", "bar", "example"}
-
-	nameLower := strings.ToLower(name)
 
 	for _, pattern := range discouragedPatterns {
 		if strings.Contains(nameLower, pattern) {
@@ -685,7 +872,7 @@ func (v *NetworkIntentValidator) validateIntentCoherence(intent string) error {
 	}
 
 	if !hasActionVerb {
-		return fmt.Errorf("intent does not contain actionable verbs - please specify what action should be performed")
+		return fmt.Errorf("intent is too vague - does not contain actionable verbs")
 	}
 
 	// Check for contradictory statements.

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -13,7 +12,7 @@ func BenchmarkNetworkIntentJSONMarshal(b *testing.B) {
 	// Create a realistic NetworkIntent object with typical data
 	intent := &NetworkIntent{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "nephio.io/v1alpha1",
+			APIVersion: "nephoran.io/v1alpha1",
 			Kind:       "NetworkIntent",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -25,31 +24,30 @@ func BenchmarkNetworkIntentJSONMarshal(b *testing.B) {
 			},
 		},
 		Spec: NetworkIntentSpec{
-			ScalingPriority: "high",
-			TargetClusters:  []string{"cluster-1", "cluster-2", "cluster-3"},
-			ScalingIntent: &apiextensionsv1.JSON{
-				Raw: []byte(`{"intent_type":"scaling","target":"gnb-simulator","namespace":"ran","replicas":5}`),
-			},
-			Deployment: DeploymentSpec{
-				ClusterSelector: map[string]string{
-					"region": "us-west",
-					"type":   "edge",
-				},
-				NetworkFunctions: []NetworkFunction{
-					{
-						Name:    "gnb-cu",
-						Type:    "CNF",
-						Version: "1.0.0",
-						Config: &apiextensionsv1.JSON{
-							Raw: []byte(`{"maxConnections":1000,"timeout":30}`),
-						},
-						Resources: NetworkFunctionResources{
-							CPU:    "2",
-							Memory: "4Gi",
+			Source:     "user",
+			IntentType: "scaling",
+			Target:     "gnb-simulator",
+			Namespace:  "ran",
+			Replicas:   5,
+			ScalingParameters: &ScalingParameters{
+				Replicas: 5,
+				AutoscalingPolicy: &AutoscalingPolicy{
+					MinReplicas: 2,
+					MaxReplicas: 10,
+					MetricThresholds: []MetricThreshold{
+						{
+							Type:  "CPU",
+							Value: 80,
 						},
 					},
 				},
-				Replicas: 3,
+			},
+			NetworkParameters: &NetworkParameters{
+				NetworkSliceID: "slice-1",
+				QoSProfile: &QoSProfile{
+					Priority:        1,
+					MaximumDataRate: "100Mbps",
+				},
 			},
 		},
 		Status: NetworkIntentStatus{
@@ -63,7 +61,8 @@ func BenchmarkNetworkIntentJSONMarshal(b *testing.B) {
 					Message:            "NetworkIntent has been initialized",
 				},
 			},
-			ObservedGeneration: 1,
+			ObservedReplicas: 5,
+			ReadyReplicas:    5,
 		},
 	}
 
@@ -82,7 +81,7 @@ func BenchmarkNetworkIntentJSONMarshal(b *testing.B) {
 func BenchmarkNetworkIntentJSONUnmarshal(b *testing.B) {
 	// Create JSON data that represents a typical NetworkIntent
 	jsonData := []byte(`{
-		"apiVersion": "nephio.io/v1alpha1",
+		"apiVersion": "nephoran.io/v1alpha1",
 		"kind": "NetworkIntent",
 		"metadata": {
 			"name": "test-intent",
@@ -93,35 +92,30 @@ func BenchmarkNetworkIntentJSONUnmarshal(b *testing.B) {
 			}
 		},
 		"spec": {
-			"scalingPriority": "high",
-			"targetClusters": ["cluster-1", "cluster-2", "cluster-3"],
-			"scalingIntent": {
-				"intent_type": "scaling",
-				"target": "gnb-simulator",
-				"namespace": "ran",
-				"replicas": 5
-			},
-			"deployment": {
-				"clusterSelector": {
-					"region": "us-west",
-					"type": "edge"
-				},
-				"networkFunctions": [
-					{
-						"name": "gnb-cu",
-						"type": "CNF",
-						"version": "1.0.0",
-						"config": {
-							"maxConnections": 1000,
-							"timeout": 30
-						},
-						"resources": {
-							"cpu": "2",
-							"memory": "4Gi"
+			"source": "user",
+			"intentType": "scaling",
+			"target": "gnb-simulator",
+			"namespace": "ran",
+			"replicas": 5,
+			"scalingParameters": {
+				"replicas": 5,
+				"autoscalingPolicy": {
+					"minReplicas": 2,
+					"maxReplicas": 10,
+					"metricThresholds": [
+						{
+							"type": "CPU",
+							"value": 80
 						}
-					}
-				],
-				"replicas": 3
+					]
+				}
+			},
+			"networkParameters": {
+				"networkSliceId": "slice-1",
+				"qosProfile": {
+					"priority": 1,
+					"maximumDataRate": "100Mbps"
+				}
 			}
 		},
 		"status": {
@@ -135,7 +129,8 @@ func BenchmarkNetworkIntentJSONUnmarshal(b *testing.B) {
 					"message": "NetworkIntent has been initialized"
 				}
 			],
-			"observedGeneration": 1
+			"observedReplicas": 5,
+			"readyReplicas": 5
 		}
 	}`)
 
@@ -151,36 +146,24 @@ func BenchmarkNetworkIntentJSONUnmarshal(b *testing.B) {
 	}
 }
 
-// BenchmarkDeploymentSpecJSONRoundTrip tests complete JSON round-trip for DeploymentSpec
-func BenchmarkDeploymentSpecJSONRoundTrip(b *testing.B) {
-	spec := DeploymentSpec{
-		ClusterSelector: map[string]string{
-			"region":      "us-west",
-			"type":        "edge",
-			"environment": "production",
-		},
-		NetworkFunctions: []NetworkFunction{
-			{
-				Name:    "gnb-cu",
-				Type:    "CNF",
-				Version: "1.0.0",
-				Resources: NetworkFunctionResources{
-					CPU:     "4",
-					Memory:  "8Gi",
-					Storage: "100Gi",
-				},
-			},
-			{
-				Name:    "gnb-du",
-				Type:    "CNF",
-				Version: "1.0.0",
-				Resources: NetworkFunctionResources{
-					CPU:    "8",
-					Memory: "16Gi",
-				},
-			},
-		},
+// BenchmarkScalingParametersJSONRoundTrip tests complete JSON round-trip for ScalingParameters
+func BenchmarkScalingParametersJSONRoundTrip(b *testing.B) {
+	params := ScalingParameters{
 		Replicas: 5,
+		AutoscalingPolicy: &AutoscalingPolicy{
+			MinReplicas: 2,
+			MaxReplicas: 10,
+			MetricThresholds: []MetricThreshold{
+				{
+					Type:  "CPU",
+					Value: 80,
+				},
+				{
+					Type:  "Memory",
+					Value: 70,
+				},
+			},
+		},
 	}
 
 	b.ReportAllocs()
@@ -188,13 +171,13 @@ func BenchmarkDeploymentSpecJSONRoundTrip(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		// Marshal
-		data, err := json.Marshal(spec)
+		data, err := json.Marshal(params)
 		if err != nil {
 			b.Fatal(err)
 		}
 
 		// Unmarshal
-		var result DeploymentSpec
+		var result ScalingParameters
 		err = json.Unmarshal(data, &result)
 		if err != nil {
 			b.Fatal(err)
