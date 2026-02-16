@@ -28,7 +28,7 @@ set -euo pipefail
 # Configuration
 # ---------------------------------------------------------------------------
 RAG_URL="${RAG_URL:-http://localhost:8000}"
-WEAVIATE_URL="${WEAVIATE_URL:-http://localhost:8080}"
+WEAVIATE_URL="${WEAVIATE_URL:-http://weaviate.weaviate.svc.cluster.local}"
 OLLAMA_URL="${OLLAMA_URL:-http://localhost:11434}"
 TIMEOUT="${E2E_TIMEOUT:-60}"
 PASS_COUNT=0

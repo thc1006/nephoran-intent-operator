@@ -208,7 +208,7 @@ fi
 log_section "PHASE 1: Create NetworkIntent"
 
 INTENT_YAML=$(cat <<EOF
-apiVersion: nephoran.com/v1
+apiVersion: intent.nephoran.com/v1alpha1
 kind: NetworkIntent
 metadata:
   name: ${INTENT_NAME}
@@ -218,7 +218,11 @@ metadata:
     test-scenario: lifecycle
     test-run: "$(date +%s)"
 spec:
-  intent: "Deploy a high-availability AMF instance with 3 replicas for production testing"
+  source: e2e-test
+  intentType: scaling
+  target: amf-test
+  namespace: default
+  replicas: 3
 EOF
 )
 
@@ -240,9 +244,11 @@ assert_eq "Resource name matches" "${INTENT_NAME}" "${RESOURCE_NAME}"
 LABEL_TYPE=$(kubectl get networkintent "${INTENT_NAME}" -n "${NAMESPACE}" -o jsonpath='{.metadata.labels.test-type}' 2>/dev/null || echo "")
 assert_eq "Label test-type" "e2e" "${LABEL_TYPE}"
 
-# Verify spec.intent
-SPEC_INTENT=$(kubectl get networkintent "${INTENT_NAME}" -n "${NAMESPACE}" -o jsonpath='{.spec.intent}' 2>/dev/null || echo "")
-assert_not_empty "spec.intent is populated" "${SPEC_INTENT}"
+# Verify spec.source and spec.target
+SPEC_SOURCE=$(kubectl get networkintent "${INTENT_NAME}" -n "${NAMESPACE}" -o jsonpath='{.spec.source}' 2>/dev/null || echo "")
+assert_not_empty "spec.source is populated" "${SPEC_SOURCE}"
+SPEC_TARGET=$(kubectl get networkintent "${INTENT_NAME}" -n "${NAMESPACE}" -o jsonpath='{.spec.target}' 2>/dev/null || echo "")
+assert_not_empty "spec.target is populated" "${SPEC_TARGET}"
 
 # ---------------------------------------------------------------------------
 # Phase 2: Wait for Reconciliation
@@ -287,9 +293,10 @@ echo "${LIST_OUTPUT}"
 # Get full YAML and verify structure
 log_info "Fetching full resource YAML..."
 FULL_YAML=$(kubectl get networkintent "${INTENT_NAME}" -n "${NAMESPACE}" -o yaml 2>&1)
-assert_contains "YAML has apiVersion" "${FULL_YAML}" "apiVersion: nephoran.com/v1"
+assert_contains "YAML has apiVersion" "${FULL_YAML}" "apiVersion: intent.nephoran.com/v1alpha1"
 assert_contains "YAML has kind" "${FULL_YAML}" "kind: NetworkIntent"
-assert_contains "YAML has spec.intent" "${FULL_YAML}" "intent:"
+assert_contains "YAML has spec.source" "${FULL_YAML}" "source:"
+assert_contains "YAML has spec.target" "${FULL_YAML}" "target:"
 
 # ---------------------------------------------------------------------------
 # Phase 4: Update NetworkIntent
@@ -297,7 +304,7 @@ assert_contains "YAML has spec.intent" "${FULL_YAML}" "intent:"
 log_section "PHASE 4: Update NetworkIntent"
 
 UPDATED_INTENT_YAML=$(cat <<EOF
-apiVersion: nephoran.com/v1
+apiVersion: intent.nephoran.com/v1alpha1
 kind: NetworkIntent
 metadata:
   name: ${INTENT_NAME}
@@ -308,7 +315,11 @@ metadata:
     test-run: "$(date +%s)"
     updated: "true"
 spec:
-  intent: "Scale AMF deployment to 5 replicas with enhanced monitoring for capacity testing"
+  source: e2e-test
+  intentType: scaling
+  target: amf-test
+  namespace: default
+  replicas: 5
 EOF
 )
 
@@ -323,8 +334,8 @@ fi
 
 # Verify the update was applied
 UPDATED_INTENT=$(kubectl get networkintent "${INTENT_NAME}" -n "${NAMESPACE}" \
-    -o jsonpath='{.spec.intent}' 2>/dev/null || echo "")
-assert_contains "Updated spec.intent" "${UPDATED_INTENT}" "Scale AMF"
+    -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "")
+assert_eq "Updated spec.replicas" "5" "${UPDATED_INTENT}"
 
 UPDATED_LABEL=$(kubectl get networkintent "${INTENT_NAME}" -n "${NAMESPACE}" \
     -o jsonpath='{.metadata.labels.updated}' 2>/dev/null || echo "")
