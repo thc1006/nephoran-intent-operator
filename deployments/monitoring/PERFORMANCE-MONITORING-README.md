@@ -35,7 +35,7 @@ This comprehensive performance monitoring system provides real-time validation o
 
 ```bash
 # Deploy the complete monitoring stack
-./scripts/deploy-performance-monitoring.sh deploy
+./scripts/deploy/deploy-performance-monitoring.sh deploy
 
 # Access URLs (replace localhost with your cluster IP)
 # Prometheus: http://localhost:30090

@@ -195,6 +195,7 @@ func TestLLMProcessorConfig_Validate_RequiredFields(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := tt.setupConfig()
+			cfg.CORSEnabled = false // CORS behavior is covered in dedicated CORS tests.
 			err := cfg.Validate()
 
 			if tt.wantErr {
@@ -286,6 +287,7 @@ func TestLLMProcessorConfig_Validate_RAGFeatureFlags(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := tt.setupConfig()
+			cfg.CORSEnabled = false // CORS behavior is covered in dedicated CORS tests.
 			err := cfg.Validate()
 
 			if tt.wantErr {
@@ -375,13 +377,14 @@ func TestLLMProcessorConfig_Validate_LogicalConstraints(t *testing.T) {
 			},
 			description: "Excessive circuit breaker threshold should be invalid",
 			wantErr:     true,
-			errMsg:      "CIRCUIT_BREAKER_THRESHOLD should be reasonable (??0)",
+			errMsg:      "CIRCUIT_BREAKER_THRESHOLD should be reasonable (≤50)",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := tt.setupConfig()
+			cfg.CORSEnabled = false // CORS behavior is covered in dedicated CORS tests.
 			err := cfg.Validate()
 
 			if tt.wantErr {
@@ -405,6 +408,7 @@ func TestLLMProcessorConfig_Validate_MultipleErrors(t *testing.T) {
 	cfg.MaxConcurrentStreams = 1500  // Too high
 	cfg.MaxContextTokens = 50000     // Too high
 	cfg.CircuitBreakerThreshold = 75 // Too high
+	cfg.CORSEnabled = false          // CORS behavior is covered in dedicated CORS tests.
 
 	err := cfg.Validate()
 	assert.Error(t, err)
@@ -415,7 +419,7 @@ func TestLLMProcessorConfig_Validate_MultipleErrors(t *testing.T) {
 	assert.Contains(t, errMsg, "API_KEY is required when API key authentication is enabled")
 	assert.Contains(t, errMsg, "MAX_CONCURRENT_STREAMS should not exceed 1000 for performance reasons")
 	assert.Contains(t, errMsg, "MAX_CONTEXT_TOKENS should not exceed 32000 for most models")
-	assert.Contains(t, errMsg, "CIRCUIT_BREAKER_THRESHOLD should be reasonable (??0)")
+	assert.Contains(t, errMsg, "CIRCUIT_BREAKER_THRESHOLD should be reasonable (≤50)")
 }
 
 func TestLLMProcessorConfig_Validate_CORS(t *testing.T) {

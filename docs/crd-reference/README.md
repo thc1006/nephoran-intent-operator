@@ -8,7 +8,7 @@ This directory contains comprehensive reference documentation for all Custom Res
 
 ```
 docs/crd-reference/
-├── mkdocs.yml                 # MkDocs configuration
+├── ../mkdocs.yml              # MkDocs configuration (in docs/ root)
 ├── requirements.txt           # Python dependencies
 ├── build-docs.sh             # Build script
 ├── docs/                     # Documentation source
@@ -115,7 +115,7 @@ docs/crd-reference/
 ### Adding New Documentation
 
 1. Create markdown files in appropriate directories
-2. Update `mkdocs.yml` navigation if needed
+2. Update `docs/mkdocs.yml` navigation if needed
 3. Follow existing formatting patterns
 4. Include examples and troubleshooting
 
@@ -290,7 +290,7 @@ The documentation is licensed under the [Apache License 2.0](../../LICENSE), sam
 ## Maintainers
 
 - Documentation Lead: [documentation@nephoran.io](mailto:documentation@nephoran.io)
-- Technical Writers: See [CONTRIBUTORS.md](../../CONTRIBUTORS.md)
+- Technical Writers: See [CONTRIBUTING.md](../../CONTRIBUTING.md)
 
 ---
 

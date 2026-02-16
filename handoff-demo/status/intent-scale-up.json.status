@@ -1,9 +1,0 @@
-{
-  "intent_file": "intent-scale-up.json",
-  "message": "exec: \"porch-mock.bat\": cannot run executable found relative to current directory",
-  "mode": "direct",
-  "porch_path": "porch-mock.bat",
-  "processed_by": "conductor-loop",
-  "status": "failed",
-  "timestamp": "2025-08-16T00:04:31+08:00"
-}

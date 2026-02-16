@@ -908,4 +908,4 @@ This security incident response runbook provides comprehensive procedures for ha
 - [Compliance Audit Documentation](../operations/05-compliance-audit-documentation.md)
 - [Production Operations Runbook](production-operations-runbook.md)
 - [Disaster Recovery Procedures](disaster-recovery.md)
-- [Security Implementation Summary](../security/implementation-summary.md)
+- [Security Implementation Summary](../security/security-implementation-summary.md)

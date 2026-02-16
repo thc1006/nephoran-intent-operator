@@ -1349,10 +1349,10 @@ inhibit_rules:
 ## Related Documentation
 
 - [Master Operational Runbook](./operational-runbook-master.md) - Daily operations procedures
-- [Incident Response Runbook](./incident-response-runbook.md) - Emergency response procedures
+- [Incident Response Runbook](./incident-response.md) - Emergency response procedures
 - [Performance Degradation Runbook](./performance-degradation.md) - Performance troubleshooting
-- [SLA Monitoring System](../sla-monitoring-system.md) - Detailed SLA tracking
-- [Grafana Dashboards](../operations/dashboards/) - Dashboard templates
+- [SLA Monitoring System](../monitoring/sla-monitoring-system.md) - Detailed SLA tracking
+- [Grafana Dashboards](../operations/dashboard-user-guide.md) - Dashboard templates
 
 ---
 

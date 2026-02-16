@@ -601,5 +601,5 @@ This comprehensive certification program provides structured pathways for operat
 - [Enterprise Deployment Guide](../production-readiness/enterprise-deployment-guide.md)
 - [Production Operations Runbook](../runbooks/production-operations-runbook.md)
 - [Performance Benchmarking Report](../benchmarks/comprehensive-performance-analysis.md)
-- [Security Implementation Guide](../security/implementation-summary.md)
+- [Security Implementation Guide](../security/security-implementation-summary.md)
 - [Business Continuity Plan](../enterprise/business-continuity-disaster-recovery.md)

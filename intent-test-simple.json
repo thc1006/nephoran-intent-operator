@@ -1,8 +1,0 @@
-{
-  "intent_type": "scaling",
-  "target": "test-deployment",
-  "namespace": "default",
-  "replicas": 3,
-  "reason": "Test scaling",
-  "timestamp": "2025-08-15T12:30:00Z"
-}
