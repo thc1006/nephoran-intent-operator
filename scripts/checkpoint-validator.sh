@@ -115,19 +115,19 @@ validate_prerequisites() {
 validate_infrastructure() {
     log "==> Validating Infrastructure Checkpoint..."
 
-    # Task T1: Kubernetes 1.35.1
+    # Task T1: Kubernetes 1.32.3
     log "Checking Kubernetes installation..."
     if ! command -v kubectl &> /dev/null; then
         fail "kubectl not found"
         return 1
     fi
 
-    if ! kubectl version --short 2>/dev/null | grep -q "v1.35.1"; then
-        fail "Kubernetes version mismatch (expected v1.35.1)"
+    if ! kubectl version --short 2>/dev/null | grep -q "v1.32.3"; then
+        fail "Kubernetes version mismatch (expected v1.32.3)"
         kubectl version --short 2>/dev/null || true
         return 1
     fi
-    success "Kubernetes: v1.35.1"
+    success "Kubernetes: v1.32.3"
 
     if ! kubectl get nodes 2>/dev/null | grep -q "Ready"; then
         fail "No Ready nodes found"

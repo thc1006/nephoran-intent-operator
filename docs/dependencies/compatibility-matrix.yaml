@@ -9,14 +9,14 @@
 # Core Infrastructure
 infrastructure:
   kubernetes:
-    version: "1.35.1"
-    constraint: "==1.35.1"  # Exact version (tested)
+    version: "1.32.3"
+    constraint: "==1.32.3"  # Exact version (tested)
     reason: "K8s 1.35 native DRA support, Pod Security Standards v1.35"
-    verification_command: "kubectl version --short | grep 'v1.35.1'"
+    verification_command: "kubectl version -o yaml | grep gitVersion | grep 'v1.32.3'"
     dependencies:
-      - kubelet: "1.35.1"
-      - kubeadm: "1.35.1"
-      - kubectl: "1.35.1"
+      - kubelet: "1.32.3"
+      - kubeadm: "1.32.3"
+      - kubectl: "1.32.3"
 
   containerd:
     version: "1.7.13"
@@ -295,7 +295,7 @@ verification_script: |
   set -e
 
   echo "==> Verifying Kubernetes..."
-  kubectl version --short | grep 'v1.35.1'
+  kubectl version -o yaml | grep gitVersion | grep 'v1.32.3'
 
   echo "==> Verifying Cilium..."
   cilium version | grep '1.16'

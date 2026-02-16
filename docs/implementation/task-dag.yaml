@@ -21,7 +21,7 @@ tasks:
   # ========================================
 
   - id: "T1"
-    name: "Install Kubernetes 1.35.1"
+    name: "Install Kubernetes 1.32.3"
     phase: "infrastructure"
     duration: "4h"
     priority: "P0"
@@ -30,10 +30,10 @@ tasks:
     parallel_with: []
     description: "Deploy single-node Kubernetes cluster with kubeadm"
     implementation_ref: "docs/5G_INTEGRATION_PLAN_V2.md#task-t1"
-    verification_command: "kubectl version --short | grep 'v1.35.1' && kubectl get nodes | grep Ready"
+    verification_command: "kubectl version -o yaml | grep gitVersion | grep 'v1.32.3' && kubectl get nodes | grep Ready"
     rollback_command: "sudo kubeadm reset -f && sudo rm -rf /etc/kubernetes"
     success_criteria:
-      - "kubectl version shows v1.35.1"
+      - "kubectl version shows v1.32.3"
       - "Node status is Ready"
       - "All kube-system pods Running/Completed"
 
@@ -373,7 +373,7 @@ claude_code_instructions: |
   4. **Update Progress**
      ```bash
      # Append to docs/PROGRESS.md
-     echo "| $(date -u +%Y-%m-%dT%H:%M:%S+00:00) | $(git rev-parse --abbrev-ref HEAD) | task/T1 | Completed Kubernetes 1.35.1 installation |" >> docs/PROGRESS.md
+     echo "| $(date -u +%Y-%m-%dT%H:%M:%S+00:00) | $(git rev-parse --abbrev-ref HEAD) | task/T1 | Completed Kubernetes 1.32.3 installation |" >> docs/PROGRESS.md
      ```
 
   5. **Run Checkpoint (End of Phase)**
@@ -389,7 +389,7 @@ claude_code_instructions: |
   cat docs/5G_INTEGRATION_PLAN_V2.md | grep -A 100 "#### Task T1"
   # 3. Execute commands (copy-paste from document)
   # 4. Verify
-  kubectl version --short | grep 'v1.35.1'
+  kubectl version -o yaml | grep gitVersion | grep 'v1.32.3'
   # 5. Update PROGRESS.md
   ```
 
@@ -423,7 +423,7 @@ mermaid_gantt: |
       title 5G Integration Implementation Timeline
       dateFormat YYYY-MM-DD
       section Phase 1: Infrastructure
-      Install K8s 1.35.1 (T1)           :t1, 2026-02-17, 4h
+      Install K8s 1.32.3 (T1)           :t1, 2026-02-17, 4h
       Deploy Cilium eBPF (T2)           :t2, after t1, 2h
       Deploy GPU Operator (T3)          :t3, after t1, 3h
 

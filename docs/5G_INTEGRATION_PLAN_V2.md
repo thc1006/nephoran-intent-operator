@@ -6,7 +6,7 @@
 **Date**: 2026-02-16
 **Status**: APPROVED FOR IMPLEMENTATION
 **Target Environment**: Virtual Development/Test (No SR-IOV Hardware)
-**Kubernetes**: 1.35.1
+**Kubernetes**: 1.32.3 (DRA requires 1.34+ for GA)
 **Nephio**: R5/R6
 **O-RAN SC**: L Release
 
@@ -109,7 +109,7 @@ Version Notation:
                  ▼
 ┌─────────────────────────────────────────────────────┐
 │ Infrastructure Layer                                 │
-│ ├─ Kubernetes 1.35.1 (Ubuntu 22.04)                │
+│ ├─ Kubernetes 1.32.3 (Ubuntu 22.04)                 │
 │ ├─ Cilium eBPF CNI (10-20 Gbps virtual)            │
 │ ├─ GPU Operator + DRA (RTX 5080)                   │
 │ └─ MongoDB 7.0, Weaviate 1.34, Prometheus          │
@@ -674,7 +674,450 @@ DRA (Dynamic Resource Allocation) Status:
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-### 3.2 Physical Deployment Topology
+### 3.2 Security Architecture (IEEE 1016 Overlay Viewpoint)
+
+#### 3.2.1 Security Layers
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    PERIMETER SECURITY                         │
+│  ├─ Network Policies (default deny-all)                      │
+│  ├─ Ingress TLS termination (cert-manager)                   │
+│  └─ Rate Limiting (10 req/s per client)                      │
+└────────────────────────┬─────────────────────────────────────┘
+                         ▼
+┌──────────────────────────────────────────────────────────────┐
+│                  SERVICE-TO-SERVICE SECURITY                  │
+│  ├─ mTLS (Cilium service mesh)                               │
+│  ├─ Service Account tokens (bound lifetime)                  │
+│  └─ RBAC for inter-service communication                     │
+└────────────────────────┬─────────────────────────────────────┘
+                         ▼
+┌──────────────────────────────────────────────────────────────┐
+│                    POD SECURITY STANDARDS                     │
+│  ├─ Restricted PSS enforcement (v1.32)                       │
+│  ├─ runAsNonRoot: true                                       │
+│  ├─ readOnlyRootFilesystem: true                             │
+│  ├─ allowPrivilegeEscalation: false                          │
+│  ├─ seccompProfile: RuntimeDefault                           │
+│  └─ capabilities: drop [ALL]                                 │
+└────────────────────────┬─────────────────────────────────────┘
+                         ▼
+┌──────────────────────────────────────────────────────────────┐
+│                      DATA SECURITY                            │
+│  ├─ Secrets encrypted at rest (K8s EncryptionConfiguration)  │
+│  ├─ MongoDB authentication enabled (production)              │
+│  ├─ Weaviate API key authentication                          │
+│  └─ TLS 1.3 for all external connections                     │
+└──────────────────────────────────────────────────────────────┘
+```
+
+#### 3.2.2 TLS Configuration
+
+**Minimum TLS Version**: 1.3
+**Cipher Suites**:
+- TLS_AES_128_GCM_SHA256
+- TLS_AES_256_GCM_SHA384
+- TLS_CHACHA20_POLY1305_SHA256
+
+**Certificate Management**:
+```yaml
+Tool: cert-manager v1.15.0
+Issuer: Let's Encrypt (production)
+Rotation: Automatic (60 days before expiry)
+Key Size: 2048-bit RSA or 256-bit ECDSA
+
+Certificates Required:
+  - Webhook server (nephoran-controller-manager)
+  - Ingress TLS (Free5GC WebUI, Grafana)
+  - mTLS service mesh (Cilium)
+  - MongoDB client certificates (production)
+```
+
+#### 3.2.3 RBAC Matrix
+
+| Service | Namespace | ClusterRole | Resources | Verbs | Notes |
+|---------|-----------|-------------|-----------|-------|-------|
+| Nephoran Operator | nephoran-system | networkintent-manager | networkintents.intent.nephoran.com | get, list, watch, create, update, patch, delete | CRD management |
+| Nephoran Operator | nephoran-system | leader-election | leases.coordination.k8s.io | get, create, update | Scoped to `resourceNames: [nephoran-leader]` |
+| Porch | porch-system | porch-server | packagerevisions.porch.kpt.dev | * | Package orchestration |
+| Near-RT RIC | ricplt | ric-xapp | pods, services, configmaps | get, list, watch | Read-only for xApps |
+| Free5GC NFs | free5gc | nf-operator | deployments, services | get, list, watch, update | Scale operations only |
+
+**Security Constraints**:
+- ❌ No wildcards (`*`) in apiGroups or resources
+- ❌ No `cluster-admin` bindings for application SAs
+- ✅ All Secrets access uses `resourceNames` restrictions
+- ✅ Webhook registration uses `resourceNames` (webhook-specific)
+
+#### 3.2.4 Network Policies
+
+**Default Deny Policy** (applied to all namespaces):
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+```
+
+**Allow Rules** (explicit per service):
+```yaml
+Free5GC AMF:
+  Ingress:
+    - From: oai-ran namespace (N2 interface)
+    - Port: 38412 (SCTP)
+  Egress:
+    - To: free5gc NFs (SBI)
+    - Port: 8080 (HTTP)
+    - To: kube-dns (CoreDNS)
+    - Port: 53 (UDP)
+
+Nephoran Operator:
+  Ingress:
+    - From: kube-system (webhook calls)
+    - Port: 9443 (HTTPS)
+  Egress:
+    - To: ricplt namespace (A1 API)
+    - Port: 8080 (HTTP)
+    - To: weaviate (RAG)
+    - Port: 8080 (HTTP)
+```
+
+#### 3.2.5 Secrets Management
+
+**Development**:
+```yaml
+Type: Kubernetes Secrets (base64 encoded)
+Encryption: At-rest encryption via EncryptionConfiguration
+Rotation: Manual (90-day policy)
+```
+
+**Production Recommendations**:
+```yaml
+External Secret Managers:
+  - HashiCorp Vault
+  - AWS Secrets Manager
+  - Azure Key Vault
+  - Google Secret Manager
+
+Integration: External Secrets Operator (ESO)
+Sync Interval: 1 hour
+Rotation: Automatic (30-day policy)
+```
+
+#### 3.2.6 Webhook Security
+
+**Validation Webhooks**:
+```yaml
+NetworkIntent CRD:
+  Endpoint: https://nephoran-webhook-service.nephoran-system.svc:443/validate
+  FailurePolicy: Fail  # Block invalid intents
+  SideEffects: None
+  TimeoutSeconds: 10
+
+Character Allowlist:
+  Blocked: < > " ' ` $ \ (injection prevention)
+  Pattern: ^[a-zA-Z0-9-_/.@:]+$
+
+Max Intent Length: 1000 characters
+Max Replicas: 1000 (configurable)
+```
+
+**Audit Logging**:
+```yaml
+Enabled: true
+Backend: Kubernetes Audit Logs
+Level: Metadata (not RequestResponse to avoid secrets in logs)
+Policy:
+  - Record all NetworkIntent create/update/delete
+  - Record all webhook admission decisions
+  - Record all RBAC authorization failures
+```
+
+#### 3.2.7 Security Validation
+
+**Pre-Deployment**:
+```bash
+# Run security test suite
+go test ./tests/security/... -v
+
+# Validate webhook security
+go test ./tests/security/k8s_135_webhook_security_test.go -v
+
+# Check RBAC wildcards
+kubectl get clusterroles -o yaml | grep -E "resources: \[.*\*.*\]"
+
+# Verify Pod Security Standards
+kubectl label namespace nephoran-system pod-security.kubernetes.io/enforce=restricted
+```
+
+**References**:
+- [K8s 1.32 Security Audit](docs/security/k8s-135-audit.md)
+- [Production Checklist](docs/security/k8s-135-production-checklist.md)
+- [Webhook Security Tests](tests/security/k8s_135_webhook_security_test.go)
+
+---
+
+### 3.3 Data Architecture
+
+#### 3.3.1 Database Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     PERSISTENT DATA LAYER                    │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  ┌──────────────────┐        ┌──────────────────┐          │
+│  │  MongoDB 7.0     │        │  Weaviate 1.34   │          │
+│  │  (Free5GC Data)  │        │  (RAG Vectors)   │          │
+│  ├──────────────────┤        ├──────────────────┤          │
+│  │ • Subscribers    │        │ • Intent Docs    │          │
+│  │ • Sessions       │        │ • 5G Specs       │          │
+│  │ • Network Slices │        │ • O-RAN Docs     │          │
+│  │ • Policy Rules   │        │ • Troubleshooting│          │
+│  └──────────────────┘        └──────────────────┘          │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 3.3.2 MongoDB Schema (Free5GC)
+
+**Database**: `free5gc`
+
+**Collections**:
+
+1. **`subscribers`** (UDM/UDR data)
+```json
+{
+  "_id": ObjectId("..."),
+  "ueId": "imsi-208930000000001",
+  "plmnId": "20893",
+  "supi": "imsi-208930000000001",
+  "gpsi": "msisdn-8675309",
+  "AuthenticationSubscription": {
+    "authenticationMethod": "5G_AKA",
+    "permanentKey": {
+      "permanentKeyValue": "8baf473f2f8fd09487cccbd7097c6862"
+    },
+    "milenage": {
+      "op": {
+        "opValue": "8e27b6af0e692e750f32667a3b14605d"
+      }
+    },
+    "sequenceNumber": "16f3b3f70fc2"
+  },
+  "AccessAndMobilitySubscriptionData": {
+    "nssai": {
+      "defaultSingleNssais": [
+        {"sst": 1, "sd": "010203"}
+      ]
+    }
+  },
+  "SessionManagementSubscriptionData": [
+    {
+      "singleNssai": {"sst": 1, "sd": "010203"},
+      "dnnConfigurations": {
+        "internet": {
+          "pduSessionTypes": {"defaultSessionType": "IPV4"},
+          "sscModes": {"defaultSscMode": "SSC_MODE_1"}
+        }
+      }
+    }
+  ]
+}
+```
+
+2. **`policyData.ues.amData`** (PCF policies)
+```json
+{
+  "_id": ObjectId("..."),
+  "ueId": "imsi-208930000000001",
+  "servingPlmnId": "20893",
+  "amPolicyData": {
+    "subscCats": ["free5gc"],
+    "rfsp": 10
+  }
+}
+```
+
+3. **`policyData.ues.smData`** (Session Management policies)
+```json
+{
+  "_id": ObjectId("..."),
+  "ueId": "imsi-208930000000001",
+  "snssai": {"sst": 1, "sd": "010203"},
+  "dnn": "internet",
+  "smPolicyData": {
+    "qosFlows": [
+      {"qfi": 1, "5qi": 9, "maxbrUl": "200 Mbps", "maxbrDl": "500 Mbps"}
+    ]
+  }
+}
+```
+
+**Indexes**:
+```javascript
+db.subscribers.createIndex({"ueId": 1}, {unique: true})
+db.subscribers.createIndex({"supi": 1})
+db.subscribers.createIndex({"plmnId": 1, "ueId": 1})
+db.policyData.ues.amData.createIndex({"ueId": 1})
+db.policyData.ues.smData.createIndex({"ueId": 1, "snssai": 1, "dnn": 1})
+```
+
+**Data Volume Estimates**:
+- Subscribers: ~1000 entries (development), 10M+ (production)
+- Policy Data: ~2KB per subscriber
+- Total Storage: 20 GB (reserved), actual usage < 1 GB (dev)
+
+#### 3.3.3 Weaviate Schema (RAG)
+
+**Class**: `IntentDocumentation`
+
+```json
+{
+  "class": "IntentDocumentation",
+  "description": "Natural language intent documentation for RAG",
+  "vectorizer": "text2vec-ollama",
+  "moduleConfig": {
+    "text2vec-ollama": {
+      "model": "llama3.3:70b",
+      "apiEndpoint": "http://ollama.default.svc.cluster.local:11434"
+    }
+  },
+  "properties": [
+    {
+      "name": "content",
+      "dataType": ["text"],
+      "description": "Document content",
+      "moduleConfig": {
+        "text2vec-ollama": {
+          "skip": false,
+          "vectorizePropertyName": false
+        }
+      }
+    },
+    {
+      "name": "source",
+      "dataType": ["string"],
+      "description": "Source document (e.g., '3GPP TS 23.501', 'O-RAN WG1')"
+    },
+    {
+      "name": "category",
+      "dataType": ["string"],
+      "description": "Category: intent, troubleshooting, spec, example"
+    },
+    {
+      "name": "metadata",
+      "dataType": ["object"],
+      "description": "Additional metadata (JSON)"
+    }
+  ]
+}
+```
+
+**Vector Dimensions**: 4096 (llama3.3:70b embeddings)
+**Distance Metric**: Cosine similarity
+**HNSW Index**: M=16, efConstruction=128
+
+**Example Entry**:
+```json
+{
+  "content": "To scale Free5GC UPF from 1 to 3 replicas for increased throughput...",
+  "source": "Nephoran Intent Examples",
+  "category": "intent",
+  "metadata": {
+    "service": "free5gc-upf",
+    "intentType": "cnf-scaling",
+    "confidence": 0.95
+  }
+}
+```
+
+**Data Volume Estimates**:
+- Documents: ~5000 entries (documentation corpus)
+- Vector Size: 4096 dimensions × 4 bytes = 16 KB per vector
+- Total Storage: 50 GB (reserved), actual usage ~10 GB
+
+#### 3.3.4 Data Flow Diagram
+
+```
+┌─────────────┐
+│   User NL   │ "Scale UPF to 3 replicas"
+└──────┬──────┘
+       │
+       ▼
+┌─────────────────────┐
+│  LLM (Ollama)       │ Intent parsing
+│  llama3.3:70b       │
+└──────┬──────────────┘
+       │ Embedding query
+       ▼
+┌─────────────────────┐
+│  Weaviate           │ Semantic search (top-k=5)
+│  Vector DB          │
+└──────┬──────────────┘
+       │ Context docs
+       ▼
+┌─────────────────────┐
+│  LLM (Ollama)       │ Generate structured NetworkIntent
+└──────┬──────────────┘
+       │ NetworkIntent CRD
+       ▼
+┌─────────────────────┐
+│  Intent Operator    │ Reconcile
+└──────┬──────────────┘
+       │ A1 Policy JSON
+       ▼
+┌─────────────────────┐
+│  Non-RT RIC         │ Policy enforcement
+└──────┬──────────────┘
+       │ xApp commands
+       ▼
+┌─────────────────────┐
+│  Free5GC UPF        │ Scale deployment
+│  (MongoDB data)     │
+└─────────────────────┘
+       │ Session data (N4 PFCP)
+       ▼
+┌─────────────────────┐
+│  MongoDB            │ Persist UE sessions
+│  free5gc.sessions   │
+└─────────────────────┘
+```
+
+#### 3.3.5 Backup and Recovery
+
+**MongoDB Backup**:
+```bash
+# Daily backup (automated via CronJob)
+mongodump --uri="mongodb://mongodb.free5gc.svc.cluster.local:27017/free5gc" \
+  --out=/backups/mongodb/$(date +%Y%m%d) \
+  --gzip
+
+# Retention: 7 daily, 4 weekly, 12 monthly
+```
+
+**Weaviate Backup**:
+```bash
+# Backup entire schema and data
+curl -X POST http://weaviate:8080/v1/backups/filesystem \
+  -H "Content-Type: application/json" \
+  -d '{"id": "backup-'$(date +%Y%m%d)'"}'
+
+# Retention: 7 daily backups
+```
+
+**Recovery Time Objective (RTO)**: < 1 hour
+**Recovery Point Objective (RPO)**: < 24 hours (daily backups)
+
+---
+
+### 3.4 Physical Deployment Topology
 
 ```yaml
 Single Node Deployment (Dev/Test):
@@ -931,7 +1374,467 @@ kubectl delete ns kube-system/cilium* --force --grace-period=0
 
 ---
 
-*[Continue with Tasks T3-T12... Due to length constraints, I'll create the remaining tasks in the task-dag.yaml file]*
+#### Task T3: Deploy GPU Operator + DRA
+**Duration**: ⏱️ 3 hours
+**Dependencies**: [T1]
+**Parallel With**: [T2]
+**Assignee**: @claude-agent-devops
+
+**Prerequisites**:
+```bash
+# Verify NVIDIA GPU is detected
+lspci | grep -i nvidia
+
+# Check kernel version (5.15.0+ required)
+uname -r
+```
+
+**Implementation**:
+```bash
+# Step 1: Add NVIDIA Helm repository
+helm repo add nvidia https://helm.ngc.nvidia.com/nvidia
+helm repo update
+
+# Step 2: Create namespace
+kubectl create namespace gpu-operator-resources
+
+# Step 3: Install GPU Operator with DRA support
+helm install gpu-operator nvidia/gpu-operator \
+  --namespace gpu-operator-resources \
+  --version 25.10.1 \
+  --set driver.enabled=true \
+  --set toolkit.enabled=true \
+  --set devicePlugin.enabled=false \
+  --set dra.enabled=true \
+  --set dra.driver.version=25.12.0 \
+  --wait
+
+# Step 4: Wait for GPU Operator pods to be ready
+kubectl wait --for=condition=Ready pod \
+  -l app=nvidia-gpu-operator \
+  -n gpu-operator-resources \
+  --timeout=600s
+```
+
+**Verification**:
+```bash
+# Check GPU Operator pods
+kubectl get pods -n gpu-operator-resources
+
+# Verify DRA driver is running
+kubectl get pods -n gpu-operator-resources -l app=nvidia-dra-driver
+
+# Check node has DRA resources
+kubectl get nodes -o yaml | grep "nvidia.com/dra"
+
+# Verify GPU with nvidia-smi
+kubectl run nvidia-smi --rm -i --tty --restart=Never \
+  --image=nvidia/cuda:12.3.1-base-ubuntu22.04 \
+  -- nvidia-smi
+```
+
+**Rollback**:
+```bash
+# Uninstall GPU Operator
+helm uninstall gpu-operator -n gpu-operator-resources
+
+# Delete namespace
+kubectl delete namespace gpu-operator-resources
+```
+
+**Success Criteria**:
+- [ ] GPU Operator pods Running
+- [ ] DRA driver plugin operational
+- [ ] `nvidia-smi` shows RTX 5080
+- [ ] DRA resource claims can be created
+
+---
+
+#### Task T4: Deploy MongoDB 7.0
+**Duration**: ⏱️ 1 hour
+**Dependencies**: [T1, T2]
+**Parallel With**: [T5]
+**Assignee**: @claude-agent-database-admin
+
+**Prerequisites**:
+```bash
+# Verify storage class exists
+kubectl get storageclass
+
+# Check available disk space
+df -h /
+```
+
+**Implementation**:
+```bash
+# Step 1: Create namespace
+kubectl create namespace free5gc
+
+# Step 2: Add Bitnami Helm repository
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
+
+# Step 3: Create values file for MongoDB
+cat <<EOF > mongodb-values.yaml
+architecture: standalone
+auth:
+  enabled: false  # Disable for development (enable in production)
+persistence:
+  enabled: true
+  size: 20Gi
+  storageClass: "local-path"
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 1000m
+    memory: 2Gi
+EOF
+
+# Step 4: Install MongoDB
+helm install mongodb bitnami/mongodb \
+  --namespace free5gc \
+  --version 15.6.0 \
+  --values mongodb-values.yaml \
+  --wait
+
+# Step 5: Wait for MongoDB to be ready
+kubectl wait --for=condition=Ready pod \
+  -l app.kubernetes.io/name=mongodb \
+  -n free5gc \
+  --timeout=300s
+```
+
+**Verification**:
+```bash
+# Check MongoDB pod status
+kubectl get pods -n free5gc -l app.kubernetes.io/name=mongodb
+
+# Verify MongoDB version
+kubectl exec -n free5gc deployment/mongodb -- \
+  mongosh --quiet --eval "db.version()"
+
+# Test database connection
+kubectl exec -n free5gc deployment/mongodb -- \
+  mongosh --eval "db.adminCommand('ping')"
+
+# Check persistent volume
+kubectl get pvc -n free5gc
+```
+
+**Rollback**:
+```bash
+# Uninstall MongoDB
+helm uninstall mongodb -n free5gc
+
+# Delete PVC if needed
+kubectl delete pvc -n free5gc -l app.kubernetes.io/name=mongodb
+```
+
+**Success Criteria**:
+- [ ] MongoDB pod Running
+- [ ] Version 7.0.x confirmed
+- [ ] Database ping successful
+- [ ] Persistent volume bound
+
+---
+
+#### Task T5: Deploy Weaviate Vector DB
+**Duration**: ⏱️ 2 hours
+**Dependencies**: [T1, T2]
+**Parallel With**: [T4]
+**Assignee**: @claude-agent-database-admin
+
+**Prerequisites**:
+```bash
+# Check cluster resources
+kubectl top nodes
+
+# Verify storage available
+kubectl get storageclass
+```
+
+**Implementation**:
+```bash
+# Step 1: Add Weaviate Helm repository
+helm repo add weaviate https://weaviate.github.io/weaviate-helm
+helm repo update
+
+# Step 2: Create values file for Weaviate
+cat <<EOF > weaviate-values.yaml
+replicas: 1
+image:
+  tag: 1.34.0
+resources:
+  requests:
+    cpu: 1000m
+    memory: 4Gi
+  limits:
+    cpu: 2000m
+    memory: 8Gi
+storage:
+  size: 50Gi
+  storageClassName: local-path
+env:
+  QUERY_DEFAULTS_LIMIT: 100
+  AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+  PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+  DEFAULT_VECTORIZER_MODULE: 'none'
+  ENABLE_MODULES: 'text2vec-ollama'
+  CLUSTER_HOSTNAME: 'node1'
+modules:
+  text2vec-ollama:
+    enabled: true
+EOF
+
+# Step 3: Install Weaviate
+helm install weaviate weaviate/weaviate \
+  --namespace default \
+  --values weaviate-values.yaml \
+  --wait \
+  --timeout 10m
+
+# Step 4: Wait for Weaviate to be ready
+kubectl wait --for=condition=Ready pod \
+  -l app.kubernetes.io/name=weaviate \
+  -n default \
+  --timeout=600s
+```
+
+**Verification**:
+```bash
+# Check Weaviate pod
+kubectl get pods -l app.kubernetes.io/name=weaviate
+
+# Verify Weaviate API is accessible
+kubectl run curl-test --image=curlimages/curl:latest --rm -i --tty \
+  --restart=Never -- \
+  curl -sf http://weaviate.default.svc.cluster.local:8080/v1/meta
+
+# Check Weaviate version
+kubectl exec -n default deployment/weaviate -- \
+  curl -sf http://localhost:8080/v1/meta | grep version
+
+# Test schema creation
+kubectl run curl-test --image=curlimages/curl:latest --rm -i --tty \
+  --restart=Never -- \
+  curl -X GET http://weaviate.default.svc.cluster.local:8080/v1/schema
+```
+
+**Rollback**:
+```bash
+# Uninstall Weaviate
+helm uninstall weaviate -n default
+
+# Delete PVC
+kubectl delete pvc -n default -l app.kubernetes.io/name=weaviate
+```
+
+**Success Criteria**:
+- [ ] Weaviate pod Running
+- [ ] `/v1/meta` endpoint returns 200 OK
+- [ ] Version 1.34.0 confirmed
+- [ ] text2vec-ollama module enabled
+
+---
+
+#### Task T6: Deploy Nephio R5 + Porch
+**Duration**: ⏱️ 3 hours
+**Dependencies**: [T1, T2]
+**Assignee**: @claude-agent-devops
+
+**Prerequisites**:
+```bash
+# Install kpt CLI
+curl -L https://github.com/kptdev/kpt/releases/download/v1.0.0-beta.56/kpt_linux_amd64 \
+  -o /tmp/kpt
+sudo mv /tmp/kpt /usr/local/bin/kpt
+sudo chmod +x /usr/local/bin/kpt
+
+# Verify kpt installation
+kpt version
+```
+
+**Implementation**:
+```bash
+# Step 1: Clone Nephio repository
+cd /tmp
+git clone https://github.com/nephio-project/nephio.git
+cd nephio
+git checkout v4.0.2
+
+# Step 2: Deploy Nephio management cluster components
+# Install Porch API server
+kubectl apply -f deployments/nephio-r5/porch-server.yaml
+
+# Create namespaces
+kubectl create namespace nephio-system
+kubectl create namespace porch-system
+
+# Step 3: Install Porch using Helm
+helm repo add nephio https://nephio-project.github.io/nephio-helm-charts
+helm repo update
+
+helm install porch nephio/porch \
+  --namespace porch-system \
+  --version 1.4.3 \
+  --set image.tag=v1.4.3 \
+  --wait
+
+# Step 4: Install Config Sync
+kubectl apply -f https://github.com/GoogleContainerTools/kpt-config-sync/releases/download/v1.18.1/config-sync-manifest.yaml
+
+# Step 5: Register Free5GC package repository
+kpt alpha repo register \
+  --namespace default \
+  --repo-basic-username=nephio-bot \
+  --repo-basic-password='' \
+  https://github.com/nephio-project/free5gc-packages.git
+
+# Step 6: Wait for Porch to be ready
+kubectl wait --for=condition=Ready pod \
+  -l app=porch-server \
+  -n porch-system \
+  --timeout=300s
+```
+
+**Verification**:
+```bash
+# Check Porch pods
+kubectl get pods -n porch-system
+
+# Verify Porch API
+kubectl get apiservices | grep porch
+
+# List available packages
+kpt alpha rpkg get
+
+# Check registered repositories
+kpt alpha repo get
+
+# Verify Free5GC packages are available
+kpt alpha rpkg get | grep free5gc
+```
+
+**Rollback**:
+```bash
+# Uninstall Porch
+helm uninstall porch -n porch-system
+
+# Delete Config Sync
+kubectl delete -f https://github.com/GoogleContainerTools/kpt-config-sync/releases/download/v1.18.1/config-sync-manifest.yaml
+
+# Delete namespaces
+kubectl delete namespace nephio-system porch-system
+```
+
+**Success Criteria**:
+- [ ] Porch API server accessible
+- [ ] `kpt alpha rpkg get` returns packages
+- [ ] Free5GC packages registered (78 packages)
+- [ ] Config Sync running
+
+---
+
+#### Task T7: Deploy O-RAN SC Near-RT RIC
+**Duration**: ⏱️ 4 hours
+**Dependencies**: [T1, T2]
+**Assignee**: @claude-agent-oran
+
+**Prerequisites**:
+```bash
+# Clone O-RAN SC deployment repository
+cd /tmp
+git clone https://gerrit.o-ran-sc.org/r/it/dep
+cd dep
+git checkout l-release
+
+# Verify Helm 3 is installed
+helm version
+```
+
+**Implementation**:
+```bash
+# Step 1: Setup Helm 3 and add O-RAN SC charts
+cd /tmp/dep
+./scripts/layer-0/0-setup-helm3.sh
+
+# Add O-RAN SC Helm repository
+helm repo add oran https://charts.o-ran-sc.org
+helm repo update
+
+# Step 2: Create namespaces
+kubectl create namespace ricplt
+kubectl create namespace ricinfra
+
+# Step 3: Install Near-RT RIC platform
+helm install ric-plt oran/ricplt \
+  --namespace ricplt \
+  --version l-release \
+  --set global.ricplt.release=l-release \
+  --wait \
+  --timeout 20m
+
+# Step 4: Install Non-RT RIC services
+helm install nonrtric oran/nonrtric \
+  --namespace ricplt \
+  --version l-release \
+  --set a1policy.enabled=true \
+  --set a1policymanagement.enabled=true \
+  --wait \
+  --timeout 15m
+
+# Step 5: Install Service Manager (ONAP OOM charts)
+cd /tmp/dep/smo-install
+./scripts/layer-2/2-install-oran.sh default l-release
+
+# Step 6: Wait for all RIC components to be ready
+kubectl wait --for=condition=Ready pod \
+  -l app=ricplt \
+  -n ricplt \
+  --timeout=600s
+```
+
+**Verification**:
+```bash
+# Check RIC platform pods
+kubectl get pods -n ricplt
+
+# Check RIC infrastructure pods
+kubectl get pods -n ricinfra
+
+# Verify A1 Policy API
+NONRTRIC_IP=$(kubectl get svc -n ricplt nonrtric -o jsonpath='{.spec.clusterIP}')
+curl -sf http://$NONRTRIC_IP:8080/a1-policy/v2/health
+
+# Check E2 Manager
+kubectl get svc -n ricplt | grep e2mgr
+
+# List deployed xApps
+kubectl get pods -n ricplt -l app=xapp
+
+# Verify ServiceManager
+kubectl get pods -n ricplt -l app=service-manager
+```
+
+**Rollback**:
+```bash
+# Uninstall Non-RT RIC
+helm uninstall nonrtric -n ricplt
+
+# Uninstall Near-RT RIC
+helm uninstall ric-plt -n ricplt
+
+# Delete namespaces
+kubectl delete namespace ricplt ricinfra --force
+```
+
+**Success Criteria**:
+- [ ] All RIC pods Running
+- [ ] A1 Policy API accessible (HTTP 200)
+- [ ] E2 termination ready
+- [ ] ServiceManager operational
 
 ---
 
