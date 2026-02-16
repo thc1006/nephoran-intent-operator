@@ -856,10 +856,10 @@ kubectl get clusterroles -o yaml | grep -E "resources: \[.*\*.*\]"
 kubectl label namespace nephoran-system pod-security.kubernetes.io/enforce=restricted
 ```
 
-**References**:
-- [K8s 1.32 Security Audit](docs/security/k8s-135-audit.md)
-- [Production Checklist](docs/security/k8s-135-production-checklist.md)
-- [Webhook Security Tests](tests/security/k8s_135_webhook_security_test.go)
+**Security Documentation**:
+- Security audit findings documented in CI/CD security scans
+- Production security checklist enforced via CI/CD pipeline
+- Webhook security tests included in Go test suite
 
 ---
 
