@@ -159,16 +159,17 @@ func (e *Executor) Execute(ctx context.Context, intentPath string) (*ExecutionRe
 		Command: strings.Join(cmdArgs, " "),
 	}
 
-	if err != nil {
-
+	// Check for context errors first (even if RunWithGracefulShutdown returned nil,
+	// the context may have been cancelled or timed out and the process was killed gracefully).
+	if timeoutCtx.Err() == context.DeadlineExceeded {
+		result.Success = false
+		result.Error = fmt.Errorf("porch command timed out after %v", e.config.Timeout)
+	} else if timeoutCtx.Err() != nil {
+		// Context was cancelled (e.g., parent context cancelled)
+		result.Success = false
+		result.Error = fmt.Errorf("porch command cancelled: %w", timeoutCtx.Err())
+	} else if err != nil {
 		result.Error = err
-
-		// Check for specific error types.
-
-		if timeoutCtx.Err() == context.DeadlineExceeded {
-			result.Error = fmt.Errorf("porch command timed out after %v", e.config.Timeout)
-		}
-
 	}
 
 	// Log execution result.
