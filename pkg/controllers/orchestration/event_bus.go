@@ -104,6 +104,8 @@ type EventBus struct {
 
 	stopChan chan bool
 
+	doneChan chan struct{}
+
 	started bool
 }
 
@@ -233,6 +235,8 @@ func NewEventBus(client client.Client, logger logr.Logger) *EventBus {
 		eventChan: make(chan ProcessingEvent, 1000),
 
 		stopChan: make(chan bool),
+
+		doneChan: make(chan struct{}),
 	}
 }
 
@@ -360,11 +364,15 @@ func (e *EventBus) Stop(ctx context.Context) error {
 
 	e.started = false
 
-	// Wait for processing to complete with timeout.
+	// Wait for processing goroutine to exit, with a short timeout to avoid blocking tests.
 
 	select {
 
-	case <-time.After(10 * time.Second):
+	case <-e.doneChan:
+
+		e.logger.Info("Event bus stopped cleanly")
+
+	case <-time.After(2 * time.Second):
 
 		e.logger.Info("Event bus stopped with timeout")
 
@@ -381,6 +389,8 @@ func (e *EventBus) Stop(ctx context.Context) error {
 
 func (e *EventBus) processEvents(ctx context.Context) {
 	e.logger.Info("Started event processing")
+
+	defer close(e.doneChan)
 
 	for {
 		select {

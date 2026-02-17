@@ -196,3 +196,4 @@ Updates are tracked here in append-only format.
 | 2026-02-17T13:50:00Z | main | pkg/global,cmd/conductor-loop | Fix traffic controller tolerance and exit code test expectations |
 | 2026-02-17T13:55:00Z | feature/phase1-emergency-hotfix | pkg/handlers,oran/health,oran/o1,oran/o2 | Fix nil pointer panics and missing test fixtures in O-RAN tests |
 | 2026-02-17T14:00:00Z | main | pkg/oran/a1,controllers/parallel | Fix HTTP 408, duplicate Prometheus metrics, and struct migration test |
+| 2026-02-17T14:10:00Z | main | pkg/oran/o2/providers,controllers/orchestration | Fix resource operations and orchestration test reliability |

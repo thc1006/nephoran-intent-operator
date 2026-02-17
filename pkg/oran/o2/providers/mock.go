@@ -193,14 +193,29 @@ func (m *MockProvider) CreateResource(ctx context.Context, req *CreateResourceRe
 		UpdatedAt:     time.Now(),
 	}
 
-	// Simulate async creation
+	// Store resource in internal map so GetResourceStatus can find it
+	resource := &Resource{
+		ID:        id,
+		Name:      req.Name,
+		Type:      ResourceType(req.Type),
+		Status:    StatusCreating,
+		Labels:    req.Labels,
+		CreatedAt: response.CreatedAt,
+		UpdatedAt: response.UpdatedAt,
+	}
+	m.resources[id] = resource
+
+	// Simulate async creation: update status to Ready after a short delay
 	go func() {
 		time.Sleep(100 * time.Millisecond)
 		m.mu.Lock()
 		defer m.mu.Unlock()
-		// In a real implementation, you would update the resource status in storage
 		response.Status = string(StatusReady)
 		response.UpdatedAt = time.Now()
+		if r, ok := m.resources[id]; ok {
+			r.Status = StatusReady
+			r.UpdatedAt = response.UpdatedAt
+		}
 	}()
 
 	return response, nil
@@ -215,15 +230,21 @@ func (m *MockProvider) GetResource(ctx context.Context, resourceID string) (*Res
 		return nil, fmt.Errorf("provider not initialized")
 	}
 
-	// Mock implementation - simulate resource lookup
+	// Look up resource in internal storage
+	resource, exists := m.resources[resourceID]
+	if !exists {
+		return nil, fmt.Errorf("resource %s not found", resourceID)
+	}
+
 	response := &ResourceResponse{
-		ID:        resourceID,
-		Name:      "mock-" + resourceID,
-		Type:      "mock-resource",
-		Status:    string(StatusReady),
+		ID:        resource.ID,
+		Name:      resource.Name,
+		Type:      string(resource.Type),
+		Status:    string(resource.Status),
 		Health:    "healthy",
-		CreatedAt: time.Now().Add(-time.Hour),
-		UpdatedAt: time.Now(),
+		Labels:    resource.Labels,
+		CreatedAt: resource.CreatedAt,
+		UpdatedAt: resource.UpdatedAt,
 	}
 
 	return response, nil
@@ -238,19 +259,46 @@ func (m *MockProvider) ListResources(ctx context.Context, filter *ResourceFilter
 		return nil, fmt.Errorf("provider not initialized")
 	}
 
-	// Mock implementation - return some sample resources
 	var results []*ResourceResponse
-	for i := 0; i < 3; i++ {
-		resource := &ResourceResponse{
-			ID:        fmt.Sprintf("mock-resource-%d", i),
-			Name:      fmt.Sprintf("mock-resource-%d", i),
-			Type:      "mock-resource",
-			Status:    string(StatusReady),
-			Health:    "healthy",
-			CreatedAt: time.Now().Add(-time.Hour),
-			UpdatedAt: time.Now(),
+	for _, resource := range m.resources {
+		// Apply type filter if specified
+		if len(filter.Types) > 0 {
+			typeMatch := false
+			for _, t := range filter.Types {
+				if string(resource.Type) == t {
+					typeMatch = true
+					break
+				}
+			}
+			if !typeMatch {
+				continue
+			}
 		}
-		results = append(results, resource)
+
+		// Apply label filter if specified
+		if len(filter.Labels) > 0 {
+			labelMatch := true
+			for k, v := range filter.Labels {
+				if resource.Labels[k] != v {
+					labelMatch = false
+					break
+				}
+			}
+			if !labelMatch {
+				continue
+			}
+		}
+
+		results = append(results, &ResourceResponse{
+			ID:        resource.ID,
+			Name:      resource.Name,
+			Type:      string(resource.Type),
+			Status:    string(resource.Status),
+			Health:    "healthy",
+			Labels:    resource.Labels,
+			CreatedAt: resource.CreatedAt,
+			UpdatedAt: resource.UpdatedAt,
+		})
 	}
 
 	return results, nil
@@ -265,16 +313,32 @@ func (m *MockProvider) UpdateResource(ctx context.Context, resourceID string, re
 		return nil, fmt.Errorf("provider not initialized")
 	}
 
-	// Mock implementation
+	// Use the requested name if provided, otherwise keep existing
+	name := req.Name
+	if name == "" {
+		if existing, ok := m.resources[resourceID]; ok {
+			name = existing.Name
+		} else {
+			name = resourceID
+		}
+	}
+
 	response := &ResourceResponse{
 		ID:            resourceID,
-		Name:          "updated-" + resourceID,
+		Name:          name,
 		Status:        "updating",
 		Health:        "healthy",
 		Specification: req.Specification,
 		Labels:        req.Labels,
 		Annotations:   req.Annotations,
 		UpdatedAt:     time.Now(),
+	}
+
+	// Update resource in internal storage
+	if existing, ok := m.resources[resourceID]; ok {
+		existing.Name = name
+		existing.Labels = req.Labels
+		existing.UpdatedAt = response.UpdatedAt
 	}
 
 	// Simulate async update
@@ -284,6 +348,10 @@ func (m *MockProvider) UpdateResource(ctx context.Context, resourceID string, re
 		defer m.mu.Unlock()
 		response.Status = string(StatusReady)
 		response.UpdatedAt = time.Now()
+		if r, ok := m.resources[resourceID]; ok {
+			r.Status = StatusReady
+			r.UpdatedAt = response.UpdatedAt
+		}
 	}()
 
 	return response, nil
@@ -488,8 +556,16 @@ func (m *MockProvider) DeleteResource(ctx context.Context, resourceID string) er
 		return fmt.Errorf("provider not initialized")
 	}
 
-	// Mock implementation - simulate deletion
-	// In a real implementation, this would actually delete the resource
+	// Simulate async deletion: mark as deleting, then remove after a short delay
+	if _, exists := m.resources[resourceID]; exists {
+		go func() {
+			time.Sleep(50 * time.Millisecond)
+			m.mu.Lock()
+			defer m.mu.Unlock()
+			delete(m.resources, resourceID)
+		}()
+	}
+
 	return nil
 }
 

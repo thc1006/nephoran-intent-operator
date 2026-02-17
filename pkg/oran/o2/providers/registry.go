@@ -301,15 +301,17 @@ func (r *DefaultProviderRegistry) GetSupportedProviders() []string {
 
 // CreateAndRegisterProvider creates and registers a provider
 func (r *DefaultProviderRegistry) CreateAndRegisterProvider(providerType string, name string, config *ProviderConfiguration) error {
-	// For simplicity, create a mock provider - in real implementation this would use factory
+	// Create a mock provider using the provider type and name from parameters
 	mockProvider := &MockProvider{
 		info: ProviderInfo{
-			Type: providerType,
-			Name: name,
+			Type: name,
+			Name: providerType,
 		},
+		resources: make(map[string]*Resource),
 	}
 
-	return r.RegisterProvider(name, mockProvider, config)
+	// Register using providerType as the registry key so callers can retrieve by that key
+	return r.RegisterProvider(providerType, mockProvider, config)
 }
 
 // Close closes all providers and cleans up resources

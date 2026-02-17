@@ -489,6 +489,23 @@ func NewParallelProcessingEngine(
 		}
 	}
 
+	// Apply default values for zero-value timeout fields to prevent immediate context expiry
+	if config.IntentTimeout == 0 {
+		config.IntentTimeout = 5 * time.Minute
+	}
+	if config.LLMTimeout == 0 {
+		config.LLMTimeout = 2 * time.Minute
+	}
+	if config.ManifestTimeout == 0 {
+		config.ManifestTimeout = 1 * time.Minute
+	}
+	if config.DeploymentTimeout == 0 {
+		config.DeploymentTimeout = 10 * time.Minute
+	}
+	if config.HealthCheckInterval == 0 {
+		config.HealthCheckInterval = 30 * time.Second
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	engine := &ParallelProcessingEngine{
