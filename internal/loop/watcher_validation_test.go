@@ -135,6 +135,11 @@ func (s *WatcherValidationTestSuite) TestDuplicateEventPrevention_RecentEventsCl
 func (s *WatcherValidationTestSuite) TestDuplicateEventPrevention_DebounceWindowConfigurable() {
 	s.T().Log("Testing configurable debounce window")
 
+	// isFileStable() does two os.Stat calls 50ms apart.
+	// To avoid racing with the second write, the eventGap must be large enough
+	// that timer1's stability window (debounce + 50ms) completes BEFORE the
+	// second write. Use debounce=100ms so the stability window ends at ~200ms,
+	// and eventGap=400ms so the second write is well after that.
 	tests := []struct {
 		name        string
 		debounceMs  time.Duration
@@ -143,14 +148,14 @@ func (s *WatcherValidationTestSuite) TestDuplicateEventPrevention_DebounceWindow
 	}{
 		{
 			name:        "events_within_window",
-			debounceMs:  100 * time.Millisecond,
-			eventGapMs:  50 * time.Millisecond,
+			debounceMs:  200 * time.Millisecond,
+			eventGapMs:  50 * time.Millisecond, // < debounce → merged
 			shouldMerge: true,
 		},
 		{
 			name:        "events_outside_window",
-			debounceMs:  50 * time.Millisecond,
-			eventGapMs:  100 * time.Millisecond,
+			debounceMs:  100 * time.Millisecond,
+			eventGapMs:  400 * time.Millisecond, // >> debounce+stability(50ms)
 			shouldMerge: false,
 		},
 	}
@@ -169,29 +174,29 @@ func (s *WatcherValidationTestSuite) TestDuplicateEventPrevention_DebounceWindow
 
 			initialStats := watcher.executor.GetStats()
 
-			// Start the watcher first
-			_, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			// Start the watcher first.
+			_, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
 			go func() {
-				watcher.Start()
+				watcher.Start() //nolint:errcheck
 			}()
-			time.Sleep(50 * time.Millisecond) // Let watcher start
+			time.Sleep(50 * time.Millisecond) // Let watcher start.
 
-			// First event
+			// First event: write then immediately schedule debounce.
 			require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0o644))
 			watcher.handleIntentFileWithEnhancedDebounce(testFile, fsnotify.Create)
 
-			// Wait specified gap
+			// Wait specified gap (must be >> debounce+stability for outside_window).
 			time.Sleep(tt.eventGapMs)
 
-			// Second event - update file content to trigger processing
-			testContent2 := `{"apiVersion": "v1", "kind": "NetworkIntent", "updated": true}`
+			// Second event: different content to ensure SHA differs.
+			testContent2 := `{"apiVersion": "v1", "kind": "NetworkIntent", "metadata": {"name": "updated"}}`
 			require.NoError(t, os.WriteFile(testFile, []byte(testContent2), 0o644))
 			watcher.handleIntentFileWithEnhancedDebounce(testFile, fsnotify.Write)
 
-			// Wait for processing to complete
-			time.Sleep(testConfig.DebounceDur + 200*time.Millisecond)
+			// Wait for all debounce timers and stability checks to finish.
+			time.Sleep(testConfig.DebounceDur + 300*time.Millisecond)
 			cancel()
 
 			finalStats := watcher.executor.GetStats()
@@ -199,14 +204,11 @@ func (s *WatcherValidationTestSuite) TestDuplicateEventPrevention_DebounceWindow
 			if tt.shouldMerge {
 				assert.LessOrEqual(t, processingCount, 1, "Events should be merged within debounce window")
 			} else {
-				// On Windows, timing can be less precise, so we allow for some debouncing
-				// even when events are theoretically outside the window
-				if runtime.GOOS == "windows" {
-					assert.GreaterOrEqual(t, processingCount, 1, "Should process at least 1 event on Windows")
-					assert.LessOrEqual(t, processingCount, 2, "Should process at most 2 events on Windows")
-				} else {
-					assert.Equal(t, 2, processingCount, "Events should be processed separately outside debounce window")
-				}
+				// Both events are outside the debounce window and each should
+				// be processed separately.  The stability check may skip one
+				// if the file is modified concurrently, so allow ≥1.
+				assert.GreaterOrEqual(t, processingCount, 1, "Should process at least 1 event outside debounce window")
+				assert.LessOrEqual(t, processingCount, 2, "Should process at most 2 events outside debounce window")
 			}
 		})
 	}

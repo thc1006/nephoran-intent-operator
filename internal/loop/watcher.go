@@ -1412,10 +1412,6 @@ func (w *Watcher) processExistingFiles() error {
 				case <-w.ctx.Done():
 
 					return
-
-				default:
-
-					log.Printf("Warning: work queue full during startup, skipping %s", filename)
 				}
 			}()
 		}
@@ -2064,9 +2060,23 @@ func (w *Watcher) validateJSONFile(filePath string) error {
 			return fmt.Errorf("intent validation failed: %w", err)
 		}
 	} else {
-		// Convert struct back to map for validation.
-
-		intentMap := make(map[string]interface{})
+		// Convert struct to map for field validation.
+		intentMap := map[string]interface{}{
+			"apiVersion": intent.APIVersion,
+			"kind":       intent.Kind,
+		}
+		if intent.Metadata != nil {
+			var metadata interface{}
+			if err := json.Unmarshal(intent.Metadata, &metadata); err == nil {
+				intentMap["metadata"] = metadata
+			}
+		}
+		if intent.Spec != nil {
+			var spec interface{}
+			if err := json.Unmarshal(intent.Spec, &spec); err == nil {
+				intentMap["spec"] = spec
+			}
+		}
 
 		// Validate the structured intent fields.
 
@@ -2241,9 +2251,9 @@ func (w *Watcher) validateKubernetesStyleIntent(intent map[string]interface{}) e
 // validateScalingIntent validates simple scaling intent structure (legacy format).
 
 func (w *Watcher) validateScalingIntent(intent map[string]interface{}) error {
-	// Required fields for scaling intent.
+	// Required fields for all intent types.
 
-	requiredFields := []string{"intent_type", "target", "namespace", "replicas"}
+	requiredFields := []string{"intent_type", "target", "namespace"}
 
 	for _, field := range requiredFields {
 		value, exists := intent[field]
@@ -2255,14 +2265,14 @@ func (w *Watcher) validateScalingIntent(intent map[string]interface{}) error {
 
 	// Validate intent_type.
 
-	if intentType, ok := intent["intent_type"].(string); !ok {
+	intentType, ok := intent["intent_type"].(string)
+	if !ok {
 		return fmt.Errorf("intent_type must be a string")
-	} else {
-		validTypes := map[string]bool{"scaling": true, "deployment": true, "service": true}
+	}
 
-		if !validTypes[intentType] {
-			return fmt.Errorf("intent_type '%s' is not supported (supported: scaling, deployment, service)", intentType)
-		}
+	validTypes := map[string]bool{"scaling": true, "deployment": true, "service": true}
+	if !validTypes[intentType] {
+		return fmt.Errorf("intent_type '%s' is not supported (supported: scaling, deployment, service)", intentType)
 	}
 
 	// Validate target.
@@ -2281,9 +2291,18 @@ func (w *Watcher) validateScalingIntent(intent map[string]interface{}) error {
 		return fmt.Errorf("namespace must be a non-empty string")
 	}
 
-	// Validate replicas - handle both int and float64 from JSON.
+	// Validate replicas - required only for scaling intent type.
 
-	if replicasVal, exists := intent["replicas"]; exists {
+	if intentType == "scaling" {
+		replicasVal, exists := intent["replicas"]
+		if !exists || replicasVal == nil {
+			return fmt.Errorf("missing or null required field: replicas")
+		}
+		if err := validateScalingReplicas(replicasVal); err != nil {
+			return err
+		}
+	} else if replicasVal, exists := intent["replicas"]; exists {
+		// Optional for non-scaling types; validate if present.
 		if err := validateScalingReplicas(replicasVal); err != nil {
 			return err
 		}

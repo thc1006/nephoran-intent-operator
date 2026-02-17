@@ -100,9 +100,9 @@ func TestFixedOnceMode(t *testing.T) {
 
 	require.NoError(t, err)
 
-	// Step 8: Verify results - expect failures due to context cancellation in once mode
+	// Step 8: Verify results - files pass validation and are processed by mock porch (exit 0).
 
-	err = syncHelper.VerifyProcessingResults(0, len(expectedFiles))
+	err = syncHelper.VerifyProcessingResults(len(expectedFiles), 0)
 
 	require.NoError(t, err)
 
@@ -164,31 +164,23 @@ func TestConcurrentFileProcessing(t *testing.T) {
 
 	}
 
-	// Create synchronizer for once mode.
+	// Create enhanced watcher with completion tracking.
 
-	watcher, err := syncHelper.StartWatcherWithSync(config)
+	enhancedWatcher, err := syncHelper.NewEnhancedOnceWatcher(config, numFiles)
 
 	require.NoError(t, err)
 
-	defer watcher.Close() // #nosec G307 - Error handled in defer
-
-	// Create completion waiter.
-
-	completionWaiter := NewProcessingCompletionWaiter(watcher, numFiles)
+	defer enhancedWatcher.Close() // #nosec G307 - Error handled in defer
 
 	// Start watcher.
 
 	startTime := time.Now()
 
-	go func() {
-		err := watcher.Start()
-
-		assert.NoError(t, err)
-	}()
+	require.NoError(t, enhancedWatcher.StartWithTracking())
 
 	// Wait for completion.
 
-	err = completionWaiter.WaitForCompletion()
+	err = enhancedWatcher.WaitForProcessingComplete(30 * time.Second)
 
 	require.NoError(t, err)
 
@@ -196,9 +188,9 @@ func TestConcurrentFileProcessing(t *testing.T) {
 
 	t.Logf("Processed %d files concurrently in %v", numFiles, processingDuration)
 
-	// Verify results - expect failures due to context cancellation in once mode.
+	// Verify results - files pass validation and are processed by mock porch (exit 0).
 
-	err = syncHelper.VerifyProcessingResults(0, numFiles)
+	err = syncHelper.VerifyProcessingResults(numFiles, 0)
 
 	require.NoError(t, err)
 }
@@ -212,7 +204,7 @@ func TestFailureHandling(t *testing.T) {
 
 	// Create mix of valid and invalid files.
 
-	validContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale", "target": {"type": "deployment", "name": "test-deployment"}, "count": 1}}`
+	validContent := `{"intent_type": "scaling", "target": "test-deployment", "namespace": "default", "replicas": 1}`
 
 	invalidContent := `{invalid json content`
 
@@ -354,9 +346,9 @@ func TestCrossPlatformTiming(t *testing.T) {
 
 	require.NoError(t, err)
 
-	// Verify results - expect failures due to context cancellation in once mode.
+	// Verify results - files pass validation and are processed by mock porch (exit 0).
 
-	err = syncHelper.VerifyProcessingResults(0, 2)
+	err = syncHelper.VerifyProcessingResults(2, 0)
 
 	require.NoError(t, err)
 
@@ -451,11 +443,10 @@ func TestFilePatternValidation(t *testing.T) {
 
 	require.NoError(t, err)
 
-	// Verify all files were processed - expect failures due to context cancellation in once mode.
-	// Debug: Log expected vs actual file counts
-	t.Logf("Test expects %d total files to fail", len(testFiles))
-	
-	err = syncHelper.VerifyProcessingResults(0, len(testFiles))
+	// Verify all files were processed - files pass validation and are processed by mock porch (exit 0).
+	t.Logf("Test expects %d total files to be processed", len(testFiles))
+
+	err = syncHelper.VerifyProcessingResults(len(testFiles), 0)
 
 	require.NoError(t, err)
 
@@ -552,9 +543,9 @@ func TestDebugTracking(t *testing.T) {
 	// Verify completion based on file system state rather than internal counters.
 	// Note: state.IsComplete() would require wiring up the state to watcher callbacks.
 
-	// Verify results - expect failures due to context cancellation in once mode.
+	// Verify results - files pass validation and are processed by mock porch (exit 0).
 
-	err = syncHelper.VerifyProcessingResults(0, 2)
+	err = syncHelper.VerifyProcessingResults(2, 0)
 
 	require.NoError(t, err)
 
