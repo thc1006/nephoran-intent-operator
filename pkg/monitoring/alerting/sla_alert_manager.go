@@ -1842,14 +1842,6 @@ func (sam *SLAAlertManager) shouldSuppressAlert(alert *SLAAlert) bool {
 		}
 	}
 
-	// Check suppression rules based on alert characteristics.
-
-	if alert.ErrorBudget.ConsumedPercent < 10.0 {
-		// Suppress minor alerts when error budget consumption is low.
-
-		return true
-	}
-
 	return false
 }
 

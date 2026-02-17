@@ -168,12 +168,13 @@ func (p *OfflineProvider) detectIntentType(words []string) string {
 
 // extractTarget attempts to identify network function components from the input.
 func (p *OfflineProvider) extractTarget(words []string) string {
-	// Common O-RAN and 5G network function patterns
+	// Common O-RAN and 5G network function patterns.
+	// Keywords with len >= 3 use substring matching; shorter ones require exact match.
 	patterns := map[string][]string{
-		"o-du":         {"du", "o-du", "odu", "distributed-unit"},
-		"o-cu-cp":      {"cu-cp", "o-cu-cp", "cp", "control-plane"},
-		"o-cu-up":      {"cu-up", "o-cu-up", "up", "user-plane"},
-		"o-ru":         {"ru", "o-ru", "oru", "radio-unit"},
+		"o-du":         {"o-du", "odu", "distributed-unit", "distributed", "du"},
+		"o-cu-cp":      {"cu-cp", "o-cu-cp", "control-plane"},
+		"o-cu-up":      {"cu-up", "o-cu-up", "user-plane"},
+		"o-ru":         {"o-ru", "oru", "radio-unit", "ru"},
 		"amf":          {"amf", "access-mobility"},
 		"smf":          {"smf", "session-management"},
 		"upf":          {"upf", "user-plane-function"},
@@ -183,13 +184,14 @@ func (p *OfflineProvider) extractTarget(words []string) string {
 		"ausf":         {"ausf", "authentication-server"},
 		"nssf":         {"nssf", "network-slice-selection"},
 		"ric":          {"ric", "ran-intelligence", "xapp"},
-		"e2-simulator": {"e2", "e2sim", "simulator"},
+		"e2-simulator": {"e2sim", "simulator", "e2"},
 	}
 
 	for target, keywords := range patterns {
 		for _, word := range words {
 			for _, keyword := range keywords {
-				if strings.Contains(word, keyword) {
+				// Exact match always works; substring match only for keywords >= 3 chars
+				if word == keyword || (len(keyword) >= 3 && strings.Contains(word, keyword)) {
 					return target
 				}
 			}

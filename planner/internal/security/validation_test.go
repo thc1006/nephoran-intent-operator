@@ -2,6 +2,7 @@ package security
 
 import (
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -519,9 +520,10 @@ func TestSanitizeForLogging(t *testing.T) {
 			expected: "message\\twith\\ttabs",
 		},
 		{
-			name:     "overly long string",
-			input:    string(make([]byte, 300)),
-			expected: string(make([]byte, 253)) + "...",
+			name:  "overly long string",
+			input: strings.Repeat("a", 300),
+			// 300 'a' chars → truncated to 253 + "..."
+			expected: strings.Repeat("a", 253) + "...",
 		},
 		{
 			name:     "mixed dangerous characters",

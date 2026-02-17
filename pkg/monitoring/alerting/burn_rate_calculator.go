@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"math"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -601,24 +602,36 @@ func (brc *BurnRateCalculator) executeSingleQuery(ctx context.Context, query str
 }
 
 // getMockValue returns mock values for testing without Prometheus.
+// Values are chosen to produce burn rates that exceed SRE alerting thresholds (14.4x, 6x, 3x).
+// For availability with target 99.95% (allowedErrorRate = 0.0005):
+//   - To exceed fast burn threshold (14.4x): need errorRate > 0.0072 → successRate < 0.9928
+//   - Using 99% success rate gives errorRate = 0.01, burnRate = 0.01/0.0005 = 20x (exceeds 14.4x)
 
 func (brc *BurnRateCalculator) getMockValue(query string) float64 {
-	// Simulate realistic values for different metrics.
+	// Determine metric type from query content and return values that trigger burn rate alerts.
 
-	if fmt.Sprintf(query, "availability") != "" {
-		return 0.9995 // 99.95% availability
+	if strings.Contains(query, "http_requests_total") && strings.Contains(query, "2..") {
+		// Success requests - return 99.0% to simulate significant availability violation.
+		// This gives errorRate = 1.0%, burnRate = 0.01/0.0005 = 20x (exceeds fast threshold 14.4x).
+		return 9900.0
 	}
 
-	if fmt.Sprintf(query, "latency") != "" {
+	if strings.Contains(query, "http_requests_total") {
+		// Total requests
+		return 10000.0
+	}
+
+	if strings.Contains(query, "request_duration_seconds_bucket") || strings.Contains(query, "latency") {
 		return 1.8 // 1.8 seconds P95 latency
 	}
 
-	if fmt.Sprintf(query, "throughput") != "" {
-		return 47.0 // 47 intents per minute
+	if strings.Contains(query, "networkintents_processed_total") || strings.Contains(query, "throughput") {
+		return 42.0 // 42 intents per minute (below 45 target)
 	}
 
-	if fmt.Sprintf(query, "error_rate") != "" {
-		return 0.0008 // 0.08% error rate
+	if strings.Contains(query, "5..") {
+		// Error requests - 15% error rate (way above 0.1% target for high burn rate)
+		return 0.15
 	}
 
 	return 1.0

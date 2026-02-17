@@ -650,7 +650,12 @@ func NewAlertRouter(config *AlertRouterConfig, logger *logging.StructuredLogger)
 
 		stopCh: make(chan struct{}),
 
-		alertQueue: make(chan *EnrichedAlert, config.AlertQueueSize),
+		alertQueue: make(chan *EnrichedAlert, func() int {
+			if config.AlertQueueSize > 0 {
+				return config.AlertQueueSize
+			}
+			return 100 // default queue size
+		}()),
 	}
 
 	// Initialize sub-components.
@@ -738,9 +743,13 @@ func (ar *AlertRouter) Start(ctx context.Context) error {
 		"processing_workers", ar.config.ProcessingWorkers,
 	)
 
-	// Start processing workers.
+	// Start processing workers. Use at least 1 worker to ensure alerts are processed.
+	numWorkers := ar.config.ProcessingWorkers
+	if numWorkers <= 0 {
+		numWorkers = 1
+	}
 
-	for i := range ar.config.ProcessingWorkers {
+	for i := range numWorkers {
 		go ar.processingWorker(ctx, i)
 	}
 

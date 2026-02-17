@@ -703,12 +703,52 @@ func (pa *PredictiveAlerting) Predict(ctx context.Context, slaType SLAType,
 
 	recommendedActions := pa.generateRecommendedActions(violationProbability, confidence, anomalyScore)
 
-	// Identify contributing factors (simplified for now).
+	// Identify contributing factors from current metrics and model components.
 
 	contributingFactors := []ContributingFactor{
 		{Feature: "baseline_trend", Importance: 0.4, Direction: "positive", Description: "Baseline trend component"},
 
 		{Feature: "seasonal_pattern", Importance: 0.3, Direction: "positive", Description: "Seasonal adjustment component"},
+	}
+
+	// Add contributing factors from current metrics that exceed thresholds.
+	// Map metric aliases to canonical feature names used in contributing factors.
+	metricAliases := map[string]string{
+		"cpu_usage_percent":       "cpu_usage",
+		"cpu_usage":               "cpu_usage",
+		"memory_usage_percent":    "memory_usage",
+		"memory_usage":            "memory_usage",
+		"request_rate_per_second": "request_rate",
+		"request_rate":            "request_rate",
+		"error_rate_percent":      "error_rate",
+		"error_rate":              "error_rate",
+	}
+	thresholds := map[string]float64{
+		"cpu_usage":    70.0,
+		"memory_usage": 75.0,
+		"request_rate": 1000.0,
+		"error_rate":   0.1,
+	}
+	addedFactors := make(map[string]bool)
+	for metricKey, metricVal := range currentMetrics {
+		canonicalName, known := metricAliases[metricKey]
+		if !known {
+			canonicalName = metricKey
+		}
+		if addedFactors[canonicalName] {
+			continue
+		}
+		threshold, hasThreshold := thresholds[canonicalName]
+		if hasThreshold && metricVal > threshold {
+			importance := 0.6 // significant when above threshold
+			contributingFactors = append(contributingFactors, ContributingFactor{
+				Feature:     canonicalName,
+				Importance:  importance,
+				Direction:   "positive",
+				Description: fmt.Sprintf("Current %s value (%.1f) exceeds threshold (%.1f)", canonicalName, metricVal, threshold),
+			})
+			addedFactors[canonicalName] = true
+		}
 	}
 
 	result := &PredictionResult{
