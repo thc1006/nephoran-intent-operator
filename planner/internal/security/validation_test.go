@@ -324,7 +324,7 @@ func TestValidateFilePath(t *testing.T) {
 		{
 			name:      "sensitive Windows system directory",
 			path:      "C:\\Windows\\System32\\config\\SAM",
-			wantError: runtime.GOOS == "windows", // Only expect error on Windows
+			wantError: true, // Validator blocks Windows-style sensitive paths on all platforms
 		},
 		{
 			name:      "Windows system directory",

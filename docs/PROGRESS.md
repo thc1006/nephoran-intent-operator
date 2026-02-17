@@ -191,3 +191,4 @@ Updates are tracked here in append-only format.
 | 2026-02-17T12:12:44Z | main | internal/loop | All tests pass in isolation and under parallel 4 load - suite fully stable |
 | 2026-02-17T12:34:31Z | main | pkg/monitoring/alerting,internal/llm/providers,planner/security | Fix SLA burn rate math, UPF target matching, and sanitize truncation test |
 | 2026-02-17T13:02:27+00:00 | feature/phase1-emergency-hotfix | pkg/controllers,pkg/testutils | Fix all 13 TestNetworkIntentEdgeCases: graceful KB degradation, LLM failure phase, ENABLE_LLM_INTENT bypass |
+| 2026-02-17T13:22:18Z | feature/phase1-emergency-hotfix | planner/security | Fix 33 security tests: ANSI escapes, CRLF, timestamps, traversal |

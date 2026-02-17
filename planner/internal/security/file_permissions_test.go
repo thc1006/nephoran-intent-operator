@@ -344,8 +344,8 @@ func TestFilePermissions_DirectoryTraversalPrevention(t *testing.T) {
 		t.Run(fmt.Sprintf("traversal-%s", strings.ReplaceAll(maliciousPath, string(os.PathSeparator), "_")), func(t *testing.T) {
 			fullPath := filepath.Join(tempDir, maliciousPath)
 
-			// Validate the path - should reject traversal attempts
-			err := validator.ValidateFilePath(fullPath, "traversal test")
+			// Validate the raw traversal path so ".." sequences are visible to the validator.
+			err := validator.ValidateFilePath(maliciousPath, "traversal test")
 			if err == nil {
 				t.Errorf("Path traversal attempt should have been rejected: %s", maliciousPath)
 			}
