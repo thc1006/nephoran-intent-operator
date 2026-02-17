@@ -708,6 +708,7 @@ func (bm *BackupManager) createBackup(ctx context.Context, backupType string) (*
 	if bm.config.EncryptionEnabled {
 		if err := bm.encryptBackup(record); err != nil {
 			bm.logger.Error("Failed to encrypt backup", "error", err)
+			return record, fmt.Errorf("failed to encrypt backup: %w", err)
 		}
 	}
 
@@ -1756,6 +1757,12 @@ func (bm *BackupManager) uploadBackup(ctx context.Context, record *BackupRecord)
 
 		return bm.uploadToAzure(ctx, record)
 
+	case "local", "":
+
+		// Local storage or no storage configured — skip remote upload.
+		bm.logger.Info("Skipping remote upload (local storage mode)")
+		return nil
+
 	default:
 
 		return fmt.Errorf("unsupported storage provider: %s", bm.config.StorageProvider)
@@ -1855,6 +1862,14 @@ func (bm *BackupManager) uploadToAzure(ctx context.Context, record *BackupRecord
 func (bm *BackupManager) validateBackup(ctx context.Context, record *BackupRecord) error {
 	bm.logger.Info("Validating backup", "id", record.ID)
 
+	// Validate component status first.
+
+	for name, comp := range record.Components {
+		if comp.Status != "completed" {
+			return fmt.Errorf("component %s not completed: %s", name, comp.Status)
+		}
+	}
+
 	// Validate checksums.
 
 	if bm.config.ChecksumValidation {
@@ -1869,14 +1884,6 @@ func (bm *BackupManager) validateBackup(ctx context.Context, record *BackupRecor
 
 	if record.Checksum == "" {
 		return fmt.Errorf("backup missing overall checksum")
-	}
-
-	// Validate component status.
-
-	for name, comp := range record.Components {
-		if comp.Status != "completed" {
-			return fmt.Errorf("component %s not completed: %s", name, comp.Status)
-		}
 	}
 
 	bm.logger.Info("Backup validation completed successfully", "id", record.ID)

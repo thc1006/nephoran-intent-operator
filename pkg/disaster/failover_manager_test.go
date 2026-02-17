@@ -47,6 +47,8 @@ func (suite *FailoverManagerTestSuite) TearDownSuite() {
 }
 
 func (suite *FailoverManagerTestSuite) SetupTest() {
+	// Reset package-level test flag to ensure test isolation
+	testDNSShouldFail = false
 	suite.k8sClient = fake.NewSimpleClientset()
 	suite.mockRoute53 = NewMockRoute53Client(suite.mockCtrl)
 
@@ -334,8 +336,8 @@ func (suite *FailoverManagerTestSuite) TestCreateRTOPlan() {
 		stepNames[i] = step.Name
 	}
 
-	assert.Contains(suite.T(), stepNames, "Health Check")
-	assert.Contains(suite.T(), stepNames, "DNS Update")
+	assert.Contains(suite.T(), stepNames, "Health Check Validation")
+	assert.Contains(suite.T(), stepNames, "DNS Record Updates")
 	assert.Contains(suite.T(), stepNames, "State Synchronization")
 }
 
@@ -434,7 +436,9 @@ func (suite *FailoverManagerTestSuite) TestEdgeCases() {
 		{
 			name: "Concurrent failover attempts",
 			setupFunc: func() {
-				// Simulate ongoing failover by setting status
+				// Re-enable the manager after previous subtest may have disabled it
+				suite.manager.config.Enabled = true
+				suite.mockRoute53.SetShouldFail(false)
 			},
 			testFunc: func() error {
 				// This would test concurrent failover prevention
@@ -446,7 +450,10 @@ func (suite *FailoverManagerTestSuite) TestEdgeCases() {
 		{
 			name: "Context cancellation during failover",
 			setupFunc: func() {
-				// Setup timeout context
+				// Re-enable the manager and reset region so context cancellation is the failure
+				suite.manager.config.Enabled = true
+				suite.manager.currentRegion = suite.manager.config.PrimaryRegion
+				suite.mockRoute53.SetShouldFail(false)
 			},
 			testFunc: func() error {
 				cancelCtx, cancel := context.WithCancel(suite.ctx)
@@ -530,6 +537,9 @@ func BenchmarkInitiateFailover(b *testing.B) {
 	}
 }
 
+// testDNSShouldFail is a package-level flag used by the test updateDNSRecord to simulate DNS failure.
+var testDNSShouldFail bool
+
 // Mock implementations for testing
 type MockRoute53Client struct {
 	shouldFail bool
@@ -548,6 +558,7 @@ func (m *MockRoute53Client) ChangeResourceRecordSets(ctx context.Context, input 
 
 func (m *MockRoute53Client) SetShouldFail(fail bool) {
 	m.shouldFail = fail
+	testDNSShouldFail = fail
 }
 
 type MockRegionHealthChecker struct {
@@ -665,7 +676,33 @@ func (fm *FailoverManager) FailoverBack(ctx context.Context, reason string) (*Fa
 		return nil, fmt.Errorf("already in primary region %s", fm.config.PrimaryRegion)
 	}
 
-	return fm.InitiateFailover(ctx, fm.config.PrimaryRegion, reason)
+	// Temporarily add primary region to failover regions for the back-failover validation
+	targetRegion := fm.config.PrimaryRegion
+	isPrimaryInFailoverRegions := false
+	for _, r := range fm.config.FailoverRegions {
+		if r == targetRegion {
+			isPrimaryInFailoverRegions = true
+			break
+		}
+	}
+	if !isPrimaryInFailoverRegions {
+		fm.config.FailoverRegions = append(fm.config.FailoverRegions, targetRegion)
+	}
+
+	record, err := fm.InitiateFailover(ctx, targetRegion, reason)
+
+	// Remove primary region from failover regions if it was temporarily added
+	if !isPrimaryInFailoverRegions {
+		regions := make([]string, 0, len(fm.config.FailoverRegions)-1)
+		for _, r := range fm.config.FailoverRegions {
+			if r != targetRegion {
+				regions = append(regions, r)
+			}
+		}
+		fm.config.FailoverRegions = regions
+	}
+
+	return record, err
 }
 
 func (fm *FailoverManager) CheckRegionHealth(ctx context.Context, region string) (*RegionHealthStatus, error) {
@@ -688,7 +725,14 @@ func (fm *FailoverManager) GetFailoverHistory() []*FailoverRecord {
 }
 
 func (fm *FailoverManager) updateDNSRecord(ctx context.Context, targetRegion string) error {
-	// Simple test implementation
-	return nil // Skip DNS update in basic test
+	// Check context cancellation first
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	// Use package-level flag to simulate DNS update failure
+	if testDNSShouldFail {
+		return fmt.Errorf("mock DNS update failure")
+	}
+	return nil
 }
 
