@@ -391,63 +391,46 @@ func (s *O2APIServer) setupRoutes() {
 		})
 	}
 
-	// API versioning - O2 IMS v1.0.
+	// ── O-RAN O2 IMS standard routes (/o2ims_infrastructureInventory/v1/) ────────
+	// Per O-RAN.WG6.O2IMS-INTERFACE-R003-v06.00
+	o2imsRouter := s.router.PathPrefix("/o2ims_infrastructureInventory/v1").Subrouter()
 
-	// Temporarily commented out since no routes are used.
+	// Service info
+	s.router.HandleFunc("/o2ims_infrastructureInventory/v1", s.handleGetServiceInfo).Methods("GET")
 
-	// apiV1 := s.router.PathPrefix("/ims/v1").Subrouter().
+	// Resource Pools
+	o2imsRouter.HandleFunc("/resourcePools", s.handleGetResourcePools).Methods("GET")
+	o2imsRouter.HandleFunc("/resourcePools/{resourcePoolId}", s.handleGetResourcePool).Methods("GET")
 
-	// Apply authentication middleware to protected routes.
+	// Resource Types
+	o2imsRouter.HandleFunc("/resourceTypes", s.handleGetResourceTypes).Methods("GET")
+	o2imsRouter.HandleFunc("/resourceTypes/{resourceTypeId}", s.handleGetResourceType).Methods("GET")
 
-	// Temporarily disabled until proper auth middleware is implemented.
+	// Resources within a pool
+	o2imsRouter.HandleFunc("/resourcePools/{resourcePoolId}/resources", s.handleGetResources).Methods("GET")
+	o2imsRouter.HandleFunc("/resourcePools/{resourcePoolId}/resources/{resourceId}", s.handleGetResource).Methods("GET")
 
-	// if s.authMiddleware != nil {.
+	// Deployment Managers (maps to deployment handlers; O2 IMS terminology)
+	o2imsRouter.HandleFunc("/deploymentManagers", s.handleGetDeployments).Methods("GET")
+	o2imsRouter.HandleFunc("/deploymentManagers/{deploymentManagerId}", s.handleGetDeployment).Methods("GET")
 
-	//	apiV1.Use(s.authMiddleware.Middleware)
+	// Subscriptions
+	o2imsRouter.HandleFunc("/subscriptions", s.handleGetSubscriptions).Methods("GET")
+	o2imsRouter.HandleFunc("/subscriptions", s.handleCreateSubscription).Methods("POST")
+	o2imsRouter.HandleFunc("/subscriptions/{subscriptionId}", s.handleGetSubscription).Methods("GET")
+	o2imsRouter.HandleFunc("/subscriptions/{subscriptionId}", s.handleDeleteSubscription).Methods("DELETE")
 
-	// }.
+	s.logger.Info("O2 IMS standard routes configured (/o2ims_infrastructureInventory/v1/)")
 
-	// Service information endpoints.
-
-	// Temporarily commented out for compilation testing.
-
-	// s.router.HandleFunc("/ims/info", s.handleGetServiceInfo).Methods("GET").
-
-	// s.router.HandleFunc("/health", s.handleHealthCheck).Methods("GET").
-
-	// s.router.HandleFunc("/ready", s.handleReadinessCheck).Methods("GET").
+	// ── Health and readiness ─────────────────────────────────────────────────────
+	s.router.HandleFunc("/health", s.handleHealthCheck).Methods("GET")
+	s.router.HandleFunc("/ready", s.handleReadinessCheck).Methods("GET")
 
 	// Metrics endpoint (usually should be on separate port in production).
 
 	if s.config.MetricsConfig != nil && s.config.MetricsConfig.Enabled {
 		s.router.Handle("/metrics", promhttp.HandlerFor(s.metricsRegistry, promhttp.HandlerOpts{}))
 	}
-
-	// All route handlers are temporarily commented out for compilation testing.
-
-	// These require implementations in api_handlers.go which has many undefined dependencies.
-
-	// TODO: Uncomment these when handler implementations are fixed:.
-
-	// Resource Pool Management - O2 IMS Core API.
-
-	// Resource Type Management.
-
-	// Resource Management.
-
-	// Resource Health and Monitoring.
-
-	// Deployment Template Management.
-
-	// Deployment Management.
-
-	// Subscription and Event Management.
-
-	// Cloud Provider Management (Nephoran extension).
-
-	// Resource Lifecycle Operations (Extended API).
-
-	// Infrastructure Discovery and Inventory (Extended API).
 
 	s.logger.Info("API routes configured successfully")
 }

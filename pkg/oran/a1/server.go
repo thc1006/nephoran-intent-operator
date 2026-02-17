@@ -89,6 +89,8 @@ type CircuitBreaker struct {
 
 	state State
 
+	generation uint64
+
 	counts Counts
 
 	expiry time.Time
@@ -272,8 +274,15 @@ func (s *A1Server) Start(ctx context.Context) error {
 	})
 
 	if err := g.Wait(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		s.mutex.Lock()
+		s.isReady = false
+		s.mutex.Unlock()
 		return fmt.Errorf("server error: %w", err)
 	}
+
+	s.mutex.Lock()
+	s.isReady = false
+	s.mutex.Unlock()
 
 	s.logger.InfoWithContext("A1 server shutdown complete")
 
@@ -314,6 +323,10 @@ func (s *A1Server) GetUptime() time.Duration {
 	s.mutex.RLock()
 
 	defer s.mutex.RUnlock()
+
+	if s.startTime.IsZero() || !s.isReady {
+		return 0
+	}
 
 	return time.Since(s.startTime)
 }
@@ -445,8 +458,29 @@ func (s *A1Server) setupRoutes() {
 }
 
 // setupA1PolicyRoutes configures A1-P interface routes.
-
+// Registers both:
+//   - O-RAN Alliance A1AP-v03.01 standard paths under /v2/
+//   - O-RAN SC RICPLT legacy paths under /A1-P/v2/ (kept for backward compatibility)
 func (s *A1Server) setupA1PolicyRoutes() {
+	// ── O-RAN Alliance A1AP-v03.01 standard routes (/v2/) ──────────────────────
+	stdRouter := s.router.PathPrefix("/v2").Subrouter()
+
+	// Policy types: GET /v2/policy-types
+	stdRouter.HandleFunc("/policy-types", s.handlers.HandleGetPolicyTypes).Methods("GET")
+	stdRouter.HandleFunc("/policy-types/{policy_type_id}", s.handlers.HandleGetPolicyType).Methods("GET")
+	stdRouter.HandleFunc("/policy-types/{policy_type_id}", s.handlers.HandleCreatePolicyType).Methods("PUT")
+	stdRouter.HandleFunc("/policy-types/{policy_type_id}", s.handlers.HandleDeletePolicyType).Methods("DELETE")
+
+	// Policies: GET/PUT/DELETE /v2/policies[/{policyId}]
+	stdRouter.HandleFunc("/policies", s.handlers.HandleGetPolicyInstances).Methods("GET")
+	stdRouter.HandleFunc("/policies/{policy_id}", s.handlers.HandleGetPolicyInstance).Methods("GET")
+	stdRouter.HandleFunc("/policies/{policy_id}", s.handlers.HandleCreatePolicyInstance).Methods("PUT")
+	stdRouter.HandleFunc("/policies/{policy_id}", s.handlers.HandleDeletePolicyInstance).Methods("DELETE")
+	stdRouter.HandleFunc("/policies/{policy_id}/status", s.handlers.HandleGetPolicyStatus).Methods("GET")
+
+	s.logger.InfoWithContext("A1AP-v03.01 standard policy routes configured (/v2/)")
+
+	// ── O-RAN SC RICPLT legacy routes (/A1-P/v2/) ──────────────────────────────
 	a1pRouter := s.router.PathPrefix("/A1-P/v2").Subrouter()
 
 	// Policy types.
@@ -473,7 +507,7 @@ func (s *A1Server) setupA1PolicyRoutes() {
 
 	a1pRouter.HandleFunc("/policytypes/{policy_type_id:[0-9]+}/policies/{policy_id}/status", s.handlers.HandleGetPolicyStatus).Methods("GET")
 
-	s.logger.InfoWithContext("A1-P Policy interface routes configured")
+	s.logger.InfoWithContext("A1-P legacy RICPLT policy routes configured (/A1-P/v2/)")
 }
 
 // setupA1ConsumerRoutes configures A1-C interface routes.
@@ -1077,7 +1111,7 @@ func (cb *CircuitBreaker) currentState(now time.Time) (State, uint64) {
 
 	}
 
-	return cb.state, uint64(cb.counts.Requests)
+	return cb.state, cb.generation
 }
 
 // onSuccess handles successful request.
@@ -1141,6 +1175,7 @@ func (cb *CircuitBreaker) setState(state State, now time.Time) {
 // toNewGeneration resets counters for new generation.
 
 func (cb *CircuitBreaker) toNewGeneration(now time.Time) {
+	cb.generation++
 	cb.counts = Counts{}
 
 	var zero time.Time
@@ -1195,20 +1230,25 @@ func (cb *CircuitBreaker) GetStats() map[string]interface{} {
 
 	defer cb.mutex.Unlock()
 
+	stateStr := "Closed"
+	switch cb.state {
+	case StateOpen:
+		stateStr = "Open"
+	case StateHalfOpen:
+		stateStr = "HalfOpen"
+	}
 	return map[string]interface{}{
-		"name": cb.name,
-		"state": int(cb.state),
-		"counts": map[string]interface{}{
-			"requests": cb.counts.Requests,
-			"total_successes": cb.counts.TotalSuccesses,
-			"total_failures": cb.counts.TotalFailures,
-			"consecutive_successes": cb.counts.ConsecutiveSuccesses,
-			"consecutive_failures": cb.counts.ConsecutiveFailures,
-		},
-		"expiry": cb.expiry,
-		"max_requests": cb.maxRequests,
-		"interval": cb.interval,
-		"timeout": cb.timeout,
+		"name":                  cb.name,
+		"state":                 stateStr,
+		"requests":              uint64(cb.counts.Requests),
+		"total_successes":       uint64(cb.counts.TotalSuccesses),
+		"total_failures":        uint64(cb.counts.TotalFailures),
+		"consecutive_successes": uint64(cb.counts.ConsecutiveSuccesses),
+		"consecutive_failures":  uint64(cb.counts.ConsecutiveFailures),
+		"expiry":                cb.expiry,
+		"max_requests":          cb.maxRequests,
+		"interval":              cb.interval,
+		"timeout":               cb.timeout,
 	}
 }
 

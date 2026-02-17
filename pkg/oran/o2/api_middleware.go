@@ -273,6 +273,22 @@ func (s *O2APIServer) normalizeEndpoint(path string) string {
 
 	// For now, implement basic normalization.
 
+	// Normalize standard O2 IMS paths: /o2ims_infrastructureInventory/v1/{resource}/{id}/...
+	if strings.HasPrefix(path, "/o2ims_infrastructureInventory/v1/") {
+		parts := strings.Split(strings.TrimPrefix(path, "/o2ims_infrastructureInventory/v1/"), "/")
+		if len(parts) >= 1 {
+			endpoint := "/o2ims_infrastructureInventory/v1/" + parts[0]
+			if len(parts) > 1 {
+				endpoint += "/{id}"
+				if len(parts) > 2 {
+					endpoint += "/" + strings.Join(parts[2:], "/")
+				}
+			}
+			return endpoint
+		}
+	}
+
+	// Legacy /ims/v1/ path normalization (kept for backward compat)
 	if strings.HasPrefix(path, "/ims/v1/") {
 
 		parts := strings.Split(path, "/")

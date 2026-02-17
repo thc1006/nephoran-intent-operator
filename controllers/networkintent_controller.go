@@ -39,6 +39,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -55,6 +56,13 @@ import (
 const (
 	// NetworkIntentFinalizerName is the finalizer added to NetworkIntent resources
 	NetworkIntentFinalizerName = "intent.nephoran.com/a1-policy-cleanup"
+
+	// A1CleanupRetriesAnnotation tracks how many times A1 cleanup was attempted
+	A1CleanupRetriesAnnotation = "intent.nephoran.com/a1-cleanup-retries"
+
+	// maxA1CleanupRetries is the maximum number of A1 cleanup attempts before
+	// removing the finalizer anyway to prevent blocking deletion indefinitely
+	maxA1CleanupRetries = 3
 )
 
 // NetworkIntentReconciler reconciles a NetworkIntent object.
@@ -172,11 +180,30 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			log.Info("Deleting A1 policy for NetworkIntent", "name", networkIntent.Name)
 
 			if r.EnableA1Integration {
-				if err := r.deleteA1Policy(ctx, networkIntent); err != nil {
-					log.Error(err, "Failed to delete A1 policy, will retry")
-					return ctrl.Result{RequeueAfter: 5 * time.Second}, err
+				// Count previous cleanup attempts from annotation
+				retries := 0
+				if ann := networkIntent.Annotations[A1CleanupRetriesAnnotation]; ann != "" {
+					retries, _ = strconv.Atoi(ann)
 				}
-				log.Info("A1 policy deleted successfully", "name", networkIntent.Name)
+
+				if retries >= maxA1CleanupRetries {
+					log.Info("Max A1 cleanup retries reached, removing finalizer anyway",
+						"name", networkIntent.Name, "retries", retries)
+				} else if err := r.deleteA1Policy(ctx, networkIntent); err != nil {
+					log.Error(err, "Failed to delete A1 policy, incrementing retry counter",
+						"retry", retries+1, "maxRetries", maxA1CleanupRetries)
+					// Record the retry in the annotation
+					if networkIntent.Annotations == nil {
+						networkIntent.Annotations = map[string]string{}
+					}
+					networkIntent.Annotations[A1CleanupRetriesAnnotation] = strconv.Itoa(retries + 1)
+					if err := r.Update(ctx, networkIntent); err != nil {
+						return ctrl.Result{}, err
+					}
+					return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+				} else {
+					log.Info("A1 policy deleted successfully", "name", networkIntent.Name)
+				}
 			}
 
 			// Remove our finalizer from the list and update it
@@ -424,52 +451,64 @@ func convertToA1Policy(networkIntent *intentv1alpha1.NetworkIntent) (*A1Policy, 
 	return policy, nil
 }
 
-// createA1Policy creates an A1 policy via the A1 Mediator API
+// a1PolicyRequest is the standard O-RAN Alliance A1AP-v03.01 policy request body.
+// Used with PUT /v2/policies/{policyId}
+type a1PolicyRequest struct {
+	ID      string          `json:"id"`
+	Type    string          `json:"type,omitempty"`
+	RicID   string          `json:"ric,omitempty"`
+	Service string          `json:"service,omitempty"`
+	JSON    json.RawMessage `json:"json"`
+}
+
+// createA1Policy creates an A1 policy via the Non-RT RIC A1 Policy Management Service.
+// Uses the O-RAN Alliance A1AP-v03.01 standard path: PUT /v2/policies/{policyId}
 func (r *NetworkIntentReconciler) createA1Policy(ctx context.Context, networkIntent *intentv1alpha1.NetworkIntent, policy *A1Policy) error {
 	log := log.FromContext(ctx)
 
-	// Convert policy to JSON
-	policyJSON, err := json.Marshal(policy)
-	if err != nil {
-		return fmt.Errorf("failed to marshal A1 policy: %w", err)
-	}
-
-	// Determine A1 Mediator URL
+	// Determine A1 endpoint (must be set via flag or env; no hardcoded default)
 	a1URL := r.A1MediatorURL
 	if a1URL == "" {
-		// Default to in-cluster service
-		a1URL = "http://service-ricplt-a1mediator-http.ricplt:10000"
+		return fmt.Errorf("A1 endpoint not configured: set --a1-endpoint flag or A1_MEDIATOR_URL env var")
 	}
 
-	// Policy type ID (using 100 as established in testing)
-	policyTypeID := "100"
 	// Generate policy instance ID from NetworkIntent name
 	policyInstanceID := fmt.Sprintf("policy-%s", networkIntent.Name)
 
-	// Construct A1 v2 API endpoint
-	apiEndpoint := fmt.Sprintf("%s/A1-P/v2/policytypes/%s/policies/%s",
-		a1URL, policyTypeID, policyInstanceID)
+	// Marshal the inner policy JSON
+	policyJSON, err := json.Marshal(policy)
+	if err != nil {
+		return fmt.Errorf("failed to marshal A1 policy body: %w", err)
+	}
 
-	log.Info("Creating A1 policy",
+	// Wrap in standard A1AP request
+	req := a1PolicyRequest{
+		ID:      policyInstanceID,
+		Service: networkIntent.Namespace + "/" + networkIntent.Name,
+		JSON:    policyJSON,
+	}
+	bodyJSON, err := json.Marshal(req)
+	if err != nil {
+		return fmt.Errorf("failed to marshal A1 request: %w", err)
+	}
+
+	// Standard O-RAN Alliance A1AP-v03.01 path: PUT /v2/policies/{policyId}
+	apiEndpoint := fmt.Sprintf("%s/v2/policies/%s", a1URL, policyInstanceID)
+
+	log.Info("Creating A1 policy (O-RAN A1AP-v03.01)",
 		"endpoint", apiEndpoint,
-		"policyTypeID", policyTypeID,
 		"policyInstanceID", policyInstanceID)
 
 	// Create HTTP client with timeout
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
+	httpClient := &http.Client{Timeout: 10 * time.Second}
 
-	// Create PUT request (A1 v2 uses PUT for policy creation)
-	httpReq, err := http.NewRequestWithContext(ctx, "PUT", apiEndpoint, bytes.NewBuffer(policyJSON))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, apiEndpoint, bytes.NewBuffer(bodyJSON))
 	if err != nil {
 		return fmt.Errorf("failed to create A1 request: %w", err)
 	}
-
 	httpReq.Header.Set("Content-Type", "application/json")
 
-	// Send the request
-	resp, err := client.Do(httpReq)
+	resp, err := httpClient.Do(httpReq)
 	if err != nil {
 		return fmt.Errorf("failed to send A1 request: %w", err)
 	}
@@ -479,10 +518,8 @@ func (r *NetworkIntentReconciler) createA1Policy(ctx context.Context, networkInt
 		}
 	}()
 
-	// Check response status
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		bodyBytes, _ := json.Marshal(resp.Body)
-		return fmt.Errorf("A1 API returned error status %d: %s", resp.StatusCode, string(bodyBytes))
+		return fmt.Errorf("A1 API returned error status %d for PUT %s", resp.StatusCode, apiEndpoint)
 	}
 
 	log.Info("A1 policy created successfully",
@@ -492,42 +529,34 @@ func (r *NetworkIntentReconciler) createA1Policy(ctx context.Context, networkInt
 	return nil
 }
 
-// deleteA1Policy deletes an A1 policy via the A1 Mediator API
+// deleteA1Policy deletes an A1 policy via the Non-RT RIC A1 Policy Management Service.
+// Uses the O-RAN Alliance A1AP-v03.01 standard path: DELETE /v2/policies/{policyId}
 func (r *NetworkIntentReconciler) deleteA1Policy(ctx context.Context, networkIntent *intentv1alpha1.NetworkIntent) error {
 	log := log.FromContext(ctx)
 
-	// Determine A1 Mediator URL
+	// Determine A1 endpoint (must be set via flag or env)
 	a1URL := r.A1MediatorURL
 	if a1URL == "" {
-		a1URL = "http://service-ricplt-a1mediator-http.ricplt:10000"
+		return fmt.Errorf("A1 endpoint not configured: set --a1-endpoint flag or A1_MEDIATOR_URL env var")
 	}
 
-	// Policy type ID and instance ID
-	policyTypeID := "100"
 	policyInstanceID := fmt.Sprintf("policy-%s", networkIntent.Name)
 
-	// Construct A1 v2 API endpoint for deletion
-	apiEndpoint := fmt.Sprintf("%s/A1-P/v2/policytypes/%s/policies/%s",
-		a1URL, policyTypeID, policyInstanceID)
+	// Standard O-RAN Alliance A1AP-v03.01 path: DELETE /v2/policies/{policyId}
+	apiEndpoint := fmt.Sprintf("%s/v2/policies/%s", a1URL, policyInstanceID)
 
-	log.Info("Deleting A1 policy",
+	log.Info("Deleting A1 policy (O-RAN A1AP-v03.01)",
 		"endpoint", apiEndpoint,
-		"policyTypeID", policyTypeID,
 		"policyInstanceID", policyInstanceID)
 
-	// Create HTTP client with timeout
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
+	httpClient := &http.Client{Timeout: 10 * time.Second}
 
-	// Create DELETE request
-	httpReq, err := http.NewRequestWithContext(ctx, "DELETE", apiEndpoint, nil)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodDelete, apiEndpoint, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create A1 delete request: %w", err)
 	}
 
-	// Send the request
-	resp, err := client.Do(httpReq)
+	resp, err := httpClient.Do(httpReq)
 	if err != nil {
 		return fmt.Errorf("failed to send A1 delete request: %w", err)
 	}
@@ -537,17 +566,16 @@ func (r *NetworkIntentReconciler) deleteA1Policy(ctx context.Context, networkInt
 		}
 	}()
 
-	// Check response status (204 No Content or 404 Not Found are acceptable)
-	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusNotFound && resp.StatusCode != http.StatusAccepted {
-		bodyBytes, _ := json.Marshal(resp.Body)
-		return fmt.Errorf("A1 API delete returned error status %d: %s", resp.StatusCode, string(bodyBytes))
+	// 204 No Content, 202 Accepted, and 404 Not Found are all acceptable for DELETE
+	switch resp.StatusCode {
+	case http.StatusNoContent, http.StatusAccepted, http.StatusNotFound:
+		log.Info("A1 policy deletion completed",
+			"policyInstanceID", policyInstanceID,
+			"statusCode", resp.StatusCode)
+		return nil
+	default:
+		return fmt.Errorf("A1 API DELETE %s returned unexpected status %d", apiEndpoint, resp.StatusCode)
 	}
-
-	log.Info("A1 policy deletion completed",
-		"policyInstanceID", policyInstanceID,
-		"statusCode", resp.StatusCode)
-
-	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

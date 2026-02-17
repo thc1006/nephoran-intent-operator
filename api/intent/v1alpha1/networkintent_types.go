@@ -5,6 +5,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// Phase constants for NetworkIntentStatus.Phase
+const (
+	PhasePending    = "Pending"
+	PhaseValidating = "Validating"
+	PhaseValidated  = "Validated"
+	PhaseDeploying  = "Deploying"
+	PhaseDeployed   = "Deployed"
+	PhaseFailed     = "Failed"
+	PhaseError      = "Error"
+)
+
 // NetworkIntent represents a high-level network scaling and configuration intent
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:categories=nephio;o-ran,shortName=ni
@@ -122,10 +133,23 @@ type QoSProfile struct {
 	MaximumDataRate string `json:"maximumDataRate,omitempty"`
 }
 
+// ObservedEndpoint records an endpoint the operator has actually contacted.
+// +kubebuilder:object:generate=true
+type ObservedEndpoint struct {
+	// Name identifies the endpoint role (e.g. "a1", "llm", "porch")
+	Name string `json:"name"`
+	// URL is the base URL contacted
+	URL string `json:"url"`
+	// LastContactedAt is the timestamp of the most recent successful contact
+	// +kubebuilder:validation:Optional
+	LastContactedAt *metav1.Time `json:"lastContactedAt,omitempty"`
+}
+
 // NetworkIntentStatus defines the observed state of a network intent
 // +kubebuilder:object:generate=true
 type NetworkIntentStatus struct {
-	// Phase indicates the current phase of the intent
+	// Phase indicates the current phase of the intent.
+	// Valid values: Pending, Validating, Validated, Deploying, Deployed, Failed
 	// +kubebuilder:validation:Optional
 	Phase string `json:"phase,omitempty"`
 
@@ -149,6 +173,10 @@ type NetworkIntentStatus struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:pruning:PreserveUnknownFields
 	LLMResponse *apiextensionsv1.JSON `json:"llmResponse,omitempty"`
+
+	// ObservedEndpoints records the actual endpoints contacted during reconciliation
+	// +kubebuilder:validation:Optional
+	ObservedEndpoints []ObservedEndpoint `json:"observedEndpoints,omitempty"`
 }
 
 // +kubebuilder:object:root=true

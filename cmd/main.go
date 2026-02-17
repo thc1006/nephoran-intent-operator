@@ -49,6 +49,11 @@ func main() {
 	var secureMetrics bool
 	var enableHTTP2 bool
 
+	// Endpoint flags — override environment variables when provided
+	var a1Endpoint string
+	var llmEndpoint string
+	var porchServer string
+
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8080 for HTTPS or :8081 for HTTP, or leave as 0 to disable the metrics service.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
@@ -59,6 +64,15 @@ func main() {
 		"If set, the metrics endpoint is served securely via HTTPS. Use --metrics-secure=false to use HTTP instead.")
 	flag.BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
+	flag.StringVar(&a1Endpoint, "a1-endpoint", "",
+		"Non-RT RIC A1 Policy Management Service endpoint (e.g. http://nonrtric-a1pms:8081). "+
+			"Overrides the A1_MEDIATOR_URL environment variable.")
+	flag.StringVar(&llmEndpoint, "llm-endpoint", "",
+		"LLM inference endpoint (e.g. http://ollama-service:11434). "+
+			"Overrides the LLM_PROCESSOR_URL environment variable.")
+	flag.StringVar(&porchServer, "porch-server", "",
+		"Nephio Porch server endpoint (e.g. http://porch-server:7007). "+
+			"Overrides the PORCH_SERVER_URL environment variable.")
 
 	opts := zap.Options{
 		Development: true,
@@ -129,10 +143,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.NetworkIntentReconciler{
+	reconciler := &controllers.NetworkIntentReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
+	}
+	// Apply flag overrides (flags take precedence over env vars, which are read in SetupWithManager)
+	if a1Endpoint != "" {
+		reconciler.A1MediatorURL = a1Endpoint
+	}
+	if llmEndpoint != "" {
+		reconciler.LLMProcessorURL = llmEndpoint
+	}
+	_ = porchServer // reserved for future Nephio Porch integration
+
+	if err = reconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "NetworkIntent")
 		os.Exit(1)
 	}

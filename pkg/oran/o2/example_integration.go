@@ -562,9 +562,9 @@ func RESTAPIClientExample() {
 		{
 			method: "GET",
 
-			endpoint: "/ims/info",
+			endpoint: "/o2ims_infrastructureInventory/v1",
 
-			description: "Get service information",
+			description: "Get O2 IMS service information",
 		},
 
 		{
@@ -578,45 +578,33 @@ func RESTAPIClientExample() {
 		{
 			method: "GET",
 
-			endpoint: "/ims/v1/resourcePools",
+			endpoint: "/o2ims_infrastructureInventory/v1/resourcePools",
 
 			description: "List resource pools",
 		},
 
 		{
-			method: "POST",
-
-			endpoint: "/ims/v1/resourcePools",
-
-			description: "Create resource pool",
-
-			payload: json.RawMessage(`{}`),
-		},
-
-		{
 			method: "GET",
 
-			endpoint: "/ims/v1/resourceTypes",
+			endpoint: "/o2ims_infrastructureInventory/v1/resourceTypes",
 
 			description: "List resource types",
 		},
 
 		{
-			method: "POST",
+			method: "GET",
 
-			endpoint: "/ims/v1/resources",
+			endpoint: "/o2ims_infrastructureInventory/v1/deploymentManagers",
 
-			description: "Create resource",
-
-			payload: json.RawMessage(`{"replicas": 1, "image": "nginx:latest"}`),
+			description: "List deployment managers",
 		},
 
 		{
 			method: "GET",
 
-			endpoint: "/ims/v1/cloudProviders",
+			endpoint: "/o2ims_infrastructureInventory/v1/subscriptions",
 
-			description: "List cloud providers",
+			description: "List subscriptions",
 		},
 
 		{
