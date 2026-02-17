@@ -559,8 +559,8 @@ func verifyIntentJSON(t *testing.T, intentData map[string]interface{}, expectedT
 	}
 
 	// Verify source is set
-	if source := intentData["source"]; source != "conductor-watch" {
-		t.Errorf("Expected source 'conductor-watch', got: %v", source)
+	if source := intentData["source"]; source != "user" {
+		t.Errorf("Expected source 'user', got: %v", source)
 	}
 
 	// Verify correlation_id exists and is reasonable

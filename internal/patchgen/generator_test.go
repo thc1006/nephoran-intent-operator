@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -35,7 +36,7 @@ func TestNewPatchPackage(t *testing.T) {
 	assert.NotNil(t, patchPackage.Kptfile)
 	assert.Equal(t, "kpt.dev/v1", patchPackage.Kptfile.APIVersion)
 	assert.Equal(t, "Kptfile", patchPackage.Kptfile.Kind)
-	assert.Equal(t, "test-app-scaling-patch", patchPackage.Kptfile.Metadata.Name)
+	assert.True(t, strings.HasPrefix(patchPackage.Kptfile.Metadata.Name, "test-app-scaling-patch"), "package name should start with 'test-app-scaling-patch', got: %s", patchPackage.Kptfile.Metadata.Name)
 	assert.Contains(t, patchPackage.Kptfile.Info.Description, "test-app")
 	assert.Contains(t, patchPackage.Kptfile.Info.Description, "5 replicas")
 
@@ -116,14 +117,16 @@ func TestPatchPackageGenerate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			outputSubDir := filepath.Join(tt.outputDir, tt.name)
+			require.NoError(t, os.MkdirAll(outputSubDir, 0o755))
 			patchPackage := NewPatchPackage(tt.intent, outputSubDir)
 
 			err := patchPackage.Generate()
 			assert.NoError(t, err)
 
-			// Verify package structure
-			expectedPackageName := fmt.Sprintf("%s-scaling-patch", tt.intent.Target)
-			packageDir := filepath.Join(outputSubDir, expectedPackageName)
+			// Verify package structure - use GetPackagePath() since the name includes a timestamp suffix
+			packageDir := patchPackage.GetPackagePath()
+			expectedNamePrefix := fmt.Sprintf("%s-scaling-patch", tt.intent.Target)
+			assert.True(t, strings.HasPrefix(filepath.Base(packageDir), expectedNamePrefix), "package dir name should start with %q, got: %s", expectedNamePrefix, filepath.Base(packageDir))
 			assert.DirExists(t, packageDir)
 
 			// Verify generated files
@@ -165,7 +168,7 @@ func TestGenerateKptfile(t *testing.T) {
 
 	assert.Equal(t, "kpt.dev/v1", kptfile.APIVersion)
 	assert.Equal(t, "Kptfile", kptfile.Kind)
-	assert.Equal(t, "test-service-scaling-patch", kptfile.Metadata.Name)
+	assert.True(t, strings.HasPrefix(kptfile.Metadata.Name, "test-service-scaling-patch"), "Kptfile name should start with 'test-service-scaling-patch', got: %s", kptfile.Metadata.Name)
 	assert.Contains(t, kptfile.Info.Description, "test-service")
 	assert.Contains(t, kptfile.Info.Description, "7 replicas")
 }
@@ -299,8 +302,8 @@ func TestGetPackagePath(t *testing.T) {
 
 			patchPackage := NewPatchPackage(intent, tt.outputDir)
 			actualPath := patchPackage.GetPackagePath()
-			expectedPath := filepath.Join(tt.outputDir, tt.expectedPathSuffix)
-			assert.Equal(t, expectedPath, actualPath)
+			expectedPathPrefix := filepath.Join(tt.outputDir, tt.expectedPathSuffix)
+			assert.True(t, strings.HasPrefix(actualPath, expectedPathPrefix), "package path should start with %q, got: %s", expectedPathPrefix, actualPath)
 		})
 	}
 }
@@ -398,7 +401,7 @@ func TestPackageNameGeneration(t *testing.T) {
 			}
 
 			patchPackage := NewPatchPackage(intent, "/tmp")
-			assert.Equal(t, tt.expectedPackageName, patchPackage.Kptfile.Metadata.Name)
+			assert.True(t, strings.HasPrefix(patchPackage.Kptfile.Metadata.Name, tt.expectedPackageName), "package name should start with %q, got: %s", tt.expectedPackageName, patchPackage.Kptfile.Metadata.Name)
 		})
 	}
 }
@@ -542,8 +545,9 @@ func verifyKptfile(t *testing.T, packageDir string, intent *Intent) {
 
 	metadata, ok := kptfile["Metadata"].(map[string]interface{})
 	require.True(t, ok)
-	expectedName := fmt.Sprintf("%s-scaling-patch", intent.Target)
-	assert.Equal(t, expectedName, metadata["Name"])
+	expectedNamePrefix := fmt.Sprintf("%s-scaling-patch", intent.Target)
+	actualName, _ := metadata["Name"].(string)
+	assert.True(t, strings.HasPrefix(actualName, expectedNamePrefix), "Kptfile metadata Name should start with %q, got: %s", expectedNamePrefix, actualName)
 
 	info, ok := kptfile["Info"].(map[string]interface{})
 	require.True(t, ok)

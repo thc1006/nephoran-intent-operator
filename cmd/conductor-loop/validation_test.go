@@ -290,15 +290,18 @@ func TestValidateHandoffDir_Integration(t *testing.T) {
 	})
 
 	t.Run("invalid_then_valid_creation", func(t *testing.T) {
-		// Test invalid path first
-		invalidPath := ""
-		if runtime.GOOS == "windows" {
-			invalidPath = "Z:\\nonexistent\\path"
-		} else {
-			invalidPath = "/nonexistent/deeply/nested/path"
-		}
+		// Test a path that is genuinely invalid: a sub-path beneath a file (not a directory).
+		// On Linux, /nonexistent/deeply/nested/path resolves to the root (/) as an ancestor,
+		// so validateHandoffDir returns nil. Instead, use a path whose direct parent is a file.
+		tmpFile, err := os.CreateTemp("", "not-a-dir-*.txt")
+		require.NoError(t, err)
+		tmpFilePath := tmpFile.Name()
+		tmpFile.Close()
+		defer os.Remove(tmpFilePath)
 
-		err := validateHandoffDir(invalidPath)
+		invalidPath := filepath.Join(tmpFilePath, "subpath")
+
+		err = validateHandoffDir(invalidPath)
 		assert.Error(t, err)
 
 		// Then test valid path creation
