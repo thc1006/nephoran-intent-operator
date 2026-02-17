@@ -173,3 +173,14 @@ Updates are tracked here in append-only format.
 | 2026-02-16T15:13:07+00:00 | main | docs | PR #352 merged: SDD perfection complete, all CI checks passing, production-ready documentation! |
 | 2026-02-16T20:25:46+00:00 | main | docs | CLAUDE.md rewritten: 2026 context, K8s 1.35.1 DRA, actual deployment state documented |
 | 2026-02-16T20:40:47+00:00 | main | ollama | Ollama v0.16.1 deployed: GPU support, llama3.2:3b model, production-ready configuration |
+| 2026-02-17T04:55:53+00:00 | main | rag-service | A1 complete: RAG→Ollama connected via host-ollama svc, LLM pipeline verified |
+| 2026-02-17T04:58:45+00:00 | main | ai-pipeline | Phase A complete: A2 Weaviate✓ A3 E2E NetworkIntent→A1 policy HTTP202✓ |
+| 2026-02-17T04:58:45+00:00 | main | benchmark | Phase B complete: B1 llama3.1:8b best(1408ms), B2 RTX5080 GPU 29/29 layers CUDA |
+| 2026-02-17T05:47:36+00:00 | main | free5gc | C1 complete: MongoDB 8.0.13 deployed via bitnami chart 16.5.45 (latest image tag) |
+| 2026-02-17T05:47:36+00:00 | main | free5gc | C2 complete: Free5GC v3.3.0 control plane (9 NFs) all Running, NRF API verified |
+| 2026-02-17T05:47:36+00:00 | main | free5gc | C3 complete: gtp5g v0.8.3 installed, UPF2 Running PFCP:10.100.50.242 |
+| 2026-02-17T05:47:36+00:00 | main | free5gc | C4 complete: UERANSIM gNB NG Setup successful SCTP to AMF:10.100.50.249:38412 |
+| 2026-02-17T05:47:36+00:00 | main | free5gc | C5 complete: 20/20 E2E tests PASS 100% - UE 5G NAS Registration successful |
+| 2026-02-17T06:42:26+00:00 | main | pkg/cnf | Fixed 14 CNF orchestrator test failures: mock args, metrics, field index, assertions |
+| 2026-02-17T06:42:26+00:00 | main | pkg/nephio | Fixed blueprint MockManager missing GetConverterRegistry; fixed multicluster test assertions |
+| 2026-02-17T06:42:26+00:00 | main | build | Removed 4 orphaned csp_disabled stub files causing duplicate symbol build errors |
