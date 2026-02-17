@@ -31,10 +31,10 @@ limitations under the License.
 package blueprints
 
 import (
-	
+	"context"
 	"encoding/json"
-"context"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -1647,8 +1647,15 @@ func NewORANBlueprintManager(
 	logger *zap.Logger,
 ) (*ORANBlueprintManager, error) {
 	if config == nil {
+		porchEndpoint := os.Getenv("PORCH_SERVER_URL")
+		if porchEndpoint == "" {
+			porchEndpoint = os.Getenv("PORCH_ENDPOINT")
+		}
+		if porchEndpoint == "" {
+			porchEndpoint = "http://porch-server.porch-system.svc.cluster.local:9080"
+		}
 		config = &BlueprintConfig{
-			PorchEndpoint: "http://porch-server.porch-system.svc.cluster.local:9080",
+			PorchEndpoint: porchEndpoint,
 
 			TemplateRepository: "https://github.com/nephio-project/catalog.git",
 

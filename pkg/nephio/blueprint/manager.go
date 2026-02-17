@@ -33,6 +33,7 @@ package blueprint
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -354,15 +355,35 @@ type BlueprintConfig struct {
 	DefaultNamespace string
 }
 
-// DefaultBlueprintConfig returns default configuration.
+// blueprintEnvOrDefault returns the first non-empty env var value or the default.
+func blueprintEnvOrDefault(defaultVal string, envVars ...string) string {
+	for _, env := range envVars {
+		if v := os.Getenv(env); v != "" {
+			return v
+		}
+	}
+	return defaultVal
+}
 
+// DefaultBlueprintConfig returns default configuration.
+// Endpoints are resolved from environment variables with hardcoded fallbacks.
+// Prefer setting PORCH_SERVER_URL, LLM_ENDPOINT, RAG_ENDPOINT in production.
 func DefaultBlueprintConfig() *BlueprintConfig {
 	return &BlueprintConfig{
-		PorchEndpoint: "http://porch-server.porch-system.svc.cluster.local:9080",
+		PorchEndpoint: blueprintEnvOrDefault(
+			"http://porch-server.porch-system.svc.cluster.local:9080",
+			"PORCH_SERVER_URL", "PORCH_ENDPOINT",
+		),
 
-		LLMEndpoint: "http://llm-processor.nephoran-system.svc.cluster.local:8080",
+		LLMEndpoint: blueprintEnvOrDefault(
+			"http://ollama-service.ollama.svc.cluster.local:11434",
+			"LLM_ENDPOINT", "LLM_PROCESSOR_URL",
+		),
 
-		RAGEndpoint: "http://rag-api.nephoran-system.svc.cluster.local:8081",
+		RAGEndpoint: blueprintEnvOrDefault(
+			"http://rag-api.nephoran-system.svc.cluster.local:8081",
+			"RAG_ENDPOINT",
+		),
 
 		CacheTTL: DefaultCacheTTL,
 

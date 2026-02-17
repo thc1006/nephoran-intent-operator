@@ -143,18 +143,26 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Propagate flag values into env vars so all downstream packages (blueprints,
+	// packagerevision, nephio) pick them up via their envOrDefault helpers.
+	if porchServer != "" {
+		os.Setenv("PORCH_SERVER_URL", porchServer) //nolint:errcheck
+	}
+	if llmEndpoint != "" {
+		os.Setenv("LLM_ENDPOINT", llmEndpoint) //nolint:errcheck
+	}
+
 	reconciler := &controllers.NetworkIntentReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}
-	// Apply flag overrides (flags take precedence over env vars, which are read in SetupWithManager)
+	// Apply flag overrides (flags take precedence over env vars read in SetupWithManager)
 	if a1Endpoint != "" {
 		reconciler.A1MediatorURL = a1Endpoint
 	}
 	if llmEndpoint != "" {
 		reconciler.LLMProcessorURL = llmEndpoint
 	}
-	_ = porchServer // reserved for future Nephio Porch integration
 
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "NetworkIntent")

@@ -33,6 +33,7 @@ package packagerevision
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -1172,10 +1173,17 @@ func GetDefaultSystemConfig() *SystemConfig {
 		GracefulShutdownTimeout: 30 * time.Second,
 
 		PorchConfig: &porch.ClientConfig{
-			Endpoint: "http://porch-server:8080",
-
-			// Note: ClientConfig doesn't have Timeout field.
-
+			// Endpoint resolved from env var; falls back to Nephio R6 standard port 7007.
+			// Override via PORCH_SERVER_URL or --porch-server flag.
+			Endpoint: func() string {
+				if v := os.Getenv("PORCH_SERVER_URL"); v != "" {
+					return v
+				}
+				if v := os.Getenv("PORCH_ENDPOINT"); v != "" {
+					return v
+				}
+				return "http://porch-server:7007"
+			}(),
 		},
 
 		Features: &FeatureFlags{

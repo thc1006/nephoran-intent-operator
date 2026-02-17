@@ -1,9 +1,9 @@
 package nephio
 
 import (
-	
+	"context"
 	"encoding/json"
-"context"
+	"os"
 	"time"
 )
 
@@ -135,10 +135,26 @@ type Config struct {
 	InsecureSkipTLS bool              `json:"insecure_skip_tls"`
 }
 
-// DefaultConfig returns default Nephio configuration
+// envOrDefault returns the value of the first non-empty environment variable
+// from the provided list, or defaultVal if none are set.
+func envOrDefault(defaultVal string, envVars ...string) string {
+	for _, env := range envVars {
+		if v := os.Getenv(env); v != "" {
+			return v
+		}
+	}
+	return defaultVal
+}
+
+// DefaultConfig returns default Nephio configuration.
+// The PorchEndpoint is resolved from the PORCH_SERVER_URL or PORCH_ENDPOINT
+// environment variable, falling back to the standard in-cluster address.
 func DefaultConfig() *Config {
 	return &Config{
-		PorchEndpoint: "http://porch-server:7007",
+		PorchEndpoint: envOrDefault(
+			"http://porch-server:7007",
+			"PORCH_SERVER_URL", "PORCH_ENDPOINT",
+		),
 		Namespace:     "default",
 		Repository:    "blueprints",
 		Timeout:       30 * time.Second,
