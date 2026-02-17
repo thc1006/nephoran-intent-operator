@@ -277,21 +277,19 @@ func (tc *TrafficController) loadRegionConfiguration(ctx context.Context) error 
 		return fmt.Errorf("failed to get global config: %w", err)
 	}
 
-	var config struct {
-		Regions map[string]*RegionInfo `yaml:"regions"`
-	}
+	var regions map[string]*RegionInfo
 
-	if err := json.Unmarshal([]byte(configMap.Data["regions.yaml"]), &config); err != nil {
+	if err := json.Unmarshal([]byte(configMap.Data["regions.yaml"]), &regions); err != nil {
 		return fmt.Errorf("failed to parse regions config: %w", err)
 	}
 
 	tc.mutex.Lock()
 
-	tc.regions = config.Regions
+	tc.regions = regions
 
 	tc.mutex.Unlock()
 
-	tc.logger.Info("Loaded region configuration", "regions", len(config.Regions))
+	tc.logger.Info("Loaded region configuration", "regions", len(regions))
 
 	return nil
 }

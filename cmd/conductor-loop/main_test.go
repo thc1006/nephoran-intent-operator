@@ -397,13 +397,19 @@ func TestMain_ExitCodes(t *testing.T) {
 		{
 			name: "invalid handoff directory",
 			args: []string{
-				"-handoff", "Z:\\nonexistent\\deeply\\nested\\invalid\\directory",
+				"-handoff", "/nonexistent-root-path/deeply/nested/invalid/directory",
 				"-once",
 			},
 			expectedExit: 1,
 			setupFunc: func(t *testing.T) (string, []string) {
+				// Use a file as a parent component so MkdirAll fails on Linux.
+				// Creating a regular file and trying to use it as a directory
+				// causes os.MkdirAll to fail with "not a directory".
+				blockingFile := filepath.Join(tempDir, "blocking-file")
+				require.NoError(t, os.WriteFile(blockingFile, []byte("not a dir"), 0o644))
+				invalidHandoffDir := filepath.Join(blockingFile, "subdir")
 				return tempDir, []string{
-					"-handoff", "Z:\\nonexistent\\deeply\\nested\\invalid\\directory",
+					"-handoff", invalidHandoffDir,
 					"-once",
 				}
 			},

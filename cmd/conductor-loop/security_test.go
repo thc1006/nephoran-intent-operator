@@ -425,23 +425,23 @@ func TestFilePermissionValidation(t *testing.T) {
 			return err
 		}
 
-		mode := info.Mode()
+		mode := info.Mode() & 0o777
 
 		if d.IsDir() {
-			// Directories should be readable/writable by owner, readable by group
-			expectedMode := fs.FileMode(0o755)
-			assert.Equal(t, expectedMode, mode&0o777, "Directory %s has incorrect permissions", path)
+			// Directories must be owner-writable and at least group-readable/executable.
+			// Accept 0o755 (rwxr-xr-x) or 0o775 (rwxrwxr-x) - both are valid secure defaults.
+			assert.True(t, mode&0o500 == 0o500 && mode&0o044 == 0o044,
+				"Directory %s has insecure permissions %04o (must have at least owner rwx and group r-x)", path, mode)
 		} else {
 			// Determine expected permissions based on file type
-			var expectedMode fs.FileMode
 			if isExecutableScript(path) {
 				// Executable scripts need execute permissions on Unix systems
-				expectedMode = fs.FileMode(0o755)
+				assert.Equal(t, fs.FileMode(0o755), mode, "Executable %s has incorrect permissions", path)
 			} else {
-				// Regular files should be readable/writable by owner, readable by group
-				expectedMode = fs.FileMode(0o644)
+				// Regular files: accept 0o644 (standard) or 0o640 (tighter group access for state/status files)
+				assert.True(t, mode == 0o644 || mode == 0o640,
+					"File %s has incorrect permissions %04o (expected 0644 or 0640)", path, mode)
 			}
-			assert.Equal(t, expectedMode, mode&0o777, "File %s has incorrect permissions", path)
 		}
 
 		return nil

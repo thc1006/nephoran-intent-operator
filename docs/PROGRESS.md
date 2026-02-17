@@ -193,3 +193,4 @@ Updates are tracked here in append-only format.
 | 2026-02-17T13:02:27+00:00 | feature/phase1-emergency-hotfix | pkg/controllers,pkg/testutils | Fix all 13 TestNetworkIntentEdgeCases: graceful KB degradation, LLM failure phase, ENABLE_LLM_INTENT bypass |
 | 2026-02-17T13:22:18Z | feature/phase1-emergency-hotfix | planner/security | Fix 33 security tests: ANSI escapes, CRLF, timestamps, traversal |
 | 2026-02-17T13:43:00Z | main | internal/patchgen,conductor,conductor-loop | Fix test expectations for package name timestamp and event source |
+| 2026-02-17T13:50:00Z | main | pkg/global,cmd/conductor-loop | Fix traffic controller tolerance and exit code test expectations |
