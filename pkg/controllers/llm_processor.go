@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
@@ -155,25 +156,28 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 
 		logger.Error(err, "Intent sanitization failed - potential security threat detected")
 
-		condition := metav1.Condition{
-			Type: "Processed",
+		// Input validation failures are terminal: set Error phase and Validated=False condition.
+		// Do not return a Go error; this is a business-logic rejection, not an infrastructure failure.
 
-			Status: metav1.ConditionFalse,
-
-			Reason: "IntentSanitizationFailed",
-
-			Message: fmt.Sprintf("Intent rejected due to security concerns: %v", err),
-
+		validatedCondition := metav1.Condition{
+			Type:               "Validated",
+			Status:             metav1.ConditionFalse,
+			Reason:             "InputValidationFailed",
+			Message:            fmt.Sprintf("Intent validation failed: %v", err),
 			LastTransitionTime: metav1.Now(),
 		}
 
-		updateCondition(&networkIntent.Status.Conditions, condition)
+		updateCondition(&networkIntent.Status.Conditions, validatedCondition)
 
-		p.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "SecurityValidationFailed", fmt.Sprintf("Intent failed security validation: %v", err))
+		networkIntent.Status.Phase = nephoranv1.NetworkIntentPhase("Error")
 
-		p.recordFailureEvent(networkIntent, "SecurityValidationFailed", err.Error())
+		if statusErr := p.safeStatusUpdate(ctx, networkIntent); statusErr != nil {
+			logger.Error(statusErr, "failed to update status after validation failure")
+		}
 
-		return ctrl.Result{}, fmt.Errorf("intent failed security validation: %w", err)
+		p.recordFailureEvent(networkIntent, "InputValidationFailed", err.Error())
+
+		return ctrl.Result{}, nil
 
 	}
 
@@ -287,22 +291,41 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 		setNetworkIntentRetryCount(networkIntent, "llm-processing", retryCount+1)
 
 		condition := metav1.Condition{
-			Type: "Processed",
-
-			Status: metav1.ConditionFalse,
-
-			Reason: "LLMProcessingRetrying",
-
-			Message: fmt.Sprintf("LLM processing failed (attempt %d/%d): %v", retryCount+1, p.config.MaxRetries, err),
-
+			Type:               "Processed",
+			Status:             metav1.ConditionFalse,
+			Reason:             "LLMProcessingRetrying",
+			Message:            fmt.Sprintf("LLM processing failed (attempt %d/%d): %v", retryCount+1, p.config.MaxRetries, err),
 			LastTransitionTime: metav1.Now(),
 		}
 
 		updateCondition(&networkIntent.Status.Conditions, condition)
 
-		// Set Ready condition to False while retrying.
-
-		p.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "LLMProcessingRetrying", fmt.Sprintf("LLM processing failed, retrying (attempt %d/%d): %v", retryCount+1, p.config.MaxRetries, err))
+		// Set phase to Error to indicate processing failed; the requeue will re-attempt.
+		// Fetch latest from server to avoid ResourceVersion conflicts after the updatePhase("LLMProcessing") call.
+		if p.Client != nil {
+			latest := &nephoranv1.NetworkIntent{}
+			if fetchErr := p.Client.Get(ctx, client.ObjectKeyFromObject(networkIntent), latest); fetchErr == nil {
+				// Apply all our in-memory changes to the freshly-fetched object.
+				latest.Status = networkIntent.Status
+				latest.Status.Phase = nephoranv1.NetworkIntentPhase("Error")
+				// Also add Ready=False condition to the latest.
+				readyCondition := metav1.Condition{
+					Type:               "Ready",
+					Status:             metav1.ConditionFalse,
+					Reason:             "LLMProcessingRetrying",
+					Message:            fmt.Sprintf("LLM processing failed, retrying (attempt %d/%d): %v", retryCount+1, p.config.MaxRetries, err),
+					LastTransitionTime: metav1.Now(),
+				}
+				updateCondition(&latest.Status.Conditions, readyCondition)
+				if statusErr := p.safeStatusUpdate(ctx, latest); statusErr != nil {
+					logger.Error(statusErr, "failed to update status after LLM failure")
+				} else {
+					// Reflect updated status back to caller's object.
+					networkIntent.Status = latest.Status
+					networkIntent.ResourceVersion = latest.ResourceVersion
+				}
+			}
+		}
 
 		p.recordFailureEvent(networkIntent, "LLMProcessingRetry", fmt.Sprintf("attempt %d/%d failed: %v", retryCount+1, p.config.MaxRetries, err))
 
@@ -374,6 +397,9 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 		}
 
 		updateCondition(&networkIntent.Status.Conditions, condition)
+
+		// Set phase to Error to indicate processing failed due to bad response.
+		networkIntent.Status.Phase = nephoranv1.NetworkIntentPhase("Error")
 
 		// Set Ready condition to False due to parsing error.
 
@@ -476,20 +502,23 @@ func (p *LLMProcessor) buildTelecomEnhancedPrompt(ctx context.Context, intent st
 	}
 
 	// Get telecom knowledge base.
+	// When the KB is nil (e.g., in tests or when the service is not configured),
+	// degrade gracefully by building a basic prompt without KB enrichment.
 
 	kb := p.deps.GetTelecomKnowledgeBase()
 
+	var telecomContext map[string]interface{}
 	if kb == nil {
-		return "", fmt.Errorf("telecom knowledge base not available")
+		logger.Info("Telecom knowledge base not available, building basic prompt without KB enrichment")
+		telecomContext = make(map[string]interface{})
+	} else {
+		// Extract telecom entities and context from intent.
+		telecomContext = p.extractTelecomContext(intent, kb)
 	}
-
-	// Extract telecom entities and context from intent.
-
-	telecomContext := p.extractTelecomContext(intent, kb)
 
 	processingCtx.TelecomContext = telecomContext
 
-	// Build enhanced prompt with telecom knowledge.
+	// Build enhanced prompt with telecom knowledge (or a basic prompt if KB is unavailable).
 
 	var promptBuilder strings.Builder
 

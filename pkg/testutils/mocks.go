@@ -80,15 +80,27 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (strin
 	}
 
 	// Check for specific error responses.
+	// An empty-string key ("") acts as a wildcard that matches any intent.
 
 	if err, exists := m.errors[intent]; exists {
 		return "", err
 	}
+	if intent != "" {
+		if err, exists := m.errors[""]; exists && err != nil {
+			return "", err
+		}
+	}
 
 	// Check for specific responses.
+	// An empty-string key ("") acts as a wildcard/default response for any intent.
 
 	if response, exists := m.responses[intent]; exists {
 		return response, nil
+	}
+	if intent != "" {
+		if response, exists := m.responses[""]; exists {
+			return response, nil
+		}
 	}
 
 	// Generate default response based on intent content.

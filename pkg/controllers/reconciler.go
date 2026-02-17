@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -181,6 +182,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		r.metrics.SetStatus(networkIntent.Namespace, networkIntent.Name, "failed", StatusFailed)
 
+		// Ensure Phase="Error" is persisted. Fetch latest to avoid ResourceVersion conflicts.
+		latest := &nephoranv1.NetworkIntent{}
+		if fetchErr := r.safeGet(ctx, req.NamespacedName, latest); fetchErr == nil {
+			latest.Status.Phase = nephoranv1.NetworkIntentPhase("Error")
+			if statusErr := r.safeStatusUpdate(ctx, latest); statusErr != nil {
+				logger.Error(statusErr, "failed to update error phase after pipeline failure")
+			}
+		}
+
 		return result, err
 
 	}
@@ -189,8 +199,29 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		logger.V(1).Info("Processing pipeline requires requeue", "requeue_after", result.RequeueAfter)
 
+		// Persist any phase changes that the pipeline set (e.g., "Error" on LLM failure).
+		// Status updates inside the pipeline may fail due to ResourceVersion conflicts,
+		// so we do a reliable fetch-and-update here to ensure the phase is persisted.
+		if networkIntent.Status.Phase == nephoranv1.NetworkIntentPhase("Error") {
+			latest := &nephoranv1.NetworkIntent{}
+			if fetchErr := r.safeGet(ctx, req.NamespacedName, latest); fetchErr == nil {
+				latest.Status.Phase = nephoranv1.NetworkIntentPhase("Error")
+				if statusErr := r.safeStatusUpdate(ctx, latest); statusErr != nil {
+					logger.Error(statusErr, "failed to persist Error phase during requeue")
+				}
+			}
+		}
+
 		return result, nil
 
+	}
+
+	// If the pipeline already set the phase to a terminal state ("Error" or "Processed"),
+	// do not override it with "Completed". Return without requeue.
+	currentPhase := networkIntent.Status.Phase
+	if currentPhase == nephoranv1.NetworkIntentPhase("Error") || currentPhase == nephoranv1.NetworkIntentPhase("Processed") {
+		logger.Info("Pipeline finished with terminal phase, not overriding", "phase", string(currentPhase))
+		return ctrl.Result{}, nil
 	}
 
 	// Final status update.
@@ -254,6 +285,26 @@ func (r *Reconciler) executeProcessingPipeline(ctx context.Context, networkInten
 	logger := log.FromContext(ctx).WithValues("pipeline", "multi-phase")
 
 	// Phase 1: LLM Processing with RAG context retrieval.
+	// If ENABLE_LLM_INTENT=false, skip LLM and mark as directly processed.
+
+	// When ENABLE_LLM_INTENT=false, skip the entire processing pipeline and
+	// directly transition the NetworkIntent to the Processed phase.
+	if os.Getenv("ENABLE_LLM_INTENT") == "false" {
+		logger.Info("LLM intent processing disabled via ENABLE_LLM_INTENT=false, bypassing all phases")
+		bypassCondition := metav1.Condition{
+			Type:               "Processed",
+			Status:             metav1.ConditionTrue,
+			Reason:             "LLMBypassed",
+			Message:            "LLM processing disabled; intent accepted directly without LLM enrichment",
+			LastTransitionTime: metav1.Now(),
+		}
+		updateCondition(&networkIntent.Status.Conditions, bypassCondition)
+		networkIntent.Status.Phase = nephoranv1.NetworkIntentPhase("Processed")
+		if statusErr := r.safeStatusUpdate(ctx, networkIntent); statusErr != nil {
+			logger.Error(statusErr, "failed to update status when bypassing LLM")
+		}
+		return ctrl.Result{}, nil
+	}
 
 	if !isConditionTrue(networkIntent.Status.Conditions, "Processed") {
 

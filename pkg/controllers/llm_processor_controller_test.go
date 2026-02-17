@@ -426,7 +426,7 @@ func TestLLMProcessor_ProcessLLMPhase_MaxRetriesExceeded(t *testing.T) {
 func TestLLMProcessor_BuildTelecomEnhancedPrompt_NoKnowledgeBase(t *testing.T) {
 	processor := &LLMProcessor{
 		NetworkIntentReconciler: &NetworkIntentReconciler{
-			deps: &mockTestDependencies{}, // Use mock that returns nil KB to test KB-specific error
+			deps: &mockTestDependencies{}, // Use mock that returns nil KB
 		},
 	}
 
@@ -440,14 +440,18 @@ func TestLLMProcessor_BuildTelecomEnhancedPrompt_NoKnowledgeBase(t *testing.T) {
 
 	intent := "deploy amf for high availability"
 
-	_, err := processor.BuildTelecomEnhancedPrompt(context.Background(), intent, processingCtx)
+	prompt, err := processor.BuildTelecomEnhancedPrompt(context.Background(), intent, processingCtx)
 
-	// We expect an error about knowledge base not being available
-	if err == nil {
-		t.Error("Expected error due to missing telecom knowledge base")
+	// When KB is unavailable, buildTelecomEnhancedPrompt degrades gracefully
+	// and returns a basic prompt without KB enrichment (no error).
+	if err != nil {
+		t.Errorf("Expected graceful degradation (no error) when KB is nil, got: %v", err)
 	}
-
-	if !strings.Contains(err.Error(), "knowledge base") {
-		t.Errorf("Expected error to mention knowledge base, got: %v", err)
+	if prompt == "" {
+		t.Error("Expected a non-empty basic prompt even without KB")
+	}
+	// The prompt should still contain the user intent
+	if !strings.Contains(prompt, intent) {
+		t.Errorf("Expected prompt to contain user intent %q, got: %s", intent, prompt)
 	}
 }

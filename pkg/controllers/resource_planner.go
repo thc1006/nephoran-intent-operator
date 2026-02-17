@@ -143,15 +143,8 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 	kb := p.deps.GetTelecomKnowledgeBase()
 
 	if kb == nil {
-
-		err := fmt.Errorf("telecom knowledge base not available")
-
-		// Set Ready condition to indicate configuration issue.
-
-		p.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "TelecomKnowledgeBaseNotAvailable", "Telecom knowledge base is not properly configured")
-
-		return ctrl.Result{}, err
-
+		// Degrade gracefully: proceed with basic resource planning without KB enrichment.
+		logger.Info("Telecom knowledge base not available, performing basic resource planning without KB enrichment")
 	}
 
 	// Parse extracted parameters from LLM phase.
@@ -182,24 +175,27 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 		SecurityPolicies: []SecurityPolicy{},
 	}
 
-	// Extract network functions from LLM parameters.
+	// Extract network functions from LLM parameters (only when KB is available).
 
-	if nfList, ok := llmParams["network_functions"].([]interface{}); ok {
-		for _, nfInterface := range nfList {
-			if nfName, ok := nfInterface.(string); ok {
-				if nfSpec, exists := kb.GetNetworkFunction(nfName); exists {
+	if kb != nil {
+		if nfList, ok := llmParams["network_functions"].([]interface{}); ok {
+			for _, nfInterface := range nfList {
+				if nfName, ok := nfInterface.(string); ok {
+					if nfSpec, exists := kb.GetNetworkFunction(nfName); exists {
 
-					plannedNF := p.planNetworkFunction(nfSpec, llmParams, processingCtx.TelecomContext)
+						plannedNF := p.planNetworkFunction(nfSpec, llmParams, processingCtx.TelecomContext)
 
-					resourcePlan.NetworkFunctions = append(resourcePlan.NetworkFunctions, plannedNF)
+						resourcePlan.NetworkFunctions = append(resourcePlan.NetworkFunctions, plannedNF)
 
+					}
 				}
 			}
 		}
 	}
 
-	// Plan slice configuration if specified.
+	// Plan slice configuration if specified (only when KB is available).
 
+	if kb != nil {
 	if sliceConfig, ok := llmParams["slice_configuration"].(map[string]interface{}); ok {
 
 		sliceType := ""
@@ -238,11 +234,13 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 		}
 
 	}
+	} // end if kb != nil (slice configuration)
 
-	// Plan interfaces based on network functions.
+	// Plan interfaces based on network functions (only when KB is available).
 
 	interfaceMap := make(map[string]bool)
 
+	if kb != nil {
 	for _, nf := range resourcePlan.NetworkFunctions {
 		for _, ifaceName := range nf.Interfaces {
 			if !interfaceMap[ifaceName] {
@@ -296,6 +294,7 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 			}
 		}
 	}
+	} // end if kb != nil (interface planning)
 
 	// Calculate total resource requirements.
 
@@ -663,6 +662,14 @@ func (p *ResourcePlanner) GenerateManifests(ctx context.Context, networkIntent *
 
 		manifestMap["slice-configuration.yaml"] = string(sliceConfigMapYaml)
 
+	}
+
+	// When no NF manifests were generated (e.g., no NFs in resource plan),
+	// create a minimal placeholder manifest so the GitOps commit phase can proceed.
+	if len(manifestMap) == 0 {
+		placeholderManifest := fmt.Sprintf("# NetworkIntent: %s/%s\n# No network functions required\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: %s-intent\n  namespace: %s\ndata:\n  intent: %q\n",
+			networkIntent.Namespace, networkIntent.Name, networkIntent.Name, networkIntent.Namespace, networkIntent.Spec.Intent)
+		manifestMap["intent-placeholder.yaml"] = placeholderManifest
 	}
 
 	// Store manifests in processing context.
