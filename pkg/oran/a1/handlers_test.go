@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -488,25 +489,36 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 
 // Additional Test: Performance Monitoring for Long-Running Requests
 func TestHandlers_LongRunningRequestTimeout(t *testing.T) {
-	handlers, service, _, _ := setupHandlerTest(t)
+	handlers, service, validator, _ := setupHandlerTest(t)
 
 	// Simulate a long-running request that should timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
-	// Mock a service method that takes longer than the timeout
-	service.On("CreatePolicyType", mock.AnythingOfType("*context.valueCtx"), 1, mock.AnythingOfType("*a1.PolicyType")).
+	// Validator must allow the policy type through.
+	validator.On("ValidatePolicyType", mock.AnythingOfType("*a1.PolicyType")).
+		Return(&ValidationResult{Valid: true})
+
+	// GetPolicyType must indicate no existing type (so we proceed to create).
+	service.On("GetPolicyType", mock.Anything, 1).
+		Return(nil, fmt.Errorf("not found"))
+
+	// Mock CreatePolicyType to block longer than the request context timeout.
+	service.On("CreatePolicyType", mock.Anything, 1, mock.AnythingOfType("*a1.PolicyType")).
 		Run(func(args mock.Arguments) {
 			time.Sleep(200 * time.Millisecond)
 		}).
-		Return(fmt.Errorf("request timed out"))
+		Return(fmt.Errorf("context deadline exceeded"))
 
 	policyType := createTestPolicyType()
 	req := createJSONRequest(t, "PUT", "/A1-P/v2/policytypes/1", policyType)
+	// Apply the timeout context first, then populate gorilla/mux URL vars so they
+	// are preserved in the final request context.
 	req = req.WithContext(ctx)
+	req = mux.SetURLVars(req, map[string]string{"policy_type_id": "1"})
 	rr := httptest.NewRecorder()
 
-	// This should either return a timeout error or be interrupted
+	// The context expires before CreatePolicyType returns; handler must return 408.
 	handlers.HandleCreatePolicyType(rr, req)
 
 	assert.Equal(t, http.StatusRequestTimeout, rr.Code)

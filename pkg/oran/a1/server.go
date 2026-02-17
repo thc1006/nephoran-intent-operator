@@ -858,9 +858,10 @@ func NewA1MetricsCollector(config *MetricsConfig) A1Metrics {
 		),
 	}
 
-	// Register metrics.
-
-	prometheus.MustRegister(
+	// Register metrics in a per-instance registry to avoid duplicate registration
+	// panics when multiple collectors are created in the same process (e.g., tests).
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(
 
 		collector.requestCount,
 

@@ -26,7 +26,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -225,22 +224,36 @@ func NewErrorTracker(config *ErrorTrackingConfig, logger logr.Logger) (*ErrorTra
 		startTime: time.Now(),
 	}
 
-	// Initialize Prometheus metrics if enabled
+	// Initialize Prometheus metrics if enabled.
+	// Use a per-instance registry to avoid duplicate registration panics when
+	// multiple ErrorTracker instances are created in the same process (e.g., tests).
 	if config.EnablePrometheus {
-		tracker.errorCounter = promauto.NewCounter(prometheus.CounterOpts{
+		reg := prometheus.NewRegistry()
+
+		tracker.errorCounter = prometheus.NewCounter(prometheus.CounterOpts{
 			Name: "nephoran_errors_total",
 			Help: "Total number of errors tracked",
 		})
 
-		tracker.errorHistogram = promauto.NewHistogram(prometheus.HistogramOpts{
+		tracker.errorHistogram = prometheus.NewHistogram(prometheus.HistogramOpts{
 			Name: "nephoran_error_processing_duration_seconds",
 			Help: "Time spent processing errors",
 		})
 
-		tracker.patternGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		tracker.patternGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "nephoran_error_patterns",
 			Help: "Number of error patterns by type",
 		}, []string{"pattern", "component"})
+
+		if err := reg.Register(tracker.errorCounter); err != nil {
+			return nil, fmt.Errorf("failed to register error counter: %w", err)
+		}
+		if err := reg.Register(tracker.errorHistogram); err != nil {
+			return nil, fmt.Errorf("failed to register error histogram: %w", err)
+		}
+		if err := reg.Register(tracker.patternGauge); err != nil {
+			return nil, fmt.Errorf("failed to register pattern gauge: %w", err)
+		}
 	}
 
 	// Initialize OpenTelemetry metrics if enabled

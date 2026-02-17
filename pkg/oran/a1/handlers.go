@@ -350,6 +350,18 @@ func (h *A1Handlers) HandleCreatePolicyType(w http.ResponseWriter, r *http.Reque
 
 	if err := h.service.CreatePolicyType(ctx, policyTypeID, &policyType); err != nil {
 
+		// Check if the context timed out or was cancelled; return 408 Request Timeout.
+
+		if ctx.Err() == context.DeadlineExceeded || ctx.Err() == context.Canceled {
+
+			h.handleError(w, r, NewTimeoutError("CreatePolicyType", h.config.WriteTimeout))
+
+			h.metrics.IncrementRequestCount(A1PolicyInterface, "CreatePolicyType", http.StatusRequestTimeout)
+
+			return
+
+		}
+
 		h.handleError(w, r, WrapError(err, "Failed to create policy type"))
 
 		h.metrics.IncrementRequestCount(A1PolicyInterface, "CreatePolicyType", http.StatusInternalServerError)
