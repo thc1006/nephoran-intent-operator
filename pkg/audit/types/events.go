@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -441,16 +442,22 @@ func (uc *UserContext) Validate() error {
 		return fmt.Errorf("user ID is required")
 	}
 
+	// Validate user ID length.
+	if len(uc.UserID) > 256 {
+		return fmt.Errorf("user ID exceeds maximum length of 256 characters")
+	}
+
 	// Validate email format if present.
-
 	if uc.Email != "" {
-
 		emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-
 		if !emailRegex.MatchString(uc.Email) {
 			return fmt.Errorf("invalid email format: %s", uc.Email)
 		}
+	}
 
+	// Validate role for potential XSS content.
+	if strings.ContainsAny(uc.Role, "<>\"'") {
+		return fmt.Errorf("invalid characters in role field")
 	}
 
 	return nil

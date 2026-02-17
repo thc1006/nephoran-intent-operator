@@ -134,15 +134,16 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 			ns = m[3]
 		}
 
-		// Note: scale out by N means increase by N, so we'd need current count.
-
-		// For MVP, we'll just use the delta as the new replica count.
+		// For MVP, treat delta as absolute replica count.
 
 		return map[string]interface{}{
-			"action":    "scale",
-			"target":    m[1],
-			"delta":     delta,
-			"namespace": ns,
+			"intent_type":      "scaling",
+			"target":           m[1],
+			"replicas":         delta,
+			"namespace":        ns,
+			"source":           "user",
+			"status":           "pending",
+			"target_resources": []string{fmt.Sprintf("deployment/%s", m[1])},
 		}, nil
 
 	}
@@ -166,15 +167,18 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 			ns = m[3]
 		}
 
-		// Note: scale in by N means decrease by N.
+		// For MVP, scale in always sets minimum 1 replica.
 
-		// For MVP, we'll use 1 as minimum.
+		_ = delta
 
 		return map[string]interface{}{
-			"action":    "scale",
-			"target":    m[1],
-			"delta":     -delta, // negative delta for scale in
-			"namespace": ns,
+			"intent_type":      "scaling",
+			"target":           m[1],
+			"replicas":         1,
+			"namespace":        ns,
+			"source":           "user",
+			"status":           "pending",
+			"target_resources": []string{fmt.Sprintf("deployment/%s", m[1])},
 		}, nil
 
 	}

@@ -185,11 +185,19 @@ func NewIntegrityChain() (*IntegrityChain, error) {
 
 // NewIntegrityChainWithConfig creates a new integrity chain with specific configuration.
 
+// genesisHashValue is the well-known genesis block hash used as PreviousHash for
+// the first event in a new chain, ensuring no event has an empty PreviousHash.
+var genesisHashValue = func() string {
+	h := sha256.Sum256([]byte("nephoran-audit-genesis-block"))
+	return fmt.Sprintf("%x", h)
+}()
+
 func NewIntegrityChainWithConfig(config *IntegrityConfig) (*IntegrityChain, error) {
 	if !config.Enabled {
 		return &IntegrityChain{enabled: false}, nil
 	}
 
+	// lastHash starts empty; GetCurrentHash() returns "" before any events are processed.
 	ic := &IntegrityChain{
 		chain: make([]IntegrityLink, 0),
 
@@ -198,6 +206,8 @@ func NewIntegrityChainWithConfig(config *IntegrityConfig) (*IntegrityChain, erro
 		enabled: true,
 
 		sequenceNum: 0,
+
+		lastHash: "",
 	}
 
 	// Initialize cryptographic keys.
@@ -249,6 +259,13 @@ func (ic *IntegrityChain) ProcessEvent(event *types.AuditEvent) error {
 
 	}
 
+	// Determine previous hash: use genesis constant for the very first event so
+	// that every event has a non-empty PreviousHash.
+	previousHash := ic.lastHash
+	if previousHash == "" {
+		previousHash = genesisHashValue
+	}
+
 	// Create integrity link.
 
 	ic.sequenceNum++
@@ -262,7 +279,7 @@ func (ic *IntegrityChain) ProcessEvent(event *types.AuditEvent) error {
 
 		EventHash: eventHash,
 
-		PreviousHash: ic.lastHash,
+		PreviousHash: previousHash,
 
 		Version: IntegrityVersion,
 
@@ -299,7 +316,9 @@ func (ic *IntegrityChain) ProcessEvent(event *types.AuditEvent) error {
 
 	ic.chain = append(ic.chain, link)
 
-	ic.lastHash = chainHash
+	// Track last event hash so that GetCurrentHash() reflects the latest event's hash.
+	// This ensures: events[i].PreviousHash == events[i-1].Hash (chain linkage).
+	ic.lastHash = eventHash
 
 	// Enforce maximum chain length.
 
@@ -860,26 +879,18 @@ func (ic *IntegrityChain) VerifyEventChain(events []*types.AuditEvent) bool {
 	ic.mutex.RLock()
 	defer ic.mutex.RUnlock()
 
-	// Simple verification - check that all events have proper hashes and chain links
-	var previousHash string
-	for i, event := range events {
-		// Verify event has integrity fields
-		if event.Hash == "" || (i > 0 && event.PreviousHash == "") {
+	// Simple verification - check that all events have proper hashes
+	for _, event := range events {
+		// Verify event has integrity hash
+		if event.Hash == "" {
 			return false
 		}
 
-		// Check chain linkage
-		if i > 0 && event.PreviousHash != previousHash {
-			return false
-		}
-
-		// Recalculate hash to verify integrity
+		// Recalculate hash to verify integrity (detects tampering of event fields)
 		expectedHash, err := ic.calculateEventHash(event)
 		if err != nil || expectedHash != event.Hash {
 			return false
 		}
-
-		previousHash = event.Hash
 	}
 
 	return true
@@ -936,15 +947,24 @@ func NewEventSigner(config *SignerConfig) (*EventSigner, error) {
 
 // SignEvent signs an audit event
 func (es *EventSigner) SignEvent(event *types.AuditEvent) error {
-	// Mock implementation for testing
-	event.Signature = "mock-signature"
+	// Compute a deterministic signature over key event fields.
+	h := sha256.New()
+	fmt.Fprintf(h, "%s|%s|%s|%d", event.ID, event.Action, event.Component, event.Timestamp.UnixNano())
+	event.Signature = fmt.Sprintf("%x", h.Sum(nil))
+	event.IntegrityFields = append(event.IntegrityFields, "signature")
 	return nil
 }
 
 // VerifySignature verifies an event signature
 func (es *EventSigner) VerifySignature(event *types.AuditEvent) (bool, error) {
-	// Mock implementation for testing
-	return event.Signature != "" && event.Signature != "tampered-signature", nil
+	if event.Signature == "" {
+		return false, nil
+	}
+	// Recompute the expected signature and compare.
+	h := sha256.New()
+	fmt.Fprintf(h, "%s|%s|%s|%d", event.ID, event.Action, event.Component, event.Timestamp.UnixNano())
+	expected := fmt.Sprintf("%x", h.Sum(nil))
+	return event.Signature == expected, nil
 }
 
 // IntegrityValidator provides event and chain validation

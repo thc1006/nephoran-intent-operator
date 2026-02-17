@@ -197,3 +197,6 @@ Updates are tracked here in append-only format.
 | 2026-02-17T13:55:00Z | feature/phase1-emergency-hotfix | pkg/handlers,oran/health,oran/o1,oran/o2 | Fix nil pointer panics and missing test fixtures in O-RAN tests |
 | 2026-02-17T14:00:00Z | main | pkg/oran/a1,controllers/parallel | Fix HTTP 408, duplicate Prometheus metrics, and struct migration test |
 | 2026-02-17T14:10:00Z | main | pkg/oran/o2/providers,controllers/orchestration | Fix resource operations and orchestration test reliability |
+| 2026-02-17T14:05:19Z | main | pkg/middleware,pkg/git,conductor,patchgen,handlers | Fix 8 test failures: rate limiter stats, redact headers, git clean tree, status handler |
+| 2026-02-17T15:30:00Z | feature/phase1-emergency-hotfix | pkg/oran/a1,health,o1,o2 | Fix all CircuitBreaker, validation, schema, EI, alarm, VNF scale tests |
+| 2026-02-17T17:20:14Z | feature/phase1-emergency-hotfix | pkg/audit,internal/ingest,cmd/intent-ingest | Fix all pkg/audit tests + ingest scale_out/in keys + timestamp format |

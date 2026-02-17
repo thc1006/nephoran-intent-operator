@@ -202,14 +202,30 @@ func NewAuditSystem(config *AuditSystemConfig) (*AuditSystem, error) {
 		config = DefaultAuditConfig()
 	}
 
+	// Validate config to prevent panics on invalid values.
+	if config.MaxQueueSize < 0 {
+		return nil, fmt.Errorf("invalid MaxQueueSize: %d (must be >= 0)", config.MaxQueueSize)
+	}
+	if config.BatchSize < 0 {
+		return nil, fmt.Errorf("invalid BatchSize: %d (must be >= 0)", config.BatchSize)
+	}
+	maxQueueSize := config.MaxQueueSize
+	if maxQueueSize == 0 {
+		maxQueueSize = MaxAuditQueueSize
+	}
+	batchSize := config.BatchSize
+	if batchSize == 0 {
+		batchSize = DefaultBatchSize
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	system := &AuditSystem{
 		config: config,
 
-		eventQueue: make(chan *types.AuditEvent, config.MaxQueueSize),
+		eventQueue: make(chan *types.AuditEvent, maxQueueSize),
 
-		batchBuffer: make([]*types.AuditEvent, 0, config.BatchSize),
+		batchBuffer: make([]*types.AuditEvent, 0, batchSize),
 
 		logger: log.Log.WithName("audit-system"),
 

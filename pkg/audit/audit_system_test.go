@@ -367,7 +367,7 @@ func (suite *AuditSystemTestSuite) TestQueueOverflow() {
 	slowBackend.On("WriteEvents", mock.Anything, mock.Anything).
 		Return(nil).
 		Run(func(args mock.Arguments) {
-			time.Sleep(5 * time.Second) // Block long enough for queue to fill
+			time.Sleep(500 * time.Millisecond) // Block long enough for queue to fill
 		})
 	slowBackend.On("Close").Return(nil)
 

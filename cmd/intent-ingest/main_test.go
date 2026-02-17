@@ -1159,16 +1159,22 @@ func TestServer_IntegrationFlow(t *testing.T) {
 		t.Errorf("Invalid filename format: %s", filename)
 	}
 
-	// Extract and verify timestamp format (YYYYMMDDTHHMMSSZ)
+	// Extract and verify timestamp format (YYYYMMDDTHHMMSSZ or YYYYMMDDTHHMMSSZ-nnnnnnnnn)
 	timestampPart := strings.TrimPrefix(filename, "intent-")
 	timestampPart = strings.TrimSuffix(timestampPart, ".json")
 
-	if len(timestampPart) != 16 { // 20060102T150405Z format
+	// Strip optional nanoseconds suffix (e.g. "-930186309") added for uniqueness
+	tsPortion := timestampPart
+	if idx := strings.Index(timestampPart, "-"); idx != -1 {
+		tsPortion = timestampPart[:idx]
+	}
+
+	if len(tsPortion) != 16 { // 20060102T150405Z format
 		t.Errorf("Invalid timestamp format in filename: %s", timestampPart)
 	}
 
 	// Try to parse the timestamp
-	if _, err := time.Parse("20060102T150405Z", timestampPart); err != nil {
-		t.Errorf("Invalid timestamp in filename %s: %v", timestampPart, err)
+	if _, err := time.Parse("20060102T150405Z", tsPortion); err != nil {
+		t.Errorf("Invalid timestamp in filename %s: %v", tsPortion, err)
 	}
 }
