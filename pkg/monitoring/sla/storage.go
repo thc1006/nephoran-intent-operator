@@ -734,11 +734,19 @@ func (sm *StorageManager) Start(ctx context.Context) error {
 		"max_disk_usage_mb", sm.config.MaxDiskUsageMB,
 	)
 
-	// Initialize tickers.
+	// Initialize tickers (use defaults if not configured to avoid panic on zero interval).
+	flushInterval := sm.config.FlushInterval
+	if flushInterval <= 0 {
+		flushInterval = 30 * time.Second
+	}
+	compactionInterval := sm.config.CompactionInterval
+	if compactionInterval <= 0 {
+		compactionInterval = 1 * time.Hour
+	}
 
-	sm.flushTicker = time.NewTicker(sm.config.FlushInterval)
+	sm.flushTicker = time.NewTicker(flushInterval)
 
-	sm.compactTicker = time.NewTicker(sm.config.CompactionInterval)
+	sm.compactTicker = time.NewTicker(compactionInterval)
 
 	sm.cleanupTicker = time.NewTicker(1 * time.Hour)
 
@@ -1801,6 +1809,9 @@ func createDirectories(config *StorageConfig) error {
 	}
 
 	for _, dir := range dirs {
+		if dir == "" {
+			continue // Skip empty directory paths (not configured)
+		}
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", dir, err)
 		}

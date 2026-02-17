@@ -186,3 +186,4 @@ Updates are tracked here in append-only format.
 | 2026-02-17T06:42:26+00:00 | main | build | Removed 4 orphaned csp_disabled stub files causing duplicate symbol build errors |
 | 2026-02-17T07:37:43+00:00 | feature/phase1-emergency-hotfix | pkg/controllers,pkg/monitoring | Fixed test failures: controllers edge cases, network partition, resource constraints, alerting stats keys |
 | 2026-02-17T07:49:13Z | feature/phase1-emergency-hotfix | internal/porch | Fix 6 test failures: context-cancel, BuildCommand mode, ValidatePorchPath, WriteIntent |
+| 2026-02-17T07:57:54Z | main | pkg/monitoring/sla | Fix zero-interval ticker panics in StorageManager and Tracker; skip empty dirs |

@@ -555,6 +555,8 @@ func NewService(cfg *ServiceConfig, appConfig *config.Config, logger *logging.St
 
 		CalculationInterval: cfg.CalculationInterval,
 
+		CompactionInterval: 10 * time.Minute,
+
 		QuantileAccuracy: 0.01,
 
 		MaxHistoryPoints: 1000,
@@ -571,6 +573,8 @@ func NewService(cfg *ServiceConfig, appConfig *config.Config, logger *logging.St
 		TrackingTimeout: 10 * time.Minute,
 
 		CompletionThreshold: 30 * time.Second,
+
+		CleanupInterval: 1 * time.Minute,
 	}, logger.WithComponent("tracker"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize tracker: %w", err)
