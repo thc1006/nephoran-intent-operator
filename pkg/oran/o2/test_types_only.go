@@ -245,18 +245,28 @@ func NewO2Manager(adaptor *O2Adaptor) *O2Manager {
 
 // DiscoverResources discovers resources in the cluster.
 func (m *O2Manager) DiscoverResources(ctx context.Context) (*ResourceMap, error) {
-	// This is a stub implementation for testing
-	return &ResourceMap{
-		Nodes: make(map[string]*NodeInfo),
-		Namespaces: make(map[string]*NamespaceInfo),
-		Metrics: &ClusterMetrics{
-			TotalNodes:  2,
-			ReadyNodes:  2,
-			TotalPods:   1,
-			TotalCPU:    "4",
-			TotalMemory: "8Gi",
-		},
-	}, nil
+	resourceMap, err := m.adaptor.DiscoverResources(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set TotalNodes from the discovered nodes.
+	resourceMap.Metrics.TotalNodes = int32(len(resourceMap.Nodes))
+
+	// List pods and count per namespace.
+	podList := &corev1.PodList{}
+	if listErr := m.adaptor.kubeClient.List(ctx, podList); listErr == nil {
+		for i := range podList.Items {
+			pod := &podList.Items[i]
+			ns := pod.Namespace
+			if nsInfo, ok := resourceMap.Namespaces[ns]; ok {
+				nsInfo.PodCount++
+			}
+			resourceMap.Metrics.TotalPods++
+		}
+	}
+
+	return resourceMap, nil
 }
 
 // ScaleWorkload scales a workload to the specified number of replicas.

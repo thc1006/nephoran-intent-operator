@@ -707,7 +707,15 @@ func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string, meta
 		return p.LLMClient.ProcessIntent(ctx, intent)
 	}
 
-	result, err := p.CircuitBreaker.Execute(ctx, operation)
+	var result interface{}
+	var err error
+
+	if p.CircuitBreaker != nil {
+		result, err = p.CircuitBreaker.Execute(ctx, operation)
+	} else {
+		result, err = operation(ctx)
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("LLM processing failed: %w", err)
 	}

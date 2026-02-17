@@ -382,6 +382,20 @@ func (c *Client) initializeRAGEndpoints() {
 // ProcessIntent processes an intent with all optimizations.
 
 func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, error) {
+	// Guard against zero-value or uninitialized Client.
+	if c.logger == nil {
+		c.logger = slog.Default()
+	}
+	if c.metrics == nil {
+		c.metrics = NewClientMetrics()
+	}
+	if c.cache == nil {
+		c.cache = NewResponseCache(5*time.Minute, 100)
+	}
+	if c.circuitBreaker == nil {
+		c.circuitBreaker = NewCircuitBreaker("llm-client-default", getDefaultCircuitBreakerConfig())
+	}
+
 	start := time.Now()
 
 	var success bool

@@ -126,6 +126,10 @@ type HealthSummary struct {
 // NewHealthChecker creates a new health checker instance.
 
 func NewHealthChecker(serviceName, serviceVersion string, logger *slog.Logger) *HealthChecker {
+	if logger == nil {
+		logger = slog.Default()
+	}
+
 	return &HealthChecker{
 		serviceName: serviceName,
 

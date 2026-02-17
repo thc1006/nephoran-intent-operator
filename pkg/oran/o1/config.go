@@ -81,6 +81,13 @@ func NewO1SecurityConfig(config *O1Config) (*tls.Config, error) {
 
 // NewO1SecurityManager creates a new security manager for O1 interface
 func NewO1SecurityManager(config *O1Config) (*O1SecurityManager, error) {
+	// Validate configuration before building TLS config.
+	if config != nil && config.TLSConfig != nil && config.TLSConfig.Enabled {
+		if config.TLSConfig.CAFile == "" && !config.TLSConfig.SkipVerify {
+			return nil, fmt.Errorf("CA file is required when skip verify is false")
+		}
+	}
+
 	tlsConfig, err := NewO1SecurityConfig(config)
 	if err != nil {
 		return nil, err
