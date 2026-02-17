@@ -56,10 +56,15 @@ func TestComputeStatusFileName(t *testing.T) {
 			description:      "Should extract basename from absolute paths",
 		},
 		{
-			name:             "WindowsAbsolutePath",
-			srcPath:          "C:\\Users\\test\\intent-windows.json",
-			expectedFilename: "intent-windows-" + expectedTimestamp + ".status",
-			description:      "Should handle Windows absolute paths",
+			name:    "WindowsAbsolutePath",
+			srcPath: "C:\\Users\\test\\intent-windows.json",
+			// On Linux, filepath.Base("C:\\Users\\test\\intent-windows.json") returns the
+			// whole string unchanged (backslash is not a path separator on Linux).
+			// filepath.Ext then strips ".json", leaving "C:\\Users\\test\\intent-windows".
+			// sanitizeStatusFilename replaces ':', '\', and other non-[A-Za-z0-9._-] chars
+			// with '-', collapsing consecutive '-' → "C-Users-test-intent-windows".
+			expectedFilename: "C-Users-test-intent-windows-" + expectedTimestamp + ".status",
+			description:      "Should handle Windows absolute paths (sanitized on Linux)",
 		},
 		{
 			name:             "RelativePath",

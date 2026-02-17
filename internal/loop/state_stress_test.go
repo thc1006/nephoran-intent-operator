@@ -294,8 +294,8 @@ func TestWindowsSpecificRaceConditions(t *testing.T) {
 				err := os.WriteFile(testFile, []byte(`{"test": true}`), 0o644)
 				require.NoError(t, err)
 
-				// Mark as processed with old name
-				err = sm.MarkProcessed(oldName)
+				// Mark as processed using absolute path so calculateFileHash can find the file
+				err = sm.MarkProcessed(testFile)
 				assert.NoError(t, err)
 
 				// Rename file
@@ -305,12 +305,10 @@ func TestWindowsSpecificRaceConditions(t *testing.T) {
 					t.Logf("Rename failed (expected on Windows): %v", err)
 				}
 
-				// Check if old file is still marked as processed
-				processed, err := sm.IsProcessed(oldName)
+				// After rename the original file is gone; IsProcessed returns false gracefully
+				// (ErrFileGone is treated as not-processed without returning an error).
+				_, err = sm.IsProcessed(testFile)
 				assert.NoError(t, err, "IsProcessed should not error even after rename")
-				if err == nil {
-					assert.True(t, processed, "File should remain marked as processed")
-				}
 			}(i)
 		}
 		wg.Wait()

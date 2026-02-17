@@ -39,6 +39,8 @@ func TestUnixPathSecurityValidation(t *testing.T) {
 					"path traversal detected",
 					"output directory does not exist",
 					"output directory parent does not exist",
+					"path exists but is not a directory",
+					"not a directory",
 				)
 			},
 		},

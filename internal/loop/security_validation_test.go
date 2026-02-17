@@ -263,13 +263,13 @@ func TestIntentValidation(t *testing.T) {
 	}{
 		{
 			name:        "valid intent",
-			intent:      json.RawMessage(`{"count": 3}`),
+			intent:      json.RawMessage(`{"version": "1.0", "timestamp": "2025-08-21T14:30:22Z", "action": "scale-up", "target": "my-app", "params": {"replicas": 3}}`),
 			shouldError: false,
 			description: "should accept valid intent",
 		},
 		{
 			name:        "command injection in target",
-			intent:      json.RawMessage(`{}`),
+			intent:      json.RawMessage(`{"version": "1.0", "timestamp": "2025-08-21T14:30:22Z", "action": "scale-up", "target": "app; rm -rf /", "params": {}}`),
 			shouldError: true,
 			description: "should reject command injection in target",
 		},
@@ -339,17 +339,29 @@ func generateLargeArrayJSON(size int) string {
 // Security helper functions that should be added to the main code
 
 func validateSafePath(baseDir, filename string) (string, error) {
+	// Check for null bytes first
+	if strings.Contains(filename, "\x00") {
+		return "", fmt.Errorf("invalid filename: contains null bytes")
+	}
+
+	// Check for Windows-style path traversal using backslashes.
+	// On Linux, filepath.Base does not recognise backslash as a separator,
+	// so we must detect traversal patterns explicitly before calling Base.
+	if strings.Contains(filename, "\\") {
+		normalised := strings.ReplaceAll(filename, "\\", "/")
+		for _, part := range strings.Split(normalised, "/") {
+			if part == ".." {
+				return "", fmt.Errorf("invalid filename: contains Windows-style path traversal")
+			}
+		}
+	}
+
 	// Clean the filename to remove any path components
 	cleanName := filepath.Base(filename)
 
 	// Reject if the cleaned name differs from original (contains path separators)
 	if cleanName != filename {
 		return "", fmt.Errorf("invalid filename: contains path separators")
-	}
-
-	// Check for null bytes
-	if strings.Contains(filename, "\x00") {
-		return "", fmt.Errorf("invalid filename: contains null bytes")
 	}
 
 	// Build the full path

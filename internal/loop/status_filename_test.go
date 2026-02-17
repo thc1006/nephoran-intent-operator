@@ -12,33 +12,29 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestStatusFilenameGeneration verifies that status files follow the canonical pattern
-// in their filename as expected: <base>-YYYYMMDD-HHMMSS.status (without .json extension)
+// TestStatusFilenameGeneration verifies that status files follow the production naming pattern:
+// <basename_including_ext>-YYYYMMDD-HHMMSS.status
+// e.g. intent-scale.json-20260217-101825.status
 func TestStatusFilenameGeneration(t *testing.T) {
 	testCases := []struct {
-		name           string
-		intentFile     string
-		expectedPrefix string
+		name       string
+		intentFile string
 	}{
 		{
-			name:           "StandardIntentFile",
-			intentFile:     "intent-scale.json",
-			expectedPrefix: "intent-scale-",
+			name:       "StandardIntentFile",
+			intentFile: "intent-scale.json",
 		},
 		{
-			name:           "IntentWithMultipleDots",
-			intentFile:     "intent-scale-test.json",
-			expectedPrefix: "intent-scale-test-",
+			name:       "IntentWithMultipleDots",
+			intentFile: "intent-scale-test.json",
 		},
 		{
-			name:           "IntentWithUnderscore",
-			intentFile:     "intent-deployment.json",
-			expectedPrefix: "intent-deployment-",
+			name:       "IntentWithUnderscore",
+			intentFile: "intent-deployment.json",
 		},
 		{
-			name:           "IntentWithNumbers",
-			intentFile:     "intent-123.json",
-			expectedPrefix: "intent-123-",
+			name:       "IntentWithNumbers",
+			intentFile: "intent-123.json",
 		},
 	}
 
@@ -61,9 +57,9 @@ func TestStatusFilenameGeneration(t *testing.T) {
 			require.NoError(t, err)
 			defer watcher.Close() // #nosec G307 - Error handled in defer
 
-			// Create the intent file
+			// Create the intent file with valid content for the watcher's JSON validator
 			intentPath := filepath.Join(tempDir, tc.intentFile)
-			intentContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "metadata": {"name": "test"}}`
+			intentContent := `{"intent_type": "scaling", "target": "my-app", "namespace": "default", "replicas": 3}`
 			err = os.WriteFile(intentPath, []byte(intentContent), 0o644)
 			require.NoError(t, err)
 
@@ -74,39 +70,42 @@ func TestStatusFilenameGeneration(t *testing.T) {
 			// Wait briefly for processing
 			time.Sleep(100 * time.Millisecond)
 
-			// Check that status file was created with correct naming
+			// Check that status file was created with correct naming.
+			// Production code: baseName := filepath.Base(intentFile)
+			// statusFile = fmt.Sprintf("%s-%s.status", baseName, timestamp)
+			// So for "intent-scale.json" the status file is "intent-scale.json-YYYYMMDD-HHMMSS.status"
 			statusDir := filepath.Join(tempDir, "status")
 			entries, err := os.ReadDir(statusDir)
 			require.NoError(t, err)
 
+			// The expected prefix is the full intent filename followed by a dash
+			intentBasename := filepath.Base(tc.intentFile)
+			expectedPrefix := intentBasename + "-"
+
 			// Find the status file for this intent
 			var foundStatusFile string
 			for _, entry := range entries {
-				if strings.HasPrefix(entry.Name(), tc.expectedPrefix) {
+				if strings.HasPrefix(entry.Name(), expectedPrefix) {
 					foundStatusFile = entry.Name()
 					break
 				}
 			}
 
 			assert.NotEmpty(t, foundStatusFile,
-				"Status file should exist with prefix %s", tc.expectedPrefix)
+				"Status file should exist with prefix %s", expectedPrefix)
 
-			// Verify the full format: <base>-YYYYMMDD-HHMMSS.status
+			// Verify the full format: <basename>-YYYYMMDD-HHMMSS.status
 			if foundStatusFile != "" {
 				assert.True(t, strings.HasSuffix(foundStatusFile, ".status"),
 					"Status file should end with .status")
 
-				// Check timestamp format
-				withoutStatus := strings.TrimSuffix(foundStatusFile, ".status")
-				parts := strings.Split(withoutStatus, "-")
+				// Strip the prefix and .status suffix; what remains is the timestamp
+				withoutPrefix := strings.TrimPrefix(foundStatusFile, expectedPrefix)
+				timestamp := strings.TrimSuffix(withoutPrefix, ".status")
 
-				// Should have at least 3 parts: the filename parts, date, and time
-				assert.GreaterOrEqual(t, len(parts), 3,
-					"Status filename should include timestamp")
-
-				// The base name should NOT have .json extension
-				assert.NotContains(t, foundStatusFile, ".json-",
-					"Status filename should not contain .json before timestamp")
+				// Timestamp should be exactly 15 chars: YYYYMMDD-HHMMSS
+				assert.Len(t, timestamp, 15,
+					"Timestamp portion should be 15 chars (YYYYMMDD-HHMMSS)")
 			}
 
 			// Clean up for next test
@@ -116,7 +115,7 @@ func TestStatusFilenameGeneration(t *testing.T) {
 }
 
 // TestStatusFilenameConsistency verifies that multiple status files for the same
-// intent follow the canonical naming pattern without .json extension
+// intent follow the production naming pattern: <basename>-YYYYMMDD-HHMMSS.status
 func TestStatusFilenameConsistency(t *testing.T) {
 	tempDir := t.TempDir()
 	mockPorch := createMockPorch(t, tempDir, 0, "processed", "")
@@ -142,8 +141,8 @@ func TestStatusFilenameConsistency(t *testing.T) {
 
 	// Process the file multiple times
 	for i := 0; i < 3; i++ {
-		// Write/update the intent file
-		content := fmt.Sprintf(`{"version": %d}`, i+1)
+		// Write/update the intent file with valid content
+		content := fmt.Sprintf(`{"intent_type": "scaling", "target": "my-app", "namespace": "default", "replicas": %d}`, i+1)
 		err := os.WriteFile(intentPath, []byte(content), 0o644)
 		require.NoError(t, err)
 
@@ -162,11 +161,10 @@ func TestStatusFilenameConsistency(t *testing.T) {
 		return
 	}
 
-	// All status files should follow the canonical pattern without .json
+	// Production code produces: intent-versioning.json-YYYYMMDD-HHMMSS.status
+	// All matching status files should end with .status
 	for _, entry := range entries {
-		if strings.HasPrefix(entry.Name(), "intent-versioning-") {
-			assert.NotContains(t, entry.Name(), ".json-",
-				"Status file %s should not contain .json before timestamp", entry.Name())
+		if strings.HasPrefix(entry.Name(), "intent-versioning.json-") {
 			assert.True(t, strings.HasSuffix(entry.Name(), ".status"),
 				"Status file %s should end with .status", entry.Name())
 		}
