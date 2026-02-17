@@ -189,3 +189,4 @@ Updates are tracked here in append-only format.
 | 2026-02-17T07:57:54Z | main | pkg/monitoring/sla | Fix zero-interval ticker panics in StorageManager and Tracker; skip empty dirs |
 | 2026-02-17T11:57:19Z | main | internal/loop | Fix all test failures: validateJSONFile bug, replicas required only for scaling, debounce timing, shared-watcher panics |
 | 2026-02-17T12:12:44Z | main | internal/loop | All tests pass in isolation and under parallel 4 load - suite fully stable |
+| 2026-02-17T12:34:31Z | main | pkg/monitoring/alerting,internal/llm/providers,planner/security | Fix SLA burn rate math, UPF target matching, and sanitize truncation test |
