@@ -44,6 +44,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -1685,10 +1686,14 @@ func (bm *BackupManager) calculateBackupChecksum(record *BackupRecord) string {
 
 	hash.Write([]byte(data))
 
-	// Include component checksums.
-
-	for name, comp := range record.Components {
-		fmt.Fprintf(hash, "%s:%s", name, comp.Checksum)
+	// Include component checksums in sorted order for deterministic output.
+	names := make([]string, 0, len(record.Components))
+	for name := range record.Components {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		fmt.Fprintf(hash, "%s:%s", name, record.Components[name].Checksum)
 	}
 
 	return fmt.Sprintf("%x", hash.Sum(nil))

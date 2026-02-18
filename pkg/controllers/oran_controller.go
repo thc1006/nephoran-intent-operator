@@ -146,7 +146,7 @@ func (r *OranAdaptorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	var err error
 
-	r.A1Adaptor, err = a1.NewA1Adaptor(nil) // Use default config
+	r.A1Adaptor, err = a1.NewA1Adaptor(nil) // nil causes NewA1Adaptor to read A1_ENDPOINT/A1_MEDIATOR_URL env vars
 	if err != nil {
 		return fmt.Errorf("failed to create A1 adaptor: %w", err)
 	}

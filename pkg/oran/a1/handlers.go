@@ -79,7 +79,7 @@ func NewA1Handlers(
 
 // A1-P Policy Interface Handlers.
 
-// HandleGetPolicyTypes handles GET /A1-P/v2/policytypes.
+// HandleGetPolicyTypes handles GET /v2/policy-types (A1AP-v03.01 standard; also served at /A1-P/v2/policytypes for legacy RICPLT).
 
 func (h *A1Handlers) HandleGetPolicyTypes(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
@@ -374,7 +374,7 @@ func (h *A1Handlers) HandleCreatePolicyType(w http.ResponseWriter, r *http.Reque
 
 	w.Header().Set("Content-Type", ContentTypeJSON)
 
-	w.Header().Set("Location", fmt.Sprintf("/A1-P/v2/policytypes/%d", policyTypeID))
+	w.Header().Set("Location", fmt.Sprintf("/v2/policy-types/%d", policyTypeID))
 
 	w.WriteHeader(http.StatusCreated)
 
@@ -841,7 +841,7 @@ func (h *A1Handlers) HandleCreatePolicyInstance(w http.ResponseWriter, r *http.R
 
 	w.Header().Set("Content-Type", ContentTypeJSON)
 
-	w.Header().Set("Location", fmt.Sprintf("/A1-P/v2/policytypes/%d/policies/%s", policyTypeID, policyID))
+	w.Header().Set("Location", fmt.Sprintf("/v2/policies/%s", policyID))
 
 	w.WriteHeader(statusCode)
 

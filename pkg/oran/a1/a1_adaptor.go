@@ -13,6 +13,7 @@ import (
 	"math"
 	"math/rand"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -283,12 +284,15 @@ type ServiceEndpoint struct {
 
 func NewA1Adaptor(config *A1AdaptorConfig) (*A1Adaptor, error) {
 	if config == nil {
+		// Resolve endpoint from env var; no hardcoded default to prevent misrouting.
+		ricURL := os.Getenv("A1_ENDPOINT")
+		if ricURL == "" {
+			ricURL = os.Getenv("A1_MEDIATOR_URL") // fallback alias
+		}
 		config = &A1AdaptorConfig{
-			RICURL: "http://near-rt-ric:8080",
-
-			APIVersion: "v1",
-
-			Timeout: 30 * time.Second,
+			RICURL:     ricURL,
+			APIVersion: "v2",
+			Timeout:    30 * time.Second,
 		}
 	}
 

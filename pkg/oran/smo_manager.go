@@ -63,7 +63,7 @@ type PolicyManager struct {
 
 	policies map[string]*A1Policy
 
-	policyTypes map[string]*A1PolicyType
+	policyTypes map[string]*SMOPolicyType
 
 	subscriptions map[string]*PolicySubscription
 
@@ -136,9 +136,9 @@ type A1Policy struct {
 	Metadata map[string]string `json:"metadata"`
 }
 
-// A1PolicyType represents a a1policytype.
+// SMOPolicyType represents an SMO-level A1 policy type definition (distinct from the A1 wire-format PolicyType in pkg/oran/a1).
 
-type A1PolicyType struct {
+type SMOPolicyType struct {
 	ID string `json:"id"`
 
 	Name string `json:"name"`
@@ -419,7 +419,7 @@ func NewSMOManager(config *SMOConfig) (*SMOManager, error) {
 
 			policies: make(map[string]*A1Policy),
 
-			policyTypes: make(map[string]*A1PolicyType),
+			policyTypes: make(map[string]*SMOPolicyType),
 
 			subscriptions: make(map[string]*PolicySubscription),
 
