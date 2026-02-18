@@ -66,7 +66,7 @@ var _ = Describe("Test Environment Smoke Test", func() {
 					Target:     "smoke-nf",
 					Namespace:  nsName,
 					Replicas:   1,
-					ScalingParameters: networkintentv1alpha1.ScalingConfig{
+					ScalingParameters: &networkintentv1alpha1.ScalingParameters{
 						Replicas: 1,
 					},
 				},
