@@ -161,8 +161,8 @@ func TestUniqueTimestampGeneration(t *testing.T) {
 	// Verify timestamps are unique
 	timestampSet := make(map[string]bool)
 	for _, ts := range timestamps {
-		_, err := time.Parse(time.RFC3339, ts)
-		assert.NoError(t, err, "Timestamp should be valid RFC3339")
+		_, err := time.Parse(time.RFC3339Nano, ts)
+		assert.NoError(t, err, "Timestamp should be valid RFC3339Nano")
 
 		// If the timestamp already exists, the test will fail
 		assert.False(t, timestampSet[ts], "Timestamps should be unique")

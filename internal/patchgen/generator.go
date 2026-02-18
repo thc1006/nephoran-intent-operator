@@ -6,20 +6,31 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"sigs.k8s.io/yaml"
 )
 
+// timestampMu + lastTimestamp ensure generateCollisionResistantTimestamp always returns
+// a strictly increasing, unique value even when multiple goroutines call it simultaneously.
+var (
+	timestampMu   sync.Mutex
+	lastTimestamp time.Time
+)
+
 // generateCollisionResistantTimestamp creates a timestamp with nanosecond precision.
-
-// that's compatible with RFC3339 but includes microsecond precision to reduce collisions.
-
+// It is safe for concurrent use and guaranteed to return a unique value each call.
 func generateCollisionResistantTimestamp() string {
+	timestampMu.Lock()
+	defer timestampMu.Unlock()
+
 	now := time.Now().UTC()
-
-	// Use RFC3339Nano for maximum precision to minimize collision probability.
-
+	if !now.After(lastTimestamp) {
+		// Clock didn't advance (or went backwards): bump by 1ns to guarantee uniqueness.
+		now = lastTimestamp.Add(time.Nanosecond)
+	}
+	lastTimestamp = now
 	return now.Format(time.RFC3339Nano)
 }
 

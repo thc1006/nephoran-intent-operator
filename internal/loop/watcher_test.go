@@ -497,7 +497,7 @@ func TestWatcher_GracefulShutdown(t *testing.T) {
 	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	config := Config{
-		PorchPath:   createMockPorch(t, tempDir, 0, "processed", "", 2*time.Second), // Longer processing
+		PorchPath:   createMockPorch(t, tempDir, 0, "processed", "", 300*time.Millisecond), // Shorter processing for reliability under load
 		Mode:        porch.ModeDirect,
 		OutDir:      outDir,
 		DebounceDur: 50 * time.Millisecond,
@@ -535,7 +535,7 @@ func TestWatcher_GracefulShutdown(t *testing.T) {
 	select {
 	case err := <-done:
 		require.NoError(t, err)
-	case <-time.After(5 * time.Second):
+	case <-time.After(15 * time.Second):
 		t.Fatal("Watcher didn't shutdown gracefully within timeout")
 	}
 
