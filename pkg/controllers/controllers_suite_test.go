@@ -43,7 +43,10 @@ var _ = BeforeSuite(func() {
 
 	var err error
 	cfg, err = testEnv.Start()
-	Expect(err).NotTo(HaveOccurred())
+	if err != nil {
+		Skip("Skipping envtest suite: kubebuilder binaries not available: " + err.Error())
+		return
+	}
 	Expect(cfg).NotTo(BeNil())
 
 	err = nephoranv1.AddToScheme(scheme.Scheme)

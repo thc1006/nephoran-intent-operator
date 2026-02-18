@@ -66,8 +66,13 @@ func (a *O1Adaptor) parseAlarmData(xmlData, managedElementID string) ([]*Alarm, 
 			continue // Skip cleared alarms
 		}
 
+		alarmID := fmt.Sprintf("%d-%s", oranAlarm.FaultID, oranAlarm.FaultSource)
 		alarm := &Alarm{
-			AlarmID: fmt.Sprintf("%d-%s", oranAlarm.FaultID, oranAlarm.FaultSource),
+			ID: alarmID,
+
+			AlarmID: alarmID,
+
+			ManagedElementID: managedElementID,
 
 			ObjectInstance: managedElementID,
 
@@ -133,6 +138,8 @@ func (a *O1Adaptor) parseGenericAlarmData(xmlData, managedElementID string) ([]*
 		alarm := &Alarm{
 			ID: fmt.Sprintf("generic-%d", time.Now().Unix()),
 
+			ManagedElementID: managedElementID,
+
 			Severity: "MINOR",
 
 			Type: "COMMUNICATIONS",
@@ -164,6 +171,8 @@ func (a *O1Adaptor) convertEventToAlarm(event *NetconfEvent, managedElementID st
 
 	alarm := &Alarm{
 		ID: fmt.Sprintf("event-%d", time.Now().UnixNano()),
+
+		ManagedElementID: managedElementID,
 
 		Severity: "MINOR",
 
@@ -351,15 +360,21 @@ func (a *O1Adaptor) parseMetricValue(xmlData, metricName string) (interface{}, e
 
 				content := line[start+1 : end]
 
-				// Try to parse as float.
+				// Skip if content contains XML tags (nested elements).
 
-				if value, err := strconv.ParseFloat(content, 64); err == nil {
+				if strings.Contains(content, "<") || strings.Contains(content, ">") {
+					continue
+				}
+
+				// Try to parse as int first.
+
+				if value, err := strconv.ParseInt(content, 10, 64); err == nil {
 					return value, nil
 				}
 
-				// Try to parse as int.
+				// Try to parse as float.
 
-				if value, err := strconv.ParseInt(content, 10, 64); err == nil {
+				if value, err := strconv.ParseFloat(content, 64); err == nil {
 					return value, nil
 				}
 

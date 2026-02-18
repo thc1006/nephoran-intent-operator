@@ -972,5 +972,8 @@ func NewDashboardTester(dashboardURL string) *DashboardTester {
 
 // TestSuite runner function
 func TestSLAMonitoringIntegrationSuite(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SLA monitoring integration test: requires live services; run without -short to enable")
+	}
 	suite.Run(t, new(SLAMonitoringIntegrationTestSuite))
 }

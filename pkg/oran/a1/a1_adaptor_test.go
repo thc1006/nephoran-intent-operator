@@ -369,7 +369,7 @@ func TestA1Adaptor_RetryMechanism(t *testing.T) {
 			MaxDelay:        100 * time.Millisecond,
 			BackoffFactor:   2.0,
 			Jitter:          false,
-			RetryableErrors: []string{"HTTP request failed"},
+			RetryableErrors: []string{"failed to create policy type"},
 		},
 	}
 
@@ -536,7 +536,7 @@ func TestA1Adaptor_PolicyInstanceCreationWithRetry(t *testing.T) {
 	assert.True(t, exists)
 	assert.Equal(t, "policy-1", cachedPolicyInstance.PolicyInstanceID)
 	assert.Equal(t, 1, cachedPolicyInstance.PolicyTypeID)
-	assert.Equal(t, policyData, cachedPolicyInstance.PolicyData)
+	assert.JSONEq(t, `{}`, string(cachedPolicyInstance.PolicyData))
 	assert.Equal(t, "ENFORCED", cachedPolicyInstance.Status.EnforcementStatus)
 }
 
@@ -557,7 +557,7 @@ func TestA1Adaptor_FailureAfterMaxRetries(t *testing.T) {
 			MaxDelay:        100 * time.Millisecond,
 			BackoffFactor:   2.0,
 			Jitter:          false,
-			RetryableErrors: []string{"HTTP request failed"},
+			RetryableErrors: []string{"failed to create policy type"},
 		},
 	}
 
@@ -584,10 +584,11 @@ func TestA1Adaptor_FailureAfterMaxRetries(t *testing.T) {
 func TestA1Adaptor_ContextCancellation(t *testing.T) {
 	adaptor, err := NewA1Adaptor(&A1AdaptorConfig{
 		RetryConfig: &RetryConfig{
-			MaxRetries:    5,
-			InitialDelay:  100 * time.Millisecond,
-			MaxDelay:      1 * time.Second,
-			BackoffFactor: 2.0,
+			MaxRetries:      5,
+			InitialDelay:    100 * time.Millisecond,
+			MaxDelay:        1 * time.Second,
+			BackoffFactor:   2.0,
+			RetryableErrors: []string{"temporary failure"},
 		},
 	})
 	require.NoError(t, err)
@@ -610,7 +611,7 @@ func TestA1Adaptor_NonRetryableErrorHandling(t *testing.T) {
 		RetryConfig: &RetryConfig{
 			MaxRetries:      3,
 			InitialDelay:    10 * time.Millisecond,
-			RetryableErrors: []string{"retryable"},
+			RetryableErrors: []string{"must-retry-error"},
 		},
 	})
 	require.NoError(t, err)

@@ -500,5 +500,8 @@ func NewChaosMonitor() *ChaosMonitor {
 
 // TestSuite runner function
 func TestSLAChaosTestSuite(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SLA chaos tests in short mode")
+	}
 	suite.Run(t, new(SLAChaosTestSuite))
 }

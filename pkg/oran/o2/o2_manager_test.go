@@ -498,7 +498,7 @@ func TestO2Manager_DeployVNF(t *testing.T) {
 				// Verify deployment was created
 				deployment := &appsv1.Deployment{}
 				err := ctrlClient.Get(ctx, client.ObjectKey{
-					Namespace: "o-ran-vnfs",
+					Namespace: "o-ran-o2", // DefaultO2Config namespace
 					Name:      tt.vnfSpec.Name,
 				}, deployment)
 				assert.NoError(t, err)
@@ -625,7 +625,7 @@ func TestO2Adaptor_ScaleVNF(t *testing.T) {
 	}{
 		{
 			name:       "scale out",
-			instanceID: "test-ns-test-vnf",
+			instanceID: "test-ns/test-vnf",
 			scaleRequest: &VNFScaleRequest{
 				ScaleType:     "SCALE_OUT",
 				NumberOfSteps: 2,
@@ -635,7 +635,7 @@ func TestO2Adaptor_ScaleVNF(t *testing.T) {
 		},
 		{
 			name:       "scale in",
-			instanceID: "test-ns-test-vnf",
+			instanceID: "test-ns/test-vnf",
 			scaleRequest: &VNFScaleRequest{
 				ScaleType:     "SCALE_IN",
 				NumberOfSteps: 1,
@@ -733,14 +733,14 @@ func TestO2Manager_Integration(t *testing.T) {
 		assert.NotNil(t, deployStatus)
 
 		// 3. Scale workload
-		workloadID := "o-ran-vnfs/integration-test-vnf"
+		workloadID := "o-ran-o2/integration-test-vnf"
 		err = manager.ScaleWorkload(ctx, workloadID, 4)
 		assert.NoError(t, err)
 
 		// 4. Verify scaling
 		deployment := &appsv1.Deployment{}
 		err = ctrlClient.Get(ctx, client.ObjectKey{
-			Namespace: "o-ran-vnfs",
+			Namespace: "o-ran-o2", // DefaultO2Config namespace
 			Name:      "integration-test-vnf",
 		}, deployment)
 		assert.NoError(t, err)

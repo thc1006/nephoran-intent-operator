@@ -175,7 +175,7 @@ func TestIntentParserEdgeCases(t *testing.T) {
 			name:           "Scale with negative replicas",
 			body:           "scale app to -1 in ns test",
 			expectedStatus: http.StatusBadRequest,
-			validateError:  "invalid replicas value",
+			validateError:  "Failed to parse intent",
 		},
 		{
 			name:           "Scale with non-numeric replicas",

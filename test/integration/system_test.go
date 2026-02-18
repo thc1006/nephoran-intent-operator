@@ -14,12 +14,16 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
+	"k8s.io/client-go/tools/clientcmd"
 
 	porchclient "github.com/thc1006/nephoran-intent-operator/pkg/porch"
 )
 
 func TestSystemIntegration(t *testing.T) {
 	config, err := rest.InClusterConfig()
+	if err != nil {
+		config, err = clientcmd.BuildConfigFromFlags("", clientcmd.RecommendedHomeFile)
+	}
 	require.NoError(t, err, "Failed to load Kubernetes config")
 
 	// Create various clients for comprehensive testing

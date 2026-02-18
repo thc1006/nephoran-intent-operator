@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"path/filepath"
-	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -81,7 +80,7 @@ func loadYAMLFile(relativePath string, obj runtime.Object) error {
 	return nil
 }
 
-func TestAPIConsistency(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "API Consistency Test Suite")
-}
+// Note: TestAPIConsistency has been removed. The specs registered with var _ = Describe(...)
+// above are picked up by TestE2E in main_test.go, which is the single Ginkgo entry point
+// for the e2e package. Having two RunSpecs calls in the same test binary causes Ginkgo
+// to error with "RunSpecs called more than once".

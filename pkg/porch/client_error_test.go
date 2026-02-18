@@ -177,6 +177,10 @@ func TestClient_HTTPErrors(t *testing.T) {
 			name: "server returns 404 not found",
 			serverSetup: func(t *testing.T) *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if strings.Contains(r.URL.Path, "/packagerevisions") {
+						w.WriteHeader(http.StatusOK)
+						return
+					}
 					if strings.Contains(r.URL.Path, "/packages/") {
 						w.WriteHeader(http.StatusNotFound)
 						w.Write([]byte("Package not found"))

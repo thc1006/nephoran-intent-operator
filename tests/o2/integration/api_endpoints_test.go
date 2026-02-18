@@ -43,7 +43,15 @@ func (suite *O2APITestSuite) SetupSuite() {
 	suite.k8sClientset = fake.NewSimpleClientset()
 	suite.testLogger = logging.NewLogger("o2-api-test", "debug")
 
-	// Setup O2 API server
+	// Use the mock O2 server that serves routes at /o2ims/v1/ matching
+	// the paths used by all tests in this suite.  The real O2APIServer routes
+	// under /o2ims_infrastructureInventory/v1/ which would produce 404s for
+	// every test request.
+	suite.server = newMockO2Server()
+	suite.client = suite.server.Client()
+	suite.client.Timeout = 30 * time.Second
+
+	// Build a real O2APIServer for shutdown purposes only (TearDownSuite).
 	config := &o2.O2IMSConfig{
 		ServerAddress:   "127.0.0.1",
 		ServerPort:      0,
@@ -51,14 +59,9 @@ func (suite *O2APITestSuite) SetupSuite() {
 		DatabaseConfig:  json.RawMessage(`{}`),
 		ProviderConfigs: json.RawMessage(`{"enabled": true}`),
 	}
-
 	var err error
 	suite.o2Server, err = o2.NewO2APIServer(config, suite.testLogger, nil)
 	suite.Require().NoError(err)
-
-	suite.server = httptest.NewServer(suite.o2Server.GetRouter())
-	suite.client = suite.server.Client()
-	suite.client.Timeout = 30 * time.Second
 }
 
 func (suite *O2APITestSuite) TearDownSuite() {
@@ -435,11 +438,12 @@ func (suite *O2APITestSuite) TestResourceInstanceOperations() {
 
 		suite.Assert().Equal("DISABLED", updated.OperationalStatus)
 		
-		// Check metadata - unmarshal and verify replicas
+		// Check metadata - unmarshal and verify replicas.
+		// JSON decoding produces float64 for numbers, not int.
 		var updatedMetadata map[string]interface{}
 		err = json.Unmarshal(updated.Metadata, &updatedMetadata)
 		suite.Require().NoError(err)
-		suite.Assert().Equal(1, updatedMetadata["replicas"])
+		suite.Assert().Equal(float64(1), updatedMetadata["replicas"])
 
 		// Delete resource instance
 		req, err = http.NewRequest("DELETE",

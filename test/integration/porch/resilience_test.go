@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	networkintentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1alpha1"
+	networkintentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
 )
 
 var _ = Describe("Porch Resilience Scenarios", func() {
@@ -39,17 +39,9 @@ var _ = Describe("Porch Resilience Scenarios", func() {
 					Namespace: ns,
 				},
 				Spec: networkintentv1alpha1.NetworkIntentSpec{
-					Deployment: networkintentv1alpha1.DeploymentSpec{
-						ClusterSelector: map[string]string{
-							"resilience-test": "true",
-						},
-						NetworkFunctions: []networkintentv1alpha1.NetworkFunction{
-							{
-								Name: "resilient-nf",
-								Type: "CNF",
-							},
-						},
-					},
+					Target:     "resilient-nf",
+					IntentType: "scaling",
+					Namespace:  ns,
 				},
 			}
 
@@ -65,7 +57,7 @@ var _ = Describe("Porch Resilience Scenarios", func() {
 				var retrievedIntent networkintentv1alpha1.NetworkIntent
 				err := k8sClient.Get(ctx, client.ObjectKey{Name: "resilience-network-intent", Namespace: ns}, &retrievedIntent)
 				return err == nil
-			}, 2*time.Minute, 10*time.Second).Should(BeTrue())
+			}, 30*time.Second, 1*time.Second).Should(BeTrue())
 		})
 	})
 
@@ -87,7 +79,7 @@ var _ = Describe("Porch Resilience Scenarios", func() {
 				var intentList networkintentv1alpha1.NetworkIntentList
 				err := k8sClient.List(ctx, &intentList, client.InNamespace(ns))
 				return err == nil && len(intentList.Items) == len(intents)
-			}, 5*time.Minute, 30*time.Second).Should(BeTrue())
+			}, 30*time.Second, 2*time.Second).Should(BeTrue())
 		})
 	})
 
@@ -99,17 +91,9 @@ var _ = Describe("Porch Resilience Scenarios", func() {
 					Namespace: ns,
 				},
 				Spec: networkintentv1alpha1.NetworkIntentSpec{
-					Deployment: networkintentv1alpha1.DeploymentSpec{
-						ClusterSelector: map[string]string{
-							"circuit-test": "true",
-						},
-						NetworkFunctions: []networkintentv1alpha1.NetworkFunction{
-							{
-								Name: "unstable-nf",
-								Type: "CNF",
-							},
-						},
-					},
+					Target:     "unstable-nf",
+					IntentType: "scaling",
+					Namespace:  ns,
 				},
 			}
 
@@ -124,28 +108,22 @@ var _ = Describe("Porch Resilience Scenarios", func() {
 				var retrievedIntent networkintentv1alpha1.NetworkIntent
 				err := k8sClient.Get(ctx, client.ObjectKey{Name: "circuit-breaker-intent", Namespace: ns}, &retrievedIntent)
 				return err == nil
-			}, 2*time.Minute, 15*time.Second).Should(BeTrue())
+			}, 30*time.Second, 1*time.Second).Should(BeTrue())
 		})
 	})
 })
 
-// Simulated failure scenarios
-func simulateNetworkInterruption(ctx context.Context) {
-	// Simulate brief network outage
-	// In real implementation, use a network proxy or simulation framework
-	time.Sleep(30 * time.Second)
+// Simulated failure scenarios (stubs - real implementation would use chaos engineering tools)
+func simulateNetworkInterruption(_ context.Context) {
+	time.Sleep(100 * time.Millisecond)
 }
 
-func simulatePorchServerFailure(ctx context.Context) {
-	// Simulate Porch server going down and coming back up
-	// In real implementation, use Chaos Engineering tools like Litmus
-	time.Sleep(2 * time.Minute)
+func simulatePorchServerFailure(_ context.Context) {
+	time.Sleep(100 * time.Millisecond)
 }
 
-func simulateRepeatedFailures(ctx context.Context) {
-	// Simulate repeated transient failures
-	// In real implementation, use fault injection mechanisms
-	time.Sleep(1 * time.Minute)
+func simulateRepeatedFailures(_ context.Context) {
+	time.Sleep(100 * time.Millisecond)
 }
 
 func generateMultipleIntents(namespace string, count int) []*networkintentv1alpha1.NetworkIntent {
@@ -157,17 +135,9 @@ func generateMultipleIntents(namespace string, count int) []*networkintentv1alph
 				Namespace: namespace,
 			},
 			Spec: networkintentv1alpha1.NetworkIntentSpec{
-				Deployment: networkintentv1alpha1.DeploymentSpec{
-					ClusterSelector: map[string]string{
-						"multi-test": "true",
-					},
-					NetworkFunctions: []networkintentv1alpha1.NetworkFunction{
-						{
-							Name: fmt.Sprintf("multi-nf-%d", i),
-							Type: "CNF",
-						},
-					},
-				},
+				Target:     fmt.Sprintf("multi-nf-%d", i),
+				IntentType: "scaling",
+				Namespace:  namespace,
 			},
 		}
 	}

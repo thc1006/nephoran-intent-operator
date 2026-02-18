@@ -397,6 +397,16 @@ func NewAvailabilityCalculatorAdvanced(
 // Start begins availability calculations.
 
 func (ac *AvailabilityCalculator) Start() error {
+	// Initialize context if nil
+	if ac.ctx == nil {
+		ac.ctx = context.Background()
+	}
+
+	// Use no-op tracer if tracer is nil
+	if ac.tracer == nil {
+		ac.tracer = otel.GetTracerProvider().Tracer("availability-calculator")
+	}
+
 	ctx, span := ac.tracer.Start(ac.ctx, "availability-calculator-start")
 
 	defer span.End()

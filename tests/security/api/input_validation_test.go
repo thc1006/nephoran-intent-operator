@@ -706,7 +706,7 @@ func TestJSONSchemaValidation(t *testing.T) {
 	}{
 		{
 			name: "Valid_Intent",
-			payload: json.RawMessage(`{}`),
+			payload: json.RawMessage(`{"intent": "scale up amf to 3 replicas"}`),
 			shouldPass:  true,
 			description: "Valid intent should pass",
 		},
@@ -823,7 +823,7 @@ func TestRequestSizeLimits(t *testing.T) {
 		},
 		{
 			name:        "Zip_Bomb",
-			sizeBytes:   1024, // Small compressed, huge uncompressed
+			sizeBytes:   15 * 1024 * 1024, // 15MB - exceeds 10MB zip limit
 			contentType: "application/zip",
 			shouldPass:  false,
 			description: "Zip bomb attack",
@@ -1029,6 +1029,14 @@ func (s *InputValidationTestSuite) detectSQLInjection(input string) bool {
 }
 
 func (s *InputValidationTestSuite) detectXSS(input, context string) bool {
+	// Check for null bytes first - null byte injection is always an attack
+	if strings.Contains(input, "\x00") {
+		return true
+	}
+
+	// Strip null bytes before further pattern matching (attacker bypass technique)
+	sanitized := strings.ReplaceAll(input, "\x00", "")
+
 	// XSS patterns
 	patterns := []string{
 		`<script[^>]*>.*</script>`,
@@ -1045,11 +1053,19 @@ func (s *InputValidationTestSuite) detectXSS(input, context string) bool {
 		`\${.*}`,
 	}
 
-	// Decode various encodings
-	decodedInput := s.decodeInput(input)
+	// Decode various encodings (single pass)
+	decodedInput := s.decodeInput(sanitized)
+
+	// Also decode twice to catch double-encoded payloads (e.g. %253C -> %3C -> <)
+	doubleDecodedInput := s.decodeInput(decodedInput)
 
 	for _, pattern := range patterns {
-		if matched, _ := regexp.MatchString(pattern, decodedInput); matched {
+		// Use case-insensitive matching to catch mixed-case evasion
+		ciPattern := "(?i)" + pattern
+		if matched, _ := regexp.MatchString(ciPattern, decodedInput); matched {
+			return true
+		}
+		if matched, _ := regexp.MatchString(ciPattern, doubleDecodedInput); matched {
 			return true
 		}
 	}
@@ -1064,6 +1080,7 @@ func (s *InputValidationTestSuite) detectCommandInjection(input string) bool {
 		"`.*`",
 		`\n|\r|\t`,
 		`\$\{.*\}`,
+		`\$[A-Za-z_][A-Za-z0-9_]*`, // bare environment variable access like $PATH, $HOME
 		`system\s*\(`,
 		`exec\s*\(`,
 		`eval\s*\(`,
@@ -1082,11 +1099,10 @@ func (s *InputValidationTestSuite) detectCommandInjection(input string) bool {
 }
 
 func (s *InputValidationTestSuite) detectPathTraversal(input string) bool {
-	// Path traversal patterns
-	patterns := []string{
+	// Path traversal patterns - checked against decoded input
+	decodedPatterns := []string{
 		`\.\.\/|\.\.\\`,
 		`%2e%2e%2f|%2e%2e%5c`,
-		`%252e%252e%252f`,
 		`\.\.;`,
 		`^\/|^[a-zA-Z]:`,
 		`file:\/\/`,
@@ -1096,7 +1112,7 @@ func (s *InputValidationTestSuite) detectPathTraversal(input string) bool {
 	// Decode URL encoding
 	decodedInput, _ := url.QueryUnescape(input)
 
-	for _, pattern := range patterns {
+	for _, pattern := range decodedPatterns {
 		if matched, _ := regexp.MatchString(pattern, decodedInput); matched {
 			return true
 		}
@@ -1105,6 +1121,34 @@ func (s *InputValidationTestSuite) detectPathTraversal(input string) bool {
 	// Check for null bytes
 	if strings.Contains(input, "\x00") {
 		return true
+	}
+
+	// Patterns checked against original (undecoded) input to catch double-encoding
+	rawPatterns := []string{
+		`%252e%252e%252f`, // double-encoded ../
+		`%252e%252e%255c`, // double-encoded ..\
+		`\.\.%252f`,       // ..%2F (double-encoded slash after literal dots)
+		`\.\.%255c`,       // ..\  (double-encoded backslash after literal dots)
+	}
+	inputLower := strings.ToLower(input)
+	for _, pattern := range rawPatterns {
+		if matched, _ := regexp.MatchString(pattern, inputLower); matched {
+			return true
+		}
+	}
+
+	// Check for overlong/unicode encoded path traversal patterns
+	// %c0%af and %c1%9c are overlong UTF-8 encodings of '/' and '\'
+	unicodePatterns := []string{
+		`%c0%af`,    // overlong UTF-8 encoding of '/'
+		`%c1%9c`,    // overlong UTF-8 encoding of '\'
+		`%c0%ae`,    // overlong UTF-8 encoding of '.'
+		`%e0%80%af`, // another overlong encoding of '/'
+	}
+	for _, pattern := range unicodePatterns {
+		if strings.Contains(inputLower, pattern) {
+			return true
+		}
 	}
 
 	return false
@@ -1195,6 +1239,21 @@ func (s *InputValidationTestSuite) detectSSRF(input string) bool {
 			return true
 		}
 	}
+
+	// Check for known DNS rebinding patterns (domains designed to resolve to internal IPs).
+	dnsRebindingPatterns := []string{
+		"rebind.",    // common rebinding subdomain prefix
+		".rebind.",   // rebinding in middle of domain
+		"nip.io",    // wildcard DNS service sometimes abused for SSRF
+		"xip.io",    // similar wildcard DNS service
+	}
+
+	for _, pattern := range dnsRebindingPatterns {
+		if strings.Contains(host, pattern) {
+			return true
+		}
+	}
+
 
 	return false
 }

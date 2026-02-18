@@ -263,8 +263,16 @@ func TestContainerSecurityContext(t *testing.T) {
 				Name:  "test-container",
 				Image: "nephoran/operator:latest",
 				SecurityContext: &corev1.SecurityContext{
-					RunAsNonRoot: &[]bool{true}[0],
-					RunAsUser:    &[]int64{10001}[0],
+					RunAsNonRoot:             &[]bool{true}[0],
+					RunAsUser:                &[]int64{10001}[0],
+					ReadOnlyRootFilesystem:   &[]bool{true}[0],
+					AllowPrivilegeEscalation: &[]bool{false}[0],
+					Capabilities: &corev1.Capabilities{
+						Drop: []corev1.Capability{"ALL"},
+					},
+					SeccompProfile: &corev1.SeccompProfile{
+						Type: corev1.SeccompProfileTypeRuntimeDefault,
+					},
 				},
 			},
 			wantError: false,
@@ -291,6 +299,12 @@ func TestContainerSecurityContext(t *testing.T) {
 					RunAsUser:                &[]int64{10001}[0],
 					ReadOnlyRootFilesystem:   &[]bool{true}[0],
 					AllowPrivilegeEscalation: &[]bool{false}[0],
+					Capabilities: &corev1.Capabilities{
+						Drop: []corev1.Capability{"ALL"},
+					},
+					SeccompProfile: &corev1.SeccompProfile{
+						Type: corev1.SeccompProfileTypeRuntimeDefault,
+					},
 				},
 			},
 			wantError: false,
@@ -301,8 +315,9 @@ func TestContainerSecurityContext(t *testing.T) {
 				Name:  "test-container",
 				Image: "nephoran/operator:latest",
 				SecurityContext: &corev1.SecurityContext{
-					RunAsNonRoot: &[]bool{true}[0],
-					RunAsUser:    &[]int64{10001}[0],
+					RunAsNonRoot:           &[]bool{true}[0],
+					RunAsUser:              &[]int64{10001}[0],
+					ReadOnlyRootFilesystem: &[]bool{true}[0],
 					Capabilities: &corev1.Capabilities{
 						Add: []corev1.Capability{"NET_ADMIN"},
 					},
@@ -317,10 +332,14 @@ func TestContainerSecurityContext(t *testing.T) {
 				Name:  "test-container",
 				Image: "nephoran/operator:latest",
 				SecurityContext: &corev1.SecurityContext{
-					RunAsNonRoot: &[]bool{true}[0],
-					RunAsUser:    &[]int64{10001}[0],
+					RunAsNonRoot:           &[]bool{true}[0],
+					RunAsUser:              &[]int64{10001}[0],
+					ReadOnlyRootFilesystem: &[]bool{true}[0],
 					Capabilities: &corev1.Capabilities{
 						Drop: []corev1.Capability{"ALL"},
+					},
+					SeccompProfile: &corev1.SeccompProfile{
+						Type: corev1.SeccompProfileTypeRuntimeDefault,
 					},
 				},
 			},
@@ -332,8 +351,12 @@ func TestContainerSecurityContext(t *testing.T) {
 				Name:  "test-container",
 				Image: "nephoran/operator:latest",
 				SecurityContext: &corev1.SecurityContext{
-					RunAsNonRoot: &[]bool{true}[0],
-					RunAsUser:    &[]int64{10001}[0],
+					RunAsNonRoot:           &[]bool{true}[0],
+					RunAsUser:              &[]int64{10001}[0],
+					ReadOnlyRootFilesystem: &[]bool{true}[0],
+					Capabilities: &corev1.Capabilities{
+						Drop: []corev1.Capability{"ALL"},
+					},
 					SeccompProfile: &corev1.SeccompProfile{
 						Type: corev1.SeccompProfileTypeRuntimeDefault,
 					},
@@ -467,6 +490,7 @@ func TestTLSConfiguration(t *testing.T) {
 			tlsConfig: &tls.Config{
 				MinVersion: tls.VersionTLS13,
 				MaxVersion: tls.VersionTLS13,
+				ClientAuth: tls.RequireAndVerifyClientCert,
 			},
 			wantError: false,
 		},
@@ -482,6 +506,7 @@ func TestTLSConfiguration(t *testing.T) {
 			name: "Secure cipher suites only",
 			tlsConfig: &tls.Config{
 				MinVersion: tls.VersionTLS13,
+				ClientAuth: tls.RequireAndVerifyClientCert,
 				CipherSuites: []uint16{
 					tls.TLS_AES_256_GCM_SHA384,
 					tls.TLS_CHACHA20_POLY1305_SHA256,

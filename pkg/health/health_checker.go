@@ -311,7 +311,9 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 
 			check.Timestamp = time.Now()
 
-			check.Component = hc.serviceName
+			if check.Component == "" {
+				check.Component = hc.serviceName
+			}
 
 			checkResults <- *check
 		}(name, checkFunc)
@@ -577,7 +579,9 @@ func (hc *HealthChecker) RunCheck(ctx context.Context, name string) *Check {
 			check.Name = name
 			check.Duration = time.Since(start)
 			check.Timestamp = time.Now()
-			check.Component = hc.serviceName
+			if check.Component == "" {
+				check.Component = hc.serviceName
+			}
 		}
 		return check
 	}

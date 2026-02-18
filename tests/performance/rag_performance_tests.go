@@ -1218,6 +1218,9 @@ func GetDefaultRAGTestConfig() *RAGTestConfig {
 
 // Test functions for Go testing framework
 func TestRAGEmbeddingPerformance(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping RAG embedding performance tests in short mode")
+	}
 	// Initialize test components
 	config := GetDefaultRAGTestConfig()
 	config.EmbeddingTests = true
@@ -1242,6 +1245,9 @@ func TestRAGEmbeddingPerformance(t *testing.T) {
 }
 
 func TestRAGRetrievalPerformance(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping RAG retrieval performance tests in short mode")
+	}
 	config := GetDefaultRAGTestConfig()
 	config.EmbeddingTests = false
 	config.RetrievalTests = true
@@ -1264,6 +1270,9 @@ func TestRAGRetrievalPerformance(t *testing.T) {
 }
 
 func TestRAGCachePerformance(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping RAG cache performance tests in short mode")
+	}
 	config := GetDefaultRAGTestConfig()
 	config.EmbeddingTests = false
 	config.RetrievalTests = false
@@ -1286,6 +1295,9 @@ func TestRAGCachePerformance(t *testing.T) {
 }
 
 func TestRAGScalabilityPerformance(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping RAG scalability performance tests in short mode")
+	}
 	config := GetDefaultRAGTestConfig()
 	config.EmbeddingTests = false
 	config.RetrievalTests = false

@@ -2,9 +2,13 @@ package o2
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Test-specific types that are not defined elsewhere.
@@ -270,18 +274,47 @@ func (m *O2Manager) DiscoverResources(ctx context.Context) (*ResourceMap, error)
 }
 
 // ScaleWorkload scales a workload to the specified number of replicas.
+// workloadID format: "namespace/name"
 func (m *O2Manager) ScaleWorkload(ctx context.Context, workloadID string, replicas int32) error {
-	// This is a stub implementation for testing
+	parts := strings.SplitN(workloadID, "/", 2)
+	if len(parts) != 2 {
+		return fmt.Errorf("invalid workload ID format, expected namespace/name: %s", workloadID)
+	}
+	namespace, name := parts[0], parts[1]
+
+	deployment := &appsv1.Deployment{}
+	if err := m.adaptor.kubeClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, deployment); err != nil {
+		return fmt.Errorf("deployment not found: %w", err)
+	}
+
+	deployment.Spec.Replicas = &replicas
+	if err := m.adaptor.kubeClient.Update(ctx, deployment); err != nil {
+		return fmt.Errorf("failed to scale workload: %w", err)
+	}
+
 	return nil
 }
 
 // DeployVNF deploys a VNF with the given specification.
+// It delegates to the adaptor's full implementation which uses the configured
+// namespace, applies all labels from Metadata, and wires up volumes, health
+// checks, affinity, tolerations, and creates the associated Service.
 func (m *O2Manager) DeployVNF(ctx context.Context, vnfSpec *VNFDescriptor) (*DeploymentStatus, error) {
-	// This is a stub implementation for testing
+	status, err := m.adaptor.deployVNFFromDescriptor(ctx, vnfSpec)
+	if err != nil {
+		return nil, err
+	}
+
+	namespace := m.adaptor.config.Namespace
 	return &DeploymentStatus{
-		State:  "PENDING",
-		Phase:  "CREATING",
-		Health: "UNKNOWN",
+		ID:              fmt.Sprintf("%s/%s", namespace, vnfSpec.Name),
+		Name:            status.Name,
+		Status:          status.Status,
+		State:           status.Status,
+		Phase:           status.Phase,
+		Replicas:        status.Replicas,
+		Health:          "UNKNOWN",
+		LastStateChange: time.Now(),
 	}, nil
 }
 

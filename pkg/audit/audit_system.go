@@ -334,6 +334,9 @@ func (as *AuditSystem) Start() error {
 // Stop gracefully shuts down the audit system.
 
 func (as *AuditSystem) Stop() error {
+	if as == nil {
+		return nil
+	}
 	if !as.running.Load() {
 		return nil
 	}
@@ -376,6 +379,9 @@ func (as *AuditSystem) Stop() error {
 // LogEvent submits an audit event for processing.
 
 func (as *AuditSystem) LogEvent(event *types.AuditEvent) error {
+	if as == nil {
+		return fmt.Errorf("audit system is nil")
+	}
 	if !as.config.Enabled || !as.running.Load() {
 		return nil
 	}
@@ -444,6 +450,9 @@ func (as *AuditSystem) LogEvent(event *types.AuditEvent) error {
 // GetStats returns audit system statistics.
 
 func (as *AuditSystem) GetStats() AuditStats {
+	if as == nil {
+		return AuditStats{}
+	}
 	return AuditStats{
 		EventsReceived: atomic.LoadInt64(&as.eventsReceived),
 

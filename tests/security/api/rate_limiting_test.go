@@ -39,6 +39,9 @@ func NewRateLimitTestSuite(t *testing.T) *RateLimitTestSuite {
 
 // TestEndpointRateLimiting tests rate limiting per endpoint
 func TestEndpointRateLimiting(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping: rate limit timing test requires multi-second sleeps; run without -short to enable")
+	}
 	_ = NewRateLimitTestSuite(t)
 
 	endpointLimits := map[string]struct {
@@ -293,13 +296,17 @@ func TestDDoSProtection(t *testing.T) {
 	_ = NewRateLimitTestSuite(t)
 
 	t.Run("SYN_Flood_Protection", func(t *testing.T) {
-		// Simulate SYN flood detection
+		// Simulate SYN flood detection.
+		// Use a small number of unique IPs (5) sending many connections each so
+		// that each IP exceeds the per-IP threshold of 5 before the global
+		// maxHalfOpenConnections limit is hit.
 		connectionAttempts := make(map[string]int)
 		maxHalfOpenConnections := 100
+		numUniqueIPs := 5 // With 100 total connections, each IP gets ~20 connections (> threshold of 5)
 
-		// Simulate connection attempts from multiple IPs
+		// Simulate connection attempts from a small set of IPs (SYN flood from few sources).
 		for i := 0; i < 200; i++ {
-			ip := fmt.Sprintf("192.168.1.%d", i%50) // 50 unique IPs
+			ip := fmt.Sprintf("192.168.1.%d", i%numUniqueIPs)
 			connectionAttempts[ip]++
 
 			// Check if we should start dropping connections
@@ -463,6 +470,9 @@ func TestDDoSProtection(t *testing.T) {
 
 // TestBurstHandling tests burst request handling
 func TestBurstHandling(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping: burst handling test requires multi-second sleeps; run without -short to enable")
+	}
 	_ = NewRateLimitTestSuite(t)
 
 	t.Run("Token_Bucket_Algorithm", func(t *testing.T) {
@@ -666,6 +676,9 @@ func TestBurstHandling(t *testing.T) {
 
 // TestGracefulDegradation tests graceful degradation under load
 func TestGracefulDegradation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping: graceful degradation test requires 11+ second sleep; run without -short to enable")
+	}
 	_ = NewRateLimitTestSuite(t)
 
 	t.Run("Priority_Based_Rate_Limiting", func(t *testing.T) {

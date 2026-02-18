@@ -13,6 +13,9 @@ import (
 
 // TestRealisticTelecomWorkload tests realistic 5G network function deployment scenarios
 func TestRealisticTelecomWorkload(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping realistic telecom workload tests in short mode")
+	}
 	suite := performance.NewBenchmarkSuite()
 	ctx := context.Background()
 
@@ -215,6 +218,9 @@ func TestRealisticTelecomWorkload(t *testing.T) {
 
 // TestHighVolumeDeployment tests high-volume concurrent deployments
 func TestHighVolumeDeployment(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping high volume deployment tests in short mode")
+	}
 	suite := performance.NewBenchmarkSuite()
 	ctx := context.Background()
 
@@ -248,6 +254,9 @@ func TestHighVolumeDeployment(t *testing.T) {
 
 // TestComplexIntentProcessing tests processing of complex multi-step intents
 func TestComplexIntentProcessing(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping complex intent processing tests in short mode")
+	}
 	suite := performance.NewBenchmarkSuite()
 	ctx := context.Background()
 

@@ -606,11 +606,17 @@ func minInt(a, b int) int {
 
 // TestMetricsScrapeTestSuite runs the complete test suite
 func TestMetricsScrapeTestSuite(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping metrics scrape integration test: requires live services; run without -short to enable")
+	}
 	suite.Run(t, new(MetricsScrapeTestSuite))
 }
 
 // TestMetricsScrapeFunctional provides functional validation of metrics scraping
 func TestMetricsScrapeFunctional(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping metrics scrape functional test: requires live services; run without -short to enable")
+	}
 	// Save original environment
 	originalEnv := os.Getenv("METRICS_ENABLED")
 	defer func() {

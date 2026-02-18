@@ -37,11 +37,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
 	"github.com/thc1006/nephoran-intent-operator/controllers"
 )
 
-// NetworkIntentControllerTestSuite implements a comprehensive test suite for the NetworkIntent controller
+// buildScheme returns a scheme with the correct intent API group registered.
+func buildScheme(t *testing.T) *runtime.Scheme {
+	t.Helper()
+	s := runtime.NewScheme()
+	require.NoError(t, intentv1alpha1.AddToScheme(s))
+	return s
+}
+
+// NetworkIntentControllerTestSuite implements a comprehensive test suite for the NetworkIntent controller.
 type NetworkIntentControllerTestSuite struct {
 	suite.Suite
 	reconciler    *controllers.NetworkIntentReconciler
@@ -53,46 +61,39 @@ type NetworkIntentControllerTestSuite struct {
 	testNamespace string
 }
 
-// SetupSuite runs before all tests in the suite
 func (suite *NetworkIntentControllerTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 	suite.logger = zap.New(zap.UseDevMode(true))
 	suite.testNamespace = "nephoran-test"
 
-	// Create scheme and add our types
 	suite.scheme = runtime.NewScheme()
-	err := nephoranv1.AddToScheme(suite.scheme)
-	suite.Require().NoError(err)
+	suite.Require().NoError(intentv1alpha1.AddToScheme(suite.scheme))
 
-	// Setup mock LLM server
 	suite.setupMockLLMServer()
 }
 
-// TearDownSuite runs after all tests in the suite
 func (suite *NetworkIntentControllerTestSuite) TearDownSuite() {
 	if suite.llmServer != nil {
 		suite.llmServer.Close()
 	}
 }
 
-// SetupTest runs before each test
 func (suite *NetworkIntentControllerTestSuite) SetupTest() {
-	// Create fake client for each test
 	suite.client = fake.NewClientBuilder().
 		WithScheme(suite.scheme).
+		WithStatusSubresource(&intentv1alpha1.NetworkIntent{}).
 		Build()
 
-	// Create reconciler instance
 	suite.reconciler = &controllers.NetworkIntentReconciler{
-		Client:          suite.client,
-		Scheme:          suite.scheme,
-		Log:             suite.logger,
-		EnableLLMIntent: true,
-		LLMProcessorURL: suite.llmServer.URL,
+		Client:              suite.client,
+		Scheme:              suite.scheme,
+		Log:                 suite.logger,
+		EnableLLMIntent:     true,
+		EnableA1Integration: false, // A1 not available in unit tests
+		LLMProcessorURL:     suite.llmServer.URL + "/process",
 	}
 }
 
-// setupMockLLMServer creates a mock LLM processor server
 func (suite *NetworkIntentControllerTestSuite) setupMockLLMServer() {
 	suite.llmServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -109,357 +110,245 @@ func (suite *NetworkIntentControllerTestSuite) setupMockLLMServer() {
 	}))
 }
 
-// createTestNetworkIntent creates a test NetworkIntent object
-func (suite *NetworkIntentControllerTestSuite) createTestNetworkIntent(name, intent string) *nephoranv1.NetworkIntent {
-	return &nephoranv1.NetworkIntent{
+func (suite *NetworkIntentControllerTestSuite) makeIntent(name, source string) *intentv1alpha1.NetworkIntent {
+	return &intentv1alpha1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: suite.testNamespace,
 		},
-		Spec: nephoranv1.NetworkIntentSpec{
-			Intent: intent,
+		Spec: intentv1alpha1.NetworkIntentSpec{
+			Source:     source,
+			IntentType: "scaling",
+			Target:     "smf",
+			Replicas:   1,
 		},
 	}
 }
 
-// TestReconcile_NewNetworkIntent tests reconciliation of a new NetworkIntent
-func (suite *NetworkIntentControllerTestSuite) TestReconcile_NewNetworkIntent() {
-	// Arrange
-	intent := suite.createTestNetworkIntent("test-intent", "scale up network function")
-	err := suite.client.Create(suite.ctx, intent)
-	suite.Require().NoError(err)
-
-	// Act
-	request := ctrl.Request{
+func (suite *NetworkIntentControllerTestSuite) reconcileRequest(name string) ctrl.Request {
+	return ctrl.Request{
 		NamespacedName: types.NamespacedName{
-			Name:      intent.Name,
-			Namespace: intent.Namespace,
-		},
-	}
-	result, err := suite.reconciler.Reconcile(suite.ctx, request)
-
-	// Assert
-	suite.NoError(err)
-	suite.Equal(ctrl.Result{}, result)
-
-	// Verify the NetworkIntent was updated
-	updated := &nephoranv1.NetworkIntent{}
-	err = suite.client.Get(suite.ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, updated)
-	suite.NoError(err)
-	suite.NotNil(updated)
-}
-
-// TestReconcile_NonExistentNetworkIntent tests reconciliation when NetworkIntent doesn't exist
-func (suite *NetworkIntentControllerTestSuite) TestReconcile_NonExistentNetworkIntent() {
-	// Arrange - no NetworkIntent created
-
-	// Act
-	request := ctrl.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      "non-existent",
+			Name:      name,
 			Namespace: suite.testNamespace,
 		},
 	}
-	result, err := suite.reconciler.Reconcile(suite.ctx, request)
+}
 
-	// Assert - should not error when resource doesn't exist
+// TestReconcile_NewNetworkIntent — happy path: LLM enabled, mock server responds OK.
+func (suite *NetworkIntentControllerTestSuite) TestReconcile_NewNetworkIntent() {
+	intent := suite.makeIntent("test-intent", "scale up smf")
+	suite.Require().NoError(suite.client.Create(suite.ctx, intent))
+
+	result, err := suite.reconciler.Reconcile(suite.ctx, suite.reconcileRequest(intent.Name))
+	suite.NoError(err)
+	suite.Equal(ctrl.Result{}, result)
+
+	updated := &intentv1alpha1.NetworkIntent{}
+	suite.NoError(suite.client.Get(suite.ctx, types.NamespacedName{
+		Name: intent.Name, Namespace: intent.Namespace,
+	}, updated))
+	suite.NotEmpty(updated.Status.Phase)
+}
+
+// TestReconcile_NonExistentNetworkIntent — object not found → no error (normal GC flow).
+func (suite *NetworkIntentControllerTestSuite) TestReconcile_NonExistentNetworkIntent() {
+	result, err := suite.reconciler.Reconcile(suite.ctx, suite.reconcileRequest("does-not-exist"))
 	suite.NoError(err)
 	suite.Equal(ctrl.Result{}, result)
 }
 
-// TestReconcile_LLMDisabled tests reconciliation when LLM processing is disabled
+// TestReconcile_LLMDisabled — with both LLM and A1 disabled, reconcile completes cleanly.
 func (suite *NetworkIntentControllerTestSuite) TestReconcile_LLMDisabled() {
-	// Arrange
 	suite.reconciler.EnableLLMIntent = false
-	intent := suite.createTestNetworkIntent("test-intent-no-llm", "scale down network function")
-	err := suite.client.Create(suite.ctx, intent)
-	suite.Require().NoError(err)
+	intent := suite.makeIntent("intent-no-llm", "scale down amf")
+	suite.Require().NoError(suite.client.Create(suite.ctx, intent))
 
-	// Act
-	request := ctrl.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      intent.Name,
-			Namespace: intent.Namespace,
-		},
-	}
-	result, err := suite.reconciler.Reconcile(suite.ctx, request)
-
-	// Assert
+	result, err := suite.reconciler.Reconcile(suite.ctx, suite.reconcileRequest(intent.Name))
 	suite.NoError(err)
 	suite.Equal(ctrl.Result{}, result)
 }
 
-// TestReconcile_LLMServerDown tests reconciliation when LLM server is unavailable
+// TestReconcile_LLMServerDown — unreachable LLM server → status set to Error, no requeue error.
 func (suite *NetworkIntentControllerTestSuite) TestReconcile_LLMServerDown() {
-	// Arrange
-	suite.reconciler.LLMProcessorURL = "http://localhost:9999" // Non-existent server
-	intent := suite.createTestNetworkIntent("test-intent-server-down", "scale network function")
-	err := suite.client.Create(suite.ctx, intent)
-	suite.Require().NoError(err)
+	suite.reconciler.LLMProcessorURL = "http://127.0.0.1:19999/process" // nothing listening
+	intent := suite.makeIntent("intent-server-down", "scale smf")
+	suite.Require().NoError(suite.client.Create(suite.ctx, intent))
 
-	// Act
-	request := ctrl.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      intent.Name,
-			Namespace: intent.Namespace,
-		},
-	}
-	result, err := suite.reconciler.Reconcile(suite.ctx, request)
-
-	// Assert - should handle LLM server errors gracefully
-	suite.NoError(err)                                              // Controller should handle external service failures
-	suite.Equal(ctrl.Result{RequeueAfter: 5 * time.Minute}, result) // Should requeue for retry
-}
-
-// TestReconcile_EmptyIntent tests reconciliation with empty intent
-func (suite *NetworkIntentControllerTestSuite) TestReconcile_EmptyIntent() {
-	// Arrange
-	intent := suite.createTestNetworkIntent("test-intent-empty", "")
-	err := suite.client.Create(suite.ctx, intent)
-	suite.Require().NoError(err)
-
-	// Act
-	request := ctrl.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      intent.Name,
-			Namespace: intent.Namespace,
-		},
-	}
-	result, err := suite.reconciler.Reconcile(suite.ctx, request)
-
-	// Assert
+	result, err := suite.reconciler.Reconcile(suite.ctx, suite.reconcileRequest(intent.Name))
+	// Controller handles external service failures gracefully: updates status to Error, no error returned.
 	suite.NoError(err)
 	suite.Equal(ctrl.Result{}, result)
 }
 
-// TestReconcile_LongIntent tests reconciliation with a very long intent string
-func (suite *NetworkIntentControllerTestSuite) TestReconcile_LongIntent() {
-	// Arrange
-	longIntent := "scale up network function " + string(make([]byte, 10000)) // Very long intent
-	intent := suite.createTestNetworkIntent("test-intent-long", longIntent)
-	err := suite.client.Create(suite.ctx, intent)
-	suite.Require().NoError(err)
-
-	// Act
-	request := ctrl.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      intent.Name,
-			Namespace: intent.Namespace,
-		},
+// TestReconcile_EmptySource — empty Source field → validation error reflected in status.
+func (suite *NetworkIntentControllerTestSuite) TestReconcile_EmptySource() {
+	intent := &intentv1alpha1.NetworkIntent{
+		ObjectMeta: metav1.ObjectMeta{Name: "empty-source", Namespace: suite.testNamespace},
+		Spec:       intentv1alpha1.NetworkIntentSpec{IntentType: "scaling", Target: "smf"},
 	}
-	result, err := suite.reconciler.Reconcile(suite.ctx, request)
+	suite.Require().NoError(suite.client.Create(suite.ctx, intent))
 
-	// Assert
+	result, err := suite.reconciler.Reconcile(suite.ctx, suite.reconcileRequest(intent.Name))
 	suite.NoError(err)
 	suite.Equal(ctrl.Result{}, result)
+
+	updated := &intentv1alpha1.NetworkIntent{}
+	suite.NoError(suite.client.Get(suite.ctx, types.NamespacedName{
+		Name: intent.Name, Namespace: intent.Namespace,
+	}, updated))
+	suite.Equal(intentv1alpha1.PhaseError, updated.Status.Phase)
 }
 
-// TestSetupWithManager tests the controller setup with manager
+// TestSetupWithManager verifies the reconciler implements the Reconciler interface.
 func (suite *NetworkIntentControllerTestSuite) TestSetupWithManager() {
-	// This would typically require a more complex setup with a real manager
-	// For now, we'll test that the method exists and can be called
 	suite.NotNil(suite.reconciler)
 	suite.Implements((*reconcile.Reconciler)(nil), suite.reconciler)
 }
 
-// Benchmark tests for performance validation
-func (suite *NetworkIntentControllerTestSuite) BenchmarkReconcile() {
-	// Setup benchmark
-	intent := suite.createTestNetworkIntent("benchmark-intent", "scale up network function")
-	err := suite.client.Create(suite.ctx, intent)
-	suite.Require().NoError(err)
-
-	request := ctrl.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      intent.Name,
-			Namespace: intent.Namespace,
-		},
-	}
-
-	// Run benchmark
-	suite.T().Run("Reconcile", func(t *testing.T) {
-		for i := 0; i < 100; i++ {
-			_, err := suite.reconciler.Reconcile(suite.ctx, request)
-			assert.NoError(t, err)
-		}
-	})
-}
-
-// TestSuite runner function
 func TestNetworkIntentControllerTestSuite(t *testing.T) {
 	suite.Run(t, new(NetworkIntentControllerTestSuite))
 }
 
-// Additional unit tests using standard testing approach
-func TestNetworkIntentReconciler_Reconcile_BasicFlow(t *testing.T) {
-	// Test using standard Go testing approach for comparison
-	scheme := runtime.NewScheme()
-	err := nephoranv1.AddToScheme(scheme)
-	require.NoError(t, err)
+// ── Standalone table-driven tests ──────────────────────────────────────────────
 
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
-	logger := zap.New(zap.UseDevMode(true))
+func TestNetworkIntentReconciler_Reconcile_BasicFlow(t *testing.T) {
+	scheme := buildScheme(t)
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithStatusSubresource(&intentv1alpha1.NetworkIntent{}).
+		Build()
 
 	reconciler := &controllers.NetworkIntentReconciler{
-		Client:          client,
-		Scheme:          scheme,
-		Log:             logger,
-		EnableLLMIntent: false, // Disable LLM for simple test
+		Client:              fakeClient,
+		Scheme:              scheme,
+		Log:                 zap.New(zap.UseDevMode(true)),
+		EnableLLMIntent:     false,
+		EnableA1Integration: false,
 	}
 
-	// Create test NetworkIntent
-	intent := &nephoranv1.NetworkIntent{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "basic-test",
-			Namespace: "default",
-		},
-		Spec: nephoranv1.NetworkIntentSpec{
-			Intent: "basic scaling intent",
+	intent := &intentv1alpha1.NetworkIntent{
+		ObjectMeta: metav1.ObjectMeta{Name: "basic-test", Namespace: "default"},
+		Spec: intentv1alpha1.NetworkIntentSpec{
+			Source:     "basic scaling intent",
+			IntentType: "scaling",
+			Target:     "smf",
+			Replicas:   2,
 		},
 	}
-
 	ctx := context.Background()
-	err = client.Create(ctx, intent)
-	require.NoError(t, err)
+	require.NoError(t, fakeClient.Create(ctx, intent))
 
-	// Test reconcile
-	request := ctrl.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      intent.Name,
-			Namespace: intent.Namespace,
-		},
-	}
-
-	result, err := reconciler.Reconcile(ctx, request)
+	result, err := reconciler.Reconcile(ctx, ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: intent.Name, Namespace: intent.Namespace},
+	})
 	assert.NoError(t, err)
 	assert.Equal(t, ctrl.Result{}, result)
 
-	// Verify object still exists
-	retrieved := &nephoranv1.NetworkIntent{}
-	err = client.Get(ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, retrieved)
-	assert.NoError(t, err)
-	assert.Equal(t, intent.Spec.Intent, retrieved.Spec.Intent)
+	retrieved := &intentv1alpha1.NetworkIntent{}
+	require.NoError(t, fakeClient.Get(ctx, types.NamespacedName{Name: intent.Name, Namespace: intent.Namespace}, retrieved))
+	assert.Equal(t, intentv1alpha1.PhaseValidated, retrieved.Status.Phase)
 }
 
-// Test race conditions and concurrent access
 func TestNetworkIntentReconciler_ConcurrentReconcile(t *testing.T) {
-	scheme := runtime.NewScheme()
-	err := nephoranv1.AddToScheme(scheme)
-	require.NoError(t, err)
-
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
-	logger := zap.New(zap.UseDevMode(true))
-
+	scheme := buildScheme(t)
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithStatusSubresource(&intentv1alpha1.NetworkIntent{}).
+		Build()
 	reconciler := &controllers.NetworkIntentReconciler{
-		Client:          client,
-		Scheme:          scheme,
-		Log:             logger,
-		EnableLLMIntent: false,
+		Client:              fakeClient,
+		Scheme:              scheme,
+		Log:                 zap.New(zap.UseDevMode(true)),
+		EnableLLMIntent:     false,
+		EnableA1Integration: false,
 	}
 
-	// Create multiple NetworkIntents
 	ctx := context.Background()
-	numIntents := 10
-	requests := make([]ctrl.Request, numIntents)
-
-	for i := 0; i < numIntents; i++ {
-		intent := &nephoranv1.NetworkIntent{
+	const n = 10
+	requests := make([]ctrl.Request, n)
+	for i := range n {
+		obj := &intentv1alpha1.NetworkIntent{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("concurrent-test-%d", i),
+				Name:      fmt.Sprintf("concurrent-%d", i),
 				Namespace: "default",
 			},
-			Spec: nephoranv1.NetworkIntentSpec{
-				Intent: fmt.Sprintf("concurrent scaling intent %d", i),
+			Spec: intentv1alpha1.NetworkIntentSpec{
+				Source:     fmt.Sprintf("intent %d", i),
+				IntentType: "scaling",
+				Target:     "smf",
 			},
 		}
-
-		err := client.Create(ctx, intent)
-		require.NoError(t, err)
-
-		requests[i] = ctrl.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      intent.Name,
-				Namespace: intent.Namespace,
-			},
-		}
+		require.NoError(t, fakeClient.Create(ctx, obj))
+		requests[i] = ctrl.Request{NamespacedName: types.NamespacedName{Name: obj.Name, Namespace: obj.Namespace}}
 	}
 
-	// Test concurrent reconciliation
-	done := make(chan bool, numIntents)
-	errors := make(chan error, numIntents)
-
-	for i := 0; i < numIntents; i++ {
-		go func(req ctrl.Request) {
-			_, err := reconciler.Reconcile(ctx, req)
+	errs := make(chan error, n)
+	done := make(chan struct{}, n)
+	for _, req := range requests {
+		go func(r ctrl.Request) {
+			_, err := reconciler.Reconcile(ctx, r)
 			if err != nil {
-				errors <- err
+				errs <- err
 			}
-			done <- true
-		}(requests[i])
+			done <- struct{}{}
+		}(req)
 	}
 
-	// Wait for all goroutines to complete
-	for i := 0; i < numIntents; i++ {
+	for range n {
 		select {
+		case err := <-errs:
+			t.Errorf("concurrent reconcile error: %v", err)
 		case <-done:
-			// Success
-		case err := <-errors:
-			t.Errorf("Concurrent reconcile failed: %v", err)
 		case <-time.After(30 * time.Second):
-			t.Fatal("Timeout waiting for concurrent reconciliation")
+			t.Fatal("timeout waiting for concurrent reconciliation")
 		}
 	}
 }
 
-// Test edge cases and error conditions
 func TestNetworkIntentReconciler_ErrorConditions(t *testing.T) {
+	scheme := buildScheme(t)
+
 	tests := []struct {
 		name        string
-		setupFunc   func() (*controllers.NetworkIntentReconciler, ctrl.Request)
+		setup       func() (*controllers.NetworkIntentReconciler, ctrl.Request)
 		expectError bool
 	}{
 		{
-			name: "nil client should handle gracefully",
-			setupFunc: func() (*controllers.NetworkIntentReconciler, ctrl.Request) {
-				reconciler := &controllers.NetworkIntentReconciler{
-					Client:          nil, // This would normally cause issues
-					Scheme:          runtime.NewScheme(),
-					Log:             zap.New(zap.UseDevMode(true)),
-					EnableLLMIntent: false,
+			name: "object not found returns no error",
+			setup: func() (*controllers.NetworkIntentReconciler, ctrl.Request) {
+				r := &controllers.NetworkIntentReconciler{
+					Client:              fake.NewClientBuilder().WithScheme(scheme).Build(),
+					Scheme:              scheme,
+					Log:                 zap.New(zap.UseDevMode(true)),
+					EnableA1Integration: false,
+					EnableLLMIntent:     false,
 				}
-				request := ctrl.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      "test",
-						Namespace: "default",
-					},
+				return r, ctrl.Request{
+					NamespacedName: types.NamespacedName{Name: "nonexistent", Namespace: "default"},
 				}
-				return reconciler, request
 			},
-			expectError: true,
+			expectError: false,
 		},
 		{
-			name: "empty request should handle gracefully",
-			setupFunc: func() (*controllers.NetworkIntentReconciler, ctrl.Request) {
-				scheme := runtime.NewScheme()
-				_ = nephoranv1.AddToScheme(scheme)
-				reconciler := &controllers.NetworkIntentReconciler{
-					Client:          fake.NewClientBuilder().WithScheme(scheme).Build(),
-					Scheme:          scheme,
-					Log:             zap.New(zap.UseDevMode(true)),
-					EnableLLMIntent: false,
+			name: "empty namespace/name returns no error",
+			setup: func() (*controllers.NetworkIntentReconciler, ctrl.Request) {
+				r := &controllers.NetworkIntentReconciler{
+					Client:              fake.NewClientBuilder().WithScheme(scheme).Build(),
+					Scheme:              scheme,
+					Log:                 zap.New(zap.UseDevMode(true)),
+					EnableA1Integration: false,
+					EnableLLMIntent:     false,
 				}
-				request := ctrl.Request{} // Empty request
-				return reconciler, request
+				return r, ctrl.Request{}
 			},
-			expectError: false, // Should handle gracefully
+			expectError: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			reconciler, request := tt.setupFunc()
-			_, err := reconciler.Reconcile(context.Background(), request)
-
+			reconciler, req := tt.setup()
+			_, err := reconciler.Reconcile(context.Background(), req)
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {

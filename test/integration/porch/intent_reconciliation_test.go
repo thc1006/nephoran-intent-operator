@@ -11,11 +11,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	networkintentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1alpha1"
+	networkintentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
 )
 
 const (
-	letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	letterBytes = "abcdefghijklmnopqrstuvwxyz"
 )
 
 var _ = Describe("Porch Intent Reconciliation", func() {
@@ -46,17 +46,9 @@ var _ = Describe("Porch Intent Reconciliation", func() {
 					Namespace: ns,
 				},
 				Spec: networkintentv1alpha1.NetworkIntentSpec{
-					Deployment: networkintentv1alpha1.DeploymentSpec{
-						ClusterSelector: map[string]string{
-							"environment": "test",
-						},
-						NetworkFunctions: []networkintentv1alpha1.NetworkFunction{
-							{
-								Name: "test-nf",
-								Type: "CNF",
-							},
-						},
-					},
+					Target:     "test-nf",
+					IntentType: "scaling",
+					Namespace:  ns,
 				},
 			}
 
@@ -75,8 +67,8 @@ var _ = Describe("Porch Intent Reconciliation", func() {
 			// For now, verify intent properties
 			var retrievedIntent networkintentv1alpha1.NetworkIntent
 			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "test-network-intent", Namespace: ns}, &retrievedIntent)).Should(Succeed())
-			Expect(retrievedIntent.Spec.Deployment.ClusterSelector["environment"]).To(Equal("test"))
-			Expect(len(retrievedIntent.Spec.Deployment.NetworkFunctions)).To(Equal(1))
+			Expect(retrievedIntent.Spec.Target).To(Equal("test-nf"))
+			Expect(retrievedIntent.Spec.IntentType).To(Equal("scaling"))
 		})
 	})
 

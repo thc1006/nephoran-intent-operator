@@ -1007,5 +1007,8 @@ func (sm *StabilityMonitor) Monitor(ctx context.Context) *StabilityResults {
 
 // TestSuite runner function
 func TestSLAPerformanceTestSuite(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SLA performance tests in short mode")
+	}
 	suite.Run(t, new(SLAPerformanceTestSuite))
 }

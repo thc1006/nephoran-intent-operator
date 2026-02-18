@@ -147,8 +147,13 @@ func TestValidateIntentMap(t *testing.T) {
 		expectError bool
 	}{
 		{
-			name:        "Valid Intent Map",
-			intentMap:   map[string]interface{}{"valid": "intent"},
+			name: "Valid Intent Map",
+			intentMap: map[string]interface{}{
+				"intent_type": "scaling",
+				"target":      "web-app",
+				"namespace":   "default",
+				"replicas":    float64(3),
+			},
 			expectError: false,
 		},
 		{

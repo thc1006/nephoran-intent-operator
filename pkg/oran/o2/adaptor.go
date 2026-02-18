@@ -472,7 +472,7 @@ func NewO2Adaptor(kubeClient client.Client, clientset kubernetes.Interface, conf
 
 	// Start background monitoring services.
 
-	if config.MonitoringConfig.EnableMetrics {
+	if config.MonitoringConfig != nil && config.MonitoringConfig.EnableMetrics {
 
 		go adaptor.startResourceMonitoring()
 

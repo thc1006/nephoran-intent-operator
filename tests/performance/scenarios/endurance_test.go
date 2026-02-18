@@ -15,6 +15,9 @@ import (
 
 // TestLongRunningStability tests system stability over extended periods
 func TestLongRunningStability(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping endurance/stability tests in short mode")
+	}
 	suite := performance.NewBenchmarkSuite()
 	ctx := context.Background()
 
@@ -102,6 +105,9 @@ func TestLongRunningStability(t *testing.T) {
 
 // TestMemoryLeakDetection specifically tests for memory leaks
 func TestMemoryLeakDetection(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping memory leak detection tests in short mode")
+	}
 	ctx := context.Background()
 
 	// Run memory-intensive operations
@@ -153,6 +159,9 @@ func TestMemoryLeakDetection(t *testing.T) {
 
 // TestGoroutineLeakDetection tests for goroutine leaks
 func TestGoroutineLeakDetection(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping goroutine leak detection tests in short mode")
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	initialGoroutines := runtime.NumGoroutine()
 
@@ -208,6 +217,9 @@ func TestGoroutineLeakDetection(t *testing.T) {
 
 // TestResourceExhaustion tests system behavior under resource exhaustion
 func TestResourceExhaustion(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping resource exhaustion tests in short mode")
+	}
 	ctx := context.Background()
 
 	scenarios := []struct {
@@ -273,6 +285,9 @@ func TestResourceExhaustion(t *testing.T) {
 
 // TestPerformanceDegradation tests for gradual performance degradation
 func TestPerformanceDegradation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping performance degradation tests in short mode")
+	}
 	ctx := context.Background()
 	suite := performance.NewBenchmarkSuite()
 

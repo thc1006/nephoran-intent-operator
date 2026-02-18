@@ -361,7 +361,11 @@ func (rl *RateLimiter) GetStats() map[string]interface{} {
 		return true
 	})
 
-	return map[string]interface{}{}
+	return map[string]interface{}{
+		"qps_limit":   rl.config.QPS,
+		"burst_limit": rl.config.Burst,
+		"active_ips":  activeIPs,
+	}
 }
 
 // getClientIP extracts the real client IP address from various headers.

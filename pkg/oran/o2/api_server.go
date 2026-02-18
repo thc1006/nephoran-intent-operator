@@ -400,11 +400,15 @@ func (s *O2APIServer) setupRoutes() {
 
 	// Resource Pools
 	o2imsRouter.HandleFunc("/resourcePools", s.handleGetResourcePools).Methods("GET")
+	o2imsRouter.HandleFunc("/resourcePools", s.handleStubNotImplemented).Methods("POST")
 	o2imsRouter.HandleFunc("/resourcePools/{resourcePoolId}", s.handleGetResourcePool).Methods("GET")
+	o2imsRouter.HandleFunc("/resourcePools/{resourcePoolId}", s.handleStubNotImplemented).Methods("DELETE")
 
 	// Resource Types
 	o2imsRouter.HandleFunc("/resourceTypes", s.handleGetResourceTypes).Methods("GET")
+	o2imsRouter.HandleFunc("/resourceTypes", s.handleStubNotImplemented).Methods("POST")
 	o2imsRouter.HandleFunc("/resourceTypes/{resourceTypeId}", s.handleGetResourceType).Methods("GET")
+	o2imsRouter.HandleFunc("/resourceTypes/{resourceTypeId}", s.handleStubNotImplemented).Methods("DELETE")
 
 	// Resources within a pool
 	o2imsRouter.HandleFunc("/resourcePools/{resourcePoolId}/resources", s.handleGetResources).Methods("GET")
@@ -412,13 +416,22 @@ func (s *O2APIServer) setupRoutes() {
 
 	// Deployment Managers (maps to deployment handlers; O2 IMS terminology)
 	o2imsRouter.HandleFunc("/deploymentManagers", s.handleGetDeployments).Methods("GET")
+	o2imsRouter.HandleFunc("/deploymentManagers", s.handleStubNotImplemented).Methods("POST")
 	o2imsRouter.HandleFunc("/deploymentManagers/{deploymentManagerId}", s.handleGetDeployment).Methods("GET")
+	o2imsRouter.HandleFunc("/deploymentManagers/{deploymentManagerId}", s.handleStubNotImplemented).Methods("DELETE")
 
 	// Subscriptions
 	o2imsRouter.HandleFunc("/subscriptions", s.handleGetSubscriptions).Methods("GET")
 	o2imsRouter.HandleFunc("/subscriptions", s.handleCreateSubscription).Methods("POST")
 	o2imsRouter.HandleFunc("/subscriptions/{subscriptionId}", s.handleGetSubscription).Methods("GET")
 	o2imsRouter.HandleFunc("/subscriptions/{subscriptionId}", s.handleDeleteSubscription).Methods("DELETE")
+
+	// Alarms
+	o2imsRouter.HandleFunc("/alarms", s.handleStubNotImplemented).Methods("GET")
+	o2imsRouter.HandleFunc("/alarms", s.handleStubNotImplemented).Methods("POST")
+	o2imsRouter.HandleFunc("/alarms/{alarmId}", s.handleStubNotImplemented).Methods("GET")
+	o2imsRouter.HandleFunc("/alarms/{alarmId}", s.handleStubNotImplemented).Methods("PATCH")
+	o2imsRouter.HandleFunc("/alarms/{alarmId}", s.handleStubNotImplemented).Methods("DELETE")
 
 	s.logger.Info("O2 IMS standard routes configured (/o2ims_infrastructureInventory/v1/)")
 

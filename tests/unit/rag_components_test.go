@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"math"
+	"strings"
 	"testing"
 	"time"
 
@@ -278,10 +279,11 @@ func (suite *RAGComponentsTestSuite) testChunkTelecomContent() {
 		suite.Equal(doc.Metadata, chunk.Metadata)
 	}
 
-	// Check that key telecom terms are preserved
+	// Check that key telecom terms are preserved (case-insensitive)
+	allContentLower := strings.ToLower(allContent)
 	suite.Contains(allContent, "5G")
 	suite.Contains(allContent, "gNodeB")
-	suite.Contains(allContent, "network slicing")
+	suite.Contains(allContentLower, "network slicing")
 	suite.Contains(allContent, "Core Network")
 }
 

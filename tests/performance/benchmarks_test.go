@@ -30,6 +30,9 @@ type BenchmarkTestSuite struct {
 
 // TestBenchmarks runs the benchmark test suite
 func TestBenchmarks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping performance benchmark tests in short mode")
+	}
 	suite.Run(t, &BenchmarkTestSuite{
 		TestSuite: framework.NewTestSuite(&framework.TestConfig{
 			LoadTestEnabled:  true,

@@ -199,7 +199,8 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	ts := time.Now().UTC().Format("20060102T150405Z")
+	now := time.Now().UTC()
+	ts := fmt.Sprintf("%s-%09d", now.Format("20060102T150405Z"), now.Nanosecond())
 
 	fileName := fmt.Sprintf("intent-%s.json", ts)
 

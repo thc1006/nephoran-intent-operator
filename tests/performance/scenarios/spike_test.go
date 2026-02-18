@@ -15,6 +15,9 @@ import (
 
 // TestSpikeLoad tests system behavior under sudden load increases
 func TestSpikeLoad(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping spike load tests in short mode")
+	}
 	suite := performance.NewBenchmarkSuite()
 	ctx := context.Background()
 
@@ -103,6 +106,9 @@ func TestSpikeLoad(t *testing.T) {
 
 // TestCascadingFailure tests system resilience to cascading failures
 func TestCascadingFailure(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping cascading failure tests in short mode")
+	}
 	ctx := context.Background()
 
 	// Simulate component failures
@@ -177,6 +183,9 @@ func TestCascadingFailure(t *testing.T) {
 
 // TestBurstPattern tests handling of burst traffic patterns
 func TestBurstPattern(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping burst pattern tests in short mode")
+	}
 	suite := performance.NewBenchmarkSuite()
 	ctx := context.Background()
 

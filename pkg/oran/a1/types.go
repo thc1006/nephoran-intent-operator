@@ -914,9 +914,9 @@ func (pt *PolicyType) MarshalJSON() ([]byte, error) {
 	}{
 		Alias: (*Alias)(pt),
 
-		CreatedAt: pt.CreatedAt.Format(time.RFC3339),
+		CreatedAt: pt.CreatedAt.Format(time.RFC3339Nano),
 
-		ModifiedAt: pt.ModifiedAt.Format(time.RFC3339),
+		ModifiedAt: pt.ModifiedAt.Format(time.RFC3339Nano),
 	})
 }
 
@@ -942,13 +942,17 @@ func (pt *PolicyType) UnmarshalJSON(data []byte) error {
 	}
 
 	if aux.CreatedAt != "" {
-		if t, err := time.Parse(time.RFC3339, aux.CreatedAt); err == nil {
+		if t, err := time.Parse(time.RFC3339Nano, aux.CreatedAt); err == nil {
+			pt.CreatedAt = t
+		} else if t, err := time.Parse(time.RFC3339, aux.CreatedAt); err == nil {
 			pt.CreatedAt = t
 		}
 	}
 
 	if aux.ModifiedAt != "" {
-		if t, err := time.Parse(time.RFC3339, aux.ModifiedAt); err == nil {
+		if t, err := time.Parse(time.RFC3339Nano, aux.ModifiedAt); err == nil {
+			pt.ModifiedAt = t
+		} else if t, err := time.Parse(time.RFC3339, aux.ModifiedAt); err == nil {
 			pt.ModifiedAt = t
 		}
 	}

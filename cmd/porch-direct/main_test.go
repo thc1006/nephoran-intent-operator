@@ -920,7 +920,7 @@ func TestRunWithMalformedIntentFiles(t *testing.T) {
 		{
 			name:        "very large file",
 			fileContent: `{"intent_type": "scaling", "target": "` + strings.Repeat("a", 10000000) + `", "namespace": "default", "replicas": 1}`,
-			expectError: "intent validation failed",
+			expectError: "file too large",
 		},
 		{
 			name:        "deeply nested JSON",

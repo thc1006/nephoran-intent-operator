@@ -9,29 +9,14 @@ import (
 func TestPackageRevisionLifecycle(t *testing.T) {
 	// Create a mock Porch server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/api/v1/packagerevisions/test-package":
-			// Mock update revision status response
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			
-			// Determine new status based on the request body
-			status := "REVIEW" // Default for testing
-			if r.Header.Get("Content-Type") == "application/merge-patch+json" {
-				// In a real test, we'd parse the body to determine the status
-				// For simplicity, we'll cycle through states
-				status = "APPROVED"
-			}
-			
-			w.Write([]byte(`{
-				"name": "test-package",
-				"namespace": "default",
-				"revision": "v1",
-				"status": "` + status + `"
-			}`))
-		default:
-			http.NotFound(w, r)
-		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{
+			"name": "test-package",
+			"namespace": "default",
+			"revision": "v1",
+			"status": "APPROVED"
+		}`))
 	}))
 	defer server.Close()
 

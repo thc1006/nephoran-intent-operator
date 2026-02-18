@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"net/textproto"
 	"net/url"
 	"strings"
 	"testing"
@@ -131,9 +132,10 @@ func TestRedactLogger_HeaderRedaction(t *testing.T) {
 			// Redact headers
 			redacted := rl.redactHeaders(headers)
 
-			// Check redaction
+			// Check redaction (use canonical header name for lookup since http.Header canonicalizes)
 			for header, shouldRedact := range tt.expectedRedact {
-				values := redacted[header]
+				canonicalHeader := textproto.CanonicalMIMEHeaderKey(header)
+				values := redacted[canonicalHeader]
 				if shouldRedact {
 					assert.Equal(t, []string{"[REDACTED]"}, values, "Header %s should be redacted", header)
 				} else {
@@ -236,7 +238,7 @@ func TestRedactLogger_BodyRedaction(t *testing.T) {
 		},
 		{
 			name:   "redacts token in JSON",
-			body:   `{"action":"login","token":"abc123","timestamp":1234567890}`,
+			body:   `{"action":"login","token":"abc123","timestamp":"1234567890"}`,
 			isJSON: true,
 			expectFields: map[string]string{
 				"action":    "login",
@@ -406,10 +408,10 @@ func TestRedactLogger_Middleware(t *testing.T) {
 							assert.Equal(t, "test-123", correlationID)
 						}
 
-						// Check status code
-						status, ok := entry.Attrs["status"].(int)
+						// Check status code (slog.Int stores as int64)
+						status, ok := entry.Attrs["status"].(int64)
 						assert.True(t, ok, "Expected status in log")
-						assert.Equal(t, tt.expectedStatus, status)
+						assert.Equal(t, int64(tt.expectedStatus), status)
 
 						break
 					}

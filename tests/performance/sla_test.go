@@ -96,6 +96,9 @@ func NewSLATestSuite(prometheusURL string) (*SLATestSuite, error) {
 
 // TestSLACompliance runs comprehensive SLA compliance tests
 func TestSLACompliance(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SLA compliance tests in short mode")
+	}
 	suite, err := NewSLATestSuite("http://localhost:9090")
 	require.NoError(t, err, "Failed to initialize SLA test suite")
 
@@ -718,6 +721,9 @@ func BenchmarkConcurrentIntentProcessing(b *testing.B) {
 
 // TestSLAMetricsCollection tests SLA metrics collection
 func TestSLAMetricsCollection(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SLA metrics collection tests in short mode")
+	}
 	// Test that all required SLA metrics are being collected
 	expectedMetrics := []string{
 		"intent_processing_duration_seconds",
@@ -745,6 +751,9 @@ func TestSLAMetricsCollection(t *testing.T) {
 
 // TestSLAAlertRules tests SLA alert rule functionality
 func TestSLAAlertRules(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SLA alert rules tests in short mode")
+	}
 	// Test that SLA alert rules are properly configured
 	suite, err := NewSLATestSuite("http://localhost:9090")
 	require.NoError(t, err)

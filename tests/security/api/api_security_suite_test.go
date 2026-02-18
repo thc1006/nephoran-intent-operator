@@ -893,12 +893,27 @@ func (s *APISecuritySuite) generateSecureErrorResponse(errorType string, statusC
 		message = "An error occurred processing your request."
 	}
 
+	// Map error type to error code
+	errorCodes := map[string]string{
+		"database":   "ERR_SYSTEM",
+		"auth":       "ERR_AUTH",
+		"validation": "ERR_VALIDATION",
+		"notfound":   "ERR_NOT_FOUND",
+		"internal":   "ERR_INTERNAL",
+	}
+	errorCode, exists2 := errorCodes[errorType]
+	if !exists2 {
+		errorCode = "ERR_UNKNOWN"
+	}
+
 	return map[string]interface{}{
 		"error": map[string]interface{}{
 			"message":    message,
 			"statusCode": statusCode,
 			"timestamp":  "2024-01-01T00:00:00Z",
 		},
+		"error_code": errorCode,
+		"request_id": generateRequestID(),
 	}
 }
 

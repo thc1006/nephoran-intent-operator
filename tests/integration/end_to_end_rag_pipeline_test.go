@@ -582,5 +582,8 @@ func min(a, b int) int {
 
 // Test runner
 func TestEndToEndRAGPipeline(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping end-to-end RAG pipeline integration test: requires live services; run without -short to enable")
+	}
 	suite.Run(t, new(EndToEndRAGPipelineTestSuite))
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
@@ -777,14 +778,16 @@ func (mes *MockEmbeddingService) GenerateEmbeddings(ctx context.Context, texts [
 			embedding[j] = float32(hash%100000) / 100000.0
 		}
 		
-		// Normalize embedding
-		var norm float32
+		// Normalize embedding to unit length (L2 normalization).
+		var sumSq float32
 		for _, val := range embedding {
-			norm += val * val
+			sumSq += val * val
 		}
-		norm = float32(1.0 / (0.001 + norm)) // Approximate normalization
-		for j := range embedding {
-			embedding[j] *= norm
+		l2Norm := float32(math.Sqrt(float64(sumSq)))
+		if l2Norm > 0 {
+			for j := range embedding {
+				embedding[j] /= l2Norm
+			}
 		}
 		
 		embeddings[i] = embedding
@@ -828,26 +831,35 @@ func (ers *EnhancedRetrievalService) SetWeaviateClient(client WeaviateClient) {
 	ers.client = client
 }
 
-// RetrieveDocuments retrieves documents based on the request
+// RetrieveDocuments retrieves documents based on the request.
+// It supports any WeaviateClient implementation via the Search interface method, and also
+// supports legacy clients that expose SearchSimilar directly.
 func (ers *EnhancedRetrievalService) RetrieveDocuments(ctx context.Context, request *RetrievalRequest) ([]*RetrievalResult, error) {
-	// Use the mock Weaviate client to get search results  
-	if mockClient, ok := ers.client.(*MockWeaviateClient); ok {
-		maxResults := request.MaxResults
-		if maxResults == 0 {
-			maxResults = ers.config.MaxResults
-		}
-		results, err := mockClient.SearchSimilar(ctx, request.Query, maxResults)
+	maxResults := request.MaxResults
+	if maxResults == 0 {
+		maxResults = ers.config.MaxResults
+	}
+	if maxResults == 0 {
+		maxResults = 10
+	}
+
+	minScore := request.MinScore
+	if minScore == 0 {
+		minScore = ers.config.MinScore
+	}
+
+	// Try SearchSimilar interface first (for backwards-compatible mock clients).
+	type searchSimilarClient interface {
+		SearchSimilar(ctx context.Context, query string, limit int) ([]*SearchResult, error)
+	}
+	if sc, ok := ers.client.(searchSimilarClient); ok {
+		results, err := sc.SearchSimilar(ctx, request.Query, maxResults)
 		if err != nil {
 			return nil, err
 		}
-		
-		// Convert SearchResult to RetrievalResult and apply filters
+
 		var retrievalResults []*RetrievalResult
 		for _, result := range results {
-			minScore := request.MinScore
-			if minScore == 0 {
-				minScore = ers.config.MinScore
-			}
 			if result.Score >= float32(minScore) {
 				retrievalResults = append(retrievalResults, &RetrievalResult{
 					DocumentID: result.ID,
@@ -857,8 +869,8 @@ func (ers *EnhancedRetrievalService) RetrieveDocuments(ctx context.Context, requ
 				})
 			}
 		}
-		
-		// Sort by score descending
+
+		// Sort by score descending.
 		for i := 0; i < len(retrievalResults)-1; i++ {
 			for j := i + 1; j < len(retrievalResults); j++ {
 				if retrievalResults[i].Score < retrievalResults[j].Score {
@@ -866,11 +878,40 @@ func (ers *EnhancedRetrievalService) RetrieveDocuments(ctx context.Context, requ
 				}
 			}
 		}
-		
 		return retrievalResults, nil
 	}
-	
-	return nil, fmt.Errorf("unsupported client type")
+
+	// Fall back to the standard WeaviateClient.Search interface.
+	resp, err := ers.client.Search(ctx, &SearchQuery{
+		Query:   request.Query,
+		Limit:   maxResults,
+		Filters: request.Filters,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var retrievalResults []*RetrievalResult
+	for _, result := range resp.Results {
+		if result.Score >= float32(minScore) {
+			retrievalResults = append(retrievalResults, &RetrievalResult{
+				DocumentID: result.ID,
+				Content:    result.Content,
+				Score:      float64(result.Score),
+				Metadata:   result.Metadata,
+			})
+		}
+	}
+
+	// Sort by score descending.
+	for i := 0; i < len(retrievalResults)-1; i++ {
+		for j := i + 1; j < len(retrievalResults); j++ {
+			if retrievalResults[i].Score < retrievalResults[j].Score {
+				retrievalResults[i], retrievalResults[j] = retrievalResults[j], retrievalResults[i]
+			}
+		}
+	}
+	return retrievalResults, nil
 }
 
 // RetrievalResult represents a document retrieval result

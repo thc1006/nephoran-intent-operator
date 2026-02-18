@@ -69,24 +69,19 @@ var _ = BeforeSuite(func() {
 	By("bootstrapping test environment")
 
 	// 2025 envtest configuration with enhanced settings
-	testEnv := &envtest.Environment{
+	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{
-			filepath.Join("..", "..", "config", "crd", "bases"),
+			filepath.Join("..", "..", "config", "crd", "intent"),
 		},
-		ErrorIfCRDPathMissing: true,
+		ErrorIfCRDPathMissing: false,
 
-		// 2025 best practice: Use specific Kubernetes version for consistency
+		// Use existing cluster when available (e.g. kubeadm dev cluster)
 		BinaryAssetsDirectory: "",
-		UseExistingCluster:    func() *bool { b := false; return &b }(),
+		UseExistingCluster:    func() *bool { b := true; return &b }(),
 
 		// Enhanced control plane settings for 2025
 		ControlPlaneStartTimeout: controlPlaneStartTimeout,
 		ControlPlaneStopTimeout:  controlPlaneStopTimeout,
-
-		// Webhook testing configuration
-		WebhookInstallOptions: envtest.WebhookInstallOptions{
-			Paths: []string{filepath.Join("..", "..", "config", "webhook")},
-		},
 
 		// Attach policy for admission controllers
 		AttachControlPlaneOutput: false,
@@ -133,9 +128,11 @@ var _ = BeforeSuite(func() {
 
 	By("setting up controllers")
 	err = (&controllers.NetworkIntentReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Log:    ctrl.Log.WithName("controllers").WithName("NetworkIntent"),
+		Client:              mgr.GetClient(),
+		Scheme:              mgr.GetScheme(),
+		Log:                 ctrl.Log.WithName("controllers").WithName("NetworkIntent"),
+		EnableA1Integration: false, // A1 mediator not deployed in test env
+		EnableLLMIntent:     false, // LLM not used in unit envtest
 	}).SetupWithManager(mgr)
 	Expect(err).ToNot(HaveOccurred())
 

@@ -77,6 +77,10 @@ func (s *O2APIServer) handleReadinessCheck(w http.ResponseWriter, r *http.Reques
 // handleGetResourcePools retrieves resource pools with filtering.
 
 func (s *O2APIServer) handleGetResourcePools(w http.ResponseWriter, r *http.Request) {
+	if s.imsService == nil {
+		s.writeJSONResponse(w, r, StatusOK, []*models.ResourcePool{})
+		return
+	}
 	filter := s.parseResourcePoolFilter(r)
 
 	pools, err := s.imsService.GetResourcePools(r.Context(), filter)
@@ -102,6 +106,11 @@ func (s *O2APIServer) handleGetResourcePool(w http.ResponseWriter, r *http.Reque
 
 		return
 
+	}
+
+	if s.imsService == nil {
+		s.writeJSONResponse(w, r, StatusOK, map[string]string{"message": "not implemented"})
+		return
 	}
 
 	pool, err := s.imsService.GetResourcePool(r.Context(), poolID)
@@ -211,6 +220,10 @@ func (s *O2APIServer) handleDeleteResourcePool(w http.ResponseWriter, r *http.Re
 // handleGetResourceTypes retrieves resource types.
 
 func (s *O2APIServer) handleGetResourceTypes(w http.ResponseWriter, r *http.Request) {
+	if s.imsService == nil {
+		s.writeJSONResponse(w, r, StatusOK, []*models.ResourceType{})
+		return
+	}
 	filter := s.parseResourceTypeFilter(r)
 
 	resourceTypes, err := s.imsService.GetResourceTypes(r.Context(), filter)
@@ -236,6 +249,11 @@ func (s *O2APIServer) handleGetResourceType(w http.ResponseWriter, r *http.Reque
 
 		return
 
+	}
+
+	if s.imsService == nil {
+		s.writeJSONResponse(w, r, StatusOK, map[string]string{"message": "not implemented"})
+		return
 	}
 
 	resourceType, err := s.imsService.GetResourceType(r.Context(), typeID)
@@ -345,6 +363,10 @@ func (s *O2APIServer) handleDeleteResourceType(w http.ResponseWriter, r *http.Re
 // handleGetResources retrieves resources with filtering.
 
 func (s *O2APIServer) handleGetResources(w http.ResponseWriter, r *http.Request) {
+	if s.imsService == nil {
+		s.writeJSONResponse(w, r, StatusOK, []interface{}{})
+		return
+	}
 	filter := s.parseResourceFilter(r)
 
 	resources, err := s.imsService.GetResources(r.Context(), filter)
@@ -694,6 +716,10 @@ func (s *O2APIServer) handleDeleteDeploymentTemplate(w http.ResponseWriter, r *h
 // handleGetDeployments retrieves deployments.
 
 func (s *O2APIServer) handleGetDeployments(w http.ResponseWriter, r *http.Request) {
+	if s.imsService == nil {
+		s.writeJSONResponse(w, r, StatusOK, []interface{}{})
+		return
+	}
 	filter := s.parseDeploymentFilter(r)
 
 	deployments, err := s.imsService.GetDeployments(r.Context(), filter)
@@ -838,6 +864,11 @@ func (s *O2APIServer) handleCreateSubscription(w http.ResponseWriter, r *http.Re
 
 	}
 
+	if s.imsService == nil {
+		s.writeJSONResponse(w, r, StatusOK, map[string]string{"message": "not implemented"})
+		return
+	}
+
 	createdSubscription, err := s.imsService.CreateSubscription(r.Context(), &subscription)
 	if err != nil {
 
@@ -853,6 +884,10 @@ func (s *O2APIServer) handleCreateSubscription(w http.ResponseWriter, r *http.Re
 // handleGetSubscriptions retrieves subscriptions.
 
 func (s *O2APIServer) handleGetSubscriptions(w http.ResponseWriter, r *http.Request) {
+	if s.imsService == nil {
+		s.writeJSONResponse(w, r, StatusOK, []interface{}{})
+		return
+	}
 	filter := s.parseSubscriptionFilter(r)
 
 	subscriptions, err := s.imsService.GetSubscriptions(r.Context(), filter)
@@ -878,6 +913,11 @@ func (s *O2APIServer) handleGetSubscription(w http.ResponseWriter, r *http.Reque
 
 		return
 
+	}
+
+	if s.imsService == nil {
+		s.writeJSONResponse(w, r, StatusOK, map[string]string{"message": "not implemented"})
+		return
 	}
 
 	subscription, err := s.imsService.GetSubscription(r.Context(), subscriptionID)
@@ -938,6 +978,11 @@ func (s *O2APIServer) handleDeleteSubscription(w http.ResponseWriter, r *http.Re
 
 		return
 
+	}
+
+	if s.imsService == nil {
+		s.writeJSONResponse(w, r, StatusOK, map[string]string{"message": "not implemented"})
+		return
 	}
 
 	if err := s.imsService.DeleteSubscription(r.Context(), subscriptionID); err != nil {
@@ -1075,5 +1120,12 @@ func (s *O2APIServer) handleRemoveCloudProvider(w http.ResponseWriter, r *http.R
 	}
 
 	w.WriteHeader(StatusNoContent)
+}
+
+// handleStubNotImplemented returns 200 with a JSON body indicating the endpoint is not yet implemented.
+// This is used for routes that must exist per the O-RAN O2 IMS specification but whose full
+// server-side logic is pending implementation.
+func (s *O2APIServer) handleStubNotImplemented(w http.ResponseWriter, r *http.Request) {
+	s.writeJSONResponse(w, r, StatusOK, map[string]string{"message": "not implemented"})
 }
 

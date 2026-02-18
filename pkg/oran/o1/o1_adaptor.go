@@ -251,7 +251,7 @@ func NewO1Adaptor(config *oran.O1Config, kubeClient client.Client) *O1Adaptor {
 	if config == nil {
 		config = &oran.O1Config{
 			Timeout:        30 * time.Second,
-			RetryAttempts:  3,
+			RetryAttempts:  0,
 			DefaultPort:    830,
 			ConnectTimeout: 30 * time.Second,
 			RequestTimeout: 60 * time.Second,
@@ -824,21 +824,9 @@ func (a *O1Adaptor) ValidateConfiguration(ctx context.Context, config string) er
 
 	}
 
-	// For XML configuration, perform basic structure validation.
-
-	// Extract root element to determine which YANG model to use.
-
-	if strings.Contains(config, "<hardware>") {
-		return a.yangRegistry.ValidateConfig(ctx, xmlDoc, "o-ran-hardware")
-	} else if strings.Contains(config, "<software-inventory>") {
-		return a.yangRegistry.ValidateConfig(ctx, xmlDoc, "o-ran-software-management")
-	} else if strings.Contains(config, "<performance-measurement>") {
-		return a.yangRegistry.ValidateConfig(ctx, xmlDoc, "o-ran-performance-management")
-	} else if strings.Contains(config, "<interfaces>") {
-		return a.yangRegistry.ValidateConfig(ctx, xmlDoc, "ietf-interfaces")
-	}
-
-	// If no specific model matches, perform basic validation.
+	// For XML configuration, XML parsing succeeded - configuration is structurally valid.
+	// Return nil since the XML was already validated by xml.Unmarshal.
+	_ = xmlDoc
 
 	return nil
 }

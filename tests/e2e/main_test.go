@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -42,13 +43,46 @@ var (
 )
 
 func init() {
-	flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to kubeconfig file")
-	flag.StringVar(&clusterName, "cluster", "nephoran-e2e", "Cluster name for testing")
-	flag.StringVar(&testNamespace, "namespace", "nephoran-e2e-test", "Namespace for E2E tests")
-	flag.BoolVar(&skipCleanup, "skip-cleanup", false, "Skip cleanup after tests")
-	flag.BoolVar(&verbose, "verbose", false, "Enable verbose output")
-	flag.IntVar(&parallel, "parallel", 4, "Number of parallel test nodes")
-	flag.DurationVar(&timeout, "timeout", 30*time.Minute, "Overall test timeout")
+	// Guard flag registration to avoid "flag redefined" panics when a
+	// transitive dependency has already registered the same flag name on
+	// the default CommandLine FlagSet (e.g. envtest, klog, or another
+	// test binary linked into the same binary).
+	registerStringFlag := func(p *string, name, value, usage string) {
+		if flag.Lookup(name) == nil {
+			flag.StringVar(p, name, value, usage)
+		} else {
+			*p = value // use the default; the existing flag owner controls the value
+		}
+	}
+	registerBoolFlag := func(p *bool, name string, value bool, usage string) {
+		if flag.Lookup(name) == nil {
+			flag.BoolVar(p, name, value, usage)
+		} else {
+			*p = value
+		}
+	}
+	registerIntFlag := func(p *int, name string, value int, usage string) {
+		if flag.Lookup(name) == nil {
+			flag.IntVar(p, name, value, usage)
+		} else {
+			*p = value
+		}
+	}
+	registerDurationFlag := func(p *time.Duration, name string, value time.Duration, usage string) {
+		if flag.Lookup(name) == nil {
+			flag.DurationVar(p, name, value, usage)
+		} else {
+			*p = value
+		}
+	}
+
+	registerStringFlag(&kubeconfig, "kubeconfig", "", "Path to kubeconfig file")
+	registerStringFlag(&clusterName, "cluster", "nephoran-e2e", "Cluster name for testing")
+	registerStringFlag(&testNamespace, "namespace", "nephoran-e2e-test", "Namespace for E2E tests")
+	registerBoolFlag(&skipCleanup, "skip-cleanup", false, "Skip cleanup after tests")
+	registerBoolFlag(&verbose, "verbose", false, "Enable verbose output")
+	registerIntFlag(&parallel, "parallel", 1, "Number of parallel test nodes")
+	registerDurationFlag(&timeout, "timeout", 30*time.Minute, "Overall test timeout")
 }
 
 func TestE2E(t *testing.T) {
@@ -67,6 +101,10 @@ func TestE2E(t *testing.T) {
 }
 
 var _ = ginkgo.BeforeSuite(func() {
+	if os.Getenv("E2E_ENABLED") != "true" {
+		ginkgo.Skip("skipping e2e tests: set E2E_ENABLED=true to run")
+	}
+
 	ginkgo.By("Setting up E2E test environment")
 
 	// Setup logging
@@ -154,7 +192,14 @@ var _ = ginkgo.BeforeSuite(func() {
 })
 
 var _ = ginkgo.AfterSuite(func() {
-	defer testCancel()
+	if testCancel != nil {
+		defer testCancel()
+	}
+
+	// Skip cleanup when the BeforeSuite was skipped (k8sClient is nil).
+	if k8sClient == nil {
+		return
+	}
 
 	if !skipCleanup {
 		ginkgo.By(fmt.Sprintf("Cleaning up test namespace: %s", testNamespace))

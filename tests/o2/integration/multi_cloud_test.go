@@ -29,6 +29,12 @@ func (suite *MultiCloudTestSuite) SetupSuite() {
 	suite.gcpProvider = mocks.NewMockGCPProvider()
 	// suite.helpers = mocks.NewCloudProviderTestHelpers() // TODO: Implement CloudProviderTestHelpers type
 	suite.testLogger = logging.NewLogger("multi-cloud-test", "debug")
+
+	// Configure mock expectations so each provider responds correctly to all
+	// CloudProvider interface methods called by the test cases.
+	configureMockAWSProvider(suite.awsProvider)
+	configureMockAzureProvider(suite.azureProvider)
+	configureMockGCPProvider(suite.gcpProvider)
 }
 
 // Helper methods to replace missing CloudProviderTestHelpers
@@ -58,8 +64,8 @@ func (suite *MultiCloudTestSuite) createTestResourcePool(provider, region string
 		},
 		Capacity: &models.ResourceCapacity{
 			CPU:     &models.ResourceMetric{Total: "100", Available: "100", Used: "0", Unit: "cores", Utilization: 0.0},
-			Memory:  &models.ResourceMetric{Total: "256", Available: "256", Used: "0", Unit: "GB", Utilization: 0.0},
-			Storage: &models.ResourceMetric{Total: "1000", Available: "1000", Used: "0", Unit: "GB", Utilization: 0.0},
+			Memory:  &models.ResourceMetric{Total: "256", Available: "256", Used: "0", Unit: "bytes", Utilization: 0.0},
+			Storage: &models.ResourceMetric{Total: "1000", Available: "1000", Used: "0", Unit: "bytes", Utilization: 0.0},
 		},
 	}
 }

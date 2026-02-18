@@ -10,6 +10,7 @@ package integration_tests
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -45,6 +46,11 @@ var (
 )
 
 func TestIntegration(t *testing.T) {
+	// Skip when envtest binaries are not available and INTEGRATION_ENABLED is not set
+	if os.Getenv("KUBEBUILDER_ASSETS") == "" && os.Getenv("INTEGRATION_ENABLED") != "true" {
+		t.Skip("skipping integration tests: set INTEGRATION_ENABLED=true or KUBEBUILDER_ASSETS to run")
+	}
+
 	RegisterFailHandler(Fail)
 
 	RunSpecs(t, "Nephoran Integration Test Suite")

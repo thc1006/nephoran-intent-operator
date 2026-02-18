@@ -3,6 +3,7 @@ package integration
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"sync"
 	"testing"
 	"time"
@@ -14,9 +15,21 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 
 	porchclient "github.com/thc1006/nephoran-intent-operator/pkg/porch"
 )
+
+// checkPorchAvailability probes the Porch server to see if it is reachable.
+func checkPorchAvailability() error {
+	client := &http.Client{Timeout: 3 * time.Second}
+	resp, err := client.Get("http://porch-server:8080/healthz")
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	return nil
+}
 
 // Porch v1alpha1 API types - defining locally for integration test compatibility
 var porchv1alpha1 = struct {
@@ -65,8 +78,11 @@ const (
 )
 
 func setupTestEnvironment(t *testing.T) (*rest.Config, *kubernetes.Clientset, *porchclient.Client) {
-	// Load Kubernetes configuration
+	// Load Kubernetes configuration (in-cluster or kubeconfig fallback)
 	config, err := rest.InClusterConfig()
+	if err != nil {
+		config, err = clientcmd.BuildConfigFromFlags("", clientcmd.RecommendedHomeFile)
+	}
 	require.NoError(t, err, "Failed to load Kubernetes config")
 
 	// Create Kubernetes clientset
@@ -91,6 +107,10 @@ func setupTestEnvironment(t *testing.T) (*rest.Config, *kubernetes.Clientset, *p
 }
 
 func TestPorchIntegration(t *testing.T) {
+	// Skip if Porch is not deployed
+	if err := checkPorchAvailability(); err != nil {
+		t.Skipf("skipping: Porch server not available at porch-server:8080 - %v", err)
+	}
 	// Setup test environment
 	_, _, porchClient := setupTestEnvironment(t)
 
@@ -201,6 +221,10 @@ func TestPorchIntegration(t *testing.T) {
 }
 
 func TestPorchRollbackScenarios(t *testing.T) {
+	// Skip if Porch is not deployed
+	if err := checkPorchAvailability(); err != nil {
+		t.Skipf("skipping: Porch server not available at porch-server:8080 - %v", err)
+	}
 	_, _, porchClient := setupTestEnvironment(t)
 
 	t.Run("RollbackPackageVersion", func(t *testing.T) {

@@ -38,6 +38,12 @@ func (s *ORANComplianceTestSuite) SetupSuite() {
 			},
 		},
 	}
+
+	// Check server availability; skip all tests if not reachable
+	probeClient := &http.Client{Timeout: 3 * time.Second}
+	if _, err := probeClient.Get(s.baseURL + "/health"); err != nil {
+		s.T().Skipf("O-RAN server not available at %s (set ORAN_TEST_URL env var): %v", s.baseURL, err)
+	}
 }
 
 // Test A1 Interface Compliance

@@ -54,6 +54,14 @@ func (suite *CNFDeploymentTestSuite) SetupSuite() {
 				corev1.ResourceMemory: resource.MustParse("1Gi"),
 			},
 		},
+		// At least one enabled provider is required by NewO2Adaptor.
+		Providers: map[string]*o2.ProviderConfig{
+			"kubernetes": {
+				Type:    "kubernetes",
+				Enabled: true,
+				Config:  map[string]string{"in_cluster": "false"},
+			},
+		},
 	}
 
 	var err error
@@ -860,8 +868,9 @@ func (suite *CNFDeploymentTestSuite) TestCNFHealthMonitoring() {
 		suite.Assert().Equal(int32(5), container.LivenessProbe.InitialDelaySeconds)
 		suite.Assert().Equal(int32(1), container.ReadinessProbe.InitialDelaySeconds)
 
-		// Test retrieving VNF instance status
-		instanceID := fmt.Sprintf("%s-healthy-cnf", suite.testNamespace)
+		// Test retrieving VNF instance status.
+		// GetVNFInstance expects "namespace/name" format.
+		instanceID := fmt.Sprintf("%s/healthy-cnf", suite.testNamespace)
 		vnfInstance, err := suite.o2Adaptor.GetVNFInstance(ctx, instanceID)
 		suite.Require().NoError(err)
 		suite.Assert().Equal("healthy-cnf", vnfInstance.Name)

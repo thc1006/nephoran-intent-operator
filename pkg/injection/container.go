@@ -148,6 +148,10 @@ func (c *Container) getLLMClient() (shared.ClientInterface, error) {
 		return nil, err
 	}
 
+	if dep == nil {
+		return nil, nil
+	}
+
 	return dep.(shared.ClientInterface), nil
 }
 

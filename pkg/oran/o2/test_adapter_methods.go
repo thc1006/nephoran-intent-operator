@@ -208,7 +208,7 @@ func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeplo
 	// Return VNF instance.
 
 	instance := &O2VNFInstance{
-		ID: fmt.Sprintf("%s-%s", namespace, request.Name),
+		ID: fmt.Sprintf("%s/%s", namespace, request.Name),
 
 		Name: request.Name,
 
@@ -221,7 +221,7 @@ func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeplo
 		Status: &VNFInstanceStatus{
 			State: "INSTANTIATED",
 
-			DetailedState: "RUNNING",
+			DetailedState: "CREATING",
 		},
 
 		CreatedAt: time.Now(),
@@ -318,7 +318,7 @@ func (o2 *O2Adaptor) deployVNFFromDescriptor(ctx context.Context, descriptor *VN
 // ScaleVNF scales a VNF instance.
 
 func (o2 *O2Adaptor) ScaleVNF(ctx context.Context, instanceID string, request *VNFScaleRequest) error {
-	parts := strings.SplitN(instanceID, "-", 2)
+	parts := strings.SplitN(instanceID, "/", 2)
 
 	if len(parts) != 2 {
 		return fmt.Errorf("invalid instance ID format: %s", instanceID)
@@ -369,7 +369,7 @@ func (o2 *O2Adaptor) ScaleVNF(ctx context.Context, instanceID string, request *V
 // GetVNFInstance gets a VNF instance by ID.
 
 func (o2 *O2Adaptor) GetVNFInstance(ctx context.Context, instanceID string) (*O2VNFInstance, error) {
-	parts := strings.SplitN(instanceID, "-", 2)
+	parts := strings.SplitN(instanceID, "/", 2)
 
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("invalid instance ID format: %s", instanceID)
@@ -559,10 +559,14 @@ func (o2 *O2Adaptor) DiscoverResources(ctx context.Context) (*ResourceMap, error
 	}
 
 	for _, namespace := range namespaceList.Items {
+		phase := string(namespace.Status.Phase)
+		if phase == "" {
+			// Fake k8s clients don't populate Status.Phase; default to Active.
+			phase = "Active"
+		}
 		resourceMap.Namespaces[namespace.Name] = &NamespaceInfo{
-			Name: namespace.Name,
-
-			Status: string(namespace.Status.Phase),
+			Name:   namespace.Name,
+			Status: phase,
 		}
 	}
 

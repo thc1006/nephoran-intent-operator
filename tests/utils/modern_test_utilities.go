@@ -5,6 +5,7 @@ package testutils
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sync"
 	"testing"
@@ -45,9 +46,17 @@ func NewTestContext(t *testing.T) *TestContext {
 		tc.Cleanup()
 	})
 
-	// Enable goroutine leak detection following 2025 standards
+	// Enable goroutine leak detection following 2025 standards.
+	// Capture the goroutines that already exist at context-creation time so
+	// that parallel sibling sub-test goroutines (which are present when
+	// RunTableTests calls NewTestContext inside t.Parallel()) are not reported
+	// as leaks.  The cleanup runs after the sub-test finishes; only goroutines
+	// started after this snapshot point are considered leaks.
 	if testing.Short() == false {
-		goleak.VerifyNone(t)
+		ignoreExisting := goleak.IgnoreCurrent()
+		t.Cleanup(func() {
+			goleak.VerifyNone(t, ignoreExisting)
+		})
 	}
 
 	return tc
@@ -208,14 +217,32 @@ func (fm *FixtureManager) LoadFixture(name string, target interface{}) error {
 	return nil
 }
 
-// RegisterFixture registers a fixture with the manager
+// RegisterFixture registers a fixture with the manager.
+// The fixture is stored as a JSON-round-tripped value so that the registered
+// value and any value loaded via LoadFixture have identical types (e.g. numbers
+// as float64, slices as []interface{}) and can be compared with require.Equal.
 func (fm *FixtureManager) RegisterFixture(name string, fixture interface{}) {
 	fm.mutex.Lock()
 	defer fm.mutex.Unlock()
-	fm.fixtures[name] = fixture
+
+	// Round-trip through JSON to normalise all Go types to their JSON equivalents.
+	data, err := json.Marshal(fixture)
+	if err != nil {
+		// Fall back to storing the raw value; comparison may fail for numeric types.
+		fm.fixtures[name] = fixture
+		return
+	}
+	var normalised interface{}
+	if err := json.Unmarshal(data, &normalised); err != nil {
+		fm.fixtures[name] = fixture
+		return
+	}
+	fm.fixtures[name] = normalised
 }
 
-// CreateNetworkIntentFixture creates a NetworkIntent test fixture
+// CreateNetworkIntentFixture creates a NetworkIntent test fixture.
+// The returned map has all values JSON-normalised (numbers as float64, slices
+// as []interface{}) so that it compares equal to a value loaded via LoadFixture.
 func (fm *FixtureManager) CreateNetworkIntentFixture(name, namespace, intentType string) map[string]interface{} {
 	fixture := map[string]interface{}{
 		"apiVersion": "nephoran.io/v1",
@@ -247,7 +274,17 @@ func (fm *FixtureManager) CreateNetworkIntentFixture(name, namespace, intentType
 		},
 	}
 
-	fm.RegisterFixture(fmt.Sprintf("NetworkIntent/%s", name), fixture)
+	fixtureName := fmt.Sprintf("NetworkIntent/%s", name)
+	fm.RegisterFixture(fixtureName, fixture)
+
+	// Return the JSON-normalised version stored by RegisterFixture so that the
+	// caller's copy compares equal to values loaded via LoadFixture.
+	fm.mutex.RLock()
+	stored := fm.fixtures[fixtureName]
+	fm.mutex.RUnlock()
+	if normalised, ok := stored.(map[string]interface{}); ok {
+		return normalised
+	}
 	return fixture
 }
 
@@ -354,7 +391,11 @@ func RunTableTests[T any, R any](
 			if tc.ShouldError {
 				require.Error(t, err, "Expected error but got none")
 				if tc.ErrorType != nil {
-					require.ErrorIs(t, err, tc.ErrorType, "Error type mismatch")
+					// Use errors.Is for wrapped sentinel errors; fall back to message
+					// comparison for plain errors.New() values (different pointer instances).
+					if !errors.Is(err, tc.ErrorType) {
+						require.EqualError(t, err, tc.ErrorType.Error(), "Error message mismatch")
+					}
 				}
 			} else {
 				require.NoError(t, err, "Unexpected error")

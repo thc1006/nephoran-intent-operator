@@ -283,7 +283,7 @@ func TestConductorReconcileFlow(t *testing.T) {
 			assert.Equal(t, tt.expectedTarget, intentData.Target)
 			assert.Equal(t, "default", intentData.Namespace)
 			assert.Equal(t, tt.expectedReplicas, intentData.Replicas)
-			assert.Equal(t, "user", intentData.Source)
+			assert.Equal(t, "conductor-watch", intentData.Source)
 			assert.Contains(t, intentData.CorrelationID, "test-intent")
 			assert.Contains(t, intentData.Reason, "NetworkIntent")
 

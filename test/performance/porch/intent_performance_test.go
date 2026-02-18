@@ -120,7 +120,7 @@ func generateTestIntent(
 			Target:     fmt.Sprintf("test-target-%d", index),
 			Namespace:  "performance-test",
 			Replicas:   int32(networkFunctionsCount),
-			ScalingParameters: networkintentv1alpha1.ScalingConfig{
+			ScalingParameters: &networkintentv1alpha1.ScalingParameters{
 				Replicas: int32(networkFunctionsCount),
 			},
 		},

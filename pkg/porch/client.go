@@ -224,7 +224,42 @@ func (c *Client) ApprovePackage(revision *PorchPackageRevision) (*PorchPackageRe
 		}, nil
 	}
 
-	return c.updateRevisionStatus(revision, "APPROVED")
+	url := fmt.Sprintf("%s/api/v1/packagerevisions/%s/approve", c.baseURL, revision.Name)
+	body := map[string]interface{}{
+		"spec": map[string]interface{}{
+			"lifecycle": "APPROVED",
+		},
+	}
+
+	data, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to approve package: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		respBody, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to approve package: %s", respBody)
+	}
+
+	var approvedRevision PorchPackageRevision
+	if err := json.NewDecoder(resp.Body).Decode(&approvedRevision); err != nil {
+		// Return input revision on decode error (body may be empty)
+		return revision, nil
+	}
+
+	return &approvedRevision, nil
 }
 
 // PublishPackage moves a package revision from APPROVED to PUBLISHED state
@@ -430,6 +465,10 @@ func (c *Client) applyOverlays(revision *PorchPackageRevision, req *PackageReque
 
 func (c *Client) generateOverlays(intent *intent.NetworkIntent) map[string]string {
 	overlays := make(map[string]string)
+
+	if intent == nil {
+		return overlays
+	}
 
 	// Generate deployment overlay
 	deploymentOverlay := fmt.Sprintf(`apiVersion: apps/v1

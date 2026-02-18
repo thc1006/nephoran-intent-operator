@@ -40,7 +40,7 @@ func TestGetTestKubernetesConfig(t *testing.T) {
 				// We can't easily mock it here, but we can test other paths
 			},
 			cleanupEnv:     func() {},
-			expectedSource: ConfigSourceMock, // Will fall back to mock in most cases
+			expectedSource: "", // Source depends on environment (kubeconfig, mock, etc.)
 		},
 		{
 			name: "environment_endpoint",

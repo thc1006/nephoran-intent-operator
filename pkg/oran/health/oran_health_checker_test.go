@@ -320,7 +320,7 @@ func TestHealthSnapshot_Structure(t *testing.T) {
 	assert.Equal(t, health.StatusHealthy, snapshot.OverallStatus)
 	assert.Len(t, snapshot.InterfaceStatus, 2)
 	assert.Len(t, snapshot.DependencyStatus, 1)
-	assert.Len(t, snapshot.CircuitBreakerStats, 1)
+	assert.JSONEq(t, `{"state": "closed"}`, string(snapshot.CircuitBreakerStats))
 	assert.Equal(t, int64(10), snapshot.Metrics.TotalChecks)
 	assert.Equal(t, int64(9), snapshot.Metrics.HealthyChecks)
 	assert.Equal(t, int64(1), snapshot.Metrics.UnhealthyChecks)

@@ -382,7 +382,7 @@ func (h *LLMProcessorHandler) StatusHandler(w http.ResponseWriter, r *http.Reque
 		)
 	}()
 
-	status := json.RawMessage(`{}`)
+	status := json.RawMessage(`{"service":"llm-processor","status":"ok"}`)
 
 	h.writeJSONResponse(w, status, http.StatusOK)
 }

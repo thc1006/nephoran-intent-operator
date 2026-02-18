@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand/v2"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -31,13 +32,22 @@ type ChaosTestSuite struct {
 
 // TestChaosEngineering runs the chaos engineering test suite
 func TestChaosEngineering(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping chaos engineering tests in short mode")
+	}
+
+	testDuration := 3 * time.Minute
+	if os.Getenv("CHAOS_FULL") != "true" {
+		testDuration = 5 * time.Second
+	}
+
 	suite.Run(t, &ChaosTestSuite{
 		TestSuite: framework.NewTestSuite(&framework.TestConfig{
 			ChaosTestEnabled: true,
 			FailureRate:      0.2, // 20% failure rate
 			LoadTestEnabled:  true,
 			MaxConcurrency:   50,
-			TestDuration:     3 * time.Minute,
+			TestDuration:     testDuration,
 			MockExternalAPIs: true,
 		}),
 	})

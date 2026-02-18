@@ -12,12 +12,16 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// handoffSeq is a global atomic counter for unique handoff file naming
+var handoffSeq int64
 
 // PipelineTest represents a complete pipeline test configuration
 type PipelineTest struct {
@@ -447,8 +451,9 @@ func startIntentIngestService(t *testing.T, handoffDir, mode, provider string) *
 			return
 		}
 
-		// Create handoff file
-		timestamp := time.Now().Format("20060102-150405.000")
+		// Create handoff file with unique name using atomic counter + nanosecond timestamp
+		seq := atomic.AddInt64(&handoffSeq, 1)
+		timestamp := fmt.Sprintf("%s-%d-%d", time.Now().Format("20060102-150405"), seq, time.Now().UnixNano()%1000000)
 		filename := fmt.Sprintf("intent-%s.json", timestamp)
 		handoffPath := filepath.Join(handoffDir, filename)
 

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strconv"
 	"sync"
 	"testing"
@@ -126,6 +127,15 @@ func (m *LoadTestMetrics) Finalize() {
 }
 
 func TestO2APILoadPerformance(t *testing.T) {
+	// This test runs 1000+ concurrent HTTP requests and takes 40+ seconds.
+	// Skip when -short is passed or when ENABLE_LOAD_TESTS is not set.
+	if testing.Short() {
+		t.Skip("skipping load performance test: requires long runtime; run without -short or set ENABLE_LOAD_TESTS=true")
+	}
+	if os.Getenv("ENABLE_LOAD_TESTS") != "true" {
+		t.Skip("skipping load performance test: set ENABLE_LOAD_TESTS=true to run")
+	}
+
 	// Setup test environment
 	scheme := runtime.NewScheme()
 	corev1.AddToScheme(scheme)

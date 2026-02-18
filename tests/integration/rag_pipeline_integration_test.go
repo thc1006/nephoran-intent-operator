@@ -655,6 +655,9 @@ type TestResult struct {
 
 // Test runner
 func TestRAGPipelineIntegration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping RAG pipeline integration test: requires live services; run without -short to enable")
+	}
 	suite.Run(t, new(RAGPipelineIntegrationTestSuite))
 }
 

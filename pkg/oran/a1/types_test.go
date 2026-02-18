@@ -115,7 +115,7 @@ func TestTypes_AdvancedValidation(t *testing.T) {
 				PolicyData:   nil,
 			},
 			expectErrors: true,
-			errorSubstr:  []string{"policy_id", "policy_type_id", "policy_data"},
+			errorSubstr:  []string{"PolicyID", "PolicyTypeID", "PolicyData"},
 		},
 		{
 			name: "Enrichment Job with Invalid Target URI",
@@ -127,7 +127,7 @@ func TestTypes_AdvancedValidation(t *testing.T) {
 				JobOwner:  "test-owner",
 			},
 			expectErrors: true,
-			errorSubstr:  []string{"target_uri"},
+			errorSubstr:  []string{"TargetURI"},
 		},
 	}
 

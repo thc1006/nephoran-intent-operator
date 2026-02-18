@@ -1941,6 +1941,9 @@ func (s *SLAComplianceTestSuite) testExecutiveDashboard(ctx context.Context, rep
 
 // TestSuite runner function
 func TestSLAComplianceTestSuite(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SLA compliance tests in short mode: requires live Prometheus and SLA service")
+	}
 	suite.Run(t, new(SLAComplianceTestSuite))
 }
 

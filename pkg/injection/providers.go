@@ -55,64 +55,48 @@ func (c *SimpleHTTPClient) ProcessIntent(ctx context.Context, prompt string) (st
 	return "Processed intent: " + prompt, nil
 }
 
-// ProcessIntentStream performs processintentstream operation.
+// ProcessRequest processes a structured LLM request.
 
-func (c *SimpleHTTPClient) ProcessIntentStream(ctx context.Context, prompt string, chunks chan<- *shared.StreamingChunk) error {
-	// Basic implementation - this should be replaced with actual streaming client.
+func (c *SimpleHTTPClient) ProcessRequest(ctx context.Context, request *shared.LLMRequest) (*shared.LLMResponse, error) {
+	return &shared.LLMResponse{Content: "stub response"}, nil
+}
 
-	chunk := &shared.StreamingChunk{
-		Content: "Streamed response for: " + prompt,
+// ProcessStreamingRequest processes a streaming LLM request.
 
-		IsLast: true,
+func (c *SimpleHTTPClient) ProcessStreamingRequest(ctx context.Context, request *shared.LLMRequest) (<-chan *shared.StreamingChunk, error) {
+	ch := make(chan *shared.StreamingChunk, 1)
+	ch <- &shared.StreamingChunk{Content: "stub chunk", IsLast: true, Timestamp: time.Now()}
+	close(ch)
+	return ch, nil
+}
 
-		Timestamp: time.Now(),
-	}
+// HealthCheck checks the health of the LLM service.
 
-	chunks <- chunk
-
-	close(chunks)
-
+func (c *SimpleHTTPClient) HealthCheck(ctx context.Context) error {
 	return nil
 }
 
-// GetSupportedModels performs getsupportedmodels operation.
+// GetStatus returns the current status of the client.
 
-func (c *SimpleHTTPClient) GetSupportedModels() []string {
-	return []string{"gpt-4o-mini", "claude-3-haiku"}
+func (c *SimpleHTTPClient) GetStatus() shared.ClientStatus {
+	return shared.ClientStatusHealthy
 }
 
-// GetModelCapabilities performs getmodelcapabilities operation.
+// GetModelCapabilities returns model capabilities.
 
-func (c *SimpleHTTPClient) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
-	return &shared.ModelCapabilities{
-		MaxTokens: 4096,
-
-		SupportsChat: true,
-
-		SupportsFunction: false,
-
+func (c *SimpleHTTPClient) GetModelCapabilities() shared.ModelCapabilities {
+	return shared.ModelCapabilities{
+		MaxTokens:        4096,
+		SupportsChat:     true,
 		SupportsStreaming: true,
-
-		CostPerToken: 0.0001,
-	}, nil
+		CostPerToken:     0.0001,
+	}
 }
 
-// ValidateModel performs validatemodel operation.
+// GetEndpoint returns the base URL of the LLM service.
 
-func (c *SimpleHTTPClient) ValidateModel(modelName string) error {
-	return nil
-}
-
-// EstimateTokens performs estimatetokens operation.
-
-func (c *SimpleHTTPClient) EstimateTokens(text string) int {
-	return len(text) / 4 // Rough estimate
-}
-
-// GetMaxTokens performs getmaxtokens operation.
-
-func (c *SimpleHTTPClient) GetMaxTokens(modelName string) int {
-	return 4096
+func (c *SimpleHTTPClient) GetEndpoint() string {
+	return c.BaseURL
 }
 
 // Close performs close operation.

@@ -33,6 +33,9 @@ type AvailabilityTrackingTestSuite struct {
 }
 
 func TestAvailabilityTrackingTestSuite(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping availability tracking integration test: requires live services; run without -short to enable")
+	}
 	suite.Run(t, new(AvailabilityTrackingTestSuite))
 }
 
