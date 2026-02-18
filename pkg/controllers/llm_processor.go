@@ -448,6 +448,9 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 
 	processingTime, _ := json.Marshal(now.Format(time.RFC3339))
 
+	if networkIntent.Status.Extensions == nil {
+		networkIntent.Status.Extensions = make(map[string]runtime.RawExtension)
+	}
 	networkIntent.Status.Extensions["processingCompletionTime"] = runtime.RawExtension{Raw: processingTime}
 
 	condition := metav1.Condition{
