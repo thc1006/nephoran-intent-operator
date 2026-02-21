@@ -339,3 +339,12 @@ replace_section*
 # Runtime state files
 .conductor-state.json
 **/.*-state.json
+internal/loop/.conductor-state.json
+
+# Test reports and validation artifacts
+tests/unit/test-report-*.json
+VALIDATION_SUMMARY.txt
+SYSTEM_HEALTH_REPORT.md
+
+# Generated package examples
+cmd/porch-structured-patch/examples/packages/structured/
