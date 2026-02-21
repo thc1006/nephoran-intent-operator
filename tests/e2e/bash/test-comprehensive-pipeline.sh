@@ -196,7 +196,7 @@ spec:
 EOF
 
     # Apply NetworkIntent
-    if ! kubectl apply -f "/tmp/${intent_name}.yaml" -n "${INTENT_NAMESPACE}" &>/dev/null; then
+    if ! kubectl apply -f "/tmp/${intent_name}.yaml" 2>&1 | tee -a "${OUTPUT_DIR}/test.log" >&2; then
         log_fail "Failed to create NetworkIntent"
         rm -f "/tmp/${intent_name}.yaml"
         return 1
@@ -213,7 +213,7 @@ EOF
             sleep 2  # Wait for spec to populate
             local actual_replicas
             actual_replicas=$(kubectl get networkintent "${intent_name}" -n "${INTENT_NAMESPACE}" \
-                -o jsonpath='{.spec.desiredReplicas}' 2>/dev/null || echo "0")
+                -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "0")
 
             if [[ "${actual_replicas}" == "${expected_replicas}" ]]; then
                 log_pass "NetworkIntent has correct replicas: ${actual_replicas}"
