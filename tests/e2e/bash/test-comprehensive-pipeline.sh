@@ -163,7 +163,8 @@ create_intent_via_rag() {
     fi
 
     # Extract structured output and create NetworkIntent
-    local intent_name="networkintent-e2e-${test_id}-$(date +%s)"
+    # Convert test_id to lowercase for K8s name compliance (RFC 1123)
+    local intent_name="networkintent-e2e-$(echo "${test_id}" | tr '[:upper:]' '[:lower:]')-$(date +%s)"
     local nf_name nf_namespace nf_replicas
 
     # Parse structured output from RAG response
