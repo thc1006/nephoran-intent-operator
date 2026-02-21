@@ -109,7 +109,7 @@ chmod +x run_e2e_tests.sh
 # Run basic test suite
 ./run_e2e_tests.sh --suite basic
 
-# Run all tests with verbose output  
+# Run all tests with verbose output
 ./run_e2e_tests.sh --suite all --verbose --generate-report
 
 # Run integration tests, skip service checks
@@ -120,6 +120,41 @@ chmod +x run_e2e_tests.sh
 
 # Cleanup only
 ./run_e2e_tests.sh --cleanup-only
+```
+
+### Using New Comprehensive E2E Test Suite (2026-02-21)
+
+```bash
+# Set environment variables
+export RAG_URL="http://10.110.166.224:8000"  # Or kubectl get svc rag-service -n rag-service -o jsonpath='{.spec.clusterIP}'
+export INTENT_NAMESPACE="nephoran-system"
+export E2E_TIMEOUT=120
+
+# Run comprehensive pipeline tests (15 scenarios)
+./bash/test-comprehensive-pipeline.sh
+
+# Run master test runner (all suites)
+./bash/run-all-e2e-tests.sh
+
+# Run specific scaling tests only
+./bash/test-scaling.sh
+
+# Enable debug mode
+DEBUG=1 ./bash/test-comprehensive-pipeline.sh
+```
+
+### New Test Artifacts (2026-02-21)
+
+The new test suite generates comprehensive reports:
+
+```bash
+/tmp/e2e-test-results/run-YYYYMMDD-HHMMSS/
+├── SUMMARY.txt              # Human-readable summary
+├── junit-results.xml        # JUnit XML for CI/CD
+├── results.json             # Detailed JSON results
+├── performance.csv          # Performance metrics
+├── aggregate-results.json   # Cross-suite aggregation
+└── test.log                 # Full execution log
 ```
 
 ### Direct Ginkgo Execution

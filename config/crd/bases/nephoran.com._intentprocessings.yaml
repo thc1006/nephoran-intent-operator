@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.14.0
-  name: intentprocessings.nephoran.com.
+  name: intentprocessings.nephoran.com
 spec:
-  group: nephoran.com.
+  group: nephoran.com
   names:
     kind: IntentProcessing
     listKind: IntentProcessingList
@@ -1014,4 +1014,6 @@ spec:
     served: true
     storage: true
     subresources:
-      status: {}
+      status:
+        type: object
+        x-kubernetes-preserve-unknown-fields: true

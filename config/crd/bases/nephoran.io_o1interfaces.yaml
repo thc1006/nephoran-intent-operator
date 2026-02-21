@@ -39,12 +39,24 @@ spec:
             properties:
               credentials:
                 properties:
-                  caCertificateRef: {}
-                  clientCertificateRef: {}
-                  clientKeyRef: {}
-                  passwordRef: {}
-                  privateKeyRef: {}
-                  usernameRef: {}
+                  caCertificateRef:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  clientCertificateRef:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  clientKeyRef:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  passwordRef:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  privateKeyRef:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  usernameRef:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
                 type: object
               fcaps:
                 properties:
@@ -212,7 +224,9 @@ spec:
                     properties:
                       clientID:
                         type: string
-                      clientSecretRef: {}
+                      clientSecretRef:
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
                       enabled:
                         default: true
                         type: boolean
@@ -316,7 +330,9 @@ spec:
               yangModels:
                 items:
                   properties:
-                    configMapRef: {}
+                    configMapRef:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
                     name:
                       type: string
                     source:

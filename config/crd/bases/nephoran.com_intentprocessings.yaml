@@ -473,4 +473,6 @@ spec:
     served: true
     storage: true
     subresources:
-      status: {}
+      status:
+        type: object
+        x-kubernetes-preserve-unknown-fields: true

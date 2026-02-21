@@ -49,9 +49,9 @@ type A1ErrorResponse struct {
 // CreatePolicyTypeCompliant creates a policy type using O-RAN compliant endpoints.
 
 func (a *A1Adaptor) CreatePolicyTypeCompliant(ctx context.Context, policyType *A1PolicyType) error {
-	// O-RAN compliant URL format.
+	// O-RAN SC A1 Mediator URL format (requires capital A1-P prefix)
 
-	url := fmt.Sprintf("%s/v2/policytypes/%d", a.ricURL, policyType.PolicyTypeID)
+	url := fmt.Sprintf("%s/A1-P/v2/policytypes/%d", a.ricURL, policyType.PolicyTypeID)
 
 	// Convert to O-RAN compliant format.
 
@@ -124,7 +124,7 @@ func (a *A1Adaptor) CreatePolicyTypeCompliant(ctx context.Context, policyType *A
 // GetPolicyTypeCompliant retrieves a policy type using O-RAN compliant format.
 
 func (a *A1Adaptor) GetPolicyTypeCompliant(ctx context.Context, policyTypeID int) (*A1PolicyTypeResponse, error) {
-	url := fmt.Sprintf("%s/v2/policytypes/%d", a.ricURL, policyTypeID)
+	url := fmt.Sprintf("%s/A1-P/v2/policytypes/%d", a.ricURL, policyTypeID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
@@ -166,7 +166,7 @@ func (a *A1Adaptor) GetPolicyTypeCompliant(ctx context.Context, policyTypeID int
 // ListPolicyTypesCompliant lists all policy types in O-RAN compliant format.
 
 func (a *A1Adaptor) ListPolicyTypesCompliant(ctx context.Context) ([]int, error) {
-	url := fmt.Sprintf("%s/v2/policytypes", a.ricURL)
+	url := fmt.Sprintf("%s/A1-P/v2/policytypes", a.ricURL)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
@@ -198,7 +198,7 @@ func (a *A1Adaptor) ListPolicyTypesCompliant(ctx context.Context) ([]int, error)
 // DeletePolicyTypeCompliant deletes a policy type using O-RAN compliant format.
 
 func (a *A1Adaptor) DeletePolicyTypeCompliant(ctx context.Context, policyTypeID int) error {
-	url := fmt.Sprintf("%s/v2/policytypes/%d", a.ricURL, policyTypeID)
+	url := fmt.Sprintf("%s/A1-P/v2/policytypes/%d", a.ricURL, policyTypeID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, http.NoBody)
 	if err != nil {
@@ -244,7 +244,7 @@ func (a *A1Adaptor) CreatePolicyInstanceCompliant(ctx context.Context, policyTyp
 		return fmt.Errorf("policy validation failed: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/v2/policytypes/%d/policies/%s", a.ricURL, policyTypeID, instanceID)
+	url := fmt.Sprintf("%s/A1-P/v2/policytypes/%d/policies/%s", a.ricURL, policyTypeID, instanceID)
 
 	body, err := json.Marshal(policyData)
 	if err != nil {
@@ -299,7 +299,7 @@ func (a *A1Adaptor) CreatePolicyInstanceCompliant(ctx context.Context, policyTyp
 // GetPolicyStatusCompliant retrieves policy status with detailed information.
 
 func (a *A1Adaptor) GetPolicyStatusCompliant(ctx context.Context, policyTypeID int, instanceID string) (*A1PolicyStatusCompliant, error) {
-	url := fmt.Sprintf("%s/v2/policytypes/%d/policies/%s/status", a.ricURL, policyTypeID, instanceID)
+	url := fmt.Sprintf("%s/A1-P/v2/policytypes/%d/policies/%s/status", a.ricURL, policyTypeID, instanceID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
