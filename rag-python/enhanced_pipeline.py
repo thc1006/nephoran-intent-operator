@@ -181,11 +181,20 @@ class TelecomKnowledgeManager:
             return False
     
     def _add_batch(self, documents: List[Document]) -> None:
-        """Add a batch of documents to Weaviate"""
+        """Add a batch of documents to Weaviate with computed embeddings"""
+        # Compute embeddings for all documents in batch
+        texts = [doc.page_content for doc in documents]
+        try:
+            vectors = self.embeddings.embed_documents(texts)
+            self.logger.debug(f"Generated {len(vectors)} embeddings for batch")
+        except Exception as e:
+            self.logger.error(f"Failed to generate embeddings: {e}")
+            raise
+
         with self.client.batch as batch:
             batch.batch_size = len(documents)
-            
-            for doc in documents:
+
+            for idx, doc in enumerate(documents):
                 properties = {
                     "content": doc.page_content,
                     "source": doc.metadata.get("source", "unknown"),
@@ -194,11 +203,12 @@ class TelecomKnowledgeManager:
                     "keywords": doc.metadata.get("keywords", []),
                     "confidence": doc.metadata.get("confidence", 1.0)
                 }
-                
+
                 batch.add_data_object(
                     data_object=properties,
                     class_name="TelecomKnowledge",
-                    uuid=doc.metadata.get("uuid", str(uuid.uuid4()))
+                    uuid=doc.metadata.get("uuid", str(uuid.uuid4())),
+                    vector=vectors[idx]  # Provide computed vector for similarity search
                 )
 
 
