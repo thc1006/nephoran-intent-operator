@@ -37,6 +37,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -451,18 +452,9 @@ func convertToA1Policy(networkIntent *intentv1alpha1.NetworkIntent) (*A1Policy, 
 	return policy, nil
 }
 
-// a1PolicyRequest is the standard O-RAN Alliance A1AP-v03.01 policy request body.
-// Used with PUT /v2/policies/{policyId}
-type a1PolicyRequest struct {
-	ID      string          `json:"id"`
-	Type    string          `json:"type,omitempty"`
-	RicID   string          `json:"ric,omitempty"`
-	Service string          `json:"service,omitempty"`
-	JSON    json.RawMessage `json:"json"`
-}
-
-// createA1Policy creates an A1 policy via the Non-RT RIC A1 Policy Management Service.
-// Uses the O-RAN Alliance A1AP-v03.01 standard path: PUT /v2/policies/{policyId}
+// createA1Policy creates an A1 policy via the O-RAN SC A1 Mediator.
+// Uses the O-RAN SC specific path: PUT /A1-P/v2/policytypes/{typeId}/policies/{policyId}
+// Note: O-RAN SC A1 Mediator requires capital "A1-P" prefix (not lowercase "a1-p")
 func (r *NetworkIntentReconciler) createA1Policy(ctx context.Context, networkIntent *intentv1alpha1.NetworkIntent, policy *A1Policy) error {
 	log := log.FromContext(ctx)
 
@@ -475,38 +467,33 @@ func (r *NetworkIntentReconciler) createA1Policy(ctx context.Context, networkInt
 	// Generate policy instance ID from NetworkIntent name
 	policyInstanceID := fmt.Sprintf("policy-%s", networkIntent.Name)
 
-	// Marshal the inner policy JSON
+	// Use policy type 100 (test policy type registered in O-RAN SC RIC)
+	const policyTypeID = 100
+
+	// Marshal the policy JSON (direct payload, no wrapper for O-RAN SC)
 	policyJSON, err := json.Marshal(policy)
 	if err != nil {
 		return fmt.Errorf("failed to marshal A1 policy body: %w", err)
 	}
 
-	// Wrap in standard A1AP request
-	req := a1PolicyRequest{
-		ID:      policyInstanceID,
-		Service: networkIntent.Namespace + "/" + networkIntent.Name,
-		JSON:    policyJSON,
-	}
-	bodyJSON, err := json.Marshal(req)
-	if err != nil {
-		return fmt.Errorf("failed to marshal A1 request: %w", err)
-	}
+	// O-RAN SC A1 Mediator path: PUT /A1-P/v2/policytypes/{typeId}/policies/{policyId}
+	// IMPORTANT: Use capital "A1-P" (not "a1-p" or "/v2/policies/")
+	apiEndpoint := fmt.Sprintf("%s/A1-P/v2/policytypes/%d/policies/%s", a1URL, policyTypeID, policyInstanceID)
 
-	// Standard O-RAN Alliance A1AP-v03.01 path: PUT /v2/policies/{policyId}
-	apiEndpoint := fmt.Sprintf("%s/v2/policies/%s", a1URL, policyInstanceID)
-
-	log.Info("Creating A1 policy (O-RAN A1AP-v03.01)",
+	log.Info("Creating A1 policy (O-RAN SC A1 Mediator)",
 		"endpoint", apiEndpoint,
+		"policyTypeID", policyTypeID,
 		"policyInstanceID", policyInstanceID)
 
 	// Create HTTP client with timeout
 	httpClient := &http.Client{Timeout: 10 * time.Second}
 
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, apiEndpoint, bytes.NewBuffer(bodyJSON))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, apiEndpoint, bytes.NewBuffer(policyJSON))
 	if err != nil {
 		return fmt.Errorf("failed to create A1 request: %w", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Accept", "application/json")
 
 	resp, err := httpClient.Do(httpReq)
 	if err != nil {
@@ -518,19 +505,22 @@ func (r *NetworkIntentReconciler) createA1Policy(ctx context.Context, networkInt
 		}
 	}()
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("A1 API returned error status %d for PUT %s", resp.StatusCode, apiEndpoint)
+	// O-RAN SC A1 Mediator returns 200 OK for successful PUT (idempotent create/update)
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("A1 API returned error status %d for PUT %s: %s", resp.StatusCode, apiEndpoint, string(bodyBytes))
 	}
 
 	log.Info("A1 policy created successfully",
 		"policyInstanceID", policyInstanceID,
+		"policyTypeID", policyTypeID,
 		"statusCode", resp.StatusCode)
 
 	return nil
 }
 
-// deleteA1Policy deletes an A1 policy via the Non-RT RIC A1 Policy Management Service.
-// Uses the O-RAN Alliance A1AP-v03.01 standard path: DELETE /v2/policies/{policyId}
+// deleteA1Policy deletes an A1 policy via the O-RAN SC A1 Mediator.
+// Uses the O-RAN SC specific path: DELETE /A1-P/v2/policytypes/{typeId}/policies/{policyId}
 func (r *NetworkIntentReconciler) deleteA1Policy(ctx context.Context, networkIntent *intentv1alpha1.NetworkIntent) error {
 	log := log.FromContext(ctx)
 
@@ -541,12 +531,14 @@ func (r *NetworkIntentReconciler) deleteA1Policy(ctx context.Context, networkInt
 	}
 
 	policyInstanceID := fmt.Sprintf("policy-%s", networkIntent.Name)
+	const policyTypeID = 100
 
-	// Standard O-RAN Alliance A1AP-v03.01 path: DELETE /v2/policies/{policyId}
-	apiEndpoint := fmt.Sprintf("%s/v2/policies/%s", a1URL, policyInstanceID)
+	// O-RAN SC A1 Mediator path: DELETE /A1-P/v2/policytypes/{typeId}/policies/{policyId}
+	apiEndpoint := fmt.Sprintf("%s/A1-P/v2/policytypes/%d/policies/%s", a1URL, policyTypeID, policyInstanceID)
 
-	log.Info("Deleting A1 policy (O-RAN A1AP-v03.01)",
+	log.Info("Deleting A1 policy (O-RAN SC A1 Mediator)",
 		"endpoint", apiEndpoint,
+		"policyTypeID", policyTypeID,
 		"policyInstanceID", policyInstanceID)
 
 	httpClient := &http.Client{Timeout: 10 * time.Second}
@@ -566,15 +558,17 @@ func (r *NetworkIntentReconciler) deleteA1Policy(ctx context.Context, networkInt
 		}
 	}()
 
-	// 204 No Content, 202 Accepted, and 404 Not Found are all acceptable for DELETE
+	// O-RAN SC returns 200 OK for successful DELETE, 404 if not found (both acceptable)
 	switch resp.StatusCode {
-	case http.StatusNoContent, http.StatusAccepted, http.StatusNotFound:
+	case http.StatusOK, http.StatusNoContent, http.StatusAccepted, http.StatusNotFound:
 		log.Info("A1 policy deletion completed",
 			"policyInstanceID", policyInstanceID,
+			"policyTypeID", policyTypeID,
 			"statusCode", resp.StatusCode)
 		return nil
 	default:
-		return fmt.Errorf("A1 API DELETE %s returned unexpected status %d", apiEndpoint, resp.StatusCode)
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("A1 API DELETE %s returned unexpected status %d: %s", apiEndpoint, resp.StatusCode, string(bodyBytes))
 	}
 }
 
