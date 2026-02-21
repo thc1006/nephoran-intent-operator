@@ -412,4 +412,6 @@ spec:
         labelSelectorPath: .status.selector
         specReplicasPath: .spec.replicas
         statusReplicasPath: .status.replicas
-      status: {}
+      status:
+        type: object
+        x-kubernetes-preserve-unknown-fields: true
