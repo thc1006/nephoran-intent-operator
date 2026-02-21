@@ -57,11 +57,11 @@ fi
 # ---------------------------------------------------------------------------
 # Logging helpers
 # ---------------------------------------------------------------------------
-log_info()    { echo -e "${BLUE}[INFO]${NC}  $(date '+%H:%M:%S') $*" | tee -a "${OUTPUT_DIR}/test.log"; }
-log_pass()    { echo -e "${GREEN}[PASS]${NC}  $(date '+%H:%M:%S') $*" | tee -a "${OUTPUT_DIR}/test.log"; PASS_COUNT=$((PASS_COUNT + 1)); }
-log_fail()    { echo -e "${RED}[FAIL]${NC}  $(date '+%H:%M:%S') $*" | tee -a "${OUTPUT_DIR}/test.log"; FAIL_COUNT=$((FAIL_COUNT + 1)); }
-log_skip()    { echo -e "${YELLOW}[SKIP]${NC}  $(date '+%H:%M:%S') $*" | tee -a "${OUTPUT_DIR}/test.log"; SKIP_COUNT=$((SKIP_COUNT + 1)); }
-log_section() { echo -e "\n${CYAN}${BOLD}=== $* ===${NC}" | tee -a "${OUTPUT_DIR}/test.log"; }
+log_info()    { echo -e "${BLUE}[INFO]${NC}  $(date '+%H:%M:%S') $*" | tee -a "${OUTPUT_DIR}/test.log" >&2; }
+log_pass()    { echo -e "${GREEN}[PASS]${NC}  $(date '+%H:%M:%S') $*" | tee -a "${OUTPUT_DIR}/test.log" >&2; PASS_COUNT=$((PASS_COUNT + 1)); }
+log_fail()    { echo -e "${RED}[FAIL]${NC}  $(date '+%H:%M:%S') $*" | tee -a "${OUTPUT_DIR}/test.log" >&2; FAIL_COUNT=$((FAIL_COUNT + 1)); }
+log_skip()    { echo -e "${YELLOW}[SKIP]${NC}  $(date '+%H:%M:%S') $*" | tee -a "${OUTPUT_DIR}/test.log" >&2; SKIP_COUNT=$((SKIP_COUNT + 1)); }
+log_section() { echo -e "\n${CYAN}${BOLD}=== $* ===${NC}" | tee -a "${OUTPUT_DIR}/test.log" >&2; }
 
 # ---------------------------------------------------------------------------
 # Cleanup
@@ -162,27 +162,47 @@ create_intent_via_rag() {
         log_pass "RAG response time within threshold (${duration_ms}ms < 10s)"
     fi
 
-    # Extract NetworkIntent name from response or K8s
-    local intent_name
-    intent_name=$(echo "${response}" | python3 -c "
+    # Extract structured output and create NetworkIntent
+    local intent_name="networkintent-e2e-${test_id}-$(date +%s)"
+    local nf_name nf_namespace nf_replicas
+
+    # Parse structured output from RAG response
+    read -r nf_name nf_namespace nf_replicas <<< "$(echo "${response}" | python3 -c "
 import sys, json
 try:
     data = json.load(sys.stdin)
-    for field in ['intent_name', 'name', 'networkIntentName', 'intentName']:
-        if field in data:
-            print(data[field])
-            sys.exit(0)
+    output = data.get('structured_output', {})
+    name = output.get('name', 'unknown')
+    namespace = output.get('namespace', 'free5gc')
+    replicas = output.get('replicas', 1)
+    print(f'{name} {namespace} {replicas}')
 except:
-    pass
-" 2>/dev/null || echo "")
+    print('unknown free5gc 1')
+" 2>/dev/null)"
 
-    # Fallback: Get most recent NetworkIntent
-    if [[ -z "${intent_name}" ]]; then
-        sleep 2  # Wait for K8s API to propagate
-        intent_name=$(kubectl get networkintent -n "${INTENT_NAMESPACE}" \
-            --sort-by='.metadata.creationTimestamp' \
-            -o jsonpath='{.items[-1].metadata.name}' 2>/dev/null || echo "")
+    # Create NetworkIntent YAML
+    cat > "/tmp/${intent_name}.yaml" <<EOF
+apiVersion: intent.nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: ${intent_name}
+  namespace: ${INTENT_NAMESPACE}
+spec:
+  intentType: scaling
+  target: ${nf_name}
+  namespace: ${nf_namespace}
+  replicas: ${nf_replicas}
+  source: e2e-test
+EOF
+
+    # Apply NetworkIntent
+    if ! kubectl apply -f "/tmp/${intent_name}.yaml" -n "${INTENT_NAMESPACE}" &>/dev/null; then
+        log_fail "Failed to create NetworkIntent"
+        rm -f "/tmp/${intent_name}.yaml"
+        return 1
     fi
+
+    rm -f "/tmp/${intent_name}.yaml"
 
     if [[ -n "${intent_name}" ]]; then
         log_info "NetworkIntent created: ${intent_name}"
