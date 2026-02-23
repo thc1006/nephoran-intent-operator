@@ -213,9 +213,11 @@ spec:
         - name: MODE
           value: "llm"
         - name: PROVIDER
-          value: "mock"  # TODO: Implement ollama provider
+          value: "ollama"  # Now using real Ollama integration
         - name: OLLAMA_ENDPOINT
-          value: "http://ollama-service.ollama.svc.cluster.local:11434"
+          value: "http://ollama.ollama.svc.cluster.local:11434"
+        - name: OLLAMA_MODEL
+          value: "llama3.1"
         - name: RAG_ENDPOINT
           value: "http://rag-service.rag-service.svc.cluster.local:8000"
         - name: HANDOFF_DIR

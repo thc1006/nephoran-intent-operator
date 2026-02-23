@@ -4,10 +4,19 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
 )
+
+// getEnv gets an environment variable with a default fallback.
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
 
 // IntentProvider defines the interface for intent parsing providers.
 
@@ -244,6 +253,12 @@ func NewProvider(mode, provider string) (IntentProvider, error) {
 		case "mock":
 
 			return NewMockLLMProvider(), nil
+
+		case "ollama":
+			// Get Ollama configuration from environment or use defaults
+			endpoint := getEnv("OLLAMA_ENDPOINT", "http://ollama-service.ollama.svc.cluster.local:11434")
+			model := getEnv("OLLAMA_MODEL", "llama3.1")
+			return NewOllamaProvider(endpoint, model), nil
 
 		default:
 
