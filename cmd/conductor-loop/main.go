@@ -293,9 +293,9 @@ func runMain() int {
 			MaxRetries: 3,
 		}
 
-		// Create processor.
+		// Create processor with K8s-based submission (no porch CLI dependency).
 
-		processor, err := loop.NewProcessor(processorConfig, validator, loop.DefaultPorchSubmit)
+		processor, err := loop.NewProcessor(processorConfig, validator, loop.K8sSubmitFunc)
 		if err != nil {
 			log.Printf("Failed to create processor: %v", err)
 			return 1
