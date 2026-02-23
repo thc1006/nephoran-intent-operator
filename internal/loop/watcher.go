@@ -40,7 +40,14 @@ type Config struct {
 
 	Period time.Duration `json:"period"`
 
+	// MaxWorkers controls worker pool size (default: runtime.NumCPU())
+	// This affects workQueue buffer size: min(MaxWorkers * 3, 1000)
+	// Higher values improve throughput but increase memory usage
 	MaxWorkers int `json:"max_workers"`
+
+	// MaxChannelDepth sets absolute maximum for all buffered channels (default: 1000)
+	// Prevents memory exhaustion under extreme load conditions
+	MaxChannelDepth int `json:"max_channel_depth"`
 
 	CleanupAfter time.Duration `json:"cleanup_after"`
 
@@ -74,6 +81,24 @@ func (c *Config) Validate() error {
 		log.Printf("Warning: max_workers %d exceeds safe limit of %d (4x CPU cores), capping to safe limit", c.MaxWorkers, maxSafeWorkers)
 
 		c.MaxWorkers = maxSafeWorkers
+	}
+
+	// Validate MaxChannelDepth - prevent unbounded channel growth.
+
+	if c.MaxChannelDepth == 0 {
+		c.MaxChannelDepth = 1000 // Default: 1000 items max
+	}
+
+	if c.MaxChannelDepth < 100 {
+		log.Printf("Warning: max_channel_depth %d is too low, using minimum value 100", c.MaxChannelDepth)
+
+		c.MaxChannelDepth = 100
+	}
+
+	if c.MaxChannelDepth > 10000 {
+		log.Printf("Warning: max_channel_depth %d exceeds safe limit, capping to 10000", c.MaxChannelDepth)
+
+		c.MaxChannelDepth = 10000
 	}
 
 	// Validate MetricsPort.
@@ -314,6 +339,8 @@ type WatcherMetrics struct {
 
 	QueueDepthCurrent int64 // Current queue depth
 
+	QueueDepthMax int64 // Maximum observed queue depth
+
 	BackpressureEventsTotal int64 // Total backpressure events
 
 	// Latency Metrics (for percentile calculations).
@@ -463,6 +490,9 @@ type Watcher struct {
 	// IntentProcessor for new pattern support.
 
 	processor *IntentProcessor
+
+	// WaitGroup for background goroutines (cleanup routines, etc.)
+	backgroundWG sync.WaitGroup
 }
 
 // NewWatcher creates a new file system watcher (backward compatibility with Config approach).
@@ -595,8 +625,18 @@ func NewWatcherWithConfig(dir string, config Config, processor *IntentProcessor)
 		recentEvents: make(map[string]time.Time),
 	}
 
+	// Calculate work queue buffer with cap to prevent memory exhaustion.
+
+	workQueueSize := config.MaxWorkers * 3
+
+	if workQueueSize > config.MaxChannelDepth {
+		log.Printf("Info: Capping workQueue from %d to MaxChannelDepth %d for memory safety", workQueueSize, config.MaxChannelDepth)
+
+		workQueueSize = config.MaxChannelDepth
+	}
+
 	workerPool := &WorkerPool{
-		workQueue: make(chan WorkItem, config.MaxWorkers*3), // increased buffer
+		workQueue: make(chan WorkItem, workQueueSize),
 
 		stopSignal: make(chan struct{}),
 
@@ -1146,14 +1186,20 @@ func (w *Watcher) Start() error {
 	if w.processor == nil {
 		w.startWorkerPool()
 
-		// Start cleanup routine.
-
-		go w.cleanupRoutine()
+		// Start cleanup routine with proper lifecycle tracking.
+		w.backgroundWG.Add(1)
+		go func() {
+			defer w.backgroundWG.Done()
+			w.cleanupRoutine()
+		}()
 	}
 
-	// Start file state cleanup routine.
-
-	go w.fileStateCleanupRoutine()
+	// Start file state cleanup routine with proper lifecycle tracking.
+	w.backgroundWG.Add(1)
+	go func() {
+		defer w.backgroundWG.Done()
+		w.fileStateCleanupRoutine()
+	}()
 
 	// If in "once" mode, process existing files first.
 
@@ -1340,6 +1386,26 @@ func (w *Watcher) handleIntentFileWithEnhancedDebounce(filePath string, eventOp 
 
 			defer cancel()
 
+			// Track channel depth metrics.
+
+			currentDepth := int64(len(w.workerPool.workQueue))
+
+			atomic.StoreInt64(&w.metrics.QueueDepthCurrent, currentDepth)
+
+			// Update max if needed (lock-free CAS loop).
+
+			for {
+				oldMax := atomic.LoadInt64(&w.metrics.QueueDepthMax)
+
+				if currentDepth <= oldMax {
+					break
+				}
+
+				if atomic.CompareAndSwapInt64(&w.metrics.QueueDepthMax, oldMax, currentDepth) {
+					break
+				}
+			}
+
 		case <-w.ctx.Done():
 
 			cancel()
@@ -1408,6 +1474,26 @@ func (w *Watcher) processExistingFiles() error {
 				case w.workerPool.workQueue <- workItem:
 
 					filesQueued++
+
+					// Track channel depth metrics.
+
+					currentDepth := int64(len(w.workerPool.workQueue))
+
+					atomic.StoreInt64(&w.metrics.QueueDepthCurrent, currentDepth)
+
+					// Update max if needed.
+
+					for {
+						oldMax := atomic.LoadInt64(&w.metrics.QueueDepthMax)
+
+						if currentDepth <= oldMax {
+							break
+						}
+
+						if atomic.CompareAndSwapInt64(&w.metrics.QueueDepthMax, oldMax, currentDepth) {
+							break
+						}
+					}
 
 				case <-w.ctx.Done():
 
@@ -1893,6 +1979,23 @@ func (w *Watcher) Close() error {
 
 	if w.cancel != nil {
 		w.cancel()
+	}
+
+	// Stage 4: Wait for background goroutines to finish.
+	log.Printf("Stage 4: Waiting for background goroutines (cleanup routines) to finish...")
+
+	// Create a done channel with timeout for background goroutines
+	bgDone := make(chan struct{})
+	go func() {
+		w.backgroundWG.Wait()
+		close(bgDone)
+	}()
+
+	select {
+	case <-bgDone:
+		log.Printf("All background goroutines completed gracefully")
+	case <-time.After(5 * time.Second):
+		log.Printf("Warning: Background goroutines did not complete within 5s timeout")
 	}
 
 	// Close the file system watcher.
