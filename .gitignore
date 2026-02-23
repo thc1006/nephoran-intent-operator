@@ -348,3 +348,7 @@ SYSTEM_HEALTH_REPORT.md
 
 # Generated package examples
 cmd/porch-structured-patch/examples/packages/structured/
+
+# Root binaries (should be in bin/ directory)
+/operator
+/manager

@@ -1,19 +1,13 @@
 # Top-level tracked entries allowed in repository root (one per line, sorted)
+# Updated 2026-02-23: Removed zombie configs deleted in PR #355
 .claude
 .devcontainer
 .dockerignore
-.env.ollama.example
 .gitattributes
 .github
 .gitignore
 .gitmodules
 .golangci.yml
-.gosec.json
-.markdownlint.json
-.nancy-ignore
-.pre-commit-config.yaml
-.sops.yaml
-.yamllint.yml
 CHANGELOG.md
 CLAUDE.md
 CLAUDE_AGENTS_ANALYSIS.md
@@ -38,7 +32,6 @@ config
 controllers
 demo
 deployments
-docker-compose.ollama.yml
 docs
 examples
 go.mod
