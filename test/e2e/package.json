@@ -1,0 +1,8 @@
+{
+  "name": "nephoran-e2e-test",
+  "version": "1.0.0",
+  "description": "E2E tests for Nephoran Intent Operator",
+  "dependencies": {
+    "@playwright/test": "^1.40.0"
+  }
+}

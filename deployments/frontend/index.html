@@ -628,13 +628,20 @@
             document.getElementById('responseSection').classList.remove('show');
 
             try {
+                // Create AbortController with 60-second timeout for LLM processing
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 60000);
+
                 const response = await fetch(API_ENDPOINT, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'text/plain'
                     },
-                    body: input
+                    body: input,
+                    signal: controller.signal
                 });
+
+                clearTimeout(timeoutId);
 
                 const data = await response.json();
 
@@ -659,8 +666,15 @@
                 document.getElementById('loadingIndicator').classList.remove('show');
                 document.getElementById('responseSection').classList.add('show');
                 document.getElementById('responseStatus').className = 'response-status error';
-                document.getElementById('responseStatus').innerHTML = '<span>✗</span><span>Connection error</span>';
-                document.getElementById('responseContent').textContent = 'Error: ' + error.message;
+
+                // Check if error is due to timeout
+                if (error.name === 'AbortError') {
+                    document.getElementById('responseStatus').innerHTML = '<span>✗</span><span>Request timeout (LLM processing took > 60s)</span>';
+                    document.getElementById('responseContent').textContent = 'Error: Request timed out after 60 seconds. LLM processing may be too slow.';
+                } else {
+                    document.getElementById('responseStatus').innerHTML = '<span>✗</span><span>Connection error</span>';
+                    document.getElementById('responseContent').textContent = 'Error: ' + error.message;
+                }
 
                 addToHistory(input, 'error', { error: error.message });
             }
