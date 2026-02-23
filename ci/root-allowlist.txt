@@ -1,5 +1,5 @@
 # Top-level tracked entries allowed in repository root (one per line, sorted)
-# Updated 2026-02-23: Removed zombie configs deleted in PR #355
+# Updated 2026-02-23: Removed zombie configs (PR #355) and outdated docs (PR #356)
 .claude
 .devcontainer
 .dockerignore
@@ -8,9 +8,7 @@
 .gitignore
 .gitmodules
 .golangci.yml
-CHANGELOG.md
 CLAUDE.md
-CLAUDE_AGENTS_ANALYSIS.md
 CODEOWNERS
 CODE_OF_CONDUCT.md
 CONTRIBUTING.md
@@ -18,11 +16,8 @@ Dockerfile
 LICENSE
 Makefile
 Makefile.ci
-PR_PHASE1_DESCRIPTION.md
-PR_PHASE1_UPDATED.md
 PROJECT
 QUICKSTART.md
-QUICKSTART_OLLAMA.md
 README.md
 SECURITY.md
 api
