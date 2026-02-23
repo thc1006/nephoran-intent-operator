@@ -53,6 +53,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/security"
 )
 
 const (
@@ -615,8 +616,15 @@ func (r *NetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	// Get LLM processor URL from environment if set.
+	// SSRF protection: validate user-provided endpoint URLs at startup.
+	ssrfValidator := security.NewSSRFValidator(security.SSRFValidatorConfig{
+		AllowPrivateIPs: true, // In-cluster services use private IPs
+	})
 
 	if url := os.Getenv("LLM_PROCESSOR_URL"); url != "" {
+		if err := ssrfValidator.ValidateEndpointURL(url); err != nil {
+			return fmt.Errorf("LLM_PROCESSOR_URL failed SSRF validation: %w", err)
+		}
 		r.LLMProcessorURL = url
 	}
 
@@ -627,6 +635,9 @@ func (r *NetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	// Get A1 Mediator URL from environment if set
 	if url := os.Getenv("A1_MEDIATOR_URL"); url != "" {
+		if err := ssrfValidator.ValidateEndpointURL(url); err != nil {
+			return fmt.Errorf("A1_MEDIATOR_URL failed SSRF validation: %w", err)
+		}
 		r.A1MediatorURL = url
 	}
 

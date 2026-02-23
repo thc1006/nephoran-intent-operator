@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/thc1006/nephoran-intent-operator/internal/intent"
+	"github.com/thc1006/nephoran-intent-operator/pkg/security"
 )
 
 // Client represents a Porch API client
@@ -81,8 +82,13 @@ type Workspacev1Package struct {
 	Data        map[string]interface{} `json:"data,omitempty"`
 }
 
-// NewClient creates a new Porch API client
-func NewClient(baseURL string, dryRun bool) *Client {
+// NewClient creates a new Porch API client.
+// The baseURL is validated against SSRF attacks. In-cluster private IPs are allowed
+// because Porch typically runs as a Kubernetes service.
+func NewClient(baseURL string, dryRun bool) (*Client, error) {
+	if err := security.ValidateInClusterEndpointURL(baseURL); err != nil {
+		return nil, fmt.Errorf("porch client: %w", err)
+	}
 	return &Client{
 		baseURL: baseURL,
 		httpClient: &http.Client{
@@ -98,11 +104,16 @@ func NewClient(baseURL string, dryRun bool) *Client {
 			},
 		},
 		dryRun: dryRun,
-	}
+	}, nil
 }
 
-// NewClientWithAuth creates a new Porch API client with authentication
-func NewClientWithAuth(baseURL, token string, dryRun bool) *Client {
+// NewClientWithAuth creates a new Porch API client with authentication.
+// The baseURL is validated against SSRF attacks.
+func NewClientWithAuth(baseURL, token string, dryRun bool) (*Client, error) {
+	if err := security.ValidateInClusterEndpointURL(baseURL); err != nil {
+		return nil, fmt.Errorf("porch client: %w", err)
+	}
+
 	// Create base transport with connection pooling
 	baseTransport := &http.Transport{
 		MaxIdleConns:        100,
@@ -131,7 +142,7 @@ func NewClientWithAuth(baseURL, token string, dryRun bool) *Client {
 		client.httpClient.Transport = baseTransport
 	}
 
-	return client
+	return client, nil
 }
 
 // authTransport adds authentication to HTTP requests

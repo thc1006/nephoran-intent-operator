@@ -11,6 +11,8 @@ import (
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/security"
 )
 
 // Client represents a RAG service client.
@@ -28,9 +30,15 @@ type Config struct {
 }
 
 // NewClient creates a new RAG service client with the given configuration.
-func NewClient(cfg Config) *Client {
+// The BaseURL is validated against SSRF attacks. In-cluster private IPs are
+// allowed because the RAG service typically runs as a Kubernetes service.
+func NewClient(cfg Config) (*Client, error) {
 	if cfg.Timeout == 0 {
 		cfg.Timeout = 30 * time.Second
+	}
+
+	if err := security.ValidateInClusterEndpointURL(cfg.BaseURL); err != nil {
+		return nil, fmt.Errorf("rag client: %w", err)
 	}
 
 	return &Client{
@@ -48,7 +56,7 @@ func NewClient(cfg Config) *Client {
 			},
 		},
 		apiKey: cfg.APIKey,
-	}
+	}, nil
 }
 
 // HTTPQueryRequest represents a query to the RAG HTTP service.

@@ -1,7 +1,15 @@
+// Package integration provides system-wide integration tests.
+//
+// Environment Variables for Porch Configuration:
+//   - PORCH_SERVER_URL: Primary environment variable for Porch endpoint (highest priority)
+//   - PORCH_ENDPOINT: Alternative environment variable for Porch endpoint
+//
+// The PorchClient test component uses configurable endpoints and will log the URL being used.
 package integration
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -18,6 +26,21 @@ import (
 
 	porchclient "github.com/thc1006/nephoran-intent-operator/pkg/porch"
 )
+
+// getSystemTestPorchURL returns the Porch URL for system integration tests.
+// Environment variables (checked in order):
+//   - PORCH_SERVER_URL: Primary environment variable for Porch endpoint
+//   - PORCH_ENDPOINT: Alternative environment variable for Porch endpoint
+//   - Default: http://porch-server.porch-system.svc.cluster.local:7007
+func getSystemTestPorchURL() string {
+	if url := os.Getenv("PORCH_SERVER_URL"); url != "" {
+		return url
+	}
+	if url := os.Getenv("PORCH_ENDPOINT"); url != "" {
+		return url
+	}
+	return "http://porch-server.porch-system.svc.cluster.local:7007"
+}
 
 func TestSystemIntegration(t *testing.T) {
 	config, err := rest.InClusterConfig()
@@ -36,7 +59,11 @@ func TestSystemIntegration(t *testing.T) {
 	discoveryClient, err := discovery.NewDiscoveryClientForConfig(config)
 	require.NoError(t, err, "Failed to create discovery client")
 
-	porchClient := porchclient.NewClient("http://porch-server:8080", false)
+	// Get Porch URL from environment or use default
+	porchURL := getSystemTestPorchURL()
+	t.Logf("Using Porch URL: %s", porchURL)
+	porchClient, err := porchclient.NewClient(porchURL, false)
+	require.NoError(t, err, "Failed to create Porch client (SSRF validation)")
 
 	t.Run("KubernetesAPIServerHealthCheck", func(t *testing.T) {
 		// Check API server version

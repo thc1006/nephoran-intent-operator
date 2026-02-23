@@ -178,6 +178,14 @@ func LLMClientProvider(c *Container) (interface{}, error) {
 		return nil, nil
 	}
 
+	// SSRF protection: validate user-provided LLM endpoint URL.
+	ssrfValidator := security.NewSSRFValidator(security.SSRFValidatorConfig{
+		AllowPrivateIPs: true, // In-cluster services use private IPs
+	})
+	if err := ssrfValidator.ValidateEndpointURL(llmURL); err != nil {
+		return nil, fmt.Errorf("LLM_PROCESSOR_URL failed SSRF validation: %w", err)
+	}
+
 	// Get HTTP client dependency.
 
 	httpClient := c.GetHTTPClient()
@@ -345,6 +353,14 @@ func ProductionLLMClientProvider(c *Container) (interface{}, error) {
 
 	if llmURL == "" {
 		return nil, ErrMissingLLMConfig{Field: "LLM_PROCESSOR_URL"}
+	}
+
+	// SSRF protection: validate user-provided LLM endpoint URL.
+	ssrfValidator := security.NewSSRFValidator(security.SSRFValidatorConfig{
+		AllowPrivateIPs: true, // In-cluster services use private IPs
+	})
+	if err := ssrfValidator.ValidateEndpointURL(llmURL); err != nil {
+		return nil, fmt.Errorf("LLM_PROCESSOR_URL failed SSRF validation: %w", err)
 	}
 
 	// Get HTTP client with circuit breaker.

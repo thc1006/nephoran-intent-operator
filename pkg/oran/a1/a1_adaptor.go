@@ -23,6 +23,7 @@ import (
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
+	"github.com/thc1006/nephoran-intent-operator/pkg/security"
 )
 
 // A1PolicyType represents an A1 policy type.
@@ -294,6 +295,17 @@ func NewA1Adaptor(config *A1AdaptorConfig) (*A1Adaptor, error) {
 			RICURL:     ricURL,
 			APIVersion: "v2",
 			Timeout:    30 * time.Second,
+		}
+	}
+
+	// SSRF protection: validate the A1 endpoint URL before use.
+	// Allow private IPs since A1 mediator is typically an in-cluster service.
+	if config.RICURL != "" {
+		ssrfValidator := security.NewSSRFValidator(security.SSRFValidatorConfig{
+			AllowPrivateIPs: true,
+		})
+		if err := ssrfValidator.ValidateEndpointURL(config.RICURL); err != nil {
+			return nil, fmt.Errorf("A1 adaptor: RIC URL failed SSRF validation: %w", err)
 		}
 	}
 

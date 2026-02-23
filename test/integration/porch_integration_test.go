@@ -1,9 +1,30 @@
+// Package integration provides integration tests for Porch functionality.
+//
+// Environment Variables:
+//   - PORCH_SERVER_URL: Primary environment variable for Porch endpoint (highest priority)
+//   - PORCH_ENDPOINT: Alternative environment variable for Porch endpoint
+//
+// Default Porch URL (if no env vars set):
+//   - http://porch-server.porch-system.svc.cluster.local:7007
+//
+// Usage:
+//   # Run tests with default Porch URL
+//   go test ./test/integration/...
+//
+//   # Run tests with custom Porch URL
+//   PORCH_SERVER_URL=http://localhost:7007 go test ./test/integration/...
+//
+//   # Run tests and skip if Porch not available (default behavior)
+//   go test ./test/integration/... -v
+//
+// Tests will automatically skip if Porch is not reachable at the configured URL.
 package integration
 
 import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -20,10 +41,27 @@ import (
 	porchclient "github.com/thc1006/nephoran-intent-operator/pkg/porch"
 )
 
+// getPorchURL returns the Porch server URL from environment variables or default.
+//
+// Priority order:
+//  1. PORCH_SERVER_URL environment variable
+//  2. PORCH_ENDPOINT environment variable
+//  3. Default: http://porch-server.porch-system.svc.cluster.local:7007
+func getPorchURL() string {
+	if url := os.Getenv("PORCH_SERVER_URL"); url != "" {
+		return url
+	}
+	if url := os.Getenv("PORCH_ENDPOINT"); url != "" {
+		return url
+	}
+	return "http://porch-server.porch-system.svc.cluster.local:7007"
+}
+
 // checkPorchAvailability probes the Porch server to see if it is reachable.
-func checkPorchAvailability() error {
+func checkPorchAvailability(porchURL string) error {
 	client := &http.Client{Timeout: 3 * time.Second}
-	resp, err := client.Get("http://porch-server:8080/healthz")
+	healthURL := fmt.Sprintf("%s/healthz", porchURL)
+	resp, err := client.Get(healthURL)
 	if err != nil {
 		return err
 	}
@@ -77,7 +115,7 @@ const (
 	concurrentIntentNum = 50
 )
 
-func setupTestEnvironment(t *testing.T) (*rest.Config, *kubernetes.Clientset, *porchclient.Client) {
+func setupTestEnvironment(t *testing.T, porchURL string) (*rest.Config, *kubernetes.Clientset, *porchclient.Client) {
 	// Load Kubernetes configuration (in-cluster or kubeconfig fallback)
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -89,8 +127,9 @@ func setupTestEnvironment(t *testing.T) (*rest.Config, *kubernetes.Clientset, *p
 	clientset, err := kubernetes.NewForConfig(config)
 	require.NoError(t, err, "Failed to create Kubernetes clientset")
 
-	// Create Porch client
-	porchClient := porchclient.NewClient("http://porch-server:8080", false)
+	// Create Porch client using configurable URL
+	porchClient, err := porchclient.NewClient(porchURL, false)
+	require.NoError(t, err, "Failed to create Porch client (SSRF validation)")
 
 	// Create test namespace
 	ns := &v1.Namespace{
@@ -107,12 +146,18 @@ func setupTestEnvironment(t *testing.T) (*rest.Config, *kubernetes.Clientset, *p
 }
 
 func TestPorchIntegration(t *testing.T) {
+	// Get Porch URL from environment or use default
+	porchURL := getPorchURL()
+	t.Logf("Using Porch URL: %s", porchURL)
+
 	// Skip if Porch is not deployed
-	if err := checkPorchAvailability(); err != nil {
-		t.Skipf("skipping: Porch server not available at porch-server:8080 - %v", err)
+	if err := checkPorchAvailability(porchURL); err != nil {
+		t.Skipf("Skipping: Porch server not available at %s - %v\n"+
+			"Set PORCH_SERVER_URL or PORCH_ENDPOINT environment variable to override", porchURL, err)
 	}
+
 	// Setup test environment
-	_, _, porchClient := setupTestEnvironment(t)
+	_, _, porchClient := setupTestEnvironment(t, porchURL)
 
 	// Test Package Creation
 	t.Run("CreatePackage", func(t *testing.T) {
@@ -221,11 +266,17 @@ func TestPorchIntegration(t *testing.T) {
 }
 
 func TestPorchRollbackScenarios(t *testing.T) {
+	// Get Porch URL from environment or use default
+	porchURL := getPorchURL()
+	t.Logf("Using Porch URL: %s", porchURL)
+
 	// Skip if Porch is not deployed
-	if err := checkPorchAvailability(); err != nil {
-		t.Skipf("skipping: Porch server not available at porch-server:8080 - %v", err)
+	if err := checkPorchAvailability(porchURL); err != nil {
+		t.Skipf("Skipping: Porch server not available at %s - %v\n"+
+			"Set PORCH_SERVER_URL or PORCH_ENDPOINT environment variable to override", porchURL, err)
 	}
-	_, _, porchClient := setupTestEnvironment(t)
+
+	_, _, porchClient := setupTestEnvironment(t, porchURL)
 
 	t.Run("RollbackPackageVersion", func(t *testing.T) {
 		pkgName := fmt.Sprintf("rollback-package-%d", time.Now().UnixNano())

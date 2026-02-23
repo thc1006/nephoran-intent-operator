@@ -23,7 +23,7 @@ func TestClient_NetworkErrors(t *testing.T) {
 			name: "connection refused",
 			setupFunc: func(t *testing.T) *Client {
 				// Use a port that's not listening
-				return NewClient("http://localhost:99999", false)
+				return newTestClient("http://localhost:99999", false)
 			},
 			testFunc: func(t *testing.T, client *Client) {
 				req := &PackageRequest{
@@ -59,7 +59,7 @@ func TestClient_NetworkErrors(t *testing.T) {
 				}))
 				t.Cleanup(server.Close)
 				
-				client := NewClient(server.URL, false)
+				client := newTestClient(server.URL, false)
 				// Set a very short timeout for the test
 				client.httpClient.Timeout = 50 * time.Millisecond
 				return client
@@ -92,7 +92,7 @@ func TestClient_NetworkErrors(t *testing.T) {
 			name: "dns resolution failure",
 			setupFunc: func(t *testing.T) *Client {
 				// Use a non-existent domain
-				return NewClient("http://non-existent-domain-12345.invalid", false)
+				return newTestClient("http://non-existent-domain-12345.invalid", false)
 			},
 			testFunc: func(t *testing.T, client *Client) {
 				req := &PackageRequest{
@@ -122,7 +122,7 @@ func TestClient_NetworkErrors(t *testing.T) {
 			name: "invalid URL",
 			setupFunc: func(t *testing.T) *Client {
 				// Use an invalid URL format
-				return NewClient("not-a-valid-url", false)
+				return newTestClient("not-a-valid-url", false)
 			},
 			testFunc: func(t *testing.T, client *Client) {
 				req := &PackageRequest{
@@ -275,7 +275,7 @@ func TestClient_HTTPErrors(t *testing.T) {
 			server := tt.serverSetup(t)
 			defer server.Close()
 
-			client := NewClient(server.URL, false)
+			client := newTestClient(server.URL, false)
 			
 			req := &PackageRequest{
 				Repository: "test-repo",
@@ -344,7 +344,7 @@ func TestClient_TLSErrors(t *testing.T) {
 				t.Cleanup(server.Close)
 				
 				// Use the server URL but don't configure the client to skip TLS verification
-				client := NewClient(server.URL, false)
+				client := newTestClient(server.URL, false)
 				// Force certificate verification failure
 				client.httpClient.Transport = &http.Transport{
 					TLSClientConfig: nil, // This will use default TLS config which requires valid certs
@@ -391,7 +391,7 @@ func TestClient_RequestErrors(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient(server.URL, false)
+	client := newTestClient(server.URL, false)
 
 	tests := []struct {
 		name        string
@@ -511,7 +511,7 @@ func TestClient_ConcurrentRequests(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient(server.URL, false)
+	client := newTestClient(server.URL, false)
 
 	const numGoroutines = 10
 	done := make(chan error, numGoroutines)
@@ -571,7 +571,7 @@ func TestClient_RetryLogic(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient(server.URL, false)
+	client := newTestClient(server.URL, false)
 
 	req := &PackageRequest{
 		Repository: "test-repo",
@@ -605,7 +605,7 @@ func TestClient_ContextCancellation(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient(server.URL, false)
+	client := newTestClient(server.URL, false)
 	
 	// Set a very short timeout to trigger cancellation
 	client.httpClient.Timeout = 100 * time.Millisecond
@@ -679,7 +679,7 @@ func TestClient_MalformedResponses(t *testing.T) {
 			}))
 			defer server.Close()
 
-			client := NewClient(server.URL, false)
+			client := newTestClient(server.URL, false)
 			
 			req := &PackageRequest{
 				Repository: "test-repo",

@@ -21,7 +21,7 @@ func TestPackageRevisionLifecycle(t *testing.T) {
 	defer server.Close()
 
 	// Create client
-	client := NewClient(server.URL, false)
+	client := newTestClient(server.URL, false)
 
 	// Test package revision
 	revision := &PorchPackageRevision{
@@ -64,7 +64,7 @@ func TestPackageRevisionLifecycle(t *testing.T) {
 
 func TestPackageRevisionLifecycleDryRun(t *testing.T) {
 	// Create client in dry-run mode
-	client := NewClient("http://test-endpoint", true)
+	client := newTestClient("http://test-endpoint", true)
 
 	revision := &PorchPackageRevision{
 		Name:      "test-package",
@@ -118,7 +118,7 @@ func TestAuthenticationTransport(t *testing.T) {
 	defer server.Close()
 
 	// Create client with auth
-	client := NewClientWithAuth(server.URL, "test-token", false)
+	client := newTestClientWithAuth(server.URL, "test-token", false)
 
 	// Test that the auth transport works
 	resp, err := client.httpClient.Get(server.URL + "/test")
