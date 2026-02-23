@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"os"
+	"strings"
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -18,6 +19,7 @@ import (
 
 	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
 	"github.com/thc1006/nephoran-intent-operator/controllers"
+	"github.com/thc1006/nephoran-intent-operator/pkg/validation"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -53,6 +55,7 @@ func main() {
 	var a1Endpoint string
 	var llmEndpoint string
 	var porchServer string
+	var validateEndpointsDNS bool
 
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8080 for HTTPS or :8081 for HTTP, or leave as 0 to disable the metrics service.")
@@ -73,6 +76,9 @@ func main() {
 	flag.StringVar(&porchServer, "porch-server", "",
 		"Nephio Porch server endpoint (e.g. http://porch-server:7007). "+
 			"Overrides the PORCH_SERVER_URL environment variable.")
+	flag.BoolVar(&validateEndpointsDNS, "validate-endpoints-dns", false,
+		"Enable DNS resolution checking for configured endpoints at startup. "+
+			"May slow startup but catches configuration errors early.")
 
 	opts := zap.Options{
 		Development: true,
@@ -152,6 +158,12 @@ func main() {
 		os.Setenv("LLM_ENDPOINT", llmEndpoint) //nolint:errcheck
 	}
 
+	// Validate endpoints before starting controllers
+	if err := validateEndpoints(a1Endpoint, llmEndpoint, porchServer, validateEndpointsDNS); err != nil {
+		setupLog.Error(err, "Endpoint validation failed at startup")
+		os.Exit(1)
+	}
+
 	reconciler := &controllers.NetworkIntentReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
@@ -190,4 +202,116 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+// validateEndpoints validates all configured endpoints at startup to fail fast
+// with clear error messages instead of encountering runtime DNS errors
+func validateEndpoints(a1Endpoint, llmEndpoint, porchServer string, validateDNS bool) error {
+	// Collect all configured endpoints (from flags and environment)
+	endpoints := make(map[string]string)
+
+	// A1 Mediator endpoint
+	a1URL := a1Endpoint
+	if a1URL == "" {
+		// Check environment variables (same precedence as in reconciler)
+		a1URL = getFirstNonEmpty(os.Getenv("A1_MEDIATOR_URL"), os.Getenv("A1_ENDPOINT"))
+	}
+	if a1URL != "" {
+		endpoints["A1 Mediator"] = a1URL
+	}
+
+	// LLM endpoint
+	llmURL := llmEndpoint
+	if llmURL == "" {
+		llmURL = getFirstNonEmpty(os.Getenv("LLM_PROCESSOR_URL"), os.Getenv("LLM_ENDPOINT"))
+	}
+	if llmURL != "" {
+		endpoints["LLM Service"] = llmURL
+	}
+
+	// Porch server endpoint
+	porchURL := porchServer
+	if porchURL == "" {
+		porchURL = os.Getenv("PORCH_SERVER_URL")
+	}
+	if porchURL != "" {
+		endpoints["Porch Server"] = porchURL
+	}
+
+	// RAG service endpoint (environment only, no flag for this one)
+	ragURL := os.Getenv("RAG_API_URL")
+	if ragURL != "" {
+		endpoints["RAG Service"] = ragURL
+	}
+
+	// Validate all endpoints
+	config := &validation.ValidationConfig{
+		ValidateDNS:          validateDNS,
+		ValidateReachability: false, // Don't check reachability at startup (services may not be ready)
+		Timeout:              5 * time.Second,
+	}
+
+	validationErrors := validation.ValidateEndpoints(endpoints, config)
+	if len(validationErrors) > 0 {
+		// Build helpful error message with suggestions
+		var errorMessages []string
+		for _, err := range validationErrors {
+			// Extract service name from error
+			serviceName := extractServiceName(err.Error())
+			suggestion := validation.GetCommonErrorSuggestions(serviceName)
+			errorMessages = append(errorMessages, err.Error()+"\n  → "+suggestion)
+		}
+
+		return formatValidationErrors(errorMessages)
+	}
+
+	return nil
+}
+
+// getFirstNonEmpty returns the first non-empty string from the arguments
+func getFirstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+// extractServiceName extracts the service name from an error message
+func extractServiceName(errorMsg string) string {
+	// Error format: "ServiceName endpoint validation failed: ..."
+	parts := strings.SplitN(errorMsg, " endpoint validation failed:", 2)
+	if len(parts) == 2 && parts[0] != "" {
+		return strings.TrimSpace(parts[0])
+	}
+	return "Unknown Service"
+}
+
+// formatValidationErrors formats multiple validation errors into a single error
+func formatValidationErrors(errorMessages []string) error {
+	if len(errorMessages) == 0 {
+		return nil
+	}
+
+	var sb strings.Builder
+	sb.WriteString("Endpoint validation failed:\n\n")
+	for i, msg := range errorMessages {
+		sb.WriteString(msg)
+		if i < len(errorMessages)-1 {
+			sb.WriteString("\n\n")
+		}
+	}
+	sb.WriteString("\n\nFix configuration and restart the operator.")
+
+	return &EndpointValidationFailure{Message: sb.String()}
+}
+
+// EndpointValidationFailure represents a fatal startup validation failure
+type EndpointValidationFailure struct {
+	Message string
+}
+
+func (e *EndpointValidationFailure) Error() string {
+	return e.Message
 }
