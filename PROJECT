@@ -1,24 +1,23 @@
 version: "3"
-domain: nephio.org
-repo: github.com/nephio-project/nephoran
+domain: nephoran.com
+repo: github.com/thc1006/nephoran-intent-operator
 resources:
 - controller: true
-  domain: nephio.org
+  domain: nephoran.com
   group: intent
   kind: NetworkIntent
-  path: github.com/nephio-project/nephoran/api/v1alpha1
+  path: github.com/thc1006/nephoran-intent-operator/api/v1alpha1
   version: v1alpha1
 - controller: true
-  domain: nephio.org
+  domain: nephoran.com
   group: ran
   kind: OranCluster
-  path: github.com/nephio-project/nephoran/api/v1alpha1
+  path: github.com/thc1006/nephoran-intent-operator/api/v1alpha1
   version: v1alpha1
 
 plugins:
   manifests.sdk.operator.sdk/v2: {}
   scorecard.sdk.operator.sdk/v2: {}
-  # Webhook support
   webhooks.kubebuilder.io/v1: {}
 
 componentConfig: true
