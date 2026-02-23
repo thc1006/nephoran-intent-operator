@@ -787,9 +787,12 @@ func (h *LLMProcessorHandler) NLToIntentHandler(w http.ResponseWriter, r *http.R
 
 	}
 
-	// Read the raw text body.
+	// Read the raw text body with size limit to prevent DoS (HIGH-01 fix)
 
-	body, err := io.ReadAll(r.Body)
+	const maxRequestSize = 1 << 20 // 1MB limit
+	limitedReader := io.LimitReader(r.Body, maxRequestSize)
+
+	body, err := io.ReadAll(limitedReader)
 	if err != nil {
 
 		statusCode = http.StatusBadRequest

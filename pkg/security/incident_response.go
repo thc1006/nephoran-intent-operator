@@ -1477,9 +1477,12 @@ func (fc *ForensicsCollector) collectEvidenceType(ctx context.Context, incident 
 // HandleWebhook handles incoming webhook events with HMAC signature verification.
 
 func (ir *IncidentResponse) HandleWebhook(w http.ResponseWriter, r *http.Request) {
-	// Read the request body.
+	// Read the request body with size limit to prevent DoS (HIGH-01 fix)
 
-	body, err := io.ReadAll(r.Body)
+	const maxWebhookSize = 1 << 18 // 256KB limit for webhooks
+	limitedReader := io.LimitReader(r.Body, maxWebhookSize)
+
+	body, err := io.ReadAll(limitedReader)
 	if err != nil {
 
 		ir.logger.Error("Failed to read webhook body", "error", err)
