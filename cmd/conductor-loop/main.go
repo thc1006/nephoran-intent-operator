@@ -293,9 +293,15 @@ func runMain() int {
 			MaxRetries: 3,
 		}
 
-		// Create processor with K8s-based submission (no porch CLI dependency).
+		// Create K8s submission function with reusable client (factory pattern).
+		submitFunc, err := loop.K8sSubmitFactory()
+		if err != nil {
+			log.Printf("Failed to create K8s submit function: %v", err)
+			return 1
+		}
 
-		processor, err := loop.NewProcessor(processorConfig, validator, loop.K8sSubmitFunc)
+		// Create processor with K8s-based submission (no porch CLI dependency).
+		processor, err := loop.NewProcessor(processorConfig, validator, submitFunc)
 		if err != nil {
 			log.Printf("Failed to create processor: %v", err)
 			return 1

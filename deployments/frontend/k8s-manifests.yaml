@@ -60,6 +60,19 @@ data:
             root /usr/share/nginx/html;
             index index.html;
 
+            # Proxy API requests to backend service
+            location /api/ {
+                proxy_pass http://intent-ingest-service:8080/;
+                proxy_http_version 1.1;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+                proxy_connect_timeout 30s;
+                proxy_send_timeout 30s;
+                proxy_read_timeout 30s;
+            }
+
             location / {
                 try_files $uri $uri/ /index.html;
                 add_header Cache-Control "no-cache, no-store, must-revalidate";
@@ -125,8 +138,8 @@ spec:
           periodSeconds: 5
         resources:
           requests:
-            memory: "64Mi"
-            cpu: "100m"
+            memory: "32Mi"
+            cpu: "50m"
           limits:
             memory: "128Mi"
             cpu: "200m"

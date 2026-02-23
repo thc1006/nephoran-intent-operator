@@ -11,14 +11,14 @@ metadata:
     app.kubernetes.io/part-of: nephoran-intent-operator
   annotations:
     description: "Persistent storage for Conductor Loop handoff directories and logs"
-    volume.beta.kubernetes.io/storage-class: "standard"
+    volume.beta.kubernetes.io/storage-class: "local-path"
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
       storage: 10Gi
-  storageClassName: standard
+  storageClassName: local-path
   volumeMode: Filesystem
 
 ---
@@ -35,12 +35,12 @@ metadata:
     app.kubernetes.io/part-of: nephoran-intent-operator
   annotations:
     description: "Log storage for Conductor Loop"
-    volume.beta.kubernetes.io/storage-class: "standard"
+    volume.beta.kubernetes.io/storage-class: "local-path"
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
       storage: 5Gi
-  storageClassName: standard
+  storageClassName: local-path
   volumeMode: Filesystem

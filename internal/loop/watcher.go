@@ -613,6 +613,10 @@ func NewWatcherWithConfig(dir string, config Config, processor *IntentProcessor)
 		if err := porch.ValidatePorchPath(config.PorchPath); err != nil {
 			log.Printf("Warning: Porch validation failed: %v", err)
 		}
+	} else {
+		// Using IntentProcessor pattern - ensure executor is nil.
+		executor = nil
+		log.Printf("Using IntentProcessor pattern, porch executor disabled")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -1694,6 +1698,13 @@ func (w *Watcher) enhancedWorker(workerID int) {
 // processWorkItemWithLocking processes a work item with file-level locking.
 
 func (w *Watcher) processWorkItemWithLocking(workerID int, workItem WorkItem) {
+	// Guard: If processor is active, legacy worker path should not execute.
+	if w.processor != nil {
+		log.Printf("ERROR: Worker %d attempting to process file %s but IntentProcessor is active - this is a dual-path bug!",
+			workerID, filepath.Base(workItem.FilePath))
+		return
+	}
+
 	// Increment processing counter
 	atomic.AddInt64(&w.workerPool.processingItems, 1)
 	defer atomic.AddInt64(&w.workerPool.processingItems, -1)
@@ -1771,6 +1782,12 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 	}
 
 	// Execute porch command with context timeout.
+	// Defensive check: Skip executor if processor exists.
+	if w.processor != nil {
+		log.Printf("LOOP:DELEGATE - Worker %d: Skipping executor.Execute() because IntentProcessor is active for file: %s",
+			workerID, filepath.Base(filePath))
+		return
+	}
 
 	result, err := w.executor.Execute(workItem.Ctx, filePath)
 	if err != nil {
