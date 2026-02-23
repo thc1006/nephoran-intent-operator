@@ -352,3 +352,12 @@ cmd/porch-structured-patch/examples/packages/structured/
 # Root binaries (should be in bin/ directory)
 /operator
 /manager
+
+# Build artifacts
+conductor-loop
+cmd/*/cmd
+
+# Test run artifacts (timestamp-based)
+tests/*/test-report-*.json
+test/e2e/test-results/
+test/e2e/.playwright-state/
