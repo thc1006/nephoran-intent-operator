@@ -179,33 +179,69 @@ func TestGetTestPorchEndpoint(t *testing.T) {
 		{
 			name:     "mock_source",
 			source:   ConfigSourceMock,
-			expected: "http://localhost:8080",
+			expected: "http://localhost:7007",
 		},
 		{
 			name:     "environment_source",
 			source:   ConfigSourceEnvironment,
-			expected: "http://localhost:8080",
+			expected: "http://localhost:7007",
 		},
 		{
-			name:     "real_cluster_with_env_var",
+			name:     "envtest_source",
+			source:   ConfigSourceEnvtest,
+			expected: "http://localhost:7007",
+		},
+		{
+			name:     "real_cluster_with_porch_server_url",
 			source:   ConfigSourceInCluster,
-			envVar:   "PORCH_ENDPOINT",
+			envVar:   "PORCH_SERVER_URL",
 			envValue: "http://custom-porch:9090",
 			expected: "http://custom-porch:9090",
 		},
 		{
+			name:     "real_cluster_with_porch_endpoint",
+			source:   ConfigSourceInCluster,
+			envVar:   "PORCH_ENDPOINT",
+			envValue: "http://custom-porch:8080",
+			expected: "http://custom-porch:8080",
+		},
+		{
 			name:     "real_cluster_default",
 			source:   ConfigSourceInCluster,
-			expected: "http://porch-server:8080",
+			expected: "http://porch-server.porch-system.svc.cluster.local:7007",
+		},
+		{
+			name:     "kubeconfig_default",
+			source:   ConfigSourceKubeconfig,
+			expected: "http://porch-server.porch-system.svc.cluster.local:7007",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Clean up any existing env vars to ensure clean test state
+			origPorchServerURL := os.Getenv("PORCH_SERVER_URL")
+			origPorchEndpoint := os.Getenv("PORCH_ENDPOINT")
+			defer func() {
+				if origPorchServerURL != "" {
+					os.Setenv("PORCH_SERVER_URL", origPorchServerURL)
+				} else {
+					os.Unsetenv("PORCH_SERVER_URL")
+				}
+				if origPorchEndpoint != "" {
+					os.Setenv("PORCH_ENDPOINT", origPorchEndpoint)
+				} else {
+					os.Unsetenv("PORCH_ENDPOINT")
+				}
+			}()
+
+			// Unset both env vars first
+			os.Unsetenv("PORCH_SERVER_URL")
+			os.Unsetenv("PORCH_ENDPOINT")
+
 			// Setup environment variable if needed
 			if tt.envVar != "" && tt.envValue != "" {
 				os.Setenv(tt.envVar, tt.envValue)
-				defer os.Unsetenv(tt.envVar)
 			}
 
 			result := getTestPorchEndpoint(tt.source)

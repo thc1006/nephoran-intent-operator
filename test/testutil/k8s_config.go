@@ -220,19 +220,32 @@ func CreateTestPorchClient(t *testing.T, configResult *K8sConfigResult) (*porch.
 	return client, nil
 }
 
-// getTestPorchEndpoint returns the appropriate Porch endpoint for the configuration source
+// getTestPorchEndpoint returns the appropriate Porch endpoint for the configuration source.
+//
+// Environment variables (checked in order):
+//   - PORCH_SERVER_URL: Primary environment variable for Porch endpoint
+//   - PORCH_ENDPOINT: Alternative environment variable for Porch endpoint
+//
+// Default fallbacks:
+//   - Mock/envtest environments: http://localhost:7007
+//   - Real cluster without env vars: http://porch-server.porch-system.svc.cluster.local:7007
 func getTestPorchEndpoint(source ConfigSource) string {
+	// Check environment variables first (highest priority)
+	if endpoint := os.Getenv("PORCH_SERVER_URL"); endpoint != "" {
+		return endpoint
+	}
+	if endpoint := os.Getenv("PORCH_ENDPOINT"); endpoint != "" {
+		return endpoint
+	}
+
+	// Fallback based on source type
 	switch source {
-	case ConfigSourceMock, ConfigSourceEnvironment:
-		return "http://localhost:8080"
-	case ConfigSourceEnvtest:
-		return "http://localhost:8080"
+	case ConfigSourceMock, ConfigSourceEnvironment, ConfigSourceEnvtest:
+		// For local testing environments, use localhost:7007 (standard Porch development port)
+		return "http://localhost:7007"
 	default:
-		// Real cluster configurations
-		if endpoint := os.Getenv("PORCH_ENDPOINT"); endpoint != "" {
-			return endpoint
-		}
-		return "http://porch-server:8080"
+		// For real cluster configurations, use in-cluster service DNS
+		return "http://porch-server.porch-system.svc.cluster.local:7007"
 	}
 }
 
