@@ -505,8 +505,9 @@ func (r *NetworkIntentReconciler) createA1Policy(ctx context.Context, networkInt
 		}
 	}()
 
-	// O-RAN SC A1 Mediator returns 200 OK for successful PUT (idempotent create/update)
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+	// O-RAN SC A1 Mediator returns 200 OK/201 Created/202 Accepted for successful PUT
+	// 202 Accepted indicates async processing, which is valid for policy creation
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusAccepted {
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("A1 API returned error status %d for PUT %s: %s", resp.StatusCode, apiEndpoint, string(bodyBytes))
 	}
