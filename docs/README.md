@@ -126,7 +126,7 @@ When adding new documentation:
 - [README.md](../README.md) - Main project README
 - [CONTRIBUTING.md](../CONTRIBUTING.md) - Contribution guidelines
 - [SECURITY.md](../SECURITY.md) - Security policy and reporting
-- [CHANGELOG.md](../CHANGELOG.md) - Version history
+- [GitHub Releases](https://github.com/thc1006/nephoran-intent-operator/releases) - Version history (auto-generated)
 
 ### Related Resources
 - [O-RAN Alliance Specifications](https://www.o-ran.org/specifications)
