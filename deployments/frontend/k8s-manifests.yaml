@@ -211,6 +211,7 @@ spec:
           protocol: TCP
         args:
         - "-schema=/app/docs/contracts/intent.schema.json"
+        - "-handoff=/var/nephoran/handoff"
         env:
         - name: MODE
           value: "llm"
@@ -223,6 +224,8 @@ spec:
         - name: RAG_ENDPOINT
           value: "http://rag-service.rag-service.svc.cluster.local:8000"
         - name: HANDOFF_DIR
+          value: "/var/nephoran/handoff"
+        - name: INTENT_OUTPUT_DIR
           value: "/var/nephoran/handoff"
         livenessProbe:
           httpGet:
