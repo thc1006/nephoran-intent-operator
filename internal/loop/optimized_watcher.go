@@ -137,6 +137,16 @@ func NewOptimizedWatcher(dir string, config Config) (*OptimizedWatcher, error) {
 
 	// Initialize Go 1.24 optimizations.
 
+	// Cap async queue at MaxChannelDepth to prevent unbounded growth.
+
+	asyncQueueSize := config.MaxWorkers * 100
+
+	if asyncQueueSize > config.MaxChannelDepth {
+		log.Printf("Info: Capping asyncQueue from %d to MaxChannelDepth %d for memory safety", asyncQueueSize, config.MaxChannelDepth)
+
+		asyncQueueSize = config.MaxChannelDepth
+	}
+
 	ow := &OptimizedWatcher{
 		Watcher: base,
 
@@ -146,7 +156,7 @@ func NewOptimizedWatcher(dir string, config Config) (*OptimizedWatcher, error) {
 			},
 		},
 
-		asyncQueue: make(chan *AsyncWorkItem, config.MaxWorkers*100), // Larger buffer
+		asyncQueue: make(chan *AsyncWorkItem, asyncQueueSize),
 
 	}
 
