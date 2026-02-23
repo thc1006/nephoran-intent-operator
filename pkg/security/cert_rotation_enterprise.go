@@ -644,7 +644,8 @@ func (m *CertRotationManager) performCertificateRotation(ctx context.Context, tr
 
 // loadCertificateFromSecret loads certificate from Kubernetes secret
 func (m *CertRotationManager) loadCertificateFromSecret(tracker *CertificateTracker) error {
-	secret, err := m.k8sClient.CoreV1().Secrets(tracker.Namespace).Get(context.TODO(), tracker.SecretName, metav1.GetOptions{})
+	// Use background context for synchronous certificate loading
+	secret, err := m.k8sClient.CoreV1().Secrets(tracker.Namespace).Get(context.Background(), tracker.SecretName, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to get secret %s/%s: %w", tracker.Namespace, tracker.SecretName, err)
 	}

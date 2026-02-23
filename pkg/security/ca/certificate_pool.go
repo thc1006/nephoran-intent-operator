@@ -664,14 +664,14 @@ func (p *CertificatePool) persistToKubernetes(cert *CertificateResponse) error {
 
 	// Create or update the secret.
 
-	err = p.client.Create(context.TODO(), secret)
+	err = p.client.Create(context.Background(), secret)
 	if err != nil {
 
 		// Try update if create failed.
 
 		existingSecret := &corev1.Secret{}
 
-		if getErr := p.client.Get(context.TODO(), types.NamespacedName{
+		if getErr := p.client.Get(context.Background(), types.NamespacedName{
 			Name: secretName,
 
 			Namespace: p.config.Namespace,
@@ -679,7 +679,7 @@ func (p *CertificatePool) persistToKubernetes(cert *CertificateResponse) error {
 
 			secret.ResourceVersion = existingSecret.ResourceVersion
 
-			err = p.client.Update(context.TODO(), secret)
+			err = p.client.Update(context.Background(), secret)
 
 		}
 
@@ -697,7 +697,7 @@ func (p *CertificatePool) loadFromStorage(serialNumber string) (*CertificateResp
 
 	secret := &corev1.Secret{}
 
-	err := p.client.Get(context.TODO(), types.NamespacedName{
+	err := p.client.Get(context.Background(), types.NamespacedName{
 		Name: secretName,
 
 		Namespace: p.config.Namespace,
@@ -753,7 +753,7 @@ func (p *CertificatePool) removeFromKubernetes(serialNumber string) error {
 		},
 	}
 
-	return p.client.Delete(context.TODO(), secret)
+	return p.client.Delete(context.Background(), secret)
 }
 
 func (p *CertificatePool) generateSecretName(serialNumber string) string {

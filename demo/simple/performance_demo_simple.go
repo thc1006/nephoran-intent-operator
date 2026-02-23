@@ -21,7 +21,7 @@ func main() {
 
 	// Run a simple benchmark
 	suite := performance.NewBenchmarkSuite()
-	duration := suite.Run(context.TODO(), "demo-test", func() {
+	duration := suite.Run(context.Background(), "demo-test", func() {
 		// Simulate some work
 		time.Sleep(10 * time.Millisecond)
 		fmt.Printf(".")

@@ -481,7 +481,8 @@ func NewFailoverManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.I
 // initializeRoute53Client initializes the Route53 client for DNS updates.
 
 func (fm *FailoverManager) initializeRoute53Client() error {
-	cfg, err := config.LoadDefaultConfig(context.TODO())
+	// Use background context for initialization as this is called during manager creation
+	cfg, err := config.LoadDefaultConfig(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to load AWS config: %w", err)
 	}

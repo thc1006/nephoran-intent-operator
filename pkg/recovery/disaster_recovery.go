@@ -974,7 +974,8 @@ type S3BackupStore struct {
 // NewS3BackupStore creates a new S3 backup store.
 
 func NewS3BackupStore(backupConfig BackupStorageConf, logger *slog.Logger) *S3BackupStore {
-	ctx := context.TODO()
+	// Use background context for initialization as this is a constructor
+	ctx := context.Background()
 
 	// Configure AWS config options.
 

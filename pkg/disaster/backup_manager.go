@@ -503,7 +503,8 @@ func (bm *BackupManager) initializeEncryption(keyHex string) error {
 // initializeS3Client initializes the S3 client.
 
 func (bm *BackupManager) initializeS3Client() error {
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
+	// Use background context for initialization as this is called during manager creation
+	cfg, err := config.LoadDefaultConfig(context.Background(),
 
 		config.WithRegion(bm.config.S3Config.Region),
 	)

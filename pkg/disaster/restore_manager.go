@@ -311,7 +311,8 @@ func (lr *limitedReader) Read(p []byte) (int, error) {
 // initAWSClient initializes the AWS S3 client
 
 func (rm *RestoreManager) initAWSClient() error {
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
+	// Use the manager's context for AWS SDK initialization
+	cfg, err := config.LoadDefaultConfig(rm.ctx,
 
 		config.WithRegion(rm.config.S3Region),
 
