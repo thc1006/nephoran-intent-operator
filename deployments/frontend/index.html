@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nephoran Intent Operator - Neural Command Interface</title>
+    <title>Nephoran Intent Operator</title>
     <style>
-        /* ==================== RESET & BASE ==================== */
+        /* ==================== GLOBAL RESET ==================== */
         * {
             margin: 0;
             padding: 0;
@@ -13,1133 +13,728 @@
         }
 
         :root {
-            /* Cybernetic Color Palette */
-            --bg-void: #0a0e1a;
-            --bg-deep: #0d1117;
-            --bg-surface: #161b26;
-            --bg-elevated: #1c2333;
-
-            --primary-cyan: #00ffff;
-            --primary-electric: #00d9ff;
-            --primary-deep: #0099cc;
-
-            --accent-orange: #ff6b35;
-            --accent-yellow: #ffd700;
-
-            --text-primary: #e4e8f0;
-            --text-secondary: #8b95a8;
-            --text-muted: #4a5568;
-
-            --border-subtle: rgba(0, 255, 255, 0.1);
-            --border-active: rgba(0, 255, 255, 0.4);
-            --glow-cyan: rgba(0, 255, 255, 0.3);
-
-            /* Typography */
-            --font-mono: 'IBM Plex Mono', 'JetBrains Mono', 'Courier New', monospace;
-            --font-display: 'Orbitron', 'IBM Plex Mono', sans-serif;
-
-            /* Spacing */
-            --spacing-xs: 0.25rem;
-            --spacing-sm: 0.5rem;
-            --spacing-md: 1rem;
-            --spacing-lg: 1.5rem;
-            --spacing-xl: 2rem;
-
-            /* Animations */
-            --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-            --transition-base: 300ms cubic-bezier(0.4, 0, 0.2, 1);
-            --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+            /* Professional Color Palette - inspired by K8s Dashboard */
+            --primary-blue: #326ce5;
+            --dark-blue: #1a4c9e;
+            --light-blue: #4a7fef;
+            --bg-main: #f5f7fa;
+            --bg-sidebar: #ffffff;
+            --bg-card: #ffffff;
+            --text-primary: #1a1a1a;
+            --text-secondary: #5f6368;
+            --border-color: #e0e0e0;
+            --success-green: #34a853;
+            --warning-orange: #fbbc04;
+            --error-red: #ea4335;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.12);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
         }
 
-        /* ==================== FONTS ==================== */
-        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Orbitron:wght@600;700;800&display=swap');
-
-        /* ==================== GLOBAL STYLES ==================== */
         body {
-            font-family: var(--font-mono);
-            font-size: 14px;
-            line-height: 1.6;
+            font-family: 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: var(--bg-main);
             color: var(--text-primary);
-            background: var(--bg-void);
-            overflow-x: hidden;
-            position: relative;
-        }
-
-        /* Animated grid background */
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image:
-                linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
-            background-size: 50px 50px;
-            z-index: 0;
-            pointer-events: none;
-            animation: gridPulse 10s ease-in-out infinite;
-        }
-
-        @keyframes gridPulse {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 0.6; }
-        }
-
-        /* Scanning line effect */
-        body::after {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background: linear-gradient(90deg,
-                transparent,
-                var(--primary-cyan),
-                transparent);
-            box-shadow: 0 0 20px var(--glow-cyan);
-            z-index: 9999;
-            pointer-events: none;
-            animation: scanLine 8s linear infinite;
-        }
-
-        @keyframes scanLine {
-            0% { top: 0; }
-            100% { top: 100%; }
+            line-height: 1.6;
         }
 
         /* ==================== LAYOUT ==================== */
-        .app-container {
-            position: relative;
-            z-index: 1;
-            display: grid;
-            grid-template-areas:
-                "header header header"
-                "sidebar main logs"
-                "status status status";
-            grid-template-columns: 280px 1fr 320px;
-            grid-template-rows: 70px 1fr 50px;
-            min-height: 100vh;
-            gap: 1px;
-            background: var(--border-subtle);
-        }
-
-        /* ==================== HEADER ==================== */
-        .header {
-            grid-area: header;
-            background: var(--bg-deep);
-            border-bottom: 2px solid var(--border-active);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        .container {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 var(--spacing-xl);
-            position: relative;
-            overflow: hidden;
+            min-height: 100vh;
         }
 
-        .header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg,
-                transparent,
-                var(--primary-cyan),
-                var(--primary-electric),
-                var(--primary-cyan),
-                transparent);
-            animation: headerScan 3s ease-in-out infinite;
+        /* ==================== SIDEBAR ==================== */
+        .sidebar {
+            width: 260px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
         }
 
-        @keyframes headerScan {
-            0%, 100% { transform: translateX(-100%); }
-            50% { transform: translateX(100%); }
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
         }
 
         .logo {
             display: flex;
             align-items: center;
-            gap: var(--spacing-md);
+            gap: 12px;
         }
 
         .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, var(--primary-cyan), var(--primary-electric));
-            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-            box-shadow: 0 0 20px var(--glow-cyan);
-            animation: logoFloat 3s ease-in-out infinite;
-        }
-
-        @keyframes logoFloat {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-5px) rotate(180deg); }
-        }
-
-        .logo-text {
-            font-family: var(--font-display);
-            font-size: 20px;
-            font-weight: 700;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            background: linear-gradient(135deg, var(--primary-cyan), var(--text-primary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .header-status {
+            width: 32px;
+            height: 32px;
+            background: var(--primary-blue);
+            border-radius: 6px;
             display: flex;
             align-items: center;
-            gap: var(--spacing-lg);
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .logo-text h1 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .logo-text p {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .nav-menu {
+            flex: 1;
+            padding: 16px 0;
+        }
+
+        .nav-item {
+            padding: 12px 20px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-main);
+            color: var(--primary-blue);
+        }
+
+        .nav-item.active {
+            background: var(--bg-main);
+            color: var(--primary-blue);
+            border-left: 3px solid var(--primary-blue);
+            font-weight: 500;
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sidebar-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border-color);
+            font-size: 12px;
+            color: var(--text-secondary);
         }
 
         .status-indicator {
             display: flex;
             align-items: center;
-            gap: var(--spacing-sm);
-            padding: var(--spacing-sm) var(--spacing-md);
-            background: var(--bg-surface);
-            border: 1px solid var(--border-subtle);
-            border-radius: 4px;
-            font-size: 12px;
-            position: relative;
+            gap: 8px;
+            margin-bottom: 8px;
         }
 
         .status-dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: var(--primary-cyan);
-            box-shadow: 0 0 10px var(--glow-cyan);
-            animation: statusPulse 2s ease-in-out infinite;
+            background: var(--success-green);
         }
 
-        @keyframes statusPulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.6; transform: scale(1.2); }
-        }
-
-        /* ==================== SIDEBAR ==================== */
-        .sidebar {
-            grid-area: sidebar;
-            background: var(--bg-deep);
-            border-right: 1px solid var(--border-subtle);
-            padding: var(--spacing-lg);
-            overflow-y: auto;
-        }
-
-        .sidebar-section {
-            margin-bottom: var(--spacing-xl);
-        }
-
-        .sidebar-title {
-            font-family: var(--font-display);
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            color: var(--primary-cyan);
-            margin-bottom: var(--spacing-md);
-            padding-bottom: var(--spacing-sm);
-            border-bottom: 1px solid var(--border-subtle);
-        }
-
-        .quick-action {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-sm);
-            padding: var(--spacing-sm) var(--spacing-md);
-            margin-bottom: var(--spacing-xs);
-            background: var(--bg-surface);
-            border: 1px solid var(--border-subtle);
-            border-left: 3px solid transparent;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all var(--transition-base);
-            font-size: 13px;
-        }
-
-        .quick-action:hover {
-            background: var(--bg-elevated);
-            border-left-color: var(--primary-cyan);
-            box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
-            transform: translateX(4px);
-        }
-
-        .quick-action-icon {
-            width: 6px;
-            height: 6px;
-            background: var(--primary-cyan);
-            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+        .status-dot.warning {
+            background: var(--warning-orange);
         }
 
         /* ==================== MAIN CONTENT ==================== */
         .main-content {
-            grid-area: main;
-            background: var(--bg-deep);
-            padding: var(--spacing-xl);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ==================== HEADER ==================== */
+        .header {
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .header-title p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: var(--primary-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--dark-blue);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-main);
+        }
+
+        /* ==================== CONTENT AREA ==================== */
+        .content-area {
+            flex: 1;
+            padding: 24px 32px;
             overflow-y: auto;
         }
 
-        .command-card {
-            background: var(--bg-surface);
-            border: 1px solid var(--border-subtle);
+        .card {
+            background: var(--bg-card);
             border-radius: 8px;
-            padding: var(--spacing-xl);
-            margin-bottom: var(--spacing-lg);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .command-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, var(--primary-cyan), transparent);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 24px;
         }
 
         .card-header {
-            font-family: var(--font-display);
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-header h3 {
             font-size: 16px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            color: var(--primary-cyan);
-            margin-bottom: var(--spacing-lg);
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-sm);
+            font-weight: 600;
+            color: var(--text-primary);
         }
 
-        .card-header::before {
-            content: '▸';
-            font-size: 20px;
-            animation: blink 1.5s ease-in-out infinite;
+        .card-body {
+            padding: 20px;
         }
 
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
+        /* ==================== INTENT INPUT ==================== */
+        .intent-input-section {
+            margin-bottom: 24px;
         }
 
         .input-group {
-            margin-bottom: var(--spacing-lg);
+            margin-bottom: 16px;
         }
 
         .input-label {
             display: block;
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            color: var(--text-secondary);
-            margin-bottom: var(--spacing-sm);
-        }
-
-        .text-input,
-        .select-input,
-        .textarea-input {
-            width: 100%;
-            background: var(--bg-elevated);
-            border: 1px solid var(--border-subtle);
-            border-radius: 4px;
-            padding: var(--spacing-md);
+            font-size: 13px;
+            font-weight: 500;
             color: var(--text-primary);
-            font-family: var(--font-mono);
-            font-size: 14px;
-            transition: all var(--transition-base);
+            margin-bottom: 8px;
         }
 
-        .text-input:focus,
-        .select-input:focus,
-        .textarea-input:focus {
-            outline: none;
-            border-color: var(--primary-cyan);
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
-        }
-
-        .textarea-input {
-            min-height: 150px;
-            resize: vertical;
-            font-family: var(--font-mono);
-            line-height: 1.8;
-        }
-
-        .select-input {
-            cursor: pointer;
-        }
-
-        .intent-examples {
-            background: var(--bg-void);
-            border: 1px solid var(--border-subtle);
+        .input-field {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
             border-radius: 4px;
-            padding: var(--spacing-md);
-            margin-top: var(--spacing-sm);
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
         }
 
-        .example-title {
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            color: var(--primary-cyan);
-            margin-bottom: var(--spacing-sm);
+        .input-field:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(50, 108, 229, 0.1);
+        }
+
+        textarea.input-field {
+            min-height: 120px;
+            resize: vertical;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+        }
+
+        .input-examples {
+            margin-top: 8px;
+            padding: 12px;
+            background: var(--bg-main);
+            border-radius: 4px;
+            font-size: 12px;
+            color: var(--text-secondary);
         }
 
         .example-item {
-            font-size: 12px;
-            color: var(--text-secondary);
-            padding: var(--spacing-xs) 0;
+            margin: 4px 0;
             cursor: pointer;
-            transition: color var(--transition-fast);
+            padding: 4px 8px;
+            border-radius: 3px;
+            transition: all 0.2s;
         }
 
         .example-item:hover {
-            color: var(--primary-electric);
-        }
-
-        .example-item::before {
-            content: '› ';
-            color: var(--primary-cyan);
+            background: white;
+            color: var(--primary-blue);
         }
 
         .button-group {
             display: flex;
-            gap: var(--spacing-md);
-            margin-top: var(--spacing-xl);
+            gap: 12px;
         }
 
-        .btn {
-            flex: 1;
-            padding: var(--spacing-md) var(--spacing-xl);
-            border: none;
+        /* ==================== RESPONSE DISPLAY ==================== */
+        .response-section {
+            display: none;
+        }
+
+        .response-section.show {
+            display: block;
+        }
+
+        .response-content {
+            background: #f8f9fa;
+            border: 1px solid var(--border-color);
             border-radius: 4px;
-            font-family: var(--font-display);
+            padding: 16px;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
             font-size: 13px;
-            font-weight: 700;
-            letter-spacing: 1px;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .response-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            padding: 12px;
+            border-radius: 4px;
+        }
+
+        .response-status.success {
+            background: #e6f4ea;
+            color: var(--success-green);
+        }
+
+        .response-status.error {
+            background: #fce8e6;
+            color: var(--error-red);
+        }
+
+        /* ==================== HISTORY TABLE ==================== */
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .history-table thead {
+            background: var(--bg-main);
+        }
+
+        .history-table th {
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
             text-transform: uppercase;
-            cursor: pointer;
-            transition: all var(--transition-base);
-            position: relative;
-            overflow: hidden;
+            letter-spacing: 0.5px;
         }
 
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
+        .history-table td {
+            padding: 12px 16px;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .history-table tbody tr:hover {
+            background: var(--bg-main);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .badge-success {
+            background: #e6f4ea;
+            color: var(--success-green);
+        }
+
+        .badge-pending {
+            background: #fef7e0;
+            color: var(--warning-orange);
+        }
+
+        .badge-error {
+            background: #fce8e6;
+            color: var(--error-red);
+        }
+
+        /* ==================== LOADING STATE ==================== */
+        .loading {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: var(--bg-main);
+            border-radius: 4px;
+            margin-top: 16px;
+        }
+
+        .loading.show {
+            display: flex;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--primary-blue);
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.2);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
-
-        .btn:active::before {
-            width: 300px;
-            height: 300px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary-cyan), var(--primary-deep));
-            color: var(--bg-void);
-            box-shadow: 0 4px 20px rgba(0, 255, 255, 0.3);
-        }
-
-        .btn-primary:hover:not(:disabled) {
-            box-shadow: 0 6px 30px rgba(0, 255, 255, 0.5);
-            transform: translateY(-2px);
-        }
-
-        .btn-secondary {
-            background: var(--bg-elevated);
-            color: var(--text-primary);
-            border: 1px solid var(--border-active);
-        }
-
-        .btn-secondary:hover:not(:disabled) {
-            background: var(--bg-surface);
-            border-color: var(--primary-cyan);
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .btn-loading {
-            position: relative;
-            color: transparent;
-        }
-
-        .btn-loading::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 16px;
-            height: 16px;
-            border: 2px solid transparent;
-            border-top-color: var(--bg-void);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
             animation: spin 0.8s linear infinite;
         }
 
         @keyframes spin {
-            to { transform: translate(-50%, -50%) rotate(360deg); }
-        }
-
-        /* Response Display */
-        .response-card {
-            background: var(--bg-void);
-            border: 1px solid var(--border-subtle);
-            border-radius: 8px;
-            padding: var(--spacing-xl);
-            margin-top: var(--spacing-lg);
-            display: none;
-        }
-
-        .response-card.active {
-            display: block;
-            animation: slideIn 0.4s ease-out;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .response-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: var(--spacing-md);
-            padding-bottom: var(--spacing-md);
-            border-bottom: 1px solid var(--border-subtle);
-        }
-
-        .response-title {
-            font-family: var(--font-display);
-            font-size: 13px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            color: var(--primary-cyan);
-        }
-
-        .response-status {
-            padding: var(--spacing-xs) var(--spacing-md);
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .response-status.success {
-            background: rgba(0, 255, 0, 0.1);
-            color: #00ff00;
-            border: 1px solid rgba(0, 255, 0, 0.3);
-        }
-
-        .response-status.error {
-            background: rgba(255, 107, 53, 0.1);
-            color: var(--accent-orange);
-            border: 1px solid rgba(255, 107, 53, 0.3);
-        }
-
-        .json-output {
-            background: var(--bg-deep);
-            border: 1px solid var(--border-subtle);
-            border-radius: 4px;
-            padding: var(--spacing-md);
-            overflow-x: auto;
-            font-family: var(--font-mono);
-            font-size: 12px;
-            line-height: 1.8;
-        }
-
-        .json-output pre {
-            margin: 0;
-        }
-
-        /* ==================== LOGS PANEL ==================== */
-        .logs-panel {
-            grid-area: logs;
-            background: var(--bg-deep);
-            border-left: 1px solid var(--border-subtle);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .logs-header {
-            padding: var(--spacing-lg);
-            border-bottom: 1px solid var(--border-subtle);
-        }
-
-        .logs-title {
-            font-family: var(--font-display);
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            color: var(--primary-cyan);
-        }
-
-        .logs-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: var(--spacing-md);
-        }
-
-        .history-item {
-            background: var(--bg-surface);
-            border: 1px solid var(--border-subtle);
-            border-left: 3px solid var(--primary-cyan);
-            border-radius: 4px;
-            padding: var(--spacing-md);
-            margin-bottom: var(--spacing-sm);
-            cursor: pointer;
-            transition: all var(--transition-base);
-            animation: historyPop 0.3s ease-out;
-        }
-
-        @keyframes historyPop {
-            0% {
-                opacity: 0;
-                transform: translateX(20px);
-            }
-            100% {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        .history-item:hover {
-            background: var(--bg-elevated);
-            box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
-        }
-
-        .history-timestamp {
-            font-size: 10px;
-            color: var(--text-muted);
-            margin-bottom: var(--spacing-xs);
-        }
-
-        .history-intent {
-            font-size: 12px;
-            color: var(--text-secondary);
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .history-type {
-            display: inline-block;
-            padding: 2px 6px;
-            margin-top: var(--spacing-xs);
-            background: rgba(0, 255, 255, 0.1);
-            border: 1px solid var(--border-subtle);
-            border-radius: 2px;
-            font-size: 9px;
-            font-weight: 600;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            color: var(--primary-cyan);
-        }
-
-        /* ==================== STATUS BAR ==================== */
-        .status-bar {
-            grid-area: status;
-            background: var(--bg-deep);
-            border-top: 2px solid var(--border-active);
-            padding: 0 var(--spacing-xl);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 11px;
-            color: var(--text-muted);
-        }
-
-        .status-info {
-            display: flex;
-            gap: var(--spacing-lg);
-        }
-
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-xs);
-        }
-
-        .status-item-label {
-            color: var(--text-muted);
-        }
-
-        .status-item-value {
-            color: var(--primary-cyan);
-            font-weight: 600;
-        }
-
-        /* ==================== SCROLLBAR ==================== */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: var(--bg-deep);
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--primary-cyan);
-            border-radius: 4px;
-            opacity: 0.5;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--primary-electric);
+            to { transform: rotate(360deg); }
         }
 
         /* ==================== RESPONSIVE ==================== */
-        @media (max-width: 1200px) {
-            .app-container {
-                grid-template-areas:
-                    "header header"
-                    "main main"
-                    "status status";
-                grid-template-columns: 1fr;
-                grid-template-rows: 70px 1fr 50px;
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 200px;
             }
 
-            .sidebar,
-            .logs-panel {
-                display: none;
+            .content-area {
+                padding: 16px;
+            }
+
+            .header {
+                padding: 12px 16px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="app-container">
-        <!-- Header -->
-        <header class="header">
-            <div class="logo">
-                <div class="logo-icon"></div>
-                <div class="logo-text">Nephoran</div>
-            </div>
-            <div class="header-status">
-                <div class="status-indicator">
-                    <div class="status-dot"></div>
-                    <span>System Online</span>
-                </div>
-                <div class="status-indicator">
-                    <span id="clusterName">Cluster: K8s v1.35.1</span>
-                </div>
-            </div>
-        </header>
-
+    <div class="container">
         <!-- Sidebar -->
         <aside class="sidebar">
-            <div class="sidebar-section">
-                <div class="sidebar-title">Quick Actions</div>
-                <div class="quick-action" data-action="scale">
-                    <div class="quick-action-icon"></div>
-                    <span>Scale Resources</span>
-                </div>
-                <div class="quick-action" data-action="deploy">
-                    <div class="quick-action-icon"></div>
-                    <span>Deploy Service</span>
-                </div>
-                <div class="quick-action" data-action="configure">
-                    <div class="quick-action-icon"></div>
-                    <span>Configure Network</span>
-                </div>
-                <div class="quick-action" data-action="monitor">
-                    <div class="quick-action-icon"></div>
-                    <span>Monitor Status</span>
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">N</div>
+                    <div class="logo-text">
+                        <h1>Nephoran</h1>
+                        <p>Intent Operator</p>
+                    </div>
                 </div>
             </div>
 
-            <div class="sidebar-section">
-                <div class="sidebar-title">Intent Types</div>
-                <div class="quick-action" data-type="scaling">
-                    <div class="quick-action-icon"></div>
-                    <span>Scaling</span>
+            <nav class="nav-menu">
+                <div class="nav-item active">
+                    <div class="nav-icon">📝</div>
+                    <span>Intent Input</span>
                 </div>
-                <div class="quick-action" data-type="deployment">
-                    <div class="quick-action-icon"></div>
-                    <span>Deployment</span>
+                <div class="nav-item">
+                    <div class="nav-icon">📊</div>
+                    <span>History</span>
                 </div>
-                <div class="quick-action" data-type="service">
-                    <div class="quick-action-icon"></div>
-                    <span>Service</span>
+                <div class="nav-item">
+                    <div class="nav-icon">⚙️</div>
+                    <span>Configuration</span>
+                </div>
+                <div class="nav-item">
+                    <div class="nav-icon">📈</div>
+                    <span>Metrics</span>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span>Ollama: Connected</span>
+                </div>
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span>Backend: Healthy</span>
+                </div>
+                <div style="margin-top: 12px; font-size: 11px; opacity: 0.7;">
+                    Model: llama3.1
                 </div>
             </div>
         </aside>
 
         <!-- Main Content -->
         <main class="main-content">
-            <div class="command-card">
-                <h2 class="card-header">Neural Command Interface</h2>
-
-                <div class="input-group">
-                    <label class="input-label" for="intentType">Intent Type</label>
-                    <select id="intentType" class="select-input">
-                        <option value="scaling">Scaling</option>
-                        <option value="deployment">Deployment</option>
-                        <option value="service">Service</option>
-                    </select>
+            <!-- Header -->
+            <header class="header">
+                <div class="header-title">
+                    <h2>Network Intent Management</h2>
+                    <p>Process natural language commands for Kubernetes network functions</p>
                 </div>
-
-                <div class="input-group">
-                    <label class="input-label" for="namespace">Target Namespace</label>
-                    <input type="text" id="namespace" class="text-input" placeholder="default" value="default">
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="clearHistory()">Clear History</button>
+                    <button class="btn btn-primary" onclick="showExamples()">View Examples</button>
                 </div>
+            </header>
 
-                <div class="input-group">
-                    <label class="input-label" for="intentInput">Natural Language Command</label>
-                    <textarea
-                        id="intentInput"
-                        class="textarea-input"
-                        placeholder="Enter your intent in natural language...&#10;&#10;Example: scale nf-sim to 5 in ns ran-a"
-                    ></textarea>
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Intent Input Card -->
+                <div class="card intent-input-section">
+                    <div class="card-header">
+                        <h3>Submit Intent Command</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="input-group">
+                            <label class="input-label">Natural Language Input</label>
+                            <textarea
+                                id="intentInput"
+                                class="input-field"
+                                placeholder="Enter your intent command in natural language...&#10;Example: scale nf-sim to 5 in ns ran-a"
+                            ></textarea>
 
-                    <div class="intent-examples">
-                        <div class="example-title">Examples</div>
-                        <div class="example-item" data-example="scale nf-sim to 5 in ns ran-a">
-                            scale nf-sim to 5 in ns ran-a
+                            <div class="input-examples">
+                                <strong>Quick Examples:</strong>
+                                <div class="example-item" onclick="fillExample('scale nf-sim to 5 in ns ran-a')">
+                                    • scale nf-sim to 5 in ns ran-a
+                                </div>
+                                <div class="example-item" onclick="fillExample('deploy nginx with 3 replicas in namespace production')">
+                                    • deploy nginx with 3 replicas in namespace production
+                                </div>
+                                <div class="example-item" onclick="fillExample('scale out batch-processor by 2 in ns processing')">
+                                    • scale out batch-processor by 2 in ns processing
+                                </div>
+                            </div>
                         </div>
-                        <div class="example-item" data-example="deploy nginx with 3 replicas in namespace production">
-                            deploy nginx with 3 replicas in namespace production
+
+                        <div class="button-group">
+                            <button class="btn btn-primary" onclick="submitIntent()">Process Intent</button>
+                            <button class="btn btn-secondary" onclick="clearInput()">Clear</button>
                         </div>
-                        <div class="example-item" data-example="create service for app frontend on port 8080">
-                            create service for app frontend on port 8080
+
+                        <div class="loading" id="loadingIndicator">
+                            <div class="spinner"></div>
+                            <span>Processing with Ollama LLM...</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="button-group">
-                    <button id="submitBtn" class="btn btn-primary">Execute Intent</button>
-                    <button id="clearBtn" class="btn btn-secondary">Clear</button>
+                <!-- Response Card -->
+                <div class="card response-section" id="responseSection">
+                    <div class="card-header">
+                        <h3>Intent Response</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="response-status success" id="responseStatus">
+                            <span>✓</span>
+                            <span>Intent processed successfully</span>
+                        </div>
+                        <pre class="response-content" id="responseContent"></pre>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Response Display -->
-            <div id="responseCard" class="response-card">
-                <div class="response-header">
-                    <div class="response-title">Intent Response</div>
-                    <div id="responseStatus" class="response-status"></div>
-                </div>
-                <div class="json-output">
-                    <pre id="jsonResponse"></pre>
+                <!-- History Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Recent Intents</h3>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <table class="history-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Command</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody">
+                                <tr>
+                                    <td colspan="4" style="text-align: center; padding: 32px; color: var(--text-secondary);">
+                                        No intents submitted yet. Start by entering a command above.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </main>
-
-        <!-- Logs Panel -->
-        <aside class="logs-panel">
-            <div class="logs-header">
-                <div class="logs-title">Intent History</div>
-            </div>
-            <div class="logs-content" id="historyList">
-                <!-- History items will be added here dynamically -->
-            </div>
-        </aside>
-
-        <!-- Status Bar -->
-        <footer class="status-bar">
-            <div class="status-info">
-                <div class="status-item">
-                    <span class="status-item-label">API Endpoint:</span>
-                    <span class="status-item-value" id="apiEndpoint">intent-ingest-service:8080</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-item-label">Mode:</span>
-                    <span class="status-item-value">LLM</span>
-                </div>
-            </div>
-            <div class="status-info">
-                <div class="status-item">
-                    <span class="status-item-value" id="timestamp">--:--:--</span>
-                </div>
-            </div>
-        </footer>
     </div>
 
     <script>
-        // ==================== CONFIGURATION ====================
-        const CONFIG = {
-            apiEndpoint: window.location.hostname === 'localhost'
-                ? 'http://localhost:8080'
-                : 'http://intent-ingest-service:8080',
-            historyKey: 'nephoran_intent_history',
-            maxHistoryItems: 50
-        };
+        // API endpoint configuration
+        const API_ENDPOINT = '/api/intent';
 
-        // ==================== STATE MANAGEMENT ====================
-        const state = {
-            history: loadHistory(),
-            currentRequest: null
-        };
+        // History storage
+        let intentHistory = JSON.parse(localStorage.getItem('intentHistory') || '[]');
 
-        // ==================== DOM ELEMENTS ====================
-        const elements = {
-            intentInput: document.getElementById('intentInput'),
-            intentType: document.getElementById('intentType'),
-            namespace: document.getElementById('namespace'),
-            submitBtn: document.getElementById('submitBtn'),
-            clearBtn: document.getElementById('clearBtn'),
-            responseCard: document.getElementById('responseCard'),
-            responseStatus: document.getElementById('responseStatus'),
-            jsonResponse: document.getElementById('jsonResponse'),
-            historyList: document.getElementById('historyList'),
-            timestamp: document.getElementById('timestamp'),
-            apiEndpoint: document.getElementById('apiEndpoint')
-        };
-
-        // ==================== INITIALIZATION ====================
-        function init() {
-            setupEventListeners();
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
             renderHistory();
-            updateTimestamp();
-            updateAPIEndpoint();
-            setInterval(updateTimestamp, 1000);
+        });
+
+        // Fill example
+        function fillExample(text) {
+            document.getElementById('intentInput').value = text;
         }
 
-        // ==================== EVENT LISTENERS ====================
-        function setupEventListeners() {
-            elements.submitBtn.addEventListener('click', handleSubmit);
-            elements.clearBtn.addEventListener('click', handleClear);
-
-            // Example click handlers
-            document.querySelectorAll('.example-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    elements.intentInput.value = item.dataset.example;
-                    elements.intentInput.focus();
-                });
-            });
-
-            // Quick action handlers
-            document.querySelectorAll('.quick-action[data-type]').forEach(action => {
-                action.addEventListener('click', () => {
-                    elements.intentType.value = action.dataset.type;
-                });
-            });
-
-            // Keyboard shortcuts
-            document.addEventListener('keydown', (e) => {
-                if (e.ctrlKey && e.key === 'Enter') {
-                    handleSubmit();
-                }
-                if (e.ctrlKey && e.key === 'l') {
-                    e.preventDefault();
-                    handleClear();
-                }
-            });
+        // Clear input
+        function clearInput() {
+            document.getElementById('intentInput').value = '';
         }
 
-        // ==================== CORE FUNCTIONS ====================
-        async function handleSubmit() {
-            const intentText = elements.intentInput.value.trim();
+        // Submit intent
+        async function submitIntent() {
+            const input = document.getElementById('intentInput').value.trim();
 
-            if (!intentText) {
-                showError('Please enter an intent command');
+            if (!input) {
+                alert('Please enter an intent command');
                 return;
             }
 
-            setLoading(true);
-            hideResponse();
+            // Show loading
+            document.getElementById('loadingIndicator').classList.add('show');
+            document.getElementById('responseSection').classList.remove('show');
 
             try {
-                const response = await fetch(`${CONFIG.apiEndpoint}/intent`, {
+                const response = await fetch(API_ENDPOINT, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'text/plain'
                     },
-                    body: intentText
+                    body: input
                 });
 
-                const responseText = await response.text();
+                const data = await response.json();
+
+                // Show response
+                document.getElementById('loadingIndicator').classList.remove('show');
+                document.getElementById('responseSection').classList.add('show');
 
                 if (response.ok) {
-                    handleSuccess(responseText, intentText);
+                    document.getElementById('responseStatus').className = 'response-status success';
+                    document.getElementById('responseStatus').innerHTML = '<span>✓</span><span>Intent processed successfully</span>';
                 } else {
-                    handleError(responseText);
+                    document.getElementById('responseStatus').className = 'response-status error';
+                    document.getElementById('responseStatus').innerHTML = '<span>✗</span><span>Processing failed</span>';
                 }
+
+                document.getElementById('responseContent').textContent = JSON.stringify(data, null, 2);
+
+                // Add to history
+                addToHistory(input, response.ok ? 'success' : 'error', data);
+
             } catch (error) {
-                handleError(`Network error: ${error.message}. Make sure the intent-ingest service is running.`);
-            } finally {
-                setLoading(false);
+                document.getElementById('loadingIndicator').classList.remove('show');
+                document.getElementById('responseSection').classList.add('show');
+                document.getElementById('responseStatus').className = 'response-status error';
+                document.getElementById('responseStatus').innerHTML = '<span>✗</span><span>Connection error</span>';
+                document.getElementById('responseContent').textContent = 'Error: ' + error.message;
+
+                addToHistory(input, 'error', { error: error.message });
             }
         }
 
-        function handleSuccess(responseText, intentText) {
-            let jsonData;
-            try {
-                jsonData = JSON.parse(responseText);
-            } catch {
-                jsonData = { message: responseText };
-            }
-
-            showResponse('success', 'Success', jsonData);
-            addToHistory({
+        // Add to history
+        function addToHistory(command, status, response) {
+            const entry = {
                 timestamp: new Date().toISOString(),
-                intent: intentText,
-                type: elements.intentType.value,
-                namespace: elements.namespace.value,
-                response: jsonData
-            });
-        }
+                command: command,
+                status: status,
+                response: response
+            };
 
-        function handleError(errorMessage) {
-            showResponse('error', 'Error', { error: errorMessage });
-        }
+            intentHistory.unshift(entry);
 
-        function handleClear() {
-            elements.intentInput.value = '';
-            elements.namespace.value = 'default';
-            hideResponse();
-            elements.intentInput.focus();
-        }
-
-        // ==================== UI UPDATES ====================
-        function setLoading(isLoading) {
-            elements.submitBtn.disabled = isLoading;
-            if (isLoading) {
-                elements.submitBtn.classList.add('btn-loading');
-            } else {
-                elements.submitBtn.classList.remove('btn-loading');
+            // Keep only last 50 entries
+            if (intentHistory.length > 50) {
+                intentHistory = intentHistory.slice(0, 50);
             }
-        }
 
-        function showResponse(status, statusText, data) {
-            elements.responseCard.classList.add('active');
-            elements.responseStatus.textContent = statusText;
-            elements.responseStatus.className = `response-status ${status}`;
-            elements.jsonResponse.textContent = JSON.stringify(data, null, 2);
-        }
-
-        function hideResponse() {
-            elements.responseCard.classList.remove('active');
-        }
-
-        function showError(message) {
-            showResponse('error', 'Error', { error: message });
-        }
-
-        // ==================== HISTORY MANAGEMENT ====================
-        function loadHistory() {
-            try {
-                const stored = localStorage.getItem(CONFIG.historyKey);
-                return stored ? JSON.parse(stored) : [];
-            } catch {
-                return [];
-            }
-        }
-
-        function saveHistory() {
-            try {
-                localStorage.setItem(CONFIG.historyKey, JSON.stringify(state.history));
-            } catch (error) {
-                console.error('Failed to save history:', error);
-            }
-        }
-
-        function addToHistory(item) {
-            state.history.unshift(item);
-            if (state.history.length > CONFIG.maxHistoryItems) {
-                state.history = state.history.slice(0, CONFIG.maxHistoryItems);
-            }
-            saveHistory();
+            localStorage.setItem('intentHistory', JSON.stringify(intentHistory));
             renderHistory();
         }
 
+        // Render history
         function renderHistory() {
-            elements.historyList.innerHTML = '';
+            const tbody = document.getElementById('historyTableBody');
 
-            if (state.history.length === 0) {
-                elements.historyList.innerHTML = '<div style="padding: 1rem; text-align: center; color: var(--text-muted); font-size: 12px;">No history yet</div>';
+            if (intentHistory.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 32px; color: var(--text-secondary);">No intents submitted yet. Start by entering a command above.</td></tr>';
                 return;
             }
 
-            state.history.forEach((item, index) => {
-                const historyItem = createHistoryItem(item, index);
-                elements.historyList.appendChild(historyItem);
-            });
+            tbody.innerHTML = intentHistory.slice(0, 10).map((entry, index) => `
+                <tr>
+                    <td>${new Date(entry.timestamp).toLocaleString()}</td>
+                    <td style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${entry.command}</td>
+                    <td><span class="badge badge-${entry.status}">${entry.status.toUpperCase()}</span></td>
+                    <td>
+                        <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;" onclick="viewDetails(${index})">View</button>
+                    </td>
+                </tr>
+            `).join('');
         }
 
-        function createHistoryItem(item, index) {
-            const div = document.createElement('div');
-            div.className = 'history-item';
-            div.style.animationDelay = `${index * 0.05}s`;
-
-            const timestamp = new Date(item.timestamp).toLocaleString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                month: 'short',
-                day: 'numeric'
-            });
-
-            div.innerHTML = `
-                <div class="history-timestamp">${timestamp}</div>
-                <div class="history-intent">${escapeHtml(item.intent)}</div>
-                <span class="history-type">${item.type}</span>
-            `;
-
-            div.addEventListener('click', () => {
-                elements.intentInput.value = item.intent;
-                elements.intentType.value = item.type;
-                elements.namespace.value = item.namespace;
-                showResponse('success', 'Success', item.response);
-            });
-
-            return div;
+        // View details
+        function viewDetails(index) {
+            const entry = intentHistory[index];
+            document.getElementById('responseSection').classList.add('show');
+            document.getElementById('responseStatus').className = `response-status ${entry.status}`;
+            document.getElementById('responseStatus').innerHTML = entry.status === 'success'
+                ? '<span>✓</span><span>Intent processed successfully</span>'
+                : '<span>✗</span><span>Processing failed</span>';
+            document.getElementById('responseContent').textContent = JSON.stringify(entry.response, null, 2);
         }
 
-        // ==================== UTILITY FUNCTIONS ====================
-        function updateTimestamp() {
-            const now = new Date();
-            elements.timestamp.textContent = now.toLocaleTimeString('en-US', {
-                hour12: false,
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
+        // Clear history
+        function clearHistory() {
+            if (confirm('Are you sure you want to clear all history?')) {
+                intentHistory = [];
+                localStorage.setItem('intentHistory', '[]');
+                renderHistory();
+            }
         }
 
-        function updateAPIEndpoint() {
-            elements.apiEndpoint.textContent = CONFIG.apiEndpoint;
+        // Show examples
+        function showExamples() {
+            alert('Example Commands:\n\n' +
+                  '1. scale nf-sim to 5 in ns ran-a\n' +
+                  '2. deploy nginx with 3 replicas in namespace production\n' +
+                  '3. scale out batch-processor by 2 in ns processing\n' +
+                  '4. scale in worker-service by 1 in ns compute');
         }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // ==================== START APPLICATION ====================
-        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
