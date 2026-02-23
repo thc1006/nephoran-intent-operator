@@ -44,6 +44,8 @@ MAINTAINERS*
 
 # Documentation directories
 docs/
+!docs/contracts/
+!docs/contracts/*.json
 documentation/
 examples/
 sample*/

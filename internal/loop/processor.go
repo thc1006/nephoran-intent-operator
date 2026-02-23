@@ -121,10 +121,6 @@ type IntentProcessor struct {
 	shutdownMutex sync.RWMutex
 }
 
-// PorchSubmitFunc is a function type for submitting to porch.
-
-type PorchSubmitFunc func(ctx context.Context, intent *ingest.Intent, mode string) error
-
 // NewProcessor creates a new intent processor.
 
 func NewProcessor(config *ProcessorConfig, validator Validator, porchFunc PorchSubmitFunc) (*IntentProcessor, error) {

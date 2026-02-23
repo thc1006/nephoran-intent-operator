@@ -87,8 +87,8 @@ spec:
             - -c
             - |
               echo "Setting up directories..."
-              mkdir -p /data/handoff/in /data/handoff/out /logs
-              chmod 755 /data/handoff/in /data/handoff/out /logs
+              mkdir -p /data/handoff/in /data/handoff/out /data/handoff/errors /data/handoff/processed /logs
+              chmod 755 /data/handoff/in /data/handoff/out /data/handoff/errors /data/handoff/processed /logs
               echo "Directory setup complete"
           volumeMounts:
             - name: data-volume
@@ -98,7 +98,7 @@ spec:
       
       containers:
         - name: conductor-loop
-          image: ghcr.io/thc1006/conductor-loop:latest
+          image: docker.io/library/conductor-loop:k8s-direct-v2
           imagePullPolicy: IfNotPresent
           
           # Security context
@@ -114,8 +114,13 @@ spec:
           
           # Command and args
           args:
-            - "--config=/config/config.json"
-            - "--log-level=info"
+            - "--use-processor"
+            - "--handoff-dir=/data/handoff/in"
+            - "--error-dir=/data/handoff/errors"
+            - "--porch-mode=structured"
+            - "--batch-size=10"
+            - "--batch-interval=5s"
+            - "--schema=/app/docs/contracts/intent.schema.json"
           
           # Environment variables
           env:
@@ -174,50 +179,17 @@ spec:
           # Resource limits and requests
           resources:
             limits:
-              cpu: "1000m"
-              memory: "512Mi"
-              ephemeral-storage: "1Gi"
+              cpu: "500m"
+              memory: "256Mi"
+              ephemeral-storage: "500Mi"
             requests:
-              cpu: "100m"
-              memory: "128Mi"
-              ephemeral-storage: "512Mi"
+              cpu: "50m"
+              memory: "64Mi"
+              ephemeral-storage: "256Mi"
           
-          # Liveness probe
-          livenessProbe:
-            httpGet:
-              path: /livez
-              port: http-health
-              scheme: HTTP
-            initialDelaySeconds: 30
-            periodSeconds: 30
-            timeoutSeconds: 10
-            failureThreshold: 3
-            successThreshold: 1
-          
-          # Readiness probe
-          readinessProbe:
-            httpGet:
-              path: /readyz
-              port: http-health
-              scheme: HTTP
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
-            successThreshold: 1
-          
-          # Startup probe
-          startupProbe:
-            httpGet:
-              path: /healthz
-              port: http-health
-              scheme: HTTP
-            initialDelaySeconds: 10
-            periodSeconds: 5
-            timeoutSeconds: 5
-            failureThreshold: 12
-            successThreshold: 1
-          
+          # Probes removed - distroless image doesn't have shell utilities
+          # conductor-loop is a simple file watcher that crashes if it can't run
+
           # Lifecycle hooks
           lifecycle:
             preStop:

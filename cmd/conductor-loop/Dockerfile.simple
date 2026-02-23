@@ -1,0 +1,34 @@
+# Simple Dockerfile for conductor-loop without security scanning stages
+FROM docker.io/library/golang:1.26.0-alpine AS builder
+
+WORKDIR /workspace
+
+# Copy go mod files
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the binary
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -ldflags="-w -s" \
+    -o /bin/conductor-loop \
+    ./cmd/conductor-loop
+
+# Copy schema file (from workspace)
+RUN mkdir -p /app/docs/contracts && \
+    cp /workspace/docs/contracts/intent.schema.json /app/docs/contracts/
+
+# Runtime stage
+FROM docker.io/library/alpine:3.21
+
+RUN apk add --no-cache ca-certificates && \
+    adduser -D -u 1000 appuser
+
+COPY --from=builder /bin/conductor-loop /usr/local/bin/conductor-loop
+COPY --from=builder /app/docs/contracts/intent.schema.json /app/docs/contracts/intent.schema.json
+
+USER appuser
+
+ENTRYPOINT ["/usr/local/bin/conductor-loop"]
