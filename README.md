@@ -293,7 +293,7 @@ intent, err := validator.ValidateIntent(intentData)
 - Secure timestamp generation
 - Enhanced input validation framework
 
-For detailed migration information, see [CHANGELOG.md](CHANGELOG.md#breaking-changes) and [SECURITY.md](SECURITY.md#recent-security-enhancements-v020).
+For detailed migration information, see [GitHub Releases](https://github.com/thc1006/nephoran-intent-operator/releases) and [SECURITY.md](SECURITY.md#recent-security-enhancements-v020).
 
 ## 🧪 MVP Use Cases & Demonstrations
 

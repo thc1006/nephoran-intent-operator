@@ -1,0 +1,70 @@
+# GitHub Release Notes Configuration
+# Automatically generates release notes from PR labels and commits
+# https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes
+
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+      - dependencies
+      - skip-changelog
+    authors:
+      - dependabot
+      - github-actions[bot]
+
+  categories:
+    - title: 🚀 Features
+      labels:
+        - feature
+        - enhancement
+        - feat
+
+    - title: 🐛 Bug Fixes
+      labels:
+        - bug
+        - fix
+        - bugfix
+
+    - title: 📚 Documentation
+      labels:
+        - documentation
+        - docs
+
+    - title: 🔧 Maintenance
+      labels:
+        - chore
+        - maintenance
+        - refactor
+
+    - title: 🔒 Security
+      labels:
+        - security
+        - vulnerability
+
+    - title: ⚡ Performance
+      labels:
+        - performance
+        - optimization
+
+    - title: 🧪 Testing
+      labels:
+        - test
+        - testing
+
+    - title: 🏗️ Infrastructure
+      labels:
+        - ci
+        - cd
+        - infrastructure
+        - devops
+
+    - title: 🌐 O-RAN & 5G
+      labels:
+        - oran
+        - 5g
+        - ran
+        - network-function
+
+    - title: Other Changes
+      labels:
+        - "*"
