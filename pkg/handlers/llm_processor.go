@@ -722,8 +722,14 @@ func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string, meta
 
 	// Create ProcessIntentResult from the raw LLM response.
 
+	// Safe type assertion to prevent panic (CRITICAL-02 fix)
+	resultStr, ok := result.(string)
+	if !ok {
+		return nil, fmt.Errorf("unexpected result type from LLM: %T (expected string)", result)
+	}
+
 	processedResult := &ProcessIntentResult{
-		Result: result.(string),
+		Result: resultStr,
 
 		Status: "success",
 

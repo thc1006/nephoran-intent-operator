@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/xml"
 	"fmt"
+	"html"
 	"io"
 	"net"
 	"strconv"
@@ -457,7 +458,9 @@ func (nc *NetconfClient) GetConfig(filter string) (*ConfigData, error) {
 	var filterXML string
 
 	if filter != "" {
-		filterXML = fmt.Sprintf("<filter type=\"xpath\" select=\"%s\"/>", filter)
+		// Escape filter to prevent XML/XPath injection (CRITICAL-01 fix)
+		escapedFilter := html.EscapeString(filter)
+		filterXML = fmt.Sprintf("<filter type=\"xpath\" select=\"%s\"/>", escapedFilter)
 	}
 
 	rpcContent := fmt.Sprintf(`
@@ -567,7 +570,9 @@ func (nc *NetconfClient) Subscribe(xpath string, callback EventCallback) error {
 	var filterXML string
 
 	if xpath != "" {
-		filterXML = fmt.Sprintf("<filter type=\"xpath\" select=\"%s\"/>", xpath)
+		// Escape xpath to prevent XML/XPath injection (CRITICAL-01 fix)
+		escapedXPath := html.EscapeString(xpath)
+		filterXML = fmt.Sprintf("<filter type=\"xpath\" select=\"%s\"/>", escapedXPath)
 	}
 
 	rpcContent := fmt.Sprintf(`

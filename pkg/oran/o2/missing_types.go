@@ -309,9 +309,11 @@ func DefaultO2IMSConfig() *O2IMSConfig {
 		MaxHeaderBytes: 1 << 20, // 1MB
 
 		// Authentication config
+		// SECURITY NOTE (CRITICAL-04 fix): JWTSecret intentionally empty - MUST be provided via environment
+		// variable or config file before enabling authentication. DO NOT hardcode secrets.
 		AuthenticationConfig: &AuthenticationConfig{
 			Enabled:        false,
-			JWTSecret:      "default-secret",
+			JWTSecret:      "", // MUST be set before enabling authentication
 			TokenExpiry:    "24h",
 			AllowedIssuers: []string{"nephoran-o2-ims"},
 			RequiredClaims: []string{"iss", "aud", "exp"},
