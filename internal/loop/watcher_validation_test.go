@@ -219,7 +219,6 @@ func (s *WatcherValidationTestSuite) TestDuplicateEventPrevention_ConcurrentEven
 
 	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
-	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	testFile := filepath.Join(s.tempDir, "intent-concurrent-test.json")
 	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent"}`
@@ -247,12 +246,17 @@ func (s *WatcherValidationTestSuite) TestDuplicateEventPrevention_ConcurrentEven
 	wg.Wait()
 
 	// Wait for debouncing and processing to complete
+	// Need to wait longer than debounce duration to ensure all timer goroutines
+	// have completed before we close the watcher
 	time.Sleep(s.config.DebounceDur + 500*time.Millisecond)
 
 	finalStats := watcher.executor.GetStats()
 	processingCount := finalStats.TotalExecutions - initialStats.TotalExecutions
 	s.Assert().LessOrEqual(processingCount, 2, "Concurrent events should be heavily debounced")
 	s.T().Logf("Concurrent %d events resulted in %d processing calls", numEvents, processingCount)
+
+	// Close watcher after all goroutines have had time to complete
+	watcher.Close() // #nosec G307 - Error handled explicitly
 }
 
 // =============================================================================

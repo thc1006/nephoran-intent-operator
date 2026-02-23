@@ -1341,8 +1341,10 @@ func (w *Watcher) handleIntentFileWithEnhancedDebounce(filePath string, eventOp 
 	w.fileState.recentEvents[absPath] = now
 
 	// Debounce the processing with cross-platform file system timing.
-
+	// Track this goroutine in backgroundWG so Close() waits for it to complete.
+	w.backgroundWG.Add(1)
 	go func() {
+		defer w.backgroundWG.Done()
 		// Use adaptive debouncing based on runtime OS.
 
 		debounceTime := w.config.DebounceDur
@@ -1363,6 +1365,21 @@ func (w *Watcher) handleIntentFileWithEnhancedDebounce(filePath string, eventOp 
 			log.Printf("LOOP:UNSTABLE - File %s not stable, skipping", filepath.Base(filePath))
 
 			return
+		}
+
+		// Check if watcher/workerPool is being closed before attempting to queue work.
+		// This prevents race condition where watcher is being closed while timer
+		// goroutines are still running. We check the closed flag which is set before
+		// the channel is closed, avoiding the race between close(channel) and send.
+		if atomic.LoadInt32(&w.workerPool.closed) != 0 {
+			return
+		}
+
+		// Double-check context as well for completeness.
+		select {
+		case <-w.ctx.Done():
+			return
+		default:
 		}
 
 		// Create work item with timeout context.
@@ -1937,20 +1954,45 @@ func (w *Watcher) Close() error {
 
 	log.Printf("Starting graceful shutdown...")
 
-	// Stage 1: Stop accepting new work - close work queue if using legacy approach.
+	// Stage 0: Cancel context first to signal all goroutines to stop.
+	// This ensures debounce timer goroutines will exit early via context checks.
+	log.Printf("Stage 0: Canceling context to signal shutdown...")
+
+	if w.cancel != nil {
+		w.cancel()
+	}
+
+	// Stage 1: Wait for background goroutines (debounce timers) to finish.
+	// Must happen BEFORE closing the work queue to avoid race conditions.
+	log.Printf("Stage 1: Waiting for background goroutines (debounce timers) to finish...")
+
+	bgDone := make(chan struct{})
+	go func() {
+		w.backgroundWG.Wait()
+		close(bgDone)
+	}()
+
+	select {
+	case <-bgDone:
+		log.Printf("All background goroutines completed gracefully")
+	case <-time.After(5 * time.Second):
+		log.Printf("Warning: Background goroutines did not complete within 5s timeout")
+	}
+
+	// Stage 2: Stop accepting new work - close work queue after background goroutines complete.
 
 	if w.processor == nil && w.workerPool != nil {
-		log.Printf("Stage 1: Stopping new work acceptance...")
+		log.Printf("Stage 2: Stopping new work acceptance...")
 
 		if atomic.CompareAndSwapInt32(&w.workerPool.closed, 0, 1) {
 			close(w.workerPool.workQueue)
 		}
 	}
 
-	// Stage 2: Wait for in-flight tasks to complete with timeout.
+	// Stage 3: Wait for in-flight tasks to complete with timeout.
 
 	if w.processor == nil && w.workerPool != nil {
-		log.Printf("Stage 2: Waiting for in-flight tasks to complete (grace period: %v)...", w.config.GracePeriod)
+		log.Printf("Stage 3: Waiting for in-flight tasks to complete (grace period: %v)...", w.config.GracePeriod)
 
 		// Wait for workers to finish with timeout.
 
@@ -1971,31 +2013,6 @@ func (w *Watcher) Close() error {
 
 			log.Printf("Grace period expired, escalating to forceful shutdown")
 		}
-	}
-
-	// Stage 3: Cancel context to terminate remaining operations.
-
-	log.Printf("Stage 3: Canceling context for remaining operations...")
-
-	if w.cancel != nil {
-		w.cancel()
-	}
-
-	// Stage 4: Wait for background goroutines to finish.
-	log.Printf("Stage 4: Waiting for background goroutines (cleanup routines) to finish...")
-
-	// Create a done channel with timeout for background goroutines
-	bgDone := make(chan struct{})
-	go func() {
-		w.backgroundWG.Wait()
-		close(bgDone)
-	}()
-
-	select {
-	case <-bgDone:
-		log.Printf("All background goroutines completed gracefully")
-	case <-time.After(5 * time.Second):
-		log.Printf("Warning: Background goroutines did not complete within 5s timeout")
 	}
 
 	// Close the file system watcher.
