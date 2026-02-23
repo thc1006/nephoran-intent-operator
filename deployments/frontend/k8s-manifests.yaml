@@ -186,7 +186,7 @@ metadata:
     app.kubernetes.io/component: backend
     app.kubernetes.io/version: "1.0.0"
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
       app: intent-ingest
@@ -204,11 +204,13 @@ spec:
       containers:
       - name: intent-ingest
         image: nephoran/intent-ingest:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Never
         ports:
         - containerPort: 8080
           name: http
           protocol: TCP
+        args:
+        - "-schema=/app/docs/contracts/intent.schema.json"
         env:
         - name: MODE
           value: "llm"

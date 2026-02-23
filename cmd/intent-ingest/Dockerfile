@@ -4,7 +4,7 @@
 # =============================================================================
 # Stage 1: Builder
 # =============================================================================
-FROM golang:1.26-alpine AS builder
+FROM docker.io/library/golang:1.26-alpine AS builder
 
 # Security: Install CA certificates and create non-root user
 RUN apk add --no-cache \
@@ -121,5 +121,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
 # Default command
 ENTRYPOINT ["/intent-ingest"]
 
-# Default arguments
-CMD ["--config=/config", "--data=/data", "--port=8081"]
+# No default args - use environment variables instead
