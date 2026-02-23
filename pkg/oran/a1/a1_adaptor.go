@@ -12,6 +12,7 @@ import (
 	"io"
 	"math"
 	"math/rand"
+	"net"
 	"net/http"
 	"os"
 	"sync"
@@ -352,12 +353,18 @@ func NewA1Adaptor(config *A1AdaptorConfig) (*A1Adaptor, error) {
 		}
 	}
 
-	httpClient := &http.Client{
-		Timeout: config.Timeout,
+	// Create base transport with connection pooling
+	baseTransport := &http.Transport{
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 50,
+		IdleConnTimeout:     90 * time.Second,
+		DialContext: (&net.Dialer{
+			Timeout:   10 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
 	}
 
 	// Configure TLS if provided.
-
 	if config.TLSConfig != nil {
 
 		// Validate TLS configuration.
@@ -373,14 +380,14 @@ func NewA1Adaptor(config *A1AdaptorConfig) (*A1Adaptor, error) {
 			return nil, fmt.Errorf("failed to build TLS configuration: %w", err)
 		}
 
-		// Create HTTP transport with TLS configuration.
+		// Apply TLS configuration to transport.
+		baseTransport.TLSClientConfig = tlsConfig
 
-		transport := &http.Transport{
-			TLSClientConfig: tlsConfig,
-		}
+	}
 
-		httpClient.Transport = transport
-
+	httpClient := &http.Client{
+		Timeout:   config.Timeout,
+		Transport: baseTransport,
 	}
 
 	// Create circuit breaker.

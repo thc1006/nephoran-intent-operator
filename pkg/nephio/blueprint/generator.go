@@ -34,6 +34,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"regexp"
 	"strings"
@@ -130,7 +131,18 @@ func NewGenerator(config *BlueprintConfig, logger *zap.Logger) (*Generator, erro
 
 		llmClient: llmClient,
 
-		httpClient: &http.Client{Timeout: 30 * time.Second},
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+			Transport: &http.Transport{
+				MaxIdleConns:        100,
+				MaxIdleConnsPerHost: 50,
+				IdleConnTimeout:     90 * time.Second,
+				DialContext: (&net.Dialer{
+					Timeout:   10 * time.Second,
+					KeepAlive: 30 * time.Second,
+				}).DialContext,
+			},
+		},
 
 		oranTemplates: make(map[string]*template.Template),
 
@@ -176,7 +188,18 @@ func NewGeneratorWithLLMClient(config *BlueprintConfig, logger *zap.Logger, llmC
 		config: config,
 		logger: logger,
 		llmClient: llmClient,
-		httpClient: &http.Client{Timeout: 30 * time.Second},
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+			Transport: &http.Transport{
+				MaxIdleConns:        100,
+				MaxIdleConnsPerHost: 50,
+				IdleConnTimeout:     90 * time.Second,
+				DialContext: (&net.Dialer{
+					Timeout:   10 * time.Second,
+					KeepAlive: 30 * time.Second,
+				}).DialContext,
+			},
+		},
 		oranTemplates: make(map[string]*template.Template),
 		coreTemplates: make(map[string]*template.Template),
 		edgeTemplates: make(map[string]*template.Template),

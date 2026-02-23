@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 )
@@ -81,7 +82,18 @@ type A1EIAdaptor struct {
 
 func NewA1EIAdaptor(ricURL, apiVersion string) *A1EIAdaptor {
 	return &A1EIAdaptor{
-		httpClient: &http.Client{Timeout: 30 * time.Second},
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+			Transport: &http.Transport{
+				MaxIdleConns:        100,
+				MaxIdleConnsPerHost: 50,
+				IdleConnTimeout:     90 * time.Second,
+				DialContext: (&net.Dialer{
+					Timeout:   10 * time.Second,
+					KeepAlive: 30 * time.Second,
+				}).DialContext,
+			},
+		},
 
 		ricURL: ricURL,
 

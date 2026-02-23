@@ -38,6 +38,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -303,10 +304,19 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 		}
 
-		// Create HTTP client with timeout.
+		// Create HTTP client with timeout and connection pool.
 
 		client := &http.Client{
 			Timeout: 15 * time.Second,
+			Transport: &http.Transport{
+				MaxIdleConns:        100,
+				MaxIdleConnsPerHost: 50,
+				IdleConnTimeout:     90 * time.Second,
+				DialContext: (&net.Dialer{
+					Timeout:   10 * time.Second,
+					KeepAlive: 30 * time.Second,
+				}).DialContext,
+			},
 		}
 
 		// Determine LLM processor URL.
@@ -485,8 +495,19 @@ func (r *NetworkIntentReconciler) createA1Policy(ctx context.Context, networkInt
 		"policyTypeID", policyTypeID,
 		"policyInstanceID", policyInstanceID)
 
-	// Create HTTP client with timeout
-	httpClient := &http.Client{Timeout: 10 * time.Second}
+	// Create HTTP client with timeout and connection pool
+	httpClient := &http.Client{
+		Timeout: 10 * time.Second,
+		Transport: &http.Transport{
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 50,
+			IdleConnTimeout:     90 * time.Second,
+			DialContext: (&net.Dialer{
+				Timeout:   10 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).DialContext,
+		},
+	}
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, apiEndpoint, bytes.NewBuffer(policyJSON))
 	if err != nil {
@@ -542,7 +563,18 @@ func (r *NetworkIntentReconciler) deleteA1Policy(ctx context.Context, networkInt
 		"policyTypeID", policyTypeID,
 		"policyInstanceID", policyInstanceID)
 
-	httpClient := &http.Client{Timeout: 10 * time.Second}
+	httpClient := &http.Client{
+		Timeout: 10 * time.Second,
+		Transport: &http.Transport{
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 50,
+			IdleConnTimeout:     90 * time.Second,
+			DialContext: (&net.Dialer{
+				Timeout:   10 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).DialContext,
+		},
+	}
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodDelete, apiEndpoint, nil)
 	if err != nil {

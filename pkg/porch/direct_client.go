@@ -3,6 +3,7 @@ package porch
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -34,6 +35,15 @@ func NewDirectClient(endpoint, namespace string) (*DirectClient, error) {
 		namespace: namespace,
 		client: &http.Client{
 			Timeout: 30 * time.Second,
+			Transport: &http.Transport{
+				MaxIdleConns:        100,
+				MaxIdleConnsPerHost: 50,
+				IdleConnTimeout:     90 * time.Second,
+				DialContext: (&net.Dialer{
+					Timeout:   10 * time.Second,
+					KeepAlive: 30 * time.Second,
+				}).DialContext,
+			},
 		},
 	}, nil
 }

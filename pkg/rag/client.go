@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"time"
 )
@@ -36,6 +37,15 @@ func NewClient(cfg Config) *Client {
 		baseURL: cfg.BaseURL,
 		httpClient: &http.Client{
 			Timeout: cfg.Timeout,
+			Transport: &http.Transport{
+				MaxIdleConns:        100,
+				MaxIdleConnsPerHost: 50,
+				IdleConnTimeout:     90 * time.Second,
+				DialContext: (&net.Dialer{
+					Timeout:   10 * time.Second,
+					KeepAlive: 30 * time.Second,
+				}).DialContext,
+			},
 		},
 		apiKey: cfg.APIKey,
 	}

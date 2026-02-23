@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -234,7 +235,18 @@ func NewSecurityManager() *SecurityManager {
 
 		tokenCache: make(map[string]*TokenInfo),
 
-		httpClient: &http.Client{Timeout: 10 * time.Second},
+		httpClient: &http.Client{
+			Timeout: 10 * time.Second,
+			Transport: &http.Transport{
+				MaxIdleConns:        100,
+				MaxIdleConnsPerHost: 50,
+				IdleConnTimeout:     90 * time.Second,
+				DialContext: (&net.Dialer{
+					Timeout:   10 * time.Second,
+					KeepAlive: 30 * time.Second,
+				}).DialContext,
+			},
+		},
 	}
 
 	rbacManager := &RBACManager{

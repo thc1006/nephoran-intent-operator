@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 )
@@ -253,7 +254,18 @@ type A1ConsumerAdaptor struct {
 
 func NewA1ConsumerAdaptor(ricURL, apiVersion, clientID string) *A1ConsumerAdaptor {
 	return &A1ConsumerAdaptor{
-		httpClient: &http.Client{Timeout: 30 * time.Second},
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+			Transport: &http.Transport{
+				MaxIdleConns:        100,
+				MaxIdleConnsPerHost: 50,
+				IdleConnTimeout:     90 * time.Second,
+				DialContext: (&net.Dialer{
+					Timeout:   10 * time.Second,
+					KeepAlive: 30 * time.Second,
+				}).DialContext,
+			},
+		},
 
 		ricURL: ricURL,
 

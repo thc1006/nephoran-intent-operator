@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -86,6 +87,15 @@ func NewClient(baseURL string, dryRun bool) *Client {
 		baseURL: baseURL,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
+			Transport: &http.Transport{
+				MaxIdleConns:        100,
+				MaxIdleConnsPerHost: 50,
+				IdleConnTimeout:     90 * time.Second,
+				DialContext: (&net.Dialer{
+					Timeout:   10 * time.Second,
+					KeepAlive: 30 * time.Second,
+				}).DialContext,
+			},
 		},
 		dryRun: dryRun,
 	}
@@ -93,6 +103,17 @@ func NewClient(baseURL string, dryRun bool) *Client {
 
 // NewClientWithAuth creates a new Porch API client with authentication
 func NewClientWithAuth(baseURL, token string, dryRun bool) *Client {
+	// Create base transport with connection pooling
+	baseTransport := &http.Transport{
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 50,
+		IdleConnTimeout:     90 * time.Second,
+		DialContext: (&net.Dialer{
+			Timeout:   10 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+	}
+
 	client := &Client{
 		baseURL: baseURL,
 		httpClient: &http.Client{
@@ -100,14 +121,16 @@ func NewClientWithAuth(baseURL, token string, dryRun bool) *Client {
 		},
 		dryRun: dryRun,
 	}
-	
+
 	if token != "" {
 		client.httpClient.Transport = &authTransport{
 			token: token,
-			base:  http.DefaultTransport,
+			base:  baseTransport,
 		}
+	} else {
+		client.httpClient.Transport = baseTransport
 	}
-	
+
 	return client
 }
 

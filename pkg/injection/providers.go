@@ -3,6 +3,7 @@ package injection
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -116,9 +117,14 @@ func HTTPClientProvider(c *Container) (interface{}, error) {
 		Transport: &http.Transport{
 			MaxIdleConns: 100,
 
-			MaxIdleConnsPerHost: 10,
+			MaxIdleConnsPerHost: 50,
 
 			IdleConnTimeout: 90 * time.Second,
+
+			DialContext: (&net.Dialer{
+				Timeout:   10 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).DialContext,
 		},
 	}
 
@@ -248,15 +254,20 @@ func SecureHTTPClientProvider(c *Container) (interface{}, error) {
 	config := c.GetConfig()
 
 	transport := &http.Transport{
-		MaxIdleConns: 50,
+		MaxIdleConns: 100,
 
-		MaxIdleConnsPerHost: 5,
+		MaxIdleConnsPerHost: 50,
 
-		IdleConnTimeout: 60 * time.Second,
+		IdleConnTimeout: 90 * time.Second,
 
 		DisableCompression: false,
 
 		DisableKeepAlives: false,
+
+		DialContext: (&net.Dialer{
+			Timeout:   10 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
 	}
 
 	client := &http.Client{
@@ -281,9 +292,14 @@ func CircuitBreakerHTTPClientProvider(c *Container) (interface{}, error) {
 		Transport: &http.Transport{
 			MaxIdleConns: 100,
 
-			MaxIdleConnsPerHost: 10,
+			MaxIdleConnsPerHost: 50,
 
 			IdleConnTimeout: 90 * time.Second,
+
+			DialContext: (&net.Dialer{
+				Timeout:   10 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).DialContext,
 		},
 	}
 

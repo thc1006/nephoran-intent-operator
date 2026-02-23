@@ -31,10 +31,10 @@ limitations under the License.
 package blueprint
 
 import (
-	
+	"context"
 	"encoding/json"
-"context"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -710,7 +710,18 @@ func NewValidator(config *BlueprintConfig, logger *zap.Logger) (*Validator, erro
 
 		complianceRules: make(map[string]*ORANComplianceRule),
 
-		httpClient: &http.Client{Timeout: 30 * time.Second},
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+			Transport: &http.Transport{
+				MaxIdleConns:        100,
+				MaxIdleConnsPerHost: 50,
+				IdleConnTimeout:     90 * time.Second,
+				DialContext: (&net.Dialer{
+					Timeout:   10 * time.Second,
+					KeepAlive: 30 * time.Second,
+				}).DialContext,
+			},
+		},
 	}
 
 	// Initialize sub-validators.

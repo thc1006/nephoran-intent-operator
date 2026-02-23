@@ -2,6 +2,7 @@ package injection
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -203,7 +204,18 @@ func (c *Container) GetLLMSanitizer() (*security.LLMSanitizer, error) {
 func (c *Container) GetHTTPClient() *http.Client {
 	client, err := c.getHTTPClient()
 	if err != nil {
-		return &http.Client{Timeout: 30 * time.Second}
+		return &http.Client{
+			Timeout: 30 * time.Second,
+			Transport: &http.Transport{
+				MaxIdleConns:        100,
+				MaxIdleConnsPerHost: 50,
+				IdleConnTimeout:     90 * time.Second,
+				DialContext: (&net.Dialer{
+					Timeout:   10 * time.Second,
+					KeepAlive: 30 * time.Second,
+				}).DialContext,
+			},
+		}
 	}
 
 	return client

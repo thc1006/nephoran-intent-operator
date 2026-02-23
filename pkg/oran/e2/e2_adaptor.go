@@ -14,6 +14,7 @@ import (
 	"io"
 	"math"
 	"math/rand"
+	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -443,8 +444,15 @@ func NewE2Adaptor(config *E2AdaptorConfig) (*E2Adaptor, error) {
 		}
 	}
 
-	httpClient := &http.Client{
-		Timeout: config.Timeout,
+	// Create base transport with connection pooling
+	baseTransport := &http.Transport{
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 50,
+		IdleConnTimeout:     90 * time.Second,
+		DialContext: (&net.Dialer{
+			Timeout:   10 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
 	}
 
 	// Configure TLS if provided.
@@ -464,14 +472,14 @@ func NewE2Adaptor(config *E2AdaptorConfig) (*E2Adaptor, error) {
 			return nil, fmt.Errorf("failed to build TLS configuration: %w", err)
 		}
 
-		// Create HTTP transport with TLS configuration.
+		// Apply TLS configuration to transport.
+		baseTransport.TLSClientConfig = tlsConfig
 
-		transport := &http.Transport{
-			TLSClientConfig: tlsConfig,
-		}
+	}
 
-		httpClient.Transport = transport
-
+	httpClient := &http.Client{
+		Timeout:   config.Timeout,
+		Transport: baseTransport,
 	}
 
 	// Create circuit breaker.
