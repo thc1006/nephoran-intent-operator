@@ -2,7 +2,6 @@ package security
 
 import (
 	"bytes"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"

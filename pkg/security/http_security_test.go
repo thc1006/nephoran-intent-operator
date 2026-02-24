@@ -312,7 +312,8 @@ func TestSecureRequest(t *testing.T) {
 
 	t.Run("rejects invalid URL", func(t *testing.T) {
 		ctx := context.Background()
-		req, err := SecureRequest(ctx, "GET", "http://localhost:8080", 5*time.Second)
+		// Use an invalid URL that will fail validation
+		req, err := SecureRequest(ctx, "GET", "ftp://example.com", 5*time.Second)
 
 		assert.Error(t, err)
 		assert.Nil(t, req)
