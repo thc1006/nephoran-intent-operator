@@ -47,9 +47,21 @@ func ExtractKeywords(intent string) []string {
 		"replicas", "resources", "cpu", "memory",
 	}
 
+	// Split intent into words to avoid substring matches
+	// e.g., "deployment" should not match "deploy"
 	intentLower := strings.ToLower(intent)
+	words := strings.Fields(intentLower)
+
+	// Create a map of words for O(1) lookup
+	wordMap := make(map[string]bool)
+	for _, word := range words {
+		// Remove trailing punctuation
+		word = strings.TrimRight(word, ".,!?;:")
+		wordMap[word] = true
+	}
+
 	for _, keyword := range nfKeywords {
-		if strings.Contains(intentLower, strings.ToLower(keyword)) {
+		if wordMap[strings.ToLower(keyword)] {
 			keywords = append(keywords, keyword)
 		}
 	}

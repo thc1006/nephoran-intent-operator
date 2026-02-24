@@ -143,7 +143,7 @@ func TestExtractKeywords(t *testing.T) {
 		{
 			name:     "extract O-RAN components",
 			intent:   "Configure Near-RT-RIC with O-DU and O-CU",
-			expected: []string{"Near-RT-RIC", "O-DU", "O-CU"},
+			expected: []string{"Near-RT-RIC", "O-DU", "O-CU", "configure"},
 		},
 		{
 			name:     "extract resource keywords",
