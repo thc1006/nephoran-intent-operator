@@ -53,6 +53,7 @@ func main() {
 
 	// Endpoint flags — override environment variables when provided
 	var a1Endpoint string
+	var a1APIFormat string
 	var llmEndpoint string
 	var porchServer string
 	var validateEndpointsDNS bool
@@ -70,6 +71,10 @@ func main() {
 	flag.StringVar(&a1Endpoint, "a1-endpoint", "",
 		"Non-RT RIC A1 Policy Management Service endpoint (e.g. http://nonrtric-a1pms:8081). "+
 			"Overrides the A1_MEDIATOR_URL environment variable.")
+	flag.StringVar(&a1APIFormat, "a1-api-format", "",
+		"A1 API path format: 'standard' for O-RAN Alliance (/v2/policies/{policyId}), "+
+			"'legacy' for O-RAN SC RICPLT (/A1-P/v2/policytypes/{typeId}/policies/{policyId}). "+
+			"Defaults to 'legacy'. Overrides A1_API_FORMAT environment variable.")
 	flag.StringVar(&llmEndpoint, "llm-endpoint", "",
 		"LLM inference endpoint (e.g. http://ollama-service:11434). "+
 			"Overrides the LLM_PROCESSOR_URL environment variable.")
@@ -157,6 +162,9 @@ func main() {
 	if llmEndpoint != "" {
 		os.Setenv("LLM_ENDPOINT", llmEndpoint) //nolint:errcheck
 	}
+	if a1APIFormat != "" {
+		os.Setenv("A1_API_FORMAT", a1APIFormat) //nolint:errcheck
+	}
 
 	// Validate endpoints before starting controllers
 	if err := validateEndpoints(a1Endpoint, llmEndpoint, porchServer, validateEndpointsDNS); err != nil {
@@ -174,6 +182,17 @@ func main() {
 	}
 	if llmEndpoint != "" {
 		reconciler.LLMProcessorURL = llmEndpoint
+	}
+	if a1APIFormat != "" {
+		switch a1APIFormat {
+		case "standard":
+			reconciler.A1APIFormat = controllers.A1FormatStandard
+		case "legacy":
+			reconciler.A1APIFormat = controllers.A1FormatLegacy
+		default:
+			setupLog.Error(nil, "Invalid A1 API format flag", "format", a1APIFormat)
+			os.Exit(1)
+		}
 	}
 
 	if err = reconciler.SetupWithManager(mgr); err != nil {

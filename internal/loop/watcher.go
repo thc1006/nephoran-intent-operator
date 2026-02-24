@@ -727,7 +727,10 @@ func NewWatcherWithConfig(dir string, config Config, processor *IntentProcessor)
 // startMetricsCollection starts background metrics collection.
 
 func (w *Watcher) startMetricsCollection() {
+	// Track metrics collection goroutine for proper shutdown
+	w.backgroundWG.Add(1)
 	go func() {
+		defer w.backgroundWG.Done()
 		ticker := time.NewTicker(MetricsUpdateInterval)
 
 		defer ticker.Stop()
@@ -919,7 +922,10 @@ func (w *Watcher) startMetricsServer() error {
 		IdleTimeout: 15 * time.Second,
 	}
 
+	// Track metrics server goroutine for proper shutdown
+	w.backgroundWG.Add(1)
 	go func() {
+		defer w.backgroundWG.Done()
 		w.logger.InfoEvent("Starting metrics server",
 			"addr", addr,
 			"auth", w.config.MetricsAuth)

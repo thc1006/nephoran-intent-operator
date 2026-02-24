@@ -45,6 +45,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -67,6 +68,16 @@ const (
 	maxA1CleanupRetries = 3
 )
 
+// A1APIFormat defines the API path format for A1 interface
+type A1APIFormat string
+
+const (
+	// A1FormatStandard uses O-RAN Alliance standard paths: /v2/policies/{policyId}
+	A1FormatStandard A1APIFormat = "standard"
+	// A1FormatLegacy uses O-RAN SC RICPLT paths: /A1-P/v2/policytypes/{typeId}/policies/{policyId}
+	A1FormatLegacy A1APIFormat = "legacy"
+)
+
 // NetworkIntentReconciler reconciles a NetworkIntent object.
 
 type NetworkIntentReconciler struct {
@@ -82,6 +93,10 @@ type NetworkIntentReconciler struct {
 
 	// A1MediatorURL is the endpoint for the O-RAN A1 Mediator
 	A1MediatorURL string
+
+	// A1APIFormat specifies which API path format to use (standard or legacy)
+	// Defaults to "legacy" for backward compatibility with O-RAN SC RICPLT
+	A1APIFormat A1APIFormat
 
 	// EnableA1Integration enables A1 policy creation
 	EnableA1Integration bool
@@ -291,6 +306,9 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 				fmt.Sprintf("Failed to create/update A1 policy: %v", err), networkIntent.Generation, logger)
 		}
 
+		// Record the A1 endpoint we successfully contacted
+		r.recordObservedEndpoint(networkIntent, "a1", r.A1MediatorURL)
+
 		statusMessage := "Intent deployed successfully via A1 policy"
 		if isUpdate {
 			statusMessage = "Intent updated successfully via A1 policy"
@@ -418,6 +436,9 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 				"message", llmResp.Message,
 				"durationSeconds", llmDuration)
 
+			// Record the LLM endpoint we successfully contacted
+			r.recordObservedEndpoint(networkIntent, "llm", llmURL)
+
 			duration := time.Since(start).Seconds()
 			logger.ReconcileSuccess(req.Namespace, req.Name, duration)
 			return r.updateStatus(ctx, networkIntent, "Processed", "Intent processed successfully by LLM", networkIntent.Generation, logger)
@@ -441,6 +462,32 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	logger.InfoEvent("NetworkIntent reconciled successfully (no A1/LLM integration enabled)")
 
 	return ctrl.Result{}, nil
+}
+
+// recordObservedEndpoint adds or updates an endpoint in the NetworkIntent status.
+// This provides observability into which external services the operator actually contacted.
+func (r *NetworkIntentReconciler) recordObservedEndpoint(networkIntent *intentv1alpha1.NetworkIntent, name, url string) {
+	now := metav1.Now()
+
+	// Find existing endpoint or add new one
+	found := false
+	for i := range networkIntent.Status.ObservedEndpoints {
+		if networkIntent.Status.ObservedEndpoints[i].Name == name {
+			networkIntent.Status.ObservedEndpoints[i].URL = url
+			networkIntent.Status.ObservedEndpoints[i].LastContactedAt = &now
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		networkIntent.Status.ObservedEndpoints = append(networkIntent.Status.ObservedEndpoints,
+			intentv1alpha1.ObservedEndpoint{
+				Name:            name,
+				URL:             url,
+				LastContactedAt: &now,
+			})
+	}
 }
 
 // updateStatus updates the status of the NetworkIntent.
@@ -519,9 +566,9 @@ func convertToA1Policy(networkIntent *intentv1alpha1.NetworkIntent) (*A1Policy, 
 	return policy, nil
 }
 
-// createA1Policy creates an A1 policy via the O-RAN SC A1 Mediator.
-// Uses the O-RAN SC specific path: PUT /A1-P/v2/policytypes/{typeId}/policies/{policyId}
-// Note: O-RAN SC A1 Mediator requires capital "A1-P" prefix (not lowercase "a1-p")
+// createA1Policy creates an A1 policy via the A1 interface.
+// Supports both O-RAN Alliance standard format and O-RAN SC RICPLT legacy format.
+// Format is controlled by r.A1APIFormat (standard or legacy).
 func (r *NetworkIntentReconciler) createA1Policy(ctx context.Context, networkIntent *intentv1alpha1.NetworkIntent, policy *A1Policy, logger logging.Logger) error {
 
 	// Determine A1 endpoint (must be set via flag or env; no hardcoded default)
@@ -545,12 +592,27 @@ func (r *NetworkIntentReconciler) createA1Policy(ctx context.Context, networkInt
 		return fmt.Errorf("failed to marshal A1 policy body: %w", err)
 	}
 
-	// O-RAN SC A1 Mediator path: PUT /A1-P/v2/policytypes/{typeId}/policies/{policyId}
-	// IMPORTANT: Use capital "A1-P" (not "a1-p" or "/v2/policies/")
-	apiEndpoint := fmt.Sprintf("%s/A1-P/v2/policytypes/%d/policies/%s", a1URL, policyTypeID, policyInstanceID)
+	// Build API endpoint based on configured format
+	var apiEndpoint string
+	apiFormat := r.A1APIFormat
+	if apiFormat == "" {
+		apiFormat = A1FormatLegacy // default to legacy for backward compatibility
+	}
 
-	logger.InfoEvent("Creating A1 policy via O-RAN SC A1 Mediator",
+	switch apiFormat {
+	case A1FormatStandard:
+		// O-RAN Alliance A1AP-v03.01 standard: PUT /v2/policies/{policyId}
+		apiEndpoint = fmt.Sprintf("%s/v2/policies/%s", a1URL, policyInstanceID)
+	case A1FormatLegacy:
+		// O-RAN SC RICPLT legacy: PUT /A1-P/v2/policytypes/{typeId}/policies/{policyId}
+		apiEndpoint = fmt.Sprintf("%s/A1-P/v2/policytypes/%d/policies/%s", a1URL, policyTypeID, policyInstanceID)
+	default:
+		return fmt.Errorf("unknown A1 API format: %s (valid: standard, legacy)", apiFormat)
+	}
+
+	logger.InfoEvent("Creating A1 policy",
 		"endpoint", apiEndpoint,
+		"apiFormat", apiFormat,
 		"policyTypeID", policyTypeID,
 		"policyInstanceID", policyInstanceID,
 		"target", policy.Scope.Target,
@@ -615,8 +677,8 @@ func (r *NetworkIntentReconciler) createA1Policy(ctx context.Context, networkInt
 	return nil
 }
 
-// deleteA1Policy deletes an A1 policy via the O-RAN SC A1 Mediator.
-// Uses the O-RAN SC specific path: DELETE /A1-P/v2/policytypes/{typeId}/policies/{policyId}
+// deleteA1Policy deletes an A1 policy via the A1 interface.
+// Supports both O-RAN Alliance standard format and O-RAN SC RICPLT legacy format.
 func (r *NetworkIntentReconciler) deleteA1Policy(ctx context.Context, networkIntent *intentv1alpha1.NetworkIntent, logger logging.Logger) error {
 
 	// Determine A1 endpoint (must be set via flag or env)
@@ -630,11 +692,27 @@ func (r *NetworkIntentReconciler) deleteA1Policy(ctx context.Context, networkInt
 	policyInstanceID := fmt.Sprintf("policy-%s", networkIntent.Name)
 	const policyTypeID = 100
 
-	// O-RAN SC A1 Mediator path: DELETE /A1-P/v2/policytypes/{typeId}/policies/{policyId}
-	apiEndpoint := fmt.Sprintf("%s/A1-P/v2/policytypes/%d/policies/%s", a1URL, policyTypeID, policyInstanceID)
+	// Build API endpoint based on configured format
+	var apiEndpoint string
+	apiFormat := r.A1APIFormat
+	if apiFormat == "" {
+		apiFormat = A1FormatLegacy // default to legacy for backward compatibility
+	}
 
-	logger.InfoEvent("Deleting A1 policy via O-RAN SC A1 Mediator",
+	switch apiFormat {
+	case A1FormatStandard:
+		// O-RAN Alliance A1AP-v03.01 standard: DELETE /v2/policies/{policyId}
+		apiEndpoint = fmt.Sprintf("%s/v2/policies/%s", a1URL, policyInstanceID)
+	case A1FormatLegacy:
+		// O-RAN SC RICPLT legacy: DELETE /A1-P/v2/policytypes/{typeId}/policies/{policyId}
+		apiEndpoint = fmt.Sprintf("%s/A1-P/v2/policytypes/%d/policies/%s", a1URL, policyTypeID, policyInstanceID)
+	default:
+		return fmt.Errorf("unknown A1 API format: %s (valid: standard, legacy)", apiFormat)
+	}
+
+	logger.InfoEvent("Deleting A1 policy",
 		"endpoint", apiEndpoint,
+		"apiFormat", apiFormat,
 		"policyTypeID", policyTypeID,
 		"policyInstanceID", policyInstanceID)
 
@@ -742,6 +820,26 @@ func (r *NetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		r.A1MediatorURL = url
 		r.Logger.InfoEvent("A1 Mediator URL configured",
 			"url", url)
+	}
+
+	// Get A1 API format from environment (default: legacy for backward compatibility)
+	apiFormat := os.Getenv("A1_API_FORMAT")
+	if apiFormat == "" {
+		apiFormat = string(A1FormatLegacy)
+	}
+	switch A1APIFormat(apiFormat) {
+	case A1FormatStandard:
+		r.A1APIFormat = A1FormatStandard
+		r.Logger.InfoEvent("A1 API format configured",
+			"format", "standard",
+			"paths", "/v2/policies/{policyId}")
+	case A1FormatLegacy:
+		r.A1APIFormat = A1FormatLegacy
+		r.Logger.InfoEvent("A1 API format configured",
+			"format", "legacy",
+			"paths", "/A1-P/v2/policytypes/{typeId}/policies/{policyId}")
+	default:
+		return fmt.Errorf("invalid A1_API_FORMAT: %s (valid: standard, legacy)", apiFormat)
 	}
 
 	r.Logger.InfoEvent("NetworkIntent controller setup complete",
