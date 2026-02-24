@@ -220,3 +220,4 @@ Updates are tracked here in append-only format.
 | 2026-02-23T21:15:02+00:00 | main | nephio/porch | Phase 1 Task 4: Deployed Porch v3.0.0 with function-runner (2 pods), porch-server, porch-controllers, integrated with Gitea nephoran-packages repo |
 | 2026-02-23T21:20:22+00:00 | main | nephio/configsync | Phase 1 Task 5: Deployed Config Sync v1.12.0-rc.5, configured RootSync to sync from Gitea nephoran-packages repo (commit 9259bf8) |
 | 2026-02-23T21:26:28+00:00 | main | nephio/porchctl | Phase 1 Task 6: Installed porchctl v1.5.6, verified package operations (repo list, rpkg get, rpkg pull) |
+| 2026-02-24T15:46:00+00:00 | main | controllers | O-RAN refactoring Phase 1: configurable A1 API format (standard/legacy), ObservedEndpoints status tracking |
