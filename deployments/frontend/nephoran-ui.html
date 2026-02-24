@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nephoran Intent Operator - Network Orchestration Terminal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #141827;
+            --bg-tertiary: #1e2433;
+            --bg-card: rgba(30, 36, 51, 0.6);
+            --accent-primary: #00d9ff;
+            --accent-secondary: #7b42f6;
+            --accent-success: #00ff88;
+            --accent-warning: #ffa500;
+            --accent-error: #ff3366;
+            --text-primary: #e0e6f0;
+            --text-secondary: #8b95a8;
+            --text-muted: #545d6f;
+            --border-color: rgba(0, 217, 255, 0.2);
+            --glow-primary: 0 0 20px rgba(0, 217, 255, 0.3);
+            --glow-secondary: 0 0 20px rgba(123, 66, 246, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: linear-gradient(135deg, #0a0e1a 0%, #141827 50%, #1a1f2e 100%);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated grid background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(0, 217, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 217, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        /* Floating particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: var(--accent-primary);
+            border-radius: 50%;
+            animation: float linear infinite;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) scale(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) scale(1);
+                opacity: 0;
+            }
+        }
+
+        .container {
+            position: relative;
+            z-index: 2;
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 280px 1fr 320px;
+            grid-template-rows: 70px 1fr 40px;
+            gap: 0;
+        }
+
+        /* Top Navigation */
+        .navbar {
+            grid-column: 1 / -1;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 0 30px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: var(--glow-primary);
+            animation: logoGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes logoGlow {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.3); }
+        }
+
+        .nav-status {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-success);
+            box-shadow: 0 0 10px var(--accent-success);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.9); }
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--border-color);
+            padding: 30px 20px;
+            overflow-y: auto;
+        }
+
+        .sidebar-section {
+            margin-bottom: 30px;
+        }
+
+        .sidebar-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .sidebar-item {
+            padding: 12px 15px;
+            background: var(--bg-tertiary);
+            border: 1px solid transparent;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 13px;
+        }
+
+        .sidebar-item:hover {
+            border-color: var(--accent-primary);
+            background: rgba(0, 217, 255, 0.05);
+            transform: translateX(5px);
+        }
+
+        .sidebar-item.active {
+            border-color: var(--accent-primary);
+            background: rgba(0, 217, 255, 0.1);
+            box-shadow: var(--glow-primary);
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: var(--accent-primary);
+            box-shadow: var(--glow-primary);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: var(--accent-primary);
+            text-transform: uppercase;
+        }
+
+        .card-subtitle {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+
+        /* Intent Input */
+        .intent-input-wrapper {
+            position: relative;
+        }
+
+        .intent-input {
+            width: 100%;
+            min-height: 150px;
+            background: var(--bg-primary);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: vertical;
+            transition: all 0.3s ease;
+        }
+
+        .intent-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: var(--glow-primary);
+        }
+
+        .intent-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* Control Panel */
+        .control-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .select-wrapper {
+            position: relative;
+        }
+
+        .select-input {
+            width: 100%;
+            padding: 12px 15px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            appearance: none;
+        }
+
+        .select-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: var(--glow-primary);
+        }
+
+        /* Submit Button */
+        .submit-btn {
+            width: 100%;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border: none;
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .submit-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .submit-btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 217, 255, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .submit-btn.loading {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .submit-btn.loading::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 3px solid transparent;
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        @keyframes spin {
+            to { transform: translateY(-50%) rotate(360deg); }
+        }
+
+        /* Response Display */
+        .response-area {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .json-output {
+            color: var(--text-secondary);
+        }
+
+        .json-key {
+            color: var(--accent-primary);
+        }
+
+        .json-string {
+            color: var(--accent-success);
+        }
+
+        .json-number {
+            color: var(--accent-secondary);
+        }
+
+        /* Right Panel */
+        .right-panel {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border-left: 1px solid var(--border-color);
+            padding: 30px 20px;
+            overflow-y: auto;
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: var(--accent-primary);
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        .history-item {
+            background: var(--bg-tertiary);
+            border: 1px solid transparent;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 12px;
+        }
+
+        .history-item:hover {
+            border-color: var(--accent-primary);
+            background: rgba(0, 217, 255, 0.05);
+            transform: translateX(-5px);
+        }
+
+        .history-timestamp {
+            color: var(--text-muted);
+            font-size: 10px;
+            margin-bottom: 5px;
+        }
+
+        .history-text {
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            grid-column: 1 / -1;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 0 30px;
+            font-size: 11px;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-right: 30px;
+        }
+
+        .status-value {
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+
+        /* Validation Feedback */
+        .validation-feedback {
+            margin-top: 10px;
+            padding: 12px 15px;
+            border-radius: 6px;
+            font-size: 12px;
+            display: none;
+        }
+
+        .validation-feedback.success {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid var(--accent-success);
+            color: var(--accent-success);
+            display: block;
+        }
+
+        .validation-feedback.error {
+            background: rgba(255, 51, 102, 0.1);
+            border: 1px solid var(--accent-error);
+            color: var(--accent-error);
+            display: block;
+        }
+
+        .validation-feedback.warning {
+            background: rgba(255, 165, 0, 0.1);
+            border: 1px solid var(--accent-warning);
+            color: var(--accent-warning);
+            display: block;
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-primary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-secondary);
+        }
+
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 14, 26, 0.8);
+            backdrop-filter: blur(10px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid transparent;
+            border-top-color: var(--accent-primary);
+            border-right-color: var(--accent-secondary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 240px 1fr 280px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-rows: 70px 1fr 40px;
+            }
+
+            .sidebar, .right-panel {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating Particles -->
+    <div class="particles" id="particles"></div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <div class="container">
+        <!-- Top Navigation -->
+        <nav class="navbar">
+            <div class="logo">NEPHORAN</div>
+            <div class="nav-status">
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span>SYSTEM ONLINE</span>
+                </div>
+                <div class="status-indicator">
+                    <span style="color: var(--text-muted);">K8s 1.35.1</span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Left Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title">Quick Actions</div>
+                <div class="sidebar-item active">Natural Language Input</div>
+                <div class="sidebar-item">JSON Structure Input</div>
+                <div class="sidebar-item">Batch Operations</div>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-title">Templates</div>
+                <div class="sidebar-item" onclick="loadTemplate('scale')">Scale Workload</div>
+                <div class="sidebar-item" onclick="loadTemplate('deploy')">Deploy Service</div>
+                <div class="sidebar-item" onclick="loadTemplate('configure')">Configure Resource</div>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-title">System Status</div>
+                <div class="sidebar-item">
+                    <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                        <span>Ollama</span>
+                        <span style="color: var(--accent-success);">READY</span>
+                    </div>
+                </div>
+                <div class="sidebar-item">
+                    <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                        <span>Weaviate</span>
+                        <span style="color: var(--accent-success);">READY</span>
+                    </div>
+                </div>
+                <div class="sidebar-item">
+                    <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                        <span>A1 Interface</span>
+                        <span style="color: var(--accent-success);">READY</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Intent Input Terminal</div>
+                        <div class="card-subtitle">Express network orchestration intents in natural language</div>
+                    </div>
+                </div>
+
+                <div class="intent-input-wrapper">
+                    <textarea
+                        id="intentInput"
+                        class="intent-input"
+                        placeholder="Enter natural language intent...&#10;&#10;Examples:&#10;  • scale nf-sim to 5 in ns ran-a&#10;  • deploy nginx with 3 replicas in namespace production&#10;  • create service for app frontend on port 8080"
+                    ></textarea>
+                    <div id="validationFeedback" class="validation-feedback"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Control Panel</div>
+                </div>
+                <div class="control-panel">
+                    <div class="control-group">
+                        <label class="control-label">Intent Type</label>
+                        <div class="select-wrapper">
+                            <select id="intentType" class="select-input">
+                                <option value="auto">Auto-detect</option>
+                                <option value="scaling">Scaling</option>
+                                <option value="deployment">Deployment</option>
+                                <option value="service">Service</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Target Namespace</label>
+                        <div class="select-wrapper">
+                            <select id="namespace" class="select-input">
+                                <option value="">Default</option>
+                                <option value="ran-a">ran-a</option>
+                                <option value="ran-b">ran-b</option>
+                                <option value="production">production</option>
+                                <option value="staging">staging</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Processing Mode</label>
+                        <div class="select-wrapper">
+                            <select id="processingMode" class="select-input">
+                                <option value="standard">Standard</option>
+                                <option value="fast">Fast (No RAG)</option>
+                                <option value="verbose">Verbose Output</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <button id="submitBtn" class="submit-btn">Execute Intent</button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Response Output</div>
+                </div>
+                <div id="responseArea" class="response-area">
+                    <div style="color: var(--text-muted); text-align: center; padding: 40px;">
+                        Awaiting intent submission...
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Panel -->
+        <aside class="right-panel">
+            <div class="panel-title">Recent History</div>
+            <div id="historyContainer"></div>
+        </aside>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-item">
+                <span>API Endpoint:</span>
+                <span class="status-value" id="apiEndpoint">intent-ingest-service:8080</span>
+            </div>
+            <div class="status-item">
+                <span>Requests:</span>
+                <span class="status-value" id="requestCount">0</span>
+            </div>
+            <div class="status-item">
+                <span>Success Rate:</span>
+                <span class="status-value" id="successRate">0%</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const CONFIG = {
+            apiEndpoint: '/intent',  // Proxied through nginx
+            maxHistoryItems: 20,
+            validationDelay: 500
+        };
+
+        // State Management
+        const state = {
+            requestCount: 0,
+            successCount: 0,
+            history: []
+        };
+
+        // Initialize particles
+        function initParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 30; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.animationDuration = `${10 + Math.random() * 20}s`;
+                particle.style.animationDelay = `${Math.random() * 5}s`;
+                container.appendChild(particle);
+            }
+        }
+
+        // Load template
+        function loadTemplate(type) {
+            const templates = {
+                scale: 'scale nf-sim to 5 in ns ran-a',
+                deploy: 'deploy nginx with 3 replicas in namespace production',
+                configure: 'create service for app frontend on port 8080'
+            };
+            document.getElementById('intentInput').value = templates[type] || '';
+            validateInput();
+        }
+
+        // Real-time validation
+        let validationTimeout;
+        function validateInput() {
+            clearTimeout(validationTimeout);
+            validationTimeout = setTimeout(() => {
+                const input = document.getElementById('intentInput').value.trim();
+                const feedback = document.getElementById('validationFeedback');
+
+                if (!input) {
+                    feedback.style.display = 'none';
+                    return;
+                }
+
+                // Basic validation patterns
+                const patterns = {
+                    scale: /scale\s+[\w-]+\s+to\s+\d+/i,
+                    deploy: /deploy\s+[\w-]+/i,
+                    service: /service|port/i
+                };
+
+                let matched = false;
+                for (const [type, pattern] of Object.entries(patterns)) {
+                    if (pattern.test(input)) {
+                        feedback.className = 'validation-feedback success';
+                        feedback.textContent = `✓ Valid ${type} intent detected`;
+                        matched = true;
+                        break;
+                    }
+                }
+
+                if (!matched) {
+                    feedback.className = 'validation-feedback warning';
+                    feedback.textContent = '⚠ Intent format not recognized - will attempt to process';
+                }
+            }, CONFIG.validationDelay);
+        }
+
+        // Submit intent
+        async function submitIntent() {
+            const input = document.getElementById('intentInput').value.trim();
+            const intentType = document.getElementById('intentType').value;
+            const namespace = document.getElementById('namespace').value;
+            const submitBtn = document.getElementById('submitBtn');
+            const feedback = document.getElementById('validationFeedback');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+
+            if (!input) {
+                feedback.className = 'validation-feedback error';
+                feedback.textContent = '✗ Please enter an intent';
+                return;
+            }
+
+            // Update UI
+            submitBtn.classList.add('loading');
+            submitBtn.textContent = 'Processing...';
+            loadingOverlay.classList.add('active');
+
+            try {
+                const response = await fetch(CONFIG.apiEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain'
+                    },
+                    body: input
+                });
+
+                state.requestCount++;
+                updateStats();
+
+                if (response.ok) {
+                    const result = await response.json();
+                    state.successCount++;
+                    displayResponse(result, true);
+                    addToHistory(input, result, true);
+
+                    feedback.className = 'validation-feedback success';
+                    feedback.textContent = '✓ Intent processed successfully';
+                } else {
+                    const errorText = await response.text();
+                    displayResponse({ error: errorText, status: response.status }, false);
+                    addToHistory(input, { error: errorText }, false);
+
+                    feedback.className = 'validation-feedback error';
+                    feedback.textContent = `✗ Error ${response.status}: ${errorText}`;
+                }
+            } catch (error) {
+                displayResponse({ error: error.message }, false);
+                addToHistory(input, { error: error.message }, false);
+
+                feedback.className = 'validation-feedback error';
+                feedback.textContent = `✗ Network error: ${error.message}`;
+            } finally {
+                submitBtn.classList.remove('loading');
+                submitBtn.textContent = 'Execute Intent';
+                loadingOverlay.classList.remove('active');
+                updateStats();
+            }
+        }
+
+        // Display response
+        function displayResponse(data, success) {
+            const responseArea = document.getElementById('responseArea');
+            const jsonStr = JSON.stringify(data, null, 2);
+            const highlighted = syntaxHighlight(jsonStr);
+
+            responseArea.innerHTML = `<pre class="json-output">${highlighted}</pre>`;
+        }
+
+        // Syntax highlighting for JSON
+        function syntaxHighlight(json) {
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                let cls = 'json-number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'json-key';
+                    } else {
+                        cls = 'json-string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'json-boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'json-null';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+
+        // Add to history
+        function addToHistory(intent, response, success) {
+            const timestamp = new Date().toISOString();
+            const historyItem = {
+                timestamp,
+                intent,
+                response,
+                success
+            };
+
+            state.history.unshift(historyItem);
+            if (state.history.length > CONFIG.maxHistoryItems) {
+                state.history.pop();
+            }
+
+            // Save to localStorage
+            localStorage.setItem('nephoran-history', JSON.stringify(state.history));
+
+            renderHistory();
+        }
+
+        // Render history
+        function renderHistory() {
+            const container = document.getElementById('historyContainer');
+            container.innerHTML = '';
+
+            state.history.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.onclick = () => loadHistoryItem(index);
+
+                const timestamp = new Date(item.timestamp).toLocaleString();
+                const preview = item.intent.substring(0, 50) + (item.intent.length > 50 ? '...' : '');
+
+                div.innerHTML = `
+                    <div class="history-timestamp">${timestamp}</div>
+                    <div class="history-text">${preview}</div>
+                `;
+
+                container.appendChild(div);
+            });
+        }
+
+        // Load history item
+        function loadHistoryItem(index) {
+            const item = state.history[index];
+            document.getElementById('intentInput').value = item.intent;
+            displayResponse(item.response, item.success);
+        }
+
+        // Update stats
+        function updateStats() {
+            document.getElementById('requestCount').textContent = state.requestCount;
+            const successRate = state.requestCount > 0
+                ? Math.round((state.successCount / state.requestCount) * 100)
+                : 0;
+            document.getElementById('successRate').textContent = `${successRate}%`;
+        }
+
+        // Load history from localStorage
+        function loadHistory() {
+            const saved = localStorage.getItem('nephoran-history');
+            if (saved) {
+                try {
+                    state.history = JSON.parse(saved);
+                    renderHistory();
+                } catch (e) {
+                    console.error('Failed to load history:', e);
+                }
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('intentInput').addEventListener('input', validateInput);
+        document.getElementById('submitBtn').addEventListener('click', submitIntent);
+
+        // Allow Ctrl+Enter to submit
+        document.getElementById('intentInput').addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                submitIntent();
+            }
+        });
+
+        // Initialize
+        initParticles();
+        loadHistory();
+
+        console.log('%cNephoran Intent Operator UI v1.0.0', 'color: #00d9ff; font-size: 16px; font-weight: bold;');
+        console.log('%cSystem initialized successfully', 'color: #00ff88;');
+    </script>
+</body>
+</html>

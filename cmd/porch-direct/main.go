@@ -193,7 +193,10 @@ func submitToPorch(cfg *Config, intent *intent.NetworkIntent, pkg *generator.Pac
 	}
 
 	// Create Porch client with auth
-	client := porch.NewClientWithAuth(cfg.PorchURL, token, cfg.DryRun)
+	client, err := porch.NewClientWithAuth(cfg.PorchURL, token, cfg.DryRun)
+	if err != nil {
+		return fmt.Errorf("failed to create Porch client: %w", err)
+	}
 
 	// Create package request
 	packageReq := &porch.PackageRequest{

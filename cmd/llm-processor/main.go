@@ -20,7 +20,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/thc1006/nephoran-intent-operator/internal/llm/providers"
+	"github.com/thc1006/nephoran-intent-operator/pkg/llm/providers"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/handlers"

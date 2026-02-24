@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/thc1006/nephoran-intent-operator/internal/ingest"
-	"github.com/thc1006/nephoran-intent-operator/internal/llm/providers"
+	"github.com/thc1006/nephoran-intent-operator/pkg/llm/providers"
 )
 
 // TestLLMProviderHTTPIntegration tests the full HTTP pipeline with the new LLM provider system
