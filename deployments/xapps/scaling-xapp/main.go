@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -36,6 +37,14 @@ var (
 			Help: "Total number of A1 API requests",
 		},
 		[]string{"method", "status_code"},
+	)
+
+	policyStatusReports = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "scaling_xapp_policy_status_reports_total",
+			Help: "Total number of policy status reports sent to A1 Mediator",
+		},
+		[]string{"enforce_status", "result"},
 	)
 
 	// Gauges
@@ -101,6 +110,12 @@ type ScalingSpec struct {
 	Namespace  string `json:"namespace"`
 	Replicas   int32  `json:"replicas"`
 	Source     string `json:"source"`
+}
+
+// PolicyStatus represents the status report sent to A1 Mediator
+type PolicyStatus struct {
+	EnforceStatus string `json:"enforceStatus"` // "ENFORCED" or "NOT_ENFORCED"
+	EnforceReason string `json:"enforceReason"` // Human-readable reason
 }
 
 type ScalingXApp struct {
@@ -258,8 +273,22 @@ func (x *ScalingXApp) executePolicy(ctx context.Context, policyID string) error 
 	log.Printf("Executing scaling policy: %s (target=%s, namespace=%s, replicas=%d)",
 		policyID, spec.Target, spec.Namespace, spec.Replicas)
 
-	// Execute the scaling action
-	return x.scaleDeployment(ctx, spec)
+	// Execute the scaling action and report status
+	err = x.scaleDeployment(ctx, spec)
+
+	// Report policy status to A1 Mediator
+	if err != nil {
+		// Failed - report NOT_ENFORCED
+		reason := fmt.Sprintf("Failed to scale %s/%s: %v", spec.Namespace, spec.Target, err)
+		x.reportPolicyStatus(policyID, false, reason)
+		return err
+	}
+
+	// Success - report ENFORCED
+	reason := fmt.Sprintf("Successfully scaled %s/%s to %d replicas", spec.Namespace, spec.Target, spec.Replicas)
+	x.reportPolicyStatus(policyID, true, reason)
+
+	return nil
 }
 
 func (x *ScalingXApp) scaleDeployment(ctx context.Context, spec ScalingSpec) error {
@@ -299,6 +328,53 @@ func (x *ScalingXApp) scaleDeployment(ctx context.Context, spec ScalingSpec) err
 
 	policiesProcessed.WithLabelValues(spec.Namespace, spec.Target, "success").Inc()
 	return nil
+}
+
+// reportPolicyStatus reports policy enforcement status to A1 Mediator
+func (x *ScalingXApp) reportPolicyStatus(policyID string, enforced bool, reason string) {
+	start := time.Now()
+	defer func() {
+		a1RequestDuration.WithLabelValues("POST_STATUS").Observe(time.Since(start).Seconds())
+	}()
+
+	// Prepare status payload
+	status := PolicyStatus{
+		EnforceStatus: "NOT_ENFORCED",
+		EnforceReason: reason,
+	}
+	if enforced {
+		status.EnforceStatus = "ENFORCED"
+	}
+
+	statusJSON, err := json.Marshal(status)
+	if err != nil {
+		log.Printf("Failed to marshal policy status for %s: %v", policyID, err)
+		policyStatusReports.WithLabelValues(status.EnforceStatus, "marshal_error").Inc()
+		return
+	}
+
+	// Send status to A1 Mediator
+	url := fmt.Sprintf("%s/A1-P/v2/policytypes/100/policies/%s/status", x.a1URL, policyID)
+
+	resp, err := http.Post(url, "application/json", strings.NewReader(string(statusJSON)))
+	if err != nil {
+		log.Printf("Failed to report status for policy %s: %v", policyID, err)
+		a1Requests.WithLabelValues("POST", "error").Inc()
+		policyStatusReports.WithLabelValues(status.EnforceStatus, "network_error").Inc()
+		return
+	}
+	defer resp.Body.Close()
+
+	a1Requests.WithLabelValues("POST", strconv.Itoa(resp.StatusCode)).Inc()
+
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		log.Printf("📊 Policy status reported: %s → %s (HTTP %d)",
+			policyID, status.EnforceStatus, resp.StatusCode)
+		policyStatusReports.WithLabelValues(status.EnforceStatus, "success").Inc()
+	} else {
+		log.Printf("Failed to report policy status for %s: HTTP %d", policyID, resp.StatusCode)
+		policyStatusReports.WithLabelValues(status.EnforceStatus, "http_error").Inc()
+	}
 }
 
 func main() {

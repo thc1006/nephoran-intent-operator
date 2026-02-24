@@ -173,3 +173,81 @@ kubectl logs -n ricxapp deployment/ricxapp-scaling
 | K8s API | ❌ 不直接調用 | ✅ 直接調用 |
 | RMR Messaging | ✅ 使用 | ❌ 不使用 |
 
+
+## Policy Status Reporting (O-RAN A1-P v2 標準)
+
+### 概述
+
+Scaling xApp 完全符合 O-RAN A1-P v2 規範，自動向 A1 Mediator 報告每個 policy 的執行狀態。
+
+### 狀態類型
+
+- **ENFORCED**: Policy 成功執行，Deployment 已按要求擴展
+- **NOT_ENFORCED**: Policy 無法執行（Deployment 不存在或操作失敗）
+
+### API 規格
+
+```
+POST /A1-P/v2/policytypes/100/policies/{policyId}/status
+Content-Type: application/json
+
+{
+  "enforceStatus": "ENFORCED" | "NOT_ENFORCED",
+  "enforceReason": "Human-readable reason string"
+}
+```
+
+### 示例
+
+#### 成功情況
+```json
+{
+  "enforceStatus": "ENFORCED",
+  "enforceReason": "Successfully scaled ran-a/nf-sim to 5 replicas"
+}
+```
+
+#### 失敗情況
+```json
+{
+  "enforceStatus": "NOT_ENFORCED",
+  "enforceReason": "Failed to scale default/nonexistent: deployments.apps \"nonexistent\" not found"
+}
+```
+
+### Metrics
+
+Policy Status Reporting 暴露專用 metrics：
+
+```promql
+# 狀態報告總數（按狀態和結果分類）
+scaling_xapp_policy_status_reports_total{enforce_status, result}
+
+# Labels:
+# - enforce_status: "ENFORCED", "NOT_ENFORCED"
+# - result: "success", "network_error", "http_error", "marshal_error"
+```
+
+### 日誌
+
+```
+2026-02-24T10:00:30Z INFO 📊 Policy status reported: policy-test-scale-to-5 → ENFORCED (HTTP 200)
+2026-02-24T10:00:31Z INFO 📊 Policy status reported: policy-invalid → NOT_ENFORCED (HTTP 200)
+```
+
+### 故障處理
+
+狀態報告失敗**不會**影響 scaling 操作本身：
+
+- Scaling 成功 → 嘗試報告 ENFORCED（即使報告失敗，deployment 已擴展）
+- Scaling 失敗 → 嘗試報告 NOT_ENFORCED
+
+所有狀態報告失敗都會記錄在日誌和 metrics 中。
+
+### O-RAN 合規性
+
+- ✅ 符合 O-RAN.WG2.A1AP-v03.01 規範
+- ✅ 支持 A1-P v2 API
+- ✅ 自動狀態報告（無需手動觸發）
+- ✅ 提供詳細的執行原因 (enforceReason)
+
