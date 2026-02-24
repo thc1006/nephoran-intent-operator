@@ -70,6 +70,64 @@ YAML
 watch -n 1 kubectl get deployment -n ran-a nf-sim
 ```
 
+## Prometheus Metrics
+
+Scaling xApp 暴露以下 Prometheus metrics 於端口 2112：
+
+### Counters (累計計數)
+
+- `scaling_xapp_policies_processed_total{namespace, deployment, result}`: 已處理的 policies 總數
+  - `result`: `success`, `failed`, `already_scaled`
+- `scaling_xapp_a1_requests_total{method, status_code}`: A1 API 請求總數
+
+### Gauges (瞬時值)
+
+- `scaling_xapp_active_policies`: 當前活躍的 policies 數量
+- `scaling_xapp_last_poll_timestamp`: 最後一次輪詢的時間戳
+
+### Histograms (分佈統計)
+
+- `scaling_xapp_a1_request_duration_seconds{method}`: A1 API 請求延遲
+  - `method`: `GET_POLICIES`, `GET_POLICY`
+- `scaling_xapp_scaling_duration_seconds{namespace, deployment}`: Scaling 操作耗時
+
+### 訪問 Metrics
+
+```bash
+# Port forward
+kubectl port-forward -n ricxapp deployment/ricxapp-scaling 2112:2112
+
+# 查看 metrics
+curl http://localhost:2112/metrics
+
+# 健康檢查
+curl http://localhost:2112/health
+```
+
+### ServiceMonitor (Prometheus Operator)
+
+如果使用 Prometheus Operator，可部署 ServiceMonitor：
+
+```bash
+kubectl apply -f servicemonitor.yaml
+```
+
+### Grafana 示例查詢
+
+```promql
+# Scaling 成功率
+rate(scaling_xapp_policies_processed_total{result="success"}[5m])
+/
+rate(scaling_xapp_policies_processed_total[5m])
+
+# A1 API 請求延遲 (95th percentile)
+histogram_quantile(0.95,
+  rate(scaling_xapp_a1_request_duration_seconds_bucket[5m]))
+
+# 活躍 policies 數量
+scaling_xapp_active_policies
+```
+
 ## 日誌示例
 
 ```
