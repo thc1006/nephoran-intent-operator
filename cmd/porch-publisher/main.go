@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/thc1006/nephoran-intent-operator/internal/porch"
+	"github.com/go-logr/stdr"
+	"github.com/thc1006/nephoran-intent-operator/pkg/porch"
 )
 
 // Intent represents a network intent - kept for public API compatibility.
@@ -65,7 +66,9 @@ func main() {
 
 	// Use the internal package to write the intent.
 
-	if err := porch.WriteIntent(in, outDir, format); err != nil {
+	logger := stdr.New(nil)
+
+	if err := porch.WriteIntent(in, outDir, format, logger); err != nil {
 
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 

@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/thc1006/nephoran-intent-operator/internal/porch"
+	"github.com/thc1006/nephoran-intent-operator/pkg/porch"
 )
 
 // TestCriticalFixes_NilPointerSafety validates that the nil pointer fix prevents panics

@@ -40,6 +40,7 @@ require (
 	github.com/go-jose/go-jose/v4 v4.1.2
 	github.com/go-ldap/ldap/v3 v3.4.11
 	github.com/go-logr/logr v1.4.3
+	github.com/go-logr/stdr v1.2.2
 	github.com/go-logr/zapr v1.3.0
 	github.com/go-playground/validator/v10 v10.27.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
@@ -205,7 +206,6 @@ require (
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.6.2 // indirect
 	github.com/go-gorp/gorp/v3 v3.1.0 // indirect
-	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-openapi/jsonpointer v0.22.0 // indirect
 	github.com/go-openapi/jsonreference v0.21.1 // indirect
