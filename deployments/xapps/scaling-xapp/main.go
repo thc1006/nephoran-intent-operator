@@ -8,11 +8,69 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+)
+
+// Prometheus metrics
+var (
+	// Counters
+	policiesProcessed = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "scaling_xapp_policies_processed_total",
+			Help: "Total number of policies processed",
+		},
+		[]string{"namespace", "deployment", "result"},
+	)
+
+	a1Requests = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "scaling_xapp_a1_requests_total",
+			Help: "Total number of A1 API requests",
+		},
+		[]string{"method", "status_code"},
+	)
+
+	// Gauges
+	activePolicies = promauto.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "scaling_xapp_active_policies",
+			Help: "Number of active policies",
+		},
+	)
+
+	lastPollTimestamp = promauto.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "scaling_xapp_last_poll_timestamp",
+			Help: "Timestamp of last successful poll",
+		},
+	)
+
+	// Histograms
+	a1RequestDuration = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "scaling_xapp_a1_request_duration_seconds",
+			Help:    "A1 API request duration distribution",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"method"},
+	)
+
+	scalingDuration = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "scaling_xapp_scaling_duration_seconds",
+			Help:    "Scaling operation duration distribution",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"namespace", "deployment"},
+	)
 )
 
 // A1Policy represents the policy received from A1 Mediator
@@ -46,8 +104,8 @@ type ScalingSpec struct {
 }
 
 type ScalingXApp struct {
-	k8sClient *kubernetes.Clientset
-	a1URL     string
+	k8sClient    *kubernetes.Clientset
+	a1URL        string
 	pollInterval time.Duration
 }
 
@@ -109,14 +167,22 @@ func (x *ScalingXApp) Start(ctx context.Context) error {
 }
 
 func (x *ScalingXApp) pollAndExecutePolicies(ctx context.Context) error {
+	start := time.Now()
+	defer func() {
+		a1RequestDuration.WithLabelValues("GET_POLICIES").Observe(time.Since(start).Seconds())
+	}()
+
 	// Get all policies of type 100 (scaling)
 	url := fmt.Sprintf("%s/A1-P/v2/policytypes/100/policies", x.a1URL)
-	
+
 	resp, err := http.Get(url)
 	if err != nil {
+		a1Requests.WithLabelValues("GET", "error").Inc()
 		return fmt.Errorf("failed to get policies: %v", err)
 	}
 	defer resp.Body.Close()
+
+	a1Requests.WithLabelValues("GET", strconv.Itoa(resp.StatusCode)).Inc()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
@@ -134,6 +200,10 @@ func (x *ScalingXApp) pollAndExecutePolicies(ctx context.Context) error {
 
 	log.Printf("Found %d scaling policies", len(policyIDs))
 
+	// Update metrics
+	activePolicies.Set(float64(len(policyIDs)))
+	lastPollTimestamp.SetToCurrentTime()
+
 	// Process each policy
 	for _, policyID := range policyIDs {
 		if err := x.executePolicy(ctx, policyID); err != nil {
@@ -145,14 +215,22 @@ func (x *ScalingXApp) pollAndExecutePolicies(ctx context.Context) error {
 }
 
 func (x *ScalingXApp) executePolicy(ctx context.Context, policyID string) error {
+	start := time.Now()
+	defer func() {
+		a1RequestDuration.WithLabelValues("GET_POLICY").Observe(time.Since(start).Seconds())
+	}()
+
 	// Get policy details
 	url := fmt.Sprintf("%s/A1-P/v2/policytypes/100/policies/%s", x.a1URL, policyID)
-	
+
 	resp, err := http.Get(url)
 	if err != nil {
+		a1Requests.WithLabelValues("GET", "error").Inc()
 		return fmt.Errorf("failed to get policy: %v", err)
 	}
 	defer resp.Body.Close()
+
+	a1Requests.WithLabelValues("GET", strconv.Itoa(resp.StatusCode)).Inc()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
@@ -185,10 +263,16 @@ func (x *ScalingXApp) executePolicy(ctx context.Context, policyID string) error 
 }
 
 func (x *ScalingXApp) scaleDeployment(ctx context.Context, spec ScalingSpec) error {
+	start := time.Now()
+	defer func() {
+		scalingDuration.WithLabelValues(spec.Namespace, spec.Target).Observe(time.Since(start).Seconds())
+	}()
+
 	// Get the deployment
 	deployment, err := x.k8sClient.AppsV1().Deployments(spec.Namespace).Get(
 		ctx, spec.Target, metav1.GetOptions{})
 	if err != nil {
+		policiesProcessed.WithLabelValues(spec.Namespace, spec.Target, "failed").Inc()
 		return fmt.Errorf("failed to get deployment: %v", err)
 	}
 
@@ -196,25 +280,41 @@ func (x *ScalingXApp) scaleDeployment(ctx context.Context, spec ScalingSpec) err
 	if currentReplicas == spec.Replicas {
 		log.Printf("Deployment %s/%s already at desired replicas (%d)",
 			spec.Namespace, spec.Target, spec.Replicas)
+		policiesProcessed.WithLabelValues(spec.Namespace, spec.Target, "already_scaled").Inc()
 		return nil
 	}
 
 	// Update replicas
 	deployment.Spec.Replicas = &spec.Replicas
-	
+
 	_, err = x.k8sClient.AppsV1().Deployments(spec.Namespace).Update(
 		ctx, deployment, metav1.UpdateOptions{})
 	if err != nil {
+		policiesProcessed.WithLabelValues(spec.Namespace, spec.Target, "failed").Inc()
 		return fmt.Errorf("failed to update deployment: %v", err)
 	}
 
 	log.Printf("✅ Successfully scaled %s/%s: %d → %d replicas",
 		spec.Namespace, spec.Target, currentReplicas, spec.Replicas)
 
+	policiesProcessed.WithLabelValues(spec.Namespace, spec.Target, "success").Inc()
 	return nil
 }
 
 func main() {
+	// Start metrics server
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("OK"))
+		})
+		log.Printf("Metrics server listening on :2112")
+		if err := http.ListenAndServe(":2112", nil); err != nil {
+			log.Fatalf("Metrics server failed: %v", err)
+		}
+	}()
+
 	xapp, err := NewScalingXApp()
 	if err != nil {
 		log.Fatalf("Failed to create Scaling xApp: %v", err)

@@ -48,6 +48,10 @@ spec:
       labels:
         app: ricxapp-scaling
         component: xapp
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "2112"
+        prometheus.io/path: "/metrics"
     spec:
       serviceAccountName: scaling-xapp
       containers:
@@ -59,6 +63,22 @@ spec:
           value: "http://service-ricplt-a1mediator-http.ricplt.svc.cluster.local:10000"
         - name: POLL_INTERVAL
           value: "30s"
+        ports:
+        - name: metrics
+          containerPort: 2112
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 2112
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 2112
+          initialDelaySeconds: 5
+          periodSeconds: 10
         resources:
           requests:
             cpu: 100m
@@ -82,4 +102,21 @@ spec:
   - name: http
     port: 8080
     targetPort: 8080
+    protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-ricxapp-scaling-metrics
+  namespace: ricxapp
+  labels:
+    app: ricxapp-scaling
+spec:
+  type: ClusterIP
+  selector:
+    app: ricxapp-scaling
+  ports:
+  - name: metrics
+    port: 2112
+    targetPort: 2112
     protocol: TCP
