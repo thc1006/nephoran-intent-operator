@@ -4,751 +4,889 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nephoran Intent Operator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Azeret+Mono:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        /* ==================== GLOBAL RESET ==================== */
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-tertiary: #1f2937;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-cyan: #06b6d4;
+            --text-primary: #f9fafb;
+            --text-secondary: #9ca3af;
+            --text-dim: #6b7280;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --border: rgba(59, 130, 246, 0.1);
+            --glass-bg: rgba(31, 41, 55, 0.6);
+            --glass-border: rgba(139, 92, 246, 0.2);
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
-        :root {
-            /* Professional Color Palette - inspired by K8s Dashboard */
-            --primary-blue: #326ce5;
-            --dark-blue: #1a4c9e;
-            --light-blue: #4a7fef;
-            --bg-main: #f5f7fa;
-            --bg-sidebar: #ffffff;
-            --bg-card: #ffffff;
-            --text-primary: #1a1a1a;
-            --text-secondary: #5f6368;
-            --border-color: #e0e0e0;
-            --success-green: #34a853;
-            --warning-orange: #fbbc04;
-            --error-red: #ea4335;
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.12);
-            --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
-        }
-
         body {
-            font-family: 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-            background: var(--bg-main);
+            font-family: 'Azeret Mono', monospace;
+            background: var(--bg-primary);
             color: var(--text-primary);
-            line-height: 1.6;
-        }
-
-        /* ==================== LAYOUT ==================== */
-        .container {
-            display: flex;
+            overflow-x: hidden;
             min-height: 100vh;
+            position: relative;
         }
 
-        /* ==================== SIDEBAR ==================== */
-        .sidebar {
-            width: 260px;
-            background: var(--bg-sidebar);
-            border-right: 1px solid var(--border-color);
+        /* Animated gradient background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.05) 0%, transparent 50%);
+            animation: gradientShift 20s ease infinite;
+            z-index: 0;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(10%, -10%) rotate(120deg); }
+            66% { transform: translate(-10%, 10%) rotate(240deg); }
+        }
+
+        /* Grid overlay */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header */
+        header {
+            backdrop-filter: blur(16px);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            animation: slideDown 0.6s ease;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header-content {
             display: flex;
-            flex-direction: column;
-        }
-
-        .sidebar-header {
-            padding: 20px;
-            border-bottom: 1px solid var(--border-color);
+            align-items: center;
+            justify-content: space-between;
         }
 
         .logo {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 1rem;
         }
 
         .logo-icon {
-            width: 32px;
-            height: 32px;
-            background: var(--primary-blue);
-            border-radius: 6px;
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 18px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 24px;
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
         }
 
-        .logo-text h1 {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--text-primary);
+        .logo-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
-        .logo-text p {
-            font-size: 11px;
-            color: var(--text-secondary);
-            margin-top: 2px;
+        .status-bar {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
         }
 
-        .nav-menu {
-            flex: 1;
-            padding: 16px 0;
-        }
-
-        .nav-item {
-            padding: 12px 20px;
-            color: var(--text-secondary);
-            cursor: pointer;
+        .status-item {
             display: flex;
             align-items: center;
-            gap: 12px;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-
-        .nav-item:hover {
-            background: var(--bg-main);
-            color: var(--primary-blue);
-        }
-
-        .nav-item.active {
-            background: var(--bg-main);
-            color: var(--primary-blue);
-            border-left: 3px solid var(--primary-blue);
-            font-weight: 500;
-        }
-
-        .nav-icon {
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .sidebar-footer {
-            padding: 16px 20px;
-            border-top: 1px solid var(--border-color);
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        .status-indicator {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            font-family: 'JetBrains Mono', monospace;
         }
 
         .status-dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: var(--success-green);
+            animation: pulse 2s ease-in-out infinite;
         }
 
-        .status-dot.warning {
-            background: var(--warning-orange);
+        .status-dot.success { background: var(--success); }
+        .status-dot.warning { background: var(--warning); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.9); }
         }
 
-        /* ==================== MAIN CONTENT ==================== */
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
+        /* Main Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 2rem;
+            animation: fadeIn 0.8s ease 0.2s backwards;
         }
 
-        /* ==================== HEADER ==================== */
-        .header {
-            background: white;
-            border-bottom: 1px solid var(--border-color);
-            padding: 16px 32px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
-        .header-title h2 {
-            font-size: 20px;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .header-title p {
-            font-size: 13px;
-            color: var(--text-secondary);
-            margin-top: 4px;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-weight: 500;
-        }
-
-        .btn-primary {
-            background: var(--primary-blue);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--dark-blue);
-        }
-
-        .btn-secondary {
-            background: white;
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
-        }
-
-        .btn-secondary:hover {
-            background: var(--bg-main);
-        }
-
-        /* ==================== CONTENT AREA ==================== */
-        .content-area {
-            flex: 1;
-            padding: 24px 32px;
-            overflow-y: auto;
-        }
-
+        /* Card Base */
         .card {
-            background: var(--bg-card);
-            border-radius: 8px;
-            box-shadow: var(--shadow-sm);
-            margin-bottom: 24px;
+            backdrop-filter: blur(16px);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: rgba(139, 92, 246, 0.4);
+            box-shadow: 0 12px 48px rgba(139, 92, 246, 0.2);
         }
 
         .card-header {
-            padding: 16px 20px;
-            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
         }
 
-        .card-header h3 {
-            font-size: 16px;
+        .card-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.125rem;
             font-weight: 600;
             color: var(--text-primary);
         }
 
-        .card-body {
-            padding: 20px;
+        .card-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--accent-cyan);
+            font-weight: 600;
         }
 
-        /* ==================== INTENT INPUT ==================== */
-        .intent-input-section {
-            margin-bottom: 24px;
+        /* Intent Input */
+        .intent-section {
+            grid-column: 1;
         }
 
         .input-group {
-            margin-bottom: 16px;
+            margin-bottom: 1.5rem;
         }
 
         .input-label {
             display: block;
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--text-primary);
-            margin-bottom: 8px;
-        }
-
-        .input-field {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            font-size: 14px;
-            font-family: inherit;
-            transition: all 0.2s;
-        }
-
-        .input-field:focus {
-            outline: none;
-            border-color: var(--primary-blue);
-            box-shadow: 0 0 0 3px rgba(50, 108, 229, 0.1);
-        }
-
-        textarea.input-field {
-            min-height: 120px;
-            resize: vertical;
-            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-        }
-
-        .input-examples {
-            margin-top: 8px;
-            padding: 12px;
-            background: var(--bg-main);
-            border-radius: 4px;
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        .example-item {
-            margin: 4px 0;
-            cursor: pointer;
-            padding: 4px 8px;
-            border-radius: 3px;
-            transition: all 0.2s;
-        }
-
-        .example-item:hover {
-            background: white;
-            color: var(--primary-blue);
-        }
-
-        .button-group {
-            display: flex;
-            gap: 12px;
-        }
-
-        /* ==================== RESPONSE DISPLAY ==================== */
-        .response-section {
-            display: none;
-        }
-
-        .response-section.show {
-            display: block;
-        }
-
-        .response-content {
-            background: #f8f9fa;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            padding: 16px;
-            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-            font-size: 13px;
-            overflow-x: auto;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .response-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 12px;
-            padding: 12px;
-            border-radius: 4px;
-        }
-
-        .response-status.success {
-            background: #e6f4ea;
-            color: var(--success-green);
-        }
-
-        .response-status.error {
-            background: #fce8e6;
-            color: var(--error-red);
-        }
-
-        /* ==================== HISTORY TABLE ==================== */
-        .history-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .history-table thead {
-            background: var(--bg-main);
-        }
-
-        .history-table th {
-            padding: 12px 16px;
-            text-align: left;
-            font-size: 12px;
+            font-size: 0.875rem;
             font-weight: 600;
             color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.05em;
         }
 
-        .history-table td {
-            padding: 12px 16px;
-            font-size: 13px;
-            border-bottom: 1px solid var(--border-color);
+        .textarea-wrapper {
+            position: relative;
         }
 
-        .history-table tbody tr:hover {
-            background: var(--bg-main);
+        #intentInput {
+            width: 100%;
+            min-height: 200px;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: 'Azeret Mono', monospace;
+            font-size: 1rem;
+            resize: vertical;
+            transition: all 0.3s ease;
         }
 
-        .badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 3px;
-            font-size: 11px;
-            font-weight: 500;
+        #intentInput:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
         }
 
-        .badge-success {
-            background: #e6f4ea;
-            color: var(--success-green);
+        #intentInput::placeholder {
+            color: var(--text-dim);
         }
 
-        .badge-pending {
-            background: #fef7e0;
-            color: var(--warning-orange);
+        .char-counter {
+            position: absolute;
+            bottom: 0.5rem;
+            right: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
         }
 
-        .badge-error {
-            background: #fce8e6;
-            color: var(--error-red);
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
         }
 
-        /* ==================== LOADING STATE ==================== */
-        .loading {
-            display: none;
-            align-items: center;
-            gap: 12px;
-            padding: 16px;
-            background: var(--bg-main);
-            border-radius: 4px;
-            margin-top: 16px;
+        select {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: 'Azeret Mono', monospace;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
 
-        .loading.show {
+        select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        select option {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        /* Buttons */
+        .button-group {
             display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
         }
 
-        .spinner {
-            width: 20px;
-            height: 20px;
-            border: 3px solid var(--border-color);
-            border-top-color: var(--primary-blue);
+        button {
+            flex: 1;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.5);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent-blue);
+        }
+
+        /* Loading State */
+        .loading {
+            position: relative;
+            pointer-events: none;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 16px;
+            height: 16px;
+            margin: -8px 0 0 -8px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
             border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+            animation: spin 0.6s linear infinite;
         }
 
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
 
-        /* ==================== RESPONSIVE ==================== */
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 200px;
+        /* Response Display */
+        .response-card {
+            margin-top: 2rem;
+            display: none;
+            animation: slideUp 0.4s ease;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .response-card.show {
+            display: block;
+        }
+
+        #responseContent {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            line-height: 1.6;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            color: var(--accent-cyan);
+        }
+
+        /* History Panel */
+        .history-section {
+            grid-column: 2;
+        }
+
+        .history-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .history-item:hover {
+            border-color: var(--accent-blue);
+            background: var(--bg-tertiary);
+        }
+
+        .history-timestamp {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 0.5rem;
+        }
+
+        .history-intent {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .history-status {
+            display: inline-block;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .history-status.success {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .history-status.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--error);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-blue);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-purple);
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
             }
 
-            .content-area {
-                padding: 16px;
+            .history-section {
+                grid-column: 1;
             }
+        }
 
-            .header {
-                padding: 12px 16px;
-            }
+        /* Examples */
+        .examples {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--bg-primary);
+            border-radius: 12px;
+            border: 1px dashed var(--border);
+        }
+
+        .examples-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-dim);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .example-tag {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            margin: 0.25rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .example-tag:hover {
+            background: var(--bg-secondary);
+            color: var(--accent-cyan);
+            border-color: var(--accent-blue);
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
+        <header>
+            <div class="header-content">
                 <div class="logo">
                     <div class="logo-icon">N</div>
-                    <div class="logo-text">
-                        <h1>Nephoran</h1>
-                        <p>Intent Operator</p>
+                    <div class="logo-text">Nephoran Intent Operator</div>
+                </div>
+                <div class="status-bar">
+                    <div class="status-item">
+                        <div class="status-dot success"></div>
+                        <span>Ollama Ready</span>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-dot success"></div>
+                        <span>RAG Service</span>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-dot success"></div>
+                        <span>K8s 1.35.1</span>
                     </div>
                 </div>
             </div>
+        </header>
 
-            <nav class="nav-menu">
-                <div class="nav-item active">
-                    <div class="nav-icon">📝</div>
-                    <span>Intent Input</span>
-                </div>
-                <div class="nav-item">
-                    <div class="nav-icon">📊</div>
-                    <span>History</span>
-                </div>
-                <div class="nav-item">
-                    <div class="nav-icon">⚙️</div>
-                    <span>Configuration</span>
-                </div>
-                <div class="nav-item">
-                    <div class="nav-icon">📈</div>
-                    <span>Metrics</span>
-                </div>
-            </nav>
-
-            <div class="sidebar-footer">
-                <div class="status-indicator">
-                    <span class="status-dot"></span>
-                    <span>Ollama: Connected</span>
-                </div>
-                <div class="status-indicator">
-                    <span class="status-dot"></span>
-                    <span>Backend: Healthy</span>
-                </div>
-                <div style="margin-top: 12px; font-size: 11px; opacity: 0.7;">
-                    Model: llama3.1
-                </div>
-            </div>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Header -->
-            <header class="header">
-                <div class="header-title">
-                    <h2>Network Intent Management</h2>
-                    <p>Process natural language commands for Kubernetes network functions</p>
-                </div>
-                <div class="header-actions">
-                    <button class="btn btn-secondary" onclick="clearHistory()">Clear History</button>
-                    <button class="btn btn-primary" onclick="showExamples()">View Examples</button>
-                </div>
-            </header>
-
-            <!-- Content Area -->
-            <div class="content-area">
-                <!-- Intent Input Card -->
-                <div class="card intent-input-section">
-                    <div class="card-header">
-                        <h3>Submit Intent Command</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="input-group">
-                            <label class="input-label">Natural Language Input</label>
-                            <textarea
-                                id="intentInput"
-                                class="input-field"
-                                placeholder="Enter your intent command in natural language...&#10;Example: scale nf-sim to 5 in ns ran-a"
-                            ></textarea>
-
-                            <div class="input-examples">
-                                <strong>Quick Examples:</strong>
-                                <div class="example-item" onclick="fillExample('scale nf-sim to 5 in ns ran-a')">
-                                    • scale nf-sim to 5 in ns ran-a
-                                </div>
-                                <div class="example-item" onclick="fillExample('deploy nginx with 3 replicas in namespace production')">
-                                    • deploy nginx with 3 replicas in namespace production
-                                </div>
-                                <div class="example-item" onclick="fillExample('scale out batch-processor by 2 in ns processing')">
-                                    • scale out batch-processor by 2 in ns processing
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="button-group">
-                            <button class="btn btn-primary" onclick="submitIntent()">Process Intent</button>
-                            <button class="btn btn-secondary" onclick="clearInput()">Clear</button>
-                        </div>
-
-                        <div class="loading" id="loadingIndicator">
-                            <div class="spinner"></div>
-                            <span>Processing with Ollama LLM...</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Response Card -->
-                <div class="card response-section" id="responseSection">
-                    <div class="card-header">
-                        <h3>Intent Response</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="response-status success" id="responseStatus">
-                            <span>✓</span>
-                            <span>Intent processed successfully</span>
-                        </div>
-                        <pre class="response-content" id="responseContent"></pre>
-                    </div>
-                </div>
-
-                <!-- History Card -->
+        <div class="main-grid">
+            <div class="intent-section">
                 <div class="card">
                     <div class="card-header">
-                        <h3>Recent Intents</h3>
+                        <h2 class="card-title">Natural Language Intent</h2>
+                        <span class="card-badge">AI-Powered</span>
                     </div>
-                    <div class="card-body" style="padding: 0;">
-                        <table class="history-table">
-                            <thead>
-                                <tr>
-                                    <th>Timestamp</th>
-                                    <th>Command</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="historyTableBody">
-                                <tr>
-                                    <td colspan="4" style="text-align: center; padding: 32px; color: var(--text-secondary);">
-                                        No intents submitted yet. Start by entering a command above.
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+
+                    <div class="input-group">
+                        <label class="input-label" for="intentInput">Describe your intent</label>
+                        <div class="textarea-wrapper">
+                            <textarea
+                                id="intentInput"
+                                placeholder="e.g., scale nf-sim to 5 in ns ran-a&#10;e.g., deploy nginx with 3 replicas in namespace production&#10;e.g., create service for app frontend on port 8080"
+                            ></textarea>
+                            <div class="char-counter">
+                                <span id="charCount">0</span> / 1000
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label class="input-label" for="intentType">Intent Type</label>
+                            <select id="intentType">
+                                <option value="auto">Auto-detect</option>
+                                <option value="scaling">Scaling</option>
+                                <option value="deployment">Deployment</option>
+                                <option value="service">Service</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label" for="namespace">Namespace</label>
+                            <select id="namespace">
+                                <option value="">Default</option>
+                                <option value="ran-a">ran-a</option>
+                                <option value="ran-b">ran-b</option>
+                                <option value="free5gc">free5gc</option>
+                                <option value="ricplt">ricplt</option>
+                                <option value="ricxapp">ricxapp</option>
+                                <option value="production">production</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="examples">
+                        <div class="examples-title">Quick Examples</div>
+                        <span class="example-tag" data-example="scale nf-sim to 5 in ns ran-a">Scale NF-SIM</span>
+                        <span class="example-tag" data-example="deploy nginx with 3 replicas in namespace production">Deploy NGINX</span>
+                        <span class="example-tag" data-example="create service for app frontend on port 8080">Create Service</span>
+                        <span class="example-tag" data-example="scale free5gc-amf to 2 replicas in namespace free5gc">Scale AMF</span>
+                    </div>
+
+                    <div class="button-group">
+                        <button id="submitBtn" class="btn-primary">
+                            Process Intent
+                        </button>
+                        <button id="clearBtn" class="btn-secondary">
+                            Clear
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card response-card" id="responseCard">
+                    <div class="card-header">
+                        <h2 class="card-title">Generated Intent</h2>
+                        <span class="card-badge" id="responseBadge">Success</span>
+                    </div>
+                    <pre id="responseContent"></pre>
+                </div>
+            </div>
+
+            <div class="history-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Recent Intents</h2>
+                        <span class="card-badge" id="historyCount">0</span>
+                    </div>
+                    <div class="history-list" id="historyList">
+                        <div style="text-align: center; color: var(--text-dim); padding: 2rem; font-size: 0.875rem;">
+                            No intents processed yet
+                        </div>
                     </div>
                 </div>
             </div>
-        </main>
+        </div>
     </div>
 
-    <script>
-        // API endpoint configuration
-        const API_ENDPOINT = '/api/intent';
+    <div class="toast" id="toast"></div>
 
-        // History storage
-        let intentHistory = JSON.parse(localStorage.getItem('intentHistory') || '[]');
+    <script>
+        const API_ENDPOINT = 'http://intent-ingest-service:8080/intent';
+        const MAX_HISTORY = 50;
+
+        // Elements
+        const intentInput = document.getElementById('intentInput');
+        const intentType = document.getElementById('intentType');
+        const namespace = document.getElementById('namespace');
+        const submitBtn = document.getElementById('submitBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const responseCard = document.getElementById('responseCard');
+        const responseContent = document.getElementById('responseContent');
+        const responseBadge = document.getElementById('responseBadge');
+        const historyList = document.getElementById('historyList');
+        const historyCount = document.getElementById('historyCount');
+        const charCount = document.getElementById('charCount');
+        const toast = document.getElementById('toast');
 
         // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            renderHistory();
+        loadHistory();
+        updateHistoryCount();
+
+        // Character counter
+        intentInput.addEventListener('input', () => {
+            const count = intentInput.value.length;
+            charCount.textContent = count;
+            if (count > 1000) {
+                intentInput.value = intentInput.value.substring(0, 1000);
+                charCount.textContent = 1000;
+            }
         });
 
-        // Fill example
-        function fillExample(text) {
-            document.getElementById('intentInput').value = text;
-        }
-
-        // Clear input
-        function clearInput() {
-            document.getElementById('intentInput').value = '';
-        }
+        // Example tags
+        document.querySelectorAll('.example-tag').forEach(tag => {
+            tag.addEventListener('click', () => {
+                intentInput.value = tag.dataset.example;
+                intentInput.dispatchEvent(new Event('input'));
+                intentInput.focus();
+            });
+        });
 
         // Submit intent
-        async function submitIntent() {
-            const input = document.getElementById('intentInput').value.trim();
-
-            if (!input) {
-                alert('Please enter an intent command');
+        submitBtn.addEventListener('click', async () => {
+            const intent = intentInput.value.trim();
+            if (!intent) {
+                showToast('Please enter an intent', 'error');
                 return;
             }
 
-            // Show loading
-            document.getElementById('loadingIndicator').classList.add('show');
-            document.getElementById('responseSection').classList.remove('show');
+            submitBtn.disabled = true;
+            submitBtn.classList.add('loading');
+            submitBtn.textContent = '';
 
             try {
-                // Create AbortController with 60-second timeout for LLM processing
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 60000);
-
                 const response = await fetch(API_ENDPOINT, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'text/plain'
                     },
-                    body: input,
-                    signal: controller.signal
+                    body: intent
                 });
 
-                clearTimeout(timeoutId);
-
-                const data = await response.json();
-
-                // Show response
-                document.getElementById('loadingIndicator').classList.remove('show');
-                document.getElementById('responseSection').classList.add('show');
+                const result = await response.json();
 
                 if (response.ok) {
-                    document.getElementById('responseStatus').className = 'response-status success';
-                    document.getElementById('responseStatus').innerHTML = '<span>✓</span><span>Intent processed successfully</span>';
+                    displayResponse(result, true);
+                    addToHistory(intent, result, true);
+                    showToast('Intent processed successfully', 'success');
                 } else {
-                    document.getElementById('responseStatus').className = 'response-status error';
-                    document.getElementById('responseStatus').innerHTML = '<span>✗</span><span>Processing failed</span>';
+                    displayResponse(result, false);
+                    addToHistory(intent, result, false);
+                    showToast('Intent processing failed', 'error');
                 }
-
-                document.getElementById('responseContent').textContent = JSON.stringify(data, null, 2);
-
-                // Add to history
-                addToHistory(input, response.ok ? 'success' : 'error', data);
-
             } catch (error) {
-                document.getElementById('loadingIndicator').classList.remove('show');
-                document.getElementById('responseSection').classList.add('show');
-                document.getElementById('responseStatus').className = 'response-status error';
-
-                // Check if error is due to timeout
-                if (error.name === 'AbortError') {
-                    document.getElementById('responseStatus').innerHTML = '<span>✗</span><span>Request timeout (LLM processing took > 60s)</span>';
-                    document.getElementById('responseContent').textContent = 'Error: Request timed out after 60 seconds. LLM processing may be too slow.';
-                } else {
-                    document.getElementById('responseStatus').innerHTML = '<span>✗</span><span>Connection error</span>';
-                    document.getElementById('responseContent').textContent = 'Error: ' + error.message;
-                }
-
-                addToHistory(input, 'error', { error: error.message });
+                const errorResult = { error: error.message };
+                displayResponse(errorResult, false);
+                addToHistory(intent, errorResult, false);
+                showToast('Network error occurred', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('loading');
+                submitBtn.textContent = 'Process Intent';
             }
+        });
+
+        // Clear form
+        clearBtn.addEventListener('click', () => {
+            intentInput.value = '';
+            intentType.value = 'auto';
+            namespace.value = '';
+            responseCard.classList.remove('show');
+            intentInput.dispatchEvent(new Event('input'));
+        });
+
+        // Display response
+        function displayResponse(data, success) {
+            responseContent.textContent = JSON.stringify(data, null, 2);
+            responseBadge.textContent = success ? 'Success' : 'Error';
+            responseBadge.style.background = success
+                ? 'rgba(16, 185, 129, 0.2)'
+                : 'rgba(239, 68, 68, 0.2)';
+            responseBadge.style.color = success ? 'var(--success)' : 'var(--error)';
+            responseCard.classList.add('show');
         }
 
         // Add to history
-        function addToHistory(command, status, response) {
-            const entry = {
+        function addToHistory(intent, result, success) {
+            let history = JSON.parse(localStorage.getItem('intentHistory') || '[]');
+
+            history.unshift({
                 timestamp: new Date().toISOString(),
-                command: command,
-                status: status,
-                response: response
-            };
+                intent: intent,
+                result: result,
+                success: success
+            });
 
-            intentHistory.unshift(entry);
-
-            // Keep only last 50 entries
-            if (intentHistory.length > 50) {
-                intentHistory = intentHistory.slice(0, 50);
+            if (history.length > MAX_HISTORY) {
+                history = history.slice(0, MAX_HISTORY);
             }
 
-            localStorage.setItem('intentHistory', JSON.stringify(intentHistory));
-            renderHistory();
+            localStorage.setItem('intentHistory', JSON.stringify(history));
+            loadHistory();
         }
 
-        // Render history
-        function renderHistory() {
-            const tbody = document.getElementById('historyTableBody');
+        // Load history
+        function loadHistory() {
+            const history = JSON.parse(localStorage.getItem('intentHistory') || '[]');
 
-            if (intentHistory.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 32px; color: var(--text-secondary);">No intents submitted yet. Start by entering a command above.</td></tr>';
+            if (history.length === 0) {
+                historyList.innerHTML = `
+                    <div style="text-align: center; color: var(--text-dim); padding: 2rem; font-size: 0.875rem;">
+                        No intents processed yet
+                    </div>
+                `;
                 return;
             }
 
-            tbody.innerHTML = intentHistory.slice(0, 10).map((entry, index) => `
-                <tr>
-                    <td>${new Date(entry.timestamp).toLocaleString()}</td>
-                    <td style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${entry.command}</td>
-                    <td><span class="badge badge-${entry.status}">${entry.status.toUpperCase()}</span></td>
-                    <td>
-                        <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;" onclick="viewDetails(${index})">View</button>
-                    </td>
-                </tr>
+            historyList.innerHTML = history.map((item, index) => `
+                <div class="history-item" onclick="loadHistoryItem(${index})">
+                    <div class="history-timestamp">${formatTimestamp(item.timestamp)}</div>
+                    <div class="history-intent">${escapeHtml(item.intent)}</div>
+                    <span class="history-status ${item.success ? 'success' : 'error'}">
+                        ${item.success ? 'SUCCESS' : 'ERROR'}
+                    </span>
+                </div>
             `).join('');
+
+            updateHistoryCount();
         }
 
-        // View details
-        function viewDetails(index) {
-            const entry = intentHistory[index];
-            document.getElementById('responseSection').classList.add('show');
-            document.getElementById('responseStatus').className = `response-status ${entry.status}`;
-            document.getElementById('responseStatus').innerHTML = entry.status === 'success'
-                ? '<span>✓</span><span>Intent processed successfully</span>'
-                : '<span>✗</span><span>Processing failed</span>';
-            document.getElementById('responseContent').textContent = JSON.stringify(entry.response, null, 2);
-        }
+        // Load history item
+        window.loadHistoryItem = function(index) {
+            const history = JSON.parse(localStorage.getItem('intentHistory') || '[]');
+            const item = history[index];
 
-        // Clear history
-        function clearHistory() {
-            if (confirm('Are you sure you want to clear all history?')) {
-                intentHistory = [];
-                localStorage.setItem('intentHistory', '[]');
-                renderHistory();
+            if (item) {
+                intentInput.value = item.intent;
+                displayResponse(item.result, item.success);
+                intentInput.dispatchEvent(new Event('input'));
             }
+        };
+
+        // Update history count
+        function updateHistoryCount() {
+            const history = JSON.parse(localStorage.getItem('intentHistory') || '[]');
+            historyCount.textContent = history.length;
         }
 
-        // Show examples
-        function showExamples() {
-            alert('Example Commands:\n\n' +
-                  '1. scale nf-sim to 5 in ns ran-a\n' +
-                  '2. deploy nginx with 3 replicas in namespace production\n' +
-                  '3. scale out batch-processor by 2 in ns processing\n' +
-                  '4. scale in worker-service by 1 in ns compute');
+        // Format timestamp
+        function formatTimestamp(iso) {
+            const date = new Date(iso);
+            const now = new Date();
+            const diff = Math.floor((now - date) / 1000);
+
+            if (diff < 60) return 'Just now';
+            if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
         }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Show toast
+        function showToast(message, type = 'info') {
+            toast.textContent = message;
+            toast.style.borderColor = type === 'success'
+                ? 'var(--success)'
+                : type === 'error'
+                ? 'var(--error)'
+                : 'var(--accent-blue)';
+            toast.classList.add('show');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Enter key to submit
+        intentInput.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                submitBtn.click();
+            }
+        });
     </script>
 </body>
 </html>

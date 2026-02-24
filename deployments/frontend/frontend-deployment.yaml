@@ -1,0 +1,1071 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nephoran-frontend
+  labels:
+    app: nephoran-intent-frontend
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-html
+  namespace: nephoran-frontend
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Nephoran Intent Operator</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Azeret+Mono:wght@300;400;600&display=swap" rel="stylesheet">
+        <style>
+            :root {
+                --bg-primary: #0a0e1a;
+                --bg-secondary: #111827;
+                --bg-tertiary: #1f2937;
+                --accent-blue: #3b82f6;
+                --accent-purple: #8b5cf6;
+                --accent-cyan: #06b6d4;
+                --text-primary: #f9fafb;
+                --text-secondary: #9ca3af;
+                --text-dim: #6b7280;
+                --success: #10b981;
+                --error: #ef4444;
+                --warning: #f59e0b;
+                --border: rgba(59, 130, 246, 0.1);
+                --glass-bg: rgba(31, 41, 55, 0.6);
+                --glass-border: rgba(139, 92, 246, 0.2);
+            }
+    
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+    
+            body {
+                font-family: 'Azeret Mono', monospace;
+                background: var(--bg-primary);
+                color: var(--text-primary);
+                overflow-x: hidden;
+                min-height: 100vh;
+                position: relative;
+            }
+    
+            /* Animated gradient background */
+            body::before {
+                content: '';
+                position: fixed;
+                top: -50%;
+                left: -50%;
+                width: 200%;
+                height: 200%;
+                background:
+                    radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+                    radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
+                    radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.05) 0%, transparent 50%);
+                animation: gradientShift 20s ease infinite;
+                z-index: 0;
+            }
+    
+            @keyframes gradientShift {
+                0%, 100% { transform: translate(0, 0) rotate(0deg); }
+                33% { transform: translate(10%, -10%) rotate(120deg); }
+                66% { transform: translate(-10%, 10%) rotate(240deg); }
+            }
+    
+            /* Grid overlay */
+            body::after {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-image:
+                    linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
+                background-size: 40px 40px;
+                z-index: 0;
+                pointer-events: none;
+            }
+    
+            .container {
+                position: relative;
+                z-index: 1;
+                max-width: 1800px;
+                margin: 0 auto;
+                padding: 2rem;
+            }
+    
+            /* Header */
+            header {
+                backdrop-filter: blur(16px);
+                background: var(--glass-bg);
+                border: 1px solid var(--glass-border);
+                border-radius: 16px;
+                padding: 1.5rem 2rem;
+                margin-bottom: 2rem;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+                animation: slideDown 0.6s ease;
+            }
+    
+            @keyframes slideDown {
+                from { opacity: 0; transform: translateY(-20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+    
+            .header-content {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+    
+            .logo {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+            }
+    
+            .logo-icon {
+                width: 48px;
+                height: 48px;
+                background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-family: 'JetBrains Mono', monospace;
+                font-weight: 700;
+                font-size: 24px;
+                box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+            }
+    
+            .logo-text {
+                font-family: 'JetBrains Mono', monospace;
+                font-size: 1.5rem;
+                font-weight: 700;
+                background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            }
+    
+            .status-bar {
+                display: flex;
+                gap: 2rem;
+                align-items: center;
+            }
+    
+            .status-item {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                font-size: 0.875rem;
+                font-family: 'JetBrains Mono', monospace;
+            }
+    
+            .status-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                animation: pulse 2s ease-in-out infinite;
+            }
+    
+            .status-dot.success { background: var(--success); }
+            .status-dot.warning { background: var(--warning); }
+    
+            @keyframes pulse {
+                0%, 100% { opacity: 1; transform: scale(1); }
+                50% { opacity: 0.6; transform: scale(0.9); }
+            }
+    
+            /* Main Grid */
+            .main-grid {
+                display: grid;
+                grid-template-columns: 1fr 400px;
+                gap: 2rem;
+                animation: fadeIn 0.8s ease 0.2s backwards;
+            }
+    
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+    
+            /* Card Base */
+            .card {
+                backdrop-filter: blur(16px);
+                background: var(--glass-bg);
+                border: 1px solid var(--glass-border);
+                border-radius: 16px;
+                padding: 2rem;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+                transition: all 0.3s ease;
+            }
+    
+            .card:hover {
+                border-color: rgba(139, 92, 246, 0.4);
+                box-shadow: 0 12px 48px rgba(139, 92, 246, 0.2);
+            }
+    
+            .card-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 1.5rem;
+                padding-bottom: 1rem;
+                border-bottom: 1px solid var(--border);
+            }
+    
+            .card-title {
+                font-family: 'JetBrains Mono', monospace;
+                font-size: 1.125rem;
+                font-weight: 600;
+                color: var(--text-primary);
+            }
+    
+            .card-badge {
+                font-size: 0.75rem;
+                padding: 0.25rem 0.75rem;
+                border-radius: 9999px;
+                background: rgba(59, 130, 246, 0.2);
+                color: var(--accent-cyan);
+                font-weight: 600;
+            }
+    
+            /* Intent Input */
+            .intent-section {
+                grid-column: 1;
+            }
+    
+            .input-group {
+                margin-bottom: 1.5rem;
+            }
+    
+            .input-label {
+                display: block;
+                font-size: 0.875rem;
+                font-weight: 600;
+                color: var(--text-secondary);
+                margin-bottom: 0.5rem;
+                font-family: 'JetBrains Mono', monospace;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+    
+            .textarea-wrapper {
+                position: relative;
+            }
+    
+            #intentInput {
+                width: 100%;
+                min-height: 200px;
+                padding: 1rem;
+                background: var(--bg-secondary);
+                border: 2px solid var(--border);
+                border-radius: 12px;
+                color: var(--text-primary);
+                font-family: 'Azeret Mono', monospace;
+                font-size: 1rem;
+                resize: vertical;
+                transition: all 0.3s ease;
+            }
+    
+            #intentInput:focus {
+                outline: none;
+                border-color: var(--accent-blue);
+                box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+            }
+    
+            #intentInput::placeholder {
+                color: var(--text-dim);
+            }
+    
+            .char-counter {
+                position: absolute;
+                bottom: 0.5rem;
+                right: 0.5rem;
+                font-size: 0.75rem;
+                color: var(--text-dim);
+                font-family: 'JetBrains Mono', monospace;
+            }
+    
+            .input-row {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+            }
+    
+            select {
+                width: 100%;
+                padding: 0.75rem;
+                background: var(--bg-secondary);
+                border: 2px solid var(--border);
+                border-radius: 12px;
+                color: var(--text-primary);
+                font-family: 'Azeret Mono', monospace;
+                font-size: 0.875rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+    
+            select:focus {
+                outline: none;
+                border-color: var(--accent-blue);
+            }
+    
+            select option {
+                background: var(--bg-secondary);
+                color: var(--text-primary);
+            }
+    
+            /* Buttons */
+            .button-group {
+                display: flex;
+                gap: 1rem;
+                margin-top: 1.5rem;
+            }
+    
+            button {
+                flex: 1;
+                padding: 1rem 2rem;
+                border: none;
+                border-radius: 12px;
+                font-family: 'JetBrains Mono', monospace;
+                font-size: 0.875rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+    
+            .btn-primary {
+                background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+                color: white;
+                box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+            }
+    
+            .btn-primary:hover:not(:disabled) {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 24px rgba(59, 130, 246, 0.5);
+            }
+    
+            .btn-primary:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+    
+            .btn-secondary {
+                background: var(--bg-tertiary);
+                color: var(--text-primary);
+                border: 1px solid var(--border);
+            }
+    
+            .btn-secondary:hover {
+                background: var(--bg-secondary);
+                border-color: var(--accent-blue);
+            }
+    
+            /* Loading State */
+            .loading {
+                position: relative;
+                pointer-events: none;
+            }
+    
+            .loading::after {
+                content: '';
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 16px;
+                height: 16px;
+                margin: -8px 0 0 -8px;
+                border: 2px solid rgba(255, 255, 255, 0.3);
+                border-top-color: white;
+                border-radius: 50%;
+                animation: spin 0.6s linear infinite;
+            }
+    
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+    
+            /* Response Display */
+            .response-card {
+                margin-top: 2rem;
+                display: none;
+                animation: slideUp 0.4s ease;
+            }
+    
+            @keyframes slideUp {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+    
+            .response-card.show {
+                display: block;
+            }
+    
+            #responseContent {
+                background: var(--bg-primary);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 1.5rem;
+                font-family: 'JetBrains Mono', monospace;
+                font-size: 0.875rem;
+                line-height: 1.6;
+                overflow-x: auto;
+                white-space: pre-wrap;
+                color: var(--accent-cyan);
+            }
+    
+            /* History Panel */
+            .history-section {
+                grid-column: 2;
+            }
+    
+            .history-list {
+                max-height: 600px;
+                overflow-y: auto;
+            }
+    
+            .history-item {
+                background: var(--bg-secondary);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 1rem;
+                margin-bottom: 1rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+    
+            .history-item:hover {
+                border-color: var(--accent-blue);
+                background: var(--bg-tertiary);
+            }
+    
+            .history-timestamp {
+                font-size: 0.75rem;
+                color: var(--text-dim);
+                font-family: 'JetBrains Mono', monospace;
+                margin-bottom: 0.5rem;
+            }
+    
+            .history-intent {
+                font-size: 0.875rem;
+                color: var(--text-secondary);
+                margin-bottom: 0.5rem;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+    
+            .history-status {
+                display: inline-block;
+                font-size: 0.75rem;
+                padding: 0.25rem 0.5rem;
+                border-radius: 6px;
+                font-weight: 600;
+            }
+    
+            .history-status.success {
+                background: rgba(16, 185, 129, 0.2);
+                color: var(--success);
+            }
+    
+            .history-status.error {
+                background: rgba(239, 68, 68, 0.2);
+                color: var(--error);
+            }
+    
+            /* Scrollbar */
+            ::-webkit-scrollbar {
+                width: 8px;
+            }
+    
+            ::-webkit-scrollbar-track {
+                background: var(--bg-secondary);
+                border-radius: 4px;
+            }
+    
+            ::-webkit-scrollbar-thumb {
+                background: var(--accent-blue);
+                border-radius: 4px;
+            }
+    
+            ::-webkit-scrollbar-thumb:hover {
+                background: var(--accent-purple);
+            }
+    
+            /* Responsive */
+            @media (max-width: 1200px) {
+                .main-grid {
+                    grid-template-columns: 1fr;
+                }
+    
+                .history-section {
+                    grid-column: 1;
+                }
+            }
+    
+            /* Examples */
+            .examples {
+                margin-top: 1rem;
+                padding: 1rem;
+                background: var(--bg-primary);
+                border-radius: 12px;
+                border: 1px dashed var(--border);
+            }
+    
+            .examples-title {
+                font-size: 0.75rem;
+                font-weight: 600;
+                color: var(--text-dim);
+                margin-bottom: 0.5rem;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+    
+            .example-tag {
+                display: inline-block;
+                padding: 0.25rem 0.75rem;
+                margin: 0.25rem;
+                background: var(--bg-tertiary);
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                font-size: 0.75rem;
+                color: var(--text-secondary);
+                cursor: pointer;
+                transition: all 0.2s ease;
+                font-family: 'JetBrains Mono', monospace;
+            }
+    
+            .example-tag:hover {
+                background: var(--bg-secondary);
+                color: var(--accent-cyan);
+                border-color: var(--accent-blue);
+            }
+    
+            /* Toast Notification */
+            .toast {
+                position: fixed;
+                bottom: 2rem;
+                right: 2rem;
+                padding: 1rem 1.5rem;
+                background: var(--glass-bg);
+                backdrop-filter: blur(16px);
+                border: 1px solid var(--glass-border);
+                border-radius: 12px;
+                color: var(--text-primary);
+                font-family: 'JetBrains Mono', monospace;
+                font-size: 0.875rem;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+                z-index: 1000;
+                opacity: 0;
+                transform: translateY(20px);
+                transition: all 0.3s ease;
+            }
+    
+            .toast.show {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <header>
+                <div class="header-content">
+                    <div class="logo">
+                        <div class="logo-icon">N</div>
+                        <div class="logo-text">Nephoran Intent Operator</div>
+                    </div>
+                    <div class="status-bar">
+                        <div class="status-item">
+                            <div class="status-dot success"></div>
+                            <span>Ollama Ready</span>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-dot success"></div>
+                            <span>RAG Service</span>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-dot success"></div>
+                            <span>K8s 1.35.1</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+    
+            <div class="main-grid">
+                <div class="intent-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Natural Language Intent</h2>
+                            <span class="card-badge">AI-Powered</span>
+                        </div>
+    
+                        <div class="input-group">
+                            <label class="input-label" for="intentInput">Describe your intent</label>
+                            <div class="textarea-wrapper">
+                                <textarea
+                                    id="intentInput"
+                                    placeholder="e.g., scale nf-sim to 5 in ns ran-a&#10;e.g., deploy nginx with 3 replicas in namespace production&#10;e.g., create service for app frontend on port 8080"
+                                ></textarea>
+                                <div class="char-counter">
+                                    <span id="charCount">0</span> / 1000
+                                </div>
+                            </div>
+                        </div>
+    
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label class="input-label" for="intentType">Intent Type</label>
+                                <select id="intentType">
+                                    <option value="auto">Auto-detect</option>
+                                    <option value="scaling">Scaling</option>
+                                    <option value="deployment">Deployment</option>
+                                    <option value="service">Service</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label" for="namespace">Namespace</label>
+                                <select id="namespace">
+                                    <option value="">Default</option>
+                                    <option value="ran-a">ran-a</option>
+                                    <option value="ran-b">ran-b</option>
+                                    <option value="free5gc">free5gc</option>
+                                    <option value="ricplt">ricplt</option>
+                                    <option value="ricxapp">ricxapp</option>
+                                    <option value="production">production</option>
+                                </select>
+                            </div>
+                        </div>
+    
+                        <div class="examples">
+                            <div class="examples-title">Quick Examples</div>
+                            <span class="example-tag" data-example="scale nf-sim to 5 in ns ran-a">Scale NF-SIM</span>
+                            <span class="example-tag" data-example="deploy nginx with 3 replicas in namespace production">Deploy NGINX</span>
+                            <span class="example-tag" data-example="create service for app frontend on port 8080">Create Service</span>
+                            <span class="example-tag" data-example="scale free5gc-amf to 2 replicas in namespace free5gc">Scale AMF</span>
+                        </div>
+    
+                        <div class="button-group">
+                            <button id="submitBtn" class="btn-primary">
+                                Process Intent
+                            </button>
+                            <button id="clearBtn" class="btn-secondary">
+                                Clear
+                            </button>
+                        </div>
+                    </div>
+    
+                    <div class="card response-card" id="responseCard">
+                        <div class="card-header">
+                            <h2 class="card-title">Generated Intent</h2>
+                            <span class="card-badge" id="responseBadge">Success</span>
+                        </div>
+                        <pre id="responseContent"></pre>
+                    </div>
+                </div>
+    
+                <div class="history-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Recent Intents</h2>
+                            <span class="card-badge" id="historyCount">0</span>
+                        </div>
+                        <div class="history-list" id="historyList">
+                            <div style="text-align: center; color: var(--text-dim); padding: 2rem; font-size: 0.875rem;">
+                                No intents processed yet
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+        <div class="toast" id="toast"></div>
+    
+        <script>
+            const API_ENDPOINT = 'http://intent-ingest-service:8080/intent';
+            const MAX_HISTORY = 50;
+    
+            // Elements
+            const intentInput = document.getElementById('intentInput');
+            const intentType = document.getElementById('intentType');
+            const namespace = document.getElementById('namespace');
+            const submitBtn = document.getElementById('submitBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const responseCard = document.getElementById('responseCard');
+            const responseContent = document.getElementById('responseContent');
+            const responseBadge = document.getElementById('responseBadge');
+            const historyList = document.getElementById('historyList');
+            const historyCount = document.getElementById('historyCount');
+            const charCount = document.getElementById('charCount');
+            const toast = document.getElementById('toast');
+    
+            // Initialize
+            loadHistory();
+            updateHistoryCount();
+    
+            // Character counter
+            intentInput.addEventListener('input', () => {
+                const count = intentInput.value.length;
+                charCount.textContent = count;
+                if (count > 1000) {
+                    intentInput.value = intentInput.value.substring(0, 1000);
+                    charCount.textContent = 1000;
+                }
+            });
+    
+            // Example tags
+            document.querySelectorAll('.example-tag').forEach(tag => {
+                tag.addEventListener('click', () => {
+                    intentInput.value = tag.dataset.example;
+                    intentInput.dispatchEvent(new Event('input'));
+                    intentInput.focus();
+                });
+            });
+    
+            // Submit intent
+            submitBtn.addEventListener('click', async () => {
+                const intent = intentInput.value.trim();
+                if (!intent) {
+                    showToast('Please enter an intent', 'error');
+                    return;
+                }
+    
+                submitBtn.disabled = true;
+                submitBtn.classList.add('loading');
+                submitBtn.textContent = '';
+    
+                try {
+                    const response = await fetch(API_ENDPOINT, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'text/plain'
+                        },
+                        body: intent
+                    });
+    
+                    const result = await response.json();
+    
+                    if (response.ok) {
+                        displayResponse(result, true);
+                        addToHistory(intent, result, true);
+                        showToast('Intent processed successfully', 'success');
+                    } else {
+                        displayResponse(result, false);
+                        addToHistory(intent, result, false);
+                        showToast('Intent processing failed', 'error');
+                    }
+                } catch (error) {
+                    const errorResult = { error: error.message };
+                    displayResponse(errorResult, false);
+                    addToHistory(intent, errorResult, false);
+                    showToast('Network error occurred', 'error');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove('loading');
+                    submitBtn.textContent = 'Process Intent';
+                }
+            });
+    
+            // Clear form
+            clearBtn.addEventListener('click', () => {
+                intentInput.value = '';
+                intentType.value = 'auto';
+                namespace.value = '';
+                responseCard.classList.remove('show');
+                intentInput.dispatchEvent(new Event('input'));
+            });
+    
+            // Display response
+            function displayResponse(data, success) {
+                responseContent.textContent = JSON.stringify(data, null, 2);
+                responseBadge.textContent = success ? 'Success' : 'Error';
+                responseBadge.style.background = success
+                    ? 'rgba(16, 185, 129, 0.2)'
+                    : 'rgba(239, 68, 68, 0.2)';
+                responseBadge.style.color = success ? 'var(--success)' : 'var(--error)';
+                responseCard.classList.add('show');
+            }
+    
+            // Add to history
+            function addToHistory(intent, result, success) {
+                let history = JSON.parse(localStorage.getItem('intentHistory') || '[]');
+    
+                history.unshift({
+                    timestamp: new Date().toISOString(),
+                    intent: intent,
+                    result: result,
+                    success: success
+                });
+    
+                if (history.length > MAX_HISTORY) {
+                    history = history.slice(0, MAX_HISTORY);
+                }
+    
+                localStorage.setItem('intentHistory', JSON.stringify(history));
+                loadHistory();
+            }
+    
+            // Load history
+            function loadHistory() {
+                const history = JSON.parse(localStorage.getItem('intentHistory') || '[]');
+    
+                if (history.length === 0) {
+                    historyList.innerHTML = `
+                        <div style="text-align: center; color: var(--text-dim); padding: 2rem; font-size: 0.875rem;">
+                            No intents processed yet
+                        </div>
+                    `;
+                    return;
+                }
+    
+                historyList.innerHTML = history.map((item, index) => `
+                    <div class="history-item" onclick="loadHistoryItem(${index})">
+                        <div class="history-timestamp">${formatTimestamp(item.timestamp)}</div>
+                        <div class="history-intent">${escapeHtml(item.intent)}</div>
+                        <span class="history-status ${item.success ? 'success' : 'error'}">
+                            ${item.success ? 'SUCCESS' : 'ERROR'}
+                        </span>
+                    </div>
+                `).join('');
+    
+                updateHistoryCount();
+            }
+    
+            // Load history item
+            window.loadHistoryItem = function(index) {
+                const history = JSON.parse(localStorage.getItem('intentHistory') || '[]');
+                const item = history[index];
+    
+                if (item) {
+                    intentInput.value = item.intent;
+                    displayResponse(item.result, item.success);
+                    intentInput.dispatchEvent(new Event('input'));
+                }
+            };
+    
+            // Update history count
+            function updateHistoryCount() {
+                const history = JSON.parse(localStorage.getItem('intentHistory') || '[]');
+                historyCount.textContent = history.length;
+            }
+    
+            // Format timestamp
+            function formatTimestamp(iso) {
+                const date = new Date(iso);
+                const now = new Date();
+                const diff = Math.floor((now - date) / 1000);
+    
+                if (diff < 60) return 'Just now';
+                if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+                if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+            }
+    
+            // Escape HTML
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+    
+            // Show toast
+            function showToast(message, type = 'info') {
+                toast.textContent = message;
+                toast.style.borderColor = type === 'success'
+                    ? 'var(--success)'
+                    : type === 'error'
+                    ? 'var(--error)'
+                    : 'var(--accent-blue)';
+                toast.classList.add('show');
+    
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            }
+    
+            // Enter key to submit
+            intentInput.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === 'Enter') {
+                    submitBtn.click();
+                }
+            });
+        </script>
+    </body>
+    </html>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nephoran-frontend
+  namespace: nephoran-frontend
+  labels:
+    app: nephoran-intent-frontend
+    component: ui
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nephoran-intent-frontend
+  template:
+    metadata:
+      labels:
+        app: nephoran-intent-frontend
+        component: ui
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25-alpine
+        ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+        volumeMounts:
+        - name: html
+          mountPath: /usr/share/nginx/html
+          readOnly: true
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d
+          readOnly: true
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 3
+          periodSeconds: 5
+      volumes:
+      - name: html
+        configMap:
+          name: frontend-html
+      - name: nginx-config
+        configMap:
+          name: nginx-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: nephoran-frontend
+data:
+  default.conf: |
+    server {
+        listen 80;
+        server_name _;
+        root /usr/share/nginx/html;
+        index index.html;
+
+        # Gzip compression
+        gzip on;
+        gzip_vary on;
+        gzip_min_length 1024;
+        gzip_types text/plain text/css text/xml text/javascript application/javascript application/json;
+
+        # Security headers
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+
+        # CORS for API requests (if needed)
+        location /api/ {
+            proxy_pass http://intent-ingest-service.intent-ingest.svc.cluster.local:8080/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+
+        # Cache static assets
+        location ~* \.(css|js|jpg|jpeg|png|gif|ico|svg|woff|woff2|ttf|eot)$ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+        }
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nephoran-frontend
+  namespace: nephoran-frontend
+  labels:
+    app: nephoran-intent-frontend
+spec:
+  type: NodePort
+  selector:
+    app: nephoran-intent-frontend
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+    nodePort: 30080
+    protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nephoran-frontend-netpol
+  namespace: nephoran-frontend
+  labels:
+    app: nephoran-intent-frontend
+spec:
+  podSelector:
+    matchLabels:
+      app: nephoran-intent-frontend
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow HTTP access from anywhere
+  - from:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 80
+  egress:
+  # Allow frontend to reach intent-ingest service
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: intent-ingest
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow DNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53

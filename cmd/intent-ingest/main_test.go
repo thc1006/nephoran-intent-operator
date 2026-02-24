@@ -62,8 +62,8 @@ func setupTestServer(t *testing.T) (*httptest.Server, string, func()) {
 	// Create intent provider
 	provider := ingest.NewRulesProvider()
 
-	// Create handler with test directories
-	h := ingest.NewHandler(v, handoffDir, provider)
+	// Create handler with test directories (no Porch client for unit tests)
+	h := ingest.NewHandler(v, handoffDir, provider, nil)
 	// Set up HTTP mux exactly like main()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {

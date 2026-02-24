@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/porch"
 )
 
 // MockValidator implements the Validator interface for testing
@@ -56,7 +58,7 @@ func TestNewHandler(t *testing.T) {
 
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
-	handler := NewHandler(mockValidator, outDir, mockProvider)
+	handler := NewHandler(mockValidator, outDir, mockProvider, nil)
 	if handler == nil {
 		t.Fatal("Expected non-nil handler")
 	}
@@ -69,6 +71,10 @@ func TestNewHandler(t *testing.T) {
 		t.Error("Handler output directory not set correctly")
 	}
 
+	if handler.porchClient != nil {
+		t.Error("Expected nil Porch client in filesystem-only mode")
+	}
+
 	// Check that output directory was created
 	if _, err := os.Stat(outDir); os.IsNotExist(err) {
 		t.Error("Output directory was not created")
@@ -79,7 +85,7 @@ func TestHandleIntent_MethodNotAllowed(t *testing.T) {
 	tempDir := t.TempDir()
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
-	handler := NewHandler(mockValidator, tempDir, mockProvider)
+	handler := NewHandler(mockValidator, tempDir, mockProvider, nil)
 	methods := []string{"GET", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"}
 
 	for _, method := range methods {
@@ -100,7 +106,7 @@ func TestHandleIntent_JSONInput_Success(t *testing.T) {
 	tempDir := t.TempDir()
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
-	handler := NewHandler(mockValidator, tempDir, mockProvider)
+	handler := NewHandler(mockValidator, tempDir, mockProvider, nil)
 	tests := []struct {
 		name        string
 		contentType string
@@ -230,7 +236,7 @@ func TestHandleIntent_PlainTextInput_Success(t *testing.T) {
 	tempDir := t.TempDir()
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
-	handler := NewHandler(mockValidator, tempDir, mockProvider)
+	handler := NewHandler(mockValidator, tempDir, mockProvider, nil)
 	tests := []struct {
 		name     string
 		input    string
@@ -302,7 +308,7 @@ func TestHandleIntent_PlainTextInput_BadFormat(t *testing.T) {
 	tempDir := t.TempDir()
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
-	handler := NewHandler(mockValidator, tempDir, mockProvider)
+	handler := NewHandler(mockValidator, tempDir, mockProvider, nil)
 	tests := []struct {
 		name  string
 		input string
@@ -367,7 +373,7 @@ func TestHandleIntent_UnsupportedContentType(t *testing.T) {
 	tempDir := t.TempDir()
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
-	handler := NewHandler(mockValidator, tempDir, mockProvider)
+	handler := NewHandler(mockValidator, tempDir, mockProvider, nil)
 	tests := []struct {
 		name        string
 		contentType string
@@ -402,7 +408,7 @@ func TestHandleIntent_ValidationError(t *testing.T) {
 	tempDir := t.TempDir()
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
-	handler := NewHandler(mockValidator, tempDir, mockProvider)
+	handler := NewHandler(mockValidator, tempDir, mockProvider, nil)
 	tests := []struct {
 		name          string
 		contentType   string
@@ -472,7 +478,7 @@ func TestHandleIntent_FileWriteError(t *testing.T) {
 
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
-	handler := NewHandler(mockValidator, readOnlyDir, mockProvider)
+	handler := NewHandler(mockValidator, readOnlyDir, mockProvider, nil)
 	// Mock successful validation
 	mockValidator.ValidateBytesFunc = func(b []byte) (*Intent, error) {
 		return &Intent{
@@ -522,7 +528,7 @@ func TestHandleIntent_FileCreation(t *testing.T) {
 	tempDir := t.TempDir()
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
-	handler := NewHandler(mockValidator, tempDir, mockProvider)
+	handler := NewHandler(mockValidator, tempDir, mockProvider, nil)
 	payload := `{"intent_type": "scaling", "target": "test-deployment", "namespace": "default", "replicas": 3}`
 
 	req := httptest.NewRequest("POST", "/intent", strings.NewReader(payload))
@@ -575,7 +581,7 @@ func TestHandleIntent_ConcurrentRequests(t *testing.T) {
 	tempDir := t.TempDir()
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
-	handler := NewHandler(mockValidator, tempDir, mockProvider)
+	handler := NewHandler(mockValidator, tempDir, mockProvider, nil)
 	const numRequests = 5 // Reduced to minimize timestamp collisions
 	results := make(chan int, numRequests)
 
@@ -632,7 +638,7 @@ func TestHandleIntent_CorrelationIdPassthrough(t *testing.T) {
 	tempDir := t.TempDir()
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
-	handler := NewHandler(mockValidator, tempDir, mockProvider)
+	handler := NewHandler(mockValidator, tempDir, mockProvider, nil)
 	correlationID := "test-correlation-123"
 	payload := fmt.Sprintf(`{
 		"intent_type": "scaling",
@@ -679,7 +685,7 @@ func TestHandleIntent_EdgeCases(t *testing.T) {
 	tempDir := t.TempDir()
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
-	handler := NewHandler(mockValidator, tempDir, mockProvider)
+	handler := NewHandler(mockValidator, tempDir, mockProvider, nil)
 	tests := []struct {
 		name         string
 		method       string
@@ -743,3 +749,368 @@ func TestHandleIntent_EdgeCases(t *testing.T) {
 	}
 }
 
+
+// MockPorchClient implements the PorchClient interface for testing
+type MockPorchClient struct {
+	CreateOrUpdatePackageFunc func(req *porch.PackageRequest) (*porch.PorchPackageRevision, error)
+	callCount                 int
+	lastRequest               *porch.PackageRequest
+}
+
+func (m *MockPorchClient) CreateOrUpdatePackage(req *porch.PackageRequest) (*porch.PorchPackageRevision, error) {
+	m.callCount++
+	m.lastRequest = req
+
+	if m.CreateOrUpdatePackageFunc != nil {
+		return m.CreateOrUpdatePackageFunc(req)
+	}
+
+	// Default successful response
+	return &porch.PorchPackageRevision{
+		Name:      req.Package,
+		Namespace: req.Namespace,
+		Revision:  "v001",
+		Status:    "DRAFT",
+	}, nil
+}
+
+func TestHandleIntent_PorchIntegration_Success(t *testing.T) {
+	tempDir := t.TempDir()
+	mockValidator := &MockValidator{}
+	mockProvider := &MockIntentProvider{}
+	mockPorchClient := &MockPorchClient{}
+
+	handler := NewHandler(mockValidator, tempDir, mockProvider, mockPorchClient)
+
+	payload := `{
+		"intent_type": "scaling",
+		"target": "test-deployment",
+		"namespace": "production",
+		"replicas": 5,
+		"source": "user"
+	}`
+
+	mockValidator.ValidateBytesFunc = func(b []byte) (*Intent, error) {
+		var intent Intent
+		if err := json.Unmarshal(b, &intent); err != nil {
+			return nil, err
+		}
+		return &intent, nil
+	}
+
+	req := httptest.NewRequest("POST", "/intent", strings.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handler.HandleIntent(w, req)
+
+	// Verify HTTP response
+	if w.Code != http.StatusAccepted {
+		t.Errorf("Expected status %d, got %d", http.StatusAccepted, w.Code)
+	}
+
+	// Verify filesystem write still happened
+	var response map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	savedPath, ok := response["saved"].(string)
+	if !ok {
+		t.Fatal("Expected 'saved' field in response")
+	}
+
+	if _, err := os.Stat(savedPath); os.IsNotExist(err) {
+		t.Error("File was not created in filesystem")
+	}
+
+	// Verify Porch client was called
+	if mockPorchClient.callCount != 1 {
+		t.Errorf("Expected Porch client to be called once, got %d calls", mockPorchClient.callCount)
+	}
+
+	// Verify Porch package request
+	if mockPorchClient.lastRequest == nil {
+		t.Fatal("Expected Porch package request to be recorded")
+	}
+
+	if mockPorchClient.lastRequest.Repository != "network-intents" {
+		t.Errorf("Expected repository 'network-intents', got '%s'", mockPorchClient.lastRequest.Repository)
+	}
+
+	if mockPorchClient.lastRequest.Namespace != "production" {
+		t.Errorf("Expected namespace 'production', got '%s'", mockPorchClient.lastRequest.Namespace)
+	}
+
+	if mockPorchClient.lastRequest.Intent == nil {
+		t.Fatal("Expected intent to be set in Porch request")
+	}
+
+	if mockPorchClient.lastRequest.Intent.Target != "test-deployment" {
+		t.Errorf("Expected target 'test-deployment', got '%s'", mockPorchClient.lastRequest.Intent.Target)
+	}
+
+	if mockPorchClient.lastRequest.Intent.Replicas != 5 {
+		t.Errorf("Expected replicas 5, got %d", mockPorchClient.lastRequest.Intent.Replicas)
+	}
+}
+
+func TestHandleIntent_PorchIntegration_Failure(t *testing.T) {
+	tempDir := t.TempDir()
+	mockValidator := &MockValidator{}
+	mockProvider := &MockIntentProvider{}
+	mockPorchClient := &MockPorchClient{
+		CreateOrUpdatePackageFunc: func(req *porch.PackageRequest) (*porch.PorchPackageRevision, error) {
+			return nil, fmt.Errorf("Porch API connection failed")
+		},
+	}
+
+	handler := NewHandler(mockValidator, tempDir, mockProvider, mockPorchClient)
+
+	payload := `{
+		"intent_type": "scaling",
+		"target": "test-deployment",
+		"namespace": "default",
+		"replicas": 3
+	}`
+
+	mockValidator.ValidateBytesFunc = func(b []byte) (*Intent, error) {
+		var intent Intent
+		if err := json.Unmarshal(b, &intent); err != nil {
+			return nil, err
+		}
+		return &intent, nil
+	}
+
+	req := httptest.NewRequest("POST", "/intent", strings.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handler.HandleIntent(w, req)
+
+	// Verify HTTP response is still success (Porch failure should not block filesystem)
+	if w.Code != http.StatusAccepted {
+		t.Errorf("Expected status %d (Porch failure should not block), got %d", http.StatusAccepted, w.Code)
+	}
+
+	// Verify filesystem write still happened despite Porch failure
+	var response map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	savedPath, ok := response["saved"].(string)
+	if !ok {
+		t.Fatal("Expected 'saved' field in response")
+	}
+
+	if _, err := os.Stat(savedPath); os.IsNotExist(err) {
+		t.Error("File was not created in filesystem despite Porch failure")
+	}
+
+	// Verify Porch client was called (even though it failed)
+	if mockPorchClient.callCount != 1 {
+		t.Errorf("Expected Porch client to be called once, got %d calls", mockPorchClient.callCount)
+	}
+}
+
+func TestHandleIntent_FilesystemOnly_NoPorch(t *testing.T) {
+	tempDir := t.TempDir()
+	mockValidator := &MockValidator{}
+	mockProvider := &MockIntentProvider{}
+
+	// Create handler without Porch client (nil)
+	handler := NewHandler(mockValidator, tempDir, mockProvider, nil)
+
+	payload := `{
+		"intent_type": "scaling",
+		"target": "test-deployment",
+		"namespace": "default",
+		"replicas": 3
+	}`
+
+	mockValidator.ValidateBytesFunc = func(b []byte) (*Intent, error) {
+		var intent Intent
+		if err := json.Unmarshal(b, &intent); err != nil {
+			return nil, err
+		}
+		return &intent, nil
+	}
+
+	req := httptest.NewRequest("POST", "/intent", strings.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handler.HandleIntent(w, req)
+
+	// Verify success
+	if w.Code != http.StatusAccepted {
+		t.Errorf("Expected status %d, got %d", http.StatusAccepted, w.Code)
+	}
+
+	// Verify filesystem write happened
+	var response map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	savedPath, ok := response["saved"].(string)
+	if !ok {
+		t.Fatal("Expected 'saved' field in response")
+	}
+
+	if _, err := os.Stat(savedPath); os.IsNotExist(err) {
+		t.Error("File was not created in filesystem-only mode")
+	}
+}
+
+func TestCreatePorchPackage_IntentConversion(t *testing.T) {
+	tempDir := t.TempDir()
+	mockValidator := &MockValidator{}
+	mockProvider := &MockIntentProvider{}
+	mockPorchClient := &MockPorchClient{}
+
+	handler := NewHandler(mockValidator, tempDir, mockProvider, mockPorchClient)
+
+	testIntent := &Intent{
+		IntentType:    "scaling",
+		Target:        "web-app",
+		Namespace:     "production",
+		Replicas:      10,
+		Reason:        "High traffic expected",
+		Source:        "planner",
+		CorrelationID: "test-correlation-123",
+	}
+
+	payload, _ := json.Marshal(testIntent)
+
+	ctx := context.Background()
+	err := handler.createPorchPackage(ctx, testIntent, payload)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	// Verify conversion to NetworkIntent
+	if mockPorchClient.lastRequest == nil {
+		t.Fatal("Expected Porch package request")
+	}
+
+	networkIntent := mockPorchClient.lastRequest.Intent
+	if networkIntent == nil {
+		t.Fatal("Expected NetworkIntent in request")
+	}
+
+	// Verify all fields were converted correctly
+	if networkIntent.IntentType != testIntent.IntentType {
+		t.Errorf("IntentType mismatch: expected %s, got %s", testIntent.IntentType, networkIntent.IntentType)
+	}
+
+	if networkIntent.Target != testIntent.Target {
+		t.Errorf("Target mismatch: expected %s, got %s", testIntent.Target, networkIntent.Target)
+	}
+
+	if networkIntent.Namespace != testIntent.Namespace {
+		t.Errorf("Namespace mismatch: expected %s, got %s", testIntent.Namespace, networkIntent.Namespace)
+	}
+
+	if networkIntent.Replicas != testIntent.Replicas {
+		t.Errorf("Replicas mismatch: expected %d, got %d", testIntent.Replicas, networkIntent.Replicas)
+	}
+
+	if networkIntent.Reason != testIntent.Reason {
+		t.Errorf("Reason mismatch: expected %s, got %s", testIntent.Reason, networkIntent.Reason)
+	}
+
+	if networkIntent.Source != testIntent.Source {
+		t.Errorf("Source mismatch: expected %s, got %s", testIntent.Source, networkIntent.Source)
+	}
+
+	if networkIntent.CorrelationID != testIntent.CorrelationID {
+		t.Errorf("CorrelationID mismatch: expected %s, got %s", testIntent.CorrelationID, networkIntent.CorrelationID)
+	}
+
+	// Verify package name format
+	if !strings.HasPrefix(mockPorchClient.lastRequest.Package, "web-app-intent-") {
+		t.Errorf("Expected package name to start with 'web-app-intent-', got: %s", mockPorchClient.lastRequest.Package)
+	}
+
+	// Verify repository
+	if mockPorchClient.lastRequest.Repository != "network-intents" {
+		t.Errorf("Expected repository 'network-intents', got: %s", mockPorchClient.lastRequest.Repository)
+	}
+}
+
+func TestHandleIntent_DualMode_BothSuccess(t *testing.T) {
+	tempDir := t.TempDir()
+	mockValidator := &MockValidator{}
+	mockProvider := &MockIntentProvider{}
+	mockPorchClient := &MockPorchClient{}
+
+	handler := NewHandler(mockValidator, tempDir, mockProvider, mockPorchClient)
+
+	payload := `{
+		"intent_type": "scaling",
+		"target": "api-server",
+		"namespace": "staging",
+		"replicas": 7,
+		"source": "user",
+		"correlation_id": "dual-mode-test-001"
+	}`
+
+	mockValidator.ValidateBytesFunc = func(b []byte) (*Intent, error) {
+		var intent Intent
+		if err := json.Unmarshal(b, &intent); err != nil {
+			return nil, err
+		}
+		return &intent, nil
+	}
+
+	req := httptest.NewRequest("POST", "/intent", strings.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handler.HandleIntent(w, req)
+
+	// Verify HTTP response
+	if w.Code != http.StatusAccepted {
+		t.Errorf("Expected status %d, got %d", http.StatusAccepted, w.Code)
+	}
+
+	// Verify filesystem write
+	var response map[string]interface{}
+	json.NewDecoder(w.Body).Decode(&response)
+	savedPath := response["saved"].(string)
+
+	fsContent, err := os.ReadFile(savedPath)
+	if err != nil {
+		t.Fatalf("Failed to read filesystem file: %v", err)
+	}
+
+	var fsIntent map[string]interface{}
+	json.Unmarshal(fsContent, &fsIntent)
+
+	// Verify Porch package
+	if mockPorchClient.callCount != 1 {
+		t.Fatalf("Expected 1 Porch call, got %d", mockPorchClient.callCount)
+	}
+
+	porchIntent := mockPorchClient.lastRequest.Intent
+
+	// Verify both destinations have consistent data
+	if porchIntent.Target != fsIntent["target"].(string) {
+		t.Error("Target mismatch between filesystem and Porch")
+	}
+
+	if porchIntent.Replicas != int(fsIntent["replicas"].(float64)) {
+		t.Error("Replicas mismatch between filesystem and Porch")
+	}
+
+	if porchIntent.Namespace != fsIntent["namespace"].(string) {
+		t.Error("Namespace mismatch between filesystem and Porch")
+	}
+
+	if porchIntent.CorrelationID != fsIntent["correlation_id"].(string) {
+		t.Error("CorrelationID mismatch between filesystem and Porch")
+	}
+}

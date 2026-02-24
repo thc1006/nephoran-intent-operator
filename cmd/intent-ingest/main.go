@@ -12,6 +12,7 @@ import (
 	"time"
 
 	ingest "github.com/thc1006/nephoran-intent-operator/internal/ingest"
+	"github.com/thc1006/nephoran-intent-operator/pkg/porch"
 )
 
 func main() {
@@ -27,6 +28,12 @@ func main() {
 		mode = flag.String("mode", "", "Intent parsing mode: rules|llm (overrides MODE env var)")
 
 		provider = flag.String("provider", "", "LLM provider: mock (overrides PROVIDER env var)")
+
+		porchEnabled = flag.Bool("porch-enabled", false, "Enable Porch integration for package creation")
+
+		porchURL = flag.String("porch-url", "http://porch-server:8080", "Porch server URL")
+
+		porchDryRun = flag.Bool("porch-dry-run", false, "Porch dry-run mode (write to ./out instead of actual API calls)")
 	)
 
 	flag.Parse()
@@ -84,9 +91,22 @@ func main() {
 		log.Fatalf("Failed to create provider: %v", err)
 	}
 
-	// Create handler with provider.
+	// Create Porch client if enabled.
 
-	h := ingest.NewHandler(v, *handoffDir, intentProvider)
+	var porchClient ingest.PorchClient
+	if *porchEnabled {
+		porchClient, err = porch.NewClient(*porchURL, *porchDryRun)
+		if err != nil {
+			log.Fatalf("Failed to create Porch client: %v", err)
+		}
+		log.Printf("Porch integration enabled (URL: %s, dry-run: %v)", *porchURL, *porchDryRun)
+	} else {
+		log.Printf("Porch integration disabled (filesystem-only mode)")
+	}
+
+	// Create handler with provider and optional Porch client.
+
+	h := ingest.NewHandler(v, *handoffDir, intentProvider, porchClient)
 
 	// Setup HTTP routes.
 
@@ -119,6 +139,11 @@ func main() {
 	log.Printf("  Handoff directory: %s", *handoffDir)
 
 	log.Printf("  Schema: %s", schemaPath)
+
+	if *porchEnabled {
+		log.Printf("  Porch URL: %s", *porchURL)
+		log.Printf("  Porch dry-run: %v", *porchDryRun)
+	}
 
 	fmt.Printf("\nReady to accept intents at http://localhost%s/intent\n", *addr)
 

@@ -6,6 +6,7 @@
 package ingest
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,12 +17,20 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/internal/intent"
+	"github.com/thc1006/nephoran-intent-operator/pkg/porch"
 )
 
 // ValidatorInterface defines the contract for validation of network intents.
 
 type ValidatorInterface interface {
 	ValidateBytes([]byte) (*Intent, error)
+}
+
+// PorchClient defines the interface for Porch package operations.
+type PorchClient interface {
+	CreateOrUpdatePackage(req *porch.PackageRequest) (*porch.PorchPackageRevision, error)
 }
 
 // Handler represents an HTTP handler for processing network intent requests.
@@ -32,16 +41,19 @@ type Handler struct {
 	outDir string
 
 	provider IntentProvider
+
+	porchClient PorchClient
 }
 
 // NewHandler creates a new Handler instance with the specified validator, output directory, and intent provider.
+// The porchClient parameter is optional and can be nil for filesystem-only mode.
 
-func NewHandler(v ValidatorInterface, outDir string, provider IntentProvider) *Handler {
+func NewHandler(v ValidatorInterface, outDir string, provider IntentProvider, porchClient PorchClient) *Handler {
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		log.Printf("Warning: Failed to create output directory %s: %v", outDir, err)
 	}
 
-	return &Handler{v: v, outDir: outDir, provider: provider}
+	return &Handler{v: v, outDir: outDir, provider: provider, porchClient: porchClient}
 }
 
 var simple = regexp.MustCompile(`(?i)scale\s+([a-z0-9\-]+)\s+to\s+(\d+)\s+in\s+ns\s+([a-z0-9\-]+)`)
@@ -214,6 +226,16 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 	}
 
+	// Also create Porch package if client is available
+	if h.porchClient != nil {
+		ctx := r.Context()
+		if err := h.createPorchPackage(ctx, intent, payload); err != nil {
+			log.Printf("Warning: Failed to create Porch package: %v (intent saved to filesystem)", err)
+		} else {
+			log.Printf("Intent also saved to Porch repository")
+		}
+	}
+
 	// Log with correlation ID if present.
 
 	logMsg := fmt.Sprintf("Intent accepted and saved to %s", outFile)
@@ -287,4 +309,42 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 	}); err != nil {
 		log.Printf("Failed to encode response JSON: %v", err)
 	}
+}
+
+// createPorchPackage creates a Porch package from the validated intent.
+func (h *Handler) createPorchPackage(ctx context.Context, i *Intent, payload []byte) error {
+	// Convert Intent to NetworkIntent for Porch
+	networkIntent := &intent.NetworkIntent{
+		IntentType:    i.IntentType,
+		Target:        i.Target,
+		Namespace:     i.Namespace,
+		Replicas:      i.Replicas,
+		Reason:        i.Reason,
+		Source:        i.Source,
+		CorrelationID: i.CorrelationID,
+	}
+
+	// Generate package name from target and timestamp
+	now := time.Now().UTC()
+	packageName := fmt.Sprintf("%s-intent-%s", i.Target, now.Format("20060102-150405"))
+
+	// Create package request
+	req := &porch.PackageRequest{
+		Repository: "network-intents",
+		Package:    packageName,
+		Workspace:  "default",
+		Namespace:  i.Namespace,
+		Intent:     networkIntent,
+	}
+
+	// Create or update package in Porch
+	revision, err := h.porchClient.CreateOrUpdatePackage(req)
+	if err != nil {
+		return fmt.Errorf("failed to create/update Porch package: %w", err)
+	}
+
+	log.Printf("Created Porch package revision: %s (revision: %s, status: %s)",
+		revision.Name, revision.Revision, revision.Status)
+
+	return nil
 }

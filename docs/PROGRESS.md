@@ -215,3 +215,8 @@ Updates are tracked here in append-only format.
 | 2026-02-23T07:19:00+00:00 | chore/cleanup-root-directory-all-phases | ci | Updated ci/root-allowlist.txt removing 5 deleted/moved files, fixed broken markdown links in README.md and docs/README.md to GitHub Releases |
 | 2026-02-23T07:20:00+00:00 | chore/cleanup-root-directory-all-phases | docs | PR #356 created: Root directory cleanup removed 1,100 lines outdated docs (4 deleted, 1 moved), root markdown files reduced 11→7 (-36%), zero outdated content |
 | 2026-02-23T16:34:39+00:00 | main | ollama | llama3.1:latest (4.9GB) loaded and tested; GPU-accelerated LLM pipeline ready for production |
+| 2026-02-23T20:56:20+00:00 | main | nephio/gitea | Phase 1 Task 2: Deployed Gitea v1.25.4 with SQLite3, 10Gi PVC, admin user nephio, NodePort SSH 30022 |
+| 2026-02-23T20:58:24+00:00 | main | nephio/packages | Phase 1 Task 3: Created nephoran-packages repo with catalog/ (free5gc, oran-ric, ollama) and deployments/cluster-main/ structure |
+| 2026-02-23T21:15:02+00:00 | main | nephio/porch | Phase 1 Task 4: Deployed Porch v3.0.0 with function-runner (2 pods), porch-server, porch-controllers, integrated with Gitea nephoran-packages repo |
+| 2026-02-23T21:20:22+00:00 | main | nephio/configsync | Phase 1 Task 5: Deployed Config Sync v1.12.0-rc.5, configured RootSync to sync from Gitea nephoran-packages repo (commit 9259bf8) |
+| 2026-02-23T21:26:28+00:00 | main | nephio/porchctl | Phase 1 Task 6: Installed porchctl v1.5.6, verified package operations (repo list, rpkg get, rpkg pull) |

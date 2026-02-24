@@ -1,542 +1,289 @@
-# Nephoran Intent Operator - Neural Command Interface
+# Nephoran Intent Operator - Web Frontend
 
-**Version**: 1.0.0
-**Last Updated**: 2026-02-23
+Production-grade web UI for the Nephoran Intent Operator natural language input interface.
 
----
+## Features
 
-## 📋 **Overview**
+- **Dark Theme with Glassmorphism**: Modern, professional UI inspired by Kubernetes Dashboard and Ollama WebUI
+- **Natural Language Processing**: Submit intents in plain English
+- **Real-time Validation**: Instant feedback on intent processing
+- **Intent History**: LocalStorage-based history of recent intents
+- **Quick Examples**: Pre-filled example intents for common operations
+- **Responsive Design**: Works on desktop and mobile devices
 
-The **Nephoran Intent Operator Neural Command Interface** is a production-grade web UI for submitting natural language intents to orchestrate 5G network functions in Kubernetes. The interface features a cybernetic design inspired by Kubernetes Dashboard and Ollama WebUI.
-
-### **Architecture**
+## Architecture
 
 ```
-┌─────────────────┐      ┌──────────────────┐      ┌─────────────────┐
-│   Web Browser   │──────│  Frontend (Nginx) │──────│  Intent Ingest  │
-│  (User Input)   │ HTTP │   (Port 80)      │ API  │   (Port 8080)   │
-└─────────────────┘      └──────────────────┘      └─────────────────┘
-                                                            │
-                                                            ├──────► Ollama (LLM)
-                                                            ├──────► RAG Service
-                                                            └──────► Weaviate (Vector DB)
+User Browser → Nginx (NodePort 30080) → ConfigMap (index.html) → API Proxy → intent-ingest-service:8080
 ```
 
-### **Key Features**
+### Components
 
-- 🎨 **Distinctive UI**: Cybernetic command center aesthetic with animated effects
-- 🧠 **Natural Language Processing**: Convert human intent to structured NetworkIntent CRDs
-- 📊 **Real-time Feedback**: Instant validation and response display
-- 📜 **Intent History**: LocalStorage-based history with quick replay
-- 🔒 **Security**: NetworkPolicies, non-root containers, resource limits
-- 📱 **Responsive**: Works on desktop and mobile devices
+1. **Frontend HTML** (`index.html`): Single-file application with embedded CSS and JavaScript
+2. **Nginx Deployment**: 2 replicas for high availability
+3. **ConfigMap**: Stores HTML content
+4. **Service**: NodePort on port 30080
+5. **NetworkPolicy**: Restricts traffic to DNS and intent-ingest service
 
----
+## Deployment
 
-## 🚀 **Quick Start**
+### Prerequisites
 
-### **Prerequisites**
+- Kubernetes cluster 1.35.1+
+- `intent-ingest-service` deployed in namespace `intent-ingest`
 
-- Kubernetes cluster v1.35.1+ (tested on single-node cluster)
-- `kubectl` configured with cluster access
-- **Optional**: Docker for building custom image
-- **Required Services**:
-  - Ollama deployed in namespace `ollama`
-  - RAG service deployed in namespace `rag-service`
-
-### **1. Deploy the Complete System**
+### Deploy
 
 ```bash
-cd deployments/frontend
-./deploy.sh
+# Deploy frontend
+kubectl apply -f deployments/frontend/frontend-deployment.yaml
+
+# Verify deployment
+kubectl get all -n nephoran-frontend
+
+# Check logs
+kubectl logs -n nephoran-frontend deployment/nephoran-frontend -f
 ```
 
-This will:
-- ✅ Create namespace `nephoran-intent`
-- ✅ Deploy frontend (Nginx + HTML)
-- ✅ Deploy backend (intent-ingest service)
-- ✅ Create ConfigMaps for HTML and schema
-- ✅ Apply NetworkPolicies
-- ✅ Setup port-forwarding to http://localhost:8888
+### Access
 
-### **2. Access the Interface**
+```bash
+# Get node IP
+NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
 
-Open your browser to:
+# Access frontend
+echo "Frontend available at: http://$NODE_IP:30080"
+
+# Or use port-forward for local development
+kubectl port-forward -n nephoran-frontend svc/nephoran-frontend 8080:80
+# Then access at http://localhost:8080
 ```
-http://localhost:8888
-```
 
-### **3. Submit Your First Intent**
+## Usage
 
-**Example 1: Scaling**
+### Example Intents
+
+The UI supports natural language intents like:
+
+1. **Scaling**: `scale nf-sim to 5 in ns ran-a`
+2. **Deployment**: `deploy nginx with 3 replicas in namespace production`
+3. **Service**: `create service for app frontend on port 8080`
+4. **5G Network Functions**: `scale free5gc-amf to 2 replicas in namespace free5gc`
+
+### Keyboard Shortcuts
+
+- **Ctrl+Enter**: Submit intent
+- **Tab**: Navigate between fields
+- **Click example tags**: Auto-fill intent input
+
+### API Integration
+
+The frontend calls the intent-ingest API:
+
 ```
+POST http://intent-ingest-service:8080/intent
+Content-Type: text/plain
+
 scale nf-sim to 5 in ns ran-a
 ```
 
-**Example 2: Deployment**
-```
-deploy nginx with 3 replicas in namespace production
-```
-
-**Example 3: Service**
-```
-create service for app frontend on port 8080
-```
-
----
-
-## 🛠️ **Manual Deployment**
-
-### **Step 1: Build Docker Image (Optional)**
-
-If you want to build the intent-ingest image locally:
-
-```bash
-cd /home/thc1006/dev/nephoran-intent-operator
-docker build -f deployments/frontend/Dockerfile.intent-ingest -t nephoran/intent-ingest:latest .
+Response:
+```json
+{
+  "apiVersion": "intent.nephoran.com/v1alpha1",
+  "kind": "NetworkIntent",
+  "metadata": {
+    "name": "scale-nf-sim-ran-a",
+    "namespace": "ran-a"
+  },
+  "spec": {
+    "intent_type": "scaling",
+    "target": "nf-sim",
+    "replicas": 5
+  }
+}
 ```
 
-### **Step 2: Deploy Kubernetes Resources**
+## Design Philosophy
 
-```bash
-# Create namespace
-kubectl create namespace nephoran-intent
+### Aesthetic Direction
 
-# Create frontend ConfigMap
-kubectl create configmap nephoran-frontend-html \
-  --from-file=index.html=deployments/frontend/index.html \
-  --namespace=nephoran-intent
+- **Brutally Minimal Futurism**: Clean lines, generous whitespace, purposeful animations
+- **Kubernetes-Native**: Professional color scheme (blues, purples) matching K8s ecosystem
+- **Glassmorphism**: Backdrop filters and layered transparencies for depth
+- **Monospace Typography**: 
+  - **JetBrains Mono**: Display text, headings, code
+  - **Azeret Mono**: Body text, inputs
 
-# Create schema ConfigMap (if exists)
-kubectl create configmap intent-schema \
-  --from-file=intent.schema.json=docs/contracts/intent.schema.json \
-  --namespace=nephoran-intent
+### Visual Details
 
-# Deploy all resources
-kubectl apply -f deployments/frontend/k8s-manifests.yaml
+1. **Animated Gradient Background**: Subtle radial gradients that shift over 20 seconds
+2. **Grid Overlay**: Low-opacity grid for technical aesthetic
+3. **Glowing Accents**: Pulsing status indicators
+4. **Smooth Transitions**: All interactions have 0.3s ease transitions
+5. **Loading States**: Spinning border animation during API calls
+
+### Color Palette
+
+```css
+--bg-primary: #0a0e1a     /* Deep dark blue */
+--accent-blue: #3b82f6     /* Kubernetes blue */
+--accent-purple: #8b5cf6   /* Secondary accent */
+--accent-cyan: #06b6d4     /* Code/JSON highlight */
+--success: #10b981         /* Success green */
+--error: #ef4444           /* Error red */
 ```
 
-### **Step 3: Verify Deployment**
+## Configuration
+
+### Update API Endpoint
+
+Edit the ConfigMap or modify `index.html`:
+
+```javascript
+const API_ENDPOINT = 'http://intent-ingest-service:8080/intent';
+```
+
+### Adjust Resources
+
+Edit `frontend-deployment.yaml`:
+
+```yaml
+resources:
+  requests:
+    cpu: 50m    # Increase for more traffic
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+```
+
+### Change NodePort
+
+```yaml
+ports:
+- name: http
+  port: 80
+  targetPort: 80
+  nodePort: 30080  # Change this (30000-32767)
+```
+
+## Security
+
+### Implemented
+
+- ✅ NetworkPolicy restricts egress to intent-ingest and DNS only
+- ✅ Security headers (X-Frame-Options, X-Content-Type-Options, X-XSS-Protection)
+- ✅ Read-only volume mounts
+- ✅ Non-root nginx container
+- ✅ Resource limits to prevent DoS
+
+### Recommendations for Production
+
+1. **Enable TLS**: Use Ingress with cert-manager for HTTPS
+2. **Add Authentication**: Integrate with OAuth2 or OIDC
+3. **Rate Limiting**: Add nginx rate limiting for API endpoints
+4. **WAF**: Deploy Web Application Firewall (ModSecurity)
+5. **CSP Headers**: Add Content Security Policy headers
+
+## Troubleshooting
+
+### Frontend not accessible
 
 ```bash
 # Check pods
-kubectl get pods -n nephoran-intent
+kubectl get pods -n nephoran-frontend
 
-# Expected output:
-# NAME                                READY   STATUS    RESTARTS   AGE
-# intent-ingest-xxxxxxxxx-xxxxx       1/1     Running   0          1m
-# intent-ingest-xxxxxxxxx-xxxxx       1/1     Running   0          1m
-# intent-ingest-xxxxxxxxx-xxxxx       1/1     Running   0          1m
-# nephoran-frontend-xxxxxxxxx-xxxxx   1/1     Running   0          1m
-# nephoran-frontend-xxxxxxxxx-xxxxx   1/1     Running   0          1m
+# Check service
+kubectl get svc -n nephoran-frontend
 
-# Check services
-kubectl get svc -n nephoran-intent
+# Check logs
+kubectl logs -n nephoran-frontend deployment/nephoran-frontend
 
-# Expected output:
-# NAME                   TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
-# intent-ingest-service  ClusterIP   10.96.xxx.xxx   <none>        8080/TCP   1m
-# nephoran-frontend      ClusterIP   10.96.xxx.xxx   <none>        80/TCP     1m
+# Verify NetworkPolicy
+kubectl describe networkpolicy -n nephoran-frontend
 ```
 
-### **Step 4: Access the Frontend**
-
-**Option 1: Port Forward (Recommended for local development)**
-```bash
-kubectl port-forward -n nephoran-intent svc/nephoran-frontend 8888:80
-```
-Then open: http://localhost:8888
-
-**Option 2: Ingress (For production)**
-```bash
-# Edit /etc/hosts
-echo "127.0.0.1 nephoran.local" | sudo tee -a /etc/hosts
-
-# Access via
-http://nephoran.local
-```
-
----
-
-## 📖 **Usage Guide**
-
-### **Interface Components**
-
-1. **Top Navigation Bar**
-   - Nephoran logo with hexagonal animation
-   - System status indicators
-   - Cluster version display
-
-2. **Left Sidebar**
-   - Quick Actions: Pre-configured intent templates
-   - Intent Types: Filter by scaling, deployment, service
-
-3. **Main Content Area**
-   - Intent Type selector
-   - Namespace input
-   - Large text area for natural language commands
-   - Example intents (click to populate)
-   - Submit and Clear buttons
-
-4. **Right Panel (Logs)**
-   - Intent history with timestamps
-   - Click history item to replay intent
-   - Auto-saved to browser LocalStorage
-
-5. **Bottom Status Bar**
-   - API endpoint information
-   - Current timestamp
-   - System mode (LLM)
-
-### **Supported Intent Types**
-
-#### **1. Scaling Intents**
-```
-scale <target> to <replicas> in ns <namespace>
-```
-Example:
-```
-scale nf-sim to 5 in ns ran-a
-```
-
-#### **2. Deployment Intents**
-```
-deploy <app> with <replicas> replicas in namespace <namespace>
-```
-Example:
-```
-deploy nginx with 3 replicas in namespace production
-```
-
-#### **3. Service Intents**
-```
-create service for app <name> on port <port>
-```
-Example:
-```
-create service for app frontend on port 8080
-```
-
-### **Keyboard Shortcuts**
-
-- **Ctrl + Enter**: Submit intent
-- **Ctrl + L**: Clear input
-
----
-
-## 🔧 **Configuration**
-
-### **Environment Variables (Backend)**
-
-Configure the `intent-ingest` deployment:
-
-```yaml
-env:
-- name: MODE
-  value: "llm"  # or "rules"
-- name: PROVIDER
-  value: "ollama"  # LLM provider
-- name: OLLAMA_ENDPOINT
-  value: "http://ollama-service.ollama.svc.cluster.local:11434"
-- name: RAG_ENDPOINT
-  value: "http://rag-service.rag-service.svc.cluster.local:8000"
-- name: HANDOFF_DIR
-  value: "/var/nephoran/handoff"
-```
-
-### **Frontend Configuration**
-
-Edit `deployments/frontend/index.html` to change:
-
-```javascript
-const CONFIG = {
-    apiEndpoint: window.location.hostname === 'localhost'
-        ? 'http://localhost:8080'
-        : 'http://intent-ingest-service:8080',
-    historyKey: 'nephoran_intent_history',
-    maxHistoryItems: 50
-};
-```
-
-### **Nginx Configuration**
-
-Modify nginx settings in ConfigMap:
+### API calls failing
 
 ```bash
-kubectl edit configmap nginx-config -n nephoran-intent
+# Check intent-ingest service exists
+kubectl get svc -n intent-ingest intent-ingest-service
+
+# Test from frontend pod
+kubectl exec -n nephoran-frontend deployment/nephoran-frontend -- wget -O- http://intent-ingest-service.intent-ingest.svc.cluster.local:8080/health
+
+# Check DNS
+kubectl exec -n nephoran-frontend deployment/nephoran-frontend -- nslookup intent-ingest-service.intent-ingest.svc.cluster.local
 ```
 
----
+### History not saving
 
-## 🔒 **Security Features**
+LocalStorage is browser-specific. Check:
+- Browser console for errors (F12 → Console)
+- LocalStorage size limits (usually 5-10 MB)
+- Clear cache if corrupted: `localStorage.clear()`
 
-### **Network Policies**
+## Development
 
-- Frontend can only communicate with backend API
-- Backend can only communicate with Ollama and RAG services
-- DNS resolution allowed for service discovery
+### Local Development
 
-### **Container Security**
-
-- Non-root user (UID 1000 for backend, 101 for frontend)
-- Read-only root filesystem (where possible)
-- No privilege escalation
-- Capabilities dropped
-- Seccomp profile applied
-
-### **Resource Limits**
-
-**Frontend (Nginx):**
-- Requests: 100m CPU, 64Mi Memory
-- Limits: 200m CPU, 128Mi Memory
-
-**Backend (Intent Ingest):**
-- Requests: 250m CPU, 256Mi Memory
-- Limits: 500m CPU, 512Mi Memory
-
----
-
-## 📊 **Monitoring & Debugging**
-
-### **View Logs**
-
-**Frontend logs:**
 ```bash
-kubectl logs -n nephoran-intent -l app=nephoran-frontend -f
+# Open index.html directly in browser
+google-chrome deployments/frontend/index.html
+
+# Or serve with Python
+cd deployments/frontend
+python3 -m http.server 8000
+# Access at http://localhost:8000
 ```
 
-**Backend logs:**
-```bash
-kubectl logs -n nephoran-intent -l app=intent-ingest -f
-```
+### Modify Frontend
 
-### **Debug API Calls**
-
-Test the backend directly:
+1. Edit `index.html` directly
+2. Test locally
+3. Update ConfigMap:
 
 ```bash
-# Port-forward backend
-kubectl port-forward -n nephoran-intent svc/intent-ingest-service 8080:8080
-
-# Test with curl
-curl -X POST http://localhost:8080/intent \
-  -H "Content-Type: text/plain" \
-  -d "scale nf-sim to 5 in ns ran-a"
-```
-
-### **Health Checks**
-
-```bash
-# Frontend health
-kubectl exec -n nephoran-intent deployment/nephoran-frontend -- wget -qO- http://localhost/healthz
-
-# Backend health
-kubectl exec -n nephoran-intent deployment/intent-ingest -- wget -qO- http://localhost:8080/healthz
-```
-
----
-
-## 🔄 **Upgrade & Maintenance**
-
-### **Update Frontend HTML**
-
-```bash
-kubectl create configmap nephoran-frontend-html \
+kubectl create configmap frontend-html \
   --from-file=index.html=deployments/frontend/index.html \
-  --namespace=nephoran-intent \
+  --namespace=nephoran-frontend \
   --dry-run=client -o yaml | kubectl apply -f -
 
-kubectl rollout restart deployment/nephoran-frontend -n nephoran-intent
+# Restart pods to pick up changes
+kubectl rollout restart deployment/nephoran-frontend -n nephoran-frontend
 ```
 
-### **Update Backend Image**
+## Performance
 
-```bash
-# Build new image
-docker build -f deployments/frontend/Dockerfile.intent-ingest \
-  -t nephoran/intent-ingest:v1.1.0 .
+### Metrics
 
-# Update deployment
-kubectl set image deployment/intent-ingest \
-  intent-ingest=nephoran/intent-ingest:v1.1.0 \
-  -n nephoran-intent
-```
+- **Initial Load**: < 500ms (with CDN fonts)
+- **Time to Interactive**: < 1s
+- **Bundle Size**: ~45 KB (single HTML file)
+- **API Response**: Depends on LLM processing (1-3s typical)
 
-### **Scale Deployments**
+### Optimization
 
-```bash
-# Scale frontend
-kubectl scale deployment/nephoran-frontend --replicas=3 -n nephoran-intent
+- Gzip compression enabled (nginx)
+- Static asset caching (1 year for fonts)
+- Minimal JavaScript (vanilla, no frameworks)
+- CSS animations use GPU acceleration
 
-# Scale backend
-kubectl scale deployment/intent-ingest --replicas=5 -n nephoran-intent
-```
+## Roadmap
+
+Future enhancements:
+
+- [ ] Real-time status updates via WebSocket
+- [ ] Syntax highlighting for JSON responses (highlight.js)
+- [ ] Intent validation preview before submit
+- [ ] Export intent history as JSON
+- [ ] Dark/Light theme toggle
+- [ ] Multi-language support (i18n)
+- [ ] Accessibility improvements (WCAG 2.1 AA)
 
 ---
 
-## 🗑️ **Uninstall**
-
-### **Complete Removal**
-
-```bash
-kubectl delete -f deployments/frontend/k8s-manifests.yaml
-kubectl delete namespace nephoran-intent
-```
-
-### **Keep Namespace, Remove Deployments**
-
-```bash
-kubectl delete deployment,svc,configmap,ingress,networkpolicy \
-  -n nephoran-intent --all
-```
-
----
-
-## 🐛 **Troubleshooting**
-
-### **Issue: Frontend shows "Network error"**
-
-**Cause**: Cannot connect to backend API
-
-**Solutions**:
-1. Verify backend is running:
-   ```bash
-   kubectl get pods -n nephoran-intent -l app=intent-ingest
-   ```
-
-2. Check service:
-   ```bash
-   kubectl get svc -n nephoran-intent intent-ingest-service
-   ```
-
-3. Test connectivity:
-   ```bash
-   kubectl exec -n nephoran-intent deployment/nephoran-frontend -- \
-     wget -qO- http://intent-ingest-service:8080/healthz
-   ```
-
-### **Issue: Backend returns "validation failed"**
-
-**Cause**: Intent schema validation error
-
-**Solutions**:
-1. Check schema ConfigMap exists:
-   ```bash
-   kubectl get configmap intent-schema -n nephoran-intent
-   ```
-
-2. Verify schema content:
-   ```bash
-   kubectl get configmap intent-schema -n nephoran-intent -o yaml
-   ```
-
-3. Use correct intent format:
-   ```
-   scale <target> to <number> in ns <namespace>
-   ```
-
-### **Issue: History not saving**
-
-**Cause**: Browser LocalStorage disabled or full
-
-**Solutions**:
-1. Enable LocalStorage in browser settings
-2. Clear browser cache
-3. Try incognito/private mode
-
----
-
-## 📚 **API Documentation**
-
-### **POST /intent**
-
-Submit a natural language intent for processing.
-
-**Request:**
-```bash
-curl -X POST http://intent-ingest-service:8080/intent \
-  -H "Content-Type: text/plain" \
-  -d "scale nf-sim to 5 in ns ran-a"
-```
-
-**Response (Success):**
-```json
-{
-  "intent_type": "scaling",
-  "target": "nf-sim",
-  "namespace": "ran-a",
-  "replicas": 5,
-  "source": "user",
-  "status": "pending"
-}
-```
-
-**Response (Error):**
-```json
-{
-  "error": "Invalid plain text format. Expected: 'scale <target> to <replicas> in ns <namespace>'"
-}
-```
-
-### **GET /healthz**
-
-Health check endpoint.
-
-**Response:**
-```
-ok
-```
-
----
-
-## 🎨 **Design Philosophy**
-
-The **Neural Command Interface** uses a **Tactical Cybernetic Command Center** aesthetic:
-
-- **Typography**: IBM Plex Mono (body) + Orbitron (headers)
-- **Colors**: Deep blues (#0a0e1a) with electric cyan (#00ffff) accents
-- **Effects**: Scanning lines, hexagonal grid, pulsing animations
-- **Motion**: Smooth transitions, staggered reveals, hover states
-- **Layout**: Asymmetric with tactical information density
-
-**Design Goals**:
-- ✅ Professional and production-ready
-- ✅ Visually distinctive (not generic "AI slop")
-- ✅ Accessible and usable
-- ✅ Memorable and engaging
-
----
-
-## 🤝 **Contributing**
-
-To modify the frontend:
-
-1. Edit `deployments/frontend/index.html`
-2. Test locally by opening in browser
-3. Deploy to cluster with `./deploy.sh`
-
-To modify the backend:
-
-1. Edit `cmd/intent-ingest/main.go` or `internal/ingest/handler.go`
-2. Rebuild Docker image
-3. Update deployment
-
----
-
-## 📄 **License**
-
-Apache License 2.0
-
----
-
-## 📞 **Support**
-
-- **Documentation**: See `docs/` directory
-- **Issues**: File at project GitHub repository
-- **Logs**: `kubectl logs -n nephoran-intent -l app=intent-ingest`
-
----
-
-**Created**: 2026-02-23
-**Last Updated**: 2026-02-23
-**Version**: 1.0.0
+**Created**: 2026-02-24  
+**Version**: 1.0.0  
+**License**: Apache 2.0
