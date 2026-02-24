@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/go-logr/logr"
 )
 
 // RAGPipeline represents a modern 2025 RAG pipeline with advanced features
@@ -16,6 +18,7 @@ type RAGPipeline struct {
 	chunker  ChunkingStrategy
 	config   *PipelineConfig
 	metrics  *PipelineMetrics
+	logger   logr.Logger
 	mu       sync.RWMutex
 }
 
@@ -224,7 +227,9 @@ func (p *RAGPipeline) Process(ctx context.Context, query string, options ...Proc
 		retrievedDocs, err = p.reranker.Rerank(ctx, query, retrievedDocs, p.config.RerankTopK)
 		if err != nil {
 			// Log error but continue with original results
-			fmt.Printf("Reranking failed: %v, using original results\n", err)
+			if p.logger.Enabled() {
+				p.logger.Error(err, "Reranking failed, using original results")
+			}
 		}
 	}
 

@@ -17,6 +17,7 @@ import (
 
 	sharedtypes "github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
 
@@ -132,7 +133,7 @@ type ResponseValidator struct {
 
 // NewClient creates a new LLM client with enhanced capabilities.
 func NewLegacyClient(url string) *LegacyClient {
-	client, err := NewLegacyClientWithConfig(url, LegacyClientConfig{
+	config := LegacyClientConfig{
 		APIKey:          "",
 		ModelName:       "gpt-4o-mini",
 		MaxTokens:       2048,
@@ -140,10 +141,24 @@ func NewLegacyClient(url string) *LegacyClient {
 		Timeout:         60 * time.Second,
 		MaxRetries:      2,   // Default retry count
 		CacheMaxEntries: 512, // Default cache size
-	})
+	}
+	client, err := NewLegacyClientWithConfig(url, config)
 	if err != nil {
 		// Log the error and return a minimal client or panic
 		// For now, we'll panic since this is a critical initialization error
+		logger := logging.NewLogger(logging.ComponentLLM)
+		logger.ErrorEvent(
+			err,
+			"Failed to create LLM client - critical initialization error",
+			"url", url,
+			"modelName", config.ModelName,
+			"maxTokens", config.MaxTokens,
+			"backendType", config.BackendType,
+			"timeout", config.Timeout,
+			"maxRetries", config.MaxRetries,
+			"env_LLM_URL", os.Getenv("LLM_URL"),
+			"env_LLM_MODEL", os.Getenv("LLM_MODEL"),
+		)
 		panic(fmt.Sprintf("Failed to create LLM client: %v", err))
 	}
 	return client

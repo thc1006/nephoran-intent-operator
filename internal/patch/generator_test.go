@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/go-logr/logr"
 	"sigs.k8s.io/yaml"
 )
 
@@ -17,7 +18,7 @@ func TestNewGenerator(t *testing.T) {
 	}
 	outputDir := "/tmp/test-output"
 
-	gen := NewGenerator(intent, outputDir)
+	gen := NewGenerator(intent, outputDir, logr.Discard())
 
 	if gen.Intent != intent {
 		t.Errorf("Expected intent to match, got different pointer")
@@ -40,7 +41,7 @@ func TestGenerate(t *testing.T) {
 		CorrelationID: "test-123",
 	}
 
-	gen := NewGenerator(intent, tempDir)
+	gen := NewGenerator(intent, tempDir, logr.Discard())
 
 	// Test successful generation
 	err := gen.Generate()
@@ -163,7 +164,7 @@ func TestGenerateWithInvalidOutputDir(t *testing.T) {
 	}
 
 	// Use a path that would require root permissions
-	gen := NewGenerator(intent, "/root/forbidden")
+	gen := NewGenerator(intent, "/root/forbidden", logr.Discard())
 
 	err := gen.Generate()
 	if err == nil {
@@ -186,7 +187,7 @@ func TestGenerateKptfile(t *testing.T) {
 		Replicas:   3,
 	}
 
-	gen := NewGenerator(intent, tempDir)
+	gen := NewGenerator(intent, tempDir, logr.Discard())
 
 	// Test Kptfile generation
 	err := gen.generateKptfile(packageDir)
@@ -227,7 +228,7 @@ func TestGeneratePatch(t *testing.T) {
 		Replicas:   10,
 	}
 
-	gen := NewGenerator(intent, tempDir)
+	gen := NewGenerator(intent, tempDir, logr.Discard())
 
 	// Test patch generation
 	err := gen.generatePatch(packageDir)
@@ -273,7 +274,7 @@ func TestGenerateSetters(t *testing.T) {
 		Replicas:   7,
 	}
 
-	gen := NewGenerator(intent, tempDir)
+	gen := NewGenerator(intent, tempDir, logr.Discard())
 
 	// Test setters generation
 	err := gen.generateSetters(packageDir)
@@ -326,7 +327,7 @@ func TestGenerateReadme(t *testing.T) {
 		Replicas:   15,
 	}
 
-	gen := NewGenerator(intent, tempDir)
+	gen := NewGenerator(intent, tempDir, logr.Discard())
 
 	// Test README generation
 	err := gen.generateReadme(packageDir)

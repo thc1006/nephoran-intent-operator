@@ -25,7 +25,7 @@ import (
 // priority scoring, and context-aware notification delivery.
 
 type AlertRouter struct {
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	config *AlertRouterConfig
 
@@ -277,7 +277,7 @@ type AlertGroup struct {
 // CorrelationEngine identifies related alerts.
 
 type CorrelationEngine struct {
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	config *AlertRouterConfig
 
@@ -303,7 +303,7 @@ type AlertCorrelation struct {
 // PriorityCalculator calculates alert priorities.
 
 type PriorityCalculator struct {
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	config *AlertRouterConfig
 }
@@ -311,7 +311,7 @@ type PriorityCalculator struct {
 // ImpactAnalyzer analyzes business impact of alerts.
 
 type ImpactAnalyzer struct {
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	impactDatabase map[string]ImpactProfile
 
@@ -335,7 +335,7 @@ type ImpactProfile struct {
 // GeographicRouter handles geographic and timezone-based routing.
 
 type GeographicRouter struct {
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	regions map[string]RegionInfo
 
@@ -367,7 +367,7 @@ type ScheduleInfo struct {
 // TimezoneManager manages timezone-aware operations.
 
 type TimezoneManager struct {
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	timezones map[string]*time.Location
 }
@@ -387,7 +387,7 @@ type TimezoneInfo struct {
 // ContextEnricher enriches alerts with additional context.
 
 type ContextEnricher struct {
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	config *AlertRouterConfig
 }
@@ -395,7 +395,7 @@ type ContextEnricher struct {
 // RunbookManager manages runbook actions and recommendations.
 
 type RunbookManager struct {
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	runbooks map[string]Runbook
 }
@@ -550,14 +550,11 @@ func DefaultAlertRouterConfig() *AlertRouterConfig {
 
 // NewAlertRouter creates a new intelligent alert router.
 
-func NewAlertRouter(config *AlertRouterConfig, logger *logging.StructuredLogger) (*AlertRouter, error) {
+func NewAlertRouter(config *AlertRouterConfig, logger logging.Logger) (*AlertRouter, error) {
 	if config == nil {
 		config = DefaultAlertRouterConfig()
 	}
 
-	if logger == nil {
-		return nil, fmt.Errorf("logger is required")
-	}
 
 	// Initialize metrics.
 
@@ -632,7 +629,7 @@ func NewAlertRouter(config *AlertRouterConfig, logger *logging.StructuredLogger)
 	}
 
 	ar := &AlertRouter{
-		logger: logger.WithComponent("alert-router"),
+		logger: logger.WithValues("component", "alert-router"),
 
 		config: config,
 
@@ -661,7 +658,7 @@ func NewAlertRouter(config *AlertRouterConfig, logger *logging.StructuredLogger)
 	// Initialize sub-components.
 
 	ar.correlationEngine = &CorrelationEngine{
-		logger: logger.WithComponent("correlation-engine"),
+		logger: logger.WithValues("component", "correlation-engine"),
 
 		config: config,
 
@@ -669,19 +666,19 @@ func NewAlertRouter(config *AlertRouterConfig, logger *logging.StructuredLogger)
 	}
 
 	ar.priorityCalculator = &PriorityCalculator{
-		logger: logger.WithComponent("priority-calculator"),
+		logger: logger.WithValues("component", "priority-calculator"),
 
 		config: config,
 	}
 
 	ar.impactAnalyzer = &ImpactAnalyzer{
-		logger: logger.WithComponent("impact-analyzer"),
+		logger: logger.WithValues("component", "impact-analyzer"),
 
 		impactDatabase: make(map[string]ImpactProfile),
 	}
 
 	ar.geographicRouter = &GeographicRouter{
-		logger: logger.WithComponent("geographic-router"),
+		logger: logger.WithValues("component", "geographic-router"),
 
 		regions: make(map[string]RegionInfo),
 
@@ -689,19 +686,19 @@ func NewAlertRouter(config *AlertRouterConfig, logger *logging.StructuredLogger)
 	}
 
 	ar.timezoneManager = &TimezoneManager{
-		logger: logger.WithComponent("timezone-manager"),
+		logger: logger.WithValues("component", "timezone-manager"),
 
 		timezones: make(map[string]*time.Location),
 	}
 
 	ar.contextEnricher = &ContextEnricher{
-		logger: logger.WithComponent("context-enricher"),
+		logger: logger.WithValues("component", "context-enricher"),
 
 		config: config,
 	}
 
 	ar.runbookManager = &RunbookManager{
-		logger: logger.WithComponent("runbook-manager"),
+		logger: logger.WithValues("component", "runbook-manager"),
 
 		runbooks: make(map[string]Runbook),
 	}
@@ -709,15 +706,15 @@ func NewAlertRouter(config *AlertRouterConfig, logger *logging.StructuredLogger)
 	// Load default routing rules and channels.
 
 	if err := ar.loadDefaultRoutingRules(); err != nil {
-		ar.logger.ErrorWithContext("Failed to load default routing rules", err)
+		ar.logger.ErrorEvent(err, "Failed to load default routing rules")
 	}
 
 	if err := ar.loadDefaultNotificationChannels(); err != nil {
-		ar.logger.ErrorWithContext("Failed to load default notification channels", err)
+		ar.logger.ErrorEvent(err, "Failed to load default notification channels")
 	}
 
 	if err := ar.loadDefaultImpactProfiles(); err != nil {
-		ar.logger.ErrorWithContext("Failed to load default impact profiles", err)
+		ar.logger.ErrorEvent(err, "Failed to load default impact profiles")
 	}
 
 	return ar, nil
@@ -734,7 +731,7 @@ func (ar *AlertRouter) Start(ctx context.Context) error {
 		return fmt.Errorf("alert router already started")
 	}
 
-	ar.logger.InfoWithContext("Starting alert router",
+	ar.logger.InfoEvent("Starting alert router",
 
 		"routing_rules", len(ar.routingRules),
 
@@ -761,7 +758,7 @@ func (ar *AlertRouter) Start(ctx context.Context) error {
 
 	ar.started = true
 
-	ar.logger.InfoWithContext("Alert router started successfully")
+	ar.logger.InfoEvent("Alert router started successfully")
 
 	return nil
 }
@@ -777,7 +774,7 @@ func (ar *AlertRouter) Stop(ctx context.Context) error {
 		return nil
 	}
 
-	ar.logger.InfoWithContext("Stopping alert router")
+	ar.logger.InfoEvent("Stopping alert router")
 
 	close(ar.stopCh)
 
@@ -785,7 +782,7 @@ func (ar *AlertRouter) Stop(ctx context.Context) error {
 
 	ar.started = false
 
-	ar.logger.InfoWithContext("Alert router stopped")
+	ar.logger.InfoEvent("Alert router stopped")
 
 	return nil
 }
@@ -800,7 +797,7 @@ func (ar *AlertRouter) Route(ctx context.Context, alert *SLAAlert) error {
 	enrichedAlert, err := ar.enrichAlert(ctx, alert)
 	if err != nil {
 
-		ar.logger.ErrorWithContext("Failed to enrich alert", err,
+		ar.logger.ErrorEvent(err, "Failed to enrich alert",
 
 			slog.String("alert_id", alert.ID),
 		)
@@ -841,7 +838,7 @@ func (ar *AlertRouter) Route(ctx context.Context, alert *SLAAlert) error {
 // processingWorker processes alerts from the queue.
 
 func (ar *AlertRouter) processingWorker(ctx context.Context, workerID int) {
-	ar.logger.DebugWithContext("Starting alert processing worker",
+	ar.logger.DebugEvent("Starting alert processing worker",
 
 		slog.Int("worker_id", workerID),
 	)
@@ -884,7 +881,7 @@ func (ar *AlertRouter) processAlert(ctx context.Context, enrichedAlert *Enriched
 		ar.metrics.RoutingLatency.WithLabelValues("total").Observe(routingLatency.Seconds())
 	}()
 
-	ar.logger.DebugWithContext("Processing alert",
+	ar.logger.DebugEvent("Processing alert",
 
 		slog.String("alert_id", enrichedAlert.ID),
 
@@ -897,7 +894,7 @@ func (ar *AlertRouter) processAlert(ctx context.Context, enrichedAlert *Enriched
 
 		ar.metrics.AlertsDeduped.WithLabelValues("duplicate").Inc()
 
-		ar.logger.DebugWithContext("Alert deduplicated",
+		ar.logger.DebugEvent("Alert deduplicated",
 
 			slog.String("alert_id", enrichedAlert.ID),
 		)
@@ -909,7 +906,7 @@ func (ar *AlertRouter) processAlert(ctx context.Context, enrichedAlert *Enriched
 	// Step 2: Correlation with existing alerts.
 
 	if err := ar.correlateAlert(enrichedAlert.SLAAlert); err != nil {
-		ar.logger.ErrorWithContext("Failed to correlate alert", err, "alert_id", enrichedAlert.ID)
+		ar.logger.ErrorEvent(err, "Failed to correlate alert", "alert_id", enrichedAlert.ID)
 	}
 
 	// Step 3: Priority calculation.
@@ -917,7 +914,7 @@ func (ar *AlertRouter) processAlert(ctx context.Context, enrichedAlert *Enriched
 	priority, err := ar.priorityCalculator.CalculatePriority(enrichedAlert.SLAAlert)
 	if err != nil {
 
-		ar.logger.ErrorWithContext("Failed to calculate priority", err, "alert_id", enrichedAlert.ID)
+		ar.logger.ErrorEvent(err, "Failed to calculate priority", "alert_id", enrichedAlert.ID)
 
 		priority = "medium" // default priority
 
@@ -930,7 +927,7 @@ func (ar *AlertRouter) processAlert(ctx context.Context, enrichedAlert *Enriched
 	impact, err := ar.impactAnalyzer.AnalyzeImpact(enrichedAlert.SLAAlert)
 	if err != nil {
 
-		ar.logger.ErrorWithContext("Failed to analyze impact", err, "alert_id", enrichedAlert.ID)
+		ar.logger.ErrorEvent(err, "Failed to analyze impact", "alert_id", enrichedAlert.ID)
 
 		impact = &ImpactAnalysis{Severity: "unknown", AffectedServices: []string{}}
 
@@ -955,7 +952,7 @@ func (ar *AlertRouter) processAlert(ctx context.Context, enrichedAlert *Enriched
 	routingDecision, err := ar.applyRoutingRules(enrichedAlert)
 	if err != nil {
 
-		ar.logger.ErrorWithContext("Failed to apply routing rules", err,
+		ar.logger.ErrorEvent(err, "Failed to apply routing rules",
 
 			slog.String("alert_id", enrichedAlert.ID),
 		)
@@ -978,7 +975,7 @@ func (ar *AlertRouter) processAlert(ctx context.Context, enrichedAlert *Enriched
 
 	if routingDecision.Suppressed {
 
-		ar.logger.InfoWithContext("Alert suppressed",
+		ar.logger.InfoEvent("Alert suppressed",
 
 			slog.String("alert_id", enrichedAlert.ID),
 
@@ -1014,7 +1011,7 @@ func (ar *AlertRouter) enrichAlert(ctx context.Context, alert *SLAAlert) (*Enric
 	relatedIncidents, err := ar.contextEnricher.FindRelatedIncidents(enrichmentCtx, alert)
 
 	if err != nil {
-		ar.logger.WarnWithContext("Failed to find related incidents",
+		ar.logger.WarnEvent("Failed to find related incidents",
 
 			slog.String("alert_id", alert.ID),
 
@@ -1268,7 +1265,7 @@ func (ar *AlertRouter) sendNotifications(ctx context.Context, alert *EnrichedAle
 
 		if !exists {
 
-			ar.logger.WarnWithContext("Notification channel not found",
+			ar.logger.WarnEvent("Notification channel not found",
 
 				slog.String("channel", channelName),
 
@@ -1297,7 +1294,7 @@ func (ar *AlertRouter) sendNotificationToChannel(ctx context.Context, alert *Enr
 
 	if !ar.passesChannelFilters(alert, channel.Filters) {
 
-		ar.logger.DebugWithContext("Alert filtered out by channel",
+		ar.logger.DebugEvent("Alert filtered out by channel",
 
 			slog.String("alert_id", alert.ID),
 
@@ -1312,7 +1309,7 @@ func (ar *AlertRouter) sendNotificationToChannel(ctx context.Context, alert *Enr
 
 	if channel.RateLimit != nil && !ar.checkRateLimit(channel.Name, *channel.RateLimit) {
 
-		ar.logger.WarnWithContext("Channel rate limit exceeded",
+		ar.logger.WarnEvent("Channel rate limit exceeded",
 
 			slog.String("channel", channel.Name),
 
@@ -1359,7 +1356,7 @@ func (ar *AlertRouter) sendNotificationToChannel(ctx context.Context, alert *Enr
 
 	if err != nil {
 
-		ar.logger.ErrorWithContext("Failed to send notification", err,
+		ar.logger.ErrorEvent(err, "Failed to send notification",
 
 			slog.String("channel", channel.Name),
 
@@ -1374,7 +1371,7 @@ func (ar *AlertRouter) sendNotificationToChannel(ctx context.Context, alert *Enr
 
 	} else {
 
-		ar.logger.DebugWithContext("Notification sent successfully",
+		ar.logger.DebugEvent("Notification sent successfully",
 
 			slog.String("channel", channel.Name),
 
@@ -1393,7 +1390,7 @@ func (ar *AlertRouter) sendNotificationToChannel(ctx context.Context, alert *Enr
 // Missing AlertRouter method implementations.
 
 func (ar *AlertRouter) loadDefaultRoutingRules() error {
-	ar.logger.InfoWithContext("Loading default routing rules")
+	ar.logger.InfoEvent("Loading default routing rules")
 
 	// TODO: Implement default routing rules loading.
 
@@ -1401,7 +1398,7 @@ func (ar *AlertRouter) loadDefaultRoutingRules() error {
 }
 
 func (ar *AlertRouter) loadDefaultNotificationChannels() error {
-	ar.logger.InfoWithContext("Loading default notification channels")
+	ar.logger.InfoEvent("Loading default notification channels")
 
 	// TODO: Implement default notification channels loading.
 
@@ -1409,7 +1406,7 @@ func (ar *AlertRouter) loadDefaultNotificationChannels() error {
 }
 
 func (ar *AlertRouter) loadDefaultImpactProfiles() error {
-	ar.logger.InfoWithContext("Loading default impact profiles")
+	ar.logger.InfoEvent("Loading default impact profiles")
 
 	// TODO: Implement default impact profiles loading.
 
@@ -1430,7 +1427,7 @@ func (ar *AlertRouter) deduplicationCleanupLoop(ctx context.Context) {
 
 		case <-ticker.C:
 
-			ar.logger.DebugWithContext("Running deduplication cleanup")
+			ar.logger.DebugEvent("Running deduplication cleanup")
 
 		}
 	}
@@ -1450,14 +1447,14 @@ func (ar *AlertRouter) metricsUpdateLoop(ctx context.Context) {
 
 		case <-ticker.C:
 
-			ar.logger.DebugWithContext("Updating metrics")
+			ar.logger.DebugEvent("Updating metrics")
 
 		}
 	}
 }
 
 func (ar *AlertRouter) correlateAlert(alert *SLAAlert) error {
-	ar.logger.DebugWithContext("Correlating alert", "alertID", alert.ID)
+	ar.logger.DebugEvent("Correlating alert", "alertID", alert.ID)
 
 	// TODO: Implement alert correlation.
 
@@ -1686,7 +1683,7 @@ func (ar *AlertRouter) convertPriorityToInt(priority string) int {
 // Notification sending methods (simplified implementations).
 
 func (ar *AlertRouter) sendSlackNotification(ctx context.Context, alert *EnrichedAlert, channel NotificationChannel) error {
-	ar.logger.InfoWithContext("Sending Slack notification",
+	ar.logger.InfoEvent("Sending Slack notification",
 
 		slog.String("alert_id", alert.ID),
 
@@ -1697,7 +1694,7 @@ func (ar *AlertRouter) sendSlackNotification(ctx context.Context, alert *Enriche
 }
 
 func (ar *AlertRouter) sendEmailNotification(ctx context.Context, alert *EnrichedAlert, channel NotificationChannel) error {
-	ar.logger.InfoWithContext("Sending email notification",
+	ar.logger.InfoEvent("Sending email notification",
 
 		slog.String("alert_id", alert.ID),
 
@@ -1708,7 +1705,7 @@ func (ar *AlertRouter) sendEmailNotification(ctx context.Context, alert *Enriche
 }
 
 func (ar *AlertRouter) sendWebhookNotification(ctx context.Context, alert *EnrichedAlert, channel NotificationChannel) error {
-	ar.logger.InfoWithContext("Sending webhook notification",
+	ar.logger.InfoEvent("Sending webhook notification",
 
 		slog.String("alert_id", alert.ID),
 
@@ -1719,7 +1716,7 @@ func (ar *AlertRouter) sendWebhookNotification(ctx context.Context, alert *Enric
 }
 
 func (ar *AlertRouter) sendPagerDutyNotification(ctx context.Context, alert *EnrichedAlert, channel NotificationChannel) error {
-	ar.logger.InfoWithContext("Sending PagerDuty notification",
+	ar.logger.InfoEvent("Sending PagerDuty notification",
 
 		slog.String("alert_id", alert.ID),
 
@@ -1730,7 +1727,7 @@ func (ar *AlertRouter) sendPagerDutyNotification(ctx context.Context, alert *Enr
 }
 
 func (ar *AlertRouter) sendTeamsNotification(ctx context.Context, alert *EnrichedAlert, channel NotificationChannel) error {
-	ar.logger.InfoWithContext("Sending Teams notification",
+	ar.logger.InfoEvent("Sending Teams notification",
 
 		slog.String("alert_id", alert.ID),
 

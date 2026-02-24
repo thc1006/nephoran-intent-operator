@@ -25,6 +25,7 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/sha3"
 )
@@ -209,6 +210,12 @@ func NewEncryptedStorage() *EncryptedStorage {
 
 	if _, err := rand.Read(masterKey); err != nil {
 		// Never expose detailed error information in panic messages
+		logger := logging.NewLogger("security")
+		logger.ErrorEvent(
+			fmt.Errorf("failed to generate encryption master key"),
+			"Cryptographic random number generation failed for master key",
+			"keyLength", 32,
+		)
 		panic("failed to generate encryption master key")
 	}
 
@@ -662,6 +669,13 @@ func ZeroBytes(b []byte) {
 func XORBytes(a, b []byte) []byte {
 	if len(a) != len(b) {
 		// Generic error message to avoid information leakage
+		logger := logging.NewLogger("security")
+		logger.ErrorEvent(
+			fmt.Errorf("XORBytes invalid operation: length mismatch"),
+			"XORBytes called with mismatched byte slice lengths",
+			"lengthA", len(a),
+			"lengthB", len(b),
+		)
 		panic("invalid operation")
 	}
 

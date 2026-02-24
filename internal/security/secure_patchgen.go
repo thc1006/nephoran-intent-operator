@@ -36,6 +36,8 @@ type GeneratorAuditor struct {
 	enabled bool
 
 	logFile string
+
+	logger logr.Logger
 }
 
 // SecurePatchPackage extends PatchPackage with security controls.
@@ -735,7 +737,13 @@ func (a *GeneratorAuditor) LogGeneration(intent *patchgen.Intent, packageName st
 		status = "FAILED"
 	}
 
-	fmt.Printf("[PATCH GENERATION AUDIT] %s: Package=%s, Target=%s, Duration=%v, Error=%s\n",
-
-		status, packageName, intent.Target, duration, errorMsg)
+	if a.logger.Enabled() {
+		a.logger.Info("Patch generation audit event",
+			"status", status,
+			"package", packageName,
+			"target", intent.Target,
+			"duration", duration,
+			"error", errorMsg,
+			"audit", true)
+	}
 }

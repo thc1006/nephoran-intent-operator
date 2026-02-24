@@ -12,7 +12,7 @@ import (
 
 // newHealthChecker creates a new health checker instance.
 
-func newHealthChecker(config *APIHealthCheckerConfig, logger *logging.StructuredLogger) (*HealthChecker, error) {
+func newHealthChecker(config *APIHealthCheckerConfig, logger logging.Logger) (*HealthChecker, error) {
 	if config == nil {
 		config = &APIHealthCheckerConfig{
 			Enabled: true,

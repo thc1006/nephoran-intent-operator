@@ -20,7 +20,7 @@ import (
 type MonitoringIntegrations struct {
 	config *MonitoringIntegrationConfig
 
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	// Integration clients.
 
@@ -302,14 +302,14 @@ type MetricData struct {
 func NewMonitoringIntegrations(
 	config *MonitoringIntegrationConfig,
 
-	logger *logging.StructuredLogger,
+	logger logging.Logger,
 ) (*MonitoringIntegrations, error) {
 	if config == nil {
 		config = DefaultMonitoringIntegrationConfig()
 	}
 
-	if logger == nil {
-		logger = logging.NewStructuredLogger(logging.DefaultConfig("monitoring-integrations", "1.0.0", "production"))
+	if logger.GetSink() == nil {
+		logger = logging.NewLogger("monitoring-integrations")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -515,7 +515,7 @@ func (m *MonitoringIntegrations) Start(ctx context.Context) error {
 
 	if m.config.DashboardConfig.Enabled && m.config.DashboardConfig.AutoDeploy {
 		if err := m.deployDefaultDashboards(); err != nil {
-			m.logger.Error("failed to deploy default dashboards", "error", err)
+			m.logger.ErrorEvent(err, "failed to deploy default dashboards", )
 		}
 	}
 
@@ -545,7 +545,7 @@ func (m *MonitoringIntegrations) QueryMetrics(ctx context.Context, query string,
 	}
 
 	if len(warnings) > 0 {
-		m.logger.Warn("Prometheus query warnings", "warnings", warnings)
+		m.logger.WarnEvent("Prometheus query warnings", "warnings", warnings)
 	}
 
 	return result, nil
@@ -572,7 +572,7 @@ func (m *MonitoringIntegrations) QueryRangeMetrics(ctx context.Context, query st
 	}
 
 	if len(warnings) > 0 {
-		m.logger.Warn("Prometheus query range warnings", "warnings", warnings)
+		m.logger.WarnEvent("Prometheus query range warnings", "warnings", warnings)
 	}
 
 	return result, nil
@@ -658,7 +658,7 @@ func (m *MonitoringIntegrations) GetInfrastructureHealth(ctx context.Context) (*
 		result, err := m.QueryMetrics(ctx, query, time.Now())
 		if err != nil {
 
-			m.logger.Error("failed to query health metric",
+			m.logger.ErrorEvent(fmt.Errorf("failed to query health metric"),
 
 				"metric", metricName,
 
@@ -716,7 +716,7 @@ func (m *MonitoringIntegrations) deployDefaultDashboards() error {
 
 	for _, dashboard := range dashboards {
 		if err := m.CreateDashboard(m.ctx, &dashboard); err != nil {
-			m.logger.Error("failed to deploy dashboard",
+			m.logger.ErrorEvent(fmt.Errorf("failed to deploy dashboard"),
 
 				"dashboard", dashboard.Name,
 
@@ -979,37 +979,37 @@ type ComponentHealthStatus struct {
 
 // Stub constructor functions.
 
-func NewGrafanaClient(config *GrafanaConfig, logger *logging.StructuredLogger) *GrafanaClient {
+func NewGrafanaClient(config *GrafanaConfig, logger logging.Logger) *GrafanaClient {
 	return &GrafanaClient{}
 }
 
 // NewAlertmanagerClient performs newalertmanagerclient operation.
 
-func NewAlertmanagerClient(config *AlertmanagerConfig, logger *logging.StructuredLogger) *AlertmanagerClient {
+func NewAlertmanagerClient(config *AlertmanagerConfig, logger logging.Logger) *AlertmanagerClient {
 	return &AlertmanagerClient{}
 }
 
 // NewJaegerClient performs newjaegerclient operation.
 
-func NewJaegerClient(config *JaegerConfig, logger *logging.StructuredLogger) *JaegerClient {
+func NewJaegerClient(config *JaegerConfig, logger logging.Logger) *JaegerClient {
 	return &JaegerClient{}
 }
 
 // NewEventProcessor performs neweventprocessor operation.
 
-func NewEventProcessor(config *EventProcessingConfig, logger *logging.StructuredLogger) *EventProcessor {
+func NewEventProcessor(config *EventProcessingConfig, logger logging.Logger) *EventProcessor {
 	return &EventProcessor{}
 }
 
 // NewAlertProcessor performs newalertprocessor operation.
 
-func NewAlertProcessor(config *MonitoringIntegrationConfig, logger *logging.StructuredLogger) *AlertProcessor {
+func NewAlertProcessor(config *MonitoringIntegrationConfig, logger logging.Logger) *AlertProcessor {
 	return &AlertProcessor{}
 }
 
 // NewDashboardManager performs newdashboardmanager operation.
 
-func NewDashboardManager(config *DashboardConfig, grafanaClient *GrafanaClient, logger *logging.StructuredLogger) *DashboardManager {
+func NewDashboardManager(config *DashboardConfig, grafanaClient *GrafanaClient, logger logging.Logger) *DashboardManager {
 	return &DashboardManager{}
 }
 

@@ -282,7 +282,7 @@ type BusinessImpactInfo struct {
 type SLAAlertManager struct {
 	// Core components.
 
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	burnRateCalculator *BurnRateCalculator
 
@@ -663,14 +663,12 @@ func DefaultSLATargets() map[SLAType]SLATarget {
 
 // NewSLAAlertManager creates a new SLA alert manager with comprehensive monitoring capabilities.
 
-func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger) (*SLAAlertManager, error) {
+func NewSLAAlertManager(config *SLAAlertConfig, logger logging.Logger) (*SLAAlertManager, error) {
 	if config == nil {
 		config = DefaultSLAAlertConfig()
 	}
 
-	if logger == nil {
-		return nil, fmt.Errorf("logger is required")
-	}
+	// Logger is a struct type, passed by value
 
 	// Initialize Prometheus client.
 
@@ -811,14 +809,14 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 			if !errors.As(err, &alreadyRegisteredErr) {
 				// Only propagate non-duplicate errors.
 
-				logger.Error("Failed to register metric", "error", err)
+				logger.ErrorEvent(err, "Failed to register metric")
 			}
 
 		}
 	}
 
 	sam := &SLAAlertManager{
-		logger: logger.WithComponent("sla-alert-manager"),
+		logger: logger.WithValues("component", "sla-alert-manager"),
 
 		config: config,
 
@@ -855,7 +853,7 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 			PrometheusClient: prometheusClient,
 		},
 
-		logger.WithComponent("burn-rate-calculator"),
+		logger.WithValues("component", "burn-rate-calculator"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize burn rate calculator: %w", err)
@@ -865,7 +863,7 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 
 		DefaultPredictiveConfig(),
 
-		logger.WithComponent("predictive-alerting"),
+		logger.WithValues("component", "predictive-alerting"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize predictive alerting: %w", err)
@@ -881,7 +879,7 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 			CorrelationWindow: config.CorrelationWindow,
 		},
 
-		logger.WithComponent("alert-router"),
+		logger.WithValues("component", "alert-router"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize alert router: %w", err)
@@ -897,7 +895,7 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 			AutoResolutionEnabled: true,
 		},
 
-		logger.WithComponent("escalation-engine"),
+		logger.WithValues("component", "escalation-engine"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize escalation engine: %w", err)
@@ -917,7 +915,7 @@ func (sam *SLAAlertManager) Start(ctx context.Context) error {
 		return fmt.Errorf("SLA alert manager already started")
 	}
 
-	sam.logger.InfoWithContext("Starting SLA alert manager",
+	sam.logger.InfoEvent("Starting SLA alert manager",
 
 		"evaluation_interval", sam.config.EvaluationInterval,
 
@@ -956,7 +954,7 @@ func (sam *SLAAlertManager) Start(ctx context.Context) error {
 
 	sam.started = true
 
-	sam.logger.InfoWithContext("SLA alert manager started successfully")
+	sam.logger.InfoEvent("SLA alert manager started successfully")
 
 	return nil
 }
@@ -972,7 +970,7 @@ func (sam *SLAAlertManager) Stop(ctx context.Context) error {
 		return nil
 	}
 
-	sam.logger.InfoWithContext("Stopping SLA alert manager")
+	sam.logger.InfoEvent("Stopping SLA alert manager")
 
 	// Stop monitoring loops.
 
@@ -981,24 +979,24 @@ func (sam *SLAAlertManager) Stop(ctx context.Context) error {
 	// Stop sub-components.
 
 	if err := sam.escalationEngine.Stop(ctx); err != nil {
-		sam.logger.ErrorWithContext("Failed to stop escalation engine", err)
+		sam.logger.ErrorEvent(err, "Failed to stop escalation engine")
 	}
 
 	if err := sam.alertRouter.Stop(ctx); err != nil {
-		sam.logger.ErrorWithContext("Failed to stop alert router", err)
+		sam.logger.ErrorEvent(err, "Failed to stop alert router")
 	}
 
 	if err := sam.predictiveAlerting.Stop(ctx); err != nil {
-		sam.logger.ErrorWithContext("Failed to stop predictive alerting", err)
+		sam.logger.ErrorEvent(err, "Failed to stop predictive alerting")
 	}
 
 	if err := sam.burnRateCalculator.Stop(ctx); err != nil {
-		sam.logger.ErrorWithContext("Failed to stop burn rate calculator", err)
+		sam.logger.ErrorEvent(err, "Failed to stop burn rate calculator")
 	}
 
 	sam.started = false
 
-	sam.logger.InfoWithContext("SLA alert manager stopped")
+	sam.logger.InfoEvent("SLA alert manager stopped")
 
 	return nil
 }
@@ -1045,7 +1043,7 @@ func (sam *SLAAlertManager) evaluateSLA(ctx context.Context, slaType SLAType, ta
 	currentValue, err := sam.getCurrentSLAValue(ctx, slaType)
 	if err != nil {
 
-		sam.logger.ErrorWithContext("Failed to get current SLA value", err,
+		sam.logger.ErrorEvent(err, "Failed to get current SLA value",
 
 			slog.String("sla_type", string(slaType)),
 		)
@@ -1059,7 +1057,7 @@ func (sam *SLAAlertManager) evaluateSLA(ctx context.Context, slaType SLAType, ta
 	burnRates, err := sam.burnRateCalculator.Calculate(ctx, slaType)
 	if err != nil {
 
-		sam.logger.ErrorWithContext("Failed to calculate burn rates", err,
+		sam.logger.ErrorEvent(err, "Failed to calculate burn rates",
 
 			slog.String("sla_type", string(slaType)),
 		)
@@ -1197,7 +1195,7 @@ func (sam *SLAAlertManager) processAlert(ctx context.Context, alert *SLAAlert) {
 
 		sam.mu.Unlock()
 
-		sam.logger.InfoWithContext("Alert suppressed",
+		sam.logger.InfoEvent("Alert suppressed",
 
 			slog.String("alert_id", alert.ID),
 
@@ -1239,7 +1237,7 @@ func (sam *SLAAlertManager) processAlert(ctx context.Context, alert *SLAAlert) {
 	// Route alert for notifications.
 
 	if err := sam.alertRouter.Route(ctx, alert); err != nil {
-		sam.logger.ErrorWithContext("Failed to route alert", err,
+		sam.logger.ErrorEvent(err, "Failed to route alert",
 
 			slog.String("alert_id", alert.ID),
 		)
@@ -1248,13 +1246,13 @@ func (sam *SLAAlertManager) processAlert(ctx context.Context, alert *SLAAlert) {
 	// Start escalation process.
 
 	if err := sam.escalationEngine.StartEscalation(ctx, alert); err != nil {
-		sam.logger.ErrorWithContext("Failed to start escalation", err,
+		sam.logger.ErrorEvent(err, "Failed to start escalation",
 
 			slog.String("alert_id", alert.ID),
 		)
 	}
 
-	sam.logger.WarnWithContext("SLA alert fired",
+	sam.logger.WarnEvent("SLA alert fired",
 
 		slog.String("alert_id", alert.ID),
 
@@ -1892,7 +1890,7 @@ func (sam *SLAAlertManager) updateMaintenanceWindows() {
 		if now.Before(window.EndTime) {
 			activeWindows = append(activeWindows, window)
 		} else {
-			sam.logger.InfoWithContext("Maintenance window expired",
+			sam.logger.InfoEvent("Maintenance window expired",
 
 				slog.String("window_id", window.ID),
 
@@ -1903,7 +1901,7 @@ func (sam *SLAAlertManager) updateMaintenanceWindows() {
 
 	sam.maintenanceWindows = activeWindows
 
-	sam.logger.DebugWithContext("Updated maintenance windows",
+	sam.logger.DebugEvent("Updated maintenance windows",
 
 		slog.Int("active_windows", len(sam.maintenanceWindows)),
 	)
@@ -1977,7 +1975,7 @@ func (sam *SLAAlertManager) updateMetrics() {
 
 	sam.metrics.RevenueAtRisk.Set(totalRevenue)
 
-	sam.logger.DebugWithContext("Updated SLA alert metrics",
+	sam.logger.DebugEvent("Updated SLA alert metrics",
 
 		slog.Int("active_alerts", len(sam.activeAlerts)),
 
@@ -2025,7 +2023,7 @@ func (sam *SLAAlertManager) cleanupOldAlerts() {
 	sam.suppressedAlerts = activeSuppressed
 
 	if removedCount > 0 || removedSuppressedCount > 0 {
-		sam.logger.InfoWithContext("Cleaned up old alerts",
+		sam.logger.InfoEvent("Cleaned up old alerts",
 
 			slog.Int("removed_from_history", removedCount),
 

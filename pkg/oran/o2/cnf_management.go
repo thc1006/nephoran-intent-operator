@@ -28,7 +28,7 @@ type OperatorManager struct {
 
 	k8sClient client.Client
 
-	logger *logging.StructuredLogger
+	logger logging.Logger
 }
 
 // ServiceMeshManager represents a servicemeshmanager.
@@ -38,7 +38,7 @@ type ServiceMeshManager struct {
 
 	k8sClient client.Client
 
-	logger *logging.StructuredLogger
+	logger logging.Logger
 }
 
 // ContainerRegistryManager represents a containerregistrymanager.
@@ -46,7 +46,7 @@ type ServiceMeshManager struct {
 type ContainerRegistryManager struct {
 	config *RegistryConfig
 
-	logger *logging.StructuredLogger
+	logger logging.Logger
 }
 
 // Manager method implementations.
@@ -87,7 +87,7 @@ func (crm *ContainerRegistryManager) Initialize() error {
 
 // NewOperatorManager creates a new operator manager.
 
-func NewOperatorManager(config *OperatorConfig, k8sClient client.Client, logger *logging.StructuredLogger) *OperatorManager {
+func NewOperatorManager(config *OperatorConfig, k8sClient client.Client, logger logging.Logger) *OperatorManager {
 	return &OperatorManager{
 		config: config,
 
@@ -99,7 +99,7 @@ func NewOperatorManager(config *OperatorConfig, k8sClient client.Client, logger 
 
 // NewServiceMeshManager creates a new service mesh manager.
 
-func NewServiceMeshManager(config *ServiceMeshConfig, k8sClient client.Client, logger *logging.StructuredLogger) *ServiceMeshManager {
+func NewServiceMeshManager(config *ServiceMeshConfig, k8sClient client.Client, logger logging.Logger) *ServiceMeshManager {
 	return &ServiceMeshManager{
 		config: config,
 
@@ -111,7 +111,7 @@ func NewServiceMeshManager(config *ServiceMeshConfig, k8sClient client.Client, l
 
 // NewContainerRegistryManager creates a new container registry manager.
 
-func NewContainerRegistryManager(config *RegistryConfig, logger *logging.StructuredLogger) *ContainerRegistryManager {
+func NewContainerRegistryManager(config *RegistryConfig, logger logging.Logger) *ContainerRegistryManager {
 	return &ContainerRegistryManager{
 		config: config,
 
@@ -124,7 +124,7 @@ func NewContainerRegistryManager(config *RegistryConfig, logger *logging.Structu
 type CNFManagementService struct {
 	config *CNFConfig
 
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	// Kubernetes clients.
 
@@ -622,14 +622,14 @@ func NewCNFManagementService(
 
 	k8sClient client.Client,
 
-	logger *logging.StructuredLogger,
+	logger logging.Logger,
 ) (*CNFManagementService, error) {
 	if config == nil {
 		config = DefaultCNFConfig()
 	}
 
-	if logger == nil {
-		logger = logging.NewStructuredLogger(logging.DefaultConfig("cnf-management", "1.0.0", "production"))
+	if logger.GetSink() == nil {
+		logger = logging.NewLogger("cnf-management")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -923,7 +923,7 @@ func (s *CNFManagementService) monitorCNFInstance(id string, instance *CNFInstan
 	}, deployment)
 	if err != nil {
 
-		s.logger.Error("failed to get CNF deployment",
+		s.logger.ErrorEvent(fmt.Errorf("failed to get CNF deployment"),
 
 			"cnf_id", id,
 
@@ -1017,7 +1017,7 @@ func (s *CNFManagementService) reconcileCNFInstance(id string, instance *CNFInst
 
 	if s.shouldScaleCNF(instance) {
 		if err := s.scaleCNF(instance); err != nil {
-			s.logger.Error("failed to scale CNF",
+			s.logger.ErrorEvent(fmt.Errorf("failed to scale CNF"),
 
 				"cnf_id", id,
 
@@ -1029,7 +1029,7 @@ func (s *CNFManagementService) reconcileCNFInstance(id string, instance *CNFInst
 
 	if s.shouldUpdateCNF(instance) {
 		if err := s.updateCNF(instance); err != nil {
-			s.logger.Error("failed to update CNF",
+			s.logger.ErrorEvent(fmt.Errorf("failed to update CNF"),
 
 				"cnf_id", id,
 
@@ -1615,7 +1615,7 @@ func (s *CNFManagementService) DeleteCNF(ctx context.Context, id string) error {
 			}
 
 			if err := s.k8sClient.Delete(ctx, obj); err != nil {
-				s.logger.Warn("failed to delete resource",
+				s.logger.WarnEvent("failed to delete resource",
 
 					"resource", resource.Name,
 

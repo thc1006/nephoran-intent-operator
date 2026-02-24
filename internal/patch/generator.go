@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/go-logr/logr"
 	"sigs.k8s.io/yaml"
 )
 
@@ -15,15 +16,19 @@ type Generator struct {
 	Intent *Intent
 
 	OutputDir string
+
+	Logger logr.Logger
 }
 
 // NewGenerator creates a new patch generator.
 
-func NewGenerator(intent *Intent, outputDir string) *Generator {
+func NewGenerator(intent *Intent, outputDir string, logger logr.Logger) *Generator {
 	return &Generator{
 		Intent: intent,
 
 		OutputDir: outputDir,
+
+		Logger: logger,
 	}
 }
 
@@ -37,46 +42,69 @@ func (g *Generator) Generate() error {
 	packageDir := filepath.Join(g.OutputDir, packageName)
 
 	if err := os.MkdirAll(packageDir, 0o755); err != nil {
+		if g.Logger.Enabled() {
+			g.Logger.Error(err, "Failed to create package directory",
+				"packageDir", packageDir,
+				"outputDir", g.OutputDir,
+				"packageName", packageName)
+		}
 		return fmt.Errorf("failed to create package directory: %w", err)
 	}
 
 	// Generate Kptfile.
 
 	if err := g.generateKptfile(packageDir); err != nil {
+		if g.Logger.Enabled() {
+			g.Logger.Error(err, "Failed to generate Kptfile",
+				"packageDir", packageDir,
+				"packageName", packageName)
+		}
 		return err
 	}
 
 	// Generate patch YAML.
 
 	if err := g.generatePatch(packageDir); err != nil {
+		if g.Logger.Enabled() {
+			g.Logger.Error(err, "Failed to generate patch YAML",
+				"packageDir", packageDir,
+				"packageName", packageName,
+				"target", g.Intent.Target,
+				"namespace", g.Intent.Namespace)
+		}
 		return err
 	}
 
 	// Generate setter configuration.
 
 	if err := g.generateSetters(packageDir); err != nil {
+		if g.Logger.Enabled() {
+			g.Logger.Error(err, "Failed to generate setters",
+				"packageDir", packageDir,
+				"packageName", packageName)
+		}
 		return err
 	}
 
 	// Generate README.
 
 	if err := g.generateReadme(packageDir); err != nil {
+		if g.Logger.Enabled() {
+			g.Logger.Error(err, "Failed to generate README",
+				"packageDir", packageDir,
+				"packageName", packageName)
+		}
 		return err
 	}
 
-	fmt.Printf("\n=== Patch Package Generated ===\n")
-
-	fmt.Printf("Package: %s\n", packageName)
-
-	fmt.Printf("Target: %s\n", g.Intent.Target)
-
-	fmt.Printf("Namespace: %s\n", g.Intent.Namespace)
-
-	fmt.Printf("Replicas: %d\n", g.Intent.Replicas)
-
-	fmt.Printf("Location: %s\n", packageDir)
-
-	fmt.Printf("================================\n\n")
+	if g.Logger.Enabled() {
+		g.Logger.Info("Patch package generated successfully",
+			"package", packageName,
+			"target", g.Intent.Target,
+			"namespace", g.Intent.Namespace,
+			"replicas", g.Intent.Replicas,
+			"location", packageDir)
+	}
 
 	return nil
 }
@@ -102,12 +130,25 @@ func (g *Generator) generateKptfile(packageDir string) error {
 
 	data, err := yaml.Marshal(kptfile)
 	if err != nil {
+		if g.Logger.Enabled() {
+			g.Logger.Error(err, "Failed to marshal Kptfile",
+				"packageDir", packageDir,
+				"packageName", filepath.Base(packageDir))
+		}
 		return fmt.Errorf("failed to marshal Kptfile: %w", err)
 	}
 
 	kptfilePath := filepath.Join(packageDir, "Kptfile")
 
-	return os.WriteFile(kptfilePath, data, 0o640)
+	if err := os.WriteFile(kptfilePath, data, 0o640); err != nil {
+		if g.Logger.Enabled() {
+			g.Logger.Error(err, "Failed to write Kptfile to disk",
+				"kptfilePath", kptfilePath,
+				"packageDir", packageDir)
+		}
+		return err
+	}
+	return nil
 }
 
 func (g *Generator) generatePatch(packageDir string) error {
@@ -121,6 +162,12 @@ func (g *Generator) generatePatch(packageDir string) error {
 
 	data, err := yaml.Marshal(patch)
 	if err != nil {
+		if g.Logger.Enabled() {
+			g.Logger.Error(err, "Failed to marshal patch YAML",
+				"target", g.Intent.Target,
+				"namespace", g.Intent.Namespace,
+				"packageDir", packageDir)
+		}
 		return fmt.Errorf("failed to marshal patch: %w", err)
 	}
 
@@ -132,7 +179,16 @@ func (g *Generator) generatePatch(packageDir string) error {
 
 	patchPath := filepath.Join(packageDir, "deployment-patch.yaml")
 
-	return os.WriteFile(patchPath, []byte(patchContent), 0o640)
+	if err := os.WriteFile(patchPath, []byte(patchContent), 0o640); err != nil {
+		if g.Logger.Enabled() {
+			g.Logger.Error(err, "Failed to write patch YAML to disk",
+				"patchPath", patchPath,
+				"target", g.Intent.Target,
+				"namespace", g.Intent.Namespace)
+		}
+		return err
+	}
+	return nil
 }
 
 func (g *Generator) generateSetters(packageDir string) error {
@@ -150,12 +206,26 @@ func (g *Generator) generateSetters(packageDir string) error {
 
 	data, err := yaml.Marshal(setters)
 	if err != nil {
+		if g.Logger.Enabled() {
+			g.Logger.Error(err, "Failed to marshal setters YAML",
+				"replicas", g.Intent.Replicas,
+				"target", g.Intent.Target,
+				"namespace", g.Intent.Namespace)
+		}
 		return fmt.Errorf("failed to marshal setters: %w", err)
 	}
 
 	settersPath := filepath.Join(packageDir, "setters.yaml")
 
-	return os.WriteFile(settersPath, data, 0o640)
+	if err := os.WriteFile(settersPath, data, 0o640); err != nil {
+		if g.Logger.Enabled() {
+			g.Logger.Error(err, "Failed to write setters YAML to disk",
+				"settersPath", settersPath,
+				"packageDir", packageDir)
+		}
+		return err
+	}
+	return nil
 }
 
 func (g *Generator) generateReadme(packageDir string) error {
@@ -199,5 +269,13 @@ kubectl apply -f deployment-patch.yaml
 
 	readmePath := filepath.Join(packageDir, "README.md")
 
-	return os.WriteFile(readmePath, []byte(readme), 0o640)
+	if err := os.WriteFile(readmePath, []byte(readme), 0o640); err != nil {
+		if g.Logger.Enabled() {
+			g.Logger.Error(err, "Failed to write README to disk",
+				"readmePath", readmePath,
+				"packageDir", packageDir)
+		}
+		return err
+	}
+	return nil
 }

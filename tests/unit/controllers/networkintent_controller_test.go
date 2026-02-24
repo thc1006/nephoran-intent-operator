@@ -24,7 +24,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -34,11 +33,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
 	"github.com/thc1006/nephoran-intent-operator/controllers"
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
 // buildScheme returns a scheme with the correct intent API group registered.
@@ -56,14 +55,15 @@ type NetworkIntentControllerTestSuite struct {
 	client        client.Client
 	scheme        *runtime.Scheme
 	ctx           context.Context
-	logger        logr.Logger
+	logger        logging.Logger
 	llmServer     *httptest.Server
 	testNamespace string
 }
 
 func (suite *NetworkIntentControllerTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
-	suite.logger = zap.New(zap.UseDevMode(true))
+	logging.InitGlobalLogger(logging.DebugLevel)
+	suite.logger = logging.NewLogger(logging.ComponentController)
 	suite.testNamespace = "nephoran-test"
 
 	suite.scheme = runtime.NewScheme()
@@ -87,7 +87,7 @@ func (suite *NetworkIntentControllerTestSuite) SetupTest() {
 	suite.reconciler = &controllers.NetworkIntentReconciler{
 		Client:              suite.client,
 		Scheme:              suite.scheme,
-		Log:                 suite.logger,
+		Logger:              suite.logger,
 		EnableLLMIntent:     true,
 		EnableA1Integration: false, // A1 not available in unit tests
 		LLMProcessorURL:     suite.llmServer.URL + "/process",
@@ -212,6 +212,7 @@ func TestNetworkIntentControllerTestSuite(t *testing.T) {
 // ── Standalone table-driven tests ──────────────────────────────────────────────
 
 func TestNetworkIntentReconciler_Reconcile_BasicFlow(t *testing.T) {
+	logging.InitGlobalLogger(logging.DebugLevel)
 	scheme := buildScheme(t)
 	fakeClient := fake.NewClientBuilder().
 		WithScheme(scheme).
@@ -221,7 +222,7 @@ func TestNetworkIntentReconciler_Reconcile_BasicFlow(t *testing.T) {
 	reconciler := &controllers.NetworkIntentReconciler{
 		Client:              fakeClient,
 		Scheme:              scheme,
-		Log:                 zap.New(zap.UseDevMode(true)),
+		Logger:              logging.NewLogger(logging.ComponentController),
 		EnableLLMIntent:     false,
 		EnableA1Integration: false,
 	}
@@ -250,6 +251,7 @@ func TestNetworkIntentReconciler_Reconcile_BasicFlow(t *testing.T) {
 }
 
 func TestNetworkIntentReconciler_ConcurrentReconcile(t *testing.T) {
+	logging.InitGlobalLogger(logging.DebugLevel)
 	scheme := buildScheme(t)
 	fakeClient := fake.NewClientBuilder().
 		WithScheme(scheme).
@@ -258,7 +260,7 @@ func TestNetworkIntentReconciler_ConcurrentReconcile(t *testing.T) {
 	reconciler := &controllers.NetworkIntentReconciler{
 		Client:              fakeClient,
 		Scheme:              scheme,
-		Log:                 zap.New(zap.UseDevMode(true)),
+		Logger:              logging.NewLogger(logging.ComponentController),
 		EnableLLMIntent:     false,
 		EnableA1Integration: false,
 	}
@@ -306,6 +308,7 @@ func TestNetworkIntentReconciler_ConcurrentReconcile(t *testing.T) {
 }
 
 func TestNetworkIntentReconciler_ErrorConditions(t *testing.T) {
+	logging.InitGlobalLogger(logging.DebugLevel)
 	scheme := buildScheme(t)
 
 	tests := []struct {
@@ -319,7 +322,7 @@ func TestNetworkIntentReconciler_ErrorConditions(t *testing.T) {
 				r := &controllers.NetworkIntentReconciler{
 					Client:              fake.NewClientBuilder().WithScheme(scheme).Build(),
 					Scheme:              scheme,
-					Log:                 zap.New(zap.UseDevMode(true)),
+					Logger:              logging.NewLogger(logging.ComponentController),
 					EnableA1Integration: false,
 					EnableLLMIntent:     false,
 				}
@@ -335,7 +338,7 @@ func TestNetworkIntentReconciler_ErrorConditions(t *testing.T) {
 				r := &controllers.NetworkIntentReconciler{
 					Client:              fake.NewClientBuilder().WithScheme(scheme).Build(),
 					Scheme:              scheme,
-					Log:                 zap.New(zap.UseDevMode(true)),
+					Logger:              logging.NewLogger(logging.ComponentController),
 					EnableA1Integration: false,
 					EnableLLMIntent:     false,
 				}

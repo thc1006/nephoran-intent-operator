@@ -18,10 +18,9 @@ import (
 	"sync"
 	"time"
 
-	"sigs.k8s.io/controller-runtime/pkg/log"
-
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 	"github.com/thc1006/nephoran-intent-operator/pkg/security"
 )
@@ -158,6 +157,9 @@ type A1AdaptorConfig struct {
 	CircuitBreakerConfig *llm.CircuitBreakerConfig
 
 	RetryConfig *RetryConfig
+
+	// DisableSSRFValidation disables SSRF validation for testing purposes
+	DisableSSRFValidation bool
 }
 
 // SMOServiceRegistry represents the SMO service registry integration.
@@ -300,7 +302,8 @@ func NewA1Adaptor(config *A1AdaptorConfig) (*A1Adaptor, error) {
 
 	// SSRF protection: validate the A1 endpoint URL before use.
 	// Allow private IPs since A1 mediator is typically an in-cluster service.
-	if config.RICURL != "" {
+	// Skip validation if DisableSSRFValidation is set (for testing purposes only).
+	if config.RICURL != "" && !config.DisableSSRFValidation {
 		ssrfValidator := security.NewSSRFValidator(security.SSRFValidatorConfig{
 			AllowPrivateIPs: true,
 		})
@@ -428,38 +431,62 @@ func NewA1Adaptor(config *A1AdaptorConfig) (*A1Adaptor, error) {
 // CreatePolicyType creates a new policy type in the Near-RT RIC.
 
 func (a *A1Adaptor) CreatePolicyType(ctx context.Context, policyType *A1PolicyType) error {
-	logger := log.FromContext(ctx)
+	logger := logging.NewLogger(logging.ComponentA1)
+	start := time.Now()
 
 	url := fmt.Sprintf("%s/a1-p/%s/policytypes/%d", a.ricURL, a.apiVersion, policyType.PolicyTypeID)
 
 	body, err := json.Marshal(policyType)
 	if err != nil {
+		logger.ErrorEvent(err, "Failed to marshal policy type",
+			"policyTypeID", policyType.PolicyTypeID)
 		return fmt.Errorf("failed to marshal policy type: %w", err)
 	}
 
+	logger.DebugEvent("Creating policy type request",
+		"url", url,
+		"policyTypeID", policyType.PolicyTypeID,
+		"policyName", policyType.Name)
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(body))
 	if err != nil {
+		logger.ErrorEvent(err, "Failed to create HTTP request",
+			"url", url,
+			"policyTypeID", policyType.PolicyTypeID)
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := a.httpClient.Do(req)
+	duration := time.Since(start).Seconds()
+
 	if err != nil {
+		logger.HTTPError("PUT", url, 0, err, duration)
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 
 	defer resp.Body.Close()
 
+	logger.HTTPRequest("PUT", url, resp.StatusCode, duration)
+
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 
 		bodyBytes, _ := io.ReadAll(resp.Body)
+		logger.ErrorEvent(fmt.Errorf("create policy type failed with status %d", resp.StatusCode),
+			"HTTP error creating policy type",
+			"policyTypeID", policyType.PolicyTypeID,
+			"statusCode", resp.StatusCode,
+			"responseBody", string(bodyBytes))
 
 		return fmt.Errorf("failed to create policy type: status=%d, body=%s", resp.StatusCode, string(bodyBytes))
 
 	}
 
-	logger.Info("successfully created policy type", "policyTypeID", policyType.PolicyTypeID)
+	logger.InfoEvent("Successfully created policy type",
+		"policyTypeID", policyType.PolicyTypeID,
+		"statusCode", resp.StatusCode,
+		"durationSeconds", duration)
 
 	return nil
 }
@@ -467,29 +494,53 @@ func (a *A1Adaptor) CreatePolicyType(ctx context.Context, policyType *A1PolicyTy
 // GetPolicyType retrieves a policy type from the Near-RT RIC.
 
 func (a *A1Adaptor) GetPolicyType(ctx context.Context, policyTypeID int) (*A1PolicyType, error) {
+	logger := logging.NewLogger(logging.ComponentA1)
+	start := time.Now()
 	url := fmt.Sprintf("%s/a1-p/%s/policytypes/%d", a.ricURL, a.apiVersion, policyTypeID)
+
+	logger.DebugEvent("Getting policy type",
+		"url", url,
+		"policyTypeID", policyTypeID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
+		logger.ErrorEvent(err, "Failed to create HTTP request",
+			"url", url,
+			"policyTypeID", policyTypeID)
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	resp, err := a.httpClient.Do(req)
+	duration := time.Since(start).Seconds()
+
 	if err != nil {
+		logger.HTTPError("GET", url, 0, err, duration)
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 
 	defer resp.Body.Close()
 
+	logger.HTTPRequest("GET", url, resp.StatusCode, duration)
+
 	if resp.StatusCode != http.StatusOK {
+		logger.ErrorEvent(fmt.Errorf("get policy type failed with status %d", resp.StatusCode),
+			"HTTP error getting policy type",
+			"policyTypeID", policyTypeID,
+			"statusCode", resp.StatusCode)
 		return nil, fmt.Errorf("failed to get policy type: status=%d", resp.StatusCode)
 	}
 
 	var policyType A1PolicyType
 
 	if err := json.NewDecoder(resp.Body).Decode(&policyType); err != nil {
+		logger.ErrorEvent(err, "Failed to decode policy type response",
+			"policyTypeID", policyTypeID)
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
+
+	logger.InfoEvent("Successfully retrieved policy type",
+		"policyTypeID", policyTypeID,
+		"durationSeconds", duration)
 
 	return &policyType, nil
 }
@@ -566,7 +617,8 @@ func (a *A1Adaptor) DeletePolicyType(ctx context.Context, policyTypeID int) erro
 // CreatePolicyInstance creates a new policy instance.
 
 func (a *A1Adaptor) CreatePolicyInstance(ctx context.Context, policyTypeID int, policyID string, instance *PolicyInstance) error {
-	logger := log.FromContext(ctx)
+	logger := logging.NewLogger(logging.ComponentA1)
+	start := time.Now()
 
 	url := fmt.Sprintf("%s/a1-p/%s/policytypes/%d/policies/%s",
 
@@ -574,36 +626,61 @@ func (a *A1Adaptor) CreatePolicyInstance(ctx context.Context, policyTypeID int, 
 
 	body, err := json.Marshal(instance.PolicyData)
 	if err != nil {
+		logger.ErrorEvent(err, "Failed to marshal policy data",
+			"policyTypeID", policyTypeID,
+			"policyID", policyID)
 		return fmt.Errorf("failed to marshal policy data: %w", err)
 	}
 
+	logger.DebugEvent("Creating policy instance",
+		"url", url,
+		"policyTypeID", policyTypeID,
+		"policyID", policyID,
+		"requestBodySize", len(body))
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(body))
 	if err != nil {
+		logger.ErrorEvent(err, "Failed to create HTTP request",
+			"url", url,
+			"policyTypeID", policyTypeID,
+			"policyID", policyID)
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := a.httpClient.Do(req)
+	duration := time.Since(start).Seconds()
+
 	if err != nil {
+		logger.HTTPError("PUT", url, 0, err, duration)
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 
 	defer resp.Body.Close()
 
+	logger.HTTPRequest("PUT", url, resp.StatusCode, duration)
+
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 
 		bodyBytes, _ := io.ReadAll(resp.Body)
+		logger.ErrorEvent(fmt.Errorf("create policy instance failed with status %d", resp.StatusCode),
+			"HTTP error creating policy instance",
+			"policyTypeID", policyTypeID,
+			"policyID", policyID,
+			"statusCode", resp.StatusCode,
+			"responseBody", string(bodyBytes))
 
 		return fmt.Errorf("failed to create policy instance: status=%d, body=%s", resp.StatusCode, string(bodyBytes))
 
 	}
 
-	logger.Info("successfully created policy instance",
-
+	logger.A1PolicyCreated(policyID, fmt.Sprintf("type_%d", policyTypeID))
+	logger.InfoEvent("Successfully created policy instance",
 		"policyTypeID", policyTypeID,
-
-		"instanceID", policyID)
+		"policyID", policyID,
+		"statusCode", resp.StatusCode,
+		"durationSeconds", duration)
 
 	return nil
 }
@@ -730,25 +807,53 @@ func (a *A1Adaptor) UpdatePolicyInstance(ctx context.Context, policyTypeID int, 
 // DeletePolicyInstance deletes a policy instance.
 
 func (a *A1Adaptor) DeletePolicyInstance(ctx context.Context, policyTypeID int, instanceID string) error {
+	logger := logging.NewLogger(logging.ComponentA1)
+	start := time.Now()
+
 	url := fmt.Sprintf("%s/a1-p/%s/policytypes/%d/policies/%s",
 
 		a.ricURL, a.apiVersion, policyTypeID, instanceID)
 
+	logger.DebugEvent("Deleting policy instance",
+		"url", url,
+		"policyTypeID", policyTypeID,
+		"instanceID", instanceID)
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, http.NoBody)
 	if err != nil {
+		logger.ErrorEvent(err, "Failed to create HTTP request",
+			"url", url,
+			"policyTypeID", policyTypeID,
+			"instanceID", instanceID)
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
 	resp, err := a.httpClient.Do(req)
+	duration := time.Since(start).Seconds()
+
 	if err != nil {
+		logger.HTTPError("DELETE", url, 0, err, duration)
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 
 	defer resp.Body.Close()
 
+	logger.HTTPRequest("DELETE", url, resp.StatusCode, duration)
+
 	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
+		logger.ErrorEvent(fmt.Errorf("delete policy instance failed with status %d", resp.StatusCode),
+			"HTTP error deleting policy instance",
+			"policyTypeID", policyTypeID,
+			"instanceID", instanceID,
+			"statusCode", resp.StatusCode)
 		return fmt.Errorf("failed to delete policy instance: status=%d", resp.StatusCode)
 	}
+
+	logger.A1PolicyDeleted(instanceID)
+	logger.InfoEvent("Successfully deleted policy instance",
+		"policyTypeID", policyTypeID,
+		"instanceID", instanceID,
+		"durationSeconds", duration)
 
 	return nil
 }
@@ -788,13 +893,17 @@ func (a *A1Adaptor) GetPolicyStatus(ctx context.Context, policyTypeID int, insta
 // ApplyPolicy applies an A1 policy from a ManagedElement.
 
 func (a *A1Adaptor) ApplyPolicy(ctx context.Context, me *nephoranv1.ManagedElement) error {
-	logger := log.FromContext(ctx)
+	logger := logging.NewLogger(logging.ComponentA1)
+	start := time.Now()
 
-	logger.Info("applying A1 policy", "managedElement", me.Name)
+	logger.InfoEvent("Applying A1 policy",
+		"managedElement", me.Name,
+		"namespace", me.Namespace)
 
 	if me.Spec.A1Policy.Raw == nil {
 
-		logger.Info("no A1 policy to apply", "managedElement", me.Name)
+		logger.InfoEvent("No A1 policy to apply",
+			"managedElement", me.Name)
 
 		return nil
 
@@ -805,6 +914,8 @@ func (a *A1Adaptor) ApplyPolicy(ctx context.Context, me *nephoranv1.ManagedEleme
 	var policySpec map[string]interface{}
 
 	if err := json.Unmarshal(me.Spec.A1Policy.Raw, &policySpec); err != nil {
+		logger.ErrorEvent(err, "Failed to unmarshal A1 policy",
+			"managedElement", me.Name)
 		return fmt.Errorf("failed to unmarshal A1 policy: %w", err)
 	}
 
@@ -860,6 +971,10 @@ func (a *A1Adaptor) ApplyPolicy(ctx context.Context, me *nephoranv1.ManagedEleme
 	}
 
 	if err := a.CreatePolicyInstance(ctx, int(policyTypeID), instanceID, policyInstance); err != nil {
+		logger.ErrorEvent(err, "Failed to create policy instance",
+			"managedElement", me.Name,
+			"policyTypeID", int(policyTypeID),
+			"instanceID", instanceID)
 		return fmt.Errorf("failed to create policy instance: %w", err)
 	}
 
@@ -873,10 +988,19 @@ func (a *A1Adaptor) ApplyPolicy(ctx context.Context, me *nephoranv1.ManagedEleme
 
 	defer ticker.Stop()
 
+	logger.DebugEvent("Waiting for policy enforcement",
+		"policyTypeID", int(policyTypeID),
+		"instanceID", instanceID,
+		"timeoutSeconds", 30)
+
 	for !enforced {
 		select {
 
 		case <-timeout:
+			logger.ErrorEvent(fmt.Errorf("timeout waiting for policy enforcement"),
+				"Policy enforcement timeout",
+				"policyTypeID", int(policyTypeID),
+				"instanceID", instanceID)
 
 			return fmt.Errorf("timeout waiting for policy to be enforced")
 
@@ -885,7 +1009,9 @@ func (a *A1Adaptor) ApplyPolicy(ctx context.Context, me *nephoranv1.ManagedEleme
 			status, err := a.GetPolicyStatus(ctx, int(policyTypeID), instanceID)
 			if err != nil {
 
-				logger.Error(err, "failed to get policy status")
+				logger.ErrorEvent(err, "Failed to get policy status during enforcement wait",
+					"policyTypeID", int(policyTypeID),
+					"instanceID", instanceID)
 
 				continue
 
@@ -894,12 +1020,13 @@ func (a *A1Adaptor) ApplyPolicy(ctx context.Context, me *nephoranv1.ManagedEleme
 			if status.EnforcementStatus == "ENFORCED" {
 
 				enforced = true
+				duration := time.Since(start).Seconds()
 
-				logger.Info("policy successfully enforced",
-
+				logger.InfoEvent("Policy successfully enforced",
 					"policyTypeID", int(policyTypeID),
-
-					"instanceID", instanceID)
+					"instanceID", instanceID,
+					"enforcementStatus", status.EnforcementStatus,
+					"totalDurationSeconds", duration)
 
 			}
 
@@ -912,13 +1039,17 @@ func (a *A1Adaptor) ApplyPolicy(ctx context.Context, me *nephoranv1.ManagedEleme
 // RemovePolicy removes an A1 policy from a ManagedElement.
 
 func (a *A1Adaptor) RemovePolicy(ctx context.Context, me *nephoranv1.ManagedElement) error {
-	logger := log.FromContext(ctx)
+	logger := logging.NewLogger(logging.ComponentA1)
+	start := time.Now()
 
-	logger.Info("removing A1 policy", "managedElement", me.Name)
+	logger.InfoEvent("Removing A1 policy",
+		"managedElement", me.Name,
+		"namespace", me.Namespace)
 
 	if me.Spec.A1Policy.Raw == nil {
 
-		logger.Info("no A1 policy to remove", "managedElement", me.Name)
+		logger.InfoEvent("No A1 policy to remove",
+			"managedElement", me.Name)
 
 		return nil
 
@@ -929,12 +1060,16 @@ func (a *A1Adaptor) RemovePolicy(ctx context.Context, me *nephoranv1.ManagedElem
 	var policySpec map[string]interface{}
 
 	if err := json.Unmarshal(me.Spec.A1Policy.Raw, &policySpec); err != nil {
+		logger.ErrorEvent(err, "Failed to unmarshal A1 policy for removal",
+			"managedElement", me.Name)
 		return fmt.Errorf("failed to unmarshal A1 policy: %w", err)
 	}
 
 	policyTypeID, ok := policySpec["policy_type_id"].(float64)
 
 	if !ok {
+		logger.ErrorEvent(fmt.Errorf("policy_type_id not found"), "Missing policy_type_id",
+			"managedElement", me.Name)
 		return fmt.Errorf("policy_type_id not found in A1 policy")
 	}
 
@@ -942,19 +1077,27 @@ func (a *A1Adaptor) RemovePolicy(ctx context.Context, me *nephoranv1.ManagedElem
 
 	if !ok {
 		instanceID = fmt.Sprintf("%s-policy-%d", me.Name, int(policyTypeID))
+		logger.DebugEvent("Generated instance ID from managed element name",
+			"instanceID", instanceID,
+			"managedElement", me.Name)
 	}
 
 	// Delete the policy instance.
 
 	if err := a.DeletePolicyInstance(ctx, int(policyTypeID), instanceID); err != nil {
+		logger.ErrorEvent(err, "Failed to delete policy instance",
+			"managedElement", me.Name,
+			"policyTypeID", int(policyTypeID),
+			"instanceID", instanceID)
 		return fmt.Errorf("failed to delete policy instance: %w", err)
 	}
 
-	logger.Info("successfully removed policy",
-
+	duration := time.Since(start).Seconds()
+	logger.InfoEvent("Successfully removed policy",
+		"managedElement", me.Name,
 		"policyTypeID", int(policyTypeID),
-
-		"instanceID", instanceID)
+		"instanceID", instanceID,
+		"durationSeconds", duration)
 
 	return nil
 }
@@ -1043,17 +1186,30 @@ func NewSMOServiceRegistry(url, apiKey string) *SMOServiceRegistry {
 // RegisterService registers a service with the SMO service registry.
 
 func (r *SMOServiceRegistry) RegisterService(ctx context.Context, service *ServiceInfo) error {
-	logger := log.FromContext(ctx)
+	logger := logging.NewLogger(logging.ComponentA1)
+	start := time.Now()
 
 	url := fmt.Sprintf("%s/services", r.URL)
 
 	body, err := json.Marshal(service)
 	if err != nil {
+		logger.ErrorEvent(err, "Failed to marshal service info",
+			"serviceID", service.ID,
+			"serviceName", service.Name)
 		return fmt.Errorf("failed to marshal service info: %w", err)
 	}
 
+	logger.DebugEvent("Registering service with SMO",
+		"url", url,
+		"serviceID", service.ID,
+		"serviceName", service.Name,
+		"serviceType", service.Type)
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
+		logger.ErrorEvent(err, "Failed to create HTTP request",
+			"url", url,
+			"serviceID", service.ID)
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
@@ -1062,21 +1218,34 @@ func (r *SMOServiceRegistry) RegisterService(ctx context.Context, service *Servi
 	req.Header.Set("X-API-Key", r.APIKey)
 
 	resp, err := r.httpClient.Do(req)
+	duration := time.Since(start).Seconds()
+
 	if err != nil {
+		logger.HTTPError("POST", url, 0, err, duration)
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 
 	defer resp.Body.Close()
 
+	logger.HTTPRequest("POST", url, resp.StatusCode, duration)
+
 	if resp.StatusCode != http.StatusCreated {
 
 		bodyBytes, _ := io.ReadAll(resp.Body)
+		logger.ErrorEvent(fmt.Errorf("register service failed with status %d", resp.StatusCode),
+			"HTTP error registering service",
+			"serviceID", service.ID,
+			"statusCode", resp.StatusCode,
+			"responseBody", string(bodyBytes))
 
 		return fmt.Errorf("failed to register service: status=%d, body=%s", resp.StatusCode, string(bodyBytes))
 
 	}
 
-	logger.Info("service registered with SMO", "serviceID", service.ID, "name", service.Name)
+	logger.InfoEvent("Service registered with SMO",
+		"serviceID", service.ID,
+		"serviceName", service.Name,
+		"durationSeconds", duration)
 
 	return nil
 }
@@ -1173,9 +1342,9 @@ func (o *SMOPolicyOrchestrator) RegisterA1Adaptor(ricID string, adaptor *A1Adapt
 // StartEventProcessor starts the event processing loop.
 
 func (o *SMOPolicyOrchestrator) StartEventProcessor(ctx context.Context) {
-	logger := log.FromContext(ctx)
+	logger := logging.NewLogger(logging.ComponentA1)
 
-	logger.Info("starting SMO policy orchestrator event processor")
+	logger.InfoEvent("Starting SMO policy orchestrator event processor")
 
 	go func() {
 		for {
@@ -1183,14 +1352,17 @@ func (o *SMOPolicyOrchestrator) StartEventProcessor(ctx context.Context) {
 
 			case <-ctx.Done():
 
-				logger.Info("stopping event processor")
+				logger.InfoEvent("Stopping event processor")
 
 				return
 
 			case event := <-o.eventQueue:
 
 				if err := o.processEvent(ctx, event); err != nil {
-					logger.Error(err, "failed to process policy event", "eventID", event.ID)
+					logger.ErrorEvent(err, "Failed to process policy event",
+						"eventID", event.ID,
+						"eventType", event.Type,
+						"policyID", event.PolicyID)
 				}
 
 			}
@@ -1201,39 +1373,63 @@ func (o *SMOPolicyOrchestrator) StartEventProcessor(ctx context.Context) {
 // processEvent processes a single policy event.
 
 func (o *SMOPolicyOrchestrator) processEvent(ctx context.Context, event *PolicyEvent) error {
-	logger := log.FromContext(ctx)
+	logger := logging.NewLogger(logging.ComponentA1)
+	start := time.Now()
 
-	logger.Info("processing policy event", "eventID", event.ID, "type", event.Type)
+	logger.InfoEvent("Processing policy event",
+		"eventID", event.ID,
+		"eventType", event.Type,
+		"policyID", event.PolicyID,
+		"source", event.Source,
+		"target", event.Target)
 
+	var err error
 	switch event.Type {
 
 	case "CREATE":
 
-		return o.handlePolicyCreate(ctx, event)
+		err = o.handlePolicyCreate(ctx, event)
 
 	case "UPDATE":
 
-		return o.handlePolicyUpdate(ctx, event)
+		err = o.handlePolicyUpdate(ctx, event)
 
 	case "DELETE":
 
-		return o.handlePolicyDelete(ctx, event)
+		err = o.handlePolicyDelete(ctx, event)
 
 	case "ENFORCE":
 
-		return o.handlePolicyEnforce(ctx, event)
+		err = o.handlePolicyEnforce(ctx, event)
 
 	default:
-
-		return fmt.Errorf("unknown event type: %s", event.Type)
+		err = fmt.Errorf("unknown event type: %s", event.Type)
+		logger.ErrorEvent(err, "Unknown policy event type",
+			"eventID", event.ID,
+			"eventType", event.Type)
 
 	}
+
+	duration := time.Since(start).Seconds()
+	if err != nil {
+		logger.ErrorEvent(err, "Policy event processing failed",
+			"eventID", event.ID,
+			"eventType", event.Type,
+			"durationSeconds", duration)
+	} else {
+		logger.InfoEvent("Policy event processed successfully",
+			"eventID", event.ID,
+			"eventType", event.Type,
+			"durationSeconds", duration)
+	}
+
+	return err
 }
 
 // handlePolicyCreate handles policy creation events.
 
 func (o *SMOPolicyOrchestrator) handlePolicyCreate(ctx context.Context, event *PolicyEvent) error {
-	logger := log.FromContext(ctx)
+	logger := logging.NewLogger(logging.ComponentA1)
 
 	// Extract policy information from event data.
 	var eventData map[string]interface{}
@@ -1346,7 +1542,10 @@ func (o *SMOPolicyOrchestrator) handlePolicyCreate(ctx context.Context, event *P
 
 	o.registry.NotifyPolicyEvent(ctx, successEvent)
 
-	logger.Info("policy creation completed", "eventID", event.ID, "policyID", event.PolicyID)
+	logger.InfoEvent("Policy creation completed",
+		"eventID", event.ID,
+		"policyID", event.PolicyID,
+		"target", event.Target)
 
 	return nil
 }
@@ -1362,7 +1561,7 @@ func (o *SMOPolicyOrchestrator) handlePolicyUpdate(ctx context.Context, event *P
 // handlePolicyDelete handles policy deletion events.
 
 func (o *SMOPolicyOrchestrator) handlePolicyDelete(ctx context.Context, event *PolicyEvent) error {
-	logger := log.FromContext(ctx)
+	logger := logging.NewLogger(logging.ComponentA1)
 
 	// Extract policy information from event data.
 	var eventData map[string]interface{}
@@ -1391,10 +1590,19 @@ func (o *SMOPolicyOrchestrator) handlePolicyDelete(ctx context.Context, event *P
 	}
 
 	if err := adaptor.DeletePolicyInstance(ctx, int(policyTypeID), instanceID); err != nil {
+		logger.ErrorEvent(err, "Failed to delete policy instance during event handling",
+			"eventID", event.ID,
+			"policyID", event.PolicyID,
+			"policyTypeID", int(policyTypeID),
+			"instanceID", instanceID)
 		return fmt.Errorf("failed to delete policy instance: %w", err)
 	}
 
-	logger.Info("policy deletion completed", "eventID", event.ID, "policyID", event.PolicyID)
+	logger.InfoEvent("Policy deletion completed",
+		"eventID", event.ID,
+		"policyID", event.PolicyID,
+		"policyTypeID", int(policyTypeID),
+		"instanceID", instanceID)
 
 	return nil
 }
@@ -1402,7 +1610,7 @@ func (o *SMOPolicyOrchestrator) handlePolicyDelete(ctx context.Context, event *P
 // handlePolicyEnforce handles policy enforcement events.
 
 func (o *SMOPolicyOrchestrator) handlePolicyEnforce(ctx context.Context, event *PolicyEvent) error {
-	logger := log.FromContext(ctx)
+	logger := logging.NewLogger(logging.ComponentA1)
 
 	// Extract policy information from event data.
 	var eventData map[string]interface{}
@@ -1457,7 +1665,10 @@ func (o *SMOPolicyOrchestrator) handlePolicyEnforce(ctx context.Context, event *
 
 	o.registry.NotifyPolicyEvent(ctx, statusEvent)
 
-	logger.Info("policy enforcement check completed", "eventID", event.ID, "status", status.EnforcementStatus)
+	logger.InfoEvent("Policy enforcement check completed",
+		"eventID", event.ID,
+		"enforcementStatus", status.EnforcementStatus,
+		"policyID", event.PolicyID)
 
 	return nil
 }
@@ -1465,7 +1676,7 @@ func (o *SMOPolicyOrchestrator) handlePolicyEnforce(ctx context.Context, event *
 // CreatePolicyWorkflow creates a new policy workflow.
 
 func (o *SMOPolicyOrchestrator) CreatePolicyWorkflow(ctx context.Context, workflow *PolicyWorkflow) error {
-	logger := log.FromContext(ctx)
+	logger := logging.NewLogger(logging.ComponentA1)
 
 	workflow.ID = fmt.Sprintf("workflow-%d", time.Now().UnixNano())
 
@@ -1487,7 +1698,10 @@ func (o *SMOPolicyOrchestrator) CreatePolicyWorkflow(ctx context.Context, workfl
 
 	go o.executeWorkflow(context.Background(), workflow.ID)
 
-	logger.Info("policy workflow created", "workflowID", workflow.ID, "name", workflow.Name)
+	logger.InfoEvent("Policy workflow created",
+		"workflowID", workflow.ID,
+		"workflowName", workflow.Name,
+		"stepCount", len(workflow.Steps))
 
 	return nil
 }
@@ -1495,13 +1709,15 @@ func (o *SMOPolicyOrchestrator) CreatePolicyWorkflow(ctx context.Context, workfl
 // executeWorkflow executes a policy workflow.
 
 func (o *SMOPolicyOrchestrator) executeWorkflow(ctx context.Context, workflowID string) {
-	logger := log.FromContext(ctx)
+	logger := logging.NewLogger(logging.ComponentA1)
+	start := time.Now()
 
 	workflow, ok := o.workflows[workflowID]
 
 	if !ok {
 
-		logger.Error(fmt.Errorf("workflow not found"), "workflowID", workflowID)
+		logger.ErrorEvent(fmt.Errorf("workflow not found"), "Workflow not found",
+			"workflowID", workflowID)
 
 		return
 
@@ -1511,6 +1727,11 @@ func (o *SMOPolicyOrchestrator) executeWorkflow(ctx context.Context, workflowID 
 
 	workflow.UpdatedAt = time.Now()
 
+	logger.InfoEvent("Starting workflow execution",
+		"workflowID", workflowID,
+		"workflowName", workflow.Name,
+		"totalSteps", len(workflow.Steps))
+
 	for i, step := range workflow.Steps {
 
 		if i < workflow.CurrentStep {
@@ -1519,11 +1740,18 @@ func (o *SMOPolicyOrchestrator) executeWorkflow(ctx context.Context, workflowID 
 
 		workflow.CurrentStep = i
 
-		logger.Info("executing workflow step", "workflowID", workflowID, "step", i, "stepName", step.Name)
+		logger.InfoEvent("Executing workflow step",
+			"workflowID", workflowID,
+			"step", i,
+			"stepName", step.Name,
+			"stepType", step.Type)
 
 		if err := o.executeWorkflowStep(ctx, workflow, step); err != nil {
 
-			logger.Error(err, "workflow step failed", "workflowID", workflowID, "step", i)
+			logger.ErrorEvent(err, "Workflow step failed",
+				"workflowID", workflowID,
+				"step", i,
+				"stepName", step.Name)
 
 			workflow.Status = "FAILED"
 
@@ -1539,13 +1767,23 @@ func (o *SMOPolicyOrchestrator) executeWorkflow(ctx context.Context, workflowID 
 
 		workflow.UpdatedAt = time.Now()
 
+		logger.DebugEvent("Workflow step completed",
+			"workflowID", workflowID,
+			"step", i,
+			"stepName", step.Name)
+
 	}
 
 	workflow.Status = "COMPLETED"
 
 	workflow.UpdatedAt = time.Now()
 
-	logger.Info("workflow completed", "workflowID", workflowID)
+	duration := time.Since(start).Seconds()
+	logger.InfoEvent("Workflow completed successfully",
+		"workflowID", workflowID,
+		"workflowName", workflow.Name,
+		"totalSteps", len(workflow.Steps),
+		"durationSeconds", duration)
 }
 
 // executeWorkflowStep executes a single workflow step.

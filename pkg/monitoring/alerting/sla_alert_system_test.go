@@ -14,7 +14,7 @@ import (
 // TestSLAAlertingSystemIntegration demonstrates the complete SLA alerting workflow
 func TestSLAAlertingSystemIntegration(t *testing.T) {
 	ctx := context.Background()
-	logger := logging.NewLogger("test", "debug")
+	logger := logging.NewLogger("test")
 
 	// Initialize the complete SLA alerting system
 	alertManager, err := setupSLAAlertingSystem(t, logger)
@@ -51,7 +51,7 @@ func TestSLAAlertingSystemIntegration(t *testing.T) {
 }
 
 // setupSLAAlertingSystem creates a complete SLA alerting system for testing
-func setupSLAAlertingSystem(t *testing.T, logger *logging.StructuredLogger) (*SLAAlertManager, error) {
+func setupSLAAlertingSystem(t *testing.T, logger logging.Logger) (*SLAAlertManager, error) {
 	// Configure for testing
 	config := &SLAAlertConfig{
 		EvaluationInterval:   1 * time.Second, // Fast evaluation for tests
@@ -69,7 +69,7 @@ func setupSLAAlertingSystem(t *testing.T, logger *logging.StructuredLogger) (*SL
 }
 
 // setupSLAAlertingSystemForBenchmark creates SLA alert manager for benchmark tests
-func setupSLAAlertingSystemForBenchmark(logger *logging.StructuredLogger) (*SLAAlertManager, error) {
+func setupSLAAlertingSystemForBenchmark(logger logging.Logger) (*SLAAlertManager, error) {
 	// Configure for benchmarking
 	config := &SLAAlertConfig{
 		EvaluationInterval:   1 * time.Second, // Fast evaluation for benchmarks
@@ -341,7 +341,7 @@ func testEscalationWorkflow(t *testing.T, ctx context.Context, sam *SLAAlertMana
 // TestSLAMetricsAndObservability tests metrics and monitoring capabilities
 func TestSLAMetricsAndObservability(t *testing.T) {
 	ctx := context.Background()
-	logger := logging.NewLogger("test", "debug")
+	logger := logging.NewLogger("test")
 
 	alertManager, err := setupSLAAlertingSystem(t, logger)
 	require.NoError(t, err)
@@ -434,7 +434,7 @@ func filterAlertsBySeverity(alerts []*SLAAlert, severity AlertSeverity) []*SLAAl
 // BenchmarkSLAAlertProcessing benchmarks alert processing performance
 func BenchmarkSLAAlertProcessing(b *testing.B) {
 	ctx := context.Background()
-	logger := logging.NewLogger("benchmark", "info")
+	logger := logging.NewLogger("benchmark")
 
 	alertManager, err := setupSLAAlertingSystemForBenchmark(logger)
 	require.NoError(b, err)

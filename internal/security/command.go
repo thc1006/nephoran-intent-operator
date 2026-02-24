@@ -11,6 +11,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/go-logr/logr"
 )
 
 // SecureCommandExecutor provides hardened command execution with zero-trust controls.
@@ -47,6 +49,8 @@ type CommandAuditor struct {
 	logPath string
 
 	enabled bool
+
+	logger logr.Logger
 }
 
 // SecureCommand represents a validated and sanitized command.
@@ -623,10 +627,14 @@ func (a *CommandAuditor) LogExecution(entry *CommandAuditEntry) {
 	}
 
 	// In a production system, this would write to secure audit logs.
+	// Using structured logging for audit trail.
 
-	// For now, we'll use structured logging.
-
-	fmt.Printf("[AUDIT] Command execution started: %s %v\n", entry.Binary, entry.Args)
+	if a.logger.Enabled() {
+		a.logger.Info("Command execution started",
+			"binary", entry.Binary,
+			"args", entry.Args,
+			"audit", true)
+	}
 }
 
 // LogCompletion logs command execution completion.
@@ -636,7 +644,11 @@ func (a *CommandAuditor) LogCompletion(entry *CommandAuditEntry) {
 		return
 	}
 
-	fmt.Printf("[AUDIT] Command execution completed: %s (exit: %d, duration: %v)\n",
-
-		entry.Binary, entry.ExitCode, entry.Duration)
+	if a.logger.Enabled() {
+		a.logger.Info("Command execution completed",
+			"binary", entry.Binary,
+			"exitCode", entry.ExitCode,
+			"duration", entry.Duration,
+			"audit", true)
+	}
 }

@@ -24,7 +24,7 @@ import (
 type InventoryManagementService struct {
 	config *InventoryConfig
 
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	// Provider registry for multi-cloud inventory.
 
@@ -366,14 +366,14 @@ func NewInventoryManagementService(
 
 	providerRegistry providers.ProviderRegistry,
 
-	logger *logging.StructuredLogger,
+	logger logging.Logger,
 ) (*InventoryManagementService, error) {
 	if config == nil {
 		config = DefaultInventoryConfig()
 	}
 
-	if logger == nil {
-		logger = logging.NewStructuredLogger(logging.DefaultConfig("inventory-management", "1.0.0", "production"))
+	if logger.GetSink() == nil {
+		logger = logging.NewLogger("inventory-management")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -591,7 +591,7 @@ func (s *InventoryManagementService) performDiscovery() {
 		provider, err := s.providerRegistry.GetProvider(providerName)
 		if err != nil {
 
-			s.logger.Error("Failed to get provider", "name", providerName, "error", err)
+			s.logger.ErrorEvent(err, "Failed to get provider", "name", providerName, )
 
 			continue
 
@@ -614,7 +614,7 @@ func (s *InventoryManagementService) discoverProviderAssets(ctx context.Context,
 	assets, err := s.discoveryEngine.DiscoverAssets(ctx, provider)
 	if err != nil {
 
-		s.logger.Error("failed to discover assets from provider",
+		s.logger.ErrorEvent(fmt.Errorf("failed to discover assets from provider"),
 
 			"provider", getProviderType(provider),
 
@@ -628,7 +628,7 @@ func (s *InventoryManagementService) discoverProviderAssets(ctx context.Context,
 
 	for _, asset := range assets {
 		if err := s.processDiscoveredAsset(asset); err != nil {
-			s.logger.Error("failed to process discovered asset",
+			s.logger.ErrorEvent(fmt.Errorf("failed to process discovered asset"),
 
 				"asset_id", asset.ID,
 
@@ -703,7 +703,7 @@ func (s *InventoryManagementService) processDiscoveredAsset(asset *Asset) error 
 		}
 
 		if err := s.cmdbStorage.CreateAuditEntry(s.ctx, auditEntry); err != nil {
-			s.logger.Warn("failed to create audit entry", "error", err)
+			s.logger.WarnEvent("failed to create audit entry", "error", err)
 		}
 
 	}
@@ -811,7 +811,7 @@ func (s *InventoryManagementService) updateExistingAsset(existing, discovered *A
 		}
 
 		if err := s.cmdbStorage.CreateAuditEntry(s.ctx, auditEntry); err != nil {
-			s.logger.Warn("failed to create audit entry", "error", err)
+			s.logger.WarnEvent("failed to create audit entry", "error", err)
 		}
 
 	}
@@ -839,7 +839,7 @@ func (s *InventoryManagementService) performMaintenance() {
 	// Cleanup old audit entries.
 
 	if err := s.cmdbStorage.Cleanup(s.ctx, s.config.AuditRetentionPeriod); err != nil {
-		s.logger.Error("failed to cleanup old entries", "error", err)
+		s.logger.ErrorEvent(err, "failed to cleanup old entries", )
 	}
 
 	// Rebuild indexes if needed.
@@ -859,7 +859,7 @@ func (s *InventoryManagementService) rebuildIndexes() {
 	assets, err := s.cmdbStorage.ListAssets(s.ctx, &AssetFilter{})
 	if err != nil {
 
-		s.logger.Error("failed to list assets for index rebuild", "error", err)
+		s.logger.ErrorEvent(err, "failed to list assets for index rebuild", )
 
 		return
 
@@ -876,7 +876,7 @@ func (s *InventoryManagementService) rebuildIndexes() {
 	relationships, err := s.cmdbStorage.ListRelationships(s.ctx, &RelationshipFilter{})
 	if err != nil {
 
-		s.logger.Error("failed to list relationships for index rebuild", "error", err)
+		s.logger.ErrorEvent(err, "failed to list relationships for index rebuild", )
 
 		return
 
@@ -953,7 +953,7 @@ func (s *InventoryManagementService) CreateAsset(ctx context.Context, asset *Ass
 	}
 
 	if err := s.cmdbStorage.CreateAuditEntry(ctx, auditEntry); err != nil {
-		s.logger.Warn("failed to create audit entry", "error", err)
+		s.logger.WarnEvent("failed to create audit entry", "error", err)
 	}
 
 	s.logger.Info("created asset", "asset_id", asset.ID, "name", asset.Name)
@@ -1022,7 +1022,7 @@ func (s *InventoryManagementService) UpdateAsset(ctx context.Context, asset *Ass
 		}
 
 		if err := s.cmdbStorage.CreateAuditEntry(ctx, auditEntry); err != nil {
-			s.logger.Warn("failed to create audit entry", "error", err)
+			s.logger.WarnEvent("failed to create audit entry", "error", err)
 		}
 
 	}
@@ -1075,7 +1075,7 @@ func (s *InventoryManagementService) DeleteAsset(ctx context.Context, id string)
 	}
 
 	if err := s.cmdbStorage.CreateAuditEntry(ctx, auditEntry); err != nil {
-		s.logger.Warn("failed to create audit entry", "error", err)
+		s.logger.WarnEvent("failed to create audit entry", "error", err)
 	}
 
 	s.logger.Info("deleted asset", "asset_id", id, "name", asset.Name)

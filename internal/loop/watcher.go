@@ -21,6 +21,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 
 	"github.com/thc1006/nephoran-intent-operator/internal/porch"
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
 // Config holds configuration for the watcher.
@@ -72,12 +73,14 @@ func (c *Config) Validate() error {
 	maxSafeWorkers := runtime.NumCPU() * 4
 
 	if c.MaxWorkers < 1 {
+		// Use standard library log here since we don't have a logger instance in Config.Validate()
 		log.Printf("Warning: max_workers %d is too low, using default value 2", c.MaxWorkers)
 
 		c.MaxWorkers = 2
 	}
 
 	if c.MaxWorkers > maxSafeWorkers {
+		// Use standard library log here since we don't have a logger instance in Config.Validate()
 		log.Printf("Warning: max_workers %d exceeds safe limit of %d (4x CPU cores), capping to safe limit", c.MaxWorkers, maxSafeWorkers)
 
 		c.MaxWorkers = maxSafeWorkers
@@ -493,6 +496,9 @@ type Watcher struct {
 
 	// WaitGroup for background goroutines (cleanup routines, etc.)
 	backgroundWG sync.WaitGroup
+
+	// Structured logger.
+	logger logging.Logger
 }
 
 // NewWatcher creates a new file system watcher (backward compatibility with Config approach).
@@ -611,11 +617,13 @@ func NewWatcherWithConfig(dir string, config Config, processor *IntentProcessor)
 		// Validate porch path.
 
 		if err := porch.ValidatePorchPath(config.PorchPath); err != nil {
+			// Use standard library log here since logger not yet initialized
 			log.Printf("Warning: Porch validation failed: %v", err)
 		}
 	} else {
 		// Using IntentProcessor pattern - ensure executor is nil.
 		executor = nil
+		// Use standard library log here since logger not yet initialized
 		log.Printf("Using IntentProcessor pattern, porch executor disabled")
 	}
 
@@ -667,6 +675,9 @@ func NewWatcherWithConfig(dir string, config Config, processor *IntentProcessor)
 		MetricsEnabled: true,
 	}
 
+	// Initialize structured logger
+	logger := logging.NewLogger(logging.ComponentWatcher)
+
 	w := &Watcher{
 		watcher: watcher,
 
@@ -695,6 +706,8 @@ func NewWatcherWithConfig(dir string, config Config, processor *IntentProcessor)
 		shutdownComplete: make(chan struct{}),
 
 		processor: processor, // Support for IntentProcessor pattern
+
+		logger: logger,
 
 	}
 
@@ -867,7 +880,7 @@ func (w *Watcher) startMetricsServer() error {
 	// Skip if metrics are disabled.
 
 	if w.config.MetricsPort == 0 {
-		log.Printf("Metrics server disabled (port=0)")
+		w.logger.InfoEvent("Metrics server disabled", "port", 0)
 
 		return nil
 	}
@@ -907,10 +920,12 @@ func (w *Watcher) startMetricsServer() error {
 	}
 
 	go func() {
-		log.Printf("Starting metrics server on %s (auth=%v)", addr, w.config.MetricsAuth)
+		w.logger.InfoEvent("Starting metrics server",
+			"addr", addr,
+			"auth", w.config.MetricsAuth)
 
 		if err := w.metricsServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Printf("Metrics server error: %v", err)
+			w.logger.ErrorEvent(err, "Metrics server error")
 		}
 	}()
 
@@ -967,7 +982,7 @@ func (w *Watcher) handleMetrics(writer http.ResponseWriter, request *http.Reques
 	writer.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(writer).Encode(response); err != nil {
-		log.Printf("Failed to encode response: %v", err)
+		w.logger.ErrorEvent(err, "Failed to encode metrics response")
 		http.Error(writer, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -1071,7 +1086,7 @@ func (w *Watcher) handlePrometheusMetrics(writer http.ResponseWriter, request *h
 	writer.Header().Set("Content-Type", "text/plain")
 
 	if _, err := writer.Write(buf.Bytes()); err != nil {
-		log.Printf("Failed to write Prometheus metrics: %v", err)
+		w.logger.ErrorEvent(err, "Failed to write Prometheus metrics")
 	}
 }
 
@@ -1083,7 +1098,7 @@ func (w *Watcher) handleHealth(writer http.ResponseWriter, request *http.Request
 	writer.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(writer).Encode(health); err != nil {
-		log.Printf("Failed to encode health response: %v", err)
+		w.logger.ErrorEvent(err, "Failed to encode health response")
 		http.Error(writer, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -1152,7 +1167,9 @@ func (w *Watcher) ProcessExistingFiles() error {
 
 				if w.processor != nil {
 					if err := w.processor.ProcessFile(fullPath); err != nil {
-						log.Printf("Error processing existing file %s: %v", fullPath, err)
+						w.logger.ErrorEvent(err, "Error processing existing file",
+							"filename", entry.Name(),
+							"fullPath", fullPath)
 
 						// Continue processing other files.
 					}
@@ -1163,7 +1180,7 @@ func (w *Watcher) ProcessExistingFiles() error {
 		}
 
 		if count > 0 {
-			log.Printf("Processed %d existing intent files", count)
+			w.logger.InfoEvent("Processed existing intent files", "count", count)
 
 			// No need to flush batch - IntentProcessor doesn't use batching.
 		}
@@ -1179,11 +1196,14 @@ func (w *Watcher) ProcessExistingFiles() error {
 // Start begins watching for file events.
 
 func (w *Watcher) Start() error {
-	log.Printf("LOOP:START - Starting watcher on directory: %s", w.dir)
-
-	log.Printf("Configuration: workers=%d, debounce=%v, once=%t, period=%v, metrics_port=%d, processor=%t",
-
-		w.config.MaxWorkers, w.config.DebounceDur, w.config.Once, w.config.Period, w.config.MetricsPort, w.processor != nil)
+	w.logger.InfoEvent("Starting watcher",
+		"directory", w.dir,
+		"workers", w.config.MaxWorkers,
+		"debounce", w.config.DebounceDur,
+		"once", w.config.Once,
+		"period", w.config.Period,
+		"metrics_port", w.config.MetricsPort,
+		"processor_enabled", w.processor != nil)
 
 	// Start enhanced worker pool (only if not using processor).
 
@@ -1209,7 +1229,7 @@ func (w *Watcher) Start() error {
 
 	if w.config.Once {
 		if err := w.ProcessExistingFiles(); err != nil {
-			log.Printf("Warning: failed to process existing files: %v", err)
+			w.logger.WarnEvent("Failed to process existing files", "error", err)
 		}
 
 		// In once mode, wait for all work to complete before exiting.
@@ -1235,7 +1255,7 @@ func (w *Watcher) Start() error {
 		select {
 		case <-w.ctx.Done():
 
-			log.Printf("Watcher context cancelled, shutting down...")
+			w.logger.InfoEvent("Watcher context cancelled, shutting down")
 
 			if w.processor == nil {
 				w.waitForWorkersToFinish()
@@ -1246,7 +1266,7 @@ func (w *Watcher) Start() error {
 		case event, ok := <-w.watcher.Events:
 
 			if !ok {
-				log.Printf("Watcher events channel closed")
+				w.logger.InfoEvent("Watcher events channel closed")
 
 				if w.processor == nil {
 					w.waitForWorkersToFinish()
@@ -1268,7 +1288,7 @@ func (w *Watcher) Start() error {
 		case err, ok := <-w.watcher.Errors:
 
 			if !ok {
-				log.Printf("Watcher errors channel closed")
+				w.logger.InfoEvent("Watcher errors channel closed")
 
 				if w.processor == nil {
 					w.waitForWorkersToFinish()
@@ -1278,7 +1298,7 @@ func (w *Watcher) Start() error {
 			}
 
 			if err != nil {
-				log.Printf("Watcher error: %v", err)
+				w.logger.ErrorEvent(err, "Watcher error")
 			}
 		}
 	}
@@ -1295,13 +1315,25 @@ func (w *Watcher) handleIntentFile(event fsnotify.Event) {
 		operation = "WRITE"
 	}
 
-	log.Printf("LOOP:%s - Intent file detected: %s", operation, filepath.Base(event.Name))
+	// Get file info for logging
+	fileInfo, err := os.Stat(event.Name)
+	if err == nil {
+		w.logger.DebugEvent("Intent file detected",
+			"operation", operation,
+			"filename", filepath.Base(event.Name),
+			"size", fileInfo.Size(),
+			"modTime", fileInfo.ModTime())
+	} else {
+		w.logger.DebugEvent("Intent file detected",
+			"operation", operation,
+			"filename", filepath.Base(event.Name))
+	}
 
 	// If we have a processor, use it directly.
 
 	if w.processor != nil {
 		if err := w.processor.ProcessFile(event.Name); err != nil {
-			log.Printf("Error processing file %s: %v", event.Name, err)
+			w.logger.ErrorEvent(err, "Error processing file", "filename", event.Name)
 		}
 
 		return
@@ -1323,7 +1355,7 @@ func (w *Watcher) handleIntentFileWithEnhancedDebounce(filePath string, eventOp 
 
 	absPath, err := filepath.Abs(filePath)
 	if err != nil {
-		log.Printf("Warning: failed to get absolute path for %s: %v", filePath, err)
+		w.logger.WarnEvent("Failed to get absolute path", "filename", filePath, "error", err)
 
 		absPath = filePath
 	}
@@ -1332,9 +1364,9 @@ func (w *Watcher) handleIntentFileWithEnhancedDebounce(filePath string, eventOp 
 
 	if lastEvent, exists := w.fileState.recentEvents[absPath]; exists {
 		if now.Sub(lastEvent) < w.config.DebounceDur {
-			log.Printf("LOOP:DEBOUNCE - Skipping duplicate event for %s (last: %v ago)",
-
-				filepath.Base(filePath), now.Sub(lastEvent))
+			w.logger.DebugEvent("Skipping duplicate event (debounce)",
+				"filename", filepath.Base(filePath),
+				"timeSinceLastEvent", now.Sub(lastEvent))
 
 			return
 		}
@@ -1366,7 +1398,7 @@ func (w *Watcher) handleIntentFileWithEnhancedDebounce(filePath string, eventOp 
 		// Additional file existence and stability check.
 
 		if !w.isFileStable(absPath) {
-			log.Printf("LOOP:UNSTABLE - File %s not stable, skipping", filepath.Base(filePath))
+			w.logger.DebugEvent("File not stable, skipping", "filename", filepath.Base(filePath))
 
 			return
 		}
@@ -1437,9 +1469,9 @@ func (w *Watcher) handleIntentFileWithEnhancedDebounce(filePath string, eventOp 
 
 			// Work queue is full, implement backpressure.
 
-			log.Printf("LOOP:BACKPRESSURE - Work queue full, applying backpressure for %s",
-
-				filepath.Base(filePath))
+			w.logger.WarnEvent("Work queue full, applying backpressure",
+				"filename", filepath.Base(filePath),
+				"queueDepth", len(w.workerPool.workQueue))
 
 			// Record backpressure event.
 
@@ -1475,7 +1507,7 @@ func (w *Watcher) processExistingFiles() error {
 			func() {
 				// Check if worker pool is closed before attempting to send
 				if atomic.LoadInt32(&w.workerPool.closed) == 1 {
-					log.Printf("Warning: worker pool is closed, skipping %s", filename)
+					w.logger.WarnEvent("Worker pool is closed, skipping file", "filename", filename)
 					return
 				}
 
@@ -1524,7 +1556,8 @@ func (w *Watcher) processExistingFiles() error {
 		}
 	}
 
-	log.Printf("Queued %d existing intent files for processing", filesQueued)
+	w.logger.InfoEvent("Queued existing intent files for processing",
+		"filesQueued", filesQueued)
 
 	return nil
 }
@@ -1536,7 +1569,8 @@ func (w *Watcher) startPolling() error {
 
 	defer ticker.Stop()
 
-	log.Printf("LOOP:SCAN - Starting polling mode with period: %v", w.config.Period)
+	w.logger.InfoEvent("Starting polling mode",
+		"period", w.config.Period)
 
 	// Track processed files to avoid duplicates.
 
@@ -1546,7 +1580,7 @@ func (w *Watcher) startPolling() error {
 		select {
 		case <-w.ctx.Done():
 
-			log.Printf("LOOP:DONE - Polling context cancelled, shutting down...")
+			w.logger.InfoEvent("Polling context cancelled, shutting down")
 
 			w.waitForWorkersToFinish()
 
@@ -1554,11 +1588,11 @@ func (w *Watcher) startPolling() error {
 
 		case <-ticker.C:
 
-			log.Printf("LOOP:SCAN - Scanning directory: %s", w.dir)
+			w.logger.DebugEvent("Scanning directory", "directory", w.dir)
 
 			entries, err := os.ReadDir(w.dir)
 			if err != nil {
-				log.Printf("LOOP:ERROR - Failed to read directory: %v", err)
+				w.logger.ErrorEvent(err, "Failed to read directory", "directory", w.dir)
 
 				continue
 			}
@@ -1586,7 +1620,9 @@ func (w *Watcher) startPolling() error {
 
 				sha256Hash, err := w.stateManager.CalculateFileSHA256(filePath)
 				if err != nil {
-					log.Printf("LOOP:ERROR - Failed to calculate SHA256 for %s: %v", filePath, err)
+					w.logger.ErrorEvent(err, "Failed to calculate SHA256",
+						"filename", filename,
+						"filePath", filePath)
 
 					continue
 				}
@@ -1594,7 +1630,9 @@ func (w *Watcher) startPolling() error {
 				// Check if this exact file (by SHA) was already processed.
 
 				if prevSHA, exists := processedFiles[filename]; exists && prevSHA == sha256Hash {
-					log.Printf("LOOP:SKIP_DUP - File %s unchanged (SHA: %s), skipping", filename, sha256Hash[:8])
+					w.logger.DebugEvent("File unchanged, skipping",
+						"filename", filename,
+						"sha256", sha256Hash[:8])
 
 					continue
 				}
@@ -1604,9 +1642,13 @@ func (w *Watcher) startPolling() error {
 				processed, err := w.stateManager.IsProcessedBySHA(sha256Hash)
 
 				if err != nil {
-					log.Printf("LOOP:ERROR - Failed to check state for %s: %v", filePath, err)
+					w.logger.ErrorEvent(err, "Failed to check state",
+						"filename", filename,
+						"filePath", filePath)
 				} else if processed {
-					log.Printf("LOOP:SKIP_DUP - File %s already processed (SHA: %s), skipping", filename, sha256Hash[:8])
+					w.logger.DebugEvent("File already processed, skipping",
+						"filename", filename,
+						"sha256", sha256Hash[:8])
 
 					processedFiles[filename] = sha256Hash
 
@@ -1635,17 +1677,19 @@ func (w *Watcher) startPolling() error {
 
 						processedFiles[filename] = sha256Hash
 
-						log.Printf("LOOP:PROCESS - Queued file %s for processing", filename)
+						w.logger.DebugEvent("Queued file for processing", "filename", filename)
 
 					default:
 
-						log.Printf("LOOP:WARNING - Work queue full, skipping file %s", filename)
+						w.logger.WarnEvent("Work queue full, skipping file", "filename", filename)
 					}
 				}()
 			}
 
 			if filesFound > 0 {
-				log.Printf("LOOP:SCAN - Found %d intent files, queued %d for processing", filesFound, filesQueued)
+				w.logger.InfoEvent("Scan completed",
+					"filesFound", filesFound,
+					"filesQueued", filesQueued)
 			}
 		}
 	}
@@ -1660,7 +1704,7 @@ func (w *Watcher) startWorkerPool() {
 		go w.enhancedWorker(i)
 	}
 
-	log.Printf("Started %d enhanced workers", w.workerPool.maxWorkers)
+	w.logger.InfoEvent("Started enhanced workers", "workerCount", w.workerPool.maxWorkers)
 }
 
 // enhancedWorker processes work items from the enhanced work queue.
@@ -1672,20 +1716,20 @@ func (w *Watcher) enhancedWorker(workerID int) {
 
 	defer atomic.AddInt64(&w.workerPool.activeWorkers, -1)
 
-	log.Printf("Enhanced worker %d started", workerID)
+	w.logger.DebugEvent("Worker started", "workerID", workerID)
 
 	for {
 		select {
 		case <-w.ctx.Done():
 
-			log.Printf("Enhanced worker %d cancelled", workerID)
+			w.logger.DebugEvent("Worker cancelled", "workerID", workerID)
 
 			return
 
 		case workItem, ok := <-w.workerPool.workQueue:
 
 			if !ok {
-				log.Printf("Enhanced worker %d: work queue closed, exiting", workerID)
+				w.logger.DebugEvent("Work queue closed, worker exiting", "workerID", workerID)
 
 				return
 			}
@@ -1700,8 +1744,9 @@ func (w *Watcher) enhancedWorker(workerID int) {
 func (w *Watcher) processWorkItemWithLocking(workerID int, workItem WorkItem) {
 	// Guard: If processor is active, legacy worker path should not execute.
 	if w.processor != nil {
-		log.Printf("ERROR: Worker %d attempting to process file %s but IntentProcessor is active - this is a dual-path bug!",
-			workerID, filepath.Base(workItem.FilePath))
+		w.logger.ErrorEvent(nil, "Dual-path bug detected: Worker attempting to process file while IntentProcessor is active",
+			"workerID", workerID,
+			"filename", filepath.Base(workItem.FilePath))
 		return
 	}
 
@@ -1732,17 +1777,31 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 	startTime := time.Now()
 
 	filePath := workItem.FilePath
+	filename := filepath.Base(filePath)
 
-	log.Printf("LOOP:PROCESS - Worker %d processing file: %s (attempt %d)",
-
-		workerID, filepath.Base(filePath), workItem.Attempt)
+	// Get file info for detailed logging
+	fileInfo, statErr := os.Stat(filePath)
+	if statErr == nil {
+		w.logger.DebugEvent("Processing intent file",
+			"workerID", workerID,
+			"filename", filename,
+			"attempt", workItem.Attempt,
+			"size", fileInfo.Size(),
+			"modTime", fileInfo.ModTime())
+	} else {
+		w.logger.DebugEvent("Processing intent file",
+			"workerID", workerID,
+			"filename", filename,
+			"attempt", workItem.Attempt)
+	}
 
 	// Validate JSON file before processing.
 
 	if err := w.validateJSONFile(filePath); err != nil {
-		log.Printf("LOOP:ERROR - Worker %d: JSON validation failed for %s: %v",
-
-			workerID, filepath.Base(filePath), err)
+		w.logger.ErrorEvent(err, "JSON validation failed",
+			"workerID", workerID,
+			"filename", filename,
+			"attempt", workItem.Attempt)
 
 		// Record validation error.
 
@@ -1751,16 +1810,28 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 		// Mark as failed and move to failed directory.
 
 		if err := w.stateManager.MarkFailed(filePath); err != nil {
-			log.Printf("LOOP:WARNING - Worker %d: Failed to mark file as failed %s: %v", workerID, filepath.Base(filePath), err)
+			w.logger.WarnEvent("Failed to mark file as failed",
+				"workerID", workerID,
+				"filename", filename,
+				"error", err)
 		}
 
 		if err := w.fileManager.MoveToFailed(filePath, fmt.Sprintf("Validation failed: %v", err)); err != nil {
-			log.Printf("LOOP:WARNING - Worker %d: Failed to move file to failed directory %s: %v", workerID, filepath.Base(filePath), err)
+			w.logger.WarnEvent("Failed to move file to failed directory",
+				"workerID", workerID,
+				"filename", filename,
+				"error", err)
 		}
 
 		if statusErr := w.writeStatusFileAtomic(filePath, "failed", fmt.Sprintf("JSON validation failed: %v", err)); statusErr != nil {
-			log.Printf("LOOP:WARNING - Worker %d: Failed to write status file for %s: %v", workerID, filepath.Base(filePath), statusErr)
+			w.logger.WarnEvent("Failed to write status file",
+				"workerID", workerID,
+				"filename", filename,
+				"error", statusErr)
 		}
+
+		duration := time.Since(startTime).Seconds()
+		w.logger.IntentFileProcessed(filename, false, duration)
 
 		return
 	}
@@ -1770,13 +1841,13 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 	processed, err := w.stateManager.IsProcessed(filePath)
 
 	if err != nil {
-		log.Printf("LOOP:ERROR - Worker %d: Error checking file state for %s: %v",
-
-			workerID, filepath.Base(filePath), err)
+		w.logger.ErrorEvent(err, "Error checking file state",
+			"workerID", workerID,
+			"filename", filename)
 	} else if processed {
-		log.Printf("LOOP:SKIP_DUP - Worker %d: File %s already processed",
-
-			workerID, filepath.Base(filePath))
+		w.logger.DebugEvent("File already processed, skipping",
+			"workerID", workerID,
+			"filename", filename)
 
 		return
 	}
@@ -1784,14 +1855,17 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 	// Execute porch command with context timeout.
 	// Defensive check: Skip executor if processor exists.
 	if w.processor != nil {
-		log.Printf("LOOP:DELEGATE - Worker %d: Skipping executor.Execute() because IntentProcessor is active for file: %s",
-			workerID, filepath.Base(filePath))
+		w.logger.WarnEvent("Skipping executor because IntentProcessor is active (dual-path bug)",
+			"workerID", workerID,
+			"filename", filename)
 		return
 	}
 
 	result, err := w.executor.Execute(workItem.Ctx, filePath)
 	if err != nil {
-		log.Printf("Error: Failed to execute command: %v, file: %s", err, filePath)
+		w.logger.ErrorEvent(err, "Failed to execute command",
+			"workerID", workerID,
+			"filename", filename)
 		return
 	}
 
@@ -1805,31 +1879,44 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 		// Mark as processed in state manager.
 
 		if err := w.stateManager.MarkProcessed(filePath); err != nil {
-			log.Printf("LOOP:WARNING - Worker %d: Failed to mark file as processed: %v", workerID, err)
+			w.logger.WarnEvent("Failed to mark file as processed",
+				"workerID", workerID,
+				"filename", filename,
+				"error", err)
 		}
 
 		// Move to processed directory.
 
 		if err := w.fileManager.MoveToProcessed(filePath); err != nil {
-			log.Printf("LOOP:WARNING - Worker %d: Failed to move file to processed: %v", workerID, err)
+			w.logger.WarnEvent("Failed to move file to processed directory",
+				"workerID", workerID,
+				"filename", filename,
+				"error", err)
 		}
 
 		// Write success status.
 
 		if statusErr := w.writeStatusFileAtomic(filePath, "success", fmt.Sprintf("Processed by worker %d in %v", workerID, result.Duration)); statusErr != nil {
-			log.Printf("LOOP:WARNING - Worker %d: Failed to write status file for %s: %v", workerID, filepath.Base(filePath), statusErr)
+			w.logger.WarnEvent("Failed to write status file",
+				"workerID", workerID,
+				"filename", filename,
+				"error", statusErr)
 		}
 
 		// Record successful processing.
 
 		atomic.AddInt64(&w.metrics.FilesProcessedTotal, 1)
 
-		log.Printf("LOOP:DONE - Worker %d: Successfully processed %s", workerID, filepath.Base(filePath))
+		duration := time.Since(startTime).Seconds()
+		w.logger.IntentFileProcessed(filename, true, duration)
 	} else {
 		// Mark as failed in state manager.
 
 		if err := w.stateManager.MarkFailed(filePath); err != nil {
-			log.Printf("LOOP:WARNING - Worker %d: Failed to mark file as failed: %v", workerID, err)
+			w.logger.WarnEvent("Failed to mark file as failed",
+				"workerID", workerID,
+				"filename", filename,
+				"error", err)
 		}
 
 		// Create error message.
@@ -1857,16 +1944,28 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 		// Move to failed directory.
 
 		if err := w.fileManager.MoveToFailed(filePath, errorMsg); err != nil {
-			log.Printf("LOOP:WARNING - Worker %d: Failed to move file to failed: %v", workerID, err)
+			w.logger.WarnEvent("Failed to move file to failed directory",
+				"workerID", workerID,
+				"filename", filename,
+				"error", err)
 		}
 
 		// Write failure status.
 
 		if statusErr := w.writeStatusFileAtomic(filePath, "failed", errorMsg); statusErr != nil {
-			log.Printf("LOOP:WARNING - Worker %d: Failed to write status file for %s: %v", workerID, filepath.Base(filePath), statusErr)
+			w.logger.WarnEvent("Failed to write status file",
+				"workerID", workerID,
+				"filename", filename,
+				"error", statusErr)
 		}
 
-		log.Printf("LOOP:ERROR - Worker %d: Failed to process %s: %s", workerID, filepath.Base(filePath), errorMsg)
+		duration := time.Since(startTime).Seconds()
+		w.logger.ErrorEvent(result.Error, "Failed to process file",
+			"workerID", workerID,
+			"filename", filename,
+			"errorMsg", errorMsg,
+			"durationSeconds", duration)
+		w.logger.IntentFileProcessed(filename, false, duration)
 	}
 }
 
@@ -1885,27 +1984,29 @@ func (w *Watcher) cleanupRoutine() {
 
 		case <-ticker.C:
 
-			log.Printf("Running periodic cleanup...")
+			w.logger.InfoEvent("Running periodic cleanup")
 
 			// Cleanup old state entries.
 
 			if err := w.stateManager.CleanupOldEntries(w.config.CleanupAfter); err != nil {
-				log.Printf("Warning: cleanup state entries failed: %v", err)
+				w.logger.WarnEvent("Cleanup state entries failed", "error", err)
 			}
 
 			// Cleanup old processed/failed files.
 
 			if err := w.fileManager.CleanupOldFiles(w.config.CleanupAfter); err != nil {
-				log.Printf("Warning: cleanup old files failed: %v", err)
+				w.logger.WarnEvent("Cleanup old files failed", "error", err)
 			}
 
 			// Log statistics.
 
 			stats := w.executor.GetStats()
 
-			log.Printf("Executor stats: total=%d, success=%d, failed=%d, avg_time=%v",
-
-				stats.TotalExecutions, stats.SuccessfulExecs, stats.FailedExecs, stats.AverageExecTime)
+			w.logger.InfoEvent("Executor statistics",
+				"total", stats.TotalExecutions,
+				"success", stats.SuccessfulExecs,
+				"failed", stats.FailedExecs,
+				"avgTime", stats.AverageExecTime)
 		}
 	}
 }
@@ -1913,7 +2014,7 @@ func (w *Watcher) cleanupRoutine() {
 // waitForWorkersToFinish waits for all workers to complete and cleans up.
 
 func (w *Watcher) waitForWorkersToFinish() {
-	log.Printf("Signaling enhanced workers to stop...")
+	w.logger.InfoEvent("Signaling enhanced workers to stop")
 
 	// Wait for queue to drain and all workers to finish their current processing.
 	// This prevents premature context cancellation in once mode.
@@ -1928,17 +2029,19 @@ func (w *Watcher) waitForWorkersToFinish() {
 		if queueSize == 0 && processingItems == 0 {
 			// Additional grace period to ensure any very quick processing completes
 			time.Sleep(200 * time.Millisecond)
-			
+
 			// Check one more time after grace period
 			queueSize = len(w.workerPool.workQueue)
 			processingItems = int(atomic.LoadInt64(&w.workerPool.processingItems))
-			
+
 			if queueSize == 0 && processingItems == 0 {
 				break
 			}
 		}
 
-		log.Printf("Waiting for processing to complete: %d items in queue, %d items being processed", queueSize, processingItems)
+		w.logger.DebugEvent("Waiting for processing to complete",
+			"queueSize", queueSize,
+			"processingItems", processingItems)
 
 		time.Sleep(100 * time.Millisecond)
 	}
@@ -1949,11 +2052,11 @@ func (w *Watcher) waitForWorkersToFinish() {
 		close(w.workerPool.workQueue)
 	}
 
-	log.Printf("Waiting for enhanced workers to finish...")
+	w.logger.InfoEvent("Waiting for enhanced workers to finish")
 
 	w.workerPool.workers.Wait()
 
-	log.Printf("All enhanced workers stopped")
+	w.logger.InfoEvent("All enhanced workers stopped")
 
 	close(w.shutdownComplete)
 }
@@ -1969,11 +2072,11 @@ func (w *Watcher) Close() error {
 		return nil
 	}
 
-	log.Printf("Starting graceful shutdown...")
+	w.logger.InfoEvent("Starting graceful shutdown")
 
 	// Stage 0: Cancel context first to signal all goroutines to stop.
 	// This ensures debounce timer goroutines will exit early via context checks.
-	log.Printf("Stage 0: Canceling context to signal shutdown...")
+	w.logger.DebugEvent("Stage 0: Canceling context to signal shutdown")
 
 	if w.cancel != nil {
 		w.cancel()
@@ -1981,7 +2084,7 @@ func (w *Watcher) Close() error {
 
 	// Stage 1: Wait for background goroutines (debounce timers) to finish.
 	// Must happen BEFORE closing the work queue to avoid race conditions.
-	log.Printf("Stage 1: Waiting for background goroutines (debounce timers) to finish...")
+	w.logger.DebugEvent("Stage 1: Waiting for background goroutines to finish")
 
 	bgDone := make(chan struct{})
 	go func() {
@@ -1991,15 +2094,16 @@ func (w *Watcher) Close() error {
 
 	select {
 	case <-bgDone:
-		log.Printf("All background goroutines completed gracefully")
+		w.logger.DebugEvent("All background goroutines completed gracefully")
 	case <-time.After(5 * time.Second):
-		log.Printf("Warning: Background goroutines did not complete within 5s timeout")
+		w.logger.WarnEvent("Background goroutines did not complete within timeout",
+			"timeout", "5s")
 	}
 
 	// Stage 2: Stop accepting new work - close work queue after background goroutines complete.
 
 	if w.processor == nil && w.workerPool != nil {
-		log.Printf("Stage 2: Stopping new work acceptance...")
+		w.logger.DebugEvent("Stage 2: Stopping new work acceptance")
 
 		if atomic.CompareAndSwapInt32(&w.workerPool.closed, 0, 1) {
 			close(w.workerPool.workQueue)
@@ -2009,7 +2113,8 @@ func (w *Watcher) Close() error {
 	// Stage 3: Wait for in-flight tasks to complete with timeout.
 
 	if w.processor == nil && w.workerPool != nil {
-		log.Printf("Stage 3: Waiting for in-flight tasks to complete (grace period: %v)...", w.config.GracePeriod)
+		w.logger.DebugEvent("Stage 3: Waiting for in-flight tasks to complete",
+			"gracePeriod", w.config.GracePeriod)
 
 		// Wait for workers to finish with timeout.
 
@@ -2024,11 +2129,12 @@ func (w *Watcher) Close() error {
 		select {
 		case <-done:
 
-			log.Printf("All workers completed gracefully")
+			w.logger.InfoEvent("All workers completed gracefully")
 
 		case <-time.After(w.config.GracePeriod):
 
-			log.Printf("Grace period expired, escalating to forceful shutdown")
+			w.logger.WarnEvent("Grace period expired, escalating to forceful shutdown",
+				"gracePeriod", w.config.GracePeriod)
 		}
 	}
 
@@ -2052,7 +2158,7 @@ func (w *Watcher) Close() error {
 		defer cancel()
 
 		if err := w.metricsServer.Shutdown(ctx); err != nil {
-			log.Printf("Error: Failed to shutdown metrics server: %v", err)
+			w.logger.ErrorEvent(err, "Failed to shutdown metrics server")
 		}
 	}
 
@@ -2060,7 +2166,7 @@ func (w *Watcher) Close() error {
 
 	if w.stateManager != nil {
 		if err := w.stateManager.Close(); err != nil {
-			log.Printf("Warning: failed to save state: %v", err)
+			w.logger.WarnEvent("Failed to save state", "error", err)
 		}
 	}
 
@@ -2076,7 +2182,7 @@ func (w *Watcher) Close() error {
 		w.fileState.mu.Unlock()
 	}
 
-	log.Printf("Graceful shutdown completed")
+	w.logger.InfoEvent("Graceful shutdown completed")
 
 	return nil
 }
@@ -3243,9 +3349,9 @@ func (w *Watcher) retryWithBackoff(workItem WorkItem, cancelFunc context.CancelF
 			select {
 			case w.workerPool.workQueue <- workItem:
 
-				log.Printf("LOOP:RETRY_SUCCESS - Queued %s after %d attempts",
-
-					filepath.Base(workItem.FilePath), attempt)
+				w.logger.InfoEvent("Retry successful, file queued",
+					"filename", filepath.Base(workItem.FilePath),
+					"attempt", attempt)
 
 				return
 
@@ -3258,9 +3364,9 @@ func (w *Watcher) retryWithBackoff(workItem WorkItem, cancelFunc context.CancelF
 			default:
 
 				if attempt == maxRetries {
-					log.Printf("LOOP:RETRY_FAILED - Failed to queue %s after %d attempts",
-
-						filepath.Base(workItem.FilePath), maxRetries)
+					w.logger.WarnEvent("Retry failed after max attempts",
+						"filename", filepath.Base(workItem.FilePath),
+						"maxRetries", maxRetries)
 
 					cancelFunc()
 
@@ -3337,7 +3443,9 @@ func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) erro
 	if len(message) > MaxMessageSize {
 		message = message[:MaxMessageSize-3] + "..."
 
-		log.Printf("Warning: Status message truncated for %s", filepath.Base(intentFile))
+		w.logger.WarnEvent("Status message truncated",
+			"filename", filepath.Base(intentFile),
+			"maxSize", MaxMessageSize)
 	}
 
 	// Create proper status data including intent file name
@@ -3366,22 +3474,25 @@ func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) erro
 
 	data, err := w.safeMarshalJSON(statusInfo, MaxStatusSize)
 	if err != nil {
-		log.Printf("Failed to marshal status data: %v", err)
+		w.logger.WarnEvent("Failed to marshal status data",
+			"filename", filepath.Base(intentFile),
+			"error", err)
 
 		// Create fallback status data in case of marshaling error
 		fallbackData := fmt.Sprintf(`{
   "intent_file": "%s",
-  "status": "%s", 
+  "status": "%s",
   "message": "JSON marshaling failed: %v",
   "timestamp": "%s"
 }`, filepath.Base(intentFile), status, err, time.Now().Format(time.RFC3339))
 		data = []byte(fallbackData)
-		log.Printf("Using fallback status data for %s", filepath.Base(intentFile))
+		w.logger.DebugEvent("Using fallback status data", "filename", filepath.Base(intentFile))
 	}
 
 	// Additional safeguard: ensure data is never empty
 	if len(data) == 0 || string(data) == "{}" {
-		log.Printf("Warning: Empty or minimal JSON detected for %s, generating proper status", filepath.Base(intentFile))
+		w.logger.WarnEvent("Empty or minimal JSON detected, generating proper status",
+			"filename", filepath.Base(intentFile))
 		fallbackData := fmt.Sprintf(`{
   "intent_file": "%s",
   "status": "%s",
@@ -3404,7 +3515,8 @@ func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) erro
 	statusDir := filepath.Dir(statusFile)
 
 	if err := w.ensureDirectoryExists(statusDir); err != nil {
-		log.Printf("Failed to create status directory %s: %v", statusDir, err)
+		w.logger.ErrorEvent(err, "Failed to create status directory",
+			"directory", statusDir)
 
 		return fmt.Errorf("failed to create status directory: %w", err)
 	}
@@ -3414,7 +3526,8 @@ func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) erro
 	tempFile := statusFile + ".tmp"
 
 	if err := os.WriteFile(tempFile, data, 0o640); err != nil {
-		log.Printf("Failed to write temporary status file: %v", err)
+		w.logger.ErrorEvent(err, "Failed to write temporary status file",
+			"tempFile", tempFile)
 
 		return fmt.Errorf("failed to write temporary status file: %w", err)
 	}
@@ -3424,12 +3537,16 @@ func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) erro
 	if err := os.Rename(tempFile, statusFile); err != nil {
 		os.Remove(tempFile) // Clean up on failure
 
-		log.Printf("Failed to rename temporary status file: %v", err)
+		w.logger.ErrorEvent(err, "Failed to rename temporary status file",
+			"tempFile", tempFile,
+			"statusFile", statusFile)
 
 		return fmt.Errorf("failed to rename temporary status file: %w", err)
 	}
 
-	log.Printf("Status written atomically to: %s", statusFile)
+	w.logger.DebugEvent("Status written atomically",
+		"statusFile", statusFile,
+		"filename", filepath.Base(intentFile))
 
 	return nil
 }
@@ -3465,9 +3582,9 @@ func (w *Watcher) ensureDirectoryExists(dir string) error {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			creationError = err
 
-			log.Printf("Failed to create directory %s: %v", dir, err)
+			w.logger.ErrorEvent(err, "Failed to create directory", "directory", dir)
 		} else {
-			log.Printf("Created directory: %s", dir)
+			w.logger.DebugEvent("Created directory", "directory", dir)
 		}
 	})
 

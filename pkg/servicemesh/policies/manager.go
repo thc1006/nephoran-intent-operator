@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -227,6 +228,15 @@ func (m *PolicyManager) applyTrafficPolicy(ctx context.Context, policy Policy) e
 			ConsecutiveErrors: func() int {
 				f := cb["consecutiveErrors"].(float64)
 				if f < 0 || f > 2147483647 {
+					logger := logging.NewLogger("servicemesh-policies")
+					logger.ErrorEvent(
+						fmt.Errorf("consecutiveErrors out of int range"),
+						"Circuit breaker configuration error",
+						"consecutiveErrors", f,
+						"validRange", "0-2147483647",
+						"policyName", policy.Name,
+						"policyNamespace", policy.Namespace,
+					)
 					panic("consecutiveErrors out of int range")
 				}
 				return int(f)
@@ -239,6 +249,15 @@ func (m *PolicyManager) applyTrafficPolicy(ctx context.Context, policy Policy) e
 			MaxEjectionPercent: func() int {
 				f := cb["maxEjectionPercent"].(float64)
 				if f < 0 || f > 100 {
+					logger := logging.NewLogger("servicemesh-policies")
+					logger.ErrorEvent(
+						fmt.Errorf("maxEjectionPercent must be 0-100"),
+						"Circuit breaker configuration error",
+						"maxEjectionPercent", f,
+						"validRange", "0-100",
+						"policyName", policy.Name,
+						"policyNamespace", policy.Namespace,
+					)
 					panic("maxEjectionPercent must be 0-100")
 				}
 				return int(f)
@@ -251,6 +270,15 @@ func (m *PolicyManager) applyTrafficPolicy(ctx context.Context, policy Policy) e
 			Attempts: func() int {
 				f := retry["attempts"].(float64)
 				if f < 0 || f > 2147483647 {
+					logger := logging.NewLogger("servicemesh-policies")
+					logger.ErrorEvent(
+						fmt.Errorf("retry attempts out of int range"),
+						"Retry policy configuration error",
+						"attempts", f,
+						"validRange", "0-2147483647",
+						"policyName", policy.Name,
+						"policyNamespace", policy.Namespace,
+					)
 					panic("attempts out of int range")
 				}
 				return int(f)

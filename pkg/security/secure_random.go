@@ -11,6 +11,8 @@ import (
 	"math/big"
 	"sync"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
 // SecureRandom provides cryptographically secure random number generation
@@ -40,6 +42,12 @@ func (sr *SecureRandom) Int63() int64 {
 	b := make([]byte, 8)
 	if _, err := io.ReadFull(sr.reader, b); err != nil {
 		// Never expose detailed error information in panic messages
+		logger := logging.NewLogger("security")
+		logger.ErrorEvent(
+			fmt.Errorf("secure random generation failed"),
+			"Cryptographic random number generation failed in Int63",
+			"bytesRequested", 8,
+		)
 		panic("secure random generation failed")
 	}
 
@@ -52,6 +60,13 @@ func (sr *SecureRandom) Int63() int64 {
 // This is a drop-in replacement for crypto/rand.Intn()
 func (sr *SecureRandom) Intn(n int) int {
 	if n <= 0 {
+		logger := logging.NewLogger("security")
+		logger.ErrorEvent(
+			fmt.Errorf("invalid argument to Intn"),
+			"SecureRandom.Intn called with invalid argument",
+			"n", n,
+			"validRange", "> 0",
+		)
 		panic("invalid argument to Intn")
 	}
 
@@ -63,6 +78,12 @@ func (sr *SecureRandom) Intn(n int) int {
 	result, err := rand.Int(sr.reader, nBig)
 	if err != nil {
 		// Never expose detailed error information in panic messages
+		logger := logging.NewLogger("security")
+		logger.ErrorEvent(
+			fmt.Errorf("secure random generation failed"),
+			"Cryptographic random number generation failed in Intn",
+			"n", n,
+		)
 		panic("secure random generation failed")
 	}
 
@@ -79,6 +100,13 @@ func (sr *SecureRandom) Int31() int32 {
 // This is a drop-in replacement for crypto/rand.Int31n()
 func (sr *SecureRandom) Int31n(n int32) int32 {
 	if n <= 0 {
+		logger := logging.NewLogger("security")
+		logger.ErrorEvent(
+			fmt.Errorf("invalid argument to Int31n"),
+			"SecureRandom.Int31n called with invalid argument",
+			"n", n,
+			"validRange", "> 0",
+		)
 		panic("invalid argument to Int31n")
 	}
 	return int32(sr.Intn(int(n)))
@@ -119,6 +147,13 @@ func (sr *SecureRandom) Duration(min, max time.Duration) time.Duration {
 // Int63n returns, as an int64, a non-negative pseudo-random number in [0,n)
 func (sr *SecureRandom) Int63n(n int64) int64 {
 	if n <= 0 {
+		logger := logging.NewLogger("security")
+		logger.ErrorEvent(
+			fmt.Errorf("invalid argument to Int63n"),
+			"SecureRandom.Int63n called with invalid argument",
+			"n", n,
+			"validRange", "> 0",
+		)
 		panic("invalid argument to Int63n")
 	}
 
@@ -129,6 +164,12 @@ func (sr *SecureRandom) Int63n(n int64) int64 {
 	result, err := rand.Int(sr.reader, nBig)
 	if err != nil {
 		// Never expose detailed error information in panic messages
+		logger := logging.NewLogger("security")
+		logger.ErrorEvent(
+			fmt.Errorf("secure random generation failed"),
+			"Cryptographic random number generation failed in Int63n",
+			"n", n,
+		)
 		panic("secure random generation failed")
 	}
 
@@ -139,6 +180,13 @@ func (sr *SecureRandom) Int63n(n int64) int64 {
 // This is a drop-in replacement for crypto/rand.Perm()
 func (sr *SecureRandom) Perm(n int) []int {
 	if n < 0 {
+		logger := logging.NewLogger("security")
+		logger.ErrorEvent(
+			fmt.Errorf("invalid argument to Perm"),
+			"SecureRandom.Perm called with invalid argument",
+			"n", n,
+			"validRange", ">= 0",
+		)
 		panic("invalid argument to Perm")
 	}
 
@@ -160,6 +208,13 @@ func (sr *SecureRandom) Perm(n int) []int {
 // This is a drop-in replacement for crypto/rand.Shuffle()
 func (sr *SecureRandom) Shuffle(n int, swap func(i, j int)) {
 	if n < 0 {
+		logger := logging.NewLogger("security")
+		logger.ErrorEvent(
+			fmt.Errorf("invalid argument to Shuffle"),
+			"SecureRandom.Shuffle called with invalid argument",
+			"n", n,
+			"validRange", ">= 0",
+		)
 		panic("invalid argument to Shuffle")
 	}
 
@@ -200,6 +255,12 @@ func (sr *SecureRandom) Bytes(b []byte) {
 
 	if _, err := io.ReadFull(sr.reader, b); err != nil {
 		// Never expose detailed error information in panic messages
+		logger := logging.NewLogger("security")
+		logger.ErrorEvent(
+			fmt.Errorf("secure random generation failed"),
+			"Cryptographic random number generation failed in Bytes",
+			"bytesRequested", len(b),
+		)
 		panic("secure random generation failed")
 	}
 }

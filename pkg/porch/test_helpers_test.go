@@ -1,6 +1,7 @@
 package porch
 
 import (
+	"log/slog"
 	"net"
 	"net/http"
 	"time"
@@ -25,6 +26,7 @@ func newTestClient(baseURL string, dryRun bool) *Client {
 			},
 		},
 		dryRun: dryRun,
+		logger: slog.Default().With("component", "porch-client-test", "baseURL", baseURL),
 	}
 }
 
@@ -47,6 +49,7 @@ func newTestClientWithAuth(baseURL, token string, dryRun bool) *Client {
 			Timeout: 30 * time.Second,
 		},
 		dryRun: dryRun,
+		logger: slog.Default().With("component", "porch-client-test", "baseURL", baseURL, "authenticated", token != ""),
 	}
 
 	if token != "" {

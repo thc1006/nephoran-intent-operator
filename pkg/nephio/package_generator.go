@@ -11,6 +11,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/go-logr/logr"
 	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 
@@ -39,6 +40,8 @@ type PackageGenerator struct {
 	templates map[string]*template.Template
 
 	porchClient porch.PorchClient // Optional Porch client for direct API calls
+
+	logger logr.Logger
 }
 
 // NewPackageGenerator creates a new package generator.
@@ -1050,9 +1053,12 @@ func (pg *PackageGenerator) GeneratePatchAndPublishToPorch(ctx context.Context, 
 		}
 	}
 
-	fmt.Printf("Successfully created and published scaling patch to Porch: %s/%s:%s\n",
-
-		repository, packageName, createdRevision.Spec.Revision)
+	if pg.logger.Enabled() {
+		pg.logger.Info("Successfully created and published scaling patch to Porch",
+			"repository", repository,
+			"packageName", packageName,
+			"revision", createdRevision.Spec.Revision)
+	}
 
 	return nil
 }

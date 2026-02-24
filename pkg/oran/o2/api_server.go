@@ -28,7 +28,7 @@ type O2APIServer struct {
 
 	config *O2IMSConfig
 
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	// Core services.
 
@@ -109,16 +109,18 @@ type ComponentHealthCheck func(ctx context.Context) ComponentCheck
 
 // NewO2APIServer creates a new O2 IMS API server instance with flexible constructor patterns for 2025 Go testing best practices.
 
-func NewO2APIServer(config *O2IMSConfig, logger *logging.StructuredLogger, k8sClient interface{}) (*O2APIServer, error) {
+func NewO2APIServer(config *O2IMSConfig, logger logging.Logger, k8sClient interface{}) (*O2APIServer, error) {
 	if config == nil {
 		config = DefaultO2IMSConfig()
 	}
 
 	// Use provided logger or create default
-	if logger != nil {
+	// Check if logger parameter is non-zero
+	if logger.GetSink() != nil {
 		config.Logger = logger
-	} else if config.Logger == nil {
-		config.Logger = logging.NewStructuredLogger(logging.DefaultConfig("o2-ims-api", "1.0.0", "production"))
+	} else if config.Logger.GetSink() == nil {
+		// Create new logger with component name
+		config.Logger = logging.NewLogger("o2-ims")
 	}
 
 	// Store k8sClient for testing (will be used in future implementations)
@@ -208,7 +210,7 @@ func NewO2APIServer(config *O2IMSConfig, logger *logging.StructuredLogger, k8sCl
 
 // NewO2APIServerWithConfig creates a server with only config (backward compatibility).
 func NewO2APIServerWithConfig(config *O2IMSConfig) (*O2APIServer, error) {
-	return NewO2APIServer(config, nil, nil)
+	return NewO2APIServer(config, logging.Logger{}, nil)
 }
 
 // GetRouter returns the HTTP router for testing purposes.
@@ -310,7 +312,7 @@ func (s *O2APIServer) initializeMiddleware() error {
 	// TODO: Implement proper authentication middleware.
 
 	if s.config.AuthenticationConfig != nil && s.config.AuthenticationConfig.Enabled {
-		s.logger.Warn("Authentication middleware not yet implemented")
+		s.logger.WarnEvent("Authentication middleware not yet implemented")
 
 		// authMiddleware, err := auth.NewJWTMiddleware(&auth.JWTConfig{.
 
@@ -351,7 +353,7 @@ func (s *O2APIServer) initializeMiddleware() error {
 			return fmt.Errorf("invalid CORS config: %w", err)
 		}
 
-		s.corsMiddleware = middleware.NewCORSMiddleware(corsConfig, s.logger.Logger)
+		s.corsMiddleware = middleware.NewCORSMiddleware(corsConfig, nil)
 
 	}
 
@@ -485,7 +487,7 @@ func (s *O2APIServer) Start(ctx context.Context) error {
 		}
 
 		if err != nil && err != http.ErrServerClosed {
-			s.logger.Error("HTTP server error", "error", err)
+			s.logger.ErrorEvent(err, "HTTP server error")
 		}
 	}()
 
@@ -514,7 +516,7 @@ func (s *O2APIServer) Shutdown(ctx context.Context) error {
 		defer cancel()
 
 		if err := s.httpServer.Shutdown(shutdownCtx); err != nil {
-			s.logger.Error("HTTP server shutdown error", "error", err)
+			s.logger.ErrorEvent(err, "HTTP server shutdown error")
 		}
 
 	}

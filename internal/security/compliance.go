@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/go-logr/logr"
 )
 
 // ORANComplianceChecker implements O-RAN WG11 security compliance validation.
@@ -101,6 +103,8 @@ type ComplianceAuditor struct {
 	enabled bool
 
 	logFile string
+
+	logger logr.Logger
 }
 
 // NewORANComplianceChecker creates a new O-RAN WG11 compliance checker.
@@ -777,21 +781,32 @@ func (a *ComplianceAuditor) LogAssessment(report *ComplianceReport) {
 	data, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
 
-		fmt.Printf("[COMPLIANCE AUDIT ERROR] Failed to serialize report: %v\n", err)
+		if a.logger.Enabled() {
+			a.logger.Error(err, "Failed to serialize compliance report",
+				"assessmentID", report.AssessmentID,
+				"audit", true)
+		}
 
 		return
 
 	}
 
-	fmt.Printf("[COMPLIANCE AUDIT] Assessment %s completed. Score: %.1f%%, Critical Issues: %d\n",
-
-		report.AssessmentID, report.OverallScore, report.CriticalIssues)
+	if a.logger.Enabled() {
+		a.logger.Info("Compliance assessment completed",
+			"assessmentID", report.AssessmentID,
+			"overallScore", report.OverallScore,
+			"criticalIssues", report.CriticalIssues,
+			"audit", true)
+	}
 
 	// In production, this would write to secure audit logs.
 
-	// For now, we'll output to console.
-
 	if report.CriticalIssues > 0 {
-		fmt.Printf("[COMPLIANCE AUDIT] CRITICAL ISSUES DETECTED:\n%s\n", string(data))
+		if a.logger.Enabled() {
+			a.logger.Info("Critical compliance issues detected",
+				"assessmentID", report.AssessmentID,
+				"report", string(data),
+				"audit", true)
+		}
 	}
 }

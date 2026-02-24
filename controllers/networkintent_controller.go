@@ -44,15 +44,14 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"github.com/thc1006/nephoran-intent-operator/pkg/security"
 )
 
@@ -75,7 +74,7 @@ type NetworkIntentReconciler struct {
 
 	Scheme *runtime.Scheme
 
-	Log logr.Logger
+	Logger logging.Logger
 
 	EnableLLMIntent bool
 
@@ -145,7 +144,16 @@ type A1MetricThreshold struct {
 // move the current state of the cluster closer to the desired state.
 
 func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
+	start := time.Now()
+	logger := r.Logger.ReconcileStart(req.Namespace, req.Name)
+
+	// Track reconciliation duration and outcome
+	defer func() {
+		duration := time.Since(start).Seconds()
+		logger.InfoEvent("Reconciliation completed",
+			"durationSeconds", duration,
+		)
+	}()
 
 	// Fetch the NetworkIntent instance.
 
@@ -160,7 +168,7 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 			// For additional cleanup logic use finalizers.
 
-			log.Info("NetworkIntent resource not found. Ignoring since object must be deleted")
+			logger.DebugEvent("NetworkIntent resource not found, ignoring since object must be deleted")
 
 			return ctrl.Result{}, nil
 
@@ -168,7 +176,9 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 		// Error reading the object - requeue the request.
 
-		log.Error(err, "Failed to get NetworkIntent")
+		duration := time.Since(start).Seconds()
+		logger.ReconcileError(req.Namespace, req.Name, err, duration)
+		logger.ErrorEvent(err, "Failed to get NetworkIntent from API server")
 
 		return ctrl.Result{}, err
 
@@ -180,7 +190,7 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		// The object is being deleted
 		if controllerutil.ContainsFinalizer(networkIntent, NetworkIntentFinalizerName) {
 			// Our finalizer is present, so handle A1 policy cleanup
-			log.Info("Deleting A1 policy for NetworkIntent", "name", networkIntent.Name)
+			logger.InfoEvent("Deleting A1 policy for NetworkIntent during finalizer cleanup")
 
 			if r.EnableA1Integration {
 				// Count previous cleanup attempts from annotation
@@ -190,30 +200,36 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 				}
 
 				if retries >= maxA1CleanupRetries {
-					log.Info("Max A1 cleanup retries reached, removing finalizer anyway",
-						"name", networkIntent.Name, "retries", retries)
-				} else if err := r.deleteA1Policy(ctx, networkIntent); err != nil {
-					log.Error(err, "Failed to delete A1 policy, incrementing retry counter",
-						"retry", retries+1, "maxRetries", maxA1CleanupRetries)
+					logger.WarnEvent("Max A1 cleanup retries reached, removing finalizer anyway",
+						"retries", retries,
+						"maxRetries", maxA1CleanupRetries)
+				} else if err := r.deleteA1Policy(ctx, networkIntent, logger); err != nil {
+					logger.ErrorEvent(err, "Failed to delete A1 policy, incrementing retry counter",
+						"retry", retries+1,
+						"maxRetries", maxA1CleanupRetries)
 					// Record the retry in the annotation
 					if networkIntent.Annotations == nil {
 						networkIntent.Annotations = map[string]string{}
 					}
 					networkIntent.Annotations[A1CleanupRetriesAnnotation] = strconv.Itoa(retries + 1)
 					if err := r.Update(ctx, networkIntent); err != nil {
+						logger.ErrorEvent(err, "Failed to update NetworkIntent with retry annotation")
 						return ctrl.Result{}, err
 					}
 					return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 				} else {
-					log.Info("A1 policy deleted successfully", "name", networkIntent.Name)
+					policyID := fmt.Sprintf("policy-%s", networkIntent.Name)
+					logger.A1PolicyDeleted(policyID)
 				}
 			}
 
 			// Remove our finalizer from the list and update it
 			controllerutil.RemoveFinalizer(networkIntent, NetworkIntentFinalizerName)
 			if err := r.Update(ctx, networkIntent); err != nil {
+				logger.ErrorEvent(err, "Failed to remove finalizer from NetworkIntent")
 				return ctrl.Result{}, err
 			}
+			logger.InfoEvent("Finalizer removed, NetworkIntent deletion complete")
 		}
 
 		// Stop reconciliation as the item is being deleted
@@ -222,22 +238,26 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Add finalizer if not present
 	if !controllerutil.ContainsFinalizer(networkIntent, NetworkIntentFinalizerName) {
-		log.Info("Adding finalizer to NetworkIntent", "name", networkIntent.Name)
+		logger.InfoEvent("Adding finalizer to NetworkIntent")
 		controllerutil.AddFinalizer(networkIntent, NetworkIntentFinalizerName)
 		if err := r.Update(ctx, networkIntent); err != nil {
+			logger.ErrorEvent(err, "Failed to add finalizer to NetworkIntent")
 			return ctrl.Result{}, err
 		}
 	}
 
 	// Validate the intent field.
 
+	logger.DebugEvent("Validating NetworkIntent spec")
 	if len(networkIntent.Spec.Source) == 0 {
-		return r.updateStatus(ctx, networkIntent, "Error", "Source field cannot be empty", networkIntent.Generation)
+		logger.ErrorEvent(fmt.Errorf("source field empty"), "NetworkIntent validation failed")
+		return r.updateStatus(ctx, networkIntent, "Error", "Source field cannot be empty", networkIntent.Generation, logger)
 	}
 
 	// Initial validation passed.
 
-	if _, err := r.updateStatus(ctx, networkIntent, "Validated", "Intent validated successfully", networkIntent.Generation); err != nil {
+	logger.InfoEvent("NetworkIntent validation successful")
+	if _, err := r.updateStatus(ctx, networkIntent, "Validated", "Intent validated successfully", networkIntent.Generation, logger); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -247,40 +267,47 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		isUpdate := networkIntent.Status.Phase == "Deployed"
 
 		if isUpdate {
-			log.Info("Updating A1 policy for modified NetworkIntent", "name", networkIntent.Name)
+			logger.InfoEvent("Updating A1 policy for modified NetworkIntent")
 		} else {
-			log.Info("Converting NetworkIntent to A1 policy", "name", networkIntent.Name)
+			logger.InfoEvent("Converting NetworkIntent to A1 policy")
 		}
 
 		// Convert NetworkIntent to A1 policy
+		logger.DebugEvent("Converting NetworkIntent spec to A1 policy format",
+			"intentType", networkIntent.Spec.IntentType,
+			"target", networkIntent.Spec.Target,
+			"replicas", networkIntent.Spec.Replicas)
 		a1Policy, err := convertToA1Policy(networkIntent)
 		if err != nil {
-			log.Error(err, "Failed to convert NetworkIntent to A1 policy")
+			logger.ErrorEvent(err, "Failed to convert NetworkIntent to A1 policy")
 			return r.updateStatus(ctx, networkIntent, "Error",
-				fmt.Sprintf("Failed to convert to A1 policy: %v", err), networkIntent.Generation)
+				fmt.Sprintf("Failed to convert to A1 policy: %v", err), networkIntent.Generation, logger)
 		}
 
 		// Create/Update A1 policy via A1 Mediator API (PUT is idempotent - creates or updates)
-		if err := r.createA1Policy(ctx, networkIntent, a1Policy); err != nil {
-			log.Error(err, "Failed to create/update A1 policy")
+		if err := r.createA1Policy(ctx, networkIntent, a1Policy, logger); err != nil {
+			logger.ErrorEvent(err, "Failed to create/update A1 policy")
 			return r.updateStatus(ctx, networkIntent, "Error",
-				fmt.Sprintf("Failed to create/update A1 policy: %v", err), networkIntent.Generation)
+				fmt.Sprintf("Failed to create/update A1 policy: %v", err), networkIntent.Generation, logger)
 		}
 
 		statusMessage := "Intent deployed successfully via A1 policy"
 		if isUpdate {
 			statusMessage = "Intent updated successfully via A1 policy"
-			log.Info("A1 policy updated successfully", "name", networkIntent.Name)
+			logger.InfoEvent("A1 policy updated successfully")
 		} else {
-			log.Info("A1 policy created successfully", "name", networkIntent.Name)
+			policyID := fmt.Sprintf("policy-%s", networkIntent.Name)
+			logger.A1PolicyCreated(policyID, networkIntent.Spec.IntentType)
 		}
 
 		if _, err := r.updateStatus(ctx, networkIntent, "Deployed",
-			statusMessage, networkIntent.Generation); err != nil {
+			statusMessage, networkIntent.Generation, logger); err != nil {
 			return ctrl.Result{}, err
 		}
 
-		// A1 integration complete, return
+		// A1 integration complete, return success
+		duration := time.Since(start).Seconds()
+		logger.ReconcileSuccess(req.Namespace, req.Name, duration)
 		return ctrl.Result{}, nil
 	}
 
@@ -288,7 +315,9 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	if r.EnableLLMIntent {
 
-		log.Info("Processing intent with LLM", "source", networkIntent.Spec.Source)
+		logger.InfoEvent("Processing intent with LLM",
+			"source", networkIntent.Spec.Source,
+			"sourceLength", len(networkIntent.Spec.Source))
 
 		// Prepare the request.
 
@@ -299,9 +328,9 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		jsonData, err := json.Marshal(llmReq)
 		if err != nil {
 
-			log.Error(err, "Failed to marshal LLM request")
+			logger.ErrorEvent(err, "Failed to marshal LLM request")
 
-			return r.updateStatus(ctx, networkIntent, "Error", fmt.Sprintf("Failed to prepare LLM request: %v", err), networkIntent.Generation)
+			return r.updateStatus(ctx, networkIntent, "Error", fmt.Sprintf("Failed to prepare LLM request: %v", err), networkIntent.Generation, logger)
 
 		}
 
@@ -328,14 +357,18 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			llmURL = "http://llm-processor:8080/process"
 		}
 
+		logger.DebugEvent("Sending request to LLM processor",
+			"url", llmURL,
+			"timeout", "15s")
+
 		// Create the request.
 
 		httpReq, err := http.NewRequestWithContext(ctx, "POST", llmURL, bytes.NewBuffer(jsonData))
 		if err != nil {
 
-			log.Error(err, "Failed to create HTTP request")
+			logger.ErrorEvent(err, "Failed to create HTTP request for LLM processor")
 
-			return r.updateStatus(ctx, networkIntent, "Error", fmt.Sprintf("Failed to create LLM request: %v", err), networkIntent.Generation)
+			return r.updateStatus(ctx, networkIntent, "Error", fmt.Sprintf("Failed to create LLM request: %v", err), networkIntent.Generation, logger)
 
 		}
 
@@ -343,20 +376,26 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 		// Send the request.
 
+		llmStart := time.Now()
 		resp, err := client.Do(httpReq)
+		llmDuration := time.Since(llmStart).Seconds()
+
 		if err != nil {
 
-			log.Error(err, "Failed to send request to LLM processor")
+			logger.HTTPError("POST", llmURL, 0, err, llmDuration)
+			logger.ErrorEvent(err, "Failed to send request to LLM processor")
 
-			return r.updateStatus(ctx, networkIntent, "Error", fmt.Sprintf("Failed to process intent with LLM: %v", err), networkIntent.Generation)
+			return r.updateStatus(ctx, networkIntent, "Error", fmt.Sprintf("Failed to process intent with LLM: %v", err), networkIntent.Generation, logger)
 
 		}
 
 		defer func() {
 			if err := resp.Body.Close(); err != nil {
-				log.Error(err, "Failed to close response body")
+				logger.ErrorEvent(err, "Failed to close LLM response body")
 			}
 		}()
+
+		logger.HTTPRequest("POST", llmURL, resp.StatusCode, llmDuration)
 
 		// Parse the response.
 
@@ -364,9 +403,10 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 		if err := json.NewDecoder(resp.Body).Decode(&llmResp); err != nil {
 
-			log.Error(err, "Failed to decode LLM response")
+			logger.ErrorEvent(err, "Failed to decode LLM response",
+				"statusCode", resp.StatusCode)
 
-			return r.updateStatus(ctx, networkIntent, "Error", fmt.Sprintf("Failed to parse LLM response: %v", err), networkIntent.Generation)
+			return r.updateStatus(ctx, networkIntent, "Error", fmt.Sprintf("Failed to parse LLM response: %v", err), networkIntent.Generation, logger)
 
 		}
 
@@ -374,31 +414,42 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 		if llmResp.Success {
 
-			log.Info("LLM processing successful", "message", llmResp.Message)
+			logger.InfoEvent("LLM processing successful",
+				"message", llmResp.Message,
+				"durationSeconds", llmDuration)
 
-			return r.updateStatus(ctx, networkIntent, "Processed", "Intent processed successfully by LLM", networkIntent.Generation)
+			duration := time.Since(start).Seconds()
+			logger.ReconcileSuccess(req.Namespace, req.Name, duration)
+			return r.updateStatus(ctx, networkIntent, "Processed", "Intent processed successfully by LLM", networkIntent.Generation, logger)
 
 		} else {
 
 			err := fmt.Errorf("LLM processing failed: %s", llmResp.Error)
 
-			log.Error(err, "LLM processing failed")
+			logger.ErrorEvent(err, "LLM processing failed",
+				"llmError", llmResp.Error)
 
-			return r.updateStatus(ctx, networkIntent, "Error", err.Error(), networkIntent.Generation)
+			return r.updateStatus(ctx, networkIntent, "Error", err.Error(), networkIntent.Generation, logger)
 
 		}
 
 	}
 
-	log.Info("NetworkIntent reconciled successfully", "name", networkIntent.Name)
+	// Neither A1 nor LLM enabled, just mark as validated
+	duration := time.Since(start).Seconds()
+	logger.ReconcileSuccess(req.Namespace, req.Name, duration)
+	logger.InfoEvent("NetworkIntent reconciled successfully (no A1/LLM integration enabled)")
 
 	return ctrl.Result{}, nil
 }
 
 // updateStatus updates the status of the NetworkIntent.
 
-func (r *NetworkIntentReconciler) updateStatus(ctx context.Context, networkIntent *intentv1alpha1.NetworkIntent, phase, message string, generation int64) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
+func (r *NetworkIntentReconciler) updateStatus(ctx context.Context, networkIntent *intentv1alpha1.NetworkIntent, phase, message string, generation int64, logger logging.Logger) (ctrl.Result, error) {
+
+	logger.DebugEvent("Updating NetworkIntent status",
+		"phase", phase,
+		"generation", generation)
 
 	// Update the status fields.
 
@@ -410,11 +461,16 @@ func (r *NetworkIntentReconciler) updateStatus(ctx context.Context, networkInten
 
 	if err := r.Status().Update(ctx, networkIntent); err != nil {
 
-		log.Error(err, "Failed to update NetworkIntent status")
+		logger.ErrorEvent(err, "Failed to update NetworkIntent status",
+			"phase", phase,
+			"message", message)
 
 		return ctrl.Result{}, err
 
 	}
+
+	logger.InfoEvent("NetworkIntent status updated successfully",
+		"phase", phase)
 
 	return ctrl.Result{}, nil
 }
@@ -466,13 +522,14 @@ func convertToA1Policy(networkIntent *intentv1alpha1.NetworkIntent) (*A1Policy, 
 // createA1Policy creates an A1 policy via the O-RAN SC A1 Mediator.
 // Uses the O-RAN SC specific path: PUT /A1-P/v2/policytypes/{typeId}/policies/{policyId}
 // Note: O-RAN SC A1 Mediator requires capital "A1-P" prefix (not lowercase "a1-p")
-func (r *NetworkIntentReconciler) createA1Policy(ctx context.Context, networkIntent *intentv1alpha1.NetworkIntent, policy *A1Policy) error {
-	log := log.FromContext(ctx)
+func (r *NetworkIntentReconciler) createA1Policy(ctx context.Context, networkIntent *intentv1alpha1.NetworkIntent, policy *A1Policy, logger logging.Logger) error {
 
 	// Determine A1 endpoint (must be set via flag or env; no hardcoded default)
 	a1URL := r.A1MediatorURL
 	if a1URL == "" {
-		return fmt.Errorf("A1 endpoint not configured: set --a1-endpoint flag or A1_MEDIATOR_URL env var")
+		err := fmt.Errorf("A1 endpoint not configured: set --a1-endpoint flag or A1_MEDIATOR_URL env var")
+		logger.ErrorEvent(err, "A1 endpoint configuration missing")
+		return err
 	}
 
 	// Generate policy instance ID from NetworkIntent name
@@ -484,6 +541,7 @@ func (r *NetworkIntentReconciler) createA1Policy(ctx context.Context, networkInt
 	// Marshal the policy JSON (direct payload, no wrapper for O-RAN SC)
 	policyJSON, err := json.Marshal(policy)
 	if err != nil {
+		logger.ErrorEvent(err, "Failed to marshal A1 policy body")
 		return fmt.Errorf("failed to marshal A1 policy body: %w", err)
 	}
 
@@ -491,10 +549,12 @@ func (r *NetworkIntentReconciler) createA1Policy(ctx context.Context, networkInt
 	// IMPORTANT: Use capital "A1-P" (not "a1-p" or "/v2/policies/")
 	apiEndpoint := fmt.Sprintf("%s/A1-P/v2/policytypes/%d/policies/%s", a1URL, policyTypeID, policyInstanceID)
 
-	log.Info("Creating A1 policy (O-RAN SC A1 Mediator)",
+	logger.InfoEvent("Creating A1 policy via O-RAN SC A1 Mediator",
 		"endpoint", apiEndpoint,
 		"policyTypeID", policyTypeID,
-		"policyInstanceID", policyInstanceID)
+		"policyInstanceID", policyInstanceID,
+		"target", policy.Scope.Target,
+		"replicas", policy.QoSObjectives.Replicas)
 
 	// Create HTTP client with timeout and connection pool
 	httpClient := &http.Client{
@@ -512,45 +572,59 @@ func (r *NetworkIntentReconciler) createA1Policy(ctx context.Context, networkInt
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, apiEndpoint, bytes.NewBuffer(policyJSON))
 	if err != nil {
+		logger.ErrorEvent(err, "Failed to create A1 HTTP request")
 		return fmt.Errorf("failed to create A1 request: %w", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Accept", "application/json")
 
+	a1Start := time.Now()
 	resp, err := httpClient.Do(httpReq)
+	a1Duration := time.Since(a1Start).Seconds()
+
 	if err != nil {
+		logger.HTTPError(http.MethodPut, apiEndpoint, 0, err, a1Duration)
+		logger.ErrorEvent(err, "Failed to send A1 request")
 		return fmt.Errorf("failed to send A1 request: %w", err)
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			log.Error(err, "Failed to close A1 response body")
+			logger.ErrorEvent(err, "Failed to close A1 response body")
 		}
 	}()
+
+	logger.HTTPRequest(http.MethodPut, apiEndpoint, resp.StatusCode, a1Duration)
 
 	// O-RAN SC A1 Mediator returns 200 OK/201 Created/202 Accepted for successful PUT
 	// 202 Accepted indicates async processing, which is valid for policy creation
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusAccepted {
 		bodyBytes, _ := io.ReadAll(resp.Body)
+		logger.ErrorEvent(fmt.Errorf("A1 API error"), "A1 API returned error status",
+			"statusCode", resp.StatusCode,
+			"endpoint", apiEndpoint,
+			"responseBody", string(bodyBytes))
 		return fmt.Errorf("A1 API returned error status %d for PUT %s: %s", resp.StatusCode, apiEndpoint, string(bodyBytes))
 	}
 
-	log.Info("A1 policy created successfully",
+	logger.InfoEvent("A1 policy created successfully",
 		"policyInstanceID", policyInstanceID,
 		"policyTypeID", policyTypeID,
-		"statusCode", resp.StatusCode)
+		"statusCode", resp.StatusCode,
+		"durationSeconds", a1Duration)
 
 	return nil
 }
 
 // deleteA1Policy deletes an A1 policy via the O-RAN SC A1 Mediator.
 // Uses the O-RAN SC specific path: DELETE /A1-P/v2/policytypes/{typeId}/policies/{policyId}
-func (r *NetworkIntentReconciler) deleteA1Policy(ctx context.Context, networkIntent *intentv1alpha1.NetworkIntent) error {
-	log := log.FromContext(ctx)
+func (r *NetworkIntentReconciler) deleteA1Policy(ctx context.Context, networkIntent *intentv1alpha1.NetworkIntent, logger logging.Logger) error {
 
 	// Determine A1 endpoint (must be set via flag or env)
 	a1URL := r.A1MediatorURL
 	if a1URL == "" {
-		return fmt.Errorf("A1 endpoint not configured: set --a1-endpoint flag or A1_MEDIATOR_URL env var")
+		err := fmt.Errorf("A1 endpoint not configured: set --a1-endpoint flag or A1_MEDIATOR_URL env var")
+		logger.ErrorEvent(err, "A1 endpoint configuration missing for deletion")
+		return err
 	}
 
 	policyInstanceID := fmt.Sprintf("policy-%s", networkIntent.Name)
@@ -559,7 +633,7 @@ func (r *NetworkIntentReconciler) deleteA1Policy(ctx context.Context, networkInt
 	// O-RAN SC A1 Mediator path: DELETE /A1-P/v2/policytypes/{typeId}/policies/{policyId}
 	apiEndpoint := fmt.Sprintf("%s/A1-P/v2/policytypes/%d/policies/%s", a1URL, policyTypeID, policyInstanceID)
 
-	log.Info("Deleting A1 policy (O-RAN SC A1 Mediator)",
+	logger.InfoEvent("Deleting A1 policy via O-RAN SC A1 Mediator",
 		"endpoint", apiEndpoint,
 		"policyTypeID", policyTypeID,
 		"policyInstanceID", policyInstanceID)
@@ -579,29 +653,42 @@ func (r *NetworkIntentReconciler) deleteA1Policy(ctx context.Context, networkInt
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodDelete, apiEndpoint, nil)
 	if err != nil {
+		logger.ErrorEvent(err, "Failed to create A1 DELETE request")
 		return fmt.Errorf("failed to create A1 delete request: %w", err)
 	}
 
+	deleteStart := time.Now()
 	resp, err := httpClient.Do(httpReq)
+	deleteDuration := time.Since(deleteStart).Seconds()
+
 	if err != nil {
+		logger.HTTPError(http.MethodDelete, apiEndpoint, 0, err, deleteDuration)
+		logger.ErrorEvent(err, "Failed to send A1 delete request")
 		return fmt.Errorf("failed to send A1 delete request: %w", err)
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			log.Error(err, "Failed to close A1 response body")
+			logger.ErrorEvent(err, "Failed to close A1 DELETE response body")
 		}
 	}()
+
+	logger.HTTPRequest(http.MethodDelete, apiEndpoint, resp.StatusCode, deleteDuration)
 
 	// O-RAN SC returns 200 OK for successful DELETE, 404 if not found (both acceptable)
 	switch resp.StatusCode {
 	case http.StatusOK, http.StatusNoContent, http.StatusAccepted, http.StatusNotFound:
-		log.Info("A1 policy deletion completed",
+		logger.InfoEvent("A1 policy deletion completed",
 			"policyInstanceID", policyInstanceID,
 			"policyTypeID", policyTypeID,
-			"statusCode", resp.StatusCode)
+			"statusCode", resp.StatusCode,
+			"durationSeconds", deleteDuration)
 		return nil
 	default:
 		bodyBytes, _ := io.ReadAll(resp.Body)
+		logger.ErrorEvent(fmt.Errorf("A1 DELETE failed"), "A1 API DELETE returned unexpected status",
+			"statusCode", resp.StatusCode,
+			"endpoint", apiEndpoint,
+			"responseBody", string(bodyBytes))
 		return fmt.Errorf("A1 API DELETE %s returned unexpected status %d: %s", apiEndpoint, resp.StatusCode, string(bodyBytes))
 	}
 }
@@ -609,10 +696,17 @@ func (r *NetworkIntentReconciler) deleteA1Policy(ctx context.Context, networkInt
 // SetupWithManager sets up the controller with the Manager.
 
 func (r *NetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// Initialize structured logger
+	r.Logger = logging.NewLogger(logging.ComponentController)
+
+	r.Logger.InfoEvent("Setting up NetworkIntent controller",
+		"component", logging.ComponentController)
+
 	// Check if LLM intent is enabled via environment variable.
 
 	if envVal := os.Getenv("ENABLE_LLM_INTENT"); envVal == "true" {
 		r.EnableLLMIntent = true
+		r.Logger.InfoEvent("LLM intent processing enabled")
 	}
 
 	// Get LLM processor URL from environment if set.
@@ -623,23 +717,36 @@ func (r *NetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	if url := os.Getenv("LLM_PROCESSOR_URL"); url != "" {
 		if err := ssrfValidator.ValidateEndpointURL(url); err != nil {
+			r.Logger.ErrorEvent(err, "LLM_PROCESSOR_URL failed SSRF validation",
+				"url", url)
 			return fmt.Errorf("LLM_PROCESSOR_URL failed SSRF validation: %w", err)
 		}
 		r.LLMProcessorURL = url
+		r.Logger.InfoEvent("LLM processor URL configured",
+			"url", url)
 	}
 
 	// Check if A1 integration is enabled (default: true)
 	if envVal := os.Getenv("ENABLE_A1_INTEGRATION"); envVal == "" || envVal == "true" {
 		r.EnableA1Integration = true
+		r.Logger.InfoEvent("A1 integration enabled")
 	}
 
 	// Get A1 Mediator URL from environment if set
 	if url := os.Getenv("A1_MEDIATOR_URL"); url != "" {
 		if err := ssrfValidator.ValidateEndpointURL(url); err != nil {
+			r.Logger.ErrorEvent(err, "A1_MEDIATOR_URL failed SSRF validation",
+				"url", url)
 			return fmt.Errorf("A1_MEDIATOR_URL failed SSRF validation: %w", err)
 		}
 		r.A1MediatorURL = url
+		r.Logger.InfoEvent("A1 Mediator URL configured",
+			"url", url)
 	}
+
+	r.Logger.InfoEvent("NetworkIntent controller setup complete",
+		"enableLLM", r.EnableLLMIntent,
+		"enableA1", r.EnableA1Integration)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&intentv1alpha1.NetworkIntent{}).

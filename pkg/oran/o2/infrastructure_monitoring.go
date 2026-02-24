@@ -23,7 +23,7 @@ import (
 type InfrastructureMonitoringService struct {
 	config *InfrastructureMonitoringConfig
 
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	// Provider registry for multi-cloud monitoring.
 
@@ -233,14 +233,14 @@ func NewInfrastructureMonitoringService(
 
 	providerRegistry providers.ProviderRegistry,
 
-	logger *logging.StructuredLogger,
+	logger logging.Logger,
 ) (*InfrastructureMonitoringService, error) {
 	if config == nil {
 		config = DefaultInfrastructureMonitoringConfig()
 	}
 
-	if logger == nil {
-		logger = logging.NewStructuredLogger(logging.DefaultConfig("infrastructure-monitoring", "1.0.0", "production"))
+	if logger.GetSink() == nil {
+		logger = logging.NewLogger("infrastructure-monitoring")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -516,7 +516,7 @@ func (s *InfrastructureMonitoringService) initializeCollectors() error {
 		provider, err := s.providerRegistry.GetProvider(providerName)
 		if err != nil {
 
-			s.logger.Error("failed to get provider", "name", providerName, "error", err)
+			s.logger.ErrorEvent(err, "failed to get provider", "name", providerName, )
 
 			continue
 
@@ -527,7 +527,7 @@ func (s *InfrastructureMonitoringService) initializeCollectors() error {
 
 			providerInfo := provider.GetProviderInfo()
 
-			s.logger.Error("failed to create collector for provider",
+			s.logger.ErrorEvent(fmt.Errorf("failed to create collector for provider"),
 
 				"provider", providerInfo.Type,
 
@@ -727,13 +727,13 @@ func (s *InfrastructureMonitoringService) eventProcessingLoop() {
 // collectAllMetrics collects metrics from all collectors.
 
 func (s *InfrastructureMonitoringService) collectAllMetrics() {
-	s.logger.Debug("collecting infrastructure metrics")
+	s.logger.DebugEvent("collecting infrastructure metrics")
 
 	for _, collector := range s.collectors {
 
 		if !collector.IsHealthy() {
 
-			s.logger.Warn("skipping unhealthy collector",
+			s.logger.WarnEvent("skipping unhealthy collector",
 
 				"collector_type", collector.GetCollectorType())
 
@@ -744,7 +744,7 @@ func (s *InfrastructureMonitoringService) collectAllMetrics() {
 		metrics, err := collector.CollectMetrics(s.ctx)
 		if err != nil {
 
-			s.logger.Error("failed to collect metrics",
+			s.logger.ErrorEvent(fmt.Errorf("failed to collect metrics"),
 
 				"collector_type", collector.GetCollectorType(),
 
@@ -876,7 +876,7 @@ func (s *InfrastructureMonitoringService) processTelcoMetrics(collectorType stri
 // performHealthChecks performs health checks on all monitored resources.
 
 func (s *InfrastructureMonitoringService) performHealthChecks() {
-	s.logger.Debug("performing infrastructure health checks")
+	s.logger.DebugEvent("performing infrastructure health checks")
 
 	s.mu.RLock()
 
@@ -915,7 +915,7 @@ func (s *InfrastructureMonitoringService) checkResourceHealth(resourceID string,
 
 	if err != nil {
 
-		s.logger.Error("failed to check resource health",
+		s.logger.ErrorEvent(fmt.Errorf("failed to check resource health"),
 
 			"resource_id", resourceID,
 
@@ -997,7 +997,7 @@ func (s *InfrastructureMonitoringService) checkResourceHealth(resourceID string,
 // evaluateSLACompliance evaluates SLA compliance for all services.
 
 func (s *InfrastructureMonitoringService) evaluateSLACompliance() {
-	s.logger.Debug("evaluating SLA compliance")
+	s.logger.DebugEvent("evaluating SLA compliance")
 
 	// This would typically evaluate SLA compliance based on collected metrics.
 
@@ -1205,7 +1205,7 @@ func (s *InfrastructureMonitoringService) GetResourceMetrics(resourceID string) 
 // InfrastructureHealthCheckerImpl implements the InfrastructureHealthChecker interface
 type InfrastructureHealthCheckerImpl struct {
 	config *InfrastructureMonitoringConfig
-	logger *logging.StructuredLogger
+	logger logging.Logger
 }
 
 // CheckHealth checks the health of a specific resource
@@ -1265,18 +1265,18 @@ func (h *InfrastructureHealthCheckerImpl) EmitHealthEvent(ctx context.Context, e
 
 // Stub implementations for missing functions.
 
-func newInfrastructureHealthChecker(config *InfrastructureMonitoringConfig, logger *logging.StructuredLogger) InfrastructureHealthChecker {
+func newInfrastructureHealthChecker(config *InfrastructureMonitoringConfig, logger logging.Logger) InfrastructureHealthChecker {
 	return &InfrastructureHealthCheckerImpl{
 		config: config,
 		logger: logger,
 	}
 }
 
-func newSLAMonitor(config *InfrastructureMonitoringConfig, logger *logging.StructuredLogger) *SLAMonitor {
+func newSLAMonitor(config *InfrastructureMonitoringConfig, logger logging.Logger) *SLAMonitor {
 	return &SLAMonitor{}
 }
 
-func newEventProcessor(config *InfrastructureMonitoringConfig, logger *logging.StructuredLogger) *EventProcessor {
+func newEventProcessor(config *InfrastructureMonitoringConfig, logger logging.Logger) *EventProcessor {
 	return &EventProcessor{}
 }
 

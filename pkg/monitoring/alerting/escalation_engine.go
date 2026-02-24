@@ -26,7 +26,7 @@ import (
 // providing intelligent, time-based escalation with business context awareness.
 
 type EscalationEngine struct {
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	config *EscalationConfig
 
@@ -533,7 +533,7 @@ type EscalationRequest struct {
 // StakeholderRegistry manages stakeholder information.
 
 type StakeholderRegistry struct {
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	stakeholders map[string]*Stakeholder
 
@@ -601,7 +601,7 @@ type Role struct {
 // OncallSchedule manages on-call schedules.
 
 type OncallSchedule struct {
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	schedules map[string]*Schedule
 
@@ -657,7 +657,7 @@ type Override struct {
 // AutoResolver handles automatic alert resolution.
 
 type AutoResolver struct {
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	config *EscalationConfig
 
@@ -667,7 +667,7 @@ type AutoResolver struct {
 // ResolutionDetector detects when alerts should be automatically resolved.
 
 type ResolutionDetector struct {
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	config *EscalationConfig
 }
@@ -675,7 +675,7 @@ type ResolutionDetector struct {
 // WorkflowExecutor executes automated workflows.
 
 type WorkflowExecutor struct {
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	workflows map[string]*Workflow
 }
@@ -727,7 +727,7 @@ type RetryPolicy struct {
 // TicketingSystem integrates with external ticketing systems.
 
 type TicketingSystem struct {
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	providers map[string]TicketingProvider
 }
@@ -872,14 +872,11 @@ func DefaultEscalationConfig() *EscalationConfig {
 
 // NewEscalationEngine creates a new escalation engine.
 
-func NewEscalationEngine(config *EscalationConfig, logger *logging.StructuredLogger) (*EscalationEngine, error) {
+func NewEscalationEngine(config *EscalationConfig, logger logging.Logger) (*EscalationEngine, error) {
 	if config == nil {
 		config = DefaultEscalationConfig()
 	}
 
-	if logger == nil {
-		return nil, fmt.Errorf("logger is required")
-	}
 
 	// Initialize metrics.
 
@@ -948,14 +945,14 @@ func NewEscalationEngine(config *EscalationConfig, logger *logging.StructuredLog
 			if !errors.As(err, &alreadyRegisteredErr) {
 				// Only propagate non-duplicate errors.
 
-				logger.Error("Failed to register escalation metric", "error", err)
+				logger.ErrorEvent(err, "Failed to register escalation metric")
 			}
 
 		}
 	}
 
 	ee := &EscalationEngine{
-		logger: logger.WithComponent("escalation-engine"),
+		logger: logger.WithValues("component", "escalation-engine"),
 
 		config: config,
 
@@ -981,7 +978,7 @@ func NewEscalationEngine(config *EscalationConfig, logger *logging.StructuredLog
 	// Initialize sub-components.
 
 	ee.stakeholderRegistry = &StakeholderRegistry{
-		logger: logger.WithComponent("stakeholder-registry"),
+		logger: logger.WithValues("component", "stakeholder-registry"),
 
 		stakeholders: make(map[string]*Stakeholder),
 
@@ -991,31 +988,31 @@ func NewEscalationEngine(config *EscalationConfig, logger *logging.StructuredLog
 	}
 
 	ee.oncallSchedule = &OncallSchedule{
-		logger: logger.WithComponent("oncall-schedule"),
+		logger: logger.WithValues("component", "oncall-schedule"),
 
 		schedules: make(map[string]*Schedule),
 	}
 
 	ee.autoResolver = &AutoResolver{
-		logger: logger.WithComponent("auto-resolver"),
+		logger: logger.WithValues("component", "auto-resolver"),
 
 		config: config,
 
 		detector: &ResolutionDetector{
-			logger: logger.WithComponent("resolution-detector"),
+			logger: logger.WithValues("component", "resolution-detector"),
 
 			config: config,
 		},
 	}
 
 	ee.workflowExecutor = &WorkflowExecutor{
-		logger: logger.WithComponent("workflow-executor"),
+		logger: logger.WithValues("component", "workflow-executor"),
 
 		workflows: make(map[string]*Workflow),
 	}
 
 	ee.ticketingSystem = &TicketingSystem{
-		logger: logger.WithComponent("ticketing-system"),
+		logger: logger.WithValues("component", "ticketing-system"),
 
 		providers: make(map[string]TicketingProvider),
 	}
@@ -1042,7 +1039,7 @@ func (ee *EscalationEngine) Start(ctx context.Context) error {
 		return fmt.Errorf("escalation engine already started")
 	}
 
-	ee.logger.InfoWithContext("Starting escalation engine",
+	ee.logger.InfoEvent("Starting escalation engine",
 
 		"max_escalation_levels", ee.config.MaxEscalationLevels,
 
@@ -1070,7 +1067,7 @@ func (ee *EscalationEngine) Start(ctx context.Context) error {
 
 	ee.started = true
 
-	ee.logger.InfoWithContext("Escalation engine started successfully")
+	ee.logger.InfoEvent("Escalation engine started successfully")
 
 	return nil
 }
@@ -1086,7 +1083,7 @@ func (ee *EscalationEngine) Stop(ctx context.Context) error {
 		return nil
 	}
 
-	ee.logger.InfoWithContext("Stopping escalation engine")
+	ee.logger.InfoEvent("Stopping escalation engine")
 
 	close(ee.stopCh)
 
@@ -1094,7 +1091,7 @@ func (ee *EscalationEngine) Stop(ctx context.Context) error {
 
 	ee.started = false
 
-	ee.logger.InfoWithContext("Escalation engine stopped")
+	ee.logger.InfoEvent("Escalation engine stopped")
 
 	return nil
 }
@@ -1136,7 +1133,7 @@ func (ee *EscalationEngine) StartEscalation(ctx context.Context, alert *SLAAlert
 // escalationWorker processes escalation requests.
 
 func (ee *EscalationEngine) escalationWorker(ctx context.Context, workerID int) {
-	ee.logger.DebugWithContext("Starting escalation worker",
+	ee.logger.DebugEvent("Starting escalation worker",
 
 		slog.Int("worker_id", workerID),
 	)
@@ -1167,7 +1164,7 @@ func (ee *EscalationEngine) escalationWorker(ctx context.Context, workerID int) 
 // processEscalationRequest processes a single escalation request.
 
 func (ee *EscalationEngine) processEscalationRequest(ctx context.Context, request *EscalationRequest, workerID int) {
-	ee.logger.InfoWithContext("Starting escalation",
+	ee.logger.InfoEvent("Starting escalation",
 
 		slog.String("alert_id", request.Alert.ID),
 
@@ -1265,7 +1262,7 @@ func (ee *EscalationEngine) executeEscalationLevel(ctx context.Context, escalati
 
 	if !exists || level >= len(policy.Levels) {
 
-		ee.logger.WarnWithContext("Invalid escalation level or policy",
+		ee.logger.WarnEvent("Invalid escalation level or policy",
 
 			slog.String("escalation_id", escalation.ID),
 
@@ -1282,7 +1279,7 @@ func (ee *EscalationEngine) executeEscalationLevel(ctx context.Context, escalati
 
 	escalation.CurrentLevel = level
 
-	ee.logger.InfoWithContext("Executing escalation level",
+	ee.logger.InfoEvent("Executing escalation level",
 
 		slog.String("escalation_id", escalation.ID),
 
@@ -1301,7 +1298,7 @@ func (ee *EscalationEngine) executeEscalationLevel(ctx context.Context, escalati
 
 	for _, action := range levelConfig.Actions {
 		if err := ee.executeEscalationAction(ctx, escalation, action, level); err != nil {
-			ee.logger.ErrorWithContext("Failed to execute escalation action", err,
+			ee.logger.ErrorEvent(err, "Failed to execute escalation action",
 
 				"action_type", action.Type, "alert_id", escalation.AlertID, "level", level)
 		}
@@ -1311,7 +1308,7 @@ func (ee *EscalationEngine) executeEscalationLevel(ctx context.Context, escalati
 
 	for _, stakeholder := range levelConfig.Stakeholders {
 		if err := ee.notifyStakeholder(ctx, escalation, stakeholder, level); err != nil {
-			ee.logger.ErrorWithContext("Failed to notify stakeholder", err,
+			ee.logger.ErrorEvent(err, "Failed to notify stakeholder",
 
 				"stakeholder", stakeholder.Identifier, "alert_id", escalation.AlertID, "level", level)
 		}
@@ -1423,7 +1420,7 @@ func (ee *EscalationEngine) metricsUpdateLoop(ctx context.Context) {
 // executeEscalationAction executes specific escalation actions.
 
 func (ee *EscalationEngine) executeEscalationAction(ctx context.Context, escalation *ActiveEscalation, action EscalationAction, level int) error {
-	ee.logger.InfoWithContext(fmt.Sprintf("Executing escalation action %s for alert %s at level %d",
+	ee.logger.InfoEvent(fmt.Sprintf("Executing escalation action %s for alert %s at level %d",
 
 		action.Type, escalation.AlertID, level))
 
@@ -1451,7 +1448,7 @@ func (ee *EscalationEngine) executeEscalationAction(ctx context.Context, escalat
 // notifyStakeholder sends notifications to stakeholders.
 
 func (ee *EscalationEngine) notifyStakeholder(ctx context.Context, escalation *ActiveEscalation, stakeholder StakeholderReference, level int) error {
-	ee.logger.InfoWithContext(fmt.Sprintf("Notifying stakeholder %s for alert %s at level %d",
+	ee.logger.InfoEvent(fmt.Sprintf("Notifying stakeholder %s for alert %s at level %d",
 
 		stakeholder.Identifier, escalation.AlertID, level))
 
@@ -1465,7 +1462,7 @@ func (ee *EscalationEngine) notifyStakeholder(ctx context.Context, escalation *A
 func (ee *EscalationEngine) scheduleNextEscalation(ctx context.Context, escalation *ActiveEscalation, levelConfig EscalationLevel) {
 	nextTime := time.Now().Add(levelConfig.Delay)
 
-	ee.logger.InfoWithContext(fmt.Sprintf("Scheduling next escalation for alert %s at %v",
+	ee.logger.InfoEvent(fmt.Sprintf("Scheduling next escalation for alert %s at %v",
 
 		escalation.AlertID, nextTime))
 

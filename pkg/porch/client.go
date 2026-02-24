@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -25,6 +26,7 @@ type Client struct {
 	baseURL    string
 	httpClient *http.Client
 	dryRun     bool
+	logger     *slog.Logger
 }
 
 // PackageRequest represents a request to create/update a package
@@ -86,7 +88,12 @@ type Workspacev1Package struct {
 // The baseURL is validated against SSRF attacks. In-cluster private IPs are allowed
 // because Porch typically runs as a Kubernetes service.
 func NewClient(baseURL string, dryRun bool) (*Client, error) {
+	logger := slog.Default().With("component", "porch-client", "baseURL", baseURL)
 	if err := security.ValidateInClusterEndpointURL(baseURL); err != nil {
+		logger.Error("Failed to validate Porch endpoint URL",
+			"error", err,
+			"baseURL", baseURL,
+		)
 		return nil, fmt.Errorf("porch client: %w", err)
 	}
 	return &Client{
@@ -104,13 +111,19 @@ func NewClient(baseURL string, dryRun bool) (*Client, error) {
 			},
 		},
 		dryRun: dryRun,
+		logger: logger,
 	}, nil
 }
 
 // NewClientWithAuth creates a new Porch API client with authentication.
 // The baseURL is validated against SSRF attacks.
 func NewClientWithAuth(baseURL, token string, dryRun bool) (*Client, error) {
+	logger := slog.Default().With("component", "porch-client", "baseURL", baseURL, "authenticated", token != "")
 	if err := security.ValidateInClusterEndpointURL(baseURL); err != nil {
+		logger.Error("Failed to validate Porch endpoint URL",
+			"error", err,
+			"baseURL", baseURL,
+		)
 		return nil, fmt.Errorf("porch client: %w", err)
 	}
 
@@ -131,6 +144,7 @@ func NewClientWithAuth(baseURL, token string, dryRun bool) (*Client, error) {
 			Timeout: 30 * time.Second,
 		},
 		dryRun: dryRun,
+		logger: logger,
 	}
 
 	if token != "" {
@@ -165,6 +179,12 @@ func (c *Client) CreateOrUpdatePackage(req *PackageRequest) (*PorchPackageRevisi
 	// Check if package exists
 	existing, err := c.getPackage(req.Repository, req.Package)
 	if err != nil && !isNotFound(err) {
+		c.logger.Error("Failed to check existing package",
+			"error", err,
+			"repository", req.Repository,
+			"package", req.Package,
+			"namespace", req.Namespace,
+		)
 		return nil, fmt.Errorf("failed to check existing package: %w", err)
 	}
 
@@ -178,14 +198,33 @@ func (c *Client) CreateOrUpdatePackage(req *PackageRequest) (*PorchPackageRevisi
 	}
 
 	if err != nil {
+		c.logger.Error("Failed to create or update package",
+			"error", err,
+			"repository", req.Repository,
+			"package", req.Package,
+			"namespace", req.Namespace,
+			"isUpdate", existing != nil,
+		)
 		return nil, err
 	}
 
 	// Apply KRM overlays
 	if err := c.applyOverlays(revision, req); err != nil {
+		c.logger.Error("Failed to apply KRM overlays",
+			"error", err,
+			"revisionName", revision.Name,
+			"repository", req.Repository,
+			"package", req.Package,
+		)
 		return nil, fmt.Errorf("failed to apply overlays: %w", err)
 	}
 
+	c.logger.Info("Successfully created or updated package",
+		"repository", req.Repository,
+		"package", req.Package,
+		"revision", revision.Revision,
+		"status", revision.Status,
+	)
 	return revision, nil
 }
 
@@ -209,25 +248,52 @@ func (c *Client) SubmitProposal(revision *PorchPackageRevision) (*Proposal, erro
 
 	data, err := json.Marshal(body)
 	if err != nil {
+		c.logger.Error("Failed to marshal proposal request",
+			"error", err,
+			"revisionName", revision.Name,
+			"namespace", revision.Namespace,
+		)
 		return nil, err
 	}
 
 	resp, err := c.httpClient.Post(url, "application/json", bytes.NewReader(data))
 	if err != nil {
+		c.logger.Error("Failed to submit proposal HTTP request",
+			"error", err,
+			"url", url,
+			"revisionName", revision.Name,
+			"namespace", revision.Namespace,
+		)
 		return nil, fmt.Errorf("failed to submit proposal: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(resp.Body)
+		c.logger.Error("Proposal submission failed with non-201 status",
+			"statusCode", resp.StatusCode,
+			"responseBody", string(body),
+			"revisionName", revision.Name,
+			"url", url,
+		)
 		return nil, fmt.Errorf("failed to submit proposal: %s", body)
 	}
 
 	var proposal Proposal
 	if err := json.NewDecoder(resp.Body).Decode(&proposal); err != nil {
+		c.logger.Error("Failed to decode proposal response",
+			"error", err,
+			"revisionName", revision.Name,
+		)
 		return nil, err
 	}
 
+	c.logger.Info("Successfully submitted proposal",
+		"proposalID", proposal.ID,
+		"package", proposal.Package,
+		"revision", proposal.Revision,
+		"status", proposal.Status,
+	)
 	return &proposal, nil
 }
 
@@ -566,7 +632,7 @@ func (c *Client) dryRunPackage(req *PackageRequest) (*PorchPackageRevision, erro
 		}
 	}
 
-	fmt.Printf("[porch-client] Dry-run: Files written to %s/\n", outDir)
+	c.logger.Info("Dry-run: Package files written", "directory", outDir)
 
 	// Generate proper vNNN revision format
 	revisionNumber := time.Now().Unix() % 1000 // Keep it short for demo
@@ -602,31 +668,63 @@ func (c *Client) Create(ctx context.Context, pkg *Package) (*Package, error) {
 	url := fmt.Sprintf("%s/api/v1/packages", c.baseURL)
 	data, err := json.Marshal(pkg)
 	if err != nil {
+		c.logger.Error("Failed to marshal package for creation",
+			"error", err,
+			"packageName", pkg.Name,
+			"namespace", pkg.Namespace,
+		)
 		return nil, fmt.Errorf("failed to marshal package: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(data))
 	if err != nil {
+		c.logger.Error("Failed to create HTTP request for package creation",
+			"error", err,
+			"url", url,
+			"packageName", pkg.Name,
+		)
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		c.logger.Error("Failed to execute package creation HTTP request",
+			"error", err,
+			"url", url,
+			"packageName", pkg.Name,
+			"namespace", pkg.Namespace,
+		)
 		return nil, fmt.Errorf("failed to create package: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(resp.Body)
+		c.logger.Error("Package creation failed with non-201 status",
+			"statusCode", resp.StatusCode,
+			"responseBody", string(body),
+			"packageName", pkg.Name,
+			"namespace", pkg.Namespace,
+			"url", url,
+		)
 		return nil, fmt.Errorf("failed to create package: status %d, body: %s", resp.StatusCode, body)
 	}
 
 	var createdPkg Package
 	if err := json.NewDecoder(resp.Body).Decode(&createdPkg); err != nil {
+		c.logger.Error("Failed to decode created package response",
+			"error", err,
+			"packageName", pkg.Name,
+		)
 		return nil, fmt.Errorf("failed to decode created package: %w", err)
 	}
 
+	c.logger.Info("Successfully created package",
+		"packageName", createdPkg.Name,
+		"namespace", createdPkg.Namespace,
+		"phase", createdPkg.Status.Phase,
+	)
 	return &createdPkg, nil
 }
 
@@ -640,31 +738,63 @@ func (c *Client) Update(ctx context.Context, pkg *Package) (*Package, error) {
 	url := fmt.Sprintf("%s/api/v1/packages/%s", c.baseURL, pkg.Name)
 	data, err := json.Marshal(pkg)
 	if err != nil {
+		c.logger.Error("Failed to marshal package for update",
+			"error", err,
+			"packageName", pkg.Name,
+			"namespace", pkg.Namespace,
+		)
 		return nil, fmt.Errorf("failed to marshal package: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(data))
 	if err != nil {
+		c.logger.Error("Failed to create HTTP request for package update",
+			"error", err,
+			"url", url,
+			"packageName", pkg.Name,
+		)
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		c.logger.Error("Failed to execute package update HTTP request",
+			"error", err,
+			"url", url,
+			"packageName", pkg.Name,
+			"namespace", pkg.Namespace,
+		)
 		return nil, fmt.Errorf("failed to update package: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
+		c.logger.Error("Package update failed with non-200 status",
+			"statusCode", resp.StatusCode,
+			"responseBody", string(body),
+			"packageName", pkg.Name,
+			"namespace", pkg.Namespace,
+			"url", url,
+		)
 		return nil, fmt.Errorf("failed to update package: status %d, body: %s", resp.StatusCode, body)
 	}
 
 	var updatedPkg Package
 	if err := json.NewDecoder(resp.Body).Decode(&updatedPkg); err != nil {
+		c.logger.Error("Failed to decode updated package response",
+			"error", err,
+			"packageName", pkg.Name,
+		)
 		return nil, fmt.Errorf("failed to decode updated package: %w", err)
 	}
 
+	c.logger.Info("Successfully updated package",
+		"packageName", updatedPkg.Name,
+		"namespace", updatedPkg.Namespace,
+		"phase", updatedPkg.Status.Phase,
+	)
 	return &updatedPkg, nil
 }
 

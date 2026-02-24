@@ -2,6 +2,7 @@ package o2
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -134,11 +135,15 @@ func (s *O2APIServer) recoveryMiddleware(next http.Handler) http.Handler {
 
 				requestID := r.Context().Value("request_id")
 
-				s.logger.Error("panic recovered",
+				// Convert panic value to error
+				panicErr, ok := err.(error)
+				if !ok {
+					panicErr = fmt.Errorf("panic: %v", err)
+				}
+
+				s.logger.ErrorEvent(panicErr, "panic recovered",
 
 					"request_id", requestID,
-
-					"error", err,
 
 					"method", r.Method,
 
@@ -211,7 +216,7 @@ func (s *O2APIServer) createRateLimitMiddleware() http.Handler {
 
 		if !limiter.Allow() {
 
-			s.logger.Warn("rate limit exceeded",
+			s.logger.WarnEvent("rate limit exceeded",
 
 				"client", clientKey,
 
@@ -361,7 +366,7 @@ func (s *O2APIServer) requestSizeMiddleware(maxSize int64) func(http.Handler) ht
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.ContentLength > maxSize {
 
-				s.logger.Warn("request too large",
+				s.logger.WarnEvent("request too large",
 
 					"content_length", r.ContentLength,
 

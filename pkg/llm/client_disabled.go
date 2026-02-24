@@ -17,6 +17,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
 // ClientMetrics tracks client performance metrics (simplified for disable_rag).
@@ -173,6 +175,15 @@ func NewClient(url, apiKey, modelName string, maxTokens int, config *ClientConfi
 	if config.SkipTLSVerification {
 		// Security check: only allow in non-production environments
 		if !allowInsecureClient() {
+			logger := logging.NewLogger(logging.ComponentLLM)
+			logger.ErrorEvent(
+				fmt.Errorf("security violation: TLS verification cannot be disabled in production"),
+				"SECURITY VIOLATION: Attempted to skip TLS verification in production",
+				"skipTLSVerification", config.SkipTLSVerification,
+				"backendType", config.BackendType,
+				"env_ALLOW_INSECURE_CLIENT", os.Getenv("ALLOW_INSECURE_CLIENT"),
+				"env_ENVIRONMENT", os.Getenv("ENVIRONMENT"),
+			)
 			panic("Security violation: TLS verification cannot be disabled in production")
 		}
 		slog.Warn("SECURITY WARNING: TLS verification disabled (testing only)")

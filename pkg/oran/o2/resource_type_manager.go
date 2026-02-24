@@ -23,7 +23,7 @@ type ResourceTypeManager struct {
 
 	kubeClient client.Client
 
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	config *ResourceTypeConfig
 
@@ -608,7 +608,7 @@ type SchemaFilter struct {
 
 // NewResourceTypeManager creates a new resource type manager.
 
-func NewResourceTypeManager(storage O2IMSStorage, kubeClient client.Client, logger *logging.StructuredLogger) *ResourceTypeManager {
+func NewResourceTypeManager(storage O2IMSStorage, kubeClient client.Client, logger logging.Logger) *ResourceTypeManager {
 	config := &ResourceTypeConfig{
 		CacheEnabled: true,
 
@@ -1142,7 +1142,7 @@ func (rtm *ResourceTypeManager) processYANGModel(ctx context.Context, resourceTy
 func (rtm *ResourceTypeManager) enrichTypesWithYANGModels(ctx context.Context, types []*models.ResourceType) error {
 	for _, resourceType := range types {
 		if err := rtm.enrichTypeWithYANGModel(ctx, resourceType); err != nil {
-			rtm.logger.Error("failed to enrich type with YANG model", "error", err, "typeId", resourceType.ResourceTypeID)
+			rtm.logger.ErrorEvent(err, "failed to enrich type with YANG model", "typeId", resourceType.ResourceTypeID)
 		}
 	}
 

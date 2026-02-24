@@ -47,6 +47,7 @@ func TestA1AdaptorPolicyTypeOperations(t *testing.T) {
 		RICURL:     server.URL,
 		APIVersion: "v1",
 		Timeout:    5 * time.Second,
+		DisableSSRFValidation: true,
 	})
 	require.NoError(t, err)
 
@@ -117,6 +118,7 @@ func TestA1AdaptorPolicyInstanceOperations(t *testing.T) {
 		RICURL:     server.URL,
 		APIVersion: "v1",
 		Timeout:    5 * time.Second,
+		DisableSSRFValidation: true,
 	})
 	require.NoError(t, err)
 
@@ -202,6 +204,7 @@ func TestA1AdaptorApplyPolicy(t *testing.T) {
 		RICURL:     server.URL,
 		APIVersion: "v1",
 		Timeout:    5 * time.Second,
+		DisableSSRFValidation: true,
 	})
 	require.NoError(t, err)
 
@@ -253,6 +256,7 @@ func TestA1AdaptorRemovePolicy(t *testing.T) {
 		RICURL:     server.URL,
 		APIVersion: "v1",
 		Timeout:    5 * time.Second,
+		DisableSSRFValidation: true,
 	})
 	require.NoError(t, err)
 
@@ -360,9 +364,10 @@ func TestA1Adaptor_RetryMechanism(t *testing.T) {
 	defer server.Close() // #nosec G307 - Error handled in defer
 
 	config := &A1AdaptorConfig{
-		RICURL:     server.URL,
-		APIVersion: "v1",
-		Timeout:    5 * time.Second,
+		RICURL:                server.URL,
+		APIVersion:            "v1",
+		Timeout:               5 * time.Second,
+		DisableSSRFValidation: true,
 		RetryConfig: &RetryConfig{
 			MaxRetries:      5,
 			InitialDelay:    10 * time.Millisecond,
@@ -511,9 +516,10 @@ func TestA1Adaptor_PolicyInstanceCreationWithRetry(t *testing.T) {
 	defer server.Close() // #nosec G307 - Error handled in defer
 
 	config := &A1AdaptorConfig{
-		RICURL:     server.URL,
-		APIVersion: "v1",
-		Timeout:    5 * time.Second,
+		RICURL:                server.URL,
+		APIVersion:            "v1",
+		Timeout:               5 * time.Second,
+		DisableSSRFValidation: true,
 	}
 
 	adaptor, err := NewA1Adaptor(config)
@@ -548,9 +554,10 @@ func TestA1Adaptor_FailureAfterMaxRetries(t *testing.T) {
 	defer server.Close() // #nosec G307 - Error handled in defer
 
 	config := &A1AdaptorConfig{
-		RICURL:     server.URL,
-		APIVersion: "v1",
-		Timeout:    5 * time.Second,
+		RICURL:                server.URL,
+		APIVersion:            "v1",
+		Timeout:               5 * time.Second,
+		DisableSSRFValidation: true,
 		RetryConfig: &RetryConfig{
 			MaxRetries:      2,
 			InitialDelay:    10 * time.Millisecond,

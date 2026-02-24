@@ -23,6 +23,7 @@ import (
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 )
 
@@ -1193,6 +1194,14 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 			FunctionID: func() int {
 				f := funcMap["function_id"].(float64)
 				if f < 0 || f > 2147483647 {
+					logger := logging.NewLogger("e2-adaptor")
+					logger.ErrorEvent(
+						fmt.Errorf("function_id out of int range"),
+						"E2 RAN function ID out of valid integer range",
+						"function_id", f,
+						"validRange", "0-2147483647",
+						"funcMap", funcMap,
+					)
 					panic("function_id out of int range")
 				}
 				return int(f)
@@ -1203,6 +1212,14 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 			FunctionRevision: func() int {
 				f := funcMap["function_revision"].(float64)
 				if f < 0 || f > 2147483647 {
+					logger := logging.NewLogger("e2-adaptor")
+					logger.ErrorEvent(
+						fmt.Errorf("function_revision out of int range"),
+						"E2 RAN function revision out of valid integer range",
+						"function_revision", f,
+						"validRange", "0-2147483647",
+						"funcMap", funcMap,
+					)
 					panic("function_revision out of int range")
 				}
 				return int(f)
@@ -1279,6 +1296,14 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 				RanFunctionID: func() int {
 					f := subMap["ran_function_id"].(float64)
 					if f < 0 || f > 2147483647 {
+						logger := logging.NewLogger("e2-adaptor")
+						logger.ErrorEvent(
+							fmt.Errorf("ran_function_id out of int range"),
+							"E2 subscription RAN function ID out of valid integer range",
+							"ran_function_id", f,
+							"validRange", "0-2147483647",
+							"subscriptionID", subMap["subscription_id"],
+						)
 						panic("ran_function_id out of int range")
 					}
 					return int(f)
@@ -1287,6 +1312,14 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 				ReportingPeriod: func() time.Duration {
 					f := subMap["reporting_period_ms"].(float64)
 					if f < 0 || f > 2147483647 {
+						logger := logging.NewLogger("e2-adaptor")
+						logger.ErrorEvent(
+							fmt.Errorf("reporting_period_ms out of int range"),
+							"E2 subscription reporting period out of valid integer range",
+							"reporting_period_ms", f,
+							"validRange", "0-2147483647",
+							"subscriptionID", subMap["subscription_id"],
+						)
 						panic("reporting_period_ms out of int range")
 					}
 					return time.Duration(int(f)) * time.Millisecond
@@ -1311,6 +1344,14 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 
 						f := period.(float64)
 						if f < 0 || f > 2147483647 {
+							logger := logging.NewLogger("e2-adaptor")
+							logger.ErrorEvent(
+								fmt.Errorf("reporting period out of int range"),
+								"E2 event trigger reporting period out of valid integer range",
+								"reporting_period_ms", f,
+								"validRange", "0-2147483647",
+								"triggerType", triggerMap["trigger_type"],
+							)
 							panic("reporting period out of int range")
 						}
 						trigger.ReportingPeriod = time.Duration(int(f)) * time.Millisecond
@@ -1337,6 +1378,14 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 						ActionID: func() int {
 							f := actionMap["action_id"].(float64)
 							if f < 0 || f > 2147483647 {
+								logger := logging.NewLogger("e2-adaptor")
+								logger.ErrorEvent(
+									fmt.Errorf("action_id out of int range"),
+									"E2 action ID out of valid integer range",
+									"action_id", f,
+									"validRange", "0-2147483647",
+									"actionMap", actionMap,
+								)
 								panic("action_id out of int range")
 							}
 							return int(f)

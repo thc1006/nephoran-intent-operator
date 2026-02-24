@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"time"
@@ -20,6 +21,7 @@ type Client struct {
 	baseURL    string
 	httpClient *http.Client
 	apiKey     string
+	logger     *slog.Logger
 }
 
 // Config holds configuration for the RAG client.
@@ -33,11 +35,16 @@ type Config struct {
 // The BaseURL is validated against SSRF attacks. In-cluster private IPs are
 // allowed because the RAG service typically runs as a Kubernetes service.
 func NewClient(cfg Config) (*Client, error) {
+	logger := slog.Default().With("component", "rag-client", "baseURL", cfg.BaseURL)
 	if cfg.Timeout == 0 {
 		cfg.Timeout = 30 * time.Second
 	}
 
 	if err := security.ValidateInClusterEndpointURL(cfg.BaseURL); err != nil {
+		logger.Error("Failed to validate RAG endpoint URL",
+			"error", err,
+			"baseURL", cfg.BaseURL,
+		)
 		return nil, fmt.Errorf("rag client: %w", err)
 	}
 
@@ -56,6 +63,7 @@ func NewClient(cfg Config) (*Client, error) {
 			},
 		},
 		apiKey: cfg.APIKey,
+		logger: logger,
 	}, nil
 }
 
@@ -103,6 +111,10 @@ func (c *Client) QueryWithContext(ctx context.Context, question string, contextM
 
 	jsonData, err := json.Marshal(reqBody)
 	if err != nil {
+		c.logger.Error("Failed to marshal RAG query request",
+			"error", err,
+			"question", question,
+		)
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
@@ -113,6 +125,11 @@ func (c *Client) QueryWithContext(ctx context.Context, question string, contextM
 		bytes.NewBuffer(jsonData),
 	)
 	if err != nil {
+		c.logger.Error("Failed to create RAG query HTTP request",
+			"error", err,
+			"url", c.baseURL+"/query",
+			"question", question,
+		)
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
@@ -123,24 +140,47 @@ func (c *Client) QueryWithContext(ctx context.Context, question string, contextM
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		c.logger.Error("Failed to execute RAG query HTTP request",
+			"error", err,
+			"url", c.baseURL+"/query",
+			"question", question,
+		)
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		c.logger.Error("Failed to read RAG query response body",
+			"error", err,
+			"statusCode", resp.StatusCode,
+		)
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
+		c.logger.Error("RAG query failed with non-200 status",
+			"statusCode", resp.StatusCode,
+			"responseBody", string(body),
+			"question", question,
+			"url", c.baseURL+"/query",
+		)
 		return nil, fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(body))
 	}
 
 	var result HTTPQueryResponse
 	if err := json.Unmarshal(body, &result); err != nil {
+		c.logger.Error("Failed to decode RAG query response",
+			"error", err,
+			"responseBody", string(body),
+		)
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
+	c.logger.Info("Successfully executed RAG query",
+		"question", question,
+		"sourcesCount", len(result.Sources),
+	)
 	return &result, nil
 }
 
@@ -160,6 +200,11 @@ func (c *Client) ProcessIntentWithTags(ctx context.Context, intent, user string,
 
 	jsonData, err := json.Marshal(reqBody)
 	if err != nil {
+		c.logger.Error("Failed to marshal RAG intent request",
+			"error", err,
+			"intent", intent,
+			"user", user,
+		)
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
@@ -170,6 +215,11 @@ func (c *Client) ProcessIntentWithTags(ctx context.Context, intent, user string,
 		bytes.NewBuffer(jsonData),
 	)
 	if err != nil {
+		c.logger.Error("Failed to create RAG intent HTTP request",
+			"error", err,
+			"url", c.baseURL+"/intent",
+			"intent", intent,
+		)
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
@@ -180,28 +230,62 @@ func (c *Client) ProcessIntentWithTags(ctx context.Context, intent, user string,
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		c.logger.Error("Failed to execute RAG intent HTTP request",
+			"error", err,
+			"url", c.baseURL+"/intent",
+			"intent", intent,
+			"user", user,
+		)
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		c.logger.Error("Failed to read RAG intent response body",
+			"error", err,
+			"statusCode", resp.StatusCode,
+		)
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
+		c.logger.Error("RAG intent processing failed with non-200 status",
+			"statusCode", resp.StatusCode,
+			"responseBody", string(body),
+			"intent", intent,
+			"user", user,
+			"url", c.baseURL+"/intent",
+		)
 		return nil, fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(body))
 	}
 
 	var result IntentResponse
 	if err := json.Unmarshal(body, &result); err != nil {
+		c.logger.Error("Failed to decode RAG intent response",
+			"error", err,
+			"responseBody", string(body),
+		)
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
 	if result.Error != "" {
+		c.logger.Error("RAG intent processing returned error",
+			"intentError", result.Error,
+			"intent", intent,
+			"user", user,
+			"type", result.Type,
+		)
 		return &result, fmt.Errorf("intent processing error: %s", result.Error)
 	}
 
+	c.logger.Info("Successfully processed intent via RAG",
+		"intent", intent,
+		"user", user,
+		"type", result.Type,
+		"name", result.Name,
+		"namespace", result.Namespace,
+	)
 	return &result, nil
 }
 
@@ -214,19 +298,33 @@ func (c *Client) Health(ctx context.Context) error {
 		nil,
 	)
 	if err != nil {
+		c.logger.Error("Failed to create RAG health check request",
+			"error", err,
+			"url", c.baseURL+"/health",
+		)
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		c.logger.Error("RAG health check HTTP request failed",
+			"error", err,
+			"url", c.baseURL+"/health",
+		)
 		return fmt.Errorf("health check failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
+		c.logger.Warn("RAG service unhealthy",
+			"statusCode", resp.StatusCode,
+			"responseBody", string(body),
+			"url", c.baseURL+"/health",
+		)
 		return fmt.Errorf("unhealthy (status %d): %s", resp.StatusCode, string(body))
 	}
 
+	c.logger.Debug("RAG health check passed")
 	return nil
 }

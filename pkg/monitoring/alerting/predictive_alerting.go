@@ -22,7 +22,7 @@ import (
 // historical data, seasonal patterns, and anomaly detection.
 
 type PredictiveAlerting struct {
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	config *PredictiveConfig
 
@@ -397,7 +397,7 @@ type ContributingFactor struct {
 // FeatureExtractor extracts features from raw SLA data for ML models.
 
 type FeatureExtractor struct {
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	config *PredictiveConfig
 }
@@ -421,7 +421,7 @@ type SeasonalModel struct {
 // TrendAnalyzer analyzes long-term trends in SLA data.
 
 type TrendAnalyzer struct {
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	trendCache map[SLAType]*TrendInfo
 
@@ -447,7 +447,7 @@ type TrendInfo struct {
 // AnomalyDetector detects anomalies in SLA metrics using statistical methods.
 
 type AnomalyDetector struct {
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	anomalyModels map[SLAType]*AnomalyModel
 
@@ -480,17 +480,14 @@ type NormalizationParams struct {
 
 // NewPredictiveAlerting creates a new predictive alerting system.
 
-func NewPredictiveAlerting(config *PredictiveConfig, logger *logging.StructuredLogger) (*PredictiveAlerting, error) {
+func NewPredictiveAlerting(config *PredictiveConfig, logger logging.Logger) (*PredictiveAlerting, error) {
 	if config == nil {
 		config = DefaultPredictiveConfig()
 	}
 
-	if logger == nil {
-		return nil, fmt.Errorf("logger is required")
-	}
 
 	pa := &PredictiveAlerting{
-		logger: logger.WithComponent("predictive-alerting"),
+		logger: logger.WithValues("component", "predictive-alerting"),
 
 		config: config,
 
@@ -506,7 +503,7 @@ func NewPredictiveAlerting(config *PredictiveConfig, logger *logging.StructuredL
 	// Initialize sub-components.
 
 	pa.featureExtractor = &FeatureExtractor{
-		logger: logger.WithComponent("feature-extractor"),
+		logger: logger.WithValues("component", "feature-extractor"),
 
 		config: config,
 	}
@@ -514,13 +511,13 @@ func NewPredictiveAlerting(config *PredictiveConfig, logger *logging.StructuredL
 	pa.seasonalModels = make(map[SLAType]*SeasonalModel)
 
 	pa.trendAnalyzer = &TrendAnalyzer{
-		logger: logger.WithComponent("trend-analyzer"),
+		logger: logger.WithValues("component", "trend-analyzer"),
 
 		trendCache: make(map[SLAType]*TrendInfo),
 	}
 
 	pa.anomalyDetector = &AnomalyDetector{
-		logger: logger.WithComponent("anomaly-detector"),
+		logger: logger.WithValues("component", "anomaly-detector"),
 
 		anomalyModels: make(map[SLAType]*AnomalyModel),
 	}
@@ -539,7 +536,7 @@ func (pa *PredictiveAlerting) Start(ctx context.Context) error {
 		return fmt.Errorf("predictive alerting already started")
 	}
 
-	pa.logger.InfoWithContext("Starting predictive alerting system",
+	pa.logger.InfoEvent("Starting predictive alerting system",
 
 		"model_update_interval", pa.config.ModelUpdateInterval,
 
@@ -554,7 +551,7 @@ func (pa *PredictiveAlerting) Start(ctx context.Context) error {
 
 	for _, slaType := range slaTypes {
 		if err := pa.initializeModel(ctx, slaType); err != nil {
-			pa.logger.WarnWithContext("Failed to initialize model",
+			pa.logger.WarnEvent("Failed to initialize model",
 
 				slog.String("sla_type", string(slaType)),
 
@@ -585,7 +582,7 @@ func (pa *PredictiveAlerting) Start(ctx context.Context) error {
 
 	pa.started = true
 
-	pa.logger.InfoWithContext("Predictive alerting system started successfully")
+	pa.logger.InfoEvent("Predictive alerting system started successfully")
 
 	return nil
 }
@@ -601,13 +598,13 @@ func (pa *PredictiveAlerting) Stop(ctx context.Context) error {
 		return nil
 	}
 
-	pa.logger.InfoWithContext("Stopping predictive alerting system")
+	pa.logger.InfoEvent("Stopping predictive alerting system")
 
 	close(pa.stopCh)
 
 	pa.started = false
 
-	pa.logger.InfoWithContext("Predictive alerting system stopped")
+	pa.logger.InfoEvent("Predictive alerting system stopped")
 
 	return nil
 }
@@ -789,7 +786,7 @@ func (pa *PredictiveAlerting) Predict(ctx context.Context, slaType SLAType,
 
 	pa.cachePrediction(cacheKey, result)
 
-	pa.logger.DebugWithContext("Generated SLA prediction",
+	pa.logger.DebugEvent("Generated SLA prediction",
 
 		slog.String("sla_type", string(slaType)),
 
@@ -817,7 +814,7 @@ func (pa *PredictiveAlerting) initializeModel(ctx context.Context, slaType SLATy
 
 	if len(dataset.DataPoints) < pa.config.MinDataPoints {
 
-		pa.logger.WarnWithContext("Insufficient historical data for training",
+		pa.logger.WarnEvent("Insufficient historical data for training",
 
 			slog.String("sla_type", string(slaType)),
 
@@ -853,7 +850,7 @@ func (pa *PredictiveAlerting) initializeModel(ctx context.Context, slaType SLATy
 
 	}
 
-	pa.logger.InfoWithContext("Initialized prediction model",
+	pa.logger.InfoEvent("Initialized prediction model",
 
 		slog.String("sla_type", string(slaType)),
 
@@ -1545,7 +1542,7 @@ func (pa *PredictiveAlerting) normalizeFeatureValue(value float64, featureName s
 func (pa *PredictiveAlerting) updateAllModels(ctx context.Context) {
 	// Update models for all SLA types.
 
-	pa.logger.InfoWithContext("Updating all prediction models")
+	pa.logger.InfoEvent("Updating all prediction models")
 }
 
 // generatePeriodicPredictions generates predictions for all monitored SLAs.
@@ -1553,7 +1550,7 @@ func (pa *PredictiveAlerting) updateAllModels(ctx context.Context) {
 func (pa *PredictiveAlerting) generatePeriodicPredictions(ctx context.Context) {
 	// Generate predictions periodically.
 
-	pa.logger.InfoWithContext("Generating periodic predictions")
+	pa.logger.InfoEvent("Generating periodic predictions")
 }
 
 // performAnomalyDetection performs anomaly detection on current metrics.
@@ -1609,7 +1606,7 @@ func (pa *PredictiveAlerting) updateModel(ctx context.Context, slaType SLAType, 
 		return fmt.Errorf("no model exists for SLA type %s", slaType)
 	}
 
-	pa.logger.InfoWithContext("Updating prediction model",
+	pa.logger.InfoEvent("Updating prediction model",
 
 		slog.String("sla_type", string(slaType)),
 
@@ -1702,7 +1699,7 @@ func (pa *PredictiveAlerting) forecastFuture(ctx context.Context, slaType SLATyp
 		Components: json.RawMessage(`{}`),
 	}
 
-	pa.logger.DebugWithContext("Generated forecast",
+	pa.logger.DebugEvent("Generated forecast",
 
 		slog.String("sla_type", string(slaType)),
 
@@ -1813,7 +1810,7 @@ func (pa *PredictiveAlerting) runAnomalyDetection(ctx context.Context) {
 
 		_, err := pa.performAnomalyDetection(ctx, slaType, currentMetrics)
 		if err != nil {
-			pa.logger.WarnWithContext("Anomaly detection failed",
+			pa.logger.WarnEvent("Anomaly detection failed",
 
 				slog.String("sla_type", string(slaType)),
 
@@ -1827,7 +1824,7 @@ func (pa *PredictiveAlerting) runAnomalyDetection(ctx context.Context) {
 // processModelUpdates processes model updates.
 
 func (pa *PredictiveAlerting) processModelUpdates(ctx context.Context) {
-	pa.logger.InfoWithContext("Processing model updates")
+	pa.logger.InfoEvent("Processing model updates")
 
 	for slaType := range pa.models {
 
@@ -1845,7 +1842,7 @@ func (pa *PredictiveAlerting) processModelUpdates(ctx context.Context) {
 
 		err := pa.updateModel(ctx, slaType, mockData)
 		if err != nil {
-			pa.logger.ErrorWithContext("Failed to update model", err,
+			pa.logger.ErrorEvent(err, "Failed to update model",
 
 				slog.String("sla_type", string(slaType)),
 			)
@@ -1861,7 +1858,7 @@ func (pa *PredictiveAlerting) generateForecasts(ctx context.Context) {
 
 		_, err := pa.forecastFuture(ctx, slaType, time.Hour)
 		if err != nil {
-			pa.logger.WarnWithContext("Forecast generation failed",
+			pa.logger.WarnEvent("Forecast generation failed",
 
 				slog.String("sla_type", string(slaType)),
 

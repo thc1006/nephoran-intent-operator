@@ -28,7 +28,7 @@ type ResourceLifecycleConfig struct {
 type ResourceLifecycleManagerImpl struct {
 	config *ResourceLifecycleConfig
 
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	mu sync.RWMutex
 
@@ -47,7 +47,7 @@ type ResourceLifecycleManagerImpl struct {
 
 // NewResourceLifecycleManager creates a new resource lifecycle manager.
 
-func NewResourceLifecycleManager(config *ResourceLifecycleConfig, logger *logging.StructuredLogger) *ResourceLifecycleManagerImpl {
+func NewResourceLifecycleManager(config *ResourceLifecycleConfig, logger logging.Logger) *ResourceLifecycleManagerImpl {
 	return &ResourceLifecycleManagerImpl{
 		config: config,
 

@@ -19,6 +19,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-logr/logr"
 	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
 )
@@ -35,6 +36,8 @@ type CertManager struct {
 	// Certificate storage.
 
 	certStore CertificateStore
+
+	logger logr.Logger
 
 	// Root and intermediate CAs.
 
@@ -300,7 +303,9 @@ func (cm *CertManager) GetACMECertificate(domain string) (*tls.Certificate, erro
 	if err := cm.submitToCTLogs(cert); err != nil {
 		// Log error but don't fail certificate issuance.
 
-		fmt.Printf("CT submission failed: %v\n", err)
+		if cm.logger.Enabled() {
+			cm.logger.Error(err, "Certificate Transparency submission failed")
+		}
 	}
 
 	// Store certificate.
@@ -527,7 +532,9 @@ func (cm *CertManager) IssueCertificate(commonName string, hosts []string, valid
 	// Submit to CT logs.
 
 	if err := cm.submitToCTLogs(tlsCert); err != nil {
-		fmt.Printf("CT submission failed: %v\n", err)
+		if cm.logger.Enabled() {
+			cm.logger.Error(err, "Certificate Transparency submission failed for TLS certificate")
+		}
 	}
 
 	// Start monitoring.
@@ -775,7 +782,10 @@ func (cm *CertManager) submitToCTLogs(cert *tls.Certificate) error {
 		if err := cm.ctSubmitter.Submit(logURL, cert.Certificate[0]); err != nil {
 			// Continue submitting to other logs even if one fails.
 
-			fmt.Printf("Failed to submit to CT log %s: %v\n", logURL, err)
+			if cm.logger.Enabled() {
+				cm.logger.Error(err, "Failed to submit to Certificate Transparency log",
+					"logURL", logURL)
+			}
 		}
 	}
 

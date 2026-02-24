@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
 // PKCEManager manages PKCE (Proof Key for Code Exchange) challenges.
@@ -246,6 +248,13 @@ func NewCSRFManager(secret []byte, ttl time.Duration) *CSRFManager {
 
 		if _, err := rand.Read(secret); err != nil {
 			// Never expose detailed error information in panic messages
+			logger := logging.NewLogger("auth")
+			logger.ErrorEvent(
+				fmt.Errorf("failed to generate CSRF secret"),
+				"Cryptographic random number generation failed",
+				"secretLength", 32,
+				"ttl", ttl,
+			)
 			panic("failed to generate CSRF secret")
 		}
 

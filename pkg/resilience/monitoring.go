@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
@@ -13,6 +14,7 @@ import (
 // MonitoringClient wraps Prometheus API client
 type MonitoringClient struct {
 	client v1.API
+	logger logr.Logger
 }
 
 // NewMonitoringClient creates a new monitoring client
@@ -37,7 +39,9 @@ func (m *MonitoringClient) QueryMetric(ctx context.Context, query string) (model
 	}
 
 	if len(warnings) > 0 {
-		fmt.Printf("Warnings: %v\n", warnings)
+		if m.logger.Enabled() {
+			m.logger.Info("Prometheus query returned warnings", "warnings", warnings, "query", query)
+		}
 	}
 
 	return result, nil
@@ -51,7 +55,9 @@ func (m *MonitoringClient) QueryRange(ctx context.Context, query string, r v1.Ra
 	}
 
 	if len(warnings) > 0 {
-		fmt.Printf("Warnings: %v\n", warnings)
+		if m.logger.Enabled() {
+			m.logger.Info("Prometheus range query returned warnings", "warnings", warnings, "query", query)
+		}
 	}
 
 	return result, nil

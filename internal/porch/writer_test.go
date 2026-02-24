@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/go-logr/logr"
 )
 
 type testIntent struct {
@@ -26,7 +28,7 @@ func TestWriteIntent_FullFormat(t *testing.T) {
 		Replicas:   3,
 	}
 
-	err := WriteIntent(intent, tmpDir, "full")
+	err := WriteIntent(intent, tmpDir, "full", logr.Discard())
 	if err != nil {
 		t.Fatalf("WriteIntent failed: %v", err)
 	}
@@ -61,7 +63,7 @@ func TestWriteIntent_SMPFormat(t *testing.T) {
 		Replicas:   5,
 	}
 
-	err := WriteIntent(intent, tmpDir, "smp")
+	err := WriteIntent(intent, tmpDir, "smp", logr.Discard())
 	if err != nil {
 		t.Fatalf("WriteIntent failed: %v", err)
 	}
@@ -111,7 +113,7 @@ func TestWriteIntent_InvalidIntentType(t *testing.T) {
 		Replicas:   3,
 	}
 
-	err := WriteIntent(intent, tmpDir, "full")
+	err := WriteIntent(intent, tmpDir, "full", logr.Discard())
 	if err == nil {
 		t.Fatal("Expected error for unsupported intent type")
 	}
@@ -133,7 +135,7 @@ func TestWriteIntent_DefaultFormat(t *testing.T) {
 	}
 
 	// Test with empty format string (should default to full)
-	err := WriteIntent(intent, tmpDir, "")
+	err := WriteIntent(intent, tmpDir, "", logr.Discard())
 	if err != nil {
 		t.Fatalf("WriteIntent failed: %v", err)
 	}
@@ -250,7 +252,7 @@ func TestWriteIntent_FileSystemErrors(t *testing.T) {
 				os.Chmod(outDir, 0755)
 			}()
 			
-			err := WriteIntent(tt.intent, outDir, "full")
+			err := WriteIntent(tt.intent, outDir, "full", logr.Discard())
 			
 			if tt.expectError == "" {
 				// For disk full simulation, just verify it completed
@@ -324,7 +326,7 @@ func TestWriteIntent_InvalidIntentData(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := WriteIntent(tt.intent, tmpDir, "full")
+			err := WriteIntent(tt.intent, tmpDir, "full", logr.Discard())
 			
 			if err == nil {
 				t.Errorf("Expected error but got nil")
@@ -419,7 +421,7 @@ func TestWriteIntent_EdgeCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			subDir := filepath.Join(tmpDir, tt.name)
-			err := WriteIntent(tt.intent, subDir, tt.format)
+			err := WriteIntent(tt.intent, subDir, tt.format, logr.Discard())
 			
 			if tt.expectError != "" {
 				if err == nil {
@@ -470,7 +472,7 @@ func TestWriteIntent_ConcurrentWrites(t *testing.T) {
 	for i := 0; i < numGoroutines; i++ {
 		go func(id int) {
 			subDir := filepath.Join(tmpDir, fmt.Sprintf("goroutine-%d", id))
-			err := WriteIntent(intent, subDir, "full")
+			err := WriteIntent(intent, subDir, "full", logr.Discard())
 			done <- err
 		}(i)
 	}
@@ -503,7 +505,7 @@ func TestWriteIntent_LargeIntentData(t *testing.T) {
 		Replicas:   1,
 	}
 
-	err := WriteIntent(largeIntent, tmpDir, "full")
+	err := WriteIntent(largeIntent, tmpDir, "full", logr.Discard())
 	if err != nil {
 		t.Fatalf("WriteIntent with large data failed: %v", err)
 	}

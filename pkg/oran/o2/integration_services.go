@@ -19,7 +19,7 @@ import (
 type IntegratedO2IMS struct {
 	config *IntegratedO2Config
 
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	// Core O2 IMS components.
 
@@ -213,14 +213,14 @@ func NewIntegratedO2IMS(
 
 	k8sClient client.Client,
 
-	logger *logging.StructuredLogger,
+	logger logging.Logger,
 ) (*IntegratedO2IMS, error) {
 	if config == nil {
 		config = DefaultIntegratedO2Config()
 	}
 
-	if logger == nil {
-		logger = logging.NewStructuredLogger(logging.DefaultConfig("integrated-o2-ims", "1.0.0", "production"))
+	if logger.GetSink() == nil {
+		logger = logging.NewLogger("integrated-o2-ims")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -386,7 +386,7 @@ func (i *IntegratedO2IMS) setupIntegrations() error {
 
 	if i.config.EnableIntegratedDashboards {
 		if err := i.setupIntegratedDashboards(); err != nil {
-			i.logger.Error("failed to setup integrated dashboards", "error", err)
+			i.logger.ErrorEvent(err, "failed to setup integrated dashboards", )
 		}
 	}
 
@@ -527,7 +527,7 @@ func (i *IntegratedO2IMS) Start(ctx context.Context) error {
 	for _, service := range services {
 		go func(name string, startFunc func(context.Context) error) {
 			if err := startFunc(ctx); err != nil {
-				i.logger.Error("failed to start service",
+				i.logger.ErrorEvent(fmt.Errorf("failed to start service"),
 
 					"service", name,
 
@@ -580,7 +580,7 @@ func (i *IntegratedO2IMS) Stop() error {
 
 	for _, service := range services {
 		if err := service.stopFunc(); err != nil {
-			i.logger.Error("failed to stop service",
+			i.logger.ErrorEvent(fmt.Errorf("failed to stop service"),
 
 				"service", service.name,
 
@@ -672,7 +672,7 @@ func (i *IntegratedO2IMS) crossServiceSyncLoop() {
 // aggregateMetrics aggregates metrics from all services.
 
 func (i *IntegratedO2IMS) aggregateMetrics() {
-	i.logger.Debug("aggregating integrated metrics")
+	i.logger.DebugEvent("aggregating integrated metrics")
 
 	// This would collect metrics from all services and create aggregated views.
 
@@ -682,7 +682,7 @@ func (i *IntegratedO2IMS) aggregateMetrics() {
 // checkOverallHealth performs comprehensive health check.
 
 func (i *IntegratedO2IMS) checkOverallHealth() {
-	i.logger.Debug("checking overall system health")
+	i.logger.DebugEvent("checking overall system health")
 
 	// Check health of all services and create overall status.
 
@@ -692,7 +692,7 @@ func (i *IntegratedO2IMS) checkOverallHealth() {
 // synchronizeServices synchronizes data between services.
 
 func (i *IntegratedO2IMS) synchronizeServices() {
-	i.logger.Debug("synchronizing services")
+	i.logger.DebugEvent("synchronizing services")
 
 	// Sync discovered resources from infrastructure monitoring to inventory.
 
@@ -718,7 +718,7 @@ func (i *IntegratedO2IMS) GetIntegratedHealth(ctx context.Context) (*IntegratedH
 
 	cnfs, err := i.cnfManagement.ListCNFs(ctx)
 	if err != nil {
-		i.logger.Error("failed to get CNF status", "error", err)
+		i.logger.ErrorEvent(err, "failed to get CNF status", )
 	}
 
 	// Calculate overall status.

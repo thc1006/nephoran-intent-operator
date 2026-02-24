@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/gorilla/mux"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/informers"
@@ -20,6 +21,7 @@ type Server struct {
 	informerFactory informers.SharedInformerFactory
 	router          *mux.Router
 	port            int
+	logger          logr.Logger
 }
 
 // NewServer creates a new Web UI server
@@ -60,7 +62,9 @@ func (s *Server) Start(ctx context.Context) error {
 		server.Shutdown(shutdownCtx)
 	}()
 
-	fmt.Printf("Starting Web UI server on port %d\n", s.port)
+	if s.logger.Enabled() {
+		s.logger.Info("Starting Web UI server", "port", s.port)
+	}
 	return server.ListenAndServe()
 }
 

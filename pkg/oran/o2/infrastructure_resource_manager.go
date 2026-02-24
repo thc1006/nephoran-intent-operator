@@ -23,7 +23,7 @@ type InfrastructureResourceManager struct {
 
 	kubeClient client.Client
 
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	config *ResourceManagerConfig
 
@@ -892,7 +892,7 @@ type PolicyScope struct {
 
 // NewInfrastructureResourceManager creates a new infrastructure resource manager.
 
-func NewInfrastructureResourceManager(storage O2IMSStorage, kubeClient client.Client, logger *logging.StructuredLogger) *InfrastructureResourceManager {
+func NewInfrastructureResourceManager(storage O2IMSStorage, kubeClient client.Client, logger logging.Logger) *InfrastructureResourceManager {
 	config := &ResourceManagerConfig{
 		CacheEnabled: true,
 
@@ -1650,7 +1650,7 @@ func (irm *InfrastructureResourceManager) stopResourceMonitoring(ctx context.Con
 func (irm *InfrastructureResourceManager) enrichResourcesWithRealTimeData(ctx context.Context, resources []*models.Resource) error {
 	for _, resource := range resources {
 		if err := irm.enrichResourceWithRealTimeData(ctx, resource); err != nil {
-			irm.logger.Error("failed to enrich resource with real-time data", "resourceId", resource.ResourceID, "error", err)
+			irm.logger.ErrorEvent(err, "failed to enrich resource with real-time data", "resourceId", resource.ResourceID, )
 		}
 	}
 

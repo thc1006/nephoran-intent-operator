@@ -27,9 +27,7 @@ func (s *O2APIServer) writeJSONResponse(w http.ResponseWriter, r *http.Request, 
 
 	if data != nil {
 		if err := json.NewEncoder(w).Encode(data); err != nil {
-			s.logger.Error("failed to encode JSON response",
-
-				"error", err,
+			s.logger.ErrorEvent(err, "failed to encode JSON response",
 
 				"request_id", r.Context().Value("request_id"),
 			)
@@ -60,9 +58,7 @@ func (s *O2APIServer) writeErrorResponse(w http.ResponseWriter, r *http.Request,
 
 		problem.Detail = err.Error()
 
-		s.logger.Error("API error response",
-
-			"error", err,
+		s.logger.ErrorEvent(err, "API error response",
 
 			"status_code", statusCode,
 
@@ -76,7 +72,7 @@ func (s *O2APIServer) writeErrorResponse(w http.ResponseWriter, r *http.Request,
 		)
 
 	} else {
-		s.logger.Warn("API error response",
+		s.logger.WarnEvent("API error response",
 
 			"status_code", statusCode,
 
@@ -95,7 +91,7 @@ func (s *O2APIServer) writeErrorResponse(w http.ResponseWriter, r *http.Request,
 	w.WriteHeader(statusCode)
 
 	if encodeErr := json.NewEncoder(w).Encode(problem); encodeErr != nil {
-		s.logger.Error("failed to encode error response",
+		s.logger.ErrorEvent(fmt.Errorf("failed to encode error response"),
 
 			"error", encodeErr,
 

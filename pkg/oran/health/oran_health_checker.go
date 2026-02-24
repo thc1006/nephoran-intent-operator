@@ -1,13 +1,13 @@
 package oranhealth
 
 import (
-	
+	"context"
 	"encoding/json"
-"context"
 	"fmt"
 	"sync"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/thc1006/nephoran-intent-operator/pkg/health"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/a1"
@@ -30,6 +30,8 @@ type ORANHealthChecker struct {
 	o2Adaptor *o2.O2Adaptor
 
 	circuitBreakers map[string]*llm.CircuitBreaker
+
+	logger logr.Logger
 
 	// Configuration.
 
@@ -593,9 +595,15 @@ func (ohc *ORANHealthChecker) getAlertingThresholds() AlertingThresholds {
 func (ohc *ORANHealthChecker) triggerAlert(alertType, message string) {
 	// In a production system, this would integrate with alerting systems.
 
-	// For now, we'll log the alert.
+	// Log the alert using structured logging.
 
-	fmt.Printf("ALERT [%s]: %s at %s\n", alertType, message, time.Now().Format(time.RFC3339))
+	if ohc.logger.Enabled() {
+		ohc.logger.Info("Health check alert triggered",
+			"alertType", alertType,
+			"message", message,
+			"timestamp", time.Now().Format(time.RFC3339),
+			"alert", true)
+	}
 }
 
 // GetHealthSnapshot returns the latest health snapshot.

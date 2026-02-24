@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -19,6 +18,7 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/internal/intent"
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"github.com/thc1006/nephoran-intent-operator/pkg/porch"
 )
 
@@ -43,17 +43,27 @@ type Handler struct {
 	provider IntentProvider
 
 	porchClient PorchClient
+
+	logger logging.Logger
 }
 
 // NewHandler creates a new Handler instance with the specified validator, output directory, and intent provider.
 // The porchClient parameter is optional and can be nil for filesystem-only mode.
 
 func NewHandler(v ValidatorInterface, outDir string, provider IntentProvider, porchClient PorchClient) *Handler {
+	logger := logging.NewLogger(logging.ComponentIngest)
+
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
-		log.Printf("Warning: Failed to create output directory %s: %v", outDir, err)
+		logger.WarnEvent("Failed to create output directory", "outDir", outDir, "error", err.Error())
 	}
 
-	return &Handler{v: v, outDir: outDir, provider: provider, porchClient: porchClient}
+	return &Handler{
+		v:           v,
+		outDir:      outDir,
+		provider:    provider,
+		porchClient: porchClient,
+		logger:      logger,
+	}
 }
 
 var simple = regexp.MustCompile(`(?i)scale\s+([a-z0-9\-]+)\s+to\s+(\d+)\s+in\s+ns\s+([a-z0-9\-]+)`)
@@ -65,6 +75,13 @@ var simple = regexp.MustCompile(`(?i)scale\s+([a-z0-9\-]+)\s+to\s+(\d+)\s+in\s+n
 // 2) Plain text (e.g., "scale nf-sim to 5 in ns ran-a") - parse → convert to JSON → validate.
 
 func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
+	// Get request ID from header (set by middleware in main.go)
+	requestID := r.Header.Get("X-Request-ID")
+	logger := h.logger
+	if requestID != "" {
+		logger = logger.WithRequestID(requestID)
+	}
+
 	// SECURITY: Set security headers to prevent various attacks.
 
 	w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -76,6 +93,8 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 
 		w.Header().Set("Allow", "POST")
+
+		logger.WarnEvent("Method not allowed", "method", r.Method, "expectedMethod", "POST")
 
 		http.Error(w, fmt.Sprintf("Method %s not allowed. Only POST is supported for this endpoint.", r.Method), http.StatusMethodNotAllowed)
 
@@ -89,6 +108,8 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 	if ct != "" && !strings.HasPrefix(ct, "application/json") && !strings.HasPrefix(ct, "text/json") && !strings.HasPrefix(ct, "text/plain") {
 
+		logger.WarnEvent("Unsupported content type", "contentType", ct)
+
 		http.Error(w, "Unsupported content type. Only application/json and text/plain are allowed.", http.StatusUnsupportedMediaType)
 
 		return
@@ -100,6 +121,8 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 	const maxRequestSize = 1 << 20 // 1MB
 
 	if r.ContentLength > maxRequestSize {
+
+		logger.WarnEvent("Request body too large", "contentLength", r.ContentLength, "maxSize", maxRequestSize)
 
 		http.Error(w, "Request body too large", http.StatusRequestEntityTooLarge)
 
@@ -114,6 +137,8 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(limitedReader)
 	if err != nil {
 
+		logger.ErrorEvent(err, "Failed to read request body")
+
 		http.Error(w, "Failed to read request body", http.StatusBadRequest)
 
 		return
@@ -125,8 +150,11 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 	var payload []byte
 
 	if strings.HasPrefix(ct, "application/json") || strings.HasPrefix(ct, "text/json") {
+		logger.DebugEvent("Processing JSON payload", "bodyLength", len(body))
 		payload = body
 	} else {
+
+		logger.DebugEvent("Processing plain text payload", "bodyLength", len(body))
 
 		// Try provider first (LLM or other custom parser).
 
@@ -138,14 +166,20 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 			if err == nil {
 
+				logger.DebugEvent("Provider parsed intent successfully", "intentType", intent["intent_type"])
+
 				// Convert intent map to JSON.
 
 				jsonData, err := json.Marshal(intent)
 
 				if err == nil {
 					payload = jsonData
+				} else {
+					logger.ErrorEvent(err, "Failed to marshal provider intent to JSON")
 				}
 
+			} else {
+				logger.DebugEvent("Provider failed to parse intent, falling back to regex", "error", err.Error())
 			}
 
 		}
@@ -159,8 +193,10 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 			if len(m) != 4 {
 
 				if len(body) == 0 {
+					logger.WarnEvent("Empty request body received")
 					http.Error(w, "Request body is empty. Expected JSON intent or plain text command like: scale <target> to <replicas> in ns <namespace>", http.StatusBadRequest)
 				} else {
+					logger.WarnEvent("Invalid plain text format", "body", string(body))
 					http.Error(w, "Invalid plain text format. Expected: 'scale <target> to <replicas> in ns <namespace>'. Received: "+string(body), http.StatusBadRequest)
 				}
 
@@ -172,9 +208,11 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 			targetResource := fmt.Sprintf("deployment/%s", m[1])
 			correlationID := fmt.Sprintf("plain-text-scale-%s-%s", m[1], m[3])
 			reason := fmt.Sprintf("Plain text scaling request for %s", m[1])
-			payload = []byte(fmt.Sprintf(`{"intent_type":"scaling","target":%q,"namespace":%q,"replicas":%s,"source":%q,"status":"pending","target_resources":[%q],"correlation_id":%q,"reason":%q}`, 
-				m[1], m[3], m[2], defaultSource, 
+			payload = []byte(fmt.Sprintf(`{"intent_type":"scaling","target":%q,"namespace":%q,"replicas":%s,"source":%q,"status":"pending","target_resources":[%q],"correlation_id":%q,"reason":%q}`,
+				m[1], m[3], m[2], defaultSource,
 				targetResource, correlationID, reason))
+
+			logger.DebugEvent("Parsed plain text intent via regex", "target", m[1], "namespace", m[3], "replicas", m[2])
 
 		}
 
@@ -182,6 +220,8 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 	intent, err := h.v.ValidateBytes(payload)
 	if err != nil {
+
+		logger.ErrorEvent(err, "Intent validation failed", "payloadLength", len(payload))
 
 		errMsg := fmt.Sprintf("Intent validation failed: %s", err.Error())
 
@@ -211,6 +251,8 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 	}
 
+	logger.DebugEvent("Intent validated successfully", "intentType", intent.IntentType, "target", intent.Target, "namespace", intent.Namespace)
+
 	now := time.Now().UTC()
 	ts := fmt.Sprintf("%s-%09d", now.Format("20060102T150405Z"), now.Nanosecond())
 
@@ -220,31 +262,41 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 	if err := os.WriteFile(outFile, payload, 0o640); err != nil {
 
+		logger.ErrorEvent(err, "Failed to save intent to handoff directory", "outFile", outFile)
+
 		http.Error(w, fmt.Sprintf("Failed to save intent to handoff directory: %s", err.Error()), http.StatusInternalServerError)
 
 		return
 
 	}
 
+	// Log intent file creation with specialized method
+	logger.IntentFileProcessed(fileName, true, time.Since(now).Seconds())
+
 	// Also create Porch package if client is available
 	if h.porchClient != nil {
 		ctx := r.Context()
 		if err := h.createPorchPackage(ctx, intent, payload); err != nil {
-			log.Printf("Warning: Failed to create Porch package: %v (intent saved to filesystem)", err)
+			logger.WarnEvent("Failed to create Porch package (intent saved to filesystem)", "error", err.Error())
 		} else {
-			log.Printf("Intent also saved to Porch repository")
+			logger.InfoEvent("Intent also saved to Porch repository")
 		}
 	}
 
-	// Log with correlation ID if present.
-
-	logMsg := fmt.Sprintf("Intent accepted and saved to %s", outFile)
-
-	if intent.CorrelationID != "" {
-		logMsg = fmt.Sprintf("[correlation_id: %s] %s", intent.CorrelationID, logMsg)
+	// Log intent acceptance with correlation ID if present
+	logFields := []interface{}{
+		"filename", fileName,
+		"outFile", outFile,
+		"intentType", intent.IntentType,
+		"target", intent.Target,
+		"namespace", intent.Namespace,
 	}
 
-	log.Println(logMsg)
+	if intent.CorrelationID != "" {
+		logFields = append(logFields, "correlationID", intent.CorrelationID)
+	}
+
+	logger.InfoEvent("Intent accepted and saved", logFields...)
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -307,7 +359,7 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 		"saved":  outFile,
 		"preview": preview,
 	}); err != nil {
-		log.Printf("Failed to encode response JSON: %v", err)
+		logger.ErrorEvent(err, "Failed to encode response JSON")
 	}
 }
 
@@ -343,8 +395,11 @@ func (h *Handler) createPorchPackage(ctx context.Context, i *Intent, payload []b
 		return fmt.Errorf("failed to create/update Porch package: %w", err)
 	}
 
-	log.Printf("Created Porch package revision: %s (revision: %s, status: %s)",
-		revision.Name, revision.Revision, revision.Status)
+	h.logger.PorchPackageCreated(revision.Name, i.Namespace)
+	h.logger.InfoEvent("Created Porch package revision",
+		"name", revision.Name,
+		"revision", revision.Revision,
+		"status", revision.Status)
 
 	return nil
 }

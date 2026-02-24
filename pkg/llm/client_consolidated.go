@@ -19,6 +19,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
@@ -228,6 +229,16 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 		if !allowInsecureClient() {
 
 			logger.Error("SECURITY VIOLATION: Attempted to skip TLS verification without proper authorization")
+
+			loggerStructured := logging.NewLogger(logging.ComponentLLM)
+			loggerStructured.ErrorEvent(
+				fmt.Errorf("security violation: TLS verification cannot be disabled"),
+				"SECURITY VIOLATION: Attempted to skip TLS verification",
+				"skipTLSVerification", config.SkipTLSVerification,
+				"backendType", config.BackendType,
+				"env_ALLOW_INSECURE_CLIENT", os.Getenv("ALLOW_INSECURE_CLIENT"),
+				"env_ENVIRONMENT", os.Getenv("ENVIRONMENT"),
+			)
 
 			panic("Security violation: TLS verification cannot be disabled")
 

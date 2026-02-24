@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
 // GetEnvOrDefault retrieves the value of the environment variable named by key.
@@ -585,6 +587,14 @@ func MustGetEnv(key string) string {
 	value := strings.TrimSpace(os.Getenv(key))
 
 	if value == "" {
+		logger := logging.NewLogger(logging.ComponentConfig)
+		logger.ErrorEvent(
+			fmt.Errorf("required environment variable not set"),
+			"Critical configuration validation failed",
+			"envKey", key,
+			"envValue", value,
+			"allEnvKeys", GetEnvKeys(),
+		)
 		panic(fmt.Sprintf("required environment variable %s is not set", key))
 	}
 
@@ -607,6 +617,14 @@ func MustGetEnvWithValidation(key string, validator func(string) error) string {
 	value := MustGetEnv(key)
 
 	if err := validator(value); err != nil {
+		logger := logging.NewLogger(logging.ComponentConfig)
+		logger.ErrorEvent(
+			err,
+			"Environment variable validation failed",
+			"envKey", key,
+			"envValue", value,
+			"validationError", err.Error(),
+		)
 		panic(fmt.Sprintf("environment variable %s validation failed: %v", key, err))
 	}
 

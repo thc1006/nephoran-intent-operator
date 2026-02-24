@@ -22,7 +22,7 @@ type ServerManager struct {
 
 	server *O2APIServer
 
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	ctx context.Context
 
@@ -38,8 +38,8 @@ func NewServerManager(config *O2IMSConfig) (*ServerManager, error) {
 
 	logger := config.Logger
 
-	if logger == nil {
-		logger = logging.NewStructuredLogger(logging.DefaultConfig("o2-ims-server", "1.0.0", "production"))
+	if logger.GetSink() == nil {
+		logger = logging.NewLogger("o2-ims-server")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -103,7 +103,7 @@ func (sm *ServerManager) Start() error {
 
 	case err := <-serverErrChan:
 
-		sm.logger.Error("server error", "error", err)
+		sm.logger.ErrorEvent(err, "server error", )
 
 		return err
 
@@ -129,7 +129,7 @@ func (sm *ServerManager) Shutdown() error {
 
 		if err := sm.server.Shutdown(shutdownCtx); err != nil {
 
-			sm.logger.Error("error during server shutdown", "error", err)
+			sm.logger.ErrorEvent(err, "error during server shutdown", )
 
 			return err
 

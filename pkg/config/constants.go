@@ -629,9 +629,14 @@ func GetDefaults() *Constants {
 	return &defaults
 }
 
-// PrintConfiguration prints the current configuration (for debugging).
+// PrintConfiguration logs the current configuration (for debugging).
+// Note: This function is retained for backward compatibility but uses fmt.Printf
+// since it's intended for debugging/diagnostic output to stdout.
+// For production logging, use structured logger methods instead.
 
 func PrintConfiguration(constants *Constants) {
+	// Note: Using fmt.Printf here is intentional for debugging output
+	// This is a diagnostic function meant to print to stdout
 	fmt.Printf("Nephoran Intent Operator Configuration:\n")
 
 	fmt.Printf("  Controller:\n")

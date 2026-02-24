@@ -23,14 +23,14 @@ type O2IMSServiceImpl struct {
 
 	providerRegistry providers.ProviderRegistry
 
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	resourceManager ResourceManager
 }
 
 // NewO2IMSServiceImpl creates a new O2 IMS service implementation.
 
-func NewO2IMSServiceImpl(config *O2IMSConfig, storage O2IMSStorage, providerRegistry providers.ProviderRegistry, logger *logging.StructuredLogger) O2IMSService {
+func NewO2IMSServiceImpl(config *O2IMSConfig, storage O2IMSStorage, providerRegistry providers.ProviderRegistry, logger logging.Logger) O2IMSService {
 	return &O2IMSServiceImpl{
 		config: config,
 
@@ -732,7 +732,7 @@ func (s *O2IMSServiceImpl) CreateResource(ctx context.Context, request interface
 
 			_, err := s.resourceManager.ProvisionResource(context.Background(), provisionReq)
 			if err != nil {
-				s.logger.Error("failed to provision resource",
+				s.logger.ErrorEvent(fmt.Errorf("failed to provision resource"),
 
 					"resource_id", resource.ResourceID,
 
@@ -802,7 +802,7 @@ func (s *O2IMSServiceImpl) UpdateResource(ctx context.Context, resourceID string
 		go func() {
 			_, err := s.resourceManager.ConfigureResource(context.Background(), resourceID, req.Configuration)
 			if err != nil {
-				s.logger.Error("failed to configure resource",
+				s.logger.ErrorEvent(fmt.Errorf("failed to configure resource"),
 
 					"resource_id", resourceID,
 
@@ -998,7 +998,7 @@ func (s *O2IMSServiceImpl) GetCloudProviders(ctx context.Context, filter ...inte
 		provider, err := s.providerRegistry.GetProvider(name)
 		if err != nil {
 
-			s.logger.Error("Failed to get provider", "name", name, "error", err)
+			s.logger.ErrorEvent(err, "Failed to get provider", "name", name, )
 
 			continue
 
@@ -1231,12 +1231,12 @@ type ResourceManagerImpl struct {
 
 	providerRegistry providers.ProviderRegistry
 
-	logger *logging.StructuredLogger
+	logger logging.Logger
 }
 
 // NewResourceManagerImpl creates a new resource manager implementation.
 
-func NewResourceManagerImpl(config *O2IMSConfig, providerRegistry providers.ProviderRegistry, logger *logging.StructuredLogger) ResourceManager {
+func NewResourceManagerImpl(config *O2IMSConfig, providerRegistry providers.ProviderRegistry, logger logging.Logger) ResourceManager {
 	// Create a simple implementation that satisfies the interface.
 
 	return &ResourceManagerImpl{
@@ -1339,12 +1339,12 @@ type InventoryServiceImpl struct {
 
 	providerRegistry providers.ProviderRegistry
 
-	logger *logging.StructuredLogger
+	logger logging.Logger
 }
 
 // NewInventoryServiceImpl creates a new inventory service implementation.
 
-func NewInventoryServiceImpl(config *O2IMSConfig, providerRegistry providers.ProviderRegistry, logger *logging.StructuredLogger) InventoryService {
+func NewInventoryServiceImpl(config *O2IMSConfig, providerRegistry providers.ProviderRegistry, logger logging.Logger) InventoryService {
 	return &InventoryServiceImpl{
 		config: config,
 
@@ -1525,12 +1525,12 @@ func (is *InventoryServiceImpl) PredictCapacity(ctx context.Context, poolID stri
 type MonitoringServiceImpl struct {
 	config *O2IMSConfig
 
-	logger *logging.StructuredLogger
+	logger logging.Logger
 }
 
 // NewMonitoringServiceImpl creates a new monitoring service implementation.
 
-func NewMonitoringServiceImpl(config *O2IMSConfig, logger *logging.StructuredLogger) MonitoringService {
+func NewMonitoringServiceImpl(config *O2IMSConfig, logger logging.Logger) MonitoringService {
 	return &MonitoringServiceImpl{
 		config: config,
 

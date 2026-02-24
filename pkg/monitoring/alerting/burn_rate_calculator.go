@@ -25,7 +25,7 @@ import (
 // following Google SRE Workbook alerting patterns for rapid and accurate SLA violation detection.
 
 type BurnRateCalculator struct {
-	logger *logging.StructuredLogger
+	logger logging.Logger
 
 	config *BurnRateConfig
 
@@ -228,17 +228,14 @@ func DefaultBurnRateConfig() *BurnRateConfig {
 
 // NewBurnRateCalculator creates a new burn rate calculator.
 
-func NewBurnRateCalculator(config *BurnRateConfig, logger *logging.StructuredLogger) (*BurnRateCalculator, error) {
+func NewBurnRateCalculator(config *BurnRateConfig, logger logging.Logger) (*BurnRateCalculator, error) {
 	if config == nil {
 		config = DefaultBurnRateConfig()
 	}
 
-	if logger == nil {
-		return nil, fmt.Errorf("logger is required")
-	}
 
 	calc := &BurnRateCalculator{
-		logger: logger.WithComponent("burn-rate-calculator"),
+		logger: logger.WithValues("component", "burn-rate-calculator"),
 
 		config: config,
 
@@ -267,7 +264,7 @@ func (brc *BurnRateCalculator) Start(ctx context.Context) error {
 		return fmt.Errorf("burn rate calculator already started")
 	}
 
-	brc.logger.InfoWithContext("Starting burn rate calculator",
+	brc.logger.InfoEvent("Starting burn rate calculator",
 
 		"evaluation_windows", len(brc.config.EvaluationWindows),
 
@@ -282,7 +279,7 @@ func (brc *BurnRateCalculator) Start(ctx context.Context) error {
 
 	brc.started = true
 
-	brc.logger.InfoWithContext("Burn rate calculator started successfully")
+	brc.logger.InfoEvent("Burn rate calculator started successfully")
 
 	return nil
 }
@@ -298,13 +295,13 @@ func (brc *BurnRateCalculator) Stop(ctx context.Context) error {
 		return nil
 	}
 
-	brc.logger.InfoWithContext("Stopping burn rate calculator")
+	brc.logger.InfoEvent("Stopping burn rate calculator")
 
 	close(brc.stopCh)
 
 	brc.started = false
 
-	brc.logger.InfoWithContext("Burn rate calculator stopped")
+	brc.logger.InfoEvent("Burn rate calculator stopped")
 
 	return nil
 }
@@ -319,7 +316,7 @@ func (brc *BurnRateCalculator) Calculate(ctx context.Context, slaType SLAType) (
 
 		brc.recordQueryLatency(duration)
 
-		brc.logger.DebugWithContext("Burn rate calculation completed",
+		brc.logger.DebugEvent("Burn rate calculation completed",
 
 			slog.String("sla_type", string(slaType)),
 
@@ -348,7 +345,7 @@ func (brc *BurnRateCalculator) Calculate(ctx context.Context, slaType SLAType) (
 		windowResult, err := brc.calculateWindowBurnRate(ctx, slaType, target, window)
 		if err != nil {
 
-			brc.logger.WarnWithContext("Failed to calculate burn rate for window",
+			brc.logger.WarnEvent("Failed to calculate burn rate for window",
 
 				slog.String("sla_type", string(slaType)),
 
@@ -570,7 +567,7 @@ func (brc *BurnRateCalculator) executeSingleQuery(ctx context.Context, query str
 	}
 
 	if len(warnings) > 0 {
-		brc.logger.WarnWithContext("Prometheus query warnings",
+		brc.logger.WarnEvent("Prometheus query warnings",
 
 			slog.String("query", query),
 

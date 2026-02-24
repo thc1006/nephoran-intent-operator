@@ -282,7 +282,7 @@ func TestContainerWithEnvironmentVariables(t *testing.T) {
 
 	// Set test values
 	os.Setenv("GIT_REPO_URL", "https://github.com/test/test.git")
-	os.Setenv("LLM_PROCESSOR_URL", "http://localhost:8080")
+	os.Setenv("LLM_PROCESSOR_URL", "http://llm-service.default.svc.cluster.local:8080")
 
 	container := NewContainer(nil)
 

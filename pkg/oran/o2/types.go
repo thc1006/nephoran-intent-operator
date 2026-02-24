@@ -72,7 +72,7 @@ type O2IMSConfig struct {
 
 	// Additional Configuration Fields.
 
-	Logger *logging.StructuredLogger `json:"-"`
+	Logger logging.Logger `json:"-"`
 
 	Host string `json:"host,omitempty"`
 
@@ -384,12 +384,12 @@ type CNFLifecycleManagerImpl struct {
 
 	k8sClient client.Client
 
-	logger *logging.StructuredLogger
+	logger logging.Logger
 }
 
 // NewCNFLifecycleManager creates a new CNF lifecycle manager.
 
-func NewCNFLifecycleManager(config *CNFLifecycleConfig, k8sClient client.Client, logger *logging.StructuredLogger) *CNFLifecycleManagerImpl {
+func NewCNFLifecycleManager(config *CNFLifecycleConfig, k8sClient client.Client, logger logging.Logger) *CNFLifecycleManagerImpl {
 	return &CNFLifecycleManagerImpl{
 		config: config,
 
@@ -476,12 +476,12 @@ type HelmManager interface {
 type HelmManagerImpl struct {
 	config *HelmConfig
 
-	logger *logging.StructuredLogger
+	logger logging.Logger
 }
 
 // NewHelmManager creates a new Helm manager.
 
-func NewHelmManager(config *HelmConfig, logger *logging.StructuredLogger) *HelmManagerImpl {
+func NewHelmManager(config *HelmConfig, logger logging.Logger) *HelmManagerImpl {
 	return &HelmManagerImpl{
 		config: config,
 

@@ -11,27 +11,27 @@ import (
 	"time"
 )
 
-// LogLevel represents the severity level of a log entry.
+// StructuredLogLevel represents the severity level of a log entry.
 
-type LogLevel string
+type StructuredLogLevel string
 
 const (
 
 	// LevelDebug holds leveldebug value.
 
-	LevelDebug LogLevel = "debug"
+	LevelDebug StructuredLogLevel = "debug"
 
 	// LevelInfo holds levelinfo value.
 
-	LevelInfo LogLevel = "info"
+	LevelInfo StructuredLogLevel = "info"
 
 	// LevelWarn holds levelwarn value.
 
-	LevelWarn LogLevel = "warn"
+	LevelWarn StructuredLogLevel = "warn"
 
 	// LevelError holds levelerror value.
 
-	LevelError LogLevel = "error"
+	LevelError StructuredLogLevel = "error"
 )
 
 // StructuredLogger provides enhanced structured logging capabilities.
@@ -53,7 +53,7 @@ type StructuredLogger struct {
 // Config holds configuration for the structured logger.
 
 type Config struct {
-	Level LogLevel `json:"level"`
+	Level StructuredLogLevel `json:"level"`
 
 	Format string `json:"format"` // "json" or "text"
 
@@ -488,7 +488,7 @@ func (sl *StructuredLogger) withServiceContext(args ...any) []any {
 
 // parseLevel converts string level to slog.Level.
 
-func parseLevel(level LogLevel) slog.Level {
+func parseLevel(level StructuredLogLevel) slog.Level {
 	switch strings.ToLower(string(level)) {
 
 	case "debug":
@@ -516,7 +516,7 @@ func parseLevel(level LogLevel) slog.Level {
 
 // LogFormat provides formatted logging for complex objects.
 
-func (sl *StructuredLogger) LogFormat(level LogLevel, msg string, obj interface{}) {
+func (sl *StructuredLogger) LogFormat(level StructuredLogLevel, msg string, obj interface{}) {
 	jsonData, err := json.MarshalIndent(obj, "", "  ")
 	if err != nil {
 
@@ -627,9 +627,10 @@ func DefaultConfig(serviceName, version, environment string) Config {
 	}
 }
 
-// NewLogger creates a simple logger for backwards compatibility.
+// NewLegacyLogger creates a simple logger for backwards compatibility.
+// Deprecated: Use NewStructuredLogger instead.
 
-func NewLogger(serviceName, level string) *StructuredLogger {
+func NewLegacyLogger(serviceName, level string) *StructuredLogger {
 	logLevel := LevelInfo
 
 	switch strings.ToLower(level) {

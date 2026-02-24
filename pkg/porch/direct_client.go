@@ -61,7 +61,7 @@ func (c *DirectClient) ListPackages(ctx context.Context) error {
 		return nil
 	}
 	// TODO: Implement actual API call
-	fmt.Printf("Packages in namespace %s:\n", c.namespace)
+	klog.Infof("TODO: Implement ListPackages API call for namespace %s", c.namespace)
 	return nil
 }
 
@@ -73,7 +73,7 @@ func (c *DirectClient) GetPackage(ctx context.Context, name string) error {
 		return nil
 	}
 	// TODO: Implement actual API call
-	fmt.Printf("Package: %s\n", name)
+	klog.Infof("TODO: Implement GetPackage API call for package %s", name)
 	return nil
 }
 
@@ -85,7 +85,7 @@ func (c *DirectClient) CreatePackage(ctx context.Context, name string) error {
 		return nil
 	}
 	// TODO: Implement actual API call
-	fmt.Printf("Created package: %s\n", name)
+	klog.Infof("TODO: Implement CreatePackage API call for package %s", name)
 	return nil
 }
 
@@ -97,7 +97,7 @@ func (c *DirectClient) UpdatePackage(ctx context.Context, name string) error {
 		return nil
 	}
 	// TODO: Implement actual API call
-	fmt.Printf("Updated package: %s\n", name)
+	klog.Infof("TODO: Implement UpdatePackage API call for package %s", name)
 	return nil
 }
 
@@ -109,7 +109,7 @@ func (c *DirectClient) DeletePackage(ctx context.Context, name string) error {
 		return nil
 	}
 	// TODO: Implement actual API call
-	fmt.Printf("Deleted package: %s\n", name)
+	klog.Infof("TODO: Implement DeletePackage API call for package %s", name)
 	return nil
 }
 
