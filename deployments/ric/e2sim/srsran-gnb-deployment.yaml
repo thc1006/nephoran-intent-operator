@@ -65,7 +65,7 @@ spec:
     spec:
       containers:
       - name: gnb
-        image: softwareradiosystems/srsran-project:24.10
+        image: gradiant/srsran-5g:latest
         imagePullPolicy: IfNotPresent
         command: ["/bin/bash"]
         args:
@@ -103,17 +103,8 @@ spec:
             echo "Press Ctrl+C to stop"
             echo ""
 
-            # For now, just keep container alive for manual testing
-            # Actual gnb command: gnb -c /etc/srsran/gnb.yaml
-
-            echo "Container is ready. To run gNB manually, exec into pod and run:"
-            echo "  gnb -c /etc/srsran/gnb.yaml"
-            echo ""
-            echo "Or test E2 connectivity with:"
-            echo "  nc -zv service-ricplt-e2term-sctp-alpha.ricplt.svc.cluster.local 36422"
-
-            # Keep container running
-            tail -f /dev/null
+            # Run gNB with E2 agent enabled
+            exec gnb -c /etc/srsran/gnb.yaml
         volumeMounts:
         - name: config
           mountPath: /config
@@ -121,7 +112,7 @@ spec:
           mountPath: /tmp
         resources:
           requests:
-            cpu: 500m
+            cpu: 50m
             memory: 512Mi
           limits:
             cpu: 2

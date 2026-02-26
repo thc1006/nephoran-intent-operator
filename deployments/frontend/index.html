@@ -4,889 +4,906 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nephoran Intent Operator</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Azeret+Mono:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg-primary: #0a0e1a;
-            --bg-secondary: #111827;
-            --bg-tertiary: #1f2937;
-            --accent-blue: #3b82f6;
-            --accent-purple: #8b5cf6;
-            --accent-cyan: #06b6d4;
-            --text-primary: #f9fafb;
-            --text-secondary: #9ca3af;
-            --text-dim: #6b7280;
-            --success: #10b981;
-            --error: #ef4444;
-            --warning: #f59e0b;
-            --border: rgba(59, 130, 246, 0.1);
-            --glass-bg: rgba(31, 41, 55, 0.6);
-            --glass-border: rgba(139, 92, 246, 0.2);
-        }
-
+        /* Material Design System - Kubernetes Dashboard Style */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
+        :root {
+            /* Material Design Color System */
+            --md-primary: #326ce5;
+            --md-primary-dark: #1a4da6;
+            --md-primary-light: #5a8eef;
+
+            /* Surface Colors */
+            --md-surface: #ffffff;
+            --md-background: #f5f5f5;
+            --md-drawer: #1a237e;
+
+            /* Text Colors (Material Design opacity levels) */
+            --md-text-primary: rgba(0, 0, 0, 0.87);
+            --md-text-secondary: rgba(0, 0, 0, 0.60);
+            --md-text-disabled: rgba(0, 0, 0, 0.38);
+            --md-text-on-primary: rgba(255, 255, 255, 1);
+
+            /* Status Colors */
+            --md-success: #388e3c;
+            --md-error: #d32f2f;
+            --md-warning: #f57c00;
+
+            /* Divider */
+            --md-divider: rgba(0, 0, 0, 0.12);
+
+            /* Elevation Shadows (Material Design) */
+            --md-elevation-1: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            --md-elevation-2: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+            --md-elevation-4: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
+        }
+
+        /* Base Typography - Material Design */
         body {
-            font-family: 'Azeret Mono', monospace;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            overflow-x: hidden;
-            min-height: 100vh;
-            position: relative;
+            font-family: 'Roboto', sans-serif;
+            font-size: 14px;
+            font-weight: 400;
+            line-height: 1.5;
+            color: var(--md-text-primary);
+            background: var(--md-background);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
-        /* Animated gradient background */
-        body::before {
-            content: '';
-            position: fixed;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background:
-                radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.05) 0%, transparent 50%);
-            animation: gradientShift 20s ease infinite;
-            z-index: 0;
-        }
-
-        @keyframes gradientShift {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            33% { transform: translate(10%, -10%) rotate(120deg); }
-            66% { transform: translate(-10%, 10%) rotate(240deg); }
-        }
-
-        /* Grid overlay */
-        body::after {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image:
-                linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
-            background-size: 40px 40px;
-            z-index: 0;
-            pointer-events: none;
-        }
-
-        .container {
-            position: relative;
-            z-index: 1;
-            max-width: 1800px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        /* Header */
-        header {
-            backdrop-filter: blur(16px);
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            padding: 1.5rem 2rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            animation: slideDown 0.6s ease;
-        }
-
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .header-content {
+        /* Layout */
+        .app-container {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .logo-icon {
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 700;
-            font-size: 24px;
-            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
-        }
-
-        .logo-text {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 1.5rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .status-bar {
-            display: flex;
-            gap: 2rem;
-            align-items: center;
-        }
-
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.875rem;
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        .status-dot.success { background: var(--success); }
-        .status-dot.warning { background: var(--warning); }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.6; transform: scale(0.9); }
-        }
-
-        /* Main Grid */
-        .main-grid {
-            display: grid;
-            grid-template-columns: 1fr 400px;
-            gap: 2rem;
-            animation: fadeIn 0.8s ease 0.2s backwards;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        /* Card Base */
-        .card {
-            backdrop-filter: blur(16px);
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            padding: 2rem;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            transition: all 0.3s ease;
-        }
-
-        .card:hover {
-            border-color: rgba(139, 92, 246, 0.4);
-            box-shadow: 0 12px 48px rgba(139, 92, 246, 0.2);
-        }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .card-title {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 1.125rem;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .card-badge {
-            font-size: 0.75rem;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            background: rgba(59, 130, 246, 0.2);
-            color: var(--accent-cyan);
-            font-weight: 600;
-        }
-
-        /* Intent Input */
-        .intent-section {
-            grid-column: 1;
-        }
-
-        .input-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .input-label {
-            display: block;
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: var(--text-secondary);
-            margin-bottom: 0.5rem;
-            font-family: 'JetBrains Mono', monospace;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .textarea-wrapper {
-            position: relative;
-        }
-
-        #intentInput {
-            width: 100%;
-            min-height: 200px;
-            padding: 1rem;
-            background: var(--bg-secondary);
-            border: 2px solid var(--border);
-            border-radius: 12px;
-            color: var(--text-primary);
-            font-family: 'Azeret Mono', monospace;
-            font-size: 1rem;
-            resize: vertical;
-            transition: all 0.3s ease;
-        }
-
-        #intentInput:focus {
-            outline: none;
-            border-color: var(--accent-blue);
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-        }
-
-        #intentInput::placeholder {
-            color: var(--text-dim);
-        }
-
-        .char-counter {
-            position: absolute;
-            bottom: 0.5rem;
-            right: 0.5rem;
-            font-size: 0.75rem;
-            color: var(--text-dim);
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        .input-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-        }
-
-        select {
-            width: 100%;
-            padding: 0.75rem;
-            background: var(--bg-secondary);
-            border: 2px solid var(--border);
-            border-radius: 12px;
-            color: var(--text-primary);
-            font-family: 'Azeret Mono', monospace;
-            font-size: 0.875rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        select:focus {
-            outline: none;
-            border-color: var(--accent-blue);
-        }
-
-        select option {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-        }
-
-        /* Buttons */
-        .button-group {
-            display: flex;
-            gap: 1rem;
-            margin-top: 1.5rem;
-        }
-
-        button {
-            flex: 1;
-            padding: 1rem 2rem;
-            border: none;
-            border-radius: 12px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.875rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-            color: white;
-            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
-        }
-
-        .btn-primary:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.5);
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .btn-secondary {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-        }
-
-        .btn-secondary:hover {
-            background: var(--bg-secondary);
-            border-color: var(--accent-blue);
-        }
-
-        /* Loading State */
-        .loading {
-            position: relative;
-            pointer-events: none;
-        }
-
-        .loading::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 16px;
-            height: 16px;
-            margin: -8px 0 0 -8px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.6s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Response Display */
-        .response-card {
-            margin-top: 2rem;
-            display: none;
-            animation: slideUp 0.4s ease;
-        }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .response-card.show {
-            display: block;
-        }
-
-        #responseContent {
-            background: var(--bg-primary);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1.5rem;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.875rem;
-            line-height: 1.6;
-            overflow-x: auto;
-            white-space: pre-wrap;
-            color: var(--accent-cyan);
-        }
-
-        /* History Panel */
-        .history-section {
-            grid-column: 2;
-        }
-
-        .history-list {
-            max-height: 600px;
-            overflow-y: auto;
-        }
-
-        .history-item {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .history-item:hover {
-            border-color: var(--accent-blue);
-            background: var(--bg-tertiary);
-        }
-
-        .history-timestamp {
-            font-size: 0.75rem;
-            color: var(--text-dim);
-            font-family: 'JetBrains Mono', monospace;
-            margin-bottom: 0.5rem;
-        }
-
-        .history-intent {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            margin-bottom: 0.5rem;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
+            height: 100vh;
             overflow: hidden;
         }
 
-        .history-status {
+        /* Navigation Drawer - Material Design */
+        .nav-drawer {
+            width: 256px;
+            background: var(--md-surface);
+            border-right: 1px solid var(--md-divider);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .nav-header {
+            height: 64px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            border-bottom: 1px solid var(--md-divider);
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--md-primary);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--md-text-on-primary);
+            font-size: 20px;
+            font-weight: 500;
+        }
+
+        .nav-logo-text {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--md-text-primary);
+        }
+
+        .nav-items {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0;
+        }
+
+        .nav-item {
+            height: 48px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            cursor: pointer;
+            color: var(--md-text-secondary);
+            font-size: 14px;
+            transition: background-color 0.15s cubic-bezier(0.4, 0.0, 0.2, 1);
+        }
+
+        .nav-item:hover {
+            background: rgba(0, 0, 0, 0.04);
+        }
+
+        .nav-item.active {
+            background: rgba(50, 108, 229, 0.08);
+            color: var(--md-primary);
+            font-weight: 500;
+        }
+
+        .nav-footer {
+            padding: 16px;
+            border-top: 1px solid var(--md-divider);
+            font-size: 12px;
+            color: var(--md-text-secondary);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* App Bar - Material Design */
+        .app-bar {
+            height: 64px;
+            background: var(--md-surface);
+            border-bottom: 1px solid var(--md-divider);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            flex-shrink: 0;
+        }
+
+        .app-bar-title {
+            flex: 1;
+        }
+
+        .app-bar-title h1 {
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--md-text-primary);
+        }
+
+        .app-bar-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Content Area */
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        /* Page Sections */
+        .page-section {
+            display: none;
+        }
+
+        .page-section.active {
+            display: block;
+        }
+
+        /* Material Card */
+        .mat-card {
+            background: var(--md-surface);
+            border-radius: 4px;
+            box-shadow: var(--md-elevation-1);
+            margin-bottom: 16px;
+        }
+
+        .mat-card-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--md-divider);
+        }
+
+        .mat-card-title {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--md-text-primary);
+        }
+
+        .mat-card-content {
+            padding: 24px;
+        }
+
+        /* Material Button */
+        .mat-button {
+            height: 36px;
+            padding: 0 16px;
+            border: none;
+            border-radius: 4px;
+            font-family: 'Roboto', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.15s cubic-bezier(0.4, 0.0, 0.2, 1);
+            outline: none;
+        }
+
+        .mat-button-primary {
+            background: var(--md-primary);
+            color: var(--md-text-on-primary);
+            box-shadow: var(--md-elevation-2);
+        }
+
+        .mat-button-primary:hover {
+            background: var(--md-primary-dark);
+            box-shadow: var(--md-elevation-4);
+        }
+
+        .mat-button-secondary {
+            background: transparent;
+            color: var(--md-text-primary);
+            border: 1px solid var(--md-divider);
+        }
+
+        .mat-button-secondary:hover {
+            background: rgba(0, 0, 0, 0.04);
+        }
+
+        /* Material Input */
+        .mat-input-group {
+            margin-bottom: 24px;
+        }
+
+        .mat-input-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 400;
+            color: var(--md-text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .mat-input {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px 16px;
+            border: 1px solid var(--md-divider);
+            border-radius: 4px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 14px;
+            color: var(--md-text-primary);
+            background: var(--md-surface);
+            resize: vertical;
+            transition: border-color 0.15s cubic-bezier(0.4, 0.0, 0.2, 1);
+        }
+
+        .mat-input:focus {
+            outline: none;
+            border-color: var(--md-primary);
+        }
+
+        /* Material Table */
+        .mat-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--md-surface);
+        }
+
+        .mat-table thead {
+            border-bottom: 1px solid var(--md-divider);
+        }
+
+        .mat-table th {
+            height: 56px;
+            padding: 0 24px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--md-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .mat-table td {
+            height: 48px;
+            padding: 0 24px;
+            font-size: 14px;
+            color: var(--md-text-primary);
+            border-bottom: 1px solid var(--md-divider);
+        }
+
+        .mat-table tbody tr:hover {
+            background: rgba(0, 0, 0, 0.04);
+        }
+
+        /* Status Badge */
+        .status-badge {
             display: inline-block;
-            font-size: 0.75rem;
-            padding: 0.25rem 0.5rem;
-            border-radius: 6px;
-            font-weight: 600;
-        }
-
-        .history-status.success {
-            background: rgba(16, 185, 129, 0.2);
-            color: var(--success);
-        }
-
-        .history-status.error {
-            background: rgba(239, 68, 68, 0.2);
-            color: var(--error);
-        }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: var(--bg-secondary);
+            padding: 4px 8px;
             border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        ::-webkit-scrollbar-thumb {
-            background: var(--accent-blue);
+        .status-success {
+            background: rgba(56, 142, 60, 0.1);
+            color: var(--md-success);
+        }
+
+        .status-error {
+            background: rgba(211, 47, 47, 0.1);
+            color: var(--md-error);
+        }
+
+        /* Alert Box */
+        .mat-alert {
+            padding: 12px 16px;
             border-radius: 4px;
+            font-size: 14px;
+            margin-bottom: 16px;
         }
 
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--accent-purple);
+        .mat-alert-success {
+            background: rgba(56, 142, 60, 0.1);
+            color: var(--md-success);
+            border-left: 4px solid var(--md-success);
+        }
+
+        .mat-alert-error {
+            background: rgba(211, 47, 47, 0.1);
+            color: var(--md-error);
+            border-left: 4px solid var(--md-error);
+        }
+
+        /* Loading Indicator */
+        .mat-progress {
+            display: none;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.04);
+            border-radius: 4px;
+            margin-bottom: 16px;
+        }
+
+        .mat-progress.active {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .mat-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(50, 108, 229, 0.2);
+            border-top-color: var(--md-primary);
+            border-radius: 50%;
+            animation: mat-spin 0.8s linear infinite;
+        }
+
+        @keyframes mat-spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Code Block */
+        .mat-code {
+            background: rgba(0, 0, 0, 0.04);
+            border: 1px solid var(--md-divider);
+            border-radius: 4px;
+            padding: 16px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            line-height: 1.6;
+        }
+
+        /* Toolbar */
+        .mat-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            padding: 16px 24px;
+            background: var(--md-surface);
+            border-bottom: 1px solid var(--md-divider);
+            font-size: 14px;
+            color: var(--md-text-secondary);
+        }
+
+        .mat-toolbar-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mat-toolbar-label {
+            color: var(--md-text-secondary);
+        }
+
+        .mat-toolbar-value {
+            color: var(--md-text-primary);
+            font-weight: 500;
+        }
+
+        /* Info Section */
+        .info-section {
+            margin-bottom: 32px;
+        }
+
+        .info-section h3 {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--md-text-primary);
+            margin-bottom: 16px;
+        }
+
+        .info-section p {
+            font-size: 14px;
+            color: var(--md-text-primary);
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .info-section pre {
+            background: rgba(0, 0, 0, 0.04);
+            border: 1px solid var(--md-divider);
+            border-radius: 4px;
+            padding: 16px;
+            overflow-x: auto;
+            margin-bottom: 16px;
+        }
+
+        .info-section code {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        /* Setting Item */
+        .setting-item {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--md-divider);
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .setting-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--md-text-primary);
+            margin-bottom: 4px;
+        }
+
+        .setting-description {
+            font-size: 12px;
+            color: var(--md-text-secondary);
+        }
+
+        /* Material Switch */
+        .mat-switch {
+            position: relative;
+            width: 36px;
+            height: 20px;
+        }
+
+        .mat-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .mat-switch-track {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.38);
+            border-radius: 10px;
+            transition: 0.2s;
+        }
+
+        .mat-switch-track:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: var(--md-surface);
+            border-radius: 50%;
+            transition: 0.2s;
+        }
+
+        .mat-switch input:checked + .mat-switch-track {
+            background-color: rgba(50, 108, 229, 0.5);
+        }
+
+        .mat-switch input:checked + .mat-switch-track:before {
+            transform: translateX(16px);
+            background-color: var(--md-primary);
         }
 
         /* Responsive */
-        @media (max-width: 1200px) {
-            .main-grid {
-                grid-template-columns: 1fr;
+        @media (max-width: 768px) {
+            .nav-drawer {
+                position: absolute;
+                z-index: 100;
+                transform: translateX(-100%);
             }
 
-            .history-section {
-                grid-column: 1;
+            .nav-drawer.open {
+                transform: translateX(0);
             }
-        }
-
-        /* Examples */
-        .examples {
-            margin-top: 1rem;
-            padding: 1rem;
-            background: var(--bg-primary);
-            border-radius: 12px;
-            border: 1px dashed var(--border);
-        }
-
-        .examples-title {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--text-dim);
-            margin-bottom: 0.5rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .example-tag {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            margin: 0.25rem;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        .example-tag:hover {
-            background: var(--bg-secondary);
-            color: var(--accent-cyan);
-            border-color: var(--accent-blue);
-        }
-
-        /* Toast Notification */
-        .toast {
-            position: fixed;
-            bottom: 2rem;
-            right: 2rem;
-            padding: 1rem 1.5rem;
-            background: var(--glass-bg);
-            backdrop-filter: blur(16px);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            color: var(--text-primary);
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.875rem;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            z-index: 1000;
-            opacity: 0;
-            transform: translateY(20px);
-            transition: all 0.3s ease;
-        }
-
-        .toast.show {
-            opacity: 1;
-            transform: translateY(0);
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div class="header-content">
-                <div class="logo">
-                    <div class="logo-icon">N</div>
-                    <div class="logo-text">Nephoran Intent Operator</div>
-                </div>
-                <div class="status-bar">
-                    <div class="status-item">
-                        <div class="status-dot success"></div>
-                        <span>Ollama Ready</span>
-                    </div>
-                    <div class="status-item">
-                        <div class="status-dot success"></div>
-                        <span>RAG Service</span>
-                    </div>
-                    <div class="status-item">
-                        <div class="status-dot success"></div>
-                        <span>K8s 1.35.1</span>
-                    </div>
+    <div class="app-container">
+        <!-- Navigation Drawer -->
+        <nav class="nav-drawer">
+            <div class="nav-header">
+                <div class="nav-logo">
+                    <div class="nav-logo-icon">N</div>
+                    <div class="nav-logo-text">Nephoran</div>
                 </div>
             </div>
-        </header>
 
-        <div class="main-grid">
-            <div class="intent-section">
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">Natural Language Intent</h2>
-                        <span class="card-badge">AI-Powered</span>
-                    </div>
+            <div class="nav-items">
+                <div class="nav-item active" data-page="intents">Intents</div>
+                <div class="nav-item" data-page="history">History</div>
+                <div class="nav-item" data-page="monitoring">Monitoring</div>
+                <div class="nav-item" data-page="settings">Settings</div>
+            </div>
 
-                    <div class="input-group">
-                        <label class="input-label" for="intentInput">Describe your intent</label>
-                        <div class="textarea-wrapper">
-                            <textarea
-                                id="intentInput"
-                                placeholder="e.g., scale nf-sim to 5 in ns ran-a&#10;e.g., deploy nginx with 3 replicas in namespace production&#10;e.g., create service for app frontend on port 8080"
-                            ></textarea>
-                            <div class="char-counter">
-                                <span id="charCount">0</span> / 1000
+            <div class="nav-footer">
+                <div>Version 1.0.0</div>
+                <div>Kubernetes 1.35.1</div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="app-bar">
+                <div class="app-bar-title">
+                    <h1 id="pageTitle">Intent Management</h1>
+                </div>
+                <div class="app-bar-actions">
+                    <button class="mat-button mat-button-secondary" onclick="window.location.reload()">REFRESH</button>
+                </div>
+            </header>
+
+            <div class="content-area">
+                <!-- Intents Page -->
+                <div class="page-section active" id="intentsPage">
+                    <div class="mat-card">
+                        <div class="mat-card-header">
+                            <div class="mat-card-title">Create Intent</div>
+                        </div>
+                        <div class="mat-card-content">
+                            <div class="mat-input-group">
+                                <label class="mat-input-label">Intent Command</label>
+                                <textarea
+                                    id="intentInput"
+                                    class="mat-input"
+                                    placeholder="scale nf-sim to 5 in ns ran-a"
+                                ></textarea>
+                            </div>
+
+                            <div style="display: flex; gap: 8px;">
+                                <button class="mat-button mat-button-primary" onclick="submitIntent()">SUBMIT</button>
+                                <button class="mat-button mat-button-secondary" onclick="clearInput()">CLEAR</button>
+                            </div>
+
+                            <div class="mat-progress" id="loadingIndicator">
+                                <div class="mat-spinner"></div>
+                                <span>Processing request</span>
                             </div>
                         </div>
                     </div>
 
-                    <div class="input-row">
-                        <div class="input-group">
-                            <label class="input-label" for="intentType">Intent Type</label>
-                            <select id="intentType">
-                                <option value="auto">Auto-detect</option>
-                                <option value="scaling">Scaling</option>
-                                <option value="deployment">Deployment</option>
-                                <option value="service">Service</option>
-                            </select>
+                    <div class="mat-card" id="responseCard" style="display: none;">
+                        <div class="mat-card-header">
+                            <div class="mat-card-title">Response</div>
                         </div>
-                        <div class="input-group">
-                            <label class="input-label" for="namespace">Namespace</label>
-                            <select id="namespace">
-                                <option value="">Default</option>
-                                <option value="ran-a">ran-a</option>
-                                <option value="ran-b">ran-b</option>
-                                <option value="free5gc">free5gc</option>
-                                <option value="ricplt">ricplt</option>
-                                <option value="ricxapp">ricxapp</option>
-                                <option value="production">production</option>
-                            </select>
+                        <div class="mat-card-content">
+                            <div id="responseStatus"></div>
+                            <pre class="mat-code" id="responseContent"></pre>
                         </div>
-                    </div>
-
-                    <div class="examples">
-                        <div class="examples-title">Quick Examples</div>
-                        <span class="example-tag" data-example="scale nf-sim to 5 in ns ran-a">Scale NF-SIM</span>
-                        <span class="example-tag" data-example="deploy nginx with 3 replicas in namespace production">Deploy NGINX</span>
-                        <span class="example-tag" data-example="create service for app frontend on port 8080">Create Service</span>
-                        <span class="example-tag" data-example="scale free5gc-amf to 2 replicas in namespace free5gc">Scale AMF</span>
-                    </div>
-
-                    <div class="button-group">
-                        <button id="submitBtn" class="btn-primary">
-                            Process Intent
-                        </button>
-                        <button id="clearBtn" class="btn-secondary">
-                            Clear
-                        </button>
                     </div>
                 </div>
 
-                <div class="card response-card" id="responseCard">
-                    <div class="card-header">
-                        <h2 class="card-title">Generated Intent</h2>
-                        <span class="card-badge" id="responseBadge">Success</span>
+                <!-- History Page -->
+                <div class="page-section" id="historyPage">
+                    <div class="mat-card">
+                        <div class="mat-card-header">
+                            <div class="mat-card-title">Intent History</div>
+                        </div>
+                        <div class="mat-toolbar">
+                            <div class="mat-toolbar-item">
+                                <span class="mat-toolbar-label">Total:</span>
+                                <span class="mat-toolbar-value" id="statTotal">0</span>
+                            </div>
+                            <div class="mat-toolbar-item">
+                                <span class="mat-toolbar-label">Success:</span>
+                                <span class="mat-toolbar-value" id="statSuccess">0</span>
+                            </div>
+                            <div class="mat-toolbar-item">
+                                <span class="mat-toolbar-label">Error:</span>
+                                <span class="mat-toolbar-value" id="statError">0</span>
+                            </div>
+                        </div>
+                        <table class="mat-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Command</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody">
+                                <tr>
+                                    <td colspan="4" style="text-align: center; color: var(--md-text-secondary);">
+                                        No data available
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                    <pre id="responseContent"></pre>
+                </div>
+
+                <!-- Monitoring Page -->
+                <div class="page-section" id="monitoringPage">
+                    <div class="mat-card">
+                        <div class="mat-card-header">
+                            <div class="mat-card-title">Monitoring Resources</div>
+                        </div>
+                        <div class="mat-card-content">
+                            <div class="info-section">
+                                <h3>Grafana Dashboard</h3>
+                                <p>Access metrics and visualization at:</p>
+                                <pre><code>http://192.168.10.65:30300</code></pre>
+                                <p>Credentials: admin / NephoranMonitor2026!</p>
+                            </div>
+
+                            <div class="info-section">
+                                <h3>Terminal Monitoring</h3>
+                                <pre><code>/tmp/realtime-nf-monitor.sh
+/tmp/simple-watch-monitor.sh</code></pre>
+                            </div>
+
+                            <div class="info-section">
+                                <h3>Documentation</h3>
+                                <pre><code>deployments/monitoring/GRAFANA_SETUP_GUIDE.md
+deployments/monitoring/VISUALIZATION_GUIDE.md</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Page -->
+                <div class="page-section" id="settingsPage">
+                    <div class="mat-card">
+                        <div class="mat-card-header">
+                            <div class="mat-card-title">Application Settings</div>
+                        </div>
+                        <div style="padding: 0;">
+                            <div class="setting-item">
+                                <div class="setting-row">
+                                    <div>
+                                        <div class="setting-label">Auto-save History</div>
+                                        <div class="setting-description">Store intent submissions in browser storage</div>
+                                    </div>
+                                    <label class="mat-switch">
+                                        <input type="checkbox" id="settingHistory" checked>
+                                        <span class="mat-switch-track"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="setting-item">
+                                <div class="setting-row">
+                                    <div>
+                                        <div class="setting-label">Syntax Highlighting</div>
+                                        <div class="setting-description">Enable code highlighting in response display</div>
+                                    </div>
+                                    <label class="mat-switch">
+                                        <input type="checkbox" id="settingHighlight" checked>
+                                        <span class="mat-switch-track"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="setting-item">
+                                <div style="display: flex; gap: 8px;">
+                                    <button class="mat-button mat-button-primary" onclick="saveSettings()">SAVE</button>
+                                    <button class="mat-button mat-button-secondary" onclick="clearAllData()">CLEAR DATA</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-
-            <div class="history-section">
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">Recent Intents</h2>
-                        <span class="card-badge" id="historyCount">0</span>
-                    </div>
-                    <div class="history-list" id="historyList">
-                        <div style="text-align: center; color: var(--text-dim); padding: 2rem; font-size: 0.875rem;">
-                            No intents processed yet
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        </main>
     </div>
 
-    <div class="toast" id="toast"></div>
-
     <script>
-        const API_ENDPOINT = 'http://intent-ingest-service:8080/intent';
-        const MAX_HISTORY = 50;
+        const API_ENDPOINT = '/intent';
+        let intentHistory = JSON.parse(localStorage.getItem('intentHistory') || '[]');
+        let appSettings = JSON.parse(localStorage.getItem('appSettings') || '{"history": true, "highlight": true}');
 
-        // Elements
-        const intentInput = document.getElementById('intentInput');
-        const intentType = document.getElementById('intentType');
-        const namespace = document.getElementById('namespace');
-        const submitBtn = document.getElementById('submitBtn');
-        const clearBtn = document.getElementById('clearBtn');
-        const responseCard = document.getElementById('responseCard');
-        const responseContent = document.getElementById('responseContent');
-        const responseBadge = document.getElementById('responseBadge');
-        const historyList = document.getElementById('historyList');
-        const historyCount = document.getElementById('historyCount');
-        const charCount = document.getElementById('charCount');
-        const toast = document.getElementById('toast');
+        // Navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const page = this.dataset.page;
 
-        // Initialize
-        loadHistory();
-        updateHistoryCount();
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
 
-        // Character counter
-        intentInput.addEventListener('input', () => {
-            const count = intentInput.value.length;
-            charCount.textContent = count;
-            if (count > 1000) {
-                intentInput.value = intentInput.value.substring(0, 1000);
-                charCount.textContent = 1000;
-            }
-        });
+                document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+                document.getElementById(page + 'Page').classList.add('active');
 
-        // Example tags
-        document.querySelectorAll('.example-tag').forEach(tag => {
-            tag.addEventListener('click', () => {
-                intentInput.value = tag.dataset.example;
-                intentInput.dispatchEvent(new Event('input'));
-                intentInput.focus();
+                const titles = {
+                    intents: 'Intent Management',
+                    history: 'Intent History',
+                    monitoring: 'Monitoring Resources',
+                    settings: 'Application Settings'
+                };
+                document.getElementById('pageTitle').textContent = titles[page];
+
+                if (page === 'history') {
+                    updateHistoryStats();
+                    renderHistory();
+                } else if (page === 'settings') {
+                    loadSettings();
+                }
             });
         });
 
-        // Submit intent
-        submitBtn.addEventListener('click', async () => {
-            const intent = intentInput.value.trim();
-            if (!intent) {
-                showToast('Please enter an intent', 'error');
-                return;
-            }
+        // Input Management
+        function clearInput() {
+            document.getElementById('intentInput').value = '';
+        }
 
-            submitBtn.disabled = true;
-            submitBtn.classList.add('loading');
-            submitBtn.textContent = '';
+        // Submit Intent
+        async function submitIntent() {
+            const input = document.getElementById('intentInput').value.trim();
+            if (!input) return;
+
+            document.getElementById('loadingIndicator').classList.add('active');
+            document.getElementById('responseCard').style.display = 'none';
 
             try {
                 const response = await fetch(API_ENDPOINT, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'text/plain'
-                    },
-                    body: intent
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: input
                 });
 
-                const result = await response.json();
+                const data = await response.json();
+                document.getElementById('loadingIndicator').classList.remove('active');
+                document.getElementById('responseCard').style.display = 'block';
 
                 if (response.ok) {
-                    displayResponse(result, true);
-                    addToHistory(intent, result, true);
-                    showToast('Intent processed successfully', 'success');
+                    document.getElementById('responseStatus').className = 'mat-alert mat-alert-success';
+                    document.getElementById('responseStatus').textContent = 'Request processed successfully';
                 } else {
-                    displayResponse(result, false);
-                    addToHistory(intent, result, false);
-                    showToast('Intent processing failed', 'error');
+                    document.getElementById('responseStatus').className = 'mat-alert mat-alert-error';
+                    document.getElementById('responseStatus').textContent = 'Request failed';
                 }
+
+                document.getElementById('responseContent').textContent = JSON.stringify(data, null, 2);
+
+                if (appSettings.history) {
+                    addToHistory(input, response.ok ? 'success' : 'error', data);
+                }
+
             } catch (error) {
-                const errorResult = { error: error.message };
-                displayResponse(errorResult, false);
-                addToHistory(intent, errorResult, false);
-                showToast('Network error occurred', 'error');
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.classList.remove('loading');
-                submitBtn.textContent = 'Process Intent';
+                document.getElementById('loadingIndicator').classList.remove('active');
+                document.getElementById('responseCard').style.display = 'block';
+                document.getElementById('responseStatus').className = 'mat-alert mat-alert-error';
+                document.getElementById('responseStatus').textContent = 'Connection error';
+                document.getElementById('responseContent').textContent = error.message;
+
+                if (appSettings.history) {
+                    addToHistory(input, 'error', { error: error.message });
+                }
             }
-        });
-
-        // Clear form
-        clearBtn.addEventListener('click', () => {
-            intentInput.value = '';
-            intentType.value = 'auto';
-            namespace.value = '';
-            responseCard.classList.remove('show');
-            intentInput.dispatchEvent(new Event('input'));
-        });
-
-        // Display response
-        function displayResponse(data, success) {
-            responseContent.textContent = JSON.stringify(data, null, 2);
-            responseBadge.textContent = success ? 'Success' : 'Error';
-            responseBadge.style.background = success
-                ? 'rgba(16, 185, 129, 0.2)'
-                : 'rgba(239, 68, 68, 0.2)';
-            responseBadge.style.color = success ? 'var(--success)' : 'var(--error)';
-            responseCard.classList.add('show');
         }
 
-        // Add to history
-        function addToHistory(intent, result, success) {
-            let history = JSON.parse(localStorage.getItem('intentHistory') || '[]');
-
-            history.unshift({
+        // History Management
+        function addToHistory(command, status, response) {
+            intentHistory.unshift({
                 timestamp: new Date().toISOString(),
-                intent: intent,
-                result: result,
-                success: success
+                command: command,
+                status: status,
+                response: response
             });
 
-            if (history.length > MAX_HISTORY) {
-                history = history.slice(0, MAX_HISTORY);
+            if (intentHistory.length > 50) {
+                intentHistory = intentHistory.slice(0, 50);
             }
 
-            localStorage.setItem('intentHistory', JSON.stringify(history));
-            loadHistory();
+            localStorage.setItem('intentHistory', JSON.stringify(intentHistory));
         }
 
-        // Load history
-        function loadHistory() {
-            const history = JSON.parse(localStorage.getItem('intentHistory') || '[]');
+        function renderHistory() {
+            const tbody = document.getElementById('historyTableBody');
 
-            if (history.length === 0) {
-                historyList.innerHTML = `
-                    <div style="text-align: center; color: var(--text-dim); padding: 2rem; font-size: 0.875rem;">
-                        No intents processed yet
-                    </div>
-                `;
+            if (intentHistory.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--md-text-secondary);">No data available</td></tr>';
                 return;
             }
 
-            historyList.innerHTML = history.map((item, index) => `
-                <div class="history-item" onclick="loadHistoryItem(${index})">
-                    <div class="history-timestamp">${formatTimestamp(item.timestamp)}</div>
-                    <div class="history-intent">${escapeHtml(item.intent)}</div>
-                    <span class="history-status ${item.success ? 'success' : 'error'}">
-                        ${item.success ? 'SUCCESS' : 'ERROR'}
-                    </span>
-                </div>
+            tbody.innerHTML = intentHistory.slice(0, 20).map((entry, index) => `
+                <tr>
+                    <td>${new Date(entry.timestamp).toLocaleString()}</td>
+                    <td>${entry.command}</td>
+                    <td><span class="status-badge status-${entry.status}">${entry.status}</span></td>
+                    <td>
+                        <button class="mat-button mat-button-secondary" style="padding: 4px 8px; height: 28px; font-size: 12px;" onclick="viewDetails(${index})">VIEW</button>
+                    </td>
+                </tr>
             `).join('');
-
-            updateHistoryCount();
         }
 
-        // Load history item
-        window.loadHistoryItem = function(index) {
-            const history = JSON.parse(localStorage.getItem('intentHistory') || '[]');
-            const item = history[index];
-
-            if (item) {
-                intentInput.value = item.intent;
-                displayResponse(item.result, item.success);
-                intentInput.dispatchEvent(new Event('input'));
-            }
-        };
-
-        // Update history count
-        function updateHistoryCount() {
-            const history = JSON.parse(localStorage.getItem('intentHistory') || '[]');
-            historyCount.textContent = history.length;
-        }
-
-        // Format timestamp
-        function formatTimestamp(iso) {
-            const date = new Date(iso);
-            const now = new Date();
-            const diff = Math.floor((now - date) / 1000);
-
-            if (diff < 60) return 'Just now';
-            if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-            if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-        }
-
-        // Escape HTML
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // Show toast
-        function showToast(message, type = 'info') {
-            toast.textContent = message;
-            toast.style.borderColor = type === 'success'
-                ? 'var(--success)'
-                : type === 'error'
-                ? 'var(--error)'
-                : 'var(--accent-blue)';
-            toast.classList.add('show');
+        function viewDetails(index) {
+            const entry = intentHistory[index];
+            document.querySelectorAll('.nav-item')[0].click();
 
             setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
+                document.getElementById('responseCard').style.display = 'block';
+                document.getElementById('responseStatus').className = entry.status === 'success' ? 'mat-alert mat-alert-success' : 'mat-alert mat-alert-error';
+                document.getElementById('responseStatus').textContent = entry.status === 'success' ? 'Request processed successfully' : 'Request failed';
+                document.getElementById('responseContent').textContent = JSON.stringify(entry.response, null, 2);
+            }, 100);
         }
 
-        // Enter key to submit
-        intentInput.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.key === 'Enter') {
-                submitBtn.click();
+        function updateHistoryStats() {
+            const total = intentHistory.length;
+            const success = intentHistory.filter(e => e.status === 'success').length;
+            const error = total - success;
+
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statSuccess').textContent = success;
+            document.getElementById('statError').textContent = error;
+        }
+
+        // Settings Management
+        function loadSettings() {
+            document.getElementById('settingHistory').checked = appSettings.history;
+            document.getElementById('settingHighlight').checked = appSettings.highlight;
+        }
+
+        function saveSettings() {
+            appSettings = {
+                history: document.getElementById('settingHistory').checked,
+                highlight: document.getElementById('settingHighlight').checked
+            };
+            localStorage.setItem('appSettings', JSON.stringify(appSettings));
+        }
+
+        function clearAllData() {
+            if (confirm('Clear all history and settings?')) {
+                localStorage.removeItem('intentHistory');
+                localStorage.removeItem('appSettings');
+                intentHistory = [];
+                appSettings = { history: true, highlight: true };
+                renderHistory();
+                loadSettings();
             }
-        });
+        }
     </script>
 </body>
 </html>
