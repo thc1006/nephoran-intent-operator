@@ -48,7 +48,7 @@ func InitRedisClient(cfg RedisConfig) *redis.Client {
 	return client
 }
 
-// reportPolicyStatus reports policy enforcement status to Redis
+// reportPolicyStatusRedis reports policy enforcement status to Redis
 // MODIFIED: Writes to Redis instead of POSTing to A1 Mediator
 func (x *ScalingXApp) reportPolicyStatusRedis(policyID string, enforced bool, reason string) {
 	start := time.Now()
@@ -56,19 +56,19 @@ func (x *ScalingXApp) reportPolicyStatusRedis(policyID string, enforced bool, re
 		a1RequestDuration.WithLabelValues("REDIS_SET").Observe(time.Since(start).Seconds())
 	}()
 
-	// Prepare status payload
+	// Prepare status payload using O-RAN spec field names
 	status := PolicyStatus{
-		EnforceStatus: "NOT_ENFORCED",
-		EnforceReason: reason,
+		EnforcementStatus: "NOT_ENFORCED",
+		EnforcementReason: reason,
 	}
 	if enforced {
-		status.EnforceStatus = "ENFORCED"
+		status.EnforcementStatus = "ENFORCED"
 	}
 
 	statusJSON, err := json.Marshal(status)
 	if err != nil {
 		log.Printf("Failed to marshal policy status for %s: %v", policyID, err)
-		policyStatusReports.WithLabelValues(status.EnforceStatus, "marshal_error").Inc()
+		policyStatusReports.WithLabelValues(status.EnforcementStatus, "marshal_error").Inc()
 		return
 	}
 
@@ -83,13 +83,13 @@ func (x *ScalingXApp) reportPolicyStatusRedis(policyID string, enforced bool, re
 	err = x.redisClient.Set(ctx, redisKey, string(statusJSON), 0).Err()
 	if err != nil {
 		log.Printf("❌ Failed to write policy status to Redis for %s: %v", policyID, err)
-		policyStatusReports.WithLabelValues(status.EnforceStatus, "redis_error").Inc()
+		policyStatusReports.WithLabelValues(status.EnforcementStatus, "redis_error").Inc()
 		return
 	}
 
 	log.Printf("✅ Policy status written to Redis: %s → %s (key: %s)",
-		policyID, status.EnforceStatus, redisKey)
-	policyStatusReports.WithLabelValues(status.EnforceStatus, "success").Inc()
+		policyID, status.EnforcementStatus, redisKey)
+	policyStatusReports.WithLabelValues(status.EnforcementStatus, "success").Inc()
 
 	// Optional: Set expiration for status (e.g., 24 hours)
 	// This prevents indefinite accumulation of old policy statuses
@@ -104,4 +104,9 @@ func (x *ScalingXApp) checkRedisHealth() error {
 	defer cancel()
 
 	return x.redisClient.Ping(ctx).Err()
+}
+
+// Helper: Format Redis key for policy status
+func formatRedisKey(policyTypeID int, policyID string) string {
+	return fmt.Sprintf("policy:status:%d:%s", policyTypeID, policyID)
 }

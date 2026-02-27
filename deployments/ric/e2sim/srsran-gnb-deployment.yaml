@@ -5,45 +5,96 @@ metadata:
   name: srsran-gnb-config
   namespace: ricxapp
 data:
-  gnb.yaml: |
-    amf:
-      addr: 127.0.0.1                                               # AMF address (not needed for E2 only)
-      bind_addr: 127.0.0.1                                          # Local IP address to bind for AMF connection
+  gnb.conf: |
+    # OAI gNB Configuration for E2 Agent Integration
+    # Libconfig format (not YAML!)
 
-    ru_sdr:
-      device_driver: zmq                                            # Use ZMQ for RF-less simulation
-      device_args: tx_port=tcp://127.0.0.1:2000,rx_port=tcp://127.0.0.1:2001,base_srate=11.52e6
-      srate: 11.52                                                  # Sample rate in MHz
-      tx_gain: 50                                                   # Transmit gain
-      rx_gain: 60                                                   # Receive gain
+    Active_gNBs = ( "gNB-OAI-E2");
 
-    cell_cfg:
-      dl_arfcn: 368500                                              # ARFCN for band n3 (1800 MHz)
-      band: 3                                                       # NR band
-      channel_bandwidth_MHz: 20                                     # Channel bandwidth
-      common_scs: 15                                                # Subcarrier spacing
-      plmn: "00101"                                                 # Public Land Mobile Network ID
-      tac: 7                                                        # Tracking Area Code
-      pci: 1                                                        # Physical Cell ID
-      nof_antennas_dl: 1
-      nof_antennas_ul: 1
+    gNBs = (
+      {
+        gNB_ID = 0xe00;
+        gNB_name = "gNB-OAI-E2";
+        tracking_area_code = 1;
 
-    log:
-      filename: /tmp/gnb.log                                        # Log file path
-      all_level: info                                               # Log level
+        plmn_list = (
+          {
+            mcc = 001;
+            mnc = 01;
+            mnc_length = 2;
+          }
+        );
 
-    e2:
-      enable_du_e2: true                                            # Enable E2 for DU
-      addr: service-ricplt-e2term-sctp-alpha.ricplt.svc.cluster.local # E2 Termination address
-      port: 36422                                                   # E2 Termination port
-      bind_addr: 0.0.0.0                                            # Local bind address
-      sctp_rto_initial: 120                                         # SCTP RTO initial
-      sctp_rto_min: 120                                             # SCTP RTO min
-      sctp_rto_max: 500                                             # SCTP RTO max
-      sctp_init_max_attempts: 3                                     # SCTP init max attempts
-      sctp_max_init_timeo: 500                                      # SCTP max init timeout
-      e2sm_kpm_enabled: true                                        # Enable KPM service model
-      e2sm_rc_enabled: false                                        # Disable RC service model
+        nr_cellid = 12345678L;
+
+        amf_ip_address = (
+          {
+            ipv4 = "127.0.0.1";
+            ipv6 = "192:168:30::17";
+            active = "yes";
+            preference = "ipv4";
+          }
+        );
+
+        NETWORK_INTERFACES = {
+          GNB_INTERFACE_NAME_FOR_NG_AMF = "lo";
+          GNB_IPV4_ADDRESS_FOR_NG_AMF = "127.0.0.1/8";
+          GNB_INTERFACE_NAME_FOR_NGU = "lo";
+          GNB_IPV4_ADDRESS_FOR_NGU = "127.0.0.1/8";
+          GNB_PORT_FOR_S1U = 2152;
+        };
+
+        e2_agent = {
+          near_ric_ip_addr = "service-ricplt-e2term-sctp-alpha.ricplt.svc.cluster.local";
+          sm_dir = "/usr/local/lib/flexric/";
+        };
+      }
+    );
+
+    security = {
+      ciphering_algorithms = ( "nea0" );
+      integrity_algorithms = ( "nia2", "nia0" );
+    };
+
+    log_config = {
+      global_log_level = "info";
+      global_log_verbosity = "medium";
+    };
+
+    SCTP = {
+      SCTP_INSTREAMS = 2;
+      SCTP_OUTSTREAMS = 2;
+    };
+
+    MACRLCs = (
+      {
+        num_cc = 1;
+        tr_s_preference = "local_L1";
+        tr_n_preference = "local_RRC";
+      }
+    );
+
+    L1s = (
+      {
+        num_cc = 1;
+        tr_n_preference = "local_mac";
+      }
+    );
+
+    RUs = (
+      {
+        local_rf = "yes";
+        nb_tx = 1;
+        nb_rx = 1;
+        att_tx = 0;
+        att_rx = 0;
+        bands = [78];
+        max_pdschReferenceSignalPower = -27;
+        max_rxgain = 114;
+        eNB_instances = [0];
+        sdr_addrs = "type=zmq";
+      }
+    );
 
 ---
 apiVersion: apps/v1
@@ -65,7 +116,7 @@ spec:
     spec:
       containers:
       - name: gnb
-        image: gradiant/srsran-5g:latest
+        image: arorasagar/testing-images:oai-gnb-e2-agent
         imagePullPolicy: IfNotPresent
         command: ["/bin/bash"]
         args:
@@ -90,21 +141,22 @@ spec:
             # Create config directory
             mkdir -p /etc/srsran
 
-            # Copy config from ConfigMap
-            if [ -f /config/gnb.yaml ]; then
-              cp /config/gnb.yaml /etc/srsran/gnb.yaml
-              echo "Configuration loaded from ConfigMap"
+            # Copy config from ConfigMap (libconfig format now!)
+            if [ -f /config/gnb.conf ]; then
+              cp /config/gnb.conf /etc/srsran/gnb.conf
+              echo "Configuration loaded from ConfigMap (libconfig format)"
             else
               echo "WARNING: Config file not found, using defaults"
             fi
 
             echo ""
-            echo "Starting srsRAN gNB with E2 enabled..."
+            echo "Starting OAI gNB with E2 agent enabled..."
             echo "Press Ctrl+C to stop"
             echo ""
 
-            # Run gNB with E2 agent enabled
-            exec gnb -c /etc/srsran/gnb.yaml
+            # Run OAI gNB with E2 agent enabled
+            # Note: OAI binary is nr-softmodem with libconfig format
+            exec /opt/oai-gnb/bin/nr-softmodem -O /etc/srsran/gnb.conf
         volumeMounts:
         - name: config
           mountPath: /config

@@ -1,13 +1,16 @@
-FROM docker.io/library/golang:1.21-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
-COPY go.mod go.sum* ./
+COPY go.mod go.sum ./
 RUN go mod download
-COPY main.go ./
-RUN CGO_ENABLED=0 GOOS=linux go build -o scaling-xapp .
 
-FROM docker.io/library/alpine:latest
+COPY *.go ./
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o scaling-xapp .
+
+FROM alpine:latest
 RUN apk --no-cache add ca-certificates
 WORKDIR /root/
 COPY --from=builder /app/scaling-xapp .
+
+EXPOSE 2112
 CMD ["./scaling-xapp"]

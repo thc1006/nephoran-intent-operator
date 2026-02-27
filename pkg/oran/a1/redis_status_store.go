@@ -51,35 +51,27 @@ func (r *RedisStatusStore) GetPolicyStatus(ctx context.Context, policyTypeID int
 	if err == redis.Nil {
 		// Key doesn't exist - policy status not yet reported
 		return &A1PolicyStatus{
-			EnforceStatus:  "NOT_ENFORCED",
-			EnforceReason:  "Policy status not yet reported by xApp",
-			InstanceStatus: "NOT IN EFFECT",
+			EnforcementStatus: "NOT_ENFORCED",
+			EnforcementReason: "Policy status not yet reported by xApp",
+			LastModified:      time.Now(),
 		}, nil
 	} else if err != nil {
 		return nil, fmt.Errorf("redis get failed: %w", err)
 	}
 
-	// Parse JSON
-	var status struct {
-		EnforceStatus string `json:"enforce_status"`
-		EnforceReason string `json:"enforce_reason,omitempty"`
-	}
+	// Parse JSON - use existing A1PolicyStatus type from a1_adaptor.go
+	var status A1PolicyStatus
 
 	if err := json.Unmarshal([]byte(statusJSON), &status); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal policy status: %w", err)
 	}
 
-	// Map to A1PolicyStatus
-	instanceStatus := "IN EFFECT"
-	if status.EnforceStatus != "ENFORCED" {
-		instanceStatus = "NOT IN EFFECT"
+	// Set LastModified to current time if not present in JSON
+	if status.LastModified.IsZero() {
+		status.LastModified = time.Now()
 	}
 
-	return &A1PolicyStatus{
-		EnforceStatus:  status.EnforceStatus,
-		EnforceReason:  status.EnforceReason,
-		InstanceStatus: instanceStatus,
-	}, nil
+	return &status, nil
 }
 
 // ListPolicyStatuses lists all policy statuses for a policy type

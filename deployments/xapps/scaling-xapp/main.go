@@ -9,12 +9,12 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/redis/go-redis/v9"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -112,16 +112,17 @@ type ScalingSpec struct {
 	Source     string `json:"source"`
 }
 
-// PolicyStatus represents the status report sent to A1 Mediator
+// PolicyStatus represents the status report for Redis storage (O-RAN compatible)
 type PolicyStatus struct {
-	EnforceStatus string `json:"enforceStatus"` // "ENFORCED" or "NOT_ENFORCED"
-	EnforceReason string `json:"enforceReason"` // Human-readable reason
+	EnforcementStatus string `json:"enforcement_status"` // "ENFORCED" or "NOT_ENFORCED"
+	EnforcementReason string `json:"enforcement_reason"` // Human-readable reason
 }
 
 type ScalingXApp struct {
 	k8sClient    *kubernetes.Clientset
 	a1URL        string
 	pollInterval time.Duration
+	redisClient  *redis.Client // NEW: Redis client for policy status storage
 }
 
 func NewScalingXApp() (*ScalingXApp, error) {
@@ -148,10 +149,24 @@ func NewScalingXApp() (*ScalingXApp, error) {
 		}
 	}
 
+	// Initialize Redis client for policy status reporting
+	redisAddr := os.Getenv("REDIS_ADDRESS")
+	if redisAddr == "" {
+		redisAddr = "a1-status-store.ricplt:6379"
+	}
+
+	redisConfig := RedisConfig{
+		Address:  redisAddr,
+		Password: "",
+		DB:       0,
+	}
+	redisClient := InitRedisClient(redisConfig)
+
 	return &ScalingXApp{
 		k8sClient:    clientset,
 		a1URL:        a1URL,
 		pollInterval: pollInterval,
+		redisClient:  redisClient,
 	}, nil
 }
 
@@ -334,47 +349,47 @@ func (x *ScalingXApp) scaleDeployment(ctx context.Context, spec ScalingSpec) err
 func (x *ScalingXApp) reportPolicyStatus(policyID string, enforced bool, reason string) {
 	start := time.Now()
 	defer func() {
-		a1RequestDuration.WithLabelValues("POST_STATUS").Observe(time.Since(start).Seconds())
+		a1RequestDuration.WithLabelValues("REDIS_SET").Observe(time.Since(start).Seconds())
 	}()
 
-	// Prepare status payload
+	// Prepare status payload using O-RAN spec field names
 	status := PolicyStatus{
-		EnforceStatus: "NOT_ENFORCED",
-		EnforceReason: reason,
+		EnforcementStatus: "NOT_ENFORCED",
+		EnforcementReason: reason,
 	}
 	if enforced {
-		status.EnforceStatus = "ENFORCED"
+		status.EnforcementStatus = "ENFORCED"
 	}
 
 	statusJSON, err := json.Marshal(status)
 	if err != nil {
 		log.Printf("Failed to marshal policy status for %s: %v", policyID, err)
-		policyStatusReports.WithLabelValues(status.EnforceStatus, "marshal_error").Inc()
+		policyStatusReports.WithLabelValues(status.EnforcementStatus, "marshal_error").Inc()
 		return
 	}
 
-	// Send status to A1 Mediator
-	url := fmt.Sprintf("%s/A1-P/v2/policytypes/100/policies/%s/status", x.a1URL, policyID)
+	// Write status to Redis with policy type ID prefix
+	// Key format: policy:status:{policyTypeID}:{policyID}
+	redisKey := fmt.Sprintf("policy:status:100:%s", policyID)
 
-	resp, err := http.Post(url, "application/json", strings.NewReader(string(statusJSON)))
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err = x.redisClient.Set(ctx, redisKey, string(statusJSON), 0).Err()
 	if err != nil {
-		log.Printf("Failed to report status for policy %s: %v", policyID, err)
-		a1Requests.WithLabelValues("POST", "error").Inc()
-		policyStatusReports.WithLabelValues(status.EnforceStatus, "network_error").Inc()
+		log.Printf("❌ Failed to write policy status to Redis for %s: %v", policyID, err)
+		policyStatusReports.WithLabelValues(status.EnforcementStatus, "redis_error").Inc()
 		return
 	}
-	defer resp.Body.Close()
 
-	a1Requests.WithLabelValues("POST", strconv.Itoa(resp.StatusCode)).Inc()
+	log.Printf("✅ Policy status written to Redis: %s → %s (key: %s)",
+		policyID, status.EnforcementStatus, redisKey)
+	policyStatusReports.WithLabelValues(status.EnforcementStatus, "success").Inc()
 
-	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-		log.Printf("📊 Policy status reported: %s → %s (HTTP %d)",
-			policyID, status.EnforceStatus, resp.StatusCode)
-		policyStatusReports.WithLabelValues(status.EnforceStatus, "success").Inc()
-	} else {
-		log.Printf("Failed to report policy status for %s: HTTP %d", policyID, resp.StatusCode)
-		policyStatusReports.WithLabelValues(status.EnforceStatus, "http_error").Inc()
-	}
+	// Set expiration for status (24 hours) to prevent indefinite accumulation
+	expireCtx, expireCancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer expireCancel()
+	x.redisClient.Expire(expireCtx, redisKey, 24*time.Hour)
 }
 
 func main() {

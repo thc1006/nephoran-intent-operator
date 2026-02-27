@@ -125,6 +125,9 @@ type A1Adaptor struct {
 	policyInstances map[string]*A1PolicyInstance
 
 	mutex sync.RWMutex
+
+	// Redis status store for policy status (replaces HTTP GET)
+	redisStore *RedisStatusStore
 }
 
 // RetryConfig holds retry configuration for A1 interface.
@@ -160,6 +163,10 @@ type A1AdaptorConfig struct {
 
 	// DisableSSRFValidation disables SSRF validation for testing purposes
 	DisableSSRFValidation bool
+
+	// RedisAddress is the Redis server address for policy status storage (e.g., "a1-status-store.ricplt:6379")
+	// If empty, Redis integration is disabled and HTTP GET fallback is used
+	RedisAddress string
 }
 
 // SMOServiceRegistry represents the SMO service registry integration.
@@ -409,6 +416,24 @@ func NewA1Adaptor(config *A1AdaptorConfig) (*A1Adaptor, error) {
 
 	circuitBreaker := llm.NewCircuitBreaker("a1-adaptor", config.CircuitBreakerConfig)
 
+	// Initialize Redis status store if address provided
+	var redisStore *RedisStatusStore
+	if config.RedisAddress != "" {
+		var err error
+		redisStore, err = NewRedisStatusStore(config.RedisAddress)
+		if err != nil {
+			// Log warning but don't fail - Redis is optional
+			logger := logging.NewLogger(logging.ComponentA1)
+			logger.WarnEvent("Redis status store initialization failed, using HTTP fallback",
+				"redisAddress", config.RedisAddress,
+				"error", err.Error())
+		} else {
+			logger := logging.NewLogger(logging.ComponentA1)
+			logger.InfoEvent("Redis status store initialized",
+				"redisAddress", config.RedisAddress)
+		}
+	}
+
 	return &A1Adaptor{
 		httpClient: httpClient,
 
@@ -425,6 +450,8 @@ func NewA1Adaptor(config *A1AdaptorConfig) (*A1Adaptor, error) {
 		policyTypes: make(map[int]*A1PolicyType),
 
 		policyInstances: make(map[string]*A1PolicyInstance),
+
+		redisStore: redisStore,
 	}, nil
 }
 
@@ -861,8 +888,20 @@ func (a *A1Adaptor) DeletePolicyInstance(ctx context.Context, policyTypeID int, 
 // GetPolicyStatus retrieves the status of a policy instance.
 
 func (a *A1Adaptor) GetPolicyStatus(ctx context.Context, policyTypeID int, instanceID string) (*A1PolicyStatus, error) {
-	url := fmt.Sprintf("%s/a1-p/%s/policytypes/%d/policies/%s/status",
+	// NEW: Use Redis status store if available (replaces HTTP GET to A1 Mediator)
+	if a.redisStore != nil {
+		status, err := a.redisStore.GetPolicyStatus(ctx, policyTypeID, instanceID)
+		if err != nil {
+			// Log error but don't fail - fallback to HTTP if needed
+			logger := logging.NewLogger(logging.ComponentA1)
+			logger.WarnEvent("Redis status fetch failed, falling back to HTTP", "error", err.Error())
+		} else {
+			return status, nil
+		}
+	}
 
+	// LEGACY: HTTP GET fallback (original implementation)
+	url := fmt.Sprintf("%s/a1-p/%s/policytypes/%d/policies/%s/status",
 		a.ricURL, a.apiVersion, policyTypeID, instanceID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)

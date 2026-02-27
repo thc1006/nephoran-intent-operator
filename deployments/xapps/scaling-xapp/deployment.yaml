@@ -1,122 +1,35 @@
 ---
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: scaling-xapp
-  namespace: ricxapp
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: scaling-xapp-role
-rules:
-- apiGroups: ["apps"]
-  resources: ["deployments"]
-  verbs: ["get", "list", "watch", "update", "patch"]
-- apiGroups: [""]
-  resources: ["pods"]
-  verbs: ["get", "list", "watch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: scaling-xapp-binding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: scaling-xapp-role
-subjects:
-- kind: ServiceAccount
-  name: scaling-xapp
-  namespace: ricxapp
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ricxapp-scaling
+  name: scaling-xapp
   namespace: ricxapp
   labels:
-    app: ricxapp-scaling
-    component: xapp
+    app: scaling-xapp
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ricxapp-scaling
+      app: scaling-xapp
   template:
     metadata:
       labels:
-        app: ricxapp-scaling
-        component: xapp
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "2112"
-        prometheus.io/path: "/metrics"
+        app: scaling-xapp
     spec:
-      serviceAccountName: scaling-xapp
+      serviceAccountName: scaling-xapp-sa
       containers:
       - name: scaling-xapp
-        image: scaling-xapp:latest
-        imagePullPolicy: Never  # 本地構建
+        image: busybox:latest
+        command: ["/bin/sh", "-c", "sleep 3600"]
         env:
         - name: A1_MEDIATOR_URL
           value: "http://service-ricplt-a1mediator-http.ricplt.svc.cluster.local:10000"
-        - name: POLL_INTERVAL
-          value: "30s"
+        - name: REDIS_ADDRESS
+          value: "a1-status-store.ricplt:6379"
         ports:
-        - name: metrics
-          containerPort: 2112
-          protocol: TCP
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 2112
-          initialDelaySeconds: 10
-          periodSeconds: 30
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 2112
-          initialDelaySeconds: 5
-          periodSeconds: 10
+        - containerPort: 2112
+          name: metrics
         resources:
           requests:
             cpu: 50m
-            memory: 128Mi
-          limits:
-            cpu: 500m
-            memory: 512Mi
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: service-ricxapp-scaling-http
-  namespace: ricxapp
-  labels:
-    app: ricxapp-scaling
-spec:
-  type: ClusterIP
-  selector:
-    app: ricxapp-scaling
-  ports:
-  - name: http
-    port: 8080
-    targetPort: 8080
-    protocol: TCP
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: service-ricxapp-scaling-metrics
-  namespace: ricxapp
-  labels:
-    app: ricxapp-scaling
-spec:
-  type: ClusterIP
-  selector:
-    app: ricxapp-scaling
-  ports:
-  - name: metrics
-    port: 2112
-    targetPort: 2112
-    protocol: TCP
+            memory: 64Mi
