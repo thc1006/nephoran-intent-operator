@@ -1,1 +1,0 @@
---8<-- "QUICKSTART.md"

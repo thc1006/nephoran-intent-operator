@@ -1,6 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: rag-api-config
-data:
-  weaviate.url: "http://weaviate.weaviate.svc.cluster.local:8080"

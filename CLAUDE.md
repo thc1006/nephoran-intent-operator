@@ -1,552 +1,343 @@
-# CLAUDE.md - Nephoran Intent Operator AI Assistant Guide
+# CLAUDE.md — Nephoran Intent Operator
 
-**Document Version**: 3.1
-**Last Updated**: 2026-02-23
-**Target Kubernetes**: 1.35.1 (DRA GA Production-Ready)
-**Primary AI Model**: Sonnet 4.5
+> Single source of truth for Claude Code. Describes the **actual** system as built and deployed.
+> Last verified: 2026-03-05 against live cluster `thc1006-ubuntu-22` (K8s v1.35.1).
 
 ---
 
-## 🎯 **Project Identity & Mission**
+## 0. Hard Rules
 
-### **What is Nephoran Intent Operator?**
-
-The **Nephoran Intent Operator** is a production-ready, cloud-native Kubernetes operator that demonstrates **intent-driven telecommunications orchestration** using AI-powered natural language processing. This is NOT a desktop application or cross-platform tool—it's a pure **server-side Kubernetes operator** for O-RAN/5G network orchestration running exclusively on Linux.
-
-### **Core Mission**
-```
-Natural Language Intent → LLM/RAG Processing → NetworkIntent CRD →
-O-RAN Interfaces (A1/E2/O1/O2) → 5G Network Functions → Real-time Orchestration
-```
-
-**Business Value**: Transform telecommunications operations by allowing network engineers to express complex deployment requirements in natural language, automatically translating them into optimized 5G network function deployments.
+1. **No direct kubectl from LLM** — LLM produces a schema-constrained IntentPlan JSON only. Never raw YAML, never direct apply.
+2. **Everything is GitOps** — desired state changes go through Git → Porch/ConfigSync → cluster. No imperative mutations.
+3. **Guardrails first** — validate plan (JSON Schema) → validate KRM (OPA + kubeconform + dry-run) → human review for sensitive resources (RBAC, CRDs, privileged, hostNetwork, cluster-scoped).
+4. **Upstream first** — prefer O-RAN SC official images for RIC xApps and simulators.
+5. **Identity by labels** — scale-out tracking uses resource names + labels, never Pod name suffixes. StatefulSet only when stable pod identity is required.
 
 ---
 
-## 🏗️ **Current System Architecture (2026-02-16)**
+## 1. Project Identity
 
-### **✅ Deployed & Running (Production Status)**
+| Field | Value |
+|---|---|
+| Module | `github.com/thc1006/nephoran-intent-operator` |
+| Go version | 1.26.0 |
+| Goal | Intent-driven O-RAN lifecycle management: NL intent → LLM plan → KRM/kpt packages → GitOps → Porch/ConfigSync → workload cluster |
+| Target HW | Single workstation, NVIDIA RTX 5080 (16 GB VRAM), 32 GB RAM, Ubuntu 22.04 |
+| K8s | kubeadm v1.35.1 single-node, containerd 2.2.1 (no Docker daemon) |
+| Standards | 3GPP TS 28.541 · O-RAN WG6/WG10 · TMF 921 (Intent API subset) |
+
+---
+
+## 2. Live Platform Status
+
+### 2.1 Deployed Components
+
+| Component | Namespace | Status | Notes |
+|---|---|---|---|
+| **Free5GC v3.3.0** | `free5gc` | Running | AMF, SMF, UPF×2, UDM, UDR, AUSF, NRF, NSSF, PCF, WebUI, MongoDB 8.0, UERANSIM gNB+UE |
+| **O-RAN SC Near-RT RIC** | `ricplt` | Running | 14 Helm releases: A1, E2, O1, RTmgr, SubMgr, AlarmMgr, VES, Kong, Prometheus, DBAAS(Redis) |
+| **RIC xApps** | `ricxapp` | Partial | ricxapp-scaling ✅, e2-test-client ✅, KPIMON scaled-to-0, srsran-gnb scaled-to-0 |
+| **Nephoran Operator** | `nephoran-system` | Running | controller-manager (watches `intent.nephoran.com/v1alpha1` NetworkIntent CRD) |
+| **Nephoran Web UI** | `nephoran-system` | Running | NodePort 30090 (K8s Dashboard style), old UI at 30081 |
+| **Intent Ingest** | `nephoran-intent` | Running | HTTP service accepting NL text, calls Ollama for LLM processing |
+| **Conductor Loop** | `conductor-loop` | Running | File-watching orchestration pipeline |
+| **Porch v3.0.0** | `porch-system` | Running | porch-server, porch-controllers, function-runner ×2 |
+| **ConfigSync** | `config-management-system` | Running | root-reconciler syncing `nephoran-packages` repo |
+| **Ollama** | `ollama` + systemd | Running | llama3.1:latest, CPU-only (no GPU passthrough via DRA yet) |
+| **RAG Service** | `rag-service` | Running | FastAPI uvicorn on host port 8000, connects to Ollama |
+| **Weaviate v1.34.0** | `weaviate` | Running | Vector DB for RAG knowledge base |
+| **Gitea** | `gitea` | Running | Local Git server, SSH NodePort 30022 |
+| **Prometheus + Grafana** | `monitoring` | Running | kube-prometheus-stack, Grafana NodePort 30300 |
+| **GPU Operator** | `gpu-operator` | Running | v25.10.1, DRA mode (not traditional device-plugin) |
+
+### 2.2 CRD: NetworkIntent
 
 ```yaml
-Infrastructure Layer (K8s 1.35.1 - DRA GA):
-  ├─ Kubernetes 1.35.1: ✅ Running
-  │  └─ DRA (Dynamic Resource Allocation): GA/Stable (v1.34+)
-  ├─ GPU Operator v25.10.1: ⚠️ Deployed but NOT exposing GPU resources
-  │  └─ Issue: Node capacity missing nvidia.com/gpu (validator completed but no GPU exposed)
-  └─ Cilium/Flannel CNI: ✅ Active
-
-AI/ML Processing Layer:
-  ├─ Weaviate 1.34.0: ✅ Running (weaviate namespace)
-  │  ├─ StatefulSet: weaviate-0 (1/1 Ready)
-  │  ├─ Persistence: 10Gi PVC
-  │  └─ Services: HTTP (80), gRPC (50051), Metrics (2112)
-  ├─ RAG Service (FastAPI): ✅ Running (rag-service namespace)
-  │  └─ Deployment: rag-service-555867c5fd-2vsqv (1/1)
-  └─ Ollama v0.16.1: ✅ Running (ollama namespace)
-     ├─ Model: llama3.1:latest (4.9GB) loaded and active
-     ├─ Service: ollama.ollama:11434
-     └─ ⚠️ CPU-only inference (NO GPU, ~61s per 466 tokens)
-
-Orchestration Layer:
-  ├─ Nephoran Intent Operator: ✅ Running (nephoran-system namespace)
-  │  └─ nephoran-web-ui (2/2 pods) - K8s Dashboard style UI
-  ├─ Intent Processing Service: ✅ Running (nephoran-intent namespace)
-  │  ├─ Backend: intent-ingest (2/2 pods) - Ollama LLM integrated, processing 30+ intents
-  │  └─ Frontend (OLD): nephoran-frontend (1/1) - legacy UI
-  ├─ Porch v3.0.0: ✅ Running (porch-system namespace)
-  │  ├─ porch-server:7007 (1/1)
-  │  ├─ porch-controllers (1/1)
-  │  ├─ function-runner (2/2)
-  │  └─ 11 PackageRevisions (Free5GC + O-RAN packages)
-  ├─ Config Sync v1.12.0: ✅ Running (config-management-system)
-  │  └─ Syncing from Gitea every 15s
-  └─ O-RAN RIC Platform: ✅ Complete (14 Helm releases)
-     ├─ ricplt: A1 Mediator, E2 Manager, E2 Term, VES, O1 Mediator, Redis Status Store
-     ├─ ricxapp: e2-test-client, ricxapp-kpimon, scaling-xapp
-     └─ ricinfra: Tiller
-
-Observability Layer:
-  ├─ Prometheus Stack: ✅ Running (monitoring namespace)
-  │  ├─ Grafana: 3/3 pods
-  │  ├─ Prometheus Server: 2/2 pods
-  │  └─ Alertmanager: 2/2 pods
-  └─ NVIDIA DCGM Exporter: ✅ Running
-
-5G Network Functions:
-  ├─ MongoDB 8.0: ✅ Running (free5gc namespace)
-  ├─ Free5GC v3.3.0: ✅ FULLY DEPLOYED (11 NFs in free5gc namespace)
-  │  └─ AMF, SMF, UPF×3, UDM, UDR, AUSF, NRF, NSSF, PCF, WebUI
-  └─ OAI RAN: ⚠️ Deployed but connectivity issues with E2 Manager
-
-External Access:
-  ├─ Ngrok SSH Tunnel: ✅ Running (PID 479056)
-  │  └─ URL: https://lennie-unfatherly-profusely.ngrok-free.dev
-  ├─ Web UI Access:
-  │  ├─ New UI (K8s style): http://192.168.10.65:30090
-  │  ├─ Old UI (legacy): http://192.168.10.65:30080
-  │  └─ Ngrok: https://lennie-unfatherly-profusely.ngrok-free.dev
-  └─ Ingress: nephoran-ingress (nephoran-intent namespace)
+apiVersion: intent.nephoran.com/v1alpha1
+kind: NetworkIntent
 ```
+- Validated CRD at `config/crd/intent/intent.nephoran.com_networkintents.yaml`
+- 42 NetworkIntent resources currently in cluster (default, free5gc, ran-a, ricxapp namespaces)
+- 10 Porch PackageRevisions in catalog (5 Free5GC + 4 O-RAN + 1 hello-nephoran)
 
-### **Key Statistics**
-- **Total Deployments**: 28+ running
-- **Total Pods**: 60+ running
-- **Total Namespaces**: 18 active
-- **Helm Releases**: 15 deployed
-- **Persistent Volumes**: 6 bound (38Gi total)
-- **PackageRevisions**: 11 (Porch catalog)
-- **Intents Processed**: 30+ (intent-ingest logs)
+### 2.3 Known Issues
 
----
-
-## 🚀 **Technology Stack (2026 Production)**
-
-### **Core Technologies**
-
-| Component | Version | Status | Notes |
-|-----------|---------|--------|-------|
-| **Kubernetes** | 1.35.1 | ✅ Production | DRA GA since 1.34 |
-| **Go** | 1.24.x | ✅ Required | Project language |
-| **Controller-Runtime** | 0.23.1 | ✅ Compatible | K8s 1.35 support |
-| **GPU Operator** | v25.10.1 | ✅ Running | NVIDIA official |
-| **DRA Driver** | 25.12.0 | ✅ Running | GPU resource management |
-| **Weaviate** | 1.34.0 | ✅ Running | Vector database |
-| **Ollama** | v0.16+ | ⏳ To Deploy | Latest 2026 LLM engine |
-| **MongoDB** | 8.0+ | ⏳ To Deploy | Latest stable for 5G |
-| **Prometheus Stack** | v0.89.0 | ✅ Running | Full observability |
-
-**Sources**:
-- [Kubernetes 1.35 DRA Production Ready](https://kubernetes.io/docs/concepts/scheduling-eviction/dynamic-resource-allocation/)
-- [Ollama Latest Releases](https://github.com/ollama/ollama/releases)
-- [Kubernetes DRA GA in 1.34](https://www.cloudkeeper.com/insights/blog/kubernetes-134-future-dynamic-resource-allocation-here)
+- **RIC ImagePullSecret missing**: `secret-nexus3-o-ran-sc-org-10002-o-ran-sc` not found; images run from local cache, but rebuild/upgrade will fail
+- **GPU DRA mode**: K8s Pods cannot request `nvidia.com/gpu` via traditional resource requests; need DRA ResourceClaim for GPU workloads
+- **Ollama dual deployment**: both in-cluster Pod and host systemd service running (~980 Mi total)
+- **MongoDB readiness**: occasional 5s probe timeout (non-critical, self-recovers)
 
 ---
 
-## 📋 **Current Implementation Status**
-
-### **Phase 1: Infrastructure ✅ COMPLETE (95%)**
-- [x] Kubernetes 1.35.1 deployed
-- [x] GPU Operator deployed (⚠️ NOT exposing GPU resources - needs fix)
-- [x] Weaviate vector database running
-- [x] RAG Service deployed
-- [x] Prometheus monitoring active
-- [x] Ollama LLM deployment (⚠️ CPU-only, no GPU acceleration)
-- [x] Web UI deployed (K8s Dashboard style)
-- [x] Ollama ↔ Intent-Ingest integration complete
-- [x] Porch v3.0.0 + Config Sync deployed
-- [ ] GPU acceleration for Ollama (blocked by GPU Operator issue)
-
-### **Phase 2: 5G Network Functions ✅ COMPLETE (100%)**
-- [x] MongoDB 8.0 deployed
-- [x] Free5GC v3.3.0 Control Plane (all 11 NFs)
-- [x] Free5GC User Plane (3x UPF)
-- [x] OAI RAN gNB deployed (⚠️ E2 connectivity needs verification)
-- [x] Redis Status Store for A1 policy status
-
-### **Phase 3: Integration & Testing ⏳ IN PROGRESS (75%)**
-- [x] NetworkIntent CRD operational
-- [x] A1 Mediator integration complete
-- [x] A1 Redis Status Store integrated
-- [x] E2 test client deployed
-- [x] Ollama ↔ Intent-Ingest integration complete (2+ days operational)
-- [x] Natural language → LLM → JSON intent pipeline working (30+ intents processed)
-- [x] Porch integration code implemented (needs env vars to enable)
-- [x] Web UI deployed (K8s Dashboard style)
-- [x] Ngrok external access configured
-- [ ] GPU acceleration for Ollama (blocked)
-- [ ] Porch → Config Sync → K8s automated deployment (needs enablement)
-- [ ] End-to-end testing (12 test scripts)
-
----
-
-## 🎯 **AI Assistant Role & Responsibilities**
-
-### **Primary Objectives**
-
-When working on this project, Claude Code AI Agent should:
-
-1. **Maintain Production Quality**
-   - All changes MUST pass `go test ./...`
-   - Security scans (`golangci-lint`, `govulncheck`) required
-   - No breaking changes without migration plan
-
-2. **Follow K8s 1.35.1 Best Practices**
-   - Use DRA for GPU allocation (GA feature)
-   - Leverage native K8s features over custom solutions
-   - Follow controller-runtime 0.23.1 patterns
-
-3. **Respect Existing Architecture**
-   - Do NOT modify deployed components without explicit request
-   - Verify system state before making changes
-   - Use `kubectl get all -A` to understand current deployment
-
-4. **Document Everything**
-   - Update `docs/PROGRESS.md` after each change
-   - Create ADRs for architectural decisions
-   - Maintain SBOM for security compliance
-
----
-
-## 📐 **Repository Structure & Ownership**
+## 3. Repository Structure (Actual)
 
 ```
 nephoran-intent-operator/
-├─ api/                    # CRD definitions (NetworkIntent)
-├─ controllers/            # Kubernetes controllers
-├─ pkg/
-│  ├─ nephio/             # Porch/kpt package generation
-│  ├─ rag/                # RAG service client
-│  └─ llm/                # LLM integration
-├─ deployments/           # K8s manifests, Helm charts
-│  ├─ crds/              # NetworkIntent CRD
-│  ├─ kustomize/         # Kustomize overlays
-│  └─ ric/               # O-RAN RIC deployment
-├─ tests/
-│  ├─ e2e/bash/          # 12 E2E test scripts
-│  └─ security/          # Security validation tests
-├─ docs/
-│  ├─ 5G_INTEGRATION_PLAN_V2.md  # Master implementation plan (100/100)
-│  ├─ SBOM_GENERATION_GUIDE.md   # Security SBOM guide
-│  └─ PROGRESS.md                # Append-only progress log
-└─ CLAUDE.md             # This file
+├── CLAUDE.md                     # THIS FILE
+├── go.mod / go.sum               # Go 1.26, 120+ direct dependencies
+├── Dockerfile                    # Multi-target: manager, conductor-loop, intent-ingest, llm-processor, etc.
+│
+├── llm_nephio_oran/              # Python — M1 MVP (intentctl CLI + intentd API + planner + validator)
+│   ├── intentctl.py              # CLI: typer + rich, create/push commands
+│   ├── intentd/app.py            # FastAPI TMF921 subset API server
+│   ├── models.py                 # Pydantic IntentPlan, Action, SliceSpec, Policy, Guardrails
+│   ├── planner/stub_planner.py   # Deterministic stub planner (to be replaced by local LLM)
+│   ├── generator/kpt_generator.py # Stub kpt package generator
+│   ├── validators/schema_validate.py # JSON Schema validator (Draft 2020-12)
+│   ├── gitops/pr_stub.py         # PR automation stub
+│   └── observability/metrics_stub.py # Prometheus metrics stub
+│
+├── src/                          # Python/TS microservices (for containerized deployment)
+│   ├── llm-gateway/              # FastAPI: /generate, /hydrate, /analyze (wraps vLLM/Ollama)
+│   ├── intent-engine/            # FastAPI: TMF921 CRUD API (in-memory store)
+│   ├── config-validator/         # FastAPI: YAML validation + OPA policies
+│   └── web-ui/                   # React 18 + TypeScript + Vite + Tailwind (skeleton)
+│
+├── schemas/                      # JSON Schema
+│   ├── intent-plan.schema.json   # Canonical IntentPlan schema (Draft 2020-12)
+│   ├── intent-plan.example.json  # Example intent (slice.deploy)
+│   └── policy.schema.json        # Policy sub-schema
+│
+├── pkg/                          # Go packages (761 non-test files, 607K lines)
+│   ├── controllers/              # K8s controller-runtime reconcilers (NetworkIntent + orchestration)
+│   ├── handlers/                 # LLM processor, auth integration
+│   ├── nephio/                   # Porch client, lifecycle manager, blueprint validator, KRM pipeline
+│   ├── oran/                     # O-RAN adapters: A1 (a1_adaptor), E2 (asn1_codec), O1 (NETCONF), O2 (IMS API)
+│   ├── auth/                     # JWT, LDAP, AzureAD, OIDC providers
+│   ├── security/                 # CA, mTLS, certificate automation, revocation
+│   ├── monitoring/               # Health aggregator, latency tracking, SLA alerting
+│   ├── telecom/                  # Knowledge base for telecom domain
+│   ├── templates/                # Template engine for KRM generation
+│   ├── git/                      # Git client interface (go-git)
+│   ├── config/                   # Configuration constants
+│   ├── llm/                      # LLM client, circuit breaker, caching
+│   ├── rag/                      # RAG pipeline types
+│   ├── porch/                    # Porch integration helpers
+│   ├── blueprints/               # O-RAN blueprint manager
+│   ├── optimization/             # Performance analysis engine
+│   ├── disaster/                 # Backup manager
+│   ├── resilience/               # Circuit breaker, retry logic
+│   ├── validation/               # YANG validation
+│   ├── webhooks/                 # Admission webhooks
+│   ├── webui/                    # Go-based web UI API server
+│   └── ... (56 top-level packages total)
+│
+├── config/                       # Kustomize overlays + CRDs + RBAC + webhook config
+│   ├── crd/intent/               # VALID CRD (intent.nephoran.com_networkintents.yaml)
+│   ├── crd/bases/                # 30+ CRD files (many have K8s 1.35 schema issues — use with caution)
+│   ├── rbac/                     # Roles, bindings, service accounts
+│   ├── webhook/                  # Validating + mutating webhook config
+│   ├── manager/                  # Controller manager deployment
+│   └── security/                 # Network policies, pod security
+│
+├── manifests/                    # Minimal: nephio/repository.yaml, oran/namespace.yaml
+├── kpt-packages/                 # Nephio kpt packages (coredns-caching, ipam, nf-injector, 5gc, porch, webui)
+├── gitops/                       # ArgoCD application.yaml, FluxCD git-repository + kustomization
+├── monitoring/                   # Grafana dashboards (5 JSON), Prometheus rules, ServiceMonitors
+├── metrics/                      # Sample E2 KPM metrics JSON files
+├── testdata/                     # Test intent JSONs (valid, invalid, security edge cases)
+│
+├── scripts/                      # Deployment scripts
+│   ├── setup-kind-cluster.sh
+│   ├── install-nephio.sh
+│   ├── install-ric.sh
+│   ├── deploy-oai-cnfs.sh
+│   └── seed-e2sim-traffic.sh
+│
+├── tools/                        # Dev tools
+│   ├── kmpgen/                   # KPM metrics generator
+│   ├── vessend/                  # VES event sender
+│   ├── flaky-detector/           # Test flaky detector
+│   └── verify-scale/             # Scale verification
+│
+├── bin/                          # Pre-built binaries (conductor, intent-ingest, manager, rag-pipeline, webhook)
+├── ric-platform/                 # RIC deployment scripts + submodule refs (appmgr, e2, e2mgr, rtmgr, submgr)
+├── docs/                         # ADRs (10 + 7), API OpenAPI spec, SDD, runbooks
+├── hack/                         # bootstrap-kind.sh, e2e.sh
+└── .claude/                      # Claude Code config (agents, skills, hooks, prompts)
 ```
-
-### **Critical Files (Read Before Changing)**
-
-| File | Purpose | Criticality |
-|------|---------|-------------|
-| `docs/5G_INTEGRATION_PLAN_V2.md` | Master SDD (100/100 execution thoroughness) | 🔴 CRITICAL |
-| `api/v1/networkintent_types.go` | Core CRD definition | 🔴 CRITICAL |
-| `controllers/networkintent_controller.go` | Main controller logic | 🔴 CRITICAL |
-| `docs/PROGRESS.md` | Append-only change log | 🟠 IMPORTANT |
-| `CLAUDE.md` | AI assistant guide (this file) | 🟠 IMPORTANT |
 
 ---
 
-## 🔧 **Development Workflow**
+## 4. Data Flow
 
-### **Before Making Any Changes**
+```
+User (NL text)
+     │
+     ▼
+intentctl (CLI)  ──or──  Web UI (port 30090)  ──or──  Intent Ingest Service
+     │                                                        │
+     ▼                                                        ▼
+intentd (TMF921 API)  ◄──────────────────────────────  Ollama (llama3.1)
+     │
+     ▼
+Planner (stub / LLM)  →  IntentPlan.json (schema-validated)
+     │
+     ▼
+Generator  →  kpt packages / KRM YAML
+     │
+     ▼
+Validator (OPA + kubeconform + naming check)
+     │
+     ▼
+Git commit → PR → CI checks → merge
+     │
+     ▼
+Porch (draft → proposed → published) + ConfigSync
+     │
+     ▼
+Workload cluster (Free5GC, RIC, xApps, CNFs)
+     │
+     ▼
+Observe (Prometheus + KPIMON) → Analyze (LLM) → Act (new PR)  ← Closed Loop
+```
+
+---
+
+## 5. IntentPlan Schema
+
+File: `schemas/intent-plan.schema.json` (Draft 2020-12, strict `additionalProperties: false`)
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `intentId` | string | ✅ | Pattern: `^intent-[0-9]{8}-[0-9]{4}$` |
+| `intentType` | enum | ✅ | `slice.deploy`, `slice.scale`, `closedloop.act`, `config.update` |
+| `actions[]` | array | ✅ | min 1 item |
+| `actions[].kind` | enum | ✅ | `deploy`, `scale`, `configure`, `promote`, `rollback` |
+| `actions[].component` | enum | ✅ | 11 allowlisted: `oai-odu`, `oai-ocu`, `oai-cu-cp`, `oai-cu-up`, `free5gc-upf`, `free5gc-smf`, `free5gc-amf`, `ric-kpimon`, `ric-ts`, `sim-e2`, `trafficgen` |
+| `actions[].replicas` | int | if kind=scale | 0–200 |
+| `policy` | object | ✅ | `requireHumanReview` + `guardrails` (deny cluster-scoped, privileged, hostNetwork, CRD changes, RBAC changes) |
+| `slice` | object | — | `sliceType` (eMBB/URLLC/mMTC/shared), `name`, `site`, `targets` |
+| `constraints` | object | — | `maxReplicas`, `minReplicas`, `allowedNamespaces`, `forbiddenKinds` |
+| `metadata` | object | — | `createdAt`, `createdBy`, `source` (cli/web/tmf921) |
+
+---
+
+## 6. Naming & Labeling Standard
+
+Resource name: `<domain>-<component>-<site>-<slice>-<instance>`
+- domain: `ran|core|ric|sim|obs`
+- component: `odu|ocu|cu-cp|cu-up|upf|amf|smf|kpimon|ts|e2sim|trafficgen`
+- site: `edge01|edge02|regional|central|lab`
+- slice: `embb|urllc|mmtc|shared`
+- instance: `i001|i002|...`
+
+Required labels on all managed resources:
+```yaml
+oran.ai/intent-id: "<intent-id>"
+oran.ai/slice: "<slice-type>"
+oran.ai/site: "<site>"
+oran.ai/component: "<component>"
+app.kubernetes.io/managed-by: nephio
+app.kubernetes.io/part-of: llm-nephio-oran
+```
+
+---
+
+## 7. Development
+
+### 7.1 Key Binaries (from Dockerfile)
+
+| Binary | Source | Description |
+|---|---|---|
+| `manager` | `cmd/main.go` | K8s operator controller-manager (NetworkIntent reconciler) |
+| `conductor-loop` | `cmd/conductor-loop/main.go` | File-watching orchestration pipeline |
+| `intent-ingest` | `cmd/intent-ingest/main.go` | HTTP service: NL text → intent JSON → file handoff |
+| `llm-processor` | `cmd/llm-processor/main.go` | LLM processing service |
+| `porch-direct` | `cmd/porch-direct/main.go` | Direct Porch API integration |
+| `conductor` | `cmd/conductor/main.go` | Conductor orchestrator |
+| `a1-sim` | `cmd/a1-sim/main.go` | A1 interface simulator |
+| `e2-kpm-sim` | `cmd/e2-kpm-sim/main.go` | E2 KPM metrics simulator |
+| `fcaps-sim` | `cmd/fcaps-sim/main.go` | FCAPS/VES event simulator |
+
+### 7.2 Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `LLM_BACKEND` | `ollama` | `vllm` or `ollama` |
+| `LLM_MODEL` | `Qwen/Qwen2.5-Coder-32B-Instruct` | Model ID for vLLM; `llama3.1:latest` for Ollama |
+| `LLM_BASE_URL` | `http://localhost:8000/v1` | LLM API base URL |
+| `GIT_REPO_URL` | (required) | GitOps target repository |
+| `NEPHIO_PORCH_URL` | `http://porch-server.porch-system:7007` | Porch API endpoint |
+| `PROMETHEUS_URL` | `http://prometheus:9090` | Prometheus endpoint |
+| `ENABLE_LLM_INTENT` | `false` | Enable LLM-based intent processing in operator |
+
+### 7.3 Testing
 
 ```bash
-# 1. Verify current system state
-kubectl get all -A | grep -E "nephoran|weaviate|ollama|rag|gpu"
-
-# 2. Check git status
-git status
-git log --oneline -10
-
-# 3. Review recent progress
-tail -20 docs/PROGRESS.md
-
-# 4. Run existing tests
-go test ./... -v
+go test ./pkg/...                    # Unit tests (91 packages pass)
+go test ./test/envtest/...           # envtest with live cluster (UseExistingCluster: true)
+go test ./test/integration/...       # Integration tests (need Porch, cluster services)
+python -m pytest llm_nephio_oran/    # Python unit tests
 ```
 
-### **Making Changes**
+Known test constraints:
+- envtest uses `config/crd/intent/` (not `config/crd/bases/` which has schema issues)
+- `test/integration/porch` has build error (`ScalingConfig` should be `ScalingParameters`)
+- Several test suites need running infrastructure (Porch, RAG, TLS server, chaos infra)
+
+### 7.4 Cluster Access
 
 ```bash
-# 1. Create feature branch
-git checkout -b feat/<descriptive-name>
-
-# 2. Make focused changes (scope-limited)
-# ... edit files ...
-
-# 3. Test changes
-go test ./... -v
-golangci-lint run
-
-# 4. Build and verify
-make build
-kubectl apply -f deployments/crds/
-
-# 5. Commit with conventional commits
-git add -A
-git commit -m "feat(<area>): <description>"
-
-# 6. Push and create PR
-git push -u origin HEAD
-gh pr create --base main --title "<title>" --body "<body>"
+kubectl get nodes                     # thc1006-ubuntu-22 (single node)
+kubectl get pods -n nephoran-system   # Operator + UIs
+kubectl get networkintents -A         # All NetworkIntent CRDs
+kubectl get packagerevisions          # Porch catalog
 ```
 
-### **After Successful Change**
+### 7.5 External Access
 
-```bash
-# 1. Update PROGRESS.md (append-only!)
-echo "| $(date -u +"%Y-%m-%dT%H:%M:%S+00:00") | $(git branch --show-current) | <module> | <15-word summary> |" >> docs/PROGRESS.md
-
-# 2. Commit progress update
-git add docs/PROGRESS.md
-git commit -m "docs(progress): record <change>"
-git push
-```
-
----
-
-## 🎓 **Common Tasks & Commands**
-
-### **Verify Deployed Components**
-
-```bash
-# Check all namespaces
-kubectl get namespaces
-
-# Check specific component
-kubectl get all -n weaviate
-kubectl get all -n gpu-operator
-kubectl get all -n rag-service
-kubectl get all -n nephoran-system
-
-# Check GPU resources
-kubectl get nodes -o json | jq '.items[].status.allocatable' | grep nvidia
-
-# Check Helm releases
-helm list -A
-
-# Check persistent volumes
-kubectl get pv,pvc -A
-```
-
-### **Deploy New Component**
-
-```bash
-# Example: Deploy Ollama (Task #48)
-# 1. Create namespace
-kubectl create namespace ollama
-
-# 2. Apply Helm chart or manifests
-helm install ollama <chart> -n ollama --values values.yaml
-
-# 3. Verify deployment
-kubectl get all -n ollama
-kubectl logs -n ollama deployment/ollama -f
-
-# 4. Test functionality
-kubectl exec -n ollama deployment/ollama -- ollama list
-```
-
-### **Debug Issues**
-
-```bash
-# View pod logs
-kubectl logs -n <namespace> <pod-name> -f
-
-# Describe resource for events
-kubectl describe pod -n <namespace> <pod-name>
-
-# Check resource usage
-kubectl top nodes
-kubectl top pods -A
-
-# Exec into pod
-kubectl exec -it -n <namespace> <pod-name> -- /bin/bash
-```
+| Service | URL |
+|---|---|
+| Nephoran Web UI | `http://192.168.10.65:30090` |
+| Grafana | `http://192.168.10.65:30300` |
+| Free5GC WebUI | `http://192.168.10.65:30500` |
+| Gitea SSH | `ssh://192.168.10.65:30022` |
+| RIC Kong | `http://192.168.10.65:32080` |
+| O1 NETCONF | `192.168.10.65:30830` |
+| Ngrok tunnel | `https://lennie-unfatherly-profusely.ngrok-free.dev` → localhost:8888 |
 
 ---
 
-## 🚨 **Critical Constraints & Guardrails**
+## 8. Milestones
 
-### **NEVER Do These**
-
-❌ **DO NOT** modify deployed components without explicit user request
-❌ **DO NOT** downgrade Kubernetes from 1.35.1
-❌ **DO NOT** commit secrets or credentials
-❌ **DO NOT** rewrite PROGRESS.md history (append-only!)
-❌ **DO NOT** break existing tests
-❌ **DO NOT** make cross-platform changes (Linux only!)
-
-### **ALWAYS Do These**
-
-✅ **ALWAYS** check current system state first
-✅ **ALWAYS** run tests before committing
-✅ **ALWAYS** update PROGRESS.md after changes
-✅ **ALWAYS** create focused, atomic commits
-✅ **ALWAYS** follow conventional commit format
-✅ **ALWAYS** verify Helm/kubectl operations succeeded
+| Milestone | Description | Status |
+|---|---|---|
+| **M0** | Repo + CI + schema validation + dev tooling | ✅ Done |
+| **M1** | intentctl CLI + intentd API + plan validation + stub planner | ✅ Done (`llm_nephio_oran/`) |
+| **M2** | Porch/ConfigSync integration | ✅ Done (live, syncing) |
+| **M3** | Observability scaffolding + traffic generator | ⚠️ Partial (Prometheus/Grafana deployed; traffic gen stub) |
+| **M4** | RIC integration + KPIMON | ⚠️ Partial (RIC deployed; KPIMON scaled-to-0; scaling xApp running) |
+| **M5** | Traffic Steering scaffolding | 🔲 Not started |
+| **M6** | O-RAN CNF packages + E2SIM | ⚠️ Partial (e2-test-client deployed; OAI gNB crashes) |
+| **M7** | Closed-loop demo: observe → analyze → scale PR | 🔲 Not started |
 
 ---
 
-## 🔐 **Security Requirements**
+## 9. What to Do Next
 
-### **Code Security**
-
-```bash
-# Run security scans before PR
-golangci-lint run
-govulncheck ./...
-
-# Check for secrets
-git secrets --scan
-
-# Verify container security
-trivy image <image-name>
-```
-
-### **SBOM Generation**
-
-```bash
-# Generate SBOM (required for production)
-syft . -o spdx-json > sbom-nephoran-operator-$(date +%Y%m%d).spdx.json
-
-# Scan for vulnerabilities
-grype sbom:./sbom-nephoran-operator-*.spdx.json --fail-on high
-```
-
-**Reference**: See `docs/SBOM_GENERATION_GUIDE.md` for complete guide.
+1. **Wire planner to local LLM**: Replace `stub_planner.py` with Ollama/vLLM call using prompt templates from `src/llm-gateway/prompt_templates/`.
+2. **Wire generator to produce real kpt packages**: Replace `kpt_generator.py` stub with actual KRM YAML generation using `pkg/templates/engine.go`.
+3. **Wire intentd → generator → git commit → PR**: Connect the pipeline end-to-end through `gitops/pr_stub.py`.
+4. **Fix KPIMON**: Scale KPIMON xApp back up, verify E2 metrics collection.
+5. **Implement closed-loop**: Prometheus query → LLM `/analyze` → scaling IntentPlan → Git PR.
+6. **GPU passthrough for Ollama**: Configure DRA ResourceClaim so in-cluster Ollama can use RTX 5080.
+7. **Clean up pkg/**: 55 top-level packages, 607K lines — consolidate duplicates (internal/porch + pkg/porch, internal/llm + pkg/llm), refactor monolithic files (4000+ line files).
 
 ---
 
-## 📊 **Current Sprint Tasks (2026-02-16)**
+## 10. Codebase Stats
 
-### **Active Tasks**
-
-| ID | Task | Priority | Status | Assignee |
-|----|------|----------|--------|----------|
-| #47 | Rewrite CLAUDE.md with 2026 context | P0 | 🔄 In Progress | Claude Agent |
-| #48 | Deploy Ollama v0.16+ with GPU support | P0 | ⏳ Pending | Next |
-| #49 | Deploy MongoDB 8.0 for Free5GC | P0 | ⏳ Pending | Next |
-| #50 | Integrate Ollama with RAG service | P1 | ⏳ Pending | Next |
-
-### **Next Phase Tasks**
-
-- Deploy Free5GC Control Plane (T8 from SDD)
-- Deploy Free5GC User Plane (T9 from SDD)
-- Deploy OAI RAN (T10 from SDD)
-- Run 12 E2E test scripts (T12 from SDD)
-
----
-
-## 📚 **Essential Documentation References**
-
-### **Must-Read Documents**
-
-1. **[5G Integration Plan V2](docs/5G_INTEGRATION_PLAN_V2.md)** - Master SDD (100/100 thoroughness)
-2. **[SBOM Generation Guide](docs/SBOM_GENERATION_GUIDE.md)** - Security compliance
-3. **[Phase 3 Completion Report](docs/PHASE3_FINAL_COMPLETION.md)** - Achievement summary
-4. **[Progress Log](docs/PROGRESS.md)** - All historical changes
-
-### **Architecture Documents**
-
-- **README.md** - Project overview and quickstart
-- **docs/implementation/task-dag.yaml** - Task dependency graph
-- **docs/dependencies/compatibility-matrix.yaml** - Version compatibility
-
-### **Testing & Validation**
-
-- **tests/e2e/bash/test-*.sh** - 7 E2E test scripts (Phase 1 complete)
-- **tests/security/** - Security validation tests
-
----
-
-## 🎯 **Success Criteria**
-
-### **When is a Task Complete?**
-
-A task is considered complete when:
-
-1. ✅ All tests pass (`go test ./...`)
-2. ✅ Security scans clean (`golangci-lint`, `govulncheck`)
-3. ✅ Functionality verified (manual testing or E2E script)
-4. ✅ Documentation updated (PROGRESS.md, relevant docs/)
-5. ✅ PR merged to main (if applicable)
-6. ✅ No regressions introduced
-
-### **When is the Project Production-Ready?**
-
-The project will be production-ready when:
-
-- [ ] All 12 tasks from SDD completed
-- [ ] All 12 E2E test scripts passing
-- [ ] SBOM generated with zero CRITICAL vulnerabilities
-- [ ] Full NetworkIntent → LLM → RAG → A1 Policy flow working
-- [ ] Free5GC + OAI RAN end-to-end PDU session established
-- [ ] Performance benchmarks met (Cilium 10+ Gbps, LLM < 2s)
-
----
-
-## 🤝 **Communication Guidelines**
-
-### **When Interacting with User**
-
-- **Be Concise**: Provide actionable information, avoid fluff
-- **Show Evidence**: Include command outputs, logs, verification steps
-- **Propose Solutions**: Don't just report problems, suggest fixes
-- **Ask for Clarification**: If requirements unclear, use AskUserQuestion tool
-
-### **When Reporting Progress**
-
-```markdown
-## ✅ Task Complete: <Task Name>
-
-**Changes Made**:
-- Item 1
-- Item 2
-
-**Verification**:
-```bash
-<commands showing success>
-```
-
-**Next Steps**:
-- Next action 1
-- Next action 2
-```
-
----
-
-## 🔄 **Version History**
-
-| Version | Date | Changes | Author |
-|---------|------|---------|--------|
-| 3.1 | 2026-02-23 | Neural Command Interface deployed, Ollama integration complete, Phase 1 100% | Claude Sonnet 4.5 |
-| 3.0 | 2026-02-16 | Complete rewrite with 2026 context, K8s 1.35.1, actual deployment state | Claude Sonnet 4.5 |
-| 2.0 | 2025-08-16 | Added agents analysis, module ownership | Previous session |
-| 1.0 | 2025-08-13 | Initial CLAUDE.md creation | Original author |
-
----
-
-## 📞 **Quick Reference Commands**
-
-```bash
-# System Status
-kubectl get all -A | head -50
-helm list -A
-
-# Deploy Component
-kubectl create namespace <ns>
-helm install <name> <chart> -n <ns>
-kubectl get all -n <ns>
-
-# Test & Verify
-go test ./... -v
-kubectl logs -n <ns> <pod> -f
-kubectl exec -it -n <ns> <pod> -- <command>
-
-# Git Workflow
-git checkout -b feat/<name>
-git add -A && git commit -m "feat: <msg>"
-git push -u origin HEAD
-gh pr create --base main
-
-# Progress Update
-echo "| $(date -u +"%Y-%m-%dT%H:%M:%S+00:00") | $(git branch --show-current) | <module> | <summary> |" >> docs/PROGRESS.md
-```
-
----
-
-**🎯 Current Focus**: Fix GPU Operator to enable Ollama GPU acceleration, enable Porch integration for automated NetworkIntent → Package deployment.
-
-**📊 System Health**: 28/28 deployments running, 60+ pods healthy, Ollama integrated (CPU-only), Porch v3.0.0 operational.
-
-**🚀 Next Milestone**: Enable GPU acceleration + Porch automated deployment pipeline.
-
-**🎉 Recent Achievement**: K8s Dashboard style Web UI deployed! LLM → Intent processing operational for 2+ days!
-
-**⚠️ Known Issues**:
-- GPU Operator not exposing nvidia.com/gpu resources (needs investigation)
-- Ollama running on CPU (61s per 466 tokens, very slow)
-- Porch integration implemented but not enabled (env vars needed)
-- 3 versions of Web UI deployed (cleanup needed)
-
----
-
-**Last Updated**: 2026-02-27 by Claude Code AI Agent (Sonnet 4.5)
+| Metric | Value |
+|---|---|
+| Go files | 927 (761 source + 166 test) |
+| Go source lines | 607,497 |
+| Go test lines | 89,174 |
+| Python files | 31 |
+| Python lines | 2,130 |
+| YAML/config files | 241 |
+| pkg/ top-level packages | 55 |
+| Helm releases (live) | 23 |
+| CRDs (installed) | 62 |
+| K8s namespaces | 35 |
+| Running pods | ~82 |
