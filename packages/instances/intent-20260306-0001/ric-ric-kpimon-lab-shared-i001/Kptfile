@@ -1,0 +1,17 @@
+apiVersion: kpt.dev/v1
+kind: Kptfile
+metadata:
+  name: ric-ric-kpimon-lab-shared-i001
+  annotations:
+    config.kubernetes.io/local-config: 'true'
+    nephio.org/intent-id: intent-20260306-0001
+info:
+  description: Generated package for intent intent-20260306-0001
+pipeline:
+  mutators:
+  - image: gcr.io/kpt-fn/set-labels:v0.2.0
+    configMap:
+      oran.ai/intent-id: intent-20260306-0001
+      app.kubernetes.io/managed-by: nephio
+  validators:
+  - image: gcr.io/kpt-fn/kubeval:v0.3.0

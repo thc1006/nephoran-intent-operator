@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ric-ric-ts-edge01-urllc-i001
+  namespace: ricplt
+  labels:
+    oran.ai/intent-id: intent-20260305-2410
+    oran.ai/slice: urllc
+    oran.ai/site: edge01
+    oran.ai/component: ric-ts
+    app.kubernetes.io/managed-by: nephio
+    app.kubernetes.io/part-of: llm-nephio-oran
+    app.kubernetes.io/name: ric-ts
+spec:
+  selector:
+    app.kubernetes.io/name: ric-ts
+    oran.ai/intent-id: intent-20260305-2410
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP

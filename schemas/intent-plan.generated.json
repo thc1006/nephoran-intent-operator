@@ -1,0 +1,57 @@
+{
+  "intentId": "intent-20260305-0003",
+  "intentType": "slice.deploy",
+  "description": "Deploy eMBB slice with KPIMON and E2 simulator",
+  "slice": {
+    "sliceType": "eMBB",
+    "name": "embb-lab-001",
+    "site": "lab"
+  },
+  "constraints": {
+    "minReplicas": 1,
+    "maxReplicas": 5,
+    "allowedNamespaces": [
+      "ric",
+      "sim"
+    ]
+  },
+  "actions": [
+    {
+      "kind": "deploy",
+      "component": "ric-kpimon",
+      "replicas": 1,
+      "naming": {
+        "domain": "ric",
+        "site": "lab",
+        "slice": "embb",
+        "instance": "i001"
+      }
+    },
+    {
+      "kind": "deploy",
+      "component": "sim-e2",
+      "replicas": 1,
+      "naming": {
+        "domain": "sim",
+        "site": "lab",
+        "slice": "embb",
+        "instance": "i001"
+      }
+    }
+  ],
+  "policy": {
+    "requireHumanReview": true,
+    "guardrails": {
+      "denyClusterScoped": true,
+      "denyPrivileged": true,
+      "denyHostNetwork": true,
+      "denyCRDChanges": true,
+      "denyRBACChanges": true
+    }
+  },
+  "metadata": {
+    "createdAt": "2026-03-05T19:13:51+00:00Z",
+    "createdBy": "intentctl",
+    "source": "cli"
+  }
+}

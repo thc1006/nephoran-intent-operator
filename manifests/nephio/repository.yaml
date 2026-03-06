@@ -1,0 +1,12 @@
+apiVersion: config.porch.kpt.dev/v1alpha1
+kind: Repository
+metadata:
+  name: nephio-oran-llm-packages
+  namespace: nephio-system
+spec:
+  type: git
+  content: Package
+  git:
+    repo: ${GIT_REPO_URL}
+    branch: main
+    directory: /packages

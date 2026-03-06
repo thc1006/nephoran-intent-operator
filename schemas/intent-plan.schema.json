@@ -1,0 +1,285 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/intent-plan.schema.json",
+  "title": "IntentPlan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "intentId",
+    "intentType",
+    "actions",
+    "policy"
+  ],
+  "properties": {
+    "intentId": {
+      "type": "string",
+      "description": "Unique intent identifier (stable across revisions).",
+      "pattern": "^intent-[0-9]{8}-[0-9]{4}$"
+    },
+    "intentType": {
+      "type": "string",
+      "description": "High-level intent category.",
+      "enum": [
+        "slice.deploy",
+        "slice.scale",
+        "closedloop.act",
+        "config.update"
+      ]
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 2048
+    },
+    "slice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sliceType",
+        "name",
+        "site"
+      ],
+      "properties": {
+        "sliceType": {
+          "type": "string",
+          "enum": [
+            "eMBB",
+            "URLLC",
+            "mMTC",
+            "shared"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$"
+        },
+        "site": {
+          "type": "string",
+          "enum": [
+            "edge01",
+            "edge02",
+            "regional",
+            "central",
+            "lab"
+          ]
+        },
+        "targets": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "clusters": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            },
+            "namespaces": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            }
+          }
+        }
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "maxReplicas": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        },
+        "minReplicas": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "allowedNamespaces": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "forbiddenKinds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "actions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "component"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "deploy",
+              "scale",
+              "configure",
+              "promote",
+              "rollback"
+            ]
+          },
+          "component": {
+            "type": "string",
+            "description": "Allowlisted component identifiers used by generator.",
+            "enum": [
+              "oai-odu",
+              "oai-ocu",
+              "oai-cu-cp",
+              "oai-cu-up",
+              "free5gc-upf",
+              "free5gc-smf",
+              "free5gc-amf",
+              "ric-kpimon",
+              "ric-ts",
+              "sim-e2",
+              "trafficgen"
+            ]
+          },
+          "replicas": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 200
+          },
+          "params": {
+            "type": "object"
+          },
+          "naming": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "domain": {
+                "type": "string",
+                "enum": [
+                  "ran",
+                  "core",
+                  "ric",
+                  "sim",
+                  "obs"
+                ]
+              },
+              "site": {
+                "type": "string",
+                "enum": [
+                  "edge01",
+                  "edge02",
+                  "regional",
+                  "central",
+                  "lab"
+                ]
+              },
+              "slice": {
+                "type": "string",
+                "enum": [
+                  "embb",
+                  "urllc",
+                  "mmtc",
+                  "shared"
+                ]
+              },
+              "instance": {
+                "type": "string",
+                "pattern": "^i[0-9]{3}$"
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "scale"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "required": [
+                "replicas"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requireHumanReview",
+        "guardrails"
+      ],
+      "properties": {
+        "requireHumanReview": {
+          "type": "boolean"
+        },
+        "guardrails": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "denyClusterScoped",
+            "denyPrivileged",
+            "denyHostNetwork"
+          ],
+          "properties": {
+            "denyClusterScoped": {
+              "type": "boolean"
+            },
+            "denyPrivileged": {
+              "type": "boolean"
+            },
+            "denyHostNetwork": {
+              "type": "boolean"
+            },
+            "denyCRDChanges": {
+              "type": "boolean",
+              "default": true
+            },
+            "denyRBACChanges": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "createdBy": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "cli",
+            "web",
+            "tmf921"
+          ]
+        }
+      }
+    }
+  }
+}

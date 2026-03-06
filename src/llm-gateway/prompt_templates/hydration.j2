@@ -1,0 +1,9 @@
+Fill environment parameters into this YAML template:
+
+```yaml
+{{ template_yaml }}
+```
+
+Parameters: {{ parameters | tojson(indent=2) }}
+
+Output ONLY the hydrated YAML.

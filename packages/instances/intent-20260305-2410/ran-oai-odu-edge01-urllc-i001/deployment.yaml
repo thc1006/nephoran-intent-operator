@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ran-oai-odu-edge01-urllc-i001
+  namespace: oran
+  labels: &id001
+    oran.ai/intent-id: intent-20260305-2410
+    oran.ai/slice: urllc
+    oran.ai/site: edge01
+    oran.ai/component: oai-odu
+    app.kubernetes.io/managed-by: nephio
+    app.kubernetes.io/part-of: llm-nephio-oran
+    app.kubernetes.io/name: oai-odu
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: oai-odu
+      oran.ai/intent-id: intent-20260305-2410
+  template:
+    metadata:
+      labels: *id001
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: oai-odu
+        image: oaisoftwarealliance/oai-gnb:develop
+        ports:
+        - containerPort: 38472
+          protocol: SCTP
+        resources:
+          requests:
+            cpu: '2'
+            memory: 2Gi
+          limits:
+            cpu: '2'
+            memory: 2Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL

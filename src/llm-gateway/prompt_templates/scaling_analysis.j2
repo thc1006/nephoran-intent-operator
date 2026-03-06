@@ -1,0 +1,7 @@
+Analyze metrics against SLA:
+
+Metrics: {{ metrics | tojson(indent=2) }}
+SLA: {{ intent_sla | tojson(indent=2) }}
+
+Respond with JSON: {"sla_violated": bool, "violations": [...], "recommended_actions": [...]}
+Output ONLY valid JSON.

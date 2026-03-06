@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sim-sim-e2-edge01-urllc-i001
+  namespace: sim
+  labels: &id001
+    oran.ai/intent-id: intent-20260305-2410
+    oran.ai/slice: urllc
+    oran.ai/site: edge01
+    oran.ai/component: sim-e2
+    app.kubernetes.io/managed-by: nephio
+    app.kubernetes.io/part-of: llm-nephio-oran
+    app.kubernetes.io/name: sim-e2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sim-e2
+      oran.ai/intent-id: intent-20260305-2410
+  template:
+    metadata:
+      labels: *id001
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: sim-e2
+        image: nexus3.o-ran-sc.org:10002/o-ran-sc/sim-e2-interface:1.0.0
+        ports:
+        - containerPort: 36421
+          protocol: SCTP
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL

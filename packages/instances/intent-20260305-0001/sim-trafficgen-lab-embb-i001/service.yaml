@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sim-trafficgen-lab-embb-i001
+  namespace: sim
+  labels:
+    oran.ai/intent-id: intent-20260305-0001
+    oran.ai/slice: embb
+    oran.ai/site: lab
+    oran.ai/component: trafficgen
+    app.kubernetes.io/managed-by: nephio
+    app.kubernetes.io/part-of: llm-nephio-oran
+    app.kubernetes.io/name: trafficgen
+spec:
+  selector:
+    app.kubernetes.io/name: trafficgen
+    oran.ai/intent-id: intent-20260305-0001
+  ports:
+  - port: 5201
+    targetPort: 5201
+    protocol: TCP

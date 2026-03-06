@@ -1,0 +1,9 @@
+You are an expert Kubernetes and O-RAN engineer. Generate valid KRM YAML for:
+
+{{ intent_plan | tojson(indent=2) }}
+
+Rules:
+- Naming: {component}-{slice-type}-{instance-id}[-scaled-{ordinal}]
+- Labels: app.kubernetes.io/component, nephio.org/slice-type, nephio.org/instance-id
+- Set resource limits for telecom CNFs
+- Output ONLY valid YAML separated by ---

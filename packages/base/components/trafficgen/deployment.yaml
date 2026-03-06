@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trafficgen
+  namespace: sim
+  labels:
+    app.kubernetes.io/name: trafficgen
+    app.kubernetes.io/managed-by: nephio
+    app.kubernetes.io/part-of: llm-nephio-oran
+    oran.ai/component: trafficgen
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: trafficgen
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: trafficgen
+        app.kubernetes.io/managed-by: nephio
+        app.kubernetes.io/part-of: llm-nephio-oran
+        oran.ai/component: trafficgen
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: trafficgen
+        image: networkstatic/iperf3:latest
+        ports:
+        - containerPort: 5201
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 250m
+            memory: 256Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL

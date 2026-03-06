@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: trafficgen
+  namespace: sim
+  labels:
+    app.kubernetes.io/name: trafficgen
+    app.kubernetes.io/managed-by: nephio
+    app.kubernetes.io/part-of: llm-nephio-oran
+    oran.ai/component: trafficgen
+spec:
+  selector:
+    app.kubernetes.io/name: trafficgen
+  ports:
+  - port: 5201
+    targetPort: 5201
+    protocol: TCP

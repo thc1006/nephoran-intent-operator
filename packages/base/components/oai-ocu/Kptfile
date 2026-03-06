@@ -1,0 +1,16 @@
+apiVersion: kpt.dev/v1
+kind: Kptfile
+metadata:
+  name: oai-ocu
+  annotations:
+    config.kubernetes.io/local-config: 'true'
+info:
+  description: Base kpt package for O-RAN Centralized Unit (OAI gNB CU)
+pipeline:
+  mutators:
+  - image: gcr.io/kpt-fn/set-labels:v0.2.0
+    configMap:
+      app.kubernetes.io/part-of: llm-nephio-oran
+      app.kubernetes.io/managed-by: nephio
+  validators:
+  - image: gcr.io/kpt-fn/kubeval:v0.3.0

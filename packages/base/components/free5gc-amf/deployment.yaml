@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: free5gc-amf
+  namespace: free5gc
+  labels:
+    app.kubernetes.io/name: free5gc-amf
+    app.kubernetes.io/managed-by: nephio
+    app.kubernetes.io/part-of: llm-nephio-oran
+    oran.ai/component: free5gc-amf
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: free5gc-amf
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: free5gc-amf
+        app.kubernetes.io/managed-by: nephio
+        app.kubernetes.io/part-of: llm-nephio-oran
+        oran.ai/component: free5gc-amf
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: free5gc-amf
+        image: free5gc/amf:v3.3.0
+        ports:
+        - containerPort: 8000
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL

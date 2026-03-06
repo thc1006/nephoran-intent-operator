@@ -1,0 +1,255 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://nephio-oran-llm.local/schemas/intent-plan.schema.json",
+  "title": "IntentPlan",
+  "description": "Schema for LLM-decomposed intent execution plans, aligned with TMF 921.",
+  "type": "object",
+  "required": [
+    "intent_id",
+    "version",
+    "intent",
+    "plan"
+  ],
+  "properties": {
+    "intent_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "intent": {
+      "type": "object",
+      "required": [
+        "original_text",
+        "category",
+        "slice_type"
+      ],
+      "properties": {
+        "original_text": {
+          "type": "string",
+          "examples": [
+            "Deploy an eMBB network slice with 3 O-DU instances"
+          ]
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "deploy",
+            "scale_out",
+            "scale_in",
+            "update",
+            "delete",
+            "observe"
+          ]
+        },
+        "slice_type": {
+          "type": "string",
+          "enum": [
+            "embb",
+            "urllc",
+            "mmtc",
+            "custom"
+          ]
+        },
+        "priority": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "default": "medium"
+        },
+        "sla": {
+          "type": "object",
+          "properties": {
+            "latency_ms": {
+              "type": "number",
+              "minimum": 0
+            },
+            "throughput_mbps": {
+              "type": "number",
+              "minimum": 0
+            },
+            "availability_percent": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            }
+          }
+        }
+      }
+    },
+    "plan": {
+      "type": "object",
+      "required": [
+        "actions"
+      ],
+      "properties": {
+        "actions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/Action"
+          }
+        },
+        "rollback_strategy": {
+          "type": "string",
+          "enum": [
+            "auto_revert",
+            "manual",
+            "none"
+          ],
+          "default": "auto_revert"
+        },
+        "approval_required": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "validating",
+        "approved",
+        "executing",
+        "completed",
+        "failed",
+        "rolled_back"
+      ],
+      "default": "pending"
+    }
+  },
+  "definitions": {
+    "Action": {
+      "type": "object",
+      "required": [
+        "action_id",
+        "type",
+        "target_component",
+        "order"
+      ],
+      "properties": {
+        "action_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "create_cnf",
+            "scale_out",
+            "scale_in",
+            "update_config",
+            "delete_cnf",
+            "create_namespace",
+            "apply_network_policy"
+          ]
+        },
+        "target_component": {
+          "type": "string",
+          "enum": [
+            "odu",
+            "ocu-cp",
+            "ocu-up",
+            "amf",
+            "smf",
+            "upf",
+            "nrf",
+            "nssf",
+            "ric",
+            "kpimon-xapp",
+            "ts-xapp",
+            "e2sim"
+          ]
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "replicas": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10
+            },
+            "slice_type": {
+              "type": "string"
+            },
+            "instance_id": {
+              "type": "string",
+              "pattern": "^[0-9]{3}$"
+            },
+            "resource_limits": {
+              "type": "object",
+              "properties": {
+                "cpu": {
+                  "type": "string"
+                },
+                "memory": {
+                  "type": "string"
+                },
+                "gpu": {
+                  "type": "string"
+                }
+              }
+            },
+            "config_overrides": {
+              "type": "object"
+            }
+          }
+        },
+        "generated_yaml_ref": {
+          "type": "string"
+        },
+        "depends_on": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "generating",
+            "validating",
+            "committed",
+            "syncing",
+            "completed",
+            "failed"
+          ],
+          "default": "pending"
+        },
+        "naming": {
+          "type": "object",
+          "properties": {
+            "base_name": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]+-[a-z0-9]+-[0-9]{3}$"
+            },
+            "scaled_suffix": {
+              "type": "string",
+              "pattern": "^scaled-[0-9]{2}$"
+            },
+            "full_name": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

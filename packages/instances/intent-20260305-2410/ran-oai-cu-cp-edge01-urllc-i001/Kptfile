@@ -1,0 +1,17 @@
+apiVersion: kpt.dev/v1
+kind: Kptfile
+metadata:
+  name: ran-oai-cu-cp-edge01-urllc-i001
+  annotations:
+    config.kubernetes.io/local-config: 'true'
+    nephio.org/intent-id: intent-20260305-2410
+info:
+  description: Generated package for intent intent-20260305-2410
+pipeline:
+  mutators:
+  - image: gcr.io/kpt-fn/set-labels:v0.2.0
+    configMap:
+      oran.ai/intent-id: intent-20260305-2410
+      app.kubernetes.io/managed-by: nephio
+  validators:
+  - image: gcr.io/kpt-fn/kubeval:v0.3.0

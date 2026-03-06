@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sim-trafficgen-lab-embb-i001
+  namespace: sim
+  labels: &id001
+    oran.ai/intent-id: intent-20260305-0001
+    oran.ai/slice: embb
+    oran.ai/site: lab
+    oran.ai/component: trafficgen
+    app.kubernetes.io/managed-by: nephio
+    app.kubernetes.io/part-of: llm-nephio-oran
+    app.kubernetes.io/name: trafficgen
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: trafficgen
+      oran.ai/intent-id: intent-20260305-0001
+  template:
+    metadata:
+      labels: *id001
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: trafficgen
+        image: networkstatic/iperf3:latest
+        ports:
+        - containerPort: 5201
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 250m
+            memory: 256Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        env:
+        - name: MODE
+          value: iperf3
+        - name: DURATIONSECONDS
+          value: '600'

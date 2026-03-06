@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sim-sim-e2-edge01-urllc-i001
+  namespace: sim
+  labels:
+    oran.ai/intent-id: intent-20260305-2410
+    oran.ai/slice: urllc
+    oran.ai/site: edge01
+    oran.ai/component: sim-e2
+    app.kubernetes.io/managed-by: nephio
+    app.kubernetes.io/part-of: llm-nephio-oran
+    app.kubernetes.io/name: sim-e2
+spec:
+  selector:
+    app.kubernetes.io/name: sim-e2
+    oran.ai/intent-id: intent-20260305-2410
+  ports:
+  - port: 36421
+    targetPort: 36421
+    protocol: SCTP

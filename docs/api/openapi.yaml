@@ -1,0 +1,40 @@
+openapi: 3.0.3
+info:
+  title: Intentd (TMF921 subset)
+  version: 0.1.0
+  description: |
+    Minimal TMF921-compatible subset for research prototype.
+    Canonical internal model is IntentPlan (schemas/intent-plan.schema.json).
+servers:
+  - url: http://localhost:8080
+paths:
+  /tmf-api/intent/v5/intent:
+    post:
+      summary: Create intent (subset)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "201":
+          description: Created
+    get:
+      summary: List intents (subset)
+      responses:
+        "200":
+          description: OK
+  /tmf-api/intent/v5/intent/{id}:
+    get:
+      summary: Get intent by id (subset)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK

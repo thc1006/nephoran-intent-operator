@@ -1,0 +1,14 @@
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    port: 3000,
+    proxy: {
+      "/tmf-api": "http://localhost:8080",
+      "/internal": "http://localhost:8080",
+      "/api": "http://localhost:8080",
+    },
+  },
+});

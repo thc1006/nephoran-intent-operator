@@ -1,0 +1,74 @@
+{
+  "intentId": "intent-20260305-0001",
+  "intentType": "slice.deploy",
+  "description": "Deploy eMBB slice",
+  "slice": {
+    "sliceType": "eMBB",
+    "name": "embb-slice-1",
+    "site": "lab",
+    "targets": {
+      "clusters": [
+        "ran-lab-1"
+      ],
+      "namespaces": [
+        "oran",
+        "ric",
+        "core",
+        "sim"
+      ]
+    }
+  },
+  "constraints": {
+    "minReplicas": 1,
+    "maxReplicas": 5,
+    "allowedNamespaces": [
+      "oran",
+      "ric",
+      "core",
+      "sim"
+    ]
+  },
+  "actions": [
+    {
+      "kind": "deploy",
+      "component": "ric-kpimon",
+      "replicas": 1,
+      "naming": {
+        "domain": "ric",
+        "site": "lab",
+        "slice": "shared",
+        "instance": "i001"
+      }
+    },
+    {
+      "kind": "deploy",
+      "component": "trafficgen",
+      "replicas": 1,
+      "params": {
+        "mode": "iperf3",
+        "durationSeconds": 600
+      },
+      "naming": {
+        "domain": "sim",
+        "site": "lab",
+        "slice": "embb",
+        "instance": "i001"
+      }
+    }
+  ],
+  "policy": {
+    "requireHumanReview": true,
+    "guardrails": {
+      "denyClusterScoped": true,
+      "denyPrivileged": true,
+      "denyHostNetwork": true,
+      "denyCRDChanges": true,
+      "denyRBACChanges": true
+    }
+  },
+  "metadata": {
+    "createdAt": "2026-03-05T20:29:53Z",
+    "createdBy": "intentctl",
+    "source": "cli"
+  }
+}

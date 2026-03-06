@@ -1,0 +1,102 @@
+{
+  "intentId": "intent-20260305-2410",
+  "intentType": "slice.deploy",
+  "description": "Deploy URLLC slice on edge01 with E2 simulator and traffic steering xApp for low-latency testing",
+  "slice": {
+    "sliceType": "URLLC",
+    "name": "urllc-edge01-001",
+    "site": "edge01"
+  },
+  "constraints": {
+    "minReplicas": 1,
+    "maxReplicas": 5,
+    "allowedNamespaces": [
+      "ran",
+      "sim",
+      "ric"
+    ]
+  },
+  "actions": [
+    {
+      "kind": "deploy",
+      "component": "oai-odu",
+      "replicas": 1,
+      "naming": {
+        "domain": "ran",
+        "site": "edge01",
+        "slice": "urllc",
+        "instance": "i001"
+      }
+    },
+    {
+      "kind": "deploy",
+      "component": "oai-ocu",
+      "replicas": 1,
+      "naming": {
+        "domain": "ran",
+        "site": "edge01",
+        "slice": "urllc",
+        "instance": "i001"
+      }
+    },
+    {
+      "kind": "deploy",
+      "component": "oai-cu-cp",
+      "replicas": 1,
+      "naming": {
+        "domain": "ran",
+        "site": "edge01",
+        "slice": "urllc",
+        "instance": "i001"
+      }
+    },
+    {
+      "kind": "deploy",
+      "component": "oai-cu-up",
+      "replicas": 1,
+      "naming": {
+        "domain": "ran",
+        "site": "edge01",
+        "slice": "urllc",
+        "instance": "i001"
+      }
+    },
+    {
+      "kind": "deploy",
+      "component": "sim-e2",
+      "replicas": 1,
+      "naming": {
+        "domain": "sim",
+        "site": "edge01",
+        "slice": "urllc",
+        "instance": "i001"
+      }
+    },
+    {
+      "kind": "deploy",
+      "component": "ric-ts",
+      "replicas": 1,
+      "naming": {
+        "domain": "ric",
+        "site": "edge01",
+        "slice": "urllc",
+        "instance": "i001"
+      }
+    }
+  ],
+  "policy": {
+    "requireHumanReview": true,
+    "guardrails": {
+      "denyClusterScoped": true,
+      "denyPrivileged": true,
+      "denyHostNetwork": true,
+      "denyCRDChanges": true,
+      "denyRBACChanges": true
+    }
+  },
+  "metadata": {
+    "createdAt": "2026-03-05T20:06:49+00:00Z",
+    "createdBy": "intentctl",
+    "source": "cli"
+  }
+}

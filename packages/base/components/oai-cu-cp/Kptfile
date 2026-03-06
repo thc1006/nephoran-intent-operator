@@ -1,0 +1,16 @@
+apiVersion: kpt.dev/v1
+kind: Kptfile
+metadata:
+  name: oai-cu-cp
+  annotations:
+    config.kubernetes.io/local-config: 'true'
+info:
+  description: Base kpt package for O-RAN CU Control Plane (OAI)
+pipeline:
+  mutators:
+  - image: gcr.io/kpt-fn/set-labels:v0.2.0
+    configMap:
+      app.kubernetes.io/part-of: llm-nephio-oran
+      app.kubernetes.io/managed-by: nephio
+  validators:
+  - image: gcr.io/kpt-fn/kubeval:v0.3.0

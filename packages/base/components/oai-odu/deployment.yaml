@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oai-odu
+  namespace: oran
+  labels:
+    app.kubernetes.io/name: oai-odu
+    app.kubernetes.io/managed-by: nephio
+    app.kubernetes.io/part-of: llm-nephio-oran
+    oran.ai/component: oai-odu
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: oai-odu
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: oai-odu
+        app.kubernetes.io/managed-by: nephio
+        app.kubernetes.io/part-of: llm-nephio-oran
+        oran.ai/component: oai-odu
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: oai-odu
+        image: oaisoftwarealliance/oai-gnb:develop
+        ports:
+        - containerPort: 38472
+          protocol: SCTP
+        resources:
+          requests:
+            cpu: '2'
+            memory: 2Gi
+          limits:
+            cpu: '2'
+            memory: 2Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL

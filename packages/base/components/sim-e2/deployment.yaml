@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sim-e2
+  namespace: sim
+  labels:
+    app.kubernetes.io/name: sim-e2
+    app.kubernetes.io/managed-by: nephio
+    app.kubernetes.io/part-of: llm-nephio-oran
+    oran.ai/component: sim-e2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sim-e2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sim-e2
+        app.kubernetes.io/managed-by: nephio
+        app.kubernetes.io/part-of: llm-nephio-oran
+        oran.ai/component: sim-e2
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: sim-e2
+        image: nexus3.o-ran-sc.org:10002/o-ran-sc/sim-e2-interface:1.0.0
+        ports:
+        - containerPort: 36421
+          protocol: SCTP
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL

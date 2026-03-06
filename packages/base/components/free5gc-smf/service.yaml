@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: free5gc-smf
+  namespace: free5gc
+  labels:
+    app.kubernetes.io/name: free5gc-smf
+    app.kubernetes.io/managed-by: nephio
+    app.kubernetes.io/part-of: llm-nephio-oran
+    oran.ai/component: free5gc-smf
+spec:
+  selector:
+    app.kubernetes.io/name: free5gc-smf
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP

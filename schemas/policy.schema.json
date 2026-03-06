@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/policy.schema.json",
+  "title": "Policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "review",
+    "allowlist"
+  ],
+  "properties": {
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requireHumanReviewFor"
+      ],
+      "properties": {
+        "requireHumanReviewFor": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "ClusterRole",
+            "ClusterRoleBinding",
+            "CustomResourceDefinition",
+            "PodSecurityPolicy"
+          ]
+        }
+      }
+    },
+    "allowlist": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "components",
+        "namespaces"
+      ],
+      "properties": {
+        "components": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "namespaces": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

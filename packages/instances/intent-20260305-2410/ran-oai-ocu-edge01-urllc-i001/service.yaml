@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ran-oai-ocu-edge01-urllc-i001
+  namespace: oran
+  labels:
+    oran.ai/intent-id: intent-20260305-2410
+    oran.ai/slice: urllc
+    oran.ai/site: edge01
+    oran.ai/component: oai-ocu
+    app.kubernetes.io/managed-by: nephio
+    app.kubernetes.io/part-of: llm-nephio-oran
+    app.kubernetes.io/name: oai-ocu
+spec:
+  selector:
+    app.kubernetes.io/name: oai-ocu
+    oran.ai/intent-id: intent-20260305-2410
+  ports:
+  - port: 38472
+    targetPort: 38472
+    protocol: SCTP

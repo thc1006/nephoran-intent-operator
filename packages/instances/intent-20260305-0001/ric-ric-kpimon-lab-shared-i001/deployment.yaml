@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ric-ric-kpimon-lab-shared-i001
+  namespace: ricplt
+  labels: &id001
+    oran.ai/intent-id: intent-20260305-0001
+    oran.ai/slice: shared
+    oran.ai/site: lab
+    oran.ai/component: ric-kpimon
+    app.kubernetes.io/managed-by: nephio
+    app.kubernetes.io/part-of: llm-nephio-oran
+    app.kubernetes.io/name: ric-kpimon
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ric-kpimon
+      oran.ai/intent-id: intent-20260305-0001
+  template:
+    metadata:
+      labels: *id001
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: ric-kpimon
+        image: nexus3.o-ran-sc.org:10002/o-ran-sc/ric-app-kpimon-go:1.0.1
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 250m
+            memory: 256Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
