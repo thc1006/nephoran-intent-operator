@@ -25,6 +25,7 @@ export interface IntentRecord {
   report: Record<string, unknown> | null;
   porch: { name: string; lifecycle: string; files?: number; error?: string } | null;
   git: { branch: string; commit_sha: string; pr?: { number: number; url: string } } | null;
+  configsync: { synced?: boolean; commit?: string; error?: string } | null;
   errors: string[] | null;
   created_at: string;
   updated_at: string;
@@ -122,6 +123,53 @@ export function getScaleStatus(): Promise<ScaleStatus> {
 
 export function healthz(): Promise<{ status: string }> {
   return json<{ status: string }>("/healthz");
+}
+
+// ---- Closed-Loop Metrics --------------------------------------------------
+
+export interface MetricsOverview {
+  active_intents: number;
+  total_created: number;
+  completed: number;
+  failed: number;
+  git_commits: number;
+}
+
+export interface CellPrbUsage {
+  cell_id: string;
+  gnb_id: string;
+  prb_usage_percent: number;
+}
+
+export interface ScaleActionMetric {
+  component: string;
+  action: string;
+  count: number;
+}
+
+export interface PorchLifecycleMetric {
+  lifecycle: string;
+  count: number;
+}
+
+export interface PipelineStageMetric {
+  stage: string;
+  count: number;
+  sum_seconds: number;
+  p95_seconds: number | null;
+}
+
+export interface ClosedLoopMetrics {
+  overview: MetricsOverview;
+  e2kpm: { cells: CellPrbUsage[] };
+  scale_actions: ScaleActionMetric[];
+  porch_lifecycle: PorchLifecycleMetric[];
+  pipeline_stages: PipelineStageMetric[];
+  timestamp: string;
+}
+
+export function getClosedLoopMetrics(): Promise<ClosedLoopMetrics> {
+  return json<ClosedLoopMetrics>("/api/metrics/json");
 }
 
 // ---- State helpers --------------------------------------------------------

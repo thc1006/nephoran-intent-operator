@@ -340,6 +340,10 @@ replace_section*
 .conductor-state.json
 **/.*-state.json
 internal/loop/.conductor-state.json
+.state/
+
+# Generated intent instance packages (created by pipeline runs / demos)
+packages/instances/intent-*
 
 # Test reports and validation artifacts
 tests/unit/test-report-*.json

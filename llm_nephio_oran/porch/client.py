@@ -120,7 +120,10 @@ class PorchClient:
             plural=PORCH_PRR_PLURAL,
             name=name,
         )
-        prr["spec"]["resources"] = resources
+        # Merge: preserve existing resources (e.g. Kptfile from init) and add/overwrite new ones
+        existing = prr["spec"].get("resources") or {}
+        existing.update(resources)
+        prr["spec"]["resources"] = existing
         result = self.api.replace_namespaced_custom_object(
             group=PORCH_GROUP,
             version=PORCH_VERSION,

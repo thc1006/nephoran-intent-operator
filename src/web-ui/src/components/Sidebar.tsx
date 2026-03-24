@@ -1,4 +1,4 @@
-import { Zap, List, Server, Package } from "lucide-react";
+import { Zap, List, Server, Package, Activity } from "lucide-react";
 import type { View } from "../App";
 
 const NAV: Array<{ id: View; label: string; icon: typeof Zap }> = [
@@ -6,6 +6,7 @@ const NAV: Array<{ id: View; label: string; icon: typeof Zap }> = [
   { id: "intents", label: "Intent History", icon: List },
   { id: "workloads", label: "Workloads", icon: Server },
   { id: "packages", label: "Packages", icon: Package },
+  { id: "closedloop", label: "Closed Loop", icon: Activity },
 ];
 
 interface Props {

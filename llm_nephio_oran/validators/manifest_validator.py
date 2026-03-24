@@ -37,6 +37,9 @@ CLUSTER_SCOPED_KINDS = {
     "PriorityClass", "ValidatingWebhookConfiguration", "MutatingWebhookConfiguration",
 }
 
+# Namespace-scoped RBAC resources also denied (matches security_guardrails.rego denyRBACChanges)
+DENIED_RBAC_KINDS = {"Role", "RoleBinding"}
+
 WORKLOAD_KINDS = {"Deployment", "StatefulSet", "DaemonSet", "Pod", "Job", "CronJob"}
 
 
@@ -92,11 +95,15 @@ def validate_package(pkg_dir: Path) -> list[str]:
         # Layer 3: Guardrail policies
         if kind in CLUSTER_SCOPED_KINDS:
             errors.append(f"[L3-Policy] {rel}: cluster-scoped resource '{kind}' not allowed (denyClusterScoped)")
+        if kind in DENIED_RBAC_KINDS:
+            errors.append(f"[L3-Policy] {rel}: RBAC resource '{kind}' not allowed (denyRBACChanges)")
 
         if kind in WORKLOAD_KINDS:
             spec = doc.get("spec", {})
             if kind == "Pod":
                 pod_spec = spec
+            elif kind == "CronJob":
+                pod_spec = spec.get("jobTemplate", {}).get("spec", {}).get("template", {}).get("spec", {})
             else:
                 pod_spec = spec.get("template", {}).get("spec", {})
 

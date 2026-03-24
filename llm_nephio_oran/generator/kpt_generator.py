@@ -26,7 +26,7 @@ COMPONENT_DEFAULTS: dict[str, dict[str, Any]] = {
     "free5gc-smf": {"image": "free5gc/smf:v3.3.0", "port": 8000, "protocol": "TCP", "domain": "core", "cpu": "500m", "memory": "512Mi"},
     "free5gc-amf": {"image": "free5gc/amf:v3.3.0", "port": 8000, "protocol": "TCP", "domain": "core", "cpu": "500m", "memory": "512Mi"},
     "ric-kpimon": {"image": "nexus3.o-ran-sc.org:10002/o-ran-sc/ric-app-kpimon-go:1.0.1", "port": 8080, "protocol": "TCP", "domain": "ric", "cpu": "250m", "memory": "256Mi"},
-    "ric-ts": {"image": "nexus3.o-ran-sc.org:10002/o-ran-sc/ric-app-ts:1.2.1", "port": 8080, "protocol": "TCP", "domain": "ric", "cpu": "250m", "memory": "256Mi"},
+    "ric-ts": {"image": "nexus3.o-ran-sc.org:10002/o-ran-sc/ric-app-ts:1.2.5", "port": 4560, "protocol": "TCP", "domain": "ric", "cpu": "250m", "memory": "256Mi"},
     "sim-e2": {"image": "nexus3.o-ran-sc.org:10002/o-ran-sc/sim-e2-interface:1.0.0", "port": 36421, "protocol": "SCTP", "domain": "sim", "cpu": "500m", "memory": "512Mi"},
     "trafficgen": {"image": "networkstatic/iperf3:latest", "port": 5201, "protocol": "TCP", "domain": "sim", "cpu": "250m", "memory": "256Mi"},
 }
@@ -209,6 +209,52 @@ def _generate_service(pkg_dir: Path, name: str, intent_id: str, action: dict[str
     (pkg_dir / "service.yaml").write_text(yaml.dump(service, default_flow_style=False, sort_keys=False))
 
 
+def _generate_a1_policy_configmap(
+    pkg_dir: Path, name: str, intent_id: str, action: dict[str, Any],
+) -> None:
+    """Generate A1 policy ConfigMap for Traffic Steering.
+
+    Wraps the A1 policy payload in a ConfigMap that can be applied by ConfigSync.
+    The conductor loop or A1 client reads this and POSTs to the A1 Mediator.
+    """
+    params = action.get("params", {})
+    threshold = params.get("threshold", 0)
+    labels = _labels(intent_id, action)
+    namespace = NAMESPACE_MAP.get(
+        COMPONENT_DEFAULTS.get(action["component"], {}).get("domain", "ric"), "ricplt",
+    )
+
+    policy_data = json.dumps({"threshold": threshold})
+    policy_id = f"ts-{intent_id}"
+
+    configmap = {
+        "apiVersion": "v1",
+        "kind": "ConfigMap",
+        "metadata": {
+            "name": name,
+            "namespace": namespace,
+            "labels": labels,
+            "annotations": {
+                "nephio.org/action": "configure",
+                "nephio.org/a1-policy-type": "20008",
+                "nephio.org/a1-policy-id": policy_id,
+            },
+        },
+        "data": {
+            "policy-type-id": "20008",
+            "policy-instance-id": policy_id,
+            "policy-data": policy_data,
+            "intent-plan": json.dumps(
+                {"intentId": intent_id, "component": action["component"]},
+                ensure_ascii=False,
+            ),
+        },
+    }
+    (pkg_dir / "a1-policy.yaml").write_text(
+        yaml.dump(configmap, default_flow_style=False, sort_keys=False)
+    )
+
+
 def generate_kpt_packages(plan: dict[str, Any], out_dir: Path) -> Path:
     """Generate kpt packages from an IntentPlan.
 
@@ -243,8 +289,18 @@ def generate_kpt_packages(plan: dict[str, Any], out_dir: Path) -> Path:
         action_dir.mkdir(parents=True, exist_ok=True)
 
         kind = action.get("kind", "deploy")
+        component = action["component"]
 
-        if kind in ("deploy", "scale", "configure"):
+        if kind == "configure" and component == "ric-ts":
+            # Special case: TS configure → A1 policy ConfigMap (not Deployment)
+            _generate_kptfile(action_dir, name, intent_id)
+            _generate_a1_policy_configmap(action_dir, name, intent_id, action)
+            manifest_files.extend([
+                str(action_dir / "Kptfile"),
+                str(action_dir / "a1-policy.yaml"),
+            ])
+            logger.info("Generated A1 policy package for %s (%s): %s", name, kind, action_dir)
+        elif kind in ("deploy", "scale", "configure"):
             _generate_kptfile(action_dir, name, intent_id)
             _generate_deployment(action_dir, name, intent_id, action)
             _generate_service(action_dir, name, intent_id, action)

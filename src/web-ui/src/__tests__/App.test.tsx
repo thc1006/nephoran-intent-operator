@@ -26,10 +26,23 @@ const EMPTY_INTENT: Record<string, unknown> = {
   history: [{ to: "acknowledged", at: "2026-03-06T00:00:00Z" }],
 };
 
+const MOCK_METRICS = {
+  overview: { active_intents: 2, total_created: 15, completed: 12, failed: 1, git_commits: 11 },
+  e2kpm: { cells: [
+    { cell_id: "cell-001", gnb_id: "gnb-edge01", prb_usage_percent: 87.3 },
+    { cell_id: "cell-002", gnb_id: "gnb-edge01", prb_usage_percent: 45.1 },
+  ] },
+  scale_actions: [{ component: "oai-odu", action: "scale_out", count: 3 }],
+  porch_lifecycle: [{ lifecycle: "Proposed", count: 5 }],
+  pipeline_stages: [{ stage: "planning", count: 15, sum_seconds: 22.5, p95_seconds: 2.1 }],
+  timestamp: "2026-03-16T00:00:00Z",
+};
+
 beforeEach(() => {
   mockFetch.mockReset();
   mockFetch.mockImplementation((url: string) => {
     if (url.includes("/healthz")) return mockJsonResponse({ status: "ok" });
+    if (url.includes("/api/metrics/json")) return mockJsonResponse(MOCK_METRICS);
     if (url.includes("/api/porch/packages")) return mockJsonResponse([]);
     if (url.includes("/api/scale/status")) return mockJsonResponse({ components: [] });
     if (url.includes("/tmf-api/intent/v5/intent") && !url.includes("intent-"))
@@ -47,6 +60,7 @@ describe("App Layout", () => {
     expect(screen.getByText("Intent History")).toBeTruthy();
     expect(screen.getByText("Workloads")).toBeTruthy();
     expect(screen.getByText("Packages")).toBeTruthy();
+    expect(screen.getByText("Closed Loop")).toBeTruthy();
   });
 
   it("renders header with cluster info", () => {
@@ -76,6 +90,11 @@ describe("App Layout", () => {
     fireEvent.click(screen.getByText("Packages"));
     await waitFor(() => {
       expect(screen.getByText(/Nephio Porch PackageRevisions/)).toBeTruthy();
+    });
+    // Switch to Closed Loop
+    fireEvent.click(screen.getByText("Closed Loop"));
+    await waitFor(() => {
+      expect(screen.getByText(/M7 closed-loop metrics/)).toBeTruthy();
     });
   });
 });
@@ -354,6 +373,7 @@ describe("PackageTable", () => {
         ]);
       }
       if (url.includes("/healthz")) return mockJsonResponse({ status: "ok" });
+      if (url.includes("/api/metrics/json")) return mockJsonResponse(MOCK_METRICS);
       if (url.includes("/tmf-api/intent/v5/intent")) return mockJsonResponse([]);
       if (url.includes("/api/scale/status")) return mockJsonResponse({ components: [] });
       return mockJsonResponse({}, 404);
@@ -365,6 +385,126 @@ describe("PackageTable", () => {
     await waitFor(() => {
       expect(screen.getByText("free5gc/amf")).toBeTruthy();
       expect(screen.getByText("Published")).toBeTruthy();
+    });
+  });
+});
+
+describe("ClosedLoopDashboard", () => {
+  it("shows overview metrics cards", async () => {
+    render(<App />);
+    fireEvent.click(screen.getByText("Closed Loop"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Active Intents")).toBeTruthy();
+      expect(screen.getByText("Total Created")).toBeTruthy();
+      expect(screen.getByText("Completed")).toBeTruthy();
+      expect(screen.getByText("Failed")).toBeTruthy();
+      expect(screen.getByText("Success Rate")).toBeTruthy();
+    });
+
+    // Check actual values from MOCK_METRICS
+    await waitFor(() => {
+      expect(screen.getByText("2")).toBeTruthy();  // active_intents
+      expect(screen.getByText("15")).toBeTruthy(); // total_created
+      expect(screen.getByText("12")).toBeTruthy(); // completed
+      expect(screen.getByText("1")).toBeTruthy();  // failed
+      expect(screen.getByText("92%")).toBeTruthy(); // 12/(12+1) = 92%
+    });
+  });
+
+  it("shows PRB usage cells with threshold coloring", async () => {
+    render(<App />);
+    fireEvent.click(screen.getByText("Closed Loop"));
+
+    await waitFor(() => {
+      expect(screen.getByText("cell-001")).toBeTruthy();
+      expect(screen.getByText("cell-002")).toBeTruthy();
+      expect(screen.getByText("87.3%")).toBeTruthy();
+      expect(screen.getByText("45.1%")).toBeTruthy();
+    });
+  });
+
+  it("shows pipeline stage latencies", async () => {
+    render(<App />);
+    fireEvent.click(screen.getByText("Closed Loop"));
+
+    await waitFor(() => {
+      expect(screen.getByText("planning")).toBeTruthy();
+      expect(screen.getByText(/p95 2\.10s/)).toBeTruthy();
+    });
+  });
+
+  it("shows scale actions", async () => {
+    render(<App />);
+    fireEvent.click(screen.getByText("Closed Loop"));
+
+    await waitFor(() => {
+      expect(screen.getByText("oai-odu")).toBeTruthy();
+      expect(screen.getByText("scale_out")).toBeTruthy();
+      expect(screen.getByText("3")).toBeTruthy();
+    });
+  });
+
+  it("shows porch lifecycle badges", async () => {
+    render(<App />);
+    fireEvent.click(screen.getByText("Closed Loop"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Proposed: 5")).toBeTruthy();
+    });
+  });
+
+  it("shows git commits count", async () => {
+    render(<App />);
+    fireEvent.click(screen.getByText("Closed Loop"));
+
+    await waitFor(() => {
+      expect(screen.getByText("11")).toBeTruthy(); // git_commits
+      expect(screen.getByText("Commits pushed by pipeline")).toBeTruthy();
+    });
+  });
+
+  it("handles empty metrics gracefully", async () => {
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes("/api/metrics/json")) return mockJsonResponse({
+        overview: { active_intents: 0, total_created: 0, completed: 0, failed: 0, git_commits: 0 },
+        e2kpm: { cells: [] },
+        scale_actions: [],
+        porch_lifecycle: [],
+        pipeline_stages: [],
+        timestamp: "2026-03-16T00:00:00Z",
+      });
+      if (url.includes("/healthz")) return mockJsonResponse({ status: "ok" });
+      if (url.includes("/api/porch/packages")) return mockJsonResponse([]);
+      if (url.includes("/api/scale/status")) return mockJsonResponse({ components: [] });
+      if (url.includes("/tmf-api/intent/v5/intent")) return mockJsonResponse([]);
+      return mockJsonResponse({}, 404);
+    });
+
+    render(<App />);
+    fireEvent.click(screen.getByText("Closed Loop"));
+
+    await waitFor(() => {
+      expect(screen.getByText("No cell metrics available")).toBeTruthy();
+      expect(screen.getByText("No pipeline data yet")).toBeTruthy();
+    });
+  });
+
+  it("shows error state when API fails", async () => {
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes("/api/metrics/json")) return mockJsonResponse({ error: "fail" }, 500);
+      if (url.includes("/healthz")) return mockJsonResponse({ status: "ok" });
+      if (url.includes("/api/porch/packages")) return mockJsonResponse([]);
+      if (url.includes("/api/scale/status")) return mockJsonResponse({ components: [] });
+      if (url.includes("/tmf-api/intent/v5/intent")) return mockJsonResponse([]);
+      return mockJsonResponse({}, 404);
+    });
+
+    render(<App />);
+    fireEvent.click(screen.getByText("Closed Loop"));
+
+    await waitFor(() => {
+      expect(screen.getByText(/500/)).toBeTruthy();
     });
   });
 });

@@ -744,9 +744,9 @@ spec:
 
     - name: traffic-steering-xapp
 
-      version: "1.2.0"
+      version: "1.2.5"
 
-      image: "oran/traffic-steering:v1.2.0"
+      image: "nexus3.o-ran-sc.org:10002/o-ran-sc/ric-app-ts:1.2.5"
 
       replicas: 2
 

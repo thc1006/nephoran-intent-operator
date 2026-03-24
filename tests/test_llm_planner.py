@@ -62,8 +62,8 @@ class TestBuildPrompt:
 
     def test_contains_few_shot_examples(self):
         messages = _build_prompt("test")
-        # System + 2 examples (user+assistant each) + final user = 6
-        assert len(messages) == 6
+        # System + 3 examples (user+assistant each) + final user = 8
+        assert len(messages) == 8
 
     def test_user_intent_is_last(self):
         messages = _build_prompt("my intent text")

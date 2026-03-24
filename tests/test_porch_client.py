@@ -130,6 +130,26 @@ class TestPorchClient:
         result = porch_client.update_resources("test-pkg", resources)
         assert "deployment.yaml" in result["spec"]["resources"]
 
+    def test_update_resources_preserves_kptfile(self, porch_client, mock_k8s_api):
+        """update_resources merges new resources with existing ones (e.g. Kptfile)."""
+        existing_kptfile = "apiVersion: kpt.dev/v1\nkind: Kptfile\nmetadata:\n  name: test\n"
+        mock_k8s_api.get_namespaced_custom_object.return_value = {
+            "metadata": {"name": "test-pkg", "resourceVersion": "1"},
+            "spec": {"resources": {"Kptfile": existing_kptfile}},
+        }
+        mock_k8s_api.replace_namespaced_custom_object.return_value = {
+            "metadata": {"name": "test-pkg"},
+            "spec": {"resources": {"Kptfile": existing_kptfile, "configmap.yaml": "data: test"}},
+        }
+
+        porch_client.update_resources("test-pkg", {"configmap.yaml": "data: test"})
+
+        # Verify the body sent to replace includes both Kptfile and new resource
+        call_args = mock_k8s_api.replace_namespaced_custom_object.call_args
+        body = call_args[1]["body"]
+        assert "Kptfile" in body["spec"]["resources"], "Kptfile should be preserved"
+        assert "configmap.yaml" in body["spec"]["resources"], "New resource should be added"
+
     def test_get_package(self, porch_client, mock_k8s_api):
         mock_k8s_api.get_namespaced_custom_object.return_value = {
             "metadata": {"name": "test-pkg"},

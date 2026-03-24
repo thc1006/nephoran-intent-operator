@@ -1182,28 +1182,25 @@ func CreateQoSPolicyType() *A1PolicyType {
 
 func CreateTrafficSteeringPolicyType() *A1PolicyType {
 	return &A1PolicyType{
-		PolicyTypeID: 2000,
+		PolicyTypeID: 20008,
 
-		Name: "Traffic Steering Policy",
+		Name: "tsapolicy",
 
-		Description: "Policy for steering traffic between cells or network functions",
+		Description: "Traffic Steering policy — threshold for handover decision (O-RAN SC standard)",
 
 		PolicySchema: json.RawMessage(`{
+			"$schema": "http://json-schema.org/draft-07/schema#",
 			"type": "object",
 			"properties": {
-				"ue_id": {
-					"type": "string"
-				},
-				"target_cell": {
-					"type": "string"
-				},
-				"traffic_percentage": {
-					"type": "number",
+				"threshold": {
+					"type": "integer",
+					"default": 0,
 					"minimum": 0,
-					"maximum": 100
+					"maximum": 100,
+					"description": "Throughput improvement percentage required to trigger handover"
 				}
 			},
-			"required": ["target_cell", "traffic_percentage"]
+			"additionalProperties": false
 		}`),
 	}
 }

@@ -247,3 +247,332 @@ class TestIntentStore:
         report = store.build_report(rec["id"])
         assert report["terminal"] is False
         assert report["compliant"] is False
+
+
+class TestD3CorruptionRecovery:
+    """D3: Store must survive corrupt WAL lines and support snapshots."""
+
+    def test_corrupt_wal_line_skipped(self, tmp_path):
+        """A corrupt line in the WAL should be skipped, not crash the store."""
+        state_dir = tmp_path / ".state"
+        store = IntentStore(state_dir=state_dir)
+
+        # Create two intents
+        r1 = store.create(expression="first", source="cli")
+        r2 = store.create(expression="second", source="cli")
+
+        # Manually inject a corrupt line into the WAL
+        wal_path = state_dir / "intents.jsonl"
+        with wal_path.open("a") as f:
+            f.write("THIS IS NOT VALID JSON\n")
+
+        # Create a third intent after corruption
+        r3 = store.create(expression="third", source="cli")
+
+        # Reload store from WAL — should recover all 3, skip corrupt line
+        store2 = IntentStore(state_dir=state_dir)
+        assert store2.get(r1["id"]) is not None
+        assert store2.get(r2["id"]) is not None
+        assert store2.get(r3["id"]) is not None
+
+    def test_corrupt_wal_only_corrupt_lines_lost(self, tmp_path):
+        """Only truly corrupt lines are lost; entries before and after survive."""
+        state_dir = tmp_path / ".state"
+        wal_path = state_dir / "intents.jsonl"
+        state_dir.mkdir(parents=True)
+
+        import json
+        # Write valid → corrupt → valid manually
+        with wal_path.open("w") as f:
+            f.write(json.dumps({"op": "create", "record": {
+                "id": "intent-20260306-0001", "state": "acknowledged",
+                "expression": "before", "source": "cli",
+                "plan": None, "report": None, "porch": None, "git": None,
+                "configsync": None, "errors": None,
+                "created_at": "2026-03-06T00:00:00Z", "updated_at": "2026-03-06T00:00:00Z",
+                "history": [{"to": "acknowledged", "at": "2026-03-06T00:00:00Z", "data": None}],
+            }}) + "\n")
+            f.write("CORRUPT LINE HERE\n")
+            f.write(json.dumps({"op": "create", "record": {
+                "id": "intent-20260306-0002", "state": "acknowledged",
+                "expression": "after", "source": "web",
+                "plan": None, "report": None, "porch": None, "git": None,
+                "configsync": None, "errors": None,
+                "created_at": "2026-03-06T00:01:00Z", "updated_at": "2026-03-06T00:01:00Z",
+                "history": [{"to": "acknowledged", "at": "2026-03-06T00:01:00Z", "data": None}],
+            }}) + "\n")
+
+        store = IntentStore(state_dir=state_dir)
+        assert store.get("intent-20260306-0001")["expression"] == "before"
+        assert store.get("intent-20260306-0002")["expression"] == "after"
+
+    def test_snapshot_written_and_loaded(self, tmp_path):
+        """Snapshot should be written periodically and speed up reload."""
+        from llm_nephio_oran.intentd.store import SNAPSHOT_INTERVAL
+        state_dir = tmp_path / ".state"
+        store = IntentStore(state_dir=state_dir)
+
+        # Create an intent and push it through enough transitions to trigger snapshot
+        rec = store.create(expression="snapshot test", source="cli")
+        iid = rec["id"]
+
+        # Drive transitions: we need SNAPSHOT_INTERVAL transitions total
+        # Pipeline: planning→validating→generating→executing→proposed→applied→completed = 7
+        transitions_done = 0
+        for _ in range(SNAPSHOT_INTERVAL // 7 + 1):
+            r = store.create(expression="filler", source="cli")
+            fid = r["id"]
+            for state in [IntentState.PLANNING, IntentState.VALIDATING,
+                          IntentState.GENERATING, IntentState.EXECUTING,
+                          IntentState.PROPOSED, IntentState.APPLIED,
+                          IntentState.COMPLETED]:
+                store.transition(fid, state)
+                transitions_done += 1
+                if transitions_done >= SNAPSHOT_INTERVAL:
+                    break
+            if transitions_done >= SNAPSHOT_INTERVAL:
+                break
+
+        # Snapshot file should exist
+        snapshot_path = state_dir / "intents.snapshot.json"
+        assert snapshot_path.exists(), "Snapshot was not written"
+
+        # Load from snapshot — should recover all intents
+        store2 = IntentStore(state_dir=state_dir)
+        assert store2.get(iid) is not None
+        assert store2.get(iid)["expression"] == "snapshot test"
+
+    def test_post_snapshot_transitions_not_lost(self, tmp_path):
+        """Critical: transitions AFTER a snapshot must survive reload."""
+        from llm_nephio_oran.intentd.store import SNAPSHOT_INTERVAL
+        state_dir = tmp_path / ".state"
+        store = IntentStore(state_dir=state_dir)
+
+        # Drive enough transitions to trigger a snapshot
+        for _ in range(SNAPSHOT_INTERVAL // 7 + 1):
+            r = store.create(expression="filler", source="cli")
+            for state in [IntentState.PLANNING, IntentState.VALIDATING,
+                          IntentState.GENERATING, IntentState.EXECUTING,
+                          IntentState.PROPOSED, IntentState.APPLIED,
+                          IntentState.COMPLETED]:
+                store.transition(r["id"], state)
+
+        # Snapshot should exist now
+        assert (state_dir / "intents.snapshot.json").exists()
+
+        # Create a NEW intent and transition it AFTER the snapshot
+        post = store.create(expression="post-snapshot", source="web")
+        post_id = post["id"]
+        store.transition(post_id, IntentState.PLANNING)
+        store.transition(post_id, IntentState.VALIDATING)
+
+        # Also transition an EXISTING intent (one that's in the snapshot as completed)
+        # — we can't transition completed, so create another and transition it past snapshot
+        extra = store.create(expression="extra-post", source="cli")
+        store.transition(extra["id"], IntentState.PLANNING)
+
+        # Reload — post-snapshot changes must survive
+        store2 = IntentStore(state_dir=state_dir)
+        post_rec = store2.get(post_id)
+        assert post_rec is not None, "Post-snapshot intent lost!"
+        assert post_rec["state"] == "validating", f"Expected validating, got {post_rec['state']}"
+        assert post_rec["expression"] == "post-snapshot"
+
+        extra_rec = store2.get(extra["id"])
+        assert extra_rec is not None, "Post-snapshot extra intent lost!"
+        assert extra_rec["state"] == "planning"
+
+    def test_empty_wal_and_no_snapshot(self, tmp_path):
+        """Store should work fine with no WAL and no snapshot."""
+        state_dir = tmp_path / ".state"
+        store = IntentStore(state_dir=state_dir)
+        assert store.list_all() == []
+
+    def test_corrupt_snapshot_falls_back_to_wal(self, tmp_path):
+        """If snapshot is corrupt, fall back to WAL replay."""
+        state_dir = tmp_path / ".state"
+        store = IntentStore(state_dir=state_dir)
+        rec = store.create(expression="wal only", source="cli")
+
+        # Write a corrupt snapshot
+        snapshot_path = state_dir / "intents.snapshot.json"
+        snapshot_path.write_text("NOT VALID JSON")
+
+        # Reload — should fall back to WAL
+        store2 = IntentStore(state_dir=state_dir)
+        assert store2.get(rec["id"]) is not None
+        assert store2.get(rec["id"])["expression"] == "wal only"
+
+
+class TestD3bWalCompaction:
+    """D3b: WAL should be compacted after snapshot."""
+
+    def test_wal_truncated_after_snapshot(self, tmp_path):
+        """After snapshot, WAL should be significantly smaller (compacted)."""
+        from llm_nephio_oran.intentd.store import SNAPSHOT_INTERVAL
+        state_dir = tmp_path / ".state"
+        store = IntentStore(state_dir=state_dir)
+
+        total_ops = 0
+        # Drive enough transitions to trigger snapshot + compaction
+        for _ in range(SNAPSHOT_INTERVAL // 7 + 1):
+            r = store.create(expression="filler", source="cli")
+            total_ops += 1
+            for state in [IntentState.PLANNING, IntentState.VALIDATING,
+                          IntentState.GENERATING, IntentState.EXECUTING,
+                          IntentState.PROPOSED, IntentState.APPLIED,
+                          IntentState.COMPLETED]:
+                store.transition(r["id"], state)
+                total_ops += 1
+
+        snapshot_path = state_dir / "intents.snapshot.json"
+        wal_path = state_dir / "intents.jsonl"
+        assert snapshot_path.exists()
+        # WAL should have far fewer lines than total ops (only post-compaction entries)
+        wal_lines = len([l for l in wal_path.read_text().splitlines() if l.strip()])
+        assert wal_lines < total_ops, f"WAL not compacted: {wal_lines} lines vs {total_ops} total ops"
+        # Should be under SNAPSHOT_INTERVAL (only entries after the last snapshot)
+        assert wal_lines < SNAPSHOT_INTERVAL
+
+    def test_new_entries_after_compaction_survive_reload(self, tmp_path):
+        """Entries written after compaction should survive reload."""
+        from llm_nephio_oran.intentd.store import SNAPSHOT_INTERVAL
+        state_dir = tmp_path / ".state"
+        store = IntentStore(state_dir=state_dir)
+
+        # Trigger snapshot + compaction
+        for _ in range(SNAPSHOT_INTERVAL // 7 + 1):
+            r = store.create(expression="filler", source="cli")
+            for state in [IntentState.PLANNING, IntentState.VALIDATING,
+                          IntentState.GENERATING, IntentState.EXECUTING,
+                          IntentState.PROPOSED, IntentState.APPLIED,
+                          IntentState.COMPLETED]:
+                store.transition(r["id"], state)
+
+        # Now create a new intent AFTER compaction
+        post = store.create(expression="after-compaction", source="web")
+        store.transition(post["id"], IntentState.PLANNING)
+
+        # Reload — should have both snapshot intents and post-compaction intent
+        store2 = IntentStore(state_dir=state_dir)
+        assert store2.get(post["id"]) is not None
+        assert store2.get(post["id"])["state"] == "planning"
+        assert store2.get(post["id"])["expression"] == "after-compaction"
+
+    def test_compaction_preserves_all_intents(self, tmp_path):
+        """Total intent count should be preserved across compaction + reload."""
+        from llm_nephio_oran.intentd.store import SNAPSHOT_INTERVAL
+        state_dir = tmp_path / ".state"
+        store = IntentStore(state_dir=state_dir)
+
+        created_ids = set()
+        for _ in range(SNAPSHOT_INTERVAL // 7 + 1):
+            r = store.create(expression="filler", source="cli")
+            created_ids.add(r["id"])
+            for state in [IntentState.PLANNING, IntentState.VALIDATING,
+                          IntentState.GENERATING, IntentState.EXECUTING,
+                          IntentState.PROPOSED, IntentState.APPLIED,
+                          IntentState.COMPLETED]:
+                store.transition(r["id"], state)
+
+        # Add a few more after compaction
+        for i in range(3):
+            r = store.create(expression=f"post-{i}", source="cli")
+            created_ids.add(r["id"])
+
+        store2 = IntentStore(state_dir=state_dir)
+        assert len(store2.list_all()) == len(created_ids)
+
+
+class TestD2bComplianceState:
+    """D2b: TMF921 ComplianceState in IntentReport."""
+
+    @pytest.fixture
+    def store(self, tmp_path):
+        return IntentStore(state_dir=tmp_path)
+
+    def test_acknowledged_is_pending(self, store):
+        rec = store.create(expression="test", source="cli")
+        report = store.build_report(rec["id"])
+        assert report["lifecycleStatus"] == "Acknowledged"
+        assert report["complianceState"] == "pending"
+
+    def test_planning_is_active_pending(self, store):
+        rec = store.create(expression="test", source="cli")
+        store.transition(rec["id"], IntentState.PLANNING)
+        report = store.build_report(rec["id"])
+        assert report["lifecycleStatus"] == "Active"
+        assert report["complianceState"] == "pending"
+
+    def test_completed_is_compliant(self, store):
+        rec = store.create(expression="test", source="cli")
+        iid = rec["id"]
+        for state in [IntentState.PLANNING, IntentState.VALIDATING,
+                      IntentState.GENERATING, IntentState.EXECUTING,
+                      IntentState.PROPOSED, IntentState.APPLIED,
+                      IntentState.COMPLETED]:
+            store.transition(iid, state)
+        report = store.build_report(iid)
+        assert report["lifecycleStatus"] == "Active"
+        assert report["complianceState"] == "compliant"
+
+    def test_failed_is_non_compliant(self, store):
+        rec = store.create(expression="test", source="cli")
+        store.transition(rec["id"], IntentState.PLANNING)
+        store.transition(rec["id"], IntentState.FAILED, data={"errors": ["boom"]})
+        report = store.build_report(rec["id"])
+        assert report["complianceState"] == "nonCompliant"
+
+    def test_cancelled_is_non_compliant(self, store):
+        rec = store.create(expression="test", source="cli")
+        store.cancel(rec["id"])
+        report = store.build_report(rec["id"])
+        assert report["lifecycleStatus"] == "Cancelled"
+        assert report["complianceState"] == "nonCompliant"
+
+    def test_porch_error_degrades_compliance(self, store):
+        """If completed but porch had error, compliance is degraded."""
+        rec = store.create(expression="test", source="cli")
+        iid = rec["id"]
+        for state in [IntentState.PLANNING, IntentState.VALIDATING,
+                      IntentState.GENERATING, IntentState.EXECUTING]:
+            store.transition(iid, state)
+        store.transition(iid, IntentState.PROPOSED, data={
+            "porch": {"error": "Unauthorized"},
+        })
+        store.transition(iid, IntentState.APPLIED)
+        store.transition(iid, IntentState.COMPLETED)
+        report = store.build_report(iid)
+        assert report["complianceState"] == "degraded"
+
+    def test_configsync_not_delivered_degrades(self, store):
+        """If completed but configsync not delivered, compliance is degraded."""
+        rec = store.create(expression="test", source="cli")
+        iid = rec["id"]
+        for state in [IntentState.PLANNING, IntentState.VALIDATING,
+                      IntentState.GENERATING, IntentState.EXECUTING,
+                      IntentState.PROPOSED]:
+            store.transition(iid, state)
+        store.transition(iid, IntentState.APPLIED, data={
+            "configsync": {"delivered": False, "commit_match": False},
+        })
+        store.transition(iid, IntentState.COMPLETED)
+        report = store.build_report(iid)
+        assert report["complianceState"] == "degraded"
+
+    def test_clean_completion_is_fully_compliant(self, store):
+        """Clean completion with no porch/configsync errors is compliant."""
+        rec = store.create(expression="test", source="cli")
+        iid = rec["id"]
+        for state in [IntentState.PLANNING, IntentState.VALIDATING,
+                      IntentState.GENERATING, IntentState.EXECUTING]:
+            store.transition(iid, state)
+        store.transition(iid, IntentState.PROPOSED, data={
+            "porch": {"name": "draft-001", "lifecycle": "Proposed"},
+        })
+        store.transition(iid, IntentState.APPLIED, data={
+            "configsync": {"delivered": True, "commit_match": True},
+        })
+        store.transition(iid, IntentState.COMPLETED)
+        report = store.build_report(iid)
+        assert report["complianceState"] == "compliant"

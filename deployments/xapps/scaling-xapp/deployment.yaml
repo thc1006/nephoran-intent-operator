@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ricxapp-scaling
+  namespace: ricxapp
+  labels:
+    app: ricxapp-scaling
+    component: xapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ricxapp-scaling
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "2112"
+        prometheus.io/scrape: "true"
+      labels:
+        app: ricxapp-scaling
+        component: xapp
+    spec:
+      serviceAccountName: scaling-xapp
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: scaling-xapp
+        image: scaling-xapp:latest
+        imagePullPolicy: Never
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+        env:
+        - name: A1_MEDIATOR_URL
+          value: "http://service-ricplt-a1mediator-http.ricplt.svc.cluster.local:10000"
+        - name: REDIS_ADDRESS
+          value: "a1-status-store.ricplt:6379"
+        - name: POLL_INTERVAL
+          value: "30s"
+        ports:
+        - containerPort: 2112
+          name: metrics
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 2112
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 2112
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi

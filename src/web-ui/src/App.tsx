@@ -5,8 +5,9 @@ import IntentPipeline from "./components/IntentPipeline";
 import IntentTable from "./components/IntentTable";
 import WorkloadTable from "./components/WorkloadTable";
 import PackageTable from "./components/PackageTable";
+import ClosedLoopDashboard from "./components/ClosedLoopDashboard";
 
-export type View = "pipeline" | "intents" | "workloads" | "packages";
+export type View = "pipeline" | "intents" | "workloads" | "packages" | "closedloop";
 
 export default function App() {
   const [view, setView] = useState<View>("pipeline");
@@ -23,6 +24,7 @@ export default function App() {
           {view === "intents" && <IntentTable />}
           {view === "workloads" && <WorkloadTable />}
           {view === "packages" && <PackageTable />}
+          {view === "closedloop" && <ClosedLoopDashboard />}
         </main>
       </div>
     </div>

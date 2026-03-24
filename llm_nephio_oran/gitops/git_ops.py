@@ -20,6 +20,7 @@ from typing import Any
 
 import requests
 from git import Repo
+from urllib.parse import urlparse, urlunparse
 
 logger = logging.getLogger(__name__)
 
@@ -34,20 +35,47 @@ GITEA_CLONE_URL = os.getenv(
 WORK_DIR = Path(os.getenv("GITOPS_WORK_DIR", "/tmp/nephoran-gitops"))
 
 
+def _auth_url(url: str, token: str) -> str:
+    """Embed token into a git HTTP URL for push authentication.
+
+    http://host/repo.git → http://oauth2:TOKEN@host/repo.git
+    If token is empty or URL already has credentials, returns url unchanged.
+    """
+    if not token:
+        return url
+    parsed = urlparse(url)
+    if parsed.username:
+        return url  # already has credentials
+    authed = parsed._replace(netloc=f"oauth2:{token}@{parsed.hostname}" +
+                             (f":{parsed.port}" if parsed.port else ""))
+    return urlunparse(authed)
+
+
 def _ensure_repo() -> Repo:
     """Clone or pull the latest from Gitea."""
     repo_dir = WORK_DIR / GITEA_REPO
+    clone_url = _auth_url(GITEA_CLONE_URL, GITEA_TOKEN)
+
     if repo_dir.exists() and (repo_dir / ".git").exists():
         repo = Repo(repo_dir)
         origin = repo.remotes.origin
-        repo.git.checkout("main")
+        # Ensure remote URL has current auth token (token may change between runs)
+        if origin.url != clone_url:
+            origin.set_url(clone_url)
+        # Discard ALL leftover state from previous pipeline runs:
+        # 1. reset --hard unstages index AND restores working tree to HEAD
+        # 2. clean -fd removes untracked files and directories
+        # 3. checkout -f main forces branch switch even if on a detached HEAD
+        repo.git.reset("--hard", "HEAD")
+        repo.git.clean("-fd")
+        repo.git.checkout("-f", "main")
         origin.pull()
-        logger.info("Pulled latest from %s", GITEA_CLONE_URL)
+        logger.info("Pulled latest from Gitea")
         return repo
     else:
         repo_dir.mkdir(parents=True, exist_ok=True)
-        repo = Repo.clone_from(GITEA_CLONE_URL, repo_dir)
-        logger.info("Cloned %s to %s", GITEA_CLONE_URL, repo_dir)
+        repo = Repo.clone_from(clone_url, repo_dir)
+        logger.info("Cloned repo to %s", repo_dir)
         return repo
 
 

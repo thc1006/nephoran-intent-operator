@@ -1,7 +1,7 @@
 """LLM-backed intent planner using Ollama (ADR-001, ADR-0004).
 
 Converts natural-language intent text into a schema-valid IntentPlan JSON.
-Uses qwen2.5:14b-instruct via Ollama's OpenAI-compatible API.
+Uses qwen3:14b via Ollama's OpenAI-compatible API.
 Falls back to stub_planner on LLM failure.
 """
 from __future__ import annotations
@@ -20,9 +20,89 @@ from llm_nephio_oran.validators.schema_validate import validate_json_instance
 logger = logging.getLogger(__name__)
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:14b-instruct-q4_K_M")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:14b")
 OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "120"))
+OLLAMA_STRUCTURED = os.getenv("OLLAMA_STRUCTURED", "true").lower() == "true"
 SCHEMA_PATH = "schemas/intent-plan.schema.json"
+
+# Simplified schema for Ollama structured output (no allOf/if/then/format which Ollama can't handle)
+_OLLAMA_FORMAT_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "required": ["intentId", "intentType", "actions", "policy"],
+    "properties": {
+        "intentId": {"type": "string"},
+        "intentType": {"type": "string", "enum": ["slice.deploy", "slice.scale", "closedloop.act", "config.update"]},
+        "description": {"type": "string"},
+        "slice": {
+            "type": "object",
+            "required": ["sliceType", "name", "site"],
+            "properties": {
+                "sliceType": {"type": "string", "enum": ["eMBB", "URLLC", "mMTC", "shared"]},
+                "name": {"type": "string"},
+                "site": {"type": "string", "enum": ["edge01", "edge02", "regional", "central", "lab"]},
+            },
+        },
+        "constraints": {
+            "type": "object",
+            "properties": {
+                "maxReplicas": {"type": "integer"},
+                "minReplicas": {"type": "integer"},
+                "allowedNamespaces": {"type": "array", "items": {"type": "string"}},
+            },
+        },
+        "actions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["kind", "component"],
+                "properties": {
+                    "kind": {"type": "string", "enum": ["deploy", "scale", "configure", "promote", "rollback"]},
+                    "component": {"type": "string", "enum": [
+                        "oai-odu", "oai-ocu", "oai-cu-cp", "oai-cu-up",
+                        "free5gc-upf", "free5gc-smf", "free5gc-amf",
+                        "ric-kpimon", "ric-ts", "sim-e2", "trafficgen",
+                    ]},
+                    "replicas": {"type": "integer"},
+                    "naming": {
+                        "type": "object",
+                        "properties": {
+                            "domain": {"type": "string", "enum": ["ran", "core", "ric", "sim", "obs"]},
+                            "site": {"type": "string", "enum": ["edge01", "edge02", "regional", "central", "lab"]},
+                            "slice": {"type": "string", "enum": ["embb", "urllc", "mmtc", "shared"]},
+                            "instance": {"type": "string"},
+                        },
+                    },
+                },
+            },
+        },
+        "policy": {
+            "type": "object",
+            "required": ["requireHumanReview", "guardrails"],
+            "properties": {
+                "requireHumanReview": {"type": "boolean"},
+                "guardrails": {
+                    "type": "object",
+                    "required": ["denyClusterScoped", "denyPrivileged", "denyHostNetwork"],
+                    "properties": {
+                        "denyClusterScoped": {"type": "boolean"},
+                        "denyPrivileged": {"type": "boolean"},
+                        "denyHostNetwork": {"type": "boolean"},
+                        "denyCRDChanges": {"type": "boolean"},
+                        "denyRBACChanges": {"type": "boolean"},
+                    },
+                },
+            },
+        },
+        "metadata": {
+            "type": "object",
+            "properties": {
+                "createdAt": {"type": "string"},
+                "createdBy": {"type": "string"},
+                "source": {"type": "string", "enum": ["cli", "web", "tmf921"]},
+            },
+        },
+    },
+}
 
 SYSTEM_PROMPT = """\
 You are an O-RAN/5G network intent planner. Given a natural-language intent, produce a JSON object conforming EXACTLY to the IntentPlan schema.
@@ -55,6 +135,7 @@ You are an O-RAN/5G network intent planner. Given a natural-language intent, pro
 5. Default site is "lab", default slice is "embb", default instance is "i001".
 6. Always set policy.requireHumanReview=true and all guardrails=true for safety.
 7. Set maxReplicas to 5 unless explicitly stated (ADR-010 guard rail).
+8. If the intent mentions "traffic steering", "handover", "steer traffic", or "load balancing between cells", use intentType "closedloop.act" with kind "configure" and component "ric-ts". Include params with "threshold" (integer 0-100, default 5).
 
 Output ONLY the JSON object. No markdown fences, no explanation, no extra text.
 """
@@ -91,6 +172,21 @@ FEW_SHOT_EXAMPLES = [
             "metadata": {"createdAt": "2026-03-05T00:00:00Z", "createdBy": "intentctl", "source": "cli"},
         },
     },
+    {
+        "input": "Enable traffic steering with 10% threshold for edge01",
+        "output": {
+            "intentId": "intent-20260305-0003",
+            "intentType": "closedloop.act",
+            "description": "Enable traffic steering with 10% threshold for edge01",
+            "slice": {"sliceType": "eMBB", "name": "embb-edge01-001", "site": "edge01"},
+            "constraints": {"minReplicas": 1, "maxReplicas": 5, "allowedNamespaces": ["ric"]},
+            "actions": [
+                {"kind": "configure", "component": "ric-ts", "params": {"threshold": 10}, "naming": {"domain": "ric", "site": "edge01", "slice": "embb", "instance": "i001"}},
+            ],
+            "policy": {"requireHumanReview": True, "guardrails": {"denyClusterScoped": True, "denyPrivileged": True, "denyHostNetwork": True, "denyCRDChanges": True, "denyRBACChanges": True}},
+            "metadata": {"createdAt": "2026-03-05T00:00:00Z", "createdBy": "intentctl", "source": "cli"},
+        },
+    },
 ]
 
 
@@ -105,8 +201,10 @@ def _build_prompt(text: str) -> list[dict[str, str]]:
 
 
 def _extract_json(raw: str) -> dict[str, Any]:
-    """Extract JSON from LLM response, handling markdown fences."""
+    """Extract JSON from LLM response, handling markdown fences and think tags."""
     raw = raw.strip()
+    # Strip Qwen3-style <think>...</think> reasoning blocks if present
+    raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
     if raw.startswith("```"):
         raw = re.sub(r"^```(?:json)?\s*\n?", "", raw)
         raw = re.sub(r"\n?```\s*$", "", raw)
@@ -141,24 +239,43 @@ def _fix_metadata(plan: dict[str, Any]) -> dict[str, Any]:
     return plan
 
 
-def plan_from_text(text: str, use_llm: bool = True) -> dict[str, Any]:
-    """Convert natural-language intent to IntentPlan JSON.
+def _call_structured(text: str) -> dict[str, Any] | None:
+    """Call Ollama native API with structured output (JSON schema constraint).
 
-    Args:
-        text: Natural language intent string.
-        use_llm: If True, call Ollama LLM. If False, use deterministic stub.
-
-    Returns:
-        Schema-valid IntentPlan dict.
-
-    Raises:
-        ValueError: If the plan fails schema validation after all attempts.
+    Returns parsed plan dict, or None on failure.
     """
-    if not use_llm:
-        from llm_nephio_oran.planner.stub_planner import plan_from_text as stub_plan
-        return stub_plan(text)
+    messages = _build_prompt(text)
+    # Prepend /no_think to user message to disable Qwen3 thinking mode for structured output
+    messages[-1] = {"role": "user", "content": f"/no_think\n{messages[-1]['content']}"}
 
-    logger.info("Calling Ollama (%s) model=%s for intent: %s", OLLAMA_BASE_URL, OLLAMA_MODEL, text[:80])
+    try:
+        resp = requests.post(
+            f"{OLLAMA_BASE_URL}/api/chat",
+            json={
+                "model": OLLAMA_MODEL,
+                "messages": messages,
+                "format": _OLLAMA_FORMAT_SCHEMA,
+                "stream": False,
+                "options": {"num_predict": 4096, "temperature": 0.1},
+            },
+            timeout=OLLAMA_TIMEOUT,
+        )
+        resp.raise_for_status()
+        content = resp.json()["message"]["content"]
+        if not content:
+            logger.warning("Structured output returned empty content")
+            return None
+        return json.loads(content)
+    except Exception:
+        logger.warning("Structured output call failed", exc_info=True)
+        return None
+
+
+def _call_freeform(text: str) -> dict[str, Any] | None:
+    """Call Ollama via OpenAI-compatible API (freeform text, then extract JSON).
+
+    Returns parsed plan dict, or None on failure.
+    """
     messages = _build_prompt(text)
 
     try:
@@ -176,14 +293,47 @@ def plan_from_text(text: str, use_llm: bool = True) -> dict[str, Any]:
         raw = resp.json()["choices"][0]["message"]["content"]
         logger.debug("LLM raw response: %s", raw[:500])
     except Exception:
-        logger.exception("LLM call failed, falling back to stub planner")
+        logger.warning("Freeform LLM call failed", exc_info=True)
+        return None
+
+    try:
+        return _extract_json(raw)
+    except json.JSONDecodeError:
+        logger.warning("LLM returned invalid JSON in freeform mode")
+        return None
+
+
+def plan_from_text(text: str, use_llm: bool = True) -> dict[str, Any]:
+    """Convert natural-language intent to IntentPlan JSON.
+
+    Args:
+        text: Natural language intent string.
+        use_llm: If True, call Ollama LLM. If False, use deterministic stub.
+
+    Returns:
+        Schema-valid IntentPlan dict.
+
+    Raises:
+        ValueError: If the plan fails schema validation after all attempts.
+    """
+    if not use_llm:
         from llm_nephio_oran.planner.stub_planner import plan_from_text as stub_plan
         return stub_plan(text)
 
-    try:
-        plan = _extract_json(raw)
-    except json.JSONDecodeError:
-        logger.error("LLM returned invalid JSON, falling back to stub planner")
+    logger.info("Calling Ollama (%s) model=%s structured=%s for: %s",
+                OLLAMA_BASE_URL, OLLAMA_MODEL, OLLAMA_STRUCTURED, text[:80])
+
+    plan = None
+    if OLLAMA_STRUCTURED:
+        plan = _call_structured(text)
+        if plan is not None:
+            logger.info("Structured output produced plan, validating...")
+
+    if plan is None:
+        plan = _call_freeform(text)
+
+    if plan is None:
+        logger.error("Both structured and freeform calls failed, falling back to stub")
         from llm_nephio_oran.planner.stub_planner import plan_from_text as stub_plan
         return stub_plan(text)
 
